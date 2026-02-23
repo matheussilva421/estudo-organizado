@@ -1,0 +1,4326 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estudo Organizado</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --sidebar-bg: #1a2035;
+  --sidebar-hover: #252d47;
+  --sidebar-active: #2d3a5c;
+  --accent: #10b981;
+  --accent-light: #d1fae5;
+  --accent-dark: #059669;
+  --blue: #3b82f6;
+  --orange: #f59e0b;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --sidebar-text: #94a3b8;
+  --sidebar-active-text: #ffffff;
+  --status-agendado: #3b82f6;
+  --status-estudei: #10b981;
+  --status-atrasado: #ef4444;
+  --status-nao: #94a3b8;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+}
+
+/* Fix F: Dark mode ÔÇö toggled via data-theme="dark" on <html> */
+[data-theme="dark"] {
+  --bg:              #0f172a;
+  --card:            #1e293b;
+  --border:          #334155;
+  --text-primary:    #f1f5f9;
+  --text-secondary:  #94a3b8;
+  --text-muted:      #64748b;
+  --accent-light:    #064e3b;
+  --accent-dark:     #34d399;
+  --shadow:          0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:       0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -1px rgba(0,0,0,0.3);
+  --shadow-lg:       0 10px 15px -3px rgba(0,0,0,0.5), 0 4px 6px -2px rgba(0,0,0,0.3);
+}
+[data-theme="dark"] .topbar { border-bottom-color: var(--border); }
+[data-theme="dark"] .form-control { background: #0f172a; color: var(--text-primary); border-color: var(--border); }
+[data-theme="dark"] .form-control:focus { border-color: var(--accent); background: #0f172a; }
+[data-theme="dark"] .modal { background: var(--card); }
+[data-theme="dark"] .modal-header { border-bottom-color: var(--border); }
+[data-theme="dark"] .search-box { background: #1e293b; border-color: var(--border); }
+[data-theme="dark"] .search-results { background: var(--card); border-color: var(--border); }
+[data-theme="dark"] .search-item:hover { background: #0f172a; }
+[data-theme="dark"] .cal-day { background: var(--card); border-color: var(--border); }
+[data-theme="dark"] .cal-day.today { background: #1e3a5f; }
+[data-theme="dark"] .cal-day.other-month { background: #0d1526; opacity: 0.7; }
+[data-theme="dark"] .cal-event-chip.agendado { background: #1e3a6b; color: #93c5fd; }
+[data-theme="dark"] .cal-event-chip.estudei { background: #064e3b; color: #6ee7b7; }
+[data-theme="dark"] .cal-event-chip.atrasado { background: #7f1d1d; color: #fca5a5; }
+[data-theme="dark"] select option { background: #1e293b; }
+[data-theme="dark"] .badge-green { background: #064e3b; color: #6ee7b7; }
+[data-theme="dark"] .badge-blue { background: #1e3a6b; color: #93c5fd; }
+[data-theme="dark"] .badge-gray { background: #334155; color: #94a3b8; }
+[data-theme="dark"] .config-row { border-bottom-color: var(--border); }
+[data-theme="dark"] .event-card:hover { background: #253347; }
+[data-theme="dark"] .tree-disc:hover,
+[data-theme="dark"] .tree-group-header:hover { background: #253347; }
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; }
+
+/* ÔöÇÔöÇ SIDEBAR MOBILE OVERLAY ÔöÇÔöÇ */
+#sidebar-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 99; opacity: 0; transition: opacity 0.25s;
+}
+#sidebar-overlay.open { opacity: 1; }
+
+/* SIDEBAR */
+#sidebar {
+  width: 240px; min-width: 240px; background: var(--sidebar-bg); display: flex; flex-direction: column;
+  padding: 0; overflow-y: auto; z-index: 100; transition: transform 0.3s;
+}
+.sidebar-logo {
+  padding: 20px 16px 16px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 8px;
+}
+.logo-icon {
+  width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), #0ea5e9);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.logo-text { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
+.logo-text span { color: var(--accent); }
+
+.sidebar-section { padding: 4px 8px; margin-bottom: 4px; }
+.sidebar-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px;
+  color: rgba(148,163,184,0.5); padding: 6px 8px 4px; margin-top: 8px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px;
+  cursor: pointer; color: var(--sidebar-text); font-size: 13.5px; font-weight: 500;
+  transition: all 0.15s; text-decoration: none; margin-bottom: 1px; position: relative;
+}
+.nav-item:hover { background: var(--sidebar-hover); color: #e2e8f0; }
+.nav-item.active { background: var(--accent); color: #fff; }
+.nav-item .icon { width: 18px; text-align: center; font-size: 14px; flex-shrink: 0; }
+.nav-item .badge {
+  margin-left: auto; background: var(--red); color: #fff; font-size: 10px;
+  font-weight: 700; padding: 1px 6px; border-radius: 20px; min-width: 18px; text-align: center;
+}
+.nav-item.active .badge { background: rgba(255,255,255,0.3); }
+
+.sidebar-drive {
+  margin-top: auto; padding: 12px; border-top: 1px solid rgba(255,255,255,0.06);
+}
+.drive-status {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px;
+  background: rgba(255,255,255,0.05); cursor: pointer; transition: background 0.15s;
+}
+.drive-status:hover { background: rgba(255,255,255,0.08); }
+.drive-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status-atrasado); flex-shrink: 0; }
+.drive-dot.connected { background: var(--accent); }
+.drive-dot.syncing { background: var(--orange); animation: pulse 1s infinite; }
+.drive-text { font-size: 11.5px; color: var(--sidebar-text); flex: 1; }
+.drive-text strong { display: block; color: #e2e8f0; font-size: 12px; margin-bottom: 1px; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* MAIN CONTENT */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar {
+  background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px;
+  height: 60px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+}
+.topbar-title { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+.topbar-subtitle { font-size: 13px; color: var(--text-secondary); margin-left: 4px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg); }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+#content { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* CARDS */
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+.card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-header h3 { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.card-body { padding: 20px; }
+
+/* STATS CARDS */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.stat-card {
+  background: var(--card); border-radius: var(--radius); padding: 18px 20px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.stat-card.green::before { background: var(--accent); }
+.stat-card.blue::before { background: var(--blue); }
+.stat-card.orange::before { background: var(--orange); }
+.stat-card.red::before { background: var(--red); }
+.stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.stat-value { font-size: 28px; font-weight: 800; color: var(--text-primary); line-height: 1; margin-bottom: 4px; }
+.stat-sub { font-size: 12px; color: var(--text-muted); }
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/* EVENT CARD */
+.event-card {
+  display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px;
+  border-radius: 10px; border: 1px solid var(--border); background: var(--card);
+  margin-bottom: 8px; transition: all 0.15s; cursor: pointer;
+}
+.event-card:hover { box-shadow: var(--shadow-md); border-color: #cbd5e1; }
+.event-stripe {
+  width: 4px; border-radius: 4px; align-self: stretch; flex-shrink: 0;
+  background: var(--status-agendado); min-height: 40px;
+}
+.event-stripe.estudei { background: var(--status-estudei); }
+.event-stripe.atrasado { background: var(--status-atrasado); }
+.event-stripe.nao { background: var(--status-nao); }
+.event-disc-icon {
+  width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
+  justify-content: center; font-size: 16px; flex-shrink: 0;
+}
+.event-info { flex: 1; min-width: 0; }
+.event-title { font-size: 13.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event-sub { font-size: 12px; color: var(--text-secondary); }
+.event-meta { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.event-tag {
+  font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 20px;
+  background: var(--accent-light); color: var(--accent-dark);
+}
+.event-tag.atrasado { background: #fee2e2; color: #dc2626; }
+.event-tag.estudei { background: #d1fae5; color: #059669; }
+.event-tag.nao { background: #f1f5f9; color: var(--text-muted); }
+.event-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.icon-btn {
+  width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; border: none; background: transparent;
+  color: var(--text-muted); font-size: 13px; transition: all 0.15s;
+}
+.icon-btn:hover { background: var(--bg); color: var(--text-primary); }
+.icon-btn.active { background: var(--accent); color: #fff; }
+
+/* TIMER */
+.timer-display {
+  font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500;
+  color: var(--text-primary); letter-spacing: 2px;
+}
+
+/* CALENDAR */
+.cal-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.cal-nav { display: flex; gap: 4px; }
+.cal-nav button {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--card); cursor: pointer; font-size: 12px; color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.cal-nav button:hover { background: var(--bg); }
+.cal-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.cal-view-tabs { display: flex; gap: 2px; background: var(--bg); border-radius: 8px; padding: 2px; }
+.cal-view-tab {
+  padding: 5px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; color: var(--text-secondary); transition: all 0.15s;
+}
+.cal-view-tab.active { background: var(--card); color: var(--text-primary); box-shadow: var(--shadow); }
+
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+.cal-dow {
+  background: var(--bg); padding: 8px 4px; text-align: center; font-size: 11px;
+  font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;
+}
+.cal-cell {
+  background: var(--card); min-height: 90px; padding: 6px; cursor: pointer; transition: background 0.1s;
+}
+.cal-cell:hover { background: #f8fafc; }
+.cal-cell.other-month { background: #fafafa; }
+.cal-cell.today { background: #eff6ff; }
+.cal-date {
+  font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+}
+.cal-cell.today .cal-date { background: var(--blue); color: #fff; }
+.cal-event-chip {
+  font-size: 10.5px; padding: 1px 6px; border-radius: 4px; margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;
+}
+.cal-event-chip.agendado { background: #dbeafe; color: #1d4ed8; }
+.cal-event-chip.estudei { background: #d1fae5; color: #065f46; }
+.cal-event-chip.atrasado { background: #fee2e2; color: #991b1b; }
+.cal-more { font-size: 10px; color: var(--accent); font-weight: 600; padding: 1px 4px; }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--card); border-radius: 16px; box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+  transform: translateY(20px) scale(0.98); transition: transform 0.2s;
+}
+.modal-overlay.open .modal { transform: translateY(0) scale(1); }
+.modal-header {
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-header h2 { font-size: 17px; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-muted); padding: 4px; }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* FORMS */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+.form-control {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+  font-family: inherit; font-size: 13.5px; color: var(--text-primary); background: var(--card);
+  transition: border-color 0.15s; outline: none;
+}
+.form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+.form-control select { appearance: none; }
+select.form-control { cursor: pointer; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* TABS */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+.tab-btn {
+  padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+  background: transparent; color: var(--text-secondary); border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: all 0.15s;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* PROGRESS BAR */
+.progress { background: var(--border); border-radius: 100px; height: 6px; overflow: hidden; }
+.progress-bar { height: 100%; border-radius: 100px; background: var(--accent); transition: width 0.3s; }
+.progress-bar.blue { background: var(--blue); }
+.progress-bar.orange { background: var(--orange); }
+
+/* BADGE */
+.badge { display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.badge-green { background: var(--accent-light); color: var(--accent-dark); }
+.badge-blue { background: #dbeafe; color: #1d4ed8; }
+.badge-orange { background: #fef3c7; color: #d97706; }
+.badge-red { background: #fee2e2; color: #dc2626; }
+.badge-gray { background: #f1f5f9; color: var(--text-secondary); }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+.empty-state h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--text-secondary); }
+.empty-state p { font-size: 13px; }
+
+/* DISCIPLINE COLOR CIRCLES */
+.disc-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+/* TOGGLE */
+.toggle-wrap { display: flex; align-items: center; gap: 10px; }
+.toggle {
+  width: 40px; height: 22px; background: var(--border); border-radius: 100px;
+  position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+  border-radius: 50%; background: #fff; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle.on::after { left: 21px; }
+
+/* SECTION HEADER */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-header h2 { font-size: 16px; font-weight: 700; }
+
+/* DRAG HANDLES */
+.drag-handle { color: var(--text-muted); cursor: grab; font-size: 14px; padding: 4px; }
+.drag-handle:active { cursor: grabbing; }
+
+/* UX 3 ÔÇö DRAG AND DROP ASSUNTOS */
+.tree-assunto[draggable] { cursor: default; }
+.tree-assunto.drag-over { background: var(--accent-light) !important; border-top: 2px solid var(--accent); }
+.tree-assunto.dragging { opacity: 0.35; background: #f8fafc; }
+.drag-handle-icon { color: var(--text-muted); font-size: 11px; padding: 0 3px 0 0; cursor: grab; flex-shrink: 0; user-select: none; }
+.drag-handle-icon:active { cursor: grabbing; }
+
+/* HABIT CARDS */
+.habit-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.habit-card {
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
+  text-align: center;
+}
+.habit-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); }
+.habit-card .hc-icon { font-size: 24px; margin-bottom: 8px; }
+.habit-card .hc-label { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
+.habit-card .hc-count { font-size: 22px; font-weight: 800; color: var(--text-primary); margin-top: 4px; }
+.habit-card .hc-sub { font-size: 11px; color: var(--text-muted); }
+
+/* TOAST */
+.toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--text-primary); color: #fff; padding: 12px 18px; border-radius: 10px;
+  font-size: 13.5px; font-weight: 500; display: flex; align-items: center; gap: 10px;
+  box-shadow: var(--shadow-lg); transform: translateX(120%); transition: transform 0.3s;
+  max-width: 320px;
+}
+.toast.show { transform: translateX(0); }
+.toast.success { background: var(--accent-dark); }
+.toast.error { background: #dc2626; }
+.toast.info { background: #1d4ed8; }
+
+/* REVISOES */
+.rev-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  border-radius: 10px; border: 1px solid var(--border); background: var(--card); margin-bottom: 8px;
+}
+.rev-days {
+  width: 44px; height: 44px; border-radius: 10px; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex-shrink: 0; font-weight: 700; color: var(--text-primary);
+}
+.rev-days .num { font-size: 18px; line-height: 1; }
+.rev-days .label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+.rev-days.overdue { background: #fee2e2; color: var(--red); }
+.rev-days.today { background: var(--accent-light); color: var(--accent-dark); }
+
+/* EDITAL TREE */
+.edital-tree { }
+.tree-edital { margin-bottom: 16px; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+.tree-edital-header {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  background: var(--sidebar-bg); color: #fff; cursor: pointer;
+}
+.tree-group { border-top: 1px solid var(--border); }
+.tree-group-header {
+  display: flex; align-items: center; gap: 10px; padding: 10px 16px; padding-left: 32px;
+  background: #f8fafc; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.tree-disc {
+  display: flex; align-items: center; gap: 10px; padding: 8px 16px; padding-left: 48px;
+  border-top: 1px solid var(--border); font-size: 13px; cursor: pointer;
+  transition: background 0.1s;
+}
+.tree-disc:hover { background: var(--bg); }
+.tree-assunto {
+  display: flex; align-items: center; gap: 8px; padding: 6px 16px; padding-left: 64px;
+  border-top: 1px solid var(--border); font-size: 12.5px; color: var(--text-secondary);
+}
+.tree-assunto.done { color: var(--text-muted); text-decoration: line-through; }
+.check-circle {
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border);
+  flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.check-circle.done { background: var(--accent); border-color: var(--accent); color: #fff; font-size: 10px; }
+.check-circle:hover { border-color: var(--accent); }
+
+/* CONFIGURACOES */
+.config-section { margin-bottom: 24px; }
+.config-section h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.config-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.config-row:last-child { border-bottom: none; }
+.config-label { font-size: 13.5px; font-weight: 500; }
+.config-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* COLOR PICKER SWATCH */
+.color-swatch {
+  width: 24px; height: 24px; border-radius: 6px; cursor: pointer; border: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+.color-swatch.selected { border-color: var(--text-primary); }
+.color-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* DRIVE MODAL */
+.drive-guide { background: var(--bg); border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; }
+.drive-guide p { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 4px; }
+.drive-guide code { font-family: 'DM Mono', monospace; font-size: 11px; background: var(--border); padding: 1px 4px; border-radius: 3px; }
+
+/* CHART CONTAINER */
+.chart-wrap { position: relative; height: 220px; }
+
+/* FILTER ROW */
+.filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-chip {
+  padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--card);
+  font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: all 0.15s;
+}
+.filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* RESPONSIVE ADJUSTMENTS */
+.event-type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.event-type-card {
+  border: 2px solid var(--border); border-radius: 10px; padding: 12px;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.event-type-card:hover { border-color: var(--accent); }
+.event-type-card.selected { border-color: var(--accent); background: var(--accent-light); }
+.event-type-card .et-icon { font-size: 20px; margin-bottom: 6px; }
+.event-type-card .et-label { font-size: 12px; font-weight: 600; }
+.event-type-card .et-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* ÔöÇÔöÇ SEARCH BAR ÔöÇÔöÇ */
+.search-wrap {
+  position: relative; flex: 1; max-width: 360px;
+}
+.search-input {
+  width: 100%; padding: 7px 12px 7px 36px; border: 1px solid var(--border);
+  border-radius: 8px; font-family: inherit; font-size: 13px; background: var(--bg);
+  color: var(--text-primary); outline: none; transition: border-color 0.15s;
+}
+.search-input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; pointer-events: none; }
+.search-results {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #fff;
+  border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-lg);
+  z-index: 200; max-height: 380px; overflow-y: auto; display: none;
+}
+.search-results.open { display: block; }
+.search-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); padding: 8px 14px 4px; }
+.search-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer;
+  transition: background 0.1s; border-bottom: 1px solid var(--border);
+}
+.search-item:last-child { border-bottom: none; }
+.search-item:hover { background: var(--bg); }
+.search-item-icon { font-size: 16px; flex-shrink: 0; }
+.search-item-label { font-size: 13px; font-weight: 600; }
+.search-item-sub { font-size: 11px; color: var(--text-secondary); }
+.search-empty { padding: 20px; text-align: center; font-size: 13px; color: var(--text-muted); }
+mark { background: #fef08a; border-radius: 2px; padding: 0 1px; }
+
+/* ÔöÇÔöÇ MOBILE HAMBURGER ÔöÇÔöÇ */
+.hamburger {
+  display: none; background: none; border: none; cursor: pointer; padding: 6px;
+  color: var(--text-secondary); font-size: 18px; flex-shrink: 0;
+}
+
+/* ÔöÇÔöÇ RESPONSIVE ÔöÇÔöÇ */
+@media (max-width: 768px) {
+  #sidebar {
+    position: fixed; top: 0; left: 0; height: 100vh;
+    transform: translateX(-100%); z-index: 200;
+  }
+  #sidebar.open { transform: translateX(0); }
+  #sidebar-overlay { display: block; pointer-events: none; }
+  #sidebar-overlay.open { pointer-events: all; }
+  .hamburger { display: flex; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .habit-grid { grid-template-columns: 1fr 1fr; }
+  #content { padding: 14px; }
+  .topbar { padding: 0 14px; gap: 10px; }
+  .topbar-subtitle { display: none; }
+  .search-wrap { max-width: none; flex: 1; }
+  .cal-grid { font-size: 11px; }
+  .cal-cell { min-height: 60px; padding: 4px; }
+  .modal { max-width: calc(100vw - 32px) !important; margin: 0 auto; }
+  .form-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .habit-grid { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .topbar-title { font-size: 15px; }
+  .btn span, .btn i { font-size: 12px; }
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* LOADING */
+.loading { display: flex; align-items: center; justify-content: center; height: 200px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Highlight today's date */
+.today-highlight { background: linear-gradient(135deg, #eff6ff, #e0f2fe); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR MOBILE OVERLAY -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">­ƒôÜ</div>
+    <div class="logo-text">Estudo<br><span>Organizado</span></div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Principal</div>
+    <div class="nav-item active" data-view="home" onclick="navigate('home')">
+      <span class="icon">­ƒÅá</span> P├ígina Inicial
+    </div>
+    <div class="nav-item" data-view="med" onclick="navigate('med')">
+      <span class="icon">ÔÅ▒´©Å</span> Meu Estudo Di├írio
+      <span class="badge" id="badge-med">0</span>
+    </div>
+    <div class="nav-item" data-view="calendar" onclick="navigate('calendar')">
+      <span class="icon">­ƒôà</span> Calend├írio
+    </div>
+    <div class="nav-item" data-view="dashboard" onclick="navigate('dashboard')">
+      <span class="icon">­ƒôè</span> Dashboard
+    </div>
+    <div class="nav-item" data-view="revisoes" onclick="navigate('revisoes')">
+      <span class="icon">­ƒöä</span> Revis├Áes
+      <span class="badge" id="badge-rev">0</span>
+    </div>
+    <div class="nav-item" data-view="habitos" onclick="navigate('habitos')">
+      <span class="icon">ÔÜí</span> H├íbitos
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Gerenciar</div>
+    <div class="nav-item" data-view="editais" onclick="navigate('editais')">
+      <span class="icon">­ƒôï</span> Editais
+    </div>
+    <div class="nav-item" data-view="vertical" onclick="navigate('vertical')">
+      <span class="icon">­ƒôæ</span> Ed. Verticalizado
+    </div>
+    <div class="nav-item" data-view="config" onclick="navigate('config')">
+      <span class="icon">ÔÜÖ´©Å</span> Configura├º├Áes
+    </div>
+  </div>
+
+  <div class="sidebar-drive">
+    <div class="drive-status" onclick="openDriveModal()">
+      <div class="drive-dot" id="drive-dot"></div>
+      <div class="drive-text">
+        <strong id="drive-label">Google Drive</strong>
+        <span id="drive-sublabel">Clique para conectar</span>
+      </div>
+      <i class="fa fa-cloud" style="color: rgba(148,163,184,0.5); font-size:14px;"></i>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">Ôÿ░</button>
+    <div>
+      <div class="topbar-title" id="topbar-title">P├ígina Inicial</div>
+      <div class="topbar-subtitle" id="topbar-date"></div>
+    </div>
+    <div class="topbar-right" id="topbar-actions"></div>
+    <!-- Fix F: Dark mode toggle ÔÇö always visible in topbar -->
+    <button id="theme-toggle-btn" onclick="applyTheme(true);renderCurrentView()"
+      class="btn btn-ghost btn-sm" style="order:1;white-space:nowrap;" title="Alternar tema claro/escuro">
+      ­ƒîÖ Modo escuro
+    </button>
+    <!-- UX 1: Global Search -->
+    <div class="search-wrap" style="order:-1;margin-right:8px;">
+      <i class="fa fa-search search-icon"></i>
+      <input class="search-input" id="global-search" placeholder="Buscar eventos, assuntos, h├íbitos..." autocomplete="off"
+        oninput="onSearch(this.value)" onfocus="onSearchFocus()" onblur="onSearchBlur()">
+      <div class="search-results" id="search-results"></div>
+    </div>
+  </div>
+  <div id="content">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- MODALS -->
+
+<!-- Fix B: CONFIRM MODAL ÔÇö replaces all browser confirm() dialogs -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header" style="padding:16px 20px 12px;">
+      <h3 id="confirm-title" style="font-size:16px;font-weight:700;margin:0;">Confirmar</h3>
+    </div>
+    <div class="modal-body" style="padding:12px 20px 16px;">
+      <p id="confirm-msg" style="font-size:14px;color:var(--text-secondary);margin:0;line-height:1.6;white-space:pre-line;"></p>
+    </div>
+    <div style="padding:12px 20px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);">
+      <button class="btn btn-ghost btn-sm" id="confirm-cancel-btn" aria-label="Cancelar">Cancelar</button>
+      <button class="btn btn-sm" id="confirm-ok-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EVENT MODAL -->
+<div class="modal-overlay" id="modal-event">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <h2 id="modal-event-title">Adicionar Evento de Estudo</h2>
+      <button class="modal-close" onclick="closeModal('modal-event')" aria-label="Fechar" title="Fechar">├ù</button>
+    </div>
+    <div class="modal-body" id="modal-event-body">
+    </div>
+  </div>
+</div>
+
+<!-- EDITAL MODAL -->
+<div class="modal-overlay" id="modal-edital">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-edital-title">Novo Edital</h2>
+      <button class="modal-close" onclick="closeModal('modal-edital')" aria-label="Fechar" title="Fechar">├ù</button>
+    </div>
+    <div class="modal-body" id="modal-edital-body">
+    </div>
+  </div>
+</div>
+
+<!-- DISCIPLINE MODAL -->
+<div class="modal-overlay" id="modal-disc">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-disc-title">Nova Disciplina</h2>
+      <button class="modal-close" onclick="closeModal('modal-disc')" aria-label="Fechar" title="Fechar">├ù</button>
+    </div>
+    <div class="modal-body" id="modal-disc-body">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-disc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDisc()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBJECT MODAL -->
+<div class="modal-overlay" id="modal-subject">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Adicionar Assuntos</h2>
+      <button class="modal-close" onclick="closeModal('modal-subject')" aria-label="Fechar" title="Fechar">├ù</button>
+    </div>
+    <div class="modal-body" id="modal-subject-body">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-subject')">Fechar</button>
+      <button class="btn btn-primary" onclick="saveSubjects()">Salvar Assuntos</button>
+    </div>
+  </div>
+</div>
+
+<!-- HABIT MODAL -->
+<div class="modal-overlay" id="modal-habit">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-habit-title">Registrar H├íbito</h2>
+      <button class="modal-close" onclick="closeModal('modal-habit')" aria-label="Fechar" title="Fechar">├ù</button>
+    </div>
+    <div class="modal-body" id="modal-habit-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-habit')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveHabit()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- DRIVE MODAL -->
+<div class="modal-overlay" id="modal-drive">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Sincroniza├º├úo com Google Drive</h2>
+      <button class="modal-close" onclick="closeModal('modal-drive')" aria-label="Fechar" title="Fechar">├ù</button>
+    </div>
+    <div class="modal-body" id="modal-drive-body">
+      <div class="drive-guide">
+        <p>Para sincronizar seus dados com o Google Drive:</p>
+        <p>1. Acesse <strong>console.cloud.google.com</strong></p>
+        <p>2. Crie um projeto e habilite a <strong>Google Drive API</strong></p>
+        <p>3. Crie credenciais OAuth 2.0 (Aplicativo Web)</p>
+        <p>4. Adicione seu dom├¡nio como URL autorizada</p>
+        <p>5. Cole o <strong>Client ID</strong> abaixo</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Google OAuth Client ID</label>
+        <input type="text" class="form-control" id="drive-client-id" placeholder="123456789-xxx.apps.googleusercontent.com">
+      </div>
+      <div id="drive-status-area"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-drive')">Fechar</button>
+      <button class="btn btn-primary" id="drive-action-btn" onclick="driveAction()">Conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EVENT DETAIL MODAL -->
+<div class="modal-overlay" id="modal-event-detail">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="med-detail-title">Detalhes do Evento</h2>
+      <button class="modal-close" onclick="closeModal('modal-event-detail')" aria-label="Fechar" title="Fechar">├ù</button>
+    </div>
+    <div class="modal-body" id="modal-event-detail-body"></div>
+  </div>
+</div>
+
+<script>
+// =============================================
+// APP STATE & DATA
+// =============================================
+const COLORS = ['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16','#06b6d4','#a855f7'];
+const DISC_ICONS = ['­ƒôû','­ƒôØ','ÔÜû´©Å','­ƒº«','­ƒÆ░','­ƒîì','­ƒÅø´©Å','­ƒö¼','­ƒôÉ','­ƒù║´©Å','­ƒÆ╗','­ƒÄ»','­ƒôÜ','­ƒÅÑ','Ô£ì´©Å','­ƒî▒'];
+const HABIT_TYPES = [
+  { key: 'questoes', label: 'Quest├Áes', icon: 'ÔØô', color: '#8b5cf6', desc: 'Registrar resolu├º├úo de quest├Áes' },
+  { key: 'revisao', label: 'Revis├úo Manual', icon: '­ƒöä', color: '#3b82f6', desc: 'Revis├úo manual de conte├║do' },
+  { key: 'discursiva', label: 'Discursiva', icon: 'Ô£ì´©Å', color: '#f59e0b', desc: 'Treinar reda├º├úo discursiva' },
+  { key: 'simulado', label: 'Simulado', icon: '­ƒôï', color: '#ef4444', desc: 'Fazer simulado completo' },
+  { key: 'leitura', label: 'Leitura', icon: '­ƒôû', color: '#10b981', desc: 'Ler legisla├º├úo ou livro' },
+  { key: 'informativo', label: 'Informativo', icon: '­ƒô░', color: '#14b8a6', desc: 'Estudar informativos' },
+  { key: 'sumula', label: 'S├║mulas', icon: 'ÔÜû´©Å', color: '#6366f1', desc: 'Estudar s├║mulas' },
+];
+
+// Fix 9: Schema version ÔÇö increment when state shape changes to trigger migration
+const SCHEMA_VERSION = 3;
+
+let state = {
+  schemaVersion: SCHEMA_VERSION,
+  editais: [],
+  eventos: [],
+  arquivo: [],  // Fix 7: concluded events older than 90 days live here
+  habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [] },
+  revisoes: [],
+  config: {
+    visualizacao: 'mes',
+    primeirodiaSemana: 1,
+    mostrarNumeroSemana: false,
+    agruparEventos: true,
+    coresEventos: 'disciplina',
+    frequenciaRevisao: [1, 7, 30, 90],
+    clientId: '',
+    driveConnected: false,
+    driveToken: null,
+    driveFileId: null,
+    darkMode: false,      // Fix F: persisted theme preference
+  }
+};
+
+let currentView = 'home';
+let calDate = new Date();
+let calViewMode = 'mes';
+let timerIntervals = {};   // eventId ÔåÆ intervalId  (purely UI tickers)
+let editingEventId = null;
+let editingDiscCtx = null; // { editaId, grupoId }
+let editingSubjectCtx = null; // { editaId, grupoId, discId }
+let currentHabitType = null;
+
+// =============================================
+// PERSISTENCE
+// =============================================
+function saveLocal() {
+  try {
+    // Fix 1: Never persist _timerStart ÔÇö flush elapsed time into tempoAcumulado first
+    const snapshot = JSON.parse(JSON.stringify(state)); // deep clone
+    snapshot.eventos.forEach(ev => {
+      if (ev._timerStart) {
+        ev.tempoAcumulado = (ev.tempoAcumulado || 0) + Math.floor((Date.now() - ev._timerStart) / 1000);
+        delete ev._timerStart; // strip from snapshot only ÔÇö live state keeps it
+      }
+    });
+    localStorage.setItem('estudo-organizado', JSON.stringify(snapshot));
+  } catch(e) {
+    // Fix 11: Visible error when localStorage is full
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      showToast('ÔÜá´©Å Armazenamento local cheio! Exporte seus dados nas Configura├º├Áes.', 'error');
+      // Try a stripped save as fallback (remove old concluded events from snapshot)
+      try {
+        const snapshot2 = JSON.parse(JSON.stringify(state));
+        const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 6);
+        const cutoffStr = cutoff.toISOString().split('T')[0];
+        snapshot2.eventos = snapshot2.eventos.filter(e => !e.status === 'estudei' || e.data >= cutoffStr);
+        snapshot2.eventos.forEach(ev => { if (ev._timerStart) { ev.tempoAcumulado = (ev.tempoAcumulado||0) + Math.floor((Date.now()-ev._timerStart)/1000); delete ev._timerStart; } });
+        localStorage.setItem('estudo-organizado', JSON.stringify(snapshot2));
+        showToast('Dados antigos removidos para liberar espa├ºo.', 'info');
+      } catch(e2) { console.error('Save completely failed', e2); }
+    } else {
+      console.warn('Save failed', e);
+    }
+  }
+}
+
+// Fix 9: Migrate saved state from older schema versions to current shape.
+// Add a new `case` here whenever SCHEMA_VERSION is incremented.
+function migrateState(saved) {
+  const v = saved.schemaVersion || 1;
+
+  if (v < 2) {
+    // v1 ÔåÆ v2: events gained fontes and legislacao fields
+    (saved.eventos || []).forEach(ev => {
+      if (ev.fontes === undefined) ev.fontes = '';
+      if (ev.legislacao === undefined) ev.legislacao = '';
+    });
+    // v1 ÔåÆ v2: habitos gained sumula and informativo arrays
+    saved.habitos = saved.habitos || {};
+    if (!Array.isArray(saved.habitos.sumula)) saved.habitos.sumula = [];
+    if (!Array.isArray(saved.habitos.informativo)) saved.habitos.informativo = [];
+    // v1 ÔåÆ v2: config gained coresEventos
+    saved.config = saved.config || {};
+    if (!saved.config.coresEventos) saved.config.coresEventos = 'disciplina';
+    console.info('[migration] v1 ÔåÆ v2 applied');
+  }
+
+  if (v < 3) {
+    // v2 ÔåÆ v3: config gained darkMode (Fix F)
+    saved.config = saved.config || {};
+    if (saved.config.darkMode === undefined) saved.config.darkMode = false;
+    console.info('[migration] v2 ÔåÆ v3 applied');
+  }
+
+  saved.schemaVersion = SCHEMA_VERSION;
+  return saved;
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem('estudo-organizado');
+    if (raw) {
+      let saved = JSON.parse(raw);
+      // Fix 9: run migrations before merging
+      if ((saved.schemaVersion || 1) < SCHEMA_VERSION) {
+        saved = migrateState(saved);
+      }
+      // Fix 1: Wipe any stale _timerStart that survived (from old builds)
+      if (saved.eventos) {
+        saved.eventos.forEach(ev => { delete ev._timerStart; });
+      }
+      state = deepMerge(state, saved);
+    }
+  } catch(e) { console.warn('Load failed', e); }
+}
+
+function deepMerge(target, source) {
+  const result = { ...target };
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      result[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+}
+
+// Fix 6: HTML-escape user-supplied strings before innerHTML insertion (prevents XSS)
+function esc(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// =============================================
+// GOOGLE DRIVE SYNC
+// =============================================
+const DRIVE_FILE_NAME = 'estudo-organizado-data.json';
+let gisLoaded = false;
+// Tech 2: Token expiry management
+// Google tokens last ~3600s. We store expiry and refresh proactively.
+let _tokenExpiry = 0;
+
+function tokenIsValid() {
+  return state.config.driveToken && Date.now() < _tokenExpiry - 60000; // 60s buffer
+}
+
+function refreshToken() {
+  return new Promise((resolve, reject) => {
+    if (!tokenClient) { reject('No tokenClient'); return; }
+    // Override callback temporarily to capture new token
+    const originalCallback = tokenClient.callback;
+    tokenClient.callback = (resp) => {
+      if (resp.error) { reject(resp.error); return; }
+      state.config.driveToken = resp.access_token;
+      _tokenExpiry = Date.now() + (resp.expires_in || 3600) * 1000;
+      saveLocal();
+      updateDriveDot('connected');
+      resolve(resp.access_token);
+      tokenClient.callback = originalCallback;
+    };
+    tokenClient.requestAccessToken({ prompt: '' }); // '' = silent refresh
+  });
+}
+
+async function getValidToken() {
+  if (tokenIsValid()) return state.config.driveToken;
+  try {
+    return await refreshToken();
+  } catch(e) {
+    console.warn('Token refresh failed, disconnecting:', e);
+    state.config.driveConnected = false;
+    state.config.driveToken = null;
+    updateDriveUI();
+    showToast('Sess├úo do Drive expirou. Reconecte.', 'error');
+    return null;
+  }
+}
+
+let tokenClient = null;
+
+function loadGIS() {
+  if (gisLoaded) return;
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = () => { gisLoaded = true; initTokenClient(); };
+  document.head.appendChild(s);
+}
+
+function initTokenClient() {
+  if (!state.config.clientId) return;
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: state.config.clientId,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: async (resp) => {
+        if (resp.error) { showToast('Erro ao conectar: ' + resp.error, 'error'); return; }
+        state.config.driveToken = resp.access_token;
+        _tokenExpiry = Date.now() + (resp.expires_in || 3600) * 1000; // Tech 2: track expiry
+        state.config.driveConnected = true;
+        saveLocal();
+        updateDriveUI();
+        await syncToDrive();
+        closeModal('modal-drive');
+        showToast('Google Drive conectado!', 'success');
+      }
+    });
+  } catch(e) { console.warn('GIS init error', e); }
+}
+
+function driveAction() {
+  const cid = document.getElementById('drive-client-id').value.trim();
+  if (state.config.driveConnected) {
+    // Disconnect
+    state.config.driveConnected = false;
+    state.config.driveToken = null;
+    state.config.driveFileId = null;
+    saveLocal();
+    updateDriveUI();
+    closeModal('modal-drive');
+    showToast('Google Drive desconectado', 'info');
+    return;
+  }
+  if (!cid) { showToast('Informe o Client ID', 'error'); return; }
+  state.config.clientId = cid;
+  saveLocal();
+  loadGIS();
+  setTimeout(() => {
+    initTokenClient();
+    if (tokenClient) tokenClient.requestAccessToken();
+  }, 500);
+}
+
+// Fix C: Drive API helper ÔÇö checks HTTP status and throws descriptive errors
+async function driveRequest(url, opts = {}, token) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { 'Authorization': `Bearer ${token}`, ...(opts.headers || {}) }
+  });
+  if (!res.ok) {
+    const err = new Error(`HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res;
+}
+
+// Fix C+D: syncToDrive ÔÇö checks status codes, retries once on network failure
+let _syncRetryTimeout = null;
+async function syncToDrive(isRetry = false) {
+  if (!state.config.driveConnected) return;
+  const token = await getValidToken();
+  if (!token) return;
+  updateDriveDot('syncing');
+
+  try {
+    const payload = JSON.stringify(state);
+    let fileId = state.config.driveFileId;
+
+    // Locate existing file if we don't have a fileId
+    if (!fileId) {
+      const search = await driveRequest(
+        `https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}' and trashed=false&spaces=drive`,
+        {}, token
+      );
+      const res = await search.json();
+      if (res.files && res.files.length > 0) fileId = res.files[0].id;
+    }
+
+    if (fileId) {
+      // Fix C: PATCH ÔÇö check if file still exists (could have been deleted on Drive side)
+      try {
+        await driveRequest(
+          `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+          { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: payload },
+          token
+        );
+      } catch (patchErr) {
+        if (patchErr.status === 404) {
+          // File deleted on Drive side ÔÇö clear cached id and create fresh
+          fileId = null;
+          state.config.driveFileId = null;
+        } else {
+          throw patchErr; // re-throw for outer handler
+        }
+      }
+    }
+
+    if (!fileId) {
+      // Create new file
+      const meta = await driveRequest(
+        'https://www.googleapis.com/drive/v3/files',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: DRIVE_FILE_NAME, mimeType: 'application/json' }) },
+        token
+      );
+      const mres = await meta.json();
+      fileId = mres.id;
+      await driveRequest(
+        `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+        { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: payload },
+        token
+      );
+      state.config.driveFileId = fileId;
+    }
+
+    saveLocal();
+    updateDriveDot('connected');
+    const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('drive-sublabel').textContent = `Sincronizado ├ás ${nowStr}`;
+
+  } catch(e) {
+    console.warn('Drive sync error', e);
+
+    if (e.status === 401) {
+      // Fix C: Token expired mid-request ÔÇö force refresh and retry once
+      state.config.driveToken = null;
+      if (!isRetry) {
+        setTimeout(() => syncToDrive(true), 1000);
+        return;
+      }
+      updateDriveDot('error');
+      showToast('Sess├úo do Drive expirada. Reconecte nas Configura├º├Áes.', 'error');
+
+    } else if (!e.status) {
+      // Fix D: Network error ÔÇö retry once after 2s
+      updateDriveDot('error');
+      if (!isRetry) {
+        clearTimeout(_syncRetryTimeout);
+        _syncRetryTimeout = setTimeout(() => syncToDrive(true), 2000);
+        document.getElementById('drive-sublabel').textContent = 'Ret├®ntando...';
+        return;
+      }
+      showToast('Sem conex├úo com o Drive. Os dados est├úo salvos localmente.', 'error');
+
+    } else if (e.status === 403) {
+      updateDriveDot('error');
+      showToast('Sem permiss├úo no Drive. Verifique as configura├º├Áes do OAuth.', 'error');
+
+    } else if (e.status >= 500) {
+      // Fix D: Server error ÔÇö retry once
+      updateDriveDot('error');
+      if (!isRetry) {
+        clearTimeout(_syncRetryTimeout);
+        _syncRetryTimeout = setTimeout(() => syncToDrive(true), 3000);
+        return;
+      }
+      showToast('Servi├ºo do Drive indispon├¡vel. Tentando novamente depois.', 'error');
+
+    } else {
+      updateDriveDot('error');
+    }
+  }
+}
+
+// Fix C: loadFromDrive ÔÇö checks HTTP status and handles common errors
+async function loadFromDrive() {
+  if (!state.config.driveConnected || !state.config.driveFileId) return;
+  const token = await getValidToken();
+  if (!token) return;
+  try {
+    const res = await driveRequest(
+      `https://www.googleapis.com/drive/v3/files/${state.config.driveFileId}?alt=media`,
+      {}, token
+    );
+    const data = await res.json();
+    if (!data || typeof data !== 'object') {
+      showToast('Dados do Drive inv├ílidos.', 'error');
+      return;
+    }
+    state = data;
+    invalidateDiscCache();
+    invalidateRevCache();
+    invalidateTodayCache();
+    saveLocal();
+    renderCurrentView();
+    showToast('Dados carregados do Drive!', 'success');
+  } catch(e) {
+    if (e.status === 404) {
+      showToast('Arquivo n├úo encontrado no Drive. Reconecte nas Configura├º├Áes.', 'error');
+      state.config.driveFileId = null;
+      saveLocal();
+    } else if (e.status === 401) {
+      showToast('Sess├úo expirada. Reconecte o Drive.', 'error');
+    } else {
+      showToast('Erro ao carregar dados do Drive.', 'error');
+      console.warn('Drive load error', e);
+    }
+  }
+}
+
+function updateDriveDot(status) {
+  const dot = document.getElementById('drive-dot');
+  dot.className = 'drive-dot';
+  if (status === 'connected') dot.classList.add('connected');
+  else if (status === 'syncing') dot.classList.add('syncing');
+}
+
+function updateDriveUI() {
+  if (state.config.driveConnected) {
+    document.getElementById('drive-label').textContent = 'Google Drive';
+    document.getElementById('drive-sublabel').textContent = 'Conectado';
+    updateDriveDot('connected');
+  } else {
+    document.getElementById('drive-label').textContent = 'Google Drive';
+    document.getElementById('drive-sublabel').textContent = 'Clique para conectar';
+    updateDriveDot('disconnected');
+  }
+}
+
+function openDriveModal() {
+  const body = document.getElementById('modal-drive-body');
+  document.getElementById('drive-client-id').value = state.config.clientId || '';
+  const actionBtn = document.getElementById('drive-action-btn');
+  if (state.config.driveConnected) {
+    actionBtn.textContent = 'Desconectar';
+    actionBtn.className = 'btn btn-danger';
+  } else {
+    actionBtn.textContent = 'Conectar';
+    actionBtn.className = 'btn btn-primary';
+  }
+  openModal('modal-drive');
+}
+
+// =============================================
+// AUTO-SAVE
+// =============================================
+let saveTimeout = null;
+function scheduleSave() {
+  invalidateDiscCache();       // Fix 4
+  invalidateRevCache();        // Fix 12
+  invalidatePendingRevCache(); // Fix I: getPendingRevisoes result is stale after any state change
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveLocal();
+    if (state.config.driveConnected) syncToDrive();
+  }, 1500);
+}
+
+// =============================================
+// NAVIGATION
+// =============================================
+function navigate(view) {
+  currentView = view;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  renderCurrentView();
+}
+
+function renderCurrentView() {
+  updateTopbar();
+  updateBadges();
+  const content = document.getElementById('content');
+  switch(currentView) {
+    case 'home': renderHome(content); break;
+    case 'med': renderMED(content); break;
+    case 'calendar': renderCalendar(content); break;
+    case 'dashboard': renderDashboard(content); break;
+    case 'revisoes': renderRevisoes(content); break;
+    case 'habitos': renderHabitos(content); break;
+    case 'editais': renderEditais(content); break;
+    case 'vertical': renderVertical(content); break;
+    case 'config': renderConfig(content); break;
+    default: renderHome(content);
+  }
+  // Re-attach ticker intervals after every render so timers survive navigation
+  reattachTimers();
+}
+
+function updateTopbar() {
+  const titles = {
+    home: 'P├ígina Inicial', med: 'Meu Estudo Di├írio', calendar: 'Calend├írio',
+    dashboard: 'Dashboard', revisoes: 'Revis├Áes', habitos: 'H├íbitos',
+    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configura├º├Áes'
+  };
+  document.getElementById('topbar-title').textContent = titles[currentView] || '';
+
+  const now = new Date();
+  const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('topbar-date').textContent = now.toLocaleDateString('pt-BR', opts);
+
+  const actions = document.getElementById('topbar-actions');
+  if (currentView === 'home' || currentView === 'med') {
+    actions.innerHTML = `<button class="btn btn-primary" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
+  } else if (currentView === 'editais') {
+    actions.innerHTML = `<button class="btn btn-primary" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
+  } else if (currentView === 'habitos') {
+    actions.innerHTML = `<button class="btn btn-primary" onclick="openHabitModal(null)"><i class="fa fa-plus"></i> Registrar H├íbito</button>`;
+  } else if (currentView === 'calendar') {
+    actions.innerHTML = `<button class="btn btn-primary" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
+  } else {
+    actions.innerHTML = '';
+  }
+}
+
+function updateBadges() {
+  const today = todayStr();
+  const medCount = state.eventos.filter(e => e.data === today && e.status === 'agendado').length;
+  document.getElementById('badge-med').textContent = medCount;
+  document.getElementById('badge-med').style.display = medCount > 0 ? '' : 'none';
+
+  const pendingRevs = getPendingRevisoes().length;
+  document.getElementById('badge-rev').textContent = pendingRevs;
+  document.getElementById('badge-rev').style.display = pendingRevs > 0 ? '' : 'none';
+}
+
+// =============================================
+// HELPERS
+// =============================================
+// Fix 10: Cache today's date string ÔÇö avoids 26+ `new Date()` calls per render cycle.
+// The cache is a simple module-level variable invalidated at midnight by the existing
+// midnight-watcher setInterval, and also on-demand via invalidateTodayCache().
+let _todayCache = null;
+
+function invalidateTodayCache() { _todayCache = null; }
+
+function todayStr() {
+  if (!_todayCache) _todayCache = new Date().toISOString().split('T')[0];
+  return _todayCache;
+}
+
+function formatDate(str) {
+  if (!str) return '';
+  const d = new Date(str + 'T00:00:00');
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatTime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+
+
+function getAssunto(discId, assId) {
+  const d = getDisc(discId);
+  if (!d) return null;
+  return d.disc.assuntos.find(a => a.id === assId);
+}
+
+function getEventStatus(evento) {
+  const today = todayStr();
+  if (evento.status === 'estudei') return 'estudei';
+  if (!evento.data || evento.data > today) return 'agendado';
+  if (evento.data < today) return 'atrasado';
+  return 'agendado';
+}
+
+// Fix 2: Watch for date change (midnight crossing) and recompute statuses
+let _lastKnownDate = todayStr();
+setInterval(() => {
+  invalidateTodayCache(); // Fix 10: always flush before reading ÔÇö the interval IS the "new Date()" cost
+  const today = todayStr();
+  if (today !== _lastKnownDate) {
+    _lastKnownDate = today;
+    // Recompute atrasado status for all pending events
+    state.eventos.forEach(ev => {
+      if (ev.status !== 'estudei' && ev.data && ev.data < today) {
+        ev.status = 'atrasado';
+      }
+    });
+    scheduleSave();
+    renderCurrentView();
+    updateBadges();
+    showToast('Novo dia! Eventos atrasados atualizados.', 'info');
+  }
+}, 60000); // check every minute
+
+// Fix I: Memoize getPendingRevisoes ÔÇö 4 nested loops, called 3x per render cycle
+// (renderHome, updateBadges, scheduleNotifications). Cache invalidated by scheduleSave.
+let _pendingRevCache = null;
+function invalidatePendingRevCache() { _pendingRevCache = null; }
+
+function getPendingRevisoes() {
+  if (_pendingRevCache) return _pendingRevCache;
+  const today = todayStr();
+  const pending = [];
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      for (const disc of grupo.disciplinas) {
+        for (const ass of disc.assuntos) {
+          if (!ass.concluido || !ass.dataConclusao) continue;
+          const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
+          for (const rd of revDates) {
+            if (rd <= today) {
+              pending.push({ assunto: ass, disc, edital, data: rd });
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  _pendingRevCache = pending;
+  return pending;
+}
+
+// Fix 12: Memoize calcRevisionDates ÔÇö result is deterministic given the same inputs.
+// Key: dataConclusao + feitas.length + frequencia config string.
+// Pays the Date math cost only once per unique (assunto, revis├úo-count) pair.
+const _revDateCache = new Map();
+function invalidateRevCache() { _revDateCache.clear(); }
+
+function calcRevisionDates(dataConclusao, feitas) {
+  const freqs = state.config.frequenciaRevisao || [1, 7, 30, 90];
+  const cacheKey = `${dataConclusao}:${feitas.length}:${freqs.join(',')}`;
+  if (_revDateCache.has(cacheKey)) return _revDateCache.get(cacheKey);
+
+  const base = new Date(dataConclusao + 'T00:00:00');
+  const dates = freqs.slice(feitas.length).map(d => {
+    const dt = new Date(base);
+    dt.setDate(dt.getDate() + d);
+    return dt.toISOString().split('T')[0];
+  });
+  _revDateCache.set(cacheKey, dates);
+  return dates;
+}
+
+// Fix 4: Memoized getAllDisciplinas ÔÇö O(n) traversal paid once per action, not per render call
+// Fix A: Also builds _discIndex (Map discIdÔåÆ{disc,edital,grupo}) for O(1) getDisc() lookups.
+let _discCache = null;
+let _discIndex = null; // Fix A: Map<discId, {disc, edital, grupo}>
+function invalidateDiscCache() { _discCache = null; _discIndex = null; }
+
+function getAllDisciplinas() {
+  if (_discCache) return _discCache;
+  const result = [];
+  _discIndex = new Map();
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      for (const disc of grupo.disciplinas) {
+        const entry = { disc, edital, grupo };
+        result.push(entry);
+        _discIndex.set(disc.id, entry); // Fix A: index for O(1) getDisc
+      }
+    }
+  }
+  _discCache = result;
+  return result;
+}
+
+// Fix A: O(1) disc lookup via index (was 3 nested loops = O(n┬│))
+function getDisc(id) {
+  if (!_discIndex) getAllDisciplinas(); // warm cache if needed
+  return _discIndex.get(id) || null;
+}
+
+function totalStudySeconds(days = null) {
+  // Fix 2: compute cutoff once outside the filter
+  const cutoffStr = days ? cutoffDateStr(days) : null;
+  return state.eventos
+    .filter(e => e.status === 'estudei' && e.tempoAcumulado && (!cutoffStr || e.data >= cutoffStr))
+    .reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+}
+
+// Fix 2: single Date creation, returns ISO date string for direct string comparison
+function cutoffDateStr(days) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().split('T')[0];
+}
+
+function isWithinDays(dateStr, days) {
+  if (!dateStr) return false;
+  // Fix 2: compare ISO strings directly ÔÇö no Date object needed
+  return dateStr >= cutoffDateStr(days);
+}
+
+// =============================================
+// HOME VIEW
+// =============================================
+// =============================================
+// FEATURE 14 ÔÇö BROWSER NOTIFICATIONS
+// =============================================
+let _notifScheduled = new Set(); // track already-fired notification ids
+
+function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') {
+        showToast('Notifica├º├Áes ativadas! ­ƒöö', 'success');
+        scheduleNotifications(true); // force = first activation, skip throttle
+      }
+    });
+  }
+}
+
+function sendNotif(title, body, tag) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (_notifScheduled.has(tag)) return;
+  _notifScheduled.add(tag);
+  try {
+    const n = new Notification(title, {
+      body,
+      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">­ƒÄô</text></svg>',
+      tag,
+      requireInteraction: false
+    });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch(e) { /* silently ignore */ }
+}
+
+// Fix 8: Rate-limit scheduleNotifications ÔÇö prevents getPendingRevisoes() (4 nested loops)
+// from running on every tab switch. Minimum 30 minutes between full scheduling runs.
+let _lastNotifSchedule = 0;
+const NOTIF_THROTTLE_MS = 30 * 60 * 1000; // 30 minutes
+
+function scheduleNotifications(force = false) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = Date.now();
+  if (!force && now - _lastNotifSchedule < NOTIF_THROTTLE_MS) return; // Fix 8: throttled
+  _lastNotifSchedule = now;
+
+  const today = todayStr();
+  const _now = new Date();
+  const nowMins = _now.getHours() * 60 + _now.getMinutes();
+
+  // Notify about today's pending events
+  const pendHoje = state.eventos.filter(e => e.data === today && e.status !== 'estudei');
+  if (pendHoje.length > 0) {
+    setTimeout(() => {
+      sendNotif(
+        `­ƒôÜ ${pendHoje.length} evento(s) para hoje`,
+        pendHoje.slice(0, 3).map(e => e.titulo).join(' ÔÇó '),
+        `daily-${today}`
+      );
+    }, 5000);
+  }
+
+  // Notify about pending revisions ÔÇö getPendingRevisoes is the expensive call
+  const revs = getPendingRevisoes();
+  if (revs.length > 0) {
+    setTimeout(() => {
+      sendNotif(
+        `­ƒöä ${revs.length} revis├úo(├Áes) pendente(s)`,
+        revs.slice(0, 2).map(r => r.assunto.nome).join(', '),
+        `revs-${today}`
+      );
+    }, 8000);
+  }
+
+  // Schedule evening reminder at 20h (only once per session)
+  const eveningMins = 20 * 60;
+  if (nowMins < eveningMins) {
+    const msUntilEvening = (eveningMins - nowMins) * 60 * 1000;
+    setTimeout(() => {
+      const remainHoje = state.eventos.filter(e => e.data === todayStr() && e.status !== 'estudei');
+      if (remainHoje.length > 0) {
+        sendNotif(
+          `ÔÅ░ Lembrete noturno`,
+          `Ainda h├í ${remainHoje.length} evento(s) pendente(s) hoje!`,
+          `evening-${today}`
+        );
+      }
+    }, msUntilEvening);
+  }
+}
+
+// Fix 8: visibilitychange uses the throttled version (force=false)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) scheduleNotifications(); // throttled ÔÇö won't run if < 30min ago
+});
+const FRASES_MOTIVACIONAIS = [
+  "A consist├¬ncia supera o talento todos os dias.",
+  "Cada p├ígina lida ├® um passo ├á frente na aprova├º├úo.",
+  "O concurso ├® ganho na rotina, n├úo na v├®spera.",
+  "Foque no processo. O resultado ├® consequ├¬ncia.",
+  "Voc├¬ j├í est├í ├á frente de quem ainda n├úo come├ºou.",
+  "Estudo di├írio transforma ignor├óncia em aprova├º├úo.",
+  "A aprova├º├úo n├úo ├® sorte ÔÇö ├® a soma dos seus dias.",
+  "Cada assunto conclu├¡do ├® uma vit├│ria real.",
+  "Disciplina ├® liberdade. Continue.",
+  "Pequenas doses di├írias constroem grandes conhecimentos.",
+];
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'ÔÿÇ´©Å Bom dia';
+  if (h < 18) return '­ƒîñ´©Å Boa tarde';
+  return '­ƒîÖ Boa noite';
+}
+
+function getDailyQuote() {
+  // Seeded by day so the same quote stays all day
+  const _d = new Date();
+  const day = _d.getDate() + _d.getMonth() * 31;
+  return FRASES_MOTIVACIONAIS[day % FRASES_MOTIVACIONAIS.length];
+}
+
+function renderHome(el) {
+  const today = todayStr();
+  const agendadoHoje = state.eventos.filter(e => e.data === today && e.status !== 'estudei');
+  const estudadoHoje = state.eventos.filter(e => e.data === today && e.status === 'estudei');
+  const atrasados = state.eventos.filter(e => e.status !== 'estudei' && e.data && e.data < today);
+  const pendRevs = getPendingRevisoes();
+  const hojeSeconds = estudadoHoje.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+
+  let disc = getAllDisciplinas();
+  const totalDiscs = disc.length;
+  const totalAssuntos = disc.reduce((s, d) => s + d.disc.assuntos.length, 0);
+  const totalConcluidos = disc.reduce((s, d) => s + d.disc.assuntos.filter(a => a.concluido).length, 0);
+
+  el.innerHTML = `
+    <!-- GREETING BANNER -->
+    <div style="background:linear-gradient(135deg,var(--sidebar-bg),#1e3a5f);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px;">${getGreeting()}</div>
+        <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:6px;">Vamos estudar hoje? ­ƒÄ»</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.65);font-style:italic;">"${getDailyQuote()}"</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);margin-bottom:2px;">PROGRESSO GERAL</div>
+        <div style="font-size:28px;font-weight:900;color:#fff;">${totalAssuntos > 0 ? Math.round(totalConcluidos / totalAssuntos * 100) : 0}<span style="font-size:16px;font-weight:600;opacity:0.7;">%</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.5);">${totalConcluidos} de ${totalAssuntos} assuntos</div>
+      </div>
+    </div>
+
+    <!-- Fix K: Onboarding guide ÔÇö shown only when user has no editais yet -->
+    ${state.editais.length === 0 ? `
+    <div class="card" style="margin-bottom:20px;border:2px dashed var(--accent);background:var(--accent-light);">
+      <div class="card-body" style="padding:20px 24px;">
+        <div style="font-size:15px;font-weight:800;color:var(--accent-dark);margin-bottom:4px;">­ƒæï Bem-vindo ao Estudo Organizado!</div>
+        <div style="font-size:13px;color:var(--accent-dark);margin-bottom:16px;opacity:0.85;">Siga os passos abaixo para configurar seu planejamento de estudos:</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div onclick="navigate('editais')" style="cursor:pointer;flex:1;min-width:180px;background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--border);transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+            <div style="font-size:20px;margin-bottom:6px;">­ƒôï</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">1. Crie um Edital</div>
+            <div style="font-size:12px;color:var(--text-secondary);">Adicione o edital do seu concurso e organize as disciplinas por grupos.</div>
+          </div>
+          <div onclick="navigate('editais')" style="cursor:pointer;flex:1;min-width:180px;background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--border);transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+            <div style="font-size:20px;margin-bottom:6px;">­ƒôÜ</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">2. Adicione Disciplinas e Assuntos</div>
+            <div style="font-size:12px;color:var(--text-secondary);">Dentro do edital, crie grupos, disciplinas e liste os assuntos do edital.</div>
+          </div>
+          <div onclick="openAddEventModal()" style="cursor:pointer;flex:1;min-width:180px;background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--border);transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+            <div style="font-size:20px;margin-bottom:6px;">­ƒôà</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">3. Agende Eventos de Estudo</div>
+            <div style="font-size:12px;color:var(--text-secondary);">Crie eventos vinculados ├ás disciplinas para controlar seu cronograma di├írio.</div>
+          </div>
+          <div onclick="navigate('med')" style="cursor:pointer;flex:1;min-width:180px;background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--border);transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+            <div style="font-size:20px;margin-bottom:6px;">ÔÅ▒´©Å</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">4. Registre seu Progresso</div>
+            <div style="font-size:12px;color:var(--text-secondary);">Use o cron├┤metro no Meu Estudo Di├írio e marque os assuntos conclu├¡dos.</div>
+          </div>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="stat-label">Estudado Hoje</div>
+        <div class="stat-value">${formatTime(hojeSeconds)}</div>
+        <div class="stat-sub">${estudadoHoje.length} evento(s) conclu├¡do(s)</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Agendado Hoje</div>
+        <div class="stat-value">${agendadoHoje.length}</div>
+        <div class="stat-sub">evento(s) pendente(s)</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Atrasados</div>
+        <div class="stat-value">${atrasados.length}</div>
+        <div class="stat-sub">evento(s) n├úo realizados</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">Revis├Áes Pendentes</div>
+        <div class="stat-value">${pendRevs.length}</div>
+        <div class="stat-sub">assuntos a revisar</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="gap:16px;margin-bottom:16px;">
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header">
+            <h3>­ƒôî Agendado para Hoje</h3>
+            <button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Evento</button>
+          </div>
+          <div class="card-body" style="padding:12px;">
+            ${agendadoHoje.length === 0 ? '<div class="empty-state"><div class="icon">Ô£à</div><h4>Nada pendente!</h4><p>Adicione eventos ou aproveite o dia livre.</p></div>' : agendadoHoje.map(e => renderEventCard(e)).join('')}
+          </div>
+        </div>
+
+        ${atrasados.length > 0 ? `
+        <div class="card">
+          <div class="card-header"><h3>ÔÅ░ Eventos Atrasados</h3></div>
+          <div class="card-body" style="padding:12px;">
+            ${atrasados.slice(0, 5).map(e => renderEventCard(e)).join('')}
+            ${atrasados.length > 5 ? `<div class="cal-more" style="padding:8px;text-align:center;">+${atrasados.length-5} mais</div>` : ''}
+          </div>
+        </div>` : ''}
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>Ô£à Estudado Hoje</h3></div>
+          <div class="card-body" style="padding:12px;">
+            ${estudadoHoje.length === 0 ? '<div class="empty-state"><div class="icon">­ƒôÜ</div><h4>Nenhum evento conclu├¡do</h4><p>Comece seus estudos!</p></div>' : estudadoHoje.map(e => renderEventCard(e)).join('')}
+          </div>
+        </div>
+
+        ${pendRevs.length > 0 ? `
+        <div class="card">
+          <div class="card-header">
+            <h3>­ƒöä Revis├Áes Sugeridas para Hoje</h3>
+            <button class="btn btn-ghost btn-sm" onclick="navigate('revisoes')">Ver todas</button>
+          </div>
+          <div class="card-body" style="padding:12px;">
+            ${pendRevs.slice(0, 3).map(r => `
+              <div class="rev-item">
+                <div class="rev-days today">
+                  <div class="num">Rev</div>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13px;font-weight:600;">${r.assunto.nome}</div>
+                  <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} ÔÇó ${r.edital.nome}</div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="marcarRevisao('${r.assunto.id}')">Feita</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>` : ''}
+
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><h3>­ƒôè Progresso do Edital</h3></div>
+          <div class="card-body">
+            ${state.editais.length === 0 ? '<div class="empty-state"><div class="icon">­ƒôï</div><h4>Nenhum edital</h4><p>Crie seu edital para acompanhar o progresso.</p></div>' :
+              state.editais.map(edital => {
+                const discs = edital.grupos.flatMap(g => g.disciplinas);
+                const total = discs.reduce((s, d) => s + d.assuntos.length, 0);
+                const done = discs.reduce((s, d) => s + d.assuntos.filter(a => a.concluido).length, 0);
+                const pct = total > 0 ? Math.round(done/total*100) : 0;
+                return `
+                  <div style="margin-bottom:14px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                      <div style="font-size:13px;font-weight:600;">${esc(edital.nome)}</div>
+                      <div style="font-size:12px;color:var(--text-secondary);">${done}/${total} (${pct}%)</div>
+                    </div>
+                    <div class="progress"><div class="progress-bar" style="width:${pct}%;background:${edital.cor || 'var(--accent)'};"></div></div>
+                  </div>
+                `;
+              }).join('')
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// =============================================
+// EVENT CARD RENDERER
+// =============================================
+function renderEventCard(evento) {
+  const status = getEventStatus(evento);
+  const discInfo = evento.discId ? getDisc(evento.discId) : null;
+  const disc = discInfo ? discInfo.disc : null;
+  const iconBg = disc ? (disc.cor || 'var(--accent)') : (getHabitType(evento.habito)?.color || '#64748b');
+  const icon = disc ? (disc.icone || '­ƒôû') : (getHabitType(evento.habito)?.icon || '­ƒôÜ');
+  const timerActive = isTimerActive(evento.id);
+  const elapsed = getElapsedSeconds(evento);
+  const tempo = formatTime(elapsed);
+
+  return `
+    <div class="event-card" data-event-id="${evento.id}" onclick="openEventDetail('${evento.id}')">
+      <div class="event-stripe ${status}"></div>
+      <div class="event-disc-icon" style="background:${iconBg}20;color:${iconBg};">${icon}</div>
+      <div class="event-info">
+        <div class="event-title">${evento.titulo || 'Evento'}</div>
+        <div class="event-sub">${evento.data ? formatDate(evento.data) : 'Sem data'}${disc ? ' ÔÇó ' + disc.nome : ''}</div>
+        <div class="event-meta">
+          <span class="event-tag ${status}">${status === 'estudei' ? 'Estudei' : status === 'atrasado' ? 'Atrasado' : 'Agendado'}</span>
+          ${elapsed > 0 ? `<span style="font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;" data-timer="${evento.id}">${tempo}</span>` : ''}
+          ${timerActive ? '<span style="font-size:11px;color:var(--accent);font-weight:600;animation:pulse 1s infinite;">ÔùÅ Cron├┤metro ativo</span>' : ''}
+        </div>
+      </div>
+      <div class="event-actions" onclick="event.stopPropagation()">
+        ${status !== 'estudei' ? `<button class="icon-btn ${timerActive ? 'active' : ''}" title="${timerActive ? 'Pausar' : 'Iniciar'} cron├┤metro" onclick="toggleTimer('${evento.id}')">${timerActive ? 'ÔÅ©' : 'ÔûÂ'}</button>` : ''}
+        ${status !== 'estudei' ? `<button class="icon-btn" title="Marcar como Estudei" onclick="marcarEstudei('${evento.id}')">Ô£à</button>` : ''}
+        <button class="icon-btn" title="Excluir" onclick="deleteEvento('${evento.id}')">­ƒùæ</button>
+      </div>
+    </div>
+  `;
+}
+
+function getHabitType(key) {
+  return HABIT_TYPES.find(h => h.key === key);
+}
+
+// =============================================
+// MED VIEW - Meu Estudo Di├írio
+// =============================================
+function renderMED(el) {
+  const today = todayStr();
+  const todayEvents = state.eventos.filter(e => e.data === today);
+  const agendados = todayEvents.filter(e => e.status !== 'estudei');
+  const estudados = todayEvents.filter(e => e.status === 'estudei');
+  const totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+
+  el.innerHTML = `
+    <div id="med-stats-row" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tempo Total Hoje</div>
+        <div style="font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);" id="total-time">${formatTime(totalSeconds)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) conclu├¡do(s)</div>
+      </div>
+      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes</div>
+        <div style="font-size:32px;font-weight:800;color:var(--blue);">${agendados.length}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">evento(s) para hoje</div>
+      </div>
+      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Maior Foco</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-top:8px;">
+          ${estudados.length > 0 ? (() => {
+            const best = estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a);
+            return esc(best.titulo || 'N/A');
+          })() : 'ÔÇö'}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length > 0 ? formatTime(estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a).tempoAcumulado || 0) : ''}</div>
+      </div>
+    </div>
+
+    ${agendados.length === 0 && estudados.length === 0 ? `
+      <div class="empty-state" style="padding:60px 20px;">
+        <div class="icon">­ƒôà</div>
+        <h4>Nenhum evento para hoje</h4>
+        <p style="margin-bottom:16px;">Adicione eventos de estudo para come├ºar a registrar seu tempo.</p>
+        <button class="btn btn-primary" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Adicionar Evento</button>
+      </div>
+    ` : `
+      <div id="med-section-agendado">
+        ${agendados.length > 0 ? `
+          <div class="section-header"><h2>­ƒôî Agendado para Hoje</h2></div>
+          ${agendados.map(e => renderEventCard(e)).join('')}
+        ` : ''}
+      </div>
+      <div id="med-section-estudado">
+        ${estudados.length > 0 ? `
+          <div class="section-header" style="margin-top:24px;"><h2>Ô£à Estudado Hoje</h2></div>
+          ${estudados.map(e => renderEventCard(e)).join('')}
+        ` : ''}
+      </div>
+    `}
+  `;
+  // Fix 5: Removed the wasteful 5s full-MED self-refresh.
+  // Timers already update their <span data-timer> elements via reattachTimers() tickers.
+}
+
+// =============================================
+// FIX 5 ÔÇö SURGICAL DOM UPDATES
+// =============================================
+// Instead of rebuilding the entire page for single-card mutations,
+// these functions update only the minimum necessary DOM nodes.
+// Each falls back to renderCurrentView() if the target element isn't found
+// (e.g., when the interaction happens from a modal while on a different view).
+
+/**
+ * Replace a single event card's HTML in-place.
+ * Used by toggleTimer ÔÇö only the button icon and timer indicator change.
+ */
+function refreshEventCard(eventId) {
+  const el = document.querySelector(`[data-event-id="${eventId}"]`);
+  if (!el) { renderCurrentView(); return; }
+  const ev = state.eventos.find(e => e.id === eventId);
+  if (!ev) { el.remove(); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderEventCard(ev);
+  el.replaceWith(tmp.firstElementChild);
+  reattachTimers(); // reconnect ticker for the newly created element
+}
+
+/**
+ * Re-render just the two section lists (Agendado / Estudado) + stats row.
+ * Used by marcarEstudei ÔÇö card moves between sections, stats counts change.
+ * Skips topbar, sidebar, badges, and the rest of the page.
+ */
+function refreshMEDSections() {
+  if (currentView !== 'med') { renderCurrentView(); return; }
+  const today = todayStr();
+  const todayEvents = state.eventos.filter(e => e.data === today);
+  const agendados = todayEvents.filter(e => e.status !== 'estudei');
+  const estudados  = todayEvents.filter(e => e.status === 'estudei');
+  const totalSecs  = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+
+  // Update stats row (already in the DOM with id med-stats-row)
+  const statsRow = document.getElementById('med-stats-row');
+  if (statsRow) {
+    statsRow.innerHTML = `
+      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tempo Total Hoje</div>
+        <div style="font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);" id="total-time">${formatTime(totalSecs)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) conclu├¡do(s)</div>
+      </div>
+      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes</div>
+        <div style="font-size:32px;font-weight:800;color:var(--blue);">${agendados.length}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">evento(s) para hoje</div>
+      </div>
+      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Maior Foco</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-top:8px;">
+          ${estudados.length > 0 ? esc(estudados.reduce((a, b) => (b.tempoAcumulado||0) > (a.tempoAcumulado||0) ? b : a).titulo || 'N/A') : 'ÔÇö'}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
+          ${estudados.length > 0 ? formatTime(estudados.reduce((a, b) => (b.tempoAcumulado||0) > (a.tempoAcumulado||0) ? b : a).tempoAcumulado || 0) : ''}
+        </div>
+      </div>`;
+  }
+
+  // Update agendado section
+  const secAgendado = document.getElementById('med-section-agendado');
+  if (secAgendado) {
+    secAgendado.innerHTML = agendados.length > 0
+      ? `<div class="section-header"><h2>­ƒôî Agendado para Hoje</h2></div>${agendados.map(e => renderEventCard(e)).join('')}`
+      : '';
+  }
+
+  // Update estudado section
+  const secEstudado = document.getElementById('med-section-estudado');
+  if (secEstudado) {
+    secEstudado.innerHTML = estudados.length > 0
+      ? `<div class="section-header" style="margin-top:24px;"><h2>Ô£à Estudado Hoje</h2></div>${estudados.map(e => renderEventCard(e)).join('')}`
+      : '';
+  }
+
+  reattachTimers();
+  updateBadges();
+}
+
+/**
+ * Remove a card element directly from the DOM and update the stats row.
+ * Used by deleteEvento ÔÇö no need to rebuild anything else.
+ */
+function removeDOMCard(eventId) {
+  const el = document.querySelector(`[data-event-id="${eventId}"]`);
+  if (el) {
+    el.remove();
+  } else {
+    // Not currently visible (different view or modal context) ÔÇö fall back
+    renderCurrentView();
+    return;
+  }
+  // After removal, refresh stats and section headers
+  refreshMEDSections();
+}
+
+// =============================================
+// TIMER LOGIC
+// =============================================
+// ÔöÇÔöÇÔöÇ TIMER ENGINE ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// _timerStart is stored ON the event object (persists in state / localStorage).
+// timerIntervals holds the UI ticker ids (re-created after each render).
+
+function isTimerActive(eventId) {
+  const ev = state.eventos.find(e => e.id === eventId);
+  return !!(ev && ev._timerStart);
+}
+
+function getElapsedSeconds(ev) {
+  const base = ev.tempoAcumulado || 0;
+  if (!ev._timerStart) return base;
+  return base + Math.floor((Date.now() - ev._timerStart) / 1000);
+}
+
+/** Attach UI ticker for every event that has _timerStart (called after each render). */
+function reattachTimers() {
+  // Kill stale tickers
+  Object.keys(timerIntervals).forEach(id => {
+    clearInterval(timerIntervals[id]);
+    delete timerIntervals[id];
+  });
+  state.eventos.forEach(ev => {
+    if (!ev._timerStart) return;
+    timerIntervals[ev.id] = setInterval(() => {
+      // update every live timer element in the DOM
+      document.querySelectorAll(`[data-timer="${ev.id}"]`).forEach(el => {
+        el.textContent = formatTime(getElapsedSeconds(ev));
+      });
+    }, 1000);
+  });
+}
+
+function toggleTimer(eventId) {
+  const ev = state.eventos.find(e => e.id === eventId);
+  if (!ev) return;
+  if (ev._timerStart) {
+    // PAUSE: flush elapsed time into tempoAcumulado
+    ev.tempoAcumulado = getElapsedSeconds(ev);
+    delete ev._timerStart;
+  } else {
+    // START
+    ev._timerStart = Date.now();
+  }
+  scheduleSave();
+  // Fix 5: only replace the single card ÔÇö button icon + timer indicator change
+  refreshEventCard(eventId);
+}
+
+function marcarEstudei(eventId) {
+  const ev = state.eventos.find(e => e.id === eventId);
+  if (!ev) return;
+  // Flush any running timer
+  if (ev._timerStart) {
+    ev.tempoAcumulado = getElapsedSeconds(ev);
+    delete ev._timerStart;
+  }
+  if (timerIntervals[eventId]) { clearInterval(timerIntervals[eventId]); delete timerIntervals[eventId]; }
+  ev.status = 'estudei';
+  ev.dataEstudo = todayStr();
+  // Auto-mark assunto as concluded
+  if (ev.assId && ev.discId) {
+    const d = getDisc(ev.discId);
+    if (d) {
+      const ass = d.disc.assuntos.find(a => a.id === ev.assId);
+      if (ass && !ass.concluido) {
+        ass.concluido = true;
+        ass.dataConclusao = todayStr();
+        ass.revisoesFetas = [];
+      }
+    }
+  }
+  scheduleSave();
+  // Fix 5: card moves from Agendado ÔåÆ Estudado section; only the sections + stats need rebuilding
+  refreshMEDSections();
+  // Fix 3: offer habit registration when event type is h├íbito
+  if (ev.habito) {
+    const h = getHabitType(ev.habito);
+    if (h) promptHabitRegistration(ev, h);
+  } else {
+    showToast('Evento marcado como Estudei! Ô£à', 'success');
+  }
+}
+
+function generateRevisoes(assunto, disc, edital) {
+  // Revis├Áes are auto-calculated, not stored separately
+}
+
+// Fix 3 ÔÇö When completing a h├íbito event, offer to register in H├íbitos module
+function promptHabitRegistration(ev, habitType) {
+  const tempo = formatTime(ev.tempoAcumulado || 0);
+  // Reuse the habit modal, pre-filling data from the event
+  currentHabitType = ev.habito;
+  document.getElementById('modal-habit-title').textContent = `Registrar: ${habitType.label}`;
+  const discOptions = getAllDisciplinas().map(({ disc, edital }) =>
+    `<option value="${disc.id}">${esc(edital.nome)} ÔÇ║ ${esc(disc.nome)}</option>`
+  ).join('');
+
+  document.getElementById('modal-habit-body').innerHTML = `
+    <div style="background:var(--accent-light);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--accent-dark);">
+      <strong>Ô£à Evento conclu├¡do!</strong> Tempo registrado: <strong>${tempo}</strong><br>
+      Deseja registrar esta sess├úo no m├│dulo de H├íbitos tamb├®m?
+    </div>
+    <div class="form-group">
+      <label class="form-label">Data</label>
+      <input type="date" class="form-control" id="habit-data" value="${ev.dataEstudo || todayStr()}">
+    </div>
+    ${ev.habito === 'questoes' ? `
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Quantidade de Quest├Áes</label>
+          <input type="number" class="form-control" id="habit-qtd" value="10" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Acertos</label>
+          <input type="number" class="form-control" id="habit-acertos" value="0" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Disciplina</label>
+        <select class="form-control" id="habit-disc">${discOptions}</select>
+      </div>
+    ` : ev.habito === 'simulado' ? `
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Total de Quest├Áes</label><input type="number" class="form-control" id="habit-total" value="120"></div>
+        <div class="form-group"><label class="form-label">Acertos</label><input type="number" class="form-control" id="habit-acertos" value="0"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Nome do Simulado</label><input type="text" class="form-control" id="habit-desc" value="${ev.titulo || ''}"></div>
+    ` : `
+      <div class="form-group"><label class="form-label">Descri├º├úo (opcional)</label><input type="text" class="form-control" id="habit-desc" value="${ev.titulo || ''}"></div>
+    `}
+  `;
+  openModal('modal-habit');
+}
+
+function deleteEvento(eventId) {
+  showConfirm('Excluir este evento permanentemente?', () => {
+    if (timerIntervals[eventId]) {
+      clearInterval(timerIntervals[eventId]);
+      delete timerIntervals[eventId];
+    }
+    state.eventos = state.eventos.filter(e => e.id !== eventId);
+    scheduleSave();
+    if (currentView === 'med') {
+      removeDOMCard(eventId);
+    } else {
+      renderCurrentView();
+    }
+  }, { danger: true, label: 'Excluir', title: 'Excluir evento' });
+}
+
+function openEventDetail(eventId) {
+  const ev = state.eventos.find(e => e.id === eventId);
+  if (!ev) return;
+  const discInfo = ev.discId ? getDisc(ev.discId) : null;
+  const disc = discInfo ? discInfo.disc : null;
+  const ass = ev.assId && disc ? disc.assuntos.find(a => a.id === ev.assId) : null;
+  const status = getEventStatus(ev);
+  const timerActive = isTimerActive(ev.id);
+
+  document.getElementById('med-detail-title').textContent = ev.titulo;
+  document.getElementById('modal-event-detail-body').innerHTML = `
+    <div style="display:flex;gap:16px;margin-bottom:20px;">
+      <div style="text-align:center;">
+        <div style="font-size:48px;">${disc ? disc.icone || '­ƒôû' : getHabitType(ev.habito)?.icon || '­ƒôÜ'}</div>
+        <span class="event-tag ${status}" style="display:inline-block;margin-top:6px;">${status === 'estudei' ? 'Estudei' : status === 'atrasado' ? 'Atrasado' : 'Agendado'}</span>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">${esc(ev.titulo)}</div>
+        ${disc ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;"><strong>Disciplina:</strong> ${esc(disc.nome)}</div>` : ''}
+        ${ass ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;"><strong>Assunto:</strong> ${esc(ass.nome)}</div>` : ''}
+        ${ev.data ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;"><strong>Data:</strong> ${formatDate(ev.data)}</div>` : ''}
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:16px;text-align:center;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">TEMPO REGISTRADO</div>
+      <div data-timer="${ev.id}" style="font-size:36px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);">${formatTime(getElapsedSeconds(ev))}</div>
+      ${timerActive ? '<div style="font-size:12px;color:var(--accent);margin-top:4px;animation:pulse 1s infinite;">ÔùÅ Cron├┤metro ativo</div>' : ''}
+    </div>
+
+    ${ev.status !== 'estudei' ? `
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;">
+      <button class="btn ${timerActive ? 'btn-ghost' : 'btn-primary'}" onclick="toggleTimerModal('${ev.id}')">
+        ${timerActive ? 'ÔÅ© Pausar Cron├┤metro' : 'ÔûÂ Iniciar Cron├┤metro'}
+      </button>
+      <button class="btn btn-primary" onclick="marcarEstudeiModal('${ev.id}')">Ô£à Marcar como Estudei</button>
+    </div>` : ''}
+
+    ${ev.notas ? `<div style="font-size:13px;color:var(--text-secondary);background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;"><strong>­ƒôØ Anota├º├Áes:</strong><br>${esc(ev.notas)}</div>` : ''}
+    ${ev.fontes ? `<div style="font-size:13px;color:var(--text-secondary);background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;"><strong>­ƒôÄ Fontes:</strong><br>${esc(ev.fontes)}</div>` : ''}
+    ${ev.legislacao ? `<div style="font-size:13px;color:var(--text-secondary);background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;"><strong>ÔÜû´©Å Legisla├º├úo:</strong><br>${esc(ev.legislacao)}</div>` : ''}
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-event-detail')">Fechar</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteEvento('${ev.id}');closeModal('modal-event-detail')">­ƒùæ Excluir</button>
+    </div>
+  `;
+  openModal('modal-event-detail');
+}
+
+function toggleTimerModal(id) {
+  toggleTimer(id);
+  openEventDetail(id);
+}
+function marcarEstudeiModal(id) {
+  marcarEstudei(id);
+  closeModal('modal-event-detail');
+}
+
+// =============================================
+// CALENDAR VIEW
+// =============================================
+function renderCalendar(el) {
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-body">
+        <div class="cal-header">
+          <div class="cal-nav">
+            <button onclick="calNavigate(-1)"><i class="fa fa-chevron-left"></i></button>
+            <button onclick="calNavigate(1)"><i class="fa fa-chevron-right"></i></button>
+          </div>
+          <div class="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}</div>
+          <button class="btn btn-ghost btn-sm" onclick="calDate=new Date();renderCurrentView()">Hoje</button>
+          <div style="margin-left:auto;" class="cal-view-tabs">
+            <div class="cal-view-tab ${calViewMode==='mes'?'active':''}" onclick="calViewMode='mes';renderCurrentView()">M├¬s</div>
+            <div class="cal-view-tab ${calViewMode==='semana'?'active':''}" onclick="calViewMode='semana';renderCurrentView()">Semana</div>
+          </div>
+        </div>
+        ${calViewMode === 'mes' ? renderCalendarMonth() : renderCalendarWeek()}
+      </div>
+    </div>
+  `;
+}
+
+function calNavigate(dir) {
+  if (calViewMode === 'mes') {
+    calDate.setMonth(calDate.getMonth() + dir);
+  } else {
+    calDate.setDate(calDate.getDate() + dir * 7);
+  }
+  renderCurrentView();
+}
+
+function renderCalendarMonth() {
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const today = todayStr();
+  const startDow = (firstDay.getDay() - (state.config.primeirodiaSemana || 1) + 7) % 7;
+  const dows = ['Dom','Seg','Ter','Qua','Qui','Sex','S├íb'];
+  const startDow0 = state.config.primeirodiaSemana || 1;
+  const dowOrder = Array.from({length:7}, (_,i) => dows[(startDow0 + i) % 7]);
+
+  let cells = [];
+  // Previous month fill
+  for (let i = 0; i < startDow; i++) {
+    const d = new Date(year, month, 1 - startDow + i);
+    cells.push({ date: d, other: true });
+  }
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    cells.push({ date: new Date(year, month, d), other: false });
+  }
+  while (cells.length % 7 !== 0) {
+    const last = cells[cells.length-1].date;
+    cells.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate()+1), other: true });
+  }
+
+  const getDateStr = d => d.toISOString().split('T')[0];
+
+  return `
+    <div class="cal-grid">
+      ${dowOrder.map(d => `<div class="cal-dow">${d}</div>`).join('')}
+      ${cells.map(cell => {
+        const ds = getDateStr(cell.date);
+        const isToday = ds === today;
+        const dayEvents = state.eventos.filter(e => e.data === ds);
+        const show = dayEvents.slice(0, 3);
+        const more = dayEvents.length - 3;
+        return `
+          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" onclick="calClickDay('${ds}')">
+            <div class="cal-date">${cell.date.getDate()}</div>
+            ${show.map(e => {
+              const st = getEventStatus(e);
+              return `<div class="cal-event-chip ${st}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+            }).join('')}
+            ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderCalendarWeek() {
+  const today = todayStr();
+  const dow = calDate.getDay();
+  const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
+  const weekStart = new Date(calDate);
+  weekStart.setDate(calDate.getDate() - startOffset);
+  const dows = ['Dom','Seg','Ter','Qua','Qui','Sex','S├íb'];
+  const startDow0 = state.config.primeirodiaSemana || 1;
+
+  const days = Array.from({length:7}, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+
+  const getDateStr = d => d.toISOString().split('T')[0];
+
+  return `
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;">
+      ${days.map(d => {
+        const ds = getDateStr(d);
+        const isToday = ds === today;
+        const dayEvents = state.eventos.filter(e => e.data === ds);
+        return `
+          <div style="min-height:200px;border-radius:8px;border:1px solid var(--border);overflow:hidden;">
+            <div style="padding:8px;background:${isToday ? '#eff6ff' : 'var(--bg)'};text-align:center;border-bottom:1px solid var(--border);">
+              <div style="font-size:11px;font-weight:600;color:var(--text-secondary);">${dows[d.getDay()]}</div>
+              <div style="font-size:16px;font-weight:700;${isToday ? 'color:var(--blue);' : ''}">${d.getDate()}</div>
+            </div>
+            <div style="padding:6px;">
+              ${dayEvents.map(e => {
+                const st = getEventStatus(e);
+                return `<div class="cal-event-chip ${st}" style="margin-bottom:3px;cursor:pointer;" onclick="openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+              }).join('')}
+              <div style="text-align:center;margin-top:4px;">
+                <button class="icon-btn" style="width:24px;height:24px;" onclick="openAddEventModalDate('${ds}')">+</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function calClickDay(dateStr) {
+  openAddEventModalDate(dateStr);
+}
+
+function openAddEventModalDate(dateStr) {
+  openAddEventModal(dateStr);
+}
+
+// =============================================
+// DASHBOARD VIEW
+// =============================================
+// =============================================
+// UX 4 ÔÇö DASHBOARD WITH PERIOD FILTER
+// =============================================
+let dashPeriod = 7; // default: last 7 days
+let _chartDaily = null, _chartDisc = null;
+
+function renderDashboard(el) {
+  const periodDays = dashPeriod; // null = all time
+  const periodLabel = { 7: '7 dias', 30: '30 dias', 90: '3 meses', null: 'Total' }[periodDays];
+
+  // Fix 2: compute cutoff once, reuse across all filters in this render
+  const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
+  const filteredEvts = cutoffStr
+    ? state.eventos.filter(e => e.status === 'estudei' && e.data && e.data >= cutoffStr)
+    : state.eventos.filter(e => e.status === 'estudei');
+
+  const totalSecs = filteredEvts.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+  const questTot = cutoffStr
+    ? (state.habitos.questoes || []).filter(r => r.data >= cutoffStr).reduce((s, q) => s + (q.quantidade || 1), 0)
+    : (state.habitos.questoes || []).reduce((s, q) => s + (q.quantidade || 1), 0);
+  const simTot = cutoffStr
+    ? (state.habitos.simulado || []).filter(r => r.data >= cutoffStr).length
+    : (state.habitos.simulado || []).length;
+
+  el.innerHTML = `
+    <!-- Period selector -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--text-secondary);">Exibindo dados: <strong style="color:var(--text-primary);">${periodLabel}</strong></div>
+      <div class="cal-view-tabs">
+        ${[7, 30, 90, null].map(p => `
+          <div class="cal-view-tab ${dashPeriod === p ? 'active' : ''}" onclick="setDashPeriod(${p})">
+            ${{ 7:'7d', 30:'30d', 90:'3m', null:'Total' }[p]}
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="stats-grid" style="margin-bottom:20px;">
+      <div class="stat-card green">
+        <div class="stat-label">Tempo Estudado</div>
+        <div class="stat-value">${formatTime(totalSecs)}</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Sess├Áes Realizadas</div>
+        <div class="stat-value">${filteredEvts.length}</div>
+        <div class="stat-sub">eventos conclu├¡dos</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">Quest├Áes</div>
+        <div class="stat-value">${questTot}</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Simulados</div>
+        <div class="stat-value">${simTot}</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-header">
+          <h3>­ƒôê Horas por Dia</h3>
+          <span style="font-size:11px;color:var(--text-muted);">${periodLabel}</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>­ƒôÜ Tempo por Disciplina</h3>
+          <span style="font-size:11px;color:var(--text-muted);">${periodLabel}</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="chart-disc"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><h3>ÔÜí H├íbitos (${periodLabel})</h3></div>
+        <div class="card-body">${renderHabitSummary(periodDays)}</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>­ƒôï Progresso por Disciplina</h3></div>
+        <div class="card-body">${renderDiscProgress()}</div>
+      </div>
+    </div>
+  `;
+
+  renderDailyChart(periodDays);
+  renderDiscChart(periodDays);
+}
+
+function setDashPeriod(p) {
+  dashPeriod = p;
+  renderCurrentView();
+}
+
+function renderDailyChart(periodDays) {
+  const ctx = document.getElementById('chart-daily');
+  if (!ctx) return;
+  if (_chartDaily) { _chartDaily.destroy(); _chartDaily = null; }
+  const numDays = periodDays ? Math.min(periodDays, 90) : 30;
+  const days = [], data = [];
+  for (let i = numDays - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = d.toISOString().split('T')[0];
+    days.push(numDays > 30 ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+    const secs = state.eventos.filter(e => e.data === ds && e.status === 'estudei').reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+    data.push(Math.round(secs / 60));
+  }
+  _chartDaily = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [{ label: 'Minutos', data, backgroundColor: '#10b98166', borderColor: '#10b981', borderWidth: 2, borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: numDays > 20 ? 9 : 11 }, maxRotation: numDays > 20 ? 45 : 0, maxTicksLimit: 20 } }
+      }
+    }
+  });
+}
+
+function renderDiscChart(periodDays) {
+  const ctx = document.getElementById('chart-disc');
+  if (!ctx) return;
+  if (_chartDisc) { _chartDisc.destroy(); _chartDisc = null; }
+  const discTime = {};
+  const cutoffStr2 = periodDays ? cutoffDateStr(periodDays) : null;
+  const evts = cutoffStr2
+    ? state.eventos.filter(e => e.status === 'estudei' && e.discId && e.tempoAcumulado && e.data >= cutoffStr2)
+    : state.eventos.filter(e => e.status === 'estudei' && e.discId && e.tempoAcumulado);
+  evts.forEach(e => { discTime[e.discId] = (discTime[e.discId] || 0) + e.tempoAcumulado; });
+  const labels = [], data = [], colors = [];
+  Object.entries(discTime).forEach(([id, secs]) => {
+    const d = getDisc(id);
+    labels.push(d ? d.disc.nome : id);
+    data.push(Math.round(secs / 60));
+    colors.push(d ? (d.disc.cor || '#10b981') : '#94a3b8');
+  });
+  if (data.length === 0) { ctx.parentElement.innerHTML = '<div class="empty-state"><div class="icon">­ƒôè</div><p>Sem dados no per├¡odo selecionado</p></div>'; return; }
+  _chartDisc = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } } }
+    }
+  });
+}
+
+function renderHabitSummary(periodDays) {
+  const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
+  return HABIT_TYPES.map(h => {
+    const recent = cutoffStr
+      ? (state.habitos[h.key] || []).filter(r => r.data >= cutoffStr)
+      : (state.habitos[h.key] || []);
+    const count = h.key === 'questoes' ? recent.reduce((s, q) => s + (q.quantidade || 1), 0) : recent.length;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:18px;">${h.icon}</div>
+        <div style="flex:1;font-size:13px;font-weight:500;">${h.label}</div>
+        <div style="font-size:16px;font-weight:700;color:${h.color};">${count}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDiscProgress() {
+  const discs = getAllDisciplinas();
+  if (discs.length === 0) return '<div class="empty-state"><div class="icon">­ƒôï</div><p>Nenhuma disciplina cadastrada</p></div>';
+  return discs.slice(0, 8).map(({ disc, edital }) => {
+    const total = disc.assuntos.length;
+    const done = disc.assuntos.filter(a => a.concluido).length;
+    const pct = total > 0 ? Math.round(done / total * 100) : 0;
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;">
+            <span>${disc.icone || '­ƒôû'}</span> ${esc(disc.nome)}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);">${done}/${total}</div>
+        </div>
+        <div class="progress">
+          <div class="progress-bar" style="width:${pct}%;background:${disc.cor || 'var(--accent)'};"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// =============================================
+// REVISOES VIEW
+// =============================================
+// Fix 4: Get upcoming revisions for next N days
+function getUpcomingRevisoes(days = 30) {
+  const today = todayStr();
+  const future = new Date();
+  future.setDate(future.getDate() + days);
+  const futureStr = future.toISOString().split('T')[0];
+  const upcoming = [];
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      for (const disc of grupo.disciplinas) {
+        for (const ass of disc.assuntos) {
+          if (!ass.concluido || !ass.dataConclusao) continue;
+          const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
+          for (const rd of revDates) {
+            if (rd > today && rd <= futureStr) {
+              upcoming.push({ assunto: ass, disc, edital, data: rd, revNum: (ass.revisoesFetas || []).length + 1 });
+              break; // only the next scheduled one
+            }
+          }
+        }
+      }
+    }
+  }
+  return upcoming.sort((a, b) => a.data.localeCompare(b.data));
+}
+
+function renderRevisoes(el) {
+  const pending = getPendingRevisoes();
+  const upcoming = getUpcomingRevisoes(30);
+  const today = todayStr();
+
+  el.innerHTML = `
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+      <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes Hoje</div>
+        <div style="font-size:28px;font-weight:800;color:var(--red);">${pending.filter(r => r.data <= today).length}</div>
+      </div>
+      <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pr├│x. 30 dias</div>
+        <div style="font-size:28px;font-weight:800;color:var(--blue);">${upcoming.length}</div>
+      </div>
+      <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assuntos Conclu├¡dos</div>
+        <div style="font-size:28px;font-weight:800;color:var(--accent);">${getAllDisciplinas().reduce((s, {disc}) => s + disc.assuntos.filter(a => a.concluido).length, 0)}</div>
+      </div>
+      <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Frequ├¬ncia</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-top:8px;">${(state.config.frequenciaRevisao || [1,7,30,90]).join(', ')} dias</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab-btn active" onclick="switchRevTab('pendentes', this)">­ƒö┤ Pendentes (${pending.length})</div>
+      <div class="tab-btn" onclick="switchRevTab('proximas', this)">­ƒôà Pr├│ximas 30 dias (${upcoming.length})</div>
+    </div>
+
+    <div id="rev-tab-pendentes" class="tab-content active">
+      ${pending.length === 0 ? `
+        <div class="empty-state"><div class="icon">­ƒÄë</div><h4>Nenhuma revis├úo pendente!</h4><p>Conclua assuntos para que as revis├Áes sejam agendadas automaticamente.</p></div>
+      ` : pending.map(r => {
+        const isOverdue = r.data < today;
+        const revNum = (r.assunto.revisoesFetas || []).length + 1;
+        return `
+          <div class="rev-item">
+            <div class="rev-days ${isOverdue ? 'overdue' : 'today'}">
+              <div class="num">${revNum}┬¬</div>
+              <div class="label">Rev</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;">${r.assunto.nome}</div>
+              <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} ÔÇó ${r.edital.nome}</div>
+              <div style="font-size:11px;color:${isOverdue ? 'var(--red)' : 'var(--accent)'};margin-top:2px;">
+                ${isOverdue ? 'ÔÜá´©Å Atrasada' : '­ƒôà Hoje'} ÔÇó Prevista para ${formatDate(r.data)}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-primary btn-sm" onclick="marcarRevisao('${r.assunto.id}')">Ô£à Feita</button>
+              <button class="btn btn-ghost btn-sm" onclick="adiarRevisao('${r.assunto.id}')">ÔÅ¡ +1 dia</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div id="rev-tab-proximas" class="tab-content">
+      ${upcoming.length === 0 ? `
+        <div class="empty-state"><div class="icon">­ƒôà</div><h4>Nenhuma revis├úo nos pr├│ximos 30 dias</h4><p>Continue estudando e concluindo assuntos!</p></div>
+      ` : (() => {
+        // Group by week
+        let lastWeek = null;
+        return upcoming.map(r => {
+          const d = new Date(r.data + 'T00:00:00');
+          const weekLabel = `Semana de ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`;
+          const diffDays = Math.ceil((new Date(r.data + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+          return `
+            <div class="rev-item">
+              <div class="rev-days" style="background:#dbeafe;color:#1d4ed8;">
+                <div class="num">${r.revNum}┬¬</div>
+                <div class="label">Rev</div>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;">${r.assunto.nome}</div>
+                <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} ÔÇó ${r.edital.nome}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:12px;font-weight:700;color:var(--blue);">${formatDate(r.data)}</div>
+                <div style="font-size:11px;color:var(--text-muted);">em ${diffDays} dia${diffDays !== 1 ? 's' : ''}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      })()}
+    </div>
+  `;
+}
+
+function switchRevTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('rev-tab-pendentes').classList.toggle('active', tab === 'pendentes');
+  document.getElementById('rev-tab-proximas').classList.toggle('active', tab === 'proximas');
+}
+
+function marcarRevisao(assId) {
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      for (const disc of grupo.disciplinas) {
+        const ass = disc.assuntos.find(a => a.id === assId);
+        if (ass) {
+          if (!ass.revisoesFetas) ass.revisoesFetas = [];
+          ass.revisoesFetas.push(todayStr());
+          scheduleSave();
+          renderCurrentView();
+          showToast('Revis├úo registrada! ­ƒÄë', 'success');
+          return;
+        }
+      }
+    }
+  }
+}
+
+function adiarRevisao(assId) {
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      for (const disc of grupo.disciplinas) {
+        const ass = disc.assuntos.find(a => a.id === assId);
+        if (ass) {
+          // Store a deferral date: push back the base date by 1 day
+          if (!ass.adiamentos) ass.adiamentos = 0;
+          ass.adiamentos = (ass.adiamentos || 0) + 1;
+          // Shift dataConclusao forward 1 day so all subsequent revisions shift
+          const base = new Date(ass.dataConclusao + 'T00:00:00');
+          base.setDate(base.getDate() + 1);
+          ass.dataConclusao = base.toISOString().split('T')[0];
+          scheduleSave();
+          renderCurrentView();
+          showToast('Revis├úo adiada por 1 dia', 'info');
+          return;
+        }
+      }
+    }
+  }
+}
+
+// =============================================
+// HABITOS VIEW
+// =============================================
+let habitHistPage = 1;
+const HABIT_HIST_PAGE_SIZE = 20;
+
+function renderHabitos(el) {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+
+  el.innerHTML = `
+    <div class="habit-grid">
+      ${HABIT_TYPES.map(h => {
+        const all = state.habitos[h.key] || [];
+        const recent = all.filter(r => r.data >= cutoffStr);
+        const total = h.key === 'questoes' ? all.reduce((s,q) => s + (q.quantidade||1), 0) : all.length;
+        return `
+          <div class="habit-card" onclick="openHabitModal('${h.key}')">
+            <div class="hc-icon">${h.icon}</div>
+            <div class="hc-label">${h.label}</div>
+            <div class="hc-count" style="color:${h.color};">${total}</div>
+            <div class="hc-sub">${recent.length} nos ├║ltimos 7 dias</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>­ƒôï Hist├│rico de H├íbitos</h3>
+        <span style="font-size:12px;color:var(--text-muted);" id="habit-hist-count"></span>
+      </div>
+      <div class="card-body" style="padding:0;" id="habit-hist-list">
+      </div>
+      <div id="habit-hist-footer" style="padding:12px 16px;display:flex;gap:8px;align-items:center;border-top:1px solid var(--border);"></div>
+    </div>
+  `;
+  renderHabitHistPage();
+}
+
+function renderHabitHistPage() {
+  const all = HABIT_TYPES
+    .flatMap(h => (state.habitos[h.key] || []).map(r => ({...r, tipo: h})))
+    .sort((a, b) => b.data.localeCompare(a.data));
+  const total = all.length;
+  const page = habitHistPage;
+  const start = (page - 1) * HABIT_HIST_PAGE_SIZE;
+  const end = start + HABIT_HIST_PAGE_SIZE;
+  const items = all.slice(start, end);
+  const totalPages = Math.max(1, Math.ceil(total / HABIT_HIST_PAGE_SIZE));
+
+  const countEl = document.getElementById('habit-hist-count');
+  if (countEl) countEl.textContent = `${total} registro(s)`;
+
+  const listEl = document.getElementById('habit-hist-list');
+  if (listEl) {
+    listEl.innerHTML = items.length === 0
+      ? '<div class="empty-state"><div class="icon">ÔÜí</div><p>Nenhum h├íbito registrado ainda</p></div>'
+      : items.map(r => `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
+          <div style="font-size:20px;">${r.tipo.icon}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">${esc(r.tipo.label)}${r.descricao ? ' - ' + r.descricao : ''}</div>
+            <div style="font-size:12px;color:var(--text-secondary);">${formatDate(r.data)}${r.quantidade ? ' ÔÇó ' + r.quantidade + ' quest├Áes' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' ÔÇó ' + r.acertos + ' acertos' : ''}${r.total ? ` ÔÇó ${r.acertos}/${r.total} (${Math.round(r.acertos/r.total*100)}%)` : ''}</div>
+            ${r.gabaritoPorDisc && r.gabaritoPorDisc.length ? `
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+                ${r.gabaritoPorDisc.map(g => `<span style="font-size:10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--text-secondary);">${g.discNome}: ${g.acertos}/${g.total}</span>`).join('')}
+              </div>` : ''}
+          </div>
+          <button class="icon-btn" onclick="deleteHabito('${r.tipo.key}','${r.id}')">­ƒùæ</button>
+        </div>
+      `).join('');
+  }
+
+  const footerEl = document.getElementById('habit-hist-footer');
+  if (footerEl && total > HABIT_HIST_PAGE_SIZE) {
+    footerEl.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="setHabitPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>ÔåÉ Anterior</button>
+      <span style="font-size:12px;color:var(--text-muted);flex:1;text-align:center;">P├ígina ${page} de ${totalPages}</span>
+      <button class="btn btn-ghost btn-sm" onclick="setHabitPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>Pr├│xima ÔåÆ</button>
+    `;
+    footerEl.style.display = 'flex';
+  } else if (footerEl) {
+    footerEl.style.display = 'none';
+  }
+}
+
+function setHabitPage(p) {
+  const all = HABIT_TYPES.flatMap(h => (state.habitos[h.key] || []).map(r => ({...r, tipo: h})));
+  const totalPages = Math.max(1, Math.ceil(all.length / HABIT_HIST_PAGE_SIZE));
+  habitHistPage = Math.max(1, Math.min(p, totalPages));
+  renderHabitHistPage();
+  document.getElementById('habit-hist-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function openHabitModal(tipo) {
+  currentHabitType = tipo;
+  const h = tipo ? HABIT_TYPES.find(h => h.key === tipo) : null;
+  document.getElementById('modal-habit-title').textContent = h ? `Registrar: ${h.label}` : 'Registrar H├íbito';
+
+  const discOptions = getAllDisciplinas().map(d => `<option value="${d.disc.id}">${d.disc.nome}</option>`).join('');
+
+  document.getElementById('modal-habit-body').innerHTML = `
+    ${!tipo ? `
+      <div class="form-group">
+        <label class="form-label">Tipo de H├íbito</label>
+        <div class="event-type-grid">
+          ${HABIT_TYPES.map(h => `
+            <div class="event-type-card" onclick="selectHabitType('${h.key}', this)" data-tipo="${h.key}">
+              <div class="et-icon">${h.icon}</div>
+              <div class="et-label">${h.label}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+    <div class="form-group">
+      <label class="form-label">Data</label>
+      <input type="date" class="form-control" id="habit-data" value="${todayStr()}">
+    </div>
+    ${tipo === 'questoes' ? `
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Quantidade de Quest├Áes</label>
+          <input type="number" class="form-control" id="habit-qtd" value="10" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Acertos</label>
+          <input type="number" class="form-control" id="habit-acertos" value="0" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Disciplina</label>
+        <select class="form-control" id="habit-disc">${discOptions}</select>
+      </div>
+    ` : tipo === 'simulado' ? `
+      <div class="form-group">
+        <label class="form-label">Nome do Simulado</label>
+        <input type="text" class="form-control" id="habit-desc" placeholder="Ex: Simulado CEBRASPE 01">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Total de Quest├Áes</label>
+          <input type="number" class="form-control" id="habit-total" value="120" oninput="calcSimuladoPerc()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Acertos (Geral)</label>
+          <input type="number" class="form-control" id="habit-acertos" value="0" min="0" oninput="calcSimuladoPerc()">
+        </div>
+      </div>
+      <div id="sim-perc" style="font-size:13px;font-weight:700;text-align:center;color:var(--accent);margin-bottom:12px;"></div>
+
+      <!-- Feature 13: gabarito por disciplina -->
+      <details>
+        <summary style="font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:4px 0;margin-bottom:8px;">­ƒôè Gabarito por Disciplina (opcional)</summary>
+        <div id="sim-disc-list" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+          ${getAllDisciplinas().map(({ disc, edital }) => `
+            <div style="display:flex;align-items:center;gap:8px;background:var(--bg);padding:8px;border-radius:8px;">
+              <span style="font-size:13px;flex:1;font-weight:500;" title="${esc(edital.nome)}">${disc.icone || '­ƒôû'} ${esc(disc.nome)}</span>
+              <input type="number" class="form-control" style="width:70px;" placeholder="Total" id="sim-total-${disc.id}" min="0">
+              <span style="color:var(--text-muted);font-size:12px;">/</span>
+              <input type="number" class="form-control" style="width:70px;" placeholder="Acertos" id="sim-acertos-${disc.id}" min="0">
+            </div>
+          `).join('')}
+          ${getAllDisciplinas().length === 0 ? '<div style="font-size:12px;color:var(--text-muted);padding:8px;">Cadastre disciplinas para usar o gabarito detalhado.</div>' : ''}
+        </div>
+      </details>
+    ` : tipo === 'discursiva' ? `
+      <div class="form-group">
+        <label class="form-label">Tema</label>
+        <input type="text" class="form-control" id="habit-desc" placeholder="Tema da discursiva">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nota/Pontua├º├úo (opcional)</label>
+        <input type="number" class="form-control" id="habit-nota" placeholder="Ex: 8.5">
+      </div>
+    ` : tipo === 'leitura' ? `
+      <div class="form-group">
+        <label class="form-label">T├¡tulo / Legisla├º├úo</label>
+        <input type="text" class="form-control" id="habit-desc" placeholder="Ex: Lei 8.112/1990">
+      </div>
+      <div class="form-group">
+        <label class="form-label">P├íginas/Artigos lidos</label>
+        <input type="number" class="form-control" id="habit-paginas" placeholder="Ex: 30">
+      </div>
+    ` : `
+      <div class="form-group">
+        <label class="form-label">Descri├º├úo (opcional)</label>
+        <input type="text" class="form-control" id="habit-desc" placeholder="Observa├º├Áes">
+      </div>
+    `}
+  `;
+  openModal('modal-habit');
+}
+
+function selectHabitType(tipo, el) {
+  document.querySelectorAll('.event-type-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  currentHabitType = tipo;
+}
+
+function saveHabit() {
+  if (!currentHabitType) { showToast('Selecione o tipo de h├íbito', 'error'); return; }
+  const data = document.getElementById('habit-data')?.value || todayStr();
+  const registro = { id: uid(), data, tipo: currentHabitType };
+
+  if (currentHabitType === 'questoes') {
+    const qtd = parseInt(document.getElementById('habit-qtd')?.value || '10');
+    const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
+    // Fix J: validate questoes
+    if (isNaN(qtd) || qtd < 1) { showToast('Informe uma quantidade v├ílida de quest├Áes (m├¡nimo 1)', 'error'); return; }
+    if (isNaN(acertos) || acertos < 0) { showToast('Acertos n├úo pode ser negativo', 'error'); return; }
+    if (acertos > qtd) { showToast(`Acertos (${acertos}) n├úo pode ser maior que o total (${qtd})`, 'error'); return; }
+    registro.quantidade = qtd;
+    registro.acertos = acertos;
+    registro.discId = document.getElementById('habit-disc')?.value;
+
+  } else if (currentHabitType === 'simulado') {
+    const total = parseInt(document.getElementById('habit-total')?.value || '0');
+    const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
+    // Fix J: validate simulado
+    if (isNaN(total) || total < 1) { showToast('Informe o total de quest├Áes do simulado (m├¡nimo 1)', 'error'); return; }
+    if (isNaN(acertos) || acertos < 0) { showToast('Acertos n├úo pode ser negativo', 'error'); return; }
+    if (acertos > total) { showToast(`Acertos (${acertos}) n├úo pode ser maior que o total (${total})`, 'error'); return; }
+    registro.total = total;
+    registro.acertos = acertos;
+    registro.descricao = document.getElementById('habit-desc')?.value;
+    // Feature 13: collect gabarito por disciplina
+    const gabDiscs = [];
+    getAllDisciplinas().forEach(({ disc }) => {
+      const tot = parseInt(document.getElementById(`sim-total-${disc.id}`)?.value || '');
+      const ace = parseInt(document.getElementById(`sim-acertos-${disc.id}`)?.value || '');
+      if (!isNaN(tot) && tot > 0) {
+        // Fix J: cap per-disc acertos at its total
+        gabDiscs.push({ discId: disc.id, discNome: disc.nome, total: tot, acertos: isNaN(ace) ? 0 : Math.min(ace, tot) });
+      }
+    });
+    if (gabDiscs.length > 0) registro.gabaritoPorDisc = gabDiscs;
+
+  } else if (currentHabitType === 'discursiva') {
+    registro.descricao = document.getElementById('habit-desc')?.value;
+    const nota = parseFloat(document.getElementById('habit-nota')?.value || '0');
+    // Fix J: validate nota
+    if (!isNaN(nota) && (nota < 0 || nota > 10)) { showToast('Nota deve estar entre 0 e 10', 'error'); return; }
+    registro.nota = isNaN(nota) ? null : nota;
+
+  } else if (currentHabitType === 'leitura') {
+    registro.descricao = document.getElementById('habit-desc')?.value;
+    const paginas = parseInt(document.getElementById('habit-paginas')?.value || '0');
+    // Fix J: validate paginas
+    if (isNaN(paginas) || paginas < 1) { showToast('Informe o n├║mero de p├íginas (m├¡nimo 1)', 'error'); return; }
+    registro.paginas = paginas;
+
+  } else {
+    registro.descricao = document.getElementById('habit-desc')?.value;
+  }
+
+  if (!state.habitos[currentHabitType]) state.habitos[currentHabitType] = [];
+  state.habitos[currentHabitType].push(registro);
+  scheduleSave();
+  closeModal('modal-habit');
+  renderCurrentView();
+  showToast('H├íbito registrado!', 'success');
+}
+
+function calcSimuladoPerc() {
+  const tot = parseInt(document.getElementById('habit-total')?.value || '0');
+  const ace = parseInt(document.getElementById('habit-acertos')?.value || '0');
+  const el = document.getElementById('sim-perc');
+  if (!el || !tot) return;
+  const pct = Math.round(ace / tot * 100);
+  const color = pct >= 70 ? 'var(--accent)' : pct >= 50 ? 'var(--orange)' : 'var(--red)';
+  el.innerHTML = `<span style="color:${color};">${pct}% de aproveitamento (${ace}/${tot})</span>`;
+}
+
+function deleteHabito(tipo, id) {
+  showConfirm('Excluir este registro de h├íbito?', () => {
+    state.habitos[tipo] = (state.habitos[tipo] || []).filter(h => h.id !== id);
+    habitHistPage = 1;
+    scheduleSave();
+    renderCurrentView();
+  }, { danger: true, label: 'Excluir', title: 'Excluir registro' });
+}
+
+// =============================================
+// EDITAIS VIEW
+// =============================================
+let _vertSearchDebounce = null;
+
+function onVertSearch(val) {
+  vertSearch = val;
+  clearTimeout(_vertSearchDebounce);
+  _vertSearchDebounce = setTimeout(() => {
+    // Fix 3: only re-render the list portion, not the entire view
+    const listEl = document.getElementById('vert-list-container');
+    if (listEl) {
+      renderVerticalList(listEl);
+    } else {
+      renderCurrentView(); // fallback if container not found
+    }
+  }, 200);
+}
+let vertFilterEdital = '';
+let vertFilterStatus = 'todos';
+let vertSearch = '';
+
+function getFilteredVertItems() {
+  let items = [];
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      for (const disc of grupo.disciplinas) {
+        for (const ass of disc.assuntos) {
+          items.push({ edital, grupo, disc, ass });
+        }
+      }
+    }
+  }
+  if (vertFilterEdital) items = items.filter(i => i.edital.id === vertFilterEdital);
+  if (vertFilterStatus === 'pendentes') items = items.filter(i => !i.ass.concluido);
+  if (vertFilterStatus === 'concluidos') items = items.filter(i => i.ass.concluido);
+  if (vertSearch) {
+    const q = vertSearch.toLowerCase();
+    items = items.filter(i => i.ass.nome.toLowerCase().includes(q) || i.disc.nome.toLowerCase().includes(q));
+  }
+  return items;
+}
+
+function renderVertical(el) {
+  // Fix 3: render the shell ONCE (filters, header); list gets its own container
+  el.innerHTML = `
+    <!-- Filters row ÔÇö full re-render only when filter chips change -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <div style="position:relative;flex:1;min-width:180px;">
+        <i class="fa fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px;"></i>
+        <input class="form-control" style="padding-left:32px;" id="vert-search" value="${esc(vertSearch)}"
+          placeholder="Buscar assunto ou disciplina..."
+          oninput="onVertSearch(this.value)">
+      </div>
+      <select class="form-control" style="width:auto;" onchange="vertFilterEdital=this.value;renderCurrentView()">
+        <option value="">Todos os editais</option>
+        ${state.editais.map(e => `<option value="${e.id}" ${vertFilterEdital===e.id?'selected':''}>${esc(e.nome)}</option>`).join('')}
+      </select>
+      <div class="filter-row" style="margin:0;gap:4px;">
+        ${['todos','pendentes','concluidos'].map(s => `
+          <div class="filter-chip ${vertFilterStatus===s?'active':''}" onclick="vertFilterStatus='${s}';renderCurrentView()">
+            ${{todos:'Todos',pendentes:'Pendentes',concluidos:'Conclu├¡dos'}[s]}
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Stats header -->
+    <div id="vert-stats-bar" class="card" style="margin-bottom:16px;padding:14px 20px;"></div>
+
+    <!-- Fix 3: isolated list container ÔÇö only this gets re-rendered on search -->
+    <div class="card"><div id="vert-list-container" style="padding:0;"></div></div>
+  `;
+  renderVerticalList(document.getElementById('vert-list-container'));
+}
+
+function renderVerticalList(container) {
+  if (!container) return;
+  const allItems = getFilteredVertItems();
+  const total = allItems.length;
+  const concluidos = allItems.filter(i => i.ass.concluido).length;
+  const pct = total > 0 ? Math.round(concluidos / total * 100) : 0;
+
+  // Update stats bar
+  const statsBar = document.getElementById('vert-stats-bar');
+  if (statsBar) {
+    statsBar.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">VIS├âO LINEAR DO EDITAL</div>
+          <div style="font-size:20px;font-weight:800;">${concluidos} de ${total} assuntos conclu├¡dos</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:32px;font-weight:900;color:var(--accent);">${pct}<span style="font-size:16px;opacity:0.7;">%</span></div>
+          <div style="background:var(--border);height:6px;border-radius:4px;width:120px;margin-top:4px;">
+            <div style="background:var(--accent);height:6px;border-radius:4px;width:${pct}%;transition:width 0.3s;"></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  if (allItems.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">­ƒôæ</div>
+      <h4>${state.editais.length === 0 ? 'Nenhum edital cadastrado' : 'Nenhum assunto encontrado'}</h4>
+      <p>${state.editais.length === 0 ? 'Crie um edital em Editais para usar esta visualiza├º├úo.' : 'Tente ajustar os filtros.'}</p>
+    </div>`;
+    return;
+  }
+
+  const hiReg = vertSearch ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi') : null;
+  const highlight = str => hiReg ? esc(str).replace(hiReg, '<mark>$1</mark>') : esc(str);
+
+  container.innerHTML = allItems.map(({ edital, disc, ass }) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:#f8fafc;' : ''}">
+      <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluido ? 'Ô£ô' : ''}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:${ass.concluido ? '400' : '600'};color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluido ? 'text-decoration:line-through;' : ''}">${highlight(ass.nome)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">${esc(disc.icone || '­ƒôû')} ${highlight(disc.nome)} ÔÇó ${esc(edital.nome)}</div>
+      </div>
+      ${ass.concluido ? `<div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:10px;color:var(--accent);font-weight:600;">Ô£à Conclu├¡do</div>
+        <div style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</div>
+        <div style="font-size:10px;color:var(--text-muted);">${(ass.revisoesFetas||[]).length} rev.</div>
+      </div>` : `<button class="btn btn-ghost btn-sm" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','${ass.id}')">­ƒôà Agendar</button>`}
+    </div>
+  `).join('');
+}
+
+function addEventoParaAssunto(editaId, discId, assId) {
+  const d = getDisc(discId);
+  const ass = d?.disc.assuntos.find(a => a.id === assId);
+  if (!ass || !d) return;
+  // Pre-select discipline and subject then open modal
+  openAddEventModal(todayStr());
+  // After modal renders, pre-fill
+  setTimeout(() => {
+    const discSel = document.getElementById('event-disc');
+    if (discSel) {
+      discSel.value = discId;
+      loadAssuntos();
+      setTimeout(() => {
+        const assSel = document.getElementById('event-assunto');
+        if (assSel) {
+          assSel.value = assId;
+          const ti = document.getElementById('event-titulo');
+          if (ti) { ti.value = ass.nome; ti.dataset.autoFilled = 'true'; }
+        }
+      }, 50);
+    }
+  }, 50);
+}
+
+function renderEditais(el) {
+  el.innerHTML = `
+    ${state.editais.length === 0 ? `
+      <div class="empty-state" style="padding:80px 20px;">
+        <div class="icon">­ƒôï</div>
+        <h4>Nenhum edital cadastrado</h4>
+        <p style="margin-bottom:16px;">Crie seu edital com disciplinas e assuntos para organizar seus estudos.</p>
+        <button class="btn btn-primary" onclick="openEditaModal()"><i class="fa fa-plus"></i> Criar Edital</button>
+      </div>
+    ` : `
+      <div class="edital-tree">
+        ${state.editais.map(edital => renderEditalTree(edital)).join('')}
+      </div>
+    `}
+  `;
+}
+
+function renderEditalTree(edital) {
+  return `
+    <div class="tree-edital" id="edital-${edital.id}">
+      <div class="tree-edital-header" onclick="toggleEdital('${edital.id}')">
+        <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
+        <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
+        <span style="font-size:11px;opacity:0.7;">${edital.grupos.reduce((s,g) => s + g.disciplinas.length, 0)} disc.</span>
+        <button class="icon-btn" style="color:#fff;" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">Ô£Å´©Å</button>
+        <button class="icon-btn" style="color:#fff;" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">­ƒùæ</button>
+        <i class="fa fa-chevron-down" style="font-size:12px;opacity:0.7;"></i>
+      </div>
+      <div id="edital-tree-${edital.id}">
+        ${edital.grupos.map(grupo => `
+          <div class="tree-group">
+            <div class="tree-group-header" onclick="toggleGrupo('${edital.id}','${grupo.id}')">
+              <i class="fa fa-folder" style="color:var(--orange);font-size:13px;"></i>
+              <span style="flex:1;">${esc(grupo.nome)}</span>
+              <button class="icon-btn" style="font-size:11px;" title="Add Disciplina" onclick="event.stopPropagation();openDiscModal('${edital.id}','${grupo.id}')">+ Disciplina</button>
+              <button class="icon-btn" title="Excluir grupo" onclick="event.stopPropagation();deleteGrupo('${edital.id}','${grupo.id}')">­ƒùæ</button>
+            </div>
+            <div id="grupo-tree-${grupo.id}">
+              ${grupo.disciplinas.map(disc => `
+                <div class="tree-disc" onclick="toggleDisc('${disc.id}')">
+                  <div style="width:8px;height:8px;border-radius:50%;background:${disc.cor || '#10b981'};flex-shrink:0;"></div>
+                  <span style="font-size:15px;">${disc.icone || '­ƒôû'}</span>
+                  <span style="flex:1;font-size:13px;font-weight:500;">${esc(disc.nome)}</span>
+                  <span style="font-size:11px;color:var(--text-muted);">${disc.assuntos.filter(a=>a.concluido).length}/${disc.assuntos.length}</span>
+                  <div class="progress" style="width:60px;"><div class="progress-bar" style="width:${disc.assuntos.length>0?Math.round(disc.assuntos.filter(a=>a.concluido).length/disc.assuntos.length*100):0}%;background:${disc.cor||'var(--accent)'};"></div></div>
+                  <button class="icon-btn" style="font-size:11px;" onclick="event.stopPropagation();openSubjectModal('${edital.id}','${disc.id}')" title="Add Assuntos">+ Assuntos</button>
+                  <button class="icon-btn" onclick="event.stopPropagation();deleteDisc('${edital.id}','${grupo.id}','${disc.id}')" title="Excluir">­ƒùæ</button>
+                </div>
+                <div id="disc-tree-${disc.id}" style="display:none;">
+                  ${disc.assuntos.map((ass, idx) => `
+                    <div class="tree-assunto ${ass.concluido ? 'done' : ''}"
+                      draggable="true"
+                      data-disc-id="${disc.id}"
+                      data-ass-idx="${idx}"
+                      ondragstart="dndStart(event,'${disc.id}',${idx})"
+                      ondragover="dndOver(event)"
+                      ondragleave="dndLeave(event)"
+                      ondrop="dndDrop(event,'${disc.id}',${idx})">
+                      <span class="drag-handle-icon" title="Arrastar para reordenar">Ôá┐</span>
+                      <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')">
+                        ${ass.concluido ? 'Ô£ô' : ''}
+                      </div>
+                      <span style="flex:1;">${esc(ass.nome)}</span>
+                      ${ass.concluido ? `<span style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</span>` : ''}
+                      <button class="icon-btn" style="font-size:10px;" onclick="deleteAssunto('${disc.id}','${ass.id}')">├ù</button>
+                    </div>
+                  `).join('')}
+                  ${disc.assuntos.length === 0 ? '<div class="tree-assunto" style="color:var(--text-muted);font-style:italic;">Nenhum assunto adicionado</div>' : ''}
+                </div>
+              `).join('')}
+              ${grupo.disciplinas.length === 0 ? '<div class="tree-disc" style="color:var(--text-muted);font-style:italic;cursor:default;">Nenhuma disciplina</div>' : ''}
+            </div>
+          </div>
+        `).join('')}
+        <div style="padding:10px 16px;border-top:1px solid var(--border);">
+          <button class="btn btn-ghost btn-sm" onclick="addGrupo('${edital.id}')">+ Grupo</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleEdital(id) {
+  const el = document.getElementById(`edital-tree-${id}`);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function toggleGrupo(editaId, grupoId) {
+  const el = document.getElementById(`grupo-tree-${grupoId}`);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function toggleDisc(discId) {
+  const el = document.getElementById(`disc-tree-${discId}`);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function toggleAssunto(discId, assId) {
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      const disc = grupo.disciplinas.find(d => d.id === discId);
+      if (disc) {
+        const ass = disc.assuntos.find(a => a.id === assId);
+        if (ass) {
+          ass.concluido = !ass.concluido;
+          ass.dataConclusao = ass.concluido ? todayStr() : null;
+          if (ass.concluido) ass.revisoesFetas = [];
+          scheduleSave();
+          renderCurrentView();
+          return;
+        }
+      }
+    }
+  }
+}
+
+function deleteAssunto(discId, assId) {
+  showConfirm('Excluir este assunto? Eventos vinculados ser├úo desvinculados.', () => {
+    const entry = getDisc(discId);
+    if (entry) {
+      entry.disc.assuntos = entry.disc.assuntos.filter(a => a.id !== assId);
+      invalidateDiscCache();
+      scheduleSave();
+      renderCurrentView();
+    }
+  }, { danger: true, label: 'Excluir', title: 'Excluir assunto' });
+}
+
+function deleteDisc(editaId, grupoId, discId) {
+  showConfirm('Excluir esta disciplina e todos seus assuntos?\n\nEsta a├º├úo n├úo pode ser desfeita.', () => {
+    const edital = state.editais.find(e => e.id === editaId);
+    if (!edital) return;
+    const grupo = edital.grupos.find(g => g.id === grupoId);
+    if (!grupo) return;
+    grupo.disciplinas = grupo.disciplinas.filter(d => d.id !== discId);
+    invalidateDiscCache();
+    scheduleSave();
+    renderCurrentView();
+  }, { danger: true, label: 'Excluir disciplina', title: 'Excluir disciplina' });
+}
+
+function deleteGrupo(editaId, grupoId) {
+  showConfirm('Excluir este grupo e todas suas disciplinas?\n\nEsta a├º├úo n├úo pode ser desfeita.', () => {
+    const edital = state.editais.find(e => e.id === editaId);
+    if (!edital) return;
+    edital.grupos = edital.grupos.filter(g => g.id !== grupoId);
+    invalidateDiscCache();
+    scheduleSave();
+    renderCurrentView();
+  }, { danger: true, label: 'Excluir grupo', title: 'Excluir grupo' });
+}
+
+function deleteEdital(editaId) {
+  const edital = state.editais.find(e => e.id === editaId);
+  const nome = edital ? edital.nome : 'edital';
+  showConfirm(`Excluir "${nome}" completamente?
+
+Todos os grupos, disciplinas e assuntos ser├úo removidos. Esta a├º├úo n├úo pode ser desfeita.`, () => {
+    state.editais = state.editais.filter(e => e.id !== editaId);
+    invalidateDiscCache();
+    scheduleSave();
+    renderCurrentView();
+  }, { danger: true, label: 'Excluir edital', title: 'Excluir edital' });
+}
+
+function addGrupo(editaId) {
+  const nome = prompt('Nome do grupo (ex: Conhecimentos Gerais):');
+  if (!nome) return;
+  const edital = state.editais.find(e => e.id === editaId);
+  if (!edital) return;
+  edital.grupos.push({ id: uid(), nome, disciplinas: [] });
+  scheduleSave();
+  renderCurrentView();
+}
+
+// =============================================
+// EDITAL MODAL
+// =============================================
+function openEditaModal(editaId = null) {
+  const edital = editaId ? state.editais.find(e => e.id === editaId) : null;
+  document.getElementById('modal-edital-title').textContent = edital ? 'Editar Edital' : 'Novo Edital';
+  document.getElementById('modal-edital-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Nome do Edital</label>
+      <input type="text" class="form-control" id="edital-nome" placeholder="Ex: Concurso TRF 2025" value="${edital ? edital.nome : ''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cor</label>
+      <div class="color-row" id="edital-colors">
+        ${COLORS.map(c => `<div class="color-swatch ${edital && edital.cor === c ? 'selected' : ''}" style="background:${c};" onclick="selectColor('${c}','edital-colors')"></div>`).join('')}
+      </div>
+      <input type="hidden" id="edital-cor" value="${edital ? edital.cor : COLORS[0]}">
+    </div>
+    <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edital')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEdital('${editaId || ''}')">Salvar Edital</button>
+    </div>
+  `;
+  if (!edital) {
+    document.querySelector('#edital-colors .color-swatch').classList.add('selected');
+  }
+  openModal('modal-edital');
+}
+
+function selectColor(color, containerId) {
+  const container = document.getElementById(containerId);
+  container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  container.querySelector(`[style="background:${color};"]`).classList.add('selected');
+  const input = document.getElementById(containerId === 'edital-colors' ? 'edital-cor' : containerId === 'disc-colors' ? 'disc-cor' : 'edital-cor');
+  if (input) input.value = color;
+}
+
+function saveEdital(editaId) {
+  const nome = document.getElementById('edital-nome').value.trim();
+  if (!nome) { showToast('Informe o nome do edital', 'error'); return; }
+  const cor = document.getElementById('edital-cor').value || COLORS[0];
+
+  if (editaId) {
+    const edital = state.editais.find(e => e.id === editaId);
+    if (edital) { edital.nome = nome; edital.cor = cor; }
+  } else {
+    state.editais.push({
+      id: uid(), nome, cor,
+      grupos: [{ id: uid(), nome: 'Conhecimentos Gerais', disciplinas: [] }]
+    });
+  }
+  scheduleSave();
+  closeModal('modal-edital');
+  renderCurrentView();
+  showToast('Edital salvo!', 'success');
+}
+
+// =============================================
+// DISCIPLINE MODAL
+// =============================================
+function openDiscModal(editaId, grupoId) {
+  editingDiscCtx = { editaId, grupoId };
+  document.getElementById('modal-disc-title').textContent = 'Nova Disciplina';
+  document.getElementById('modal-disc-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Nome da Disciplina</label>
+      <input type="text" class="form-control" id="disc-nome" placeholder="Ex: Direito Constitucional">
+    </div>
+    <div class="form-group">
+      <label class="form-label">├ìcone</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="disc-icons">
+        ${DISC_ICONS.map((ic, i) => `<div style="width:36px;height:36px;border-radius:8px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all 0.15s;" class="${i===0?'selected-icon':''}" onclick="selectIcon('${ic}', this)">${ic}</div>`).join('')}
+      </div>
+      <input type="hidden" id="disc-icone" value="${DISC_ICONS[0]}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cor</label>
+      <div class="color-row" id="disc-colors">
+        ${COLORS.map((c,i) => `<div class="color-swatch ${i===0?'selected':''}" style="background:${c};" onclick="selectDiscColor('${c}')"></div>`).join('')}
+      </div>
+      <input type="hidden" id="disc-cor" value="${COLORS[0]}">
+    </div>
+  `;
+  openModal('modal-disc');
+}
+
+function selectIcon(icon, el) {
+  document.querySelectorAll('#disc-icons > div').forEach(d => {
+    d.style.border = '2px solid var(--border)';
+    d.classList.remove('selected-icon');
+  });
+  el.style.border = '2px solid var(--accent)';
+  el.classList.add('selected-icon');
+  document.getElementById('disc-icone').value = icon;
+}
+
+function selectDiscColor(color) {
+  document.querySelectorAll('#disc-colors .color-swatch').forEach(s => s.classList.remove('selected'));
+  document.querySelector(`#disc-colors [style="background:${color};"]`).classList.add('selected');
+  document.getElementById('disc-cor').value = color;
+}
+
+function saveDisc() {
+  const nome = document.getElementById('disc-nome').value.trim();
+  if (!nome) { showToast('Informe o nome da disciplina', 'error'); return; }
+  const icone = document.getElementById('disc-icone').value;
+  const cor = document.getElementById('disc-cor').value;
+  const { editaId, grupoId } = editingDiscCtx;
+  const edital = state.editais.find(e => e.id === editaId);
+  if (!edital) return;
+  const grupo = edital.grupos.find(g => g.id === grupoId);
+  if (!grupo) return;
+  grupo.disciplinas.push({ id: uid(), nome, icone, cor, assuntos: [] });
+  scheduleSave();
+  closeModal('modal-disc');
+  renderCurrentView();
+  showToast('Disciplina criada!', 'success');
+}
+
+// =============================================
+// SUBJECT MODAL
+// =============================================
+function openSubjectModal(editaId, discId) {
+  // Find disc
+  let disc = null;
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      const d = grupo.disciplinas.find(d => d.id === discId);
+      if (d) { disc = d; break; }
+    }
+    if (disc) break;
+  }
+  if (!disc) return;
+  editingSubjectCtx = { editaId, discId };
+
+  document.getElementById('modal-subject-body').innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">
+        Adicionando assuntos em: <strong style="color:var(--text-primary);">${esc(disc.nome)}</strong>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cole os assuntos (um por linha)</label>
+      <textarea class="form-control" id="subject-text" rows="10" placeholder="Princ├¡pios fundamentais
+Direitos e garantias fundamentais
+Organiza├º├úo do Estado
+Organiza├º├úo dos Poderes
+Tributa├º├úo e Or├ºamento"></textarea>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);">Voc├¬ tamb├®m pode adicionar um assunto por vez abaixo:</div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input type="text" class="form-control" id="subject-single" placeholder="Nome do assunto">
+      <button class="btn btn-ghost" onclick="addSingleSubject()">Adicionar</button>
+    </div>
+    <div style="margin-top:12px;font-size:12.5px;font-weight:600;color:var(--text-secondary);">Assuntos atuais (${disc.assuntos.length}):</div>
+    <div id="current-subjects" style="max-height:120px;overflow-y:auto;margin-top:6px;">
+      ${disc.assuntos.map(a => `
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;">
+          <span class="${a.concluido ? 'badge badge-green' : 'badge badge-gray'}">${a.concluido ? 'Ô£ô' : 'Ôùï'}</span>
+          ${esc(a.nome)}
+        </div>
+      `).join('') || '<span style="font-size:12px;color:var(--text-muted);">Nenhum assunto ainda</span>'}
+    </div>
+  `;
+  openModal('modal-subject');
+}
+
+function addSingleSubject() {
+  const input = document.getElementById('subject-single');
+  const nome = input.value.trim();
+  if (!nome) return;
+  const { discId } = editingSubjectCtx;
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      const disc = grupo.disciplinas.find(d => d.id === discId);
+      if (disc) {
+        disc.assuntos.push({ id: uid(), nome, concluido: false, dataConclusao: null, revisoesFetas: [] });
+        input.value = '';
+        openSubjectModal(editingSubjectCtx.editaId, discId);
+        scheduleSave();
+        return;
+      }
+    }
+  }
+}
+
+function saveSubjects() {
+  const text = document.getElementById('subject-text').value.trim();
+  if (!text) { closeModal('modal-subject'); return; }
+  const { discId } = editingSubjectCtx;
+  const names = text.split('\n').map(s => s.trim()).filter(s => s);
+
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      const disc = grupo.disciplinas.find(d => d.id === discId);
+      if (disc) {
+        names.forEach(nome => {
+          if (!disc.assuntos.find(a => a.nome === nome)) {
+            disc.assuntos.push({ id: uid(), nome, concluido: false, dataConclusao: null, revisoesFetas: [] });
+          }
+        });
+        scheduleSave();
+        closeModal('modal-subject');
+        renderCurrentView();
+        showToast(`${names.length} assunto(s) adicionado(s)!`, 'success');
+        return;
+      }
+    }
+  }
+}
+
+// =============================================
+// ADD EVENT MODAL
+// =============================================
+function openAddEventModal(dateStr = null) {
+  editingEventId = null;
+  const allDiscs = getAllDisciplinas();
+  const discOptions = allDiscs.map(({ disc, edital, grupo }) =>
+    `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} ÔÇ║ ${esc(disc.nome)}</option>`
+  ).join('');
+
+  document.getElementById('modal-event-title').textContent = 'Adicionar Evento de Estudo';
+  document.getElementById('modal-event-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">O que voc├¬ vai estudar?</label>
+      <div class="event-type-grid" style="grid-template-columns:repeat(2,1fr);">
+        <div class="event-type-card selected" id="etype-conteudo" onclick="selectEventType('conteudo')">
+          <div class="et-icon">­ƒôû</div>
+          <div class="et-label">Avan├ºar no Edital</div>
+          <div class="et-sub">Estudar disciplinas e assuntos</div>
+        </div>
+        <div class="event-type-card" id="etype-habito" onclick="selectEventType('habito')">
+          <div class="et-icon">ÔÜí</div>
+          <div class="et-label">H├íbito de Estudo</div>
+          <div class="et-sub">Quest├Áes, simulado, etc.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="event-conteudo-fields">
+      <div class="form-group">
+        <label class="form-label">Disciplina</label>
+        <select class="form-control" id="event-disc" onchange="loadAssuntos()">
+          <option value="">Sem disciplina espec├¡fica</option>
+          ${discOptions}
+        </select>
+      </div>
+      <div class="form-group" id="event-assunto-group" style="display:none;">
+        <label class="form-label">Assunto (opcional)</label>
+        <select class="form-control" id="event-assunto">
+          <option value="">Sem assunto espec├¡fico</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="event-habito-fields" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">Tipo de H├íbito</label>
+        <select class="form-control" id="event-habito">
+          ${HABIT_TYPES.map(h => `<option value="${h.key}">${h.icon} ${h.label}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">T├¡tulo do Evento</label>
+      <input type="text" class="form-control" id="event-titulo" placeholder="Ex: Estudar Direito Constitucional">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input type="date" class="form-control" id="event-data" value="${dateStr || todayStr()}"
+          oninput="updateDayLoad(this.value)">
+        <div id="day-load-hint" style="font-size:11px;margin-top:4px;color:var(--text-muted);"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dura├º├úo Prevista</label>
+        <select class="form-control" id="event-duracao">
+          <option value="30">30 min</option>
+          <option value="60" selected>1 hora</option>
+          <option value="90">1h30</option>
+          <option value="120">2 horas</option>
+          <option value="180">3 horas</option>
+          <option value="240">4 horas</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Anota├º├Áes (opcional)</label>
+      <textarea class="form-control" id="event-notas" rows="2" placeholder="Observa├º├Áes r├ípidas sobre o estudo..."></textarea>
+    </div>
+    <details style="margin-bottom:12px;">
+      <summary style="font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:6px 0;">­ƒôÄ Fontes e refer├¬ncias (opcional)</summary>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Fontes de Estudo</label>
+          <input type="text" class="form-control" id="event-fontes" placeholder="Ex: Gran Cursos p├íg. 45, Art. 37 CF/88...">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Legisla├º├úo Pertinente</label>
+          <input type="text" class="form-control" id="event-legislacao" placeholder="Ex: Lei 8.112/90, CF Art. 5┬║...">
+        </div>
+      </div>
+    </details>
+    <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-event')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEvent()">Adicionar Evento</button>
+    </div>
+  `;
+  openModal('modal-event');
+  // Tech 3: Show day load immediately
+  setTimeout(() => updateDayLoad(dateStr || todayStr()), 50);
+}
+
+let currentEventType = 'conteudo';
+function selectEventType(tipo) {
+  currentEventType = tipo;
+  document.getElementById('etype-conteudo').classList.toggle('selected', tipo === 'conteudo');
+  document.getElementById('etype-habito').classList.toggle('selected', tipo === 'habito');
+  document.getElementById('event-conteudo-fields').style.display = tipo === 'conteudo' ? '' : 'none';
+  document.getElementById('event-habito-fields').style.display = tipo === 'habito' ? '' : 'none';
+}
+
+// Tech 3: Real-time day-load hint
+function updateDayLoad(dateStr) {
+  const el = document.getElementById('day-load-hint');
+  if (!el || !dateStr) return;
+  const evts = state.eventos.filter(e => e.data === dateStr && e.status !== 'estudei');
+  const mins = evts.reduce((s, e) => s + (e.duracao || 0), 0);
+  if (evts.length === 0) {
+    el.textContent = '­ƒôà Dia livre';
+    el.style.color = 'var(--accent)';
+  } else {
+    const horas = (mins / 60).toFixed(1);
+    const color = mins > 480 ? 'var(--red)' : mins > 300 ? 'var(--orange)' : 'var(--text-muted)';
+    el.textContent = `ÔÜá´©Å ${evts.length} evento(s) j├í agendado(s) neste dia ÔÇö ${horas}h previstas`;
+    el.style.color = color;
+  }
+}
+
+function loadAssuntos() {
+  const discId = document.getElementById('event-disc').value;
+  const assuntoGroup = document.getElementById('event-assunto-group');
+  const assuntoSel = document.getElementById('event-assunto');
+  if (!discId) {
+    assuntoGroup.style.display = 'none';
+    return;
+  }
+  const d = getDisc(discId);
+  // Fix 5: auto-fill title when user hasn't typed anything yet
+  const tituloInput = document.getElementById('event-titulo');
+  if (d && (!tituloInput.value || tituloInput.dataset.autoFilled === 'true')) {
+    tituloInput.value = `Estudar ${d.disc.nome}`;
+    tituloInput.dataset.autoFilled = 'true';
+  }
+  if (!d || d.disc.assuntos.length === 0) { assuntoGroup.style.display = 'none'; return; }
+  const pending = d.disc.assuntos.filter(a => !a.concluido);
+  assuntoSel.innerHTML = `<option value="">Sem assunto espec├¡fico</option>` +
+    pending.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
+  assuntoGroup.style.display = '';
+  assuntoSel.onchange = () => {
+    const assId = assuntoSel.value;
+    if (assId && (!tituloInput.value || tituloInput.dataset.autoFilled === 'true')) {
+      const ass = d.disc.assuntos.find(a => a.id === assId);
+      if (ass) {
+        tituloInput.value = ass.nome;
+        tituloInput.dataset.autoFilled = 'true';
+      }
+    } else if (!assId && tituloInput.dataset.autoFilled === 'true') {
+      tituloInput.value = `Estudar ${d.disc.nome}`;
+    }
+  };
+}
+
+// Clear auto-filled flag if user manually types in title
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'event-titulo') {
+    e.target.dataset.autoFilled = 'false';
+  }
+});
+
+function saveEvent() {
+  const titulo = document.getElementById('event-titulo').value.trim();
+  const data = document.getElementById('event-data').value;
+  const duracao = parseInt(document.getElementById('event-duracao').value || '60');
+  const notas = document.getElementById('event-notas').value.trim();
+  const fontes = document.getElementById('event-fontes')?.value.trim() || '';
+  const legislacao = document.getElementById('event-legislacao')?.value.trim() || '';
+
+  let discId, assId, habito, autoTitle = titulo;
+
+  if (currentEventType === 'conteudo') {
+    discId = document.getElementById('event-disc').value;
+    assId = document.getElementById('event-assunto')?.value;
+    if (!titulo && discId) {
+      const d = getDisc(discId);
+      autoTitle = `Estudar ${d?.disc.nome || 'Disciplina'}`;
+    }
+  } else {
+    habito = document.getElementById('event-habito').value;
+    const h = getHabitType(habito);
+    if (!titulo && h) autoTitle = h.label;
+  }
+
+  if (!autoTitle) { showToast('Informe um t├¡tulo para o evento', 'error'); return; }
+
+  // Helper that actually creates and saves the event
+  const doSave = () => {
+    const evento = {
+      id: uid(), titulo: autoTitle, data, duracao, notas, fontes, legislacao,
+      status: 'agendado', tempoAcumulado: 0,
+      tipo: currentEventType,
+      discId: discId || null,
+      assId: assId || null,
+      habito: habito || null,
+      criadoEm: new Date().toISOString()
+    };
+
+    state.eventos.push(evento);
+    scheduleSave();
+    closeModal('modal-event');
+    renderCurrentView();
+    showToast('Evento adicionado!', 'success');
+  };
+
+  // Tech 3: Warn if there are already many events on this day
+  const existingOnDay = state.eventos.filter(e => e.data === data && e.status !== 'estudei');
+  const totalDuracao = existingOnDay.reduce((s, e) => s + (e.duracao || 0), 0) + duracao;
+  if (existingOnDay.length >= 3 || totalDuracao > 480) {
+    const horas = Math.round(totalDuracao / 60 * 10) / 10;
+    const msg = existingOnDay.length >= 3
+      ? `Voc├¬ j├í tem ${existingOnDay.length} evento(s) neste dia. Adicionar mais pode gerar sobrecarga.`
+      : `Voc├¬ j├í tem ${Math.round((totalDuracao - duracao) / 60 * 10) / 10}h agendadas neste dia. Com este evento seriam ${horas}h.`;
+    showConfirm(msg, doSave, { label: 'Adicionar mesmo assim', title: 'Muitos eventos no dia' });
+    return;
+  }
+
+  doSave();
+}
+
+// =============================================
+// CONFIG VIEW
+// =============================================
+function renderConfig(el) {
+  const cfg = state.config;
+  el.innerHTML = `
+    <div class="grid-2">
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>­ƒÄ¿ Apar├¬ncia</h3></div>
+          <div class="card-body">
+            <div class="config-row">
+              <div>
+                <div class="config-label">Modo escuro</div>
+                <div class="config-sub">Reduz o brilho da tela para uso noturno</div>
+              </div>
+              <div class="toggle ${cfg.darkMode ? 'on' : ''}" id="dark-toggle"
+                onclick="applyTheme(true);this.classList.toggle('on');renderCurrentView()"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>ÔÜÖ´©Å Calend├írio</h3></div>
+          <div class="card-body">
+            <div class="config-row">
+              <div>
+                <div class="config-label">Visualiza├º├úo padr├úo</div>
+                <div class="config-sub">Modo inicial do calend├írio</div>
+              </div>
+              <select class="form-control" style="width:120px;" onchange="updateConfig('visualizacao',this.value)">
+                <option value="mes" ${cfg.visualizacao==='mes'?'selected':''}>M├¬s</option>
+                <option value="semana" ${cfg.visualizacao==='semana'?'selected':''}>Semana</option>
+              </select>
+            </div>
+            <div class="config-row">
+              <div>
+                <div class="config-label">Primeiro dia da semana</div>
+              </div>
+              <select class="form-control" style="width:130px;" onchange="updateConfig('primeirodiaSemana',parseInt(this.value))">
+                <option value="0" ${cfg.primeirodiaSemana===0?'selected':''}>Domingo</option>
+                <option value="1" ${cfg.primeirodiaSemana===1?'selected':''}>Segunda-feira</option>
+              </select>
+            </div>
+            <div class="config-row">
+              <div>
+                <div class="config-label">N├║mero da semana</div>
+              </div>
+              <div class="toggle ${cfg.mostrarNumeroSemana?'on':''}" onclick="toggleConfig('mostrarNumeroSemana',this)"></div>
+            </div>
+            <div class="config-row">
+              <div>
+                <div class="config-label">Agrupar eventos no dia</div>
+                <div class="config-sub">Limita quantidade vis├¡vel</div>
+              </div>
+              <div class="toggle ${cfg.agruparEventos?'on':''}" onclick="toggleConfig('agruparEventos',this)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>­ƒöä Frequ├¬ncia de Revis├úo</h3></div>
+          <div class="card-body">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+              Defina em quantos dias ap├│s concluir um assunto o programa vai sugerir cada revis├úo.
+            </div>
+            <div class="form-group">
+              <label class="form-label">Intervalos (em dias, separados por v├¡rgula)</label>
+              <input type="text" class="form-control" id="freq-input" value="${(cfg.frequenciaRevisao || [1,7,30,90]).join(', ')}"
+                onchange="updateFrequencia(this.value)">
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);">Ex: 1, 7, 30, 90 = 4 revis├Áes no 1┬║, 7┬║, 30┬║ e 90┬║ dia</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>Ôÿü´©Å Google Drive</h3></div>
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <div style="font-size:32px;">Ôÿü´©Å</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;">${cfg.driveConnected ? 'Conectado ao Google Drive' : 'N├úo conectado'}</div>
+                <div style="font-size:12px;color:var(--text-secondary);">${cfg.driveConnected ? 'Seus dados s├úo sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
+              </div>
+            </div>
+            ${cfg.driveConnected ? `
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary btn-sm" onclick="syncToDrive();showToast('Sincronizando...','info')">
+                  <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="loadFromDrive()">
+                  <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="driveDisconnect()">Desconectar</button>
+              </div>
+            ` : `
+              <button class="btn btn-primary" onclick="openDriveModal()">
+                <i class="fa fa-cloud"></i> Conectar ao Google Drive
+              </button>
+            `}
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>­ƒöö Notifica├º├Áes</h3></div>
+          <div class="card-body">
+            <div class="config-row">
+              <div>
+                <div class="config-label">Notifica├º├Áes do browser</div>
+                <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? 'Ô£à Ativadas' : Notification.permission === 'denied' ? '­ƒÜ½ Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revis├Áes') : 'ÔØî Browser n├úo suporta'}</div>
+              </div>
+              ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
+                <button class="btn btn-primary btn-sm" onclick="requestNotifPermission()">­ƒöö Ativar</button>
+              ` : Notification.permission === 'granted' ? `
+                <button class="btn btn-ghost btn-sm" onclick="scheduleNotifications(true);showToast('Lembretes enviados!','success')">­ƒöö Testar</button>
+              ` : ''}
+            </div>
+            ${Notification.permission === 'granted' ? `
+            <div class="config-row">
+              <div>
+                <div class="config-label">Lembrete noturno</div>
+                <div class="config-sub">Aviso ├ás 20h se houver eventos pendentes</div>
+              </div>
+              <div style="font-size:12px;color:var(--accent);font-weight:600;">­ƒòù 20:00</div>
+            </div>` : ''}
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>­ƒÆ¥ Dados</h3></div>
+          <div class="card-body">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+              ${state.eventos.length} evento(s) ativos
+              ${(state.arquivo||[]).length > 0 ? ` ÔÇó ${state.arquivo.length} arquivado(s)` : ''}
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-ghost" onclick="exportData()">­ƒôñ Exportar JSON</button>
+              <button class="btn btn-ghost" onclick="importData()">­ƒôÑ Importar JSON</button>
+              <button class="btn btn-ghost btn-sm" onclick="archiveOldEvents(90)" title="Move eventos conclu├¡dos h├í mais de 90 dias para o arquivo">­ƒùé Arquivar antigos</button>
+              <button class="btn btn-danger btn-sm" onclick="clearAllData()">­ƒùæ Limpar tudo</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Ôä╣´©Å Sobre</h3></div>
+          <div class="card-body">
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
+              <strong>Estudo Organizado</strong> ├® um app para planejamento e organiza├º├úo de estudos para concursos p├║blicos.<br><br>
+              Baseado no Ciclo PDCA: planeje no Calend├írio, execute no Meu Estudo Di├írio, me├ºa no Dashboard e corrija com as Revis├Áes.<br><br>
+              <span style="font-size:11px;color:var(--text-muted);">Vers├úo 1.0 ÔÇó Dados salvos localmente + Google Drive</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function updateConfig(key, value) {
+  state.config[key] = value;
+  scheduleSave();
+}
+
+function toggleConfig(key, el) {
+  state.config[key] = !state.config[key];
+  el.classList.toggle('on', state.config[key]);
+  scheduleSave();
+}
+
+function updateFrequencia(value) {
+  const nums = value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
+  if (nums.length > 0) {
+    state.config.frequenciaRevisao = nums;
+    scheduleSave();
+  }
+}
+
+function driveDisconnect() {
+  state.config.driveConnected = false;
+  state.config.driveToken = null;
+  state.config.driveFileId = null;
+  saveLocal();
+  updateDriveUI();
+  renderCurrentView();
+  showToast('Google Drive desconectado', 'info');
+}
+
+// Fix 7: Move concluded events older than N days into state.arquivo.
+// Archived events are excluded from all renders/filters but kept in export/Drive sync.
+function archiveOldEvents(days = 90) {
+  const cutoffStr = cutoffDateStr(days);
+  const toArchive = state.eventos.filter(e => e.status === 'estudei' && e.data && e.data < cutoffStr);
+  if (toArchive.length === 0) {
+    showToast('Nenhum evento para arquivar.', 'info');
+    return;
+  }
+  showConfirm(
+    `Arquivar ${toArchive.length} evento(s) conclu├¡do(s) com mais de ${days} dias?\n\nEles continuar├úo no export/backup, mas n├úo aparecer├úo nos relat├│rios.`,
+    () => {
+      state.arquivo = [...(state.arquivo || []), ...toArchive];
+      const archiveIds = new Set(toArchive.map(e => e.id));
+      state.eventos = state.eventos.filter(e => !archiveIds.has(e.id));
+      scheduleSave();
+      renderCurrentView();
+      showToast(`${toArchive.length} evento(s) arquivados.`, 'success');
+    },
+    { label: 'Arquivar', title: `Arquivar eventos (>${days} dias)` }
+  );
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `estudo-organizado-backup-${todayStr()}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Dados exportados!', 'success');
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        showConfirm(
+          `Importar dados de "${file.name}"?\n\nIsso substituir├í todos os dados atuais. Fa├ºa um export antes para garantir o backup.`,
+          () => {
+            state = imported;
+            invalidateDiscCache();
+            invalidateRevCache();
+            invalidateTodayCache();
+            saveLocal();
+            renderCurrentView();
+            showToast('Dados importados com sucesso!', 'success');
+          },
+          { label: 'Importar', title: 'Importar dados' }
+        );
+      } catch(err) {
+        showToast('Arquivo inv├ílido! Verifique se ├® um JSON de backup do Estudo Organizado.', 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function clearAllData() {
+  showConfirm(
+    'ÔÜá´©Å Apagar TODOS os dados permanentemente?\n\nEditais, eventos, h├íbitos e configura├º├Áes ser├úo removidos.\n\nEsta a├º├úo ├® irrevers├¡vel.',
+    () => {
+      showConfirm(
+        '├Ültima confirma├º├úo: isso n├úo pode ser desfeito.',
+        () => {
+          localStorage.removeItem('estudo-organizado');
+          location.reload();
+        },
+        { danger: true, label: 'Apagar tudo definitivamente', title: 'ÔÜá´©Å Confirma├º├úo final' }
+      );
+    },
+    { danger: true, label: 'Continuar com exclus├úo', title: 'ÔÜá´©Å Apagar todos os dados' }
+  );
+}
+
+// =============================================
+// UX 3 ÔÇö DRAG AND DROP ASSUNTOS
+// =============================================
+let _dndSrcDiscId = null;
+let _dndSrcIdx = null;
+
+function dndStart(event, discId, idx) {
+  _dndSrcDiscId = discId;
+  _dndSrcIdx = idx;
+  event.currentTarget.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(idx));
+}
+function dndOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  event.currentTarget.classList.add('drag-over');
+}
+function dndLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+function dndDrop(event, discId, targetIdx) {
+  event.preventDefault();
+  event.stopPropagation();
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  const srcIdx = _dndSrcIdx;
+  if (srcIdx === null || srcIdx === targetIdx || _dndSrcDiscId !== discId) return;
+  for (const edital of state.editais) {
+    for (const grupo of edital.grupos) {
+      const disc = grupo.disciplinas.find(d => d.id === discId);
+      if (disc) {
+        const moved = disc.assuntos.splice(srcIdx, 1)[0];
+        disc.assuntos.splice(targetIdx, 0, moved);
+        scheduleSave();
+        // Re-render then re-open that disc's assuntos
+        renderCurrentView();
+        const cont = document.getElementById(`disc-tree-${discId}`);
+        if (cont) cont.style.display = '';
+        showToast('Assunto reordenado!', 'success');
+        _dndSrcDiscId = null; _dndSrcIdx = null;
+        return;
+      }
+    }
+  }
+}
+document.addEventListener('dragend', () => {
+  document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+});
+
+// =============================================
+// UX 1 ÔÇö GLOBAL SEARCH
+// =============================================
+let searchBlurTimeout = null;
+
+function onSearch(query) {
+  const box = document.getElementById('search-results');
+  if (!query || query.length < 2) { box.classList.remove('open'); return; }
+  const q = query.toLowerCase();
+  const results = { eventos: [], assuntos: [], habitos: [] };
+
+  // Search eventos
+  state.eventos.forEach(ev => {
+    if (ev.titulo.toLowerCase().includes(q)) {
+      const disc = ev.discId ? getDisc(ev.discId)?.disc : null;
+      results.eventos.push({ ev, disc });
+    }
+  });
+
+  // Search assuntos
+  getAllDisciplinas().forEach(({ disc, edital }) => {
+    disc.assuntos.forEach(ass => {
+      if (ass.nome.toLowerCase().includes(q) || disc.nome.toLowerCase().includes(q)) {
+        results.assuntos.push({ ass, disc, edital });
+      }
+    });
+  });
+
+  // Search h├íbitos
+  HABIT_TYPES.forEach(h => {
+    (state.habitos[h.key] || []).forEach(r => {
+      if ((r.descricao || '').toLowerCase().includes(q)) {
+        results.habitos.push({ r, h });
+      }
+    });
+  });
+
+  const highlight = str => str.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
+  let html = '';
+
+  if (results.eventos.length) {
+    html += `<div class="search-section-title">­ƒôà Eventos</div>`;
+    html += results.eventos.slice(0, 5).map(({ ev, disc }) => `
+      <div class="search-item" onclick="openEventDetail('${ev.id}');clearSearch()">
+        <div class="search-item-icon">${disc ? disc.icone || '­ƒôû' : '­ƒôà'}</div>
+        <div>
+          <div class="search-item-label">${highlight(ev.titulo)}</div>
+          <div class="search-item-sub">${ev.data ? formatDate(ev.data) : ''}${disc ? ' ÔÇó ' + disc.nome : ''}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  if (results.assuntos.length) {
+    html += `<div class="search-section-title">­ƒôÜ Assuntos</div>`;
+    html += results.assuntos.slice(0, 5).map(({ ass, disc, edital }) => `
+      <div class="search-item" onclick="navigate('editais');clearSearch()">
+        <div class="search-item-icon">${disc.icone || '­ƒôû'}</div>
+        <div>
+          <div class="search-item-label">${highlight(ass.nome)}</div>
+          <div class="search-item-sub">${esc(disc.nome)} ÔÇó ${esc(edital.nome)} ${ass.concluido ? 'Ô£à' : ''}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  if (results.habitos.length) {
+    html += `<div class="search-section-title">ÔÜí H├íbitos</div>`;
+    html += results.habitos.slice(0, 3).map(({ r, h }) => `
+      <div class="search-item" onclick="navigate('habitos');clearSearch()">
+        <div class="search-item-icon">${h.icon}</div>
+        <div>
+          <div class="search-item-label">${highlight(r.descricao || h.label)}</div>
+          <div class="search-item-sub">${formatDate(r.data)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  if (!html) html = `<div class="search-empty">Nenhum resultado para "<strong>${query}</strong>"</div>`;
+  box.innerHTML = html;
+  box.classList.add('open');
+}
+
+function onSearchFocus() {
+  clearTimeout(searchBlurTimeout);
+  const val = document.getElementById('global-search').value;
+  if (val && val.length >= 2) onSearch(val);
+}
+
+function onSearchBlur() {
+  searchBlurTimeout = setTimeout(() => {
+    document.getElementById('search-results')?.classList.remove('open');
+  }, 200);
+}
+
+function clearSearch() {
+  document.getElementById('global-search').value = '';
+  document.getElementById('search-results').classList.remove('open');
+}
+
+// ESC closes search
+document.addEventListener('keydown', e => {
+  // Fix H: ESC ÔÇö close the topmost open modal, or clear search
+  if (e.key === 'Escape') {
+    const openModals = [...document.querySelectorAll('.modal-overlay.open')];
+    if (openModals.length > 0) {
+      const top = openModals[openModals.length - 1];
+      if (top.id === 'modal-confirm') {
+        _confirmCallback = null; // Fix B: cancel callback
+      }
+      closeModal(top.id);
+    } else {
+      clearSearch();
+    }
+  }
+
+  // Fix H: Enter submits the active modal form (not inside textarea)
+  if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
+    const openModal = document.querySelector('.modal-overlay.open:not(#modal-confirm):not(#modal-event-detail)');
+    if (openModal) {
+      const saveBtn = openModal.querySelector('button[onclick*="save"], button[onclick*="Save"], button.btn-primary');
+      if (saveBtn && !saveBtn.disabled) {
+        e.preventDefault();
+        saveBtn.click();
+      }
+    }
+  }
+});
+
+// =============================================
+// UX 5 ÔÇö MOBILE SIDEBAR
+// =============================================
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// Close sidebar on nav item click on mobile
+const _origNavigate = navigate;
+function navigate(view) {
+  if (window.innerWidth <= 768) closeSidebar();
+  currentView = view;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  renderCurrentView();
+}
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Fix B: Custom confirm replacing browser confirm() ÔÇö consistent design, works on mobile
+let _confirmCallback = null;
+
+function showConfirm(msg, onYes, opts = {}) {
+  const { title = 'Confirmar', label = 'Confirmar', danger = false } = opts;
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  const okBtn = document.getElementById('confirm-ok-btn');
+  okBtn.textContent = label;
+  okBtn.className = `btn btn-sm ${danger ? 'btn-danger' : 'btn-primary'}`;
+  _confirmCallback = onYes;
+  openModal('modal-confirm');
+}
+
+document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+  closeModal('modal-confirm');
+  if (_confirmCallback) { const cb = _confirmCallback; _confirmCallback = null; cb(); }
+});
+document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+  closeModal('modal-confirm');
+  _confirmCallback = null;
+});
+
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) {
+    if (e.target.id === 'modal-confirm') _confirmCallback = null; // Fix B: cancel on backdrop
+    closeModal(e.target.id);
+  }
+});
+
+// =============================================
+// TOAST
+// =============================================
+function showToast(msg, type = '') {
+  const container = document.getElementById('toast-container');
+
+  // Fix G: deduplicate ÔÇö don't show the exact same message twice in a row
+  const last = container.lastElementChild;
+  if (last && last.dataset.msg === msg) {
+    last.classList.remove('show');
+    void last.offsetWidth; // force reflow to restart animation
+    last.classList.add('show');
+    return;
+  }
+
+  // Fix G: limit to 3 visible toasts ÔÇö remove oldest if exceeded
+  while (container.children.length >= 3) {
+    const oldest = container.firstElementChild;
+    oldest.classList.remove('show');
+    setTimeout(() => oldest.remove(), 300);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.setAttribute('role', 'status');      // Fix G: accessible
+  toast.setAttribute('aria-live', 'polite');
+  toast.dataset.msg = msg;
+  const icons = { success: 'Ô£à', error: 'ÔØî', info: 'Ôä╣´©Å' };
+  toast.innerHTML = `<span>${icons[type] || '­ƒÆ¼'}</span><span>${msg}</span>`;
+  container.appendChild(toast);
+  requestAnimationFrame(() => { toast.classList.add('show'); });
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// =============================================
+// INIT
+// =============================================
+function init() {
+  loadLocal();
+  applyTheme(); // Fix F: restore user's theme preference before first render
+  updateDriveUI();
+  if (state.config.clientId && state.config.driveConnected) {
+    loadGIS();
+  }
+  navigate('home');
+  // Update atrasados automatically
+  state.eventos.forEach(ev => {
+    if (ev.status === 'agendado' && ev.data && ev.data < todayStr()) {
+      ev.status = 'atrasado';
+    }
+  });
+  saveLocal();
+  // Auto-sync every 5 minutes
+  setInterval(() => {
+    if (state.config.driveConnected) syncToDrive();
+  }, 300000);
+
+  // Feature 14: Schedule browser notifications
+  scheduleNotifications(true); // initial app load ÔÇö force
+}
+
+// Fix F: Apply/toggle theme ÔÇö sets data-theme on <html> and persists preference
+function applyTheme(toggle = false) {
+  if (toggle) {
+    state.config.darkMode = !state.config.darkMode;
+    scheduleSave();
+  }
+  document.documentElement.setAttribute('data-theme', state.config.darkMode ? 'dark' : 'light');
+  // Update toggle button label if visible
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = state.config.darkMode ? 'ÔÿÇ´©Å Modo claro' : '­ƒîÖ Modo escuro';
+}
+
+init();
+</script>
+</body>
+</html>
