@@ -3,67 +3,67 @@
 // =============================================
 
 function renderCurrentView() {
-    const el = document.getElementById('content');
-    if (!el) return;
-    document.getElementById('topbar-title').textContent = {
-        home: 'Página Inicial', med: 'Meu Estudo Diário', calendar: 'Calendário',
-        dashboard: 'Dashboard', revisoes: 'Revisões', habitos: 'Hábitos',
-        editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações'
-    }[currentView] || 'Estudo Organizado';
+  const el = document.getElementById('content');
+  if (!el) return;
+  document.getElementById('topbar-title').textContent = {
+    home: 'Página Inicial', med: 'Meu Estudo Diário', calendar: 'Calendário',
+    dashboard: 'Dashboard', revisoes: 'Revisões', habitos: 'Hábitos',
+    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações'
+  }[currentView] || 'Estudo Organizado';
 
-    document.getElementById('topbar-date').textContent = currentView === 'home'
-        ? `<i class="fa fa-calendar-alt"></i> ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`
-        : '';
+  document.getElementById('topbar-date').innerHTML = currentView === 'home'
+    ? `<i class="fa fa-calendar-alt"></i> ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`
+    : '';
 
-    // Render topbar actions
-    const actions = document.getElementById('topbar-actions');
-    actions.innerHTML = '';
-    if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
-        actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
-    } else if (currentView === 'editais') {
-        actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
-    }
+  // Render topbar actions
+  const actions = document.getElementById('topbar-actions');
+  actions.innerHTML = '';
+  if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
+  } else if (currentView === 'editais') {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
+  }
 
-    updateBadges();
+  updateBadges();
 
-    if (currentView === 'home') return renderHome(el);
-    if (currentView === 'med') return renderMED(el);
-    if (currentView === 'calendar') return renderCalendar(el);
-    if (currentView === 'dashboard') return renderDashboard(el);
-    if (currentView === 'revisoes') return renderRevisoes(el);
-    if (currentView === 'habitos') return renderHabitos(el);
-    if (currentView === 'editais') return renderEditais(el);
-    if (currentView === 'vertical') return renderVertical(el);
-    if (currentView === 'config') return renderConfig(el);
+  if (currentView === 'home') return renderHome(el);
+  if (currentView === 'med') return renderMED(el);
+  if (currentView === 'calendar') return renderCalendar(el);
+  if (currentView === 'dashboard') return renderDashboard(el);
+  if (currentView === 'revisoes') return renderRevisoes(el);
+  if (currentView === 'habitos') return renderHabitos(el);
+  if (currentView === 'editais') return renderEditais(el);
+  if (currentView === 'vertical') return renderVertical(el);
+  if (currentView === 'config') return renderConfig(el);
 }
 
 // Ensure badges up to date
 function updateBadges() {
-    const med = document.getElementById('badge-med');
-    const rev = document.getElementById('badge-rev');
-    if (!med || !rev) return;
-    const pendingMed = state.eventos.filter(e => e.data === todayStr() && e.status !== 'estudei').length;
-    med.style.display = pendingMed > 0 ? 'inline-block' : 'none';
-    med.textContent = pendingMed;
-    const pendingRev = getPendingRevisoes().length;
-    rev.style.display = pendingRev > 0 ? 'inline-block' : 'none';
-    rev.textContent = pendingRev;
+  const med = document.getElementById('badge-med');
+  const rev = document.getElementById('badge-rev');
+  if (!med || !rev) return;
+  const pendingMed = state.eventos.filter(e => e.data === todayStr() && e.status !== 'estudei').length;
+  med.style.display = pendingMed > 0 ? 'inline-block' : 'none';
+  med.textContent = pendingMed;
+  const pendingRev = getPendingRevisoes().length;
+  rev.style.display = pendingRev > 0 ? 'inline-block' : 'none';
+  rev.textContent = pendingRev;
 }
 
 // =============================================
 // EVENT CARD RENDERER
 // =============================================
 function renderEventCard(evento) {
-    const status = getEventStatus(evento);
-    const discInfo = evento.discId ? getDisc(evento.discId) : null;
-    const disc = discInfo ? discInfo.disc : null;
-    const iconBg = disc ? (disc.cor || 'var(--accent)') : (getHabitType(evento.habito)?.color || '#64748b');
-    const icon = disc ? (disc.icone || '📖') : (getHabitType(evento.habito)?.icon || '📚');
-    const timerActive = isTimerActive(evento.id);
-    const elapsed = getElapsedSeconds(evento);
-    const tempo = formatTime(elapsed);
+  const status = getEventStatus(evento);
+  const discInfo = evento.discId ? getDisc(evento.discId) : null;
+  const disc = discInfo ? discInfo.disc : null;
+  const iconBg = disc ? (disc.cor || 'var(--accent)') : (getHabitType(evento.habito)?.color || '#64748b');
+  const icon = disc ? (disc.icone || '📖') : (getHabitType(evento.habito)?.icon || '📚');
+  const timerActive = isTimerActive(evento.id);
+  const elapsed = getElapsedSeconds(evento);
+  const tempo = formatTime(elapsed);
 
-    return `
+  return `
     <div class="event-card" data-event-id="${evento.id}" onclick="openEventDetail('${evento.id}')">
       <div class="event-stripe ${status}"></div>
       <div class="event-disc-icon" style="background:${iconBg}20;color:${iconBg};">${icon}</div>
@@ -86,5 +86,5 @@ function renderEventCard(evento) {
 }
 
 function getHabitType(key) {
-    return HABIT_TYPES.find(h => h.key === key);
+  return HABIT_TYPES.find(h => h.key === key);
 }

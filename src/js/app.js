@@ -10,75 +10,86 @@ let editingDiscCtx = null; // { editaId, grupoId }
 let editingSubjectCtx = null; // { editaId, grupoId, discId }
 let currentHabitType = null;
 
+const HABIT_TYPES = [
+  { key: 'questoes', label: 'Questões', icon: '📝', color: '#3b82f6' },
+  { key: 'revisao', label: 'Revisão', icon: '🔄', color: '#10b981' },
+  { key: 'discursiva', label: 'Discursiva', icon: '✍️', color: '#f59e0b' },
+  { key: 'simulado', label: 'Simulado', icon: '🎯', color: '#ef4444' },
+  { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: '#8b5cf6' },
+  { key: 'informativo', label: 'Informativos', icon: '📰', color: '#06b6d4' },
+  { key: 'sumula', label: 'Súmulas', icon: '⚖️', color: '#6366f1' }
+];
+
+
 // =============================================
 // NAVIGATION
 // =============================================
 function navigate(view) {
-    if (window.innerWidth <= 768) closeSidebar();
-    currentView = view;
-    document.querySelectorAll('.nav-item').forEach(el => {
-        el.classList.toggle('active', el.dataset.view === view);
-    });
-    renderCurrentView();
+  if (window.innerWidth <= 768) closeSidebar();
+  currentView = view;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  renderCurrentView();
 }
 
 function updateTopbar() {
-    const titles = {
-        home: 'Página Inicial', med: 'Meu Estudo Diário', calendar: 'Calendário',
-        dashboard: 'Dashboard', revisoes: 'Revisões', habitos: 'Hábitos',
-        editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações'
-    };
-    document.getElementById('topbar-title').textContent = titles[currentView] || '';
+  const titles = {
+    home: 'Página Inicial', med: 'Meu Estudo Diário', calendar: 'Calendário',
+    dashboard: 'Dashboard', revisoes: 'Revisões', habitos: 'Hábitos',
+    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações'
+  };
+  document.getElementById('topbar-title').textContent = titles[currentView] || '';
 
-    const now = new Date();
-    const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('topbar-date').textContent = now.toLocaleDateString('pt-BR', opts);
+  const now = new Date();
+  const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('topbar-date').textContent = now.toLocaleDateString('pt-BR', opts);
 
-    const actions = document.getElementById('topbar-actions');
-    if (currentView === 'home' || currentView === 'med') {
-        actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
-    } else if (currentView === 'editais') {
-        actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
-    } else if (currentView === 'habitos') {
-        actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openHabitModal(null)"><i class="fa fa-plus"></i> Registrar Hábito</button>`;
-    } else if (currentView === 'calendar') {
-        actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
-    } else {
-        actions.innerHTML = '';
-    }
+  const actions = document.getElementById('topbar-actions');
+  if (currentView === 'home' || currentView === 'med') {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
+  } else if (currentView === 'editais') {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
+  } else if (currentView === 'habitos') {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openHabitModal(null)"><i class="fa fa-plus"></i> Registrar Hábito</button>`;
+  } else if (currentView === 'calendar') {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
+  } else {
+    actions.innerHTML = '';
+  }
 }
 
 // =============================================
 // HELPERS
 // =============================================
 function esc(str) {
-    if (!str && str !== 0) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 let _todayCache = null;
 function invalidateTodayCache() { _todayCache = null; }
 function todayStr() {
-    if (!_todayCache) _todayCache = new Date().toISOString().split('T')[0];
-    return _todayCache;
+  if (!_todayCache) _todayCache = new Date().toISOString().split('T')[0];
+  return _todayCache;
 }
 
 function formatDate(str) {
-    if (!str) return '';
-    const d = new Date(str + 'T00:00:00');
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (!str) return '';
+  const d = new Date(str + 'T00:00:00');
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function formatTime(seconds) {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return h > 0 ?\`\${pad(h)}:\${pad(m)}:\${pad(s)}\` : \`\${pad(m)}:\${pad(s)}\`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -116,7 +127,7 @@ function showConfirm(msg, onYes, opts = {}) {
   document.getElementById('confirm-msg').textContent = msg;
   const okBtn = document.getElementById('confirm-ok-btn');
   okBtn.textContent = label;
-  okBtn.className = `btn btn - sm ${ danger ? 'btn-danger' : 'btn-primary' } `;
+  okBtn.className = `btn btn-sm ${danger ? 'btn-danger' : 'btn-primary'}`;
   _confirmCallback = onYes;
   openModal('modal-confirm');
 }
@@ -147,12 +158,12 @@ function showToast(msg, type = '') {
   }
 
   const toast = document.createElement('div');
-  toast.className = `toast ${ type } `;
+  toast.className = `toast ${type}`;
   toast.setAttribute('role', 'status');
   toast.setAttribute('aria-live', 'polite');
   toast.dataset.msg = msg;
   const icons = { success: '✅', error: '❌', info: 'ℹ️' };
-  toast.innerHTML = `< span > ${ icons[type] || '💬' }</span > <span>${msg}</span>`;
+  toast.innerHTML = `<span>${icons[type] || '💬'}</span> <span>${msg}</span>`;
   container.appendChild(toast);
   requestAnimationFrame(() => { toast.classList.add('show'); });
   setTimeout(() => {
@@ -193,7 +204,7 @@ function init() {
       initGoogleAPIs();
     }
     navigate('home');
-    
+
     // Auto Update states
     state.eventos.forEach(ev => {
       if (ev.status === 'agendado' && ev.data && ev.data < todayStr()) {
@@ -201,7 +212,7 @@ function init() {
       }
     });
     scheduleSave();
-    
+
     // Check Drive Sync Every 5 Min
     setInterval(() => {
       if (state.config.driveConnected) syncWithDrive();
