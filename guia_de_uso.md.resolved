@@ -1,0 +1,54 @@
+# Guia de Uso: Estudo Organizado
+
+Bem-vindo ao **Estudo Organizado**! Este guia rápido vai te ajudar a configurar seu ambiente de estudos e tirar o máximo proveito da ferramenta.
+
+## 1. Primeiros Passos: Criando um Edital
+
+A base de todo o seu planejamento é o **Edital**. É nele que você organiza as matérias que precisa estudar.
+
+1. No menu lateral esquerdo, clique em **📋 Editais**.
+2. Clique no botão azul **+ Novo Edital**.
+3. Dê um nome ao seu edital (ex: "Receita Federal" ou "OAB").
+4. **Adicione Grupos**: Dentro do edital, você pode criar grupos (ex: "Conhecimentos Básicos", "Conhecimentos Específicos").
+5. **Adicione Disciplinas**: Dentro de cada grupo, adicione as matérias (ex: "Direito Constitucional", "Português"). Você pode escolher uma cor e um ícone para facilitar a visualização.
+6. **Adicione Assuntos**: Clique no botão "+ Assuntos" ao lado de cada disciplina para listar os tópicos que precisam ser estudados (ex: "Direitos Fundamentais", "Controle de Constitucionalidade").
+
+## 2. Planejando o Dia: O Calendário e Eventos
+
+Agora que você tem suas disciplinas cadastradas, é hora de planejar *quando* vai estudá-las.
+
+### Pelo Calendário:
+1. Vá para **📅 Calendário** no menu lateral.
+2. Clique em qualquer dia para abrir a janela de "Adicionar Evento".
+
+### Pela Página Inicial ou MED:
+1. Você sempre pode clicar no botão azul **+ Evento** na página inicial ("Agendado para Hoje").
+2. Preencha os dados: escolha o Título, a Data, o Edital, a Disciplina e o Assunto que vai estudar. Você também pode definir uma *Meta de Tempo* (ex: 60 minutos).
+
+## 3. Mão na Massa: Meu Estudo Diário (MED)
+
+O coração do aplicativo é o **MED**. É aqui que você controla o tempo real de estudo.
+
+1. Acesse **⏱️ Meu Estudo Diário** (ou veja os cards na Página Inicial).
+2. Você verá a lista de tudo o que agendou para hoje.
+3. No topo direito da tela, você pode escolher o modo do cronômetro clicando no botão:
+   - **Contínuo**: O tempo corre livremente até você pausar.
+   - **Pomodoro (25/5)**: O tempo corre por 25 minutos. Ao atingir o tempo, um alarme soará e o cronômetro pausará automaticamente para você descansar 5 minutos.
+4. Clique no botão de **▶ (Play)** no card do evento para começar a contar o tempo cronometrado.
+5. Ao terminar de estudar a matéria, clique no botão de **✅ (Check/Estudei)**. O tempo total será salvo e aquele assunto será marcado como concluído no progresso do seu Edital.
+
+## 4. Mantendo o Conhecimento: Revisões
+
+O Segredo da aprovação é a repetição! O Estudo Organizado agenda suas revisões automaticamente com base no algoritmo de repetição espaçada (1, 7, 30 e 90 dias após estudar um assunto pela primeira vez - este intervalo pode ser customizado em *Configurações*).
+
+1. Acesse **🔄 Revisões**.
+2. Veja a lista de tudo o que o sistema sugere que você revise hoje ou o que está atrasado.
+3. Ao finalizar a revisão do tópico, clique no botão azul **"Feita"**. O sistema irá recalcular e agendar automaticamente a próxima revisão daquele assunto para o futuro.
+
+## 5. Dicas Extras
+
+- **Sincronização com Nuvem**: Como o app salva os dados no seu navegador, se você limpar o histórico, perderá os dados. Vá em "Google Drive" no menu, clique em conectar, insira seu *Client ID* e faça login com o Google para salvar backups automáticos.
+- **Gráficos e Estatísticas**: A aba **📊 Dashboard** mostra um resumo visual do seu empenho na última semana e no último mês.
+- **Modo Escuro**: Caso prefira estudar à noite, use o botão "🌙 Modo Escuro" no topo da tela para inverter as cores do aplicativo.
+
+Bons estudos! 🎯
