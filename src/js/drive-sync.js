@@ -1,0 +1,231 @@
+// =============================================
+// GOOGLE DRIVE SYNC MODULE
+// =============================================
+
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+
+// Initialize Google Services
+function initGoogleAPIs() {
+    const CLIENT_ID = localStorage.getItem('estudo_drive_client_id');
+    if (!CLIENT_ID) return;
+
+    const scriptGapi = document.createElement('script');
+    scriptGapi.src = 'https://apis.google.com/js/api.js';
+    scriptGapi.onload = () => {
+        gapi.load('client', () => {
+            gapi.client.init({
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+            }).then(() => { gapiInited = true; checkDriveStatus(); });
+        });
+    };
+    document.head.appendChild(scriptGapi);
+
+    const scriptGis = document.createElement('script');
+    scriptGis.src = 'https://accounts.google.com/gsi/client';
+    scriptGis.onload = () => {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/drive.file',
+            callback: (resp) => {
+                if (resp.error !== undefined) {
+                    throw (resp);
+                }
+                showToast('Conectado ao Drive! Sincronizando...', 'info');
+                syncWithDrive();
+            }
+        });
+        gisInited = true;
+        checkDriveStatus();
+    };
+    document.head.appendChild(scriptGis);
+}
+
+function updateDriveUI(status, label) {
+    const dot = document.getElementById('drive-dot');
+    const txt = document.getElementById('drive-label');
+    const sub = document.getElementById('drive-sublabel');
+    const btn = document.getElementById('drive-action-btn');
+    const area = document.getElementById('drive-status-area');
+
+    if (!dot) return;
+
+    dot.className = `drive-dot ${status}`;
+    txt.textContent = label;
+
+    if (status === 'connected') {
+        sub.textContent = state.lastSync ? `Sincronizado: ${new Date(state.lastSync).toLocaleString('pt-BR').slice(0, 16)}` : 'Sincronizado';
+        if (btn) btn.textContent = 'Sincronizar Agora';
+        if (area) {
+            area.innerHTML = `
+        <div style="background:var(--accent-light);color:var(--accent-dark);padding:12px;border-radius:8px;font-size:13px;margin-top:16px;">
+          <strong>✅ Conectado ao Google Drive</strong><br>
+          Seus dados estão sendo salvos automaticamente na nuvem.
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;color:var(--red);" onclick="disconnectDrive()">Desconectar</button>
+      `;
+        }
+    } else if (status === 'syncing') {
+        sub.textContent = 'Sincronizando...';
+        if (btn) btn.textContent = 'Aguarde...';
+    } else {
+        sub.textContent = 'Clique para conectar';
+        if (btn) btn.textContent = 'Conectar';
+        if (area) area.innerHTML = '';
+    }
+}
+
+function checkDriveStatus() {
+    const CLIENT_ID = localStorage.getItem('estudo_drive_client_id');
+    if (!CLIENT_ID) {
+        updateDriveUI('disconnected', 'Google Drive');
+        return;
+    }
+    if (gapi.client?.getToken() !== null && state.driveFileId) {
+        updateDriveUI('connected', 'Google Drive');
+    } else {
+        updateDriveUI('disconnected', 'Google Drive');
+    }
+}
+
+function driveAction() {
+    const inputId = document.getElementById('drive-client-id')?.value.trim();
+    const savedId = localStorage.getItem('estudo_drive_client_id');
+
+    if (inputId && inputId !== savedId) {
+        localStorage.setItem('estudo_drive_client_id', inputId);
+        showToast('Client ID salvo. Recarregando...', 'info');
+        setTimeout(() => location.reload(), 1500);
+        return;
+    }
+
+    if (!savedId) {
+        showToast('Insira o Client ID primeiro', 'error');
+        return;
+    }
+
+    if (gapi.client?.getToken() === null) {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+        syncWithDrive();
+    }
+}
+
+function disconnectDrive() {
+    if (gapi.client?.getToken() !== null) {
+        google.accounts.oauth2.revoke(gapi.client.getToken().access_token, () => {
+            gapi.client.setToken('');
+            localStorage.removeItem('estudo_drive_client_id');
+            state.driveFileId = null;
+            state.lastSync = null;
+            updateDriveUI('disconnected', 'Google Drive');
+            closeModal('modal-drive');
+            showToast('Desconectado do Drive', 'info');
+            scheduleSave();
+        });
+    }
+}
+
+async function syncWithDrive() {
+    if (!gapi.client || !gapi.client.drive) return;
+    updateDriveUI('syncing', 'Sincronizando...');
+
+    try {
+        if (state.driveFileId) {
+            // Tenta obter o arquivo do Drive para comparar a versão
+            try {
+                const resp = await gapi.client.drive.files.get({
+                    fileId: state.driveFileId,
+                    alt: 'media'
+                });
+
+                const driveData = resp.result;
+
+                // Estratégia simples de merge: usa o arquivo mais recente
+                if (driveData.lastSync && state.lastSync && new Date(driveData.lastSync) > new Date(state.lastSync)) {
+                    // O Drive tem uma versão mais nova (modificada em outro dispositivo)
+                    showConfirm('Encontrada versão mais recente no Drive. Deseja sobrescrever os dados locais?', () => {
+                        state = driveData;
+                        runMigrations();
+                        saveStateToDB().then(() => {
+                            renderCurrentView();
+                            showToast('Dados atualizados do Drive!', 'success');
+                            updateDriveUI('connected', 'Google Drive');
+                        });
+                    }, { title: 'Sincronização', label: 'Sobrescrever Local' });
+
+                    return; // Não envia o arquivo local se o do Drive for mais novo, aguarda decisão do usuário
+                }
+            } catch (e) {
+                // Arquivo pode ter sido apagado no Drive
+                console.warn('Não foi possível ler do Drive, sobrescrevendo arquivo.', e);
+            }
+
+            // Atualiza o arquivo existente
+            state.lastSync = new Date().toISOString();
+            saveStateToDB(); // garante que state está salvo localmente
+
+            const fileContent = JSON.stringify(state);
+            const file = new Blob([fileContent], { type: 'application/json' });
+            const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
+
+            const accessToken = gapi.client.getToken().access_token;
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', file);
+
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${state.driveFileId}?uploadType=multipart`, {
+                method: 'PATCH',
+                headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
+                body: form
+            });
+            showToast('Sincronizado com sucesso!', 'success');
+
+        } else {
+            // Cria um novo arquivo
+            state.lastSync = new Date().toISOString();
+            saveStateToDB(); // garante que está atualizado
+
+            const fileContent = JSON.stringify(state);
+            const file = new Blob([fileContent], { type: 'application/json' });
+            const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
+
+            const accessToken = gapi.client.getToken().access_token;
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', file);
+
+            const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST',
+                headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
+                body: form
+            });
+            const data = await res.json();
+            state.driveFileId = data.id;
+            saveStateToDB();
+            showToast('Backup criado no Drive!', 'success');
+        }
+        updateDriveUI('connected', 'Google Drive');
+    } catch (err) {
+        console.error('Erro ao sincronizar:', err);
+        showToast('Erro ao sincronizar com Drive', 'error');
+        updateDriveUI('connected', 'Erro na Sincronização'); // keeps connected but shows error visually
+    }
+}
+
+// Quando a página é carregada, tenta iniciar as APIs
+document.addEventListener('DOMContentLoaded', () => {
+    initGoogleAPIs();
+});
+
+// Hook para sincronizar automaticamente quando salva localmente (se estiver conectado)
+document.addEventListener('stateSaved', () => {
+    if (gapi.client?.getToken() !== null && state.driveFileId) {
+        // Debounce para a sincronização na nuvem não ficar sobrecarregada
+        if (window.driveSyncTimeout) clearTimeout(window.driveSyncTimeout);
+        window.driveSyncTimeout = setTimeout(() => {
+            syncWithDrive();
+        }, 10000); // 10s debounce para Drive Sync
+    }
+});

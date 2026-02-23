@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estudo Organizado</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+
+<body>
+
+    <!-- SIDEBAR MOBILE OVERLAY -->
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <nav id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">📚</div>
+            <div class="logo-text">Estudo<br><span>Organizado</span></div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Principal</div>
+            <div class="nav-item active" data-view="home" onclick="navigate('home')">
+                <span class="icon">🏠</span> Página Inicial
+            </div>
+            <div class="nav-item" data-view="med" onclick="navigate('med')">
+                <span class="icon">⏱️</span> Meu Estudo Diário
+                <span class="badge" id="badge-med" style="display:none;">0</span>
+            </div>
+            <div class="nav-item" data-view="calendar" onclick="navigate('calendar')">
+                <span class="icon">📅</span> Calendário
+            </div>
+            <div class="nav-item" data-view="dashboard" onclick="navigate('dashboard')">
+                <span class="icon">📊</span> Dashboard
+            </div>
+            <div class="nav-item" data-view="revisoes" onclick="navigate('revisoes')">
+                <span class="icon">🔄</span> Revisões
+                <span class="badge" id="badge-rev" style="display:none;">0</span>
+            </div>
+            <div class="nav-item" data-view="habitos" onclick="navigate('habitos')">
+                <span class="icon">⚡</span> Hábitos
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Gerenciar</div>
+            <div class="nav-item" data-view="editais" onclick="navigate('editais')">
+                <span class="icon">📋</span> Editais
+            </div>
+            <div class="nav-item" data-view="vertical" onclick="navigate('vertical')">
+                <span class="icon">📑</span> Ed. Verticalizado
+            </div>
+            <div class="nav-item" data-view="config" onclick="navigate('config')">
+                <span class="icon">⚙️</span> Configurações
+            </div>
+        </div>
+
+        <div class="sidebar-drive">
+            <div class="drive-status" onclick="openDriveModal()">
+                <div class="drive-dot" id="drive-dot"></div>
+                <div class="drive-text">
+                    <strong id="drive-label">Google Drive</strong>
+                    <span id="drive-sublabel">Clique para conectar</span>
+                </div>
+                <i class="fa fa-cloud" style="color: rgba(148,163,184,0.5); font-size:14px;"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <div id="main">
+        <div class="topbar">
+            <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+            <div>
+                <div class="topbar-title" id="topbar-title">Página Inicial</div>
+                <div class="topbar-subtitle" id="topbar-date"></div>
+            </div>
+            <div class="topbar-right" id="topbar-actions">
+                <button id="timer-mode-btn" class="btn btn-sm" onclick="toggleTimerMode()"
+                    title="Alternar modo de cronômetro" style="order:-2;margin-right:8px;">
+                    <i class="fa fa-clock"></i> Contínuo
+                </button>
+            </div>
+            <!-- Fix F: Dark mode toggle — always visible in topbar -->
+            <button id="theme-toggle-btn" onclick="applyTheme(true);renderCurrentView()" class="btn btn-ghost btn-sm"
+                style="order:1;white-space:nowrap;" title="Alternar tema claro/escuro">
+                🌙 Modo escuro
+            </button>
+            <!-- UX 1: Global Search -->
+            <div class="search-wrap" style="order:-1;margin-right:8px;">
+                <i class="fa fa-search search-icon"></i>
+                <input class="search-input" id="global-search" placeholder="Buscar eventos, assuntos, hábitos..."
+                    autocomplete="off" oninput="onSearch(this.value)" onfocus="onSearchFocus()" onblur="onSearchBlur()">
+                <div class="search-results" id="search-results"></div>
+            </div>
+        </div>
+        <div id="content">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- MODALS -->
+
+    <!-- Fix B: CONFIRM MODAL — replaces all browser confirm() dialogs -->
+    <div class="modal-overlay" id="modal-confirm">
+        <div class="modal" style="max-width:380px;">
+            <div class="modal-header" style="padding:16px 20px 12px;">
+                <h3 id="confirm-title" style="font-size:16px;font-weight:700;margin:0;">Confirmar</h3>
+            </div>
+            <div class="modal-body" style="padding:12px 20px 16px;">
+                <p id="confirm-msg"
+                    style="font-size:14px;color:var(--text-secondary);margin:0;line-height:1.6;white-space:pre-line;">
+                </p>
+            </div>
+            <div
+                style="padding:12px 20px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);">
+                <button class="btn btn-ghost btn-sm" id="confirm-cancel-btn" aria-label="Cancelar">Cancelar</button>
+                <button class="btn btn-sm" id="confirm-ok-btn">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD EVENT MODAL -->
+    <div class="modal-overlay" id="modal-event">
+        <div class="modal" style="max-width:600px;">
+            <div class="modal-header">
+                <h2 id="modal-event-title">Adicionar Evento de Estudo</h2>
+                <button class="modal-close" onclick="closeModal('modal-event')" aria-label="Fechar"
+                    title="Fechar">×</button>
+            </div>
+            <div class="modal-body" id="modal-event-body">
+            </div>
+        </div>
+    </div>
+
+    <!-- EDITAL MODAL -->
+    <div class="modal-overlay" id="modal-edital">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-edital-title">Novo Edital</h2>
+                <button class="modal-close" onclick="closeModal('modal-edital')" aria-label="Fechar"
+                    title="Fechar">×</button>
+            </div>
+            <div class="modal-body" id="modal-edital-body">
+            </div>
+        </div>
+    </div>
+
+    <!-- DISCIPLINE MODAL -->
+    <div class="modal-overlay" id="modal-disc">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-disc-title">Nova Disciplina</h2>
+                <button class="modal-close" onclick="closeModal('modal-disc')" aria-label="Fechar"
+                    title="Fechar">×</button>
+            </div>
+            <div class="modal-body" id="modal-disc-body">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('modal-disc')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveDisc()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUBJECT MODAL -->
+    <div class="modal-overlay" id="modal-subject">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Adicionar Assuntos</h2>
+                <button class="modal-close" onclick="closeModal('modal-subject')" aria-label="Fechar"
+                    title="Fechar">×</button>
+            </div>
+            <div class="modal-body" id="modal-subject-body">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('modal-subject')">Fechar</button>
+                <button class="btn btn-primary" onclick="saveSubjects()">Salvar Assuntos</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HABIT MODAL -->
+    <div class="modal-overlay" id="modal-habit">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-habit-title">Registrar Hábito</h2>
+                <button class="modal-close" onclick="closeModal('modal-habit')" aria-label="Fechar"
+                    title="Fechar">×</button>
+            </div>
+            <div class="modal-body" id="modal-habit-body"></div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('modal-habit')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveHabit()">Registrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRIVE MODAL -->
+    <div class="modal-overlay" id="modal-drive">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Sincronização com Google Drive</h2>
+                <button class="modal-close" onclick="closeModal('modal-drive')" aria-label="Fechar"
+                    title="Fechar">×</button>
+            </div>
+            <div class="modal-body" id="modal-drive-body">
+                <div class="drive-guide">
+                    <p>Para sincronizar seus dados com o Google Drive:</p>
+                    <p>1. Acesse <strong>console.cloud.google.com</strong></p>
+                    <p>2. Crie um projeto e habilite a <strong>Google Drive API</strong></p>
+                    <p>3. Crie credenciais OAuth 2.0 (Aplicativo Web)</p>
+                    <p>4. Adicione seu domínio como URL autorizada</p>
+                    <p>5. Cole o <strong>Client ID</strong> abaixo</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Google OAuth Client ID</label>
+                    <input type="text" class="form-control" id="drive-client-id"
+                        placeholder="123456789-xxx.apps.googleusercontent.com">
+                </div>
+                <div id="drive-status-area"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('modal-drive')">Fechar</button>
+                <button class="btn btn-primary" id="drive-action-btn" onclick="driveAction()">Conectar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EVENT DETAIL MODAL -->
+    <div class="modal-overlay" id="modal-event-detail">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="med-detail-title">Detalhes do Evento</h2>
+                <button class="modal-close" onclick="closeModal('modal-event-detail')" aria-label="Fechar"
+                    title="Fechar">×</button>
+            </div>
+            <div class="modal-body" id="modal-event-detail-body"></div>
+        </div>
+    </div>
+
+    <script src="js/store.js"></script>
+    <script src="js/drive-sync.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/logic.js"></script>
+    <script src="js/views.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
