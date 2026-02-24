@@ -1,14 +1,20 @@
+import { HABIT_TYPES, _confirmCallback, applyTheme, calDate, calViewMode, closeModal, currentHabitType, currentView, cutoffDateStr, editingDiscCtx, editingEventId, editingSubjectCtx, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, openModal, showConfirm, showToast, todayStr, uid } from './app.js';
+import { scheduleSave, state } from './store.js';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers } from './logic.js';
+import { getHabitType, renderCurrentView, renderEventCard, updateBadges } from './components.js';
+import { updateDriveUI } from './drive-sync.js';
+
 // =============================================
 // CONSTANTS
 // =============================================
-const COLORS = [
+export const COLORS = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
   '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
   '#14b8a6', '#e11d48', '#0ea5e9', '#a855f7', '#22c55e',
   '#eab308', '#d946ef', '#64748b'
 ];
 
-const DISC_ICONS = [
+export const DISC_ICONS = [
   '📚', '📖', '📝', '📋', '📊', '📈', '🔬', '🧪', '🧮', '💻',
   '🌍', '🏛️', '⚖️', '🧠', '💡', '📐', '🔢', '🗂️', '📜', '🎯',
   '🩺', '🔧', '🎨', '🎵', '🏃', '🌱', '💰', '📡', '🔐', '📦'
@@ -17,7 +23,7 @@ const DISC_ICONS = [
 // =============================================
 // HOME VIEW
 // =============================================
-function renderHome(el) {
+export function renderHome(el) {
   const today = todayStr();
   const agendadoHoje = state.eventos.filter(e => e.data === today && e.status !== 'estudei');
   const estudadoHoje = state.eventos.filter(e => e.data === today && e.status === 'estudei');
@@ -142,7 +148,7 @@ function renderHome(el) {
           <div class="card-body">
             ${state.editais.length === 0 ? '<div class="empty-state"><div class="icon">📋</div><h4>Nenhum edital</h4><p>Crie seu edital para acompanhar o progresso.</p></div>' :
       state.editais.map(edital => {
-        const discs = edital.grupos.flatMap(g => g.disciplinas);
+        const discs = (edital.disciplinas || []);
         const total = discs.reduce((s, d) => s + d.assuntos.length, 0);
         const done = discs.reduce((s, d) => s + d.assuntos.filter(a => a.concluído).length, 0);
         const pct = total > 0 ? Math.round(done / total * 100) : 0;
@@ -164,7 +170,7 @@ function renderHome(el) {
   `;
 }
 
-const FRASES_MOTIVACIONAIS = [
+export const FRASES_MOTIVACIONAIS = [
   "A consistência supera o talento todos os dias.",
   "Cada página lida é um passo à frente na aprovação.",
   "O concurso é ganho na rotina, não na véspera.",
@@ -177,14 +183,14 @@ const FRASES_MOTIVACIONAIS = [
   "Pequenas doses diárias constroem grandes conhecimentos.",
 ];
 
-function getGreeting() {
+export function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return '☀️ Bom dia';
   if (h < 18) return '🌤️ Boa tarde';
   return '🌙 Boa noite';
 }
 
-function getDailyQuote() {
+export function getDailyQuote() {
   const _d = new Date();
   const day = _d.getDate() + _d.getMonth() * 31;
   return FRASES_MOTIVACIONAIS[day % FRASES_MOTIVACIONAIS.length];
@@ -193,7 +199,7 @@ function getDailyQuote() {
 // =============================================
 // MED VIEW
 // =============================================
-function renderMED(el) {
+export function renderMED(el) {
   const today = todayStr();
   const todayEvents = state.eventos.filter(e => e.data === today);
   const agendados = todayEvents.filter(e => e.status !== 'estudei');
@@ -249,7 +255,7 @@ function renderMED(el) {
 }
 
 // SURGICAL DOM UPDATES ---------------------------------------
-function refreshEventCard(eventId) {
+export function refreshEventCard(eventId) {
   const el = document.querySelector(`[data-event-id="${eventId}"]`);
   if (!el) { renderCurrentView(); return; }
   const ev = state.eventos.find(e => e.id === eventId);
@@ -260,7 +266,7 @@ function refreshEventCard(eventId) {
   reattachTimers();
 }
 
-function refreshMEDSections() {
+export function refreshMEDSections() {
   if (currentView !== 'med') { renderCurrentView(); return; }
   const today = todayStr();
   const todayEvents = state.eventos.filter(e => e.data === today);
@@ -310,7 +316,7 @@ function refreshMEDSections() {
   //updateBadges();
 }
 
-function removeDOMCard(eventId) {
+export function removeDOMCard(eventId) {
   const el = document.querySelector(`[data - event - id= "${eventId}"]`);
   if (el) {
     el.remove();
@@ -322,7 +328,7 @@ function removeDOMCard(eventId) {
 }
 
 // =============================================
-function renderCalendar(el) {
+export function renderCalendar(el) {
   el.innerHTML = `
     <div class="card">
       <div class="card-body">
@@ -344,7 +350,7 @@ function renderCalendar(el) {
   `;
 }
 
-function calNavigate(dir) {
+export function calNavigate(dir) {
   if (calViewMode === 'mes') {
     calDate.setMonth(calDate.getMonth() + dir);
   } else {
@@ -353,7 +359,7 @@ function calNavigate(dir) {
   renderCurrentView();
 }
 
-function renderCalendarMonth() {
+export function renderCalendarMonth() {
   const year = calDate.getFullYear();
   const month = calDate.getMonth();
   const firstDay = new Date(year, month, 1);
@@ -404,7 +410,7 @@ function renderCalendarMonth() {
   `;
 }
 
-function renderCalendarWeek() {
+export function renderCalendarWeek() {
   const today = todayStr();
   const dow = calDate.getDay();
   const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
@@ -449,11 +455,11 @@ function renderCalendarWeek() {
   `;
 }
 
-function calClickDay(dateStr) {
+export function calClickDay(dateStr) {
   openAddEventModalDate(dateStr);
 }
 
-function openAddEventModalDate(dateStr) {
+export function openAddEventModalDate(dateStr) {
   openAddEventModal(dateStr);
 }
 
@@ -463,10 +469,10 @@ function openAddEventModalDate(dateStr) {
 // =============================================
 // UX 4 — DASHBOARD WITH PERIOD FILTER
 // =============================================
-let dashPeriod = 7; // default: last 7 days
-let _chartDaily = null, _chartDisc = null;
+export let dashPeriod = 7; // default: last 7 days
+export let _chartDaily = null, _chartDisc = null;
 
-function renderDashboard(el) {
+export function renderDashboard(el) {
   const periodDays = dashPeriod; // null = all time
   const periodLabel = { 7: '7 dias', 30: '30 dias', 90: '3 meses', null: 'Total' }[periodDays];
 
@@ -556,12 +562,12 @@ function renderDashboard(el) {
   renderDiscChart(periodDays);
 }
 
-function setDashPeriod(p) {
+export function setDashPeriod(p) {
   dashPeriod = p;
   renderCurrentView();
 }
 
-function renderDailyChart(periodDays) {
+export function renderDailyChart(periodDays) {
   const ctx = document.getElementById('chart-daily');
   if (!ctx) return;
   if (_chartDaily) { _chartDaily.destroy(); _chartDaily = null; }
@@ -592,7 +598,7 @@ function renderDailyChart(periodDays) {
   });
 }
 
-function renderDiscChart(periodDays) {
+export function renderDiscChart(periodDays) {
   const ctx = document.getElementById('chart-disc');
   if (!ctx) return;
   if (_chartDisc) { _chartDisc.destroy(); _chartDisc = null; }
@@ -620,7 +626,7 @@ function renderDiscChart(periodDays) {
   });
 }
 
-function renderHabitSummary(periodDays) {
+export function renderHabitSummary(periodDays) {
   const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
   return HABIT_TYPES.map(h => {
     const recent = cutoffStr
@@ -637,7 +643,7 @@ function renderHabitSummary(periodDays) {
   }).join('');
 }
 
-function renderDiscProgress() {
+export function renderDiscProgress() {
   const discs = getAllDisciplinas();
   if (discs.length === 0) return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
   return discs.slice(0, 8).map(({ disc, edital }) => {
@@ -664,15 +670,14 @@ function renderDiscProgress() {
 // REVISOES VIEW
 // =============================================
 // Fix 4: Get upcoming revisions for next N days
-function getUpcomingRevisoes(days = 30) {
+export function getUpcomingRevisoes(days = 30) {
   const today = todayStr();
   const future = new Date();
   future.setDate(future.getDate() + days);
   const futureStr = future.toISOString().split('T')[0];
   const upcoming = [];
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      for (const disc of grupo.disciplinas) {
+    for (const disc of (edital.disciplinas || [])) {
         for (const ass of disc.assuntos) {
           if (!ass.concluído || !ass.dataConclusao) continue;
           const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
@@ -684,12 +689,11 @@ function getUpcomingRevisoes(days = 30) {
           }
         }
       }
-    }
   }
   return upcoming.sort((a, b) => a.data.localeCompare(b.data));
 }
 
-function renderRevisoes(el) {
+export function renderRevisoes(el) {
   const pending = getPendingRevisoes();
   const upcoming = getUpcomingRevisoes(30);
   const today = todayStr();
@@ -779,17 +783,16 @@ function renderRevisoes(el) {
   `;
 }
 
-function switchRevTab(tab, btn) {
+export function switchRevTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('rev-tab-pendentes').classList.toggle('active', tab === 'pendentes');
   document.getElementById('rev-tab-proximas').classList.toggle('active', tab === 'proximas');
 }
 
-function marcarRevisao(assId) {
+export function marcarRevisao(assId) {
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      for (const disc of grupo.disciplinas) {
+    for (const disc of (edital.disciplinas || [])) {
         const ass = disc.assuntos.find(a => a.id === assId);
         if (ass) {
           if (!ass.revisoesFetas) ass.revisoesFetas = [];
@@ -800,14 +803,12 @@ function marcarRevisao(assId) {
           return;
         }
       }
-    }
   }
 }
 
-function adiarRevisao(assId) {
+export function adiarRevisao(assId) {
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      for (const disc of grupo.disciplinas) {
+    for (const disc of (edital.disciplinas || [])) {
         const ass = disc.assuntos.find(a => a.id === assId);
         if (ass) {
           // Store a deferral date: push back the base date by 1 day
@@ -823,17 +824,16 @@ function adiarRevisao(assId) {
           return;
         }
       }
-    }
   }
 }
 
 // =============================================
 // HABITOS VIEW
 // =============================================
-let habitHistPage = 1;
-const HABIT_HIST_PAGE_SIZE = 20;
+export let habitHistPage = 1;
+export const HABIT_HIST_PAGE_SIZE = 20;
 
-function renderHabitos(el) {
+export function renderHabitos(el) {
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
   const cutoffStr = cutoff.toISOString().split('T')[0];
 
@@ -867,7 +867,7 @@ function renderHabitos(el) {
   renderHabitHistPage();
 }
 
-function renderHabitHistPage() {
+export function renderHabitHistPage() {
   const all = HABIT_TYPES
     .flatMap(h => (state.habitos[h.key] || []).map(r => ({ ...r, tipo: h })))
     .sort((a, b) => b.data.localeCompare(a.data));
@@ -914,7 +914,7 @@ function renderHabitHistPage() {
   }
 }
 
-function setHabitPage(p) {
+export function setHabitPage(p) {
   const all = HABIT_TYPES.flatMap(h => (state.habitos[h.key] || []).map(r => ({ ...r, tipo: h })));
   const totalPages = Math.max(1, Math.ceil(all.length / HABIT_HIST_PAGE_SIZE));
   habitHistPage = Math.max(1, Math.min(p, totalPages));
@@ -922,7 +922,7 @@ function setHabitPage(p) {
   document.getElementById('habit-hist-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function openHabitModal(tipo) {
+export function openHabitModal(tipo) {
   currentHabitType = tipo;
   const h = tipo ? HABIT_TYPES.find(h => h.key === tipo) : null;
   document.getElementById('modal-habit-title').textContent = h ? `Registrar: ${h.label}` : 'Registrar Hábito';
@@ -1022,13 +1022,13 @@ function openHabitModal(tipo) {
   openModal('modal-habit');
 }
 
-function selectHabitType(tipo, el) {
+export function selectHabitType(tipo, el) {
   document.querySelectorAll('.event-type-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   currentHabitType = tipo;
 }
 
-function saveHabit() {
+export function saveHabit() {
   if (!currentHabitType) { showToast('Selecione o tipo de hábito', 'error'); return; }
   const data = document.getElementById('habit-data')?.value || todayStr();
   const registro = { id: uid(), data, tipo: currentHabitType };
@@ -1092,7 +1092,7 @@ function saveHabit() {
   showToast('Hábito registrado!', 'success');
 }
 
-function calcSimuladoPerc() {
+export function calcSimuladoPerc() {
   const tot = parseInt(document.getElementById('habit-total')?.value || '0');
   const ace = parseInt(document.getElementById('habit-acertos')?.value || '0');
   const el = document.getElementById('sim-perc');
@@ -1102,7 +1102,7 @@ function calcSimuladoPerc() {
   el.innerHTML = `<span style="color:${color};">${pct}% de aproveitamento (${ace}/${tot})</span>`;
 }
 
-function deleteHabito(tipo, id) {
+export function deleteHabito(tipo, id) {
   showConfirm('Excluir este registro de hábito?', () => {
     state.habitos[tipo] = (state.habitos[tipo] || []).filter(h => h.id !== id);
     habitHistPage = 1;
@@ -1114,9 +1114,9 @@ function deleteHabito(tipo, id) {
 // =============================================
 // EDITAIS VIEW
 // =============================================
-let _vertSearchDebounce = null;
+export let _vertSearchDebounce = null;
 
-function onVertSearch(val) {
+export function onVertSearch(val) {
   vertSearch = val;
   clearTimeout(_vertSearchDebounce);
   _vertSearchDebounce = setTimeout(() => {
@@ -1129,20 +1129,18 @@ function onVertSearch(val) {
     }
   }, 200);
 }
-let vertFilterEdital = '';
-let vertFilterStatus = 'todos';
-let vertSearch = '';
+export let vertFilterEdital = '';
+export let vertFilterStatus = 'todos';
+export let vertSearch = '';
 
-function getFilteredVertItems() {
+export function getFilteredVertItems() {
   let items = [];
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      for (const disc of grupo.disciplinas) {
+    for (const disc of (edital.disciplinas || [])) {
         for (const ass of disc.assuntos) {
           items.push({ edital, grupo, disc, ass });
         }
       }
-    }
   }
   if (vertFilterEdital) items = items.filter(i => i.edital.id === vertFilterEdital);
   if (vertFilterStatus === 'pendentes') items = items.filter(i => !i.ass.concluído);
@@ -1154,7 +1152,7 @@ function getFilteredVertItems() {
   return items;
 }
 
-function renderVertical(el) {
+export function renderVertical(el) {
   // Fix 3: render the shell ONCE (filters, header); list gets its own container
   el.innerHTML = `
     <!-- Filters row — full re-render only when filter chips change -->
@@ -1186,7 +1184,7 @@ function renderVertical(el) {
   renderVerticalList(document.getElementById('vert-list-container'));
 }
 
-function renderVerticalList(container) {
+export function renderVerticalList(container) {
   if (!container) return;
   const allItems = getFilteredVertItems();
   const total = allItems.length;
@@ -1238,7 +1236,7 @@ function renderVerticalList(container) {
   `).join('');
 }
 
-function addEventoParaAssunto(editaId, discId, assId) {
+export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
   const ass = d?.disc.assuntos.find(a => a.id === assId);
   if (!ass || !d) return;
@@ -1262,7 +1260,7 @@ function addEventoParaAssunto(editaId, discId, assId) {
   }, 50);
 }
 
-function renderEditais(el) {
+export function renderEditais(el) {
   el.innerHTML = `
     ${state.editais.length === 0 ? `
       <div class="empty-state" style="padding:80px 20px;">
@@ -1279,7 +1277,7 @@ function renderEditais(el) {
   `;
 }
 
-function renderEditalTree(edital) {
+export function renderEditalTree(edital) {
   return `
     <div class="tree-edital" id="edital-${edital.id}">
       <div class="tree-edital-header" onclick="toggleEdital('${edital.id}')">
@@ -1340,17 +1338,17 @@ function renderEditalTree(edital) {
   `;
 }
 
-function toggleEdital(id) {
+export function toggleEdital(id) {
   const el = document.getElementById(`edital-tree-${id}`);
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-function toggleDisc(discId) {
+export function toggleDisc(discId) {
   const el = document.getElementById(`disc-tree-${discId}`);
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-function toggleAssunto(discId, assId) {
+export function toggleAssunto(discId, assId) {
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
     if (disc) {
@@ -1368,7 +1366,7 @@ function toggleAssunto(discId, assId) {
 }
 
 
-function deleteAssunto(discId, assId) {
+export function deleteAssunto(discId, assId) {
   showConfirm('Excluir este assunto? Eventos vinculados serão desvinculados.', () => {
     const entry = getDisc(discId);
     if (entry) {
@@ -1383,7 +1381,7 @@ function deleteAssunto(discId, assId) {
   }, { danger: true, label: 'Excluir', title: 'Excluir assunto' });
 }
 
-function deleteDisc(editaId, discId) {
+export function deleteDisc(editaId, discId) {
   showConfirm('Excluir esta disciplina e todos seus assuntos?\n\nEsta ação não pode ser desfeita.', () => {
     const edital = state.editais.find(e => e.id === editaId);
     if (!edital) return;
@@ -1394,7 +1392,7 @@ function deleteDisc(editaId, discId) {
   }, { danger: true, label: 'Excluir disciplina', title: 'Excluir disciplina' });
 }
 
-function deleteEdital(editaId) {
+export function deleteEdital(editaId) {
   const edital = state.editais.find(e => e.id === editaId);
   const nome = edital ? edital.nome : 'edital';
   showConfirm(`Excluir "${nome}" completamente?
@@ -1410,7 +1408,7 @@ Todos os grupos, disciplinas e assuntos serão removidos. Esta ação não pode 
 // =============================================
 // EDITAL MODAL
 // =============================================
-function openEditaModal(editaId = null) {
+export function openEditaModal(editaId = null) {
   const edital = editaId ? state.editais.find(e => e.id === editaId) : null;
   document.getElementById('modal-edital-title').textContent = edital ? 'Editar Edital' : 'Novo Edital';
   document.getElementById('modal-edital-body').innerHTML = `
@@ -1436,7 +1434,7 @@ function openEditaModal(editaId = null) {
   openModal('modal-edital');
 }
 
-function selectColor(color, containerId) {
+export function selectColor(color, containerId) {
   const container = document.getElementById(containerId);
   container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
   container.querySelector(`[style="background:${color};"]`).classList.add('selected');
@@ -1444,7 +1442,7 @@ function selectColor(color, containerId) {
   if (input) input.value = color;
 }
 
-function saveEdital(editaId) {
+export function saveEdital(editaId) {
   const nome = document.getElementById('edital-nome').value.trim();
   if (!nome) { showToast('Informe o nome do edital', 'error'); return; }
   const cor = document.getElementById('edital-cor').value || COLORS[0];
@@ -1467,7 +1465,7 @@ function saveEdital(editaId) {
 // =============================================
 // DISCIPLINE MODAL
 // =============================================
-function openDiscModal(editaId) {
+export function openDiscModal(editaId) {
   editingDiscCtx = { editaId };
   document.getElementById('modal-disc-title').textContent = 'Nova Disciplina';
   document.getElementById('modal-disc-body').innerHTML = `
@@ -1493,7 +1491,7 @@ function openDiscModal(editaId) {
   openModal('modal-disc');
 }
 
-function selectIcon(icon, el) {
+export function selectIcon(icon, el) {
   document.querySelectorAll('#disc-icons > div').forEach(d => {
     d.style.border = '2px solid var(--border)';
     d.classList.remove('selected-icon');
@@ -1503,13 +1501,13 @@ function selectIcon(icon, el) {
   document.getElementById('disc-icone').value = icon;
 }
 
-function selectDiscColor(color) {
+export function selectDiscColor(color) {
   document.querySelectorAll('#disc-colors .color-swatch').forEach(s => s.classList.remove('selected'));
   document.querySelector(`#disc-colors [style="background:${color};"]`).classList.add('selected');
   document.getElementById('disc-cor').value = color;
 }
 
-function saveDisc() {
+export function saveDisc() {
   const nome = document.getElementById('disc-nome').value.trim();
   if (!nome) { showToast('Informe o nome da disciplina', 'error'); return; }
   const icone = document.getElementById('disc-icone').value;
@@ -1527,7 +1525,7 @@ function saveDisc() {
 // =============================================
 // SUBJECT MANAGER AND BULK ADD
 // =============================================
-function openDiscManager(editaId, discId) {
+export function openDiscManager(editaId, discId) {
   let disc = null;
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue;
@@ -1597,7 +1595,7 @@ function openDiscManager(editaId, discId) {
   openModal('modal-disc-manager');
 }
 
-function editSubjectInline(discId, assId, el) {
+export function editSubjectInline(discId, assId, el) {
   const currentText = el.innerText;
   const input = document.createElement('input');
   input.type = 'text';
@@ -1617,7 +1615,7 @@ function editSubjectInline(discId, assId, el) {
   input.focus();
 }
 
-function finishInlineEdit(discId, assId, newName, el) {
+export function finishInlineEdit(discId, assId, newName, el) {
   newName = newName.trim();
   const entry = getDisc(discId);
   if (entry && newName) {
@@ -1633,7 +1631,7 @@ function finishInlineEdit(discId, assId, newName, el) {
   }
 }
 
-function moveSubject(discId, idx, dir) {
+export function moveSubject(discId, idx, dir) {
   const entry = getDisc(discId);
   if (!entry) return;
   const assuntos = entry.disc.assuntos;
@@ -1650,7 +1648,7 @@ function moveSubject(discId, idx, dir) {
   }
 }
 
-function saveDiscManager(editaId, discId) {
+export function saveDiscManager(editaId, discId) {
   const entry = getDisc(discId);
   if (!entry) return;
 
@@ -1666,7 +1664,7 @@ function saveDiscManager(editaId, discId) {
   showToast('Disciplina atualizada!', 'success');
 }
 
-function openSubjectAddModal(editaId, discId) {
+export function openSubjectAddModal(editaId, discId) {
   editingSubjectCtx = { editaId, discId };
   document.getElementById('modal-subject-add-body').innerHTML = `
     <div class="form-group">
@@ -1690,7 +1688,7 @@ function openSubjectAddModal(editaId, discId) {
   setTimeout(() => document.getElementById('bulk-subject-text').focus(), 100);
 }
 
-function saveBulkSubjects() {
+export function saveBulkSubjects() {
   const text = document.getElementById('bulk-subject-text').value;
   if (!text.trim()) { closeModal('modal-subject-add'); return; }
 
@@ -1731,7 +1729,7 @@ function saveBulkSubjects() {
 // =============================================
 // ADD EVENT MODAL
 // =============================================
-function openAddEventModal(dateStr = null) {
+export function openAddEventModal(dateStr = null) {
   editingEventId = null;
   const allDiscs = getAllDisciplinas();
   const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
@@ -1830,8 +1828,8 @@ function openAddEventModal(dateStr = null) {
   setTimeout(() => updateDayLoad(dateStr || todayStr()), 50);
 }
 
-let currentEventType = 'conteudo';
-function selectEventType(tipo) {
+export let currentEventType = 'conteudo';
+export function selectEventType(tipo) {
   currentEventType = tipo;
   document.getElementById('etype-conteudo').classList.toggle('selected', tipo === 'conteudo');
   document.getElementById('etype-habito').classList.toggle('selected', tipo === 'habito');
@@ -1840,7 +1838,7 @@ function selectEventType(tipo) {
 }
 
 // Tech 3: Real-time day-load hint
-function updateDayLoad(dateStr) {
+export function updateDayLoad(dateStr) {
   const el = document.getElementById('day-load-hint');
   if (!el || !dateStr) return;
   const evts = state.eventos.filter(e => e.data === dateStr && e.status !== 'estudei');
@@ -1856,7 +1854,7 @@ function updateDayLoad(dateStr) {
   }
 }
 
-function loadAssuntos() {
+export function loadAssuntos() {
   const discId = document.getElementById('event-disc').value;
   const assuntoGroup = document.getElementById('event-assunto-group');
   const assuntoSel = document.getElementById('event-assunto');
@@ -1897,7 +1895,7 @@ document.addEventListener('input', e => {
   }
 });
 
-function saveEvent() {
+export function saveEvent() {
   const titulo = document.getElementById('event-titulo').value.trim();
   const data = document.getElementById('event-data').value;
   const duracao = parseInt(document.getElementById('event-duracao').value || '60');
@@ -1959,7 +1957,7 @@ function saveEvent() {
 // =============================================
 // CONFIG VIEW
 // =============================================
-function renderConfig(el) {
+export function renderConfig(el) {
   const cfg = state.config;
   el.innerHTML = `
     <div class="grid-2">
@@ -2116,18 +2114,18 @@ function renderConfig(el) {
   `;
 }
 
-function updateConfig(key, value) {
+export function updateConfig(key, value) {
   state.config[key] = value;
   scheduleSave();
 }
 
-function toggleConfig(key, el) {
+export function toggleConfig(key, el) {
   state.config[key] = !state.config[key];
   el.classList.toggle('on', state.config[key]);
   scheduleSave();
 }
 
-function updateFrequencia(value) {
+export function updateFrequencia(value) {
   const nums = value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
   if (nums.length > 0) {
     state.config.frequenciaRevisao = nums;
@@ -2135,7 +2133,7 @@ function updateFrequencia(value) {
   }
 }
 
-function driveDisconnect() {
+export function driveDisconnect() {
   state.config.driveConnected = false;
   state.config.driveToken = null;
   state.config.driveFileId = null;
@@ -2147,7 +2145,7 @@ function driveDisconnect() {
 
 // Fix 7: Move concluded events older than N days into state.arquivo.
 // Archived events are excluded from all renders/filters but kept in export/Drive sync.
-function archiveOldEvents(days = 90) {
+export function archiveOldEvents(days = 90) {
   const cutoffStr = cutoffDateStr(days);
   const toArchive = state.eventos.filter(e => e.status === 'estudei' && e.data && e.data < cutoffStr);
   if (toArchive.length === 0) {
@@ -2168,7 +2166,7 @@ function archiveOldEvents(days = 90) {
   );
 }
 
-function exportData() {
+export function exportData() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2177,7 +2175,7 @@ function exportData() {
   showToast('Dados exportados!', 'success');
 }
 
-function importData() {
+export function importData() {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = '.json';
   input.onchange = e => {
@@ -2209,7 +2207,7 @@ function importData() {
   input.click();
 }
 
-function clearAllData() {
+export function clearAllData() {
   showConfirm(
     '⚠️ Apagar TODOS os dados permanentemente?\n\nEditais, eventos, hábitos e configurações serão removidos.\n\nEsta ação é irreversível.',
     () => {
@@ -2229,25 +2227,25 @@ function clearAllData() {
 // =============================================
 // UX 3 — DRAG AND DROP ASSUNTOS
 // =============================================
-let _dndSrcDiscId = null;
-let _dndSrcIdx = null;
+export let _dndSrcDiscId = null;
+export let _dndSrcIdx = null;
 
-function dndStart(event, discId, idx) {
+export function dndStart(event, discId, idx) {
   _dndSrcDiscId = discId;
   _dndSrcIdx = idx;
   event.currentTarget.classList.add('dragging');
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', String(idx));
 }
-function dndOver(event) {
+export function dndOver(event) {
   event.preventDefault();
   event.dataTransfer.dropEffect = 'move';
   event.currentTarget.classList.add('drag-over');
 }
-function dndLeave(event) {
+export function dndLeave(event) {
   event.currentTarget.classList.remove('drag-over');
 }
-function dndDrop(event, discId, targetIdx) {
+export function dndDrop(event, discId, targetIdx) {
   event.preventDefault();
   event.stopPropagation();
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
@@ -2276,9 +2274,9 @@ function dndDrop(event, discId, targetIdx) {
 // =============================================
 // UX 1 — GLOBAL SEARCH
 // =============================================
-let searchBlurTimeout = null;
+export let searchBlurTimeout = null;
 
-function onSearch(query) {
+export function onSearch(query) {
   const box = document.getElementById('search-results');
   if (!query || query.length < 2) { box.classList.remove('open'); return; }
   const q = query.toLowerCase();
@@ -2354,19 +2352,19 @@ function onSearch(query) {
   box.classList.add('open');
 }
 
-function onSearchFocus() {
+export function onSearchFocus() {
   clearTimeout(searchBlurTimeout);
   const val = document.getElementById('global-search').value;
   if (val && val.length >= 2) onSearch(val);
 }
 
-function onSearchBlur() {
+export function onSearchBlur() {
   searchBlurTimeout = setTimeout(() => {
     document.getElementById('search-results')?.classList.remove('open');
   }, 200);
 }
 
-function clearSearch() {
+export function clearSearch() {
   document.getElementById('global-search').value = '';
   document.getElementById('search-results').classList.remove('open');
 }

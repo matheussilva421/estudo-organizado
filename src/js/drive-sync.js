@@ -1,13 +1,17 @@
+import { closeModal, init, showConfirm, showToast } from './app.js';
+import { runMigrations, saveStateToDB, scheduleSave, state } from './store.js';
+import { renderCurrentView } from './components.js';
+
 // =============================================
 // GOOGLE DRIVE SYNC MODULE
 // =============================================
 
-let tokenClient;
-let gapiInited = false;
-let gisInited = false;
+export let tokenClient;
+export let gapiInited = false;
+export let gisInited = false;
 
 // Initialize Google Services
-function initGoogleAPIs() {
+export function initGoogleAPIs() {
     const CLIENT_ID = localStorage.getItem('estudo_drive_client_id');
     if (!CLIENT_ID) return;
 
@@ -42,7 +46,7 @@ function initGoogleAPIs() {
     document.head.appendChild(scriptGis);
 }
 
-function updateDriveUI(status, label) {
+export function updateDriveUI(status, label) {
     const dot = document.getElementById('drive-dot');
     const txt = document.getElementById('drive-label');
     const sub = document.getElementById('drive-sublabel');
@@ -76,7 +80,7 @@ function updateDriveUI(status, label) {
     }
 }
 
-function checkDriveStatus() {
+export function checkDriveStatus() {
     const CLIENT_ID = localStorage.getItem('estudo_drive_client_id');
     if (!CLIENT_ID) {
         updateDriveUI('disconnected', 'Google Drive');
@@ -89,7 +93,7 @@ function checkDriveStatus() {
     }
 }
 
-function driveAction() {
+export function driveAction() {
     const inputId = document.getElementById('drive-client-id')?.value.trim();
     const savedId = localStorage.getItem('estudo_drive_client_id');
 
@@ -112,7 +116,7 @@ function driveAction() {
     }
 }
 
-function disconnectDrive() {
+export function disconnectDrive() {
     if (gapi.client?.getToken() !== null) {
         google.accounts.oauth2.revoke(gapi.client.getToken().access_token, () => {
             gapi.client.setToken('');

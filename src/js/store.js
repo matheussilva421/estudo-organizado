@@ -1,15 +1,20 @@
+import { invalidateDiscCache, invalidateRevCache } from './logic.js';
+import { renderCurrentView, updateBadges } from './components.js';
+import { archiveOldEvents } from './views.js';
+import { showConfirm, showToast } from './app.js';
+
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
 
-const DB_NAME = 'EstudoOrganizadoDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'app_state';
+export const DB_NAME = 'EstudoOrganizadoDB';
+export const DB_VERSION = 1;
+export const STORE_NAME = 'app_state';
 
-let db;
-const DEFAULT_SCHEMA_VERSION = 3;
+export let db;
+export const DEFAULT_SCHEMA_VERSION = 3;
 
-let state = {
+export let state = {
   schemaVersion: DEFAULT_SCHEMA_VERSION,
   editais: [],
   eventos: [],
@@ -28,7 +33,7 @@ let state = {
 };
 
 // Initialize DB and load state
-function initDB() {
+export function initDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -54,7 +59,7 @@ function initDB() {
   });
 }
 
-function loadStateFromDB() {
+export function loadStateFromDB() {
   return new Promise((resolve) => {
     const transaction = db.transaction([STORE_NAME], 'readonly');
     const store = transaction.objectStore(STORE_NAME);
@@ -78,7 +83,7 @@ function loadStateFromDB() {
 }
 
 // Fallback to load from LocalStorage (migration path for old users)
-function loadLegacyState() {
+export function loadLegacyState() {
   try {
     const saved = localStorage.getItem('estudo_state');
     if (saved) {
@@ -93,8 +98,8 @@ function loadLegacyState() {
 }
 
 // Save state to IndexedDB with debounce
-let saveTimeout = null;
-function scheduleSave() {
+export let saveTimeout = null;
+export function scheduleSave() {
   invalidateDiscCache();
   invalidateRevCache();
   if (saveTimeout) clearTimeout(saveTimeout);
@@ -108,7 +113,7 @@ function scheduleSave() {
 }
 
 // Immediate save (used before closures or explicit syncs)
-function saveStateToDB() {
+export function saveStateToDB() {
   if (!db) return Promise.resolve();
 
   return new Promise((resolve, reject) => {
@@ -125,7 +130,7 @@ function saveStateToDB() {
 }
 
 // Migration Logic
-function runMigrations() {
+export function runMigrations() {
   let changed = false;
   if (!state.schemaVersion || state.schemaVersion < 2) {
     if (!state.eventos) state.eventos = [];
@@ -177,23 +182,23 @@ function runMigrations() {
 
 // Fix 7: Automatic Cleanup — Archive VERY old 'estudei' events (older than 90 days)
 // Prevents the main `eventos` array from ballooning indefinitely.
-function archiveOldEvents() {
-  const CUTOFF_DAYS = 90;
-  const d = new Date();
-  d.setDate(d.getDate() - CUTOFF_DAYS);
-  const cutoffStr = d.toISOString().split('T')[0];
+// [REMOVED DUPLICATE] "archiveOldEvents" — now imported from views.js
 
-  const toArchive = state.eventos.filter(e => e.status === 'estudei' && e.data < cutoffStr);
-  if (toArchive.length > 0) {
-    if (!state.arquivo) state.arquivo = [];
-    state.arquivo.push(...toArchive);
-    state.eventos = state.eventos.filter(e => !(e.status === 'estudei' && e.data < cutoffStr));
-    scheduleSave();
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Clean up state
-function clearData() {
+export function clearData() {
   showConfirm('Tem certeza que deseja apagar TODOS os seus dados? Esta ação não pode ser desfeita.', () => {
     state = {
       schemaVersion: DEFAULT_SCHEMA_VERSION,

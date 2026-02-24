@@ -1,8 +1,13 @@
+import { HABIT_TYPES, currentView, formatDate, formatTime, getEventStatus, todayStr } from './app.js';
+import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical } from './views.js';
+import { state } from './store.js';
+import { deleteEvento, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer } from './logic.js';
+
 // =============================================
 // DOM COMPONENTS AND RENDERERS
 // =============================================
 
-function renderCurrentView() {
+export function renderCurrentView() {
   const el = document.getElementById('content');
   if (!el) return;
   document.getElementById('topbar-title').textContent = {
@@ -38,7 +43,7 @@ function renderCurrentView() {
 }
 
 // Ensure badges up to date
-function updateBadges() {
+export function updateBadges() {
   const med = document.getElementById('badge-med');
   const rev = document.getElementById('badge-rev');
   if (!med || !rev) return;
@@ -53,7 +58,7 @@ function updateBadges() {
 // =============================================
 // EVENT CARD RENDERER
 // =============================================
-function renderEventCard(evento) {
+export function renderEventCard(evento) {
   const status = getEventStatus(evento);
   const discInfo = evento.discId ? getDisc(evento.discId) : null;
   const disc = discInfo ? discInfo.disc : null;
@@ -85,6 +90,6 @@ function renderEventCard(evento) {
   `;
 }
 
-function getHabitType(key) {
+export function getHabitType(key) {
   return HABIT_TYPES.find(h => h.key === key);
 }

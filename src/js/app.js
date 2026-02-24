@@ -1,16 +1,21 @@
+import { renderCurrentView } from './components.js';
+import { openAddEventModal, openEditaModal, openHabitModal } from './views.js';
+import { initDB, scheduleSave, state } from './store.js';
+import { initGoogleAPIs, updateDriveUI } from './drive-sync.js';
+
 // =============================================
 // APP STATE & DATA
 // =============================================
-let currentView = 'home';
-let calDate = new Date();
-let calViewMode = 'mes';
-let timerIntervals = {};   // eventId → intervalId
-let editingEventId = null;
-let editingDiscCtx = null; // { editaId }
-let editingSubjectCtx = null; // { editaId, discId }
-let currentHabitType = null;
+export let currentView = 'home';
+export let calDate = new Date();
+export let calViewMode = 'mes';
+export let timerIntervals = {};   // eventId → intervalId
+export let editingEventId = null;
+export let editingDiscCtx = null; // { editaId }
+export let editingSubjectCtx = null; // { editaId, discId }
+export let currentHabitType = null;
 
-const HABIT_TYPES = [
+export const HABIT_TYPES = [
   { key: 'questoes', label: 'Questões', icon: '📝', color: '#3b82f6' },
   { key: 'revisao', label: 'Revisão', icon: '🔄', color: '#10b981' },
   { key: 'discursiva', label: 'Discursiva', icon: '✍️', color: '#f59e0b' },
@@ -24,7 +29,7 @@ const HABIT_TYPES = [
 // =============================================
 // NAVIGATION
 // =============================================
-function navigate(view) {
+export function navigate(view) {
   if (window.innerWidth <= 768) closeSidebar();
   currentView = view;
   document.querySelectorAll('.nav-item').forEach(el => {
@@ -33,7 +38,7 @@ function navigate(view) {
   renderCurrentView();
 }
 
-function updateTopbar() {
+export function updateTopbar() {
   const titles = {
     home: 'Página Inicial', med: 'Meu Estudo Diário', calendar: 'Calendário',
     dashboard: 'Dashboard', revisoes: 'Revisões', habitos: 'Hábitos',
@@ -62,11 +67,11 @@ function updateTopbar() {
 // =============================================
 // HELPERS
 // =============================================
-function uid() {
+export function uid() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
 }
 
-function esc(str) {
+export function esc(str) {
   if (!str && str !== 0) return '';
   return String(str)
     .replace(/&/g, '&amp;')
@@ -76,29 +81,29 @@ function esc(str) {
     .replace(/'/g, '&#39;');
 }
 
-let _todayCache = null;
-function invalidateTodayCache() { _todayCache = null; }
-function todayStr() {
+export let _todayCache = null;
+export function invalidateTodayCache() { _todayCache = null; }
+export function todayStr() {
   if (!_todayCache) _todayCache = new Date().toISOString().split('T')[0];
   return _todayCache;
 }
 
-function formatDate(str) {
+export function formatDate(str) {
   if (!str) return '';
   const d = new Date(str + 'T00:00:00');
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function formatTime(seconds) {
+export function formatTime(seconds) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
-function pad(n) { return String(n).padStart(2, '0'); }
+export function pad(n) { return String(n).padStart(2, '0'); }
 
-function getEventStatus(evento) {
+export function getEventStatus(evento) {
   const today = todayStr();
   if (evento.status === 'estudei') return 'estudei';
   if (!evento.data || evento.data > today) return 'agendado';
@@ -106,26 +111,26 @@ function getEventStatus(evento) {
   return 'agendado';
 }
 
-function cutoffDateStr(days) {
+export function cutoffDateStr(days) {
   const d = new Date();
   d.setDate(d.getDate() - days);
   return d.toISOString().split('T')[0];
 }
 
 // UI Modals
-function openModal(id) {
+export function openModal(id) {
   document.getElementById(id).classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
-function closeModal(id) {
+export function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   document.body.style.overflow = '';
 }
 
 // Custom Confirm
-let _confirmCallback = null;
-function showConfirm(msg, onYes, opts = {}) {
+export let _confirmCallback = null;
+export function showConfirm(msg, onYes, opts = {}) {
   const { title = 'Confirmar', label = 'Confirmar', danger = false } = opts;
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent = msg;
@@ -146,7 +151,7 @@ document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
 });
 
 // Toast Notifications
-function showToast(msg, type = '') {
+export function showToast(msg, type = '') {
   const container = document.getElementById('toast-container');
   const last = container.lastElementChild;
   if (last && last.dataset.msg === msg) {
@@ -177,20 +182,20 @@ function showToast(msg, type = '') {
 }
 
 // Sidebars
-function toggleSidebar() {
+export function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   sidebar.classList.toggle('open');
   overlay.classList.toggle('open');
 }
 
-function closeSidebar() {
+export function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebar-overlay').classList.remove('open');
 }
 
 // Init Setup
-function applyTheme(toggle = false) {
+export function applyTheme(toggle = false) {
   if (toggle) {
     state.config.darkMode = !state.config.darkMode;
     scheduleSave();
@@ -200,7 +205,7 @@ function applyTheme(toggle = false) {
   if (btn) btn.textContent = state.config.darkMode ? '☀️ Modo escuro' : '🌙 Modo claro';
 }
 
-function init() {
+export function init() {
   initDB().then(() => {
     applyTheme();
     updateDriveUI();
@@ -225,4 +230,8 @@ function init() {
 }
 
 // Start application
-window.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

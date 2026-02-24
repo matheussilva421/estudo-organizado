@@ -1,21 +1,26 @@
+import { scheduleSave, state } from './store.js';
+import { currentView, cutoffDateStr, formatTime, showConfirm, showToast, timerIntervals, todayStr } from './app.js';
+import { refreshEventCard, refreshMEDSections, removeDOMCard } from './views.js';
+import { getHabitType, renderCurrentView } from './components.js';
+
 // =============================================
 // TIMER ENGINE
 // =============================================
-let _pomodoroMode = false;
-let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+export let _pomodoroMode = false;
+export let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
-function isTimerActive(eventId) {
+export function isTimerActive(eventId) {
   const ev = state.eventos.find(e => e.id === eventId);
   return !!(ev && ev._timerStart);
 }
 
-function getElapsedSeconds(ev) {
+export function getElapsedSeconds(ev) {
   const base = ev.tempoAcumulado || 0;
   if (!ev._timerStart) return base;
   return base + Math.floor((Date.now() - ev._timerStart) / 1000);
 }
 
-function toggleTimerMode() {
+export function toggleTimerMode() {
   _pomodoroMode = !_pomodoroMode;
   const btn = document.getElementById('timer-mode-btn');
   if (btn) {
@@ -28,7 +33,7 @@ function toggleTimerMode() {
   }
 }
 
-function reattachTimers() {
+export function reattachTimers() {
   Object.keys(timerIntervals).forEach(id => {
     clearInterval(timerIntervals[id]);
     delete timerIntervals[id];
@@ -61,7 +66,7 @@ function reattachTimers() {
   });
 }
 
-function toggleTimer(eventId) {
+export function toggleTimer(eventId) {
   const ev = state.eventos.find(e => e.id === eventId);
   if (!ev) return;
   if (ev._timerStart) {
@@ -76,7 +81,7 @@ function toggleTimer(eventId) {
   refreshEventCard(eventId);
 }
 
-function marcarEstudei(eventId) {
+export function marcarEstudei(eventId) {
   const ev = state.eventos.find(e => e.id === eventId);
   if (!ev) return;
 
@@ -112,7 +117,7 @@ function marcarEstudei(eventId) {
   }
 }
 
-function deleteEvento(eventId) {
+export function deleteEvento(eventId) {
   showConfirm('Excluir este evento permanentemente?', () => {
     if (timerIntervals[eventId]) {
       clearInterval(timerIntervals[eventId]);
@@ -128,7 +133,7 @@ function deleteEvento(eventId) {
   }, { danger: true, label: 'Excluir', title: 'Excluir evento' });
 }
 
-function totalStudySeconds(days = null) {
+export function totalStudySeconds(days = null) {
   const cutoffStr = days ? cutoffDateStr(days) : null;
   return state.eventos
     .filter(e => e.status === 'estudei' && e.tempoAcumulado && (!cutoffStr || e.data >= cutoffStr))
@@ -138,10 +143,10 @@ function totalStudySeconds(days = null) {
 // =============================================
 // REVISIONS
 // =============================================
-const _revDateCache = new Map();
-function invalidateRevCache() { _revDateCache.clear(); }
+export const _revDateCache = new Map();
+export function invalidateRevCache() { _revDateCache.clear(); }
 
-function calcRevisionDates(dataConclusao, feitas) {
+export function calcRevisionDates(dataConclusao, feitas) {
   const freqs = state.config.frequenciaRevisao || [1, 7, 30, 90];
   const cacheKey = `${dataConclusao}: ${feitas.length}: ${freqs.join(',')}`;
   if (_revDateCache.has(cacheKey)) return _revDateCache.get(cacheKey);
@@ -156,18 +161,17 @@ function calcRevisionDates(dataConclusao, feitas) {
   return dates;
 }
 
-let _pendingRevCache = null;
-function invalidatePendingRevCache() { _pendingRevCache = null; }
+export let _pendingRevCache = null;
+export function invalidatePendingRevCache() { _pendingRevCache = null; }
 
-function getPendingRevisoes() {
+export function getPendingRevisoes() {
   if (_pendingRevCache) return _pendingRevCache;
   const today = todayStr();
   const pending = [];
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      for (const disc of grupo.disciplinas) {
+    for (const disc of (edital.disciplinas || [])) {
         for (const ass of disc.assuntos) {
-          if (!ass.concluido || !ass.dataConclusao) continue;
+          if ((!ass.concluído && !ass.concluido) || !ass.dataConclusao) continue;
           const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
           for (const rd of revDates) {
             if (rd <= today) {
@@ -176,7 +180,6 @@ function getPendingRevisoes() {
             }
           }
         }
-      }
     }
   }
   _pendingRevCache = pending;
@@ -186,11 +189,11 @@ function getPendingRevisoes() {
 // =============================================
 // DISCIPLINE UTILS
 // =============================================
-let _discCache = null;
-let _discIndex = null;
-function invalidateDiscCache() { _discCache = null; _discIndex = null; }
+export let _discCache = null;
+export let _discIndex = null;
+export function invalidateDiscCache() { _discCache = null; _discIndex = null; }
 
-function getAllDisciplinas() {
+export function getAllDisciplinas() {
   if (_discCache) return _discCache;
   const result = [];
   _discIndex = new Map();
@@ -206,7 +209,7 @@ function getAllDisciplinas() {
   return result;
 }
 
-function getDisc(id) {
+export function getDisc(id) {
   if (!_discIndex) getAllDisciplinas();
   return _discIndex.get(id) || null;
 }
