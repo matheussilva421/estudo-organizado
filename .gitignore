@@ -1,0 +1,34 @@
+# Dependências
+node_modules/
+package-lock.json
+
+# Arquivos temporários de desenvolvimento
+temp_*.html
+extracted_*.js
+fix_encoding*.js
+find_mojibake.js
+fix_final.js
+debug_*.js
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Arquivos de log
+*.log
+npm-debug.log*
+
+# Arquivos do editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Arquivos resolved (gerados pelo Gemini)
+*.resolved
+
+# Build
+dist/
+build/
