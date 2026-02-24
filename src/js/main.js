@@ -83,6 +83,14 @@ document.addEventListener('click', (e) => {
       window.driveAction();
       break;
 
+    // Dashboard Interactions
+    case 'prompt-prova':
+      window.promptDataProva();
+      break;
+    case 'prompt-metas':
+      window.promptMetas();
+      break;
+
     default:
       console.warn('Unknown data-action:', action);
   }

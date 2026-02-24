@@ -59,7 +59,7 @@ export function renderHome(el) {
 
   // Data da Prova
   const dataProva = state.config.dataProva;
-  let provaText = 'Acompanhe aqui quantos dias faltam para a sua prova! <a href="javascript:void(0)" onclick="window.promptDataProva()" style="color:var(--accent);font-weight:600;">Criar Prova</a>';
+  let provaText = 'Acompanhe aqui quantos dias faltam para a sua prova! <span data-action="prompt-prova" style="color:var(--accent);font-weight:600;cursor:pointer;">Criar Prova</span>';
   if (dataProva) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -72,7 +72,7 @@ export function renderHome(el) {
     } else if (diffDays === 0) {
       provaText = `<strong style="color:var(--accent);font-size:18px;">É hoje! Boa sorte! 🍀</strong>`;
     } else {
-      provaText = `Prova já foi realizada há ${Math.abs(diffDays)} dias. <a href="javascript:void(0)" onclick="window.promptDataProva()" style="color:var(--accent);font-weight:600;">Nova Prova</a>`;
+      provaText = `Prova já foi realizada há ${Math.abs(diffDays)} dias. <span data-action="prompt-prova" style="color:var(--accent);font-weight:600;cursor:pointer;">Nova Prova</span>`;
     }
   }
 
@@ -118,14 +118,14 @@ export function renderHome(el) {
   el.innerHTML = `
     <!-- LINHA 1: Cards Principais -->
     <div class="dash-grid-top">
-      <div class="card p-16" style="display:flex;justify-content:space-between;align-items:flex-end;">
+      <div class="card p-16" style="flex:1;display:flex;justify-content:space-between;align-items:flex-end;">
         <div>
           <div class="dash-label">TEMPO DE ESTUDO</div>
           <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;margin-top:12px;font-family:'DM Mono',monospace;">${totalTimeStr}</div>
         </div>
       </div>
 
-      <div class="card p-16" style="display:flex;justify-content:space-between;align-items:flex-end;">
+      <div class="card p-16" style="flex:1;display:flex;justify-content:space-between;align-items:flex-end;">
         <div>
           <div class="dash-label">DESEMPENHO</div>
           <div style="margin-top:8px;">
@@ -136,7 +136,7 @@ export function renderHome(el) {
         <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${perfPerc}%</div>
       </div>
 
-      <div class="card p-16" style="display:flex;justify-content:space-between;align-items:flex-end;">
+      <div class="card p-16" style="flex:1;display:flex;justify-content:space-between;align-items:flex-end;">
         <div>
           <div class="dash-label">PROGRESSO NO EDITAL</div>
            <div style="margin-top:8px;">
@@ -147,7 +147,7 @@ export function renderHome(el) {
         <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${progPerc}%</div>
       </div>
 
-      <div class="card p-16" style="display:flex;align-items:center;justify-content:center;text-align:center;background:var(--sidebar-bg);color:var(--text-secondary);font-style:italic;">
+      <div class="card p-16" style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--sidebar-bg);color:var(--text-secondary);font-style:italic;">
         "Se não puder fazer tudo, faça tudo que puder."
       </div>
     </div>
@@ -187,12 +187,12 @@ export function renderHome(el) {
       </div>
 
       <!-- Direita: Data, Metas e Gráfico -->
-      <div style="display:flex;flex-direction:column;gap:20px;">
+      <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
         
         <div class="card p-16">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <div class="dash-label">DATA DA PROVA</div>
-            <i class="fa fa-edit" style="color:var(--text-muted);cursor:pointer;" onclick="window.promptDataProva()"></i>
+            <i class="fa fa-edit" style="color:var(--text-muted);cursor:pointer;" data-action="prompt-prova" title="Editar Meta"></i>
           </div>
           ${provaText}
         </div>
@@ -200,7 +200,7 @@ export function renderHome(el) {
         <div class="card p-16">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <div class="dash-label">METAS DE ESTUDO SEMANAL</div>
-            <i class="fa fa-edit" style="color:var(--text-muted);cursor:pointer;" onclick="window.promptMetas()"></i>
+            <i class="fa fa-edit" style="color:var(--text-muted);cursor:pointer;" data-action="prompt-metas" title="Editar Meta"></i>
           </div>
           
           <div style="margin-bottom:16px;">
