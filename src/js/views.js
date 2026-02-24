@@ -1,10 +1,9 @@
-import { HABIT_TYPES, applyTheme, closeModal, currentView, cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, showConfirm, showToast, todayStr, uid, openModal } from './app.js';
+import { HABIT_TYPES, applyTheme, closeModal, currentView, cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, showConfirm, showToast, todayStr, uid, openModal, cancelConfirm } from './app.js';
 import { scheduleSave, state, setState } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers } from './logic.js';
 import { getHabitType, renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
-let _confirmCallback = null;
 let calDate = new Date();
 let calViewMode = 'mes';
 let currentHabitType = null;
@@ -2387,7 +2386,7 @@ document.addEventListener('keydown', e => {
     if (openModals.length > 0) {
       const top = openModals[openModals.length - 1];
       if (top.id === 'modal-confirm') {
-        _confirmCallback = null; // Fix B: cancel callback
+        // cancel callback handled by app.js
       }
       closeModal(top.id);
     } else {

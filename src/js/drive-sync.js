@@ -86,7 +86,7 @@ export function checkDriveStatus() {
         updateDriveUI('disconnected', 'Google Drive');
         return;
     }
-    if (gapi.client?.getToken() !== null && state.driveFileId) {
+    if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId) {
         updateDriveUI('connected', 'Google Drive');
     } else {
         updateDriveUI('disconnected', 'Google Drive');
@@ -109,6 +109,10 @@ export function driveAction() {
         return;
     }
 
+    if (typeof gapi === 'undefined' || !gapi.client) {
+        showToast('APIs do Google não carregadas. Certifique-se de ter inserido o Client ID e recarregue a página.', 'error');
+        return;
+    }
     if (gapi.client?.getToken() === null) {
         tokenClient.requestAccessToken({ prompt: 'consent' });
     } else {
@@ -218,10 +222,7 @@ async function syncWithDrive() {
     }
 }
 
-// Quando a página é carregada, tenta iniciar as APIs
-document.addEventListener('DOMContentLoaded', () => {
-    initGoogleAPIs();
-});
+// Google APIs are initialized from app.js init() when client ID is present
 
 // Hook para sincronizar automaticamente quando salva localmente (se estiver conectado)
 document.addEventListener('stateSaved', () => {

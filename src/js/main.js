@@ -18,6 +18,15 @@ for (const mod of modules) {
 
 
 // ============================================================
+// INITIALIZE APPLICATION
+// ============================================================
+// Setup DOM event handlers that need to be attached BEFORE init
+app.setupConfirmHandlers();
+
+// Call init - modules are deferred, so DOM is ready
+app.init();
+
+// ============================================================
 // CENTRAL EVENT DELEGATION (Etapa 2 - JS Quality)
 // ============================================================
 document.addEventListener('click', (e) => {

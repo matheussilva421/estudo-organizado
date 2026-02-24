@@ -1,7 +1,7 @@
 import { scheduleSave, state } from './store.js';
 import { currentView, cutoffDateStr, formatTime, showConfirm, showToast, timerIntervals, todayStr } from './app.js';
 import { refreshEventCard, refreshMEDSections, removeDOMCard } from './views.js';
-import { getHabitType, renderCurrentView } from './components.js';
+import { getHabitType, renderCurrentView, updateBadges } from './components.js';
 
 // =============================================
 // TIMER ENGINE
@@ -79,6 +79,7 @@ export function toggleTimer(eventId) {
   }
   scheduleSave();
   refreshEventCard(eventId);
+  updateBadges();
 }
 
 export function marcarEstudei(eventId) {

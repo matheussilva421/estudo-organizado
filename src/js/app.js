@@ -141,14 +141,22 @@ export function showConfirm(msg, onYes, opts = {}) {
   openModal('modal-confirm');
 }
 
-document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+export function setupConfirmHandlers() {
+  const okBtn = document.getElementById('confirm-ok-btn');
+  const cancelBtn = document.getElementById('confirm-cancel-btn');
+  if (okBtn) okBtn.addEventListener('click', () => {
   closeModal('modal-confirm');
   if (_confirmCallback) { const cb = _confirmCallback; _confirmCallback = null; cb(); }
 });
-document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
-  closeModal('modal-confirm');
+if (cancelBtn) cancelBtn.addEventListener('click', () => {
+    cancelConfirm();
+  });
+}
+
+export function cancelConfirm() {
   _confirmCallback = null;
-});
+  closeModal('modal-confirm');
+}
 
 // Toast Notifications
 export function showToast(msg, type = '') {
