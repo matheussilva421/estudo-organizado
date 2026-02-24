@@ -1321,7 +1321,6 @@ select.form-control {
 }
 
 /* EDITAL TREE */
-.edital-tree {}
 
 .tree-edital {
   margin-bottom: 16px;
@@ -2074,23 +2073,28 @@ mark {
   padding: 20px 24px;
   border-bottom: 1px solid var(--border);
 }
+
 .reg-block:last-child {
   border-bottom: none;
 }
+
 .reg-block-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
   margin: 0 0 14px 0;
 }
+
 .reg-summary {
-  background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(56,189,248,0.04));
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(56, 189, 248, 0.04));
 }
+
 .reg-summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px;
 }
+
 .reg-stat {
   text-align: center;
   padding: 12px;
@@ -2098,6 +2102,7 @@ mark {
   border-radius: 12px;
   border: 1px solid var(--border);
 }
+
 .reg-stat-label {
   font-size: 11px;
   text-transform: uppercase;
@@ -2105,31 +2110,38 @@ mark {
   color: var(--text-muted);
   margin-bottom: 6px;
 }
+
 .reg-stat-value {
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
 }
+
 .reg-row {
   display: flex;
   gap: 16px;
   margin-bottom: 12px;
 }
+
 .reg-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
 .reg-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
 }
+
 .reg-label .req {
   color: var(--red);
   font-weight: 700;
 }
-.reg-select, .reg-input {
+
+.reg-select,
+.reg-input {
   width: 100%;
   padding: 10px 14px;
   border-radius: 10px;
@@ -2141,11 +2153,14 @@ mark {
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
 }
-.reg-select:focus, .reg-input:focus {
+
+.reg-select:focus,
+.reg-input:focus {
   outline: none;
   border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
+
 .reg-textarea {
   width: 100%;
   padding: 12px 14px;
@@ -2159,11 +2174,13 @@ mark {
   min-height: 80px;
   box-sizing: border-box;
 }
+
 .reg-textarea:focus {
   outline: none;
   border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
+
 .btn-inline {
   padding: 8px 16px;
   border-radius: 10px;
@@ -2176,8 +2193,9 @@ mark {
   white-space: nowrap;
   transition: all 0.2s;
 }
+
 .btn-inline:hover {
-  background: rgba(16,185,129,0.1);
+  background: rgba(16, 185, 129, 0.1);
   border-color: var(--green);
 }
 
@@ -2187,6 +2205,7 @@ mark {
   flex-wrap: wrap;
   gap: 8px;
 }
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -2201,12 +2220,14 @@ mark {
   transition: all 0.2s;
   font-family: inherit;
 }
+
 .chip:hover {
   border-color: var(--green);
   color: var(--text);
 }
+
 .chip-active {
-  background: rgba(16,185,129,0.15);
+  background: rgba(16, 185, 129, 0.15);
   border-color: var(--green);
   color: var(--green);
   font-weight: 600;
@@ -2220,6 +2241,7 @@ mark {
   padding: 16px;
   margin-bottom: 12px;
 }
+
 .reg-results-header {
   font-size: 14px;
   font-weight: 600;
@@ -2231,7 +2253,90 @@ mark {
   .reg-summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .reg-row {
     flex-direction: column;
   }
+}
+
+/* DASHBOARD REDESIGN */
+.dash-grid-top {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dash-grid-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .dash-grid-bottom {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dash-streak-panel {
+  background: var(--card);
+}
+
+.streak-heatmap {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.streak-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #fff;
+}
+
+.streak-dot-ok {
+  background: var(--accent);
+}
+
+.streak-dot-miss {
+  background: var(--border);
+  color: transparent;
+}
+
+[data-theme="dark"] .streak-dot-miss {
+  background: #334155;
+}
+
+.dash-progress-track {
+  width: 100%;
+  height: 14px;
+  background: var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+[data-theme="dark"] .dash-progress-track {
+  background: #334155;
+}
+
+.dash-progress-bar {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.3s;
+  position: relative;
 }

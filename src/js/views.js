@@ -1,6 +1,6 @@
 import { HABIT_TYPES, applyTheme, closeModal, currentView, cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, showConfirm, showToast, todayStr, uid, openModal, cancelConfirm } from './app.js';
 import { scheduleSave, state, setState } from './store.js';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds } from './logic.js';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats } from './logic.js';
 import { getHabitType, renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
@@ -34,151 +34,228 @@ export const DISC_ICONS = [
 ];
 
 // =============================================
-// HOME VIEW
+// NOVO HOME VIEW (DASHBOARD REDESIGN)
 // =============================================
 export function renderHome(el) {
-  const today = todayStr();
-  const agendadoHoje = state.eventos.filter(e => e.data === today && e.status !== 'estudei');
-  const estudadoHoje = state.eventos.filter(e => e.data === today && e.status === 'estudei');
-  const atrasados = state.eventos.filter(e => e.status !== 'estudei' && e.data && e.data < today);
-  const pendRevs = getPendingRevisoes();
-  const hojeSeconds = estudadoHoje.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+  const perf = getPerformanceStats();
+  const perfPerc = perf.questionsTotal > 0 ? Math.round((perf.questionsCorrect / perf.questionsTotal) * 100) : 0;
 
-  let disc = getAllDisciplinas();
-  const totalDiscs = disc.length;
-  const totalAssuntos = disc.reduce((s, d) => s + d.disc.assuntos.length, 0);
-  const totalConcluidos = disc.reduce((s, d) => s + d.disc.assuntos.filter(a => a.concluído).length, 0);
+  const prog = getSyllabusProgress();
+  const progPerc = prog.totalAssuntos > 0 ? Math.round((prog.totalConcluidos / prog.totalAssuntos) * 100) : 0;
+
+  const streak = getConsistencyStreak();
+  const subjStats = getSubjectStats();
+  const weekStats = getCurrentWeekStats();
+
+  // Metas
+  const metaHoras = state.config.metas?.horasSemana || 20;
+  const metaQuest = state.config.metas?.questoesSemana || 150;
+
+  const horasFeitas = weekStats.totalSeconds / 3600;
+  const percHoras = Math.min(100, Math.round((horasFeitas / metaHoras) * 100));
+
+  const questFeitas = weekStats.totalQuestions;
+  const percQuest = Math.min(100, Math.round((questFeitas / metaQuest) * 100));
+
+  // Data da Prova
+  const dataProva = state.config.dataProva;
+  let provaText = 'Acompanhe aqui quantos dias faltam para a sua prova! <a href="javascript:void(0)" onclick="window.promptDataProva()" style="color:var(--accent);font-weight:600;">Criar Prova</a>';
+  if (dataProva) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const provaDate = new Date(dataProva + 'T00:00:00');
+    const diffTime = provaDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) {
+      provaText = `<div style="font-size:32px;font-weight:800;color:var(--accent);line-height:1;">${diffDays}</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">dias para a prova (${formatDate(dataProva)})</div>`;
+    } else if (diffDays === 0) {
+      provaText = `<strong style="color:var(--accent);font-size:18px;">É hoje! Boa sorte! 🍀</strong>`;
+    } else {
+      provaText = `Prova já foi realizada há ${Math.abs(diffDays)} dias. <a href="javascript:void(0)" onclick="window.promptDataProva()" style="color:var(--accent);font-weight:600;">Nova Prova</a>`;
+    }
+  }
+
+  // HEATMAP
+  const heatmapHtml = streak.heatmap.map(x =>
+    `<div class="streak-dot ${x ? 'streak-dot-ok' : 'streak-dot-miss'}"><i class="fa ${x ? 'fa-check' : 'fa-times'}"></i></div>`
+  ).join('');
+
+  // SESSIONS CHART
+  const maxWeeklySec = Math.max(...weekStats.dailySeconds, 3600); // at least 1h scale
+  const barsHtml = weekStats.dailySeconds.map((sec, i) => {
+    const h = (sec / maxWeeklySec) * 100;
+    const days = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end;">
+        <div style="width:100%;max-width:30px;height:${h}%;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px;transition:height 0.3s;" title="${formatTime(sec)}"></div>
+        <div style="font-size:10px;font-weight:600;color:var(--text-muted);margin-top:8px;">${days[i]}</div>
+      </div>
+    `;
+  }).join('');
+
+  // SUBJECTS TABLE
+  const subjHtml = subjStats.map(s => {
+    const apr = s.acertos + s.erros > 0 ? Math.round((s.acertos / (s.acertos + s.erros)) * 100) : 0;
+    const aprColor = apr >= 80 ? 'green' : apr >= 60 ? 'orange' : apr > 0 ? 'red' : 'gray';
+    const hasData = s.tempo > 0 || (s.acertos + s.erros) > 0;
+
+    // Only show subjects with data to avoid a huge empty list, or show all if specifically requested.
+    // For now, let's show all that have at least some time or questions, or if it's empty, just '--'.
+    return `
+      <div style="display:grid;grid-template-columns:1fr 80px 40px 40px 40px;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;align-items:center;">
+        <div style="color:var(--accent);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(s.nome)}">${esc(s.nome)}</div>
+        <div style="color:var(--text-secondary);text-align:right;font-family:'DM Mono',monospace;">${s.tempo > 0 ? formatTime(s.tempo) : '-'}</div>
+        <div style="color:var(--green);text-align:center;">${s.acertos}</div>
+        <div style="color:var(--red);text-align:center;">${s.erros}</div>
+        <div style="display:flex;justify-content:center;"><div class="event-tag ${aprColor}" style="padding:2px 6px;font-size:11px;min-width:32px;text-align:center;">${hasData ? apr : 0}</div></div>
+      </div>
+    `;
+  }).join('');
+
+  const totalTimeStr = formatTime(state.eventos.filter(e => e.status === 'estudei').reduce((s, e) => s + (e.tempoAcumulado || 0), 0));
 
   el.innerHTML = `
-    <!-- GREETING BANNER -->
-    <div style="background:linear-gradient(135deg,var(--sidebar-bg),#1e3a5f);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
-      <div>
-        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px;">${getGreeting()}</div>
-        <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:6px;">Vamos estudar hoje? 🎯</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.65);font-style:italic;">"${getDailyQuote()}"</div>
+    <!-- LINHA 1: Cards Principais -->
+    <div class="dash-grid-top">
+      <div class="card p-16" style="display:flex;justify-content:space-between;align-items:flex-end;">
+        <div>
+          <div class="dash-label">TEMPO DE ESTUDO</div>
+          <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;margin-top:12px;font-family:'DM Mono',monospace;">${totalTimeStr}</div>
+        </div>
       </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);margin-bottom:2px;">PROGRESSO GERAL</div>
-        <div style="font-size:28px;font-weight:900;color:#fff;">${totalAssuntos > 0 ? Math.round(totalConcluidos / totalAssuntos * 100) : 0}<span style="font-size:16px;font-weight:600;opacity:0.7;">%</span></div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.5);">${totalConcluidos} de ${totalAssuntos} assuntos</div>
+
+      <div class="card p-16" style="display:flex;justify-content:space-between;align-items:flex-end;">
+        <div>
+          <div class="dash-label">DESEMPENHO</div>
+          <div style="margin-top:8px;">
+            <div style="font-size:12px;color:var(--green);font-weight:600;">${perf.questionsCorrect} Acertos</div>
+            <div style="font-size:12px;color:var(--red);font-weight:600;margin-top:2px;">${perf.questionsWrong} Erros</div>
+          </div>
+        </div>
+        <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${perfPerc}%</div>
+      </div>
+
+      <div class="card p-16" style="display:flex;justify-content:space-between;align-items:flex-end;">
+        <div>
+          <div class="dash-label">PROGRESSO NO EDITAL</div>
+           <div style="margin-top:8px;">
+            <div style="font-size:12px;color:var(--green);font-weight:600;">${prog.totalConcluidos} Tópicos Concluídos</div>
+            <div style="font-size:12px;color:var(--red);font-weight:600;margin-top:2px;">${prog.totalAssuntos - prog.totalConcluidos} Tópicos Pendentes</div>
+          </div>
+        </div>
+        <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${progPerc}%</div>
+      </div>
+
+      <div class="card p-16" style="display:flex;align-items:center;justify-content:center;text-align:center;background:var(--sidebar-bg);color:var(--text-secondary);font-style:italic;">
+        "Se não puder fazer tudo, faça tudo que puder."
       </div>
     </div>
 
-    ${state.editais.length === 0 ? `
-    <div class="card" style="margin-bottom:20px;border:2px dashed var(--accent);background:var(--accent-light);">
-      <!-- (Original Onboarding content here) -->
-      <div class="card-body" style="padding:20px 24px;">
-        <div style="font-size:15px;font-weight:800;color:var(--accent-dark);margin-bottom:4px;">👋 Bem-vindo ao Estudo Organizado!</div>
-        <div style="font-size:13px;color:var(--accent-dark);margin-bottom:16px;opacity:0.85;">Siga os passos abaixo para configur seu planejamento de estudos:</div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <div onclick="navigate('editais')" style="cursor:pointer;flex:1;min-width:180px;background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--border); transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
-              <div style="font-size:20px;margin-bottom:6px;">📋</div>
-              <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">1. Crie um Edital</div>
-              <div style="font-size:12px;color:var(--text-secondary);">Adicione o edital do seu concurso e organize as disciplinas por grupos.</div>
+    <!-- LINHA 2: Constância -->
+    <div class="card p-16 dash-streak-panel" style="margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div class="dash-label">CONSTÂNCIA NOS ESTUDOS <i class="fa fa-question-circle" style="opacity:0.5;margin-left:4px;" title="Dias que você registrou sessões nos últimos 30 dias."></i></div>
+        <div style="font-size:12px;font-weight:600;color:var(--accent);">Últimos 30 dias</div>
+      </div>
+      <div style="font-size:14px;color:var(--text-primary);margin-bottom:16px;">
+        Você está há <strong>${streak.currentStreak} dias sem falhar!</strong> Seu recorde é de <strong>${streak.maxStreak} dias sem falhas.</strong> 📅
+      </div>
+      <div class="streak-heatmap">
+        ${heatmapHtml}
+      </div>
+    </div>
+
+    <!-- LINHA 3: Metas, Gráfico e Disciplinas -->
+    <div class="dash-grid-bottom">
+      
+      <!-- Esquerda: Tabela de Disciplinas -->
+      <div class="card p-16" style="display:flex;flex-direction:column;max-height:500px;">
+        <div class="dash-label" style="margin-bottom:16px;">PAINEL</div>
+        
+        <div style="display:grid;grid-template-columns:1fr 80px 40px 40px 40px;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-primary);align-items:center;">
+          <div>Disciplinas</div>
+          <div style="text-align:right;">Tempo</div>
+          <div style="color:var(--green);text-align:center;"><i class="fa fa-check"></i></div>
+          <div style="color:var(--red);text-align:center;"><i class="fa fa-times"></i></div>
+          <div style="text-align:center;">%</div>
+        </div>
+        
+        <div style="flex:1;overflow-y:auto;padding-right:8px;" class="custom-scrollbar">
+          ${subjHtml || '<div style="text-align:center;padding:20px;color:var(--text-muted);">Nenhuma disciplina com histórico ainda.</div>'}
+        </div>
+      </div>
+
+      <!-- Direita: Data, Metas e Gráfico -->
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        
+        <div class="card p-16">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div class="dash-label">DATA DA PROVA</div>
+            <i class="fa fa-edit" style="color:var(--text-muted);cursor:pointer;" onclick="window.promptDataProva()"></i>
+          </div>
+          ${provaText}
+        </div>
+
+        <div class="card p-16">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div class="dash-label">METAS DE ESTUDO SEMANAL</div>
+            <i class="fa fa-edit" style="color:var(--text-muted);cursor:pointer;" onclick="window.promptMetas()"></i>
+          </div>
+          
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:6px;">
+              <span style="font-family:'DM Mono',monospace;">${formatTime(weekStats.totalSeconds).slice(0, 5)}/${metaHoras}h00min</span>
+              <span>Horas de Estudo</span>
             </div>
-            <!-- More onboarding steps could be re-added here -->
-        </div>
-      </div>
-    </div>` : ''}
-
-    <div class="stats-grid">
-      <div class="stat-card green">
-        <div class="stat-label">Estudado Hoje</div>
-        <div class="stat-value">${formatTime(hojeSeconds)}</div>
-        <div class="stat-sub">${estudadoHoje.length} evento(s) concluído(s)</div>
-      </div>
-      <div class="stat-card blue">
-        <div class="stat-label">Agendado Hoje</div>
-        <div class="stat-value">${agendadoHoje.length}</div>
-        <div class="stat-sub">evento(s) pendente(s)</div>
-      </div>
-      <div class="stat-card red">
-        <div class="stat-label">Atrasados</div>
-        <div class="stat-value">${atrasados.length}</div>
-        <div class="stat-sub">evento(s) não realizados</div>
-      </div>
-      <div class="stat-card orange">
-        <div class="stat-label">Revisões Pendentes</div>
-        <div class="stat-value">${pendRevs.length}</div>
-        <div class="stat-sub">assuntos a revisar</div>
-      </div>
-    </div>
-
-    <div class="grid-2" style="gap:16px;margin-bottom:16px;">
-      <div>
-        <div class="card" style="margin-bottom:16px;">
-          <div class="card-header">
-            <h3>📌 Agendado para Hoje</h3>
-            <button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Evento</button>
-          </div>
-          <div class="card-body" style="padding:12px;">
-            ${agendadoHoje.length === 0 ? '<div class="empty-state"><div class="icon">✅</div><h4>Nada pendente!</h4><p>Adicione eventos ou aproveite o dia livre.</p></div>' : agendadoHoje.map(e => renderEventCard(e)).join('')}
-          </div>
-        </div>
-
-        ${atrasados.length > 0 ? `
-        <div class="card">
-          <div class="card-header"><h3>⏰ Eventos Atrasados</h3></div>
-          <div class="card-body" style="padding:12px;">
-            ${atrasados.slice(0, 5).map(e => renderEventCard(e)).join('')}
-            ${atrasados.length > 5 ? `<div class="cal-more" style="padding:8px;text-align:center;">+${atrasados.length - 5} mais</div>` : ''}
-          </div>
-        </div>` : ''}
-      </div>
-
-      <div>
-        <div class="card" style="margin-bottom:16px;">
-          <div class="card-header"><h3>✅ Estudado Hoje</h3></div>
-          <div class="card-body" style="padding:12px;">
-            ${estudadoHoje.length === 0 ? '<div class="empty-state"><div class="icon">📚</div><h4>Nenhum evento concluído</h4><p>Comece seus estudos!</p></div>' : estudadoHoje.map(e => renderEventCard(e)).join('')}
-          </div>
-        </div>
-
-        ${pendRevs.length > 0 ? `
-        <div class="card">
-          <div class="card-header">
-            <h3>🔄 Revisões Sugeridas para Hoje</h3>
-            <button class="btn btn-ghost btn-sm" onclick="navigate('revisoes')">Ver todas</button>
-          </div>
-          <div class="card-body" style="padding:12px;">
-            ${pendRevs.slice(0, 3).map(r => `
-              <div class="rev-item">
-                <div class="rev-days today">
-                  <div class="num">Rev</div>
-                </div>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:13px;font-weight:600;">${r.assunto.nome}</div>
-                  <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} • ${r.edital.nome}</div>
-                </div>
-                <button class="btn btn-primary btn-sm" onclick="marcarRevisao('${r.assunto.id}')">Feita</button>
+            <div class="dash-progress-track">
+              <div class="dash-progress-bar" style="width:${percHoras}%;background:var(--accent);">
+                <span style="position:absolute;left:8px;top:2px;font-size:10px;color:#fff;">${percHoras}%</span>
               </div>
-            `).join('')}
+            </div>
           </div>
-        </div>` : ''}
 
-        <div class="card" style="margin-top:16px;">
-          <div class="card-header"><h3>📊 Progresso do Edital</h3></div>
-          <div class="card-body">
-            ${state.editais.length === 0 ? '<div class="empty-state"><div class="icon">📋</div><h4>Nenhum edital</h4><p>Crie seu edital para acompanhar o progresso.</p></div>' :
-      state.editais.map(edital => {
-        const discs = (edital.disciplinas || []);
-        const total = discs.reduce((s, d) => s + d.assuntos.length, 0);
-        const done = discs.reduce((s, d) => s + d.assuntos.filter(a => a.concluído).length, 0);
-        const pct = total > 0 ? Math.round(done / total * 100) : 0;
-        return `
-                  <div style="margin-bottom:14px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                      <div style="font-size:13px;font-weight:600;">${esc(edital.nome)}</div>
-                      <div style="font-size:12px;color:var(--text-secondary);">${done}/${total} (${pct}%)</div>
-                    </div>
-                    <div class="progress"><div class="progress-bar" style="width:${pct}%;background:${edital.cor || 'var(--accent)'};"></div></div>
-                  </div>
-                `;
-      }).join('')
-    }
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:6px;">
+              <span style="font-family:'DM Mono',monospace;">${questFeitas}/${metaQuest}</span>
+              <span>Questões</span>
+            </div>
+            <div class="dash-progress-track">
+              <div class="dash-progress-bar" style="width:${percQuest}%;background:#8b5cf6;">
+                <span style="position:absolute;left:8px;top:2px;font-size:10px;color:#fff;">${percQuest}%</span>
+              </div>
+            </div>
           </div>
         </div>
+
+        <div class="card p-16" style="flex:1;display:flex;flex-direction:column;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <div class="dash-label">ESTUDO SEMANAL</div>
+            <div style="display:flex;gap:4px;font-size:11px;">
+              <div class="event-tag green" style="padding:4px 8px;border-radius:4px;font-weight:700;">TEMPO</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;align-items:flex-end;gap:8px;border-bottom:1px solid var(--border);padding-bottom:8px;position:relative;">
+            <!-- Grid lines background -->
+            <div style="position:absolute;top:0;left:0;right:0;bottom:25px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;z-index:0;opacity:0.2;">
+              <div style="border-top:1px solid var(--text-muted);"></div>
+              <div style="border-top:1px solid var(--text-muted);"></div>
+              <div style="border-top:1px solid var(--text-muted);"></div>
+              <div style="border-top:1px solid var(--text-muted);"></div>
+              <div style="border-top:1px solid var(--text-muted);"></div>
+            </div>
+            <!-- Bars -->
+            <div style="display:flex;width:100%;height:100%;z-index:1;padding-bottom:20px;">
+              ${barsHtml}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text-secondary);margin-top:12px;">
+            <div style="width:8px;height:8px;background:var(--accent);border-radius:2px;"></div> Total Estudado: ${formatTime(weekStats.totalSeconds).slice(0, 5)}min
+          </div>
+        </div>
+
       </div>
+
     </div>
   `;
 }
