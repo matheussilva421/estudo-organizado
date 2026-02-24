@@ -197,25 +197,13 @@ function applyTheme(toggle = false) {
 }
 
 function init() {
-  document.body.innerHTML += '<div style="background:blue;color:white;z-index:999999;position:relative;">1: init start</div>';
-  console.log('init start');
   initDB().then(() => {
-    document.body.innerHTML += '<div style="background:blue;color:white;z-index:999999;position:relative;">2: initDB done</div>';
-    console.log('initDB done');
     applyTheme();
     updateDriveUI();
     if (state.config.clientId && state.config.driveConnected) {
       initGoogleAPIs();
     }
-
-    document.body.innerHTML += '<div style="background:blue;color:white;z-index:999999;position:relative;">3: before navigate</div>';
-    console.log('before navigate');
-    try {
-      navigate('home');
-      document.body.innerHTML += '<div style="background:green;color:white;z-index:999999;position:relative;">4: navigate SUCCESS</div>';
-    } catch (err) {
-      document.body.innerHTML += '<div style="background:red;color:white;padding:20px;z-index:999999;position:relative;">NAVIGATE ERROR: ' + err.stack + '</div>';
-    }
+    navigate('home');
 
     // Auto Update states
     state.eventos.forEach(ev => {
@@ -229,8 +217,6 @@ function init() {
     setInterval(() => {
       if (state.config.driveConnected) syncWithDrive();
     }, 300000);
-  }).catch(err => {
-    document.body.innerHTML += '<div style="background:red;color:white;padding:20px;z-index:999999;position:relative;">INIT ERROR: ' + err.stack + '</div>';
   });
 }
 

@@ -12,7 +12,7 @@ function renderHome(el) {
   let disc = getAllDisciplinas();
   const totalDiscs = disc.length;
   const totalAssuntos = disc.reduce((s, d) => s + d.disc.assuntos.length, 0);
-  const totalConcluidos = disc.reduce((s, d) => s + d.disc.assuntos.filter(a => a.concluido).length, 0);
+  const totalConcluidos = disc.reduce((s, d) => s + d.disc.assuntos.filter(a => a.concluído).length, 0);
 
   el.innerHTML = `
     <!-- GREETING BANNER -->
@@ -128,7 +128,7 @@ function renderHome(el) {
       state.editais.map(edital => {
         const discs = edital.grupos.flatMap(g => g.disciplinas);
         const total = discs.reduce((s, d) => s + d.assuntos.length, 0);
-        const done = discs.reduce((s, d) => s + d.assuntos.filter(a => a.concluido).length, 0);
+        const done = discs.reduce((s, d) => s + d.assuntos.filter(a => a.concluído).length, 0);
         const pct = total > 0 ? Math.round(done / total * 100) : 0;
         return `
                   <div style="margin-bottom:14px;">
@@ -318,7 +318,7 @@ function renderCalendar(el) {
           <div class="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}</div>
           <button class="btn btn-ghost btn-sm" onclick="calDate=new Date();renderCurrentView()">Hoje</button>
           <div style="margin-left:auto;" class="cal-view-tabs">
-            <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" onclick="calViewMode='mes';renderCurrentView()">M├¬s</div>
+            <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" onclick="calViewMode='mes';renderCurrentView()">Mês</div>
             <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" onclick="calViewMode='semana';renderCurrentView()">Semana</div>
           </div>
         </div>
@@ -344,7 +344,7 @@ function renderCalendarMonth() {
   const lastDay = new Date(year, month + 1, 0);
   const today = todayStr();
   const startDow = (firstDay.getDay() - (state.config.primeirodiaSemana || 1) + 7) % 7;
-  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'S├íb'];
+  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const startDow0 = state.config.primeirodiaSemana || 1;
   const dowOrder = Array.from({ length: 7 }, (_, i) => dows[(startDow0 + i) % 7]);
 
@@ -394,7 +394,7 @@ function renderCalendarWeek() {
   const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
   const weekStart = new Date(calDate);
   weekStart.setDate(calDate.getDate() - startOffset);
-  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'S├íb'];
+  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const startDow0 = state.config.primeirodiaSemana || 1;
 
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -445,7 +445,7 @@ function openAddEventModalDate(dateStr) {
 // DASHBOARD VIEW
 // =============================================
 // =============================================
-// UX 4 ÔÇö DASHBOARD WITH PERIOD FILTER
+// UX 4 — DASHBOARD WITH PERIOD FILTER
 // =============================================
 let dashPeriod = 7; // default: last 7 days
 let _chartDaily = null, _chartDisc = null;
@@ -487,12 +487,12 @@ function renderDashboard(el) {
         <div class="stat-sub">${periodLabel}</div>
       </div>
       <div class="stat-card blue">
-        <div class="stat-label">Sess├Áes Realizadas</div>
+        <div class="stat-label">Sessões Realizadas</div>
         <div class="stat-value">${filteredEvts.length}</div>
-        <div class="stat-sub">eventos conclu├¡dos</div>
+        <div class="stat-sub">eventos concluídos</div>
       </div>
       <div class="stat-card orange">
-        <div class="stat-label">Quest├Áes</div>
+        <div class="stat-label">Questões</div>
         <div class="stat-value">${questTot}</div>
         <div class="stat-sub">${periodLabel}</div>
       </div>
@@ -506,7 +506,7 @@ function renderDashboard(el) {
     <div class="grid-2" style="margin-bottom:16px;">
       <div class="card">
         <div class="card-header">
-          <h3>­ƒôê Horas por Dia</h3>
+          <h3>📊 Horas por Dia</h3>
           <span style="font-size:11px;color:var(--text-muted);">${periodLabel}</span>
         </div>
         <div class="card-body">
@@ -515,7 +515,7 @@ function renderDashboard(el) {
       </div>
       <div class="card">
         <div class="card-header">
-          <h3>­ƒôÜ Tempo por Disciplina</h3>
+          <h3>📚 Tempo por Disciplina</h3>
           <span style="font-size:11px;color:var(--text-muted);">${periodLabel}</span>
         </div>
         <div class="card-body">
@@ -526,11 +526,11 @@ function renderDashboard(el) {
 
     <div class="grid-2">
       <div class="card">
-        <div class="card-header"><h3>ÔÜí H├íbitos (${periodLabel})</h3></div>
+        <div class="card-header"><h3>⚡ Hábitos (${periodLabel})</h3></div>
         <div class="card-body">${renderHabitSummary(periodDays)}</div>
       </div>
       <div class="card">
-        <div class="card-header"><h3>­ƒôï Progresso por Disciplina</h3></div>
+        <div class="card-header"><h3>📏 Progresso por Disciplina</h3></div>
         <div class="card-body">${renderDiscProgress()}</div>
       </div>
     </div>
@@ -593,7 +593,7 @@ function renderDiscChart(periodDays) {
     data.push(Math.round(secs / 60));
     colors.push(d ? (d.disc.cor || '#10b981') : '#94a3b8');
   });
-  if (data.length === 0) { ctx.parentElement.innerHTML = '<div class="empty-state"><div class="icon">­ƒôè</div><p>Sem dados no per├¡odo selecionado</p></div>'; return; }
+  if (data.length === 0) { ctx.parentElement.innerHTML = '<div class="empty-state"><div class="icon">📈</div><p>Sem dados no período selecionado</p></div>'; return; }
   _chartDisc = new Chart(ctx, {
     type: 'doughnut',
     data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
@@ -623,16 +623,16 @@ function renderHabitSummary(periodDays) {
 
 function renderDiscProgress() {
   const discs = getAllDisciplinas();
-  if (discs.length === 0) return '<div class="empty-state"><div class="icon">­ƒôï</div><p>Nenhuma disciplina cadastrada</p></div>';
+  if (discs.length === 0) return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
   return discs.slice(0, 8).map(({ disc, edital }) => {
     const total = disc.assuntos.length;
-    const done = disc.assuntos.filter(a => a.concluido).length;
+    const done = disc.assuntos.filter(a => a.concluído).length;
     const pct = total > 0 ? Math.round(done / total * 100) : 0;
     return `
       <div style="margin-bottom:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
           <div style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;">
-            <span>${disc.icone || '­ƒôû'}</span> ${esc(disc.nome)}
+            <span>${disc.icone || '📚'}</span> ${esc(disc.nome)}
           </div>
           <div style="font-size:11px;color:var(--text-muted);">${done}/${total}</div>
         </div>
@@ -658,7 +658,7 @@ function getUpcomingRevisoes(days = 30) {
     for (const grupo of edital.grupos) {
       for (const disc of grupo.disciplinas) {
         for (const ass of disc.assuntos) {
-          if (!ass.concluido || !ass.dataConclusao) continue;
+          if (!ass.concluído || !ass.dataConclusao) continue;
           const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
           for (const rd of revDates) {
             if (rd > today && rd <= futureStr) {
@@ -685,46 +685,46 @@ function renderRevisoes(el) {
         <div style="font-size:28px;font-weight:800;color:var(--red);">${pending.filter(r => r.data <= today).length}</div>
       </div>
       <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
-        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pr├│x. 30 dias</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Próx. 30 dias</div>
         <div style="font-size:28px;font-weight:800;color:var(--blue);">${upcoming.length}</div>
       </div>
       <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
-        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assuntos Conclu├¡dos</div>
-        <div style="font-size:28px;font-weight:800;color:var(--accent);">${getAllDisciplinas().reduce((s, { disc }) => s + disc.assuntos.filter(a => a.concluido).length, 0)}</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assuntos Concluídos</div>
+        <div style="font-size:28px;font-weight:800;color:var(--accent);">${getAllDisciplinas().reduce((s, { disc }) => s + disc.assuntos.filter(a => a.concluído).length, 0)}</div>
       </div>
       <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
-        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Frequ├¬ncia</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Frequência</div>
         <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-top:8px;">${(state.config.frequenciaRevisao || [1, 7, 30, 90]).join(', ')} dias</div>
       </div>
     </div>
 
     <div class="tabs">
-      <div class="tab-btn active" onclick="switchRevTab('pendentes', this)">­ƒö┤ Pendentes (${pending.length})</div>
-      <div class="tab-btn" onclick="switchRevTab('proximas', this)">­ƒôà Pr├│ximas 30 dias (${upcoming.length})</div>
+      <div class="tab-btn active" onclick="switchRevTab('pendentes', this)">🔄 Pendentes (${pending.length})</div>
+      <div class="tab-btn" onclick="switchRevTab('proximas', this)">📅 Próximas 30 dias (${upcoming.length})</div>
     </div>
 
     <div id="rev-tab-pendentes" class="tab-content active">
       ${pending.length === 0 ? `
-        <div class="empty-state"><div class="icon">­ƒÄë</div><h4>Nenhuma revis├úo pendente!</h4><p>Conclua assuntos para que as revis├Áes sejam agendadas automaticamente.</p></div>
+        <div class="empty-state"><div class="icon">✅</div><h4>Nenhuma revisão pendente!</h4><p>Conclua assuntos para que as revisões sejam agendadas automaticamente.</p></div>
       ` : pending.map(r => {
     const isOverdue = r.data < today;
     const revNum = (r.assunto.revisoesFetas || []).length + 1;
     return `
           <div class="rev-item">
             <div class="rev-days ${isOverdue ? 'overdue' : 'today'}">
-              <div class="num">${revNum}┬¬</div>
+              <div class="num">${revNum}ª</div>
               <div class="label">Rev</div>
             </div>
             <div style="flex:1;min-width:0;">
               <div style="font-size:13px;font-weight:600;">${r.assunto.nome}</div>
-              <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} ÔÇó ${r.edital.nome}</div>
+              <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} • ${r.edital.nome}</div>
               <div style="font-size:11px;color:${isOverdue ? 'var(--red)' : 'var(--accent)'};margin-top:2px;">
-                ${isOverdue ? 'ÔÜá´©Å Atrasada' : '­ƒôà Hoje'} ÔÇó Prevista para ${formatDate(r.data)}
+                ${isOverdue ? '⚠️ Atrasada' : '📅 Hoje'} • Prevista para ${formatDate(r.data)}
               </div>
             </div>
             <div style="display:flex;gap:6px;">
-              <button class="btn btn-primary btn-sm" onclick="marcarRevisao('${r.assunto.id}')">Ô£à Feita</button>
-              <button class="btn btn-ghost btn-sm" onclick="adiarRevisao('${r.assunto.id}')">ÔÅ¡ +1 dia</button>
+              <button class="btn btn-primary btn-sm" onclick="marcarRevisao('${r.assunto.id}')">✅ Feita</button>
+              <button class="btn btn-ghost btn-sm" onclick="adiarRevisao('${r.assunto.id}')">⏩ +1 dia</button>
             </div>
           </div>
         `;
@@ -733,7 +733,7 @@ function renderRevisoes(el) {
 
     <div id="rev-tab-proximas" class="tab-content">
       ${upcoming.length === 0 ? `
-        <div class="empty-state"><div class="icon">­ƒôà</div><h4>Nenhuma revis├úo nos pr├│ximos 30 dias</h4><p>Continue estudando e concluindo assuntos!</p></div>
+        <div class="empty-state"><div class="icon">📅</div><h4>Nenhuma revisão nos próximos 30 dias</h4><p>Continue estudando e concluíndo assuntos!</p></div>
       ` : (() => {
       // Group by week
       let lastWeek = null;
@@ -744,12 +744,12 @@ function renderRevisoes(el) {
         return `
             <div class="rev-item">
               <div class="rev-days" style="background:#dbeafe;color:#1d4ed8;">
-                <div class="num">${r.revNum}┬¬</div>
+                <div class="num">${r.revNum}ª</div>
                 <div class="label">Rev</div>
               </div>
               <div style="flex:1;min-width:0;">
                 <div style="font-size:13px;font-weight:600;">${r.assunto.nome}</div>
-                <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} ÔÇó ${r.edital.nome}</div>
+                <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} • ${r.edital.nome}</div>
               </div>
               <div style="text-align:right;">
                 <div style="font-size:12px;font-weight:700;color:var(--blue);">${formatDate(r.data)}</div>
@@ -780,7 +780,7 @@ function marcarRevisao(assId) {
           ass.revisoesFetas.push(todayStr());
           scheduleSave();
           renderCurrentView();
-          showToast('Revis├úo registrada! ­ƒÄë', 'success');
+          showToast('Revisão registrada! ­ƒë', 'success');
           return;
         }
       }
@@ -803,7 +803,7 @@ function adiarRevisao(assId) {
           ass.dataConclusao = base.toISOString().split('T')[0];
           scheduleSave();
           renderCurrentView();
-          showToast('Revis├úo adiada por 1 dia', 'info');
+          showToast('Revisão adiada por 1 dia', 'info');
           return;
         }
       }
@@ -832,7 +832,7 @@ function renderHabitos(el) {
             <div class="hc-icon">${h.icon}</div>
             <div class="hc-label">${h.label}</div>
             <div class="hc-count" style="color:${h.color};">${total}</div>
-            <div class="hc-sub">${recent.length} nos ├║ltimos 7 dias</div>
+            <div class="hc-sub">${recent.length} nos últimos 7 dias</div>
           </div>
         `;
   }).join('')}
@@ -840,7 +840,7 @@ function renderHabitos(el) {
 
     <div class="card">
       <div class="card-header">
-        <h3>­ƒôï Hist├│rico de H├íbitos</h3>
+        <h3>📏 Histórico de Hábitos</h3>
         <span style="font-size:12px;color:var(--text-muted);" id="habit-hist-count"></span>
       </div>
       <div class="card-body" style="padding:0;" id="habit-hist-list">
@@ -868,19 +868,19 @@ function renderHabitHistPage() {
   const listEl = document.getElementById('habit-hist-list');
   if (listEl) {
     listEl.innerHTML = items.length === 0
-      ? '<div class="empty-state"><div class="icon">ÔÜí</div><p>Nenhum h├íbito registrado ainda</p></div>'
+      ? '<div class="empty-state"><div class="icon">⚡</div><p>Nenhum hábito registrado ainda</p></div>'
       : items.map(r => `
         <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
           <div style="font-size:20px;">${r.tipo.icon}</div>
           <div style="flex:1;">
             <div style="font-size:13px;font-weight:600;">${esc(r.tipo.label)}${r.descricao ? ' - ' + r.descricao : ''}</div>
-            <div style="font-size:12px;color:var(--text-secondary);">${formatDate(r.data)}${r.quantidade ? ' ÔÇó ' + r.quantidade + ' quest├Áes' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' ÔÇó ' + r.acertos + ' acertos' : ''}${r.total ? ` ÔÇó ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
+            <div style="font-size:12px;color:var(--text-secondary);">${formatDate(r.data)}${r.quantidade ? ' • ' + r.quantidade + ' questões' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
             ${r.gabaritoPorDisc && r.gabaritoPorDisc.length ? `
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
                 ${r.gabaritoPorDisc.map(g => `<span style="font-size:10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--text-secondary);">${g.discNome}: ${g.acertos}/${g.total}</span>`).join('')}
               </div>` : ''}
           </div>
-          <button class="icon-btn" onclick="deleteHabito('${r.tipo.key}','${r.id}')">­ƒùæ</button>
+          <button class="icon-btn" onclick="deleteHabito('${r.tipo.key}','${r.id}')">🗑️</button>
         </div>
       `).join('');
   }
@@ -888,9 +888,9 @@ function renderHabitHistPage() {
   const footerEl = document.getElementById('habit-hist-footer');
   if (footerEl && total > HABIT_HIST_PAGE_SIZE) {
     footerEl.innerHTML = `
-      <button class="btn btn-ghost btn-sm" onclick="setHabitPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>ÔåÉ Anterior</button>
-      <span style="font-size:12px;color:var(--text-muted);flex:1;text-align:center;">P├ígina ${page} de ${totalPages}</span>
-      <button class="btn btn-ghost btn-sm" onclick="setHabitPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>Pr├│xima ÔåÆ</button>
+      <button class="btn btn-ghost btn-sm" onclick="setHabitPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>⇉ Anterior</button>
+      <span style="font-size:12px;color:var(--text-muted);flex:1;text-align:center;">Página ${page} de ${totalPages}</span>
+      <button class="btn btn-ghost btn-sm" onclick="setHabitPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>Próxima ⇆</button>
     `;
     footerEl.style.display = 'flex';
   } else if (footerEl) {
@@ -909,14 +909,14 @@ function setHabitPage(p) {
 function openHabitModal(tipo) {
   currentHabitType = tipo;
   const h = tipo ? HABIT_TYPES.find(h => h.key === tipo) : null;
-  document.getElementById('modal-habit-title').textContent = h ? `Registrar: ${h.label}` : 'Registrar H├íbito';
+  document.getElementById('modal-habit-title').textContent = h ? `Registrar: ${h.label}` : 'Registrar Hábito';
 
   const discOptions = getAllDisciplinas().map(d => `<option value="${d.disc.id}">${d.disc.nome}</option>`).join('');
 
   document.getElementById('modal-habit-body').innerHTML = `
     ${!tipo ? `
       <div class="form-group">
-        <label class="form-label">Tipo de H├íbito</label>
+        <label class="form-label">Tipo de Hábito</label>
         <div class="event-type-grid">
           ${HABIT_TYPES.map(h => `
             <div class="event-type-card" onclick="selectHabitType('${h.key}', this)" data-tipo="${h.key}">
@@ -934,7 +934,7 @@ function openHabitModal(tipo) {
     ${tipo === 'questoes' ? `
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Quantidade de Quest├Áes</label>
+          <label class="form-label">Quantidade de Questões</label>
           <input type="number" class="form-control" id="habit-qtd" value="10" min="1">
         </div>
         <div class="form-group">
@@ -953,7 +953,7 @@ function openHabitModal(tipo) {
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Total de Quest├Áes</label>
+          <label class="form-label">Total de Questões</label>
           <input type="number" class="form-control" id="habit-total" value="120" oninput="calcSimuladoPerc()">
         </div>
         <div class="form-group">
@@ -965,11 +965,11 @@ function openHabitModal(tipo) {
 
       <!-- Feature 13: gabarito por disciplina -->
       <details>
-        <summary style="font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:4px 0;margin-bottom:8px;">­ƒôè Gabarito por Disciplina (opcional)</summary>
+        <summary style="font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:4px 0;margin-bottom:8px;">📈 Gabarito por Disciplina (opcional)</summary>
         <div id="sim-disc-list" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
           ${getAllDisciplinas().map(({ disc, edital }) => `
             <div style="display:flex;align-items:center;gap:8px;background:var(--bg);padding:8px;border-radius:8px;">
-              <span style="font-size:13px;flex:1;font-weight:500;" title="${esc(edital.nome)}">${disc.icone || '­ƒôû'} ${esc(disc.nome)}</span>
+              <span style="font-size:13px;flex:1;font-weight:500;" title="${esc(edital.nome)}">${disc.icone || '📚'} ${esc(disc.nome)}</span>
               <input type="number" class="form-control" style="width:70px;" placeholder="Total" id="sim-total-${disc.id}" min="0">
               <span style="color:var(--text-muted);font-size:12px;">/</span>
               <input type="number" class="form-control" style="width:70px;" placeholder="Acertos" id="sim-acertos-${disc.id}" min="0">
@@ -984,22 +984,22 @@ function openHabitModal(tipo) {
         <input type="text" class="form-control" id="habit-desc" placeholder="Tema da discursiva">
       </div>
       <div class="form-group">
-        <label class="form-label">Nota/Pontua├º├úo (opcional)</label>
+        <label class="form-label">Nota/Pontuação (opcional)</label>
         <input type="number" class="form-control" id="habit-nota" placeholder="Ex: 8.5">
       </div>
     ` : tipo === 'leitura' ? `
       <div class="form-group">
-        <label class="form-label">T├¡tulo / Legisla├º├úo</label>
+        <label class="form-label">Título / Legislação</label>
         <input type="text" class="form-control" id="habit-desc" placeholder="Ex: Lei 8.112/1990">
       </div>
       <div class="form-group">
-        <label class="form-label">P├íginas/Artigos lidos</label>
+        <label class="form-label">Páginas/Artigos lidos</label>
         <input type="number" class="form-control" id="habit-paginas" placeholder="Ex: 30">
       </div>
     ` : `
       <div class="form-group">
-        <label class="form-label">Descri├º├úo (opcional)</label>
-        <input type="text" class="form-control" id="habit-desc" placeholder="Observa├º├Áes">
+        <label class="form-label">Descrição (opcional)</label>
+        <input type="text" class="form-control" id="habit-desc" placeholder="Observações">
       </div>
     `}
   `;
@@ -1013,7 +1013,7 @@ function selectHabitType(tipo, el) {
 }
 
 function saveHabit() {
-  if (!currentHabitType) { showToast('Selecione o tipo de h├íbito', 'error'); return; }
+  if (!currentHabitType) { showToast('Selecione o tipo de hábito', 'error'); return; }
   const data = document.getElementById('habit-data')?.value || todayStr();
   const registro = { id: uid(), data, tipo: currentHabitType };
 
@@ -1021,9 +1021,9 @@ function saveHabit() {
     const qtd = parseInt(document.getElementById('habit-qtd')?.value || '10');
     const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
     // Fix J: validate questoes
-    if (isNaN(qtd) || qtd < 1) { showToast('Informe uma quantidade v├ílida de quest├Áes (m├¡nimo 1)', 'error'); return; }
-    if (isNaN(acertos) || acertos < 0) { showToast('Acertos n├úo pode ser negativo', 'error'); return; }
-    if (acertos > qtd) { showToast(`Acertos (${acertos}) n├úo pode ser maior que o total (${qtd})`, 'error'); return; }
+    if (isNaN(qtd) || qtd < 1) { showToast('Informe uma quantidade válida de questões (mínimo 1)', 'error'); return; }
+    if (isNaN(acertos) || acertos < 0) { showToast('Acertos não pode ser negativo', 'error'); return; }
+    if (acertos > qtd) { showToast(`Acertos (${acertos}) não pode ser maior que o total (${qtd})`, 'error'); return; }
     registro.quantidade = qtd;
     registro.acertos = acertos;
     registro.discId = document.getElementById('habit-disc')?.value;
@@ -1032,9 +1032,9 @@ function saveHabit() {
     const total = parseInt(document.getElementById('habit-total')?.value || '0');
     const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
     // Fix J: validate simulado
-    if (isNaN(total) || total < 1) { showToast('Informe o total de quest├Áes do simulado (m├¡nimo 1)', 'error'); return; }
-    if (isNaN(acertos) || acertos < 0) { showToast('Acertos n├úo pode ser negativo', 'error'); return; }
-    if (acertos > total) { showToast(`Acertos (${acertos}) n├úo pode ser maior que o total (${total})`, 'error'); return; }
+    if (isNaN(total) || total < 1) { showToast('Informe o total de questões do simulado (mínimo 1)', 'error'); return; }
+    if (isNaN(acertos) || acertos < 0) { showToast('Acertos não pode ser negativo', 'error'); return; }
+    if (acertos > total) { showToast(`Acertos (${acertos}) não pode ser maior que o total (${total})`, 'error'); return; }
     registro.total = total;
     registro.acertos = acertos;
     registro.descricao = document.getElementById('habit-desc')?.value;
@@ -1061,7 +1061,7 @@ function saveHabit() {
     registro.descricao = document.getElementById('habit-desc')?.value;
     const paginas = parseInt(document.getElementById('habit-paginas')?.value || '0');
     // Fix J: validate paginas
-    if (isNaN(paginas) || paginas < 1) { showToast('Informe o n├║mero de p├íginas (m├¡nimo 1)', 'error'); return; }
+    if (isNaN(paginas) || paginas < 1) { showToast('Informe o número de páginas (mínimo 1)', 'error'); return; }
     registro.paginas = paginas;
 
   } else {
@@ -1073,7 +1073,7 @@ function saveHabit() {
   scheduleSave();
   closeModal('modal-habit');
   renderCurrentView();
-  showToast('H├íbito registrado!', 'success');
+  showToast('Hábito registrado!', 'success');
 }
 
 function calcSimuladoPerc() {
@@ -1087,7 +1087,7 @@ function calcSimuladoPerc() {
 }
 
 function deleteHabito(tipo, id) {
-  showConfirm('Excluir este registro de h├íbito?', () => {
+  showConfirm('Excluir este registro de hábito?', () => {
     state.habitos[tipo] = (state.habitos[tipo] || []).filter(h => h.id !== id);
     habitHistPage = 1;
     scheduleSave();
@@ -1129,8 +1129,8 @@ function getFilteredVertItems() {
     }
   }
   if (vertFilterEdital) items = items.filter(i => i.edital.id === vertFilterEdital);
-  if (vertFilterStatus === 'pendentes') items = items.filter(i => !i.ass.concluido);
-  if (vertFilterStatus === 'concluidos') items = items.filter(i => i.ass.concluido);
+  if (vertFilterStatus === 'pendentes') items = items.filter(i => !i.ass.concluído);
+  if (vertFilterStatus === 'concluídos') items = items.filter(i => i.ass.concluído);
   if (vertSearch) {
     const q = vertSearch.toLowerCase();
     items = items.filter(i => i.ass.nome.toLowerCase().includes(q) || i.disc.nome.toLowerCase().includes(q));
@@ -1141,7 +1141,7 @@ function getFilteredVertItems() {
 function renderVertical(el) {
   // Fix 3: render the shell ONCE (filters, header); list gets its own container
   el.innerHTML = `
-    <!-- Filters row ÔÇö full re-render only when filter chips change -->
+    <!-- Filters row — full re-render only when filter chips change -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
       <div style="position:relative;flex:1;min-width:180px;">
         <i class="fa fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px;"></i>
@@ -1154,9 +1154,9 @@ function renderVertical(el) {
         ${state.editais.map(e => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
       </select>
       <div class="filter-row" style="margin:0;gap:4px;">
-        ${['todos', 'pendentes', 'concluidos'].map(s => `
+        ${['todos', 'pendentes', 'concluídos'].map(s => `
           <div class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" onclick="vertFilterStatus='${s}';renderCurrentView()">
-            ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'Conclu├¡dos' }[s]}
+            ${{ todos: 'Todos', pendentes: 'Pendentes', concluídos: 'Concluídos' }[s]}
           </div>`).join('')}
       </div>
     </div>
@@ -1164,7 +1164,7 @@ function renderVertical(el) {
     <!-- Stats header -->
     <div id="vert-stats-bar" class="card" style="margin-bottom:16px;padding:14px 20px;"></div>
 
-    <!-- Fix 3: isolated list container ÔÇö only this gets re-rendered on search -->
+    <!-- Fix 3: isolated list container — only this gets re-rendered on search -->
     <div class="card"><div id="vert-list-container" style="padding:0;"></div></div>
   `;
   renderVerticalList(document.getElementById('vert-list-container'));
@@ -1174,8 +1174,8 @@ function renderVerticalList(container) {
   if (!container) return;
   const allItems = getFilteredVertItems();
   const total = allItems.length;
-  const concluidos = allItems.filter(i => i.ass.concluido).length;
-  const pct = total > 0 ? Math.round(concluidos / total * 100) : 0;
+  const concluídos = allItems.filter(i => i.ass.concluído).length;
+  const pct = total > 0 ? Math.round(concluídos / total * 100) : 0;
 
   // Update stats bar
   const statsBar = document.getElementById('vert-stats-bar');
@@ -1183,8 +1183,8 @@ function renderVerticalList(container) {
     statsBar.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
         <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">VIS├âO LINEAR DO EDITAL</div>
-          <div style="font-size:20px;font-weight:800;">${concluidos} de ${total} assuntos conclu├¡dos</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">VISÃO LINEAR DO EDITAL</div>
+          <div style="font-size:20px;font-weight:800;">${concluídos} de ${total} assuntos concluídos</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:32px;font-weight:900;color:var(--accent);">${pct}<span style="font-size:16px;opacity:0.7;">%</span></div>
@@ -1196,9 +1196,9 @@ function renderVerticalList(container) {
   }
 
   if (allItems.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">­ƒôæ</div>
+    container.innerHTML = `<div class="empty-state"><div class="icon">📋</div>
       <h4>${state.editais.length === 0 ? 'Nenhum edital cadastrado' : 'Nenhum assunto encontrado'}</h4>
-      <p>${state.editais.length === 0 ? 'Crie um edital em Editais para usar esta visualiza├º├úo.' : 'Tente ajustar os filtros.'}</p>
+      <p>${state.editais.length === 0 ? 'Crie um edital em Editais para usar esta visualização.' : 'Tente ajustar os filtros.'}</p>
     </div>`;
     return;
   }
@@ -1207,17 +1207,17 @@ function renderVerticalList(container) {
   const highlight = str => hiReg ? esc(str).replace(hiReg, '<mark>$1</mark>') : esc(str);
 
   container.innerHTML = allItems.map(({ edital, disc, ass }) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:#f8fafc;' : ''}">
-      <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluido ? 'Ô£ô' : ''}</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);${ass.concluído ? 'background:#f8fafc;' : ''}">
+      <div class="check-circle ${ass.concluído ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluído ? 'Ô£ô' : ''}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:${ass.concluido ? '400' : '600'};color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluido ? 'text-decoration:line-through;' : ''}">${highlight(ass.nome)}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">${esc(disc.icone || '­ƒôû')} ${highlight(disc.nome)} ÔÇó ${esc(edital.nome)}</div>
+        <div style="font-size:13px;font-weight:${ass.concluído ? '400' : '600'};color:${ass.concluído ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluído ? 'text-decoration:line-through;' : ''}">${highlight(ass.nome)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">${esc(disc.icone || '📚')} ${highlight(disc.nome)} • ${esc(edital.nome)}</div>
       </div>
-      ${ass.concluido ? `<div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:10px;color:var(--accent);font-weight:600;">Ô£à Conclu├¡do</div>
+      ${ass.concluído ? `<div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:10px;color:var(--accent);font-weight:600;">✅ Concluído</div>
         <div style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</div>
         <div style="font-size:10px;color:var(--text-muted);">${(ass.revisoesFetas || []).length} rev.</div>
-      </div>` : `<button class="btn btn-ghost btn-sm" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','${ass.id}')">­ƒôà Agendar</button>`}
+      </div>` : `<button class="btn btn-ghost btn-sm" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','${ass.id}')">📅 Agendar</button>`}
     </div>
   `).join('');
 }
@@ -1250,7 +1250,7 @@ function renderEditais(el) {
   el.innerHTML = `
     ${state.editais.length === 0 ? `
       <div class="empty-state" style="padding:80px 20px;">
-        <div class="icon">­ƒôï</div>
+        <div class="icon">📋</div>
         <h4>Nenhum edital cadastrado</h4>
         <p style="margin-bottom:16px;">Crie seu edital com disciplinas e assuntos para organizar seus estudos.</p>
         <button class="btn btn-primary" onclick="openEditaModal()"><i class="fa fa-plus"></i> Criar Edital</button>
@@ -1270,8 +1270,8 @@ function renderEditalTree(edital) {
         <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
         <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
         <span style="font-size:11px;opacity:0.7;">${edital.grupos.reduce((s, g) => s + g.disciplinas.length, 0)} disc.</span>
-        <button class="icon-btn" style="color:#fff;" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">Ô£Å´©Å</button>
-        <button class="icon-btn" style="color:#fff;" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">­ƒùæ</button>
+        <button class="icon-btn" style="color:#fff;" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">Ô£Å️</button>
+        <button class="icon-btn" style="color:#fff;" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">🗑️</button>
         <i class="fa fa-chevron-down" style="font-size:12px;opacity:0.7;"></i>
       </div>
       <div id="edital-tree-${edital.id}">
@@ -1281,22 +1281,22 @@ function renderEditalTree(edital) {
               <i class="fa fa-folder" style="color:var(--orange);font-size:13px;"></i>
               <span style="flex:1;">${esc(grupo.nome)}</span>
               <button class="icon-btn" style="font-size:11px;" title="Add Disciplina" onclick="event.stopPropagation();openDiscModal('${edital.id}','${grupo.id}')">+ Disciplina</button>
-              <button class="icon-btn" title="Excluir grupo" onclick="event.stopPropagation();deleteGrupo('${edital.id}','${grupo.id}')">­ƒùæ</button>
+              <button class="icon-btn" title="Excluir grupo" onclick="event.stopPropagation();deleteGrupo('${edital.id}','${grupo.id}')">🗑️</button>
             </div>
             <div id="grupo-tree-${grupo.id}">
               ${grupo.disciplinas.map(disc => `
                 <div class="tree-disc" onclick="toggleDisc('${disc.id}')">
                   <div style="width:8px;height:8px;border-radius:50%;background:${disc.cor || '#10b981'};flex-shrink:0;"></div>
-                  <span style="font-size:15px;">${disc.icone || '­ƒôû'}</span>
+                  <span style="font-size:15px;">${disc.icone || '📚'}</span>
                   <span style="flex:1;font-size:13px;font-weight:500;">${esc(disc.nome)}</span>
-                  <span style="font-size:11px;color:var(--text-muted);">${disc.assuntos.filter(a => a.concluido).length}/${disc.assuntos.length}</span>
-                  <div class="progress" style="width:60px;"><div class="progress-bar" style="width:${disc.assuntos.length > 0 ? Math.round(disc.assuntos.filter(a => a.concluido).length / disc.assuntos.length * 100) : 0}%;background:${disc.cor || 'var(--accent)'};"></div></div>
+                  <span style="font-size:11px;color:var(--text-muted);">${disc.assuntos.filter(a => a.concluído).length}/${disc.assuntos.length}</span>
+                  <div class="progress" style="width:60px;"><div class="progress-bar" style="width:${disc.assuntos.length > 0 ? Math.round(disc.assuntos.filter(a => a.concluído).length / disc.assuntos.length * 100) : 0}%;background:${disc.cor || 'var(--accent)'};"></div></div>
                   <button class="icon-btn" style="font-size:11px;" onclick="event.stopPropagation();openSubjectModal('${edital.id}','${disc.id}')" title="Add Assuntos">+ Assuntos</button>
-                  <button class="icon-btn" onclick="event.stopPropagation();deleteDisc('${edital.id}','${grupo.id}','${disc.id}')" title="Excluir">­ƒùæ</button>
+                  <button class="icon-btn" onclick="event.stopPropagation();deleteDisc('${edital.id}','${grupo.id}','${disc.id}')" title="Excluir">🗑️</button>
                 </div>
                 <div id="disc-tree-${disc.id}" style="display:none;">
                   ${disc.assuntos.map((ass, idx) => `
-                    <div class="tree-assunto ${ass.concluido ? 'done' : ''}"
+                    <div class="tree-assunto ${ass.concluído ? 'done' : ''}"
                       draggable="true"
                       data-disc-id="${disc.id}"
                       data-ass-idx="${idx}"
@@ -1304,13 +1304,13 @@ function renderEditalTree(edital) {
                       ondragover="dndOver(event)"
                       ondragleave="dndLeave(event)"
                       ondrop="dndDrop(event,'${disc.id}',${idx})">
-                      <span class="drag-handle-icon" title="Arrastar para reordenar">Ôá┐</span>
-                      <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')">
-                        ${ass.concluido ? 'Ô£ô' : ''}
+                      <span class="drag-handle-icon" title="Arrastar para reordenar">☰</span>
+                      <div class="check-circle ${ass.concluído ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')">
+                        ${ass.concluído ? 'Ô£ô' : ''}
                       </div>
                       <span style="flex:1;">${esc(ass.nome)}</span>
-                      ${ass.concluido ? `<span style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</span>` : ''}
-                      <button class="icon-btn" style="font-size:10px;" onclick="deleteAssunto('${disc.id}','${ass.id}')">├ù</button>
+                      ${ass.concluído ? `<span style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</span>` : ''}
+                      <button class="icon-btn" style="font-size:10px;" onclick="deleteAssunto('${disc.id}','${ass.id}')">×</button>
                     </div>
                   `).join('')}
                   ${disc.assuntos.length === 0 ? '<div class="tree-assunto" style="color:var(--text-muted);font-style:italic;">Nenhum assunto adicionado</div>' : ''}
@@ -1350,9 +1350,9 @@ function toggleAssunto(discId, assId) {
       if (disc) {
         const ass = disc.assuntos.find(a => a.id === assId);
         if (ass) {
-          ass.concluido = !ass.concluido;
-          ass.dataConclusao = ass.concluido ? todayStr() : null;
-          if (ass.concluido) ass.revisoesFetas = [];
+          ass.concluído = !ass.concluído;
+          ass.dataConclusao = ass.concluído ? todayStr() : null;
+          if (ass.concluído) ass.revisoesFetas = [];
           scheduleSave();
           renderCurrentView();
           return;
@@ -1363,7 +1363,7 @@ function toggleAssunto(discId, assId) {
 }
 
 function deleteAssunto(discId, assId) {
-  showConfirm('Excluir este assunto? Eventos vinculados ser├úo desvinculados.', () => {
+  showConfirm('Excluir este assunto? Eventos vinculados serão desvinculados.', () => {
     const entry = getDisc(discId);
     if (entry) {
       entry.disc.assuntos = entry.disc.assuntos.filter(a => a.id !== assId);
@@ -1375,7 +1375,7 @@ function deleteAssunto(discId, assId) {
 }
 
 function deleteDisc(editaId, grupoId, discId) {
-  showConfirm('Excluir esta disciplina e todos seus assuntos?\n\nEsta a├º├úo n├úo pode ser desfeita.', () => {
+  showConfirm('Excluir esta disciplina e todos seus assuntos?\n\nEsta ação não pode ser desfeita.', () => {
     const edital = state.editais.find(e => e.id === editaId);
     if (!edital) return;
     const grupo = edital.grupos.find(g => g.id === grupoId);
@@ -1388,7 +1388,7 @@ function deleteDisc(editaId, grupoId, discId) {
 }
 
 function deleteGrupo(editaId, grupoId) {
-  showConfirm('Excluir este grupo e todas suas disciplinas?\n\nEsta a├º├úo n├úo pode ser desfeita.', () => {
+  showConfirm('Excluir este grupo e todas suas disciplinas?\n\nEsta ação não pode ser desfeita.', () => {
     const edital = state.editais.find(e => e.id === editaId);
     if (!edital) return;
     edital.grupos = edital.grupos.filter(g => g.id !== grupoId);
@@ -1403,7 +1403,7 @@ function deleteEdital(editaId) {
   const nome = edital ? edital.nome : 'edital';
   showConfirm(`Excluir "${nome}" completamente?
 
-Todos os grupos, disciplinas e assuntos ser├úo removidos. Esta a├º├úo n├úo pode ser desfeita.`, () => {
+Todos os grupos, disciplinas e assuntos serão removidos. Esta ação não pode ser desfeita.`, () => {
     state.editais = state.editais.filter(e => e.id !== editaId);
     invalidateDiscCache();
     scheduleSave();
@@ -1490,7 +1490,7 @@ function openDiscModal(editaId, grupoId) {
       <input type="text" class="form-control" id="disc-nome" placeholder="Ex: Direito Constitucional">
     </div>
     <div class="form-group">
-      <label class="form-label">├ìcone</label>
+      <label class="form-label">Ícone</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px;" id="disc-icons">
         ${DISC_ICONS.map((ic, i) => `<div style="width:36px;height:36px;border-radius:8px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all 0.15s;" class="${i === 0 ? 'selected-icon' : ''}" onclick="selectIcon('${ic}', this)">${ic}</div>`).join('')}
       </div>
@@ -1564,13 +1564,13 @@ function openSubjectModal(editaId, discId) {
     </div>
     <div class="form-group">
       <label class="form-label">Cole os assuntos (um por linha)</label>
-      <textarea class="form-control" id="subject-text" rows="10" placeholder="Princ├¡pios fundamentais
+      <textarea class="form-control" id="subject-text" rows="10" placeholder="Princípios fundamentais
 Direitos e garantias fundamentais
-Organiza├º├úo do Estado
-Organiza├º├úo dos Poderes
-Tributa├º├úo e Or├ºamento"></textarea>
+Organização do Estado
+Organização dos Poderes
+Tributação e Orçamento"></textarea>
     </div>
-    <div style="font-size:12px;color:var(--text-muted);">Voc├¬ tamb├®m pode adicionar um assunto por vez abaixo:</div>
+    <div style="font-size:12px;color:var(--text-muted);">Você tambîm pode adicionar um assunto por vez abaixo:</div>
     <div style="display:flex;gap:8px;margin-top:8px;">
       <input type="text" class="form-control" id="subject-single" placeholder="Nome do assunto">
       <button class="btn btn-ghost" onclick="addSingleSubject()">Adicionar</button>
@@ -1579,7 +1579,7 @@ Tributa├º├úo e Or├ºamento"></textarea>
     <div id="current-subjects" style="max-height:120px;overflow-y:auto;margin-top:6px;">
       ${disc.assuntos.map(a => `
         <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;">
-          <span class="${a.concluido ? 'badge badge-green' : 'badge badge-gray'}">${a.concluido ? 'Ô£ô' : 'Ôùï'}</span>
+          <span class="${a.concluído ? 'badge badge-green' : 'badge badge-gray'}">${a.concluído ? 'Ô£ô' : '⏏'}</span>
           ${esc(a.nome)}
         </div>
       `).join('') || '<span style="font-size:12px;color:var(--text-muted);">Nenhum assunto ainda</span>'}
@@ -1597,7 +1597,7 @@ function addSingleSubject() {
     for (const grupo of edital.grupos) {
       const disc = grupo.disciplinas.find(d => d.id === discId);
       if (disc) {
-        disc.assuntos.push({ id: uid(), nome, concluido: false, dataConclusao: null, revisoesFetas: [] });
+        disc.assuntos.push({ id: uid(), nome, concluído: false, dataConclusao: null, revisoesFetas: [] });
         input.value = '';
         openSubjectModal(editingSubjectCtx.editaId, discId);
         scheduleSave();
@@ -1619,7 +1619,7 @@ function saveSubjects() {
       if (disc) {
         names.forEach(nome => {
           if (!disc.assuntos.find(a => a.nome === nome)) {
-            disc.assuntos.push({ id: uid(), nome, concluido: false, dataConclusao: null, revisoesFetas: [] });
+            disc.assuntos.push({ id: uid(), nome, concluído: false, dataConclusao: null, revisoesFetas: [] });
           }
         });
         scheduleSave();
@@ -1639,23 +1639,23 @@ function openAddEventModal(dateStr = null) {
   editingEventId = null;
   const allDiscs = getAllDisciplinas();
   const discOptions = allDiscs.map(({ disc, edital, grupo }) =>
-    `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} ÔÇ║ ${esc(disc.nome)}</option>`
+    `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
   ).join('');
 
   document.getElementById('modal-event-title').textContent = 'Adicionar Evento de Estudo';
   document.getElementById('modal-event-body').innerHTML = `
     <div class="form-group">
-      <label class="form-label">O que voc├¬ vai estudar?</label>
+      <label class="form-label">O que você vai estudar?</label>
       <div class="event-type-grid" style="grid-template-columns:repeat(2,1fr);">
         <div class="event-type-card selected" id="etype-conteudo" onclick="selectEventType('conteudo')">
-          <div class="et-icon">­ƒôû</div>
-          <div class="et-label">Avan├ºar no Edital</div>
+          <div class="et-icon">📖</div>
+          <div class="et-label">Avançar no Edital</div>
           <div class="et-sub">Estudar disciplinas e assuntos</div>
         </div>
         <div class="event-type-card" id="etype-habito" onclick="selectEventType('habito')">
-          <div class="et-icon">ÔÜí</div>
-          <div class="et-label">H├íbito de Estudo</div>
-          <div class="et-sub">Quest├Áes, simulado, etc.</div>
+          <div class="et-icon">⚡</div>
+          <div class="et-label">Hábito de Estudo</div>
+          <div class="et-sub">Questões, simulado, etc.</div>
         </div>
       </div>
     </div>
@@ -1664,21 +1664,21 @@ function openAddEventModal(dateStr = null) {
       <div class="form-group">
         <label class="form-label">Disciplina</label>
         <select class="form-control" id="event-disc" onchange="loadAssuntos()">
-          <option value="">Sem disciplina espec├¡fica</option>
+          <option value="">Sem disciplina específica</option>
           ${discOptions}
         </select>
       </div>
       <div class="form-group" id="event-assunto-group" style="display:none;">
         <label class="form-label">Assunto (opcional)</label>
         <select class="form-control" id="event-assunto">
-          <option value="">Sem assunto espec├¡fico</option>
+          <option value="">Sem assunto específico</option>
         </select>
       </div>
     </div>
 
     <div id="event-habito-fields" style="display:none;">
       <div class="form-group">
-        <label class="form-label">Tipo de H├íbito</label>
+        <label class="form-label">Tipo de Hábito</label>
         <select class="form-control" id="event-habito">
           ${HABIT_TYPES.map(h => `<option value="${h.key}">${h.icon} ${h.label}</option>`).join('')}
         </select>
@@ -1686,7 +1686,7 @@ function openAddEventModal(dateStr = null) {
     </div>
 
     <div class="form-group">
-      <label class="form-label">T├¡tulo do Evento</label>
+      <label class="form-label">Título do Evento</label>
       <input type="text" class="form-control" id="event-titulo" placeholder="Ex: Estudar Direito Constitucional">
     </div>
     <div class="form-row">
@@ -1697,7 +1697,7 @@ function openAddEventModal(dateStr = null) {
         <div id="day-load-hint" style="font-size:11px;margin-top:4px;color:var(--text-muted);"></div>
       </div>
       <div class="form-group">
-        <label class="form-label">Dura├º├úo Prevista</label>
+        <label class="form-label">Duração Prevista</label>
         <select class="form-control" id="event-duracao">
           <option value="30">30 min</option>
           <option value="60" selected>1 hora</option>
@@ -1709,19 +1709,19 @@ function openAddEventModal(dateStr = null) {
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Anota├º├Áes (opcional)</label>
-      <textarea class="form-control" id="event-notas" rows="2" placeholder="Observa├º├Áes r├ípidas sobre o estudo..."></textarea>
+      <label class="form-label">Anotações (opcional)</label>
+      <textarea class="form-control" id="event-notas" rows="2" placeholder="Observações rápidas sobre o estudo..."></textarea>
     </div>
     <details style="margin-bottom:12px;">
-      <summary style="font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:6px 0;">­ƒôÄ Fontes e refer├¬ncias (opcional)</summary>
+      <summary style="font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:6px 0;">📝 Fontes e referências (opcional)</summary>
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label">Fontes de Estudo</label>
-          <input type="text" class="form-control" id="event-fontes" placeholder="Ex: Gran Cursos p├íg. 45, Art. 37 CF/88...">
+          <input type="text" class="form-control" id="event-fontes" placeholder="Ex: Gran Cursos pág. 45, Art. 37 CF/88...">
         </div>
         <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Legisla├º├úo Pertinente</label>
-          <input type="text" class="form-control" id="event-legislacao" placeholder="Ex: Lei 8.112/90, CF Art. 5┬║...">
+          <label class="form-label">Legislação Pertinente</label>
+          <input type="text" class="form-control" id="event-legislacao" placeholder="Ex: Lei 8.112/90, CF Art. 5º...">
         </div>
       </div>
     </details>
@@ -1751,12 +1751,12 @@ function updateDayLoad(dateStr) {
   const evts = state.eventos.filter(e => e.data === dateStr && e.status !== 'estudei');
   const mins = evts.reduce((s, e) => s + (e.duracao || 0), 0);
   if (evts.length === 0) {
-    el.textContent = '­ƒôà Dia livre';
+    el.textContent = '📅 Dia livre';
     el.style.color = 'var(--accent)';
   } else {
     const horas = (mins / 60).toFixed(1);
     const color = mins > 480 ? 'var(--red)' : mins > 300 ? 'var(--orange)' : 'var(--text-muted)';
-    el.textContent = `ÔÜá´©Å ${evts.length} evento(s) j├í agendado(s) neste dia ÔÇö ${horas}h previstas`;
+    el.textContent = `⚠️ ${evts.length} evento(s) já agendado(s) neste dia — ${horas}h previstas`;
     el.style.color = color;
   }
 }
@@ -1777,8 +1777,8 @@ function loadAssuntos() {
     tituloInput.dataset.autoFilled = 'true';
   }
   if (!d || d.disc.assuntos.length === 0) { assuntoGroup.style.display = 'none'; return; }
-  const pending = d.disc.assuntos.filter(a => !a.concluido);
-  assuntoSel.innerHTML = `<option value="">Sem assunto espec├¡fico</option>` +
+  const pending = d.disc.assuntos.filter(a => !a.concluído);
+  assuntoSel.innerHTML = `<option value="">Sem assunto específico</option>` +
     pending.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
   assuntoGroup.style.display = '';
   assuntoSel.onchange = () => {
@@ -1825,7 +1825,7 @@ function saveEvent() {
     if (!titulo && h) autoTitle = h.label;
   }
 
-  if (!autoTitle) { showToast('Informe um t├¡tulo para o evento', 'error'); return; }
+  if (!autoTitle) { showToast('Informe um título para o evento', 'error'); return; }
 
   // Helper that actually creates and saves the event
   const doSave = () => {
@@ -1852,8 +1852,8 @@ function saveEvent() {
   if (existingOnDay.length >= 3 || totalDuracao > 480) {
     const horas = Math.round(totalDuracao / 60 * 10) / 10;
     const msg = existingOnDay.length >= 3
-      ? `Voc├¬ j├í tem ${existingOnDay.length} evento(s) neste dia. Adicionar mais pode gerar sobrecarga.`
-      : `Voc├¬ j├í tem ${Math.round((totalDuracao - duracao) / 60 * 10) / 10}h agendadas neste dia. Com este evento seriam ${horas}h.`;
+      ? `Você já tem ${existingOnDay.length} evento(s) neste dia. Adicionar mais pode gerar sobrecarga.`
+      : `Você já tem ${Math.round((totalDuracao - duracao) / 60 * 10) / 10}h agendadas neste dia. Com este evento seriam ${horas}h.`;
     showConfirm(msg, doSave, { label: 'Adicionar mesmo assim', title: 'Muitos eventos no dia' });
     return;
   }
@@ -1870,7 +1870,7 @@ function renderConfig(el) {
     <div class="grid-2">
       <div>
         <div class="card" style="margin-bottom:16px;">
-          <div class="card-header"><h3>­ƒÄ¿ Apar├¬ncia</h3></div>
+          <div class="card-header"><h3>🎨 Aparência</h3></div>
           <div class="card-body">
             <div class="config-row">
               <div>
@@ -1883,15 +1883,15 @@ function renderConfig(el) {
           </div>
         </div>
         <div class="card" style="margin-bottom:16px;">
-          <div class="card-header"><h3>ÔÜÖ´©Å Calend├írio</h3></div>
+          <div class="card-header"><h3>⚖️ Calendário</h3></div>
           <div class="card-body">
             <div class="config-row">
               <div>
-                <div class="config-label">Visualiza├º├úo padr├úo</div>
-                <div class="config-sub">Modo inicial do calend├írio</div>
+                <div class="config-label">Visualização padrão</div>
+                <div class="config-sub">Modo inicial do calendário</div>
               </div>
               <select class="form-control" style="width:120px;" onchange="updateConfig('visualizacao',this.value)">
-                <option value="mes" ${cfg.visualizacao === 'mes' ? 'selected' : ''}>M├¬s</option>
+                <option value="mes" ${cfg.visualizacao === 'mes' ? 'selected' : ''}>Mês</option>
                 <option value="semana" ${cfg.visualizacao === 'semana' ? 'selected' : ''}>Semana</option>
               </select>
             </div>
@@ -1906,14 +1906,14 @@ function renderConfig(el) {
             </div>
             <div class="config-row">
               <div>
-                <div class="config-label">N├║mero da semana</div>
+                <div class="config-label">Número da semana</div>
               </div>
               <div class="toggle ${cfg.mostrarNumeroSemana ? 'on' : ''}" onclick="toggleConfig('mostrarNumeroSemana',this)"></div>
             </div>
             <div class="config-row">
               <div>
                 <div class="config-label">Agrupar eventos no dia</div>
-                <div class="config-sub">Limita quantidade vis├¡vel</div>
+                <div class="config-sub">Limita quantidade visível</div>
               </div>
               <div class="toggle ${cfg.agruparEventos ? 'on' : ''}" onclick="toggleConfig('agruparEventos',this)"></div>
             </div>
@@ -1921,30 +1921,30 @@ function renderConfig(el) {
         </div>
 
         <div class="card">
-          <div class="card-header"><h3>­ƒöä Frequ├¬ncia de Revis├úo</h3></div>
+          <div class="card-header"><h3>🔄 Frequência de Revisão</h3></div>
           <div class="card-body">
             <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
-              Defina em quantos dias ap├│s concluir um assunto o programa vai sugerir cada revis├úo.
+              Defina em quantos dias após concluir um assunto o programa vai sugerir cada revisão.
             </div>
             <div class="form-group">
-              <label class="form-label">Intervalos (em dias, separados por v├¡rgula)</label>
+              <label class="form-label">Intervalos (em dias, separados por vírgula)</label>
               <input type="text" class="form-control" id="freq-input" value="${(cfg.frequenciaRevisao || [1, 7, 30, 90]).join(', ')}"
                 onchange="updateFrequencia(this.value)">
             </div>
-            <div style="font-size:12px;color:var(--text-muted);">Ex: 1, 7, 30, 90 = 4 revis├Áes no 1┬║, 7┬║, 30┬║ e 90┬║ dia</div>
+            <div style="font-size:12px;color:var(--text-muted);">Ex: 1, 7, 30, 90 = 4 revisões no 1º, 7º, 30º e 90º dia</div>
           </div>
         </div>
       </div>
 
       <div>
         <div class="card" style="margin-bottom:16px;">
-          <div class="card-header"><h3>Ôÿü´©Å Google Drive</h3></div>
+          <div class="card-header"><h3>😁️ Google Drive</h3></div>
           <div class="card-body">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-              <div style="font-size:32px;">Ôÿü´©Å</div>
+              <div style="font-size:32px;">😁️</div>
               <div>
-                <div style="font-size:14px;font-weight:700;">${cfg.driveConnected ? 'Conectado ao Google Drive' : 'N├úo conectado'}</div>
-                <div style="font-size:12px;color:var(--text-secondary);">${cfg.driveConnected ? 'Seus dados s├úo sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
+                <div style="font-size:14px;font-weight:700;">${cfg.driveConnected ? 'Conectado ao Google Drive' : 'Não conectado'}</div>
+                <div style="font-size:12px;color:var(--text-secondary);">${cfg.driveConnected ? 'Seus dados são sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
               </div>
             </div>
             ${cfg.driveConnected ? `
@@ -1966,53 +1966,53 @@ function renderConfig(el) {
         </div>
 
         <div class="card" style="margin-bottom:16px;">
-          <div class="card-header"><h3>­ƒöö Notifica├º├Áes</h3></div>
+          <div class="card-header"><h3>🔖 Notificações</h3></div>
           <div class="card-body">
             <div class="config-row">
               <div>
-                <div class="config-label">Notifica├º├Áes do browser</div>
-                <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? 'Ô£à Ativadas' : Notification.permission === 'denied' ? '­ƒÜ½ Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revis├Áes') : 'ÔØî Browser n├úo suporta'}</div>
+                <div class="config-label">Notificações do browser</div>
+                <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '­ƒÜ½ Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
               </div>
               ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
-                <button class="btn btn-primary btn-sm" onclick="requestNotifPermission()">­ƒöö Ativar</button>
+                <button class="btn btn-primary btn-sm" onclick="requestNotifPermission()">🔖 Ativar</button>
               ` : Notification.permission === 'granted' ? `
-                <button class="btn btn-ghost btn-sm" onclick="scheduleNotifications(true);showToast('Lembretes enviados!','success')">­ƒöö Testar</button>
+                <button class="btn btn-ghost btn-sm" onclick="scheduleNotifications(true);showToast('Lembretes enviados!','success')">🔖 Testar</button>
               ` : ''}
             </div>
             ${Notification.permission === 'granted' ? `
             <div class="config-row">
               <div>
                 <div class="config-label">Lembrete noturno</div>
-                <div class="config-sub">Aviso ├ás 20h se houver eventos pendentes</div>
+                <div class="config-sub">Aviso às 20h se houver eventos pendentes</div>
               </div>
-              <div style="font-size:12px;color:var(--accent);font-weight:600;">­ƒòù 20:00</div>
+              <div style="font-size:12px;color:var(--accent);font-weight:600;">👙 20:00</div>
             </div>` : ''}
           </div>
         </div>
 
         <div class="card" style="margin-bottom:16px;">
-          <div class="card-header"><h3>­ƒÆ¥ Dados</h3></div>
+          <div class="card-header"><h3>💾 Dados</h3></div>
           <div class="card-body">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
               ${state.eventos.length} evento(s) ativos
-              ${(state.arquivo || []).length > 0 ? ` ÔÇó ${state.arquivo.length} arquivado(s)` : ''}
+              ${(state.arquivo || []).length > 0 ? ` • ${state.arquivo.length} arquivado(s)` : ''}
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-ghost" onclick="exportData()">­ƒôñ Exportar JSON</button>
-              <button class="btn btn-ghost" onclick="importData()">­ƒôÑ Importar JSON</button>
-              <button class="btn btn-ghost btn-sm" onclick="archiveOldEvents(90)" title="Move eventos conclu├¡dos h├í mais de 90 dias para o arquivo">­ƒùé Arquivar antigos</button>
-              <button class="btn btn-danger btn-sm" onclick="clearAllData()">­ƒùæ Limpar tudo</button>
+              <button class="btn btn-ghost" onclick="exportData()">📱 Exportar JSON</button>
+              <button class="btn btn-ghost" onclick="importData()">📡 Importar JSON</button>
+              <button class="btn btn-ghost btn-sm" onclick="archiveOldEvents(90)" title="Move eventos concluídos há mais de 90 dias para o arquivo">🙉 Arquivar antigos</button>
+              <button class="btn btn-danger btn-sm" onclick="clearAllData()">🙆 Limpar tudo</button>
             </div>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-header"><h3>Ôä╣´©Å Sobre</h3></div>
+          <div class="card-header"><h3>ℹ️ Sobre</h3></div>
           <div class="card-body">
             <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
-              <strong>Estudo Organizado</strong> ├® um app para planejamento e organiza├º├úo de estudos para concursos p├║blicos.<br><br>
-              Baseado no Ciclo PDCA: planeje no Calend├írio, execute no Meu Estudo Di├írio, me├ºa no Dashboard e corrija com as Revis├Áes.<br><br>
-              <span style="font-size:11px;color:var(--text-muted);">Vers├úo 1.0 ÔÇó Dados salvos localmente + Google Drive</span>
+              <strong>Estudo Organizado</strong> é um app para planejamento e organização de estudos para concursos públicos.<br><br>
+              Baseado no Ciclo PDCA: planeje no Calendário, execute no Meu Estudo Diário, meça no Dashboard e corrija com as Revisões.<br><br>
+              <span style="font-size:11px;color:var(--text-muted);">Versão 1.0 • Dados salvos localmente + Google Drive</span>
             </div>
           </div>
         </div>
@@ -2060,7 +2060,7 @@ function archiveOldEvents(days = 90) {
     return;
   }
   showConfirm(
-    `Arquivar ${toArchive.length} evento(s) conclu├¡do(s) com mais de ${days} dias?\n\nEles continuar├úo no export/backup, mas n├úo aparecer├úo nos relat├│rios.`,
+    `Arquivar ${toArchive.length} evento(s) concluído(s) com mais de ${days} dias?\n\nEles continuarão no export/backup, mas não aparecerão nos relatórios.`,
     () => {
       state.arquivo = [...(state.arquivo || []), ...toArchive];
       const archiveIds = new Set(toArchive.map(e => e.id));
@@ -2093,7 +2093,7 @@ function importData() {
       try {
         const imported = JSON.parse(ev.target.result);
         showConfirm(
-          `Importar dados de "${file.name}"?\n\nIsso substituir├í todos os dados atuais. Fa├ºa um export antes para garantir o backup.`,
+          `Importar dados de "${file.name}"?\n\nIsso substituirá todos os dados atuais. Faça um export antes para garantir o backup.`,
           () => {
             state = imported;
             invalidateDiscCache();
@@ -2106,7 +2106,7 @@ function importData() {
           { label: 'Importar', title: 'Importar dados' }
         );
       } catch (err) {
-        showToast('Arquivo inv├ílido! Verifique se ├® um JSON de backup do Estudo Organizado.', 'error');
+        showToast('Arquivo inválido! Verifique se î um JSON de backup do Estudo Organizado.', 'error');
       }
     };
     reader.readAsText(file);
@@ -2116,23 +2116,23 @@ function importData() {
 
 function clearAllData() {
   showConfirm(
-    'ÔÜá´©Å Apagar TODOS os dados permanentemente?\n\nEditais, eventos, h├íbitos e configura├º├Áes ser├úo removidos.\n\nEsta a├º├úo ├® irrevers├¡vel.',
+    '⚠️ Apagar TODOS os dados permanentemente?\n\nEditais, eventos, hábitos e configurações serão removidos.\n\nEsta ação é irreversível.',
     () => {
       showConfirm(
-        '├Ültima confirma├º├úo: isso n├úo pode ser desfeito.',
+        'Última confirmação: isso não pode ser desfeito.',
         () => {
           localStorage.removeItem('estudo-organizado');
           location.reload();
         },
-        { danger: true, label: 'Apagar tudo definitivamente', title: 'ÔÜá´©Å Confirma├º├úo final' }
+        { danger: true, label: 'Apagar tudo definitivamente', title: '⚠️ Confirmação final' }
       );
     },
-    { danger: true, label: 'Continuar com exclus├úo', title: 'ÔÜá´©Å Apagar todos os dados' }
+    { danger: true, label: 'Continuar com exclusão', title: '⚠️ Apagar todos os dados' }
   );
 }
 
 // =============================================
-// UX 3 ÔÇö DRAG AND DROP ASSUNTOS
+// UX 3 — DRAG AND DROP ASSUNTOS
 // =============================================
 let _dndSrcDiscId = null;
 let _dndSrcIdx = null;
@@ -2182,7 +2182,7 @@ document.addEventListener('dragend', () => {
 });
 
 // =============================================
-// UX 1 ÔÇö GLOBAL SEARCH
+// UX 1 — GLOBAL SEARCH
 // =============================================
 let searchBlurTimeout = null;
 
@@ -2209,7 +2209,7 @@ function onSearch(query) {
     });
   });
 
-  // Search h├íbitos
+  // Search hábitos
   HABIT_TYPES.forEach(h => {
     (state.habitos[h.key] || []).forEach(r => {
       if ((r.descricao || '').toLowerCase().includes(q)) {
@@ -2222,31 +2222,31 @@ function onSearch(query) {
   let html = '';
 
   if (results.eventos.length) {
-    html += `<div class="search-section-title">­ƒôà Eventos</div>`;
+    html += `<div class="search-section-title">📅 Eventos</div>`;
     html += results.eventos.slice(0, 5).map(({ ev, disc }) => `
       <div class="search-item" onclick="openEventDetail('${ev.id}');clearSearch()">
-        <div class="search-item-icon">${disc ? disc.icone || '­ƒôû' : '­ƒôà'}</div>
+        <div class="search-item-icon">${disc ? disc.icone || '📚' : '📅'}</div>
         <div>
           <div class="search-item-label">${highlight(ev.titulo)}</div>
-          <div class="search-item-sub">${ev.data ? formatDate(ev.data) : ''}${disc ? ' ÔÇó ' + disc.nome : ''}</div>
+          <div class="search-item-sub">${ev.data ? formatDate(ev.data) : ''}${disc ? ' • ' + disc.nome : ''}</div>
         </div>
       </div>`).join('');
   }
 
   if (results.assuntos.length) {
-    html += `<div class="search-section-title">­ƒôÜ Assuntos</div>`;
+    html += `<div class="search-section-title">📚 Assuntos</div>`;
     html += results.assuntos.slice(0, 5).map(({ ass, disc, edital }) => `
       <div class="search-item" onclick="navigate('editais');clearSearch()">
-        <div class="search-item-icon">${disc.icone || '­ƒôû'}</div>
+        <div class="search-item-icon">${disc.icone || '📚'}</div>
         <div>
           <div class="search-item-label">${highlight(ass.nome)}</div>
-          <div class="search-item-sub">${esc(disc.nome)} ÔÇó ${esc(edital.nome)} ${ass.concluido ? 'Ô£à' : ''}</div>
+          <div class="search-item-sub">${esc(disc.nome)} • ${esc(edital.nome)} ${ass.concluído ? '✅' : ''}</div>
         </div>
       </div>`).join('');
   }
 
   if (results.habitos.length) {
-    html += `<div class="search-section-title">ÔÜí H├íbitos</div>`;
+    html += `<div class="search-section-title">⚡ Hábitos</div>`;
     html += results.habitos.slice(0, 3).map(({ r, h }) => `
       <div class="search-item" onclick="navigate('habitos');clearSearch()">
         <div class="search-item-icon">${h.icon}</div>
@@ -2281,7 +2281,7 @@ function clearSearch() {
 
 // ESC closes search
 document.addEventListener('keydown', e => {
-  // Fix H: ESC ÔÇö close the topmost open modal, or clear search
+  // Fix H: ESC — close the topmost open modal, or clear search
   if (e.key === 'Escape') {
     const openModals = [...document.querySelectorAll('.modal-overlay.open')];
     if (openModals.length > 0) {
@@ -2307,105 +2307,3 @@ document.addEventListener('keydown', e => {
     }
   }
 });
-
-// =============================================
-// UX 5 ÔÇö MOBILE SIDEBAR
-// =============================================
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  sidebar.classList.toggle('open');
-  overlay.classList.toggle('open');
-}
-
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('open');
-}
-
-// Close sidebar on nav item click on mobile
-const _origNavigate = navigate;
-function navigate(view) {
-  if (window.innerWidth <= 768) closeSidebar();
-  currentView = view;
-  document.querySelectorAll('.nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.view === view);
-  });
-  renderCurrentView();
-}
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-// Fix B: Custom confirm replacing browser confirm() ÔÇö consistent design, works on mobile
-let _confirmCallback = null;
-
-function showConfirm(msg, onYes, opts = {}) {
-  const { title = 'Confirmar', label = 'Confirmar', danger = false } = opts;
-  document.getElementById('confirm-title').textContent = title;
-  document.getElementById('confirm-msg').textContent = msg;
-  const okBtn = document.getElementById('confirm-ok-btn');
-  okBtn.textContent = label;
-  okBtn.className = `btn btn-sm ${danger ? 'btn-danger' : 'btn-primary'}`;
-  _confirmCallback = onYes;
-  openModal('modal-confirm');
-}
-
-document.getElementById('confirm-ok-btn').addEventListener('click', () => {
-  closeModal('modal-confirm');
-  if (_confirmCallback) { const cb = _confirmCallback; _confirmCallback = null; cb(); }
-});
-document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
-  closeModal('modal-confirm');
-  _confirmCallback = null;
-});
-
-document.addEventListener('click', e => {
-  if (e.target.classList.contains('modal-overlay')) {
-    if (e.target.id === 'modal-confirm') _confirmCallback = null; // Fix B: cancel on backdrop
-    closeModal(e.target.id);
-  }
-});
-
-// =============================================
-// TOAST
-// =============================================
-function showToast(msg, type = '') {
-  const container = document.getElementById('toast-container');
-
-  // Fix G: deduplicate ÔÇö don't show the exact same message twice in a row
-  const last = container.lastElementChild;
-  if (last && last.dataset.msg === msg) {
-    last.classList.remove('show');
-    void last.offsetWidth; // force reflow to restart animation
-    last.classList.add('show');
-    return;
-  }
-
-  // Fix G: limit to 3 visible toasts ÔÇö remove oldest if exceeded
-  while (container.children.length >= 3) {
-    const oldest = container.firstElementChild;
-    oldest.classList.remove('show');
-    setTimeout(() => oldest.remove(), 300);
-  }
-
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.setAttribute('role', 'status');      // Fix G: accessible
-  toast.setAttribute('aria-live', 'polite');
-  toast.dataset.msg = msg;
-  const icons = { success: 'Ô£à', error: 'ÔØî', info: 'Ôä╣´©Å' };
-  toast.innerHTML = `<span>${icons[type] || '­ƒÆ¼'}</span><span>${msg}</span>`;
-  container.appendChild(toast);
-  requestAnimationFrame(() => { toast.classList.add('show'); });
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 3500);
-}
