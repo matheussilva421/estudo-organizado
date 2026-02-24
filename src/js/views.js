@@ -1294,39 +1294,47 @@ function renderEditalTree(edital) {
         <button class="btn btn-ghost btn-sm" onclick="openDiscModal('${edital.id}')" style="margin-right:15px;margin-bottom:10px;">+ Disciplina</button>
       </div>
       <div id="edital-tree-${edital.id}">
-        ${(edital.disciplinas || []).map(disc => `
-                <div class="tree-disc" onclick="toggleDisc('${disc.id}')">
-                  <div style="width:8px;height:8px;border-radius:50%;background:${disc.cor || '#10b981'};flex-shrink:0;"></div>
-                  <span style="font-size:15px;">${disc.icone || '📚'}</span>
-                  <span style="flex:1;font-size:13px;font-weight:500;">${esc(disc.nome)}</span>
-                  <span style="font-size:11px;color:var(--text-muted);">${disc.assuntos.filter(a => a.concluído).length}/${disc.assuntos.length}</span>
-                  <div class="progress" style="width:60px;"><div class="progress-bar" style="width:${disc.assuntos.length > 0 ? Math.round(disc.assuntos.filter(a => a.concluído).length / disc.assuntos.length * 100) : 0}%;background:${disc.cor || 'var(--accent)'};"></div></div>
-                  <button class="icon-btn" style="font-size:11px;" onclick="event.stopPropagation();openSubjectModal('${edital.id}','${disc.id}')" title="Add Assuntos">+ Assuntos</button>
-                  <button class="icon-btn" onclick="event.stopPropagation();deleteDisc('${edital.id}','${disc.id}')" title="Excluir">🗑️</button>
+        <div class="disc-grid">
+          ${(edital.disciplinas || []).map(disc => {
+    const totais = disc.assuntos.length;
+    const estudados = disc.assuntos.filter(a => a.concluído).length;
+    return `
+              <div class="disc-card" style="--card-color: ${disc.cor || 'var(--accent)'};">
+                <div class="disc-card-title">${disc.icone || '📚'} ${esc(disc.nome)}</div>
+                <div class="disc-stats">
+                  <div class="disc-stat">
+                    <span class="disc-stat-val">${estudados}</span>
+                    <span class="disc-stat-label">Tópicos<br>Estudados</span>
+                  </div>
+                  <div class="disc-stat">
+                    <span class="disc-stat-val">${totais}</span>
+                    <span class="disc-stat-label">Tópicos<br>Totais</span>
+                  </div>
+                  <div class="disc-stat">
+                    <span class="disc-stat-val">0</span>
+                    <span class="disc-stat-label">Questões<br>Resolvidas</span>
+                  </div>
                 </div>
-                <div id="disc-tree-${disc.id}" style="display:none;">
-                  ${disc.assuntos.map((ass, idx) => `
-                    <div class="tree-assunto ${ass.concluído ? 'done' : ''}"
-                      draggable="true"
-                      data-disc-id="${disc.id}"
-                      data-ass-idx="${idx}"
-                      ondragstart="dndStart(event,'${disc.id}',${idx})"
-                      ondragover="dndOver(event)"
-                      ondragleave="dndLeave(event)"
-                      ondrop="dndDrop(event,'${disc.id}',${idx})">
-                      <span class="drag-handle-icon" title="Arrastar para reordenar">☰</span>
-                      <div class="check-circle ${ass.concluído ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')">
-                        ${ass.concluído ? 'Ô£ô' : ''}
-                      </div>
-                      <span style="flex:1;">${esc(ass.nome)}</span>
-                      ${ass.concluído ? `<span style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</span>` : ''}
-                      <button class="icon-btn" style="font-size:10px;" onclick="deleteAssunto('${disc.id}','${ass.id}')">×</button>
-                    </div>
-                  `).join('')}
-                  ${disc.assuntos.length === 0 ? '<div class="tree-assunto" style="color:var(--text-muted);font-style:italic;">Nenhum assunto adicionado</div>' : ''}
+                <!-- Hover Overlay -->
+                <div class="disc-overlay">
+                  <button class="disc-action" onclick="event.stopPropagation();openDiscManager('${edital.id}','${disc.id}')">
+                    <i class="fa fa-folder-open"></i>
+                    <span>Visualizar</span>
+                  </button>
+                  <button class="disc-action" onclick="event.stopPropagation();openDiscModal('${edital.id}','${disc.id}')">
+                    <i class="fa fa-edit"></i>
+                    <span>Editar</span>
+                  </button>
+                  <button class="disc-action" onclick="event.stopPropagation();deleteDisc('${edital.id}','${disc.id}')">
+                    <i class="fa fa-trash"></i>
+                    <span>Remover</span>
+                  </button>
                 </div>
-              `).join('')}
-              ${(edital.disciplinas || []).length === 0 ? '<div class="tree-disc" style="color:var(--text-muted);font-style:italic;cursor:default;">Nenhuma disciplina</div>' : ''}
+              </div>
+            `;
+  }).join('')}
+          ${(edital.disciplinas || []).length === 0 ? '<div style="color:var(--text-muted);font-style:italic;grid-column:1/-1;">Nenhuma disciplina</div>' : ''}
+        </div>
       </div>
     </div>
   `;
@@ -1345,19 +1353,19 @@ function toggleDisc(discId) {
 function toggleAssunto(discId, assId) {
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
-      if (disc) {
-        const ass = disc.assuntos.find(a => a.id === assId);
-        if (ass) {
-          ass.concluído = !ass.concluído;
-          ass.dataConclusao = ass.concluído ? todayStr() : null;
-          if (ass.concluído) ass.revisoesFetas = [];
-          scheduleSave();
-          renderCurrentView();
-          return;
-        }
+    if (disc) {
+      const ass = disc.assuntos.find(a => a.id === assId);
+      if (ass) {
+        ass.concluído = !ass.concluído;
+        ass.dataConclusao = ass.concluído ? todayStr() : null;
+        if (ass.concluído) ass.revisoesFetas = [];
+        scheduleSave();
+        renderCurrentView();
+        return;
       }
     }
   }
+}
 
 
 function deleteAssunto(discId, assId) {
@@ -1368,6 +1376,9 @@ function deleteAssunto(discId, assId) {
       invalidateDiscCache();
       scheduleSave();
       renderCurrentView();
+      if (editingSubjectCtx && editingSubjectCtx.discId === discId) {
+        openDiscManager(editingSubjectCtx.editaId, discId);
+      }
     }
   }, { danger: true, label: 'Excluir', title: 'Excluir assunto' });
 }
@@ -1514,87 +1525,206 @@ function saveDisc() {
 }
 
 // =============================================
-// SUBJECT MODAL
+// SUBJECT MANAGER AND BULK ADD
 // =============================================
-function openSubjectModal(editaId, discId) {
-  // Find disc
+function openDiscManager(editaId, discId) {
   let disc = null;
   for (const edital of state.editais) {
-    if (!edital.disciplinas) continue; const d = edital.disciplinas.find(d => d.id === discId); if (d) { disc = d; break; }
-    if (disc) break;
+    if (!edital.disciplinas) continue;
+    const d = edital.disciplinas.find(x => x.id === discId);
+    if (d) { disc = d; break; }
   }
   if (!disc) return;
+
   editingSubjectCtx = { editaId, discId };
 
-  document.getElementById('modal-subject-body').innerHTML = `
-    <div style="margin-bottom:12px;">
-      <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">
-        Adicionando assuntos em: <strong style="color:var(--text-primary);">${esc(disc.nome)}</strong>
+  // Render subject items
+  const subjectsHtml = disc.assuntos.map((ass, idx) => `
+    <div class="sm-list-item" draggable="true"
+         data-disc-id="${disc.id}"
+         data-ass-idx="${idx}"
+         ondragstart="dndStart(event,'${disc.id}',${idx})"
+         ondragover="dndOver(event)"
+         ondragleave="dndLeave(event)"
+         ondrop="dndDrop(event,'${disc.id}',${idx})">
+      <div class="sm-drag-handle" title="Arrastar">☰</div>
+      <div class="sm-item-text" onclick="editSubjectInline('${disc.id}', '${ass.id}', this)">${esc(ass.nome)}</div>
+      <div class="sm-item-actions">
+        <button onclick="moveSubject('${disc.id}', ${idx}, -1)" title="Subir"><i class="fa fa-chevron-up"></i></button>
+        <button onclick="moveSubject('${disc.id}', ${idx}, 1)" title="Descer"><i class="fa fa-chevron-down"></i></button>
+        <button onclick="deleteAssunto('${disc.id}', '${ass.id}')" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Cole os assuntos (um por linha)</label>
-      <textarea class="form-control" id="subject-text" rows="10" placeholder="Princípios fundamentais
-Direitos e garantias fundamentais
-Organização do Estado
-Organização dos Poderes
-Tributação e Orçamento"></textarea>
-    </div>
-    <div style="font-size:12px;color:var(--text-muted);">Você tambîm pode adicionar um assunto por vez abaixo:</div>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <input type="text" class="form-control" id="subject-single" placeholder="Nome do assunto">
-      <button class="btn btn-ghost" onclick="addSingleSubject()">Adicionar</button>
-    </div>
-    <div style="margin-top:12px;font-size:12.5px;font-weight:600;color:var(--text-secondary);">Assuntos atuais (${disc.assuntos.length}):</div>
-    <div id="current-subjects" style="max-height:120px;overflow-y:auto;margin-top:6px;">
-      ${disc.assuntos.map(a => `
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;">
-          <span class="${a.concluído ? 'badge badge-green' : 'badge badge-gray'}">${a.concluído ? 'Ô£ô' : '⏏'}</span>
-          ${esc(a.nome)}
+  `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico adicionado.</div>';
+
+  const colorOptions = COLORS.map(c => `<option value="${c}" ${disc.cor === c ? 'selected' : ''} style="background:${c};color:#fff;">${c}</option>`).join('');
+
+  document.getElementById('modal-disc-manager-title').textContent = disc.nome || 'Gerenciar Disciplina';
+  document.getElementById('modal-disc-manager-body').innerHTML = `
+    <div class="sm-header">
+      <div class="sm-form-group">
+        <label>Nome</label>
+        <input type="text" id="dm-nome" value="${esc(disc.nome)}">
+      </div>
+      <div class="sm-form-group" style="flex:0.4;">
+        <label>Cor</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="color" id="dm-cor-picker" value="${disc.cor || COLORS[0]}" style="width:30px;height:30px;padding:0;border:none;border-radius:4px;cursor:pointer;">
+          <select id="dm-cor" class="form-control" style="flex:1;" onchange="document.getElementById('dm-cor-picker').value=this.value">
+            ${colorOptions}
+          </select>
         </div>
-      `).join('') || '<span style="font-size:12px;color:var(--text-muted);">Nenhum assunto ainda</span>'}
+      </div>
+    </div>
+    
+    <div class="sm-toolbar">
+      <span>Tópicos (${disc.assuntos.length})</span>
+      <div class="sm-toolbar-actions">
+        <!-- <button class="sm-toolbar-btn"><i class="fa fa-sort"></i> Ordenar Tópicos</button> -->
+        <button class="sm-toolbar-btn" onclick="openSubjectAddModal('${editaId}', '${discId}')"><i class="fa fa-plus"></i> Novo Tópico</button>
+      </div>
+    </div>
+    
+    <div class="sm-list" id="dm-subject-list">
+      ${subjectsHtml}
+    </div>
+    
+    <div style="display:flex;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <button class="btn btn-ghost" style="color:var(--danger);" onclick="deleteDisc('${editaId}','${discId}');closeModal('modal-disc-manager');">Remover</button>
+      <button class="btn btn-primary" onclick="saveDiscManager('${editaId}','${discId}')">Salvar</button>
     </div>
   `;
-  openModal('modal-subject');
+  openModal('modal-disc-manager');
 }
 
-function addSingleSubject() {
-  const input = document.getElementById('subject-single');
-  const nome = input.value.trim();
-  if (!nome) return;
-  const { discId } = editingSubjectCtx;
-  for (const edital of state.editais) {
-    if (!edital.disciplinas) continue;
-    const disc = edital.disciplinas.find(d => d.id === discId);
-    if (disc) {
-      disc.assuntos.push({ id: uid(), nome, concluído: false, dataConclusao: null, revisoesFetas: [] });
-      input.value = '';
-      openSubjectModal(editingSubjectCtx.editaId, discId);
+function editSubjectInline(discId, assId, el) {
+  const currentText = el.innerText;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentText;
+  input.style.width = '100%';
+  input.style.border = '1px solid var(--accent)';
+  input.style.padding = '4px 8px';
+  input.style.borderRadius = '4px';
+  input.style.background = 'var(--bg)';
+  input.style.color = 'var(--text)';
+
+  input.onblur = () => finishInlineEdit(discId, assId, input.value, el);
+  input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); else if (e.key === 'Escape') { input.value = currentText; input.blur(); } };
+
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus();
+}
+
+function finishInlineEdit(discId, assId, newName, el) {
+  newName = newName.trim();
+  const entry = getDisc(discId);
+  if (entry && newName) {
+    const ass = entry.disc.assuntos.find(a => a.id === assId);
+    if (ass) {
+      ass.nome = newName;
       scheduleSave();
-      return;
     }
   }
+  if (editingSubjectCtx && editingSubjectCtx.discId === discId) {
+    openDiscManager(editingSubjectCtx.editaId, discId);
+    renderCurrentView();
+  }
 }
-function saveSubjects() {
-  const text = document.getElementById('subject-text').value.trim();
-  if (!text) { closeModal('modal-subject'); return; }
-  const { discId } = editingSubjectCtx;
-  const names = text.split('\n').map(s => s.trim()).filter(s => s);
 
-  for (const edital of state.editais) {
-    if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
-      if (disc) {
-        names.forEach(nome => {
-          if (!disc.assuntos.find(a => a.nome === nome)) {
-            disc.assuntos.push({ id: uid(), nome, concluído: false, dataConclusao: null, revisoesFetas: [] });
-          }
-        });
-        scheduleSave();
-        closeModal('modal-subject');
-        renderCurrentView();
-        showToast(`${names.length} assunto(s) adicionado(s)!`, 'success');
-        return;
-      }
+function moveSubject(discId, idx, dir) {
+  const entry = getDisc(discId);
+  if (!entry) return;
+  const assuntos = entry.disc.assuntos;
+  if (idx + dir < 0 || idx + dir >= assuntos.length) return;
+
+  const temp = assuntos[idx];
+  assuntos[idx] = assuntos[idx + dir];
+  assuntos[idx + dir] = temp;
+
+  scheduleSave();
+  if (editingSubjectCtx && editingSubjectCtx.discId === discId) {
+    openDiscManager(editingSubjectCtx.editaId, discId);
+    renderCurrentView();
+  }
+}
+
+function saveDiscManager(editaId, discId) {
+  const entry = getDisc(discId);
+  if (!entry) return;
+
+  const nome = document.getElementById('dm-nome').value.trim();
+  const cor = document.getElementById('dm-cor-picker').value;
+
+  if (nome) entry.disc.nome = nome;
+  if (cor) entry.disc.cor = cor;
+
+  scheduleSave();
+  closeModal('modal-disc-manager');
+  renderCurrentView();
+  showToast('Disciplina atualizada!', 'success');
+}
+
+function openSubjectAddModal(editaId, discId) {
+  editingSubjectCtx = { editaId, discId };
+  document.getElementById('modal-subject-add-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label" style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Conteúdo</label>
+      <textarea id="bulk-subject-text" class="form-control" rows="8" style="font-family:inherit;font-size:14px;resize:vertical;" placeholder="Ex:\n1. Configuração do Estado\n2. Direitos Fundamentais\n3. ..."></textarea>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+        Dica: Você pode fazer quebra de linha com Enter para adicionar mais de um tópico. O sistema limpará numerações como "1.", "1.1", "-", etc.
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="bulk-save-continue"> Salvar e continuar
+      </label>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="closeModal('modal-subject-add')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveBulkSubjects()">Adicionar</button>
+      </div>
+    </div>
+  `;
+  openModal('modal-subject-add');
+  setTimeout(() => document.getElementById('bulk-subject-text').focus(), 100);
+}
+
+function saveBulkSubjects() {
+  const text = document.getElementById('bulk-subject-text').value;
+  if (!text.trim()) { closeModal('modal-subject-add'); return; }
+
+  const { discId } = editingSubjectCtx;
+  const entry = getDisc(discId);
+  if (!entry) return;
+
+  // Parse lines and clean numbering
+  const lines = text.split('\n')
+    .map(s => s.trim())
+    // Matches: "1. ", "1.1 ", "1) ", "a) ", "III - ", "- ", "• "
+    .map(s => s.replace(/^([\d]+\.[\d\.]*|\d+\)|[a-z]\)|[IVXLCDM]+\s*-|[-•])\s+/i, ''))
+    .filter(s => s.length > 0);
+
+  let added = 0;
+  lines.forEach(nome => {
+    if (!entry.disc.assuntos.find(a => a.nome === nome)) {
+      entry.disc.assuntos.push({ id: uid(), nome, concluído: false, dataConclusao: null, revisoesFetas: [] });
+      added++;
+    }
+  });
+
+  scheduleSave();
+  renderCurrentView();
+
+  const keepOpen = document.getElementById('bulk-save-continue').checked;
+  if (keepOpen) {
+    document.getElementById('bulk-subject-text').value = '';
+    document.getElementById('bulk-subject-text').focus();
+    showToast(`${added} tópico(s) adicionado(s)!`, 'success');
+  } else {
+    closeModal('modal-subject-add');
+    openDiscManager(editingSubjectCtx.editaId, discId);
+    showToast(`${added} tópico(s) adicionado(s)!`, 'success');
   }
 }
 
@@ -2125,16 +2255,20 @@ function dndDrop(event, discId, targetIdx) {
   if (srcIdx === null || srcIdx === targetIdx || _dndSrcDiscId !== discId) return;
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
-      if (disc) {
-        const moved = disc.assuntos.splice(srcIdx, 1)[0];
-        disc.assuntos.splice(targetIdx, 0, moved);
-        scheduleSave();
-        // Re-render then re-open that disc's assuntos
-        renderCurrentView();
-        const cont = document.getElementById(`disc-tree-${discId}`);
-        if (cont) cont.style.display = '';
-        showToast('Assunto reordenado!', 'success');
-        _dndSrcDiscId = null; _dndSrcIdx = null; return; } } } document.addEventListener('dragend', () => {
+    if (disc) {
+      const moved = disc.assuntos.splice(srcIdx, 1)[0];
+      disc.assuntos.splice(targetIdx, 0, moved);
+      scheduleSave();
+      // Re-render then re-open that disc's assuntos if available
+      renderCurrentView();
+      if (editingSubjectCtx && editingSubjectCtx.discId === discId) {
+        openDiscManager(editingSubjectCtx.editaId, discId);
+      }
+      showToast('Assunto reordenado!', 'success');
+      _dndSrcDiscId = null; _dndSrcIdx = null; return;
+    }
+  }
+} document.addEventListener('dragend', () => {
   document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 });
