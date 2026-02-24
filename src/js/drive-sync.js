@@ -1,5 +1,5 @@
 import { closeModal, init, showConfirm, showToast } from './app.js';
-import { runMigrations, saveStateToDB, scheduleSave, state } from './store.js';
+import { runMigrations, saveStateToDB, scheduleSave, state, setState } from './store.js';
 import { renderCurrentView } from './components.js';
 
 // =============================================
@@ -150,7 +150,7 @@ async function syncWithDrive() {
                 if (driveData.lastSync && state.lastSync && new Date(driveData.lastSync) > new Date(state.lastSync)) {
                     // O Drive tem uma versão mais nova (modificada em outro dispositivo)
                     showConfirm('Encontrada versão mais recente no Drive. Deseja sobrescrever os dados locais?', () => {
-                        state = driveData;
+                        setState(driveData);
                         runMigrations();
                         saveStateToDB().then(() => {
                             renderCurrentView();

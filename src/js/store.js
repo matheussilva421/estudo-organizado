@@ -14,6 +14,12 @@ export const STORE_NAME = 'app_state';
 export let db;
 export const DEFAULT_SCHEMA_VERSION = 3;
 
+export function setState(newState) {
+  // Replace the state object properties instead of the reference
+  Object.keys(state).forEach(k => delete state[k]);
+  Object.assign(state, newState);
+}
+
 export let state = {
   schemaVersion: DEFAULT_SCHEMA_VERSION,
   editais: [],

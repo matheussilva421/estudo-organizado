@@ -1,8 +1,18 @@
-import { HABIT_TYPES, _confirmCallback, applyTheme, calDate, calViewMode, closeModal, currentHabitType, currentView, cutoffDateStr, editingDiscCtx, editingEventId, editingSubjectCtx, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, openModal, showConfirm, showToast, todayStr, uid } from './app.js';
-import { scheduleSave, state } from './store.js';
+import { HABIT_TYPES, applyTheme, closeModal, currentView, cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, showConfirm, showToast, todayStr, uid, openModal } from './app.js';
+import { scheduleSave, state, setState } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers } from './logic.js';
 import { getHabitType, renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
+
+let _confirmCallback = null;
+let calDate = new Date();
+let calViewMode = 'mes';
+let currentHabitType = null;
+let editingSubjectCtx = null;
+
+let editingDiscCtx = null;
+
+let editingEventId = null;
 
 // =============================================
 // CONSTANTS
@@ -2188,7 +2198,7 @@ export function importData() {
         showConfirm(
           `Importar dados de "${file.name}"?\n\nIsso substituirá todos os dados atuais. Faça um export antes para garantir o backup.`,
           () => {
-            state = imported;
+            setState(imported);
             invalidateDiscCache();
             invalidateRevCache();
             invalidateTodayCache();
