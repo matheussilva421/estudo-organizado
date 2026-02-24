@@ -195,12 +195,11 @@ function getAllDisciplinas() {
   const result = [];
   _discIndex = new Map();
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      for (const disc of grupo.disciplinas) {
-        const entry = { disc, edital, grupo };
-        result.push(entry);
-        _discIndex.set(disc.id, entry);
-      }
+    if (!edital.disciplinas) continue;
+    for (const disc of edital.disciplinas) {
+      const entry = { disc, edital };
+      result.push(entry);
+      _discIndex.set(disc.id, entry);
     }
   }
   _discCache = result;

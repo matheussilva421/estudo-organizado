@@ -6,8 +6,8 @@ let calDate = new Date();
 let calViewMode = 'mes';
 let timerIntervals = {};   // eventId → intervalId
 let editingEventId = null;
-let editingDiscCtx = null; // { editaId, grupoId }
-let editingSubjectCtx = null; // { editaId, grupoId, discId }
+let editingDiscCtx = null; // { editaId }
+let editingSubjectCtx = null; // { editaId, discId }
 let currentHabitType = null;
 
 const HABIT_TYPES = [

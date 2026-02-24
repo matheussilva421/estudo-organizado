@@ -98,10 +98,10 @@ function scheduleSave() {
   invalidateDiscCache();
   invalidateRevCache();
   if (saveTimeout) clearTimeout(saveTimeout);
-  
+
   // Update badges instantly without waiting for the save
-  if (typeof updateBadges === 'function') updateBadges(); 
-  
+  if (typeof updateBadges === 'function') updateBadges();
+
   saveTimeout = setTimeout(() => {
     saveStateToDB();
   }, 2000); // 2 second debounce
@@ -110,7 +110,7 @@ function scheduleSave() {
 // Immediate save (used before closures or explicit syncs)
 function saveStateToDB() {
   if (!db) return Promise.resolve();
-  
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
@@ -133,28 +133,35 @@ function runMigrations() {
     if (!state.config) state.config = { visualizacao: 'mes', agruparEventos: true };
     if (!state.config.frequenciaRevisao) state.config.frequenciaRevisao = [1, 7, 30, 90];
     if (!state.habitos) state.habitos = { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [] };
-    
+
     // Add IDs where missing
     state.editais.forEach(ed => {
       if (!ed.id) ed.id = 'ed_' + Date.now() + Math.random();
       if (!ed.cor) ed.cor = '#10b981';
-      ed.grupos.forEach(gr => {
-        if (!gr.id) gr.id = 'gr_' + Date.now() + Math.random();
-        gr.disciplinas.forEach(d => {
-          if (!d.id) d.id = 'disc_' + Date.now() + Math.random();
-          if (!d.icone) d.icone = '📖';
-          d.assuntos.forEach(a => {
-            if (!a.id) a.id = 'ass_' + Date.now() + Math.random();
-            if (!a.revisoesFeitas) a.revisoesFeitas = [];
-          });
+      // Migration: flatten grupos into disciplinas
+      if (ed.grupos && !ed.disciplinas) {
+        ed.disciplinas = [];
+        ed.grupos.forEach(gr => {
+          gr.disciplinas.forEach(d => ed.disciplinas.push(d));
+        });
+        delete ed.grupos;
+      }
+      if (!ed.disciplinas) ed.disciplinas = [];
+      ed.disciplinas.forEach(d => {
+        if (!d.id) d.id = 'disc_' + Date.now() + Math.random();
+        if (!d.icone) d.icone = '📖';
+        if (!d.assuntos) d.assuntos = [];
+        d.assuntos.forEach(a => {
+          if (!a.id) a.id = 'ass_' + Date.now() + Math.random();
+          if (!a.revisoesFeitas) a.revisoesFeitas = [];
         });
       });
     });
-    
+
     state.schemaVersion = 2;
     changed = true;
   }
-  
+
   if (state.schemaVersion === 2) {
     if (!state.arquivo) state.arquivo = [];
     if (state.config.frequenciaRevisao && typeof state.config.frequenciaRevisao === 'string') {
@@ -163,7 +170,7 @@ function runMigrations() {
     state.schemaVersion = 3;
     changed = true;
   }
-  
+
   if (changed) scheduleSave();
   archiveOldEvents();
 }

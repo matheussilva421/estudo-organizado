@@ -1285,22 +1285,16 @@ function renderEditalTree(edital) {
       <div class="tree-edital-header" onclick="toggleEdital('${edital.id}')">
         <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
         <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
-        <span style="font-size:11px;opacity:0.7;">${edital.grupos.reduce((s, g) => s + g.disciplinas.length, 0)} disc.</span>
+        <span style="font-size:11px;opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
         <button class="icon-btn" style="color:#fff;" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">✏️</button>
         <button class="icon-btn" style="color:#fff;" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">🗑️</button>
         <i class="fa fa-chevron-down" style="font-size:12px;opacity:0.7;"></i>
       </div>
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:flex-end;">
+        <button class="btn btn-ghost btn-sm" onclick="openDiscModal('${edital.id}')" style="margin-right:15px;margin-bottom:10px;">+ Disciplina</button>
+      </div>
       <div id="edital-tree-${edital.id}">
-        ${edital.grupos.map(grupo => `
-          <div class="tree-group">
-            <div class="tree-group-header" onclick="toggleGrupo('${edital.id}','${grupo.id}')">
-              <i class="fa fa-folder" style="color:var(--orange);font-size:13px;"></i>
-              <span style="flex:1;">${esc(grupo.nome)}</span>
-              <button class="icon-btn" style="font-size:11px;" title="Add Disciplina" onclick="event.stopPropagation();openDiscModal('${edital.id}','${grupo.id}')">+ Disciplina</button>
-              <button class="icon-btn" title="Excluir grupo" onclick="event.stopPropagation();deleteGrupo('${edital.id}','${grupo.id}')">🗑️</button>
-            </div>
-            <div id="grupo-tree-${grupo.id}">
-              ${grupo.disciplinas.map(disc => `
+        ${(edital.disciplinas || []).map(disc => `
                 <div class="tree-disc" onclick="toggleDisc('${disc.id}')">
                   <div style="width:8px;height:8px;border-radius:50%;background:${disc.cor || '#10b981'};flex-shrink:0;"></div>
                   <span style="font-size:15px;">${disc.icone || '📚'}</span>
@@ -1308,7 +1302,7 @@ function renderEditalTree(edital) {
                   <span style="font-size:11px;color:var(--text-muted);">${disc.assuntos.filter(a => a.concluído).length}/${disc.assuntos.length}</span>
                   <div class="progress" style="width:60px;"><div class="progress-bar" style="width:${disc.assuntos.length > 0 ? Math.round(disc.assuntos.filter(a => a.concluído).length / disc.assuntos.length * 100) : 0}%;background:${disc.cor || 'var(--accent)'};"></div></div>
                   <button class="icon-btn" style="font-size:11px;" onclick="event.stopPropagation();openSubjectModal('${edital.id}','${disc.id}')" title="Add Assuntos">+ Assuntos</button>
-                  <button class="icon-btn" onclick="event.stopPropagation();deleteDisc('${edital.id}','${grupo.id}','${disc.id}')" title="Excluir">🗑️</button>
+                  <button class="icon-btn" onclick="event.stopPropagation();deleteDisc('${edital.id}','${disc.id}')" title="Excluir">🗑️</button>
                 </div>
                 <div id="disc-tree-${disc.id}" style="display:none;">
                   ${disc.assuntos.map((ass, idx) => `
@@ -1332,13 +1326,7 @@ function renderEditalTree(edital) {
                   ${disc.assuntos.length === 0 ? '<div class="tree-assunto" style="color:var(--text-muted);font-style:italic;">Nenhum assunto adicionado</div>' : ''}
                 </div>
               `).join('')}
-              ${grupo.disciplinas.length === 0 ? '<div class="tree-disc" style="color:var(--text-muted);font-style:italic;cursor:default;">Nenhuma disciplina</div>' : ''}
-            </div>
-          </div>
-        `).join('')}
-        <div style="padding:10px 16px;border-top:1px solid var(--border);">
-          <button class="btn btn-ghost btn-sm" onclick="addGrupo('${edital.id}')">+ Grupo</button>
-        </div>
+              ${(edital.disciplinas || []).length === 0 ? '<div class="tree-disc" style="color:var(--text-muted);font-style:italic;cursor:default;">Nenhuma disciplina</div>' : ''}
       </div>
     </div>
   `;
@@ -1349,11 +1337,6 @@ function toggleEdital(id) {
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-function toggleGrupo(editaId, grupoId) {
-  const el = document.getElementById(`grupo-tree-${grupoId}`);
-  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
-}
-
 function toggleDisc(discId) {
   const el = document.getElementById(`disc-tree-${discId}`);
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
@@ -1361,8 +1344,7 @@ function toggleDisc(discId) {
 
 function toggleAssunto(discId, assId) {
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      const disc = grupo.disciplinas.find(d => d.id === discId);
+    if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
       if (disc) {
         const ass = disc.assuntos.find(a => a.id === assId);
         if (ass) {
@@ -1376,7 +1358,7 @@ function toggleAssunto(discId, assId) {
       }
     }
   }
-}
+
 
 function deleteAssunto(discId, assId) {
   showConfirm('Excluir este assunto? Eventos vinculados serão desvinculados.', () => {
@@ -1390,28 +1372,15 @@ function deleteAssunto(discId, assId) {
   }, { danger: true, label: 'Excluir', title: 'Excluir assunto' });
 }
 
-function deleteDisc(editaId, grupoId, discId) {
+function deleteDisc(editaId, discId) {
   showConfirm('Excluir esta disciplina e todos seus assuntos?\n\nEsta ação não pode ser desfeita.', () => {
     const edital = state.editais.find(e => e.id === editaId);
     if (!edital) return;
-    const grupo = edital.grupos.find(g => g.id === grupoId);
-    if (!grupo) return;
-    grupo.disciplinas = grupo.disciplinas.filter(d => d.id !== discId);
+    if (!edital.disciplinas) return; edital.disciplinas = edital.disciplinas.filter(d => d.id !== discId);
     invalidateDiscCache();
     scheduleSave();
     renderCurrentView();
   }, { danger: true, label: 'Excluir disciplina', title: 'Excluir disciplina' });
-}
-
-function deleteGrupo(editaId, grupoId) {
-  showConfirm('Excluir este grupo e todas suas disciplinas?\n\nEsta ação não pode ser desfeita.', () => {
-    const edital = state.editais.find(e => e.id === editaId);
-    if (!edital) return;
-    edital.grupos = edital.grupos.filter(g => g.id !== grupoId);
-    invalidateDiscCache();
-    scheduleSave();
-    renderCurrentView();
-  }, { danger: true, label: 'Excluir grupo', title: 'Excluir grupo' });
 }
 
 function deleteEdital(editaId) {
@@ -1425,16 +1394,6 @@ Todos os grupos, disciplinas e assuntos serão removidos. Esta ação não pode 
     scheduleSave();
     renderCurrentView();
   }, { danger: true, label: 'Excluir edital', title: 'Excluir edital' });
-}
-
-function addGrupo(editaId) {
-  const nome = prompt('Nome do grupo (ex: Conhecimentos Gerais):');
-  if (!nome) return;
-  const edital = state.editais.find(e => e.id === editaId);
-  if (!edital) return;
-  edital.grupos.push({ id: uid(), nome, disciplinas: [] });
-  scheduleSave();
-  renderCurrentView();
 }
 
 // =============================================
@@ -1485,7 +1444,7 @@ function saveEdital(editaId) {
   } else {
     state.editais.push({
       id: uid(), nome, cor,
-      grupos: [{ id: uid(), nome: 'Conhecimentos Gerais', disciplinas: [] }]
+      disciplinas: []
     });
   }
   scheduleSave();
@@ -1497,8 +1456,8 @@ function saveEdital(editaId) {
 // =============================================
 // DISCIPLINE MODAL
 // =============================================
-function openDiscModal(editaId, grupoId) {
-  editingDiscCtx = { editaId, grupoId };
+function openDiscModal(editaId) {
+  editingDiscCtx = { editaId };
   document.getElementById('modal-disc-title').textContent = 'Nova Disciplina';
   document.getElementById('modal-disc-body').innerHTML = `
     <div class="form-group">
@@ -1544,12 +1503,10 @@ function saveDisc() {
   if (!nome) { showToast('Informe o nome da disciplina', 'error'); return; }
   const icone = document.getElementById('disc-icone').value;
   const cor = document.getElementById('disc-cor').value;
-  const { editaId, grupoId } = editingDiscCtx;
+  const { editaId } = editingDiscCtx;
   const edital = state.editais.find(e => e.id === editaId);
   if (!edital) return;
-  const grupo = edital.grupos.find(g => g.id === grupoId);
-  if (!grupo) return;
-  grupo.disciplinas.push({ id: uid(), nome, icone, cor, assuntos: [] });
+  if (!edital.disciplinas) edital.disciplinas = []; edital.disciplinas.push({ id: uid(), nome, icone, cor, assuntos: [] });
   scheduleSave();
   closeModal('modal-disc');
   renderCurrentView();
@@ -1563,10 +1520,7 @@ function openSubjectModal(editaId, discId) {
   // Find disc
   let disc = null;
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      const d = grupo.disciplinas.find(d => d.id === discId);
-      if (d) { disc = d; break; }
-    }
+    if (!edital.disciplinas) continue; const d = edital.disciplinas.find(d => d.id === discId); if (d) { disc = d; break; }
     if (disc) break;
   }
   if (!disc) return;
@@ -1610,19 +1564,17 @@ function addSingleSubject() {
   if (!nome) return;
   const { discId } = editingSubjectCtx;
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      const disc = grupo.disciplinas.find(d => d.id === discId);
-      if (disc) {
-        disc.assuntos.push({ id: uid(), nome, concluído: false, dataConclusao: null, revisoesFetas: [] });
-        input.value = '';
-        openSubjectModal(editingSubjectCtx.editaId, discId);
-        scheduleSave();
-        return;
-      }
+    if (!edital.disciplinas) continue;
+    const disc = edital.disciplinas.find(d => d.id === discId);
+    if (disc) {
+      disc.assuntos.push({ id: uid(), nome, concluído: false, dataConclusao: null, revisoesFetas: [] });
+      input.value = '';
+      openSubjectModal(editingSubjectCtx.editaId, discId);
+      scheduleSave();
+      return;
     }
   }
 }
-
 function saveSubjects() {
   const text = document.getElementById('subject-text').value.trim();
   if (!text) { closeModal('modal-subject'); return; }
@@ -1630,8 +1582,7 @@ function saveSubjects() {
   const names = text.split('\n').map(s => s.trim()).filter(s => s);
 
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      const disc = grupo.disciplinas.find(d => d.id === discId);
+    if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
       if (disc) {
         names.forEach(nome => {
           if (!disc.assuntos.find(a => a.nome === nome)) {
@@ -1644,7 +1595,6 @@ function saveSubjects() {
         showToast(`${names.length} assunto(s) adicionado(s)!`, 'success');
         return;
       }
-    }
   }
 }
 
@@ -1654,8 +1604,7 @@ function saveSubjects() {
 function openAddEventModal(dateStr = null) {
   editingEventId = null;
   const allDiscs = getAllDisciplinas();
-  const discOptions = allDiscs.map(({ disc, edital, grupo }) =>
-    `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
+  const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
   ).join('');
 
   document.getElementById('modal-event-title').textContent = 'Adicionar Evento de Estudo';
@@ -2175,8 +2124,7 @@ function dndDrop(event, discId, targetIdx) {
   const srcIdx = _dndSrcIdx;
   if (srcIdx === null || srcIdx === targetIdx || _dndSrcDiscId !== discId) return;
   for (const edital of state.editais) {
-    for (const grupo of edital.grupos) {
-      const disc = grupo.disciplinas.find(d => d.id === discId);
+    if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
       if (disc) {
         const moved = disc.assuntos.splice(srcIdx, 1)[0];
         disc.assuntos.splice(targetIdx, 0, moved);
@@ -2186,13 +2134,7 @@ function dndDrop(event, discId, targetIdx) {
         const cont = document.getElementById(`disc-tree-${discId}`);
         if (cont) cont.style.display = '';
         showToast('Assunto reordenado!', 'success');
-        _dndSrcDiscId = null; _dndSrcIdx = null;
-        return;
-      }
-    }
-  }
-}
-document.addEventListener('dragend', () => {
+        _dndSrcDiscId = null; _dndSrcIdx = null; return; } } } document.addEventListener('dragend', () => {
   document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 });
