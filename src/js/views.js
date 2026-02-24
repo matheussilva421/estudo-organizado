@@ -1,11 +1,15 @@
 import { HABIT_TYPES, applyTheme, closeModal, currentView, cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, showConfirm, showToast, todayStr, uid, openModal, cancelConfirm } from './app.js';
 import { scheduleSave, state, setState } from './store.js';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers } from './logic.js';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds } from './logic.js';
 import { getHabitType, renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
 let calDate = new Date();
-let calViewMode = 'mes';
+export let calViewMode = 'mes';
+export function setCalViewMode(mode) {
+  calViewMode = mode;
+  renderCurrentView();
+}
 let currentHabitType = null;
 let editingSubjectCtx = null;
 
@@ -349,8 +353,8 @@ export function renderCalendar(el) {
           <div class="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}</div>
           <button class="btn btn-ghost btn-sm" onclick="calDate=new Date();renderCurrentView()">Hoje</button>
           <div style="margin-left:auto;" class="cal-view-tabs">
-            <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" onclick="calViewMode='mes';renderCurrentView()">Mês</div>
-            <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" onclick="calViewMode='semana';renderCurrentView()">Semana</div>
+            <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" onclick="setCalViewMode('mes')">Mês</div>
+            <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" onclick="setCalViewMode('semana')">Semana</div>
           </div>
         </div>
         ${calViewMode === 'mes' ? renderCalendarMonth() : renderCalendarWeek()}
@@ -409,7 +413,7 @@ export function renderCalendarMonth() {
             <div class="cal-date">${cell.date.getDate()}</div>
             ${show.map(e => {
       const st = getEventStatus(e);
-      return `<div class="cal-event-chip ${st}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+      return `<div class="cal-event-chip ${st}" style="cursor:pointer;" onclick="event.stopPropagation(); window.openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
     }).join('')}
             ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
           </div>
@@ -470,6 +474,55 @@ export function calClickDay(dateStr) {
 
 export function openAddEventModalDate(dateStr) {
   openAddEventModal(dateStr);
+}
+
+// =============================================
+// EVENT DETAIL MODAL
+// =============================================
+export function openEventDetail(eventId) {
+  const ev = state.eventos.find(e => e.id === eventId);
+  if (!ev) return;
+  const body = document.getElementById('modal-event-detail-body');
+  const status = getEventStatus(ev);
+  const elapsed = getElapsedSeconds(ev);
+  const tempoStr = elapsed > 0 ? formatTime(elapsed) : '00:00:00';
+  const discInfo = ev.discId ? getDisc(ev.discId) : null;
+  const disc = discInfo ? discInfo.disc : null;
+  const ass = disc && ev.assId ? disc.assuntos.find(a => a.id === ev.assId) : null;
+
+  let html = `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:18px;font-weight:700;color:var(--text-primary);padding-bottom:12px;border-bottom:1px solid var(--border);">
+        ${esc(ev.titulo)}
+      </div>
+      <div class="grid-2">
+        <div class="card" style="padding:12px;">
+          <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">STATUS</div>
+          <div style="font-size:14px;color:var(--text-primary);font-weight:500;" class="event-tag ${status}">
+            ${status === 'estudei' ? 'Concluído' : status === 'atrasado' ? 'Atrasado' : 'Agendado'}
+          </div>
+        </div>
+        <div class="card" style="padding:12px;">
+          <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">TEMPO ACUMULADO</div>
+          <div style="font-size:16px;color:var(--text-primary);font-weight:700;font-family:'DM Mono',monospace;">
+            ${tempoStr}
+          </div>
+        </div>
+      </div>
+      <div><strong>Data Inicial:</strong> ${formatDate(ev.data)}</div>
+      ${disc ? `<div><strong>Disciplina:</strong> ${esc(disc.nome)}</div>` : ''}
+      ${ass ? `<div><strong>Assunto:</strong> ${esc(ass.nome)}</div>` : ''}
+      ${ev.notas ? `<div style="margin-top:8px;"><strong>Anotações:</strong><div class="card" style="padding:12px;margin-top:8px;font-size:13px;line-height:1.5;">${esc(ev.notas)}</div></div>` : ''}
+      ${ev.fontes ? `<div><strong>Fontes:</strong> ${esc(ev.fontes)}</div>` : ''}
+      ${ev.legislacao ? `<div><strong>Legislação:</strong> ${esc(ev.legislacao)}</div>` : ''}
+    </div>
+    <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-event-detail')">Fechar</button>
+      <button class="btn btn-danger" onclick="closeModal('modal-event-detail'); window.deleteEvento('${ev.id}')">Excluir Evento</button>
+    </div>
+  `;
+  body.innerHTML = html;
+  openModal('modal-event-detail');
 }
 
 // =============================================
