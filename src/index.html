@@ -16,7 +16,7 @@
 <body>
 
     <!-- SIDEBAR MOBILE OVERLAY -->
-    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+    <div id="sidebar-overlay" data-action="close-sidebar"></div>
 
     <!-- SIDEBAR -->
     <nav id="sidebar">
@@ -27,43 +27,43 @@
 
         <div class="sidebar-section">
             <div class="sidebar-section-title">Principal</div>
-            <div class="nav-item active" data-view="home" onclick="navigate('home')">
+            <div class="nav-item active" data-view="home" data-action="navigate" data-view="home">
                 <span class="icon">🏠</span> Página Inicial
             </div>
-            <div class="nav-item" data-view="med" onclick="navigate('med')">
+            <div class="nav-item" data-view="med" data-action="navigate" data-view="med">
                 <span class="icon">⏱️</span> Meu Estudo Diário
                 <span class="badge" id="badge-med" style="display:none;">0</span>
             </div>
-            <div class="nav-item" data-view="calendar" onclick="navigate('calendar')">
+            <div class="nav-item" data-view="calendar" data-action="navigate" data-view="calendar">
                 <span class="icon">📅</span> Calendário
             </div>
-            <div class="nav-item" data-view="dashboard" onclick="navigate('dashboard')">
+            <div class="nav-item" data-view="dashboard" data-action="navigate" data-view="dashboard">
                 <span class="icon">📊</span> Dashboard
             </div>
-            <div class="nav-item" data-view="revisoes" onclick="navigate('revisoes')">
+            <div class="nav-item" data-view="revisoes" data-action="navigate" data-view="revisoes">
                 <span class="icon">🔄</span> Revisões
                 <span class="badge" id="badge-rev" style="display:none;">0</span>
             </div>
-            <div class="nav-item" data-view="habitos" onclick="navigate('habitos')">
+            <div class="nav-item" data-view="habitos" data-action="navigate" data-view="habitos">
                 <span class="icon">⚡</span> Hábitos
             </div>
         </div>
 
         <div class="sidebar-section">
             <div class="sidebar-section-title">Gerenciar</div>
-            <div class="nav-item" data-view="editais" onclick="navigate('editais')">
+            <div class="nav-item" data-view="editais" data-action="navigate" data-view="editais">
                 <span class="icon">📋</span> Editais
             </div>
-            <div class="nav-item" data-view="vertical" onclick="navigate('vertical')">
+            <div class="nav-item" data-view="vertical" data-action="navigate" data-view="vertical">
                 <span class="icon">📑</span> Ed. Verticalizado
             </div>
-            <div class="nav-item" data-view="config" onclick="navigate('config')">
+            <div class="nav-item" data-view="config" data-action="navigate" data-view="config">
                 <span class="icon">⚙️</span> Configurações
             </div>
         </div>
 
         <div class="sidebar-drive">
-            <div class="drive-status" onclick="openDriveModal()">
+            <div class="drive-status" data-action="open-drive-modal">
                 <div class="drive-dot" id="drive-dot"></div>
                 <div class="drive-text">
                     <strong id="drive-label">Google Drive</strong>
@@ -77,19 +77,19 @@
     <!-- MAIN -->
     <div id="main">
         <div class="topbar">
-            <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+            <button class="hamburger" data-action="toggle-sidebar" aria-label="Menu">☰</button>
             <div>
                 <div class="topbar-title" id="topbar-title">Página Inicial</div>
                 <div class="topbar-subtitle" id="topbar-date"></div>
             </div>
             <div class="topbar-right" id="topbar-actions">
-                <button id="timer-mode-btn" class="btn btn-sm" onclick="toggleTimerMode()"
+                <button id="timer-mode-btn" class="btn btn-sm" data-action="toggle-timer-mode"
                     title="Alternar modo de cronômetro" style="order:-2;margin-right:8px;">
                     <i class="fa fa-clock"></i> Contínuo
                 </button>
             </div>
             <!-- Fix F: Dark mode toggle — always visible in topbar -->
-            <button id="theme-toggle-btn" onclick="applyTheme(true);renderCurrentView()" class="btn btn-ghost btn-sm"
+            <button id="theme-toggle-btn" data-action="toggle-theme" class="btn btn-ghost btn-sm"
                 style="order:1;white-space:nowrap;" title="Alternar tema claro/escuro">
                 🌙 Modo escuro
             </button>
@@ -137,7 +137,7 @@
         <div class="modal" style="max-width:600px;">
             <div class="modal-header">
                 <h2 id="modal-event-title">Adicionar Evento de Estudo</h2>
-                <button class="modal-close" onclick="closeModal('modal-event')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-event" aria-label="Fechar"
                     title="Fechar">×</button>
             </div>
             <div class="modal-body" id="modal-event-body">
@@ -150,7 +150,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modal-edital-title">Novo Edital</h2>
-                <button class="modal-close" onclick="closeModal('modal-edital')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-edital" aria-label="Fechar"
                     title="Fechar">×</button>
             </div>
             <div class="modal-body" id="modal-edital-body">
@@ -163,14 +163,14 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modal-disc-title">Nova Disciplina</h2>
-                <button class="modal-close" onclick="closeModal('modal-disc')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-disc" aria-label="Fechar"
                     title="Fechar">×</button>
             </div>
             <div class="modal-body" id="modal-disc-body">
             </div>
             <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="closeModal('modal-disc')">Cancelar</button>
-                <button class="btn btn-primary" onclick="saveDisc()">Salvar</button>
+                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-disc">Cancelar</button>
+                <button class="btn btn-primary" data-action="save-disc">Salvar</button>
             </div>
         </div>
     </div>
@@ -180,14 +180,14 @@
         <div class="modal">
             <div class="modal-header">
                 <h2>Adicionar Assuntos</h2>
-                <button class="modal-close" onclick="closeModal('modal-subject')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-subject" aria-label="Fechar"
                     title="Fechar">×</button>
             </div>
             <div class="modal-body" id="modal-subject-body">
             </div>
             <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="closeModal('modal-subject')">Fechar</button>
-                <button class="btn btn-primary" onclick="saveSubjects()">Salvar Assuntos</button>
+                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-subject">Fechar</button>
+                <button class="btn btn-primary" data-action="save-subjects">Salvar Assuntos</button>
             </div>
         </div>
     </div>
@@ -197,13 +197,13 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modal-habit-title">Registrar Hábito</h2>
-                <button class="modal-close" onclick="closeModal('modal-habit')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-habit" aria-label="Fechar"
                     title="Fechar">×</button>
             </div>
             <div class="modal-body" id="modal-habit-body"></div>
             <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="closeModal('modal-habit')">Cancelar</button>
-                <button class="btn btn-primary" onclick="saveHabit()">Registrar</button>
+                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-habit">Cancelar</button>
+                <button class="btn btn-primary" data-action="save-habit">Registrar</button>
             </div>
         </div>
     </div>
@@ -213,7 +213,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h2>Sincronização com Google Drive</h2>
-                <button class="modal-close" onclick="closeModal('modal-drive')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-drive" aria-label="Fechar"
                     title="Fechar">×</button>
             </div>
             <div class="modal-body" id="modal-drive-body">
@@ -233,8 +233,8 @@
                 <div id="drive-status-area"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="closeModal('modal-drive')">Fechar</button>
-                <button class="btn btn-primary" id="drive-action-btn" onclick="driveAction()">Conectar</button>
+                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-drive">Fechar</button>
+                <button class="btn btn-primary" id="drive-action-btn" data-action="drive-action">Conectar</button>
             </div>
         </div>
     </div>
@@ -244,7 +244,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 id="med-detail-title">Detalhes do Evento</h2>
-                <button class="modal-close" onclick="closeModal('modal-event-detail')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-event-detail" aria-label="Fechar"
                     title="Fechar">×</button>
             </div>
             <div class="modal-body" id="modal-event-detail-body"></div>
@@ -256,7 +256,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modal-disc-title">Nova Disciplina</h2>
-                <button class="modal-close" onclick="closeModal('modal-disc')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-disc" aria-label="Fechar"
                     title="Fechar">&times;</button>
             </div>
             <div class="modal-body" id="modal-disc-body"></div>
@@ -268,7 +268,7 @@
         <div class="modal" style="width: 800px; max-width: 95%;">
             <div class="modal-header">
                 <h2 id="modal-disc-manager-title">Gerenciar Assuntos</h2>
-                <button class="modal-close" onclick="closeModal('modal-disc-manager')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-disc-manager" aria-label="Fechar"
                     title="Fechar">&times;</button>
             </div>
             <div class="modal-body" id="modal-disc-manager-body"></div>
@@ -280,7 +280,7 @@
         <div class="modal" style="width: 600px; max-width: 95%;">
             <div class="modal-header">
                 <h2 id="modal-subject-add-title">Tópico</h2>
-                <button class="modal-close" onclick="closeModal('modal-subject-add')" aria-label="Fechar"
+                <button class="modal-close" data-action="close-modal" data-modal="modal-subject-add" aria-label="Fechar"
                     title="Fechar">&times;</button>
             </div>
             <div class="modal-body" id="modal-subject-add-body"></div>
