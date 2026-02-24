@@ -2267,6 +2267,10 @@ mark {
   margin-bottom: 20px;
 }
 
+.p-16 {
+  padding: 16px !important;
+}
+
 .dash-grid-bottom {
   display: grid;
   grid-template-columns: 1fr 1fr;

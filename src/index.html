@@ -118,7 +118,8 @@
     <!-- MODALS -->
 
     <!-- Fix B: CONFIRM MODAL — replaces all browser confirm() dialogs -->
-    <div class="modal-overlay" id="modal-confirm" role="dialog" aria-labelledby="confirm-title" aria-modal="true" aria-hidden="true">
+    <div class="modal-overlay" id="modal-confirm" role="dialog" aria-labelledby="confirm-title" aria-modal="true"
+        aria-hidden="true">
         <div class="modal" style="max-width:380px;">
             <div class="modal-header" style="padding:16px 20px 12px;">
                 <h3 id="confirm-title" style="font-size:16px;font-weight:700;margin:0;">Confirmar</h3>
@@ -137,7 +138,8 @@
     </div>
 
     <!-- ADD EVENT MODAL -->
-    <div class="modal-overlay" id="modal-event" role="dialog" aria-labelledby="modal-event-title" aria-modal="true" aria-hidden="true">
+    <div class="modal-overlay" id="modal-event" role="dialog" aria-labelledby="modal-event-title" aria-modal="true"
+        aria-hidden="true">
         <div class="modal" style="max-width:600px;">
             <div class="modal-header">
                 <h2 id="modal-event-title">Iniciar Estudo</h2>
@@ -150,7 +152,8 @@
     </div>
 
     <!-- EDITAL MODAL -->
-    <div class="modal-overlay" id="modal-edital" role="dialog" aria-labelledby="modal-edital-title" aria-modal="true" aria-hidden="true">
+    <div class="modal-overlay" id="modal-edital" role="dialog" aria-labelledby="modal-edital-title" aria-modal="true"
+        aria-hidden="true">
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modal-edital-title">Novo Edital</h2>
@@ -163,7 +166,8 @@
     </div>
 
     <!-- DISCIPLINE MODAL -->
-    <div class="modal-overlay" id="modal-disc" role="dialog" aria-labelledby="modal-disc-title" aria-modal="true" aria-hidden="true">
+    <div class="modal-overlay" id="modal-disc" role="dialog" aria-labelledby="modal-disc-title" aria-modal="true"
+        aria-hidden="true">
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modal-disc-title">Nova Disciplina</h2>
@@ -197,7 +201,8 @@
     </div>
 
     <!-- HABIT MODAL -->
-    <div class="modal-overlay" id="modal-habit" role="dialog" aria-labelledby="modal-habit-title" aria-modal="true" aria-hidden="true">
+    <div class="modal-overlay" id="modal-habit" role="dialog" aria-labelledby="modal-habit-title" aria-modal="true"
+        aria-hidden="true">
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modal-habit-title">Registrar Hábito</h2>
@@ -243,13 +248,31 @@
         </div>
     </div>
 
+    <!-- GENERIC PROMPT MODAL -->
+    <div class="modal-overlay" id="modal-prompt" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal" style="width: 400px; max-width: 90%;">
+            <div class="modal-header">
+                <h2 id="modal-prompt-title">Prompt</h2>
+                <button class="modal-close" data-action="close-modal" data-modal="modal-prompt" aria-label="Fechar"
+                    title="Fechar">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-prompt-body"></div>
+            <div class="modal-footer"
+                style="padding:16px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-prompt">Cancelar</button>
+                <button class="btn btn-primary" id="modal-prompt-save">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- EVENT DETAIL MODAL -->
-    <div class="modal-overlay" id="modal-event-detail" role="dialog" aria-labelledby="med-detail-title" aria-modal="true" aria-hidden="true">
+    <div class="modal-overlay" id="modal-event-detail" role="dialog" aria-labelledby="med-detail-title"
+        aria-modal="true" aria-hidden="true">
         <div class="modal">
             <div class="modal-header">
                 <h2 id="med-detail-title">Detalhes do Evento</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-event-detail" aria-label="Fechar"
-                    title="Fechar">×</button>
+                <button class="modal-close" data-action="close-modal" data-modal="modal-event-detail"
+                    aria-label="Fechar" title="Fechar">×</button>
             </div>
             <div class="modal-body" id="modal-event-detail-body"></div>
         </div>
@@ -268,19 +291,21 @@
     </div>
 
     <!-- SUBJECT MANAGER MODAL -->
-    <div class="modal-overlay" id="modal-disc-manager" role="dialog" aria-labelledby="modal-disc-manager-title" aria-modal="true" aria-hidden="true">
+    <div class="modal-overlay" id="modal-disc-manager" role="dialog" aria-labelledby="modal-disc-manager-title"
+        aria-modal="true" aria-hidden="true">
         <div class="modal" style="width: 800px; max-width: 95%;">
             <div class="modal-header">
                 <h2 id="modal-disc-manager-title">Gerenciar Assuntos</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-disc-manager" aria-label="Fechar"
-                    title="Fechar">&times;</button>
+                <button class="modal-close" data-action="close-modal" data-modal="modal-disc-manager"
+                    aria-label="Fechar" title="Fechar">&times;</button>
             </div>
             <div class="modal-body" id="modal-disc-manager-body"></div>
         </div>
     </div>
 
     <!-- BULK ADD SUBJECT MODAL -->
-    <div class="modal-overlay" id="modal-subject-add" role="dialog" aria-labelledby="modal-subject-add-title" aria-modal="true" aria-hidden="true">
+    <div class="modal-overlay" id="modal-subject-add" role="dialog" aria-labelledby="modal-subject-add-title"
+        aria-modal="true" aria-hidden="true">
         <div class="modal" style="width: 600px; max-width: 95%;">
             <div class="modal-header">
                 <h2 id="modal-subject-add-title">Tópico</h2>
@@ -295,16 +320,19 @@
     <!-- REGISTRO SESSÃO MODAL -->
     <div class="modal-overlay" id="modal-registro-sessao" role="dialog" aria-modal="true" aria-hidden="true">
         <div class="modal" style="max-width:720px;max-height:90vh;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#0d1117,#161b22);border-bottom:1px solid rgba(255,255,255,0.06);">
+            <div class="modal-header"
+                style="background:linear-gradient(135deg,#0d1117,#161b22);border-bottom:1px solid rgba(255,255,255,0.06);">
                 <h2 style="color:#e6edf3;">📝 Registro da Sessão de Estudo</h2>
                 <button class="modal-close" data-action="close-modal" data-modal="modal-registro-sessao"
                     aria-label="Fechar" title="Fechar">×</button>
             </div>
-            <div class="modal-body" id="modal-registro-body" style="overflow-y:auto;max-height:calc(90vh - 140px);padding:0;">
+            <div class="modal-body" id="modal-registro-body"
+                style="overflow-y:auto;max-height:calc(90vh - 140px);padding:0;">
                 <!-- Dynamic content rendered by JS -->
             </div>
             <div class="modal-footer" style="background:var(--card-bg);border-top:1px solid var(--border);gap:8px;">
-                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-registro-sessao">Cancelar</button>
+                <button class="btn btn-ghost" data-action="close-modal"
+                    data-modal="modal-registro-sessao">Cancelar</button>
                 <button class="btn btn-ghost" onclick="saveAndStartNew()" style="color:var(--green);">
                     Salvar e iniciar nova ↻
                 </button>

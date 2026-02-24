@@ -145,10 +145,10 @@ export function setupConfirmHandlers() {
   const okBtn = document.getElementById('confirm-ok-btn');
   const cancelBtn = document.getElementById('confirm-cancel-btn');
   if (okBtn) okBtn.addEventListener('click', () => {
-  closeModal('modal-confirm');
-  if (_confirmCallback) { const cb = _confirmCallback; _confirmCallback = null; cb(); }
-});
-if (cancelBtn) cancelBtn.addEventListener('click', () => {
+    closeModal('modal-confirm');
+    if (_confirmCallback) { const cb = _confirmCallback; _confirmCallback = null; cb(); }
+  });
+  if (cancelBtn) cancelBtn.addEventListener('click', () => {
     cancelConfirm();
   });
 }
@@ -242,4 +242,73 @@ if (document.readyState === 'loading') {
   window.addEventListener('DOMContentLoaded', init);
 } else {
   init();
+}
+
+// =============================================
+// INTERACTIVE PROMPTS
+// =============================================
+export function promptDataProva() {
+  const atual = state.config.dataProva || '';
+
+  document.getElementById('modal-prompt-title').textContent = 'Data da Prova';
+  document.getElementById('modal-prompt-body').innerHTML = `
+    <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">Informe a data final para os contadores regressivos.</div>
+    <input type="date" id="prompt-input-data" class="form-control" value="${atual}">
+  `;
+
+  const saveBtn = document.getElementById('modal-prompt-save');
+  saveBtn.onclick = () => {
+    const nova = document.getElementById('prompt-input-data').value;
+    if (nova.trim() === '') {
+      state.config.dataProva = null;
+    } else {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(nova)) {
+        state.config.dataProva = nova;
+      } else {
+        showToast('Data inválida.', 'error');
+        return;
+      }
+    }
+    scheduleSave();
+    if (currentView === 'home') renderCurrentView();
+    closeModal('modal-prompt');
+  };
+
+  openModal('modal-prompt');
+}
+
+export function promptMetas() {
+  const horas = state.config.metas?.horasSemana || 20;
+  const quest = state.config.metas?.questoesSemana || 150;
+
+  document.getElementById('modal-prompt-title').textContent = 'Metas da Semana';
+  document.getElementById('modal-prompt-body').innerHTML = `
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Meta de Horas (por semana)</label>
+      <input type="number" id="prompt-input-horas" class="form-control" value="${horas}" min="1" max="168">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Meta de Questões (por semana)</label>
+      <input type="number" id="prompt-input-quest" class="form-control" value="${quest}" min="1">
+    </div>
+  `;
+
+  const saveBtn = document.getElementById('modal-prompt-save');
+  saveBtn.onclick = () => {
+    const h = parseInt(document.getElementById('prompt-input-horas').value, 10);
+    const q = parseInt(document.getElementById('prompt-input-quest').value, 10);
+
+    if (!isNaN(h) && !isNaN(q) && h > 0 && q > 0) {
+      if (!state.config.metas) state.config.metas = {};
+      state.config.metas.horasSemana = h;
+      state.config.metas.questoesSemana = q;
+      scheduleSave();
+      if (currentView === 'home') renderCurrentView();
+      closeModal('modal-prompt');
+    } else {
+      showToast('Valores inválidos. Insira números maiores que 0.', 'error');
+    }
+  };
+
+  openModal('modal-prompt');
 }
