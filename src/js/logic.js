@@ -66,6 +66,17 @@ export function reattachTimers() {
   });
 }
 
+export function addTimerMinutes(eventId, minutes) {
+  const ev = state.eventos.find(e => e.id === eventId);
+  if (!ev) return;
+  ev.tempoAcumulado = (ev.tempoAcumulado || 0) + (minutes * 60);
+  scheduleSave();
+  if (typeof showToast === 'function') {
+    showToast(`+${minutes} minuto(s) adicionado(s)`, 'info');
+  }
+  renderCurrentView();
+}
+
 export function toggleTimer(eventId) {
   const ev = state.eventos.find(e => e.id === eventId);
   if (!ev) return;

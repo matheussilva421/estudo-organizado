@@ -2142,6 +2142,15 @@ export function updateFrequencia(value) {
   }
 }
 
+export function openDriveModal() {
+  openModal('modal-drive');
+  const savedId = localStorage.getItem('estudo_drive_client_id');
+  if (savedId) {
+    const input = document.getElementById('drive-client-id');
+    if (input) input.value = savedId;
+  }
+}
+
 export function driveDisconnect() {
   state.config.driveConnected = false;
   state.config.driveToken = null;
