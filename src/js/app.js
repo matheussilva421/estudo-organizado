@@ -52,13 +52,13 @@ export function updateTopbar() {
 
   const actions = document.getElementById('topbar-actions');
   if (currentView === 'home' || currentView === 'med') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
   } else if (currentView === 'editais') {
     actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
   } else if (currentView === 'habitos') {
     actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openHabitModal(null)"><i class="fa fa-plus"></i> Registrar Hábito</button>`;
   } else if (currentView === 'calendar') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Novo Evento</button>`;
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
   } else {
     actions.innerHTML = '';
   }

@@ -687,17 +687,17 @@ export function getUpcomingRevisoes(days = 30) {
   const upcoming = [];
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
-        for (const ass of disc.assuntos) {
-          if (!ass.concluído || !ass.dataConclusao) continue;
-          const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
-          for (const rd of revDates) {
-            if (rd > today && rd <= futureStr) {
-              upcoming.push({ assunto: ass, disc, edital, data: rd, revNum: (ass.revisoesFetas || []).length + 1 });
-              break; // only the next scheduled one
-            }
+      for (const ass of disc.assuntos) {
+        if (!ass.concluído || !ass.dataConclusao) continue;
+        const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
+        for (const rd of revDates) {
+          if (rd > today && rd <= futureStr) {
+            upcoming.push({ assunto: ass, disc, edital, data: rd, revNum: (ass.revisoesFetas || []).length + 1 });
+            break; // only the next scheduled one
           }
         }
       }
+    }
   }
   return upcoming.sort((a, b) => a.data.localeCompare(b.data));
 }
@@ -802,37 +802,37 @@ export function switchRevTab(tab, btn) {
 export function marcarRevisao(assId) {
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
-        const ass = disc.assuntos.find(a => a.id === assId);
-        if (ass) {
-          if (!ass.revisoesFetas) ass.revisoesFetas = [];
-          ass.revisoesFetas.push(todayStr());
-          scheduleSave();
-          renderCurrentView();
-          showToast('Revisão registrada! ­ƒë', 'success');
-          return;
-        }
+      const ass = disc.assuntos.find(a => a.id === assId);
+      if (ass) {
+        if (!ass.revisoesFetas) ass.revisoesFetas = [];
+        ass.revisoesFetas.push(todayStr());
+        scheduleSave();
+        renderCurrentView();
+        showToast('Revisão registrada! ­ƒë', 'success');
+        return;
       }
+    }
   }
 }
 
 export function adiarRevisao(assId) {
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
-        const ass = disc.assuntos.find(a => a.id === assId);
-        if (ass) {
-          // Store a deferral date: push back the base date by 1 day
-          if (!ass.adiamentos) ass.adiamentos = 0;
-          ass.adiamentos = (ass.adiamentos || 0) + 1;
-          // Shift dataConclusao forward 1 day so all subsequent revisions shift
-          const base = new Date(ass.dataConclusao + 'T00:00:00');
-          base.setDate(base.getDate() + 1);
-          ass.dataConclusao = base.toISOString().split('T')[0];
-          scheduleSave();
-          renderCurrentView();
-          showToast('Revisão adiada por 1 dia', 'info');
-          return;
-        }
+      const ass = disc.assuntos.find(a => a.id === assId);
+      if (ass) {
+        // Store a deferral date: push back the base date by 1 day
+        if (!ass.adiamentos) ass.adiamentos = 0;
+        ass.adiamentos = (ass.adiamentos || 0) + 1;
+        // Shift dataConclusao forward 1 day so all subsequent revisions shift
+        const base = new Date(ass.dataConclusao + 'T00:00:00');
+        base.setDate(base.getDate() + 1);
+        ass.dataConclusao = base.toISOString().split('T')[0];
+        scheduleSave();
+        renderCurrentView();
+        showToast('Revisão adiada por 1 dia', 'info');
+        return;
       }
+    }
   }
 }
 
@@ -1146,10 +1146,10 @@ export function getFilteredVertItems() {
   let items = [];
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
-        for (const ass of disc.assuntos) {
-          items.push({ edital, grupo, disc, ass });
-        }
+      for (const ass of disc.assuntos) {
+        items.push({ edital, grupo, disc, ass });
       }
+    }
   }
   if (vertFilterEdital) items = items.filter(i => i.edital.id === vertFilterEdital);
   if (vertFilterStatus === 'pendentes') items = items.filter(i => !i.ass.concluído);
@@ -1744,24 +1744,8 @@ export function openAddEventModal(dateStr = null) {
   const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
   ).join('');
 
-  document.getElementById('modal-event-title').textContent = 'Adicionar Evento de Estudo';
+  document.getElementById('modal-event-title').textContent = 'Iniciar Estudo';
   document.getElementById('modal-event-body').innerHTML = `
-    <div class="form-group">
-      <label class="form-label">O que você vai estudar?</label>
-      <div class="event-type-grid" style="grid-template-columns:repeat(2,1fr);">
-        <div class="event-type-card selected" id="etype-conteudo" onclick="selectEventType('conteudo')">
-          <div class="et-icon">📖</div>
-          <div class="et-label">Avançar no Edital</div>
-          <div class="et-sub">Estudar disciplinas e assuntos</div>
-        </div>
-        <div class="event-type-card" id="etype-habito" onclick="selectEventType('habito')">
-          <div class="et-icon">⚡</div>
-          <div class="et-label">Hábito de Estudo</div>
-          <div class="et-sub">Questões, simulado, etc.</div>
-        </div>
-      </div>
-    </div>
-
     <div id="event-conteudo-fields">
       <div class="form-group">
         <label class="form-label">Disciplina</label>
@@ -1774,15 +1758,6 @@ export function openAddEventModal(dateStr = null) {
         <label class="form-label">Assunto (opcional)</label>
         <select class="form-control" id="event-assunto">
           <option value="">Sem assunto específico</option>
-        </select>
-      </div>
-    </div>
-
-    <div id="event-habito-fields" style="display:none;">
-      <div class="form-group">
-        <label class="form-label">Tipo de Hábito</label>
-        <select class="form-control" id="event-habito">
-          ${HABIT_TYPES.map(h => `<option value="${h.key}">${h.icon} ${h.label}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -1829,7 +1804,7 @@ export function openAddEventModal(dateStr = null) {
     </details>
     <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn btn-ghost" onclick="closeModal('modal-event')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveEvent()">Adicionar Evento</button>
+      <button class="btn btn-primary" onclick="saveEvent()">Salvar / Iniciar</button>
     </div>
   `;
   openModal('modal-event');
@@ -1837,14 +1812,6 @@ export function openAddEventModal(dateStr = null) {
   setTimeout(() => updateDayLoad(dateStr || todayStr()), 50);
 }
 
-export let currentEventType = 'conteudo';
-export function selectEventType(tipo) {
-  currentEventType = tipo;
-  document.getElementById('etype-conteudo').classList.toggle('selected', tipo === 'conteudo');
-  document.getElementById('etype-habito').classList.toggle('selected', tipo === 'habito');
-  document.getElementById('event-conteudo-fields').style.display = tipo === 'conteudo' ? '' : 'none';
-  document.getElementById('event-habito-fields').style.display = tipo === 'habito' ? '' : 'none';
-}
 
 // Tech 3: Real-time day-load hint
 export function updateDayLoad(dateStr) {
@@ -1912,19 +1879,13 @@ export function saveEvent() {
   const fontes = document.getElementById('event-fontes')?.value.trim() || '';
   const legislacao = document.getElementById('event-legislacao')?.value.trim() || '';
 
-  let discId, assId, habito, autoTitle = titulo;
+  let discId = document.getElementById('event-disc')?.value || '';
+  let assId = document.getElementById('event-assunto')?.value || '';
+  let autoTitle = titulo;
 
-  if (currentEventType === 'conteudo') {
-    discId = document.getElementById('event-disc').value;
-    assId = document.getElementById('event-assunto')?.value;
-    if (!titulo && discId) {
-      const d = getDisc(discId);
-      autoTitle = `Estudar ${d?.disc.nome || 'Disciplina'}`;
-    }
-  } else {
-    habito = document.getElementById('event-habito').value;
-    const h = getHabitType(habito);
-    if (!titulo && h) autoTitle = h.label;
+  if (!titulo && discId) {
+    const d = getDisc(discId);
+    autoTitle = `Estudar ${d?.disc.nome || 'Disciplina'}`;
   }
 
   if (!autoTitle) { showToast('Informe um título para o evento', 'error'); return; }
@@ -1934,10 +1895,10 @@ export function saveEvent() {
     const evento = {
       id: uid(), titulo: autoTitle, data, duracao, notas, fontes, legislacao,
       status: 'agendado', tempoAcumulado: 0,
-      tipo: currentEventType,
+      tipo: 'conteudo', // Fixed to conteudo since we unified it
       discId: discId || null,
       assId: assId || null,
-      habito: habito || null,
+      habito: null, // Habit array is formed upon completion
       criadoEm: new Date().toISOString()
     };
 
@@ -1945,7 +1906,7 @@ export function saveEvent() {
     scheduleSave();
     closeModal('modal-event');
     renderCurrentView();
-    showToast('Evento adicionado!', 'success');
+    showToast('Estudo iniciado/agendado!', 'success');
   };
 
   // Tech 3: Warn if there are already many events on this day
