@@ -567,6 +567,24 @@ export function saveRegistroSessao() {
     }
   });
 
+  // Update study cycle progress
+  if (state.ciclo && state.ciclo.ativo && discId) {
+    const cycleDisc = state.ciclo.disciplinas.find(d => d.id === discId);
+    if (cycleDisc && !cycleDisc.concluido) {
+      const addedMin = Math.round((ev.tempoAcumulado || 0) / 60);
+      cycleDisc.estudadoMin = (cycleDisc.estudadoMin || 0) + addedMin;
+      if (cycleDisc.estudadoMin >= cycleDisc.planejadoMin) {
+        cycleDisc.concluido = true;
+
+        // Check if entire cycle was concluded by this action
+        const allCompleted = state.ciclo.disciplinas.every(d => d.concluido);
+        if (allCompleted) {
+          state.ciclo.ciclosCompletos = (state.ciclo.ciclosCompletos || 0) + 1;
+        }
+      }
+    }
+  }
+
   scheduleSave();
   closeModal('modal-registro-sessao');
   updateBadges();

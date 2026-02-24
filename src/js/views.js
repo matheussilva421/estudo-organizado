@@ -2506,3 +2506,139 @@ document.addEventListener('keydown', e => {
     }
   }
 });
+
+// =============================================
+// CICLO DE ESTUDOS VIEW
+// =============================================
+export function renderCiclo(el) {
+  if (!state.ciclo || !state.ciclo.ativo || !state.ciclo.disciplinas || state.ciclo.disciplinas.length === 0) {
+    el.innerHTML = `
+      <div class="empty-state" style="padding: 80px 20px;">
+        <div class="icon">♻️</div>
+        <h4>Nenhum Ciclo de Estudos Ativo</h4>
+        <p style="margin-bottom: 24px;">Configure uma sequência de disciplinas em modo de ciclo infinito para organizar seus estudos sem horas fixas.</p>
+        <button class="btn btn-primary" data-action="replanejar-ciclo"><i class="fa fa-play"></i> Criar Novo Ciclo</button>
+      </div>
+    `;
+    return;
+  }
+
+  const ciclo = state.ciclo;
+  const disciplinas = ciclo.disciplinas;
+
+  // Calculations
+  const totalPlanejado = disciplinas.reduce((acc, d) => acc + (d.planejadoMin || 0), 0);
+  const totalEstudado = disciplinas.reduce((acc, d) => acc + Math.min(d.estudadoMin || 0, d.planejadoMin || 0), 0);
+  const percentTotal = totalPlanejado > 0 ? Math.round((totalEstudado / totalPlanejado) * 100) : 0;
+
+  // Format total strings
+  const formatH = min => {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    if (h > 0) return m > 0 ? `${h}h${m}min` : `${h}h`;
+    return `${m}min`;
+  };
+
+  // Build Conic Gradient 
+  let conic = [];
+  let currentStart = 0;
+  disciplinas.forEach(d => {
+    const planejado = d.planejadoMin || 0;
+    const share = totalPlanejado > 0 ? (planejado / totalPlanejado) * 100 : 0;
+    const end = currentStart + share;
+    if (share > 0) {
+      conic.push(`${d.cor} ${currentStart}% ${end}%`);
+    }
+    currentStart = end;
+  });
+  const donutBg = conic.length > 0 ? `conic-gradient(${conic.join(', ')})` : 'var(--border)';
+
+  // Build List Items
+  const hideFinished = window._hideConcluidosCiclo || false; // Track via global var
+
+  const listHtml = disciplinas.map(d => {
+    if (hideFinished && d.concluido) return '';
+
+    const est = d.estudadoMin || 0;
+    const plan = d.planejadoMin || 1;
+    let pct = Math.round((est / plan) * 100);
+    if (pct > 100) pct = 100;
+
+    return `
+      <div class="ciclo-item ${d.concluido ? 'concluido' : ''}">
+        <div class="ciclo-item-cor" style="background:${d.cor};"></div>
+        <div class="ciclo-item-body">
+          <div class="ciclo-item-header">
+            <div class="ciclo-item-title">${esc(d.nome)}</div>
+            <div class="ciclo-item-meta">${formatH(est)} / ${formatH(plan)}</div>
+          </div>
+          <div class="dash-progress-track">
+            <div class="dash-progress-bar" style="width:${pct}%; background:${d.cor};"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.innerHTML = `
+    <!-- HEADER ACTIONS -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-sync"></i> Planejamento do Ciclo</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" data-action="recomecar-ciclo" title="Voltar progresso a zero mantendo configuração"><i class="fa fa-undo"></i> Recomeçar Ciclo</button>
+        <button class="btn btn-danger btn-sm" data-action="remover-ciclo"><i class="fa fa-trash"></i> Remover</button>
+      </div>
+    </div>
+
+    <!-- CARDS RESUMO -->
+    <div class="ciclo-resumo-grid">
+      <!-- Ciclos Completos -->
+      <div class="card" style="padding:20px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
+        <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Ciclos Completos</div>
+        <div style="font-size:36px; font-weight:800; color:var(--accent);">${ciclo.ciclosCompletos || 0}</div>
+        <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">vezes finalizado</div>
+      </div>
+
+      <!-- Progresso Total -->
+      <div class="card" style="padding:24px; display:flex; flex-direction:column; justify-content:center;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Progresso Atual</div>
+          <div style="font-size:13px; font-weight:600; color:var(--text-secondary);">${formatH(totalEstudado)} / ${formatH(totalPlanejado)}</div>
+        </div>
+        <div class="dash-progress-track" style="height:18px; margin-bottom:12px;">
+          <div class="dash-progress-bar" style="width:${percentTotal}%; background:var(--accent);"></div>
+        </div>
+        <div style="font-size:24px; font-weight:800; color:var(--text-primary);">${percentTotal}%</div>
+      </div>
+
+      <!-- Donut Chart -->
+      <div class="card" style="padding:20px; display:flex; justify-content:center; align-items:center;">
+        <div class="donut-wrapper">
+          <div class="donut-chart" style="background: ${donutBg};"></div>
+          <div class="donut-inner">
+            <strong>${formatH(totalPlanejado)}</strong>
+            <span>Total</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LISTA DE ESTUDOS -->
+    <div class="card">
+      <div class="card-header" style="padding-bottom:12px;border:none;">
+        <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa fa-list-ol" style="color:var(--text-muted);"></i> Sequência dos Estudos</h3>
+      </div>
+      <div class="card-body" style="padding-top:0;">
+        <div class="ciclo-lista-action">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="toggle-ciclo-fin" ${hideFinished ? 'checked' : ''} data-action="toggle-ciclo-fin">
+            Ocultar finalizados
+          </label>
+        </div>
+        <div class="ciclo-lista">
+          ${listHtml || '<div style="padding:20px;text-align:center;color:var(--text-muted);">Nenhuma disciplina pendente.</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}

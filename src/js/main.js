@@ -91,6 +91,20 @@ document.addEventListener('click', (e) => {
       window.promptMetas();
       break;
 
+    // Ciclo de Estudos
+    case 'replanejar-ciclo':
+      window.replanejarCiclo();
+      break;
+    case 'recomecar-ciclo':
+      window.recomecarCiclo();
+      break;
+    case 'remover-ciclo':
+      window.removerCiclo();
+      break;
+    case 'toggle-ciclo-fin':
+      window.toggleCicloFin(e.target.checked);
+      break;
+
     default:
       console.warn('Unknown data-action:', action);
   }

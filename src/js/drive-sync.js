@@ -135,7 +135,7 @@ export function disconnectDrive() {
     }
 }
 
-async function syncWithDrive() {
+export async function syncWithDrive() {
     if (!gapi.client || !gapi.client.drive) return;
     updateDriveUI('syncing', 'Sincronizando...');
 

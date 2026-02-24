@@ -1,5 +1,5 @@
 import { HABIT_TYPES, currentView, formatDate, formatTime, getEventStatus, todayStr } from './app.js';
-import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical } from './views.js';
+import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo } from './views.js';
 import { state } from './store.js';
 import { deleteEvento, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
 
@@ -17,7 +17,7 @@ export function renderCronometro(el) {
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
     const s = secs % 60;
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
   if (allTimerEvents.length === 0) {
@@ -182,8 +182,8 @@ export function renderCronometro(el) {
           padding:8px 20px;border-radius:20px;border:none;cursor:pointer;
           font-size:13px;font-weight:500;transition:all 0.3s;
           ${_pomodoroMode
-            ? 'background:rgba(139,92,246,0.15);color:#a371f7;'
-            : 'background:rgba(255,255,255,0.06);color:#8b949e;'}
+      ? 'background:rgba(139,92,246,0.15);color:#a371f7;'
+      : 'background:rgba(255,255,255,0.06);color:#8b949e;'}
         ">
           ${_pomodoroMode ? '🍅 Pomodoro (25/5)' : '⏱ Modo Contínuo'}
         </button>
@@ -195,9 +195,9 @@ export function renderCronometro(el) {
           <div style="color:#8b949e;font-size:12px;margin-bottom:8px;">Outros cronômetros:</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
             ${otherEvents.map(ev => {
-              const evActive = !!ev._timerStart;
-              const evDisc = getDisc(ev.disciplinaId);
-              return `
+        const evActive = !!ev._timerStart;
+        const evDisc = getDisc(ev.disciplinaId);
+        return `
                 <button onclick="navigate('cronometro');toggleTimer('${ev.id}')" style="
                   padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
                   background:rgba(255,255,255,0.04);color:#c9d1d9;font-size:13px;
@@ -211,7 +211,7 @@ export function renderCronometro(el) {
                   <span style="color:#8b949e;font-family:monospace;">${fmtTime(getElapsedSeconds(ev))}</span>
                 </button>
               `;
-            }).join('')}
+      }).join('')}
           </div>
         </div>
       ` : ''}
@@ -262,6 +262,8 @@ export function renderCurrentView() {
     actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
   } else if (currentView === 'editais') {
     actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
+  } else if (currentView === 'ciclo') {
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="replanejar-ciclo"><i class="fa fa-cog"></i> Configurar Ciclo</button>`;
   }
 
   updateBadges();
@@ -276,6 +278,7 @@ export function renderCurrentView() {
   if (currentView === 'vertical') return renderVertical(el);
   if (currentView === 'config') return renderConfig(el);
   if (currentView === 'cronometro') return renderCronometro(el);
+  if (currentView === 'ciclo') return renderCiclo(el);
 }
 
 // Ensure badges up to date

@@ -41,6 +41,9 @@
             <div class="nav-item" data-view="calendar" data-action="navigate" data-view="calendar">
                 <span class="icon">📅</span> Calendário
             </div>
+            <div class="nav-item" data-view="ciclo" data-action="navigate" data-view="ciclo">
+                <span class="icon">♻️</span> Ciclo de Estudos
+            </div>
             <div class="nav-item" data-view="dashboard" data-action="navigate" data-view="dashboard">
                 <span class="icon">📊</span> Dashboard
             </div>
@@ -315,6 +318,30 @@
             <div class="modal-body" id="modal-subject-add-body"></div>
         </div>
     </div>
+
+    <!-- MODAL CICLO WIZARD -->
+    <div class="modal-overlay" id="modal-ciclo" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal" style="width: 700px; max-width: 95%;">
+            <div class="modal-header">
+                <h2 id="modal-ciclo-title">Configurar Ciclo de Estudos</h2>
+                <button class="modal-close" data-action="close-modal" data-modal="modal-ciclo"
+                    aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-ciclo-body" style="padding: 24px; max-height: 70vh; overflow-y: auto;">
+                <!-- Dinâmico via JS -->
+            </div>
+            <div class="modal-footer" id="modal-ciclo-footer"
+                style="padding: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn btn-ghost" id="btn-ciclo-prev" style="display:none;"><i class="fa fa-arrow-left"></i>
+                    Voltar</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-ciclo"
+                    id="btn-ciclo-cancel">Cancelar</button>
+                <button class="btn btn-primary" id="btn-ciclo-next">Próximo <i class="fa fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="js/main.js"></script>
 
     <!-- REGISTRO SESSÃO MODAL -->

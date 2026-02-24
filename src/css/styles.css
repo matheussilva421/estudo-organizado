@@ -2344,3 +2344,246 @@ mark {
   transition: width 0.3s;
   position: relative;
 }
+
+/* CICLO DE ESTUDOS */
+.ciclo-resumo-grid {
+  display: grid;
+  grid-template-columns: 1fr 2.5fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .ciclo-resumo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.donut-wrapper {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  margin: 0 auto;
+}
+
+.donut-chart {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transition: background 0.5s ease-out;
+}
+
+.donut-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background: var(--card);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.donut-inner span {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.donut-inner strong {
+  font-size: 15px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.ciclo-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ciclo-item {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  gap: 16px;
+  align-items: stretch;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.ciclo-item.concluido {
+  opacity: 0.65;
+}
+
+.ciclo-item-cor {
+  width: 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.ciclo-item-body {
+  flex: 1;
+}
+
+.ciclo-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ciclo-item-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.ciclo-item-meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.ciclo-lista-action {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* WIZARD STEPPER */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  position: relative;
+  padding: 0 10px;
+}
+
+.stepper::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 30px;
+  right: 30px;
+  height: 2px;
+  background: var(--border);
+  z-index: 1;
+}
+
+.step-item {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  width: 80px;
+  text-align: center;
+}
+
+.step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.step-item.active {
+  color: var(--accent);
+}
+
+.step-item.active .step-circle {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.step-item.done .step-circle {
+  border-color: var(--accent);
+  background: var(--card);
+  color: var(--accent);
+}
+
+.wizard-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  height: 100%;
+}
+
+.wizard-box:hover {
+  border-color: var(--accent);
+}
+
+.wizard-box.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+[data-theme="dark"] .wizard-box.selected {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.wizard-box-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wizard-box-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.ciclo-disc-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+  background: var(--bg);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.ciclo-disc-drag {
+  cursor: grab;
+  padding-bottom: 10px;
+  color: var(--text-muted);
+}

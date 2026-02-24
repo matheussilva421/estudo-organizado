@@ -12,7 +12,7 @@ export const DB_VERSION = 1;
 export const STORE_NAME = 'app_state';
 
 export let db;
-export const DEFAULT_SCHEMA_VERSION = 3;
+export const DEFAULT_SCHEMA_VERSION = 4;
 
 export function setState(newState) {
   // Replace the state object properties instead of the reference
@@ -22,6 +22,7 @@ export function setState(newState) {
 
 export let state = {
   schemaVersion: DEFAULT_SCHEMA_VERSION,
+  ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
   editais: [],
   eventos: [],
   arquivo: [], // concluded events older than 90 days
@@ -182,6 +183,14 @@ export function runMigrations() {
     changed = true;
   }
 
+  if (state.schemaVersion === 3) {
+    if (!state.ciclo) {
+      state.ciclo = { ativo: false, ciclosCompletos: 0, disciplinas: [] };
+    }
+    state.schemaVersion = 4;
+    changed = true;
+  }
+
   if (changed) scheduleSave();
   archiveOldEvents();
 }
@@ -208,6 +217,7 @@ export function clearData() {
   showConfirm('Tem certeza que deseja apagar TODOS os seus dados? Esta ação não pode ser desfeita.', () => {
     state = {
       schemaVersion: DEFAULT_SCHEMA_VERSION,
+      ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
       editais: [],
       eventos: [],
       arquivo: [],
