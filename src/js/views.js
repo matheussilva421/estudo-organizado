@@ -1,4 +1,14 @@
 // =============================================
+// CONSTANTS
+// =============================================
+const COLORS = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
+  '#14b8a6', '#e11d48', '#0ea5e9', '#a855f7', '#22c55e',
+  '#eab308', '#d946ef', '#64748b'
+];
+
+// =============================================
 // HOME VIEW
 // =============================================
 function renderHome(el) {
@@ -413,7 +423,7 @@ function renderCalendarWeek() {
     const dayEvents = state.eventos.filter(e => e.data === ds);
     return `
           <div style="min-height:200px;border-radius:8px;border:1px solid var(--border);overflow:hidden;">
-            <div style="padding:8px;background:${isToday ? '#eff6ff' : 'var(--bg)'};text-align:center;border-bottom:1px solid var(--border);">
+            <div style="padding:8px;background:${isToday ? 'var(--accent-light)' : 'var(--bg)'};text-align:center;border-bottom:1px solid var(--border);">
               <div style="font-size:11px;font-weight:600;color:var(--text-secondary);">${dows[d.getDay()]}</div>
               <div style="font-size:16px;font-weight:700;${isToday ? 'color:var(--blue);' : ''}">${d.getDate()}</div>
             </div>
