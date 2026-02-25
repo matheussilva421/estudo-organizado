@@ -42,6 +42,8 @@ let _currentEventId = null;
 let _sessionStartTime = null;
 let _sessionEndTime = null;
 let _sessionMode = 'cronometro';
+let _savedTimerStart = null;
+let _savedTempoAcumulado = 0;
 
 // =============================================
 // OPEN REGISTRO SESSÃO
@@ -50,6 +52,10 @@ let _sessionMode = 'cronometro';
 export function openRegistroSessao(eventId) {
   const ev = state.eventos.find(e => e.id === eventId);
   if (!ev) { showToast('Evento não encontrado', 'error'); return; }
+
+  // Save timer state for rollback if user cancels
+  _savedTimerStart = ev._timerStart || null;
+  _savedTempoAcumulado = ev.tempoAcumulado || 0;
 
   // Stop timer if running
   if (ev._timerStart) {
@@ -400,7 +406,7 @@ export function addNovoTopico() {
     id: 'ass_' + Date.now() + Math.random(),
     nome: nome.trim(),
     concluido: false,
-    revisoesFeitas: []
+    revisoesFetas: []
   };
 
   d.disc.assuntos.push(novoTopico);
@@ -550,7 +556,7 @@ export function saveRegistroSessao() {
       if (ass && !ass.concluido) {
         ass.concluido = true;
         ass.dataConclusao = todayStr();
-        ass.revisoesFeitas = [];
+        ass.revisoesFetas = [];
       }
     }
   }
@@ -600,4 +606,17 @@ export function saveAndStartNew() {
   setTimeout(() => {
     if (typeof window.navigate === 'function') window.navigate('med');
   }, 300);
+}
+
+// Rollback timer state if user cancels the registro modal
+export function cancelRegistro() {
+  const ev = _currentEventId ? state.eventos.find(e => e.id === _currentEventId) : null;
+  if (ev && _savedTimerStart) {
+    ev._timerStart = _savedTimerStart;
+    ev.tempoAcumulado = _savedTempoAcumulado;
+  }
+  _savedTimerStart = null;
+  _savedTempoAcumulado = 0;
+  closeModal('modal-registro-sessao');
+  renderCurrentView();
 }

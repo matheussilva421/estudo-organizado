@@ -38,35 +38,6 @@ export function navigate(view) {
   renderCurrentView();
 }
 
-export function updateTopbar() {
-  const titles = {
-    home: 'Página Inicial', med: 'Meu Estudo Diário', calendar: 'Calendário',
-    dashboard: 'Dashboard', revisoes: 'Revisões', habitos: 'Hábitos',
-    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações',
-    ciclo: 'Ciclo de Estudos'
-  };
-  document.getElementById('topbar-title').textContent = titles[currentView] || '';
-
-  const now = new Date();
-  const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  document.getElementById('topbar-date').textContent = now.toLocaleDateString('pt-BR', opts);
-
-  const actions = document.getElementById('topbar-actions');
-  if (currentView === 'home' || currentView === 'med') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
-  } else if (currentView === 'editais') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
-  } else if (currentView === 'habitos') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openHabitModal(null)"><i class="fa fa-plus"></i> Registrar Hábito</button>`;
-  } else if (currentView === 'calendar') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
-  } else if (currentView === 'ciclo') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" id="btn-replanejar-ciclo"><i class="fa fa-cog"></i> Configurar Ciclo</button>`;
-  } else {
-    actions.innerHTML = '';
-  }
-}
-
 // =============================================
 // HELPERS
 // =============================================

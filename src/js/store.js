@@ -1,6 +1,5 @@
-import { invalidateDiscCache, invalidateRevCache } from './logic.js';
+import { invalidateDiscCache, invalidateRevCache, invalidatePendingRevCache } from './logic.js';
 import { renderCurrentView, updateBadges } from './components.js';
-import { archiveOldEvents } from './views.js';
 import { showConfirm, showToast } from './app.js';
 
 // =============================================
@@ -74,7 +73,7 @@ export function loadStateFromDB() {
 
     request.onsuccess = (event) => {
       if (request.result) {
-        state = request.result;
+        setState(request.result);
         runMigrations();
       } else {
         loadLegacyState(); // Try migration from localStorage
@@ -94,7 +93,7 @@ export function loadLegacyState() {
   try {
     const saved = localStorage.getItem('estudo_state');
     if (saved) {
-      state = JSON.parse(saved);
+      setState(JSON.parse(saved));
       runMigrations();
       scheduleSave(); // Save to IndexedDB immediately
       localStorage.removeItem('estudo_state'); // Clean up old storage
@@ -109,6 +108,7 @@ export let saveTimeout = null;
 export function scheduleSave() {
   invalidateDiscCache();
   invalidateRevCache();
+  invalidatePendingRevCache();
   if (saveTimeout) clearTimeout(saveTimeout);
 
   // Update badges instantly without waiting for the save
@@ -165,7 +165,7 @@ export function runMigrations() {
         if (!d.assuntos) d.assuntos = [];
         d.assuntos.forEach(a => {
           if (!a.id) a.id = 'ass_' + Date.now() + Math.random();
-          if (!a.revisoesFeitas) a.revisoesFeitas = [];
+          if (!a.revisoesFetas) a.revisoesFetas = [];
         });
       });
     });
@@ -195,10 +195,6 @@ export function runMigrations() {
   // archiveOldEvents removido do boot — disponível manualmente em Configurações
 }
 
-// Fix 7: Automatic Cleanup — Archive VERY old 'estudei' events (older than 90 days)
-// Prevents the main `eventos` array from ballooning indefinitely.
-// [REMOVED DUPLICATE] "archiveOldEvents" — now imported from views.js
-
 
 
 
@@ -215,7 +211,7 @@ export function runMigrations() {
 // Clean up state
 export function clearData() {
   showConfirm('Tem certeza que deseja apagar TODOS os seus dados? Esta ação não pode ser desfeita.', () => {
-    state = {
+    setState({
       schemaVersion: DEFAULT_SCHEMA_VERSION,
       ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
       editais: [],
@@ -226,7 +222,7 @@ export function clearData() {
       config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90] },
       driveFileId: null,
       lastSync: null
-    };
+    });
     saveStateToDB().then(() => {
       showToast('Dados apagados com sucesso.', 'info');
       if (typeof renderCurrentView === 'function') renderCurrentView();

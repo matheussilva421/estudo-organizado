@@ -1,4 +1,4 @@
-import { closeModal, init, showConfirm, showToast } from './app.js';
+import { closeModal, showConfirm, showToast } from './app.js';
 import { runMigrations, saveStateToDB, scheduleSave, state, setState } from './store.js';
 import { renderCurrentView } from './components.js';
 

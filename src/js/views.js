@@ -2142,10 +2142,10 @@ export function renderConfig(el) {
             </div>
             ${cfg.driveConnected ? `
               <div style="display:flex;gap:8px;">
-                <button class="btn btn-primary btn-sm" onclick="syncToDrive();showToast('Sincronizando...','info')">
+                <button class="btn btn-primary btn-sm" onclick="syncWithDrive().then(()=>showToast('Sincronizado!','success')).catch(()=>showToast('Erro ao sincronizar','error'))">
                   <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
                 </button>
-                <button class="btn btn-ghost btn-sm" onclick="loadFromDrive()">
+                <button class="btn btn-ghost btn-sm" onclick="syncWithDrive().then(()=>showToast('Dados atualizados!','success'))">
                   <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
                 </button>
                 <button class="btn btn-danger btn-sm" onclick="driveDisconnect()">Desconectar</button>
@@ -2169,7 +2169,7 @@ export function renderConfig(el) {
               ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
                 <button class="btn btn-primary btn-sm" onclick="Notification.requestPermission().then(p=>{if(p==='granted')showToast('Notificações ativadas!','success');renderCurrentView()})">🔖 Ativar</button>
               ` : Notification.permission === 'granted' ? `
-                <button class="btn btn-ghost btn-sm" onclick="scheduleNotifications(true);showToast('Lembretes enviados!','success')">🔖 Testar</button>
+                <button class="btn btn-ghost btn-sm" onclick="new Notification('Estudo Organizado',{body:'Notificações funcionando!',icon:'📚'});showToast('Lembretes enviados!','success')">🔖 Testar</button>
               ` : ''}
             </div>
             ${Notification.permission === 'granted' ? `
@@ -2323,8 +2323,7 @@ export function clearAllData() {
       showConfirm(
         'Última confirmação: isso não pode ser desfeito.',
         () => {
-          localStorage.removeItem('estudo-organizado');
-          location.reload();
+          window.clearData(); // usa clearData() do store.js que limpa IndexedDB
         },
         { danger: true, label: 'Apagar tudo definitivamente', title: '⚠️ Confirmação final' }
       );
