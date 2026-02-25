@@ -98,15 +98,6 @@ export function marcarEstudei(eventId) {
   _marcarEstudeiDirect(eventId);
 }
 
-export function _marcarEstudeiDirect(eventId) {
-  // Open the Registro da Sessão de Estudo modal instead of immediately marking
-  if (typeof window.openRegistroSessao === 'function') {
-    window.openRegistroSessao(eventId);
-    return;
-  }
-  // Fallback: original behavior if registro module not loaded
-  _marcarEstudeiDirect(eventId);
-}
 
 export function _marcarEstudeiDirect(eventId) {
   const ev = state.eventos.find(e => e.id === eventId);
