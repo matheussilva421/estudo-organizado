@@ -5,7 +5,8 @@
 
 import { state, scheduleSave } from './store.js';
 import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode } from './logic.js';
-import { openModal, closeModal, showToast, todayStr } from './app.js';
+import { openModal, closeModal, showToast } from './app.js';
+import { todayStr } from './utils.js';
 import { renderCurrentView, updateBadges } from './components.js';
 
 // =============================================

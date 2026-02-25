@@ -1,11 +1,10 @@
 import { scheduleSave, state } from './store.js';
-import { currentView, cutoffDateStr, formatTime, showConfirm, showToast, timerIntervals, todayStr } from './app.js';
-import { refreshEventCard, refreshMEDSections, removeDOMCard } from './views.js';
-import { getHabitType, renderCurrentView, updateBadges } from './components.js';
+import { cutoffDateStr, formatTime, todayStr, getHabitType } from './utils.js';
 
 // =============================================
 // TIMER ENGINE
 // =============================================
+export let timerIntervals = {};   // eventId → intervalId
 export let _pomodoroMode = false;
 export let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
@@ -28,9 +27,7 @@ export function toggleTimerMode() {
     btn.style.backgroundColor = _pomodoroMode ? 'var(--red)' : '';
     btn.style.color = _pomodoroMode ? '#fff' : '';
   }
-  if (typeof showToast === 'function') {
-    showToast(_pomodoroMode ? 'Modo Pomodoro ativado.' : 'Modo Contínuo ativado.', 'info');
-  }
+  document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: _pomodoroMode ? 'Modo Pomodoro ativado.' : 'Modo Contínuo ativado.', type: 'info' } }));
 }
 
 export function reattachTimers() {
@@ -49,9 +46,7 @@ export function reattachTimers() {
         if (sessionSeconds >= 1500) { // 25 minutes
           _pomodoroAlarm.play().catch(e => console.log('Audio error:', e));
           toggleTimer(ev.id); // Auto-pause
-          if (typeof showToast === 'function') {
-            showToast('Pomodoro concluído! Descanse 5 minutos.', 'success');
-          }
+          document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Pomodoro concluído! Descanse 5 minutos.', type: 'success' } }));
           if ("Notification" in window && Notification.permission === "granted") {
             new Notification("Pomodoro Concluído! 🍅", { body: "Descanse 5 minutos.", icon: 'favicon.ico' });
           }
@@ -71,10 +66,8 @@ export function addTimerMinutes(eventId, minutes) {
   if (!ev) return;
   ev.tempoAcumulado = (ev.tempoAcumulado || 0) + (minutes * 60);
   scheduleSave();
-  if (typeof showToast === 'function') {
-    showToast(`+${minutes} minuto(s) adicionado(s)`, 'info');
-  }
-  renderCurrentView();
+  document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `+${minutes} minuto(s) adicionado(s)`, type: 'info' } }));
+  document.dispatchEvent(new Event('app:renderCurrentView'));
 }
 
 export function toggleTimer(eventId) {
@@ -89,8 +82,8 @@ export function toggleTimer(eventId) {
     ev._timerStart = Date.now();
   }
   scheduleSave();
-  refreshEventCard(eventId);
-  updateBadges();
+  document.dispatchEvent(new CustomEvent('app:refreshEventCard', { detail: { eventId } }));
+  document.dispatchEvent(new Event('app:updateBadges'));
 }
 
 export function marcarEstudei(eventId) {
@@ -129,30 +122,32 @@ export function _marcarEstudeiDirect(eventId) {
     }
   }
   scheduleSave();
-  refreshMEDSections();
+  document.dispatchEvent(new Event('app:refreshMEDSections'));
 
   if (ev.habito) {
     const h = getHabitType(ev.habito);
     //if (h) promptHabitRegistration(ev, h);
   } else {
-    showToast('Evento marcado como Estudei! ✅', 'success');
+    document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Evento marcado como Estudei! ✅', type: 'success' } }));
   }
 }
 
 export function deleteEvento(eventId) {
-  showConfirm('Excluir este evento permanentemente?', () => {
-    if (timerIntervals[eventId]) {
-      clearInterval(timerIntervals[eventId]);
-      delete timerIntervals[eventId];
+  document.dispatchEvent(new CustomEvent('app:showConfirm', {
+    detail: {
+      msg: 'Excluir este evento permanentemente?',
+      onYes: () => {
+        if (timerIntervals[eventId]) {
+          clearInterval(timerIntervals[eventId]);
+          delete timerIntervals[eventId];
+        }
+        state.eventos = state.eventos.filter(e => e.id !== eventId);
+        scheduleSave();
+        document.dispatchEvent(new CustomEvent('app:eventoDeleted', { detail: { eventId } }));
+      },
+      opts: { danger: true, label: 'Excluir', title: 'Excluir evento' }
     }
-    state.eventos = state.eventos.filter(e => e.id !== eventId);
-    scheduleSave();
-    if (currentView === 'med') {
-      removeDOMCard(eventId);
-    } else {
-      renderCurrentView();
-    }
-  }, { danger: true, label: 'Excluir', title: 'Excluir evento' });
+  }));
 }
 
 export function totalStudySeconds(days = null) {

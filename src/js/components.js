@@ -1,4 +1,5 @@
-import { HABIT_TYPES, currentView, formatDate, formatTime, getEventStatus, todayStr, esc } from './app.js';
+import { currentView } from './app.js';
+import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, getHabitType } from './utils.js';
 import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo } from './views.js';
 import { state } from './store.js';
 import { deleteEvento, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
@@ -332,8 +333,4 @@ export function renderEventCard(evento) {
       </div>
     </div>
   `;
-}
-
-export function getHabitType(key) {
-  return HABIT_TYPES.find(h => h.key === key);
 }

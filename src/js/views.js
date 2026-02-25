@@ -1,7 +1,8 @@
-﻿import { HABIT_TYPES, applyTheme, closeModal, currentView, cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, showConfirm, showToast, todayStr, uid, openModal, cancelConfirm } from './app.js';
+﻿import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
+import { cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats } from './logic.js';
-import { getHabitType, renderCurrentView, renderEventCard, updateBadges } from './components.js';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
 let calDate = new Date();

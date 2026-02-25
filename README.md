@@ -52,11 +52,14 @@ estudo-organizado/
 │   ├── css/
 │   │   └── styles.css      # Estilos (dark/light mode, responsivo)
 │   └── js/
-│       ├── app.js           # Core: navegação, init, helpers
+│       ├── main.js          # Entrypoint: orquestração e eventos de domínio
+│       ├── app.js           # Navegação e modais genéricos
 │       ├── store.js         # Estado: IndexedDB, migrations, save/load
-│       ├── logic.js         # Lógica de negócio: eventos, revisões, hábitos
+│       ├── logic.js         # Regras de negócio: cronômetro, revisões, analytics
+│       ├── utils.js         # Utilitários puros e constantes estáticas
 │       ├── components.js    # Componentes de UI reutilizáveis
-│       ├── views.js         # Renderização de todas as views
+│       ├── views.js         # Renderização de todas as views baseadas no estado
+│       ├── registro-sessao.js # Lógica específica do modal de registro de sessão
 │       └── drive-sync.js    # Sincronização com Google Drive
 ├── Abrir_Estudo_Organizado.bat  # Launcher para Windows
 ├── .gitignore

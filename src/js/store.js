@@ -1,7 +1,3 @@
-import { invalidateDiscCache, invalidateRevCache, invalidatePendingRevCache } from './logic.js';
-import { renderCurrentView, updateBadges } from './components.js';
-import { showConfirm, showToast } from './app.js';
-
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
@@ -106,13 +102,11 @@ export function loadLegacyState() {
 // Save state to IndexedDB with debounce
 export let saveTimeout = null;
 export function scheduleSave() {
-  invalidateDiscCache();
-  invalidateRevCache();
-  invalidatePendingRevCache();
+  document.dispatchEvent(new Event('app:invalidateCaches'));
   if (saveTimeout) clearTimeout(saveTimeout);
 
   // Update badges instantly without waiting for the save
-  if (typeof updateBadges === 'function') updateBadges();
+  document.dispatchEvent(new Event('app:updateBadges'));
 
   saveTimeout = setTimeout(() => {
     saveStateToDB();
@@ -220,22 +214,28 @@ export function runMigrations() {
 
 // Clean up state
 export function clearData() {
-  showConfirm('Tem certeza que deseja apagar TODOS os seus dados? Esta ação não pode ser desfeita.', () => {
-    setState({
-      schemaVersion: DEFAULT_SCHEMA_VERSION,
-      ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
-      editais: [],
-      eventos: [],
-      arquivo: [],
-      habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [] },
-      revisoes: [],
-      config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90] },
-      driveFileId: null,
-      lastSync: null
-    });
-    saveStateToDB().then(() => {
-      showToast('Dados apagados com sucesso.', 'info');
-      if (typeof renderCurrentView === 'function') renderCurrentView();
-    });
-  }, { danger: true, label: 'Apagar tudo', title: 'Atenção' });
+  document.dispatchEvent(new CustomEvent('app:showConfirm', {
+    detail: {
+      msg: 'Tem certeza que deseja apagar TODOS os seus dados? Esta ação não pode ser desfeita.',
+      onYes: () => {
+        setState({
+          schemaVersion: DEFAULT_SCHEMA_VERSION,
+          ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
+          editais: [],
+          eventos: [],
+          arquivo: [],
+          habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] },
+          revisoes: [],
+          config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90] },
+          driveFileId: null,
+          lastSync: null
+        });
+        saveStateToDB().then(() => {
+          document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Dados apagados com sucesso.', type: 'info' } }));
+          document.dispatchEvent(new Event('app:renderCurrentView'));
+        });
+      },
+      opts: { danger: true, label: 'Apagar tudo', title: 'Atenção' }
+    }
+  }));
 }
