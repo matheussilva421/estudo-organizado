@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estudo Organizado</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
     <link
         href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap"
         rel="stylesheet">
@@ -339,16 +340,14 @@
             <div class="modal-header"
                 style="background:linear-gradient(135deg,#0d1117,#161b22);border-bottom:1px solid rgba(255,255,255,0.06);">
                 <h2 style="color:#e6edf3;">📝 Registro da Sessão de Estudo</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-registro-sessao"
-                    aria-label="Fechar" title="Fechar">×</button>
+                <button class="modal-close" onclick="cancelRegistro()" aria-label="Fechar" title="Fechar">×</button>
             </div>
             <div class="modal-body" id="modal-registro-body"
                 style="overflow-y:auto;max-height:calc(90vh - 140px);padding:0;">
                 <!-- Dynamic content rendered by JS -->
             </div>
             <div class="modal-footer" style="background:var(--card-bg);border-top:1px solid var(--border);gap:8px;">
-                <button class="btn btn-ghost" data-action="close-modal"
-                    data-modal="modal-registro-sessao">Cancelar</button>
+                <button class="btn btn-ghost" onclick="cancelRegistro()">Cancelar</button>
                 <button class="btn btn-ghost" onclick="saveAndStartNew()" style="color:var(--green);">
                     Salvar e iniciar nova ↻
                 </button>

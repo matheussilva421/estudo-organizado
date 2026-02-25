@@ -25,7 +25,7 @@ export let state = {
   editais: [],
   eventos: [],
   arquivo: [], // concluded events older than 90 days
-  habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [] },
+  habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] },
   revisoes: [],
   config: {
     visualizacao: 'mes',
@@ -144,7 +144,7 @@ export function runMigrations() {
     if (!state.revisoes) state.revisoes = [];
     if (!state.config) state.config = { visualizacao: 'mes', agruparEventos: true };
     if (!state.config.frequenciaRevisao) state.config.frequenciaRevisao = [1, 7, 30, 90];
-    if (!state.habitos) state.habitos = { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [] };
+    if (!state.habitos) state.habitos = { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] };
 
     // Add IDs where missing
     state.editais.forEach(ed => {
@@ -189,6 +189,16 @@ export function runMigrations() {
     }
     state.schemaVersion = 4;
     changed = true;
+  }
+
+  // Normalize habitos keys
+  if (state.habitos) {
+    if (state.habitos.sumulas && !state.habitos.sumula) {
+      state.habitos.sumula = state.habitos.sumulas;
+      delete state.habitos.sumulas;
+    }
+    if (!state.habitos.videoaula) state.habitos.videoaula = [];
+    if (!state.habitos.sumula) state.habitos.sumula = [];
   }
 
   if (changed) scheduleSave();

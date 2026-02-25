@@ -1604,27 +1604,31 @@ export function saveEdital(editaId) {
 // =============================================
 // DISCIPLINE MODAL
 // =============================================
-export function openDiscModal(editaId) {
-  editingDiscCtx = { editaId };
-  document.getElementById('modal-disc-title').textContent = 'Nova Disciplina';
+export function openDiscModal(editaId, discId) {
+  editingDiscCtx = { editaId, discId: discId || null };
+  const edital = state.editais.find(e => e.id === editaId);
+  const existingDisc = discId && edital ? edital.disciplinas.find(d => d.id === discId) : null;
+  const isEdit = !!existingDisc;
+
+  document.getElementById('modal-disc-title').textContent = isEdit ? 'Editar Disciplina' : 'Nova Disciplina';
   document.getElementById('modal-disc-body').innerHTML = `
     <div class="form-group">
       <label class="form-label">Nome da Disciplina</label>
-      <input type="text" class="form-control" id="disc-nome" placeholder="Ex: Direito Constitucional">
+      <input type="text" class="form-control" id="disc-nome" placeholder="Ex: Direito Constitucional" value="${isEdit ? esc(existingDisc.nome) : ''}">
     </div>
     <div class="form-group">
       <label class="form-label">Ícone</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px;" id="disc-icons">
-        ${DISC_ICONS.map((ic, i) => `<div style="width:36px;height:36px;border-radius:8px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all 0.15s;" class="${i === 0 ? 'selected-icon' : ''}" onclick="selectIcon('${ic}', this)">${ic}</div>`).join('')}
+        ${DISC_ICONS.map((ic, i) => `<div style="width:36px;height:36px;border-radius:8px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all 0.15s;" class="${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0]) ? 'selected-icon' : ''}" onclick="selectIcon('${ic}', this)">${ic}</div>`).join('')}
       </div>
-      <input type="hidden" id="disc-icone" value="${DISC_ICONS[0]}">
+      <input type="hidden" id="disc-icone" value="${isEdit ? existingDisc.icone : DISC_ICONS[0]}">
     </div>
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="disc-colors">
-        ${COLORS.map((c, i) => `<div class="color-swatch ${i === 0 ? 'selected' : ''}" style="background:${c};" onclick="selectDiscColor('${c}')"></div>`).join('')}
+        ${COLORS.map((c, i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" style="background:${c};" onclick="selectDiscColor('${c}')"></div>`).join('')}
       </div>
-      <input type="hidden" id="disc-cor" value="${COLORS[0]}">
+      <input type="hidden" id="disc-cor" value="${isEdit ? existingDisc.cor : COLORS[0]}">
     </div>
   `;
   openModal('modal-disc');
@@ -1651,14 +1655,28 @@ export function saveDisc() {
   if (!nome) { showToast('Informe o nome da disciplina', 'error'); return; }
   const icone = document.getElementById('disc-icone').value;
   const cor = document.getElementById('disc-cor').value;
-  const { editaId } = editingDiscCtx;
+  const { editaId, discId } = editingDiscCtx;
   const edital = state.editais.find(e => e.id === editaId);
   if (!edital) return;
-  if (!edital.disciplinas) edital.disciplinas = []; edital.disciplinas.push({ id: uid(), nome, icone, cor, assuntos: [] });
+  if (!edital.disciplinas) edital.disciplinas = [];
+
+  if (discId) {
+    // Edit existing discipline
+    const disc = edital.disciplinas.find(d => d.id === discId);
+    if (disc) {
+      disc.nome = nome;
+      disc.icone = icone;
+      disc.cor = cor;
+      showToast('Disciplina atualizada!', 'success');
+    }
+  } else {
+    // Create new
+    edital.disciplinas.push({ id: uid(), nome, icone, cor, assuntos: [] });
+    showToast('Disciplina criada!', 'success');
+  }
   scheduleSave();
   closeModal('modal-disc');
   renderCurrentView();
-  showToast('Disciplina criada!', 'success');
 }
 
 // =============================================
@@ -2136,11 +2154,11 @@ export function renderConfig(el) {
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
               <div style="font-size:32px;">😁️</div>
               <div>
-                <div style="font-size:14px;font-weight:700;">${cfg.driveConnected ? 'Conectado ao Google Drive' : 'Não conectado'}</div>
-                <div style="font-size:12px;color:var(--text-secondary);">${cfg.driveConnected ? 'Seus dados são sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
+                <div style="font-size:14px;font-weight:700;">${state.driveFileId ? 'Conectado ao Google Drive' : 'Não conectado'}</div>
+                <div style="font-size:12px;color:var(--text-secondary);">${state.driveFileId ? 'Seus dados são sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
               </div>
             </div>
-            ${cfg.driveConnected ? `
+            ${state.driveFileId ? `
               <div style="display:flex;gap:8px;">
                 <button class="btn btn-primary btn-sm" onclick="syncWithDrive().then(()=>showToast('Sincronizado!','success')).catch(()=>showToast('Erro ao sincronizar','error'))">
                   <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
@@ -2243,13 +2261,17 @@ export function openDriveModal() {
 }
 
 export function driveDisconnect() {
-  state.config.driveConnected = false;
-  state.config.driveToken = null;
-  state.config.driveFileId = null;
-  scheduleSave();
-  updateDriveUI();
-  renderCurrentView();
-  showToast('Google Drive desconectado', 'info');
+  // Delegate to the proper disconnectDrive in drive-sync.js which revokes the OAuth token
+  if (typeof window.disconnectDrive === 'function') {
+    window.disconnectDrive();
+  } else {
+    // Fallback: just clear local state
+    state.driveFileId = null;
+    state.lastSync = null;
+    scheduleSave();
+    renderCurrentView();
+    showToast('Google Drive desconectado', 'info');
+  }
 }
 
 // Fix 7: Move concluded events older than N days into state.arquivo.

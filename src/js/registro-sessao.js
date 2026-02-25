@@ -19,7 +19,7 @@ const TIPOS_ESTUDO = [
   { id: 'informativo', label: 'Informativos', icon: '📰' },
   { id: 'discursiva', label: 'Discursiva', icon: '✍️' },
   { id: 'simulado', label: 'Simulado', icon: '📝' },
-  { id: 'sumulas', label: 'Súmulas', icon: '⚖️' },
+  { id: 'sumula', label: 'Súmulas', icon: '⚖️' },
   { id: 'videoaula', label: 'Vídeoaula', icon: '🎬' },
 ];
 
@@ -565,6 +565,7 @@ export function saveRegistroSessao() {
   _selectedTipos.forEach(tipo => {
     if (state.habitos[tipo]) {
       state.habitos[tipo].push({
+        id: 'hab_' + Date.now() + Math.random(),
         data: todayStr(),
         eventoId: ev.id,
         tempoMin: Math.round((ev.tempoAcumulado || 0) / 60),
@@ -602,6 +603,12 @@ export function saveRegistroSessao() {
 
 export function saveAndStartNew() {
   saveRegistroSessao();
+  // Reset internal state for next session
+  _currentEventId = null;
+  _selectedTipos = [];
+  _selectedMateriais = [];
+  _savedTimerStart = null;
+  _savedTempoAcumulado = 0;
   // After saving, navigate to MED to start a new session
   setTimeout(() => {
     if (typeof window.navigate === 'function') window.navigate('med');

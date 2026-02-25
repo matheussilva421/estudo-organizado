@@ -46,8 +46,8 @@ export function renderCronometro(el) {
 
   // Use first active event as the "focus" event
   const focusEvent = activeEvents[0] || allTimerEvents[0];
-  const disc = getDisc(focusEvent.discId);
-  const discName = disc ? disc.nome : 'Sem disciplina';
+  const discEntry = getDisc(focusEvent.discId);
+  const discName = discEntry ? discEntry.disc.nome : 'Sem disciplina';
   const elapsed = getElapsedSeconds(focusEvent);
   const isActive = !!focusEvent._timerStart;
 
@@ -178,7 +178,7 @@ export function renderCronometro(el) {
       <div style="
         display:flex;justify-content:center;gap:4px;padding:0 0 24px;position:relative;z-index:1;
       ">
-        <button id="timer-mode-btn" onclick="toggleTimerMode()" style="
+        <button id="crono-mode-btn" onclick="toggleTimerMode()" style="
           padding:8px 20px;border-radius:20px;border:none;cursor:pointer;
           font-size:13px;font-weight:500;transition:all 0.3s;
           ${_pomodoroMode
@@ -200,16 +200,10 @@ export function renderCronometro(el) {
         return `
                 <button onclick="navigate('cronometro');toggleTimer('${ev.id}')" style="
                   padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
-                  background:rgba(255,255,255,0.04);color:#c9d1d9;font-size:13px;
-                  display:flex;align-items:center;gap:8px;
-                ">
-                  <span style="
-                    width:8px;height:8px;border-radius:50%;
-                    background:${evActive ? '#39d353' : '#8b949e'};
-                  "></span>
-                  ${ev.titulo}
-                  <span style="color:#8b949e;font-family:monospace;">${fmtTime(getElapsedSeconds(ev))}</span>
-                </button>
+                  background:${evActive ? 'var(--accent)' : 'var(--bg-secondary)'};
+                  color:${evActive ? '#fff' : 'var(--text-primary)'};
+                  font-size:13px;font-weight:600;
+                ">${evDisc ? evDisc.disc.nome : 'Evento'} ${evActive ? '⏱️' : '⏸️'}</button>
               `;
       }).join('')}
           </div>
@@ -249,7 +243,7 @@ export function renderCurrentView() {
   document.getElementById('topbar-title').textContent = {
     home: 'Página Inicial', med: 'Meu Estudo Diário', calendar: 'Calendário',
     dashboard: 'Dashboard', revisoes: 'Revisões', habitos: 'Hábitos',
-    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações', cronometro: 'Cronômetro'
+    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações', cronometro: 'Cronômetro', ciclo: 'Ciclo de Estudos'
   }[currentView] || 'Estudo Organizado';
 
   document.getElementById('topbar-date').innerHTML = currentView === 'home'

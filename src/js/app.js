@@ -185,7 +185,8 @@ export function init() {
   initDB().then(() => {
     applyTheme();
     updateDriveUI();
-    if (state.config.clientId && state.config.driveConnected) {
+    const savedClientId = localStorage.getItem('estudo_drive_client_id');
+    if (savedClientId) {
       initGoogleAPIs();
     }
     navigate('home');
@@ -200,7 +201,7 @@ export function init() {
 
     // Check Drive Sync Every 5 Min
     setInterval(() => {
-      if (state.config.driveConnected) syncWithDrive();
+      if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId) syncWithDrive();
     }, 300000);
   });
 }

@@ -226,7 +226,7 @@ export async function syncWithDrive() {
 
 // Hook para sincronizar automaticamente quando salva localmente (se estiver conectado)
 document.addEventListener('stateSaved', () => {
-    if (gapi.client?.getToken() !== null && state.driveFileId) {
+    if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId) {
         // Debounce para a sincronização na nuvem não ficar sobrecarregada
         if (window.driveSyncTimeout) clearTimeout(window.driveSyncTimeout);
         window.driveSyncTimeout = setTimeout(() => {
