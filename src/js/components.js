@@ -46,7 +46,7 @@ export function renderCronometro(el) {
 
   // Use first active event as the "focus" event
   const focusEvent = activeEvents[0] || allTimerEvents[0];
-  const disc = getDisc(focusEvent.disciplinaId);
+  const disc = getDisc(focusEvent.discId);
   const discName = disc ? disc.nome : 'Sem disciplina';
   const elapsed = getElapsedSeconds(focusEvent);
   const isActive = !!focusEvent._timerStart;
@@ -196,7 +196,7 @@ export function renderCronometro(el) {
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
             ${otherEvents.map(ev => {
         const evActive = !!ev._timerStart;
-        const evDisc = getDisc(ev.disciplinaId);
+        const evDisc = getDisc(ev.discId);
         return `
                 <button onclick="navigate('cronometro');toggleTimer('${ev.id}')" style="
                   padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
@@ -241,6 +241,9 @@ export function renderCronometro(el) {
 
 
 export function renderCurrentView() {
+  // Bug 7: clean up cronometro interval when switching views
+  if (window._cronoInterval) { clearInterval(window._cronoInterval); window._cronoInterval = null; }
+
   const el = document.getElementById('content');
   if (!el) return;
   document.getElementById('topbar-title').textContent = {

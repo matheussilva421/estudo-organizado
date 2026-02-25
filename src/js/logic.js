@@ -193,7 +193,7 @@ export function getPendingRevisoes() {
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
       for (const ass of disc.assuntos) {
-        if ((!ass.concluído && !ass.concluido) || !ass.dataConclusao) continue;
+        if (!ass.concluido || !ass.dataConclusao) continue;
         const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
         for (const rd of revDates) {
           if (rd <= today) {

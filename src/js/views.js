@@ -1,4 +1,4 @@
-import { HABIT_TYPES, applyTheme, closeModal, currentView, cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, showConfirm, showToast, todayStr, uid, openModal, cancelConfirm } from './app.js';
+﻿import { HABIT_TYPES, applyTheme, closeModal, currentView, cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, showConfirm, showToast, todayStr, uid, openModal, cancelConfirm } from './app.js';
 import { scheduleSave, state, setState } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats } from './logic.js';
 import { getHabitType, renderCurrentView, renderEventCard, updateBadges } from './components.js';
@@ -140,7 +140,7 @@ export function renderHome(el) {
         <div>
           <div class="dash-label">PROGRESSO NO EDITAL</div>
            <div style="margin-top:8px;">
-            <div style="font-size:12px;color:var(--green);font-weight:600;">${prog.totalConcluidos} Tópicos Concluídos</div>
+            <div style="font-size:12px;color:var(--green);font-weight:600;">${prog.totalConcluidos} Tópicos concluidos</div>
             <div style="font-size:12px;color:var(--red);font-weight:600;margin-top:2px;">${prog.totalAssuntos - prog.totalConcluidos} Tópicos Pendentes</div>
           </div>
         </div>
@@ -268,7 +268,7 @@ export const FRASES_MOTIVACIONAIS = [
   "Você já está à frente de quem ainda não começou.",
   "Estudo diário transforma ignorância em aprovação.",
   "A aprovação não é sorte — é a soma dos seus dias.",
-  "Cada assunto concluído é uma vitória real.",
+  "Cada assunto concluido é uma vitória real.",
   "Disciplina é liberdade. Continue.",
   "Pequenas doses diárias constroem grandes conhecimentos.",
 ];
@@ -301,7 +301,7 @@ export function renderMED(el) {
       <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
         <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tempo Total Hoje</div>
         <div style="font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);" id="total-time">${formatTime(totalSeconds)}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) concluído(s)</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) concluido(s)</div>
       </div>
       <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
         <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes</div>
@@ -370,7 +370,7 @@ export function refreshMEDSections() {
         <div class="card" style = "flex:1;min-width:200px;padding:20px;text-align:center;" >
         <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tempo Total Hoje</div>
         <div style="font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);" id="total-time">${formatTime(totalSecs)}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) concluído(s)</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) concluido(s)</div>
       </div >
       <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
         <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes</div>
@@ -407,7 +407,7 @@ export function refreshMEDSections() {
 }
 
 export function removeDOMCard(eventId) {
-  const el = document.querySelector(`[data - event - id= "${eventId}"]`);
+  const el = document.querySelector(`[data-event-id="${eventId}"]`);
   if (el) {
     el.remove();
   } else {
@@ -576,7 +576,7 @@ export function openEventDetail(eventId) {
         <div class="card" style="padding:12px;">
           <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">STATUS</div>
           <div style="font-size:14px;color:var(--text-primary);font-weight:500;" class="event-tag ${status}">
-            ${status === 'estudei' ? 'Concluído' : status === 'atrasado' ? 'Atrasado' : 'Agendado'}
+            ${status === 'estudei' ? 'concluido' : status === 'atrasado' ? 'Atrasado' : 'Agendado'}
           </div>
         </div>
         <div class="card" style="padding:12px;">
@@ -650,7 +650,7 @@ export function renderDashboard(el) {
       <div class="stat-card blue">
         <div class="stat-label">Sessões Realizadas</div>
         <div class="stat-value">${filteredEvts.length}</div>
-        <div class="stat-sub">eventos concluídos</div>
+        <div class="stat-sub">eventos concluidos</div>
       </div>
       <div class="stat-card orange">
         <div class="stat-label">Questões</div>
@@ -787,7 +787,7 @@ export function renderDiscProgress() {
   if (discs.length === 0) return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
   return discs.slice(0, 8).map(({ disc, edital }) => {
     const total = disc.assuntos.length;
-    const done = disc.assuntos.filter(a => a.concluído).length;
+    const done = disc.assuntos.filter(a => a.concluido).length;
     const pct = total > 0 ? Math.round(done / total * 100) : 0;
     return `
       <div style="margin-bottom:12px;">
@@ -818,7 +818,7 @@ export function getUpcomingRevisoes(days = 30) {
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
       for (const ass of disc.assuntos) {
-        if (!ass.concluído || !ass.dataConclusao) continue;
+        if (!ass.concluido || !ass.dataConclusao) continue;
         const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
         for (const rd of revDates) {
           if (rd > today && rd <= futureStr) {
@@ -848,8 +848,8 @@ export function renderRevisoes(el) {
         <div style="font-size:28px;font-weight:800;color:var(--blue);">${upcoming.length}</div>
       </div>
       <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
-        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assuntos Concluídos</div>
-        <div style="font-size:28px;font-weight:800;color:var(--accent);">${getAllDisciplinas().reduce((s, { disc }) => s + disc.assuntos.filter(a => a.concluído).length, 0)}</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assuntos concluidos</div>
+        <div style="font-size:28px;font-weight:800;color:var(--accent);">${getAllDisciplinas().reduce((s, { disc }) => s + disc.assuntos.filter(a => a.concluido).length, 0)}</div>
       </div>
       <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
         <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Frequência</div>
@@ -1277,13 +1277,13 @@ export function getFilteredVertItems() {
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
       for (const ass of disc.assuntos) {
-        items.push({ edital, grupo, disc, ass });
+        items.push({ edital, disc, ass });
       }
     }
   }
   if (vertFilterEdital) items = items.filter(i => i.edital.id === vertFilterEdital);
-  if (vertFilterStatus === 'pendentes') items = items.filter(i => !i.ass.concluído);
-  if (vertFilterStatus === 'concluídos') items = items.filter(i => i.ass.concluído);
+  if (vertFilterStatus === 'pendentes') items = items.filter(i => !i.ass.concluido);
+  if (vertFilterStatus === 'concluidos') items = items.filter(i => i.ass.concluido);
   if (vertSearch) {
     const q = vertSearch.toLowerCase();
     items = items.filter(i => i.ass.nome.toLowerCase().includes(q) || i.disc.nome.toLowerCase().includes(q));
@@ -1307,9 +1307,9 @@ export function renderVertical(el) {
         ${state.editais.map(e => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
       </select>
       <div class="filter-row" style="margin:0;gap:4px;">
-        ${['todos', 'pendentes', 'concluídos'].map(s => `
+        ${['todos', 'pendentes', 'concluidos'].map(s => `
           <div class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" onclick="vertFilterStatus='${s}';renderCurrentView()">
-            ${{ todos: 'Todos', pendentes: 'Pendentes', concluídos: 'Concluídos' }[s]}
+            ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'concluidos' }[s]}
           </div>`).join('')}
       </div>
     </div>
@@ -1327,8 +1327,8 @@ export function renderVerticalList(container) {
   if (!container) return;
   const allItems = getFilteredVertItems();
   const total = allItems.length;
-  const concluídos = allItems.filter(i => i.ass.concluído).length;
-  const pct = total > 0 ? Math.round(concluídos / total * 100) : 0;
+  const concluidos = allItems.filter(i => i.ass.concluido).length;
+  const pct = total > 0 ? Math.round(concluidos / total * 100) : 0;
 
   // Update stats bar
   const statsBar = document.getElementById('vert-stats-bar');
@@ -1337,7 +1337,7 @@ export function renderVerticalList(container) {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
         <div>
           <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">VISÃO LINEAR DO EDITAL</div>
-          <div style="font-size:20px;font-weight:800;">${concluídos} de ${total} assuntos concluídos</div>
+          <div style="font-size:20px;font-weight:800;">${concluidos} de ${total} assuntos concluidos</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:32px;font-weight:900;color:var(--accent);">${pct}<span style="font-size:16px;opacity:0.7;">%</span></div>
@@ -1360,14 +1360,14 @@ export function renderVerticalList(container) {
   const highlight = str => hiReg ? esc(str).replace(hiReg, '<mark>$1</mark>') : esc(str);
 
   container.innerHTML = allItems.map(({ edital, disc, ass }) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);${ass.concluído ? 'background:#f8fafc;' : ''}">
-      <div class="check-circle ${ass.concluído ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluído ? 'Ô£ô' : ''}</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:#f8fafc;' : ''}">
+      <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluido ? 'Ô£ô' : ''}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:${ass.concluído ? '400' : '600'};color:${ass.concluído ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluído ? 'text-decoration:line-through;' : ''}">${highlight(ass.nome)}</div>
+        <div style="font-size:13px;font-weight:${ass.concluido ? '400' : '600'};color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluido ? 'text-decoration:line-through;' : ''}">${highlight(ass.nome)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">${esc(disc.icone || '📚')} ${highlight(disc.nome)} • ${esc(edital.nome)}</div>
       </div>
-      ${ass.concluído ? `<div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:10px;color:var(--accent);font-weight:600;">✅ Concluído</div>
+      ${ass.concluido ? `<div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:10px;color:var(--accent);font-weight:600;">✅ concluido</div>
         <div style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</div>
         <div style="font-size:10px;color:var(--text-muted);">${(ass.revisoesFetas || []).length} rev.</div>
       </div>` : `<button class="btn btn-ghost btn-sm" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','${ass.id}')">📅 Agendar</button>`}
@@ -1434,7 +1434,7 @@ export function renderEditalTree(edital) {
         <div class="disc-grid">
           ${(edital.disciplinas || []).map(disc => {
     const totais = disc.assuntos.length;
-    const estudados = disc.assuntos.filter(a => a.concluído).length;
+    const estudados = disc.assuntos.filter(a => a.concluido).length;
     return `
               <div class="disc-card" style="--card-color: ${disc.cor || 'var(--accent)'};">
                 <div class="disc-card-title">${disc.icone || '📚'} ${esc(disc.nome)}</div>
@@ -1493,9 +1493,9 @@ export function toggleAssunto(discId, assId) {
     if (disc) {
       const ass = disc.assuntos.find(a => a.id === assId);
       if (ass) {
-        ass.concluído = !ass.concluído;
-        ass.dataConclusao = ass.concluído ? todayStr() : null;
-        if (ass.concluído) ass.revisoesFetas = [];
+        ass.concluido = !ass.concluido;
+        ass.dataConclusao = ass.concluido ? todayStr() : null;
+        if (ass.concluido) ass.revisoesFetas = [];
         scheduleSave();
         renderCurrentView();
         return;
@@ -1845,7 +1845,7 @@ export function saveBulkSubjects() {
   let added = 0;
   lines.forEach(nome => {
     if (!entry.disc.assuntos.find(a => a.nome === nome)) {
-      entry.disc.assuntos.push({ id: uid(), nome, concluído: false, dataConclusao: null, revisoesFetas: [] });
+      entry.disc.assuntos.push({ id: uid(), nome, concluido: false, dataConclusao: null, revisoesFetas: [] });
       added++;
     }
   });
@@ -1976,7 +1976,7 @@ export function loadAssuntos() {
     tituloInput.dataset.autoFilled = 'true';
   }
   if (!d || d.disc.assuntos.length === 0) { assuntoGroup.style.display = 'none'; return; }
-  const pending = d.disc.assuntos.filter(a => !a.concluído);
+  const pending = d.disc.assuntos.filter(a => !a.concluido);
   assuntoSel.innerHTML = `<option value="">Sem assunto específico</option>` +
     pending.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
   assuntoGroup.style.display = '';
@@ -2167,7 +2167,7 @@ export function renderConfig(el) {
                 <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '­ƒÜ½ Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
               </div>
               ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
-                <button class="btn btn-primary btn-sm" onclick="requestNotifPermission()">🔖 Ativar</button>
+                <button class="btn btn-primary btn-sm" onclick="Notification.requestPermission().then(p=>{if(p==='granted')showToast('Notificações ativadas!','success');renderCurrentView()})">🔖 Ativar</button>
               ` : Notification.permission === 'granted' ? `
                 <button class="btn btn-ghost btn-sm" onclick="scheduleNotifications(true);showToast('Lembretes enviados!','success')">🔖 Testar</button>
               ` : ''}
@@ -2193,7 +2193,7 @@ export function renderConfig(el) {
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button class="btn btn-ghost" onclick="exportData()">📱 Exportar JSON</button>
               <button class="btn btn-ghost" onclick="importData()">📡 Importar JSON</button>
-              <button class="btn btn-ghost btn-sm" onclick="archiveOldEvents(90)" title="Move eventos concluídos há mais de 90 dias para o arquivo">🙉 Arquivar antigos</button>
+              <button class="btn btn-ghost btn-sm" onclick="archiveOldEvents(90)" title="Move eventos concluidos há mais de 90 dias para o arquivo">🙉 Arquivar antigos</button>
               <button class="btn btn-danger btn-sm" onclick="clearAllData()">🙆 Limpar tudo</button>
             </div>
           </div>
@@ -2246,7 +2246,7 @@ export function driveDisconnect() {
   state.config.driveConnected = false;
   state.config.driveToken = null;
   state.config.driveFileId = null;
-  saveLocal();
+  scheduleSave();
   updateDriveUI();
   renderCurrentView();
   showToast('Google Drive desconectado', 'info');
@@ -2262,7 +2262,7 @@ export function archiveOldEvents(days = 90) {
     return;
   }
   showConfirm(
-    `Arquivar ${toArchive.length} evento(s) concluído(s) com mais de ${days} dias?\n\nEles continuarão no export/backup, mas não aparecerão nos relatórios.`,
+    `Arquivar ${toArchive.length} evento(s) concluido(s) com mais de ${days} dias?\n\nEles continuarão no export/backup, mas não aparecerão nos relatórios.`,
     () => {
       state.arquivo = [...(state.arquivo || []), ...toArchive];
       const archiveIds = new Set(toArchive.map(e => e.id));
@@ -2301,7 +2301,7 @@ export function importData() {
             invalidateDiscCache();
             invalidateRevCache();
             invalidateTodayCache();
-            saveLocal();
+            scheduleSave();
             renderCurrentView();
             showToast('Dados importados com sucesso!', 'success');
           },
@@ -2439,7 +2439,7 @@ export function onSearch(query) {
         <div class="search-item-icon">${disc.icone || '📚'}</div>
         <div>
           <div class="search-item-label">${highlight(ass.nome)}</div>
-          <div class="search-item-sub">${esc(disc.nome)} • ${esc(edital.nome)} ${ass.concluído ? '✅' : ''}</div>
+          <div class="search-item-sub">${esc(disc.nome)} • ${esc(edital.nome)} ${ass.concluido ? '✅' : ''}</div>
         </div>
       </div>`).join('');
   }

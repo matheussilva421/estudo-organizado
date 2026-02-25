@@ -4,7 +4,7 @@
 // =============================================
 
 import { state, scheduleSave } from './store.js';
-import { getAllDisciplinas, getDisc, getElapsedSeconds } from './logic.js';
+import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode } from './logic.js';
 import { openModal, closeModal, showToast, todayStr } from './app.js';
 import { renderCurrentView, updateBadges } from './components.js';
 
@@ -66,7 +66,7 @@ export function openRegistroSessao(eventId) {
   _currentEventId = eventId;
   _selectedTipos = ev.sessao?.tiposEstudo || [];
   _selectedMateriais = ev.sessao?.materiais || [];
-  _sessionMode = typeof window._pomodoroMode !== 'undefined' && window._pomodoroMode ? 'pomodoro' : 'cronometro';
+  _sessionMode = _pomodoroMode ? 'pomodoro' : 'cronometro';
 
   // Build and render the form
   const body = document.getElementById('modal-registro-body');
@@ -569,7 +569,9 @@ export function saveRegistroSessao() {
 
   // Update study cycle progress
   if (state.ciclo && state.ciclo.ativo && discId) {
-    const cycleDisc = state.ciclo.disciplinas.find(d => d.id === discId);
+    const discEntry = getDisc(discId);
+    const discNome = discEntry ? discEntry.disc.nome : null;
+    const cycleDisc = discNome ? state.ciclo.disciplinas.find(d => d.nome === discNome) : null;
     if (cycleDisc && !cycleDisc.concluido) {
       const addedMin = Math.round((ev.tempoAcumulado || 0) / 60);
       cycleDisc.estudadoMin = (cycleDisc.estudadoMin || 0) + addedMin;

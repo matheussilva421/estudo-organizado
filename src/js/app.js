@@ -240,12 +240,7 @@ export function init() {
   });
 }
 
-// Start application
-if (document.readyState === 'loading') {
-  window.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+// init() is called from main.js
 
 // =============================================
 // INTERACTIVE PROMPTS
