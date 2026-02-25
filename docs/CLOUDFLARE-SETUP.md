@@ -48,7 +48,7 @@ Este pedaço escutará o seu aplicativo e salvará os dados em trânsito no Banc
 
 1. No menu lateral da Cloudflare, volte em **Workers & Pages** -> **Overview**.
 2. Clique de novo em **Create Application**.
-3. Permaneça na aba *Workers* e clique em **Create Worker**.
+3. Na página **Ship something new**, clique na opção verde escrita **Comece com Hello World!**.
 4. Dê um nome, como `estudo-sync-api`, e clique em **Deploy**.
 5. Na tela amarela de sucesso, não clique no link; clique diretamente em **Edit code** para abrir o editor de código.
 6. Na aba à sua esquerda onde está escrito `worker.js`, apague todo o código "Hello World" existente lá de dentro.
