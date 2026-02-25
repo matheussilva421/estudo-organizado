@@ -59,20 +59,21 @@ Este pedaço escutará o seu aplicativo e salvará os dados em trânsito no Banc
 
 ## PARTE D: Conectar a API e Criar uma Senha
 
-1. Na página do Worker recém-criado, vá na aba **Settings** (Configurações).
-2. No menu lateral, acesse **Variables and Secrets**.
+No painel do seu Worker (`estudo-sync-api`), vá na aba **Configurações** (Settings) e depois no menu lateral em **Variáveis e segredos** (Variables and Secrets).
 
-### Conectando a API ao Banco (KV binding)
-3. Role até a seção **KV Namespace Bindings** e clique em **Add binding**.
-4. No campo **Variable name**, digite exatamente: `ESTUDO_KV`
-5. No campo **KV namespace**, selecione o banco da "Parte B" (`ESTUDO_ORGANIZADO_KV`).
-6. Salve / Deploy.
+### Criando a Senha de Segurança (Variável de Ambiente)
+1. Na primeira caixinha de "Variáveis e segredos", clique no botão azul **+ Adicionar**.
+2. No campo **Tipo**, clique e altere de *Texto* para **Segredo** (para que a senha fique invisível e protegida).
+3. No **Nome da variável**, escreva exatamente em maiúsculo: `AUTH_TOKEN`
+4. No campo **Valor**, invente a sua senha segura (ex: `SenhaMuitoForte123`).
+5. Role um pouco para baixo na janelinha e clique no botão azul **Adicionar variável** (ou Salvar/Implantar).
 
-### Criando a Senha (Environment Variable)
-7. Ainda nessa página, na seção superior **Environment Variables**, clique em **Add variable**.
-8. Em **Variable name**, digite: `AUTH_TOKEN`
-9. Em **Value**, crie sua própria senha secreta (Ex: `senhaSuperForte123`). *Clique em **Encrypt** ao lado se quiser escondê-la.*
-10. Sabe / Deploy.
+### Conectando a API ao Banco de Dados (KV Binding)
+6. Desça a tela principal inteira de Configurações até achar a seção **Ligações do Namespace KV** (ou *KV Namespace Bindings*).
+7. Clique no botão **+ Adicionar ligação** (Add binding).
+8. No **Nome da variável** (Variable name), escreva exatamente: `ESTUDO_KV`
+9. No **Namespace do KV** (KV namespace), selecione na lista o banco que criamos na Parte B (`ESTUDO_ORGANIZADO_KV`).
+10. Clique em Salvar/Deploy (botão azul inferior).
 
 ---
 
