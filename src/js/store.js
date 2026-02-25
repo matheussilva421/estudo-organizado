@@ -192,7 +192,7 @@ export function runMigrations() {
   }
 
   if (changed) scheduleSave();
-  archiveOldEvents();
+  // archiveOldEvents removido do boot — disponível manualmente em Configurações
 }
 
 // Fix 7: Automatic Cleanup — Archive VERY old 'estudei' events (older than 90 days)
