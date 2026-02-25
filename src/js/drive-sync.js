@@ -135,8 +135,11 @@ export function disconnectDrive() {
     }
 }
 
+let _isSyncing = false;
 export async function syncWithDrive() {
     if (!gapi.client || !gapi.client.drive) return;
+    if (_isSyncing) return;
+    _isSyncing = true;
     updateDriveUI('syncing', 'Sincronizando...');
 
     try {
@@ -152,6 +155,7 @@ export async function syncWithDrive() {
 
                 // Estratégia simples de merge: usa o arquivo mais recente
                 if (driveData.lastSync && state.lastSync && new Date(driveData.lastSync) > new Date(state.lastSync)) {
+                    _isSyncing = false; // release lock early
                     // O Drive tem uma versão mais nova (modificada em outro dispositivo)
                     showConfirm('Encontrada versão mais recente no Drive. Deseja sobrescrever os dados locais?', () => {
                         setState(driveData);
@@ -168,6 +172,12 @@ export async function syncWithDrive() {
             } catch (e) {
                 // Arquivo pode ter sido apagado no Drive
                 console.warn('Não foi possível ler do Drive, sobrescrevendo arquivo.', e);
+                if (e.status === 404 || e.result?.error?.code === 404) {
+                    state.driveFileId = null;
+                    saveStateToDB();
+                    _isSyncing = false;
+                    return syncWithDrive(); // tenta novamente, agora criando arquivo novo
+                }
             }
 
             // Atualiza o arquivo existente
@@ -219,6 +229,8 @@ export async function syncWithDrive() {
         console.error('Erro ao sincronizar:', err);
         showToast('Erro ao sincronizar com Drive', 'error');
         updateDriveUI('connected', 'Erro na Sincronização'); // keeps connected but shows error visually
+    } finally {
+        _isSyncing = false;
     }
 }
 

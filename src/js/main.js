@@ -142,7 +142,7 @@ document.addEventListener('click', (e) => {
       window.removerCiclo();
       break;
     case 'toggle-ciclo-fin':
-      window.toggleCicloFin(e.target.checked);
+      window.toggleCicloFin(el.checked);
       break;
 
     default:

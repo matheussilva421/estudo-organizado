@@ -34,7 +34,7 @@ export function renderCronometro(el) {
         <p style="color:#8b949e;font-size:15px;margin-bottom:32px;text-align:center;">
           Inicie um cronômetro em qualquer evento<br>de estudo para vê-lo aqui.
         </p>
-        <button class="action-btn med-btn" onclick="app.navigate('med')">
+        <button class="action-btn med-btn" data-action="navigate" data-view="med">
           <i class="fa fa-book"></i> Ir para Study Organizer
         </button>
       </div>`;

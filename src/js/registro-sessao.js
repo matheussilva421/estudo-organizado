@@ -6,7 +6,7 @@
 import { state, scheduleSave } from './store.js';
 import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode } from './logic.js';
 import { openModal, closeModal, showToast } from './app.js';
-import { todayStr } from './utils.js';
+import { todayStr, esc } from './utils.js';
 import { renderCurrentView, updateBadges } from './components.js';
 
 // =============================================
@@ -385,7 +385,7 @@ export function onDisciplinaChange() {
 
   const options = d.disc.assuntos.map(a => {
     const status = a.concluido ? ' ✅' : '';
-    return `<option value="${a.id}">${a.nome}${status}</option>`;
+    return `<option value="${a.id}">${esc(a.nome)}${status}</option>`;
   });
   assSelect.innerHTML = '<option value="">Selecione um tópico...</option>' + options.join('');
 }
