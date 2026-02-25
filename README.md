@@ -8,12 +8,12 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 
 ---
 
-## 🆕 Últimas Atualizações (Wave 6)
-- **Drive Sync Resiliente:** Sincronização construída via `multipart/related` seguindo especificações rigorosas do Google Cloud para impedir corrompimentos HTTP.
-- **Proteção Anti-XSS:** Sanitização ativa contra inputs maliciosos em campos de modais e descrições na renderização UI.
-- **Segurança de Dados:** Prompt nativo de `beforeunload` para impedir perdas em *race conditions* caso uma tela seja fechada rapidamente.
-- **Performance de Timers:** Eliminação total de timers-zumbis na memória nativa RAM, corrigindo os congelamentos da Dashboard e MED.
-- Documentação integral das correções disponíveis e audições de código em `analise_de_codigo.md` e `walkthrough.md`.
+## 🆕 Últimas Atualizações (Wave 9 - Conectividade & QA)
+- **Integração Planejamento ↔ Cronômetro:** Agora os blocos de estudo gerados no módulo Planejamento ("Grade Semanal" e "Ciclo") possuem o botão **Estudar Agora**, enviando a disciplina alvo direto para o Cronômetro e registrando o progresso automaticamente no fim da sessão.
+- **Cascata de Exclusões Segura:** A exclusão de Editais, Disciplinas e Assuntos agora limpa varre e desvincula corretamente o histórico de eventos e planejamentos órfãos, prevenindo quebras de renderização na Dashboard.
+- **Correção "Midnight Rollover":** Resolvido o bug onde as datas do sistema congelavam se a aba permanecesse aberta virando a noite. O sistema agora revalida a data ativamente em `visibilitychange` da aba e ciclos de evento de gravação.
+- **Auditoria Rigorosa:** Verificações profundas nos validadores numéricos e lógicos do registro de hábitos (Simulados, Discursivas, Leitura Seca).
+- Documentação integral das correções disponíveis e audições de código em `analise_de_codigo_wave9.md` e `walkthrough.md`.
 
 ## ✨ Funcionalidades
 

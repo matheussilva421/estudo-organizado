@@ -1512,10 +1512,17 @@ export function deleteAssunto(discId, assId) {
     const entry = getDisc(discId);
     if (entry) {
       entry.disc.assuntos = entry.disc.assuntos.filter(a => a.id !== assId);
+
+      if (state.eventos) {
+        state.eventos.forEach(e => {
+          if (e.assId === assId) { delete e.assId; }
+        });
+      }
+
       invalidateDiscCache();
       scheduleSave();
       renderCurrentView();
-      if (editingSubjectCtx && editingSubjectCtx.discId === discId) {
+      if (typeof editingSubjectCtx !== 'undefined' && editingSubjectCtx && editingSubjectCtx.discId === discId) {
         openDiscManager(editingSubjectCtx.editaId, discId);
       }
     }
@@ -1525,8 +1532,20 @@ export function deleteAssunto(discId, assId) {
 export function deleteDisc(editaId, discId) {
   showConfirm('Excluir esta disciplina e todos seus assuntos?\n\nEsta ação não pode ser desfeita.', () => {
     const edital = state.editais.find(e => e.id === editaId);
-    if (!edital) return;
-    if (!edital.disciplinas) return; edital.disciplinas = edital.disciplinas.filter(d => d.id !== discId);
+    if (!edital || !edital.disciplinas) return;
+    edital.disciplinas = edital.disciplinas.filter(d => d.id !== discId);
+
+    if (state.eventos) {
+      state.eventos.forEach(e => {
+        if (e.discId === discId) { delete e.discId; delete e.assId; }
+      });
+    }
+    if (state.planejamento && state.planejamento.disciplinas) {
+      state.planejamento.disciplinas = state.planejamento.disciplinas.filter(id => id !== discId);
+      if (state.planejamento.relevancia && state.planejamento.relevancia[discId]) delete state.planejamento.relevancia[discId];
+      if (state.planejamento.sequencia) state.planejamento.sequencia = state.planejamento.sequencia.filter(s => s.discId !== discId);
+    }
+
     invalidateDiscCache();
     scheduleSave();
     renderCurrentView();
@@ -1539,7 +1558,22 @@ export function deleteEdital(editaId) {
   showConfirm(`Excluir "${nome}" completamente?
 
 Todos os grupos, disciplinas e assuntos serão removidos. Esta ação não pode ser desfeita.`, () => {
+    const discIds = edital && edital.disciplinas ? edital.disciplinas.map(d => d.id) : [];
     state.editais = state.editais.filter(e => e.id !== editaId);
+
+    if (discIds.length > 0 && state.eventos) {
+      state.eventos.forEach(e => {
+        if (discIds.includes(e.discId)) { delete e.discId; delete e.assId; }
+      });
+    }
+    if (discIds.length > 0 && state.planejamento && state.planejamento.disciplinas) {
+      state.planejamento.disciplinas = state.planejamento.disciplinas.filter(id => !discIds.includes(id));
+      discIds.forEach(id => {
+        if (state.planejamento.relevancia && state.planejamento.relevancia[id]) delete state.planejamento.relevancia[id];
+      });
+      if (state.planejamento.sequencia) state.planejamento.sequencia = state.planejamento.sequencia.filter(s => !discIds.includes(s.discId));
+    }
+
     invalidateDiscCache();
     scheduleSave();
     renderCurrentView();
@@ -2581,6 +2615,12 @@ export function renderCiclo(el) {
               <div class="ciclo-item-meta">${formatH(seq.minutosAlvo)} planejado</div>
             </div>
             <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Etapa ${i + 1} da sequência</div>
+            <div style="margin-top:8px;">
+               ${!seq.concluido
+          ? `<button class="btn btn-primary btn-sm" onclick="window.iniciarEtapaPlanejamento('${seq.id}')"><i class="fa fa-play"></i> Estudar Agora</button>`
+          : `<span style="color:var(--green);font-size:12px;font-weight:600;"><i class="fa fa-check"></i> Etapa Concluída</span>`
+        }
+            </div>
           </div>
         </div>
       `;
@@ -2718,6 +2758,12 @@ export function renderCiclo(el) {
                   <div class="ciclo-item-meta">${formatH(seq.minutosAlvo)} planejado</div>
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Etapa ${i + 1} da sequência global da semana</div>
+                <div style="margin-top:8px;">
+                   ${!seq.concluido
+            ? `<button class="btn btn-primary btn-sm" onclick="window.iniciarEtapaPlanejamento('${seq.id}')"><i class="fa fa-play"></i> Estudar Agora</button>`
+            : `<span style="color:var(--green);font-size:12px;font-weight:600;"><i class="fa fa-check"></i> Etapa Concluída</span>`
+          }
+                </div>
               </div>
             </div>
           `;

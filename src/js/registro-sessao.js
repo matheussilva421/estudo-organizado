@@ -574,7 +574,7 @@ export function saveRegistroSessao() {
     }
   });
 
-  // Update study cycle progress
+  // Update legacy study cycle progress
   if (state.ciclo && state.ciclo.ativo && discId) {
     const discEntry = getDisc(discId);
     const discNome = discEntry ? discEntry.disc.nome : null;
@@ -590,6 +590,18 @@ export function saveRegistroSessao() {
         if (allCompleted) {
           state.ciclo.ciclosCompletos = (state.ciclo.ciclosCompletos || 0) + 1;
         }
+      }
+    }
+  }
+
+  // Update new Planejamento sequence progress
+  if (state.planejamento && state.planejamento.ativo && ev.seqId) {
+    if (state.planejamento.sequencia) {
+      const seq = state.planejamento.sequencia.find(s => s.id === ev.seqId);
+      if (seq && !seq.concluido) {
+        // We can check if they studied enough, but marking it unconditionally is safer UX for now
+        // if they hit "Concluir" in the session register.
+        seq.concluido = true;
       }
     }
   }

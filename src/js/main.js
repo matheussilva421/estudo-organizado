@@ -48,6 +48,16 @@ document.addEventListener('app:invalidateCaches', () => {
   if (typeof window.invalidateDiscCache === 'function') window.invalidateDiscCache();
   if (typeof window.invalidateRevCache === 'function') window.invalidateRevCache();
   if (typeof window.invalidatePendingRevCache === 'function') window.invalidatePendingRevCache();
+  if (typeof window.invalidateTodayCache === 'function') window.invalidateTodayCache();
+});
+
+// Force cache invalidation if user returns to app next day
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    if (typeof window.invalidateTodayCache === 'function') window.invalidateTodayCache();
+    if (typeof window.invalidatePendingRevCache === 'function') window.invalidatePendingRevCache();
+    if (typeof window.renderCurrentView === 'function') window.renderCurrentView();
+  }
 });
 
 // Domain events fired from logic.js to update specific views

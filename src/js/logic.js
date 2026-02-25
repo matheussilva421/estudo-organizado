@@ -537,3 +537,37 @@ export function deletePlanejamento() {
     }
   }));
 }
+
+export function iniciarEtapaPlanejamento(seqId) {
+  if (!state.planejamento || !state.planejamento.sequencia) return;
+  const seq = state.planejamento.sequencia.find(s => s.id === seqId);
+  if (!seq) return;
+  const d = getDisc(seq.discId);
+
+  const evento = {
+    id: 'ev_' + Date.now() + Math.random(),
+    titulo: `Estudar ${d?.disc.nome || 'Disciplina'}`,
+    data: todayStr(),
+    duracao: seq.minutosAlvo,
+    status: 'agendado',
+    tempoAcumulado: 0,
+    tipo: 'conteudo',
+    discId: seq.discId,
+    assId: null,
+    habito: null,
+    seqId: seq.id,
+    criadoEm: new Date().toISOString()
+  };
+
+  state.eventos.push(evento);
+  scheduleSave();
+
+  // Switch to Cronometro and start ticking
+  document.dispatchEvent(new CustomEvent('click', { detail: 'navigate-mock' })); // To trigger standard navigation
+
+  // Wait for event loop to push state
+  setTimeout(() => {
+    if (typeof window.navigate === 'function') window.navigate('cronometro');
+    setTimeout(() => toggleTimer(evento.id), 100);
+  }, 50);
+}
