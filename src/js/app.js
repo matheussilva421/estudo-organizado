@@ -148,7 +148,13 @@ export function showToast(msg, type = '') {
   toast.setAttribute('aria-live', 'polite');
   toast.dataset.msg = msg;
   const icons = { success: '✅', error: '❌', info: 'ℹ️' };
-  toast.innerHTML = `<span>${icons[type] || '💬'}</span> <span>${msg}</span>`;
+  const iconSpan = document.createElement('span');
+  iconSpan.textContent = icons[type] || '💬';
+  const msgSpan = document.createElement('span');
+  msgSpan.textContent = msg;
+  toast.appendChild(iconSpan);
+  toast.appendChild(document.createTextNode(' '));
+  toast.appendChild(msgSpan);
   container.appendChild(toast);
   requestAnimationFrame(() => { toast.classList.add('show'); });
   setTimeout(() => {

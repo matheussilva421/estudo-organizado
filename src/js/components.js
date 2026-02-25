@@ -1,4 +1,4 @@
-import { HABIT_TYPES, currentView, formatDate, formatTime, getEventStatus, todayStr } from './app.js';
+import { HABIT_TYPES, currentView, formatDate, formatTime, getEventStatus, todayStr, esc } from './app.js';
 import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo } from './views.js';
 import { state } from './store.js';
 import { deleteEvento, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
@@ -52,7 +52,7 @@ export function renderCronometro(el) {
   const isActive = !!focusEvent._timerStart;
 
   // Calculate progress (if event has planned time, default 1h30)
-  const plannedSecs = focusEvent.duracaoMinutos ? focusEvent.duracaoMinutos * 60 : 5400;
+  const plannedSecs = (focusEvent.duracaoMinutos || focusEvent.duracao) ? (focusEvent.duracaoMinutos || focusEvent.duracao) * 60 : 5400;
   const progress = Math.min((elapsed / plannedSecs) * 100, 100);
 
   const otherEvents = allTimerEvents.filter(e => e.id !== focusEvent.id);
@@ -317,8 +317,8 @@ export function renderEventCard(evento) {
       <div class="event-stripe ${status}"></div>
       <div class="event-disc-icon" style="background:${iconBg}20;color:${iconBg};">${icon}</div>
       <div class="event-info">
-        <div class="event-title">${evento.titulo || 'Evento'}</div>
-        <div class="event-sub">${evento.data ? formatDate(evento.data) : 'Sem data'}${disc ? ' • ' + disc.nome : ''}</div>
+        <div class="event-title">${esc(evento.titulo || 'Evento')}</div>
+        <div class="event-sub">${evento.data ? formatDate(evento.data) : 'Sem data'}${disc ? ' • ' + esc(disc.nome) : ''}</div>
         <div class="event-meta">
           <span class="event-tag ${status}">${status === 'estudei' ? 'Estudei' : status === 'atrasado' ? 'Atrasado' : 'Agendado'}</span>
           ${elapsed > 0 ? `<span style="font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;" data-timer="${evento.id}">${tempo}</span>` : ''}

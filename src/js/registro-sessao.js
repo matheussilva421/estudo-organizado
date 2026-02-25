@@ -246,7 +246,7 @@ function renderRegistroForm(ev) {
 
 function renderConditionalFields() {
   const showQuestoes = _selectedTipos.includes('questoes') || _selectedTipos.includes('simulado');
-  const showPaginas = ['leitura', 'informativo', 'sumulas'].some(t => _selectedTipos.includes(t)) ||
+  const showPaginas = ['leitura', 'informativo', 'sumula'].some(t => _selectedTipos.includes(t)) ||
     ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some(m => _selectedMateriais.includes(m));
   const showVideo = _selectedTipos.includes('videoaula');
 
@@ -464,12 +464,11 @@ export function setPaginaMode(mode) {
 
 export function saveRegistroSessao() {
   const ev = state.eventos.find(e => e.id === _currentEventId);
-  if (!ev) { showToast('Evento não encontrado', 'error'); return; }
+  if (!ev) { showToast('Evento não encontrado', 'error'); return false; }
 
   // Validation
   if (_selectedTipos.length === 0) {
-    showToast('Selecione pelo menos 1 tipo de estudo', 'error');
-    return;
+    showToast('Selecione ao menos um tipo de estudo', 'error'); return false;
   }
 
   const discId = document.getElementById('reg-disciplina')?.value;
@@ -482,8 +481,8 @@ export function saveRegistroSessao() {
     const total = parseInt(document.getElementById('reg-q-total')?.value || '0');
     const acertos = parseInt(document.getElementById('reg-q-acertos')?.value || '0');
     const erros = parseInt(document.getElementById('reg-q-erros')?.value || '0');
-    if (total <= 0) { showToast('Informe o total de questões', 'error'); return; }
-    if (acertos + erros > total) { showToast('Acertos + Erros não pode ser maior que o Total', 'error'); return; }
+    if (total <= 0) { showToast('Informe o total de questões', 'error'); return false; }
+    if (acertos + erros > total) { showToast('Acertos + Erros não pode ser maior que o Total', 'error'); return false; }
     questoes = { total, acertos, erros };
   }
 
@@ -492,12 +491,12 @@ export function saveRegistroSessao() {
   if (_selectedTipos.includes('videoaula')) {
     const titulo = document.getElementById('reg-video-titulo')?.value.trim() || '';
     const tempoMin = parseInt(document.getElementById('reg-video-tempo')?.value || '0');
-    if (tempoMin <= 0) { showToast('Informe o tempo de vídeo assistido', 'error'); return; }
+    if (tempoMin <= 0) { showToast('Informe o tempo de vídeo assistido', 'error'); return false; }
     videoaula = { titulo, tempoMin };
   }
 
   // Validate páginas if needed
-  const showPaginas = ['leitura', 'informativo', 'sumulas'].some(t => _selectedTipos.includes(t)) ||
+  const showPaginas = ['leitura', 'informativo', 'sumula'].some(t => _selectedTipos.includes(t)) ||
     ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some(m => _selectedMateriais.includes(m));
   let paginas = null;
   if (showPaginas) {
@@ -599,10 +598,12 @@ export function saveRegistroSessao() {
   updateBadges();
   renderCurrentView();
   showToast('Sessão registrada com sucesso! ✅', 'success');
+  return true;
 }
 
 export function saveAndStartNew() {
-  saveRegistroSessao();
+  const success = saveRegistroSessao();
+  if (!success) return;
   // Reset internal state for next session
   _currentEventId = null;
   _selectedTipos = [];

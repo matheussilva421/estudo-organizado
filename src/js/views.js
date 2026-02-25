@@ -1,5 +1,5 @@
 ﻿import { HABIT_TYPES, applyTheme, closeModal, currentView, cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, navigate, showConfirm, showToast, todayStr, uid, openModal, cancelConfirm } from './app.js';
-import { scheduleSave, state, setState } from './store.js';
+import { scheduleSave, state, setState, runMigrations } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats } from './logic.js';
 import { getHabitType, renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
@@ -2088,8 +2088,8 @@ export function renderConfig(el) {
                 <div class="config-label">Modo escuro</div>
                 <div class="config-sub">Reduz o brilho da tela para uso noturno</div>
               </div>
-              <div class="toggle ${cfg.darkMode ? 'on' : ''}" id="dark-toggle"
-                onclick="applyTheme(true);this.classList.toggle('on');renderCurrentView()"></div>
+              <button type="button" class="toggle ${cfg.darkMode ? 'on' : ''}" id="dark-toggle" aria-pressed="${cfg.darkMode ? 'true' : 'false'}" aria-label="Ativar Modo escuro"
+                onclick="applyTheme(true);this.classList.toggle('on');this.setAttribute('aria-pressed', this.classList.contains('on'));renderCurrentView()"></button>
             </div>
           </div>
         </div>
@@ -2119,14 +2119,14 @@ export function renderConfig(el) {
               <div>
                 <div class="config-label">Número da semana</div>
               </div>
-              <div class="toggle ${cfg.mostrarNumeroSemana ? 'on' : ''}" onclick="toggleConfig('mostrarNumeroSemana',this)"></div>
+              <button type="button" class="toggle ${cfg.mostrarNumeroSemana ? 'on' : ''}" aria-pressed="${cfg.mostrarNumeroSemana ? 'true' : 'false'}" aria-label="Mostrar número da semana" onclick="toggleConfig('mostrarNumeroSemana',this);this.setAttribute('aria-pressed', this.classList.contains('on'))"></button>
             </div>
             <div class="config-row">
               <div>
                 <div class="config-label">Agrupar eventos no dia</div>
                 <div class="config-sub">Limita quantidade visível</div>
               </div>
-              <div class="toggle ${cfg.agruparEventos ? 'on' : ''}" onclick="toggleConfig('agruparEventos',this)"></div>
+              <button type="button" class="toggle ${cfg.agruparEventos ? 'on' : ''}" aria-pressed="${cfg.agruparEventos ? 'true' : 'false'}" aria-label="Agrupar eventos no dia" onclick="toggleConfig('agruparEventos',this);this.setAttribute('aria-pressed', this.classList.contains('on'))"></button>
             </div>
           </div>
         </div>
@@ -2320,6 +2320,7 @@ export function importData() {
           `Importar dados de "${file.name}"?\n\nIsso substituirá todos os dados atuais. Faça um export antes para garantir o backup.`,
           () => {
             setState(imported);
+            runMigrations();
             invalidateDiscCache();
             invalidateRevCache();
             invalidateTodayCache();
