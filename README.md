@@ -15,6 +15,11 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 - **Auditoria Rigorosa:** Verificações profundas nos validadores numéricos e lógicos do registro de hábitos (Simulados, Discursivas, Leitura Seca).
 - Documentação integral das correções disponíveis e audições de código em `analise_de_codigo_wave9.md` e `walkthrough.md`.
 
+## ⚡ Wave Especial - Sincronização Cloudflare KV (Real-time Sync)
+- **Latência Zero:** Introduzimos um Sync de alta performance com a rede Edge da Cloudflare. É o método primário para manter seu App Estudo Organizado pareado entre celular e PC.
+- **Sem Perda de Dados:** Mecanismo de timestamps previne que versões mais antigas do aplicativo aniquilem uma sessão de cronômetro atual de um dispositivo ativo.
+- **Fail-safe com Drive:** O Google Drive agora opera como uma malha de backup secundária.
+
 ## ✨ Funcionalidades
 
 | Módulo | Descrição |
@@ -67,12 +72,28 @@ estudo-organizado/
 │       ├── components.js    # Componentes de UI reutilizáveis
 │       ├── views.js         # Renderização de todas as views baseadas no estado
 │       ├── registro-sessao.js # Lógica específica do modal de registro de sessão
+│       ├── cloud-sync.js    # Sincronização Serverless em alta velocidade via Cloudflare Workers
 │       └── drive-sync.js    # Sincronização com Google Drive
+├── docs/
+│   ├── CLOUDFLARE-SETUP.md      # Guia para a implantação na nuvem Cloudflare
+│   └── WALKTHROUGH-CLOUDFLARE.md # Log técnico da implementação da API de Sincronização
+├── scripts/
+│   ├── cloudflare-worker.js     # Script JS independente para a borda Serverless
+│   ├── fix-all.js               # Injeções de linting e scripts da CLI (Automático)
+│   └── rename_concluido.ps1     # Powershell de refatoração legado
 ├── Abrir_Estudo_Organizado.bat  # Launcher para Windows
 ├── .gitignore
 ├── LICENSE
 └── README.md
 ```
+
+## ☁️ Cloudflare Multi-Device Sync (Recomendado)
+
+Para espelhar seu Estudo Organizado do Computador para o Celular instantaneamente:
+1. Siga os três passos do guia em `docs/CLOUDFLARE-SETUP.md` para criar sua chave grátis e ligar as páginas;
+2. Vá em **Configurações** na nossa aplicação;
+3. Insira sua URL do Worker recém criado (ex: `https://sync.meunome.workers.dev`) e a senha (Auth Token) que você escolheu;
+4. Clique em **Ativar Sincronização** e observe a atualização imediata.
 
 ## 🔧 Tecnologias
 
