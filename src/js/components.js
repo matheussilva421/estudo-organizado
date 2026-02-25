@@ -34,12 +34,8 @@ export function renderCronometro(el) {
         <p style="color:#8b949e;font-size:15px;margin-bottom:32px;text-align:center;">
           Inicie um cronômetro em qualquer evento<br>de estudo para vê-lo aqui.
         </p>
-        <button class="btn" style="
-          background:linear-gradient(135deg,#238636,#2ea043);color:#fff;
-          padding:14px 32px;font-size:15px;border-radius:12px;border:none;cursor:pointer;
-          box-shadow:0 4px 16px rgba(46,160,67,0.3);
-        " onclick="navigate('med')">
-          <i class="fa fa-book"></i> Ir para Meu Estudo Diário
+        <button class="action-btn med-btn" onclick="app.navigate('med')">
+          <i class="fa fa-book"></i> Ir para Study Organizer
         </button>
       </div>`;
     return;
@@ -241,11 +237,12 @@ export function renderCurrentView() {
 
   const el = document.getElementById('content');
   if (!el) return;
-  document.getElementById('topbar-title').textContent = {
-    home: 'Página Inicial', med: 'Meu Estudo Diário', calendar: 'Calendário',
-    dashboard: 'Dashboard', revisoes: 'Revisões', habitos: 'Hábitos',
+  const titles = {
+    home: 'Página Inicial', med: 'Study Organizer', calendar: 'Calendário',
+    revisoes: 'Revisões Pendentes', habitos: 'Hábitos de Estudo',
     editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações', cronometro: 'Cronômetro', ciclo: 'Ciclo de Estudos'
-  }[currentView] || 'Estudo Organizado';
+  };
+  document.getElementById('topbar-title').textContent = titles[currentView] || 'Estudo Organizado';
 
   document.getElementById('topbar-date').innerHTML = currentView === 'home'
     ? `<i class="fa fa-calendar-alt"></i> ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`

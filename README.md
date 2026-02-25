@@ -1,6 +1,6 @@
 # 📚 Estudo Organizado
 
-Aplicação web para **planejamento e organização de estudos** voltada para concursos públicos. Baseada no **Ciclo PDCA**: planeje no Calendário, execute no Meu Estudo Diário, meça no Dashboard e corrija com as Revisões.
+Aplicação web para **planejamento e organização de estudos** voltada para concursos públicos. Baseada no **Ciclo PDCA**: planeje no Calendário, execute no Study Organizer, meça no Dashboard e corrija com as Revisões.
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white)
@@ -13,7 +13,7 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 | Módulo | Descrição |
 |---|---|
 | 🏠 **Página Inicial** | Visão geral do dia: eventos agendados, estudados, atrasados e revisões pendentes |
-| 📖 **Meu Estudo Diário** | Registro de sessões de estudo com timer Pomodoro integrado |
+| 📖 **Study Organizer** | Registro de sessões de estudo com timer Pomodoro integrado |
 | 📅 **Calendário** | Visualização mensal e semanal dos eventos de estudo |
 | 📊 **Dashboard** | Métricas de desempenho: tempo estudado, sessões, questões e simulados |
 | 🔄 **Revisões** | Sistema de revisão espaçada com intervalos configuráveis (1, 7, 30, 90 dias) |

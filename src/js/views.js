@@ -2228,7 +2228,7 @@ export function renderConfig(el) {
           <div class="card-body">
             <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
               <strong>Estudo Organizado</strong> é um app para planejamento e organização de estudos para concursos públicos.<br><br>
-              Baseado no Ciclo PDCA: planeje no Calendário, execute no Meu Estudo Diário, meça no Dashboard e corrija com as Revisões.<br><br>
+              Baseado no Ciclo PDCA: planeje no Calendário, execute no Study Organizer, meça no Dashboard e corrija com as Revisões.<br><br>
               <span style="font-size:11px;color:var(--text-muted);">Versão 1.0 • Dados salvos localmente + Google Drive</span>
             </div>
           </div>
