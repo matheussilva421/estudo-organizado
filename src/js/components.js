@@ -258,7 +258,7 @@ export function renderCurrentView() {
   } else if (currentView === 'editais') {
     actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
   } else if (currentView === 'ciclo') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="replanejar-ciclo"><i class="fa fa-cog"></i> Configurar Ciclo</button>`;
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="window.wizard.openPlanejamentoWizard()"><i class="fa fa-cog"></i> Planejamento</button>`;
   }
 
   updateBadges();

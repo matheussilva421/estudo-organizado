@@ -9,9 +9,10 @@ import * as views from './views.js';
 import * as drive_sync from './drive-sync.js';
 import * as registro from './registro-sessao.js';
 import * as utils from './utils.js';
+import * as wizard from './planejamento-wizard.js';
 
 // Expose all exports to window (temporary bridge for inline onclick handlers)
-const modules = [store, app, logic, components, views, drive_sync, registro, utils];
+const modules = [store, app, logic, components, views, drive_sync, registro, utils, wizard];
 for (const mod of modules) {
   for (const [key, value] of Object.entries(mod)) {
     window[key] = value;
@@ -132,11 +133,8 @@ document.addEventListener('click', (e) => {
       break;
 
     // Ciclo de Estudos
-    case 'replanejar-ciclo':
-      window.replanejarCiclo();
-      break;
-    case 'recomecar-ciclo':
-      window.recomecarCiclo();
+    case 'remover-planejamento':
+      if (typeof window.deletePlanejamento === 'function') window.deletePlanejamento();
       break;
     case 'remover-ciclo':
       window.removerCiclo();

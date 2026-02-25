@@ -357,6 +357,52 @@
             </div>
         </div>
     </div>
+    </div>
+
+    <!-- PLANEJAMENTO WIZARD MODAL -->
+    <div class="modal-overlay" id="modal-planejamento" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal" style="width: 700px; max-width: 95vw;">
+            <div class="modal-header">
+                <h2>Planejamento de Estudos</h2>
+                <button class="modal-close" data-action="close-modal" data-modal="modal-planejamento"
+                    aria-label="Fechar" title="Fechar">×</button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div
+                    style="display: flex; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 16px 24px; gap: 8px; overflow-x: auto;">
+                    <div id="pw-step-1"
+                        style="flex: 1; text-align: center; font-size: 13px; font-weight: 600; color: var(--accent); white-space: nowrap;">
+                        01. Organização</div>
+                    <div style="color: var(--border);">›</div>
+                    <div id="pw-step-2"
+                        style="flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap;">
+                        02. Disciplinas</div>
+                    <div style="color: var(--border);">›</div>
+                    <div id="pw-step-3"
+                        style="flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap;">
+                        03. Relevância</div>
+                    <div style="color: var(--border);">›</div>
+                    <div id="pw-step-4"
+                        style="flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap;">
+                        04. Horários</div>
+                </div>
+                <div id="modal-planejamento-body"
+                    style="padding: 24px; min-height: 350px; max-height: 60vh; overflow-y: auto;">
+                    <!-- Wizard content injected here -->
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                <button class="btn btn-ghost" id="pw-btn-voltar" style="visibility: hidden;">Voltar</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-ghost" data-action="close-modal"
+                        data-modal="modal-planejamento">Cancelar</button>
+                    <button class="btn btn-primary" id="pw-btn-proximo" disabled>Próximo</button>
+                    <button class="btn btn-primary" id="pw-btn-concluir"
+                        style="display: none; background: #2ea043;">Concluir Planejamento</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </body>
 

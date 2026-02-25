@@ -2532,30 +2532,23 @@ document.addEventListener('keydown', e => {
 });
 
 // =============================================
-// CICLO DE ESTUDOS VIEW
+// PLANEJAMENTO DE ESTUDOS VIEW (WIZARD RESULTS)
 // =============================================
 export function renderCiclo(el) {
-  if (!state.ciclo || !state.ciclo.ativo || !state.ciclo.disciplinas || state.ciclo.disciplinas.length === 0) {
+  const plan = state.planejamento || {};
+
+  if (!plan.ativo || !plan.disciplinas || plan.disciplinas.length === 0) {
     el.innerHTML = `
       <div class="empty-state" style="padding: 80px 20px;">
-        <div class="icon">♻️</div>
-        <h4>Nenhum Ciclo de Estudos Ativo</h4>
-        <p style="margin-bottom: 24px;">Configure uma sequência de disciplinas em modo de ciclo infinito para organizar seus estudos sem horas fixas.</p>
-        <button class="btn btn-primary" data-action="replanejar-ciclo"><i class="fa fa-play"></i> Criar Novo Ciclo</button>
+        <div class="icon">🧭</div>
+        <h4>Nenhum Planejamento de Estudos</h4>
+        <p style="margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">Configure uma estratégia escolhendo entre o "Ciclo Contínuo de Estudos" ou a "Grade Semanal Fixa" para organizar seu tempo otimizadamente.</p>
+        <button class="btn btn-primary" onclick="window.wizard.openPlanejamentoWizard()"><i class="fa fa-play"></i> Criar Meu Planejamento</button>
       </div>
     `;
     return;
   }
 
-  const ciclo = state.ciclo;
-  const disciplinas = ciclo.disciplinas;
-
-  // Calculations
-  const totalPlanejado = disciplinas.reduce((acc, d) => acc + (d.planejadoMin || 0), 0);
-  const totalEstudado = disciplinas.reduce((acc, d) => acc + Math.min(d.estudadoMin || 0, d.planejadoMin || 0), 0);
-  const percentTotal = totalPlanejado > 0 ? Math.round((totalEstudado / totalPlanejado) * 100) : 0;
-
-  // Format total strings
   const formatH = min => {
     const h = Math.floor(min / 60);
     const m = min % 60;
@@ -2563,106 +2556,158 @@ export function renderCiclo(el) {
     return `${m}min`;
   };
 
-  // Build Conic Gradient 
-  let conic = [];
-  let currentStart = 0;
-  disciplinas.forEach(d => {
-    const planejado = d.planejadoMin || 0;
-    const share = totalPlanejado > 0 ? (planejado / totalPlanejado) * 100 : 0;
-    const end = currentStart + share;
-    if (share > 0) {
-      conic.push(`${d.cor} ${currentStart}% ${end}%`);
-    }
-    currentStart = end;
-  });
-  const donutBg = conic.length > 0 ? `conic-gradient(${conic.join(', ')})` : 'var(--border)';
+  if (plan.tipo === 'ciclo') {
+    // Lógica para renderizar Ciclo de Estudos
+    let totalTarget = 0;
+    let sequenceHtml = '';
 
-  // Build List Items
-  const hideFinished = window._hideConcluidosCiclo || false; // Track via global var
+    const dictDisciplinas = {};
+    plan.disciplinas.forEach(id => {
+      const disc = getDisc(id);
+      if (disc) dictDisciplinas[id] = disc;
+    });
 
-  const listHtml = disciplinas.map(d => {
-    if (hideFinished && d.concluido) return '';
+    plan.sequencia.forEach((seq, i) => {
+      const d = dictDisciplinas[seq.discId];
+      if (!d) return;
+      totalTarget += seq.minutosAlvo;
 
-    const est = d.estudadoMin || 0;
-    const plan = d.planejadoMin || 1;
-    let pct = Math.round((est / plan) * 100);
-    if (pct > 100) pct = 100;
-
-    return `
-      <div class="ciclo-item ${d.concluido ? 'concluido' : ''}">
-        <div class="ciclo-item-cor" style="background:${d.cor};"></div>
-        <div class="ciclo-item-body">
-          <div class="ciclo-item-header">
-            <div class="ciclo-item-title">${esc(d.nome)}</div>
-            <div class="ciclo-item-meta">${formatH(est)} / ${formatH(plan)}</div>
+      sequenceHtml += `
+        <div class="ciclo-item ${seq.concluido ? 'concluido' : ''}" style="margin-bottom:12px;">
+          <div class="ciclo-item-cor" style="background:${d.edital.cor || '#3b82f6'};"></div>
+          <div class="ciclo-item-body">
+            <div class="ciclo-item-header">
+              <div class="ciclo-item-title">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+              <div class="ciclo-item-meta">${formatH(seq.minutosAlvo)} planejado</div>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Etapa ${i + 1} da sequência</div>
           </div>
-          <div class="dash-progress-track">
-            <div class="dash-progress-bar" style="width:${pct}%; background:${d.cor};"></div>
+        </div>
+      `;
+    });
+
+    el.innerHTML = `
+      <!-- HEADER ACTIONS -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-sync"></i> Seu Ciclo de Estudos</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="window.wizard.openPlanejamentoWizard()" title="Editar Planejamento"><i class="fa fa-edit"></i> Editar Planejamento</button>
+          <button class="btn btn-danger btn-sm" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
+        </div>
+      </div>
+
+      <div class="ciclo-resumo-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:24px;">
+        <!-- Progresso / Metas -->
+        <div class="card" style="padding:24px; display:flex; flex-direction:column; justify-content:center;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Meta do Ciclo</div>
+          <div style="font-size:24px; font-weight:800; color:var(--text-primary);">${formatH(totalTarget)}</div>
+          <div style="font-size:13px; color:var(--text-secondary); margin-top:8px;">Planejamento gerado com <strong>${plan.disciplinas.length}</strong> disciplinas.</div>
+        </div>
+
+        <!-- Donut Chart -->
+        <div class="card" style="padding:20px; display:flex; justify-content:center; align-items:center; flex-direction:column;">
+          <div style="width: 150px; height: 150px; position:relative;">
+             <canvas id="planejamentoChart"></canvas>
+             <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-weight:700; font-size:18px;">${formatH(totalTarget)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTA DE ESTUDOS -->
+      <div class="card">
+        <div class="card-header" style="padding-bottom:12px;border:none;">
+          <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa fa-list-ol" style="color:var(--text-muted);"></i> Sequência Gerada</h3>
+        </div>
+        <div class="card-body" style="padding-top:0;">
+          <div class="ciclo-lista">
+            ${sequenceHtml || '<div style="padding:20px;text-align:center;color:var(--text-muted);">Sequência vazia.</div>'}
           </div>
         </div>
       </div>
     `;
-  }).join('');
 
-  el.innerHTML = `
-    <!-- HEADER ACTIONS -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-      <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-sync"></i> Planejamento do Ciclo</h2>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost btn-sm" data-action="recomecar-ciclo" title="Voltar progresso a zero mantendo configuração"><i class="fa fa-undo"></i> Recomeçar Ciclo</button>
-        <button class="btn btn-danger btn-sm" data-action="remover-ciclo"><i class="fa fa-trash"></i> Remover</button>
-      </div>
-    </div>
+    // Render Chart.js
+    setTimeout(() => {
+      const ctx = document.getElementById('planejamentoChart');
+      if (ctx) {
+        const labels = [];
+        const data = [];
+        const bgColors = [];
 
-    <!-- CARDS RESUMO -->
-    <div class="ciclo-resumo-grid">
-      <!-- Ciclos Completos -->
-      <div class="card" style="padding:20px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
-        <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Ciclos Completos</div>
-        <div style="font-size:36px; font-weight:800; color:var(--accent);">${ciclo.ciclosCompletos || 0}</div>
-        <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">vezes finalizado</div>
-      </div>
+        // Agrupar targets por disciplina para o gráfico
+        const chartData = {};
+        plan.sequencia.forEach(seq => {
+          if (!chartData[seq.discId]) chartData[seq.discId] = 0;
+          chartData[seq.discId] += seq.minutosAlvo;
+        });
 
-      <!-- Progresso Total -->
-      <div class="card" style="padding:24px; display:flex; flex-direction:column; justify-content:center;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-          <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Progresso Atual</div>
-          <div style="font-size:13px; font-weight:600; color:var(--text-secondary);">${formatH(totalEstudado)} / ${formatH(totalPlanejado)}</div>
-        </div>
-        <div class="dash-progress-track" style="height:18px; margin-bottom:12px;">
-          <div class="dash-progress-bar" style="width:${percentTotal}%; background:var(--accent);"></div>
-        </div>
-        <div style="font-size:24px; font-weight:800; color:var(--text-primary);">${percentTotal}%</div>
-      </div>
+        for (const [id, min] of Object.entries(chartData)) {
+          const d = dictDisciplinas[id];
+          if (d) {
+            labels.push(d.disc.nome);
+            data.push(min);
+            bgColors.push(d.edital.cor || '#3b82f6');
+          }
+        }
 
-      <!-- Donut Chart -->
-      <div class="card" style="padding:20px; display:flex; justify-content:center; align-items:center;">
-        <div class="donut-wrapper">
-          <div class="donut-chart" style="background: ${donutBg};"></div>
-          <div class="donut-inner">
-            <strong>${formatH(totalPlanejado)}</strong>
-            <span>Total</span>
-          </div>
-        </div>
-      </div>
-    </div>
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              backgroundColor: bgColors,
+              borderWidth: 0,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return ' ' + formatH(context.raw);
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }, 100);
 
-    <!-- LISTA DE ESTUDOS -->
-    <div class="card">
-      <div class="card-header" style="padding-bottom:12px;border:none;">
-        <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa fa-list-ol" style="color:var(--text-muted);"></i> Sequência dos Estudos</h3>
-      </div>
-      <div class="card-body" style="padding-top:0;">
-        <div class="ciclo-lista-action">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-            <input type="checkbox" id="toggle-ciclo-fin" ${hideFinished ? 'checked' : ''} data-action="toggle-ciclo-fin">
-            Ocultar finalizados
-          </label>
+  } else if (plan.tipo === 'semanal') {
+    // Lógica para planejameto Semanal
+    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    let weeklyHtml = '';
+
+    // Simple render of the schedule
+    for (let i = 0; i < 7; i++) {
+      if (plan.horarios.diasAtivos.includes(i)) {
+        weeklyHtml += `
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px;">
+               <div style="font-weight:700; margin-bottom:8px;">${days[i]}</div>
+               <div style="color:var(--text-muted); font-size:13px;">${plan.horarios.horasPorDia[i]} horas planejadas</div>
+            </div>
+          `;
+      }
+    }
+
+    el.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-calendar-alt"></i> Sua Grade Semanal</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="window.wizard.openPlanejamentoWizard()"><i class="fa fa-edit"></i> Editar Grade</button>
+          <button class="btn btn-danger btn-sm" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
         </div>
-        <div class="ciclo-lista">
-          ${listHtml || '<div style="padding:20px;text-align:center;color:var(--text-muted);">Nenhuma disciplina pendente.</div>'}
-        </div>
       </div>
-    </div>
-  `;
+      <div>
+        ${weeklyHtml || '<p>Nenhum dia de estudo planejado.</p>'}
+      </div>
+    `;
+  }
 }

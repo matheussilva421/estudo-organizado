@@ -400,3 +400,101 @@ export function getCurrentWeekStats() {
     dailySeconds
   };
 }
+
+// =============================================
+// PLANEJAMENTO DE ESTUDOS (WIZARD)
+// =============================================
+
+export function calculateRelevanceWeights(relevanciaDraft) {
+  let totalPeso = 0;
+  const result = {};
+
+  for (const discId in relevanciaDraft) {
+    const r = relevanciaDraft[discId];
+    const imp = parseInt(r.importancia, 10) || 3;
+    const con = parseInt(r.conhecimento, 10) || 3;
+
+    // Conhecimento 0 -> Fato 6 (muita atenção)
+    // Conhecimento 5 -> Fato 1 (pouca atenção)
+    const fatorConhecimento = 6 - con;
+    const peso = imp * fatorConhecimento;
+
+    result[discId] = { importancia: imp, conhecimento: con, peso };
+    totalPeso += peso;
+  }
+
+  for (const discId in result) {
+    result[discId].percentual = totalPeso > 0 ? (result[discId].peso / totalPeso) * 100 : 0;
+  }
+
+  return result;
+}
+
+export function generatePlanejamento(draft) {
+  const plan = {
+    ativo: true,
+    tipo: draft.tipo,
+    disciplinas: draft.disciplinas,
+    relevancia: calculateRelevanceWeights(draft.relevancia),
+    horarios: draft.horarios,
+    sequencia: []
+  };
+
+  if (plan.tipo === 'ciclo') {
+    const horasSemanais = parseFloat(plan.horarios.horasSemanais) || 0;
+    const totalMinutes = horasSemanais * 60;
+    const minSessao = parseInt(plan.horarios.sessaoMin, 10) || 30;
+    const maxSessao = parseInt(plan.horarios.sessaoMax, 10) || 120;
+
+    const sortedDiscs = [...plan.disciplinas].sort((a, b) => {
+      const wA = plan.relevancia[a]?.peso || 0;
+      const wB = plan.relevancia[b]?.peso || 0;
+      return wB - wA;
+    });
+
+    sortedDiscs.forEach(discId => {
+      const perc = plan.relevancia[discId]?.percentual || 0;
+      let targetMinutes = Math.round((perc / 100) * totalMinutes);
+
+      if (targetMinutes < minSessao) targetMinutes = minSessao;
+
+      let remaining = targetMinutes;
+      while (remaining > 0) {
+        let block = Math.min(remaining, maxSessao);
+        if (block < minSessao && remaining === targetMinutes) {
+          block = minSessao;
+        } else if (block < minSessao && remaining < targetMinutes) {
+          // just drop the tail if it's too small, or merge with previous
+          break;
+        }
+        plan.sequencia.push({
+          id: 'seq_' + Date.now() + Math.random(),
+          discId: discId,
+          minutosAlvo: block,
+          concluido: false
+        });
+        remaining -= block;
+      }
+    });
+  } else if (plan.tipo === 'semanal') {
+    // Semanal behavior
+  }
+
+  state.planejamento = plan;
+  scheduleSave();
+  return plan;
+}
+
+export function deletePlanejamento() {
+  document.dispatchEvent(new CustomEvent('app:showConfirm', {
+    detail: {
+      msg: 'Deseja excluir este Planejamento de Estudos? Você precisará criar um novo depois para gerar sequências.',
+      title: 'Excluir Planejamento',
+      onYes: () => {
+        state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
+        scheduleSave();
+        document.dispatchEvent(new Event('app:renderCurrentView'));
+      }
+    }
+  }));
+}

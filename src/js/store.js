@@ -7,12 +7,13 @@ export const DB_VERSION = 1;
 export const STORE_NAME = 'app_state';
 
 export let db;
-export const DEFAULT_SCHEMA_VERSION = 4;
+export const DEFAULT_SCHEMA_VERSION = 5;
 
 export function setState(newState) {
   const normalized = {
     schemaVersion: newState.schemaVersion || DEFAULT_SCHEMA_VERSION,
     ciclo: newState.ciclo || { ativo: false, ciclosCompletos: 0, disciplinas: [] },
+    planejamento: newState.planejamento || { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] },
     editais: newState.editais || [],
     eventos: newState.eventos || [],
     arquivo: newState.arquivo || [],
@@ -31,6 +32,7 @@ export function setState(newState) {
 export let state = {
   schemaVersion: DEFAULT_SCHEMA_VERSION,
   ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
+  planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] },
   editais: [],
   eventos: [],
   arquivo: [], // concluded events older than 90 days
@@ -211,6 +213,14 @@ export function runMigrations() {
     changed = true;
   }
 
+  if (state.schemaVersion === 4) {
+    if (!state.planejamento) {
+      state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
+    }
+    state.schemaVersion = 5;
+    changed = true;
+  }
+
   // Normalize habitos keys
   if (state.habitos) {
     if (state.habitos.sumulas && !state.habitos.sumula) {
@@ -247,6 +257,7 @@ export function clearData() {
         setState({
           schemaVersion: DEFAULT_SCHEMA_VERSION,
           ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
+          planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] },
           editais: [],
           eventos: [],
           arquivo: [],
