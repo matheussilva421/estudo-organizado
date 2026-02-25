@@ -77,9 +77,11 @@ export function toggleTimer(eventId) {
     // PAUSE
     ev.tempoAcumulado = getElapsedSeconds(ev);
     delete ev._timerStart;
+    if (timerIntervals[eventId]) { clearInterval(timerIntervals[eventId]); delete timerIntervals[eventId]; }
   } else {
     // START
     ev._timerStart = Date.now();
+    reattachTimers(); // Start the interval immediately so card reflects seconds
   }
   scheduleSave();
   document.dispatchEvent(new CustomEvent('app:refreshEventCard', { detail: { eventId } }));
@@ -163,12 +165,14 @@ export function totalStudySeconds(days = null) {
 export const _revDateCache = new Map();
 export function invalidateRevCache() { _revDateCache.clear(); }
 
-export function calcRevisionDates(dataConclusao, feitas) {
+export function calcRevisionDates(dataConclusao, feitas, adiamentos = 0) {
   const freqs = state.config.frequenciaRevisao || [1, 7, 30, 90];
-  const cacheKey = `${dataConclusao}: ${feitas.length}: ${freqs.join(',')}`;
+  const cacheKey = `${dataConclusao}:${feitas.length}:${adiamentos}:${freqs.join(',')}`;
   if (_revDateCache.has(cacheKey)) return _revDateCache.get(cacheKey);
 
   const base = new Date(dataConclusao + 'T00:00:00');
+  base.setDate(base.getDate() + adiamentos); // shift the revision schedule by the number of postponed days
+
   const dates = freqs.slice(feitas.length).map(d => {
     const dt = new Date(base);
     dt.setDate(dt.getDate() + d);
@@ -189,7 +193,7 @@ export function getPendingRevisoes() {
     for (const disc of (edital.disciplinas || [])) {
       for (const ass of disc.assuntos) {
         if (!ass.concluido || !ass.dataConclusao) continue;
-        const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
+        const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || [], ass.adiamentos || 0);
         for (const rd of revDates) {
           if (rd <= today) {
             pending.push({ assunto: ass, disc, edital, data: rd });

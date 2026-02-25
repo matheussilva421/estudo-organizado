@@ -184,40 +184,57 @@ export async function syncWithDrive() {
             state.lastSync = new Date().toISOString();
             saveStateToDB(); // garante que state está salvo localmente
 
-            const fileContent = JSON.stringify(state);
-            const file = new Blob([fileContent], { type: 'application/json' });
-            const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
-
             const accessToken = gapi.client.getToken().access_token;
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', file);
+            const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
+            const boundary = '-------314159265358979323846';
+            const delimiter = "\r\n--" + boundary + "\r\n";
+            const close_delim = "\r\n--" + boundary + "--";
+
+            const multipartRequestBody =
+                delimiter +
+                'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+                JSON.stringify(metadata) +
+                delimiter +
+                'Content-Type: application/json\r\n\r\n' +
+                JSON.stringify(state) +
+                close_delim;
 
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${state.driveFileId}?uploadType=multipart`, {
                 method: 'PATCH',
-                headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
-                body: form
+                headers: new Headers({
+                    'Authorization': 'Bearer ' + accessToken,
+                    'Content-Type': 'multipart/related; boundary=' + boundary
+                }),
+                body: multipartRequestBody
             });
             showToast('Sincronizado com sucesso!', 'success');
-
         } else {
             // Cria um novo arquivo
             state.lastSync = new Date().toISOString();
             saveStateToDB(); // garante que está atualizado
 
-            const fileContent = JSON.stringify(state);
-            const file = new Blob([fileContent], { type: 'application/json' });
-            const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
-
             const accessToken = gapi.client.getToken().access_token;
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', file);
+            const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
+            const boundary = '-------314159265358979323846';
+            const delimiter = "\r\n--" + boundary + "\r\n";
+            const close_delim = "\r\n--" + boundary + "--";
+
+            const multipartRequestBody =
+                delimiter +
+                'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+                JSON.stringify(metadata) +
+                delimiter +
+                'Content-Type: application/json\r\n\r\n' +
+                JSON.stringify(state) +
+                close_delim;
 
             const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
                 method: 'POST',
-                headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
-                body: form
+                headers: new Headers({
+                    'Authorization': 'Bearer ' + accessToken,
+                    'Content-Type': 'multipart/related; boundary=' + boundary
+                }),
+                body: multipartRequestBody
             });
             const data = await res.json();
             state.driveFileId = data.id;

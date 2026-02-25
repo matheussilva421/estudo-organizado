@@ -825,7 +825,7 @@ export function getUpcomingRevisoes(days = 30) {
     for (const disc of (edital.disciplinas || [])) {
       for (const ass of disc.assuntos) {
         if (!ass.concluido || !ass.dataConclusao) continue;
-        const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || []);
+        const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || [], ass.adiamentos || 0);
         for (const rd of revDates) {
           if (rd > today && rd <= futureStr) {
             upcoming.push({ assunto: ass, disc, edital, data: rd, revNum: (ass.revisoesFetas || []).length + 1 });
@@ -956,13 +956,9 @@ export function adiarRevisao(assId) {
     for (const disc of (edital.disciplinas || [])) {
       const ass = disc.assuntos.find(a => a.id === assId);
       if (ass) {
-        // Store a deferral date: push back the base date by 1 day
+        // Store a deferral date natively without mutating completion history
         if (!ass.adiamentos) ass.adiamentos = 0;
         ass.adiamentos = (ass.adiamentos || 0) + 1;
-        // Shift dataConclusao forward 1 day so all subsequent revisions shift
-        const base = new Date(ass.dataConclusao + 'T00:00:00');
-        base.setDate(base.getDate() + 1);
-        ass.dataConclusao = base.toISOString().split('T')[0];
         scheduleSave();
         renderCurrentView();
         showToast('Revisão adiada por 1 dia', 'info');
@@ -1034,8 +1030,8 @@ export function renderHabitHistPage() {
         <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
           <div style="font-size:20px;">${r.tipo.icon}</div>
           <div style="flex:1;">
-            <div style="font-size:13px;font-weight:600;">${esc(r.tipo.label)}${r.descricao ? ' - ' + r.descricao : ''}</div>
-            <div style="font-size:12px;color:var(--text-secondary);">${formatDate(r.data)}${r.quantidade ? ' • ' + r.quantidade + ' questões' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
+            <div style="font-size:13px;font-weight:600;">${esc(r.tipo.label)}${r.descricao ? ' - ' + esc(r.descricao) : ''}</div>
+            <div style="font-size:12px;color:var(--text-secondary);">${formatDate(r.data)}${r.quantidade ? ' • ' + r.quantidade + ' questões' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total && r.total > 0 ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
             ${r.gabaritoPorDisc && r.gabaritoPorDisc.length ? `
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
                 ${r.gabaritoPorDisc.map(g => `<span style="font-size:10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--text-secondary);">${g.discNome}: ${g.acertos}/${g.total}</span>`).join('')}
@@ -2445,7 +2441,7 @@ export function onSearch(query) {
     });
   });
 
-  const highlight = str => str.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
+  const highlight = str => esc(str).replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')})`, 'gi'), '<mark>$1</mark>');
   let html = '';
 
   if (results.eventos.length) {

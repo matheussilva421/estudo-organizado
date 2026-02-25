@@ -114,6 +114,15 @@ export function loadLegacyState() {
 
 // Save state to IndexedDB with debounce
 export let saveTimeout = null;
+
+window.addEventListener('beforeunload', (e) => {
+  if (saveTimeout !== null) {
+    e.preventDefault();
+    e.returnValue = 'Há alterações pendentes aguardando salvamento. Deseja sair assim mesmo?';
+    return e.returnValue;
+  }
+});
+
 export function scheduleSave() {
   document.dispatchEvent(new Event('app:invalidateCaches'));
   if (saveTimeout) clearTimeout(saveTimeout);
