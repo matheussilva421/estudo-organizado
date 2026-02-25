@@ -1,65 +1,86 @@
-# ⚡ Sincronização via Cloudflare Workers + KV
+# ⚡ Sincronização e Hospedagem na Cloudflare
 
-Para termos uma sincronização instantânea, gratuita e de baixíssima latência entre os seus dispositivos (celular, tablet e PC), vamos configurar o ecossistema do Cloudflare. O Google Drive passará a atuar como uma camada de backup (segurança adicional).
+Para transformar o Estudo Organizado num aplicativo em nuvem de ponta a ponta ("Fullstack Serverless"), usaremos **Cloudflare Pages** para hospedar o código do aplicativo (o Front-end) de graça na beira da rede global, e **Cloudflare Workers + KV** como banco de dados em tempo real para sincronizar tudo (Back-end) entre celular, tablet e PC.
 
-O processo é totalmente gratuito no plano Free da Cloudflare e leva cerca de 5 minutos.
+Você fará três coisas neste guia:
+A. Hospedar o App.
+B. Criar o Banco Local KV.
+C. Criar a API de Sincronização.
 
-## Passo 1: Criar Conta e Namespace no Cloudflare
-
-1. Acesse o [Cloudflare Dashboard](https://dash.cloudflare.com/) e crie uma conta gratuita (caso não tenha).
-2. No menu lateral esquerdo, vá em **Workers & Pages** -> **KV**.
-3. Clique no botão azul **Create a namespace** (Criar um namespace).
-4. Dê o nome de `ESTUDO_ORGANIZADO_KV` e clique em **Add**.
-5. O namespace será criado e vai aparecer na lista.
+Siga exatamente o passo a passo abaixo (leva cerca de 5-10 minutos).
 
 ---
 
-## Passo 2: Criar o Worker (Servidor da API)
+## PARTE A: Hospedar o App no Cloudflare Pages
 
-1. No menu lateral esquerdo, vá em **Workers & Pages** -> **Overview**.
-2. Clique no botão azul **Create Application**.
-3. Na aba *Workers*, clique em **Create Worker**.
-4. Dê um nome sugestivo, como `estudo-sync-api`, deixe o modelo padrão de *Hello World* selecionado e clique em **Deploy**.
-5. Na tela de sucesso, clique em **Edit code** para abrir o editor de código no navegador.
+Isso vai conectar o seu GitHub à Cloudflare para que seu aplicativo tenha uma URL bonita e fique online na internet para você acessar do celular.
+
+1. Acesse o [Cloudflare Dashboard](https://dash.cloudflare.com/) e crie/acesse sua conta.
+2. No menu esquerdo, vá em **Workers & Pages**.
+3. Clique no botão azul **Create Application** e vá para a aba **Pages**.
+4. Clique em **Connect to Git** e faça o link com sua conta do Github.
+5. Selecione o seu repositório `estudo-organizado`.
+6. Clique em **Begin setup** (Iniciar configuração).
+7. Na tela *Set up builds and deployments*:
+   - Em *Project name*, deixe o padrão ou coloque `estudo-organizado`.
+   - Em *Framework preset*, deixe como **None** (Pois nosso app é Vanilla HTML/JS puro).
+   - Em *Build command*, **deixe em branco**.
+   - Em *Build output directory*, digite: `src` (Isso é **muito importante**! O Cloudflare precisa saber que nossa pasta raiz é a "src").
+8. Clique em **Save and Deploy**.
+9. Aguarde 1 minutinho. Quando terminar, você receberá a sua URL pública do site (ex: `https://estudo-organizado.pages.dev`). *Use esse link no seu celular!*
 
 ---
 
-## Passo 3: Colar o Código do Servidor
+## PARTE B: Criar o Banco de Dados Rápido (KV)
 
-1. Apague todo o código que estiver no editor do Cloudflare.
-2. Abra o arquivo `scripts/cloudflare-worker.js` que está na pasta do nosso projeto. Copie todo o conteúdo dele e cole no editor do Cloudflare.
-3. Clique em **Deploy** no canto superior direito para salvar. Não se preocupe se der um erro roxo na visualização ("Error: binding not found"), é normal pois ainda não conectamos o banco de dados.
-4. Volte para a página inicial do seu Worker recém-criado (clicando no nome dele lá em cima, ou voltando na seta).
+Agora criaremos o espaço para salvar seu histórico de forma ultra veloz.
+
+1. No menu lateral esquerdo da Cloudflare, vá em **Workers & Pages** -> **KV**.
+2. Clique no botão azul **Create a namespace** (Criar um namespace).
+3. Dê o nome de `ESTUDO_ORGANIZADO_KV` e clique em **Add**.
+4. O espaço do banco foi criado.
 
 ---
 
-## Passo 4: Conectar o Banco de Dados (KV) e Criar a Senha
+## PARTE C: Criar o Cloudflare Worker (A API Backend)
 
-Agora precisamos dar permissão para o código ler o banco de dados e proteger sua API com uma senha.
+Este pedaço escutará o seu aplicativo e salvará os dados em trânsito no Banco KV.
 
-1. Na página do seu Worker (`estudo-sync-api`), vá na aba **Settings** (Configurações).
-2. No menu lateral (dentro de Settings), vá em **Variables and Secrets** (Variaveis e Segredos).
+1. No menu lateral da Cloudflare, volte em **Workers & Pages** -> **Overview**.
+2. Clique de novo em **Create Application**.
+3. Permaneça na aba *Workers* e clique em **Create Worker**.
+4. Dê um nome, como `estudo-sync-api`, e clique em **Deploy**.
+5. Na tela amarela de sucesso, não clique no link; clique diretamente em **Edit code** para abrir o editor de código.
+6. Na aba à sua esquerda onde está escrito `worker.js`, apague todo o código "Hello World" existente lá de dentro.
+7. Vá na pasta do seu Estudo Organizado no computador, abra o arquivo `scripts/cloudflare-worker.js`. Copie tudo o que estiver lá e **cole no editor do Cloudflare**.
+8. Clique em **Deploy** (canto superior direito) para salvar. Ignore testes temporários gerando erro roxo. Volte para a página inicial do Worker (clicando no nome dele lá no topo).
 
-### Vinculando o Banco de dados (KV)
-3. Role para baixo até achar a seção **KV Namespace Bindings** e clique em **Add binding**.
-4. No campo **Variable name**, digite exatamente: `ESTUDO_KV` (todo em maiúsculo).
-5. No campo **KV namespace**, selecione o banco que criamos no Passo 1 (`ESTUDO_ORGANIZADO_KV`).
-6. Clique em **Deploy** (ou Save) para engatar a ligação.
+---
+
+## PARTE D: Conectar a API e Criar uma Senha
+
+1. Na página do Worker recém-criado, vá na aba **Settings** (Configurações).
+2. No menu lateral, acesse **Variables and Secrets**.
+
+### Conectando a API ao Banco (KV binding)
+3. Role até a seção **KV Namespace Bindings** e clique em **Add binding**.
+4. No campo **Variable name**, digite exatamente: `ESTUDO_KV`
+5. No campo **KV namespace**, selecione o banco da "Parte B" (`ESTUDO_ORGANIZADO_KV`).
+6. Salve / Deploy.
 
 ### Criando a Senha (Environment Variable)
-7. Ainda em *Variables and Secrets*, suba um pouco até a opção **Environment Variables** e clique em **Add variable**.
-8. Em **Variable name**, digite exatamente: `AUTH_TOKEN`.
-9. Em **Value**, invente uma senha forte e segura (pode ser uma mistura de letras e números, como `mEU_ToKeN_S3cr3to_123`).
-   * **Importante:** Clique no cadeado (botão Encrypt) ao lado do valor para criptografá-la.
-10. Clique em **Deploy** (ou Save).
+7. Ainda nessa página, na seção superior **Environment Variables**, clique em **Add variable**.
+8. Em **Variable name**, digite: `AUTH_TOKEN`
+9. Em **Value**, crie sua própria senha secreta (Ex: `senhaSuperForte123`). *Clique em **Encrypt** ao lado se quiser escondê-la.*
+10. Sabe / Deploy.
 
 ---
 
-## Passo 5: Coletar as Chaves na Interface
+## Finalização
 
-Muito bem, o servidor backend agora existe! Nós só precisamos de duas informações dele para ligarmos na tela de **Configurações** do seu aplicativo Estudo Organizado:
+Feito! O Cloudflare está configurado. O que eu preciso que você copie e mande de volta é apenas:
 
-1. A sua **URL do Worker** (algo como `https://estudo-sync-api.<seu-username>.workers.dev`). Você encontra ela na aba principal (Triggers ou Overview) do Worker. Copie.
-2. A sua **Auth Token** (a senha que você inventou no Passo 4.9).
+1. A URL Base da API (Worker URL): Algo como `https://estudo-sync-api.xxxx.workers.dev` (pegue no *Overview* do Worker criado).
+2. A Senha (AUTH_TOKEN) que você inventou no Passo D.9.
 
-Assim que você terminar de configurar a Cloudflare e tiver essas informações em mãos, me avise para eu escrever e programar a tela de front-end do nosso aplicativo para se comunicar com ela!
+**Me avise aqui: "Fiz tudo, pode programar o App agora".** Assim, abrirei o código principal, programarei as áreas de Configurações pra incluir nossa Auth e embraçarei a Sincronização.
