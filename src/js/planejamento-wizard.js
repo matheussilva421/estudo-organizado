@@ -141,18 +141,28 @@ window.pwToggleDay = function (dayIndex) {
     } else {
         draft.horarios.diasAtivos.push(idx);
     }
-    renderStep();
+    renderStep(); // Checkboxes can re-render safely
 };
 
 window.pwUpdateHours = function (field, val) {
     draft.horarios[field] = val;
-    renderStep(); // Re-validate
+    pwUpdateButtons();
 };
 
 window.pwUpdateDayHour = function (dayIdx, val) {
     draft.horarios.horasPorDia[dayIdx] = val;
-    renderStep();
+    pwUpdateButtons();
 };
+
+function pwUpdateButtons() {
+    const btnNext = document.getElementById('pw-btn-proximo');
+    const btnDone = document.getElementById('pw-btn-concluir');
+    if (currentStep === 4) {
+        if (btnDone) btnDone.disabled = !validateStep(4);
+    } else {
+        if (btnNext) btnNext.disabled = !validateStep(currentStep);
+    }
+}
 
 function renderStep() {
     // Update Stepper UI

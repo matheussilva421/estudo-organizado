@@ -2681,11 +2681,10 @@ export function renderCiclo(el) {
     }, 100);
 
   } else if (plan.tipo === 'semanal') {
-    // Lógica para planejameto Semanal
     const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     let weeklyHtml = '';
+    let totalTarget = 0;
 
-    // Simple render of the schedule
     for (let i = 0; i < 7; i++) {
       if (plan.horarios.diasAtivos.includes(i)) {
         weeklyHtml += `
@@ -2697,6 +2696,34 @@ export function renderCiclo(el) {
       }
     }
 
+    let sequenceHtml = '';
+    const dictDisciplinas = {};
+    if (plan.disciplinas && plan.sequencia) {
+      plan.disciplinas.forEach(id => {
+        const disc = getDisc(id);
+        if (disc) dictDisciplinas[id] = disc;
+      });
+
+      plan.sequencia.forEach((seq, i) => {
+        const d = dictDisciplinas[seq.discId];
+        if (!d) return;
+        totalTarget += seq.minutosAlvo;
+
+        sequenceHtml += `
+            <div class="ciclo-item ${seq.concluido ? 'concluido' : ''}" style="margin-bottom:12px;">
+              <div class="ciclo-item-cor" style="background:${d.edital.cor || '#3b82f6'};"></div>
+              <div class="ciclo-item-body">
+                <div class="ciclo-item-header">
+                  <div class="ciclo-item-title">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+                  <div class="ciclo-item-meta">${formatH(seq.minutosAlvo)} planejado</div>
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Etapa ${i + 1} da sequência global da semana</div>
+              </div>
+            </div>
+          `;
+      });
+    }
+
     el.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
         <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-calendar-alt"></i> Sua Grade Semanal</h2>
@@ -2705,8 +2732,21 @@ export function renderCiclo(el) {
           <button class="btn btn-danger btn-sm" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
         </div>
       </div>
-      <div>
-        ${weeklyHtml || '<p>Nenhum dia de estudo planejado.</p>'}
+      
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:24px;">
+        <div>
+          ${weeklyHtml || '<p>Nenhum dia de estudo planejado.</p>'}
+        </div>
+        <div class="card">
+          <div class="card-header" style="padding-bottom:12px;border:none;">
+            <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa fa-list-ol" style="color:var(--text-muted);"></i> Sequência Gerada</h3>
+          </div>
+          <div class="card-body" style="padding-top:0;">
+            <div class="ciclo-lista" style="max-height: 400px; overflow-y:auto; padding-right:8px;">
+              ${sequenceHtml || '<div style="padding:20px;text-align:center;color:var(--text-muted);">Sequência vazia.</div>'}
+            </div>
+          </div>
+        </div>
       </div>
     `;
   }

@@ -477,7 +477,46 @@ export function generatePlanejamento(draft) {
       }
     });
   } else if (plan.tipo === 'semanal') {
-    // Semanal behavior
+    let maxSessao = parseInt(plan.horarios.sessaoMax, 10) || 120;
+    let minSessao = parseInt(plan.horarios.sessaoMin, 10) || 30;
+    let totalMinutes = 0;
+
+    for (let i = 0; i < 7; i++) {
+      if (plan.horarios.diasAtivos.includes(i) && plan.horarios.horasPorDia[i]) {
+        const [hh, mm] = plan.horarios.horasPorDia[i].split(':');
+        totalMinutes += (parseInt(hh, 10) * 60) + parseInt(mm, 10);
+      }
+    }
+
+    const sortedDiscs = [...plan.disciplinas].sort((a, b) => {
+      const wA = plan.relevancia[a]?.peso || 0;
+      const wB = plan.relevancia[b]?.peso || 0;
+      return wB - wA;
+    });
+
+    sortedDiscs.forEach(discId => {
+      const perc = plan.relevancia[discId]?.percentual || 0;
+      let targetMinutes = Math.round((perc / 100) * totalMinutes);
+
+      if (targetMinutes < minSessao) targetMinutes = minSessao;
+
+      let remaining = targetMinutes;
+      while (remaining > 0) {
+        let block = Math.min(remaining, maxSessao);
+        if (block < minSessao && remaining === targetMinutes) {
+          block = minSessao;
+        } else if (block < minSessao && remaining < targetMinutes) {
+          break;
+        }
+        plan.sequencia.push({
+          id: 'seq_' + Date.now() + Math.random(),
+          discId: discId,
+          minutosAlvo: block,
+          concluido: false
+        });
+        remaining -= block;
+      }
+    });
   }
 
   state.planejamento = plan;
