@@ -1,4 +1,4 @@
-import { state, scheduleSave, loadState } from './store.js';
+import { state, scheduleSave } from './store.js';
 
 let isSyncing = false;
 
