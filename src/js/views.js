@@ -1,7 +1,7 @@
 ﻿import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
 import { cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats } from './logic.js';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats } from './logic.js';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
@@ -43,6 +43,8 @@ export function renderHome(el) {
 
   const prog = getSyllabusProgress();
   const progPerc = prog.totalAssuntos > 0 ? Math.round((prog.totalConcluidos / prog.totalAssuntos) * 100) : 0;
+
+  const pagesReadTotal = getPagesReadStats();
 
   const streak = getConsistencyStreak();
   const subjStats = getSubjectStats();
@@ -148,8 +150,11 @@ export function renderHome(el) {
         <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${progPerc}%</div>
       </div>
 
-      <div class="card p-16" style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--sidebar-bg);color:var(--text-secondary);font-style:italic;">
-        "Se não puder fazer tudo, faça tudo que puder."
+      <div class="card p-16" style="flex:1;display:flex;justify-content:space-between;align-items:flex-end;">
+         <div>
+          <div class="dash-label">PÁGINAS LIDAS</div>
+          <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;margin-top:12px;font-family:'DM Mono',monospace;">${pagesReadTotal}</div>
+        </div>
       </div>
     </div>
 

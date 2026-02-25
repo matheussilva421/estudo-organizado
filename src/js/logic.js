@@ -250,6 +250,16 @@ export function getPerformanceStats() {
   return { questionsTotal, questionsCorrect, questionsWrong };
 }
 
+export function getPagesReadStats() {
+  let pagesTotal = 0;
+  state.eventos.forEach(ev => {
+    if (ev.status === 'estudei' && ev.sessao && ev.sessao.paginas && ev.sessao.paginas.total) {
+      pagesTotal += ev.sessao.paginas.total;
+    }
+  });
+  return pagesTotal;
+}
+
 export function getSyllabusProgress() {
   let totalAssuntos = 0;
   let totalConcluidos = 0;
