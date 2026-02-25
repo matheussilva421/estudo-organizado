@@ -59,7 +59,9 @@ Este pedaço escutará o seu aplicativo e salvará os dados em trânsito no Banc
 
 ## PARTE D: Conectar a API e Criar uma Senha
 
-No painel do seu Worker (`estudo-sync-api`), vá na aba **Configurações** (Settings) e depois no menu lateral em **Variáveis e segredos** (Variables and Secrets).
+1. Na tela principal de **Workers e Pages** onde aparece a lista com seus dois aplicativos, **clique no nome do seu Worker** (`estudo-sync-api`).
+2. Dentro do painel dele, vá na aba superior **Configurações** (Settings).
+3. No menu lateral, clique em **Variáveis e segredos** (Variables and Secrets).
 
 ### Criando a Senha de Segurança (Variável de Ambiente)
 1. Na primeira caixinha de "Variáveis e segredos", clique no botão azul **+ Adicionar**.
