@@ -3,6 +3,7 @@ import { openAddEventModal, openEditaModal, openHabitModal } from './views.js';
 import { initDB, scheduleSave, state } from './store.js';
 import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js';
 import { todayStr, esc } from './utils.js';
+import { pullFromCloudflare } from './cloud-sync.js';
 
 // =============================================
 // APP STATE & DATA
@@ -127,13 +128,25 @@ export function applyTheme(toggle = false) {
 }
 
 export function init() {
-  initDB().then(() => {
+  initDB().then(async () => {
     applyTheme();
+
+    // Primeira Sincronização: Cloudflare (Primária Rápida)
+    if (state.config && state.config.cfSyncSyncEnabled && typeof pullFromCloudflare === 'function') {
+      try {
+        await pullFromCloudflare();
+      } catch (e) {
+        console.error('Falha no Boot Sync (Cloudflare)', e);
+      }
+    }
+
+    // Segunda Sincronização: Google Drive (Secundária Lenta)
     updateDriveUI();
     const savedClientId = localStorage.getItem('estudo_drive_client_id');
     if (savedClientId) {
       initGoogleAPIs();
     }
+
     navigate('home');
 
     // Auto Update states

@@ -1,6 +1,7 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
+import { pushToCloudflare } from './cloud-sync.js';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 1;
@@ -152,6 +153,12 @@ export function saveStateToDB() {
 
     request.onsuccess = () => {
       document.dispatchEvent(new Event('stateSaved'));
+
+      // Cascata de Sincronização: Local -> Cloudflare
+      if (state.config && state.config.cfSyncSyncEnabled && typeof pushToCloudflare === 'function') {
+        pushToCloudflare();
+      }
+
       resolve();
     };
     request.onerror = (e) => reject(e);
