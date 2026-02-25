@@ -2577,7 +2577,7 @@ export function renderCiclo(el) {
         <div class="icon">🧭</div>
         <h4>Nenhum Planejamento de Estudos</h4>
         <p style="margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">Configure uma estratégia escolhendo entre o "Ciclo Contínuo de Estudos" ou a "Grade Semanal Fixa" para organizar seu tempo otimizadamente.</p>
-        <button class="btn btn-primary" onclick="window.wizard.openPlanejamentoWizard()"><i class="fa fa-play"></i> Criar Meu Planejamento</button>
+        <button class="btn btn-primary" onclick="window.openPlanejamentoWizard()"><i class="fa fa-play"></i> Criar Meu Planejamento</button>
       </div>
     `;
     return;
@@ -2631,7 +2631,7 @@ export function renderCiclo(el) {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
         <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-sync"></i> Seu Ciclo de Estudos</h2>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="window.wizard.openPlanejamentoWizard()" title="Editar Planejamento"><i class="fa fa-edit"></i> Editar Planejamento</button>
+          <button class="btn btn-ghost btn-sm" onclick="window.openPlanejamentoWizard()" title="Editar Planejamento"><i class="fa fa-edit"></i> Editar Planejamento</button>
           <button class="btn btn-danger btn-sm" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
         </div>
       </div>
@@ -2774,7 +2774,7 @@ export function renderCiclo(el) {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
         <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-calendar-alt"></i> Sua Grade Semanal</h2>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="window.wizard.openPlanejamentoWizard()"><i class="fa fa-edit"></i> Editar Grade</button>
+          <button class="btn btn-ghost btn-sm" onclick="window.openPlanejamentoWizard()"><i class="fa fa-edit"></i> Editar Grade</button>
           <button class="btn btn-danger btn-sm" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
         </div>
       </div>
