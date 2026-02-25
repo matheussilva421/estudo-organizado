@@ -7,13 +7,7 @@ import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js';
 // APP STATE & DATA
 // =============================================
 export let currentView = 'home';
-export let calDate = new Date();
-export let calViewMode = 'mes';
 export let timerIntervals = {};   // eventId → intervalId
-export let editingEventId = null;
-export let editingDiscCtx = null; // { editaId }
-export let editingSubjectCtx = null; // { editaId, discId }
-export let currentHabitType = null;
 
 export const HABIT_TYPES = [
   { key: 'questoes', label: 'Questões', icon: '📝', color: '#3b82f6' },
