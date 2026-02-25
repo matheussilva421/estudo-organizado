@@ -38,7 +38,12 @@ export async function pullFromCloudflare() {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status}`);
+            let errorMsg = `HTTP Error: ${response.status}`;
+            try {
+                const errData = await response.json();
+                if (errData && errData.error) errorMsg = `Erro ${response.status}: ${errData.error}`;
+            } catch (e) { }
+            throw new Error(errorMsg);
         }
 
         const remoteData = await response.json();
@@ -110,7 +115,12 @@ export async function pushToCloudflare() {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status}`);
+            let errorMsg = `HTTP Error: ${response.status}`;
+            try {
+                const errData = await response.json();
+                if (errData && errData.error) errorMsg = `Erro ${response.status}: ${errData.error}`;
+            } catch (e) { }
+            throw new Error(errorMsg);
         }
 
         const lastStr = new Date(state.config._lastUpdated).toLocaleTimeString();
