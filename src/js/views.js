@@ -2185,6 +2185,35 @@ export function renderConfig(el) {
 
       <div>
         <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3><i class="fa fa-cloud"></i> Sincronização Cloudflare (Primária)</h3></div>
+          <div class="card-body">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Sincronização em tempo real de baixíssima latência entre dispositivos via Cloudflare KV.</div>
+            
+            <div class="form-group" style="margin-top:16px;">
+              <label class="form-label">URL do Cloudflare Worker (API)</label>
+              <input type="url" id="config-cf-url" class="form-control" placeholder="Ex: https://estudo-sync-api.xxxx.workers.dev" value="${esc(cfg.cfUrl || '')}" onchange="updateConfig('cfUrl', this.value.trim().replace(/\\/$/, ''))">
+            </div>
+
+            <div class="form-group" style="margin-top:16px;">
+              <label class="form-label">Token de Acesso (Auth Token)</label>
+              <div style="display:flex; gap:8px;">
+                  <input type="password" id="config-cf-token" class="form-control" placeholder="Sua senha secreta do Worker" value="${esc(cfg.cfToken || '')}" onchange="updateConfig('cfToken', this.value.trim())">
+                  <button type="button" class="btn btn-outline" onclick="const t=document.getElementById('config-cf-token'); t.type=t.type==='password'?'text':'password';" title="Mostrar/Esconder Senha"><i class="fa fa-eye"></i></button>
+              </div>
+            </div>
+            
+            <div style="margin-top:16px; display:flex; align-items:center; gap:8px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;" class="btn ${cfg.cfSyncSyncEnabled ? 'btn-primary' : 'btn-outline'}">
+                    <input type="checkbox" id="config-cf-enabled" onchange="window.toggleCfSync(this.checked)" style="display:none;" ${cfg.cfSyncSyncEnabled ? 'checked' : ''}>
+                    <i class="fa fa-power-off"></i> <span id="cf-sync-toggle-text">${cfg.cfSyncSyncEnabled ? 'Sincronização Ativada' : 'Ativar Sincronização'}</span>
+                </label>
+                <button type="button" class="btn btn-outline" onclick="if(window.forceCloudflareSync) window.forceCloudflareSync()" id="btn-force-cf-sync" style="display: ${cfg.cfSyncSyncEnabled ? 'inline-flex' : 'none'};"><i class="fa fa-sync"></i> Forçar Sincronização Agora</button>
+            </div>
+            <p id="cf-sync-status" style="margin-top:12px; font-size:13px; font-weight:600;"></p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
           <div class="card-header"><h3>😁️ Google Drive</h3></div>
           <div class="card-body">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
@@ -2277,6 +2306,23 @@ export function toggleConfig(key, el) {
   state.config[key] = !state.config[key];
   el.classList.toggle('on', state.config[key]);
   scheduleSave();
+}
+
+export function toggleCfSync(enabled) {
+  if (enabled) {
+    const url = document.getElementById('config-cf-url').value.trim();
+    const token = document.getElementById('config-cf-token').value.trim();
+    if (!url || !token) {
+      showToast('Preencha a URL do Worker e o Token antes de ativar.', 'error');
+      const checkbox = document.getElementById('config-cf-enabled');
+      if (checkbox) checkbox.checked = false;
+      return;
+    }
+  }
+
+  state.config.cfSyncSyncEnabled = enabled;
+  scheduleSave();
+  renderCurrentView();
 }
 
 export function updateFrequencia(value) {
