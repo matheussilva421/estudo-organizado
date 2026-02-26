@@ -16,6 +16,11 @@ export let currentView = 'home';
 // =============================================
 export function navigate(view) {
   if (window.innerWidth <= 768) closeSidebar();
+
+  if (view === 'editais') {
+    window.activeDashboardDiscCtx = null;
+  }
+
   currentView = view;
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.view === view);

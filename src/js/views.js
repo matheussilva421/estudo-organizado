@@ -1614,7 +1614,7 @@ export function renderDisciplinaDashboard(edital, disc) {
       </div>
 
       <!-- MAIN CONTENT GRID -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));gap:20px;align-items:start;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));gap:20px;align-items:stretch;">
         
         <!-- HISTÓRICO DE ESTUDOS (ESQUERDA) -->
         <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">
@@ -2014,13 +2014,13 @@ export function openDiscManager(editaId, discId) {
 
   // Render subject items
   const subjectsHtml = disc.assuntos.map((ass, idx) => `
-    < div class="sm-list-item" draggable = "true"
-  data - disc - id="${disc.id}"
-  data - ass - idx="${idx}"
-  ondragstart = "dndStart(event,'${disc.id}',${idx})"
-  ondragover = "dndOver(event)"
-  ondragleave = "dndLeave(event)"
-  ondrop = "dndDrop(event,'${disc.id}',${idx})" >
+    <div class="sm-list-item" draggable="true"
+  data-disc-id="${disc.id}"
+  data-ass-idx="${idx}"
+  ondragstart="dndStart(event,'${disc.id}',${idx})"
+  ondragover="dndOver(event)"
+  ondragleave="dndLeave(event)"
+  ondrop="dndDrop(event,'${disc.id}',${idx})">
       <div class="sm-drag-handle" title="Arrastar">☰</div>
       <div class="sm-item-text" onclick="editSubjectInline('${disc.id}', '${ass.id}', this)">${esc(ass.nome)}</div>
       <div class="sm-item-actions">
@@ -2028,14 +2028,14 @@ export function openDiscManager(editaId, discId) {
         <button onclick="moveSubject('${disc.id}', ${idx}, 1)" title="Descer"><i class="fa fa-chevron-down"></i></button>
         <button onclick="deleteAssunto('${disc.id}', '${ass.id}')" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
-    </div >
+    </div>
     `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico adicionado.</div>';
 
-  const colorOptions = COLORS.map(c => `< option value = "${c}" ${disc.cor === c ? 'selected' : ''} style = "background:${c};color:#fff;" > ${c}</option > `).join('');
+  const colorOptions = COLORS.map(c => `<option value="${c}" ${disc.cor === c ? 'selected' : ''} style="background:${c};color:#fff;">${c}</option>`).join('');
 
   document.getElementById('modal-disc-manager-title').textContent = disc.nome || 'Gerenciar Disciplina';
   document.getElementById('modal-disc-manager-body').innerHTML = `
-    < div class="sm-header" >
+    <div class="sm-header">
       <div class="sm-form-group">
         <label>Nome</label>
         <input type="text" id="dm-nome" value="${esc(disc.nome)}">
@@ -2049,7 +2049,7 @@ export function openDiscManager(editaId, discId) {
           </select>
         </div>
       </div>
-    </div >
+    </div>
     
     <div class="sm-toolbar">
       <span>Tópicos (${disc.assuntos.length})</span>
