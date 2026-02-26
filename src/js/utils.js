@@ -16,10 +16,15 @@ export function esc(str) {
         .replace(/'/g, '&#39;');
 }
 
+export function getLocalDateStr(dateObj = new Date()) {
+    const d = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
+    return d.toISOString().split('T')[0];
+}
+
 export let _todayCache = null;
 export function invalidateTodayCache() { _todayCache = null; }
 export function todayStr() {
-    if (!_todayCache) _todayCache = new Date().toISOString().split('T')[0];
+    if (!_todayCache) _todayCache = getLocalDateStr();
     return _todayCache;
 }
 
@@ -49,7 +54,7 @@ export function getEventStatus(evento) {
 export function cutoffDateStr(days) {
     const d = new Date();
     d.setDate(d.getDate() - days);
-    return d.toISOString().split('T')[0];
+    return getLocalDateStr(d);
 }
 
 export const HABIT_TYPES = [

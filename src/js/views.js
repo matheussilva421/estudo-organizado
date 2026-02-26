@@ -480,7 +480,10 @@ export function renderCalendarMonth() {
     cells.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1), other: true });
   }
 
-  const getDateStr = d => d.toISOString().split('T')[0];
+  const getDateStr = d => {
+    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+    return d2.toISOString().split('T')[0];
+  };
 
   return `
     <div class="cal-grid">
@@ -521,7 +524,10 @@ export function renderCalendarWeek() {
     return d;
   });
 
-  const getDateStr = d => d.toISOString().split('T')[0];
+  const getDateStr = d => {
+    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+    return d2.toISOString().split('T')[0];
+  };
 
   return `
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;">
@@ -721,7 +727,8 @@ export function renderDailyChart(periodDays) {
   for (let i = numDays - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const ds = d.toISOString().split('T')[0];
+    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+    const ds = d2.toISOString().split('T')[0];
     days.push(numDays > 30 ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
     const secs = state.eventos.filter(e => e.data === ds && e.status === 'estudei').reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
     data.push(Math.round(secs / 60));
@@ -819,7 +826,8 @@ export function getUpcomingRevisoes(days = 30) {
   const today = todayStr();
   const future = new Date();
   future.setDate(future.getDate() + days);
-  const futureStr = future.toISOString().split('T')[0];
+  const future2 = new Date(future.getTime() - (future.getTimezoneOffset() * 60000));
+  const futureStr = future2.toISOString().split('T')[0];
   const upcoming = [];
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
@@ -976,7 +984,8 @@ export const HABIT_HIST_PAGE_SIZE = 20;
 
 export function renderHabitos(el) {
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
-  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const cutoff2 = new Date(cutoff.getTime() - (cutoff.getTimezoneOffset() * 60000));
+  const cutoffStr = cutoff2.toISOString().split('T')[0];
 
   el.innerHTML = `
     <div class="habit-grid">
@@ -2696,7 +2705,7 @@ export function renderCiclo(el) {
                   <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, -1)" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
                   <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, 1)" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
                 </div>
-                <div>${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+                <div style="cursor:pointer; display:flex; align-items:center; gap:6px;" onclick="window.openCicloHistory('${seq.id}')" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span style="text-decoration:underline;">${esc(d.disc.nome)}</span></div>
               </div>
               <div class="ciclo-item-meta" style="cursor:pointer; text-decoration:underline;" onclick="window.editCicloSeqHours(${i})" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
             </div>

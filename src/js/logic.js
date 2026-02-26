@@ -1,5 +1,6 @@
 import { scheduleSave, state } from './store.js';
-import { cutoffDateStr, formatTime, todayStr, getHabitType } from './utils.js';
+import { cutoffDateStr, formatTime, todayStr, getHabitType, getLocalDateStr } from './utils.js';
+import { navigate } from './app.js';
 
 // =============================================
 // TIMER ENGINE
@@ -234,7 +235,7 @@ export function calcRevisionDates(dataConclusao, feitas, adiamentos = 0) {
   const dates = freqs.slice(feitas.length).map(d => {
     const dt = new Date(base);
     dt.setDate(dt.getDate() + d);
-    return dt.toISOString().split('T')[0];
+    return getLocalDateStr(dt);
   });
   _revDateCache.set(cacheKey, dates);
   return dates;
@@ -344,7 +345,7 @@ export function getConsistencyStreak() {
     }
   });
 
-  const todayStrDate = new Date().toISOString().split('T')[0];
+  const todayStrDate = getLocalDateStr();
   let currentStreak = 0;
   let maxStreak = 0;
   let tempStreak = 0;
@@ -369,7 +370,7 @@ export function getConsistencyStreak() {
 
     // Current Streak
     let currDay = new Date(todayStrDate);
-    while (dates.has(currDay.toISOString().split('T')[0])) {
+    while (dates.has(getLocalDateStr(currDay))) {
       currentStreak++;
       currDay.setDate(currDay.getDate() - 1);
     }
@@ -381,7 +382,7 @@ export function getConsistencyStreak() {
   startDay.setDate(startDay.getDate() - 29); // 30 days including today
 
   for (let i = 0; i < 30; i++) {
-    const dStr = startDay.toISOString().split('T')[0];
+    const dStr = getLocalDateStr(startDay);
     heatmap.push(dates.has(dStr));
     startDay.setDate(startDay.getDate() + 1);
   }
@@ -426,8 +427,8 @@ export function getCurrentWeekStats() {
   endOfWeek.setDate(endOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
 
-  const startStr = startOfWeek.toISOString().split('T')[0];
-  const endStr = endOfWeek.toISOString().split('T')[0];
+  const startStr = getLocalDateStr(startOfWeek);
+  const endStr = getLocalDateStr(endOfWeek);
 
   let totalSeconds = 0;
   let totalQuestions = 0;
@@ -623,13 +624,12 @@ export function iniciarEtapaPlanejamento(seqId) {
   scheduleSave();
 
   // Switch to Cronometro and start ticking
-  document.dispatchEvent(new CustomEvent('click', { detail: 'navigate-mock' })); // To trigger standard navigation
+  navigate('cronometro');
 
   // Wait for event loop to push state
   setTimeout(() => {
-    if (typeof window.navigate === 'function') window.navigate('cronometro');
-    setTimeout(() => toggleTimer(evento.id), 100);
-  }, 50);
+    toggleTimer(evento.id);
+  }, 100);
 }
 
 export function syncCicloToEventos() {
@@ -665,7 +665,7 @@ export function syncCicloToEventos() {
       if (!state.planejamento.horarios.diasAtivos.includes(dayOfWeek)) continue;
     }
 
-    const dtStr = d.toISOString().split('T')[0];
+    const dtStr = getLocalDateStr(d);
 
     for (let m = 0; m < materiasPorDia; m++) {
       const seqItem = seq[currentSeqIdx];
@@ -696,15 +696,29 @@ window.moveCicloSeq = function (idx, dir) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
   const seq = state.planejamento.sequencia;
   if (idx + dir < 0 || idx + dir >= seq.length) return;
-
   const temp = seq[idx];
   seq[idx] = seq[idx + dir];
   seq[idx + dir] = temp;
-
   syncCicloToEventos();
   scheduleSave();
   document.dispatchEvent(new Event('app:renderCurrentView'));
 };
+
+window.desfazerEtapa = function (seqId) {
+  if (!state.planejamento || !state.planejamento.sequencia) return;
+  const idx = state.planejamento.sequencia.findIndex(s => s.id === seqId);
+  if (idx > -1) {
+    state.planejamento.sequencia[idx].concluido = false;
+    syncCicloToEventos();
+    scheduleSave();
+    document.dispatchEvent(new Event('app:renderCurrentView'));
+    // Trigger modal close
+    document.dispatchEvent(new CustomEvent('click', { detail: 'navigate-mock-close' })); // mock
+    const m = document.getElementById('modal-ciclo-history');
+    if (m) m.classList.remove('open');
+  }
+};
+
 
 window.editCicloSeqHours = function (idx) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
