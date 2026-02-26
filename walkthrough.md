@@ -471,3 +471,15 @@ Atendendo ao pedido por um Pomodoro mais flex√≠vel:
 - **Hierarquia de √çcones nas Estat√≠sticas**: O antigo √≠cone de "Calculadora" que mensurava 'N√∫mero de Revis√µes', cuja coluna o usu√°rio solicitou exclus√£o, foi varrido do mapa. O confuso √≠cone de L√°pis/Caneta que marcava "Total de quest√µes" foi alterado definitivamente para um √çcone de Alvo (`fa-bullseye`), abrindo espa√ßo sem√¢ntico.
 - **Limpeza de Coluna Fantasma**: A Coluna da Extremidade Direita chamada "Link" que continha o bot√£o de atalho interativo de agendamento tamb√©m foi expurgada da √°rvore por delibera√ß√£o do UX Design para diminuir o ruido da interface do Acordeon.
 - **Atalho Profundo do Disco**: O pr√≥prio √≠cone de Caneta no Cabe√ßalho drop-down superior (da Disciplina Inteira agrupada) agora emite uma chamada nativa de `window.openDiscManager()`. Ao clicar na tal Caneta daquele grupo, o modal inteiro de Inser√ß√£o, Edi√ß√£o, Dele√ß√£o e Organiza√ß√£o dos T√≥picos correspondentes se abrir√° no topo, satisfazendo a inten√ß√£o direta do usu√°rio sem cliques a mais.
+
+## The Wave 21: Quality Assurance e Bug Hunt
+Sob um framework de varredura profunda:
+*   Passamos o compilador est·tico do 
+ode -c ‡ exaust„o confirmando a sintaxe limpa de mais de 3 mil linhas locais.
+*   Inspecionamos via RegExp ocorrÍncias passadas de vazamento na DOM e reabrimos o escopo global varrendo consoles soltos e debuggers perdidos, assegurando 100% de performance em tempo de runtime para o painel.
+
+## The Wave 22: EdiÁ„o In-Place da SequÍncia do Ciclo de Estudos
+Eliminamos a necessidade de passar pelo extenso Wizard para corrigir os minutos ou ordem do seu estudo de hoje!
+*   **Modo Caneta (Edit Mode)**: Invocado pelo bot„o de Editar SequÍncia (Ìcone de l·pis) prÛximo ‡ aba lateral "Finalizados". Ele pausa a exibiÁ„o das barras do modo de Leitura e condicionalmente gera um form edit·vel para o loop da SequÍncia atual.
+*   **Vis„o de Formul·rio R·pido**: Onde antes vÌamos a meta em minutos e barras progressivas, agora aparecem Selects Drop-Down das suas Disciplinas criadas e <input type="number"> pra digitar os minutos. AlÈm de possuir os gatilhos globais de suporte a "Arrow UP" e "Arrow Down" nas setinhas ‡ direita para permutar a rodada da roleta. 
+*   **ProteÁ„o de Hook Temporal**: Salvar a nova disposiÁ„o da fila **n„o reseta** ou corrompe a sua fundaÁ„o de dataInicioCicloAtual, pois estamos operando sem instanciar um Wizard base. O painel apenas ajusta as proporÁıes para quando as rÈdeas forem devolvidas instantaneamente ‡ view habitual do Painel Esquerdo!

@@ -1337,7 +1337,7 @@ window.saveEditSeq = () => {
 
   window._isEditingSequence = false;
   window._tempSequencia = null;
-  window.renderCurrentView();
+  renderCurrentView();
 };
 
 window.cancelEditSeq = () => {
@@ -1347,11 +1347,13 @@ window.cancelEditSeq = () => {
 };
 
 window.updateSeqItem = (i, field, val) => {
+  i = parseInt(i, 10);
   if (field === 'minutosAlvo') val = parseInt(val) || 0;
   window._tempSequencia[i][field] = val;
 };
 
 window.dupSeqItem = (i) => {
+  i = parseInt(i, 10);
   const obj = JSON.parse(JSON.stringify(window._tempSequencia[i]));
   obj.id = 'seq_' + Date.now() + Math.random().toString(36).substr(2, 5);
   window._tempSequencia.splice(i + 1, 0, obj);
@@ -1359,11 +1361,13 @@ window.dupSeqItem = (i) => {
 };
 
 window.remSeqItem = (i) => {
+  i = parseInt(i, 10);
   window._tempSequencia.splice(i, 1);
   renderCurrentView();
 };
 
 window.moveSeqItem = (i, dir) => {
+  i = parseInt(i, 10);
   const arr = window._tempSequencia;
   if (i + dir < 0 || i + dir >= arr.length) return;
   const temp = arr[i];
