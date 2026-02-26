@@ -2898,3 +2898,74 @@ export function renderCiclo(el) {
     `;
   }
 }
+
+window.openCicloHistory = function (seqId) {
+  const plan = state.planejamento;
+  if (!plan || !plan.sequencia) return;
+  const seqItem = plan.sequencia.find(s => s.id === seqId);
+  if (!seqItem) return;
+
+  const discInfo = getDisc(seqItem.discId);
+  if (!discInfo) return;
+
+  const titleEl = document.getElementById('modal-ciclo-history-title');
+  if (titleEl) titleEl.innerHTML = `🕒 Histórico: ${discInfo.disc.icone || '📚'} ${esc(discInfo.disc.nome)}`;
+
+  const bodyEl = document.getElementById('modal-ciclo-history-body');
+
+  // Filtrar histórico de estudos da disciplina
+  const eventosDisc = state.eventos
+    .filter(e => e.discId === seqItem.discId && e.status === 'estudei' && e.tempoAcumulado > 0)
+    .sort((a, b) => (b.data + 'T' + (b.hora || '00:00:00')).localeCompare(a.data + 'T' + (a.hora || '00:00:00'))).reverse();
+
+  let btnDesfazer = '';
+  if (seqItem.concluido) {
+    btnDesfazer = `
+      <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+        <button class="btn btn-ghost" style="color:var(--orange); border: 1px solid var(--border);" onclick="window.desfazerEtapa('${seqId}')">
+          <i class="fa fa-undo"></i> Desfazer 'Etapa Concluída' desta matéria
+        </button>
+      </div>
+    `;
+  }
+
+  let htmlHistorico = '';
+  if (eventosDisc.length === 0) {
+    htmlHistorico = `<div style="text-align:center; padding: 20px; color:var(--text-muted); font-size:14px;">Nenhuma sessão de estudo registrada ainda.</div>`;
+  } else {
+    htmlHistorico = `
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${eventosDisc.map(ev => {
+      return `
+            <div class="card" style="padding:12px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-weight:600; font-size:14px; color:var(--text-primary); margin-bottom:4px;">
+                  ${formatDate(ev.data)} ${ev.hora ? `às ${ev.hora}` : ''}
+                </div>
+                <div style="font-size:13px; color:var(--text-muted);">
+                  📍 ${esc(ev.titulo)}
+                </div>
+                <div style="font-size:13px; color:var(--blue); font-weight:700; margin-top:2px;">
+                   ⏱️ ${formatTime(ev.tempoAcumulado)} estudados
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-ciclo-history'); window.openEditaModal('${ev.id}')"><i class="fa fa-edit"></i> Editar</button>
+            </div>
+          `;
+    }).join('')}
+      </div>
+    `;
+  }
+
+  if (bodyEl) {
+    bodyEl.innerHTML = `
+      <div style="padding:16px;">
+        ${btnDesfazer}
+        <h4 style="margin-bottom:12px; font-size:15px; color:var(--text-secondary);">Sessões Recentes (${eventosDisc.length})</h4>
+        ${htmlHistorico}
+      </div>
+    `;
+  }
+
+  openModal('modal-ciclo-history');
+};
