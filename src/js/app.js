@@ -130,6 +130,9 @@ export function applyTheme(toggle = false) {
   }
   const theme = state.config.tema || (state.config.darkMode ? 'dark' : 'light');
   document.documentElement.setAttribute('data-theme', theme);
+
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = state.config.darkMode ? '☀️ Modo claro' : '🌙 Modo escuro';
 }
 
 export function init() {
