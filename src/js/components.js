@@ -253,7 +253,7 @@ export function renderCronometro(el) {
     if (!ev) { clearInterval(window._cronoInterval); return; }
     const elapsed = getElapsedSeconds(ev);
     const timerEl = document.getElementById('crono-main-timer');
-    if (timerEl) timerEl.textContent = fmtTime(elapsed);
+    if (timerEl) timerEl.textContent = formatTime(elapsed);
     const progressBar = document.getElementById('crono-progress-bar');
     if (progressBar) {
       const pct = Math.min((elapsed / plannedSecs) * 100, 100);

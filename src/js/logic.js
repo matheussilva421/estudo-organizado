@@ -101,9 +101,13 @@ export function reattachTimers() {
 export function addTimerMinutes(eventId, minutes) {
   const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
   if (!ev) return;
-  ev.tempoAcumulado = (ev.tempoAcumulado || 0) + (minutes * 60);
+  if (eventId === 'crono_livre') {
+    ev.duracaoMinutos = (ev.duracaoMinutos || 0) + minutes;
+  } else {
+    ev.duracao = (ev.duracao || 0) + minutes;
+  }
   scheduleSave();
-  document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `+${minutes} minuto(s) adicionado(s)`, type: 'info' } }));
+  document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `+${minutes} minuto(s) adicionado(s) à meta`, type: 'info' } }));
   document.dispatchEvent(new Event('app:renderCurrentView'));
 }
 
