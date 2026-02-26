@@ -50,42 +50,28 @@ export function renderCronometro(el) {
   const otherEvents = allTimerEvents.filter(e => e.id !== focusEvent.id);
 
   el.innerHTML = `
-    <div class="crono-fullscreen" style="
-      min-height:calc(100vh - 80px);
-      background:linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
-      border-radius:16px;margin:-24px;padding:0;
-      display:flex;flex-direction:column;
-      position:relative;overflow:hidden;
-    ">
+    <div class="crono-fullscreen">
       <!-- Subtle grid pattern -->
-      <div style="
-        position:absolute;inset:0;
-        background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0);
-        background-size:24px 24px;pointer-events:none;
-      "></div>
+      <div class="crono-grid-overlay"></div>
 
       <!-- Header: studying indicator -->
       <div style="text-align:center;padding:32px 24px 0;position:relative;z-index:1;">
-        <div style="
-          display:inline-block;padding:8px 24px;border-radius:24px;
-          background:rgba(255,255,255,0.06);backdrop-filter:blur(8px);
-          color:#8b949e;font-size:13px;letter-spacing:1px;
-        ">
+        <div class="crono-pill">
           Você está estudando:
         </div>
         ${focusEvent.id === 'crono_livre' ? `
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px;">
-          <select style="max-width:300px; background:rgba(255,255,255,0.05); color:#e6edf3; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; font-size:16px; width:100%; text-align:center; appearance:none; cursor:pointer;" onchange="setCronoLivreDisc(this.value)">
+          <select class="crono-select" onchange="setCronoLivreDisc(this.value)">
             <option value="">(Opcional) Escolha a Disciplina...</option>
             ${getAllDisciplinas().map(d => `<option value="${d.disc.id}" ${state.cronoLivre?.discId === d.disc.id ? 'selected' : ''}>${d.disc.icone || '📖'} ${esc(d.disc.nome)}</option>`).join('')}
           </select>
         </div>
         ` : `
-        <div style="color:#e6edf3;font-size:20px;margin-top:16px;font-weight:700;">
+        <div style="color:var(--text-primary);font-size:20px;margin-top:16px;font-weight:700;">
            ${discName}
         </div>
         <div style="
-          color:#8b949e;font-size:16px;margin-top:4px;
+          color:var(--text-secondary);font-size:16px;margin-top:4px;
           max-width:600px;margin-left:auto;margin-right:auto;
           white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
         ">
@@ -98,18 +84,14 @@ export function renderCronometro(el) {
       <div style="padding:24px 48px 0;position:relative;z-index:1; ${plannedSecs === 0 ? 'opacity:0;' : ''}">
         <div style="
           display:flex;justify-content:space-between;
-          color:#8b949e;font-size:12px;margin-bottom:6px;
+          color:var(--text-secondary);font-size:12px;margin-bottom:6px;
         ">
           <span>${formatTime(elapsed)}</span>
           <span>${formatTime(plannedSecs)}</span>
         </div>
-        <div style="
-          height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;
-        ">
-          <div id="crono-progress-bar" style="
-            height:100%;border-radius:4px;transition:width 1s linear;
+        <div class="progress-track" style="height:8px;">
+          <div id="crono-progress-bar" class="progress-bar" style="
             width:${progress}%;
-            background:linear-gradient(90deg, #238636, #39d353, #56d364);
           "></div>
         </div>
       </div>
@@ -119,44 +101,28 @@ export function renderCronometro(el) {
         flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
         padding:40px 24px;position:relative;z-index:1;
       ">
-        <div id="crono-main-timer" style="
-          font-family:'DM Mono','JetBrains Mono',monospace;
-          font-size:min(12vw, 96px);font-weight:500;letter-spacing:4px;
-          color:${isActive ? '#e6edf3' : '#8b949e'};
-          text-shadow:${isActive ? '0 0 40px rgba(57,211,83,0.3)' : 'none'};
-          transition:color 0.3s, text-shadow 0.3s;
-        ">${formatTime(elapsed)}</div>
+        <div id="crono-main-timer" class="crono-timer-display ${isActive ? 'active' : ''}">
+          ${formatTime(elapsed)}
+        </div>
 
         <!-- Controls -->
         <div style="display:flex;gap:24px;margin-top:40px;align-items:center;">
-          <button onclick="toggleTimer('${focusEvent.id}')" style="
-            width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;
-            background:${isActive ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg,#238636,#2ea043)'};
-            color:#fff;font-size:24px;
-            display:flex;align-items:center;justify-content:center;
-            box-shadow:${isActive ? 'none' : '0 4px 20px rgba(46,160,67,0.4)'};
-            transition:all 0.3s;
-          " title="${isActive ? 'Pausar' : 'Retomar'}">
+          <button onclick="toggleTimer('${focusEvent.id}')" 
+                  class="crono-btn-main ${isActive ? 'pause' : 'play'}"
+                  title="${isActive ? 'Pausar' : 'Retomar'}">
             ${isActive ? '⏸' : '▶'}
           </button>
           
-          <button onclick="marcarEstudei('${focusEvent.id}')" style="
-            width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
-            background:${elapsed > 0 || focusEvent.id === 'crono_livre' ? 'rgba(57, 211, 83, 0.2)' : 'rgba(255,255,255,0.06)'};
-            color:${elapsed > 0 || focusEvent.id === 'crono_livre' ? '#39d353' : '#8b949e'};
-            font-size:20px;
-            display:flex;align-items:center;justify-content:center;
-            transition:all 0.3s;
-          " title="Finalizar e Salvar">
+          <button onclick="marcarEstudei('${focusEvent.id}')" 
+                  class="crono-btn-circle success" 
+                  title="Finalizar e Salvar">
             <i class="fa fa-check"></i>
           </button>
 
-          <button onclick="discardTimer('${focusEvent.id}')" style="
-            width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
-            background:rgba(248, 81, 73, 0.15);color:#f85149;font-size:20px;
-            display:${elapsed > 0 ? 'flex' : 'none'};align-items:center;justify-content:center;
-            transition:all 0.3s;
-          " title="Descartar Sessão">
+          <button onclick="discardTimer('${focusEvent.id}')" 
+                   class="crono-btn-circle danger"
+                   style="display:${elapsed > 0 ? 'flex' : 'none'};"
+                   title="Descartar Sessão">
             <i class="fa fa-trash"></i>
           </button>
         </div>
@@ -164,7 +130,7 @@ export function renderCronometro(el) {
         <!-- Add time buttons / Goal Input -->
         <div style="margin-top:40px;text-align:center;">
           ${focusEvent.id === 'crono_livre' ? `
-          <div style="color:#8b949e;font-size:12px;margin-bottom:12px;letter-spacing:1px;">
+          <div style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;letter-spacing:1px;">
             Definir Meta de Tempo (minutos):
           </div>
           <div style="display:flex;gap:12px;justify-content:center;align-items:center;">
@@ -172,32 +138,18 @@ export function renderCronometro(el) {
             <input type="number" 
                    value="${state.cronoLivre?.duracaoMinutos || 0}" 
                    onchange="setCronoLivreGoal(this.value)" 
-                   style="width:80px;height:40px;background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:8px;text-align:center;font-size:18px;font-family:'DM Mono',monospace;">
+                   class="crono-select"
+                   style="width:80px;">
             <button onclick="setCronoLivreGoal((state.cronoLivre.duracaoMinutos||0) + 5)" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">+</button>
           </div>
           ` : `
-          <div style="color:#8b949e;font-size:12px;margin-bottom:12px;letter-spacing:1px;">
+          <div style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;letter-spacing:1px;">
             Adicione mais tempo se quiser continuar estudando:
           </div>
           <div style="display:flex;gap:12px;justify-content:center;">
-            <button onclick="addTimerMinutes('${focusEvent.id}',1)" style="
-              padding:10px 20px;border-radius:24px;border:none;cursor:pointer;
-              background:linear-gradient(135deg,#6e40c9,#8957e5);color:#fff;
-              font-size:14px;font-weight:600;letter-spacing:0.5px;
-              box-shadow:0 2px 12px rgba(139,92,246,0.3);transition:transform 0.2s;
-            ">+ 1min</button>
-            <button onclick="addTimerMinutes('${focusEvent.id}',5)" style="
-              padding:10px 20px;border-radius:24px;border:none;cursor:pointer;
-              background:linear-gradient(135deg,#6e40c9,#8957e5);color:#fff;
-              font-size:14px;font-weight:600;letter-spacing:0.5px;
-              box-shadow:0 2px 12px rgba(139,92,246,0.3);transition:transform 0.2s;
-            ">+ 5min</button>
-            <button onclick="addTimerMinutes('${focusEvent.id}',15)" style="
-              padding:10px 20px;border-radius:24px;border:none;cursor:pointer;
-              background:linear-gradient(135deg,#6e40c9,#8957e5);color:#fff;
-              font-size:14px;font-weight:600;letter-spacing:0.5px;
-              box-shadow:0 2px 12px rgba(139,92,246,0.3);transition:transform 0.2s;
-            ">+ 15min</button>
+            <button onclick="addTimerMinutes('${focusEvent.id}',1)" class="btn btn-primary">+ 1min</button>
+            <button onclick="addTimerMinutes('${focusEvent.id}',5)" class="btn btn-primary">+ 5min</button>
+            <button onclick="addTimerMinutes('${focusEvent.id}',15)" class="btn btn-primary">+ 15min</button>
           </div>
           `}
         </div>
@@ -211,8 +163,8 @@ export function renderCronometro(el) {
           padding:8px 20px;border-radius:20px;border:none;cursor:pointer;
           font-size:13px;font-weight:500;transition:all 0.3s;
           ${_pomodoroMode
-      ? 'background:rgba(139,92,246,0.15);color:#a371f7;'
-      : 'background:rgba(255,255,255,0.06);color:#8b949e;'}
+      ? 'background:var(--accent-light);color:var(--accent-dark);'
+      : 'background:var(--bg);color:var(--text-secondary);border:1px solid var(--border);'}
         ">
           ${_pomodoroMode ? `🍅 Pomodoro (${state?.config?.pomodoroFoco || 25}/${state?.config?.pomodoroPausa || 5})` : '⏱ Modo Contínuo'}
         </button>
@@ -221,17 +173,14 @@ export function renderCronometro(el) {
       ${otherEvents.length > 0 ? `
         <!-- Other timers -->
         <div style="padding:0 32px 24px;position:relative;z-index:1;">
-          <div style="color:#8b949e;font-size:12px;margin-bottom:8px;">Outros cronômetros:</div>
+          <div style="color:var(--text-secondary);font-size:12px;margin-bottom:8px;">Outros cronômetros:</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
             ${otherEvents.map(ev => {
         const evActive = !!ev._timerStart;
         const evDisc = getDisc(ev.discId);
         return `
-                <button onclick="navigate('cronometro');toggleTimer('${ev.id}')" style="
-                  padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
-                  background:${evActive ? 'var(--accent)' : 'var(--bg-secondary)'};
-                  color:${evActive ? '#fff' : 'var(--text-primary)'};
-                  font-size:13px;font-weight:600;
+                <button onclick="navigate('cronometro');toggleTimer('${ev.id}')" class="btn ${evActive ? 'btn-primary' : 'btn-ghost'}" style="
+                   font-size:13px;font-weight:600;
                 ">${evDisc ? evDisc.disc.nome : 'Evento'} ${evActive ? '⏱️' : '⏸️'}</button>
               `;
       }).join('')}
@@ -239,11 +188,6 @@ export function renderCronometro(el) {
         </div>
       ` : ''}
     </div>
-
-    <style>
-      .crono-fullscreen button:hover { transform: scale(1.05); }
-      .crono-fullscreen button:active { transform: scale(0.98); }
-    </style>
   `;
 
   // Live update every second
@@ -280,24 +224,24 @@ export function renderCurrentView() {
   document.getElementById('topbar-title').textContent = titles[currentView] || 'Estudo Organizado';
 
   document.getElementById('topbar-date').innerHTML = currentView === 'home'
-    ? `<i class="fa fa-calendar-alt"></i> ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`
+    ? `< i class="fa fa-calendar-alt" ></i > ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} `
     : '';
 
   // Render topbar actions
   const actions = document.getElementById('topbar-actions');
   actions.innerHTML = '';
   if (currentView === 'cronometro') {
-    actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="navigate('med')"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+    actions.innerHTML = `< button class="btn btn-ghost btn-sm" onclick = "navigate('med')" > <i class="fa fa-arrow-left"></i> Voltar</button > `;
   } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
+    actions.innerHTML = `< button class="btn btn-primary btn-sm" onclick = "openAddEventModal()" > <i class="fa fa-plus"></i> Iniciar Estudo</button > `;
   } else if (currentView === 'editais') {
     if (window.activeDashboardDiscCtx) {
-      actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeDiscDashboard()"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+      actions.innerHTML = `< button class="btn btn-ghost btn-sm" onclick = "closeDiscDashboard()" > <i class="fa fa-arrow-left"></i> Voltar</button > `;
     } else {
-      actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
+      actions.innerHTML = `< button class="btn btn-primary btn-sm" onclick = "openEditaModal()" > <i class="fa fa-plus"></i> Novo Edital</button > `;
     }
   } else if (currentView === 'ciclo') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="window.openPlanejamentoWizard()"><i class="fa fa-cog"></i> Planejamento</button>`;
+    actions.innerHTML = `< button class="btn btn-primary btn-sm" onclick = "window.openPlanejamentoWizard()" > <i class="fa fa-cog"></i> Planejamento</button > `;
   }
 
   updateBadges();
@@ -357,7 +301,7 @@ export function renderEventCard(evento) {
   const tempo = formatTime(elapsed);
 
   return `
-    <div class="event-card" data-event-id="${evento.id}" onclick="openEventDetail('${evento.id}')">
+    < div class="event-card" data - event - id="${evento.id}" onclick = "openEventDetail('${evento.id}')" >
       <div class="event-stripe ${status}"></div>
       <div class="event-disc-icon" style="background:${iconBg}20;color:${iconBg};">${icon}</div>
       <div class="event-info">
@@ -374,6 +318,6 @@ export function renderEventCard(evento) {
         ${status !== 'estudei' ? `<button class="icon-btn" title="Marcar como Estudei" onclick="marcarEstudei('${evento.id}')">✅</button>` : ''}
         <button class="icon-btn" title="Excluir" onclick="deleteEvento('${evento.id}')">🗑</button>
       </div>
-    </div>
-  `;
+    </div >
+    `;
 }
