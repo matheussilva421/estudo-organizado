@@ -238,6 +238,10 @@
   color: #93c5fd;
 }
 
+[data-theme]:not([data-theme="light"]) label.btn-primary {
+  color: var(--accent-text);
+}
+
 [data-theme]:not([data-theme="light"]) .badge-gray {
   background: var(--border);
   color: var(--text-secondary);
@@ -749,7 +753,8 @@ body {
   padding: 2px 7px;
   border-radius: 20px;
   background: var(--accent-light);
-  color: var(--accent-dark);
+  color: var(--accent-text);
+  /* Garantindo contraste em temas claros/escuros */
 }
 
 .event-tag.atrasado {
