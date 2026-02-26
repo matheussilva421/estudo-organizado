@@ -1439,8 +1439,8 @@ export function renderVerticalList(container) {
         </div>
         <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${pct}<span style="font-size:16px;opacity:0.7;">%</span></div>
       </div>
-      <div style="background:var(--bg);height:14px;border-radius:10px;width:100%;overflow:hidden;padding:2px;">
-        <div style="background:var(--accent);height:100%;width:${pct}%;transition:width 0.3s;border-radius:10px;"></div>
+      <div class="progress-track" style="height:14px;border-radius:10px;width:100%;overflow:hidden;padding:2px;">
+        <div class="progress-bar" style="width:${pct}%;transition:width 0.3s;border-radius:10px;"></div>
       </div>
     </div>
   `;
