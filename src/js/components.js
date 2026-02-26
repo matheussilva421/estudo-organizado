@@ -291,7 +291,11 @@ export function renderCurrentView() {
   } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
     actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
   } else if (currentView === 'editais') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
+    if (window.activeDashboardDiscCtx) {
+      actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeDiscDashboard()"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+    } else {
+      actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
+    }
   } else if (currentView === 'ciclo') {
     actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="window.openPlanejamentoWizard()"><i class="fa fa-cog"></i> Planejamento</button>`;
   }
@@ -304,7 +308,14 @@ export function renderCurrentView() {
   if (currentView === 'dashboard') return renderDashboard(el);
   if (currentView === 'revisoes') return renderRevisoes(el);
   if (currentView === 'habitos') return renderHabitos(el);
-  if (currentView === 'editais') return renderEditais(el);
+  if (currentView === 'editais') {
+    if (window.activeDashboardDiscCtx) {
+      // Defer execution so that we don't return early if openDiscDashboard doesn't return anything.
+      // But openDiscDashboard populates el.innerHTML so it acts like a render function.
+      return window.openDiscDashboard(window.activeDashboardDiscCtx.editaId, window.activeDashboardDiscCtx.discId);
+    }
+    return renderEditais(el);
+  }
   if (currentView === 'vertical') return renderVertical(el);
   if (currentView === 'config') return renderConfig(el);
   if (currentView === 'cronometro') return renderCronometro(el);

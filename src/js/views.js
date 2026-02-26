@@ -1465,11 +1465,11 @@ export function renderEditalTree(edital) {
                 </div>
                 <!-- Hover Overlay -->
                 <div class="disc-overlay">
-                  <button class="disc-action" onclick="event.stopPropagation();openDiscManager('${edital.id}','${disc.id}')">
+                  <button class="disc-action" onclick="event.stopPropagation();openDiscDashboard('${edital.id}','${disc.id}')">
                     <i class="fa fa-folder-open"></i>
                     <span>Visualizar</span>
                   </button>
-                  <button class="disc-action" onclick="event.stopPropagation();openDiscModal('${edital.id}','${disc.id}')">
+                  <button class="disc-action" onclick="event.stopPropagation();openDiscManager('${edital.id}','${disc.id}')">
                     <i class="fa fa-edit"></i>
                     <span>Editar</span>
                   </button>
@@ -1508,13 +1508,287 @@ export function toggleAssunto(discId, assId) {
         ass.dataConclusao = ass.concluido ? todayStr() : null;
         if (ass.concluido) ass.revisoesFetas = [];
         scheduleSave();
-        renderCurrentView();
+
+        // Re-render local dashboard if open, otherwise full view
+        if (window.activeDashboardDiscCtx && window.activeDashboardDiscCtx.discId === discId) {
+          openDiscDashboard(window.activeDashboardDiscCtx.editaId, discId);
+        } else {
+          renderCurrentView();
+        }
         return;
       }
     }
   }
 }
 
+window.activeDashboardDiscCtx = null;
+
+export function openDiscDashboard(editaId, discId) {
+  const edital = state.editais.find(e => e.id === editaId);
+  if (!edital) return;
+  const disc = edital.disciplinas.find(d => d.id === discId);
+  if (!disc) return;
+
+  window.activeDashboardDiscCtx = { editaId, discId };
+
+  // Set window Topbar
+  document.getElementById('topbar-title').textContent = `${disc.icone || '📚'} ${disc.nome}`;
+  const actions = document.getElementById('topbar-actions');
+  actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeDiscDashboard()"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+
+  const el = document.getElementById('content');
+  el.innerHTML = renderDisciplinaDashboard(edital, disc);
+  setTimeout(() => initDiscDashboardChart(disc.id), 100);
+}
+
+export function closeDiscDashboard() {
+  window.activeDashboardDiscCtx = null;
+  renderCurrentView();
+}
+
+export function renderDisciplinaDashboard(edital, disc) {
+  const tempos = state.eventos ? state.eventos.filter(e => e.discId === disc.id && e.status === 'estudei') : [];
+  let tempoTotal = 0;
+  let qCertas = 0;
+  let qErradas = 0;
+  let pagLidas = 0;
+
+  tempos.forEach(e => {
+    tempoTotal += e.tempoEstudado || 0;
+    if (e.questoes) {
+      qCertas += e.questoes.certas || 0;
+      qErradas += e.questoes.erradas || 0;
+    }
+    pagLidas += e.paginas || 0;
+  });
+
+  const totalQuestoes = qCertas + qErradas;
+  const percAcertos = totalQuestoes > 0 ? Math.round((qCertas / totalQuestoes) * 100) : 0;
+
+  const totalAssuntos = disc.assuntos.length;
+  const assuntosConcluidos = disc.assuntos.filter(a => a.concluido).length;
+  const percConcluido = totalAssuntos > 0 ? Math.round((assuntosConcluidos / totalAssuntos) * 100) : 0;
+
+  return `
+    <div style="max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-bottom:40px;">
+      
+      <!-- HEADER STATS -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;">
+        <div class="card p-16">
+          <div class="dash-label">TEMPO DE ESTUDO</div>
+          <div style="font-size:24px;font-weight:800;color:var(--text-primary);margin-top:12px;font-family:'DM Mono',monospace;">
+            ${formatTime(tempoTotal)}
+          </div>
+        </div>
+
+        <div class="card p-16">
+          <div class="dash-label">QUESTÕES (ACERTOS / TOTAL)</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:12px;">
+            <div style="font-size:24px;font-weight:800;color:var(--text-primary);font-family:'DM Mono',monospace;">
+              ${qCertas} / ${totalQuestoes}
+            </div>
+            <div style="font-size:16px;font-weight:700;color:${percAcertos >= 70 ? 'var(--green)' : percAcertos >= 50 ? 'var(--accent)' : 'var(--red)'};">
+              ${percAcertos}%
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-16">
+          <div class="dash-label">PROGRESSO DO EDITAL</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:12px;">
+            <div style="font-size:24px;font-weight:800;color:var(--text-primary);font-family:'DM Mono',monospace;">
+              ${assuntosConcluidos} / ${totalAssuntos}
+            </div>
+            <div style="font-size:16px;font-weight:700;color:var(--accent);">
+              ${percConcluido}%
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-16">
+          <div class="dash-label">PÁGINAS LIDAS</div>
+          <div style="font-size:24px;font-weight:800;color:var(--text-primary);margin-top:12px;font-family:'DM Mono',monospace;">
+            ${pagLidas}
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT GRID -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));gap:20px;align-items:start;">
+        
+        <!-- HISTÓRICO DE ESTUDOS (ESQUERDA) -->
+        <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">
+          <div class="dash-label" style="margin-bottom:16px;">HISTÓRICO DE SESSÕES (ÚLTIMAS 50)</div>
+          ${renderHistoricoDisciplina(tempos)}
+        </div>
+
+        <!-- TÓPICOS DO EDITAL (DIREITA) -->
+        <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">
+          <div class="dash-label" style="margin-bottom:16px;">TÓPICOS DO EDITAL</div>
+          ${renderTopicosEditalDisciplina(edital, disc)}
+        </div>
+
+      </div>
+
+      <!-- PERFORMANCE GRAPH -->
+      <div class="card p-16">
+        <div class="dash-label" style="margin-bottom:16px;">EVOLUÇÃO DOS ACERTOS (%) - ÚLTIMAS SESSÕES</div>
+        <div style="height:250px;width:100%;position:relative;">
+          <canvas id="disc-chart-acertos"></canvas>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+function renderHistoricoDisciplina(tempos) {
+  const reverseTempos = [...tempos].reverse().slice(0, 50);
+  if (reverseTempos.length === 0) {
+    return '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-style:italic;">Nenhuma sessão de estudo registrada.</div>';
+  }
+
+  return `
+    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">
+        <thead style="position:sticky;top:0;background:var(--card);z-index:2;">
+          <tr style="border-bottom:1px solid var(--border);color:var(--text-muted);">
+            <th style="padding:8px 4px;font-weight:600;">Data</th>
+            <th style="padding:8px 4px;font-weight:600;">Tempo</th>
+            <th style="padding:8px 4px;font-weight:600;">Pág.</th>
+            <th style="padding:8px 4px;font-weight:600;">Questões</th>
+            <th style="padding:8px 4px;font-weight:600;">Acerto</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reverseTempos.map(t => {
+    const dateStr = formatDate(t.data);
+    const tempoStr = formatTime(t.tempoEstudado || 0).substring(0, 5);
+    const qs = t.questoes || { certas: 0, erradas: 0 };
+    const totQs = qs.certas + qs.erradas;
+    const perc = totQs > 0 ? Math.round((qs.certas / totQs) * 100) : 0;
+    const percColor = perc >= 70 ? 'var(--green)' : perc >= 50 ? 'var(--accent)' : 'var(--red)';
+
+    return `
+              <tr style="border-bottom:1px solid var(--bg);">
+                <td style="padding:10px 4px;color:var(--text-primary);">${dateStr}</td>
+                <td style="padding:10px 4px;font-family:'DM Mono',monospace;">${tempoStr}</td>
+                <td style="padding:10px 4px;">${t.paginas || '-'}</td>
+                <td style="padding:10px 4px;">${qs.certas} / ${totQs}</td>
+                <td style="padding:10px 4px;font-weight:700;color:${totQs > 0 ? percColor : 'inherit'};">${totQs > 0 ? perc + '%' : '-'}</td>
+              </tr>
+            `;
+  }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderTopicosEditalDisciplina(edital, disc) {
+  if (!disc.assuntos || disc.assuntos.length === 0) {
+    return '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-style:italic;">Nenhum tópico cadastrado.</div>';
+  }
+
+  return `
+    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
+      ${disc.assuntos.map(ass => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:#f8fafc;border-radius:6px;' : ''}">
+          <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
+          <div style="flex:1;min-width:0;font-size:13px;font-weight:${ass.concluido ? '400' : '600'};color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluido ? 'text-decoration:line-through;' : ''}">${esc(ass.nome)}</div>
+          ${ass.concluido ? `
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-size:10px;color:var(--green);font-weight:700;">✅ concluído</div>
+              <div style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</div>
+            </div>
+          ` : `
+            <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:4px 8px;font-size:11px;" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','${ass.id}')">+ Agenda</button>
+          `}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+export function initDiscDashboardChart(discId) {
+  const canvas = document.getElementById('disc-chart-acertos');
+  if (!canvas) return;
+
+  const tempos = state.eventos ? state.eventos.filter(e => e.discId === discId && e.status === 'estudei' && e.questoes && (e.questoes.certas > 0 || e.questoes.erradas > 0)) : [];
+
+  const grouped = {};
+  [...tempos].sort((a, b) => a.data.localeCompare(b.data)).forEach(t => {
+    if (!grouped[t.data]) grouped[t.data] = { certas: 0, erradas: 0 };
+    grouped[t.data].certas += t.questoes.certas;
+    grouped[t.data].erradas += t.questoes.erradas;
+  });
+
+  const rawLabels = Object.keys(grouped).slice(-15);
+  const labels = rawLabels.map(d => formatDate(d));
+  const dataPerc = rawLabels.map(d => {
+    const total = grouped[d].certas + grouped[d].erradas;
+    return total > 0 ? Math.round((grouped[d].certas / total) * 100) : 0;
+  });
+
+  if (window._discChartInstance) {
+    window._discChartInstance.destroy();
+  }
+
+  if (labels.length === 0) {
+    const parent = canvas.parentElement;
+    parent.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;font-style:italic;">Métricas insuficientes. Registre sessões com número de questões para gerar o gráfico de evolução.</div>';
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+  window._discChartInstance = new window.Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '% de Acertos',
+        data: dataPerc,
+        borderColor: 'var(--accent)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderWidth: 2,
+        pointBackgroundColor: 'var(--bg)',
+        pointBorderColor: 'var(--accent)',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'var(--card)',
+          titleColor: 'var(--text-muted)',
+          bodyColor: 'var(--text-primary)',
+          borderColor: 'var(--border)',
+          borderWidth: 1,
+          callbacks: {
+            label: (ctx) => `${ctx.raw}% de Acerto`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { callback: v => v + '%' },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: {
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
 
 export function deleteAssunto(discId, assId) {
   showConfirm('Excluir este assunto? Eventos vinculados serão desvinculados.', () => {
@@ -1564,9 +1838,9 @@ export function deleteDisc(editaId, discId) {
 export function deleteEdital(editaId) {
   const edital = state.editais.find(e => e.id === editaId);
   const nome = edital ? edital.nome : 'edital';
-  showConfirm(`Excluir "${nome}" completamente?
+  showConfirm(`Excluir "${nome}" completamente ?
 
-Todos os grupos, disciplinas e assuntos serão removidos. Esta ação não pode ser desfeita.`, () => {
+    Todos os grupos, disciplinas e assuntos serão removidos.Esta ação não pode ser desfeita.`, () => {
     const discIds = edital && edital.disciplinas ? edital.disciplinas.map(d => d.id) : [];
     state.editais = state.editais.filter(e => e.id !== editaId);
 
@@ -1596,7 +1870,7 @@ export function openEditaModal(editaId = null) {
   const edital = editaId ? state.editais.find(e => e.id === editaId) : null;
   document.getElementById('modal-edital-title').textContent = edital ? 'Editar Edital' : 'Novo Edital';
   document.getElementById('modal-edital-body').innerHTML = `
-    <div class="form-group">
+      < div class="form-group" >
       <label class="form-label">Nome do Edital</label>
       <input type="text" class="form-control" id="edital-nome" placeholder="Ex: Concurso TRF 2025" value="${edital ? edital.nome : ''}">
     </div>
@@ -1621,7 +1895,7 @@ export function openEditaModal(editaId = null) {
 export function selectColor(color, containerId) {
   const container = document.getElementById(containerId);
   container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-  container.querySelector(`[style="background:${color};"]`).classList.add('selected');
+  container.querySelector(`[style = "background:${color};"]`).classList.add('selected');
   const input = document.getElementById(containerId === 'edital-colors' ? 'edital-cor' : containerId === 'disc-colors' ? 'disc-cor' : 'edital-cor');
   if (input) input.value = color;
 }
@@ -1657,7 +1931,7 @@ export function openDiscModal(editaId, discId) {
 
   document.getElementById('modal-disc-title').textContent = isEdit ? 'Editar Disciplina' : 'Nova Disciplina';
   document.getElementById('modal-disc-body').innerHTML = `
-    <div class="form-group">
+    < div class="form-group" >
       <label class="form-label">Nome da Disciplina</label>
       <input type="text" class="form-control" id="disc-nome" placeholder="Ex: Direito Constitucional" value="${isEdit ? esc(existingDisc.nome) : ''}">
     </div>
@@ -1691,7 +1965,7 @@ export function selectIcon(icon, el) {
 
 export function selectDiscColor(color) {
   document.querySelectorAll('#disc-colors .color-swatch').forEach(s => s.classList.remove('selected'));
-  document.querySelector(`#disc-colors [style="background:${color};"]`).classList.add('selected');
+  document.querySelector(`#disc - colors[style = "background:${color};"]`).classList.add('selected');
   document.getElementById('disc-cor').value = color;
 }
 
@@ -1740,13 +2014,13 @@ export function openDiscManager(editaId, discId) {
 
   // Render subject items
   const subjectsHtml = disc.assuntos.map((ass, idx) => `
-    <div class="sm-list-item" draggable="true"
-         data-disc-id="${disc.id}"
-         data-ass-idx="${idx}"
-         ondragstart="dndStart(event,'${disc.id}',${idx})"
-         ondragover="dndOver(event)"
-         ondragleave="dndLeave(event)"
-         ondrop="dndDrop(event,'${disc.id}',${idx})">
+    < div class="sm-list-item" draggable = "true"
+  data - disc - id="${disc.id}"
+  data - ass - idx="${idx}"
+  ondragstart = "dndStart(event,'${disc.id}',${idx})"
+  ondragover = "dndOver(event)"
+  ondragleave = "dndLeave(event)"
+  ondrop = "dndDrop(event,'${disc.id}',${idx})" >
       <div class="sm-drag-handle" title="Arrastar">☰</div>
       <div class="sm-item-text" onclick="editSubjectInline('${disc.id}', '${ass.id}', this)">${esc(ass.nome)}</div>
       <div class="sm-item-actions">
@@ -1754,14 +2028,14 @@ export function openDiscManager(editaId, discId) {
         <button onclick="moveSubject('${disc.id}', ${idx}, 1)" title="Descer"><i class="fa fa-chevron-down"></i></button>
         <button onclick="deleteAssunto('${disc.id}', '${ass.id}')" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
-    </div>
-  `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico adicionado.</div>';
+    </div >
+    `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico adicionado.</div>';
 
-  const colorOptions = COLORS.map(c => `<option value="${c}" ${disc.cor === c ? 'selected' : ''} style="background:${c};color:#fff;">${c}</option>`).join('');
+  const colorOptions = COLORS.map(c => `< option value = "${c}" ${disc.cor === c ? 'selected' : ''} style = "background:${c};color:#fff;" > ${c}</option > `).join('');
 
   document.getElementById('modal-disc-manager-title').textContent = disc.nome || 'Gerenciar Disciplina';
   document.getElementById('modal-disc-manager-body').innerHTML = `
-    <div class="sm-header">
+    < div class="sm-header" >
       <div class="sm-form-group">
         <label>Nome</label>
         <input type="text" id="dm-nome" value="${esc(disc.nome)}">
@@ -1775,7 +2049,7 @@ export function openDiscManager(editaId, discId) {
           </select>
         </div>
       </div>
-    </div>
+    </div >
     
     <div class="sm-toolbar">
       <span>Tópicos (${disc.assuntos.length})</span>
@@ -1869,13 +2143,13 @@ export function saveDiscManager(editaId, discId) {
 export function openSubjectAddModal(editaId, discId) {
   editingSubjectCtx = { editaId, discId };
   document.getElementById('modal-subject-add-body').innerHTML = `
-    <div class="form-group">
+    < div class="form-group" >
       <label class="form-label" style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Conteúdo</label>
       <textarea id="bulk-subject-text" class="form-control" rows="8" style="font-family:inherit;font-size:14px;resize:vertical;" placeholder="Ex:\n1. Configuração do Estado\n2. Direitos Fundamentais\n3. ..."></textarea>
       <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">
         Dica: Você pode fazer quebra de linha com Enter para adicionar mais de um tópico. O sistema limpará numerações como "1.", "1.1", "-", etc.
       </div>
-    </div>
+    </div >
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
         <input type="checkbox" id="bulk-save-continue"> Salvar e continuar
@@ -1934,12 +2208,12 @@ export function saveBulkSubjects() {
 export function openAddEventModal(dateStr = null) {
   editingEventId = null;
   const allDiscs = getAllDisciplinas();
-  const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
+  const discOptions = allDiscs.map(({ disc, edital }) => `< option value = "${disc.id}" data - edital="${edital.id}" > ${esc(edital.nome)} → ${esc(disc.nome)}</option > `
   ).join('');
 
   document.getElementById('modal-event-title').textContent = 'Iniciar Estudo';
   document.getElementById('modal-event-body').innerHTML = `
-    <div id="event-conteudo-fields">
+    < div id = "event-conteudo-fields" >
       <div class="form-group">
         <label class="form-label">Disciplina</label>
         <select class="form-control" id="event-disc" onchange="loadAssuntos()">
@@ -1953,7 +2227,7 @@ export function openAddEventModal(dateStr = null) {
           <option value="">Sem assunto específico</option>
         </select>
       </div>
-    </div>
+    </div >
 
     <div class="form-group">
       <label class="form-label">Título do Evento</label>
@@ -2035,13 +2309,13 @@ export function loadAssuntos() {
   // Fix 5: auto-fill title when user hasn't typed anything yet
   const tituloInput = document.getElementById('event-titulo');
   if (d && (!tituloInput.value || tituloInput.dataset.autoFilled === 'true')) {
-    tituloInput.value = `Estudar ${d.disc.nome}`;
+    tituloInput.value = `Estudar ${d.disc.nome} `;
     tituloInput.dataset.autoFilled = 'true';
   }
   if (!d || d.disc.assuntos.length === 0) { assuntoGroup.style.display = 'none'; return; }
   const pending = d.disc.assuntos.filter(a => !a.concluido);
-  assuntoSel.innerHTML = `<option value="">Sem assunto específico</option>` +
-    pending.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
+  assuntoSel.innerHTML = `< option value = "" > Sem assunto específico</option > ` +
+    pending.map(a => `< option value = "${a.id}" > ${esc(a.nome)}</option > `).join('');
   assuntoGroup.style.display = '';
   assuntoSel.onchange = () => {
     const assId = assuntoSel.value;
@@ -2052,7 +2326,7 @@ export function loadAssuntos() {
         tituloInput.dataset.autoFilled = 'true';
       }
     } else if (!assId && tituloInput.dataset.autoFilled === 'true') {
-      tituloInput.value = `Estudar ${d.disc.nome}`;
+      tituloInput.value = `Estudar ${d.disc.nome} `;
     }
   };
 }
@@ -2078,7 +2352,7 @@ export function saveEvent() {
 
   if (!titulo && discId) {
     const d = getDisc(discId);
-    autoTitle = `Estudar ${d?.disc.nome || 'Disciplina'}`;
+    autoTitle = `Estudar ${d?.disc.nome || 'Disciplina'} `;
   }
 
   if (!autoTitle) { showToast('Informe um título para o evento', 'error'); return; }
@@ -2108,8 +2382,8 @@ export function saveEvent() {
   if (existingOnDay.length >= 3 || totalDuracao > 480) {
     const horas = Math.round(totalDuracao / 60 * 10) / 10;
     const msg = existingOnDay.length >= 3
-      ? `Você já tem ${existingOnDay.length} evento(s) neste dia. Adicionar mais pode gerar sobrecarga.`
-      : `Você já tem ${Math.round((totalDuracao - duracao) / 60 * 10) / 10}h agendadas neste dia. Com este evento seriam ${horas}h.`;
+      ? `Você já tem ${existingOnDay.length} evento(s) neste dia.Adicionar mais pode gerar sobrecarga.`
+      : `Você já tem ${Math.round((totalDuracao - duracao) / 60 * 10) / 10}h agendadas neste dia.Com este evento seriam ${horas} h.`;
     showConfirm(msg, doSave, { label: 'Adicionar mesmo assim', title: 'Muitos eventos no dia' });
     return;
   }
@@ -2123,7 +2397,7 @@ export function saveEvent() {
 export function renderConfig(el) {
   const cfg = state.config;
   el.innerHTML = `
-    <div class="grid-2">
+    < div class="grid-2" >
       <div>
         <div class="card" style="margin-bottom:16px;">
           <div class="card-header"><h3>🎨 Aparência</h3></div>
@@ -2969,3 +3243,8 @@ window.openCicloHistory = function (seqId) {
 
   openModal('modal-ciclo-history');
 };
+
+// Global exports for Disc Dashboard
+window.openDiscDashboard = openDiscDashboard;
+window.closeDiscDashboard = closeDiscDashboard;
+window.addEventoParaAssunto = addEventoParaAssunto;
