@@ -1320,7 +1320,7 @@ export function renderVertical(el) {
       <div class="filter-row" style="margin:0;gap:4px;">
         ${['todos', 'pendentes', 'concluidos'].map(s => `
           <div class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" onclick="vertFilterStatus='${s}';renderCurrentView()">
-            ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'concluidos' }[s]}
+            ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'Concluídos' }[s]}
           </div>`).join('')}
       </div>
     </div>
@@ -1683,7 +1683,7 @@ export function openDiscDashboard(editaId, discId) {
   // Set window Topbar
   document.getElementById('topbar-title').textContent = `${disc.icone || '📚'} ${disc.nome} `;
   const actions = document.getElementById('topbar-actions');
-  actions.innerHTML = `< button class="btn btn-ghost btn-sm" onclick = "closeDiscDashboard()" > <i class="fa fa-arrow-left"></i> Voltar</button > `;
+  actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeDiscDashboard()"><i class="fa fa-arrow-left"></i> Voltar</button>`;
 
   const el = document.getElementById('content');
   el.innerHTML = renderDisciplinaDashboard(edital, disc);
@@ -1719,9 +1719,9 @@ export function renderDisciplinaDashboard(edital, disc) {
   const percConcluido = totalAssuntos > 0 ? Math.round((assuntosConcluidos / totalAssuntos) * 100) : 0;
 
   return `
-          < div style = "max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-bottom:40px;" >
+    <div style="max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-bottom:40px;">
       
-      < !--HEADER STATS-- >
+      <!-- HEADER STATS -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;">
         <div class="card p-16">
           <div class="dash-label">TEMPO DE ESTUDO</div>
@@ -1762,7 +1762,7 @@ export function renderDisciplinaDashboard(edital, disc) {
         </div>
       </div>
 
-      <!--MAIN CONTENT GRID-- >
+      <!-- MAIN CONTENT GRID -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));gap:20px;align-items:stretch;">
         
         <!-- HISTÓRICO DE ESTUDOS (ESQUERDA) -->
@@ -1779,16 +1779,16 @@ export function renderDisciplinaDashboard(edital, disc) {
 
       </div>
 
-      <!--PERFORMANCE GRAPH-- >
-          <div class="card p-16">
-            <div class="dash-label" style="margin-bottom:16px;">EVOLUÇÃO DOS ACERTOS (%) - ÚLTIMAS SESSÕES</div>
-            <div style="height:250px;width:100%;position:relative;">
-              <canvas id="disc-chart-acertos"></canvas>
-            </div>
-          </div>
+      <!-- PERFORMANCE GRAPH -->
+      <div class="card p-16">
+        <div class="dash-label" style="margin-bottom:16px;">EVOLUÇÃO DOS ACERTOS (%) - ÚLTIMAS SESSÕES</div>
+        <div style="height:250px;width:100%;position:relative;">
+          <canvas id="disc-chart-acertos"></canvas>
+        </div>
+      </div>
 
-    </div >
-          `;
+    </div>
+  `;
 }
 
 function renderHistoricoDisciplina(tempos) {
