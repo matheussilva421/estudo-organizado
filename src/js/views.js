@@ -1283,6 +1283,9 @@ export let vertFilterEdital = '';
 export let vertFilterStatus = 'todos';
 export let vertSearch = '';
 
+window.setVertFilterStatus = function (s) { vertFilterStatus = s; };
+window.setVertFilterEdital = function (e) { vertFilterEdital = e; };
+
 export function getFilteredVertItems() {
   let items = [];
   for (const edital of state.editais) {
@@ -1313,13 +1316,13 @@ export function renderVertical(el) {
           placeholder="Buscar assunto ou disciplina..."
           oninput="onVertSearch(this.value)">
       </div>
-      <select class="form-control" style="width:auto;" onchange="vertFilterEdital=this.value;renderCurrentView()">
+      <select class="form-control" style="width:auto;" onchange="setVertFilterEdital(this.value);renderCurrentView()">
         <option value="">Todos os editais</option>
         ${state.editais.map(e => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
       </select>
       <div class="filter-row" style="margin:0;gap:4px;">
         ${['todos', 'pendentes', 'concluidos'].map(s => `
-          <div class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" onclick="vertFilterStatus='${s}';renderCurrentView()">
+          <div class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" onclick="setVertFilterStatus('${s}');renderCurrentView()">
             ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'Concluídos' }[s]}
           </div>`).join('')}
       </div>
@@ -1446,7 +1449,7 @@ export function renderVerticalList(container) {
             
             <!-- Ações -->
             <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
-              <i class="fa fa-edit" onclick="event.stopPropagation(); window.openDiscDashboard('${dMap.edital.id}', '${discId}')" title="Dashboard da Disciplina" style="cursor:pointer;"></i>
+              <i class="fa fa-edit" onclick="event.stopPropagation(); window.openDiscManager('${dMap.edital.id}', '${discId}')" title="Gerenciar Disciplina e Tópicos" style="cursor:pointer;"></i>
               <i id="vert-disc-icon-${discId}" class="fa fa-chevron-down" style="width:16px;text-align:center;"></i>
             </div>
           </div>
@@ -1461,10 +1464,9 @@ export function renderVerticalList(container) {
                   <th style="padding:10px;text-align:left;">Tópicos</th>
                   <th style="padding:10px;color:var(--green);"><i class="fa fa-check"></i></th>
                   <th style="padding:10px;color:var(--red);"><i class="fa fa-times"></i></th>
-                  <th style="padding:10px;color:var(--text-muted);"><i class="fa fa-edit"></i></th>
+                  <th style="padding:10px;color:var(--text-muted);"><i class="fa fa-bullseye" title="Total de questões"></i></th>
                   <th style="padding:10px;">%</th>
                   <th style="padding:10px;"><i class="fa fa-calendar-alt"></i></th>
-                  <th style="padding:10px;"><i class="fa fa-calculator"></i></th>
                   <th style="padding:10px;text-align:right;">Link</th>
                 </tr>
               </thead>
@@ -1501,7 +1503,6 @@ export function renderVerticalList(container) {
                     <div style="display:inline-block;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;background:${aTotalQ > 0 ? (aPctQ >= 70 ? 'var(--green)' : aPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)') : 'transparent'};color:${aTotalQ > 0 ? 'var(--bg)' : 'var(--text-muted)'};border:${aTotalQ > 0 ? 'none' : '1px solid var(--border)'};">${aTotalQ > 0 ? aPctQ : 0}</div>
                   </td>
                   <td style="padding:12px 10px;color:var(--text-muted);font-size:12px;">${dataStr}</td>
-                  <td style="padding:12px 10px;color:var(--text-secondary);font-weight:600;">${revCount}</td>
                   <td style="padding:12px 10px;text-align:right;">
                     <span style="color:var(--text-primary);cursor:pointer;font-weight:600;font-size:12px;opacity:0.8;transition:0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" onclick="addEventoParaAssunto('${edital.id}','${discId}','${ass.id}')">Adicionar</span>
                   </td>
@@ -1840,7 +1841,7 @@ function renderTopicosEditalDisciplina(edital, disc) {
   }
 
   return `
-          < div class="custom-scrollbar" style = "flex:1;overflow-y:auto;padding-right:8px;" >
+    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
             ${disc.assuntos.map(ass => `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:#f8fafc;border-radius:6px;' : ''}">
           <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
@@ -1854,10 +1855,9 @@ function renderTopicosEditalDisciplina(edital, disc) {
             <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:4px 8px;font-size:11px;" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','${ass.id}')">+ Agenda</button>
           `}
         </div>
-      `).join('')
-    }
-    </div >
-          `;
+      `).join('')}
+    </div>
+  `;
 }
 
 export function initDiscDashboardChart(discId) {
