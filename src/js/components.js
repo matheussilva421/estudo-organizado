@@ -249,7 +249,7 @@ export function renderCronometro(el) {
   // Live update every second
   if (window._cronoInterval) clearInterval(window._cronoInterval);
   window._cronoInterval = setInterval(() => {
-    const ev = state.eventos.find(e => e.id === focusEvent.id);
+    const ev = focusEvent.id === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === focusEvent.id);
     if (!ev) { clearInterval(window._cronoInterval); return; }
     const elapsed = getElapsedSeconds(ev);
     const timerEl = document.getElementById('crono-main-timer');
