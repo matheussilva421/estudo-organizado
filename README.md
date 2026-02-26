@@ -8,7 +8,11 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 
 ---
 
-## 🆕 Últimas Atualizações (Wave 20 - Redesign do Ciclo de Estudos)
+## 🆕 Últimas Atualizações (Wave 25 - Estabilidade Visual)
+- **Correção de Renderização (Wave 25):** Hotfix crítico que resolveu a exibição de código HTML bruto no topbar e em seletores de formulário em todo o sistema.
+- **Redesign do Cronômetro (Wave 24):** Tematização completa do cronômetro, com suporte a múltiplos modos escuros (Furtivo, Matrix, Rubi, etc) e melhoria no contraste.
+
+## Atualizações Recentes (Wave 20 - Redesign do Ciclo de Estudos)
 - **Novo Dashboard Analítico:** A aba de Planejamento ganhou uma reformulação visual drástica. Agora, a tela exibe os dados em duas colunas, apresentando um Gráfico de Rosca (Doughnut Chart) na direita e listagens das sequências na esquerda.
 - **Métricas de Ciclos Compostos:** O aplicativo agora não só planeja as horas, mas mede ativamente as horas estudadas, dividindo-as pelo percentual diário para completar os blocos da roleta. Suporta monitoramento de "Ciclos Completos".
 - **Botão Recomeçar Ciclo:** Criamos a mecânica de avançar para um "Novo Ciclo", limpando o progresso das barras mas mantendo as matérias intactas e acumulando +1 volta no total.

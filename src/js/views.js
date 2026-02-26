@@ -2540,8 +2540,8 @@ export function loadAssuntos() {
   }
   if (!d || d.disc.assuntos.length === 0) { assuntoGroup.style.display = 'none'; return; }
   const pending = d.disc.assuntos.filter(a => !a.concluido);
-  assuntoSel.innerHTML = `< option value = "" > Sem assunto específico</option > ` +
-    pending.map(a => `< option value = "${a.id}" > ${esc(a.nome)}</option > `).join('');
+  assuntoSel.innerHTML = `<option value="">Sem assunto específico</option>` +
+    pending.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
   assuntoGroup.style.display = '';
   assuntoSel.onchange = () => {
     const assId = assuntoSel.value;

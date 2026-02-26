@@ -224,24 +224,24 @@ export function renderCurrentView() {
   document.getElementById('topbar-title').textContent = titles[currentView] || 'Estudo Organizado';
 
   document.getElementById('topbar-date').innerHTML = currentView === 'home'
-    ? `< i class="fa fa-calendar-alt" ></i > ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} `
+    ? `<i class="fa fa-calendar-alt"></i> ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`
     : '';
 
   // Render topbar actions
   const actions = document.getElementById('topbar-actions');
   actions.innerHTML = '';
   if (currentView === 'cronometro') {
-    actions.innerHTML = `< button class="btn btn-ghost btn-sm" onclick = "navigate('med')" > <i class="fa fa-arrow-left"></i> Voltar</button > `;
+    actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="navigate('med')"><i class="fa fa-arrow-left"></i> Voltar</button>`;
   } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
-    actions.innerHTML = `< button class="btn btn-primary btn-sm" onclick = "openAddEventModal()" > <i class="fa fa-plus"></i> Iniciar Estudo</button > `;
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
   } else if (currentView === 'editais') {
     if (window.activeDashboardDiscCtx) {
-      actions.innerHTML = `< button class="btn btn-ghost btn-sm" onclick = "closeDiscDashboard()" > <i class="fa fa-arrow-left"></i> Voltar</button > `;
+      actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeDiscDashboard()"><i class="fa fa-arrow-left"></i> Voltar</button>`;
     } else {
-      actions.innerHTML = `< button class="btn btn-primary btn-sm" onclick = "openEditaModal()" > <i class="fa fa-plus"></i> Novo Edital</button > `;
+      actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
     }
   } else if (currentView === 'ciclo') {
-    actions.innerHTML = `< button class="btn btn-primary btn-sm" onclick = "window.openPlanejamentoWizard()" > <i class="fa fa-cog"></i> Planejamento</button > `;
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="window.openPlanejamentoWizard()"><i class="fa fa-cog"></i> Planejamento</button>`;
   }
 
   updateBadges();
