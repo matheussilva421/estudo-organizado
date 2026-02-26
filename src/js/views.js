@@ -1467,7 +1467,6 @@ export function renderVerticalList(container) {
                   <th style="padding:10px;color:var(--text-muted);"><i class="fa fa-bullseye" title="Total de questões"></i></th>
                   <th style="padding:10px;">%</th>
                   <th style="padding:10px;"><i class="fa fa-calendar-alt"></i></th>
-                  <th style="padding:10px;text-align:right;">Link</th>
                 </tr>
               </thead>
               <tbody>
@@ -1503,9 +1502,6 @@ export function renderVerticalList(container) {
                     <div style="display:inline-block;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;background:${aTotalQ > 0 ? (aPctQ >= 70 ? 'var(--green)' : aPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)') : 'transparent'};color:${aTotalQ > 0 ? 'var(--bg)' : 'var(--text-muted)'};border:${aTotalQ > 0 ? 'none' : '1px solid var(--border)'};">${aTotalQ > 0 ? aPctQ : 0}</div>
                   </td>
                   <td style="padding:12px 10px;color:var(--text-muted);font-size:12px;">${dataStr}</td>
-                  <td style="padding:12px 10px;text-align:right;">
-                    <span style="color:var(--text-primary);cursor:pointer;font-weight:600;font-size:12px;opacity:0.8;transition:0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" onclick="addEventoParaAssunto('${edital.id}','${discId}','${ass.id}')">Adicionar</span>
-                  </td>
                 </tr>
       `;
     });
@@ -1579,7 +1575,7 @@ export function renderEditais(el) {
 
 export function renderEditalTree(edital) {
   return `
-          < div class="tree-edital" id = "edital-${edital.id}" >
+    <div class="tree-edital" id="edital-${edital.id}">
       <div class="tree-edital-header" onclick="toggleEdital('${edital.id}')">
         <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
         <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
@@ -1799,7 +1795,7 @@ function renderHistoricoDisciplina(tempos) {
   }
 
   return `
-          < div class="custom-scrollbar" style = "flex:1;overflow-y:auto;padding-right:8px;" >
+    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
             <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">
               <thead style="position:sticky;top:0;background:var(--card);z-index:2;">
                 <tr style="border-bottom:1px solid var(--border);color:var(--text-muted);">
@@ -2020,7 +2016,7 @@ export function openEditaModal(editaId = null) {
   const edital = editaId ? state.editais.find(e => e.id === editaId) : null;
   document.getElementById('modal-edital-title').textContent = edital ? 'Editar Edital' : 'Novo Edital';
   document.getElementById('modal-edital-body').innerHTML = `
-            < div class="form-group" >
+    <div class="form-group">
       <label class="form-label">Nome do Edital</label>
       <input type="text" class="form-control" id="edital-nome" placeholder="Ex: Concurso TRF 2025" value="${edital ? edital.nome : ''}">
     </div>
@@ -2081,7 +2077,7 @@ export function openDiscModal(editaId, discId) {
 
   document.getElementById('modal-disc-title').textContent = isEdit ? 'Editar Disciplina' : 'Nova Disciplina';
   document.getElementById('modal-disc-body').innerHTML = `
-          < div class="form-group" >
+    <div class="form-group">
       <label class="form-label">Nome da Disciplina</label>
       <input type="text" class="form-control" id="disc-nome" placeholder="Ex: Direito Constitucional" value="${isEdit ? esc(existingDisc.nome) : ''}">
     </div>
@@ -2164,13 +2160,13 @@ export function openDiscManager(editaId, discId) {
 
   // Render subject items
   const subjectsHtml = disc.assuntos.map((ass, idx) => `
-          < div class="sm-list-item" draggable = "true"
-        data - disc - id="${disc.id}"
-        data - ass - idx="${idx}"
-        ondragstart = "dndStart(event,'${disc.id}',${idx})"
-        ondragover = "dndOver(event)"
-        ondragleave = "dndLeave(event)"
-        ondrop = "dndDrop(event,'${disc.id}',${idx})" >
+    <div class="sm-list-item" draggable="true"
+        data-disc-id="${disc.id}"
+        data-ass-idx="${idx}"
+        ondragstart="dndStart(event,'${disc.id}',${idx})"
+        ondragover="dndOver(event)"
+        ondragleave="dndLeave(event)"
+        ondrop="dndDrop(event,'${disc.id}',${idx})">
       <div class="sm-drag-handle" title="Arrastar">☰</div>
       <div class="sm-item-text" onclick="editSubjectInline('${disc.id}', '${ass.id}', this)">${esc(ass.nome)}</div>
       <div class="sm-item-actions">
@@ -2178,14 +2174,14 @@ export function openDiscManager(editaId, discId) {
         <button onclick="moveSubject('${disc.id}', ${idx}, 1)" title="Descer"><i class="fa fa-chevron-down"></i></button>
         <button onclick="deleteAssunto('${disc.id}', '${ass.id}')" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
-    </div >
-          `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico adicionado.</div>';
+    </div>
+  `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico adicionado.</div>';
 
   const colorOptions = COLORS.map(c => `< option value = "${c}" ${disc.cor === c ? 'selected' : ''} style = "background:${c};color:#fff;" > ${c}</option > `).join('');
 
   document.getElementById('modal-disc-manager-title').textContent = disc.nome || 'Gerenciar Disciplina';
   document.getElementById('modal-disc-manager-body').innerHTML = `
-          < div class="sm-header" >
+    <div class="sm-header">
       <div class="sm-form-group">
         <label>Nome</label>
         <input type="text" id="dm-nome" value="${esc(disc.nome)}">
@@ -2293,7 +2289,7 @@ export function saveDiscManager(editaId, discId) {
 export function openSubjectAddModal(editaId, discId) {
   editingSubjectCtx = { editaId, discId };
   document.getElementById('modal-subject-add-body').innerHTML = `
-          < div class="form-group" >
+    <div class="form-group">
       <label class="form-label" style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Conteúdo</label>
       <textarea id="bulk-subject-text" class="form-control" rows="8" style="font-family:inherit;font-size:14px;resize:vertical;" placeholder="Ex:\n1. Configuração do Estado\n2. Direitos Fundamentais\n3. ..."></textarea>
       <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">
@@ -2358,12 +2354,12 @@ export function saveBulkSubjects() {
 export function openAddEventModal(dateStr = null) {
   editingEventId = null;
   const allDiscs = getAllDisciplinas();
-  const discOptions = allDiscs.map(({ disc, edital }) => `< option value = "${disc.id}" data - edital="${edital.id}" > ${esc(edital.nome)} → ${esc(disc.nome)}</option > `
+  const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
   ).join('');
 
   document.getElementById('modal-event-title').textContent = 'Iniciar Estudo';
   document.getElementById('modal-event-body').innerHTML = `
-          < div id = "event-conteudo-fields" >
+    <div id="event-conteudo-fields">
       <div class="form-group">
         <label class="form-label">Disciplina</label>
         <select class="form-control" id="event-disc" onchange="loadAssuntos()">
@@ -2377,7 +2373,7 @@ export function openAddEventModal(dateStr = null) {
           <option value="">Sem assunto específico</option>
         </select>
       </div>
-    </div >
+    </div>
 
     <div class="form-group">
       <label class="form-label">Título do Evento</label>
@@ -2547,7 +2543,7 @@ export function saveEvent() {
 export function renderConfig(el) {
   const cfg = state.config;
   el.innerHTML = `
-          < div class="grid-2" >
+    <div class="grid-2">
       <div>
         <div class="card" style="margin-bottom:16px;">
           <div class="card-header"><h3>🎨 Aparência</h3></div>
