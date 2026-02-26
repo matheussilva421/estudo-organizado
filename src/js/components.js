@@ -220,7 +220,7 @@ export function renderCronometro(el) {
       ? 'background:rgba(139,92,246,0.15);color:#a371f7;'
       : 'background:rgba(255,255,255,0.06);color:#8b949e;'}
         ">
-          ${_pomodoroMode ? '🍅 Pomodoro (25/5)' : '⏱ Modo Contínuo'}
+          ${_pomodoroMode ? `🍅 Pomodoro (${state?.config?.pomodoroFoco || 25}/${state?.config?.pomodoroPausa || 5})` : '⏱ Modo Contínuo'}
         </button>
       </div>
 

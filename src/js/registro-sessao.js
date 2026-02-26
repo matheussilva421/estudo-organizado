@@ -122,7 +122,7 @@ function renderRegistroForm(ev) {
   const horaInicio = _sessionStartTime ? _sessionStartTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
   const horaFim = _sessionEndTime ? _sessionEndTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
   const dataStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const modeLabel = _sessionMode === 'pomodoro' ? '🍅 Pomodoro 25/5' : '⏱ Cronômetro';
+  const modeLabel = _sessionMode === 'pomodoro' ? `🍅 Pomodoro (${state?.config?.pomodoroFoco || 25}/${state?.config?.pomodoroPausa || 5})` : '⏱ Cronômetro';
 
   // Discipline options
   const allDiscs = getAllDisciplinas();

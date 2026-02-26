@@ -23,8 +23,10 @@ export function getElapsedSeconds(ev) {
 export function toggleTimerMode() {
   _pomodoroMode = !_pomodoroMode;
   const btn = document.getElementById('crono-mode-btn');
+  const foco = state?.config?.pomodoroFoco || 25;
+  const pausa = state?.config?.pomodoroPausa || 5;
   if (btn) {
-    btn.innerHTML = _pomodoroMode ? '🍅 Pomodoro (25/5)' : '⏱ Modo Contínuo';
+    btn.innerHTML = _pomodoroMode ? `🍅 Pomodoro (${foco}/${pausa})` : '⏱ Modo Contínuo';
     btn.style.backgroundColor = _pomodoroMode ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.06)';
     btn.style.color = _pomodoroMode ? '#a371f7' : '#8b949e';
   }
@@ -75,12 +77,14 @@ export function reattachTimers() {
       // POMODORO CHECK
       if (_pomodoroMode && ev._timerStart) {
         const sessionSeconds = Math.floor((Date.now() - ev._timerStart) / 1000);
-        if (sessionSeconds >= 1500) { // 25 minutes
+        const focoTargetSecs = (state?.config?.pomodoroFoco || 25) * 60;
+        const pausaTargetMins = state?.config?.pomodoroPausa || 5;
+        if (sessionSeconds >= focoTargetSecs) {
           _pomodoroAlarm.play().catch(e => console.log('Audio error:', e));
           toggleTimer(id); // Auto-pause
-          document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Pomodoro concluído! Descanse 5 minutos.', type: 'success' } }));
+          document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `Pomodoro concluído! Descanse ${pausaTargetMins} minutos.`, type: 'success' } }));
           if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("Pomodoro Concluído! 🍅", { body: "Descanse 5 minutos.", icon: 'favicon.ico' });
+            new Notification("Pomodoro Concluído! 🍅", { body: `Descanse ${pausaTargetMins} minutos.`, icon: 'favicon.ico' });
           }
           return; // Stop current interval frame
         }

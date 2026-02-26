@@ -2167,6 +2167,26 @@ export function renderConfig(el) {
           </div>
         </div>
 
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>⏱️ Temporizador</h3></div>
+          <div class="card-body">
+            <div class="config-row">
+              <div>
+                <div class="config-label">Foco do Pomodoro (min)</div>
+                <div class="config-sub">Tempo ininterrupto de estudo</div>
+              </div>
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="120" value="${cfg.pomodoroFoco || 25}" onchange="updateConfig('pomodoroFoco', parseInt(this.value, 10))">
+            </div>
+            <div class="config-row">
+              <div>
+                <div class="config-label">Pausa do Pomodoro (min)</div>
+                <div class="config-sub">Intervalo de descanso</div>
+              </div>
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="60" value="${cfg.pomodoroPausa || 5}" onchange="updateConfig('pomodoroPausa', parseInt(this.value, 10))">
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header"><h3>🔄 Frequência de Revisão</h3></div>
           <div class="card-body">
