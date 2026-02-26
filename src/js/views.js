@@ -1316,7 +1316,7 @@ window.toggleEditSeq = () => {
   } else {
     window._tempSequencia = null;
   }
-  window.renderCurrentView();
+  renderCurrentView();
 };
 
 window.saveEditSeq = () => {
@@ -1343,7 +1343,7 @@ window.saveEditSeq = () => {
 window.cancelEditSeq = () => {
   window._isEditingSequence = false;
   window._tempSequencia = null;
-  window.renderCurrentView();
+  renderCurrentView();
 };
 
 window.updateSeqItem = (i, field, val) => {
@@ -1355,12 +1355,12 @@ window.dupSeqItem = (i) => {
   const obj = JSON.parse(JSON.stringify(window._tempSequencia[i]));
   obj.id = 'seq_' + Date.now() + Math.random().toString(36).substr(2, 5);
   window._tempSequencia.splice(i + 1, 0, obj);
-  window.renderCurrentView();
+  renderCurrentView();
 };
 
 window.remSeqItem = (i) => {
   window._tempSequencia.splice(i, 1);
-  window.renderCurrentView();
+  renderCurrentView();
 };
 
 window.moveSeqItem = (i, dir) => {
@@ -1369,7 +1369,7 @@ window.moveSeqItem = (i, dir) => {
   const temp = arr[i];
   arr[i] = arr[i + dir];
   arr[i + dir] = temp;
-  window.renderCurrentView();
+  renderCurrentView();
 };
 
 window.addSeqItem = () => {
@@ -1378,7 +1378,7 @@ window.addSeqItem = () => {
     discId: '',
     minutosAlvo: 60
   });
-  window.renderCurrentView();
+  renderCurrentView();
 };
 
 export function renderVertical(el) {
