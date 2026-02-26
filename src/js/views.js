@@ -1305,6 +1305,86 @@ export function getFilteredVertItems() {
   return items;
 }
 
+window.verResumoSimulado = (simId) => {
+  // Lógica descontinuada
+};
+
+window.toggleEditSeq = () => {
+  window._isEditingSequence = !window._isEditingSequence;
+  if (window._isEditingSequence) {
+    const { state } = require('./store.js');
+    window._tempSequencia = JSON.parse(JSON.stringify(state.planejamento.sequencia));
+  } else {
+    window._tempSequencia = null;
+  }
+  window.renderCurrentView();
+};
+
+window.saveEditSeq = () => {
+  const { state, saveState } = require('./store.js');
+  const { syncCicloToEventos } = require('./logic.js');
+
+  if (!window._tempSequencia || window._tempSequencia.length === 0) {
+    alert("A sequência de estudos não pode ficar vazia.");
+    return;
+  }
+  for (let s of window._tempSequencia) {
+    if (!s.discId) {
+      alert("Por favor, selecione uma disciplina para todas as etapas antes de salvar.");
+      return;
+    }
+  }
+
+  state.planejamento.sequencia = window._tempSequencia;
+  syncCicloToEventos(state.planejamento);
+  saveState();
+
+  window._isEditingSequence = false;
+  window._tempSequencia = null;
+  window.renderCurrentView();
+};
+
+window.cancelEditSeq = () => {
+  window._isEditingSequence = false;
+  window._tempSequencia = null;
+  window.renderCurrentView();
+};
+
+window.updateSeqItem = (i, field, val) => {
+  if (field === 'minutosAlvo') val = parseInt(val) || 0;
+  window._tempSequencia[i][field] = val;
+};
+
+window.dupSeqItem = (i) => {
+  const obj = JSON.parse(JSON.stringify(window._tempSequencia[i]));
+  obj.id = 'seq_' + Date.now() + Math.random().toString(36).substr(2, 5);
+  window._tempSequencia.splice(i + 1, 0, obj);
+  window.renderCurrentView();
+};
+
+window.remSeqItem = (i) => {
+  window._tempSequencia.splice(i, 1);
+  window.renderCurrentView();
+};
+
+window.moveSeqItem = (i, dir) => {
+  const arr = window._tempSequencia;
+  if (i + dir < 0 || i + dir >= arr.length) return;
+  const temp = arr[i];
+  arr[i] = arr[i + dir];
+  arr[i + dir] = temp;
+  window.renderCurrentView();
+};
+
+window.addSeqItem = () => {
+  window._tempSequencia.push({
+    id: 'seq_' + Date.now() + Math.random().toString(36).substr(2, 5),
+    discId: '',
+    minutosAlvo: 60
+  });
+  window.renderCurrentView();
+};
+
 export function renderVertical(el) {
   // Fix 3: render the shell ONCE (filters, header); list gets its own container
   el.innerHTML = `
@@ -3142,15 +3222,26 @@ export function renderCiclo(el) {
     const copyStats = { ...statsPorDisc };
     let minutosCompletosCiclo = 0;
 
-    plan.sequencia.forEach((seq, i) => {
+    let targetLoop = window._isEditingSequence ? (window._tempSequencia || []) : plan.sequencia;
+
+    let optionsHtml = '<option value="">(Selecione)</option>';
+    if (window._isEditingSequence) {
+      plan.disciplinas.forEach(dId => {
+        const disc = getDisc(dId);
+        if (disc) optionsHtml += `<option value="${dId}">${esc(disc.disc.nome)}</option>`;
+      });
+    }
+
+    targetLoop.forEach((seq, i) => {
       const d = dictDisciplinas[seq.discId];
-      if (!d) return;
+      if (!window._isEditingSequence && !d) return; // skip se não estiver editando e for nulo
+
       totalTarget += seq.minutosAlvo;
 
       // Consome os minutos estudados para esta disciplina progressivamente
       let pct = 0;
       let usedMins = 0;
-      if (copyStats[seq.discId] > 0) {
+      if (seq.discId && copyStats[seq.discId] > 0) {
         if (copyStats[seq.discId] >= seq.minutosAlvo) {
           usedMins = seq.minutosAlvo;
           pct = 100;
@@ -3163,35 +3254,86 @@ export function renderCiclo(el) {
       }
       minutosCompletosCiclo += usedMins;
       const pctStr = pct.toFixed(2);
-      const cor = d.disc.cor || d.edital.cor || '#3b82f6';
+      const cor = d ? (d.disc.cor || d.edital.cor || '#3b82f6') : '#ccc';
 
-      if (window._hideConcluidosCiclo && pct >= 100) return;
+      if (!window._isEditingSequence && window._hideConcluidosCiclo && pct >= 100) return;
 
-      sequenceHtml += `
-        <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:12px; display:flex;">
-          <div style="width:6px; background:${cor}; flex-shrink:0;"></div>
-          <div style="padding:16px; flex:1;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-              <div style="font-weight:600; font-size:15px; color:var(--text-primary); cursor:pointer;" title="Editar Nome do Evento" onclick="window.openCicloHistory('${seq.id}')">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
-              <div style="font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; display:flex; align-items:center; gap:6px;">
-                 <i class="fa fa-clock"></i> <span style="font-weight:700; color:var(--text-primary);">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
-              </div>
-            </div>
-            
-            <div style="height:14px; background:rgba(255,255,255,0.05); border-radius:8px; overflow:hidden; position:relative; margin-bottom:12px;">
-              <div style="position:absolute; top:0; left:0; height:100%; width:${Math.min(pct, 100)}%; background:${cor}; border-radius:8px; opacity:0.6;"></div>
-              <div style="position:absolute; top:0; width:100%; text-align:center; font-size:10px; font-weight:700; color:var(--text-primary); line-height:14px; text-shadow:0px 1px 2px rgba(0,0,0,0.8);">${pctStr}%</div>
-            </div>
+      if (window._isEditingSequence) {
+        let selHtml = optionsHtml;
+        if (seq.discId) selHtml = selHtml.replace(`value="${seq.discId}"`, `value="${seq.discId}" selected`);
 
-            <div style="display:flex; gap:16px; font-size:11px;">
-              <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.iniciarEtapaPlanejamento('${seq.id}')"><i class="fa fa-play"></i> Iniciar Estudo</span>
-              <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openAddEventModal()"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</span>
-              <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openCicloHistory('${seq.id}')"><i class="fa fa-history"></i> Ver Últimos Estudos</span>
+        sequenceHtml += `
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:12px; display:flex;">
+            <div style="width:6px; background:${cor}; flex-shrink:0;"></div>
+            <div style="padding:16px; flex:1; display:flex; gap:16px; align-items:center;">
+               <div style="flex:2;">
+                 <div style="font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:4px; letter-spacing:1px; text-transform:uppercase;">Disciplina</div>
+                 <select class="form-control" onchange="window.updateSeqItem('${i}', 'discId', this.value)" style="width:100%; border:none; border-bottom:1px solid var(--accent); border-radius:0; background:transparent; padding:4px 0; color:var(--text-primary); outline:none;">
+                   ${selHtml}
+                 </select>
+               </div>
+               <div style="flex:1;">
+                 <div style="font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:4px; letter-spacing:1px; text-transform:uppercase;">Minutos</div>
+                 <input type="number" class="form-control" value="${seq.minutosAlvo}" onchange="window.updateSeqItem('${i}', 'minutosAlvo', this.value)" style="width:100%; border:none; border-bottom:1px solid var(--accent); border-radius:0; background:transparent; padding:4px 0; color:var(--text-primary); outline:none;">
+               </div>
+               
+               <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+                 <div style="display:flex; gap:8px;">
+                   <button class="btn btn-ghost btn-sm" onclick="window.dupSeqItem('${i}')" style="font-size:11px; padding:4px 8px; background:var(--card);">Duplicar</button>
+                   <button class="btn btn-ghost btn-sm" onclick="window.remSeqItem('${i}')" style="font-size:11px; padding:4px 8px; background:var(--card);">Remover</button>
+                 </div>
+                 <div style="font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; opacity:0.8;">
+                   <i class="fa fa-clock"></i> ${formatH(usedMins)} ${pct >= 100 ? '(Feito)' : ''}
+                 </div>
+               </div>
+               
+               <div style="display:flex; flex-direction:column; align-items:center; justify-content:space-between; height:40px;">
+                 ${i > 0 ? `<i class="fa fa-caret-up" style="cursor:pointer; color:var(--text-muted); font-size:16px;" onclick="window.moveSeqItem('${i}', -1)"></i>` : '<div style="height:16px"></div>'}
+                 ${i < targetLoop.length - 1 ? `<i class="fa fa-caret-down" style="cursor:pointer; color:var(--text-muted); font-size:16px;" onclick="window.moveSeqItem('${i}', 1)"></i>` : '<div style="height:16px"></div>'}
+               </div>
+               
             </div>
           </div>
-        </div>
-      `;
+        `;
+      } else {
+        sequenceHtml += `
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:12px; display:flex;">
+            <div style="width:6px; background:${cor}; flex-shrink:0;"></div>
+            <div style="padding:16px; flex:1;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                <div style="font-weight:600; font-size:15px; color:var(--text-primary); cursor:pointer;" title="Editar Nome do Evento" onclick="window.openCicloHistory('${seq.id}')">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+                <div style="font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; display:flex; align-items:center; gap:6px;">
+                   <i class="fa fa-clock"></i> <span style="font-weight:700; color:var(--text-primary);">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
+                </div>
+              </div>
+              
+              <div style="height:14px; background:rgba(255,255,255,0.05); border-radius:8px; overflow:hidden; position:relative; margin-bottom:12px;">
+                <div style="position:absolute; top:0; left:0; height:100%; width:${Math.min(pct, 100)}%; background:${cor}; border-radius:8px; opacity:0.6;"></div>
+                <div style="position:absolute; top:0; width:100%; text-align:center; font-size:10px; font-weight:700; color:var(--text-primary); line-height:14px; text-shadow:0px 1px 2px rgba(0,0,0,0.8);">${pctStr}%</div>
+              </div>
+
+              <div style="display:flex; gap:16px; font-size:11px;">
+                <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.iniciarEtapaPlanejamento('${seq.id}')"><i class="fa fa-play"></i> Iniciar Estudo</span>
+                <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openAddEventModal()"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</span>
+                <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openCicloHistory('${seq.id}')"><i class="fa fa-history"></i> Ver Últimos Estudos</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
     });
+
+    if (window._isEditingSequence) {
+      sequenceHtml += `
+         <div style="display:flex; justify-content:space-between; margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
+           <button class="btn btn-ghost" style="border:1px solid var(--accent); color:var(--accent);" onclick="window.addSeqItem()"><i class="fa fa-plus"></i> Adicionar Disciplina</button>
+           <div style="display:flex; gap:12px;">
+              <button class="btn btn-ghost" onclick="window.cancelEditSeq()">Cancelar</button>
+              <button class="btn btn-primary" onclick="window.saveEditSeq()"><i class="fa fa-save"></i> Salvar Alterações</button>
+           </div>
+         </div>
+      `;
+    }
 
     const progressoGlobalPct = totalTarget > 0 ? ((minutosCompletosCiclo / totalTarget) * 100).toFixed(2) : 0;
     const ciclosFeitos = plan.ciclosCompletos || 0;
@@ -3234,8 +3376,11 @@ export function renderCiclo(el) {
           <div class="card" style="padding:16px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; text-transform:uppercase;">Sequência dos Estudos</div>
-               <div style="font-size:11px; font-weight:600; color:var(--text-muted);">
-                 <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+               <div style="display:flex; align-items:center; gap:16px;">
+                 ${!window._isEditingSequence ? `
+                   <button class="btn btn-ghost btn-sm" onclick="window.toggleEditSeq()" style="color:var(--text-muted); font-size:11px; padding:4px 8px;"><i class="fa fa-pencil"></i> Editar Sequência</button>
+                 ` : ''}
+                 <label style="cursor:pointer; display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:var(--text-muted);">
                    <input type="checkbox" onchange="window.toggleCicloFin(this.checked)" ${window._hideConcluidosCiclo ? 'checked' : ''} style="cursor:pointer; accent-color:var(--accent); width:14px; height:14px;"> FINALIZADOS
                  </label>
                </div>
