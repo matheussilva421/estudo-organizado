@@ -2,7 +2,7 @@ import { currentView } from './app.js';
 import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, getHabitType } from './utils.js';
 import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo } from './views.js';
 import { state } from './store.js';
-import { deleteEvento, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
+import { deleteEvento, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
 
 // =============================================
 // DOM COMPONENTS AND RENDERERS
@@ -10,47 +10,34 @@ import { deleteEvento, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerAc
 
 
 export function renderCronometro(el) {
-  const activeEvents = state.eventos.filter(e => e._timerStart);
-  const pausedEvents = state.eventos.filter(e => !e._timerStart && (e.tempoAcumulado || 0) > 0 && e.status !== 'estudei');
-  const allTimerEvents = [...activeEvents, ...pausedEvents];
+  let allTimerEvents = [
+    ...state.eventos.filter(e => e._timerStart),
+    ...state.eventos.filter(e => !e._timerStart && (e.tempoAcumulado || 0) > 0 && e.status !== 'estudei')
+  ];
 
-  const fmtTime = (secs) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
+  const isLivreActiveOrPaused = state.cronoLivre && (state.cronoLivre._timerStart || state.cronoLivre.tempoAcumulado > 0);
 
-  if (allTimerEvents.length === 0) {
-    el.innerHTML = `
-      <div style="
-        min-height:calc(100vh - 80px);
-        display:flex;flex-direction:column;align-items:center;justify-content:center;
-        background:linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
-        border-radius:16px;margin:-24px;padding:48px 24px;
-      ">
-        <div style="font-size:80px;margin-bottom:24px;opacity:0.3;">⏱️</div>
-        <h2 style="color:#e6edf3;margin-bottom:12px;font-size:24px;">Nenhum cronômetro ativo</h2>
-        <p style="color:#8b949e;font-size:15px;margin-bottom:32px;text-align:center;">
-          Inicie um cronômetro em qualquer evento<br>de estudo para vê-lo aqui.
-        </p>
-        <button class="action-btn med-btn" data-action="navigate" data-view="med">
-          <i class="fa fa-book"></i> Ir para Study Organizer
-        </button>
-      </div>`;
-    return;
+  if (allTimerEvents.length === 0 || isLivreActiveOrPaused) {
+    const cronoLivreMock = { id: 'crono_livre', titulo: 'Sessão Livre', discId: null, assId: null, duracaoMinutos: 0, tempoAcumulado: state.cronoLivre?.tempoAcumulado || 0, _timerStart: state.cronoLivre?._timerStart || null };
+    if (isLivreActiveOrPaused) allTimerEvents.unshift(cronoLivreMock);
+    else if (allTimerEvents.length === 0) allTimerEvents.push(cronoLivreMock);
   }
 
-  // Use first active event as the "focus" event
-  const focusEvent = activeEvents[0] || allTimerEvents[0];
-  const discEntry = getDisc(focusEvent.discId);
-  const discName = discEntry ? discEntry.disc.nome : 'Sem disciplina';
+  const focusEvent = allTimerEvents.find(e => e._timerStart) || allTimerEvents[0];
+  const discEntry = focusEvent?.discId ? getDisc(focusEvent.discId) : null;
+  const discName = discEntry ? discEntry.disc.nome : (focusEvent.id === 'crono_livre' ? 'Nenhuma' : 'Sem disciplina');
+  let assName = focusEvent.titulo;
+  if (discEntry && focusEvent.assId) {
+    const achado = discEntry.disc.assuntos.find(a => a.id === focusEvent.assId);
+    if (achado) assName = achado.nome;
+  }
+
   const elapsed = getElapsedSeconds(focusEvent);
   const isActive = !!focusEvent._timerStart;
 
-  // Calculate progress (if event has planned time, default 1h30)
-  const plannedSecs = (focusEvent.duracaoMinutos || focusEvent.duracao) ? (focusEvent.duracaoMinutos || focusEvent.duracao) * 60 : 5400;
-  const progress = Math.min((elapsed / plannedSecs) * 100, 100);
+  // Calculate progress (if event has planned time, default 1h30 (5400s) if not free session)
+  const plannedSecs = (focusEvent.duracaoMinutos || focusEvent.duracao) ? (focusEvent.duracaoMinutos || focusEvent.duracao) * 60 : (focusEvent.id === 'crono_livre' ? 0 : 5400);
+  const progress = plannedSecs > 0 ? Math.min((elapsed / plannedSecs) * 100, 100) : 0;
 
   const otherEvents = allTimerEvents.filter(e => e.id !== focusEvent.id);
 
@@ -78,18 +65,20 @@ export function renderCronometro(el) {
         ">
           Você está estudando:
         </div>
-        <h2 style="
-          color:#e6edf3;font-size:22px;margin-top:16px;font-weight:600;
+        <div style="color:#e6edf3;font-size:20px;margin-top:16px;font-weight:700;">
+           ${discName}
+        </div>
+        <div style="
+          color:#8b949e;font-size:16px;margin-top:4px;
           max-width:600px;margin-left:auto;margin-right:auto;
           white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
         ">
-          ${focusEvent.titulo}
-          <span style="color:#39d353;font-size:14px;margin-left:8px;">${discName}</span>
-        </h2>
+          ${assName}
+        </div>
       </div>
 
       <!-- Progress bar -->
-      <div style="padding:24px 48px 0;position:relative;z-index:1;">
+      <div style="padding:24px 48px 0;position:relative;z-index:1; ${plannedSecs === 0 ? 'opacity:0;' : ''}">
         <div style="
           display:flex;justify-content:space-between;
           color:#8b949e;font-size:12px;margin-bottom:6px;
@@ -133,13 +122,25 @@ export function renderCronometro(el) {
           " title="${isActive ? 'Pausar' : 'Retomar'}">
             ${isActive ? '⏸' : '▶'}
           </button>
+          
           <button onclick="marcarEstudei('${focusEvent.id}')" style="
             width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
-            background:rgba(255,255,255,0.06);color:#8b949e;font-size:20px;
+            background:${elapsed > 0 || focusEvent.id === 'crono_livre' ? 'rgba(57, 211, 83, 0.2)' : 'rgba(255,255,255,0.06)'};
+            color:${elapsed > 0 || focusEvent.id === 'crono_livre' ? '#39d353' : '#8b949e'};
+            font-size:20px;
             display:flex;align-items:center;justify-content:center;
             transition:all 0.3s;
-          " title="Finalizar sessão">
-            ⏹
+          " title="Finalizar e Salvar">
+            <i class="fa fa-check"></i>
+          </button>
+
+          <button onclick="discardTimer('${focusEvent.id}')" style="
+            width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+            background:rgba(248, 81, 73, 0.15);color:#f85149;font-size:20px;
+            display:${elapsed > 0 ? 'flex' : 'none'};align-items:center;justify-content:center;
+            transition:all 0.3s;
+          " title="Descartar Sessão">
+            <i class="fa fa-trash"></i>
           </button>
         </div>
 

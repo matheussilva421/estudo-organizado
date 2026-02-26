@@ -51,8 +51,15 @@ let _savedTempoAcumulado = 0;
 // =============================================
 
 export function openRegistroSessao(eventId) {
-  const ev = state.eventos.find(e => e.id === eventId);
-  if (!ev) { showToast('Evento não encontrado', 'error'); return; }
+  let ev = null;
+  if (eventId === 'crono_livre') {
+    ev = state.cronoLivre;
+    ev.id = 'crono_livre';
+    ev.sessao = {};
+  } else {
+    ev = state.eventos.find(e => e.id === eventId);
+    if (!ev) { showToast('Evento não encontrado', 'error'); return; }
+  }
 
   // Save timer state for rollback if user cancels
   _savedTimerStart = ev._timerStart || null;
@@ -237,6 +244,30 @@ function renderRegistroForm(ev) {
       <h3 class="reg-block-title">💬 Comentários / Observações</h3>
       <textarea id="reg-comentarios" class="reg-textarea" rows="3"
         placeholder="Dificuldades, pontos de revisão, pegadinhas..."></textarea>
+    </div>
+
+    <div class="reg-block">
+      <div style="flex:1;">
+        <h3 class="reg-block-title">Resumo / Detalhes <small style="color:var(--text-secondary);font-weight:400;">(Opcional)</small></h3>
+        <textarea id="reg-observacao" class="reg-textarea" placeholder="Anotações, comentários ou percepções sobre o que você estudou hoje..." wrap="soft" spellcheck="true">${ev.sessao?.observacoes || ''}</textarea>
+      </div>
+    </div>
+
+    <!-- 7) AÇÕES / FOOTER -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.08);">
+      <button type="button" class="btn-outline" style="color:#f85149; border-color:rgba(248,81,73,0.3); background:rgba(248,81,73,0.05);" onclick="discardTimerUI('${_currentEventId}')">
+        <i class="fa fa-trash"></i> Descartar
+      </button>
+
+      <div style="display:flex; gap:12px; justify-content:flex-end; flex:1;">
+        <button type="button" class="btn-outline" onclick="cancelRegistro()">Cancelar</button>
+        <button type="button" class="btn-outline" onclick="saveAndStartNew()" style="color:var(--green); border-color:rgba(57,211,83,0.4);">
+          Salvar e iniciar nova ↻
+        </button>
+        <button type="button" class="btn-primary" onclick="saveRegistroSessao()" style="font-weight:600; padding:12px 24px;">
+          <i class="fa fa-save"></i> Salvar Registro
+        </button>
+      </div>
     </div>
   `;
 }
@@ -464,7 +495,15 @@ export function setPaginaMode(mode) {
 // =============================================
 
 export function saveRegistroSessao() {
-  const ev = state.eventos.find(e => e.id === _currentEventId);
+  let ev = null;
+  const isLivre = _currentEventId === 'crono_livre';
+
+  if (isLivre) {
+    ev = state.cronoLivre;
+  } else {
+    ev = state.eventos.find(e => e.id === _currentEventId);
+  }
+
   if (!ev) { showToast('Evento não encontrado', 'error'); return false; }
 
   // Validation
@@ -474,6 +513,33 @@ export function saveRegistroSessao() {
 
   const discId = document.getElementById('reg-disciplina')?.value;
   const assId = document.getElementById('reg-assunto')?.value;
+
+  if (isLivre && (!discId || !assId)) {
+    showToast('Em sessões livres, escolha uma Disciplina e um Tópico para vincular o tempo estudado', 'error'); return false;
+  }
+
+  // Se for Sessão Livre, cria um evento real permanente pro Histórico
+  if (isLivre && discId && assId) {
+    const d = getDisc(discId);
+    let assName = 'Tópico';
+    if (d) {
+      const achado = d.disc.assuntos.find(a => a.id === assId);
+      if (achado) assName = achado.nome;
+    }
+    const evtReal = {
+      id: 'ev_' + Date.now(),
+      titulo: assName, // will be overridden below anyway
+      data: todayStr(),
+      status: 'pendente', // Will turn 'estudei' down there
+      dataEstudo: null,
+      discId: discId,
+      assId: assId,
+      tipoInfo: 'Sessão Livre',
+      tempoAcumulado: Math.round(state.cronoLivre.tempoAcumulado || 0)
+    };
+    state.eventos.push(evtReal);
+    ev = evtReal; // Swap reference!
+  }
 
   // Validate questões if type selected
   const hasQuestoes = _selectedTipos.includes('questoes') || _selectedTipos.includes('simulado');
@@ -498,7 +564,8 @@ export function saveRegistroSessao() {
 
   // Validate páginas if needed
   const showPaginas = ['leitura', 'informativo', 'sumula'].some(t => _selectedTipos.includes(t)) ||
-    ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some(m => _selectedMateriais.includes(m));
+    ['pdf', 'livro', 'lei_seca'].some(m => _selectedMateriais.includes(m));
+
   let paginas = null;
   if (showPaginas) {
     const simplesVisible = document.getElementById('pag-simples')?.style.display !== 'none';
@@ -574,6 +641,11 @@ export function saveRegistroSessao() {
     }
   });
 
+  // Limpa o cronometro livre da memória caso tenha sido ele
+  if (isLivre) {
+    state.cronoLivre = { _timerStart: null, tempoAcumulado: 0 };
+  }
+
   // Update legacy study cycle progress
   if (state.ciclo && state.ciclo.ativo && discId) {
     const discEntry = getDisc(discId);
@@ -631,7 +703,9 @@ export function saveAndStartNew() {
 
 // Rollback timer state if user cancels the registro modal
 export function cancelRegistro() {
-  const ev = _currentEventId ? state.eventos.find(e => e.id === _currentEventId) : null;
+  const isLivre = _currentEventId === 'crono_livre';
+  const ev = isLivre ? state.cronoLivre : state.eventos.find(e => e.id === _currentEventId);
+
   if (ev && _savedTimerStart) {
     ev._timerStart = _savedTimerStart;
     ev.tempoAcumulado = _savedTempoAcumulado;
@@ -640,4 +714,14 @@ export function cancelRegistro() {
   _savedTempoAcumulado = 0;
   closeModal('modal-registro-sessao');
   renderCurrentView();
+}
+
+// Proxies the discardTimer correctly inside modal
+window.discardTimerUI = function (eventId) {
+  closeModal('modal-registro-sessao');
+  setTimeout(() => {
+    if (typeof window.discardTimer === 'function') {
+      window.discardTimer(eventId);
+    }
+  }, 100);
 }

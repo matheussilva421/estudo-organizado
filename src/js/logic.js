@@ -9,6 +9,7 @@ export let _pomodoroMode = false;
 export let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 export function isTimerActive(eventId) {
+  if (eventId === 'crono_livre') return !!state.cronoLivre._timerStart;
   const ev = state.eventos.find(e => e.id === eventId);
   return !!(ev && ev._timerStart);
 }
@@ -35,9 +36,17 @@ export function reattachTimers() {
     clearInterval(timerIntervals[id]);
     delete timerIntervals[id];
   });
-  state.eventos.forEach(ev => {
-    if (!ev._timerStart) return;
-    timerIntervals[ev.id] = setInterval(() => {
+
+  const allTimers = [];
+  if (state.cronoLivre && state.cronoLivre._timerStart) {
+    allTimers.push({ id: 'crono_livre', ev: state.cronoLivre });
+  }
+  state.eventos.forEach(e => {
+    if (e._timerStart) allTimers.push({ id: e.id, ev: e });
+  });
+
+  allTimers.forEach(({ id, ev }) => {
+    timerIntervals[id] = setInterval(() => {
       const elapsed = getElapsedSeconds(ev);
 
       // POMODORO CHECK
@@ -45,7 +54,7 @@ export function reattachTimers() {
         const sessionSeconds = Math.floor((Date.now() - ev._timerStart) / 1000);
         if (sessionSeconds >= 1500) { // 25 minutes
           _pomodoroAlarm.play().catch(e => console.log('Audio error:', e));
-          toggleTimer(ev.id); // Auto-pause
+          toggleTimer(id); // Auto-pause
           document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Pomodoro concluído! Descanse 5 minutos.', type: 'success' } }));
           if ("Notification" in window && Notification.permission === "granted") {
             new Notification("Pomodoro Concluído! 🍅", { body: "Descanse 5 minutos.", icon: 'favicon.ico' });
@@ -54,7 +63,7 @@ export function reattachTimers() {
         }
       }
 
-      document.querySelectorAll(`[data-timer="${ev.id}"]`).forEach(el => {
+      document.querySelectorAll(`[data-timer="${id}"]`).forEach(el => {
         el.textContent = formatTime(elapsed);
       });
     }, 1000);
@@ -62,7 +71,7 @@ export function reattachTimers() {
 }
 
 export function addTimerMinutes(eventId, minutes) {
-  const ev = state.eventos.find(e => e.id === eventId);
+  const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
   if (!ev) return;
   ev.tempoAcumulado = (ev.tempoAcumulado || 0) + (minutes * 60);
   scheduleSave();
@@ -71,7 +80,7 @@ export function addTimerMinutes(eventId, minutes) {
 }
 
 export function toggleTimer(eventId) {
-  const ev = state.eventos.find(e => e.id === eventId);
+  const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
   if (!ev) return;
   if (ev._timerStart) {
     // PAUSE
@@ -86,6 +95,27 @@ export function toggleTimer(eventId) {
   scheduleSave();
   document.dispatchEvent(new CustomEvent('app:refreshEventCard', { detail: { eventId } }));
   document.dispatchEvent(new Event('app:updateBadges'));
+}
+
+export function discardTimer(eventId) {
+  const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
+  if (!ev) return;
+  document.dispatchEvent(new CustomEvent('app:showConfirm', {
+    detail: {
+      msg: 'Descartar esta sessão? O tempo de estudo será zerado.',
+      onYes: () => {
+        if (timerIntervals[eventId]) {
+          clearInterval(timerIntervals[eventId]);
+          delete timerIntervals[eventId];
+        }
+        ev.tempoAcumulado = 0;
+        delete ev._timerStart;
+        scheduleSave();
+        document.dispatchEvent(new Event('app:renderCurrentView'));
+      },
+      opts: { danger: true, label: 'Descartar', title: 'Descartar Sessão' }
+    }
+  }));
 }
 
 export function marcarEstudei(eventId) {
