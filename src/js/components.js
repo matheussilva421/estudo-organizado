@@ -265,7 +265,10 @@ export function renderCronometro(el) {
 
 export function renderCurrentView() {
   // Bug 7: clean up cronometro interval when switching views
-  if (window._cronoInterval) { clearInterval(window._cronoInterval); window._cronoInterval = null; }
+  if (currentView !== 'cronometro' && window._cronoInterval) {
+    clearInterval(window._cronoInterval);
+    window._cronoInterval = null;
+  }
 
   const el = document.getElementById('content');
   if (!el) return;
