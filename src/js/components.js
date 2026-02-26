@@ -83,8 +83,8 @@ export function renderCronometro(el) {
           display:flex;justify-content:space-between;
           color:#8b949e;font-size:12px;margin-bottom:6px;
         ">
-          <span>${fmtTime(elapsed)}</span>
-          <span>${fmtTime(plannedSecs)}</span>
+          <span>${formatTime(elapsed)}</span>
+          <span>${formatTime(plannedSecs)}</span>
         </div>
         <div style="
           height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;
@@ -108,7 +108,7 @@ export function renderCronometro(el) {
           color:${isActive ? '#e6edf3' : '#8b949e'};
           text-shadow:${isActive ? '0 0 40px rgba(57,211,83,0.3)' : 'none'};
           transition:color 0.3s, text-shadow 0.3s;
-        ">${fmtTime(elapsed)}</div>
+        ">${formatTime(elapsed)}</div>
 
         <!-- Controls -->
         <div style="display:flex;gap:24px;margin-top:40px;align-items:center;">
