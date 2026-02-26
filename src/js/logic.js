@@ -22,14 +22,37 @@ export function getElapsedSeconds(ev) {
 
 export function toggleTimerMode() {
   _pomodoroMode = !_pomodoroMode;
-  const btn = document.getElementById('timer-mode-btn');
+  const btn = document.getElementById('crono-mode-btn');
   if (btn) {
-    btn.innerHTML = _pomodoroMode ? '<i class="fa fa-stopwatch"></i> Pomodoro (25/5)' : '<i class="fa fa-clock"></i> Contínuo';
-    btn.style.backgroundColor = _pomodoroMode ? 'var(--red)' : '';
-    btn.style.color = _pomodoroMode ? '#fff' : '';
+    btn.innerHTML = _pomodoroMode ? '🍅 Pomodoro (25/5)' : '⏱ Modo Contínuo';
+    btn.style.backgroundColor = _pomodoroMode ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.06)';
+    btn.style.color = _pomodoroMode ? '#a371f7' : '#8b949e';
   }
   document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: _pomodoroMode ? 'Modo Pomodoro ativado.' : 'Modo Contínuo ativado.', type: 'info' } }));
 }
+
+// GUI Hooks for Crono Livre Customization
+window.setCronoLivreGoal = function (minutes) {
+  if (!state.cronoLivre) state.cronoLivre = { _timerStart: null, tempoAcumulado: 0 };
+  state.cronoLivre.duracaoMinutos = parseInt(minutes, 10) || 0;
+  scheduleSave();
+  document.dispatchEvent(new Event('app:renderCurrentView'));
+};
+
+window.setCronoLivreDisc = function (discId) {
+  if (!state.cronoLivre) state.cronoLivre = { _timerStart: null, tempoAcumulado: 0 };
+  state.cronoLivre.discId = discId;
+  state.cronoLivre.assId = null; // reset assunto
+  scheduleSave();
+  document.dispatchEvent(new Event('app:renderCurrentView'));
+};
+
+window.setCronoLivreAss = function (assId) {
+  if (!state.cronoLivre) state.cronoLivre = { _timerStart: null, tempoAcumulado: 0 };
+  state.cronoLivre.assId = assId;
+  scheduleSave();
+  document.dispatchEvent(new Event('app:renderCurrentView'));
+};
 
 export function reattachTimers() {
   Object.keys(timerIntervals).forEach(id => {

@@ -2,7 +2,7 @@ import { currentView } from './app.js';
 import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, getHabitType } from './utils.js';
 import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo } from './views.js';
 import { state } from './store.js';
-import { deleteEvento, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
+import { deleteEvento, getAllDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
 
 // =============================================
 // DOM COMPONENTS AND RENDERERS
@@ -18,7 +18,15 @@ export function renderCronometro(el) {
   const isLivreActiveOrPaused = state.cronoLivre && (state.cronoLivre._timerStart || state.cronoLivre.tempoAcumulado > 0);
 
   if (allTimerEvents.length === 0 || isLivreActiveOrPaused) {
-    const cronoLivreMock = { id: 'crono_livre', titulo: 'Sessão Livre', discId: null, assId: null, duracaoMinutos: 0, tempoAcumulado: state.cronoLivre?.tempoAcumulado || 0, _timerStart: state.cronoLivre?._timerStart || null };
+    const cronoLivreMock = {
+      id: 'crono_livre',
+      titulo: 'Sessão Livre',
+      discId: state.cronoLivre?.discId || null,
+      assId: state.cronoLivre?.assId || null,
+      duracaoMinutos: state.cronoLivre?.duracaoMinutos || 0,
+      tempoAcumulado: state.cronoLivre?.tempoAcumulado || 0,
+      _timerStart: state.cronoLivre?._timerStart || null
+    };
     if (isLivreActiveOrPaused) allTimerEvents.unshift(cronoLivreMock);
     else if (allTimerEvents.length === 0) allTimerEvents.push(cronoLivreMock);
   }
@@ -65,6 +73,20 @@ export function renderCronometro(el) {
         ">
           Você está estudando:
         </div>
+        ${focusEvent.id === 'crono_livre' ? `
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px;">
+          <select style="max-width:300px; background:rgba(255,255,255,0.05); color:#e6edf3; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; font-size:16px; width:100%; text-align:center; appearance:none; cursor:pointer;" onchange="setCronoLivreDisc(this.value)">
+            <option value="">(Opcional) Escolha a Disciplina...</option>
+            ${getAllDisciplinas().map(d => `<option value="${d.disc.id}" ${state.cronoLivre?.discId === d.disc.id ? 'selected' : ''}>${d.disc.icone || '📖'} ${esc(d.disc.nome)}</option>`).join('')}
+          </select>
+          ${state.cronoLivre?.discId ? `
+            <select style="max-width:300px; background:rgba(255,255,255,0.03); color:#8b949e; border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:6px; font-size:14px; width:100%; text-align:center; appearance:none; cursor:pointer;" onchange="setCronoLivreAss(this.value)">
+              <option value="">(Opcional) Tópico / Assunto...</option>
+              ${getDisc(state.cronoLivre.discId)?.disc.assuntos?.map(a => `<option value="${a.id}" ${state.cronoLivre?.assId === a.id ? 'selected' : ''}>${esc(a.nome)}</option>`).join('') || ''}
+            </select>
+          ` : ''}
+        </div>
+        ` : `
         <div style="color:#e6edf3;font-size:20px;margin-top:16px;font-weight:700;">
            ${discName}
         </div>
@@ -75,6 +97,7 @@ export function renderCronometro(el) {
         ">
           ${assName}
         </div>
+        `}
       </div>
 
       <!-- Progress bar -->
@@ -144,8 +167,21 @@ export function renderCronometro(el) {
           </button>
         </div>
 
-        <!-- Add time buttons -->
+        <!-- Add time buttons / Goal Input -->
         <div style="margin-top:40px;text-align:center;">
+          ${focusEvent.id === 'crono_livre' ? `
+          <div style="color:#8b949e;font-size:12px;margin-bottom:12px;letter-spacing:1px;">
+            Definir Meta de Tempo (minutos):
+          </div>
+          <div style="display:flex;gap:12px;justify-content:center;align-items:center;">
+            <button onclick="setCronoLivreGoal(Math.max(0, (state.cronoLivre.duracaoMinutos||0) - 5))" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">-</button>
+            <input type="number" 
+                   value="${state.cronoLivre?.duracaoMinutos || 0}" 
+                   onchange="setCronoLivreGoal(this.value)" 
+                   style="width:80px;height:40px;background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:8px;text-align:center;font-size:18px;font-family:'DM Mono',monospace;">
+            <button onclick="setCronoLivreGoal((state.cronoLivre.duracaoMinutos||0) + 5)" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">+</button>
+          </div>
+          ` : `
           <div style="color:#8b949e;font-size:12px;margin-bottom:12px;letter-spacing:1px;">
             Adicione mais tempo se quiser continuar estudando:
           </div>
@@ -169,6 +205,7 @@ export function renderCronometro(el) {
               box-shadow:0 2px 12px rgba(139,92,246,0.3);transition:transform 0.2s;
             ">+ 15min</button>
           </div>
+          `}
         </div>
       </div>
 
