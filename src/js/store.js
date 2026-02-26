@@ -20,7 +20,7 @@ export function setState(newState) {
     arquivo: newState.arquivo || [],
     habitos: Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] }, newState.habitos || {}),
     revisoes: newState.revisoes || [],
-    config: Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90] }, newState.config || {}),
+    config: Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3 }, newState.config || {}),
     cronoLivre: newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 },
     driveFileId: newState.driveFileId || null,
     lastSync: newState.lastSync || null
@@ -45,7 +45,8 @@ export let state = {
     primeirodiaSemana: 1,
     mostrarNumeroSemana: false,
     agruparEventos: true,
-    frequenciaRevisao: [1, 7, 30, 90]
+    frequenciaRevisao: [1, 7, 30, 90],
+    materiasPorDia: 3
   },
   cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
   driveFileId: null,

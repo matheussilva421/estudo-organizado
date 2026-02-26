@@ -1,7 +1,7 @@
 ﻿import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
 import { cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats } from './logic.js';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, syncCicloToEventos } from './logic.js';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
@@ -2187,6 +2187,19 @@ export function renderConfig(el) {
           </div>
         </div>
 
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><h3>📚 Planejamento Diário</h3></div>
+          <div class="card-body">
+            <div class="config-row">
+              <div>
+                <div class="config-label">Matérias por dia no Ciclo</div>
+                <div class="config-sub">Quantidade de disciplinas distribuídas diariamente no calendário/MED.</div>
+              </div>
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="15" value="${cfg.materiasPorDia || 3}" onchange="updateConfig('materiasPorDia', parseInt(this.value, 10))">
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header"><h3>🔄 Frequência de Revisão</h3></div>
           <div class="card-body">
@@ -2319,6 +2332,7 @@ export function renderConfig(el) {
 
 export function updateConfig(key, value) {
   state.config[key] = value;
+  if (key === 'materiasPorDia') syncCicloToEventos();
   scheduleSave();
 }
 
@@ -2677,8 +2691,14 @@ export function renderCiclo(el) {
           <div class="ciclo-item-cor" style="background:${d.edital.cor || '#3b82f6'};"></div>
           <div class="ciclo-item-body">
             <div class="ciclo-item-header">
-              <div class="ciclo-item-title">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
-              <div class="ciclo-item-meta">${formatH(seq.minutosAlvo)} planejado</div>
+              <div class="ciclo-item-title" style="display:flex; align-items:center; gap:8px;">
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, -1)" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
+                  <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, 1)" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
+                </div>
+                <div>${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+              </div>
+              <div class="ciclo-item-meta" style="cursor:pointer; text-decoration:underline;" onclick="window.editCicloSeqHours(${i})" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
             </div>
             <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Etapa ${i + 1} da sequência</div>
             <div style="margin-top:8px;">
@@ -2820,8 +2840,14 @@ export function renderCiclo(el) {
               <div class="ciclo-item-cor" style="background:${d.edital.cor || '#3b82f6'};"></div>
               <div class="ciclo-item-body">
                 <div class="ciclo-item-header">
-                  <div class="ciclo-item-title">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
-                  <div class="ciclo-item-meta">${formatH(seq.minutosAlvo)} planejado</div>
+                  <div class="ciclo-item-title" style="display:flex; align-items:center; gap:8px;">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                      <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, -1)" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
+                      <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, 1)" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
+                    </div>
+                    <div>${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+                  </div>
+                  <div class="ciclo-item-meta" style="cursor:pointer; text-decoration:underline;" onclick="window.editCicloSeqHours(${i})" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Etapa ${i + 1} da sequência global da semana</div>
                 <div style="margin-top:8px;">
