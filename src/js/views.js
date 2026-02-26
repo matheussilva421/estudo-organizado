@@ -2854,7 +2854,7 @@ export function renderCiclo(el) {
                       <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, -1)" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
                       <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, 1)" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
                     </div>
-                    <div>${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+                    <div style="cursor:pointer; display:flex; align-items:center; gap:6px;" onclick="window.openCicloHistory('${seq.id}')" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span style="text-decoration:underline;">${esc(d.disc.nome)}</span></div>
                   </div>
                   <div class="ciclo-item-meta" style="cursor:pointer; text-decoration:underline;" onclick="window.editCicloSeqHours(${i})" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
                 </div>
