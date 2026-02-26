@@ -79,12 +79,6 @@ export function renderCronometro(el) {
             <option value="">(Opcional) Escolha a Disciplina...</option>
             ${getAllDisciplinas().map(d => `<option value="${d.disc.id}" ${state.cronoLivre?.discId === d.disc.id ? 'selected' : ''}>${d.disc.icone || '📖'} ${esc(d.disc.nome)}</option>`).join('')}
           </select>
-          ${state.cronoLivre?.discId ? `
-            <select style="max-width:300px; background:rgba(255,255,255,0.03); color:#8b949e; border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:6px; font-size:14px; width:100%; text-align:center; appearance:none; cursor:pointer;" onchange="setCronoLivreAss(this.value)">
-              <option value="">(Opcional) Tópico / Assunto...</option>
-              ${getDisc(state.cronoLivre.discId)?.disc.assuntos?.map(a => `<option value="${a.id}" ${state.cronoLivre?.assId === a.id ? 'selected' : ''}>${esc(a.nome)}</option>`).join('') || ''}
-            </select>
-          ` : ''}
         </div>
         ` : `
         <div style="color:#e6edf3;font-size:20px;margin-top:16px;font-weight:700;">
