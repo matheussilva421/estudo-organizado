@@ -1312,7 +1312,6 @@ window.verResumoSimulado = (simId) => {
 window.toggleEditSeq = () => {
   window._isEditingSequence = !window._isEditingSequence;
   if (window._isEditingSequence) {
-    const { state } = require('./store.js');
     window._tempSequencia = JSON.parse(JSON.stringify(state.planejamento.sequencia));
   } else {
     window._tempSequencia = null;
@@ -1321,9 +1320,6 @@ window.toggleEditSeq = () => {
 };
 
 window.saveEditSeq = () => {
-  const { state, saveState } = require('./store.js');
-  const { syncCicloToEventos } = require('./logic.js');
-
   if (!window._tempSequencia || window._tempSequencia.length === 0) {
     alert("A sequência de estudos não pode ficar vazia.");
     return;
@@ -1337,7 +1333,7 @@ window.saveEditSeq = () => {
 
   state.planejamento.sequencia = window._tempSequencia;
   syncCicloToEventos(state.planejamento);
-  saveState();
+  scheduleSave();
 
   window._isEditingSequence = false;
   window._tempSequencia = null;
