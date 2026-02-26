@@ -8,7 +8,13 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 
 ---
 
-## 🆕 Últimas Atualizações (Wave 9 - Conectividade & QA)
+## 🆕 Últimas Atualizações (Wave 20 - Redesign do Ciclo de Estudos)
+- **Novo Dashboard Analítico:** A aba de Planejamento ganhou uma reformulação visual drástica. Agora, a tela exibe os dados em duas colunas, apresentando um Gráfico de Rosca (Doughnut Chart) na direita e listagens das sequências na esquerda.
+- **Métricas de Ciclos Compostos:** O aplicativo agora não só planeja as horas, mas mede ativamente as horas estudadas, dividindo-as pelo percentual diário para completar os blocos da roleta. Suporta monitoramento de "Ciclos Completos".
+- **Botão Recomeçar Ciclo:** Criamos a mecânica de avançar para um "Novo Ciclo", limpando o progresso das barras mas mantendo as matérias intactas e acumulando +1 volta no total.
+- **Filtro de Finalizados:** Foi reestruturado dentro do novo layout o toggle para Ocultar Etapas Concluídas na sequência do Ciclo.
+
+## Atualizações Anteriores (Wave 9 - Conectividade & QA)
 - **Integração Planejamento ↔ Cronômetro:** Agora os blocos de estudo gerados no módulo Planejamento ("Grade Semanal" e "Ciclo") possuem o botão **Estudar Agora**, enviando a disciplina alvo direto para o Cronômetro e registrando o progresso automaticamente no fim da sessão.
 - **Cascata de Exclusões Segura:** A exclusão de Editais, Disciplinas e Assuntos agora limpa varre e desvincula corretamente o histórico de eventos e planejamentos órfãos, prevenindo quebras de renderização na Dashboard.
 - **Correção "Midnight Rollover":** Resolvido o bug onde as datas do sistema congelavam se a aba permanecesse aberta virando a noite. O sistema agora revalida a data ativamente em `visibilitychange` da aba e ciclos de evento de gravação.

@@ -500,7 +500,9 @@ export function generatePlanejamento(draft) {
     disciplinas: draft.disciplinas,
     relevancia: calculateRelevanceWeights(draft.relevancia),
     horarios: draft.horarios,
-    sequencia: []
+    sequencia: [],
+    ciclosCompletos: 0,
+    dataInicioCicloAtual: new Date().toISOString()
   };
 
   if (plan.tipo === 'ciclo') {

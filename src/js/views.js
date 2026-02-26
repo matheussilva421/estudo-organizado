@@ -3080,6 +3080,18 @@ document.addEventListener('keydown', e => {
 export function renderCiclo(el) {
   const plan = state.planejamento || {};
 
+  window.recomecarCiclo = function () {
+    showConfirm('Isto irá zerar o tempo estudado de todas as disciplinas do ciclo atual, contabilizando 1 Ciclo Completo.', () => {
+      if (state.planejamento && state.planejamento.tipo) {
+        state.planejamento.ciclosCompletos = (state.planejamento.ciclosCompletos || 0) + 1;
+        state.planejamento.dataInicioCicloAtual = new Date().toISOString();
+        scheduleSave();
+        renderCurrentView();
+        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Ciclo recomeçado com sucesso!', type: 'success' } }));
+      }
+    });
+  };
+
   if (!plan.ativo || !plan.disciplinas || plan.disciplinas.length === 0) {
     el.innerHTML = `
       <div class="empty-state" style="padding: 80px 20px;">
@@ -3100,83 +3112,151 @@ export function renderCiclo(el) {
   };
 
   if (plan.tipo === 'ciclo') {
-    // Lógica para renderizar Ciclo de Estudos
+    // Calculo do tempo estudado desde dataInicioCicloAtual
+    let dataInicio = plan.dataInicioCicloAtual || '1970-01-01T00:00:00.000Z';
+    dataInicio = dataInicio.substring(0, 10);
+    const statsPorDisc = {};
+    plan.disciplinas.forEach(id => statsPorDisc[id] = 0);
+
+    const eventosFiltrados = state.eventos.filter(ev => {
+      const isEstudado = ev.status === 'estudei' && (ev.tempoAcumulado && ev.tempoAcumulado > 0);
+      const evDate = ev.dataEstudo || ev.data;
+      return isEstudado && evDate >= dataInicio;
+    });
+
+    eventosFiltrados.forEach(ev => {
+      if (statsPorDisc[ev.discId] !== undefined) {
+        statsPorDisc[ev.discId] += (ev.tempoAcumulado / 60); // min
+      }
+    });
+
     let totalTarget = 0;
     let sequenceHtml = '';
-
     const dictDisciplinas = {};
     plan.disciplinas.forEach(id => {
       const disc = getDisc(id);
       if (disc) dictDisciplinas[id] = disc;
     });
 
+    // Construção Progressiva de Blocos da Sequência
+    const copyStats = { ...statsPorDisc };
+    let minutosCompletosCiclo = 0;
+
     plan.sequencia.forEach((seq, i) => {
       const d = dictDisciplinas[seq.discId];
       if (!d) return;
       totalTarget += seq.minutosAlvo;
 
-      sequenceHtml += `
-        <div class="ciclo-item ${seq.concluido ? 'concluido' : ''}" style="margin-bottom:12px;">
-          <div class="ciclo-item-cor" style="background:${d.disc.cor || d.edital.cor || '#3b82f6'};"></div>
-          <div class="ciclo-item-body">
-            <div class="ciclo-item-header">
-              <div class="ciclo-item-title" style="display:flex; align-items:center; gap:8px;">
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                  <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, -1)" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
-                  <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, 1)" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
-                </div>
-                <div style="cursor:pointer; display:flex; align-items:center; gap:6px;" onclick="window.openCicloHistory('${seq.id}')" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span style="text-decoration:underline;">${esc(d.disc.nome)}</span></div>
-              </div>
-              <div class="ciclo-item-meta" style="cursor:pointer; text-decoration:underline;" onclick="window.editCicloSeqHours(${i})" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
-            </div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Etapa ${i + 1} da sequência</div>
-            <div style="margin-top:8px;">
-               ${!seq.concluido
-          ? `<button class="btn btn-primary btn-sm" onclick="window.iniciarEtapaPlanejamento('${seq.id}')"><i class="fa fa-play"></i> Estudar Agora</button>`
-          : `<span style="color:var(--green);font-size:12px;font-weight:600;"><i class="fa fa-check"></i> Etapa Concluída</span>`
+      // Consome os minutos estudados para esta disciplina progressivamente
+      let pct = 0;
+      let usedMins = 0;
+      if (copyStats[seq.discId] > 0) {
+        if (copyStats[seq.discId] >= seq.minutosAlvo) {
+          usedMins = seq.minutosAlvo;
+          pct = 100;
+          copyStats[seq.discId] -= seq.minutosAlvo;
+        } else {
+          usedMins = copyStats[seq.discId];
+          pct = (usedMins / seq.minutosAlvo) * 100;
+          copyStats[seq.discId] = 0;
         }
+      }
+      minutosCompletosCiclo += usedMins;
+      const pctStr = pct.toFixed(2);
+      const cor = d.disc.cor || d.edital.cor || '#3b82f6';
+
+      if (window._hideConcluidosCiclo && pct >= 100) return;
+
+      sequenceHtml += `
+        <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:12px; display:flex;">
+          <div style="width:6px; background:${cor}; flex-shrink:0;"></div>
+          <div style="padding:16px; flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+              <div style="font-weight:600; font-size:15px; color:var(--text-primary); cursor:pointer;" title="Editar Nome do Evento" onclick="window.openCicloHistory('${seq.id}')">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+              <div style="font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; display:flex; align-items:center; gap:6px;">
+                 <i class="fa fa-clock"></i> <span style="font-weight:700; color:var(--text-primary);">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
+              </div>
+            </div>
+            
+            <div style="height:14px; background:rgba(255,255,255,0.05); border-radius:8px; overflow:hidden; position:relative; margin-bottom:12px;">
+              <div style="position:absolute; top:0; left:0; height:100%; width:${Math.min(pct, 100)}%; background:${cor}; border-radius:8px; opacity:0.6;"></div>
+              <div style="position:absolute; top:0; width:100%; text-align:center; font-size:10px; font-weight:700; color:var(--text-primary); line-height:14px; text-shadow:0px 1px 2px rgba(0,0,0,0.8);">${pctStr}%</div>
+            </div>
+
+            <div style="display:flex; gap:16px; font-size:11px;">
+              <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.iniciarEtapaPlanejamento('${seq.id}')"><i class="fa fa-play"></i> Iniciar Estudo</span>
+              <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openAddEventModal()"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</span>
+              <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openCicloHistory('${seq.id}')"><i class="fa fa-history"></i> Ver Últimos Estudos</span>
             </div>
           </div>
         </div>
       `;
     });
 
+    const progressoGlobalPct = totalTarget > 0 ? ((minutosCompletosCiclo / totalTarget) * 100).toFixed(2) : 0;
+    const ciclosFeitos = plan.ciclosCompletos || 0;
+
     el.innerHTML = `
       <!-- HEADER ACTIONS -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-        <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-sync"></i> Seu Ciclo de Estudos</h2>
+        <h2 style="font-size:22px;font-weight:700;color:var(--text-primary);">Planejamento</h2>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="window.openPlanejamentoWizard()" title="Editar Planejamento"><i class="fa fa-edit"></i> Editar Planejamento</button>
-          <button class="btn btn-danger btn-sm" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
+          <button class="btn btn-ghost btn-sm" onclick="window.recomecarCiclo()" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
+          <button class="btn btn-ghost btn-sm" onclick="window.openPlanejamentoWizard()" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-edit"></i> Replanejar</button>
+          <button class="btn btn-ghost btn-sm" data-action="remover-planejamento" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-trash"></i> Remover</button>
         </div>
       </div>
 
-      <div class="ciclo-resumo-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:24px;">
-        <!-- Progresso / Metas -->
-        <div class="card" style="padding:24px; display:flex; flex-direction:column; justify-content:center;">
-          <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Meta do Ciclo</div>
-          <div style="font-size:24px; font-weight:800; color:var(--text-primary);">${formatH(totalTarget)}</div>
-          <div style="font-size:13px; color:var(--text-secondary); margin-top:8px;">Planejamento gerado com <strong>${plan.disciplinas.length}</strong> disciplinas.</div>
+      <div class="grid-2" style="grid-template-columns: 1fr 400px; gap:24px; align-items:start;">
+        
+        <!-- COLUNA ESQUERDA -->
+        <div style="display:flex; flex-direction:column; gap:24px;">
+          <div style="display:flex; gap:16px;">
+            <!-- CICLOS COMPLETOS -->
+            <div class="card" style="padding:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; min-width:140px;">
+              <div style="font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:1px; margin-bottom:12px;">CICLOS COMPLETOS</div>
+              <div style="width:48px; height:48px; border:3px solid var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:var(--text-primary);">${ciclosFeitos}</div>
+            </div>
+            <!-- PROGRESSO GERAL -->
+            <div class="card" style="padding:16px; flex:1; display:flex; flex-direction:column; justify-content:center;">
+              <div style="font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:1px; margin-bottom:8px;">PROGRESSO</div>
+              <div style="font-family:'DM Mono',monospace; font-size:15px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">${formatH(minutosCompletosCiclo)} <span style="color:var(--text-muted);">/ ${formatH(totalTarget)}</span></div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="padding:4px 8px; font-size:12px; font-weight:700; background:var(--accent); color:var(--bg); border-radius:4px;">${progressoGlobalPct}%</div>
+                <div style="flex:1; height:12px; background:var(--bg); border-radius:6px; overflow:hidden;">
+                  <div style="height:100%; width:${Math.min(progressoGlobalPct, 100)}%; background:rgba(255,255,255,0.7); border-radius:6px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEQUENCIA DOS ESTUDOS -->
+          <div class="card" style="padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+               <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; text-transform:uppercase;">Sequência dos Estudos</div>
+               <div style="font-size:11px; font-weight:600; color:var(--text-muted);">
+                 <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                   <input type="checkbox" onchange="window.toggleCicloFin(this.checked)" ${window._hideConcluidosCiclo ? 'checked' : ''} style="cursor:pointer; accent-color:var(--accent); width:14px; height:14px;"> FINALIZADOS
+                 </label>
+               </div>
+            </div>
+            <div class="custom-scrollbar" style="max-height:600px; overflow-y:auto; padding-right:8px;">
+              ${sequenceHtml}
+            </div>
+          </div>
         </div>
 
-        <!-- Donut Chart -->
-        <div class="card" style="padding:20px; display:flex; justify-content:center; align-items:center; flex-direction:column;">
-          <div style="width: 150px; height: 150px; position:relative;">
+        <!-- COLUNA DIREITA -->
+        <div class="card" style="padding:24px; display:flex; flex-direction:column;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:24px;">CICLO</div>
+          
+          <div style="width: 100%; height: 300px; position:relative; margin-bottom:32px;">
              <canvas id="planejamentoChart"></canvas>
-             <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-weight:700; font-size:18px;">${formatH(totalTarget)}</div>
+             <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-weight:800; font-size:28px; color:var(--text-muted);">${formatH(totalTarget)}</div>
           </div>
-        </div>
-      </div>
-
-      <!-- LISTA DE ESTUDOS -->
-      <div class="card">
-        <div class="card-header" style="padding-bottom:12px;border:none;">
-          <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa fa-list-ol" style="color:var(--text-muted);"></i> Sequência Gerada</h3>
-        </div>
-        <div class="card-body" style="padding-top:0;">
-          <div class="ciclo-lista">
-            ${sequenceHtml || '<div style="padding:20px;text-align:center;color:var(--text-muted);">Sequência vazia.</div>'}
-          </div>
+          
+          <!-- FILETE LINEAR -->
+          <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8;"></div>
         </div>
       </div>
     `;
@@ -3196,14 +3276,20 @@ export function renderCiclo(el) {
           chartData[seq.discId] += seq.minutosAlvo;
         });
 
+        let linearHtml = '';
         for (const [id, min] of Object.entries(chartData)) {
           const d = dictDisciplinas[id];
           if (d) {
             labels.push(d.disc.nome);
             data.push(min);
-            bgColors.push(d.disc.cor || d.edital.cor || '#3b82f6');
+            const color = d.disc.cor || d.edital.cor || '#3b82f6';
+            bgColors.push(color);
+            const wPct = ((min / totalTarget) * 100).toFixed(2);
+            linearHtml += `<div style="width:${wPct}%; background:${color}; height:100%;"></div>`;
           }
         }
+
+        document.getElementById('filete-linear-ciclo').innerHTML = linearHtml;
 
         new Chart(ctx, {
           type: 'doughnut',
@@ -3212,17 +3298,23 @@ export function renderCiclo(el) {
             datasets: [{
               data: data,
               backgroundColor: bgColors,
+              borderColor: 'transparent',
               borderWidth: 0,
-              hoverOffset: 4
+              hoverOffset: 6
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '75%',
+            cutout: '60%',
             plugins: {
               legend: { display: false },
               tooltip: {
+                backgroundColor: 'rgba(0,0,0,0.8)',
+                titleFont: { size: 13 },
+                bodyFont: { size: 14, weight: 'bold' },
+                padding: 12,
+                cornerRadius: 8,
                 callbacks: {
                   label: function (context) {
                     return ' ' + formatH(context.raw);

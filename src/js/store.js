@@ -14,7 +14,7 @@ export function setState(newState) {
   const normalized = {
     schemaVersion: newState.schemaVersion || DEFAULT_SCHEMA_VERSION,
     ciclo: newState.ciclo || { ativo: false, ciclosCompletos: 0, disciplinas: [] },
-    planejamento: newState.planejamento || { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] },
+    planejamento: newState.planejamento || { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
     editais: newState.editais || [],
     eventos: newState.eventos || [],
     arquivo: newState.arquivo || [],
@@ -34,7 +34,7 @@ export function setState(newState) {
 export let state = {
   schemaVersion: DEFAULT_SCHEMA_VERSION,
   ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
-  planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] },
+  planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
   editais: [],
   eventos: [],
   arquivo: [], // concluded events older than 90 days
@@ -267,7 +267,7 @@ export function clearData() {
         setState({
           schemaVersion: DEFAULT_SCHEMA_VERSION,
           ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
-          planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] },
+          planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
           editais: [],
           eventos: [],
           arquivo: [],
