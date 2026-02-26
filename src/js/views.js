@@ -1325,11 +1325,8 @@ export function renderVertical(el) {
       </div>
     </div>
 
-    <!-- Stats header -->
-    <div id="vert-stats-bar" class="card" style="margin-bottom:16px;padding:14px 20px;"></div>
-
     <!-- Fix 3: isolated list container — only this gets re-rendered on search -->
-    <div class="card"><div id="vert-list-container" style="padding:0;"></div></div>
+    <div id="vert-list-container"></div>
   `;
   renderVerticalList(document.getElementById('vert-list-container'));
 }
@@ -1339,27 +1336,9 @@ export function renderVerticalList(container) {
   const allItems = getFilteredVertItems();
   const total = allItems.length;
   const concluidos = allItems.filter(i => i.ass.concluido).length;
-  const pct = total > 0 ? Math.round(concluidos / total * 100) : 0;
+  const pct = total > 0 ? Math.round((concluidos / total) * 100) : 0;
 
-  // Update stats bar
-  const statsBar = document.getElementById('vert-stats-bar');
-  if (statsBar) {
-    statsBar.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">VISÃO LINEAR DO EDITAL</div>
-          <div style="font-size:20px;font-weight:800;">${concluidos} de ${total} assuntos concluidos</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:32px;font-weight:900;color:var(--accent);">${pct}<span style="font-size:16px;opacity:0.7;">%</span></div>
-          <div style="background:var(--border);height:6px;border-radius:4px;width:120px;margin-top:4px;">
-            <div style="background:var(--accent);height:6px;border-radius:4px;width:${pct}%;transition:width 0.3s;"></div>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  if (allItems.length === 0) {
+  if (total === 0) {
     container.innerHTML = `<div class="empty-state"><div class="icon">📋</div>
       <h4>${state.editais.length === 0 ? 'Nenhum edital cadastrado' : 'Nenhum assunto encontrado'}</h4>
       <p>${state.editais.length === 0 ? 'Crie um edital em Editais para usar esta visualização.' : 'Tente ajustar os filtros.'}</p>
@@ -1367,24 +1346,194 @@ export function renderVerticalList(container) {
     return;
   }
 
-  const hiReg = vertSearch ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi') : null;
+  // Card Progresso Global
+  let html = `
+    <div class="card" style="margin-bottom:24px;padding:20px;border:none;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-primary);letter-spacing:1px;margin-bottom:8px;">PROGRESSO NO EDITAL</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);">${concluidos} de ${total} tópicos concluídos</div>
+        </div>
+        <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${pct}<span style="font-size:16px;opacity:0.7;">%</span></div>
+      </div>
+      <div style="background:var(--bg);height:14px;border-radius:10px;width:100%;overflow:hidden;padding:2px;">
+        <div style="background:var(--accent);height:100%;width:${pct}%;transition:width 0.3s;border-radius:10px;"></div>
+      </div>
+    </div>
+  `;
+
+  // Agrupar itens por disciplina
+  const discMap = {};
+  allItems.forEach(item => {
+    const did = item.disc.id;
+    if (!discMap[did]) {
+      discMap[did] = {
+        disc: item.disc,
+        edital: item.edital,
+        items: []
+      };
+    }
+    discMap[did].items.push(item);
+  });
+
+  // Agrupar logs de questoes do 'state.eventos'
+  const eventosAgrupados = {};
+  if (state.eventos) {
+    state.eventos.forEach(ev => {
+      if (ev.status === 'estudei' && ev.discId) {
+        if (!eventosAgrupados[ev.discId]) eventosAgrupados[ev.discId] = { sCertas: 0, sErradas: 0, assuntos: {} };
+        const evtQs = ev.questoes || { certas: 0, erradas: 0 };
+        // Somar para disciplina
+        eventosAgrupados[ev.discId].sCertas += evtQs.certas;
+        eventosAgrupados[ev.discId].sErradas += evtQs.erradas;
+        // Somar para assunto específico
+        if (ev.assId) {
+          if (!eventosAgrupados[ev.discId].assuntos[ev.assId]) {
+            eventosAgrupados[ev.discId].assuntos[ev.assId] = { certas: 0, erradas: 0 };
+          }
+          eventosAgrupados[ev.discId].assuntos[ev.assId].certas += evtQs.certas;
+          eventosAgrupados[ev.discId].assuntos[ev.assId].erradas += evtQs.erradas;
+        }
+      }
+    });
+  }
+
+  const hiReg = vertSearch ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\\\]/g, '\\\\$&')})`, 'gi') : null;
   const highlight = str => hiReg ? esc(str).replace(hiReg, '<mark>$1</mark>') : esc(str);
 
-  container.innerHTML = allItems.map(({ edital, disc, ass }) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:#f8fafc;' : ''}">
-      <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluido ? 'Ô£ô' : ''}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:${ass.concluido ? '400' : '600'};color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluido ? 'text-decoration:line-through;' : ''}">${highlight(ass.nome)}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">${esc(disc.icone || '📚')} ${highlight(disc.nome)} • ${esc(edital.nome)}</div>
-      </div>
-      ${ass.concluido ? `<div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:10px;color:var(--accent);font-weight:600;">✅ concluido</div>
-        <div style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</div>
-        <div style="font-size:10px;color:var(--text-muted);">${(ass.revisoesFetas || []).length} rev.</div>
-      </div>` : `<button class="btn btn-ghost btn-sm" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','${ass.id}')">📅 Agendar</button>`}
-    </div>
-  `).join('');
+  Object.values(discMap).forEach(dMap => {
+    const discId = dMap.disc.id;
+    // Stats de Questoes Disc
+    const evStats = eventosAgrupados[discId] || { sCertas: 0, sErradas: 0, assuntos: {} };
+    const dCertas = evStats.sCertas;
+    const dErradas = evStats.sErradas;
+    const dTotalQ = dCertas + dErradas;
+    const dPctQ = dTotalQ > 0 ? Math.round((dCertas / dTotalQ) * 100) : 0;
+
+    // Stats Tópicos Disc
+    const dTotalItems = dMap.items.length;
+    const dConcluidos = dMap.items.filter(i => i.ass.concluido).length;
+    const dPctConcluido = dTotalItems > 0 ? Math.round((dConcluidos / dTotalItems) * 100) : 0;
+
+    const cor = dMap.disc.cor || dMap.edital.cor || 'var(--accent)';
+
+    html += `
+      <div class="card" style="margin-bottom:12px;overflow:hidden;border:none;">
+        
+        <!-- HEADER DISCIPLINA -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--card);cursor:pointer;" onclick="window.toggleVertDisc('${discId}')">
+          <div style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;color:var(--text-primary);min-width:0;">
+            <div style="width:5px;height:24px;background:${cor};border-radius:4px;"></div>
+            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(dMap.disc.nome)}">${esc(dMap.disc.nome)}</span>
+          </div>
+          
+          <div style="display:flex;align-items:center;gap:16px;">
+            <!-- Stats Questões -->
+            <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:11px;font-weight:700;gap:12px;font-family:'DM Mono',monospace;background:transparent;">
+              <span style="color:var(--green);">${dCertas}</span>
+              <span style="color:var(--red);">${dErradas}</span>
+              <span style="color:var(--text-secondary);">${dTotalQ}</span>
+              <span style="color:var(--bg);background:${dPctQ >= 70 ? 'var(--green)' : dPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)'};padding:2px 6px;border-radius:8px;">${dPctQ}</span>
+            </div>
+            
+            <!-- Progress Bar Progresso -->
+            <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:4px;width:120px;">
+              <span style="font-size:10px;font-weight:800;color:var(--text-primary);min-width:24px;text-align:right;">${dPctConcluido}%</span>
+              <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+                <div style="height:100%;width:${dPctConcluido}%;background:${cor};border-radius:3px;"></div>
+              </div>
+            </div>
+            
+            <!-- Ações -->
+            <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
+              <i class="fa fa-edit" onclick="event.stopPropagation(); window.openDiscDashboard('${dMap.edital.id}', '${discId}')" title="Dashboard da Disciplina" style="cursor:pointer;"></i>
+              <i id="vert-disc-icon-${discId}" class="fa fa-chevron-down" style="width:16px;text-align:center;"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- LISTA DE TÓPICOS ANINHADA -->
+        <div id="vert-disc-body-${discId}" style="display:none;border-top:1px solid var(--border);padding:16px;">
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center;">
+              <thead>
+                <tr style="color:var(--text-primary);font-weight:600;border-bottom:1px solid var(--border);">
+                  <th style="padding:10px;text-align:left;">Tópicos</th>
+                  <th style="padding:10px;color:var(--green);"><i class="fa fa-check"></i></th>
+                  <th style="padding:10px;color:var(--red);"><i class="fa fa-times"></i></th>
+                  <th style="padding:10px;color:var(--text-muted);"><i class="fa fa-edit"></i></th>
+                  <th style="padding:10px;">%</th>
+                  <th style="padding:10px;"><i class="fa fa-calendar-alt"></i></th>
+                  <th style="padding:10px;"><i class="fa fa-calculator"></i></th>
+                  <th style="padding:10px;text-align:right;">Link</th>
+                </tr>
+              </thead>
+              <tbody>
+    `;
+
+    dMap.items.forEach(({ ass, edital, disc }) => {
+      const aStats = (evStats.assuntos && evStats.assuntos[ass.id]) ? evStats.assuntos[ass.id] : { certas: 0, erradas: 0 };
+      const aCertas = aStats.certas;
+      const aErradas = aStats.erradas;
+      const aTotalQ = aCertas + aErradas;
+      const aPctQ = aTotalQ > 0 ? Math.round((aCertas / aTotalQ) * 100) : 0;
+
+      const revCount = (ass.revisoesFetas || []).length;
+      let dataStr = '-';
+      if (ass.dataConclusao) {
+        const d = ass.dataConclusao.split('-');
+        if (d.length === 3) dataStr = `${d[2]}/${d[1]}/${d[0].substring(2)}`;
+      }
+
+      const chColor = ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)';
+      const decor = ass.concluido ? 'text-decoration:line-through;opacity:0.6;' : 'font-weight:600;';
+
+      html += `
+                <tr style="border-bottom:1px solid var(--bg);">
+                  <td style="padding:12px 10px;text-align:left;display:flex;align-items:center;gap:12px;min-width:300px;">
+                    <input type="checkbox" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);" ${ass.concluido ? 'checked' : ''} onclick="toggleAssunto('${discId}', '${ass.id}')" />
+                    <span style="color:${chColor};${decor}">${highlight(ass.nome).toUpperCase()}</span>
+                  </td>
+                  <td style="padding:12px 10px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace;">${aCertas}</td>
+                  <td style="padding:12px 10px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace;">${aErradas}</td>
+                  <td style="padding:12px 10px;font-weight:700;color:var(--text-secondary);font-family:'DM Mono',monospace;">${aTotalQ}</td>
+                  <td style="padding:12px 10px;font-family:'DM Mono',monospace;">
+                    <div style="display:inline-block;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;background:${aTotalQ > 0 ? (aPctQ >= 70 ? 'var(--green)' : aPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)') : 'transparent'};color:${aTotalQ > 0 ? 'var(--bg)' : 'var(--text-muted)'};border:${aTotalQ > 0 ? 'none' : '1px solid var(--border)'};">${aTotalQ > 0 ? aPctQ : 0}</div>
+                  </td>
+                  <td style="padding:12px 10px;color:var(--text-muted);font-size:12px;">${dataStr}</td>
+                  <td style="padding:12px 10px;color:var(--text-secondary);font-weight:600;">${revCount}</td>
+                  <td style="padding:12px 10px;text-align:right;">
+                    <span style="color:var(--text-primary);cursor:pointer;font-weight:600;font-size:12px;opacity:0.8;transition:0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" onclick="addEventoParaAssunto('${edital.id}','${discId}','${ass.id}')">Adicionar</span>
+                  </td>
+                </tr>
+      `;
+    });
+
+    html += `
+              </tbody >
+            </table >
+          </div >
+        </div >
+      </div >
+          `;
+  });
+
+  container.innerHTML = html;
 }
+
+window.toggleVertDisc = function (id) {
+  const body = document.getElementById('vert-disc-body-' + id);
+  const icon = document.getElementById('vert-disc-icon-' + id);
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    icon.classList.remove('fa-chevron-down');
+    icon.classList.add('fa-chevron-up');
+  } else {
+    body.style.display = 'none';
+    icon.classList.remove('fa-chevron-up');
+    icon.classList.add('fa-chevron-down');
+  }
+};
 
 export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
@@ -1424,12 +1573,12 @@ export function renderEditais(el) {
         ${state.editais.map(edital => renderEditalTree(edital)).join('')}
       </div>
     `}
-  `;
+        `;
 }
 
 export function renderEditalTree(edital) {
   return `
-    <div class="tree-edital" id="edital-${edital.id}">
+          < div class="tree-edital" id = "edital-${edital.id}" >
       <div class="tree-edital-header" onclick="toggleEdital('${edital.id}')">
         <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
         <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
@@ -1484,17 +1633,17 @@ export function renderEditalTree(edital) {
           ${(edital.disciplinas || []).length === 0 ? '<div style="color:var(--text-muted);font-style:italic;grid-column:1/-1;">Nenhuma disciplina</div>' : ''}
         </div>
       </div>
-    </div>
-  `;
+    </div >
+          `;
 }
 
 export function toggleEdital(id) {
-  const el = document.getElementById(`edital-tree-${id}`);
+  const el = document.getElementById(`edital - tree - ${id} `);
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
 export function toggleDisc(discId) {
-  const el = document.getElementById(`disc-tree-${discId}`);
+  const el = document.getElementById(`disc - tree - ${discId} `);
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
@@ -1532,9 +1681,9 @@ export function openDiscDashboard(editaId, discId) {
   window.activeDashboardDiscCtx = { editaId, discId };
 
   // Set window Topbar
-  document.getElementById('topbar-title').textContent = `${disc.icone || '📚'} ${disc.nome}`;
+  document.getElementById('topbar-title').textContent = `${disc.icone || '📚'} ${disc.nome} `;
   const actions = document.getElementById('topbar-actions');
-  actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeDiscDashboard()"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+  actions.innerHTML = `< button class="btn btn-ghost btn-sm" onclick = "closeDiscDashboard()" > <i class="fa fa-arrow-left"></i> Voltar</button > `;
 
   const el = document.getElementById('content');
   el.innerHTML = renderDisciplinaDashboard(edital, disc);
@@ -1570,9 +1719,9 @@ export function renderDisciplinaDashboard(edital, disc) {
   const percConcluido = totalAssuntos > 0 ? Math.round((assuntosConcluidos / totalAssuntos) * 100) : 0;
 
   return `
-    <div style="max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-bottom:40px;">
+          < div style = "max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-bottom:40px;" >
       
-      <!-- HEADER STATS -->
+      < !--HEADER STATS-- >
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;">
         <div class="card p-16">
           <div class="dash-label">TEMPO DE ESTUDO</div>
@@ -1613,7 +1762,7 @@ export function renderDisciplinaDashboard(edital, disc) {
         </div>
       </div>
 
-      <!-- MAIN CONTENT GRID -->
+      <!--MAIN CONTENT GRID-- >
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));gap:20px;align-items:stretch;">
         
         <!-- HISTÓRICO DE ESTUDOS (ESQUERDA) -->
@@ -1630,16 +1779,16 @@ export function renderDisciplinaDashboard(edital, disc) {
 
       </div>
 
-      <!-- PERFORMANCE GRAPH -->
-      <div class="card p-16">
-        <div class="dash-label" style="margin-bottom:16px;">EVOLUÇÃO DOS ACERTOS (%) - ÚLTIMAS SESSÕES</div>
-        <div style="height:250px;width:100%;position:relative;">
-          <canvas id="disc-chart-acertos"></canvas>
-        </div>
-      </div>
+      <!--PERFORMANCE GRAPH-- >
+          <div class="card p-16">
+            <div class="dash-label" style="margin-bottom:16px;">EVOLUÇÃO DOS ACERTOS (%) - ÚLTIMAS SESSÕES</div>
+            <div style="height:250px;width:100%;position:relative;">
+              <canvas id="disc-chart-acertos"></canvas>
+            </div>
+          </div>
 
-    </div>
-  `;
+    </div >
+          `;
 }
 
 function renderHistoricoDisciplina(tempos) {
@@ -1649,19 +1798,19 @@ function renderHistoricoDisciplina(tempos) {
   }
 
   return `
-    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">
-        <thead style="position:sticky;top:0;background:var(--card);z-index:2;">
-          <tr style="border-bottom:1px solid var(--border);color:var(--text-muted);">
-            <th style="padding:8px 4px;font-weight:600;">Data</th>
-            <th style="padding:8px 4px;font-weight:600;">Tempo</th>
-            <th style="padding:8px 4px;font-weight:600;">Pág.</th>
-            <th style="padding:8px 4px;font-weight:600;">Questões</th>
-            <th style="padding:8px 4px;font-weight:600;">Acerto</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${reverseTempos.map(t => {
+          < div class="custom-scrollbar" style = "flex:1;overflow-y:auto;padding-right:8px;" >
+            <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">
+              <thead style="position:sticky;top:0;background:var(--card);z-index:2;">
+                <tr style="border-bottom:1px solid var(--border);color:var(--text-muted);">
+                  <th style="padding:8px 4px;font-weight:600;">Data</th>
+                  <th style="padding:8px 4px;font-weight:600;">Tempo</th>
+                  <th style="padding:8px 4px;font-weight:600;">Pág.</th>
+                  <th style="padding:8px 4px;font-weight:600;">Questões</th>
+                  <th style="padding:8px 4px;font-weight:600;">Acerto</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${reverseTempos.map(t => {
     const dateStr = formatDate(t.data);
     const tempoStr = formatTime(t.tempoEstudado || 0).substring(0, 5);
     const qs = t.questoes || { certas: 0, erradas: 0 };
@@ -1679,10 +1828,10 @@ function renderHistoricoDisciplina(tempos) {
               </tr>
             `;
   }).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
+              </tbody>
+            </table>
+    </div >
+          `;
 }
 
 function renderTopicosEditalDisciplina(edital, disc) {
@@ -1691,8 +1840,8 @@ function renderTopicosEditalDisciplina(edital, disc) {
   }
 
   return `
-    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
-      ${disc.assuntos.map(ass => `
+          < div class="custom-scrollbar" style = "flex:1;overflow-y:auto;padding-right:8px;" >
+            ${disc.assuntos.map(ass => `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:#f8fafc;border-radius:6px;' : ''}">
           <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
           <div style="flex:1;min-width:0;font-size:13px;font-weight:${ass.concluido ? '400' : '600'};color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluido ? 'text-decoration:line-through;' : ''}">${esc(ass.nome)}</div>
@@ -1705,9 +1854,10 @@ function renderTopicosEditalDisciplina(edital, disc) {
             <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:4px 8px;font-size:11px;" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','${ass.id}')">+ Agenda</button>
           `}
         </div>
-      `).join('')}
-    </div>
-  `;
+      `).join('')
+    }
+    </div >
+          `;
 }
 
 export function initDiscDashboardChart(discId) {
@@ -1840,7 +1990,7 @@ export function deleteEdital(editaId) {
   const nome = edital ? edital.nome : 'edital';
   showConfirm(`Excluir "${nome}" completamente ?
 
-    Todos os grupos, disciplinas e assuntos serão removidos.Esta ação não pode ser desfeita.`, () => {
+          Todos os grupos, disciplinas e assuntos serão removidos.Esta ação não pode ser desfeita.`, () => {
     const discIds = edital && edital.disciplinas ? edital.disciplinas.map(d => d.id) : [];
     state.editais = state.editais.filter(e => e.id !== editaId);
 
@@ -1870,7 +2020,7 @@ export function openEditaModal(editaId = null) {
   const edital = editaId ? state.editais.find(e => e.id === editaId) : null;
   document.getElementById('modal-edital-title').textContent = edital ? 'Editar Edital' : 'Novo Edital';
   document.getElementById('modal-edital-body').innerHTML = `
-      < div class="form-group" >
+            < div class="form-group" >
       <label class="form-label">Nome do Edital</label>
       <input type="text" class="form-control" id="edital-nome" placeholder="Ex: Concurso TRF 2025" value="${edital ? edital.nome : ''}">
     </div>
@@ -1885,7 +2035,7 @@ export function openEditaModal(editaId = null) {
       <button class="btn btn-ghost" onclick="closeModal('modal-edital')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveEdital('${editaId || ''}')">Salvar Edital</button>
     </div>
-  `;
+        `;
   if (!edital) {
     document.querySelector('#edital-colors .color-swatch').classList.add('selected');
   }
@@ -1931,7 +2081,7 @@ export function openDiscModal(editaId, discId) {
 
   document.getElementById('modal-disc-title').textContent = isEdit ? 'Editar Disciplina' : 'Nova Disciplina';
   document.getElementById('modal-disc-body').innerHTML = `
-    < div class="form-group" >
+          < div class="form-group" >
       <label class="form-label">Nome da Disciplina</label>
       <input type="text" class="form-control" id="disc-nome" placeholder="Ex: Direito Constitucional" value="${isEdit ? esc(existingDisc.nome) : ''}">
     </div>
@@ -1949,7 +2099,7 @@ export function openDiscModal(editaId, discId) {
       </div>
       <input type="hidden" id="disc-cor" value="${isEdit ? existingDisc.cor : COLORS[0]}">
     </div>
-  `;
+        `;
   openModal('modal-disc');
 }
 
@@ -2014,13 +2164,13 @@ export function openDiscManager(editaId, discId) {
 
   // Render subject items
   const subjectsHtml = disc.assuntos.map((ass, idx) => `
-    <div class="sm-list-item" draggable="true"
-  data-disc-id="${disc.id}"
-  data-ass-idx="${idx}"
-  ondragstart="dndStart(event,'${disc.id}',${idx})"
-  ondragover="dndOver(event)"
-  ondragleave="dndLeave(event)"
-  ondrop="dndDrop(event,'${disc.id}',${idx})">
+          < div class="sm-list-item" draggable = "true"
+        data - disc - id="${disc.id}"
+        data - ass - idx="${idx}"
+        ondragstart = "dndStart(event,'${disc.id}',${idx})"
+        ondragover = "dndOver(event)"
+        ondragleave = "dndLeave(event)"
+        ondrop = "dndDrop(event,'${disc.id}',${idx})" >
       <div class="sm-drag-handle" title="Arrastar">☰</div>
       <div class="sm-item-text" onclick="editSubjectInline('${disc.id}', '${ass.id}', this)">${esc(ass.nome)}</div>
       <div class="sm-item-actions">
@@ -2028,14 +2178,14 @@ export function openDiscManager(editaId, discId) {
         <button onclick="moveSubject('${disc.id}', ${idx}, 1)" title="Descer"><i class="fa fa-chevron-down"></i></button>
         <button onclick="deleteAssunto('${disc.id}', '${ass.id}')" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
-    </div>
-    `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico adicionado.</div>';
+    </div >
+          `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico adicionado.</div>';
 
-  const colorOptions = COLORS.map(c => `<option value="${c}" ${disc.cor === c ? 'selected' : ''} style="background:${c};color:#fff;">${c}</option>`).join('');
+  const colorOptions = COLORS.map(c => `< option value = "${c}" ${disc.cor === c ? 'selected' : ''} style = "background:${c};color:#fff;" > ${c}</option > `).join('');
 
   document.getElementById('modal-disc-manager-title').textContent = disc.nome || 'Gerenciar Disciplina';
   document.getElementById('modal-disc-manager-body').innerHTML = `
-    <div class="sm-header">
+          < div class="sm-header" >
       <div class="sm-form-group">
         <label>Nome</label>
         <input type="text" id="dm-nome" value="${esc(disc.nome)}">
@@ -2049,7 +2199,7 @@ export function openDiscManager(editaId, discId) {
           </select>
         </div>
       </div>
-    </div>
+    </div >
     
     <div class="sm-toolbar">
       <span>Tópicos (${disc.assuntos.length})</span>
@@ -2067,7 +2217,7 @@ export function openDiscManager(editaId, discId) {
       <button class="btn btn-ghost" style="color:var(--danger);" onclick="deleteDisc('${editaId}','${discId}');closeModal('modal-disc-manager');">Remover</button>
       <button class="btn btn-primary" onclick="saveDiscManager('${editaId}','${discId}')">Salvar</button>
     </div>
-  `;
+        `;
   openModal('modal-disc-manager');
 }
 
@@ -2143,23 +2293,23 @@ export function saveDiscManager(editaId, discId) {
 export function openSubjectAddModal(editaId, discId) {
   editingSubjectCtx = { editaId, discId };
   document.getElementById('modal-subject-add-body').innerHTML = `
-    < div class="form-group" >
+          < div class="form-group" >
       <label class="form-label" style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Conteúdo</label>
       <textarea id="bulk-subject-text" class="form-control" rows="8" style="font-family:inherit;font-size:14px;resize:vertical;" placeholder="Ex:\n1. Configuração do Estado\n2. Direitos Fundamentais\n3. ..."></textarea>
       <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">
         Dica: Você pode fazer quebra de linha com Enter para adicionar mais de um tópico. O sistema limpará numerações como "1.", "1.1", "-", etc.
       </div>
     </div >
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-        <input type="checkbox" id="bulk-save-continue"> Salvar e continuar
-      </label>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" onclick="closeModal('modal-subject-add')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveBulkSubjects()">Adicionar</button>
-      </div>
-    </div>
-  `;
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="bulk-save-continue"> Salvar e continuar
+            </label>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost" onclick="closeModal('modal-subject-add')">Cancelar</button>
+              <button class="btn btn-primary" onclick="saveBulkSubjects()">Adicionar</button>
+            </div>
+          </div>
+        `;
   openModal('modal-subject-add');
   setTimeout(() => document.getElementById('bulk-subject-text').focus(), 100);
 }
@@ -2213,7 +2363,7 @@ export function openAddEventModal(dateStr = null) {
 
   document.getElementById('modal-event-title').textContent = 'Iniciar Estudo';
   document.getElementById('modal-event-body').innerHTML = `
-    < div id = "event-conteudo-fields" >
+          < div id = "event-conteudo-fields" >
       <div class="form-group">
         <label class="form-label">Disciplina</label>
         <select class="form-control" id="event-disc" onchange="loadAssuntos()">
@@ -2273,7 +2423,7 @@ export function openAddEventModal(dateStr = null) {
       <button class="btn btn-ghost" onclick="closeModal('modal-event')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveEvent()">Salvar / Iniciar</button>
     </div>
-  `;
+        `;
   openModal('modal-event');
   // Tech 3: Show day load immediately
   setTimeout(() => updateDayLoad(dateStr || todayStr()), 50);
@@ -2397,7 +2547,7 @@ export function saveEvent() {
 export function renderConfig(el) {
   const cfg = state.config;
   el.innerHTML = `
-    < div class="grid-2" >
+          < div class="grid-2" >
       <div>
         <div class="card" style="margin-bottom:16px;">
           <div class="card-header"><h3>🎨 Aparência</h3></div>
