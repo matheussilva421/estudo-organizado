@@ -125,11 +125,11 @@ export function closeSidebar() {
 export function applyTheme(toggle = false) {
   if (toggle) {
     state.config.darkMode = !state.config.darkMode;
+    state.config.tema = state.config.darkMode ? 'dark' : 'light';
     scheduleSave();
   }
-  document.documentElement.setAttribute('data-theme', state.config.darkMode ? 'dark' : 'light');
-  const btn = document.getElementById('theme-toggle-btn');
-  if (btn) btn.textContent = state.config.darkMode ? '☀️ Modo escuro' : '🌙 Modo claro';
+  const theme = state.config.tema || (state.config.darkMode ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
 }
 
 export function init() {

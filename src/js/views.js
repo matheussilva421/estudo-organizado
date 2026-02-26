@@ -2630,11 +2630,18 @@ export function renderConfig(el) {
           <div class="card-body">
             <div class="config-row">
               <div>
-                <div class="config-label">Modo escuro</div>
-                <div class="config-sub">Reduz o brilho da tela para uso noturno</div>
+                <div class="config-label">Tema Visual</div>
+                <div class="config-sub">Personalize a aparência do seu sistema</div>
               </div>
-              <button type="button" class="toggle ${cfg.darkMode ? 'on' : ''}" id="dark-toggle" aria-pressed="${cfg.darkMode ? 'true' : 'false'}" aria-label="Ativar Modo escuro"
-                onclick="applyTheme(true);this.classList.toggle('on');this.setAttribute('aria-pressed', this.classList.contains('on'));renderCurrentView()"></button>
+              <select class="form-control" style="width:140px;" onchange="setTheme(this.value)">
+                <option value="light" ${cfg.tema === 'light' || !cfg.darkMode ? 'selected' : ''}>☀️ Light</option>
+                <option value="dark" ${cfg.tema === 'dark' || (cfg.darkMode && !cfg.tema) ? 'selected' : ''}>🌑 Original Dark</option>
+                <option value="furtivo" ${cfg.tema === 'furtivo' ? 'selected' : ''}>🕶️ Furtivo</option>
+                <option value="abismo" ${cfg.tema === 'abismo' ? 'selected' : ''}>🌌 Abismo</option>
+                <option value="grafite" ${cfg.tema === 'grafite' ? 'selected' : ''}>🌫️ Grafite</option>
+                <option value="matrix" ${cfg.tema === 'matrix' ? 'selected' : ''}>📟 Matrix</option>
+                <option value="rubi" ${cfg.tema === 'rubi' ? 'selected' : ''}>🩸 Rubi</option>
+              </select>
             </div>
           </div>
         </div>
@@ -2839,10 +2846,22 @@ export function renderConfig(el) {
   `;
 }
 
+export function setTheme(themeName) {
+  state.config.tema = themeName;
+  state.config.darkMode = themeName !== 'light';
+
+  document.documentElement.setAttribute('data-theme', themeName);
+  scheduleSave();
+  renderCurrentView();
+}
+
 export function updateConfig(key, value) {
   state.config[key] = value;
-  if (key === 'materiasPorDia') syncCicloToEventos();
+  if (key === 'materiasPorDia' && typeof syncCicloToEventos === 'function') {
+    syncCicloToEventos();
+  }
   scheduleSave();
+  renderCurrentView();
 }
 
 export function toggleConfig(key, el) {
@@ -3631,3 +3650,4 @@ window.openCicloHistory = function (seqId) {
 window.openDiscDashboard = openDiscDashboard;
 window.closeDiscDashboard = closeDiscDashboard;
 window.addEventoParaAssunto = addEventoParaAssunto;
+window.setTheme = setTheme;
