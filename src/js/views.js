@@ -2697,7 +2697,7 @@ export function renderCiclo(el) {
 
       sequenceHtml += `
         <div class="ciclo-item ${seq.concluido ? 'concluido' : ''}" style="margin-bottom:12px;">
-          <div class="ciclo-item-cor" style="background:${d.edital.cor || '#3b82f6'};"></div>
+          <div class="ciclo-item-cor" style="background:${d.disc.cor || d.edital.cor || '#3b82f6'};"></div>
           <div class="ciclo-item-body">
             <div class="ciclo-item-header">
               <div class="ciclo-item-title" style="display:flex; align-items:center; gap:8px;">
@@ -2781,7 +2781,7 @@ export function renderCiclo(el) {
           if (d) {
             labels.push(d.disc.nome);
             data.push(min);
-            bgColors.push(d.edital.cor || '#3b82f6');
+            bgColors.push(d.disc.cor || d.edital.cor || '#3b82f6');
           }
         }
 
@@ -2846,7 +2846,7 @@ export function renderCiclo(el) {
 
         sequenceHtml += `
             <div class="ciclo-item ${seq.concluido ? 'concluido' : ''}" style="margin-bottom:12px;">
-              <div class="ciclo-item-cor" style="background:${d.edital.cor || '#3b82f6'};"></div>
+              <div class="ciclo-item-cor" style="background:${d.disc.cor || d.edital.cor || '#3b82f6'};"></div>
               <div class="ciclo-item-body">
                 <div class="ciclo-item-header">
                   <div class="ciclo-item-title" style="display:flex; align-items:center; gap:8px;">

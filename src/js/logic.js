@@ -627,13 +627,11 @@ export function iniciarEtapaPlanejamento(seqId) {
   state.eventos.push(evento);
   scheduleSave();
 
-  // Switch to Cronometro and start ticking
-  navigate('cronometro');
+  // Start ticking BEFORE routing
+  toggleTimer(evento.id);
 
-  // Wait for event loop to push state
-  setTimeout(() => {
-    toggleTimer(evento.id);
-  }, 100);
+  // Switch to Cronometro and let the component render the already active event
+  navigate('cronometro');
 }
 
 export function syncCicloToEventos() {
