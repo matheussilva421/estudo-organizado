@@ -310,7 +310,7 @@ function htmlStep2() {
                         padding: 12px; border-radius: 8px; cursor:pointer; display:flex; align-items:center; gap:8px;
                         transition: all 0.2s;
                     ">
-                        <div style="width:20px; height:20px; border-radius:4px; border:1px solid ${sel ? 'var(--accent)' : 'var(--border)'}; background:${sel ? 'var(--accent)' : 'transparent'}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px;">
+                        <div style="width:20px; height:20px; border-radius:4px; border:1px solid ${sel ? 'var(--accent)' : 'var(--border)'}; background:${sel ? 'var(--accent)' : 'transparent'}; display:flex; align-items:center; justify-content:center; color:var(--accent-text, #fff); font-size:12px;">
                             ${sel ? '✓' : ''}
                         </div>
                         <div style="flex:1; font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(d.disc.nome)}">
@@ -450,7 +450,7 @@ function htmlStep4() {
                     ${days.map((d, i) => `
                         <button onclick="pwToggleDay(${i})" class="btn" style="flex:1; min-width:40px; padding:8px; 
                             background:${draft.horarios.diasAtivos.includes(i) ? 'var(--accent)' : 'rgba(255,255,255,0.05)'}; 
-                            color:${draft.horarios.diasAtivos.includes(i) ? '#fff' : 'var(--text-muted)'};
+                            color:${draft.horarios.diasAtivos.includes(i) ? 'var(--accent-text)' : 'var(--text-muted)'};
                         ">${d}</button>
                     `).join('')}
                 </div>

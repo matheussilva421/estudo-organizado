@@ -8,7 +8,10 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 
 ---
 
-## 🆕 Últimas Atualizações (Wave 27 - Retoques Dinâmicos)
+## 🆕 Últimas Atualizações (Wave 28 - Legibilidade Dinâmica)
+- **Correções de Contrastes (Wave 28):** Substituição de atributos absolutos (Hardcoded `#fff`) atrelados a blocos que utilizam cores customizáveis dos temas. Isso garante legibilidade vitalícia pros elementos ativos (ex: dias ativados no planejamento) que outrora ficavam invisíveis no Tema Furtivo e Claro.
+
+## Atualizações Anteriores (Wave 27 - Retoques Dinâmicos)
 - **Correções do Cronômetro e UI (Wave 27):** O botão de "Descartar Sessão" agora surge dinamicamente assim que o tempo corre, sem exigir recarregamento da aba. Além disso, corrigimos vazamentos residuais de HTML (como `div class="event-card"`) que poluíam a lista de agendamentos.
 
 ## Atualizações Anteriores (Wave 26 - Correção de Múltiplos Bugs)

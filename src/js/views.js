@@ -1660,8 +1660,8 @@ export function renderEditalTree(edital) {
         <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
         <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
         <span style="font-size:11px;opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
-        <button class="icon-btn" style="color:#fff;" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">✏️</button>
-        <button class="icon-btn" style="color:#fff;" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">🗑️</button>
+        <button class="icon-btn" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">✏️</button>
+        <button class="icon-btn" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">🗑️</button>
         <i class="fa fa-chevron-down" style="font-size:12px;opacity:0.7;"></i>
       </div>
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:flex-end;">
