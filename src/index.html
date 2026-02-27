@@ -29,10 +29,10 @@
 
         <div class="sidebar-section">
             <div class="sidebar-section-title">Principal</div>
-            <div class="nav-item active" data-view="home" data-action="navigate" data-view="home">
+            <div class="nav-item active" data-view="home" data-action="navigate">
                 <span class="icon">🏠</span> Página Inicial
             </div>
-            <div class="nav-item" data-view="med" data-action="navigate" data-view="med">
+            <div class="nav-item" data-view="med" data-action="navigate">
                 <span class="icon">⏱️</span> Study Organizer
                 <span class="badge" id="badge-med" style="display:none;">0</span>
             </div>
@@ -40,33 +40,33 @@
                 <span class="icon">⏱</span> Cronômetro
                 <span class="badge" id="badge-crono" style="background:var(--green);display:none;">0</span>
             </div>
-            <div class="nav-item" data-view="calendar" data-action="navigate" data-view="calendar">
+            <div class="nav-item" data-view="calendar" data-action="navigate">
                 <span class="icon">📅</span> Calendário
             </div>
-            <div class="nav-item" data-view="ciclo" data-action="navigate" data-view="ciclo">
+            <div class="nav-item" data-view="ciclo" data-action="navigate">
                 <span class="icon">♻️</span> Ciclo de Estudos
             </div>
-            <div class="nav-item" data-view="dashboard" data-action="navigate" data-view="dashboard">
+            <div class="nav-item" data-view="dashboard" data-action="navigate">
                 <span class="icon">📊</span> Dashboard
             </div>
-            <div class="nav-item" data-view="revisoes" data-action="navigate" data-view="revisoes">
+            <div class="nav-item" data-view="revisoes" data-action="navigate">
                 <span class="icon">🔄</span> Revisões
                 <span class="badge" id="badge-rev" style="display:none;">0</span>
             </div>
-            <div class="nav-item" data-view="habitos" data-action="navigate" data-view="habitos">
+            <div class="nav-item" data-view="habitos" data-action="navigate">
                 <span class="icon">⚡</span> Hábitos
             </div>
         </div>
 
         <div class="sidebar-section">
             <div class="sidebar-section-title">Gerenciar</div>
-            <div class="nav-item" data-view="editais" data-action="navigate" data-view="editais">
+            <div class="nav-item" data-view="editais" data-action="navigate">
                 <span class="icon">📋</span> Editais
             </div>
-            <div class="nav-item" data-view="vertical" data-action="navigate" data-view="vertical">
+            <div class="nav-item" data-view="vertical" data-action="navigate">
                 <span class="icon">📑</span> Ed. Verticalizado
             </div>
-            <div class="nav-item" data-view="config" data-action="navigate" data-view="config">
+            <div class="nav-item" data-view="config" data-action="navigate">
                 <span class="icon">⚙️</span> Configurações
             </div>
         </div>
@@ -357,7 +357,6 @@
             </div>
         </div>
     </div>
-    </div>
 
     <!-- PLANEJAMENTO WIZARD MODAL -->
     <div class="modal-overlay" id="modal-planejamento" role="dialog" aria-modal="true" aria-hidden="true">
@@ -405,28 +404,6 @@
     </div>
 
 
-    <!-- REGISTRO SESSÃO MODAL -->
-    <div class="modal-overlay" id="modal-registro-sessao" role="dialog" aria-modal="true" aria-hidden="true">
-        <div class="modal" style="max-width:720px;max-height:90vh;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#0d1117,#161b22);border-bottom:1px solid rgba(255,255,255,0.06);">
-                <h2 style="color:#e6edf3;">📝 Registro da Sessão de Estudo</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-registro-sessao"
-                    aria-label="Fechar" title="Fechar">×</button>
-            </div>
-            <div class="modal-body" id="modal-registro-body" style="overflow-y:auto;max-height:calc(90vh - 140px);padding:0;">
-                <!-- Dynamic content rendered by JS -->
-            </div>
-            <div class="modal-footer" style="background:var(--card-bg);border-top:1px solid var(--border);gap:8px;">
-                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-registro-sessao">Cancelar</button>
-                <button class="btn btn-ghost" onclick="saveAndStartNew()" style="color:var(--green);">
-                    Salvar e iniciar nova ↻
-                </button>
-                <button class="btn btn-primary" onclick="saveRegistroSessao()">
-                    💾 Salvar Registro
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- CICLO HISTORY MODAL -->
     <div class="modal-overlay" id="modal-ciclo-history" role="dialog" aria-modal="true" aria-hidden="true">

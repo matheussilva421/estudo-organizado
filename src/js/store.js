@@ -2,6 +2,7 @@
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
 import { pushToCloudflare } from './cloud-sync.js';
+import { uid } from './utils.js';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 1;
@@ -88,7 +89,23 @@ export function loadStateFromDB() {
 
     request.onsuccess = (event) => {
       if (request.result) {
-        setState(request.result);
+        const loadedState = request.result;
+
+        // BUG 3: Prevenir persistência inflada de timer ao fechar a aba
+        const isSameSession = sessionStorage.getItem('estudo_session_active');
+        if (!isSameSession) {
+          if (loadedState.cronoLivre && loadedState.cronoLivre._timerStart) {
+            loadedState.cronoLivre._timerStart = null;
+          }
+          if (loadedState.eventos) {
+            loadedState.eventos.forEach(ev => {
+              if (ev._timerStart) ev._timerStart = null;
+            });
+          }
+        }
+        sessionStorage.setItem('estudo_session_active', '1');
+
+        setState(loadedState);
         runMigrations();
       } else {
         loadLegacyState(); // Try migration from localStorage
@@ -180,7 +197,7 @@ export function runMigrations() {
 
     // Add IDs where missing
     state.editais.forEach(ed => {
-      if (!ed.id) ed.id = 'ed_' + Date.now() + Math.random();
+      if (!ed.id) ed.id = 'ed_' + uid();
       if (!ed.cor) ed.cor = '#10b981';
       // Migration: flatten grupos into disciplinas
       if (ed.grupos && !ed.disciplinas) {
@@ -192,11 +209,11 @@ export function runMigrations() {
       }
       if (!ed.disciplinas) ed.disciplinas = [];
       ed.disciplinas.forEach(d => {
-        if (!d.id) d.id = 'disc_' + Date.now() + Math.random();
+        if (!d.id) d.id = 'disc_' + uid();
         if (!d.icone) d.icone = '📖';
         if (!d.assuntos) d.assuntos = [];
         d.assuntos.forEach(a => {
-          if (!a.id) a.id = 'ass_' + Date.now() + Math.random();
+          if (!a.id) a.id = 'ass_' + uid();
           if (!a.revisoesFetas) a.revisoesFetas = [];
         });
       });

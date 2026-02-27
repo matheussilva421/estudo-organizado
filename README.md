@@ -8,7 +8,10 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 
 ---
 
-## 🆕 Últimas Atualizações (Wave 25 - Estabilidade Visual)
+## 🆕 Últimas Atualizações (Wave 26 - Correção de Múltiplos Bugs)
+- **Correção Geral de Bugs (Wave 26):** Estabilidade no controle de estado ao puxar dados da nuvem (`setState`), prevenção de inflação de timer do cronômetro ao reiniciar o app, correção de divisão por erro quando meta é zero e inclusão de "Videoaula" no sistema de Hábitos. Limpeza no HTML principal.
+
+## Atualizações Anteriores (Wave 25 - Estabilidade Visual)
 - **Correção de Renderização (Wave 25):** Hotfix crítico que resolveu a exibição de código HTML bruto no topbar e em seletores de formulário em todo o sistema.
 - **Redesign do Cronômetro (Wave 24):** Tematização completa do cronômetro, com suporte a múltiplos modos escuros (Furtivo, Matrix, Rubi, etc) e melhoria no contraste.
 

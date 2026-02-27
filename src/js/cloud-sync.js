@@ -1,4 +1,4 @@
-import { state, scheduleSave } from './store.js';
+import { state, scheduleSave, setState } from './store.js';
 
 let isSyncing = false;
 
@@ -65,7 +65,7 @@ export async function pullFromCloudflare() {
         if (remoteTime > localTime) {
             console.log('Dados da Cloudflare são mais novos, aplicando...');
             // Injeta propriedades vitais antes da carga pesada
-            Object.assign(state, remoteData);
+            setState(remoteData);
             scheduleSave(); // Salva localmente
             document.dispatchEvent(new Event('app:invalidateCaches'));
             document.dispatchEvent(new Event('app:renderCurrentView'));

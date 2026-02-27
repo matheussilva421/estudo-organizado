@@ -1,5 +1,20 @@
 ﻿# Histórico de Implementação - Estudo Organizado
 
+## [Wave 26] - Correção de Múltiplos Bugs e Clean-up
+**Data:** 27 de Fevereiro de 2026
+**Objetivo:** Resolver diversos bugs visuais e do motor lógico, incluindo normalização de estado, timer inflado e bugs do cronômetro livre.
+
+### O que mudou?
+- **HTML/UI (index.html):** Remoção de div órfã, modal modal-registro-sessao duplicado e diversos atributos data-view redundantes na navegação lateral.
+- **Estado (cloud-sync.js e store.js):**
+  - O pull da Cloudflare agora usa setState(remoteData) no invés de Object.assign, forçando o estado puxado a passar por normalizações para evitar estrutura corrompida.
+  - A geração aleatória de IDs temporárias foi trocada Date.now() + Math.random() pela função nativa uid().
+- **Cronômetro Livre e Timer (components.js e store.js):**
+  - Adicionamos checagem via sessionStorage onde reiniciar a aba do navegador derrubará a variável _timerStart, cortando a inflação desmedida que registrava "10 horas" porque a aba estava em background no iOS.
+  - Resolvido limite (elapsed / plannedSecs) que gerava Infinity (ou tela branca) e quebrava progresso quando plannedSecs era 0.
+- **Hábitos (utils.js):** Adicionado ideoaula ativamente no motor de display de hábitos (HABIT_TYPES).
+
+---
 ## [Wave 25] - Correção da Renderização do Topbar e Seletores (Hotfix)
 **Data:** 26 de Fevereiro de 2026
 **Objetivo:** Resolver bug de renderização de HTML bruto causado por espaços indevidos em tags JS.
@@ -496,4 +511,5 @@ Eliminamos a necessidade de passar pelo extenso Wizard para corrigir os minutos 
 *   **Modo Caneta (Edit Mode)**: Invocado pelo botão de Editar Sequência (ícone de lápis) próximo à aba lateral "Finalizados". Ele pausa a exibição das barras do modo de Leitura e condicionalmente gera um form editável para o loop da Sequência atual.
 *   **Visão de Formulário Rápido**: Onde antes víamos a meta em minutos e barras progressivas, agora aparecem Selects Drop-Down das suas Disciplinas criadas e <input type="number"> pra digitar os minutos. Além de possuir os gatilhos globais de suporte a "Arrow UP" e "Arrow Down" nas setinhas à direita para permutar a rodada da roleta. 
 *   **Proteção de Hook Temporal**: Salvar a nova disposição da fila **não reseta** ou corrompe a sua fundação de dataInicioCicloAtual, pois estamos operando sem instanciar um Wizard base. O painel apenas ajusta as proporções para quando as rédeas forem devolvidas instantaneamente à view habitual do Painel Esquerdo!
+
 

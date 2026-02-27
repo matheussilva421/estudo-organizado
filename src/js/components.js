@@ -200,7 +200,7 @@ export function renderCronometro(el) {
     if (timerEl) timerEl.textContent = formatTime(elapsed);
     const progressBar = document.getElementById('crono-progress-bar');
     if (progressBar) {
-      const pct = Math.min((elapsed / plannedSecs) * 100, 100);
+      const pct = plannedSecs > 0 ? Math.min((elapsed / plannedSecs) * 100, 100) : 0;
       progressBar.style.width = pct + '%';
     }
   }, 1000);
