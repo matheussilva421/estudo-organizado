@@ -429,10 +429,45 @@
                 style="overflow-y:auto;max-height:calc(90vh - 140px);padding:0;">
                 <!-- dynamic content -->
             </div>
-            <div class="modal-footer" style="background:var(--card-bg);border-top:1px solid var(--border);gap:8px;">
-                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-ciclo-history">Fechar</button>
+            <div class="modal-footer"
+                style="border-top:1px solid rgba(255,255,255,0.06);background:var(--bg);text-align:right;">
+                <button class="btn btn-primary" onclick="closeModal('modal-ciclo-history')">Fechar</button>
             </div>
         </div>
+    </div>
+
+    <!-- MODAL BANCA ANALYZER -->
+    <div class="modal-overlay" id="modal-banca-analyzer" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal" style="max-width:650px;">
+            <div class="modal-header">
+                <h2 id="modal-banca-analyzer-title">Análise Inteligente de Edital</h2>
+                <button class="modal-close" data-action="close-modal" data-modal="modal-banca-analyzer"
+                    aria-label="Fechar" title="Fechar">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-banca-analyzer-body" style="overflow-y:auto;max-height:65vh;">
+                <!-- dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL MATCH CORRECTOR -->
+    <div class="modal-overlay" id="modal-match-corrector" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header">
+                <h2 id="modal-match-corrector-title">Corrigir Assunto</h2>
+                <button class="modal-close" data-action="close-modal" data-modal="modal-match-corrector"
+                    aria-label="Fechar" title="Fechar">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-match-corrector-body">
+                <!-- dynamic content -->
+            </div>
+        </div>
+    </div>
+    </div>
+    <div class="modal-footer" style="background:var(--card-bg);border-top:1px solid var(--border);gap:8px;">
+        <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-ciclo-history">Fechar</button>
+    </div>
+    </div>
     </div>
 
 </body>
