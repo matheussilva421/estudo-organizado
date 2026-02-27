@@ -146,6 +146,37 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
+export const SyncQueue = {
+  isProcessing: false,
+  tasks: [],
+  add(taskFn) {
+    return new Promise((resolve, reject) => {
+      this.tasks.push(async () => {
+        try {
+          await taskFn();
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+      this.process();
+    });
+  },
+  async process() {
+    if (this.isProcessing) return;
+    this.isProcessing = true;
+    while (this.tasks.length > 0) {
+      const fn = this.tasks.shift();
+      try {
+        await fn();
+      } catch (err) {
+        console.error('SyncQueue Error:', err);
+      }
+    }
+    this.isProcessing = false;
+  }
+};
+
 export function scheduleSave() {
   document.dispatchEvent(new Event('app:invalidateCaches'));
   if (saveTimeout) clearTimeout(saveTimeout);
@@ -176,7 +207,7 @@ export function saveStateToDB() {
 
       // Cascata de Sincronização: Local -> Cloudflare
       if (state.config && state.config.cfSyncSyncEnabled && typeof pushToCloudflare === 'function') {
-        pushToCloudflare();
+        SyncQueue.add(() => pushToCloudflare());
       }
 
       resolve();

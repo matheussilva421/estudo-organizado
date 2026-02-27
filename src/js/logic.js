@@ -1,5 +1,5 @@
 import { scheduleSave, state } from './store.js';
-import { cutoffDateStr, formatTime, todayStr, getHabitType, getLocalDateStr } from './utils.js';
+import { cutoffDateStr, formatTime, todayStr, getHabitType, getLocalDateStr, uid } from './utils.js';
 import { navigate } from './app.js';
 
 // =============================================
@@ -533,7 +533,7 @@ export function generatePlanejamento(draft) {
           break;
         }
         plan.sequencia.push({
-          id: 'seq_' + Date.now() + Math.random(),
+          id: 'seq_' + uid(),
           discId: discId,
           minutosAlvo: block,
           concluido: false
@@ -574,7 +574,7 @@ export function generatePlanejamento(draft) {
           break;
         }
         plan.sequencia.push({
-          id: 'seq_' + Date.now() + Math.random(),
+          id: 'seq_' + uid(),
           discId: discId,
           minutosAlvo: block,
           concluido: false
@@ -612,7 +612,7 @@ export function iniciarEtapaPlanejamento(seqId) {
   const d = getDisc(seq.discId);
 
   const evento = {
-    id: 'ev_' + Date.now() + Math.random(),
+    id: 'ev_' + uid(),
     titulo: `Estudar ${d?.disc.nome || 'Disciplina'}`,
     data: todayStr(),
     duracao: seq.minutosAlvo,
@@ -676,7 +676,7 @@ export function syncCicloToEventos() {
       const discEntry = getDisc(seqItem.discId);
 
       state.eventos.push({
-        id: 'auto_' + dtStr + '_' + currentSeqIdx + '_' + Math.random().toString(36).substr(2, 5),
+        id: 'auto_' + dtStr + '_' + currentSeqIdx + '_' + uid(),
         titulo: `Estudar ${discEntry?.disc.nome || 'Disciplina'}`,
         data: dtStr,
         duracao: seqItem.minutosAlvo,

@@ -8,7 +8,10 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 
 ---
 
-## 🆕 Últimas Atualizações (Wave 28 - Legibilidade Dinâmica)
+## 🆕 Últimas Atualizações (Wave 29 - Consolidação Mútua e IDs)
+- **Fila Transacionada e IDs Padronizadas (Wave 29):** Todos os geradores pseudo-aleatórios do código que acoplavam `Date.now() + Math.random()` foram massivamente substituídos por uma camada de `uid()` segura contra colisões. Mais importante: Agora Cloudflare e Google Drive obedecem a uma fila (Mutex `SyncQueue` em `store.js`), erradicando sobreposições/saves cruzados de concorrência em aparelhos lentos ou rede oscilante.
+
+## Atualizações Anteriores (Wave 28 - Legibilidade Dinâmica)
 - **Correções de Contrastes (Wave 28):** Substituição de atributos absolutos (Hardcoded `#fff`) atrelados a blocos que utilizam cores customizáveis dos temas. Isso garante legibilidade vitalícia pros elementos ativos (ex: dias ativados no planejamento) que outrora ficavam invisíveis no Tema Furtivo e Claro.
 
 ## Atualizações Anteriores (Wave 27 - Retoques Dinâmicos)

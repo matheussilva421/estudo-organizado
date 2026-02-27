@@ -1355,7 +1355,7 @@ window.updateSeqItem = (i, field, val) => {
 window.dupSeqItem = (i) => {
   i = parseInt(i, 10);
   const obj = JSON.parse(JSON.stringify(window._tempSequencia[i]));
-  obj.id = 'seq_' + Date.now() + Math.random().toString(36).substr(2, 5);
+  obj.id = 'seq_' + uid();
   window._tempSequencia.splice(i + 1, 0, obj);
   renderCurrentView();
 };
@@ -1378,7 +1378,7 @@ window.moveSeqItem = (i, dir) => {
 
 window.addSeqItem = () => {
   window._tempSequencia.push({
-    id: 'seq_' + Date.now() + Math.random().toString(36).substr(2, 5),
+    id: 'seq_' + uid(),
     discId: '',
     minutosAlvo: 60
   });

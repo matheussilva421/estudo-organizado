@@ -6,7 +6,7 @@
 import { state, scheduleSave } from './store.js';
 import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode } from './logic.js';
 import { openModal, closeModal, showToast } from './app.js';
-import { todayStr, esc } from './utils.js';
+import { todayStr, esc, uid } from './utils.js';
 import { renderCurrentView, updateBadges } from './components.js';
 
 // =============================================
@@ -435,7 +435,7 @@ export function addNovoTopico() {
   if (!d) return;
 
   const novoTopico = {
-    id: 'ass_' + Date.now() + Math.random(),
+    id: 'ass_' + uid(),
     nome: nome.trim(),
     concluido: false,
     revisoesFetas: []
@@ -632,7 +632,7 @@ export function saveRegistroSessao() {
   _selectedTipos.forEach(tipo => {
     if (state.habitos[tipo]) {
       state.habitos[tipo].push({
-        id: 'hab_' + Date.now() + Math.random(),
+        id: 'hab_' + uid(),
         data: todayStr(),
         eventoId: ev.id,
         tempoMin: Math.round((ev.tempoAcumulado || 0) / 60),

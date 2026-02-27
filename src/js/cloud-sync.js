@@ -1,4 +1,4 @@
-import { state, scheduleSave, setState } from './store.js';
+import { state, scheduleSave, setState, SyncQueue } from './store.js';
 
 let isSyncing = false;
 
@@ -140,8 +140,8 @@ window.forceCloudflareSync = async function () {
     if (btn) btn.disabled = true;
 
     // Tenta puxar novidades, e então empurra a versão atualizada pra consolidar
-    await pullFromCloudflare();
-    await pushToCloudflare();
+    await SyncQueue.add(() => pullFromCloudflare());
+    await SyncQueue.add(() => pushToCloudflare());
 
     if (btn) btn.disabled = false;
 };

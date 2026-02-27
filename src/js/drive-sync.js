@@ -1,5 +1,5 @@
 import { closeModal, showConfirm, showToast } from './app.js';
-import { runMigrations, saveStateToDB, scheduleSave, state, setState } from './store.js';
+import { runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js';
 import { renderCurrentView } from './components.js';
 
 // =============================================
@@ -259,7 +259,7 @@ document.addEventListener('stateSaved', () => {
         // Debounce para a sincronização na nuvem não ficar sobrecarregada
         if (window.driveSyncTimeout) clearTimeout(window.driveSyncTimeout);
         window.driveSyncTimeout = setTimeout(() => {
-            syncWithDrive();
+            SyncQueue.add(() => syncWithDrive());
         }, 10000); // 10s debounce para Drive Sync
     }
 });
