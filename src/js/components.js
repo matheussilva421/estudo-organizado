@@ -1,6 +1,6 @@
 import { currentView } from './app.js';
 import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, getHabitType } from './utils.js';
-import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo } from './views.js';
+import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule } from './views.js';
 import { state } from './store.js';
 import { deleteEvento, getAllDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
 
@@ -224,7 +224,7 @@ export function renderCurrentView() {
   const titles = {
     home: 'Página Inicial', med: 'Study Organizer', calendar: 'Calendário',
     revisoes: 'Revisões Pendentes', habitos: 'Hábitos de Estudo',
-    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações', cronometro: 'Cronômetro', ciclo: 'Ciclo de Estudos'
+    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações', cronometro: 'Cronômetro', ciclo: 'Ciclo de Estudos', 'banca-analyzer': 'Inteligência de Banca'
   };
   document.getElementById('topbar-title').textContent = titles[currentView] || 'Estudo Organizado';
 
@@ -269,6 +269,7 @@ export function renderCurrentView() {
   if (currentView === 'config') return renderConfig(el);
   if (currentView === 'cronometro') return renderCronometro(el);
   if (currentView === 'ciclo') return renderCiclo(el);
+  if (currentView === 'banca-analyzer') return renderBancaAnalyzerModule(el);
 }
 
 // Ensure badges up to date

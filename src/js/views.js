@@ -1692,7 +1692,7 @@ export function renderEditalTree(edital) {
         <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
         <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
         <span style="font-size:11px;opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
-        <button class="icon-btn" title="Analisador de Bancas" onclick="event.stopPropagation();openBancaAnalyzerModal('${edital.id}')">🧠</button>
+        <button class="icon-btn" title="Analisador de Bancas" onclick="event.stopPropagation();window.activeDashboardDiscCtx={editaId:'${edital.id}'};navigate('banca-analyzer')">🧠</button>
         <button class="icon-btn" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">✏️</button>
         <button class="icon-btn" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">🗑️</button>
         <i class="fa fa-chevron-down" style="font-size:12px;opacity:0.7;"></i>
@@ -2357,53 +2357,115 @@ import { applyRankingToEdital, commitEditalOrdering } from './relevance.js';
 
 let analyzerCtx = { editaId: null, parsedHotTopics: [], tempMatchResults: [] };
 
-export function openBancaAnalyzerModal(editaId) {
-  analyzerCtx.editaId = editaId;
-  const edital = state.editais.find(e => e.id === editaId);
+export function renderBancaAnalyzerModule(el) {
+  if (state.editais.length === 0) {
+    el.innerHTML = '<div class="card p-24" style="text-align:center;margin-top:24px;"><i class="fa fa-folder-open" style="font-size:32px;color:var(--text-muted);margin-bottom:16px;"></i><h3 style="margin-bottom:8px;">Nenhum Edital Cadastrado</h3><p style="color:var(--text-secondary);">Crie um Edital primeiro para usar a Inteligência da Banca.</p></div>';
+    return;
+  }
+
+  if (!analyzerCtx.editaId) {
+    analyzerCtx.editaId = window.activeDashboardDiscCtx?.editaId || state.editais[0].id;
+  }
+
+  window._renderBancaAnalyzerContent(el);
+}
+
+window._renderBancaAnalyzerContent = function (el) {
+  const edital = state.editais.find(e => e.id === analyzerCtx.editaId);
   if (!edital) return;
 
   const hotTopics = state.bancaRelevance?.hotTopics || [];
+  const editaisOptions = state.editais.map(e => `<option value="${e.id}" ${e.id === analyzerCtx.editaId ? 'selected' : ''}>${esc(e.nome)}</option>`).join('');
 
-  // Lista de disciplinas do Edital com check visual se já tiver topics
   const discOptions = edital.disciplinas.map(d => {
     const hasTopics = hotTopics.some(ht => ht.disciplinaId === d.id);
     return `<option value="${d.id}">${hasTopics ? '✅' : '⚪'} ${esc(d.nome)}</option>`;
   }).join('');
 
-  document.getElementById('modal-banca-analyzer-title').textContent = 'Análise Inteligente de Edital (' + esc(edital.nome) + ')';
-  document.getElementById('modal-banca-analyzer-body').innerHTML = `
-        <div class="card p-16" style="margin-bottom:16px;">
-            <div class="dash-label" style="margin-bottom:8px;">1. Selecione a Disciplina e Importe (Hot Topics)</div>
-            
-            <select id="banca-disc-select" class="form-control" style="margin-bottom:12px;font-weight:600;">
-                <option value="" disabled selected>-- Escolha a Matéria --</option>
-                ${discOptions}
-            </select>
-            
-            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Cole aqui o Ranking da Banca respectivo à matéria (com porcentagens ou enumerações "1.", "2.", etc).</div>
-            <textarea id="banca-input-text" class="form-control" rows="6" style="font-family:inherit;font-size:13px;resize:vertical;" placeholder="Ex:\\n1. Atos Administrativos (25%)\\n2. Licitações (18%)\\n3. Improbidade Administrativa"></textarea>
-            <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="window.parseBancaText()">Processar Matéria</button>
-        </div>
+  // Limpa Temp Matches no re-render de mudança de Edital
+  analyzerCtx.tempMatchResults = [];
 
-        <div id="banca-match-results" style="display:none; max-height:400px; overflow-y:auto; padding-right:8px;" class="custom-scrollbar">
-            <!-- Tabela de Match populada pelo JS -->
-        </div>
-
-        <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:space-between;align-items:center;">
-            <div id="banca-stats" style="font-size:12px;font-weight:600;color:var(--accent);"></div>
-            <div style="display:flex;gap:8px;">
-                 <button class="btn btn-ghost" onclick="closeModal('modal-banca-analyzer')">Cancelar</button>
-                 <button class="btn btn-primary" id="banca-apply-btn" style="display:none;" onclick="window.applyBancaRanking()">Gravar P1/P2/P3</button>
+  el.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:16px; margin:0 auto; padding-bottom:40px;">
+        <div class="card p-16" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+               <h2 style="margin:0; font-size:18px;">Inteligência de Banca / Análise Preditiva</h2>
+               <div style="font-size:13px; color:var(--text-secondary); margin-top:4px;">Cruze os Assuntos mais Cobrados com o seu Edital Atual para gerar as Prioridades P1/P2/P3.</div>
+            </div>
+            <div>
+               <select id="banca-edital-select" class="form-control" style="width:300px; font-weight:600;" onchange="window.mudarEditalAnalisador(this.value)">
+                   ${editaisOptions}
+               </select>
             </div>
         </div>
-    `;
-  openModal('modal-banca-analyzer');
-}
 
-window.openBancaAnalyzerModal = openBancaAnalyzerModal;
+        <div style="display:grid; grid-template-columns: 350px 1fr; gap:16px; align-items:start;">
+            <!-- PAINEL ESQUERDO: IMPORTAÇÃO -->
+            <div class="card p-16">
+                <div class="dash-label" style="margin-bottom:8px;">1. Planejamento (Hot Topics)</div>
+                <select id="banca-disc-select" class="form-control" style="margin-bottom:12px;font-weight:600;" onchange="window.filtrarViewPorDisciplina(this.value)">
+                    <option value="" disabled selected>-- Escolha a Matéria --</option>
+                    ${discOptions}
+                </select>
+                
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Cole aqui o Ranking da Banca respectivo à matéria (com porcentagens, ou ordenados por lista).</div>
+                <textarea id="banca-input-text" class="form-control" rows="12" style="font-family:inherit;font-size:13px;resize:vertical;" placeholder="Ex:\n1. Atos Administrativos (25%)\n2. Licitações (18%)\n3. Improbidade Administrativa"></textarea>
+                
+                <button class="btn btn-primary" style="width:100%; margin-top:12px;" onclick="window.parseBancaText()"><i class="fa fa-bolt"></i> Processar Matéria</button>
+                
+                <div style="margin-top:16px; font-size:11px; color:var(--text-muted); line-height:1.5;">
+                    <i class="fa fa-info-circle"></i> O algoritmo irá limpar a sujeira (porcentagens, numeração) simulando o Match NLP via Levenshtein e Stopwords nos Assuntos reais.
+                </div>
+            </div>
+
+            <!-- PAINEL DIREITO: PREVISÃO E MATCH -->
+            <div class="card p-16" style="min-height:500px; display:flex; flex-direction:column;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:12px;">
+                    <div class="dash-label" style="margin:0;">2. Previsão de Match (Simulação)</div>
+                    <div id="banca-stats" style="font-size:12px;font-weight:600;color:var(--accent);">Aguardando Input...</div>
+                </div>
+                
+                <div id="banca-match-empty" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; color:var(--text-muted);">
+                     <i class="fa fa-brain" style="font-size:48px; margin-bottom:16px; opacity:0.3;"></i>
+                     <div style="text-align:center;">Selecione a Matéria e clique em Processar<br>para visualizar o Ranking Inteligente.</div>
+                </div>
+                
+                <div id="banca-match-results" style="display:none; flex:1; overflow-y:auto; padding-right:8px;" class="custom-scrollbar">
+                    <!-- Tabela populada via JS -->
+                </div>
+
+                <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:16px; text-align:right;">
+                    <button class="btn btn-primary" id="banca-apply-btn" style="display:none;" onclick="window.applyBancaRanking()"><i class="fa fa-save"></i> Gravar P1/P2/P3 no Edital Local</button>
+                </div>
+            </div>
+        </div>
+    </div>
+  `;
+};
+
+window.mudarEditalAnalisador = function (editaId) {
+  analyzerCtx.editaId = editaId;
+  window._renderBancaAnalyzerContent(document.getElementById('content'));
+};
+
+window.filtrarViewPorDisciplina = function (discId) {
+  // Option selected changed - do we automatically map the results?
+  // It's good practice to try matching the already stored topics from DB
+  const hotTopics = state.bancaRelevance?.hotTopics || [];
+  const hasTopics = hotTopics.some(ht => ht.disciplinaId === discId);
+
+  if (hasTopics) {
+    analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
+    window.renderBancaMatches();
+  } else {
+    analyzerCtx.tempMatchResults = [];
+    window.renderBancaMatches();
+  }
+};
+
 window.parseBancaText = function () {
   const discId = document.getElementById('banca-disc-select').value;
-  if (!discId) { showToast('Selecione uma matéria no campo acima.', 'error'); return; }
+  if (!discId) { showToast('Selecione uma matéria no campo acima antes de processar.', 'error'); return; }
 
   const rawArgs = document.getElementById('banca-input-text').value;
   if (!rawArgs.trim()) { showToast('Nenhum texto informado.', 'error'); return; }
@@ -2465,12 +2527,15 @@ window.parseBancaText = function () {
 
 window.renderBancaMatches = function () {
   const container = document.getElementById('banca-match-results');
+  const emptyView = document.getElementById('banca-match-empty');
   const applyBtn = document.getElementById('banca-apply-btn');
   const statsDiv = document.getElementById('banca-stats');
 
   if (!analyzerCtx.tempMatchResults || analyzerCtx.tempMatchResults.length === 0) {
     container.style.display = 'none';
     applyBtn.style.display = 'none';
+    emptyView.style.display = 'flex';
+    statsDiv.textContent = 'Aguardando Input...';
     return;
   }
 
@@ -2486,47 +2551,46 @@ window.renderBancaMatches = function () {
     const confBadgeColor = res.matchData.confidence === 'HIGH' ? 'var(--green)' : (res.matchData.confidence === 'MEDIUM' ? 'var(--yellow)' : 'var(--text-muted)');
 
     return `
-            <div style="display:grid; grid-template-columns:30px 1fr 1fr 45px; gap:8px; border-bottom:1px solid var(--border); padding:10px 0; align-items:center;">
+            <div style="display:grid; grid-template-columns:30px minmax(0, 1fr) minmax(0, 1fr) 45px; gap:8px; border-bottom:1px solid var(--border); padding:10px 0; align-items:center;">
                 <div style="color:${stColor}; font-size:14px; text-align:center;"><i class="fa ${stIcon}"></i></div>
                 <div>
                    <div style="font-size:13px; font-weight:700; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${esc(res.assuntoNome)}">${esc(res.assuntoNome)}</div>
                    <div style="font-size:11px; color:var(--text-muted);">${esc(res.discNome)}</div>
                 </div>
                 <div>
-                   <div style="font-size:12px; font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+                   <div style="font-size:12px; font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${res.matchData.matchedItem ? esc(res.matchData.matchedItem.nome) : 'Sem Incidencia'}">
                        ${res.matchData.matchedItem ? esc(res.matchData.matchedItem.nome) : '<span style="color:var(--text-muted);"><i>Sem Incidência</i></span>'}
                    </div>
-                   <div style="font-size:10px; color:${confBadgeColor};">${res.matchData.reason} | Score: ${res.finalScore}</div>
+                   <div style="font-size:10px; color:${confBadgeColor};">${res.matchData.reason} | Score: ${res.finalScore.toFixed(0)}</div>
                 </div>
                 <div>
                      <span class="event-tag" style="background:${stColor}; font-weight:900;">${res.priority}</span>
                 </div>
                 <div>
-                     <button class="btn btn-ghost btn-sm" title="Corrigir Erro Textual" onclick="window.openMatchCorrector('${res.assuntoNome}')"><i class="fa fa-edit"></i></button>
+                     <button class="btn btn-ghost btn-sm" title="Corrigir Erro Textual" onclick="window.openMatchCorrector('${esc(res.assuntoNome)}')"><i class="fa fa-edit"></i></button>
                 </div>
             </div>
         `;
   });
 
+  emptyView.style.display = 'none';
   container.innerHTML = `
         <div class="dash-label" style="margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:8px; display:flex; justify-content:space-between;">
-           <span>2. Previsão de Match (Simulação)</span>
-           <span>Prioridade</span>
+           <span>Matéria Processada (Assuntos do Edital local)</span>
+           <span>Prioridade Reordenada</span>
         </div>
         ${rows.join('')}
     `;
 
   container.style.display = 'block';
   applyBtn.style.display = 'inline-block';
-  statsDiv.textContent = `P1: ${p1c} tópicos incríveis | P2: ${p2c} tópicos de suporte`;
+  statsDiv.textContent = `P1: ${p1c} incríveis | P2: ${p2c} de suporte`;
   showToast('Match Processado! Revise a lista antes de aplicar.', 'success');
 };
 
 window.applyBancaRanking = function () {
   if (commitEditalOrdering(analyzerCtx.editaId, analyzerCtx.tempMatchResults)) {
-    showToast('Edital reordenado e prioridades P1/P2/P3 definidas!', 'success');
-    closeModal('modal-banca-analyzer');
-    renderCurrentView();
+    showToast('Prioridades P1/P2/P3 gravadas na Memória Principal!', 'success');
   } else {
     showToast('Falha crítica ao gravar novo Edital na Store', 'error');
   }
@@ -2546,10 +2610,11 @@ window.openMatchCorrector = function (assuntoNome) {
   // Lista as opções da banca detectada para o usuário "ligar os pontos"
   const optionsHtml = hotTopics.map(ht => `<option value="${ht.id}" style="width:100%;max-width:350px;">${esc(ht.nome)} (Rank: ${ht.rank || ht.weight})</option>`).join('');
 
-  document.getElementById('modal-match-corrector-title').textContent = 'Corrigir Assunto: ' + esc(assuntoNome);
+  document.getElementById('modal-match-corrector-title').textContent = 'Corrigir Assunto';
   document.getElementById('modal-match-corrector-body').innerHTML = `
         <div class="form-group">
-            <label class="form-label">Qual tema real da Banca equivale a esse tópico do Edital?</label>
+            <div style="margin-bottom:8px;font-size:13px;font-weight:700;">${esc(assuntoNome)}</div>
+            <label class="form-label" style="margin-top:16px;">Qual tema real da Banca equivale a esse tópico do Edital?</label>
             <select id="corrector-select" class="form-control" style="max-width:350px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
                 <option value="NONE">⚠️ Nenhuma Correspondência (Sem Incidência Real)</option>
                 ${optionsHtml}
@@ -2570,7 +2635,9 @@ window.openMatchCorrector = function (assuntoNome) {
 window.saveMatchCorrection = function (assuntoOrigemRaw) {
   const overrideId = document.getElementById('corrector-select').value;
   // Salva o mapping
+  if (!state.bancaRelevance) state.bancaRelevance = {};
   if (!state.bancaRelevance.userMappings) state.bancaRelevance.userMappings = {};
+
   state.bancaRelevance.userMappings[assuntoOrigemRaw] = overrideId;
   scheduleSave();
 
@@ -2578,9 +2645,12 @@ window.saveMatchCorrection = function (assuntoOrigemRaw) {
   showToast('Match forçado com sucesso!', 'success');
 
   // Reprocessa
-  if (analyzerCtx.parsedHotTopics.length > 0) {
-    analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId);
-    window.renderBancaMatches();
+  if (analyzerCtx.parsedHotTopics || analyzerCtx.tempMatchResults) {
+    const discId = document.getElementById('banca-disc-select').value;
+    if (discId) {
+      analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
+      window.renderBancaMatches();
+    }
   }
 }
 
