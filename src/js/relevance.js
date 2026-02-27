@@ -292,3 +292,21 @@ export function commitEditalOrdering(editalId, rankedFlatList) {
     scheduleSave();
     return true;
 }
+
+// Reverte a marcação de P1/P2/P3 e ordena os Assuntos ao estado neutro de um Edital específico
+export function revertEditalOrdering(editalId, disciplinaId) {
+    const edt = state.editais.find(e => e.id === editalId);
+    if (!edt) return false;
+
+    // Busca a disciplina desejada
+    const disc = edt.disciplinas.find(d => d.id === disciplinaId);
+    if (!disc) return false;
+
+    // Sort Alfabético para perder a predição herdada (Ordem Default)
+    // Retira do DB qualquer tag de simulaçao persistente (se a gente passar a salvar no futuro)
+    disc.assuntos.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    scheduleSave();
+    return true;
+}
+

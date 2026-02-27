@@ -2353,7 +2353,7 @@ export function editSubjectInline(discId, assId, el) {
 // =============================================
 // MÓDULO PREDITIVO DE BANCA E RELEVÂNCIA (WAVE 33)
 // =============================================
-import { applyRankingToEdital, commitEditalOrdering } from './relevance.js';
+import { applyRankingToEdital, commitEditalOrdering, revertEditalOrdering } from './relevance.js';
 
 let analyzerCtx = { editaId: null, parsedHotTopics: [], tempMatchResults: [] };
 
@@ -2513,7 +2513,13 @@ window.excluirAnaliseBanca = function (discId) {
 
   showConfirm(`Tem certeza que deseja apagar a análise preditiva salva de "${discName}"?\nOs Hot Topics importados serão removidos.`, () => {
     state.bancaRelevance.hotTopics = state.bancaRelevance.hotTopics.filter(ht => ht.disciplinaId !== discId);
-    scheduleSave();
+
+    // Wave 36 - Limpeza do Edital.
+    if (analyzerCtx.editaId) {
+      revertEditalOrdering(analyzerCtx.editaId, discId);
+    } else {
+      scheduleSave();
+    }
 
     // reset selection if needed
     const selectEl = document.getElementById('banca-disc-select');
@@ -2525,7 +2531,7 @@ window.excluirAnaliseBanca = function (discId) {
     }
 
     window._renderBancaAnalyzerContent(document.getElementById('content'));
-    showToast('Análise excluída.', 'success');
+    showToast('Análise excluída e Assuntos Reordenados para o Default.', 'success');
   }, { title: 'Excluir Análise', danger: true });
 };
 
