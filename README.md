@@ -8,7 +8,10 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 
 ---
 
-## 🆕 Últimas Atualizações (Wave 29 - Consolidação Mútua e IDs)
+## 🆕 Últimas Atualizações (Wave 30 - PWA Nativo)
+- **Instalação e Modo Offline (Wave 30):** O sistema agora é um Progressive Web App completo. Com o registro do `manifest.json` e do recém-criado `sw.js` (Service Worker), estudantes podem oficialmente "Instalar" o Estudo Organizado como um aplicativo nativo em suas HomeScreen's (Android/iOS/Desktop). O SW conta com modo Cache-First parrudão que permite o carregamento instantâneo de toda a interface mesmo quando não houver conexão de internet.
+
+## Atualizações Anteriores (Wave 29 - Consolidação Mútua e IDs)
 - **Fila Transacionada e IDs Padronizadas (Wave 29):** Todos os geradores pseudo-aleatórios do código que acoplavam `Date.now() + Math.random()` foram massivamente substituídos por uma camada de `uid()` segura contra colisões. Mais importante: Agora Cloudflare e Google Drive obedecem a uma fila (Mutex `SyncQueue` em `store.js`), erradicando sobreposições/saves cruzados de concorrência em aparelhos lentos ou rede oscilante.
 
 ## Atualizações Anteriores (Wave 28 - Legibilidade Dinâmica)
