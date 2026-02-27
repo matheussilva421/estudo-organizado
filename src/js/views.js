@@ -1,7 +1,7 @@
 ﻿import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
 import { cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, syncCicloToEventos } from './logic.js';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
@@ -78,6 +78,36 @@ export function renderHome(el) {
       provaText = `Prova já foi realizada há ${Math.abs(diffDays)} dias. <span data-action="prompt-prova" style="color:var(--accent);font-weight:600;cursor:pointer;">Nova Prova</span>`;
     }
   }
+
+  // Previsões da Semana
+  const pred = getPredictiveStats(metaHoras);
+  const statusColors = {
+    'verde': 'var(--green)',
+    'amarelo': 'var(--yellow)',
+    'vermelho': 'var(--red)'
+  };
+  const statusIcons = {
+    'verde': 'fa-check-circle',
+    'amarelo': 'fa-exclamation-triangle',
+    'vermelho': 'fa-skull-crossbones'
+  };
+  const sc = statusColors[pred.status];
+  const si = statusIcons[pred.status];
+
+  const previsorHtml = `
+    <div class="card p-16" style="border-left: 4px solid ${sc};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="dash-label">PREVISÃO DA SEMANA</div>
+        <i class="fa ${si}" style="color:${sc};font-size:16px;"></i>
+      </div>
+      <div style="font-size:13px;color:var(--text-primary);margin-bottom:8px;">
+        Projeção: <strong>${pred.projectedPerc}%</strong> da meta (Ritmo: ${formatTime(pred.burnRate).slice(0, 5)}/dia).
+      </div>
+      <div style="font-size:12px;color:var(--text-secondary); background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; line-height: 1.4;">
+        ${pred.suggestion}
+      </div>
+    </div>
+  `;
 
   // HEATMAP
   const heatmapHtml = streak.heatmap.map(x =>
@@ -195,6 +225,8 @@ export function renderHome(el) {
       <!-- Direita: Data, Metas e Gráfico -->
       <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
         
+        ${previsorHtml}
+
         <div class="card p-16">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <div class="dash-label">DATA DA PROVA</div>

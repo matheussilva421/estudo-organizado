@@ -1,6 +1,6 @@
-# 📚 Estudo Organizado
+﻿# ðŸ“š Estudo Organizado
 
-Aplicação web para **planejamento e organização de estudos** voltada para concursos públicos. Baseada no **Ciclo PDCA**: planeje no Calendário, execute no Study Organizer, meça no Dashboard e corrija com as Revisões.
+AplicaÃ§Ã£o web para **planejamento e organizaÃ§Ã£o de estudos** voltada para concursos pÃºblicos. Baseada no **Ciclo PDCA**: planeje no CalendÃ¡rio, execute no Study Organizer, meÃ§a no Dashboard e corrija com as RevisÃµes.
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white)
@@ -8,145 +8,146 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 
 ---
 
-## 🆕 Últimas Atualizações (Wave 30 - PWA Nativo)
-- **Instalação e Modo Offline (Wave 30):** O sistema agora é um Progressive Web App completo. Com o registro do `manifest.json` e do recém-criado `sw.js` (Service Worker), estudantes podem oficialmente "Instalar" o Estudo Organizado como um aplicativo nativo em suas HomeScreen's (Android/iOS/Desktop). O SW conta com modo Cache-First parrudão que permite o carregamento instantâneo de toda a interface mesmo quando não houver conexão de internet.
+## ðŸ†• Ãšltimas AtualizaÃ§Ãµes (Wave 30 - PWA Nativo)
+- **InstalaÃ§Ã£o e Modo Offline (Wave 30):** O sistema agora Ã© um Progressive Web App completo. Com o registro do `manifest.json` e do recÃ©m-criado `sw.js` (Service Worker), estudantes podem oficialmente "Instalar" o Estudo Organizado como um aplicativo nativo em suas HomeScreen's (Android/iOS/Desktop). O SW conta com modo Cache-First parrudÃ£o que permite o carregamento instantÃ¢neo de toda a interface mesmo quando nÃ£o houver conexÃ£o de internet.
 
-## Atualizações Anteriores (Wave 29 - Consolidação Mútua e IDs)
-- **Fila Transacionada e IDs Padronizadas (Wave 29):** Todos os geradores pseudo-aleatórios do código que acoplavam `Date.now() + Math.random()` foram massivamente substituídos por uma camada de `uid()` segura contra colisões. Mais importante: Agora Cloudflare e Google Drive obedecem a uma fila (Mutex `SyncQueue` em `store.js`), erradicando sobreposições/saves cruzados de concorrência em aparelhos lentos ou rede oscilante.
+## AtualizaÃ§Ãµes Anteriores (Wave 29 - ConsolidaÃ§Ã£o MÃºtua e IDs)
+- **Fila Transacionada e IDs Padronizadas (Wave 29):** Todos os geradores pseudo-aleatÃ³rios do cÃ³digo que acoplavam `Date.now() + Math.random()` foram massivamente substituÃ­dos por uma camada de `uid()` segura contra colisÃµes. Mais importante: Agora Cloudflare e Google Drive obedecem a uma fila (Mutex `SyncQueue` em `store.js`), erradicando sobreposiÃ§Ãµes/saves cruzados de concorrÃªncia em aparelhos lentos ou rede oscilante.
 
-## Atualizações Anteriores (Wave 28 - Legibilidade Dinâmica)
-- **Correções de Contrastes (Wave 28):** Substituição de atributos absolutos (Hardcoded `#fff`) atrelados a blocos que utilizam cores customizáveis dos temas. Isso garante legibilidade vitalícia pros elementos ativos (ex: dias ativados no planejamento) que outrora ficavam invisíveis no Tema Furtivo e Claro.
+## AtualizaÃ§Ãµes Anteriores (Wave 28 - Legibilidade DinÃ¢mica)
+- **CorreÃ§Ãµes de Contrastes (Wave 28):** SubstituiÃ§Ã£o de atributos absolutos (Hardcoded `#fff`) atrelados a blocos que utilizam cores customizÃ¡veis dos temas. Isso garante legibilidade vitalÃ­cia pros elementos ativos (ex: dias ativados no planejamento) que outrora ficavam invisÃ­veis no Tema Furtivo e Claro.
 
-## Atualizações Anteriores (Wave 27 - Retoques Dinâmicos)
-- **Correções do Cronômetro e UI (Wave 27):** O botão de "Descartar Sessão" agora surge dinamicamente assim que o tempo corre, sem exigir recarregamento da aba. Além disso, corrigimos vazamentos residuais de HTML (como `div class="event-card"`) que poluíam a lista de agendamentos.
+## AtualizaÃ§Ãµes Anteriores (Wave 27 - Retoques DinÃ¢micos)
+- **CorreÃ§Ãµes do CronÃ´metro e UI (Wave 27):** O botÃ£o de "Descartar SessÃ£o" agora surge dinamicamente assim que o tempo corre, sem exigir recarregamento da aba. AlÃ©m disso, corrigimos vazamentos residuais de HTML (como `div class="event-card"`) que poluÃ­am a lista de agendamentos.
 
-## Atualizações Anteriores (Wave 26 - Correção de Múltiplos Bugs)
-- **Correção Geral de Bugs (Wave 26):** Estabilidade no controle de estado ao puxar dados da nuvem (`setState`), prevenção de inflação de timer do cronômetro ao reiniciar o app, correção de divisão por erro quando meta é zero e inclusão de "Videoaula" no sistema de Hábitos. Limpeza no HTML principal.
+## AtualizaÃ§Ãµes Anteriores (Wave 26 - CorreÃ§Ã£o de MÃºltiplos Bugs)
+- **CorreÃ§Ã£o Geral de Bugs (Wave 26):** Estabilidade no controle de estado ao puxar dados da nuvem (`setState`), prevenÃ§Ã£o de inflaÃ§Ã£o de timer do cronÃ´metro ao reiniciar o app, correÃ§Ã£o de divisÃ£o por erro quando meta Ã© zero e inclusÃ£o de "Videoaula" no sistema de HÃ¡bitos. Limpeza no HTML principal.
 
-## Atualizações Anteriores (Wave 25 - Estabilidade Visual)
-- **Correção de Renderização (Wave 25):** Hotfix crítico que resolveu a exibição de código HTML bruto no topbar e em seletores de formulário em todo o sistema.
-- **Redesign do Cronômetro (Wave 24):** Tematização completa do cronômetro, com suporte a múltiplos modos escuros (Furtivo, Matrix, Rubi, etc) e melhoria no contraste.
+## AtualizaÃ§Ãµes Anteriores (Wave 25 - Estabilidade Visual)
+- **CorreÃ§Ã£o de RenderizaÃ§Ã£o (Wave 25):** Hotfix crÃ­tico que resolveu a exibiÃ§Ã£o de cÃ³digo HTML bruto no topbar e em seletores de formulÃ¡rio em todo o sistema.
+- **Redesign do CronÃ´metro (Wave 24):** TematizaÃ§Ã£o completa do cronÃ´metro, com suporte a mÃºltiplos modos escuros (Furtivo, Matrix, Rubi, etc) e melhoria no contraste.
 
-## Atualizações Recentes (Wave 20 - Redesign do Ciclo de Estudos)
-- **Novo Dashboard Analítico:** A aba de Planejamento ganhou uma reformulação visual drástica. Agora, a tela exibe os dados em duas colunas, apresentando um Gráfico de Rosca (Doughnut Chart) na direita e listagens das sequências na esquerda.
-- **Métricas de Ciclos Compostos:** O aplicativo agora não só planeja as horas, mas mede ativamente as horas estudadas, dividindo-as pelo percentual diário para completar os blocos da roleta. Suporta monitoramento de "Ciclos Completos".
-- **Botão Recomeçar Ciclo:** Criamos a mecânica de avançar para um "Novo Ciclo", limpando o progresso das barras mas mantendo as matérias intactas e acumulando +1 volta no total.
-- **Filtro de Finalizados:** Foi reestruturado dentro do novo layout o toggle para Ocultar Etapas Concluídas na sequência do Ciclo.
+## AtualizaÃ§Ãµes Recentes (Wave 20 - Redesign do Ciclo de Estudos)
+- **Novo Dashboard AnalÃ­tico:** A aba de Planejamento ganhou uma reformulaÃ§Ã£o visual drÃ¡stica. Agora, a tela exibe os dados em duas colunas, apresentando um GrÃ¡fico de Rosca (Doughnut Chart) na direita e listagens das sequÃªncias na esquerda.
+- **MÃ©tricas de Ciclos Compostos:** O aplicativo agora nÃ£o sÃ³ planeja as horas, mas mede ativamente as horas estudadas, dividindo-as pelo percentual diÃ¡rio para completar os blocos da roleta. Suporta monitoramento de "Ciclos Completos".
+- **BotÃ£o RecomeÃ§ar Ciclo:** Criamos a mecÃ¢nica de avanÃ§ar para um "Novo Ciclo", limpando o progresso das barras mas mantendo as matÃ©rias intactas e acumulando +1 volta no total.
+- **Filtro de Finalizados:** Foi reestruturado dentro do novo layout o toggle para Ocultar Etapas ConcluÃ­das na sequÃªncia do Ciclo.
 
-## Atualizações Anteriores (Wave 9 - Conectividade & QA)
-- **Integração Planejamento ↔ Cronômetro:** Agora os blocos de estudo gerados no módulo Planejamento ("Grade Semanal" e "Ciclo") possuem o botão **Estudar Agora**, enviando a disciplina alvo direto para o Cronômetro e registrando o progresso automaticamente no fim da sessão.
-- **Cascata de Exclusões Segura:** A exclusão de Editais, Disciplinas e Assuntos agora limpa varre e desvincula corretamente o histórico de eventos e planejamentos órfãos, prevenindo quebras de renderização na Dashboard.
-- **Correção "Midnight Rollover":** Resolvido o bug onde as datas do sistema congelavam se a aba permanecesse aberta virando a noite. O sistema agora revalida a data ativamente em `visibilitychange` da aba e ciclos de evento de gravação.
-- **Auditoria Rigorosa:** Verificações profundas nos validadores numéricos e lógicos do registro de hábitos (Simulados, Discursivas, Leitura Seca).
-- Documentação integral das correções disponíveis e audições de código em `analise_de_codigo_wave9.md` e `walkthrough.md`.
+## AtualizaÃ§Ãµes Anteriores (Wave 9 - Conectividade & QA)
+- **IntegraÃ§Ã£o Planejamento â†” CronÃ´metro:** Agora os blocos de estudo gerados no mÃ³dulo Planejamento ("Grade Semanal" e "Ciclo") possuem o botÃ£o **Estudar Agora**, enviando a disciplina alvo direto para o CronÃ´metro e registrando o progresso automaticamente no fim da sessÃ£o.
+- **Cascata de ExclusÃµes Segura:** A exclusÃ£o de Editais, Disciplinas e Assuntos agora limpa varre e desvincula corretamente o histÃ³rico de eventos e planejamentos Ã³rfÃ£os, prevenindo quebras de renderizaÃ§Ã£o na Dashboard.
+- **CorreÃ§Ã£o "Midnight Rollover":** Resolvido o bug onde as datas do sistema congelavam se a aba permanecesse aberta virando a noite. O sistema agora revalida a data ativamente em `visibilitychange` da aba e ciclos de evento de gravaÃ§Ã£o.
+- **Auditoria Rigorosa:** VerificaÃ§Ãµes profundas nos validadores numÃ©ricos e lÃ³gicos do registro de hÃ¡bitos (Simulados, Discursivas, Leitura Seca).
+- DocumentaÃ§Ã£o integral das correÃ§Ãµes disponÃ­veis e audiÃ§Ãµes de cÃ³digo em `analise_de_codigo_wave9.md` e `walkthrough.md`.
 
-## ⚡ Wave Especial - Sincronização Cloudflare KV (Real-time Sync)
-- **Latência Zero:** Introduzimos um Sync de alta performance com a rede Edge da Cloudflare. É o método primário para manter seu App Estudo Organizado pareado entre celular e PC.
-- **Sem Perda de Dados:** Mecanismo de timestamps previne que versões mais antigas do aplicativo aniquilem uma sessão de cronômetro atual de um dispositivo ativo.
-- **Fail-safe com Drive:** O Google Drive agora opera como uma malha de backup secundária.
+## âš¡ Wave Especial - SincronizaÃ§Ã£o Cloudflare KV (Real-time Sync)
+- **LatÃªncia Zero:** Introduzimos um Sync de alta performance com a rede Edge da Cloudflare. Ã‰ o mÃ©todo primÃ¡rio para manter seu App Estudo Organizado pareado entre celular e PC.
+- **Sem Perda de Dados:** Mecanismo de timestamps previne que versÃµes mais antigas do aplicativo aniquilem uma sessÃ£o de cronÃ´metro atual de um dispositivo ativo.
+- **Fail-safe com Drive:** O Google Drive agora opera como uma malha de backup secundÃ¡ria.
 
-## ✨ Funcionalidades
+## âœ¨ Funcionalidades
 
-| Módulo | Descrição |
+| MÃ³dulo | DescriÃ§Ã£o |
 |---|---|
-| 🏠 **Página Inicial** | Visão geral do dia: eventos agendados, estudados, atrasados e revisões pendentes |
-| 📖 **Study Organizer** | Registro de sessões de estudo com timer Pomodoro integrado |
-| 📅 **Calendário** | Visualização mensal e semanal dos eventos de estudo |
-| 📊 **Dashboard** | Métricas de desempenho: tempo estudado, sessões, questões e simulados |
-| 🔄 **Revisões** | Sistema de revisão espaçada com intervalos configuráveis (1, 7, 30, 90 dias) |
-| ⚡ **Hábitos** | Acompanhamento de hábitos de estudo por categoria |
-| 📋 **Editais** | Gestão de editais, disciplinas e assuntos por concurso |
-| 📐 **Ed. Verticalizado** | Estudo vertical por edital com acompanhamento de progresso |
-| ⚙️ **Configurações** | Tema, calendário, Google Drive sync, notificações e backup |
+| ðŸ  **PÃ¡gina Inicial** | VisÃ£o geral do dia: eventos agendados, estudados, atrasados e revisÃµes pendentes |
+| ðŸ“– **Study Organizer** | Registro de sessÃµes de estudo com timer Pomodoro integrado |
+| ðŸ“… **CalendÃ¡rio** | VisualizaÃ§Ã£o mensal e semanal dos eventos de estudo |
+| ðŸ“Š **Dashboard** | MÃ©tricas de desempenho: tempo estudado, sessÃµes, questÃµes e simulados |
+| ðŸ”„ **RevisÃµes** | Sistema de revisÃ£o espaÃ§ada com intervalos configurÃ¡veis (1, 7, 30, 90 dias) |
+| âš¡ **HÃ¡bitos** | Acompanhamento de hÃ¡bitos de estudo por categoria |
+| ðŸ“‹ **Editais** | GestÃ£o de editais, disciplinas e assuntos por concurso |
+| ðŸ“ **Ed. Verticalizado** | Estudo vertical por edital com acompanhamento de progresso |
+| âš™ï¸ **ConfiguraÃ§Ãµes** | Tema, calendÃ¡rio, Google Drive sync, notificaÃ§Ãµes e backup |
 
-## 🚀 Como Usar
+## ðŸš€ Como Usar
 
-### Opção 1: Abrir com o script BAT (Windows)
-Dê dois cliques em `Abrir_Estudo_Organizado.bat` — ele inicia um servidor local e abre o app no navegador.
+### OpÃ§Ã£o 1: Abrir com o script BAT (Windows)
+DÃª dois cliques em `Abrir_Estudo_Organizado.bat` â€” ele inicia um servidor local e abre o app no navegador.
 
-### Opção 2: Servidor local manual
+### OpÃ§Ã£o 2: Servidor local manual
 ```bash
 cd src
 python -m http.server 8000
 # Abra http://localhost:8000 no navegador
 ```
 
-### Opção 3: Node.js
+### OpÃ§Ã£o 3: Node.js
 ```bash
 cd src
 npx http-server -p 8000
 # Abra http://localhost:8000 no navegador
 ```
 
-> **Nota:** O app funciona 100% no navegador (client-side). Não é necessário backend — os dados são salvos localmente via **IndexedDB**.
+> **Nota:** O app funciona 100% no navegador (client-side). NÃ£o Ã© necessÃ¡rio backend â€” os dados sÃ£o salvos localmente via **IndexedDB**.
 
-## 🏗️ Estrutura do Projeto
+## ðŸ—ï¸ Estrutura do Projeto
 
 ```
 estudo-organizado/
-├── src/
-│   ├── index.html          # Página principal (HTML skeleton)
-│   ├── css/
-│   │   └── styles.css      # Estilos (dark/light mode, responsivo)
-│   └── js/
-│       ├── main.js          # Entrypoint: orquestração e eventos de domínio
-│       ├── app.js           # Navegação e modais genéricos
-│       ├── store.js         # Estado: IndexedDB, migrations, save/load
-│       ├── logic.js         # Regras de negócio: cronômetro, revisões, analytics
-│       ├── utils.js         # Utilitários puros e constantes estáticas
-│       ├── components.js    # Componentes de UI reutilizáveis
-│       ├── views.js         # Renderização de todas as views baseadas no estado
-│       ├── registro-sessao.js # Lógica específica do modal de registro de sessão
-│       ├── cloud-sync.js    # Sincronização Serverless em alta velocidade via Cloudflare Workers
-│       └── drive-sync.js    # Sincronização com Google Drive
-├── docs/
-│   ├── CLOUDFLARE-SETUP.md      # Guia para a implantação na nuvem Cloudflare
-│   └── WALKTHROUGH-CLOUDFLARE.md # Log técnico da implementação da API de Sincronização
-├── scripts/
-│   ├── cloudflare-worker.js     # Script JS independente para a borda Serverless
-│   ├── fix-all.js               # Injeções de linting e scripts da CLI (Automático)
-│   └── rename_concluido.ps1     # Powershell de refatoração legado
-├── Abrir_Estudo_Organizado.bat  # Launcher para Windows
-├── .gitignore
-├── LICENSE
-└── README.md
+â”œâ”€â”€ src/
+â”‚   â”œâ”€â”€ index.html          # PÃ¡gina principal (HTML skeleton)
+â”‚   â”œâ”€â”€ css/
+â”‚   â”‚   â””â”€â”€ styles.css      # Estilos (dark/light mode, responsivo)
+â”‚   â””â”€â”€ js/
+â”‚       â”œâ”€â”€ main.js          # Entrypoint: orquestraÃ§Ã£o e eventos de domÃ­nio
+â”‚       â”œâ”€â”€ app.js           # NavegaÃ§Ã£o e modais genÃ©ricos
+â”‚       â”œâ”€â”€ store.js         # Estado: IndexedDB, migrations, save/load
+â”‚       â”œâ”€â”€ logic.js         # Regras de negÃ³cio: cronÃ´metro, revisÃµes, analytics
+â”‚       â”œâ”€â”€ utils.js         # UtilitÃ¡rios puros e constantes estÃ¡ticas
+â”‚       â”œâ”€â”€ components.js    # Componentes de UI reutilizÃ¡veis
+â”‚       â”œâ”€â”€ views.js         # RenderizaÃ§Ã£o de todas as views baseadas no estado
+â”‚       â”œâ”€â”€ registro-sessao.js # LÃ³gica especÃ­fica do modal de registro de sessÃ£o
+â”‚       â”œâ”€â”€ cloud-sync.js    # SincronizaÃ§Ã£o Serverless em alta velocidade via Cloudflare Workers
+â”‚       â””â”€â”€ drive-sync.js    # SincronizaÃ§Ã£o com Google Drive
+â”œâ”€â”€ docs/
+â”‚   â”œâ”€â”€ CLOUDFLARE-SETUP.md      # Guia para a implantaÃ§Ã£o na nuvem Cloudflare
+â”‚   â””â”€â”€ WALKTHROUGH-CLOUDFLARE.md # Log tÃ©cnico da implementaÃ§Ã£o da API de SincronizaÃ§Ã£o
+â”œâ”€â”€ scripts/
+â”‚   â”œâ”€â”€ cloudflare-worker.js     # Script JS independente para a borda Serverless
+â”‚   â”œâ”€â”€ fix-all.js               # InjeÃ§Ãµes de linting e scripts da CLI (AutomÃ¡tico)
+â”‚   â””â”€â”€ rename_concluido.ps1     # Powershell de refatoraÃ§Ã£o legado
+â”œâ”€â”€ Abrir_Estudo_Organizado.bat  # Launcher para Windows
+â”œâ”€â”€ .gitignore
+â”œâ”€â”€ LICENSE
+â””â”€â”€ README.md
 ```
 
-## ☁️ Cloudflare Multi-Device Sync (Recomendado)
+## â˜ï¸ Cloudflare Multi-Device Sync (Recomendado)
 
 Para espelhar seu Estudo Organizado do Computador para o Celular instantaneamente:
-1. Siga os três passos do guia em `docs/CLOUDFLARE-SETUP.md` para criar sua chave grátis e ligar as páginas;
-2. Vá em **Configurações** na nossa aplicação;
-3. Insira sua URL do Worker recém criado (ex: `https://sync.meunome.workers.dev`) e a senha (Auth Token) que você escolheu;
-4. Clique em **Ativar Sincronização** e observe a atualização imediata.
+1. Siga os trÃªs passos do guia em `docs/CLOUDFLARE-SETUP.md` para criar sua chave grÃ¡tis e ligar as pÃ¡ginas;
+2. VÃ¡ em **ConfiguraÃ§Ãµes** na nossa aplicaÃ§Ã£o;
+3. Insira sua URL do Worker recÃ©m criado (ex: `https://sync.meunome.workers.dev`) e a senha (Auth Token) que vocÃª escolheu;
+4. Clique em **Ativar SincronizaÃ§Ã£o** e observe a atualizaÃ§Ã£o imediata.
 
-## 🔧 Tecnologias
+## ðŸ”§ Tecnologias
 
-- **HTML5 / CSS3 / JavaScript** — Sem frameworks, tudo vanilla
-- **IndexedDB** — Persistência de dados local
-- **Chart.js** — Gráficos no Dashboard (via CDN)
-- **Font Awesome** — Ícones (via CDN)
-- **Google Drive API** — Sincronização opcional de dados entre dispositivos
+- **HTML5 / CSS3 / JavaScript** â€” Sem frameworks, tudo vanilla
+- **IndexedDB** â€” PersistÃªncia de dados local
+- **Chart.js** â€” GrÃ¡ficos no Dashboard (via CDN)
+- **Font Awesome** â€” Ãcones (via CDN)
+- **Google Drive API** â€” SincronizaÃ§Ã£o opcional de dados entre dispositivos
 
-## ☁️ Google Drive Sync
+## â˜ï¸ Google Drive Sync
 
-Para habilitar a sincronização com Google Drive:
+Para habilitar a sincronizaÃ§Ã£o com Google Drive:
 
-1. Acesse **Configurações** → **Google Drive**
+1. Acesse **ConfiguraÃ§Ãµes** â†’ **Google Drive**
 2. Insira seu **Client ID** do Google Cloud Console
 3. Clique em **Conectar ao Google Drive**
-4. Os dados serão sincronizados automaticamente a cada 5 minutos
+4. Os dados serÃ£o sincronizados automaticamente a cada 5 minutos
 
-## 📦 Backup & Restauração
+## ðŸ“¦ Backup & RestauraÃ§Ã£o
 
-- **Exportar JSON** — Gera um arquivo `.json` com todos os seus dados
-- **Importar JSON** — Restaura dados a partir de um backup
-- Disponível em **Configurações** → **Dados**
+- **Exportar JSON** â€” Gera um arquivo `.json` com todos os seus dados
+- **Importar JSON** â€” Restaura dados a partir de um backup
+- DisponÃ­vel em **ConfiguraÃ§Ãµes** â†’ **Dados**
 
-## 📄 Licença
+## ðŸ“„ LicenÃ§a
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Este projeto estÃ¡ sob a licenÃ§a MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
 
-Desenvolvido com ❤️ para estudantes de concursos públicos.
+Desenvolvido com â¤ï¸ para estudantes de concursos pÃºblicos.
+

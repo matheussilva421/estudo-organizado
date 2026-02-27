@@ -464,6 +464,73 @@ export function getCurrentWeekStats() {
   };
 }
 
+export function getPredictiveStats(metaHoras) {
+  const weekStats = getCurrentWeekStats();
+  const today = new Date();
+  const primeirodiaSemana = state.config.primeirodiaSemana || 1;
+  let dIndex = today.getDay() - primeirodiaSemana;
+  if (dIndex < 0) dIndex += 7;
+
+  // Dias passados e restantes (1 a 7)
+  const daysPassed = dIndex + 1;
+  const daysRemaining = 7 - daysPassed;
+
+  // O que foi feito até hoje dividido pelos dias decorridos = ritmo
+  const burnRateSecs = weekStats.totalSeconds / daysPassed;
+  const projectedSeconds = weekStats.totalSeconds + (burnRateSecs * daysRemaining);
+  const targetSeconds = (metaHoras || 0) * 3600;
+
+  const projectedPerc = targetSeconds > 0 ? (projectedSeconds / targetSeconds) * 100 : 0;
+
+  let status = 'verde';
+  let suggestion = 'Ritmo excelente! Você vai bater a meta semanal com folga.';
+
+  if (targetSeconds > 0 && projectedSeconds < targetSeconds) {
+    const deficitSecs = targetSeconds - projectedSeconds;
+
+    if (daysRemaining > 0) {
+      const extraPerDayMinutes = Math.ceil((deficitSecs / 60) / daysRemaining);
+      if (projectedPerc >= 80) {
+        status = 'amarelo';
+        suggestion = `Luz Amarela: Estude +${extraPerDayMinutes} min/dia para alcançar a meta semanal.`;
+      } else {
+        status = 'vermelho';
+        suggestion = `Risco Alto: Você precisará de um gás de +${extraPerDayMinutes} min extras por dia para não fechar a semana em déficit.`;
+      }
+    } else {
+      // Se for o último dia (domingo/sábado), mostrar apenas o déficit de hoje
+      const deficitTodayMins = Math.ceil((targetSeconds - weekStats.totalSeconds) / 60);
+      if (deficitTodayMins > 0) {
+        status = 'vermelho';
+        suggestion = `Último dia da semana! Ainda faltam ${deficitTodayMins} minutos para bater a meta.`;
+      }
+    }
+  } else if (targetSeconds > 0 && weekStats.totalSeconds >= targetSeconds) {
+    status = 'verde';
+    suggestion = 'Meta semanal concluída! Descanse ou avance matérias atrasadas.';
+  }
+
+  // Tenta sugerir a matéria mais negligenciada se não estiver verde
+  if (status !== 'verde' && daysRemaining > 0) {
+    const subjectStats = getSubjectStats();
+    if (subjectStats && subjectStats.length > 0) {
+      // Ordena da menos estudada pra mais estudada (baseado no tempo acumulado total)
+      const sorted = [...subjectStats].sort((a, b) => a.tempo - b.tempo);
+      const worst = sorted[0].nome;
+      suggestion += ` Recomendação: foque um pouco mais em ${worst}.`;
+    }
+  }
+
+  return {
+    status,
+    projectedPerc: Math.round(projectedPerc),
+    suggestion,
+    projectedSeconds,
+    targetSeconds,
+    burnRate: burnRateSecs
+  };
+}
+
 // =============================================
 // PLANEJAMENTO DE ESTUDOS (WIZARD)
 // =============================================
