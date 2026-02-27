@@ -2408,7 +2408,7 @@ window.parseBancaText = function () {
   const rawArgs = document.getElementById('banca-input-text').value;
   if (!rawArgs.trim()) { showToast('Nenhum texto informado.', 'error'); return; }
 
-  const lines = rawArgs.split('\\n').map(l => l.trim()).filter(l => l.length > 2);
+  const lines = rawArgs.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 2);
   let parsedRows = [];
 
   // Expressões regulares para achar padrão "1. Assunto" ou "Assunto (25%)"
@@ -2417,26 +2417,26 @@ window.parseBancaText = function () {
     let extName = line;
 
     // Limpa numerações padrão como "1.", "1 -", "1)", etc, e assume Rank pelo index
-    const rankMatch = extName.match(/^(\\d+)[\\.\\-\\)\\–\\—]\\s+(.*)/);
+    const rankMatch = extName.match(/^(\d+)[\.\-\)\–\—]\s+(.*)/);
     if (rankMatch) {
       extName = rankMatch[2];
     }
 
     // Procura por % ou "Alta/Média/Baixa"
-    const percMatch = extName.match(/(.*?)(?:(?:\\s*\\()|\\s*[\\-\\–\\—])?\\s*(\\d+(?:[.,]\\d+)?)\\s*%(?:\\))?/);
+    const percMatch = extName.match(/(.*?)(?:(?:\s*\()|\s*[\-\–\—])?\s*(\d+(?:[.,]\d+)?)\s*%(?:\))?/);
     if (percMatch && percMatch[2]) {
       extName = percMatch[1].trim();
       weight = parseFloat(percMatch[2].replace(',', '.')); // de 0 a 100
     } else {
       // Tenta extrair Level
       if (extName.toUpperCase().includes('ALTA')) weight = 100;
-      else if (extName.toUpperCase().match(/\\bM[EÉ]DIA\\b/)) weight = 60;
+      else if (extName.toUpperCase().match(/\bM[EÉ]DIA\b/)) weight = 60;
       else if (extName.toUpperCase().includes('BAIXA')) weight = 30;
     }
 
     parsedRows.push({
       id: uid(),
-      nome: extName.replace(/[\\*\\-\\–\\—•]/g, '').trim(),
+      nome: extName.replace(/[\*\-\–\—•]/g, '').trim(),
       rank: idx + 1, // Se for sequencial, aproveita
       weight: weight,
       disciplinaId: discId
@@ -2533,16 +2533,24 @@ window.applyBancaRanking = function () {
 }
 
 window.openMatchCorrector = function (assuntoNome) {
-  const hotTopics = state.bancaRelevance?.hotTopics || [];
+  let hotTopics = state.bancaRelevance?.hotTopics || [];
+
+  // Limpeza de cache de string longa corrompida do commit passado (glitch cleanup)
+  const lenOriginal = hotTopics.length;
+  hotTopics = hotTopics.filter(ht => ht.nome.length < 150);
+  if (hotTopics.length !== lenOriginal) {
+    state.bancaRelevance.hotTopics = hotTopics;
+    scheduleSave();
+  }
 
   // Lista as opções da banca detectada para o usuário "ligar os pontos"
-  const optionsHtml = hotTopics.map(ht => `<option value="${ht.id}">${esc(ht.nome)} (Rank: ${ht.rank || ht.weight})</option>`).join('');
+  const optionsHtml = hotTopics.map(ht => `<option value="${ht.id}" style="width:100%;max-width:350px;">${esc(ht.nome)} (Rank: ${ht.rank || ht.weight})</option>`).join('');
 
   document.getElementById('modal-match-corrector-title').textContent = 'Corrigir Assunto: ' + esc(assuntoNome);
   document.getElementById('modal-match-corrector-body').innerHTML = `
         <div class="form-group">
             <label class="form-label">Qual tema real da Banca equivale a esse tópico do Edital?</label>
-            <select id="corrector-select" class="form-control">
+            <select id="corrector-select" class="form-control" style="max-width:350px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
                 <option value="NONE">⚠️ Nenhuma Correspondência (Sem Incidência Real)</option>
                 ${optionsHtml}
             </select>
