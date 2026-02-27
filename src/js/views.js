@@ -2444,9 +2444,12 @@ window.parseBancaText = function () {
   });
 
   // Mantém o histórico filtrando a disciplina selecionada e apendando os novos rows
-  let existingTopics = state.bancaRelevance?.hotTopics || [];
+  let existingTopics = state.bancaRelevance && state.bancaRelevance.hotTopics ? state.bancaRelevance.hotTopics : [];
   existingTopics = existingTopics.filter(ht => ht.disciplinaId !== discId);
+
+  if (!state.bancaRelevance) state.bancaRelevance = {};
   state.bancaRelevance.hotTopics = existingTopics.concat(parsedRows);
+  scheduleSave();
 
   // Atualiza a opção no select como Processada (Checkmark)
   const selectOpt = document.querySelector(`#banca-disc-select option[value="${discId}"]`);
