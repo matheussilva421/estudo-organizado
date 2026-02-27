@@ -8,8 +8,12 @@ AplicaÃ§Ã£o web para **planejamento e organizaÃ§Ã£o de estudos** voltada
 
 ---
 
-## ðŸ†• Ãšltimas AtualizaÃ§Ãµes (Wave 30 - PWA Nativo)
-- **InstalaÃ§Ã£o e Modo Offline (Wave 30):** O sistema agora Ã© um Progressive Web App completo. Com o registro do `manifest.json` e do recÃ©m-criado `sw.js` (Service Worker), estudantes podem oficialmente "Instalar" o Estudo Organizado como um aplicativo nativo em suas HomeScreen's (Android/iOS/Desktop). O SW conta com modo Cache-First parrudÃ£o que permite o carregamento instantÃ¢neo de toda a interface mesmo quando nÃ£o houver conexÃ£o de internet.
+## 🌟 Últimas Atualizações (Waves 34, 35 e 36 - Inteligência de Bancas)
+- **Aba Dedicada de Análise Preditiva (Wave 34):** A funcionalidade de "Inteligência de Banca" ganhou uma Aba Preditiva em Tela Cheia (Dual-Pane), libertando-a da limitação visual dos modals antigos.
+- **Gerenciamento de Análises Inteligentes (Waves 35 e 36):** Inclusão de um Histórico de "Análises Salvas" em chips, permitindo ao usuário re-visualizar relatórios de Match antigos, editar pontuações, ou excluí-los (retornando dinamicamente o Edital para a Ordem Alfabética Padrão).
+
+## Atualizações Anteriores (Wave 30 - PWA Nativo)
+- **Instalação e Modo Offline (Wave 30):** O sistema agora é um Progressive Web App completo. Com o registro do `manifest.json` e do recém-criado `sw.js` (Service Worker), estudantes podem oficialmente "Instalar" o Estudo Organizado como um aplicativo nativo em suas HomeScreen's (Android/iOS/Desktop). O SW conta com modo Cache-First parrudão que permite o carregamento instantâneo de toda a interface mesmo quando não houver conexão de internet.
 
 ## AtualizaÃ§Ãµes Anteriores (Wave 29 - ConsolidaÃ§Ã£o MÃºtua e IDs)
 - **Fila Transacionada e IDs Padronizadas (Wave 29):** Todos os geradores pseudo-aleatÃ³rios do cÃ³digo que acoplavam `Date.now() + Math.random()` foram massivamente substituÃ­dos por uma camada de `uid()` segura contra colisÃµes. Mais importante: Agora Cloudflare e Google Drive obedecem a uma fila (Mutex `SyncQueue` em `store.js`), erradicando sobreposiÃ§Ãµes/saves cruzados de concorrÃªncia em aparelhos lentos ou rede oscilante.
