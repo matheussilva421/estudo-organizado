@@ -2417,13 +2417,13 @@ window.parseBancaText = function () {
     let extName = line;
 
     // Limpa numerações padrão como "1.", "1 -", "1)", etc, e assume Rank pelo index
-    const rankMatch = extName.match(/^(\\d+)[\\.\\-\\)]\\s+(.*)/);
+    const rankMatch = extName.match(/^(\\d+)[\\.\\-\\)\\–\\—]\\s+(.*)/);
     if (rankMatch) {
       extName = rankMatch[2];
     }
 
     // Procura por % ou "Alta/Média/Baixa"
-    const percMatch = extName.match(/(.*?)(?:(?:\\s*\\()|\\s*-)?\\s*(\\d+(?:[.,]\\d+)?)\\s*%(?:\\))?/);
+    const percMatch = extName.match(/(.*?)(?:(?:\\s*\\()|\\s*[\\-\\–\\—])?\\s*(\\d+(?:[.,]\\d+)?)\\s*%(?:\\))?/);
     if (percMatch) {
       extName = percMatch[1].trim();
       weight = parseFloat(percMatch[2].replace(',', '.')); // de 0 a 100
@@ -2436,7 +2436,7 @@ window.parseBancaText = function () {
 
     parsedRows.push({
       id: uid(),
-      nome: extName.replace(/[\\*\\-•]/g, '').trim(),
+      nome: extName.replace(/[\\*\\-\\–\\—•]/g, '').trim(),
       rank: idx + 1, // Se for sequencial, aproveita
       weight: weight,
       disciplinaId: discId
