@@ -8,7 +8,10 @@ Aplicação web para **planejamento e organização de estudos** voltada para co
 
 ---
 
-## 🆕 Últimas Atualizações (Wave 26 - Correção de Múltiplos Bugs)
+## 🆕 Últimas Atualizações (Wave 27 - Retoques Dinâmicos)
+- **Correções do Cronômetro e UI (Wave 27):** O botão de "Descartar Sessão" agora surge dinamicamente assim que o tempo corre, sem exigir recarregamento da aba. Além disso, corrigimos vazamentos residuais de HTML (como `div class="event-card"`) que poluíam a lista de agendamentos.
+
+## Atualizações Anteriores (Wave 26 - Correção de Múltiplos Bugs)
 - **Correção Geral de Bugs (Wave 26):** Estabilidade no controle de estado ao puxar dados da nuvem (`setState`), prevenção de inflação de timer do cronômetro ao reiniciar o app, correção de divisão por erro quando meta é zero e inclusão de "Videoaula" no sistema de Hábitos. Limpeza no HTML principal.
 
 ## Atualizações Anteriores (Wave 25 - Estabilidade Visual)

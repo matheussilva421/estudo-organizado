@@ -119,7 +119,8 @@ export function renderCronometro(el) {
             <i class="fa fa-check"></i>
           </button>
 
-          <button onclick="discardTimer('${focusEvent.id}')" 
+          <button id="btn-discard-timer" 
+                  onclick="discardTimer('${focusEvent.id}')" 
                    class="crono-btn-circle danger"
                    style="display:${elapsed > 0 ? 'flex' : 'none'};"
                    title="Descartar Sessão">
@@ -202,6 +203,10 @@ export function renderCronometro(el) {
     if (progressBar) {
       const pct = plannedSecs > 0 ? Math.min((elapsed / plannedSecs) * 100, 100) : 0;
       progressBar.style.width = pct + '%';
+    }
+    const btnDiscard = document.getElementById('btn-discard-timer');
+    if (btnDiscard) {
+      btnDiscard.style.display = elapsed > 0 ? 'flex' : 'none';
     }
   }, 1000);
 }
@@ -301,7 +306,7 @@ export function renderEventCard(evento) {
   const tempo = formatTime(elapsed);
 
   return `
-    < div class="event-card" data - event - id="${evento.id}" onclick = "openEventDetail('${evento.id}')" >
+    <div class="event-card" data-event-id="${evento.id}" onclick="openEventDetail('${evento.id}')">
       <div class="event-stripe ${status}"></div>
       <div class="event-disc-icon" style="background:${iconBg}20;color:${iconBg};">${icon}</div>
       <div class="event-info">
@@ -318,6 +323,6 @@ export function renderEventCard(evento) {
         ${status !== 'estudei' ? `<button class="icon-btn" title="Marcar como Estudei" onclick="marcarEstudei('${evento.id}')">✅</button>` : ''}
         <button class="icon-btn" title="Excluir" onclick="deleteEvento('${evento.id}')">🗑</button>
       </div>
-    </div >
+    </div>
     `;
 }
