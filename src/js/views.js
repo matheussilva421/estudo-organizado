@@ -2362,13 +2362,27 @@ export function openBancaAnalyzerModal(editaId) {
   const edital = state.editais.find(e => e.id === editaId);
   if (!edital) return;
 
+  const hotTopics = state.bancaRelevance?.hotTopics || [];
+
+  // Lista de disciplinas do Edital com check visual se já tiver topics
+  const discOptions = edital.disciplinas.map(d => {
+    const hasTopics = hotTopics.some(ht => ht.disciplinaId === d.id);
+    return `<option value="${d.id}">${hasTopics ? '✅' : '⚪'} ${esc(d.nome)}</option>`;
+  }).join('');
+
   document.getElementById('modal-banca-analyzer-title').textContent = 'Análise Inteligente de Edital (' + esc(edital.nome) + ')';
   document.getElementById('modal-banca-analyzer-body').innerHTML = `
         <div class="card p-16" style="margin-bottom:16px;">
-            <div class="dash-label" style="margin-bottom:8px;">1. Importar Assuntos Mais Cobrados (Hot Topics)</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Cole aqui o Ranking da Banca (ex: gerado por ChatGPT ou QConcursos) com porcentagens ou números "1.", "2.", etc.</div>
-            <textarea id="banca-input-text" class="form-control" rows="6" style="font-family:inherit;font-size:13px;resize:vertical;" placeholder="Ex:\n1. Atos Administrativos (25%)\n2. Licitações (18%)\n3. Improbidade Administrativa"></textarea>
-            <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="window.parseBancaText()">Processar Texto</button>
+            <div class="dash-label" style="margin-bottom:8px;">1. Selecione a Disciplina e Importe (Hot Topics)</div>
+            
+            <select id="banca-disc-select" class="form-control" style="margin-bottom:12px;font-weight:600;">
+                <option value="" disabled selected>-- Escolha a Matéria --</option>
+                ${discOptions}
+            </select>
+            
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Cole aqui o Ranking da Banca respectivo à matéria (com porcentagens ou enumerações "1.", "2.", etc).</div>
+            <textarea id="banca-input-text" class="form-control" rows="6" style="font-family:inherit;font-size:13px;resize:vertical;" placeholder="Ex:\\n1. Atos Administrativos (25%)\\n2. Licitações (18%)\\n3. Improbidade Administrativa"></textarea>
+            <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="window.parseBancaText()">Processar Matéria</button>
         </div>
 
         <div id="banca-match-results" style="display:none; max-height:400px; overflow-y:auto; padding-right:8px;" class="custom-scrollbar">
@@ -2378,8 +2392,8 @@ export function openBancaAnalyzerModal(editaId) {
         <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:space-between;align-items:center;">
             <div id="banca-stats" style="font-size:12px;font-weight:600;color:var(--accent);"></div>
             <div style="display:flex;gap:8px;">
-                 <button class="btn btn-ghost" onclick="closeModal('modal-banca-analyzer')">Cancelar</button>
-                 <button class="btn btn-primary" id="banca-apply-btn" style="display:none;" onclick="window.applyBancaRanking()">Aplicar Reordenação P1/P2/P3</button>
+                 <button class="btn btn-ghost" onclick="closeModal('modal-banca-analyzer')">Sair Pai</button>
+                 <button class="btn btn-primary" id="banca-apply-btn" style="display:none;" onclick="window.applyBancaRanking()">Gravar P1/P2/P3</button>
             </div>
         </div>
     `;
@@ -2387,12 +2401,14 @@ export function openBancaAnalyzerModal(editaId) {
 }
 
 window.openBancaAnalyzerModal = openBancaAnalyzerModal;
-
 window.parseBancaText = function () {
+  const discId = document.getElementById('banca-disc-select').value;
+  if (!discId) { showToast('Selecione uma matéria no campo acima.', 'error'); return; }
+
   const rawArgs = document.getElementById('banca-input-text').value;
   if (!rawArgs.trim()) { showToast('Nenhum texto informado.', 'error'); return; }
 
-  const lines = rawArgs.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+  const lines = rawArgs.split('\\n').map(l => l.trim()).filter(l => l.length > 2);
   let parsedRows = [];
 
   // Expressões regulares para achar padrão "1. Assunto" ou "Assunto (25%)"
@@ -2401,37 +2417,46 @@ window.parseBancaText = function () {
     let extName = line;
 
     // Limpa numerações padrão como "1.", "1 -", "1)", etc, e assume Rank pelo index
-    const rankMatch = extName.match(/^(\d+)[\.\-\)]\s+(.*)/);
+    const rankMatch = extName.match(/^(\\d+)[\\.\\-\\)]\\s+(.*)/);
     if (rankMatch) {
       extName = rankMatch[2];
     }
 
     // Procura por % ou "Alta/Média/Baixa"
-    const percMatch = extName.match(/(.*?)(?:(?:\s*\()|\s*-)?\s*(\d+(?:[.,]\d+)?)\s*%(?:\))?/);
+    const percMatch = extName.match(/(.*?)(?:(?:\\s*\\()|\\s*-)?\\s*(\\d+(?:[.,]\\d+)?)\\s*%(?:\\))?/);
     if (percMatch) {
       extName = percMatch[1].trim();
       weight = parseFloat(percMatch[2].replace(',', '.')); // de 0 a 100
     } else {
       // Tenta extrair Level
       if (extName.toUpperCase().includes('ALTA')) weight = 100;
-      else if (extName.toUpperCase().match(/\bM[EÉ]DIA\b/)) weight = 60;
+      else if (extName.toUpperCase().match(/\\bM[EÉ]DIA\\b/)) weight = 60;
       else if (extName.toUpperCase().includes('BAIXA')) weight = 30;
     }
 
     parsedRows.push({
       id: uid(),
-      nome: extName.replace(/[\*\-•]/g, '').trim(),
+      nome: extName.replace(/[\\*\\-•]/g, '').trim(),
       rank: idx + 1, // Se for sequencial, aproveita
-      weight: weight
+      weight: weight,
+      disciplinaId: discId
     });
   });
 
-  // Salva na Memória Transiente primeiro
-  analyzerCtx.parsedHotTopics = parsedRows;
-  state.bancaRelevance.hotTopics = parsedRows;
+  // Mantém o histórico filtrando a disciplina selecionada e apendando os novos rows
+  let existingTopics = state.bancaRelevance?.hotTopics || [];
+  existingTopics = existingTopics.filter(ht => ht.disciplinaId !== discId);
+  state.bancaRelevance.hotTopics = existingTopics.concat(parsedRows);
 
-  // Roda a Engine Complexa de Match
-  analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId);
+  // Atualiza a opção no select como Processada (Checkmark)
+  const selectOpt = document.querySelector(`#banca-disc-select option[value="${discId}"]`);
+  if (selectOpt && !selectOpt.text.startsWith('✅')) {
+    selectOpt.text = selectOpt.text.replace('⚪', '✅');
+  }
+  document.getElementById('banca-input-text').value = '';
+
+  // Roda a Engine Completa de Match para a disciplina específica para simulação na View
+  analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
   window.renderBancaMatches();
 };
 
