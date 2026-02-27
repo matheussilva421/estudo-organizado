@@ -1,159 +1,102 @@
-﻿# ðŸ“š Estudo Organizado
+﻿# 📚 Estudo Organizado
 
-AplicaÃ§Ã£o web para **planejamento e organizaÃ§Ã£o de estudos** voltada para concursos pÃºblicos. Baseada no **Ciclo PDCA**: planeje no CalendÃ¡rio, execute no Study Organizer, meÃ§a no Dashboard e corrija com as RevisÃµes.
+Aplicação web premium para **planejamento e organização de estudos** voltada para concursos públicos. Baseada no **Ciclo PDCA**: planeje no Calendário, execute no Study Organizer, meça no Dashboard e corrija com as Revisões.
 
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)
-![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![PWA](https://img.shields.io/badge/PWA-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
 
 ---
 
-## 🌟 Últimas Atualizações (Waves 34, 35 e 36 - Inteligência de Bancas)
+## 📸 Visual Showcase
+
+Confira a interface moderna e responsiva do Estudo Organizado:
+
+<p align="center">
+  <img src="screenshots/app_view_01_home_1772223847529.png" width="45%" alt="Home" />
+  <img src="screenshots/app_view_10_inteligencia_banca_1772223947936.png" width="45%" alt="Inteligência de Banca" />
+</p>
+<p align="center">
+  <img src="screenshots/app_view_05_dashboard_1772223895329.png" width="45%" alt="Dashboard" />
+  <img src="screenshots/app_view_02_cronometro_1772223858808.png" width="45%" alt="Cronômetro" />
+</p>
+
+---
+
+## 🌟 Últimas Atualizações
+
+### Waves 34, 35 e 36 — Inteligência de Bancas
 - **Aba Dedicada de Análise Preditiva (Wave 34):** A funcionalidade de "Inteligência de Banca" ganhou uma Aba Preditiva em Tela Cheia (Dual-Pane), libertando-a da limitação visual dos modals antigos.
 - **Gerenciamento de Análises Inteligentes (Waves 35 e 36):** Inclusão de um Histórico de "Análises Salvas" em chips, permitindo ao usuário re-visualizar relatórios de Match antigos, editar pontuações, ou excluí-los (retornando dinamicamente o Edital para a Ordem Alfabética Padrão).
 
-## Atualizações Anteriores (Wave 30 - PWA Nativo)
-- **Instalação e Modo Offline (Wave 30):** O sistema agora é um Progressive Web App completo. Com o registro do `manifest.json` e do recém-criado `sw.js` (Service Worker), estudantes podem oficialmente "Instalar" o Estudo Organizado como um aplicativo nativo em suas HomeScreen's (Android/iOS/Desktop). O SW conta com modo Cache-First parrudão que permite o carregamento instantâneo de toda a interface mesmo quando não houver conexão de internet.
-
-## AtualizaÃ§Ãµes Anteriores (Wave 29 - ConsolidaÃ§Ã£o MÃºtua e IDs)
-- **Fila Transacionada e IDs Padronizadas (Wave 29):** Todos os geradores pseudo-aleatÃ³rios do cÃ³digo que acoplavam `Date.now() + Math.random()` foram massivamente substituÃ­dos por uma camada de `uid()` segura contra colisÃµes. Mais importante: Agora Cloudflare e Google Drive obedecem a uma fila (Mutex `SyncQueue` em `store.js`), erradicando sobreposiÃ§Ãµes/saves cruzados de concorrÃªncia em aparelhos lentos ou rede oscilante.
-
-## AtualizaÃ§Ãµes Anteriores (Wave 28 - Legibilidade DinÃ¢mica)
-- **CorreÃ§Ãµes de Contrastes (Wave 28):** SubstituiÃ§Ã£o de atributos absolutos (Hardcoded `#fff`) atrelados a blocos que utilizam cores customizÃ¡veis dos temas. Isso garante legibilidade vitalÃ­cia pros elementos ativos (ex: dias ativados no planejamento) que outrora ficavam invisÃ­veis no Tema Furtivo e Claro.
-
-## AtualizaÃ§Ãµes Anteriores (Wave 27 - Retoques DinÃ¢micos)
-- **CorreÃ§Ãµes do CronÃ´metro e UI (Wave 27):** O botÃ£o de "Descartar SessÃ£o" agora surge dinamicamente assim que o tempo corre, sem exigir recarregamento da aba. AlÃ©m disso, corrigimos vazamentos residuais de HTML (como `div class="event-card"`) que poluÃ­am a lista de agendamentos.
-
-## AtualizaÃ§Ãµes Anteriores (Wave 26 - CorreÃ§Ã£o de MÃºltiplos Bugs)
-- **CorreÃ§Ã£o Geral de Bugs (Wave 26):** Estabilidade no controle de estado ao puxar dados da nuvem (`setState`), prevenÃ§Ã£o de inflaÃ§Ã£o de timer do cronÃ´metro ao reiniciar o app, correÃ§Ã£o de divisÃ£o por erro quando meta Ã© zero e inclusÃ£o de "Videoaula" no sistema de HÃ¡bitos. Limpeza no HTML principal.
-
-## AtualizaÃ§Ãµes Anteriores (Wave 25 - Estabilidade Visual)
-- **CorreÃ§Ã£o de RenderizaÃ§Ã£o (Wave 25):** Hotfix crÃ­tico que resolveu a exibiÃ§Ã£o de cÃ³digo HTML bruto no topbar e em seletores de formulÃ¡rio em todo o sistema.
-- **Redesign do CronÃ´metro (Wave 24):** TematizaÃ§Ã£o completa do cronÃ´metro, com suporte a mÃºltiplos modos escuros (Furtivo, Matrix, Rubi, etc) e melhoria no contraste.
-
-## AtualizaÃ§Ãµes Recentes (Wave 20 - Redesign do Ciclo de Estudos)
-- **Novo Dashboard AnalÃ­tico:** A aba de Planejamento ganhou uma reformulaÃ§Ã£o visual drÃ¡stica. Agora, a tela exibe os dados em duas colunas, apresentando um GrÃ¡fico de Rosca (Doughnut Chart) na direita e listagens das sequÃªncias na esquerda.
-- **MÃ©tricas de Ciclos Compostos:** O aplicativo agora nÃ£o sÃ³ planeja as horas, mas mede ativamente as horas estudadas, dividindo-as pelo percentual diÃ¡rio para completar os blocos da roleta. Suporta monitoramento de "Ciclos Completos".
-- **BotÃ£o RecomeÃ§ar Ciclo:** Criamos a mecÃ¢nica de avanÃ§ar para um "Novo Ciclo", limpando o progresso das barras mas mantendo as matÃ©rias intactas e acumulando +1 volta no total.
-- **Filtro de Finalizados:** Foi reestruturado dentro do novo layout o toggle para Ocultar Etapas ConcluÃ­das na sequÃªncia do Ciclo.
-
-## AtualizaÃ§Ãµes Anteriores (Wave 9 - Conectividade & QA)
-- **IntegraÃ§Ã£o Planejamento â†” CronÃ´metro:** Agora os blocos de estudo gerados no mÃ³dulo Planejamento ("Grade Semanal" e "Ciclo") possuem o botÃ£o **Estudar Agora**, enviando a disciplina alvo direto para o CronÃ´metro e registrando o progresso automaticamente no fim da sessÃ£o.
-- **Cascata de ExclusÃµes Segura:** A exclusÃ£o de Editais, Disciplinas e Assuntos agora limpa varre e desvincula corretamente o histÃ³rico de eventos e planejamentos Ã³rfÃ£os, prevenindo quebras de renderizaÃ§Ã£o na Dashboard.
-- **CorreÃ§Ã£o "Midnight Rollover":** Resolvido o bug onde as datas do sistema congelavam se a aba permanecesse aberta virando a noite. O sistema agora revalida a data ativamente em `visibilitychange` da aba e ciclos de evento de gravaÃ§Ã£o.
-- **Auditoria Rigorosa:** VerificaÃ§Ãµes profundas nos validadores numÃ©ricos e lÃ³gicos do registro de hÃ¡bitos (Simulados, Discursivas, Leitura Seca).
-- DocumentaÃ§Ã£o integral das correÃ§Ãµes disponÃ­veis e audiÃ§Ãµes de cÃ³digo em `analise_de_codigo_wave9.md` e `walkthrough.md`.
-
-## âš¡ Wave Especial - SincronizaÃ§Ã£o Cloudflare KV (Real-time Sync)
-- **LatÃªncia Zero:** Introduzimos um Sync de alta performance com a rede Edge da Cloudflare. Ã‰ o mÃ©todo primÃ¡rio para manter seu App Estudo Organizado pareado entre celular e PC.
-- **Sem Perda de Dados:** Mecanismo de timestamps previne que versÃµes mais antigas do aplicativo aniquilem uma sessÃ£o de cronÃ´metro atual de um dispositivo ativo.
-- **Fail-safe com Drive:** O Google Drive agora opera como uma malha de backup secundÃ¡ria.
-
-## âœ¨ Funcionalidades
-
-| MÃ³dulo | DescriÃ§Ã£o |
-|---|---|
-| ðŸ  **PÃ¡gina Inicial** | VisÃ£o geral do dia: eventos agendados, estudados, atrasados e revisÃµes pendentes |
-| ðŸ“– **Study Organizer** | Registro de sessÃµes de estudo com timer Pomodoro integrado |
-| ðŸ“… **CalendÃ¡rio** | VisualizaÃ§Ã£o mensal e semanal dos eventos de estudo |
-| ðŸ“Š **Dashboard** | MÃ©tricas de desempenho: tempo estudado, sessÃµes, questÃµes e simulados |
-| ðŸ”„ **RevisÃµes** | Sistema de revisÃ£o espaÃ§ada com intervalos configurÃ¡veis (1, 7, 30, 90 dias) |
-| âš¡ **HÃ¡bitos** | Acompanhamento de hÃ¡bitos de estudo por categoria |
-| ðŸ“‹ **Editais** | GestÃ£o de editais, disciplinas e assuntos por concurso |
-| ðŸ“ **Ed. Verticalizado** | Estudo vertical por edital com acompanhamento de progresso |
-| âš™ï¸ **ConfiguraÃ§Ãµes** | Tema, calendÃ¡rio, Google Drive sync, notificaÃ§Ãµes e backup |
-
-## ðŸš€ Como Usar
-
-### OpÃ§Ã£o 1: Abrir com o script BAT (Windows)
-DÃª dois cliques em `Abrir_Estudo_Organizado.bat` â€” ele inicia um servidor local e abre o app no navegador.
-
-### OpÃ§Ã£o 2: Servidor local manual
-```bash
-cd src
-python -m http.server 8000
-# Abra http://localhost:8000 no navegador
-```
-
-### OpÃ§Ã£o 3: Node.js
-```bash
-cd src
-npx http-server -p 8000
-# Abra http://localhost:8000 no navegador
-```
-
-> **Nota:** O app funciona 100% no navegador (client-side). NÃ£o Ã© necessÃ¡rio backend â€” os dados sÃ£o salvos localmente via **IndexedDB**.
-
-## ðŸ—ï¸ Estrutura do Projeto
-
-```
-estudo-organizado/
-â”œâ”€â”€ src/
-â”‚   â”œâ”€â”€ index.html          # PÃ¡gina principal (HTML skeleton)
-â”‚   â”œâ”€â”€ css/
-â”‚   â”‚   â””â”€â”€ styles.css      # Estilos (dark/light mode, responsivo)
-â”‚   â””â”€â”€ js/
-â”‚       â”œâ”€â”€ main.js          # Entrypoint: orquestraÃ§Ã£o e eventos de domÃ­nio
-â”‚       â”œâ”€â”€ app.js           # NavegaÃ§Ã£o e modais genÃ©ricos
-â”‚       â”œâ”€â”€ store.js         # Estado: IndexedDB, migrations, save/load
-â”‚       â”œâ”€â”€ logic.js         # Regras de negÃ³cio: cronÃ´metro, revisÃµes, analytics
-â”‚       â”œâ”€â”€ utils.js         # UtilitÃ¡rios puros e constantes estÃ¡ticas
-â”‚       â”œâ”€â”€ components.js    # Componentes de UI reutilizÃ¡veis
-â”‚       â”œâ”€â”€ views.js         # RenderizaÃ§Ã£o de todas as views baseadas no estado
-â”‚       â”œâ”€â”€ registro-sessao.js # LÃ³gica especÃ­fica do modal de registro de sessÃ£o
-â”‚       â”œâ”€â”€ cloud-sync.js    # SincronizaÃ§Ã£o Serverless em alta velocidade via Cloudflare Workers
-â”‚       â””â”€â”€ drive-sync.js    # SincronizaÃ§Ã£o com Google Drive
-â”œâ”€â”€ docs/
-â”‚   â”œâ”€â”€ CLOUDFLARE-SETUP.md      # Guia para a implantaÃ§Ã£o na nuvem Cloudflare
-â”‚   â””â”€â”€ WALKTHROUGH-CLOUDFLARE.md # Log tÃ©cnico da implementaÃ§Ã£o da API de SincronizaÃ§Ã£o
-â”œâ”€â”€ scripts/
-â”‚   â”œâ”€â”€ cloudflare-worker.js     # Script JS independente para a borda Serverless
-â”‚   â”œâ”€â”€ fix-all.js               # InjeÃ§Ãµes de linting e scripts da CLI (AutomÃ¡tico)
-â”‚   â””â”€â”€ rename_concluido.ps1     # Powershell de refatoraÃ§Ã£o legado
-â”œâ”€â”€ Abrir_Estudo_Organizado.bat  # Launcher para Windows
-â”œâ”€â”€ .gitignore
-â”œâ”€â”€ LICENSE
-â””â”€â”€ README.md
-```
-
-## â˜ï¸ Cloudflare Multi-Device Sync (Recomendado)
-
-Para espelhar seu Estudo Organizado do Computador para o Celular instantaneamente:
-1. Siga os trÃªs passos do guia em `docs/CLOUDFLARE-SETUP.md` para criar sua chave grÃ¡tis e ligar as pÃ¡ginas;
-2. VÃ¡ em **ConfiguraÃ§Ãµes** na nossa aplicaÃ§Ã£o;
-3. Insira sua URL do Worker recÃ©m criado (ex: `https://sync.meunome.workers.dev`) e a senha (Auth Token) que vocÃª escolheu;
-4. Clique em **Ativar SincronizaÃ§Ã£o** e observe a atualizaÃ§Ã£o imediata.
-
-## ðŸ”§ Tecnologias
-
-- **HTML5 / CSS3 / JavaScript** â€” Sem frameworks, tudo vanilla
-- **IndexedDB** â€” PersistÃªncia de dados local
-- **Chart.js** â€” GrÃ¡ficos no Dashboard (via CDN)
-- **Font Awesome** â€” Ãcones (via CDN)
-- **Google Drive API** â€” SincronizaÃ§Ã£o opcional de dados entre dispositivos
-
-## â˜ï¸ Google Drive Sync
-
-Para habilitar a sincronizaÃ§Ã£o com Google Drive:
-
-1. Acesse **ConfiguraÃ§Ãµes** â†’ **Google Drive**
-2. Insira seu **Client ID** do Google Cloud Console
-3. Clique em **Conectar ao Google Drive**
-4. Os dados serÃ£o sincronizados automaticamente a cada 5 minutos
-
-## ðŸ“¦ Backup & RestauraÃ§Ã£o
-
-- **Exportar JSON** â€” Gera um arquivo `.json` com todos os seus dados
-- **Importar JSON** â€” Restaura dados a partir de um backup
-- DisponÃ­vel em **ConfiguraÃ§Ãµes** â†’ **Dados**
-
-## ðŸ“„ LicenÃ§a
-
-Este projeto estÃ¡ sob a licenÃ§a MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+### Wave 30 — PWA Nativo
+- **Instalação e Modo Offline:** O sistema agora é um Progressive Web App completo. Com o registro do `manifest.json` e do `sw.js` (Service Worker), estudantes podem instalar o app nativamente. O SW conta com modo Cache-First para carregamento instantâneo mesmo offline.
 
 ---
 
-Desenvolvido com â¤ï¸ para estudantes de concursos pÃºblicos.
+## ✨ Funcionalidades Principais
 
+| Módulo | Descrição |
+|---|---|
+| 🏠 **Página Inicial** | Visão geral do dia: eventos agendados, estudados, atrasados e revisões pendentes. |
+| 📖 **Study Organizer** | Registro de sessões de estudo com timer Pomodoro integrado. |
+| 📅 **Calendário** | Visualização mensal e semanal dos eventos de estudo. |
+| 📊 **Dashboard** | Métricas de desempenho: tempo estudado, sessões, questões e simulados. |
+| 🔄 **Revisões** | Sistema de revisão espaçada com intervalos configuráveis (1, 7, 30, 90 dias). |
+| ⚡ **Hábitos** | Acompanhamento de hábitos de estudo por categoria (Videoaula, Simulado, etc). |
+| 📋 **Editais** | Gestão completa de editais, disciplinas e assuntos. |
+| 🧠 **Intelig. de Banca** | Análise preditiva baseada em incidência de temas da banca organizada. |
+| ⚙️ **Configurações** | Temas (Furtivo, Rubi, Matrix), calendários, sync e backups. |
 
+---
 
+## 🚀 Como Usar
+
+### Opção 1: Windows Launcher (Recomendado)
+Basta dar dois cliques em `Abrir_Estudo_Organizado.bat`. Ele iniciará o servidor local e abrirá o aplicativo automaticamente no seu navegador padrão.
+
+### Opção 2: Servidor Manual
+```bash
+# Com Python
+python -m http.server 8000
+
+# Com Node.js
+npx http-server -p 8000
+```
+Acesse: `http://localhost:8000`
+
+---
+
+## ☁️ Sincronização e Backup
+
+### Cloudflare Multi-Device Sync
+Para espelhar seu Estudo Organizado entre celular e PC instantaneamente:
+1. Configure seu Worker em `docs/CLOUDFLARE-SETUP.md`.
+2. Insira a URL e o Token em **Configurações**.
+3. Ative o Sync para pareamento em tempo real.
+
+### Google Drive & Backup Local
+- Suporte nativo a **Google Drive API** para salvamento na nuvem.
+- Exportação/Importação manual via arquivos **JSON**.
+
+---
+
+## 🏗️ Estrutura do Projeto
+
+O projeto utiliza **Vanilla JavaScript** (Sem frameworks), priorizando performance e simplicidade:
+
+- `src/index.html`: Esqueleto principal.
+- `src/js/store.js`: Gerenciamento de estado e IndexedDB.
+- `src/js/logic.js`: Regras de negócio e cálculos de performance.
+- `src/js/relevance.js`: Motor de NLP e Fuzzy Match para análises de banca.
+- `src/js/views.js`: Orquestração de renderização dinâmica.
+
+---
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+<p align="center">Desenvolvido com ❤️ para estudantes de concursos públicos.</p>
