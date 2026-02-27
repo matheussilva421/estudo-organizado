@@ -9,7 +9,7 @@ export const DB_VERSION = 1;
 export const STORE_NAME = 'app_state';
 
 export let db;
-export const DEFAULT_SCHEMA_VERSION = 5;
+export const DEFAULT_SCHEMA_VERSION = 6;
 
 export function setState(newState) {
   const normalized = {
@@ -23,6 +23,7 @@ export function setState(newState) {
     revisoes: newState.revisoes || [],
     config: Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3 }, newState.config || {}),
     cronoLivre: newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 },
+    bancaRelevance: newState.bancaRelevance || { hotTopics: [], userMappings: {} },
     driveFileId: newState.driveFileId || null,
     lastSync: newState.lastSync || null
   };
@@ -50,6 +51,7 @@ export let state = {
     materiasPorDia: 3
   },
   cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
+  bancaRelevance: { hotTopics: [], userMappings: {} },
   driveFileId: null,
   lastSync: null
 };

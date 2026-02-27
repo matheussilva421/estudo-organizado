@@ -1692,6 +1692,7 @@ export function renderEditalTree(edital) {
         <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
         <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
         <span style="font-size:11px;opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
+        <button class="icon-btn" title="Analisador de Bancas" onclick="event.stopPropagation();openBancaAnalyzerModal('${edital.id}')">🧠</button>
         <button class="icon-btn" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">✏️</button>
         <button class="icon-btn" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">🗑️</button>
         <i class="fa fa-chevron-down" style="font-size:12px;opacity:0.7;"></i>
@@ -2347,6 +2348,204 @@ export function editSubjectInline(discId, assId, el) {
   el.innerHTML = '';
   el.appendChild(input);
   input.focus();
+}
+
+// =============================================
+// MÓDULO PREDITIVO DE BANCA E RELEVÂNCIA (WAVE 33)
+// =============================================
+import { applyRankingToEdital, commitEditalOrdering } from './relevance.js';
+
+let analyzerCtx = { editaId: null, parsedHotTopics: [], tempMatchResults: [] };
+
+export function openBancaAnalyzerModal(editaId) {
+  analyzerCtx.editaId = editaId;
+  const edital = state.editais.find(e => e.id === editaId);
+  if (!edital) return;
+
+  document.getElementById('modal-banca-analyzer-title').textContent = 'Análise Inteligente de Edital (' + esc(edital.nome) + ')';
+  document.getElementById('modal-banca-analyzer-body').innerHTML = `
+        <div class="card p-16" style="margin-bottom:16px;">
+            <div class="dash-label" style="margin-bottom:8px;">1. Importar Assuntos Mais Cobrados (Hot Topics)</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Cole aqui o Ranking da Banca (ex: gerado por ChatGPT ou QConcursos) com porcentagens ou números "1.", "2.", etc.</div>
+            <textarea id="banca-input-text" class="form-control" rows="6" style="font-family:inherit;font-size:13px;resize:vertical;" placeholder="Ex:\n1. Atos Administrativos (25%)\n2. Licitações (18%)\n3. Improbidade Administrativa"></textarea>
+            <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="window.parseBancaText()">Processar Texto</button>
+        </div>
+
+        <div id="banca-match-results" style="display:none; max-height:400px; overflow-y:auto; padding-right:8px;" class="custom-scrollbar">
+            <!-- Tabela de Match populada pelo JS -->
+        </div>
+
+        <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:space-between;align-items:center;">
+            <div id="banca-stats" style="font-size:12px;font-weight:600;color:var(--accent);"></div>
+            <div style="display:flex;gap:8px;">
+                 <button class="btn btn-ghost" onclick="closeModal('modal-banca-analyzer')">Cancelar</button>
+                 <button class="btn btn-primary" id="banca-apply-btn" style="display:none;" onclick="window.applyBancaRanking()">Aplicar Reordenação P1/P2/P3</button>
+            </div>
+        </div>
+    `;
+  openModal('modal-banca-analyzer');
+}
+
+window.openBancaAnalyzerModal = openBancaAnalyzerModal;
+
+window.parseBancaText = function () {
+  const rawArgs = document.getElementById('banca-input-text').value;
+  if (!rawArgs.trim()) { showToast('Nenhum texto informado.', 'error'); return; }
+
+  const lines = rawArgs.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+  let parsedRows = [];
+
+  // Expressões regulares para achar padrão "1. Assunto" ou "Assunto (25%)"
+  lines.forEach((line, idx) => {
+    let weight = undefined;
+    let extName = line;
+
+    // Limpa numerações padrão como "1.", "1 -", "1)", etc, e assume Rank pelo index
+    const rankMatch = extName.match(/^(\d+)[\.\-\)]\s+(.*)/);
+    if (rankMatch) {
+      extName = rankMatch[2];
+    }
+
+    // Procura por % ou "Alta/Média/Baixa"
+    const percMatch = extName.match(/(.*?)(?:(?:\s*\()|\s*-)?\s*(\d+(?:[.,]\d+)?)\s*%(?:\))?/);
+    if (percMatch) {
+      extName = percMatch[1].trim();
+      weight = parseFloat(percMatch[2].replace(',', '.')); // de 0 a 100
+    } else {
+      // Tenta extrair Level
+      if (extName.toUpperCase().includes('ALTA')) weight = 100;
+      else if (extName.toUpperCase().match(/\bM[EÉ]DIA\b/)) weight = 60;
+      else if (extName.toUpperCase().includes('BAIXA')) weight = 30;
+    }
+
+    parsedRows.push({
+      id: uid(),
+      nome: extName.replace(/[\*\-•]/g, '').trim(),
+      rank: idx + 1, // Se for sequencial, aproveita
+      weight: weight
+    });
+  });
+
+  // Salva na Memória Transiente primeiro
+  analyzerCtx.parsedHotTopics = parsedRows;
+  state.bancaRelevance.hotTopics = parsedRows;
+
+  // Roda a Engine Complexa de Match
+  analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId);
+  window.renderBancaMatches();
+};
+
+window.renderBancaMatches = function () {
+  const container = document.getElementById('banca-match-results');
+  const applyBtn = document.getElementById('banca-apply-btn');
+  const statsDiv = document.getElementById('banca-stats');
+
+  if (!analyzerCtx.tempMatchResults || analyzerCtx.tempMatchResults.length === 0) {
+    container.style.display = 'none';
+    applyBtn.style.display = 'none';
+    return;
+  }
+
+  let p1c = 0, p2c = 0;
+
+  const rows = analyzerCtx.tempMatchResults.map(res => {
+    if (res.priority === 'P1') p1c++;
+    if (res.priority === 'P2') p2c++;
+
+    const stIcon = res.priority === 'P1' ? 'fa-fire' : (res.priority === 'P2' ? 'fa-bolt' : 'fa-check');
+    const stColor = res.priority === 'P1' ? 'var(--red)' : (res.priority === 'P2' ? 'var(--orange)' : 'var(--text-muted)');
+
+    const confBadgeColor = res.matchData.confidence === 'HIGH' ? 'var(--green)' : (res.matchData.confidence === 'MEDIUM' ? 'var(--yellow)' : 'var(--text-muted)');
+
+    return `
+            <div style="display:grid; grid-template-columns:30px 1fr 1fr 45px; gap:8px; border-bottom:1px solid var(--border); padding:10px 0; align-items:center;">
+                <div style="color:${stColor}; font-size:14px; text-align:center;"><i class="fa ${stIcon}"></i></div>
+                <div>
+                   <div style="font-size:13px; font-weight:700; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${esc(res.assuntoNome)}">${esc(res.assuntoNome)}</div>
+                   <div style="font-size:11px; color:var(--text-muted);">${esc(res.discNome)}</div>
+                </div>
+                <div>
+                   <div style="font-size:12px; font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+                       ${res.matchData.matchedItem ? esc(res.matchData.matchedItem.nome) : '<span style="color:var(--text-muted);"><i>Sem Incidência</i></span>'}
+                   </div>
+                   <div style="font-size:10px; color:${confBadgeColor};">${res.matchData.reason} | Score: ${res.finalScore}</div>
+                </div>
+                <div>
+                     <span class="event-tag" style="background:${stColor}; font-weight:900;">${res.priority}</span>
+                </div>
+                <div>
+                     <button class="btn btn-ghost btn-sm" title="Corrigir Erro Textual" onclick="window.openMatchCorrector('${res.assuntoNome}')"><i class="fa fa-edit"></i></button>
+                </div>
+            </div>
+        `;
+  });
+
+  container.innerHTML = `
+        <div class="dash-label" style="margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:8px; display:flex; justify-content:space-between;">
+           <span>2. Previsão de Match (Simulação)</span>
+           <span>Prioridade</span>
+        </div>
+        ${rows.join('')}
+    `;
+
+  container.style.display = 'block';
+  applyBtn.style.display = 'inline-block';
+  statsDiv.textContent = `P1: ${p1c} tópicos incríveis | P2: ${p2c} tópicos de suporte`;
+  showToast('Match Processado! Revise a lista antes de aplicar.', 'success');
+};
+
+window.applyBancaRanking = function () {
+  if (commitEditalOrdering(analyzerCtx.editaId, analyzerCtx.tempMatchResults)) {
+    showToast('Edital reordenado e prioridades P1/P2/P3 definidas!', 'success');
+    closeModal('modal-banca-analyzer');
+    renderCurrentView();
+  } else {
+    showToast('Falha crítica ao gravar novo Edital na Store', 'error');
+  }
+}
+
+window.openMatchCorrector = function (assuntoNome) {
+  const hotTopics = state.bancaRelevance?.hotTopics || [];
+
+  // Lista as opções da banca detectada para o usuário "ligar os pontos"
+  const optionsHtml = hotTopics.map(ht => `<option value="${ht.id}">${esc(ht.nome)} (Rank: ${ht.rank || ht.weight})</option>`).join('');
+
+  document.getElementById('modal-match-corrector-title').textContent = 'Corrigir Assunto: ' + esc(assuntoNome);
+  document.getElementById('modal-match-corrector-body').innerHTML = `
+        <div class="form-group">
+            <label class="form-label">Qual tema real da Banca equivale a esse tópico do Edital?</label>
+            <select id="corrector-select" class="form-control">
+                <option value="NONE">⚠️ Nenhuma Correspondência (Sem Incidência Real)</option>
+                ${optionsHtml}
+            </select>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+                Isto forçará um *Match 100% (HIGH)* daqui pra frente.
+            </div>
+        </div>
+        
+        <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+             <button class="btn btn-ghost" onclick="closeModal('modal-match-corrector')">Cancelar</button>
+             <button class="btn btn-primary" onclick="window.saveMatchCorrection('${esc(assuntoNome)}')">Forçar Correção</button>
+        </div>
+    `;
+  openModal('modal-match-corrector');
+}
+
+window.saveMatchCorrection = function (assuntoOrigemRaw) {
+  const overrideId = document.getElementById('corrector-select').value;
+  // Salva o mapping
+  if (!state.bancaRelevance.userMappings) state.bancaRelevance.userMappings = {};
+  state.bancaRelevance.userMappings[assuntoOrigemRaw] = overrideId;
+  scheduleSave();
+
+  closeModal('modal-match-corrector');
+  showToast('Match forçado com sucesso!', 'success');
+
+  // Reprocessa
+  if (analyzerCtx.parsedHotTopics.length > 0) {
+    analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId);
+    window.renderBancaMatches();
+  }
 }
 
 export function finishInlineEdit(discId, assId, newName, el) {
@@ -3664,7 +3863,9 @@ window.openCicloHistory = function (seqId) {
                    ⏱️ ${formatTime(ev.tempoAcumulado)} estudados
                 </div>
               </div>
-              <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-ciclo-history'); window.openEditaModal('${ev.id}')"><i class="fa fa-edit"></i> Editar</button>
+              <div>
+                <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-ciclo-history'); window.openEventModal('${ev.id}')"><i class="fa fa-edit"></i> Editar</button>
+              </div>
             </div>
           `;
     }).join('')}
