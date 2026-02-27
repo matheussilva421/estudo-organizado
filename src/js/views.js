@@ -2836,14 +2836,21 @@ export function renderConfig(el) {
                 <button class="btn btn-ghost btn-sm" onclick="new Notification('Estudo Organizado',{body:'Notificações funcionando!',icon:'📚'});showToast('Lembretes enviados!','success')">🔖 Testar</button>
               ` : ''}
             </div>
-            ${Notification.permission === 'granted' ? `
             <div class="config-row">
               <div>
-                <div class="config-label">Lembrete noturno</div>
-                <div class="config-sub">Aviso às 20h se houver eventos pendentes</div>
+                <div class="config-label">Modo Silencioso (Início)</div>
+                <div class="config-sub">A partir de qual horário silenciar:</div>
               </div>
-              <div style="font-size:12px;color:var(--accent);font-weight:600;">👙 20:00</div>
-            </div>` : ''}
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="0" max="23" value="${cfg.silentModeStart ?? 22}" onchange="updateConfig('silentModeStart', parseInt(this.value, 10))">
+            </div>
+            
+            <div class="config-row">
+              <div>
+                <div class="config-label">Modo Silencioso (Fim)</div>
+                <div class="config-sub">Até qual horário silenciar:</div>
+              </div>
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="0" max="23" value="${cfg.silentModeEnd ?? 8}" onchange="updateConfig('silentModeEnd', parseInt(this.value, 10))">
+            </div>
           </div>
         </div>
 

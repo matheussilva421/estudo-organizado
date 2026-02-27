@@ -4,6 +4,7 @@ import { initDB, scheduleSave, state } from './store.js';
 import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js';
 import { todayStr, esc } from './utils.js';
 import { pullFromCloudflare } from './cloud-sync.js';
+import { initNotifications } from './notifications.js';
 
 // =============================================
 // APP STATE & DATA
@@ -70,6 +71,20 @@ export function cancelConfirm() {
   _confirmCallback = null;
   closeModal('modal-confirm');
 }
+
+// Previne que modais e selects fiquem espremidos se teclado subir em mobile
+window.addEventListener('resize', () => {
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+    // maybe scroll into view
+  }
+});
+
+// Listener Global Desacoplado p/ Módulos Externos soltarem Toasts na UI
+document.addEventListener('app:showToast', (e) => {
+  if (e.detail && e.detail.msg) {
+    showToast(e.detail.msg, e.detail.type || 'info');
+  }
+});
 
 // Toast Notifications
 export function showToast(msg, type = '') {
@@ -138,6 +153,7 @@ export function applyTheme(toggle = false) {
 export function init() {
   initDB().then(async () => {
     applyTheme();
+    initNotifications();
 
     // Primeira Sincronização: Cloudflare (Primária Rápida)
     if (state.config && state.config.cfSyncSyncEnabled && typeof pullFromCloudflare === 'function') {
