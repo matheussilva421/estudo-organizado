@@ -2385,6 +2385,23 @@ window._renderBancaAnalyzerContent = function (el) {
   // Limpa Temp Matches no re-render de mudança de Edital
   analyzerCtx.tempMatchResults = [];
 
+  const savedDiscsHtml = edital.disciplinas.filter(d => hotTopics.some(ht => ht.disciplinaId === d.id)).map(d => {
+    const topicCount = hotTopics.filter(ht => ht.disciplinaId === d.id).length;
+    return `<div style="display:inline-flex; align-items:center; background:var(--bg-hover); border:1px solid var(--border); border-radius:16px; padding:4px 12px; font-size:12px; gap:8px;">
+          <span style="font-weight:600; cursor:pointer;" onclick="window.carregarAnaliseBanca('${d.id}')" title="Visualizar e Editar">${esc(d.nome)} (${topicCount})</span>
+          <button class="icon-btn" style="width:20px;height:20px;font-size:11px;color:var(--red);" onclick="window.excluirAnaliseBanca('${d.id}')" title="Excluir Importação"><i class="fa fa-trash"></i></button>
+      </div>`;
+  }).join('');
+
+  const savedAnalysisSection = savedDiscsHtml ? `
+      <div style="margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
+          <div class="dash-label" style="margin-bottom:12px; font-size:11px;">Análises Salvas (Edição Rápida)</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              ${savedDiscsHtml}
+          </div>
+      </div>
+  ` : '';
+
   el.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:16px; margin:0 auto; padding-bottom:40px;">
         <div class="card p-16" style="display:flex; justify-content:space-between; align-items:center;">
@@ -2416,6 +2433,7 @@ window._renderBancaAnalyzerContent = function (el) {
                 <div style="margin-top:16px; font-size:11px; color:var(--text-muted); line-height:1.5;">
                     <i class="fa fa-info-circle"></i> O algoritmo irá limpar a sujeira (porcentagens, numeração) simulando o Match NLP via Levenshtein e Stopwords nos Assuntos reais.
                 </div>
+                ${savedAnalysisSection}
             </div>
 
             <!-- PAINEL DIREITO: PREVISÃO E MATCH -->
@@ -2461,6 +2479,54 @@ window.filtrarViewPorDisciplina = function (discId) {
     analyzerCtx.tempMatchResults = [];
     window.renderBancaMatches();
   }
+};
+
+window.carregarAnaliseBanca = function (discId) {
+  const selectEl = document.getElementById('banca-disc-select');
+  if (selectEl) selectEl.value = discId;
+
+  const hotTopics = state.bancaRelevance?.hotTopics || [];
+  const topicsForDisc = hotTopics.filter(ht => ht.disciplinaId === discId);
+
+  if (topicsForDisc.length > 0) {
+    topicsForDisc.sort((a, b) => {
+      if (a.rank && b.rank) return a.rank - b.rank;
+      if (a.weight && b.weight) return b.weight - a.weight;
+      return 0;
+    });
+
+    const textStr = topicsForDisc.map(ht => {
+      let wStr = ht.weight ? ` (${ht.weight}%)` : '';
+      return `${ht.rank ? ht.rank + '.' : '-'} ${ht.nome}${wStr}`;
+    }).join('\n');
+
+    const textarea = document.getElementById('banca-input-text');
+    if (textarea) textarea.value = textStr;
+  }
+
+  window.filtrarViewPorDisciplina(discId);
+};
+
+window.excluirAnaliseBanca = function (discId) {
+  const edital = state.editais.find(e => e.id === analyzerCtx.editaId);
+  const discName = edital?.disciplinas.find(d => d.id === discId)?.nome || 'esta disciplina';
+
+  showConfirm(`Tem certeza que deseja apagar a análise preditiva salva de "${discName}"?\nOs Hot Topics importados serão removidos.`, () => {
+    state.bancaRelevance.hotTopics = state.bancaRelevance.hotTopics.filter(ht => ht.disciplinaId !== discId);
+    scheduleSave();
+
+    // reset selection if needed
+    const selectEl = document.getElementById('banca-disc-select');
+    if (selectEl && selectEl.value === discId) {
+      selectEl.value = "";
+      const textEl = document.getElementById('banca-input-text');
+      if (textEl) textEl.value = "";
+      analyzerCtx.tempMatchResults = [];
+    }
+
+    window._renderBancaAnalyzerContent(document.getElementById('content'));
+    showToast('Análise excluída.', 'success');
+  }, { title: 'Excluir Análise', danger: true });
 };
 
 window.parseBancaText = function () {
