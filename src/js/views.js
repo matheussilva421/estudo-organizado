@@ -2392,7 +2392,7 @@ export function openBancaAnalyzerModal(editaId) {
         <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:space-between;align-items:center;">
             <div id="banca-stats" style="font-size:12px;font-weight:600;color:var(--accent);"></div>
             <div style="display:flex;gap:8px;">
-                 <button class="btn btn-ghost" onclick="closeModal('modal-banca-analyzer')">Sair Pai</button>
+                 <button class="btn btn-ghost" onclick="closeModal('modal-banca-analyzer')">Cancelar</button>
                  <button class="btn btn-primary" id="banca-apply-btn" style="display:none;" onclick="window.applyBancaRanking()">Gravar P1/P2/P3</button>
             </div>
         </div>
@@ -2424,7 +2424,7 @@ window.parseBancaText = function () {
 
     // Procura por % ou "Alta/Média/Baixa"
     const percMatch = extName.match(/(.*?)(?:(?:\\s*\\()|\\s*[\\-\\–\\—])?\\s*(\\d+(?:[.,]\\d+)?)\\s*%(?:\\))?/);
-    if (percMatch) {
+    if (percMatch && percMatch[2]) {
       extName = percMatch[1].trim();
       weight = parseFloat(percMatch[2].replace(',', '.')); // de 0 a 100
     } else {
