@@ -243,19 +243,13 @@ export function applyRankingToEdital(editalId) {
     // Ordena do Maior Score pro Menor
     flatList.sort((a, b) => b.finalScore - a.finalScore);
 
-    // Ajusta o percentil Real do P1 e P2 (Sobrescrevendo a regra semi-arbitrária se possível)
-    const len = flatList.length;
-    if (len > 0) {
-        const top20Index = Math.floor(len * 0.2);
-        const top60Index = Math.floor(len * 0.6);
+    flatList.forEach((item, index) => {
+        if (index <= top20Index) item.priority = 'P1';
+        else if (index <= top60Index) item.priority = 'P2';
+        else item.priority = 'P3';
+    });
 
-        flatList.forEach((item, index) => {
-            if (index <= top20Index) item.priority = 'P1';
-            else if (index <= top60Index) item.priority = 'P2';
-            else item.priority = 'P3';
-        });
-    }
-
+    // Persist as temporary metadata for the View, will be committed later
     return flatList;
 }
 
@@ -274,16 +268,29 @@ export function commitEditalOrdering(editalId, rankedFlatList) {
     // Reorganiza os arrays `assuntos` baseados no Score
     edt.disciplinas.forEach(d => {
         const sortedItemsForDisc = grouped[d.id] || [];
-        // Mapeia o array original de assuntos pro ordenado
+        // Mapeia o array original de assuntos pro ordenado e insere a Relevância Real Preditiva!
         const newAssuntosArray = [];
         sortedItemsForDisc.forEach(sItem => {
             const originalAssunto = d.assuntos.find(a => a.id === sItem.assuntoId);
-            if (originalAssunto) newAssuntosArray.push(originalAssunto);
+            if (originalAssunto) {
+                // Persistent Injection
+                originalAssunto.relevance = {
+                    priority: sItem.priority,
+                    finalScore: sItem.finalScore,
+                    reason: sItem.reason,
+                    confidence: sItem.confidence
+                };
+                newAssuntosArray.push(originalAssunto);
+            }
         });
 
         // Se alguma coisa ficou de fora do rank (bug), adere no final pra não excluir dados
         d.assuntos.forEach(a => {
-            if (!newAssuntosArray.find(na => na.id === a.id)) newAssuntosArray.push(a);
+            if (!newAssuntosArray.find(na => na.id === a.id)) {
+                // Ensure default relevance to avoid null references
+                a.relevance = { priority: 'P3', finalScore: 0, reason: 'Não Rankeado', confidence: 'LOW' };
+                newAssuntosArray.push(a);
+            }
         });
 
         d.assuntos = newAssuntosArray;
@@ -302,8 +309,11 @@ export function revertEditalOrdering(editalId, disciplinaId) {
     const disc = edt.disciplinas.find(d => d.id === disciplinaId);
     if (!disc) return false;
 
-    // Sort Alfabético para perder a predição herdada (Ordem Default)
-    // Retira do DB qualquer tag de simulaçao persistente (se a gente passar a salvar no futuro)
+    // Retira do DB qualquer tag de simulaçao persistente da Wave 39 e limpa a ordem
+    disc.assuntos.forEach(a => {
+        delete a.relevance;
+    });
+
     disc.assuntos.sort((a, b) => a.nome.localeCompare(b.nome));
 
     scheduleSave();

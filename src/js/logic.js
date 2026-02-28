@@ -328,17 +328,17 @@ export function getPagesReadStats() {
 }
 
 export function getSyllabusProgress() {
-  let totalAssuntos = 0;
-  let totalConcluidos = 0;
+  let totalAulas = 0;
+  let aulasEstudadas = 0;
 
   state.editais.forEach(ed => {
     ed.disciplinas.forEach(d => {
-      totalAssuntos += d.assuntos.length;
-      totalConcluidos += d.assuntos.filter(a => a.concluido).length;
+      totalAulas += d.aulas ? d.aulas.length : 0;
+      aulasEstudadas += d.aulas ? d.aulas.filter(a => a.estudada).length : 0;
     });
   });
 
-  return { totalAssuntos, totalConcluidos };
+  return { totalAssuntos: totalAulas, totalConcluidos: aulasEstudadas };
 }
 
 export function getConsistencyStreak() {

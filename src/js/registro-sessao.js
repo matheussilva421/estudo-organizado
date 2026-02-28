@@ -409,16 +409,29 @@ export function onDisciplinaChange() {
   }
 
   const d = getDisc(discId);
-  if (!d || !d.disc.assuntos || d.disc.assuntos.length === 0) {
-    assSelect.innerHTML = '<option value="">Nenhum tópico cadastrado</option>';
+  if (!d || (d.disc.assuntos.length === 0 && (!d.disc.aulas || d.disc.aulas.length === 0))) {
+    assSelect.innerHTML = '<option value="">Nenhum alvo cadastrado</option>';
     return;
   }
 
-  const options = d.disc.assuntos.map(a => {
-    const status = a.concluido ? ' ✅' : '';
-    return `<option value="${a.id}">${esc(a.nome)}${status}</option>`;
-  });
-  assSelect.innerHTML = '<option value="">Selecione um tópico...</option>' + options.join('');
+  let html = '<option value="">Selecione um alvo...</option>';
+
+  const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
+  if (pendingAssuntos.length > 0) {
+    html += `<optgroup label="Tópicos do Edital (${pendingAssuntos.length})">`;
+    html += pendingAssuntos.map(a => `<option value="ass_${a.id}">${esc(a.nome)}</option>`).join('');
+    html += `</optgroup>`;
+  }
+
+  const aulas = d.disc.aulas || [];
+  const pendingAulas = aulas.filter(a => !a.estudada);
+  if (pendingAulas.length > 0) {
+    html += `<optgroup label="Meus Materiais/Aulas (${pendingAulas.length})">`;
+    html += pendingAulas.map(a => `<option value="aul_${a.id}">${esc(a.nome)}</option>`).join('');
+    html += `</optgroup>`;
+  }
+
+  assSelect.innerHTML = html;
 }
 
 export function addNovoTopico() {
@@ -512,19 +525,33 @@ export function saveRegistroSessao() {
   }
 
   const discId = document.getElementById('reg-disciplina')?.value;
-  const assId = document.getElementById('reg-assunto')?.value;
+  const rawTargetId = document.getElementById('reg-assunto')?.value;
 
-  if (isLivre && (!discId || !assId)) {
-    showToast('Em sessões livres, escolha uma Disciplina e um Tópico para vincular o tempo estudado', 'error'); return false;
+  let assId = '';
+  let aulaId = '';
+
+  if (rawTargetId) {
+    if (rawTargetId.startsWith('aul_')) aulaId = rawTargetId.substring(4);
+    else if (rawTargetId.startsWith('ass_')) assId = rawTargetId.substring(4);
+    else assId = rawTargetId;
+  }
+
+  if (isLivre && (!discId || !rawTargetId)) {
+    showToast('Em sessões livres, escolha uma Disciplina e um Alvo para vincular o tempo estudado', 'error'); return false;
   }
 
   // Se for Sessão Livre, cria um evento real permanente pro Histórico
-  if (isLivre && discId && assId) {
+  if (isLivre && discId && (assId || aulaId)) {
     const d = getDisc(discId);
     let assName = 'Tópico';
     if (d) {
-      const achado = d.disc.assuntos.find(a => a.id === assId);
-      if (achado) assName = achado.nome;
+      if (aulaId) {
+        const achado = d.disc.aulas?.find(a => a.id === aulaId);
+        if (achado) assName = achado.nome;
+      } else {
+        const achado = d.disc.assuntos?.find(a => a.id === assId);
+        if (achado) assName = achado.nome;
+      }
     }
     const evtReal = {
       id: 'ev_' + Date.now(),
@@ -533,7 +560,8 @@ export function saveRegistroSessao() {
       status: 'pendente', // Will turn 'estudei' down there
       dataEstudo: null,
       discId: discId,
-      assId: assId,
+      assId: assId || null,
+      aulaId: aulaId || null,
       tipoInfo: 'Sessão Livre',
       tempoAcumulado: Math.round(state.cronoLivre.tempoAcumulado || 0)
     };
@@ -593,8 +621,11 @@ export function saveRegistroSessao() {
     const d = getDisc(discId);
     if (d) {
       let titulo = d.disc.nome;
-      if (assId) {
-        const ass = d.disc.assuntos.find(a => a.id === assId);
+      if (aulaId) {
+        const aula = d.disc.aulas?.find(a => a.id === aulaId);
+        if (aula) titulo += ' — ' + aula.nome;
+      } else if (assId) {
+        const ass = d.disc.assuntos?.find(a => a.id === assId);
         if (ass) titulo += ' — ' + ass.nome;
       }
       ev.titulo = titulo;
@@ -615,15 +646,22 @@ export function saveRegistroSessao() {
     modo: _sessionMode,
   };
 
-  // Topic progress: mark as concluded if "finalizado"
-  if (statusTopico === 'finalizado' && discId && assId) {
+  // Progress: mark as concluded
+  if (statusTopico === 'finalizado' && discId) {
     const d = getDisc(discId);
     if (d) {
-      const ass = d.disc.assuntos.find(a => a.id === assId);
-      if (ass && !ass.concluido) {
-        ass.concluido = true;
-        ass.dataConclusao = todayStr();
-        ass.revisoesFetas = [];
+      if (aulaId) {
+        const achadoAula = d.disc.aulas?.find(a => a.id === aulaId);
+        if (achadoAula && !achadoAula.estudada) {
+          achadoAula.estudada = true;
+        }
+      } else if (assId) {
+        const ass = d.disc.assuntos?.find(a => a.id === assId);
+        if (ass && !ass.concluido) {
+          ass.concluido = true;
+          ass.dataConclusao = todayStr();
+          ass.revisoesFetas = [];
+        }
       }
     }
   }

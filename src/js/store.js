@@ -9,7 +9,7 @@ export const DB_VERSION = 1;
 export const STORE_NAME = 'app_state';
 
 export let db;
-export const DEFAULT_SCHEMA_VERSION = 6;
+export const DEFAULT_SCHEMA_VERSION = 7;
 
 export function setState(newState) {
   const normalized = {
@@ -51,7 +51,7 @@ export let state = {
     materiasPorDia: 3
   },
   cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
-  bancaRelevance: { hotTopics: [], userMappings: {} },
+  bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
   driveFileId: null,
   lastSync: null
 };
@@ -289,6 +289,53 @@ export function runMigrations() {
     }
     if (!state.habitos.videoaula) state.habitos.videoaula = [];
     if (!state.habitos.sumula) state.habitos.sumula = [];
+  }
+
+  // Wave 39: Separation between Assuntos (Edital Topics) and Aulas (Course Materials)
+  if (state.schemaVersion < 7) {
+    if (!state.bancaRelevance) state.bancaRelevance = { hotTopics: [], userMappings: {}, lessonMappings: {} };
+    if (!state.bancaRelevance.lessonMappings) state.bancaRelevance.lessonMappings = {};
+
+    const classRegex = /(^aula\s*\d+)|(^modulo\s*\d+)/i;
+    
+    state.editais.forEach(ed => {
+      ed.disciplinas.forEach(d => {
+        if (!d.aulas) d.aulas = []; // Initialize aulas array
+        
+        // Ensure reverse link exists on old items
+        d.assuntos.forEach(a => {
+            if (!a.linkedAulaIds) a.linkedAulaIds = [];
+        });
+
+        // Scan for lesson-like topics and migrate them
+        const remainingAssuntos = [];
+        d.assuntos.forEach(ass => {
+          if (classRegex.test(ass.nome.trim())) {
+            // Is a lesson! Move to disc.aulas
+            const newAula = {
+              id: 'aula_' + uid(),
+              legacyAssid: ass.id, // For tracking
+              nome: ass.nome,
+              descricao: ass.descricao || '',
+              estudada: !!ass.concluido,
+              dataEstudo: ass.dataConclusao || null,
+              progress: 0,
+              linkedAssuntoIds: [], // Will be populated by ML Mapping
+              _migratedFromV6: true
+            };
+            d.aulas.push(newAula);
+          } else {
+            // It is an actual Subject topic, keep it in assuntos
+            remainingAssuntos.push(ass);
+          }
+        });
+        
+        d.assuntos = remainingAssuntos;
+      });
+    });
+
+    state.schemaVersion = 7;
+    changed = true;
   }
 
   if (changed) scheduleSave();
