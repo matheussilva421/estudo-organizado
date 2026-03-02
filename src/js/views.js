@@ -3633,8 +3633,17 @@ export function toggleCfSync(enabled) {
   }
 
   state.config.cfSyncSyncEnabled = enabled;
-  scheduleSave();
-  renderCurrentView();
+
+  if (enabled && typeof window.forceCloudflareSync === 'function') {
+    if (typeof showToast === 'function') showToast('Conectando à nuvem para sincronizar...', 'info');
+    window.forceCloudflareSync().finally(() => {
+      scheduleSave();
+      renderCurrentView();
+    });
+  } else {
+    scheduleSave();
+    renderCurrentView();
+  }
 }
 
 export function updateFrequencia(value) {
