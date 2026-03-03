@@ -141,6 +141,9 @@ export function discardTimer(eventId) {
   document.dispatchEvent(new CustomEvent('app:showConfirm', {
     detail: {
       msg: 'Descartar esta sessão? O tempo de estudo será zerado.',
+      title: 'Descartar Sessão',
+      label: 'Descartar',
+      danger: true,
       onYes: () => {
         if (timerIntervals[eventId]) {
           clearInterval(timerIntervals[eventId]);
@@ -150,8 +153,7 @@ export function discardTimer(eventId) {
         delete ev._timerStart;
         scheduleSave();
         document.dispatchEvent(new Event('app:renderCurrentView'));
-      },
-      opts: { danger: true, label: 'Descartar', title: 'Descartar Sessão' }
+      }
     }
   }));
 }
@@ -446,14 +448,16 @@ export function getCurrentWeekStats() {
   const dailySeconds = [0, 0, 0, 0, 0, 0, 0];
 
   state.eventos.forEach(ev => {
-    if (ev.status === 'estudei' && ev.dataEstudo >= startStr && ev.dataEstudo <= endStr) {
+    // Use dataEstudo if available, fallback to ev.data for older events
+    const studyDate = ev.dataEstudo || ev.data;
+    if (ev.status === 'estudei' && studyDate >= startStr && studyDate <= endStr) {
       const elapsed = ev.tempoAcumulado || 0;
       totalSeconds += elapsed;
       if (ev.sessao && ev.sessao.questoes) {
         totalQuestions += (ev.sessao.questoes.total || ev.sessao.questoes.acertos + ev.sessao.questoes.erros || 0);
       }
 
-      const evDate = new Date(ev.dataEstudo + 'T00:00:00');
+      const evDate = new Date(studyDate + 'T00:00:00');
       let dIndex = evDate.getDay() - primeirodiaSemana;
       if (dIndex < 0) dIndex += 7;
       dailySeconds[dIndex] += elapsed;

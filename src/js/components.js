@@ -225,6 +225,18 @@ export function renderCurrentView() {
     window._discChartInstance = null;
   }
 
+  // Clean up analytics dashboard charts when leaving dashboard
+  if (currentView !== 'dashboard') {
+    if (typeof window._chartDaily !== 'undefined' && window._chartDaily) {
+      window._chartDaily.destroy();
+      window._chartDaily = null;
+    }
+    if (typeof window._chartDisc !== 'undefined' && window._chartDisc) {
+      window._chartDisc.destroy();
+      window._chartDisc = null;
+    }
+  }
+
   const el = document.getElementById('content');
   if (!el) return;
   const titles = {

@@ -241,7 +241,7 @@ export function renderHome(el) {
           
           <div style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:6px;">
-              <span style="font-family:'DM Mono',monospace;">${formatTime(weekStats.totalSeconds).slice(0, 5)}/${metaHoras}h00min</span>
+              <span style="font-family:'DM Mono',monospace;">${Math.floor(weekStats.totalSeconds / 3600).toString().padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60).toString().padStart(2, '0')}/${metaHoras}h00min</span>
               <span>Horas de Estudo</span>
             </div>
             <div class="dash-progress-track">
@@ -286,7 +286,7 @@ export function renderHome(el) {
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text-secondary);margin-top:12px;">
-            <div style="width:8px;height:8px;background:var(--accent);border-radius:2px;"></div> Total Estudado: ${formatTime(weekStats.totalSeconds).slice(0, 5)}min
+            <div style="width:8px;height:8px;background:var(--accent);border-radius:2px;"></div> Total Estudado: ${Math.floor(weekStats.totalSeconds / 3600).toString().padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60).toString().padStart(2, '0')}h
           </div>
         </div>
 
