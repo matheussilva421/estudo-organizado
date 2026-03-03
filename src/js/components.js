@@ -219,6 +219,12 @@ export function renderCurrentView() {
     window._cronoInterval = null;
   }
 
+  // Clean up disc dashboard chart when leaving editais
+  if (currentView !== 'editais' && window._discChartInstance) {
+    window._discChartInstance.destroy();
+    window._discChartInstance = null;
+  }
+
   const el = document.getElementById('content');
   if (!el) return;
   const titles = {

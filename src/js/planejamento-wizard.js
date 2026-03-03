@@ -214,7 +214,7 @@ function validateStep(step) {
     if (step === 4) {
         const min = parseInt(draft.horarios.sessaoMin, 10) || 0;
         const max = parseInt(draft.horarios.sessaoMax, 10) || 0;
-        if (min < 1 || max < min) return false;
+        if (min < 1 || max <= min) return false;
 
         if (draft.tipo === 'ciclo') {
             const hs = parseFloat(draft.horarios.horasSemanais) || 0;

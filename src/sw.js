@@ -27,17 +27,24 @@ self.addEventListener('install', (evt) => {
             return cache.addAll(ASSETS);
         })
     );
+    // Force this SW to become active immediately (don't wait for old SW to die)
+    self.skipWaiting();
 });
 
 // Activate Event (Delete old caches)
 self.addEventListener('activate', (evt) => {
     evt.waitUntil(
-        caches.keys().then((keys) => {
-            return Promise.all(keys
-                .filter(key => key !== CACHE_NAME)
-                .map(key => caches.delete(key))
-            );
-        })
+        Promise.all([
+            // Delete old caches
+            caches.keys().then((keys) => {
+                return Promise.all(keys
+                    .filter(key => key !== CACHE_NAME)
+                    .map(key => caches.delete(key))
+                );
+            }),
+            // Claim all open clients so they switch to this SW immediately
+            self.clients.claim()
+        ])
     );
 });
 

@@ -299,6 +299,31 @@ export function renderHome(el) {
 // =============================================
 // MED VIEW
 // =============================================
+
+// Shared stats row builder — eliminates duplication between renderMED and refreshMEDSections
+function buildMEDStatsHTML(estudados, agendados) {
+  const totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+  const best = estudados.length > 0
+    ? estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a)
+    : null;
+  return `
+    <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+      <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tempo Total Hoje</div>
+      <div style="font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);" id="total-time">${formatTime(totalSeconds)}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) concluido(s)</div>
+    </div>
+    <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+      <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes</div>
+      <div style="font-size:32px;font-weight:800;color:var(--blue);">${agendados.length}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">evento(s) para hoje</div>
+    </div>
+    <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+      <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Maior Foco</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-top:8px;">${best ? esc(best.titulo || 'N/A') : '\u2014'}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${best ? formatTime(best.tempoAcumulado || 0) : ''}</div>
+    </div>`;
+}
+
 export function renderMED(el) {
   const today = todayStr();
   const todayEvents = state.eventos.filter(e => e.data === today);
@@ -307,28 +332,10 @@ export function renderMED(el) {
   const totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
 
   el.innerHTML = `
-        <div id="med-stats-row" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
-      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tempo Total Hoje</div>
-        <div style="font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);" id="total-time">${formatTime(totalSeconds)}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) concluido(s)</div>
-      </div>
-      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes</div>
-        <div style="font-size:32px;font-weight:800;color:var(--blue);">${agendados.length}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">evento(s) para hoje</div>
-      </div>
-      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Maior Foco</div>
-        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-top:8px;">
-          ${estudados.length > 0 ? (() => {
-      const best = estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a);
-      return esc(best.titulo || 'N/A');
-    })() : '—'}
-        </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length > 0 ? formatTime(estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a).tempoAcumulado || 0) : ''}</div>
-      </div>
+    <div id="med-stats-row" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+      ${buildMEDStatsHTML(estudados, agendados)}
     </div>
+
 
         ${agendados.length === 0 && estudados.length === 0 ? `
       <div class="empty-state" style="padding:60px 20px;">
@@ -372,48 +379,25 @@ export function refreshMEDSections() {
   const todayEvents = state.eventos.filter(e => e.data === today);
   const agendados = todayEvents.filter(e => e.status !== 'estudei');
   const estudados = todayEvents.filter(e => e.status === 'estudei');
-  const totalSecs = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
 
   const statsRow = document.getElementById('med-stats-row');
-  if (statsRow) {
-    statsRow.innerHTML = `
-        <div class="card" style = "flex:1;min-width:200px;padding:20px;text-align:center;" >
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tempo Total Hoje</div>
-        <div style="font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);" id="total-time">${formatTime(totalSecs)}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) concluido(s)</div>
-      </div>
-      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes</div>
-        <div style="font-size:32px;font-weight:800;color:var(--blue);">${agendados.length}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">evento(s) para hoje</div>
-      </div>
-      <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Maior Foco</div>
-        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-top:8px;">
-          ${estudados.length > 0 ? esc(estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a).titulo || 'N/A') : '—'}
-        </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
-          ${estudados.length > 0 ? formatTime(estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a).tempoAcumulado || 0) : ''}
-        </div>
-      </div>`;
-  }
+  if (statsRow) statsRow.innerHTML = buildMEDStatsHTML(estudados, agendados);
 
   const secAgendado = document.getElementById('med-section-agendado');
   if (secAgendado) {
     secAgendado.innerHTML = agendados.length > 0
-      ? `<div class="section-header" > <h2>📌 Agendado para Hoje</h2></div> ${agendados.map(e => renderEventCard(e)).join('')} `
+      ? `<div class="section-header"><h2>📌 Agendado para Hoje</h2></div> ${agendados.map(e => renderEventCard(e)).join('')}`
       : '';
   }
 
   const secEstudado = document.getElementById('med-section-estudado');
   if (secEstudado) {
     secEstudado.innerHTML = estudados.length > 0
-      ? `<div class="section-header" style = "margin-top:24px;" > <h2>✅ Estudado Hoje</h2></div> ${estudados.map(e => renderEventCard(e)).join('')} `
+      ? `<div class="section-header" style="margin-top:24px;"><h2>✅ Estudado Hoje</h2></div> ${estudados.map(e => renderEventCard(e)).join('')}`
       : '';
   }
 
   reattachTimers();
-  //updateBadges();
 }
 
 export function removeDOMCard(eventId) {
@@ -1268,6 +1252,11 @@ export function deleteHabito(tipo, id) {
 // =============================================
 
 
+export let vertFilterEdital = '';
+export let vertFilterStatus = 'todos';
+export let vertSearch = '';
+export let _vertSearchDebounce = null;
+
 export function onVertSearch(val) {
   vertSearch = val;
   clearTimeout(_vertSearchDebounce);
@@ -1281,10 +1270,6 @@ export function onVertSearch(val) {
     }
   }, 200);
 }
-export let vertFilterEdital = '';
-export let vertFilterStatus = 'todos';
-export let vertSearch = '';
-export let _vertSearchDebounce = null;
 
 window.setVertFilterStatus = function (s) { vertFilterStatus = s; };
 window.setVertFilterEdital = function (e) { vertFilterEdital = e; };
