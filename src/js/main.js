@@ -82,6 +82,7 @@ document.addEventListener('app:eventoDeleted', (e) => {
 // CENTRAL EVENT DELEGATION (Etapa 2 - JS Quality)
 // ============================================================
 document.addEventListener('click', (e) => {
+  if (!(e.target instanceof Element)) return;
   const el = e.target.closest('[data-action]');
   if (!el) return;
 
@@ -144,7 +145,7 @@ document.addEventListener('click', (e) => {
       if (typeof window.deletePlanejamento === 'function') window.deletePlanejamento();
       break;
     case 'remover-ciclo':
-      window.removerCiclo();
+      if (typeof window.removerCiclo === 'function') window.removerCiclo();
       break;
     case 'toggle-ciclo-fin':
       window.toggleCicloFin(el.checked);
