@@ -1,5 +1,4 @@
 import { renderCurrentView } from './components.js';
-import { openAddEventModal, openEditaModal } from './views.js';
 import { initDB, scheduleSave, state } from './store.js';
 import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js';
 import { todayStr, esc } from './utils.js';

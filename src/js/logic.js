@@ -216,17 +216,6 @@ export function deleteEvento(eventId) {
   }));
 }
 
-export function totalStudySeconds(days = null) {
-  const cutoffStr = days ? cutoffDateStr(days) : null;
-  return state.eventos
-    .filter(e => {
-      if (e.status !== 'estudei' || !e.tempoAcumulado) return false;
-      const studyDate = e.dataEstudo || e.data;
-      return !cutoffStr || (studyDate && studyDate >= cutoffStr);
-    })
-    .reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
-}
-
 // =============================================
 // REVISIONS
 // =============================================
@@ -788,8 +777,6 @@ window.desfazerEtapa = function (seqId) {
     syncCicloToEventos();
     scheduleSave();
     document.dispatchEvent(new Event('app:renderCurrentView'));
-    // Trigger modal close
-    document.dispatchEvent(new CustomEvent('click', { detail: 'navigate-mock-close' })); // mock
     const m = document.getElementById('modal-ciclo-history');
     if (m) m.classList.remove('open');
   }

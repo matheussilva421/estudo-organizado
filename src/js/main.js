@@ -82,6 +82,7 @@ document.addEventListener('app:eventoDeleted', (e) => {
 // CENTRAL EVENT DELEGATION (Etapa 2 - JS Quality)
 // ============================================================
 document.addEventListener('click', (e) => {
+  if (!(e.target instanceof Element)) return;
   const el = e.target.closest('[data-action]');
   if (!el) return;
 
