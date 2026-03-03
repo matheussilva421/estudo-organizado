@@ -3482,11 +3482,11 @@ export function renderConfig(el) {
             </div>
             
             <div style="margin-top:16px; display:flex; align-items:center; gap:8px;">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;" class="btn ${cfg.cfSyncSyncEnabled ? 'btn-primary' : 'btn-outline'}">
-                    <input type="checkbox" id="config-cf-enabled" onchange="window.toggleCfSync(this.checked)" style="display:none;" ${cfg.cfSyncSyncEnabled ? 'checked' : ''}>
-                    <i class="fa fa-power-off"></i> <span id="cf-sync-toggle-text">${cfg.cfSyncSyncEnabled ? 'Sincronização Ativada' : 'Ativar Sincronização'}</span>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;" class="btn ${cfg.cfSyncEnabled ? 'btn-primary' : 'btn-outline'}">
+                    <input type="checkbox" id="config-cf-enabled" onchange="window.toggleCfSync(this.checked)" style="display:none;" ${cfg.cfSyncEnabled ? 'checked' : ''}>
+                    <i class="fa fa-power-off"></i> <span id="cf-sync-toggle-text">${cfg.cfSyncEnabled ? 'Sincronização Ativada' : 'Ativar Sincronização'}</span>
                 </label>
-                <button type="button" class="btn btn-outline" onclick="if(window.forceCloudflareSync) window.forceCloudflareSync()" id="btn-force-cf-sync" style="display: ${cfg.cfSyncSyncEnabled ? 'inline-flex' : 'none'};"><i class="fa fa-sync"></i> Forçar Sincronização Agora</button>
+                <button type="button" class="btn btn-outline" onclick="if(window.forceCloudflareSync) window.forceCloudflareSync()" id="btn-force-cf-sync" style="display: ${cfg.cfSyncEnabled ? 'inline-flex' : 'none'};"><i class="fa fa-sync"></i> Forçar Sincronização Agora</button>
             </div>
             <p id="cf-sync-status" style="margin-top:12px; font-size:13px; font-weight:600;"></p>
           </div>
@@ -3526,7 +3526,7 @@ export function renderConfig(el) {
             <div class="config-row">
               <div>
                 <div class="config-label">Notificações do browser</div>
-                <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '­ƒÜ½ Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
+                <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '🚫 Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
               </div>
               ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
                 <button class="btn btn-primary btn-sm" onclick="Notification.requestPermission().then(p=>{if(p==='granted')showToast('Notificações ativadas!','success');renderCurrentView()})">🔖 Ativar</button>
@@ -3619,7 +3619,7 @@ export function toggleCfSync(enabled) {
     }
   }
 
-  state.config.cfSyncSyncEnabled = enabled;
+  state.config.cfSyncEnabled = enabled;
 
   if (enabled && typeof window.forceCloudflareSync === 'function') {
     if (typeof showToast === 'function') showToast('Conectando à nuvem para sincronizar...', 'info');
@@ -3721,7 +3721,7 @@ export function importData() {
           { label: 'Importar', title: 'Importar dados' }
         );
       } catch (err) {
-        showToast('Arquivo inválido! Verifique se î um JSON de backup do Estudo Organizado.', 'error');
+        showToast('Arquivo inválido! Verifique se é um JSON de backup do Estudo Organizado.', 'error');
       }
     };
     reader.readAsText(file);
