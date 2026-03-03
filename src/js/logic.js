@@ -216,6 +216,18 @@ export function deleteEvento(eventId) {
   }));
 }
 
+
+export function totalStudySeconds(days = null) {
+  const cutoffStr = days ? cutoffDateStr(days) : null;
+  return state.eventos
+    .filter(e => {
+      if (e.status !== 'estudei' || !e.tempoAcumulado) return false;
+      const studyDate = e.dataEstudo || e.data;
+      return !cutoffStr || (studyDate && studyDate >= cutoffStr);
+    })
+    .reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+}
+
 // =============================================
 // REVISIONS
 // =============================================

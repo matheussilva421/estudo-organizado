@@ -412,3 +412,12 @@ export function toggleCicloFin(checked) {
   window._hideConcluidosCiclo = checked;
   if (currentView === 'ciclo') renderCurrentView();
 }
+
+// Compat layer for legacy ciclo actions that may still exist in older markup/branches.
+export function removerCiclo() {
+  showConfirm('Tem certeza que deseja apagar todo o Ciclo Atual? Seu histórico de Ciclos Completos será perdido.', () => {
+    state.ciclo = { ativo: false, ciclosCompletos: 0, disciplinas: [] };
+    scheduleSave();
+    if (currentView === 'ciclo') renderCurrentView();
+  }, { danger: true, title: 'Remover Ciclo' });
+}
