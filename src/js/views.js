@@ -1795,7 +1795,7 @@ export function renderDisciplinaDashboard(edital, disc) {
   let pagLidas = 0;
 
   tempos.forEach(e => {
-    tempoTotal += e.tempoEstudado || 0;
+    tempoTotal += e.tempoAcumulado || 0;
     if (e.questoes) {
       qCertas += e.questoes.certas || 0;
       qErradas += e.questoes.erradas || 0;
@@ -1920,7 +1920,7 @@ function renderHistoricoDisciplina(tempos) {
               <tbody>
                 ${reverseTempos.map(t => {
     const dateStr = formatDate(t.data);
-    const tempoStr = formatTime(t.tempoEstudado || 0).substring(0, 5);
+    const tempoStr = formatTime(t.tempoAcumulado || 0).substring(0, 5);
     const qs = t.questoes || { certas: 0, erradas: 0 };
     const totQs = qs.certas + qs.erradas;
     const perc = totQs > 0 ? Math.round((qs.certas / totQs) * 100) : 0;
@@ -2031,7 +2031,7 @@ function renderBancaDisciplinaDashboard(edital, disc) {
             A inteligência da prova injetou prioridades (P1 e P2) diretamente na sua janela de <strong>Tópicos do Edital</strong>. Veja as marcações em chamas 🔥 ao lado dos tópicos que demandam mais a sua atenção.
          </div>
          
-         <button class="btn btn-outline" style="width:100%; border-color:var(--accent); color:var(--accent);" onclick="window.navigate('inteligencia_banca')">
+         <button class="btn btn-outline" style="width:100%; border-color:var(--accent); color:var(--accent);" onclick="window.navigate('banca-analyzer')">
             Abrir Analisador Preditivo
          </button>
        </div>
