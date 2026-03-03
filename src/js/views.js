@@ -1361,7 +1361,7 @@ window.saveEditSeq = () => {
   }
 
   state.planejamento.sequencia = window._tempSequencia;
-  syncCicloToEventos(state.planejamento);
+  syncCicloToEventos();
   scheduleSave();
 
   window._isEditingSequence = false;

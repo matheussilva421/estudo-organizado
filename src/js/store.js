@@ -342,17 +342,6 @@ export function runMigrations() {
   // archiveOldEvents removido do boot — disponível manualmente em Configurações
 }
 
-
-
-
-
-
-
-
-
-
-
-
 // Clean up state (called by clearAllData in views.js which already double-confirms)
 export function clearData() {
   setState({
