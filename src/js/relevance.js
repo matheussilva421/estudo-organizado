@@ -243,6 +243,9 @@ export function applyRankingToEdital(editalId) {
     // Ordena do Maior Score pro Menor
     flatList.sort((a, b) => b.finalScore - a.finalScore);
 
+    const top20Index = Math.max(0, Math.floor(flatList.length * 0.2) - 1);
+    const top60Index = Math.max(0, Math.floor(flatList.length * 0.6) - 1);
+
     flatList.forEach((item, index) => {
         if (index <= top20Index) item.priority = 'P1';
         else if (index <= top60Index) item.priority = 'P2';

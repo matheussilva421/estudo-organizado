@@ -419,13 +419,11 @@ export function getSubjectStats() {
 
 export function getCurrentWeekStats() {
   // Determine start of current week (Monday or Sunday based on JS defaults vs config)
-  // Assuming start of week is Sunday (0) or Monday (1)
-  const today = new Date();
+  const now = new Date();
   const primeirodiaSemana = state.config.primeirodiaSemana || 1;
-  const day = today.getDay();
-  const diff = today.getDate() - day + (day === 0 && primeirodiaSemana === 1 ? -6 : (primeirodiaSemana === 1 ? 1 : 0));
-  const startOfWeek = new Date(today.setDate(diff));
-  startOfWeek.setHours(0, 0, 0, 0);
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 && primeirodiaSemana === 1 ? -6 : (primeirodiaSemana === 1 ? 1 : 0));
+  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
 
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(endOfWeek.getDate() + 6);
@@ -527,7 +525,8 @@ export function getPredictiveStats(metaHoras) {
     suggestion,
     projectedSeconds,
     targetSeconds,
-    burnRate: burnRateSecs
+    burnRate: burnRateSecs,
+    daysRemaining
   };
 }
 
@@ -800,7 +799,7 @@ window.editCicloSeqHours = function (idx) {
   if (novaStr === null) return;
 
   const novaHoras = parseFloat(novaStr.replace(',', '.'));
-  if (isNaN(novaHoras) || novaHoras <= 0) return alert('Valor inválido. Digite um número maior que zero.');
+  if (isNaN(novaHoras) || novaHoras <= 0) { document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Valor inválido. Digite um número maior que zero.', type: 'error' } })); return; }
 
   seqItem.minutosAlvo = Math.round(novaHoras * 60);
 

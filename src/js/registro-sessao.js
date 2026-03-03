@@ -641,6 +641,7 @@ export function saveRegistroSessao() {
     videoaula,
     statusTopico,
     comentarios: document.getElementById('reg-comentarios')?.value.trim() || '',
+    observacoes: document.getElementById('reg-observacao')?.value.trim() || '',
     horaInicio: _sessionStartTime ? _sessionStartTime.toTimeString().slice(0, 8) : null,
     horaFim: _sessionEndTime ? _sessionEndTime.toTimeString().slice(0, 8) : null,
     modo: _sessionMode,

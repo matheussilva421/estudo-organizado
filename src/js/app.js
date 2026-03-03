@@ -143,7 +143,7 @@ export function init() {
     initNotifications();
 
     // Primeira Sincronização: Cloudflare (Primária Rápida)
-    if (state.config && state.config.cfSyncSyncEnabled && typeof pullFromCloudflare === 'function') {
+    if (state.config && state.config.cfSyncSyncEnabled) {
       try {
         await pullFromCloudflare();
       } catch (e) {

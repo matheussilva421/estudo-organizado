@@ -1350,12 +1350,12 @@ window.toggleEditSeq = () => {
 
 window.saveEditSeq = () => {
   if (!window._tempSequencia || window._tempSequencia.length === 0) {
-    alert("A sequência de estudos não pode ficar vazia.");
+    showToast("A sequência de estudos não pode ficar vazia.", "error");
     return;
   }
   for (let s of window._tempSequencia) {
     if (!s.discId) {
-      alert("Por favor, selecione uma disciplina para todas as etapas antes de salvar.");
+      showToast("Por favor, selecione uma disciplina para todas as etapas antes de salvar.", "error");
       return;
     }
   }

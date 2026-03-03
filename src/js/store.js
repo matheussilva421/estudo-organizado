@@ -208,7 +208,7 @@ export function saveStateToDB() {
       document.dispatchEvent(new Event('stateSaved'));
 
       // Cascata de Sincronização: Local -> Cloudflare
-      if (state.config && state.config.cfSyncSyncEnabled && typeof pushToCloudflare === 'function') {
+      if (state.config && state.config.cfSyncSyncEnabled) {
         SyncQueue.add(() => pushToCloudflare());
       }
 
@@ -353,35 +353,25 @@ export function runMigrations() {
 
 
 
-
-
-// Clean up state
+// Clean up state (called by clearAllData in views.js which already double-confirms)
 export function clearData() {
-  document.dispatchEvent(new CustomEvent('app:showConfirm', {
-    detail: {
-      msg: 'Tem certeza que deseja apagar TODOS os seus dados? Esta ação não pode ser desfeita.',
-      onYes: () => {
-        setState({
-          schemaVersion: DEFAULT_SCHEMA_VERSION,
-          ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
-          planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
-          editais: [],
-          eventos: [],
-          arquivo: [],
-          habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] },
-          revisoes: [],
-          config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90] },
-          cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
-          bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
-          driveFileId: null,
-          lastSync: null
-        });
-        saveStateToDB().then(() => {
-          document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Dados apagados com sucesso.', type: 'info' } }));
-          document.dispatchEvent(new Event('app:renderCurrentView'));
-        });
-      },
-      opts: { danger: true, label: 'Apagar tudo', title: 'Atenção' }
-    }
-  }));
+  setState({
+    schemaVersion: DEFAULT_SCHEMA_VERSION,
+    ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
+    planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
+    editais: [],
+    eventos: [],
+    arquivo: [],
+    habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] },
+    revisoes: [],
+    config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90] },
+    cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
+    bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
+    driveFileId: null,
+    lastSync: null
+  });
+  saveStateToDB().then(() => {
+    document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Dados apagados com sucesso.', type: 'info' } }));
+    document.dispatchEvent(new Event('app:renderCurrentView'));
+  });
 }
