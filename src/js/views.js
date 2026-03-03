@@ -4149,7 +4149,7 @@ export function renderCiclo(el) {
                    <button class="btn btn-ghost btn-sm" onclick="window.toggleEditSeq()" style="color:var(--text-muted); font-size:11px; padding:4px 8px;"><i class="fa fa-pencil"></i> Editar Sequência</button>
                  ` : ''}
                  <label style="cursor:pointer; display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:var(--text-muted);">
-                   <input type="checkbox" onchange="window.toggleCicloFin(this.checked)" ${window._hideConcluidosCiclo ? 'checked' : ''} style="cursor:pointer; accent-color:var(--accent); width:14px; height:14px;"> FINALIZADOS
+                   <input type="checkbox" data-action="toggle-ciclo-fin" ${window._hideConcluidosCiclo ? 'checked' : ''} style="cursor:pointer; accent-color:var(--accent); width:14px; height:14px;"> FINALIZADOS
                  </label>
                </div>
             </div>
