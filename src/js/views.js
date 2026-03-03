@@ -4201,7 +4201,11 @@ export function renderCiclo(el) {
 
         document.getElementById('filete-linear-ciclo').innerHTML = linearHtml;
 
-        new Chart(ctx, {
+        if (window._planjChartInstance) {
+          window._planjChartInstance.destroy();
+          window._planjChartInstance = null;
+        }
+        window._planjChartInstance = new Chart(ctx, {
           type: 'doughnut',
           data: {
             labels: labels,
@@ -4247,7 +4251,7 @@ export function renderCiclo(el) {
         weeklyHtml += `
             <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px;">
                <div style="font-weight:700; margin-bottom:8px;">${days[i]}</div>
-               <div style="color:var(--text-muted); font-size:13px;">${plan.horarios.horasPorDia[i]} horas planejadas</div>
+               <div style="color:var(--text-muted); font-size:13px;">${(() => { const hm = plan.horarios.horasPorDia[i]; if (!hm || !hm.includes(':')) return hm || '?'; const [h, m] = hm.split(':'); const hi = parseInt(h, 10); const mi = parseInt(m, 10); return hi > 0 ? (mi > 0 ? `${hi}h${String(mi).padStart(2, '0')}min` : `${hi}h`) : `${mi}min`; })()} planejadas</div>
             </div>
           `;
       }

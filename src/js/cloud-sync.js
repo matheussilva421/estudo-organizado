@@ -13,8 +13,8 @@ function updateSyncStatus(msg, isError = false) {
 
 function getSyncConfig() {
     if (!state || !state.config) return null;
-    const { cfUrl, cfToken, cfSyncSyncEnabled } = state.config;
-    if (cfSyncSyncEnabled && cfUrl && cfToken) {
+    const { cfUrl, cfToken, cfSyncEnabled } = state.config;
+    if (cfSyncEnabled && cfUrl && cfToken) {
         return { url: cfUrl, token: cfToken };
     }
     return null;
