@@ -72,19 +72,6 @@ export function cancelConfirm() {
   closeModal('modal-confirm');
 }
 
-// Previne que modais e selects fiquem espremidos se teclado subir em mobile
-window.addEventListener('resize', () => {
-  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
-    // maybe scroll into view
-  }
-});
-
-// Listener Global Desacoplado p/ Módulos Externos soltarem Toasts na UI
-document.addEventListener('app:showToast', (e) => {
-  if (e.detail && e.detail.msg) {
-    showToast(e.detail.msg, e.detail.type || 'info');
-  }
-});
 
 // Toast Notifications
 export function showToast(msg, type = '') {
@@ -420,19 +407,9 @@ export function removerCiclo() {
   }, { danger: true, title: 'Remover Ciclo' });
 }
 
-export function recomecarCiclo() {
-  showConfirm('Isto irá zerar o tempo estudado de todas as disciplinas do ciclo atual, mantendo a ordem e as disciplinas intactas.', () => {
-    if (state.ciclo && state.ciclo.disciplinas) {
-      state.ciclo.disciplinas.forEach(d => {
-        d.estudadoMin = 0;
-        d.concluido = false;
-      });
-      scheduleSave();
-      if (currentView === 'ciclo') renderCurrentView();
-      showToast('Ciclo reiniciado com sucesso!', 'success');
-    }
-  });
-}
+// recomecarCiclo is defined inside renderCiclo() in views.js
+// and assigned to window.recomecarCiclo — it operates on state.planejamento
+
 
 export function toggleCicloFin(checked) {
   window._hideConcluidosCiclo = checked;

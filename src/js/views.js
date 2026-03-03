@@ -527,7 +527,7 @@ export function renderCalendarMonth() {
     const show = dayEvents.slice(0, 3);
     const more = dayEvents.length - 3;
     return `
-          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" onclick="calClickDay('${ds}')">
+          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" onclick="openAddEventModalDate('${ds}')">
             <div class="cal-date">${cell.date.getDate()}</div>
             ${show.map(e => {
       const st = getEventStatus(e);
@@ -589,9 +589,7 @@ export function renderCalendarWeek() {
   `;
 }
 
-export function calClickDay(dateStr) {
-  openAddEventModalDate(dateStr);
-}
+// calClickDay removed — inline calls use openAddEventModalDate directly
 
 export function openAddEventModalDate(dateStr) {
   openAddEventModal(dateStr);
@@ -1296,7 +1294,7 @@ export function deleteHabito(tipo, id) {
 // =============================================
 // EDITAIS VIEW
 // =============================================
-export let _vertSearchDebounce = null;
+
 
 export function onVertSearch(val) {
   vertSearch = val;
@@ -1314,6 +1312,7 @@ export function onVertSearch(val) {
 export let vertFilterEdital = '';
 export let vertFilterStatus = 'todos';
 export let vertSearch = '';
+export let _vertSearchDebounce = null;
 
 window.setVertFilterStatus = function (s) { vertFilterStatus = s; };
 window.setVertFilterEdital = function (e) { vertFilterEdital = e; };
@@ -1337,9 +1336,7 @@ export function getFilteredVertItems() {
   return items;
 }
 
-window.verResumoSimulado = (simId) => {
-  // Lógica descontinuada
-};
+// verResumoSimulado removida — funcionalidade descontinuada
 
 window.toggleEditSeq = () => {
   window._isEditingSequence = !window._isEditingSequence;
@@ -3607,7 +3604,7 @@ export function setTheme(themeName) {
 
 export function updateConfig(key, value) {
   state.config[key] = value;
-  if (key === 'materiasPorDia' && typeof syncCicloToEventos === 'function') {
+  if (key === 'materiasPorDia') {
     syncCicloToEventos();
   }
   scheduleSave();

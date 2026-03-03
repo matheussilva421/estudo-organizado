@@ -1,57 +1,10 @@
 import { state, scheduleSave } from './store.js';
-import { tokenize } from './relevance.js';
+import { tokenize, levenshteinDistance, fuzzySimiliarity, computeTokenMatch } from './relevance.js';
 
 // =============================================
 // Motor de Link Automático (Aulas -> Assuntos)
 // =============================================
 
-// Distância de Levenshtein Clássica
-function levenshteinDistance(a, b) {
-    if (a.length === 0) return b.length;
-    if (b.length === 0) return a.length;
-
-    const matrix = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(null));
-    for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-    for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
-
-    for (let i = 1; i <= a.length; i++) {
-        for (let j = 1; j <= b.length; j++) {
-            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-            matrix[i][j] = Math.min(
-                matrix[i - 1][j] + 1,
-                matrix[i][j - 1] + 1,
-                matrix[i - 1][j - 1] + cost
-            );
-        }
-    }
-    return matrix[a.length][b.length];
-}
-
-function fuzzySimiliarity(word1, word2) {
-    const dist = levenshteinDistance(word1, word2);
-    const maxLen = Math.max(word1.length, word2.length);
-    if (maxLen === 0) return 1.0;
-    return (maxLen - dist) / maxLen;
-}
-
-// Compare arrays of tokens to create a Jaccard-like + Fuzzy Matching
-function computeTokenMatch(tokensA, tokensB) {
-    if (tokensA.length === 0 || tokensB.length === 0) return 0;
-    let matches = 0;
-
-    for (const ta of tokensA) {
-        let bestWordScore = 0;
-        for (const tb of tokensB) {
-            const sc = fuzzySimiliarity(ta, tb);
-            if (sc > bestWordScore) bestWordScore = sc;
-        }
-        if (bestWordScore > 0.8) {
-            matches++;
-        }
-    }
-    // Penalize primarily by the length of the smaller/target token array
-    return matches / Math.min(tokensA.length, tokensB.length);
-}
 
 // =============================================
 // Auto-Link Core Algorithm

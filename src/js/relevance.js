@@ -30,7 +30,7 @@ export function tokenize(text) {
 }
 
 // Distância de Levenshtein Clássica (para achar typos ou variações mínimas)
-function levenshteinDistance(a, b) {
+export function levenshteinDistance(a, b) {
     if (a.length === 0) return b.length;
     if (b.length === 0) return a.length;
 
@@ -53,7 +53,7 @@ function levenshteinDistance(a, b) {
 }
 
 // Retorna similaridade entre 0 e 1 usando Levenshtein
-function fuzzySimiliarity(word1, word2) {
+export function fuzzySimiliarity(word1, word2) {
     const dist = levenshteinDistance(word1, word2);
     const maxLen = Math.max(word1.length, word2.length);
     if (maxLen === 0) return 1.0;
@@ -61,7 +61,7 @@ function fuzzySimiliarity(word1, word2) {
 }
 
 // Compara dois conjuntos de tokens e retorna % de match (0.0 a 1.0)
-function computeTokenMatch(tokensA, tokensB) {
+export function computeTokenMatch(tokensA, tokensB) {
     if (tokensA.length === 0 || tokensB.length === 0) return 0;
 
     let matches = 0;

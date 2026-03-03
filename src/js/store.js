@@ -23,7 +23,7 @@ export function setState(newState) {
     revisoes: newState.revisoes || [],
     config: Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3 }, newState.config || {}),
     cronoLivre: newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 },
-    bancaRelevance: newState.bancaRelevance || { hotTopics: [], userMappings: {} },
+    bancaRelevance: newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} },
     driveFileId: newState.driveFileId || null,
     lastSync: newState.lastSync || null
   };
@@ -297,14 +297,14 @@ export function runMigrations() {
     if (!state.bancaRelevance.lessonMappings) state.bancaRelevance.lessonMappings = {};
 
     const classRegex = /(^aula\s*\d+)|(^modulo\s*\d+)/i;
-    
+
     state.editais.forEach(ed => {
       ed.disciplinas.forEach(d => {
         if (!d.aulas) d.aulas = []; // Initialize aulas array
-        
+
         // Ensure reverse link exists on old items
         d.assuntos.forEach(a => {
-            if (!a.linkedAulaIds) a.linkedAulaIds = [];
+          if (!a.linkedAulaIds) a.linkedAulaIds = [];
         });
 
         // Scan for lesson-like topics and migrate them
@@ -329,7 +329,7 @@ export function runMigrations() {
             remainingAssuntos.push(ass);
           }
         });
-        
+
         d.assuntos = remainingAssuntos;
       });
     });
@@ -371,6 +371,8 @@ export function clearData() {
           habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] },
           revisoes: [],
           config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90] },
+          cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
+          bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
           driveFileId: null,
           lastSync: null
         });
