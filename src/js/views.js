@@ -607,7 +607,7 @@ export function openEventDetail(eventId) {
   const tempoStr = elapsed > 0 ? formatTime(elapsed) : '00:00:00';
   const discInfo = ev.discId ? getDisc(ev.discId) : null;
   const disc = discInfo ? discInfo.disc : null;
-  const ass = disc && ev.assId ? disc.assuntos.find(a => a.id === ev.assId) : null;
+  const ass = disc && ev.assId && disc.assuntos ? disc.assuntos.find(a => a.id === ev.assId) : null;
 
   let html = `
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -829,8 +829,8 @@ export function renderDiscProgress() {
   const discs = getAllDisciplinas();
   if (discs.length === 0) return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
   return discs.slice(0, 8).map(({ disc, edital }) => {
-    const total = disc.assuntos.length;
-    const done = disc.assuntos.filter(a => a.concluido).length;
+    const total = (disc.assuntos || []).length;
+    const done = (disc.assuntos || []).filter(a => a.concluido).length;
     const pct = total > 0 ? Math.round(done / total * 100) : 0;
     return `
       <div style="margin-bottom:12px;">
@@ -893,7 +893,7 @@ export function renderRevisoes(el) {
       </div>
       <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
         <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assuntos concluidos</div>
-        <div style="font-size:28px;font-weight:800;color:var(--accent);">${getAllDisciplinas().reduce((s, { disc }) => s + disc.assuntos.filter(a => a.concluido).length, 0)}</div>
+        <div style="font-size:28px;font-weight:800;color:var(--accent);">${getAllDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
       </div>
       <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
         <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Frequência</div>
@@ -1755,12 +1755,7 @@ export function renderEditalTree(edital) {
 }
 
 export function toggleEdital(id) {
-  const el = document.getElementById(`edital - tree - ${id} `);
-  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
-}
-
-export function toggleDisc(discId) {
-  const el = document.getElementById(`disc - tree - ${discId} `);
+  const el = document.getElementById(`edital-tree-${id}`);
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
@@ -2326,7 +2321,7 @@ export function selectIcon(icon, el) {
 
 export function selectDiscColor(color) {
   document.querySelectorAll('#disc-colors .color-swatch').forEach(s => s.classList.remove('selected'));
-  document.querySelector(`#disc - colors[style = "background:${color};"]`).classList.add('selected');
+  document.querySelector(`#disc-colors .color-swatch[style="background:${color};"]`)?.classList.add('selected');
   document.getElementById('disc-cor').value = color;
 }
 
@@ -2377,13 +2372,13 @@ export function openDiscManager(editaId, discId) {
 
   // Render subject items
   const subjectsHtml = disc.assuntos.map((ass, idx) => `
-      <div class="sm-list-item" draggable = "true"
-    data - disc - id="${disc.id}"
-    data - ass - idx="${idx}"
-    ondragstart = "dndStart(event,'${disc.id}',${idx})"
-    ondragover = "dndOver(event)"
-    ondragleave = "dndLeave(event)"
-    ondrop = "dndDrop(event,'${disc.id}',${idx})" >
+      <div class="sm-list-item" draggable="true"
+    data-disc-id="${disc.id}"
+    data-ass-idx="${idx}"
+    ondragstart="dndStart(event,'${disc.id}',${idx})"
+    ondragover="dndOver(event)"
+    ondragleave="dndLeave(event)"
+    ondrop="dndDrop(event,'${disc.id}',${idx})">
       <div class="sm-drag-handle" title="Arrastar">☰</div>
       <div class="sm-item-text" onclick="editSubjectInline('${disc.id}', '${ass.id}', this)">
         ${esc(ass.nome)}
@@ -2876,7 +2871,7 @@ window.parseBancaText = function () {
   scheduleSave();
 
   // Atualiza a opção no select como Processada (Checkmark)
-  const selectOpt = document.querySelector(`#banca - disc - select option[value = "${discId}"]`);
+  const selectOpt = document.querySelector(`#banca-disc-select option[value="${discId}"]`);
   if (selectOpt && !selectOpt.text.startsWith('✅')) {
     selectOpt.text = selectOpt.text.replace('⚪', '✅');
   }
@@ -3161,12 +3156,12 @@ export function saveBulkSubjects() {
 export function openAddEventModal(dateStr = null) {
   editingEventId = null;
   const allDiscs = getAllDisciplinas();
-  const discOptions = allDiscs.map(({ disc, edital }) => `<option value = "${disc.id}" data - edital="${edital.id}" > ${esc(edital.nome)} → ${esc(disc.nome)}</option> `
+  const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
   ).join('');
 
   document.getElementById('modal-event-title').textContent = 'Iniciar Estudo';
   document.getElementById('modal-event-body').innerHTML = `
-    <div id = "event-conteudo-fields" >
+    <div id="event-conteudo-fields">
       <div class="form-group">
         <label class="form-label">Disciplina</label>
         <select class="form-control" id="event-disc" onchange="loadAssuntos()">
@@ -3850,7 +3845,7 @@ export function onSearch(query) {
 
   // Search assuntos
   getAllDisciplinas().forEach(({ disc, edital }) => {
-    disc.assuntos.forEach(ass => {
+    (disc.assuntos || []).forEach(ass => {
       if (ass.nome.toLowerCase().includes(q) || disc.nome.toLowerCase().includes(q)) {
         results.assuntos.push({ ass, disc, edital });
       }
