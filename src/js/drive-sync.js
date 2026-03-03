@@ -205,6 +205,8 @@ export async function syncWithDrive() {
                     'Content-Type': 'multipart/related; boundary=' + boundary
                 }),
                 body: multipartRequestBody
+            }).then(res => {
+                if (!res.ok) throw new Error(`Drive PATCH failed: HTTP ${res.status}`);
             });
 
             // Only update lastSync AFTER successful upload
@@ -236,6 +238,7 @@ export async function syncWithDrive() {
                 }),
                 body: multipartRequestBody
             });
+            if (!res.ok) throw new Error(`Drive POST failed: HTTP ${res.status}`);
             const data = await res.json();
             state.driveFileId = data.id;
 
@@ -248,7 +251,7 @@ export async function syncWithDrive() {
     } catch (err) {
         console.error('Erro ao sincronizar:', err);
         showToast('Erro ao sincronizar com Drive', 'error');
-        updateDriveUI('connected', 'Erro na Sincronização'); // keeps connected but shows error visually
+        updateDriveUI('disconnected', 'Erro na Sincronização');
     } finally {
         _isSyncing = false;
     }

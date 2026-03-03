@@ -1,6 +1,7 @@
 import { state, scheduleSave } from './store.js';
 import { generatePlanejamento, getAllDisciplinas } from './logic.js';
 import { esc } from './utils.js';
+import { openModal, closeModal } from './app.js';
 
 let currentStep = 1;
 let draft = {
@@ -38,7 +39,7 @@ export function openPlanejamentoWizard() {
     }
 
     currentStep = 1;
-    document.getElementById('modal-planejamento').classList.add('open');
+    openModal('modal-planejamento');
     attachWizardListeners();
     renderStep();
 }
@@ -71,7 +72,7 @@ function attachWizardListeners() {
         if (validateStep(4)) {
             generatePlanejamento(draft);
             document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Planejamento gerado com sucesso!', type: 'success' } }));
-            document.getElementById('modal-planejamento').classList.remove('open');
+            closeModal('modal-planejamento');
             document.dispatchEvent(new Event('app:renderCurrentView'));
         }
     });

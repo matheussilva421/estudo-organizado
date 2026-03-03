@@ -557,7 +557,7 @@ export function saveRegistroSessao() {
       id: 'ev_' + Date.now(),
       titulo: assName, // will be overridden below anyway
       data: todayStr(),
-      status: 'pendente', // Will turn 'estudei' down there
+      status: 'agendado', // Will turn 'estudei' down there
       dataEstudo: null,
       discId: discId,
       assId: assId || null,
@@ -689,7 +689,11 @@ export function saveRegistroSessao() {
   if (state.ciclo && state.ciclo.ativo && discId) {
     const discEntry = getDisc(discId);
     const discNome = discEntry ? discEntry.disc.nome : null;
-    const cycleDisc = discNome ? state.ciclo.disciplinas.find(d => d.nome === discNome) : null;
+    const cycleDisc = discId ? state.ciclo.disciplinas.find(d => {
+      // Try to match by discId first (linked editais), fallback to name match
+      const discEntry = getDisc(discId);
+      return d.id === discId || (discEntry && d.nome === discEntry.disc.nome);
+    }) : null;
     if (cycleDisc && !cycleDisc.concluido) {
       const addedMin = Math.round((ev.tempoAcumulado || 0) / 60);
       cycleDisc.estudadoMin = (cycleDisc.estudadoMin || 0) + addedMin;
