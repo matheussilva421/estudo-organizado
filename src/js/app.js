@@ -142,7 +142,7 @@ export function init() {
     initNotifications();
 
     // Primeira Sincronização: Cloudflare (Primária Rápida)
-    if (state.config && state.config.cfSyncSyncEnabled) {
+    if (state.config && state.config.cfSyncEnabled) {
       try {
         await pullFromCloudflare();
       } catch (e) {
@@ -287,7 +287,7 @@ function renderCicloWizard() {
         const minVal = parseInt(mins[i].value, 10);
         if (val && minVal > 0) {
           _wizardDisc.push({
-            id: 'cdisc_' + Date.now() + i,
+            id: 'cdisc_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 7),
             nome: val,
             cor: colors[i].value || '#3b82f6',
             planejadoMin: minVal,

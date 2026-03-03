@@ -938,7 +938,7 @@ export function marcarRevisao(assId) {
         ass.revisoesFetas.push(todayStr());
         scheduleSave();
         renderCurrentView();
-        showToast('Revisão registrada! ­ƒë', 'success');
+        showToast('Revisão registrada! ✅', 'success');
         return;
       }
     }
@@ -1451,17 +1451,17 @@ export function renderVerticalList(container) {
     state.eventos.forEach(ev => {
       if (ev.status === 'estudei' && ev.discId) {
         if (!eventosAgrupados[ev.discId]) eventosAgrupados[ev.discId] = { sCertas: 0, sErradas: 0, assuntos: {} };
-        const evtQs = ev.questoes || { certas: 0, erradas: 0 };
+        const evtQs = ev.sessao?.questoes || ev.questoes || { certas: 0, erradas: 0 };
         // Somar para disciplina
-        eventosAgrupados[ev.discId].sCertas += evtQs.certas;
-        eventosAgrupados[ev.discId].sErradas += evtQs.erradas;
-        // Somar para assunto específico
+        eventosAgrupados[ev.discId].sCertas += (evtQs.acertos || evtQs.certas || 0);
+        eventosAgrupados[ev.discId].sErradas += (evtQs.erros || evtQs.erradas || 0);
+        // Somar para assunto especifico
         if (ev.assId) {
           if (!eventosAgrupados[ev.discId].assuntos[ev.assId]) {
             eventosAgrupados[ev.discId].assuntos[ev.assId] = { certas: 0, erradas: 0 };
           }
-          eventosAgrupados[ev.discId].assuntos[ev.assId].certas += evtQs.certas;
-          eventosAgrupados[ev.discId].assuntos[ev.assId].erradas += evtQs.erradas;
+          eventosAgrupados[ev.discId].assuntos[ev.assId].certas += (evtQs.acertos || evtQs.certas || 0);
+          eventosAgrupados[ev.discId].assuntos[ev.assId].erradas += (evtQs.erros || evtQs.erradas || 0);
         }
       }
     });

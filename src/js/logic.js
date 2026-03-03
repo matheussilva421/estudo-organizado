@@ -624,8 +624,9 @@ export function generatePlanejamento(draft) {
     let totalMinutes = 0;
 
     for (let i = 0; i < 7; i++) {
-      if (plan.horarios.diasAtivos.includes(i) && plan.horarios.horasPorDia[i]) {
-        const [hh, mm] = plan.horarios.horasPorDia[i].split(':');
+      const hora = plan.horarios.horasPorDia[i];
+      if (plan.horarios.diasAtivos.includes(i) && hora && hora.includes(':')) {
+        const [hh, mm] = hora.split(':');
         totalMinutes += (parseInt(hh, 10) * 60) + parseInt(mm, 10);
       }
     }
@@ -750,6 +751,7 @@ export function syncCicloToEventos() {
 
     for (let m = 0; m < materiasPorDia; m++) {
       const seqItem = seq[currentSeqIdx];
+      if (!seqItem) break; // guard: empty or exhausted sequence
       const discEntry = getDisc(seqItem.discId);
 
       state.eventos.push({
