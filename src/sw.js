@@ -1,4 +1,4 @@
-const CACHE_NAME = 'estudo-organizado-v1';
+const CACHE_NAME = 'estudo-organizado-v2';
 const ASSETS = [
     './',
     './index.html',
@@ -7,10 +7,13 @@ const ASSETS = [
     './js/cloud-sync.js',
     './js/components.js',
     './js/drive-sync.js',
+    './js/lesson-mapper.js',
     './js/logic.js',
     './js/main.js',
+    './js/notifications.js',
     './js/planejamento-wizard.js',
     './js/registro-sessao.js',
+    './js/relevance.js',
     './js/store.js',
     './js/utils.js',
     './js/views.js',

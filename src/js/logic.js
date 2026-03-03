@@ -1,5 +1,5 @@
 import { scheduleSave, state } from './store.js';
-import { cutoffDateStr, formatTime, todayStr, getHabitType, getLocalDateStr, uid } from './utils.js';
+import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid } from './utils.js';
 import { navigate } from './app.js';
 
 // =============================================
@@ -189,12 +189,7 @@ export function _marcarEstudeiDirect(eventId) {
   scheduleSave();
   document.dispatchEvent(new Event('app:refreshMEDSections'));
 
-  if (ev.habito) {
-    const h = getHabitType(ev.habito);
-    //if (h) promptHabitRegistration(ev, h);
-  } else {
-    document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Evento marcado como Estudei! ✅', type: 'success' } }));
-  }
+  document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Evento marcado como Estudei! ✅', type: 'success' } }));
 }
 
 export function deleteEvento(eventId) {

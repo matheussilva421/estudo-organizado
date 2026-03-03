@@ -1,5 +1,5 @@
 import { state, scheduleSave } from './store.js';
-import { tokenize, levenshteinDistance, fuzzySimiliarity, computeTokenMatch } from './relevance.js';
+import { tokenize, computeTokenMatch } from './relevance.js';
 
 // =============================================
 // Motor de Link Automático (Aulas -> Assuntos)
