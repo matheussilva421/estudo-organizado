@@ -1665,8 +1665,11 @@ export function renderEditalTree(edital) {
     // Questões Resolvidas para esta disciplina
     let qResolvidas = 0;
     if (state.eventos) {
-      const evts = state.eventos.filter(e => e.discId === disc.id && e.status === 'estudei' && e.questoes);
-      evts.forEach(e => qResolvidas += (e.questoes.certas || 0) + (e.questoes.erradas || 0));
+      const evts = state.eventos.filter(e => e.discId === disc.id && e.status === 'estudei');
+      evts.forEach(e => {
+        const qs = e.sessao?.questoes || e.questoes;
+        if (qs) qResolvidas += (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
+      });
     }
 
     return `
@@ -1781,11 +1784,12 @@ export function renderDisciplinaDashboard(edital, disc) {
 
   tempos.forEach(e => {
     tempoTotal += e.tempoAcumulado || 0;
-    if (e.questoes) {
-      qCertas += e.questoes.certas || 0;
-      qErradas += e.questoes.erradas || 0;
+    const qs = e.sessao?.questoes || e.questoes;
+    if (qs) {
+      qCertas += (qs.acertos || qs.certas || 0);
+      qErradas += (qs.erros || qs.erradas || 0);
     }
-    pagLidas += e.paginas || 0;
+    pagLidas += e.sessao?.paginas?.total || e.paginas || 0;
   });
 
   const totalQuestoes = qCertas + qErradas;
@@ -1906,17 +1910,19 @@ function renderHistoricoDisciplina(tempos) {
                 ${reverseTempos.map(t => {
     const dateStr = formatDate(t.data);
     const tempoStr = formatTime(t.tempoAcumulado || 0).substring(0, 5);
-    const qs = t.questoes || { certas: 0, erradas: 0 };
-    const totQs = qs.certas + qs.erradas;
-    const perc = totQs > 0 ? Math.round((qs.certas / totQs) * 100) : 0;
+    const qs = t.sessao?.questoes || t.questoes || { certas: 0, erradas: 0 };
+    const totQs = (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
+    const certas = qs.acertos || qs.certas || 0;
+    const perc = totQs > 0 ? Math.round((certas / totQs) * 100) : 0;
     const percColor = perc >= 70 ? 'var(--green)' : perc >= 50 ? 'var(--accent)' : 'var(--red)';
+    const pags = t.sessao?.paginas?.total || t.paginas || null;
 
     return `
               <tr style="border-bottom:1px solid var(--bg);">
                 <td style="padding:10px 4px;color:var(--text-primary);">${dateStr}</td>
                 <td style="padding:10px 4px;font-family:'DM Mono',monospace;">${tempoStr}</td>
-                <td style="padding:10px 4px;">${t.paginas || '-'}</td>
-                <td style="padding:10px 4px;">${qs.certas} / ${totQs}</td>
+                <td style="padding:10px 4px;">${pags ?? '-'}</td>
+                <td style="padding:10px 4px;">${certas} / ${totQs}</td>
                 <td style="padding:10px 4px;font-weight:700;color:${totQs > 0 ? percColor : 'inherit'};">${totQs > 0 ? perc + '%' : '-'}</td>
               </tr>
             `;
@@ -2027,13 +2033,18 @@ export function initDiscDashboardChart(discId) {
   const canvas = document.getElementById('disc-chart-acertos');
   if (!canvas) return;
 
-  const tempos = state.eventos ? state.eventos.filter(e => e.discId === discId && e.status === 'estudei' && e.questoes && (e.questoes.certas > 0 || e.questoes.erradas > 0)) : [];
+  const tempos = state.eventos ? state.eventos.filter(e => {
+    const qs = e.sessao?.questoes || e.questoes;
+    return e.discId === discId && e.status === 'estudei' && qs &&
+      ((qs.acertos || qs.certas || 0) > 0 || (qs.erros || qs.erradas || 0) > 0);
+  }) : [];
 
   const grouped = {};
   [...tempos].sort((a, b) => a.data.localeCompare(b.data)).forEach(t => {
     if (!grouped[t.data]) grouped[t.data] = { certas: 0, erradas: 0 };
-    grouped[t.data].certas += t.questoes.certas;
-    grouped[t.data].erradas += t.questoes.erradas;
+    const qs = t.sessao?.questoes || t.questoes;
+    grouped[t.data].certas += (qs.acertos || qs.certas || 0);
+    grouped[t.data].erradas += (qs.erros || qs.erradas || 0);
   });
 
   const rawLabels = Object.keys(grouped).slice(-15);
