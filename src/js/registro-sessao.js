@@ -472,7 +472,7 @@ export function validateQuestoes() {
   const fb = document.getElementById('reg-q-feedback');
   if (!fb) return;
 
-  if (ac + er > total && total > 0) {
+  if ((ac + er > total && total > 0) || (total === 0 && ac + er > 0)) {
     fb.innerHTML = '<span style="color:var(--red);">⚠️ Acertos + Erros não pode ser maior que o Total</span>';
   } else if (total > 0) {
     const pct = Math.round((ac / total) * 100);
@@ -552,8 +552,8 @@ export function saveRegistroSessao() {
       }
     }
     const evtReal = {
-      id: 'ev_' + Date.now(),
-      titulo: assName, // will be overridden below anyway
+      id: uid(),
+      titulo: assName,
       data: todayStr(),
       status: 'agendado', // Will turn 'estudei' down there
       dataEstudo: null,
@@ -602,6 +602,7 @@ export function saveRegistroSessao() {
       const inicio = parseInt(document.getElementById('reg-pag-inicio')?.value || '0');
       const fim = parseInt(document.getElementById('reg-pag-fim')?.value || '0');
       if (fim > inicio) paginas = { modo: 'detalhado', inicio, fim, total: fim - inicio };
+      else if (fim > 0 || inicio > 0) { showToast('Página final deve ser maior que a página inicial', 'error'); return false; }
     }
   }
 
