@@ -800,7 +800,8 @@ window.editCicloSeqHours = function (idx) {
   const seqItem = state.planejamento.sequencia[idx];
   const currentHours = (seqItem.minutosAlvo / 60).toFixed(1).replace('.0', '');
 
-  const novaStr = window.prompt(`Digite a nova carga horária (em horas) para esta etapa:\\nEx: 1 = Uma hora | 1.5 = 1h30min`, currentHours);
+  const novaStr = window.prompt(`Digite a nova carga horária (em horas) para esta etapa:
+Ex: 1 = Uma hora | 1.5 = 1h30min`, currentHours);
   if (novaStr === null) return;
 
   const novaHoras = parseFloat(novaStr.replace(',', '.'));

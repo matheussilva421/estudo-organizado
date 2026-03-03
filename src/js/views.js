@@ -2208,7 +2208,8 @@ export function openEditaModal(editaId = null) {
 export function selectColor(color, containerId) {
   const container = document.getElementById(containerId);
   container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-  container.querySelector(`[style = "background:${color};"]`).classList.add('selected');
+  // Fixed: removed spaces around = in attribute selector (was invalid CSS)
+  container.querySelector(`[style="background:${color};"]`)?.classList.add('selected');
   const input = document.getElementById(containerId === 'edital-colors' ? 'edital-cor' : containerId === 'disc-colors' ? 'disc-cor' : 'edital-cor');
   if (input) input.value = color;
 }
@@ -2865,7 +2866,7 @@ window.renderBancaMatches = function () {
     const confBadgeColor = res.matchData.confidence === 'HIGH' ? 'var(--green)' : (res.matchData.confidence === 'MEDIUM' ? 'var(--yellow)' : 'var(--text-muted)');
 
     return `
-      <div style = "display:grid; grid-template-columns:30px minmax(0, 1fr) minmax(0, 1fr) 45px; gap:8px; border-bottom:1px solid var(--border); padding:10px 0; align-items:center;" >
+      <div style="display:grid; grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 45px 40px; gap:8px; border-bottom:1px solid var(--border); padding:10px 0; align-items:center;">
                 <div style="color:${stColor}; font-size:14px; text-align:center;"><i class="fa ${stIcon}"></i></div>
                 <div>
                    <div style="font-size:13px; font-weight:700; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${esc(res.assuntoNome)}">${esc(res.assuntoNome)}</div>
@@ -4326,7 +4327,8 @@ window.openCicloHistory = function (seqId) {
   // Filtrar histórico de estudos da disciplina
   const eventosDisc = state.eventos
     .filter(e => e.discId === seqItem.discId && e.status === 'estudei' && e.tempoAcumulado > 0)
-    .sort((a, b) => (b.data + 'T' + (b.hora || '00:00:00')).localeCompare(a.data + 'T' + (a.hora || '00:00:00'))).reverse();
+    .sort((a, b) => (b.data + 'T' + (b.hora || '00:00:00')).localeCompare(a.data + 'T' + (a.hora || '00:00:00')));
+
 
   let btnDesfazer = '';
   if (seqItem.concluido) {
