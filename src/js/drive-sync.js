@@ -34,7 +34,9 @@ export function initGoogleAPIs() {
             scope: 'https://www.googleapis.com/auth/drive.file',
             callback: (resp) => {
                 if (resp.error !== undefined) {
-                    throw (resp);
+                    console.error('Google OAuth error:', resp);
+                    showToast('Erro na autenticação do Drive: ' + (resp.error_description || resp.error), 'error');
+                    return;
                 }
                 showToast('Conectado ao Drive! Sincronizando...', 'info');
                 syncWithDrive();

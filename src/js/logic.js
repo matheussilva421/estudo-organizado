@@ -417,8 +417,9 @@ export function getCurrentWeekStats() {
   const now = new Date();
   const primeirodiaSemana = state.config.primeirodiaSemana || 1;
   const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 && primeirodiaSemana === 1 ? -6 : (primeirodiaSemana === 1 ? 1 : 0));
-  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
+  let dayOffset = day - primeirodiaSemana;
+  if (dayOffset < 0) dayOffset += 7;
+  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOffset, 0, 0, 0, 0);
 
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(endOfWeek.getDate() + 6);

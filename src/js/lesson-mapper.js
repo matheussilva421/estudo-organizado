@@ -10,7 +10,7 @@ import { tokenize, computeTokenMatch } from './relevance.js';
 // Auto-Link Core Algorithm
 // =============================================
 
-export function findBestSubjectForLesson(lessonName, editalTopics) {
+function findBestSubjectForLesson(lessonName, editalTopics) {
     const tokensLesson = tokenize(lessonName);
     const strLesson = lessonName.toLowerCase().trim();
 

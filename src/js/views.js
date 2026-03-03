@@ -16,8 +16,6 @@ let editingSubjectCtx = null;
 
 let editingDiscCtx = null;
 
-let editingEventId = null;
-
 // =============================================
 // CONSTANTS
 // =============================================
@@ -296,32 +294,6 @@ export function renderHome(el) {
 
     </div>
   `;
-}
-
-export const FRASES_MOTIVACIONAIS = [
-  "A consistência supera o talento todos os dias.",
-  "Cada página lida é um passo à frente na aprovação.",
-  "O concurso é ganho na rotina, não na véspera.",
-  "Foque no processo. O resultado é consequência.",
-  "Você já está à frente de quem ainda não começou.",
-  "Estudo diário transforma ignorância em aprovação.",
-  "A aprovação não é sorte — é a soma dos seus dias.",
-  "Cada assunto concluido é uma vitória real.",
-  "Disciplina é liberdade. Continue.",
-  "Pequenas doses diárias constroem grandes conhecimentos.",
-];
-
-export function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return '☀️ Bom dia';
-  if (h < 18) return '🌤️ Boa tarde';
-  return '🌙 Boa noite';
-}
-
-export function getDailyQuote() {
-  const _d = new Date();
-  const day = _d.getDate() + _d.getMonth() * 31;
-  return FRASES_MOTIVACIONAIS[day % FRASES_MOTIVACIONAIS.length];
 }
 
 // =============================================
@@ -3154,7 +3126,6 @@ export function saveBulkSubjects() {
 // ADD EVENT MODAL
 // =============================================
 export function openAddEventModal(dateStr = null) {
-  editingEventId = null;
   const allDiscs = getAllDisciplinas();
   const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
   ).join('');
