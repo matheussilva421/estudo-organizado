@@ -101,9 +101,11 @@ export async function pushToCloudflare() {
     try {
         // Marcador de versão ultra imperativo para saber de qual aparelho veio
         if (!state.config) state.config = {};
-        state.config._lastUpdated = Date.now();
+        const pushTimestamp = Date.now();
 
-        const payload = JSON.stringify(state);
+        const snapshot = JSON.parse(JSON.stringify(state));
+        snapshot.config._lastUpdated = pushTimestamp;
+        const payload = JSON.stringify(snapshot);
 
         const response = await fetch(config.url, {
             method: 'POST',
@@ -123,7 +125,9 @@ export async function pushToCloudflare() {
             throw new Error(errorMsg);
         }
 
-        const lastStr = new Date(state.config._lastUpdated).toLocaleTimeString();
+        // Only update local timestamp after successful push
+        state.config._lastUpdated = pushTimestamp;
+        const lastStr = new Date(pushTimestamp).toLocaleTimeString();
         updateSyncStatus(`Nuvem atualizada às ${lastStr}`);
         console.log('Cloudflare Sync OK');
     } catch (err) {
