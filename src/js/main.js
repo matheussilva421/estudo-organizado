@@ -124,9 +124,6 @@ document.addEventListener('click', (e) => {
     case 'save-disc':
       window.saveDisc();
       break;
-    case 'save-subjects':
-      window.saveSubjects();
-      break;
     case 'save-habit':
       window.saveHabit();
       break;

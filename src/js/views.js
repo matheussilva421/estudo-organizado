@@ -3066,6 +3066,33 @@ export function saveDiscManager(editaId, discId) {
   showToast('Disciplina atualizada!', 'success');
 }
 
+export function addAssunto(discId) {
+  const input = document.getElementById('new-assunto-nome');
+  const nome = input ? input.value.trim() : '';
+  if (!nome) return;
+
+  const entry = getDisc(discId);
+  if (!entry) return;
+
+  // Support multiple topics separated by newlines
+  const lines = nome.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+  let added = 0;
+  lines.forEach(line => {
+    if (!entry.disc.assuntos.find(a => a.nome === line)) {
+      entry.disc.assuntos.push({ id: uid(), nome: line, concluido: false, dataConclusao: null, revisoesFetas: [] });
+      added++;
+    }
+  });
+
+  if (added > 0) {
+    scheduleSave();
+    showToast(`${added} tópico(s) adicionado(s)!`, 'success');
+  }
+  if (editingSubjectCtx) {
+    openDiscManager(editingSubjectCtx.editaId, discId);
+  }
+}
+
 export function openSubjectAddModal(editaId, discId) {
   editingSubjectCtx = { editaId, discId };
   document.getElementById('modal-subject-add-body').innerHTML = `

@@ -53,7 +53,7 @@ export function levenshteinDistance(a, b) {
 }
 
 // Retorna similaridade entre 0 e 1 usando Levenshtein
-export function fuzzySimiliarity(word1, word2) {
+export function fuzzySimilarity(word1, word2) {
     const dist = levenshteinDistance(word1, word2);
     const maxLen = Math.max(word1.length, word2.length);
     if (maxLen === 0) return 1.0;
@@ -69,7 +69,7 @@ export function computeTokenMatch(tokensA, tokensB) {
     for (const ta of tokensA) {
         let bestWordScore = 0;
         for (const tb of tokensB) {
-            const sc = fuzzySimiliarity(ta, tb);
+            const sc = fuzzySimilarity(ta, tb);
             if (sc > bestWordScore) bestWordScore = sc;
         }
         if (bestWordScore > 0.8) { // Considera matching se fuzzy > 80%
