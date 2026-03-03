@@ -219,7 +219,11 @@ export function deleteEvento(eventId) {
 export function totalStudySeconds(days = null) {
   const cutoffStr = days ? cutoffDateStr(days) : null;
   return state.eventos
-    .filter(e => e.status === 'estudei' && e.tempoAcumulado && (!cutoffStr || e.data >= cutoffStr))
+    .filter(e => {
+      if (e.status !== 'estudei' || !e.tempoAcumulado) return false;
+      const studyDate = e.dataEstudo || e.data;
+      return !cutoffStr || (studyDate && studyDate >= cutoffStr);
+    })
     .reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
 }
 
@@ -255,7 +259,7 @@ export function getPendingRevisoes() {
   const pending = [];
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
-      for (const ass of disc.assuntos) {
+      for (const ass of (disc.assuntos || [])) {
         if (!ass.concluido || !ass.dataConclusao) continue;
         const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || [], ass.adiamentos || 0);
         for (const rd of revDates) {

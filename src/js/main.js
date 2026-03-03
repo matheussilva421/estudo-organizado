@@ -143,9 +143,6 @@ document.addEventListener('click', (e) => {
     case 'remover-planejamento':
       if (typeof window.deletePlanejamento === 'function') window.deletePlanejamento();
       break;
-    case 'remover-ciclo':
-      window.removerCiclo();
-      break;
     case 'toggle-ciclo-fin':
       window.toggleCicloFin(el.checked);
       break;
