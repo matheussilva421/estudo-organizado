@@ -219,10 +219,16 @@ export function renderCurrentView() {
     window._cronoInterval = null;
   }
 
-  // Clean up disc dashboard chart when leaving editais
-  if (currentView !== 'editais' && window._discChartInstance) {
+  // Clean up disc dashboard chart when leaving editais OR when leaving disc context
+  if ((currentView !== 'editais' || !window.activeDashboardDiscCtx) && window._discChartInstance) {
     window._discChartInstance.destroy();
     window._discChartInstance = null;
+  }
+
+  // Clean up ciclo doughnut chart when leaving ciclo view
+  if (currentView !== 'ciclo' && window._planjChartInstance) {
+    window._planjChartInstance.destroy();
+    window._planjChartInstance = null;
   }
 
   // Clean up analytics dashboard charts when leaving dashboard

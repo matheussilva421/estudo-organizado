@@ -53,9 +53,7 @@ let _savedTempoAcumulado = 0;
 export function openRegistroSessao(eventId) {
   let ev = null;
   if (eventId === 'crono_livre') {
-    ev = state.cronoLivre;
-    ev.id = 'crono_livre';
-    ev.sessao = {};
+    ev = { ...state.cronoLivre, id: 'crono_livre', sessao: {} };
   } else {
     ev = state.eventos.find(e => e.id === eventId);
     if (!ev) { showToast('Evento não encontrado', 'error'); return; }
