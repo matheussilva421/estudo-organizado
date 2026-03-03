@@ -11,8 +11,12 @@ import * as registro from './registro-sessao.js';
 import * as utils from './utils.js';
 import * as wizard from './planejamento-wizard.js';
 
+import * as relevance from './relevance.js';
+import * as lesson_mapper from './lesson-mapper.js';
+
 // Expose all exports to window (temporary bridge for inline onclick handlers)
-const modules = [store, app, logic, components, views, drive_sync, registro, utils, wizard];
+const modules = [store, app, logic, components, views, drive_sync, registro, utils, wizard, relevance, lesson_mapper];
+
 for (const mod of modules) {
   for (const [key, value] of Object.entries(mod)) {
     window[key] = value;

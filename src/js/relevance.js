@@ -197,7 +197,9 @@ export function calculateFinalRelevance(editalSubjectCtx) {
 
     // Plus: Context Bonus (+0.1 se for pré-requisito ou alvo ruim)
     // Se o acerto < 60% e o arquivo tem mts erros.. aumenta a prioridade!
-    if (editalSubjectCtx.erros / (editalSubjectCtx.acertos + editalSubjectCtx.erros + 1) > 0.6) {
+    const acertos = editalSubjectCtx.acertos || 0;
+    const erros = editalSubjectCtx.erros || 0;
+    if (erros / (acertos + erros + 1) > 0.6) {
         finalScore += 0.1;
     }
 

@@ -8,6 +8,21 @@ import { getPendingRevisoes, getPredictiveStats } from './logic.js';
 export let hasNotificationPermission = false;
 let notificationEngineInterval = null;
 let lastNotifiedKeys = new Set(); // Para evitar spam da mesma notificação
+let _lastNotifiedDate = ''; // Fecha o Set todo dia
+
+function getNotifDateKey() {
+    // Stable ISO date string independent of locale
+    return new Date().toISOString().slice(0, 10);
+}
+
+function resetDailyNotifKeysIfNeeded() {
+    const today = getNotifDateKey();
+    if (today !== _lastNotifiedDate) {
+        lastNotifiedKeys = new Set();
+        _lastNotifiedDate = today;
+    }
+}
+
 
 export async function initNotifications() {
     // 1. Checa a permissão atual ou solicita
@@ -41,11 +56,11 @@ function isSilentHour() {
 }
 
 export function fireNotification(title, body, tagKey, requireInteraction = false) {
-    if (isSilentHour()) return; // Ignora notificações na madrugada
+    resetDailyNotifKeysIfNeeded(); // Clear set on new day
+    if (isSilentHour()) return;
 
     // Evita encher o saco do usuário com o mesmo texto
-    const todayStrKey = new Date().toLocaleDateString();
-    const uniqueKey = `${todayStrKey}-${tagKey}`;
+    const uniqueKey = `${getNotifDateKey()}-${tagKey}`;
     if (lastNotifiedKeys.has(uniqueKey)) return;
 
     if (hasNotificationPermission) {
@@ -66,6 +81,7 @@ export function fireNotification(title, body, tagKey, requireInteraction = false
 }
 
 function checkTriggers() {
+    resetDailyNotifKeysIfNeeded(); // Ensure fresh Set each day
     if (isSilentHour()) return;
 
     // 1. Checagem de Revisões Vencidas / Espaçadas

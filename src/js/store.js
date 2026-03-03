@@ -283,6 +283,12 @@ export function runMigrations() {
     changed = true;
   }
 
+  // v5 and v6 were intermediate states — ensure they advance to 7
+  if (state.schemaVersion === 5 || state.schemaVersion === 6) {
+    state.schemaVersion = 6; // advance to trigger v6→v7 block below
+    changed = true;
+  }
+
   // Normalize habitos keys
   if (state.habitos) {
     if (state.habitos.sumulas && !state.habitos.sumula) {
