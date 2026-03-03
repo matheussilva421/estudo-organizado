@@ -280,8 +280,8 @@ export function commitEditalOrdering(editalId, rankedFlatList) {
                 originalAssunto.relevance = {
                     priority: sItem.priority,
                     finalScore: sItem.finalScore,
-                    reason: sItem.reason,
-                    confidence: sItem.confidence
+                    reason: sItem.matchData?.reason || '',
+                    confidence: sItem.matchData?.confidence || 'LOW'
                 };
                 newAssuntosArray.push(originalAssunto);
             }

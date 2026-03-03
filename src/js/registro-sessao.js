@@ -448,7 +448,7 @@ export function addNovoTopico() {
   if (!d) return;
 
   const novoTopico = {
-    id: 'ass_' + uid(),
+    id: uid(),
     nome: nome.trim(),
     concluido: false,
     revisoesFetas: []
@@ -460,9 +460,9 @@ export function addNovoTopico() {
   // Refresh topic select
   onDisciplinaChange();
 
-  // Auto-select the new topic
+  // Auto-select the new topic (options have value 'ass_' + id)
   const assSelect = document.getElementById('reg-assunto');
-  if (assSelect) assSelect.value = novoTopico.id;
+  if (assSelect) assSelect.value = 'ass_' + novoTopico.id;
 
   showToast(`Tópico "${nome.trim()}" criado!`, 'success');
 }
@@ -592,7 +592,7 @@ export function saveRegistroSessao() {
 
   // Validate páginas if needed
   const showPaginas = ['leitura', 'informativo', 'sumula'].some(t => _selectedTipos.includes(t)) ||
-    ['pdf', 'livro', 'lei_seca'].some(m => _selectedMateriais.includes(m));
+    ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some(m => _selectedMateriais.includes(m));
 
   let paginas = null;
   if (showPaginas) {

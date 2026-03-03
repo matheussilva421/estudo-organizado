@@ -151,7 +151,7 @@ export function init() {
     }
 
     // Segunda Sincronização: Google Drive (Secundária Lenta)
-    updateDriveUI();
+    updateDriveUI('disconnected', 'Google Drive');
     const savedClientId = localStorage.getItem('estudo_drive_client_id');
     if (savedClientId) {
       initGoogleAPIs();

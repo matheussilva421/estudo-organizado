@@ -183,9 +183,6 @@ export async function syncWithDrive() {
             }
 
             // Atualiza o arquivo existente
-            state.lastSync = new Date().toISOString();
-            saveStateToDB(); // garante que state está salvo localmente
-
             const accessToken = gapi.client.getToken().access_token;
             const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
             const boundary = '-------314159265358979323846';
@@ -209,12 +206,13 @@ export async function syncWithDrive() {
                 }),
                 body: multipartRequestBody
             });
+
+            // Only update lastSync AFTER successful upload
+            state.lastSync = new Date().toISOString();
+            saveStateToDB();
             showToast('Sincronizado com sucesso!', 'success');
         } else {
             // Cria um novo arquivo
-            state.lastSync = new Date().toISOString();
-            saveStateToDB(); // garante que está atualizado
-
             const accessToken = gapi.client.getToken().access_token;
             const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
             const boundary = '-------314159265358979323846';
@@ -240,6 +238,9 @@ export async function syncWithDrive() {
             });
             const data = await res.json();
             state.driveFileId = data.id;
+
+            // Only update lastSync AFTER successful upload
+            state.lastSync = new Date().toISOString();
             saveStateToDB();
             showToast('Backup criado no Drive!', 'success');
         }
