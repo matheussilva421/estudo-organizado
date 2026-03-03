@@ -209,7 +209,9 @@ export function saveStateToDB() {
 
       // Cascata de Sincronização: Local -> Cloudflare
       if (state.config && state.config.cfSyncSyncEnabled) {
-        SyncQueue.add(() => pushToCloudflare());
+        SyncQueue.add(() => pushToCloudflare()).catch(err => {
+          console.error('Cloud sync failed after save:', err);
+        });
       }
 
       resolve();

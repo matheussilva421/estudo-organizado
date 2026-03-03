@@ -91,7 +91,7 @@ export async function pullFromCloudflare() {
  * Envia o estado atual para o KV
  */
 export async function pushToCloudflare() {
-    if (isSyncing) return;
+    if (isSyncing) return false;
     const config = getSyncConfig();
     if (!config) return false;
 
