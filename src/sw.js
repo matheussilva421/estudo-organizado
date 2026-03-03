@@ -16,8 +16,7 @@ const ASSETS = [
     './js/relevance.js',
     './js/store.js',
     './js/utils.js',
-    './js/views.js',
-    'favicon.ico'
+    './js/views.js'
 ];
 
 // Install Event

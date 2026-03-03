@@ -143,9 +143,14 @@ window.forceCloudflareSync = async function () {
     const btn = document.getElementById('btn-force-cf-sync');
     if (btn) btn.disabled = true;
 
-    // Tenta puxar novidades, e então empurra a versão atualizada pra consolidar
-    await SyncQueue.add(() => pullFromCloudflare());
-    await SyncQueue.add(() => pushToCloudflare());
-
-    if (btn) btn.disabled = false;
+    try {
+        // Tenta puxar novidades, e então empurra a versão atualizada pra consolidar
+        await SyncQueue.add(() => pullFromCloudflare());
+        await SyncQueue.add(() => pushToCloudflare());
+    } catch (err) {
+        console.error('Force sync failed:', err);
+        updateSyncStatus('Erro na sincronização forçada', true);
+    } finally {
+        if (btn) btn.disabled = false;
+    }
 };
