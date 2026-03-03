@@ -208,7 +208,7 @@ export function saveStateToDB() {
       document.dispatchEvent(new Event('stateSaved'));
 
       // Cascata de Sincronização: Local -> Cloudflare
-      if (state.config && state.config.cfSyncSyncEnabled) {
+      if (state.config && state.config.cfSyncEnabled) {
         SyncQueue.add(() => pushToCloudflare()).catch(err => {
           console.error('Cloud sync failed after save:', err);
         });
@@ -283,9 +283,10 @@ export function runMigrations() {
     changed = true;
   }
 
-  // v5 and v6 were intermediate states — ensure they advance to 7
+  // v5 and v6 were intermediate states — advance directly to 7
+  // (the schemaVersion < 7 block below will run the aulas migration)
   if (state.schemaVersion === 5 || state.schemaVersion === 6) {
-    state.schemaVersion = 6; // advance to trigger v6→v7 block below
+    state.schemaVersion = 6; // Let the < 7 block below run
     changed = true;
   }
 
