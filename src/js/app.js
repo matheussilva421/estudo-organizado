@@ -172,6 +172,12 @@ export function init() {
     setInterval(() => {
       if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId) syncWithDrive();
     }, 300000);
+  }).catch(err => {
+    console.error('Falha ao inicializar o aplicativo:', err);
+    const content = document.getElementById('content');
+    if (content) {
+      content.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;"><h2>Erro ao carregar o aplicativo</h2><p>Tente recarregar a página. Se o erro persistir, limpe os dados do navegador.</p></div>';
+    }
   });
 }
 

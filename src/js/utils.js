@@ -34,7 +34,7 @@ export function formatDate(str) {
     return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function pad(n) { return String(n).padStart(2, '0'); }
+function pad(n) { return String(n).padStart(2, '0'); }
 
 export function formatTime(seconds) {
     const h = Math.floor(seconds / 3600);

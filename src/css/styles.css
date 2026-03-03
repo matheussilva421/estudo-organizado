@@ -16,8 +16,10 @@
   --border: #e2e8f0;
   --bg: #f1f5f9;
   --card: #ffffff;
+  --card-bg: #ffffff;
+  --bg-secondary: #e2e8f0;
+  --yellow: #eab308;
   --sidebar-text: #94a3b8;
-  --sidebar-active-text: #ffffff;
   --status-agendado: #3b82f6;
   --status-estudei: #10b981;
   --status-atrasado: #ef4444;
@@ -34,6 +36,9 @@
 [data-theme="dark"] {
   --bg: #0f172a;
   --card: #1e293b;
+  --card-bg: #1e293b;
+  --bg-secondary: #334155;
+  --yellow: #eab308;
   --border: #334155;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
@@ -53,6 +58,9 @@
 [data-theme="furtivo"] {
   --bg: #000000;
   --card: #0A0A0A;
+  --card-bg: #0A0A0A;
+  --bg-secondary: #1a1a1a;
+  --yellow: #a3a3a3;
   --sidebar-bg: #0A0A0A;
   --sidebar-hover: #141414;
   --sidebar-active: #262626;
@@ -75,6 +83,9 @@
 [data-theme="abismo"] {
   --bg: #020617;
   --card: #0F172A;
+  --card-bg: #0F172A;
+  --bg-secondary: #1E293B;
+  --yellow: #eab308;
   --sidebar-bg: #0F172A;
   --sidebar-hover: #1E293B;
   --sidebar-active: #06B6D4;
@@ -94,6 +105,9 @@
 [data-theme="grafite"] {
   --bg: #09090B;
   --card: #18181B;
+  --card-bg: #18181B;
+  --bg-secondary: #27272A;
+  --yellow: #eab308;
   --sidebar-bg: #18181B;
   --sidebar-hover: #27272A;
   --sidebar-active: #3B82F6;
@@ -113,6 +127,9 @@
 [data-theme="matrix"] {
   --bg: #000000;
   --card: #111111;
+  --card-bg: #111111;
+  --bg-secondary: #1A1A1A;
+  --yellow: #eab308;
   --sidebar-bg: #111111;
   --sidebar-hover: #1A1A1A;
   --sidebar-active: #22C55E;
@@ -132,6 +149,9 @@
 [data-theme="rubi"] {
   --bg: #000000;
   --card: #0A0A0A;
+  --card-bg: #0A0A0A;
+  --bg-secondary: #1a1a1a;
+  --yellow: #eab308;
   --sidebar-bg: #0A0A0A;
   --sidebar-hover: #141414;
   --sidebar-active: #DC2626;

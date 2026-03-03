@@ -31,6 +31,12 @@ export function toggleTimerMode() {
     btn.style.backgroundColor = _pomodoroMode ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.06)';
     btn.style.color = _pomodoroMode ? '#a371f7' : '#8b949e';
   }
+  const topBtn = document.getElementById('timer-mode-btn');
+  if (topBtn) {
+    topBtn.innerHTML = _pomodoroMode
+      ? '<i class="fa fa-clock"></i> Pomodoro'
+      : '<i class="fa fa-clock"></i> Contínuo';
+  }
   document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: _pomodoroMode ? 'Modo Pomodoro ativado.' : 'Modo Contínuo ativado.', type: 'info' } }));
 }
 
