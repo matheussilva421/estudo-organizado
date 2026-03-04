@@ -127,6 +127,7 @@ export async function pushToCloudflare() {
 
         // Only update local timestamp after successful push
         state.config._lastUpdated = pushTimestamp;
+        scheduleSave(); // Force IndexedDB persistence so tags stay synced
         const lastStr = new Date(pushTimestamp).toLocaleTimeString();
         updateSyncStatus(`Nuvem atualizada às ${lastStr}`);
         console.log('Cloudflare Sync OK');

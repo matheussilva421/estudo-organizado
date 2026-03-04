@@ -10,7 +10,7 @@ export let _pomodoroMode = false;
 export let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 export function isTimerActive(eventId) {
-  if (eventId === 'crono_livre') return !!state.cronoLivre._timerStart;
+  if (eventId === 'crono_livre') return !!(state.cronoLivre && state.cronoLivre._timerStart);
   const ev = state.eventos.find(e => e.id === eventId);
   return !!(ev && ev._timerStart);
 }
@@ -313,10 +313,12 @@ export function getPerformanceStats() {
   let questionsWrong = 0;
 
   state.eventos.forEach(ev => {
-    if (ev.status === 'estudei' && ev.sessao && ev.sessao.questoes) {
-      questionsTotal += ev.sessao.questoes.total || 0;
-      questionsCorrect += ev.sessao.questoes.acertos || 0;
-      questionsWrong += ev.sessao.questoes.erros || 0;
+    if (ev.status !== 'estudei') return;
+    const qs = ev.sessao?.questoes || ev.questoes;
+    if (qs) {
+      questionsTotal += qs.total || ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0));
+      questionsCorrect += (qs.acertos || qs.certas || 0);
+      questionsWrong += (qs.erros || qs.erradas || 0);
     }
   });
 
@@ -326,9 +328,8 @@ export function getPerformanceStats() {
 export function getPagesReadStats() {
   let pagesTotal = 0;
   state.eventos.forEach(ev => {
-    if (ev.status === 'estudei' && ev.sessao && ev.sessao.paginas && ev.sessao.paginas.total) {
-      pagesTotal += ev.sessao.paginas.total;
-    }
+    if (ev.status !== 'estudei') return;
+    pagesTotal += ev.sessao?.paginas?.total || ev.paginas || 0;
   });
   return pagesTotal;
 }
@@ -419,9 +420,10 @@ export function getSubjectStats() {
   state.eventos.forEach(ev => {
     if (ev.status === 'estudei' && ev.discId && stats[ev.discId]) {
       stats[ev.discId].tempo += (ev.tempoAcumulado || 0);
-      if (ev.sessao && ev.sessao.questoes) {
-        stats[ev.discId].acertos += (ev.sessao.questoes.acertos || 0);
-        stats[ev.discId].erros += (ev.sessao.questoes.erros || 0);
+      const qs = ev.sessao?.questoes || ev.questoes;
+      if (qs) {
+        stats[ev.discId].acertos += (qs.acertos || qs.certas || 0);
+        stats[ev.discId].erros += (qs.erros || qs.erradas || 0);
       }
     }
   });
@@ -457,8 +459,9 @@ export function getCurrentWeekStats() {
     if (ev.status === 'estudei' && studyDate >= startStr && studyDate <= endStr) {
       const elapsed = ev.tempoAcumulado || 0;
       totalSeconds += elapsed;
-      if (ev.sessao && ev.sessao.questoes) {
-        totalQuestions += (ev.sessao.questoes.total ?? ((ev.sessao.questoes.acertos || 0) + (ev.sessao.questoes.erros || 0)));
+      const qs = ev.sessao?.questoes || ev.questoes;
+      if (qs) {
+        totalQuestions += (qs.total ?? ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0)));
       }
 
       const evDate = new Date(studyDate + 'T00:00:00');
@@ -799,8 +802,9 @@ window.desfazerEtapa = function (seqId) {
     syncCicloToEventos();
     scheduleSave();
     document.dispatchEvent(new Event('app:renderCurrentView'));
-    const m = document.getElementById('modal-ciclo-history');
-    if (m) m.classList.remove('open');
+    if (typeof window.closeModal === 'function') {
+      window.closeModal('modal-ciclo-history');
+    }
   }
 };
 

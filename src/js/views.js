@@ -1,5 +1,5 @@
 ﻿import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
-import { cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
@@ -53,10 +53,11 @@ export function renderHome(el) {
   const metaQuest = state.config.metas?.questoesSemana || 150;
 
   const horasFeitas = weekStats.totalSeconds / 3600;
-  const percHoras = Math.min(100, Math.round((horasFeitas / metaHoras) * 100));
+  // Fallback to 0 if NaN (0/0 scenario)
+  const percHoras = Math.min(100, Math.round((horasFeitas / metaHoras) * 100) || 0);
 
   const questFeitas = weekStats.totalQuestions;
-  const percQuest = Math.min(100, Math.round((questFeitas / metaQuest) * 100));
+  const percQuest = Math.min(100, Math.round((questFeitas / metaQuest) * 100) || 0);
 
   // Data da Prova
   const dataProva = state.config.dataProva;
@@ -924,11 +925,7 @@ export function renderRevisoes(el) {
       ${upcoming.length === 0 ? `
         <div class="empty-state"><div class="icon">📅</div><h4>Nenhuma revisão nos próximos 30 dias</h4><p>Continue estudando e concluíndo assuntos!</p></div>
       ` : (() => {
-      // Group by week
-      let lastWeek = null;
       return upcoming.map(r => {
-        const d = new Date(r.data + 'T00:00:00');
-        const weekLabel = `Semana de ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`;
         const diffDays = Math.ceil((new Date(r.data + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
         return `
             <div class="rev-item">
@@ -3539,7 +3536,7 @@ export function renderConfig(el) {
                 <button class="btn btn-primary btn-sm" onclick="syncWithDrive().then(()=>showToast('Sincronizado!','success')).catch(()=>showToast('Erro ao sincronizar','error'))">
                   <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
                 </button>
-                <button class="btn btn-ghost btn-sm" onclick="syncWithDrive().then(()=>showToast('Dados atualizados!','success'))">
+                <button class="btn btn-ghost btn-sm" onclick="syncWithDrive().then(()=>showToast('Dados atualizados!','success')).catch(e=>console.error('Drive import err:', e))">
                   <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
                 </button>
                 <button class="btn btn-danger btn-sm" onclick="driveDisconnect()">Desconectar</button>
@@ -3561,7 +3558,7 @@ export function renderConfig(el) {
                 <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '🚫 Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
               </div>
               ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
-                <button class="btn btn-primary btn-sm" onclick="Notification.requestPermission().then(p=>{if(p==='granted')showToast('Notificações ativadas!','success');renderCurrentView()})">🔖 Ativar</button>
+                <button class="btn btn-primary btn-sm" onclick="Notification.requestPermission().then(p=>{if(p==='granted')showToast('Notificações ativadas!','success');renderCurrentView()}).catch(e=>console.warn(e))">🔖 Ativar</button>
               ` : Notification.permission === 'granted' ? `
                 <button class="btn btn-ghost btn-sm" onclick="new Notification('Estudo Organizado',{body:'Notificações funcionando!',icon:'📚'});showToast('Lembretes enviados!','success')">🔖 Testar</button>
               ` : ''}
@@ -4226,7 +4223,7 @@ export function renderCiclo(el) {
             data.push(min);
             const color = d.disc.cor || d.edital.cor || '#3b82f6';
             bgColors.push(color);
-            const wPct = ((min / totalTarget) * 100).toFixed(2);
+            const wPct = totalTarget > 0 ? ((min / totalTarget) * 100).toFixed(2) : 0;
             linearHtml += `<div style="width:${wPct}%; background:${color}; height:100%;"></div>`;
           }
         }

@@ -11,6 +11,7 @@ import { tokenize, computeTokenMatch } from './relevance.js';
 // =============================================
 
 function findBestSubjectForLesson(lessonName, editalTopics) {
+    // Pre-tokenize lesson name
     const tokensLesson = tokenize(lessonName);
     const strLesson = lessonName.toLowerCase().trim();
 
@@ -31,8 +32,8 @@ function findBestSubjectForLesson(lessonName, editalTopics) {
         }
         // Token Fuzzy Matching
         else {
-            const tokensTopic = tokenize(topic.nome);
-            highestScore = computeTokenMatch(tokensLesson, tokensTopic);
+            if (!topic._tokens) topic._tokens = tokenize(topic.nome);
+            highestScore = computeTokenMatch(tokensLesson, topic._tokens);
         }
 
         if (highestScore > 0) {

@@ -10,10 +10,9 @@ import { deleteEvento, getAllDisciplinas, getDisc, getElapsedSeconds, getPending
 
 
 export function renderCronometro(el) {
-  let allTimerEvents = [
-    ...state.eventos.filter(e => e._timerStart),
-    ...state.eventos.filter(e => !e._timerStart && (e.tempoAcumulado || 0) > 0 && e.status !== 'estudei')
-  ];
+  let allTimerEvents = state.eventos.filter(e =>
+    e._timerStart || (!e._timerStart && (e.tempoAcumulado || 0) > 0 && e.status !== 'estudei')
+  );
 
   const isLivreActiveOrPaused = state.cronoLivre && (state.cronoLivre._timerStart || state.cronoLivre.tempoAcumulado > 0);
 

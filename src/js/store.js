@@ -16,11 +16,11 @@ export function setState(newState) {
     schemaVersion: newState.schemaVersion || DEFAULT_SCHEMA_VERSION,
     ciclo: newState.ciclo || { ativo: false, ciclosCompletos: 0, disciplinas: [] },
     planejamento: newState.planejamento || { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
-    editais: newState.editais || [],
-    eventos: newState.eventos || [],
-    arquivo: newState.arquivo || [],
-    habitos: Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] }, newState.habitos || {}),
-    revisoes: newState.revisoes || [],
+    editais: Array.isArray(newState.editais) ? newState.editais : [],
+    eventos: Array.isArray(newState.eventos) ? newState.eventos : [],
+    arquivo: Array.isArray(newState.arquivo) ? newState.arquivo : [],
+    habitos: Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {}),
+    revisoes: Array.isArray(newState.revisoes) ? newState.revisoes : [],
     config: Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3 }, newState.config || {}),
     cronoLivre: newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 },
     bancaRelevance: newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} },
@@ -202,7 +202,10 @@ export function scheduleSave() {
       _invalidateTimeout = null;
       document.dispatchEvent(new Event('app:invalidateCaches'));
     }
-    saveStateToDB();
+    saveStateToDB().catch(err => {
+      console.error('CRITICAL: Failed to save to IndexedDB', err);
+      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'ERRO GRAVE: Falha ao salvar no seu disco. Libere espaço ou recarregue a página.', type: 'error' } }));
+    });
   }, 2000); // 2 second debounce
 }
 
@@ -246,6 +249,7 @@ export function runMigrations() {
     if (!state.habitos) state.habitos = { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] };
 
     // Add IDs where missing
+    if (!state.editais) state.editais = [];
     state.editais.forEach(ed => {
       if (!ed.id) ed.id = 'ed_' + uid();
       if (!ed.cor) ed.cor = '#10b981';
@@ -386,5 +390,5 @@ export function clearData() {
   saveStateToDB().then(() => {
     document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Dados apagados com sucesso.', type: 'info' } }));
     document.dispatchEvent(new Event('app:renderCurrentView'));
-  });
+  }).catch(e => console.error('Erro ao limpar dados:', e));
 }

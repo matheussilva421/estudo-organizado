@@ -44,6 +44,14 @@ export function formatTime(seconds) {
     return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
+export function formatH(minutes) {
+    if (!minutes) return '0m';
+    const h = Math.floor(minutes / 60);
+    const m = Math.round(minutes % 60);
+    if (h > 0) return `${h}h${m > 0 ? ` ${m}m` : ''}`;
+    return `${m}m`;
+}
+
 export function getEventStatus(evento) {
     const today = todayStr();
     if (evento.status === 'estudei') return 'estudei';
