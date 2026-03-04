@@ -801,8 +801,9 @@ window.desfazerEtapa = function (seqId) {
     syncCicloToEventos();
     scheduleSave();
     document.dispatchEvent(new Event('app:renderCurrentView'));
-    const m = document.getElementById('modal-ciclo-history');
-    if (m) m.classList.remove('open');
+    if (typeof window.closeModal === 'function') {
+      window.closeModal('modal-ciclo-history');
+    }
   }
 };
 
