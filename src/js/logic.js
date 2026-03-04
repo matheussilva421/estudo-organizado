@@ -141,9 +141,6 @@ export function discardTimer(eventId) {
   document.dispatchEvent(new CustomEvent('app:showConfirm', {
     detail: {
       msg: 'Descartar esta sessão? O tempo de estudo será zerado.',
-      title: 'Descartar Sessão',
-      label: 'Descartar',
-      danger: true,
       onYes: () => {
         if (timerIntervals[eventId]) {
           clearInterval(timerIntervals[eventId]);
@@ -153,7 +150,8 @@ export function discardTimer(eventId) {
         delete ev._timerStart;
         scheduleSave();
         document.dispatchEvent(new Event('app:renderCurrentView'));
-      }
+      },
+      opts: { title: 'Descartar Sessão', label: 'Descartar', danger: true }
     }
   }));
 }
@@ -315,10 +313,12 @@ export function getPerformanceStats() {
   let questionsWrong = 0;
 
   state.eventos.forEach(ev => {
-    if (ev.status === 'estudei' && ev.sessao && ev.sessao.questoes) {
-      questionsTotal += ev.sessao.questoes.total || 0;
-      questionsCorrect += ev.sessao.questoes.acertos || 0;
-      questionsWrong += ev.sessao.questoes.erros || 0;
+    if (ev.status !== 'estudei') return;
+    const qs = ev.sessao?.questoes || ev.questoes;
+    if (qs) {
+      questionsTotal += qs.total || ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0));
+      questionsCorrect += (qs.acertos || qs.certas || 0);
+      questionsWrong += (qs.erros || qs.erradas || 0);
     }
   });
 
@@ -328,9 +328,8 @@ export function getPerformanceStats() {
 export function getPagesReadStats() {
   let pagesTotal = 0;
   state.eventos.forEach(ev => {
-    if (ev.status === 'estudei' && ev.sessao && ev.sessao.paginas && ev.sessao.paginas.total) {
-      pagesTotal += ev.sessao.paginas.total;
-    }
+    if (ev.status !== 'estudei') return;
+    pagesTotal += ev.sessao?.paginas?.total || ev.paginas || 0;
   });
   return pagesTotal;
 }
@@ -420,9 +419,10 @@ export function getSubjectStats() {
   state.eventos.forEach(ev => {
     if (ev.status === 'estudei' && ev.discId && stats[ev.discId]) {
       stats[ev.discId].tempo += (ev.tempoAcumulado || 0);
-      if (ev.sessao && ev.sessao.questoes) {
-        stats[ev.discId].acertos += (ev.sessao.questoes.acertos || 0);
-        stats[ev.discId].erros += (ev.sessao.questoes.erros || 0);
+      const qs = ev.sessao?.questoes || ev.questoes;
+      if (qs) {
+        stats[ev.discId].acertos += (qs.acertos || qs.certas || 0);
+        stats[ev.discId].erros += (qs.erros || qs.erradas || 0);
       }
     }
   });
@@ -677,13 +677,13 @@ export function deletePlanejamento() {
   document.dispatchEvent(new CustomEvent('app:showConfirm', {
     detail: {
       msg: 'Deseja excluir este Planejamento de Estudos? Você precisará criar um novo depois para gerar sequências.',
-      title: 'Excluir Planejamento',
       onYes: () => {
         state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
         syncCicloToEventos();
         scheduleSave();
         document.dispatchEvent(new Event('app:renderCurrentView'));
-      }
+      },
+      opts: { title: 'Excluir Planejamento', label: 'Excluir', danger: true }
     }
   }));
 }
