@@ -10,7 +10,7 @@ export let _pomodoroMode = false;
 export let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 export function isTimerActive(eventId) {
-  if (eventId === 'crono_livre') return !!state.cronoLivre._timerStart;
+  if (eventId === 'crono_livre') return !!(state.cronoLivre && state.cronoLivre._timerStart);
   const ev = state.eventos.find(e => e.id === eventId);
   return !!(ev && ev._timerStart);
 }

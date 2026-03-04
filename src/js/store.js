@@ -246,6 +246,7 @@ export function runMigrations() {
     if (!state.habitos) state.habitos = { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] };
 
     // Add IDs where missing
+    if (!state.editais) state.editais = [];
     state.editais.forEach(ed => {
       if (!ed.id) ed.id = 'ed_' + uid();
       if (!ed.cor) ed.cor = '#10b981';
