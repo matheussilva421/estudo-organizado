@@ -924,11 +924,7 @@ export function renderRevisoes(el) {
       ${upcoming.length === 0 ? `
         <div class="empty-state"><div class="icon">📅</div><h4>Nenhuma revisão nos próximos 30 dias</h4><p>Continue estudando e concluíndo assuntos!</p></div>
       ` : (() => {
-      // Group by week
-      let lastWeek = null;
       return upcoming.map(r => {
-        const d = new Date(r.data + 'T00:00:00');
-        const weekLabel = `Semana de ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`;
         const diffDays = Math.ceil((new Date(r.data + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
         return `
             <div class="rev-item">
