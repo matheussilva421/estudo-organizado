@@ -42,7 +42,7 @@ export async function pullFromCloudflare() {
             try {
                 const errData = await response.json();
                 if (errData && errData.error) errorMsg = `Erro ${response.status}: ${errData.error}`;
-            } catch (e) { }
+            } catch (e) { /* Response body não é JSON; usa errorMsg padrão */ }
             throw new Error(errorMsg);
         }
 
@@ -103,7 +103,7 @@ export async function pushToCloudflare() {
         if (!state.config) state.config = {};
         const pushTimestamp = Date.now();
 
-        const snapshot = JSON.parse(JSON.stringify(state));
+        const snapshot = structuredClone(state);
         snapshot.config._lastUpdated = pushTimestamp;
         const payload = JSON.stringify(snapshot);
 
@@ -121,7 +121,7 @@ export async function pushToCloudflare() {
             try {
                 const errData = await response.json();
                 if (errData && errData.error) errorMsg = `Erro ${response.status}: ${errData.error}`;
-            } catch (e) { }
+            } catch (e) { /* Response body não é JSON; usa errorMsg padrão */ }
             throw new Error(errorMsg);
         }
 

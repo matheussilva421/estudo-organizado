@@ -127,3 +127,10 @@ export function startNotificationEngine() {
         checkTriggers();
     }, 14400000);
 }
+
+export function stopNotificationEngine() {
+    if (notificationEngineInterval) {
+        clearInterval(notificationEngineInterval);
+        notificationEngineInterval = null;
+    }
+}
