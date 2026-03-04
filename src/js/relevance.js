@@ -137,8 +137,8 @@ export function findBestMatch(editalSubjectName, disciplinaId = null) {
         }
 
         // Match Parcial & Fuzzy (Tokenização Complexa)
-        const tokensB = tokenize(ht.nome);
-        const tokenScore = computeTokenMatch(tokensA, tokensB);
+        if (!ht._tokens) ht._tokens = tokenize(ht.nome);
+        const tokenScore = computeTokenMatch(tokensA, ht._tokens);
 
         if (tokenScore > highestScore) {
             highestScore = tokenScore;

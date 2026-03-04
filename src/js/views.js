@@ -1,5 +1,5 @@
 ﻿import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
-import { cutoffDateStr, esc, formatDate, formatTime, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
@@ -3558,7 +3558,7 @@ export function renderConfig(el) {
                 <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '🚫 Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
               </div>
               ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
-                <button class="btn btn-primary btn-sm" onclick="Notification.requestPermission().then(p=>{if(p==='granted')showToast('Notificações ativadas!','success');renderCurrentView()})">🔖 Ativar</button>
+                <button class="btn btn-primary btn-sm" onclick="Notification.requestPermission().then(p=>{if(p==='granted')showToast('Notificações ativadas!','success');renderCurrentView()}).catch(e=>console.warn(e))">🔖 Ativar</button>
               ` : Notification.permission === 'granted' ? `
                 <button class="btn btn-ghost btn-sm" onclick="new Notification('Estudo Organizado',{body:'Notificações funcionando!',icon:'📚'});showToast('Lembretes enviados!','success')">🔖 Testar</button>
               ` : ''}
