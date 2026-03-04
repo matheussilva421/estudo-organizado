@@ -5,7 +5,7 @@ import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, inva
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
-let calDate = new Date();
+export let calDate = new Date();
 export let calViewMode = 'mes';
 export function setCalViewMode(mode) {
   calViewMode = mode;
@@ -422,7 +422,7 @@ export function renderCalendar(el) {
             <button onclick="calNavigate(1)"><i class="fa fa-chevron-right"></i></button>
           </div>
           <div class="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}</div>
-          <button class="btn btn-ghost btn-sm" onclick="calDate=new Date();renderCurrentView()">Hoje</button>
+          <button class="btn btn-ghost btn-sm" onclick="resetCalDate()">Hoje</button>
           <div style="margin-left:auto;" class="cal-view-tabs">
             <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" onclick="setCalViewMode('mes')">Mês</div>
             <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" onclick="setCalViewMode('semana')">Semana</div>
@@ -432,6 +432,11 @@ export function renderCalendar(el) {
       </div>
     </div>
   `;
+}
+
+export function resetCalDate() {
+  calDate = new Date();
+  renderCurrentView();
 }
 
 export function calNavigate(dir) {
@@ -622,6 +627,11 @@ export function openEventDetail(eventId) {
 // =============================================
 export let dashPeriod = 7; // default: last 7 days
 export let _chartDaily = null, _chartDisc = null;
+
+export function destroyDashboardCharts() {
+  if (_chartDaily) { _chartDaily.destroy(); _chartDaily = null; }
+  if (_chartDisc) { _chartDisc.destroy(); _chartDisc = null; }
+}
 
 export function renderDashboard(el) {
   const periodDays = dashPeriod; // null = all time
@@ -837,7 +847,7 @@ export function getUpcomingRevisoes(days = 30) {
   const upcoming = [];
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
-      for (const ass of disc.assuntos) {
+      for (const ass of (disc.assuntos || [])) {
         if (!ass.concluido || !ass.dataConclusao) continue;
         const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || [], ass.adiamentos || 0);
         for (const rd of revDates) {
@@ -952,10 +962,11 @@ export function switchRevTab(tab, btn) {
 export function marcarRevisao(assId) {
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
-      const ass = disc.assuntos.find(a => a.id === assId);
+      const ass = (disc.assuntos || []).find(a => a.id === assId);
       if (ass) {
         if (!ass.revisoesFetas) ass.revisoesFetas = [];
         ass.revisoesFetas.push(todayStr());
+        invalidateRevCache();
         scheduleSave();
         renderCurrentView();
         showToast('Revisão registrada! ✅', 'success');
@@ -968,11 +979,12 @@ export function marcarRevisao(assId) {
 export function adiarRevisao(assId) {
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
-      const ass = disc.assuntos.find(a => a.id === assId);
+      const ass = (disc.assuntos || []).find(a => a.id === assId);
       if (ass) {
         // Store a deferral date natively without mutating completion history
         if (!ass.adiamentos) ass.adiamentos = 0;
         ass.adiamentos = (ass.adiamentos || 0) + 1;
+        invalidateRevCache();
         scheduleSave();
         renderCurrentView();
         showToast('Revisão adiada por 1 dia', 'info');
@@ -1049,7 +1061,7 @@ export function renderHabitHistPage() {
             <div style="font-size:12px;color:var(--text-secondary);">${formatDate(r.data)}${r.quantidade ? ' • ' + r.quantidade + ' questões' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total && r.total > 0 ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
             ${r.gabaritoPorDisc && r.gabaritoPorDisc.length ? `
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
-                ${r.gabaritoPorDisc.map(g => `<span style="font-size:10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--text-secondary);">${g.discNome}: ${g.acertos}/${g.total}</span>`).join('')}
+                ${r.gabaritoPorDisc.map(g => `<span style="font-size:10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--text-secondary);">${esc(g.discNome)}: ${g.acertos}/${g.total}</span>`).join('')}
               </div>` : ''}
           </div>
           <button class="icon-btn" onclick="deleteHabito('${r.tipo.key}','${r.id}')">🗑️</button>
@@ -1298,7 +1310,7 @@ export function getFilteredVertItems() {
   let items = [];
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
-      for (const ass of disc.assuntos) {
+      for (const ass of (disc.assuntos || [])) {
         items.push({ edital, disc, ass });
       }
     }
@@ -1487,7 +1499,7 @@ export function renderVerticalList(container) {
     });
   }
 
-  const hiReg = vertSearch ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\\\]/g, '\\\\$&')})`, 'gi') : null;
+  const hiReg = vertSearch ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi') : null;
   const highlight = str => hiReg ? esc(str).replace(hiReg, '<mark>$1</mark>') : esc(str);
 
   Object.values(discMap).forEach(dMap => {
@@ -1593,8 +1605,8 @@ export function renderVerticalList(container) {
     });
 
     html += `
-              </tbody >
-            </table >
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -1743,7 +1755,7 @@ export function toggleAssunto(discId, assId) {
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
     if (disc) {
-      const ass = disc.assuntos.find(a => a.id === assId);
+      const ass = (disc.assuntos || []).find(a => a.id === assId);
       if (ass) {
         ass.concluido = !ass.concluido;
         ass.dataConclusao = ass.concluido ? todayStr() : null;
@@ -2009,7 +2021,7 @@ function renderAulasDisciplinaDashboard(edital, disc) {
 }
 
 function renderBancaDisciplinaDashboard(edital, disc) {
-  const hasHotTopics = state.bancaRelevance && state.bancaRelevance.hotTopics && state.bancaRelevance.hotTopics[disc.id];
+  const hasHotTopics = state.bancaRelevance && state.bancaRelevance.hotTopics && state.bancaRelevance.hotTopics.some(ht => ht.disciplinaId === disc.id);
   const hasAulas = disc.aulas && disc.aulas.length > 0;
 
   if (!hasHotTopics) {
@@ -2375,7 +2387,7 @@ export function openDiscManager(editaId, discId) {
         ${(ass.linkedAulaIds && ass.linkedAulaIds.length > 0) ? `
            <div style="font-size:11px; margin-top:4px; display:flex; gap:4px; flex-wrap:wrap;">
              ${ass.linkedAulaIds.map(auId => {
-    const aulaObj = disc.aulas.find(a => a.id === auId);
+    const aulaObj = (disc.aulas || []).find(a => a.id === auId);
     return aulaObj ? `<span style="background:var(--bg); border:1px solid var(--accent); color:var(--accent); padding:1px 6px; border-radius:10px; display:flex; align-items:center; gap:4px;"><i class="fa fa-play-circle"></i> ${esc(aulaObj.nome)}</span>` : '';
   }).join('')}
            </div>
@@ -2514,7 +2526,7 @@ export function editSubjectInline(discId, assId, el) {
 
 window.editLessonInline = function (discId, aulaId, el) {
   const d = getDisc(discId);
-  const aulaObj = d.disc.aulas.find(a => a.id === aulaId);
+  const aulaObj = (d.disc.aulas || []).find(a => a.id === aulaId);
   if (!aulaObj) return;
 
   const originalText = aulaObj.nome;
@@ -2550,7 +2562,7 @@ window.editLessonInline = function (discId, aulaId, el) {
 window.toggleAulaEstudada = function (discId, aulaId) {
   const d = getDisc(discId);
   if (!d) return;
-  const aulaObj = d.disc.aulas.find(a => a.id === aulaId);
+  const aulaObj = (d.disc.aulas || []).find(a => a.id === aulaId);
   if (!aulaObj) return;
 
   aulaObj.estudada = !aulaObj.estudada;
@@ -3257,17 +3269,17 @@ export function loadAssuntos() {
 
   const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
   if (pendingAssuntos.length > 0) {
-    html += `< optgroup label = "Tópicos do Edital (${pendingAssuntos.length})" > `;
-    html += pendingAssuntos.map(a => `<option value = "ass_${a.id}" > ${esc(a.nome)}</option> `).join('');
-    html += `</optgroup > `;
+    html += `<optgroup label="Tópicos do Edital (${pendingAssuntos.length})">`;
+    html += pendingAssuntos.map(a => `<option value="ass_${a.id}">${esc(a.nome)}</option>`).join('');
+    html += `</optgroup>`;
   }
 
   const aulas = d.disc.aulas || [];
   const pendingAulas = aulas.filter(a => !a.estudada);
   if (pendingAulas.length > 0) {
-    html += `< optgroup label = "Meus Materiais/Aulas (${pendingAulas.length})" > `;
-    html += pendingAulas.map(a => `<option value = "aul_${a.id}" > ${esc(a.nome)}</option> `).join('');
-    html += `</optgroup > `;
+    html += `<optgroup label="Meus Materiais/Aulas (${pendingAulas.length})">`;
+    html += pendingAulas.map(a => `<option value="aul_${a.id}">${esc(a.nome)}</option>`).join('');
+    html += `</optgroup>`;
   }
 
   assuntoSel.innerHTML = html;
@@ -3849,7 +3861,7 @@ export function onSearch(query) {
     });
   });
 
-  const highlight = str => esc(str).replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')})`, 'gi'), '<mark>$1</mark>');
+  const highlight = str => esc(str).replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
   let html = '';
 
   if (results.eventos.length) {
@@ -4397,7 +4409,7 @@ window.openCicloHistory = function (seqId) {
                 </div>
               </div>
               <div>
-                <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-ciclo-history'); window.openEventModal('${ev.id}')"><i class="fa fa-edit"></i> Editar</button>
+                <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-ciclo-history'); window.openEventDetail('${ev.id}')"><i class="fa fa-edit"></i> Editar</button>
               </div>
             </div>
           `;
