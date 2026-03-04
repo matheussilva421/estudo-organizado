@@ -571,9 +571,9 @@ export function saveRegistroSessao() {
   const hasQuestoes = _selectedTipos.includes('questoes') || _selectedTipos.includes('simulado');
   let questoes = null;
   if (hasQuestoes) {
-    const total = parseInt(document.getElementById('reg-q-total')?.value || '0');
-    const acertos = parseInt(document.getElementById('reg-q-acertos')?.value || '0');
-    const erros = parseInt(document.getElementById('reg-q-erros')?.value || '0');
+    const total = parseInt(document.getElementById('reg-q-total')?.value, 10) || 0;
+    const acertos = parseInt(document.getElementById('reg-q-acertos')?.value, 10) || 0;
+    const erros = parseInt(document.getElementById('reg-q-erros')?.value, 10) || 0;
     if (total <= 0) { showToast('Informe o total de questões', 'error'); return false; }
     if (acertos + erros > total) { showToast('Acertos + Erros não pode ser maior que o Total', 'error'); return false; }
     questoes = { total, acertos, erros };
