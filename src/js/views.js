@@ -4222,7 +4222,7 @@ export function renderCiclo(el) {
             data.push(min);
             const color = d.disc.cor || d.edital.cor || '#3b82f6';
             bgColors.push(color);
-            const wPct = ((min / totalTarget) * 100).toFixed(2);
+            const wPct = totalTarget > 0 ? ((min / totalTarget) * 100).toFixed(2) : 0;
             linearHtml += `<div style="width:${wPct}%; background:${color}; height:100%;"></div>`;
           }
         }
