@@ -418,7 +418,7 @@ body {
   color: var(--sidebar-text);
   font-size: 13.5px;
   font-weight: 500;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
   text-decoration: none;
   margin-bottom: 1px;
   position: relative;
@@ -575,7 +575,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .btn-primary {
@@ -624,7 +624,7 @@ body {
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border);
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .btn-outline:hover {
@@ -752,7 +752,7 @@ body {
   border: 1px solid var(--border);
   background: var(--card);
   margin-bottom: 8px;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
   cursor: pointer;
 }
 
@@ -863,7 +863,7 @@ body {
   background: transparent;
   color: var(--text-muted);
   font-size: 13px;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .icon-btn:hover {
@@ -910,7 +910,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .cal-nav button:hover {
@@ -938,7 +938,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .cal-view-tab.active {
@@ -1172,7 +1172,7 @@ select.form-control {
   color: var(--text-secondary);
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .tab-btn.active {
@@ -1402,7 +1402,7 @@ select.form-control {
   padding: 16px;
   border: 1px solid var(--border);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
   text-align: center;
 }
 
@@ -1609,7 +1609,7 @@ select.form-control {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .check-circle.done {
@@ -1724,7 +1724,7 @@ select.form-control {
   font-weight: 600;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .filter-chip.active {
@@ -1782,7 +1782,7 @@ select.form-control {
   font-weight: 500;
   letter-spacing: 4px;
   color: var(--text-primary);
-  transition: all 0.3s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .crono-timer-display.active {
@@ -1800,7 +1800,7 @@ select.form-control {
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  transition: all 0.3s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .crono-btn-main.play {
@@ -1827,7 +1827,7 @@ select.form-control {
   font-size: 20px;
   background: var(--bg);
   color: var(--text-secondary);
-  transition: all 0.3s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
   border: 1px solid var(--border);
 }
 
@@ -1869,7 +1869,7 @@ select.form-control {
   border-radius: 10px;
   padding: 12px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
   text-align: center;
 }
 
@@ -2527,7 +2527,7 @@ mark {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-  transition: all 0.2s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .btn-inline:hover {
@@ -2553,7 +2553,7 @@ mark {
   color: var(--text-muted);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
   font-family: inherit;
 }
 
@@ -2755,7 +2755,7 @@ mark {
   gap: 16px;
   align-items: stretch;
   position: relative;
-  transition: all 0.2s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .ciclo-item.concluido {
@@ -2849,7 +2849,7 @@ mark {
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  transition: all 0.2s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .step-item.active {
@@ -2874,7 +2874,7 @@ mark {
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
   height: 100%;
 }
 
@@ -3050,7 +3050,7 @@ mark {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-  transition: all 0.2s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
 }
 
 .btn-inline:hover {
@@ -3076,7 +3076,7 @@ mark {
   color: var(--text-muted);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform , background-color , opacity , color , border-color , box-shadow ;
   font-family: inherit;
 }
 
