@@ -30,26 +30,25 @@ export function tokenize(text) {
 }
 
 // Distância de Levenshtein Clássica (para achar typos ou variações mínimas)
-export function levenshteinDistance(a, b) {
-    if (a.length === 0) return b.length;
-    if (b.length === 0) return a.length;
+export function levenshteinDistance(s, t) {
+    if (s === t) return 0;
+    if (s.length === 0) return t.length;
+    if (t.length === 0) return s.length;
 
-    const matrix = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(null));
+    let v0 = new Uint16Array(t.length + 1);
+    let v1 = new Uint16Array(t.length + 1);
 
-    for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-    for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+    for (let i = 0; i < v0.length; i++) v0[i] = i;
 
-    for (let i = 1; i <= a.length; i++) {
-        for (let j = 1; j <= b.length; j++) {
-            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-            matrix[i][j] = Math.min(
-                matrix[i - 1][j] + 1, // deletion
-                matrix[i][j - 1] + 1, // insertion
-                matrix[i - 1][j - 1] + cost // substitution
-            );
+    for (let i = 0; i < s.length; i++) {
+        v1[0] = i + 1;
+        for (let j = 0; j < t.length; j++) {
+            const cost = (s[i] === t[j]) ? 0 : 1;
+            v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost);
         }
+        for (let j = 0; j < v0.length; j++) v0[j] = v1[j];
     }
-    return matrix[a.length][b.length];
+    return v1[t.length];
 }
 
 // Retorna similaridade entre 0 e 1 usando Levenshtein
