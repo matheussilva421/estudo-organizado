@@ -21,7 +21,7 @@ export function initGoogleAPIs() {
         gapi.load('client', () => {
             gapi.client.init({
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-            }).then(() => { gapiInited = true; checkDriveStatus(); });
+            }).then(() => { gapiInited = true; checkDriveStatus(); }).catch(err => console.error('GAPI Init error:', err));
         });
     };
     document.head.appendChild(scriptGapi);
@@ -166,7 +166,7 @@ export async function syncWithDrive() {
                             renderCurrentView();
                             showToast('Dados atualizados do Drive!', 'success');
                             updateDriveUI('connected', 'Google Drive');
-                        });
+                        }).catch(e => console.error('Force save fail:', e));
                     }, { title: 'Sincronização', label: 'Sobrescrever Local' });
 
                     return; // Não envia o arquivo local se o do Drive for mais novo, aguarda decisão do usuário

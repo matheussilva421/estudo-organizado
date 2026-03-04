@@ -387,5 +387,5 @@ export function clearData() {
   saveStateToDB().then(() => {
     document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Dados apagados com sucesso.', type: 'info' } }));
     document.dispatchEvent(new Event('app:renderCurrentView'));
-  });
+  }).catch(e => console.error('Erro ao limpar dados:', e));
 }

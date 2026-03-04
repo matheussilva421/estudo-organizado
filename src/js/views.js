@@ -3535,7 +3535,7 @@ export function renderConfig(el) {
                 <button class="btn btn-primary btn-sm" onclick="syncWithDrive().then(()=>showToast('Sincronizado!','success')).catch(()=>showToast('Erro ao sincronizar','error'))">
                   <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
                 </button>
-                <button class="btn btn-ghost btn-sm" onclick="syncWithDrive().then(()=>showToast('Dados atualizados!','success'))">
+                <button class="btn btn-ghost btn-sm" onclick="syncWithDrive().then(()=>showToast('Dados atualizados!','success')).catch(e=>console.error('Drive import err:', e))">
                   <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
                 </button>
                 <button class="btn btn-danger btn-sm" onclick="driveDisconnect()">Desconectar</button>
