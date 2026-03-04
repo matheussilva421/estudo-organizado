@@ -33,12 +33,16 @@ export function navigate(view) {
 
 // UI Modals
 export function openModal(id) {
-  document.getElementById(id).classList.add('open');
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
 export function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('open');
   document.body.style.overflow = '';
 }
 

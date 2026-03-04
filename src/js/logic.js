@@ -141,9 +141,6 @@ export function discardTimer(eventId) {
   document.dispatchEvent(new CustomEvent('app:showConfirm', {
     detail: {
       msg: 'Descartar esta sessão? O tempo de estudo será zerado.',
-      title: 'Descartar Sessão',
-      label: 'Descartar',
-      danger: true,
       onYes: () => {
         if (timerIntervals[eventId]) {
           clearInterval(timerIntervals[eventId]);
@@ -153,7 +150,8 @@ export function discardTimer(eventId) {
         delete ev._timerStart;
         scheduleSave();
         document.dispatchEvent(new Event('app:renderCurrentView'));
-      }
+      },
+      opts: { title: 'Descartar Sessão', label: 'Descartar', danger: true }
     }
   }));
 }
@@ -340,6 +338,7 @@ export function getSyllabusProgress() {
   let aulasEstudadas = 0;
 
   state.editais.forEach(ed => {
+    if (!ed.disciplinas) return;
     ed.disciplinas.forEach(d => {
       totalAulas += d.aulas ? d.aulas.length : 0;
       aulasEstudadas += d.aulas ? d.aulas.filter(a => a.estudada).length : 0;
@@ -369,23 +368,22 @@ export function getConsistencyStreak() {
   // Calculate max streak (inefficient but works for small local DB)
   const sortedDates = Array.from(dates).sort();
   if (sortedDates.length > 0) {
-    let prev = new Date(sortedDates[0]);
     tempStreak = 1;
     maxStreak = 1;
     for (let i = 1; i < sortedDates.length; i++) {
-      let curr = new Date(sortedDates[i]);
-      let diff = (curr - prev) / (1000 * 60 * 60 * 24);
+      let curr = new Date(sortedDates[i] + 'T00:00:00');
+      let prevNorm = new Date(sortedDates[i - 1] + 'T00:00:00');
+      let diff = Math.round((curr - prevNorm) / (1000 * 60 * 60 * 24));
       if (diff === 1) {
         tempStreak++;
         if (tempStreak > maxStreak) maxStreak = tempStreak;
       } else if (diff > 1) {
         tempStreak = 1; // reset
       }
-      prev = curr;
     }
 
     // Current Streak
-    let currDay = new Date(todayStrDate);
+    let currDay = new Date(todayStrDate + 'T00:00:00');
     while (dates.has(getLocalDateStr(currDay))) {
       currentStreak++;
       currDay.setDate(currDay.getDate() - 1);
@@ -394,7 +392,7 @@ export function getConsistencyStreak() {
 
   // Generate last 30 days heatmap
   const heatmap = [];
-  const startDay = new Date(todayStrDate);
+  const startDay = new Date(todayStrDate + 'T00:00:00');
   startDay.setDate(startDay.getDate() - 29); // 30 days including today
 
   for (let i = 0; i < 30; i++) {
@@ -412,6 +410,7 @@ export function getSubjectStats() {
 
   // Initialize with all known disciplines to show rows even if 0
   state.editais.forEach(ed => {
+    if (!ed.disciplinas) return;
     ed.disciplinas.forEach(d => {
       stats[d.id] = { id: d.id, nome: d.nome, tempo: 0, acertos: 0, erros: 0 };
     });
@@ -677,13 +676,13 @@ export function deletePlanejamento() {
   document.dispatchEvent(new CustomEvent('app:showConfirm', {
     detail: {
       msg: 'Deseja excluir este Planejamento de Estudos? Você precisará criar um novo depois para gerar sequências.',
-      title: 'Excluir Planejamento',
       onYes: () => {
         state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
         syncCicloToEventos();
         scheduleSave();
         document.dispatchEvent(new Event('app:renderCurrentView'));
-      }
+      },
+      opts: { title: 'Excluir Planejamento' }
     }
   }));
 }
