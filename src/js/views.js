@@ -53,10 +53,11 @@ export function renderHome(el) {
   const metaQuest = state.config.metas?.questoesSemana || 150;
 
   const horasFeitas = weekStats.totalSeconds / 3600;
-  const percHoras = Math.min(100, Math.round((horasFeitas / metaHoras) * 100));
+  // Fallback to 0 if NaN (0/0 scenario)
+  const percHoras = Math.min(100, Math.round((horasFeitas / metaHoras) * 100) || 0);
 
   const questFeitas = weekStats.totalQuestions;
-  const percQuest = Math.min(100, Math.round((questFeitas / metaQuest) * 100));
+  const percQuest = Math.min(100, Math.round((questFeitas / metaQuest) * 100) || 0);
 
   // Data da Prova
   const dataProva = state.config.dataProva;

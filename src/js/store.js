@@ -202,7 +202,10 @@ export function scheduleSave() {
       _invalidateTimeout = null;
       document.dispatchEvent(new Event('app:invalidateCaches'));
     }
-    saveStateToDB();
+    saveStateToDB().catch(err => {
+      console.error('CRITICAL: Failed to save to IndexedDB', err);
+      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'ERRO GRAVE: Falha ao salvar no seu disco. Libere espaço ou recarregue a página.', type: 'error' } }));
+    });
   }, 2000); // 2 second debounce
 }
 
