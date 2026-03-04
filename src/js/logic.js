@@ -458,8 +458,9 @@ export function getCurrentWeekStats() {
     if (ev.status === 'estudei' && studyDate >= startStr && studyDate <= endStr) {
       const elapsed = ev.tempoAcumulado || 0;
       totalSeconds += elapsed;
-      if (ev.sessao && ev.sessao.questoes) {
-        totalQuestions += (ev.sessao.questoes.total ?? ((ev.sessao.questoes.acertos || 0) + (ev.sessao.questoes.erros || 0)));
+      const qs = ev.sessao?.questoes || ev.questoes;
+      if (qs) {
+        totalQuestions += (qs.total ?? ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0)));
       }
 
       const evDate = new Date(studyDate + 'T00:00:00');
