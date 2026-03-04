@@ -349,7 +349,11 @@ export function getSyllabusProgress() {
   return { totalAssuntos: totalAulas, totalConcluidos: aulasEstudadas };
 }
 
+let _streakCache = null;
+export function invalidateStreakCache() { _streakCache = null; }
+
 export function getConsistencyStreak() {
+  if (_streakCache) return _streakCache;
   const dates = new Set();
   state.eventos.forEach(ev => {
     if (ev.status === 'estudei' && ev.dataEstudo) {
@@ -399,7 +403,8 @@ export function getConsistencyStreak() {
     startDay.setDate(startDay.getDate() + 1);
   }
 
-  return { currentStreak, maxStreak, heatmap };
+  _streakCache = { currentStreak, maxStreak, heatmap };
+  return _streakCache;
 }
 
 export function getSubjectStats() {
@@ -454,7 +459,7 @@ export function getCurrentWeekStats() {
       const elapsed = ev.tempoAcumulado || 0;
       totalSeconds += elapsed;
       if (ev.sessao && ev.sessao.questoes) {
-        totalQuestions += (ev.sessao.questoes.total || ev.sessao.questoes.acertos + ev.sessao.questoes.erros || 0);
+        totalQuestions += (ev.sessao.questoes.total ?? ((ev.sessao.questoes.acertos || 0) + (ev.sessao.questoes.erros || 0)));
       }
 
       const evDate = new Date(studyDate + 'T00:00:00');
@@ -473,7 +478,7 @@ export function getCurrentWeekStats() {
   };
 }
 
-export function getPredictiveStats(metaHoras) {
+export function getPredictiveStats(metaHoras, subjectStats = null) {
   const weekStats = getCurrentWeekStats();
   const today = new Date();
   const primeirodiaSemana = state.config.primeirodiaSemana || 1;
@@ -521,7 +526,7 @@ export function getPredictiveStats(metaHoras) {
 
   // Tenta sugerir a matéria mais negligenciada se não estiver verde
   if (status !== 'verde' && daysRemaining > 0) {
-    const subjectStats = getSubjectStats();
+    if (!subjectStats) subjectStats = getSubjectStats();
     if (subjectStats && subjectStats.length > 0) {
       // Ordena da menos estudada pra mais estudada (baseado no tempo acumulado total)
       const sorted = [...subjectStats].sort((a, b) => a.tempo - b.tempo);

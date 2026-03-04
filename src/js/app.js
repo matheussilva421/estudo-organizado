@@ -9,6 +9,7 @@ import { initNotifications } from './notifications.js';
 // APP STATE & DATA
 // =============================================
 export let currentView = 'home';
+let _driveSyncInterval = null;
 
 
 // =============================================
@@ -168,7 +169,8 @@ export function init() {
     scheduleSave();
 
     // Check Drive Sync Every 5 Min
-    setInterval(() => {
+    if (_driveSyncInterval) clearInterval(_driveSyncInterval);
+    _driveSyncInterval = setInterval(() => {
       if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId) syncWithDrive();
     }, 300000);
   }).catch(err => {

@@ -78,7 +78,7 @@ export function renderHome(el) {
   }
 
   // Previsões da Semana
-  const pred = getPredictiveStats(metaHoras);
+  const pred = getPredictiveStats(metaHoras, subjStats);
   const statusColors = {
     'verde': 'var(--green)',
     'amarelo': 'var(--yellow)',
@@ -473,13 +473,20 @@ export function renderCalendarMonth() {
     return d2.toISOString().split('T')[0];
   };
 
+  // Pre-index events by date for O(1) lookup
+  const eventsByDate = {};
+  for (const e of state.eventos) {
+    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
+    eventsByDate[e.data].push(e);
+  }
+
   return `
     <div class="cal-grid">
       ${dowOrder.map(d => `<div class="cal-dow">${d}</div>`).join('')}
       ${cells.map(cell => {
     const ds = getDateStr(cell.date);
     const isToday = ds === today;
-    const dayEvents = state.eventos.filter(e => e.data === ds);
+    const dayEvents = eventsByDate[ds] || [];
     const show = dayEvents.slice(0, 3);
     const more = dayEvents.length - 3;
     return `
@@ -517,12 +524,19 @@ export function renderCalendarWeek() {
     return d2.toISOString().split('T')[0];
   };
 
+  // Pre-index events by date for O(1) lookup
+  const eventsByDate = {};
+  for (const e of state.eventos) {
+    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
+    eventsByDate[e.data].push(e);
+  }
+
   return `
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;">
       ${days.map(d => {
     const ds = getDateStr(d);
     const isToday = ds === today;
-    const dayEvents = state.eventos.filter(e => e.data === ds);
+    const dayEvents = eventsByDate[ds] || [];
     return `
           <div style="min-height:200px;border-radius:8px;border:1px solid var(--border);overflow:hidden;">
             <div style="padding:8px;background:${isToday ? 'var(--accent-light)' : 'var(--bg)'};text-align:center;border-bottom:1px solid var(--border);">
@@ -709,15 +723,21 @@ export function renderDailyChart(periodDays) {
   if (!ctx) return;
   if (_chartDaily) { _chartDaily.destroy(); _chartDaily = null; }
   const numDays = periodDays ? Math.min(periodDays, 90) : 30;
+  // Pre-aggregate study time by date for O(1) lookup
+  const secsByDate = {};
+  for (const e of state.eventos) {
+    if (e.status === 'estudei' && e.tempoAcumulado) {
+      secsByDate[e.data] = (secsByDate[e.data] || 0) + (e.tempoAcumulado || 0);
+    }
+  }
   const days = [], data = [];
   for (let i = numDays - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
     const ds = d2.toISOString().split('T')[0];
-    days.push(numDays > 30 ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
-    const secs = state.eventos.filter(e => e.data === ds && e.status === 'estudei').reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
-    data.push(Math.round(secs / 60));
+    days.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+    data.push(Math.round((secsByDate[ds] || 0) / 60));
   }
   _chartDaily = new Chart(ctx, {
     type: 'bar',

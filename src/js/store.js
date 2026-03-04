@@ -179,14 +179,29 @@ export const SyncQueue = {
   }
 };
 
+let _invalidateTimeout = null;
+
 export function scheduleSave() {
-  document.dispatchEvent(new Event('app:invalidateCaches'));
   if (saveTimeout) clearTimeout(saveTimeout);
 
   // Update badges instantly without waiting for the save
   document.dispatchEvent(new Event('app:updateBadges'));
 
+  // Debounce cache invalidation to avoid clearing caches on every rapid change
+  if (!_invalidateTimeout) {
+    _invalidateTimeout = setTimeout(() => {
+      document.dispatchEvent(new Event('app:invalidateCaches'));
+      _invalidateTimeout = null;
+    }, 100);
+  }
+
   saveTimeout = setTimeout(() => {
+    // Ensure caches are invalidated before save
+    if (_invalidateTimeout) {
+      clearTimeout(_invalidateTimeout);
+      _invalidateTimeout = null;
+      document.dispatchEvent(new Event('app:invalidateCaches'));
+    }
     saveStateToDB();
   }, 2000); // 2 second debounce
 }
