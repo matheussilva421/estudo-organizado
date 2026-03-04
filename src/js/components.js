@@ -1,6 +1,6 @@
 import { currentView } from './app.js';
 import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, getHabitType } from './utils.js';
-import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule } from './views.js';
+import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts } from './views.js';
 import { state } from './store.js';
 import { deleteEvento, getAllDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
 
@@ -233,14 +233,7 @@ export function renderCurrentView() {
 
   // Clean up analytics dashboard charts when leaving dashboard
   if (currentView !== 'dashboard') {
-    if (typeof window._chartDaily !== 'undefined' && window._chartDaily) {
-      window._chartDaily.destroy();
-      window._chartDaily = null;
-    }
-    if (typeof window._chartDisc !== 'undefined' && window._chartDisc) {
-      window._chartDisc.destroy();
-      window._chartDisc = null;
-    }
+    destroyDashboardCharts();
   }
 
   const el = document.getElementById('content');
