@@ -39,7 +39,11 @@ export function openModal(id) {
 
 export function closeModal(id) {
   document.getElementById(id).classList.remove('open');
-  document.body.style.overflow = '';
+  // Only restore body scroll if no other modals are still open
+  const stillOpen = document.querySelectorAll('.modal-overlay.open');
+  if (stillOpen.length === 0) {
+    document.body.style.overflow = '';
+  }
 }
 
 // Custom Confirm
@@ -160,13 +164,8 @@ export function init() {
 
     navigate('home');
 
-    // Auto Update states
-    state.eventos.forEach(ev => {
-      if (ev.status === 'agendado' && ev.data && ev.data < todayStr()) {
-        ev.status = 'atrasado';
-      }
-    });
-    scheduleSave();
+    // Note: event statuses ('atrasado') are computed dynamically by getEventStatus().
+    // No need to mutate or save here — avoids triggering Cloudflare push on every boot.
 
     // Check Drive Sync Every 5 Min
     if (_driveSyncInterval) clearInterval(_driveSyncInterval);
@@ -415,11 +414,15 @@ export function toggleCicloFin(checked) {
   if (currentView === 'ciclo') renderCurrentView();
 }
 
-// Compat layer for legacy ciclo actions that may still exist in older markup/branches.
+// Compat layer: removerCiclo is wired via data-action="remover-ciclo" in main.js.
+// It must operate on state.planejamento (the active system) AND state.ciclo (legacy).
 export function removerCiclo() {
-  showConfirm('Tem certeza que deseja apagar todo o Ciclo Atual? Seu histórico de Ciclos Completos será perdido.', () => {
+  showConfirm('Tem certeza que deseja apagar todo o Planejamento Atual? Esta ação não pode ser desfeita.', () => {
+    // Clear the active planning system
+    state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
+    // Also clear legacy ciclo if it exists
     state.ciclo = { ativo: false, ciclosCompletos: 0, disciplinas: [] };
     scheduleSave();
     if (currentView === 'ciclo') renderCurrentView();
-  }, { danger: true, title: 'Remover Ciclo' });
+  }, { danger: true, title: 'Remover Planejamento', label: 'Excluir' });
 }
