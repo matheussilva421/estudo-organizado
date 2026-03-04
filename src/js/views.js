@@ -1629,7 +1629,7 @@ window.toggleVertDisc = function (id) {
 
 export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
-  const ass = d?.disc.assuntos.find(a => a.id === assId);
+  const ass = d?.disc?.assuntos?.find(a => a.id === assId);
   if (!ass || !d) return;
   // Pre-select discipline and subject then open modal
   openAddEventModal(todayStr());
@@ -1775,7 +1775,7 @@ window.activeDashboardDiscCtx = null;
 
 export function openDiscDashboard(editaId, discId) {
   const edital = state.editais.find(e => e.id === editaId);
-  if (!edital) return;
+  if (!edital || !edital.disciplinas) return;
   const disc = edital.disciplinas.find(d => d.id === discId);
   if (!disc) return;
 
@@ -2660,7 +2660,7 @@ window._renderBancaAnalyzerContent = function (el) {
   const hotTopics = state.bancaRelevance?.hotTopics || [];
   const editaisOptions = state.editais.map(e => `<option value="${e.id}" ${e.id === analyzerCtx.editaId ? 'selected' : ''}>${esc(e.nome)}</option>`).join('');
 
-  const discOptions = edital.disciplinas.map(d => {
+  const discOptions = (edital.disciplinas || []).map(d => {
     const hasTopics = hotTopics.some(ht => ht.disciplinaId === d.id);
     return `<option value="${d.id}">${hasTopics ? '✅ ' : '⚪ '}${esc(d.nome)}</option>`;
   }).join('');
@@ -2668,7 +2668,7 @@ window._renderBancaAnalyzerContent = function (el) {
   // Limpa Temp Matches no re-render de mudança de Edital
   analyzerCtx.tempMatchResults = [];
 
-  const savedDiscsHtml = edital.disciplinas.filter(d => hotTopics.some(ht => ht.disciplinaId === d.id)).map(d => {
+  const savedDiscsHtml = (edital.disciplinas || []).filter(d => hotTopics.some(ht => ht.disciplinaId === d.id)).map(d => {
     const topicCount = hotTopics.filter(ht => ht.disciplinaId === d.id).length;
     return `<div style="display:inline-flex; align-items:center; background:var(--bg-hover); border:1px solid var(--border); border-radius:16px; padding:4px 12px; font-size:12px; gap:8px;">
           <span style="font-weight:600; cursor:pointer;" onclick="window.carregarAnaliseBanca('${d.id}')" title="Visualizar e Editar">${esc(d.nome)} (${topicCount})</span>
@@ -2792,7 +2792,7 @@ window.carregarAnaliseBanca = function (discId) {
 
 window.excluirAnaliseBanca = function (discId) {
   const edital = state.editais.find(e => e.id === analyzerCtx.editaId);
-  const discName = edital?.disciplinas.find(d => d.id === discId)?.nome || 'esta disciplina';
+  const discName = edital?.disciplinas?.find(d => d.id === discId)?.nome || 'esta disciplina';
 
   showConfirm(`Tem certeza que deseja apagar a análise preditiva salva de "${discName}" ?\nOs Hot Topics importados serão removidos.`, () => {
     state.bancaRelevance.hotTopics = state.bancaRelevance.hotTopics.filter(ht => ht.disciplinaId !== discId);
