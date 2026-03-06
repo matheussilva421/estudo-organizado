@@ -1675,6 +1675,7 @@ export function renderEditalTree(edital) {
         <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
         <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
         <span style="font-size:11px;opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
+        <button class="icon-btn" title="Adicionar Tópicos" onclick="event.stopPropagation();window.activeDashboardDiscCtx={editaId:'${edital.id}'};navigate('vertical')">📝</button>
         <button class="icon-btn" title="Analisador de Bancas" onclick="event.stopPropagation();window.activeDashboardDiscCtx={editaId:'${edital.id}'};navigate('banca-analyzer')">🧠</button>
         <button class="icon-btn" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">✏️</button>
         <button class="icon-btn" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">🗑️</button>
@@ -2703,6 +2704,8 @@ window._renderBancaAnalyzerContent = function (el) {
             <!-- PAINEL ESQUERDO: IMPORTAÇÃO -->
             <div class="card p-16">
                 <div class="dash-label" style="margin-bottom:8px;">1. Planejamento (Hot Topics)</div>
+<input type="text" id="banca-disc-search" class="form-control" style="margin-bottom:8px;font-size:13px;" placeholder="Buscar matéria..." oninput="window.filtrarDropdownBanca(this.value)">
+                <input type="text" id="banca-disc-search" class="form-control" style="margin-bottom:8px;font-size:13px;" placeholder="Buscar matéria..." oninput="window.filtrarDropdownBanca(this.value)">
                 <select id="banca-disc-select" class="form-control" style="margin-bottom:12px;font-weight:600;" onchange="window.filtrarViewPorDisciplina(this.value)">
                     <option value="" disabled selected>-- Escolha a Matéria --</option>
                     ${discOptions}
@@ -2878,6 +2881,7 @@ window.parseBancaText = function () {
   // Roda a Engine Completa de Match para a disciplina específica para simulação na View
   analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
   window.renderBancaMatches();
+  showToast('Matéria processada com sucesso!', 'success');
 };
 
 window.renderBancaMatches = function () {
@@ -4433,3 +4437,25 @@ window.openDiscDashboard = openDiscDashboard;
 window.closeDiscDashboard = closeDiscDashboard;
 window.addEventoParaAssunto = addEventoParaAssunto;
 window.setTheme = setTheme;
+
+window.filtrarDropdownBanca = function (termo) {
+  termo = termo.toLowerCase().trim();
+  const select = document.getElementById('banca-disc-select');
+  if (!select) return;
+  Array.from(select.options).forEach(opt => {
+    if (opt.value === '') return;
+    const visible = opt.text.toLowerCase().includes(termo);
+    opt.style.display = visible ? '' : 'none';
+  });
+};
+
+window.filtrarDropdownBanca = function(termo) {
+  termo = termo.toLowerCase().trim();
+  const select = document.getElementById('banca-disc-select');
+  if (!select) return;
+  Array.from(select.options).forEach(opt => {
+    if (opt.value === '') return;
+    const visible = opt.text.toLowerCase().includes(termo);
+    opt.style.display = visible ? '' : 'none';
+  });
+};

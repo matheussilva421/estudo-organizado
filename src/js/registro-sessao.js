@@ -534,14 +534,14 @@ export function saveRegistroSessao() {
     else assId = rawTargetId;
   }
 
-  if (isLivre && (!discId || !rawTargetId)) {
-    showToast('Em sessões livres, escolha uma Disciplina e um Alvo para vincular o tempo estudado', 'error'); return false;
+  if (isLivre && !discId) {
+    showToast('Em sessões livres, escolha pelo menos uma Disciplina para vincular o tempo estudado', 'error'); return false;
   }
 
   // Se for Sessão Livre, cria um evento real permanente pro Histórico
-  if (isLivre && discId && (assId || aulaId)) {
+  if (isLivre && discId) {
     const d = getDisc(discId);
-    let assName = 'Tópico';
+    let assName = 'Estudo Genérico';
     if (d) {
       if (aulaId) {
         const achado = d.disc.aulas?.find(a => a.id === aulaId);
