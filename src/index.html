@@ -120,7 +120,8 @@
             <div class="search-wrap" style="order:-1;margin-right:8px;">
                 <i class="fa fa-search search-icon"></i>
                 <input class="search-input" id="global-search" placeholder="Buscar eventos, assuntos, hábitos..."
-                    autocomplete="off" oninput="window.debouncedOnSearch(this.value)" onfocus="onSearchFocus()" onblur="onSearchBlur()">
+                    autocomplete="off" oninput="window.debouncedOnSearch(this.value)" onfocus="onSearchFocus()"
+                    onblur="onSearchBlur()">
                 <div class="search-results" id="search-results"></div>
             </div>
         </div>
@@ -387,14 +388,17 @@
                     <!-- Wizard content injected here -->
                 </div>
             </div>
-            <div class="modal-footer" style="display: flex; justify-content: space-between;">
-                <button class="btn btn-ghost" id="pw-btn-voltar" style="visibility: hidden;">Voltar</button>
+            <div class="modal-footer"
+                style="display: flex; justify-content: space-between; position: relative; z-index: 10; padding: 16px 24px; background: var(--bg); border-top: 1px solid var(--border);">
+                <button class="btn btn-ghost" id="pw-btn-voltar"
+                    style="visibility: hidden; padding: 10px 20px;">Voltar</button>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-ghost" data-action="close-modal"
-                        data-modal="modal-planejamento">Cancelar</button>
-                    <button class="btn btn-primary" id="pw-btn-proximo" disabled>Próximo</button>
+                    <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-planejamento"
+                        style="padding: 10px 20px;">Cancelar</button>
+                    <button class="btn btn-primary" id="pw-btn-proximo" disabled
+                        style="padding: 10px 20px;">Próximo</button>
                     <button class="btn btn-primary" id="pw-btn-concluir"
-                        style="display: none; background: #2ea043;">Concluir Planejamento</button>
+                        style="display: none; background: #2ea043; padding: 10px 20px;">Concluir Planejamento</button>
                 </div>
             </div>
         </div>

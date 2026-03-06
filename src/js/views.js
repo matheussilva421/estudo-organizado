@@ -784,13 +784,22 @@ export function renderDiscChart(periodDays) {
     data.push(Math.round(secs / 60));
     colors.push(d ? (d.disc.cor || '#10b981') : '#94a3b8');
   });
-  if (data.length === 0) { ctx.parentElement.innerHTML = '<div class="empty-state"><div class="icon">📈</div><p>Sem dados no período selecionado</p></div>'; return; }
+  let dummyTooltip = false;
+  if (data.length === 0) {
+    labels.push('Sem Dados Registrados');
+    data.push(1);
+    colors.push(getComputedStyle(document.body).getPropertyValue('--border').trim() || '#e2e8f0');
+    dummyTooltip = true;
+  }
   _chartDisc = new Chart(ctx, {
     type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: 'transparent' }] },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } } }
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } },
+        tooltip: { enabled: !dummyTooltip }
+      }
     }
   });
 }
@@ -1544,6 +1553,7 @@ export function renderVerticalList(container) {
             
             <!-- Ações -->
             <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
+              <i class="fa fa-plus-circle" onclick="event.stopPropagation(); window.addNovoTopico('${dMap.edital.id}', '${discId}')" title="Adicionar Tópico Manualmente" style="cursor:pointer; color:var(--green); margin-right:8px;"></i>
               <i class="fa fa-edit" onclick="event.stopPropagation(); window.openDiscManager('${dMap.edital.id}', '${discId}')" title="Gerenciar Disciplina e Tópicos" style="cursor:pointer;"></i>
               <i id="vert-disc-icon-${discId}" class="fa fa-chevron-down" style="width:16px;text-align:center;"></i>
             </div>
@@ -2704,7 +2714,6 @@ window._renderBancaAnalyzerContent = function (el) {
             <!-- PAINEL ESQUERDO: IMPORTAÇÃO -->
             <div class="card p-16">
                 <div class="dash-label" style="margin-bottom:8px;">1. Planejamento (Hot Topics)</div>
-<input type="text" id="banca-disc-search" class="form-control" style="margin-bottom:8px;font-size:13px;" placeholder="Buscar matéria..." oninput="window.filtrarDropdownBanca(this.value)">
                 <input type="text" id="banca-disc-search" class="form-control" style="margin-bottom:8px;font-size:13px;" placeholder="Buscar matéria..." oninput="window.filtrarDropdownBanca(this.value)">
                 <select id="banca-disc-select" class="form-control" style="margin-bottom:12px;font-weight:600;" onchange="window.filtrarViewPorDisciplina(this.value)">
                     <option value="" disabled selected>-- Escolha a Matéria --</option>
