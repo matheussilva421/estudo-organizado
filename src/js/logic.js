@@ -78,6 +78,7 @@ export function reattachTimers() {
   });
 
   allTimers.forEach(({ id, ev }) => {
+    let _cachedNodes = null;
     timerIntervals[id] = setInterval(() => {
       const elapsed = getElapsedSeconds(ev);
 
@@ -97,7 +98,10 @@ export function reattachTimers() {
         }
       }
 
-      document.querySelectorAll(`[data-timer="${id}"]`).forEach(el => {
+      if (!_cachedNodes || _cachedNodes.length === 0 || !document.body.contains(_cachedNodes[0])) {
+        _cachedNodes = document.querySelectorAll(`[data-timer="${id}"]`);
+      }
+      _cachedNodes.forEach(el => {
         el.textContent = formatTime(elapsed);
       });
     }, 1000);

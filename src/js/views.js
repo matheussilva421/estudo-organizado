@@ -3830,6 +3830,14 @@ export function dndDrop(event, discId, targetIdx) {
 // =============================================
 export let searchBlurTimeout = null;
 
+let _searchDebounceTimer = null;
+window.debouncedOnSearch = function (query) {
+  if (_searchDebounceTimer) clearTimeout(_searchDebounceTimer);
+  _searchDebounceTimer = setTimeout(() => {
+    onSearch(query);
+  }, 300);
+};
+
 export function onSearch(query) {
   const box = document.getElementById('search-results');
   if (!query || query.length < 2) { box.classList.remove('open'); return; }
@@ -4449,7 +4457,7 @@ window.filtrarDropdownBanca = function (termo) {
   });
 };
 
-window.filtrarDropdownBanca = function(termo) {
+window.filtrarDropdownBanca = function (termo) {
   termo = termo.toLowerCase().trim();
   const select = document.getElementById('banca-disc-select');
   if (!select) return;

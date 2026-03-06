@@ -124,6 +124,7 @@ window.pwClearDisc = function () {
     renderStep();
 };
 
+let _relDebounce = null;
 window.pwUpdateRel = function (id, field, val) {
     if (!draft.relevancia[id]) draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
     draft.relevancia[id][field] = parseInt(val, 10);
@@ -132,7 +133,10 @@ window.pwUpdateRel = function (id, field, val) {
     const lbl = document.getElementById(`pw-lbl-${field}-${id}`);
     if (lbl) lbl.textContent = val;
 
-    pwRenderWeightPreview();
+    if (_relDebounce) clearTimeout(_relDebounce);
+    _relDebounce = setTimeout(() => {
+        pwRenderWeightPreview();
+    }, 100);
 };
 
 window.pwToggleDay = function (dayIndex) {
@@ -150,9 +154,13 @@ window.pwUpdateHours = function (field, val) {
     pwUpdateButtons();
 };
 
+let _hoursDebounce = null;
 window.pwUpdateDayHour = function (dayIdx, val) {
     draft.horarios.horasPorDia[dayIdx] = val;
-    pwUpdateButtons();
+    if (_hoursDebounce) clearTimeout(_hoursDebounce);
+    _hoursDebounce = setTimeout(() => {
+        pwUpdateButtons();
+    }, 100);
 };
 
 function pwUpdateButtons() {

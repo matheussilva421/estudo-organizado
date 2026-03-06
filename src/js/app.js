@@ -11,6 +11,13 @@ import { initNotifications } from './notifications.js';
 export let currentView = 'home';
 let _driveSyncInterval = null;
 
+document.addEventListener('app:driveDisconnected', () => {
+  if (_driveSyncInterval) {
+    clearInterval(_driveSyncInterval);
+    _driveSyncInterval = null;
+  }
+});
+
 
 // =============================================
 // NAVIGATION

@@ -142,6 +142,8 @@ export let saveTimeout = null;
 
 window.addEventListener('beforeunload', (e) => {
   if (saveTimeout !== null) {
+    // Attempt local emergency save
+    saveStateToDB();
     e.preventDefault();
     e.returnValue = 'Há alterações pendentes aguardando salvamento. Deseja sair assim mesmo?';
     return e.returnValue;

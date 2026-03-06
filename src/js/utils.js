@@ -22,9 +22,15 @@ export function getLocalDateStr(dateObj = new Date()) {
 }
 
 export let _todayCache = null;
+let _todayCacheTime = 0;
 export function invalidateTodayCache() { _todayCache = null; }
 export function todayStr() {
-    if (!_todayCache) _todayCache = getLocalDateStr();
+    const now = Date.now();
+    // Invalidate cache every 60 seconds (60000ms) to ensure midnight rollovers are caught
+    if (!_todayCache || (now - _todayCacheTime > 60000)) {
+        _todayCache = getLocalDateStr();
+        _todayCacheTime = now;
+    }
     return _todayCache;
 }
 

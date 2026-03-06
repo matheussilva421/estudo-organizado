@@ -133,6 +133,7 @@ export function disconnectDrive() {
             closeModal('modal-drive');
             showToast('Desconectado do Drive', 'info');
             scheduleSave();
+            document.dispatchEvent(new Event('app:driveDisconnected'));
         });
     }
 }
