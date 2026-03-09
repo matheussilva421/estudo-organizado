@@ -96,8 +96,7 @@ export function showToast(msg, type = '') {
   }
   while (container.children.length >= 3) {
     const oldest = container.firstElementChild;
-    oldest.classList.remove('show');
-    setTimeout(() => oldest.remove(), 300);
+    oldest.remove();
   }
 
   const toast = document.createElement('div');
