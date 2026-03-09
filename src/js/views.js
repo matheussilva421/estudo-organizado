@@ -4288,7 +4288,7 @@ export function renderCiclo(el) {
         </div>
 
         <!-- COLUNA DIREITA -->
-        <div class="card" style="padding:24px; display:flex; flex-direction:column;">
+        <div class="card custom-scrollbar" style="padding:24px; display:flex; flex-direction:column; max-height:calc(100vh - 100px); overflow-y:auto;">
           <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center;">
             <span>CICLO</span>
             <button class="btn btn-ghost btn-sm" onclick="window.zerarCiclosCounter()" style="color:var(--text-muted); padding:4px 8px; font-size:11px;">
@@ -4296,16 +4296,16 @@ export function renderCiclo(el) {
             </button>
           </div>
           
-          <div style="width: 100%; height: 200px; position:relative; margin-bottom:20px;">
+          <div style="width: 100%; height: 200px; position:relative; margin-bottom:20px; flex-shrink:0;">
              <canvas id="planejamentoChart"></canvas>
              <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-weight:800; font-size:24px; color:var(--text-muted);">${formatH(totalTarget)}</div>
           </div>
           
           <!-- FILETE LINEAR -->
-          <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8; margin-bottom:16px;"></div>
+          <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8; margin-bottom:16px; flex-shrink:0;"></div>
           
           <!-- CALCULADORA DE PREVISÃO -->
-          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px;">
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; flex-shrink:0; margin-bottom:12px;">
              <h4 style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:12px;"><i class="fa fa-calculator" style="color:var(--accent);"></i> PREVISÃO DE SESSÕES</h4>
              <div style="display:flex; gap:12px; margin-bottom:16px;">
                 <div style="flex:1;">
@@ -4317,7 +4317,7 @@ export function renderCiclo(el) {
                    <input type="date" id="predict-end-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()" value="${plan.horarios?.dataFinal || ''}">
                 </div>
              </div>
-             <div id="predict-results-container" style="display:none; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; padding-right:4px;">
+             <div id="predict-results-container" class="custom-scrollbar" style="display:none; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; padding-right:4px;">
                 <!-- Preenchido via JS -->
              </div>
              <div id="predict-empty-state" style="font-size:12px; color:var(--text-muted); text-align:center; padding:16px 0;">
