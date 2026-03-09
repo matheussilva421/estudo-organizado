@@ -811,8 +811,21 @@ export function syncCicloToEventos() {
   const firstPendentIndex = seq.findIndex(s => !s.concluido);
   if (firstPendentIndex !== -1) currentSeqIdx = firstPendentIndex;
 
-  // Injeta para os proximos 14 dias
-  for (let diasOffset = 0; diasOffset < 14; diasOffset++) {
+  // Determina quantos dias vamos agendar no futuro
+  let maxDiasOffset = 14; // Default caso não haja dataFinal configurada
+  if (state.planejamento.horarios && state.planejamento.horarios.dataFinal) {
+    const finalDateObj = new Date(state.planejamento.horarios.dataFinal + 'T23:59:59');
+    if (!isNaN(finalDateObj) && finalDateObj >= today) {
+      // Diferença em dias
+      const diffTime = Math.abs(finalDateObj - today);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      // Limitador de segurança máximo (ex: 365 dias)
+      maxDiasOffset = Math.min(diffDays + 1, 365);
+    }
+  }
+
+  // Injeta eventos ao calendário usando o limite dinâmico
+  for (let diasOffset = 0; diasOffset < maxDiasOffset; diasOffset++) {
     const d = new Date(today);
     d.setDate(d.getDate() + diasOffset);
     const dayOfWeek = d.getDay();
