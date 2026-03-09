@@ -4288,8 +4288,8 @@ export function renderCiclo(el) {
         </div>
 
         <!-- COLUNA DIREITA -->
-        <div class="card custom-scrollbar" style="padding:24px; display:flex; flex-direction:column; max-height:calc(100vh - 100px); overflow-y:auto;">
-          <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="card" style="padding:24px; display:flex; flex-direction:column; max-height:calc(100vh - 100px); overflow:hidden;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
             <span>CICLO</span>
             <button class="btn btn-ghost btn-sm" onclick="window.zerarCiclosCounter()" style="color:var(--text-muted); padding:4px 8px; font-size:11px;">
               <i class="fa fa-undo"></i> Zerar
@@ -4305,9 +4305,9 @@ export function renderCiclo(el) {
           <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8; margin-bottom:16px; flex-shrink:0;"></div>
           
           <!-- CALCULADORA DE PREVISÃO -->
-          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; flex-shrink:0; margin-bottom:12px;">
-             <h4 style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:12px;"><i class="fa fa-calculator" style="color:var(--accent);"></i> PREVISÃO DE SESSÕES</h4>
-             <div style="display:flex; gap:12px; margin-bottom:16px;">
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; flex:1; display:flex; flex-direction:column; overflow:hidden; margin-bottom:12px;">
+             <h4 style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:12px; flex-shrink:0;"><i class="fa fa-calculator" style="color:var(--accent);"></i> PREVISÃO DE SESSÕES</h4>
+             <div style="display:flex; gap:12px; margin-bottom:16px; flex-shrink:0;">
                 <div style="flex:1;">
                    <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA INICIAL</label>
                    <input type="date" id="predict-start-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()" value="${plan.horarios?.dataInicial || ''}">
@@ -4317,10 +4317,10 @@ export function renderCiclo(el) {
                    <input type="date" id="predict-end-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()" value="${plan.horarios?.dataFinal || ''}">
                 </div>
              </div>
-             <div id="predict-results-container" class="custom-scrollbar" style="display:none; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; padding-right:4px;">
+             <div id="predict-results-container" class="custom-scrollbar" style="display:none; flex-direction:column; gap:8px; flex:1; overflow-y:auto; padding-right:4px;">
                 <!-- Preenchido via JS -->
              </div>
-             <div id="predict-empty-state" style="font-size:12px; color:var(--text-muted); text-align:center; padding:16px 0;">
+             <div id="predict-empty-state" style="font-size:12px; color:var(--text-muted); text-align:center; padding:16px 0; flex-shrink:0;">
                 Selecione as datas para calcular.
              </div>
           </div>
