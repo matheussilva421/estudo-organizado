@@ -469,7 +469,8 @@ export function renderCalendarMonth() {
   for (let d = 1; d <= lastDay.getDate(); d++) {
     cells.push({ date: new Date(year, month, d), other: false });
   }
-  while (cells.length % 7 !== 0) {
+  // Fill the rest of the grid to ensure always 6 full rows (42 cells)
+  while (cells.length < 42) {
     const last = cells[cells.length - 1].date;
     cells.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1), other: true });
   }
