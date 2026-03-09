@@ -12,6 +12,8 @@ let draft = {
         horasSemanais: '',
         sessaoMin: 30,
         sessaoMax: 120,
+        dataInicial: '',
+        dataFinal: '',
         diasAtivos: [],
         horasPorDia: { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }
     }
@@ -25,14 +27,14 @@ export function openPlanejamentoWizard() {
             disciplinas: state.planejamento.disciplinas || [],
             relevancia: state.planejamento.relevancia || {},
             horarios: state.planejamento.horarios || {
-                horasSemanais: '', sessaoMin: 30, sessaoMax: 120, diasAtivos: [],
+                horasSemanais: '', sessaoMin: 30, sessaoMax: 120, diasAtivos: [], dataInicial: '', dataFinal: '',
                 horasPorDia: { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }
             }
         }));
     } else {
         draft = {
             tipo: null, disciplinas: [], relevancia: {}, horarios: {
-                horasSemanais: '', sessaoMin: 30, sessaoMax: 120, diasAtivos: [],
+                horasSemanais: '', sessaoMin: 30, sessaoMax: 120, diasAtivos: [], dataInicial: '', dataFinal: '',
                 horasPorDia: { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }
             }
         };
@@ -437,6 +439,19 @@ function htmlStep4() {
         <h3 style="font-size:18px; margin-bottom:4px;">Configuração de Horários</h3>
         <p style="color:var(--text-secondary); font-size:13px; margin-bottom:24px;">Defina os limites corporais do seu estudo. Qual o tamanho de um "bloco de estudo" para este longo prazo?</p>
         
+        <div style="display:flex; gap:16px; margin-bottom:24px;">
+            <div style="flex:1;">
+                <label class="form-label">Data Inicial (Opcional - Previsões)</label>
+                <input type="date" class="form-control" value="${draft.horarios.dataInicial || ''}" oninput="pwUpdateHours('dataInicial', this.value)">
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Início do Período</div>
+            </div>
+            <div style="flex:1;">
+                <label class="form-label">Data Final (Opcional - Previsões)</label>
+                <input type="date" class="form-control" value="${draft.horarios.dataFinal || ''}" oninput="pwUpdateHours('dataFinal', this.value)">
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Fim do Período</div>
+            </div>
+        </div>
+
         <div style="display:flex; gap:16px; margin-bottom:24px;">
             <div style="flex:1;">
                 <label class="form-label">Sessão Mínima (minutos)</label>

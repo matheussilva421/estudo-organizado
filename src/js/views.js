@@ -4310,11 +4310,11 @@ export function renderCiclo(el) {
              <div style="display:flex; gap:12px; margin-bottom:16px;">
                 <div style="flex:1;">
                    <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA INICIAL</label>
-                   <input type="date" id="predict-start-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()">
+                   <input type="date" id="predict-start-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()" value="${plan.horarios?.dataInicial || ''}">
                 </div>
                 <div style="flex:1;">
                    <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA FINAL</label>
-                   <input type="date" id="predict-end-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()">
+                   <input type="date" id="predict-end-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()" value="${plan.horarios?.dataFinal || ''}">
                 </div>
              </div>
              <div id="predict-results-container" style="display:none; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; padding-right:4px;">
@@ -4396,6 +4396,11 @@ export function renderCiclo(el) {
             }
           }
         });
+      }
+
+      // Auto-trigger prediction calculations if dates are pre-filled by Wizard
+      if (plan.horarios?.dataInicial && plan.horarios?.dataFinal) {
+        window.calculateCyclePredictions();
       }
     }, 100);
 
