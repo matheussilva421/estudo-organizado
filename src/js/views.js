@@ -4296,13 +4296,13 @@ export function renderCiclo(el) {
             </button>
           </div>
           
-          <div style="width: 100%; height: 300px; position:relative; margin-bottom:32px;">
+          <div style="width: 100%; height: 200px; position:relative; margin-bottom:20px;">
              <canvas id="planejamentoChart"></canvas>
-             <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-weight:800; font-size:28px; color:var(--text-muted);">${formatH(totalTarget)}</div>
+             <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-weight:800; font-size:24px; color:var(--text-muted);">${formatH(totalTarget)}</div>
           </div>
           
           <!-- FILETE LINEAR -->
-          <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8; margin-bottom:24px;"></div>
+          <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8; margin-bottom:16px;"></div>
           
           <!-- CALCULADORA DE PREVISÃO -->
           <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px;">
