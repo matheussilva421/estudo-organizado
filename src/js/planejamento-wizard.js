@@ -227,7 +227,7 @@ function validateStep(step) {
 
         if (draft.tipo === 'ciclo') {
             const hs = parseFloat(draft.horarios.horasSemanais) || 0;
-            return hs > 0 && draft.horarios.diasAtivos.length > 0;
+            return hs > 0;
         } else {
             let hasTime = false;
             for (let i = 0; i < 7; i++) {
