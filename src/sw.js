@@ -1,4 +1,4 @@
-const CACHE_NAME = 'estudo-organizado-v3';
+const CACHE_NAME = 'estudo-organizado-v4';
 const ASSETS = [
     './',
     './index.html',
