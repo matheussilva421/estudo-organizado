@@ -1,7 +1,7 @@
 ﻿import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
 import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
@@ -2167,6 +2167,7 @@ export function deleteAssunto(discId, assId) {
       }
 
       invalidateDiscCache();
+      invalidateDashCaches();
       scheduleSave();
       renderCurrentView();
       if (typeof editingSubjectCtx !== 'undefined' && editingSubjectCtx && editingSubjectCtx.discId === discId) {
@@ -2194,6 +2195,7 @@ export function deleteDisc(editaId, discId) {
     }
 
     invalidateDiscCache();
+    invalidateDashCaches();
     scheduleSave();
     renderCurrentView();
   }, { danger: true, label: 'Excluir disciplina', title: 'Excluir disciplina' });
@@ -3754,6 +3756,7 @@ export function importData() {
             setState(imported);
             runMigrations();
             invalidateDiscCache();
+            invalidateDashCaches();
             invalidateRevCache();
             invalidateTodayCache();
             scheduleSave();

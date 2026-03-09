@@ -311,7 +311,22 @@ export function getDisc(id) {
 // =============================================
 // DASHBOARD ANALYTICS
 // =============================================
+let _perfCache = null;
+let _pagesCache = null;
+let _syllabusCache = null;
+let _subjectCache = null;
+let _weekCache = null;
+
+export function invalidateDashCaches() {
+  _perfCache = null;
+  _pagesCache = null;
+  _syllabusCache = null;
+  _subjectCache = null;
+  _weekCache = null;
+}
+
 export function getPerformanceStats() {
+  if (_perfCache) return _perfCache;
   let questionsTotal = 0;
   let questionsCorrect = 0;
   let questionsWrong = 0;
@@ -326,19 +341,23 @@ export function getPerformanceStats() {
     }
   });
 
-  return { questionsTotal, questionsCorrect, questionsWrong };
+  _perfCache = { questionsTotal, questionsCorrect, questionsWrong };
+  return _perfCache;
 }
 
 export function getPagesReadStats() {
+  if (_pagesCache !== null) return _pagesCache;
   let pagesTotal = 0;
   state.eventos.forEach(ev => {
     if (ev.status !== 'estudei') return;
     pagesTotal += ev.sessao?.paginas?.total || ev.paginas || 0;
   });
-  return pagesTotal;
+  _pagesCache = pagesTotal;
+  return _pagesCache;
 }
 
 export function getSyllabusProgress() {
+  if (_syllabusCache) return _syllabusCache;
   let totalAulas = 0;
   let aulasEstudadas = 0;
 
@@ -350,7 +369,8 @@ export function getSyllabusProgress() {
     });
   });
 
-  return { totalAssuntos: totalAulas, totalConcluidos: aulasEstudadas };
+  _syllabusCache = { totalAssuntos: totalAulas, totalConcluidos: aulasEstudadas };
+  return _syllabusCache;
 }
 
 let _streakCache = null;
@@ -389,7 +409,7 @@ export function getConsistencyStreak() {
 
     // Current Streak
     let currDay = new Date(todayStrDate + 'T00:00:00');
-    while (dates.has(getLocalDateStr(currDay))) {
+    while (dates.has(getLocalDateStr(currDay)) && currentStreak < 3650) {
       currentStreak++;
       currDay.setDate(currDay.getDate() - 1);
     }
@@ -411,6 +431,7 @@ export function getConsistencyStreak() {
 }
 
 export function getSubjectStats() {
+  if (_subjectCache) return _subjectCache;
   const stats = {};
 
   // Initialize with all known disciplines to show rows even if 0
@@ -432,10 +453,12 @@ export function getSubjectStats() {
     }
   });
 
-  return Object.values(stats).sort((a, b) => a.nome.localeCompare(b.nome));
+  _subjectCache = Object.values(stats).sort((a, b) => a.nome.localeCompare(b.nome));
+  return _subjectCache;
 }
 
 export function getCurrentWeekStats() {
+  if (_weekCache) return _weekCache;
   // Determine start of current week (Monday or Sunday based on JS defaults vs config)
   const now = new Date();
   const primeirodiaSemana = state.config.primeirodiaSemana || 1;
@@ -475,13 +498,14 @@ export function getCurrentWeekStats() {
     }
   });
 
-  return {
+  _weekCache = {
     startStr,
     endStr,
     totalSeconds,
     totalQuestions,
     dailySeconds
   };
+  return _weekCache;
 }
 
 export function getPredictiveStats(metaHoras, subjectStats = null) {

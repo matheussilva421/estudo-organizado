@@ -54,6 +54,7 @@ document.addEventListener('app:invalidateCaches', () => {
   if (typeof window.invalidatePendingRevCache === 'function') window.invalidatePendingRevCache();
   if (typeof window.invalidateTodayCache === 'function') window.invalidateTodayCache();
   if (typeof window.invalidateStreakCache === 'function') window.invalidateStreakCache();
+  if (typeof window.invalidateDashCaches === 'function') window.invalidateDashCaches();
 });
 
 // Force cache invalidation if user returns to app next day
