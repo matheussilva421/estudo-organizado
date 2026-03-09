@@ -976,6 +976,10 @@ body {
   transition: background 0.1s;
 }
 
+.cal-grid.rows-6 .cal-cell {
+  min-height: 70px;
+}
+
 .cal-cell:hover {
   background: #f8fafc;
 }

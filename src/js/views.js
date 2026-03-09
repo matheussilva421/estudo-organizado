@@ -422,7 +422,7 @@ export function renderCalendar(el) {
             <button onclick="calNavigate(-1)"><i class="fa fa-chevron-left"></i></button>
             <button onclick="calNavigate(1)"><i class="fa fa-chevron-right"></i></button>
           </div>
-          <div class="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}</div>
+          <div class="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span style="font-size:9px; color:var(--text-muted); opacity:0.5;">v6.0</span></div>
           <button class="btn btn-ghost btn-sm" onclick="resetCalDate()">Hoje</button>
           <div style="margin-left:auto;" class="cal-view-tabs">
             <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" onclick="setCalViewMode('mes')">Mês</div>
@@ -487,8 +487,10 @@ export function renderCalendarMonth() {
     eventsByDate[e.data].push(e);
   }
 
+  const gridClass = cells.length > 35 ? 'cal-grid rows-6' : 'cal-grid';
+
   return `
-    <div class="cal-grid">
+    <div class="${gridClass}">
       ${dowOrder.map(d => `<div class="cal-dow">${d}</div>`).join('')}
       ${cells.map(cell => {
     const ds = getDateStr(cell.date);
