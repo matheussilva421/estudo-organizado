@@ -1,7 +1,7 @@
 ﻿import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
 import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
 import { updateDriveUI } from './drive-sync.js';
 
@@ -3982,15 +3982,90 @@ export function renderCiclo(el) {
   const plan = state.planejamento || {};
 
   window.recomecarCiclo = function () {
-    showConfirm('Isto irá zerar o tempo estudado de todas as disciplinas do ciclo atual, contabilizando 1 Ciclo Completo.', () => {
+    showConfirm('Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?', () => {
       if (state.planejamento && state.planejamento.tipo) {
         state.planejamento.ciclosCompletos = (state.planejamento.ciclosCompletos || 0) + 1;
         state.planejamento.dataInicioCicloAtual = new Date().toISOString();
-        scheduleSave();
+        resetCicloAndWipeEvents();
         renderCurrentView();
-        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Ciclo recomeçado com sucesso!', type: 'success' } }));
+        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Ciclo recomeçado com sucesso! (Eventos Limpos)', type: 'success' } }));
       }
     });
+  };
+
+  window.zerarCiclosCounter = function () {
+    showConfirm('Isso voltará a contagem de "Ciclos Completos" para zero. Tem certeza?', () => {
+      if (state.planejamento) {
+        state.planejamento.ciclosCompletos = 0;
+        scheduleSave();
+        renderCurrentView();
+        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Contador de ciclos zerado!', type: 'info' } }));
+      }
+    });
+  };
+
+  window.calculateCyclePredictions = function () {
+    const startObj = document.getElementById('predict-start-date');
+    const endObj = document.getElementById('predict-end-date');
+    if (!startObj || !endObj) return;
+
+    const sVal = startObj.value;
+    const eVal = endObj.value;
+    const container = document.getElementById('predict-results-container');
+    const emptyState = document.getElementById('predict-empty-state');
+
+    if (sVal && eVal) {
+      if (sVal > eVal) {
+        emptyState.style.display = 'block';
+        emptyState.textContent = 'A data inicial não pode ser maior que a final.';
+        emptyState.style.color = '#f87171';
+        container.style.display = 'none';
+        return;
+      }
+
+      const proj = calculateCyclePredictionsModel(sVal, eVal);
+      const keys = Object.keys(proj);
+
+      if (keys.length === 0) {
+        emptyState.style.display = 'block';
+        emptyState.textContent = 'O ciclo não gera sessões nesses dias (Verifique Dias Ativos).';
+        emptyState.style.color = 'var(--text-muted)';
+        container.style.display = 'none';
+      } else {
+        emptyState.style.display = 'none';
+        container.style.display = 'flex';
+
+        // Get subjects from dictionary
+        const listHTML = keys.map(id => {
+          const disc = getDisc(id);
+          const name = disc ? disc.disc.nome : 'Desconhecida';
+          const color = disc ? (disc.disc.cor || disc.edital.cor || 'var(--accent)') : '#888';
+          const sessCount = proj[id].sessoes;
+          const mins = proj[id].minutos;
+          const hr = Math.floor(mins / 60);
+          const mn = mins % 60;
+          const hrStr = hr > 0 ? `${hr}h${mn}m` : `${mn}m`;
+
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 0; border-bottom:1px dashed rgba(255,255,255,0.05);">
+               <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                 <div style="width:8px; height:8px; border-radius:50%; background:${color}; flex-shrink:0;"></div>
+                 <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text-primary); max-width:140px;">${esc(name)}</span>
+               </div>
+               <div style="font-weight:700; color:var(--text-muted); white-space:nowrap;">
+                 <span style="color:var(--text-primary);">${sessCount}</span> sessões <span style="font-weight:400; font-size:10px;">(${hrStr})</span>
+               </div>
+            </div>
+          `;
+        }).join('');
+        container.innerHTML = listHTML;
+      }
+    } else {
+      emptyState.style.display = 'block';
+      emptyState.textContent = 'Selecione as datas para calcular.';
+      emptyState.style.color = 'var(--text-muted)';
+      container.style.display = 'none';
+    }
   };
 
   if (!plan.ativo || !plan.disciplinas || plan.disciplinas.length === 0) {
@@ -4214,7 +4289,12 @@ export function renderCiclo(el) {
 
         <!-- COLUNA DIREITA -->
         <div class="card" style="padding:24px; display:flex; flex-direction:column;">
-          <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:24px;">CICLO</div>
+          <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center;">
+            <span>CICLO</span>
+            <button class="btn btn-ghost btn-sm" onclick="window.zerarCiclosCounter()" style="color:var(--text-muted); padding:4px 8px; font-size:11px;">
+              <i class="fa fa-undo"></i> Zerar
+            </button>
+          </div>
           
           <div style="width: 100%; height: 300px; position:relative; margin-bottom:32px;">
              <canvas id="planejamentoChart"></canvas>
@@ -4222,7 +4302,29 @@ export function renderCiclo(el) {
           </div>
           
           <!-- FILETE LINEAR -->
-          <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8;"></div>
+          <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8; margin-bottom:24px;"></div>
+          
+          <!-- CALCULADORA DE PREVISÃO -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px;">
+             <h4 style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:12px;"><i class="fa fa-calculator" style="color:var(--accent);"></i> PREVISÃO DE SESSÕES</h4>
+             <div style="display:flex; gap:12px; margin-bottom:16px;">
+                <div style="flex:1;">
+                   <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA INICIAL</label>
+                   <input type="date" id="predict-start-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()">
+                </div>
+                <div style="flex:1;">
+                   <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA FINAL</label>
+                   <input type="date" id="predict-end-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()">
+                </div>
+             </div>
+             <div id="predict-results-container" style="display:none; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; padding-right:4px;">
+                <!-- Preenchido via JS -->
+             </div>
+             <div id="predict-empty-state" style="font-size:12px; color:var(--text-muted); text-align:center; padding:16px 0;">
+                Selecione as datas para calcular.
+             </div>
+          </div>
+
         </div>
       </div>
     `;
