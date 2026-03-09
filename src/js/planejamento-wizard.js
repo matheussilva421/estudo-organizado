@@ -70,10 +70,17 @@ function attachWizardListeners() {
 
     document.getElementById('pw-btn-concluir').addEventListener('click', () => {
         if (validateStep(4)) {
-            generatePlanejamento(draft);
-            document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Planejamento gerado com sucesso!', type: 'success' } }));
-            closeModal('modal-planejamento');
-            document.dispatchEvent(new Event('app:renderCurrentView'));
+            try {
+                generatePlanejamento(draft);
+                document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Planejamento gerado com sucesso!', type: 'success' } }));
+                closeModal('modal-planejamento');
+                document.dispatchEvent(new Event('app:renderCurrentView'));
+            } catch (err) {
+                alert("Erro ao gerar Planejamento: " + err.message);
+                console.error(err);
+            }
+        } else {
+            alert("Erro de validação no passo 4. Verifique os campos.");
         }
     });
 }
