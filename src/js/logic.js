@@ -617,47 +617,12 @@ export function generatePlanejamento(draft) {
     dataInicioCicloAtual: new Date().toISOString()
   };
 
+  let totalMinutes = 0;
+
   if (plan.tipo === 'ciclo') {
     const horasSemanais = parseFloat(plan.horarios.horasSemanais) || 0;
-    const totalMinutes = horasSemanais * 60;
-    const minSessao = parseInt(plan.horarios.sessaoMin, 10) || 30;
-    const maxSessao = parseInt(plan.horarios.sessaoMax, 10) || 120;
-
-    const sortedDiscs = [...plan.disciplinas].sort((a, b) => {
-      const wA = plan.relevancia[a]?.peso || 0;
-      const wB = plan.relevancia[b]?.peso || 0;
-      return wB - wA;
-    });
-
-    sortedDiscs.forEach(discId => {
-      const perc = plan.relevancia[discId]?.percentual || 0;
-      let targetMinutes = Math.round((perc / 100) * totalMinutes);
-
-      if (targetMinutes < minSessao) targetMinutes = minSessao;
-
-      let remaining = targetMinutes;
-      while (remaining > 0) {
-        let block = Math.min(remaining, maxSessao);
-        if (block < minSessao && remaining === targetMinutes) {
-          block = minSessao;
-        } else if (block < minSessao && remaining < targetMinutes) {
-          // just drop the tail if it's too small, or merge with previous
-          break;
-        }
-        plan.sequencia.push({
-          id: 'seq_' + uid(),
-          discId: discId,
-          minutosAlvo: block,
-          concluido: false
-        });
-        remaining -= block;
-      }
-    });
+    totalMinutes = horasSemanais * 60;
   } else if (plan.tipo === 'semanal') {
-    let maxSessao = parseInt(plan.horarios.sessaoMax, 10) || 120;
-    let minSessao = parseInt(plan.horarios.sessaoMin, 10) || 30;
-    let totalMinutes = 0;
-
     for (let i = 0; i < 7; i++) {
       const hora = plan.horarios.horasPorDia[i];
       if (plan.horarios.diasAtivos.includes(i) && hora && hora.includes(':')) {
@@ -665,36 +630,54 @@ export function generatePlanejamento(draft) {
         totalMinutes += (parseInt(hh, 10) * 60) + parseInt(mm, 10);
       }
     }
+  }
 
-    const sortedDiscs = [...plan.disciplinas].sort((a, b) => {
-      const wA = plan.relevancia[a]?.peso || 0;
-      const wB = plan.relevancia[b]?.peso || 0;
-      return wB - wA;
-    });
+  const minSessao = parseInt(plan.horarios.sessaoMin, 10) || 30;
+  const maxSessao = parseInt(plan.horarios.sessaoMax, 10) || 120;
 
-    sortedDiscs.forEach(discId => {
-      const perc = plan.relevancia[discId]?.percentual || 0;
-      let targetMinutes = Math.round((perc / 100) * totalMinutes);
+  const sortedDiscs = [...plan.disciplinas].sort((a, b) => {
+    const wA = plan.relevancia[a]?.peso || 0;
+    const wB = plan.relevancia[b]?.peso || 0;
+    return wB - wA;
+  });
 
-      if (targetMinutes < minSessao) targetMinutes = minSessao;
+  const pools = [];
 
-      let remaining = targetMinutes;
-      while (remaining > 0) {
-        let block = Math.min(remaining, maxSessao);
-        if (block < minSessao && remaining === targetMinutes) {
-          block = minSessao;
-        } else if (block < minSessao && remaining < targetMinutes) {
-          break;
-        }
-        plan.sequencia.push({
-          id: 'seq_' + uid(),
-          discId: discId,
-          minutosAlvo: block,
-          concluido: false
-        });
-        remaining -= block;
+  sortedDiscs.forEach(discId => {
+    const perc = plan.relevancia[discId]?.percentual || 0;
+    let targetMinutes = Math.round((perc / 100) * totalMinutes);
+    if (targetMinutes < minSessao && totalMinutes > 0) targetMinutes = minSessao;
+
+    const discBlocks = [];
+    let remaining = targetMinutes;
+    while (remaining > 0 && totalMinutes > 0) {
+      let block = Math.min(remaining, maxSessao);
+      if (block < minSessao && remaining === targetMinutes) {
+        block = minSessao;
+      } else if (block < minSessao && remaining < targetMinutes) {
+        break; // drop remaining tail
       }
-    });
+      discBlocks.push({
+        id: 'seq_' + uid(),
+        discId: discId,
+        minutosAlvo: block,
+        concluido: false
+      });
+      remaining -= block;
+    }
+    if (discBlocks.length > 0) pools.push(discBlocks);
+  });
+
+  // Interleave blocks (Round-Robin) to avoid studying the same subject consecutively
+  let hasMore = true;
+  while (hasMore) {
+    hasMore = false;
+    for (let i = 0; i < pools.length; i++) {
+      if (pools[i].length > 0) {
+        plan.sequencia.push(pools[i].shift());
+        hasMore = true;
+      }
+    }
   }
 
   state.planejamento = plan;

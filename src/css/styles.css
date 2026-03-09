@@ -2099,6 +2099,13 @@ mark {
   .form-row {
     grid-template-columns: 1fr;
   }
+
+  /* Mobile Opt: Reduce table padding */
+  .custom-scrollbar table td,
+  .custom-scrollbar table th {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
 }
 
 @media (max-width: 600px) {

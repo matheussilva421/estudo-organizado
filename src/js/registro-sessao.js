@@ -4,7 +4,7 @@
 // =============================================
 
 import { state, scheduleSave } from './store.js';
-import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode } from './logic.js';
+import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js';
 import { openModal, closeModal, showToast } from './app.js';
 import { todayStr, esc, uid } from './utils.js';
 import { renderCurrentView, updateBadges } from './components.js';
@@ -69,6 +69,10 @@ export function openRegistroSessao(eventId) {
     _sessionEndTime = new Date();
     _sessionStartTime = new Date(ev._timerStart);
     delete ev._timerStart;
+    if (timerIntervals[eventId]) {
+      clearInterval(timerIntervals[eventId]);
+      delete timerIntervals[eventId];
+    }
   } else {
     _sessionEndTime = new Date();
     const totalSecs = ev.tempoAcumulado || 0;
@@ -722,9 +726,15 @@ export function saveRegistroSessao() {
 
   scheduleSave();
   closeModal('modal-registro-sessao');
-  updateBadges();
-  renderCurrentView();
-  showToast('Sessão registrada com sucesso! ✅', 'success');
+
+  // Bug 1 Fix: Explicitly flush UI updates
+  setTimeout(() => {
+    document.dispatchEvent(new Event('app:refreshMEDSections'));
+    updateBadges();
+    renderCurrentView();
+    showToast('Sessão registrada com sucesso! ✅', 'success');
+  }, 50);
+
   return true;
 }
 

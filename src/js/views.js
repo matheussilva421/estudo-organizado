@@ -1553,8 +1553,11 @@ export function renderVerticalList(container) {
             
             <!-- Ações -->
             <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
-              <i class="fa fa-plus-circle" onclick="event.stopPropagation(); window.addNovoTopico('${dMap.edital.id}', '${discId}')" title="Adicionar Tópico Manualmente" style="cursor:pointer; color:var(--green); margin-right:8px;"></i>
-              <i class="fa fa-edit" onclick="event.stopPropagation(); window.openDiscManager('${dMap.edital.id}', '${discId}')" title="Gerenciar Disciplina e Tópicos" style="cursor:pointer;"></i>
+              <!-- Explicit "Adicionar Assunto" Button -->
+              <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;height:auto;" onclick="event.stopPropagation(); window.addNovoTopico('${dMap.edital.id}', '${discId}')" title="Adicionar Tópico Manualmente">
+                <i class="fa fa-plus"></i> Assunto
+              </button>
+              <i class="fa fa-edit" onclick="event.stopPropagation(); window.openDiscManager('${dMap.edital.id}', '${discId}')" title="Gerenciar Disciplina e Tópicos" style="cursor:pointer;margin-left:8px;"></i>
               <i id="vert-disc-icon-${discId}" class="fa fa-chevron-down" style="width:16px;text-align:center;"></i>
             </div>
           </div>
@@ -2236,9 +2239,9 @@ export function openEditaModal(editaId = null) {
   const edital = editaId ? state.editais.find(e => e.id === editaId) : null;
   document.getElementById('modal-edital-title').textContent = edital ? 'Editar Edital' : 'Novo Edital';
   document.getElementById('modal-edital-body').innerHTML = `
-        <div class="form-group" >
+      <div class="form-group" >
       <label class="form-label">Nome do Edital</label>
-      <input type="text" class="form-control" id="edital-nome" placeholder="Ex: Concurso TRF 2025" value="${edital ? edital.nome : ''}">
+      <input type="text" class="form-control" id="edital-nome" placeholder="Ex: Concurso TRF 2025" value="${edital ? edital.nome : ''}" autofocus>
     </div>
     <div class="form-group">
       <label class="form-label">Cor</label>
@@ -2300,7 +2303,7 @@ export function openDiscModal(editaId, discId) {
   document.getElementById('modal-disc-body').innerHTML = `
       <div class="form-group" >
       <label class="form-label">Nome da Disciplina</label>
-      <input type="text" class="form-control" id="disc-nome" placeholder="Ex: Direito Constitucional" value="${isEdit ? esc(existingDisc.nome) : ''}">
+      <input type="text" class="form-control" id="disc-nome" placeholder="Ex: Direito Constitucional" value="${isEdit ? esc(existingDisc.nome) : ''}" autofocus>
     </div>
     <div class="form-group">
       <label class="form-label">Ícone</label>
