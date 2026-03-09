@@ -1,4 +1,4 @@
-const CACHE_NAME = 'estudo-organizado-v4';
+const CACHE_NAME = 'estudo-organizado-v5';
 const ASSETS = [
     './',
     './index.html',
@@ -27,7 +27,6 @@ self.addEventListener('install', (evt) => {
             return cache.addAll(ASSETS);
         })
     );
-    // Force this SW to become active immediately (don't wait for old SW to die)
     self.skipWaiting();
 });
 
@@ -35,45 +34,41 @@ self.addEventListener('install', (evt) => {
 self.addEventListener('activate', (evt) => {
     evt.waitUntil(
         Promise.all([
-            // Delete old caches
             caches.keys().then((keys) => {
                 return Promise.all(keys
                     .filter(key => key !== CACHE_NAME)
                     .map(key => caches.delete(key))
                 );
             }),
-            // Claim all open clients so they switch to this SW immediately
             self.clients.claim()
         ])
     );
 });
 
-// Fetch Event (Cache First strategy)
+// Fetch Event (Network First strategy)
 self.addEventListener('fetch', (evt) => {
-    // Ignore non-GET requests (POST to Cloudflare or Google APIs)
     if (evt.request.method !== 'GET') return;
 
-    // Ignore external API endpoints
     const url = new URL(evt.request.url);
     if (!url.pathname.startsWith('/src/') && url.origin !== location.origin) {
         return;
     }
 
     evt.respondWith(
-        caches.match(evt.request).then(cacheRes => {
-            // Return cached version or fetch from network 
-            return cacheRes || fetch(evt.request).then(fetchRes => {
-                // Dynamically cache new assets
-                return caches.open(CACHE_NAME).then(cache => {
-                    cache.put(evt.request.url, fetchRes.clone());
-                    return fetchRes;
-                });
+        fetch(evt.request).then(fetchRes => {
+            // Se a requisição web teve sucesso, salva no cache a nova cópia e retorna
+            return caches.open(CACHE_NAME).then(cache => {
+                cache.put(evt.request.url, fetchRes.clone());
+                return fetchRes;
             });
         }).catch(() => {
-            // If offline and page not cached, show index fallback
-            if (evt.request.url.indexOf('.html') > -1) {
-                return caches.match('./index.html');
-            }
+            // Se estiver offline, pega do cache
+            return caches.match(evt.request).then(cacheRes => {
+                if (cacheRes) return cacheRes;
+                if (evt.request.url.indexOf('.html') > -1) {
+                    return caches.match('./index.html');
+                }
+            });
         })
     );
 });
