@@ -3175,11 +3175,19 @@ export function saveBulkSubjects() {
   const entry = getDisc(discId);
   if (!entry) return;
 
-  // Parse lines and clean numbering
-  const lines = text.split('\n')
+  // Parse lines, including pasted edital blocks that come in a single paragraph
+  // Ex: "1 Conceito... 1.1 Regime... 2 Administração..."
+  const normalized = text
+    .replace(/\r/g, '')
+    .replace(/\u00A0/g, ' ')
+    .trim()
+    // When multiple numbered topics are pasted on one line, force a line break before each index.
+    .replace(/([^\n])\s+(\d+(?:\.\d+)*[.)-]?\s+(?=[A-Za-zÀ-ÿ]))/g, '$1\n$2');
+
+  const lines = normalized.split('\n')
     .map(s => s.trim())
-    // Matches: "1. ", "1.1 ", "1) ", "a) ", "III - ", "- ", "• "
-    .map(s => s.replace(/^([\d]+\.[\d\.]*|\d+\)|[a-z]\)|[IVXLCDM]+\s*-|[-•])\s+/i, ''))
+    // Matches: "1 ", "1. ", "1.1 ", "1) ", "a) ", "III - ", "- ", "• "
+    .map(s => s.replace(/^(\d+(?:\.\d+)*[.)-]?|[a-z][.)-]?|[IVXLCDM]+\s*[.)-]?|[-•–—])\s+/i, ''))
     .filter(s => s.length > 0);
 
   let added = 0;
@@ -4653,4 +4661,3 @@ window.filtrarDropdownBanca = function (termo) {
     opt.style.display = visible ? '' : 'none';
   });
 };
-
