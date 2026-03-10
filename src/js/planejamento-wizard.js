@@ -78,11 +78,11 @@ function attachWizardListeners() {
                 closeModal('modal-planejamento');
                 document.dispatchEvent(new Event('app:renderCurrentView'));
             } catch (err) {
-                alert("Erro ao gerar Planejamento: " + err.message);
+                document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Erro ao gerar Planejamento: ' + err.message, type: 'error' } }));
                 console.error(err);
             }
         } else {
-            alert("Erro de validação no passo 4. Verifique os campos.");
+            document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Erro de validação no passo 4. Verifique os campos.', type: 'error' } }));
         }
     });
 }
