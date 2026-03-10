@@ -136,15 +136,28 @@ export function closeSidebar() {
 // Init Setup
 export function applyTheme(toggle = false) {
   if (toggle) {
-    state.config.darkMode = !state.config.darkMode;
-    state.config.tema = state.config.darkMode ? 'dark' : 'light';
+    const currentTheme = state.config.tema || (state.config.darkMode ? 'dark' : 'light');
+    if (currentTheme === 'light') {
+      // Switch to last used dark theme, or default 'dark'
+      const lastDark = state.config.lastDarkTheme || 'dark';
+      state.config.tema = lastDark;
+      state.config.darkMode = true;
+    } else {
+      // Save current dark theme for later toggle back
+      state.config.lastDarkTheme = currentTheme;
+      state.config.tema = 'light';
+      state.config.darkMode = false;
+    }
     scheduleSave();
   }
   const theme = state.config.tema || (state.config.darkMode ? 'dark' : 'light');
   document.documentElement.setAttribute('data-theme', theme);
 
   const btn = document.getElementById('theme-toggle-btn');
-  if (btn) btn.textContent = state.config.darkMode ? '☀️ Modo claro' : '🌙 Modo escuro';
+  if (btn) {
+    const isLight = theme === 'light';
+    btn.textContent = isLight ? '🌙 Modo escuro' : '☀️ Modo claro';
+  }
 }
 
 export function init() {

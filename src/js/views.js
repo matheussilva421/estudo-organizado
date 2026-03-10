@@ -343,7 +343,7 @@ export function renderMED(el) {
         <div class="icon">📅</div>
         <h4>Nenhum evento para hoje</h4>
         <p style="margin-bottom:16px;">Adicione eventos de estudo para começar a registrar seu tempo.</p>
-        <button class="btn btn-primary" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Adicionar Evento</button>
+        <button class="btn btn-primary" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>
       </div>
     ` : `
       <div id="med-section-agendado">
@@ -1557,7 +1557,7 @@ export function renderVerticalList(container) {
             <!-- Ações -->
             <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
               <!-- Explicit "Adicionar Assunto" Button -->
-              <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;height:auto;" onclick="event.stopPropagation(); window.addNovoTopico('${dMap.edital.id}', '${discId}')" title="Adicionar Tópico Manualmente">
+              <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;height:auto;" onclick="event.stopPropagation(); window.addNovoTopicoVertical('${dMap.edital.id}', '${discId}')" title="Adicionar Tópico Manualmente">
                 <i class="fa fa-plus"></i> Assunto
               </button>
               <i class="fa fa-edit" onclick="event.stopPropagation(); window.openDiscManager('${dMap.edital.id}', '${discId}')" title="Gerenciar Disciplina e Tópicos" style="cursor:pointer;margin-left:8px;"></i>
@@ -3031,6 +3031,42 @@ window.saveMatchCorrection = function (assuntoOrigemRaw) {
   }
 }
 
+// Bug 1 Fix: Dedicated function for adding topics from Verticalizado view
+// The registro-sessao addNovoTopico() reads from DOM (#reg-disciplina) which doesn't exist here
+export function addNovoTopicoVertical(editaId, discId) {
+  const entry = getDisc(discId);
+  if (!entry) { showToast('Disciplina não encontrada', 'error'); return; }
+
+  document.getElementById('modal-prompt-title').textContent = 'Novo Tópico';
+  document.getElementById('modal-prompt-body').innerHTML = `
+    <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">
+      Adicionar tópico em <strong>${esc(entry.disc.nome)}</strong>
+    </div>
+    <input type="text" id="prompt-input-topico" class="form-control" placeholder="Nome do novo tópico..." autofocus>
+  `;
+
+  const saveBtn = document.getElementById('modal-prompt-save');
+  saveBtn.onclick = () => {
+    const nome = document.getElementById('prompt-input-topico')?.value.trim();
+    if (!nome) { showToast('Informe o nome do tópico', 'error'); return; }
+
+    entry.disc.assuntos.push({
+      id: uid(),
+      nome,
+      concluido: false,
+      dataConclusao: null,
+      revisoesFetas: []
+    });
+    scheduleSave();
+    closeModal('modal-prompt');
+    renderCurrentView();
+    showToast(`Tópico "${nome}" adicionado!`, 'success');
+  };
+
+  openModal('modal-prompt');
+  setTimeout(() => document.getElementById('prompt-input-topico')?.focus(), 100);
+}
+
 export function finishInlineEdit(discId, assId, newName, el) {
   newName = newName.trim();
   const entry = getDisc(discId);
@@ -3557,7 +3593,7 @@ export function renderConfig(el) {
                 <button class="btn btn-primary btn-sm" onclick="syncWithDrive().then(()=>showToast('Sincronizado!','success')).catch(()=>showToast('Erro ao sincronizar','error'))">
                   <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
                 </button>
-                <button class="btn btn-ghost btn-sm" onclick="syncWithDrive().then(()=>showToast('Dados atualizados!','success')).catch(e=>console.error('Drive import err:', e))">
+                <button class="btn btn-ghost btn-sm" onclick="pullFromDrive()">
                   <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
                 </button>
                 <button class="btn btn-danger btn-sm" onclick="driveDisconnect()">Desconectar</button>
@@ -3636,6 +3672,10 @@ export function renderConfig(el) {
 export function setTheme(themeName) {
   state.config.tema = themeName;
   state.config.darkMode = themeName !== 'light';
+  // Remember last dark theme for topbar toggle
+  if (themeName !== 'light') {
+    state.config.lastDarkTheme = themeName;
+  }
 
   document.documentElement.setAttribute('data-theme', themeName);
   scheduleSave();

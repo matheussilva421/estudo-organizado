@@ -443,30 +443,45 @@ export function addNovoTopico() {
     return;
   }
 
-  const nome = prompt('Nome do novo tópico:');
-  if (!nome || !nome.trim()) return;
-
   const d = getDisc(discId);
   if (!d) return;
 
-  const novoTopico = {
-    id: uid(),
-    nome: nome.trim(),
-    concluido: false,
-    revisoesFetas: []
+  document.getElementById('modal-prompt-title').textContent = 'Novo Tópico';
+  document.getElementById('modal-prompt-body').innerHTML = `
+    <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">
+      Adicionar tópico em <strong>${d.disc.nome}</strong>
+    </div>
+    <input type="text" id="prompt-input-topico" class="form-control" placeholder="Nome do novo tópico..." autofocus>
+  `;
+
+  const saveBtn = document.getElementById('modal-prompt-save');
+  saveBtn.onclick = () => {
+    const nome = document.getElementById('prompt-input-topico')?.value.trim();
+    if (!nome) { showToast('Informe o nome do tópico', 'error'); return; }
+
+    const novoTopico = {
+      id: uid(),
+      nome,
+      concluido: false,
+      revisoesFetas: []
+    };
+
+    d.disc.assuntos.push(novoTopico);
+    scheduleSave();
+    closeModal('modal-prompt');
+
+    // Refresh topic select
+    onDisciplinaChange();
+
+    // Auto-select the new topic
+    const assSelect = document.getElementById('reg-assunto');
+    if (assSelect) assSelect.value = 'ass_' + novoTopico.id;
+
+    showToast(`Tópico "${nome}" criado!`, 'success');
   };
 
-  d.disc.assuntos.push(novoTopico);
-  scheduleSave();
-
-  // Refresh topic select
-  onDisciplinaChange();
-
-  // Auto-select the new topic (options have value 'ass_' + id)
-  const assSelect = document.getElementById('reg-assunto');
-  if (assSelect) assSelect.value = 'ass_' + novoTopico.id;
-
-  showToast(`Tópico "${nome.trim()}" criado!`, 'success');
+  openModal('modal-prompt');
+  setTimeout(() => document.getElementById('prompt-input-topico')?.focus(), 100);
 }
 
 export function validateQuestoes() {
@@ -747,10 +762,10 @@ export function saveAndStartNew() {
   _selectedMateriais = [];
   _savedTimerStart = null;
   _savedTempoAcumulado = 0;
-  // After saving, navigate to MED to start a new session
+  // Navigate to MED after the save's setTimeout(50ms) completes to avoid race condition
   setTimeout(() => {
     if (typeof window.navigate === 'function') window.navigate('med');
-  }, 300);
+  }, 400);
 }
 
 // Rollback timer state if user cancels the registro modal

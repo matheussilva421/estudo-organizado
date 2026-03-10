@@ -7,6 +7,15 @@ import { navigate } from './app.js';
 // =============================================
 export let timerIntervals = {};   // eventId → intervalId
 export let _pomodoroMode = false;
+
+// Restore pomodoro mode from persisted config on module load
+try {
+  const raw = localStorage.getItem('estudo_organizado_db');
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    if (parsed?.config?.pomodoroMode) _pomodoroMode = true;
+  }
+} catch (e) { /* ignore parse errors on boot */ }
 export let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 export function isTimerActive(eventId) {
@@ -23,14 +32,18 @@ export function getElapsedSeconds(ev) {
 
 export function toggleTimerMode() {
   _pomodoroMode = !_pomodoroMode;
-  const btn = document.getElementById('crono-mode-btn');
+  // Persist pomodoro preference
+  if (state?.config) { state.config.pomodoroMode = _pomodoroMode; scheduleSave(); }
   const foco = state?.config?.pomodoroFoco || 25;
   const pausa = state?.config?.pomodoroPausa || 5;
-  if (btn) {
-    btn.innerHTML = _pomodoroMode ? `🍅 Pomodoro (${foco}/${pausa})` : '⏱ Modo Contínuo';
-    btn.style.backgroundColor = _pomodoroMode ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.06)';
-    btn.style.color = _pomodoroMode ? '#a371f7' : '#8b949e';
+  // Update cronômetro view button (only exists when view is active)
+  const cronoBtn = document.getElementById('crono-mode-btn');
+  if (cronoBtn) {
+    cronoBtn.innerHTML = _pomodoroMode ? `🍅 Pomodoro (${foco}/${pausa})` : '⏱ Modo Contínuo';
+    cronoBtn.style.backgroundColor = _pomodoroMode ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.06)';
+    cronoBtn.style.color = _pomodoroMode ? '#a371f7' : '#8b949e';
   }
+  // Update topbar button
   const topBtn = document.getElementById('timer-mode-btn');
   if (topBtn) {
     topBtn.innerHTML = _pomodoroMode
@@ -894,18 +907,36 @@ window.editCicloSeqHours = function (idx) {
   const seqItem = state.planejamento.sequencia[idx];
   const currentHours = (seqItem.minutosAlvo / 60).toFixed(1).replace('.0', '');
 
-  const novaStr = window.prompt(`Digite a nova carga horária (em horas) para esta etapa:
-Ex: 1 = Uma hora | 1.5 = 1h30min`, currentHours);
-  if (novaStr === null) return;
+  const titleEl = document.getElementById('modal-prompt-title');
+  const bodyEl = document.getElementById('modal-prompt-body');
+  const saveBtn = document.getElementById('modal-prompt-save');
+  if (!titleEl || !bodyEl || !saveBtn) return;
 
-  const novaHoras = parseFloat(novaStr.replace(',', '.'));
-  if (isNaN(novaHoras) || novaHoras <= 0) { document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Valor inválido. Digite um número maior que zero.', type: 'error' } })); return; }
+  titleEl.textContent = 'Editar Carga Horária';
+  bodyEl.innerHTML = `
+    <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">
+      Digite a nova carga horária (em horas) para esta etapa.<br>
+      <small>Ex: 1 = Uma hora | 1.5 = 1h30min</small>
+    </div>
+    <input type="number" id="prompt-input-horas" class="form-control" value="${currentHours}" min="0.1" step="0.5" autofocus>
+  `;
 
-  seqItem.minutosAlvo = Math.round(novaHoras * 60);
+  saveBtn.onclick = () => {
+    const novaStr = document.getElementById('prompt-input-horas')?.value || '';
+    const novaHoras = parseFloat(novaStr.replace(',', '.'));
+    if (isNaN(novaHoras) || novaHoras <= 0) {
+      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Valor inválido. Digite um número maior que zero.', type: 'error' } }));
+      return;
+    }
+    seqItem.minutosAlvo = Math.round(novaHoras * 60);
+    syncCicloToEventos();
+    scheduleSave();
+    if (typeof window.closeModal === 'function') window.closeModal('modal-prompt');
+    document.dispatchEvent(new Event('app:renderCurrentView'));
+  };
 
-  syncCicloToEventos();
-  scheduleSave();
-  document.dispatchEvent(new Event('app:renderCurrentView'));
+  if (typeof window.openModal === 'function') window.openModal('modal-prompt');
+  setTimeout(() => document.getElementById('prompt-input-horas')?.focus(), 100);
 };
 
 window.iniciarEtapaPlanejamento = iniciarEtapaPlanejamento;
