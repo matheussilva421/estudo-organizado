@@ -1065,6 +1065,12 @@ body {
   pointer-events: all;
 }
 
+/* Ensure prompt and confirm modals stack above other modals when both are open */
+#modal-prompt.open,
+#modal-confirm.open {
+  z-index: 1100;
+}
+
 .modal {
   background: var(--card);
   border-radius: 16px;

@@ -162,6 +162,8 @@ export function applyTheme(toggle = false) {
 
 export function init() {
   initDB().then(async () => {
+    // Notify modules that state is loaded from IndexedDB
+    document.dispatchEvent(new Event('app:stateLoaded'));
     applyTheme();
     initNotifications();
 

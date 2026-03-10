@@ -8,14 +8,11 @@ import { navigate } from './app.js';
 export let timerIntervals = {};   // eventId → intervalId
 export let _pomodoroMode = false;
 
-// Restore pomodoro mode from persisted config on module load
-try {
-  const raw = localStorage.getItem('estudo_organizado_db');
-  if (raw) {
-    const parsed = JSON.parse(raw);
-    if (parsed?.config?.pomodoroMode) _pomodoroMode = true;
-  }
-} catch (e) { /* ignore parse errors on boot */ }
+// Restore pomodoro mode after IndexedDB state is loaded (event fired from app.js init)
+document.addEventListener('app:stateLoaded', () => {
+  if (state?.config?.pomodoroMode) _pomodoroMode = true;
+});
+
 export let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 export function isTimerActive(eventId) {
