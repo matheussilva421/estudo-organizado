@@ -26,14 +26,18 @@ npm-debug.log*
 *.swo
 *~
 
-# Arquivos resolved (gerados pelo Gemini)
+# Ferramentas de dev
+.claude/
+.playwright-mcp/
+
+# Arquivos resolved (gerados por agentes)
 *.resolved
 
 # Build
 dist/
 build/
 
-# wrangler files
+# Wrangler / Cloudflare
 .wrangler
 .dev.vars*
 !.dev.vars.example

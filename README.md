@@ -11,8 +11,6 @@ Aplicação web premium para **planejamento e organização de estudos** voltada
 
 ## 📸 Visual Showcase
 
-Confira a interface moderna e responsiva do Estudo Organizado:
-
 <p align="center">
   <img src="screenshots/app_view_01_home_1772223847529.png" width="45%" alt="Home" />
   <img src="screenshots/app_view_10_inteligencia_banca_1772223947936.png" width="45%" alt="Inteligência de Banca" />
@@ -24,73 +22,89 @@ Confira a interface moderna e responsiva do Estudo Organizado:
 
 ---
 
-## 🌟 Últimas Atualizações
-
-### Waves 34, 35 e 36 — Inteligência de Bancas
-- **Aba Dedicada de Análise Preditiva (Wave 34):** A funcionalidade de "Inteligência de Banca" ganhou uma Aba Preditiva em Tela Cheia (Dual-Pane), libertando-a da limitação visual dos modals antigos.
-- **Gerenciamento de Análises Inteligentes (Waves 35 e 36):** Inclusão de um Histórico de "Análises Salvas" em chips, permitindo ao usuário re-visualizar relatórios de Match antigos, editar pontuações, ou excluí-los (retornando dinamicamente o Edital para a Ordem Alfabética Padrão).
-
-### Wave 30 — PWA Nativo
-- **Instalação e Modo Offline:** O sistema agora é um Progressive Web App completo. Com o registro do `manifest.json` e do `sw.js` (Service Worker), estudantes podem instalar o app nativamente. O SW conta com modo Cache-First para carregamento instantâneo mesmo offline.
-
----
-
-## ✨ Funcionalidades Principais
+## ✨ Funcionalidades
 
 | Módulo | Descrição |
 |---|---|
-| 🏠 **Página Inicial** | Visão geral do dia: eventos agendados, estudados, atrasados e revisões pendentes. |
-| 📖 **Study Organizer** | Registro de sessões de estudo com timer Pomodoro integrado. |
-| 📅 **Calendário** | Visualização mensal e semanal dos eventos de estudo. |
-| 📊 **Dashboard** | Métricas de desempenho: tempo estudado, sessões, questões e simulados. |
+| 🏠 **Página Inicial** | Visão geral do dia: tempo de estudo, desempenho, progresso no edital, constância e previsão semanal. |
+| 📖 **Study Organizer** | Criação e gestão de eventos de estudo com timer integrado (Contínuo e Pomodoro). |
+| ⏱ **Cronômetro** | Timer cronômetro livre (sem evento) para sessões avulsas com meta configurável. |
+| 📅 **Calendário** | Visualização mensal completa dos eventos de estudo com status colorido. |
+| ♻️ **Ciclo de Estudos** | Planejamento inteligente por ciclo ou grade semanal fixa com wizard de 4 etapas. |
+| 📊 **Dashboard** | Métricas detalhadas: tempo por disciplina, acertos/erros, páginas lidas e gráficos Chart.js. |
 | 🔄 **Revisões** | Sistema de revisão espaçada com intervalos configuráveis (1, 7, 30, 90 dias). |
-| ⚡ **Hábitos** | Acompanhamento de hábitos de estudo por categoria (Videoaula, Simulado, etc). |
-| 📋 **Editais** | Gestão completa de editais, disciplinas e assuntos. |
-| 🧠 **Intelig. de Banca** | Análise preditiva baseada em incidência de temas da banca organizada. |
-| ⚙️ **Configurações** | Temas (Furtivo, Rubi, Matrix), calendários, sync e backups. |
+| ⚡ **Hábitos** | Acompanhamento de hábitos de estudo por categoria (Videoaula, Simulado, Leitura, etc). |
+| 📋 **Editais** | Gestão completa de editais, disciplinas, assuntos e aulas com importação em lote. |
+| 📑 **Ed. Verticalizado** | Visão verticalizada do edital com progresso por assunto e aula. |
+| 🧠 **Intelig. de Banca** | Análise preditiva com NLP e Fuzzy Match — identifica temas de maior incidência (P1/P2/P3). |
+| ⚙️ **Configurações** | Temas (Furtivo, Rubi, Matrix, Claro), metas, sync, backup e importação/exportação JSON. |
 
 ---
 
 ## 🚀 Como Usar
 
 ### Opção 1: Windows Launcher (Recomendado)
-Basta dar dois cliques em `Abrir_Estudo_Organizado.bat`. Ele iniciará o servidor local e abrirá o aplicativo automaticamente no seu navegador padrão.
+Basta dar dois cliques em `Abrir_Estudo_Organizado.bat`. Ele iniciará o servidor local e abrirá o app automaticamente.
 
 ### Opção 2: Servidor Manual
 ```bash
-# Com Python
-python -m http.server 8000
-
 # Com Node.js
-npx http-server -p 8000
+npx http-server src -p 8080
+
+# Com Python
+python -m http.server 8080 --directory src
 ```
-Acesse: `http://localhost:8000`
+Acesse: `http://localhost:8080`
 
 ---
 
 ## ☁️ Sincronização e Backup
 
 ### Cloudflare Multi-Device Sync
-Para espelhar seu Estudo Organizado entre celular e PC instantaneamente:
-1. Configure seu Worker em `docs/CLOUDFLARE-SETUP.md`.
-2. Insira a URL e o Token em **Configurações**.
-3. Ative o Sync para pareamento em tempo real.
+Espelhe seus dados entre celular e PC em tempo real:
+1. Configure seu Worker seguindo `docs/CLOUDFLARE-SETUP.md`
+2. Insira a URL e o Token em **Configurações**
+3. Ative o Sync para pareamento automático
 
-### Google Drive & Backup Local
-- Suporte nativo a **Google Drive API** para salvamento na nuvem.
-- Exportação/Importação manual via arquivos **JSON**.
+### Google Drive
+Conecte via OAuth 2.0 para backup automático na nuvem do Google.
+
+### Backup Local
+Exportação e importação manual via **JSON** com validação de integridade.
 
 ---
 
 ## 🏗️ Estrutura do Projeto
 
-O projeto utiliza **Vanilla JavaScript** (Sem frameworks), priorizando performance e simplicidade:
+```
+src/
+├── index.html                 # Esqueleto principal (SPA) + modais
+├── manifest.json              # PWA manifest
+├── sw.js                      # Service Worker (cache-first)
+├── css/
+│   └── styles.css             # Design system completo (~3000 linhas)
+└── js/
+    ├── main.js                # Entry point — expõe módulos ao window
+    ├── store.js               # Estado global + IndexedDB + migrações
+    ├── app.js                 # Navegação, modais, toasts, temas
+    ├── logic.js               # Regras de negócio, timers, dashboard stats
+    ├── views.js               # Renderização de todas as views (~4600 linhas)
+    ├── components.js           # Componentes reutilizáveis de UI
+    ├── utils.js               # Helpers (formatação, escape, cache)
+    ├── registro-sessao.js     # Modal de registro de sessão de estudo
+    ├── planejamento-wizard.js # Wizard de 4 etapas (Ciclo/Semanal)
+    ├── relevance.js           # Motor NLP + Fuzzy Match (Levenshtein)
+    ├── lesson-mapper.js       # Auto-link aulas ↔ assuntos
+    ├── notifications.js       # Notificações inteligentes (revisões, metas)
+    ├── cloud-sync.js          # Cloudflare KV sync
+    └── drive-sync.js          # Google Drive API sync
+```
 
-- `src/index.html`: Esqueleto principal.
-- `src/js/store.js`: Gerenciamento de estado e IndexedDB.
-- `src/js/logic.js`: Regras de negócio e cálculos de performance.
-- `src/js/relevance.js`: Motor de NLP e Fuzzy Match para análises de banca.
-- `src/js/views.js`: Orquestração de renderização dinâmica.
+### Stack Técnica
+- **Zero frameworks** — Vanilla JS puro (~8500 linhas)
+- **IndexedDB** — Persistência local com fallback localStorage
+- **Chart.js** — Gráficos do Dashboard
+- **PWA** — Service Worker + Manifest para instalação nativa
 
 ---
 
