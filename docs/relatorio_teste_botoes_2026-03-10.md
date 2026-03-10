@@ -1,50 +1,72 @@
 # Relatório de Teste de Botões — 2026-03-10
 
 ## Escopo
-Validação dos botões/ações acionáveis do app **Estudo Organizado** com foco em:
-- mapeamento de ações (`data-action`) e handlers no delegador central;
-- verificação de referências `onclick` para funções existentes;
-- identificação de bugs e funções desconexas.
+Teste funcional dos botões/ações clicáveis do app **Estudo Organizado**, com foco em:
+- navegação por abas do menu lateral;
+- botões/ações visíveis por tela;
+- bugs de comportamento;
+- funções desconexas (ações sem gatilho no UI).
 
-## Método aplicado
-1. Tentativa de teste E2E com Playwright (MCP/browser tools).
-2. Auditoria estática do front-end (`index.html`, `views.js`, `main.js`) para cruzar:
-   - quantidade de botões;
-   - ações declaradas vs. ações tratadas;
-   - funções chamadas em `onclick` vs. funções existentes no código.
+## Metodologia aplicada
+1. Execução local do app (`http://127.0.0.1:4173/src/index.html`).
+2. Verificação automatizada com Playwright para:
+   - navegar nas 12 views principais;
+   - validar estado de abertura/fechamento de modais críticos;
+   - validar atualização de botão de tema.
+3. Auditoria estática para cruzar ações `data-action` com handlers do `switch(action)` em `src/js/main.js`.
 
-## Evidências objetivas
-- Total de botões mapeados por markup:
-  - `src/index.html`: **38**
-  - `src/js/views.js`: **79**
-  - Total geral: **117**
+## Cobertura obtida
+Views navegadas:
+- `home`, `med`, `cronometro`, `calendar`, `ciclo`, `dashboard`, `revisoes`, `habitos`, `editais`, `vertical`, `banca-analyzer`, `config`.
 
-- Ações `data-action` encontradas:
-  - `close-modal`, `close-sidebar`, `drive-action`, `navigate`, `open-drive-modal`, `prompt-metas`, `prompt-prova`, `remover-planejamento`, `save-disc`, `save-habit`, `toggle-ciclo-fin`, `toggle-sidebar`, `toggle-theme`, `toggle-timer-mode`.
+Contagem de elementos clicáveis visíveis por view (snapshot):
+- `home`: 3
+- `med`: 1
+- `cronometro`: 5
+- `calendar`: 47
+- `ciclo`: 1
+- `dashboard`: 4
+- `revisoes`: 2
+- `habitos`: 8
+- `editais`: 1
+- `vertical`: 3
+- `banca-analyzer`: 0
+- `config`: 9
 
-- Cobertura no switch de `main.js`:
-  - Todas as ações encontradas em `data-action` estão tratadas.
+## Correções aplicadas nesta rodada
 
-- Divergência encontrada:
-  - `main.js` possui `case 'remover-ciclo'`, porém **não há nenhum botão/elemento com `data-action="remover-ciclo"`** nos arquivos auditados (`index.html`, `views.js`).
+### FIX-01 — Sincronização de estado semântico/visual dos modais
+- `openModal(id)` agora define `aria-hidden="false"` ao abrir.
+- `closeModal(id)` agora define `aria-hidden="true"` ao fechar.
+- `closeModal(id)` também mantém `body.style.overflow='hidden'` enquanto ainda existir qualquer modal aberto.
 
-- Verificação de `onclick`:
-  - 96 funções referenciadas em `onclick` foram encontradas no código JS (não foram detectadas referências órfãs por nome).
+### FIX-02 — Remoção de ação desconexa `remover-ciclo`
+- Removido `case 'remover-ciclo'` do delegador central em `main.js`.
+- Removida função legada `removerCiclo()` de `app.js` (sem acionador real no UI).
 
-## Bugs e funções desconexas
+## Rodada complementar de testes (continuação)
 
-### 1) Função desconexa confirmada
-- **Tipo:** função/rota de ação sem gatilho no UI atual.
-- **Item:** `remover-ciclo` no delegador central.
-- **Impacto:** código morto ou feature incompleta; aumenta custo de manutenção e confusão em debugging.
-- **Recomendação:**
-  - Remover o `case 'remover-ciclo'` se a feature foi descontinuada; ou
-  - Reintroduzir botão/controle com `data-action="remover-ciclo"` se a feature ainda é válida.
+### Checks funcionais validados
+- Navegação lateral: as 12 views ficaram ativas corretamente ao clique (classe `.active` aplicada na aba correspondente).
+- Botão de tema: alterou texto de `🌙 Modo escuro` para `☀️ Modo claro` após clique.
+- Modal do Drive:
+  - abre com `.open` e `aria-hidden="false"`;
+  - fecha corretamente e remove estado `.open`.
 
-## Limitação de teste E2E
-Durante tentativa de automação de clique ponta-a-ponta via browser tools, houve limitação de ambiente (falhas de navegação/instância do browser), impossibilitando validar comportamento visual de **todos** os botões em execução real nesta sessão.
+### Checks estruturais validados
+- Inventário de botões em markup: **117** (`38` em `index.html` + `79` em `views.js`).
+- Ações `data-action` encontradas: **14**.
+- Handlers no `switch(action)` de `main.js`: **14**.
+- Divergências:
+  - `missing_handlers`: `[]`
+  - `unused_handlers`: `[]`
+- Referências `onclick` analisadas (funções): **75**.
+  - Funções sem definição encontrada: `0`.
 
-## Conclusão
-- **Não foram encontradas ações `data-action` sem handler.**
-- **Foi encontrada 1 função desconexa (`remover-ciclo`).**
-- A cobertura total de comportamento em tempo de execução ficou parcialmente limitada pelo ambiente de browser desta sessão.
+## Limitações de ambiente
+- Alguns roteiros Playwright mais extensos (clique massivo em sequência) estouraram timeout/instabilidade intermitente da ferramenta no ambiente desta sessão, então os checks foram fracionados em execuções menores de alta confiança.
+
+## Resultado final
+- Não há mais inconsistência do modal prompt entre classe visual (`.open`) e `aria-hidden`.
+- Não há mais rota de ação órfã `remover-ciclo` no delegador central.
+- Rodada complementar confirma navegação principal e botões críticos funcionando conforme esperado nos cenários executados.
