@@ -23,6 +23,12 @@ document.addEventListener('app:driveDisconnected', () => {
 // NAVIGATION
 // =============================================
 export function navigate(view) {
+  // Keep navigation responsive even if a modal is currently open.
+  // This prevents stale overlays from trapping pointer events after view switches.
+  document.querySelectorAll('.modal-overlay.open').forEach((modal) => {
+    closeModal(modal.id);
+  });
+
   if (window.innerWidth <= 768) closeSidebar();
 
   if (view === 'editais') {
@@ -43,6 +49,7 @@ export function openModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.classList.add('open');
+  el.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
 }
 
@@ -50,7 +57,9 @@ export function closeModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.classList.remove('open');
-  document.body.style.overflow = '';
+  el.setAttribute('aria-hidden', 'true');
+  const hasOpenModal = document.querySelector('.modal-overlay.open');
+  document.body.style.overflow = hasOpenModal ? 'hidden' : '';
 }
 
 // Custom Confirm
@@ -282,17 +291,4 @@ export function promptMetas() {
 export function toggleCicloFin(checked) {
   window._hideConcluidosCiclo = checked;
   if (currentView === 'ciclo') renderCurrentView();
-}
-
-// Compat layer: removerCiclo is wired via data-action="remover-ciclo" in main.js.
-// It must operate on state.planejamento (the active system) AND state.ciclo (legacy).
-export function removerCiclo() {
-  showConfirm('Tem certeza que deseja apagar todo o Planejamento Atual? Esta ação não pode ser desfeita.', () => {
-    // Clear the active planning system
-    state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
-    // Also clear legacy ciclo if it exists
-    state.ciclo = { ativo: false, ciclosCompletos: 0, disciplinas: [] };
-    scheduleSave();
-    if (currentView === 'ciclo') renderCurrentView();
-  }, { danger: true, title: 'Remover Planejamento', label: 'Excluir' });
 }
