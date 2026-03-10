@@ -2474,7 +2474,7 @@ export function openDiscManager(editaId, discId) {
     <!--ABA TÓPICOS-->
     <div id="tab-manager-topicos" style="display:${window._activeDiscManagerTab === 'topicos' ? 'block' : 'none'};">
         <div class="sm-add-form" style="display:flex;flex-wrap:wrap;gap:8px; margin-bottom:12px;">
-           <input type="text" class="form-control" id="new-assunto-nome" placeholder="Novo tópico (Digite ou cole vários separados por quebra de linha)" style="flex:1;min-width:200px;" onkeydown="if(event.key==='Enter') addAssunto('${disc.id}')">
+           <textarea class="form-control" id="new-assunto-nome" placeholder="Novo tópico (Digite ou cole vários separados por quebra de linha)" rows="1" style="flex:1;min-width:200px;resize:vertical;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addAssunto('${disc.id}')}"></textarea>
            <button class="btn btn-primary" onclick="addAssunto('${disc.id}')">Adicionar Tópico</button>
         </div>
         <div class="sm-list custom-scrollbar">
@@ -3124,8 +3124,16 @@ export function addAssunto(discId) {
   const entry = getDisc(discId);
   if (!entry) return;
 
-  // Support multiple topics separated by newlines
-  const lines = nome.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+  // Normalize and parse: handle numbered topics pasted on a single line, remove prefixes
+  const normalized = nome
+    .replace(/\r/g, '')
+    .replace(/\u00A0/g, ' ')
+    .replace(/([^\n])\s+(\d+(?:\.\d+)*[.)-]?\s+(?=[A-Za-zÀ-ÿ]))/g, '$1\n$2');
+
+  const lines = normalized.split('\n')
+    .map(s => s.trim())
+    .map(s => s.replace(/^(\d+(?:\.\d+)*[.)-]?|[a-z][.)-]?|[IVXLCDM]+\s*[.)-]?|[-•–—])\s+/i, ''))
+    .filter(s => s.length > 0);
   let added = 0;
   lines.forEach(line => {
     if (!entry.disc.assuntos.find(a => a.nome === line)) {
