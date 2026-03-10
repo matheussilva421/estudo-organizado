@@ -3900,7 +3900,7 @@ export function onSearch(query) {
   const box = document.getElementById('search-results');
   if (!query || query.length < 2) { box.classList.remove('open'); return; }
   const q = query.toLowerCase();
-  const results = { eventos: [], assuntos: [], habitos: [] };
+  const results = { eventos: [], disciplinas: [], assuntos: [], habitos: [] };
 
   // Search eventos
   state.eventos.forEach(ev => {
@@ -3910,8 +3910,14 @@ export function onSearch(query) {
     }
   });
 
-  // Search assuntos
+  // Search disciplinas (deduplicated by id)
+  const seenDiscIds = new Set();
   getAllDisciplinas().forEach(({ disc, edital }) => {
+    if (disc.nome.toLowerCase().includes(q) && !seenDiscIds.has(disc.id)) {
+      seenDiscIds.add(disc.id);
+      results.disciplinas.push({ disc, edital });
+    }
+    // Search assuntos
     (disc.assuntos || []).forEach(ass => {
       if (ass.nome.toLowerCase().includes(q) || disc.nome.toLowerCase().includes(q)) {
         results.assuntos.push({ ass, disc, edital });
@@ -3939,6 +3945,18 @@ export function onSearch(query) {
         <div>
           <div class="search-item-label">${highlight(ev.titulo)}</div>
           <div class="search-item-sub">${ev.data ? formatDate(ev.data) : ''}${disc ? ' • ' + disc.nome : ''}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  if (results.disciplinas.length) {
+    html += `<div class="search-section-title">📖 Disciplinas</div>`;
+    html += results.disciplinas.slice(0, 5).map(({ disc, edital }) => `
+      <div class="search-item" onclick="navigate('editais');clearSearch()">
+        <div class="search-item-icon">${disc.icone || '📖'}</div>
+        <div>
+          <div class="search-item-label">${highlight(disc.nome)}</div>
+          <div class="search-item-sub">${esc(edital.nome)} • ${(disc.assuntos || []).length} assunto(s)</div>
         </div>
       </div>`).join('');
   }
