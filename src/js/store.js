@@ -122,15 +122,20 @@ export function loadStateFromDB() {
   });
 }
 
-// Fallback to load from LocalStorage (migration path for old users)
+// Fallback to load from LocalStorage (migration path for old users + emergency recovery)
 export function loadLegacyState() {
   try {
+    // Check for emergency save first (from beforeunload)
+    const emergency = localStorage.getItem('estudo_state_emergency');
     const saved = localStorage.getItem('estudo_state');
-    if (saved) {
-      setState(JSON.parse(saved));
+    const source = emergency || saved;
+    if (source) {
+      setState(JSON.parse(source));
       runMigrations();
       scheduleSave(); // Save to IndexedDB immediately
-      localStorage.removeItem('estudo_state'); // Clean up old storage
+      // Clean up both legacy keys
+      localStorage.removeItem('estudo_state');
+      localStorage.removeItem('estudo_state_emergency');
     }
   } catch (e) {
     console.error('Error loading legacy state:', e);
@@ -142,7 +147,13 @@ export let saveTimeout = null;
 
 window.addEventListener('beforeunload', (e) => {
   if (saveTimeout !== null) {
-    // Attempt local emergency save
+    // Emergency sync save via localStorage (IndexedDB is async and may not complete)
+    try {
+      localStorage.setItem('estudo_state_emergency', JSON.stringify(state));
+    } catch (err) {
+      console.error('Emergency localStorage save failed:', err);
+    }
+    // Also attempt IndexedDB save (may or may not complete)
     saveStateToDB();
     e.preventDefault();
     e.returnValue = 'Há alterações pendentes aguardando salvamento. Deseja sair assim mesmo?';

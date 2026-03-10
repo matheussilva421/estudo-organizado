@@ -122,9 +122,9 @@ export function addTimerMinutes(eventId, minutes) {
   const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
   if (!ev) return;
   if (eventId === 'crono_livre') {
-    ev.duracaoMinutos = (ev.duracaoMinutos || 0) + minutes;
+    ev.duracaoMinutos = Math.max(0, (ev.duracaoMinutos || 0) + minutes);
   } else {
-    ev.duracao = (ev.duracao || 0) + minutes;
+    ev.duracao = Math.max(0, (ev.duracao || 0) + minutes);
   }
   scheduleSave();
   document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `+${minutes} minuto(s) adicionado(s) à meta`, type: 'info' } }));

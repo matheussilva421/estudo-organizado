@@ -3401,7 +3401,7 @@ export function saveEvent() {
   // Helper that actually creates and saves the event
   const doSave = () => {
     const evento = {
-      id: uid(), titulo: autoTitle, data, duracao, notas, fontes, legislacao,
+      id: 'ev_' + uid(), titulo: autoTitle, data, duracao, notas, fontes, legislacao,
       status: 'agendado', tempoAcumulado: 0,
       tipo: 'conteudo',
       discId: discId || null,
@@ -3796,6 +3796,20 @@ export function importData() {
     reader.onload = ev => {
       try {
         const imported = JSON.parse(ev.target.result);
+        // Validate JSON structure to prevent data corruption
+        if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
+          showToast('Arquivo inválido! O JSON não contém um objeto de dados válido.', 'error');
+          return;
+        }
+        const hasValidStructure = (
+          (Array.isArray(imported.editais) || imported.editais === undefined) &&
+          (Array.isArray(imported.eventos) || imported.eventos === undefined) &&
+          (typeof imported.config === 'object' || imported.config === undefined)
+        );
+        if (!hasValidStructure) {
+          showToast('Arquivo inválido! Este JSON não parece ser um backup do Estudo Organizado.', 'error');
+          return;
+        }
         showConfirm(
           `Importar dados de "${file.name}"?\n\nIsso substituirá todos os dados atuais. Faça um export antes para garantir o backup.`,
           () => {
@@ -4640,13 +4654,3 @@ window.filtrarDropdownBanca = function (termo) {
   });
 };
 
-window.filtrarDropdownBanca = function (termo) {
-  termo = termo.toLowerCase().trim();
-  const select = document.getElementById('banca-disc-select');
-  if (!select) return;
-  Array.from(select.options).forEach(opt => {
-    if (opt.value === '') return;
-    const visible = opt.text.toLowerCase().includes(termo);
-    opt.style.display = visible ? '' : 'none';
-  });
-};

@@ -571,7 +571,7 @@ export function saveRegistroSessao() {
       }
     }
     const evtReal = {
-      id: uid(),
+      id: 'ev_' + uid(),
       titulo: assName,
       data: todayStr(),
       status: 'agendado', // Will turn 'estudei' down there
