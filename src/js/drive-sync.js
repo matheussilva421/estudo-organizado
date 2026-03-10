@@ -258,6 +258,36 @@ export async function syncWithDrive() {
     }
 }
 
+// Pull-only: force download from Drive without uploading local data
+export async function pullFromDrive() {
+    if (!gapi.client || !gapi.client.drive) { showToast('APIs do Google não carregadas', 'error'); return; }
+    if (!state.driveFileId) { showToast('Nenhum arquivo encontrado no Drive. Sincronize primeiro.', 'error'); return; }
+
+    updateDriveUI('syncing', 'Baixando do Drive...');
+    try {
+        const resp = await gapi.client.drive.files.get({
+            fileId: state.driveFileId,
+            alt: 'media'
+        });
+        const driveData = resp.result;
+        if (!driveData || !driveData.editais) {
+            showToast('Dados inválidos no Drive', 'error');
+            updateDriveUI('connected', 'Google Drive');
+            return;
+        }
+        setState(driveData);
+        runMigrations();
+        await saveStateToDB();
+        renderCurrentView();
+        updateDriveUI('connected', 'Google Drive');
+        showToast('Dados importados do Drive com sucesso!', 'success');
+    } catch (err) {
+        console.error('Erro ao carregar do Drive:', err);
+        showToast('Erro ao carregar dados do Drive', 'error');
+        updateDriveUI('connected', 'Google Drive');
+    }
+}
+
 // Google APIs are initialized from app.js init() when client ID is present
 
 // Hook para sincronizar automaticamente quando salva localmente (se estiver conectado)
