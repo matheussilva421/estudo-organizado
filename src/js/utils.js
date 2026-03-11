@@ -80,7 +80,8 @@ export const HABIT_TYPES = [
     { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: '#8b5cf6' },
     { key: 'informativo', label: 'Informativos', icon: '📰', color: '#06b6d4' },
     { key: 'sumula', label: 'Súmulas', icon: '⚖️', color: '#6366f1' },
-    { key: 'videoaula', label: 'Videoaula', icon: '📺', color: '#ec4899' }
+    { key: 'videoaula', label: 'Videoaula', icon: '📺', color: '#ec4899' },
+    { key: 'paginas', label: 'Páginas Lidas', icon: '🧾', color: '#14b8a6' }
 ];
 
 export function getHabitType(key) {

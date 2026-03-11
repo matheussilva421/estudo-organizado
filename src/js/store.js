@@ -19,7 +19,8 @@ export function setState(newState) {
     editais: Array.isArray(newState.editais) ? newState.editais : [],
     eventos: Array.isArray(newState.eventos) ? newState.eventos : [],
     arquivo: Array.isArray(newState.arquivo) ? newState.arquivo : [],
-    habitos: Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {}),
+    // Hábitos e Histórico
+    habitos: Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {}),
     revisoes: Array.isArray(newState.revisoes) ? newState.revisoes : [],
     config: Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3 }, newState.config || {}),
     cronoLivre: newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 },
@@ -40,7 +41,7 @@ export let state = {
   editais: [],
   eventos: [],
   arquivo: [], // concluded events older than 90 days
-  habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] },
+  habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] },
   revisoes: [],
   config: {
     visualizacao: 'mes',
@@ -264,7 +265,7 @@ export function runMigrations() {
     if (!state.revisoes) state.revisoes = [];
     if (!state.config) state.config = { visualizacao: 'mes', agruparEventos: true };
     if (!state.config.frequenciaRevisao) state.config.frequenciaRevisao = [1, 7, 30, 90];
-    if (!state.habitos) state.habitos = { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] };
+    if (!state.habitos) state.habitos = { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] };
 
     // Add IDs where missing
     if (!state.editais) state.editais = [];
@@ -335,6 +336,7 @@ export function runMigrations() {
     }
     if (!state.habitos.videoaula) state.habitos.videoaula = [];
     if (!state.habitos.sumula) state.habitos.sumula = [];
+    if (!state.habitos.paginas) state.habitos.paginas = [];
   }
 
   // Wave 39: Separation between Assuntos (Edital Topics) and Aulas (Course Materials)
@@ -397,7 +399,7 @@ export function clearData() {
     editais: [],
     eventos: [],
     arquivo: [],
-    habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [] },
+    habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] },
     revisoes: [],
     config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90] },
     cronoLivre: { _timerStart: null, tempoAcumulado: 0 },

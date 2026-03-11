@@ -717,7 +717,9 @@ export function saveRegistroSessao() {
         if (achadoAula && !achadoAula.estudada) {
           achadoAula.estudada = true;
         }
-      } else if (assId) {
+      }
+      
+      if (assId) {
         const ass = d.disc.assuntos?.find(a => a.id === assId);
         if (ass && !ass.concluido) {
           ass.concluido = true;
@@ -740,6 +742,17 @@ export function saveRegistroSessao() {
       });
     }
   });
+
+  if (paginas && paginas.total > 0) {
+    if (!state.habitos.paginas) state.habitos.paginas = [];
+    state.habitos.paginas.push({
+      id: 'hab_' + uid(),
+      data: todayStr(),
+      eventoId: ev.id,
+      tempoMin: Math.round((ev.tempoAcumulado || 0) / 60),
+      total: parseInt(paginas.total, 10)
+    });
+  }
 
   // Limpa o cronometro livre da memória caso tenha sido ele
   if (isLivre) {

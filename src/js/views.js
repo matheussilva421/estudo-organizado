@@ -656,8 +656,8 @@ export function renderDashboard(el) {
 
   const totalSecs = filteredEvts.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
   const questTot = cutoffStr
-    ? (state.habitos.questoes || []).filter(r => r.data >= cutoffStr).reduce((s, q) => s + (q.quantidade || 1), 0)
-    : (state.habitos.questoes || []).reduce((s, q) => s + (q.quantidade || 1), 0);
+    ? (state.habitos.questoes || []).filter(r => r.data >= cutoffStr).reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0)
+    : (state.habitos.questoes || []).reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0);
   const simTot = cutoffStr
     ? (state.habitos.simulado || []).filter(r => r.data >= cutoffStr).length
     : (state.habitos.simulado || []).length;
@@ -1025,14 +1025,30 @@ export function renderHabitos(el) {
     <div class="habit-grid">
       ${HABIT_TYPES.map(h => {
     const all = state.habitos[h.key] || [];
-    const recent = all.filter(r => r.data >= cutoffStr);
-    const total = h.key === 'questoes' ? all.reduce((s, q) => s + (q.quantidade || 1), 0) : all.length;
+    const recentArr = all.filter(r => r.data >= cutoffStr);
+    
+    let total = 0;
+    let recentStr = '';
+    
+    if (h.key === 'questoes') {
+      total = all.reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0);
+      const recentTot = recentArr.reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0);
+      recentStr = `${recentTot} nos últimos 7 dias`;
+    } else if (h.key === 'paginas') {
+      total = all.reduce((s, p) => s + (p.total || 0), 0);
+      const recentTot = recentArr.reduce((s, p) => s + (p.total || 0), 0);
+      recentStr = `${recentTot} nos últimos 7 dias`;
+    } else {
+      total = all.length;
+      recentStr = `${recentArr.length} nos últimos 7 dias`;
+    }
+
     return `
           <div class="habit-card" onclick="openHabitModal('${h.key}')">
             <div class="hc-icon">${h.icon}</div>
             <div class="hc-label">${h.label}</div>
             <div class="hc-count" style="color:${h.color};">${total}</div>
-            <div class="hc-sub">${recent.length} nos últimos 7 dias</div>
+            <div class="hc-sub">${recentStr}</div>
           </div>
         `;
   }).join('')}
@@ -1074,7 +1090,7 @@ export function renderHabitHistPage() {
           <div style="font-size:20px;">${r.tipo.icon}</div>
           <div style="flex:1;">
             <div style="font-size:13px;font-weight:600;">${esc(r.tipo.label)}${r.descricao ? ' - ' + esc(r.descricao) : ''}</div>
-            <div style="font-size:12px;color:var(--text-secondary);">${formatDate(r.data)}${r.quantidade ? ' • ' + r.quantidade + ' questões' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total && r.total > 0 ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
+            <div style="font-size:12px;color:var(--text-secondary);">${formatDate(r.data)}${(r.quantidade || r.total) && r.tipo.key === 'questoes' ? ' • ' + (r.quantidade || r.total) + ' questões' : ''}${r.total && r.tipo.key === 'paginas' ? ' • ' + r.total + ' páginas' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total && r.total > 0 && r.tipo.key === 'questoes' ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
             ${r.gabaritoPorDisc && r.gabaritoPorDisc.length ? `
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
                 ${r.gabaritoPorDisc.map(g => `<span style="font-size:10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--text-secondary);">${esc(g.discNome)}: ${g.acertos}/${g.total}</span>`).join('')}
