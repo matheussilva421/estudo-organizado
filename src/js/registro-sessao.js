@@ -906,6 +906,8 @@ window.voltarPastSessionUI = function(eventId, discId) {
   }, 100);
 }
 
+window.openRegistroSessao = openRegistroSessao;
+
 // Global deletion handler for previously registered sessions
 window.deleteCompletedSession = function(id) {
   if (!confirm("Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?")) return;
