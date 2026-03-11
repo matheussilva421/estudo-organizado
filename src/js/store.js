@@ -232,6 +232,9 @@ export function saveStateToDB(skipCloudSync = false) {
   }
   if (!db) return Promise.resolve();
 
+  if (!state.config) state.config = {};
+  state.config.localBackupAt = new Date().toISOString();
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
