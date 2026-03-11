@@ -1,22 +1,22 @@
-const CACHE_NAME = 'estudo-organizado-v5';
+const CACHE_NAME = 'estudo-organizado-v6';
 const ASSETS = [
     './',
     './index.html',
-    './css/styles.css',
-    './js/app.js',
-    './js/cloud-sync.js',
-    './js/components.js',
-    './js/drive-sync.js',
-    './js/lesson-mapper.js',
-    './js/logic.js',
-    './js/main.js',
-    './js/notifications.js',
-    './js/planejamento-wizard.js',
-    './js/registro-sessao.js',
-    './js/relevance.js',
-    './js/store.js',
-    './js/utils.js',
-    './js/views.js'
+    './css/styles.css?v=6.0',
+    './js/app.js?v=6.0',
+    './js/cloud-sync.js?v=6.0',
+    './js/components.js?v=6.0',
+    './js/drive-sync.js?v=6.0',
+    './js/lesson-mapper.js?v=6.0',
+    './js/logic.js?v=6.0',
+    './js/main.js?v=6.0',
+    './js/notifications.js?v=6.0',
+    './js/planejamento-wizard.js?v=6.0',
+    './js/registro-sessao.js?v=6.0',
+    './js/relevance.js?v=6.0',
+    './js/store.js?v=6.0',
+    './js/utils.js?v=6.0',
+    './js/views.js?v=6.0'
 ];
 
 // Install Event

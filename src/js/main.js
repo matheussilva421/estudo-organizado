@@ -156,6 +156,6 @@ document.addEventListener('click', (e) => {
       break;
 
     default:
-      console.warn('Unknown data-action:', action);
+      break;
   }
 });

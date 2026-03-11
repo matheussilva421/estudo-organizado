@@ -5,7 +5,7 @@
 
 import { state, scheduleSave } from './store.js';
 import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js';
-import { openModal, closeModal, showToast } from './app.js';
+import { openModal, closeModal, showToast, showConfirm } from './app.js';
 import { todayStr, esc, uid } from './utils.js';
 import { renderCurrentView, updateBadges } from './components.js';
 
@@ -472,13 +472,13 @@ export function onDisciplinaChange() {
   const d = getDisc(discId);
   if (!d) return;
 
-  const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
-  if (pendingAssuntos.length > 0) {
+  const assuntos = d.disc.assuntos || [];
+  if (assuntos.length > 0) {
     let html = '<option value="">Sem tópico específico</option>';
-    html += pendingAssuntos.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
+    html += assuntos.map(a => `<option value="${a.id}">${a.concluido ? '✅ ' : ''}${esc(a.nome)}</option>`).join('');
     assSelect.innerHTML = html;
   } else {
-    assSelect.innerHTML = '<option value="">Nenhum tópico pendente</option>';
+    assSelect.innerHTML = '<option value="">Nenhum tópico cadastrado</option>';
   }
 
   const aulas = d.disc.aulas || [];
@@ -517,7 +517,7 @@ export function addNovoTopico() {
     if (!nome) { showToast('Informe o nome do tópico', 'error'); return; }
 
     const novoTopico = {
-      id: uid(),
+      id: 'ass_' + uid(),
       nome,
       concluido: false,
       revisoesFetas: []
@@ -852,14 +852,13 @@ export function saveRegistroSessao() {
 export function saveAndStartNew() {
   const success = saveRegistroSessao();
   if (!success) return;
-  // Reset internal state for next session
-  _currentEventId = null;
-  _selectedTipos = [];
-  _selectedMateriais = [];
-  _savedTimerStart = null;
-  _savedTempoAcumulado = 0;
   // Navigate to MED after the save's setTimeout(50ms) completes to avoid race condition
   setTimeout(() => {
+    _currentEventId = null;
+    _selectedTipos = [];
+    _selectedMateriais = [];
+    _savedTimerStart = null;
+    _savedTempoAcumulado = 0;
     if (typeof window.navigate === 'function') window.navigate('med');
   }, 400);
 }
@@ -910,15 +909,16 @@ window.openRegistroSessao = openRegistroSessao;
 
 // Global deletion handler for previously registered sessions
 window.deleteCompletedSession = function(id) {
-  if (!confirm("Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?")) return;
-  state.eventos = state.eventos.filter(e => e.id !== id);
-  Object.keys(state.habitos).forEach(tipo => {
-      if(state.habitos[tipo]) {
-          state.habitos[tipo] = state.habitos[tipo].filter(h => h.eventoId !== id);
+  showConfirm('Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?', () => {
+    state.eventos = state.eventos.filter(e => e.id !== id);
+    Object.keys(state.habitos).forEach(tipo => {
+      if (state.habitos[tipo]) {
+        state.habitos[tipo] = state.habitos[tipo].filter(h => h.eventoId !== id);
       }
-  });
-  scheduleSave();
-  closeModal('modal-registro-sessao');
-  renderCurrentView();
-  showToast('Sessão excluída com sucesso.', 'info');
+    });
+    scheduleSave();
+    closeModal('modal-registro-sessao');
+    renderCurrentView();
+    showToast('Sessão excluída com sucesso.', 'info');
+  }, { danger: true, label: 'Excluir', title: 'Excluir sessão' });
 };
