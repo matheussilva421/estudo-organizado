@@ -289,7 +289,11 @@ function renderRegistroForm(ev) {
 
     <!-- 7) AÇÕES / FOOTER -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.08);">
-      ${ev._isPastSession ? 
+      ${ev.status === 'estudei' && !ev._isPastSession ? 
+        `<button type="button" class="btn-outline" style="color:#f85149; border-color:rgba(248,81,73,0.3); background:rgba(248,81,73,0.05);" onclick="deleteCompletedSession('${ev.id}')">
+          <i class="fa fa-trash"></i> Excluir
+        </button>`
+        : ev._isPastSession ? 
         `<button type="button" class="btn-outline" onclick="voltarPastSessionUI('${_currentEventId}', '${ev.discId}')">
           <i class="fa fa-arrow-left"></i> Voltar
         </button>` 
@@ -301,12 +305,12 @@ function renderRegistroForm(ev) {
 
       <div style="display:flex; gap:12px; justify-content:flex-end; flex:1;">
         <button type="button" class="btn-outline" onclick="cancelRegistro()">Cancelar</button>
-        ${!ev._isPastSession ? `
+        ${!ev._isPastSession && ev.status !== 'estudei' ? `
         <button type="button" class="btn-outline" onclick="saveAndStartNew()" style="color:var(--green); border-color:rgba(57,211,83,0.4);">
           Salvar e iniciar nova ↻
         </button>` : ''}
         <button type="button" class="btn-primary" onclick="saveRegistroSessao()" style="font-weight:600; padding:12px 24px;">
-          <i class="fa fa-save"></i> Salvar Registro
+          <i class="fa fa-save"></i> ${ev.status === 'estudei' && !ev._isPastSession ? 'Salvar Alterações' : 'Salvar Registro'}
         </button>
       </div>
     </div>
@@ -664,12 +668,22 @@ export function saveRegistroSessao() {
   // Topic status
   const statusTopico = document.getElementById('reg-status-topico')?.value || 'em_andamento';
 
+  // Handle Editing Flow
+  const isEditingOld = ev.status === 'estudei' && !ev._isPastSession;
+  if (isEditingOld) {
+    Object.keys(state.habitos).forEach(tipo => {
+      if (state.habitos[tipo]) {
+        state.habitos[tipo] = state.habitos[tipo].filter(h => h.eventoId !== ev.id);
+      }
+    });
+  }
+
   // Save data to event
   ev.status = 'estudei';
   if (ev._isPastSession) {
     delete ev._isPastSession;
     ev.dataEstudo = ev.data;
-  } else {
+  } else if (!isEditingOld) {
     ev.dataEstudo = todayStr();
   }
   
@@ -864,4 +878,19 @@ window.voltarPastSessionUI = function(eventId, discId) {
       window.openAddPastSessionModal(discId);
     }
   }, 100);
+}
+
+// Global deletion handler for previously registered sessions
+window.deleteCompletedSession = function(id) {
+  if (!confirm("Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?")) return;
+  state.eventos = state.eventos.filter(e => e.id !== id);
+  Object.keys(state.habitos).forEach(tipo => {
+      if(state.habitos[tipo]) {
+          state.habitos[tipo] = state.habitos[tipo].filter(h => h.eventoId !== id);
+      }
+  });
+  scheduleSave();
+  closeModal('modal-registro-sessao');
+  renderCurrentView();
+  showToast('Sessão excluída com sucesso.', 'info');
 };

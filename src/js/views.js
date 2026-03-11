@@ -1032,15 +1032,13 @@ export function renderHabitos(el) {
     
     if (h.key === 'questoes') {
       total = all.reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0);
-      const recentTot = recentArr.reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0);
-      recentStr = `${recentTot} nos últimos 7 dias`;
+      recentStr = `Total acumulado`;
     } else if (h.key === 'paginas') {
       total = all.reduce((s, p) => s + (p.total || 0), 0);
-      const recentTot = recentArr.reduce((s, p) => s + (p.total || 0), 0);
-      recentStr = `${recentTot} nos últimos 7 dias`;
+      recentStr = `Total acumulado`;
     } else {
       total = all.length;
-      recentStr = `${recentArr.length} nos últimos 7 dias`;
+      recentStr = `Total acumulado`;
     }
 
     return `
@@ -1992,7 +1990,7 @@ function renderHistoricoDisciplina(tempos) {
     const pags = t.sessao?.paginas?.total || t.paginas || null;
 
     return `
-              <tr style="border-bottom:1px solid var(--bg);">
+              <tr style="border-bottom:1px solid var(--bg); cursor:pointer;" onclick="openRegistroSessao('${t.id}')" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
                 <td style="padding:10px 4px;color:var(--text-primary);">${dateStr}</td>
                 <td style="padding:10px 4px;font-family:'DM Mono',monospace;">${tempoStr}</td>
                 <td style="padding:10px 4px;">${pags ?? '-'}</td>
