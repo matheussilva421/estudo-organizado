@@ -3570,11 +3570,11 @@ window.savePastEvent = function(discId) {
     status: 'agendado', // Agendado prevents it from instantly showing up as Estudei before the modal
     duracao: duracao,
     tempoAcumulado: duracao * 60,
-    tipo: 'conteudo',
     discId: discId,
     assId: assId,
     aulaId: aulaId,
-    sessao: {}
+    sessao: {},
+    _isPastSession: true
   };
 
   state.eventos.push(evento);

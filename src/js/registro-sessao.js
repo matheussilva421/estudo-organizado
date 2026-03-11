@@ -289,15 +289,22 @@ function renderRegistroForm(ev) {
 
     <!-- 7) AÇÕES / FOOTER -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.08);">
-      <button type="button" class="btn-outline" style="color:#f85149; border-color:rgba(248,81,73,0.3); background:rgba(248,81,73,0.05);" onclick="discardTimerUI('${_currentEventId}')">
-        <i class="fa fa-trash"></i> Descartar
-      </button>
+      ${ev._isPastSession ? 
+        `<button type="button" class="btn-outline" onclick="voltarPastSessionUI('${_currentEventId}', '${ev.discId}')">
+          <i class="fa fa-arrow-left"></i> Voltar
+        </button>` 
+        : 
+        `<button type="button" class="btn-outline" style="color:#f85149; border-color:rgba(248,81,73,0.3); background:rgba(248,81,73,0.05);" onclick="discardTimerUI('${_currentEventId}')">
+          <i class="fa fa-trash"></i> Descartar
+        </button>`
+      }
 
       <div style="display:flex; gap:12px; justify-content:flex-end; flex:1;">
         <button type="button" class="btn-outline" onclick="cancelRegistro()">Cancelar</button>
+        ${!ev._isPastSession ? `
         <button type="button" class="btn-outline" onclick="saveAndStartNew()" style="color:var(--green); border-color:rgba(57,211,83,0.4);">
           Salvar e iniciar nova ↻
-        </button>
+        </button>` : ''}
         <button type="button" class="btn-primary" onclick="saveRegistroSessao()" style="font-weight:600; padding:12px 24px;">
           <i class="fa fa-save"></i> Salvar Registro
         </button>
@@ -659,9 +666,16 @@ export function saveRegistroSessao() {
 
   // Save data to event
   ev.status = 'estudei';
-  ev.dataEstudo = todayStr();
+  if (ev._isPastSession) {
+    delete ev._isPastSession;
+    ev.dataEstudo = ev.data;
+  } else {
+    ev.dataEstudo = todayStr();
+  }
+  
   ev.discId = discId || ev.discId;
   ev.assId = assId || ev.assId;
+  ev.aulaId = aulaId || ev.aulaId;
 
   // Build titulo from discipline + topic
   if (discId) {
@@ -802,10 +816,16 @@ export function cancelRegistro() {
   const isLivre = _currentEventId === 'crono_livre';
   const ev = isLivre ? state.cronoLivre : state.eventos.find(e => e.id === _currentEventId);
 
-  if (ev && _savedTimerStart) {
-    ev._timerStart = _savedTimerStart;
-    ev.tempoAcumulado = _savedTempoAcumulado;
+  if (ev) {
+    if (ev._isPastSession) {
+      state.eventos = state.eventos.filter(e => e.id !== _currentEventId);
+      scheduleSave();
+    } else if (_savedTimerStart) {
+      ev._timerStart = _savedTimerStart;
+      ev.tempoAcumulado = _savedTempoAcumulado;
+    }
   }
+
   _savedTimerStart = null;
   _savedTempoAcumulado = 0;
   closeModal('modal-registro-sessao');
@@ -821,3 +841,14 @@ window.discardTimerUI = function (eventId) {
     }
   }, 100);
 }
+
+window.voltarPastSessionUI = function(eventId, discId) {
+  state.eventos = state.eventos.filter(e => e.id !== eventId);
+  scheduleSave();
+  closeModal('modal-registro-sessao');
+  setTimeout(() => {
+    if (typeof window.openAddPastSessionModal === 'function') {
+      window.openAddPastSessionModal(discId);
+    }
+  }, 100);
+};
