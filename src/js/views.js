@@ -1901,7 +1901,12 @@ export function renderDisciplinaDashboard(edital, disc) {
         
         <!-- HISTÓRICO DE ESTUDOS (ESQUERDA) -->
         <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">
-          <div class="dash-label" style="margin-bottom:16px;">HISTÓRICO DE SESSÕES (ÚLTIMAS 50)</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div class="dash-label">HISTÓRICO DE SESSÕES (ÚLTIMAS 50)</div>
+            <button class="btn btn-sm" style="font-size:12px;padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);" onclick="openAddPastSessionModal('${disc.id}')">
+              <i class="fa fa-plus"></i> Registrar
+            </button>
+          </div>
           ${renderHistoricoDisciplina(tempos)}
         </div>
 
@@ -3457,6 +3462,118 @@ export function saveEvent() {
 
   doSave();
 }
+
+// =============================================
+// REGISTRO DE SESSÃO ANTERIOR (DIRETO)
+// =============================================
+window.openAddPastSessionModal = function(discId) {
+  const d = window.getDisc(discId);
+  if(!d) return;
+
+  // Monta as opções de assunto baseadas na disciplina
+  let assuntoOptions = '<option value="">Sem alvo específico</option>';
+  
+  const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
+  if (pendingAssuntos.length > 0) {
+    assuntoOptions += `<optgroup label="Tópicos do Edital (${pendingAssuntos.length})">`;
+    assuntoOptions += pendingAssuntos.map(a => `<option value="ass_${a.id}" title="${esc(a.nome)}">${trunc(a.nome, 100)}</option>`).join('');
+    assuntoOptions += `</optgroup>`;
+  }
+  
+  const aulas = d.disc.aulas || [];
+  const pendingAulas = aulas.filter(a => !a.estudada);
+  if (pendingAulas.length > 0) {
+    assuntoOptions += `<optgroup label="Meus Materiais/Aulas (${pendingAulas.length})">`;
+    assuntoOptions += pendingAulas.map(a => `<option value="aul_${a.id}" title="${esc(a.nome)}">${trunc(a.nome, 100)}</option>`).join('');
+    assuntoOptions += `</optgroup>`;
+  }
+
+  document.getElementById('modal-event-title').textContent = 'Registrar Sessão Anterior';
+  document.getElementById('modal-event-body').innerHTML = `
+    <div style="margin-bottom:12px;font-size:14px;color:var(--text-secondary);">
+      Disciplina: <strong>${esc(d.disc.nome)}</strong>
+    </div>
+    
+    <div class="form-group" id="event-assunto-group">
+      <label class="form-label">Tópico / Aula (opcional)</label>
+      <select class="form-control" id="past-event-assunto">
+        ${assuntoOptions}
+      </select>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Data do Estudo</label>
+        <input type="date" class="form-control" id="past-event-data" value="${todayStr()}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tempo Estudado (minutos)</label>
+        <input type="number" class="form-control" id="past-event-duracao" value="60" min="1">
+      </div>
+    </div>
+    
+    <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-event')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePastEvent('${discId}')">Continuar Registro</button>
+    </div>
+  `;
+  openModal('modal-event');
+};
+
+window.savePastEvent = function(discId) {
+  const d = window.getDisc(discId);
+  const data = document.getElementById('past-event-data').value;
+  const duracao = parseInt(document.getElementById('past-event-duracao').value, 10) || 60;
+  const rawTargetId = document.getElementById('past-event-assunto').value;
+
+  if (!data || duracao <= 0) {
+    showToast('Preencha a data e o tempo estudado corretamente.', 'error');
+    return;
+  }
+
+  let assId = null;
+  let aulaId = null;
+  let assuntoNome = '';
+
+  if (rawTargetId) {
+    if (rawTargetId.startsWith('aul_')) {
+      aulaId = rawTargetId.substring(4);
+      const achado = d.disc.aulas?.find(a => a.id === aulaId);
+      if(achado) assuntoNome = ' — ' + achado.nome;
+    } else if (rawTargetId.startsWith('ass_')) {
+      assId = rawTargetId.substring(4);
+      const achado = d.disc.assuntos?.find(a => a.id === assId);
+      if(achado) assuntoNome = ' — ' + achado.nome;
+    }
+  }
+
+  // Cria um placeholder de evento que o \`openRegistroSessao\` pode carregar e modificar
+  const evento = {
+    id: 'ev_' + uid(),
+    titulo: d.disc.nome + assuntoNome,
+    data: data,
+    status: 'agendado', // Agendado prevents it from instantly showing up as Estudei before the modal
+    duracao: duracao,
+    tempoAcumulado: duracao * 60,
+    tipo: 'conteudo',
+    discId: discId,
+    assId: assId,
+    aulaId: aulaId,
+    sessao: {}
+  };
+
+  state.eventos.push(evento);
+  scheduleSave();
+  closeModal('modal-event');
+
+  // Abre registro real para input the metadados
+  if (typeof window.openRegistroSessao === 'function') {
+    window.openRegistroSessao(evento.id);
+  } else {
+    showToast('Erro ao abrir registro detalhado.', 'error');
+  }
+};
+
 
 // =============================================
 // CONFIG VIEW
