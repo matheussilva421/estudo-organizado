@@ -270,7 +270,7 @@ export async function pullFromDrive() {
             alt: 'media'
         });
         const driveData = resp.result;
-        if (!driveData || !driveData.editais) {
+        if (!driveData || typeof driveData !== 'object') {
             showToast('Dados inválidos no Drive', 'error');
             updateDriveUI('connected', 'Google Drive');
             return;

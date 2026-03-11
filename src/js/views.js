@@ -3821,7 +3821,7 @@ export function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `estudo-organizado-backup-${todayStr()}.json`;
-  a.click(); URL.revokeObjectURL(url);
+  a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
   showToast('Dados exportados!', 'success');
 }
 
@@ -3892,12 +3892,7 @@ export function restoreBackupFromSelectedSource() {
       'Restaurar os dados da Cloudflare? Isso substituirá os dados locais atuais.',
       () => {
         if (typeof window.pullFromCloudflare === 'function') {
-          window.pullFromCloudflare().then((ok) => {
-            if (ok) {
-              renderCurrentView();
-              showToast('Restauração via Cloudflare concluída.', 'success');
-            }
-          });
+          window.pullFromCloudflare(true);
         }
       },
       { label: 'Restaurar Cloudflare', title: 'Restaurar backup' }
@@ -3915,7 +3910,7 @@ export function restoreBackupFromSelectedSource() {
       'Restaurar os dados do Google Drive? Isso substituirá os dados locais atuais.',
       () => {
         if (typeof window.pullFromDrive === 'function') {
-          window.pullFromDrive();
+          window.pullFromDrive().catch(err => console.error('Erro ao restaurar do Drive:', err));
         }
       },
       { label: 'Restaurar Drive', title: 'Restaurar backup' }

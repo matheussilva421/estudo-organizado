@@ -26,7 +26,7 @@ function getSyncConfig() {
  * Puxa os dados da Cloudflare e mescla se o timestamp remoto for mais recente
  * Retorna true se houve atualização bem-sucedida ou se não tinha dados remotos.
  */
-export async function pullFromCloudflare() {
+export async function pullFromCloudflare(forceOverwrite = false) {
     const config = getSyncConfig();
     if (!config) return false;
 
@@ -64,8 +64,8 @@ export async function pullFromCloudflare() {
             remoteTime = remoteData.config._lastUpdated;
         }
 
-        if (remoteTime > localTime) {
-            console.log('Dados da Cloudflare são mais novos, aplicando...');
+        if (forceOverwrite || remoteTime > localTime) {
+            console.log(forceOverwrite ? 'Restauração forçada da Cloudflare...' : 'Dados da Cloudflare são mais novos, aplicando...');
             // Injeta propriedades vitais antes da carga pesada
             setState(remoteData);
             // Salva localmente SEM disparar push para nuvem (dados vieram de lá)
