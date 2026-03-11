@@ -449,7 +449,7 @@ export function resetCalDate() {
 
 export function calNavigate(dir) {
   if (calViewMode === 'mes') {
-    calDate.setMonth(calDate.getMonth() + dir);
+    calDate = new Date(calDate.getFullYear(), calDate.getMonth() + dir, 1);
   } else {
     calDate.setDate(calDate.getDate() + dir * 7);
   }
@@ -820,7 +820,7 @@ export function renderHabitSummary(periodDays) {
     const recent = cutoffStr
       ? (state.habitos[h.key] || []).filter(r => r.data >= cutoffStr)
       : (state.habitos[h.key] || []);
-    const count = h.key === 'questoes' ? recent.reduce((s, q) => s + (q.quantidade || 1), 0) : recent.length;
+    const count = h.key === 'questoes' ? recent.reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0) : recent.length;
     return `
       <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
         <div style="font-size:18px;">${h.icon}</div>
