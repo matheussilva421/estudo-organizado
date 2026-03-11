@@ -86,3 +86,8 @@ export const HABIT_TYPES = [
 export function getHabitType(key) {
     return HABIT_TYPES.find(h => h.key === key);
 }
+
+export function trunc(str, length) {
+    if (!str) return '';
+    return str.length > length ? str.substring(0, length) + '...' : str;
+}
