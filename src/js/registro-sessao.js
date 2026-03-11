@@ -101,7 +101,19 @@ export function openRegistroSessao(eventId) {
         onDisciplinaChange();
         if (ev.assId) {
           const assSelect = document.getElementById('reg-assunto');
-          if (assSelect) assSelect.value = ev.assId;
+          if (assSelect) {
+            let val = ev.assId;
+            if (val.startsWith('ass_')) val = val.substring(4);
+            assSelect.value = val;
+          }
+        }
+        if (ev.aulaId) {
+          const aulaSelect = document.getElementById('reg-aula');
+          if (aulaSelect) {
+            let val = ev.aulaId;
+            if (val.startsWith('aul_')) val = val.substring(4);
+            aulaSelect.value = val;
+          }
         }
       }
     }
@@ -189,9 +201,9 @@ function renderRegistroForm(ev) {
           </select>
         </div>
       </div>
-      <div class="reg-row">
+      <div class="reg-row" style="flex-direction:column; gap:12px;">
         <div class="reg-field" style="flex:1;">
-          <label class="reg-label">Assunto / Tópico <span class="req">*</span></label>
+          <label class="reg-label">Tópico do Edital (opcional)</label>
           <div style="display:flex;gap:8px;">
             <select id="reg-assunto" class="reg-select" style="flex:1;">
               <option value="">Selecione a disciplina primeiro</option>
@@ -200,6 +212,12 @@ function renderRegistroForm(ev) {
               + Novo
             </button>
           </div>
+        </div>
+        <div class="reg-field" id="reg-aula-container" style="flex:1; display:none;">
+          <label class="reg-label">Material / Aula (opcional)</label>
+          <select id="reg-aula" class="reg-select" style="flex:1;">
+            <option value="">Selecione a disciplina primeiro</option>
+          </select>
         </div>
       </div>
     </div>
@@ -403,37 +421,39 @@ export function toggleMaterial(matId) {
 export function onDisciplinaChange() {
   const discId = document.getElementById('reg-disciplina')?.value;
   const assSelect = document.getElementById('reg-assunto');
+  const aulaSelect = document.getElementById('reg-aula');
+  const aulaContainer = document.getElementById('reg-aula-container');
   if (!assSelect) return;
 
   if (!discId) {
     assSelect.innerHTML = '<option value="">Selecione a disciplina primeiro</option>';
+    if (aulaSelect) aulaSelect.innerHTML = '<option value="">Selecione a disciplina primeiro</option>';
+    if (aulaContainer) aulaContainer.style.display = 'none';
     return;
   }
 
   const d = getDisc(discId);
-  if (!d || (d.disc.assuntos.length === 0 && (!d.disc.aulas || d.disc.aulas.length === 0))) {
-    assSelect.innerHTML = '<option value="">Nenhum alvo cadastrado</option>';
-    return;
-  }
-
-  let html = '<option value="">Selecione um alvo...</option>';
+  if (!d) return;
 
   const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
   if (pendingAssuntos.length > 0) {
-    html += `<optgroup label="Tópicos do Edital (${pendingAssuntos.length})">`;
-    html += pendingAssuntos.map(a => `<option value="ass_${a.id}">${esc(a.nome)}</option>`).join('');
-    html += `</optgroup>`;
+    let html = '<option value="">Sem tópico específico</option>';
+    html += pendingAssuntos.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
+    assSelect.innerHTML = html;
+  } else {
+    assSelect.innerHTML = '<option value="">Nenhum tópico pendente</option>';
   }
 
   const aulas = d.disc.aulas || [];
   const pendingAulas = aulas.filter(a => !a.estudada);
-  if (pendingAulas.length > 0) {
-    html += `<optgroup label="Meus Materiais/Aulas (${pendingAulas.length})">`;
-    html += pendingAulas.map(a => `<option value="aul_${a.id}">${esc(a.nome)}</option>`).join('');
-    html += `</optgroup>`;
+  if (pendingAulas.length > 0 && aulaSelect && aulaContainer) {
+    let ht = '<option value="">Sem material/aula específico</option>';
+    ht += pendingAulas.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
+    aulaSelect.innerHTML = ht;
+    aulaContainer.style.display = '';
+  } else if (aulaContainer) {
+    aulaContainer.style.display = 'none';
   }
-
-  assSelect.innerHTML = html;
 }
 
 export function addNovoTopico() {
@@ -475,7 +495,7 @@ export function addNovoTopico() {
 
     // Auto-select the new topic
     const assSelect = document.getElementById('reg-assunto');
-    if (assSelect) assSelect.value = 'ass_' + novoTopico.id;
+    if (assSelect) assSelect.value = novoTopico.id;
 
     showToast(`Tópico "${nome}" criado!`, 'success');
   };
@@ -542,16 +562,11 @@ export function saveRegistroSessao() {
   }
 
   const discId = document.getElementById('reg-disciplina')?.value;
-  const rawTargetId = document.getElementById('reg-assunto')?.value;
+  let assId = document.getElementById('reg-assunto')?.value || '';
+  let aulaId = document.getElementById('reg-aula')?.value || '';
 
-  let assId = '';
-  let aulaId = '';
-
-  if (rawTargetId) {
-    if (rawTargetId.startsWith('aul_')) aulaId = rawTargetId.substring(4);
-    else if (rawTargetId.startsWith('ass_')) assId = rawTargetId.substring(4);
-    else assId = rawTargetId;
-  }
+  if (assId && assId.startsWith('ass_')) assId = assId.substring(4);
+  if (aulaId && aulaId.startsWith('aul_')) aulaId = aulaId.substring(4);
 
   if (isLivre && !discId) {
     showToast('Em sessões livres, escolha pelo menos uma Disciplina para vincular o tempo estudado', 'error'); return false;
