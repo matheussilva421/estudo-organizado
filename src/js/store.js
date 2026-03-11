@@ -223,7 +223,9 @@ export function scheduleSave() {
 }
 
 // Immediate save (used before closures or explicit syncs)
-export function saveStateToDB() {
+// skipCloudSync: when true, saves to IndexedDB only without triggering
+// the Cloudflare push cascade (used to break the infinite sync loop)
+export function saveStateToDB(skipCloudSync = false) {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
     saveTimeout = null;
@@ -239,7 +241,7 @@ export function saveStateToDB() {
       document.dispatchEvent(new Event('stateSaved'));
 
       // Cascata de Sincronização: Local -> Cloudflare
-      if (state.config && state.config.cfSyncEnabled) {
+      if (!skipCloudSync && state.config && state.config.cfSyncEnabled) {
         SyncQueue.add(() => pushToCloudflare()).catch(err => {
           console.error('Cloud sync failed after save:', err);
         });
