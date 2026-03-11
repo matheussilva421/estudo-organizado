@@ -1,4 +1,4 @@
-﻿import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
+import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
 import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js';
@@ -3344,10 +3344,12 @@ export function loadAssuntos() {
 
   let html = '<option value="">Sem alvo específico</option>';
 
+  const trunc = (str, len = 100) => str.length > len ? str.substring(0, len) + '...' : str;
+
   const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
   if (pendingAssuntos.length > 0) {
     html += `<optgroup label="Tópicos do Edital (${pendingAssuntos.length})">`;
-    html += pendingAssuntos.map(a => `<option value="ass_${a.id}">${esc(a.nome)}</option>`).join('');
+    html += pendingAssuntos.map(a => `<option value="ass_${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
     html += `</optgroup>`;
   }
 
@@ -3355,7 +3357,7 @@ export function loadAssuntos() {
   const pendingAulas = aulas.filter(a => !a.estudada);
   if (pendingAulas.length > 0) {
     html += `<optgroup label="Meus Materiais/Aulas (${pendingAulas.length})">`;
-    html += pendingAulas.map(a => `<option value="aul_${a.id}">${esc(a.nome)}</option>`).join('');
+    html += pendingAulas.map(a => `<option value="aul_${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
     html += `</optgroup>`;
   }
 
