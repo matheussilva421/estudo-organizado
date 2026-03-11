@@ -135,8 +135,22 @@ function renderRegistroForm(ev) {
 
   const horaInicio = _sessionStartTime ? _sessionStartTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
   const horaFim = _sessionEndTime ? _sessionEndTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-  const dataStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  let dataStr = '';
+  if (ev.data) {
+    // ev.data is usually YYYY-MM-DD
+    const parts = ev.data.split('-');
+    if (parts.length === 3) {
+      dataStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } else {
+      dataStr = ev.data;
+    }
+  } else {
+    dataStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
   const modeLabel = _sessionMode === 'pomodoro' ? `🍅 Pomodoro (${state?.config?.pomodoroFoco || 25}/${state?.config?.pomodoroPausa || 5})` : '⏱ Cronômetro';
+
 
   // Discipline options
   const allDiscs = getAllDisciplinas();
