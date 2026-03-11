@@ -3252,9 +3252,17 @@ export function openAddEventModal(dateStr = null) {
         </select>
       </div>
       <div class="form-group" id="event-assunto-group" style="display:none;">
-        <label class="form-label">Assunto (opcional)</label>
+        <label class="form-label">Tópico do Edital (opcional)</label>
         <select class="form-control" id="event-assunto">
-          <option value="">Sem assunto específico</option>
+          <option value="">Sem tópico específico</option>
+        </select>
+      </div>
+      <div class="form-group" id="event-aula-group" style="display:none; margin-top:12px;">
+        <label class="form-label" style="display:flex;align-items:center;">
+          Material / Aula (opcional)
+        </label>
+        <select class="form-control" id="event-aula">
+          <option value="">Sem material/aula específica</option>
         </select>
       </div>
     </div>
@@ -3331,10 +3339,15 @@ export function loadAssuntos() {
   const discId = document.getElementById('event-disc').value;
   const assuntoGroup = document.getElementById('event-assunto-group');
   const assuntoSel = document.getElementById('event-assunto');
+  const aulaGroup = document.getElementById('event-aula-group');
+  const aulaSel = document.getElementById('event-aula');
+  
   if (!discId) {
     assuntoGroup.style.display = 'none';
+    if (aulaGroup) aulaGroup.style.display = 'none';
     return;
   }
+  
   const d = getDisc(discId);
   const tituloInput = document.getElementById('event-titulo');
   if (d && (!tituloInput.value || tituloInput.dataset.autoFilled === 'true')) {
@@ -3342,54 +3355,56 @@ export function loadAssuntos() {
     tituloInput.dataset.autoFilled = 'true';
   }
 
-  if (!d || (d.disc.assuntos.length === 0 && (!d.disc.aulas || d.disc.aulas.length === 0))) {
-    assuntoGroup.style.display = 'none';
-    return;
-  }
-
-  let html = '<option value="">Sem alvo específico</option>';
-
-  const trunc = (str, len = 100) => str.length > len ? str.substring(0, len) + '...' : str;
+  if (!d) return;
 
   const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
   if (pendingAssuntos.length > 0) {
-    html += `<optgroup label="Tópicos do Edital (${pendingAssuntos.length})">`;
-    html += pendingAssuntos.map(a => `<option value="ass_${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
-    html += `</optgroup>`;
+    let html = '<option value="">Sem tópico específico</option>';
+    html += pendingAssuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
+    assuntoSel.innerHTML = html;
+    assuntoGroup.style.display = '';
+  } else {
+    assuntoGroup.style.display = 'none';
   }
 
   const aulas = d.disc.aulas || [];
   const pendingAulas = aulas.filter(a => !a.estudada);
-  if (pendingAulas.length > 0) {
-    html += `<optgroup label="Meus Materiais/Aulas (${pendingAulas.length})">`;
-    html += pendingAulas.map(a => `<option value="aul_${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
-    html += `</optgroup>`;
+  if (pendingAulas.length > 0 && aulaGroup && aulaSel) {
+    let ht = '<option value="">Sem material/aula específico</option>';
+    ht += pendingAulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
+    aulaSel.innerHTML = ht;
+    aulaGroup.style.display = '';
+  } else if (aulaGroup) {
+    aulaGroup.style.display = 'none';
   }
 
-  assuntoSel.innerHTML = html;
-  assuntoGroup.style.display = '';
+  const buildTitle = () => {
+    const rawAss = assuntoSel.value;
+    const rawAul = aulaSel ? aulaSel.value : '';
+    let name = '';
+    
+    // Choose which name to apply to the auto title
+    if (rawAul) {
+      const aulaObj = d.disc.aulas?.find(a => a.id === rawAul);
+      if (aulaObj) name = aulaObj.nome;
+    } else if (rawAss) {
+      const assObj = d.disc.assuntos?.find(a => a.id === rawAss);
+      if (assObj) name = assObj.nome;
+    }
 
-  assuntoSel.onchange = () => {
-    const rawVal = assuntoSel.value;
-    if (rawVal && (!tituloInput.value || tituloInput.dataset.autoFilled === 'true')) {
-      const isAula = rawVal.startsWith('aul_');
-      const realId = rawVal.substring(4);
-      let name = '';
-      if (isAula) {
-        const aulaObj = d.disc.aulas?.find(a => a.id === realId);
-        if (aulaObj) name = aulaObj.nome;
-      } else {
-        const assObj = d.disc.assuntos?.find(a => a.id === realId);
-        if (assObj) name = assObj.nome;
-      }
-
-      if (name) {
-        tituloInput.value = name;
-        tituloInput.dataset.autoFilled = 'true';
-      }
-    } else if (!rawVal && tituloInput.dataset.autoFilled === 'true') {
+    if (name) {
+      tituloInput.value = name;
+      tituloInput.dataset.autoFilled = 'true';
+    } else {
       tituloInput.value = `Estudar ${d.disc.nome} `;
     }
+  };
+
+  assuntoSel.onchange = () => {
+    if (!tituloInput.value || tituloInput.dataset.autoFilled === 'true') buildTitle();
+  };
+  if (aulaSel) aulaSel.onchange = () => {
+    if (!tituloInput.value || tituloInput.dataset.autoFilled === 'true') buildTitle();
   };
 }
 
@@ -3409,17 +3424,13 @@ export function saveEvent() {
   const legislacao = document.getElementById('event-legislacao')?.value.trim() || '';
 
   let discId = document.getElementById('event-disc')?.value || '';
-  let rawTargetId = document.getElementById('event-assunto')?.value || '';
+  let assId = document.getElementById('event-assunto')?.value || '';
+  let aulaId = document.getElementById('event-aula')?.value || '';
   let autoTitle = titulo;
 
-  let assId = '';
-  let aulaId = '';
-
-  if (rawTargetId) {
-    if (rawTargetId.startsWith('aul_')) aulaId = rawTargetId.substring(4);
-    else if (rawTargetId.startsWith('ass_')) assId = rawTargetId.substring(4);
-    else assId = rawTargetId; // Backup plano antigo
-  }
+  // Cleanup potential prefixes if present (backwards compatibility safety)
+  if (assId && assId.startsWith('ass_')) assId = assId.substring(4);
+  if (aulaId && aulaId.startsWith('aul_')) aulaId = aulaId.substring(4);
 
   if (!titulo && discId) {
     const d = getDisc(discId);
@@ -3471,21 +3482,20 @@ window.openAddPastSessionModal = function(discId) {
   if(!d) return;
 
   // Monta as opções de assunto baseadas na disciplina
-  let assuntoOptions = '<option value="">Sem alvo específico</option>';
+  let assuntoOptions = '<option value="">Sem tópico específico</option>';
   
   const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
   if (pendingAssuntos.length > 0) {
-    assuntoOptions += `<optgroup label="Tópicos do Edital (${pendingAssuntos.length})">`;
-    assuntoOptions += pendingAssuntos.map(a => `<option value="ass_${a.id}" title="${esc(a.nome)}">${trunc(a.nome, 100)}</option>`).join('');
-    assuntoOptions += `</optgroup>`;
+    assuntoOptions += pendingAssuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${trunc(a.nome, 100)}</option>`).join('');
   }
   
+  let aulaOptions = '<option value="">Sem material/aula específico</option>';
   const aulas = d.disc.aulas || [];
   const pendingAulas = aulas.filter(a => !a.estudada);
+  let showAulas = false;
   if (pendingAulas.length > 0) {
-    assuntoOptions += `<optgroup label="Meus Materiais/Aulas (${pendingAulas.length})">`;
-    assuntoOptions += pendingAulas.map(a => `<option value="aul_${a.id}" title="${esc(a.nome)}">${trunc(a.nome, 100)}</option>`).join('');
-    assuntoOptions += `</optgroup>`;
+    showAulas = true;
+    aulaOptions += pendingAulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${trunc(a.nome, 100)}</option>`).join('');
   }
 
   document.getElementById('modal-event-title').textContent = 'Registrar Sessão Anterior';
@@ -3495,13 +3505,22 @@ window.openAddPastSessionModal = function(discId) {
     </div>
     
     <div class="form-group" id="event-assunto-group">
-      <label class="form-label">Tópico / Aula (opcional)</label>
+      <label class="form-label">Tópico do Edital (opcional)</label>
       <select class="form-control" id="past-event-assunto">
         ${assuntoOptions}
       </select>
     </div>
 
-    <div class="form-row">
+    ${showAulas ? `
+    <div class="form-group" id="event-aula-group" style="margin-top:12px;">
+      <label class="form-label">Material / Aula (opcional)</label>
+      <select class="form-control" id="past-event-aula">
+        ${aulaOptions}
+      </select>
+    </div>
+    ` : ''}
+
+    <div class="form-row" style="margin-top:20px;">
       <div class="form-group">
         <label class="form-label">Data do Estudo</label>
         <input type="date" class="form-control" id="past-event-data" value="${todayStr()}">
@@ -3524,27 +3543,23 @@ window.savePastEvent = function(discId) {
   const d = window.getDisc(discId);
   const data = document.getElementById('past-event-data').value;
   const duracao = parseInt(document.getElementById('past-event-duracao').value, 10) || 60;
-  const rawTargetId = document.getElementById('past-event-assunto').value;
+  
+  const assId = document.getElementById('past-event-assunto')?.value || null;
+  const aulaId = document.getElementById('past-event-aula')?.value || null;
 
   if (!data || duracao <= 0) {
     showToast('Preencha a data e o tempo estudado corretamente.', 'error');
     return;
   }
 
-  let assId = null;
-  let aulaId = null;
   let assuntoNome = '';
 
-  if (rawTargetId) {
-    if (rawTargetId.startsWith('aul_')) {
-      aulaId = rawTargetId.substring(4);
-      const achado = d.disc.aulas?.find(a => a.id === aulaId);
-      if(achado) assuntoNome = ' — ' + achado.nome;
-    } else if (rawTargetId.startsWith('ass_')) {
-      assId = rawTargetId.substring(4);
-      const achado = d.disc.assuntos?.find(a => a.id === assId);
-      if(achado) assuntoNome = ' — ' + achado.nome;
-    }
+  if (aulaId) {
+    const achado = d.disc.aulas?.find(a => a.id === aulaId);
+    if(achado) assuntoNome = ' — ' + achado.nome;
+  } else if (assId) {
+    const achado = d.disc.assuntos?.find(a => a.id === assId);
+    if(achado) assuntoNome = ' — ' + achado.nome;
   }
 
   // Cria um placeholder de evento que o \`openRegistroSessao\` pode carregar e modificar
