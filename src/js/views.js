@@ -16,6 +16,13 @@ let editingSubjectCtx = null;
 
 let editingDiscCtx = null;
 
+function formatBackupDateTime(value) {
+  if (!value) return 'Nunca';
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return 'Nunca';
+  return dt.toLocaleString('pt-BR');
+}
+
 // =============================================
 // CONSTANTS
 // =============================================
@@ -3661,9 +3668,25 @@ export function renderConfig(el) {
               ${state.eventos.length} evento(s) ativos
               ${(state.arquivo || []).length > 0 ? ` • ${state.arquivo.length} arquivado(s)` : ''}
             </div>
+
+            <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:12px;font-size:12px;">
+              <div style="display:flex;justify-content:space-between;gap:12px;"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">Origem do backup para restauração</label>
+              <select id="backup-restore-source" class="form-control">
+                <option value="local">Backup local (importar arquivo JSON)</option>
+                <option value="cloudflare">Cloudflare</option>
+                <option value="drive">Google Drive</option>
+              </select>
+            </div>
+
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button class="btn btn-ghost" onclick="exportData()">📱 Exportar JSON</button>
-              <button class="btn btn-ghost" onclick="importData()">📡 Importar JSON</button>
+              <button class="btn btn-ghost" onclick="restoreBackupFromSelectedSource()">♻️ Restaurar backup selecionado</button>
               <button class="btn btn-ghost btn-sm" onclick="archiveOldEvents(90)" title="Move eventos concluidos há mais de 90 dias para o arquivo">🙉 Arquivar antigos</button>
               <button class="btn btn-danger btn-sm" onclick="clearAllData()">🙆 Limpar tudo</button>
             </div>
@@ -3848,6 +3871,56 @@ export function importData() {
     reader.readAsText(file);
   };
   input.click();
+}
+
+
+export function restoreBackupFromSelectedSource() {
+  const source = document.getElementById('backup-restore-source')?.value || 'local';
+
+  if (source === 'local') {
+    importData();
+    return;
+  }
+
+  if (source === 'cloudflare') {
+    if (!state.config?.cfSyncEnabled || !state.config?.cfUrl || !state.config?.cfToken) {
+      showToast('Configure a sincronização Cloudflare antes de restaurar por ela.', 'error');
+      return;
+    }
+
+    showConfirm(
+      'Restaurar os dados da Cloudflare? Isso substituirá os dados locais atuais.',
+      () => {
+        if (typeof window.pullFromCloudflare === 'function') {
+          window.pullFromCloudflare().then((ok) => {
+            if (ok) {
+              renderCurrentView();
+              showToast('Restauração via Cloudflare concluída.', 'success');
+            }
+          });
+        }
+      },
+      { label: 'Restaurar Cloudflare', title: 'Restaurar backup' }
+    );
+    return;
+  }
+
+  if (source === 'drive') {
+    if (!state.driveFileId) {
+      showToast('Conecte o Google Drive antes de restaurar por ele.', 'error');
+      return;
+    }
+
+    showConfirm(
+      'Restaurar os dados do Google Drive? Isso substituirá os dados locais atuais.',
+      () => {
+        if (typeof window.pullFromDrive === 'function') {
+          window.pullFromDrive();
+        }
+      },
+      { label: 'Restaurar Drive', title: 'Restaurar backup' }
+    );
+  }
 }
 
 export function clearAllData() {

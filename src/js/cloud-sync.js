@@ -79,8 +79,12 @@ export async function pullFromCloudflare() {
             console.log('Dados sincronizados perfeitamente.');
         }
 
-        const lastStr = new Date(remoteTime || Date.now()).toLocaleTimeString();
-        updateSyncStatus(`Sincronizado às ${lastStr}`);
+        const syncTs = remoteTime || Date.now();
+        if (!state.config) state.config = {};
+        state.config.cfLastSyncAt = new Date(syncTs).toISOString();
+        saveStateToDB(true);
+        const lastStr = new Date(syncTs).toLocaleString('pt-BR');
+        updateSyncStatus(`Sincronizado em ${lastStr}`);
         return true;
 
     } catch (err) {
@@ -139,10 +143,11 @@ export async function pushToCloudflare() {
 
         // Only update local timestamp after successful push
         state.config._lastUpdated = pushTimestamp;
+        state.config.cfLastSyncAt = new Date(pushTimestamp).toISOString();
         // Persiste o timestamp no IndexedDB SEM disparar novo push (quebra o loop)
         saveStateToDB(true);
-        const lastStr = new Date(pushTimestamp).toLocaleTimeString();
-        updateSyncStatus(`Nuvem atualizada às ${lastStr}`);
+        const lastStr = new Date(pushTimestamp).toLocaleString('pt-BR');
+        updateSyncStatus(`Nuvem atualizada em ${lastStr}`);
         console.log('Cloudflare Sync OK');
     } catch (err) {
         console.error('Erro no Cloudflare Push:', err);
