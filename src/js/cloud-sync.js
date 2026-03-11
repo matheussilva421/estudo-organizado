@@ -1,6 +1,8 @@
-import { state, scheduleSave, setState, SyncQueue } from './store.js';
+import { state, setState, SyncQueue, saveStateToDB } from './store.js';
 
 let isSyncing = false;
+let _lastPushTime = 0;
+const MIN_PUSH_INTERVAL_MS = 30_000; // 30s minimum between KV writes
 
 // Helpers para atualizar a UI da tela de configurações
 function updateSyncStatus(msg, isError = false) {
@@ -66,7 +68,8 @@ export async function pullFromCloudflare() {
             console.log('Dados da Cloudflare são mais novos, aplicando...');
             // Injeta propriedades vitais antes da carga pesada
             setState(remoteData);
-            scheduleSave(); // Salva localmente
+            // Salva localmente SEM disparar push para nuvem (dados vieram de lá)
+            saveStateToDB(true);
             document.dispatchEvent(new Event('app:invalidateCaches'));
             document.dispatchEvent(new Event('app:renderCurrentView'));
             document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Sincronizado via Nuvem (Cloudflare)', type: 'success' } }));
@@ -94,6 +97,13 @@ export async function pushToCloudflare() {
     if (isSyncing) return false;
     const config = getSyncConfig();
     if (!config) return false;
+
+    // Rate limiting: evita escritas excessivas no KV
+    const now = Date.now();
+    if (now - _lastPushTime < MIN_PUSH_INTERVAL_MS) {
+        console.log(`Cloud push ignorado (rate limit: aguardar ${Math.ceil((MIN_PUSH_INTERVAL_MS - (now - _lastPushTime)) / 1000)}s)`);
+        return false;
+    }
 
     isSyncing = true;
     updateSyncStatus('Enviando dados para a nuvem...');
@@ -125,9 +135,12 @@ export async function pushToCloudflare() {
             throw new Error(errorMsg);
         }
 
+        _lastPushTime = Date.now();
+
         // Only update local timestamp after successful push
         state.config._lastUpdated = pushTimestamp;
-        scheduleSave(); // Force IndexedDB persistence so tags stay synced
+        // Persiste o timestamp no IndexedDB SEM disparar novo push (quebra o loop)
+        saveStateToDB(true);
         const lastStr = new Date(pushTimestamp).toLocaleTimeString();
         updateSyncStatus(`Nuvem atualizada às ${lastStr}`);
         console.log('Cloudflare Sync OK');
@@ -145,6 +158,8 @@ window.forceCloudflareSync = async function () {
     if (btn) btn.disabled = true;
 
     try {
+        // Bypass rate limit para sync manual
+        _lastPushTime = 0;
         // Tenta puxar novidades, e então empurra a versão atualizada pra consolidar
         await SyncQueue.add(() => pullFromCloudflare());
         await SyncQueue.add(() => pushToCloudflare());
