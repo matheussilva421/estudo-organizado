@@ -893,17 +893,32 @@ body {
 }
 
 /* CONTENT SPACING */
-#content {
+#content,
+#main-content {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px;
 }
 
-/* Consistent vertical spacing between sections */
-#main-content > section,
-#main-content > div:not(:last-child),
-.stats-grid:not(:last-child),
-.dashboard-section:not(:last-child) {
+/* Unified vertical rhythm for direct sections inside each view */
+#main-content.main-content-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Neutralize ad-hoc top-level margins from specific views */
+#main-content.main-content-stack > * {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Fallback spacing when stack mode is disabled */
+#main-content:not(.main-content-stack) > section,
+#main-content:not(.main-content-stack) > div:not(:last-child) {
   margin-bottom: 24px;
 }
 
@@ -2364,8 +2379,13 @@ mark {
     grid-template-columns: 1fr 1fr;
   }
 
-  #content {
+  #content,
+  #main-content {
     padding: 14px;
+  }
+
+  #main-content.main-content-stack {
+    gap: 16px;
   }
 
   .topbar {

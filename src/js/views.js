@@ -422,7 +422,7 @@ export function renderMED(el) {
       </div>
       <div id="med-section-estudado">
         ${estudados.length > 0 ? `
-          <div class="section-header" style="margin-top:24px;"><h2>✅ Estudado Hoje</h2></div>
+          <div class="section-header"><h2>✅ Estudado Hoje</h2></div>
           ${estudados.map(e => renderEventCard(e)).join('')}
         ` : ''}
       </div>
@@ -462,7 +462,7 @@ export function refreshMEDSections() {
   const secEstudado = document.getElementById('med-section-estudado');
   if (secEstudado) {
     secEstudado.innerHTML = estudados.length > 0
-      ? `<div class="section-header" style="margin-top:24px;"><h2>✅ Estudado Hoje</h2></div> ${estudados.map(e => renderEventCard(e)).join('')}`
+      ? `<div class="section-header"><h2>✅ Estudado Hoje</h2></div> ${estudados.map(e => renderEventCard(e)).join('')}`
       : '';
   }
 

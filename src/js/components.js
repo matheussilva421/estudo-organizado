@@ -248,6 +248,9 @@ export function renderCurrentView() {
 
   const el = document.getElementById('main-content');
   if (!el) return;
+
+  // Keep a consistent vertical spacing rhythm between top-level blocks per view.
+  el.classList.toggle('main-content-stack', currentView !== 'cronometro');
   const titles = {
     home: 'Página Inicial', med: 'Study Organizer', calendar: 'Calendário',
     revisoes: 'Revisões Pendentes', habitos: 'Hábitos de Estudo',
