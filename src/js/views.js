@@ -1994,6 +1994,16 @@ export function closeDiscDashboard() {
 // Global switch tab function
 window.switchDashboardTab = function (tabName) {
   window.activeDashboardTab = tabName;
+  const ctx = window.activeDashboardDiscCtx;
+  if (ctx && ctx.editaId && ctx.discId) {
+    const edital = state.editais.find(e => e.id === ctx.editaId);
+    const disc = edital?.disciplinas?.find(d => d.id === ctx.discId);
+    if (disc) {
+      openDiscDashboard(ctx.editaId, ctx.discId);
+      return;
+    }
+  }
+
   renderCurrentView();
 }
 
