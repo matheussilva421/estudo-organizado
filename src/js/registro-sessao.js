@@ -104,17 +104,13 @@ export function openRegistroSessao(eventId) {
         if (ev.assId) {
           const assSelect = document.getElementById('reg-assunto');
           if (assSelect) {
-            let val = ev.assId;
-            if (val.startsWith('ass_')) val = val.substring(4);
-            assSelect.value = val;
+            assSelect.value = ev.assId;
           }
         }
         if (ev.aulaId) {
           const aulaSelect = document.getElementById('reg-aula');
           if (aulaSelect) {
-            let val = ev.aulaId;
-            if (val.startsWith('aul_')) val = val.substring(4);
-            aulaSelect.value = val;
+            aulaSelect.value = ev.aulaId;
           }
         }
       }
@@ -602,8 +598,8 @@ export function saveRegistroSessao() {
   let assId = document.getElementById('reg-assunto')?.value || '';
   let aulaId = document.getElementById('reg-aula')?.value || '';
 
-  if (assId && assId.startsWith('ass_')) assId = assId.substring(4);
-  if (aulaId && aulaId.startsWith('aul_')) aulaId = aulaId.substring(4);
+  // Note: assId and aulaId already contain the full ID (e.g. 'ass_xxx') from the select.
+  // Do NOT strip prefixes — they are part of the canonical ID used in lookups.
 
   if (isLivre && !discId) {
     showToast('Em sessões livres, escolha pelo menos uma Disciplina para vincular o tempo estudado', 'error'); return false;

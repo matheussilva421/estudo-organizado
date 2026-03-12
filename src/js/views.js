@@ -588,6 +588,7 @@ export function openEventDetail(eventId) {
   const ev = state.eventos.find(e => e.id === eventId);
   if (!ev) return;
   const body = document.getElementById('modal-event-detail-body');
+  if (!body) return;
   const status = getEventStatus(ev);
   const elapsed = getElapsedSeconds(ev);
   const tempoStr = elapsed > 0 ? formatTime(elapsed) : '00:00:00';
@@ -1122,12 +1123,15 @@ export function setHabitPage(p) {
 
 export function openHabitModal(tipo) {
   currentHabitType = tipo;
-  const h = tipo ? HABIT_TYPES.find(h => h.key === tipo) : null;
-  document.getElementById('modal-habit-title').textContent = h ? `Registrar: ${h.label}` : 'Registrar Hábito';
+  const h = tipo ? HABIT_TYPES.find(ht => ht.key === tipo) : null;
+  const titleEl = document.getElementById('modal-habit-title');
+  if (titleEl) titleEl.textContent = h ? `Registrar: ${h.label}` : 'Registrar Hábito';
 
-  const discOptions = getAllDisciplinas().map(d => `<option value="${d.disc.id}">${d.disc.nome}</option>`).join('');
+  const discOptions = getAllDisciplinas().map(d => `<option value="${d.disc.id}">${esc(d.disc.nome)}</option>`).join('');
 
-  document.getElementById('modal-habit-body').innerHTML = `
+  const habitBody = document.getElementById('modal-habit-body');
+  if (!habitBody) return;
+  habitBody.innerHTML = `
     ${!tipo ? `
       <div class="form-group">
         <label class="form-label">Tipo de Hábito</label>
@@ -1653,6 +1657,7 @@ export function renderVerticalList(container) {
 window.toggleVertDisc = function (id) {
   const body = document.getElementById('vert-disc-body-' + id);
   const icon = document.getElementById('vert-disc-icon-' + id);
+  if (!body || !icon) return;
   if (body.style.display === 'none') {
     body.style.display = 'block';
     icon.classList.remove('fa-chevron-down');
@@ -2270,7 +2275,7 @@ export function openEditaModal(editaId = null) {
   document.getElementById('modal-edital-body').innerHTML = `
       <div class="form-group" >
       <label class="form-label">Nome do Edital</label>
-      <input type="text" class="form-control" id="edital-nome" placeholder="Ex: Concurso TRF 2025" value="${edital ? edital.nome : ''}" autofocus>
+      <input type="text" class="form-control" id="edital-nome" placeholder="Ex: Concurso TRF 2025" value="${edital ? esc(edital.nome) : ''}" autofocus>
     </div>
     <div class="form-group">
       <label class="form-label">Cor</label>
@@ -2292,6 +2297,7 @@ export function openEditaModal(editaId = null) {
 
 export function selectColor(color, containerId) {
   const container = document.getElementById(containerId);
+  if (!container) return;
   container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
   // Fixed: removed spaces around = in attribute selector (was invalid CSS)
   container.querySelector(`[style="background:${color};"]`)?.classList.add('selected');
@@ -2300,9 +2306,11 @@ export function selectColor(color, containerId) {
 }
 
 export function saveEdital(editaId) {
-  const nome = document.getElementById('edital-nome').value.trim();
+  const nomeEl = document.getElementById('edital-nome');
+  if (!nomeEl) return;
+  const nome = nomeEl.value.trim();
   if (!nome) { showToast('Informe o nome do edital', 'error'); return; }
-  const cor = document.getElementById('edital-cor').value || COLORS[0];
+  const cor = document.getElementById('edital-cor')?.value || COLORS[0];
 
   if (editaId) {
     const edital = state.editais.find(e => e.id === editaId);
@@ -2369,10 +2377,13 @@ export function selectDiscColor(color) {
 }
 
 export function saveDisc() {
-  const nome = document.getElementById('disc-nome').value.trim();
+  const nomeEl = document.getElementById('disc-nome');
+  if (!nomeEl) return;
+  const nome = nomeEl.value.trim();
   if (!nome) { showToast('Informe o nome da disciplina', 'error'); return; }
-  const icone = document.getElementById('disc-icone').value;
-  const cor = document.getElementById('disc-cor').value;
+  const icone = document.getElementById('disc-icone')?.value || '📖';
+  const cor = document.getElementById('disc-cor')?.value || '#10b981';
+  if (!editingDiscCtx) return;
   const { editaId, discId } = editingDiscCtx;
   const edital = state.editais.find(e => e.id === editaId);
   if (!edital) return;
@@ -3500,7 +3511,7 @@ window.openAddPastSessionModal = function(discId) {
   
   const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
   if (pendingAssuntos.length > 0) {
-    assuntoOptions += pendingAssuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${trunc(a.nome, 100)}</option>`).join('');
+    assuntoOptions += pendingAssuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome, 100))}</option>`).join('');
   }
   
   let aulaOptions = '<option value="">Sem material/aula específico</option>';
@@ -3509,7 +3520,7 @@ window.openAddPastSessionModal = function(discId) {
   let showAulas = false;
   if (pendingAulas.length > 0) {
     showAulas = true;
-    aulaOptions += pendingAulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${trunc(a.nome, 100)}</option>`).join('');
+    aulaOptions += pendingAulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome, 100))}</option>`).join('');
   }
 
   document.getElementById('modal-event-title').textContent = 'Registrar Sessão Anterior';
