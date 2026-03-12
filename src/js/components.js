@@ -1,6 +1,6 @@
 import { currentView } from './app.js';
 import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, getHabitType } from './utils.js';
-import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts } from './views.js';
+import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts, renderSkeletonLoader } from './views.js';
 import { state } from './store.js';
 import { deleteEvento, getAllDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js';
 
@@ -246,7 +246,7 @@ export function renderCurrentView() {
     destroyDashboardCharts();
   }
 
-  const el = document.getElementById('content');
+  const el = document.getElementById('main-content');
   if (!el) return;
   const titles = {
     home: 'Página Inicial', med: 'Study Organizer', calendar: 'Calendário',
@@ -278,25 +278,37 @@ export function renderCurrentView() {
 
   updateBadges();
 
-  if (currentView === 'home') return renderHome(el);
-  if (currentView === 'med') return renderMED(el);
-  if (currentView === 'calendar') return renderCalendar(el);
-  if (currentView === 'dashboard') return renderDashboard(el);
-  if (currentView === 'revisoes') return renderRevisoes(el);
-  if (currentView === 'habitos') return renderHabitos(el);
-  if (currentView === 'editais') {
-    if (window.activeDashboardDiscCtx) {
-      // Defer execution so that we don't return early if openDiscDashboard doesn't return anything.
-      // But openDiscDashboard populates el.innerHTML so it acts like a render function.
-      return window.openDiscDashboard(window.activeDashboardDiscCtx.editaId, window.activeDashboardDiscCtx.discId);
-    }
-    return renderEditais(el);
+  // Show skeleton loader for heavy views, then render actual content
+  const heavyViews = ['home', 'dashboard', 'editais', 'vertical', 'ciclo'];
+
+  if (heavyViews.includes(currentView)) {
+    // Show skeleton first for perceived performance
+    el.innerHTML = renderSkeletonLoader();
+
+    // Micro-delay to allow skeleton to render before heavy computation
+    setTimeout(() => {
+      if (currentView === 'home') renderHome(el);
+      else if (currentView === 'dashboard') renderDashboard(el);
+      else if (currentView === 'editais') {
+        if (window.activeDashboardDiscCtx) {
+          window.openDiscDashboard(window.activeDashboardDiscCtx.editaId, window.activeDashboardDiscCtx.discId);
+        } else {
+          renderEditais(el);
+        }
+      }
+      else if (currentView === 'vertical') renderVertical(el);
+      else if (currentView === 'ciclo') renderCiclo(el);
+    }, 50);
+  } else {
+    // Light views render immediately
+    if (currentView === 'med') return renderMED(el);
+    if (currentView === 'calendar') return renderCalendar(el);
+    if (currentView === 'revisoes') return renderRevisoes(el);
+    if (currentView === 'habitos') return renderHabitos(el);
+    if (currentView === 'config') return renderConfig(el);
+    if (currentView === 'cronometro') return renderCronometro(el);
+    if (currentView === 'banca-analyzer') return renderBancaAnalyzerModule(el);
   }
-  if (currentView === 'vertical') return renderVertical(el);
-  if (currentView === 'config') return renderConfig(el);
-  if (currentView === 'cronometro') return renderCronometro(el);
-  if (currentView === 'ciclo') return renderCiclo(el);
-  if (currentView === 'banca-analyzer') return renderBancaAnalyzerModule(el);
 }
 
 // Ensure badges up to date

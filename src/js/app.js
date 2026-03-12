@@ -104,7 +104,7 @@ export function cancelConfirm() {
 // Toast Notifications
 export function showToast(msg, type = '') {
   const container = document.getElementById('toast-container');
-  if (!container) return; // guard: container pode não existir em inicialização
+  if (!container) return;
 
   const last = container.lastElementChild;
   if (last && last.dataset.msg === msg) {
@@ -132,24 +132,55 @@ export function showToast(msg, type = '') {
   toast.appendChild(document.createTextNode(' '));
   toast.appendChild(msgSpan);
   container.appendChild(toast);
+
+  // Auto-dismiss with pause on hover
+  let dismissTimeout;
+  const scheduleDismiss = () => {
+    dismissTimeout = setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  };
+
+  const cancelDismiss = () => {
+    if (dismissTimeout) clearTimeout(dismissTimeout);
+  };
+
+  toast.addEventListener('mouseenter', cancelDismiss);
+  toast.addEventListener('mouseleave', scheduleDismiss);
+  toast.addEventListener('click', () => toast.remove());
+
   requestAnimationFrame(() => { toast.classList.add('show'); });
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 3500);
+  scheduleDismiss();
 }
 
 // Sidebars
 export function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
+  if (!sidebar || !overlay) return;
   sidebar.classList.toggle('open');
   overlay.classList.toggle('open');
 }
 
 export function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('open');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (!sidebar || !overlay) return;
+  sidebar.classList.remove('open');
+  overlay.classList.remove('open');
+}
+
+export function toggleSidebarCollapse() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  sidebar.classList.toggle('collapsed');
+  // Salvar preferencia
+  if (sidebar.classList.contains('collapsed')) {
+    localStorage.setItem('estudo_sidebar_collapsed', 'true');
+  } else {
+    localStorage.removeItem('estudo_sidebar_collapsed');
+  }
 }
 
 // Init Setup
@@ -186,6 +217,13 @@ export function init() {
     applyTheme();
     initNotifications();
 
+    // Restaurar estado da sidebar (collapsed/expanded)
+    const sidebarCollapsed = localStorage.getItem('estudo_sidebar_collapsed') === 'true';
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebarCollapsed) {
+      sidebar.classList.add('collapsed');
+    }
+
     // Primeira Sincronização: Cloudflare (Primária Rápida)
     if (state.config && state.config.cfSyncEnabled) {
       try {
@@ -214,7 +252,7 @@ export function init() {
     }, 300000);
   }).catch(err => {
     console.error('Falha ao inicializar o aplicativo:', err);
-    const content = document.getElementById('content');
+    const content = document.getElementById('main-content');
     if (content) {
       content.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;"><h2>Erro ao carregar o aplicativo</h2><p>Tente recarregar a página. Se o erro persistir, limpe os dados do navegador.</p></div>';
     }
@@ -226,13 +264,14 @@ export function init() {
 // =============================================
 // INTERACTIVE PROMPTS
 // =============================================
+
 export function promptDataProva() {
   const atual = state.config.dataProva || '';
 
   document.getElementById('modal-prompt-title').textContent = 'Data da Prova';
   document.getElementById('modal-prompt-body').innerHTML = `
     <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">Informe a data final para os contadores regressivos.</div>
-    <input type="date" id="prompt-input-data" class="form-control" value="${atual}">
+    <input type="date" id="prompt-input-data" class="form-control" value="${esc(atual)}">
   `;
 
   const saveBtn = document.getElementById('modal-prompt-save');
@@ -264,11 +303,11 @@ export function promptMetas() {
   document.getElementById('modal-prompt-body').innerHTML = `
     <div style="margin-bottom:12px;">
       <label class="form-label">Meta de Horas (por semana)</label>
-      <input type="number" id="prompt-input-horas" class="form-control" value="${horas}" min="1" max="168">
+      <input type="number" id="prompt-input-horas" class="form-control" value="${esc(horas)}" min="1" max="168">
     </div>
     <div style="margin-bottom:12px;">
       <label class="form-label">Meta de Questões (por semana)</label>
-      <input type="number" id="prompt-input-quest" class="form-control" value="${quest}" min="1">
+      <input type="number" id="prompt-input-quest" class="form-control" value="${esc(quest)}" min="1">
     </div>
   `;
 

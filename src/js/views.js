@@ -1,5 +1,5 @@
 import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES, trunc } from './utils.js';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
@@ -22,6 +22,67 @@ function formatBackupDateTime(value) {
   if (Number.isNaN(dt.getTime())) return 'Nunca';
   return dt.toLocaleString('pt-BR');
 }
+
+// =============================================
+// LOADING SKELETONS
+// =============================================
+export function renderSkeletonLoader() {
+  return `
+    <div class="loading-skeleton">
+      <div class="skeleton-stats-grid">
+        <div class="skeleton-stat-card">
+          <div class="skeleton skeleton-stat-value"></div>
+          <div class="skeleton skeleton-stat-label"></div>
+        </div>
+        <div class="skeleton-stat-card">
+          <div class="skeleton skeleton-stat-value"></div>
+          <div class="skeleton skeleton-stat-label"></div>
+        </div>
+        <div class="skeleton-stat-card">
+          <div class="skeleton skeleton-stat-value"></div>
+          <div class="skeleton skeleton-stat-label"></div>
+        </div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-card-content">
+          <div class="skeleton skeleton-title"></div>
+          <div class="skeleton-chart"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+export function renderSkeletonList(count = 5) {
+  let html = '<div class="loading-skeleton"><div class="skeleton-list">';
+  for (let i = 0; i < count; i++) {
+    html += `
+      <div class="skeleton-list-item">
+        <div class="skeleton skeleton-list-icon"></div>
+        <div class="skeleton-list-text">
+          <div class="skeleton skeleton-text" style="width: 60%;"></div>
+          <div class="skeleton skeleton-text" style="width: 40%;"></div>
+        </div>
+      </div>
+    `;
+  }
+  html += '</div></div>';
+  return html;
+}
+
+export function renderSkeletonTable(rows = 5, cols = 4) {
+  let html = '<div class="loading-skeleton"><table class="skeleton-table">';
+  for (let i = 0; i < rows; i++) {
+    html += '<tr>';
+    for (let j = 0; j < cols; j++) {
+      html += `<td><div class="skeleton skeleton-cell"></div></td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+  return html;
+}
+
 
 // =============================================
 // CONSTANTS
@@ -195,7 +256,7 @@ export function renderHome(el) {
     </div>
 
     <!-- LINHA 2: Constância -->
-    <div class="card p-16 dash-streak-panel" style="margin-bottom:20px;">
+    <div class="card p-16 dash-streak-panel" style="margin-bottom:24px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div class="dash-label">CONSTÂNCIA NOS ESTUDOS <i class="fa fa-question-circle" style="opacity:0.5;margin-left:4px;" title="Dias que você registrou sessões nos últimos 30 dias."></i></div>
         <div style="font-size:12px;font-weight:600;color:var(--accent);">Últimos 30 dias</div>
@@ -229,7 +290,7 @@ export function renderHome(el) {
       </div>
 
       <!-- Direita: Data, Metas e Gráfico -->
-      <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+      <div style="display:flex;flex-direction:column;gap:24px;min-width:0;">
         
         ${previsorHtml}
 
@@ -429,14 +490,14 @@ export function renderCalendar(el) {
             <button onclick="calNavigate(-1)"><i class="fa fa-chevron-left"></i></button>
             <button onclick="calNavigate(1)"><i class="fa fa-chevron-right"></i></button>
           </div>
-          <div class="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span style="font-size:9px; color:var(--text-muted); opacity:0.5;">v6.0</span></div>
-          <button class="btn btn-ghost btn-sm" onclick="resetCalDate()">Hoje</button>
+          <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span style="font-size:9px; color:var(--text-muted); opacity:0.5;">v6.0</span></div>
+          <button class="btn btn-ghost btn-sm" id="cal-today-btn" onclick="resetCalDate()">Hoje</button>
           <div style="margin-left:auto;" class="cal-view-tabs">
             <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" onclick="setCalViewMode('mes')">Mês</div>
             <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" onclick="setCalViewMode('semana')">Semana</div>
           </div>
         </div>
-        ${calViewMode === 'mes' ? renderCalendarMonth() : renderCalendarWeek()}
+        <div id="cal-grid">${calViewMode === 'mes' ? renderCalendarGrid() : renderCalendarWeek()}</div>
       </div>
     </div>
   `;
@@ -453,7 +514,14 @@ export function calNavigate(dir) {
   } else {
     calDate.setDate(calDate.getDate() + dir * 7);
   }
-  renderCurrentView();
+  // Optimized: update only calendar grid instead of full re-render
+  const grid = document.getElementById('cal-grid');
+  if (grid) {
+    grid.innerHTML = renderCalendarGrid();
+    updateCalendarHeader();
+  } else {
+    renderCurrentView();
+  }
 }
 
 export function renderCalendarMonth() {
@@ -518,6 +586,85 @@ export function renderCalendarMonth() {
   }).join('')}
     </div>
   `;
+}
+
+// Optimized: render only calendar grid (for navigation without full re-render)
+export function renderCalendarGrid() {
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const today = todayStr();
+  const startDow = (firstDay.getDay() - (state.config.primeirodiaSemana || 1) + 7) % 7;
+  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const startDow0 = state.config.primeirodiaSemana || 1;
+  const dowOrder = Array.from({ length: 7 }, (_, i) => dows[(startDow0 + i) % 7]);
+
+  let cells = [];
+  for (let i = 0; i < startDow; i++) {
+    const d = new Date(year, month, 1 - startDow + i);
+    cells.push({ date: d, other: true });
+  }
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    cells.push({ date: new Date(year, month, d), other: false });
+  }
+  while (cells.length < 42) {
+    const last = cells[cells.length - 1].date;
+    cells.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1), other: true });
+  }
+
+  const getDateStr = d => {
+    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+    return d2.toISOString().split('T')[0];
+  };
+
+  const eventsByDate = {};
+  for (const e of state.eventos) {
+    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
+    eventsByDate[e.data].push(e);
+  }
+
+  const gridClass = cells.length > 35 ? 'cal-grid rows-6' : 'cal-grid';
+
+  return `
+    <div class="${gridClass}" id="cal-grid-inner">
+      ${dowOrder.map(d => `<div class="cal-dow">${d}</div>`).join('')}
+      ${cells.map(cell => {
+      const ds = getDateStr(cell.date);
+      const isToday = ds === today;
+      const dayEvents = eventsByDate[ds] || [];
+      const show = dayEvents.slice(0, 3);
+      const more = dayEvents.length - 3;
+      return `
+        <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" onclick="openAddEventModalDate('${ds}')">
+          <div class="cal-date">${cell.date.getDate()}</div>
+          ${show.map(e => {
+            const st = getEventStatus(e);
+            return `<div class="cal-event-chip ${st}" style="cursor:pointer;" onclick="event.stopPropagation(); window.openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+          }).join('')}
+          ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
+        </div>
+      `;
+    }).join('')}
+    </div>
+  `;
+}
+
+export function updateCalendarHeader() {
+  const title = document.getElementById('cal-title');
+  if (title) {
+    const monthName = calDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    title.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  }
+  const todayBtn = document.getElementById('cal-today-btn');
+  if (todayBtn) {
+    const today = todayStr();
+    const current = calDate.toISOString().split('T')[0];
+    const isCurrentMonth = today.slice(0, 7) === current.slice(0, 7);
+    if (todayBtn.classList.contains('cal-view-btn')) {
+      todayBtn.classList.toggle('active', isCurrentMonth);
+    }
+  }
 }
 
 export function renderCalendarWeek() {
@@ -984,6 +1131,7 @@ export function marcarRevisao(assId) {
         if (!ass.revisoesFetas) ass.revisoesFetas = [];
         ass.revisoesFetas.push(todayStr());
         invalidateRevCache();
+        invalidatePendingRevCache();
         scheduleSave();
         renderCurrentView();
         showToast('Revisão registrada! ✅', 'success');
@@ -1002,6 +1150,7 @@ export function adiarRevisao(assId) {
         if (!ass.adiamentos) ass.adiamentos = 0;
         ass.adiamentos = (ass.adiamentos || 0) + 1;
         invalidateRevCache();
+        invalidatePendingRevCache();
         scheduleSave();
         renderCurrentView();
         showToast('Revisão adiada por 1 dia', 'info');
@@ -1825,11 +1974,13 @@ export function openDiscDashboard(editaId, discId) {
   window.activeDashboardDiscCtx = { editaId, discId };
 
   // Set window Topbar
-  document.getElementById('topbar-title').textContent = `${disc.icone || '📚'} ${disc.nome} `;
+  const topbarTitle = document.getElementById('topbar-title');
   const actions = document.getElementById('topbar-actions');
+  if (!topbarTitle || !actions) return;
+  topbarTitle.textContent = `${disc.icone || '📚'} ${disc.nome} `;
   actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeDiscDashboard()"><i class="fa fa-arrow-left"></i> Voltar</button>`;
 
-  const el = document.getElementById('content');
+  const el = document.getElementById('main-content');
   el.innerHTML = renderDisciplinaDashboard(edital, disc);
   setTimeout(() => initDiscDashboardChart(disc.id), 100);
 }
@@ -2803,7 +2954,7 @@ window._renderBancaAnalyzerContent = function (el) {
 
 window.mudarEditalAnalisador = function (editaId) {
   analyzerCtx.editaId = editaId;
-  window._renderBancaAnalyzerContent(document.getElementById('content'));
+  window._renderBancaAnalyzerContent(document.getElementById('main-content'));
 };
 
 window.filtrarViewPorDisciplina = function (discId) {
@@ -2870,7 +3021,7 @@ window.excluirAnaliseBanca = function (discId) {
       analyzerCtx.tempMatchResults = [];
     }
 
-    window._renderBancaAnalyzerContent(document.getElementById('content'));
+    window._renderBancaAnalyzerContent(document.getElementById('main-content'));
     showToast('Análise excluída e Assuntos Reordenados para o Default.', 'success');
   }, { title: 'Excluir Análise', danger: true });
 };
