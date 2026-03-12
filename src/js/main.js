@@ -74,9 +74,6 @@ document.addEventListener('app:refreshEventCard', (e) => {
 document.addEventListener('app:refreshMEDSections', () => {
   if (typeof window.refreshMEDSections === 'function') window.refreshMEDSections();
 });
-document.addEventListener('app:removeDOMCard', (e) => {
-  if (typeof window.removeDOMCard === 'function') window.removeDOMCard(e.detail.eventId);
-});
 document.addEventListener('app:eventoDeleted', (e) => {
   if (window.currentView === 'med' && typeof window.removeDOMCard === 'function') {
     window.removeDOMCard(e.detail.eventId);
@@ -137,6 +134,9 @@ document.addEventListener('click', (e) => {
       break;
     case 'drive-action':
       window.driveAction();
+      break;
+    case 'disconnect-drive':
+      if (typeof window.disconnectDrive === 'function') window.disconnectDrive();
       break;
 
     // Dashboard Interactions

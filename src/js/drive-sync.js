@@ -69,7 +69,7 @@ export function updateDriveUI(status, label) {
           <strong>✅ Conectado ao Google Drive</strong><br>
           Seus dados estão sendo salvos automaticamente na nuvem.
         </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;color:var(--red);" onclick="disconnectDrive()">Desconectar</button>
+        <button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;color:var(--red);" data-action="disconnect-drive">Desconectar</button>
       `;
         }
     } else if (status === 'syncing') {
@@ -159,6 +159,7 @@ export async function syncWithDrive() {
                 // Estratégia simples de merge: usa o arquivo mais recente
                 if (driveData.lastSync && state.lastSync && new Date(driveData.lastSync) > new Date(state.lastSync)) {
                     // O Drive tem uma versão mais nova (modificada em outro dispositivo)
+                    // Mantém _isSyncing = true até usuário decidir - libera apenas nos callbacks
                     showConfirm('Encontrada versão mais recente no Drive. Deseja sobrescrever os dados locais?', () => {
                         setState(driveData);
                         runMigrations();
@@ -166,11 +167,24 @@ export async function syncWithDrive() {
                             renderCurrentView();
                             showToast('Dados atualizados do Drive!', 'success');
                             updateDriveUI('connected', 'Google Drive');
-                        }).catch(e => console.error('Force save fail:', e));
+                            _isSyncing = false; // libera lock após conclusão com sucesso
+                        }).catch(e => {
+                            console.error('Force save fail:', e);
+                            _isSyncing = false; // libera lock mesmo em erro
+                        });
                     }, { title: 'Sincronização', label: 'Sobrescrever Local' });
 
-                    _isSyncing = false; // release lock after confirm dialog is set up
-                    return; // Não envia o arquivo local se o do Drive for mais novo, aguarda decisão do usuário
+                    // Handle cancel: libera lock quando usuário cancela
+                    const cancelBtn = document.getElementById('confirm-cancel-btn');
+                    if (cancelBtn) {
+                        const originalHandler = cancelBtn.onclick || (() => {});
+                        cancelBtn.onclick = () => {
+                            _isSyncing = false; // libera lock no cancelamento
+                            originalHandler();
+                        };
+                    }
+
+                    return; // Não envia o arquivo local, aguarda decisão do usuário
                 }
             } catch (e) {
                 // Arquivo pode ter sido apagado no Drive
@@ -179,7 +193,7 @@ export async function syncWithDrive() {
                     state.driveFileId = null;
                     saveStateToDB();
                     _isSyncing = false;
-                    return syncWithDrive(); // tenta novamente, agora criando arquivo novo
+                    return await syncWithDrive(); // await garante que finally roda só após recursive completar
                 }
             }
 

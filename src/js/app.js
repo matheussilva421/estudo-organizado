@@ -66,9 +66,17 @@ export function closeModal(id) {
 export let _confirmCallback = null;
 export function showConfirm(msg, onYes, opts = {}) {
   const { title = 'Confirmar', label = 'Confirmar', danger = false } = opts;
-  document.getElementById('confirm-title').textContent = title;
-  document.getElementById('confirm-msg').textContent = msg;
+  const titleEl = document.getElementById('confirm-title');
+  const msgEl = document.getElementById('confirm-msg');
   const okBtn = document.getElementById('confirm-ok-btn');
+
+  if (!titleEl || !msgEl || !okBtn) {
+    console.error('showConfirm: elementos do modal não encontrados');
+    return;
+  }
+
+  titleEl.textContent = title;
+  msgEl.textContent = msg;
   okBtn.textContent = label;
   okBtn.className = `btn btn-sm ${danger ? 'btn-danger' : 'btn-primary'}`;
   _confirmCallback = onYes;
@@ -96,6 +104,8 @@ export function cancelConfirm() {
 // Toast Notifications
 export function showToast(msg, type = '') {
   const container = document.getElementById('toast-container');
+  if (!container) return; // guard: container pode não existir em inicialização
+
   const last = container.lastElementChild;
   if (last && last.dataset.msg === msg) {
     last.classList.remove('show');

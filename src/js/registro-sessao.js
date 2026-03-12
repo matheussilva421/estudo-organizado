@@ -903,6 +903,13 @@ window.voltarPastSessionUI = function(eventId, discId) {
 
 window.openRegistroSessao = openRegistroSessao;
 
+// Listener para fechar modal via data-action - chama cancelRegistro para rollback do timer
+document.addEventListener('click', (e) => {
+  if (e.target.dataset.action === 'close-modal' && e.target.dataset.modal === 'modal-registro-sessao') {
+    cancelRegistro();
+  }
+});
+
 // Global deletion handler for previously registered sessions
 window.deleteCompletedSession = function(id) {
   showConfirm('Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?', () => {

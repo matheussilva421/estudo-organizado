@@ -371,9 +371,9 @@ export function getSyllabusProgress() {
   let totalAulas = 0;
   let aulasEstudadas = 0;
 
-  state.editais.forEach(ed => {
+  (state.editais || []).forEach(ed => {
     if (!ed.disciplinas) return;
-    ed.disciplinas.forEach(d => {
+    (ed.disciplinas || []).forEach(d => {
       totalAulas += d.aulas ? d.aulas.length : 0;
       aulasEstudadas += d.aulas ? d.aulas.filter(a => a.estudada).length : 0;
     });
