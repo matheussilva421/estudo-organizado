@@ -43,3 +43,17 @@ build/
 !.dev.vars.example
 .env*
 !.env.example
+
+
+# Artefatos locais de QA e automacao
+.agents/
+AGENTS.md
+CLAUDE.md
+app-home-page
+output/
+playwright-report/
+test-results/
+/screenshots/*.png
+/screenshots/*.json
+/git_diff*.txt
+/*.png
