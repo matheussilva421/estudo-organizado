@@ -158,7 +158,6 @@ export async function syncWithDrive() {
 
                 // Estratégia simples de merge: usa o arquivo mais recente
                 if (driveData.lastSync && state.lastSync && new Date(driveData.lastSync) > new Date(state.lastSync)) {
-                    _isSyncing = false; // release lock early
                     // O Drive tem uma versão mais nova (modificada em outro dispositivo)
                     showConfirm('Encontrada versão mais recente no Drive. Deseja sobrescrever os dados locais?', () => {
                         setState(driveData);
@@ -170,6 +169,7 @@ export async function syncWithDrive() {
                         }).catch(e => console.error('Force save fail:', e));
                     }, { title: 'Sincronização', label: 'Sobrescrever Local' });
 
+                    _isSyncing = false; // release lock after confirm dialog is set up
                     return; // Não envia o arquivo local se o do Drive for mais novo, aguarda decisão do usuário
                 }
             } catch (e) {
