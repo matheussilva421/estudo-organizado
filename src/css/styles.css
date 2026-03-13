@@ -895,9 +895,78 @@ body {
   align-items: stretch;
 }
 
+/* Verticalizado: avoid accidental card stretching in stacked layout */
+.vertical-progress-card,
+.vertical-disc-card {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* Inteligência de Banca: full-width and responsive composition */
+.banca-analyzer-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+.banca-analyzer-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.banca-analyzer-left,
+.banca-analyzer-right {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.banca-analyzer-header {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.banca-analyzer-right {
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
 @media (max-width: 1160px) {
   .disc-dashboard-main-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1280px) {
+  .banca-analyzer-grid {
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .banca-analyzer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .banca-analyzer-right {
+    min-height: 420px;
+  }
+
+  .banca-analyzer-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px;
+  }
+
+  .banca-analyzer-header select {
+    width: 100% !important;
   }
 }
 

@@ -1,8 +1,8 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { pushToCloudflare } from './cloud-sync.js';
-import { uid } from './utils.js';
+import { pushToCloudflare } from './cloud-sync.js?v=8.2';
+import { uid } from './utils.js?v=8.2';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 1;

@@ -1,6 +1,6 @@
-import { scheduleSave, state } from './store.js';
-import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid } from './utils.js';
-import { navigate } from './app.js';
+import { scheduleSave, state } from './store.js?v=8.2';
+import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid } from './utils.js?v=8.2';
+import { navigate } from './app.js?v=8.2';
 
 // =============================================
 // TIMER ENGINE
@@ -421,12 +421,12 @@ function getAggregatedStats() {
     const qs = ev.sessao?.questoes || ev.questoes;
 
     // Global stats
+    let totalQs = 0;
     if (qs) {
-      const total = qs.total ?? ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0));
-      stats.questionsTotal += total;
+      totalQs = qs.total ?? ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0));
+      stats.questionsTotal += totalQs;
       stats.questionsCorrect += (qs.acertos || qs.certas || 0);
       stats.questionsWrong += (qs.erros || qs.erradas || 0);
-      stats.weekTotalQuestions += total;
     }
     stats.pagesTotal += ev.sessao?.paginas?.total || ev.paginas || 0;
 
@@ -442,6 +442,7 @@ function getAggregatedStats() {
     // Week stats
     if (studyDate >= startStr && studyDate <= endStr) {
       stats.weekTotalSeconds += elapsed;
+      stats.weekTotalQuestions += totalQs;
       const evDate = new Date(studyDate + 'T00:00:00');
       let dIndex = evDate.getDay() - primeirodiaSemana;
       if (dIndex < 0) dIndex += 7;

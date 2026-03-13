@@ -1,6 +1,6 @@
-import { closeModal, showConfirm, showToast } from './app.js';
-import { runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js';
-import { renderCurrentView } from './components.js';
+import { closeModal, showConfirm, showToast } from './app.js?v=8.2';
+import { runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js?v=8.2';
+import { renderCurrentView } from './components.js?v=8.2';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE

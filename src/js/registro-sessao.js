@@ -3,11 +3,11 @@
 // Módulo dedicado ao registro pós-sessão
 // =============================================
 
-import { state, scheduleSave } from './store.js';
-import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js';
-import { openModal, closeModal, showToast, showConfirm } from './app.js';
-import { todayStr, esc, uid } from './utils.js';
-import { renderCurrentView, updateBadges } from './components.js';
+import { state, scheduleSave } from './store.js?v=8.2';
+import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js?v=8.2';
+import { openModal, closeModal, showToast, showConfirm } from './app.js?v=8.2';
+import { todayStr, esc, uid } from './utils.js?v=8.2';
+import { renderCurrentView, updateBadges } from './components.js?v=8.2';
 
 // =============================================
 // STUDY TYPES & MATERIALS DEFINITIONS

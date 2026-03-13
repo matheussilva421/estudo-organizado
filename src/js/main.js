@@ -1,19 +1,19 @@
 // ES Module Entry Point
 // Imports all modules and exposes functions to window for onclick handlers
 
-import * as store from './store.js';
-import * as app from './app.js';
-import * as logic from './logic.js';
-import * as components from './components.js';
-import * as views from './views.js?v=7.6';
-import * as drive_sync from './drive-sync.js';
-import * as cloud_sync from './cloud-sync.js';
-import * as registro from './registro-sessao.js?v=7.6';
-import * as utils from './utils.js';
-import * as wizard from './planejamento-wizard.js';
+import * as store from './store.js?v=8.2';
+import * as app from './app.js?v=8.2';
+import * as logic from './logic.js?v=8.2';
+import * as components from './components.js?v=8.2';
+import * as views from './views.js?v=8.2';
+import * as drive_sync from './drive-sync.js?v=8.2';
+import * as cloud_sync from './cloud-sync.js?v=8.2';
+import * as registro from './registro-sessao.js?v=8.2';
+import * as utils from './utils.js?v=8.2';
+import * as wizard from './planejamento-wizard.js?v=8.2';
 
-import * as relevance from './relevance.js';
-import * as lesson_mapper from './lesson-mapper.js';
+import * as relevance from './relevance.js?v=8.2';
+import * as lesson_mapper from './lesson-mapper.js?v=8.2';
 
 // Expose all exports to window (temporary bridge for inline onclick handlers)
 const modules = [store, app, logic, components, views, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper];

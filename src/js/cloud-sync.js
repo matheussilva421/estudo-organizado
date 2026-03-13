@@ -1,4 +1,4 @@
-import { state, setState, SyncQueue, saveStateToDB } from './store.js';
+import { state, setState, SyncQueue, saveStateToDB } from './store.js?v=8.2';
 
 let isSyncing = false;
 let _lastPushTime = 0;

@@ -1,9 +1,9 @@
-import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES } from './utils.js';
-import { scheduleSave, state, setState, runMigrations } from './store.js';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
-import { updateDriveUI } from './drive-sync.js';
+import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.2';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES } from './utils.js?v=8.2';
+import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.2';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js?v=8.2';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.2';
+import { updateDriveUI } from './drive-sync.js?v=8.2';
 
 export let calDate = new Date();
 export let calViewMode = 'mes';
@@ -99,6 +99,47 @@ export const DISC_ICONS = [
   '🌍', '🏛️', '⚖️', '🧠', '💡', '📐', '🔢', '🗂️', '📜', '🎯',
   '🩺', '🔧', '🎨', '🎵', '🏃', '🌱', '💰', '📡', '🔐', '📦'
 ];
+
+function getQuestionTotal(record) {
+  if (!record) return 0;
+  const explicit = Number(record.total ?? record.quantidade);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const acertos = Number(record.acertos ?? record.certas ?? 0);
+  const erros = Number(record.erros ?? record.erradas ?? 0);
+  const derived = acertos + erros;
+  if (Number.isFinite(derived) && derived > 0) return derived;
+
+  // Legacy compatibility: some old habit records store only eventoId.
+  const ev = (state.eventos || []).find(e => e.id === record.eventoId);
+  if (!ev) return 0;
+  const qs = ev.sessao?.questoes || ev.questoes;
+  if (!qs) return 0;
+  const eventTotal = Number(qs.total ?? qs.quantidade ?? ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0)));
+  return Number.isFinite(eventTotal) && eventTotal > 0 ? eventTotal : 0;
+}
+
+function getPagesTotal(record) {
+  if (!record) return 0;
+  const rawPages = record.paginas;
+  const pagesValue = (rawPages && typeof rawPages === 'object') ? rawPages.total : rawPages;
+  const total = Number(record.total ?? pagesValue ?? record.quantidade ?? record.paginasLidas ?? 0);
+  if (Number.isFinite(total) && total > 0) return total;
+
+  // Legacy compatibility: some old habit records store only eventoId.
+  const ev = (state.eventos || []).find(e => e.id === record.eventoId);
+  if (!ev) return 0;
+  const evPages = ev.sessao?.paginas;
+  const eventTotal = Number((evPages && typeof evPages === 'object' ? evPages.total : evPages) ?? ev.paginas ?? 0);
+  return Number.isFinite(eventTotal) && eventTotal > 0 ? eventTotal : 0;
+}
+
+function sumQuestionRecords(records = []) {
+  return records.reduce((sum, r) => sum + getQuestionTotal(r), 0);
+}
+
+function sumPageRecords(records = []) {
+  return records.reduce((sum, r) => sum + getPagesTotal(r), 0);
+}
 
 // =============================================
 // NOVO HOME VIEW (DASHBOARD REDESIGN)
@@ -804,8 +845,8 @@ export function renderDashboard(el) {
 
   const totalSecs = filteredEvts.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
   const questTot = cutoffStr
-    ? (state.habitos.questoes || []).filter(r => r.data >= cutoffStr).reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0)
-    : (state.habitos.questoes || []).reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0);
+    ? sumQuestionRecords((state.habitos.questoes || []).filter(r => r.data >= cutoffStr))
+    : sumQuestionRecords(state.habitos.questoes || []);
   const simTot = cutoffStr
     ? (state.habitos.simulado || []).filter(r => r.data >= cutoffStr).length
     : (state.habitos.simulado || []).length;
@@ -968,7 +1009,9 @@ export function renderHabitSummary(periodDays) {
     const recent = cutoffStr
       ? (state.habitos[h.key] || []).filter(r => r.data >= cutoffStr)
       : (state.habitos[h.key] || []);
-    const count = h.key === 'questoes' ? recent.reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0) : recent.length;
+    let count = recent.length;
+    if (h.key === 'questoes') count = sumQuestionRecords(recent);
+    if (h.key === 'paginas') count = sumPageRecords(recent);
     return `
       <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
         <div style="font-size:18px;">${h.icon}</div>
@@ -1181,10 +1224,10 @@ export function renderHabitos(el) {
     let recentStr = '';
     
     if (h.key === 'questoes') {
-      total = all.reduce((s, q) => s + ((q.total || q.quantidade) || 1), 0);
+      total = sumQuestionRecords(all);
       recentStr = `Total acumulado`;
     } else if (h.key === 'paginas') {
-      total = all.reduce((s, p) => s + (p.total || 0), 0);
+      total = sumPageRecords(all);
       recentStr = `Total acumulado`;
     } else {
       total = all.length;
@@ -1610,7 +1653,7 @@ export function renderVertical(el) {
     </div>
 
     <!-- Fix 3: isolated list container — only this gets re-rendered on search -->
-    <div id="vert-list-container"></div>
+    <div id="vert-list-container" style="width:100%;display:block;"></div>
   `;
   renderVerticalList(document.getElementById('vert-list-container'));
 }
@@ -1632,7 +1675,7 @@ export function renderVerticalList(container) {
 
   // Card Progresso Global
   let html = `
-    <div class="card" style="margin-bottom:24px;padding:20px;border:none;">
+    <div class="card vertical-progress-card" style="margin-bottom:24px;padding:20px;border:none;height:auto;min-height:0;">
       <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;">
         <div>
           <div style="font-size:12px;font-weight:700;color:var(--text-primary);letter-spacing:1px;margin-bottom:8px;">PROGRESSO NO EDITAL</div>
@@ -1702,7 +1745,7 @@ export function renderVerticalList(container) {
     const cor = dMap.disc.cor || dMap.edital.cor || 'var(--accent)';
 
     html += `
-      <div class="card" style="margin-bottom:12px;overflow:hidden;border:none;">
+      <div class="card vertical-disc-card" style="margin-bottom:12px;overflow:hidden;border:none;height:auto;min-height:0;">
         
         <!-- HEADER DISCIPLINA -->
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--card);cursor:pointer;" onclick="window.toggleVertDisc('${discId}')">
@@ -2860,7 +2903,7 @@ window.deleteAula = function (discId, aulaId) {
   });
 };
 
-import { mapAulasToAssuntos } from './lesson-mapper.js';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.2';
 window.runLessonMapperUI = function (editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -2877,7 +2920,7 @@ window.runLessonMapperUI = function (editaId, discId) {
 // =============================================
 // MÓDULO PREDITIVO DE BANCA E RELEVÂNCIA (WAVE 33)
 // =============================================
-import { applyRankingToEdital, commitEditalOrdering, revertEditalOrdering } from './relevance.js';
+import { applyRankingToEdital, commitEditalOrdering, revertEditalOrdering } from './relevance.js?v=8.2';
 
 let analyzerCtx = { editaId: null, parsedHotTopics: [], tempMatchResults: [] };
 
@@ -2927,8 +2970,8 @@ window._renderBancaAnalyzerContent = function (el) {
       ` : '';
 
   el.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:16px; margin:0 auto; padding-bottom:40px;">
-        <div class="card p-16" style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="banca-analyzer-shell">
+        <div class="card p-16 banca-analyzer-header" style="display:flex; justify-content:space-between; align-items:center;">
             <div>
                <h2 style="margin:0; font-size:18px;">Inteligência de Banca / Análise Preditiva</h2>
                <div style="font-size:13px; color:var(--text-secondary); margin-top:4px;">Cruze os Assuntos mais Cobrados com o seu Edital Atual para gerar as Prioridades P1/P2/P3.</div>
@@ -2940,9 +2983,9 @@ window._renderBancaAnalyzerContent = function (el) {
             </div>
         </div>
 
-        <div style="display:grid; grid-template-columns: 350px 1fr; gap:16px; align-items:start;">
+        <div class="banca-analyzer-grid">
             <!-- PAINEL ESQUERDO: IMPORTAÇÃO -->
-            <div class="card p-16">
+            <div class="card p-16 banca-analyzer-left">
                 <div class="dash-label" style="margin-bottom:8px;">1. Planejamento (Hot Topics)</div>
                 <input type="text" id="banca-disc-search" class="form-control" style="margin-bottom:8px;font-size:13px;" placeholder="Buscar matéria..." oninput="window.filtrarDropdownBanca(this.value)">
                 <select id="banca-disc-select" class="form-control" style="margin-bottom:12px;font-weight:600;" onchange="window.filtrarViewPorDisciplina(this.value)">
@@ -2962,7 +3005,7 @@ window._renderBancaAnalyzerContent = function (el) {
             </div>
 
             <!-- PAINEL DIREITO: PREVISÃO E MATCH -->
-            <div class="card p-16" style="min-height:500px; display:flex; flex-direction:column;">
+            <div class="card p-16 banca-analyzer-right">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:12px;">
                     <div class="dash-label" style="margin:0;">2. Previsão de Match (Simulação)</div>
                     <div id="banca-stats" style="font-size:12px;font-weight:600;color:var(--accent);">Aguardando Input...</div>
@@ -2982,7 +3025,7 @@ window._renderBancaAnalyzerContent = function (el) {
                 </div>
             </div>
         </div>
-    </div>
+      </div>
       `;
 };
 
