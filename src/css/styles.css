@@ -401,24 +401,9 @@ body {
 .logo-text {
   font-size: 15px;
   font-weight: 700;
-  color: var(--text-primary);
-  /* Adaptativo */
-  line-height: 1.2;
-}
-
-[data-theme="light"] .logo-text,
-[data-theme="furtivo"] .logo-text {
-  color: #1a2035;
-  /* Cor escura para logos em fundos claros */
-}
-
-[data-theme="dark"] .logo-text,
-[data-theme="abismo"] .logo-text,
-[data-theme="grafite"] .logo-text,
-[data-theme="matrix"] .logo-text,
-[data-theme="rubi"] .logo-text {
   color: #fff;
-  /* Cor clara para temas escuros */
+  /* Sidebar é sempre escura em todos os temas */
+  line-height: 1.2;
 }
 
 .logo-text span {
