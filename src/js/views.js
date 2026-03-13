@@ -2033,7 +2033,7 @@ export function renderDisciplinaDashboard(edital, disc) {
   const percConcluido = totalAulas > 0 ? Math.round((aulasEstudadas / totalAulas) * 100) : 0;
 
   return `
-    <div style="max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-bottom:40px;">
+    <div class="disc-dashboard-shell">
       
       <!-- HEADER STATS -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;">
@@ -2077,7 +2077,7 @@ export function renderDisciplinaDashboard(edital, disc) {
       </div>
 
       <!-- MAIN CONTENT GRID -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));gap:20px;align-items:stretch;">
+      <div class="disc-dashboard-main-grid">
         
         <!-- HISTÓRICO DE ESTUDOS (ESQUERDA) -->
         <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">

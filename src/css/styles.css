@@ -922,6 +922,32 @@ body {
   margin-bottom: 24px;
 }
 
+/* Disciplina dashboard layout guard:
+   keep full-width shell in flex stack to avoid accidental shrink-to-content. */
+.disc-dashboard-shell {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 40px;
+}
+
+.disc-dashboard-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 1160px) {
+  .disc-dashboard-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* CARDS */
 .card {
   background: var(--card);
@@ -2157,7 +2183,7 @@ select.form-control {
 }
 
 .crono-select {
-  max-width: 300px;
+  max-width: 460px;
   background: var(--bg);
   color: var(--text-primary);
   border: 1px solid var(--border);
@@ -2165,8 +2191,12 @@ select.form-control {
   padding: 8px;
   font-size: 16px;
   width: 100%;
-  text-align: center;
-  appearance: none;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  appearance: auto;
+  -webkit-appearance: menulist;
   cursor: pointer;
 }
 

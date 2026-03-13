@@ -45,6 +45,10 @@ export function renderCronometro(el) {
   // Calculate progress (if event has planned time, default 1h30 (5400s) if not free session)
   const plannedSecs = (focusEvent.duracaoMinutos || focusEvent.duracao) ? (focusEvent.duracaoMinutos || focusEvent.duracao) * 60 : (focusEvent.id === 'crono_livre' ? 0 : 5400);
   const progress = plannedSecs > 0 ? Math.min((elapsed / plannedSecs) * 100, 100) : 0;
+  const truncateOptionLabel = (text, max = 64) => {
+    const normalized = String(text || '').trim();
+    return normalized.length > max ? `${normalized.slice(0, max - 1)}…` : normalized;
+  };
 
   const otherEvents = allTimerEvents.filter(e => e.id !== focusEvent.id);
 
@@ -62,16 +66,20 @@ export function renderCronometro(el) {
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px;">
           <select class="crono-select" onchange="setCronoLivreDisc(this.value)">
             <option value="">(Opcional) Escolha a Disciplina...</option>
-            ${getAllDisciplinas().map(d => `<option value="${d.disc.id}" ${state.cronoLivre?.discId === d.disc.id ? 'selected' : ''}>${d.disc.icone || '📖'} ${esc(d.disc.nome)}</option>`).join('')}
+            ${getAllDisciplinas().map(d => {
+      const discLabel = `${d.disc.icone || '📖'} ${truncateOptionLabel(d.disc.nome, 42)}`;
+      return `<option value="${d.disc.id}" title="${esc(d.disc.nome)}" ${state.cronoLivre?.discId === d.disc.id ? 'selected' : ''}>${esc(discLabel)}</option>`;
+    }).join('')}
           </select>
           ${state.cronoLivre?.discId ? `
             <select class="crono-select" onchange="setCronoLivreAss(this.value)">
               <option value="">(Opcional) Tópico...</option>
               ${(() => {
                 const d = getDisc(state.cronoLivre.discId);
-                return d ? d.disc.assuntos.filter(a => !a.concluido).map(a =>
-                  `<option value="${a.id}" ${state.cronoLivre?.assId === a.id ? 'selected' : ''}>${esc(a.nome)}</option>`
-                ).join('') : '';
+                return d ? d.disc.assuntos.filter(a => !a.concluido).map(a => {
+                  const assuntoLabel = truncateOptionLabel(a.nome, 72);
+                  return `<option value="${a.id}" title="${esc(a.nome)}" ${state.cronoLivre?.assId === a.id ? 'selected' : ''}>${esc(assuntoLabel)}</option>`;
+                }).join('') : '';
               })()}
             </select>
           ` : ''}
