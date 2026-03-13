@@ -1,59 +1,12 @@
-# Dependências
-node_modules/
-package-lock.json
+# Ignore all by default and only allow project source set.
+/*
 
-# Arquivos temporários de desenvolvimento
-temp_*.html
-extracted_*.js
-fix_encoding*.js
-find_mojibake.js
-fix_final.js
-debug_*.js
-
-# Arquivos do sistema
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Arquivos de log
-*.log
-npm-debug.log*
-
-# Arquivos do editor/IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Ferramentas de dev
-.claude/
-.playwright-mcp/
-
-# Arquivos resolved (gerados por agentes)
-*.resolved
-
-# Build
-dist/
-build/
-
-# Wrangler / Cloudflare
-.wrangler
-.dev.vars*
-!.dev.vars.example
-.env*
-!.env.example
-
-
-# Artefatos locais de QA e automacao
-.agents/
-AGENTS.md
-CLAUDE.md
-app-home-page
-output/
-playwright-report/
-test-results/
-/screenshots/*.png
-/screenshots/*.json
-/git_diff*.txt
-/*.png
+!/.gitignore
+!/src/
+!/src/**
+!/scripts/
+!/scripts/**
+!/README.md
+!/LICENSE
+!/wrangler.jsonc
+!/Abrir_Estudo_Organizado.bat
