@@ -105,6 +105,9 @@ document.addEventListener('click', (e) => {
     case 'toggle-sidebar':
       window.toggleSidebar();
       break;
+    case 'toggle-sidebar-collapse':
+      window.toggleSidebarCollapse();
+      break;
 
     // Theme
     case 'toggle-theme':
