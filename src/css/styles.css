@@ -485,48 +485,16 @@ body {
   display: none;
 }
 
-/* Show expand indicator on hover when collapsed */
-#sidebar.collapsed .sidebar-logo::after {
-  content: '›';
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 20px;
-  color: rgba(255, 255, 255, 0.5);
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-}
-
-#sidebar.collapsed:hover .sidebar-logo::after {
-  opacity: 1;
-}
-
-#sidebar.collapsed .sidebar-logo:hover {
-  cursor: pointer;
-}
-
-/* Show toggle button only when hovering sidebar when collapsed */
-#sidebar.collapsed:hover .sidebar-toggle-btn {
-  display: flex;
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%) rotate(180deg);
-  background: rgba(255, 255, 255, 0.15);
-}
-
 /* Sidebar expand hint button */
 .sidebar-expand-hint {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: 8px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.5);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
   transition: all 0.2s;
+  font-size: 14px;
 }
 
 .sidebar-expand-hint:hover {
