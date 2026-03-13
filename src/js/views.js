@@ -3782,7 +3782,7 @@ window.savePastEvent = function(discId) {
 export function renderConfig(el) {
   const cfg = state.config;
   el.innerHTML = `
-    <div class="grid-2" >
+    <div class="grid-2" style="align-items:start;">
       <div>
         <div class="card" style="margin-bottom:16px;">
           <div class="card-header"><h3>🎨 Aparência</h3></div>
