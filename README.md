@@ -9,19 +9,6 @@ Aplicação web premium para **planejamento e organização de estudos** voltada
 
 ---
 
-## 📸 Visual Showcase
-
-<p align="center">
-  <img src="screenshots/app_view_01_home_1772223847529.png" width="45%" alt="Home" />
-  <img src="screenshots/app_view_10_inteligencia_banca_1772223947936.png" width="45%" alt="Inteligência de Banca" />
-</p>
-<p align="center">
-  <img src="screenshots/app_view_05_dashboard_1772223895329.png" width="45%" alt="Dashboard" />
-  <img src="screenshots/app_view_02_cronometro_1772223858808.png" width="45%" alt="Cronômetro" />
-</p>
-
----
-
 ## ✨ Funcionalidades Detalhadas
 
 ### 🏠 Página Inicial
