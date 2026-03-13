@@ -1,5 +1,5 @@
 import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, uid, HABIT_TYPES } from './utils.js';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES } from './utils.js';
 import { scheduleSave, state, setState, runMigrations } from './store.js';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js';
@@ -1963,6 +1963,30 @@ export function toggleAssunto(discId, assId) {
   }
 }
 
+export function toggleAulaDashboard(editaId, discId, aulaId) {
+  for (const edital of state.editais) {
+    if (!edital.disciplinas) continue;
+    const disc = edital.disciplinas.find(d => d.id === discId);
+    if (!disc) continue;
+
+    const aula = (disc.aulas || []).find(a => a.id === aulaId);
+    if (!aula) return;
+
+    aula.estudada = !aula.estudada;
+    aula.dataEstudo = aula.estudada ? todayStr() : null;
+    scheduleSave();
+
+    if (window.activeDashboardDiscCtx && window.activeDashboardDiscCtx.discId === discId) {
+      openDiscDashboard(editaId, discId);
+    } else {
+      renderCurrentView();
+    }
+
+    showToast(aula.estudada ? 'Aula marcada como estudada.' : 'Aula desmarcada.', 'success');
+    return;
+  }
+}
+
 window.activeDashboardDiscCtx = null;
 
 export function openDiscDashboard(editaId, discId) {
@@ -2212,7 +2236,7 @@ function renderAulasDisciplinaDashboard(edital, disc) {
     <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
         ${disc.aulas.map(aul => `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${aul.estudada ? 'background:#f8fafc;border-radius:6px;' : ''}">
-          <div class="check-circle ${aul.estudada ? 'done' : ''}" style="flex-shrink:0;">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
+          <div class="check-circle ${aul.estudada ? 'done' : ''}" onclick="toggleAulaDashboard('${edital.id}','${disc.id}','${aul.id}')" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}" style="flex-shrink:0;cursor:pointer;">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
           <div style="flex:1;min-width:0;font-size:13px;font-weight:${aul.estudada ? '400' : '600'};color:${aul.estudada ? 'var(--text-muted)' : 'var(--text-primary)'};${aul.estudada ? 'text-decoration:line-through;' : ''}">
              ${esc(aul.nome)}
              ${aul.linkedAssuntoIds && aul.linkedAssuntoIds.length > 0 ? `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">🔗 ${aul.linkedAssuntoIds.length} tópico(s) do edital conectado(s)</div>` : ''}
@@ -3678,9 +3702,7 @@ window.openAddPastSessionModal = function(discId) {
   let aulaOptions = '<option value="">Sem material/aula específico</option>';
   const aulas = d.disc.aulas || [];
   const pendingAulas = aulas.filter(a => !a.estudada);
-  let showAulas = false;
   if (pendingAulas.length > 0) {
-    showAulas = true;
     aulaOptions += pendingAulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome, 100))}</option>`).join('');
   }
 
@@ -3697,14 +3719,12 @@ window.openAddPastSessionModal = function(discId) {
       </select>
     </div>
 
-    ${showAulas ? `
     <div class="form-group" id="event-aula-group" style="margin-top:12px;">
       <label class="form-label">Material / Aula (opcional)</label>
       <select class="form-control" id="past-event-aula">
         ${aulaOptions}
       </select>
     </div>
-    ` : ''}
 
     <div class="form-row" style="margin-top:20px;">
       <div class="form-group">

@@ -74,7 +74,13 @@ export function updateDriveUI(status, label) {
         }
     } else if (status === 'syncing') {
         sub.textContent = 'Sincronizando...';
-        if (btn) btn.textContent = 'Aguarde...';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '\u231B Sincronizando...';
+        }
+        if (area) {
+            area.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:12px;border-radius:8px;font-size:13px;margin-top:16px;background:var(--bg-secondary);"><div class="spinner" style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;"></div><span>Sincronizando seus dados...</span></div>';
+        }
     } else {
         sub.textContent = 'Clique para conectar';
         if (btn) btn.textContent = 'Conectar';
@@ -96,29 +102,62 @@ export function checkDriveStatus() {
 }
 
 export function driveAction() {
+    const btn = document.getElementById('drive-action-btn');
     const inputId = document.getElementById('drive-client-id')?.value.trim();
     const savedId = localStorage.getItem('estudo_drive_client_id');
+
+    // Set loading state
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sincronizando...';
+    }
 
     if (inputId && inputId !== savedId) {
         localStorage.setItem('estudo_drive_client_id', inputId);
         showToast('Client ID salvo. Recarregando...', 'info');
-        setTimeout(() => location.reload(), 1500);
+        setTimeout(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Conectar';
+            }
+            location.reload();
+        }, 1500);
         return;
     }
 
     if (!savedId) {
         showToast('Insira o Client ID primeiro', 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Conectar';
+        }
         return;
     }
 
     if (typeof gapi === 'undefined' || !gapi.client) {
         showToast('APIs do Google não carregadas. Certifique-se de ter inserido o Client ID e recarregue a página.', 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Conectar';
+        }
         return;
     }
     if (gapi.client?.getToken() === null) {
         tokenClient.requestAccessToken({ prompt: 'consent' });
+        // Reset button after auth prompt
+        setTimeout(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Conectar';
+            }
+        }, 2000);
     } else {
-        syncWithDrive();
+        syncWithDrive().finally(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Sincronizar Agora';
+            }
+        });
     }
 }
 
@@ -139,10 +178,10 @@ export function disconnectDrive() {
 }
 
 let _isSyncing = false;
-export async function syncWithDrive() {
+export async function syncWithDrive(isRecursion = false) {
     if (!gapi.client || !gapi.client.drive) return;
-    if (_isSyncing) return;
-    _isSyncing = true;
+    if (_isSyncing && !isRecursion) return;
+    if (!isRecursion) _isSyncing = true;
     updateDriveUI('syncing', 'Sincronizando...');
 
     try {
@@ -191,9 +230,9 @@ export async function syncWithDrive() {
                 console.warn('Não foi possível ler do Drive, sobrescrevendo arquivo.', e);
                 if (e.status === 404 || e.result?.error?.code === 404) {
                     state.driveFileId = null;
-                    saveStateToDB();
-                    _isSyncing = false;
-                    return await syncWithDrive(); // await garante que finally roda só após recursive completar
+                    return saveStateToDB().then(() => {
+                        return syncWithDrive(true); // recursão com flag para não liberar lock duplamente
+                    });
                 }
             }
 
@@ -268,7 +307,7 @@ export async function syncWithDrive() {
         showToast('Erro ao sincronizar com Drive', 'error');
         updateDriveUI('disconnected', 'Erro na Sincronização');
     } finally {
-        _isSyncing = false;
+        if (!isRecursion) _isSyncing = false;
     }
 }
 

@@ -160,7 +160,11 @@ export async function pushToCloudflare() {
 // Global binding para o botão na UI
 window.forceCloudflareSync = async function () {
     const btn = document.getElementById('btn-force-cf-sync');
-    if (btn) btn.disabled = true;
+    const originalText = btn ? btn.textContent : 'Sincronizar';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '\u231B Sincronizando...';
+    }
 
     try {
         // Bypass rate limit para sync manual
@@ -168,10 +172,14 @@ window.forceCloudflareSync = async function () {
         // Tenta puxar novidades, e então empurra a versão atualizada pra consolidar
         await SyncQueue.add(() => pullFromCloudflare());
         await SyncQueue.add(() => pushToCloudflare());
+        updateSyncStatus('Sincronizado com sucesso', false);
     } catch (err) {
         console.error('Force sync failed:', err);
         updateSyncStatus('Erro na sincronização forçada', true);
     } finally {
-        if (btn) btn.disabled = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
     }
 };

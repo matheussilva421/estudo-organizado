@@ -146,6 +146,20 @@ export function loadLegacyState() {
 // Save state to IndexedDB with debounce
 export let saveTimeout = null;
 
+// Handler pagehide - mais confiável que beforeunload em mobile e fechamentos bruscos
+window.addEventListener('pagehide', () => {
+  if (saveTimeout !== null) {
+    // Emergency sync save via localStorage (síncrono e confiável)
+    try {
+      localStorage.setItem('estudo_state_emergency', JSON.stringify(state));
+    } catch (err) {
+      console.error('pagehide emergency localStorage save failed:', err);
+    }
+    // Também tenta IndexedDB (pode não completar em fechamentos bruscos)
+    saveStateToDB();
+  }
+});
+
 window.addEventListener('beforeunload', (e) => {
   if (saveTimeout !== null) {
     // Emergency sync save via localStorage (IndexedDB is async and may not complete)

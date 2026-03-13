@@ -461,7 +461,7 @@ export function onDisciplinaChange() {
   if (!discId) {
     assSelect.innerHTML = '<option value="">Selecione a disciplina primeiro</option>';
     if (aulaSelect) aulaSelect.innerHTML = '<option value="">Selecione a disciplina primeiro</option>';
-    if (aulaContainer) aulaContainer.style.display = 'none';
+    if (aulaContainer) aulaContainer.style.display = '';
     return;
   }
 
@@ -479,13 +479,13 @@ export function onDisciplinaChange() {
 
   const aulas = d.disc.aulas || [];
   const pendingAulas = aulas.filter(a => !a.estudada);
-  if (pendingAulas.length > 0 && aulaSelect && aulaContainer) {
+  if (aulaSelect && aulaContainer) {
     let ht = '<option value="">Sem material/aula específico</option>';
-    ht += pendingAulas.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
+    if (pendingAulas.length > 0) {
+      ht += pendingAulas.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
+    }
     aulaSelect.innerHTML = ht;
     aulaContainer.style.display = '';
-  } else if (aulaContainer) {
-    aulaContainer.style.display = 'none';
   }
 }
 
@@ -710,8 +710,9 @@ export function saveRegistroSessao() {
   }
   
   ev.discId = discId || ev.discId;
-  ev.assId = assId || ev.assId;
-  ev.aulaId = aulaId || ev.aulaId;
+  // Allow clearing selections when user chooses "Sem tópico" / "Sem material"
+  ev.assId = assId || null;
+  ev.aulaId = aulaId || null;
 
   // Build titulo from discipline + topic
   if (discId) {
@@ -831,16 +832,18 @@ export function saveRegistroSessao() {
     }
   }
 
-  scheduleSave();
-  closeModal('modal-registro-sessao');
+  // FLUSH IMEDIATO para operações críticas - registro de sessão é dado importante
+  saveStateToDB().then(() => {
+    closeModal('modal-registro-sessao');
 
-  // Bug 1 Fix: Explicitly flush UI updates
-  setTimeout(() => {
-    document.dispatchEvent(new Event('app:refreshMEDSections'));
-    updateBadges();
-    renderCurrentView();
-    showToast('Sessão registrada com sucesso! ✅', 'success');
-  }, 50);
+    // Bug 1 Fix: Explicitly flush UI updates after save completes
+    setTimeout(() => {
+      document.dispatchEvent(new Event('app:refreshMEDSections'));
+      updateBadges();
+      renderCurrentView();
+      showToast('Sessão registrada com sucesso! ✅', 'success');
+    }, 50);
+  });
 
   return true;
 }

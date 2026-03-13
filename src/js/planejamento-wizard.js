@@ -51,6 +51,11 @@ function attachWizardListeners() {
     const btnBack = document.getElementById('pw-btn-voltar');
     const btnDone = document.getElementById('pw-btn-concluir');
 
+    if (!btnNext || !btnBack || !btnDone) {
+        console.error('attachWizardListeners: elementos do wizard não encontrados');
+        return;
+    }
+
     // Remove old listeners by cloning
     btnNext.replaceWith(btnNext.cloneNode(true));
     btnBack.replaceWith(btnBack.cloneNode(true));

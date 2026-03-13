@@ -58,6 +58,13 @@ export function formatH(minutes) {
     return `${m}m`;
 }
 
+export function trunc(value, max = 80) {
+    if (value === null || value === undefined) return '';
+    const text = String(value).trim();
+    if (text.length <= max) return text;
+    return `${text.slice(0, Math.max(1, max - 3))}...`;
+}
+
 export function getEventStatus(evento) {
     const today = todayStr();
     if (evento.status === 'estudei') return 'estudei';
@@ -86,9 +93,4 @@ export const HABIT_TYPES = [
 
 export function getHabitType(key) {
     return HABIT_TYPES.find(h => h.key === key);
-}
-
-export function trunc(str, length) {
-    if (!str) return '';
-    return str.length > length ? str.substring(0, length) + '...' : str;
 }

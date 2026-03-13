@@ -118,6 +118,46 @@ export function reattachTimers() {
   });
 }
 
+// Otimizado: adiciona apenas um timer específico sem recriar todos
+export function startTimerForEvent(eventId) {
+  const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
+  if (!ev || !ev._timerStart) return;
+
+  // Clear existing interval for this specific timer only
+  if (timerIntervals[eventId]) {
+    clearInterval(timerIntervals[eventId]);
+    delete timerIntervals[eventId];
+  }
+
+  let _cachedNodes = null;
+  timerIntervals[eventId] = setInterval(() => {
+    const elapsed = getElapsedSeconds(ev);
+
+    // POMODORO CHECK
+    if (_pomodoroMode && ev._timerStart) {
+      const sessionSeconds = Math.floor((Date.now() - ev._timerStart) / 1000);
+      const focoTargetSecs = (state?.config?.pomodoroFoco || 25) * 60;
+      const pausaTargetMins = state?.config?.pomodoroPausa || 5;
+      if (sessionSeconds >= focoTargetSecs) {
+        _pomodoroAlarm.play().catch(e => console.log('Audio error:', e));
+        toggleTimer(eventId); // Auto-pause
+        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `Pomodoro concluído! Descanse ${pausaTargetMins} minutos.`, type: 'success' } }));
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Pomodoro Concluído! 🍅", { body: `Descanse ${pausaTargetMins} minutos.`, icon: 'favicon.ico' });
+        }
+        return;
+      }
+    }
+
+    if (!_cachedNodes || _cachedNodes.length === 0 || !document.body.contains(_cachedNodes[0])) {
+      _cachedNodes = document.querySelectorAll(`[data-timer="${eventId}"]`);
+    }
+    _cachedNodes.forEach(el => {
+      el.textContent = formatTime(elapsed);
+    });
+  }, 1000);
+}
+
 export function addTimerMinutes(eventId, minutes) {
   const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
   if (!ev) return;
@@ -142,7 +182,7 @@ export function toggleTimer(eventId) {
   } else {
     // START
     ev._timerStart = Date.now();
-    reattachTimers(); // Start the interval immediately so card reflects seconds
+    startTimerForEvent(eventId); // Otimizado: cria apenas este timer, não recria todos
   }
   scheduleSave();
   document.dispatchEvent(new CustomEvent('app:refreshEventCard', { detail: { eventId } }));
@@ -207,6 +247,7 @@ export function _marcarEstudeiDirect(eventId) {
     }
   }
   scheduleSave();
+  invalidatePendingRevCache();
   document.dispatchEvent(new Event('app:refreshMEDSections'));
 
   document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Evento marcado como Estudei! ✅', type: 'success' } }));
@@ -223,6 +264,7 @@ export function deleteEvento(eventId) {
         }
         state.eventos = state.eventos.filter(e => e.id !== eventId);
         scheduleSave();
+        invalidatePendingRevCache();
         document.dispatchEvent(new CustomEvent('app:eventoDeleted', { detail: { eventId } }));
       },
       opts: { danger: true, label: 'Excluir', title: 'Excluir evento' }
@@ -326,6 +368,7 @@ let _pagesCache = null;
 let _syllabusCache = null;
 let _subjectCache = null;
 let _weekCache = null;
+let _aggregatedStatsCache = null;
 
 export function invalidateDashCaches() {
   _perfCache = null;
@@ -333,37 +376,100 @@ export function invalidateDashCaches() {
   _syllabusCache = null;
   _subjectCache = null;
   _weekCache = null;
+  _aggregatedStatsCache = null;
 }
 
-export function getPerformanceStats() {
-  if (_perfCache) return _perfCache;
-  let questionsTotal = 0;
-  let questionsCorrect = 0;
-  let questionsWrong = 0;
+// Pre-aggregate all event stats in a single pass for better performance
+function getAggregatedStats() {
+  if (_aggregatedStatsCache) return _aggregatedStatsCache;
 
+  const stats = {
+    questionsTotal: 0,
+    questionsCorrect: 0,
+    questionsWrong: 0,
+    pagesTotal: 0,
+    subjectStats: {},
+    weekDailySeconds: [0, 0, 0, 0, 0, 0, 0],
+    weekTotalSeconds: 0,
+    weekTotalQuestions: 0,
+    streakDates: new Set()
+  };
+
+  // Initialize subject stats with all disciplines
+  (state.editais || []).forEach(ed => {
+    if (!ed.disciplinas) return;
+    ed.disciplinas.forEach(d => {
+      stats.subjectStats[d.id] = { id: d.id, nome: d.nome, tempo: 0, acertos: 0, erros: 0 };
+    });
+  });
+
+  // Determine week boundaries once
+  const now = new Date();
+  const primeirodiaSemana = state.config.primeirodiaSemana || 1;
+  let dayOffset = now.getDay() - primeirodiaSemana;
+  if (dayOffset < 0) dayOffset += 7;
+  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOffset, 0, 0, 0, 0);
+  const startStr = getLocalDateStr(startOfWeek);
+  const endStr = getLocalDateStr(new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 6, 23, 59, 59, 999));
+
+  // Single pass through all events
   state.eventos.forEach(ev => {
     if (ev.status !== 'estudei') return;
+
+    const studyDate = ev.dataEstudo || ev.data;
+    const elapsed = ev.tempoAcumulado || 0;
     const qs = ev.sessao?.questoes || ev.questoes;
+
+    // Global stats
     if (qs) {
-      questionsTotal += qs.total || ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0));
-      questionsCorrect += (qs.acertos || qs.certas || 0);
-      questionsWrong += (qs.erros || qs.erradas || 0);
+      const total = qs.total ?? ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0));
+      stats.questionsTotal += total;
+      stats.questionsCorrect += (qs.acertos || qs.certas || 0);
+      stats.questionsWrong += (qs.erros || qs.erradas || 0);
+      stats.weekTotalQuestions += total;
+    }
+    stats.pagesTotal += ev.sessao?.paginas?.total || ev.paginas || 0;
+
+    // Subject stats
+    if (ev.discId && stats.subjectStats[ev.discId]) {
+      stats.subjectStats[ev.discId].tempo += elapsed;
+      if (qs) {
+        stats.subjectStats[ev.discId].acertos += (qs.acertos || qs.certas || 0);
+        stats.subjectStats[ev.discId].erros += (qs.erros || qs.erradas || 0);
+      }
+    }
+
+    // Week stats
+    if (studyDate >= startStr && studyDate <= endStr) {
+      stats.weekTotalSeconds += elapsed;
+      const evDate = new Date(studyDate + 'T00:00:00');
+      let dIndex = evDate.getDay() - primeirodiaSemana;
+      if (dIndex < 0) dIndex += 7;
+      stats.weekDailySeconds[dIndex] += elapsed;
+    }
+
+    // Streak dates
+    if (studyDate) {
+      stats.streakDates.add(studyDate);
     }
   });
 
-  _perfCache = { questionsTotal, questionsCorrect, questionsWrong };
-  return _perfCache;
+  _aggregatedStatsCache = stats;
+  return stats;
+}
+
+export function getPerformanceStats() {
+  const agg = getAggregatedStats();
+  return {
+    questionsTotal: agg.questionsTotal,
+    questionsCorrect: agg.questionsCorrect,
+    questionsWrong: agg.questionsWrong
+  };
 }
 
 export function getPagesReadStats() {
-  if (_pagesCache !== null) return _pagesCache;
-  let pagesTotal = 0;
-  state.eventos.forEach(ev => {
-    if (ev.status !== 'estudei') return;
-    pagesTotal += ev.sessao?.paginas?.total || ev.paginas || 0;
-  });
-  _pagesCache = pagesTotal;
-  return _pagesCache;
+  const agg = getAggregatedStats();
+  return agg.pagesTotal;
 }
 
 export function getSyllabusProgress() {
@@ -388,19 +494,15 @@ export function invalidateStreakCache() { _streakCache = null; }
 
 export function getConsistencyStreak() {
   if (_streakCache) return _streakCache;
-  const dates = new Set();
-  state.eventos.forEach(ev => {
-    if (ev.status === 'estudei' && ev.dataEstudo) {
-      dates.add(ev.dataEstudo);
-    }
-  });
+  const agg = getAggregatedStats();
+  const dates = agg.streakDates;
 
   const todayStrDate = getLocalDateStr();
   let currentStreak = 0;
   let maxStreak = 0;
   let tempStreak = 0;
 
-  // Calculate max streak (inefficient but works for small local DB)
+  // Calculate max streak
   const sortedDates = Array.from(dates).sort();
   if (sortedDates.length > 0) {
     tempStreak = 1;
@@ -413,7 +515,7 @@ export function getConsistencyStreak() {
         tempStreak++;
         if (tempStreak > maxStreak) maxStreak = tempStreak;
       } else if (diff > 1) {
-        tempStreak = 1; // reset
+        tempStreak = 1;
       }
     }
 
@@ -428,7 +530,7 @@ export function getConsistencyStreak() {
   // Generate last 30 days heatmap
   const heatmap = [];
   const startDay = new Date(todayStrDate + 'T00:00:00');
-  startDay.setDate(startDay.getDate() - 29); // 30 days including today
+  startDay.setDate(startDay.getDate() - 29);
 
   for (let i = 0; i < 30; i++) {
     const dStr = getLocalDateStr(startDay);
@@ -441,81 +543,17 @@ export function getConsistencyStreak() {
 }
 
 export function getSubjectStats() {
-  if (_subjectCache) return _subjectCache;
-  const stats = {};
-
-  // Initialize with all known disciplines to show rows even if 0
-  state.editais.forEach(ed => {
-    if (!ed.disciplinas) return;
-    ed.disciplinas.forEach(d => {
-      stats[d.id] = { id: d.id, nome: d.nome, tempo: 0, acertos: 0, erros: 0 };
-    });
-  });
-
-  state.eventos.forEach(ev => {
-    if (ev.status === 'estudei' && ev.discId && stats[ev.discId]) {
-      stats[ev.discId].tempo += (ev.tempoAcumulado || 0);
-      const qs = ev.sessao?.questoes || ev.questoes;
-      if (qs) {
-        stats[ev.discId].acertos += (qs.acertos || qs.certas || 0);
-        stats[ev.discId].erros += (qs.erros || qs.erradas || 0);
-      }
-    }
-  });
-
-  _subjectCache = Object.values(stats).sort((a, b) => a.nome.localeCompare(b.nome));
-  return _subjectCache;
+  const agg = getAggregatedStats();
+  return Object.values(agg.subjectStats).sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 export function getCurrentWeekStats() {
-  if (_weekCache) return _weekCache;
-  // Determine start of current week (Monday or Sunday based on JS defaults vs config)
-  const now = new Date();
-  const primeirodiaSemana = state.config.primeirodiaSemana || 1;
-  const day = now.getDay();
-  let dayOffset = day - primeirodiaSemana;
-  if (dayOffset < 0) dayOffset += 7;
-  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOffset, 0, 0, 0, 0);
-
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(endOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
-
-  const startStr = getLocalDateStr(startOfWeek);
-  const endStr = getLocalDateStr(endOfWeek);
-
-  let totalSeconds = 0;
-  let totalQuestions = 0;
-
-  // Daily array from Monday to Sunday
-  const dailySeconds = [0, 0, 0, 0, 0, 0, 0];
-
-  state.eventos.forEach(ev => {
-    // Use dataEstudo if available, fallback to ev.data for older events
-    const studyDate = ev.dataEstudo || ev.data;
-    if (ev.status === 'estudei' && studyDate >= startStr && studyDate <= endStr) {
-      const elapsed = ev.tempoAcumulado || 0;
-      totalSeconds += elapsed;
-      const qs = ev.sessao?.questoes || ev.questoes;
-      if (qs) {
-        totalQuestions += (qs.total ?? ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0)));
-      }
-
-      const evDate = new Date(studyDate + 'T00:00:00');
-      let dIndex = evDate.getDay() - primeirodiaSemana;
-      if (dIndex < 0) dIndex += 7;
-      dailySeconds[dIndex] += elapsed;
-    }
-  });
-
-  _weekCache = {
-    startStr,
-    endStr,
-    totalSeconds,
-    totalQuestions,
-    dailySeconds
+  const agg = getAggregatedStats();
+  return {
+    totalSeconds: agg.weekTotalSeconds,
+    totalQuestions: agg.weekTotalQuestions,
+    dailySeconds: agg.weekDailySeconds
   };
-  return _weekCache;
 }
 
 export function getPredictiveStats(metaHoras, subjectStats = null) {

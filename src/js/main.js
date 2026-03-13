@@ -5,10 +5,10 @@ import * as store from './store.js';
 import * as app from './app.js';
 import * as logic from './logic.js';
 import * as components from './components.js';
-import * as views from './views.js';
+import * as views from './views.js?v=7.6';
 import * as drive_sync from './drive-sync.js';
 import * as cloud_sync from './cloud-sync.js';
-import * as registro from './registro-sessao.js';
+import * as registro from './registro-sessao.js?v=7.6';
 import * as utils from './utils.js';
 import * as wizard from './planejamento-wizard.js';
 
@@ -98,6 +98,25 @@ document.addEventListener('click', (e) => {
       window.navigate(el.dataset.view);
       break;
 
+    // Search results navigation
+    case 'navigate-to-event':
+      window.openAddEventModal?.(el.dataset.eventId);
+      document.getElementById('search-results').style.display = 'none';
+      break;
+    case 'navigate-to-disciplina':
+      window.navigate('editais');
+      setTimeout(() => {
+        // Scroll até a disciplina
+        const card = document.querySelector(`[data-disc-id="${el.dataset.discId}"]`);
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      document.getElementById('search-results').style.display = 'none';
+      break;
+    case 'navigate-to-assunto':
+      window.navigate('vertical');
+      document.getElementById('search-results').style.display = 'none';
+      break;
+
     // Sidebar
     case 'close-sidebar':
       window.closeSidebar();
@@ -162,3 +181,118 @@ document.addEventListener('click', (e) => {
       break;
   }
 });
+
+// ============================================================
+// GLOBAL SEARCH HANDLERS
+// ============================================================
+let _searchDebounceTimeout = null;
+const { esc } = utils;
+
+export function debouncedOnSearch(query) {
+  if (_searchDebounceTimeout) clearTimeout(_searchDebounceTimeout);
+  _searchDebounceTimeout = setTimeout(() => {
+    performGlobalSearch(query);
+  }, 300);
+}
+
+export function onSearchFocus() {
+  // Opcional: expandir visualmente ao focar
+  const results = document.getElementById('search-results');
+  if (results) results.style.display = 'block';
+}
+
+export function onSearchBlur() {
+  // Delay para permitir clique nos resultados
+  setTimeout(() => {
+    const results = document.getElementById('search-results');
+    if (results && !results.matches(':hover')) {
+      results.style.display = 'none';
+    }
+  }, 200);
+}
+
+function performGlobalSearch(query) {
+  if (!query || query.trim().length < 2) {
+    const results = document.getElementById('search-results');
+    if (results) results.innerHTML = '';
+    return;
+  }
+
+  const resultsEl = document.getElementById('search-results');
+  if (!resultsEl) return;
+
+  const allDisciplinas = window.getAllDisciplinas?.() || [];
+  const eventos = window.state?.eventos || [];
+  const habitos = window.state?.habitos || {};
+
+  const results = [];
+
+  // Search eventos
+  eventos.forEach(ev => {
+    if (ev.titulo?.toLowerCase().includes(query.toLowerCase())) {
+      results.push({ type: 'evento', data: ev });
+    }
+  });
+
+  // Search disciplinas/assuntos
+  allDisciplinas.forEach(({ disc, edital }) => {
+    if (disc.nome?.toLowerCase().includes(query.toLowerCase())) {
+      results.push({ type: 'disciplina', data: disc, edital: edital.nome });
+    }
+    if (disc.assuntos) {
+      disc.assuntos.forEach(ass => {
+        if (ass.nome?.toLowerCase().includes(query.toLowerCase())) {
+          results.push({ type: 'assunto', data: ass, disciplina: disc.nome, edital: edital.nome });
+        }
+      });
+    }
+  });
+
+  // Search hábitos
+  Object.entries(habitos).forEach(([tipo, lista]) => {
+    if (Array.isArray(lista)) {
+      lista.forEach(h => {
+        if (h.data?.includes(query)) {
+          results.push({ type: 'habito', data: h, tipo });
+        }
+      });
+    }
+  });
+
+  // Render results safely using esc()
+  if (results.length === 0) {
+    resultsEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-secondary);font-size:13px;">Nenhum resultado encontrado</div>';
+  } else {
+    const html = results.slice(0, 10).map(r => {
+      if (r.type === 'evento') {
+        const id = esc(r.data.id || '');
+        const titulo = esc(r.data.titulo || '');
+        const data = esc(r.data.data || '');
+        return `<div class="search-result-item" data-action="navigate-to-event" data-event-id="${id}"><i class="fa fa-calendar-day"></i> ${titulo} - ${data}</div>`;
+      } else if (r.type === 'disciplina') {
+        const id = esc(r.data.id || '');
+        const nome = esc(r.data.nome || '');
+        const edital = esc(r.edital || '');
+        return `<div class="search-result-item" data-action="navigate-to-disciplina" data-disc-id="${id}"><i class="fa fa-book"></i> ${nome} - ${edital}</div>`;
+      } else if (r.type === 'assunto') {
+        const id = esc(r.data.id || '');
+        const nome = esc(r.data.nome || '');
+        const disciplina = esc(r.disciplina || '');
+        return `<div class="search-result-item" data-action="navigate-to-assunto" data-ass-id="${id}"><i class="fa fa-tag"></i> ${nome} - ${disciplina}</div>`;
+      } else if (r.type === 'habito') {
+        const tipo = esc(r.tipo || '');
+        const data = esc(r.data.data || '');
+        return `<div class="search-result-item"><i class="fa fa-star"></i> Hábito ${tipo} - ${data}</div>`;
+      }
+      return '';
+    }).join('');
+    resultsEl.innerHTML = html;
+  }
+
+  resultsEl.style.display = 'block';
+}
+
+// Expose search functions to window
+window.debouncedOnSearch = debouncedOnSearch;
+window.onSearchFocus = onSearchFocus;
+window.onSearchBlur = onSearchBlur;
