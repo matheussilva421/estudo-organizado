@@ -1,23 +1,30 @@
-const CACHE_NAME = 'estudo-organizado-v7';
-const ASSETS = [
+const APP_VERSION = '7.0';
+const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
+
+const ASSET_PATHS = [
     './',
     './index.html',
-    './css/styles.css?v=6.1',
-    './js/app.js?v=6.1',
-    './js/cloud-sync.js?v=6.1',
-    './js/components.js?v=6.1',
-    './js/drive-sync.js?v=6.1',
-    './js/lesson-mapper.js?v=6.1',
-    './js/logic.js?v=6.1',
-    './js/main.js?v=6.1',
-    './js/notifications.js?v=6.1',
-    './js/planejamento-wizard.js?v=6.1',
-    './js/registro-sessao.js?v=6.1',
-    './js/relevance.js?v=6.1',
-    './js/store.js?v=6.1',
-    './js/utils.js?v=6.1',
-    './js/views.js?v=6.1'
+    './css/styles.css',
+    './js/app.js',
+    './js/cloud-sync.js',
+    './js/components.js',
+    './js/drive-sync.js',
+    './js/lesson-mapper.js',
+    './js/logic.js',
+    './js/main.js',
+    './js/notifications.js',
+    './js/planejamento-wizard.js',
+    './js/registro-sessao.js',
+    './js/relevance.js',
+    './js/store.js',
+    './js/utils.js',
+    './js/views.js'
 ];
+
+// Append version query string to cacheable assets (skip root path)
+const ASSETS = ASSET_PATHS.map(p =>
+    p.includes('.') && p !== './' ? `${p}?v=${APP_VERSION}` : p
+);
 
 // Install Event
 self.addEventListener('install', (evt) => {
