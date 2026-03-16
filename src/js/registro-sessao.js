@@ -111,6 +111,7 @@ export function openRegistroSessao(eventId) {
           const aulaSelect = document.getElementById('reg-aula');
           if (aulaSelect) {
             aulaSelect.value = ev.aulaId;
+            onAulaChange();
           }
         }
       }
@@ -233,7 +234,7 @@ function renderRegistroForm(ev) {
         </div>
         <div class="reg-field" id="reg-aula-container" style="flex:1; display:none;">
           <label class="reg-label">Material / Aula (opcional)</label>
-          <select id="reg-aula" class="reg-select" style="flex:1;">
+          <select id="reg-aula" class="reg-select" style="flex:1;" onchange="onAulaChange()">
             <option value="">Selecione a disciplina primeiro</option>
           </select>
         </div>
@@ -400,15 +401,29 @@ function renderConditionalFields() {
 
   if (showVideo) {
     const vid = _currentEv.sessao?.videoaula || {};
+    const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
+    const aulaId = document.getElementById('reg-aula')?.value || _currentEv?.aulaId || '';
+    let aulaNomeSelecionada = '';
+    if (discId && aulaId) {
+      const disc = getDisc(discId);
+      const aula = disc?.disc?.aulas?.find(a => a.id === aulaId);
+      if (aula?.nome) aulaNomeSelecionada = aula.nome;
+    }
+    const videoTituloPrefill = vid.titulo || aulaNomeSelecionada || '';
     html += `
       <div class="reg-results-card">
         <div class="reg-results-header">🎬 Vídeoaula</div>
+        ${aulaNomeSelecionada ? `
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
+            Aula vinculada automaticamente: <strong style="color:var(--text-primary);">${esc(trunc(aulaNomeSelecionada, 96))}</strong>
+          </div>
+        ` : ''}
         <div class="reg-field" style="margin-bottom:8px;">
-          <label class="reg-label">Título da aula</label>
-          <input type="text" id="reg-video-titulo" class="reg-input" placeholder="Ex.: Aula 05 - Direito Constitucional" value="${vid.titulo || ''}">
+          <label class="reg-label">Título da aula (opcional)</label>
+          <input type="text" id="reg-video-titulo" class="reg-input" placeholder="Opcional: será preenchido com Material / Aula quando selecionado" value="${esc(videoTituloPrefill)}">
         </div>
         <div class="reg-field">
-          <label class="reg-label">Tempo assistido (minutos)</label>
+          <label class="reg-label">Tempo assistido (minutos) (opcional)</label>
           <input type="number" id="reg-video-tempo" class="reg-input" min="0" placeholder="0" value="${vid.tempoMin || ''}">
         </div>
       </div>
@@ -496,6 +511,23 @@ export function onDisciplinaChange() {
     aulaSelect.innerHTML = ht;
     aulaContainer.style.display = '';
   }
+}
+
+export function onAulaChange() {
+  const inputTitulo = document.getElementById('reg-video-titulo');
+  const aulaSelect = document.getElementById('reg-aula');
+  if (!inputTitulo || !aulaSelect) return;
+
+  // Preserve manually typed value; auto-fill only when empty.
+  if ((inputTitulo.value || '').trim()) return;
+  const aulaId = aulaSelect.value;
+  if (!aulaId) return;
+
+  const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
+  if (!discId) return;
+  const d = getDisc(discId);
+  const aula = d?.disc?.aulas?.find(a => a.id === aulaId);
+  if (aula?.nome) inputTitulo.value = aula.nome;
 }
 
 export function addNovoTopico() {
@@ -658,9 +690,14 @@ export function saveRegistroSessao() {
   // Validate vídeo if type selected
   let videoaula = null;
   if (_selectedTipos.includes('videoaula')) {
-    const titulo = document.getElementById('reg-video-titulo')?.value.trim() || '';
-    const tempoMin = parseInt(document.getElementById('reg-video-tempo')?.value || '0');
-    if (tempoMin <= 0) { showToast('Informe o tempo de vídeo assistido', 'error'); return false; }
+    let titulo = document.getElementById('reg-video-titulo')?.value.trim() || '';
+    const tempoRaw = parseInt(document.getElementById('reg-video-tempo')?.value || '0', 10);
+    const tempoMin = Number.isFinite(tempoRaw) && tempoRaw > 0 ? tempoRaw : 0;
+    if (!titulo && discId && aulaId) {
+      const d = getDisc(discId);
+      const aula = d?.disc?.aulas?.find(a => a.id === aulaId);
+      if (aula?.nome) titulo = aula.nome;
+    }
     videoaula = { titulo, tempoMin };
   }
 
