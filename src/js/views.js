@@ -932,6 +932,11 @@ export function renderDailyChart(periodDays) {
   const ctx = document.getElementById('chart-daily');
   if (!ctx) return;
   if (_chartDaily) { _chartDaily.destroy(); _chartDaily = null; }
+  const themeVars = getComputedStyle(document.documentElement);
+  const accent = themeVars.getPropertyValue('--accent').trim() || '#10b981';
+  const accentLight = themeVars.getPropertyValue('--accent-light').trim() || '#d1fae5';
+  const border = themeVars.getPropertyValue('--border').trim() || '#e2e8f0';
+  const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#475569';
   const numDays = periodDays ? Math.min(periodDays, 90) : 30;
   // Pre-aggregate study time by date for O(1) lookup
   const secsByDate = {};
@@ -953,14 +958,14 @@ export function renderDailyChart(periodDays) {
     type: 'bar',
     data: {
       labels: days,
-      datasets: [{ label: 'Minutos', data, backgroundColor: '#10b98166', borderColor: '#10b981', borderWidth: 2, borderRadius: 6 }]
+      datasets: [{ label: 'Minutos', data, backgroundColor: accentLight, borderColor: accent, borderWidth: 2, borderRadius: 6 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } },
-        x: { grid: { display: false }, ticks: { font: { size: numDays > 20 ? 9 : 11 }, maxRotation: numDays > 20 ? 45 : 0, maxTicksLimit: 20 } }
+        y: { beginAtZero: true, grid: { color: border }, ticks: { color: textSecondary, font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { color: textSecondary, font: { size: numDays > 20 ? 9 : 11 }, maxRotation: numDays > 20 ? 45 : 0, maxTicksLimit: 20 } }
       }
     }
   });
@@ -970,6 +975,9 @@ export function renderDiscChart(periodDays) {
   const ctx = document.getElementById('chart-disc');
   if (!ctx) return;
   if (_chartDisc) { _chartDisc.destroy(); _chartDisc = null; }
+  const themeVars = getComputedStyle(document.documentElement);
+  const border = themeVars.getPropertyValue('--border').trim() || '#e2e8f0';
+  const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#475569';
   const discTime = {};
   const cutoffStr2 = periodDays ? cutoffDateStr(periodDays) : null;
   const evts = cutoffStr2
@@ -987,7 +995,7 @@ export function renderDiscChart(periodDays) {
   if (data.length === 0) {
     labels.push('Sem Dados Registrados');
     data.push(1);
-    colors.push(getComputedStyle(document.body).getPropertyValue('--border').trim() || '#e2e8f0');
+    colors.push(border);
     dummyTooltip = true;
   }
   _chartDisc = new Chart(ctx, {
@@ -996,7 +1004,7 @@ export function renderDiscChart(periodDays) {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } },
+        legend: { position: 'right', labels: { color: textSecondary, font: { size: 11 }, boxWidth: 12 } },
         tooltip: { enabled: !dummyTooltip }
       }
     }
@@ -2251,7 +2259,7 @@ function renderTopicosEditalDisciplina(edital, disc) {
       (ass.relevance?.priority === 'P2' ? `<span style="background:rgba(234,179,8,0.1); color:var(--orange); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; margin-left:8px;">⚠️ P2</span>` : '');
 
     return `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:#f8fafc;border-radius:6px;' : ''}">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:var(--bg-secondary);border-radius:6px;' : ''}">
           <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
           <div style="flex:1;min-width:0;font-size:13px;font-weight:${ass.concluido ? '400' : '600'};color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluido ? 'text-decoration:line-through;' : ''}">
              ${esc(ass.nome)} ${importanceBadge}
@@ -2278,7 +2286,7 @@ function renderAulasDisciplinaDashboard(edital, disc) {
   return `
     <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
         ${disc.aulas.map(aul => `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${aul.estudada ? 'background:#f8fafc;border-radius:6px;' : ''}">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${aul.estudada ? 'background:var(--bg-secondary);border-radius:6px;' : ''}">
           <div class="check-circle ${aul.estudada ? 'done' : ''}" onclick="toggleAulaDashboard('${edital.id}','${disc.id}','${aul.id}')" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}" style="flex-shrink:0;cursor:pointer;">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
           <div style="flex:1;min-width:0;font-size:13px;font-weight:${aul.estudada ? '400' : '600'};color:${aul.estudada ? 'var(--text-muted)' : 'var(--text-primary)'};${aul.estudada ? 'text-decoration:line-through;' : ''}">
              ${esc(aul.nome)}
@@ -2337,6 +2345,15 @@ function renderBancaDisciplinaDashboard(edital, disc) {
 export function initDiscDashboardChart(discId) {
   const canvas = document.getElementById('disc-chart-acertos');
   if (!canvas) return;
+  const themeVars = getComputedStyle(document.documentElement);
+  const accent = themeVars.getPropertyValue('--accent').trim() || '#3b82f6';
+  const bg = themeVars.getPropertyValue('--bg').trim() || '#0f172a';
+  const card = themeVars.getPropertyValue('--card').trim() || '#1e293b';
+  const border = themeVars.getPropertyValue('--border').trim() || '#334155';
+  const textPrimary = themeVars.getPropertyValue('--text-primary').trim() || '#f1f5f9';
+  const textMuted = themeVars.getPropertyValue('--text-muted').trim() || '#94a3b8';
+  const grid = border;
+  const accentSoft = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}1A` : 'rgba(59,130,246,0.1)';
 
   const tempos = state.eventos ? state.eventos.filter(e => {
     const qs = e.sessao?.questoes || e.questoes;
@@ -2377,11 +2394,11 @@ export function initDiscDashboardChart(discId) {
       datasets: [{
         label: '% de Acertos',
         data: dataPerc,
-        borderColor: 'var(--accent)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: accent,
+        backgroundColor: accentSoft,
         borderWidth: 2,
-        pointBackgroundColor: 'var(--bg)',
-        pointBorderColor: 'var(--accent)',
+        pointBackgroundColor: bg,
+        pointBorderColor: accent,
         pointBorderWidth: 2,
         pointRadius: 4,
         tension: 0.3,
@@ -2394,10 +2411,10 @@ export function initDiscDashboardChart(discId) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'var(--card)',
-          titleColor: 'var(--text-muted)',
-          bodyColor: 'var(--text-primary)',
-          borderColor: 'var(--border)',
+          backgroundColor: card,
+          titleColor: textMuted,
+          bodyColor: textPrimary,
+          borderColor: border,
           borderWidth: 1,
           callbacks: {
             label: (ctx) => `${ctx.raw}% de Acerto`
@@ -2408,10 +2425,11 @@ export function initDiscDashboardChart(discId) {
         y: {
           beginAtZero: true,
           max: 100,
-          ticks: { callback: v => v + '%' },
-          grid: { color: 'rgba(0,0,0,0.05)' }
+          ticks: { color: textMuted, callback: v => v + '%' },
+          grid: { color: grid }
         },
         x: {
+          ticks: { color: textMuted },
           grid: { display: false }
         }
       }
