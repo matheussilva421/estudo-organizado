@@ -3,11 +3,11 @@
 // Módulo dedicado ao registro pós-sessão
 // =============================================
 
-import { state, scheduleSave } from './store.js?v=8.2';
-import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js?v=8.2';
-import { openModal, closeModal, showToast, showConfirm } from './app.js?v=8.2';
-import { todayStr, esc, uid } from './utils.js?v=8.2';
-import { renderCurrentView, updateBadges } from './components.js?v=8.2';
+import { state, scheduleSave } from './store.js?v=8.3';
+import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js?v=8.3';
+import { openModal, closeModal, showToast, showConfirm } from './app.js?v=8.3';
+import { todayStr, esc, uid } from './utils.js?v=8.3';
+import { renderCurrentView, updateBadges } from './components.js?v=8.3';
 
 // =============================================
 // STUDY TYPES & MATERIALS DEFINITIONS
@@ -478,11 +478,10 @@ export function onDisciplinaChange() {
   }
 
   const aulas = d.disc.aulas || [];
-  const pendingAulas = aulas.filter(a => !a.estudada);
   if (aulaSelect && aulaContainer) {
     let ht = '<option value="">Sem material/aula específico</option>';
-    if (pendingAulas.length > 0) {
-      ht += pendingAulas.map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
+    if (aulas.length > 0) {
+      ht += aulas.map(a => `<option value="${a.id}">${a.estudada ? '✅ ' : ''}${esc(a.nome)}</option>`).join('');
     }
     aulaSelect.innerHTML = ht;
     aulaContainer.style.display = '';

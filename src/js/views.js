@@ -1,9 +1,9 @@
-import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.2';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES } from './utils.js?v=8.2';
-import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.2';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js?v=8.2';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.2';
-import { updateDriveUI } from './drive-sync.js?v=8.2';
+import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.3';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES } from './utils.js?v=8.3';
+import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.3';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js?v=8.3';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.3';
+import { updateDriveUI } from './drive-sync.js?v=8.3';
 
 export let calDate = new Date();
 export let calViewMode = 'mes';
@@ -3061,7 +3061,7 @@ window.deleteAula = function (discId, aulaId) {
   });
 };
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.2';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.3';
 window.runLessonMapperUI = function (editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -3078,7 +3078,7 @@ window.runLessonMapperUI = function (editaId, discId) {
 // =============================================
 // MÓDULO PREDITIVO DE BANCA E RELEVÂNCIA (WAVE 33)
 // =============================================
-import { applyRankingToEdital, commitEditalOrdering, revertEditalOrdering } from './relevance.js?v=8.2';
+import { applyRankingToEdital, commitEditalOrdering, revertEditalOrdering } from './relevance.js?v=8.3';
 
 let analyzerCtx = { editaId: null, parsedHotTopics: [], tempMatchResults: [] };
 
@@ -3895,16 +3895,15 @@ window.openAddPastSessionModal = function(discId) {
   // Monta as opções de assunto baseadas na disciplina
   let assuntoOptions = '<option value="">Sem tópico específico</option>';
   
-  const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
-  if (pendingAssuntos.length > 0) {
-    assuntoOptions += pendingAssuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome, 100))}</option>`).join('');
+  const assuntos = d.disc.assuntos || [];
+  if (assuntos.length > 0) {
+    assuntoOptions += assuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${a.concluido ? '✅ ' : ''}${esc(trunc(a.nome, 100))}</option>`).join('');
   }
   
   let aulaOptions = '<option value="">Sem material/aula específico</option>';
   const aulas = d.disc.aulas || [];
-  const pendingAulas = aulas.filter(a => !a.estudada);
-  if (pendingAulas.length > 0) {
-    aulaOptions += pendingAulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome, 100))}</option>`).join('');
+  if (aulas.length > 0) {
+    aulaOptions += aulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${a.estudada ? '✅ ' : ''}${esc(trunc(a.nome, 100))}</option>`).join('');
   }
 
   document.getElementById('modal-event-title').textContent = 'Registrar Sessão Anterior';
