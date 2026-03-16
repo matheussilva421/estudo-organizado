@@ -1,6 +1,6 @@
 import { currentView } from './app.js?v=8.2';
 import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, getHabitType } from './utils.js?v=8.2';
-import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts, renderSkeletonLoader } from './views.js?v=8.2';
+import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHistoricoSessoes, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts, renderSkeletonLoader } from './views.js?v=8.2';
 import { state } from './store.js?v=8.2';
 import { deleteEvento, getAllDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js?v=8.2';
 
@@ -262,7 +262,8 @@ export function renderCurrentView() {
   const titles = {
     home: 'Página Inicial', med: 'Study Organizer', calendar: 'Calendário',
     revisoes: 'Revisões Pendentes', habitos: 'Hábitos de Estudo',
-    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações', cronometro: 'Cronômetro', ciclo: 'Ciclo de Estudos', 'banca-analyzer': 'Inteligência de Banca'
+    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações', cronometro: 'Cronômetro', ciclo: 'Ciclo de Estudos', 'banca-analyzer': 'Inteligência de Banca',
+    'historico-sessoes': 'Histórico de Sessões'
   };
   document.getElementById('topbar-title').textContent = titles[currentView] || 'Estudo Organizado';
 
@@ -315,6 +316,7 @@ export function renderCurrentView() {
     if (currentView === 'med') return renderMED(el);
     if (currentView === 'calendar') return renderCalendar(el);
     if (currentView === 'revisoes') return renderRevisoes(el);
+    if (currentView === 'historico-sessoes') return renderHistoricoSessoes(el);
     if (currentView === 'habitos') return renderHabitos(el);
     if (currentView === 'config') return renderConfig(el);
     if (currentView === 'cronometro') return renderCronometro(el);

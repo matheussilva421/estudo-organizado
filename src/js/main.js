@@ -177,6 +177,18 @@ document.addEventListener('click', (e) => {
       window.toggleCicloFin(el.checked);
       break;
 
+    // Histórico de sessões
+    case 'edit-session-record':
+      if (typeof window.openRegistroSessao === 'function') {
+        window.openRegistroSessao(el.dataset.sessionId);
+      }
+      break;
+    case 'delete-session-record':
+      if (typeof window.deleteCompletedSession === 'function') {
+        window.deleteCompletedSession(el.dataset.sessionId);
+      }
+      break;
+
     default:
       break;
   }
