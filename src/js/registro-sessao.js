@@ -14,22 +14,22 @@ import { renderCurrentView, updateBadges } from './components.js?v=8.3';
 // =============================================
 
 const TIPOS_ESTUDO = [
+  { id: 'leitura', label: 'Leitura', icon: '📖' },
+  { id: 'videoaula', label: 'Vídeoaula', icon: '🎬' },
   { id: 'questoes', label: 'Questões', icon: '❓' },
   { id: 'revisao', label: 'Revisão', icon: '🔄' },
-  { id: 'leitura', label: 'Leitura seca', icon: '📖' },
   { id: 'informativo', label: 'Informativos', icon: '📰' },
   { id: 'discursiva', label: 'Discursiva', icon: '✍️' },
   { id: 'simulado', label: 'Simulado', icon: '📝' },
   { id: 'sumula', label: 'Súmulas', icon: '⚖️' },
-  { id: 'videoaula', label: 'Vídeoaula', icon: '🎬' },
 ];
 
 const MATERIAIS = [
   { id: 'pdf', label: 'PDF', icon: '📄' },
-  { id: 'livro', label: 'Livro', icon: '📕' },
-  { id: 'lei_seca', label: 'Lei seca', icon: '⚖️' },
-  { id: 'caderno', label: 'Caderno', icon: '📓' },
   { id: 'videoaula_mat', label: 'Vídeoaula', icon: '🎬' },
+  { id: 'lei_seca', label: 'Lei seca', icon: '⚖️' },
+  { id: 'livro', label: 'Livro', icon: '📕' },
+  { id: 'caderno', label: 'Caderno', icon: '📓' },
   { id: 'flashcards', label: 'Flashcards / Anki', icon: '🃏' },
   { id: 'jurisprudencia', label: 'Jurisprudência', icon: '🏛️' },
   { id: 'informativo_mat', label: 'Informativo', icon: '📰' },

@@ -770,6 +770,20 @@ export function resetCicloAndWipeEvents() {
   scheduleSave();
 }
 
+function getActiveStudyDaysFilter(plan = state.planejamento) {
+  const diasAtivos = plan?.horarios?.diasAtivos;
+  if (!Array.isArray(diasAtivos)) return null;
+
+  const normalizedDays = diasAtivos
+    .map(day => Number(day))
+    .filter(day => Number.isInteger(day) && day >= 0 && day <= 6);
+
+  // No ciclo, os dias são opcionais; lista vazia mantém o comportamento livre (todos os dias).
+  if (plan?.tipo === 'ciclo' && normalizedDays.length === 0) return null;
+
+  return new Set(normalizedDays);
+}
+
 export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
   if (!state.planejamento || !state.planejamento.sequencia || state.planejamento.sequencia.length === 0) return {};
 
@@ -779,15 +793,13 @@ export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
 
   const seq = state.planejamento.sequencia;
   const materiasPorDia = state.config.materiasPorDia || 3;
+  const activeDaysFilter = getActiveStudyDaysFilter(state.planejamento);
   let simulatedIdx = 0;
 
   const projection = {};
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const dayOfWeek = d.getDay();
-    if (state.planejamento.tipo === 'semanal' && state.planejamento.horarios && state.planejamento.horarios.diasAtivos) {
-      if (!state.planejamento.horarios.diasAtivos.includes(dayOfWeek)) continue;
-    }
+    if (activeDaysFilter && !activeDaysFilter.has(d.getDay())) continue;
 
     for (let m = 0; m < materiasPorDia; m++) {
       const seqItem = seq[simulatedIdx];
@@ -854,6 +866,7 @@ export function syncCicloToEventos() {
 
   const seq = state.planejamento.sequencia;
   const materiasPorDia = state.config.materiasPorDia || 3;
+  const activeDaysFilter = getActiveStudyDaysFilter(state.planejamento);
   let currentSeqIdx = 0;
 
   // Pega o índice a partir do primeiro bloco "não concluído", caso preexistente no ciclo contínuo
@@ -877,11 +890,7 @@ export function syncCicloToEventos() {
   for (let diasOffset = 0; diasOffset < maxDiasOffset; diasOffset++) {
     const d = new Date(today);
     d.setDate(d.getDate() + diasOffset);
-    const dayOfWeek = d.getDay();
-
-    if (state.planejamento.tipo === 'semanal' && state.planejamento.horarios && state.planejamento.horarios.diasAtivos) {
-      if (!state.planejamento.horarios.diasAtivos.includes(dayOfWeek)) continue;
-    }
+    if (activeDaysFilter && !activeDaysFilter.has(d.getDay())) continue;
 
     const dtStr = getLocalDateStr(d);
 
