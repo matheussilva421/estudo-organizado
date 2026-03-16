@@ -356,7 +356,7 @@ export function renderHome(el) {
             </div>
             <div class="dash-progress-track">
               <div class="dash-progress-bar" style="width:${percHoras}%;background:var(--accent);">
-                <span style="position:absolute;left:8px;top:2px;font-size:10px;color:#fff;">${percHoras}%</span>
+                <span style="position:absolute;left:8px;top:2px;font-size:10px;color:var(--accent-text);">${percHoras}%</span>
               </div>
             </div>
           </div>
@@ -3411,11 +3411,11 @@ export function addAssunto(discId) {
   const normalized = nome
     .replace(/\r/g, '')
     .replace(/\u00A0/g, ' ')
-    .replace(/([^\n])\s+(\d+(?:\.\d+)*[.)-]?\s+(?=[A-Za-zÀ-ÿ]))/g, '$1\n$2');
+    .replace(/([^\n])\s+(\d+(?:\.\d+)*[.)-]?\s+(?=[A-Za-z\u00C0-\u00FF]))/g, '$1\n$2');
 
   const lines = normalized.split('\n')
     .map(s => s.trim())
-    .map(s => s.replace(/^(\d+(?:\.\d+)*[.)-]?|[a-z][.)-]?|[IVXLCDM]+\s*[.)-]?|[-•–—])\s+/i, ''))
+    .map(s => s.replace(/^(\d+(?:\.\d+)*[.)-]?|[a-z][.)-]?|[IVXLCDM]+\s*[.)-]?|[-\u2022\u2013\u2014])\s+/i, ''))
     .filter(s => s.length > 0);
   let added = 0;
   lines.forEach(line => {
@@ -3473,12 +3473,12 @@ export function saveBulkSubjects() {
     .replace(/\u00A0/g, ' ')
     .trim()
     // When multiple numbered topics are pasted on one line, force a line break before each index.
-    .replace(/([^\n])\s+(\d+(?:\.\d+)*[.)-]?\s+(?=[A-Za-zÀ-ÿ]))/g, '$1\n$2');
+    .replace(/([^\n])\s+(\d+(?:\.\d+)*[.)-]?\s+(?=[A-Za-z\u00C0-\u00FF]))/g, '$1\n$2');
 
   const lines = normalized.split('\n')
     .map(s => s.trim())
     // Matches: "1 ", "1. ", "1.1 ", "1) ", "a) ", "III - ", "- ", "• "
-    .map(s => s.replace(/^(\d+(?:\.\d+)*[.)-]?|[a-z][.)-]?|[IVXLCDM]+\s*[.)-]?|[-•–—])\s+/i, ''))
+    .map(s => s.replace(/^(\d+(?:\.\d+)*[.)-]?|[a-z][.)-]?|[IVXLCDM]+\s*[.)-]?|[-\u2022\u2013\u2014])\s+/i, ''))
     .filter(s => s.length > 0);
 
   let added = 0;
@@ -3881,6 +3881,7 @@ export function renderConfig(el) {
                 <option value="grafite" ${cfg.tema === 'grafite' ? 'selected' : ''}>🌫️ Grafite</option>
                 <option value="matrix" ${cfg.tema === 'matrix' ? 'selected' : ''}>📟 Matrix</option>
                 <option value="rubi" ${cfg.tema === 'rubi' ? 'selected' : ''}>🩸 Rubi</option>
+                <option value="cyberpunk2077" ${cfg.tema === 'cyberpunk2077' ? 'selected' : ''}>Cyberpunk 2077</option>
               </select>
             </div>
           </div>

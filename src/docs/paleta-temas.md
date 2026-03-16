@@ -14,6 +14,7 @@ Este guia descreve as cores base do app e como cada tema funciona para facilitar
   - `grafite`
   - `matrix`
   - `rubi`
+  - `cyberpunk2077`
 
 ## 2) Tokens principais (variaveis globais)
 
@@ -40,6 +41,7 @@ Este guia descreve as cores base do app e como cada tema funciona para facilitar
 | `grafite` | `#09090B` | `#18181B` | `#3F3F46` | `#FAFAFA` | `#A1A1AA` | `#8B8B96` | `#3B82F6` | `#111827` |
 | `matrix` | `#000000` | `#111111` | `#333333` | `#E5E5E5` | `#A3A3A3` | `#8A8A8A` | `#22C55E` | `#052E16` |
 | `rubi` | `#000000` | `#0A0A0A` | `#262626` | `#FFFFFF` | `#A3A3A3` | `#7A7A7A` | `#DC2626` | `#FFFFFF` |
+| `cyberpunk2077` | `#090A0F` | `#12131A` | `#2B2F3D` | `#F4F7FF` | `#B7BFD4` | `#8C96B0` | `#FCEE0A` | `#141100` |
 
 ## 4) Regras para trocar cor com seguranca
 
@@ -71,4 +73,3 @@ Use essas variaveis para estados de agenda/revisao para manter consistencia entr
 - Verificar graficos (linhas, barras, legenda e grid).
 - Verificar estados concluido e pendente em topicos e aulas.
 - Verificar contraste no modo claro e em todos os temas escuros.
-

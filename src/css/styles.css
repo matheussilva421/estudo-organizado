@@ -202,6 +202,37 @@
   --surface: #0A0A0A;
 }
 
+/* 6. TEMA CYBERPUNK 2077 (Neon Dystopian) */
+[data-theme="cyberpunk2077"] {
+  --bg: #090A0F;
+  --card: #12131A;
+  --card-bg: #12131A;
+  --bg-secondary: #1B1E27;
+  --yellow: #FCEE0A;
+  --sidebar-bg: #10121A;
+  --sidebar-hover: #191C27;
+  --sidebar-active: #FCEE0A;
+  --border: #2B2F3D;
+  --text-primary: #F4F7FF;
+  --text-secondary: #B7BFD4;
+  --text-muted: #8C96B0;
+  --accent: #FCEE0A;
+  --accent-light: #4A4300;
+  --accent-dark: #FFB100;
+  --accent-text: #141100;
+  --surface: #12131A;
+
+  /* Optional helper tokens for cyberpunk atmosphere */
+  --cyber-blue: #00D1FF;
+  --cyber-purple: #A855F7;
+  --cyber-pink: #FF3DA9;
+  --cyber-lime: #A3FF12;
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.72), 0 1px 2px rgba(0, 0, 0, 0.52);
+  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.66), 0 2px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 20px -4px rgba(0, 0, 0, 0.76), 0 8px 12px -4px rgba(0, 0, 0, 0.58);
+}
+
 [data-theme]:not([data-theme="light"]) {
   --sidebar-bg: var(--card);
   /* Seguindo padrão de temas escuros */
@@ -413,6 +444,11 @@ body {
 
 .logo-text span {
   color: var(--accent);
+}
+
+[data-theme="cyberpunk2077"] .logo-icon {
+  background: linear-gradient(135deg, var(--accent), var(--cyber-blue));
+  box-shadow: 0 0 0 1px rgba(252, 238, 10, 0.34), 0 0 14px rgba(0, 209, 255, 0.22);
 }
 
 /* =============================================
@@ -1983,7 +2019,7 @@ select.form-control {
 .check-circle.done {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent-text);
   font-size: 10px;
 }
 
@@ -3053,7 +3089,7 @@ mark {
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  color: #fff;
+  color: var(--accent-text);
 }
 
 .streak-dot-ok {
@@ -3267,7 +3303,29 @@ mark {
 .step-item.active .step-circle {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-text);
+}
+
+[data-theme="cyberpunk2077"] .btn-primary {
+  box-shadow: 0 0 0 1px rgba(252, 238, 10, 0.3), 0 4px 14px rgba(252, 238, 10, 0.16);
+}
+
+[data-theme="cyberpunk2077"] .btn-primary:hover {
+  box-shadow: 0 0 0 1px rgba(255, 177, 0, 0.44), 0 6px 18px rgba(255, 177, 0, 0.2);
+}
+
+[data-theme="cyberpunk2077"] .form-control:focus,
+[data-theme="cyberpunk2077"] .search-input:focus {
+  border-color: var(--cyber-blue);
+  box-shadow: 0 0 0 2px rgba(0, 209, 255, 0.2);
+}
+
+[data-theme="cyberpunk2077"] .nav-item.active {
+  box-shadow: inset 0 0 0 1px rgba(20, 17, 0, 0.24), 0 0 14px rgba(252, 238, 10, 0.18);
+}
+
+[data-theme="cyberpunk2077"] .topbar {
+  box-shadow: inset 0 -1px 0 rgba(0, 209, 255, 0.16);
 }
 
 .step-item.done .step-circle {
