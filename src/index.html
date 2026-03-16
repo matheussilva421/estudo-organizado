@@ -30,10 +30,41 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer integrity="sha384-DhxhYObIMeMNGyAG7iK11OHzBIKyEIeRL0ad1iFPAOwZB8iirUlTT0O/WJJUk8+o" crossorigin="anonymous"></script>
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
-                    .then(reg => console.log('SW Registrado com escopo:', reg.scope))
-                    .catch(err => console.error('Erro no registro do SW:', err));
+            window.addEventListener('load', async () => {
+                try {
+                    let refreshing = false;
+                    navigator.serviceWorker.addEventListener('controllerchange', () => {
+                        if (refreshing) return;
+                        refreshing = true;
+                        window.location.reload();
+                    });
+
+                    const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+                    console.log('SW Registrado com escopo:', reg.scope);
+
+                    const promoteWaitingWorker = () => {
+                        if (reg.waiting) {
+                            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                    };
+
+                    promoteWaitingWorker();
+
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        if (!newWorker) return;
+
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                promoteWaitingWorker();
+                            }
+                        });
+                    });
+
+                    await reg.update();
+                } catch (err) {
+                    console.error('Erro no registro do SW:', err);
+                }
             });
         }
     </script>
