@@ -417,17 +417,17 @@ function buildMEDStatsHTML(estudados, agendados) {
     ? estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a)
     : null;
   return `
-    <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+    <div class="card med-stat-card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
       <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tempo Total Hoje</div>
       <div style="font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);" id="total-time">${formatTime(totalSeconds)}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) concluido(s)</div>
     </div>
-    <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+    <div class="card med-stat-card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
       <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes</div>
       <div style="font-size:32px;font-weight:800;color:var(--blue);">${agendados.length}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">evento(s) para hoje</div>
     </div>
-    <div class="card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
+    <div class="card med-stat-card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
       <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Maior Foco</div>
       <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-top:8px;">${best ? esc(best.titulo || 'N/A') : '\u2014'}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${best ? formatTime(best.tempoAcumulado || 0) : ''}</div>
@@ -442,7 +442,7 @@ export function renderMED(el) {
   const totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
 
   el.innerHTML = `
-    <div id="med-stats-row" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+    <div id="med-stats-row" class="med-stats-row" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
       ${buildMEDStatsHTML(estudados, agendados)}
     </div>
 
@@ -1087,26 +1087,26 @@ export function renderRevisoes(el) {
   const today = todayStr();
 
   el.innerHTML = `
-    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
-      <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
+    <div class="rev-summary-grid">
+      <div class="card rev-summary-card">
         <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes Hoje</div>
         <div style="font-size:28px;font-weight:800;color:var(--red);">${pending.filter(r => r.data <= today).length}</div>
       </div>
-      <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
+      <div class="card rev-summary-card">
         <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Próx. 30 dias</div>
         <div style="font-size:28px;font-weight:800;color:var(--blue);">${upcoming.length}</div>
       </div>
-      <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
+      <div class="card rev-summary-card">
         <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assuntos concluidos</div>
         <div style="font-size:28px;font-weight:800;color:var(--accent);">${getAllDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
       </div>
-      <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center;">
+      <div class="card rev-summary-card">
         <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Frequência</div>
         <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-top:8px;">${(state.config.frequenciaRevisao || [1, 7, 30, 90]).join(', ')} dias</div>
       </div>
     </div>
 
-    <div class="tabs">
+    <div class="tabs rev-tabs">
       <div class="tab-btn active" onclick="switchRevTab('pendentes', this)">🔄 Pendentes (${pending.length})</div>
       <div class="tab-btn" onclick="switchRevTab('proximas', this)">📅 Próximas 30 dias (${upcoming.length})</div>
     </div>
@@ -1130,7 +1130,7 @@ export function renderRevisoes(el) {
                 ${isOverdue ? '⚠️ Atrasada' : '📅 Hoje'} • Prevista para ${formatDate(r.data)}
               </div>
             </div>
-            <div style="display:flex;gap:6px;">
+            <div class="rev-item-actions" style="display:flex;gap:6px;">
               <button class="btn btn-primary btn-sm" onclick="marcarRevisao('${r.assunto.id}')">✅ Feita</button>
               <button class="btn btn-ghost btn-sm" onclick="adiarRevisao('${r.assunto.id}')">⏩ +1 dia</button>
             </div>
@@ -1781,18 +1781,18 @@ export function renderVertical(el) {
   // Fix 3: render the shell ONCE (filters, header); list gets its own container
   el.innerHTML = `
     <!-- Filters row — full re-render only when filter chips change -->
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-      <div style="position:relative;flex:1;min-width:180px;">
+    <div class="vertical-toolbar" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <div class="vertical-toolbar-search" style="position:relative;flex:1;min-width:180px;">
         <i class="fa fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px;"></i>
         <input class="form-control" style="padding-left:32px;" id="vert-search" value="${esc(vertSearch)}"
           placeholder="Buscar assunto ou disciplina..."
           oninput="onVertSearch(this.value)">
       </div>
-      <select class="form-control" style="width:auto;" onchange="setVertFilterEdital(this.value);renderCurrentView()">
+      <select class="form-control vertical-toolbar-select" style="width:auto;" onchange="setVertFilterEdital(this.value);renderCurrentView()">
         <option value="">Todos os editais</option>
         ${state.editais.map(e => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
       </select>
-      <div class="filter-row" style="margin:0;gap:4px;">
+      <div class="filter-row vertical-toolbar-filters" style="margin:0;gap:4px;">
         ${['todos', 'pendentes', 'concluidos'].map(s => `
           <div class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" onclick="setVertFilterStatus('${s}');renderCurrentView()">
             ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'Concluídos' }[s]}
@@ -1896,15 +1896,15 @@ export function renderVerticalList(container) {
       <div class="card vertical-disc-card" style="margin-bottom:12px;overflow:hidden;border:none;height:auto;min-height:0;">
         
         <!-- HEADER DISCIPLINA -->
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--card);cursor:pointer;" onclick="window.toggleVertDisc('${discId}')">
-          <div style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;color:var(--text-primary);min-width:0;">
+        <div class="vertical-disc-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--card);cursor:pointer;" onclick="window.toggleVertDisc('${discId}')">
+          <div class="vertical-disc-header-main" style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;color:var(--text-primary);min-width:0;">
             <div style="width:5px;height:24px;background:${cor};border-radius:4px;"></div>
             <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(dMap.disc.nome)}">${esc(dMap.disc.nome)}</span>
           </div>
           
-          <div style="display:flex;align-items:center;gap:16px;">
+          <div class="vertical-disc-header-meta" style="display:flex;align-items:center;gap:16px;">
             <!-- Stats Questões -->
-            <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:11px;font-weight:700;gap:12px;font-family:'DM Mono',monospace;background:transparent;">
+            <div class="vertical-disc-score" style="display:flex;align-items:center;border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:11px;font-weight:700;gap:12px;font-family:'DM Mono',monospace;background:transparent;">
               <span style="color:var(--green);">${dCertas}</span>
               <span style="color:var(--red);">${dErradas}</span>
               <span style="color:var(--text-secondary);">${dTotalQ}</span>
@@ -1912,7 +1912,7 @@ export function renderVerticalList(container) {
             </div>
             
             <!-- Progress Bar Progresso -->
-            <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:4px;width:120px;">
+            <div class="vertical-disc-progress" style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:4px;width:120px;">
               <span style="font-size:10px;font-weight:800;color:var(--text-primary);min-width:24px;text-align:right;">${dPctConcluido}%</span>
               <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
                 <div style="height:100%;width:${dPctConcluido}%;background:${cor};border-radius:3px;"></div>
@@ -1920,7 +1920,7 @@ export function renderVerticalList(container) {
             </div>
             
             <!-- Ações -->
-            <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
+            <div class="vertical-disc-actions" style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
               <!-- Explicit "Adicionar Assunto" Button -->
               <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;height:auto;" onclick="event.stopPropagation(); window.addNovoTopicoVertical('${dMap.edital.id}', '${discId}')" title="Adicionar Tópico Manualmente">
                 <i class="fa fa-plus"></i> Assunto
@@ -4908,7 +4908,7 @@ export function renderCiclo(el) {
                 <div style="position:absolute; top:0; width:100%; text-align:center; font-size:10px; font-weight:700; color:var(--text-primary); line-height:14px; text-shadow:0px 1px 2px rgba(0,0,0,0.8);">${pctStr}%</div>
               </div>
 
-              <div style="display:flex; gap:16px; font-size:11px;">
+              <div class="ciclo-sequence-actions" style="display:flex; gap:16px; font-size:11px;">
                 <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.iniciarEtapaPlanejamento('${seq.id}')"><i class="fa fa-play"></i> Iniciar Estudo</span>
                 <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openAddEventModal()"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</span>
                 <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openCicloHistory('${seq.id}')"><i class="fa fa-history"></i> Ver Últimos Estudos</span>
@@ -4936,20 +4936,20 @@ export function renderCiclo(el) {
 
     el.innerHTML = `
       <!-- HEADER ACTIONS -->
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <div class="ciclo-header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
         <h2 style="font-size:22px;font-weight:700;color:var(--text-primary);">Planejamento</h2>
-        <div style="display:flex;gap:8px;">
+        <div class="ciclo-header-buttons" style="display:flex;gap:8px;">
           <button class="btn btn-ghost btn-sm" onclick="window.recomecarCiclo()" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
           <button class="btn btn-ghost btn-sm" onclick="window.openPlanejamentoWizard()" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-edit"></i> Replanejar</button>
           <button class="btn btn-ghost btn-sm" data-action="remover-planejamento" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-trash"></i> Remover</button>
         </div>
       </div>
 
-      <div class="grid-2" style="grid-template-columns: 1fr 400px; gap:24px; align-items:start;">
+      <div class="grid-2 ciclo-layout" style="grid-template-columns: 1fr 400px; gap:24px; align-items:start;">
         
         <!-- COLUNA ESQUERDA -->
         <div style="display:flex; flex-direction:column; gap:24px;">
-          <div style="display:flex; gap:16px;">
+          <div class="ciclo-summary-row" style="display:flex; gap:16px;">
             <!-- CICLOS COMPLETOS -->
             <div class="card" style="padding:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; min-width:140px;">
               <div style="font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:1px; margin-bottom:12px;">CICLOS COMPLETOS</div>
@@ -4970,9 +4970,9 @@ export function renderCiclo(el) {
 
           <!-- SEQUENCIA DOS ESTUDOS -->
           <div class="card" style="padding:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div class="ciclo-sequence-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; text-transform:uppercase;">Sequência dos Estudos</div>
-               <div style="display:flex; align-items:center; gap:16px;">
+               <div class="ciclo-sequence-controls" style="display:flex; align-items:center; gap:16px;">
                  ${!window._isEditingSequence ? `
                    <button class="btn btn-ghost btn-sm" onclick="window.toggleEditSeq()" style="color:var(--text-muted); font-size:11px; padding:4px 8px;"><i class="fa fa-pencil"></i> Editar Sequência</button>
                  ` : ''}
@@ -4988,7 +4988,7 @@ export function renderCiclo(el) {
         </div>
 
         <!-- COLUNA DIREITA -->
-        <div class="card" style="padding:24px; display:flex; flex-direction:column; max-height:calc(100vh - 100px); overflow:hidden;">
+        <div class="card ciclo-side-panel" style="padding:24px; display:flex; flex-direction:column; max-height:calc(100vh - 100px); overflow:hidden;">
           <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
             <span>CICLO</span>
             <button class="btn btn-ghost btn-sm" onclick="window.zerarCiclosCounter()" style="color:var(--text-muted); padding:4px 8px; font-size:11px;">
@@ -5005,9 +5005,9 @@ export function renderCiclo(el) {
           <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8; margin-bottom:16px; flex-shrink:0;"></div>
           
           <!-- CALCULADORA DE PREVISÃO -->
-          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; flex:1; display:flex; flex-direction:column; overflow:hidden; margin-bottom:12px;">
+          <div class="ciclo-predict-box" style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; flex:1; display:flex; flex-direction:column; overflow:hidden; margin-bottom:12px;">
              <h4 style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:12px; flex-shrink:0;"><i class="fa fa-calculator" style="color:var(--accent);"></i> PREVISÃO DE SESSÕES</h4>
-             <div style="display:flex; gap:12px; margin-bottom:16px; flex-shrink:0;">
+             <div class="ciclo-predict-dates" style="display:flex; gap:12px; margin-bottom:16px; flex-shrink:0;">
                 <div style="flex:1;">
                    <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA INICIAL</label>
                    <input type="date" id="predict-start-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()" value="${plan.horarios?.dataInicial || ''}">

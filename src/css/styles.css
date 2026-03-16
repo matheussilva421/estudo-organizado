@@ -1558,6 +1558,36 @@ select.form-control {
   gap: 12px;
 }
 
+/* MOBILE HELPERS (dynamic views) */
+.rev-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.rev-summary-card {
+  min-width: 0;
+  padding: 16px;
+  text-align: center;
+}
+
+.med-stats-row .med-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.ciclo-header-buttons,
+.ciclo-sequence-controls,
+.ciclo-sequence-actions {
+  min-width: 0;
+}
+
+.vertical-disc-header-main,
+.vertical-disc-header-meta {
+  min-width: 0;
+}
+
 /* TABS */
 .tabs {
   display: flex;
@@ -2457,6 +2487,15 @@ mark {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .ciclo-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .ciclo-side-panel {
+    max-height: none !important;
+  }
 }
 
 @media (max-width: 768px) {
@@ -2566,6 +2605,141 @@ mark {
   .custom-scrollbar table th {
     padding-left: 4px !important;
     padding-right: 4px !important;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .rev-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .rev-summary-card {
+    padding: 12px;
+  }
+
+  .rev-item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .rev-item-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .med-stats-row .med-stat-card {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+
+  .vertical-toolbar {
+    align-items: stretch !important;
+    gap: 8px;
+  }
+
+  .vertical-toolbar-search {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+
+  .vertical-toolbar-select {
+    flex: 1 1 100%;
+    width: 100% !important;
+  }
+
+  .vertical-toolbar-filters {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .vertical-toolbar-filters .filter-chip {
+    flex: 0 0 auto;
+  }
+
+  .vertical-disc-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+  }
+
+  .vertical-disc-header-meta {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px !important;
+    justify-content: flex-start;
+  }
+
+  .vertical-disc-progress {
+    flex: 1 1 140px;
+    min-width: 140px;
+  }
+
+  .vertical-disc-actions {
+    margin-left: auto;
+  }
+
+  .ciclo-header-actions {
+    flex-wrap: wrap;
+    align-items: flex-start !important;
+    gap: 10px;
+  }
+
+  .ciclo-header-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  .ciclo-header-buttons .btn {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+  }
+
+  .ciclo-summary-row {
+    flex-direction: column;
+  }
+
+  .ciclo-sequence-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 10px;
+  }
+
+  .ciclo-sequence-controls {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  .ciclo-sequence-actions {
+    flex-wrap: wrap;
+    gap: 10px !important;
+  }
+
+  .ciclo-predict-dates {
+    flex-direction: column;
+    gap: 10px !important;
+  }
+
+  .ciclo-predict-box {
+    overflow: visible;
   }
 }
 
