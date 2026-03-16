@@ -159,6 +159,10 @@ export function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   if (!sidebar || !overlay) return;
+  // On mobile we always open the full sidebar drawer.
+  if (window.innerWidth <= 768 && sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+  }
   sidebar.classList.toggle('open');
   overlay.classList.toggle('open');
 }
@@ -174,6 +178,12 @@ export function closeSidebar() {
 export function toggleSidebarCollapse() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
+  // On mobile, collapsing the sidebar is confusing and causes layout overlap.
+  // Treat this action as "close drawer".
+  if (window.innerWidth <= 768) {
+    closeSidebar();
+    return;
+  }
   sidebar.classList.toggle('collapsed');
   // Salvar preferencia
   if (sidebar.classList.contains('collapsed')) {
@@ -220,8 +230,12 @@ export function init() {
     // Restaurar estado da sidebar (collapsed/expanded)
     const sidebarCollapsed = localStorage.getItem('estudo_sidebar_collapsed') === 'true';
     const sidebar = document.getElementById('sidebar');
-    if (sidebar && sidebarCollapsed) {
-      sidebar.classList.add('collapsed');
+    if (sidebar) {
+      if (sidebarCollapsed && window.innerWidth > 768) {
+        sidebar.classList.add('collapsed');
+      } else {
+        sidebar.classList.remove('collapsed');
+      }
     }
 
     // Primeira Sincronização: Cloudflare (Primária Rápida)

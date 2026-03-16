@@ -2429,6 +2429,36 @@ mark {
 }
 
 /* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+  .topbar {
+    padding: 8px 14px;
+    min-height: 60px;
+    height: auto;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .search-wrap {
+    order: 20 !important;
+    max-width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+    margin: 6px 0 0 0 !important;
+  }
+
+  .search-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .topbar-title {
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 @media (max-width: 768px) {
   #sidebar {
     position: fixed;
@@ -2482,8 +2512,11 @@ mark {
   }
 
   .topbar {
-    padding: 0 14px;
+    padding: 8px 14px;
+    min-height: 60px;
+    height: auto;
     gap: 10px;
+    flex-wrap: wrap;
   }
 
   .topbar-subtitle {
@@ -2491,8 +2524,23 @@ mark {
   }
 
   .search-wrap {
-    max-width: none;
-    flex: 1;
+    order: 20 !important;
+    max-width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+    margin: 6px 0 0 0 !important;
+  }
+
+  .search-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .topbar-title {
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .cal-grid {
