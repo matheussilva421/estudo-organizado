@@ -2934,11 +2934,24 @@ mark {
   box-sizing: border-box;
 }
 
+.reg-select {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .reg-select:focus,
 .reg-input:focus {
   outline: none;
   border-color: var(--green);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+/* Avoid native select popup positioning bugs inside transformed modal */
+#modal-registro-sessao .modal,
+#modal-registro-sessao.open .modal {
+  transform: none !important;
 }
 
 .reg-textarea {

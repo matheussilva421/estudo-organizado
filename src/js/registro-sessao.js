@@ -6,7 +6,7 @@
 import { state, scheduleSave } from './store.js?v=8.3';
 import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js?v=8.3';
 import { openModal, closeModal, showToast, showConfirm } from './app.js?v=8.3';
-import { todayStr, esc, uid } from './utils.js?v=8.3';
+import { todayStr, esc, trunc, uid } from './utils.js?v=8.3';
 import { renderCurrentView, updateBadges } from './components.js?v=8.3';
 
 // =============================================
@@ -471,7 +471,12 @@ export function onDisciplinaChange() {
   const assuntos = d.disc.assuntos || [];
   if (assuntos.length > 0) {
     let html = '<option value="">Sem tópico específico</option>';
-    html += assuntos.map(a => `<option value="${a.id}">${a.concluido ? '✅ ' : ''}${esc(a.nome)}</option>`).join('');
+    html += assuntos.map((a) => {
+      const nomeCompleto = esc(a.nome);
+      const nomeCurto = esc(trunc(a.nome, 96));
+      const prefixo = a.concluido ? '✓ ' : '';
+      return `<option value="${a.id}" title="${nomeCompleto}">${prefixo}${nomeCurto}</option>`;
+    }).join('');
     assSelect.innerHTML = html;
   } else {
     assSelect.innerHTML = '<option value="">Nenhum tópico cadastrado</option>';
@@ -481,7 +486,12 @@ export function onDisciplinaChange() {
   if (aulaSelect && aulaContainer) {
     let ht = '<option value="">Sem material/aula específico</option>';
     if (aulas.length > 0) {
-      ht += aulas.map(a => `<option value="${a.id}">${a.estudada ? '✅ ' : ''}${esc(a.nome)}</option>`).join('');
+      ht += aulas.map((a) => {
+        const nomeCompleto = esc(a.nome);
+        const nomeCurto = esc(trunc(a.nome, 96));
+        const prefixo = a.estudada ? '✓ ' : '';
+        return `<option value="${a.id}" title="${nomeCompleto}">${prefixo}${nomeCurto}</option>`;
+      }).join('');
     }
     aulaSelect.innerHTML = ht;
     aulaContainer.style.display = '';
