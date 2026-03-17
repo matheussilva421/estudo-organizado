@@ -553,6 +553,13 @@ export function renderCalendar(el) {
       </div>
     </div>
   `;
+  // Auto-scroll mobile list to today
+  if (mobile) {
+    requestAnimationFrame(() => {
+      const todayEl = el.querySelector('.cal-mobile-day.today');
+      if (todayEl) todayEl.scrollIntoView({ block: 'center', behavior: 'instant' });
+    });
+  }
 }
 
 export function resetCalDate() {
@@ -572,6 +579,11 @@ export function calNavigate(dir) {
     const mobile = isMobileCalendar();
     if (mobile) {
       grid.innerHTML = calViewMode === 'mes' ? renderCalendarMobileMonth() : renderCalendarMobileWeek();
+      // Scroll to today if visible in this month/week
+      requestAnimationFrame(() => {
+        const todayEl = grid.querySelector('.cal-mobile-day.today');
+        if (todayEl) todayEl.scrollIntoView({ block: 'center', behavior: 'instant' });
+      });
     } else {
       grid.innerHTML = renderCalendarGrid();
     }

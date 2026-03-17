@@ -4081,8 +4081,11 @@ mark {
   flex-direction: column;
   gap: 0;
   border-radius: 8px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid var(--border);
+  max-height: calc(100vh - 260px);
+  -webkit-overflow-scrolling: touch;
 }
 
 .cal-mobile-day {
