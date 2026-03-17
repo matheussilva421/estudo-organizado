@@ -522,7 +522,18 @@ export function removeDOMCard(eventId) {
 }
 
 // =============================================
+function isMobileCalendar() {
+  return window.innerWidth <= 600;
+}
+
 export function renderCalendar(el) {
+  const mobile = isMobileCalendar();
+  let gridContent;
+  if (mobile) {
+    gridContent = calViewMode === 'mes' ? renderCalendarMobileMonth() : renderCalendarMobileWeek();
+  } else {
+    gridContent = calViewMode === 'mes' ? renderCalendarGrid() : renderCalendarWeek();
+  }
   el.innerHTML = `
     <div class="card">
       <div class="card-body">
@@ -538,7 +549,7 @@ export function renderCalendar(el) {
             <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" onclick="setCalViewMode('semana')">Semana</div>
           </div>
         </div>
-        <div id="cal-grid">${calViewMode === 'mes' ? renderCalendarGrid() : renderCalendarWeek()}</div>
+        <div id="cal-grid">${gridContent}</div>
       </div>
     </div>
   `;
@@ -558,7 +569,12 @@ export function calNavigate(dir) {
   // Optimized: update only calendar grid instead of full re-render
   const grid = document.getElementById('cal-grid');
   if (grid) {
-    grid.innerHTML = renderCalendarGrid();
+    const mobile = isMobileCalendar();
+    if (mobile) {
+      grid.innerHTML = calViewMode === 'mes' ? renderCalendarMobileMonth() : renderCalendarMobileWeek();
+    } else {
+      grid.innerHTML = renderCalendarGrid();
+    }
     updateCalendarHeader();
   } else {
     renderCurrentView();
@@ -761,6 +777,110 @@ export function renderCalendarWeek() {
   }).join('')}
     </div>
   `;
+}
+
+// ── Mobile Calendar Views (vertical scrollable list) ──
+
+function renderCalendarMobileMonth() {
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  const lastDay = new Date(year, month + 1, 0);
+  const today = todayStr();
+  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  const getDateStr = d => {
+    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+    return d2.toISOString().split('T')[0];
+  };
+
+  const eventsByDate = {};
+  for (const e of state.eventos) {
+    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
+    eventsByDate[e.data].push(e);
+  }
+
+  let html = '<div class="cal-mobile-list">';
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const date = new Date(year, month, d);
+    const ds = getDateStr(date);
+    const isToday = ds === today;
+    const dayEvents = eventsByDate[ds] || [];
+    const dowName = dows[date.getDay()];
+
+    html += `
+      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" onclick="openAddEventModalDate('${ds}')">
+        <div class="cal-mobile-day-header">
+          <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d}</div>
+          <div class="cal-mobile-dow">${dowName}</div>
+          ${dayEvents.length === 0 ? '<span class="cal-mobile-empty">Sem eventos</span>' : ''}
+        </div>
+        ${dayEvents.length > 0 ? `
+          <div class="cal-mobile-events">
+            ${dayEvents.map(e => {
+              const st = getEventStatus(e);
+              return `<div class="cal-event-chip ${st}" style="cursor:pointer;white-space:normal;" onclick="event.stopPropagation(); window.openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+            }).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderCalendarMobileWeek() {
+  const today = todayStr();
+  const dow = calDate.getDay();
+  const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
+  const weekStart = new Date(calDate);
+  weekStart.setDate(calDate.getDate() - startOffset);
+  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+
+  const getDateStr = d => {
+    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+    return d2.toISOString().split('T')[0];
+  };
+
+  const eventsByDate = {};
+  for (const e of state.eventos) {
+    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
+    eventsByDate[e.data].push(e);
+  }
+
+  let html = '<div class="cal-mobile-list">';
+  for (const d of days) {
+    const ds = getDateStr(d);
+    const isToday = ds === today;
+    const dayEvents = eventsByDate[ds] || [];
+    const dowName = dows[d.getDay()];
+
+    html += `
+      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" onclick="openAddEventModalDate('${ds}')">
+        <div class="cal-mobile-day-header">
+          <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d.getDate()}</div>
+          <div class="cal-mobile-dow">${dowName}</div>
+          ${dayEvents.length === 0 ? '<span class="cal-mobile-empty">Sem eventos</span>' : ''}
+        </div>
+        ${dayEvents.length > 0 ? `
+          <div class="cal-mobile-events">
+            ${dayEvents.map(e => {
+              const st = getEventStatus(e);
+              return `<div class="cal-event-chip ${st}" style="cursor:pointer;white-space:normal;" onclick="event.stopPropagation(); window.openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+            }).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  html += '</div>';
+  return html;
 }
 
 // calClickDay removed — inline calls use openAddEventModalDate directly
