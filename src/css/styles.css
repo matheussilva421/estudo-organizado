@@ -2576,10 +2576,11 @@ mark {
   }
 
   .topbar-title {
-    max-width: 160px;
+    max-width: calc(100vw - 200px);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 15px;
   }
 
   .cal-grid {
@@ -2776,7 +2777,35 @@ mark {
   }
 
   .topbar-title {
-    font-size: 15px;
+    max-width: calc(100vw - 160px);
+    font-size: 14px;
+  }
+
+  .disc-grid {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .cal-event-chip {
+    font-size: 0;
+    padding: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    min-width: 6px;
+  }
+
+  .step-item {
+    width: auto;
+    min-width: 0;
+    flex: 1;
+    font-size: 10px;
+  }
+
+  .step-circle {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
   }
 
   .btn span,
@@ -3868,5 +3897,182 @@ mark {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* ══════════════════════════════════════════
+   MOBILE RESPONSIVENESS FIXES
+══════════════════════════════════════════ */
+
+/* ── Touch device: disc-card overlay always visible ── */
+@media (hover: none) and (pointer: coarse) {
+  .disc-card .disc-overlay {
+    opacity: 1;
+    pointer-events: auto;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.7) 0%,
+      rgba(0, 0, 0, 0.3) 60%,
+      transparent 100%
+    );
+  }
+
+  .disc-action {
+    font-size: 11px;
+  }
+
+  .disc-action i {
+    font-size: 20px;
+  }
+}
+
+/* focus-within fallback for disc-card overlay */
+.disc-card:focus-within .disc-overlay {
+  opacity: 0.95;
+  pointer-events: auto;
+}
+
+/* ── Touch feedback on interactive elements ── */
+@media (hover: none) and (pointer: coarse) {
+  .btn:active,
+  .nav-item:active,
+  .cal-cell:active,
+  .tab-btn:active,
+  .icon-btn:active,
+  .wizard-box:active,
+  .card[onclick]:active,
+  .disc-card:active {
+    opacity: 0.7;
+    transform: scale(0.97);
+    transition: transform 0.1s, opacity 0.1s;
+  }
+}
+
+/* ── Touch targets: WCAG 44px minimum ── */
+@media (pointer: coarse) {
+  .cal-nav button {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+  }
+
+  .icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .modal-close {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ── Mobile: inline style overrides & modal fixes ── */
+@media (max-width: 768px) {
+  /* Override inline min-width on stat cards */
+  .med-stat-card {
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  /* Override inline width on form inputs */
+  .form-control[style*="width"] {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Override inline width on selects */
+  select.form-control[style*="width"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Override inline min-width on table cells */
+  td[style*="min-width"] {
+    min-width: 0 !important;
+  }
+
+  /* Modal content overflow */
+  .modal {
+    max-width: calc(100vw - 32px) !important;
+    width: calc(100vw - 32px) !important;
+  }
+
+  .modal-body {
+    overflow-x: auto;
+    padding: 16px;
+  }
+
+  .modal-body table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-header {
+    padding: 16px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+  }
+
+  /* Table horizontal scroll */
+  .custom-scrollbar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Toast full-width on mobile */
+  .toast-container {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+  }
+
+  .toast {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* iOS auto-zoom prevention: inputs must be >= 16px */
+  .form-control,
+  select.form-control,
+  textarea.form-control,
+  input.form-control {
+    font-size: 16px;
+  }
+}
+
+/* ── Safe-area-inset for notched devices ── */
+body {
+  padding:
+    env(safe-area-inset-top)
+    env(safe-area-inset-right)
+    env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+.toast-container {
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  right: calc(20px + env(safe-area-inset-right));
+}
+
+#sidebar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── Hide custom scrollbars on touch devices ── */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  * {
+    scrollbar-width: none;
   }
 }

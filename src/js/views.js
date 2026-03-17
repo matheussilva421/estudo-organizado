@@ -1967,7 +1967,7 @@ export function renderVerticalList(container) {
 
       html += `
                 <tr style="border-bottom:1px solid var(--bg);">
-                  <td style="padding:12px 10px;text-align:left;display:flex;align-items:center;gap:12px;min-width:300px;">
+                  <td style="padding:12px 10px;text-align:left;display:flex;align-items:center;gap:12px;">
                     <input type="checkbox" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);" ${ass.concluido ? 'checked' : ''} onclick="toggleAssunto('${discId}', '${ass.id}')" />
                     <span style="color:${chColor};${decor}">${highlight(ass.nome).toUpperCase()}</span>
                   </td>
