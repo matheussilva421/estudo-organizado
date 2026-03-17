@@ -4051,6 +4051,28 @@ mark {
   input.form-control {
     font-size: 16px;
   }
+
+  /* Calendar header: wrap to 2 rows on mobile */
+  .cal-header {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .cal-title {
+    font-size: 15px;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .cal-title span {
+    display: none;
+  }
+
+  .cal-view-tabs {
+    order: 10;
+    flex: 0 0 auto;
+  }
 }
 
 /* ── Mobile Calendar: vertical scrollable list ── */
