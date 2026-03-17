@@ -4079,8 +4079,7 @@ mark {
 .cal-mobile-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  background: var(--border);
+  gap: 0;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -4093,8 +4092,15 @@ mark {
   background: var(--card);
   cursor: pointer;
   align-items: flex-start;
-  transition: background 0.1s;
   min-height: 48px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.cal-mobile-day:last-child {
+  border-bottom: none;
 }
 
 .cal-mobile-day.empty {
@@ -4154,15 +4160,16 @@ mark {
   gap: 4px;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .cal-mobile-events .cal-event-chip {
   font-size: 12px;
   padding: 4px 8px;
   white-space: normal;
-  text-overflow: initial;
-  overflow: visible;
+  overflow: hidden;
   line-height: 1.3;
+  border-radius: 6px;
 }
 
 /* ── Safe-area-inset for notched devices ── */
