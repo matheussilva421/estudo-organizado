@@ -177,6 +177,23 @@ python -m http.server 8080 --directory src
 ```
 Acesse: `http://localhost:8080`
 
+### Testes Automatizados
+Para rodar a nova suíte de testes:
+
+```bash
+npm install
+npm test
+npm run test:e2e
+```
+
+Comandos disponíveis:
+
+- `npm test` - executa os testes unitários com Vitest
+- `npm run test:unit` - alias explícito para os unitários
+- `npm run test:e2e` - executa os testes end-to-end com Playwright
+- `npm run test:e2e:ui` - abre o runner visual do Playwright
+- `npm run test:all` - executa unitários e E2E em sequência
+
 ---
 
 ## ☁️ Sincronização e Backup
