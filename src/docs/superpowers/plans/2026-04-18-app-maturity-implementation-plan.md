@@ -52,7 +52,7 @@ This plan is intentionally incremental. It avoids a rewrite and instead creates 
 - Modify: `README.md`
 - Modify: `AGENTS.md`
 
-- [ ] **Step 1: Document the current runtime architecture**
+- [x] **Step 1: Document the current runtime architecture**
 
 Write an architecture snapshot that names the current entry points, core modules, state shape, and integration boundaries:
 
@@ -70,7 +70,7 @@ Write an architecture snapshot that names the current entry points, core modules
 - `src/js/drive-sync.js`: Google Drive sync client
 ```
 
-- [ ] **Step 2: Document the real data flow from UI to persistence**
+- [x] **Step 2: Document the real data flow from UI to persistence**
 
 Capture the actual flow so future refactors do not accidentally break local-first behavior:
 
@@ -80,7 +80,7 @@ User action -> state mutation -> `scheduleSave()` -> IndexedDB write
                                      -> optional Cloudflare push
 ```
 
-- [ ] **Step 3: Correct documentation drift in the README**
+- [x] **Step 3: Correct documentation drift in the README**
 
 Update the docs to match the repository state, including automated testing and real file locations:
 
@@ -100,7 +100,7 @@ npm run test:e2e
 - `src/docs/architecture/`
 ```
 
-- [ ] **Step 4: Update repository guidance so future work follows the new boundaries**
+- [x] **Step 4: Update repository guidance so future work follows the new boundaries**
 
 Add a short rule block to `AGENTS.md`:
 
@@ -111,7 +111,7 @@ Add a short rule block to `AGENTS.md`:
 - New style rules should prefer tokens and component classes over inline `style=""`.
 ```
 
-- [ ] **Step 5: Verify the baseline docs are discoverable**
+- [x] **Step 5: Verify the baseline docs are discoverable**
 
 Run: `Get-ChildItem src/docs -Recurse`
 Expected: architecture, security, plans, and specs directories are all visible.
@@ -807,6 +807,16 @@ Expected: the new docs are referenced and reachable.
 - Ship Task 7 behind a user-visible “beta sync” warning if merge behavior changes
 - Keep Task 8 and Task 9 continuously updated during the refactor, not only at the end
 
+## Execution log
+
+### 2026-04-18 - Phase 0 / Task 1 started
+
+- Added architecture baseline docs in `src/docs/architecture/`
+- Added security sync threat model in `src/docs/security/`
+- Updated `README.md` to reflect the technical documentation and current engineering state
+- Updated `AGENTS.md` to reflect the existing automated test toolchain and new frontend boundary rules
+- Verified `src/docs/` discoverability with filesystem and README reference checks
+
 ## Manual verification matrix
 
 - Desktop Chromium
@@ -847,4 +857,3 @@ This maturity program is complete when the project can truthfully claim the foll
 - The design system is tokenized and not primarily driven by inline styles.
 - The PWA installation and offline story feel intentional, not incidental.
 - Documentation matches the actual repository and delivery process.
-

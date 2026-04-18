@@ -194,15 +194,31 @@ Comandos disponíveis:
 - `npm run test:e2e:ui` - abre o runner visual do Playwright
 - `npm run test:all` - executa unitários e E2E em sequência
 
+### Documentação Técnica
+
+Documentos de arquitetura, planos e segurança ficam em `src/docs/`.
+
+- `src/docs/architecture/app-overview.md` - visão geral da arquitetura atual
+- `src/docs/architecture/data-flow.md` - fluxo de dados, persistência e sync
+- `src/docs/security/sync-threat-model.md` - riscos e mitigação de persistência/sync
+- `src/docs/superpowers/plans/` - planos de implementação
+- `src/docs/superpowers/specs/` - specs e documentos de design
+
 ---
 
 ## ☁️ Sincronização e Backup
 
 ### Cloudflare Multi-Device Sync
 Espelhe seus dados entre celular e PC em tempo real:
-1. Configure seu Worker seguindo `docs/CLOUDFLARE-SETUP.md`
+1. Configure seu Worker e seus segredos de ambiente antes de ativar o sync
 2. Insira a URL e o Token em **Configurações**
 3. Ative o Sync para pareamento automático
+
+Notas importantes:
+
+- hoje o sync é orientado a snapshot, não a merge fino por entidade
+- trate URL e token como credenciais operacionais do seu ambiente
+- revise o documento `src/docs/security/sync-threat-model.md` antes de publicar ou compartilhar uma instância
 
 ### Google Drive
 Conecte via OAuth 2.0 para backup automático na nuvem do Google.
@@ -259,6 +275,12 @@ src/
 - **Font Awesome 6.4** — Iconografia
 - **Plus Jakarta Sans** — Tipografia
 - **PWA** — Service Worker + Manifest para instalação nativa e modo offline
+
+### Estado Atual de Engenharia
+
+- suíte automatizada inicial configurada com **Vitest** e **Playwright**
+- documentação técnica em consolidação dentro de `src/docs/`
+- arquitetura ainda em processo de modularização, com grande concentração em `views.js` e `styles.css`
 
 ---
 
