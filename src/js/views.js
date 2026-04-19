@@ -3375,9 +3375,9 @@ window.savePastEvent = function(discId) {
 export function renderConfig(el) {
   const cfg = state.config;
   el.innerHTML = `
-    <div class="grid-2" style="align-items:start;">
+    <div class="config-grid">
       <div>
-        <div class="card" style="margin-bottom:16px;">
+        <div class="card config-card">
           <div class="card-header"><h3>🎨 Aparência</h3></div>
           <div class="card-body">
             <div class="config-row">
@@ -3385,7 +3385,7 @@ export function renderConfig(el) {
                 <div class="config-label">Tema Visual</div>
                 <div class="config-sub">Personalize a aparência do seu sistema</div>
               </div>
-              <select class="form-control" style="width:140px;" data-action="set-theme">
+              <select class="form-control config-select" data-action="set-theme">
                 <option value="light" ${cfg.tema === 'light' || !cfg.darkMode ? 'selected' : ''}>☀️ Light</option>
                 <option value="dark" ${cfg.tema === 'dark' || (cfg.darkMode && !cfg.tema) ? 'selected' : ''}>🌑 Original Dark</option>
                 <option value="furtivo" ${cfg.tema === 'furtivo' ? 'selected' : ''}>🕶️ Furtivo</option>
@@ -3398,7 +3398,7 @@ export function renderConfig(el) {
             </div>
           </div>
         </div>
-        <div class="card" style="margin-bottom:16px;">
+        <div class="card config-card">
           <div class="card-header"><h3>⚖️ Calendário</h3></div>
           <div class="card-body">
             <div class="config-row">
@@ -3406,7 +3406,7 @@ export function renderConfig(el) {
                 <div class="config-label">Visualização padrão</div>
                 <div class="config-sub">Modo inicial do calendário</div>
               </div>
-              <select class="form-control" style="width:120px;" data-action="update-config" data-config-key="visualizacao">
+              <select class="form-control config-select--narrow" data-action="update-config" data-config-key="visualizacao">
                 <option value="mes" ${cfg.visualizacao === 'mes' ? 'selected' : ''}>Mês</option>
                 <option value="semana" ${cfg.visualizacao === 'semana' ? 'selected' : ''}>Semana</option>
               </select>
@@ -3415,7 +3415,7 @@ export function renderConfig(el) {
               <div>
                 <div class="config-label">Primeiro dia da semana</div>
               </div>
-              <select class="form-control" style="width:130px;" data-action="update-config" data-config-key="primeirodiaSemana" data-value-type="number">
+              <select class="form-control config-select--medium" data-action="update-config" data-config-key="primeirodiaSemana" data-value-type="number">
                 <option value="0" ${cfg.primeirodiaSemana === 0 ? 'selected' : ''}>Domingo</option>
                 <option value="1" ${cfg.primeirodiaSemana === 1 ? 'selected' : ''}>Segunda-feira</option>
               </select>
@@ -3436,7 +3436,7 @@ export function renderConfig(el) {
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
+        <div class="card config-card">
           <div class="card-header"><h3>⏱️ Temporizador</h3></div>
           <div class="card-body">
             <div class="config-row">
@@ -3444,19 +3444,19 @@ export function renderConfig(el) {
                 <div class="config-label">Foco do Pomodoro (min)</div>
                 <div class="config-sub">Tempo ininterrupto de estudo</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="120" value="${cfg.pomodoroFoco || 25}" data-action="update-config" data-config-key="pomodoroFoco" data-value-type="number">
+              <input type="number" class="form-control config-input-number" min="1" max="120" value="${cfg.pomodoroFoco || 25}" data-action="update-config" data-config-key="pomodoroFoco" data-value-type="number">
             </div>
             <div class="config-row">
               <div>
                 <div class="config-label">Pausa do Pomodoro (min)</div>
                 <div class="config-sub">Intervalo de descanso</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="60" value="${cfg.pomodoroPausa || 5}" data-action="update-config" data-config-key="pomodoroPausa" data-value-type="number">
+              <input type="number" class="form-control config-input-number" min="1" max="60" value="${cfg.pomodoroPausa || 5}" data-action="update-config" data-config-key="pomodoroPausa" data-value-type="number">
             </div>
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
+        <div class="card config-card">
           <div class="card-header"><h3>📚 Planejamento Diário</h3></div>
           <div class="card-body">
             <div class="config-row">
@@ -3464,15 +3464,15 @@ export function renderConfig(el) {
                 <div class="config-label">Matérias por dia no Ciclo</div>
                 <div class="config-sub">Quantidade de disciplinas distribuídas diariamente no calendário/MED.</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="15" value="${cfg.materiasPorDia || 3}" data-action="update-config" data-config-key="materiasPorDia" data-value-type="number">
+              <input type="number" class="form-control config-input-number" min="1" max="15" value="${cfg.materiasPorDia || 3}" data-action="update-config" data-config-key="materiasPorDia" data-value-type="number">
             </div>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card config-card">
           <div class="card-header"><h3>🔄 Frequência de Revisão</h3></div>
           <div class="card-body">
-            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+            <div class="config-desc">
               Defina em quantos dias após concluir um assunto o programa vai sugerir cada revisão.
             </div>
             <div class="form-group">
@@ -3480,53 +3480,53 @@ export function renderConfig(el) {
               <input type="text" class="form-control" id="freq-input" value="${(cfg.frequenciaRevisao || [1, 7, 30, 90]).join(', ')}"
                 data-action="update-frequencia">
             </div>
-            <div style="font-size:12px;color:var(--text-muted);">Ex: 1, 7, 30, 90 = 4 revisões no 1º, 7º, 30º e 90º dia</div>
+            <div class="config-hint">Ex: 1, 7, 30, 90 = 4 revisões no 1º, 7º, 30º e 90º dia</div>
           </div>
         </div>
       </div>
 
       <div>
-        <div class="card" style="margin-bottom:16px;">
+        <div class="card config-card">
           <div class="card-header"><h3><i class="fa fa-cloud"></i> Sincronização Cloudflare (Primária)</h3></div>
           <div class="card-body">
-            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Sincronização em tempo real de baixíssima latência entre dispositivos via Cloudflare KV.</div>
-            
-            <div class="form-group" style="margin-top:16px;">
+            <div class="config-desc">Sincronização em tempo real de baixíssima latência entre dispositivos via Cloudflare KV.</div>
+
+            <div class="form-group config-input-group">
               <label class="form-label">URL do Cloudflare Worker (API)</label>
               <input type="url" id="config-cf-url" class="form-control" placeholder="Ex: https://estudo-sync-api.xxxx.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
             </div>
 
-            <div class="form-group" style="margin-top:16px;">
+            <div class="form-group config-input-group">
               <label class="form-label">Token de Acesso (Auth Token)</label>
-              <div style="display:flex; gap:8px;">
+              <div class="config-input-group">
                   <input type="password" id="config-cf-token" class="form-control" placeholder="Sua senha secreta do Worker" value="${esc(cfg.cfToken || '')}" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
                   <button type="button" class="btn btn-outline" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/Esconder Senha"><i class="fa fa-eye"></i></button>
               </div>
             </div>
             
-            <div style="margin-top:16px; display:flex; align-items:center; gap:8px;">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;" class="btn ${cfg.cfSyncEnabled ? 'btn-primary' : 'btn-outline'}">
-                    <input type="checkbox" id="config-cf-enabled" data-action="toggle-cf-sync" style="display:none;" ${cfg.cfSyncEnabled ? 'checked' : ''}>
+            <div class="config-toggle-row">
+                <label class="btn ${cfg.cfSyncEnabled ? 'btn-primary' : 'btn-outline'}">
+                    <input type="checkbox" id="config-cf-enabled" data-action="toggle-cf-sync" ${cfg.cfSyncEnabled ? 'checked' : ''}>
                     <i class="fa fa-power-off"></i> <span id="cf-sync-toggle-text">${cfg.cfSyncEnabled ? 'Sincronização Ativada' : 'Ativar Sincronização'}</span>
                 </label>
-                <button type="button" class="btn btn-outline" data-action="force-cloudflare-sync" id="btn-force-cf-sync" style="display: ${cfg.cfSyncEnabled ? 'inline-flex' : 'none'};"><i class="fa fa-sync"></i> Forçar Sincronização Agora</button>
+                <button type="button" class="btn btn-outline" data-action="force-cloudflare-sync" id="btn-force-cf-sync"><i class="fa fa-sync"></i> Forçar Sincronização Agora</button>
             </div>
-            <p id="cf-sync-status" style="margin-top:12px; font-size:13px; font-weight:600;"></p>
+            <p id="cf-sync-status" class="config-status"></p>
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
+        <div class="card config-card">
           <div class="card-header"><h3>😁️ Google Drive</h3></div>
           <div class="card-body">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-              <div style="font-size:32px;">😁️</div>
+            <div class="flex cluster-md" style="margin-bottom:16px;">
+              <div class="config-emoji-icon">😁️</div>
               <div>
-                <div style="font-size:14px;font-weight:700;">${state.driveFileId ? 'Conectado ao Google Drive' : 'Não conectado'}</div>
-                <div style="font-size:12px;color:var(--text-secondary);">${state.driveFileId ? 'Seus dados são sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
+                <div class="config-title">${state.driveFileId ? 'Conectado ao Google Drive' : 'Não conectado'}</div>
+                <div class="config-subtitle">${state.driveFileId ? 'Seus dados são sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
               </div>
             </div>
             ${state.driveFileId ? `
-              <div style="display:flex;gap:8px;">
+              <div class="config-actions-row">
                 <button class="btn btn-primary btn-sm" data-action="drive-sync-now">
                   <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
                 </button>
@@ -3543,7 +3543,7 @@ export function renderConfig(el) {
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
+        <div class="card config-card">
           <div class="card-header"><h3>🔖 Notificações</h3></div>
           <div class="card-body">
             <div class="config-row">
@@ -3562,7 +3562,7 @@ export function renderConfig(el) {
                 <div class="config-label">Modo Silencioso (Início)</div>
                 <div class="config-sub">A partir de qual horário silenciar:</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="0" max="23" value="${cfg.silentModeStart ?? 22}" data-action="update-config" data-config-key="silentModeStart" data-value-type="number">
+              <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeStart ?? 22}" data-action="update-config" data-config-key="silentModeStart" data-value-type="number">
             </div>
             
             <div class="config-row">
@@ -3570,23 +3570,23 @@ export function renderConfig(el) {
                 <div class="config-label">Modo Silencioso (Fim)</div>
                 <div class="config-sub">Até qual horário silenciar:</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="0" max="23" value="${cfg.silentModeEnd ?? 8}" data-action="update-config" data-config-key="silentModeEnd" data-value-type="number">
+              <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeEnd ?? 8}" data-action="update-config" data-config-key="silentModeEnd" data-value-type="number">
             </div>
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
+        <div class="card config-card">
           <div class="card-header"><h3>💾 Dados</h3></div>
           <div class="card-body">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+            <div class="config-sub" style="margin-bottom:10px;">
               ${state.eventos.length} evento(s) ativos
               ${(state.arquivo || []).length > 0 ? ` • ${state.arquivo.length} arquivado(s)` : ''}
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:12px;font-size:12px;">
-              <div style="display:flex;justify-content:space-between;gap:12px;"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
-              <div style="display:flex;justify-content:space-between;gap:12px;"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
-              <div style="display:flex;justify-content:space-between;gap:12px;"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>
+            <div class="grid" style="grid-template-columns:1fr;gap:8px;margin-bottom:12px;font-size:12px;">
+              <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
+              <div class="flex flex-between"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
+              <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
@@ -3598,7 +3598,7 @@ export function renderConfig(el) {
               </select>
             </div>
 
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div class="flex flex-wrap gap-sm">
               <button class="btn btn-ghost" data-action="export-data">📱 Exportar JSON</button>
               <button class="btn btn-ghost" data-action="restore-backup">♻️ Restaurar backup selecionado</button>
               <button class="btn btn-ghost btn-sm" data-action="archive-old-events" data-days="90" title="Move eventos concluidos há mais de 90 dias para o arquivo">🙉 Arquivar antigos</button>
@@ -3610,10 +3610,10 @@ export function renderConfig(el) {
         <div class="card">
           <div class="card-header"><h3>ℹ️ Sobre</h3></div>
           <div class="card-body">
-            <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
+            <div class="config-desc" style="line-height:1.7;">
               <strong>Estudo Organizado</strong> é um app para planejamento e organização de estudos para concursos públicos.<br><br>
               Baseado no Ciclo PDCA: planeje no Calendário, execute no Study Organizer, meça no Dashboard e corrija com as Revisões.<br><br>
-              <span style="font-size:11px;color:var(--text-muted);">Versão 1.0 • Dados salvos localmente + Google Drive</span>
+              <span class="text-xs text-muted">Versão 1.0 • Dados salvos localmente + Google Drive</span>
             </div>
           </div>
         </div>
