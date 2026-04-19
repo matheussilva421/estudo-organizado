@@ -154,10 +154,21 @@ test.describe('Estudo Organizado', () => {
 
     await expect(search).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('#search-results')).toHaveClass(/open/);
+    await expect(page.locator('#search-results')).toHaveAttribute('role', 'region');
     await expect(page.locator('#search-results button.search-item').first()).toBeVisible();
     await expect(page.locator('#search-results')).toContainText('Auditoria Constitucional');
 
-    await page.keyboard.press('Tab');
-    await expect(page.locator('#search-results button.search-item').first()).toBeFocused();
+    const resultButtons = page.locator('#search-results button.search-item');
+    await expect(resultButtons).toHaveCount(3);
+
+    await page.keyboard.press('ArrowDown');
+    await expect(resultButtons.nth(0)).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(resultButtons.nth(1)).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(resultButtons.nth(0)).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(search).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#search-results')).not.toHaveClass(/open/);
   });
 });

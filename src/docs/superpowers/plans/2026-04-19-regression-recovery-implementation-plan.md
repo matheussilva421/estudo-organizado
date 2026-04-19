@@ -142,8 +142,8 @@ npm run test:e2e
 - [x] Ensure `data-action="search-input"` calls only the canonical implementation.
 - [x] Render each result as `<button type="button" class="search-item">`.
 - [x] Update `aria-expanded` to `true` when results are visible and `false` when closed.
-- [ ] Use `role="listbox"`/`option` only if implementing listbox keyboard behavior; otherwise prefer a plain results region with buttons.
-- [ ] Add keyboard support: ArrowDown/ArrowUp through results, Enter activates, Escape closes.
+- [x] Use `role="listbox"`/`option` only if implementing listbox keyboard behavior; otherwise prefer a plain results region with buttons.
+- [x] Add keyboard support: ArrowDown/ArrowUp through results, Enter activates, Escape closes.
 - [x] Announce result count through `#aria-announcer`.
 - [x] Remove stale duplicate `window.debouncedOnSearch` definitions.
 
@@ -495,3 +495,41 @@ Remaining in the next slice:
 - Conflict UX actions: export local backup, pull remote, or force overwrite from the 409 state.
 - Configurable `ALLOWED_ORIGINS` deployment defaults.
 - Search ArrowUp/ArrowDown keyboard behavior and ARIA role cleanup.
+
+### 2026-04-19 - Recovery slice 3
+
+Completed the remaining accessible-search keyboard slice.
+
+Changed files:
+
+- `src/index.html`
+- `src/js/views.js`
+- `tests/e2e/app.spec.js`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+
+What changed:
+
+- Replaced the search results container role from `listbox` to a plain `region` with `aria-live="polite"` because results are rendered as real buttons.
+- Added ArrowDown/ArrowUp focus movement through search result buttons.
+- Added Escape behavior that closes search and restores focus to the search input.
+- Expanded the E2E search regression to assert region semantics, arrow navigation and close behavior.
+
+Verification:
+
+```powershell
+npm run test:e2e -- tests/e2e/app.spec.js -g "global search"
+npm test
+npm run test:e2e
+```
+
+Results:
+
+- Search E2E focused: 1 passed
+- Full unit: 63 passed
+- Full E2E: 5 passed
+
+Remaining in the next slice:
+
+- Conflict UX actions: export local backup, pull remote, or force overwrite from the 409 state.
+- Configurable `ALLOWED_ORIGINS` deployment defaults.
+- Banca/extracted-module cleanup from Phase 4.

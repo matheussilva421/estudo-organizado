@@ -4045,8 +4045,40 @@ export function clearSearch() {
   results?.classList.remove('open');
 }
 
+function handleSearchKeydown(e) {
+  const input = document.getElementById('global-search');
+  const results = document.getElementById('search-results');
+  if (!input || !results || !results.classList.contains('open')) return false;
+
+  const active = document.activeElement;
+  const isInsideSearch = active === input || results.contains(active);
+  if (!isInsideSearch) return false;
+
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    clearSearch();
+    input.focus();
+    return true;
+  }
+
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return false;
+
+  const buttons = [...results.querySelectorAll('button.search-item')];
+  if (buttons.length === 0) return false;
+
+  e.preventDefault();
+  const currentIndex = buttons.indexOf(active);
+  const nextIndex = e.key === 'ArrowDown'
+    ? (currentIndex + 1) % buttons.length
+    : (currentIndex <= 0 ? buttons.length - 1 : currentIndex - 1);
+
+  buttons[nextIndex].focus();
+  return true;
+}
+
 // ESC closes search
 document.addEventListener('keydown', e => {
+  if (handleSearchKeydown(e)) return;
   // Fix H: ESC — close the topmost open modal, or clear search
   if (e.key === 'Escape') {
     const openModals = [...document.querySelectorAll('.modal-overlay.open')];
