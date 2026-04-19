@@ -2350,7 +2350,7 @@ export function openDiscManager(editaId, discId) {
         <label>Nome</label>
         <input type="text" id="dm-nome" value="${esc(disc.nome)}">
       </div>
-      <div class="sm-form-group" style="flex:0.4;">
+      <div class="sm-form-group sm-form-group--narrow">
         <label>Cor</label>
         <div class="sm-color-picker-group">
           <input type="color" id="dm-cor-picker" value="${disc.cor || COLORS[0]}">
@@ -2387,7 +2387,7 @@ export function openDiscManager(editaId, discId) {
         <div class="sm-bulk-import-form">
            <div>
                <label>Adição em Lote (Copie e paste o índice do seu PDF/Cursinho aqui)</label>
-               <textarea class="form-control" id="new-aula-bulk" placeholder="Aula 00 - Concordância Nominal\nAula 01 - Crase..." style="min-height:80px; resize:vertical;"></textarea>
+      <textarea class="form-control form-control--resize" id="new-aula-bulk" placeholder="Aula 00 - Concordância Nominal\nAula 01 - Crase..." style="min-height:80px;"></textarea>
            </div>
            <button class="btn btn-primary" data-action="add-bulk-aulas" data-disc-id="${disc.id}">Importar Lote</button>
         </div>
@@ -2406,7 +2406,7 @@ export function openDiscManager(editaId, discId) {
 
     <!--BOTOES INFERIORES-->
       <div class="sm-footer-actions">
-        <button class="btn btn-ghost" style="color:var(--danger);" data-action="delete-disc" data-edital-id="${editaId}" data-disc-id="${discId}">Remover Disciplina</button>
+        <button class="btn btn-ghost btn-text-danger" data-action="delete-disc" data-edital-id="${editaId}" data-disc-id="${discId}">Remover Disciplina</button>
         <button class="btn btn-primary" data-action="save-disc-manager" data-edital-id="${editaId}" data-disc-id="${discId}">Salvar Manager</button>
       </div>
     `;
@@ -2952,7 +2952,7 @@ export function openSubjectAddModal(editaId, discId) {
   document.getElementById('modal-subject-add-body').innerHTML = `
     <div class="form-group" >
       <label class="form-label text-xs text-uppercase text-muted font-semibold">Conteúdo</label>
-      <textarea id="bulk-subject-text" class="form-control" rows="8" style="font-family:inherit;font-size:14px;resize:vertical;" placeholder="Ex:\n1. Configuração do Estado\n2. Direitos Fundamentais\n3. ..."></textarea>
+      <textarea id="bulk-subject-text" class="form-control form-control--mono" rows="8" placeholder="Ex:\n1. Configuração do Estado\n2. Direitos Fundamentais\n3. ..."></textarea>
       <div class="config-hint">
         Dica: Você pode fazer quebra de linha com Enter para adicionar mais de um tópico. O sistema limpará numerações como "1.", "1.1", "-", etc.
       </div>

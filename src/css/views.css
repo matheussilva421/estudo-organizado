@@ -1802,6 +1802,24 @@
   color: var(--text-secondary);
 }
 
+.sm-form-group--narrow {
+  flex: 0.4;
+}
+
+.form-control--resize {
+  resize: vertical;
+}
+
+.btn-text-danger {
+  color: var(--danger);
+}
+
+.form-control--mono {
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
 /* Color picker group */
 .sm-color-picker-group {
   display: flex;
