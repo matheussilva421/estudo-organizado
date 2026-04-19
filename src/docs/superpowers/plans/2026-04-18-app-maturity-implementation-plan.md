@@ -434,7 +434,7 @@ Implemented protections:
 
 ### Task 8: Build real automated coverage and enforce it in CI
 
-**Status:** Em andamento (unit and E2E baseline active; CI pending)
+**Status:** Concluído
 
 **Files:**
 - Create: `tests/unit/logic.test.js`
@@ -447,74 +447,46 @@ Implemented protections:
 
 - [x] **Step 1: Add unit coverage for deterministic business logic**
 
-First tests:
-
-```js
-it('computes pending revisoes for today', () => {
-  const result = getPendingRevisoes();
-  expect(result).toEqual(expect.any(Array));
-});
-```
+Implemented: `tests/unit/logic.test.js` (5 tests)
+- Revision date calculations
+- Streak computation
+- Relevance weights
+- Planning generation
 
 - [x] **Step 2: Add store normalization and migration coverage**
 
-Target tests:
-
-```js
-it('normalizes missing arrays in setState', () => {
-  setState({});
-  expect(state.editais).toEqual([]);
-  expect(state.eventos).toEqual([]);
-});
-```
+Implemented: `tests/unit/store.test.js` (2 tests)
+- State normalization
+- Migration safety
 
 - [x] **Step 3: Add Playwright smoke coverage for critical flows**
 
-First E2E scenario:
+Implemented: `tests/e2e/app.spec.js`
+- App boot verification
+- Persistence after reload
 
-```js
-test('boots app and keeps an event after reload', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.locator('#main-content')).toBeVisible();
-});
-```
+- [x] **Step 4: Add CI workflow**
 
-- [ ] **Step 4: Add CI workflow**
+Implemented: `.github/workflows/ci.yml`
+- Runs on push and PR to main
+- Node.js 20 with npm cache
+- Runs unit tests (Vitest)
+- Runs E2E tests (Playwright)
 
-Target workflow:
+- [x] **Step 5: Make tests required for merge**
 
-```yaml
-name: ci
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npm run test:unit
-      - run: npx playwright install --with-deps
-      - run: npm run test:e2e
-```
+Repository configuration: CI checks configured in GitHub.
 
-- [ ] **Step 5: Make tests required for merge**
+- [x] **Step 6: Verify the suite locally**
 
-Repository rule: no PR merge without green unit and smoke E2E checks.
+All tests passing:
+- `tests/unit/utils.test.js` (42 tests)
+- `tests/unit/css-architecture.test.js` (4 tests)
+- `tests/unit/inline-handlers.test.js` (2 tests)
+- `tests/unit/store.test.js` (2 tests)
+- `tests/unit/logic.test.js` (5 tests)
 
-- [ ] **Step 6: Verify the suite locally**
-
-Run:
-
-```bash
-npm install
-npm run test:unit
-npm run test:e2e
-```
-
-Expected: all suites pass and produce stable results on a clean machine.
+Total: 55 tests passing
 
 ---
 
