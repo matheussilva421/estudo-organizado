@@ -1276,21 +1276,21 @@ export function openHabitModal(tipo) {
           <input type="number" class="form-control" id="habit-acertos" value="0" min="0" data-action="calc-simulado-perc">
         </div>
       </div>
-      <div id="sim-perc" style="font-size:13px;font-weight:700;text-align:center;color:var(--accent);margin-bottom:12px;"></div>
+      <div id="sim-perc" class="simulado-perc"></div>
 
       <!-- Feature 13: gabarito por disciplina -->
       <details>
-        <summary style="font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:4px 0;margin-bottom:8px;">📈 Gabarito por Disciplina (opcional)</summary>
-        <div id="sim-disc-list" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+        <summary class="simulado-disc-summary">📈 Gabarito por Disciplina (opcional)</summary>
+        <div id="sim-disc-list" class="simulado-disc-list">
           ${getAllDisciplinas().map(({ disc, edital }) => `
-            <div style="display:flex;align-items:center;gap:8px;background:var(--bg);padding:8px;border-radius:8px;">
-              <span style="font-size:13px;flex:1;font-weight:500;" title="${esc(edital.nome)}">${disc.icone || '📚'} ${esc(disc.nome)}</span>
-              <input type="number" class="form-control" style="width:70px;" placeholder="Total" id="sim-total-${disc.id}" min="0">
-              <span style="color:var(--text-muted);font-size:12px;">/</span>
-              <input type="number" class="form-control" style="width:70px;" placeholder="Acertos" id="sim-acertos-${disc.id}" min="0">
+            <div class="simulado-disc-row">
+              <span class="simulado-disc-name" title="${esc(edital.nome)}">${disc.icone || '📚'} ${esc(disc.nome)}</span>
+              <input type="number" class="form-control simulado-disc-input" placeholder="Total" id="sim-total-${disc.id}" min="0">
+              <span class="simulado-disc-separator">/</span>
+              <input type="number" class="form-control simulado-disc-input" placeholder="Acertos" id="sim-acertos-${disc.id}" min="0">
             </div>
           `).join('')}
-          ${getAllDisciplinas().length === 0 ? '<div style="font-size:12px;color:var(--text-muted);padding:8px;">Cadastre disciplinas para usar o gabarito detalhado.</div>' : ''}
+          ${getAllDisciplinas().length === 0 ? '<div class="simulado-empty">Cadastre disciplinas para usar o gabarito detalhado.</div>' : ''}
         </div>
       </details>
     ` : tipo === 'discursiva' ? `
