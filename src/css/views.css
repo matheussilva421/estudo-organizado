@@ -1490,6 +1490,181 @@
   margin-top: var(--space-4);
 }
 
+/* Session empty state */
+.session-empty-state {
+  text-align: center;
+  padding: var(--space-6);
+}
+
+.session-empty-icon {
+  font-size: 42px;
+  opacity: 0.6;
+  margin-bottom: var(--space-2);
+}
+
+.session-empty-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.session-empty-hint {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Session history summary */
+.session-history-summary {
+  margin-bottom: var(--space-4);
+}
+
+.session-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.session-history-badges {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.session-history-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+
+/* Session group section */
+.session-group-section {
+  margin-bottom: var(--space-4);
+}
+
+.session-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-3);
+}
+
+.session-group-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.session-group-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.session-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-3);
+}
+
+/* Session disc card */
+.session-disc-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  padding: var(--space-3);
+}
+
+.session-disc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.session-disc-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.session-disc-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Session scroll container */
+.session-scroll-container {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+/* Session detail card */
+.session-detail-card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  background: var(--card);
+}
+
+.session-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.session-detail-content {
+  min-width: 0;
+}
+
+.session-detail-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-detail-subject {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.session-detail-actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.session-item-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.session-item-btn-danger {
+  color: var(--red);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.session-item-badges {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
 /* Revisões stat counts */
 .rev-stat-count {
   font-size: 28px;

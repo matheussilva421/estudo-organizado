@@ -1425,10 +1425,10 @@ export function renderHistoricoSessoes(el) {
 
   if (eventosEstudados.length === 0) {
     el.innerHTML = `
-      <div class="card p-24" style="text-align:center;">
-        <div style="font-size:42px;opacity:.6;margin-bottom:8px;">🕘</div>
-        <div style="font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Nenhuma sessão registrada ainda</div>
-        <div style="font-size:14px;color:var(--text-muted);">Quando você finalizar uma sessão de estudo, ela aparecerá aqui para edição e exclusão.</div>
+      <div class="card p-24 session-empty-state">
+        <div class="session-empty-icon">🕘</div>
+        <div class="session-empty-title">Nenhuma sessão registrada ainda</div>
+        <div class="session-empty-hint">Quando você finalizar uma sessão de estudo, ela aparecerá aqui para edição e exclusão.</div>
       </div>
     `;
     return;
@@ -1464,15 +1464,15 @@ export function renderHistoricoSessoes(el) {
   const totalTempo = eventosEstudados.reduce((sum, ev) => sum + (Number(ev.tempoAcumulado) || 0), 0);
 
   el.innerHTML = `
-    <div class="card p-16" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div class="card p-16 session-history-summary">
+      <div class="session-history-header">
         <div class="dash-label">HISTÓRICO GLOBAL DE SESSÕES</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <span class="badge" style="display:inline-flex;background:var(--bg);color:var(--text-secondary);">${totalSessoes} sessões</span>
-          <span class="badge" style="display:inline-flex;background:var(--bg);color:var(--text-secondary);">⏱ ${formatTime(totalTempo)}</span>
+        <div class="session-history-badges">
+          <span class="badge">${totalSessoes} sessões</span>
+          <span class="badge">⏱ ${formatTime(totalTempo)}</span>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Agrupado por data e disciplina. Use "Editar" para ajustar o registro e "Apagar" para remover permanentemente.</div>
+      <div class="session-history-hint">Agrupado por data e disciplina. Use "Editar" para ajustar o registro e "Apagar" para remover permanentemente.</div>
     </div>
 
     ${dateKeys.map(dateKey => {
@@ -1484,21 +1484,21 @@ export function renderHistoricoSessoes(el) {
     const sessoesNoDia = disciplinas.reduce((sum, d) => sum + d.itens.length, 0);
 
     return `
-        <section class="card p-16" style="margin-bottom:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:10px;">
-            <div style="font-size:16px;font-weight:800;color:var(--text-primary);">${esc(dateLabel)}</div>
-            <div style="font-size:12px;color:var(--text-muted);">${sessoesNoDia} sessão(ões)</div>
+        <section class="card p-16 session-group-section">
+          <div class="session-group-header">
+            <div class="session-group-title">${esc(dateLabel)}</div>
+            <div class="session-group-count">${sessoesNoDia} sessão(ões)</div>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;">
+          <div class="session-group-grid">
             ${disciplinas.map(group => `
-              <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
-                  <div style="font-size:14px;font-weight:700;color:var(--text-primary);">${esc(group.discIcone)} ${esc(group.discNome)}</div>
-                  <div style="font-size:11px;color:var(--text-muted);">${group.itens.length} registro(s)</div>
+              <div class="session-disc-card">
+                <div class="session-disc-header">
+                  <div class="session-disc-title">${esc(group.discIcone)} ${esc(group.discNome)}</div>
+                  <div class="session-disc-count">${group.itens.length} registro(s)</div>
                 </div>
 
-                <div class="custom-scrollbar" style="max-height:360px;overflow-y:auto;padding-right:4px;">
+                <div class="custom-scrollbar session-scroll-container">
                   ${group.itens.map(ev => {
       const questoes = ev.sessao?.questoes || ev.questoes || {};
       const acertos = Number(questoes.acertos ?? questoes.certas ?? 0) || 0;
@@ -1518,24 +1518,22 @@ export function renderHistoricoSessoes(el) {
       const eventId = esc(String(ev.id || ''));
 
       return `
-                    <div style="border:1px solid rgba(148,163,184,0.18);border-radius:10px;padding:10px;margin-bottom:8px;background:var(--card);">
-                      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-                        <div style="min-width:0;">
-                          <div style="font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                            ${esc(ev.titulo || 'Sessão de estudo')}
-                          </div>
-                          ${assunto ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Tópico: ${esc(assunto)}</div>` : ''}
+                    <div class="session-detail-card">
+                      <div class="session-detail-row">
+                        <div class="session-detail-content">
+                          <div class="session-detail-title">${esc(ev.titulo || 'Sessão de estudo')}</div>
+                          ${assunto ? `<div class="session-detail-subject">Tópico: ${esc(assunto)}</div>` : ''}
                         </div>
-                        <div style="display:flex;gap:6px;flex-shrink:0;">
-                          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;" data-action="edit-session-record" data-session-id="${eventId}">Editar</button>
-                          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;color:var(--red);border-color:rgba(239,68,68,.35);" data-action="delete-session-record" data-session-id="${eventId}">Apagar</button>
+                        <div class="session-detail-actions">
+                          <button class="btn btn-ghost btn-sm session-item-btn" data-action="edit-session-record" data-session-id="${eventId}">Editar</button>
+                          <button class="btn btn-ghost btn-sm session-item-btn session-item-btn-danger" data-action="delete-session-record" data-session-id="${eventId}">Apagar</button>
                         </div>
                       </div>
 
-                      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                        <span class="badge" style="display:inline-flex;background:var(--bg);color:var(--text-secondary);">⏱ ${tempoLabel}</span>
-                        <span class="badge" style="display:inline-flex;background:var(--bg);color:var(--text-secondary);">❓ ${totalQuestoes > 0 ? `${acertos}/${totalQuestoes} (${percAcertos}%)` : '-'}</span>
-                        <span class="badge" style="display:inline-flex;background:var(--bg);color:var(--text-secondary);">📄 ${paginas > 0 ? paginas : '-'}</span>
+                      <div class="session-item-badges">
+                        <span class="badge session-item-badge">⏱ ${tempoLabel}</span>
+                        <span class="badge session-item-badge">❓ ${totalQuestoes > 0 ? `${acertos}/${totalQuestoes} (${percAcertos}%)` : '-'}</span>
+                        <span class="badge session-item-badge">📄 ${paginas > 0 ? paginas : '-'}</span>
                       </div>
                     </div>
                   `;
