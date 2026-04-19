@@ -4318,15 +4318,15 @@ export function renderCiclo(el) {
         </div>
       </div>
 
-      <div class="grid-2 ciclo-layout" style="grid-template-columns: 1fr 400px; gap:24px; align-items:start;">
-        
+      <div class="grid-2 ciclo-layout">
+
         <!-- COLUNA ESQUERDA -->
-        <div style="display:flex; flex-direction:column; gap:24px;">
-          <div class="ciclo-summary-row" style="display:flex; gap:16px;">
+        <div class="ciclo-content-col">
+          <div class="ciclo-summary-row">
             <!-- CICLOS COMPLETOS -->
-            <div class="card" style="padding:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; min-width:140px;">
-              <div style="font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:1px; margin-bottom:12px;">CICLOS COMPLETOS</div>
-              <div style="width:48px; height:48px; border:3px solid var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:var(--text-primary);">${ciclosFeitos}</div>
+            <div class="card ciclo-stat-card ciclo-stat-card--center">
+              <div class="ciclo-stat-label">CICLOS COMPLETOS</div>
+              <div class="ciclo-stat-value">${ciclosFeitos}</div>
             </div>
             <!-- PROGRESSO GERAL -->
             <div class="card ciclo-stat-card ciclo-stat-card--fill">
