@@ -2209,15 +2209,15 @@ export function openDiscModal(editaId, discId) {
     </div>
     <div class="form-group">
       <label class="form-label">Ícone</label>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="disc-icons">
-        ${DISC_ICONS.map((ic, i) => `<div style="width:36px;height:36px;border-radius:8px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all 0.15s;" class="${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0]) ? 'selected-icon' : ''}" data-action="select-icon" data-icon="${ic}">${ic}</div>`).join('')}
+      <div class="icon-grid" id="disc-icons">
+        ${DISC_ICONS.map((ic, i) => `<div class="icon-grid-item ${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0]) ? 'selected-icon' : ''}" data-action="select-icon" data-icon="${ic}">${ic}</div>`).join('')}
       </div>
       <input type="hidden" id="disc-icone" value="${isEdit ? existingDisc.icone : DISC_ICONS[0]}">
     </div>
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="disc-colors">
-        ${COLORS.map((c, i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" style="background:${c};" data-action="select-disc-color" data-color="${c}"></div>`).join('')}
+        ${COLORS.map((c, i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" data-disc-color="${c}" data-action="select-disc-color" data-color="${c}"></div>`).join('')}
       </div>
       <input type="hidden" id="disc-cor" value="${isEdit ? existingDisc.cor : COLORS[0]}">
     </div>
@@ -2226,18 +2226,16 @@ export function openDiscModal(editaId, discId) {
 }
 
 export function selectIcon(icon, el) {
-  document.querySelectorAll('#disc-icons > div').forEach(d => {
-    d.style.border = '2px solid var(--border)';
+  document.querySelectorAll('#disc-icons > .icon-grid-item').forEach(d => {
     d.classList.remove('selected-icon');
   });
-  el.style.border = '2px solid var(--accent)';
   el.classList.add('selected-icon');
   document.getElementById('disc-icone').value = icon;
 }
 
 export function selectDiscColor(color) {
   document.querySelectorAll('#disc-colors .color-swatch').forEach(s => s.classList.remove('selected'));
-  document.querySelector(`#disc-colors .color-swatch[style="background:${color};"]`)?.classList.add('selected');
+  document.querySelector(`#disc-colors .color-swatch[data-disc-color="${color}"]`)?.classList.add('selected');
   document.getElementById('disc-cor').value = color;
 }
 

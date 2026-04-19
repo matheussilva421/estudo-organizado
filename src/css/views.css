@@ -1746,3 +1746,34 @@
   border-color: var(--text-primary);
   box-shadow: 0 0 0 2px var(--border);
 }
+
+/* Icon grid */
+.icon-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.icon-grid-item {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.icon-grid-item:hover {
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+
+.icon-grid-item.selected-icon {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
