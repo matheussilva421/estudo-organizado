@@ -2002,7 +2002,7 @@ export function initDiscDashboardChart(discId) {
 
   if (labels.length === 0) {
     const parent = canvas.parentElement;
-    parent.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;font-style:italic;">Métricas insuficientes. Registre sessões com número de questões para gerar o gráfico de evolução.</div>';
+    parent.innerHTML = '<div class="dashboard-chart-empty">Métricas insuficientes. Registre sessões com número de questões para gerar o gráfico de evolução.</div>';
     return;
   }
 
@@ -4272,7 +4272,7 @@ export function renderCiclo(el) {
               <div class="seq-item-header">
                 <div class="seq-item-title" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
                 <div class="seq-item-time-display">
-                   <i class="fa fa-clock"></i> <span class="seq-item-time-value" style="font-weight:700; color:var(--text-primary);">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
+                   <i class="fa fa-clock"></i> <span class="seq-item-time-value">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
                 </div>
               </div>
 
@@ -4625,7 +4625,7 @@ window.openCicloHistory = function (seqId) {
 
   if (bodyEl) {
     bodyEl.innerHTML = `
-      <div style="padding:16px;">
+      <div class="modal-body-padded">
         ${btnDesfazer}
         <h4 class="ciclo-history-sessions-title">Sessões Recentes (${eventosDisc.length})</h4>
         ${htmlHistorico}
