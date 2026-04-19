@@ -142,6 +142,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
                 delete state.config.cfUrl;
                 delete state.config.cfToken;
                 if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
+                delete state.config.cfConflict;
             }
             saveStateToDB(true);
             document.dispatchEvent(new Event('app:invalidateCaches'));

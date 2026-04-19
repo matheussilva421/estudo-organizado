@@ -171,4 +171,27 @@ test.describe('Estudo Organizado', () => {
     await expect(search).toHaveAttribute('aria-expanded', 'false');
     await expect(page.locator('#search-results')).not.toHaveClass(/open/);
   });
+
+  test('shows Cloudflare sync conflict recovery actions in settings', async ({ page }) => {
+    const state = createE2EState();
+    state.config.cfSyncEnabled = true;
+    state.config.cfUrl = 'https://sync.example.test';
+    state.config.cfToken = 'test-token';
+    state.config.cfConflict = {
+      remoteUpdatedAt: '2026-04-19T11:00:00.000Z',
+      remoteDeviceId: 'device-a',
+      detectedAt: '2026-04-19T12:00:00.000Z'
+    };
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="config"]');
+
+    const conflict = page.locator('[data-testid="cf-sync-conflict"]');
+    await expect(conflict).toBeVisible();
+    await expect(conflict).toContainText('Conflito');
+    await expect(conflict.locator('[data-action="cloud-conflict-export-local"]')).toBeVisible();
+    await expect(conflict.locator('[data-action="cloud-conflict-pull-remote"]')).toBeVisible();
+    await expect(conflict.locator('[data-action="cloud-conflict-force-push"]')).toBeVisible();
+  });
 });

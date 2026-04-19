@@ -1040,6 +1040,30 @@ const actions = {
     }
   },
 
+  'cloud-conflict-export-local': () => {
+    if (typeof window.exportData === 'function') {
+      window.exportData();
+    }
+  },
+
+  'cloud-conflict-pull-remote': () => {
+    if (typeof window.showConfirm !== 'function' || typeof window.pullFromCloudflare !== 'function') return;
+    window.showConfirm(
+      'Baixar os dados remotos agora? Isso substituirá os dados locais. Exporte um backup local antes se tiver dúvida.',
+      () => window.pullFromCloudflare(true),
+      { label: 'Baixar remoto', title: 'Resolver conflito de sync' }
+    );
+  },
+
+  'cloud-conflict-force-push': () => {
+    if (typeof window.showConfirm !== 'function' || typeof window.pushToCloudflare !== 'function') return;
+    window.showConfirm(
+      'Forçar envio local para a nuvem? Isso sobrescreverá a versão remota mais recente.',
+      () => window.pushToCloudflare(true),
+      { label: 'Forçar envio', title: 'Sobrescrever remoto', danger: true }
+    );
+  },
+
   'drive-sync-now': () => {
     if (typeof window.syncWithDrive === 'function') {
       window.syncWithDrive()

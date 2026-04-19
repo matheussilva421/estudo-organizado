@@ -3372,6 +3372,42 @@ window.savePastEvent = function(discId) {
 // =============================================
 // CONFIG VIEW
 // =============================================
+function renderCloudflareConflict(conflict) {
+  if (!conflict) return '';
+
+  const remote = formatBackupDateTime(conflict.remoteUpdatedAt);
+  const detected = formatBackupDateTime(conflict.detectedAt);
+  const device = esc(conflict.remoteDeviceId || 'dispositivo remoto');
+
+  return `
+    <div class="sync-conflict-panel" data-testid="cf-sync-conflict" role="alert">
+      <div class="sync-conflict-header">
+        <i class="fa fa-triangle-exclamation"></i>
+        <div>
+          <div class="sync-conflict-title">Conflito de sincronizaÃ§Ã£o</div>
+          <div class="sync-conflict-sub">O remoto mudou antes deste dispositivo enviar seus dados.</div>
+        </div>
+      </div>
+      <div class="sync-conflict-meta">
+        <span>Remoto: ${remote}</span>
+        <span>Origem: ${device}</span>
+        <span>Detectado: ${detected}</span>
+      </div>
+      <div class="sync-conflict-actions">
+        <button type="button" class="btn btn-outline btn-sm" data-action="cloud-conflict-export-local">
+          <i class="fa fa-download"></i> Exportar backup local
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" data-action="cloud-conflict-pull-remote">
+          <i class="fa fa-cloud-download-alt"></i> Baixar remoto
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" data-action="cloud-conflict-force-push">
+          <i class="fa fa-cloud-upload-alt"></i> ForÃ§ar envio local
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 export function renderConfig(el) {
   const cfg = state.config;
   el.innerHTML = `
@@ -3490,6 +3526,8 @@ export function renderConfig(el) {
           <div class="card-header"><h3><i class="fa fa-cloud"></i> Sincronização Cloudflare (Primária)</h3></div>
           <div class="card-body">
             <div class="config-desc">Sincronização em tempo real de baixíssima latência entre dispositivos via Cloudflare KV.</div>
+
+            ${renderCloudflareConflict(cfg.cfConflict)}
 
             <div class="form-group config-input-group">
               <label class="form-label">URL do Cloudflare Worker (API)</label>

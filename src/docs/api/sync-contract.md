@@ -41,6 +41,16 @@ Field meanings:
 - On success, stores the Worker-returned `meta.updatedAt` as `state.config.cfRemoteUpdatedAt`.
 - On HTTP 409, stores `state.config.cfConflict` and tells the user to pull remote data before pushing again.
 
+## Conflict UX
+
+When `state.config.cfConflict` exists, the Cloudflare settings card renders a conflict panel with three explicit actions:
+
+- Export local backup: downloads the current local state before any destructive resolution.
+- Pull remote: confirms and calls `pullFromCloudflare(true)` to replace local data with the current remote snapshot.
+- Force local push: confirms and calls `pushToCloudflare(true)` to overwrite the remote snapshot.
+
+Successful remote pull clears `state.config.cfConflict`. Successful forced push also clears the conflict.
+
 ## Pull (`pullFromCloudflare`)
 
 - GETs the remote envelope.

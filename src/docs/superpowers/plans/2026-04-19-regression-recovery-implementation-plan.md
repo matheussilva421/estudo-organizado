@@ -230,7 +230,7 @@ npm run test:e2e
   - `sentAt`
 - [x] Stop using fresh `sentAt` as overwrite authority.
 - [x] Worker must reject stale writes when `baseRemoteUpdatedAt` does not match current remote metadata, unless `forceOverwrite` is explicit.
-- [ ] Client must surface 409 conflict with a clear choice:
+- [x] Client must surface 409 conflict with a clear choice:
   - pull remote
   - force overwrite
   - export local backup first
@@ -533,3 +533,49 @@ Remaining in the next slice:
 - Conflict UX actions: export local backup, pull remote, or force overwrite from the 409 state.
 - Configurable `ALLOWED_ORIGINS` deployment defaults.
 - Banca/extracted-module cleanup from Phase 4.
+
+### 2026-04-19 - Recovery slice 4
+
+Added a visible Cloudflare conflict-resolution panel in Settings.
+
+Changed files:
+
+- `src/js/views.js`
+- `src/js/ui/actions.js`
+- `src/js/cloud-sync.js`
+- `src/css/views.css`
+- `src/docs/api/sync-contract.md`
+- `tests/e2e/app.spec.js`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+
+What changed:
+
+- Added an E2E regression for a seeded `state.config.cfConflict`.
+- Rendered a Cloudflare conflict panel with explicit actions:
+  - export local backup
+  - pull remote
+  - force local overwrite
+- Wired the conflict actions through the central `data-action` dispatcher.
+- Added confirmations before destructive pull/force-push actions.
+- Cleared `cfConflict` after a successful forced remote pull.
+- Documented the conflict UX in `sync-contract.md`.
+
+Verification:
+
+```powershell
+npm run test:e2e -- tests/e2e/app.spec.js -g "Cloudflare sync conflict"
+npm test
+npm run test:e2e
+```
+
+Results:
+
+- Conflict E2E focused: 1 passed
+- Full unit: 63 passed
+- Full E2E: 6 passed
+
+Remaining in the next slice:
+
+- Configurable `ALLOWED_ORIGINS` deployment defaults.
+- Banca/extracted-module cleanup from Phase 4.
+- Broader E2E journeys across sidebar pages.
