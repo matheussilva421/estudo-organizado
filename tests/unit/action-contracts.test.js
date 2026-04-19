@@ -100,4 +100,22 @@ describe('data-action contracts', () => {
     expect(dashboardView).toMatch(/<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']aulas["']/);
     expect(dashboardView).toMatch(/<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']banca["']/);
   });
+
+  it('uses the extracted calendar view as the runtime calendar owner', async () => {
+    const componentsSource = read('src/js/components.js');
+    const mainSource = read('src/js/main.js');
+    const calendarSource = read('src/js/views/calendar-view.js');
+    const calendarModule = await import('../../src/js/views/calendar-view.js?v=8.3');
+
+    expect(componentsSource).toContain("from './views/calendar-view.js?v=8.3'");
+    expect(mainSource).toContain("import * as calendar_view from './views/calendar-view.js?v=8.3';");
+    expect(mainSource).toMatch(/modules\s*=\s*\[[^\]]*calendar_view[^\]]*\]/s);
+    expect(calendarModule.renderCalendar).toBeTypeOf('function');
+    expect(calendarModule.calNavigate).toBeTypeOf('function');
+    expect(calendarModule.resetCalDate).toBeTypeOf('function');
+    expect(calendarModule.setCalViewMode).toBeTypeOf('function');
+    expect(calendarSource).toContain("import { esc, getEventStatus, todayStr } from '../utils.js?v=8.3';");
+    expect(calendarSource).toContain('role="tablist"');
+    expect(calendarSource).toMatch(/<button[^>]*type=["']button["'][^>]*class=["']cal-view-tab/);
+  });
 });

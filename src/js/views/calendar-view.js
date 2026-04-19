@@ -4,8 +4,7 @@
  */
 
 import { state } from '../store.js?v=8.3';
-import { esc, todayStr } from '../utils.js?v=8.3';
-import { getEventStatus } from '../logic.js?v=8.3';
+import { esc, getEventStatus, todayStr } from '../utils.js?v=8.3';
 
 // Exported state
 let calDate = new Date();
@@ -15,7 +14,12 @@ let calViewMode = 'mes';
 export function getCalDate() { return calDate; }
 export function getCalViewMode() { return calViewMode; }
 export function setCalDate(d) { calDate = d; }
-export function setCalViewMode(mode) { calViewMode = mode; }
+export function setCalViewMode(mode) {
+  calViewMode = mode;
+  if (typeof window.renderCurrentView === 'function') {
+    window.renderCurrentView();
+  }
+}
 
 // ── Helper: Check if mobile calendar should be used ──
 function isMobileCalendar() {
@@ -73,11 +77,11 @@ export function renderCalendar(el) {
             <button data-action="cal-navigate" data-dir="-1"><i class="fa fa-chevron-left"></i></button>
             <button data-action="cal-navigate" data-dir="1"><i class="fa fa-chevron-right"></i></button>
           </div>
-          <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span style="font-size:9px; color:var(--text-muted); opacity:0.5;">v6.0</span></div>
+          <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span class="cal-version-tag">v6.0</span></div>
           <button class="btn btn-ghost btn-sm" id="cal-today-btn" data-action="cal-today">Hoje</button>
-          <div style="margin-left:auto;" class="cal-view-tabs">
-            <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="mes">Mês</div>
-            <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="semana">Semana</div>
+          <div class="cal-view-tabs ml-auto" role="tablist" aria-label="Visualizacao do calendario">
+            <button type="button" class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="mes" role="tab" aria-selected="${calViewMode === 'mes'}" aria-controls="cal-grid">Mês</button>
+            <button type="button" class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="semana" role="tab" aria-selected="${calViewMode === 'semana'}" aria-controls="cal-grid">Semana</button>
           </div>
         </div>
         <div id="cal-grid">${gridContent}</div>

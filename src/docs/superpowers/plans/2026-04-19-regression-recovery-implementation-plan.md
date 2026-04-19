@@ -179,8 +179,8 @@ Manual/browser:
 **Tasks:**
 
 - [ ] Decide per extracted module whether it is canonical now or should be deleted/parked.
-- [ ] Make `calendar-view.js` the canonical runtime calendar module, or remove it from tests/docs until extraction is real.
-- [ ] Ensure `components.js` imports `renderCalendar` from the canonical owner.
+- [x] Make `calendar-view.js` the canonical runtime calendar module, or remove it from tests/docs until extraction is real.
+- [x] Ensure `components.js` imports `renderCalendar` from the canonical owner.
 - [x] Restore actual Banca ranking behavior by importing real functions from `src/js/relevance.js` or moving the previous implementation correctly.
 - [x] Replace placeholder functions in `banca-view.js`.
 - [x] Add E2E for Banca Analyzer:
@@ -654,6 +654,48 @@ Result:
 Remaining in the next slice:
 
 - Decide the remaining extracted modules' canonical runtime ownership in Phase 4.
+- Broader E2E journeys across sidebar pages.
+
+### 2026-04-19 - Recovery slice 8
+
+Made the extracted calendar view the runtime calendar owner.
+
+Changed files:
+
+- `src/js/components.js`
+- `src/js/main.js`
+- `src/js/views/calendar-view.js`
+- `tests/unit/action-contracts.test.js`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+- `src/docs/superpowers/plans/2026-04-19-codebase-audit-report.md`
+
+What changed:
+
+- Added a RED unit contract requiring `components.js` to import `renderCalendar` from `src/js/views/calendar-view.js`.
+- Added a runtime bridge contract requiring `main.js` to expose `calendar-view.js` exports to `window`.
+- Switched `components.js` to render the calendar from the extracted module.
+- Added `calendar_view` to the `main.js` module exposure list after `views`, so calendar actions use the extracted module's `calNavigate`, `resetCalDate` and `setCalViewMode`.
+- Fixed `calendar-view.js` to import `getEventStatus` from `utils.js`, where it is actually exported.
+- Updated calendar view-mode tabs in `calendar-view.js` to semantic `button type="button"` tabs with `role`, `aria-selected` and `aria-controls`.
+- Made extracted `setCalViewMode` trigger `window.renderCurrentView()` so the UI updates after switching month/week.
+
+Verification:
+
+```powershell
+npm run test:unit -- tests/unit/action-contracts.test.js
+npm test
+npm run test:e2e
+```
+
+Result:
+
+- Action contract focused: 5 passed
+- Full unit: 67 passed
+- Full E2E: 7 passed
+
+Remaining in the next slice:
+
+- Decide/record ownership for the remaining extracted modules in Phase 4.
 - Broader E2E journeys across sidebar pages.
 
 ### 2026-04-19 - Recovery slice 7

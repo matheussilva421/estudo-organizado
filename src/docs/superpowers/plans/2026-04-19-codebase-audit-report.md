@@ -373,3 +373,7 @@ Prioridade recomendada:
 1. Corrigir regressões P1 de UI/eventos/busca/banca/sync.
 2. Transformar as reproduções desta auditoria em testes automatizados.
 3. Só então retomar modularização e remoção de inline styles.
+
+## Atualizacoes de implementacao
+
+- 2026-04-19: a fatia de recuperacao 8 tornou `src/js/views/calendar-view.js` o owner runtime do calendario. `components.js` agora importa `renderCalendar` diretamente do modulo extraido, `main.js` expoe os exports de `calendar-view.js`, e os tabs de mes/semana de `calendar-view.js` usam `button type="button"` com semantica de tab.

@@ -1,6 +1,7 @@
 import { currentView } from './app.js?v=8.3';
 import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, getHabitType } from './utils.js?v=8.3';
-import { openAddEventModal, openEditaModal, renderCalendar, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHistoricoSessoes, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts, renderSkeletonLoader } from './views.js?v=8.3';
+import { openAddEventModal, openEditaModal, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHistoricoSessoes, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts, renderSkeletonLoader } from './views.js?v=8.3';
+import { renderCalendar } from './views/calendar-view.js?v=8.3';
 import { state } from './store.js?v=8.3';
 import { deleteEvento, getAllDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js?v=8.3';
 

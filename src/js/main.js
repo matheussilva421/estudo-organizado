@@ -6,6 +6,7 @@ import * as app from './app.js?v=8.3';
 import * as logic from './logic.js?v=8.3';
 import * as components from './components.js?v=8.3';
 import * as views from './views.js?v=8.3';
+import * as calendar_view from './views/calendar-view.js?v=8.3';
 import * as drive_sync from './drive-sync.js?v=8.3';
 import * as cloud_sync from './cloud-sync.js?v=8.3';
 import * as registro from './registro-sessao.js?v=8.3';
@@ -26,7 +27,7 @@ window.qsa = qsa;
 window.announce = announce;
 
 // Expose all exports to window (temporary bridge for inline onclick handlers)
-const modules = [store, app, logic, components, views, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper];
+const modules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper];
 
 for (const mod of modules) {
   for (const [key, value] of Object.entries(mod)) {
