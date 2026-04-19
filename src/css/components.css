@@ -187,10 +187,17 @@ button.manager-tab:focus-visible {
 .empty-state {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-3);
+  text-align: center;
   color: var(--text-muted);
-  font-style: italic;
+  font-style: normal;
+}
+
+.empty-state .btn {
+  align-self: center;
 }
 
 /* Stat badge: small inline tag */

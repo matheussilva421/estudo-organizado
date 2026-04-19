@@ -75,4 +75,89 @@ test.describe('Estudo Organizado', () => {
     await page.click('[data-view="calendar"]');
     await expect(page.locator('#main-content')).toContainText(eventTitle);
   });
+
+  test('renders empty states as stacked blocks with readable actions', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+
+    await page.click('[data-view="med"]');
+    const medEmpty = page.locator('.med-empty-state');
+    await expect(medEmpty).toBeVisible();
+
+    const medLayout = await medEmpty.evaluate((element) => {
+      const children = [...element.children].map(child => child.getBoundingClientRect());
+      const style = getComputedStyle(element);
+      return {
+        direction: style.flexDirection,
+        verticallyOrdered: children.every((box, index) => index === 0 || box.top >= children[index - 1].bottom)
+      };
+    });
+
+    expect(medLayout.direction).toBe('column');
+    expect(medLayout.verticallyOrdered).toBe(true);
+
+    await page.click('[data-view="ciclo"]');
+    const cicloEmpty = page.locator('#main-content > .empty-state');
+    await expect(cicloEmpty).toBeVisible();
+
+    const cicloLayout = await cicloEmpty.evaluate((element) => {
+      const children = [...element.children].map(child => child.getBoundingClientRect());
+      const style = getComputedStyle(element);
+      return {
+        direction: style.flexDirection,
+        verticallyOrdered: children.every((box, index) => index === 0 || box.top >= children[index - 1].bottom)
+      };
+    });
+
+    expect(cicloLayout.direction).toBe('column');
+    expect(cicloLayout.verticallyOrdered).toBe(true);
+  });
+
+  test('toggles timer mode exactly once through the central action dispatcher', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="cronometro"]');
+
+    await expect(page.locator('#crono-mode-btn')).toContainText('Modo');
+    await page.click('#crono-mode-btn');
+
+    await expect(page.locator('#crono-mode-btn')).toContainText('Pomodoro');
+    await expect.poll(() => page.evaluate(() => window.state.config.pomodoroMode)).toBe(true);
+  });
+
+  test('shows keyboard-friendly global search results and updates expanded state', async ({ page }) => {
+    const state = createE2EState();
+    state.eventos.push({
+      id: 'ev_search',
+      titulo: 'Auditoria Constitucional',
+      data: new Date().toISOString().slice(0, 10),
+      dataEstudo: new Date().toISOString().slice(0, 10),
+      duracao: 60,
+      status: 'agendado',
+      tempoAcumulado: 0,
+      tipo: 'conteudo',
+      discId: 'disc_1',
+      assId: 'ass_1',
+      habito: null,
+      criadoEm: '2026-04-19T12:00:00.000Z'
+    });
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+
+    const search = page.locator('#global-search');
+    await search.fill('Constitucional');
+
+    await expect(search).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#search-results')).toHaveClass(/open/);
+    await expect(page.locator('#search-results button.search-item').first()).toBeVisible();
+    await expect(page.locator('#search-results')).toContainText('Auditoria Constitucional');
+
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#search-results button.search-item').first()).toBeFocused();
+  });
 });

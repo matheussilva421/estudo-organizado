@@ -35,14 +35,6 @@ const actions = {
     }
   },
 
-  'add-minutes': (el) => {
-    const eventId = el.dataset.eventId;
-    const minutes = parseInt(el.dataset.minutes, 10);
-    if (eventId && typeof window.addMinutes === 'function') {
-      window.addMinutes(eventId, minutes);
-    }
-  },
-
   'toggle-timer-mode': () => {
     if (typeof window.toggleTimerMode === 'function') {
       window.toggleTimerMode();
@@ -52,13 +44,6 @@ const actions = {
   // ============================================
   // CRUD DE EVENTOS
   // ============================================
-
-  'open-event-detail': (el) => {
-    const eventId = el.dataset.eventId;
-    if (eventId && typeof window.openAddEventModal === 'function') {
-      window.openAddEventModal(eventId);
-    }
-  },
 
   'edit-event': (el) => {
     const eventId = el.dataset.eventId;
@@ -110,31 +95,9 @@ const actions = {
     }
   },
 
-  'postpone-revision': (el) => {
-    const revisaoId = el.dataset.revisaoId;
-    if (revisaoId && typeof window.postponerRevisao === 'function') {
-      window.postponerRevisao(revisaoId);
-    }
-  },
-
   // ============================================
   // DISCIPLINAS E ASSUNTOS
   // ============================================
-
-  'toggle-assunto': (el) => {
-    const assuntoId = el.dataset.assuntoId;
-    const discId = el.dataset.discId;
-    if (assuntoId && discId && typeof window.toggleAssunto === 'function') {
-      window.toggleAssunto(discId, assuntoId);
-    }
-  },
-
-  'open-disc-dashboard': (el) => {
-    const discId = el.dataset.discId;
-    if (discId && typeof window.openDiscDashboard === 'function') {
-      window.openDiscDashboard(discId);
-    }
-  },
 
   'edit-disciplina': (el) => {
     const discId = el.dataset.discId;
@@ -273,6 +236,31 @@ const actions = {
     }
   },
 
+  'close-sidebar': () => {
+    if (typeof window.closeSidebar === 'function') {
+      window.closeSidebar();
+    }
+  },
+
+  'toggle-sidebar': () => {
+    if (typeof window.toggleSidebar === 'function') {
+      window.toggleSidebar();
+    }
+  },
+
+  'toggle-sidebar-collapse': () => {
+    if (typeof window.toggleSidebarCollapse === 'function') {
+      window.toggleSidebarCollapse();
+    }
+  },
+
+  'toggle-theme': () => {
+    if (typeof window.applyTheme === 'function') {
+      window.applyTheme(true);
+      window.renderCurrentView?.();
+    }
+  },
+
   'switch-to-event-timer': (el) => {
     const eventId = el.dataset.eventId;
     const view = el.dataset.view || 'cronometro';
@@ -384,9 +372,9 @@ const actions = {
     }
   },
 
-  'open-edital-modal': () => {
+  'open-edital-modal': (el) => {
     if (typeof window.openEditaModal === 'function') {
-      window.openEditaModal();
+      window.openEditaModal(el.dataset.editalId || null);
     }
   },
 
@@ -400,6 +388,68 @@ const actions = {
     const habitKey = el.dataset.habitKey;
     if (habitKey && typeof window.openHabitModal === 'function') {
       window.openHabitModal(habitKey);
+    }
+  },
+
+  'save-disc': () => {
+    if (typeof window.saveDisc === 'function') {
+      window.saveDisc();
+    }
+  },
+
+  'save-habit': () => {
+    if (typeof window.saveHabit === 'function') {
+      window.saveHabit();
+    }
+  },
+
+  'drive-action': () => {
+    if (typeof window.driveAction === 'function') {
+      window.driveAction();
+    }
+  },
+
+  'disconnect-drive': () => {
+    if (typeof window.disconnectDrive === 'function') {
+      window.disconnectDrive();
+    }
+  },
+
+  'prompt-prova': () => {
+    if (typeof window.promptDataProva === 'function') {
+      window.promptDataProva();
+    }
+  },
+
+  'prompt-metas': () => {
+    if (typeof window.promptMetas === 'function') {
+      window.promptMetas();
+    }
+  },
+
+  'remover-planejamento': () => {
+    if (typeof window.deletePlanejamento === 'function') {
+      window.deletePlanejamento();
+    }
+  },
+
+  'toggle-ciclo-fin': (el) => {
+    if (typeof window.toggleCicloFin === 'function') {
+      window.toggleCicloFin(el.checked);
+    }
+  },
+
+  'edit-session-record': (el) => {
+    const sessionId = el.dataset.sessionId;
+    if (sessionId && typeof window.openRegistroSessao === 'function') {
+      window.openRegistroSessao(sessionId);
+    }
+  },
+
+  'delete-session-record': (el) => {
+    const sessionId = el.dataset.sessionId;
+    if (sessionId && typeof window.deleteCompletedSession === 'function') {
+      window.deleteCompletedSession(sessionId);
     }
   },
 
@@ -611,12 +661,6 @@ const actions = {
     }
   },
 
-  'open-edital-modal': () => {
-    if (typeof window.openEditaModal === 'function') {
-      window.openEditaModal();
-    }
-  },
-
   'toggle-edital': (el) => {
     const editalId = el.dataset.editalId;
     if (editalId && typeof window.toggleEdital === 'function') {
@@ -718,13 +762,6 @@ const actions = {
     const container = el.dataset.container;
     if (color && container && typeof window.selectColor === 'function') {
       window.selectColor(color, container);
-    }
-  },
-
-  'close-modal': (el) => {
-    const modal = el.dataset.modal;
-    if (modal && typeof window.closeModal === 'function') {
-      window.closeModal(modal);
     }
   },
 

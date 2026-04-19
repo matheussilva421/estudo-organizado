@@ -1676,19 +1676,21 @@ select.form-control {
 
 .empty-state .icon {
   font-size: 40px;
-  margin-bottom: 12px;
   opacity: 0.4;
 }
 
 .empty-state h4 {
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin: 0;
   color: var(--text-secondary);
 }
 
 .empty-state p {
   font-size: 13px;
+  max-width: 64ch;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* DISCIPLINE COLOR CIRCLES */

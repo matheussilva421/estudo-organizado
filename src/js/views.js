@@ -3910,7 +3910,15 @@ window.debouncedOnSearch = function (query) {
 
 export function onSearch(query) {
   const box = document.getElementById('search-results');
-  if (!query || query.length < 2) { box.classList.remove('open'); return; }
+  const input = document.getElementById('global-search');
+  if (!box || !input) return;
+
+  if (!query || query.length < 2) {
+    box.classList.remove('open');
+    input.setAttribute('aria-expanded', 'false');
+    return;
+  }
+
   const q = query.toLowerCase();
   const results = { eventos: [], disciplinas: [], assuntos: [], habitos: [] };
 
@@ -4008,23 +4016,33 @@ export function onSearch(query) {
   if (!html) html = `<div class="search-empty">Nenhum resultado para "<strong>${query}</strong>"</div>`;
   box.innerHTML = html;
   box.classList.add('open');
+  input.setAttribute('aria-expanded', 'true');
 }
 
 export function onSearchFocus() {
   clearTimeout(searchBlurTimeout);
-  const val = document.getElementById('global-search').value;
-  if (val && val.length >= 2) onSearch(val);
+  const input = document.getElementById('global-search');
+  const val = input?.value || '';
+  if (val && val.length >= 2) {
+    onSearch(val);
+  }
 }
 
 export function onSearchBlur() {
   searchBlurTimeout = setTimeout(() => {
     document.getElementById('search-results')?.classList.remove('open');
+    document.getElementById('global-search')?.setAttribute('aria-expanded', 'false');
   }, 200);
 }
 
 export function clearSearch() {
-  document.getElementById('global-search').value = '';
-  document.getElementById('search-results').classList.remove('open');
+  const input = document.getElementById('global-search');
+  const results = document.getElementById('search-results');
+  if (input) {
+    input.value = '';
+    input.setAttribute('aria-expanded', 'false');
+  }
+  results?.classList.remove('open');
 }
 
 // ESC closes search

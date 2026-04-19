@@ -58,4 +58,14 @@ describe('CSS architecture', () => {
     expect(viewsCss).toContain('.dashboard-stat-value');
     expect(viewsCss).toContain('.dashboard-stat-detail-list');
   });
+
+  it('keeps empty states stacked so text and actions do not overlap', () => {
+    const componentsCss = read('src/css/components.css');
+    const legacyStyles = read('src/css/styles.css');
+    const combinedCss = `${componentsCss}\n${legacyStyles}`;
+
+    expect(combinedCss).toMatch(/\.empty-state\s*{[^}]*flex-direction:\s*column/s);
+    expect(combinedCss).toMatch(/\.empty-state\s*{[^}]*gap:\s*var\(--space-3\)/s);
+    expect(combinedCss).toMatch(/\.empty-state\s+\.btn\s*{[^}]*align-self:\s*center/s);
+  });
 });
