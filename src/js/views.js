@@ -4309,12 +4309,12 @@ export function renderCiclo(el) {
 
     el.innerHTML = `
       <!-- HEADER ACTIONS -->
-      <div class="ciclo-header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-        <h2 style="font-size:22px;font-weight:700;color:var(--text-primary);">Planejamento</h2>
-        <div class="ciclo-header-buttons" style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" data-action="recomecar-ciclo" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
-          <button class="btn btn-ghost btn-sm" data-action="open-planejamento-wizard" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-edit"></i> Replanejar</button>
-          <button class="btn btn-ghost btn-sm" data-action="remover-planejamento" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-trash"></i> Remover</button>
+      <div class="ciclo-header-actions">
+        <h2 class="ciclo-header-title">Planejamento</h2>
+        <div class="ciclo-header-buttons">
+          <button class="btn btn-ghost btn-sm ciclo-btn" data-action="recomecar-ciclo"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
+          <button class="btn btn-ghost btn-sm ciclo-btn" data-action="open-planejamento-wizard"><i class="fa fa-edit"></i> Replanejar</button>
+          <button class="btn btn-ghost btn-sm ciclo-btn" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
         </div>
       </div>
 
@@ -4329,28 +4329,28 @@ export function renderCiclo(el) {
               <div style="width:48px; height:48px; border:3px solid var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:var(--text-primary);">${ciclosFeitos}</div>
             </div>
             <!-- PROGRESSO GERAL -->
-            <div class="card" style="padding:16px; flex:1; display:flex; flex-direction:column; justify-content:center;">
-              <div style="font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:1px; margin-bottom:8px;">PROGRESSO</div>
-              <div style="font-family:'DM Mono',monospace; font-size:15px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">${formatH(minutosCompletosCiclo)} <span style="color:var(--text-muted);">/ ${formatH(totalTarget)}</span></div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <div style="padding:4px 8px; font-size:12px; font-weight:700; background:var(--accent); color:var(--bg); border-radius:4px;">${progressoGlobalPct}%</div>
-                <div style="flex:1; height:12px; background:var(--bg); border-radius:6px; overflow:hidden;">
-                  <div style="height:100%; width:${Math.min(progressoGlobalPct, 100)}%; background:rgba(255,255,255,0.7); border-radius:6px;"></div>
+            <div class="card ciclo-stat-card ciclo-stat-card--fill">
+              <div class="ciclo-stat-label">PROGRESSO</div>
+              <div class="ciclo-stat-detail">${formatH(minutosCompletosCiclo)} <span class="ciclo-stat-detail-muted">/ ${formatH(totalTarget)}</span></div>
+              <div class="flex cluster-sm">
+                <div class="ciclo-stat-badge">${progressoGlobalPct}%</div>
+                <div class="ciclo-progress-track">
+                  <div class="ciclo-progress-bar" style="width:${Math.min(progressoGlobalPct, 100)}%;"></div>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- SEQUENCIA DOS ESTUDOS -->
-          <div class="card" style="padding:16px;">
-            <div class="ciclo-sequence-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-               <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; text-transform:uppercase;">Sequência dos Estudos</div>
-               <div class="ciclo-sequence-controls" style="display:flex; align-items:center; gap:16px;">
+          <div class="card ciclo-sequence-card">
+            <div class="ciclo-sequence-header">
+               <div class="ciclo-sequence-title">Sequência dos Estudos</div>
+               <div class="ciclo-sequence-controls">
                  ${!window._isEditingSequence ? `
-                   <button class="btn btn-ghost btn-sm" data-action="toggle-edit-seq" style="color:var(--text-muted); font-size:11px; padding:4px 8px;"><i class="fa fa-pencil"></i> Editar Sequência</button>
+                   <button class="btn btn-ghost btn-sm ciclo-sequence-edit-btn" data-action="toggle-edit-seq"><i class="fa fa-pencil"></i> Editar Sequência</button>
                  ` : ''}
-                 <label style="cursor:pointer; display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:var(--text-muted);">
-                   <input type="checkbox" data-action="toggle-ciclo-fin" ${window._hideConcluidosCiclo ? 'checked' : ''} style="cursor:pointer; accent-color:var(--accent); width:14px; height:14px;"> FINALIZADOS
+                 <label class="ciclo-filter-label">
+                   <input type="checkbox" data-action="toggle-ciclo-fin" ${window._hideConcluidosCiclo ? 'checked' : ''} class="ciclo-filter-checkbox"> FINALIZADOS
                  </label>
                </div>
             </div>

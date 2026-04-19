@@ -2417,3 +2417,171 @@
   display: flex;
   gap: 12px;
 }
+
+/* =============================================
+   Ciclo View
+   ============================================= */
+
+.ciclo-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.ciclo-header-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ciclo-header-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.ciclo-btn {
+  background: var(--card);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ciclo-layout {
+  grid-template-columns: 1fr 400px;
+  gap: 24px;
+  align-items: start;
+}
+
+.ciclo-content-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ciclo-summary-row {
+  display: flex;
+  gap: 16px;
+}
+
+.ciclo-stat-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ciclo-stat-card--center {
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 140px;
+}
+
+.ciclo-stat-card--fill {
+  flex: 1;
+  justify-content: center;
+}
+
+.ciclo-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.ciclo-stat-value {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.ciclo-stat-detail {
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.ciclo-stat-detail-muted {
+  color: var(--text-muted);
+}
+
+.ciclo-stat-badge {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 4px;
+}
+
+.ciclo-progress-track {
+  flex: 1;
+  height: 12px;
+  background: var(--bg);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.ciclo-progress-bar {
+  height: 100%;
+  width: inherit;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+}
+
+.ciclo-sequence-card {
+  padding: 16px;
+}
+
+.ciclo-sequence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ciclo-sequence-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.ciclo-sequence-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ciclo-sequence-edit-btn {
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.ciclo-filter-label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ciclo-filter-checkbox {
+  cursor: pointer;
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
