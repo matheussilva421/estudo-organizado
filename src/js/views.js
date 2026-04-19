@@ -2299,12 +2299,12 @@ export function openDiscManager(editaId, discId) {
       <div class="sm-drag-handle" title="Arrastar">☰</div>
       <div class="sm-item-text" data-action="edit-subject-inline" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">
         ${esc(ass.nome)}
-        ` + (ass.relevance ? `<span style="font-size:10px; margin-left:8px; padding:2px 4px; border-radius:4px; font-weight:700; color:var(--bg); background:${ass.relevance.priority === 'P1' ? 'var(--red)' : ass.relevance.priority === 'P2' ? 'var(--orange)' : 'var(--text-muted)'};" title="${esc(ass.relevance.reason)}">${ass.relevance.priority}</span>` : '') + `
+        ` + (ass.relevance ? `<span class="relevance-badge relevance-badge-${ass.relevance.priority === 'P1' ? 'p1' : ass.relevance.priority === 'P2' ? 'p2' : 'muted'}" title="${esc(ass.relevance.reason)}">${ass.relevance.priority}</span>` : '') + `
         ${(ass.linkedAulaIds && ass.linkedAulaIds.length > 0) ? `
-           <div style="font-size:10px; margin-top:4px; display:flex; gap:4px; flex-wrap:wrap;">
+           <div class="linked-aulas-list">
              ${ass.linkedAulaIds.map(auId => {
     const aulaObj = (disc.aulas || []).find(a => a.id === auId);
-    return aulaObj ? `<span style="background:var(--bg); border:1px solid var(--accent); color:var(--accent); padding:1px 6px; border-radius:10px; display:flex; align-items:center; gap:4px;"><i class="fa fa-play-circle"></i> ${esc(aulaObj.nome)}</span>` : '';
+    return aulaObj ? `<span class="linked-aula-tag"><i class="fa fa-play-circle"></i> ${esc(aulaObj.nome)}</span>` : '';
   }).join('')}
            </div>
         ` : ''}
@@ -2315,32 +2315,32 @@ export function openDiscManager(editaId, discId) {
         <button data-action="delete-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
     </div>
-      `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico no Edital.</div>';
+      `).join('') || '<div class="sm-empty-state">Nenhum tópico no Edital.</div>';
 
   // Render Lesson items
   const aulasHtml = (disc.aulas || []).map((aula, idx) => `
-      <div class="sm-list-item" style = "border-left: 4px solid var(--accent); padding-left: 8px;" >
-      <div style="flex:1;">
-          <div class="sm-item-text" style="display:flex; align-items:center; gap:8px;" data-action="edit-lesson-inline" data-disc-id="${disc.id}" data-aula-id="${aula.id}">
-             <input type="checkbox" ${aula.estudada ? 'checked' : ''} data-action="toggle-aula-estudada" data-disc-id="${disc.id}" data-aula-id="${aula.id}" style="cursor:pointer;" title="Marcar como Estudada">
-             <span style="${aula.estudada ? 'text-decoration:line-through;opacity:0.6;' : ''}">${esc(aula.nome)}</span>
+      <div class="sm-list-item sm-list-item--lesson">
+      <div class="sm-item-content">
+          <div class="sm-item-text sm-item-text--clickable" data-action="edit-lesson-inline" data-disc-id="${disc.id}" data-aula-id="${aula.id}">
+             <input type="checkbox" ${aula.estudada ? 'checked' : ''} data-action="toggle-aula-estudada" data-disc-id="${disc.id}" data-aula-id="${aula.id}" class="sm-checkbox" title="Marcar como Estudada">
+             <span class="${aula.estudada ? 'sm-text-concluded' : ''}">${esc(aula.nome)}</span>
           </div>
           ${(aula.linkedAssuntoIds && aula.linkedAssuntoIds.length > 0) ? `
-           <div style="font-size:11px; margin-top:4px; color:var(--text-secondary); padding-left:24px;">
+           <div class="sm-linked-info">
              <strong>Cobre: </strong> ${aula.linkedAssuntoIds.map(asId => {
     const assObj = disc.assuntos.find(a => a.id === asId);
     return assObj ? esc(assObj.nome) : '';
   }).filter(n => n).join(', ')}
            </div>
-        ` : '<div style="font-size:11px; margin-top:4px; color:var(--text-muted); padding-left:24px; font-style:italic;">Não conectada a assunto do edital.</div>'}
+        ` : '<div class="sm-linked-info sm-linked-info--empty">Não conectada a assunto do edital.</div>'}
       </div>
       <div class="sm-item-actions">
          <button data-action="delete-aula" data-disc-id="${disc.id}" data-aula-id="${aula.id}" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
     </div>
-      `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhuma Aula adicionada.</div>';
+      `).join('') || '<div class="sm-empty-state">Nenhuma Aula adicionada.</div>';
 
-  const colorOptions = COLORS.map(c => `<option value = "${c}" ${disc.cor === c ? 'selected' : ''} style = "background:${c};color:#fff;" > ${c}</option> `).join('');
+  const colorOptions = COLORS.map(c => `<option value="${c}" ${disc.cor === c ? 'selected' : ''}" data-color-option="${c}">${c}</option>`).join('');
 
   document.getElementById('modal-disc-manager-title').textContent = disc.nome || 'Gerenciar Disciplina';
   document.getElementById('modal-disc-manager-body').innerHTML = `
@@ -2352,9 +2352,9 @@ export function openDiscManager(editaId, discId) {
       </div>
       <div class="sm-form-group" style="flex:0.4;">
         <label>Cor</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="color" id="dm-cor-picker" value="${disc.cor || COLORS[0]}" style="width:30px;height:30px;padding:0;border:none;border-radius:4px;cursor:pointer;">
-          <select id="dm-cor" class="form-control" style="flex:1;" data-action="sync-color-to-picker">
+        <div class="sm-color-picker-group">
+          <input type="color" id="dm-cor-picker" value="${disc.cor || COLORS[0]}">
+          <select id="dm-cor" class="form-control" data-action="sync-color-to-picker">
             ${colorOptions}
           </select>
         </div>
@@ -2362,19 +2362,19 @@ export function openDiscManager(editaId, discId) {
     </div>
 
     <!--TABS de Navegação Wave 39 -->
-    <div style="display:flex; border-bottom:1px solid var(--border); margin-bottom:16px; gap:8px;">
-        <div data-action="switch-manager-tab" data-tab="topicos" style="padding:8px 16px; cursor:pointer; font-weight:600; border-bottom:2px solid ${window._activeDiscManagerTab === 'topicos' ? 'var(--accent)' : 'transparent'}; color:${window._activeDiscManagerTab === 'topicos' ? 'var(--accent)' : 'var(--text-muted)'};">
+    <div class="manager-tabs">
+        <div data-action="switch-manager-tab" data-tab="topicos" class="manager-tab ${window._activeDiscManagerTab === 'topicos' ? 'manager-tab--active' : ''}">
             Tópicos do Edital (${disc.assuntos.length})
         </div>
-        <div data-action="switch-manager-tab" data-tab="aulas" style="padding:8px 16px; cursor:pointer; font-weight:600; border-bottom:2px solid ${window._activeDiscManagerTab === 'aulas' ? 'var(--accent)' : 'transparent'}; color:${window._activeDiscManagerTab === 'aulas' ? 'var(--accent)' : 'var(--text-muted)'};">
+        <div data-action="switch-manager-tab" data-tab="aulas" class="manager-tab ${window._activeDiscManagerTab === 'aulas' ? 'manager-tab--active' : ''}">
             Meus Materiais/Aulas (${disc.aulas ? disc.aulas.length : 0})
         </div>
     </div>
 
     <!--ABA TÓPICOS-->
-    <div id="tab-manager-topicos" style="display:${window._activeDiscManagerTab === 'topicos' ? 'block' : 'none'};">
-        <div class="sm-add-form" style="display:flex;flex-wrap:wrap;gap:8px; margin-bottom:12px;">
-           <textarea class="form-control" id="new-assunto-nome" placeholder="Novo tópico (Digite ou cole vários separados por quebra de linha)" rows="1" style="flex:1;min-width:200px;resize:vertical;"></textarea>
+    <div id="tab-manager-topicos" class="${window._activeDiscManagerTab === 'topicos' ? 'tab-content' : 'tab-content--hidden'}">
+        <div class="sm-add-form">
+           <textarea class="form-control" id="new-assunto-nome" placeholder="Novo tópico (Digite ou cole vários separados por quebra de linha)" rows="1"></textarea>
            <button class="btn btn-primary" data-action="add-assunto" data-disc-id="${disc.id}">Adicionar Tópico</button>
         </div>
         <div class="sm-list custom-scrollbar">
@@ -2383,18 +2383,18 @@ export function openDiscManager(editaId, discId) {
     </div>
 
     <!--ABA AULAS-->
-    <div id="tab-manager-aulas" style="display:${window._activeDiscManagerTab === 'aulas' ? 'block' : 'none'};">
-        <div style="display:flex; gap:8px; margin-bottom:12px; align-items:flex-end;">
-           <div style="flex:1;">
-               <label style="font-size:11px; font-weight:600; color:var(--text-muted);">Adição em Lote (Copie e paste o índice do seu PDF/Cursinho aqui)</label>
+    <div id="tab-manager-aulas" class="${window._activeDiscManagerTab === 'aulas' ? 'tab-content' : 'tab-content--hidden'}">
+        <div class="sm-bulk-import-form">
+           <div>
+               <label>Adição em Lote (Copie e paste o índice do seu PDF/Cursinho aqui)</label>
                <textarea class="form-control" id="new-aula-bulk" placeholder="Aula 00 - Concordância Nominal\nAula 01 - Crase..." style="min-height:80px; resize:vertical;"></textarea>
            </div>
-           <button class="btn btn-primary" data-action="add-bulk-aulas" data-disc-id="${disc.id}" style="height:fit-content; margin-bottom:4px;">Importar Lote</button>
+           <button class="btn btn-primary" data-action="add-bulk-aulas" data-disc-id="${disc.id}">Importar Lote</button>
         </div>
 
         ${(disc.aulas && disc.aulas.length > 0 && disc.assuntos.length > 0) ? `
-          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
-             <div style="font-size:12px; color:var(--text-secondary);">O Sistema pode analisar os nomes e conectá-los automaticamente ao Edital.</div>
+          <div class="sm-auto-link-card">
+             <div class="sm-auto-link-card-text">O Sistema pode analisar os nomes e conectá-los automaticamente ao Edital.</div>
              <button class="btn btn-ghost btn-sm" data-action="run-lesson-mapper" data-edital-id="${editaId}" data-disc-id="${disc.id}"><i class="fa fa-magic"></i> Auto-Link ML</button>
           </div>
         ` : ''}
@@ -2403,9 +2403,9 @@ export function openDiscManager(editaId, discId) {
           ${aulasHtml}
         </div>
     </div>
-    
+
     <!--BOTOES INFERIORES-->
-      <div style="display:flex;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <div class="sm-footer-actions">
         <button class="btn btn-ghost" style="color:var(--danger);" data-action="delete-disc" data-edital-id="${editaId}" data-disc-id="${discId}">Remover Disciplina</button>
         <button class="btn btn-primary" data-action="save-disc-manager" data-edital-id="${editaId}" data-disc-id="${discId}">Salvar Manager</button>
       </div>
