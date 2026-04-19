@@ -921,7 +921,7 @@ export function renderHabitSummary(periodDays) {
       <div class="flex border-b habit-row">
         <div class="text-xl">${h.icon}</div>
         <div class="flex-1 text-md font-medium">${h.label}</div>
-        <div class="text-xl font-bold" style="color:${h.color}">${count}</div>
+        <div class="text-xl font-bold habit-count" data-habit-color="${h.color}">${count}</div>
       </div>
     `;
   }).join('');
@@ -943,7 +943,7 @@ export function renderDiscProgress() {
           <div class="text-sm text-muted">${done}/${total}</div>
         </div>
         <div class="progress">
-          <div class="progress-bar" style="width:${pct}%;background:${disc.cor || 'var(--accent)'};"></div>
+          <div class="progress-bar" data-progress-width="${pct}" data-progress-color="${disc.cor || 'var(--accent)'}"></div>
         </div>
       </div>
     `;
@@ -987,15 +987,15 @@ export function renderRevisoes(el) {
     <div class="rev-summary-grid">
       <div class="card rev-summary-card">
         <div class="section-label">Pendentes Hoje</div>
-        <div class="text-2xl font-extrabold text-red" style="font-size:28px;">${pending.filter(r => r.data <= today).length}</div>
+        <div class="rev-stat-count rev-stat-count--danger">${pending.filter(r => r.data <= today).length}</div>
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Próx. 30 dias</div>
-        <div class="text-2xl font-extrabold text-blue" style="font-size:28px;">${upcoming.length}</div>
+        <div class="rev-stat-count rev-stat-count--info">${upcoming.length}</div>
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Assuntos concluidos</div>
-        <div class="text-2xl font-extrabold text-accent" style="font-size:28px;">${getAllDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
+        <div class="rev-stat-count rev-stat-count--accent">${getAllDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Frequência</div>
@@ -1023,7 +1023,7 @@ export function renderRevisoes(el) {
             <div class="flex-1 min-w-0">
               <div class="text-md font-semibold">${r.assunto.nome}</div>
               <div class="text-base text-secondary">${r.disc.nome} • ${r.edital.nome}</div>
-              <div class="text-sm mt-1" style="color:${isOverdue ? 'var(--red)' : 'var(--accent)'}">
+              <div class="text-sm mt-1 ${isOverdue ? 'text-red' : 'text-accent'}">
                 ${isOverdue ? '⚠️ Atrasada' : '📅 Hoje'} • Prevista para ${formatDate(r.data)}
               </div>
             </div>
@@ -1183,7 +1183,7 @@ export function renderHabitHistPage() {
       ? '<div class="empty-state"><div class="icon">⚡</div><p>Nenhum hábito registrado ainda</p></div>'
       : items.map(r => `
         <div class="flex border-b habit-hist-item">
-          <div style="font-size:20px;">${r.tipo.icon}</div>
+          <div class="habit-item-icon">${r.tipo.icon}</div>
           <div class="flex-1">
             <div class="text-md font-semibold">${esc(r.tipo.label)}${r.descricao ? ' - ' + esc(r.descricao) : ''}</div>
             <div class="text-base text-secondary">${formatDate(r.data)}${(r.quantidade || r.total) && r.tipo.key === 'questoes' ? ' • ' + (r.quantidade || r.total) + ' questões' : ''}${r.total && r.tipo.key === 'paginas' ? ' • ' + r.total + ' páginas' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total && r.total > 0 && r.tipo.key === 'questoes' ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>

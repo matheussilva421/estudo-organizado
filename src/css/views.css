@@ -948,6 +948,27 @@
   flex: 1;
 }
 
+/* Text colors */
+.text-red {
+  color: var(--red);
+}
+
+.text-accent {
+  color: var(--accent);
+}
+
+.text-blue {
+  color: var(--blue);
+}
+
+.text-green {
+  color: var(--green);
+}
+
+.text-orange {
+  color: var(--orange);
+}
+
 /* Priority badges */
 .priority-badge-p1 {
   background: rgba(211, 47, 47, 0.1);
@@ -1467,6 +1488,40 @@
   border-radius: var(--radius-sm);
   font-size: 13px;
   margin-top: var(--space-4);
+}
+
+/* Revisões stat counts */
+.rev-stat-count {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rev-stat-count--danger {
+  color: var(--red);
+}
+
+.rev-stat-count--info {
+  color: var(--blue);
+}
+
+.rev-stat-count--accent {
+  color: var(--accent);
+}
+
+/* Progress bar */
+.progress-bar {
+  border-radius: var(--radius-sm);
+  transition: width 0.3s ease;
+}
+
+/* Habit count */
+.habit-count {
+  color: inherit;
+}
+
+.habit-item-icon {
+  font-size: 20px;
 }
 
 /* Syncing spinner container */
