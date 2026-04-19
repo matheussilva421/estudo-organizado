@@ -3518,7 +3518,7 @@ export function renderConfig(el) {
         <div class="card config-card">
           <div class="card-header"><h3>😁️ Google Drive</h3></div>
           <div class="card-body">
-            <div class="flex cluster-md" style="margin-bottom:16px;">
+            <div class="flex cluster-md mb-4">
               <div class="config-emoji-icon">😁️</div>
               <div>
                 <div class="config-title">${state.driveFileId ? 'Conectado ao Google Drive' : 'Não conectado'}</div>
@@ -3578,18 +3578,18 @@ export function renderConfig(el) {
         <div class="card config-card">
           <div class="card-header"><h3>💾 Dados</h3></div>
           <div class="card-body">
-            <div class="config-sub" style="margin-bottom:10px;">
+            <div class="config-sub">
               ${state.eventos.length} evento(s) ativos
               ${(state.arquivo || []).length > 0 ? ` • ${state.arquivo.length} arquivado(s)` : ''}
             </div>
 
-            <div class="grid" style="grid-template-columns:1fr;gap:8px;margin-bottom:12px;font-size:12px;">
+            <div class="grid config-backup-grid">
               <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
               <div class="flex flex-between"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
               <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>
             </div>
 
-            <div class="form-group" style="margin-bottom:12px;">
+            <div class="form-group mb-3">
               <label class="form-label">Origem do backup para restauração</label>
               <select id="backup-restore-source" class="form-control">
                 <option value="local">Backup local (importar arquivo JSON)</option>
@@ -3610,7 +3610,7 @@ export function renderConfig(el) {
         <div class="card">
           <div class="card-header"><h3>ℹ️ Sobre</h3></div>
           <div class="card-body">
-            <div class="config-desc" style="line-height:1.7;">
+            <div class="config-desc">
               <strong>Estudo Organizado</strong> é um app para planejamento e organização de estudos para concursos públicos.<br><br>
               Baseado no Ciclo PDCA: planeje no Calendário, execute no Study Organizer, meça no Dashboard e corrija com as Revisões.<br><br>
               <span class="text-xs text-muted">Versão 1.0 • Dados salvos localmente + Google Drive</span>

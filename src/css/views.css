@@ -2585,3 +2585,10 @@
   width: 14px;
   height: 14px;
 }
+
+.config-backup-grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
