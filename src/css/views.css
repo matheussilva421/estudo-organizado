@@ -2740,3 +2740,158 @@
   overflow-y: auto;
   padding-right: 8px;
 }
+
+/* === Grade Semanal View === */
+
+.grade-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.grade-header-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.grade-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.grade-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.grade-day-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.grade-day-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.grade-day-time {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.grade-seq-card {
+  margin-bottom: 12px;
+}
+
+.grade-seq-card--concluded {
+  opacity: 0.6;
+}
+
+.grade-seq-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.grade-seq-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grade-seq-move-btn {
+  padding: 0 4px;
+  font-size: 10px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.grade-seq-title-link {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: underline;
+}
+
+.grade-seq-meta {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.grade-seq-step-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.grade-seq-action {
+  margin-top: 8px;
+}
+
+.grade-lista {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.grade-empty-state {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* === Ciclo History Modal === */
+
+.ciclo-history-actions {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ciclo-history-sessions-title {
+  margin-bottom: 12px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.ciclo-history-session-card {
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ciclo-history-session-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.ciclo-history-session-location {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ciclo-history-session-time {
+  font-size: 13px;
+  color: var(--blue);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.ciclo-history-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}

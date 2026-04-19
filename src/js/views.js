@@ -4485,9 +4485,9 @@ export function renderCiclo(el) {
     for (let i = 0; i < 7; i++) {
       if (plan.horarios.diasAtivos.includes(i)) {
         weeklyHtml += `
-            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px;">
-               <div style="font-weight:700; margin-bottom:8px;">${days[i]}</div>
-               <div style="color:var(--text-muted); font-size:13px;">${(() => { const hm = plan.horarios.horasPorDia[i]; if (!hm || !hm.includes(':')) return hm || '?'; const [h, m] = hm.split(':'); const hi = parseInt(h, 10); const mi = parseInt(m, 10); return hi > 0 ? (mi > 0 ? `${hi}h${String(mi).padStart(2, '0')}min` : `${hi}h`) : `${mi}min`; })()} planejadas</div>
+            <div class="grade-day-card">
+               <div class="grade-day-title">${days[i]}</div>
+               <div class="grade-day-time">${(() => { const hm = plan.horarios.horasPorDia[i]; if (!hm || !hm.includes(':')) return hm || '?'; const [h, m] = hm.split(':'); const hi = parseInt(h, 10); const mi = parseInt(m, 10); return hi > 0 ? (mi > 0 ? `${hi}h${String(mi).padStart(2, '0')}min` : `${hi}h`) : `${mi}min`; })()} planejadas</div>
             </div>
           `;
       }
@@ -4507,21 +4507,21 @@ export function renderCiclo(el) {
         totalTarget += seq.minutosAlvo;
 
         sequenceHtml += `
-            <div class="ciclo-item ${seq.concluido ? 'concluido' : ''}" style="margin-bottom:12px;">
+            <div class="ciclo-item ${seq.concluido ? 'concluido' : ''} grade-seq-card">
               <div class="ciclo-item-cor" style="background:${d.disc.cor || d.edital.cor || '#3b82f6'};"></div>
               <div class="ciclo-item-body">
-                <div class="ciclo-item-header">
-                  <div class="ciclo-item-title" style="display:flex; align-items:center; gap:8px;">
-                    <div style="display:flex; flex-direction:column; gap:2px;">
-                      <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" data-action="move-ciclo-seq" data-index="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
-                      <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" data-action="move-ciclo-seq" data-index="${i}" data-dir="1" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
+                <div class="ciclo-item-header grade-seq-header">
+                  <div class="ciclo-item-title grade-seq-title-link">
+                    <div class="grade-seq-controls">
+                      <button class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
+                      <button class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="1" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
                     </div>
-                    <div style="cursor:pointer; display:flex; align-items:center; gap:6px;" data-action="open-ciclo-history" data-seq-id="${seq.id}" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span style="text-decoration:underline;">${esc(d.disc.nome)}</span></div>
+                    <div data-action="open-ciclo-history" data-seq-id="${seq.id}" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span style="text-decoration:underline;">${esc(d.disc.nome)}</span></div>
                   </div>
-                  <div class="ciclo-item-meta" style="cursor:pointer; text-decoration:underline;" data-action="edit-ciclo-seq-hours" data-index="${i}" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
+                  <div class="ciclo-item-meta grade-seq-meta" data-action="edit-ciclo-seq-hours" data-index="${i}" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
                 </div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Etapa ${i + 1} da sequência global da semana</div>
-                <div style="margin-top:8px;">
+                <div class="grade-seq-step-label">Etapa ${i + 1} da sequência global da semana</div>
+                <div class="grade-seq-action">
                    ${!seq.concluido
             ? `<button class="btn btn-primary btn-sm" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Estudar Agora</button>`
             : `<span style="color:var(--green);font-size:12px;font-weight:600;"><i class="fa fa-check"></i> Etapa Concluída</span>`
@@ -4533,16 +4533,17 @@ export function renderCiclo(el) {
       });
     }
 
+    // Grade Semanal
     el.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-        <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-calendar-alt"></i> Sua Grade Semanal</h2>
-        <div style="display:flex;gap:8px;">
+      <div class="grade-header">
+        <h2 class="grade-header-title"><i class="fa fa-calendar-alt"></i> Sua Grade Semanal</h2>
+        <div class="grade-actions">
           <button class="btn btn-ghost btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-edit"></i> Editar Grade</button>
           <button class="btn btn-danger btn-sm" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
         </div>
       </div>
-      
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:24px;">
+
+      <div class="grade-grid">
         <div>
           ${weeklyHtml || '<p>Nenhum dia de estudo planejado.</p>'}
         </div>
@@ -4551,8 +4552,8 @@ export function renderCiclo(el) {
             <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa fa-list-ol" style="color:var(--text-muted);"></i> Sequência Gerada</h3>
           </div>
           <div class="card-body" style="padding-top:0;">
-            <div class="ciclo-lista" style="max-height: 400px; overflow-y:auto; padding-right:8px;">
-              ${sequenceHtml || '<div style="padding:20px;text-align:center;color:var(--text-muted);">Sequência vazia.</div>'}
+            <div class="grade-lista">
+              ${sequenceHtml || '<div class="grade-empty-state">Sequência vazia.</div>'}
             </div>
           </div>
         </div>
@@ -4584,7 +4585,7 @@ window.openCicloHistory = function (seqId) {
   let btnDesfazer = '';
   if (seqItem.concluido) {
     btnDesfazer = `
-      <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+      <div class="ciclo-history-actions">
         <button class="btn btn-ghost" style="color:var(--orange); border: 1px solid var(--border);" data-action="desfazer-etapa" data-seq-id="${seqId}">
           <i class="fa fa-undo"></i> Desfazer 'Etapa Concluída' desta matéria
         </button>
@@ -4594,21 +4595,21 @@ window.openCicloHistory = function (seqId) {
 
   let htmlHistorico = '';
   if (eventosDisc.length === 0) {
-    htmlHistorico = `<div style="text-align:center; padding: 20px; color:var(--text-muted); font-size:14px;">Nenhuma sessão de estudo registrada ainda.</div>`;
+    htmlHistorico = `<div class="ciclo-history-empty">Nenhuma sessão de estudo registrada ainda.</div>`;
   } else {
     htmlHistorico = `
-      <div style="display:flex; flex-direction:column; gap:8px;">
+      <div class="flex flex-col gap-sm">
         ${eventosDisc.map(ev => {
       return `
-            <div class="card" style="padding:12px; display:flex; justify-content:space-between; align-items:center;">
+            <div class="card ciclo-history-session-card">
               <div>
-                <div style="font-weight:600; font-size:14px; color:var(--text-primary); margin-bottom:4px;">
+                <div class="ciclo-history-session-title">
                   ${formatDate(ev.data)} ${ev.hora ? `às ${ev.hora}` : ''}
                 </div>
-                <div style="font-size:13px; color:var(--text-muted);">
+                <div class="ciclo-history-session-location">
                   📍 ${esc(ev.titulo)}
                 </div>
-                <div style="font-size:13px; color:var(--blue); font-weight:700; margin-top:2px;">
+                <div class="ciclo-history-session-time">
                    ⏱️ ${formatTime(ev.tempoAcumulado)} estudados
                 </div>
               </div>
@@ -4626,7 +4627,7 @@ window.openCicloHistory = function (seqId) {
     bodyEl.innerHTML = `
       <div style="padding:16px;">
         ${btnDesfazer}
-        <h4 style="margin-bottom:12px; font-size:15px; color:var(--text-secondary);">Sessões Recentes (${eventosDisc.length})</h4>
+        <h4 class="ciclo-history-sessions-title">Sessões Recentes (${eventosDisc.length})</h4>
         ${htmlHistorico}
       </div>
     `;
