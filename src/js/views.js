@@ -2387,7 +2387,7 @@ export function openDiscManager(editaId, discId) {
         <div class="sm-bulk-import-form">
            <div>
                <label>Adição em Lote (Copie e paste o índice do seu PDF/Cursinho aqui)</label>
-      <textarea class="form-control form-control--resize" id="new-aula-bulk" placeholder="Aula 00 - Concordância Nominal\nAula 01 - Crase..." style="min-height:80px;"></textarea>
+      <textarea class="form-control form-control--resize sm-bulk-textarea" id="new-aula-bulk" placeholder="Aula 00 - Concordância Nominal\nAula 01 - Crase..."></textarea>
            </div>
            <button class="btn btn-primary" data-action="add-bulk-aulas" data-disc-id="${disc.id}">Importar Lote</button>
         </div>
@@ -4235,13 +4235,13 @@ export function renderCiclo(el) {
           <div class="seq-item-card">
             <div class="seq-item-color-bar" style="background:${cor};"></div>
             <div class="seq-item-content">
-               <div class="seq-item-field" style="flex:2;">
+               <div class="seq-item-field seq-item-field--wide">
                  <div class="seq-item-field-label">Disciplina</div>
                  <select class="form-control seq-item-select" data-action="update-seq-item" data-index="${i}" data-field="discId">
                    ${selHtml}
                  </select>
                </div>
-               <div class="seq-item-field" style="flex:1;">
+               <div class="seq-item-field seq-item-field--narrow">
                  <div class="seq-item-field-label">Minutos</div>
                  <input type="number" class="form-control seq-item-input" value="${seq.minutosAlvo}" data-action="update-seq-item" data-index="${i}" data-field="minutosAlvo">
                </div>
@@ -4268,20 +4268,20 @@ export function renderCiclo(el) {
         sequenceHtml += `
           <div class="seq-item-card">
             <div class="seq-item-color-bar" style="background:${cor};"></div>
-            <div class="seq-item-content" style="display:block;">
+            <div class="seq-item-content seq-item-content--static">
               <div class="seq-item-header">
                 <div class="seq-item-title" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
                 <div class="seq-item-time-display">
-                   <i class="fa fa-clock"></i> <span style="font-weight:700; color:var(--text-primary);">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
+                   <i class="fa fa-clock"></i> <span class="seq-item-time-value" style="font-weight:700; color:var(--text-primary);">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
                 </div>
               </div>
 
               <div class="seq-progress-bar">
-                <div style="position:absolute; top:0; left:0; height:100%; width:${Math.min(pct, 100)}%; background:${cor}; border-radius:8px; opacity:0.6;"></div>
+                <div class="seq-progress-fill" style="position:absolute; top:0; left:0; height:100%; width:${Math.min(pct, 100)}%; background:${cor}; border-radius:8px; opacity:0.6;"></div>
                 <div class="seq-progress-text">${pctStr}%</div>
               </div>
 
-              <div class="ciclo-sequence-actions" style="display:flex; gap:16px; font-size:11px;">
+              <div class="ciclo-sequence-actions">
                 <span class="ciclo-action-link" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Iniciar Estudo</span>
                 <span class="ciclo-action-link" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</span>
                 <span class="ciclo-action-link" data-action="open-ciclo-history" data-seq-id="${seq.id}"><i class="fa fa-history"></i> Ver Últimos Estudos</span>

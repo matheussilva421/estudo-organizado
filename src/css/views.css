@@ -2895,3 +2895,41 @@
   color: var(--text-muted);
   font-size: 14px;
 }
+
+/* Subject Manager textarea */
+.sm-bulk-textarea {
+  min-height: 80px;
+}
+
+/* Sequence builder */
+.seq-item-field--wide {
+  flex: 2;
+}
+
+.seq-item-field--narrow {
+  flex: 1;
+}
+
+.seq-item-content--static {
+  display: block;
+}
+
+.seq-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 8px;
+  opacity: 0.6;
+}
+
+.seq-item-time-value {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ciclo-sequence-actions {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+}
