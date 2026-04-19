@@ -1143,7 +1143,7 @@ export function renderHabitos(el) {
           <div class="habit-card" data-action="open-habit-modal" data-habit-key="${h.key}">
             <div class="hc-icon">${h.icon}</div>
             <div class="hc-label">${h.label}</div>
-            <div class="hc-count" style="color:${h.color}">${total}</div>
+            <div class="hc-count" data-habit-color="${h.color}">${total}</div>
             <div class="hc-sub">${recentStr}</div>
           </div>
         `;
@@ -1397,8 +1397,8 @@ export function calcSimuladoPerc() {
   const el = document.getElementById('sim-perc');
   if (!el || !tot) return;
   const pct = Math.round(ace / tot * 100);
-  const color = pct >= 70 ? 'var(--accent)' : pct >= 50 ? 'var(--orange)' : 'var(--red)';
-  el.innerHTML = `<span style="color:${color};">${pct}% de aproveitamento (${ace}/${tot})</span>`;
+  const colorClass = pct >= 70 ? 'text-accent' : pct >= 50 ? 'text-orange' : 'text-red';
+  el.innerHTML = `<span class="${colorClass}">${pct}% de aproveitamento (${ace}/${tot})</span>`;
 }
 
 export function deleteHabito(tipo, id) {
@@ -1848,7 +1848,7 @@ function renderHistoricoDisciplina(tempos) {
                 <td class="session-history-time">${tempoStr}</td>
                 <td>${pags ?? '-'}</td>
                 <td>${certas} / ${totQs}</td>
-                <td class="session-history-acerto" style="color:${totQs > 0 ? percColor : 'inherit'};">${totQs > 0 ? perc + '%' : '-'}</td>
+                <td class="session-history-acerto ${totQs > 0 ? (perc >= 70 ? 'text-green' : perc >= 50 ? 'text-accent' : 'text-red') : ''}">${totQs > 0 ? perc + '%' : '-'}</td>
               </tr>
             `;
   }).join('')}
