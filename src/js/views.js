@@ -2835,7 +2835,7 @@ export function addNovoTopicoVertical(editaId, discId) {
 
   document.getElementById('modal-prompt-title').textContent = 'Novo Tópico';
   document.getElementById('modal-prompt-body').innerHTML = `
-    <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">
+    <div class="config-sub">
       Adicionar tópico em <strong>${esc(entry.disc.nome)}</strong>
     </div>
     <input type="text" id="prompt-input-topico" class="form-control" placeholder="Nome do novo tópico..." autofocus>
@@ -2951,17 +2951,17 @@ export function openSubjectAddModal(editaId, discId) {
   editingSubjectCtx = { editaId, discId };
   document.getElementById('modal-subject-add-body').innerHTML = `
     <div class="form-group" >
-      <label class="form-label" style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Conteúdo</label>
+      <label class="form-label text-xs text-uppercase text-muted font-semibold">Conteúdo</label>
       <textarea id="bulk-subject-text" class="form-control" rows="8" style="font-family:inherit;font-size:14px;resize:vertical;" placeholder="Ex:\n1. Configuração do Estado\n2. Direitos Fundamentais\n3. ..."></textarea>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+      <div class="config-hint">
         Dica: Você pode fazer quebra de linha com Enter para adicionar mais de um tópico. O sistema limpará numerações como "1.", "1.1", "-", etc.
       </div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+    <div class="modal-footer-standard--padded">
+      <label class="flex cluster-sm cursor-pointer">
         <input type="checkbox" id="bulk-save-continue"> Salvar e continuar
       </label>
-      <div style="display:flex;gap:8px;">
+      <div class="flex gap-sm">
         <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-subject-add">Cancelar</button>
         <button class="btn btn-primary" data-action="save-bulk-subjects">Adicionar</button>
       </div>
