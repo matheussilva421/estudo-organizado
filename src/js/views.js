@@ -4120,12 +4120,12 @@ export function renderCiclo(el) {
           const hrStr = hr > 0 ? `${hr}h${mn}m` : `${mn}m`;
 
           return `
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 0; border-bottom:1px dashed rgba(255,255,255,0.05);">
-               <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
-                 <div style="width:8px; height:8px; border-radius:50%; background:${color}; flex-shrink:0;"></div>
-                 <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text-primary); max-width:140px;">${esc(name)}</span>
+            <div class="seq-discipline-list-item">
+               <div class="seq-discipline-info">
+                 <div class="seq-discipline-dot" style="background:${color};"></div>
+                 <span class="seq-discipline-name">${esc(name)}</span>
                </div>
-               <div style="font-weight:700; color:var(--text-muted); white-space:nowrap;">
+               <div class="seq-discipline-stats">
                  <span style="color:var(--text-primary);">${sessCount}</span> sessões <span style="font-weight:400; font-size:10px;">(${hrStr})</span>
                </div>
             </div>
@@ -4143,10 +4143,10 @@ export function renderCiclo(el) {
 
   if (!plan.ativo || !plan.disciplinas || plan.disciplinas.length === 0) {
     el.innerHTML = `
-      <div class="empty-state" style="padding: 80px 20px;">
+      <div class="empty-state">
         <div class="icon">🧭</div>
         <h4>Nenhum Planejamento de Estudos</h4>
-        <p style="margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">Configure uma estratégia escolhendo entre o "Ciclo Contínuo de Estudos" ou a "Grade Semanal Fixa" para organizar seu tempo otimizadamente.</p>
+        <p class="mb-6">Configure uma estratégia escolhendo entre o "Ciclo Contínuo de Estudos" ou a "Grade Semanal Fixa" para organizar seu tempo otimizadamente.</p>
         <button class="btn btn-primary" data-action="open-planejamento-wizard"><i class="fa fa-play"></i> Criar Meu Planejamento</button>
       </div>
     `;
@@ -4232,53 +4232,53 @@ export function renderCiclo(el) {
         if (seq.discId) selHtml = selHtml.replace(`value="${seq.discId}"`, `value="${seq.discId}" selected`);
 
         sequenceHtml += `
-          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:12px; display:flex;">
-            <div style="width:6px; background:${cor}; flex-shrink:0;"></div>
-            <div style="padding:16px; flex:1; display:flex; gap:16px; align-items:center;">
-               <div style="flex:2;">
-                 <div style="font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:4px; letter-spacing:1px; text-transform:uppercase;">Disciplina</div>
-                 <select class="form-control" data-action="update-seq-item" data-index="${i}" data-field="discId" style="width:100%; border:none; border-bottom:1px solid var(--accent); border-radius:0; background:transparent; padding:4px 0; color:var(--text-primary); outline:none;">
+          <div class="seq-item-card">
+            <div class="seq-item-color-bar" style="background:${cor};"></div>
+            <div class="seq-item-content">
+               <div class="seq-item-field" style="flex:2;">
+                 <div class="seq-item-field-label">Disciplina</div>
+                 <select class="form-control seq-item-select" data-action="update-seq-item" data-index="${i}" data-field="discId">
                    ${selHtml}
                  </select>
                </div>
-               <div style="flex:1;">
-                 <div style="font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:4px; letter-spacing:1px; text-transform:uppercase;">Minutos</div>
-                 <input type="number" class="form-control" value="${seq.minutosAlvo}" data-action="update-seq-item" data-index="${i}" data-field="minutosAlvo" style="width:100%; border:none; border-bottom:1px solid var(--accent); border-radius:0; background:transparent; padding:4px 0; color:var(--text-primary); outline:none;">
+               <div class="seq-item-field" style="flex:1;">
+                 <div class="seq-item-field-label">Minutos</div>
+                 <input type="number" class="form-control seq-item-input" value="${seq.minutosAlvo}" data-action="update-seq-item" data-index="${i}" data-field="minutosAlvo">
                </div>
-               
-               <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-                 <div style="display:flex; gap:8px;">
-                   <button class="btn btn-ghost btn-sm" data-action="dup-seq-item" data-index="${i}" style="font-size:11px; padding:4px 8px; background:var(--card);">Duplicar</button>
-                   <button class="btn btn-ghost btn-sm" data-action="rem-seq-item" data-index="${i}" style="font-size:11px; padding:4px 8px; background:var(--card);">Remover</button>
+
+               <div class="seq-item-actions">
+                 <div class="seq-item-action-buttons">
+                   <button class="btn btn-ghost btn-sm seq-item-action-btn" data-action="dup-seq-item" data-index="${i}">Duplicar</button>
+                   <button class="btn btn-ghost btn-sm seq-item-action-btn" data-action="rem-seq-item" data-index="${i}">Remover</button>
                  </div>
-                 <div style="font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; opacity:0.8;">
+                 <div class="seq-item-time">
                    <i class="fa fa-clock"></i> ${formatH(usedMins)} ${pct >= 100 ? '(Feito)' : ''}
                  </div>
                </div>
-               
-               <div style="display:flex; flex-direction:column; align-items:center; justify-content:space-between; height:40px;">
-                 ${i > 0 ? `<i class="fa fa-caret-up" style="cursor:pointer; color:var(--text-muted); font-size:16px;" data-action="move-seq-item" data-index="${i}" data-dir="-1"></i>` : '<div style="height:16px"></div>'}
-                 ${i < targetLoop.length - 1 ? `<i class="fa fa-caret-down" style="cursor:pointer; color:var(--text-muted); font-size:16px;" data-action="move-seq-item" data-index="${i}" data-dir="1"></i>` : '<div style="height:16px"></div>'}
+
+               <div class="seq-item-move-controls">
+                 ${i > 0 ? `<i class="fa fa-caret-up seq-item-move-btn" data-action="move-seq-item" data-index="${i}" data-dir="-1"></i>` : '<div class="seq-item-move-placeholder"></div>'}
+                 ${i < targetLoop.length - 1 ? `<i class="fa fa-caret-down seq-item-move-btn" data-action="move-seq-item" data-index="${i}" data-dir="1"></i>` : '<div class="seq-item-move-placeholder"></div>'}
                </div>
-               
+
             </div>
           </div>
         `;
       } else {
         sequenceHtml += `
-          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:12px; display:flex;">
-            <div style="width:6px; background:${cor}; flex-shrink:0;"></div>
-            <div style="padding:16px; flex:1;">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                <div style="font-weight:600; font-size:15px; color:var(--text-primary); cursor:pointer;" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
-                <div style="font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; display:flex; align-items:center; gap:6px;">
+          <div class="seq-item-card">
+            <div class="seq-item-color-bar" style="background:${cor};"></div>
+            <div class="seq-item-content" style="display:block;">
+              <div class="seq-item-header">
+                <div class="seq-item-title" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+                <div class="seq-item-time-display">
                    <i class="fa fa-clock"></i> <span style="font-weight:700; color:var(--text-primary);">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
                 </div>
               </div>
-              
-              <div style="height:14px; background:rgba(255,255,255,0.05); border-radius:8px; overflow:hidden; position:relative; margin-bottom:12px;">
+
+              <div class="seq-progress-bar">
                 <div style="position:absolute; top:0; left:0; height:100%; width:${Math.min(pct, 100)}%; background:${cor}; border-radius:8px; opacity:0.6;"></div>
-                <div style="position:absolute; top:0; width:100%; text-align:center; font-size:10px; font-weight:700; color:var(--text-primary); line-height:14px; text-shadow:0px 1px 2px rgba(0,0,0,0.8);">${pctStr}%</div>
+                <div class="seq-progress-text">${pctStr}%</div>
               </div>
 
               <div class="ciclo-sequence-actions" style="display:flex; gap:16px; font-size:11px;">
@@ -4294,9 +4294,9 @@ export function renderCiclo(el) {
 
     if (window._isEditingSequence) {
       sequenceHtml += `
-         <div style="display:flex; justify-content:space-between; margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
+         <div class="seq-edit-footer">
            <button class="btn btn-ghost" style="border:1px solid var(--accent); color:var(--accent);" data-action="add-seq-item"><i class="fa fa-plus"></i> Adicionar Disciplina</button>
-           <div style="display:flex; gap:12px;">
+           <div class="seq-edit-footer-actions">
               <button class="btn btn-ghost" data-action="cancel-edit-seq">Cancelar</button>
               <button class="btn btn-primary" data-action="save-edit-seq"><i class="fa fa-save"></i> Salvar Alterações</button>
            </div>
