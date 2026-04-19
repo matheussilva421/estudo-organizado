@@ -8,14 +8,36 @@ const KV_KEY = 'estudo_estado_v1';
 const META_KEY = 'estudo_meta_v1';
 const MAX_BODY_SIZE = 5 * 1024 * 1024; // 5MB limit
 
-function corsHeaders(request) {
+function getAllowedOrigins(env) {
+    const configured = env?.ALLOWED_ORIGINS || '';
+    const origins = configured
+        .split(',')
+        .map(origin => origin.trim())
+        .filter(Boolean);
+
+    return origins.length > 0 ? origins : ALLOWED_ORIGINS;
+}
+
+function resolveOriginPolicy(request, env) {
     const origin = request.headers.get('Origin') || '';
-    const allowed = ALLOWED_ORIGINS.length > 0
-        ? ALLOWED_ORIGINS.includes(origin)
-        : true; // If no origins configured, allow all (backward compat)
+    const allowedOrigins = getAllowedOrigins(env);
+    if (allowedOrigins.length === 0) {
+        return { allowed: true, allowOrigin: origin || '*' };
+    }
+
+    if (!origin) {
+        return { allowed: true, allowOrigin: allowedOrigins[0] };
+    }
+
+    const allowed = allowedOrigins.includes(origin);
+    return { allowed, allowOrigin: allowed ? origin : allowedOrigins[0] };
+}
+
+function corsHeaders(request, env) {
+    const { allowOrigin } = resolveOriginPolicy(request, env);
 
     return {
-        'Access-Control-Allow-Origin': allowed ? origin : ALLOWED_ORIGINS[0] || '*',
+        'Access-Control-Allow-Origin': allowOrigin,
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Content-Type': 'application/json'
@@ -54,14 +76,22 @@ function normalizeIncomingMeta(parsed) {
 
 export default {
     async fetch(request, env, ctx) {
-        const headers = corsHeaders(request);
+        const headers = corsHeaders(request, env);
+        const originPolicy = resolveOriginPolicy(request, env);
 
         if (request.method === 'OPTIONS') {
-            return new Response(null, { headers });
+            if (!originPolicy.allowed) {
+                return json({ error: 'Origin not allowed' }, 403, headers);
+            }
+            return new Response(null, { status: 204, headers });
         }
 
         if (request.method !== 'GET' && request.method !== 'POST') {
             return json({ error: 'Method not allowed' }, 405, headers);
+        }
+
+        if (!originPolicy.allowed) {
+            return json({ error: 'Origin not allowed' }, 403, headers);
         }
 
         const authHeader = request.headers.get('Authorization');

@@ -234,7 +234,7 @@ npm run test:e2e
   - pull remote
   - force overwrite
   - export local backup first
-- [ ] Make `ALLOWED_ORIGINS` configurable and document deployment defaults.
+- [x] Make `ALLOWED_ORIGINS` configurable and document deployment defaults.
 - [x] Keep credentials outside exported/synced payloads and update `sync-contract.md` to match reality.
 - [x] Add unit tests for:
   - old payload rejected
@@ -577,5 +577,44 @@ Results:
 Remaining in the next slice:
 
 - Configurable `ALLOWED_ORIGINS` deployment defaults.
+- Banca/extracted-module cleanup from Phase 4.
+- Broader E2E journeys across sidebar pages.
+
+### 2026-04-19 - Recovery slice 5
+
+Made Worker browser-origin enforcement configurable.
+
+Changed files:
+
+- `scripts/cloudflare-worker.js`
+- `tests/unit/sync-conflict.test.js`
+- `src/docs/api/sync-contract.md`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+
+What changed:
+
+- Added tests for configured allowed/disallowed browser origins.
+- Added `env.ALLOWED_ORIGINS` parsing as a comma-separated allowlist.
+- Kept backward-compatible permissive behavior when no origins are configured.
+- Blocked browser requests from origins outside the configured allowlist with HTTP 403.
+- Changed allowed CORS preflight responses to HTTP 204.
+- Documented the deployment variable and default behavior.
+
+Verification:
+
+```powershell
+npm run test:unit -- tests/unit/sync-conflict.test.js
+npm test
+npm run test:e2e
+```
+
+Result:
+
+- Sync/Worker unit tests: 6 passed
+- Full unit: 65 passed
+- Full E2E: 6 passed
+
+Remaining in the next slice:
+
 - Banca/extracted-module cleanup from Phase 4.
 - Broader E2E journeys across sidebar pages.

@@ -12,10 +12,23 @@ function createRequest(method, body = null) {
   });
 }
 
+function createRequestWithOrigin(method, origin, body = null) {
+  return new Request('https://sync.example.test', {
+    method,
+    headers: {
+      Origin: origin,
+      Authorization: 'Bearer test-token',
+      'Content-Type': 'application/json'
+    },
+    body: body ? JSON.stringify(body) : null
+  });
+}
+
 function createEnv(initial = {}) {
   const values = new Map(Object.entries(initial));
   return {
     AUTH_TOKEN: 'test-token',
+    ALLOWED_ORIGINS: initial.ALLOWED_ORIGINS,
     ESTUDO_KV: {
       get: vi.fn(async key => values.get(key) ?? null),
       put: vi.fn(async (key, value) => {
@@ -115,6 +128,40 @@ describe('Cloudflare sync conflict contract', () => {
 
     expect(response.status).toBe(200);
     expect(env.ESTUDO_KV.put).toHaveBeenCalledWith('estudo_estado_v1', expect.any(String));
+  });
+
+  it('worker blocks browser requests from origins outside ALLOWED_ORIGINS', async () => {
+    const worker = (await import('../../scripts/cloudflare-worker.js')).default;
+    const env = createEnv({
+      ALLOWED_ORIGINS: 'https://estudo.example.com, http://localhost:8080'
+    });
+
+    const response = await worker.fetch(createRequestWithOrigin('POST', 'https://evil.example.com', {
+      version: 2,
+      deviceId: 'device-b',
+      baseRemoteUpdatedAt: null,
+      payloadUpdatedAt: '2026-04-19T12:00:00.000Z',
+      sentAt: '2026-04-19T12:00:00.000Z',
+      payload: createBaseState()
+    }), env, {});
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining('Origin not allowed')
+    });
+    expect(env.ESTUDO_KV.put).not.toHaveBeenCalled();
+  });
+
+  it('worker allows configured browser origins and echoes the request origin', async () => {
+    const worker = (await import('../../scripts/cloudflare-worker.js')).default;
+    const env = createEnv({
+      ALLOWED_ORIGINS: 'https://estudo.example.com, http://localhost:8080'
+    });
+
+    const response = await worker.fetch(createRequestWithOrigin('OPTIONS', 'https://estudo.example.com'), env, {});
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://estudo.example.com');
   });
 
   it('client pushes base remote metadata and strips credentials from payload', async () => {

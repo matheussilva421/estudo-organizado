@@ -78,6 +78,21 @@ POST behavior:
 - Accepts stale base only when `forceOverwrite: true` is explicit.
 - Returns HTTP 409 with `remoteUpdatedAt` and `remoteDeviceId` for conflicts.
 
+## Origin Configuration
+
+Browser origins can be configured with the Worker environment variable:
+
+```text
+ALLOWED_ORIGINS=https://estudo.example.com,http://localhost:8080
+```
+
+Behavior:
+
+- If `ALLOWED_ORIGINS` is empty or missing, the Worker keeps backward-compatible permissive CORS.
+- If `ALLOWED_ORIGINS` is set, browser requests with an `Origin` outside the list receive HTTP 403.
+- Configured preflight requests receive HTTP 204 and echo the accepted origin.
+- Non-browser/server requests without an `Origin` header remain allowed when bearer auth is valid.
+
 ## Credential Separation
 
 - Cloudflare credentials are stored locally under `estudo_sync_creds`.
@@ -88,5 +103,5 @@ POST behavior:
 
 1. Full-state snapshots still do not merge entity-level changes.
 2. Conflict UX is intentionally conservative: pull remote or force overwrite, with no merge UI yet.
-3. `ALLOWED_ORIGINS` is still empty by default for backward compatibility and should be configured per deployment.
+3. `ALLOWED_ORIGINS` is still permissive when omitted for backward compatibility and should be configured per deployment.
 4. Google Drive sync still has a separate conflict model.
