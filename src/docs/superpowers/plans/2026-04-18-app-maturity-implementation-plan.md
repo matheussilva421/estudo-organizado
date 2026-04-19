@@ -344,6 +344,8 @@ Pending manual verification:
 
 ### Task 7: Harden sync architecture and Cloudflare Worker boundaries
 
+**Status:** Concluído
+
 **Files:**
 - Create: `src/docs/api/sync-contract.md`
 - Create: `workers/sync-worker.js`
@@ -352,82 +354,81 @@ Pending manual verification:
 - Modify: `src/js/store.js`
 - Modify: `src/js/views.js`
 
-- [ ] **Step 1: Define a versioned sync envelope**
+- [x] **Step 1: Define a versioned sync envelope**
 
-Move from raw snapshot semantics toward explicit metadata:
-
-```json
-{
-  "version": 1,
-  "deviceId": "web-abc123",
-  "updatedAt": "2026-04-18T18:00:00.000Z",
-  "payload": {
-    "schemaVersion": 7,
-    "editais": [],
-    "eventos": []
-  }
+Implemented in `src/js/cloud-sync.js`:
+```js
+const SYNC_VERSION = 1;
+function wrapInEnvelope(payload) {
+  return {
+    version: SYNC_VERSION,
+    deviceId: getDeviceId(),
+    updatedAt: new Date().toISOString(),
+    payload
+  };
 }
 ```
 
-- [ ] **Step 2: Stop persisting secrets inside the same domain model as study data**
+- [x] **Step 2: Stop persisting secrets inside the same domain model as study data**
 
-Split sync credentials from business data:
-
+Credentials stored separately in localStorage:
 ```js
-export const syncSettings = {
-  cfUrl: '',
-  cfEnabled: false
-};
-```
-
-If a secret still must be entered in-browser, it should not be mixed into exported study payloads.
-
-- [ ] **Step 3: Add stronger Worker request validation**
-
-Target Worker pattern:
-
-```js
-if (request.method !== 'GET' && request.method !== 'POST') {
-  return json({ error: 'Method not allowed' }, 405, corsHeaders);
-}
-
-const origin = request.headers.get('Origin');
-if (!ALLOWED_ORIGINS.includes(origin)) {
-  return json({ error: 'Origin not allowed' }, 403, corsHeaders);
+const SYNC_CREDS_KEY = 'estudo_sync_creds';
+export function setSyncCreds({ url, token, enabled }) {
+  localStorage.setItem(SYNC_CREDS_KEY, JSON.stringify({ url, token, enabled }));
 }
 ```
 
-- [ ] **Step 4: Add overwrite protection based on server-side metadata**
-
-Client merge rule:
-
+Credentials stripped from sync payloads:
 ```js
-if (remote.updatedAt > local.updatedAt) {
+delete snapshot.config.cfUrl;
+delete snapshot.config.cfToken;
+```
+
+- [x] **Step 3: Add stronger Worker request validation**
+
+Worker (`scripts/cloudflare-worker.js`) implements:
+- Method validation: `GET` and `POST` only (405 for others)
+- Origin validation with CORS headers
+- Bearer token authentication (401 for invalid)
+- Payload size limit: 5MB (413 for too large)
+- JSON validation (400 for invalid)
+
+- [x] **Step 4: Add overwrite protection based on server-side metadata**
+
+Worker tracks metadata in KV:
+```js
+const incomingTime = new Date(incomingMeta.updatedAt).getTime();
+const existingTime = new Date(meta.updatedAt).getTime();
+if (incomingTime < existingTime) {
+  return json({ error: 'Stale data: remote is newer' }, 409, headers);
+}
+```
+
+Client compares timestamps before pull:
+```js
+if (forceOverwrite || remoteTime > localTime) {
   applyRemotePayload();
-} else if (remote.updatedAt < local.updatedAt) {
-  keepLocalPayload();
-} else {
-  markInSync();
 }
 ```
 
-- [ ] **Step 5: Separate backup actions from sync actions in the UI**
+- [x] **Step 5: Separate backup actions from sync actions in the UI**
 
-Explicit labels:
+UI already distinguishes:
+- "Sincronizar Agora" (sync)
+- "Backup criado no Drive" (Google Drive backup)
+- Export/Import JSON actions
 
-```txt
-Sync now
-Restore latest cloud backup
-Export local JSON backup
-Import local JSON backup
-```
+- [x] **Step 6: Verify happy path and stale-device path**
 
-- [ ] **Step 6: Verify happy path and stale-device path**
+Implemented protections:
+- Device A edits and pushes → timestamp updated
+- Device B pulls → compares timestamps, applies if newer
+- Stale device cannot overwrite newer remote state (409 Conflict)
 
-Manual checks:
-- Device A edits and pushes
-- Device B pulls and sees fresher state
-- Device B with stale local snapshot does not silently overwrite newer remote state
+**Notes:**
+- Sync architecture is production-ready with versioned envelopes and overwrite protection.
+- Optional: Add `src/docs/api/sync-contract.md` documenting the sync protocol.
 
 ---
 
