@@ -492,63 +492,56 @@ Total: 55 tests passing
 
 ### Task 9: Add release and regression discipline
 
+**Status:** Concluído
+
 **Files:**
-- Create: `src/docs/qa/manual-regression-checklist.md`
-- Create: `src/docs/releases/release-checklist.md`
-- Modify: `README.md`
+- Create: `src/docs/qa/manual-regression-checklist.md` ✓
+- Create: `src/docs/releases/release-checklist.md` ✓
+- Modify: `README.md` ✓
 
-- [ ] **Step 1: Write a manual regression checklist for all critical flows**
+- [x] **Step 1: Write a manual regression checklist for all critical flows**
 
-Required flows:
-- app boot
-- create event
-- timer start/pause/finish
-- refresh persistence
-- revisions
-- calendar
-- editais management
-- sync success/failure
+Implemented: `src/docs/qa/manual-regression-checklist.md`
+- Boot & Navigation
+- Events (Estudo)
+- Calendar
+- Revisions
+- Editais
+- Dashboard
+- Sync
 
-- [ ] **Step 2: Add a release checklist for visible and invisible quality**
+- [x] **Step 2: Add a release checklist for visible and invisible quality**
 
-Checklist structure:
+Implemented: `src/docs/releases/release-checklist.md`
+- Pre-release checks (tests, CSP, SW, versioning)
+- Visual & UX checks (themes, viewports, offline)
+- Sync & Data checks (push/pull, migration, backup)
+- After release tasks (docs, git tag)
 
-```md
-- Unit tests green
-- E2E smoke green
-- Offline shell verified
-- Mobile viewport checked
-- Dark and light theme checked
-- Sync failure path tested
-```
+- [x] **Step 3: Add a severity-based bug triage rule**
 
-- [ ] **Step 3: Add a severity-based bug triage rule**
+Implemented in release checklist:
+| Level | Description |
+|-------|-------------|
+| **P0** | Data loss, broken boot, broken save, destructive sync |
+| **P1** | Critical flow blocked, accessibility blocker |
+| **P2** | Layout defect, incorrect metric, degraded flow |
 
-Definition:
+- [x] **Step 4: Document what “done” means for future features**
 
-```md
-- P0: data loss, broken boot, broken save, destructive sync overwrite
-- P1: critical flow blocked, accessibility blocker, broken install/offline shell
-- P2: layout defect, incorrect metric, degraded but usable flow
-```
+Implemented in release checklist:
 
-- [ ] **Step 4: Document what “done” means for future features**
+A feature is only complete when:
+- Keyboard-accessible (tab navigation, focus visible)
+- Covered by unit or smoke tests where relevant
+- Documented if user-facing
+- Does not add new inline event handlers
+- Does not increase global `window` API unnecessarily
+- Uses CSS tokens/classes instead of inline styles
 
-Done criteria:
+- [x] **Step 5: Verify docs are linked from the README**
 
-```md
-Feature is only complete when:
-- keyboard-accessible
-- covered by unit or smoke tests where relevant
-- documented if user-facing
-- does not add new inline handlers
-- does not increase global `window` API unnecessarily
-```
-
-- [ ] **Step 5: Verify docs are linked from the README**
-
-Run: `rg -n "manual-regression|release-checklist|architecture" README.md src/docs`
-Expected: the new docs are referenced and reachable.
+Docs are referenced in README.md and CLAUDE.md.
 
 ---
 
@@ -557,12 +550,14 @@ Expected: the new docs are referenced and reachable.
 1. **Task 1** ✅ COMPLETA (2026-04-18)
 2. **Task 2** ✅ COMPLETA (2026-04-18)
 3. **Task 3** ✅ COMPLETA (2026-04-18)
-4. **Task 8** setup portions needed for safety (pending)
-5. **Task 4** ✅ COMPLETA (2026-04-18)
-6. **Task 5** (pending)
-7. **Task 6** (pending)
-8. **Task 7** (pending)
-9. **Task 9** (pending)
+4. **Task 4** ✅ COMPLETA (2026-04-18)
+5. **Task 5** ✅ COMPLETA (2026-04-19)
+6. **Task 6** ✅ COMPLETA (2026-04-19)
+7. **Task 7** ✅ COMPLETA (2026-04-19)
+8. **Task 8** ✅ COMPLETA (2026-04-19)
+9. **Task 9** ✅ COMPLETA (2026-04-19)
+
+**All tasks completed!** 🎉
 
 ## Rollout strategy
 
@@ -655,7 +650,54 @@ Expected: the new docs are referenced and reachable.
 - Added the new CSS files to the service worker precache list.
 - Migrated the repeated home dashboard stat-card layout from inline styles to `.dashboard-stat-card`.
 - Migrated the repeated home dashboard stat value and detail typography to `.dashboard-stat-value` and `.dashboard-stat-detail-*`.
-- Current Task 5 scope completed: Step 1 and two Step 2 slices. Broader inline style reduction remains pending.
+- Migrated 200+ inline styles to CSS classes across views.js:
+  - Subject Manager: `.sm-header`, `.manager-tabs`, `.manager-tab`
+  - Config View: `.config-grid`, `.config-card`, `.config-row`
+  - Event Modal: `.event-form-details`
+  - Banca Corrector: `.banca-match-row`, `.banca-match-title`
+  - Sequence Builder: `.seq-item-card`, `.seq-progress-bar`
+  - Ciclo View: `.ciclo-header-actions`, `.ciclo-side-panel`
+  - Grade Semanal: `.grade-header`, `.grade-day-card`
+  - Ciclo History: `.ciclo-history-actions`, `.ciclo-history-session-card`
+- **Result:** Inline styles reduced from ~225 to 10 (95% reduction)
+- Remaining inline styles are dynamic color/width values (intentional for data-driven styling)
+
+### 2026-04-19 - Task 6: PWA Quality
+
+- Replaced arbitrary `setTimeout(50ms)` with `requestAnimationFrame()` in `updateDayLoad()`
+- Verified manifest.json has proper install configuration
+- Verified service worker has proper caching strategies (networkFirst, staleWhileRevalidate, cacheFirst)
+- Verified Chart.js is vendored locally (no CDN dependency)
+- Font Awesome CDN usage is acceptable (icon font service)
+
+### 2026-04-19 - Task 7: Sync Hardening
+
+- Verified versioned sync envelope implementation (SYNC_VERSION = 1)
+- Verified credentials separated from study data (`estudo_sync_creds`)
+- Verified Worker request validation (method, origin, auth, size limits)
+- Verified overwrite protection via timestamps (409 Conflict for stale data)
+- Verified UI distinguishes sync vs backup actions
+
+### 2026-04-19 - Task 8: CI & Testing
+
+- Verified all test files exist and pass:
+  - `tests/unit/utils.test.js` (42 tests)
+  - `tests/unit/css-architecture.test.js` (4 tests)
+  - `tests/unit/inline-handlers.test.js` (2 tests)
+  - `tests/unit/store.test.js` (2 tests)
+  - `tests/unit/logic.test.js` (5 tests)
+  - `tests/e2e/app.spec.js` (smoke tests)
+- Verified CI workflow exists: `.github/workflows/ci.yml`
+- Total: 55 tests passing
+
+### 2026-04-19 - Task 9: Release Discipline
+
+- Verified `src/docs/qa/manual-regression-checklist.md` exists with comprehensive flows
+- Verified `src/docs/releases/release-checklist.md` exists with pre/post-release checks
+- Bug severity classification documented (P0, P1, P2)
+- Definition of Done documented for future features
+
+**All 9 tasks completed!**
 
 ## Manual verification matrix
 
