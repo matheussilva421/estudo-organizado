@@ -189,7 +189,7 @@ Manual/browser:
   - process
   - apply P1/P2/P3
   - assert topic relevance changed
-- [ ] Convert dashboard extracted tabs from `div` to semantic `button`.
+- [x] Convert dashboard extracted tabs from `div` to semantic `button`.
 - [ ] Update docs after the runtime module graph is true.
 
 **Verification:**
@@ -649,6 +649,42 @@ Result:
 
 - Banca E2E focused: 1 passed
 - Full unit: 65 passed
+- Full E2E: 7 passed
+
+Remaining in the next slice:
+
+- Decide the remaining extracted modules' canonical runtime ownership in Phase 4.
+- Broader E2E journeys across sidebar pages.
+
+### 2026-04-19 - Recovery slice 7
+
+Converted the extracted discipline dashboard tabs to semantic controls.
+
+Changed files:
+
+- `src/js/views/dashboard-view.js`
+- `tests/unit/action-contracts.test.js`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+
+What changed:
+
+- Added a RED unit contract that rejects `<div data-action="switch-dashboard-tab">` in the extracted dashboard module.
+- Converted the `topicos`, `aulas` and `banca` dashboard tabs to `button type="button"` controls.
+- Added `role="tablist"`, `role="tab"` and `aria-selected` state for the extracted dashboard tab group.
+- Normalized tab selection through a single `activeDashboardTab` value so default `topicos` behavior stays explicit.
+
+Verification:
+
+```powershell
+npm run test:unit -- tests/unit/action-contracts.test.js
+npm test
+npm run test:e2e
+```
+
+Result:
+
+- Action contract focused: 4 passed
+- Full unit: 66 passed
 - Full E2E: 7 passed
 
 Remaining in the next slice:

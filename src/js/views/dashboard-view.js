@@ -31,6 +31,8 @@ export function renderDisciplinaDashboard(edital, disc) {
   const totalAulas = disc.aulas ? disc.aulas.length : 0;
   const aulasEstudadas = disc.aulas ? disc.aulas.filter(a => a.estudada).length : 0;
   const percConcluido = totalAulas > 0 ? Math.round((aulasEstudadas / totalAulas) * 100) : 0;
+  const activeDashboardTab = window.activeDashboardTab || 'topicos';
+  const tabBaseStyle = 'padding:8px 0;font-weight:600;font-size:14px;cursor:pointer;background:transparent;border:0;font-family:inherit;text-align:left;';
 
   return `
     <div class="disc-dashboard-shell">
@@ -93,22 +95,22 @@ export function renderDisciplinaDashboard(edital, disc) {
         <!-- CONTEÚDO DINÂMICO (DIREITA) -->
         <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">
           <!-- Tabs Navigation -->
-          <div style="display:flex; gap:16px; border-bottom:1px solid var(--border); margin-bottom:16px; align-items:flex-end;">
-            <div data-action="switch-dashboard-tab" data-tab="topicos" style="padding:8px 0; font-weight:600; font-size:14px; cursor:pointer; color:${!window.activeDashboardTab || window.activeDashboardTab === 'topicos' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${!window.activeDashboardTab || window.activeDashboardTab === 'topicos' ? 'var(--accent)' : 'transparent'};">
+          <div role="tablist" aria-label="Conteudo da disciplina" style="display:flex; gap:16px; border-bottom:1px solid var(--border); margin-bottom:16px; align-items:flex-end;">
+            <button type="button" role="tab" aria-selected="${activeDashboardTab === 'topicos'}" data-action="switch-dashboard-tab" data-tab="topicos" style="${tabBaseStyle} color:${activeDashboardTab === 'topicos' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${activeDashboardTab === 'topicos' ? 'var(--accent)' : 'transparent'};">
                Tópicos do Edital
-            </div>
-            <div data-action="switch-dashboard-tab" data-tab="aulas" style="padding:8px 0; font-weight:600; font-size:14px; cursor:pointer; color:${window.activeDashboardTab === 'aulas' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${window.activeDashboardTab === 'aulas' ? 'var(--accent)' : 'transparent'};">
+            </button>
+            <button type="button" role="tab" aria-selected="${activeDashboardTab === 'aulas'}" data-action="switch-dashboard-tab" data-tab="aulas" style="${tabBaseStyle} color:${activeDashboardTab === 'aulas' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${activeDashboardTab === 'aulas' ? 'var(--accent)' : 'transparent'};">
                Aulas (${disc.aulas?.length || 0})
-            </div>
-            <div data-action="switch-dashboard-tab" data-tab="banca" style="padding:8px 0; font-weight:600; font-size:14px; cursor:pointer; color:${window.activeDashboardTab === 'banca' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${window.activeDashboardTab === 'banca' ? 'var(--accent)' : 'transparent'}; display:flex; gap:6px; align-items:center;">
+            </button>
+            <button type="button" role="tab" aria-selected="${activeDashboardTab === 'banca'}" data-action="switch-dashboard-tab" data-tab="banca" style="${tabBaseStyle} color:${activeDashboardTab === 'banca' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${activeDashboardTab === 'banca' ? 'var(--accent)' : 'transparent'}; display:flex; gap:6px; align-items:center;">
                <i class="fa fa-brain" style="font-size:12px;"></i> Hot Topics
-            </div>
+            </button>
           </div>
 
           <div style="flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden;">
-            ${(!window.activeDashboardTab || window.activeDashboardTab === 'topicos') ? renderTopicosEditalDisciplina(edital, disc) : ''}
-            ${window.activeDashboardTab === 'aulas' ? renderAulasDisciplinaDashboard(edital, disc) : ''}
-            ${window.activeDashboardTab === 'banca' ? renderBancaDisciplinaDashboard(edital, disc) : ''}
+            ${activeDashboardTab === 'topicos' ? renderTopicosEditalDisciplina(edital, disc) : ''}
+            ${activeDashboardTab === 'aulas' ? renderAulasDisciplinaDashboard(edital, disc) : ''}
+            ${activeDashboardTab === 'banca' ? renderBancaDisciplinaDashboard(edital, disc) : ''}
           </div>
         </div>
 

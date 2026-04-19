@@ -91,4 +91,13 @@ describe('data-action contracts', () => {
 
     expect(missing).toEqual([]);
   });
+
+  it('renders discipline dashboard tabs as semantic buttons', () => {
+    const dashboardView = read('src/js/views/dashboard-view.js');
+
+    expect(dashboardView).not.toMatch(/<div[^>]*data-action=["']switch-dashboard-tab["']/);
+    expect(dashboardView).toMatch(/<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']topicos["']/);
+    expect(dashboardView).toMatch(/<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']aulas["']/);
+    expect(dashboardView).toMatch(/<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']banca["']/);
+  });
 });
