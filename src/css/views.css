@@ -2103,3 +2103,54 @@
   gap: 8px;
   margin-top: 16px;
 }
+
+/* =============================================
+   Event Modal (Add/Edit Study Event)
+   ============================================= */
+
+.event-form-group--hidden {
+  display: none;
+}
+
+.event-form-label--inline {
+  display: flex;
+  align-items: center;
+}
+
+.event-form-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.event-form-details {
+  margin-bottom: 12px;
+}
+
+.event-form-details summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.event-form-details-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.event-form-group--compact {
+  margin-bottom: 0;
+}
+
+.modal-footer-standard--padded {
+  padding: 16px 0 0;
+  border-top: 1px solid var(--border);
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

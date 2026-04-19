@@ -3035,14 +3035,14 @@ export function openAddEventModal(dateStr = null) {
           ${discOptions}
         </select>
       </div>
-      <div class="form-group" id="event-assunto-group" style="display:none;">
+      <div class="form-group event-form-group--hidden" id="event-assunto-group">
         <label class="form-label">Tópico do Edital (opcional)</label>
         <select class="form-control" id="event-assunto">
           <option value="">Sem tópico específico</option>
         </select>
       </div>
-      <div class="form-group" id="event-aula-group" style="display:none; margin-top:12px;">
-        <label class="form-label" style="display:flex;align-items:center;">
+      <div class="form-group event-form-group--hidden" id="event-aula-group" style="margin-top:12px;">
+        <label class="form-label event-form-label--inline">
           Material / Aula (opcional)
         </label>
         <select class="form-control" id="event-aula">
@@ -3060,7 +3060,7 @@ export function openAddEventModal(dateStr = null) {
         <label class="form-label">Data</label>
         <input type="date" class="form-control" id="event-data" value="${dateStr || todayStr()}"
           data-action="update-day-load">
-        <div id="day-load-hint" style="font-size:11px;margin-top:4px;color:var(--text-muted);"></div>
+        <div id="day-load-hint" class="event-form-hint"></div>
       </div>
       <div class="form-group">
         <label class="form-label">Duração Prevista</label>
@@ -3078,20 +3078,20 @@ export function openAddEventModal(dateStr = null) {
       <label class="form-label">Anotações (opcional)</label>
       <textarea class="form-control" id="event-notas" rows="2" placeholder="Observações rápidas sobre o estudo..."></textarea>
     </div>
-    <details style="margin-bottom:12px;">
-      <summary style="font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:6px 0;">📝 Fontes e referências (opcional)</summary>
-      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
-        <div class="form-group" style="margin-bottom:0;">
+    <details class="event-form-details">
+      <summary>📝 Fontes e referências (opcional)</summary>
+      <div class="event-form-details-content">
+        <div class="form-group event-form-group--compact">
           <label class="form-label">Fontes de Estudo</label>
           <input type="text" class="form-control" id="event-fontes" placeholder="Ex: Gran Cursos pág. 45, Art. 37 CF/88...">
         </div>
-        <div class="form-group" style="margin-bottom:0;">
+        <div class="form-group event-form-group--compact">
           <label class="form-label">Legislação Pertinente</label>
           <input type="text" class="form-control" id="event-legislacao" placeholder="Ex: Lei 8.112/90, CF Art. 5º...">
         </div>
       </div>
     </details>
-    <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+    <div class="modal-footer-standard--padded">
       <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-event">Cancelar</button>
       <button class="btn btn-primary" data-action="save-event">Salvar / Iniciar</button>
     </div>
@@ -3281,7 +3281,7 @@ window.openAddPastSessionModal = function(discId) {
 
   document.getElementById('modal-event-title').textContent = 'Registrar Sessão Anterior';
   document.getElementById('modal-event-body').innerHTML = `
-    <div style="margin-bottom:12px;font-size:14px;color:var(--text-secondary);">
+    <div class="config-sub">
       Disciplina: <strong>${esc(d.disc.nome)}</strong>
     </div>
     
@@ -3310,7 +3310,7 @@ window.openAddPastSessionModal = function(discId) {
       </div>
     </div>
     
-    <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+    <div class="modal-footer-standard--padded">
       <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-event">Cancelar</button>
       <button class="btn btn-primary" data-action="save-past-event" data-disc-id="${discId}">Continuar Registro</button>
     </div>
