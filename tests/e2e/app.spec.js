@@ -194,4 +194,50 @@ test.describe('Estudo Organizado', () => {
     await expect(conflict.locator('[data-action="cloud-conflict-pull-remote"]')).toBeVisible();
     await expect(conflict.locator('[data-action="cloud-conflict-force-push"]')).toBeVisible();
   });
+
+  test('persists Banca Analyzer ranking through the extracted view module', async ({ page }) => {
+    const state = createE2EState();
+    state.editais[0].disciplinas[0].assuntos.push({
+      id: 'ass_2',
+      nome: 'Direitos Fundamentais',
+      concluido: false,
+      dataConclusao: null,
+      revisoesFetas: [],
+      adiamentos: 0,
+      linkedAulaIds: []
+    });
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="banca-analyzer"]');
+
+    await expect(page.locator('#banca-disc-select')).toBeVisible();
+    await page.selectOption('#banca-disc-select', 'disc_1');
+    await page.fill(
+      '#banca-input-text',
+      [
+        '1. Controle de Constitucionalidade (90%)',
+        '2. Direitos Fundamentais (20%)'
+      ].join('\n')
+    );
+
+    await page.click('[data-action="parse-banca-text"]');
+    await expect(page.locator('#banca-apply-btn')).toBeVisible();
+    await page.click('#banca-apply-btn');
+
+    const relevance = await page.evaluate(() => {
+      const assuntos = window.state.editais[0].disciplinas[0].assuntos;
+      return assuntos.map(assunto => ({
+        nome: assunto.nome,
+        priority: assunto.relevance?.priority,
+        finalScore: assunto.relevance?.finalScore
+      }));
+    });
+
+    expect(relevance).toEqual([
+      expect.objectContaining({ nome: 'Controle de Constitucionalidade', priority: 'P1' }),
+      expect.objectContaining({ nome: 'Direitos Fundamentais', priority: 'P3' })
+    ]);
+    expect(relevance.every(item => Number.isFinite(item.finalScore))).toBe(true);
+  });
 });

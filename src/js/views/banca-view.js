@@ -4,8 +4,13 @@
  */
 
 import { scheduleSave, state } from '../store.js?v=8.3';
-import { esc } from '../utils.js?v=8.3';
+import { esc, uid } from '../utils.js?v=8.3';
 import { openModal, closeModal, showConfirm, showToast } from '../app.js?v=8.3';
+import {
+  applyRankingToEdital,
+  commitEditalOrdering,
+  revertEditalOrdering
+} from '../relevance.js?v=8.3';
 
 // ── Analyzer Context State ──
 const analyzerCtx = {
@@ -17,31 +22,25 @@ const analyzerCtx = {
 export function getAnalyzerCtx() { return analyzerCtx; }
 export function setAnalyzerCtx(ctx) { Object.assign(analyzerCtx, ctx); }
 
-// ── Apply Ranking to Edital (Helper) ──
-function applyRankingToEdital(editaId) {
-  // Placeholder - actual implementation requires relevance.js functions
-  // This function would match hot topics to edital subjects
-  // For now, returns empty array - full implementation needs applyRankingToEdital from views.js
-  console.warn('applyRankingToEdital not yet extracted - requires relevance.js integration');
-  return [];
-}
-
-// ── Commit Edital Ordering (Helper) ──
-function commitEditalOrdering(editaId, tempMatchResults) {
-  // Placeholder - actual implementation reorders edital subjects based on P1/P2/P3 priorities
-  // For now, returns false - full implementation needs commitEditalOrdering from views.js
-  console.warn('commitEditalOrdering not yet extracted - requires edital reordering logic');
-  return false;
-}
-
-// ── Revert Edital Ordering (Helper) ──
-function revertEditalOrdering(editaId, discId) {
-  // Placeholder - removes P1/P2/P3 ordering from a specific discipline
-  scheduleSave();
+function bindBancaAnalyzerActions() {
+  Object.assign(window, {
+    _renderBancaAnalyzerContent: renderBancaAnalyzerContent,
+    mudarEditalAnalisador,
+    filtrarViewPorDisciplina,
+    carregarAnaliseBanca,
+    excluirAnaliseBanca,
+    parseBancaText,
+    renderBancaMatches,
+    applyBancaRanking,
+    openMatchCorrector,
+    saveMatchCorrection
+  });
 }
 
 // ── Main Banca Analyzer Render ──
 export function renderBancaAnalyzerModule(el) {
+  bindBancaAnalyzerActions();
+
   if (state.editais.length === 0) {
     el.innerHTML = '<div class="card p-24" style="text-align:center;margin-top:24px;"><i class="fa fa-folder-open" style="font-size:32px;color:var(--text-muted);margin-bottom:16px;"></i><h3 style="margin-bottom:8px;">Nenhum Edital Cadastrado</h3><p style="color:var(--text-secondary);">Crie um Edital primeiro para usar a Inteligência da Banca.</p></div>';
     return;
@@ -51,7 +50,7 @@ export function renderBancaAnalyzerModule(el) {
     analyzerCtx.editaId = window.activeDashboardDiscCtx?.editaId || state.editais[0].id;
   }
 
-  window._renderBancaAnalyzerContent(el);
+  renderBancaAnalyzerContent(el);
 }
 
 // ── Render Banca Analyzer Content ──

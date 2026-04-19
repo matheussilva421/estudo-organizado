@@ -181,9 +181,9 @@ Manual/browser:
 - [ ] Decide per extracted module whether it is canonical now or should be deleted/parked.
 - [ ] Make `calendar-view.js` the canonical runtime calendar module, or remove it from tests/docs until extraction is real.
 - [ ] Ensure `components.js` imports `renderCalendar` from the canonical owner.
-- [ ] Restore actual Banca ranking behavior by importing real functions from `src/js/relevance.js` or moving the previous implementation correctly.
-- [ ] Replace placeholder functions in `banca-view.js`.
-- [ ] Add E2E for Banca Analyzer:
+- [x] Restore actual Banca ranking behavior by importing real functions from `src/js/relevance.js` or moving the previous implementation correctly.
+- [x] Replace placeholder functions in `banca-view.js`.
+- [x] Add E2E for Banca Analyzer:
   - create/edit edital with topic
   - paste banca ranking
   - process
@@ -325,7 +325,7 @@ Manual/browser:
 - [ ] Search event/discipline/subject/habit.
 - [ ] Ciclo wizard creates a plan.
 - [ ] Ciclo "Iniciar Estudo" creates an event.
-- [ ] Banca Analyzer applies ranking.
+- [x] Banca Analyzer applies ranking.
 - [ ] Config toggles persist after reload.
 - [ ] Export JSON and import validation.
 - [ ] Mobile navigation and no horizontal overflow.
@@ -617,4 +617,41 @@ Result:
 Remaining in the next slice:
 
 - Banca/extracted-module cleanup from Phase 4.
+- Broader E2E journeys across sidebar pages.
+
+### 2026-04-19 - Recovery slice 6
+
+Restored the Banca Analyzer runtime behavior in the extracted view module.
+
+Changed files:
+
+- `src/js/views/banca-view.js`
+- `tests/e2e/app.spec.js`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+
+What changed:
+
+- Added a RED E2E regression for the extracted Banca Analyzer flow: open Banca, select a discipline, paste ranking text, process, apply P1/P2/P3 and assert persisted subject relevance.
+- Changed `banca-view.js` to use the shared `src/js/relevance.js` ranking, commit and revert functions instead of local placeholders.
+- Fixed the extracted Banca render path to call its local `renderBancaAnalyzerContent` instead of a missing `window._renderBancaAnalyzerContent`.
+- Rebound Banca global action handlers when the extracted view opens so `data-action` clicks use the same analyzer context that rendered the screen.
+- Imported the shared `uid` helper into the extracted module so parsing hot topics no longer depends on legacy `views.js` scope.
+
+Verification:
+
+```powershell
+npm run test:e2e -- tests/e2e/app.spec.js -g "Banca Analyzer"
+npm test
+npm run test:e2e
+```
+
+Result:
+
+- Banca E2E focused: 1 passed
+- Full unit: 65 passed
+- Full E2E: 7 passed
+
+Remaining in the next slice:
+
+- Decide the remaining extracted modules' canonical runtime ownership in Phase 4.
 - Broader E2E journeys across sidebar pages.
