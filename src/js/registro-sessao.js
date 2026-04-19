@@ -161,7 +161,7 @@ function renderRegistroForm(ev) {
   const tipoChips = TIPOS_ESTUDO.map(t => {
     const sel = _selectedTipos.includes(t.id);
     return `<button type="button" class="chip ${sel ? 'chip-active' : ''}"
-      onclick="toggleStudyType('${t.id}')"
+      data-action="toggle-study-type"
       data-tipo="${t.id}">
       ${t.icon} ${t.label}
     </button>`;
@@ -171,7 +171,7 @@ function renderRegistroForm(ev) {
   const materialChips = MATERIAIS.map(m => {
     const sel = _selectedMateriais.includes(m.id);
     return `<button type="button" class="chip ${sel ? 'chip-active' : ''}"
-      onclick="toggleMaterial('${m.id}')"
+      data-action="toggle-material"
       data-mat="${m.id}">
       ${m.icon} ${m.label}
     </button>`;
@@ -183,9 +183,9 @@ function renderRegistroForm(ev) {
       <div class="reg-summary-grid">
         <div class="reg-stat">
           <div class="reg-stat-label">Tempo estudado ${ev.status === 'estudei' || ev._isPastSession ? '(minutos)' : ''}</div>
-          <div class="reg-stat-value" style="color:var(--green);font-family:'DM Mono',monospace;font-size:24px;">
-            ${ev.status === 'estudei' || ev._isPastSession ? 
-              `<input type="number" id="reg-tempo-mins" class="reg-input" value="${Math.round(elapsed / 60)}" min="1" style="width:100px;text-align:center;font-size:20px;padding:4px;">` : 
+          <div class="reg-stat-value reg-stat-value-mono">
+            ${ev.status === 'estudei' || ev._isPastSession ?
+              `<input type="number" id="reg-tempo-mins" class="reg-input reg-input-time" value="${Math.round(elapsed / 60)}" min="1">` :
               fmtTime(elapsed)}
           </div>
         </div>
@@ -193,7 +193,7 @@ function renderRegistroForm(ev) {
           <div class="reg-stat-label">Data</div>
           <div class="reg-stat-value">
             ${ev.status === 'estudei' || ev._isPastSession ? 
-              `<input type="date" id="reg-data-estudo" class="reg-input" value="${ev.data || todayStr()}" style="width:140px;font-size:14px;padding:4px;">` : 
+              `<input type="date" id="reg-data-estudo" class="reg-input reg-input-date" value="${ev.data || todayStr()}">` :
               dataStr}
           </div>
         </div>
@@ -212,29 +212,29 @@ function renderRegistroForm(ev) {
     <div class="reg-block">
       <h3 class="reg-block-title">📚 O que foi estudado</h3>
       <div class="reg-row">
-        <div class="reg-field" style="flex:1;">
+        <div class="reg-field flex-1">
           <label class="reg-label">Disciplina <span class="req">*</span></label>
-          <select id="reg-disciplina" class="reg-select" onchange="onDisciplinaChange()">
+          <select id="reg-disciplina" class="reg-select" data-action="on-disciplina-change">
             <option value="">Selecione uma disciplina...</option>
             ${discOptions}
           </select>
         </div>
       </div>
-      <div class="reg-row" style="flex-direction:column; gap:12px;">
-        <div class="reg-field" style="flex:1;">
+      <div class="reg-row reg-row-column">
+        <div class="reg-field flex-1">
           <label class="reg-label">Tópico do Edital (opcional)</label>
-          <div style="display:flex;gap:8px;">
-            <select id="reg-assunto" class="reg-select" style="flex:1;">
+          <div class="cluster-sm">
+            <select id="reg-assunto" class="reg-select flex-1">
               <option value="">Selecione a disciplina primeiro</option>
             </select>
-            <button type="button" class="btn-inline" onclick="addNovoTopico()" title="Criar novo tópico">
+            <button type="button" class="btn-inline" data-action="add-novo-topico" title="Criar novo tópico">
               + Novo
             </button>
           </div>
         </div>
-        <div class="reg-field" id="reg-aula-container" style="flex:1; display:none;">
+        <div class="reg-field flex-1 hidden" id="reg-aula-container">
           <label class="reg-label">Material / Aula (opcional)</label>
-          <select id="reg-aula" class="reg-select" style="flex:1;" onchange="onAulaChange()">
+          <select id="reg-aula" class="reg-select flex-1" data-action="on-aula-change">
             <option value="">Selecione a disciplina primeiro</option>
           </select>
         </div>
@@ -254,7 +254,7 @@ function renderRegistroForm(ev) {
       <div class="chip-group" id="material-chips">
         ${materialChips}
       </div>
-      <div class="reg-field" style="margin-top:12px;">
+      <div class="reg-field mt-3">
         <input type="text" id="reg-material-detalhe" class="reg-input"
           placeholder="Detalhe do material (ex.: Aula 03 Estratégia, CF/88 arts. 5º ao 17)">
       </div>
@@ -286,35 +286,35 @@ function renderRegistroForm(ev) {
     </div>
 
     <div class="reg-block">
-      <div style="flex:1;">
-        <h3 class="reg-block-title">Resumo / Detalhes <small style="color:var(--text-secondary);font-weight:400;">(Opcional)</small></h3>
+      <div class="reg-full-width">
+        <h3 class="reg-block-title">Resumo / Detalhes <small class="reg-title-subtitle">(Opcional)</small></h3>
         <textarea id="reg-observacao" class="reg-textarea" placeholder="Anotações, comentários ou percepções sobre o que você estudou hoje..." wrap="soft" spellcheck="true">${ev.sessao?.observacoes || ''}</textarea>
       </div>
     </div>
 
     <!-- 7) AÇÕES / FOOTER -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.08);">
-      ${ev.status === 'estudei' && !ev._isPastSession ? 
-        `<button type="button" class="btn-outline" style="color:#f85149; border-color:rgba(248,81,73,0.3); background:rgba(248,81,73,0.05);" onclick="deleteCompletedSession('${ev.id}')">
+    <div class="reg-footer-actions">
+      ${ev.status === 'estudei' && !ev._isPastSession ?
+        `<button type="button" class="btn-outline reg-btn-danger" data-action="delete-completed-session" data-session-id="${ev.id}">
           <i class="fa fa-trash"></i> Excluir
         </button>`
-        : ev._isPastSession ? 
-        `<button type="button" class="btn-outline" onclick="voltarPastSessionUI('${_currentEventId}', '${ev.discId}')">
+        : ev._isPastSession ?
+        `<button type="button" class="btn-outline" data-action="voltar-past-session-ui" data-event-id="${_currentEventId}" data-disc-id="${ev.discId}">
           <i class="fa fa-arrow-left"></i> Voltar
-        </button>` 
-        : 
-        `<button type="button" class="btn-outline" style="color:#f85149; border-color:rgba(248,81,73,0.3); background:rgba(248,81,73,0.05);" onclick="discardTimerUI('${_currentEventId}')">
+        </button>`
+        :
+        `<button type="button" class="btn-outline reg-btn-danger" data-action="discard-timer-ui" data-event-id="${_currentEventId}">
           <i class="fa fa-trash"></i> Descartar
         </button>`
       }
 
-      <div style="display:flex; gap:12px; justify-content:flex-end; flex:1;">
-        <button type="button" class="btn-outline" onclick="cancelRegistro()">Cancelar</button>
+      <div class="reg-footer-buttons">
+        <button type="button" class="btn-outline" data-action="cancel-registro">Cancelar</button>
         ${!ev._isPastSession && ev.status !== 'estudei' ? `
-        <button type="button" class="btn-outline" onclick="saveAndStartNew()" style="color:var(--green); border-color:rgba(57,211,83,0.4);">
+        <button type="button" class="btn-outline reg-btn-success" data-action="save-and-start-new">
           Salvar e iniciar nova ↻
         </button>` : ''}
-        <button type="button" class="btn-primary" onclick="saveRegistroSessao()" style="font-weight:600; padding:12px 24px;">
+        <button type="button" class="btn-primary reg-btn-primary" data-action="save-registro-sessao">
           <i class="fa fa-save"></i> ${ev.status === 'estudei' && !ev._isPastSession ? 'Salvar Alterações' : 'Salvar Registro'}
         </button>
       </div>
@@ -333,7 +333,7 @@ function renderConditionalFields() {
   const showVideo = _selectedTipos.includes('videoaula');
 
   if (!showQuestoes && !showPaginas && !showVideo) {
-    return '<div class="reg-block" style="opacity:0.5;text-align:center;padding:16px;"><em>Selecione tipos de estudo para preencher resultados</em></div>';
+    return '<div class="reg-block reg-no-results"><em>Selecione tipos de estudo para preencher resultados</em></div>';
   }
 
   let html = '<div class="reg-block"><h3 class="reg-block-title">📊 Resultados da sessão</h3>';
@@ -343,24 +343,24 @@ function renderConditionalFields() {
     html += `
       <div class="reg-results-card">
         <div class="reg-results-header">❓ Questões</div>
-        <div class="reg-row" style="gap:12px;">
+        <div class="reg-results-row">
           <div class="reg-field">
             <label class="reg-label">Total</label>
             <input type="number" id="reg-q-total" class="reg-input" min="0" placeholder="0"
-              value="${qs.total || ''}" oninput="validateQuestoes()">
+              value="${qs.total || ''}" data-action="validate-questoes">
           </div>
           <div class="reg-field">
-            <label class="reg-label" style="color:var(--green);">Acertos</label>
+            <label class="reg-label reg-label-positive">Acertos</label>
             <input type="number" id="reg-q-acertos" class="reg-input" min="0" placeholder="0"
-              value="${qs.acertos || qs.certas || ''}" oninput="validateQuestoes()">
+              value="${qs.acertos || qs.certas || ''}" data-action="validate-questoes">
           </div>
           <div class="reg-field">
-            <label class="reg-label" style="color:var(--red);">Erros</label>
+            <label class="reg-label reg-label-negative">Erros</label>
             <input type="number" id="reg-q-erros" class="reg-input" min="0" placeholder="0"
-              value="${qs.erros || qs.erradas || ''}" oninput="validateQuestoes()">
+              value="${qs.erros || qs.erradas || ''}" data-action="validate-questoes">
           </div>
         </div>
-        <div id="reg-q-feedback" style="font-size:12px;margin-top:4px;"></div>
+        <div id="reg-q-feedback" class="reg-feedback-text"></div>
       </div>
     `;
   }
@@ -371,20 +371,20 @@ function renderConditionalFields() {
     html += `
       <div class="reg-results-card">
         <div class="reg-results-header">📖 Páginas lidas</div>
-        <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <div class="reg-mode-toggle-row">
           <button type="button" class="chip ${modo === 'simples' ? 'chip-active' : ''}" id="pag-modo-simples"
-            onclick="setPaginaMode('simples')">Simples</button>
+            data-action="set-pagina-mode" data-mode="simples">Simples</button>
           <button type="button" class="chip ${modo === 'detalhado' ? 'chip-active' : ''}" id="pag-modo-detalhado"
-            onclick="setPaginaMode('detalhado')">Detalhado</button>
+            data-action="set-pagina-mode" data-mode="detalhado">Detalhado</button>
         </div>
-        <div id="pag-simples" style="${modo === 'simples' ? '' : 'display:none;'}">
+        <div id="pag-simples" class="${modo === 'simples' ? '' : 'hidden'}">
           <div class="reg-field">
             <label class="reg-label">Total de páginas</label>
             <input type="number" id="reg-pag-total" class="reg-input" min="0" placeholder="0" value="${pg.total || ''}">
           </div>
         </div>
-        <div id="pag-detalhado" style="${modo === 'detalhado' ? '' : 'display:none;'}">
-          <div class="reg-row" style="gap:12px;">
+        <div id="pag-detalhado" class="${modo === 'detalhado' ? '' : 'hidden'}">
+          <div class="reg-results-row">
             <div class="reg-field">
               <label class="reg-label">Página inicial</label>
               <input type="number" id="reg-pag-inicio" class="reg-input" min="0" placeholder="0" value="${pg.inicio || ''}">
@@ -414,11 +414,11 @@ function renderConditionalFields() {
       <div class="reg-results-card">
         <div class="reg-results-header">🎬 Vídeoaula</div>
         ${aulaNomeSelecionada ? `
-          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
-            Aula vinculada automaticamente: <strong style="color:var(--text-primary);">${esc(trunc(aulaNomeSelecionada, 96))}</strong>
+          <div class="reg-linked-info">
+            Aula vinculada automaticamente: <strong>${esc(trunc(aulaNomeSelecionada, 96))}</strong>
           </div>
         ` : ''}
-        <div class="reg-field" style="margin-bottom:8px;">
+        <div class="reg-field reg-field-spaced">
           <label class="reg-label">Título da aula (opcional)</label>
           <input type="text" id="reg-video-titulo" class="reg-input" placeholder="Opcional: será preenchido com Material / Aula quando selecionado" value="${esc(videoTituloPrefill)}">
         </div>
@@ -542,7 +542,7 @@ export function addNovoTopico() {
 
   document.getElementById('modal-prompt-title').textContent = 'Novo Tópico';
   document.getElementById('modal-prompt-body').innerHTML = `
-    <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">
+    <div class="prompt-hint">
       Adicionar tópico em <strong>${d.disc.nome}</strong>
     </div>
     <input type="text" id="prompt-input-topico" class="form-control" placeholder="Nome do novo tópico..." autofocus>
@@ -586,10 +586,10 @@ export function validateQuestoes() {
   if (!fb) return;
 
   if ((ac + er > total && total > 0) || (total === 0 && ac + er > 0)) {
-    fb.innerHTML = '<span style="color:var(--red);">⚠️ Acertos + Erros não pode ser maior que o Total</span>';
+    fb.innerHTML = '<span class="reg-feedback-error">⚠️ Acertos + Erros não pode ser maior que o Total</span>';
   } else if (total > 0) {
     const pct = Math.round((ac / total) * 100);
-    fb.innerHTML = `<span style="color:var(--green);">${pct}% de aproveitamento</span>`;
+    fb.innerHTML = `<span class="reg-feedback-success">${pct}% de aproveitamento</span>`;
   } else {
     fb.innerHTML = '';
   }

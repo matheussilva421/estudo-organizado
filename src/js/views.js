@@ -4,7 +4,31 @@ import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.3';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js?v=8.3';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.3';
 import { updateDriveUI } from './drive-sync.js?v=8.3';
+import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
+// Re-export from extracted view modules
+export { renderHome } from './views/home-view.js';
+export {
+  renderVertical,
+  renderVerticalList,
+  renderEditais,
+  renderEditalTree,
+  toggleVertDisc,
+  getVertSearch,
+  setVertSearch,
+  getVertFilterStatus,
+  setVertFilterStatus,
+  getVertFilterEdital,
+  setVertFilterEdital
+} from './views/editais-view.js';
+export { renderDisciplinaDashboard };
+export {
+  renderBancaAnalyzerModule,
+  getAnalyzerCtx,
+  setAnalyzerCtx
+} from './views/banca-view.js';
+
+// Legacy calendar state (for backward compatibility during migration)
 export let calDate = new Date();
 export let calViewMode = 'mes';
 export function setCalViewMode(mode) {
@@ -60,8 +84,8 @@ export function renderSkeletonList(count = 5) {
       <div class="skeleton-list-item">
         <div class="skeleton skeleton-list-icon"></div>
         <div class="skeleton-list-text">
-          <div class="skeleton skeleton-text" style="width: 60%;"></div>
-          <div class="skeleton skeleton-text" style="width: 40%;"></div>
+          <div class="skeleton skeleton-text skeleton-text-width-md"></div>
+          <div class="skeleton skeleton-text skeleton-text-width-sm"></div>
         </div>
       </div>
     `;
@@ -144,267 +168,8 @@ function sumPageRecords(records = []) {
 // =============================================
 // NOVO HOME VIEW (DASHBOARD REDESIGN)
 // =============================================
-export function renderHome(el) {
-  const perf = getPerformanceStats();
-  const perfPerc = perf.questionsTotal > 0 ? Math.round((perf.questionsCorrect / perf.questionsTotal) * 100) : 0;
+// renderHome exported to home-view.js
 
-  const prog = getSyllabusProgress();
-  const progPerc = prog.totalAssuntos > 0 ? Math.round((prog.totalConcluidos / prog.totalAssuntos) * 100) : 0;
-
-  const pagesReadTotal = getPagesReadStats();
-
-  const streak = getConsistencyStreak();
-  const subjStats = getSubjectStats();
-  const weekStats = getCurrentWeekStats();
-
-  // Metas
-  const metaHoras = state.config.metas?.horasSemana || 20;
-  const metaQuest = state.config.metas?.questoesSemana || 150;
-
-  const horasFeitas = weekStats.totalSeconds / 3600;
-  // Fallback to 0 if NaN (0/0 scenario)
-  const percHoras = Math.min(100, Math.round((horasFeitas / metaHoras) * 100) || 0);
-
-  const questFeitas = weekStats.totalQuestions;
-  const percQuest = Math.min(100, Math.round((questFeitas / metaQuest) * 100) || 0);
-
-  // Data da Prova
-  const dataProva = state.config.dataProva;
-  let provaText = 'Acompanhe aqui quantos dias faltam para a sua prova! <span data-action="prompt-prova" style="color:var(--accent);font-weight:600;cursor:pointer;">Criar Prova</span>';
-  if (dataProva) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const provaDate = new Date(dataProva + 'T00:00:00');
-    const diffTime = provaDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays > 0) {
-      provaText = `<div style="font-size:32px;font-weight:800;color:var(--accent);line-height:1;">${diffDays}</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">dias para a prova (${formatDate(dataProva)})</div>`;
-    } else if (diffDays === 0) {
-      provaText = `<strong style="color:var(--accent);font-size:18px;">É hoje! Boa sorte! 🍀</strong>`;
-    } else {
-      provaText = `Prova já foi realizada há ${Math.abs(diffDays)} dias. <span data-action="prompt-prova" style="color:var(--accent);font-weight:600;cursor:pointer;">Nova Prova</span>`;
-    }
-  }
-
-  // Previsões da Semana
-  const pred = getPredictiveStats(metaHoras, subjStats);
-  const statusColors = {
-    'verde': 'var(--green)',
-    'amarelo': 'var(--yellow)',
-    'vermelho': 'var(--red)'
-  };
-  const statusIcons = {
-    'verde': 'fa-check-circle',
-    'amarelo': 'fa-exclamation-triangle',
-    'vermelho': 'fa-skull-crossbones'
-  };
-  const sc = statusColors[pred.status];
-  const si = statusIcons[pred.status];
-
-  const previsorHtml = `
-    <div class="card p-16" style="border-left: 4px solid ${sc};">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div class="dash-label">PREVISÃO DA SEMANA</div>
-        <i class="fa ${si}" style="color:${sc};font-size:16px;"></i>
-      </div>
-      <div style="font-size:13px;color:var(--text-primary);margin-bottom:8px;">
-        Projeção: <strong>${pred.projectedPerc}%</strong> da meta (Ritmo: ${formatTime(pred.burnRate).slice(0, 5)}/dia).
-      </div>
-      <div style="font-size:12px;color:var(--text-secondary); background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; line-height: 1.4;">
-        ${pred.suggestion}
-      </div>
-    </div>
-  `;
-
-  // HEATMAP
-  const heatmapHtml = streak.heatmap.map(x =>
-    `<div class="streak-dot ${x ? 'streak-dot-ok' : 'streak-dot-miss'}"><i class="fa ${x ? 'fa-check' : 'fa-times'}"></i></div>`
-  ).join('');
-
-  // SESSIONS CHART
-  const maxWeeklySec = Math.max(...weekStats.dailySeconds, 3600); // at least 1h scale
-  const barsHtml = weekStats.dailySeconds.map((sec, i) => {
-    const h = (sec / maxWeeklySec) * 100;
-    const days = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
-    return `
-      <div style="display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end;">
-        <div style="width:100%;max-width:30px;height:${h}%;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px;transition:height 0.3s;" title="${formatTime(sec)}"></div>
-        <div style="font-size:10px;font-weight:600;color:var(--text-muted);margin-top:8px;">${days[i]}</div>
-      </div>
-    `;
-  }).join('');
-
-  // SUBJECTS TABLE
-  const subjHtml = subjStats.map(s => {
-    const apr = s.acertos + s.erros > 0 ? Math.round((s.acertos / (s.acertos + s.erros)) * 100) : 0;
-    const aprColor = apr >= 80 ? 'green' : apr >= 60 ? 'orange' : apr > 0 ? 'red' : 'gray';
-    const hasData = s.tempo > 0 || (s.acertos + s.erros) > 0;
-
-    // Only show subjects with data to avoid a huge empty list, or show all if specifically requested.
-    // For now, let's show all that have at least some time or questions, or if it's empty, just '--'.
-    return `
-      <div style="display:grid;grid-template-columns:1fr 80px 40px 40px 40px;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;align-items:center;">
-        <div style="color:var(--accent);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(s.nome)}">${esc(s.nome)}</div>
-        <div style="color:var(--text-secondary);text-align:right;font-family:'DM Mono',monospace;">${s.tempo > 0 ? formatTime(s.tempo) : '-'}</div>
-        <div style="color:var(--green);text-align:center;">${s.acertos}</div>
-        <div style="color:var(--red);text-align:center;">${s.erros}</div>
-        <div style="display:flex;justify-content:center;"><div class="event-tag ${aprColor}" style="padding:2px 6px;font-size:11px;min-width:32px;text-align:center;">${hasData ? apr : 0}</div></div>
-      </div>
-    `;
-  }).join('');
-
-  const totalTimeStr = formatTime(state.eventos.filter(e => e.status === 'estudei').reduce((s, e) => s + (e.tempoAcumulado || 0), 0));
-
-  el.innerHTML = `
-    <!-- LINHA 1: Cards Principais -->
-    <div class="dash-grid-top">
-      <div class="card p-16" style="flex:1;display:flex;justify-content:space-between;align-items:flex-end;">
-        <div>
-          <div class="dash-label">TEMPO DE ESTUDO</div>
-          <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;margin-top:12px;font-family:'DM Mono',monospace;">${totalTimeStr}</div>
-        </div>
-      </div>
-
-      <div class="card p-16" style="flex:1;display:flex;justify-content:space-between;align-items:flex-end;">
-        <div>
-          <div class="dash-label">DESEMPENHO</div>
-          <div style="margin-top:8px;">
-            <div style="font-size:12px;color:var(--green);font-weight:600;">${perf.questionsCorrect} Acertos</div>
-            <div style="font-size:12px;color:var(--red);font-weight:600;margin-top:2px;">${perf.questionsWrong} Erros</div>
-          </div>
-        </div>
-        <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${perfPerc}%</div>
-      </div>
-
-      <div class="card p-16" style="flex:1;display:flex;justify-content:space-between;align-items:flex-end;">
-        <div>
-          <div class="dash-label">PROGRESSO NO EDITAL</div>
-           <div style="margin-top:8px;">
-            <div style="font-size:12px;color:var(--green);font-weight:600;">${prog.totalConcluidos} Aulas concluídas</div>
-            <div style="font-size:12px;color:var(--red);font-weight:600;margin-top:2px;">${prog.totalAssuntos - prog.totalConcluidos} Aulas Pendentes</div>
-          </div>
-        </div>
-        <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${progPerc}%</div>
-      </div>
-
-      <div class="card p-16" style="flex:1;display:flex;justify-content:space-between;align-items:flex-end;">
-         <div>
-          <div class="dash-label">PÁGINAS LIDAS</div>
-          <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;margin-top:12px;font-family:'DM Mono',monospace;">${pagesReadTotal}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- LINHA 2: Constância -->
-    <div class="card p-16 dash-streak-panel" style="margin-bottom:24px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div class="dash-label">CONSTÂNCIA NOS ESTUDOS <i class="fa fa-question-circle" style="opacity:0.5;margin-left:4px;" title="Dias que você registrou sessões nos últimos 30 dias."></i></div>
-        <div style="font-size:12px;font-weight:600;color:var(--accent);">Últimos 30 dias</div>
-      </div>
-      <div style="font-size:14px;color:var(--text-primary);margin-bottom:16px;">
-        Você está há <strong>${streak.currentStreak} dias sem falhar!</strong> Seu recorde é de <strong>${streak.maxStreak} dias sem falhas.</strong> 📅
-      </div>
-      <div class="streak-heatmap">
-        ${heatmapHtml}
-      </div>
-    </div>
-
-    <!-- LINHA 3: Metas, Gráfico e Disciplinas -->
-    <div class="dash-grid-bottom">
-      
-      <!-- Esquerda: Tabela de Disciplinas -->
-      <div class="card p-16" style="display:flex;flex-direction:column;max-height:500px;">
-        <div class="dash-label" style="margin-bottom:16px;">PAINEL</div>
-        
-        <div style="display:grid;grid-template-columns:1fr 80px 40px 40px 40px;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-primary);align-items:center;">
-          <div>Disciplinas</div>
-          <div style="text-align:right;">Tempo</div>
-          <div style="color:var(--green);text-align:center;"><i class="fa fa-check"></i></div>
-          <div style="color:var(--red);text-align:center;"><i class="fa fa-times"></i></div>
-          <div style="text-align:center;">%</div>
-        </div>
-        
-        <div style="flex:1;overflow-y:auto;padding-right:8px;" class="custom-scrollbar">
-          ${subjHtml || '<div style="text-align:center;padding:20px;color:var(--text-muted);">Nenhuma disciplina com histórico ainda.</div>'}
-        </div>
-      </div>
-
-      <!-- Direita: Data, Metas e Gráfico -->
-      <div style="display:flex;flex-direction:column;gap:24px;min-width:0;">
-        
-        ${previsorHtml}
-
-        <div class="card p-16">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <div class="dash-label">DATA DA PROVA</div>
-            <i class="fa fa-edit" style="color:var(--text-muted);cursor:pointer;" data-action="prompt-prova" title="Editar Meta"></i>
-          </div>
-          ${provaText}
-        </div>
-
-        <div class="card p-16">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <div class="dash-label">METAS DE ESTUDO SEMANAL</div>
-            <i class="fa fa-edit" style="color:var(--text-muted);cursor:pointer;" data-action="prompt-metas" title="Editar Meta"></i>
-          </div>
-          
-          <div style="margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:6px;">
-              <span style="font-family:'DM Mono',monospace;">${Math.floor(weekStats.totalSeconds / 3600).toString().padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60).toString().padStart(2, '0')}/${metaHoras}h00min</span>
-              <span>Horas de Estudo</span>
-            </div>
-            <div class="dash-progress-track">
-              <div class="dash-progress-bar" style="width:${percHoras}%;background:var(--accent);">
-                <span style="position:absolute;left:8px;top:2px;font-size:10px;color:var(--accent-text);">${percHoras}%</span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:6px;">
-              <span style="font-family:'DM Mono',monospace;">${questFeitas}/${metaQuest}</span>
-              <span>Questões</span>
-            </div>
-            <div class="dash-progress-track">
-              <div class="dash-progress-bar" style="width:${percQuest}%;background:#8b5cf6;">
-                <span style="position:absolute;left:8px;top:2px;font-size:10px;color:#fff;">${percQuest}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card p-16" style="flex:1;display:flex;flex-direction:column;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-            <div class="dash-label">ESTUDO SEMANAL</div>
-            <div style="display:flex;gap:4px;font-size:11px;">
-              <div class="event-tag green" style="padding:4px 8px;border-radius:4px;font-weight:700;">TEMPO</div>
-            </div>
-          </div>
-          <div style="flex:1;display:flex;align-items:flex-end;gap:8px;border-bottom:1px solid var(--border);padding-bottom:8px;position:relative;">
-            <!-- Grid lines background -->
-            <div style="position:absolute;top:0;left:0;right:0;bottom:25px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;z-index:0;opacity:0.2;">
-              <div style="border-top:1px solid var(--text-muted);"></div>
-              <div style="border-top:1px solid var(--text-muted);"></div>
-              <div style="border-top:1px solid var(--text-muted);"></div>
-              <div style="border-top:1px solid var(--text-muted);"></div>
-              <div style="border-top:1px solid var(--text-muted);"></div>
-            </div>
-            <!-- Bars -->
-            <div style="display:flex;width:100%;height:100%;z-index:1;padding-bottom:20px;">
-              ${barsHtml}
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text-secondary);margin-top:12px;">
-            <div style="width:8px;height:8px;background:var(--accent);border-radius:2px;"></div> Total Estudado: ${Math.floor(weekStats.totalSeconds / 3600).toString().padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60).toString().padStart(2, '0')}h
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-  `;
-}
 
 // =============================================
 // MED VIEW
@@ -417,20 +182,20 @@ function buildMEDStatsHTML(estudados, agendados) {
     ? estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a)
     : null;
   return `
-    <div class="card med-stat-card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
-      <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tempo Total Hoje</div>
-      <div style="font-size:32px;font-weight:800;font-family:'DM Mono',monospace;color:var(--text-primary);" id="total-time">${formatTime(totalSeconds)}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${estudados.length} evento(s) concluido(s)</div>
+    <div class="card med-stat-card med-stat-card--wide">
+      <div class="section-label">Tempo Total Hoje</div>
+      <div class="dashboard-stat-value dashboard-stat-value--mono" id="total-time">${formatTime(totalSeconds)}</div>
+      <div class="caption">${estudados.length} evento(s) concluido(s)</div>
     </div>
-    <div class="card med-stat-card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
-      <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes</div>
-      <div style="font-size:32px;font-weight:800;color:var(--blue);">${agendados.length}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">evento(s) para hoje</div>
+    <div class="card med-stat-card med-stat-card--wide">
+      <div class="section-label">Pendentes</div>
+      <div class="text-3xl font-extrabold text-blue">${agendados.length}</div>
+      <div class="caption">evento(s) para hoje</div>
     </div>
-    <div class="card med-stat-card" style="flex:1;min-width:200px;padding:20px;text-align:center;">
-      <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Maior Foco</div>
-      <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-top:8px;">${best ? esc(best.titulo || 'N/A') : '\u2014'}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${best ? formatTime(best.tempoAcumulado || 0) : ''}</div>
+    <div class="card med-stat-card med-stat-card--wide">
+      <div class="section-label">Maior Foco</div>
+      <div class="text-lg font-bold text-primary mt-2">${best ? esc(best.titulo || 'N/A') : '\u2014'}</div>
+      <div class="caption">${best ? formatTime(best.tempoAcumulado || 0) : ''}</div>
     </div>`;
 }
 
@@ -442,17 +207,17 @@ export function renderMED(el) {
   const totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
 
   el.innerHTML = `
-    <div id="med-stats-row" class="med-stats-row" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+    <div id="med-stats-row" class="med-stats-row">
       ${buildMEDStatsHTML(estudados, agendados)}
     </div>
 
 
         ${agendados.length === 0 && estudados.length === 0 ? `
-      <div class="empty-state" style="padding:60px 20px;">
+      <div class="empty-state med-empty-state">
         <div class="icon">📅</div>
         <h4>Nenhum evento para hoje</h4>
-        <p style="margin-bottom:16px;">Adicione eventos de estudo para começar a registrar seu tempo.</p>
-        <button class="btn btn-primary" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>
+        <p class="mb-4">Adicione eventos de estudo para começar a registrar seu tempo.</p>
+        <button class="btn btn-primary" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>
       </div>
     ` : `
       <div id="med-section-agendado">
@@ -539,14 +304,14 @@ export function renderCalendar(el) {
       <div class="card-body">
         <div class="cal-header">
           <div class="cal-nav">
-            <button onclick="calNavigate(-1)"><i class="fa fa-chevron-left"></i></button>
-            <button onclick="calNavigate(1)"><i class="fa fa-chevron-right"></i></button>
+            <button data-action="cal-navigate" data-dir="-1"><i class="fa fa-chevron-left"></i></button>
+            <button data-action="cal-navigate" data-dir="1"><i class="fa fa-chevron-right"></i></button>
           </div>
-          <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span style="font-size:9px; color:var(--text-muted); opacity:0.5;">v6.0</span></div>
-          <button class="btn btn-ghost btn-sm" id="cal-today-btn" onclick="resetCalDate()">Hoje</button>
-          <div style="margin-left:auto;" class="cal-view-tabs">
-            <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" onclick="setCalViewMode('mes')">Mês</div>
-            <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" onclick="setCalViewMode('semana')">Semana</div>
+          <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span class="cal-version-tag">v6.0</span></div>
+          <button class="btn btn-ghost btn-sm" id="cal-today-btn" data-action="cal-today">Hoje</button>
+          <div class="cal-view-tabs ml-auto">
+            <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="mes">Mês</div>
+            <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="semana">Semana</div>
           </div>
         </div>
         <div id="cal-grid">${gridContent}</div>
@@ -643,11 +408,11 @@ export function renderCalendarMonth() {
     const show = dayEvents.slice(0, 3);
     const more = dayEvents.length - 3;
     return `
-          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" onclick="openAddEventModalDate('${ds}')">
+          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-action="open-event-modal-date" data-date="${ds}">
             <div class="cal-date">${cell.date.getDate()}</div>
             ${show.map(e => {
       const st = getEventStatus(e);
-      return `<div class="cal-event-chip ${st}" style="cursor:pointer;" onclick="event.stopPropagation(); window.openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+      return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
     }).join('')}
             ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
           </div>
@@ -705,11 +470,11 @@ export function renderCalendarGrid() {
       const show = dayEvents.slice(0, 3);
       const more = dayEvents.length - 3;
       return `
-        <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" onclick="openAddEventModalDate('${ds}')">
+        <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-action="open-event-modal-date" data-date="${ds}">
           <div class="cal-date">${cell.date.getDate()}</div>
           ${show.map(e => {
             const st = getEventStatus(e);
-            return `<div class="cal-event-chip ${st}" style="cursor:pointer;" onclick="event.stopPropagation(); window.openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+            return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
           }).join('')}
           ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
         </div>
@@ -764,24 +529,24 @@ export function renderCalendarWeek() {
   }
 
   return `
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;">
+    <div class="cal-week-grid">
       ${days.map(d => {
     const ds = getDateStr(d);
     const isToday = ds === today;
     const dayEvents = eventsByDate[ds] || [];
     return `
-          <div style="min-height:200px;border-radius:8px;border:1px solid var(--border);overflow:hidden;">
-            <div style="padding:8px;background:${isToday ? 'var(--accent-light)' : 'var(--bg)'};text-align:center;border-bottom:1px solid var(--border);">
-              <div style="font-size:11px;font-weight:600;color:var(--text-secondary);">${dows[d.getDay()]}</div>
-              <div style="font-size:16px;font-weight:700;${isToday ? 'color:var(--blue);' : ''}">${d.getDate()}</div>
+          <div class="cal-week-cell">
+            <div class="cal-week-cell-header ${isToday ? 'cal-week-cell-header--today' : ''}">
+              <div class="text-sm font-semibold text-secondary text-center">${dows[d.getDay()]}</div>
+              <div class="text-xl font-bold ${isToday ? 'text-blue' : ''} text-center">${d.getDate()}</div>
             </div>
-            <div style="padding:6px;">
+            <div class="cal-week-cell-body">
               ${dayEvents.map(e => {
       const st = getEventStatus(e);
-      return `<div class="cal-event-chip ${st}" style="margin-bottom:3px;cursor:pointer;" onclick="openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+      return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" class="cal-week-event" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
     }).join('')}
-              <div style="text-align:center;margin-top:4px;">
-                <button class="icon-btn" style="width:24px;height:24px;" onclick="openAddEventModalDate('${ds}')">+</button>
+              <div class="text-center mt-1">
+                <button class="icon-btn cal-week-add-btn" data-action="open-event-modal-date" data-date="${ds}">+</button>
               </div>
             </div>
           </div>
@@ -820,7 +585,7 @@ function renderCalendarMobileMonth() {
     const dowName = dows[date.getDay()];
 
     html += `
-      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" onclick="openAddEventModalDate('${ds}')">
+      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="open-event-modal-date" data-date="${ds}">
         <div class="cal-mobile-day-header">
           <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d}</div>
           <div class="cal-mobile-dow">${dowName}</div>
@@ -830,7 +595,7 @@ function renderCalendarMobileMonth() {
           <div class="cal-mobile-events">
             ${dayEvents.map(e => {
               const st = getEventStatus(e);
-              return `<div class="cal-event-chip ${st}" style="cursor:pointer;white-space:normal;" onclick="event.stopPropagation(); window.openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+              return `<div class="cal-event-chip ${st} text-wrap" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
             }).join('')}
           </div>
         ` : ''}
@@ -874,7 +639,7 @@ function renderCalendarMobileWeek() {
     const dowName = dows[d.getDay()];
 
     html += `
-      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" onclick="openAddEventModalDate('${ds}')">
+      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="open-event-modal-date" data-date="${ds}">
         <div class="cal-mobile-day-header">
           <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d.getDate()}</div>
           <div class="cal-mobile-dow">${dowName}</div>
@@ -884,7 +649,7 @@ function renderCalendarMobileWeek() {
           <div class="cal-mobile-events">
             ${dayEvents.map(e => {
               const st = getEventStatus(e);
-              return `<div class="cal-event-chip ${st}" style="cursor:pointer;white-space:normal;" onclick="event.stopPropagation(); window.openEventDetail('${e.id}')" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+              return `<div class="cal-event-chip ${st} text-wrap" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
             }).join('')}
           </div>
         ` : ''}
@@ -917,20 +682,20 @@ export function openEventDetail(eventId) {
   const ass = disc && ev.assId && disc.assuntos ? disc.assuntos.find(a => a.id === ev.assId) : null;
 
   let html = `
-    <div style="display:flex;flex-direction:column;gap:12px;">
-      <div style="font-size:18px;font-weight:700;color:var(--text-primary);padding-bottom:12px;border-bottom:1px solid var(--border);">
+    <div class="stack-md">
+      <div class="event-detail-title">
         ${esc(ev.titulo)}
       </div>
       <div class="grid-2">
-        <div class="card" style="padding:12px;">
-          <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">STATUS</div>
-          <div style="font-size:14px;color:var(--text-primary);font-weight:500;" class="event-tag ${status}">
+        <div class="card p-3">
+          <div class="text-sm text-muted font-semibold mb-1">STATUS</div>
+          <div class="text-lg text-primary font-medium event-tag ${status}">
             ${status === 'estudei' ? 'concluido' : status === 'atrasado' ? 'Atrasado' : 'Agendado'}
           </div>
         </div>
-        <div class="card" style="padding:12px;">
-          <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">TEMPO ACUMULADO</div>
-          <div style="font-size:16px;color:var(--text-primary);font-weight:700;font-family:'DM Mono',monospace;">
+        <div class="card p-3">
+          <div class="text-sm text-muted font-semibold mb-1">TEMPO ACUMULADO</div>
+          <div class="text-xl text-primary font-bold text-mono">
             ${tempoStr}
           </div>
         </div>
@@ -938,13 +703,13 @@ export function openEventDetail(eventId) {
       <div><strong>Data Inicial:</strong> ${formatDate(ev.data)}</div>
       ${disc ? `<div><strong>Disciplina:</strong> ${esc(disc.nome)}</div>` : ''}
       ${ass ? `<div><strong>Assunto:</strong> ${esc(ass.nome)}</div>` : ''}
-      ${ev.notas ? `<div style="margin-top:8px;"><strong>Anotações:</strong><div class="card" style="padding:12px;margin-top:8px;font-size:13px;line-height:1.5;">${esc(ev.notas)}</div></div>` : ''}
+      ${ev.notas ? `<div class="mt-2"><strong>Anotações:</strong><div class="card p-3 mt-2 event-detail-notes">${esc(ev.notas)}</div></div>` : ''}
       ${ev.fontes ? `<div><strong>Fontes:</strong> ${esc(ev.fontes)}</div>` : ''}
       ${ev.legislacao ? `<div><strong>Legislação:</strong> ${esc(ev.legislacao)}</div>` : ''}
     </div>
-    <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
-      <button class="btn btn-ghost" onclick="closeModal('modal-event-detail')">Fechar</button>
-      <button class="btn btn-danger" onclick="closeModal('modal-event-detail'); window.deleteEvento('${ev.id}')">Excluir Evento</button>
+    <div class="modal-footer event-detail-footer">
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-event-detail">Fechar</button>
+      <button class="btn btn-danger" data-action="delete-event-from-modal" data-event-id="${ev.id}">Excluir Evento</button>
     </div>
   `;
   body.innerHTML = html;
@@ -985,17 +750,17 @@ export function renderDashboard(el) {
 
   el.innerHTML = `
     <!-- Period selector -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div style="font-size:13px;color:var(--text-secondary);">Exibindo dados: <strong style="color:var(--text-primary);">${periodLabel}</strong></div>
+    <div class="flex-between mb-4">
+      <div class="text-md text-secondary">Exibindo dados: <strong class="text-primary">${periodLabel}</strong></div>
       <div class="cal-view-tabs">
         ${[7, 30, 90, null].map(p => `
-          <div class="cal-view-tab ${dashPeriod === p ? 'active' : ''}" onclick="setDashPeriod(${p})">
+          <div class="cal-view-tab ${dashPeriod === p ? 'active' : ''}" data-action="set-dash-period" data-period="${p}">
             ${{ 7: '7d', 30: '30d', 90: '3m', null: 'Total' }[p]}
           </div>`).join('')}
       </div>
     </div>
 
-    <div class="stats-grid" style="margin-bottom:20px;">
+    <div class="stats-grid mb-6">
       <div class="stat-card green">
         <div class="stat-label">Tempo Estudado</div>
         <div class="stat-value">${formatTime(totalSecs)}</div>
@@ -1018,11 +783,11 @@ export function renderDashboard(el) {
       </div>
     </div>
 
-    <div class="grid-2" style="margin-bottom:16px;">
+    <div class="grid-2 mb-4">
       <div class="card">
         <div class="card-header">
           <h3>📊 Horas por Dia</h3>
-          <span style="font-size:11px;color:var(--text-muted);">${periodLabel}</span>
+          <span class="text-sm text-muted">${periodLabel}</span>
         </div>
         <div class="card-body">
           <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
@@ -1031,7 +796,7 @@ export function renderDashboard(el) {
       <div class="card">
         <div class="card-header">
           <h3>📚 Tempo por Disciplina</h3>
-          <span style="font-size:11px;color:var(--text-muted);">${periodLabel}</span>
+          <span class="text-sm text-muted">${periodLabel}</span>
         </div>
         <div class="card-body">
           <div class="chart-wrap"><canvas id="chart-disc"></canvas></div>
@@ -1153,10 +918,10 @@ export function renderHabitSummary(periodDays) {
     if (h.key === 'questoes') count = sumQuestionRecords(recent);
     if (h.key === 'paginas') count = sumPageRecords(recent);
     return `
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-        <div style="font-size:18px;">${h.icon}</div>
-        <div style="flex:1;font-size:13px;font-weight:500;">${h.label}</div>
-        <div style="font-size:16px;font-weight:700;color:${h.color};">${count}</div>
+      <div class="flex border-b habit-row">
+        <div class="text-xl">${h.icon}</div>
+        <div class="flex-1 text-md font-medium">${h.label}</div>
+        <div class="text-xl font-bold" style="color:${h.color}">${count}</div>
       </div>
     `;
   }).join('');
@@ -1170,12 +935,12 @@ export function renderDiscProgress() {
     const done = (disc.assuntos || []).filter(a => a.concluido).length;
     const pct = total > 0 ? Math.round(done / total * 100) : 0;
     return `
-      <div style="margin-bottom:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <div style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;">
+      <div class="mb-3">
+        <div class="flex-between mb-1">
+          <div class="text-base font-semibold cluster-sm">
             <span>${disc.icone || '📚'}</span> ${esc(disc.nome)}
           </div>
-          <div style="font-size:11px;color:var(--text-muted);">${done}/${total}</div>
+          <div class="text-sm text-muted">${done}/${total}</div>
         </div>
         <div class="progress">
           <div class="progress-bar" style="width:${pct}%;background:${disc.cor || 'var(--accent)'};"></div>
@@ -1221,26 +986,26 @@ export function renderRevisoes(el) {
   el.innerHTML = `
     <div class="rev-summary-grid">
       <div class="card rev-summary-card">
-        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pendentes Hoje</div>
-        <div style="font-size:28px;font-weight:800;color:var(--red);">${pending.filter(r => r.data <= today).length}</div>
+        <div class="section-label">Pendentes Hoje</div>
+        <div class="text-2xl font-extrabold text-red" style="font-size:28px;">${pending.filter(r => r.data <= today).length}</div>
       </div>
       <div class="card rev-summary-card">
-        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Próx. 30 dias</div>
-        <div style="font-size:28px;font-weight:800;color:var(--blue);">${upcoming.length}</div>
+        <div class="section-label">Próx. 30 dias</div>
+        <div class="text-2xl font-extrabold text-blue" style="font-size:28px;">${upcoming.length}</div>
       </div>
       <div class="card rev-summary-card">
-        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Assuntos concluidos</div>
-        <div style="font-size:28px;font-weight:800;color:var(--accent);">${getAllDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
+        <div class="section-label">Assuntos concluidos</div>
+        <div class="text-2xl font-extrabold text-accent" style="font-size:28px;">${getAllDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
       </div>
       <div class="card rev-summary-card">
-        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Frequência</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-top:8px;">${(state.config.frequenciaRevisao || [1, 7, 30, 90]).join(', ')} dias</div>
+        <div class="section-label">Frequência</div>
+        <div class="text-md font-bold text-primary mt-2">${(state.config.frequenciaRevisao || [1, 7, 30, 90]).join(', ')} dias</div>
       </div>
     </div>
 
     <div class="tabs rev-tabs">
-      <div class="tab-btn active" onclick="switchRevTab('pendentes', this)">🔄 Pendentes (${pending.length})</div>
-      <div class="tab-btn" onclick="switchRevTab('proximas', this)">📅 Próximas 30 dias (${upcoming.length})</div>
+      <div class="tab-btn active" data-action="switch-revision-tab" data-tab="pendentes" data-target="this">🔄 Pendentes (${pending.length})</div>
+      <div class="tab-btn" data-action="switch-revision-tab" data-tab="proximas" data-target="this">📅 Próximas 30 dias (${upcoming.length})</div>
     </div>
 
     <div id="rev-tab-pendentes" class="tab-content active">
@@ -1255,16 +1020,16 @@ export function renderRevisoes(el) {
               <div class="num">${revNum}ª</div>
               <div class="label">Rev</div>
             </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;font-weight:600;">${r.assunto.nome}</div>
-              <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} • ${r.edital.nome}</div>
-              <div style="font-size:11px;color:${isOverdue ? 'var(--red)' : 'var(--accent)'};margin-top:2px;">
+            <div class="flex-1 min-w-0">
+              <div class="text-md font-semibold">${r.assunto.nome}</div>
+              <div class="text-base text-secondary">${r.disc.nome} • ${r.edital.nome}</div>
+              <div class="text-sm mt-1" style="color:${isOverdue ? 'var(--red)' : 'var(--accent)'}">
                 ${isOverdue ? '⚠️ Atrasada' : '📅 Hoje'} • Prevista para ${formatDate(r.data)}
               </div>
             </div>
-            <div class="rev-item-actions" style="display:flex;gap:6px;">
-              <button class="btn btn-primary btn-sm" onclick="marcarRevisao('${r.assunto.id}')">✅ Feita</button>
-              <button class="btn btn-ghost btn-sm" onclick="adiarRevisao('${r.assunto.id}')">⏩ +1 dia</button>
+            <div class="rev-item-actions cluster-sm">
+              <button class="btn btn-primary btn-sm" data-action="mark-revision" data-assunto-id="${r.assunto.id}">✅ Feita</button>
+              <button class="btn btn-ghost btn-sm" data-action="postpone-revision" data-assunto-id="${r.assunto.id}">⏩ +1 dia</button>
             </div>
           </div>
         `;
@@ -1279,17 +1044,17 @@ export function renderRevisoes(el) {
         const diffDays = Math.ceil((new Date(r.data + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
         return `
             <div class="rev-item">
-              <div class="rev-days" style="background:#dbeafe;color:#1d4ed8;">
+              <div class="rev-days rev-days--upcoming">
                 <div class="num">${r.revNum}ª</div>
                 <div class="label">Rev</div>
               </div>
-              <div style="flex:1;min-width:0;">
-                <div style="font-size:13px;font-weight:600;">${r.assunto.nome}</div>
-                <div style="font-size:12px;color:var(--text-secondary);">${r.disc.nome} • ${r.edital.nome}</div>
+              <div class="flex-1 min-w-0">
+                <div class="text-md font-semibold">${r.assunto.nome}</div>
+                <div class="text-base text-secondary">${r.disc.nome} • ${r.edital.nome}</div>
               </div>
-              <div style="text-align:right;">
-                <div style="font-size:12px;font-weight:700;color:var(--blue);">${formatDate(r.data)}</div>
-                <div style="font-size:11px;color:var(--text-muted);">em ${diffDays} dia${diffDays !== 1 ? 's' : ''}</div>
+              <div class="text-right">
+                <div class="text-base font-bold text-blue">${formatDate(r.data)}</div>
+                <div class="text-sm text-muted">em ${diffDays} dia${diffDays !== 1 ? 's' : ''}</div>
               </div>
             </div>
           `;
@@ -1375,10 +1140,10 @@ export function renderHabitos(el) {
     }
 
     return `
-          <div class="habit-card" onclick="openHabitModal('${h.key}')">
+          <div class="habit-card" data-action="open-habit-modal" data-habit-key="${h.key}">
             <div class="hc-icon">${h.icon}</div>
             <div class="hc-label">${h.label}</div>
-            <div class="hc-count" style="color:${h.color};">${total}</div>
+            <div class="hc-count" style="color:${h.color}">${total}</div>
             <div class="hc-sub">${recentStr}</div>
           </div>
         `;
@@ -1388,11 +1153,11 @@ export function renderHabitos(el) {
     <div class="card">
       <div class="card-header">
         <h3>📏 Histórico de Hábitos</h3>
-        <span style="font-size:12px;color:var(--text-muted);" id="habit-hist-count"></span>
+        <span class="text-base text-muted" id="habit-hist-count"></span>
       </div>
-      <div class="card-body" style="padding:0;" id="habit-hist-list">
+      <div class="card-body habit-hist-list" id="habit-hist-list">
       </div>
-      <div id="habit-hist-footer" style="padding:12px 16px;display:flex;gap:8px;align-items:center;border-top:1px solid var(--border);"></div>
+      <div id="habit-hist-footer" class="habit-hist-footer"></div>
     </div>
   `;
   renderHabitHistPage();
@@ -1417,17 +1182,17 @@ export function renderHabitHistPage() {
     listEl.innerHTML = items.length === 0
       ? '<div class="empty-state"><div class="icon">⚡</div><p>Nenhum hábito registrado ainda</p></div>'
       : items.map(r => `
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
+        <div class="flex border-b habit-hist-item">
           <div style="font-size:20px;">${r.tipo.icon}</div>
-          <div style="flex:1;">
-            <div style="font-size:13px;font-weight:600;">${esc(r.tipo.label)}${r.descricao ? ' - ' + esc(r.descricao) : ''}</div>
-            <div style="font-size:12px;color:var(--text-secondary);">${formatDate(r.data)}${(r.quantidade || r.total) && r.tipo.key === 'questoes' ? ' • ' + (r.quantidade || r.total) + ' questões' : ''}${r.total && r.tipo.key === 'paginas' ? ' • ' + r.total + ' páginas' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total && r.total > 0 && r.tipo.key === 'questoes' ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
+          <div class="flex-1">
+            <div class="text-md font-semibold">${esc(r.tipo.label)}${r.descricao ? ' - ' + esc(r.descricao) : ''}</div>
+            <div class="text-base text-secondary">${formatDate(r.data)}${(r.quantidade || r.total) && r.tipo.key === 'questoes' ? ' • ' + (r.quantidade || r.total) + ' questões' : ''}${r.total && r.tipo.key === 'paginas' ? ' • ' + r.total + ' páginas' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total && r.total > 0 && r.tipo.key === 'questoes' ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
             ${r.gabaritoPorDisc && r.gabaritoPorDisc.length ? `
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
-                ${r.gabaritoPorDisc.map(g => `<span style="font-size:10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--text-secondary);">${esc(g.discNome)}: ${g.acertos}/${g.total}</span>`).join('')}
+              <div class="flex-wrap gap-sm mt-1 habit-disc-tags">
+                ${r.gabaritoPorDisc.map(g => `<span class="habit-disc-tag">${esc(g.discNome)}: ${g.acertos}/${g.total}</span>`).join('')}
               </div>` : ''}
           </div>
-          <button class="icon-btn" onclick="deleteHabito('${r.tipo.key}','${r.id}')">🗑️</button>
+          <button class="icon-btn" data-action="delete-habit" data-type="${r.tipo.key}" data-habit-id="${r.id}">🗑️</button>
         </div>
       `).join('');
   }
@@ -1435,9 +1200,9 @@ export function renderHabitHistPage() {
   const footerEl = document.getElementById('habit-hist-footer');
   if (footerEl && total > HABIT_HIST_PAGE_SIZE) {
     footerEl.innerHTML = `
-      <button class="btn btn-ghost btn-sm" onclick="setHabitPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>⇉ Anterior</button>
-      <span style="font-size:12px;color:var(--text-muted);flex:1;text-align:center;">Página ${page} de ${totalPages}</span>
-      <button class="btn btn-ghost btn-sm" onclick="setHabitPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>Próxima ⇆</button>
+      <button class="btn btn-ghost btn-sm" data-action="set-habit-page" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>⇉ Anterior</button>
+      <span class="text-base text-muted flex-1 text-center">Página ${page} de ${totalPages}</span>
+      <button class="btn btn-ghost btn-sm" data-action="set-habit-page" data-page="${page + 1}" ${page >= totalPages ? 'disabled' : ''}>Próxima ⇆</button>
     `;
     footerEl.style.display = 'flex';
   } else if (footerEl) {
@@ -1469,7 +1234,7 @@ export function openHabitModal(tipo) {
         <label class="form-label">Tipo de Hábito</label>
         <div class="event-type-grid">
           ${HABIT_TYPES.map(h => `
-            <div class="event-type-card" onclick="selectHabitType('${h.key}', this)" data-tipo="${h.key}">
+            <div class="event-type-card" data-action="select-habit-type" data-tipo="${h.key}">
               <div class="et-icon">${h.icon}</div>
               <div class="et-label">${h.label}</div>
             </div>
@@ -1504,11 +1269,11 @@ export function openHabitModal(tipo) {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Total de Questões</label>
-          <input type="number" class="form-control" id="habit-total" value="120" oninput="calcSimuladoPerc()">
+          <input type="number" class="form-control" id="habit-total" value="120" data-action="calc-simulado-perc">
         </div>
         <div class="form-group">
           <label class="form-label">Acertos (Geral)</label>
-          <input type="number" class="form-control" id="habit-acertos" value="0" min="0" oninput="calcSimuladoPerc()">
+          <input type="number" class="form-control" id="habit-acertos" value="0" min="0" data-action="calc-simulado-perc">
         </div>
       </div>
       <div id="sim-perc" style="font-size:13px;font-weight:700;text-align:center;color:var(--accent);margin-bottom:12px;"></div>
@@ -1909,222 +1674,7 @@ window.addSeqItem = () => {
   renderCurrentView();
 };
 
-export function renderVertical(el) {
-  // Fix 3: render the shell ONCE (filters, header); list gets its own container
-  el.innerHTML = `
-    <!-- Filters row — full re-render only when filter chips change -->
-    <div class="vertical-toolbar" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-      <div class="vertical-toolbar-search" style="position:relative;flex:1;min-width:180px;">
-        <i class="fa fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px;"></i>
-        <input class="form-control" style="padding-left:32px;" id="vert-search" value="${esc(vertSearch)}"
-          placeholder="Buscar assunto ou disciplina..."
-          oninput="onVertSearch(this.value)">
-      </div>
-      <select class="form-control vertical-toolbar-select" style="width:auto;" onchange="setVertFilterEdital(this.value);renderCurrentView()">
-        <option value="">Todos os editais</option>
-        ${state.editais.map(e => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
-      </select>
-      <div class="filter-row vertical-toolbar-filters" style="margin:0;gap:4px;">
-        ${['todos', 'pendentes', 'concluidos'].map(s => `
-          <div class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" onclick="setVertFilterStatus('${s}');renderCurrentView()">
-            ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'Concluídos' }[s]}
-          </div>`).join('')}
-      </div>
-    </div>
 
-    <!-- Fix 3: isolated list container — only this gets re-rendered on search -->
-    <div id="vert-list-container" style="width:100%;display:block;"></div>
-  `;
-  renderVerticalList(document.getElementById('vert-list-container'));
-}
-
-export function renderVerticalList(container) {
-  if (!container) return;
-  const allItems = getFilteredVertItems();
-  const total = allItems.length;
-  const concluidos = allItems.filter(i => i.ass.concluido).length;
-  const pct = total > 0 ? Math.round((concluidos / total) * 100) : 0;
-
-  if (total === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">📋</div>
-      <h4>${state.editais.length === 0 ? 'Nenhum edital cadastrado' : 'Nenhum assunto encontrado'}</h4>
-      <p>${state.editais.length === 0 ? 'Crie um edital em Editais para usar esta visualização.' : 'Tente ajustar os filtros.'}</p>
-    </div>`;
-    return;
-  }
-
-  // Card Progresso Global
-  let html = `
-    <div class="card vertical-progress-card" style="margin-bottom:24px;padding:20px;border:none;height:auto;min-height:0;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;">
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text-primary);letter-spacing:1px;margin-bottom:8px;">PROGRESSO NO EDITAL</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text-muted);">${concluidos} de ${total} tópicos concluídos</div>
-        </div>
-        <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${pct}<span style="font-size:16px;opacity:0.7;">%</span></div>
-      </div>
-      <div class="progress-track" style="height:14px;border-radius:10px;width:100%;overflow:hidden;padding:2px;">
-        <div class="progress-bar" style="width:${pct}%;transition:width 0.3s;border-radius:10px;"></div>
-      </div>
-    </div>
-  `;
-
-  // Agrupar itens por disciplina
-  const discMap = {};
-  allItems.forEach(item => {
-    const did = item.disc.id;
-    if (!discMap[did]) {
-      discMap[did] = {
-        disc: item.disc,
-        edital: item.edital,
-        items: []
-      };
-    }
-    discMap[did].items.push(item);
-  });
-
-  // Agrupar logs de questoes do 'state.eventos'
-  const eventosAgrupados = {};
-  if (state.eventos) {
-    state.eventos.forEach(ev => {
-      if (ev.status === 'estudei' && ev.discId) {
-        if (!eventosAgrupados[ev.discId]) eventosAgrupados[ev.discId] = { sCertas: 0, sErradas: 0, assuntos: {} };
-        const evtQs = ev.sessao?.questoes || ev.questoes || { certas: 0, erradas: 0 };
-        // Somar para disciplina
-        eventosAgrupados[ev.discId].sCertas += (evtQs.acertos || evtQs.certas || 0);
-        eventosAgrupados[ev.discId].sErradas += (evtQs.erros || evtQs.erradas || 0);
-        // Somar para assunto especifico
-        if (ev.assId) {
-          if (!eventosAgrupados[ev.discId].assuntos[ev.assId]) {
-            eventosAgrupados[ev.discId].assuntos[ev.assId] = { certas: 0, erradas: 0 };
-          }
-          eventosAgrupados[ev.discId].assuntos[ev.assId].certas += (evtQs.acertos || evtQs.certas || 0);
-          eventosAgrupados[ev.discId].assuntos[ev.assId].erradas += (evtQs.erros || evtQs.erradas || 0);
-        }
-      }
-    });
-  }
-
-  const hiReg = vertSearch ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi') : null;
-  const highlight = str => hiReg ? esc(str).replace(hiReg, '<mark>$1</mark>') : esc(str);
-
-  Object.values(discMap).forEach(dMap => {
-    const discId = dMap.disc.id;
-    // Stats de Questoes Disc
-    const evStats = eventosAgrupados[discId] || { sCertas: 0, sErradas: 0, assuntos: {} };
-    const dCertas = evStats.sCertas;
-    const dErradas = evStats.sErradas;
-    const dTotalQ = dCertas + dErradas;
-    const dPctQ = dTotalQ > 0 ? Math.round((dCertas / dTotalQ) * 100) : 0;
-
-    // Stats Tópicos Disc
-    const dTotalItems = dMap.items.length;
-    const dConcluidos = dMap.items.filter(i => i.ass.concluido).length;
-    const dPctConcluido = dTotalItems > 0 ? Math.round((dConcluidos / dTotalItems) * 100) : 0;
-
-    const cor = dMap.disc.cor || dMap.edital.cor || 'var(--accent)';
-
-    html += `
-      <div class="card vertical-disc-card" style="margin-bottom:12px;overflow:hidden;border:none;height:auto;min-height:0;">
-        
-        <!-- HEADER DISCIPLINA -->
-        <div class="vertical-disc-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--card);cursor:pointer;" onclick="window.toggleVertDisc('${discId}')">
-          <div class="vertical-disc-header-main" style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;color:var(--text-primary);min-width:0;">
-            <div style="width:5px;height:24px;background:${cor};border-radius:4px;"></div>
-            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(dMap.disc.nome)}">${esc(dMap.disc.nome)}</span>
-          </div>
-          
-          <div class="vertical-disc-header-meta" style="display:flex;align-items:center;gap:16px;">
-            <!-- Stats Questões -->
-            <div class="vertical-disc-score" style="display:flex;align-items:center;border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:11px;font-weight:700;gap:12px;font-family:'DM Mono',monospace;background:transparent;">
-              <span style="color:var(--green);">${dCertas}</span>
-              <span style="color:var(--red);">${dErradas}</span>
-              <span style="color:var(--text-secondary);">${dTotalQ}</span>
-              <span style="color:var(--bg);background:${dPctQ >= 70 ? 'var(--green)' : dPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)'};padding:2px 6px;border-radius:8px;">${dPctQ}</span>
-            </div>
-            
-            <!-- Progress Bar Progresso -->
-            <div class="vertical-disc-progress" style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:4px;width:120px;">
-              <span style="font-size:10px;font-weight:800;color:var(--text-primary);min-width:24px;text-align:right;">${dPctConcluido}%</span>
-              <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
-                <div style="height:100%;width:${dPctConcluido}%;background:${cor};border-radius:3px;"></div>
-              </div>
-            </div>
-            
-            <!-- Ações -->
-            <div class="vertical-disc-actions" style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
-              <!-- Explicit "Adicionar Assunto" Button -->
-              <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;height:auto;" onclick="event.stopPropagation(); window.addNovoTopicoVertical('${dMap.edital.id}', '${discId}')" title="Adicionar Tópico Manualmente">
-                <i class="fa fa-plus"></i> Assunto
-              </button>
-              <i class="fa fa-edit" onclick="event.stopPropagation(); window.openDiscManager('${dMap.edital.id}', '${discId}')" title="Gerenciar Disciplina e Tópicos" style="cursor:pointer;margin-left:8px;"></i>
-              <i id="vert-disc-icon-${discId}" class="fa fa-chevron-down" style="width:16px;text-align:center;"></i>
-            </div>
-          </div>
-        </div>
-
-        <!-- LISTA DE TÓPICOS ANINHADA -->
-        <div id="vert-disc-body-${discId}" style="display:none;border-top:1px solid var(--border);padding:16px;">
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center;">
-              <thead>
-                <tr style="color:var(--text-primary);font-weight:600;border-bottom:1px solid var(--border);">
-                  <th style="padding:10px;text-align:left;">Tópicos</th>
-                  <th style="padding:10px;color:var(--green);"><i class="fa fa-check"></i></th>
-                  <th style="padding:10px;color:var(--red);"><i class="fa fa-times"></i></th>
-                  <th style="padding:10px;color:var(--text-muted);"><i class="fa fa-bullseye" title="Total de questões"></i></th>
-                  <th style="padding:10px;">%</th>
-                  <th style="padding:10px;"><i class="fa fa-calendar-alt"></i></th>
-                </tr>
-              </thead>
-              <tbody>
-    `;
-
-    dMap.items.forEach(({ ass, edital, disc }) => {
-      const aStats = (evStats.assuntos && evStats.assuntos[ass.id]) ? evStats.assuntos[ass.id] : { certas: 0, erradas: 0 };
-      const aCertas = aStats.certas;
-      const aErradas = aStats.erradas;
-      const aTotalQ = aCertas + aErradas;
-      const aPctQ = aTotalQ > 0 ? Math.round((aCertas / aTotalQ) * 100) : 0;
-
-      const revCount = (ass.revisoesFetas || []).length;
-      let dataStr = '-';
-      if (ass.dataConclusao) {
-        const d = ass.dataConclusao.split('-');
-        if (d.length === 3) dataStr = `${d[2]}/${d[1]}/${d[0].substring(2)}`;
-      }
-
-      const chColor = ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)';
-      const decor = ass.concluido ? 'text-decoration:line-through;opacity:0.6;' : 'font-weight:600;';
-
-      html += `
-                <tr style="border-bottom:1px solid var(--bg);">
-                  <td style="padding:12px 10px;text-align:left;display:flex;align-items:center;gap:12px;">
-                    <input type="checkbox" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);" ${ass.concluido ? 'checked' : ''} onclick="toggleAssunto('${discId}', '${ass.id}')" />
-                    <span style="color:${chColor};${decor}">${highlight(ass.nome).toUpperCase()}</span>
-                  </td>
-                  <td style="padding:12px 10px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace;">${aCertas}</td>
-                  <td style="padding:12px 10px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace;">${aErradas}</td>
-                  <td style="padding:12px 10px;font-weight:700;color:var(--text-secondary);font-family:'DM Mono',monospace;">${aTotalQ}</td>
-                  <td style="padding:12px 10px;font-family:'DM Mono',monospace;">
-                    <div style="display:inline-block;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;background:${aTotalQ > 0 ? (aPctQ >= 70 ? 'var(--green)' : aPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)') : 'transparent'};color:${aTotalQ > 0 ? 'var(--bg)' : 'var(--text-muted)'};border:${aTotalQ > 0 ? 'none' : '1px solid var(--border)'};">${aTotalQ > 0 ? aPctQ : 0}</div>
-                  </td>
-                  <td style="padding:12px 10px;color:var(--text-muted);font-size:12px;">${dataStr}</td>
-                </tr>
-      `;
-    });
-
-    html += `
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-          `;
-  });
-
-  container.innerHTML = html;
-}
 
 window.toggleVertDisc = function (id) {
   const body = document.getElementById('vert-disc-body-' + id);
@@ -2165,98 +1715,7 @@ export function addEventoParaAssunto(editaId, discId, assId) {
   }, 50);
 }
 
-export function renderEditais(el) {
-  el.innerHTML = `
-    ${state.editais.length === 0 ? `
-      <div class="empty-state" style="padding:80px 20px;">
-        <div class="icon">📋</div>
-        <h4>Nenhum edital cadastrado</h4>
-        <p style="margin-bottom:16px;">Crie seu edital com disciplinas e assuntos para organizar seus estudos.</p>
-        <button class="btn btn-primary" onclick="openEditaModal()"><i class="fa fa-plus"></i> Criar Edital</button>
-      </div>
-    ` : `
-      <div class="edital-tree">
-        ${state.editais.map(edital => renderEditalTree(edital)).join('')}
-      </div>
-    `}
-        `;
-}
 
-export function renderEditalTree(edital) {
-  return `
-    <div class="tree-edital" id="edital-${edital.id}">
-      <div class="tree-edital-header" onclick="toggleEdital('${edital.id}')">
-        <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
-        <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
-        <span style="font-size:11px;opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
-        <button class="icon-btn" title="Adicionar Tópicos" onclick="event.stopPropagation();window.activeDashboardDiscCtx={editaId:'${edital.id}'};navigate('vertical')">📝</button>
-        <button class="icon-btn" title="Analisador de Bancas" onclick="event.stopPropagation();window.activeDashboardDiscCtx={editaId:'${edital.id}'};navigate('banca-analyzer')">🧠</button>
-        <button class="icon-btn" title="Editar" onclick="event.stopPropagation();openEditaModal('${edital.id}')">✏️</button>
-        <button class="icon-btn" title="Excluir" onclick="event.stopPropagation();deleteEdital('${edital.id}')">🗑️</button>
-        <i class="fa fa-chevron-down" style="font-size:12px;opacity:0.7;"></i>
-      </div>
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:flex-end;">
-        <button class="btn btn-ghost btn-sm" onclick="openDiscModal('${edital.id}')" style="margin-right:15px;margin-bottom:10px;">+ Disciplina</button>
-      </div>
-      <div id="edital-tree-${edital.id}">
-        <div class="disc-grid">
-          ${(edital.disciplinas || []).map(disc => {
-    const totaisTopicos = disc.assuntos ? disc.assuntos.length : 0;
-    const topicosEstudados = disc.assuntos ? disc.assuntos.filter(a => a.concluido).length : 0;
-    const totaisAulas = disc.aulas ? disc.aulas.length : 0;
-    const aulasEstudadas = disc.aulas ? disc.aulas.filter(a => a.estudada).length : 0;
-
-    // Questões Resolvidas para esta disciplina
-    let qResolvidas = 0;
-    if (state.eventos) {
-      const evts = state.eventos.filter(e => e.discId === disc.id && e.status === 'estudei');
-      evts.forEach(e => {
-        const qs = e.sessao?.questoes || e.questoes;
-        if (qs) qResolvidas += (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
-      });
-    }
-
-    return `
-              <div class="disc-card" style="--card-color: ${disc.cor || 'var(--accent)'};">
-                <div class="disc-card-title">${disc.icone || '📚'} ${esc(disc.nome)}</div>
-                <div class="disc-stats">
-                  <div class="disc-stat">
-                    <span class="disc-stat-val">${topicosEstudados}/${totaisTopicos}</span>
-                    <span class="disc-stat-label">Tópicos<br>do Edital</span>
-                  </div>
-                  <div class="disc-stat">
-                    <span class="disc-stat-val">${aulasEstudadas}/${totaisAulas}</span>
-                    <span class="disc-stat-label">Aulas<br>Estudadas</span>
-                  </div>
-                  <div class="disc-stat">
-                    <span class="disc-stat-val">${qResolvidas}</span>
-                    <span class="disc-stat-label">Questões<br>Resolvidas</span>
-                  </div>
-                </div>
-                <!-- Hover Overlay -->
-                <div class="disc-overlay">
-                  <button class="disc-action" onclick="event.stopPropagation();openDiscDashboard('${edital.id}','${disc.id}')">
-                    <i class="fa fa-folder-open"></i>
-                    <span>Visualizar</span>
-                  </button>
-                  <button class="disc-action" onclick="event.stopPropagation();openDiscManager('${edital.id}','${disc.id}')">
-                    <i class="fa fa-edit"></i>
-                    <span>Editar</span>
-                  </button>
-                  <button class="disc-action" onclick="event.stopPropagation();deleteDisc('${edital.id}','${disc.id}')">
-                    <i class="fa fa-trash"></i>
-                    <span>Remover</span>
-                  </button>
-                </div>
-              </div>
-            `;
-  }).join('')}
-          ${(edital.disciplinas || []).length === 0 ? '<div style="color:var(--text-muted);font-style:italic;grid-column:1/-1;">Nenhuma disciplina</div>' : ''}
-        </div>
-      </div>
-    </div>
-          `;
-}
 
 export function toggleEdital(id) {
   const el = document.getElementById(`edital-tree-${id}`);
@@ -2325,7 +1784,7 @@ export function openDiscDashboard(editaId, discId) {
   const actions = document.getElementById('topbar-actions');
   if (!topbarTitle || !actions) return;
   topbarTitle.textContent = `${disc.icone || '📚'} ${disc.nome} `;
-  actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeDiscDashboard()"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+  actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>`;
 
   const el = document.getElementById('main-content');
   el.innerHTML = renderDisciplinaDashboard(edital, disc);
@@ -2355,144 +1814,27 @@ window.switchDashboardTab = function (tabName) {
 }
 
 
-export function renderDisciplinaDashboard(edital, disc) {
-  const tempos = state.eventos ? state.eventos.filter(e => e.discId === disc.id && e.status === 'estudei') : [];
-  let tempoTotal = 0;
-  let qCertas = 0;
-  let qErradas = 0;
-  let pagLidas = 0;
-
-  tempos.forEach(e => {
-    tempoTotal += e.tempoAcumulado || 0;
-    const qs = e.sessao?.questoes || e.questoes;
-    if (qs) {
-      qCertas += (qs.acertos || qs.certas || 0);
-      qErradas += (qs.erros || qs.erradas || 0);
-    }
-    pagLidas += e.sessao?.paginas?.total || e.paginas || 0;
-  });
-
-  const totalQuestoes = qCertas + qErradas;
-  const percAcertos = totalQuestoes > 0 ? Math.round((qCertas / totalQuestoes) * 100) : 0;
-
-  const totalAulas = disc.aulas ? disc.aulas.length : 0;
-  const aulasEstudadas = disc.aulas ? disc.aulas.filter(a => a.estudada).length : 0;
-  const percConcluido = totalAulas > 0 ? Math.round((aulasEstudadas / totalAulas) * 100) : 0;
-
-  return `
-    <div class="disc-dashboard-shell">
-      
-      <!-- HEADER STATS -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;">
-        <div class="card p-16">
-          <div class="dash-label">TEMPO DE ESTUDO</div>
-          <div style="font-size:24px;font-weight:800;color:var(--text-primary);margin-top:12px;font-family:'DM Mono',monospace;">
-            ${formatTime(tempoTotal)}
-          </div>
-        </div>
-
-        <div class="card p-16">
-          <div class="dash-label">QUESTÕES (ACERTOS / TOTAL)</div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin-top:12px;">
-            <div style="font-size:24px;font-weight:800;color:var(--text-primary);font-family:'DM Mono',monospace;">
-              ${qCertas} / ${totalQuestoes}
-            </div>
-            <div style="font-size:16px;font-weight:700;color:${percAcertos >= 70 ? 'var(--green)' : percAcertos >= 50 ? 'var(--accent)' : 'var(--red)'};">
-              ${percAcertos}%
-            </div>
-          </div>
-        </div>
-
-        <div class="card p-16">
-          <div class="dash-label">PROGRESSO DO EDITAL</div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin-top:12px;">
-            <div style="font-size:24px;font-weight:800;color:var(--text-primary);font-family:'DM Mono',monospace;">
-              ${aulasEstudadas} / ${totalAulas}
-            </div>
-            <div style="font-size:16px;font-weight:700;color:var(--accent);">
-              ${percConcluido}%
-            </div>
-          </div>
-        </div>
-
-        <div class="card p-16">
-          <div class="dash-label">PÁGINAS LIDAS</div>
-          <div style="font-size:24px;font-weight:800;color:var(--text-primary);margin-top:12px;font-family:'DM Mono',monospace;">
-            ${pagLidas}
-          </div>
-        </div>
-      </div>
-
-      <!-- MAIN CONTENT GRID -->
-      <div class="disc-dashboard-main-grid">
-        
-        <!-- HISTÓRICO DE ESTUDOS (ESQUERDA) -->
-        <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <div class="dash-label">HISTÓRICO DE SESSÕES (ÚLTIMAS 50)</div>
-            <button class="btn btn-sm" style="font-size:12px;padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);" onclick="openAddPastSessionModal('${disc.id}')">
-              <i class="fa fa-plus"></i> Registrar
-            </button>
-          </div>
-          ${renderHistoricoDisciplina(tempos)}
-        </div>
-
-        <!-- CONTEÚDO DINÂMICO (DIREITA) -->
-        <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">
-          <!-- Tabs Navigation -->
-          <div style="display:flex; gap:16px; border-bottom:1px solid var(--border); margin-bottom:16px; align-items:flex-end;">
-            <div onclick="switchDashboardTab('topicos')" style="padding:8px 0; font-weight:600; font-size:14px; cursor:pointer; color:${!window.activeDashboardTab || window.activeDashboardTab === 'topicos' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${!window.activeDashboardTab || window.activeDashboardTab === 'topicos' ? 'var(--accent)' : 'transparent'};">
-               Tópicos do Edital
-            </div>
-            <div onclick="switchDashboardTab('aulas')" style="padding:8px 0; font-weight:600; font-size:14px; cursor:pointer; color:${window.activeDashboardTab === 'aulas' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${window.activeDashboardTab === 'aulas' ? 'var(--accent)' : 'transparent'};">
-               Aulas (${disc.aulas?.length || 0})
-            </div>
-            <div onclick="switchDashboardTab('banca')" style="padding:8px 0; font-weight:600; font-size:14px; cursor:pointer; color:${window.activeDashboardTab === 'banca' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${window.activeDashboardTab === 'banca' ? 'var(--accent)' : 'transparent'}; display:flex; gap:6px; align-items:center;">
-               <i class="fa fa-brain" style="font-size:12px;"></i> Hot Topics
-            </div>
-          </div>
-          
-          <div style="flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden;">
-            ${(!window.activeDashboardTab || window.activeDashboardTab === 'topicos') ? renderTopicosEditalDisciplina(edital, disc) : ''}
-            ${window.activeDashboardTab === 'aulas' ? renderAulasDisciplinaDashboard(edital, disc) : ''}
-            ${window.activeDashboardTab === 'banca' ? renderBancaDisciplinaDashboard(edital, disc) : ''}
-          </div>
-        </div>
-
-      </div>
-
-      <!-- PERFORMANCE GRAPH -->
-      <div class="card p-16">
-        <div class="dash-label" style="margin-bottom:16px;">EVOLUÇÃO DOS ACERTOS (%) - ÚLTIMAS SESSÕES</div>
-        <div style="height:250px;width:100%;position:relative;">
-          <canvas id="disc-chart-acertos"></canvas>
-        </div>
-      </div>
-
-    </div>
-  `;
-}
 
 function renderHistoricoDisciplina(tempos) {
   const reverseTempos = [...tempos].reverse().slice(0, 50);
   if (reverseTempos.length === 0) {
-    return '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-style:italic;">Nenhuma sessão de estudo registrada.</div>';
+    return '<div class="empty-state-centered">Nenhuma sessão de estudo registrada.</div>';
   }
 
   return `
-    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
-            <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">
-              <thead style="position:sticky;top:0;background:var(--card);z-index:2;">
-                <tr style="border-bottom:1px solid var(--border);color:var(--text-muted);">
-                  <th style="padding:8px 4px;font-weight:600;">Data</th>
-                  <th style="padding:8px 4px;font-weight:600;">Tempo</th>
-                  <th style="padding:8px 4px;font-weight:600;">Pág.</th>
-                  <th style="padding:8px 4px;font-weight:600;">Questões</th>
-                  <th style="padding:8px 4px;font-weight:600;">Acerto</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${reverseTempos.map(t => {
+    <div class="custom-scrollbar">
+      <table class="session-history-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tempo</th>
+            <th>Pág.</th>
+            <th>Questões</th>
+            <th>Acerto</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reverseTempos.map(t => {
     const dateStr = formatDate(t.data);
     const tempoStr = formatTime(t.tempoAcumulado || 0).substring(0, 5);
     const qs = t.sessao?.questoes || t.questoes || { certas: 0, erradas: 0 };
@@ -2503,46 +1845,46 @@ function renderHistoricoDisciplina(tempos) {
     const pags = t.sessao?.paginas?.total || t.paginas || null;
 
     return `
-              <tr style="border-bottom:1px solid var(--bg); cursor:pointer;" onclick="openRegistroSessao('${t.id}')" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
-                <td style="padding:10px 4px;color:var(--text-primary);">${dateStr}</td>
-                <td style="padding:10px 4px;font-family:'DM Mono',monospace;">${tempoStr}</td>
-                <td style="padding:10px 4px;">${pags ?? '-'}</td>
-                <td style="padding:10px 4px;">${certas} / ${totQs}</td>
-                <td style="padding:10px 4px;font-weight:700;color:${totQs > 0 ? percColor : 'inherit'};">${totQs > 0 ? perc + '%' : '-'}</td>
+              <tr class="session-history-row" data-action="open-registro-sessao" data-disc-id="${t.id}">
+                <td>${dateStr}</td>
+                <td class="session-history-time">${tempoStr}</td>
+                <td>${pags ?? '-'}</td>
+                <td>${certas} / ${totQs}</td>
+                <td class="session-history-acerto" style="color:${totQs > 0 ? percColor : 'inherit'};">${totQs > 0 ? perc + '%' : '-'}</td>
               </tr>
             `;
   }).join('')}
-              </tbody>
-            </table>
+        </tbody>
+      </table>
     </div>
           `;
 }
 
 function renderTopicosEditalDisciplina(edital, disc) {
   if (!disc.assuntos || disc.assuntos.length === 0) {
-    return '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-style:italic;">Nenhum tópico cadastrado.</div>';
+    return '<div class="empty-state-centered">Nenhum tópico cadastrado.</div>';
   }
 
   return `
-    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
-            ${disc.assuntos.map(ass => {
+    <div class="custom-scrollbar">
+      ${disc.assuntos.map(ass => {
     const importanceBadge = ass.relevance?.priority === 'P1' ?
-      `<span style="background:rgba(211,47,47,0.1); color:var(--red); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; margin-left:8px;" title="Alta Chance de Cobrança">🔥 P1</span>` :
-      (ass.relevance?.priority === 'P2' ? `<span style="background:rgba(234,179,8,0.1); color:var(--orange); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; margin-left:8px;">⚠️ P2</span>` : '');
+      `<span class="priority-badge-p1" title="Alta Chance de Cobrança">🔥 P1</span>` :
+      (ass.relevance?.priority === 'P2' ? `<span class="priority-badge-p2">⚠️ P2</span>` : '');
 
     return `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:var(--bg-secondary);border-radius:6px;' : ''}">
-          <div class="check-circle ${ass.concluido ? 'done' : ''}" onclick="toggleAssunto('${disc.id}','${ass.id}')" style="flex-shrink:0;">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
-          <div style="flex:1;min-width:0;font-size:13px;font-weight:${ass.concluido ? '400' : '600'};color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluido ? 'text-decoration:line-through;' : ''}">
+        <div class="subject-item ${ass.concluido ? 'subject-item-concluded' : ''}">
+          <div class="check-circle ${ass.concluido ? 'done' : ''}" data-action="toggle-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
+          <div class="flex-1 min-width-0 subject-item-title ${ass.concluido ? 'subject-item-title--concluded' : ''}">
              ${esc(ass.nome)} ${importanceBadge}
           </div>
           ${ass.concluido ? `
-            <div style="text-align:right;flex-shrink:0;">
-              <div style="font-size:10px;color:var(--green);font-weight:700;">✅ concluído</div>
-              <div style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</div>
+            <div class="text-right">
+              <div class="text-concluded-badge">✅ concluído</div>
+              <div class="text-concluded-date">${formatDate(ass.dataConclusao)}</div>
             </div>
           ` : `
-            <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:4px 8px;font-size:11px;" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','${ass.id}')">+ Agenda</button>
+            <button class="btn btn-ghost btn-sm" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">+ Agenda</button>
           `}
         </div>
       `}).join('')}
@@ -2552,23 +1894,31 @@ function renderTopicosEditalDisciplina(edital, disc) {
 
 function renderAulasDisciplinaDashboard(edital, disc) {
   if (!disc.aulas || disc.aulas.length === 0) {
-    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);font-style:italic;"><div style="font-size:32px;margin-bottom:12px;">🗂️</div>Nenhuma aula ou material cadastrado.<br><span style="font-size:12px;margin-top:8px;">Vá em "Gerenciar" nesta matéria para importar suas Aulas.</span></div>';
+    return `<div class="empty-state-column">
+      <div class="empty-state-icon">🗂️</div>
+      <div class="empty-state-title">Nenhuma aula ou material cadastrado.</div>
+      <div class="empty-state-hint">Vá em "Gerenciar" nesta matéria para importar suas Aulas.</div>
+    </div>`;
   }
 
   return `
-    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
-        ${disc.aulas.map(aul => `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${aul.estudada ? 'background:var(--bg-secondary);border-radius:6px;' : ''}">
-          <div class="check-circle ${aul.estudada ? 'done' : ''}" onclick="toggleAulaDashboard('${edital.id}','${disc.id}','${aul.id}')" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}" style="flex-shrink:0;cursor:pointer;">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
-          <div style="flex:1;min-width:0;font-size:13px;font-weight:${aul.estudada ? '400' : '600'};color:${aul.estudada ? 'var(--text-muted)' : 'var(--text-primary)'};${aul.estudada ? 'text-decoration:line-through;' : ''}">
+    <div class="custom-scrollbar">
+      ${disc.aulas.map(aul => {
+    const itemClass = aul.estudada ? 'aula-item aula-item-concluded' : 'aula-item';
+    const titleClass = aul.estudada ? 'aula-title aula-title-concluded' : 'aula-title';
+
+    return `
+        <div class="${itemClass}">
+          <div class="check-circle ${aul.estudada ? 'done' : ''}" data-action="toggle-aula-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-aula-id="${aul.id}" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
+          <div class="${titleClass}">
              ${esc(aul.nome)}
-             ${aul.linkedAssuntoIds && aul.linkedAssuntoIds.length > 0 ? `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">🔗 ${aul.linkedAssuntoIds.length} tópico(s) do edital conectado(s)</div>` : ''}
+             ${aul.linkedAssuntoIds && aul.linkedAssuntoIds.length > 0 ? `<div class="aula-linked-count">🔗 ${aul.linkedAssuntoIds.length} tópico(s) do edital conectado(s)</div>` : ''}
           </div>
           ${!aul.estudada ? `
-            <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:4px 8px;font-size:11px;" onclick="addEventoParaAssunto('${edital.id}','${disc.id}','aul_${aul.id}')">+ Agenda</button>
+            <button class="btn btn-ghost btn-sm" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="aul_${aul.id}">+ Agenda</button>
           ` : ''}
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `;
 }
@@ -2579,35 +1929,35 @@ function renderBancaDisciplinaDashboard(edital, disc) {
 
   if (!hasHotTopics) {
     return `
-         <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);text-align:center;padding:24px;">
-           <i class="fa fa-robot" style="font-size:48px;margin-bottom:16px;color:var(--border);"></i>
-           <div style="font-weight:600;margin-bottom:8px;color:var(--text-primary);">Nenhuma análise encontrada</div>
-           <div style="font-size:13px;max-width:250px;">Use o Analisador de Banca no menu principal para injetar o sumário de exigência desta disciplina.</div>
+         <div class="banca-empty-state">
+           <i class="fa fa-robot banca-empty-icon"></i>
+           <div class="banca-empty-title">Nenhuma análise encontrada</div>
+           <div class="banca-empty-hint">Use o Analisador de Banca no menu principal para injetar o sumário de exigência desta disciplina.</div>
          </div>
        `;
   }
 
   return `
-       <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;padding-top:8px;">
-         <div style="background:var(--bg); border-radius:8px; padding:12px; margin-bottom:16px; border:1px solid var(--border);">
-            <div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin-bottom:12px;">STATUS DO MAPEADOR DE INTELIGÊNCIA</div>
-            
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:13px;">
+       <div class="custom-scrollbar pt-2">
+         <div class="banca-status-card">
+            <div class="banca-status-label">STATUS DO MAPEADOR DE INTELIGÊNCIA</div>
+
+            <div class="banca-status-row">
               <span>Dados de Banca extraídos:</span>
-              <span style="font-weight:600; color:var(--green);">✅ ATIVO</span>
+              <span class="banca-status-success">✅ ATIVO</span>
             </div>
-            
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+
+            <div class="banca-status-row">
               <span>Aulas atreladas aos Tópicos P1 e P2:</span>
-              <span style="font-weight:600; color:${hasAulas ? 'var(--green)' : 'var(--orange)'};">${hasAulas ? '✅ CONECTADAS' : '⚠️ FALTA IMPORTAR'}</span>
+              <span class="${hasAulas ? 'banca-status-success' : 'banca-status-warning'}">${hasAulas ? '✅ CONECTADAS' : '⚠️ FALTA IMPORTAR'}</span>
             </div>
          </div>
-         
-         <div style="font-size:13px; color:var(--text-secondary); line-height:1.5; margin-bottom:16px;">
+
+         <div class="banca-info-text">
             A inteligência da prova injetou prioridades (P1 e P2) diretamente na sua janela de <strong>Tópicos do Edital</strong>. Veja as marcações em chamas 🔥 ao lado dos tópicos que demandam mais a sua atenção.
          </div>
-         
-         <button class="btn btn-outline" style="width:100%; border-color:var(--accent); color:var(--accent);" onclick="window.navigate('banca-analyzer')">
+
+         <button class="btn btn-outline banca-action-btn" data-action="navigate" data-view="banca-analyzer">
             Abrir Analisador Preditivo
          </button>
        </div>
@@ -2798,13 +2148,13 @@ export function openEditaModal(editaId = null) {
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="edital-colors">
-        ${COLORS.map(c => `<div class="color-swatch ${edital && edital.cor === c ? 'selected' : ''}" style="background:${c};" onclick="selectColor('${c}','edital-colors')"></div>`).join('')}
+        ${COLORS.map(c => `<div class="color-swatch ${edital && edital.cor === c ? 'selected' : ''}" data-action="select-color" data-color="${c}" data-container="edital-colors" data-color-value="${c}"></div>`).join('')}
       </div>
       <input type="hidden" id="edital-cor" value="${edital ? edital.cor : COLORS[0]}">
     </div>
-    <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
-      <button class="btn btn-ghost" onclick="closeModal('modal-edital')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveEdital('${editaId || ''}')">Salvar Edital</button>
+    <div class="modal-footer-standard">
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-edital">Cancelar</button>
+      <button class="btn btn-primary" data-action="save-edital" data-edital-id="${editaId || ''}">Salvar Edital</button>
     </div>
     `;
   if (!edital) {
@@ -2817,8 +2167,7 @@ export function selectColor(color, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-  // Fixed: removed spaces around = in attribute selector (was invalid CSS)
-  container.querySelector(`[style="background:${color};"]`)?.classList.add('selected');
+  container.querySelector(`[data-color-value="${color}"]`)?.classList.add('selected');
   const input = document.getElementById(containerId === 'edital-colors' ? 'edital-cor' : containerId === 'disc-colors' ? 'disc-cor' : 'edital-cor');
   if (input) input.value = color;
 }
@@ -2863,14 +2212,14 @@ export function openDiscModal(editaId, discId) {
     <div class="form-group">
       <label class="form-label">Ícone</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px;" id="disc-icons">
-        ${DISC_ICONS.map((ic, i) => `<div style="width:36px;height:36px;border-radius:8px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all 0.15s;" class="${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0]) ? 'selected-icon' : ''}" onclick="selectIcon('${ic}', this)">${ic}</div>`).join('')}
+        ${DISC_ICONS.map((ic, i) => `<div style="width:36px;height:36px;border-radius:8px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all 0.15s;" class="${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0]) ? 'selected-icon' : ''}" data-action="select-icon" data-icon="${ic}">${ic}</div>`).join('')}
       </div>
       <input type="hidden" id="disc-icone" value="${isEdit ? existingDisc.icone : DISC_ICONS[0]}">
     </div>
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="disc-colors">
-        ${COLORS.map((c, i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" style="background:${c};" onclick="selectDiscColor('${c}')"></div>`).join('')}
+        ${COLORS.map((c, i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" style="background:${c};" data-action="select-disc-color" data-color="${c}"></div>`).join('')}
       </div>
       <input type="hidden" id="disc-cor" value="${isEdit ? existingDisc.cor : COLORS[0]}">
     </div>
@@ -2952,11 +2301,11 @@ export function openDiscManager(editaId, discId) {
     ondragleave="dndLeave(event)"
     ondrop="dndDrop(event,'${disc.id}',${idx})">
       <div class="sm-drag-handle" title="Arrastar">☰</div>
-      <div class="sm-item-text" onclick="editSubjectInline('${disc.id}', '${ass.id}', this)">
+      <div class="sm-item-text" data-action="edit-subject-inline" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">
         ${esc(ass.nome)}
         ` + (ass.relevance ? `<span style="font-size:10px; margin-left:8px; padding:2px 4px; border-radius:4px; font-weight:700; color:var(--bg); background:${ass.relevance.priority === 'P1' ? 'var(--red)' : ass.relevance.priority === 'P2' ? 'var(--orange)' : 'var(--text-muted)'};" title="${esc(ass.relevance.reason)}">${ass.relevance.priority}</span>` : '') + `
         ${(ass.linkedAulaIds && ass.linkedAulaIds.length > 0) ? `
-           <div style="font-size:11px; margin-top:4px; display:flex; gap:4px; flex-wrap:wrap;">
+           <div style="font-size:10px; margin-top:4px; display:flex; gap:4px; flex-wrap:wrap;">
              ${ass.linkedAulaIds.map(auId => {
     const aulaObj = (disc.aulas || []).find(a => a.id === auId);
     return aulaObj ? `<span style="background:var(--bg); border:1px solid var(--accent); color:var(--accent); padding:1px 6px; border-radius:10px; display:flex; align-items:center; gap:4px;"><i class="fa fa-play-circle"></i> ${esc(aulaObj.nome)}</span>` : '';
@@ -2965,9 +2314,9 @@ export function openDiscManager(editaId, discId) {
         ` : ''}
       </div>
       <div class="sm-item-actions">
-        <button onclick="moveSubject('${disc.id}', ${idx}, -1)" title="Subir"><i class="fa fa-chevron-up"></i></button>
-        <button onclick="moveSubject('${disc.id}', ${idx}, 1)" title="Descer"><i class="fa fa-chevron-down"></i></button>
-        <button onclick="deleteAssunto('${disc.id}', '${ass.id}')" title="Excluir"><i class="fa fa-trash"></i></button>
+        <button data-action="move-subject" data-disc-id="${disc.id}" data-idx="${idx}" data-dir="-1" title="Subir"><i class="fa fa-chevron-up"></i></button>
+        <button data-action="move-subject" data-disc-id="${disc.id}" data-idx="${idx}" data-dir="1" title="Descer"><i class="fa fa-chevron-down"></i></button>
+        <button data-action="delete-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
     </div>
       `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhum tópico no Edital.</div>';
@@ -2976,8 +2325,8 @@ export function openDiscManager(editaId, discId) {
   const aulasHtml = (disc.aulas || []).map((aula, idx) => `
       <div class="sm-list-item" style = "border-left: 4px solid var(--accent); padding-left: 8px;" >
       <div style="flex:1;">
-          <div class="sm-item-text" style="display:flex; align-items:center; gap:8px;" onclick="editLessonInline('${disc.id}', '${aula.id}', this)">
-             <input type="checkbox" ${aula.estudada ? 'checked' : ''} onclick="event.stopPropagation(); toggleAulaEstudada('${disc.id}','${aula.id}')" style="cursor:pointer;" title="Marcar como Estudada">
+          <div class="sm-item-text" style="display:flex; align-items:center; gap:8px;" data-action="edit-lesson-inline" data-disc-id="${disc.id}" data-aula-id="${aula.id}">
+             <input type="checkbox" ${aula.estudada ? 'checked' : ''} data-action="toggle-aula-estudada" data-disc-id="${disc.id}" data-aula-id="${aula.id}" style="cursor:pointer;" title="Marcar como Estudada">
              <span style="${aula.estudada ? 'text-decoration:line-through;opacity:0.6;' : ''}">${esc(aula.nome)}</span>
           </div>
           ${(aula.linkedAssuntoIds && aula.linkedAssuntoIds.length > 0) ? `
@@ -2990,7 +2339,7 @@ export function openDiscManager(editaId, discId) {
         ` : '<div style="font-size:11px; margin-top:4px; color:var(--text-muted); padding-left:24px; font-style:italic;">Não conectada a assunto do edital.</div>'}
       </div>
       <div class="sm-item-actions">
-         <button onclick="deleteAula('${disc.id}', '${aula.id}')" title="Excluir"><i class="fa fa-trash"></i></button>
+         <button data-action="delete-aula" data-disc-id="${disc.id}" data-aula-id="${aula.id}" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
     </div>
       `).join('') || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">Nenhuma Aula adicionada.</div>';
@@ -3009,19 +2358,19 @@ export function openDiscManager(editaId, discId) {
         <label>Cor</label>
         <div style="display:flex;gap:8px;align-items:center;">
           <input type="color" id="dm-cor-picker" value="${disc.cor || COLORS[0]}" style="width:30px;height:30px;padding:0;border:none;border-radius:4px;cursor:pointer;">
-          <select id="dm-cor" class="form-control" style="flex:1;" onchange="document.getElementById('dm-cor-picker').value=this.value">
+          <select id="dm-cor" class="form-control" style="flex:1;" data-action="sync-color-to-picker">
             ${colorOptions}
           </select>
         </div>
       </div>
     </div>
-    
+
     <!--TABS de Navegação Wave 39 -->
     <div style="display:flex; border-bottom:1px solid var(--border); margin-bottom:16px; gap:8px;">
-        <div onclick="window.switchManagerTab('topicos')" style="padding:8px 16px; cursor:pointer; font-weight:600; border-bottom:2px solid ${window._activeDiscManagerTab === 'topicos' ? 'var(--accent)' : 'transparent'}; color:${window._activeDiscManagerTab === 'topicos' ? 'var(--accent)' : 'var(--text-muted)'};">
+        <div data-action="switch-manager-tab" data-tab="topicos" style="padding:8px 16px; cursor:pointer; font-weight:600; border-bottom:2px solid ${window._activeDiscManagerTab === 'topicos' ? 'var(--accent)' : 'transparent'}; color:${window._activeDiscManagerTab === 'topicos' ? 'var(--accent)' : 'var(--text-muted)'};">
             Tópicos do Edital (${disc.assuntos.length})
         </div>
-        <div onclick="window.switchManagerTab('aulas')" style="padding:8px 16px; cursor:pointer; font-weight:600; border-bottom:2px solid ${window._activeDiscManagerTab === 'aulas' ? 'var(--accent)' : 'transparent'}; color:${window._activeDiscManagerTab === 'aulas' ? 'var(--accent)' : 'var(--text-muted)'};">
+        <div data-action="switch-manager-tab" data-tab="aulas" style="padding:8px 16px; cursor:pointer; font-weight:600; border-bottom:2px solid ${window._activeDiscManagerTab === 'aulas' ? 'var(--accent)' : 'transparent'}; color:${window._activeDiscManagerTab === 'aulas' ? 'var(--accent)' : 'var(--text-muted)'};">
             Meus Materiais/Aulas (${disc.aulas ? disc.aulas.length : 0})
         </div>
     </div>
@@ -3029,8 +2378,8 @@ export function openDiscManager(editaId, discId) {
     <!--ABA TÓPICOS-->
     <div id="tab-manager-topicos" style="display:${window._activeDiscManagerTab === 'topicos' ? 'block' : 'none'};">
         <div class="sm-add-form" style="display:flex;flex-wrap:wrap;gap:8px; margin-bottom:12px;">
-           <textarea class="form-control" id="new-assunto-nome" placeholder="Novo tópico (Digite ou cole vários separados por quebra de linha)" rows="1" style="flex:1;min-width:200px;resize:vertical;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addAssunto('${disc.id}')}"></textarea>
-           <button class="btn btn-primary" onclick="addAssunto('${disc.id}')">Adicionar Tópico</button>
+           <textarea class="form-control" id="new-assunto-nome" placeholder="Novo tópico (Digite ou cole vários separados por quebra de linha)" rows="1" style="flex:1;min-width:200px;resize:vertical;"></textarea>
+           <button class="btn btn-primary" data-action="add-assunto" data-disc-id="${disc.id}">Adicionar Tópico</button>
         </div>
         <div class="sm-list custom-scrollbar">
            ${subjectsHtml}
@@ -3044,13 +2393,13 @@ export function openDiscManager(editaId, discId) {
                <label style="font-size:11px; font-weight:600; color:var(--text-muted);">Adição em Lote (Copie e paste o índice do seu PDF/Cursinho aqui)</label>
                <textarea class="form-control" id="new-aula-bulk" placeholder="Aula 00 - Concordância Nominal\nAula 01 - Crase..." style="min-height:80px; resize:vertical;"></textarea>
            </div>
-           <button class="btn btn-primary" onclick="window.addBulkAulas('${disc.id}')" style="height:fit-content; margin-bottom:4px;">Importar Lote</button>
+           <button class="btn btn-primary" data-action="add-bulk-aulas" data-disc-id="${disc.id}" style="height:fit-content; margin-bottom:4px;">Importar Lote</button>
         </div>
-        
+
         ${(disc.aulas && disc.aulas.length > 0 && disc.assuntos.length > 0) ? `
           <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
              <div style="font-size:12px; color:var(--text-secondary);">O Sistema pode analisar os nomes e conectá-los automaticamente ao Edital.</div>
-             <button class="btn btn-ghost btn-sm" onclick="window.runLessonMapperUI('${editaId}','${disc.id}')"><i class="fa fa-magic"></i> Auto-Link ML</button>
+             <button class="btn btn-ghost btn-sm" data-action="run-lesson-mapper" data-edital-id="${editaId}" data-disc-id="${disc.id}"><i class="fa fa-magic"></i> Auto-Link ML</button>
           </div>
         ` : ''}
 
@@ -3061,8 +2410,8 @@ export function openDiscManager(editaId, discId) {
     
     <!--BOTOES INFERIORES-->
       <div style="display:flex;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-        <button class="btn btn-ghost" style="color:var(--danger);" onclick="deleteDisc('${editaId}','${discId}');closeModal('modal-disc-manager');">Remover Disciplina</button>
-        <button class="btn btn-primary" onclick="saveDiscManager('${editaId}','${discId}')">Salvar Manager</button>
+        <button class="btn btn-ghost" style="color:var(--danger);" data-action="delete-disc" data-edital-id="${editaId}" data-disc-id="${discId}">Remover Disciplina</button>
+        <button class="btn btn-primary" data-action="save-disc-manager" data-edital-id="${editaId}" data-disc-id="${discId}">Salvar Manager</button>
       </div>
     `;
   openModal('modal-disc-manager');
@@ -3214,110 +2563,6 @@ import { applyRankingToEdital, commitEditalOrdering, revertEditalOrdering } from
 
 let analyzerCtx = { editaId: null, parsedHotTopics: [], tempMatchResults: [] };
 
-export function renderBancaAnalyzerModule(el) {
-  if (state.editais.length === 0) {
-    el.innerHTML = '<div class="card p-24" style="text-align:center;margin-top:24px;"><i class="fa fa-folder-open" style="font-size:32px;color:var(--text-muted);margin-bottom:16px;"></i><h3 style="margin-bottom:8px;">Nenhum Edital Cadastrado</h3><p style="color:var(--text-secondary);">Crie um Edital primeiro para usar a Inteligência da Banca.</p></div>';
-    return;
-  }
-
-  if (!analyzerCtx.editaId) {
-    analyzerCtx.editaId = window.activeDashboardDiscCtx?.editaId || state.editais[0].id;
-  }
-
-  window._renderBancaAnalyzerContent(el);
-}
-
-window._renderBancaAnalyzerContent = function (el) {
-  const edital = state.editais.find(e => e.id === analyzerCtx.editaId);
-  if (!edital) return;
-
-  const hotTopics = state.bancaRelevance?.hotTopics || [];
-  const editaisOptions = state.editais.map(e => `<option value="${e.id}" ${e.id === analyzerCtx.editaId ? 'selected' : ''}>${esc(e.nome)}</option>`).join('');
-
-  const discOptions = (edital.disciplinas || []).map(d => {
-    const hasTopics = hotTopics.some(ht => ht.disciplinaId === d.id);
-    return `<option value="${d.id}">${hasTopics ? '✅ ' : '⚪ '}${esc(d.nome)}</option>`;
-  }).join('');
-
-  // Limpa Temp Matches no re-render de mudança de Edital
-  analyzerCtx.tempMatchResults = [];
-
-  const savedDiscsHtml = (edital.disciplinas || []).filter(d => hotTopics.some(ht => ht.disciplinaId === d.id)).map(d => {
-    const topicCount = hotTopics.filter(ht => ht.disciplinaId === d.id).length;
-    return `<div style="display:inline-flex; align-items:center; background:var(--bg-hover); border:1px solid var(--border); border-radius:16px; padding:4px 12px; font-size:12px; gap:8px;">
-          <span style="font-weight:600; cursor:pointer;" onclick="window.carregarAnaliseBanca('${d.id}')" title="Visualizar e Editar">${esc(d.nome)} (${topicCount})</span>
-          <button class="icon-btn" style="width:20px;height:20px;font-size:11px;color:var(--red);" onclick="window.excluirAnaliseBanca('${d.id}')" title="Excluir Importação"><i class="fa fa-trash"></i></button>
-      </div>`;
-  }).join('');
-
-  const savedAnalysisSection = savedDiscsHtml ? `
-      <div style="margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
-          <div class="dash-label" style="margin-bottom:12px; font-size:11px;">Análises Salvas (Edição Rápida)</div>
-          <div style="display:flex; flex-wrap:wrap; gap:8px;">
-              ${savedDiscsHtml}
-          </div>
-      </div>
-      ` : '';
-
-  el.innerHTML = `
-      <div class="banca-analyzer-shell">
-        <div class="card p-16 banca-analyzer-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <div>
-               <h2 style="margin:0; font-size:18px;">Inteligência de Banca / Análise Preditiva</h2>
-               <div style="font-size:13px; color:var(--text-secondary); margin-top:4px;">Cruze os Assuntos mais Cobrados com o seu Edital Atual para gerar as Prioridades P1/P2/P3.</div>
-            </div>
-            <div>
-               <select id="banca-edital-select" class="form-control" style="width:300px; font-weight:600;" onchange="window.mudarEditalAnalisador(this.value)">
-                   ${editaisOptions}
-               </select>
-            </div>
-        </div>
-
-        <div class="banca-analyzer-grid">
-            <!-- PAINEL ESQUERDO: IMPORTAÇÃO -->
-            <div class="card p-16 banca-analyzer-left">
-                <div class="dash-label" style="margin-bottom:8px;">1. Planejamento (Hot Topics)</div>
-                <input type="text" id="banca-disc-search" class="form-control" style="margin-bottom:8px;font-size:13px;" placeholder="Buscar matéria..." oninput="window.filtrarDropdownBanca(this.value)">
-                <select id="banca-disc-select" class="form-control" style="margin-bottom:12px;font-weight:600;" onchange="window.filtrarViewPorDisciplina(this.value)">
-                    <option value="" disabled selected>-- Escolha a Matéria --</option>
-                    ${discOptions}
-                </select>
-                
-                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Cole aqui o Ranking da Banca respectivo à matéria (com porcentagens, ou ordenados por lista).</div>
-                <textarea id="banca-input-text" class="form-control" rows="12" style="font-family:inherit;font-size:13px;resize:vertical;" placeholder="Ex:\n1. Atos Administrativos (25%)\n2. Licitações (18%)\n3. Improbidade Administrativa"></textarea>
-                
-                <button class="btn btn-primary" style="width:100%; margin-top:12px;" onclick="window.parseBancaText()"><i class="fa fa-bolt"></i> Processar Matéria</button>
-                
-                <div style="margin-top:16px; font-size:11px; color:var(--text-muted); line-height:1.5;">
-                    <i class="fa fa-info-circle"></i> O algoritmo irá limpar a sujeira (porcentagens, numeração) simulando o Match NLP via Levenshtein e Stopwords nos Assuntos reais.
-                </div>
-                ${savedAnalysisSection}
-            </div>
-
-            <!-- PAINEL DIREITO: PREVISÃO E MATCH -->
-            <div class="card p-16 banca-analyzer-right">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:12px;">
-                    <div class="dash-label" style="margin:0;">2. Previsão de Match (Simulação)</div>
-                    <div id="banca-stats" style="font-size:12px;font-weight:600;color:var(--accent);">Aguardando Input...</div>
-                </div>
-                
-                <div id="banca-match-empty" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; color:var(--text-muted);">
-                     <i class="fa fa-brain" style="font-size:48px; margin-bottom:16px; opacity:0.3;"></i>
-                     <div style="text-align:center;">Selecione a Matéria e clique em Processar<br>para visualizar o Ranking Inteligente.</div>
-                </div>
-                
-                <div id="banca-match-results" style="display:none; flex:1; overflow-y:auto; padding-right:8px;" class="custom-scrollbar">
-                    <!-- Tabela populada via JS -->
-                </div>
-
-                <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:16px; text-align:right;">
-                    <button class="btn btn-primary" id="banca-apply-btn" style="display:none;" onclick="window.applyBancaRanking()"><i class="fa fa-save"></i> Gravar P1/P2/P3 no Edital Local</button>
-                </div>
-            </div>
-        </div>
-      </div>
-      `;
-};
 
 window.mudarEditalAnalisador = function (editaId) {
   analyzerCtx.editaId = editaId;
@@ -3498,7 +2743,7 @@ window.renderBancaMatches = function () {
                      <span class="event-tag" style="background:${stColor}; font-weight:900;">${res.priority}</span>
                 </div>
                 <div>
-                     <button class="btn btn-ghost btn-sm" title="Corrigir Erro Textual" onclick="window.openMatchCorrector('${esc(res.assuntoNome)}')"><i class="fa fa-edit"></i></button>
+                     <button class="btn btn-ghost btn-sm" title="Corrigir Erro Textual" data-action="open-match-corrector" data-assunto-nome="${esc(res.assuntoNome)}"><i class="fa fa-edit"></i></button>
                 </div>
             </div>
       `;
@@ -3557,8 +2802,8 @@ window.openMatchCorrector = function (assuntoNome) {
         </div>
 
     <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
-      <button class="btn btn-ghost" onclick="closeModal('modal-match-corrector')">Cancelar</button>
-      <button class="btn btn-primary" onclick="window.saveMatchCorrection('${esc(assuntoNome)}')">Forçar Correção</button>
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-match-corrector">Cancelar</button>
+      <button class="btn btn-primary" data-action="save-match-correction" data-assunto-nome="${esc(assuntoNome)}">Forçar Correção</button>
     </div>
   `;
   openModal('modal-match-corrector');
@@ -3721,8 +2966,8 @@ export function openSubjectAddModal(editaId, discId) {
         <input type="checkbox" id="bulk-save-continue"> Salvar e continuar
       </label>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" onclick="closeModal('modal-subject-add')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveBulkSubjects()">Adicionar</button>
+        <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-subject-add">Cancelar</button>
+        <button class="btn btn-primary" data-action="save-bulk-subjects">Adicionar</button>
       </div>
     </div>
   `;
@@ -3789,7 +3034,7 @@ export function openAddEventModal(dateStr = null) {
     <div id="event-conteudo-fields">
       <div class="form-group">
         <label class="form-label">Disciplina</label>
-        <select class="form-control" id="event-disc" onchange="loadAssuntos()">
+        <select class="form-control" id="event-disc" data-action="load-assuntos">
           <option value="">Sem disciplina específica</option>
           ${discOptions}
         </select>
@@ -3818,7 +3063,7 @@ export function openAddEventModal(dateStr = null) {
       <div class="form-group">
         <label class="form-label">Data</label>
         <input type="date" class="form-control" id="event-data" value="${dateStr || todayStr()}"
-          oninput="updateDayLoad(this.value)">
+          data-action="update-day-load">
         <div id="day-load-hint" style="font-size:11px;margin-top:4px;color:var(--text-muted);"></div>
       </div>
       <div class="form-group">
@@ -3851,8 +3096,8 @@ export function openAddEventModal(dateStr = null) {
       </div>
     </details>
     <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
-      <button class="btn btn-ghost" onclick="closeModal('modal-event')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveEvent()">Salvar / Iniciar</button>
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-event">Cancelar</button>
+      <button class="btn btn-primary" data-action="save-event">Salvar / Iniciar</button>
     </div>
   `;
   openModal('modal-event');
@@ -4070,8 +3315,8 @@ window.openAddPastSessionModal = function(discId) {
     </div>
     
     <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
-      <button class="btn btn-ghost" onclick="closeModal('modal-event')">Cancelar</button>
-      <button class="btn btn-primary" onclick="savePastEvent('${discId}')">Continuar Registro</button>
+      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-event">Cancelar</button>
+      <button class="btn btn-primary" data-action="save-past-event" data-disc-id="${discId}">Continuar Registro</button>
     </div>
   `;
   openModal('modal-event');
@@ -4144,7 +3389,7 @@ export function renderConfig(el) {
                 <div class="config-label">Tema Visual</div>
                 <div class="config-sub">Personalize a aparência do seu sistema</div>
               </div>
-              <select class="form-control" style="width:140px;" onchange="setTheme(this.value)">
+              <select class="form-control" style="width:140px;" data-action="set-theme">
                 <option value="light" ${cfg.tema === 'light' || !cfg.darkMode ? 'selected' : ''}>☀️ Light</option>
                 <option value="dark" ${cfg.tema === 'dark' || (cfg.darkMode && !cfg.tema) ? 'selected' : ''}>🌑 Original Dark</option>
                 <option value="furtivo" ${cfg.tema === 'furtivo' ? 'selected' : ''}>🕶️ Furtivo</option>
@@ -4165,7 +3410,7 @@ export function renderConfig(el) {
                 <div class="config-label">Visualização padrão</div>
                 <div class="config-sub">Modo inicial do calendário</div>
               </div>
-              <select class="form-control" style="width:120px;" onchange="updateConfig('visualizacao',this.value)">
+              <select class="form-control" style="width:120px;" data-action="update-config" data-config-key="visualizacao">
                 <option value="mes" ${cfg.visualizacao === 'mes' ? 'selected' : ''}>Mês</option>
                 <option value="semana" ${cfg.visualizacao === 'semana' ? 'selected' : ''}>Semana</option>
               </select>
@@ -4174,7 +3419,7 @@ export function renderConfig(el) {
               <div>
                 <div class="config-label">Primeiro dia da semana</div>
               </div>
-              <select class="form-control" style="width:130px;" onchange="updateConfig('primeirodiaSemana',parseInt(this.value))">
+              <select class="form-control" style="width:130px;" data-action="update-config" data-config-key="primeirodiaSemana" data-value-type="number">
                 <option value="0" ${cfg.primeirodiaSemana === 0 ? 'selected' : ''}>Domingo</option>
                 <option value="1" ${cfg.primeirodiaSemana === 1 ? 'selected' : ''}>Segunda-feira</option>
               </select>
@@ -4183,14 +3428,14 @@ export function renderConfig(el) {
               <div>
                 <div class="config-label">Número da semana</div>
               </div>
-              <button type="button" class="toggle ${cfg.mostrarNumeroSemana ? 'on' : ''}" aria-pressed="${cfg.mostrarNumeroSemana ? 'true' : 'false'}" aria-label="Mostrar número da semana" onclick="toggleConfig('mostrarNumeroSemana',this);this.setAttribute('aria-pressed', this.classList.contains('on'))"></button>
+              <button type="button" class="toggle ${cfg.mostrarNumeroSemana ? 'on' : ''}" aria-pressed="${cfg.mostrarNumeroSemana ? 'true' : 'false'}" aria-label="Mostrar número da semana" data-action="toggle-config" data-config-key="mostrarNumeroSemana"></button>
             </div>
             <div class="config-row">
               <div>
                 <div class="config-label">Agrupar eventos no dia</div>
                 <div class="config-sub">Limita quantidade visível</div>
               </div>
-              <button type="button" class="toggle ${cfg.agruparEventos ? 'on' : ''}" aria-pressed="${cfg.agruparEventos ? 'true' : 'false'}" aria-label="Agrupar eventos no dia" onclick="toggleConfig('agruparEventos',this);this.setAttribute('aria-pressed', this.classList.contains('on'))"></button>
+              <button type="button" class="toggle ${cfg.agruparEventos ? 'on' : ''}" aria-pressed="${cfg.agruparEventos ? 'true' : 'false'}" aria-label="Agrupar eventos no dia" data-action="toggle-config" data-config-key="agruparEventos"></button>
             </div>
           </div>
         </div>
@@ -4203,14 +3448,14 @@ export function renderConfig(el) {
                 <div class="config-label">Foco do Pomodoro (min)</div>
                 <div class="config-sub">Tempo ininterrupto de estudo</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="120" value="${cfg.pomodoroFoco || 25}" onchange="updateConfig('pomodoroFoco', parseInt(this.value, 10))">
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="120" value="${cfg.pomodoroFoco || 25}" data-action="update-config" data-config-key="pomodoroFoco" data-value-type="number">
             </div>
             <div class="config-row">
               <div>
                 <div class="config-label">Pausa do Pomodoro (min)</div>
                 <div class="config-sub">Intervalo de descanso</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="60" value="${cfg.pomodoroPausa || 5}" onchange="updateConfig('pomodoroPausa', parseInt(this.value, 10))">
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="60" value="${cfg.pomodoroPausa || 5}" data-action="update-config" data-config-key="pomodoroPausa" data-value-type="number">
             </div>
           </div>
         </div>
@@ -4223,7 +3468,7 @@ export function renderConfig(el) {
                 <div class="config-label">Matérias por dia no Ciclo</div>
                 <div class="config-sub">Quantidade de disciplinas distribuídas diariamente no calendário/MED.</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="15" value="${cfg.materiasPorDia || 3}" onchange="updateConfig('materiasPorDia', parseInt(this.value, 10))">
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="1" max="15" value="${cfg.materiasPorDia || 3}" data-action="update-config" data-config-key="materiasPorDia" data-value-type="number">
             </div>
           </div>
         </div>
@@ -4237,7 +3482,7 @@ export function renderConfig(el) {
             <div class="form-group">
               <label class="form-label">Intervalos (em dias, separados por vírgula)</label>
               <input type="text" class="form-control" id="freq-input" value="${(cfg.frequenciaRevisao || [1, 7, 30, 90]).join(', ')}"
-                onchange="updateFrequencia(this.value)">
+                data-action="update-frequencia">
             </div>
             <div style="font-size:12px;color:var(--text-muted);">Ex: 1, 7, 30, 90 = 4 revisões no 1º, 7º, 30º e 90º dia</div>
           </div>
@@ -4252,23 +3497,23 @@ export function renderConfig(el) {
             
             <div class="form-group" style="margin-top:16px;">
               <label class="form-label">URL do Cloudflare Worker (API)</label>
-              <input type="url" id="config-cf-url" class="form-control" placeholder="Ex: https://estudo-sync-api.xxxx.workers.dev" value="${esc(cfg.cfUrl || '')}" onchange="updateConfig('cfUrl', this.value.trim().replace(/\\/$/, ''))">
+              <input type="url" id="config-cf-url" class="form-control" placeholder="Ex: https://estudo-sync-api.xxxx.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
             </div>
 
             <div class="form-group" style="margin-top:16px;">
               <label class="form-label">Token de Acesso (Auth Token)</label>
               <div style="display:flex; gap:8px;">
-                  <input type="password" id="config-cf-token" class="form-control" placeholder="Sua senha secreta do Worker" value="${esc(cfg.cfToken || '')}" onchange="updateConfig('cfToken', this.value.trim())">
-                  <button type="button" class="btn btn-outline" onclick="const t=document.getElementById('config-cf-token'); t.type=t.type==='password'?'text':'password';" title="Mostrar/Esconder Senha"><i class="fa fa-eye"></i></button>
+                  <input type="password" id="config-cf-token" class="form-control" placeholder="Sua senha secreta do Worker" value="${esc(cfg.cfToken || '')}" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
+                  <button type="button" class="btn btn-outline" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/Esconder Senha"><i class="fa fa-eye"></i></button>
               </div>
             </div>
             
             <div style="margin-top:16px; display:flex; align-items:center; gap:8px;">
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer;" class="btn ${cfg.cfSyncEnabled ? 'btn-primary' : 'btn-outline'}">
-                    <input type="checkbox" id="config-cf-enabled" onchange="window.toggleCfSync(this.checked)" style="display:none;" ${cfg.cfSyncEnabled ? 'checked' : ''}>
+                    <input type="checkbox" id="config-cf-enabled" data-action="toggle-cf-sync" style="display:none;" ${cfg.cfSyncEnabled ? 'checked' : ''}>
                     <i class="fa fa-power-off"></i> <span id="cf-sync-toggle-text">${cfg.cfSyncEnabled ? 'Sincronização Ativada' : 'Ativar Sincronização'}</span>
                 </label>
-                <button type="button" class="btn btn-outline" onclick="if(window.forceCloudflareSync) window.forceCloudflareSync()" id="btn-force-cf-sync" style="display: ${cfg.cfSyncEnabled ? 'inline-flex' : 'none'};"><i class="fa fa-sync"></i> Forçar Sincronização Agora</button>
+                <button type="button" class="btn btn-outline" data-action="force-cloudflare-sync" id="btn-force-cf-sync" style="display: ${cfg.cfSyncEnabled ? 'inline-flex' : 'none'};"><i class="fa fa-sync"></i> Forçar Sincronização Agora</button>
             </div>
             <p id="cf-sync-status" style="margin-top:12px; font-size:13px; font-weight:600;"></p>
           </div>
@@ -4286,16 +3531,16 @@ export function renderConfig(el) {
             </div>
             ${state.driveFileId ? `
               <div style="display:flex;gap:8px;">
-                <button class="btn btn-primary btn-sm" onclick="syncWithDrive().then(()=>showToast('Sincronizado!','success')).catch(()=>showToast('Erro ao sincronizar','error'))">
+                <button class="btn btn-primary btn-sm" data-action="drive-sync-now">
                   <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
                 </button>
-                <button class="btn btn-ghost btn-sm" onclick="pullFromDrive()">
+                <button class="btn btn-ghost btn-sm" data-action="pull-from-drive">
                   <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
                 </button>
-                <button class="btn btn-danger btn-sm" onclick="driveDisconnect()">Desconectar</button>
+                <button class="btn btn-danger btn-sm" data-action="drive-disconnect">Desconectar</button>
               </div>
             ` : `
-              <button class="btn btn-primary" onclick="openDriveModal()">
+              <button class="btn btn-primary" data-action="open-drive-modal">
                 <i class="fa fa-cloud"></i> Conectar ao Google Drive
               </button>
             `}
@@ -4311,9 +3556,9 @@ export function renderConfig(el) {
                 <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '🚫 Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
               </div>
               ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
-                <button class="btn btn-primary btn-sm" onclick="Notification.requestPermission().then(p=>{if(p==='granted')showToast('Notificações ativadas!','success');renderCurrentView()}).catch(e=>console.warn(e))">🔖 Ativar</button>
+                <button class="btn btn-primary btn-sm" data-action="request-notification-permission">🔖 Ativar</button>
               ` : Notification.permission === 'granted' ? `
-                <button class="btn btn-ghost btn-sm" onclick="new Notification('Estudo Organizado',{body:'Notificações funcionando!',icon:'📚'});showToast('Lembretes enviados!','success')">🔖 Testar</button>
+                <button class="btn btn-ghost btn-sm" data-action="test-notification">🔖 Testar</button>
               ` : ''}
             </div>
             <div class="config-row">
@@ -4321,7 +3566,7 @@ export function renderConfig(el) {
                 <div class="config-label">Modo Silencioso (Início)</div>
                 <div class="config-sub">A partir de qual horário silenciar:</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="0" max="23" value="${cfg.silentModeStart ?? 22}" onchange="updateConfig('silentModeStart', parseInt(this.value, 10))">
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="0" max="23" value="${cfg.silentModeStart ?? 22}" data-action="update-config" data-config-key="silentModeStart" data-value-type="number">
             </div>
             
             <div class="config-row">
@@ -4329,7 +3574,7 @@ export function renderConfig(el) {
                 <div class="config-label">Modo Silencioso (Fim)</div>
                 <div class="config-sub">Até qual horário silenciar:</div>
               </div>
-              <input type="number" class="form-control" style="width:80px;text-align:center;" min="0" max="23" value="${cfg.silentModeEnd ?? 8}" onchange="updateConfig('silentModeEnd', parseInt(this.value, 10))">
+              <input type="number" class="form-control" style="width:80px;text-align:center;" min="0" max="23" value="${cfg.silentModeEnd ?? 8}" data-action="update-config" data-config-key="silentModeEnd" data-value-type="number">
             </div>
           </div>
         </div>
@@ -4358,10 +3603,10 @@ export function renderConfig(el) {
             </div>
 
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-ghost" onclick="exportData()">📱 Exportar JSON</button>
-              <button class="btn btn-ghost" onclick="restoreBackupFromSelectedSource()">♻️ Restaurar backup selecionado</button>
-              <button class="btn btn-ghost btn-sm" onclick="archiveOldEvents(90)" title="Move eventos concluidos há mais de 90 dias para o arquivo">🙉 Arquivar antigos</button>
-              <button class="btn btn-danger btn-sm" onclick="clearAllData()">🙆 Limpar tudo</button>
+              <button class="btn btn-ghost" data-action="export-data">📱 Exportar JSON</button>
+              <button class="btn btn-ghost" data-action="restore-backup">♻️ Restaurar backup selecionado</button>
+              <button class="btn btn-ghost btn-sm" data-action="archive-old-events" data-days="90" title="Move eventos concluidos há mais de 90 dias para o arquivo">🙉 Arquivar antigos</button>
+              <button class="btn btn-danger btn-sm" data-action="clear-all-data">🙆 Limpar tudo</button>
             </div>
           </div>
         </div>
@@ -4711,7 +3956,7 @@ export function onSearch(query) {
   if (results.eventos.length) {
     html += `<div class="search-section-title">📅 Eventos</div>`;
     html += results.eventos.slice(0, 5).map(({ ev, disc }) => `
-      <div class="search-item" onclick="openEventDetail('${ev.id}');clearSearch()">
+      <div class="search-item" data-action="open-search-event" data-event-id="${ev.id}">
         <div class="search-item-icon">${disc ? disc.icone || '📚' : '📅'}</div>
         <div>
           <div class="search-item-label">${highlight(ev.titulo)}</div>
@@ -4723,7 +3968,7 @@ export function onSearch(query) {
   if (results.disciplinas.length) {
     html += `<div class="search-section-title">📖 Disciplinas</div>`;
     html += results.disciplinas.slice(0, 5).map(({ disc, edital }) => `
-      <div class="search-item" onclick="navigate('editais');clearSearch()">
+      <div class="search-item" data-action="navigate-clear-search" data-view="editais">
         <div class="search-item-icon">${disc.icone || '📖'}</div>
         <div>
           <div class="search-item-label">${highlight(disc.nome)}</div>
@@ -4735,7 +3980,7 @@ export function onSearch(query) {
   if (results.assuntos.length) {
     html += `<div class="search-section-title">📚 Assuntos</div>`;
     html += results.assuntos.slice(0, 5).map(({ ass, disc, edital }) => `
-      <div class="search-item" onclick="navigate('editais');clearSearch()">
+      <div class="search-item" data-action="navigate-clear-search" data-view="editais">
         <div class="search-item-icon">${disc.icone || '📚'}</div>
         <div>
           <div class="search-item-label">${highlight(ass.nome)}</div>
@@ -4747,7 +3992,7 @@ export function onSearch(query) {
   if (results.habitos.length) {
     html += `<div class="search-section-title">⚡ Hábitos</div>`;
     html += results.habitos.slice(0, 3).map(({ r, h }) => `
-      <div class="search-item" onclick="navigate('habitos');clearSearch()">
+      <div class="search-item" data-action="navigate-clear-search" data-view="habitos">
         <div class="search-item-icon">${h.icon}</div>
         <div>
           <div class="search-item-label">${highlight(r.descricao || h.label)}</div>
@@ -4906,7 +4151,7 @@ export function renderCiclo(el) {
         <div class="icon">🧭</div>
         <h4>Nenhum Planejamento de Estudos</h4>
         <p style="margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">Configure uma estratégia escolhendo entre o "Ciclo Contínuo de Estudos" ou a "Grade Semanal Fixa" para organizar seu tempo otimizadamente.</p>
-        <button class="btn btn-primary" onclick="window.openPlanejamentoWizard()"><i class="fa fa-play"></i> Criar Meu Planejamento</button>
+        <button class="btn btn-primary" data-action="open-planejamento-wizard"><i class="fa fa-play"></i> Criar Meu Planejamento</button>
       </div>
     `;
     return;
@@ -4996,19 +4241,19 @@ export function renderCiclo(el) {
             <div style="padding:16px; flex:1; display:flex; gap:16px; align-items:center;">
                <div style="flex:2;">
                  <div style="font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:4px; letter-spacing:1px; text-transform:uppercase;">Disciplina</div>
-                 <select class="form-control" onchange="window.updateSeqItem('${i}', 'discId', this.value)" style="width:100%; border:none; border-bottom:1px solid var(--accent); border-radius:0; background:transparent; padding:4px 0; color:var(--text-primary); outline:none;">
+                 <select class="form-control" data-action="update-seq-item" data-index="${i}" data-field="discId" style="width:100%; border:none; border-bottom:1px solid var(--accent); border-radius:0; background:transparent; padding:4px 0; color:var(--text-primary); outline:none;">
                    ${selHtml}
                  </select>
                </div>
                <div style="flex:1;">
                  <div style="font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:4px; letter-spacing:1px; text-transform:uppercase;">Minutos</div>
-                 <input type="number" class="form-control" value="${seq.minutosAlvo}" onchange="window.updateSeqItem('${i}', 'minutosAlvo', this.value)" style="width:100%; border:none; border-bottom:1px solid var(--accent); border-radius:0; background:transparent; padding:4px 0; color:var(--text-primary); outline:none;">
+                 <input type="number" class="form-control" value="${seq.minutosAlvo}" data-action="update-seq-item" data-index="${i}" data-field="minutosAlvo" style="width:100%; border:none; border-bottom:1px solid var(--accent); border-radius:0; background:transparent; padding:4px 0; color:var(--text-primary); outline:none;">
                </div>
                
                <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
                  <div style="display:flex; gap:8px;">
-                   <button class="btn btn-ghost btn-sm" onclick="window.dupSeqItem('${i}')" style="font-size:11px; padding:4px 8px; background:var(--card);">Duplicar</button>
-                   <button class="btn btn-ghost btn-sm" onclick="window.remSeqItem('${i}')" style="font-size:11px; padding:4px 8px; background:var(--card);">Remover</button>
+                   <button class="btn btn-ghost btn-sm" data-action="dup-seq-item" data-index="${i}" style="font-size:11px; padding:4px 8px; background:var(--card);">Duplicar</button>
+                   <button class="btn btn-ghost btn-sm" data-action="rem-seq-item" data-index="${i}" style="font-size:11px; padding:4px 8px; background:var(--card);">Remover</button>
                  </div>
                  <div style="font-size:11px; color:var(--text-muted); font-family:'DM Mono',monospace; opacity:0.8;">
                    <i class="fa fa-clock"></i> ${formatH(usedMins)} ${pct >= 100 ? '(Feito)' : ''}
@@ -5016,8 +4261,8 @@ export function renderCiclo(el) {
                </div>
                
                <div style="display:flex; flex-direction:column; align-items:center; justify-content:space-between; height:40px;">
-                 ${i > 0 ? `<i class="fa fa-caret-up" style="cursor:pointer; color:var(--text-muted); font-size:16px;" onclick="window.moveSeqItem('${i}', -1)"></i>` : '<div style="height:16px"></div>'}
-                 ${i < targetLoop.length - 1 ? `<i class="fa fa-caret-down" style="cursor:pointer; color:var(--text-muted); font-size:16px;" onclick="window.moveSeqItem('${i}', 1)"></i>` : '<div style="height:16px"></div>'}
+                 ${i > 0 ? `<i class="fa fa-caret-up" style="cursor:pointer; color:var(--text-muted); font-size:16px;" data-action="move-seq-item" data-index="${i}" data-dir="-1"></i>` : '<div style="height:16px"></div>'}
+                 ${i < targetLoop.length - 1 ? `<i class="fa fa-caret-down" style="cursor:pointer; color:var(--text-muted); font-size:16px;" data-action="move-seq-item" data-index="${i}" data-dir="1"></i>` : '<div style="height:16px"></div>'}
                </div>
                
             </div>
@@ -5029,7 +4274,7 @@ export function renderCiclo(el) {
             <div style="width:6px; background:${cor}; flex-shrink:0;"></div>
             <div style="padding:16px; flex:1;">
               <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                <div style="font-weight:600; font-size:15px; color:var(--text-primary); cursor:pointer;" title="Editar Nome do Evento" onclick="window.openCicloHistory('${seq.id}')">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+                <div style="font-weight:600; font-size:15px; color:var(--text-primary); cursor:pointer;" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
                 <div style="font-size:12px; color:var(--text-muted); font-family:'DM Mono',monospace; display:flex; align-items:center; gap:6px;">
                    <i class="fa fa-clock"></i> <span style="font-weight:700; color:var(--text-primary);">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
                 </div>
@@ -5041,9 +4286,9 @@ export function renderCiclo(el) {
               </div>
 
               <div class="ciclo-sequence-actions" style="display:flex; gap:16px; font-size:11px;">
-                <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.iniciarEtapaPlanejamento('${seq.id}')"><i class="fa fa-play"></i> Iniciar Estudo</span>
-                <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openAddEventModal()"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</span>
-                <span style="color:var(--text-muted); cursor:pointer; font-weight:600; transition:0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'" onclick="window.openCicloHistory('${seq.id}')"><i class="fa fa-history"></i> Ver Últimos Estudos</span>
+                <span class="ciclo-action-link" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Iniciar Estudo</span>
+                <span class="ciclo-action-link" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</span>
+                <span class="ciclo-action-link" data-action="open-ciclo-history" data-seq-id="${seq.id}"><i class="fa fa-history"></i> Ver Últimos Estudos</span>
               </div>
             </div>
           </div>
@@ -5054,10 +4299,10 @@ export function renderCiclo(el) {
     if (window._isEditingSequence) {
       sequenceHtml += `
          <div style="display:flex; justify-content:space-between; margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
-           <button class="btn btn-ghost" style="border:1px solid var(--accent); color:var(--accent);" onclick="window.addSeqItem()"><i class="fa fa-plus"></i> Adicionar Disciplina</button>
+           <button class="btn btn-ghost" style="border:1px solid var(--accent); color:var(--accent);" data-action="add-seq-item"><i class="fa fa-plus"></i> Adicionar Disciplina</button>
            <div style="display:flex; gap:12px;">
-              <button class="btn btn-ghost" onclick="window.cancelEditSeq()">Cancelar</button>
-              <button class="btn btn-primary" onclick="window.saveEditSeq()"><i class="fa fa-save"></i> Salvar Alterações</button>
+              <button class="btn btn-ghost" data-action="cancel-edit-seq">Cancelar</button>
+              <button class="btn btn-primary" data-action="save-edit-seq"><i class="fa fa-save"></i> Salvar Alterações</button>
            </div>
          </div>
       `;
@@ -5071,8 +4316,8 @@ export function renderCiclo(el) {
       <div class="ciclo-header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
         <h2 style="font-size:22px;font-weight:700;color:var(--text-primary);">Planejamento</h2>
         <div class="ciclo-header-buttons" style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="window.recomecarCiclo()" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
-          <button class="btn btn-ghost btn-sm" onclick="window.openPlanejamentoWizard()" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-edit"></i> Replanejar</button>
+          <button class="btn btn-ghost btn-sm" data-action="recomecar-ciclo" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
+          <button class="btn btn-ghost btn-sm" data-action="open-planejamento-wizard" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-edit"></i> Replanejar</button>
           <button class="btn btn-ghost btn-sm" data-action="remover-planejamento" style="background:var(--card); font-weight:600; color:var(--text-primary);"><i class="fa fa-trash"></i> Remover</button>
         </div>
       </div>
@@ -5106,7 +4351,7 @@ export function renderCiclo(el) {
                <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; text-transform:uppercase;">Sequência dos Estudos</div>
                <div class="ciclo-sequence-controls" style="display:flex; align-items:center; gap:16px;">
                  ${!window._isEditingSequence ? `
-                   <button class="btn btn-ghost btn-sm" onclick="window.toggleEditSeq()" style="color:var(--text-muted); font-size:11px; padding:4px 8px;"><i class="fa fa-pencil"></i> Editar Sequência</button>
+                   <button class="btn btn-ghost btn-sm" data-action="toggle-edit-seq" style="color:var(--text-muted); font-size:11px; padding:4px 8px;"><i class="fa fa-pencil"></i> Editar Sequência</button>
                  ` : ''}
                  <label style="cursor:pointer; display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:var(--text-muted);">
                    <input type="checkbox" data-action="toggle-ciclo-fin" ${window._hideConcluidosCiclo ? 'checked' : ''} style="cursor:pointer; accent-color:var(--accent); width:14px; height:14px;"> FINALIZADOS
@@ -5123,7 +4368,7 @@ export function renderCiclo(el) {
         <div class="card ciclo-side-panel" style="padding:24px; display:flex; flex-direction:column; max-height:calc(100vh - 100px); overflow:hidden;">
           <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
             <span>CICLO</span>
-            <button class="btn btn-ghost btn-sm" onclick="window.zerarCiclosCounter()" style="color:var(--text-muted); padding:4px 8px; font-size:11px;">
+            <button class="btn btn-ghost btn-sm" data-action="zerar-ciclos-counter" style="color:var(--text-muted); padding:4px 8px; font-size:11px;">
               <i class="fa fa-undo"></i> Zerar
             </button>
           </div>
@@ -5142,11 +4387,11 @@ export function renderCiclo(el) {
              <div class="ciclo-predict-dates" style="display:flex; gap:12px; margin-bottom:16px; flex-shrink:0;">
                 <div style="flex:1;">
                    <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA INICIAL</label>
-                   <input type="date" id="predict-start-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()" value="${plan.horarios?.dataInicial || ''}">
+                   <input type="date" id="predict-start-date" class="form-control" style="font-size:12px; padding:6px 10px;" data-action="calculate-cycle-predictions" value="${plan.horarios?.dataInicial || ''}">
                 </div>
                 <div style="flex:1;">
                    <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA FINAL</label>
-                   <input type="date" id="predict-end-date" class="form-control" style="font-size:12px; padding:6px 10px;" oninput="window.calculateCyclePredictions()" value="${plan.horarios?.dataFinal || ''}">
+                   <input type="date" id="predict-end-date" class="form-control" style="font-size:12px; padding:6px 10px;" data-action="calculate-cycle-predictions" value="${plan.horarios?.dataFinal || ''}">
                 </div>
              </div>
              <div id="predict-results-container" class="custom-scrollbar" style="display:none; flex-direction:column; gap:8px; flex:1; overflow-y:auto; padding-right:4px;">
@@ -5272,17 +4517,17 @@ export function renderCiclo(el) {
                 <div class="ciclo-item-header">
                   <div class="ciclo-item-title" style="display:flex; align-items:center; gap:8px;">
                     <div style="display:flex; flex-direction:column; gap:2px;">
-                      <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, -1)" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
-                      <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" onclick="window.moveCicloSeq(${i}, 1)" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
+                      <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" data-action="move-ciclo-seq" data-index="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
+                      <button class="icon-btn" style="padding:0px 4px; font-size:10px; height:16px; color:var(--text-muted);" data-action="move-ciclo-seq" data-index="${i}" data-dir="1" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
                     </div>
-                    <div style="cursor:pointer; display:flex; align-items:center; gap:6px;" onclick="window.openCicloHistory('${seq.id}')" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span style="text-decoration:underline;">${esc(d.disc.nome)}</span></div>
+                    <div style="cursor:pointer; display:flex; align-items:center; gap:6px;" data-action="open-ciclo-history" data-seq-id="${seq.id}" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span style="text-decoration:underline;">${esc(d.disc.nome)}</span></div>
                   </div>
-                  <div class="ciclo-item-meta" style="cursor:pointer; text-decoration:underline;" onclick="window.editCicloSeqHours(${i})" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
+                  <div class="ciclo-item-meta" style="cursor:pointer; text-decoration:underline;" data-action="edit-ciclo-seq-hours" data-index="${i}" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Etapa ${i + 1} da sequência global da semana</div>
                 <div style="margin-top:8px;">
                    ${!seq.concluido
-            ? `<button class="btn btn-primary btn-sm" onclick="window.iniciarEtapaPlanejamento('${seq.id}')"><i class="fa fa-play"></i> Estudar Agora</button>`
+            ? `<button class="btn btn-primary btn-sm" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Estudar Agora</button>`
             : `<span style="color:var(--green);font-size:12px;font-weight:600;"><i class="fa fa-check"></i> Etapa Concluída</span>`
           }
                 </div>
@@ -5296,7 +4541,7 @@ export function renderCiclo(el) {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
         <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);"><i class="fa fa-calendar-alt"></i> Sua Grade Semanal</h2>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="window.openPlanejamentoWizard()"><i class="fa fa-edit"></i> Editar Grade</button>
+          <button class="btn btn-ghost btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-edit"></i> Editar Grade</button>
           <button class="btn btn-danger btn-sm" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
         </div>
       </div>
@@ -5344,7 +4589,7 @@ window.openCicloHistory = function (seqId) {
   if (seqItem.concluido) {
     btnDesfazer = `
       <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
-        <button class="btn btn-ghost" style="color:var(--orange); border: 1px solid var(--border);" onclick="window.desfazerEtapa('${seqId}')">
+        <button class="btn btn-ghost" style="color:var(--orange); border: 1px solid var(--border);" data-action="desfazer-etapa" data-seq-id="${seqId}">
           <i class="fa fa-undo"></i> Desfazer 'Etapa Concluída' desta matéria
         </button>
       </div>
@@ -5372,7 +4617,7 @@ window.openCicloHistory = function (seqId) {
                 </div>
               </div>
               <div>
-                <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-ciclo-history'); window.openEventDetail('${ev.id}')"><i class="fa fa-edit"></i> Editar</button>
+                <button class="btn btn-ghost btn-sm" data-action="open-event-from-ciclo-history" data-event-id="${ev.id}"><i class="fa fa-edit"></i> Editar</button>
               </div>
             </div>
           `;

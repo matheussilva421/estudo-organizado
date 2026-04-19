@@ -65,11 +65,11 @@ export function updateDriveUI(status, label) {
         if (btn) btn.textContent = 'Sincronizar Agora';
         if (area) {
             area.innerHTML = `
-        <div style="background:var(--accent-light);color:var(--accent-dark);padding:12px;border-radius:8px;font-size:13px;margin-top:16px;">
+        <div class="drive-connected-message">
           <strong>✅ Conectado ao Google Drive</strong><br>
           Seus dados estão sendo salvos automaticamente na nuvem.
         </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;color:var(--red);" data-action="disconnect-drive">Desconectar</button>
+        <button class="btn btn-ghost btn-sm drive-disconnect-btn" data-action="disconnect-drive">Desconectar</button>
       `;
         }
     } else if (status === 'syncing') {
@@ -79,7 +79,7 @@ export function updateDriveUI(status, label) {
             btn.textContent = '\u231B Sincronizando...';
         }
         if (area) {
-            area.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:12px;border-radius:8px;font-size:13px;margin-top:16px;background:var(--bg-secondary);"><div class="spinner" style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;"></div><span>Sincronizando seus dados...</span></div>';
+            area.innerHTML = '<div class="drive-syncing-container"><div class="drive-syncing-spinner"></div><span>Sincronizando seus dados...</span></div>';
         }
     } else {
         sub.textContent = 'Clique para conectar';
