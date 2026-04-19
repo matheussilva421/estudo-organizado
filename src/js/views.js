@@ -2723,20 +2723,20 @@ window.renderBancaMatches = function () {
     const confBadgeColor = res.matchData.confidence === 'HIGH' ? 'var(--green)' : (res.matchData.confidence === 'MEDIUM' ? 'var(--yellow)' : 'var(--text-muted)');
 
     return `
-      <div style="display:grid; grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 45px 40px; gap:8px; border-bottom:1px solid var(--border); padding:10px 0; align-items:center;">
-                <div style="color:${stColor}; font-size:14px; text-align:center;"><i class="fa ${stIcon}"></i></div>
+      <div class="banca-match-row">
+                <div class="banca-match-priority-icon" style="color:${stColor};"><i class="fa ${stIcon}"></i></div>
                 <div>
-                   <div style="font-size:13px; font-weight:700; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${esc(res.assuntoNome)}">${esc(res.assuntoNome)}</div>
-                   <div style="font-size:11px; color:var(--text-muted);">${esc(res.discNome)}</div>
+                   <div class="banca-match-title">${esc(res.assuntoNome)}</div>
+                   <div class="banca-match-subtitle">${esc(res.discNome)}</div>
                 </div>
                 <div>
-                   <div style="font-size:12px; font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${res.matchData.matchedItem ? esc(res.matchData.matchedItem.nome) : 'Sem Incidencia'}">
-                       ${res.matchData.matchedItem ? esc(res.matchData.matchedItem.nome) : '<span style="color:var(--text-muted);"><i>Sem Incidência</i></span>'}
+                   <div class="banca-match-name" title="${res.matchData.matchedItem ? esc(res.matchData.matchedItem.nome) : 'Sem Incidencia'}">
+                       ${res.matchData.matchedItem ? esc(res.matchData.matchedItem.nome) : '<span class="text-muted"><i>Sem Incidência</i></span>'}
                    </div>
-                   <div style="font-size:10px; color:${confBadgeColor};">${res.matchData.reason} | Score: ${res.finalScore.toFixed(0)}</div>
+                   <div class="banca-match-score" style="color:${confBadgeColor};">${res.matchData.reason} | Score: ${res.finalScore.toFixed(0)}</div>
                 </div>
                 <div>
-                     <span class="event-tag" style="background:${stColor}; font-weight:900;">${res.priority}</span>
+                     <span class="event-tag banca-match-tag" style="background:${stColor};">${res.priority}</span>
                 </div>
                 <div>
                      <button class="btn btn-ghost btn-sm" title="Corrigir Erro Textual" data-action="open-match-corrector" data-assunto-nome="${esc(res.assuntoNome)}"><i class="fa fa-edit"></i></button>
@@ -2786,18 +2786,18 @@ window.openMatchCorrector = function (assuntoNome) {
   document.getElementById('modal-match-corrector-title').textContent = 'Corrigir Assunto';
   document.getElementById('modal-match-corrector-body').innerHTML = `
     <div class="form-group" >
-            <div style="margin-bottom:8px;font-size:13px;font-weight:700;">${esc(assuntoNome)}</div>
-            <label class="form-label" style="margin-top:16px;">Qual tema real da Banca equivale a esse tópico do Edital?</label>
-            <select id="corrector-select" class="form-control" style="max-width:350px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+            <div class="banca-corrector-label">${esc(assuntoNome)}</div>
+            <label class="form-label">Qual tema real da Banca equivale a esse tópico do Edital?</label>
+            <select id="corrector-select" class="form-control banca-corrector-select">
                 <option value="NONE">⚠️ Nenhuma Correspondência (Sem Incidência Real)</option>
                 ${optionsHtml}
             </select>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+            <div class="banca-corrector-hint">
                 Isto forçará um *Match 100% (HIGH)* daqui pra frente.
             </div>
         </div>
 
-    <div class="modal-footer" style="padding:16px 0 0;border-top:1px solid var(--border);margin-top:16px;display:flex;justify-content:flex-end;gap:8px;">
+    <div class="modal-footer-standard--padded">
       <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-match-corrector">Cancelar</button>
       <button class="btn btn-primary" data-action="save-match-correction" data-assunto-nome="${esc(assuntoNome)}">Forçar Correção</button>
     </div>

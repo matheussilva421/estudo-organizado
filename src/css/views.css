@@ -2154,3 +2154,74 @@
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* =============================================
+   Banca Corrector Modal
+   ============================================= */
+
+.banca-match-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 45px 40px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+  align-items: center;
+}
+
+.banca-match-priority-icon {
+  color: inherit;
+  font-size: 14px;
+  text-align: center;
+}
+
+.banca-match-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.banca-match-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.banca-match-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.banca-match-score {
+  font-size: 10px;
+  color: inherit;
+}
+
+.banca-match-tag {
+  background: inherit;
+  font-weight: 900;
+}
+
+.banca-corrector-label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.banca-corrector-select {
+  max-width: 350px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.banca-corrector-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
