@@ -43,9 +43,9 @@ export function getFilteredVertItems() {
 export function renderVertical(el) {
   el.innerHTML = `
     <!-- Filters row — full re-render only when filter chips change -->
-    <div class="vertical-toolbar" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-      <div class="vertical-toolbar-search" style="position:relative;flex:1;min-width:180px;">
-        <i class="fa fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px;"></i>
+    <div class="vertical-toolbar flex gap-sm mb-4 items-center" style="flex-wrap:wrap;">
+      <div class="vertical-toolbar-search relative" style="flex:1; min-width:180px;">
+        <i class="fa fa-search text-muted text-base absolute" style="left:10px; top:50%; transform:translateY(-50%);"></i>
         <input class="form-control" style="padding-left:32px;" id="vert-search" value="${esc(vertSearch)}"
           placeholder="Buscar assunto ou disciplina..."
           data-action="vert-search">
@@ -54,7 +54,7 @@ export function renderVertical(el) {
         <option value="">Todos os editais</option>
         ${state.editais.map(e => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
       </select>
-      <div class="filter-row vertical-toolbar-filters" style="margin:0;gap:4px;" role="group" aria-label="Filtro de status">
+      <div class="filter-row vertical-toolbar-filters gap-xs" style="margin:0;" role="group" aria-label="Filtro de status">
         ${['todos', 'pendentes', 'concluidos'].map(s => `
           <button type="button" class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" data-action="set-vert-filter-status" data-status="${s}" aria-pressed="${vertFilterStatus === s}">
             ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'Concluídos' }[s]}
@@ -63,7 +63,7 @@ export function renderVertical(el) {
     </div>
 
     <!-- isolated list container — only this gets re-rendered on search -->
-    <div id="vert-list-container" style="width:100%;display:block;"></div>
+    <div id="vert-list-container" class="w-full" style="display:block;"></div>
   `;
   renderVerticalList(document.getElementById('vert-list-container'));
 }
@@ -86,16 +86,16 @@ export function renderVerticalList(container) {
 
   // Card Progresso Global
   let html = `
-    <div class="card vertical-progress-card" style="margin-bottom:24px;padding:20px;border:none;height:auto;min-height:0;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;">
+    <div class="card vertical-progress-card mb-6" style="padding:20px; border:none; height:auto; min-height:0;">
+      <div class="flex justify-between mb-3" style="align-items:flex-end;">
         <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text-primary);letter-spacing:1px;margin-bottom:8px;">PROGRESSO NO EDITAL</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text-muted);">${concluidos} de ${total} tópicos concluídos</div>
+          <div class="text-base font-bold text-primary mb-2" style="letter-spacing:1px;">PROGRESSO NO EDITAL</div>
+          <div class="text-base font-semibold text-muted">${concluidos} de ${total} tópicos concluídos</div>
         </div>
-        <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${pct}<span style="font-size:16px;opacity:0.7;">%</span></div>
+        <div class="text-2xl font-extrabold text-primary leading-none">${pct}<span class="text-xl" style="opacity:0.7;">%</span></div>
       </div>
-      <div class="progress-track" style="height:14px;border-radius:10px;width:100%;overflow:hidden;padding:2px;">
-        <div class="progress-bar" style="width:${pct}%;transition:width 0.3s;border-radius:10px;"></div>
+      <div class="progress-track w-full" style="height:14px; border-radius:10px; overflow:hidden; padding:2px;">
+        <div class="progress-bar" style="width:${pct}%; transition:width 0.3s; border-radius:10px;"></div>
       </div>
     </div>
   `;
@@ -148,53 +148,53 @@ export function renderVerticalList(container) {
     const cor = dMap.disc.cor || dMap.edital.cor || 'var(--accent)';
 
     html += `
-      <div class="card vertical-disc-card" style="margin-bottom:12px;overflow:hidden;border:none;height:auto;min-height:0;">
+      <div class="card vertical-disc-card mb-3" style="overflow:hidden; border:none; height:auto; min-height:0;">
 
         <!-- HEADER DISCIPLINA -->
-        <div class="vertical-disc-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--card);cursor:pointer;" data-action="toggle-vert-disc" data-disc-id="${discId}">
-          <div class="vertical-disc-header-main" style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;color:var(--text-primary);min-width:0;">
+        <div class="vertical-disc-header flex-between" style="padding:12px 16px; background:var(--card); cursor:pointer;" data-action="toggle-vert-disc" data-disc-id="${discId}">
+          <div class="vertical-disc-header-main flex font-semibold text-primary items-center gap-md" style="font-size:15px; min-width:0;">
             <div style="width:5px;height:24px;background:${cor};border-radius:4px;"></div>
-            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(dMap.disc.nome)}">${esc(dMap.disc.nome)}</span>
+            <span class="text-ellipsis" title="${esc(dMap.disc.nome)}">${esc(dMap.disc.nome)}</span>
           </div>
 
-          <div class="vertical-disc-header-meta" style="display:flex;align-items:center;gap:16px;">
+          <div class="vertical-disc-header-meta flex items-center gap-lg">
             <!-- Stats Questões -->
-            <div class="vertical-disc-score" style="display:flex;align-items:center;border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:11px;font-weight:700;gap:12px;font-family:'DM Mono',monospace;background:transparent;">
-              <span style="color:var(--green);">${dCertas}</span>
-              <span style="color:var(--red);">${dErradas}</span>
-              <span style="color:var(--text-secondary);">${dTotalQ}</span>
+            <div class="vertical-disc-score flex text-sm font-bold text-mono items-center rounded-xl gap-md" style="border:1px solid var(--border); padding:2px 10px; background:transparent;">
+              <span class="text-green">${dCertas}</span>
+              <span class="text-red">${dErradas}</span>
+              <span class="text-secondary">${dTotalQ}</span>
               <span style="color:var(--bg);background:${dPctQ >= 70 ? 'var(--green)' : dPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)'};padding:2px 6px;border-radius:8px;">${dPctQ}</span>
             </div>
 
             <!-- Progress Bar Progresso -->
-            <div class="vertical-disc-progress" style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:4px;width:120px;">
-              <span style="font-size:10px;font-weight:800;color:var(--text-primary);min-width:24px;text-align:right;">${dPctConcluido}%</span>
-              <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+            <div class="vertical-disc-progress flex items-center gap-sm rounded-xl" style="background:var(--bg); padding:4px; width:120px;">
+              <span class="text-xs font-extrabold text-primary" style="min-width:24px; text-align:right;">${dPctConcluido}%</span>
+              <div class="flex-1" style="height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
                 <div style="height:100%;width:${dPctConcluido}%;background:${cor};border-radius:3px;"></div>
               </div>
             </div>
 
             <!-- Ações -->
-            <div class="vertical-disc-actions" style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
-              <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;height:auto;" data-action="add-novo-topico-vertical" data-edital-id="${dMap.edital.id}" data-disc-id="${discId}" title="Adicionar Tópico Manualmente">
+            <div class="vertical-disc-actions flex text-muted items-center gap-sm">
+              <button class="btn btn-ghost btn-sm text-xs" style="padding:2px 8px; height:auto;" data-action="add-novo-topico-vertical" data-edital-id="${dMap.edital.id}" data-disc-id="${discId}" title="Adicionar Tópico Manualmente">
                 <i class="fa fa-plus"></i> Assunto
               </button>
               <i class="fa fa-edit" data-action="open-disc-manager" data-edital-id="${dMap.edital.id}" data-disc-id="${discId}" title="Gerenciar Disciplina e Tópicos" style="cursor:pointer;margin-left:8px;"></i>
-              <i id="vert-disc-icon-${discId}" class="fa fa-chevron-down" style="width:16px;text-align:center;"></i>
+              <i id="vert-disc-icon-${discId}" class="fa fa-chevron-down text-center" style="width:16px;"></i>
             </div>
           </div>
         </div>
 
         <!-- LISTA DE TÓPICOS ANINHADA -->
-        <div id="vert-disc-body-${discId}" style="display:none;border-top:1px solid var(--border);padding:16px;">
+        <div id="vert-disc-body-${discId}" class="border-t" style="display:none; padding:16px;">
           <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center;">
+            <table class="w-full text-base text-center" style="border-collapse:collapse;">
               <thead>
-                <tr style="color:var(--text-primary);font-weight:600;border-bottom:1px solid var(--border);">
+                <tr class="text-primary font-semibold border-b">
                   <th style="padding:10px;text-align:left;">Tópicos</th>
-                  <th style="padding:10px;color:var(--green);"><i class="fa fa-check"></i></th>
-                  <th style="padding:10px;color:var(--red);"><i class="fa fa-times"></i></th>
-                  <th style="padding:10px;color:var(--text-muted);"><i class="fa fa-bullseye" title="Total de questões"></i></th>
+                  <th class="text-green" style="padding:10px;"><i class="fa fa-check"></i></th>
+                  <th class="text-red" style="padding:10px;"><i class="fa fa-times"></i></th>
+                  <th class="text-muted" style="padding:10px;"><i class="fa fa-bullseye" title="Total de questões"></i></th>
                   <th style="padding:10px;">%</th>
                   <th style="padding:10px;"><i class="fa fa-calendar-alt"></i></th>
                 </tr>
@@ -221,17 +221,17 @@ export function renderVerticalList(container) {
 
       html += `
                 <tr style="border-bottom:1px solid var(--bg);">
-                  <td style="padding:12px 10px;text-align:left;display:flex;align-items:center;gap:12px;">
+                  <td class="flex items-center gap-md" style="padding:12px 10px; text-align:left;">
                     <input type="checkbox" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);" ${ass.concluido ? 'checked' : ''} data-action="toggle-assunto" data-disc-id="${discId}" data-assunto-id="${ass.id}" />
                     <span style="color:${chColor};${decor}">${highlight(ass.nome).toUpperCase()}</span>
                   </td>
-                  <td style="padding:12px 10px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace;">${aCertas}</td>
-                  <td style="padding:12px 10px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace;">${aErradas}</td>
-                  <td style="padding:12px 10px;font-weight:700;color:var(--text-secondary);font-family:'DM Mono',monospace;">${aTotalQ}</td>
-                  <td style="padding:12px 10px;font-family:'DM Mono',monospace;">
-                    <div style="display:inline-block;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;background:${aTotalQ > 0 ? (aPctQ >= 70 ? 'var(--green)' : aPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)') : 'transparent'};color:${aTotalQ > 0 ? 'var(--bg)' : 'var(--text-muted)'};border:${aTotalQ > 0 ? 'none' : '1px solid var(--border)'};">${aTotalQ > 0 ? aPctQ : 0}</div>
+                  <td class="td-mono font-bold text-green">${aCertas}</td>
+                  <td class="td-mono font-bold text-red">${aErradas}</td>
+                  <td class="td-mono font-bold text-secondary">${aTotalQ}</td>
+                  <td class="td-mono">
+                    <div class="font-bold text-sm rounded-sm" style="display:inline-block; padding:2px 6px; background:${aTotalQ > 0 ? (aPctQ >= 70 ? 'var(--green)' : aPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)') : 'transparent'}; color:${aTotalQ > 0 ? 'var(--bg)' : 'var(--text-muted)'}; border:${aTotalQ > 0 ? 'none' : '1px solid var(--border)'};">${aTotalQ > 0 ? aPctQ : 0}</div>
                   </td>
-                  <td style="padding:12px 10px;color:var(--text-muted);font-size:12px;">${dataStr}</td>
+                  <td class="text-muted text-base" style="padding:12px 10px;">${dataStr}</td>
                 </tr>
       `;
     });
@@ -294,7 +294,7 @@ export function renderEditais(el) {
       <div class="empty-state" style="padding:80px 20px;">
         <div class="icon">📋</div>
         <h4>Nenhum edital cadastrado</h4>
-        <p style="margin-bottom:16px;">Crie seu edital com disciplinas e assuntos para organizar seus estudos.</p>
+        <p class="mb-4">Crie seu edital com disciplinas e assuntos para organizar seus estudos.</p>
         <button class="btn btn-primary" data-action="open-edital-modal"><i class="fa fa-plus"></i> Criar Edital</button>
       </div>
     ` : `
@@ -310,16 +310,16 @@ export function renderEditalTree(edital) {
   return `
     <div class="tree-edital" id="edital-${edital.id}">
       <div class="tree-edital-header" data-action="toggle-edital" data-edital-id="${edital.id}">
-        <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
-        <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
-        <span style="font-size:11px;opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
+        <span class="flex-shrink-0" style="width:10px; height:10px; border-radius:50%; background:${edital.cor || '#10b981'}; display:inline-block;"></span>
+        <span class="flex-1 text-lg font-bold">${esc(edital.nome)}</span>
+        <span class="text-sm" style="opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
         <button class="icon-btn" title="Adicionar Tópicos" data-action="navigate-with-ctx" data-view="vertical" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">📝</button>
         <button class="icon-btn" title="Analisador de Bancas" data-action="navigate-with-ctx" data-view="banca-analyzer" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">🧠</button>
         <button class="icon-btn" title="Editar" data-action="open-edital-modal" data-edital-id="${edital.id}">✏️</button>
         <button class="icon-btn" title="Excluir" data-action="delete-edital" data-edital-id="${edital.id}">🗑️</button>
-        <i class="fa fa-chevron-down" style="font-size:12px;opacity:0.7;"></i>
+        <i class="fa fa-chevron-down text-base" style="opacity:0.7;"></i>
       </div>
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:flex-end;">
+      <div class="flex border-b justify-end" style="padding:10px 16px;">
         <button class="btn btn-ghost btn-sm" data-action="open-disc-modal" data-edital-id="${edital.id}" style="margin-right:15px;margin-bottom:10px;">+ Disciplina</button>
       </div>
       <div id="edital-tree-${edital.id}">
@@ -374,7 +374,7 @@ export function renderEditalTree(edital) {
               </div>
             `;
   }).join('')}
-          ${(edital.disciplinas || []).length === 0 ? '<div style="color:var(--text-muted);font-style:italic;grid-column:1/-1;">Nenhuma disciplina</div>' : ''}
+          ${(edital.disciplinas || []).length === 0 ? '<div class="text-muted" style="font-style:italic; grid-column:1/-1;">Nenhuma disciplina</div>' : ''}
         </div>
       </div>
     </div>

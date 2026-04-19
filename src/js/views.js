@@ -24,6 +24,16 @@ export {
 export { renderDisciplinaDashboard };
 export {
   renderBancaAnalyzerModule,
+  renderBancaAnalyzerContent,
+  mudarEditalAnalisador,
+  filtrarViewPorDisciplina,
+  carregarAnaliseBanca,
+  excluirAnaliseBanca,
+  parseBancaText,
+  renderBancaMatches,
+  applyBancaRanking,
+  openMatchCorrector,
+  saveMatchCorrection,
   getAnalyzerCtx,
   setAnalyzerCtx
 } from './views/banca-view.js';
@@ -304,8 +314,8 @@ export function renderCalendar(el) {
       <div class="card-body">
         <div class="cal-header">
           <div class="cal-nav">
-            <button data-action="cal-navigate" data-dir="-1"><i class="fa fa-chevron-left"></i></button>
-            <button data-action="cal-navigate" data-dir="1"><i class="fa fa-chevron-right"></i></button>
+            <button aria-label="Mês anterior" data-action="cal-navigate" data-dir="-1"><i class="fa fa-chevron-left"></i></button>
+            <button aria-label="Próximo mês" data-action="cal-navigate" data-dir="1"><i class="fa fa-chevron-right"></i></button>
           </div>
           <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span class="cal-version-tag">v6.0</span></div>
           <button class="btn btn-ghost btn-sm" id="cal-today-btn" data-action="cal-today">Hoje</button>
@@ -2310,9 +2320,9 @@ export function openDiscManager(editaId, discId) {
         ` : ''}
       </div>
       <div class="sm-item-actions">
-        <button data-action="move-subject" data-disc-id="${disc.id}" data-idx="${idx}" data-dir="-1" title="Subir"><i class="fa fa-chevron-up"></i></button>
-        <button data-action="move-subject" data-disc-id="${disc.id}" data-idx="${idx}" data-dir="1" title="Descer"><i class="fa fa-chevron-down"></i></button>
-        <button data-action="delete-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}" title="Excluir"><i class="fa fa-trash"></i></button>
+        <button aria-label="Subir tópico" data-action="move-subject" data-disc-id="${disc.id}" data-idx="${idx}" data-dir="-1" title="Subir"><i class="fa fa-chevron-up"></i></button>
+        <button aria-label="Descer tópico" data-action="move-subject" data-disc-id="${disc.id}" data-idx="${idx}" data-dir="1" title="Descer"><i class="fa fa-chevron-down"></i></button>
+        <button aria-label="Excluir tópico" data-action="delete-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
     </div>
       `).join('') || '<div class="sm-empty-state">Nenhum tópico no Edital.</div>';
@@ -2335,7 +2345,7 @@ export function openDiscManager(editaId, discId) {
         ` : '<div class="sm-linked-info sm-linked-info--empty">Não conectada a assunto do edital.</div>'}
       </div>
       <div class="sm-item-actions">
-         <button data-action="delete-aula" data-disc-id="${disc.id}" data-aula-id="${aula.id}" title="Excluir"><i class="fa fa-trash"></i></button>
+         <button aria-label="Excluir aula" data-action="delete-aula" data-disc-id="${disc.id}" data-aula-id="${aula.id}" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
     </div>
       `).join('') || '<div class="sm-empty-state">Nenhuma Aula adicionada.</div>';
@@ -2550,472 +2560,6 @@ window.runLessonMapperUI = function (editaId, discId) {
     openDiscManager(editingSubjectCtx.editaId, discId);
   }, { label: 'Rodar Auto-Link', title: 'Mapeador ML' });
 };
-
-
-// =============================================
-// MÓDULO PREDITIVO DE BANCA E RELEVÂNCIA (WAVE 33)
-// =============================================
-import { applyRankingToEdital, commitEditalOrdering, revertEditalOrdering } from './relevance.js?v=8.3';
-
-let analyzerCtx = { editaId: null, parsedHotTopics: [], tempMatchResults: [] };
-
-
-window.mudarEditalAnalisador = function (editaId) {
-  analyzerCtx.editaId = editaId;
-  window._renderBancaAnalyzerContent(document.getElementById('main-content'));
-};
-
-window.filtrarViewPorDisciplina = function (discId) {
-  // Option selected changed - do we automatically map the results?
-  // It's good practice to try matching the already stored topics from DB
-  const hotTopics = state.bancaRelevance?.hotTopics || [];
-  const hasTopics = hotTopics.some(ht => ht.disciplinaId === discId);
-
-  if (hasTopics) {
-    analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
-    window.renderBancaMatches();
-  } else {
-    analyzerCtx.tempMatchResults = [];
-    window.renderBancaMatches();
-  }
-};
-
-window.carregarAnaliseBanca = function (discId) {
-  const selectEl = document.getElementById('banca-disc-select');
-  if (selectEl) selectEl.value = discId;
-
-  const hotTopics = state.bancaRelevance?.hotTopics || [];
-  const topicsForDisc = hotTopics.filter(ht => ht.disciplinaId === discId);
-
-  if (topicsForDisc.length > 0) {
-    topicsForDisc.sort((a, b) => {
-      if (a.rank && b.rank) return a.rank - b.rank;
-      if (a.weight && b.weight) return b.weight - a.weight;
-      return 0;
-    });
-
-    const textStr = topicsForDisc.map(ht => {
-      let wStr = ht.weight ? ` (${ht.weight} %)` : '';
-      return `${ht.rank ? ht.rank + '.' : '-'} ${ht.nome}${wStr} `;
-    }).join('\n');
-
-    const textarea = document.getElementById('banca-input-text');
-    if (textarea) textarea.value = textStr;
-  }
-
-  window.filtrarViewPorDisciplina(discId);
-};
-
-window.excluirAnaliseBanca = function (discId) {
-  const edital = state.editais.find(e => e.id === analyzerCtx.editaId);
-  const discName = edital?.disciplinas?.find(d => d.id === discId)?.nome || 'esta disciplina';
-
-  showConfirm(`Tem certeza que deseja apagar a análise preditiva salva de "${discName}" ?\nOs Hot Topics importados serão removidos.`, () => {
-    state.bancaRelevance.hotTopics = state.bancaRelevance.hotTopics.filter(ht => ht.disciplinaId !== discId);
-
-    // Wave 36 - Limpeza do Edital.
-    if (analyzerCtx.editaId) {
-      revertEditalOrdering(analyzerCtx.editaId, discId);
-    } else {
-      scheduleSave();
-    }
-
-    // reset selection if needed
-    const selectEl = document.getElementById('banca-disc-select');
-    if (selectEl && selectEl.value === discId) {
-      selectEl.value = "";
-      const textEl = document.getElementById('banca-input-text');
-      if (textEl) textEl.value = "";
-      analyzerCtx.tempMatchResults = [];
-    }
-
-    window._renderBancaAnalyzerContent(document.getElementById('main-content'));
-    showToast('Análise excluída e Assuntos Reordenados para o Default.', 'success');
-  }, { title: 'Excluir Análise', danger: true });
-};
-
-window.parseBancaText = function () {
-  const discId = document.getElementById('banca-disc-select').value;
-  if (!discId) { showToast('Selecione uma matéria no campo acima antes de processar.', 'error'); return; }
-
-  const rawArgs = document.getElementById('banca-input-text').value;
-  if (!rawArgs.trim()) { showToast('Nenhum texto informado.', 'error'); return; }
-
-  const lines = rawArgs.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 2);
-  let parsedRows = [];
-
-  // Expressões regulares para achar padrão "1. Assunto" ou "Assunto (25%)"
-  lines.forEach((line, idx) => {
-    let weight = undefined;
-    let extName = line;
-
-    // Limpa numerações padrão como "1.", "1 -", "1)", etc, e assume Rank pelo index
-    const rankMatch = extName.match(/^(\d+)[\.\-\)\–\—]\s+(.*)/);
-    if (rankMatch) {
-      extName = rankMatch[2];
-    }
-
-    // Procura por % ou "Alta/Média/Baixa"
-    const percMatch = extName.match(/(.*?)(?:(?:\s*\()|\s*[\-\–\—])?\s*(\d+(?:[.,]\d+)?)\s*%(?:\))?/);
-    if (percMatch && percMatch[2]) {
-      extName = percMatch[1].trim();
-      weight = parseFloat(percMatch[2].replace(',', '.')); // de 0 a 100
-    } else {
-      // Tenta extrair Level
-      if (extName.toUpperCase().includes('ALTA')) weight = 100;
-      else if (extName.toUpperCase().match(/\bM[EÉ]DIA\b/)) weight = 60;
-      else if (extName.toUpperCase().includes('BAIXA')) weight = 30;
-    }
-
-    parsedRows.push({
-      id: uid(),
-      nome: extName.replace(/[\*\-\–\—•]/g, '').trim(),
-      rank: idx + 1, // Se for sequencial, aproveita
-      weight: weight,
-      disciplinaId: discId
-    });
-  });
-
-  // Mantém o histórico filtrando a disciplina selecionada e apendando os novos rows
-  let existingTopics = state.bancaRelevance && state.bancaRelevance.hotTopics ? state.bancaRelevance.hotTopics : [];
-  existingTopics = existingTopics.filter(ht => ht.disciplinaId !== discId);
-
-  if (!state.bancaRelevance) state.bancaRelevance = {};
-  state.bancaRelevance.hotTopics = existingTopics.concat(parsedRows);
-  scheduleSave();
-
-  // Atualiza a opção no select como Processada (Checkmark)
-  const selectOpt = document.querySelector(`#banca-disc-select option[value="${discId}"]`);
-  if (selectOpt && !selectOpt.text.startsWith('✅')) {
-    selectOpt.text = selectOpt.text.replace('⚪', '✅');
-  }
-  document.getElementById('banca-input-text').value = '';
-
-  // Roda a Engine Completa de Match para a disciplina específica para simulação na View
-  analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
-  window.renderBancaMatches();
-  showToast('Matéria processada com sucesso!', 'success');
-};
-
-window.renderBancaMatches = function () {
-  const container = document.getElementById('banca-match-results');
-  const emptyView = document.getElementById('banca-match-empty');
-  const applyBtn = document.getElementById('banca-apply-btn');
-  const statsDiv = document.getElementById('banca-stats');
-
-  if (!analyzerCtx.tempMatchResults || analyzerCtx.tempMatchResults.length === 0) {
-    container.style.display = 'none';
-    applyBtn.style.display = 'none';
-    emptyView.style.display = 'flex';
-    statsDiv.textContent = 'Aguardando Input...';
-    return;
-  }
-
-  let p1c = 0, p2c = 0;
-
-  const rows = analyzerCtx.tempMatchResults.map(res => {
-    if (res.priority === 'P1') p1c++;
-    if (res.priority === 'P2') p2c++;
-
-    const stIcon = res.priority === 'P1' ? 'fa-fire' : (res.priority === 'P2' ? 'fa-bolt' : 'fa-check');
-    const stColor = res.priority === 'P1' ? 'var(--red)' : (res.priority === 'P2' ? 'var(--orange)' : 'var(--text-muted)');
-
-    const confBadgeColor = res.matchData.confidence === 'HIGH' ? 'var(--green)' : (res.matchData.confidence === 'MEDIUM' ? 'var(--yellow)' : 'var(--text-muted)');
-
-    return `
-      <div class="banca-match-row">
-                <div class="banca-match-priority-icon" style="color:${stColor};"><i class="fa ${stIcon}"></i></div>
-                <div>
-                   <div class="banca-match-title">${esc(res.assuntoNome)}</div>
-                   <div class="banca-match-subtitle">${esc(res.discNome)}</div>
-                </div>
-                <div>
-                   <div class="banca-match-name" title="${res.matchData.matchedItem ? esc(res.matchData.matchedItem.nome) : 'Sem Incidencia'}">
-                       ${res.matchData.matchedItem ? esc(res.matchData.matchedItem.nome) : '<span class="text-muted"><i>Sem Incidência</i></span>'}
-                   </div>
-                   <div class="banca-match-score" style="color:${confBadgeColor};">${res.matchData.reason} | Score: ${res.finalScore.toFixed(0)}</div>
-                </div>
-                <div>
-                     <span class="event-tag banca-match-tag" style="background:${stColor};">${res.priority}</span>
-                </div>
-                <div>
-                     <button class="btn btn-ghost btn-sm" title="Corrigir Erro Textual" data-action="open-match-corrector" data-assunto-nome="${esc(res.assuntoNome)}"><i class="fa fa-edit"></i></button>
-                </div>
-            </div>
-      `;
-  });
-
-  emptyView.style.display = 'none';
-  container.innerHTML = `
-      <div class="dash-label" style = "margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:8px; display:flex; justify-content:space-between;" >
-           <span>Matéria Processada (Assuntos do Edital local)</span>
-           <span>Prioridade Reordenada</span>
-        </div>
-      ${rows.join('')}
-    `;
-
-  container.style.display = 'block';
-  applyBtn.style.display = 'inline-block';
-  statsDiv.textContent = `P1: ${p1c} incríveis | P2: ${p2c} de suporte`;
-  showToast('Match Processado! Revise a lista antes de aplicar.', 'success');
-};
-
-window.applyBancaRanking = function () {
-  if (commitEditalOrdering(analyzerCtx.editaId, analyzerCtx.tempMatchResults)) {
-    showToast('Prioridades P1/P2/P3 gravadas na Memória Principal!', 'success');
-  } else {
-    showToast('Falha crítica ao gravar novo Edital na Store', 'error');
-  }
-}
-
-window.openMatchCorrector = function (assuntoNome) {
-  let hotTopics = state.bancaRelevance?.hotTopics || [];
-
-  // Limpeza de cache de string longa corrompida do commit passado (glitch cleanup)
-  const lenOriginal = hotTopics.length;
-  hotTopics = hotTopics.filter(ht => ht.nome.length < 150);
-  if (hotTopics.length !== lenOriginal) {
-    state.bancaRelevance.hotTopics = hotTopics;
-    scheduleSave();
-  }
-
-  // Lista as opções da banca detectada para o usuário "ligar os pontos"
-  const optionsHtml = hotTopics.map(ht => `<option value = "${ht.id}" style = "width:100%;max-width:350px;" > ${esc(ht.nome)} (Rank: ${ht.rank || ht.weight
-    })</option> `).join('');
-
-  document.getElementById('modal-match-corrector-title').textContent = 'Corrigir Assunto';
-  document.getElementById('modal-match-corrector-body').innerHTML = `
-    <div class="form-group" >
-            <div class="banca-corrector-label">${esc(assuntoNome)}</div>
-            <label class="form-label">Qual tema real da Banca equivale a esse tópico do Edital?</label>
-            <select id="corrector-select" class="form-control banca-corrector-select">
-                <option value="NONE">⚠️ Nenhuma Correspondência (Sem Incidência Real)</option>
-                ${optionsHtml}
-            </select>
-            <div class="banca-corrector-hint">
-                Isto forçará um *Match 100% (HIGH)* daqui pra frente.
-            </div>
-        </div>
-
-    <div class="modal-footer-standard--padded">
-      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-match-corrector">Cancelar</button>
-      <button class="btn btn-primary" data-action="save-match-correction" data-assunto-nome="${esc(assuntoNome)}">Forçar Correção</button>
-    </div>
-  `;
-  openModal('modal-match-corrector');
-}
-
-window.saveMatchCorrection = function (assuntoOrigemRaw) {
-  const overrideId = document.getElementById('corrector-select').value;
-  // Salva o mapping
-  if (!state.bancaRelevance) state.bancaRelevance = {};
-  if (!state.bancaRelevance.userMappings) state.bancaRelevance.userMappings = {};
-
-  state.bancaRelevance.userMappings[assuntoOrigemRaw] = overrideId;
-  scheduleSave();
-
-  closeModal('modal-match-corrector');
-  showToast('Match forçado com sucesso!', 'success');
-
-  // Reprocessa
-  if (analyzerCtx.parsedHotTopics || analyzerCtx.tempMatchResults) {
-    const discId = document.getElementById('banca-disc-select').value;
-    if (discId) {
-      analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
-      window.renderBancaMatches();
-    }
-  }
-}
-
-// Bug 1 Fix: Dedicated function for adding topics from Verticalizado view
-// The registro-sessao addNovoTopico() reads from DOM (#reg-disciplina) which doesn't exist here
-export function addNovoTopicoVertical(editaId, discId) {
-  const entry = getDisc(discId);
-  if (!entry) { showToast('Disciplina não encontrada', 'error'); return; }
-
-  document.getElementById('modal-prompt-title').textContent = 'Novo Tópico';
-  document.getElementById('modal-prompt-body').innerHTML = `
-    <div class="config-sub">
-      Adicionar tópico em <strong>${esc(entry.disc.nome)}</strong>
-    </div>
-    <input type="text" id="prompt-input-topico" class="form-control" placeholder="Nome do novo tópico..." autofocus>
-  `;
-
-  const saveBtn = document.getElementById('modal-prompt-save');
-  saveBtn.onclick = () => {
-    const nome = document.getElementById('prompt-input-topico')?.value.trim();
-    if (!nome) { showToast('Informe o nome do tópico', 'error'); return; }
-
-    entry.disc.assuntos.push({
-      id: uid(),
-      nome,
-      concluido: false,
-      dataConclusao: null,
-      revisoesFetas: []
-    });
-    scheduleSave();
-    closeModal('modal-prompt');
-    renderCurrentView();
-    showToast(`Tópico "${nome}" adicionado!`, 'success');
-  };
-
-  openModal('modal-prompt');
-  setTimeout(() => document.getElementById('prompt-input-topico')?.focus(), 100);
-}
-
-export function finishInlineEdit(discId, assId, newName, el) {
-  newName = newName.trim();
-  const entry = getDisc(discId);
-  if (entry && newName) {
-    const ass = entry.disc.assuntos.find(a => a.id === assId);
-    if (ass) {
-      ass.nome = newName;
-      scheduleSave();
-    }
-  }
-  if (editingSubjectCtx && editingSubjectCtx.discId === discId) {
-    openDiscManager(editingSubjectCtx.editaId, discId);
-    renderCurrentView();
-  }
-}
-
-export function moveSubject(discId, idx, dir) {
-  const entry = getDisc(discId);
-  if (!entry) return;
-  const assuntos = entry.disc.assuntos;
-  if (idx + dir < 0 || idx + dir >= assuntos.length) return;
-
-  const temp = assuntos[idx];
-  assuntos[idx] = assuntos[idx + dir];
-  assuntos[idx + dir] = temp;
-
-  scheduleSave();
-  if (editingSubjectCtx && editingSubjectCtx.discId === discId) {
-    openDiscManager(editingSubjectCtx.editaId, discId);
-    renderCurrentView();
-  }
-}
-
-export function saveDiscManager(editaId, discId) {
-  const entry = getDisc(discId);
-  if (!entry) return;
-
-  const nome = document.getElementById('dm-nome').value.trim();
-  const cor = document.getElementById('dm-cor-picker').value;
-
-  if (nome) entry.disc.nome = nome;
-  if (cor) entry.disc.cor = cor;
-
-  scheduleSave();
-  closeModal('modal-disc-manager');
-  renderCurrentView();
-  showToast('Disciplina atualizada!', 'success');
-}
-
-export function addAssunto(discId) {
-  const input = document.getElementById('new-assunto-nome');
-  const nome = input ? input.value.trim() : '';
-  if (!nome) return;
-
-  const entry = getDisc(discId);
-  if (!entry) return;
-
-  // Normalize and parse: handle numbered topics pasted on a single line, remove prefixes
-  const normalized = nome
-    .replace(/\r/g, '')
-    .replace(/\u00A0/g, ' ')
-    .replace(/([^\n])\s+(\d+(?:\.\d+)*[.)-]?\s+(?=[A-Za-z\u00C0-\u00FF]))/g, '$1\n$2');
-
-  const lines = normalized.split('\n')
-    .map(s => s.trim())
-    .map(s => s.replace(/^(\d+(?:\.\d+)*[.)-]?|[a-z][.)-]?|[IVXLCDM]+\s*[.)-]?|[-\u2022\u2013\u2014])\s+/i, ''))
-    .filter(s => s.length > 0);
-  let added = 0;
-  lines.forEach(line => {
-    if (!entry.disc.assuntos.find(a => a.nome === line)) {
-      entry.disc.assuntos.push({ id: uid(), nome: line, concluido: false, dataConclusao: null, revisoesFetas: [] });
-      added++;
-    }
-  });
-
-  if (added > 0) {
-    scheduleSave();
-    showToast(`${added} tópico(s) adicionado(s)!`, 'success');
-  }
-  if (editingSubjectCtx) {
-    openDiscManager(editingSubjectCtx.editaId, discId);
-  }
-}
-
-export function openSubjectAddModal(editaId, discId) {
-  editingSubjectCtx = { editaId, discId };
-  document.getElementById('modal-subject-add-body').innerHTML = `
-    <div class="form-group" >
-      <label class="form-label text-xs text-uppercase text-muted font-semibold">Conteúdo</label>
-      <textarea id="bulk-subject-text" class="form-control form-control--mono" rows="8" placeholder="Ex:\n1. Configuração do Estado\n2. Direitos Fundamentais\n3. ..."></textarea>
-      <div class="config-hint">
-        Dica: Você pode fazer quebra de linha com Enter para adicionar mais de um tópico. O sistema limpará numerações como "1.", "1.1", "-", etc.
-      </div>
-    </div>
-    <div class="modal-footer-standard--padded">
-      <label class="flex cluster-sm cursor-pointer">
-        <input type="checkbox" id="bulk-save-continue"> Salvar e continuar
-      </label>
-      <div class="flex gap-sm">
-        <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-subject-add">Cancelar</button>
-        <button class="btn btn-primary" data-action="save-bulk-subjects">Adicionar</button>
-      </div>
-    </div>
-  `;
-  openModal('modal-subject-add');
-  setTimeout(() => document.getElementById('bulk-subject-text').focus(), 100);
-}
-
-export function saveBulkSubjects() {
-  const text = document.getElementById('bulk-subject-text').value;
-  if (!text.trim()) { closeModal('modal-subject-add'); return; }
-
-  const { discId } = editingSubjectCtx;
-  const entry = getDisc(discId);
-  if (!entry) return;
-
-  // Parse lines, including pasted edital blocks that come in a single paragraph
-  // Ex: "1 Conceito... 1.1 Regime... 2 Administração..."
-  const normalized = text
-    .replace(/\r/g, '')
-    .replace(/\u00A0/g, ' ')
-    .trim()
-    // When multiple numbered topics are pasted on one line, force a line break before each index.
-    .replace(/([^\n])\s+(\d+(?:\.\d+)*[.)-]?\s+(?=[A-Za-z\u00C0-\u00FF]))/g, '$1\n$2');
-
-  const lines = normalized.split('\n')
-    .map(s => s.trim())
-    // Matches: "1 ", "1. ", "1.1 ", "1) ", "a) ", "III - ", "- ", "• "
-    .map(s => s.replace(/^(\d+(?:\.\d+)*[.)-]?|[a-z][.)-]?|[IVXLCDM]+\s*[.)-]?|[-\u2022\u2013\u2014])\s+/i, ''))
-    .filter(s => s.length > 0);
-
-  let added = 0;
-  lines.forEach(nome => {
-    if (!entry.disc.assuntos.find(a => a.nome === nome)) {
-      entry.disc.assuntos.push({ id: uid(), nome, concluido: false, dataConclusao: null, revisoesFetas: [] });
-      added++;
-    }
-  });
-
-  scheduleSave();
-  renderCurrentView();
-
-  const keepOpen = document.getElementById('bulk-save-continue').checked;
-  if (keepOpen) {
-    document.getElementById('bulk-subject-text').value = '';
-    document.getElementById('bulk-subject-text').focus();
-    showToast(`${added} tópico(s) adicionado(s)!`, 'success');
-  } else {
-    closeModal('modal-subject-add');
-    openDiscManager(editingSubjectCtx.editaId, discId);
-    showToast(`${added} tópico(s) adicionado(s)!`, 'success');
-  }
-}
 
 // =============================================
 // ADD EVENT MODAL
@@ -4373,7 +3917,7 @@ export function renderCiclo(el) {
               </div>
 
               <div class="seq-progress-bar">
-                <div class="seq-progress-fill" style="position:absolute; top:0; left:0; height:100%; width:${Math.min(pct, 100)}%; background:${cor}; border-radius:8px; opacity:0.6;"></div>
+                <div class="seq-progress-fill absolute h-full rounded-lg" style="top:0; left:0; width:${Math.min(pct, 100)}%; background:${cor}; opacity:0.6;"></div>
                 <div class="seq-progress-text">${pctStr}%</div>
               </div>
 
@@ -4609,8 +4153,8 @@ export function renderCiclo(el) {
                 <div class="ciclo-item-header grade-seq-header">
                   <div class="ciclo-item-title grade-seq-title-link">
                     <div class="grade-seq-controls">
-                      <button class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
-                      <button class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="1" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
+                      <button aria-label="Subir" class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
+                      <button aria-label="Descer" class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="1" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
                     </div>
                     <div data-action="open-ciclo-history" data-seq-id="${seq.id}" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span class="grade-seq-title">${esc(d.disc.nome)}</span></div>
                   </div>

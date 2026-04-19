@@ -74,8 +74,8 @@ export function renderCalendar(el) {
       <div class="card-body">
         <div class="cal-header">
           <div class="cal-nav">
-            <button data-action="cal-navigate" data-dir="-1"><i class="fa fa-chevron-left"></i></button>
-            <button data-action="cal-navigate" data-dir="1"><i class="fa fa-chevron-right"></i></button>
+            <button aria-label="Mês anterior" data-action="cal-navigate" data-dir="-1"><i class="fa fa-chevron-left"></i></button>
+            <button aria-label="Próximo mês" data-action="cal-navigate" data-dir="1"><i class="fa fa-chevron-right"></i></button>
           </div>
           <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span class="cal-version-tag">v6.0</span></div>
           <button class="btn btn-ghost btn-sm" id="cal-today-btn" data-action="cal-today">Hoje</button>

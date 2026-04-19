@@ -431,7 +431,7 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s;
   flex-shrink: 0;
 }
 
@@ -484,7 +484,7 @@ body {
   padding: 8px;
   cursor: pointer;
   color: rgba(255, 255, 255, 0.4);
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s;
   font-size: 14px;
 }
 
@@ -1522,10 +1522,10 @@ button.cal-event-chip:focus-visible {
   color: var(--text-primary);
   background: var(--card);
   transition: border-color 0.15s;
-  outline: none;
 }
 
 .form-control:focus {
+  outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
@@ -1665,32 +1665,6 @@ select.form-control {
 .badge-gray {
   background: #f1f5f9;
   color: var(--text-secondary);
-}
-
-/* EMPTY STATE */
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--text-muted);
-}
-
-.empty-state .icon {
-  font-size: 40px;
-  opacity: 0.4;
-}
-
-.empty-state h4 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-secondary);
-}
-
-.empty-state p {
-  font-size: 13px;
-  max-width: 64ch;
-  margin: 0;
-  line-height: 1.5;
 }
 
 /* DISCIPLINE COLOR CIRCLES */
@@ -2367,6 +2341,7 @@ button.filter-chip:focus-visible {
 }
 
 .search-input:focus {
+  outline: none;
   border-color: var(--accent);
   background: var(--surface);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);

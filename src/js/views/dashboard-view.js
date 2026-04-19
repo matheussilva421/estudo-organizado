@@ -41,18 +41,18 @@ export function renderDisciplinaDashboard(edital, disc) {
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;">
         <div class="card p-16">
           <div class="dash-label">TEMPO DE ESTUDO</div>
-          <div style="font-size:24px;font-weight:800;color:var(--text-primary);margin-top:12px;font-family:'DM Mono',monospace;">
+          <div class="stat-value mt-4">
             ${formatTime(tempoTotal)}
           </div>
         </div>
 
         <div class="card p-16">
           <div class="dash-label">QUESTÕES (ACERTOS / TOTAL)</div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin-top:12px;">
-            <div style="font-size:24px;font-weight:800;color:var(--text-primary);font-family:'DM Mono',monospace;">
+          <div class="cluster-sm mt-4" style="align-items:baseline;">
+            <div class="stat-value">
               ${qCertas} / ${totalQuestoes}
             </div>
-            <div style="font-size:16px;font-weight:700;color:${percAcertos >= 70 ? 'var(--green)' : percAcertos >= 50 ? 'var(--accent)' : 'var(--red)'};">
+            <div class="text-xl font-bold" style="color:${percAcertos >= 70 ? 'var(--green)' : percAcertos >= 50 ? 'var(--accent)' : 'var(--red)'};">
               ${percAcertos}%
             </div>
           </div>
@@ -60,11 +60,11 @@ export function renderDisciplinaDashboard(edital, disc) {
 
         <div class="card p-16">
           <div class="dash-label">PROGRESSO DO EDITAL</div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin-top:12px;">
-            <div style="font-size:24px;font-weight:800;color:var(--text-primary);font-family:'DM Mono',monospace;">
+          <div class="cluster-sm mt-4" style="align-items:baseline;">
+            <div class="stat-value">
               ${aulasEstudadas} / ${totalAulas}
             </div>
-            <div style="font-size:16px;font-weight:700;color:var(--accent);">
+            <div class="text-xl font-bold text-accent">
               ${percConcluido}%
             </div>
           </div>
@@ -72,7 +72,7 @@ export function renderDisciplinaDashboard(edital, disc) {
 
         <div class="card p-16">
           <div class="dash-label">PÁGINAS LIDAS</div>
-          <div style="font-size:24px;font-weight:800;color:var(--text-primary);margin-top:12px;font-family:'DM Mono',monospace;">
+          <div class="stat-value mt-4">
             ${pagLidas}
           </div>
         </div>
@@ -82,10 +82,10 @@ export function renderDisciplinaDashboard(edital, disc) {
       <div class="disc-dashboard-main-grid">
 
         <!-- HISTÓRICO DE SESSÕES (ESQUERDA) -->
-        <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="card p-16 flex-col" style="min-height:400px; max-height:500px;">
+          <div class="flex-between mb-6">
             <div class="dash-label">HISTÓRICO DE SESSÕES (ÚLTIMAS 50)</div>
-            <button class="btn btn-sm" style="font-size:12px;padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);" data-action="open-add-past-session" data-disc-id="${disc.id}">
+            <button class="btn btn-sm rounded-sm" style="font-size:12px; padding:4px 8px; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-secondary);" data-action="open-add-past-session" data-disc-id="${disc.id}">
               <i class="fa fa-plus"></i> Registrar
             </button>
           </div>
@@ -93,9 +93,9 @@ export function renderDisciplinaDashboard(edital, disc) {
         </div>
 
         <!-- CONTEÚDO DINÂMICO (DIREITA) -->
-        <div class="card p-16" style="min-height:400px;display:flex;flex-direction:column;max-height:500px;">
+        <div class="card p-16 flex-col" style="min-height:400px; max-height:500px;">
           <!-- Tabs Navigation -->
-          <div role="tablist" aria-label="Conteudo da disciplina" style="display:flex; gap:16px; border-bottom:1px solid var(--border); margin-bottom:16px; align-items:flex-end;">
+          <div role="tablist" aria-label="Conteudo da disciplina" class="border-b mb-6 gap-lg" style="display:flex; align-items:flex-end;">
             <button type="button" role="tab" aria-selected="${activeDashboardTab === 'topicos'}" data-action="switch-dashboard-tab" data-tab="topicos" style="${tabBaseStyle} color:${activeDashboardTab === 'topicos' ? 'var(--accent)' : 'var(--text-muted)'}; border-bottom:2px solid ${activeDashboardTab === 'topicos' ? 'var(--accent)' : 'transparent'};">
                Tópicos do Edital
             </button>
@@ -107,7 +107,7 @@ export function renderDisciplinaDashboard(edital, disc) {
             </button>
           </div>
 
-          <div style="flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden;">
+          <div class="flex-1 flex-col overflow-hidden" style="min-height:0;">
             ${activeDashboardTab === 'topicos' ? renderTopicosEditalDisciplina(edital, disc) : ''}
             ${activeDashboardTab === 'aulas' ? renderAulasDisciplinaDashboard(edital, disc) : ''}
             ${activeDashboardTab === 'banca' ? renderBancaDisciplinaDashboard(edital, disc) : ''}
@@ -118,8 +118,8 @@ export function renderDisciplinaDashboard(edital, disc) {
 
       <!-- PERFORMANCE GRAPH -->
       <div class="card p-16">
-        <div class="dash-label" style="margin-bottom:16px;">EVOLUÇÃO DOS ACERTOS (%) - ÚLTIMAS SESSÕES</div>
-        <div style="height:250px;width:100%;position:relative;">
+        <div class="dash-label mb-6">EVOLUÇÃO DOS ACERTOS (%) - ÚLTIMAS SESSÕES</div>
+        <div class="w-full relative" style="height:250px;">
           <canvas id="disc-chart-acertos"></canvas>
         </div>
       </div>
@@ -132,19 +132,19 @@ export function renderDisciplinaDashboard(edital, disc) {
 function renderHistoricoDisciplina(tempos) {
   const reverseTempos = [...tempos].reverse().slice(0, 50);
   if (reverseTempos.length === 0) {
-    return '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-style:italic;">Nenhuma sessão de estudo registrada.</div>';
+    return '<div class="flex-1 flex-center text-muted text-italic">Nenhuma sessão de estudo registrada.</div>';
   }
 
   return `
-    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
-            <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">
+    <div class="custom-scrollbar scroll-panel">
+            <table class="w-full text-md" style="border-collapse:collapse; text-align:left;">
               <thead style="position:sticky;top:0;background:var(--card);z-index:2;">
-                <tr style="border-bottom:1px solid var(--border);color:var(--text-muted);">
-                  <th style="padding:8px 4px;font-weight:600;">Data</th>
-                  <th style="padding:8px 4px;font-weight:600;">Tempo</th>
-                  <th style="padding:8px 4px;font-weight:600;">Pág.</th>
-                  <th style="padding:8px 4px;font-weight:600;">Questões</th>
-                  <th style="padding:8px 4px;font-weight:600;">Acerto</th>
+                <tr class="border-b text-muted">
+                  <th class="th-compact">Data</th>
+                  <th class="th-compact">Tempo</th>
+                  <th class="th-compact">Pág.</th>
+                  <th class="th-compact">Questões</th>
+                  <th class="th-compact">Acerto</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,12 +159,12 @@ function renderHistoricoDisciplina(tempos) {
     const pags = t.sessao?.paginas?.total || t.paginas || null;
 
     return `
-              <tr class="session-history-row" style="border-bottom:1px solid var(--bg); cursor:pointer;" data-action="open-registro-sessao" data-disc-id="${t.id}">
-                <td style="padding:10px 4px;color:var(--text-primary);">${dateStr}</td>
-                <td style="padding:10px 4px;font-family:'DM Mono',monospace;">${tempoStr}</td>
+              <tr class="session-history-row cursor-pointer" style="border-bottom:1px solid var(--bg);" data-action="open-registro-sessao" data-disc-id="${t.id}">
+                <td class="text-primary" style="padding:10px 4px;">${dateStr}</td>
+                <td class="text-mono" style="padding:10px 4px;">${tempoStr}</td>
                 <td style="padding:10px 4px;">${pags ?? '-'}</td>
                 <td style="padding:10px 4px;">${certas} / ${totQs}</td>
-                <td style="padding:10px 4px;font-weight:700;color:${totQs > 0 ? percColor : 'inherit'};">${totQs > 0 ? perc + '%' : '-'}</td>
+                <td class="font-bold" style="padding:10px 4px; color:${totQs > 0 ? percColor : 'inherit'};">${totQs > 0 ? perc + '%' : '-'}</td>
               </tr>
             `;
   }).join('')}
@@ -177,29 +177,29 @@ function renderHistoricoDisciplina(tempos) {
 // ── Helper: Render Topics Tab ──
 function renderTopicosEditalDisciplina(edital, disc) {
   if (!disc.assuntos || disc.assuntos.length === 0) {
-    return '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-style:italic;">Nenhum tópico cadastrado.</div>';
+    return '<div class="flex-1 flex-center text-muted text-italic">Nenhum tópico cadastrado.</div>';
   }
 
   return `
-    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
+    <div class="custom-scrollbar scroll-panel">
             ${disc.assuntos.map(ass => {
     const importanceBadge = ass.relevance?.priority === 'P1' ?
       `<span style="background:rgba(211,47,47,0.1); color:var(--red); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; margin-left:8px;" title="Alta Chance de Cobrança">🔥 P1</span>` :
       (ass.relevance?.priority === 'P2' ? `<span style="background:rgba(234,179,8,0.1); color:var(--orange); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; margin-left:8px;">⚠️ P2</span>` : '');
 
     return `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${ass.concluido ? 'background:var(--bg-secondary);border-radius:6px;' : ''}">
-          <div class="check-circle ${ass.concluido ? 'done' : ''}" data-action="toggle-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}" style="flex-shrink:0;">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
-          <div style="flex:1;min-width:0;font-size:13px;font-weight:${ass.concluido ? '400' : '600'};color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'};${ass.concluido ? 'text-decoration:line-through;' : ''}">
+        <div class="list-row rounded-md" style="${ass.concluido ? 'background:var(--bg-secondary); ' : ''};">
+          <div class="check-circle ${ass.concluido ? 'done' : ''} flex-shrink-0" data-action="toggle-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
+          <div class="flex-1 min-w-0 text-md" style="font-weight:${ass.concluido ? '400' : '600'}; color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'}; ${ass.concluido ? 'text-decoration:line-through; ' : ''};">
              ${esc(ass.nome)} ${importanceBadge}
           </div>
           ${ass.concluido ? `
-            <div style="text-align:right;flex-shrink:0;">
-              <div style="font-size:10px;color:var(--green);font-weight:700;">✅ concluído</div>
-              <div style="font-size:10px;color:var(--text-muted);">${formatDate(ass.dataConclusao)}</div>
+            <div class="text-right flex-shrink-0">
+              <div class="text-xs font-bold text-green">✅ concluído</div>
+              <div class="text-xs text-muted">${formatDate(ass.dataConclusao)}</div>
             </div>
           ` : `
-            <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:4px 8px;font-size:11px;" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">+ Agenda</button>
+            <button class="btn btn-ghost btn-sm btn-xs" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">+ Agenda</button>
           `}
         </div>
       `}).join('')}
@@ -210,20 +210,20 @@ function renderTopicosEditalDisciplina(edital, disc) {
 // ── Helper: Render Classes Tab ──
 function renderAulasDisciplinaDashboard(edital, disc) {
   if (!disc.aulas || disc.aulas.length === 0) {
-    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);font-style:italic;"><div style="font-size:32px;margin-bottom:12px;">🗂️</div>Nenhuma aula ou material cadastrado.<br><span style="font-size:12px;margin-top:8px;">Vá em "Gerenciar" nesta matéria para importar suas Aulas.</span></div>';
+    return '<div class="flex-1 flex-col flex-center text-muted text-italic items-center"><div class="text-3xl mb-3">🗂️</div>Nenhuma aula ou material cadastrado.<br><span class="text-base mt-2">Vá em "Gerenciar" nesta matéria para importar suas Aulas.</span></div>';
   }
 
   return `
-    <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;">
+    <div class="custom-scrollbar scroll-panel">
         ${disc.aulas.map(aul => `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);${aul.estudada ? 'background:var(--bg-secondary);border-radius:6px;' : ''}">
-          <div class="check-circle ${aul.estudada ? 'done' : ''}" data-action="toggle-aula-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-aula-id="${aul.id}" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}" style="flex-shrink:0;cursor:pointer;">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
-          <div style="flex:1;min-width:0;font-size:13px;font-weight:${aul.estudada ? '400' : '600'};color:${aul.estudada ? 'var(--text-muted)' : 'var(--text-primary)'};${aul.estudada ? 'text-decoration:line-through;' : ''}">
+        <div class="list-row rounded-md" style="${aul.estudada ? 'background:var(--bg-secondary); ' : ''};">
+          <div class="check-circle ${aul.estudada ? 'done' : ''} flex-shrink-0 cursor-pointer" data-action="toggle-aula-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-aula-id="${aul.id}" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
+          <div class="flex-1 min-w-0 text-md" style="font-weight:${aul.estudada ? '400' : '600'}; color:${aul.estudada ? 'var(--text-muted)' : 'var(--text-primary)'}; ${aul.estudada ? 'text-decoration:line-through; ' : ''};">
              ${esc(aul.nome)}
-             ${aul.linkedAssuntoIds && aul.linkedAssuntoIds.length > 0 ? `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">🔗 ${aul.linkedAssuntoIds.length} tópico(s) do edital conectado(s)</div>` : ''}
+             ${aul.linkedAssuntoIds && aul.linkedAssuntoIds.length > 0 ? `<div class="text-xs text-muted mt-1">🔗 ${aul.linkedAssuntoIds.length} tópico(s) do edital conectado(s)</div>` : ''}
           </div>
           ${!aul.estudada ? `
-            <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:4px 8px;font-size:11px;" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="aul_${aul.id}">+ Agenda</button>
+            <button class="btn btn-ghost btn-sm btn-xs" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="aul_${aul.id}">+ Agenda</button>
           ` : ''}
         </div>
       `).join('')}
@@ -238,35 +238,35 @@ function renderBancaDisciplinaDashboard(edital, disc) {
 
   if (!hasHotTopics) {
     return `
-         <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);text-align:center;padding:24px;">
-           <i class="fa fa-robot" style="font-size:48px;margin-bottom:16px;color:var(--border);"></i>
-           <div style="font-weight:600;margin-bottom:8px;color:var(--text-primary);">Nenhuma análise encontrada</div>
-           <div style="font-size:13px;max-width:250px;">Use o Analisador de Banca no menu principal para injetar o sumário de exigência desta disciplina.</div>
+         <div class="flex-1 flex-col flex-center text-muted text-center items-center" style="padding:24px;">
+           <i class="fa fa-robot mb-4" style="font-size:48px; color:var(--border);"></i>
+           <div class="font-semibold mb-2 text-primary">Nenhuma análise encontrada</div>
+           <div class="text-md" style="max-width:250px;">Use o Analisador de Banca no menu principal para injetar o sumário de exigência desta disciplina.</div>
          </div>
        `;
   }
 
   return `
-       <div class="custom-scrollbar" style="flex:1;overflow-y:auto;padding-right:8px;padding-top:8px;">
-         <div style="background:var(--bg); border-radius:8px; padding:12px; margin-bottom:16px; border:1px solid var(--border);">
-            <div style="font-size:12px; font-weight:700; color:var(--text-secondary); margin-bottom:12px;">STATUS DO MAPEADOR DE INTELIGÊNCIA</div>
+       <div class="custom-scrollbar scroll-panel" style="padding-top:8px;">
+         <div class="bg-surface border rounded-md mb-6" style="padding:12px;">
+            <div class="text-base font-bold text-secondary mb-3">STATUS DO MAPEADOR DE INTELIGÊNCIA</div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:13px;">
+            <div class="flex-between text-md mb-2">
               <span>Dados de Banca extraídos:</span>
-              <span style="font-weight:600; color:var(--green);">✅ ATIVO</span>
+              <span class="font-semibold text-green">✅ ATIVO</span>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+            <div class="flex-between text-md">
               <span>Aulas atreladas aos Tópicos P1 e P2:</span>
-              <span style="font-weight:600; color:${hasAulas ? 'var(--green)' : 'var(--orange)'};">${hasAulas ? '✅ CONECTADAS' : '⚠️ FALTA IMPORTAR'}</span>
+              <span class="font-semibold" style="color:${hasAulas ? 'var(--green)' : 'var(--orange)'};">${hasAulas ? '✅ CONECTADAS' : '⚠️ FALTA IMPORTAR'}</span>
             </div>
          </div>
 
-         <div style="font-size:13px; color:var(--text-secondary); line-height:1.5; margin-bottom:16px;">
+         <div class="text-md text-secondary mb-6" style="line-height:1.5;">
             A inteligência da prova injetou prioridades (P1 e P2) diretamente na sua janela de <strong>Tópicos do Edital</strong>. Veja as marcações em chamas 🔥 ao lado dos tópicos que demandam mais a sua atenção.
          </div>
 
-         <button class="btn btn-outline" style="width:100%; border-color:var(--accent); color:var(--accent);" data-action="navigate" data-view="banca-analyzer">
+         <button class="btn btn-outline w-full" style="border-color:var(--accent); color:var(--accent);" data-action="navigate" data-view="banca-analyzer">
             Abrir Analisador Preditivo
          </button>
        </div>

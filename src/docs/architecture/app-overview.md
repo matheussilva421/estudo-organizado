@@ -26,13 +26,37 @@ O Estudo Organizado é uma SPA local-first construída com HTML, CSS e JavaScrip
   Regras de domínio e cálculos: timers, revisões, estatísticas, previsões, ciclo de estudos e mutações ligadas ao fluxo de estudo.
 
 - `src/js/views.js`
-  Renderização das telas principais e boa parte dos fluxos visuais. Hoje concentra uma parcela grande da complexidade de UI.
+  Renderização das telas principais. Re-exporta módulos extraídos e contém fluxos visuais ainda não modularizados.
 
 - `src/js/components.js`
   Renderers compartilhados e coordenação de renderização entre telas, incluindo cards de evento, skeletons, badges e cronômetro.
 
+- `src/js/ui/actions.js`
+  Dispatcher centralizado de ações `data-action`. Substituiu o switch legado de `main.js`.
+
+- `src/js/ui/dialog.js`
+  Controlador de modais com atributos ARIA e acessibilidade.
+
+- `src/js/ui/dom.js`
+  Helpers DOM compartilhados (esc, qs, qsa).
+
+- `src/js/views/home-view.js`
+  View extraída: página inicial e dashboard.
+
+- `src/js/views/calendar-view.js`
+  View extraída: calendário (mês/semana). Módulo canônico de calendário no runtime.
+
+- `src/js/views/editais-view.js`
+  View extraída: gerenciamento de editais, disciplinas e assuntos.
+
+- `src/js/views/dashboard-view.js`
+  View extraída: dashboard de disciplina com tabs semânticos.
+
+- `src/js/views/banca-view.js`
+  View extraída: inteligência de banca, parsing de ranking e P1/P2/P3.
+
 - `src/js/cloud-sync.js`
-  Cliente de sincronização via Cloudflare Worker, incluindo pull, push e status visual.
+  Cliente de sincronização via Cloudflare Worker com contrato de conflito (baseRemoteUpdatedAt, 409).
 
 - `src/js/drive-sync.js`
   Cliente de integração com Google Drive, incluindo OAuth, criação/atualização do arquivo remoto e restauração.
@@ -89,20 +113,20 @@ Hoje o app é local-first e o sync é uma extensão da persistência, não o cen
 
 ## Fragilidades atuais
 
-- `views.js` e `styles.css` concentram complexidade demais
-- muitas ações ainda dependem de `window`
-- CSP ainda exige concessões fortes
-- fronteiras entre renderização, interação e domínio nem sempre são claras
-- contratos de sync ainda são pouco explícitos
+- `views.js` ainda concentra parte da complexidade de UI (embora views por domínio já tenham começado a ser extraídas)
+- muitas ações ainda dependem de `window` via ponte de compatibilidade
+- CSP ainda exige concessões fortes (inline styles, eval)
+- ~300 `style=` inline em JS ainda pendentes de migração para CSS classes
+- contratos de sync agora são mais explícitos (conflito 409, baseRemoteUpdatedAt), mas ainda são snapshot-based
 
 ## Direção recomendada
 
 Sem trocar de stack, a direção desejada é:
 
 - manter SPA local-first
-- quebrar views por domínio
-- reduzir APIs globais
-- substituir handlers inline por contratos `data-action`
-- endurecer CSP
-- formalizar módulos de acessibilidade, DOM e sync
+- continuar quebrando views por domínio
+- reduzir APIs globais (`window` bridge)
+- migrar inline styles para CSS classes
+- endurecer CSP removendo `unsafe-inline`
+- evoluir sync de snapshot para versioned entity
 

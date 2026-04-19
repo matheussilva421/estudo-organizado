@@ -96,6 +96,32 @@
 
 .cursor-pointer { cursor: pointer; }
 
+/* === Component Patterns === */
+
+.scroll-panel { flex: 1; overflow-y: auto; padding-right: 8px; }
+.stat-value { font-size: 24px; font-weight: 800; color: var(--text-primary); font-family: 'DM Mono', monospace; }
+.list-row { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+.btn-xs { flex-shrink: 0; padding: 4px 8px; font-size: 11px; }
+.td-mono { padding: 12px 10px; font-family: 'DM Mono', monospace; }
+.th-compact { padding: 8px 4px; font-weight: 600; }
+
+.h-full { height: 100%; }
+.w-full { width: 100%; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.absolute { position: absolute; }
+.relative { position: relative; }
+.rounded-xl { border-radius: 12px; }
+.gap-5 { gap: var(--space-5); }
+.gap-6 { gap: var(--space-6); }
+.mt-5 { margin-top: var(--space-5); }
+.mb-5 { margin-bottom: var(--space-5); }
+.pb-2 { padding-bottom: var(--space-2); }
+.pb-4 { padding-bottom: var(--space-4); }
+.pr-2 { padding-right: var(--space-2); }
+.leading-none { line-height: 1; }
+
 /* === Reusable Components === */
 
 .card-muted {
@@ -194,6 +220,25 @@ button.manager-tab:focus-visible {
   text-align: center;
   color: var(--text-muted);
   font-style: normal;
+}
+
+.empty-state .icon {
+  font-size: 40px;
+  opacity: 0.4;
+}
+
+.empty-state h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  font-size: 13px;
+  max-width: 64ch;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .empty-state .btn {

@@ -60,8 +60,8 @@ npm run test:e2e
 
 - [x] Consolidate `.empty-state` into one definition with `display: flex`, `flex-direction: column`, centered text, `gap`, and responsive `max-width`.
 - [x] Add an explicit `.empty-state-actions` or `.empty-state .btn` rule so CTA buttons keep readable width on mobile.
-- [ ] Remove conflicting empty-state declarations or make later stylesheet declarations intentionally override the base.
-- [ ] Audit empty state call sites: Study Organizer, Ciclo, Revisões, Hábitos, Editais, Banca.
+- [x] Remove conflicting empty-state declarations or make later stylesheet declarations intentionally override the base.
+- [x] Audit empty state call sites: Study Organizer, Ciclo, Revisões, Hábitos, Editais, Banca.
 - [x] Verify desktop screenshot no longer shows inline icon/title/paragraph/button.
 - [ ] Verify mobile screenshot no longer squeezes CTA text.
 
@@ -105,7 +105,7 @@ Manual/browser:
   - `close-modal`
   - `open-edital-modal`
 - [x] Keep one canonical handler per action.
-- [ ] Add a small dev warning only for unknown actions, not for intentionally passive containers.
+- [x] Add a small dev warning only for unknown actions, not for intentionally passive containers.
 - [x] Fix `toggle-timer-mode` E2E so Pomodoro toggles exactly once.
 
 **Verification:**
@@ -178,7 +178,7 @@ Manual/browser:
 
 **Tasks:**
 
-- [ ] Decide per extracted module whether it is canonical now or should be deleted/parked.
+- [x] Decide per extracted module whether it is canonical now or should be deleted/parked.
 - [x] Make `calendar-view.js` the canonical runtime calendar module, or remove it from tests/docs until extraction is real.
 - [x] Ensure `components.js` imports `renderCalendar` from the canonical owner.
 - [x] Restore actual Banca ranking behavior by importing real functions from `src/js/relevance.js` or moving the previous implementation correctly.
@@ -190,7 +190,7 @@ Manual/browser:
   - apply P1/P2/P3
   - assert topic relevance changed
 - [x] Convert dashboard extracted tabs from `div` to semantic `button`.
-- [ ] Update docs after the runtime module graph is true.
+- [x] Update docs after the runtime module graph is true.
 
 **Verification:**
 
@@ -359,13 +359,13 @@ npm run test:e2e
 
 **Tasks:**
 
-- [ ] Add all runtime modules to `ASSET_PATHS`, including `ui/*` and canonical `views/*`.
+- [x] Add all runtime modules to `ASSET_PATHS`, including `ui/*` and canonical `views/*`.
 - [ ] Add an offline E2E smoke or manual checklist step that actually reloads offline.
-- [ ] Mark the old maturity plan as superseded by this recovery plan where appropriate.
-- [ ] Remove "All tasks completed" until the regression plan is executed.
-- [ ] Resolve duplicate Task 7 numbering.
-- [ ] Make `fase-progress.md` and the main plan agree.
-- [ ] Update `sync-contract.md` after the conflict model is implemented.
+- [x] Mark the old maturity plan as superseded by this recovery plan where appropriate.
+- [x] Remove "All tasks completed" until the regression plan is executed.
+- [x] Resolve duplicate Task 7 numbering.
+- [x] Make `fase-progress.md` and the main plan agree.
+- [x] Update `sync-contract.md` after the conflict model is implemented.
 - [ ] Keep CI workflow documented and linked.
 
 **Verification:**
@@ -729,7 +729,61 @@ Result:
 - Full unit: 66 passed
 - Full E2E: 7 passed
 
-Remaining in the next slice:
+### 2026-04-19 - Recovery slice 9
 
-- Decide the remaining extracted modules' canonical runtime ownership in Phase 4.
-- Broader E2E journeys across sidebar pages.
+Consolidated empty-state CSS and removed legacy banca code.
+
+Changed files:
+
+- `src/css/styles.css`
+- `src/css/components.css`
+- `src/js/views.js`
+
+What changed:
+
+- Moved `.empty-state` child selectors (`.icon`, `h4`, `p`) into `components.css` alongside the canonical flex-column definition.
+- Removed the duplicate legacy `.empty-state` block from `styles.css`.
+- Re-exported all banca functions from `banca-view.js` through `views.js` so `main.js` exposes them to `window`.
+- Removed the 466-line legacy banca block from `views.js` (lines 2564-3029).
+
+Verification: Full unit: 67 passed
+
+### 2026-04-19 - Recovery slice 10
+
+Added missing runtime modules to service worker precache.
+
+Changed files: `src/sw.js`
+
+What changed: Added `js/ui/actions.js`, `js/ui/dialog.js`, `js/ui/dom.js`, and all 5 `js/views/*.js` modules to `ASSET_PATHS`.
+
+### 2026-04-19 - Recovery slice 11
+
+Design system cleanup: scoped transitions, outline cleanup, aria-labels.
+
+Changed files: `src/css/styles.css`, `src/css/views.css`, `src/js/views.js`, `src/js/views/calendar-view.js`
+
+What changed:
+
+- Replaced 4 `transition: all` with scoped property lists.
+- Moved `outline: none` from base selectors to `:focus` selectors.
+- Added `aria-label` to 10+ icon-only buttons.
+
+### 2026-04-19 - Recovery slice 12
+
+Expanded E2E coverage from 7 to 12 tests.
+
+New tests: sidebar pages render, Pomodoro persists after reload, config persists after reload, search by keyboard, no mobile overflow.
+
+Verification: Full unit: 67 passed, Full E2E: 12 passed
+
+### 2026-04-19 - Recovery slice 13
+
+Documentation alignment with runtime reality.
+
+Changed files: `src/docs/architecture/app-overview.md`, `src/docs/superpowers/plans/2026-04-18-app-maturity-implementation-plan.md`
+
+What changed:
+
+- Added all new modules to the architecture runtime map.
+- Updated fragilities and direction sections.
+- Removed duplicate Task 7 entry and added superseded notice to old maturity plan.

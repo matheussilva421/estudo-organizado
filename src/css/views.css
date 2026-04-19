@@ -1765,7 +1765,7 @@
   justify-content: center;
   font-size: 18px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: border-color 0.15s, transform 0.15s;
 }
 
 .icon-grid-item:hover {
@@ -1850,7 +1850,7 @@
   font-weight: 600;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  transition: all 0.2s;
+  transition: color 0.2s, border-color 0.2s;
 }
 
 .manager-tab:hover {

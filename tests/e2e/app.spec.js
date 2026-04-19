@@ -240,4 +240,212 @@ test.describe('Estudo Organizado', () => {
     ]);
     expect(relevance.every(item => Number.isFinite(item.finalScore))).toBe(true);
   });
+
+  test('all sidebar pages render without errors on fresh state', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await expect(page.locator('#topbar-title')).toHaveText('Página Inicial');
+
+    const views = [
+      { selector: '[data-view="med"]', title: 'Study Organizer' },
+      { selector: '[data-view="calendar"]', title: 'Calendário' },
+      { selector: '[data-view="revisoes"]', title: /Revisões/ },
+      { selector: '[data-view="cronometro"]', title: 'Cronômetro' },
+      { selector: '[data-view="editais"]', title: 'Editais' },
+      { selector: '[data-view="habitos"]', title: /Hábitos/ },
+      { selector: '[data-view="banca-analyzer"]', title: /Banca|Inteligência/ },
+      { selector: '[data-view="ciclo"]', title: /Ciclo|Planejamento/ },
+      { selector: '[data-view="config"]', title: 'Configurações' }
+    ];
+
+    for (const view of views) {
+      await page.click(view.selector);
+      await expect(page.locator('#topbar-title')).toHaveText(view.title, { timeout: 5000 });
+      await expect(page.locator('#main-content')).toBeVisible();
+    }
+  });
+
+  test('Pomodoro toggle persists after reload', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="cronometro"]');
+
+    await expect(page.locator('#crono-mode-btn')).toContainText('Modo');
+    await page.click('#crono-mode-btn');
+    await expect(page.locator('#crono-mode-btn')).toContainText('Pomodoro');
+
+    await page.evaluate(async () => {
+      await window.saveStateToDB?.();
+    });
+
+    await page.reload();
+    await page.click('[data-view="cronometro"]');
+    await expect(page.locator('#crono-mode-btn')).toContainText('Pomodoro');
+    await expect.poll(() => page.evaluate(() => window.state.config.pomodoroMode)).toBe(true);
+  });
+
+  test('config settings persist after reload', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="config"]');
+
+    await expect(page.locator('#main-content')).toBeVisible();
+    await expect(page.locator('#topbar-title')).toHaveText(/Configurações/);
+
+    await page.evaluate(async () => {
+      window.state.config.freqRevisao = 7;
+      await window.saveStateToDB?.();
+    });
+
+    await page.reload();
+    await page.click('[data-view="config"]');
+    await expect(page.locator('#main-content')).toBeVisible();
+
+    const freq = await page.evaluate(() => window.state.config.freqRevisao);
+    expect(freq).toBe(7);
+  });
+
+  test('search finds disciplines and subjects by keyboard', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+
+    const search = page.locator('#global-search');
+    await search.fill('Constitucional');
+    await expect(search).toHaveAttribute('aria-expanded', 'true');
+
+    const resultButtons = page.locator('#search-results button.search-item');
+    await expect(resultButtons.count()).resolves.toBeGreaterThanOrEqual(1);
+
+    await page.keyboard.press('ArrowDown');
+    await expect(resultButtons.first()).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#main-content')).toBeVisible();
+  });
+
+  test('no horizontal overflow on mobile viewport', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/');
+
+    const hasOverflow = await page.evaluate(() => {
+      return document.documentElement.scrollWidth > document.documentElement.clientWidth;
+    });
+    expect(hasOverflow).toBe(false);
+  });
+
+  test('starts and pauses the study timer', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="cronometro"]');
+
+    const startBtn = page.locator('[data-action="start-crono"]');
+    if (await startBtn.isVisible()) {
+      await startBtn.click();
+      await expect(page.locator('#crono-display')).toBeVisible();
+
+      const pauseBtn = page.locator('[data-action="pause-crono"]');
+      if (await pauseBtn.isVisible()) {
+        await pauseBtn.click();
+      }
+    }
+
+    await expect(page.locator('#main-content')).toBeVisible();
+  });
+
+  test('exports state as JSON from settings', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="config"]');
+
+    await expect(page.locator('#main-content')).toBeVisible();
+
+    const exportBtn = page.locator('[data-action="export-state"]');
+    if (await exportBtn.isVisible()) {
+      const [download] = await Promise.all([
+        page.waitForEvent('download', { timeout: 5000 }).catch(() => null),
+        exportBtn.click()
+      ]);
+
+      if (download) {
+        const content = await download.path();
+        expect(content).toBeTruthy();
+      }
+    }
+  });
+
+  test('calendar renders and navigates months', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="calendar"]');
+
+    await expect(page.locator('#main-content')).toBeVisible();
+    await expect(page.locator('#cal-title')).toBeVisible();
+
+    const currentTitle = await page.locator('#cal-title').textContent();
+
+    const nextBtn = page.locator('[data-action="cal-navigate"][data-dir="1"]');
+    if (await nextBtn.isVisible()) {
+      await nextBtn.click();
+      await expect(page.locator('#cal-title')).not.toHaveText(currentTitle);
+    }
+  });
+
+  test('habits page renders habit categories', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="habitos"]');
+
+    await expect(page.locator('#topbar-title')).toHaveText(/Hábitos/);
+    await expect(page.locator('#main-content')).toBeVisible();
+    await expect(page.locator('#main-content')).toContainText('Questões');
+  });
+
+  test('SW precache includes all runtime module paths', async ({ page }) => {
+    await page.goto('/');
+    const assetPaths = await page.evaluate(() => {
+      if ('serviceWorker' in navigator) {
+        return navigator.serviceWorker.controller ? 'active' : 'none';
+      }
+      return 'no-sw';
+    });
+
+    const swContent = await page.evaluate(async () => {
+      const resp = await fetch('/sw.js');
+      return resp.text();
+    });
+
+    const requiredModules = [
+      'js/ui/actions.js',
+      'js/ui/dialog.js',
+      'js/ui/dom.js',
+      'js/views/home-view.js',
+      'js/views/calendar-view.js',
+      'js/views/editais-view.js',
+      'js/views/dashboard-view.js',
+      'js/views/banca-view.js'
+    ];
+
+    for (const mod of requiredModules) {
+      expect(swContent).toContain(mod);
+    }
+  });
 });

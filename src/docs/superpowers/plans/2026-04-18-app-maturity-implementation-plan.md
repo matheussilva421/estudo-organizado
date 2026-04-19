@@ -575,12 +575,11 @@ Docs are referenced in README.md and CLAUDE.md.
 4. **Task 4** ✅ COMPLETA (2026-04-19) - components.js verified
 5. **Task 5** ✅ COMPLETA (2026-04-19)
 6. **Task 6** ✅ COMPLETA (2026-04-19) - PWA verified
-7. **Task 7** ✅ COMPLETA (2026-04-19)
-7. **Task 7** ✅ COMPLETA (2026-04-19)
-8. **Task 8** ✅ COMPLETA (2026-04-19)
-9. **Task 9** ✅ COMPLETA (2026-04-19)
+7. **Task 7** COMPLETA (2026-04-19)
+8. **Task 8** COMPLETA (2026-04-19)
+9. **Task 9** COMPLETA (2026-04-19)
 
-**All tasks completed!** 🎉
+> **Superseded:** This plan was followed by a regression recovery plan (`2026-04-19-regression-recovery-implementation-plan.md`) that audited regressions introduced during this maturity cycle. Some "completed" tasks had gaps discovered during audit — see the recovery plan for the current state.
 
 ## Rollout strategy
 
@@ -755,7 +754,7 @@ Docs are referenced in README.md and CLAUDE.md.
 
 **Result:** All non-button clickable elements converted to semantic `<button>` elements with proper ARIA attributes and focus management.
 
-**All 9 tasks completed!**
+**All 9 tasks completed!** (See recovery plan for post-audit corrections.)
 
 ## Manual verification matrix
 

@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-const PORT = 4173;
+const PORT = 18345;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
@@ -17,6 +17,6 @@ export default defineConfig({
   webServer: {
     command: `npx http-server src -p ${PORT} -c-1`,
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI
+    reuseExistingServer: false
   }
 });
