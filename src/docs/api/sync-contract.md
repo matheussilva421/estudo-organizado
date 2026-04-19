@@ -2,43 +2,17 @@
 
 ## Current Model
 
-Sync is **snapshot-based**: the entire app state is pushed/pulled as a single blob.
+Sync is snapshot-based: the entire app state is pushed/pulled as a single blob. Conflict safety is handled by a versioned envelope around that blob.
 
-### Push (`pushToCloudflare`)
-
-- POSTs `structuredClone(state)` with fresh `Date.now()` timestamp in `config._lastUpdated`
-- Rate-limited to 30-second minimum intervals
-- Overwrites remote completely
-
-### Pull (`pullFromCloudflare`)
-
-- GETs remote state
-- Compares `config._lastUpdated` timestamps (remote vs local)
-- Applies remote if newer or if forced
-- Saves via `saveStateToDB(true)` (skips push to avoid loop)
-
-### Storage
-
-- Cloudflare KV key: `estudo_estado_v1`
-- Credentials: `cfUrl` and `cfToken` stored in `state.config` (same domain as study data)
-
-## Known Limitations
-
-1. **No entity versioning** — full state overwrite, no merge
-2. **Credentials mixed with data** — sync tokens travel with exported payloads
-3. **Client-only timestamp comparison** — Worker does not validate timestamps
-4. **No conflict resolution** — last writer wins (based on `_lastUpdated`)
-5. **No device awareness** — no deviceId, no device-specific conflict handling
-
-## Target Model (Task 7)
-
-### Versioned Envelope
+## Cloudflare Envelope
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "deviceId": "web-abc123",
-  "updatedAt": "2026-04-18T18:00:00.000Z",
+  "baseRemoteUpdatedAt": "2026-04-19T11:00:00.000Z",
+  "payloadUpdatedAt": "2026-04-19T12:00:00.000Z",
+  "sentAt": "2026-04-19T12:00:01.000Z",
   "payload": {
     "schemaVersion": 7,
     "editais": [],
@@ -47,22 +21,62 @@ Sync is **snapshot-based**: the entire app state is pushed/pulled as a single bl
 }
 ```
 
-### Credential Separation
+Field meanings:
 
-- Sync credentials (`cfUrl`, `cfToken`) moved out of `state` into separate `syncSettings` object
-- Stored in `localStorage`, not in IndexedDB state
-- Not included in sync payloads or JSON exports
+- `version`: sync envelope version.
+- `deviceId`: stable local browser/device identifier.
+- `baseRemoteUpdatedAt`: remote metadata timestamp that the local payload is based on. `null` is valid only for the first push.
+- `payloadUpdatedAt`: local state timestamp used as the new remote metadata timestamp after accepted writes.
+- `sentAt`: transmission timestamp, informational only. It is not overwrite authority.
+- `payload`: app state snapshot.
+- `forceOverwrite`: optional explicit override flag for destructive/manual recovery flows.
 
-### Worker Validation
+## Push (`pushToCloudflare`)
 
-- Origin whitelist (not `Access-Control-Allow-Origin: *`)
-- Request body schema validation
-- Method restriction (GET/POST only)
-- Server-side timestamp comparison before write
+- Clones the current state.
+- Updates `payload.config._lastUpdated`.
+- Removes `config.cfUrl` and `config.cfToken` from the synced payload.
+- Sends the envelope above.
+- Includes `baseRemoteUpdatedAt` from `state.config.cfRemoteUpdatedAt`.
+- On success, stores the Worker-returned `meta.updatedAt` as `state.config.cfRemoteUpdatedAt`.
+- On HTTP 409, stores `state.config.cfConflict` and tells the user to pull remote data before pushing again.
 
-### UI Separation
+## Pull (`pullFromCloudflare`)
 
-- **Sync now** — push local state to cloud
-- **Restore latest cloud backup** — pull and apply remote state
-- **Export local JSON backup** — download state as file
-- **Import local JSON backup** — upload and apply state from file
+- GETs the remote envelope.
+- Unwraps versioned or legacy snapshots.
+- Compares remote payload time with local `config._lastUpdated`.
+- Applies remote data if newer or if manually forced.
+- Removes remote `cfUrl` and `cfToken` from local config after applying remote data.
+- Stores remote metadata as `state.config.cfRemoteUpdatedAt`.
+- Saves via `saveStateToDB(true)` to avoid an immediate sync loop.
+
+## Worker Write Rules
+
+Storage keys:
+
+- `estudo_estado_v1`: last accepted envelope/body.
+- `estudo_meta_v1`: current remote metadata.
+
+POST behavior:
+
+- Rejects invalid JSON.
+- Rejects payloads over 5 MB.
+- Requires bearer token auth.
+- For versioned clients, rejects writes when `baseRemoteUpdatedAt` does not match current remote metadata.
+- For legacy clients without `baseRemoteUpdatedAt`, falls back to timestamp comparison.
+- Accepts stale base only when `forceOverwrite: true` is explicit.
+- Returns HTTP 409 with `remoteUpdatedAt` and `remoteDeviceId` for conflicts.
+
+## Credential Separation
+
+- Cloudflare credentials are stored locally under `estudo_sync_creds`.
+- Legacy `state.config.cfUrl` and `state.config.cfToken` remain supported for current UI compatibility.
+- Synced payloads strip `cfUrl` and `cfToken`.
+
+## Known Limitations
+
+1. Full-state snapshots still do not merge entity-level changes.
+2. Conflict UX is intentionally conservative: pull remote or force overwrite, with no merge UI yet.
+3. `ALLOWED_ORIGINS` is still empty by default for backward compatibility and should be configured per deployment.
+4. Google Drive sync still has a separate conflict model.

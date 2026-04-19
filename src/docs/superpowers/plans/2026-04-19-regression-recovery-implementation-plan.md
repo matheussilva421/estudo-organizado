@@ -28,7 +28,7 @@
 - [x] Add E2E coverage proving global search renders keyboard-focusable results and updates `aria-expanded`.
 - [x] Add a static unit test that fails when an action is handled both by `src/js/main.js` and `src/js/ui/actions.js`.
 - [x] Add a static unit test that fails on duplicate action keys inside `src/js/ui/actions.js`.
-- [ ] Add a sync unit test proving stale payloads cannot overwrite newer remote data.
+- [x] Add a sync unit test proving stale payloads cannot overwrite newer remote data.
 - [x] Add CSS test coverage for `.empty-state` requiring column layout.
 
 **Verification:**
@@ -221,22 +221,22 @@ npm run test:e2e
 
 **Tasks:**
 
-- [ ] Define a canonical sync envelope:
+- [x] Define a canonical sync envelope:
   - `version`
   - `deviceId`
   - `payload`
   - `payloadUpdatedAt`
   - `baseRemoteUpdatedAt`
   - `sentAt`
-- [ ] Stop using fresh `sentAt` as overwrite authority.
-- [ ] Worker must reject stale writes when `baseRemoteUpdatedAt` does not match current remote metadata, unless `forceOverwrite` is explicit.
+- [x] Stop using fresh `sentAt` as overwrite authority.
+- [x] Worker must reject stale writes when `baseRemoteUpdatedAt` does not match current remote metadata, unless `forceOverwrite` is explicit.
 - [ ] Client must surface 409 conflict with a clear choice:
   - pull remote
   - force overwrite
   - export local backup first
 - [ ] Make `ALLOWED_ORIGINS` configurable and document deployment defaults.
-- [ ] Keep credentials outside exported/synced payloads and update `sync-contract.md` to match reality.
-- [ ] Add unit tests for:
+- [x] Keep credentials outside exported/synced payloads and update `sync-contract.md` to match reality.
+- [x] Add unit tests for:
   - old payload rejected
   - newer payload accepted
   - forced overwrite accepted only with explicit flag
@@ -454,3 +454,44 @@ Remaining in the next slice:
 - Broader empty-state/browser verification on mobile screenshots.
 - Search ArrowUp/ArrowDown keyboard behavior and ARIA role cleanup.
 - Banca/extracted-module cleanup from Phase 4.
+
+### 2026-04-19 - Recovery slice 2
+
+Implemented the Cloudflare sync conflict contract.
+
+Changed files:
+
+- `src/js/cloud-sync.js`
+- `scripts/cloudflare-worker.js`
+- `src/docs/api/sync-contract.md`
+- `tests/unit/sync-conflict.test.js`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+
+What changed:
+
+- Added RED/GREEN unit tests for stale base rejection, matching base acceptance, explicit force overwrite and credential stripping.
+- Updated the client envelope to version 2 with `baseRemoteUpdatedAt`, `payloadUpdatedAt` and `sentAt`.
+- Removed fresh send time as overwrite authority.
+- Updated the Worker to reject versioned writes when the client's base remote metadata does not match the current remote metadata.
+- Stored accepted remote metadata back into `state.config.cfRemoteUpdatedAt`.
+- Updated `sync-contract.md` to describe the current implementation instead of the older target model.
+
+Verification:
+
+```powershell
+npm run test:unit -- tests/unit/sync-conflict.test.js
+npm test
+npm run test:e2e
+```
+
+Result:
+
+- Sync conflict unit tests: 4 passed
+- Full unit: 63 passed
+- Full E2E: 5 passed
+
+Remaining in the next slice:
+
+- Conflict UX actions: export local backup, pull remote, or force overwrite from the 409 state.
+- Configurable `ALLOWED_ORIGINS` deployment defaults.
+- Search ArrowUp/ArrowDown keyboard behavior and ARIA role cleanup.

@@ -3,7 +3,7 @@ import { state, setState, SyncQueue, saveStateToDB } from './store.js?v=8.3';
 let isSyncing = false;
 let _lastPushTime = 0;
 const MIN_PUSH_INTERVAL_MS = 30_000;
-const SYNC_VERSION = 1;
+const SYNC_VERSION = 2;
 const DEVICE_ID_KEY = 'estudo_device_id';
 
 function getDeviceId() {
@@ -59,13 +59,31 @@ function updateSyncStatus(msg, isError = false) {
     }
 }
 
-function wrapInEnvelope(payload) {
-    return {
+function toIsoTimestamp(value) {
+    if (!value) return new Date().toISOString();
+    if (typeof value === 'number') return new Date(value).toISOString();
+    const time = new Date(value).getTime();
+    return Number.isNaN(time) ? new Date().toISOString() : new Date(time).toISOString();
+}
+
+function getRemoteUpdatedAtFromEnvelope(envelope, payload) {
+    if (envelope?.payloadUpdatedAt) return envelope.payloadUpdatedAt;
+    if (envelope?.updatedAt) return envelope.updatedAt;
+    if (payload?.config?._lastUpdated) return toIsoTimestamp(payload.config._lastUpdated);
+    return null;
+}
+
+function wrapInEnvelope(payload, { forceOverwrite = false } = {}) {
+    const envelope = {
         version: SYNC_VERSION,
         deviceId: getDeviceId(),
-        updatedAt: new Date().toISOString(),
+        baseRemoteUpdatedAt: state.config?.cfRemoteUpdatedAt || null,
+        payloadUpdatedAt: toIsoTimestamp(payload.config?._lastUpdated),
+        sentAt: new Date().toISOString(),
         payload
     };
+    if (forceOverwrite) envelope.forceOverwrite = true;
+    return envelope;
 }
 
 function unwrapEnvelope(data) {
@@ -109,12 +127,11 @@ export async function pullFromCloudflare(forceOverwrite = false) {
         const { envelope, payload: remoteData } = unwrapEnvelope(rawData);
 
         const localTime = state.config && state.config._lastUpdated ? state.config._lastUpdated : 0;
+        const remoteUpdatedAt = getRemoteUpdatedAtFromEnvelope(envelope, remoteData);
         let remoteTime = 0;
 
-        if (remoteData && remoteData.config && remoteData.config._lastUpdated) {
-            remoteTime = remoteData.config._lastUpdated;
-        } else if (envelope && envelope.updatedAt) {
-            remoteTime = new Date(envelope.updatedAt).getTime();
+        if (remoteUpdatedAt) {
+            remoteTime = new Date(remoteUpdatedAt).getTime();
         }
 
         if (forceOverwrite || remoteTime > localTime) {
@@ -124,6 +141,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
             if (state.config) {
                 delete state.config.cfUrl;
                 delete state.config.cfToken;
+                if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
             }
             saveStateToDB(true);
             document.dispatchEvent(new Event('app:invalidateCaches'));
@@ -137,6 +155,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
 
         const syncTs = remoteTime || Date.now();
         if (!state.config) state.config = {};
+        if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
         state.config.cfLastSyncAt = new Date(syncTs).toISOString();
         saveStateToDB(true);
         const lastStr = new Date(syncTs).toLocaleString('pt-BR');
@@ -153,13 +172,13 @@ export async function pullFromCloudflare(forceOverwrite = false) {
 /**
  * Envia o estado atual para o KV com versioned envelope
  */
-export async function pushToCloudflare() {
+export async function pushToCloudflare(forceOverwrite = false) {
     if (isSyncing) return false;
     const config = getSyncConfig();
     if (!config) return false;
 
     const now = Date.now();
-    if (now - _lastPushTime < MIN_PUSH_INTERVAL_MS) {
+    if (!forceOverwrite && now - _lastPushTime < MIN_PUSH_INTERVAL_MS) {
         console.log(`Cloud push ignorado (rate limit: aguardar ${Math.ceil((MIN_PUSH_INTERVAL_MS - (now - _lastPushTime)) / 1000)}s)`);
         return false;
     }
@@ -177,7 +196,7 @@ export async function pushToCloudflare() {
         delete snapshot.config.cfUrl;
         delete snapshot.config.cfToken;
 
-        const envelope = wrapInEnvelope(snapshot);
+        const envelope = wrapInEnvelope(snapshot, { forceOverwrite });
         const payload = JSON.stringify(envelope);
 
         const response = await fetch(config.url, {
@@ -189,12 +208,24 @@ export async function pushToCloudflare() {
             body: payload
         });
 
+        let responseData = null;
+        try {
+            responseData = await response.json();
+        } catch (e) { /* response body is optional */ }
+
         if (!response.ok) {
             let errorMsg = `HTTP Error: ${response.status}`;
-            try {
-                const errData = await response.json();
-                if (errData && errData.error) errorMsg = `Erro ${response.status}: ${errData.error}`;
-            } catch (e) { /* ignore */ }
+            if (responseData && responseData.error) errorMsg = `Erro ${response.status}: ${responseData.error}`;
+            if (response.status === 409 && responseData) {
+                state.config.cfConflict = {
+                    remoteUpdatedAt: responseData.remoteUpdatedAt || null,
+                    remoteDeviceId: responseData.remoteDeviceId || null,
+                    detectedAt: new Date().toISOString()
+                };
+                document.dispatchEvent(new CustomEvent('app:showToast', {
+                    detail: { msg: 'Conflito de sincronização: baixe os dados remotos antes de enviar.', type: 'error' }
+                }));
+            }
             throw new Error(errorMsg);
         }
 
@@ -202,13 +233,17 @@ export async function pushToCloudflare() {
 
         state.config._lastUpdated = pushTimestamp;
         state.config.cfLastSyncAt = new Date(pushTimestamp).toISOString();
+        state.config.cfRemoteUpdatedAt = responseData?.meta?.updatedAt || envelope.payloadUpdatedAt;
+        delete state.config.cfConflict;
         saveStateToDB(true);
         const lastStr = new Date(pushTimestamp).toLocaleString('pt-BR');
         updateSyncStatus(`Nuvem atualizada em ${lastStr}`);
         console.log('Cloudflare Sync OK');
+        return true;
     } catch (err) {
         console.error('Erro no Cloudflare Push:', err);
         updateSyncStatus(`Erro no Push: ${err.message}`, true);
+        return false;
     } finally {
         isSyncing = false;
     }

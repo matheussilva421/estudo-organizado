@@ -1,0 +1,157 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createBaseState } from '../helpers/state-builders.js';
+
+function createRequest(method, body = null) {
+  return new Request('https://sync.example.test', {
+    method,
+    headers: {
+      Authorization: 'Bearer test-token',
+      'Content-Type': 'application/json'
+    },
+    body: body ? JSON.stringify(body) : null
+  });
+}
+
+function createEnv(initial = {}) {
+  const values = new Map(Object.entries(initial));
+  return {
+    AUTH_TOKEN: 'test-token',
+    ESTUDO_KV: {
+      get: vi.fn(async key => values.get(key) ?? null),
+      put: vi.fn(async (key, value) => {
+        values.set(key, value);
+      }),
+      values
+    }
+  };
+}
+
+async function importFreshSyncModules() {
+  vi.resetModules();
+  const store = await import('../../src/js/store.js?v=8.3');
+  const cloudSync = await import('../../src/js/cloud-sync.js?v=8.3');
+  return { store, cloudSync };
+}
+
+describe('Cloudflare sync conflict contract', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-19T12:00:00.000Z'));
+    localStorage.clear();
+    sessionStorage.clear();
+    document.body.innerHTML = '';
+  });
+
+  it('worker rejects stale writes when base remote metadata does not match', async () => {
+    const worker = (await import('../../scripts/cloudflare-worker.js')).default;
+    const env = createEnv({
+      estudo_meta_v1: JSON.stringify({
+        updatedAt: '2026-04-19T11:00:00.000Z',
+        deviceId: 'device-a',
+        version: 2
+      })
+    });
+
+    const response = await worker.fetch(createRequest('POST', {
+      version: 2,
+      deviceId: 'device-b',
+      baseRemoteUpdatedAt: '2026-04-19T10:00:00.000Z',
+      payloadUpdatedAt: '2026-04-19T12:00:00.000Z',
+      sentAt: '2026-04-19T12:00:00.000Z',
+      payload: createBaseState()
+    }), env, {});
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining('stale'),
+      remoteUpdatedAt: '2026-04-19T11:00:00.000Z'
+    });
+    expect(env.ESTUDO_KV.put).not.toHaveBeenCalled();
+  });
+
+  it('worker accepts writes when base remote metadata matches', async () => {
+    const worker = (await import('../../scripts/cloudflare-worker.js')).default;
+    const env = createEnv({
+      estudo_meta_v1: JSON.stringify({
+        updatedAt: '2026-04-19T11:00:00.000Z',
+        deviceId: 'device-a',
+        version: 2
+      })
+    });
+
+    const response = await worker.fetch(createRequest('POST', {
+      version: 2,
+      deviceId: 'device-b',
+      baseRemoteUpdatedAt: '2026-04-19T11:00:00.000Z',
+      payloadUpdatedAt: '2026-04-19T12:00:00.000Z',
+      sentAt: '2026-04-19T12:00:00.000Z',
+      payload: createBaseState()
+    }), env, {});
+
+    expect(response.status).toBe(200);
+    expect(env.ESTUDO_KV.put).toHaveBeenCalledWith('estudo_estado_v1', expect.any(String));
+    expect(env.ESTUDO_KV.put).toHaveBeenCalledWith('estudo_meta_v1', expect.stringContaining('2026-04-19T12:00:00.000Z'));
+  });
+
+  it('worker accepts explicit forced overwrites even when base metadata is stale', async () => {
+    const worker = (await import('../../scripts/cloudflare-worker.js')).default;
+    const env = createEnv({
+      estudo_meta_v1: JSON.stringify({
+        updatedAt: '2026-04-19T11:00:00.000Z',
+        deviceId: 'device-a',
+        version: 2
+      })
+    });
+
+    const response = await worker.fetch(createRequest('POST', {
+      version: 2,
+      deviceId: 'device-b',
+      baseRemoteUpdatedAt: '2026-04-19T10:00:00.000Z',
+      payloadUpdatedAt: '2026-04-19T12:00:00.000Z',
+      sentAt: '2026-04-19T12:00:00.000Z',
+      forceOverwrite: true,
+      payload: createBaseState()
+    }), env, {});
+
+    expect(response.status).toBe(200);
+    expect(env.ESTUDO_KV.put).toHaveBeenCalledWith('estudo_estado_v1', expect.any(String));
+  });
+
+  it('client pushes base remote metadata and strips credentials from payload', async () => {
+    const { store, cloudSync } = await importFreshSyncModules();
+    store.setState(createBaseState({
+      config: {
+        cfSyncEnabled: true,
+        cfUrl: 'https://sync.example.test',
+        cfToken: 'test-token',
+        cfRemoteUpdatedAt: '2026-04-19T11:00:00.000Z'
+      }
+    }));
+    localStorage.setItem('estudo_device_id', 'device-b');
+
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      success: true,
+      meta: {
+        updatedAt: '2026-04-19T12:00:00.000Z',
+        deviceId: 'device-b',
+        version: 2
+      }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(cloudSync.pushToCloudflare()).resolves.toBe(true);
+
+    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(requestBody).toMatchObject({
+      version: 2,
+      deviceId: 'device-b',
+      baseRemoteUpdatedAt: '2026-04-19T11:00:00.000Z',
+      payloadUpdatedAt: '2026-04-19T12:00:00.000Z',
+      sentAt: '2026-04-19T12:00:00.000Z'
+    });
+    expect(requestBody.updatedAt).toBeUndefined();
+    expect(requestBody.payload.config.cfUrl).toBeUndefined();
+    expect(requestBody.payload.config.cfToken).toBeUndefined();
+    expect(store.state.config.cfRemoteUpdatedAt).toBe('2026-04-19T12:00:00.000Z');
+  });
+});

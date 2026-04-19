@@ -26,6 +26,32 @@ function json(data, status, headers) {
     return new Response(JSON.stringify(data), { status, headers });
 }
 
+function toIsoTimestamp(value) {
+    if (!value) return new Date().toISOString();
+    if (typeof value === 'number') return new Date(value).toISOString();
+    const time = new Date(value).getTime();
+    return Number.isNaN(time) ? new Date().toISOString() : new Date(time).toISOString();
+}
+
+function getPayloadUpdatedAt(parsed) {
+    if (parsed.payloadUpdatedAt) return toIsoTimestamp(parsed.payloadUpdatedAt);
+    if (parsed.updatedAt) return toIsoTimestamp(parsed.updatedAt);
+    if (parsed.payload?.config?._lastUpdated) return toIsoTimestamp(parsed.payload.config._lastUpdated);
+    return new Date().toISOString();
+}
+
+function normalizeIncomingMeta(parsed) {
+    const payloadUpdatedAt = getPayloadUpdatedAt(parsed);
+    return {
+        updatedAt: payloadUpdatedAt,
+        payloadUpdatedAt,
+        sentAt: toIsoTimestamp(parsed.sentAt),
+        baseRemoteUpdatedAt: parsed.baseRemoteUpdatedAt || null,
+        deviceId: parsed.deviceId || 'unknown',
+        version: parsed.version || 0
+    };
+}
+
 export default {
     async fetch(request, env, ctx) {
         const headers = corsHeaders(request);
@@ -83,26 +109,36 @@ export default {
                 }
 
                 // Extract metadata from envelope if present
-                const incomingMeta = {
-                    updatedAt: parsed.updatedAt || new Date().toISOString(),
-                    deviceId: parsed.deviceId || 'unknown',
-                    version: parsed.version || 0
-                };
+                const incomingMeta = normalizeIncomingMeta(parsed);
 
                 // Check existing metadata for overwrite protection
                 const existingMeta = await env.ESTUDO_KV.get(META_KEY);
                 if (existingMeta && !parsed.forceOverwrite) {
                     try {
                         const meta = JSON.parse(existingMeta);
-                        const existingTime = new Date(meta.updatedAt).getTime();
-                        const incomingTime = new Date(incomingMeta.updatedAt).getTime();
-                        // Reject if incoming data is older than what's stored
-                        if (incomingTime < existingTime) {
+                        const remoteUpdatedAt = meta.updatedAt || meta.payloadUpdatedAt || null;
+                        const hasBaseRemote = Object.prototype.hasOwnProperty.call(parsed, 'baseRemoteUpdatedAt');
+
+                        // Modern clients must prove they are based on the latest remote snapshot.
+                        if (hasBaseRemote && (parsed.baseRemoteUpdatedAt || null) !== remoteUpdatedAt) {
                             return json({
-                                error: 'Stale data: remote is newer than incoming payload',
-                                remoteUpdatedAt: meta.updatedAt,
+                                error: 'stale sync base: remote changed before this push',
+                                remoteUpdatedAt,
                                 remoteDeviceId: meta.deviceId
                             }, 409, headers);
+                        }
+
+                        if (!hasBaseRemote) {
+                            const existingTime = new Date(remoteUpdatedAt).getTime();
+                            const incomingTime = new Date(incomingMeta.updatedAt).getTime();
+                            // Legacy fallback: reject if incoming data is older than what's stored.
+                            if (incomingTime < existingTime) {
+                                return json({
+                                    error: 'stale data: remote is newer than incoming payload',
+                                    remoteUpdatedAt,
+                                    remoteDeviceId: meta.deviceId
+                                }, 409, headers);
+                            }
                         }
                     } catch (e) { /* ignore malformed meta, proceed with write */ }
                 }
@@ -113,7 +149,7 @@ export default {
                     env.ESTUDO_KV.put(META_KEY, JSON.stringify(incomingMeta))
                 ]);
 
-                return json({ success: true, message: 'Data synced to Cloudflare KV' }, 200, headers);
+                return json({ success: true, message: 'Data synced to Cloudflare KV', meta: incomingMeta }, 200, headers);
             }
 
         } catch (err) {
