@@ -3292,7 +3292,7 @@ window.openAddPastSessionModal = function(discId) {
       </select>
     </div>
 
-    <div class="form-group" id="event-aula-group" class="mt-3">
+    <div class="form-group mt-3" id="event-aula-group">
       <label class="form-label">Material / Aula (opcional)</label>
       <select class="form-control" id="past-event-aula">
         ${aulaOptions}
