@@ -4354,46 +4354,46 @@ export function renderCiclo(el) {
                  </label>
                </div>
             </div>
-            <div class="custom-scrollbar" style="max-height:600px; overflow-y:auto; padding-right:8px;">
+            <div class="custom-scrollbar scroll-area-md">
               ${sequenceHtml}
             </div>
           </div>
         </div>
 
         <!-- COLUNA DIREITA -->
-        <div class="card ciclo-side-panel" style="padding:24px; display:flex; flex-direction:column; max-height:calc(100vh - 100px); overflow:hidden;">
-          <div style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+        <div class="card ciclo-side-panel">
+          <div class="ciclo-side-panel-header">
             <span>CICLO</span>
-            <button class="btn btn-ghost btn-sm" data-action="zerar-ciclos-counter" style="color:var(--text-muted); padding:4px 8px; font-size:11px;">
+            <button class="btn btn-ghost btn-sm ciclo-side-panel-btn" data-action="zerar-ciclos-counter">
               <i class="fa fa-undo"></i> Zerar
             </button>
           </div>
-          
-          <div style="width: 100%; height: 200px; position:relative; margin-bottom:20px; flex-shrink:0;">
+
+          <div class="ciclo-chart-container">
              <canvas id="planejamentoChart"></canvas>
-             <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-weight:800; font-size:24px; color:var(--text-muted);">${formatH(totalTarget)}</div>
+             <div class="ciclo-chart-total">${formatH(totalTarget)}</div>
           </div>
-          
+
           <!-- FILETE LINEAR -->
-          <div id="filete-linear-ciclo" style="display:flex; height:12px; border-radius:6px; overflow:hidden; opacity:0.8; margin-bottom:16px; flex-shrink:0;"></div>
-          
+          <div id="filete-linear-ciclo" class="ciclo-filete-linear"></div>
+
           <!-- CALCULADORA DE PREVISÃO -->
-          <div class="ciclo-predict-box" style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; flex:1; display:flex; flex-direction:column; overflow:hidden; margin-bottom:12px;">
-             <h4 style="font-size:12px; font-weight:700; color:var(--text-primary); letter-spacing:0.5px; margin-bottom:12px; flex-shrink:0;"><i class="fa fa-calculator" style="color:var(--accent);"></i> PREVISÃO DE SESSÕES</h4>
-             <div class="ciclo-predict-dates" style="display:flex; gap:12px; margin-bottom:16px; flex-shrink:0;">
-                <div style="flex:1;">
-                   <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA INICIAL</label>
-                   <input type="date" id="predict-start-date" class="form-control" style="font-size:12px; padding:6px 10px;" data-action="calculate-cycle-predictions" value="${plan.horarios?.dataInicial || ''}">
+          <div class="ciclo-predict-box">
+             <h4 class="ciclo-predict-title"><i class="fa fa-calculator ciclo-predict-title-icon"></i> PREVISÃO DE SESSÕES</h4>
+             <div class="ciclo-predict-dates">
+                <div class="ciclo-predict-field">
+                   <label class="ciclo-predict-label">DATA INICIAL</label>
+                   <input type="date" id="predict-start-date" class="form-control ciclo-predict-input" data-action="calculate-cycle-predictions" value="${plan.horarios?.dataInicial || ''}">
                 </div>
-                <div style="flex:1;">
-                   <label style="font-size:10px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">DATA FINAL</label>
-                   <input type="date" id="predict-end-date" class="form-control" style="font-size:12px; padding:6px 10px;" data-action="calculate-cycle-predictions" value="${plan.horarios?.dataFinal || ''}">
+                <div class="ciclo-predict-field">
+                   <label class="ciclo-predict-label">DATA FINAL</label>
+                   <input type="date" id="predict-end-date" class="form-control ciclo-predict-input" data-action="calculate-cycle-predictions" value="${plan.horarios?.dataFinal || ''}">
                 </div>
              </div>
-             <div id="predict-results-container" class="custom-scrollbar" style="display:none; flex-direction:column; gap:8px; flex:1; overflow-y:auto; padding-right:4px;">
+             <div id="predict-results-container" class="ciclo-predict-results">
                 <!-- Preenchido via JS -->
              </div>
-             <div id="predict-empty-state" style="font-size:12px; color:var(--text-muted); text-align:center; padding:16px 0; flex-shrink:0;">
+             <div id="predict-empty-state" class="ciclo-predict-empty">
                 Selecione as datas para calcular.
              </div>
           </div>
