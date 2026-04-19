@@ -3041,7 +3041,7 @@ export function openAddEventModal(dateStr = null) {
           <option value="">Sem tópico específico</option>
         </select>
       </div>
-      <div class="form-group event-form-group--hidden" id="event-aula-group" style="margin-top:12px;">
+      <div class="form-group event-form-group--hidden mt-3" id="event-aula-group">
         <label class="form-label event-form-label--inline">
           Material / Aula (opcional)
         </label>
@@ -3292,14 +3292,14 @@ window.openAddPastSessionModal = function(discId) {
       </select>
     </div>
 
-    <div class="form-group" id="event-aula-group" style="margin-top:12px;">
+    <div class="form-group" id="event-aula-group" class="mt-3">
       <label class="form-label">Material / Aula (opcional)</label>
       <select class="form-control" id="past-event-aula">
         ${aulaOptions}
       </select>
     </div>
 
-    <div class="form-row" style="margin-top:20px;">
+    <div class="form-row mt-5">
       <div class="form-group">
         <label class="form-label">Data do Estudo</label>
         <input type="date" class="form-control" id="past-event-data" value="${todayStr()}">
