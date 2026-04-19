@@ -64,7 +64,7 @@ export function renderCronometro(el) {
         </div>
         ${focusEvent.id === 'crono_livre' ? `
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px;">
-          <select class="crono-select" onchange="setCronoLivreDisc(this.value)">
+          <select class="crono-select" data-action="set-crono-livre-disc" value="${state.cronoLivre?.discId || ''}">
             <option value="">(Opcional) Escolha a Disciplina...</option>
             ${getAllDisciplinas().map(d => {
       const discLabel = `${d.disc.icone || '📖'} ${truncateOptionLabel(d.disc.nome, 42)}`;
@@ -72,7 +72,7 @@ export function renderCronometro(el) {
     }).join('')}
           </select>
           ${state.cronoLivre?.discId ? `
-            <select class="crono-select" onchange="setCronoLivreAss(this.value)">
+            <select class="crono-select" data-action="set-crono-livre-ass" value="${state.cronoLivre?.assId || ''}">
               <option value="">(Opcional) Tópico...</option>
               ${(() => {
                 const d = getDisc(state.cronoLivre.discId);
@@ -125,20 +125,20 @@ export function renderCronometro(el) {
 
         <!-- Controls -->
         <div style="display:flex;gap:24px;margin-top:40px;align-items:center;">
-          <button onclick="toggleTimer('${focusEvent.id}')" 
+          <button data-action="toggle-timer" data-event-id="${focusEvent.id}"
                   class="crono-btn-main ${isActive ? 'pause' : 'play'}"
                   title="${isActive ? 'Pausar' : 'Retomar'}">
             ${isActive ? '⏸' : '▶'}
           </button>
-          
-          <button onclick="marcarEstudei('${focusEvent.id}')" 
-                  class="crono-btn-circle success" 
+
+          <button data-action="mark-studied" data-event-id="${focusEvent.id}"
+                  class="crono-btn-circle success"
                   title="Finalizar e Salvar">
             <i class="fa fa-check"></i>
           </button>
 
-          <button id="btn-discard-timer" 
-                  onclick="discardTimer('${focusEvent.id}')" 
+          <button id="btn-discard-timer"
+                  data-action="discard-timer" data-event-id="${focusEvent.id}"
                    class="crono-btn-circle danger"
                    style="display:${elapsed > 0 ? 'flex' : 'none'};"
                    title="Descartar Sessão">
@@ -153,22 +153,22 @@ export function renderCronometro(el) {
             Definir Meta de Tempo (minutos):
           </div>
           <div style="display:flex;gap:12px;justify-content:center;align-items:center;">
-            <button onclick="setCronoLivreGoal(Math.max(0, (state.cronoLivre.duracaoMinutos||0) - 5))" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">-</button>
-            <input type="number" 
-                   value="${state.cronoLivre?.duracaoMinutos || 0}" 
-                   onchange="setCronoLivreGoal(this.value)" 
+            <button data-action="set-crono-livre-goal" data-value="-5" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">-</button>
+            <input type="number"
+                   data-action="set-crono-livre-goal"
+                   value="${state.cronoLivre?.duracaoMinutos || 0}"
                    class="crono-select"
                    style="width:80px;">
-            <button onclick="setCronoLivreGoal((state.cronoLivre.duracaoMinutos||0) + 5)" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">+</button>
+            <button data-action="set-crono-livre-goal" data-value="+5" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">+</button>
           </div>
           ` : `
           <div style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;letter-spacing:1px;">
             Adicione mais tempo se quiser continuar estudando:
           </div>
           <div style="display:flex;gap:12px;justify-content:center;">
-            <button onclick="addTimerMinutes('${focusEvent.id}',1)" class="btn btn-primary">+ 1min</button>
-            <button onclick="addTimerMinutes('${focusEvent.id}',5)" class="btn btn-primary">+ 5min</button>
-            <button onclick="addTimerMinutes('${focusEvent.id}',15)" class="btn btn-primary">+ 15min</button>
+            <button data-action="add-minutes" data-event-id="${focusEvent.id}" data-minutes="1" class="btn btn-primary">+ 1min</button>
+            <button data-action="add-minutes" data-event-id="${focusEvent.id}" data-minutes="5" class="btn btn-primary">+ 5min</button>
+            <button data-action="add-minutes" data-event-id="${focusEvent.id}" data-minutes="15" class="btn btn-primary">+ 15min</button>
           </div>
           `}
         </div>
@@ -178,7 +178,7 @@ export function renderCronometro(el) {
       <div style="
         display:flex;justify-content:center;gap:4px;padding:0 0 24px;position:relative;z-index:1;
       ">
-        <button id="crono-mode-btn" onclick="toggleTimerMode()" style="
+        <button id="crono-mode-btn" data-action="toggle-timer-mode" style="
           padding:8px 20px;border-radius:20px;border:none;cursor:pointer;
           font-size:13px;font-weight:500;transition:all 0.3s;
           ${_pomodoroMode
@@ -198,7 +198,7 @@ export function renderCronometro(el) {
         const evActive = !!ev._timerStart;
         const evDisc = getDisc(ev.discId);
         return `
-                <button onclick="navigate('cronometro');toggleTimer('${ev.id}')" class="btn ${evActive ? 'btn-primary' : 'btn-ghost'}" style="
+                <button data-action="switch-to-event-timer" data-event-id="${ev.id}" data-view="cronometro" class="btn ${evActive ? 'btn-primary' : 'btn-ghost'}" style="
                    font-size:13px;font-weight:600;
                 ">${evDisc ? evDisc.disc.nome : 'Evento'} ${evActive ? '⏱️' : '⏸️'}</button>
               `;
@@ -275,17 +275,17 @@ export function renderCurrentView() {
   const actions = document.getElementById('topbar-actions');
   actions.innerHTML = '';
   if (currentView === 'cronometro') {
-    actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="navigate('med')"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+    actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="navigate" data-view="med"><i class="fa fa-arrow-left"></i> Voltar</button>`;
   } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddEventModal()"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
   } else if (currentView === 'editais') {
     if (window.activeDashboardDiscCtx) {
-      actions.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="closeDiscDashboard()"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+      actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>`;
     } else {
-      actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openEditaModal()"><i class="fa fa-plus"></i> Novo Edital</button>`;
+      actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>`;
     }
   } else if (currentView === 'ciclo') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="window.openPlanejamentoWizard()"><i class="fa fa-cog"></i> Planejamento</button>`;
+    actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>`;
   }
 
   updateBadges();
@@ -359,7 +359,7 @@ export function renderEventCard(evento) {
   const tempo = formatTime(elapsed);
 
   return `
-    <div class="event-card" data-event-id="${evento.id}" onclick="openEventDetail('${evento.id}')">
+    <div class="event-card" data-event-id="${evento.id}" data-action="open-event-detail">
       <div class="event-stripe ${status}"></div>
       <div class="event-disc-icon" style="background:${iconBg}20;color:${iconBg};">${icon}</div>
       <div class="event-info">
@@ -371,10 +371,10 @@ export function renderEventCard(evento) {
           ${timerActive ? '<span style="font-size:11px;color:var(--accent);font-weight:600;animation:pulse 1s infinite;">● Cronômetro ativo</span>' : ''}
         </div>
       </div>
-      <div class="event-actions" onclick="event.stopPropagation()">
-        ${status !== 'estudei' ? `<button class="icon-btn ${timerActive ? 'active' : ''}" title="${timerActive ? 'Pausar' : 'Iniciar'} cronômetro" onclick="toggleTimer('${evento.id}')">${timerActive ? '⏸' : '▶'}</button>` : ''}
-        ${status !== 'estudei' ? `<button class="icon-btn" title="Marcar como Estudei" onclick="marcarEstudei('${evento.id}')">✅</button>` : ''}
-        <button class="icon-btn" title="Excluir" onclick="deleteEvento('${evento.id}')">🗑</button>
+      <div class="event-actions" data-action="stop-propagation">
+        ${status !== 'estudei' ? `<button class="icon-btn ${timerActive ? 'active' : ''}" data-action="toggle-timer" data-event-id="${evento.id}" title="${timerActive ? 'Pausar' : 'Iniciar'} cronômetro">${timerActive ? '⏸' : '▶'}</button>` : ''}
+        ${status !== 'estudei' ? `<button class="icon-btn" data-action="mark-studied" data-event-id="${evento.id}" title="Marcar como Estudei">✅</button>` : ''}
+        <button class="icon-btn" data-action="delete-event" data-event-id="${evento.id}" title="Excluir">🗑</button>
       </div>
     </div>
     `;

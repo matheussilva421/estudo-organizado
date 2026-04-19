@@ -309,9 +309,9 @@ export function renderCalendar(el) {
           </div>
           <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span class="cal-version-tag">v6.0</span></div>
           <button class="btn btn-ghost btn-sm" id="cal-today-btn" data-action="cal-today">Hoje</button>
-          <div class="cal-view-tabs ml-auto">
-            <div class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="mes">Mês</div>
-            <div class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="semana">Semana</div>
+          <div class="cal-view-tabs ml-auto" role="tablist" aria-label="Visualização do calendário">
+            <button type="button" class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="mes" role="tab" aria-selected="${calViewMode === 'mes'}" aria-controls="cal-grid">Mês</button>
+            <button type="button" class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="semana" role="tab" aria-selected="${calViewMode === 'semana'}" aria-controls="cal-grid">Semana</button>
           </div>
         </div>
         <div id="cal-grid">${gridContent}</div>
@@ -412,7 +412,7 @@ export function renderCalendarMonth() {
             <div class="cal-date">${cell.date.getDate()}</div>
             ${show.map(e => {
       const st = getEventStatus(e);
-      return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+      return `<button type="button" class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
     }).join('')}
             ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
           </div>
@@ -474,7 +474,7 @@ export function renderCalendarGrid() {
           <div class="cal-date">${cell.date.getDate()}</div>
           ${show.map(e => {
             const st = getEventStatus(e);
-            return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+            return `<button type="button" class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
           }).join('')}
           ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
         </div>
@@ -752,11 +752,11 @@ export function renderDashboard(el) {
     <!-- Period selector -->
     <div class="flex-between mb-4">
       <div class="text-md text-secondary">Exibindo dados: <strong class="text-primary">${periodLabel}</strong></div>
-      <div class="cal-view-tabs">
+      <div class="cal-view-tabs" role="tablist" aria-label="Período do dashboard">
         ${[7, 30, 90, null].map(p => `
-          <div class="cal-view-tab ${dashPeriod === p ? 'active' : ''}" data-action="set-dash-period" data-period="${p}">
+          <button type="button" class="cal-view-tab ${dashPeriod === p ? 'active' : ''}" data-action="set-dash-period" data-period="${p}" role="tab" aria-selected="${dashPeriod === p}">
             ${{ 7: '7d', 30: '30d', 90: '3m', null: 'Total' }[p]}
-          </div>`).join('')}
+          </button>`).join('')}
       </div>
     </div>
 
@@ -1003,9 +1003,9 @@ export function renderRevisoes(el) {
       </div>
     </div>
 
-    <div class="tabs rev-tabs">
-      <div class="tab-btn active" data-action="switch-revision-tab" data-tab="pendentes" data-target="this">🔄 Pendentes (${pending.length})</div>
-      <div class="tab-btn" data-action="switch-revision-tab" data-tab="proximas" data-target="this">📅 Próximas 30 dias (${upcoming.length})</div>
+    <div class="tabs rev-tabs" role="tablist" aria-label="Revisões">
+      <button type="button" class="tab-btn active" data-action="switch-revision-tab" data-tab="pendentes" data-target="this" role="tab" aria-selected="true" aria-controls="rev-tab-pendentes">🔄 Pendentes (${pending.length})</button>
+      <button type="button" class="tab-btn" data-action="switch-revision-tab" data-tab="proximas" data-target="this" role="tab" aria-selected="false" aria-controls="rev-tab-proximas">📅 Próximas 30 dias (${upcoming.length})</button>
     </div>
 
     <div id="rev-tab-pendentes" class="tab-content active">
@@ -2362,13 +2362,13 @@ export function openDiscManager(editaId, discId) {
     </div>
 
     <!--TABS de Navegação Wave 39 -->
-    <div class="manager-tabs">
-        <div data-action="switch-manager-tab" data-tab="topicos" class="manager-tab ${window._activeDiscManagerTab === 'topicos' ? 'manager-tab--active' : ''}">
+    <div class="manager-tabs" role="tablist" aria-label="Gerenciamento de disciplina">
+        <button type="button" data-action="switch-manager-tab" data-tab="topicos" class="manager-tab ${window._activeDiscManagerTab === 'topicos' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${window._activeDiscManagerTab === 'topicos'}" aria-controls="tab-manager-topicos">
             Tópicos do Edital (${disc.assuntos.length})
-        </div>
-        <div data-action="switch-manager-tab" data-tab="aulas" class="manager-tab ${window._activeDiscManagerTab === 'aulas' ? 'manager-tab--active' : ''}">
+        </button>
+        <button type="button" data-action="switch-manager-tab" data-tab="aulas" class="manager-tab ${window._activeDiscManagerTab === 'aulas' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${window._activeDiscManagerTab === 'aulas'}" aria-controls="tab-manager-aulas">
             Meus Materiais/Aulas (${disc.aulas ? disc.aulas.length : 0})
-        </div>
+        </button>
     </div>
 
     <!--ABA TÓPICOS-->
@@ -3946,55 +3946,63 @@ export function onSearch(query) {
     });
   });
 
+  const totalResults = results.eventos.length + results.disciplinas.length + results.assuntos.length + results.habitos.length;
+
+  // Announce results to screen readers
+  const announcer = document.getElementById('aria-announcer');
+  if (announcer) {
+    announcer.textContent = `${totalResults} resultado(s) encontrado(s)`;
+  }
+
   const highlight = str => esc(str).replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
   let html = '';
 
   if (results.eventos.length) {
-    html += `<div class="search-section-title">📅 Eventos</div>`;
+    html += `<div class="search-section-title" role="presentation">📅 Eventos</div>`;
     html += results.eventos.slice(0, 5).map(({ ev, disc }) => `
-      <div class="search-item" data-action="open-search-event" data-event-id="${ev.id}">
+      <button type="button" class="search-item" data-action="open-search-event" data-event-id="${ev.id}">
         <div class="search-item-icon">${disc ? disc.icone || '📚' : '📅'}</div>
         <div>
           <div class="search-item-label">${highlight(ev.titulo)}</div>
           <div class="search-item-sub">${ev.data ? formatDate(ev.data) : ''}${disc ? ' • ' + disc.nome : ''}</div>
         </div>
-      </div>`).join('');
+      </button>`).join('');
   }
 
   if (results.disciplinas.length) {
-    html += `<div class="search-section-title">📖 Disciplinas</div>`;
+    html += `<div class="search-section-title" role="presentation">📖 Disciplinas</div>`;
     html += results.disciplinas.slice(0, 5).map(({ disc, edital }) => `
-      <div class="search-item" data-action="navigate-clear-search" data-view="editais">
+      <button type="button" class="search-item" data-action="navigate-clear-search" data-view="editais">
         <div class="search-item-icon">${disc.icone || '📖'}</div>
         <div>
           <div class="search-item-label">${highlight(disc.nome)}</div>
           <div class="search-item-sub">${esc(edital.nome)} • ${(disc.assuntos || []).length} assunto(s)</div>
         </div>
-      </div>`).join('');
+      </button>`).join('');
   }
 
   if (results.assuntos.length) {
-    html += `<div class="search-section-title">📚 Assuntos</div>`;
+    html += `<div class="search-section-title" role="presentation">📚 Assuntos</div>`;
     html += results.assuntos.slice(0, 5).map(({ ass, disc, edital }) => `
-      <div class="search-item" data-action="navigate-clear-search" data-view="editais">
+      <button type="button" class="search-item" data-action="navigate-clear-search" data-view="editais">
         <div class="search-item-icon">${disc.icone || '📚'}</div>
         <div>
           <div class="search-item-label">${highlight(ass.nome)}</div>
           <div class="search-item-sub">${esc(disc.nome)} • ${esc(edital.nome)} ${ass.concluido ? '✅' : ''}</div>
         </div>
-      </div>`).join('');
+      </button>`).join('');
   }
 
   if (results.habitos.length) {
-    html += `<div class="search-section-title">⚡ Hábitos</div>`;
+    html += `<div class="search-section-title" role="presentation">⚡ Hábitos</div>`;
     html += results.habitos.slice(0, 3).map(({ r, h }) => `
-      <div class="search-item" data-action="navigate-clear-search" data-view="habitos">
+      <button type="button" class="search-item" data-action="navigate-clear-search" data-view="habitos">
         <div class="search-item-icon">${h.icon}</div>
         <div>
           <div class="search-item-label">${highlight(r.descricao || h.label)}</div>
           <div class="search-item-sub">${formatDate(r.data)}</div>
         </div>
-      </div>`).join('');
+      </button>`).join('');
   }
 
   if (!html) html = `<div class="search-empty">Nenhum resultado para "<strong>${query}</strong>"</div>`;

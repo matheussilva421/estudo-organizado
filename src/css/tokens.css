@@ -1,0 +1,49 @@
+:root {
+  --sidebar-bg: #1a2035;
+  --sidebar-hover: #252d47;
+  --sidebar-active: #2d3a5c;
+  --accent: #10b981;
+  --accent-light: #d1fae5;
+  --accent-dark: #059669;
+  --accent-text: #052e16;
+  --blue: #3b82f6;
+  --orange: #f59e0b;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #5b6b80;
+  --border: #e2e8f0;
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --card-bg: #ffffff;
+  --bg-secondary: #e2e8f0;
+  --yellow: #eab308;
+  --sidebar-text: #94a3b8;
+  --status-agendado: #3b82f6;
+  --status-estudei: #10b981;
+  --status-atrasado: #ef4444;
+  --status-nao: #94a3b8;
+  --green: #10b981;
+  --text: var(--text-primary);
+  --surface: #ffffff;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --radius: var(--radius-md);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}

@@ -256,37 +256,37 @@ function validateStep(step) {
 
 function htmlStep1() {
     return `
-        <div style="text-align:center; max-width:500px; margin:0 auto;">
-            <h3 style="margin-bottom:8px; font-size:20px;">Qual é a sua estratégia de estudo?</h3>
-            <p style="color:var(--text-secondary); margin-bottom:32px; font-size:14px;">
+        <div class="pw-center-container">
+            <h3 class="mb-2 text-20px">Qual é a sua estratégia de estudo?</h3>
+            <p class="text-secondary text-lg mb-6">
                 Escolha o modelo que melhor se adapta à sua rotina atual.
             </p>
-            
-            <div style="display:flex; flex-direction:column; gap:16px;">
-                <div onclick="pwSelectTipo('ciclo')" style="
+
+            <div class="stack-md">
+                <div data-action="pw-select-tipo" data-tipo="ciclo" style="
                     border: 2px solid ${draft.tipo === 'ciclo' ? 'var(--accent)' : 'var(--border)'};
                     background: ${draft.tipo === 'ciclo' ? 'rgba(88,166,255,0.1)' : 'var(--bg-secondary)'};
                     border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; text-align: left;
                 ">
-                    <div style="display:flex; align-items:center; gap:16px; margin-bottom:8px;">
-                        <div style="font-size:32px;">🔄</div>
+                    <div class="cluster-lg mb-2">
+                        <div class="text-3xl">🔄</div>
                         <div>
-                            <div style="font-size:16px; font-weight:600; color:var(--text-primary);">Ciclo de Estudos (Recomendado)</div>
-                            <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">As disciplinas se revezam em uma sequência contínua. Ideal para rotinas flexíveis, pois você nunca perde matéria se não puder estudar um dia.</div>
+                            <div class="text-xl font-semibold text-primary">Ciclo de Estudos (Recomendado)</div>
+                            <div class="text-md text-muted mt-1">As disciplinas se revezam em uma sequência contínua. Ideal para rotinas flexíveis, pois você nunca perde matéria se não puder estudar um dia.</div>
                         </div>
                     </div>
                 </div>
 
-                <div onclick="pwSelectTipo('semanal')" style="
+                <div data-action="pw-select-tipo" data-tipo="semanal" style="
                     border: 2px solid ${draft.tipo === 'semanal' ? 'var(--accent)' : 'var(--border)'};
                     background: ${draft.tipo === 'semanal' ? 'rgba(88,166,255,0.1)' : 'var(--bg-secondary)'};
                     border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; text-align: left;
                 ">
-                    <div style="display:flex; align-items:center; gap:16px; margin-bottom:8px;">
-                        <div style="font-size:32px;">📅</div>
+                    <div class="cluster-lg mb-2">
+                        <div class="text-3xl">📅</div>
                         <div>
-                            <div style="font-size:16px; font-weight:600; color:var(--text-primary);">Grade Semanal Fixa</div>
-                            <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">Define horários estritos. Ex: Segunda é Matemática, Terça é Português. Ideal para quem tem rotina 100% previsível.</div>
+                            <div class="text-xl font-semibold text-primary">Grade Semanal Fixa</div>
+                            <div class="text-md text-muted mt-1">Define horários estritos. Ex: Segunda é Matemática, Terça é Português. Ideal para quem tem rotina 100% previsível.</div>
                         </div>
                     </div>
                 </div>
@@ -300,34 +300,34 @@ function htmlStep2() {
 
     if (all.length === 0) {
         return `
-            <div style="text-align:center; padding: 40px 20px;">
-                <h3 style="margin-bottom:16px; color:var(--red);">Nenhuma disciplina encontrada</h3>
-                <p style="color:var(--text-secondary); margin-bottom:24px;">Você precisa cadastrar editais e disciplinas antes de planejar.</p>
-                <button class="btn btn-primary" onclick="window.closeModal('modal-planejamento'); window.navigate('editais');">Ir para Editais</button>
+            <div class="pw-empty-state">
+                <h3 class="mb-4 text-red">Nenhuma disciplina encontrada</h3>
+                <p class="text-secondary mb-6">Você precisa cadastrar editais e disciplinas antes de planejar.</p>
+                <button class="btn btn-primary" data-action="navigate" data-view="editais">Ir para Editais</button>
             </div>
         `;
     }
 
     return `
         <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div class="flex-between mb-4">
                 <div>
-                    <h3 style="font-size:18px;">Quais disciplinas incluir?</h3>
-                    <div id="pw-disc-count" style="font-size:13px; color:var(--text-muted); margin-top:4px;">${draft.disciplinas.length} disciplinas selecionadas</div>
+                    <h3 class="text-18px">Quais disciplinas incluir?</h3>
+                    <div id="pw-disc-count" class="text-md text-muted mt-1">${draft.disciplinas.length} disciplinas selecionadas</div>
                 </div>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn btn-ghost btn-sm" onclick="pwSelectAllDisc()">Todas</button>
-                    <button class="btn btn-ghost btn-sm" onclick="pwClearDisc()">Nenhuma</button>
+                <div class="cluster-sm">
+                    <button class="btn btn-ghost btn-sm" data-action="pw-select-all-disc">Todas</button>
+                    <button class="btn btn-ghost btn-sm" data-action="pw-clear-disc">Nenhuma</button>
                 </div>
             </div>
-            
-            <input type="text" class="form-control" placeholder="Buscar disciplina..." onkeyup="pwSearchDisc(this.value)" style="margin-bottom: 16px;">
-            
-            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:12px; max-height: 300px; overflow-y:auto; padding-right:8px;">
+
+            <input type="text" class="form-control mb-4" placeholder="Buscar disciplina..." data-action="pw-search-disc">
+
+            <div class="pw-disc-grid">
                 ${all.map(d => {
         const sel = draft.disciplinas.includes(d.disc.id);
         return `
-                    <div class="pw-disc-card" onclick="pwToggleDisc('${d.disc.id}')" style="
+                    <div class="pw-disc-card" data-action="pw-toggle-disc" data-disc-id="${d.disc.id}" style="
                         border: 1px solid ${sel ? 'var(--accent)' : 'var(--border)'};
                         background: ${sel ? 'rgba(88,166,255,0.1)' : 'var(--bg-secondary)'};
                         padding: 12px; border-radius: 8px; cursor:pointer; display:flex; align-items:center; gap:8px;
@@ -336,7 +336,7 @@ function htmlStep2() {
                         <div style="width:20px; height:20px; border-radius:4px; border:1px solid ${sel ? 'var(--accent)' : 'var(--border)'}; background:${sel ? 'var(--accent)' : 'transparent'}; display:flex; align-items:center; justify-content:center; color:var(--accent-text, #fff); font-size:12px;">
                             ${sel ? '✓' : ''}
                         </div>
-                        <div style="flex:1; font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(d.disc.nome)}">
+                        <div class="flex-1 text-md font-medium text-ellipsis" title="${esc(d.disc.nome)}">
                             ${d.disc.icone || '📚'} ${esc(d.disc.nome)}
                         </div>
                     </div>`;
@@ -350,40 +350,40 @@ function htmlStep3() {
     const selected = getAllDisciplinas().filter(d => draft.disciplinas.includes(d.disc.id));
 
     return `
-        <div style="display:flex; gap: 24px; flex-wrap: wrap;">
-            <div style="flex: 2; min-width:300px;">
-                <h3 style="font-size:18px; margin-bottom:4px;">Relevância e Domínio</h3>
-                <p style="color:var(--text-secondary); font-size:13px; margin-bottom:24px;">Defina a importância da matéria para sua prova e o seu nível de conhecimento atual. O sistema priorizará matérias muito importantes que você ainda não domina.</p>
-                
-                <div style="display:flex; flex-direction:column; gap:16px; max-height:400px; overflow-y:auto; padding-right:8px;">
+        <div class="pw-main-layout">
+            <div class="pw-main-left">
+                <h3 class="text-18px mb-1">Relevância e Domínio</h3>
+                <p class="text-secondary text-md mb-6">Defina a importância da matéria para sua prova e o seu nível de conhecimento atual. O sistema priorizará matérias muito importantes que você ainda não domina.</p>
+
+                <div class="pw-slider-group">
                     ${selected.map(d => {
         const rel = draft.relevancia[d.disc.id] || { importancia: 3, conhecimento: 3 };
         return `
-                        <div style="background:var(--bg-secondary); border:1px solid var(--border); padding:16px; border-radius:12px;">
-                            <div style="font-weight:600; font-size:14px; margin-bottom:12px; color:var(--text-primary);">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
-                            
-                            <div style="display:flex; flex-wrap:wrap; gap:24px;">
-                                <div style="flex:1; min-width:150px;">
-                                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; color:var(--text-muted);">
+                        <div class="pw-slider-card">
+                            <div class="font-semibold text-lg mb-3 text-primary">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+
+                            <div class="pw-slider-row">
+                                <div class="pw-slider-field">
+                                    <div class="pw-range-label-row">
                                         <span>Importância (Peso da prova)</span>
-                                        <span id="pw-lbl-importancia-${d.disc.id}" style="color:var(--text-primary); font-weight:600;">${rel.importancia}</span>
+                                        <span id="pw-lbl-importancia-${d.disc.id}" class="pw-range-value">${rel.importancia}</span>
                                     </div>
-                                    <input type="range" min="1" max="5" value="${rel.importancia}" 
-                                        oninput="pwUpdateRel('${d.disc.id}', 'importancia', this.value)"
-                                        style="width:100%; cursor:pointer;">
-                                    <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px;">
+                                    <input type="range" min="1" max="5" value="${rel.importancia}"
+                                        data-action="pw-update-relevancia" data-disc-id="${d.disc.id}" data-type="importancia"
+                                        class="w-full cursor-pointer">
+                                    <div class="pw-range-bounds">
                                         <span>Baixa</span><span>Alta</span>
                                     </div>
                                 </div>
-                                <div style="flex:1; min-width:150px;">
-                                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; color:var(--text-muted);">
+                                <div class="pw-slider-field">
+                                    <div class="pw-range-label-row">
                                         <span>Seu Conhecimento Atual</span>
-                                        <span id="pw-lbl-conhecimento-${d.disc.id}" style="color:var(--text-primary); font-weight:600;">${rel.conhecimento}</span>
+                                        <span id="pw-lbl-conhecimento-${d.disc.id}" class="pw-range-value">${rel.conhecimento}</span>
                                     </div>
-                                    <input type="range" min="0" max="5" value="${rel.conhecimento}" 
-                                        oninput="pwUpdateRel('${d.disc.id}', 'conhecimento', this.value)"
-                                        style="width:100%; cursor:pointer;">
-                                    <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px;">
+                                    <input type="range" min="0" max="5" value="${rel.conhecimento}"
+                                        data-action="pw-update-relevancia" data-disc-id="${d.disc.id}" data-type="conhecimento"
+                                        class="w-full cursor-pointer">
+                                    <div class="pw-range-bounds">
                                         <span>Iniciante</span><span>Mestre</span>
                                     </div>
                                 </div>
@@ -392,13 +392,13 @@ function htmlStep3() {
     }).join('')}
                 </div>
             </div>
-            
-            <div style="flex: 1; min-width:250px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; padding:16px; align-self:flex-start;">
-                <h4 style="font-size:14px; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px;">Distribuição de Tempo Estimada</h4>
-                <div id="pw-weight-preview" style="display:flex; flex-direction:column; gap:8px;">
+
+            <div class="pw-main-right">
+                <h4 class="pw-preview-heading">Distribuição de Tempo Estimada</h4>
+                <div id="pw-weight-preview" class="stack-sm">
                     <!-- Injected real time -->
                 </div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:16px; text-align:center;">Atualizado em tempo real baseado no Peso = Importância x (6 - Conhecimento)</div>
+                <div class="text-sm text-muted mt-4 text-center">Atualizado em tempo real baseado no Peso = Importância x (6 - Conhecimento)</div>
             </div>
         </div>
     `;
@@ -425,11 +425,11 @@ window.pwRenderWeightPreview = function () {
         const pct = totalPeso > 0 ? ((c.peso / totalPeso) * 100).toFixed(1) : 0;
         return `
             <div>
-                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
-                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;">${esc(c.name)}</span>
-                    <span style="font-weight:600;">${pct}%</span>
+                <div class="pw-bar-label-row">
+                    <span class="pw-bar-name">${esc(c.name)}</span>
+                    <span class="pw-bar-pct">${pct}%</span>
                 </div>
-                <div style="height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+                <div class="pw-bar-track">
                     <div style="height:100%; width:${pct}%; background:${c.color};"></div>
                 </div>
             </div>
@@ -441,51 +441,51 @@ function htmlStep4() {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
     let html = `
-        <h3 style="font-size:18px; margin-bottom:4px;">Configuração de Horários</h3>
-        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:24px;">Defina os limites corporais do seu estudo. Qual o tamanho de um "bloco de estudo" para este longo prazo?</p>
-        
-        <div style="display:flex; gap:16px; margin-bottom:24px;">
-            <div style="flex:1;">
+        <h3 class="text-18px mb-1">Configuração de Horários</h3>
+        <p class="text-secondary text-md mb-6">Defina os limites corporais do seu estudo. Qual o tamanho de um "bloco de estudo" para este longo prazo?</p>
+
+        <div class="pw-date-row">
+            <div class="flex-1">
                 <label class="form-label">Data Inicial (Opcional - Previsões)</label>
-                <input type="date" class="form-control" value="${draft.horarios.dataInicial || ''}" oninput="pwUpdateHours('dataInicial', this.value)">
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Início do Período</div>
+                <input type="date" class="form-control" value="${draft.horarios.dataInicial || ''}" data-action="pw-update-hours" data-field="dataInicial">
+                <div class="text-sm text-muted mt-1">Início do Período</div>
             </div>
-            <div style="flex:1;">
+            <div class="flex-1">
                 <label class="form-label">Data Final (Opcional - Previsões)</label>
-                <input type="date" class="form-control" value="${draft.horarios.dataFinal || ''}" oninput="pwUpdateHours('dataFinal', this.value)">
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Fim do Período</div>
+                <input type="date" class="form-control" value="${draft.horarios.dataFinal || ''}" data-action="pw-update-hours" data-field="dataFinal">
+                <div class="text-sm text-muted mt-1">Fim do Período</div>
             </div>
         </div>
 
-        <div style="display:flex; gap:16px; margin-bottom:24px;">
-            <div style="flex:1;">
+        <div class="pw-date-row">
+            <div class="flex-1">
                 <label class="form-label">Sessão Mínima (minutos)</label>
-                <input type="number" class="form-control" value="${draft.horarios.sessaoMin}" oninput="pwUpdateHours('sessaoMin', this.value)">
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Bloco inquebrável (ex: 30)</div>
+                <input type="number" class="form-control" value="${draft.horarios.sessaoMin}" data-action="pw-update-hours" data-field="sessaoMin">
+                <div class="text-sm text-muted mt-1">Bloco inquebrável (ex: 30)</div>
             </div>
-            <div style="flex:1;">
+            <div class="flex-1">
                 <label class="form-label">Sessão Máxima (minutos)</label>
-                <input type="number" class="form-control" value="${draft.horarios.sessaoMax}" oninput="pwUpdateHours('sessaoMax', this.value)">
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Trocar de matéria após X min (ex: 120)</div>
+                <input type="number" class="form-control" value="${draft.horarios.sessaoMax}" data-action="pw-update-hours" data-field="sessaoMax">
+                <div class="text-sm text-muted mt-1">Trocar de matéria após X min (ex: 120)</div>
             </div>
         </div>
     `;
 
     if (draft.tipo === 'ciclo') {
         html += `
-            <div style="background:var(--bg-secondary); border:1px solid var(--border); padding:20px; border-radius:12px;">
-                <h4 style="font-size:15px; margin-bottom:16px;">Meta do Ciclo</h4>
-                <div style="margin-bottom:24px;">
+            <div class="pw-config-card">
+                <h4 class="pw-config-heading">Meta do Ciclo</h4>
+                <div class="mb-6">
                     <label class="form-label">Total de horas para Fechar um Ciclo inteiro</label>
-                    <input type="number" step="0.5" class="form-control" placeholder="Ex: 30" value="${draft.horarios.horasSemanais}" oninput="pwUpdateHours('horasSemanais', this.value)">
-                    <p style="font-size:12px; color:var(--text-muted); margin-top:6px;">Quando você atingir essas X horas estudadas, o ciclo zera e as matérias se repetem. É comum alinhar as horas do ciclo com as suas de estudo semanal, mas no Ciclo, o Carga Horária independe dos dias solares.</p>
+                    <input type="number" step="0.5" class="form-control" placeholder="Ex: 30" value="${draft.horarios.horasSemanais}" data-action="pw-update-hours" data-field="horasSemanais">
+                    <p class="text-base text-muted mt-2">Quando você atingir essas X horas estudadas, o ciclo zera e as matérias se repetem. É comum alinhar as horas do ciclo com as suas de estudo semanal, mas no Ciclo, o Carga Horária independe dos dias solares.</p>
                 </div>
 
                 <label class="form-label">Quais dias de sol você pretende estudar? (Apenas para estimativas)</label>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <div class="flex-wrap cluster-sm">
                     ${days.map((d, i) => `
-                        <button onclick="pwToggleDay(${i})" class="btn" style="flex:1; min-width:40px; padding:8px; 
-                            background:${draft.horarios.diasAtivos.includes(i) ? 'var(--accent)' : 'rgba(255,255,255,0.05)'}; 
+                        <button data-action="pw-toggle-day" data-day-index="${i}" class="btn" style="flex:1; min-width:40px; padding:8px;
+                            background:${draft.horarios.diasAtivos.includes(i) ? 'var(--accent)' : 'rgba(255,255,255,0.05)'};
                             color:${draft.horarios.diasAtivos.includes(i) ? 'var(--accent-text)' : 'var(--text-muted)'};
                         ">${d}</button>
                     `).join('')}
@@ -494,19 +494,19 @@ function htmlStep4() {
         `;
     } else {
         html += `
-            <div style="background:var(--bg-secondary); border:1px solid var(--border); padding:20px; border-radius:12px;">
-                <h4 style="font-size:15px; margin-bottom:16px;">Agenda Semanal</h4>
-                <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="pw-config-card">
+                <h4 class="pw-config-heading">Agenda Semanal</h4>
+                <div class="pw-week-grid">
                     ${days.map((d, i) => {
             const ativo = draft.horarios.diasAtivos.includes(i);
             return `
-                        <div style="display:flex; align-items:center; gap:16px;">
-                            <label style="display:flex; align-items:center; gap:8px; width:80px; cursor:pointer;">
-                                <input type="checkbox" ${ativo ? 'checked' : ''} onchange="pwToggleDay(${i})">
-                                <span style="font-weight:600; color:${ativo ? 'var(--text-primary)' : 'var(--text-muted)'}">${d}</span>
+                        <div class="pw-week-row">
+                            <label class="cluster-sm cursor-pointer" style="width:80px;">
+                                <input type="checkbox" ${ativo ? 'checked' : ''} data-action="pw-toggle-day" data-day-index="${i}">
+                                <span class="font-semibold" style="color:${ativo ? 'var(--text-primary)' : 'var(--text-muted)'}">${d}</span>
                             </label>
-                            <input type="time" class="form-control" style="flex:1; opacity: ${ativo ? '1' : '0.3'}; pointer-events: ${ativo ? 'auto' : 'none'};" 
-                                value="${draft.horarios.horasPorDia[i] || ''}" oninput="pwUpdateDayHour(${i}, this.value)">
+                            <input type="time" class="form-control flex-1" style="opacity: ${ativo ? '1' : '0.3'}; pointer-events: ${ativo ? 'auto' : 'none'};"
+                                value="${draft.horarios.horasPorDia[i] || ''}" data-action="pw-update-day-hour" data-day-index="${i}">
                         </div>
                     `}).join('')}
                 </div>

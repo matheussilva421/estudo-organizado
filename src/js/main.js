@@ -15,6 +15,16 @@ import * as wizard from './planejamento-wizard.js?v=8.3';
 import * as relevance from './relevance.js?v=8.3';
 import * as lesson_mapper from './lesson-mapper.js?v=8.3';
 
+// Import UI helpers and action dispatcher
+import { setupActionDispatcher } from './ui/actions.js?v=8.3';
+import { qs, qsa, setText, clearChildren, createElement } from './ui/dom.js?v=8.3';
+import { initModals, announce } from './ui/dialog.js?v=8.3';
+
+// Expose UI helpers to window for gradual migration
+window.qs = qs;
+window.qsa = qsa;
+window.announce = announce;
+
 // Expose all exports to window (temporary bridge for inline onclick handlers)
 const modules = [store, app, logic, components, views, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper];
 
@@ -30,6 +40,12 @@ for (const mod of modules) {
 // ============================================================
 // Setup DOM event handlers that need to be attached BEFORE init
 app.setupConfirmHandlers();
+
+// Initialize centralized action dispatcher (replaces inline handlers)
+setupActionDispatcher();
+
+// Initialize modals with ARIA attributes and accessibility features
+initModals();
 
 // Call init - modules are deferred, so DOM is ready
 app.init();

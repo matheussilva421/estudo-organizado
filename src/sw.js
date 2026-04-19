@@ -5,6 +5,10 @@ const ASSET_PATHS = [
     './',
     './index.html',
     './css/styles.css',
+    './css/tokens.css',
+    './css/base.css',
+    './css/components.css',
+    './css/views.css',
     './js/app.js',
     './js/cloud-sync.js',
     './js/components.js',
@@ -16,9 +20,15 @@ const ASSET_PATHS = [
     './js/planejamento-wizard.js',
     './js/registro-sessao.js',
     './js/relevance.js',
+    './js/sw-register.js',
     './js/store.js',
     './js/utils.js',
-    './js/views.js'
+    './js/views.js',
+    './vendor/chart.umd.min.js',
+    './assets/icons/icon-192.svg',
+    './assets/icons/icon-512.svg',
+    './assets/icons/icon-maskable-512.svg',
+    './manifest.json'
 ];
 
 // Append version query string to cacheable assets (skip root path)
@@ -73,40 +83,78 @@ self.addEventListener('message', (evt) => {
     }
 });
 
-// Fetch Event (Network First strategy)
+// Cache strategies by destination type
+function networkFirst(request) {
+    return fetch(request)
+        .then((res) => {
+            if (res.ok) {
+                const clone = res.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            }
+            return res;
+        })
+        .catch(() => caches.match(request));
+}
+
+function staleWhileRevalidate(request) {
+    return caches.open(CACHE_NAME).then((cache) =>
+        cache.match(request).then((cached) => {
+            const fetchPromise = fetch(request).then((res) => {
+                if (res.ok) cache.put(request, res.clone());
+                return res;
+            }).catch(() => cached);
+            return cached || fetchPromise;
+        })
+    );
+}
+
+function cacheFirst(request) {
+    return caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((res) => {
+            if (res.ok) {
+                const clone = res.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            }
+            return res;
+        });
+    });
+}
+
+// Fetch Event — route by asset type
 self.addEventListener('fetch', (evt) => {
     if (evt.request.method !== 'GET') return;
 
     const url = new URL(evt.request.url);
-    if (url.origin !== location.origin) {
+    if (url.origin !== location.origin) return;
+
+    const dest = evt.request.destination;
+
+    // Documents: network-first for fresh content
+    if (dest === 'document' || evt.request.mode === 'navigate') {
+        const request = isShellAssetRequest(url)
+            ? new Request(evt.request, { cache: 'no-store' })
+            : evt.request;
+
+        evt.respondWith(
+            networkFirst(request).catch(() =>
+                caches.match(`./index.html?v=${APP_VERSION}`)
+                    .then((v) => v || caches.match('./index.html'))
+                    .then((v) => v || caches.match('./'))
+            )
+        );
         return;
     }
 
-    const requestForNetwork = isShellAssetRequest(url)
-        ? new Request(evt.request, { cache: 'no-store' })
-        : evt.request;
+    // Scripts and styles: stale-while-revalidate for speed
+    if (dest === 'script' || dest === 'style') {
+        const request = isShellAssetRequest(url)
+            ? new Request(evt.request, { cache: 'no-store' })
+            : evt.request;
+        evt.respondWith(staleWhileRevalidate(request));
+        return;
+    }
 
-    evt.respondWith(
-        fetch(requestForNetwork)
-            .then((fetchRes) => {
-                // If online request succeeded, refresh cached copy.
-                return caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(evt.request, fetchRes.clone());
-                    return fetchRes;
-                });
-            })
-            .catch(() => {
-                // If offline, fallback to cached assets.
-                return caches.match(evt.request).then((cacheRes) => {
-                    if (cacheRes) return cacheRes;
-                    if (evt.request.mode === 'navigate' || evt.request.destination === 'document') {
-                        return caches
-                            .match(`./index.html?v=${APP_VERSION}`)
-                            .then((versionedHtml) => versionedHtml || caches.match('./index.html'))
-                            .then((fallbackHtml) => fallbackHtml || caches.match('./'));
-                    }
-                    return undefined;
-                });
-            })
-    );
+    // Images and other assets: cache-first
+    evt.respondWith(cacheFirst(evt.request));
 });

@@ -201,6 +201,9 @@ Documentos de arquitetura, planos e segurança ficam em `src/docs/`.
 - `src/docs/architecture/app-overview.md` - visão geral da arquitetura atual
 - `src/docs/architecture/data-flow.md` - fluxo de dados, persistência e sync
 - `src/docs/security/sync-threat-model.md` - riscos e mitigação de persistência/sync
+- `src/docs/api/sync-contract.md` - contrato atual e futuro do sync
+- `src/docs/qa/manual-regression-checklist.md` - checklist de regressão manual
+- `src/docs/releases/release-checklist.md` - checklist de release, severidade de bugs e definição de pronto
 - `src/docs/superpowers/plans/` - planos de implementação
 - `src/docs/superpowers/specs/` - specs e documentos de design
 

@@ -44,7 +44,7 @@ export function navigate(view) {
 
 // removed utilities to utils.js
 
-// UI Modals
+// UI Modals - wrapper around dialog.js for backward compatibility
 export function openModal(id) {
   const el = document.getElementById(id);
   if (!el) return;

@@ -12,7 +12,7 @@
     <!-- Content Security Policy - restringe origens de scripts e recursos -->
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self';
-                 script-src 'self' https://cdnjs.cloudflare.com https://apis.google.com https://accounts.google.com 'unsafe-inline' 'unsafe-eval';
+                 script-src 'self' https://apis.google.com https://accounts.google.com;
                  style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline';
                  font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
                  connect-src 'self' https://*.workers.dev https://www.googleapis.com https://accounts.google.com;
@@ -26,48 +26,13 @@
         href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/tokens.css?v=8.3">
+    <link rel="stylesheet" href="css/base.css?v=8.3">
+    <link rel="stylesheet" href="css/components.css?v=8.3">
+    <link rel="stylesheet" href="css/views.css?v=8.3">
     <link rel="stylesheet" href="css/styles.css?v=8.3">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer integrity="sha384-DhxhYObIMeMNGyAG7iK11OHzBIKyEIeRL0ad1iFPAOwZB8iirUlTT0O/WJJUk8+o" crossorigin="anonymous"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', async () => {
-                try {
-                    let refreshing = false;
-                    navigator.serviceWorker.addEventListener('controllerchange', () => {
-                        if (refreshing) return;
-                        refreshing = true;
-                        window.location.reload();
-                    });
-
-                    const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
-                    console.log('SW Registrado com escopo:', reg.scope);
-
-                    const promoteWaitingWorker = () => {
-                        if (reg.waiting) {
-                            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-                        }
-                    };
-
-                    promoteWaitingWorker();
-
-                    reg.addEventListener('updatefound', () => {
-                        const newWorker = reg.installing;
-                        if (!newWorker) return;
-
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                promoteWaitingWorker();
-                            }
-                        });
-                    });
-
-                    await reg.update();
-                } catch (err) {
-                    console.error('Erro no registro do SW:', err);
-                }
-            });
-        }
-    </script>
+    <script src="vendor/chart.umd.min.js?v=8.3" defer></script>
+    <script src="js/sw-register.js?v=8.3" defer></script>
 </head>
 
 <body>
@@ -176,12 +141,19 @@
                 🌙 Modo escuro
             </button>
             <!-- UX 1: Global Search -->
-            <div class="search-wrap" style="order:-1;margin-right:8px;">
+            <div class="search-wrap" style="order:-1;margin-right:8px;" role="search">
                 <i class="fa fa-search search-icon"></i>
                 <input class="search-input" id="global-search" placeholder="Buscar eventos, assuntos, hábitos..."
-                    autocomplete="off" oninput="window.debouncedOnSearch(this.value)" onfocus="onSearchFocus()"
-                    onblur="onSearchBlur()">
-                <div class="search-results" id="search-results"></div>
+                    autocomplete="off"
+                    data-action="search-input"
+                    data-focus-action="search-focus"
+                    data-blur-action="search-blur"
+                    role="searchbox"
+                    aria-label="Buscar eventos, assuntos, hábitos"
+                    aria-controls="search-results"
+                    aria-expanded="false"
+                    aria-autocomplete="list">
+                <div class="search-results" id="search-results" role="listbox" aria-label="Resultados da busca"></div>
             </div>
         </div>
         <div id="main-content" role="main">
@@ -492,6 +464,9 @@
             </div>
         </div>
     </div>
+
+    <!-- ARIA Live Region for Screen Reader Announcements -->
+    <div id="aria-announcer" aria-live="polite" aria-atomic="true" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"></div>
 
 </body>
 

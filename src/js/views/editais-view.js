@@ -1,0 +1,430 @@
+/**
+ * Editais/Vertical View Module
+ * Renderiza view de editais (renderEditais, renderEditalTree) e vertical (renderVertical, renderVerticalList)
+ */
+
+import { scheduleSave, state } from '../store.js?v=8.3';
+import { esc, todayStr } from '../utils.js?v=8.3';
+import { getDisc } from '../logic.js?v=8.3';
+
+// ── Vertical View State ──
+let vertSearch = '';
+let vertFilterStatus = 'todos';
+let vertFilterEdital = '';
+
+export function getVertSearch() { return vertSearch; }
+export function setVertSearch(val) { vertSearch = val; }
+export function getVertFilterStatus() { return vertFilterStatus; }
+export function setVertFilterStatus(val) { vertFilterStatus = val; }
+export function getVertFilterEdital() { return vertFilterEdital; }
+export function setVertFilterEdital(val) { vertFilterEdital = val; }
+
+// ── Helper: Get Filtered Vertical Items ──
+export function getFilteredVertItems() {
+  const items = [];
+  for (const edital of state.editais || []) {
+    if (vertFilterEdital && edital.id !== vertFilterEdital) continue;
+    for (const disc of edital.disciplinas || []) {
+      for (const ass of disc.assuntos || []) {
+        if (vertFilterStatus === 'pendentes' && ass.concluido) continue;
+        if (vertFilterStatus === 'concluidos' && !ass.concluido) continue;
+        if (vertSearch) {
+          const search = vertSearch.toLowerCase();
+          if (!disc.nome.toLowerCase().includes(search) && !ass.nome.toLowerCase().includes(search)) continue;
+        }
+        items.push({ ass, disc, edital });
+      }
+    }
+  }
+  return items;
+}
+
+// ── Vertical View: Main Render ──
+export function renderVertical(el) {
+  el.innerHTML = `
+    <!-- Filters row — full re-render only when filter chips change -->
+    <div class="vertical-toolbar" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <div class="vertical-toolbar-search" style="position:relative;flex:1;min-width:180px;">
+        <i class="fa fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px;"></i>
+        <input class="form-control" style="padding-left:32px;" id="vert-search" value="${esc(vertSearch)}"
+          placeholder="Buscar assunto ou disciplina..."
+          data-action="vert-search">
+      </div>
+      <select class="form-control vertical-toolbar-select" style="width:auto;" data-action="set-vert-filter-edital">
+        <option value="">Todos os editais</option>
+        ${state.editais.map(e => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
+      </select>
+      <div class="filter-row vertical-toolbar-filters" style="margin:0;gap:4px;" role="group" aria-label="Filtro de status">
+        ${['todos', 'pendentes', 'concluidos'].map(s => `
+          <button type="button" class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" data-action="set-vert-filter-status" data-status="${s}" aria-pressed="${vertFilterStatus === s}">
+            ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'Concluídos' }[s]}
+          </button>`).join('')}
+      </div>
+    </div>
+
+    <!-- isolated list container — only this gets re-rendered on search -->
+    <div id="vert-list-container" style="width:100%;display:block;"></div>
+  `;
+  renderVerticalList(document.getElementById('vert-list-container'));
+}
+
+// ── Vertical View: List Render ──
+export function renderVerticalList(container) {
+  if (!container) return;
+  const allItems = getFilteredVertItems();
+  const total = allItems.length;
+  const concluidos = allItems.filter(i => i.ass.concluido).length;
+  const pct = total > 0 ? Math.round((concluidos / total) * 100) : 0;
+
+  if (total === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📋</div>
+      <h4>${state.editais.length === 0 ? 'Nenhum edital cadastrado' : 'Nenhum assunto encontrado'}</h4>
+      <p>${state.editais.length === 0 ? 'Crie um edital em Editais para usar esta visualização.' : 'Tente ajustar os filtros.'}</p>
+    </div>`;
+    return;
+  }
+
+  // Card Progresso Global
+  let html = `
+    <div class="card vertical-progress-card" style="margin-bottom:24px;padding:20px;border:none;height:auto;min-height:0;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-primary);letter-spacing:1px;margin-bottom:8px;">PROGRESSO NO EDITAL</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);">${concluidos} de ${total} tópicos concluídos</div>
+        </div>
+        <div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;">${pct}<span style="font-size:16px;opacity:0.7;">%</span></div>
+      </div>
+      <div class="progress-track" style="height:14px;border-radius:10px;width:100%;overflow:hidden;padding:2px;">
+        <div class="progress-bar" style="width:${pct}%;transition:width 0.3s;border-radius:10px;"></div>
+      </div>
+    </div>
+  `;
+
+  // Agrupar itens por disciplina
+  const discMap = {};
+  allItems.forEach(item => {
+    const did = item.disc.id;
+    if (!discMap[did]) {
+      discMap[did] = { disc: item.disc, edital: item.edital, items: [] };
+    }
+    discMap[did].items.push(item);
+  });
+
+  // Agrupar logs de questoes do 'state.eventos'
+  const eventosAgrupados = {};
+  if (state.eventos) {
+    state.eventos.forEach(ev => {
+      if (ev.status === 'estudei' && ev.discId) {
+        if (!eventosAgrupados[ev.discId]) eventosAgrupados[ev.discId] = { sCertas: 0, sErradas: 0, assuntos: {} };
+        const evtQs = ev.sessao?.questoes || ev.questoes || { certas: 0, erradas: 0 };
+        eventosAgrupados[ev.discId].sCertas += (evtQs.acertos || evtQs.certas || 0);
+        eventosAgrupados[ev.discId].sErradas += (evtQs.erros || evtQs.erradas || 0);
+        if (ev.assId) {
+          if (!eventosAgrupados[ev.discId].assuntos[ev.assId]) {
+            eventosAgrupados[ev.discId].assuntos[ev.assId] = { certas: 0, erradas: 0 };
+          }
+          eventosAgrupados[ev.discId].assuntos[ev.assId].certas += (evtQs.acertos || evtQs.certas || 0);
+          eventosAgrupados[ev.discId].assuntos[ev.assId].erradas += (evtQs.erros || evtQs.erradas || 0);
+        }
+      }
+    });
+  }
+
+  const hiReg = vertSearch ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi') : null;
+  const highlight = str => hiReg ? esc(str).replace(hiReg, '<mark>$1</mark>') : esc(str);
+
+  Object.values(discMap).forEach(dMap => {
+    const discId = dMap.disc.id;
+    const evStats = eventosAgrupados[discId] || { sCertas: 0, sErradas: 0, assuntos: {} };
+    const dCertas = evStats.sCertas;
+    const dErradas = evStats.sErradas;
+    const dTotalQ = dCertas + dErradas;
+    const dPctQ = dTotalQ > 0 ? Math.round((dCertas / dTotalQ) * 100) : 0;
+
+    const dTotalItems = dMap.items.length;
+    const dConcluidos = dMap.items.filter(i => i.ass.concluido).length;
+    const dPctConcluido = dTotalItems > 0 ? Math.round((dConcluidos / dTotalItems) * 100) : 0;
+
+    const cor = dMap.disc.cor || dMap.edital.cor || 'var(--accent)';
+
+    html += `
+      <div class="card vertical-disc-card" style="margin-bottom:12px;overflow:hidden;border:none;height:auto;min-height:0;">
+
+        <!-- HEADER DISCIPLINA -->
+        <div class="vertical-disc-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--card);cursor:pointer;" data-action="toggle-vert-disc" data-disc-id="${discId}">
+          <div class="vertical-disc-header-main" style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600;color:var(--text-primary);min-width:0;">
+            <div style="width:5px;height:24px;background:${cor};border-radius:4px;"></div>
+            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(dMap.disc.nome)}">${esc(dMap.disc.nome)}</span>
+          </div>
+
+          <div class="vertical-disc-header-meta" style="display:flex;align-items:center;gap:16px;">
+            <!-- Stats Questões -->
+            <div class="vertical-disc-score" style="display:flex;align-items:center;border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:11px;font-weight:700;gap:12px;font-family:'DM Mono',monospace;background:transparent;">
+              <span style="color:var(--green);">${dCertas}</span>
+              <span style="color:var(--red);">${dErradas}</span>
+              <span style="color:var(--text-secondary);">${dTotalQ}</span>
+              <span style="color:var(--bg);background:${dPctQ >= 70 ? 'var(--green)' : dPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)'};padding:2px 6px;border-radius:8px;">${dPctQ}</span>
+            </div>
+
+            <!-- Progress Bar Progresso -->
+            <div class="vertical-disc-progress" style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:4px;width:120px;">
+              <span style="font-size:10px;font-weight:800;color:var(--text-primary);min-width:24px;text-align:right;">${dPctConcluido}%</span>
+              <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+                <div style="height:100%;width:${dPctConcluido}%;background:${cor};border-radius:3px;"></div>
+              </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="vertical-disc-actions" style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
+              <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;height:auto;" data-action="add-novo-topico-vertical" data-edital-id="${dMap.edital.id}" data-disc-id="${discId}" title="Adicionar Tópico Manualmente">
+                <i class="fa fa-plus"></i> Assunto
+              </button>
+              <i class="fa fa-edit" data-action="open-disc-manager" data-edital-id="${dMap.edital.id}" data-disc-id="${discId}" title="Gerenciar Disciplina e Tópicos" style="cursor:pointer;margin-left:8px;"></i>
+              <i id="vert-disc-icon-${discId}" class="fa fa-chevron-down" style="width:16px;text-align:center;"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- LISTA DE TÓPICOS ANINHADA -->
+        <div id="vert-disc-body-${discId}" style="display:none;border-top:1px solid var(--border);padding:16px;">
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center;">
+              <thead>
+                <tr style="color:var(--text-primary);font-weight:600;border-bottom:1px solid var(--border);">
+                  <th style="padding:10px;text-align:left;">Tópicos</th>
+                  <th style="padding:10px;color:var(--green);"><i class="fa fa-check"></i></th>
+                  <th style="padding:10px;color:var(--red);"><i class="fa fa-times"></i></th>
+                  <th style="padding:10px;color:var(--text-muted);"><i class="fa fa-bullseye" title="Total de questões"></i></th>
+                  <th style="padding:10px;">%</th>
+                  <th style="padding:10px;"><i class="fa fa-calendar-alt"></i></th>
+                </tr>
+              </thead>
+              <tbody>
+    `;
+
+    dMap.items.forEach(({ ass, edital, disc }) => {
+      const aStats = (evStats.assuntos && evStats.assuntos[ass.id]) ? evStats.assuntos[ass.id] : { certas: 0, erradas: 0 };
+      const aCertas = aStats.certas;
+      const aErradas = aStats.erradas;
+      const aTotalQ = aCertas + aErradas;
+      const aPctQ = aTotalQ > 0 ? Math.round((aCertas / aTotalQ) * 100) : 0;
+
+      const revCount = (ass.revisoesFetas || []).length;
+      let dataStr = '-';
+      if (ass.dataConclusao) {
+        const d = ass.dataConclusao.split('-');
+        if (d.length === 3) dataStr = `${d[2]}/${d[1]}/${d[0].substring(2)}`;
+      }
+
+      const chColor = ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)';
+      const decor = ass.concluido ? 'text-decoration:line-through;opacity:0.6;' : 'font-weight:600;';
+
+      html += `
+                <tr style="border-bottom:1px solid var(--bg);">
+                  <td style="padding:12px 10px;text-align:left;display:flex;align-items:center;gap:12px;">
+                    <input type="checkbox" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);" ${ass.concluido ? 'checked' : ''} data-action="toggle-assunto" data-disc-id="${discId}" data-assunto-id="${ass.id}" />
+                    <span style="color:${chColor};${decor}">${highlight(ass.nome).toUpperCase()}</span>
+                  </td>
+                  <td style="padding:12px 10px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace;">${aCertas}</td>
+                  <td style="padding:12px 10px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace;">${aErradas}</td>
+                  <td style="padding:12px 10px;font-weight:700;color:var(--text-secondary);font-family:'DM Mono',monospace;">${aTotalQ}</td>
+                  <td style="padding:12px 10px;font-family:'DM Mono',monospace;">
+                    <div style="display:inline-block;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;background:${aTotalQ > 0 ? (aPctQ >= 70 ? 'var(--green)' : aPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)') : 'transparent'};color:${aTotalQ > 0 ? 'var(--bg)' : 'var(--text-muted)'};border:${aTotalQ > 0 ? 'none' : '1px solid var(--border)'};">${aTotalQ > 0 ? aPctQ : 0}</div>
+                  </td>
+                  <td style="padding:12px 10px;color:var(--text-muted);font-size:12px;">${dataStr}</td>
+                </tr>
+      `;
+    });
+
+    html += `
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+          `;
+  });
+
+  container.innerHTML = html;
+}
+
+// ── Toggle Disciplina Expand/Collapse ──
+export function toggleVertDisc(id) {
+  const body = document.getElementById('vert-disc-body-' + id);
+  const icon = document.getElementById('vert-disc-icon-' + id);
+  if (!body || !icon) return;
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    icon.classList.remove('fa-chevron-down');
+    icon.classList.add('fa-chevron-up');
+  } else {
+    body.style.display = 'none';
+    icon.classList.remove('fa-chevron-up');
+    icon.classList.add('fa-chevron-down');
+  }
+}
+
+// ── Add Event for Subject (Helper) ──
+export function addEventoParaAssunto(editaId, discId, assId) {
+  const d = getDisc(discId);
+  const ass = d?.disc?.assuntos?.find(a => a.id === assId);
+  if (!ass || !d) return;
+  window.openAddEventModal?.(todayStr());
+  setTimeout(() => {
+    const discSel = document.getElementById('event-disc');
+    if (discSel) {
+      discSel.value = discId;
+      window.loadAssuntos?.();
+      setTimeout(() => {
+        const assSel = document.getElementById('event-assunto');
+        if (assSel) {
+          assSel.value = assId;
+          const ti = document.getElementById('event-titulo');
+          if (ti) { ti.value = ass.nome; ti.dataset.autoFilled = 'true'; }
+        }
+      }, 50);
+    }
+  }, 50);
+}
+
+// ── Editais View: Main Render ──
+export function renderEditais(el) {
+  el.innerHTML = `
+    ${state.editais.length === 0 ? `
+      <div class="empty-state" style="padding:80px 20px;">
+        <div class="icon">📋</div>
+        <h4>Nenhum edital cadastrado</h4>
+        <p style="margin-bottom:16px;">Crie seu edital com disciplinas e assuntos para organizar seus estudos.</p>
+        <button class="btn btn-primary" data-action="open-edital-modal"><i class="fa fa-plus"></i> Criar Edital</button>
+      </div>
+    ` : `
+      <div class="edital-tree">
+        ${state.editais.map(edital => renderEditalTree(edital)).join('')}
+      </div>
+    `}
+        `;
+}
+
+// ── Editais View: Tree Render ──
+export function renderEditalTree(edital) {
+  return `
+    <div class="tree-edital" id="edital-${edital.id}">
+      <div class="tree-edital-header" data-action="toggle-edital" data-edital-id="${edital.id}">
+        <span style="width:10px;height:10px;border-radius:50%;background:${edital.cor || '#10b981'};flex-shrink:0;display:inline-block;"></span>
+        <span style="flex:1;font-size:14px;font-weight:700;">${esc(edital.nome)}</span>
+        <span style="font-size:11px;opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
+        <button class="icon-btn" title="Adicionar Tópicos" data-action="navigate-with-ctx" data-view="vertical" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">📝</button>
+        <button class="icon-btn" title="Analisador de Bancas" data-action="navigate-with-ctx" data-view="banca-analyzer" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">🧠</button>
+        <button class="icon-btn" title="Editar" data-action="open-edital-modal" data-edital-id="${edital.id}">✏️</button>
+        <button class="icon-btn" title="Excluir" data-action="delete-edital" data-edital-id="${edital.id}">🗑️</button>
+        <i class="fa fa-chevron-down" style="font-size:12px;opacity:0.7;"></i>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:flex-end;">
+        <button class="btn btn-ghost btn-sm" data-action="open-disc-modal" data-edital-id="${edital.id}" style="margin-right:15px;margin-bottom:10px;">+ Disciplina</button>
+      </div>
+      <div id="edital-tree-${edital.id}">
+        <div class="disc-grid">
+          ${(edital.disciplinas || []).map(disc => {
+    const totaisTopicos = disc.assuntos ? disc.assuntos.length : 0;
+    const topicosEstudados = disc.assuntos ? disc.assuntos.filter(a => a.concluido).length : 0;
+    const totaisAulas = disc.aulas ? disc.aulas.length : 0;
+    const aulasEstudadas = disc.aulas ? disc.aulas.filter(a => a.estudada).length : 0;
+
+    let qResolvidas = 0;
+    if (state.eventos) {
+      const evts = state.eventos.filter(e => e.discId === disc.id && e.status === 'estudei');
+      evts.forEach(e => {
+        const qs = e.sessao?.questoes || e.questoes;
+        if (qs) qResolvidas += (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
+      });
+    }
+
+    return `
+              <div class="disc-card" style="--card-color: ${disc.cor || 'var(--accent)'};">
+                <div class="disc-card-title">${disc.icone || '📚'} ${esc(disc.nome)}</div>
+                <div class="disc-stats">
+                  <div class="disc-stat">
+                    <span class="disc-stat-val">${topicosEstudados}/${totaisTopicos}</span>
+                    <span class="disc-stat-label">Tópicos<br>do Edital</span>
+                  </div>
+                  <div class="disc-stat">
+                    <span class="disc-stat-val">${aulasEstudadas}/${totaisAulas}</span>
+                    <span class="disc-stat-label">Aulas<br>Estudadas</span>
+                  </div>
+                  <div class="disc-stat">
+                    <span class="disc-stat-val">${qResolvidas}</span>
+                    <span class="disc-stat-label">Questões<br>Resolvidas</span>
+                  </div>
+                </div>
+                <!-- Hover Overlay -->
+                <div class="disc-overlay">
+                  <button class="disc-action" data-action="open-disc-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
+                    <i class="fa fa-folder-open"></i>
+                    <span>Visualizar</span>
+                  </button>
+                  <button class="disc-action" data-action="open-disc-manager" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
+                    <i class="fa fa-edit"></i>
+                    <span>Editar</span>
+                  </button>
+                  <button class="disc-action" data-action="delete-disc" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
+                    <i class="fa fa-trash"></i>
+                    <span>Remover</span>
+                  </button>
+                </div>
+              </div>
+            `;
+  }).join('')}
+          ${(edital.disciplinas || []).length === 0 ? '<div style="color:var(--text-muted);font-style:italic;grid-column:1/-1;">Nenhuma disciplina</div>' : ''}
+        </div>
+      </div>
+    </div>
+          `;
+}
+
+// ── Toggle Edital Expand/Collapse ──
+export function toggleEdital(id) {
+  const el = document.getElementById(`edital-tree-${id}`);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+// ── Toggle Assunto Conclusão ──
+export function toggleAssunto(discId, assId) {
+  for (const edital of state.editais) {
+    if (!edital.disciplinas) continue;
+    const disc = edital.disciplinas.find(d => d.id === discId);
+    if (disc) {
+      const ass = (disc.assuntos || []).find(a => a.id === assId);
+      if (ass) {
+        ass.concluido = !ass.concluido;
+        ass.dataConclusao = ass.concluido ? todayStr() : null;
+        if (ass.concluido) ass.revisoesFetas = [];
+        scheduleSave();
+
+        if (window.activeDashboardDiscCtx && window.activeDashboardDiscCtx.discId === discId) {
+          window.openDiscDashboard(window.activeDashboardDiscCtx.editaId, discId);
+        } else {
+          window.renderCurrentView?.();
+        }
+        return;
+      }
+    }
+  }
+}
+
+export default {
+  renderVertical,
+  renderVerticalList,
+  renderEditais,
+  renderEditalTree,
+  toggleVertDisc,
+  toggleEdital,
+  toggleAssunto,
+  addEventoParaAssunto,
+  getFilteredVertItems,
+  getVertSearch,
+  setVertSearch,
+  getVertFilterStatus,
+  setVertFilterStatus,
+  getVertFilterEdital,
+  setVertFilterEdital
+};
