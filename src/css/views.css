@@ -2849,6 +2849,54 @@
   color: var(--text-muted);
 }
 
+/* Grade card header utilities */
+.grade-card-header--compact {
+  padding-bottom: 12px;
+  border: none;
+}
+
+.grade-card-header-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grade-card-body--flush {
+  padding-top: 0;
+}
+
+/* Sequence discipline stats */
+.seq-discipline-stats-count {
+  color: var(--text-primary);
+}
+
+.seq-discipline-stats-meta {
+  font-weight: 400;
+  font-size: 10px;
+}
+
+/* Grade concluded badge */
+.grade-concluded-badge {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.grade-seq-title {
+  text-decoration: underline;
+}
+
+/* Sequence editor footer */
+.seq-edit-footer-btn {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.ciclo-history-undo-btn {
+  color: var(--orange);
+  border: 1px solid var(--border);
+}
+
 /* === Ciclo History Modal === */
 
 .ciclo-history-actions {

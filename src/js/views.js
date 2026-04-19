@@ -4126,7 +4126,7 @@ export function renderCiclo(el) {
                  <span class="seq-discipline-name">${esc(name)}</span>
                </div>
                <div class="seq-discipline-stats">
-                 <span style="color:var(--text-primary);">${sessCount}</span> sessões <span style="font-weight:400; font-size:10px;">(${hrStr})</span>
+                 <span class="seq-discipline-stats-count">${sessCount}</span> sessões <span class="seq-discipline-stats-meta">(${hrStr})</span>
                </div>
             </div>
           `;
@@ -4295,7 +4295,7 @@ export function renderCiclo(el) {
     if (window._isEditingSequence) {
       sequenceHtml += `
          <div class="seq-edit-footer">
-           <button class="btn btn-ghost" style="border:1px solid var(--accent); color:var(--accent);" data-action="add-seq-item"><i class="fa fa-plus"></i> Adicionar Disciplina</button>
+           <button class="btn btn-ghost seq-edit-footer-btn" data-action="add-seq-item"><i class="fa fa-plus"></i> Adicionar Disciplina</button>
            <div class="seq-edit-footer-actions">
               <button class="btn btn-ghost" data-action="cancel-edit-seq">Cancelar</button>
               <button class="btn btn-primary" data-action="save-edit-seq"><i class="fa fa-save"></i> Salvar Alterações</button>
@@ -4516,7 +4516,7 @@ export function renderCiclo(el) {
                       <button class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
                       <button class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="1" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
                     </div>
-                    <div data-action="open-ciclo-history" data-seq-id="${seq.id}" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span style="text-decoration:underline;">${esc(d.disc.nome)}</span></div>
+                    <div data-action="open-ciclo-history" data-seq-id="${seq.id}" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span class="grade-seq-title">${esc(d.disc.nome)}</span></div>
                   </div>
                   <div class="ciclo-item-meta grade-seq-meta" data-action="edit-ciclo-seq-hours" data-index="${i}" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
                 </div>
@@ -4524,7 +4524,7 @@ export function renderCiclo(el) {
                 <div class="grade-seq-action">
                    ${!seq.concluido
             ? `<button class="btn btn-primary btn-sm" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Estudar Agora</button>`
-            : `<span style="color:var(--green);font-size:12px;font-weight:600;"><i class="fa fa-check"></i> Etapa Concluída</span>`
+            : `<span class="grade-concluded-badge"><i class="fa fa-check"></i> Etapa Concluída</span>`
           }
                 </div>
               </div>
@@ -4548,10 +4548,10 @@ export function renderCiclo(el) {
           ${weeklyHtml || '<p>Nenhum dia de estudo planejado.</p>'}
         </div>
         <div class="card">
-          <div class="card-header" style="padding-bottom:12px;border:none;">
-            <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa fa-list-ol" style="color:var(--text-muted);"></i> Sequência Gerada</h3>
+          <div class="card-header grade-card-header--compact">
+            <h3 class="grade-card-header-icon"><i class="fa fa-list-ol text-muted"></i> Sequência Gerada</h3>
           </div>
-          <div class="card-body" style="padding-top:0;">
+          <div class="card-body grade-card-body--flush">
             <div class="grade-lista">
               ${sequenceHtml || '<div class="grade-empty-state">Sequência vazia.</div>'}
             </div>
@@ -4586,7 +4586,7 @@ window.openCicloHistory = function (seqId) {
   if (seqItem.concluido) {
     btnDesfazer = `
       <div class="ciclo-history-actions">
-        <button class="btn btn-ghost" style="color:var(--orange); border: 1px solid var(--border);" data-action="desfazer-etapa" data-seq-id="${seqId}">
+        <button class="btn btn-ghost ciclo-history-undo-btn" data-action="desfazer-etapa" data-seq-id="${seqId}">
           <i class="fa fa-undo"></i> Desfazer 'Etapa Concluída' desta matéria
         </button>
       </div>
