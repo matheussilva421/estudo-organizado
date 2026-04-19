@@ -3097,8 +3097,8 @@ export function openAddEventModal(dateStr = null) {
     </div>
   `;
   openModal('modal-event');
-  // Tech 3: Show day load immediately
-  setTimeout(() => updateDayLoad(dateStr || todayStr()), 50);
+  // Tech 3: Show day load immediately using requestAnimationFrame
+  requestAnimationFrame(() => updateDayLoad(dateStr || todayStr()));
 }
 
 
