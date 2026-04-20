@@ -9,99 +9,102 @@ import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from
 import { renderCurrentView } from '../components.js?v=8.3';
 import { showConfirm, showToast } from '../app.js?v=8.3';
 
+export function recomecarCiclo() {
+  showConfirm('Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?', () => {
+    if (state.planejamento && state.planejamento.tipo) {
+      state.planejamento.ciclosCompletos = (state.planejamento.ciclosCompletos || 0) + 1;
+      state.planejamento.dataInicioCicloAtual = new Date().toISOString();
+      resetCicloAndWipeEvents();
+      renderCurrentView();
+      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Ciclo recomeçado com sucesso! (Eventos Limpos)', type: 'success' } }));
+    }
+  });
+}
+
+export function zerarCiclosCounter() {
+  showConfirm('Isso voltará a contagem de "Ciclos Completos" para zero. Tem certeza?', () => {
+    if (state.planejamento) {
+      state.planejamento.ciclosCompletos = 0;
+      scheduleSave();
+      renderCurrentView();
+      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Contador de ciclos zerado!', type: 'info' } }));
+    }
+  });
+}
+
+export function calculateCyclePredictions() {
+  const startObj = document.getElementById('predict-start-date');
+  const endObj = document.getElementById('predict-end-date');
+  if (!startObj || !endObj) return;
+
+  const sVal = startObj.value;
+  const eVal = endObj.value;
+  const container = document.getElementById('predict-results-container');
+  const emptyState = document.getElementById('predict-empty-state');
+
+  if (sVal && eVal) {
+    if (sVal > eVal) {
+      emptyState.style.display = 'block';
+      emptyState.textContent = 'A data inicial não pode ser maior que a final.';
+      emptyState.style.color = '#f87171';
+      container.style.display = 'none';
+      return;
+    }
+
+    const proj = calculateCyclePredictionsModel(sVal, eVal);
+    const keys = Object.keys(proj);
+
+    if (keys.length === 0) {
+      emptyState.style.display = 'block';
+      emptyState.textContent = 'O ciclo não gera sessões nesses dias (Verifique Dias Ativos).';
+      emptyState.style.color = 'var(--text-muted)';
+      container.style.display = 'none';
+    } else {
+      emptyState.style.display = 'none';
+      container.style.display = 'flex';
+
+      const listHTML = keys.map(id => {
+        const disc = getDisc(id);
+        const name = disc ? disc.disc.nome : 'Desconhecida';
+        const color = disc ? (disc.disc.cor || disc.edital.cor || '#888') : '#888';
+        const sessCount = proj[id].sessoes;
+        const mins = proj[id].minutos;
+        const hr = Math.floor(mins / 60);
+        const mn = mins % 60;
+        const hrStr = hr > 0 ? `${hr}h${mn}m` : `${mn}m`;
+
+        return `
+          <div class="seq-discipline-list-item">
+             <div class="seq-discipline-info">
+               <div class="seq-discipline-dot" style="background:${color};"></div>
+               <span class="seq-discipline-name">${esc(name)}</span>
+             </div>
+             <div class="seq-discipline-stats">
+               <span class="seq-discipline-stats-count">${sessCount}</span> sessões <span class="seq-discipline-stats-meta">(${hrStr})</span>
+             </div>
+          </div>
+        `;
+      }).join('');
+      container.innerHTML = listHTML;
+    }
+  } else {
+    emptyState.style.display = 'block';
+    emptyState.textContent = 'Selecione as datas para calcular.';
+    emptyState.style.color = 'var(--text-muted)';
+    container.style.display = 'none';
+  }
+}
+
+window.recomecarCiclo = recomecarCiclo;
+window.zerarCiclosCounter = zerarCiclosCounter;
+window.calculateCyclePredictions = calculateCyclePredictions;
+
 /**
  * Renderiza view de Ciclo/Grade
  * @param {HTMLElement} el - Elemento container
  */
 export function renderCiclo(el) {
   const plan = state.planejamento || {};
-
-  // Setup global functions for legacy compatibility (to be removed in v9.0)
-  window.recomecarCiclo = function () {
-    showConfirm('Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?', () => {
-      if (state.planejamento && state.planejamento.tipo) {
-        state.planejamento.ciclosCompletos = (state.planejamento.ciclosCompletos || 0) + 1;
-        state.planejamento.dataInicioCicloAtual = new Date().toISOString();
-        resetCicloAndWipeEvents();
-        renderCurrentView();
-        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Ciclo recomeçado com sucesso! (Eventos Limpos)', type: 'success' } }));
-      }
-    });
-  };
-
-  window.zerarCiclosCounter = function () {
-    showConfirm('Isso voltará a contagem de "Ciclos Completos" para zero. Tem certeza?', () => {
-      if (state.planejamento) {
-        state.planejamento.ciclosCompletos = 0;
-        scheduleSave();
-        renderCurrentView();
-        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Contador de ciclos zerado!', type: 'info' } }));
-      }
-    });
-  };
-
-  window.calculateCyclePredictions = function () {
-    const startObj = document.getElementById('predict-start-date');
-    const endObj = document.getElementById('predict-end-date');
-    if (!startObj || !endObj) return;
-
-    const sVal = startObj.value;
-    const eVal = endObj.value;
-    const container = document.getElementById('predict-results-container');
-    const emptyState = document.getElementById('predict-empty-state');
-
-    if (sVal && eVal) {
-      if (sVal > eVal) {
-        emptyState.style.display = 'block';
-        emptyState.textContent = 'A data inicial não pode ser maior que a final.';
-        emptyState.style.color = '#f87171';
-        container.style.display = 'none';
-        return;
-      }
-
-      const proj = calculateCyclePredictionsModel(sVal, eVal);
-      const keys = Object.keys(proj);
-
-      if (keys.length === 0) {
-        emptyState.style.display = 'block';
-        emptyState.textContent = 'O ciclo não gera sessões nesses dias (Verifique Dias Ativos).';
-        emptyState.style.color = 'var(--text-muted)';
-        container.style.display = 'none';
-      } else {
-        emptyState.style.display = 'none';
-        container.style.display = 'flex';
-
-        const listHTML = keys.map(id => {
-          const disc = getDisc(id);
-          const name = disc ? disc.disc.nome : 'Desconhecida';
-          const color = disc ? (disc.disc.cor || disc.edital.cor || '#888') : '#888';
-          const sessCount = proj[id].sessoes;
-          const mins = proj[id].minutos;
-          const hr = Math.floor(mins / 60);
-          const mn = mins % 60;
-          const hrStr = hr > 0 ? `${hr}h${mn}m` : `${mn}m`;
-
-          return `
-            <div class="seq-discipline-list-item">
-               <div class="seq-discipline-info">
-                 <div class="seq-discipline-dot" style="background:${color};"></div>
-                 <span class="seq-discipline-name">${esc(name)}</span>
-               </div>
-               <div class="seq-discipline-stats">
-                 <span class="seq-discipline-stats-count">${sessCount}</span> sessões <span class="seq-discipline-stats-meta">(${hrStr})</span>
-               </div>
-            </div>
-          `;
-        }).join('');
-        container.innerHTML = listHTML;
-      }
-    } else {
-      emptyState.style.display = 'block';
-      emptyState.textContent = 'Selecione as datas para calcular.';
-      emptyState.style.color = 'var(--text-muted)';
-      container.style.display = 'none';
-    }
-  };
 
   if (!plan.ativo || !plan.disciplinas || plan.disciplinas.length === 0) {
     el.innerHTML = `
@@ -357,7 +360,7 @@ function renderCicloView(el, plan) {
   renderCicloChart(plan, dictDisciplinas, totalTarget);
 
   if (plan.horarios?.dataInicial && plan.horarios?.dataFinal) {
-    setTimeout(() => window.calculateCyclePredictions?.(), 150);
+    setTimeout(() => calculateCyclePredictions(), 150);
   }
 }
 

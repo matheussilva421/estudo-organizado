@@ -51,27 +51,31 @@ export function toggleTimerMode() {
 }
 
 // GUI Hooks for Crono Livre Customization
-window.setCronoLivreGoal = function (minutes) {
+export function setCronoLivreGoal(minutes) {
   if (!state.cronoLivre) state.cronoLivre = { _timerStart: null, tempoAcumulado: 0 };
   state.cronoLivre.duracaoMinutos = parseInt(minutes, 10) || 0;
   scheduleSave();
   document.dispatchEvent(new Event('app:renderCurrentView'));
-};
+}
 
-window.setCronoLivreDisc = function (discId) {
+export function setCronoLivreDisc(discId) {
   if (!state.cronoLivre) state.cronoLivre = { _timerStart: null, tempoAcumulado: 0 };
   state.cronoLivre.discId = discId;
   state.cronoLivre.assId = null; // reset assunto
   scheduleSave();
   document.dispatchEvent(new Event('app:renderCurrentView'));
-};
+}
 
-window.setCronoLivreAss = function (assId) {
+export function setCronoLivreAss(assId) {
   if (!state.cronoLivre) state.cronoLivre = { _timerStart: null, tempoAcumulado: 0 };
   state.cronoLivre.assId = assId;
   scheduleSave();
   document.dispatchEvent(new Event('app:renderCurrentView'));
-};
+}
+
+window.setCronoLivreGoal = setCronoLivreGoal;
+window.setCronoLivreDisc = setCronoLivreDisc;
+window.setCronoLivreAss = setCronoLivreAss;
 
 export function reattachTimers() {
   Object.keys(timerIntervals).forEach(id => {
@@ -920,7 +924,7 @@ export function syncCicloToEventos() {
   }
 }
 
-window.moveCicloSeq = function (idx, dir) {
+export function moveCicloSeq(idx, dir) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
   const seq = state.planejamento.sequencia;
   if (idx + dir < 0 || idx + dir >= seq.length) return;
@@ -930,9 +934,9 @@ window.moveCicloSeq = function (idx, dir) {
   syncCicloToEventos();
   scheduleSave();
   document.dispatchEvent(new Event('app:renderCurrentView'));
-};
+}
 
-window.desfazerEtapa = function (seqId) {
+export function desfazerEtapa(seqId) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
   const idx = state.planejamento.sequencia.findIndex(s => s.id === seqId);
   if (idx > -1) {
@@ -944,10 +948,10 @@ window.desfazerEtapa = function (seqId) {
       window.EstudoApp.closeModal('modal-ciclo-history');
     }
   }
-};
+}
 
 
-window.editCicloSeqHours = function (idx) {
+export function editCicloSeqHours(idx) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
   const seqItem = state.planejamento.sequencia[idx];
   const currentHours = (seqItem.minutosAlvo / 60).toFixed(1).replace('.0', '');
@@ -982,6 +986,9 @@ window.editCicloSeqHours = function (idx) {
 
   if (typeof window.EstudoApp?.openModal === 'function') window.EstudoApp.openModal('modal-prompt');
   setTimeout(() => document.getElementById('prompt-input-horas')?.focus(), 100);
-};
+}
 
+window.moveCicloSeq = moveCicloSeq;
+window.desfazerEtapa = desfazerEtapa;
+window.editCicloSeqHours = editCicloSeqHours;
 window.iniciarEtapaPlanejamento = iniciarEtapaPlanejamento;

@@ -2,7 +2,9 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       let refreshing = false;
+      const hadServiceWorkerController = Boolean(navigator.serviceWorker.controller);
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadServiceWorkerController) return;
         if (refreshing) return;
         refreshing = true;
         window.location.reload();

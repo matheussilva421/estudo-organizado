@@ -964,7 +964,7 @@ document.addEventListener('click', (e) => {
 });
 
 // Global deletion handler for previously registered sessions
-window.deleteCompletedSession = function(id) {
+export function deleteCompletedSession(id) {
   showConfirm('Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?', () => {
     state.eventos = state.eventos.filter(e => e.id !== id);
     Object.keys(state.habitos).forEach(tipo => {
@@ -977,4 +977,6 @@ window.deleteCompletedSession = function(id) {
     renderCurrentView();
     showToast('Sessão excluída com sucesso.', 'info');
   }, { danger: true, label: 'Excluir', title: 'Excluir sessão' });
-};
+}
+
+window.deleteCompletedSession = deleteCompletedSession;

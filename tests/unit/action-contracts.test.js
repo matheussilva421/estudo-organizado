@@ -104,12 +104,14 @@ describe('data-action contracts', () => {
   it('uses the extracted calendar view as the runtime calendar owner', async () => {
     const componentsSource = read('src/js/components.js');
     const mainSource = read('src/js/main.js');
+    const viewsSource = read('src/js/views.js');
     const calendarSource = read('src/js/views/calendar-view.js');
     const calendarModule = await import('../../src/js/views/calendar-view.js?v=8.3');
 
     expect(componentsSource).toContain("from './views/calendar-view.js?v=8.3'");
     expect(mainSource).toContain("import * as calendar_view from './views/calendar-view.js?v=8.3';");
     expect(mainSource).toMatch(/exposedModules\s*=\s*\[[^\]]*calendar_view[^\]]*\]/s);
+    expect(viewsSource).not.toMatch(/export function (renderCalendar|calNavigate|resetCalDate|renderCalendarGrid|renderCalendarWeek|updateCalendarHeader)\s*\(/);
     expect(calendarModule.renderCalendar).toBeTypeOf('function');
     expect(calendarModule.calNavigate).toBeTypeOf('function');
     expect(calendarModule.resetCalDate).toBeTypeOf('function');
@@ -136,6 +138,62 @@ describe('data-action contracts', () => {
     expect(registroSource).toMatch(/export function discardTimerUI\s*\(/);
   });
 
+  it('exports discipline manager action targets instead of relying on Proxy fallback', () => {
+    const actionsSource = read('src/js/ui/actions.js');
+    const viewsSource = read('src/js/views.js');
+    const managerActions = [
+      'switchManagerTab',
+      'editLessonInline',
+      'toggleAulaEstudada',
+      'addBulkAulas',
+      'addAssunto',
+      'deleteAula',
+      'runLessonMapperUI'
+    ];
+
+    for (const actionName of managerActions) {
+      expect(actionsSource).toContain(`window.EstudoApp?.${actionName}`);
+      expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+    }
+  });
+
+  it('exports cycle sequence action targets instead of relying on Proxy fallback', () => {
+    const actionsSource = read('src/js/ui/actions.js');
+    const viewsSource = read('src/js/views.js');
+    const cycleActions = [
+      'toggleEditSeq',
+      'saveEditSeq',
+      'cancelEditSeq',
+      'updateSeqItem',
+      'dupSeqItem',
+      'remSeqItem',
+      'moveSeqItem',
+      'addSeqItem',
+      'openCicloHistory'
+    ];
+
+    for (const actionName of cycleActions) {
+      expect(actionsSource).toContain(`window.EstudoApp?.${actionName}`);
+      expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+    }
+  });
+
+  it('exports dashboard and session action targets instead of relying on Proxy fallback', () => {
+    const actionsSource = read('src/js/ui/actions.js');
+    const viewsSource = read('src/js/views.js');
+    const viewActions = [
+      'switchDashboardTab',
+      'openAddPastSessionModal',
+      'savePastEvent',
+      'filtrarDropdownBanca'
+    ];
+
+    for (const actionName of viewActions) {
+      expect(actionsSource).toContain(`window.EstudoApp?.${actionName}`);
+      expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+    }
+  });
+
   it('imports the cache invalidators used by revision action handlers', () => {
     const viewsSource = read('src/js/views.js');
 
@@ -153,11 +211,45 @@ describe('data-action contracts', () => {
     expect(mainSource).toContain('window.EstudoApp?.refreshMEDSections');
   });
 
-  it('keeps a legacy fallback while action handlers are migrated incrementally', () => {
+  it('does not use a Proxy fallback for EstudoApp action resolution', () => {
     const mainSource = read('src/js/main.js');
 
-    expect(mainSource).toContain('new Proxy');
-    expect(mainSource).toMatch(/window\.EstudoApp\s*=\s*new Proxy/);
+    expect(mainSource).not.toContain('new Proxy');
+    expect(mainSource).not.toMatch(/window\.EstudoApp\s*=\s*new Proxy/);
+    expect(mainSource).not.toContain('Reflect.has');
+  });
+
+  it('does not create action handlers directly as window function expressions', () => {
+    const files = walkFiles(join(srcDir, 'js'), file =>
+      file.endsWith('.js') && !file.includes(`${join('src', 'vendor')}`)
+    );
+    const offenders = files
+      .map(file => [file, readFileSync(file, 'utf8')])
+      .filter(([, source]) =>
+        /window\.[A-Za-z0-9_]+\s*=\s*function\b/.test(source) ||
+        /window\.[A-Za-z0-9_]+\s*=\s*\([^)]*\)\s*=>/.test(source)
+      )
+      .map(([file]) => file);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('exports legacy cycle, free timer, and session handlers before action dispatch', () => {
+    const logicSource = read('src/js/logic.js');
+    const viewsSource = read('src/js/views.js');
+    const cicloViewSource = read('src/js/views/ciclo-view.js');
+    const registroSource = read('src/js/registro-sessao.js');
+
+    for (const actionName of ['setCronoLivreGoal', 'setCronoLivreDisc', 'setCronoLivreAss', 'moveCicloSeq', 'desfazerEtapa', 'editCicloSeqHours']) {
+      expect(logicSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+    }
+
+    for (const actionName of ['recomecarCiclo', 'zerarCiclosCounter', 'calculateCyclePredictions']) {
+      expect(cicloViewSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+      expect(viewsSource).toContain(actionName);
+    }
+
+    expect(registroSource).toMatch(/export function deleteCompletedSession\s*\(/);
   });
 
   it('imports immediate persistence before saving detailed study sessions', () => {
@@ -185,5 +277,12 @@ describe('data-action contracts', () => {
     for (const mod of requiredModules) {
       expect(swSource).toContain(mod);
     }
+  });
+
+  it('does not reload the page when the service worker claims first control', () => {
+    const swRegisterSource = read('src/js/sw-register.js');
+
+    expect(swRegisterSource).toContain('const hadServiceWorkerController = Boolean(navigator.serviceWorker.controller);');
+    expect(swRegisterSource).toMatch(/controllerchange[\s\S]*if \(!hadServiceWorkerController\) return;/);
   });
 });

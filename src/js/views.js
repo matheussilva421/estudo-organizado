@@ -8,7 +8,7 @@ import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
 export { renderHome } from './views/home-view.js';
-export { renderCiclo } from './views/ciclo-view.js';
+export { renderCiclo, recomecarCiclo, zerarCiclosCounter, calculateCyclePredictions } from './views/ciclo-view.js';
 export { renderHabitos, renderHabitHistPage, setHabitPage, openHabitModal, selectHabitType, saveHabit, calcSimuladoPerc, deleteHabito, HABIT_HIST_PAGE_SIZE, habitHistPage } from './views/habitos-view.js';
 export {
   renderVertical,
@@ -294,7 +294,7 @@ function isMobileCalendar() {
   return window.innerWidth <= 600;
 }
 
-export function renderCalendar(el) {
+function renderCalendar(el) {
   const mobile = isMobileCalendar();
   let gridContent;
   if (mobile) {
@@ -330,12 +330,12 @@ export function renderCalendar(el) {
   }
 }
 
-export function resetCalDate() {
+function resetCalDate() {
   calDate = new Date();
   renderCurrentView();
 }
 
-export function calNavigate(dir) {
+function calNavigate(dir) {
   if (calViewMode === 'mes') {
     calDate = new Date(calDate.getFullYear(), calDate.getMonth() + dir, 1);
   } else {
@@ -361,7 +361,7 @@ export function calNavigate(dir) {
   }
 }
 
-export function renderCalendarMonth() {
+function renderCalendarMonth() {
   const year = calDate.getFullYear();
   const month = calDate.getMonth();
   const firstDay = new Date(year, month, 1);
@@ -426,7 +426,7 @@ export function renderCalendarMonth() {
 }
 
 // Optimized: render only calendar grid (for navigation without full re-render)
-export function renderCalendarGrid() {
+function renderCalendarGrid() {
   const year = calDate.getFullYear();
   const month = calDate.getMonth();
   const firstDay = new Date(year, month, 1);
@@ -487,7 +487,7 @@ export function renderCalendarGrid() {
   `;
 }
 
-export function updateCalendarHeader() {
+function updateCalendarHeader() {
   const title = document.getElementById('cal-title');
   if (title) {
     const monthName = calDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
@@ -504,7 +504,7 @@ export function updateCalendarHeader() {
   }
 }
 
-export function renderCalendarWeek() {
+function renderCalendarWeek() {
   const today = todayStr();
   const dow = calDate.getDay();
   const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
@@ -1277,9 +1277,6 @@ export function onVertSearch(val) {
   }, 200);
 }
 
-window.setVertFilterStatus = function (s) { vertFilterStatus = s; };
-window.setVertFilterEdital = function (e) { vertFilterEdital = e; };
-
 export function getFilteredVertItems() {
   let items = [];
   for (const edital of state.editais) {
@@ -1301,7 +1298,7 @@ export function getFilteredVertItems() {
 
 // verResumoSimulado removida — funcionalidade descontinuada
 
-window.toggleEditSeq = () => {
+export function toggleEditSeq() {
   window._isEditingSequence = !window._isEditingSequence;
   if (window._isEditingSequence) {
     window._tempSequencia = JSON.parse(JSON.stringify(state.planejamento.sequencia));
@@ -1309,9 +1306,10 @@ window.toggleEditSeq = () => {
     window._tempSequencia = null;
   }
   renderCurrentView();
-};
+}
+window.toggleEditSeq = toggleEditSeq;
 
-window.saveEditSeq = () => {
+export function saveEditSeq() {
   if (!window._tempSequencia || window._tempSequencia.length === 0) {
     showToast("A sequência de estudos não pode ficar vazia.", "error");
     return;
@@ -1330,35 +1328,40 @@ window.saveEditSeq = () => {
   window._isEditingSequence = false;
   window._tempSequencia = null;
   renderCurrentView();
-};
+}
+window.saveEditSeq = saveEditSeq;
 
-window.cancelEditSeq = () => {
+export function cancelEditSeq() {
   window._isEditingSequence = false;
   window._tempSequencia = null;
   renderCurrentView();
-};
+}
+window.cancelEditSeq = cancelEditSeq;
 
-window.updateSeqItem = (i, field, val) => {
+export function updateSeqItem(i, field, val) {
   i = parseInt(i, 10);
   if (field === 'minutosAlvo') val = parseInt(val) || 0;
   window._tempSequencia[i][field] = val;
-};
+}
+window.updateSeqItem = updateSeqItem;
 
-window.dupSeqItem = (i) => {
+export function dupSeqItem(i) {
   i = parseInt(i, 10);
   const obj = JSON.parse(JSON.stringify(window._tempSequencia[i]));
   obj.id = 'seq_' + uid();
   window._tempSequencia.splice(i + 1, 0, obj);
   renderCurrentView();
-};
+}
+window.dupSeqItem = dupSeqItem;
 
-window.remSeqItem = (i) => {
+export function remSeqItem(i) {
   i = parseInt(i, 10);
   window._tempSequencia.splice(i, 1);
   renderCurrentView();
-};
+}
+window.remSeqItem = remSeqItem;
 
-window.moveSeqItem = (i, dir) => {
+export function moveSeqItem(i, dir) {
   i = parseInt(i, 10);
   const arr = window._tempSequencia;
   if (i + dir < 0 || i + dir >= arr.length) return;
@@ -1366,33 +1369,18 @@ window.moveSeqItem = (i, dir) => {
   arr[i] = arr[i + dir];
   arr[i + dir] = temp;
   renderCurrentView();
-};
+}
+window.moveSeqItem = moveSeqItem;
 
-window.addSeqItem = () => {
+export function addSeqItem() {
   window._tempSequencia.push({
     id: 'seq_' + uid(),
     discId: '',
     minutosAlvo: 60
   });
   renderCurrentView();
-};
-
-
-
-window.toggleVertDisc = function (id) {
-  const body = document.getElementById('vert-disc-body-' + id);
-  const icon = document.getElementById('vert-disc-icon-' + id);
-  if (!body || !icon) return;
-  if (body.style.display === 'none') {
-    body.style.display = 'block';
-    icon.classList.remove('fa-chevron-down');
-    icon.classList.add('fa-chevron-up');
-  } else {
-    body.style.display = 'none';
-    icon.classList.remove('fa-chevron-up');
-    icon.classList.add('fa-chevron-down');
-  }
-};
+}
+window.addSeqItem = addSeqItem;
 
 export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
@@ -1500,8 +1488,7 @@ export function closeDiscDashboard() {
   renderCurrentView();
 }
 
-// Global switch tab function
-window.switchDashboardTab = function (tabName) {
+export function switchDashboardTab(tabName) {
   window.activeDashboardTab = tabName;
   const ctx = window.activeDashboardDiscCtx;
   if (ctx && ctx.editaId && ctx.discId) {
@@ -1515,6 +1502,7 @@ window.switchDashboardTab = function (tabName) {
 
   renderCurrentView();
 }
+window.switchDashboardTab = switchDashboardTab;
 
 
 
@@ -2118,12 +2106,13 @@ export function openDiscManager(editaId, discId) {
   openModal('modal-disc-manager');
 }
 
-window.switchManagerTab = function (tabName) {
+export function switchManagerTab(tabName) {
   window._activeDiscManagerTab = tabName;
   if (editingSubjectCtx) {
     openDiscManager(editingSubjectCtx.editaId, editingSubjectCtx.discId);
   }
-};
+}
+window.switchManagerTab = switchManagerTab;
 
 export function editSubjectInline(discId, assId, el) {
   const currentText = el.innerText;
@@ -2145,7 +2134,7 @@ export function editSubjectInline(discId, assId, el) {
   input.focus();
 }
 
-window.editLessonInline = function (discId, aulaId, el) {
+export function editLessonInline(discId, aulaId, el) {
   const d = getDisc(discId);
   const aulaObj = (d.disc.aulas || []).find(a => a.id === aulaId);
   if (!aulaObj) return;
@@ -2178,9 +2167,10 @@ window.editLessonInline = function (discId, aulaId, el) {
   el.appendChild(input);
   input.focus();
   input.select();
-};
+}
+window.editLessonInline = editLessonInline;
 
-window.toggleAulaEstudada = function (discId, aulaId) {
+export function toggleAulaEstudada(discId, aulaId) {
   const d = getDisc(discId);
   if (!d) return;
   const aulaObj = (d.disc.aulas || []).find(a => a.id === aulaId);
@@ -2190,9 +2180,10 @@ window.toggleAulaEstudada = function (discId, aulaId) {
   aulaObj.dataEstudo = aulaObj.estudada ? todayStr() : null;
   scheduleSave();
   openDiscManager(editingSubjectCtx.editaId, discId);
-};
+}
+window.toggleAulaEstudada = toggleAulaEstudada;
 
-window.addBulkAulas = function (discId) {
+export function addBulkAulas(discId) {
   const textarea = document.getElementById('new-aula-bulk');
   if (!textarea) return;
 
@@ -2223,9 +2214,10 @@ window.addBulkAulas = function (discId) {
   textarea.value = '';
   showToast(`${lines.length} Aulas adicionadas!`, 'success');
   openDiscManager(editingSubjectCtx.editaId, discId);
-};
+}
+window.addBulkAulas = addBulkAulas;
 
-window.addAssunto = function (discId) {
+export function addAssunto(discId) {
   const input = document.getElementById('new-assunto-nome');
   if (!input) return;
   const lines = input.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -2239,9 +2231,10 @@ window.addAssunto = function (discId) {
   input.value = '';
   scheduleSave();
   openDiscManager(editingSubjectCtx.editaId, discId);
-};
+}
+window.addAssunto = addAssunto;
 
-window.deleteAula = function (discId, aulaId) {
+export function deleteAula(discId, aulaId) {
   showConfirm('Tem certeza que deseja apagar esta Aula?', () => {
     const d = getDisc(discId);
     if (!d) return;
@@ -2257,10 +2250,11 @@ window.deleteAula = function (discId, aulaId) {
     scheduleSave();
     openDiscManager(editingSubjectCtx.editaId, discId);
   });
-};
+}
+window.deleteAula = deleteAula;
 
 import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.3';
-window.runLessonMapperUI = function (editaId, discId) {
+export function runLessonMapperUI(editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
     if (resultCount > 0) {
@@ -2270,7 +2264,8 @@ window.runLessonMapperUI = function (editaId, discId) {
     }
     openDiscManager(editingSubjectCtx.editaId, discId);
   }, { label: 'Rodar Auto-Link', title: 'Mapeador ML' });
-};
+}
+window.runLessonMapperUI = runLessonMapperUI;
 
 // =============================================
 // ADD EVENT MODAL
@@ -2516,8 +2511,8 @@ export function saveEvent() {
 // =============================================
 // REGISTRO DE SESSÃO ANTERIOR (DIRETO)
 // =============================================
-window.openAddPastSessionModal = function(discId) {
-  const d = window.getDisc(discId);
+export function openAddPastSessionModal(discId) {
+  const d = getDisc(discId);
   if(!d) return;
 
   // Monta as opções de assunto baseadas na disciplina
@@ -2571,10 +2566,11 @@ window.openAddPastSessionModal = function(discId) {
     </div>
   `;
   openModal('modal-event');
-};
+}
+window.openAddPastSessionModal = openAddPastSessionModal;
 
-window.savePastEvent = function(discId) {
-  const d = window.getDisc(discId);
+export function savePastEvent(discId) {
+  const d = getDisc(discId);
   const data = document.getElementById('past-event-data').value;
   const duracao = parseInt(document.getElementById('past-event-duracao').value, 10) || 60;
   
@@ -2616,12 +2612,13 @@ window.savePastEvent = function(discId) {
   closeModal('modal-event');
 
   // Abre registro real para input the metadados
-  if (typeof window.openRegistroSessao === 'function') {
-    window.openRegistroSessao(evento.id);
+  if (typeof window.EstudoApp?.openRegistroSessao === 'function') {
+    window.EstudoApp.openRegistroSessao(evento.id);
   } else {
     showToast('Erro ao abrir registro detalhado.', 'error');
   }
-};
+}
+window.savePastEvent = savePastEvent;
 
 
 // =============================================
@@ -3409,7 +3406,7 @@ addCleanupListener(document, 'keydown', e => {
 });
 
 
-window.openCicloHistory = function (seqId) {
+export function openCicloHistory(seqId) {
   const plan = state.planejamento;
   if (!plan || !plan.sequencia) return;
   const seqItem = plan.sequencia.find(s => s.id === seqId);
@@ -3481,7 +3478,8 @@ window.openCicloHistory = function (seqId) {
   }
 
   openModal('modal-ciclo-history');
-};
+}
+window.openCicloHistory = openCicloHistory;
 
 // Global exports for Disc Dashboard
 window.openDiscDashboard = openDiscDashboard;
@@ -3489,7 +3487,7 @@ window.closeDiscDashboard = closeDiscDashboard;
 window.addEventoParaAssunto = addEventoParaAssunto;
 window.setTheme = setTheme;
 
-window.filtrarDropdownBanca = function (termo) {
+export function filtrarDropdownBanca(termo) {
   termo = termo.toLowerCase().trim();
   const select = document.getElementById('banca-disc-select');
   if (!select) return;
@@ -3498,4 +3496,5 @@ window.filtrarDropdownBanca = function (termo) {
     const visible = opt.text.toLowerCase().includes(termo);
     opt.style.display = visible ? '' : 'none';
   });
-};
+}
+window.filtrarDropdownBanca = filtrarDropdownBanca;
