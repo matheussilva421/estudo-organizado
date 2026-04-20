@@ -30,6 +30,11 @@ export function setupActionDispatcher() {
     const target = event.target.closest('[data-action]');
     if (!target) return;
 
+    // Don't prevent default on select elements - it breaks the dropdown UI
+    if (target.tagName === 'SELECT') {
+      return;
+    }
+
     const actionName = target.dataset.action;
     const handler = actions[actionName];
 
