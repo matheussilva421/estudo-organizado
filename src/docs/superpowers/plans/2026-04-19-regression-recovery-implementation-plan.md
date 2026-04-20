@@ -288,7 +288,7 @@ Manual/browser:
 
 **Current inline-style classification after slice 16:**
 
-- `src/index.html`: 52 mostly one-off modal dimensions, hidden badges and boot-time layout attributes.
+- `src/index.html`: 37 remaining, mostly one-off modal dimensions and wizard/registro modal layout attributes.
 - `src/js/views/*.js`: 159 combined, mixed static layout, dynamic color and dynamic progress widths.
 - `src/js/components.js`: 28, mostly chronometer layout plus dynamic timer/card badges.
 - `src/js/planejamento-wizard.js`: 9, mostly dynamic selected-state color/visibility.
@@ -910,4 +910,40 @@ Results:
 - Mobile empty-state CTA E2E: 1 passed
 - Production `transition: all` / `outline: none` scan: 0 matches
 - Full unit: 71 passed
+- Full E2E: 28 passed
+
+### 2026-04-20 - Recovery slice 17
+
+Moved a low-risk static shell batch out of `src/index.html` inline styles.
+
+Changed files:
+
+- `src/index.html`
+- `src/css/styles.css`
+- `tests/unit/css-architecture.test.js`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+- `src/docs/superpowers/plans/2026-04-18-fase-progress.md`
+
+What changed:
+
+- Replaced static inline styles for sidebar expand hint, sidebar badges, Drive cloud icon, topbar timer/theme/search ordering, confirm modal layout and event modal width with CSS classes.
+- Added `.nav-item .badge.badge-crono` so the chronometer badge keeps its green color without inline style.
+- Added a unit guard that keeps migrated index shell styles in CSS classes and caps `src/index.html` inline styles at 37 for this stage.
+
+Verification:
+
+```powershell
+npm run test:unit -- tests/unit/css-architecture.test.js
+npm run test:e2e -- tests/e2e/app.spec.js -g "all sidebar pages|global search|Cloudflare sync conflict"
+rg --count "style=" src/index.html src/js
+npm test
+npm run test:e2e
+```
+
+Results:
+
+- CSS architecture focused unit: 7 passed
+- Focused shell/search/config E2E: 3 passed
+- `src/index.html` inline-style count: 52 -> 37
+- Full unit: 72 passed
 - Full E2E: 28 passed

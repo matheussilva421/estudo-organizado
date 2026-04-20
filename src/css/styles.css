@@ -654,6 +654,10 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
+.nav-item .badge.badge-crono {
+  background: var(--green);
+}
+
 .sidebar-drive {
   margin-top: auto;
   padding: 12px;

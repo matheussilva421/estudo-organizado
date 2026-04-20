@@ -59,6 +59,7 @@ Nota de estado: o plano principal foi supersedido para fins de estabilizacao pel
 - Adicionado `tests/unit/css-architecture.test.js` para proteger a arquitetura CSS.
 - Empty states e varias superficies criticas foram consolidadas em classes.
 - Estilos inline restantes foram classificados por arquivo/superficie.
+- `src/index.html` caiu de 52 para 37 `style=` apos migracao do shell estatico para classes.
 - `transition: all` e `outline: none` foram removidos das superficies de producao escaneadas e protegidos por teste unitario.
 - Ainda pendente: migrar estilos inline estaticos restantes para classes e so entao remover `style-src 'unsafe-inline'`.
 
@@ -102,13 +103,15 @@ Nota de estado: o plano principal foi supersedido para fins de estabilizacao pel
 
 ## Verificacao 2026-04-20
 
-- `npm test` - 71 tests passing.
+- `npm test` - 72 tests passing.
 - `npm run test:e2e -- tests/e2e/revisoes-habitos.spec.js tests/e2e/sessoes.spec.js` - 4 tests passing.
 - `npm run test:e2e -- tests/e2e/calendar.spec.js tests/e2e/app.spec.js tests/e2e/planejamento.spec.js` - 20 tests passing.
 - `npm run test:e2e -- tests/e2e/offline-import.spec.js` - 2 tests passing.
 - `npm run test:e2e` - 28 tests passing.
 - `npm run test:unit -- tests/unit/css-architecture.test.js` - 6 tests passing.
 - `npm run test:e2e -- tests/e2e/app.spec.js -g "empty-state CTA"` - 1 test passing.
+- `npm run test:unit -- tests/unit/css-architecture.test.js` - 7 tests passing.
+- `npm run test:e2e -- tests/e2e/app.spec.js -g "all sidebar pages|global search|Cloudflare sync conflict"` - 3 tests passing.
 
 ## Proximas pendencias reais
 

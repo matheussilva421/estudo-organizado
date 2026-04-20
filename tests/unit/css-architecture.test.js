@@ -84,4 +84,21 @@ describe('CSS architecture', () => {
       expect(content, `${file} should not hide outlines`).not.toMatch(/outline\s*:\s*none\b/);
     }
   });
+
+  it('keeps migrated index shell styles in CSS classes', () => {
+    const html = read('src/index.html');
+    const styles = `${read('src/css/styles.css')}\n${read('src/css/views.css')}`;
+    const inlineStyleCount = (html.match(/\sstyle="/g) || []).length;
+
+    expect(inlineStyleCount).toBeLessThanOrEqual(37);
+    expect(html).toContain('topbar-timer-btn');
+    expect(html).toContain('topbar-search');
+    expect(html).toContain('modal-confirm-footer');
+    expect(html).toContain('drive-cloud-icon');
+    expect(html).not.toContain('style="order:-1;margin-right:8px;"');
+    expect(html).not.toContain('style="max-width:380px;"');
+    expect(styles).toContain('.topbar-timer-btn');
+    expect(styles).toContain('.modal-confirm-footer');
+    expect(styles).toContain('.nav-item .badge.badge-crono');
+  });
 });

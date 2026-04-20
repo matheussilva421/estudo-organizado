@@ -55,7 +55,7 @@
         </div>
 
         <!-- Expand button visible only when sidebar is collapsed -->
-        <div class="sidebar-expand-hint" data-action="toggle-sidebar-collapse" title="Expandir menu" style="display:none;">
+        <div class="sidebar-expand-hint hidden" data-action="toggle-sidebar-collapse" title="Expandir menu">
             <i class="fa fa-chevron-right"></i>
         </div>
 
@@ -66,11 +66,11 @@
             </div>
             <div class="nav-item" data-view="med" data-action="navigate" data-tooltip="Study Organizer">
                 <span class="icon">⏱️</span> Study Organizer
-                <span class="badge" id="badge-med" style="display:none;">0</span>
+                <span class="badge hidden" id="badge-med">0</span>
             </div>
             <div class="nav-item" id="nav-cronometro" data-view="cronometro" data-action="navigate" data-tooltip="Cronômetro">
                 <span class="icon">⏱</span> Cronômetro
-                <span class="badge" id="badge-crono" style="background:var(--green);display:none;">0</span>
+                <span class="badge badge-crono hidden" id="badge-crono">0</span>
             </div>
             <div class="nav-item" data-view="calendar" data-action="navigate" data-tooltip="Calendário">
                 <span class="icon">📅</span> Calendário
@@ -83,7 +83,7 @@
             </div>
             <div class="nav-item" data-view="revisoes" data-action="navigate" data-tooltip="Revisões">
                 <span class="icon">🔄</span> Revisões
-                <span class="badge" id="badge-rev" style="display:none;">0</span>
+                <span class="badge hidden" id="badge-rev">0</span>
             </div>
             <div class="nav-item" data-view="historico-sessoes" data-action="navigate" data-tooltip="Histórico de Sessões">
                 <span class="icon">🕘</span> Histórico
@@ -116,7 +116,7 @@
                     <strong id="drive-label">Google Drive</strong>
                     <span id="drive-sublabel">Clique para conectar</span>
                 </div>
-                <i class="fa fa-cloud" style="color: rgba(148,163,184,0.5); font-size:14px;"></i>
+                <i class="fa fa-cloud drive-cloud-icon"></i>
             </div>
         </div>
     </nav>
@@ -130,18 +130,18 @@
                 <div class="topbar-subtitle" id="topbar-date"></div>
             </div>
             <div class="topbar-right" id="topbar-actions">
-                <button id="timer-mode-btn" class="btn btn-sm" data-action="toggle-timer-mode"
-                    title="Alternar modo de cronômetro" style="order:-2;margin-right:8px;">
+                <button id="timer-mode-btn" class="btn btn-sm topbar-timer-btn" data-action="toggle-timer-mode"
+                    title="Alternar modo de cronômetro">
                     <i class="fa fa-clock"></i> Contínuo
                 </button>
             </div>
             <!-- Fix F: Dark mode toggle — always visible in topbar -->
-            <button id="theme-toggle-btn" data-action="toggle-theme" class="btn btn-ghost btn-sm"
-                style="order:1;white-space:nowrap;" title="Alternar tema claro/escuro">
+            <button id="theme-toggle-btn" data-action="toggle-theme" class="btn btn-ghost btn-sm topbar-theme-btn"
+                title="Alternar tema claro/escuro">
                 🌙 Modo escuro
             </button>
             <!-- UX 1: Global Search -->
-            <div class="search-wrap" style="order:-1;margin-right:8px;" role="search">
+            <div class="search-wrap topbar-search" role="search">
                 <i class="fa fa-search search-icon"></i>
                 <input class="search-input" id="global-search" placeholder="Buscar eventos, assuntos, hábitos..."
                     autocomplete="off"
@@ -170,17 +170,15 @@
     <!-- Fix B: CONFIRM MODAL — replaces all browser confirm() dialogs -->
     <div class="modal-overlay" id="modal-confirm" role="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-msg" aria-modal="true"
         aria-hidden="true">
-        <div class="modal" style="max-width:380px;">
-            <div class="modal-header" style="padding:16px 20px 12px;">
-                <h3 id="confirm-title" style="font-size:16px;font-weight:700;margin:0;">Confirmar</h3>
+        <div class="modal modal-sm">
+            <div class="modal-header modal-confirm-header">
+                <h3 id="confirm-title" class="modal-confirm-title">Confirmar</h3>
             </div>
-            <div class="modal-body" style="padding:12px 20px 16px;">
-                <p id="confirm-msg"
-                    style="font-size:14px;color:var(--text-secondary);margin:0;line-height:1.6;white-space:pre-line;">
+            <div class="modal-body modal-confirm-body">
+                <p id="confirm-msg" class="modal-confirm-msg">
                 </p>
             </div>
-            <div
-                style="padding:12px 20px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);">
+            <div class="modal-confirm-footer">
                 <button class="btn btn-ghost btn-sm" id="confirm-cancel-btn" aria-label="Cancelar">Cancelar</button>
                 <button class="btn btn-sm" id="confirm-ok-btn">Confirmar</button>
             </div>
@@ -190,7 +188,7 @@
     <!-- ADD EVENT MODAL -->
     <div class="modal-overlay" id="modal-event" role="dialog" aria-labelledby="modal-event-title" aria-describedby="modal-event-body" aria-modal="true"
         aria-hidden="true">
-        <div class="modal" style="max-width:600px;">
+        <div class="modal modal-md">
             <div class="modal-header">
                 <h2 id="modal-event-title">Iniciar Estudo</h2>
                 <button class="modal-close" data-action="close-modal" data-modal="modal-event" aria-label="Fechar"
