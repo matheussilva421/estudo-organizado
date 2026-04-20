@@ -331,6 +331,32 @@ test.describe('Estudo Organizado', () => {
     await expect(page.locator('#main-content')).toBeVisible();
   });
 
+  test('search finds habit records by keyboard', async ({ page }) => {
+    const state = createE2EState();
+    state.habitos.questoes.push({
+      id: 'hab_search',
+      data: new Date().toISOString().slice(0, 10),
+      descricao: 'Bloco FGV de questoes',
+      quantidade: 20,
+      acertos: 16
+    });
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+
+    const search = page.locator('#global-search');
+    await search.fill('FGV');
+    await expect(search).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#search-results')).toContainText('Bloco FGV de questoes');
+
+    const resultButtons = page.locator('#search-results button.search-item');
+    await page.keyboard.press('ArrowDown');
+    await expect(resultButtons.first()).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#topbar-title')).toHaveText(/H.bitos/);
+  });
+
   test('no horizontal overflow on mobile viewport', async ({ page }) => {
     const state = createE2EState();
 
@@ -344,25 +370,50 @@ test.describe('Estudo Organizado', () => {
     expect(hasOverflow).toBe(false);
   });
 
-  test('starts and pauses the study timer', async ({ page }) => {
+  test('starts, pauses, extends and discards the study timer', async ({ page }) => {
     const state = createE2EState();
+    state.eventos.push({
+      id: 'ev_timer_flow',
+      titulo: 'Timer completo E2E',
+      data: new Date().toISOString().slice(0, 10),
+      dataEstudo: null,
+      duracao: 30,
+      status: 'agendado',
+      tempoAcumulado: 60,
+      tipo: 'conteudo',
+      discId: 'disc_1',
+      assId: 'ass_1',
+      habito: null,
+      criadoEm: '2026-04-20T10:00:00.000Z'
+    });
 
     await seedLegacyState(page, state);
     await page.goto('/');
     await page.click('[data-view="cronometro"]');
 
-    const startBtn = page.locator('[data-action="start-crono"]');
-    if (await startBtn.isVisible()) {
-      await startBtn.click();
-      await expect(page.locator('#crono-display')).toBeVisible();
+    await expect(page.locator('#main-content')).toContainText('Direito Constitucional');
+    await page.click('[data-action="add-minutes"][data-event-id="ev_timer_flow"][data-minutes="5"]');
+    await expect.poll(() => page.evaluate(() => {
+      return window.state.eventos.find(evento => evento.id === 'ev_timer_flow')?.duracao;
+    })).toBe(35);
 
-      const pauseBtn = page.locator('[data-action="pause-crono"]');
-      if (await pauseBtn.isVisible()) {
-        await pauseBtn.click();
-      }
-    }
+    await page.click('[data-action="toggle-timer"][data-event-id="ev_timer_flow"]');
+    await expect.poll(() => page.evaluate(() => {
+      return Boolean(window.state.eventos.find(evento => evento.id === 'ev_timer_flow')?._timerStart);
+    })).toBe(true);
 
-    await expect(page.locator('#main-content')).toBeVisible();
+    await page.click('[data-action="toggle-timer"][data-event-id="ev_timer_flow"]');
+    await expect.poll(() => page.evaluate(() => {
+      return Boolean(window.state.eventos.find(evento => evento.id === 'ev_timer_flow')?._timerStart);
+    })).toBe(false);
+
+    await page.click('[data-action="discard-timer"][data-event-id="ev_timer_flow"]');
+    await expect(page.locator('#modal-confirm')).toHaveClass(/open/);
+    await page.click('#confirm-ok-btn');
+
+    await expect.poll(() => page.evaluate(() => {
+      return window.state.eventos.find(evento => evento.id === 'ev_timer_flow')?.tempoAcumulado;
+    })).toBe(0);
   });
 
   test('exports state as JSON from settings', async ({ page }) => {

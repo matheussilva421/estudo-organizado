@@ -194,6 +194,8 @@ Comandos disponíveis:
 - `npm run test:e2e:ui` - abre o runner visual do Playwright
 - `npm run test:all` - executa unitários e E2E em sequência
 
+CI: `.github/workflows/ci.yml` executa `npm ci`, `npm run test:unit` e `npm run test:e2e` em push e pull request para `main`.
+
 ### Documentação Técnica
 
 Documentos de arquitetura, planos e segurança ficam em `src/docs/`.

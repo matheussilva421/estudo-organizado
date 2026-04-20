@@ -1,6 +1,8 @@
 # Implementacao App Maturity Plan - Fases
 
-Este documento acompanha o progresso da implementacao do plano de maturidade do app em `2026-04-18-app-maturity-implementation-plan.md`.
+Este documento acompanha o progresso do plano de maturidade em `2026-04-18-app-maturity-implementation-plan.md`.
+
+Nota de estado: o plano principal foi supersedido para fins de estabilizacao pelo plano `2026-04-19-regression-recovery-implementation-plan.md`. A lista abaixo registra o estado real apos a auditoria e as recuperacoes ja implementadas.
 
 ## Fase 1: Baseline e Documentacao
 
@@ -9,7 +11,7 @@ Este documento acompanha o progresso da implementacao do plano de maturidade do 
 - `src/docs/architecture/app-overview.md`
 - `src/docs/architecture/data-flow.md`
 - `src/docs/security/sync-threat-model.md`
-- `README.md` atualizado com comandos de teste e links de documentacao.
+- `README.md` atualizado com comandos de teste, CI e links de documentacao.
 
 ## Fase 2: CSP e Inline Handlers
 
@@ -21,20 +23,21 @@ Este documento acompanha o progresso da implementacao do plano de maturidade do 
 - Criado `tests/unit/inline-handlers.test.js` para bloquear regressao de handlers inline, scripts inline app-owned e `script-src` inseguro.
 - Movida a registracao do service worker para `src/js/sw-register.js`.
 - Removidos `'unsafe-inline'` e `'unsafe-eval'` de `script-src`.
-- `style-src 'unsafe-inline'` permanece de forma deliberada ate a Fase 5 remover estilos inline legados.
+- `style-src 'unsafe-inline'` permanece deliberadamente ate a conclusao da limpeza de estilos inline legados.
 
 ## Fase 3: Acessibilidade Basica
 
-**Status:** completa no escopo basico, com pendencias avancadas.
+**Status:** completa no escopo automatizado atual.
 
 - Criado `src/js/ui/dialog.js`.
 - Adicionados `role="dialog"`, `aria-modal`, `aria-labelledby` e regiao `aria-live`.
 - Adicionada utility `.sr-only`.
-- Pendencias: botoes semanticos em superfices clicaveis, acessibilidade da busca, focus styles completos, reduced motion e verificacao manual de teclado.
+- Busca global validada com resultados em botoes, navegacao ArrowUp/ArrowDown, Enter e Escape.
+- Tabs, chips e botoes criticos migrados para controles semanticos nas areas recuperadas.
 
 ## Fase 4: Modularizacao de Views
 
-**Status:** completa no primeiro corte.
+**Status:** completa no primeiro corte, com compatibilidade preservada.
 
 - Extraidos:
   - `src/js/views/home-view.js`
@@ -42,9 +45,9 @@ Este documento acompanha o progresso da implementacao do plano de maturidade do 
   - `src/js/views/editais-view.js`
   - `src/js/views/dashboard-view.js`
   - `src/js/views/banca-view.js`
-- `src/js/views.js` permanece como barrel de compatibilidade.
-- Imports dos modulos extraidos foram corrigidos para usar o mesmo grafo versionado (`?v=8.3`) do app.
-- Funcoes legadas ainda pertencentes a `views.js` continuam acessadas pela ponte de compatibilidade `window`.
+- `calendar-view.js` e `banca-view.js` estao no caminho runtime validado por testes.
+- `views.js` permanece como barrel de compatibilidade para funcoes ainda legadas.
+- `main.js` expoe os modulos runtime necessarios para a ponte `window`.
 
 ## Fase 5: Design System
 
@@ -54,50 +57,54 @@ Este documento acompanha o progresso da implementacao do plano de maturidade do 
 - Movidos tokens raiz para `tokens.css`.
 - Linkada a ordem de CSS no `index.html`: tokens, base, components, views e legado.
 - Adicionado `tests/unit/css-architecture.test.js` para proteger a arquitetura CSS.
-- Migrado o layout repetido dos cards estatisticos da home para `.dashboard-stat-card`.
-- Migrada a tipografia repetida dos valores e detalhes dos cards da home para `.dashboard-stat-value` e `.dashboard-stat-detail-*`.
-- Remover estilos inline gradualmente.
-- So depois disso remover `style-src 'unsafe-inline'`.
+- Empty states e varias superficies criticas foram consolidadas em classes.
+- Ainda pendente: classificar/remover estilos inline restantes, substituir `transition: all` e `outline: none` remanescentes, e so entao remover `style-src 'unsafe-inline'`.
 
 ## Fase 6: PWA Quality
 
-**Status:** pendente.
+**Status:** completa no escopo de runtime atual, com verificacao offline manual ainda aberta no plano de recuperacao.
 
-- Melhorar manifest/icons.
-- Refinar estrategia do service worker.
-- Vendorizar dependencias externas quando aplicavel.
+- Service worker inclui os modulos `ui/*` e `views/*` necessarios ao runtime.
+- Manifest e estrategias de cache foram revisados.
+- E2E valida que o precache contem os modulos runtime extraidos.
 
 ## Fase 7: Sync Hardening
 
-**Status:** pendente.
+**Status:** completa no contrato Cloudflare atual.
 
-- Versionar envelope de sync.
-- Proteger sobrescrita destrutiva.
-- Reforcar validacao no Worker.
+- Envelope de sync versionado.
+- Protecao contra sobrescrita obsoleta via `baseRemoteUpdatedAt`.
+- Worker rejeita writes stale com 409.
+- UI de conflito oferece export local, pull remoto e force overwrite.
+- `ALLOWED_ORIGINS` documentado para deploy.
+- `src/docs/api/sync-contract.md` atualizado.
 
 ## Fase 8: Testes e CI
 
-**Status:** em andamento.
+**Status:** em andamento continuo, com cobertura de regressao ampliada.
 
-- Unit tests atuais: store, logic, utils e inline-handler guard.
-- E2E smoke tests atuais: bootstrap da home e criacao/persistencia de evento.
-- Pendente: GitHub Actions, cobertura ampliada por fluxo critico e matriz de regressao.
+- Unit tests atuais: logic, store, utils, action contracts, sync conflict, CSS architecture e inline handlers.
+- E2E atuais cobrem boot, criacao de evento, calendario, editais, planejamento, ciclo, revisoes, habitos, sessoes, busca, configuracoes, banca, mobile overflow e PWA precache.
+- CI documentado no `README.md` e configurado em `.github/workflows/ci.yml`.
+- Pendente: E2E/manual de reload offline real e import validation.
 
 ## Fase 9: Release Discipline
 
-**Status:** pendente.
+**Status:** completa como documentacao operacional, em manutencao continua.
 
-- Checklist manual de regressao.
-- Checklist de release.
-- Severidade de bugs.
-- Definicao de pronto.
+- `src/docs/qa/manual-regression-checklist.md`
+- `src/docs/releases/release-checklist.md`
+- Severidade de bugs documentada.
+- Definicao de pronto documentada.
 
-## Verificacao 2026-04-19
+## Verificacao 2026-04-20
 
-- `npm run test:unit` - 51 tests passing.
-- `npm run test:e2e` - 2 tests passing.
-- grep de handlers/scripts inline - limpo, exceto `style-src 'unsafe-inline'` esperado.
+- `npm test` - 70 tests passing.
+- `npm run test:e2e -- tests/e2e/revisoes-habitos.spec.js tests/e2e/sessoes.spec.js` - 4 tests passing.
+- `npm run test:e2e -- tests/e2e/calendar.spec.js tests/e2e/app.spec.js tests/e2e/planejamento.spec.js` - 20 tests passing.
 
-## Verificacao 2026-04-19 - Task 5
+## Proximas pendencias reais
 
-- `npm run test:unit -- tests/unit/css-architecture.test.js` - 4 tests passing.
+- Concluir Fase 6 do plano de recuperacao: inventario e migracao dos `style=` restantes, `transition: all`, `outline: none` e CSP de estilos.
+- Concluir Fase 8 do plano de recuperacao: reload offline real e import validation.
+- Adicionar evidencia manual ou screenshot para a verificacao mobile de CTA em empty states.

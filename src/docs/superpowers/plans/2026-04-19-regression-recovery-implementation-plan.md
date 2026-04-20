@@ -1,4 +1,4 @@
-# Regression Recovery Implementation Plan
+﻿# Regression Recovery Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -61,7 +61,7 @@ npm run test:e2e
 - [x] Consolidate `.empty-state` into one definition with `display: flex`, `flex-direction: column`, centered text, `gap`, and responsive `max-width`.
 - [x] Add an explicit `.empty-state-actions` or `.empty-state .btn` rule so CTA buttons keep readable width on mobile.
 - [x] Remove conflicting empty-state declarations or make later stylesheet declarations intentionally override the base.
-- [x] Audit empty state call sites: Study Organizer, Ciclo, Revisões, Hábitos, Editais, Banca.
+- [x] Audit empty state call sites: Study Organizer, Ciclo, RevisÃµes, HÃ¡bitos, Editais, Banca.
 - [x] Verify desktop screenshot no longer shows inline icon/title/paragraph/button.
 - [ ] Verify mobile screenshot no longer squeezes CTA text.
 
@@ -314,21 +314,21 @@ Manual/browser:
 
 **Critical flows to cover:**
 
-- [ ] Fresh app, no data: all primary pages render clean empty states.
-- [ ] Create edital, discipline and subject.
-- [ ] Create study event from Study Organizer.
-- [ ] Create event from Calendar date.
-- [ ] Start, pause, add minutes, discard timer.
-- [ ] Toggle Pomodoro/Continuous.
-- [ ] Mark studied and complete Registro de Sessão.
-- [ ] Revisions appear after subject completion.
-- [ ] Search event/discipline/subject/habit.
-- [ ] Ciclo wizard creates a plan.
-- [ ] Ciclo "Iniciar Estudo" creates an event.
+- [x] Fresh app, no data: all primary pages render clean empty states.
+- [x] Create edital, discipline and subject.
+- [x] Create study event from Study Organizer.
+- [x] Create event from Calendar date.
+- [x] Start, pause, add minutes, discard timer.
+- [x] Toggle Pomodoro/Continuous.
+- [x] Mark studied and complete Registro de Sessao.
+- [x] Revisions appear after subject completion.
+- [x] Search event/discipline/subject/habit.
+- [x] Ciclo wizard creates a plan.
+- [x] Ciclo "Iniciar Estudo" creates an event.
 - [x] Banca Analyzer applies ranking.
-- [ ] Config toggles persist after reload.
+- [x] Config toggles persist after reload.
 - [ ] Export JSON and import validation.
-- [ ] Mobile navigation and no horizontal overflow.
+- [x] Mobile navigation and no horizontal overflow.
 
 **Verification:**
 
@@ -366,7 +366,7 @@ npm run test:e2e
 - [x] Resolve duplicate Task 7 numbering.
 - [x] Make `fase-progress.md` and the main plan agree.
 - [x] Update `sync-contract.md` after the conflict model is implemented.
-- [ ] Keep CI workflow documented and linked.
+- [x] Keep CI workflow documented and linked.
 
 **Verification:**
 
@@ -787,3 +787,46 @@ What changed:
 - Added all new modules to the architecture runtime map.
 - Updated fragilities and direction sections.
 - Removed duplicate Task 7 entry and added superseded notice to old maturity plan.
+
+### 2026-04-20 - Recovery slice 14
+
+Stabilized the new regression tests and expanded Phase 7 journey coverage.
+
+Changed files:
+
+- `src/js/ui/actions.js`
+- `src/js/views.js`
+- `tests/e2e/app.spec.js`
+- `tests/e2e/calendar.spec.js`
+- `tests/e2e/editais.spec.js`
+- `tests/e2e/planejamento.spec.js`
+- `tests/e2e/revisoes-habitos.spec.js`
+- `tests/e2e/sessoes.spec.js`
+- `tests/unit/logic.test.js`
+- `README.md`
+- `src/docs/superpowers/plans/2026-04-18-fase-progress.md`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+
+What changed:
+
+- Fixed the central dispatcher to accept the runtime `data-tipo` and `data-mat` contracts emitted by the session-registration modal.
+- Restored `window.addAssunto` so the Editais subject-manager action contract can create topics through the dispatcher.
+- Added E2E coverage for edital/discipline/subject creation, calendar-date event creation, planning wizard, Ciclo "Iniciar Estudo", revision completion, habit registration, manual session registration, free chronometer session save, habit search, and timer start/pause/add/discard.
+- Kept export JSON covered; import validation remains open because the current E2E only verifies export.
+- Documented the CI workflow in the README and refreshed `fase-progress.md` with the current recovery status.
+
+Verification:
+
+```powershell
+npm test
+npm run test:e2e -- tests/e2e/revisoes-habitos.spec.js tests/e2e/sessoes.spec.js
+npm run test:e2e -- tests/e2e/calendar.spec.js tests/e2e/app.spec.js tests/e2e/planejamento.spec.js
+npm run test:e2e
+```
+
+Results:
+
+- Full unit: 70 passed
+- Focused session/revision/habit E2E: 4 passed
+- Focused calendar/app/planning E2E: 20 passed
+- Full E2E: 25 passed

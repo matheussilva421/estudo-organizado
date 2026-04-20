@@ -458,14 +458,14 @@ const actions = {
   // ============================================
 
   'toggle-study-type': (el) => {
-    const typeId = el.dataset.typeId;
+    const typeId = el.dataset.typeId || el.dataset.tipo;
     if (typeId && typeof window.toggleStudyType === 'function') {
       window.toggleStudyType(typeId);
     }
   },
 
   'toggle-material': (el) => {
-    const materialId = el.dataset.materialId;
+    const materialId = el.dataset.materialId || el.dataset.mat;
     if (materialId && typeof window.toggleMaterial === 'function') {
       window.toggleMaterial(materialId);
     }

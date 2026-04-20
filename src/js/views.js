@@ -2530,6 +2530,22 @@ window.addBulkAulas = function (discId) {
   openDiscManager(editingSubjectCtx.editaId, discId);
 };
 
+window.addAssunto = function (discId) {
+  const input = document.getElementById('new-assunto-nome');
+  if (!input) return;
+  const lines = input.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length === 0) return;
+  const d = getDisc(discId);
+  if (!d) return;
+  if (!d.disc.assuntos) d.disc.assuntos = [];
+  lines.forEach(nome => {
+    d.disc.assuntos.push({ id: 'ass_' + uid(), nome: nome, concluido: false, revisoesFetas: [], adiamentos: 0, linkedAulaIds: [] });
+  });
+  input.value = '';
+  scheduleSave();
+  openDiscManager(editingSubjectCtx.editaId, discId);
+};
+
 window.deleteAula = function (discId, aulaId) {
   showConfirm('Tem certeza que deseja apagar esta Aula?', () => {
     const d = getDisc(discId);

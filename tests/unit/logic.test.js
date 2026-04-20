@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createAssunto, createBaseState, createDisciplina, createEdital, createEvento } from '../helpers/state-builders.js';
 import { loadAppModules } from '../helpers/module-loader.js';
 
@@ -6,6 +6,13 @@ let store;
 let logic;
 
 beforeEach(async () => {
+  global.document = {
+    dispatchEvent: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    getElementById: () => null,
+    querySelector: () => null
+  };
   ({ store, logic } = await loadAppModules());
   store.setState(createBaseState());
   logic.invalidateDiscCache();
@@ -13,6 +20,10 @@ beforeEach(async () => {
   logic.invalidatePendingRevCache();
   logic.invalidateDashCaches();
   logic.invalidateStreakCache();
+});
+
+afterEach(() => {
+  delete global.document;
 });
 
 describe('logic.js', () => {
@@ -138,5 +149,52 @@ describe('logic.js', () => {
     expect(streak.currentStreak).toBe(3);
     expect(streak.maxStreak).toBeGreaterThanOrEqual(3);
     expect(streak.heatmap).toHaveLength(30);
+  });
+
+  it('totalStudySeconds sums accumulated time of studied events', () => {
+    store.setState(createBaseState({
+      eventos: [
+        createEvento({ status: 'estudei', tempoAcumulado: 1000 }),
+        createEvento({ status: 'estudei', tempoAcumulado: 2000 }),
+        createEvento({ status: 'agendado', tempoAcumulado: 5000 })
+      ]
+    }));
+
+    expect(logic.totalStudySeconds()).toBe(3000);
+  });
+
+  it('getPerformanceStats aggregates total questions across all studied events', () => {
+    store.setState(createBaseState({
+      eventos: [
+        createEvento({ status: 'estudei', questoes: { certas: 10, erradas: 2 } }),
+        createEvento({ status: 'estudei', questoes: { certas: 5, erradas: 5 } }),
+        createEvento({ status: 'agendado', questoes: { certas: 50, erradas: 0 } })
+      ]
+    }));
+    logic.invalidateDashCaches();
+
+    const stats = logic.getPerformanceStats();
+    expect(stats.questionsTotal).toBe(22);
+    expect(stats.questionsCorrect).toBe(15);
+    expect(stats.questionsWrong).toBe(7);
+  });
+
+  it('getSyllabusProgress calculates studied vs total subjects', () => {
+    store.setState(createBaseState({
+      editais: [
+        createEdital({
+          disciplinas: [
+            createDisciplina({
+              aulas: [ { estudada: true }, { estudada: false }, { estudada: true } ]
+            })
+          ]
+        })
+      ]
+    }));
+    logic.invalidateDashCaches();
+
+    const progress = logic.getSyllabusProgress();
+    expect(progress.totalAssuntos).toBe(3);
+    expect(progress.totalConcluidos).toBe(2);
   });
 });
