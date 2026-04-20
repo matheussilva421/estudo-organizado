@@ -94,3 +94,43 @@ export const HABIT_TYPES = [
 export function getHabitType(key) {
     return HABIT_TYPES.find(h => h.key === key);
 }
+
+// =============================================
+// CLEANUP REGISTRY PARA EVENT LISTENERS
+// =============================================
+
+/**
+ * Registry centralizado de listeners para cleanup no unload
+ * Previne memory leaks de listeners adicionados globalmente
+ */
+const cleanupRegistry = new Set();
+
+/**
+ * Adiciona event listener com cleanup automático no beforeunload
+ * @param {EventTarget} target - Elemento ou objeto alvo (window, document, element)
+ * @param {string} event - Nome do evento
+ * @param {Function} handler - Função handler
+ * @param {Object|boolean} [options] - Opções do listener (capture, once, passive)
+ */
+export function addCleanupListener(target, event, handler, options) {
+    target.addEventListener(event, handler, options);
+    cleanupRegistry.add({ target, event, handler, options });
+}
+
+/**
+ * Remove todos os listeners registrados e limpa o registry
+ * Deve ser chamado no beforeunload
+ */
+export function cleanupAllListeners() {
+    cleanupRegistry.forEach(({ target, event, handler, options }) => {
+        target.removeEventListener(event, handler, options);
+    });
+    cleanupRegistry.clear();
+}
+
+// Registrar cleanup no beforeunload
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+        cleanupAllListeners();
+    });
+}

@@ -1,5 +1,5 @@
 // ES Module Entry Point
-// Imports all modules and exposes functions to window for onclick handlers
+// Imports all modules and exposes functions via window.EstudoApp namespace
 
 import * as store from './store.js?v=8.3';
 import * as app from './app.js?v=8.3';
@@ -20,20 +20,52 @@ import * as lesson_mapper from './lesson-mapper.js?v=8.3';
 import { setupActionDispatcher } from './ui/actions.js?v=8.3';
 import { qs, qsa } from './ui/dom.js?v=8.3';
 import { initModals, announce } from './ui/dialog.js?v=8.3';
+import { addCleanupListener } from './utils.js?v=8.3';
 
 // Expose UI helpers to window for gradual migration
 window.qs = qs;
 window.qsa = qsa;
 window.announce = announce;
 
-// Expose all exports to window (temporary bridge for inline onclick handlers)
-const modules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper];
+// Create namespace for all exports (prevents global pollution)
+window.EstudoApp = {};
+const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper];
 
-for (const mod of modules) {
+for (const mod of exposedModules) {
   for (const [key, value] of Object.entries(mod)) {
-    window[key] = value;
+    // Skip internal/private exports (starting with _)
+    if (key.startsWith('_')) continue;
+
+    // Warn on duplicates
+    if (key in window.EstudoApp) {
+      console.warn(`[EstudoApp] Duplicate export: ${key}`);
+    }
+
+    window.EstudoApp[key] = value;
   }
 }
+
+// Log loaded modules for debugging
+console.log(`[EstudoApp] ${Object.keys(window.EstudoApp).length} módulos carregados`);
+
+// Transitional fallback: some legacy handlers are still attached lazily to window
+// during view rendering. Keep data-action handlers working while modules migrate.
+window.EstudoApp = new Proxy(window.EstudoApp, {
+  get(target, key, receiver) {
+    if (Reflect.has(target, key)) return Reflect.get(target, key, receiver);
+    if (typeof key === 'string' && key in window) return window[key];
+    return undefined;
+  }
+});
+
+// Legacy bridge for backward compatibility (to be removed in v9.0)
+// Gradually migrated to direct imports in each module
+const legacyBridgeKeys = ['state', 'setState', 'scheduleSave', 'navigate', 'renderCurrentView', 'showToast', 'openModal', 'closeModal'];
+legacyBridgeKeys.forEach(key => {
+  if (key in window.EstudoApp) {
+    window[key] = window.EstudoApp[key];
+  }
+});
 
 
 // ============================================================
@@ -54,47 +86,48 @@ app.init();
 // ============================================================
 // DOMAIN EVENT LISTENERS (Etapa 2 - Quebrando ciclos)
 // ============================================================
-document.addEventListener('app:renderCurrentView', () => {
-  if (typeof window.renderCurrentView === 'function') window.renderCurrentView();
+// Usar addCleanupListener para prevenir memory leaks
+addCleanupListener(document, 'app:renderCurrentView', () => {
+  if (typeof window.EstudoApp?.renderCurrentView === 'function') window.EstudoApp.renderCurrentView();
 });
-document.addEventListener('app:updateBadges', () => {
-  if (typeof window.updateBadges === 'function') window.updateBadges();
+addCleanupListener(document, 'app:updateBadges', () => {
+  if (typeof window.EstudoApp?.updateBadges === 'function') window.EstudoApp.updateBadges();
 });
-document.addEventListener('app:showToast', (e) => {
-  if (typeof window.showToast === 'function') window.showToast(e.detail.msg, e.detail.type);
+addCleanupListener(document, 'app:showToast', (e) => {
+  if (typeof window.EstudoApp?.showToast === 'function') window.EstudoApp.showToast(e.detail.msg, e.detail.type);
 });
-document.addEventListener('app:showConfirm', (e) => {
-  if (typeof window.showConfirm === 'function') window.showConfirm(e.detail.msg, e.detail.onYes, e.detail.opts);
+addCleanupListener(document, 'app:showConfirm', (e) => {
+  if (typeof window.EstudoApp?.showConfirm === 'function') window.EstudoApp.showConfirm(e.detail.msg, e.detail.onYes, e.detail.opts);
 });
-document.addEventListener('app:invalidateCaches', () => {
-  if (typeof window.invalidateDiscCache === 'function') window.invalidateDiscCache();
-  if (typeof window.invalidateRevCache === 'function') window.invalidateRevCache();
-  if (typeof window.invalidatePendingRevCache === 'function') window.invalidatePendingRevCache();
-  if (typeof window.invalidateTodayCache === 'function') window.invalidateTodayCache();
-  if (typeof window.invalidateStreakCache === 'function') window.invalidateStreakCache();
-  if (typeof window.invalidateDashCaches === 'function') window.invalidateDashCaches();
+addCleanupListener(document, 'app:invalidateCaches', () => {
+  if (typeof window.EstudoApp?.invalidateDiscCache === 'function') window.EstudoApp.invalidateDiscCache();
+  if (typeof window.EstudoApp?.invalidateRevCache === 'function') window.EstudoApp.invalidateRevCache();
+  if (typeof window.EstudoApp?.invalidatePendingRevCache === 'function') window.EstudoApp.invalidatePendingRevCache();
+  if (typeof window.EstudoApp?.invalidateTodayCache === 'function') window.EstudoApp.invalidateTodayCache();
+  if (typeof window.EstudoApp?.invalidateStreakCache === 'function') window.EstudoApp.invalidateStreakCache();
+  if (typeof window.EstudoApp?.invalidateDashCaches === 'function') window.EstudoApp.invalidateDashCaches();
 });
 
 // Force cache invalidation if user returns to app next day
-document.addEventListener('visibilitychange', () => {
+addCleanupListener(document, 'visibilitychange', () => {
   if (document.visibilityState === 'visible') {
-    if (typeof window.invalidateTodayCache === 'function') window.invalidateTodayCache();
-    if (typeof window.invalidatePendingRevCache === 'function') window.invalidatePendingRevCache();
-    if (typeof window.renderCurrentView === 'function') window.renderCurrentView();
+    if (typeof window.EstudoApp?.invalidateTodayCache === 'function') window.EstudoApp.invalidateTodayCache();
+    if (typeof window.EstudoApp?.invalidatePendingRevCache === 'function') window.EstudoApp.invalidatePendingRevCache();
+    if (typeof window.EstudoApp?.renderCurrentView === 'function') window.EstudoApp.renderCurrentView();
   }
 });
 
 // Domain events fired from logic.js to update specific views
-document.addEventListener('app:refreshEventCard', (e) => {
-  if (typeof window.refreshEventCard === 'function') window.refreshEventCard(e.detail.eventId);
+addCleanupListener(document, 'app:refreshEventCard', (e) => {
+  if (typeof window.EstudoApp?.refreshEventCard === 'function') window.EstudoApp.refreshEventCard(e.detail.eventId);
 });
-document.addEventListener('app:refreshMEDSections', () => {
-  if (typeof window.refreshMEDSections === 'function') window.refreshMEDSections();
+addCleanupListener(document, 'app:refreshMEDSections', () => {
+  if (typeof window.EstudoApp?.refreshMEDSections === 'function') window.EstudoApp.refreshMEDSections();
 });
-document.addEventListener('app:eventoDeleted', (e) => {
-  if (window.currentView === 'med' && typeof window.removeDOMCard === 'function') {
-    window.removeDOMCard(e.detail.eventId);
-  } else if (typeof window.renderCurrentView === 'function') {
-    window.renderCurrentView();
+addCleanupListener(document, 'app:eventoDeleted', (e) => {
+  if (window.EstudoApp?.currentView === 'med' && typeof window.EstudoApp?.removeDOMCard === 'function') {
+    window.EstudoApp.removeDOMCard(e.detail.eventId);
+  } else if (typeof window.EstudoApp?.renderCurrentView === 'function') {
+    window.EstudoApp.renderCurrentView();
   }
 });

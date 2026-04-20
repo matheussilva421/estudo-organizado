@@ -11,27 +11,55 @@ export const STORE_NAME = 'app_state';
 export let db;
 export const DEFAULT_SCHEMA_VERSION = 7;
 
+/**
+ * Deep clone helper para prevenir mutação de estado
+ * Usa structuredClone se disponível, fallback para JSON parse/stringify
+ * @param {any} obj - Objeto para clonar
+ * @returns {any} - Cópia profunda do objeto
+ */
+function deepClone(obj) {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  // structuredClone é mais preciso e suporta mais tipos
+  if (typeof structuredClone === 'function') {
+    return structuredClone(obj);
+  }
+  // Fallback para JSON (funciona para objetos JSON-serializáveis)
+  return JSON.parse(JSON.stringify(obj));
+}
+
 export function setState(newState) {
   const normalized = {
     schemaVersion: newState.schemaVersion || DEFAULT_SCHEMA_VERSION,
-    ciclo: newState.ciclo || { ativo: false, ciclosCompletos: 0, disciplinas: [] },
-    planejamento: newState.planejamento || { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
-    editais: Array.isArray(newState.editais) ? newState.editais : [],
-    eventos: Array.isArray(newState.eventos) ? newState.eventos : [],
-    arquivo: Array.isArray(newState.arquivo) ? newState.arquivo : [],
+    ciclo: deepClone(newState.ciclo || { ativo: false, ciclosCompletos: 0, disciplinas: [] }),
+    planejamento: deepClone(newState.planejamento || { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null }),
+    editais: deepClone(Array.isArray(newState.editais) ? newState.editais : []),
+    eventos: deepClone(Array.isArray(newState.eventos) ? newState.eventos : []),
+    arquivo: deepClone(Array.isArray(newState.arquivo) ? newState.arquivo : []),
     // Hábitos e Histórico
-    habitos: Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {}),
-    revisoes: Array.isArray(newState.revisoes) ? newState.revisoes : [],
-    config: Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3 }, newState.config || {}),
-    cronoLivre: newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 },
-    bancaRelevance: newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} },
+    habitos: deepClone(Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {})),
+    revisoes: deepClone(Array.isArray(newState.revisoes) ? newState.revisoes : []),
+    config: deepClone(Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3 }, newState.config || {})),
+    cronoLivre: deepClone(newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 }),
+    bancaRelevance: deepClone(newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} }),
     driveFileId: newState.driveFileId || null,
     lastSync: newState.lastSync || null
   };
 
+  // Deep clone do normalized para o state para prevenir mutação externa
+  const cloned = deepClone(normalized);
+
   // Replace the state object properties instead of the reference
   Object.keys(state).forEach(k => delete state[k]);
-  Object.assign(state, normalized);
+  Object.assign(state, cloned);
+
+  // Disparar evento de state alterado para debugging (apenas em ambiente browser)
+  if (typeof document !== 'undefined') {
+    document.dispatchEvent(new CustomEvent('app:stateChanged', {
+      detail: { timestamp: Date.now(), source: 'setState' }
+    }));
+  }
 }
 
 export let state = {
@@ -232,7 +260,9 @@ export function scheduleSave() {
     }
     saveStateToDB().catch(err => {
       console.error('CRITICAL: Failed to save to IndexedDB', err);
-      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'ERRO GRAVE: Falha ao salvar no seu disco. Libere espaço ou recarregue a página.', type: 'error' } }));
+      if (typeof document !== 'undefined') {
+        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'ERRO GRAVE: Falha ao salvar no seu disco. Libere espaço ou recarregue a página.', type: 'error' } }));
+      }
     });
   }, 2000); // 2 second debounce
 }

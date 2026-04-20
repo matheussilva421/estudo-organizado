@@ -1,18 +1,21 @@
 import { closeModal, showConfirm, showToast } from './app.js?v=8.3';
 import { runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js?v=8.3';
 import { renderCurrentView } from './components.js?v=8.3';
+import { setCredential, getCredential } from './credentials.js?v=8.3';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE
 // =============================================
+
+const DRIVE_CLIENT_ID_KEY = 'drive_client_id';
 
 export let tokenClient;
 export let gapiInited = false;
 export let gisInited = false;
 
 // Initialize Google Services
-export function initGoogleAPIs() {
-    const CLIENT_ID = localStorage.getItem('estudo_drive_client_id');
+export async function initGoogleAPIs() {
+    const CLIENT_ID = await getCredential(DRIVE_CLIENT_ID_KEY);
     if (!CLIENT_ID) return;
 
     const scriptGapi = document.createElement('script');
@@ -88,8 +91,8 @@ export function updateDriveUI(status, label) {
     }
 }
 
-export function checkDriveStatus() {
-    const CLIENT_ID = localStorage.getItem('estudo_drive_client_id');
+export async function checkDriveStatus() {
+    const CLIENT_ID = await getCredential(DRIVE_CLIENT_ID_KEY);
     if (!CLIENT_ID) {
         updateDriveUI('disconnected', 'Google Drive');
         return;
@@ -101,10 +104,11 @@ export function checkDriveStatus() {
     }
 }
 
-export function driveAction() {
+export async function driveAction() {
     const btn = document.getElementById('drive-action-btn');
-    const inputId = document.getElementById('drive-client-id')?.value.trim();
-    const savedId = localStorage.getItem('estudo_drive_client_id');
+    const inputEl = document.getElementById('drive-client-id');
+    const inputId = inputEl?.value.trim();
+    const savedId = await getCredential(DRIVE_CLIENT_ID_KEY);
 
     // Set loading state
     if (btn) {
@@ -113,8 +117,8 @@ export function driveAction() {
     }
 
     if (inputId && inputId !== savedId) {
-        localStorage.setItem('estudo_drive_client_id', inputId);
-        showToast('Client ID salvo. Recarregando...', 'info');
+        await setCredential(DRIVE_CLIENT_ID_KEY, inputId);
+        showToast('Client ID salvo. Recarregue a página para aplicar.', 'info');
         setTimeout(() => {
             if (btn) {
                 btn.disabled = false;
@@ -252,20 +256,22 @@ export async function syncWithDrive(isRecursion = false) {
                 JSON.stringify(state) +
                 close_delim;
 
-            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${state.driveFileId}?uploadType=multipart`, {
+            const fetchResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${state.driveFileId}?uploadType=multipart`, {
                 method: 'PATCH',
                 headers: new Headers({
                     'Authorization': 'Bearer ' + accessToken,
                     'Content-Type': 'multipart/related; boundary=' + boundary
                 }),
                 body: multipartRequestBody
-            }).then(res => {
-                if (!res.ok) throw new Error(`Drive PATCH failed: HTTP ${res.status}`);
             });
+
+            if (!fetchResponse.ok) {
+                throw new Error(`Drive PATCH failed: HTTP ${fetchResponse.status}`);
+            }
 
             // Only update lastSync AFTER successful upload
             state.lastSync = new Date().toISOString();
-            saveStateToDB();
+            await saveStateToDB();
             showToast('Sincronizado com sucesso!', 'success');
         } else {
             // Cria um novo arquivo
@@ -292,13 +298,17 @@ export async function syncWithDrive(isRecursion = false) {
                 }),
                 body: multipartRequestBody
             });
-            if (!res.ok) throw new Error(`Drive POST failed: HTTP ${res.status}`);
+
+            if (!res.ok) {
+                throw new Error(`Drive POST failed: HTTP ${res.status}`);
+            }
+
             const data = await res.json();
             state.driveFileId = data.id;
 
             // Only update lastSync AFTER successful upload
             state.lastSync = new Date().toISOString();
-            saveStateToDB();
+            await saveStateToDB();
             showToast('Backup criado no Drive!', 'success');
         }
         updateDriveUI('connected', 'Google Drive');

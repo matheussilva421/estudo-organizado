@@ -1,5 +1,5 @@
 import { scheduleSave, state } from './store.js?v=8.3';
-import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid } from './utils.js?v=8.3';
+import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid, esc } from './utils.js?v=8.3';
 import { navigate } from './app.js?v=8.3';
 
 // =============================================
@@ -545,7 +545,7 @@ export function getConsistencyStreak() {
 
 export function getSubjectStats() {
   const agg = getAggregatedStats();
-  return Object.values(agg.subjectStats).sort((a, b) => a.nome.localeCompare(b.nome));
+  return [...Object.values(agg.subjectStats)].sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 export function getCurrentWeekStats() {
@@ -940,8 +940,8 @@ window.desfazerEtapa = function (seqId) {
     syncCicloToEventos();
     scheduleSave();
     document.dispatchEvent(new Event('app:renderCurrentView'));
-    if (typeof window.closeModal === 'function') {
-      window.closeModal('modal-ciclo-history');
+    if (typeof window.EstudoApp?.closeModal === 'function') {
+      window.EstudoApp.closeModal('modal-ciclo-history');
     }
   }
 };
@@ -963,7 +963,7 @@ window.editCicloSeqHours = function (idx) {
       Digite a nova carga horária (em horas) para esta etapa.<br>
       <small>Ex: 1 = Uma hora | 1.5 = 1h30min</small>
     </div>
-    <input type="number" id="prompt-input-horas" class="form-control" value="${currentHours}" min="0.1" step="0.5" autofocus>
+    <input type="number" id="prompt-input-horas" class="form-control" value="${esc(currentHours)}" min="0.1" step="0.5" autofocus>
   `;
 
   saveBtn.onclick = () => {
@@ -976,11 +976,11 @@ window.editCicloSeqHours = function (idx) {
     seqItem.minutosAlvo = Math.round(novaHoras * 60);
     syncCicloToEventos();
     scheduleSave();
-    if (typeof window.closeModal === 'function') window.closeModal('modal-prompt');
+    if (typeof window.EstudoApp?.closeModal === 'function') window.EstudoApp.closeModal('modal-prompt');
     document.dispatchEvent(new Event('app:renderCurrentView'));
   };
 
-  if (typeof window.openModal === 'function') window.openModal('modal-prompt');
+  if (typeof window.EstudoApp?.openModal === 'function') window.EstudoApp.openModal('modal-prompt');
   setTimeout(() => document.getElementById('prompt-input-horas')?.focus(), 100);
 };
 

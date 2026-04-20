@@ -3,7 +3,7 @@
 // Módulo dedicado ao registro pós-sessão
 // =============================================
 
-import { state, scheduleSave } from './store.js?v=8.3';
+import { state, scheduleSave, saveStateToDB } from './store.js?v=8.3';
 import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js?v=8.3';
 import { openModal, closeModal, showToast, showConfirm } from './app.js?v=8.3';
 import { todayStr, esc, trunc, uid } from './utils.js?v=8.3';
@@ -543,7 +543,7 @@ export function addNovoTopico() {
   document.getElementById('modal-prompt-title').textContent = 'Novo Tópico';
   document.getElementById('modal-prompt-body').innerHTML = `
     <div class="prompt-hint">
-      Adicionar tópico em <strong>${d.disc.nome}</strong>
+      Adicionar tópico em <strong>${esc(d.disc.nome)}</strong>
     </div>
     <input type="text" id="prompt-input-topico" class="form-control" placeholder="Nome do novo tópico..." autofocus>
   `;
@@ -589,7 +589,7 @@ export function validateQuestoes() {
     fb.innerHTML = '<span class="reg-feedback-error">⚠️ Acertos + Erros não pode ser maior que o Total</span>';
   } else if (total > 0) {
     const pct = Math.round((ac / total) * 100);
-    fb.innerHTML = `<span class="reg-feedback-success">${pct}% de aproveitamento</span>`;
+    fb.innerHTML = `<span class="reg-feedback-success">${esc(pct)}% de aproveitamento</span>`;
   } else {
     fb.innerHTML = '';
   }
@@ -904,7 +904,7 @@ export function saveAndStartNew() {
     _selectedMateriais = [];
     _savedTimerStart = null;
     _savedTempoAcumulado = 0;
-    if (typeof window.navigate === 'function') window.navigate('med');
+    if (typeof window.EstudoApp?.navigate === 'function') window.EstudoApp.navigate('med');
   }, 400);
 }
 
@@ -930,16 +930,18 @@ export function cancelRegistro() {
 }
 
 // Proxies the discardTimer correctly inside modal
-window.discardTimerUI = function (eventId) {
+export function discardTimerUI(eventId) {
   closeModal('modal-registro-sessao');
   setTimeout(() => {
-    if (typeof window.discardTimer === 'function') {
+    if (typeof window.EstudoApp?.discardTimer === 'function') {
+      window.EstudoApp.discardTimer(eventId);
+    } else if (typeof window.discardTimer === 'function') {
       window.discardTimer(eventId);
     }
   }, 100);
 }
 
-window.voltarPastSessionUI = function(eventId, discId) {
+export function voltarPastSessionUI(eventId, discId) {
   state.eventos = state.eventos.filter(e => e.id !== eventId);
   scheduleSave();
   closeModal('modal-registro-sessao');
@@ -951,6 +953,8 @@ window.voltarPastSessionUI = function(eventId, discId) {
 }
 
 window.openRegistroSessao = openRegistroSessao;
+window.discardTimerUI = discardTimerUI;
+window.voltarPastSessionUI = voltarPastSessionUI;
 
 // Listener para fechar modal via data-action - chama cancelRegistro para rollback do timer
 document.addEventListener('click', (e) => {

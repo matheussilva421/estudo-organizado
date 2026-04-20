@@ -92,12 +92,12 @@ function attachWizardListeners() {
     });
 }
 
-window.pwSelectTipo = function (tipo) {
+export function pwSelectTipo(tipo) {
     draft.tipo = tipo;
     renderStep();
-};
+}
 
-window.pwToggleDisc = function (id) {
+export function pwToggleDisc(id) {
     if (draft.disciplinas.includes(id)) {
         draft.disciplinas = draft.disciplinas.filter(d => d !== id);
     } else {
@@ -114,32 +114,32 @@ window.pwToggleDisc = function (id) {
     if (c) c.textContent = `${draft.disciplinas.length} disciplinas selecionadas`;
 
     renderStep(); // Recalculate button states
-};
+}
 
-window.pwSearchDisc = function (q) {
+export function pwSearchDisc(q) {
     const query = q.toLowerCase();
     document.querySelectorAll('.pw-disc-card').forEach(el => {
         const text = el.textContent.toLowerCase();
         el.style.display = text.includes(query) ? 'flex' : 'none';
     });
-};
+}
 
-window.pwSelectAllDisc = function () {
+export function pwSelectAllDisc() {
     const all = getAllDisciplinas();
     draft.disciplinas = all.map(d => d.disc.id);
     draft.disciplinas.forEach(id => {
         if (!draft.relevancia[id]) draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
     });
     renderStep();
-};
+}
 
-window.pwClearDisc = function () {
+export function pwClearDisc() {
     draft.disciplinas = [];
     renderStep();
-};
+}
 
 let _relDebounce = null;
-window.pwUpdateRel = function (id, field, val) {
+export function pwUpdateRel(id, field, val) {
     if (!draft.relevancia[id]) draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
     draft.relevancia[id][field] = parseInt(val, 10);
 
@@ -151,9 +151,9 @@ window.pwUpdateRel = function (id, field, val) {
     _relDebounce = setTimeout(() => {
         pwRenderWeightPreview();
     }, 100);
-};
+}
 
-window.pwToggleDay = function (dayIndex) {
+export function pwToggleDay(dayIndex) {
     const idx = parseInt(dayIndex, 10);
     if (draft.horarios.diasAtivos.includes(idx)) {
         draft.horarios.diasAtivos = draft.horarios.diasAtivos.filter(d => d !== idx);
@@ -161,21 +161,21 @@ window.pwToggleDay = function (dayIndex) {
         draft.horarios.diasAtivos.push(idx);
     }
     renderStep(); // Checkboxes can re-render safely
-};
+}
 
-window.pwUpdateHours = function (field, val) {
+export function pwUpdateHours(field, val) {
     draft.horarios[field] = val;
     pwUpdateButtons();
-};
+}
 
 let _hoursDebounce = null;
-window.pwUpdateDayHour = function (dayIdx, val) {
+export function pwUpdateDayHour(dayIdx, val) {
     draft.horarios.horasPorDia[dayIdx] = val;
     if (_hoursDebounce) clearTimeout(_hoursDebounce);
     _hoursDebounce = setTimeout(() => {
         pwUpdateButtons();
     }, 100);
-};
+}
 
 function pwUpdateButtons() {
     const btnNext = document.getElementById('pw-btn-proximo');
@@ -404,7 +404,7 @@ function htmlStep3() {
     `;
 }
 
-window.pwRenderWeightPreview = function () {
+export function pwRenderWeightPreview() {
     const el = document.getElementById('pw-weight-preview');
     if (!el) return;
 
@@ -435,7 +435,20 @@ window.pwRenderWeightPreview = function () {
             </div>
         `;
     }).join('');
-};
+}
+
+Object.assign(window, {
+    pwSelectTipo,
+    pwToggleDisc,
+    pwSearchDisc,
+    pwSelectAllDisc,
+    pwClearDisc,
+    pwUpdateRel,
+    pwToggleDay,
+    pwUpdateHours,
+    pwUpdateDayHour,
+    pwRenderWeightPreview
+});
 
 function htmlStep4() {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];

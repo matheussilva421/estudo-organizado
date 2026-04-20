@@ -12,6 +12,7 @@ const ASSET_PATHS = [
     './js/app.js',
     './js/cloud-sync.js',
     './js/components.js',
+    './js/credentials.js',
     './js/drive-sync.js',
     './js/lesson-mapper.js',
     './js/logic.js',
@@ -32,6 +33,8 @@ const ASSET_PATHS = [
     './js/views/banca-view.js',
     './js/views/dashboard-view.js',
     './js/views/calendar-view.js',
+    './js/views/habitos-view.js',
+    './js/views/ciclo-view.js',
     './vendor/chart.umd.min.js',
     './assets/icons/icon-192.svg',
     './assets/icons/icon-512.svg',
@@ -85,7 +88,14 @@ self.addEventListener('activate', (evt) => {
 });
 
 // Allow the page to promote a waiting SW immediately.
+// Validates origin to prevent malicious activation
 self.addEventListener('message', (evt) => {
+    // Validar origem da mensagem
+    if (evt.origin !== self.origin) {
+        console.warn('[SW] Mensagem rejeitada de origem não confiável:', evt.origin);
+        return;
+    }
+
     if (evt?.data?.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }

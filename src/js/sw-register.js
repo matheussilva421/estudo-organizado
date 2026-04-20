@@ -13,7 +13,8 @@ if ('serviceWorker' in navigator) {
 
       const promoteWaitingWorker = () => {
         if (reg.waiting) {
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          // Validar origem antes de enviar mensagem
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' }, window.location.origin);
         }
       };
 

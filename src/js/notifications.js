@@ -127,3 +127,21 @@ export function startNotificationEngine() {
         checkTriggers();
     }, 14400000);
 }
+
+/**
+ * Limpa o intervalo de notificações para prevenir memory leak
+ * Deve ser chamado no beforeunload ou quando o módulo for descarregado
+ */
+export function cleanupNotificationEngine() {
+    if (notificationEngineInterval) {
+        clearInterval(notificationEngineInterval);
+        notificationEngineInterval = null;
+    }
+}
+
+// Registrar cleanup no beforeunload para prevenir memory leak
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+        cleanupNotificationEngine();
+    });
+}

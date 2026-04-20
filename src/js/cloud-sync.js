@@ -1,10 +1,14 @@
 import { state, setState, SyncQueue, saveStateToDB } from './store.js?v=8.3';
+import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.3';
 
 let isSyncing = false;
 let _lastPushTime = 0;
 const MIN_PUSH_INTERVAL_MS = 30_000;
 const SYNC_VERSION = 2;
 const DEVICE_ID_KEY = 'estudo_device_id';
+
+// Chaves de credenciais (nomes lógicos, armazenamento em IndexedDB)
+const CF_CREDS_KEY = 'cloudflare';
 
 function getDeviceId() {
     let id = localStorage.getItem(DEVICE_ID_KEY);
@@ -15,21 +19,13 @@ function getDeviceId() {
     return id;
 }
 
-// Sync credentials stored separately from study data
-const SYNC_CREDS_KEY = 'estudo_sync_creds';
-
-function getSyncCreds() {
-    try {
-        const raw = localStorage.getItem(SYNC_CREDS_KEY);
-        if (!raw) return null;
-        return JSON.parse(raw);
-    } catch {
-        return null;
-    }
+async function getSyncCreds() {
+    // Usa IndexedDB isolado para credenciais
+    return await getCredential(CF_CREDS_KEY);
 }
 
-export function setSyncCreds({ url, token, enabled }) {
-    localStorage.setItem(SYNC_CREDS_KEY, JSON.stringify({ url, token, enabled }));
+export async function setSyncCreds({ url, token, enabled }) {
+    await setCredential(CF_CREDS_KEY, { url, token, enabled });
     // Backward compat: keep state.config in sync for legacy reads
     if (!state.config) state.config = {};
     state.config.cfUrl = url || '';

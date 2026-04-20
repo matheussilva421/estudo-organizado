@@ -318,7 +318,7 @@ export function revertEditalOrdering(editalId, disciplinaId) {
         delete a.relevance;
     });
 
-    disc.assuntos.sort((a, b) => a.nome.localeCompare(b.nome));
+    disc.assuntos = [...disc.assuntos].sort((a, b) => a.nome.localeCompare(b.nome));
 
     scheduleSave();
     return true;

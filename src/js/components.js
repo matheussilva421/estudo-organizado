@@ -27,8 +27,9 @@ export function renderCronometro(el) {
       tempoAcumulado: state.cronoLivre?.tempoAcumulado || 0,
       _timerStart: state.cronoLivre?._timerStart || null
     };
-    if (isLivreActiveOrPaused) allTimerEvents.unshift(cronoLivreMock);
-    else if (allTimerEvents.length === 0) allTimerEvents.push(cronoLivreMock);
+    // Criar novo array ao invés de mutar com unshift/push
+    if (isLivreActiveOrPaused) allTimerEvents = [cronoLivreMock, ...allTimerEvents];
+    else if (allTimerEvents.length === 0) allTimerEvents = [cronoLivreMock];
   }
 
   const focusEvent = allTimerEvents.find(e => e._timerStart) || allTimerEvents[0];
@@ -274,19 +275,21 @@ export function renderCurrentView() {
 
   // Render topbar actions
   const actions = document.getElementById('topbar-actions');
-  actions.innerHTML = '';
-  if (currentView === 'cronometro') {
-    actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="navigate" data-view="med"><i class="fa fa-arrow-left"></i> Voltar</button>`;
-  } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
-  } else if (currentView === 'editais') {
-    if (window.activeDashboardDiscCtx) {
-      actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>`;
-    } else {
-      actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>`;
+  if (actions) {
+    actions.innerHTML = '';
+    if (currentView === 'cronometro') {
+      actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="navigate" data-view="med"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+    } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
+      actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
+    } else if (currentView === 'editais') {
+      if (window.activeDashboardDiscCtx) {
+        actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+      } else {
+        actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>`;
+      }
+    } else if (currentView === 'ciclo') {
+      actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>`;
     }
-  } else if (currentView === 'ciclo') {
-    actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>`;
   }
 
   updateBadges();

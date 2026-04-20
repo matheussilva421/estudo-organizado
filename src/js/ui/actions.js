@@ -4,6 +4,7 @@
  */
 
 import { state } from '../store.js?v=8.3';
+import { addCleanupListener } from '../utils.js?v=8.3';
 
 /**
  * Registry de ações disponíveis
@@ -16,28 +17,28 @@ const actions = {
 
   'toggle-timer': (el) => {
     const eventId = el.dataset.eventId;
-    if (eventId && typeof window.toggleTimer === 'function') {
-      window.toggleTimer(eventId);
+    if (eventId && typeof window.EstudoApp?.toggleTimer === 'function') {
+      window.EstudoApp?.toggleTimer(eventId);
     }
   },
 
   'discard-timer': (el) => {
     const eventId = el.dataset.eventId;
-    if (eventId && typeof window.discardTimer === 'function') {
-      window.discardTimer(eventId);
+    if (eventId && typeof window.EstudoApp?.discardTimer === 'function') {
+      window.EstudoApp?.discardTimer(eventId);
     }
   },
 
   'mark-studied': (el) => {
     const eventId = el.dataset.eventId;
-    if (eventId && typeof window.marcarEstudei === 'function') {
-      window.marcarEstudei(eventId);
+    if (eventId && typeof window.EstudoApp?.marcarEstudei === 'function') {
+      window.EstudoApp?.marcarEstudei(eventId);
     }
   },
 
   'toggle-timer-mode': () => {
-    if (typeof window.toggleTimerMode === 'function') {
-      window.toggleTimerMode();
+    if (typeof window.EstudoApp?.toggleTimerMode === 'function') {
+      window.EstudoApp?.toggleTimerMode();
     }
   },
 
@@ -47,17 +48,17 @@ const actions = {
 
   'edit-event': (el) => {
     const eventId = el.dataset.eventId;
-    if (eventId && typeof window.openAddEventModal === 'function') {
-      window.openAddEventModal(eventId);
+    if (eventId && typeof window.EstudoApp?.openAddEventModal === 'function') {
+      window.EstudoApp?.openAddEventModal(eventId);
     }
   },
 
   'delete-event': (el, event) => {
     const eventId = el.dataset.eventId;
-    if (eventId && typeof window.showConfirm === 'function') {
-      window.showConfirm('Tem certeza que deseja excluir este evento?', () => {
-        if (typeof window.deleteEvento === 'function') {
-          window.deleteEvento(eventId);
+    if (eventId && typeof window.EstudoApp?.showConfirm === 'function') {
+      window.EstudoApp?.showConfirm('Tem certeza que deseja excluir este evento?', () => {
+        if (typeof window.EstudoApp?.deleteEvento === 'function') {
+          window.EstudoApp?.deleteEvento(eventId);
         }
       });
     }
@@ -65,13 +66,13 @@ const actions = {
 
   'delete-event-from-modal': (el) => {
     const eventId = el.dataset.eventId;
-    if (eventId && typeof window.showConfirm === 'function') {
-      window.showConfirm('Tem certeza que deseja excluir este evento?', () => {
-        if (typeof window.deleteEvento === 'function') {
-          window.deleteEvento(eventId);
+    if (eventId && typeof window.EstudoApp?.showConfirm === 'function') {
+      window.EstudoApp?.showConfirm('Tem certeza que deseja excluir este evento?', () => {
+        if (typeof window.EstudoApp?.deleteEvento === 'function') {
+          window.EstudoApp?.deleteEvento(eventId);
         }
-        if (typeof window.closeModal === 'function') {
-          window.closeModal('modal-event-detail');
+        if (typeof window.EstudoApp?.closeModal === 'function') {
+          window.EstudoApp?.closeModal('modal-event-detail');
         }
       });
     }
@@ -83,15 +84,15 @@ const actions = {
 
   'toggle-revision-tab': (el) => {
     const tab = el.dataset.tab;
-    if (tab && typeof window.switchRevTab === 'function') {
-      window.switchRevTab(tab, el);
+    if (tab && typeof window.EstudoApp?.switchRevTab === 'function') {
+      window.EstudoApp?.switchRevTab(tab, el);
     }
   },
 
   'mark-revision-done': (el) => {
     const revisaoId = el.dataset.revisaoId;
-    if (revisaoId && typeof window.marcarRevisaoFeita === 'function') {
-      window.marcarRevisaoFeita(revisaoId);
+    if (revisaoId && typeof window.EstudoApp?.marcarRevisaoFeita === 'function') {
+      window.EstudoApp?.marcarRevisaoFeita(revisaoId);
     }
   },
 
@@ -101,17 +102,17 @@ const actions = {
 
   'edit-disciplina': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.openEditaModal === 'function') {
-      window.openEditaModal(discId);
+    if (discId && typeof window.EstudoApp?.openEditaModal === 'function') {
+      window.EstudoApp?.openEditaModal(discId);
     }
   },
 
   'delete-disciplina': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.showConfirm === 'function') {
-      window.showConfirm('Tem certeza? Esta ação excluirá todos os assuntos e aulas vinculados.', () => {
-        if (typeof window.deleteDisciplina === 'function') {
-          window.deleteDisciplina(discId);
+    if (discId && typeof window.EstudoApp?.showConfirm === 'function') {
+      window.EstudoApp?.showConfirm('Tem certeza? Esta ação excluirá todos os assuntos e aulas vinculados.', () => {
+        if (typeof window.EstudoApp?.deleteDisciplina === 'function') {
+          window.EstudoApp?.deleteDisciplina(discId);
         }
       });
     }
@@ -123,15 +124,15 @@ const actions = {
 
   'set-crono-livre-disc': (el) => {
     const discId = el.value;
-    if (typeof window.setCronoLivreDisc === 'function') {
-      window.setCronoLivreDisc(discId);
+    if (typeof window.EstudoApp?.setCronoLivreDisc === 'function') {
+      window.EstudoApp?.setCronoLivreDisc(discId);
     }
   },
 
   'set-crono-livre-ass': (el) => {
     const assId = el.value;
-    if (typeof window.setCronoLivreAss === 'function') {
-      window.setCronoLivreAss(assId);
+    if (typeof window.EstudoApp?.setCronoLivreAss === 'function') {
+      window.EstudoApp?.setCronoLivreAss(assId);
     }
   },
 
@@ -150,16 +151,16 @@ const actions = {
         value = Math.max(0, current - parseInt(delta.slice(1), 10));
       }
     }
-    if (typeof window.setCronoLivreGoal === 'function') {
-      window.setCronoLivreGoal(value);
+    if (typeof window.EstudoApp?.setCronoLivreGoal === 'function') {
+      window.EstudoApp?.setCronoLivreGoal(value);
     }
   },
 
   'add-minutes': (el) => {
     const eventId = el.dataset.eventId;
     const minutes = parseInt(el.dataset.minutes, 10);
-    if (eventId && typeof window.addTimerMinutes === 'function') {
-      window.addTimerMinutes(eventId, minutes);
+    if (eventId && typeof window.EstudoApp?.addTimerMinutes === 'function') {
+      window.EstudoApp?.addTimerMinutes(eventId, minutes);
     }
   },
 
@@ -170,36 +171,36 @@ const actions = {
   'delete-habit': (el) => {
     const habitId = el.dataset.habitId;
     const habitType = el.dataset.type;
-    if (habitId && typeof window.deleteHabito === 'function') {
-      window.deleteHabito(habitType, habitId);
+    if (habitId && typeof window.EstudoApp?.deleteHabito === 'function') {
+      window.EstudoApp?.deleteHabito(habitType, habitId);
     }
   },
 
   'set-habit-page': (el) => {
     const page = parseInt(el.dataset.page, 10);
-    if (typeof window.setHabitPage === 'function') {
-      window.setHabitPage(page);
+    if (typeof window.EstudoApp?.setHabitPage === 'function') {
+      window.EstudoApp?.setHabitPage(page);
     }
   },
 
   'select-habit-type': (el) => {
     const habitKey = el.dataset.tipo;
-    if (habitKey && typeof window.selectHabitType === 'function') {
-      window.selectHabitType(habitKey, el);
+    if (habitKey && typeof window.EstudoApp?.selectHabitType === 'function') {
+      window.EstudoApp?.selectHabitType(habitKey, el);
     }
   },
 
   'calc-simulado-perc': () => {
-    if (typeof window.calcSimuladoPerc === 'function') {
-      window.calcSimuladoPerc();
+    if (typeof window.EstudoApp?.calcSimuladoPerc === 'function') {
+      window.EstudoApp?.calcSimuladoPerc();
     }
   },
 
   'edit-habit': (el) => {
     const habitId = el.dataset.habitId;
     const habitType = el.dataset.type;
-    if (habitId && typeof window.editHabit === 'function') {
-      window.editHabit(habitId, habitType);
+    if (habitId && typeof window.EstudoApp?.editHabit === 'function') {
+      window.EstudoApp?.editHabit(habitId, habitType);
     }
   },
 
@@ -208,20 +209,20 @@ const actions = {
   // ============================================
 
   'search-input': (el) => {
-    if (typeof window.debouncedOnSearch === 'function') {
-      window.debouncedOnSearch(el.value);
+    if (typeof window.EstudoApp?.debouncedOnSearch === 'function') {
+      window.EstudoApp?.debouncedOnSearch(el.value);
     }
   },
 
   'search-focus': () => {
-    if (typeof window.onSearchFocus === 'function') {
-      window.onSearchFocus();
+    if (typeof window.EstudoApp?.onSearchFocus === 'function') {
+      window.EstudoApp?.onSearchFocus();
     }
   },
 
   'search-blur': () => {
-    if (typeof window.onSearchBlur === 'function') {
-      window.onSearchBlur();
+    if (typeof window.EstudoApp?.onSearchBlur === 'function') {
+      window.EstudoApp?.onSearchBlur();
     }
   },
 
@@ -231,44 +232,44 @@ const actions = {
 
   'navigate': (el) => {
     const view = el.dataset.view;
-    if (view && typeof window.navigate === 'function') {
-      window.navigate(view);
+    if (view && typeof window.EstudoApp?.navigate === 'function') {
+      window.EstudoApp?.navigate(view);
     }
   },
 
   'close-sidebar': () => {
-    if (typeof window.closeSidebar === 'function') {
-      window.closeSidebar();
+    if (typeof window.EstudoApp?.closeSidebar === 'function') {
+      window.EstudoApp?.closeSidebar();
     }
   },
 
   'toggle-sidebar': () => {
-    if (typeof window.toggleSidebar === 'function') {
-      window.toggleSidebar();
+    if (typeof window.EstudoApp?.toggleSidebar === 'function') {
+      window.EstudoApp?.toggleSidebar();
     }
   },
 
   'toggle-sidebar-collapse': () => {
-    if (typeof window.toggleSidebarCollapse === 'function') {
-      window.toggleSidebarCollapse();
+    if (typeof window.EstudoApp?.toggleSidebarCollapse === 'function') {
+      window.EstudoApp?.toggleSidebarCollapse();
     }
   },
 
   'toggle-theme': () => {
-    if (typeof window.applyTheme === 'function') {
-      window.applyTheme(true);
-      window.renderCurrentView?.();
+    if (typeof window.EstudoApp?.applyTheme === 'function') {
+      window.EstudoApp.applyTheme(true);
+      window.EstudoApp.renderCurrentView();
     }
   },
 
   'switch-to-event-timer': (el) => {
     const eventId = el.dataset.eventId;
     const view = el.dataset.view || 'cronometro';
-    if (typeof window.navigate === 'function') {
-      window.navigate(view);
+    if (typeof window.EstudoApp?.navigate === 'function') {
+      window.EstudoApp?.navigate(view);
       setTimeout(() => {
-        if (typeof window.toggleTimer === 'function') {
-          window.toggleTimer(eventId);
+        if (typeof window.EstudoApp?.toggleTimer === 'function') {
+          window.EstudoApp?.toggleTimer(eventId);
         }
       }, 100);
     }
@@ -276,28 +277,28 @@ const actions = {
 
   'open-event-detail': (el) => {
     const eventId = el.dataset.eventId;
-    if (eventId && typeof window.openEventDetail === 'function') {
-      window.openEventDetail(eventId);
+    if (eventId && typeof window.EstudoApp?.openEventDetail === 'function') {
+      window.EstudoApp?.openEventDetail(eventId);
     }
   },
 
   'close-modal': (el) => {
     const modal = el.dataset.modal;
-    if (modal && typeof window.closeModal === 'function') {
-      window.closeModal(modal);
+    if (modal && typeof window.EstudoApp?.closeModal === 'function') {
+      window.EstudoApp?.closeModal(modal);
     }
   },
 
   'open-add-event': () => {
-    if (typeof window.openAddEventModal === 'function') {
-      window.openAddEventModal();
+    if (typeof window.EstudoApp?.openAddEventModal === 'function') {
+      window.EstudoApp?.openAddEventModal();
     }
   },
 
   'open-event-modal-date': (el) => {
     const date = el.dataset.date;
-    if (date && typeof window.openAddEventModalDate === 'function') {
-      window.openAddEventModalDate(date);
+    if (date && typeof window.EstudoApp?.openAddEventModalDate === 'function') {
+      window.EstudoApp?.openAddEventModalDate(date);
     }
   },
 
@@ -307,21 +308,21 @@ const actions = {
 
   'cal-navigate': (el) => {
     const dir = parseInt(el.dataset.dir, 10);
-    if (typeof window.calNavigate === 'function') {
-      window.calNavigate(dir);
+    if (typeof window.EstudoApp?.calNavigate === 'function') {
+      window.EstudoApp?.calNavigate(dir);
     }
   },
 
   'cal-today': () => {
-    if (typeof window.resetCalDate === 'function') {
-      window.resetCalDate();
+    if (typeof window.EstudoApp?.resetCalDate === 'function') {
+      window.EstudoApp?.resetCalDate();
     }
   },
 
   'set-cal-view-mode': (el) => {
     const mode = el.dataset.mode;
-    if (mode && typeof window.setCalViewMode === 'function') {
-      window.setCalViewMode(mode);
+    if (mode && typeof window.EstudoApp?.setCalViewMode === 'function') {
+      window.EstudoApp?.setCalViewMode(mode);
     }
   },
 
@@ -331,8 +332,8 @@ const actions = {
 
   'set-dash-period': (el) => {
     const period = parseInt(el.dataset.period, 10);
-    if (typeof window.setDashPeriod === 'function') {
-      window.setDashPeriod(period);
+    if (typeof window.EstudoApp?.setDashPeriod === 'function') {
+      window.EstudoApp?.setDashPeriod(period);
     }
   },
 
@@ -343,22 +344,22 @@ const actions = {
   'switch-revision-tab': (el) => {
     const tab = el.dataset.tab;
     const target = el.dataset.target;
-    if (tab && typeof window.switchRevTab === 'function') {
-      window.switchRevTab(tab, target);
+    if (tab && typeof window.EstudoApp?.switchRevTab === 'function') {
+      window.EstudoApp?.switchRevTab(tab, target);
     }
   },
 
   'mark-revision': (el) => {
     const assuntoId = el.dataset.assuntoId;
-    if (assuntoId && typeof window.marcarRevisao === 'function') {
-      window.marcarRevisao(assuntoId);
+    if (assuntoId && typeof window.EstudoApp?.marcarRevisao === 'function') {
+      window.EstudoApp?.marcarRevisao(assuntoId);
     }
   },
 
   'postpone-revision': (el) => {
     const assuntoId = el.dataset.assuntoId;
-    if (assuntoId && typeof window.adiarRevisao === 'function') {
-      window.adiarRevisao(assuntoId);
+    if (assuntoId && typeof window.EstudoApp?.adiarRevisao === 'function') {
+      window.EstudoApp?.adiarRevisao(assuntoId);
     }
   },
 
@@ -367,89 +368,89 @@ const actions = {
   // ============================================
 
   'close-disc-dashboard': () => {
-    if (typeof window.closeDiscDashboard === 'function') {
-      window.closeDiscDashboard();
+    if (typeof window.EstudoApp?.closeDiscDashboard === 'function') {
+      window.EstudoApp?.closeDiscDashboard();
     }
   },
 
   'open-edital-modal': (el) => {
-    if (typeof window.openEditaModal === 'function') {
-      window.openEditaModal(el.dataset.editalId || null);
+    if (typeof window.EstudoApp?.openEditaModal === 'function') {
+      window.EstudoApp?.openEditaModal(el.dataset.editalId || null);
     }
   },
 
   'open-planejamento-wizard': () => {
-    if (typeof window.openPlanejamentoWizard === 'function') {
-      window.openPlanejamentoWizard();
+    if (typeof window.EstudoApp?.openPlanejamentoWizard === 'function') {
+      window.EstudoApp?.openPlanejamentoWizard();
     }
   },
 
   'open-habit-modal': (el) => {
     const habitKey = el.dataset.habitKey;
-    if (habitKey && typeof window.openHabitModal === 'function') {
-      window.openHabitModal(habitKey);
+    if (habitKey && typeof window.EstudoApp?.openHabitModal === 'function') {
+      window.EstudoApp?.openHabitModal(habitKey);
     }
   },
 
   'save-disc': () => {
-    if (typeof window.saveDisc === 'function') {
-      window.saveDisc();
+    if (typeof window.EstudoApp?.saveDisc === 'function') {
+      window.EstudoApp?.saveDisc();
     }
   },
 
   'save-habit': () => {
-    if (typeof window.saveHabit === 'function') {
-      window.saveHabit();
+    if (typeof window.EstudoApp?.saveHabit === 'function') {
+      window.EstudoApp?.saveHabit();
     }
   },
 
   'drive-action': () => {
-    if (typeof window.driveAction === 'function') {
-      window.driveAction();
+    if (typeof window.EstudoApp?.driveAction === 'function') {
+      window.EstudoApp?.driveAction();
     }
   },
 
   'disconnect-drive': () => {
-    if (typeof window.disconnectDrive === 'function') {
-      window.disconnectDrive();
+    if (typeof window.EstudoApp?.disconnectDrive === 'function') {
+      window.EstudoApp?.disconnectDrive();
     }
   },
 
   'prompt-prova': () => {
-    if (typeof window.promptDataProva === 'function') {
-      window.promptDataProva();
+    if (typeof window.EstudoApp?.promptDataProva === 'function') {
+      window.EstudoApp?.promptDataProva();
     }
   },
 
   'prompt-metas': () => {
-    if (typeof window.promptMetas === 'function') {
-      window.promptMetas();
+    if (typeof window.EstudoApp?.promptMetas === 'function') {
+      window.EstudoApp?.promptMetas();
     }
   },
 
   'remover-planejamento': () => {
-    if (typeof window.deletePlanejamento === 'function') {
-      window.deletePlanejamento();
+    if (typeof window.EstudoApp?.deletePlanejamento === 'function') {
+      window.EstudoApp?.deletePlanejamento();
     }
   },
 
   'toggle-ciclo-fin': (el) => {
-    if (typeof window.toggleCicloFin === 'function') {
-      window.toggleCicloFin(el.checked);
+    if (typeof window.EstudoApp?.toggleCicloFin === 'function') {
+      window.EstudoApp?.toggleCicloFin(el.checked);
     }
   },
 
   'edit-session-record': (el) => {
     const sessionId = el.dataset.sessionId;
-    if (sessionId && typeof window.openRegistroSessao === 'function') {
-      window.openRegistroSessao(sessionId);
+    if (sessionId && typeof window.EstudoApp?.openRegistroSessao === 'function') {
+      window.EstudoApp?.openRegistroSessao(sessionId);
     }
   },
 
   'delete-session-record': (el) => {
     const sessionId = el.dataset.sessionId;
-    if (sessionId && typeof window.deleteCompletedSession === 'function') {
-      window.deleteCompletedSession(sessionId);
+    if (sessionId && typeof window.EstudoApp?.deleteCompletedSession === 'function') {
+      window.EstudoApp?.deleteCompletedSession(sessionId);
     }
   },
 
@@ -459,86 +460,86 @@ const actions = {
 
   'toggle-study-type': (el) => {
     const typeId = el.dataset.typeId || el.dataset.tipo;
-    if (typeId && typeof window.toggleStudyType === 'function') {
-      window.toggleStudyType(typeId);
+    if (typeId && typeof window.EstudoApp?.toggleStudyType === 'function') {
+      window.EstudoApp?.toggleStudyType(typeId);
     }
   },
 
   'toggle-material': (el) => {
     const materialId = el.dataset.materialId || el.dataset.mat;
-    if (materialId && typeof window.toggleMaterial === 'function') {
-      window.toggleMaterial(materialId);
+    if (materialId && typeof window.EstudoApp?.toggleMaterial === 'function') {
+      window.EstudoApp?.toggleMaterial(materialId);
     }
   },
 
   'on-disciplina-change': () => {
-    if (typeof window.onDisciplinaChange === 'function') {
-      window.onDisciplinaChange();
+    if (typeof window.EstudoApp?.onDisciplinaChange === 'function') {
+      window.EstudoApp?.onDisciplinaChange();
     }
   },
 
   'on-aula-change': () => {
-    if (typeof window.onAulaChange === 'function') {
-      window.onAulaChange();
+    if (typeof window.EstudoApp?.onAulaChange === 'function') {
+      window.EstudoApp?.onAulaChange();
     }
   },
 
   'add-novo-topico': () => {
-    if (typeof window.addNovoTopico === 'function') {
-      window.addNovoTopico();
+    if (typeof window.EstudoApp?.addNovoTopico === 'function') {
+      window.EstudoApp?.addNovoTopico();
     }
   },
 
   'validate-questoes': (el) => {
-    if (typeof window.validateQuestoes === 'function') {
-      window.validateQuestoes();
+    if (typeof window.EstudoApp?.validateQuestoes === 'function') {
+      window.EstudoApp?.validateQuestoes();
     }
   },
 
   'set-pagina-mode': (el) => {
     const mode = el.dataset.mode;
-    if (mode && typeof window.setPaginaMode === 'function') {
-      window.setPaginaMode(mode);
+    if (mode && typeof window.EstudoApp?.setPaginaMode === 'function') {
+      window.EstudoApp?.setPaginaMode(mode);
     }
   },
 
   'delete-completed-session': (el) => {
     const sessionId = el.dataset.sessionId;
-    if (sessionId && typeof window.deleteCompletedSession === 'function') {
-      window.deleteCompletedSession(sessionId);
+    if (sessionId && typeof window.EstudoApp?.deleteCompletedSession === 'function') {
+      window.EstudoApp?.deleteCompletedSession(sessionId);
     }
   },
 
   'voltar-past-session-ui': (el) => {
     const eventId = el.dataset.eventId;
     const discId = el.dataset.discId;
-    if (typeof window.voltarPastSessionUI === 'function') {
-      window.voltarPastSessionUI(eventId, discId);
+    if (typeof window.EstudoApp?.voltarPastSessionUI === 'function') {
+      window.EstudoApp?.voltarPastSessionUI(eventId, discId);
     }
   },
 
   'discard-timer-ui': (el) => {
     const eventId = el.dataset.eventId;
-    if (eventId && typeof window.discardTimerUI === 'function') {
-      window.discardTimerUI(eventId);
+    if (eventId && typeof window.EstudoApp?.discardTimerUI === 'function') {
+      window.EstudoApp?.discardTimerUI(eventId);
     }
   },
 
   'cancel-registro': () => {
-    if (typeof window.cancelRegistro === 'function') {
-      window.cancelRegistro();
+    if (typeof window.EstudoApp?.cancelRegistro === 'function') {
+      window.EstudoApp?.cancelRegistro();
     }
   },
 
   'save-and-start-new': () => {
-    if (typeof window.saveAndStartNew === 'function') {
-      window.saveAndStartNew();
+    if (typeof window.EstudoApp?.saveAndStartNew === 'function') {
+      window.EstudoApp?.saveAndStartNew();
     }
   },
 
   'save-registro-sessao': () => {
-    if (typeof window.saveRegistroSessao === 'function') {
-      window.saveRegistroSessao();
+    if (typeof window.EstudoApp?.saveRegistroSessao === 'function') {
+      window.EstudoApp?.saveRegistroSessao();
     }
   },
 
@@ -548,27 +549,27 @@ const actions = {
 
   'pw-select-tipo': (el) => {
     const tipo = el.dataset.tipo;
-    if (tipo && typeof window.pwSelectTipo === 'function') {
-      window.pwSelectTipo(tipo);
+    if (tipo && typeof window.EstudoApp?.pwSelectTipo === 'function') {
+      window.EstudoApp?.pwSelectTipo(tipo);
     }
   },
 
   'pw-select-all-disc': () => {
-    if (typeof window.pwSelectAllDisc === 'function') {
-      window.pwSelectAllDisc();
+    if (typeof window.EstudoApp?.pwSelectAllDisc === 'function') {
+      window.EstudoApp?.pwSelectAllDisc();
     }
   },
 
   'pw-clear-disc': () => {
-    if (typeof window.pwClearDisc === 'function') {
-      window.pwClearDisc();
+    if (typeof window.EstudoApp?.pwClearDisc === 'function') {
+      window.EstudoApp?.pwClearDisc();
     }
   },
 
   'pw-toggle-disc': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.pwToggleDisc === 'function') {
-      window.pwToggleDisc(discId);
+    if (discId && typeof window.EstudoApp?.pwToggleDisc === 'function') {
+      window.EstudoApp?.pwToggleDisc(discId);
     }
   },
 
@@ -576,31 +577,31 @@ const actions = {
     const discId = el.dataset.discId;
     const type = el.dataset.type;
     const value = el.value;
-    if (discId && type && typeof window.pwUpdateRel === 'function') {
-      window.pwUpdateRel(discId, type, value);
+    if (discId && type && typeof window.EstudoApp?.pwUpdateRel === 'function') {
+      window.EstudoApp?.pwUpdateRel(discId, type, value);
     }
   },
 
   'pw-update-hours': (el) => {
     const field = el.dataset.field;
     const value = el.value;
-    if (field && typeof window.pwUpdateHours === 'function') {
-      window.pwUpdateHours(field, value);
+    if (field && typeof window.EstudoApp?.pwUpdateHours === 'function') {
+      window.EstudoApp?.pwUpdateHours(field, value);
     }
   },
 
   'pw-toggle-day': (el) => {
     const dayIndex = el.dataset.dayIndex;
-    if (dayIndex && typeof window.pwToggleDay === 'function') {
-      window.pwToggleDay(parseInt(dayIndex, 10));
+    if (dayIndex && typeof window.EstudoApp?.pwToggleDay === 'function') {
+      window.EstudoApp?.pwToggleDay(parseInt(dayIndex, 10));
     }
   },
 
   'pw-update-day-hour': (el) => {
     const dayIndex = el.dataset.dayIndex;
     const value = el.value;
-    if (dayIndex && typeof window.pwUpdateDayHour === 'function') {
-      window.pwUpdateDayHour(parseInt(dayIndex, 10), value);
+    if (dayIndex && typeof window.EstudoApp?.pwUpdateDayHour === 'function') {
+      window.EstudoApp?.pwUpdateDayHour(parseInt(dayIndex, 10), value);
     }
   },
 
@@ -609,29 +610,29 @@ const actions = {
   // ============================================
 
   'vert-search': (el) => {
-    if (typeof window.onVertSearch === 'function') {
-      window.onVertSearch(el.value);
+    if (typeof window.EstudoApp?.onVertSearch === 'function') {
+      window.EstudoApp?.onVertSearch(el.value);
     }
   },
 
   'set-vert-filter-edital': (el) => {
     const editalId = el.value;
-    if (typeof window.setVertFilterEdital === 'function') {
-      window.setVertFilterEdital(editalId);
+    if (typeof window.EstudoApp?.setVertFilterEdital === 'function') {
+      window.EstudoApp?.setVertFilterEdital(editalId);
     }
   },
 
   'set-vert-filter-status': (el) => {
     const status = el.dataset.status;
-    if (status && typeof window.setVertFilterStatus === 'function') {
-      window.setVertFilterStatus(status);
+    if (status && typeof window.EstudoApp?.setVertFilterStatus === 'function') {
+      window.EstudoApp?.setVertFilterStatus(status);
     }
   },
 
   'toggle-vert-disc': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.toggleVertDisc === 'function') {
-      window.toggleVertDisc(discId);
+    if (discId && typeof window.EstudoApp?.toggleVertDisc === 'function') {
+      window.EstudoApp?.toggleVertDisc(discId);
     }
   },
 
@@ -639,8 +640,8 @@ const actions = {
     if (event) event.stopPropagation();
     const editalId = el.dataset.editalId;
     const discId = el.dataset.discId;
-    if (editalId && discId && typeof window.addNovoTopicoVertical === 'function') {
-      window.addNovoTopicoVertical(editalId, discId);
+    if (editalId && discId && typeof window.EstudoApp?.addNovoTopicoVertical === 'function') {
+      window.EstudoApp?.addNovoTopicoVertical(editalId, discId);
     }
   },
 
@@ -648,51 +649,51 @@ const actions = {
     if (event) event.stopPropagation();
     const editalId = el.dataset.editalId;
     const discId = el.dataset.discId;
-    if (editalId && discId && typeof window.openDiscManager === 'function') {
-      window.openDiscManager(editalId, discId);
+    if (editalId && discId && typeof window.EstudoApp?.openDiscManager === 'function') {
+      window.EstudoApp?.openDiscManager(editalId, discId);
     }
   },
 
   'toggle-assunto': (el) => {
     const discId = el.dataset.discId;
     const assuntoId = el.dataset.assuntoId;
-    if (discId && assuntoId && typeof window.toggleAssunto === 'function') {
-      window.toggleAssunto(discId, assuntoId);
+    if (discId && assuntoId && typeof window.EstudoApp?.toggleAssunto === 'function') {
+      window.EstudoApp?.toggleAssunto(discId, assuntoId);
     }
   },
 
   'toggle-edital': (el) => {
     const editalId = el.dataset.editalId;
-    if (editalId && typeof window.toggleEdital === 'function') {
-      window.toggleEdital(editalId);
+    if (editalId && typeof window.EstudoApp?.toggleEdital === 'function') {
+      window.EstudoApp?.toggleEdital(editalId);
     }
   },
 
   'navigate-with-ctx': (el) => {
     const view = el.dataset.view;
     const ctx = el.dataset.ctx;
-    if (view && typeof window.navigate === 'function') {
+    if (view && typeof window.EstudoApp?.navigate === 'function') {
       if (ctx) {
         window.activeDashboardDiscCtx = JSON.parse(decodeURIComponent(ctx));
       }
-      window.navigate(view);
+      window.EstudoApp?.navigate(view);
     }
   },
 
   'delete-edital': (el, event) => {
     if (event) event.stopPropagation();
     const editalId = el.dataset.editalId;
-    if (editalId && typeof window.deleteEdital === 'function') {
-      window.showConfirm('Tem certeza que deseja excluir este edital?', () => {
-        window.deleteEdital(editalId);
+    if (editalId && typeof window.EstudoApp?.deleteEdital === 'function') {
+      window.EstudoApp?.showConfirm('Tem certeza que deseja excluir este edital?', () => {
+        window.EstudoApp?.deleteEdital(editalId);
       });
     }
   },
 
   'open-disc-modal': (el) => {
     const editalId = el.dataset.editalId;
-    if (editalId && typeof window.openDiscModal === 'function') {
-      window.openDiscModal(editalId);
+    if (editalId && typeof window.EstudoApp?.openDiscModal === 'function') {
+      window.EstudoApp?.openDiscModal(editalId);
     }
   },
 
@@ -700,8 +701,8 @@ const actions = {
     if (event) event.stopPropagation();
     const editalId = el.dataset.editalId;
     const discId = el.dataset.discId;
-    if (editalId && discId && typeof window.openDiscDashboard === 'function') {
-      window.openDiscDashboard(editalId, discId);
+    if (editalId && discId && typeof window.EstudoApp?.openDiscDashboard === 'function') {
+      window.EstudoApp?.openDiscDashboard(editalId, discId);
     }
   },
 
@@ -709,31 +710,31 @@ const actions = {
     if (event) event.stopPropagation();
     const editalId = el.dataset.editalId;
     const discId = el.dataset.discId;
-    if (editalId && discId && typeof window.deleteDisc === 'function') {
-      window.showConfirm('Tem certeza que deseja excluir esta disciplina?', () => {
-        window.deleteDisc(editalId, discId);
+    if (editalId && discId && typeof window.EstudoApp?.deleteDisc === 'function') {
+      window.EstudoApp?.showConfirm('Tem certeza que deseja excluir esta disciplina?', () => {
+        window.EstudoApp?.deleteDisc(editalId, discId);
       });
     }
   },
 
   'switch-dashboard-tab': (el) => {
     const tab = el.dataset.tab;
-    if (tab && typeof window.switchDashboardTab === 'function') {
-      window.switchDashboardTab(tab);
+    if (tab && typeof window.EstudoApp?.switchDashboardTab === 'function') {
+      window.EstudoApp?.switchDashboardTab(tab);
     }
   },
 
   'open-registro-sessao': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.openRegistroSessao === 'function') {
-      window.openRegistroSessao(discId);
+    if (discId && typeof window.EstudoApp?.openRegistroSessao === 'function') {
+      window.EstudoApp?.openRegistroSessao(discId);
     }
   },
 
   'open-add-past-session': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.openAddPastSessionModal === 'function') {
-      window.openAddPastSessionModal(discId);
+    if (discId && typeof window.EstudoApp?.openAddPastSessionModal === 'function') {
+      window.EstudoApp?.openAddPastSessionModal(discId);
     }
   },
 
@@ -742,8 +743,8 @@ const actions = {
     const editalId = el.dataset.editalId;
     const discId = el.dataset.discId;
     const assuntoId = el.dataset.assuntoId;
-    if (editalId && discId && assuntoId && typeof window.addEventoParaAssunto === 'function') {
-      window.addEventoParaAssunto(editalId, discId, assuntoId);
+    if (editalId && discId && assuntoId && typeof window.EstudoApp?.addEventoParaAssunto === 'function') {
+      window.EstudoApp?.addEventoParaAssunto(editalId, discId, assuntoId);
     }
   },
 
@@ -752,45 +753,45 @@ const actions = {
     const editalId = el.dataset.editalId;
     const discId = el.dataset.discId;
     const aulaId = el.dataset.aulaId;
-    if (editalId && discId && aulaId && typeof window.toggleAulaDashboard === 'function') {
-      window.toggleAulaDashboard(editalId, discId, aulaId);
+    if (editalId && discId && aulaId && typeof window.EstudoApp?.toggleAulaDashboard === 'function') {
+      window.EstudoApp?.toggleAulaDashboard(editalId, discId, aulaId);
     }
   },
 
   'select-color': (el) => {
     const color = el.dataset.color;
     const container = el.dataset.container;
-    if (color && container && typeof window.selectColor === 'function') {
-      window.selectColor(color, container);
+    if (color && container && typeof window.EstudoApp?.selectColor === 'function') {
+      window.EstudoApp?.selectColor(color, container);
     }
   },
 
   'save-edital': (el) => {
     const editalId = el.dataset.editalId;
-    if (typeof window.saveEdital === 'function') {
-      window.saveEdital(editalId);
+    if (typeof window.EstudoApp?.saveEdital === 'function') {
+      window.EstudoApp?.saveEdital(editalId);
     }
   },
 
   'select-icon': (el) => {
     const icon = el.dataset.icon;
-    if (icon && typeof window.selectIcon === 'function') {
-      window.selectIcon(icon, el);
+    if (icon && typeof window.EstudoApp?.selectIcon === 'function') {
+      window.EstudoApp?.selectIcon(icon, el);
     }
   },
 
   'select-disc-color': (el) => {
     const color = el.dataset.color;
-    if (color && typeof window.selectDiscColor === 'function') {
-      window.selectDiscColor(color);
+    if (color && typeof window.EstudoApp?.selectDiscColor === 'function') {
+      window.EstudoApp?.selectDiscColor(color);
     }
   },
 
   'edit-subject-inline': (el) => {
     const discId = el.dataset.discId;
     const assuntoId = el.dataset.assuntoId;
-    if (discId && assuntoId && typeof window.editSubjectInline === 'function') {
-      window.editSubjectInline(discId, assuntoId, el);
+    if (discId && assuntoId && typeof window.EstudoApp?.editSubjectInline === 'function') {
+      window.EstudoApp?.editSubjectInline(discId, assuntoId, el);
     }
   },
 
@@ -798,8 +799,8 @@ const actions = {
     const discId = el.dataset.discId;
     const idx = parseInt(el.dataset.idx, 10);
     const dir = parseInt(el.dataset.dir, 10);
-    if (discId && typeof window.moveSubject === 'function') {
-      window.moveSubject(discId, idx, dir);
+    if (discId && typeof window.EstudoApp?.moveSubject === 'function') {
+      window.EstudoApp?.moveSubject(discId, idx, dir);
     }
   },
 
@@ -807,16 +808,16 @@ const actions = {
     if (event) event.stopPropagation();
     const discId = el.dataset.discId;
     const assuntoId = el.dataset.assuntoId;
-    if (discId && assuntoId && typeof window.deleteAssunto === 'function') {
-      window.deleteAssunto(discId, assuntoId);
+    if (discId && assuntoId && typeof window.EstudoApp?.deleteAssunto === 'function') {
+      window.EstudoApp?.deleteAssunto(discId, assuntoId);
     }
   },
 
   'edit-lesson-inline': (el) => {
     const discId = el.dataset.discId;
     const aulaId = el.dataset.aulaId;
-    if (discId && aulaId && typeof window.editLessonInline === 'function') {
-      window.editLessonInline(discId, aulaId, el);
+    if (discId && aulaId && typeof window.EstudoApp?.editLessonInline === 'function') {
+      window.EstudoApp?.editLessonInline(discId, aulaId, el);
     }
   },
 
@@ -824,8 +825,8 @@ const actions = {
     if (event) event.stopPropagation();
     const discId = el.dataset.discId;
     const aulaId = el.dataset.aulaId;
-    if (discId && aulaId && typeof window.toggleAulaEstudada === 'function') {
-      window.toggleAulaEstudada(discId, aulaId);
+    if (discId && aulaId && typeof window.EstudoApp?.toggleAulaEstudada === 'function') {
+      window.EstudoApp?.toggleAulaEstudada(discId, aulaId);
     }
   },
 
@@ -833,59 +834,59 @@ const actions = {
     if (event) event.stopPropagation();
     const discId = el.dataset.discId;
     const aulaId = el.dataset.aulaId;
-    if (discId && aulaId && typeof window.deleteAula === 'function') {
-      window.deleteAula(discId, aulaId);
+    if (discId && aulaId && typeof window.EstudoApp?.deleteAula === 'function') {
+      window.EstudoApp?.deleteAula(discId, aulaId);
     }
   },
 
   'add-assunto': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.addAssunto === 'function') {
-      window.addAssunto(discId);
+    if (discId && typeof window.EstudoApp?.addAssunto === 'function') {
+      window.EstudoApp?.addAssunto(discId);
     }
   },
 
   'add-bulk-aulas': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.addBulkAulas === 'function') {
-      window.addBulkAulas(discId);
+    if (discId && typeof window.EstudoApp?.addBulkAulas === 'function') {
+      window.EstudoApp?.addBulkAulas(discId);
     }
   },
 
   'run-lesson-mapper': (el) => {
     const editalId = el.dataset.editalId;
     const discId = el.dataset.discId;
-    if (editalId && discId && typeof window.runLessonMapperUI === 'function') {
-      window.runLessonMapperUI(editalId, discId);
+    if (editalId && discId && typeof window.EstudoApp?.runLessonMapperUI === 'function') {
+      window.EstudoApp?.runLessonMapperUI(editalId, discId);
     }
   },
 
   'save-disc-manager': (el) => {
     const editalId = el.dataset.editalId;
     const discId = el.dataset.discId;
-    if (editalId && discId && typeof window.saveDiscManager === 'function') {
-      window.saveDiscManager(editalId, discId);
+    if (editalId && discId && typeof window.EstudoApp?.saveDiscManager === 'function') {
+      window.EstudoApp?.saveDiscManager(editalId, discId);
     }
   },
 
   'switch-manager-tab': (el) => {
     const tab = el.dataset.tab;
-    if (tab && typeof window.switchManagerTab === 'function') {
-      window.switchManagerTab(tab);
+    if (tab && typeof window.EstudoApp?.switchManagerTab === 'function') {
+      window.EstudoApp?.switchManagerTab(tab);
     }
   },
 
   'carregar-analise-banca': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.carregarAnaliseBanca === 'function') {
-      window.carregarAnaliseBanca(discId);
+    if (discId && typeof window.EstudoApp?.carregarAnaliseBanca === 'function') {
+      window.EstudoApp?.carregarAnaliseBanca(discId);
     }
   },
 
   'excluir-analise-banca': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.excluirAnaliseBanca === 'function') {
-      window.excluirAnaliseBanca(discId);
+    if (discId && typeof window.EstudoApp?.excluirAnaliseBanca === 'function') {
+      window.EstudoApp?.excluirAnaliseBanca(discId);
     }
   },
 
@@ -899,79 +900,79 @@ const actions = {
 
   'mudar-edital-analisador': (el) => {
     const editalId = el.value;
-    if (editalId && typeof window.mudarEditalAnalisador === 'function') {
-      window.mudarEditalAnalisador(editalId);
+    if (editalId && typeof window.EstudoApp?.mudarEditalAnalisador === 'function') {
+      window.EstudoApp?.mudarEditalAnalisador(editalId);
     }
   },
 
   'filtrar-dropdown-banca': (el) => {
     const value = el.value;
-    if (typeof window.filtrarDropdownBanca === 'function') {
-      window.filtrarDropdownBanca(value);
+    if (typeof window.EstudoApp?.filtrarDropdownBanca === 'function') {
+      window.EstudoApp?.filtrarDropdownBanca(value);
     }
   },
 
   'filtrar-view-por-disciplina': (el) => {
     const discId = el.value;
-    if (discId && typeof window.filtrarViewPorDisciplina === 'function') {
-      window.filtrarViewPorDisciplina(discId);
+    if (discId && typeof window.EstudoApp?.filtrarViewPorDisciplina === 'function') {
+      window.EstudoApp?.filtrarViewPorDisciplina(discId);
     }
   },
 
   'parse-banca-text': () => {
-    if (typeof window.parseBancaText === 'function') {
-      window.parseBancaText();
+    if (typeof window.EstudoApp?.parseBancaText === 'function') {
+      window.EstudoApp?.parseBancaText();
     }
   },
 
   'apply-banca-ranking': () => {
-    if (typeof window.applyBancaRanking === 'function') {
-      window.applyBancaRanking();
+    if (typeof window.EstudoApp?.applyBancaRanking === 'function') {
+      window.EstudoApp?.applyBancaRanking();
     }
   },
 
   'load-assuntos': () => {
-    if (typeof window.loadAssuntos === 'function') {
-      window.loadAssuntos();
+    if (typeof window.EstudoApp?.loadAssuntos === 'function') {
+      window.EstudoApp?.loadAssuntos();
     }
   },
 
   'update-day-load': (el) => {
-    if (typeof window.updateDayLoad === 'function') {
-      window.updateDayLoad(el.value);
+    if (typeof window.EstudoApp?.updateDayLoad === 'function') {
+      window.EstudoApp?.updateDayLoad(el.value);
     }
   },
 
   'save-event': () => {
-    if (typeof window.saveEvent === 'function') {
-      window.saveEvent();
+    if (typeof window.EstudoApp?.saveEvent === 'function') {
+      window.EstudoApp?.saveEvent();
     }
   },
 
   'save-past-event': (el) => {
     const discId = el.dataset.discId;
-    if (discId && typeof window.savePastEvent === 'function') {
-      window.savePastEvent(discId);
+    if (discId && typeof window.EstudoApp?.savePastEvent === 'function') {
+      window.EstudoApp?.savePastEvent(discId);
     }
   },
 
   'open-match-corrector': (el) => {
     const assuntoNome = el.dataset.assuntoNome;
-    if (assuntoNome && typeof window.openMatchCorrector === 'function') {
-      window.openMatchCorrector(assuntoNome);
+    if (assuntoNome && typeof window.EstudoApp?.openMatchCorrector === 'function') {
+      window.EstudoApp?.openMatchCorrector(assuntoNome);
     }
   },
 
   'save-match-correction': (el) => {
     const assuntoNome = el.dataset.assuntoNome;
-    if (assuntoNome && typeof window.saveMatchCorrection === 'function') {
-      window.saveMatchCorrection(assuntoNome);
+    if (assuntoNome && typeof window.EstudoApp?.saveMatchCorrection === 'function') {
+      window.EstudoApp?.saveMatchCorrection(assuntoNome);
     }
   },
 
   'save-bulk-subjects': () => {
-    if (typeof window.saveBulkSubjects === 'function') {
-      window.saveBulkSubjects();
+    if (typeof window.EstudoApp?.saveBulkSubjects === 'function') {
+      window.EstudoApp?.saveBulkSubjects();
     }
   },
 
@@ -980,14 +981,14 @@ const actions = {
   },
 
   'pw-search-disc': (el) => {
-    if (typeof window.pwSearchDisc === 'function') {
-      window.pwSearchDisc(el.value);
+    if (typeof window.EstudoApp?.pwSearchDisc === 'function') {
+      window.EstudoApp?.pwSearchDisc(el.value);
     }
   },
 
   'set-theme': (el) => {
-    if (typeof window.setTheme === 'function') {
-      window.setTheme(el.value);
+    if (typeof window.EstudoApp?.setTheme === 'function') {
+      window.EstudoApp?.setTheme(el.value);
     }
   },
 
@@ -1004,20 +1005,20 @@ const actions = {
       value = value.trim();
     }
 
-    window.updateConfig(key, value);
+    window.EstudoApp?.updateConfig(key, value);
   },
 
   'toggle-config': (el) => {
     const key = el.dataset.configKey;
     if (!key || typeof window.toggleConfig !== 'function') return;
 
-    window.toggleConfig(key, el);
+    window.EstudoApp?.toggleConfig(key, el);
     el.setAttribute('aria-pressed', el.classList.contains('on') ? 'true' : 'false');
   },
 
   'update-frequencia': (el) => {
-    if (typeof window.updateFrequencia === 'function') {
-      window.updateFrequencia(el.value);
+    if (typeof window.EstudoApp?.updateFrequencia === 'function') {
+      window.EstudoApp?.updateFrequencia(el.value);
     }
   },
 
@@ -1029,64 +1030,64 @@ const actions = {
   },
 
   'toggle-cf-sync': (el) => {
-    if (typeof window.toggleCfSync === 'function') {
-      window.toggleCfSync(el.checked);
+    if (typeof window.EstudoApp?.toggleCfSync === 'function') {
+      window.EstudoApp?.toggleCfSync(el.checked);
     }
   },
 
   'force-cloudflare-sync': () => {
-    if (typeof window.forceCloudflareSync === 'function') {
-      window.forceCloudflareSync();
+    if (typeof window.EstudoApp?.forceCloudflareSync === 'function') {
+      window.EstudoApp?.forceCloudflareSync();
     }
   },
 
   'cloud-conflict-export-local': () => {
-    if (typeof window.exportData === 'function') {
-      window.exportData();
+    if (typeof window.EstudoApp?.exportData === 'function') {
+      window.EstudoApp?.exportData();
     }
   },
 
   'cloud-conflict-pull-remote': () => {
     if (typeof window.showConfirm !== 'function' || typeof window.pullFromCloudflare !== 'function') return;
-    window.showConfirm(
+    window.EstudoApp?.showConfirm(
       'Baixar os dados remotos agora? Isso substituirá os dados locais. Exporte um backup local antes se tiver dúvida.',
-      () => window.pullFromCloudflare(true),
+      () => window.EstudoApp?.pullFromCloudflare(true),
       { label: 'Baixar remoto', title: 'Resolver conflito de sync' }
     );
   },
 
   'cloud-conflict-force-push': () => {
-    if (typeof window.showConfirm !== 'function' || typeof window.pushToCloudflare !== 'function') return;
-    window.showConfirm(
+    if (typeof window.EstudoApp?.showConfirm !== 'function' || typeof window.EstudoApp?.pushToCloudflare !== 'function') return;
+    window.EstudoApp.showConfirm(
       'Forçar envio local para a nuvem? Isso sobrescreverá a versão remota mais recente.',
-      () => window.pushToCloudflare(true),
+      () => window.EstudoApp.pushToCloudflare(true),
       { label: 'Forçar envio', title: 'Sobrescrever remoto', danger: true }
     );
   },
 
   'drive-sync-now': () => {
-    if (typeof window.syncWithDrive === 'function') {
-      window.syncWithDrive()
-        .then(() => window.showToast?.('Sincronizado!', 'success'))
-        .catch(() => window.showToast?.('Erro ao sincronizar', 'error'));
+    if (typeof window.EstudoApp?.syncWithDrive === 'function') {
+      window.EstudoApp.syncWithDrive()
+        .then(() => window.EstudoApp.showToast('Sincronizado!', 'success'))
+        .catch(() => window.EstudoApp.showToast('Erro ao sincronizar', 'error'));
     }
   },
 
   'pull-from-drive': () => {
-    if (typeof window.pullFromDrive === 'function') {
-      window.pullFromDrive();
+    if (typeof window.EstudoApp?.pullFromDrive === 'function') {
+      window.EstudoApp?.pullFromDrive();
     }
   },
 
   'drive-disconnect': () => {
-    if (typeof window.driveDisconnect === 'function') {
-      window.driveDisconnect();
+    if (typeof window.EstudoApp?.driveDisconnect === 'function') {
+      window.EstudoApp?.driveDisconnect();
     }
   },
 
   'open-drive-modal': () => {
-    if (typeof window.openDriveModal === 'function') {
-      window.openDriveModal();
+    if (typeof window.EstudoApp?.openDriveModal === 'function') {
+      window.EstudoApp?.openDriveModal();
     }
   },
 
@@ -1095,9 +1096,9 @@ const actions = {
     Notification.requestPermission()
       .then(permission => {
         if (permission === 'granted') {
-          window.showToast?.('Notificações ativadas!', 'success');
+          window.EstudoApp.showToast('Notificações ativadas!', 'success');
         }
-        window.renderCurrentView?.();
+        window.EstudoApp.renderCurrentView();
       })
       .catch(error => console.warn(error));
   },
@@ -1105,159 +1106,159 @@ const actions = {
   'test-notification': () => {
     if ('Notification' in window) {
       new Notification('Estudo Organizado', { body: 'Notificações funcionando!', icon: '📚' });
-      window.showToast?.('Lembretes enviados!', 'success');
+      window.EstudoApp.showToast('Lembretes enviados!', 'success');
     }
   },
 
   'export-data': () => {
-    if (typeof window.exportData === 'function') {
-      window.exportData();
+    if (typeof window.EstudoApp?.exportData === 'function') {
+      window.EstudoApp?.exportData();
     }
   },
 
   'restore-backup': () => {
-    if (typeof window.restoreBackupFromSelectedSource === 'function') {
-      window.restoreBackupFromSelectedSource();
+    if (typeof window.EstudoApp?.restoreBackupFromSelectedSource === 'function') {
+      window.EstudoApp?.restoreBackupFromSelectedSource();
     }
   },
 
   'archive-old-events': (el) => {
     const days = parseInt(el.dataset.days || '90', 10);
-    if (typeof window.archiveOldEvents === 'function') {
-      window.archiveOldEvents(days);
+    if (typeof window.EstudoApp?.archiveOldEvents === 'function') {
+      window.EstudoApp?.archiveOldEvents(days);
     }
   },
 
   'clear-all-data': () => {
-    if (typeof window.clearAllData === 'function') {
-      window.clearAllData();
+    if (typeof window.EstudoApp?.clearAllData === 'function') {
+      window.EstudoApp?.clearAllData();
     }
   },
 
   'open-search-event': (el) => {
     const eventId = el.dataset.eventId;
-    if (eventId && typeof window.openEventDetail === 'function') {
-      window.openEventDetail(eventId);
-      window.clearSearch?.();
+    if (eventId && typeof window.EstudoApp?.openEventDetail === 'function') {
+      window.EstudoApp.openEventDetail(eventId);
+      window.EstudoApp.clearSearch();
     }
   },
 
   'navigate-clear-search': (el) => {
     const view = el.dataset.view;
-    if (view && typeof window.navigate === 'function') {
-      window.navigate(view);
-      window.clearSearch?.();
+    if (view && typeof window.EstudoApp?.navigate === 'function') {
+      window.EstudoApp.navigate(view);
+      window.EstudoApp.clearSearch();
     }
   },
 
   'update-seq-item': (el) => {
     const index = el.dataset.index;
     const field = el.dataset.field;
-    if (index !== undefined && field && typeof window.updateSeqItem === 'function') {
-      window.updateSeqItem(index, field, el.value);
+    if (index !== undefined && field && typeof window.EstudoApp?.updateSeqItem === 'function') {
+      window.EstudoApp?.updateSeqItem(index, field, el.value);
     }
   },
 
   'dup-seq-item': (el) => {
-    if (typeof window.dupSeqItem === 'function') {
-      window.dupSeqItem(el.dataset.index);
+    if (typeof window.EstudoApp?.dupSeqItem === 'function') {
+      window.EstudoApp?.dupSeqItem(el.dataset.index);
     }
   },
 
   'rem-seq-item': (el) => {
-    if (typeof window.remSeqItem === 'function') {
-      window.remSeqItem(el.dataset.index);
+    if (typeof window.EstudoApp?.remSeqItem === 'function') {
+      window.EstudoApp?.remSeqItem(el.dataset.index);
     }
   },
 
   'move-seq-item': (el) => {
-    if (typeof window.moveSeqItem === 'function') {
-      window.moveSeqItem(el.dataset.index, parseInt(el.dataset.dir, 10));
+    if (typeof window.EstudoApp?.moveSeqItem === 'function') {
+      window.EstudoApp?.moveSeqItem(el.dataset.index, parseInt(el.dataset.dir, 10));
     }
   },
 
   'open-ciclo-history': (el) => {
     const seqId = el.dataset.seqId;
-    if (seqId && typeof window.openCicloHistory === 'function') {
-      window.openCicloHistory(seqId);
+    if (seqId && typeof window.EstudoApp?.openCicloHistory === 'function') {
+      window.EstudoApp?.openCicloHistory(seqId);
     }
   },
 
   'iniciar-etapa-planejamento': (el) => {
     const seqId = el.dataset.seqId;
-    if (seqId && typeof window.iniciarEtapaPlanejamento === 'function') {
-      window.iniciarEtapaPlanejamento(seqId);
+    if (seqId && typeof window.EstudoApp?.iniciarEtapaPlanejamento === 'function') {
+      window.EstudoApp?.iniciarEtapaPlanejamento(seqId);
     }
   },
 
   'add-seq-item': () => {
-    if (typeof window.addSeqItem === 'function') {
-      window.addSeqItem();
+    if (typeof window.EstudoApp?.addSeqItem === 'function') {
+      window.EstudoApp?.addSeqItem();
     }
   },
 
   'cancel-edit-seq': () => {
-    if (typeof window.cancelEditSeq === 'function') {
-      window.cancelEditSeq();
+    if (typeof window.EstudoApp?.cancelEditSeq === 'function') {
+      window.EstudoApp?.cancelEditSeq();
     }
   },
 
   'save-edit-seq': () => {
-    if (typeof window.saveEditSeq === 'function') {
-      window.saveEditSeq();
+    if (typeof window.EstudoApp?.saveEditSeq === 'function') {
+      window.EstudoApp?.saveEditSeq();
     }
   },
 
   'recomecar-ciclo': () => {
-    if (typeof window.recomecarCiclo === 'function') {
-      window.recomecarCiclo();
+    if (typeof window.EstudoApp?.recomecarCiclo === 'function') {
+      window.EstudoApp?.recomecarCiclo();
     }
   },
 
   'toggle-edit-seq': () => {
-    if (typeof window.toggleEditSeq === 'function') {
-      window.toggleEditSeq();
+    if (typeof window.EstudoApp?.toggleEditSeq === 'function') {
+      window.EstudoApp?.toggleEditSeq();
     }
   },
 
   'zerar-ciclos-counter': () => {
-    if (typeof window.zerarCiclosCounter === 'function') {
-      window.zerarCiclosCounter();
+    if (typeof window.EstudoApp?.zerarCiclosCounter === 'function') {
+      window.EstudoApp?.zerarCiclosCounter();
     }
   },
 
   'calculate-cycle-predictions': () => {
-    if (typeof window.calculateCyclePredictions === 'function') {
-      window.calculateCyclePredictions();
+    if (typeof window.EstudoApp?.calculateCyclePredictions === 'function') {
+      window.EstudoApp?.calculateCyclePredictions();
     }
   },
 
   'move-ciclo-seq': (el) => {
-    if (typeof window.moveCicloSeq === 'function') {
-      window.moveCicloSeq(parseInt(el.dataset.index, 10), parseInt(el.dataset.dir, 10));
+    if (typeof window.EstudoApp?.moveCicloSeq === 'function') {
+      window.EstudoApp?.moveCicloSeq(parseInt(el.dataset.index, 10), parseInt(el.dataset.dir, 10));
     }
   },
 
   'edit-ciclo-seq-hours': (el) => {
-    if (typeof window.editCicloSeqHours === 'function') {
-      window.editCicloSeqHours(parseInt(el.dataset.index, 10));
+    if (typeof window.EstudoApp?.editCicloSeqHours === 'function') {
+      window.EstudoApp?.editCicloSeqHours(parseInt(el.dataset.index, 10));
     }
   },
 
   'desfazer-etapa': (el) => {
     const seqId = el.dataset.seqId;
-    if (seqId && typeof window.desfazerEtapa === 'function') {
-      window.desfazerEtapa(seqId);
+    if (seqId && typeof window.EstudoApp?.desfazerEtapa === 'function') {
+      window.EstudoApp?.desfazerEtapa(seqId);
     }
   },
 
   'open-event-from-ciclo-history': (el) => {
     const eventId = el.dataset.eventId;
-    if (typeof window.closeModal === 'function') {
-      window.closeModal('modal-ciclo-history');
+    if (typeof window.EstudoApp?.closeModal === 'function') {
+      window.EstudoApp?.closeModal('modal-ciclo-history');
     }
-    if (eventId && typeof window.openEventDetail === 'function') {
-      window.openEventDetail(eventId);
+    if (eventId && typeof window.EstudoApp?.openEventDetail === 'function') {
+      window.EstudoApp?.openEventDetail(eventId);
     }
   }
 };
@@ -1268,7 +1269,7 @@ const actions = {
  */
 export function setupActionDispatcher() {
   // Click handler principal
-  document.addEventListener('click', (event) => {
+  addCleanupListener(document, 'click', (event) => {
     const target = event.target.closest('[data-action]');
     if (!target) return;
 
@@ -1285,7 +1286,7 @@ export function setupActionDispatcher() {
   });
 
   // Change handler para selects e inputs
-  document.addEventListener('change', (event) => {
+  addCleanupListener(document, 'change', (event) => {
     const target = event.target.closest('[data-action]');
     if (!target) return;
 
@@ -1300,7 +1301,7 @@ export function setupActionDispatcher() {
   });
 
   // Input handler para search
-  document.addEventListener('input', (event) => {
+  addCleanupListener(document, 'input', (event) => {
     const target = event.target.closest('[data-action]');
     if (!target) return;
 
@@ -1313,7 +1314,7 @@ export function setupActionDispatcher() {
   });
 
   // Focus/blur handlers
-  document.addEventListener('focusin', (event) => {
+  addCleanupListener(document, 'focusin', (event) => {
     const target = event.target.closest('[data-focus-action]');
     if (!target) return;
 
@@ -1325,7 +1326,7 @@ export function setupActionDispatcher() {
     }
   });
 
-  document.addEventListener('focusout', (event) => {
+  addCleanupListener(document, 'focusout', (event) => {
     const target = event.target.closest('[data-blur-action]');
     if (!target) return;
 

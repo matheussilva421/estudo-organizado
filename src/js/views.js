@@ -1,13 +1,15 @@
 import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.3';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES } from './utils.js?v=8.3';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.3';
 import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.3';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from './logic.js?v=8.3';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.3';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.3';
 import { updateDriveUI } from './drive-sync.js?v=8.3';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
 export { renderHome } from './views/home-view.js';
+export { renderCiclo } from './views/ciclo-view.js';
+export { renderHabitos, renderHabitHistPage, setHabitPage, openHabitModal, selectHabitType, saveHabit, calcSimuladoPerc, deleteHabito, HABIT_HIST_PAGE_SIZE, habitHistPage } from './views/habitos-view.js';
 export {
   renderVertical,
   renderVerticalList,
@@ -21,7 +23,7 @@ export {
   getVertFilterEdital,
   setVertFilterEdital
 } from './views/editais-view.js';
-export { renderDisciplinaDashboard };
+export { renderDisciplinaDashboard } from './views/dashboard-view.js';
 export {
   renderBancaAnalyzerModule,
   renderBancaAnalyzerContent,
@@ -38,16 +40,7 @@ export {
   setAnalyzerCtx
 } from './views/banca-view.js';
 
-// Legacy calendar state (for backward compatibility during migration)
-export let calDate = new Date();
-export let calViewMode = 'mes';
-export function setCalViewMode(mode) {
-  calViewMode = mode;
-  renderCurrentView();
-}
-let currentHabitType = null;
 let editingSubjectCtx = null;
-
 let editingDiscCtx = null;
 
 function formatBackupDateTime(value) {
@@ -1038,8 +1031,8 @@ export function renderRevisoes(el) {
               </div>
             </div>
             <div class="rev-item-actions cluster-sm">
-              <button class="btn btn-primary btn-sm" data-action="mark-revision" data-assunto-id="${r.assunto.id}">✅ Feita</button>
-              <button class="btn btn-ghost btn-sm" data-action="postpone-revision" data-assunto-id="${r.assunto.id}">⏩ +1 dia</button>
+              <button type="button" class="btn btn-primary btn-sm" data-action="mark-revision" data-assunto-id="${r.assunto.id}">✅ Feita</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-action="postpone-revision" data-assunto-id="${r.assunto.id}">⏩ +1 dia</button>
             </div>
           </div>
         `;
@@ -1121,304 +1114,6 @@ export function adiarRevisao(assId) {
 // =============================================
 // HABITOS VIEW
 // =============================================
-export let habitHistPage = 1;
-export const HABIT_HIST_PAGE_SIZE = 20;
-
-export function renderHabitos(el) {
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
-  const cutoff2 = new Date(cutoff.getTime() - (cutoff.getTimezoneOffset() * 60000));
-  const cutoffStr = cutoff2.toISOString().split('T')[0];
-
-  el.innerHTML = `
-    <div class="habit-grid">
-      ${HABIT_TYPES.map(h => {
-    const all = state.habitos[h.key] || [];
-    const recentArr = all.filter(r => r.data >= cutoffStr);
-    
-    let total = 0;
-    let recentStr = '';
-    
-    if (h.key === 'questoes') {
-      total = sumQuestionRecords(all);
-      recentStr = `Total acumulado`;
-    } else if (h.key === 'paginas') {
-      total = sumPageRecords(all);
-      recentStr = `Total acumulado`;
-    } else {
-      total = all.length;
-      recentStr = `Total acumulado`;
-    }
-
-    return `
-          <div class="habit-card" data-action="open-habit-modal" data-habit-key="${h.key}">
-            <div class="hc-icon">${h.icon}</div>
-            <div class="hc-label">${h.label}</div>
-            <div class="hc-count" data-habit-color="${h.color}">${total}</div>
-            <div class="hc-sub">${recentStr}</div>
-          </div>
-        `;
-  }).join('')}
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h3>📏 Histórico de Hábitos</h3>
-        <span class="text-base text-muted" id="habit-hist-count"></span>
-      </div>
-      <div class="card-body habit-hist-list" id="habit-hist-list">
-      </div>
-      <div id="habit-hist-footer" class="habit-hist-footer"></div>
-    </div>
-  `;
-  renderHabitHistPage();
-}
-
-export function renderHabitHistPage() {
-  const all = HABIT_TYPES
-    .flatMap(h => (state.habitos[h.key] || []).map(r => ({ ...r, tipo: h })))
-    .sort((a, b) => b.data.localeCompare(a.data));
-  const total = all.length;
-  const page = habitHistPage;
-  const start = (page - 1) * HABIT_HIST_PAGE_SIZE;
-  const end = start + HABIT_HIST_PAGE_SIZE;
-  const items = all.slice(start, end);
-  const totalPages = Math.max(1, Math.ceil(total / HABIT_HIST_PAGE_SIZE));
-
-  const countEl = document.getElementById('habit-hist-count');
-  if (countEl) countEl.textContent = `${total} registro(s)`;
-
-  const listEl = document.getElementById('habit-hist-list');
-  if (listEl) {
-    listEl.innerHTML = items.length === 0
-      ? '<div class="empty-state"><div class="icon">⚡</div><p>Nenhum hábito registrado ainda</p></div>'
-      : items.map(r => `
-        <div class="flex border-b habit-hist-item">
-          <div class="habit-item-icon">${r.tipo.icon}</div>
-          <div class="flex-1">
-            <div class="text-md font-semibold">${esc(r.tipo.label)}${r.descricao ? ' - ' + esc(r.descricao) : ''}</div>
-            <div class="text-base text-secondary">${formatDate(r.data)}${(r.quantidade || r.total) && r.tipo.key === 'questoes' ? ' • ' + (r.quantidade || r.total) + ' questões' : ''}${r.total && r.tipo.key === 'paginas' ? ' • ' + r.total + ' páginas' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total && r.total > 0 && r.tipo.key === 'questoes' ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
-            ${r.gabaritoPorDisc && r.gabaritoPorDisc.length ? `
-              <div class="flex-wrap gap-sm mt-1 habit-disc-tags">
-                ${r.gabaritoPorDisc.map(g => `<span class="habit-disc-tag">${esc(g.discNome)}: ${g.acertos}/${g.total}</span>`).join('')}
-              </div>` : ''}
-          </div>
-          <button class="icon-btn" data-action="delete-habit" data-type="${r.tipo.key}" data-habit-id="${r.id}">🗑️</button>
-        </div>
-      `).join('');
-  }
-
-  const footerEl = document.getElementById('habit-hist-footer');
-  if (footerEl && total > HABIT_HIST_PAGE_SIZE) {
-    footerEl.innerHTML = `
-      <button class="btn btn-ghost btn-sm" data-action="set-habit-page" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>⇉ Anterior</button>
-      <span class="text-base text-muted flex-1 text-center">Página ${page} de ${totalPages}</span>
-      <button class="btn btn-ghost btn-sm" data-action="set-habit-page" data-page="${page + 1}" ${page >= totalPages ? 'disabled' : ''}>Próxima ⇆</button>
-    `;
-    footerEl.style.display = 'flex';
-  } else if (footerEl) {
-    footerEl.style.display = 'none';
-  }
-}
-
-export function setHabitPage(p) {
-  const all = HABIT_TYPES.flatMap(h => (state.habitos[h.key] || []).map(r => ({ ...r, tipo: h })));
-  const totalPages = Math.max(1, Math.ceil(all.length / HABIT_HIST_PAGE_SIZE));
-  habitHistPage = Math.max(1, Math.min(p, totalPages));
-  renderHabitHistPage();
-  document.getElementById('habit-hist-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-export function openHabitModal(tipo) {
-  currentHabitType = tipo;
-  const h = tipo ? HABIT_TYPES.find(ht => ht.key === tipo) : null;
-  const titleEl = document.getElementById('modal-habit-title');
-  if (titleEl) titleEl.textContent = h ? `Registrar: ${h.label}` : 'Registrar Hábito';
-
-  const discOptions = getAllDisciplinas().map(d => `<option value="${d.disc.id}">${esc(d.disc.nome)}</option>`).join('');
-
-  const habitBody = document.getElementById('modal-habit-body');
-  if (!habitBody) return;
-  habitBody.innerHTML = `
-    ${!tipo ? `
-      <div class="form-group">
-        <label class="form-label">Tipo de Hábito</label>
-        <div class="event-type-grid">
-          ${HABIT_TYPES.map(h => `
-            <div class="event-type-card" data-action="select-habit-type" data-tipo="${h.key}">
-              <div class="et-icon">${h.icon}</div>
-              <div class="et-label">${h.label}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    ` : ''}
-    <div class="form-group">
-      <label class="form-label">Data</label>
-      <input type="date" class="form-control" id="habit-data" value="${todayStr()}">
-    </div>
-    ${tipo === 'questoes' ? `
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Quantidade de Questões</label>
-          <input type="number" class="form-control" id="habit-qtd" value="10" min="1">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Acertos</label>
-          <input type="number" class="form-control" id="habit-acertos" value="0" min="0">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Disciplina</label>
-        <select class="form-control" id="habit-disc">${discOptions}</select>
-      </div>
-    ` : tipo === 'simulado' ? `
-      <div class="form-group">
-        <label class="form-label">Nome do Simulado</label>
-        <input type="text" class="form-control" id="habit-desc" placeholder="Ex: Simulado CEBRASPE 01">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Total de Questões</label>
-          <input type="number" class="form-control" id="habit-total" value="120" data-action="calc-simulado-perc">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Acertos (Geral)</label>
-          <input type="number" class="form-control" id="habit-acertos" value="0" min="0" data-action="calc-simulado-perc">
-        </div>
-      </div>
-      <div id="sim-perc" class="simulado-perc"></div>
-
-      <!-- Feature 13: gabarito por disciplina -->
-      <details>
-        <summary class="simulado-disc-summary">📈 Gabarito por Disciplina (opcional)</summary>
-        <div id="sim-disc-list" class="simulado-disc-list">
-          ${getAllDisciplinas().map(({ disc, edital }) => `
-            <div class="simulado-disc-row">
-              <span class="simulado-disc-name" title="${esc(edital.nome)}">${disc.icone || '📚'} ${esc(disc.nome)}</span>
-              <input type="number" class="form-control simulado-disc-input" placeholder="Total" id="sim-total-${disc.id}" min="0">
-              <span class="simulado-disc-separator">/</span>
-              <input type="number" class="form-control simulado-disc-input" placeholder="Acertos" id="sim-acertos-${disc.id}" min="0">
-            </div>
-          `).join('')}
-          ${getAllDisciplinas().length === 0 ? '<div class="simulado-empty">Cadastre disciplinas para usar o gabarito detalhado.</div>' : ''}
-        </div>
-      </details>
-    ` : tipo === 'discursiva' ? `
-      <div class="form-group">
-        <label class="form-label">Tema</label>
-        <input type="text" class="form-control" id="habit-desc" placeholder="Tema da discursiva">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nota/Pontuação (opcional)</label>
-        <input type="number" class="form-control" id="habit-nota" placeholder="Ex: 8.5">
-      </div>
-    ` : tipo === 'leitura' ? `
-      <div class="form-group">
-        <label class="form-label">Título / Legislação</label>
-        <input type="text" class="form-control" id="habit-desc" placeholder="Ex: Lei 8.112/1990">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Páginas/Artigos lidos</label>
-        <input type="number" class="form-control" id="habit-paginas" placeholder="Ex: 30">
-      </div>
-    ` : `
-      <div class="form-group">
-        <label class="form-label">Descrição (opcional)</label>
-        <input type="text" class="form-control" id="habit-desc" placeholder="Observações">
-      </div>
-    `}
-  `;
-  openModal('modal-habit');
-}
-
-export function selectHabitType(tipo, el) {
-  document.querySelectorAll('.event-type-card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  currentHabitType = tipo;
-}
-
-export function saveHabit() {
-  if (!currentHabitType) { showToast('Selecione o tipo de hábito', 'error'); return; }
-  const data = document.getElementById('habit-data')?.value || todayStr();
-  const registro = { id: uid(), data, tipo: currentHabitType };
-
-  if (currentHabitType === 'questoes') {
-    const qtd = parseInt(document.getElementById('habit-qtd')?.value || '10');
-    const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
-    // Fix J: validate questoes
-    if (isNaN(qtd) || qtd < 1) { showToast('Informe uma quantidade válida de questões (mínimo 1)', 'error'); return; }
-    if (isNaN(acertos) || acertos < 0) { showToast('Acertos não pode ser negativo', 'error'); return; }
-    if (acertos > qtd) { showToast(`Acertos (${acertos}) não pode ser maior que o total (${qtd})`, 'error'); return; }
-    registro.quantidade = qtd;
-    registro.acertos = acertos;
-    registro.discId = document.getElementById('habit-disc')?.value;
-
-  } else if (currentHabitType === 'simulado') {
-    const total = parseInt(document.getElementById('habit-total')?.value || '0');
-    const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
-    // Fix J: validate simulado
-    if (isNaN(total) || total < 1) { showToast('Informe o total de questões do simulado (mínimo 1)', 'error'); return; }
-    if (isNaN(acertos) || acertos < 0) { showToast('Acertos não pode ser negativo', 'error'); return; }
-    if (acertos > total) { showToast(`Acertos (${acertos}) não pode ser maior que o total (${total})`, 'error'); return; }
-    registro.total = total;
-    registro.acertos = acertos;
-    registro.descricao = document.getElementById('habit-desc')?.value;
-    // Feature 13: collect gabarito por disciplina
-    const gabDiscs = [];
-    getAllDisciplinas().forEach(({ disc }) => {
-      const tot = parseInt(document.getElementById(`sim-total-${disc.id}`)?.value || '');
-      const ace = parseInt(document.getElementById(`sim-acertos-${disc.id}`)?.value || '');
-      if (!isNaN(tot) && tot > 0) {
-        // Fix J: cap per-disc acertos at its total
-        gabDiscs.push({ discId: disc.id, discNome: disc.nome, total: tot, acertos: isNaN(ace) ? 0 : Math.min(ace, tot) });
-      }
-    });
-    if (gabDiscs.length > 0) registro.gabaritoPorDisc = gabDiscs;
-
-  } else if (currentHabitType === 'discursiva') {
-    registro.descricao = document.getElementById('habit-desc')?.value;
-    const nota = parseFloat(document.getElementById('habit-nota')?.value || '0');
-    // Fix J: validate nota
-    if (!isNaN(nota) && (nota < 0 || nota > 10)) { showToast('Nota deve estar entre 0 e 10', 'error'); return; }
-    registro.nota = isNaN(nota) ? null : nota;
-
-  } else if (currentHabitType === 'leitura') {
-    registro.descricao = document.getElementById('habit-desc')?.value;
-    const paginas = parseInt(document.getElementById('habit-paginas')?.value || '0');
-    // Fix J: validate paginas
-    if (isNaN(paginas) || paginas < 1) { showToast('Informe o número de páginas (mínimo 1)', 'error'); return; }
-    registro.paginas = paginas;
-
-  } else {
-    registro.descricao = document.getElementById('habit-desc')?.value;
-  }
-
-  if (!state.habitos[currentHabitType]) state.habitos[currentHabitType] = [];
-  state.habitos[currentHabitType].push(registro);
-  scheduleSave();
-  closeModal('modal-habit');
-  renderCurrentView();
-  showToast('Hábito registrado!', 'success');
-}
-
-export function calcSimuladoPerc() {
-  const tot = parseInt(document.getElementById('habit-total')?.value || '0');
-  const ace = parseInt(document.getElementById('habit-acertos')?.value || '0');
-  const el = document.getElementById('sim-perc');
-  if (!el || !tot) return;
-  const pct = Math.round(ace / tot * 100);
-  const colorClass = pct >= 70 ? 'text-accent' : pct >= 50 ? 'text-orange' : 'text-red';
-  el.innerHTML = `<span class="${colorClass}">${pct}% de aproveitamento (${ace}/${tot})</span>`;
-}
-
-export function deleteHabito(tipo, id) {
-  showConfirm('Excluir este registro de hábito?', () => {
-    state.habitos[tipo] = (state.habitos[tipo] || []).filter(h => h.id !== id);
-    habitHistPage = 1;
-    scheduleSave();
-    renderCurrentView();
-  }, { danger: true, label: 'Excluir', title: 'Excluir registro' });
-}
 
 export function renderHistoricoSessoes(el) {
   const eventosEstudados = (state.eventos || [])
@@ -2753,7 +2448,7 @@ export function loadAssuntos() {
 }
 
 // Clear auto-filled flag if user manually types in title
-document.addEventListener('input', e => {
+addCleanupListener(document, 'input', e => {
   if (e.target && e.target.id === 'event-titulo') {
     e.target.dataset.autoFilled = 'false';
   }
@@ -3496,7 +3191,7 @@ export function dndDrop(event, discId, targetIdx) {
       _dndSrcDiscId = null; _dndSrcIdx = null; return;
     }
   }
-} document.addEventListener('dragend', () => {
+} addCleanupListener(document, 'dragend', () => {
   document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 });
@@ -3507,12 +3202,13 @@ export function dndDrop(event, discId, targetIdx) {
 export let searchBlurTimeout = null;
 
 let _searchDebounceTimer = null;
-window.debouncedOnSearch = function (query) {
+export function debouncedOnSearch(query) {
   if (_searchDebounceTimer) clearTimeout(_searchDebounceTimer);
   _searchDebounceTimer = setTimeout(() => {
     onSearch(query);
   }, 300);
-};
+}
+window.debouncedOnSearch = debouncedOnSearch;
 
 export function onSearch(query) {
   const box = document.getElementById('search-results');
@@ -3683,7 +3379,7 @@ function handleSearchKeydown(e) {
 }
 
 // ESC closes search
-document.addEventListener('keydown', e => {
+addCleanupListener(document, 'keydown', e => {
   if (handleSearchKeydown(e)) return;
   // Fix H: ESC — close the topmost open modal, or clear search
   if (e.key === 'Escape') {
@@ -3712,519 +3408,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// =============================================
-// PLANEJAMENTO DE ESTUDOS VIEW (WIZARD RESULTS)
-// =============================================
-export function renderCiclo(el) {
-  const plan = state.planejamento || {};
-
-  window.recomecarCiclo = function () {
-    showConfirm('Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?', () => {
-      if (state.planejamento && state.planejamento.tipo) {
-        state.planejamento.ciclosCompletos = (state.planejamento.ciclosCompletos || 0) + 1;
-        state.planejamento.dataInicioCicloAtual = new Date().toISOString();
-        resetCicloAndWipeEvents();
-        renderCurrentView();
-        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Ciclo recomeçado com sucesso! (Eventos Limpos)', type: 'success' } }));
-      }
-    });
-  };
-
-  window.zerarCiclosCounter = function () {
-    showConfirm('Isso voltará a contagem de "Ciclos Completos" para zero. Tem certeza?', () => {
-      if (state.planejamento) {
-        state.planejamento.ciclosCompletos = 0;
-        scheduleSave();
-        renderCurrentView();
-        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Contador de ciclos zerado!', type: 'info' } }));
-      }
-    });
-  };
-
-  window.calculateCyclePredictions = function () {
-    const startObj = document.getElementById('predict-start-date');
-    const endObj = document.getElementById('predict-end-date');
-    if (!startObj || !endObj) return;
-
-    const sVal = startObj.value;
-    const eVal = endObj.value;
-    const container = document.getElementById('predict-results-container');
-    const emptyState = document.getElementById('predict-empty-state');
-
-    if (sVal && eVal) {
-      if (sVal > eVal) {
-        emptyState.style.display = 'block';
-        emptyState.textContent = 'A data inicial não pode ser maior que a final.';
-        emptyState.style.color = '#f87171';
-        container.style.display = 'none';
-        return;
-      }
-
-      const proj = calculateCyclePredictionsModel(sVal, eVal);
-      const keys = Object.keys(proj);
-
-      if (keys.length === 0) {
-        emptyState.style.display = 'block';
-        emptyState.textContent = 'O ciclo não gera sessões nesses dias (Verifique Dias Ativos).';
-        emptyState.style.color = 'var(--text-muted)';
-        container.style.display = 'none';
-      } else {
-        emptyState.style.display = 'none';
-        container.style.display = 'flex';
-
-        // Get subjects from dictionary
-        const listHTML = keys.map(id => {
-          const disc = getDisc(id);
-          const name = disc ? disc.disc.nome : 'Desconhecida';
-          const color = disc ? (disc.disc.cor || disc.edital.cor || 'var(--accent)') : '#888';
-          const sessCount = proj[id].sessoes;
-          const mins = proj[id].minutos;
-          const hr = Math.floor(mins / 60);
-          const mn = mins % 60;
-          const hrStr = hr > 0 ? `${hr}h${mn}m` : `${mn}m`;
-
-          return `
-            <div class="seq-discipline-list-item">
-               <div class="seq-discipline-info">
-                 <div class="seq-discipline-dot" style="background:${color};"></div>
-                 <span class="seq-discipline-name">${esc(name)}</span>
-               </div>
-               <div class="seq-discipline-stats">
-                 <span class="seq-discipline-stats-count">${sessCount}</span> sessões <span class="seq-discipline-stats-meta">(${hrStr})</span>
-               </div>
-            </div>
-          `;
-        }).join('');
-        container.innerHTML = listHTML;
-      }
-    } else {
-      emptyState.style.display = 'block';
-      emptyState.textContent = 'Selecione as datas para calcular.';
-      emptyState.style.color = 'var(--text-muted)';
-      container.style.display = 'none';
-    }
-  };
-
-  if (!plan.ativo || !plan.disciplinas || plan.disciplinas.length === 0) {
-    el.innerHTML = `
-      <div class="empty-state">
-        <div class="icon">🧭</div>
-        <h4>Nenhum Planejamento de Estudos</h4>
-        <p class="mb-6">Configure uma estratégia escolhendo entre o "Ciclo Contínuo de Estudos" ou a "Grade Semanal Fixa" para organizar seu tempo otimizadamente.</p>
-        <button class="btn btn-primary" data-action="open-planejamento-wizard"><i class="fa fa-play"></i> Criar Meu Planejamento</button>
-      </div>
-    `;
-    return;
-  }
-
-  const formatH = min => {
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    if (h > 0) return m > 0 ? `${h}h${m}min` : `${h}h`;
-    return `${m}min`;
-  };
-
-  if (plan.tipo === 'ciclo') {
-    // Calculo do tempo estudado desde dataInicioCicloAtual
-    let dataInicio = plan.dataInicioCicloAtual || '1970-01-01T00:00:00.000Z';
-    dataInicio = dataInicio.substring(0, 10);
-    const statsPorDisc = {};
-    plan.disciplinas.forEach(id => statsPorDisc[id] = 0);
-
-    const eventosFiltrados = state.eventos.filter(ev => {
-      const isEstudado = ev.status === 'estudei' && (ev.tempoAcumulado && ev.tempoAcumulado > 0);
-      const evDate = ev.dataEstudo || ev.data;
-      return isEstudado && evDate >= dataInicio;
-    });
-
-    eventosFiltrados.forEach(ev => {
-      if (statsPorDisc[ev.discId] !== undefined) {
-        statsPorDisc[ev.discId] += (ev.tempoAcumulado / 60); // min
-      }
-    });
-
-    let totalTarget = 0;
-    let sequenceHtml = '';
-    const dictDisciplinas = {};
-    plan.disciplinas.forEach(id => {
-      const disc = getDisc(id);
-      if (disc) dictDisciplinas[id] = disc;
-    });
-
-    // Construção Progressiva de Blocos da Sequência
-    const copyStats = { ...statsPorDisc };
-    let minutosCompletosCiclo = 0;
-
-    let targetLoop = window._isEditingSequence ? (window._tempSequencia || []) : plan.sequencia;
-
-    let optionsHtml = '<option value="">(Selecione)</option>';
-    if (window._isEditingSequence) {
-      plan.disciplinas.forEach(dId => {
-        const disc = getDisc(dId);
-        if (disc) optionsHtml += `<option value="${dId}">${esc(disc.disc.nome)}</option>`;
-      });
-    }
-
-    targetLoop.forEach((seq, i) => {
-      const d = dictDisciplinas[seq.discId];
-      if (!window._isEditingSequence && !d) return; // skip se não estiver editando e for nulo
-
-      totalTarget += seq.minutosAlvo;
-
-      // Consome os minutos estudados para esta disciplina progressivamente
-      let pct = 0;
-      let usedMins = 0;
-      if (seq.discId && copyStats[seq.discId] > 0) {
-        if (copyStats[seq.discId] >= seq.minutosAlvo) {
-          usedMins = seq.minutosAlvo;
-          pct = 100;
-          copyStats[seq.discId] -= seq.minutosAlvo;
-        } else {
-          usedMins = copyStats[seq.discId];
-          pct = (usedMins / seq.minutosAlvo) * 100;
-          copyStats[seq.discId] = 0;
-        }
-      }
-      minutosCompletosCiclo += usedMins;
-      const pctStr = pct.toFixed(2);
-      const cor = d ? (d.disc.cor || d.edital.cor || '#3b82f6') : '#ccc';
-
-      if (!window._isEditingSequence && window._hideConcluidosCiclo && pct >= 100) return;
-
-      if (window._isEditingSequence) {
-        let selHtml = optionsHtml;
-        if (seq.discId) selHtml = selHtml.replace(`value="${seq.discId}"`, `value="${seq.discId}" selected`);
-
-        sequenceHtml += `
-          <div class="seq-item-card">
-            <div class="seq-item-color-bar" style="background:${cor};"></div>
-            <div class="seq-item-content">
-               <div class="seq-item-field seq-item-field--wide">
-                 <div class="seq-item-field-label">Disciplina</div>
-                 <select class="form-control seq-item-select" data-action="update-seq-item" data-index="${i}" data-field="discId">
-                   ${selHtml}
-                 </select>
-               </div>
-               <div class="seq-item-field seq-item-field--narrow">
-                 <div class="seq-item-field-label">Minutos</div>
-                 <input type="number" class="form-control seq-item-input" value="${seq.minutosAlvo}" data-action="update-seq-item" data-index="${i}" data-field="minutosAlvo">
-               </div>
-
-               <div class="seq-item-actions">
-                 <div class="seq-item-action-buttons">
-                   <button class="btn btn-ghost btn-sm seq-item-action-btn" data-action="dup-seq-item" data-index="${i}">Duplicar</button>
-                   <button class="btn btn-ghost btn-sm seq-item-action-btn" data-action="rem-seq-item" data-index="${i}">Remover</button>
-                 </div>
-                 <div class="seq-item-time">
-                   <i class="fa fa-clock"></i> ${formatH(usedMins)} ${pct >= 100 ? '(Feito)' : ''}
-                 </div>
-               </div>
-
-               <div class="seq-item-move-controls">
-                 ${i > 0 ? `<i class="fa fa-caret-up seq-item-move-btn" data-action="move-seq-item" data-index="${i}" data-dir="-1"></i>` : '<div class="seq-item-move-placeholder"></div>'}
-                 ${i < targetLoop.length - 1 ? `<i class="fa fa-caret-down seq-item-move-btn" data-action="move-seq-item" data-index="${i}" data-dir="1"></i>` : '<div class="seq-item-move-placeholder"></div>'}
-               </div>
-
-            </div>
-          </div>
-        `;
-      } else {
-        sequenceHtml += `
-          <div class="seq-item-card">
-            <div class="seq-item-color-bar" style="background:${cor};"></div>
-            <div class="seq-item-content seq-item-content--static">
-              <div class="seq-item-header">
-                <div class="seq-item-title" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
-                <div class="seq-item-time-display">
-                   <i class="fa fa-clock"></i> <span class="seq-item-time-value">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
-                </div>
-              </div>
-
-              <div class="seq-progress-bar">
-                <div class="seq-progress-fill absolute h-full rounded-lg" style="top:0; left:0; width:${Math.min(pct, 100)}%; background:${cor}; opacity:0.6;"></div>
-                <div class="seq-progress-text">${pctStr}%</div>
-              </div>
-
-              <div class="ciclo-sequence-actions">
-                <span class="ciclo-action-link" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Iniciar Estudo</span>
-                <span class="ciclo-action-link" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</span>
-                <span class="ciclo-action-link" data-action="open-ciclo-history" data-seq-id="${seq.id}"><i class="fa fa-history"></i> Ver Últimos Estudos</span>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-    });
-
-    if (window._isEditingSequence) {
-      sequenceHtml += `
-         <div class="seq-edit-footer">
-           <button class="btn btn-ghost seq-edit-footer-btn" data-action="add-seq-item"><i class="fa fa-plus"></i> Adicionar Disciplina</button>
-           <div class="seq-edit-footer-actions">
-              <button class="btn btn-ghost" data-action="cancel-edit-seq">Cancelar</button>
-              <button class="btn btn-primary" data-action="save-edit-seq"><i class="fa fa-save"></i> Salvar Alterações</button>
-           </div>
-         </div>
-      `;
-    }
-
-    const progressoGlobalPct = totalTarget > 0 ? ((minutosCompletosCiclo / totalTarget) * 100).toFixed(2) : 0;
-    const ciclosFeitos = plan.ciclosCompletos || 0;
-
-    el.innerHTML = `
-      <!-- HEADER ACTIONS -->
-      <div class="ciclo-header-actions">
-        <h2 class="ciclo-header-title">Planejamento</h2>
-        <div class="ciclo-header-buttons">
-          <button class="btn btn-ghost btn-sm ciclo-btn" data-action="recomecar-ciclo"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
-          <button class="btn btn-ghost btn-sm ciclo-btn" data-action="open-planejamento-wizard"><i class="fa fa-edit"></i> Replanejar</button>
-          <button class="btn btn-ghost btn-sm ciclo-btn" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
-        </div>
-      </div>
-
-      <div class="grid-2 ciclo-layout">
-
-        <!-- COLUNA ESQUERDA -->
-        <div class="ciclo-content-col">
-          <div class="ciclo-summary-row">
-            <!-- CICLOS COMPLETOS -->
-            <div class="card ciclo-stat-card ciclo-stat-card--center">
-              <div class="ciclo-stat-label">CICLOS COMPLETOS</div>
-              <div class="ciclo-stat-value">${ciclosFeitos}</div>
-            </div>
-            <!-- PROGRESSO GERAL -->
-            <div class="card ciclo-stat-card ciclo-stat-card--fill">
-              <div class="ciclo-stat-label">PROGRESSO</div>
-              <div class="ciclo-stat-detail">${formatH(minutosCompletosCiclo)} <span class="ciclo-stat-detail-muted">/ ${formatH(totalTarget)}</span></div>
-              <div class="flex cluster-sm">
-                <div class="ciclo-stat-badge">${progressoGlobalPct}%</div>
-                <div class="ciclo-progress-track">
-                  <div class="ciclo-progress-bar" style="width:${Math.min(progressoGlobalPct, 100)}%;"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- SEQUENCIA DOS ESTUDOS -->
-          <div class="card ciclo-sequence-card">
-            <div class="ciclo-sequence-header">
-               <div class="ciclo-sequence-title">Sequência dos Estudos</div>
-               <div class="ciclo-sequence-controls">
-                 ${!window._isEditingSequence ? `
-                   <button class="btn btn-ghost btn-sm ciclo-sequence-edit-btn" data-action="toggle-edit-seq"><i class="fa fa-pencil"></i> Editar Sequência</button>
-                 ` : ''}
-                 <label class="ciclo-filter-label">
-                   <input type="checkbox" data-action="toggle-ciclo-fin" ${window._hideConcluidosCiclo ? 'checked' : ''} class="ciclo-filter-checkbox"> FINALIZADOS
-                 </label>
-               </div>
-            </div>
-            <div class="custom-scrollbar scroll-area-md">
-              ${sequenceHtml}
-            </div>
-          </div>
-        </div>
-
-        <!-- COLUNA DIREITA -->
-        <div class="card ciclo-side-panel">
-          <div class="ciclo-side-panel-header">
-            <span>CICLO</span>
-            <button class="btn btn-ghost btn-sm ciclo-side-panel-btn" data-action="zerar-ciclos-counter">
-              <i class="fa fa-undo"></i> Zerar
-            </button>
-          </div>
-
-          <div class="ciclo-chart-container">
-             <canvas id="planejamentoChart"></canvas>
-             <div class="ciclo-chart-total">${formatH(totalTarget)}</div>
-          </div>
-
-          <!-- FILETE LINEAR -->
-          <div id="filete-linear-ciclo" class="ciclo-filete-linear"></div>
-
-          <!-- CALCULADORA DE PREVISÃO -->
-          <div class="ciclo-predict-box">
-             <h4 class="ciclo-predict-title"><i class="fa fa-calculator ciclo-predict-title-icon"></i> PREVISÃO DE SESSÕES</h4>
-             <div class="ciclo-predict-dates">
-                <div class="ciclo-predict-field">
-                   <label class="ciclo-predict-label">DATA INICIAL</label>
-                   <input type="date" id="predict-start-date" class="form-control ciclo-predict-input" data-action="calculate-cycle-predictions" value="${plan.horarios?.dataInicial || ''}">
-                </div>
-                <div class="ciclo-predict-field">
-                   <label class="ciclo-predict-label">DATA FINAL</label>
-                   <input type="date" id="predict-end-date" class="form-control ciclo-predict-input" data-action="calculate-cycle-predictions" value="${plan.horarios?.dataFinal || ''}">
-                </div>
-             </div>
-             <div id="predict-results-container" class="ciclo-predict-results">
-                <!-- Preenchido via JS -->
-             </div>
-             <div id="predict-empty-state" class="ciclo-predict-empty">
-                Selecione as datas para calcular.
-             </div>
-          </div>
-
-        </div>
-      </div>
-    `;
-
-    // Render Chart.js
-    setTimeout(() => {
-      const ctx = document.getElementById('planejamentoChart');
-      if (ctx) {
-        const labels = [];
-        const data = [];
-        const bgColors = [];
-
-        // Agrupar targets por disciplina para o gráfico
-        const chartData = {};
-        plan.sequencia.forEach(seq => {
-          if (!chartData[seq.discId]) chartData[seq.discId] = 0;
-          chartData[seq.discId] += seq.minutosAlvo;
-        });
-
-        let linearHtml = '';
-        for (const [id, min] of Object.entries(chartData)) {
-          const d = dictDisciplinas[id];
-          if (d) {
-            labels.push(d.disc.nome);
-            data.push(min);
-            const color = d.disc.cor || d.edital.cor || '#3b82f6';
-            bgColors.push(color);
-            const wPct = totalTarget > 0 ? ((min / totalTarget) * 100).toFixed(2) : 0;
-            linearHtml += `<div style="width:${wPct}%; background:${color}; height:100%;"></div>`;
-          }
-        }
-
-        document.getElementById('filete-linear-ciclo').innerHTML = linearHtml;
-
-        if (window._planjChartInstance) {
-          window._planjChartInstance.destroy();
-          window._planjChartInstance = null;
-        }
-        window._planjChartInstance = new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: labels,
-            datasets: [{
-              data: data,
-              backgroundColor: bgColors,
-              borderColor: 'transparent',
-              borderWidth: 0,
-              hoverOffset: 6
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '60%',
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: 'rgba(0,0,0,0.8)',
-                titleFont: { size: 13 },
-                bodyFont: { size: 14, weight: 'bold' },
-                padding: 12,
-                cornerRadius: 8,
-                callbacks: {
-                  label: function (context) {
-                    return ' ' + formatH(context.raw);
-                  }
-                }
-              }
-            }
-          }
-        });
-      }
-
-      // Auto-trigger prediction calculations if dates are pre-filled by Wizard
-      if (plan.horarios?.dataInicial && plan.horarios?.dataFinal) {
-        window.calculateCyclePredictions();
-      }
-    }, 100);
-
-  } else if (plan.tipo === 'semanal') {
-    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    let weeklyHtml = '';
-    let totalTarget = 0;
-
-    for (let i = 0; i < 7; i++) {
-      if (plan.horarios.diasAtivos.includes(i)) {
-        weeklyHtml += `
-            <div class="grade-day-card">
-               <div class="grade-day-title">${days[i]}</div>
-               <div class="grade-day-time">${(() => { const hm = plan.horarios.horasPorDia[i]; if (!hm || !hm.includes(':')) return hm || '?'; const [h, m] = hm.split(':'); const hi = parseInt(h, 10); const mi = parseInt(m, 10); return hi > 0 ? (mi > 0 ? `${hi}h${String(mi).padStart(2, '0')}min` : `${hi}h`) : `${mi}min`; })()} planejadas</div>
-            </div>
-          `;
-      }
-    }
-
-    let sequenceHtml = '';
-    const dictDisciplinas = {};
-    if (plan.disciplinas && plan.sequencia) {
-      plan.disciplinas.forEach(id => {
-        const disc = getDisc(id);
-        if (disc) dictDisciplinas[id] = disc;
-      });
-
-      plan.sequencia.forEach((seq, i) => {
-        const d = dictDisciplinas[seq.discId];
-        if (!d) return;
-        totalTarget += seq.minutosAlvo;
-
-        sequenceHtml += `
-            <div class="ciclo-item ${seq.concluido ? 'concluido' : ''} grade-seq-card">
-              <div class="ciclo-item-cor" style="background:${d.disc.cor || d.edital.cor || '#3b82f6'};"></div>
-              <div class="ciclo-item-body">
-                <div class="ciclo-item-header grade-seq-header">
-                  <div class="ciclo-item-title grade-seq-title-link">
-                    <div class="grade-seq-controls">
-                      <button aria-label="Subir" class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
-                      <button aria-label="Descer" class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="1" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
-                    </div>
-                    <div data-action="open-ciclo-history" data-seq-id="${seq.id}" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span class="grade-seq-title">${esc(d.disc.nome)}</span></div>
-                  </div>
-                  <div class="ciclo-item-meta grade-seq-meta" data-action="edit-ciclo-seq-hours" data-index="${i}" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
-                </div>
-                <div class="grade-seq-step-label">Etapa ${i + 1} da sequência global da semana</div>
-                <div class="grade-seq-action">
-                   ${!seq.concluido
-            ? `<button class="btn btn-primary btn-sm" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Estudar Agora</button>`
-            : `<span class="grade-concluded-badge"><i class="fa fa-check"></i> Etapa Concluída</span>`
-          }
-                </div>
-              </div>
-            </div>
-          `;
-      });
-    }
-
-    // Grade Semanal
-    el.innerHTML = `
-      <div class="grade-header">
-        <h2 class="grade-header-title"><i class="fa fa-calendar-alt"></i> Sua Grade Semanal</h2>
-        <div class="grade-actions">
-          <button class="btn btn-ghost btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-edit"></i> Editar Grade</button>
-          <button class="btn btn-danger btn-sm" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
-        </div>
-      </div>
-
-      <div class="grade-grid">
-        <div>
-          ${weeklyHtml || '<p>Nenhum dia de estudo planejado.</p>'}
-        </div>
-        <div class="card">
-          <div class="card-header grade-card-header--compact">
-            <h3 class="grade-card-header-icon"><i class="fa fa-list-ol text-muted"></i> Sequência Gerada</h3>
-          </div>
-          <div class="card-body grade-card-body--flush">
-            <div class="grade-lista">
-              ${sequenceHtml || '<div class="grade-empty-state">Sequência vazia.</div>'}
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-}
 
 window.openCicloHistory = function (seqId) {
   const plan = state.planejamento;

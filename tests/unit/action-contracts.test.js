@@ -109,7 +109,7 @@ describe('data-action contracts', () => {
 
     expect(componentsSource).toContain("from './views/calendar-view.js?v=8.3'");
     expect(mainSource).toContain("import * as calendar_view from './views/calendar-view.js?v=8.3';");
-    expect(mainSource).toMatch(/modules\s*=\s*\[[^\]]*calendar_view[^\]]*\]/s);
+    expect(mainSource).toMatch(/exposedModules\s*=\s*\[[^\]]*calendar_view[^\]]*\]/s);
     expect(calendarModule.renderCalendar).toBeTypeOf('function');
     expect(calendarModule.calNavigate).toBeTypeOf('function');
     expect(calendarModule.resetCalDate).toBeTypeOf('function');
@@ -117,5 +117,73 @@ describe('data-action contracts', () => {
     expect(calendarSource).toContain("import { esc, getEventStatus, todayStr } from '../utils.js?v=8.3';");
     expect(calendarSource).toContain('role="tablist"');
     expect(calendarSource).toMatch(/<button[^>]*type=["']button["'][^>]*class=["']cal-view-tab/);
+  });
+
+  it('keeps EstudoApp action targets exported by their owning modules', () => {
+    const actionsSource = read('src/js/ui/actions.js');
+    const viewsSource = read('src/js/views.js');
+    const wizardSource = read('src/js/planejamento-wizard.js');
+    const registroSource = read('src/js/registro-sessao.js');
+
+    expect(actionsSource).toContain('window.EstudoApp?.debouncedOnSearch');
+    expect(viewsSource).toMatch(/export function debouncedOnSearch\s*\(/);
+    expect(viewsSource).toMatch(/import\s+\{[^}]*HABIT_TYPES[^}]*\}\s+from\s+['"]\.\/utils\.js\?v=8\.3['"]/s);
+
+    expect(actionsSource).toContain('window.EstudoApp?.pwSelectTipo');
+    expect(wizardSource).toMatch(/export function pwSelectTipo\s*\(/);
+
+    expect(actionsSource).toContain('window.EstudoApp?.discardTimerUI');
+    expect(registroSource).toMatch(/export function discardTimerUI\s*\(/);
+  });
+
+  it('imports the cache invalidators used by revision action handlers', () => {
+    const viewsSource = read('src/js/views.js');
+
+    expect(viewsSource).toMatch(/import\s+\{[^}]*invalidatePendingRevCache[^}]*\}\s+from\s+['"]\.\/logic\.js\?v=8\.3['"]/s);
+    expect(viewsSource).toContain('invalidatePendingRevCache();');
+  });
+
+  it('routes domain events through EstudoApp after namespace migration', () => {
+    const mainSource = read('src/js/main.js');
+
+    expect(mainSource).not.toMatch(/window\.(showConfirm|updateBadges|invalidateDiscCache|invalidateRevCache|invalidatePendingRevCache|invalidateTodayCache|invalidateStreakCache|invalidateDashCaches|refreshEventCard|refreshMEDSections)\b/);
+    expect(mainSource).toContain('window.EstudoApp?.showConfirm');
+    expect(mainSource).toContain('window.EstudoApp?.updateBadges');
+    expect(mainSource).toContain('window.EstudoApp?.refreshEventCard');
+    expect(mainSource).toContain('window.EstudoApp?.refreshMEDSections');
+  });
+
+  it('keeps a legacy fallback while action handlers are migrated incrementally', () => {
+    const mainSource = read('src/js/main.js');
+
+    expect(mainSource).toContain('new Proxy');
+    expect(mainSource).toMatch(/window\.EstudoApp\s*=\s*new Proxy/);
+  });
+
+  it('imports immediate persistence before saving detailed study sessions', () => {
+    const registroSource = read('src/js/registro-sessao.js');
+
+    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.3['"]/s);
+    expect(registroSource).toContain('saveStateToDB().then');
+  });
+
+  it('renders revision action buttons as non-submit controls', () => {
+    const viewsSource = read('src/js/views.js');
+
+    expect(viewsSource).toMatch(/<button\s+type="button"[^>]*data-action="mark-revision"/);
+    expect(viewsSource).toMatch(/<button\s+type="button"[^>]*data-action="postpone-revision"/);
+  });
+
+  it('precaches every runtime module introduced by the refactor', () => {
+    const swSource = read('src/sw.js');
+    const requiredModules = [
+      './js/credentials.js',
+      './js/views/habitos-view.js',
+      './js/views/ciclo-view.js'
+    ];
+
+    for (const mod of requiredModules) {
+      expect(swSource).toContain(mod);
+    }
   });
 });

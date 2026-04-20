@@ -16,8 +16,8 @@ export function getCalViewMode() { return calViewMode; }
 export function setCalDate(d) { calDate = d; }
 export function setCalViewMode(mode) {
   calViewMode = mode;
-  if (typeof window.renderCurrentView === 'function') {
-    window.renderCurrentView();
+  if (typeof window.EstudoApp?.renderCurrentView === 'function') {
+    window.EstudoApp.renderCurrentView();
   }
 }
 
@@ -100,8 +100,8 @@ export function renderCalendar(el) {
 // ── Navigation Functions ──
 export function resetCalDate() {
   calDate = new Date();
-  if (typeof window.renderCurrentView === 'function') {
-    window.renderCurrentView();
+  if (typeof window.EstudoApp?.renderCurrentView === 'function') {
+    window.EstudoApp.renderCurrentView();
   }
 }
 
@@ -126,8 +126,8 @@ export function calNavigate(dir) {
     }
     updateCalendarHeader();
   } else {
-    if (typeof window.renderCurrentView === 'function') {
-      window.renderCurrentView();
+    if (typeof window.EstudoApp?.renderCurrentView === 'function') {
+      window.EstudoApp.renderCurrentView();
     }
   }
 }
