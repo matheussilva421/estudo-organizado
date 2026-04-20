@@ -327,7 +327,7 @@ Manual/browser:
 - [x] Ciclo "Iniciar Estudo" creates an event.
 - [x] Banca Analyzer applies ranking.
 - [x] Config toggles persist after reload.
-- [ ] Export JSON and import validation.
+- [x] Export JSON and import validation.
 - [x] Mobile navigation and no horizontal overflow.
 
 **Verification:**
@@ -360,7 +360,7 @@ npm run test:e2e
 **Tasks:**
 
 - [x] Add all runtime modules to `ASSET_PATHS`, including `ui/*` and canonical `views/*`.
-- [ ] Add an offline E2E smoke or manual checklist step that actually reloads offline.
+- [x] Add an offline E2E smoke or manual checklist step that actually reloads offline.
 - [x] Mark the old maturity plan as superseded by this recovery plan where appropriate.
 - [x] Remove "All tasks completed" until the regression plan is executed.
 - [x] Resolve duplicate Task 7 numbering.
@@ -830,3 +830,34 @@ Results:
 - Focused session/revision/habit E2E: 4 passed
 - Focused calendar/app/planning E2E: 20 passed
 - Full E2E: 25 passed
+
+### 2026-04-20 - Recovery slice 15
+
+Closed the remaining Phase 8 offline/import validation gaps.
+
+Changed files:
+
+- `src/js/views.js`
+- `tests/e2e/offline-import.spec.js`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+- `src/docs/superpowers/plans/2026-04-18-fase-progress.md`
+
+What changed:
+
+- Added an offline E2E that allows service workers only for that spec, waits for the precache to be ready, switches the browser context offline and reloads the app.
+- Hardened local JSON import by appending the generated file input to the DOM and removing it after `FileReader` completes.
+- Added import-validation E2E for an invalid backup shape and blocked `sw-register.js` in that test to avoid unrelated service-worker controller reloads.
+
+Verification:
+
+```powershell
+npm run test:e2e -- tests/e2e/offline-import.spec.js
+npm test
+npm run test:e2e
+```
+
+Result:
+
+- Focused offline/import E2E: 2 passed
+- Full unit: 70 passed
+- Full E2E: 27 passed

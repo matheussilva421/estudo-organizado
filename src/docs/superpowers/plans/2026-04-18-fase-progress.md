@@ -62,11 +62,12 @@ Nota de estado: o plano principal foi supersedido para fins de estabilizacao pel
 
 ## Fase 6: PWA Quality
 
-**Status:** completa no escopo de runtime atual, com verificacao offline manual ainda aberta no plano de recuperacao.
+**Status:** completa no escopo de runtime atual.
 
 - Service worker inclui os modulos `ui/*` e `views/*` necessarios ao runtime.
 - Manifest e estrategias de cache foram revisados.
 - E2E valida que o precache contem os modulos runtime extraidos.
+- E2E valida reload offline apos precache do service worker.
 
 ## Fase 7: Sync Hardening
 
@@ -86,7 +87,7 @@ Nota de estado: o plano principal foi supersedido para fins de estabilizacao pel
 - Unit tests atuais: logic, store, utils, action contracts, sync conflict, CSS architecture e inline handlers.
 - E2E atuais cobrem boot, criacao de evento, calendario, editais, planejamento, ciclo, revisoes, habitos, sessoes, busca, configuracoes, banca, mobile overflow e PWA precache.
 - CI documentado no `README.md` e configurado em `.github/workflows/ci.yml`.
-- Pendente: E2E/manual de reload offline real e import validation.
+- Import validation coberta por E2E com JSON invalido.
 
 ## Fase 9: Release Discipline
 
@@ -102,9 +103,10 @@ Nota de estado: o plano principal foi supersedido para fins de estabilizacao pel
 - `npm test` - 70 tests passing.
 - `npm run test:e2e -- tests/e2e/revisoes-habitos.spec.js tests/e2e/sessoes.spec.js` - 4 tests passing.
 - `npm run test:e2e -- tests/e2e/calendar.spec.js tests/e2e/app.spec.js tests/e2e/planejamento.spec.js` - 20 tests passing.
+- `npm run test:e2e -- tests/e2e/offline-import.spec.js` - 2 tests passing.
+- `npm run test:e2e` - 27 tests passing.
 
 ## Proximas pendencias reais
 
 - Concluir Fase 6 do plano de recuperacao: inventario e migracao dos `style=` restantes, `transition: all`, `outline: none` e CSP de estilos.
-- Concluir Fase 8 do plano de recuperacao: reload offline real e import validation.
 - Adicionar evidencia manual ou screenshot para a verificacao mobile de CTA em empty states.

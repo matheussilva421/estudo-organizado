@@ -3340,9 +3340,13 @@ export function exportData() {
 export function importData() {
   const input = document.createElement('input');
   input.type = 'file'; input.accept = '.json';
+  input.className = 'sr-only';
   input.onchange = e => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+      input.remove();
+      return;
+    }
     const reader = new FileReader();
     reader.onload = ev => {
       try {
@@ -3380,8 +3384,12 @@ export function importData() {
         showToast('Arquivo inválido! Verifique se é um JSON de backup do Estudo Organizado.', 'error');
       }
     };
+    reader.onloadend = () => {
+      input.remove();
+    };
     reader.readAsText(file);
   };
+  document.body.appendChild(input);
   input.click();
 }
 
