@@ -25,6 +25,8 @@ export function setAnalyzerCtx(ctx) { Object.assign(analyzerCtx, ctx); }
 function bindBancaAnalyzerActions() {
   Object.assign(window, {
     _renderBancaAnalyzerContent: renderBancaAnalyzerContent,
+    getAnalyzerCtx,
+    setAnalyzerCtx,
     mudarEditalAnalisador,
     filtrarViewPorDisciplina,
     carregarAnaliseBanca,
@@ -225,6 +227,12 @@ export function parseBancaText() {
   const discId = document.getElementById('banca-disc-select').value;
   if (!discId) { showToast('Selecione uma matéria no campo acima antes de processar.', 'error'); return; }
 
+  // Ensure analyzerCtx.editaId is set (fallback if view rendered before state loaded)
+  if (!analyzerCtx.editaId) {
+    analyzerCtx.editaId = window.activeDashboardDiscCtx?.editaId || state.editais[0]?.id;
+    console.log('[BANCA parseBancaText] Initialized editaId:', analyzerCtx.editaId);
+  }
+
   const rawArgs = document.getElementById('banca-input-text').value;
   if (!rawArgs.trim()) { showToast('Nenhum texto informado.', 'error'); return; }
 
@@ -272,7 +280,10 @@ export function parseBancaText() {
   }
   document.getElementById('banca-input-text').value = '';
 
-  analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
+  // Apply ranking
+  const results = applyRankingToEdital(analyzerCtx.editaId);
+  analyzerCtx.tempMatchResults = results.filter(res => res.discId === discId);
+
   renderBancaMatches();
   showToast('Matéria processada com sucesso!', 'success');
 }

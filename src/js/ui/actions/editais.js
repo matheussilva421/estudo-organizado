@@ -293,3 +293,51 @@ export function switchManagerTab(el) {
     window.EstudoApp?.switchManagerTab(tab);
   }
 }
+
+// Register all action handlers
+import { registerAction } from './dispatcher.js';
+import { parseBancaText, applyBancaRanking, filtrarViewPorDisciplina, mudarEditalAnalisador, carregarAnaliseBanca } from '../../views/banca-view.js?v=8.3';
+
+registerAction('navigate', (el) => {
+  const view = el.dataset.view;
+  if (view && typeof window.EstudoApp?.navigate === 'function') {
+    window.EstudoApp.navigate(view);
+  }
+});
+
+registerAction('open-edital-modal', (el) => openEditalModal(el));
+registerAction('save-edital', (el) => saveEdital(el));
+registerAction('delete-edital', (el, event) => deleteEdital(el, event));
+
+registerAction('open-disc-modal', (el) => openDiscModal(el));
+registerAction('save-disc', () => saveDisc());
+registerAction('delete-disc', (el, event) => deleteDisc(el, event));
+
+registerAction('open-disc-manager', (el, event) => openDiscManager(el, event));
+registerAction('save-disc-manager', (el) => saveDiscManager(el));
+registerAction('add-assunto', (el) => addAssunto(el));
+registerAction('delete-assunto', (el, event) => deleteAssunto(el, event));
+registerAction('edit-subject-inline', (el) => editSubjectInline(el));
+registerAction('move-subject', (el) => moveSubject(el));
+registerAction('add-bulk-aulas', (el) => addBulkAulas(el));
+registerAction('delete-aula', (el, event) => deleteAula(el, event));
+registerAction('toggle-aula-estudada', (el, event) => toggleAulaEstudada(el, event));
+registerAction('edit-lesson-inline', (el) => editLessonInline(el));
+
+registerAction('select-color', (el) => selectColor(el));
+registerAction('select-icon', (el) => selectIcon(el));
+registerAction('select-disc-color', (el) => selectDiscColor(el));
+
+registerAction('toggle-edital', (el) => toggleEdital(el));
+registerAction('toggle-vert-disc', (el) => toggleVertDisc(el));
+registerAction('toggle-assunto', (el) => toggleAssunto(el));
+
+registerAction('run-lesson-mapper', (el) => runLessonMapper(el));
+registerAction('switch-manager-tab', (el) => switchManagerTab(el));
+
+// Banca Analyzer actions
+registerAction('parse-banca-text', parseBancaText);
+registerAction('apply-banca-ranking', applyBancaRanking);
+registerAction('filtrar-view-por-disciplina', filtrarViewPorDisciplina);
+registerAction('mudar-edital-analisador', mudarEditalAnalisador);
+registerAction('carregar-analise-banca', carregarAnaliseBanca);

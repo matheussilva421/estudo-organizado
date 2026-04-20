@@ -3,6 +3,17 @@
  * Handlers para registro e gerenciamento de hábitos
  */
 
+import { registerAction } from './dispatcher.js';
+
+// Registrar ações
+registerAction('open-habit-modal', (el) => openHabitModal(el));
+registerAction('save-habit', () => saveHabit());
+registerAction('edit-habit', (el) => editHabit(el));
+registerAction('delete-habit', (el) => deleteHabito(el));
+registerAction('select-habit-type', (el) => selectHabitType(el));
+registerAction('set-habit-page', (el) => setHabitPage(el));
+registerAction('calc-simulado-perc', () => calcSimuladoPerc());
+
 /**
  * Abre modal de novo/editar hábito
  * @param {HTMLElement} el - Elemento acionador

@@ -25,7 +25,7 @@ const ASSET_PATHS = [
     './js/store.js',
     './js/utils.js',
     './js/views.js',
-    './js/ui/actions.js',
+    './js/ui/actions/index.js',
     './js/ui/dialog.js',
     './js/ui/dom.js',
     './js/views/home-view.js',

@@ -3,6 +3,14 @@
  * Handlers para marcação, adiamento e navegação de revisões
  */
 
+import { registerAction } from './dispatcher.js';
+
+// Registrar ações
+registerAction('switch-revision-tab', (el) => switchRevTab(el));
+registerAction('mark-revision', (el) => marcarRevisao(el));
+registerAction('postpone-revision', (el) => adiarRevisao(el));
+registerAction('mark-revision-done', (el) => marcarRevisaoFeita(el));
+
 /**
  * Alterna aba de revisões (pendentes/concluídas)
  * @param {HTMLElement} el - Elemento acionador

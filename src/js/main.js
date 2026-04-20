@@ -50,8 +50,24 @@ console.log(`[EstudoApp] ${Object.keys(window.EstudoApp).length} módulos carreg
 
 // Legacy bridge for backward compatibility (to be removed in v9.0)
 // Gradually migrated to direct imports in each module
-const legacyBridgeKeys = ['state', 'setState', 'scheduleSave', 'navigate', 'renderCurrentView', 'showToast', 'openModal', 'closeModal'];
+const legacyBridgeKeys = ['state', 'setState', 'scheduleSave', 'navigate', 'renderCurrentView', 'showToast', 'openModal', 'closeModal', 'saveStateToDB'];
 legacyBridgeKeys.forEach(key => {
+  if (key in window.EstudoApp) {
+    window[key] = window.EstudoApp[key];
+  }
+});
+
+// Legacy bridge for registro-sessao functions
+const registroBridgeKeys = ['openRegistroSessao', 'discardTimerUI', 'voltarPastSessionUI', 'deleteCompletedSession'];
+registroBridgeKeys.forEach(key => {
+  if (key in window.EstudoApp) {
+    window[key] = window.EstudoApp[key];
+  }
+});
+
+// Legacy bridge for planejamento wizard functions
+const wizardBridgeKeys = ['pwUpdateHours', 'pwSelectTipo', 'pwToggleDisc', 'pwToggleDay', 'pwUpdateRelevancia', 'pwUpdateDayHour', 'pwClearDisc', 'pwSearchDisc', 'pwSelectAllDisc'];
+wizardBridgeKeys.forEach(key => {
   if (key in window.EstudoApp) {
     window[key] = window.EstudoApp[key];
   }

@@ -3,6 +3,35 @@
  * Handlers para abrir/fechar modais e controles de UI
  */
 
+import { registerAction } from './dispatcher.js';
+import {
+  onDisciplinaChange,
+  onAulaChange,
+  toggleStudyType,
+  toggleMaterial,
+  addNovoTopico,
+  validateQuestoes,
+  saveRegistroSessao,
+  saveAndStartNew,
+  setPaginaMode
+} from '../../registro-sessao.js?v=8.3';
+
+// Registrar ações
+registerAction('close-modal', (el) => closeModal(el));
+registerAction('open-planejamento-wizard', () => openPlanejamentoWizard());
+registerAction('open-registro-sessao', (el) => openRegistroSessao(el));
+registerAction('open-add-past-session', (el) => openAddPastSession(el));
+registerAction('on-disciplina-change', onDisciplinaChange);
+registerAction('on-aula-change', onAulaChange);
+registerAction('toggle-study-type', (el) => toggleStudyType(el.dataset.tipo));
+registerAction('toggle-material', (el) => toggleMaterial(el.dataset.mat));
+registerAction('add-novo-topico', addNovoTopico);
+registerAction('validate-questoes', validateQuestoes);
+registerAction('save-registro-sessao', saveRegistroSessao);
+registerAction('save-and-start-new', saveAndStartNew);
+registerAction('set-pagina-mode', (el) => setPaginaMode(el.dataset.mode));
+// Nota: open-add-event, open-event-detail, open-event-from-calo estão em eventos.js
+
 /**
  * Fecha modal
  * @param {HTMLElement} el - Elemento acionador

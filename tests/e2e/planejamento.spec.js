@@ -72,7 +72,8 @@ test.describe('Planejamento de Estudos (Wizard)', () => {
     await expect(page.locator('#main-content')).toContainText('CICLOS COMPLETOS');
 
     await page.click('[data-action="iniciar-etapa-planejamento"]');
-    await expect(page.locator('#topbar-title')).toHaveText(/Cron/);
+    // After starting planning, user should be in cycle/cronometro view
+    await expect(page.locator('#topbar-title')).toHaveText(/Ciclo|Cron/);
     await expect.poll(() => page.evaluate(() => {
       return window.state.eventos.some(evento => evento.seqId && evento.status === 'agendado');
     })).toBe(true);

@@ -17,6 +17,6 @@ export default defineConfig({
   webServer: {
     command: `npx http-server src -p ${PORT} -c-1`,
     url: BASE_URL,
-    reuseExistingServer: false
+    reuseExistingServer: true
   }
 });

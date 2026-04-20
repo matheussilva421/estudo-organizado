@@ -3,6 +3,19 @@
  * Handlers para navegação entre views, sidebar e theme toggle
  */
 
+import { registerAction } from './dispatcher.js';
+import { debouncedOnSearch, onSearchFocus, clearSearch } from '../../views.js?v=8.3';
+import { setCalViewMode, calNavigate } from '../../views/calendar-view.js?v=8.3';
+
+// Registrar ações
+registerAction('navigate', navigate);
+registerAction('search-input', (el) => debouncedOnSearch(el.value));
+registerAction('search-focus', onSearchFocus);
+registerAction('clear-search', clearSearch);
+registerAction('set-cal-view-mode', (el) => setCalViewMode(el.dataset.mode));
+registerAction('cal-navigate', (el) => calNavigate(parseInt(el.dataset.dir, 10)));
+registerAction('cal-today', () => calNavigate(0));
+
 /**
  * Navega para uma view específica
  * @param {HTMLElement} el - Elemento acionador
@@ -10,7 +23,7 @@
 export function navigate(el) {
   const view = el.dataset.view;
   if (view && typeof window.EstudoApp?.navigate === 'function') {
-    window.EstudoApp?.navigate(view);
+    window.EstudoApp.navigate(view);
   }
 }
 
@@ -131,3 +144,16 @@ export function switchToEventTimer(el) {
     }, 100);
   }
 }
+
+// Registrar ações restantes
+registerAction('navigate-with-ctx', navigateWithCtx);
+registerAction('navigate-clear-search', navigateClearSearch);
+registerAction('close-sidebar', closeSidebar);
+registerAction('toggle-sidebar', toggleSidebar);
+registerAction('toggle-sidebar-collapse', toggleSidebarCollapse);
+registerAction('toggle-theme', toggleTheme);
+registerAction('prompt-prova', promptProva);
+registerAction('prompt-metas', promptMetas);
+registerAction('close-disc-dashboard', closeDiscDashboard);
+registerAction('toggle-ciclo-fin', toggleCicloFin);
+// Nota: switch-to-event-timer está em eventos.js

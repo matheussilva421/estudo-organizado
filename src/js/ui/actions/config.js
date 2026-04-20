@@ -3,6 +3,32 @@
  * Handlers para configurações, sync, backup e preferências
  */
 
+import { registerAction } from './dispatcher.js';
+
+// Registrar ações
+registerAction('update-config', (el) => updateConfig(el));
+registerAction('toggle-config', (el) => toggleConfig(el));
+registerAction('update-frequencia', (el) => updateFrequencia(el));
+registerAction('toggle-password-visibility', (el) => togglePasswordVisibility(el));
+registerAction('toggle-cf-sync', (el) => toggleCfSync(el));
+registerAction('force-cloudflare-sync', () => forceCloudflareSync());
+registerAction('cloud-conflict-export-local', () => cloudConflictExportLocal());
+registerAction('cloud-conflict-pull-remote', () => cloudConflictPullRemote());
+registerAction('cloud-conflict-force-push', () => cloudConflictForcePush());
+registerAction('drive-sync-now', () => driveSyncNow());
+registerAction('pull-from-drive', () => pullFromDrive());
+registerAction('drive-disconnect', () => driveDisconnect());
+registerAction('open-drive-modal', () => openDriveModal());
+registerAction('drive-action', () => driveAction());
+registerAction('disconnect-drive', () => disconnectDrive());
+registerAction('request-notification-permission', () => requestNotificationPermission());
+registerAction('test-notification', () => testNotification());
+registerAction('export-data', () => exportData());
+registerAction('restore-backup', () => restoreBackup());
+registerAction('archive-old-events', (el) => archiveOldEvents(el));
+registerAction('clear-all-data', () => clearAllData());
+registerAction('set-theme', (el) => setTheme(el));
+
 /**
  * Atualiza configuração por chave
  * @param {HTMLElement} el - Elemento acionador

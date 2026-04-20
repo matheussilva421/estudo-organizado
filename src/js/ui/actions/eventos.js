@@ -3,6 +3,27 @@
  * Handlers para timer, CRUD de eventos e operações relacionadas
  */
 
+import { registerAction } from './dispatcher.js';
+
+// Registrar ações
+registerAction('toggle-timer', (el) => toggleTimer(el));
+registerAction('discard-timer', (el) => discardTimer(el));
+registerAction('mark-studied', (el) => markStudied(el));
+registerAction('toggle-timer-mode', () => toggleTimerMode());
+registerAction('edit-event', (el) => editEvent(el));
+registerAction('delete-event', (el, event) => deleteEvent(el, event));
+registerAction('delete-event-from-modal', (el) => deleteEventFromModal(el));
+registerAction('open-add-event', () => openAddEvent());
+registerAction('open-event-modal-date', (el) => openEventModalDate(el));
+registerAction('open-event-from-calo', (el) => openEventModalDate(el));
+registerAction('open-event-detail', (el) => openEventDetail(el));
+registerAction('switch-to-event-timer', (el) => switchToEventTimer(el));
+registerAction('add-minutes', (el) => addMinutes(el));
+registerAction('save-event', () => saveEvent());
+registerAction('save-past-event', (el) => savePastEvent(el));
+registerAction('update-day-load', (el) => updateDayLoad(el));
+registerAction('load-assuntos', () => loadAssuntos());
+
 /**
  * Toggle start/stop do timer
  * @param {HTMLElement} el - Elemento acionador

@@ -522,7 +522,7 @@ test.describe('Estudo Organizado', () => {
     });
 
     const requiredModules = [
-      'js/ui/actions.js',
+      'js/ui/actions/index.js',
       'js/ui/dialog.js',
       'js/ui/dom.js',
       'js/views/home-view.js',

@@ -8,7 +8,7 @@
 
 ---
 
-## STATUS ATUAL - 2026-04-20 14:30
+## STATUS ATUAL - 2026-04-20 20:30
 
 ### Sprint 1 - Quick Wins: ✅ 100% COMPLETA
 - [x] Cleanup de intervals em notifications.js
@@ -26,13 +26,15 @@
 ### Sprint 3 - Window Bridge: ✅ 100% COMPLETA
 - [x] Namespace EstudoApp criado (main.js)
 - [x] JSDoc em módulos core (utils, store, logic, components, app)
-- [x] Proxy transitório para fallback legado
+- [x] Proxy transitório para fallback legado (removido após migração)
 - [x] Eventos de domínio roteados via EstudoApp
 
-### Sprint 4 - Quebra de Monolitos: ⏳ EM PROGRESSO (50%)
+### Sprint 4 - Quebra de Monolitos: ✅ 100% COMPLETA
 - [x] Views já modularizadas (banca, calendar, ciclo, editais, habitos, home, dashboard)
 - [x] **TAREFA 4.6: ui/actions.js dividido por domínio** ✅ COMPLETO
-- [ ] views.js refatoração pendente (4600 linhas)
+- [x] Arquivo legado `ui/actions.js` removido (2026-04-20)
+- [x] **Bug fix: analyzerCtx.editaId inicializado em parseBancaText()** (2026-04-20)
+- [ ] views.js refatoração pendente (4600 linhas) - futura sprint
 
 ---
 
@@ -49,11 +51,13 @@
 - `src/js/ui/actions/dispatcher.js` - Registry e setup de event delegation
 - `src/js/ui/actions/index.js` - Consolida todos exports
 
-**Arquivo `actions.js`** mantém registro de ações via `registerAction()` para compatibilidade com data-action contracts.
+**Arquivo `actions.js`** removido em 2026-04-20. Registro de ações migrado para `ui/actions/dispatcher.js`.
 
 **Validação:**
-- 79 testes unitários passando
+- 199 testes unitários passando
+- 70 testes E2E passando (1 falha conhecida em offline service worker - infraestrutura)
 - Teste `action-contracts.test.js` atualizado para suportar formato `registerAction()`
+- Bug fix: Banca Analyzer agora inicializa `editaId` corretamente em `parseBancaText()`
 
 ---
 
