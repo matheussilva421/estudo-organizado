@@ -48,16 +48,6 @@ for (const mod of exposedModules) {
 // Log loaded modules for debugging
 console.log(`[EstudoApp] ${Object.keys(window.EstudoApp).length} módulos carregados`);
 
-// Transitional fallback: some legacy handlers are still attached lazily to window
-// during view rendering. Keep data-action handlers working while modules migrate.
-window.EstudoApp = new Proxy(window.EstudoApp, {
-  get(target, key, receiver) {
-    if (Reflect.has(target, key)) return Reflect.get(target, key, receiver);
-    if (typeof key === 'string' && key in window) return window[key];
-    return undefined;
-  }
-});
-
 // Legacy bridge for backward compatibility (to be removed in v9.0)
 // Gradually migrated to direct imports in each module
 const legacyBridgeKeys = ['state', 'setState', 'scheduleSave', 'navigate', 'renderCurrentView', 'showToast', 'openModal', 'closeModal'];

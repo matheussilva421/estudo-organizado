@@ -8,7 +8,7 @@ import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
 export { renderHome } from './views/home-view.js';
-export { renderCiclo } from './views/ciclo-view.js';
+export { renderCiclo, recomecarCiclo, zerarCiclosCounter, calculateCyclePredictions } from './views/ciclo-view.js';
 export { renderHabitos, renderHabitHistPage, setHabitPage, openHabitModal, selectHabitType, saveHabit, calcSimuladoPerc, deleteHabito, HABIT_HIST_PAGE_SIZE, habitHistPage } from './views/habitos-view.js';
 export {
   renderVertical,
@@ -1277,9 +1277,6 @@ export function onVertSearch(val) {
   }, 200);
 }
 
-window.setVertFilterStatus = function (s) { vertFilterStatus = s; };
-window.setVertFilterEdital = function (e) { vertFilterEdital = e; };
-
 export function getFilteredVertItems() {
   let items = [];
   for (const edital of state.editais) {
@@ -1384,23 +1381,6 @@ export function addSeqItem() {
   renderCurrentView();
 }
 window.addSeqItem = addSeqItem;
-
-
-
-window.toggleVertDisc = function (id) {
-  const body = document.getElementById('vert-disc-body-' + id);
-  const icon = document.getElementById('vert-disc-icon-' + id);
-  if (!body || !icon) return;
-  if (body.style.display === 'none') {
-    body.style.display = 'block';
-    icon.classList.remove('fa-chevron-down');
-    icon.classList.add('fa-chevron-up');
-  } else {
-    body.style.display = 'none';
-    icon.classList.remove('fa-chevron-up');
-    icon.classList.add('fa-chevron-down');
-  }
-};
 
 export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
@@ -1508,8 +1488,7 @@ export function closeDiscDashboard() {
   renderCurrentView();
 }
 
-// Global switch tab function
-window.switchDashboardTab = function (tabName) {
+export function switchDashboardTab(tabName) {
   window.activeDashboardTab = tabName;
   const ctx = window.activeDashboardDiscCtx;
   if (ctx && ctx.editaId && ctx.discId) {
@@ -1523,6 +1502,7 @@ window.switchDashboardTab = function (tabName) {
 
   renderCurrentView();
 }
+window.switchDashboardTab = switchDashboardTab;
 
 
 
@@ -2531,8 +2511,8 @@ export function saveEvent() {
 // =============================================
 // REGISTRO DE SESSÃO ANTERIOR (DIRETO)
 // =============================================
-window.openAddPastSessionModal = function(discId) {
-  const d = window.getDisc(discId);
+export function openAddPastSessionModal(discId) {
+  const d = getDisc(discId);
   if(!d) return;
 
   // Monta as opções de assunto baseadas na disciplina
@@ -2586,10 +2566,11 @@ window.openAddPastSessionModal = function(discId) {
     </div>
   `;
   openModal('modal-event');
-};
+}
+window.openAddPastSessionModal = openAddPastSessionModal;
 
-window.savePastEvent = function(discId) {
-  const d = window.getDisc(discId);
+export function savePastEvent(discId) {
+  const d = getDisc(discId);
   const data = document.getElementById('past-event-data').value;
   const duracao = parseInt(document.getElementById('past-event-duracao').value, 10) || 60;
   
@@ -2631,12 +2612,13 @@ window.savePastEvent = function(discId) {
   closeModal('modal-event');
 
   // Abre registro real para input the metadados
-  if (typeof window.openRegistroSessao === 'function') {
-    window.openRegistroSessao(evento.id);
+  if (typeof window.EstudoApp?.openRegistroSessao === 'function') {
+    window.EstudoApp.openRegistroSessao(evento.id);
   } else {
     showToast('Erro ao abrir registro detalhado.', 'error');
   }
-};
+}
+window.savePastEvent = savePastEvent;
 
 
 // =============================================
@@ -3505,7 +3487,7 @@ window.closeDiscDashboard = closeDiscDashboard;
 window.addEventoParaAssunto = addEventoParaAssunto;
 window.setTheme = setTheme;
 
-window.filtrarDropdownBanca = function (termo) {
+export function filtrarDropdownBanca(termo) {
   termo = termo.toLowerCase().trim();
   const select = document.getElementById('banca-disc-select');
   if (!select) return;
@@ -3514,4 +3496,5 @@ window.filtrarDropdownBanca = function (termo) {
     const visible = opt.text.toLowerCase().includes(termo);
     opt.style.display = visible ? '' : 'none';
   });
-};
+}
+window.filtrarDropdownBanca = filtrarDropdownBanca;

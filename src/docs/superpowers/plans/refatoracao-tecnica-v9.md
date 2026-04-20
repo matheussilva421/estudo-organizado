@@ -62,11 +62,26 @@ Validação executada nesta fatia:
 - `npm run test:e2e -- tests/e2e/offline-import.spec.js` -> 2/2 testes passando.
 - `npm run test:e2e` -> 28/28 testes passando após rerun completo. A primeira execução completa teve uma falha intermitente em `offline-import.spec.js` durante `page.reload`, mas o spec isolado passou e a suíte completa seguinte passou.
 
+Fatia executada na sequência:
+- Corrigida a intermitência do `offline-import.spec.js` no `page.reload`: `src/js/sw-register.js` agora só recarrega em `controllerchange` quando a página já tinha um `navigator.serviceWorker.controller`, evitando reload automático no primeiro claim do service worker.
+- Removido o fallback transitório com `Proxy` em `src/js/main.js`; `window.EstudoApp` volta a ser um namespace explícito composto apenas por exports dos módulos carregados.
+- Migrados handlers restantes que ainda nasciam como `window.* = function` para exports formais: cronômetro livre e ciclo em `src/js/logic.js`, exclusão de sessão em `src/js/registro-sessao.js`, e ações de ciclo/previsão em `src/js/views/ciclo-view.js`.
+- Reexportados `recomecarCiclo`, `zerarCiclosCounter` e `calculateCyclePredictions` por `src/js/views.js`, garantindo que o dispatcher central encontre esses alvos por `window.EstudoApp` sem depender de fallback global.
+- Mantidos apenas aliases legados explícitos do tipo `window.nome = nome` onde ainda há compatibilidade histórica, sem criar novos handlers diretamente como expressões em `window`.
+- Expandido `tests/unit/action-contracts.test.js` para travar a ausência de `Proxy`, impedir `window.* = function`/arrow em módulos runtime e exigir exports dos handlers migrados.
+
+Validação executada nesta sequência:
+- `npm run test:unit -- tests/unit/action-contracts.test.js` -> 18/18 testes passando.
+- `npm run test:e2e -- tests/e2e/planejamento.spec.js` -> 1/1 teste passando.
+- `npm run test:e2e -- tests/e2e/editais.spec.js` -> 1/1 teste passando.
+- `npm run test:e2e -- tests/e2e/offline-import.spec.js` -> 2/2 testes passando.
+- `npm test` -> 85/85 testes passando. Permanece stderr conhecido de `tests/unit/sync-conflict.test.js` sobre `indexedDB.open mock not configured for this test`, sem falha da suíte.
+- `npm run test:e2e` -> 28/28 testes passando.
+
 Próximas fatias recomendadas:
-- Migrar handlers restantes que ainda são definidos apenas como `window.*` em `views.js`.
 - Extrair o bloco MED e o bloco Revisões para módulos próprios.
 - Dividir `ui/actions.js` por domínio depois que os alvos estiverem exportados explicitamente.
-- Remover o fallback `Proxy` de `window.EstudoApp` somente quando o contrato mostrar que nenhum `data-action` depende dele.
+- Reduzir gradualmente os aliases legados `window.nome = nome` depois que os pontos de chamada antigos forem removidos.
 
 ### Princípios de Execução
 
