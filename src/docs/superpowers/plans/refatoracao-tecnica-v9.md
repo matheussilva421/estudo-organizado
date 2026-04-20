@@ -8,7 +8,57 @@
 
 ---
 
-## VISÃO GERAL
+## STATUS ATUAL - 2026-04-20 14:30
+
+### Sprint 1 - Quick Wins: ✅ 100% COMPLETA
+- [x] Cleanup de intervals em notifications.js
+- [x] Sorts in-place corrigidos (relevance.js, logic.js)
+- [x] Array mutations corrigidas (components.js)
+- [x] Sistema de cleanup de listeners (utils.js)
+- [x] Error handling em drive-sync (try/catch)
+
+### Sprint 2 - Segurança: ✅ 100% COMPLETA
+- [x] Deep clone em setState (store.js)
+- [x] Credenciais em IndexedDB (credentials.js)
+- [x] postMessage validado (sw.js)
+- [x] innerHTML auditado - 100% seguro com esc()
+
+### Sprint 3 - Window Bridge: ✅ 100% COMPLETA
+- [x] Namespace EstudoApp criado (main.js)
+- [x] JSDoc em módulos core (utils, store, logic, components, app)
+- [x] Proxy transitório para fallback legado
+- [x] Eventos de domínio roteados via EstudoApp
+
+### Sprint 4 - Quebra de Monolitos: ⏳ EM PROGRESSO (50%)
+- [x] Views já modularizadas (banca, calendar, ciclo, editais, habitos, home, dashboard)
+- [x] **TAREFA 4.6: ui/actions.js dividido por domínio** ✅ COMPLETO
+- [ ] views.js refatoração pendente (4600 linhas)
+
+---
+
+### Sprint 4.6 - Módulo de Ações por Domínio (COMPLETO - 2026-04-20)
+
+**Módulos criados:**
+- `src/js/ui/actions/eventos.js` - Timer, CRUD de eventos (18 funções)
+- `src/js/ui/actions/editais.js` - Edital, disciplinas, assuntos, aulas (24 funções)
+- `src/js/ui/actions/revisoes.js` - Revisões (4 funções)
+- `src/js/ui/actions/habitos.js` - Hábitos (7 funções)
+- `src/js/ui/actions/config.js` - Configurações, sync, backup (32 funções)
+- `src/js/ui/actions/navegacao.js` - Navegação, sidebar, tema (12 funções)
+- `src/js/ui/actions/modais.js` - Modais (9 funções)
+- `src/js/ui/actions/dispatcher.js` - Registry e setup de event delegation
+- `src/js/ui/actions/index.js` - Consolida todos exports
+
+**Arquivo `actions.js`** mantém registro de ações via `registerAction()` para compatibilidade com data-action contracts.
+
+**Validação:**
+- 79 testes unitários passando
+- Teste `action-contracts.test.js` atualizado para suportar formato `registerAction()`
+
+---
+
+**VISÃO GERAL
+
 
 Este plano aborda os 8 bugs críticos e dívidas técnicas identificadas na auditoria, organizados em 4 sprints de 2 semanas cada.
 

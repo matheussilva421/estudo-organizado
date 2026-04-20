@@ -8,7 +8,13 @@ import { initNotifications } from './notifications.js?v=8.3';
 // =============================================
 // APP STATE & DATA
 // =============================================
+
+/**
+ * View atual sendo renderizada
+ * @type {string}
+ */
 export let currentView = 'home';
+
 let _driveSyncInterval = null;
 
 document.addEventListener('app:driveDisconnected', () => {
@@ -18,10 +24,14 @@ document.addEventListener('app:driveDisconnected', () => {
   }
 });
 
-
 // =============================================
 // NAVIGATION
 // =============================================
+
+/**
+ * Navega para uma view específica
+ * @param {string} view - Nome da view
+ */
 export function navigate(view) {
   // Keep navigation responsive even if a modal is currently open.
   // This prevents stale overlays from trapping pointer events after view switches.
@@ -45,6 +55,11 @@ export function navigate(view) {
 // removed utilities to utils.js
 
 // UI Modals - wrapper around dialog.js for backward compatibility
+
+/**
+ * Abre modal pelo ID
+ * @param {string} id - ID do elemento modal
+ */
 export function openModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -53,6 +68,10 @@ export function openModal(id) {
   document.body.style.overflow = 'hidden';
 }
 
+/**
+ * Fecha modal pelo ID
+ * @param {string} id - ID do elemento modal
+ */
 export function closeModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -63,6 +82,13 @@ export function closeModal(id) {
 }
 
 // Custom Confirm
+
+/**
+ * Exibe modal de confirmação customizado
+ * @param {string} msg - Mensagem de confirmação
+ * @param {Function} onYes - Callback ao confirmar
+ * @param {{title?: string, label?: string, danger?: boolean}} [opts] - Opções
+ */
 export let _confirmCallback = null;
 export function showConfirm(msg, onYes, opts = {}) {
   const { title = 'Confirmar', label = 'Confirmar', danger = false } = opts;
@@ -83,6 +109,9 @@ export function showConfirm(msg, onYes, opts = {}) {
   openModal('modal-confirm');
 }
 
+/**
+ * Configura handlers dos botões de confirmação
+ */
 export function setupConfirmHandlers() {
   const okBtn = document.getElementById('confirm-ok-btn');
   const cancelBtn = document.getElementById('confirm-cancel-btn');
@@ -95,13 +124,21 @@ export function setupConfirmHandlers() {
   });
 }
 
+/**
+ * Cancela confirmação e fecha modal
+ */
 export function cancelConfirm() {
   _confirmCallback = null;
   closeModal('modal-confirm');
 }
 
-
 // Toast Notifications
+
+/**
+ * Exibe notificação toast
+ * @param {string} msg - Mensagem a exibir
+ * @param {'success'|'error'|'info'} [type=''] - Tipo do toast
+ */
 export function showToast(msg, type = '') {
   const container = document.getElementById('toast-container');
   if (!container) return;
@@ -155,6 +192,10 @@ export function showToast(msg, type = '') {
 }
 
 // Sidebars
+
+/**
+ * Toggle sidebar (abre/fecha no mobile)
+ */
 export function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
@@ -167,6 +208,9 @@ export function toggleSidebar() {
   overlay.classList.toggle('open');
 }
 
+/**
+ * Fecha sidebar e overlay
+ */
 export function closeSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
@@ -175,6 +219,9 @@ export function closeSidebar() {
   overlay.classList.remove('open');
 }
 
+/**
+ * Toggle collapse da sidebar (desktop apenas)
+ */
 export function toggleSidebarCollapse() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -194,6 +241,11 @@ export function toggleSidebarCollapse() {
 }
 
 // Init Setup
+
+/**
+ * Aplica ou alterna tema visual
+ * @param {boolean} [toggle=false] - Se true, alterna entre light/dark
+ */
 export function applyTheme(toggle = false) {
   if (toggle) {
     const currentTheme = state.config.tema || (state.config.darkMode ? 'dark' : 'light');
@@ -220,6 +272,9 @@ export function applyTheme(toggle = false) {
   }
 }
 
+/**
+ * Inicializa aplicação: DB, tema, sync, navegação
+ */
 export function init() {
   initDB().then(async () => {
     // Notify modules that state is loaded from IndexedDB
@@ -279,6 +334,9 @@ export function init() {
 // INTERACTIVE PROMPTS
 // =============================================
 
+/**
+ * Abre modal para definir data da prova
+ */
 export function promptDataProva() {
   const atual = state.config.dataProva || '';
 
@@ -309,6 +367,9 @@ export function promptDataProva() {
   openModal('modal-prompt');
 }
 
+/**
+ * Abre modal para definir metas semanais
+ */
 export function promptMetas() {
   const horas = state.config.metas?.horasSemana || 20;
   const quest = state.config.metas?.questoesSemana || 150;
@@ -350,7 +411,10 @@ export function promptMetas() {
 // recomecarCiclo is defined inside renderCiclo() in views.js
 // and assigned to window.recomecarCiclo — it operates on state.planejamento
 
-
+/**
+ * Toggle filtro de concluídos no Ciclo
+ * @param {boolean} checked - Se true, esconde concluídos
+ */
 export function toggleCicloFin(checked) {
   window._hideConcluidosCiclo = checked;
   if (currentView === 'ciclo') renderCurrentView();

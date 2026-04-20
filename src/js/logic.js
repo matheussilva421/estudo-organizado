@@ -5,7 +5,17 @@ import { navigate } from './app.js?v=8.3';
 // =============================================
 // TIMER ENGINE
 // =============================================
+
+/**
+ * Mapa de intervals ativos por eventId
+ * @type {Object.<string, number>}
+ */
 export let timerIntervals = {};   // eventId → intervalId
+
+/**
+ * Flag de modo Pomodoro
+ * @type {boolean}
+ */
 export let _pomodoroMode = false;
 
 // Restore pomodoro mode after IndexedDB state is loaded (event fired from app.js init)
@@ -15,18 +25,31 @@ document.addEventListener('app:stateLoaded', () => {
 
 export let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
+/**
+ * Verifica se timer está ativo
+ * @param {string} eventId - ID do evento ou 'crono_livre'
+ * @returns {boolean} True se timer estiver rodando
+ */
 export function isTimerActive(eventId) {
   if (eventId === 'crono_livre') return !!(state.cronoLivre && state.cronoLivre._timerStart);
   const ev = state.eventos.find(e => e.id === eventId);
   return !!(ev && ev._timerStart);
 }
 
+/**
+ * Calcula tempo decorrido em segundos
+ * @param {Object} ev - Evento ou cronoLivre
+ * @returns {number} Segundos decorridos
+ */
 export function getElapsedSeconds(ev) {
   const base = ev.tempoAcumulado || 0;
   if (!ev._timerStart) return base;
   return base + Math.floor((Date.now() - ev._timerStart) / 1000);
 }
 
+/**
+ * Alterna entre modo Pomodoro e Contínuo
+ */
 export function toggleTimerMode() {
   _pomodoroMode = !_pomodoroMode;
   // Persist pomodoro preference

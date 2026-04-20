@@ -2,10 +2,19 @@
 // HELPERS & UTILITIES (Pure Functions)
 // =============================================
 
+/**
+ * Gera identificador único baseado em timestamp + random
+ * @returns {string} ID único
+ */
 export function uid() {
     return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
 }
 
+/**
+ * Escape de HTML para prevenir XSS
+ * @param {string|number} str - String para escapar
+ * @returns {string} String escaped
+ */
 export function esc(str) {
     if (!str && str !== 0) return '';
     return String(str)
@@ -16,6 +25,11 @@ export function esc(str) {
         .replace(/'/g, '&#39;');
 }
 
+/**
+ * Retorna data local no formato YYYY-MM-DD
+ * @param {Date} [dateObj=new Date()] - Data opcional
+ * @returns {string} Data no formato ISO date
+ */
 export function getLocalDateStr(dateObj = new Date()) {
     const d = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
     return d.toISOString().split('T')[0];
@@ -23,7 +37,16 @@ export function getLocalDateStr(dateObj = new Date()) {
 
 export let _todayCache = null;
 let _todayCacheTime = 0;
+
+/**
+ * Invalida cache da função todayStr
+ */
 export function invalidateTodayCache() { _todayCache = null; }
+
+/**
+ * Retorna data de hoje em formato YYYY-MM-DD com cache
+ * @returns {string} Data de hoje
+ */
 export function todayStr() {
     const now = Date.now();
     // Invalidate cache every 60 seconds (60000ms) to ensure midnight rollovers are caught
@@ -34,6 +57,11 @@ export function todayStr() {
     return _todayCache;
 }
 
+/**
+ * Formata data ISO para formato locale pt-BR
+ * @param {string} str - Data no formato YYYY-MM-DD
+ * @returns {string} Data formatada
+ */
 export function formatDate(str) {
     if (!str) return '';
     const d = new Date(str + 'T00:00:00');
@@ -42,6 +70,11 @@ export function formatDate(str) {
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
+/**
+ * Formata segundos para HH:MM:SS ou MM:SS
+ * @param {number} seconds - Segundos totais
+ * @returns {string} Tempo formatado
+ */
 export function formatTime(seconds) {
     seconds = Math.floor(seconds || 0);
     const h = Math.floor(seconds / 3600);
@@ -50,6 +83,11 @@ export function formatTime(seconds) {
     return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
+/**
+ * Formata minutos para formato legível (1h30m, 45m, etc)
+ * @param {number} minutes - Minutos totais
+ * @returns {string} Tempo formatado
+ */
 export function formatH(minutes) {
     if (!minutes) return '0m';
     const h = Math.floor(minutes / 60);
@@ -58,6 +96,12 @@ export function formatH(minutes) {
     return `${m}m`;
 }
 
+/**
+ * Trunca string para tamanho máximo com ellipsis
+ * @param {any} value - Valor para truncar
+ * @param {number} [max=80] - Tamanho máximo
+ * @returns {string} String truncada
+ */
 export function trunc(value, max = 80) {
     if (value === null || value === undefined) return '';
     const text = String(value).trim();
@@ -65,6 +109,11 @@ export function trunc(value, max = 80) {
     return `${text.slice(0, Math.max(1, max - 3))}...`;
 }
 
+/**
+ * Determina status de um evento baseado na data e status
+ * @param {Object} evento - Objeto do evento
+ * @returns {'estudei'|'agendado'|'atrasado'} Status do evento
+ */
 export function getEventStatus(evento) {
     const today = todayStr();
     if (evento.status === 'estudei') return 'estudei';
@@ -73,6 +122,11 @@ export function getEventStatus(evento) {
     return 'agendado';
 }
 
+/**
+ * Retorna data de X dias atrás no formato YYYY-MM-DD
+ * @param {number} days - Dias para subtrair
+ * @returns {string} Data calculada
+ */
 export function cutoffDateStr(days) {
     const d = new Date();
     d.setDate(d.getDate() - days);
@@ -91,6 +145,11 @@ export const HABIT_TYPES = [
     { key: 'paginas', label: 'Páginas Lidas', icon: '🧾', color: '#14b8a6' }
 ];
 
+/**
+ * Retorna tipo de hábito pela chave
+ * @param {string} key - Chave do tipo de hábito
+ * @returns {{key: string, label: string, icon: string, color: string}|undefined} Tipo de hábito
+ */
 export function getHabitType(key) {
     return HABIT_TYPES.find(h => h.key === key);
 }

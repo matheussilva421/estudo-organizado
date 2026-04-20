@@ -9,7 +9,10 @@ import { deleteEvento, getAllDisciplinas, getDisc, getElapsedSeconds, getPending
 // DOM COMPONENTS AND RENDERERS
 // =============================================
 
-
+/**
+ * Renderiza tela de cronômetro com timer em tempo real
+ * @param {HTMLElement} el - Container da view
+ */
 export function renderCronometro(el) {
   let allTimerEvents = state.eventos.filter(e =>
     e._timerStart || (!e._timerStart && (e.tempoAcumulado || 0) > 0 && e.status !== 'estudei')
@@ -231,7 +234,9 @@ export function renderCronometro(el) {
   }, 1000);
 }
 
-
+/**
+ * Renderiza a view atual e faz cleanup de timers/charts
+ */
 export function renderCurrentView() {
   // Bug 7: clean up cronometro interval when switching views
   if (currentView !== 'cronometro' && window._cronoInterval) {
@@ -328,7 +333,9 @@ export function renderCurrentView() {
   }
 }
 
-// Ensure badges up to date
+/**
+ * Atualiza badges do sidebar com contadores de timers e revisões
+ */
 export function updateBadges() {
   // Update cronometro badge
   const activeTimers = state.eventos.filter(e => e._timerStart);
@@ -352,6 +359,12 @@ export function updateBadges() {
 // =============================================
 // EVENT CARD RENDERER
 // =============================================
+
+/**
+ * Renderiza card de evento para exibição
+ * @param {Object} evento - Dados do evento
+ * @returns {string} HTML do card
+ */
 export function renderEventCard(evento) {
   const status = getEventStatus(evento);
   const discInfo = evento.discId ? getDisc(evento.discId) : null;

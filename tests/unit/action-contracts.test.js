@@ -43,13 +43,17 @@ function collectDataActions() {
 function collectActionRegistryEntries() {
   const actionsSource = read('src/js/ui/actions.js');
   const entries = new Map();
-  const actionKeyPattern = /^\s*['"]([a-z0-9-]+)['"]\s*:/gm;
+  // Supports both object literal format ('action-name': ...) and registerAction('action-name', ...)
+  const actionKeyPattern = /(registerAction\s*\(\s*['"]([a-z0-9-]+)['"]|^\s*['"]([a-z0-9-]+)['"]\s*:)/gm;
 
   for (const match of actionsSource.matchAll(actionKeyPattern)) {
     const line = actionsSource.slice(0, match.index).split('\n').length;
-    const key = match[1];
-    if (!entries.has(key)) entries.set(key, []);
-    entries.get(key).push(line);
+    // Group 2 for registerAction format, group 3 for object literal format
+    const key = match[2] || match[3];
+    if (key) {
+      if (!entries.has(key)) entries.set(key, []);
+      entries.get(key).push(line);
+    }
   }
 
   return entries;

@@ -17,7 +17,7 @@ import * as relevance from './relevance.js?v=8.3';
 import * as lesson_mapper from './lesson-mapper.js?v=8.3';
 
 // Import UI helpers and action dispatcher
-import { setupActionDispatcher } from './ui/actions.js?v=8.3';
+import { setupActionDispatcher } from './ui/actions/index.js?v=8.3';
 import { qs, qsa } from './ui/dom.js?v=8.3';
 import { initModals, announce } from './ui/dialog.js?v=8.3';
 import { addCleanupListener } from './utils.js?v=8.3';

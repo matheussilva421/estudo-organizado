@@ -29,6 +29,10 @@ function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+/**
+ * Atualiza o estado global com deep clone para prevenir mutações
+ * @param {Object} newState - Novo estado parcial ou completo
+ */
 export function setState(newState) {
   const normalized = {
     schemaVersion: newState.schemaVersion || DEFAULT_SCHEMA_VERSION,
@@ -85,7 +89,10 @@ export let state = {
   lastSync: null
 };
 
-// Initialize DB and load state
+/**
+ * Inicializa banco de dados IndexedDB e carrega estado
+ * @returns {Promise<void>}
+ */
 export function initDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -112,6 +119,10 @@ export function initDB() {
   });
 }
 
+/**
+ * Carrega estado do IndexedDB e aplica migrações se necessário
+ * @returns {Promise<void>}
+ */
 export function loadStateFromDB() {
   return new Promise((resolve) => {
     const transaction = db.transaction([STORE_NAME], 'readonly');
@@ -151,7 +162,9 @@ export function loadStateFromDB() {
   });
 }
 
-// Fallback to load from LocalStorage (migration path for old users + emergency recovery)
+/**
+ * Carrega estado do localStorage (migração para usuários legados + recovery emergencial)
+ */
 export function loadLegacyState() {
   try {
     // Check for emergency save first (from beforeunload)
@@ -171,7 +184,9 @@ export function loadLegacyState() {
   }
 }
 
-// Save state to IndexedDB with debounce
+/**
+ * Salva estado no IndexedDB com debounce de 800ms
+ */
 export let saveTimeout = null;
 
 // Handler pagehide - mais confiável que beforeunload em mobile e fechamentos bruscos
@@ -204,6 +219,9 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
+/**
+ * Fila de sincronização para operações sequenciais no IndexedDB
+ */
 export const SyncQueue = {
   isProcessing: false,
   tasks: [],
@@ -237,6 +255,10 @@ export const SyncQueue = {
 
 let _invalidateTimeout = null;
 
+/**
+ * Agenda salvamento do estado com debounce de 800ms
+ * Dispara eventos de update de badges e invalidação de caches
+ */
 export function scheduleSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
 
@@ -267,9 +289,11 @@ export function scheduleSave() {
   }, 2000); // 2 second debounce
 }
 
-// Immediate save (used before closures or explicit syncs)
-// skipCloudSync: when true, saves to IndexedDB only without triggering
-// the Cloudflare push cascade (used to break the infinite sync loop)
+/**
+ * Salva estado no IndexedDB imediatamente
+ * @param {boolean} [skipCloudSync=false] - Se true, não sincroniza com Cloudflare
+ * @returns {Promise<void>}
+ */
 export function saveStateToDB(skipCloudSync = false) {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
@@ -301,7 +325,10 @@ export function saveStateToDB(skipCloudSync = false) {
   });
 }
 
-// Migration Logic
+/**
+ * Executa migrações de schema do estado (v1 → v7)
+ * @returns {void}
+ */
 export function runMigrations() {
   let changed = false;
   if (!state.schemaVersion || state.schemaVersion < 2) {
