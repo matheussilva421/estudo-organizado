@@ -40,6 +40,34 @@ Observações:
 - O `npm test` ainda emite stderr conhecido em `tests/unit/sync-conflict.test.js` sobre `indexedDB.open mock not configured for this test`, mas o teste passa e não bloqueia a suíte.
 - O fallback `Proxy` é propositalmente temporário. A próxima fase deve remover gradualmente handlers legados de `window` e substituir por imports explícitos ou registro formal de ações.
 
+## CONTINUAÇÃO DA REFATORAÇÃO - 2026-04-20
+
+Branch de trabalho: `codex-refatoracao-v9-stability`.
+
+Fatia executada:
+- Removido o calendário legado de `views.js` como API exportada. O runtime do calendário passa a ter um único dono: `src/js/views/calendar-view.js`.
+- Mantido `src/js/components.js` usando o módulo extraído do calendário, evitando colisões de namespace no bootstrap.
+- Exportados handlers do gerenciador de disciplina que antes dependiam do fallback `Proxy`: `switchManagerTab`, `editLessonInline`, `toggleAulaEstudada`, `addBulkAulas`, `addAssunto`, `deleteAula` e `runLessonMapperUI`.
+- Exportados handlers de edição do ciclo/sequência: `toggleEditSeq`, `saveEditSeq`, `cancelEditSeq`, `updateSeqItem`, `dupSeqItem`, `remSeqItem`, `moveSeqItem`, `addSeqItem` e `openCicloHistory`.
+- Mantidos aliases legados em `window.*` para compatibilidade enquanto o restante da bridge é removido gradualmente.
+- Expandido `tests/unit/action-contracts.test.js` para travar esses contratos.
+
+Validação executada nesta fatia:
+- `npm run test:unit -- tests/unit/action-contracts.test.js` -> 14/14 testes passando.
+- `npm run test:e2e -- tests/e2e/app.spec.js -g "calendar"` -> 1/1 teste passando.
+- `npm run test:e2e -- tests/e2e/calendar.spec.js` -> 1/1 teste passando.
+- `npm run test:e2e -- tests/e2e/editais.spec.js` -> 1/1 teste passando.
+- `npm run test:e2e -- tests/e2e/planejamento.spec.js` -> 1/1 teste passando.
+- `npm test` -> 81/81 testes passando.
+- `npm run test:e2e -- tests/e2e/offline-import.spec.js` -> 2/2 testes passando.
+- `npm run test:e2e` -> 28/28 testes passando após rerun completo. A primeira execução completa teve uma falha intermitente em `offline-import.spec.js` durante `page.reload`, mas o spec isolado passou e a suíte completa seguinte passou.
+
+Próximas fatias recomendadas:
+- Migrar handlers restantes que ainda são definidos apenas como `window.*` em `views.js`.
+- Extrair o bloco MED e o bloco Revisões para módulos próprios.
+- Dividir `ui/actions.js` por domínio depois que os alvos estiverem exportados explicitamente.
+- Remover o fallback `Proxy` de `window.EstudoApp` somente quando o contrato mostrar que nenhum `data-action` depende dele.
+
 ### Princípios de Execução
 
 1. **Incremental:** Cada PR deve manter o app funcional

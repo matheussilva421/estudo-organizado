@@ -104,12 +104,14 @@ describe('data-action contracts', () => {
   it('uses the extracted calendar view as the runtime calendar owner', async () => {
     const componentsSource = read('src/js/components.js');
     const mainSource = read('src/js/main.js');
+    const viewsSource = read('src/js/views.js');
     const calendarSource = read('src/js/views/calendar-view.js');
     const calendarModule = await import('../../src/js/views/calendar-view.js?v=8.3');
 
     expect(componentsSource).toContain("from './views/calendar-view.js?v=8.3'");
     expect(mainSource).toContain("import * as calendar_view from './views/calendar-view.js?v=8.3';");
     expect(mainSource).toMatch(/exposedModules\s*=\s*\[[^\]]*calendar_view[^\]]*\]/s);
+    expect(viewsSource).not.toMatch(/export function (renderCalendar|calNavigate|resetCalDate|renderCalendarGrid|renderCalendarWeek|updateCalendarHeader)\s*\(/);
     expect(calendarModule.renderCalendar).toBeTypeOf('function');
     expect(calendarModule.calNavigate).toBeTypeOf('function');
     expect(calendarModule.resetCalDate).toBeTypeOf('function');
@@ -134,6 +136,46 @@ describe('data-action contracts', () => {
 
     expect(actionsSource).toContain('window.EstudoApp?.discardTimerUI');
     expect(registroSource).toMatch(/export function discardTimerUI\s*\(/);
+  });
+
+  it('exports discipline manager action targets instead of relying on Proxy fallback', () => {
+    const actionsSource = read('src/js/ui/actions.js');
+    const viewsSource = read('src/js/views.js');
+    const managerActions = [
+      'switchManagerTab',
+      'editLessonInline',
+      'toggleAulaEstudada',
+      'addBulkAulas',
+      'addAssunto',
+      'deleteAula',
+      'runLessonMapperUI'
+    ];
+
+    for (const actionName of managerActions) {
+      expect(actionsSource).toContain(`window.EstudoApp?.${actionName}`);
+      expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+    }
+  });
+
+  it('exports cycle sequence action targets instead of relying on Proxy fallback', () => {
+    const actionsSource = read('src/js/ui/actions.js');
+    const viewsSource = read('src/js/views.js');
+    const cycleActions = [
+      'toggleEditSeq',
+      'saveEditSeq',
+      'cancelEditSeq',
+      'updateSeqItem',
+      'dupSeqItem',
+      'remSeqItem',
+      'moveSeqItem',
+      'addSeqItem',
+      'openCicloHistory'
+    ];
+
+    for (const actionName of cycleActions) {
+      expect(actionsSource).toContain(`window.EstudoApp?.${actionName}`);
+      expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+    }
   });
 
   it('imports the cache invalidators used by revision action handlers', () => {
