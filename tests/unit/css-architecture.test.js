@@ -68,4 +68,20 @@ describe('CSS architecture', () => {
     expect(combinedCss).toMatch(/\.empty-state\s*{[^}]*gap:\s*var\(--space-3\)/s);
     expect(combinedCss).toMatch(/\.empty-state\s+\.btn\s*{[^}]*align-self:\s*center/s);
   });
+
+  it('prevents broad transitions and hidden focus outlines from returning', () => {
+    const files = [
+      'src/css/styles.css',
+      'src/css/components.css',
+      'src/css/views.css',
+      'src/js/components.js',
+      'src/js/planejamento-wizard.js'
+    ];
+
+    for (const file of files) {
+      const content = read(file);
+      expect(content, `${file} should not use transition: all`).not.toMatch(/transition\s*:\s*all\b/);
+      expect(content, `${file} should not hide outlines`).not.toMatch(/outline\s*:\s*none\b/);
+    }
+  });
 });

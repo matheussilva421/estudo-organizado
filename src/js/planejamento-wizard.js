@@ -266,7 +266,7 @@ function htmlStep1() {
                 <div data-action="pw-select-tipo" data-tipo="ciclo" style="
                     border: 2px solid ${draft.tipo === 'ciclo' ? 'var(--accent)' : 'var(--border)'};
                     background: ${draft.tipo === 'ciclo' ? 'rgba(88,166,255,0.1)' : 'var(--bg-secondary)'};
-                    border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; text-align: left;
+                    border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s; text-align: left;
                 ">
                     <div class="cluster-lg mb-2">
                         <div class="text-3xl">🔄</div>
@@ -280,7 +280,7 @@ function htmlStep1() {
                 <div data-action="pw-select-tipo" data-tipo="semanal" style="
                     border: 2px solid ${draft.tipo === 'semanal' ? 'var(--accent)' : 'var(--border)'};
                     background: ${draft.tipo === 'semanal' ? 'rgba(88,166,255,0.1)' : 'var(--bg-secondary)'};
-                    border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; text-align: left;
+                    border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s; text-align: left;
                 ">
                     <div class="cluster-lg mb-2">
                         <div class="text-3xl">📅</div>
@@ -331,7 +331,7 @@ function htmlStep2() {
                         border: 1px solid ${sel ? 'var(--accent)' : 'var(--border)'};
                         background: ${sel ? 'rgba(88,166,255,0.1)' : 'var(--bg-secondary)'};
                         padding: 12px; border-radius: 8px; cursor:pointer; display:flex; align-items:center; gap:8px;
-                        transition: all 0.2s;
+                        transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
                     ">
                         <div style="width:20px; height:20px; border-radius:4px; border:1px solid ${sel ? 'var(--accent)' : 'var(--border)'}; background:${sel ? 'var(--accent)' : 'transparent'}; display:flex; align-items:center; justify-content:center; color:var(--accent-text, #fff); font-size:12px;">
                             ${sel ? '✓' : ''}

@@ -115,6 +115,43 @@ test.describe('Estudo Organizado', () => {
     expect(cicloLayout.verticallyOrdered).toBe(true);
   });
 
+  test('keeps empty-state CTA text readable on mobile screenshots', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/');
+
+    for (const view of [
+      { name: 'med', emptySelector: '.med-empty-state' },
+      { name: 'ciclo', emptySelector: '#main-content > .empty-state' }
+    ]) {
+      await page.evaluate((viewName) => {
+        window.navigate(viewName);
+      }, view.name);
+      const emptyState = page.locator(view.emptySelector);
+      await expect(emptyState).toBeVisible();
+
+      const screenshot = await emptyState.screenshot();
+      expect(screenshot.length).toBeGreaterThan(1000);
+
+      const fit = await emptyState.locator('.btn').first().evaluate((button) => {
+        const rect = button.getBoundingClientRect();
+        return {
+          textFits: button.scrollWidth <= button.clientWidth + 1,
+          insideViewport: rect.left >= 0 && rect.right <= document.documentElement.clientWidth,
+          minTapHeight: rect.height >= 40
+        };
+      });
+
+      expect(fit).toEqual({
+        textFits: true,
+        insideViewport: true,
+        minTapHeight: true
+      });
+    }
+  });
+
   test('toggles timer mode exactly once through the central action dispatcher', async ({ page }) => {
     const state = createE2EState();
 

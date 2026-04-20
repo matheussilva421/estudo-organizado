@@ -63,7 +63,7 @@ npm run test:e2e
 - [x] Remove conflicting empty-state declarations or make later stylesheet declarations intentionally override the base.
 - [x] Audit empty state call sites: Study Organizer, Ciclo, RevisÃµes, HÃ¡bitos, Editais, Banca.
 - [x] Verify desktop screenshot no longer shows inline icon/title/paragraph/button.
-- [ ] Verify mobile screenshot no longer squeezes CTA text.
+- [x] Verify mobile screenshot no longer squeezes CTA text.
 
 **Verification:**
 
@@ -274,17 +274,26 @@ Manual/browser:
 
 **Tasks:**
 
-- [ ] Classify remaining `style=` occurrences:
+- [x] Classify remaining `style=` occurrences:
   - static layout style
   - dynamic color
   - dynamic width/progress
   - one-off modal dimensions
 - [ ] Move static styles to CSS classes in batches by surface.
 - [ ] Keep dynamic values inline only where CSS variables are not practical.
-- [ ] Replace `transition: all` with explicit properties.
-- [ ] Replace `outline: none` with `:focus-visible` alternatives.
+- [x] Replace `transition: all` with explicit properties.
+- [x] Replace `outline: none` with `:focus-visible` alternatives.
 - [ ] Add `aria-label` to icon-only buttons.
 - [ ] Remove `style-src 'unsafe-inline'` only after static inline styles are gone or replaced with nonce/hash strategy.
+
+**Current inline-style classification after slice 16:**
+
+- `src/index.html`: 52 mostly one-off modal dimensions, hidden badges and boot-time layout attributes.
+- `src/js/views/*.js`: 159 combined, mixed static layout, dynamic color and dynamic progress widths.
+- `src/js/components.js`: 28, mostly chronometer layout plus dynamic timer/card badges.
+- `src/js/planejamento-wizard.js`: 9, mostly dynamic selected-state color/visibility.
+- `src/js/app.js` and `src/js/logic.js`: 5 combined, small prompt/error fallback templates.
+- Static styles still remain, so `style-src 'unsafe-inline'` must stay until later slices replace or nonce/hash them.
 
 **Verification:**
 
@@ -861,3 +870,44 @@ Result:
 - Focused offline/import E2E: 2 passed
 - Full unit: 70 passed
 - Full E2E: 27 passed
+
+### 2026-04-20 - Recovery slice 16
+
+Advanced Phase 6 CSS cleanup and closed the mobile empty-state CTA evidence gap.
+
+Changed files:
+
+- `src/css/styles.css`
+- `src/css/views.css`
+- `src/js/components.js`
+- `src/js/planejamento-wizard.js`
+- `tests/unit/css-architecture.test.js`
+- `tests/e2e/app.spec.js`
+- `src/docs/superpowers/plans/2026-04-19-regression-recovery-implementation-plan.md`
+- `src/docs/superpowers/plans/2026-04-18-fase-progress.md`
+
+What changed:
+
+- Replaced the remaining production `transition: all` declarations with explicit transition properties.
+- Replaced remaining production `outline: none` declarations with visible focus outlines.
+- Added a unit guard so the cleaned CSS/JS surfaces cannot reintroduce `transition: all` or hidden outlines.
+- Added an E2E mobile screenshot/layout check proving empty-state CTA text fits inside the button and remains inside the viewport.
+- Classified remaining inline-style occurrences by file/surface so later CSS migration slices can proceed intentionally.
+
+Verification:
+
+```powershell
+npm run test:unit -- tests/unit/css-architecture.test.js
+npm run test:e2e -- tests/e2e/app.spec.js -g "empty-state CTA"
+rg -n "transition\s*:\s*all|outline:\s*none" src/css src/js
+npm test
+npm run test:e2e
+```
+
+Results:
+
+- CSS architecture focused unit: 6 passed
+- Mobile empty-state CTA E2E: 1 passed
+- Production `transition: all` / `outline: none` scan: 0 matches
+- Full unit: 71 passed
+- Full E2E: 28 passed

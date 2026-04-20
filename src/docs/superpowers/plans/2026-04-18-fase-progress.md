@@ -58,7 +58,9 @@ Nota de estado: o plano principal foi supersedido para fins de estabilizacao pel
 - Linkada a ordem de CSS no `index.html`: tokens, base, components, views e legado.
 - Adicionado `tests/unit/css-architecture.test.js` para proteger a arquitetura CSS.
 - Empty states e varias superficies criticas foram consolidadas em classes.
-- Ainda pendente: classificar/remover estilos inline restantes, substituir `transition: all` e `outline: none` remanescentes, e so entao remover `style-src 'unsafe-inline'`.
+- Estilos inline restantes foram classificados por arquivo/superficie.
+- `transition: all` e `outline: none` foram removidos das superficies de producao escaneadas e protegidos por teste unitario.
+- Ainda pendente: migrar estilos inline estaticos restantes para classes e so entao remover `style-src 'unsafe-inline'`.
 
 ## Fase 6: PWA Quality
 
@@ -100,13 +102,14 @@ Nota de estado: o plano principal foi supersedido para fins de estabilizacao pel
 
 ## Verificacao 2026-04-20
 
-- `npm test` - 70 tests passing.
+- `npm test` - 71 tests passing.
 - `npm run test:e2e -- tests/e2e/revisoes-habitos.spec.js tests/e2e/sessoes.spec.js` - 4 tests passing.
 - `npm run test:e2e -- tests/e2e/calendar.spec.js tests/e2e/app.spec.js tests/e2e/planejamento.spec.js` - 20 tests passing.
 - `npm run test:e2e -- tests/e2e/offline-import.spec.js` - 2 tests passing.
-- `npm run test:e2e` - 27 tests passing.
+- `npm run test:e2e` - 28 tests passing.
+- `npm run test:unit -- tests/unit/css-architecture.test.js` - 6 tests passing.
+- `npm run test:e2e -- tests/e2e/app.spec.js -g "empty-state CTA"` - 1 test passing.
 
 ## Proximas pendencias reais
 
-- Concluir Fase 6 do plano de recuperacao: inventario e migracao dos `style=` restantes, `transition: all`, `outline: none` e CSP de estilos.
-- Adicionar evidencia manual ou screenshot para a verificacao mobile de CTA em empty states.
+- Concluir Fase 6 do plano de recuperacao: migracao dos `style=` estaticos restantes e CSP de estilos.

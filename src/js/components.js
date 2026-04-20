@@ -181,7 +181,7 @@ export function renderCronometro(el) {
       ">
         <button id="crono-mode-btn" data-action="toggle-timer-mode" style="
           padding:8px 20px;border-radius:20px;border:none;cursor:pointer;
-          font-size:13px;font-weight:500;transition:all 0.3s;
+          font-size:13px;font-weight:500;transition:background-color 0.3s, color 0.3s, border-color 0.3s;
           ${_pomodoroMode
       ? 'background:var(--accent-light);color:var(--accent-dark);'
       : 'background:var(--bg);color:var(--text-secondary);border:1px solid var(--border);'}
