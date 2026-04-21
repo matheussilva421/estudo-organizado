@@ -206,7 +206,7 @@ describe('data-action contracts', () => {
   it('imports the cache invalidators used by revision action handlers', () => {
     const viewsSource = read('src/js/views.js');
 
-    expect(viewsSource).toMatch(/import\s+\{[^}]*invalidatePendingRevCache[^}]*\}\s+from\s+['"]\.\/logic\.js\?v=8\.12['"]/s);
+    expect(viewsSource).toMatch(/import\s+\{[^}]*invalidatePendingRevCache[^}]*\}\s+from\s+['"]\.\/logic\.js\?v=8\.13['"]/s);
     expect(viewsSource).toContain('invalidatePendingRevCache();');
   });
 
