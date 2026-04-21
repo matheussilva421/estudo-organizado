@@ -1,5 +1,5 @@
-import { state, setState, SyncQueue, saveStateToDB } from './store.js?v=8.10';
-import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.10';
+import { state, setState, SyncQueue, saveStateToDB } from './store.js?v=8.11';
+import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.11';
 
 let isSyncing = false;
 let _lastPushTime = 0;

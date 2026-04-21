@@ -3445,6 +3445,8 @@ mark {
 
 .dash-streak-panel {
   background: var(--card);
+  height: auto;
+  overflow: visible;
 }
 
 .streak-heatmap {

@@ -3,9 +3,9 @@
  * Renderiza dashboard de disciplina (renderDisciplinaDashboard e helpers)
  */
 
-import { scheduleSave, state } from '../store.js?v=8.10';
-import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.10';
-import { getDisc } from '../logic.js?v=8.10';
+import { scheduleSave, state } from '../store.js?v=8.11';
+import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.11';
+import { getDisc } from '../logic.js?v=8.11';
 
 // ── Main Dashboard Render ──
 export function renderDisciplinaDashboard(edital, disc) {

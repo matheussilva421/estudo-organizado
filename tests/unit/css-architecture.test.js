@@ -182,6 +182,14 @@ describe('CSS architecture', () => {
     expect(extractCssBlock(legacyStyles, '.card-header')).toContain('border-bottom: 1px solid var(--panel-divider)');
   });
 
+  it('lets the home consistency panel grow instead of clipping its heatmap', () => {
+    const legacyStyles = read('src/css/styles.css');
+    const streakPanelBlock = extractCssBlock(legacyStyles, '.dash-streak-panel');
+
+    expect(streakPanelBlock).toContain('height: auto');
+    expect(streakPanelBlock).toContain('overflow: visible');
+  });
+
   it('keeps browser cache busting aligned with the current app version', () => {
     const html = read('src/index.html');
     const serviceWorker = read('src/sw.js');
@@ -196,8 +204,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.10');
-    expect(serviceWorker).toContain("APP_VERSION = '8.10'");
+    expect(html).toContain('css/styles.css?v=8.11');
+    expect(serviceWorker).toContain("APP_VERSION = '8.11'");
     expect(appSources).not.toMatch(/v=8\.[345]|APP_VERSION = '8\.[345]'/);
   });
 
