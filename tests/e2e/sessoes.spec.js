@@ -84,4 +84,96 @@ test.describe('Registro de Sessoes', () => {
     await page.click('[data-view="historico-sessoes"]');
     await expect(page.locator('#main-content')).toContainText('Direito Constitucional');
   });
+
+  test('keeps session history cards consistent with long records', async ({ page }) => {
+    const state = createE2EState();
+    const disciplinas = [
+      { id: 'disc_1', nome: 'Direito Previdenciario', icone: 'P', cor: '#06b6d4', assuntos: [{ id: 'ass_1', nome: 'Regimes previdenciarios', concluido: true }], aulas: [] },
+      { id: 'disc_2', nome: 'Direito Constitucional', icone: 'C', cor: '#8b5cf6', assuntos: [{ id: 'ass_2', nome: 'Interpretacao constitucional', concluido: true }], aulas: [] },
+      { id: 'disc_3', nome: 'Lingua Portuguesa', icone: 'L', cor: '#10b981', assuntos: [{ id: 'ass_3', nome: 'Dominio da ortografia oficial', concluido: true }], aulas: [] },
+      { id: 'disc_4', nome: 'Controle Externo e Legislacao Institucional', icone: 'E', cor: '#64748b', assuntos: [{ id: 'ass_4', nome: 'Jurisdicao da administracao publica', concluido: true }], aulas: [] }
+    ];
+    state.editais[0].disciplinas = disciplinas;
+    state.eventos = [
+      {
+        id: 'ev_hist_single',
+        titulo: 'Direito Previdenciario - Aula 01 - Regimes Previdenciarios: distincoes entre RGPS, RPPS e RPC, filiacao, inscricao e segurados do RGPS.',
+        data: '2026-03-19',
+        dataEstudo: '2026-03-19',
+        status: 'estudei',
+        tempoAcumulado: 4780,
+        tipo: 'conteudo',
+        discId: 'disc_1',
+        assId: 'ass_1',
+        sessao: { questoes: { total: 0 }, paginas: 9 }
+      },
+      {
+        id: 'ev_hist_a',
+        titulo: 'Controle Externo e Legislacao Institucional - competencias e jurisdicao administrativa',
+        data: '2026-03-02',
+        dataEstudo: '2026-03-02',
+        status: 'estudei',
+        tempoAcumulado: 960,
+        tipo: 'conteudo',
+        discId: 'disc_4',
+        assId: 'ass_4'
+      },
+      {
+        id: 'ev_hist_b',
+        titulo: 'Direito Constitucional - Aula de controle de constitucionalidade',
+        data: '2026-03-02',
+        dataEstudo: '2026-03-02',
+        status: 'estudei',
+        tempoAcumulado: 6360,
+        tipo: 'questoes',
+        discId: 'disc_2',
+        assId: 'ass_2',
+        questoes: { acertos: 24, erros: 6, total: 30 },
+        paginas: 21
+      },
+      {
+        id: 'ev_hist_c',
+        titulo: 'Lingua Portuguesa - Aula 01 - dominio da ortografia oficial',
+        data: '2026-03-02',
+        dataEstudo: '2026-03-02',
+        status: 'estudei',
+        tempoAcumulado: 3420,
+        tipo: 'conteudo',
+        discId: 'disc_3',
+        assId: 'ass_3'
+      }
+    ];
+    await page.setViewportSize({ width: 1536, height: 768 });
+    await seedLegacyState(page, state);
+
+    await page.goto('/');
+    await page.click('[data-view="historico-sessoes"]');
+    await expect(page.locator('.session-group-section')).toHaveCount(2);
+
+    const metrics = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('.session-group-section')).map(section => {
+        const title = section.querySelector('.session-group-title')?.textContent || '';
+        const grid = section.querySelector('.session-group-grid');
+        const cards = Array.from(section.querySelectorAll('.session-disc-card'));
+        const detailCards = Array.from(section.querySelectorAll('.session-detail-card'));
+        const firstDetailTitle = section.querySelector('.session-detail-title')?.getBoundingClientRect();
+        return {
+          title,
+          gridWidth: grid?.getBoundingClientRect().width || 0,
+          cardWidths: cards.map(card => card.getBoundingClientRect().width),
+          detailOverflows: detailCards.map(card => card.scrollWidth > card.clientWidth + 1),
+          firstDetailTitleHeight: firstDetailTitle?.height || 0
+        };
+      });
+    });
+
+    const singleDay = metrics.find(group => group.title.includes('19/03/2026'));
+    const multiDay = metrics.find(group => group.title.includes('02/03/2026'));
+    expect(singleDay.cardWidths).toHaveLength(1);
+    expect(singleDay.cardWidths[0]).toBeLessThan(singleDay.gridWidth * 0.75);
+    expect(singleDay.firstDetailTitleHeight).toBeGreaterThan(20);
+    expect(singleDay.detailOverflows.some(Boolean)).toBe(false);
+    expect(multiDay.cardWidths).toHaveLength(3);
+    expect(multiDay.detailOverflows.some(Boolean)).toBe(false);
+  });
 });

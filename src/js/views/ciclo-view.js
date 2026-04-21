@@ -200,7 +200,7 @@ function renderCicloView(el, plan) {
       if (seq.discId) selHtml = selHtml.replace(`value="${seq.discId}"`, `value="${seq.discId}" selected`);
 
       sequenceHtml += `
-        <div class="seq-item-card">
+        <div class="seq-item-card seq-item-card--editing">
           <div class="seq-item-color-bar" style="background:${cor};"></div>
           <div class="seq-item-content">
              <div class="seq-item-field seq-item-field--wide">
@@ -234,7 +234,7 @@ function renderCicloView(el, plan) {
       `;
     } else {
       sequenceHtml += `
-        <div class="seq-item-card">
+        <div class="seq-item-card seq-item-card--static">
           <div class="seq-item-color-bar" style="background:${cor};"></div>
           <div class="seq-item-content seq-item-content--static">
             <div class="seq-item-header">

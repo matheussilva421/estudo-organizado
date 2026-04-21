@@ -4169,13 +4169,15 @@ body {
 }
 
 .ciclo-sequence-card .scroll-area-md {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .ciclo-sequence-card .seq-item-card {
   flex: 0 0 auto;
   min-height: 112px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
   overflow: visible;
 }
 
@@ -4196,10 +4198,92 @@ body {
   row-gap: 8px;
 }
 
+.seq-item-card--editing {
+  min-height: auto;
+}
+
+.seq-item-card--editing .seq-item-content {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(88px, 112px) minmax(140px, max-content) 24px;
+  align-items: end;
+  gap: 12px;
+  min-width: 0;
+}
+
+.seq-item-card--editing .seq-item-field--wide,
+.seq-item-card--editing .seq-item-field--narrow {
+  min-width: 0;
+}
+
+.seq-item-card--editing .seq-item-field--wide {
+  min-width: 0;
+}
+
+.seq-item-card--editing .seq-item-actions {
+  align-items: flex-start;
+  justify-content: end;
+  min-width: 0;
+}
+
+.seq-item-card--editing .seq-item-action-buttons {
+  flex-wrap: wrap;
+}
+
+.seq-item-card--editing .seq-item-move-controls {
+  justify-self: end;
+  align-self: center;
+}
+
+.session-group-section .session-group-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  align-items: stretch;
+}
+
+.session-group-section .session-disc-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.session-group-section .session-disc-header {
+  align-items: flex-start;
+}
+
+.session-group-section .session-detail-row {
+  flex-wrap: wrap;
+}
+
+.session-group-section .session-detail-content {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.session-group-section .session-detail-title {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.35;
+}
+
+.session-group-section .session-detail-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .session-group-section .session-scroll-container {
   max-height: none;
   overflow: visible;
   padding-right: 0;
+}
+
+@media (max-width: 900px) {
+  .seq-item-card--editing .seq-item-content {
+    grid-template-columns: minmax(0, 1fr) minmax(96px, 130px);
+  }
+
+  .seq-item-card--editing .seq-item-actions,
+  .seq-item-card--editing .seq-item-move-controls {
+    justify-self: stretch;
+  }
 }
 
 .habit-history-card .card-body,

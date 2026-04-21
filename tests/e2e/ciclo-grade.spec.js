@@ -157,6 +157,67 @@ test.describe('Ciclo de Estudos', () => {
     const seqCount = await page.evaluate(() => window.state.planejamento?.sequencia?.length || 0);
     expect(seqCount).toBe(2);
   });
+
+  test('mantem cards de edicao da sequencia espacados sem overflow horizontal', async ({ page }) => {
+    const state = createE2EState();
+    const disciplinas = [
+      { id: 'disc_1', nome: 'Administracao Financeira e Orcamentaria', icone: 'A', cor: '#f59e0b', assuntos: [], aulas: [] },
+      { id: 'disc_2', nome: 'Direito Administrativo', icone: 'D', cor: '#3b82f6', assuntos: [], aulas: [] },
+      { id: 'disc_3', nome: 'Direito Previdenciario', icone: 'P', cor: '#06b6d4', assuntos: [], aulas: [] },
+      { id: 'disc_4', nome: 'Lingua Portuguesa', icone: 'L', cor: '#10b981', assuntos: [], aulas: [] }
+    ];
+    state.editais[0].disciplinas = disciplinas;
+    state.planejamento = {
+      ativo: true,
+      tipo: 'ciclo',
+      disciplinas: disciplinas.map(d => d.id),
+      sequencia: disciplinas.map((d, index) => ({
+        id: `seq_${index + 1}`,
+        discId: d.id,
+        minutosAlvo: 120,
+        concluido: false
+      })),
+      ciclosCompletos: 1,
+      dataInicioCicloAtual: new Date().toISOString(),
+      horarios: {
+        diasAtivos: [1, 2, 3, 4, 5],
+        horasPorDia: { 1: '02:00', 2: '02:00', 3: '02:00', 4: '02:00', 5: '02:00' }
+      }
+    };
+    await page.setViewportSize({ width: 1536, height: 768 });
+    await seedLegacyState(page, state);
+
+    await page.goto('/');
+    await page.click('[data-view="ciclo"]');
+    await expect(page.locator('#topbar-title')).toHaveText('Ciclo de Estudos', { timeout: 10000 });
+    await page.click('[data-action="toggle-edit-seq"]');
+    await expect(page.locator('.seq-item-card--editing')).toHaveCount(4);
+
+    const metrics = await page.locator('.ciclo-sequence-card').evaluate((card) => {
+      const items = Array.from(card.querySelectorAll('.seq-item-card--editing'));
+      const gaps = items.slice(1).map((item, index) => {
+        const previous = items[index].getBoundingClientRect();
+        const current = item.getBoundingClientRect();
+        return Math.round(current.top - previous.bottom);
+      });
+      return {
+        cardOverflows: card.scrollWidth > card.clientWidth + 1,
+        contentOverflows: items.map((item, index) => ({
+          index,
+          overflow: item.scrollWidth > item.clientWidth + 1,
+          scrollWidth: item.scrollWidth,
+          clientWidth: item.clientWidth
+        })),
+        gaps,
+        heights: items.map(item => Math.round(item.getBoundingClientRect().height))
+      };
+    });
+
+    expect(metrics.cardOverflows).toBe(false);
+    expect(metrics.contentOverflows.filter(item => item.overflow)).toEqual([]);
+    expect(metrics.gaps.every(gap => gap >= 12 && gap <= 24)).toBe(true);
+    expect(Math.max(...metrics.heights) - Math.min(...metrics.heights)).toBeLessThanOrEqual(8);
+  });
 });
 
 test.describe('Grade Semanal', () => {
