@@ -2725,6 +2725,8 @@
   flex-direction: column;
   overflow: hidden;
   margin-bottom: 12px;
+  min-width: 0;
+  width: 100%;
 }
 
 .ciclo-predict-title {
@@ -2734,6 +2736,7 @@
   letter-spacing: 0.5px;
   margin-bottom: 12px;
   flex-shrink: 0;
+  width: 100%;
 }
 
 .ciclo-predict-title-icon {

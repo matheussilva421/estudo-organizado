@@ -1033,6 +1033,7 @@ export function renderRevisoes(el) {
             <div class="rev-item-actions cluster-sm">
               <button type="button" class="btn btn-primary btn-sm" data-action="mark-revision" data-assunto-id="${r.assunto.id}">✅ Feita</button>
               <button type="button" class="btn btn-ghost btn-sm" data-action="postpone-revision" data-assunto-id="${r.assunto.id}">⏩ +1 dia</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-action="delete-revision" data-assunto-id="${r.assunto.id}" title="Excluir revisão" style="color:var(--danger);">🗑️</button>
             </div>
           </div>
         `;
@@ -1109,6 +1110,30 @@ export function adiarRevisao(assId) {
       }
     }
   }
+}
+
+export function deletarRevisao(assId) {
+  showConfirm('Tem certeza que deseja excluir esta revisão? Isso não removerá o tópico dos concluídos, apenas a removerá da lista de revisões pendentes.', async (confirmed) => {
+    if (!confirmed) return;
+
+    for (const edital of state.editais) {
+      for (const disc of (edital.disciplinas || [])) {
+        const ass = (disc.assuntos || []).find(a => a.id === assId);
+        if (ass) {
+          // Remove the last revision entry from the array
+          if (ass.revisoesFetas && ass.revisoesFetas.length > 0) {
+            ass.revisoesFetas.pop();
+          }
+          invalidateRevCache();
+          invalidatePendingRevCache();
+          scheduleSave();
+          renderCurrentView();
+          showToast('Revisão excluída!', 'info');
+          return;
+        }
+      }
+    }
+  });
 }
 
 // =============================================

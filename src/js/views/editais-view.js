@@ -340,7 +340,7 @@ export function renderEditalTree(edital) {
     }
 
     return `
-              <div class="disc-card" style="--card-color: ${disc.cor || 'var(--accent)'};">
+              <div class="disc-card" style="--card-color: ${disc.cor || 'var(--accent)'};" data-action="open-disc-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
                 <div class="disc-card-title">${disc.icone || '📚'} ${esc(disc.nome)}</div>
                 <div class="disc-stats">
                   <div class="disc-stat">
