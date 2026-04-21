@@ -313,6 +313,8 @@ registerAction('open-disc-modal', (el) => openDiscModal(el));
 registerAction('save-disc', () => saveDisc());
 registerAction('delete-disc', (el, event) => deleteDisc(el, event));
 
+registerAction('open-disc-dashboard', (el) => openDiscDashboard(el));
+
 registerAction('open-disc-manager', (el, event) => openDiscManager(el, event));
 registerAction('save-disc-manager', (el) => saveDiscManager(el));
 registerAction('add-assunto', (el) => addAssunto(el));
@@ -341,3 +343,15 @@ registerAction('apply-banca-ranking', applyBancaRanking);
 registerAction('filtrar-view-por-disciplina', filtrarViewPorDisciplina);
 registerAction('mudar-edital-analisador', mudarEditalAnalisador);
 registerAction('carregar-analise-banca', carregarAnaliseBanca);
+
+/**
+ * Abre dashboard da disciplina
+ * @param {HTMLElement} el - Elemento acionador
+ */
+export function openDiscDashboard(el) {
+  const editalId = el.dataset.editalId;
+  const discId = el.dataset.discId;
+  if (editalId && discId && typeof window.EstudoApp?.openDiscDashboard === 'function') {
+    window.EstudoApp.openDiscDashboard(editalId, discId);
+  }
+}
