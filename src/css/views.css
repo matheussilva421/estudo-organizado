@@ -2304,6 +2304,8 @@
   align-items: center;
   gap: 6px;
   overflow: hidden;
+  min-width: 0;
+  flex: 1;
 }
 
 .seq-discipline-dot {
@@ -2663,7 +2665,7 @@
    ============================================= */
 
 .ciclo-side-panel {
-  padding: 24px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 100px);
@@ -2721,14 +2723,16 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 16px;
+  padding: 12px;
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   margin-bottom: 12px;
   min-width: 0;
-  width: 100%;
+  width: calc(100% + 32px);
+  margin-left: -16px;
+  margin-right: -16px;
 }
 
 .ciclo-predict-title {
@@ -2739,6 +2743,7 @@
   margin-bottom: 12px;
   flex-shrink: 0;
   width: 100%;
+  max-width: 100%;
 }
 
 .ciclo-predict-title-icon {
@@ -2750,10 +2755,12 @@
   gap: 12px;
   margin-bottom: 16px;
   flex-shrink: 0;
+  width: 100%;
 }
 
 .ciclo-predict-field {
   flex: 1;
+  min-width: 0;
 }
 
 .ciclo-predict-label {
@@ -2776,6 +2783,8 @@
   flex: 1;
   overflow-y: auto;
   padding-right: 4px;
+  width: 100%;
+  min-width: 0;
 }
 
 .ciclo-predict-empty {
