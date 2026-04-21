@@ -2296,6 +2296,7 @@
   font-size: 12px;
   padding: 4px 0;
   border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+  width: 100%;
 }
 
 .seq-discipline-info {
@@ -2318,7 +2319,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text-primary);
-  max-width: 140px;
+  flex: 1;
 }
 
 .seq-discipline-stats {
