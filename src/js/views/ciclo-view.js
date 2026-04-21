@@ -3,11 +3,11 @@
  * Renderiza visualização de Ciclo Contínuo e Grade Semanal
  */
 
-import { esc, formatH, uid } from '../utils.js?v=8.13';
-import { state, scheduleSave } from '../store.js?v=8.13';
-import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from '../logic.js?v=8.13';
-import { renderCurrentView } from '../components.js?v=8.13';
-import { showConfirm, showToast } from '../app.js?v=8.13';
+import { esc, formatH, uid } from '../utils.js?v=8.14';
+import { state, scheduleSave } from '../store.js?v=8.14';
+import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from '../logic.js?v=8.14';
+import { renderCurrentView } from '../components.js?v=8.14';
+import { showConfirm, showToast } from '../app.js?v=8.14';
 
 export function recomecarCiclo() {
   showConfirm('Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?', () => {

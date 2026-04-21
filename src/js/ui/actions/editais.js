@@ -296,7 +296,7 @@ export function switchManagerTab(el) {
 
 // Register all action handlers
 import { registerAction } from './dispatcher.js';
-import { parseBancaText, applyBancaRanking, filtrarViewPorDisciplina, mudarEditalAnalisador, carregarAnaliseBanca } from '../../views/banca-view.js?v=8.13';
+import { parseBancaText, applyBancaRanking, filtrarViewPorDisciplina, mudarEditalAnalisador, carregarAnaliseBanca } from '../../views/banca-view.js?v=8.14';
 
 registerAction('navigate', (el) => {
   const view = el.dataset.view;
@@ -313,7 +313,7 @@ registerAction('open-disc-modal', (el) => openDiscModal(el));
 registerAction('save-disc', () => saveDisc());
 registerAction('delete-disc', (el, event) => deleteDisc(el, event));
 
-registerAction('open-disc-dashboard', (el) => openDiscDashboard(el));
+// openDiscDashboard defined below
 
 registerAction('open-disc-manager', (el, event) => openDiscManager(el, event));
 registerAction('save-disc-manager', (el) => saveDiscManager(el));
@@ -355,3 +355,6 @@ export function openDiscDashboard(el) {
     window.EstudoApp.openDiscDashboard(editalId, discId);
   }
 }
+
+// Register open-disc-dashboard after function is defined
+registerAction('open-disc-dashboard', (el) => openDiscDashboard(el));

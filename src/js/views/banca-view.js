@@ -3,14 +3,14 @@
  * Renderiza analisador de banca (renderBancaAnalyzerModule)
  */
 
-import { scheduleSave, state } from '../store.js?v=8.13';
-import { esc, uid } from '../utils.js?v=8.13';
-import { openModal, closeModal, showConfirm, showToast } from '../app.js?v=8.13';
+import { scheduleSave, state } from '../store.js?v=8.14';
+import { esc, uid } from '../utils.js?v=8.14';
+import { openModal, closeModal, showConfirm, showToast } from '../app.js?v=8.14';
 import {
   applyRankingToEdital,
   commitEditalOrdering,
   revertEditalOrdering
-} from '../relevance.js?v=8.13';
+} from '../relevance.js?v=8.14';
 
 // ── Analyzer Context State ──
 const analyzerCtx = {
