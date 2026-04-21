@@ -209,14 +209,18 @@ test.describe('Ciclo de Estudos', () => {
           clientWidth: item.clientWidth
         })),
         gaps,
-        heights: items.map(item => Math.round(item.getBoundingClientRect().height))
+        heights: items.map(item => Math.round(item.getBoundingClientRect().height)),
+        actionWidths: items.map(item => Math.round(item.querySelector('.seq-item-actions')?.getBoundingClientRect().width || 0)),
+        moveWidths: items.map(item => Math.round(item.querySelector('.seq-item-move-controls')?.getBoundingClientRect().width || 0))
       };
     });
 
     expect(metrics.cardOverflows).toBe(false);
     expect(metrics.contentOverflows.filter(item => item.overflow)).toEqual([]);
-    expect(metrics.gaps.every(gap => gap >= 12 && gap <= 24)).toBe(true);
-    expect(Math.max(...metrics.heights) - Math.min(...metrics.heights)).toBeLessThanOrEqual(8);
+    expect(metrics.gaps.every(gap => gap >= 10 && gap <= 14)).toBe(true);
+    expect(Math.max(...metrics.heights) - Math.min(...metrics.heights)).toBeLessThanOrEqual(4);
+    expect(metrics.actionWidths.every(width => width >= 170)).toBe(true);
+    expect(metrics.moveWidths.every(width => width >= 28)).toBe(true);
   });
 });
 

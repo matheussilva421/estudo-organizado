@@ -85,7 +85,7 @@ test.describe('Registro de Sessoes', () => {
     await expect(page.locator('#main-content')).toContainText('Direito Constitucional');
   });
 
-  test('keeps session history cards consistent with long records', async ({ page }) => {
+  test('keeps session history as stacked rectangular discipline rows', async ({ page }) => {
     const state = createE2EState();
     const disciplinas = [
       { id: 'disc_1', nome: 'Direito Previdenciario', icone: 'P', cor: '#06b6d4', assuntos: [{ id: 'ass_1', nome: 'Regimes previdenciarios', concluido: true }], aulas: [] },
@@ -149,31 +149,38 @@ test.describe('Registro de Sessoes', () => {
     await page.goto('/');
     await page.click('[data-view="historico-sessoes"]');
     await expect(page.locator('.session-group-section')).toHaveCount(2);
+    await expect(page.locator('.session-history-hint')).toBeVisible();
 
     const metrics = await page.evaluate(() => {
+      const summary = document.querySelector('.session-history-summary')?.getBoundingClientRect();
       return Array.from(document.querySelectorAll('.session-group-section')).map(section => {
         const title = section.querySelector('.session-group-title')?.textContent || '';
-        const grid = section.querySelector('.session-group-grid');
+        const list = section.querySelector('.session-group-list');
         const cards = Array.from(section.querySelectorAll('.session-disc-card'));
         const detailCards = Array.from(section.querySelectorAll('.session-detail-card'));
         const firstDetailTitle = section.querySelector('.session-detail-title')?.getBoundingClientRect();
         return {
           title,
-          gridWidth: grid?.getBoundingClientRect().width || 0,
+          listWidth: list?.getBoundingClientRect().width || 0,
           cardWidths: cards.map(card => card.getBoundingClientRect().width),
+          cardTops: cards.map(card => Math.round(card.getBoundingClientRect().top)),
           detailOverflows: detailCards.map(card => card.scrollWidth > card.clientWidth + 1),
           firstDetailTitleHeight: firstDetailTitle?.height || 0
         };
-      });
+      }).concat([{ title: '__summary__', summaryHeight: summary?.height || 0 }]);
     });
 
+    const summary = metrics.find(group => group.title === '__summary__');
     const singleDay = metrics.find(group => group.title.includes('19/03/2026'));
     const multiDay = metrics.find(group => group.title.includes('02/03/2026'));
+    expect(summary.summaryHeight).toBeGreaterThan(60);
     expect(singleDay.cardWidths).toHaveLength(1);
-    expect(singleDay.cardWidths[0]).toBeLessThan(singleDay.gridWidth * 0.75);
+    expect(singleDay.cardWidths[0]).toBeGreaterThan(singleDay.listWidth * 0.95);
     expect(singleDay.firstDetailTitleHeight).toBeGreaterThan(20);
     expect(singleDay.detailOverflows.some(Boolean)).toBe(false);
     expect(multiDay.cardWidths).toHaveLength(3);
+    expect(multiDay.cardWidths.every(width => width > multiDay.listWidth * 0.95)).toBe(true);
+    expect(new Set(multiDay.cardTops).size).toBe(3);
     expect(multiDay.detailOverflows.some(Boolean)).toBe(false);
   });
 });

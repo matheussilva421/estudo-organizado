@@ -307,29 +307,44 @@ describe('CSS architecture', () => {
     expect(cicloView).toContain('seq-item-card--editing');
     expect(cicloView).toContain('seq-item-card--static');
     expect(sequenceScrollBlock).toContain('display: flex');
-    expect(sequenceScrollBlock).toContain('gap: 16px');
+    expect(sequenceScrollBlock).toContain('gap: 12px');
     expect(sequenceCardBlock).toContain('margin-bottom: 0');
     expect(editingContentBlock).toContain('display: grid');
     expect(editingContentBlock).toContain('grid-template-columns:');
-    expect(editingContentBlock).toContain('align-items: end');
+    expect(editingContentBlock).toContain('align-items: center');
     expect(editingWideFieldBlock).toContain('min-width: 0');
   });
 
-  it('keeps session history cards consistent and readable', () => {
+  it('keeps session history as stacked rectangular discipline rows', () => {
+    const views = read('src/js/views.js');
     const legacyStyles = read('src/css/styles.css');
-    const historyGridBlock = extractCssBlock(legacyStyles, '.session-group-section .session-group-grid');
+    const historyListBlock = extractCssBlock(legacyStyles, '.session-group-section .session-group-list');
+    const discCardBlock = extractCssBlock(legacyStyles, '.session-group-section .session-disc-card');
     const discTitleBlock = extractCssBlock(legacyStyles, '.session-group-section .session-disc-title');
     const detailRowBlock = extractCssBlock(legacyStyles, '.session-group-section .session-detail-row');
     const detailContentBlock = extractCssBlock(legacyStyles, '.session-group-section .session-detail-content');
     const detailTitleBlock = extractCssBlock(legacyStyles, '.session-group-section .session-detail-title');
 
-    expect(historyGridBlock).toContain('auto-fill');
-    expect(historyGridBlock).toContain('minmax');
+    expect(views).toContain('session-group-list');
+    expect(historyListBlock).toContain('display: flex');
+    expect(historyListBlock).toContain('flex-direction: column');
+    expect(discCardBlock).toContain('display: grid');
+    expect(discCardBlock).toContain('grid-template-columns:');
     expect(discTitleBlock).toContain('overflow-wrap: anywhere');
     expect(detailRowBlock).toContain('flex-wrap: wrap');
     expect(detailContentBlock).toContain('flex: 1 1');
     expect(detailTitleBlock).toContain('white-space: normal');
     expect(detailTitleBlock).toContain('overflow: visible');
+  });
+
+  it('keeps final stylesheet from clipping session history summary', () => {
+    const legacyStyles = read('src/css/styles.css');
+    const summaryBlock = extractCssBlock(legacyStyles, '.session-history-summary.card');
+    const summaryHintBlock = extractCssBlock(legacyStyles, '.session-history-summary .session-history-hint');
+
+    expect(summaryBlock).toContain('height: auto');
+    expect(summaryBlock).toContain('overflow: visible');
+    expect(summaryHintBlock).toContain('display: block');
   });
 
   it('keeps calendar event chips constrained inside day cells', () => {

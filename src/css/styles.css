@@ -4171,7 +4171,8 @@ body {
 .ciclo-sequence-card .scroll-area-md {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  padding-bottom: 16px;
 }
 
 .ciclo-sequence-card .seq-item-card {
@@ -4200,14 +4201,16 @@ body {
 
 .seq-item-card--editing {
   min-height: auto;
+  border-radius: 12px;
 }
 
 .seq-item-card--editing .seq-item-content {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(88px, 112px) minmax(140px, max-content) 24px;
-  align-items: end;
+  grid-template-columns: minmax(210px, 1fr) minmax(96px, 122px) minmax(170px, max-content) 32px;
+  align-items: center;
   gap: 12px;
   min-width: 0;
+  padding: 18px 20px;
 }
 
 .seq-item-card--editing .seq-item-field--wide,
@@ -4220,23 +4223,63 @@ body {
 }
 
 .seq-item-card--editing .seq-item-actions {
-  align-items: flex-start;
-  justify-content: end;
+  align-items: stretch;
+  justify-content: center;
   min-width: 0;
+  gap: 6px;
 }
 
 .seq-item-card--editing .seq-item-action-buttons {
   flex-wrap: wrap;
+  gap: 8px;
 }
 
 .seq-item-card--editing .seq-item-move-controls {
   justify-self: end;
   align-self: center;
+  height: auto;
+  gap: 8px;
 }
 
-.session-group-section .session-group-grid {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
-  align-items: stretch;
+.seq-item-card--editing .seq-item-move-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seq-item-card--static {
+  min-height: 126px;
+}
+
+.session-history-summary.card {
+  height: auto;
+  overflow: visible;
+}
+
+.session-history-summary .session-history-hint {
+  display: block;
+  max-width: 900px;
+}
+
+.session-group-section .session-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.session-group-section .session-disc-card {
+  display: grid;
+  grid-template-columns: minmax(190px, 260px) minmax(0, 1fr);
+  gap: 16px;
+  width: 100%;
+  border-left: 4px solid var(--session-disc-color, var(--accent));
+  padding: 14px 16px;
+  align-items: start;
 }
 
 .session-group-section .session-disc-title {
@@ -4261,7 +4304,7 @@ body {
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .session-group-section .session-detail-actions {
@@ -4283,6 +4326,10 @@ body {
   .seq-item-card--editing .seq-item-actions,
   .seq-item-card--editing .seq-item-move-controls {
     justify-self: stretch;
+  }
+
+  .session-group-section .session-disc-card {
+    grid-template-columns: 1fr;
   }
 }
 

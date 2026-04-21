@@ -1188,6 +1188,7 @@ export function renderHistoricoSessoes(el) {
         discId,
         discNome: discInfo?.disc?.nome || 'Sem disciplina',
         discIcone: discInfo?.disc?.icone || '📚',
+        discCor: discInfo?.disc?.cor || discInfo?.edital?.cor || '#64748b',
         itens: []
       });
     }
@@ -1231,14 +1232,15 @@ export function renderHistoricoSessoes(el) {
             <div class="session-group-count">${sessoesNoDia} sessão(ões)</div>
           </div>
 
-          <div class="session-group-grid">
+          <div class="session-group-list">
             ${disciplinas.map(group => {
               // Fallback para disciplina sem nome
               const discName = group.discNome === 'Sem disciplina' || !group.discNome ? 'Disciplina não vinculada' : group.discNome;
               const discIcon = group.discIcone || '📚';
 
+              const discColor = group.discCor || '#64748b';
               return `
-              <div class="session-disc-card">
+              <div class="session-disc-card" style="--session-disc-color:${esc(discColor)};">
                 <div class="session-disc-header">
                   <div class="session-disc-title">${esc(discIcon)} ${esc(discName)}</div>
                   <div class="session-disc-count">${group.itens.length} registro(s)</div>
