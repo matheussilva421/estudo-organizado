@@ -1,6 +1,14 @@
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
+      // Limpar todos os caches antigos primeiro
+      const cacheNames = await caches.keys();
+      for (const cacheName of cacheNames) {
+        if (cacheName.includes('estudo-organizado')) {
+          await caches.delete(cacheName);
+        }
+      }
+
       let refreshing = false;
       const hadServiceWorkerController = Boolean(navigator.serviceWorker.controller);
       navigator.serviceWorker.addEventListener('controllerchange', () => {
