@@ -1,9 +1,9 @@
-import { renderCurrentView } from './components.js?v=8.11';
-import { initDB, scheduleSave, state } from './store.js?v=8.11';
-import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.11';
-import { todayStr, esc } from './utils.js?v=8.11';
-import { pullFromCloudflare } from './cloud-sync.js?v=8.11';
-import { initNotifications } from './notifications.js?v=8.11';
+import { renderCurrentView } from './components.js?v=8.12';
+import { initDB, scheduleSave, state } from './store.js?v=8.12';
+import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.12';
+import { todayStr, esc } from './utils.js?v=8.12';
+import { pullFromCloudflare } from './cloud-sync.js?v=8.12';
+import { initNotifications } from './notifications.js?v=8.12';
 
 // =============================================
 // APP STATE & DATA
@@ -18,26 +18,31 @@ export let currentView = 'home';
 let _driveSyncInterval = null;
 
 export const THEME_OPTIONS = [
-  { value: 'light', label: 'Neutro' },
-  { value: 'dark', label: 'Noite' },
-  { value: 'furtivo', label: 'Furtivo' },
-  { value: 'abismo', label: 'Abismo' },
   { value: 'grafite', label: 'Grafite' },
-  { value: 'matrix', label: 'Matrix' },
-  { value: 'rubi', label: 'Rubi' },
-  { value: 'cyberpunk2077', label: 'Cyberpunk 2077' }
+  { value: 'obsidiana', label: 'Obsidiana' },
+  { value: 'contraste', label: 'Contraste' }
 ];
 
 const THEME_VALUES = THEME_OPTIONS.map(theme => theme.value);
+const LEGACY_THEME_ALIASES = {
+  light: 'grafite',
+  dark: 'grafite',
+  abismo: 'grafite',
+  cyberpunk2077: 'grafite',
+  furtivo: 'obsidiana',
+  matrix: 'obsidiana',
+  rubi: 'contraste'
+};
 
 export function normalizeTheme(themeName, legacyDarkMode = false) {
   if (THEME_VALUES.includes(themeName)) return themeName;
-  return legacyDarkMode ? 'dark' : 'light';
+  if (themeName && LEGACY_THEME_ALIASES[themeName]) return LEGACY_THEME_ALIASES[themeName];
+  return legacyDarkMode ? 'grafite' : 'grafite';
 }
 
 export function getThemeLabel(themeName) {
   const normalizedTheme = normalizeTheme(themeName);
-  return THEME_OPTIONS.find(theme => theme.value === normalizedTheme)?.label || 'Neutro';
+  return THEME_OPTIONS.find(theme => theme.value === normalizedTheme)?.label || 'Grafite';
 }
 
 function getNextTheme(themeName) {
@@ -279,7 +284,7 @@ export function applyTheme(toggle = false) {
     const currentTheme = normalizeTheme(state.config.tema, state.config.darkMode);
     const nextTheme = getNextTheme(currentTheme);
     state.config.tema = nextTheme;
-    state.config.darkMode = nextTheme !== 'light';
+    state.config.darkMode = true;
     state.config.lastTheme = nextTheme;
     scheduleSave();
   }

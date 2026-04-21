@@ -3,9 +3,9 @@
  * Renderiza dashboard de disciplina (renderDisciplinaDashboard e helpers)
  */
 
-import { scheduleSave, state } from '../store.js?v=8.11';
-import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.11';
-import { getDisc } from '../logic.js?v=8.11';
+import { scheduleSave, state } from '../store.js?v=8.12';
+import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.12';
+import { getDisc } from '../logic.js?v=8.12';
 
 // ── Main Dashboard Render ──
 export function renderDisciplinaDashboard(edital, disc) {
@@ -278,14 +278,14 @@ export function initDiscDashboardChart(discId) {
   const canvas = document.getElementById('disc-chart-acertos');
   if (!canvas) return;
   const themeVars = getComputedStyle(document.documentElement);
-  const accent = themeVars.getPropertyValue('--accent').trim() || '#0f766e';
-  const bg = themeVars.getPropertyValue('--bg').trim() || '#0f172a';
-  const card = themeVars.getPropertyValue('--card').trim() || '#1e293b';
-  const border = themeVars.getPropertyValue('--border').trim() || '#334155';
-  const textPrimary = themeVars.getPropertyValue('--text-primary').trim() || '#111827';
-  const textMuted = themeVars.getPropertyValue('--text-muted').trim() || '#94a3b8';
+  const accent = themeVars.getPropertyValue('--accent').trim() || '#8aa4bf';
+  const bg = themeVars.getPropertyValue('--bg').trim() || '#08090d';
+  const card = themeVars.getPropertyValue('--card').trim() || '#121821';
+  const border = themeVars.getPropertyValue('--border').trim() || 'rgba(148, 163, 184, 0.14)';
+  const textPrimary = themeVars.getPropertyValue('--text-primary').trim() || '#f3f6fb';
+  const textMuted = themeVars.getPropertyValue('--text-muted').trim() || '#7f8a99';
   const grid = border;
-  const accentSoft = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}1A` : 'rgba(59,130,246,0.1)';
+  const accentSoft = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}29` : 'rgba(138, 164, 191, 0.16)';
 
   const tempos = state.eventos ? state.eventos.filter(e => {
     const qs = e.sessao?.questoes || e.questoes;

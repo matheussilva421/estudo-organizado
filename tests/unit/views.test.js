@@ -6,6 +6,7 @@ let store;
 let views;
 let logic;
 let components;
+let app;
 
 /**
  * Setup de mock para elementos DOM
@@ -81,10 +82,32 @@ beforeEach(async () => {
   views = modules.views;
   logic = modules.logic;
   components = modules.components;
+  app = modules.app;
 
   store.setState(createBaseState());
   logic.invalidateDiscCache();
   logic.invalidateDashCaches();
+});
+
+describe('app.js - Theme contracts', () => {
+  it('exposes only the premium dark themes', () => {
+    expect(app.THEME_OPTIONS).toEqual([
+      { value: 'grafite', label: 'Grafite' },
+      { value: 'obsidiana', label: 'Obsidiana' },
+      { value: 'contraste', label: 'Contraste' }
+    ]);
+  });
+
+  it('maps legacy theme values to premium dark themes', () => {
+    expect(app.normalizeTheme('light')).toBe('grafite');
+    expect(app.normalizeTheme('dark')).toBe('grafite');
+    expect(app.normalizeTheme('furtivo')).toBe('obsidiana');
+    expect(app.normalizeTheme('abismo')).toBe('grafite');
+    expect(app.normalizeTheme('matrix')).toBe('obsidiana');
+    expect(app.normalizeTheme('rubi')).toBe('contraste');
+    expect(app.normalizeTheme('cyberpunk2077')).toBe('grafite');
+    expect(app.normalizeTheme('desconhecido', true)).toBe('grafite');
+  });
 });
 
 describe('views.js - Skeleton Renderers', () => {

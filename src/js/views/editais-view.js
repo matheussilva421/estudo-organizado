@@ -3,9 +3,9 @@
  * Renderiza view de editais (renderEditais, renderEditalTree) e vertical (renderVertical, renderVerticalList)
  */
 
-import { scheduleSave, state } from '../store.js?v=8.11';
-import { esc, todayStr } from '../utils.js?v=8.11';
-import { getDisc } from '../logic.js?v=8.11';
+import { scheduleSave, state } from '../store.js?v=8.12';
+import { esc, todayStr } from '../utils.js?v=8.12';
+import { getDisc } from '../logic.js?v=8.12';
 
 // ── Vertical View State ──
 let vertSearch = '';
@@ -310,7 +310,7 @@ export function renderEditalTree(edital) {
   return `
     <div class="tree-edital" id="edital-${edital.id}">
       <div class="tree-edital-header" data-action="toggle-edital" data-edital-id="${edital.id}">
-        <span class="flex-shrink-0" style="width:10px; height:10px; border-radius:50%; background:${edital.cor || '#0f766e'}; display:inline-block;"></span>
+        <span class="flex-shrink-0" style="width:10px; height:10px; border-radius:50%; background:${edital.cor || '#8aa4bf'}; display:inline-block;"></span>
         <span class="flex-1 text-lg font-bold">${esc(edital.nome)}</span>
         <span class="text-sm" style="opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
         <button class="icon-btn" title="Adicionar Tópicos" data-action="navigate-with-ctx" data-view="vertical" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">📝</button>

@@ -96,7 +96,7 @@ test.describe('Navegação entre views', () => {
 });
 
 test.describe('Theme Toggle', () => {
-  test('verifica estado inicial do tema', async ({ page }) => {
+  test('mapeia tema legado salvo para o tema premium equivalente', async ({ page }) => {
     const state = createE2EState();
     state.config.tema = 'light';
     await seedLegacyState(page, state);
@@ -108,6 +108,6 @@ test.describe('Theme Toggle', () => {
     const initialTheme = await page.evaluate(() => {
       return document.documentElement.getAttribute('data-theme');
     });
-    expect(initialTheme).toBe('light');
+    expect(initialTheme).toBe('grafite');
   });
 });

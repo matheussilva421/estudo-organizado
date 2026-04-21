@@ -3,8 +3,8 @@
  * Renderiza o dashboard principal com stats, metas, constância e painel de disciplinas
  */
 
-import { state } from '../store.js?v=8.11';
-import { esc, formatDate, formatTime } from '../utils.js?v=8.11';
+import { state } from '../store.js?v=8.12';
+import { esc, formatDate, formatTime } from '../utils.js?v=8.12';
 import {
   getPerformanceStats,
   getSyllabusProgress,
@@ -13,7 +13,7 @@ import {
   getSubjectStats,
   getCurrentWeekStats,
   getPredictiveStats
-} from '../logic.js?v=8.11';
+} from '../logic.js?v=8.12';
 
 export function renderHome(el) {
   const perf = getPerformanceStats();

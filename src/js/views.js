@@ -1,9 +1,9 @@
-import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.11';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.11';
-import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.11';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.11';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.11';
-import { updateDriveUI } from './drive-sync.js?v=8.11';
+import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.12';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.12';
+import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.12';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.12';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.12';
+import { updateDriveUI } from './drive-sync.js?v=8.12';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
@@ -115,10 +115,10 @@ export function renderSkeletonTable(rows = 5, cols = 4) {
 // CONSTANTS
 // =============================================
 export const COLORS = [
-  '#0f766e', '#2563eb', '#d97706', '#dc2626', '#7c3aed',
-  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
-  '#14b8a6', '#e11d48', '#0ea5e9', '#a855f7', '#22c55e',
-  '#eab308', '#d946ef', '#64748b'
+  '#8aa4bf', '#7dd3a8', '#d8a657', '#ef7777', '#a7a4d6',
+  '#b6a28a', '#7fb7c7', '#9fbf8a', '#c58f6b', '#8e9fd0',
+  '#79b8ad', '#d58c9d', '#83a9cb', '#b7a1cf', '#93c9a8',
+  '#c6b176', '#c59ac1', '#7f8a99'
 ];
 
 export const DISC_ICONS = [
@@ -833,10 +833,10 @@ export function renderDailyChart(periodDays) {
   if (!ctx) return;
   if (_chartDaily) { _chartDaily.destroy(); _chartDaily = null; }
   const themeVars = getComputedStyle(document.documentElement);
-  const accent = themeVars.getPropertyValue('--accent').trim() || '#0f766e';
-  const accentLight = themeVars.getPropertyValue('--accent-light').trim() || '#ccfbf1';
-  const border = themeVars.getPropertyValue('--border').trim() || '#e2e8f0';
-  const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#475569';
+  const accent = themeVars.getPropertyValue('--accent').trim() || '#8aa4bf';
+  const accentLight = themeVars.getPropertyValue('--accent-light').trim() || 'rgba(138, 164, 191, 0.16)';
+  const border = themeVars.getPropertyValue('--border').trim() || 'rgba(148, 163, 184, 0.14)';
+  const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#b8c0cc';
   const numDays = periodDays ? Math.min(periodDays, 90) : 30;
   // Pre-aggregate study time by date for O(1) lookup
   const secsByDate = {};
@@ -889,7 +889,7 @@ export function renderDiscChart(periodDays) {
     const d = getDisc(id);
     labels.push(d ? d.disc.nome : id);
     data.push(Math.round(secs / 60));
-    colors.push(d ? (d.disc.cor || '#0f766e') : '#94a3b8');
+    colors.push(d ? (d.disc.cor || '#8aa4bf') : '#7f8a99');
   });
   let dummyTooltip = false;
   if (data.length === 0) {
@@ -1659,14 +1659,14 @@ export function initDiscDashboardChart(discId) {
   const canvas = document.getElementById('disc-chart-acertos');
   if (!canvas) return;
   const themeVars = getComputedStyle(document.documentElement);
-  const accent = themeVars.getPropertyValue('--accent').trim() || '#0f766e';
-  const bg = themeVars.getPropertyValue('--bg').trim() || '#0f172a';
-  const card = themeVars.getPropertyValue('--card').trim() || '#1e293b';
-  const border = themeVars.getPropertyValue('--border').trim() || '#334155';
-  const textPrimary = themeVars.getPropertyValue('--text-primary').trim() || '#111827';
-  const textMuted = themeVars.getPropertyValue('--text-muted').trim() || '#94a3b8';
+  const accent = themeVars.getPropertyValue('--accent').trim() || '#8aa4bf';
+  const bg = themeVars.getPropertyValue('--bg').trim() || '#08090d';
+  const card = themeVars.getPropertyValue('--card').trim() || '#121821';
+  const border = themeVars.getPropertyValue('--border').trim() || 'rgba(148, 163, 184, 0.14)';
+  const textPrimary = themeVars.getPropertyValue('--text-primary').trim() || '#f3f6fb';
+  const textMuted = themeVars.getPropertyValue('--text-muted').trim() || '#7f8a99';
   const grid = border;
-  const accentSoft = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}1A` : 'rgba(59,130,246,0.1)';
+  const accentSoft = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}29` : 'rgba(138, 164, 191, 0.16)';
 
   const tempos = state.eventos ? state.eventos.filter(e => {
     const qs = e.sessao?.questoes || e.questoes;
@@ -1938,7 +1938,7 @@ export function saveDisc() {
   const nome = nomeEl.value.trim();
   if (!nome) { showToast('Informe o nome da disciplina', 'error'); return; }
   const icone = document.getElementById('disc-icone')?.value || '📖';
-  const cor = document.getElementById('disc-cor')?.value || '#0f766e';
+  const cor = document.getElementById('disc-cor')?.value || '#8aa4bf';
   if (!editingDiscCtx) return;
   const { editaId, discId } = editingDiscCtx;
   const edital = state.editais.find(e => e.id === editaId);
@@ -2253,7 +2253,7 @@ export function deleteAula(discId, aulaId) {
 }
 window.deleteAula = deleteAula;
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.11';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.12';
 export function runLessonMapperUI(editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -2924,7 +2924,7 @@ export function renderConfig(el) {
 export function setTheme(themeName) {
   const theme = normalizeTheme(themeName, state.config.darkMode);
   state.config.tema = theme;
-  state.config.darkMode = theme !== 'light';
+  state.config.darkMode = true;
   state.config.lastTheme = theme;
   applyTheme();
   scheduleSave();

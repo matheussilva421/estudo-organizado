@@ -1,8 +1,8 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { pushToCloudflare } from './cloud-sync.js?v=8.11';
-import { uid } from './utils.js?v=8.11';
+import { pushToCloudflare } from './cloud-sync.js?v=8.12';
+import { uid } from './utils.js?v=8.12';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 1;
@@ -342,7 +342,7 @@ export function runMigrations() {
     if (!state.editais) state.editais = [];
     state.editais.forEach(ed => {
       if (!ed.id) ed.id = 'ed_' + uid();
-      if (!ed.cor) ed.cor = '#0f766e';
+      if (!ed.cor) ed.cor = '#8aa4bf';
       // Migration: flatten grupos into disciplinas
       if (ed.grupos && !ed.disciplinas) {
         ed.disciplinas = [];

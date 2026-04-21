@@ -1,47 +1,53 @@
 # Paleta e Temas - Estudo Organizado
 
-Este guia define a direcao visual oficial do app: produtivo, limpo e consistente. A aparencia agora e tratada como biblioteca de temas, sem expor uma alternancia binaria. Os valores internos `light` e `dark` continuam existindo apenas por compatibilidade com preferencias salvas.
+Este guia define a direcao visual oficial do app: dark premium, discreta e consistente. A interface agora expoe poucos temas bons em vez de manter uma biblioteca fantasia com neon, vermelho dominante ou contraste monocromatico extremo.
 
 ## 1) Fonte da verdade
 
-- O tema Neutro fica em `src/css/tokens.css`, no bloco `:root`.
-- O tema Noite fica em `src/css/styles.css`, no bloco `[data-theme="dark"]`.
+- Os tokens base ficam em `src/css/tokens.css`, no bloco `:root`.
+- As variacoes visiveis ficam em `src/css/styles.css`: `[data-theme="grafite"]`, `[data-theme="obsidiana"]` e `[data-theme="contraste"]`.
 - Componentes devem consumir tokens, nao cores fixas.
 - O tema ativo continua sendo aplicado via `data-theme` no elemento `<html>`.
 
-## 2) Temas base
+## 2) Temas visiveis
 
-| Token | Neutro | Noite |
+| Tema | Uso | Base visual |
 |---|---|---|
-| `--bg` | `#edf3f8` | `#0b1220` |
-| `--card` | `#ffffff` | `#111827` |
-| `--surface` | `#e4ecf5` | `#172033` |
-| `--border` | `#cbd7e4` | `#253247` |
-| `--text-primary` | `#111827` | `#e5edf7` |
-| `--text-secondary` | `#475569` | `#a8b3c7` |
-| `--text-muted` | `#64748b` | `#7d8aa3` |
-| `--accent` | `#0f766e` | `#2dd4bf` |
-| `--accent-hover` | `#115e59` | `#5eead4` |
-| `--accent-light` | `#ccfbf1` | `#134e4a` |
-| `--accent-text` | `#ffffff` | `#042f2e` |
+| Grafite | Padrao | Dark premium equilibrado |
+| Obsidiana | Minimo | Quase preto, mais silencioso |
+| Contraste | Acessibilidade | Dark com texto e divisorias mais fortes |
 
-## 3) Tokens semanticos
+Valores antigos como `light`, `dark`, `furtivo`, `abismo`, `matrix`, `rubi` e `cyberpunk2077` continuam aceitos internamente, mas sao normalizados para um dos tres temas acima.
 
-- `--success` / `--success-bg`: conclusao, progresso positivo e estudos feitos.
-- `--warning` / `--warning-bg`: alertas e estados que exigem atencao.
-- `--danger` / `--danger-bg`: atraso, erro e acoes destrutivas.
-- `--info` / `--info-bg`: agendamentos, informacao neutra e estados auxiliares.
-- `--status-agendado`, `--status-estudei`, `--status-atrasado`, `--status-nao`: estados especificos de calendario e revisao.
-- `--app-bg`, `--card-header`, `--card-hover`, `--sidebar-active-bg`, `--sidebar-active-border` e `--sidebar-border`: tokens de estrutura visual para tornar shell, cards e navegacao mais consistentes entre temas.
+## 3) Paleta base
 
-## 4) Biblioteca de temas
+| Token | Valor |
+|---|---|
+| `--bg` | `#08090d` |
+| `--surface` | `#0d1117` |
+| `--card` | `#121821` |
+| `--card-hover` | `#17202b` |
+| `--border` | `rgba(148, 163, 184, 0.14)` |
+| `--text-primary` | `#f3f6fb` |
+| `--text-secondary` | `#b8c0cc` |
+| `--text-muted` | `#7f8a99` |
+| `--accent` | `#8aa4bf` |
+| `--accent-hover` | `#a7bdd3` |
+| `--accent-light` | `rgba(138, 164, 191, 0.16)` |
+| `--accent-text` | `#071018` |
 
-Os temas disponiveis na interface sao: Neutro, Noite, Furtivo, Abismo, Grafite, Matrix, Rubi e Cyberpunk 2077. Eles devem alterar tokens, mas nao criar regras espalhadas com cores fixas ou `!important` sem necessidade.
+## 4) Tokens semanticos
+
+- `--success`: verde frio discreto para progresso positivo.
+- `--warning`: ambar queimado para atencao sem parecer erro.
+- `--danger`: vermelho suave para erros, atrasos e acoes destrutivas.
+- `--info`: azul aco, alinhado ao acento principal.
+- `--panel-border`, `--panel-divider` e `--panel-shadow`: reduzem a aparencia de caixas desenhadas e separam cards por elevacao.
 
 ## 5) Regras de manutencao
 
-- Para alterar o visual geral, edite tokens antes de editar componentes.
-- Para componentes comuns, use `--accent`, `--accent-hover`, `--accent-text`, `--surface`, `--border` e os tokens semanticos.
-- Evite gradientes em areas funcionais rotineiras como modais, cards e headers internos.
+- Use acento apenas para acao primaria, foco, navegacao ativa e pequenas metricas relevantes.
+- Evite ciano/neon, amarelo forte e vermelho dominante como identidade base.
+- Evite `!important` para temas; se um componente precisar mudar, exponha um token.
 - Mantenha contraste minimo de 4.5:1 para texto pequeno.
 - Depois de mudar tema ou cor, rode `npm test` e confira visualmente home, dashboard, calendario, revisoes, configuracoes e modais.

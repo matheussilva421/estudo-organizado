@@ -3,11 +3,11 @@
  * Renderiza visualização de Ciclo Contínuo e Grade Semanal
  */
 
-import { esc, formatH, uid } from '../utils.js?v=8.11';
-import { state, scheduleSave } from '../store.js?v=8.11';
-import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from '../logic.js?v=8.11';
-import { renderCurrentView } from '../components.js?v=8.11';
-import { showConfirm, showToast } from '../app.js?v=8.11';
+import { esc, formatH, uid } from '../utils.js?v=8.12';
+import { state, scheduleSave } from '../store.js?v=8.12';
+import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from '../logic.js?v=8.12';
+import { renderCurrentView } from '../components.js?v=8.12';
+import { showConfirm, showToast } from '../app.js?v=8.12';
 
 export function recomecarCiclo() {
   showConfirm('Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?', () => {
@@ -191,7 +191,7 @@ function renderCicloView(el, plan) {
     }
     minutosCompletosCiclo += usedMins;
     const pctStr = pct.toFixed(2);
-    const cor = d ? (d.disc.cor || d.edital.cor || '#0f766e') : '#94a3b8';
+    const cor = d ? (d.disc.cor || d.edital.cor || '#8aa4bf') : '#7f8a99';
 
     if (!window._isEditingSequence && window._hideConcluidosCiclo && pct >= 100) return;
 
@@ -388,7 +388,7 @@ function renderCicloChart(plan, dictDisciplinas, totalTarget) {
       if (d) {
         labels.push(d.disc.nome);
         data.push(min);
-        const color = d.disc.cor || d.edital.cor || '#0f766e';
+        const color = d.disc.cor || d.edital.cor || '#8aa4bf';
         bgColors.push(color);
         const wPct = totalTarget > 0 ? ((min / totalTarget) * 100).toFixed(2) : 0;
         linearHtml += `<div style="width:${wPct}%; background:${color}; height:100%;"></div>`;
@@ -470,7 +470,7 @@ function renderGradeView(el, plan) {
 
       sequenceHtml += `
         <div class="ciclo-item ${seq.concluido ? 'concluido' : ''} grade-seq-card">
-          <div class="ciclo-item-cor" style="background:${d.disc.cor || d.edital.cor || '#0f766e'};"></div>
+          <div class="ciclo-item-cor" style="background:${d.disc.cor || d.edital.cor || '#8aa4bf'};"></div>
           <div class="ciclo-item-body">
             <div class="ciclo-item-header grade-seq-header">
               <div class="ciclo-item-title grade-seq-title-link">

@@ -21,405 +21,314 @@
   outline-offset: 2px;
 }
 
-[data-theme="dark"] {
-  --color-scheme: dark;
-  --app-bg: linear-gradient(180deg, #0a0f1a 0%, #0d1525 52%, #101b2e 100%);
-  --bg: #0a0f1a;
-  --card: #0f172a;
-  --card-bg: #0f172a;
-  --card-header: #1e293b;
-  --card-hover: #1a2840;
-  --bg-secondary: #1e293b;
-  --yellow: #facc15;
-  --border: #2a3a52;
-  --text-primary: #eef2f9;
-  --text-secondary: #b8c5d9;
-  --text-muted: #8d9db5;
-  --accent: #2dd4bf;
-  --accent-hover: #5eead4;
-  --accent-light: #134e4a;
-  --accent-dark: #5eead4;
-  --accent-text: #042f2e;
-  --blue: #60a5fa;
-  --orange: #fbbf24;
-  --red: #f87171;
-  --purple: #a78bfa;
-  --green: #2dd4bf;
-  --success: #2dd4bf;
-  --success-bg: #134e4a;
-  --warning: #fbbf24;
-  --warning-bg: #422006;
-  --danger: #f87171;
-  --danger-bg: #450a0a;
-  --info: #60a5fa;
-  --info-bg: #172554;
-  --surface: #1a2540;
-  --sidebar-bg: linear-gradient(180deg, #0a0f1a 0%, #0d1525 100%);
-  --sidebar-hover: rgba(255, 255, 255, 0.07);
-  --sidebar-active: #2dd4bf;
-  --sidebar-active-bg: #134e4a;
-  --sidebar-active-border: #5eead4;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-text: #b8c5d9;
-  --sidebar-text-active: #f8fafc;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 24px 58px rgba(0, 0, 0, 0.5);
-}
-
 /* =========================================
-   BIBLIOTECA DE TEMAS
+   DARK PREMIUM THEME LIBRARY
 ========================================= */
 
-/* 1. TEMA FURTIVO (Monocromático) */
-[data-theme="furtivo"] {
-  --color-scheme: dark;
-  --app-bg: linear-gradient(180deg, #000000 0%, #050505 52%, #0a0a0a 100%);
-  --bg: #000000;
-  --card: #0a0a0a;
-  --card-bg: #0a0a0a;
-  --card-header: #1f1f1f;
-  --card-hover: #2a2a2a;
-  --bg-secondary: #1a1a1a;
-  --yellow: #a3a3a3;
-  --sidebar-bg: #080808;
-  --sidebar-hover: #181818;
-  --sidebar-active: #262626;
-  --border: #333333;
-  --text-primary: #FFFFFF;
-  --text-secondary: #B8B8B8;
-  --text-muted: #909090;
-  --accent: #FFFFFF;
-  --accent-hover: #E5E5E5;
-  --accent-light: #262626;
-  --accent-dark: #E5E5E5;
-  --accent-text: #000000;
-  --accent-text-light: #FFFFFF;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.8), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
-  --surface: #111111;
-}
-
-/* 2. TEMA ABISMO (Marinho & Ciano) */
-[data-theme="abismo"] {
-  --color-scheme: dark;
-  --app-bg: linear-gradient(180deg, #020617 0%, #0a1120 52%, #0d1b30 100%);
-  --bg: #020617;
-  --card: #0b1120;
-  --card-bg: #0b1120;
-  --card-header: #1e293b;
-  --card-hover: #1a2840;
-  --bg-secondary: #1e293b;
-  --yellow: #eab308;
-  --sidebar-bg: linear-gradient(180deg, #020617 0%, #0a1120 100%);
-  --sidebar-hover: #1E293B;
-  --sidebar-active: #06B6D4;
-  --sidebar-active-bg: #164E63;
-  --sidebar-active-border: #06B6D4;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-text: #B0BFd2;
-  --sidebar-text-active: #F8FAFC;
-  --border: #3a4d65;
-  --text-primary: #F8FAFC;
-  --text-secondary: #B0BFd2;
-  --text-muted: #8A9DB5;
-  --accent: #06B6D4;
-  --accent-hover: #22D3EE;
-  --accent-light: #164E63;
-  --accent-dark: #22D3EE;
-  --accent-text: #082F49;
-  --blue: #3B82F6;
-  --orange: #FBBF24;
-  --red: #F87171;
-  --purple: #A78BFA;
-  --green: #06B6D4;
-  --success: #06B6D4;
-  --success-bg: #164E63;
-  --warning: #FBBF24;
-  --warning-bg: #422006;
-  --danger: #F87171;
-  --danger-bg: #450a0a;
-  --danger-text: #ffffff;
-  --info: #3B82F6;
-  --info-bg: #172554;
-  --info-text: #ffffff;
-  --surface: #0F172A;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.8), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
-  --status-agendado: #2563eb;
-  --status-estudei: #06B6D4;
-  --status-atrasado: #dc2626;
-  --status-nao: #64748b;
-}
-
-/* 3. TEMA GRAFITE (Cinza & Azul) */
 [data-theme="grafite"] {
   --color-scheme: dark;
-  --app-bg: linear-gradient(180deg, #09090b 0%, #111114 52%, #18181b 100%);
-  --bg: #09090B;
-  --card: #111114;
-  --card-bg: #111114;
-  --card-header: #27272a;
-  --card-hover: #28282d;
-  --bg-secondary: #27272a;
-  --yellow: #eab308;
-  --sidebar-bg: #0e0e10;
-  --sidebar-hover: #27272A;
-  --sidebar-active: #3B82F6;
-  --border: #45454d;
-  --text-primary: #FAFAFA;
-  --text-secondary: #B8B8C0;
-  --text-muted: #96969e;
-  --accent: #3B82F6;
-  --accent-hover: #60A5FA;
-  --accent-light: #1E3A8A;
-  --accent-dark: #60A5FA;
-  --accent-text: #111827;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.8), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
-  --surface: #1a1a1e;
+  --app-bg: linear-gradient(180deg, #06070a 0%, #08090d 50%, #101620 100%);
+  --bg: #08090d;
+  --card: #121821;
+  --card-bg: #121821;
+  --card-header: #151d27;
+  --card-hover: #17202b;
+  --bg-secondary: #0d1117;
+  --surface: #0d1117;
+  --border: rgba(148, 163, 184, 0.14);
+  --text-primary: #f3f6fb;
+  --text-secondary: #b8c0cc;
+  --text-muted: #7f8a99;
+  --accent: #8aa4bf;
+  --accent-hover: #a7bdd3;
+  --accent-light: rgba(138, 164, 191, 0.16);
+  --accent-dark: #a7bdd3;
+  --accent-text: #071018;
+  --blue: #8aa4bf;
+  --orange: #d8a657;
+  --red: #ef7777;
+  --purple: #a7a4d6;
+  --yellow: #d8a657;
+  --green: #7dd3a8;
+  --success: #7dd3a8;
+  --success-bg: rgba(125, 211, 168, 0.14);
+  --warning: #d8a657;
+  --warning-bg: rgba(216, 166, 87, 0.15);
+  --danger: #ef7777;
+  --danger-bg: rgba(239, 119, 119, 0.14);
+  --danger-text: #071018;
+  --info: #8aa4bf;
+  --info-bg: rgba(138, 164, 191, 0.16);
+  --info-text: #071018;
+  --sidebar-bg: linear-gradient(180deg, #030405 0%, #07090d 100%);
+  --sidebar-hover: rgba(138, 164, 191, 0.09);
+  --sidebar-active: #8aa4bf;
+  --sidebar-active-bg: rgba(138, 164, 191, 0.16);
+  --sidebar-active-border: #a7bdd3;
+  --sidebar-border: rgba(148, 163, 184, 0.1);
+  --sidebar-text: #aeb8c6;
+  --sidebar-text-active: #f3f6fb;
+  --status-agendado: #8aa4bf;
+  --status-estudei: #7dd3a8;
+  --status-atrasado: #ef7777;
+  --status-nao: #6f7a89;
+  --shadow: 0 12px 28px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  --shadow-md: 0 18px 42px rgba(0, 0, 0, 0.34);
+  --shadow-lg: 0 28px 68px rgba(0, 0, 0, 0.44);
+  --panel-border: transparent;
+  --panel-divider: rgba(148, 163, 184, 0.14);
+  --panel-shadow: 0 18px 44px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
-/* 4. TEMA MATRIX (Preto & Verde) */
-[data-theme="matrix"] {
+[data-theme="obsidiana"] {
   --color-scheme: dark;
-  --app-bg: linear-gradient(180deg, #000000 0%, #031003 52%, #071607 100%);
-  --bg: #000000;
-  --card: #050a05;
-  --card-bg: #050a05;
-  --card-header: #1a2f1a;
-  --card-hover: #1a241a;
-  --bg-secondary: #1a1a1a;
-  --yellow: #eab308;
-  --sidebar-bg: #080a08;
-  --sidebar-hover: #1A1A1A;
-  --sidebar-active: #22C55E;
-  --border: #2a3d2a;
-  --text-primary: #E5E5E5;
-  --text-secondary: #B8C8B8;
-  --text-muted: #8A9E8A;
-  --accent: #22C55E;
-  --accent-hover: #4ADE80;
-  --accent-light: #14532D;
-  --accent-dark: #4ADE80;
-  --accent-text: #052E16;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.8), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
-  --surface: #0f140f;
+  --app-bg: linear-gradient(180deg, #010203 0%, #030405 48%, #07090d 100%);
+  --bg: #030405;
+  --card: #0b0d11;
+  --card-bg: #0b0d11;
+  --card-header: #101318;
+  --card-hover: #11161d;
+  --bg-secondary: #07090d;
+  --surface: #07090d;
+  --border: rgba(148, 163, 184, 0.12);
+  --text-primary: #f7f9fc;
+  --text-secondary: #c0c7d2;
+  --text-muted: #858f9d;
+  --accent: #9aa6b2;
+  --accent-hover: #c2ccd6;
+  --accent-light: rgba(154, 166, 178, 0.15);
+  --accent-dark: #c2ccd6;
+  --accent-text: #05080c;
+  --blue: #9aa6b2;
+  --orange: #d2a462;
+  --red: #ec8585;
+  --purple: #aaa8cf;
+  --yellow: #d2a462;
+  --green: #83d6ad;
+  --success: #83d6ad;
+  --success-bg: rgba(131, 214, 173, 0.13);
+  --warning: #d2a462;
+  --warning-bg: rgba(210, 164, 98, 0.14);
+  --danger: #ec8585;
+  --danger-bg: rgba(236, 133, 133, 0.13);
+  --danger-text: #05080c;
+  --info: #9aa6b2;
+  --info-bg: rgba(154, 166, 178, 0.15);
+  --info-text: #05080c;
+  --sidebar-bg: #010203;
+  --sidebar-hover: rgba(154, 166, 178, 0.08);
+  --sidebar-active: #9aa6b2;
+  --sidebar-active-bg: rgba(154, 166, 178, 0.14);
+  --sidebar-active-border: #c2ccd6;
+  --sidebar-border: rgba(148, 163, 184, 0.08);
+  --sidebar-text: #aab3bf;
+  --sidebar-text-active: #f7f9fc;
+  --status-agendado: #9aa6b2;
+  --status-estudei: #83d6ad;
+  --status-atrasado: #ec8585;
+  --status-nao: #5e6875;
+  --shadow: 0 14px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.018);
+  --shadow-md: 0 22px 54px rgba(0, 0, 0, 0.46);
+  --shadow-lg: 0 34px 76px rgba(0, 0, 0, 0.54);
+  --panel-border: transparent;
+  --panel-divider: rgba(148, 163, 184, 0.12);
+  --panel-shadow: 0 22px 54px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.018);
 }
 
-/* 5. TEMA RUBI (Preto & Vermelho) */
-[data-theme="rubi"] {
+[data-theme="contraste"] {
   --color-scheme: dark;
-  --app-bg: linear-gradient(180deg, #000000 0%, #120505 52%, #1c0909 100%);
-  --bg: #000000;
-  --card: #0a0505;
-  --card-bg: #0a0505;
-  --card-header: #2f1010;
-  --card-hover: #221515;
-  --bg-secondary: #1a1a1a;
-  --yellow: #eab308;
-  --sidebar-bg: #080505;
-  --sidebar-hover: #1a1010;
-  --sidebar-active: #DC2626;
-  --border: #3d2222;
-  --text-primary: #FFFFFF;
-  --text-secondary: #C8B8B8;
-  --text-muted: #9E8A8A;
-  --accent: #DC2626;
-  --accent-hover: #EF4444;
-  --accent-light: #450A0A;
-  --accent-dark: #EF4444;
-  --accent-text: #FFFFFF;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.8), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
-  --surface: #0A0A0A;
+  --app-bg: linear-gradient(180deg, #050505 0%, #07090c 45%, #0f141b 100%);
+  --bg: #050505;
+  --card: #101216;
+  --card-bg: #101216;
+  --card-header: #171b22;
+  --card-hover: #1b222b;
+  --bg-secondary: #0c0f14;
+  --surface: #0c0f14;
+  --border: rgba(196, 210, 224, 0.24);
+  --text-primary: #ffffff;
+  --text-secondary: #d6dde8;
+  --text-muted: #a8b2c0;
+  --accent: #c4d2e0;
+  --accent-hover: #e2ebf5;
+  --accent-light: rgba(196, 210, 224, 0.2);
+  --accent-dark: #e2ebf5;
+  --accent-text: #05080c;
+  --blue: #c4d2e0;
+  --orange: #e0b66f;
+  --red: #ff8f8f;
+  --purple: #c6c2ef;
+  --yellow: #e0b66f;
+  --green: #9ee5bd;
+  --success: #9ee5bd;
+  --success-bg: rgba(158, 229, 189, 0.16);
+  --warning: #e0b66f;
+  --warning-bg: rgba(224, 182, 111, 0.18);
+  --danger: #ff8f8f;
+  --danger-bg: rgba(255, 143, 143, 0.16);
+  --danger-text: #05080c;
+  --info: #c4d2e0;
+  --info-bg: rgba(196, 210, 224, 0.2);
+  --info-text: #05080c;
+  --sidebar-bg: #030303;
+  --sidebar-hover: rgba(196, 210, 224, 0.12);
+  --sidebar-active: #c4d2e0;
+  --sidebar-active-bg: rgba(196, 210, 224, 0.2);
+  --sidebar-active-border: #e2ebf5;
+  --sidebar-border: rgba(196, 210, 224, 0.14);
+  --sidebar-text: #d6dde8;
+  --sidebar-text-active: #ffffff;
+  --status-agendado: #c4d2e0;
+  --status-estudei: #9ee5bd;
+  --status-atrasado: #ff8f8f;
+  --status-nao: #8b96a5;
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --shadow-md: 0 20px 46px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 32px 70px rgba(0, 0, 0, 0.5);
+  --panel-border: transparent;
+  --panel-divider: rgba(196, 210, 224, 0.2);
+  --panel-shadow: 0 18px 48px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
-/* 6. TEMA CYBERPUNK 2077 (Neon Dystopian) */
-[data-theme="cyberpunk2077"] {
-  --color-scheme: dark;
-  --app-bg: linear-gradient(180deg, #090a0f 0%, #11121a 52%, #171825 100%);
-  --bg: #090A0F;
-  --card: #0c0d14;
-  --card-bg: #0c0d14;
-  --card-header: #1f2030;
-  --card-hover: #20212e;
-  --bg-secondary: #1b1e27;
-  --yellow: #FCEE0A;
-  --sidebar-bg: #0a0b10;
-  --sidebar-hover: #191C27;
-  --sidebar-active: #FCEE0A;
-  --border: #33384a;
-  --text-primary: #F4F7FF;
-  --text-secondary: #c5cde0;
-  --text-muted: #9aa3be;
-  --accent: #FCEE0A;
-  --accent-hover: #FFB100;
-  --accent-light: #4A4300;
-  --accent-dark: #FFB100;
-  --accent-text: #141100;
-  --surface: #13141c;
-
-  /* Optional helper tokens for cyberpunk atmosphere */
-  --cyber-blue: #00D1FF;
-  --cyber-purple: #A855F7;
-  --cyber-pink: #FF3DA9;
-  --cyber-lime: #A3FF12;
-
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.72), 0 1px 2px rgba(0, 0, 0, 0.52);
-  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.66), 0 2px 6px -1px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 20px -4px rgba(0, 0, 0, 0.76), 0 8px 12px -4px rgba(0, 0, 0, 0.58);
-}
-
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) {
-  --sidebar-hover: rgba(255, 255, 255, 0.06);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) {
+  --sidebar-hover: color-mix(in srgb, var(--accent) 9%, transparent);
   --sidebar-active: var(--accent);
   --sidebar-active-bg: var(--accent-light);
-  --sidebar-active-border: var(--accent);
-  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-active-border: var(--accent-hover);
   --panel-border: transparent;
-  --panel-divider: rgba(148, 163, 184, 0.16);
-  --panel-shadow: 0 18px 48px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .topbar {
-  border-bottom-color: var(--border);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .topbar {
+  border-bottom-color: transparent;
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .form-control {
-  background: var(--bg);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .form-control {
+  background: var(--bg-secondary);
   color: var(--text-primary);
   border-color: var(--border);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .form-control::placeholder {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .form-control::placeholder {
   color: var(--text-muted);
   opacity: 1;
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .form-control:focus {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .form-control:focus {
   border-color: var(--accent);
-  background: var(--bg-secondary);
+  background: var(--surface);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .modal {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .modal {
   background: var(--card);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .modal-header {
-  border-bottom-color: var(--border);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .modal-header {
+  border-bottom-color: var(--panel-divider);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .search-box {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .search-box {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .search-results {
   background: var(--card);
   border-color: var(--border);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .search-results {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .search-item:hover {
+  background: var(--card-hover);
+}
+
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .cal-cell {
   background: var(--card);
   border-color: var(--border);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .search-item:hover {
-  background: var(--bg);
-}
-
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .cal-cell {
-  background: var(--card);
-  border-color: var(--border);
-}
-
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .cal-cell.today {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .cal-cell.today {
   background: var(--accent-light);
-  opacity: 0.8;
+  opacity: 0.92;
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .cal-cell.other-month {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .cal-cell.other-month {
   background: var(--bg);
-  opacity: 0.5;
+  opacity: 0.56;
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .cal-cell:hover {
-  background: var(--sidebar-hover);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .cal-cell:hover {
+  background: var(--card-hover);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .cal-event-chip.agendado {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .cal-event-chip.agendado {
   background: var(--info-bg);
   color: var(--info);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .cal-event-chip.estudei {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .cal-event-chip.estudei {
   background: var(--success-bg);
   color: var(--success);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .cal-event-chip.atrasado {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .cal-event-chip.atrasado {
   background: var(--danger-bg);
   color: var(--danger);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) select option {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) select option {
   background: var(--card);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .badge-green {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .badge-green {
   background: var(--success-bg);
   color: var(--success);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .badge-blue {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .badge-blue {
   background: var(--info-bg);
   color: var(--info);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) label.btn-primary {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) label.btn-primary {
   color: var(--accent-text) !important;
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) label.btn-primary * {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) label.btn-primary * {
   color: inherit !important;
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .badge-gray {
-  background: var(--border);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .badge-gray {
+  background: var(--surface);
   color: var(--text-secondary);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .config-row {
-  border-bottom-color: var(--border);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .config-row {
+  border-bottom-color: var(--panel-divider);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .event-card:hover {
-  background: var(--sidebar-hover);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .event-card:hover {
+  background: var(--card-hover);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .tree-group-header {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .tree-group-header {
   background: var(--card);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .tree-disc:hover,
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .tree-group-header:hover {
-  background: var(--sidebar-hover);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .tree-disc:hover,
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .tree-group-header:hover {
+  background: var(--card-hover);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.8);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.86);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .search-input:focus {
-  background: var(--bg);
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .search-input:focus {
+  background: var(--bg-secondary);
 }
 
-:is([data-theme="dark"], [data-theme="Dark"], [data-theme="abismo"], [data-theme="Abismo"], [data-theme="furtivo"], [data-theme="Furtivo"], [data-theme="grafite"], [data-theme="Grafite"], [data-theme="matrix"], [data-theme="Matrix"], [data-theme="rubi"], [data-theme="Rubi"], [data-theme="cyberpunk2077"], [data-theme="Cyberpunk2077"]) .search-results {
+:is([data-theme="grafite"], [data-theme="obsidiana"], [data-theme="contraste"]) .search-results {
   background: var(--card);
 }
-
 * {
   margin: 0;
   padding: 0;
@@ -481,7 +390,7 @@ body {
   height: 42px;
   background: linear-gradient(135deg, var(--accent), var(--info));
   border-radius: 12px;
-  box-shadow: 0 14px 28px rgba(15, 118, 110, 0.24);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -499,11 +408,6 @@ body {
 
 .logo-text span {
   color: var(--accent);
-}
-
-[data-theme="cyberpunk2077"] .logo-icon {
-  background: linear-gradient(135deg, var(--accent), var(--cyber-blue));
-  box-shadow: 0 0 0 1px rgba(252, 238, 10, 0.34), 0 0 14px rgba(0, 209, 255, 0.22);
 }
 
 /* =============================================
@@ -873,7 +777,7 @@ body {
 .btn-primary {
   background: var(--accent) !important;
   color: var(--accent-text) !important;
-  box-shadow: 0 10px 22px rgba(15, 118, 110, 0.22);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
 .btn-primary * {
@@ -882,7 +786,7 @@ body {
 
 .btn-primary:hover {
   background: var(--accent-hover);
-  box-shadow: 0 12px 26px rgba(15, 118, 110, 0.26);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.34);
   transform: translateY(-1px);
 }
 
@@ -1446,15 +1350,15 @@ body {
 }
 
 .cal-cell:hover {
-  background: #f8fafc;
+  background: var(--card-hover);
 }
 
 .cal-cell.other-month {
-  background: #fafafa;
+  background: var(--bg);
 }
 
 .cal-cell.today {
-  background: #eff6ff;
+  background: var(--accent-light);
 }
 
 .cal-date {
@@ -1634,7 +1538,7 @@ button.cal-event-chip:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .form-control select {
@@ -1819,21 +1723,6 @@ select.form-control {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-[data-theme="light"] .toggle::after,
-[data-theme="dark"] .toggle::after,
-[data-theme="abismo"] .toggle::after,
-[data-theme="grafite"] .toggle::after,
-[data-theme="matrix"] .toggle::after,
-[data-theme="rubi"] .toggle::after {
-  background: #fff;
-  /* Mantém branco para temas onde o fundo ON é colorido */
-}
-
-/* O dot padrão deve ser var(--accent-text) apenas se o tema for Furtivo ou similar com fundo branco */
-[data-theme="furtivo"] .toggle::after {
-  background: #000 !important;
-}
-
 .toggle.on::after {
   left: 21px;
 }
@@ -1875,7 +1764,7 @@ select.form-control {
 
 .tree-assunto.dragging {
   opacity: 0.35;
-  background: #f8fafc;
+  background: var(--card-hover);
 }
 
 .drag-handle-icon {
@@ -2066,7 +1955,7 @@ select.form-control {
   gap: 10px;
   padding: 10px 16px;
   padding-left: 32px;
-  background: #f8fafc;
+  background: var(--card);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
@@ -2453,7 +2342,7 @@ button.filter-chip:focus-visible {
   outline-offset: 2px;
   border-color: var(--accent);
   background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .search-icon {
@@ -2966,7 +2855,7 @@ mark {
 
 /* Highlight today's date */
 .today-highlight {
-  background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+  background: var(--accent-light);
 }
 
 /* =========================================
@@ -3138,17 +3027,13 @@ mark {
 }
 
 .sm-list {
-  background: rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--panel-divider);
   border-radius: 8px;
   max-height: 400px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-}
-
-[data-theme="light"] .sm-list {
-  background: #f8fafc;
 }
 
 .sm-list-item {
@@ -3223,7 +3108,7 @@ mark {
 }
 
 .reg-summary {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(56, 189, 248, 0.04));
+  background: linear-gradient(135deg, var(--accent-light), rgba(125, 211, 168, 0.06));
 }
 
 .reg-summary-grid {
@@ -3303,7 +3188,7 @@ mark {
   outline: 2px solid var(--green);
   outline-offset: 2px;
   border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 0 3px var(--success-bg);
 }
 
 /* Avoid native select popup positioning bugs inside transformed modal */
@@ -3330,7 +3215,7 @@ mark {
   outline: 2px solid var(--green);
   outline-offset: 2px;
   border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 0 3px var(--success-bg);
 }
 
 .btn-inline {
@@ -3347,7 +3232,7 @@ mark {
 }
 
 .btn-inline:hover {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--success-bg);
   border-color: var(--green);
 }
 
@@ -3379,7 +3264,7 @@ mark {
 }
 
 .chip-active {
-  background: rgba(16, 185, 129, 0.15);
+  background: var(--success-bg);
   border-color: var(--green);
   color: var(--green);
   font-weight: 600;
@@ -3476,7 +3361,7 @@ mark {
 }
 
 [data-theme="dark"] .streak-dot-miss {
-  background: #334155;
+  background: var(--surface);
 }
 
 .dash-progress-track {
@@ -3489,7 +3374,7 @@ mark {
 }
 
 [data-theme="dark"] .dash-progress-track {
-  background: #334155;
+  background: var(--surface);
 }
 
 .dash-progress-bar {
@@ -3680,28 +3565,6 @@ mark {
   color: var(--accent-text);
 }
 
-[data-theme="cyberpunk2077"] .btn-primary {
-  box-shadow: 0 0 0 1px rgba(252, 238, 10, 0.3), 0 4px 14px rgba(252, 238, 10, 0.16);
-}
-
-[data-theme="cyberpunk2077"] .btn-primary:hover {
-  box-shadow: 0 0 0 1px rgba(255, 177, 0, 0.44), 0 6px 18px rgba(255, 177, 0, 0.2);
-}
-
-[data-theme="cyberpunk2077"] .form-control:focus,
-[data-theme="cyberpunk2077"] .search-input:focus {
-  border-color: var(--cyber-blue);
-  box-shadow: 0 0 0 2px rgba(0, 209, 255, 0.2);
-}
-
-[data-theme="cyberpunk2077"] .nav-item.active {
-  box-shadow: inset 0 0 0 1px rgba(20, 17, 0, 0.24), 0 0 14px rgba(252, 238, 10, 0.18);
-}
-
-[data-theme="cyberpunk2077"] .topbar {
-  box-shadow: inset 0 -1px 0 rgba(0, 209, 255, 0.16);
-}
-
 .step-item.done .step-circle {
   border-color: var(--accent);
   background: var(--card);
@@ -3725,10 +3588,6 @@ mark {
 .wizard-box.selected {
   border-color: var(--accent);
   background: var(--accent-light);
-}
-
-[data-theme="dark"] .wizard-box.selected {
-  background: rgba(16, 185, 129, 0.1);
 }
 
 .wizard-box-title {
@@ -3762,58 +3621,6 @@ mark {
   cursor: grab;
   padding-bottom: 10px;
   color: var(--text-muted);
-}
-
-/* =========================================
-   SOBERANIA DE CONTRASTE (MODO FURTIVO)
-   Garante legibilidade absoluta !important
-========================================= */
-[data-theme="furtivo"] .btn-primary,
-[data-theme="furtivo"] .filter-chip.active,
-[data-theme="furtivo"] .nav-item.active,
-[data-theme="furtivo"] .badge-green,
-[data-theme="furtivo"] .toast.success {
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
-  border-color: #FFFFFF !important;
-}
-
-[data-theme="furtivo"] .btn-primary *,
-[data-theme="furtivo"] .filter-chip.active *,
-[data-theme="furtivo"] .nav-item.active *,
-[data-theme="furtivo"] .toast.success * {
-  color: #000000 !important;
-}
-
-[data-theme="furtivo"] .toggle.on {
-  background-color: #FFFFFF !important;
-}
-
-[data-theme="furtivo"] [data-theme="furtivo"] .toggle::after,
-[data-theme="furtivo"] .toggle::after {
-  background-color: #000000 !important;
-}
-
-[data-theme="furtivo"] .form-control {
-  background-color: #000000 !important;
-  color: #FFFFFF !important;
-  border: 1px solid #262626 !important;
-}
-
-[data-theme="furtivo"] .form-control:focus {
-  border-color: #FFFFFF !important;
-}
-
-/* Trilhos de progresso e barras */
-[data-theme="furtivo"] .progress-track,
-[data-theme="furtivo"] [style*="background:var(--bg)"][style*="height:14px"] {
-  background-color: #141414 !important;
-  border: 1px solid #262626 !important;
-}
-
-[data-theme="furtivo"] .progress-bar,
-[data-theme="furtivo"] [style*="background:var(--accent)"][style*="height:100%"] {
-  background-color: #FFFFFF !important;
 }
 
 /* =============================================
@@ -4230,7 +4037,7 @@ mark {
 }
 
 .cal-mobile-day.today {
-  background: var(--accent-light, #eff6ff);
+  background: var(--accent-light);
 }
 
 .cal-mobile-day-header {

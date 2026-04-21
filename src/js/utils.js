@@ -134,15 +134,15 @@ export function cutoffDateStr(days) {
 }
 
 export const HABIT_TYPES = [
-    { key: 'questoes', label: 'Questões', icon: '📝', color: '#2563eb' },
-    { key: 'revisao', label: 'Revisão', icon: '🔄', color: '#0f766e' },
-    { key: 'discursiva', label: 'Discursiva', icon: '✍️', color: '#d97706' },
-    { key: 'simulado', label: 'Simulado', icon: '🎯', color: '#dc2626' },
-    { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: '#7c3aed' },
-    { key: 'informativo', label: 'Informativos', icon: '📰', color: '#06b6d4' },
-    { key: 'sumula', label: 'Súmulas', icon: '⚖️', color: '#6366f1' },
-    { key: 'videoaula', label: 'Videoaula', icon: '📺', color: '#ec4899' },
-    { key: 'paginas', label: 'Páginas Lidas', icon: '🧾', color: '#14b8a6' }
+    { key: 'questoes', label: 'Questões', icon: '📝', color: '#8aa4bf' },
+    { key: 'revisao', label: 'Revisão', icon: '🔄', color: '#7dd3a8' },
+    { key: 'discursiva', label: 'Discursiva', icon: '✍️', color: '#d8a657' },
+    { key: 'simulado', label: 'Simulado', icon: '🎯', color: '#ef7777' },
+    { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: '#a7a4d6' },
+    { key: 'informativo', label: 'Informativos', icon: '📰', color: '#7fb7c7' },
+    { key: 'sumula', label: 'Súmulas', icon: '⚖️', color: '#8e9fd0' },
+    { key: 'videoaula', label: 'Videoaula', icon: '📺', color: '#d58c9d' },
+    { key: 'paginas', label: 'Páginas Lidas', icon: '🧾', color: '#79b8ad' }
 ];
 
 /**

@@ -80,75 +80,65 @@ describe('CSS architecture', () => {
     expect(legacyStyles).not.toMatch(/^:root\s*{/m);
   });
 
-  it('keeps the Neutro and Noite theme contracts', () => {
+  it('keeps the dark premium theme contracts', () => {
     const tokens = read('src/css/tokens.css');
     const legacyStyles = read('src/css/styles.css');
-    const lightVars = extractCssVars(extractCssBlock(tokens, ':root'));
-    const darkVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="dark"]'));
+    const rootVars = extractCssVars(extractCssBlock(tokens, ':root'));
+    const grafiteVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="grafite"]'));
+    const obsidianaVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="obsidiana"]'));
+    const contrasteVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="contraste"]'));
 
-    expect(lightVars).toMatchObject({
-      '--bg': '#edf3f8',
-      '--card': '#ffffff',
-      '--surface': '#e4ecf5',
-      '--border': '#cbd7e4',
-      '--text-primary': '#111827',
-      '--text-secondary': '#475569',
-      '--text-muted': '#64748b',
-      '--accent': '#0f766e',
-      '--accent-hover': '#115e59',
-      '--accent-light': '#ccfbf1',
-      '--accent-text': '#ffffff'
+    expect(rootVars).toMatchObject({
+      '--bg': '#08090d',
+      '--card': '#121821',
+      '--surface': '#0d1117',
+      '--border': 'rgba(148, 163, 184, 0.14)',
+      '--text-primary': '#f3f6fb',
+      '--text-secondary': '#b8c0cc',
+      '--text-muted': '#7f8a99',
+      '--accent': '#8aa4bf',
+      '--accent-hover': '#a7bdd3',
+      '--accent-light': 'rgba(138, 164, 191, 0.16)',
+      '--accent-text': '#071018'
     });
 
-    expect(darkVars).toMatchObject({
-      '--bg': '#0a0f1a',
-      '--card': '#0f172a',
-      '--surface': '#1a2540',
-      '--border': '#2a3a52',
-      '--text-primary': '#eef2f9',
-      '--text-secondary': '#b8c5d9',
-      '--text-muted': '#8d9db5',
-      '--accent': '#2dd4bf',
-      '--accent-hover': '#5eead4',
-      '--accent-light': '#134e4a',
-      '--accent-text': '#042f2e'
-    });
-
-    expect(contrastRatio(lightVars['--accent-text'], lightVars['--accent'])).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(darkVars['--accent-text'], darkVars['--accent'])).toBeGreaterThanOrEqual(4.5);
+    expect(grafiteVars['--bg']).toBe('#08090d');
+    expect(obsidianaVars['--bg']).toBe('#030405');
+    expect(contrasteVars['--text-primary']).toBe('#ffffff');
+    expect(contrastRatio(rootVars['--accent-text'], rootVars['--accent'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(rootVars['--text-secondary'], rootVars['--card'])).toBeGreaterThanOrEqual(4.5);
     expect(legacyStyles).toMatch(/\.btn-primary:hover\s*{[^}]*background:\s*var\(--accent-hover\)/s);
   });
 
-  it('presents appearance as themes instead of a binary mode', () => {
+  it('presents only the premium dark themes while keeping old theme names internal', () => {
     const html = read('src/index.html');
     const appSource = read('src/js/app.js');
     const viewsSource = read('src/js/views.js');
 
     expect(html).toContain('title="Trocar tema"');
-    expect(appSource).toContain("label: 'Neutro'");
-    expect(appSource).toContain("label: 'Noite'");
+    expect(appSource).toContain("label: 'Grafite'");
+    expect(appSource).toContain("label: 'Obsidiana'");
+    expect(appSource).toContain("label: 'Contraste'");
+    expect(appSource).toContain('LEGACY_THEME_ALIASES');
     expect(viewsSource).toContain('THEME_OPTIONS');
+    expect(`${appSource}\n${viewsSource}`).not.toMatch(/label:\s*'(Neutro|Noite|Furtivo|Abismo|Matrix|Rubi|Cyberpunk 2077)'/);
     expect(`${html}\n${appSource}\n${viewsSource}`).not.toMatch(/Modo escuro|Modo claro|Claro profissional|Escuro profissional|Extra:/);
   });
 
-  it('keeps every non-neutral theme from inheriting the neutral app background', () => {
+  it('keeps every visible premium theme from inheriting the root app background', () => {
     const tokens = read('src/css/tokens.css');
     const legacyStyles = read('src/css/styles.css');
-    const neutralVars = getThemeVars(tokens, ':root');
+    const rootVars = getThemeVars(tokens, ':root');
     const themedSelectors = [
-      '[data-theme="dark"]',
-      '[data-theme="furtivo"]',
-      '[data-theme="abismo"]',
       '[data-theme="grafite"]',
-      '[data-theme="matrix"]',
-      '[data-theme="rubi"]',
-      '[data-theme="cyberpunk2077"]'
+      '[data-theme="obsidiana"]',
+      '[data-theme="contraste"]'
     ];
 
     for (const selector of themedSelectors) {
       const themeVars = getThemeVars(legacyStyles, selector);
       expect(themeVars['--app-bg'], `${selector} must define its own app background`).toBeTruthy();
-      expect(themeVars['--app-bg']).not.toBe(neutralVars['--app-bg']);
+      expect(themeVars['--app-bg']).not.toBe(rootVars['--app-bg']);
     }
   });
 
@@ -167,7 +157,7 @@ describe('CSS architecture', () => {
     expect(tokens).toContain('--panel-border:');
     expect(tokens).toContain('--panel-divider:');
     expect(tokens).toContain('--panel-shadow:');
-    expect(legacyStyles).toMatch(/:is\(\[data-theme="dark"\][^)]*\)\s*{[^}]*--panel-border:\s*transparent/s);
+    expect(legacyStyles).toMatch(/:is\(\[data-theme="grafite"\][^)]*\)\s*{[^}]*--panel-border:\s*transparent/s);
 
     for (const [selector, css] of [
       ['.card', legacyStyles],
@@ -204,8 +194,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.11');
-    expect(serviceWorker).toContain("APP_VERSION = '8.11'");
+    expect(html).toContain('css/styles.css?v=8.12');
+    expect(serviceWorker).toContain("APP_VERSION = '8.12'");
     expect(appSources).not.toMatch(/v=8\.[345]|APP_VERSION = '8\.[345]'/);
   });
 
