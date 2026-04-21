@@ -1,9 +1,9 @@
-import { renderCurrentView } from './components.js?v=8.4';
-import { initDB, scheduleSave, state } from './store.js?v=8.4';
-import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.4';
-import { todayStr, esc } from './utils.js?v=8.4';
-import { pullFromCloudflare } from './cloud-sync.js?v=8.4';
-import { initNotifications } from './notifications.js?v=8.4';
+import { renderCurrentView } from './components.js?v=8.5';
+import { initDB, scheduleSave, state } from './store.js?v=8.5';
+import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.5';
+import { todayStr, esc } from './utils.js?v=8.5';
+import { pullFromCloudflare } from './cloud-sync.js?v=8.5';
+import { initNotifications } from './notifications.js?v=8.5';
 
 // =============================================
 // APP STATE & DATA
@@ -16,6 +16,34 @@ import { initNotifications } from './notifications.js?v=8.4';
 export let currentView = 'home';
 
 let _driveSyncInterval = null;
+
+export const THEME_OPTIONS = [
+  { value: 'light', label: 'Neutro' },
+  { value: 'dark', label: 'Noite' },
+  { value: 'furtivo', label: 'Furtivo' },
+  { value: 'abismo', label: 'Abismo' },
+  { value: 'grafite', label: 'Grafite' },
+  { value: 'matrix', label: 'Matrix' },
+  { value: 'rubi', label: 'Rubi' },
+  { value: 'cyberpunk2077', label: 'Cyberpunk 2077' }
+];
+
+const THEME_VALUES = THEME_OPTIONS.map(theme => theme.value);
+
+export function normalizeTheme(themeName, legacyDarkMode = false) {
+  if (THEME_VALUES.includes(themeName)) return themeName;
+  return legacyDarkMode ? 'dark' : 'light';
+}
+
+export function getThemeLabel(themeName) {
+  const normalizedTheme = normalizeTheme(themeName);
+  return THEME_OPTIONS.find(theme => theme.value === normalizedTheme)?.label || 'Neutro';
+}
+
+function getNextTheme(themeName) {
+  const currentIndex = THEME_VALUES.indexOf(normalizeTheme(themeName));
+  return THEME_VALUES[(currentIndex + 1) % THEME_VALUES.length];
+}
 
 document.addEventListener('app:driveDisconnected', () => {
   if (_driveSyncInterval) {
@@ -243,32 +271,27 @@ export function toggleSidebarCollapse() {
 // Init Setup
 
 /**
- * Aplica ou alterna tema visual
- * @param {boolean} [toggle=false] - Se true, alterna entre light/dark
+ * Aplica ou troca tema visual
+ * @param {boolean} [toggle=false] - Se true, avanca para o proximo tema
  */
 export function applyTheme(toggle = false) {
   if (toggle) {
-    const currentTheme = state.config.tema || (state.config.darkMode ? 'dark' : 'light');
-    if (currentTheme === 'light') {
-      // Switch to last used dark theme, or default 'dark'
-      const lastDark = state.config.lastDarkTheme || 'dark';
-      state.config.tema = lastDark;
-      state.config.darkMode = true;
-    } else {
-      // Save current dark theme for later toggle back
-      state.config.lastDarkTheme = currentTheme;
-      state.config.tema = 'light';
-      state.config.darkMode = false;
-    }
+    const currentTheme = normalizeTheme(state.config.tema, state.config.darkMode);
+    const nextTheme = getNextTheme(currentTheme);
+    state.config.tema = nextTheme;
+    state.config.darkMode = nextTheme !== 'light';
+    state.config.lastTheme = nextTheme;
     scheduleSave();
   }
-  const theme = state.config.tema || (state.config.darkMode ? 'dark' : 'light');
+  const theme = normalizeTheme(state.config.tema, state.config.darkMode);
   document.documentElement.setAttribute('data-theme', theme);
 
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) {
-    const isLight = theme === 'light';
-    btn.textContent = isLight ? '🌙 Modo escuro' : '☀️ Modo claro';
+    const themeLabel = getThemeLabel(theme);
+    btn.textContent = `Tema: ${themeLabel}`;
+    btn.setAttribute('title', `Tema atual: ${themeLabel}. Clique para trocar.`);
+    btn.setAttribute('aria-label', `Tema atual: ${themeLabel}. Clique para trocar.`);
   }
 }
 

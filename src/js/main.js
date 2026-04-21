@@ -1,26 +1,26 @@
 // ES Module Entry Point
 // Imports all modules and exposes functions via window.EstudoApp namespace
 
-import * as store from './store.js?v=8.4';
-import * as app from './app.js?v=8.4';
-import * as logic from './logic.js?v=8.4';
-import * as components from './components.js?v=8.4';
-import * as views from './views.js?v=8.4';
-import * as calendar_view from './views/calendar-view.js?v=8.4';
-import * as drive_sync from './drive-sync.js?v=8.4';
-import * as cloud_sync from './cloud-sync.js?v=8.4';
-import * as registro from './registro-sessao.js?v=8.4';
-import * as utils from './utils.js?v=8.4';
-import * as wizard from './planejamento-wizard.js?v=8.4';
+import * as store from './store.js?v=8.5';
+import * as app from './app.js?v=8.5';
+import * as logic from './logic.js?v=8.5';
+import * as components from './components.js?v=8.5';
+import * as views from './views.js?v=8.5';
+import * as calendar_view from './views/calendar-view.js?v=8.5';
+import * as drive_sync from './drive-sync.js?v=8.5';
+import * as cloud_sync from './cloud-sync.js?v=8.5';
+import * as registro from './registro-sessao.js?v=8.5';
+import * as utils from './utils.js?v=8.5';
+import * as wizard from './planejamento-wizard.js?v=8.5';
 
-import * as relevance from './relevance.js?v=8.4';
-import * as lesson_mapper from './lesson-mapper.js?v=8.4';
+import * as relevance from './relevance.js?v=8.5';
+import * as lesson_mapper from './lesson-mapper.js?v=8.5';
 
 // Import UI helpers and action dispatcher
-import { setupActionDispatcher } from './ui/actions/index.js?v=8.4';
-import { qs, qsa } from './ui/dom.js?v=8.4';
-import { initModals, announce } from './ui/dialog.js?v=8.4';
-import { addCleanupListener } from './utils.js?v=8.4';
+import { setupActionDispatcher } from './ui/actions/index.js?v=8.5';
+import { qs, qsa } from './ui/dom.js?v=8.5';
+import { initModals, announce } from './ui/dialog.js?v=8.5';
+import { addCleanupListener } from './utils.js?v=8.5';
 
 // Expose UI helpers to window for gradual migration
 window.qs = qs;

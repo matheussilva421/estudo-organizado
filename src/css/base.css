@@ -1,9 +1,5 @@
 html {
-  color-scheme: light;
-}
-
-[data-theme]:not([data-theme="light"]) {
-  color-scheme: dark;
+  color-scheme: var(--color-scheme, light);
 }
 
 .sr-only {

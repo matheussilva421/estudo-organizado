@@ -21,8 +21,8 @@
   outline-offset: 2px;
 }
 
-/* Dark mode — toggled via data-theme="dark" on <html> */
 [data-theme="dark"] {
+  --color-scheme: dark;
   --app-bg: linear-gradient(180deg, #0b1220 0%, #0f172a 52%, #111827 100%);
   --bg: #0b1220;
   --card: #111827;
@@ -68,11 +68,12 @@
 }
 
 /* =========================================
-   BIBLIOTECA DE TEMAS (DARK MODES)
+   BIBLIOTECA DE TEMAS
 ========================================= */
 
 /* 1. TEMA FURTIVO (Monocromático) */
 [data-theme="furtivo"] {
+  --color-scheme: dark;
   --bg: #000000;
   --card: #0A0A0A;
   --card-bg: #0A0A0A;
@@ -100,6 +101,7 @@
 
 /* 2. TEMA ABISMO (Marinho & Ciano) */
 [data-theme="abismo"] {
+  --color-scheme: dark;
   --bg: #020617;
   --card: #0F172A;
   --card-bg: #0F172A;
@@ -125,6 +127,7 @@
 
 /* 3. TEMA GRAFITE (Cinza & Azul) */
 [data-theme="grafite"] {
+  --color-scheme: dark;
   --bg: #09090B;
   --card: #18181B;
   --card-bg: #18181B;
@@ -150,6 +153,7 @@
 
 /* 4. TEMA MATRIX (Preto & Verde) */
 [data-theme="matrix"] {
+  --color-scheme: dark;
   --bg: #000000;
   --card: #111111;
   --card-bg: #111111;
@@ -175,6 +179,7 @@
 
 /* 5. TEMA RUBI (Preto & Vermelho) */
 [data-theme="rubi"] {
+  --color-scheme: dark;
   --bg: #000000;
   --card: #0A0A0A;
   --card-bg: #0A0A0A;
@@ -200,6 +205,7 @@
 
 /* 6. TEMA CYBERPUNK 2077 (Neon Dystopian) */
 [data-theme="cyberpunk2077"] {
+  --color-scheme: dark;
   --bg: #090A0F;
   --card: #12131A;
   --card-bg: #12131A;
@@ -230,8 +236,8 @@
   --shadow-lg: 0 12px 20px -4px rgba(0, 0, 0, 0.76), 0 8px 12px -4px rgba(0, 0, 0, 0.58);
 }
 
-[data-theme]:not([data-theme="light"]) {
-  /* Seguindo padrão de temas escuros */
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) {
+  /* Superficies densas para temas de alto contraste */
   --sidebar-hover: rgba(255, 255, 255, 0.05);
   --sidebar-active: var(--accent);
   --sidebar-active-bg: var(--accent-light);
@@ -239,130 +245,130 @@
   --sidebar-border: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme]:not([data-theme="light"]) .topbar {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .topbar {
   border-bottom-color: var(--border);
 }
 
-[data-theme]:not([data-theme="light"]) .form-control {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .form-control {
   background: var(--bg);
   color: var(--text-primary);
   border-color: var(--border);
 }
 
-[data-theme]:not([data-theme="light"]) .form-control:focus {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .form-control:focus {
   border-color: var(--accent);
   background: var(--bg);
 }
 
-[data-theme]:not([data-theme="light"]) .modal {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .modal {
   background: var(--card);
 }
 
-[data-theme]:not([data-theme="light"]) .modal-header {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .modal-header {
   border-bottom-color: var(--border);
 }
 
-[data-theme]:not([data-theme="light"]) .search-box {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .search-box {
   background: var(--card);
   border-color: var(--border);
 }
 
-[data-theme]:not([data-theme="light"]) .search-results {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .search-results {
   background: var(--card);
   border-color: var(--border);
 }
 
-[data-theme]:not([data-theme="light"]) .search-item:hover {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .search-item:hover {
   background: var(--bg);
 }
 
-[data-theme]:not([data-theme="light"]) .cal-cell {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .cal-cell {
   background: var(--card);
   border-color: var(--border);
 }
 
-[data-theme]:not([data-theme="light"]) .cal-cell.today {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .cal-cell.today {
   background: var(--accent-light);
   opacity: 0.8;
 }
 
-[data-theme]:not([data-theme="light"]) .cal-cell.other-month {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .cal-cell.other-month {
   background: var(--bg);
   opacity: 0.5;
 }
 
-[data-theme]:not([data-theme="light"]) .cal-cell:hover {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .cal-cell:hover {
   background: var(--sidebar-hover);
 }
 
-[data-theme]:not([data-theme="light"]) .cal-event-chip.agendado {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .cal-event-chip.agendado {
   background: var(--info-bg);
   color: var(--info);
 }
 
-[data-theme]:not([data-theme="light"]) .cal-event-chip.estudei {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .cal-event-chip.estudei {
   background: var(--success-bg);
   color: var(--success);
 }
 
-[data-theme]:not([data-theme="light"]) .cal-event-chip.atrasado {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .cal-event-chip.atrasado {
   background: var(--danger-bg);
   color: var(--danger);
 }
 
-[data-theme]:not([data-theme="light"]) select option {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) select option {
   background: var(--card);
 }
 
-[data-theme]:not([data-theme="light"]) .badge-green {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .badge-green {
   background: var(--success-bg);
   color: var(--success);
 }
 
-[data-theme]:not([data-theme="light"]) .badge-blue {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .badge-blue {
   background: var(--info-bg);
   color: var(--info);
 }
 
-[data-theme]:not([data-theme="light"]) label.btn-primary {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) label.btn-primary {
   color: var(--accent-text) !important;
 }
 
-[data-theme]:not([data-theme="light"]) label.btn-primary * {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) label.btn-primary * {
   color: inherit !important;
 }
 
-[data-theme]:not([data-theme="light"]) .badge-gray {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .badge-gray {
   background: var(--border);
   color: var(--text-secondary);
 }
 
-[data-theme]:not([data-theme="light"]) .config-row {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .config-row {
   border-bottom-color: var(--border);
 }
 
-[data-theme]:not([data-theme="light"]) .event-card:hover {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .event-card:hover {
   background: var(--sidebar-hover);
 }
 
-[data-theme]:not([data-theme="light"]) .tree-group-header {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .tree-group-header {
   background: var(--card);
 }
 
-[data-theme]:not([data-theme="light"]) .tree-disc:hover,
-[data-theme]:not([data-theme="light"]) .tree-group-header:hover {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .tree-disc:hover,
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .tree-group-header:hover {
   background: var(--sidebar-hover);
 }
 
-[data-theme]:not([data-theme="light"]) input[type="date"]::-webkit-calendar-picker-indicator {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.8);
 }
 
-[data-theme]:not([data-theme="light"]) .search-input:focus {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .search-input:focus {
   background: var(--bg);
 }
 
-[data-theme]:not([data-theme="light"]) .search-results {
+:is([data-theme="dark"], [data-theme="furtivo"], [data-theme="abismo"], [data-theme="grafite"], [data-theme="matrix"], [data-theme="rubi"], [data-theme="cyberpunk2077"]) .search-results {
   background: var(--card);
 }
 

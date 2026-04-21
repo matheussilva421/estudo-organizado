@@ -1,4 +1,5 @@
 :root {
+  --color-scheme: light;
   --app-bg: linear-gradient(180deg, #edf3f8 0%, #f6f8fb 42%, #e7eef7 100%);
   --sidebar-bg: linear-gradient(180deg, #0f172a 0%, #111827 100%);
   --sidebar-hover: rgba(255, 255, 255, 0.08);

@@ -1,9 +1,9 @@
-import { applyTheme, closeModal, currentView, navigate, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.4';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.4';
-import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.4';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.4';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.4';
-import { updateDriveUI } from './drive-sync.js?v=8.4';
+import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.5';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.5';
+import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.5';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.5';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.5';
+import { updateDriveUI } from './drive-sync.js?v=8.5';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
@@ -2253,7 +2253,7 @@ export function deleteAula(discId, aulaId) {
 }
 window.deleteAula = deleteAula;
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.4';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.5';
 export function runLessonMapperUI(editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -2662,6 +2662,10 @@ function renderCloudflareConflict(conflict) {
 
 export function renderConfig(el) {
   const cfg = state.config;
+  const activeTheme = normalizeTheme(cfg.tema, cfg.darkMode);
+  const themeOptionsHtml = THEME_OPTIONS
+    .map(theme => `<option value="${theme.value}" ${activeTheme === theme.value ? 'selected' : ''}>${theme.label}</option>`)
+    .join('');
   el.innerHTML = `
     <div class="config-grid">
       <div>
@@ -2674,14 +2678,7 @@ export function renderConfig(el) {
                 <div class="config-sub">Personalize a aparência do seu sistema</div>
               </div>
               <select class="form-control config-select" data-action="set-theme">
-                <option value="light" ${cfg.tema === 'light' || !cfg.darkMode ? 'selected' : ''}>Claro profissional</option>
-                <option value="dark" ${cfg.tema === 'dark' || (cfg.darkMode && !cfg.tema) ? 'selected' : ''}>Escuro profissional</option>
-                <option value="furtivo" ${cfg.tema === 'furtivo' ? 'selected' : ''}>Extra: Furtivo</option>
-                <option value="abismo" ${cfg.tema === 'abismo' ? 'selected' : ''}>Extra: Abismo</option>
-                <option value="grafite" ${cfg.tema === 'grafite' ? 'selected' : ''}>Extra: Grafite</option>
-                <option value="matrix" ${cfg.tema === 'matrix' ? 'selected' : ''}>Extra: Matrix</option>
-                <option value="rubi" ${cfg.tema === 'rubi' ? 'selected' : ''}>Extra: Rubi</option>
-                <option value="cyberpunk2077" ${cfg.tema === 'cyberpunk2077' ? 'selected' : ''}>Extra: Cyberpunk 2077</option>
+                ${themeOptionsHtml}
               </select>
             </div>
           </div>
@@ -2913,14 +2910,11 @@ export function renderConfig(el) {
 }
 
 export function setTheme(themeName) {
-  state.config.tema = themeName;
-  state.config.darkMode = themeName !== 'light';
-  // Remember last dark theme for topbar toggle
-  if (themeName !== 'light') {
-    state.config.lastDarkTheme = themeName;
-  }
-
-  document.documentElement.setAttribute('data-theme', themeName);
+  const theme = normalizeTheme(themeName, state.config.darkMode);
+  state.config.tema = theme;
+  state.config.darkMode = theme !== 'light';
+  state.config.lastTheme = theme;
+  applyTheme();
   scheduleSave();
   renderCurrentView();
 }

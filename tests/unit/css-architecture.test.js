@@ -76,7 +76,7 @@ describe('CSS architecture', () => {
     expect(legacyStyles).not.toMatch(/^:root\s*{/m);
   });
 
-  it('keeps the professional clean light and dark theme contract', () => {
+  it('keeps the Neutro and Noite theme contracts', () => {
     const tokens = read('src/css/tokens.css');
     const legacyStyles = read('src/css/styles.css');
     const lightVars = extractCssVars(extractCssBlock(tokens, ':root'));
@@ -115,6 +115,18 @@ describe('CSS architecture', () => {
     expect(legacyStyles).toMatch(/\.btn-primary:hover\s*{[^}]*background:\s*var\(--accent-hover\)/s);
   });
 
+  it('presents appearance as themes instead of a binary mode', () => {
+    const html = read('src/index.html');
+    const appSource = read('src/js/app.js');
+    const viewsSource = read('src/js/views.js');
+
+    expect(html).toContain('title="Trocar tema"');
+    expect(appSource).toContain("label: 'Neutro'");
+    expect(appSource).toContain("label: 'Noite'");
+    expect(viewsSource).toContain('THEME_OPTIONS');
+    expect(`${html}\n${appSource}\n${viewsSource}`).not.toMatch(/Modo escuro|Modo claro|Claro profissional|Escuro profissional|Extra:/);
+  });
+
   it('keeps browser cache busting aligned with the current app version', () => {
     const html = read('src/index.html');
     const serviceWorker = read('src/sw.js');
@@ -129,9 +141,9 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.4');
-    expect(serviceWorker).toContain("APP_VERSION = '8.4'");
-    expect(appSources).not.toMatch(/v=8\.3|APP_VERSION = '8\.3'/);
+    expect(html).toContain('css/styles.css?v=8.5');
+    expect(serviceWorker).toContain("APP_VERSION = '8.5'");
+    expect(appSources).not.toMatch(/v=8\.[34]|APP_VERSION = '8\.[34]'/);
   });
 
   it('moves repeated home dashboard stat-card layout into a view class', () => {
