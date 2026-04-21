@@ -2880,6 +2880,7 @@ mark {
   gap: 16px;
   transition: transform 0.2s;
   border: 1px solid var(--border);
+  cursor: pointer;
 }
 
 .disc-card:hover {
@@ -2951,10 +2952,10 @@ mark {
 
 .disc-card:hover .disc-overlay {
   opacity: 0.95;
-  pointer-events: auto;
 }
 
 .disc-action {
+  pointer-events: auto;
   background: transparent;
   border: none;
   color: var(--sidebar-text-active);

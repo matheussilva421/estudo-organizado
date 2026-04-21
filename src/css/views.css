@@ -2511,7 +2511,7 @@
 }
 
 .ciclo-layout {
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: 1fr 1fr;
   gap: 24px;
   align-items: start;
 }
@@ -2667,6 +2667,7 @@
   flex-direction: column;
   max-height: calc(100vh - 100px);
   overflow: hidden;
+  width: 100%;
 }
 
 .ciclo-side-panel-header {
