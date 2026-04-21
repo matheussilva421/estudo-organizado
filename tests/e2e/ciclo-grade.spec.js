@@ -69,6 +69,63 @@ test.describe('Ciclo de Estudos', () => {
     expect(seqDisciplina).toBe('Direito Constitucional');
   });
 
+  test('aplica refinamentos visuais da aba planejamento em desktop e mobile', async ({ page }) => {
+    const state = createE2EState();
+    state.planejamento = {
+      ativo: true,
+      tipo: 'ciclo',
+      disciplinas: ['disc_1'],
+      sequencia: Array.from({ length: 6 }, (_, index) => ({
+        id: `seq_${index + 1}`,
+        discId: 'disc_1',
+        minutosAlvo: 120,
+        concluido: false
+      })),
+      ciclosCompletos: 0,
+      dataInicioCicloAtual: new Date().toISOString(),
+      horarios: {
+        diasAtivos: [1, 2, 3, 4, 5],
+        horasPorDia: { 1: '02:00', 2: '02:00', 3: '02:00', 4: '02:00', 5: '02:00' }
+      }
+    };
+    await page.setViewportSize({ width: 1536, height: 768 });
+    await seedLegacyState(page, state);
+
+    await page.goto('/');
+    await page.click('[data-view="ciclo"]');
+    await expect(page.locator('#topbar-title')).toHaveText('Ciclo de Estudos', { timeout: 10000 });
+    await expect(page.locator('.seq-item-card--static')).toHaveCount(6);
+
+    const desktopMetrics = await page.locator('.ciclo-layout').evaluate((layout) => {
+      const left = layout.querySelector('.ciclo-content-col')?.getBoundingClientRect();
+      const right = layout.querySelector('.ciclo-side-panel')?.getBoundingClientRect();
+      const scrollArea = layout.querySelector('.ciclo-sequence-card .scroll-area-md');
+      const chart = layout.querySelector('.ciclo-chart-container')?.getBoundingClientRect();
+      const actions = layout.querySelector('.ciclo-sequence-actions');
+      const styles = window.getComputedStyle(scrollArea);
+      return {
+        gutter: Math.round(right.left - left.right),
+        leftWidth: Math.round(left.width),
+        rightWidth: Math.round(right.width),
+        scrollPaddingRight: styles.paddingRight,
+        chartHeight: Math.round(chart.height),
+        actionsOpacity: Number(window.getComputedStyle(actions).opacity)
+      };
+    });
+
+    expect(desktopMetrics.gutter).toBeGreaterThanOrEqual(36);
+    expect(desktopMetrics.leftWidth).toBeGreaterThan(desktopMetrics.rightWidth);
+    expect(desktopMetrics.scrollPaddingRight).toBe('12px');
+    expect(desktopMetrics.chartHeight).toBeLessThanOrEqual(176);
+    expect(desktopMetrics.actionsOpacity).toBeLessThan(0.2);
+
+    await page.locator('.seq-item-card--static').first().hover();
+    await expect(page.locator('.seq-item-card--static').first().locator('.ciclo-sequence-actions')).toHaveCSS('opacity', '1');
+
+    await page.setViewportSize({ width: 390, height: 780 });
+    await expect(page.locator('.seq-item-card--static').first().locator('.ciclo-sequence-actions')).toHaveCSS('opacity', '1');
+  });
+
   test('recomeça ciclo e limpa sequência', async ({ page }) => {
     const state = createE2EState();
     state.planejamento = {
@@ -378,5 +435,8 @@ test.describe('Previsão de Sessões (Ciclo)', () => {
     await expect(page.locator('.ciclo-predict-box')).toBeVisible();
     await expect(page.locator('#predict-start-date')).toHaveValue('2026-04-20');
     await expect(page.locator('#predict-end-date')).toHaveValue('2026-04-27');
+    await expect(page.locator('.ciclo-predict-summary')).toContainText('18 sess');
+    await expect(page.locator('.ciclo-predict-summary')).toContainText('18h totais');
+    await expect(page.locator('.ciclo-predict-summary')).toContainText('20/04/2026 a 27/04/2026');
   });
 });

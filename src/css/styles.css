@@ -2502,7 +2502,7 @@ mark {
 
   .ciclo-layout {
     grid-template-columns: 1fr !important;
-    gap: 16px !important;
+    gap: 24px !important;
   }
 
   .ciclo-side-panel {
@@ -2744,6 +2744,9 @@ mark {
   .ciclo-sequence-actions {
     flex-wrap: wrap;
     gap: 10px !important;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
   }
 
   .ciclo-predict-dates {
@@ -4138,15 +4141,48 @@ body {
   background: var(--bg);
 }
 
-.ciclo-action-link {
-  color: var(--text-muted);
-  cursor: pointer;
-  font-weight: 600;
-  transition: color 0.2s;
+.ciclo-layout.grid-2 {
+  grid-template-columns: minmax(0, 58fr) minmax(360px, 42fr);
+  gap: 40px;
+  align-items: stretch;
 }
 
-.ciclo-action-link:hover {
+@media (max-width: 1024px) {
+  .ciclo-layout.grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+}
+
+.ciclo-action-link {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  text-align: left;
+  transition: color 0.2s, opacity 0.2s, transform 0.2s;
+}
+
+.ciclo-action-link--primary {
+  color: var(--text-primary);
+}
+
+.ciclo-action-link:hover,
+.ciclo-action-link:focus-visible {
   color: var(--accent);
+}
+
+.ciclo-action-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 /* Dynamic cards that must grow after the final legacy card rule is applied. */
@@ -4172,7 +4208,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-right: 12px;
   padding-bottom: 16px;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  scrollbar-width: thin;
 }
 
 .ciclo-sequence-card .seq-item-card {
@@ -4191,12 +4230,67 @@ body {
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
 }
 
 .ciclo-sequence-actions {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  row-gap: 8px;
+  gap: 8px 16px;
+  margin-top: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.seq-item-card--static:hover .ciclo-sequence-actions,
+.seq-item-card--static:focus-within .ciclo-sequence-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.seq-item-content--static .seq-item-header,
+.seq-item-content--static .seq-progress-bar {
+  margin-bottom: 0;
+}
+
+.seq-item-content--static .seq-item-header {
+  gap: 12px;
+  min-width: 0;
+}
+
+.seq-item-content--static .seq-item-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seq-item-content--static .seq-item-time-display,
+.seq-item-content--static .seq-progress-text,
+.seq-item-content--static .seq-item-time-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.seq-item-content--static .seq-item-time-display {
+  flex-shrink: 0;
+}
+
+@media (hover: none), (max-width: 768px) {
+  .ciclo-layout {
+    gap: 20px !important;
+  }
+
+  .ciclo-sequence-actions {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
 }
 
 .seq-item-card--editing {

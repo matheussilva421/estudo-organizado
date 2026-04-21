@@ -236,6 +236,8 @@ describe('CSS architecture', () => {
     const sidePanelBlock = extractCssBlock(viewsCss, '.ciclo-side-panel');
     const predictBlock = extractCssBlock(viewsCss, '.ciclo-predict-box');
 
+    expect(layoutBlock).toContain('minmax(0, 58fr) minmax(360px, 42fr)');
+    expect(layoutBlock).toContain('gap: 40px');
     expect(layoutBlock).toContain('align-items: stretch');
     expect(sidePanelBlock).toContain('height: 100%');
     expect(predictBlock).toContain('width: 100%');
@@ -290,10 +292,20 @@ describe('CSS architecture', () => {
     const actionBlock = extractCssBlock(legacyStyles, '.ciclo-sequence-actions');
 
     expect(sequenceScrollBlock).toContain('display: flex');
+    expect(sequenceScrollBlock).toContain('padding-right: 12px');
     expect(sequenceCardBlock).toContain('flex: 0 0 auto');
     expect(sequenceCardBlock).toContain('min-height:');
     expect(staticContentBlock).toContain('flex-direction: column');
     expect(actionBlock).toContain('flex-wrap: wrap');
+  });
+
+  it('keeps ciclo card actions quiet on desktop and reachable on touch layouts', () => {
+    const legacyStyles = read('src/css/styles.css');
+
+    expect(legacyStyles).toContain('.seq-item-card--static:hover .ciclo-sequence-actions');
+    expect(legacyStyles).toContain('.seq-item-card--static:focus-within .ciclo-sequence-actions');
+    expect(legacyStyles).toContain('@media (hover: none), (max-width: 768px)');
+    expect(legacyStyles).toMatch(/@media \(hover: none\), \(max-width: 768px\)[\s\S]*\.ciclo-sequence-actions\s*{[\s\S]*opacity:\s*1/);
   });
 
   it('keeps sequence edit cards flexible and evenly spaced', () => {

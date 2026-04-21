@@ -2547,8 +2547,8 @@
 }
 
 .ciclo-layout {
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  grid-template-columns: minmax(0, 58fr) minmax(360px, 42fr);
+  gap: 40px;
   align-items: stretch;
 }
 
@@ -2608,10 +2608,21 @@
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
 }
 
 .ciclo-stat-detail-muted {
   color: var(--text-muted);
+}
+
+.ciclo-stat-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .ciclo-stat-badge {
@@ -2621,6 +2632,7 @@
   background: var(--accent);
   color: var(--bg);
   border-radius: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 .ciclo-progress-track {
@@ -2640,7 +2652,7 @@
 
 .ciclo-sequence-card {
   padding: 0;
-  margin: -16px;
+  margin: 0;
   padding-bottom: 0;
 }
 
@@ -2729,9 +2741,9 @@
 
 .ciclo-chart-container {
   width: 100%;
-  height: 200px;
+  height: 168px;
   position: relative;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   flex-shrink: 0;
 }
 
@@ -2821,6 +2833,28 @@
   min-width: 0;
 }
 
+.ciclo-predict-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ciclo-predict-summary span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .ciclo-predict-empty {
   font-size: 12px;
   color: var(--text-muted);
@@ -2832,7 +2866,9 @@
 .scroll-area-md {
   max-height: 600px;
   overflow-y: auto;
-  padding-right: 8px;
+  padding-right: 12px;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  scrollbar-width: thin;
 }
 
 .ciclo-sequence-card .scroll-area-md {
@@ -2840,6 +2876,7 @@
   flex-direction: column;
   gap: 16px;
   padding: 16px;
+  padding-right: 12px;
 }
 
 /* === Grade Semanal View === */

@@ -9,6 +9,30 @@ import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from
 import { renderCurrentView } from '../components.js?v=8.14';
 import { showConfirm, showToast } from '../app.js?v=8.14';
 
+function formatCycleDuration(minutes) {
+  const total = Math.max(0, Math.round(Number(minutes) || 0));
+  if (total === 0) return '0h';
+
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  if (hours > 0) return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  return `${mins}min`;
+}
+
+function formatCyclePercent(value) {
+  return Math.round(Math.max(0, Number(value) || 0));
+}
+
+function formatPredictionDate(dateStr) {
+  const [year, month, day] = String(dateStr || '').split('-');
+  if (!year || !month || !day) return '';
+  return `${day}/${month}/${year}`;
+}
+
+function pluralizeSession(count) {
+  return count === 1 ? 'sessão' : 'sessões';
+}
+
 export function recomecarCiclo() {
   showConfirm('Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?', () => {
     if (state.planejamento && state.planejamento.tipo) {
@@ -41,6 +65,7 @@ export function calculateCyclePredictions() {
   const eVal = endObj.value;
   const container = document.getElementById('predict-results-container');
   const emptyState = document.getElementById('predict-empty-state');
+  if (!container || !emptyState) return;
 
   if (sVal && eVal) {
     if (sVal > eVal) {
@@ -48,6 +73,7 @@ export function calculateCyclePredictions() {
       emptyState.textContent = 'A data inicial não pode ser maior que a final.';
       emptyState.style.color = '#f87171';
       container.style.display = 'none';
+      container.innerHTML = '';
       return;
     }
 
@@ -59,9 +85,20 @@ export function calculateCyclePredictions() {
       emptyState.textContent = 'O ciclo não gera sessões nesses dias (Verifique Dias Ativos).';
       emptyState.style.color = 'var(--text-muted)';
       container.style.display = 'none';
+      container.innerHTML = '';
     } else {
       emptyState.style.display = 'none';
       container.style.display = 'flex';
+
+      const totalSessions = keys.reduce((sum, id) => sum + proj[id].sessoes, 0);
+      const totalMinutes = keys.reduce((sum, id) => sum + proj[id].minutos, 0);
+      const summaryHTML = `
+        <div class="ciclo-predict-summary">
+          <span>${totalSessions} ${pluralizeSession(totalSessions)} previstas</span>
+          <span>${formatCycleDuration(totalMinutes)} totais</span>
+          <span>${formatPredictionDate(sVal)} a ${formatPredictionDate(eVal)}</span>
+        </div>
+      `;
 
       const listHTML = keys.map(id => {
         const disc = getDisc(id);
@@ -69,9 +106,7 @@ export function calculateCyclePredictions() {
         const color = disc ? (disc.disc.cor || disc.edital.cor || '#888') : '#888';
         const sessCount = proj[id].sessoes;
         const mins = proj[id].minutos;
-        const hr = Math.floor(mins / 60);
-        const mn = mins % 60;
-        const hrStr = hr > 0 ? `${hr}h${mn}m` : `${mn}m`;
+        const hrStr = formatCycleDuration(mins);
 
         return `
           <div class="seq-discipline-list-item">
@@ -85,13 +120,14 @@ export function calculateCyclePredictions() {
           </div>
         `;
       }).join('');
-      container.innerHTML = listHTML;
+      container.innerHTML = `${summaryHTML}${listHTML}`;
     }
   } else {
     emptyState.style.display = 'block';
     emptyState.textContent = 'Selecione as datas para calcular.';
     emptyState.style.color = 'var(--text-muted)';
     container.style.display = 'none';
+    container.innerHTML = '';
   }
 }
 
@@ -158,6 +194,7 @@ function renderCicloView(el, plan) {
 
   const copyStats = { ...statsPorDisc };
   let minutosCompletosCiclo = 0;
+  let sessoesConcluidas = 0;
 
   let targetLoop = window._isEditingSequence ? (window._tempSequencia || []) : plan.sequencia;
 
@@ -190,8 +227,9 @@ function renderCicloView(el, plan) {
       }
     }
     minutosCompletosCiclo += usedMins;
-    const pctStr = pct.toFixed(2);
+    const pctInt = formatCyclePercent(pct);
     const cor = d ? (d.disc.cor || d.edital.cor || '#8aa4bf') : '#7f8a99';
+    if (pct >= 100) sessoesConcluidas++;
 
     if (!window._isEditingSequence && window._hideConcluidosCiclo && pct >= 100) return;
 
@@ -240,19 +278,19 @@ function renderCicloView(el, plan) {
             <div class="seq-item-header">
               <div class="seq-item-title" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
               <div class="seq-item-time-display">
-                 <i class="fa fa-clock"></i> <span class="seq-item-time-value">${formatH(usedMins)}</span> / ${formatH(seq.minutosAlvo)}
+                 <i class="fa fa-clock"></i> <span class="seq-item-time-value">${formatCycleDuration(usedMins)}</span> de ${formatCycleDuration(seq.minutosAlvo)}
               </div>
             </div>
 
             <div class="seq-progress-bar">
               <div class="seq-progress-fill absolute h-full rounded-lg" style="top:0; left:0; width:${Math.min(pct, 100)}%; background:${cor}; opacity:0.6;"></div>
-              <div class="seq-progress-text">${pctStr}%</div>
+              <div class="seq-progress-text">${pctInt}%</div>
             </div>
 
             <div class="ciclo-sequence-actions">
-              <span class="ciclo-action-link" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Iniciar Estudo</span>
-              <span class="ciclo-action-link" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</span>
-              <span class="ciclo-action-link" data-action="open-ciclo-history" data-seq-id="${seq.id}"><i class="fa fa-history"></i> Ver Últimos Estudos</span>
+              <button type="button" class="ciclo-action-link ciclo-action-link--primary" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Iniciar Estudo</button>
+              <button type="button" class="ciclo-action-link" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</button>
+              <button type="button" class="ciclo-action-link" data-action="open-ciclo-history" data-seq-id="${seq.id}"><i class="fa fa-history"></i> Ver Últimos Estudos</button>
             </div>
           </div>
         </div>
@@ -272,16 +310,18 @@ function renderCicloView(el, plan) {
     `;
   }
 
-  const progressoGlobalPct = totalTarget > 0 ? ((minutosCompletosCiclo / totalTarget) * 100).toFixed(2) : 0;
+  const progressoGlobalPct = totalTarget > 0 ? formatCyclePercent((minutosCompletosCiclo / totalTarget) * 100) : 0;
+  const minutosRestantes = Math.max(totalTarget - minutosCompletosCiclo, 0);
+  const totalSessoes = targetLoop.length;
   const ciclosFeitos = plan.ciclosCompletos || 0;
 
   el.innerHTML = `
     <div class="ciclo-header-actions">
       <h2 class="ciclo-header-title">Planejamento</h2>
       <div class="ciclo-header-buttons">
-        <button class="btn btn-ghost btn-sm ciclo-btn" data-action="recomecar-ciclo"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
-        <button class="btn btn-ghost btn-sm ciclo-btn" data-action="open-planejamento-wizard"><i class="fa fa-edit"></i> Replanejar</button>
-        <button class="btn btn-ghost btn-sm ciclo-btn" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
+        <button class="btn btn-primary btn-sm ciclo-btn ciclo-btn--primary" data-action="open-planejamento-wizard"><i class="fa fa-edit"></i> Replanejar</button>
+        <button class="btn btn-ghost btn-sm ciclo-btn ciclo-btn--secondary" data-action="recomecar-ciclo"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
+        <button class="btn btn-danger btn-sm ciclo-btn ciclo-btn--danger" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
       </div>
     </div>
 
@@ -294,7 +334,11 @@ function renderCicloView(el, plan) {
           </div>
           <div class="card ciclo-stat-card ciclo-stat-card--fill">
             <div class="ciclo-stat-label">PROGRESSO</div>
-            <div class="ciclo-stat-detail">${formatH(minutosCompletosCiclo)} <span class="ciclo-stat-detail-muted">/ ${formatH(totalTarget)}</span></div>
+            <div class="ciclo-stat-detail">${formatCycleDuration(minutosCompletosCiclo)} de ${formatCycleDuration(totalTarget)}</div>
+            <div class="ciclo-stat-meta">
+              <span>faltam ${formatCycleDuration(minutosRestantes)}</span>
+              <span>${sessoesConcluidas} de ${totalSessoes} sessões concluídas</span>
+            </div>
             <div class="flex cluster-sm">
               <div class="ciclo-stat-badge">${progressoGlobalPct}%</div>
               <div class="ciclo-progress-track">
@@ -332,7 +376,7 @@ function renderCicloView(el, plan) {
 
         <div class="ciclo-chart-container">
            <canvas id="planejamentoChart"></canvas>
-           <div class="ciclo-chart-total">${formatH(totalTarget)}</div>
+           <div class="ciclo-chart-total">${formatCycleDuration(totalTarget)}</div>
         </div>
 
         <div id="filete-linear-ciclo" class="ciclo-filete-linear"></div>

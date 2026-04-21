@@ -183,6 +183,76 @@ describe('ciclo-view.js', () => {
 
       expect(container.innerHTML).toContain('Ciclo');
     });
+
+    it('renderiza progresso do ciclo em formato humano e sem casas decimais', () => {
+      const sequencia = Array.from({ length: 12 }, (_, index) => ({
+        id: `seq_${index + 1}`,
+        discId: 'disc_1',
+        minutosAlvo: 120,
+        concluido: false
+      }));
+      const state = createBaseState({
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          sequencia,
+          ciclosCompletos: 0,
+          dataInicioCicloAtual: '2026-04-20T00:00:00.000Z'
+        },
+        editais: [createEdital({
+          disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Teste' })]
+        })]
+      });
+      store.setState(state);
+
+      const container = { innerHTML: '' };
+      views.renderCiclo(container);
+
+      expect(container.innerHTML).toContain('0h de 24h');
+      expect(container.innerHTML).toContain('faltam 24h');
+      expect(container.innerHTML).toContain('0 de 12 sessões concluídas');
+      expect(container.innerHTML).toContain('0%');
+      expect(container.innerHTML).not.toContain('0.00%');
+      expect(container.innerHTML).not.toContain('/ 24h');
+    });
+
+    it('renderiza resumo agregado da previsÃ£o de sessÃµes', () => {
+      document.body.innerHTML = '<main id="test-root"></main>';
+      const state = createBaseState({
+        config: {
+          ...createBaseState().config,
+          materiasPorDia: 2
+        },
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          sequencia: [
+            { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false }
+          ],
+          ciclosCompletos: 0,
+          horarios: {
+            diasAtivos: [1, 2],
+            horasPorDia: { 1: '02:00', 2: '02:00' },
+            dataInicial: '2026-04-20',
+            dataFinal: '2026-04-21'
+          }
+        },
+        editais: [createEdital({
+          disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Teste' })]
+        })]
+      });
+      store.setState(state);
+
+      const container = document.getElementById('test-root');
+      views.renderCiclo(container);
+      views.calculateCyclePredictions();
+
+      expect(container.innerHTML).toContain('4 sessões previstas');
+      expect(container.innerHTML).toContain('4h totais');
+      expect(container.innerHTML).toContain('20/04/2026 a 21/04/2026');
+    });
   });
 
   describe('recomecarCiclo()', () => {
