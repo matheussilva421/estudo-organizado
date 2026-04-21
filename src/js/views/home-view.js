@@ -94,7 +94,9 @@ export function renderHome(el) {
 
   // SESSIONS CHART
   const maxWeeklySec = Math.max(...weekStats.dailySeconds, 3600);
-  const barsHtml = weekStats.dailySeconds.map((sec, i) => {
+  const hasWeekData = weekStats.totalSeconds > 0;
+
+  const barsHtml = hasWeekData ? weekStats.dailySeconds.map((sec, i) => {
     const h = (sec / maxWeeklySec) * 100;
     const days = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
     return `
@@ -103,7 +105,11 @@ export function renderHome(el) {
         <div class="text-xs font-semibold text-muted mt-2">${days[i]}</div>
       </div>
     `;
-  }).join('');
+  }).join('') : `
+    <div class="flex flex-center flex-1 text-muted text-sm">
+      <em>Nenhuma sessão de estudo registrada esta semana</em>
+    </div>
+  `;
 
   // SUBJECTS TABLE
   const subjHtml = subjStats.map(s => {

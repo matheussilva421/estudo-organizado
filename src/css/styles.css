@@ -1388,6 +1388,8 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
+  max-width: 100%;
+  display: block;
 }
 
 /* Cal event chip as button: reset default button styles */

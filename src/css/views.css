@@ -1203,7 +1203,7 @@
 
 .session-group-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: var(--space-3);
 }
 
@@ -1569,7 +1569,7 @@
 
 .session-group-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: var(--space-3);
 }
 
@@ -2606,7 +2606,9 @@
 }
 
 .ciclo-sequence-card {
-  padding: 16px;
+  padding: 0;
+  margin: -16px;
+  padding-bottom: 0;
 }
 
 .ciclo-sequence-header {
@@ -2614,6 +2616,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  padding: 16px;
 }
 
 .ciclo-sequence-title {
@@ -2799,6 +2802,10 @@
   max-height: 600px;
   overflow-y: auto;
   padding-right: 8px;
+}
+
+.ciclo-sequence-card .scroll-area-md {
+  padding: 16px;
 }
 
 /* === Grade Semanal View === */

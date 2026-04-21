@@ -1221,10 +1221,15 @@ export function renderHistoricoSessoes(el) {
           </div>
 
           <div class="session-group-grid">
-            ${disciplinas.map(group => `
+            ${disciplinas.map(group => {
+              // Fallback para disciplina sem nome
+              const discName = group.discNome === 'Sem disciplina' || !group.discNome ? 'Disciplina não vinculada' : group.discNome;
+              const discIcon = group.discIcone || '📚';
+
+              return `
               <div class="session-disc-card">
                 <div class="session-disc-header">
-                  <div class="session-disc-title">${esc(group.discIcone)} ${esc(group.discNome)}</div>
+                  <div class="session-disc-title">${esc(discIcon)} ${esc(discName)}</div>
                   <div class="session-disc-count">${group.itens.length} registro(s)</div>
                 </div>
 
@@ -1267,10 +1272,11 @@ export function renderHistoricoSessoes(el) {
                       </div>
                     </div>
                   `;
-    }).join('')}
+                  }).join('')}
                 </div>
               </div>
-            `).join('')}
+            `;
+            }).join('')}
           </div>
         </section>
       `;

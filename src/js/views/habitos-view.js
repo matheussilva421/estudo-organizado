@@ -101,12 +101,39 @@ export function renderHabitHistPage() {
   if (listEl) {
     listEl.innerHTML = items.length === 0
       ? '<div class="empty-state"><div class="icon">⚡</div><p>Nenhum hábito registrado ainda</p></div>'
-      : items.map(r => `
+      : items.map(r => {
+        // Constrói informações adicionais de forma consistente
+        const extraInfo = [];
+
+        // Adiciona quantidade de questões para hábito de questões
+        if (r.tipo.key === 'questoes' && (r.quantidade || r.total)) {
+          extraInfo.push(`${r.quantidade || r.total} questões`);
+        }
+
+        // Adiciona páginas para hábito de páginas
+        if (r.tipo.key === 'paginas' && r.total) {
+          extraInfo.push(`${r.total} páginas`);
+        }
+
+        // Adiciona acertos para questões
+        if (r.tipo.key === 'questoes' && r.acertos !== undefined) {
+          extraInfo.push(`${r.acertos} acertos`);
+        }
+
+        // Adiciona porcentagem de acertos
+        if (r.tipo.key === 'questoes' && r.total && r.total > 0) {
+          const perc = Math.round((r.acertos / r.total) * 100);
+          extraInfo.push(`${perc}%`);
+        }
+
+        const extraStr = extraInfo.length > 0 ? ` • ${extraInfo.join(' • ')}` : '';
+
+        return `
         <div class="flex border-b habit-hist-item">
           <div class="habit-item-icon">${r.tipo.icon}</div>
           <div class="flex-1">
             <div class="text-md font-semibold">${esc(r.tipo.label)}${r.descricao ? ' - ' + esc(r.descricao) : ''}</div>
-            <div class="text-base text-secondary">${formatDate(r.data)}${(r.quantidade || r.total) && r.tipo.key === 'questoes' ? ' • ' + (r.quantidade || r.total) + ' questões' : ''}${r.total && r.tipo.key === 'paginas' ? ' • ' + r.total + ' páginas' : ''}${r.acertos !== undefined && r.tipo.key === 'questoes' ? ' • ' + r.acertos + ' acertos' : ''}${r.total && r.total > 0 && r.tipo.key === 'questoes' ? ` • ${r.acertos}/${r.total} (${Math.round(r.acertos / r.total * 100)}%)` : ''}</div>
+            <div class="text-base text-secondary">${formatDate(r.data)}${extraStr}</div>
             ${r.gabaritoPorDisc && r.gabaritoPorDisc.length ? `
               <div class="flex-wrap gap-sm mt-1 habit-disc-tags">
                 ${r.gabaritoPorDisc.map(g => `<span class="habit-disc-tag">${esc(g.discNome)}: ${g.acertos}/${g.total}</span>`).join('')}
@@ -114,7 +141,8 @@ export function renderHabitHistPage() {
           </div>
           <button class="icon-btn" data-action="delete-habit" data-type="${r.tipo.key}" data-habit-id="${r.id}">🗑️</button>
         </div>
-      `).join('');
+      `;
+      }).join('');
   }
 
   const footerEl = document.getElementById('habit-hist-footer');
