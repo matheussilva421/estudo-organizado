@@ -28,6 +28,7 @@ registerAction('restore-backup', () => restoreBackup());
 registerAction('archive-old-events', (el) => archiveOldEvents(el));
 registerAction('clear-all-data', () => clearAllData());
 registerAction('set-theme', (el) => setTheme(el));
+registerAction('force-sw-cache-clear', () => forceSwCacheClear());
 
 /**
  * Atualiza configuração por chave
@@ -260,5 +261,41 @@ export function clearAllData() {
 export function setTheme(el) {
   if (typeof window.EstudoApp?.setTheme === 'function') {
     window.EstudoApp?.setTheme(el.value);
+  }
+}
+
+/**
+ * Força limpeza completa do cache do service worker e recarrega
+ */
+export async function forceSwCacheClear() {
+  if (!('serviceWorker' in navigator)) {
+    window.EstudoApp?.showToast('Service Worker não suportado neste browser.', 'error');
+    return;
+  }
+
+  try {
+    // Mostrar feedback imediato
+    window.EstudoApp?.showToast('Limpando cache...', 'info');
+
+    // 1. Limpar TODOS os caches
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(name => caches.delete(name)));
+
+    // 2. Obter registro do SW e forçar update
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) {
+      // 3. Enviar SKIP_WAITING se houver worker em espera
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+      // 4. Forçar update
+      await reg.update();
+    }
+
+    // 5. Recarregar página forçando refresh (true = bypass cache)
+    window.location.reload(true);
+  } catch (err) {
+    console.error('Erro ao limpar cache do SW:', err);
+    window.EstudoApp?.showToast('Erro ao limpar cache. Tente Ctrl+Shift+R.', 'error');
   }
 }

@@ -2895,6 +2895,18 @@ export function renderConfig(el) {
         </div>
 
         <div class="card">
+          <div class="card-header"><h3>🔄 Service Worker</h3></div>
+          <div class="card-body">
+            <div class="config-desc" style="margin-bottom:12px;">
+              Limpe o cache do service worker e force o carregamento da versão mais recente. Útil quando há problemas de cache após atualizações.
+            </div>
+            <button class="btn btn-primary btn-sm" data-action="force-sw-cache-clear">
+              🔄 Limpar cache e recarregar
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
           <div class="card-header"><h3>ℹ️ Sobre</h3></div>
           <div class="card-body">
             <div class="config-desc">
