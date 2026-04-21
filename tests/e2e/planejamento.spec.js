@@ -17,6 +17,17 @@ async function seedLegacyState(page, state) {
   }, serializeState(state));
 }
 
+async function readCssColor(page, value) {
+  return page.evaluate((color) => {
+    const probe = document.createElement('span');
+    probe.style.color = color;
+    document.body.appendChild(probe);
+    const resolved = getComputedStyle(probe).color;
+    probe.remove();
+    return resolved;
+  }, value);
+}
+
 test.describe('Planejamento de Estudos (Wizard)', () => {
   test('completes the planning wizard flow', async ({ page }) => {
     const state = createE2EState();
@@ -32,7 +43,8 @@ test.describe('Planejamento de Estudos (Wizard)', () => {
     await expect(wizardModal).toBeVisible();
 
     // Step 1: Organização (Should default to Ciclo)
-    await expect(page.locator('#pw-step-1')).toHaveCSS('color', /rgb\(16, 185, 129\)|rgb\(.*var\(--accent\).*\)/i); // Assuming active step has some styling, but better to check button
+    const accentColor = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+    await expect(page.locator('#pw-step-1')).toHaveCSS('color', await readCssColor(page, accentColor));
     await page.click('[data-action="pw-select-tipo"][data-tipo="ciclo"]');
     await page.click('#pw-btn-proximo');
 

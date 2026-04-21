@@ -10,6 +10,44 @@ function read(relativePath) {
   return readFileSync(join(rootDir, relativePath), 'utf8');
 }
 
+function extractCssBlock(content, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = content.match(new RegExp(`${escapedSelector}\\s*{(?<body>[^}]*)}`, 'm'));
+  return match?.groups?.body || '';
+}
+
+function extractCssVars(block) {
+  return Object.fromEntries(
+    [...block.matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+);/gi)]
+      .map((match) => [`--${match[1]}`, match[2].trim().toLowerCase()])
+  );
+}
+
+function hexToRgb(hex) {
+  const normalized = hex.replace('#', '');
+  return [
+    Number.parseInt(normalized.slice(0, 2), 16),
+    Number.parseInt(normalized.slice(2, 4), 16),
+    Number.parseInt(normalized.slice(4, 6), 16)
+  ];
+}
+
+function luminance(hex) {
+  const [r, g, b] = hexToRgb(hex).map((value) => {
+    const channel = value / 255;
+    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(foreground, background) {
+  const foregroundLum = luminance(foreground);
+  const backgroundLum = luminance(background);
+  const lighter = Math.max(foregroundLum, backgroundLum);
+  const darker = Math.min(foregroundLum, backgroundLum);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 describe('CSS architecture', () => {
   it('loads design-system stylesheets before legacy styles', () => {
     const html = read('src/index.html');
@@ -36,6 +74,45 @@ describe('CSS architecture', () => {
     expect(tokens).toContain('--radius-sm:');
     expect(tokens).toContain('--shadow-sm:');
     expect(legacyStyles).not.toMatch(/^:root\s*{/m);
+  });
+
+  it('keeps the professional clean light and dark theme contract', () => {
+    const tokens = read('src/css/tokens.css');
+    const legacyStyles = read('src/css/styles.css');
+    const lightVars = extractCssVars(extractCssBlock(tokens, ':root'));
+    const darkVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="dark"]'));
+
+    expect(lightVars).toMatchObject({
+      '--bg': '#f6f8fb',
+      '--card': '#ffffff',
+      '--surface': '#eef3f8',
+      '--border': '#d8e0ea',
+      '--text-primary': '#111827',
+      '--text-secondary': '#475569',
+      '--text-muted': '#64748b',
+      '--accent': '#0f766e',
+      '--accent-hover': '#115e59',
+      '--accent-light': '#ccfbf1',
+      '--accent-text': '#ffffff'
+    });
+
+    expect(darkVars).toMatchObject({
+      '--bg': '#0b1220',
+      '--card': '#111827',
+      '--surface': '#172033',
+      '--border': '#253247',
+      '--text-primary': '#e5edf7',
+      '--text-secondary': '#a8b3c7',
+      '--text-muted': '#7d8aa3',
+      '--accent': '#2dd4bf',
+      '--accent-hover': '#5eead4',
+      '--accent-light': '#134e4a',
+      '--accent-text': '#042f2e'
+    });
+
+    expect(contrastRatio(lightVars['--accent-text'], lightVars['--accent'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(darkVars['--accent-text'], darkVars['--accent'])).toBeGreaterThanOrEqual(4.5);
+    expect(legacyStyles).toMatch(/\.btn-primary:hover\s*{[^}]*background:\s*var\(--accent-hover\)/s);
   });
 
   it('moves repeated home dashboard stat-card layout into a view class', () => {

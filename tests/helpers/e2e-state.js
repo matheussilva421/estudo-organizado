@@ -16,13 +16,13 @@ export function createE2EState() {
       {
         id: 'ed_1',
         nome: 'Concurso TRF',
-        cor: '#10b981',
+        cor: '#0f766e',
         disciplinas: [
           {
             id: 'disc_1',
             nome: 'Direito Constitucional',
             icone: '📚',
-            cor: '#10b981',
+            cor: '#0f766e',
             assuntos: [
               {
                 id: 'ass_1',

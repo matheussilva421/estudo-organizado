@@ -323,7 +323,7 @@ export function init() {
     console.error('Falha ao inicializar o aplicativo:', err);
     const content = document.getElementById('main-content');
     if (content) {
-      content.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;"><h2>Erro ao carregar o aplicativo</h2><p>Tente recarregar a página. Se o erro persistir, limpe os dados do navegador.</p></div>';
+      content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--danger);"><h2>Erro ao carregar o aplicativo</h2><p>Tente recarregar a página. Se o erro persistir, limpe os dados do navegador.</p></div>';
     }
   });
 }

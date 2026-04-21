@@ -17,12 +17,17 @@ async function seedLegacyState(page, state) {
   }, serializeState(state));
 }
 
+function localDateStr(dateObj = new Date()) {
+  const local = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
+  return local.toISOString().slice(0, 10);
+}
+
 test.describe('Revisoes e Habitos', () => {
   test('completes a scheduled revision and verifies it is done', async ({ page }) => {
     const state = createE2EState();
 
     state.editais[0].disciplinas[0].assuntos[0].concluido = true;
-    state.editais[0].disciplinas[0].assuntos[0].dataConclusao = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    state.editais[0].disciplinas[0].assuntos[0].dataConclusao = localDateStr(new Date(Date.now() - 86400000));
     state.config.frequenciaRevisao = [1, 7, 30];
 
     await seedLegacyState(page, state);

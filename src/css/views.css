@@ -141,8 +141,8 @@
 
 /* Revision upcoming badge */
 .rev-days--upcoming {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--info-bg);
+  color: var(--info);
 }
 
 /* Habit summary row */
@@ -546,12 +546,12 @@
 }
 
 .modal-dark-header {
-  background: linear-gradient(135deg, #0d1117, #161b22);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
 }
 
 .modal-dark-title {
-  color: #e6edf3;
+  color: var(--text-primary);
 }
 
 .modal-scrollable-body {
@@ -585,7 +585,7 @@
 }
 
 .modal-dark-footer {
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--border);
   background: var(--bg);
   text-align: right;
 }

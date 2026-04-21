@@ -115,7 +115,7 @@ export function renderSkeletonTable(rows = 5, cols = 4) {
 // CONSTANTS
 // =============================================
 export const COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#0f766e', '#2563eb', '#d97706', '#dc2626', '#7c3aed',
   '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
   '#14b8a6', '#e11d48', '#0ea5e9', '#a855f7', '#22c55e',
   '#eab308', '#d946ef', '#64748b'
@@ -833,8 +833,8 @@ export function renderDailyChart(periodDays) {
   if (!ctx) return;
   if (_chartDaily) { _chartDaily.destroy(); _chartDaily = null; }
   const themeVars = getComputedStyle(document.documentElement);
-  const accent = themeVars.getPropertyValue('--accent').trim() || '#10b981';
-  const accentLight = themeVars.getPropertyValue('--accent-light').trim() || '#d1fae5';
+  const accent = themeVars.getPropertyValue('--accent').trim() || '#0f766e';
+  const accentLight = themeVars.getPropertyValue('--accent-light').trim() || '#ccfbf1';
   const border = themeVars.getPropertyValue('--border').trim() || '#e2e8f0';
   const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#475569';
   const numDays = periodDays ? Math.min(periodDays, 90) : 30;
@@ -889,7 +889,7 @@ export function renderDiscChart(periodDays) {
     const d = getDisc(id);
     labels.push(d ? d.disc.nome : id);
     data.push(Math.round(secs / 60));
-    colors.push(d ? (d.disc.cor || '#10b981') : '#94a3b8');
+    colors.push(d ? (d.disc.cor || '#0f766e') : '#94a3b8');
   });
   let dummyTooltip = false;
   if (data.length === 0) {
@@ -1659,11 +1659,11 @@ export function initDiscDashboardChart(discId) {
   const canvas = document.getElementById('disc-chart-acertos');
   if (!canvas) return;
   const themeVars = getComputedStyle(document.documentElement);
-  const accent = themeVars.getPropertyValue('--accent').trim() || '#3b82f6';
+  const accent = themeVars.getPropertyValue('--accent').trim() || '#0f766e';
   const bg = themeVars.getPropertyValue('--bg').trim() || '#0f172a';
   const card = themeVars.getPropertyValue('--card').trim() || '#1e293b';
   const border = themeVars.getPropertyValue('--border').trim() || '#334155';
-  const textPrimary = themeVars.getPropertyValue('--text-primary').trim() || '#f1f5f9';
+  const textPrimary = themeVars.getPropertyValue('--text-primary').trim() || '#111827';
   const textMuted = themeVars.getPropertyValue('--text-muted').trim() || '#94a3b8';
   const grid = border;
   const accentSoft = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}1A` : 'rgba(59,130,246,0.1)';
@@ -1938,7 +1938,7 @@ export function saveDisc() {
   const nome = nomeEl.value.trim();
   if (!nome) { showToast('Informe o nome da disciplina', 'error'); return; }
   const icone = document.getElementById('disc-icone')?.value || '📖';
-  const cor = document.getElementById('disc-cor')?.value || '#10b981';
+  const cor = document.getElementById('disc-cor')?.value || '#0f766e';
   if (!editingDiscCtx) return;
   const { editaId, discId } = editingDiscCtx;
   const edital = state.editais.find(e => e.id === editaId);
@@ -2674,14 +2674,14 @@ export function renderConfig(el) {
                 <div class="config-sub">Personalize a aparência do seu sistema</div>
               </div>
               <select class="form-control config-select" data-action="set-theme">
-                <option value="light" ${cfg.tema === 'light' || !cfg.darkMode ? 'selected' : ''}>☀️ Light</option>
-                <option value="dark" ${cfg.tema === 'dark' || (cfg.darkMode && !cfg.tema) ? 'selected' : ''}>🌑 Original Dark</option>
-                <option value="furtivo" ${cfg.tema === 'furtivo' ? 'selected' : ''}>🕶️ Furtivo</option>
-                <option value="abismo" ${cfg.tema === 'abismo' ? 'selected' : ''}>🌌 Abismo</option>
-                <option value="grafite" ${cfg.tema === 'grafite' ? 'selected' : ''}>🌫️ Grafite</option>
-                <option value="matrix" ${cfg.tema === 'matrix' ? 'selected' : ''}>📟 Matrix</option>
-                <option value="rubi" ${cfg.tema === 'rubi' ? 'selected' : ''}>🩸 Rubi</option>
-                <option value="cyberpunk2077" ${cfg.tema === 'cyberpunk2077' ? 'selected' : ''}>Cyberpunk 2077</option>
+                <option value="light" ${cfg.tema === 'light' || !cfg.darkMode ? 'selected' : ''}>Claro profissional</option>
+                <option value="dark" ${cfg.tema === 'dark' || (cfg.darkMode && !cfg.tema) ? 'selected' : ''}>Escuro profissional</option>
+                <option value="furtivo" ${cfg.tema === 'furtivo' ? 'selected' : ''}>Extra: Furtivo</option>
+                <option value="abismo" ${cfg.tema === 'abismo' ? 'selected' : ''}>Extra: Abismo</option>
+                <option value="grafite" ${cfg.tema === 'grafite' ? 'selected' : ''}>Extra: Grafite</option>
+                <option value="matrix" ${cfg.tema === 'matrix' ? 'selected' : ''}>Extra: Matrix</option>
+                <option value="rubi" ${cfg.tema === 'rubi' ? 'selected' : ''}>Extra: Rubi</option>
+                <option value="cyberpunk2077" ${cfg.tema === 'cyberpunk2077' ? 'selected' : ''}>Extra: Cyberpunk 2077</option>
               </select>
             </div>
           </div>

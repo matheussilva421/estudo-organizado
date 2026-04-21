@@ -278,11 +278,11 @@ export function initDiscDashboardChart(discId) {
   const canvas = document.getElementById('disc-chart-acertos');
   if (!canvas) return;
   const themeVars = getComputedStyle(document.documentElement);
-  const accent = themeVars.getPropertyValue('--accent').trim() || '#3b82f6';
+  const accent = themeVars.getPropertyValue('--accent').trim() || '#0f766e';
   const bg = themeVars.getPropertyValue('--bg').trim() || '#0f172a';
   const card = themeVars.getPropertyValue('--card').trim() || '#1e293b';
   const border = themeVars.getPropertyValue('--border').trim() || '#334155';
-  const textPrimary = themeVars.getPropertyValue('--text-primary').trim() || '#f1f5f9';
+  const textPrimary = themeVars.getPropertyValue('--text-primary').trim() || '#111827';
   const textMuted = themeVars.getPropertyValue('--text-muted').trim() || '#94a3b8';
   const grid = border;
   const accentSoft = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}1A` : 'rgba(59,130,246,0.1)';

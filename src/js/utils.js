@@ -134,11 +134,11 @@ export function cutoffDateStr(days) {
 }
 
 export const HABIT_TYPES = [
-    { key: 'questoes', label: 'Questões', icon: '📝', color: '#3b82f6' },
-    { key: 'revisao', label: 'Revisão', icon: '🔄', color: '#10b981' },
-    { key: 'discursiva', label: 'Discursiva', icon: '✍️', color: '#f59e0b' },
-    { key: 'simulado', label: 'Simulado', icon: '🎯', color: '#ef4444' },
-    { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: '#8b5cf6' },
+    { key: 'questoes', label: 'Questões', icon: '📝', color: '#2563eb' },
+    { key: 'revisao', label: 'Revisão', icon: '🔄', color: '#0f766e' },
+    { key: 'discursiva', label: 'Discursiva', icon: '✍️', color: '#d97706' },
+    { key: 'simulado', label: 'Simulado', icon: '🎯', color: '#dc2626' },
+    { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: '#7c3aed' },
     { key: 'informativo', label: 'Informativos', icon: '📰', color: '#06b6d4' },
     { key: 'sumula', label: 'Súmulas', icon: '⚖️', color: '#6366f1' },
     { key: 'videoaula', label: 'Videoaula', icon: '📺', color: '#ec4899' },

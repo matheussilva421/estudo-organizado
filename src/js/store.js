@@ -342,7 +342,7 @@ export function runMigrations() {
     if (!state.editais) state.editais = [];
     state.editais.forEach(ed => {
       if (!ed.id) ed.id = 'ed_' + uid();
-      if (!ed.cor) ed.cor = '#10b981';
+      if (!ed.cor) ed.cor = '#0f766e';
       // Migration: flatten grupos into disciplinas
       if (ed.grupos && !ed.disciplinas) {
         ed.disciplinas = [];

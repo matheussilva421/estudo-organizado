@@ -16,7 +16,7 @@ export function createDisciplina(overrides = {}) {
     id: 'disc_1',
     nome: 'Disciplina',
     icone: '📚',
-    cor: '#10b981',
+    cor: '#0f766e',
     assuntos: [],
     aulas: [],
     ...overrides
@@ -27,7 +27,7 @@ export function createEdital(overrides = {}) {
   return {
     id: 'ed_1',
     nome: 'Edital',
-    cor: '#10b981',
+    cor: '#0f766e',
     disciplinas: [],
     ...overrides
   };

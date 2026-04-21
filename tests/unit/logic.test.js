@@ -5,6 +5,11 @@ import { loadAppModules } from '../helpers/module-loader.js';
 let store;
 let logic;
 
+function localDateStr(dateObj = new Date()) {
+  const local = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
+  return local.toISOString().slice(0, 10);
+}
+
 beforeEach(async () => {
   global.document = {
     dispatchEvent: () => {},
@@ -132,13 +137,12 @@ describe('logic.js', () => {
   it('getConsistencyStreak calculates current streak from studied event dates', () => {
     const today = new Date();
     const oneDay = 24 * 60 * 60 * 1000;
-    const toDateStr = (value) => value.toISOString().slice(0, 10);
 
     store.setState(createBaseState({
       eventos: [
-        createEvento({ id: 'ev_today', status: 'estudei', tempoAcumulado: 1800, dataEstudo: toDateStr(today) }),
-        createEvento({ id: 'ev_yesterday', status: 'estudei', tempoAcumulado: 1800, dataEstudo: toDateStr(new Date(today.getTime() - oneDay)) }),
-        createEvento({ id: 'ev_two_days', status: 'estudei', tempoAcumulado: 1800, dataEstudo: toDateStr(new Date(today.getTime() - (2 * oneDay))) })
+        createEvento({ id: 'ev_today', status: 'estudei', tempoAcumulado: 1800, dataEstudo: localDateStr(today) }),
+        createEvento({ id: 'ev_yesterday', status: 'estudei', tempoAcumulado: 1800, dataEstudo: localDateStr(new Date(today.getTime() - oneDay)) }),
+        createEvento({ id: 'ev_two_days', status: 'estudei', tempoAcumulado: 1800, dataEstudo: localDateStr(new Date(today.getTime() - (2 * oneDay))) })
       ]
     }));
     logic.invalidateDashCaches();
