@@ -266,6 +266,36 @@ describe('CSS architecture', () => {
     expect(habitHistoryBlock).toContain('overflow: visible');
   });
 
+  it('keeps the final stylesheet from clipping dynamic history cards', () => {
+    const legacyStyles = read('src/css/styles.css');
+    const sessionGroupBlock = extractCssBlock(legacyStyles, '.session-group-section.card');
+    const sessionScrollBlock = extractCssBlock(legacyStyles, '.session-group-section .session-scroll-container');
+    const habitHistoryBlock = extractCssBlock(legacyStyles, '.habit-history-card.card');
+    const habitListBlock = extractCssBlock(legacyStyles, '.habit-history-card .habit-hist-list');
+
+    expect(sessionGroupBlock).toContain('height: auto');
+    expect(sessionGroupBlock).toContain('overflow: visible');
+    expect(sessionScrollBlock).toContain('max-height: none');
+    expect(sessionScrollBlock).toContain('overflow: visible');
+    expect(habitHistoryBlock).toContain('height: auto');
+    expect(habitHistoryBlock).toContain('overflow: visible');
+    expect(habitListBlock).toContain('overflow: visible');
+  });
+
+  it('keeps the final stylesheet from compressing study sequence cards', () => {
+    const legacyStyles = read('src/css/styles.css');
+    const sequenceScrollBlock = extractCssBlock(legacyStyles, '.ciclo-sequence-card .scroll-area-md');
+    const sequenceCardBlock = extractCssBlock(legacyStyles, '.ciclo-sequence-card .seq-item-card');
+    const staticContentBlock = extractCssBlock(legacyStyles, '.seq-item-content--static');
+    const actionBlock = extractCssBlock(legacyStyles, '.ciclo-sequence-actions');
+
+    expect(sequenceScrollBlock).toContain('display: block');
+    expect(sequenceCardBlock).toContain('flex: 0 0 auto');
+    expect(sequenceCardBlock).toContain('min-height:');
+    expect(staticContentBlock).toContain('flex-direction: column');
+    expect(actionBlock).toContain('flex-wrap: wrap');
+  });
+
   it('keeps calendar event chips constrained inside day cells', () => {
     const legacyStyles = read('src/css/styles.css');
     const eventChipBlock = extractCssBlock(legacyStyles, '.cal-event-chip');

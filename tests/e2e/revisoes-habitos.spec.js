@@ -47,6 +47,33 @@ test.describe('Revisoes e Habitos', () => {
     })).toBe(1);
   });
 
+  test('removes an overdue revision from pending list through the confirm modal', async ({ page }) => {
+    const state = createE2EState();
+
+    state.editais[0].disciplinas[0].assuntos[0].concluido = true;
+    state.editais[0].disciplinas[0].assuntos[0].dataConclusao = localDateStr(new Date(Date.now() - (40 * 86400000)));
+    state.editais[0].disciplinas[0].assuntos[0].revisoesFetas = [];
+    state.config.frequenciaRevisao = [1, 7, 30, 90];
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="revisoes"]');
+
+    const deleteBtn = page.locator('[data-action="delete-revision"]').first();
+    await expect(deleteBtn).toBeVisible();
+    await deleteBtn.click();
+
+    const modal = page.locator('#modal-confirm');
+    await expect(modal).toHaveClass(/open/);
+    await page.click('#confirm-ok-btn');
+
+    await expect(page.locator('[data-action="delete-revision"]')).toHaveCount(0);
+    await expect(page.locator('#main-content')).toContainText('Nenhuma revis');
+    await expect.poll(() => page.evaluate(() => {
+      return window.state.editais[0].disciplinas[0].assuntos[0].revisoesFetas.length;
+    })).toBe(3);
+  });
+
   test('creates a new habit and marks it as done for today', async ({ page }) => {
     const state = createE2EState();
 

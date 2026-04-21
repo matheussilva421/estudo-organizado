@@ -1119,15 +1119,24 @@ export function deletarRevisao(assId) {
       for (const disc of (edital.disciplinas || [])) {
         const ass = (disc.assuntos || []).find(a => a.id === assId);
         if (ass) {
-          // Remove the last revision entry from the array
-          if (ass.revisoesFetas && ass.revisoesFetas.length > 0) {
-            ass.revisoesFetas.pop();
+          if (!ass.revisoesFetas) ass.revisoesFetas = [];
+          const today = todayStr();
+          const maxSteps = (state.config.frequenciaRevisao || [1, 7, 30, 90]).length;
+          let removed = 0;
+
+          while (removed < maxSteps) {
+            const dueDate = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas, ass.adiamentos || 0)
+              .find(rd => rd <= today);
+            if (!dueDate) break;
+            ass.revisoesFetas.push(dueDate);
+            removed++;
           }
+
           invalidateRevCache();
           invalidatePendingRevCache();
           scheduleSave();
           renderCurrentView();
-          showToast('Revisão excluída!', 'info');
+          showToast(removed > 0 ? 'Revisão removida da fila.' : 'Nenhuma revisão pendente para remover.', 'info');
           return;
         }
       }

@@ -410,7 +410,7 @@ describe('historico-sessoes view', () => {
 });
 
 describe('revisoes view actions', () => {
-  it('confirma e exclui revisão pendente sem depender de argumento booleano', () => {
+  it('confirma e remove da fila todas as revisões vencidas do assunto', () => {
     document.body.innerHTML = `
       <div id="modal-confirm" class="modal-overlay" aria-hidden="true">
         <div id="confirm-title"></div>
@@ -439,10 +439,59 @@ describe('revisoes view actions', () => {
     logic.invalidateRevCache();
     logic.invalidatePendingRevCache();
 
+    expect(logic.getPendingRevisoes()).toHaveLength(1);
+
     views.deletarRevisao('ass_1');
     document.getElementById('confirm-ok-btn').click();
 
-    expect(store.state.editais[0].disciplinas[0].assuntos[0].revisoesFetas).toEqual([]);
+    expect(logic.getPendingRevisoes()).toHaveLength(0);
+    expect(store.state.editais[0].disciplinas[0].assuntos[0].revisoesFetas).toEqual([
+      '2026-03-17',
+      '2026-03-23',
+      '2026-04-15'
+    ]);
+  });
+
+  it('remove revisão inicial atrasada mesmo quando ainda não há revisões feitas', () => {
+    document.body.innerHTML = `
+      <div id="modal-confirm" class="modal-overlay" aria-hidden="true">
+        <div id="confirm-title"></div>
+        <div id="confirm-msg"></div>
+        <button id="confirm-ok-btn"></button>
+        <button id="confirm-cancel-btn"></button>
+      </div>
+    `;
+    app.setupConfirmHandlers();
+
+    const state = createBaseState({
+      editais: [createEdital({
+        disciplinas: [createDisciplina({
+          id: 'disc_1',
+          assuntos: [{
+            id: 'ass_1',
+            nome: 'Orçamento público',
+            concluido: true,
+            dataConclusao: '2026-03-16',
+            revisoesFetas: []
+          }]
+        })]
+      })]
+    });
+    store.setState(state);
+    logic.invalidateRevCache();
+    logic.invalidatePendingRevCache();
+
+    expect(logic.getPendingRevisoes()[0].assunto.id).toBe('ass_1');
+
+    views.deletarRevisao('ass_1');
+    document.getElementById('confirm-ok-btn').click();
+
+    expect(logic.getPendingRevisoes()).toHaveLength(0);
+    expect(store.state.editais[0].disciplinas[0].assuntos[0].revisoesFetas).toEqual([
+      '2026-03-17',
+      '2026-03-23',
+      '2026-04-15'
+    ]);
   });
 });
 
