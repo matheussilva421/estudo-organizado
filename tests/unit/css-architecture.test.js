@@ -159,6 +159,29 @@ describe('CSS architecture', () => {
     expect(legacyStyles).toMatch(/#main\s*{[^}]*background:\s*var\(--app-bg,\s*var\(--bg\)\)/s);
   });
 
+  it('uses surface and shadow instead of full card outlines for routine panels', () => {
+    const tokens = read('src/css/tokens.css');
+    const componentsCss = read('src/css/components.css');
+    const legacyStyles = read('src/css/styles.css');
+
+    expect(tokens).toContain('--panel-border:');
+    expect(tokens).toContain('--panel-divider:');
+    expect(tokens).toContain('--panel-shadow:');
+    expect(legacyStyles).toMatch(/:is\(\[data-theme="dark"\][^)]*\)\s*{[^}]*--panel-border:\s*transparent/s);
+
+    for (const [selector, css] of [
+      ['.card', legacyStyles],
+      ['.stat-card', legacyStyles],
+      ['.card-muted', componentsCss]
+    ]) {
+      const block = extractCssBlock(css, selector);
+      expect(block, `${selector} should not draw a visible full outline`).toContain('border: 1px solid var(--panel-border)');
+      expect(block, `${selector} should separate from the canvas with elevation`).toContain('box-shadow: var(--panel-shadow)');
+    }
+
+    expect(extractCssBlock(legacyStyles, '.card-header')).toContain('border-bottom: 1px solid var(--panel-divider)');
+  });
+
   it('keeps browser cache busting aligned with the current app version', () => {
     const html = read('src/index.html');
     const serviceWorker = read('src/sw.js');
@@ -173,8 +196,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.9');
-    expect(serviceWorker).toContain("APP_VERSION = '8.9'");
+    expect(html).toContain('css/styles.css?v=8.10');
+    expect(serviceWorker).toContain("APP_VERSION = '8.10'");
     expect(appSources).not.toMatch(/v=8\.[345]|APP_VERSION = '8\.[345]'/);
   });
 
