@@ -248,14 +248,14 @@ export function renderHome(el) {
           </div>
         </div>
 
-        <div class="card p-16 flex-1 flex-col">
+        <div class="card p-16 flex-1 flex-col home-weekly-study-card">
           <div class="flex-between mb-5">
             <div class="dash-label">ESTUDO SEMANAL</div>
             <div class="flex text-sm gap-xs">
               <div class="event-tag green font-bold rounded-sm" style="padding:4px 8px;">TEMPO</div>
             </div>
           </div>
-          <div class="flex-1 flex border-b gap-sm pb-2 relative" style="align-items:flex-end;">
+          <div class="home-weekly-study-chart flex-1 flex border-b gap-sm pb-2 relative" style="align-items:flex-end;">
             <div class="flex-col absolute justify-between" style="top:0; left:0; right:0; bottom:25px; pointer-events:none; z-index:0; opacity:0.2;">
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>

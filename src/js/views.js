@@ -1141,15 +1141,18 @@ export function deletarRevisao(assId) {
 // =============================================
 
 export function renderHistoricoSessoes(el) {
-  const eventosEstudados = (state.eventos || [])
+  const eventosEstudados = [
+    ...(state.eventos || []),
+    ...(state.arquivo || [])
+  ]
     .filter(ev => ev && ev.status === 'estudei')
     .sort((a, b) => {
-      const dateA = String(a.data || '');
-      const dateB = String(b.data || '');
+      const dateA = String(a.dataEstudo || a.data || '');
+      const dateB = String(b.dataEstudo || b.data || '');
       if (dateA !== dateB) return dateB.localeCompare(dateA);
 
-      const timeA = Number(new Date(a.updatedAt || a.createdAt || 0).getTime()) || 0;
-      const timeB = Number(new Date(b.updatedAt || b.createdAt || 0).getTime()) || 0;
+      const timeA = Number(new Date(a.updatedAt || a.createdAt || a.criadoEm || 0).getTime()) || 0;
+      const timeB = Number(new Date(b.updatedAt || b.createdAt || b.criadoEm || 0).getTime()) || 0;
       return timeB - timeA;
     });
 
@@ -1166,7 +1169,7 @@ export function renderHistoricoSessoes(el) {
 
   const gruposPorData = new Map();
   eventosEstudados.forEach(ev => {
-    const dateKey = ev.data || '__sem_data__';
+    const dateKey = ev.dataEstudo || ev.data || '__sem_data__';
     if (!gruposPorData.has(dateKey)) gruposPorData.set(dateKey, new Map());
 
     const discInfo = ev.discId ? getDisc(ev.discId) : null;
@@ -1202,7 +1205,7 @@ export function renderHistoricoSessoes(el) {
           <span class="badge">⏱ ${formatTime(totalTempo)}</span>
         </div>
       </div>
-      <div class="session-history-hint">Agrupado por data e disciplina. Use "Editar" para ajustar o registro e "Apagar" para remover permanentemente.</div>
+      <div class="session-history-hint">Agrupado pela data real do estudo e por disciplina. Use "Editar" para ajustar o registro e "Apagar" para remover permanentemente.</div>
     </div>
 
     ${dateKeys.map(dateKey => {

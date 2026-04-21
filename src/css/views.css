@@ -44,6 +44,14 @@
   color: var(--red);
 }
 
+.home-weekly-study-card {
+  min-height: 260px;
+}
+
+.home-weekly-study-chart {
+  min-height: 160px;
+}
+
 .view-stack {
   display: flex;
   flex-direction: column;
@@ -2516,7 +2524,7 @@
 .ciclo-layout {
   grid-template-columns: 1fr 1fr;
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .ciclo-content-col {
@@ -2671,7 +2679,7 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 100px);
+  height: 100%;
   overflow: hidden;
   width: 100%;
 }
@@ -2733,9 +2741,7 @@
   overflow: hidden;
   margin-bottom: 12px;
   min-width: 0;
-  width: calc(100% + 32px);
-  margin-left: -16px;
-  margin-right: -16px;
+  width: 100%;
 }
 
 .ciclo-predict-title {

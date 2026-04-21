@@ -126,6 +126,10 @@ export function renderHabitHistPage() {
           extraInfo.push(`${perc}%`);
         }
 
+        if (r.tipo.key === 'discursiva' && r.nota !== undefined && r.nota !== '') {
+          extraInfo.push(`Nota ${r.nota}`);
+        }
+
         const extraStr = extraInfo.length > 0 ? ` • ${extraInfo.join(' • ')}` : '';
 
         return `

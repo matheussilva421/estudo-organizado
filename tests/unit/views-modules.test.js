@@ -221,6 +221,46 @@ describe('habitos-view.js', () => {
 
       expect(container.innerHTML).toContain('habit-hist');
     });
+
+    it('renderiza detalhes completos no histórico de hábitos', () => {
+      const state = createBaseState({
+        habitos: {
+          questoes: [],
+          revisao: [],
+          discursiva: [
+            {
+              id: 'hab_disc_1',
+              data: '2026-04-19',
+              descricao: 'Peca sobre controle externo',
+              nota: '8.5'
+            }
+          ],
+          simulado: [],
+          leitura: [],
+          informativo: [],
+          sumula: [],
+          videoaula: [],
+          paginas: [
+            {
+              id: 'hab_pag_1',
+              data: '2026-04-18',
+              descricao: 'Lei 8.112',
+              total: 42
+            }
+          ]
+        }
+      });
+      store.setState(state);
+
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+      views.renderHabitos(container);
+
+      expect(container.innerHTML).toContain('Peca sobre controle externo');
+      expect(container.innerHTML).toContain('Nota 8.5');
+      expect(container.innerHTML).toContain('Lei 8.112');
+      expect(container.innerHTML).toContain('42 páginas');
+    });
   });
 
   describe('calcSimuladoPerc()', () => {
@@ -282,6 +322,88 @@ describe('home-view.js', () => {
 
       expect(container.innerHTML).toContain('stat');
     });
+
+    it('mantém a área de estudo semanal renderizável mesmo sem dados', () => {
+      const state = createBaseState({ eventos: [] });
+      store.setState(state);
+
+      const container = { innerHTML: '' };
+      views.renderHome(container);
+
+      expect(container.innerHTML).toContain('home-weekly-study-card');
+      expect(container.innerHTML).toContain('home-weekly-study-chart');
+      expect(container.innerHTML).toContain('Nenhuma sessão de estudo registrada esta semana');
+    });
+  });
+});
+
+describe('historico-sessoes view', () => {
+  it('renderiza detalhes e usa a data real de estudo no histórico global', () => {
+    const state = createBaseState({
+      editais: [createEdital({
+        disciplinas: [createDisciplina({
+          id: 'disc_1',
+          nome: 'Direito Constitucional',
+          assuntos: [{ id: 'ass_1', nome: 'Controle de Constitucionalidade' }]
+        })]
+      })],
+      eventos: [
+        createEvento({
+          id: 'ev_done_1',
+          titulo: 'Sessão registrada',
+          data: '2026-03-19',
+          dataEstudo: '2026-04-19',
+          status: 'estudei',
+          tempoAcumulado: 2700,
+          discId: 'disc_1',
+          assId: 'ass_1',
+          questoes: { acertos: 8, erros: 2 },
+          paginas: 12
+        })
+      ]
+    });
+    store.setState(state);
+    logic.invalidateDiscCache();
+
+    const container = { innerHTML: '' };
+    views.renderHistoricoSessoes(container);
+
+    expect(container.innerHTML).toContain('19/04/2026');
+    expect(container.innerHTML).not.toContain('19/03/2026');
+    expect(container.innerHTML).toContain('Direito Constitucional');
+    expect(container.innerHTML).toContain('Sessão registrada');
+    expect(container.innerHTML).toContain('Controle de Constitucionalidade');
+    expect(container.innerHTML).toContain('8/10 (80%)');
+    expect(container.innerHTML).toContain('12');
+  });
+
+  it('inclui sessões arquivadas com os mesmos detalhes do histórico ativo', () => {
+    const state = createBaseState({
+      editais: [createEdital({
+        disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' })]
+      })],
+      eventos: [],
+      arquivo: [
+        createEvento({
+          id: 'ev_archived_1',
+          titulo: 'Sessão arquivada',
+          data: '2026-03-18',
+          dataEstudo: '2026-03-18',
+          status: 'estudei',
+          tempoAcumulado: 3600,
+          discId: 'disc_1'
+        })
+      ]
+    });
+    store.setState(state);
+    logic.invalidateDiscCache();
+
+    const container = { innerHTML: '' };
+    views.renderHistoricoSessoes(container);
+
+    expect(container.innerHTML).toContain('Sessão arquivada');
+    expect(container.innerHTML).toContain('Direito Administrativo');
+    expect(container.innerHTML).toContain('01:00:00');
   });
 });
 

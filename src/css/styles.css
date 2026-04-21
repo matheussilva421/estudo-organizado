@@ -1381,6 +1381,7 @@ body {
 
 .cal-event-chip {
   font-size: 10.5px;
+  line-height: 1.25;
   padding: 1px 6px;
   border-radius: 4px;
   margin-bottom: 2px;
@@ -1388,15 +1389,19 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
+  width: 100%;
   max-width: 100%;
   display: block;
+  box-sizing: border-box;
 }
 
 /* Cal event chip as button: reset default button styles */
 button.cal-event-chip {
   background: inherit;
   border: none;
-  font: inherit;
+  font-family: inherit;
+  font-size: 10.5px;
+  line-height: 1.25;
   cursor: pointer;
   padding: 1px 6px;
   border-radius: 4px;

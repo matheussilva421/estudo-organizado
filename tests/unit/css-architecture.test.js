@@ -230,6 +230,42 @@ describe('CSS architecture', () => {
     expect(combinedCss).toMatch(/\.empty-state\s+\.btn\s*{[^}]*align-self:\s*center/s);
   });
 
+  it('keeps ciclo prediction panel stretched with the study sequence column', () => {
+    const viewsCss = read('src/css/views.css');
+    const layoutBlock = extractCssBlock(viewsCss, '.ciclo-layout');
+    const sidePanelBlock = extractCssBlock(viewsCss, '.ciclo-side-panel');
+    const predictBlock = extractCssBlock(viewsCss, '.ciclo-predict-box');
+
+    expect(layoutBlock).toContain('align-items: stretch');
+    expect(sidePanelBlock).toContain('height: 100%');
+    expect(predictBlock).toContain('width: 100%');
+    expect(predictBlock).not.toContain('calc(100% + 32px)');
+  });
+
+  it('keeps weekly study chart from collapsing when there is no data', () => {
+    const homeView = read('src/js/views/home-view.js');
+    const viewsCss = read('src/css/views.css');
+    const weeklyCardBlock = extractCssBlock(viewsCss, '.home-weekly-study-card');
+    const weeklyChartBlock = extractCssBlock(viewsCss, '.home-weekly-study-chart');
+
+    expect(homeView).toContain('home-weekly-study-card');
+    expect(homeView).toContain('home-weekly-study-chart');
+    expect(weeklyCardBlock).toContain('min-height:');
+    expect(weeklyChartBlock).toContain('min-height:');
+  });
+
+  it('keeps calendar event chips constrained inside day cells', () => {
+    const legacyStyles = read('src/css/styles.css');
+    const eventChipBlock = extractCssBlock(legacyStyles, '.cal-event-chip');
+    const buttonChipBlock = extractCssBlock(legacyStyles, 'button.cal-event-chip');
+
+    expect(eventChipBlock).toContain('width: 100%');
+    expect(eventChipBlock).toContain('box-sizing: border-box');
+    expect(buttonChipBlock).not.toContain('font: inherit');
+    expect(buttonChipBlock).toContain('font-size: 10.5px');
+    expect(buttonChipBlock).toContain('line-height: 1.25');
+  });
+
   it('prevents broad transitions and hidden focus outlines from returning', () => {
     const files = [
       'src/css/styles.css',
