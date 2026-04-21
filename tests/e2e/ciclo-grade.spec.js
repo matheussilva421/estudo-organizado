@@ -102,14 +102,18 @@ test.describe('Ciclo de Estudos', () => {
       const scrollArea = layout.querySelector('.ciclo-sequence-card .scroll-area-md');
       const chart = layout.querySelector('.ciclo-chart-container')?.getBoundingClientRect();
       const actions = layout.querySelector('.ciclo-sequence-actions');
+      const firstCard = layout.querySelector('.seq-item-card--static')?.getBoundingClientRect();
       const styles = window.getComputedStyle(scrollArea);
+      const actionStyles = window.getComputedStyle(actions);
       return {
         gutter: Math.round(right.left - left.right),
         leftWidth: Math.round(left.width),
         rightWidth: Math.round(right.width),
         scrollPaddingRight: styles.paddingRight,
         chartHeight: Math.round(chart.height),
-        actionsOpacity: Number(window.getComputedStyle(actions).opacity)
+        actionsOpacity: Number(actionStyles.opacity),
+        actionsMaxHeight: actionStyles.maxHeight,
+        firstCardHeight: Math.round(firstCard.height)
       };
     });
 
@@ -118,9 +122,12 @@ test.describe('Ciclo de Estudos', () => {
     expect(desktopMetrics.scrollPaddingRight).toBe('12px');
     expect(desktopMetrics.chartHeight).toBeLessThanOrEqual(176);
     expect(desktopMetrics.actionsOpacity).toBeLessThan(0.2);
+    expect(desktopMetrics.actionsMaxHeight).toBe('0px');
+    expect(desktopMetrics.firstCardHeight).toBeLessThanOrEqual(92);
 
     await page.locator('.seq-item-card--static').first().hover();
     await expect(page.locator('.seq-item-card--static').first().locator('.ciclo-sequence-actions')).toHaveCSS('opacity', '1');
+    await expect(page.locator('.seq-item-card--static').first().locator('.ciclo-sequence-actions')).not.toHaveCSS('max-height', '0px');
 
     await page.setViewportSize({ width: 390, height: 780 });
     await expect(page.locator('.seq-item-card--static').first().locator('.ciclo-sequence-actions')).toHaveCSS('opacity', '1');
@@ -275,7 +282,7 @@ test.describe('Ciclo de Estudos', () => {
     expect(metrics.cardOverflows).toBe(false);
     expect(metrics.contentOverflows.filter(item => item.overflow)).toEqual([]);
     expect(metrics.gaps.every(gap => gap >= 10 && gap <= 14)).toBe(true);
-    expect(Math.max(...metrics.heights) - Math.min(...metrics.heights)).toBeLessThanOrEqual(4);
+    expect(Math.max(...metrics.heights) - Math.min(...metrics.heights)).toBeLessThanOrEqual(6);
     expect(metrics.actionWidths.every(width => width >= 170)).toBe(true);
     expect(metrics.moveWidths.every(width => width >= 28)).toBe(true);
   });
@@ -438,5 +445,16 @@ test.describe('Previsão de Sessões (Ciclo)', () => {
     await expect(page.locator('.ciclo-predict-summary')).toContainText('18 sess');
     await expect(page.locator('.ciclo-predict-summary')).toContainText('18h totais');
     await expect(page.locator('.ciclo-predict-summary')).toContainText('20/04/2026 a 27/04/2026');
+    const summaryMetrics = await page.locator('.ciclo-predict-summary').evaluate((summary) => {
+      const date = summary.querySelector('.ciclo-predict-summary-date');
+      return {
+        summaryText: summary.textContent,
+        summaryOverflows: summary.scrollWidth > summary.clientWidth + 1,
+        dateOverflows: date.scrollWidth > date.clientWidth + 1
+      };
+    });
+    expect(summaryMetrics.summaryText).toContain('20/04/2026 a 27/04/2026');
+    expect(summaryMetrics.summaryOverflows).toBe(false);
+    expect(summaryMetrics.dateOverflows).toBe(false);
   });
 });

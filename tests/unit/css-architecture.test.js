@@ -301,11 +301,27 @@ describe('CSS architecture', () => {
 
   it('keeps ciclo card actions quiet on desktop and reachable on touch layouts', () => {
     const legacyStyles = read('src/css/styles.css');
+    const hoverActionBlock = extractCssBlock(legacyStyles, '.seq-item-card--static:hover .ciclo-sequence-actions,\n.seq-item-card--static:focus-within .ciclo-sequence-actions');
 
     expect(legacyStyles).toContain('.seq-item-card--static:hover .ciclo-sequence-actions');
     expect(legacyStyles).toContain('.seq-item-card--static:focus-within .ciclo-sequence-actions');
+    expect(legacyStyles).toMatch(/\.ciclo-sequence-actions\s*{[\s\S]*max-height:\s*0/);
+    expect(legacyStyles).toMatch(/\.ciclo-sequence-actions\s*{[\s\S]*overflow:\s*hidden/);
+    expect(hoverActionBlock).toContain('max-height:');
     expect(legacyStyles).toContain('@media (hover: none), (max-width: 768px)');
     expect(legacyStyles).toMatch(/@media \(hover: none\), \(max-width: 768px\)[\s\S]*\.ciclo-sequence-actions\s*{[\s\S]*opacity:\s*1/);
+    expect(legacyStyles).toMatch(/@media \(hover: none\), \(max-width: 768px\)[\s\S]*\.ciclo-sequence-actions\s*{[\s\S]*max-height:\s*none/);
+  });
+
+  it('keeps the prediction date summary readable instead of truncating first', () => {
+    const viewsCss = read('src/css/views.css');
+    const summaryBlock = extractCssBlock(viewsCss, '.ciclo-predict-summary');
+    const summarySpanBlock = extractCssBlock(viewsCss, '.ciclo-predict-summary span');
+    const dateBlock = extractCssBlock(viewsCss, '.ciclo-predict-summary-date');
+
+    expect(summaryBlock).toContain('grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.8fr) minmax(160px, 1.4fr)');
+    expect(summarySpanBlock).not.toContain('white-space: nowrap');
+    expect(dateBlock).toContain('text-align: right');
   });
 
   it('keeps sequence edit cards flexible and evenly spaced', () => {

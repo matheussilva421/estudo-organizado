@@ -96,7 +96,7 @@ export function calculateCyclePredictions() {
         <div class="ciclo-predict-summary">
           <span>${totalSessions} ${pluralizeSession(totalSessions)} previstas</span>
           <span>${formatCycleDuration(totalMinutes)} totais</span>
-          <span>${formatPredictionDate(sVal)} a ${formatPredictionDate(eVal)}</span>
+          <span class="ciclo-predict-summary-date">${formatPredictionDate(sVal)} a ${formatPredictionDate(eVal)}</span>
         </div>
       `;
 
