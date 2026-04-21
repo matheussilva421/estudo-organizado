@@ -5,6 +5,7 @@ import { createBaseState, createEdital, createDisciplina, createEvento } from '.
 let store;
 let logic;
 let views;
+let app;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -15,6 +16,7 @@ beforeEach(async () => {
   store = modules.store;
   logic = modules.logic;
   views = modules.views;
+  app = modules.app;
 
   store.setState(createBaseState());
   logic.invalidateDiscCache();
@@ -404,6 +406,43 @@ describe('historico-sessoes view', () => {
     expect(container.innerHTML).toContain('Sessão arquivada');
     expect(container.innerHTML).toContain('Direito Administrativo');
     expect(container.innerHTML).toContain('01:00:00');
+  });
+});
+
+describe('revisoes view actions', () => {
+  it('confirma e exclui revisão pendente sem depender de argumento booleano', () => {
+    document.body.innerHTML = `
+      <div id="modal-confirm" class="modal-overlay" aria-hidden="true">
+        <div id="confirm-title"></div>
+        <div id="confirm-msg"></div>
+        <button id="confirm-ok-btn"></button>
+        <button id="confirm-cancel-btn"></button>
+      </div>
+    `;
+    app.setupConfirmHandlers();
+
+    const state = createBaseState({
+      editais: [createEdital({
+        disciplinas: [createDisciplina({
+          id: 'disc_1',
+          assuntos: [{
+            id: 'ass_1',
+            nome: 'Orçamento público',
+            concluido: true,
+            dataConclusao: '2026-03-16',
+            revisoesFetas: ['2026-03-17']
+          }]
+        })]
+      })]
+    });
+    store.setState(state);
+    logic.invalidateRevCache();
+    logic.invalidatePendingRevCache();
+
+    views.deletarRevisao('ass_1');
+    document.getElementById('confirm-ok-btn').click();
+
+    expect(store.state.editais[0].disciplinas[0].assuntos[0].revisoesFetas).toEqual([]);
   });
 });
 

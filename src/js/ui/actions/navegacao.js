@@ -15,6 +15,7 @@ registerAction('clear-search', clearSearch);
 registerAction('set-cal-view-mode', (el) => setCalViewMode(el.dataset.mode));
 registerAction('cal-navigate', (el) => calNavigate(parseInt(el.dataset.dir, 10)));
 registerAction('cal-today', () => calNavigate(0));
+registerAction('set-dash-period', (el) => setDashPeriod(el));
 
 /**
  * Navega para uma view específica
@@ -125,6 +126,18 @@ export function closeDiscDashboard() {
 export function toggleCicloFin(el) {
   if (typeof window.EstudoApp?.toggleCicloFin === 'function') {
     window.EstudoApp?.toggleCicloFin(el.checked);
+  }
+}
+
+/**
+ * Atualiza o período do dashboard
+ * @param {HTMLElement} el - Elemento acionador
+ */
+export function setDashPeriod(el) {
+  const raw = el.dataset.period;
+  const period = raw === 'null' ? null : parseInt(raw, 10);
+  if (typeof window.EstudoApp?.setDashPeriod === 'function') {
+    window.EstudoApp.setDashPeriod(period);
   }
 }
 

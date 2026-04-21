@@ -52,6 +52,11 @@
   min-height: 160px;
 }
 
+.home-weekly-study-chart--empty {
+  justify-content: center;
+  border-bottom: 0;
+}
+
 .view-stack {
   display: flex;
   flex-direction: column;
@@ -1388,6 +1393,22 @@
   color: inherit;
 }
 
+.habit-history-card {
+  height: auto;
+  overflow: visible;
+}
+
+.habit-hist-list {
+  padding: var(--space-2) 0;
+}
+
+.habit-hist-item {
+  align-items: flex-start;
+  min-height: 64px;
+  padding: var(--space-3) 0;
+  gap: var(--space-3);
+}
+
 /* Progress bar */
 .progress-bar {
   border-radius: var(--radius-sm);
@@ -1551,6 +1572,8 @@
 /* Session group section */
 .session-group-section {
   margin-bottom: var(--space-4);
+  height: auto;
+  overflow: visible;
 }
 
 .session-group-header {
@@ -1587,6 +1610,8 @@
   border-radius: var(--radius-md);
   background: var(--bg);
   padding: var(--space-3);
+  height: auto;
+  overflow: visible;
 }
 
 .session-disc-header {
@@ -2343,7 +2368,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   display: flex;
 }
 
@@ -2811,6 +2836,9 @@
 }
 
 .ciclo-sequence-card .scroll-area-md {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 16px;
 }
 

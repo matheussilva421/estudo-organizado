@@ -1070,7 +1070,7 @@ export function renderRevisoes(el) {
 
 export function switchRevTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  btn?.classList.add('active');
   document.getElementById('rev-tab-pendentes').classList.toggle('active', tab === 'pendentes');
   document.getElementById('rev-tab-proximas').classList.toggle('active', tab === 'proximas');
 }
@@ -1113,8 +1113,7 @@ export function adiarRevisao(assId) {
 }
 
 export function deletarRevisao(assId) {
-  showConfirm('Tem certeza que deseja excluir esta revisão? Isso não removerá o tópico dos concluídos, apenas a removerá da lista de revisões pendentes.', async (confirmed) => {
-    if (!confirmed) return;
+  showConfirm('Tem certeza que deseja excluir esta revisão? Isso não removerá o tópico dos concluídos, apenas a removerá da lista de revisões pendentes.', async () => {
 
     for (const edital of state.editais) {
       for (const disc of (edital.disciplinas || [])) {
@@ -2134,7 +2133,7 @@ export function openDiscManager(editaId, discId) {
     <!--BOTOES INFERIORES-->
       <div class="sm-footer-actions">
         <button class="btn btn-ghost btn-text-danger" data-action="delete-disc" data-edital-id="${editaId}" data-disc-id="${discId}">Remover Disciplina</button>
-        <button class="btn btn-primary" data-action="save-disc-manager" data-edital-id="${editaId}" data-disc-id="${discId}">Salvar Manager</button>
+        <button class="btn btn-primary" data-action="save-disc-manager" data-edital-id="${editaId}" data-disc-id="${discId}">Salvar alterações</button>
       </div>
     `;
   openModal('modal-disc-manager');

@@ -255,15 +255,15 @@ export function renderHome(el) {
               <div class="event-tag green font-bold rounded-sm" style="padding:4px 8px;">TEMPO</div>
             </div>
           </div>
-          <div class="home-weekly-study-chart flex-1 flex border-b gap-sm pb-2 relative" style="align-items:flex-end;">
-            <div class="flex-col absolute justify-between" style="top:0; left:0; right:0; bottom:25px; pointer-events:none; z-index:0; opacity:0.2;">
+          <div class="home-weekly-study-chart ${hasWeekData ? '' : 'home-weekly-study-chart--empty'} flex-1 flex border-b gap-sm pb-2 relative" style="align-items:${hasWeekData ? 'flex-end' : 'center'};">
+            ${hasWeekData ? `<div class="flex-col absolute justify-between" style="top:0; left:0; right:0; bottom:25px; pointer-events:none; z-index:0; opacity:0.2;">
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
-            </div>
-            <div class="flex w-full h-full" style="z-index:1; padding-bottom:20px;">
+            </div>` : ''}
+            <div class="flex w-full h-full" style="z-index:1; padding-bottom:${hasWeekData ? '20px' : '0'};">
               ${barsHtml}
             </div>
           </div>

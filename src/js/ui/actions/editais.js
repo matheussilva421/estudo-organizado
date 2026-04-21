@@ -336,6 +336,15 @@ registerAction('toggle-assunto', (el) => toggleAssunto(el));
 
 registerAction('run-lesson-mapper', (el) => runLessonMapper(el));
 registerAction('switch-manager-tab', (el) => switchManagerTab(el));
+registerAction('sync-color-to-picker', (el) => syncColorToPicker(el));
+registerAction('add-evento-para-assunto', (el) => addEventoParaAssunto(el));
+registerAction('toggle-aula-dashboard', (el) => toggleAulaDashboard(el));
+registerAction('switch-dashboard-tab', (el) => switchDashboardTab(el));
+registerAction('vert-search', (el) => updateVerticalSearch(el));
+registerAction('set-vert-filter-edital', (el) => updateVerticalEditalFilter(el));
+registerAction('set-vert-filter-status', (el) => updateVerticalStatusFilter(el));
+registerAction('add-novo-topico-vertical', (el) => openDiscManager(el));
+registerAction('filtrar-dropdown-banca', (el) => callApp('filtrarDropdownBanca', el.value));
 
 // Banca Analyzer actions
 registerAction('parse-banca-text', parseBancaText);
@@ -343,6 +352,9 @@ registerAction('apply-banca-ranking', applyBancaRanking);
 registerAction('filtrar-view-por-disciplina', filtrarViewPorDisciplina);
 registerAction('mudar-edital-analisador', mudarEditalAnalisador);
 registerAction('carregar-analise-banca', carregarAnaliseBanca);
+registerAction('excluir-analise-banca', (el) => excluirAnaliseBanca(el));
+registerAction('open-match-corrector', (el) => openMatchCorrectorAction(el));
+registerAction('save-match-correction', (el) => saveMatchCorrectionAction(el));
 
 /**
  * Abre dashboard da disciplina
@@ -358,3 +370,85 @@ export function openDiscDashboard(el) {
 
 // Register open-disc-dashboard after function is defined
 registerAction('open-disc-dashboard', (el) => openDiscDashboard(el));
+
+function callApp(fnName, ...args) {
+  const fn = window.EstudoApp?.[fnName];
+  if (typeof fn === 'function') {
+    return fn(...args);
+  }
+  return undefined;
+}
+
+function syncColorToPicker(el) {
+  const picker = document.getElementById('dm-cor-picker');
+  if (picker) picker.value = el.value;
+}
+
+function addEventoParaAssunto(el) {
+  const editalId = el.dataset.editalId;
+  const discId = el.dataset.discId;
+  const assuntoId = el.dataset.assuntoId;
+  if (editalId && discId && assuntoId) {
+    callApp('addEventoParaAssunto', editalId, discId, assuntoId);
+  }
+}
+
+function toggleAulaDashboard(el) {
+  const editalId = el.dataset.editalId;
+  const discId = el.dataset.discId;
+  const aulaId = el.dataset.aulaId;
+  if (editalId && discId && aulaId) {
+    callApp('toggleAulaDashboard', editalId, discId, aulaId);
+  }
+}
+
+function switchDashboardTab(el) {
+  const tab = el.dataset.tab;
+  if (tab) callApp('switchDashboardTab', tab);
+}
+
+function renderVerticalListOnly() {
+  const container = document.getElementById('vert-list-container');
+  if (container && typeof window.EstudoApp?.renderVerticalList === 'function') {
+    window.EstudoApp.renderVerticalList(container);
+  } else {
+    window.EstudoApp?.renderCurrentView?.();
+  }
+}
+
+function updateVerticalSearch(el) {
+  if (typeof window.EstudoApp?.setVertSearch === 'function') {
+    window.EstudoApp.setVertSearch(el.value);
+  }
+  renderVerticalListOnly();
+}
+
+function updateVerticalEditalFilter(el) {
+  if (typeof window.EstudoApp?.setVertFilterEdital === 'function') {
+    window.EstudoApp.setVertFilterEdital(el.value);
+  }
+  renderVerticalListOnly();
+}
+
+function updateVerticalStatusFilter(el) {
+  const status = el.dataset.status || 'todos';
+  if (typeof window.EstudoApp?.setVertFilterStatus === 'function') {
+    window.EstudoApp.setVertFilterStatus(status);
+  }
+  window.EstudoApp?.renderCurrentView?.();
+}
+
+function excluirAnaliseBanca(el) {
+  const discId = el.dataset.discId;
+  if (discId) callApp('excluirAnaliseBanca', discId);
+}
+
+function openMatchCorrectorAction(el) {
+  const assuntoNome = el.dataset.assuntoNome;
+  if (assuntoNome) callApp('openMatchCorrector', assuntoNome);
+}
+
+function saveMatchCorrectionAction(el) {
+  const assuntoNome = el.dataset.assuntoNome;
+  if (assuntoNome) callApp('saveMatchCorrection', assuntoNome);
+}

@@ -21,6 +21,7 @@ registerAction('close-modal', (el) => closeModal(el));
 registerAction('open-planejamento-wizard', () => openPlanejamentoWizard());
 registerAction('open-registro-sessao', (el) => openRegistroSessao(el));
 registerAction('open-add-past-session', (el) => openAddPastSession(el));
+registerAction('open-ciclo-history', (el) => openCicloHistory(el));
 registerAction('on-disciplina-change', onDisciplinaChange);
 registerAction('on-aula-change', onAulaChange);
 registerAction('toggle-study-type', (el) => toggleStudyType(el.dataset.tipo));
@@ -30,6 +31,7 @@ registerAction('validate-questoes', validateQuestoes);
 registerAction('save-registro-sessao', saveRegistroSessao);
 registerAction('save-and-start-new', saveAndStartNew);
 registerAction('set-pagina-mode', (el) => setPaginaMode(el.dataset.mode));
+registerAction('stop-propagation', () => stopPropagation());
 // Nota: open-add-event, open-event-detail, open-event-from-calo estão em eventos.js
 
 /**

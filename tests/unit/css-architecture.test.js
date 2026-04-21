@@ -250,8 +250,20 @@ describe('CSS architecture', () => {
 
     expect(homeView).toContain('home-weekly-study-card');
     expect(homeView).toContain('home-weekly-study-chart');
+    expect(homeView).toContain('home-weekly-study-chart--empty');
     expect(weeklyCardBlock).toContain('min-height:');
     expect(weeklyChartBlock).toContain('min-height:');
+  });
+
+  it('lets long history and habit cards reveal their item details', () => {
+    const viewsCss = read('src/css/views.css');
+    const sessionGroupBlock = extractCssBlock(viewsCss, '.session-group-section');
+    const habitHistoryBlock = extractCssBlock(viewsCss, '.habit-history-card');
+
+    expect(sessionGroupBlock).toContain('height: auto');
+    expect(sessionGroupBlock).toContain('overflow: visible');
+    expect(habitHistoryBlock).toContain('height: auto');
+    expect(habitHistoryBlock).toContain('overflow: visible');
   });
 
   it('keeps calendar event chips constrained inside day cells', () => {

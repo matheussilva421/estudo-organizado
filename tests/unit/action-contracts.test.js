@@ -48,7 +48,7 @@ function collectActionRegistryEntries() {
 
   const actionFiles = [
     'eventos.js', 'editais.js', 'revisoes.js', 'habitos.js',
-    'config.js', 'navegacao.js', 'modais.js'
+    'config.js', 'navegacao.js', 'modais.js', 'planejamento.js'
   ];
 
   for (const file of actionFiles) {
@@ -101,13 +101,13 @@ describe('data-action contracts', () => {
   });
 
   it('has a handler for every used data-action', () => {
-    // This test is deprecated after migrating to registerAction() pattern
-    // The new architecture uses setupActionDispatcher() which handles all data-action attributes
-    // via the centralized registry in ui/actions/dispatcher.js
-    // Individual action handlers are tested in their respective module tests
-    const dispatcherSource = read('src/js/ui/actions/dispatcher.js');
-    expect(dispatcherSource).toContain('export function setupActionDispatcher');
-    expect(dispatcherSource).toContain('export function registerAction');
+    const usedActions = collectDataActions();
+    const registryActions = new Set(collectActionRegistryEntries().keys());
+    const missing = [...usedActions]
+      .filter(action => !registryActions.has(action))
+      .sort();
+
+    expect(missing).toEqual([]);
   });
 
   it('renders discipline dashboard tabs as semantic buttons', () => {
@@ -168,6 +168,13 @@ describe('data-action contracts', () => {
     for (const actionName of managerActions) {
       expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
     }
+  });
+
+  it('uses user-facing language in the discipline manager save action', () => {
+    const viewsSource = read('src/js/views.js');
+
+    expect(viewsSource).not.toContain('Salvar Manager');
+    expect(viewsSource).toContain('Salvar alterações');
   });
 
   it('exports cycle sequence action targets instead of relying on Proxy fallback', () => {

@@ -23,6 +23,51 @@ registerAction('save-event', () => saveEvent());
 registerAction('save-past-event', (el) => savePastEvent(el));
 registerAction('update-day-load', (el) => updateDayLoad(el));
 registerAction('load-assuntos', () => loadAssuntos());
+registerAction('cancel-registro', () => callApp('cancelRegistro'));
+registerAction('discard-timer-ui', (el) => callApp('discardTimerUI', el.dataset.eventId));
+registerAction('voltar-past-session-ui', (el) => callApp('voltarPastSessionUI', el.dataset.eventId, el.dataset.discId));
+registerAction('delete-completed-session', (el) => callApp('deleteCompletedSession', el.dataset.sessionId));
+registerAction('set-crono-livre-disc', (el) => callApp('setCronoLivreDisc', el.value));
+registerAction('set-crono-livre-ass', (el) => callApp('setCronoLivreAss', el.value));
+registerAction('set-crono-livre-goal', (el) => setCronoLivreGoal(el));
+registerAction('open-search-event', (el) => openSearchEvent(el));
+registerAction('edit-session-record', (el) => openSessionRecord(el));
+registerAction('delete-session-record', (el) => callApp('deleteCompletedSession', el.dataset.sessionId));
+
+function callApp(fnName, ...args) {
+  const fn = window.EstudoApp?.[fnName];
+  if (typeof fn === 'function') {
+    return fn(...args);
+  }
+  return undefined;
+}
+
+function setCronoLivreGoal(el) {
+  const raw = el.dataset.value || el.value;
+  const current = Number(window.EstudoApp?.state?.cronoLivre?.duracaoMinutos || 0);
+  const minutes = String(raw).startsWith('+') || String(raw).startsWith('-')
+    ? Math.max(0, current + parseInt(raw, 10))
+    : Math.max(0, parseInt(raw, 10) || 0);
+  callApp('setCronoLivreGoal', minutes);
+}
+
+function openSearchEvent(el) {
+  const eventId = el.dataset.eventId;
+  if (!eventId) return;
+  if (typeof window.EstudoApp?.clearSearch === 'function') {
+    window.EstudoApp.clearSearch();
+  }
+  if (typeof window.EstudoApp?.openEventDetail === 'function') {
+    window.EstudoApp.openEventDetail(eventId);
+  } else {
+    callApp('openRegistroSessao', eventId);
+  }
+}
+
+function openSessionRecord(el) {
+  const sessionId = el.dataset.sessionId;
+  if (sessionId) callApp('openRegistroSessao', sessionId);
+}
 
 /**
  * Toggle start/stop do timer

@@ -67,7 +67,7 @@ export function renderHabitos(el) {
       }).join('')}
     </div>
 
-    <div class="card">
+    <div class="card habit-history-card">
       <div class="card-header">
         <h3>📏 Histórico de Hábitos</h3>
         <span class="text-base text-muted" id="habit-hist-count"></span>

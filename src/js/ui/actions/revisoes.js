@@ -19,7 +19,7 @@ registerAction('delete-revision', (el) => deletarRevisao(el));
 export function switchRevTab(el) {
   const tab = el.dataset.tab;
   if (tab && typeof window.EstudoApp?.switchRevTab === 'function') {
-    window.EstudoApp?.switchRevTab(tab);
+    window.EstudoApp?.switchRevTab(tab, el);
   }
 }
 
