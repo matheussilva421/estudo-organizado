@@ -74,6 +74,7 @@
 /* 1. TEMA FURTIVO (Monocromático) */
 [data-theme="furtivo"] {
   --color-scheme: dark;
+  --app-bg: linear-gradient(180deg, #000000 0%, #050505 52%, #0a0a0a 100%);
   --bg: #000000;
   --card: #0a0a0a;
   --card-bg: #0a0a0a;
@@ -101,8 +102,7 @@
 }
 
 /* 2. TEMA ABISMO (Marinho & Ciano) */
-[data-theme="abismo"],
-[data-theme="Abismo"] {
+[data-theme="abismo"] {
   --color-scheme: dark;
   --app-bg: linear-gradient(180deg, #020617 0%, #0a1120 52%, #0d1b30 100%);
   --bg: #020617;
@@ -157,6 +157,7 @@
 /* 3. TEMA GRAFITE (Cinza & Azul) */
 [data-theme="grafite"] {
   --color-scheme: dark;
+  --app-bg: linear-gradient(180deg, #09090b 0%, #111114 52%, #18181b 100%);
   --bg: #09090B;
   --card: #111114;
   --card-bg: #111114;
@@ -185,6 +186,7 @@
 /* 4. TEMA MATRIX (Preto & Verde) */
 [data-theme="matrix"] {
   --color-scheme: dark;
+  --app-bg: linear-gradient(180deg, #000000 0%, #031003 52%, #071607 100%);
   --bg: #000000;
   --card: #050a05;
   --card-bg: #050a05;
@@ -213,6 +215,7 @@
 /* 5. TEMA RUBI (Preto & Vermelho) */
 [data-theme="rubi"] {
   --color-scheme: dark;
+  --app-bg: linear-gradient(180deg, #000000 0%, #120505 52%, #1c0909 100%);
   --bg: #000000;
   --card: #0a0505;
   --card-bg: #0a0505;
@@ -241,6 +244,7 @@
 /* 6. TEMA CYBERPUNK 2077 (Neon Dystopian) */
 [data-theme="cyberpunk2077"] {
   --color-scheme: dark;
+  --app-bg: linear-gradient(180deg, #090a0f 0%, #11121a 52%, #171825 100%);
   --bg: #090A0F;
   --card: #0c0d14;
   --card-bg: #0c0d14;

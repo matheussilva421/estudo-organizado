@@ -48,6 +48,10 @@ function contrastRatio(foreground, background) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+function getThemeVars(styles, selector) {
+  return extractCssVars(extractCssBlock(styles, selector));
+}
+
 describe('CSS architecture', () => {
   it('loads design-system stylesheets before legacy styles', () => {
     const html = read('src/index.html');
@@ -97,13 +101,13 @@ describe('CSS architecture', () => {
     });
 
     expect(darkVars).toMatchObject({
-      '--bg': '#0b1220',
-      '--card': '#111827',
-      '--surface': '#172033',
-      '--border': '#253247',
-      '--text-primary': '#e5edf7',
-      '--text-secondary': '#a8b3c7',
-      '--text-muted': '#7d8aa3',
+      '--bg': '#0a0f1a',
+      '--card': '#0f172a',
+      '--surface': '#1a2540',
+      '--border': '#2a3a52',
+      '--text-primary': '#eef2f9',
+      '--text-secondary': '#b8c5d9',
+      '--text-muted': '#8d9db5',
       '--accent': '#2dd4bf',
       '--accent-hover': '#5eead4',
       '--accent-light': '#134e4a',
@@ -127,6 +131,34 @@ describe('CSS architecture', () => {
     expect(`${html}\n${appSource}\n${viewsSource}`).not.toMatch(/Modo escuro|Modo claro|Claro profissional|Escuro profissional|Extra:/);
   });
 
+  it('keeps every non-neutral theme from inheriting the neutral app background', () => {
+    const tokens = read('src/css/tokens.css');
+    const legacyStyles = read('src/css/styles.css');
+    const neutralVars = getThemeVars(tokens, ':root');
+    const themedSelectors = [
+      '[data-theme="dark"]',
+      '[data-theme="furtivo"]',
+      '[data-theme="abismo"]',
+      '[data-theme="grafite"]',
+      '[data-theme="matrix"]',
+      '[data-theme="rubi"]',
+      '[data-theme="cyberpunk2077"]'
+    ];
+
+    for (const selector of themedSelectors) {
+      const themeVars = getThemeVars(legacyStyles, selector);
+      expect(themeVars['--app-bg'], `${selector} must define its own app background`).toBeTruthy();
+      expect(themeVars['--app-bg']).not.toBe(neutralVars['--app-bg']);
+    }
+  });
+
+  it('uses app background on the main shell', () => {
+    const legacyStyles = read('src/css/styles.css');
+
+    expect(legacyStyles).toMatch(/body\s*{[^}]*background:\s*var\(--app-bg,\s*var\(--bg\)\)/s);
+    expect(legacyStyles).toMatch(/#main\s*{[^}]*background:\s*var\(--app-bg,\s*var\(--bg\)\)/s);
+  });
+
   it('keeps browser cache busting aligned with the current app version', () => {
     const html = read('src/index.html');
     const serviceWorker = read('src/sw.js');
@@ -141,9 +173,9 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.5');
-    expect(serviceWorker).toContain("APP_VERSION = '8.5'");
-    expect(appSources).not.toMatch(/v=8\.[34]|APP_VERSION = '8\.[34]'/);
+    expect(html).toContain('css/styles.css?v=8.9');
+    expect(serviceWorker).toContain("APP_VERSION = '8.9'");
+    expect(appSources).not.toMatch(/v=8\.[345]|APP_VERSION = '8\.[345]'/);
   });
 
   it('moves repeated home dashboard stat-card layout into a view class', () => {

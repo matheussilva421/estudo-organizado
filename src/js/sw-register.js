@@ -1,10 +1,15 @@
 if ('serviceWorker' in navigator) {
+  const serviceWorkerScriptUrl = document.currentScript?.src || window.location.href;
+
   window.addEventListener('load', async () => {
     try {
-      // Limpar todos os caches antigos primeiro
+      const assetVersion = new URL(serviceWorkerScriptUrl).searchParams.get('v');
+      const currentCacheName = assetVersion ? `estudo-organizado-v${assetVersion}` : null;
+
+      // Limpar caches antigos sem apagar o precache da versao atual.
       const cacheNames = await caches.keys();
       for (const cacheName of cacheNames) {
-        if (cacheName.includes('estudo-organizado')) {
+        if (cacheName.includes('estudo-organizado') && cacheName !== currentCacheName) {
           await caches.delete(cacheName);
         }
       }
