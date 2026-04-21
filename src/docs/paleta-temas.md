@@ -1,6 +1,6 @@
 # Paleta e Temas - Estudo Organizado
 
-Este guia define a direcao visual oficial do app: produtivo, limpo e consistente. A prioridade e manter `light` e `dark` como temas principais, usando os demais temas como extras sem quebrar componentes base.
+Este guia define a direcao visual oficial do app: produtivo, limpo e consistente. A prioridade e manter `light` e `dark` como temas principais, usando os demais temas como extras sem quebrar componentes base. A versao visual atual usa mais separacao entre fundo, sidebar, topbar e cards para que o redesign seja perceptivel sem mudar regras de negocio.
 
 ## 1) Fonte da verdade
 
@@ -13,10 +13,10 @@ Este guia define a direcao visual oficial do app: produtivo, limpo e consistente
 
 | Token | Claro | Escuro |
 |---|---|---|
-| `--bg` | `#f6f8fb` | `#0b1220` |
+| `--bg` | `#edf3f8` | `#0b1220` |
 | `--card` | `#ffffff` | `#111827` |
-| `--surface` | `#eef3f8` | `#172033` |
-| `--border` | `#d8e0ea` | `#253247` |
+| `--surface` | `#e4ecf5` | `#172033` |
+| `--border` | `#cbd7e4` | `#253247` |
 | `--text-primary` | `#111827` | `#e5edf7` |
 | `--text-secondary` | `#475569` | `#a8b3c7` |
 | `--text-muted` | `#64748b` | `#7d8aa3` |
@@ -32,6 +32,7 @@ Este guia define a direcao visual oficial do app: produtivo, limpo e consistente
 - `--danger` / `--danger-bg`: atraso, erro e acoes destrutivas.
 - `--info` / `--info-bg`: agendamentos, informacao neutra e estados auxiliares.
 - `--status-agendado`, `--status-estudei`, `--status-atrasado`, `--status-nao`: estados especificos de calendario e revisao.
+- `--app-bg`, `--card-header`, `--card-hover`, `--sidebar-active-bg`, `--sidebar-active-border` e `--sidebar-border`: tokens de estrutura visual para tornar shell, cards e navegacao mais consistentes entre temas.
 
 ## 4) Temas extras
 

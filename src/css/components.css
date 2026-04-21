@@ -84,7 +84,7 @@
 .min-w-0 { min-width: 0; }
 
 .bg-card { background: var(--card); }
-.bg-surface { background: var(--bg); }
+.bg-surface { background: var(--surface); }
 .border-b { border-bottom: 1px solid var(--border); }
 .border-t { border-top: 1px solid var(--border); }
 .border { border: 1px solid var(--border); }

@@ -1,7 +1,7 @@
-import { state, scheduleSave } from './store.js?v=8.3';
-import { generatePlanejamento, getAllDisciplinas } from './logic.js?v=8.3';
-import { esc } from './utils.js?v=8.3';
-import { openModal, closeModal } from './app.js?v=8.3';
+import { state, scheduleSave } from './store.js?v=8.4';
+import { generatePlanejamento, getAllDisciplinas } from './logic.js?v=8.4';
+import { esc } from './utils.js?v=8.4';
+import { openModal, closeModal } from './app.js?v=8.4';
 
 let currentStep = 1;
 let draft = {

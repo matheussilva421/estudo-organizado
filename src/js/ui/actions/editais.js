@@ -296,7 +296,7 @@ export function switchManagerTab(el) {
 
 // Register all action handlers
 import { registerAction } from './dispatcher.js';
-import { parseBancaText, applyBancaRanking, filtrarViewPorDisciplina, mudarEditalAnalisador, carregarAnaliseBanca } from '../../views/banca-view.js?v=8.3';
+import { parseBancaText, applyBancaRanking, filtrarViewPorDisciplina, mudarEditalAnalisador, carregarAnaliseBanca } from '../../views/banca-view.js?v=8.4';
 
 registerAction('navigate', (el) => {
   const view = el.dataset.view;

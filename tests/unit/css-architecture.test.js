@@ -83,10 +83,10 @@ describe('CSS architecture', () => {
     const darkVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="dark"]'));
 
     expect(lightVars).toMatchObject({
-      '--bg': '#f6f8fb',
+      '--bg': '#edf3f8',
       '--card': '#ffffff',
-      '--surface': '#eef3f8',
-      '--border': '#d8e0ea',
+      '--surface': '#e4ecf5',
+      '--border': '#cbd7e4',
       '--text-primary': '#111827',
       '--text-secondary': '#475569',
       '--text-muted': '#64748b',
@@ -113,6 +113,25 @@ describe('CSS architecture', () => {
     expect(contrastRatio(lightVars['--accent-text'], lightVars['--accent'])).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(darkVars['--accent-text'], darkVars['--accent'])).toBeGreaterThanOrEqual(4.5);
     expect(legacyStyles).toMatch(/\.btn-primary:hover\s*{[^}]*background:\s*var\(--accent-hover\)/s);
+  });
+
+  it('keeps browser cache busting aligned with the current app version', () => {
+    const html = read('src/index.html');
+    const serviceWorker = read('src/sw.js');
+    const appSources = [
+      'src/index.html',
+      'src/sw.js',
+      ...[
+        'src/js/app.js',
+        'src/js/main.js',
+        'src/js/components.js',
+        'src/js/views.js'
+      ]
+    ].map((file) => read(file)).join('\n');
+
+    expect(html).toContain('css/styles.css?v=8.4');
+    expect(serviceWorker).toContain("APP_VERSION = '8.4'");
+    expect(appSources).not.toMatch(/v=8\.3|APP_VERSION = '8\.3'/);
   });
 
   it('moves repeated home dashboard stat-card layout into a view class', () => {

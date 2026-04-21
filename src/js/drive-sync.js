@@ -1,7 +1,7 @@
-import { closeModal, showConfirm, showToast } from './app.js?v=8.3';
-import { runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js?v=8.3';
-import { renderCurrentView } from './components.js?v=8.3';
-import { setCredential, getCredential } from './credentials.js?v=8.3';
+import { closeModal, showConfirm, showToast } from './app.js?v=8.4';
+import { runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js?v=8.4';
+import { renderCurrentView } from './components.js?v=8.4';
+import { setCredential, getCredential } from './credentials.js?v=8.4';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE
