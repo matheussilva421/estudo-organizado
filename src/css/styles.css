@@ -25,11 +25,11 @@
   --color-scheme: dark;
   --app-bg: linear-gradient(180deg, #0a0f1a 0%, #0d1525 52%, #101b2e 100%);
   --bg: #0a0f1a;
-  --card: #141e30;
-  --card-bg: #141e30;
-  --card-header: #192538;
+  --card: #0f172a;
+  --card-bg: #0f172a;
+  --card-header: #1e293b;
   --card-hover: #1a2840;
-  --bg-secondary: #1a2540;
+  --bg-secondary: #1e293b;
   --yellow: #facc15;
   --border: #2a3a52;
   --text-primary: #eef2f9;
@@ -75,10 +75,10 @@
 [data-theme="furtivo"] {
   --color-scheme: dark;
   --bg: #000000;
-  --card: #111111;
-  --card-bg: #111111;
-  --card-header: #1a1a1a;
-  --card-hover: #1f1f1f;
+  --card: #0a0a0a;
+  --card-bg: #0a0a0a;
+  --card-header: #1f1f1f;
+  --card-hover: #2a2a2a;
   --bg-secondary: #1a1a1a;
   --yellow: #a3a3a3;
   --sidebar-bg: #080808;
@@ -106,11 +106,11 @@
   --color-scheme: dark;
   --app-bg: linear-gradient(180deg, #020617 0%, #0a1120 52%, #0d1b30 100%);
   --bg: #020617;
-  --card: #0F172A;
-  --card-bg: #0F172A;
-  --card-header: #162033;
+  --card: #0b1120;
+  --card-bg: #0b1120;
+  --card-header: #1e293b;
   --card-hover: #1a2840;
-  --bg-secondary: #1E293B;
+  --bg-secondary: #1e293b;
   --yellow: #eab308;
   --sidebar-bg: linear-gradient(180deg, #020617 0%, #0a1120 100%);
   --sidebar-hover: #1E293B;
@@ -158,11 +158,11 @@
 [data-theme="grafite"] {
   --color-scheme: dark;
   --bg: #09090B;
-  --card: #1a1a1e;
-  --card-bg: #1a1a1e;
-  --card-header: #222226;
+  --card: #111114;
+  --card-bg: #111114;
+  --card-header: #27272a;
   --card-hover: #28282d;
-  --bg-secondary: #27272A;
+  --bg-secondary: #27272a;
   --yellow: #eab308;
   --sidebar-bg: #0e0e10;
   --sidebar-hover: #27272A;
@@ -186,11 +186,11 @@
 [data-theme="matrix"] {
   --color-scheme: dark;
   --bg: #000000;
-  --card: #0f140f;
-  --card-bg: #0f140f;
-  --card-header: #161e16;
+  --card: #050a05;
+  --card-bg: #050a05;
+  --card-header: #1a2f1a;
   --card-hover: #1a241a;
-  --bg-secondary: #1A1A1A;
+  --bg-secondary: #1a1a1a;
   --yellow: #eab308;
   --sidebar-bg: #080a08;
   --sidebar-hover: #1A1A1A;
@@ -214,9 +214,9 @@
 [data-theme="rubi"] {
   --color-scheme: dark;
   --bg: #000000;
-  --card: #120a0a;
-  --card-bg: #120a0a;
-  --card-header: #1a1010;
+  --card: #0a0505;
+  --card-bg: #0a0505;
+  --card-header: #2f1010;
   --card-hover: #221515;
   --bg-secondary: #1a1a1a;
   --yellow: #eab308;
@@ -242,11 +242,11 @@
 [data-theme="cyberpunk2077"] {
   --color-scheme: dark;
   --bg: #090A0F;
-  --card: #13141c;
-  --card-bg: #13141c;
-  --card-header: #1a1b25;
+  --card: #0c0d14;
+  --card-bg: #0c0d14;
+  --card-header: #1f2030;
   --card-hover: #20212e;
-  --bg-secondary: #1B1E27;
+  --bg-secondary: #1b1e27;
   --yellow: #FCEE0A;
   --sidebar-bg: #0a0b10;
   --sidebar-hover: #191C27;
