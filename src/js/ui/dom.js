@@ -26,10 +26,13 @@ export function qs(selector, root = document) {
  */
 export function qsa(selector, root = document) {
   if (!selector) return [];
-  const normalized = selector.startsWith('#') || selector.startsWith('.')
+  const shouldNormalize = /^[A-Za-z][\w-]*$/.test(selector);
+  const normalized = !shouldNormalize || selector.startsWith('#') || selector.startsWith('.')
     ? selector
     : `#${selector}`;
-  return root.querySelectorAll(normalized) || root.querySelectorAll(selector);
+  const normalizedResult = root.querySelectorAll(normalized);
+  if (normalized === selector || normalizedResult.length > 0) return normalizedResult;
+  return root.querySelectorAll(selector);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { closeModal, showConfirm, showToast } from './app.js?v=8.15';
-import { runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js?v=8.15';
+import { createExportableState, runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js?v=8.15';
 import { renderCurrentView } from './components.js?v=8.15';
 import { setCredential, getCredential } from './credentials.js?v=8.15';
 
@@ -253,7 +253,7 @@ export async function syncWithDrive(isRecursion = false) {
                 JSON.stringify(metadata) +
                 delimiter +
                 'Content-Type: application/json\r\n\r\n' +
-                JSON.stringify(state) +
+                JSON.stringify(createExportableState()) +
                 close_delim;
 
             const fetchResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${state.driveFileId}?uploadType=multipart`, {
@@ -287,7 +287,7 @@ export async function syncWithDrive(isRecursion = false) {
                 JSON.stringify(metadata) +
                 delimiter +
                 'Content-Type: application/json\r\n\r\n' +
-                JSON.stringify(state) +
+                JSON.stringify(createExportableState()) +
                 close_delim;
 
             const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {

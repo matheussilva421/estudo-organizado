@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadAppModules } from '../helpers/module-loader.js';
-import { createBaseState, createEvento, createDisciplina, createEdital } from '../helpers/state-builders.js';
+import { createBaseState, createEvento, createDisciplina, createEdital, createAssunto } from '../helpers/state-builders.js';
 
 let store;
 let views;
@@ -299,6 +299,35 @@ describe('views.js - Editais', () => {
 
 describe('views.js - Revisões', () => {
   describe('renderRevisoes()', () => {
+    it('escapa nomes de assunto, disciplina e edital nas revisoes', () => {
+      const payload = '<img src=x onerror="window.__xss=1">';
+      const state = createBaseState({
+        config: { frequenciaRevisao: [1] },
+        editais: [createEdital({
+          nome: payload,
+          disciplinas: [createDisciplina({
+            id: 'disc_1',
+            nome: payload,
+            assuntos: [createAssunto({
+              id: 'ass_1',
+              nome: payload,
+              concluido: true,
+              dataConclusao: '2026-04-19',
+              revisoesFetas: []
+            })]
+          })]
+        })]
+      });
+      store.setState(state);
+      logic.invalidatePendingRevCache();
+
+      const container = { innerHTML: '' };
+      views.renderRevisoes(container);
+
+      expect(container.innerHTML).not.toContain('<img');
+      expect(container.innerHTML).toContain('&lt;img');
+    });
+
     it('renderiza lista de revisões pendentes', () => {
       const state = createBaseState({
         revisoes: [

@@ -1,6 +1,6 @@
 import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.15';
 import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.15';
-import { scheduleSave, state, setState, runMigrations } from './store.js?v=8.15';
+import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.15';
 import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.15';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.15';
 import { updateDriveUI } from './drive-sync.js?v=8.15';
@@ -1024,8 +1024,8 @@ export function renderRevisoes(el) {
               <div class="label">Rev</div>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-md font-semibold">${r.assunto.nome}</div>
-              <div class="text-base text-secondary">${r.disc.nome} • ${r.edital.nome}</div>
+              <div class="text-md font-semibold">${esc(r.assunto.nome)}</div>
+              <div class="text-base text-secondary">${esc(r.disc.nome)} • ${esc(r.edital.nome)}</div>
               <div class="text-sm mt-1 ${isOverdue ? 'text-red' : 'text-accent'}">
                 ${isOverdue ? '⚠️ Atrasada' : '📅 Hoje'} • Prevista para ${formatDate(r.data)}
               </div>
@@ -1053,8 +1053,8 @@ export function renderRevisoes(el) {
                 <div class="label">Rev</div>
               </div>
               <div class="flex-1 min-w-0">
-                <div class="text-md font-semibold">${r.assunto.nome}</div>
-                <div class="text-base text-secondary">${r.disc.nome} • ${r.edital.nome}</div>
+                <div class="text-md font-semibold">${esc(r.assunto.nome)}</div>
+                <div class="text-base text-secondary">${esc(r.disc.nome)} • ${esc(r.edital.nome)}</div>
               </div>
               <div class="text-right">
                 <div class="text-base font-bold text-blue">${formatDate(r.data)}</div>
@@ -2830,7 +2830,7 @@ export function renderConfig(el) {
             <div class="form-group config-input-group">
               <label class="form-label">Token de Acesso (Auth Token)</label>
               <div class="config-input-group">
-                  <input type="password" id="config-cf-token" class="form-control" placeholder="Sua senha secreta do Worker" value="${esc(cfg.cfToken || '')}" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
+                  <input type="password" id="config-cf-token" class="form-control" placeholder="${cfg.cfTokenSaved ? 'Token salvo em credenciais locais' : 'Sua senha secreta do Worker'}" value="" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
                   <button type="button" class="btn btn-outline" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/Esconder Senha"><i class="fa fa-eye"></i></button>
               </div>
             </div>
@@ -2976,7 +2976,33 @@ export function setTheme(themeName) {
 }
 
 export function updateConfig(key, value) {
+  if (key === 'cfToken') {
+    delete state.config.cfToken;
+    state.config.cfTokenSaved = Boolean(value) || Boolean(state.config.cfTokenSaved);
+    if (value && typeof window.EstudoApp?.setSyncCreds === 'function') {
+      window.EstudoApp.setSyncCreds({
+        url: state.config.cfUrl || '',
+        token: value,
+        enabled: state.config.cfSyncEnabled
+      }).catch(err => console.error('Erro ao salvar credencial Cloudflare:', err));
+    }
+    scheduleSave();
+    return;
+  }
+
   state.config[key] = value;
+  if (key === 'cfUrl') {
+    const token = document.getElementById('config-cf-token')?.value?.trim();
+    if ((token || state.config.cfTokenSaved) && typeof window.EstudoApp?.setSyncCreds === 'function') {
+      window.EstudoApp.setSyncCreds({
+        url: value,
+        token: token || undefined,
+        enabled: state.config.cfSyncEnabled
+      }).catch(err => console.error('Erro ao salvar credencial Cloudflare:', err));
+    }
+    scheduleSave();
+    return;
+  }
   if (key === 'materiasPorDia') {
     syncCicloToEventos();
   }
@@ -2990,23 +3016,26 @@ export function toggleConfig(key, el) {
   scheduleSave();
 }
 
-export function toggleCfSync(enabled) {
+export async function toggleCfSync(enabled) {
   if (enabled) {
     const url = document.getElementById('config-cf-url').value.trim();
     const token = document.getElementById('config-cf-token').value.trim();
-    if (!url || !token) {
+    if (!url || (!token && !state.config.cfTokenSaved)) {
       showToast('Preencha a URL do Worker e o Token antes de ativar.', 'error');
       const checkbox = document.getElementById('config-cf-enabled');
       if (checkbox) checkbox.checked = false;
       return;
     }
+    if ((token || state.config.cfTokenSaved) && typeof window.EstudoApp?.setSyncCreds === 'function') {
+      await window.EstudoApp.setSyncCreds({ url, token: token || undefined, enabled: true });
+    }
   }
 
   state.config.cfSyncEnabled = enabled;
 
-  if (enabled && typeof window.forceCloudflareSync === 'function') {
+  if (enabled && typeof window.EstudoApp?.forceCloudflareSync === 'function') {
     if (typeof showToast === 'function') showToast('Conectando à nuvem para sincronizar...', 'info');
-    window.forceCloudflareSync().finally(() => {
+    window.EstudoApp.forceCloudflareSync().finally(() => {
       scheduleSave();
       renderCurrentView();
     });
@@ -3071,7 +3100,7 @@ export function archiveOldEvents(days = 90) {
 }
 
 export function exportData() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(createExportableState(), null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `estudo-organizado-backup-${todayStr()}.json`;
@@ -3145,7 +3174,7 @@ export function restoreBackupFromSelectedSource() {
   }
 
   if (source === 'cloudflare') {
-    if (!state.config?.cfSyncEnabled || !state.config?.cfUrl || !state.config?.cfToken) {
+    if (!state.config?.cfSyncEnabled || !state.config?.cfUrl || (!state.config?.cfToken && !state.config?.cfTokenSaved)) {
       showToast('Configure a sincronização Cloudflare antes de restaurar por ela.', 'error');
       return;
     }
@@ -3153,8 +3182,8 @@ export function restoreBackupFromSelectedSource() {
     showConfirm(
       'Restaurar os dados da Cloudflare? Isso substituirá os dados locais atuais.',
       () => {
-        if (typeof window.pullFromCloudflare === 'function') {
-          window.pullFromCloudflare(true);
+        if (typeof window.EstudoApp?.pullFromCloudflare === 'function') {
+          window.EstudoApp.pullFromCloudflare(true);
         }
       },
       { label: 'Restaurar Cloudflare', title: 'Restaurar backup' }

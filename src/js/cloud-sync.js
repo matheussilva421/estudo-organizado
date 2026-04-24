@@ -1,4 +1,4 @@
-import { state, setState, SyncQueue, saveStateToDB } from './store.js?v=8.15';
+import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.15';
 import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.15';
 
 let isSyncing = false;
@@ -25,17 +25,24 @@ async function getSyncCreds() {
 }
 
 export async function setSyncCreds({ url, token, enabled }) {
-    await setCredential(CF_CREDS_KEY, { url, token, enabled });
+    const currentCreds = await getSyncCreds();
+    const nextCreds = {
+        url: url ?? currentCreds?.url ?? '',
+        token: token || currentCreds?.token || '',
+        enabled: enabled ?? currentCreds?.enabled ?? false
+    };
+    await setCredential(CF_CREDS_KEY, nextCreds);
     // Backward compat: keep state.config in sync for legacy reads
     if (!state.config) state.config = {};
-    state.config.cfUrl = url || '';
-    state.config.cfToken = token || '';
-    state.config.cfSyncEnabled = !!enabled;
+    state.config.cfUrl = nextCreds.url;
+    delete state.config.cfToken;
+    state.config.cfSyncEnabled = !!nextCreds.enabled;
+    state.config.cfTokenSaved = Boolean(nextCreds.token);
 }
 
-function getSyncConfig() {
+async function getSyncConfig() {
     // Prefer isolated creds, fall back to state.config for backward compat
-    const creds = getSyncCreds();
+    const creds = await getSyncCreds();
     if (creds && creds.enabled && creds.url && creds.token) {
         return { url: creds.url, token: creds.token };
     }
@@ -94,7 +101,7 @@ function unwrapEnvelope(data) {
  * Puxa os dados da Cloudflare e mescla se o timestamp remoto for mais recente
  */
 export async function pullFromCloudflare(forceOverwrite = false) {
-    const config = getSyncConfig();
+    const config = await getSyncConfig();
     if (!config) return false;
 
     updateSyncStatus('Sincronizando puxando dados...');
@@ -137,6 +144,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
             if (state.config) {
                 delete state.config.cfUrl;
                 delete state.config.cfToken;
+                delete state.config.cfTokenSaved;
                 if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
                 delete state.config.cfConflict;
             }
@@ -171,7 +179,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
  */
 export async function pushToCloudflare(forceOverwrite = false) {
     if (isSyncing) return false;
-    const config = getSyncConfig();
+    const config = await getSyncConfig();
     if (!config) return false;
 
     const now = Date.now();
@@ -187,11 +195,8 @@ export async function pushToCloudflare(forceOverwrite = false) {
         if (!state.config) state.config = {};
         const pushTimestamp = Date.now();
 
-        const snapshot = structuredClone(state);
+        const snapshot = createExportableState();
         snapshot.config._lastUpdated = pushTimestamp;
-        // Strip credentials from sync payload
-        delete snapshot.config.cfUrl;
-        delete snapshot.config.cfToken;
 
         const envelope = wrapInEnvelope(snapshot, { forceOverwrite });
         const payload = JSON.stringify(envelope);
@@ -246,7 +251,7 @@ export async function pushToCloudflare(forceOverwrite = false) {
     }
 }
 
-window.forceCloudflareSync = async function () {
+export async function forceCloudflareSync() {
     const btn = document.getElementById('btn-force-cf-sync');
     const originalText = btn ? btn.textContent : 'Sincronizar';
     if (btn) {
@@ -268,4 +273,8 @@ window.forceCloudflareSync = async function () {
             btn.textContent = originalText;
         }
     }
-};
+}
+
+if (typeof window !== 'undefined') {
+    window.forceCloudflareSync = forceCloudflareSync;
+}

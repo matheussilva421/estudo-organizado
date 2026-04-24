@@ -13,6 +13,40 @@ beforeEach(async () => {
 });
 
 describe('store.js', () => {
+  it('createExportableState strips sync secrets without mutating local state', () => {
+    store.setState(createBaseState({
+      config: {
+        cfSyncEnabled: true,
+        cfUrl: 'https://sync.example.test',
+        cfToken: 'super-secret-token',
+        cfTokenSaved: true,
+        cfConflict: { remoteDeviceId: 'device-a' },
+        cfRemoteUpdatedAt: '2026-04-19T11:00:00.000Z',
+        cfLastSyncAt: '2026-04-19T12:00:00.000Z',
+        _lastUpdated: 1770000000000
+      }
+    }));
+
+    const exportable = store.createExportableState();
+
+    expect(exportable.config.cfUrl).toBeUndefined();
+    expect(exportable.config.cfToken).toBeUndefined();
+    expect(exportable.config.cfTokenSaved).toBeUndefined();
+    expect(exportable.config.cfConflict).toBeUndefined();
+    expect(exportable.config._lastUpdated).toBeUndefined();
+    expect(exportable.config.cfSyncEnabled).toBe(false);
+    expect(store.state.config.cfToken).toBe('super-secret-token');
+  });
+
+  it('clearData also clears isolated credentials', async () => {
+    const credentials = await import('../../src/js/credentials.js?v=8.15');
+    const spy = vi.spyOn(credentials, 'clearAllCredentials').mockResolvedValue(undefined);
+
+    store.clearData();
+
+    expect(spy).toHaveBeenCalled();
+  });
+
   it('setState normalizes missing collections and config defaults', () => {
     store.setState({
       schemaVersion: 7,

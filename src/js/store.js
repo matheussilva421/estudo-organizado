@@ -3,6 +3,7 @@
 // =============================================
 import { pushToCloudflare } from './cloud-sync.js?v=8.15';
 import { uid } from './utils.js?v=8.15';
+import * as credentialsStore from './credentials.js?v=8.15';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 1;
@@ -88,6 +89,22 @@ export let state = {
   driveFileId: null,
   lastSync: null
 };
+
+export function createExportableState(sourceState = state) {
+  const exportable = deepClone(sourceState);
+  if (!exportable.config) exportable.config = {};
+
+  delete exportable.config.cfUrl;
+  delete exportable.config.cfToken;
+  delete exportable.config.cfTokenSaved;
+  delete exportable.config.cfConflict;
+  delete exportable.config.cfRemoteUpdatedAt;
+  delete exportable.config.cfLastSyncAt;
+  delete exportable.config._lastUpdated;
+  exportable.config.cfSyncEnabled = false;
+
+  return exportable;
+}
 
 /**
  * Inicializa banco de dados IndexedDB e carrega estado
@@ -463,6 +480,9 @@ export function runMigrations() {
 
 // Clean up state (called by clearAllData in views.js which already double-confirms)
 export function clearData() {
+  credentialsStore.clearAllCredentials().catch(err => {
+    console.error('Erro ao limpar credenciais:', err);
+  });
   setState({
     schemaVersion: DEFAULT_SCHEMA_VERSION,
     ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },

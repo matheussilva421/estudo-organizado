@@ -32,7 +32,7 @@ window.EstudoApp = {};
 const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper];
 
 for (const mod of exposedModules) {
-  for (const [key, value] of Object.entries(mod)) {
+  for (const key of Object.keys(mod)) {
     // Skip internal/private exports (starting with _)
     if (key.startsWith('_')) continue;
 
@@ -41,7 +41,11 @@ for (const mod of exposedModules) {
       console.warn(`[EstudoApp] Duplicate export: ${key}`);
     }
 
-    window.EstudoApp[key] = value;
+    Object.defineProperty(window.EstudoApp, key, {
+      configurable: true,
+      enumerable: true,
+      get: () => mod[key]
+    });
   }
 }
 

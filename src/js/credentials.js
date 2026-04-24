@@ -1,8 +1,8 @@
 // =============================================
 // CREDENTIALS MANAGEMENT (IndexedDB)
 // =============================================
-// Armazena credenciais de sync separadamente do estado exportável
-// Previne exfiltração de tokens via exportação de backup
+// Armazena credenciais de sync separadamente do estado exportavel.
+// Previne exfiltracao de tokens via backup/exportacao.
 
 const CREDS_DB_NAME = 'EstudoCredenciaisDB';
 const CREDS_DB_VERSION = 1;
@@ -18,12 +18,20 @@ let _initPromise = null;
 export function initCredentialsDB() {
   if (_initPromise) return _initPromise;
   if (credsDb) return Promise.resolve(credsDb);
+  if (typeof indexedDB === 'undefined') return Promise.reject(new Error('IndexedDB indisponivel'));
 
   _initPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(CREDS_DB_NAME, CREDS_DB_VERSION);
+    let request;
+    try {
+      request = indexedDB.open(CREDS_DB_NAME, CREDS_DB_VERSION);
+    } catch (err) {
+      _initPromise = null;
+      reject(err);
+      return;
+    }
 
     request.onerror = (event) => {
-      console.error('[CredentialsDB] Erro ao abrir DB:', event.target.error);
+      _initPromise = null;
       reject(event.target.error);
     };
 
@@ -41,6 +49,24 @@ export function initCredentialsDB() {
   });
 
   return _initPromise;
+}
+
+function readFallbackCredential(key) {
+  const raw = localStorage.getItem(`estudo_cred_${key}`);
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('[CredentialsDB] Credencial fallback invalida:', err);
+    return undefined;
+  }
+}
+
+function listFallbackCredentialKeys() {
+  const prefix = 'estudo_cred_';
+  return Object.keys(localStorage)
+    .filter(key => key.startsWith(prefix))
+    .map(key => key.slice(prefix.length));
 }
 
 /**
@@ -61,8 +87,6 @@ export async function setCredential(key, value) {
       req.onerror = () => reject(req.error);
     });
   } catch (err) {
-    console.error('[CredentialsDB] Erro ao salvar credencial:', err);
-    // Fallback para localStorage se IndexedDB falhar
     localStorage.setItem(`estudo_cred_${key}`, JSON.stringify(value));
   }
 }
@@ -84,10 +108,7 @@ export async function getCredential(key) {
       req.onerror = () => reject(req.error);
     });
   } catch (err) {
-    console.error('[CredentialsDB] Erro ao ler credencial:', err);
-    // Fallback para localStorage
-    const raw = localStorage.getItem(`estudo_cred_${key}`);
-    return raw ? JSON.parse(raw) : undefined;
+    return readFallbackCredential(key);
   }
 }
 
@@ -108,8 +129,6 @@ export async function deleteCredential(key) {
       req.onerror = () => reject(req.error);
     });
   } catch (err) {
-    console.error('[CredentialsDB] Erro ao remover credencial:', err);
-    // Cleanup fallback do localStorage
     localStorage.removeItem(`estudo_cred_${key}`);
   }
 }
@@ -130,8 +149,7 @@ export async function listCredentialKeys() {
       req.onerror = () => reject(req.error);
     });
   } catch (err) {
-    console.error('[CredentialsDB] Erro ao listar chaves:', err);
-    return [];
+    return listFallbackCredentialKeys();
   }
 }
 
@@ -144,14 +162,8 @@ export async function clearAllCredentials() {
     await initCredentialsDB();
     const keys = await listCredentialKeys();
     await Promise.all(keys.map(key => deleteCredential(key)));
+    listFallbackCredentialKeys().forEach(key => localStorage.removeItem(`estudo_cred_${key}`));
   } catch (err) {
-    console.error('[CredentialsDB] Erro ao limpar credenciais:', err);
+    listFallbackCredentialKeys().forEach(key => localStorage.removeItem(`estudo_cred_${key}`));
   }
-}
-
-// Inicializa DB no próximo tick para não bloquear boot
-if (typeof indexedDB !== 'undefined') {
-  initCredentialsDB().catch(() => {
-    // Silencioso - fallback para localStorage já está implementado
-  });
 }

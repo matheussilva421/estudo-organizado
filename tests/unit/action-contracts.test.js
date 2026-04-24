@@ -309,4 +309,33 @@ describe('data-action contracts', () => {
     expect(swRegisterSource).toContain('const currentCacheName = assetVersion ? `estudo-organizado-v${assetVersion}` : null;');
     expect(swRegisterSource).toContain("cacheName !== currentCacheName");
   });
+
+  it('guards service worker registration before reading registration scope', () => {
+    const swRegisterSource = read('src/js/sw-register.js');
+
+    expect(swRegisterSource).toContain('if (!reg) return;');
+  });
+
+  it('uses sanitized exportable state for local and Drive backups', () => {
+    const viewsSource = read('src/js/views.js');
+    const driveSource = read('src/js/drive-sync.js');
+
+    expect(viewsSource).toContain('createExportableState()');
+    expect(driveSource).toContain('createExportableState()');
+    expect(driveSource).not.toContain('JSON.stringify(state)');
+  });
+
+  it('keeps EstudoApp namespace values live for mutable module exports', () => {
+    const mainSource = read('src/js/main.js');
+
+    expect(mainSource).toContain('Object.defineProperty(window.EstudoApp, key');
+    expect(mainSource).toContain('get: () => mod[key]');
+  });
+
+  it('removes isolated credentials when clearing all app data', () => {
+    const storeSource = read('src/js/store.js');
+
+    expect(storeSource).toContain("from './credentials.js?v=8.15';");
+    expect(storeSource).toMatch(/clearData[\s\S]*clearAllCredentials\(\)/);
+  });
 });

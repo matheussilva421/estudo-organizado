@@ -368,6 +368,17 @@ test.describe('Estudo Organizado', () => {
     }
   });
 
+  test('EstudoApp currentView stays in sync after navigation', async ({ page }) => {
+    const state = createE2EState();
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="config"]');
+
+    await expect(page.locator('#topbar-title')).toHaveText('Configurações');
+    await expect.poll(() => page.evaluate(() => window.EstudoApp.currentView)).toBe('config');
+  });
+
   test('Pomodoro toggle persists after reload', async ({ page }) => {
     const state = createE2EState();
 

@@ -24,6 +24,7 @@ if ('serviceWorker' in navigator) {
       });
 
       const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+      if (!reg) return;
       console.log('SW Registrado com escopo:', reg.scope);
 
       const promoteWaitingWorker = () => {

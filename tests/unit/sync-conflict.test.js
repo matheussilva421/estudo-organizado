@@ -201,4 +201,80 @@ describe('Cloudflare sync conflict contract', () => {
     expect(requestBody.payload.config.cfToken).toBeUndefined();
     expect(store.state.config.cfRemoteUpdatedAt).toBe('2026-04-19T12:00:00.000Z');
   });
+
+  it('client can sync using isolated credentials when state config has no token', async () => {
+    const { store, cloudSync } = await importFreshSyncModules();
+    store.setState(createBaseState({
+      config: {
+        cfSyncEnabled: true,
+        cfRemoteUpdatedAt: null
+      }
+    }));
+    localStorage.setItem('estudo_cred_cloudflare', JSON.stringify({
+      enabled: true,
+      url: 'https://sync.example.test',
+      token: 'isolated-token'
+    }));
+
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      success: true,
+      meta: {
+        updatedAt: '2026-04-19T12:00:00.000Z',
+        deviceId: 'device-b',
+        version: 2
+      }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(cloudSync.pushToCloudflare()).resolves.toBe(true);
+
+    expect(fetchMock).toHaveBeenCalledWith('https://sync.example.test', expect.objectContaining({
+      headers: expect.objectContaining({
+        Authorization: 'Bearer isolated-token'
+      })
+    }));
+    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(requestBody.payload.config.cfToken).toBeUndefined();
+    expect(requestBody.payload.config.cfTokenSaved).toBeUndefined();
+  });
+
+  it('preserves isolated token when only sync url changes', async () => {
+    const { store, cloudSync } = await importFreshSyncModules();
+    store.setState(createBaseState({
+      config: {
+        cfSyncEnabled: true,
+        cfUrl: 'https://old-sync.example.test',
+        cfRemoteUpdatedAt: null
+      }
+    }));
+    localStorage.setItem('estudo_cred_cloudflare', JSON.stringify({
+      enabled: true,
+      url: 'https://old-sync.example.test',
+      token: 'isolated-token'
+    }));
+
+    await cloudSync.setSyncCreds({
+      url: 'https://new-sync.example.test',
+      enabled: true
+    });
+
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      success: true,
+      meta: {
+        updatedAt: '2026-04-19T12:00:00.000Z',
+        deviceId: 'device-b',
+        version: 2
+      }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(cloudSync.pushToCloudflare()).resolves.toBe(true);
+
+    expect(fetchMock).toHaveBeenCalledWith('https://new-sync.example.test', expect.objectContaining({
+      headers: expect.objectContaining({
+        Authorization: 'Bearer isolated-token'
+      })
+    }));
+    expect(store.state.config.cfToken).toBeUndefined();
+  });
 });
