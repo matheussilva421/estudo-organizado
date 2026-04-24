@@ -232,6 +232,50 @@ test.describe('Estudo Organizado', () => {
     await expect(conflict.locator('[data-action="cloud-conflict-force-push"]')).toBeVisible();
   });
 
+  test('keeps settings sync controls inside mobile cards', async ({ page }) => {
+    const state = createE2EState();
+    state.config.cfSyncEnabled = true;
+    state.config.cfUrl = 'https://estudo-sync-api.example.workers.dev';
+    state.config.cfToken = 'test-token';
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.waitForFunction(() => typeof window.EstudoApp?.navigate === 'function');
+    await page.evaluate(() => window.EstudoApp.navigate('config'));
+    await expect(page.locator('#topbar-title')).toHaveText('Configurações', { timeout: 10000 });
+
+    const metrics = await page.evaluate(() => {
+      const selectors = [
+        '#main-content',
+        '.config-grid',
+        '.config-card',
+        '.config-card .card-body',
+        '.config-row',
+        '.config-input-group',
+        '.config-toggle-row',
+        '.config-actions-row'
+      ];
+      return selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map((element, index) => ({
+        selector,
+        index,
+        clientWidth: Math.round(element.clientWidth),
+        scrollWidth: Math.round(element.scrollWidth)
+      }))).filter(item => item.scrollWidth > item.clientWidth + 1);
+    });
+
+    expect(metrics).toEqual([]);
+
+    const mobileLayout = await page.evaluate(() => ({
+      formGroups: Array.from(document.querySelectorAll('.form-group.config-input-group')).map((element) => window.getComputedStyle(element).flexDirection),
+      toggleRow: window.getComputedStyle(document.querySelector('.config-toggle-row')).flexWrap
+    }));
+
+    expect(mobileLayout.formGroups).toEqual(expect.arrayContaining(['column']));
+    expect(new Set(mobileLayout.formGroups)).toEqual(new Set(['column']));
+    expect(mobileLayout.toggleRow).toBe('wrap');
+  });
+
   test('persists Banca Analyzer ranking through the extracted view module', async ({ page }) => {
     const state = createE2EState();
     state.editais[0].disciplinas[0].assuntos.push({

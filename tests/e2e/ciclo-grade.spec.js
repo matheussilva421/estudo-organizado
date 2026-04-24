@@ -133,6 +133,75 @@ test.describe('Ciclo de Estudos', () => {
     await expect(page.locator('.seq-item-card--static').first().locator('.ciclo-sequence-actions')).toHaveCSS('opacity', '1');
   });
 
+  test('mantem ciclo planejado sem recortes horizontais em mobile', async ({ page }) => {
+    const state = createE2EState();
+    const disciplinas = [
+      { id: 'disc_1', nome: 'Administracao Financeira e Orcamentaria', icone: 'A', cor: '#f59e0b', assuntos: [], aulas: [] },
+      { id: 'disc_2', nome: 'Direito Administrativo', icone: 'D', cor: '#3b82f6', assuntos: [], aulas: [] },
+      { id: 'disc_3', nome: 'Direito Previdenciario', icone: 'P', cor: '#06b6d4', assuntos: [], aulas: [] },
+      { id: 'disc_4', nome: 'Lingua Portuguesa', icone: 'L', cor: '#10b981', assuntos: [], aulas: [] }
+    ];
+    state.editais[0].disciplinas = disciplinas;
+    state.planejamento = {
+      ativo: true,
+      tipo: 'ciclo',
+      disciplinas: disciplinas.map(d => d.id),
+      sequencia: disciplinas.map((d, index) => ({
+        id: `seq_${index + 1}`,
+        discId: d.id,
+        minutosAlvo: 120,
+        concluido: false
+      })),
+      ciclosCompletos: 2,
+      dataInicioCicloAtual: new Date().toISOString(),
+      horarios: {
+        dataInicial: '2026-03-17',
+        dataFinal: '2026-04-10',
+        diasAtivos: [1, 2, 3, 4, 5],
+        horasPorDia: { 1: '02:00', 2: '02:00', 3: '02:00', 4: '02:00', 5: '02:00' }
+      }
+    };
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.waitForFunction(() => typeof window.EstudoApp?.navigate === 'function');
+    await page.evaluate(() => window.EstudoApp.navigate('ciclo'));
+    await expect(page.locator('#topbar-title')).toHaveText('Ciclo de Estudos', { timeout: 10000 });
+    await expect(page.locator('.seq-item-card--static')).toHaveCount(4);
+
+    const metrics = await page.evaluate(() => {
+      const selectors = [
+        '#main-content',
+        '.ciclo-layout',
+        '.ciclo-header-actions',
+        '.ciclo-header-buttons',
+        '.ciclo-btn',
+        '.ciclo-content-col',
+        '.ciclo-summary-row',
+        '.ciclo-stat-card',
+        '.ciclo-side-panel',
+        '.ciclo-sequence-card',
+        '.ciclo-sequence-card .scroll-area-md',
+        '.seq-item-card--static',
+        '.seq-item-content--static',
+        '.ciclo-sequence-actions',
+        '.ciclo-action-link',
+        '.ciclo-chart-container',
+        '.ciclo-filete-linear',
+        '.ciclo-predict-box',
+        '.ciclo-predict-summary'
+      ];
+      return selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map((element, index) => ({
+        selector,
+        index,
+        clientWidth: Math.round(element.clientWidth),
+        scrollWidth: Math.round(element.scrollWidth)
+      }))).filter(item => item.scrollWidth > item.clientWidth + 1);
+    });
+    expect(metrics).toEqual([]);
+  });
+
   test('recomeça ciclo e limpa sequência', async ({ page }) => {
     const state = createE2EState();
     state.planejamento = {

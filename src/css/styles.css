@@ -4251,7 +4251,7 @@ body {
 
 .seq-item-card--static:hover .ciclo-sequence-actions,
 .seq-item-card--static:focus-within .ciclo-sequence-actions {
-  max-height: 40px;
+  max-height: 96px;
   margin-top: 2px;
   opacity: 1;
   pointer-events: auto;
@@ -4436,4 +4436,119 @@ body {
 .habit-history-card .card-body,
 .habit-history-card .habit-hist-list {
   overflow: visible;
+}
+
+/* Mobile visual stability: grid items must be allowed to shrink inside the viewport. */
+.ciclo-layout,
+.ciclo-content-col,
+.ciclo-side-panel,
+.ciclo-sequence-card,
+.ciclo-sequence-card .scroll-area-md,
+.seq-item-card,
+.seq-item-content,
+.seq-item-content--static,
+.ciclo-predict-box,
+.config-grid,
+.config-card,
+.config-card .card-body {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .ciclo-layout,
+  .ciclo-layout.grid-2 {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .ciclo-header-actions {
+    align-items: stretch !important;
+  }
+
+  .ciclo-header-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ciclo-header-buttons .ciclo-btn {
+    justify-content: center;
+    width: 100%;
+    white-space: normal;
+  }
+
+  .ciclo-header-buttons .ciclo-btn--danger {
+    grid-column: 1 / -1;
+  }
+
+  .ciclo-summary-row,
+  .ciclo-sequence-header,
+  .ciclo-sequence-controls,
+  .ciclo-sequence-actions,
+  .config-row,
+  .config-toggle-row,
+  .config-actions-row {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ciclo-sequence-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px !important;
+  }
+
+  .ciclo-action-link {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .ciclo-side-panel {
+    height: auto;
+  }
+
+  .ciclo-chart-container {
+    height: 156px;
+    max-width: 100%;
+  }
+
+  .ciclo-predict-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .ciclo-predict-summary-date {
+    text-align: left;
+  }
+
+  .config-row,
+  .form-group.config-input-group {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .config-row > *,
+  .form-group.config-input-group > * {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .config-input-group:not(.form-group) {
+    width: 100%;
+  }
+
+  .config-toggle-row,
+  .config-actions-row {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .config-toggle-row > *,
+  .config-actions-row > * {
+    flex: 1 1 180px;
+    min-width: 0;
+    justify-content: center;
+    white-space: normal;
+  }
 }

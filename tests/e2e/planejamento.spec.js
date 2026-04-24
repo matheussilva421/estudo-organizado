@@ -83,7 +83,9 @@ test.describe('Planejamento de Estudos (Wizard)', () => {
     // Check if the plan is active in the cycle view
     await expect(page.locator('#main-content')).toContainText('CICLOS COMPLETOS');
 
-    await page.click('[data-action="iniciar-etapa-planejamento"]');
+    const firstSequenceCard = page.locator('.seq-item-card--static').first();
+    await firstSequenceCard.hover();
+    await firstSequenceCard.locator('[data-action="iniciar-etapa-planejamento"]').click();
     // After starting planning, user should be in cycle/cronometro view
     await expect(page.locator('#topbar-title')).toHaveText(/Ciclo|Cron/);
     await expect.poll(() => page.evaluate(() => {
