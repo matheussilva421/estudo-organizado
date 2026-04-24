@@ -4493,6 +4493,19 @@ body {
     max-width: 100%;
   }
 
+  .ciclo-summary-row {
+    gap: 12px;
+  }
+
+  .ciclo-summary-row .ciclo-stat-card {
+    height: auto;
+    min-height: 0;
+  }
+
+  .ciclo-stat-card--center {
+    padding: 18px 16px;
+  }
+
   .ciclo-sequence-actions {
     display: grid;
     grid-template-columns: 1fr;
@@ -4531,11 +4544,37 @@ body {
   .config-row > *,
   .form-group.config-input-group > * {
     min-width: 0;
+  }
+
+  .form-group.config-input-group > *,
+  .config-row > :not(.toggle) {
     width: 100%;
   }
 
   .config-input-group:not(.form-group) {
+    display: flex;
+    gap: 8px;
     width: 100%;
+  }
+
+  .config-input-group:not(.form-group) .form-control {
+    min-height: 44px;
+    flex: 1 1 auto;
+  }
+
+  .form-group.config-input-group > .form-control {
+    min-height: 44px;
+  }
+
+  .config-input-group:not(.form-group) .btn {
+    flex: 0 0 auto;
+    min-width: 56px;
+  }
+
+  .config-row .toggle {
+    align-self: flex-start;
+    width: 40px;
+    height: 22px;
   }
 
   .config-toggle-row,
@@ -4546,9 +4585,14 @@ body {
 
   .config-toggle-row > *,
   .config-actions-row > * {
-    flex: 1 1 180px;
+    flex: 1 1 160px;
     min-width: 0;
     justify-content: center;
     white-space: normal;
+  }
+
+  .config-toggle-row .btn,
+  .config-actions-row .btn {
+    min-height: 48px;
   }
 }

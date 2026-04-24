@@ -200,6 +200,20 @@ test.describe('Ciclo de Estudos', () => {
       }))).filter(item => item.scrollWidth > item.clientWidth + 1);
     });
     expect(metrics).toEqual([]);
+
+    const compactMetrics = await page.evaluate(() => {
+      const summaryCard = document.querySelector('.ciclo-stat-card--center');
+      const sequenceCard = document.querySelector('.ciclo-sequence-card');
+      const summaryRect = summaryCard.getBoundingClientRect();
+      const sequenceRect = sequenceCard.getBoundingClientRect();
+      return {
+        summaryHeight: Math.round(summaryRect.height),
+        sequenceGap: Math.round(sequenceRect.top - summaryRect.bottom)
+      };
+    });
+
+    expect(compactMetrics.summaryHeight).toBeLessThanOrEqual(180);
+    expect(compactMetrics.sequenceGap).toBeGreaterThanOrEqual(12);
   });
 
   test('recomeça ciclo e limpa sequência', async ({ page }) => {

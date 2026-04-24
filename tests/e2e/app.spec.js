@@ -244,6 +244,7 @@ test.describe('Estudo Organizado', () => {
     await page.waitForFunction(() => typeof window.EstudoApp?.navigate === 'function');
     await page.evaluate(() => window.EstudoApp.navigate('config'));
     await expect(page.locator('#topbar-title')).toHaveText('Configurações', { timeout: 10000 });
+    await page.locator('#config-cf-url').scrollIntoViewIfNeeded();
 
     const metrics = await page.evaluate(() => {
       const selectors = [
@@ -268,12 +269,31 @@ test.describe('Estudo Organizado', () => {
 
     const mobileLayout = await page.evaluate(() => ({
       formGroups: Array.from(document.querySelectorAll('.form-group.config-input-group')).map((element) => window.getComputedStyle(element).flexDirection),
-      toggleRow: window.getComputedStyle(document.querySelector('.config-toggle-row')).flexWrap
+      toggleRow: window.getComputedStyle(document.querySelector('.config-toggle-row')).flexWrap,
+      credentialTargets: ['#config-cf-url', '#config-cf-token'].map((selector) => {
+        const input = document.querySelector(selector);
+        const rect = input.getBoundingClientRect();
+        const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        return {
+          selector,
+          hitSelf: hit === input,
+          height: Math.round(rect.height)
+        };
+      }),
+      toggleWidths: Array.from(document.querySelectorAll('.config-row .toggle')).map((toggle) => Math.round(toggle.getBoundingClientRect().width)),
+      toggleHeights: Array.from(document.querySelectorAll('.config-row .toggle')).map((toggle) => Math.round(toggle.getBoundingClientRect().height))
     }));
 
     expect(mobileLayout.formGroups).toEqual(expect.arrayContaining(['column']));
     expect(new Set(mobileLayout.formGroups)).toEqual(new Set(['column']));
     expect(mobileLayout.toggleRow).toBe('wrap');
+    expect(mobileLayout.credentialTargets).toEqual([
+      expect.objectContaining({ selector: '#config-cf-url', hitSelf: true }),
+      expect.objectContaining({ selector: '#config-cf-token', hitSelf: true })
+    ]);
+    expect(mobileLayout.credentialTargets.every(target => target.height >= 44)).toBe(true);
+    expect(mobileLayout.toggleWidths.every(width => width <= 64)).toBe(true);
+    expect(mobileLayout.toggleHeights.every(height => height <= 36)).toBe(true);
   });
 
   test('persists Banca Analyzer ranking through the extracted view module', async ({ page }) => {
