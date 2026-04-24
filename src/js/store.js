@@ -1,9 +1,9 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { pushToCloudflare } from './cloud-sync.js?v=8.15';
-import { uid } from './utils.js?v=8.15';
-import * as credentialsStore from './credentials.js?v=8.15';
+import { pushToCloudflare } from './cloud-sync.js?v=8.17';
+import { uid } from './utils.js?v=8.17';
+import * as credentialsStore from './credentials.js?v=8.17';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 1;
@@ -206,6 +206,36 @@ export function loadLegacyState() {
  */
 export let saveTimeout = null;
 
+export function describeSaveFailure(err) {
+  const source = err?.target?.error || err?.currentTarget?.error || err;
+  const name = source?.name || 'Erro desconhecido';
+  const message = source?.message || String(source || 'sem detalhes');
+
+  if (name === 'QuotaExceededError' || /quota|storage/i.test(message)) {
+    return `Espaço de armazenamento insuficiente no navegador (${name}: ${message})`;
+  }
+
+  if (name === 'InvalidStateError' || name === 'NotFoundError') {
+    return `IndexedDB indisponível ou fechado (${name}: ${message})`;
+  }
+
+  return `${name}: ${message}`;
+}
+
+function emitSaveStatus(status, detail = {}) {
+  if (typeof document === 'undefined') return;
+  const message = detail.message
+    || (status === 'saving' ? 'Salvando...' : status === 'error' ? 'Erro ao salvar' : 'Salvo localmente');
+  document.dispatchEvent(new CustomEvent('app:saveStatus', {
+    detail: {
+      status,
+      message,
+      detail: detail.detail || '',
+      timestamp: new Date().toISOString()
+    }
+  }));
+}
+
 // Handler pagehide - mais confiável que beforeunload em mobile e fechamentos bruscos
 window.addEventListener('pagehide', () => {
   if (saveTimeout !== null) {
@@ -278,6 +308,7 @@ let _invalidateTimeout = null;
  */
 export function scheduleSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
+  emitSaveStatus('saving');
 
   // Update badges instantly without waiting for the save
   document.dispatchEvent(new Event('app:updateBadges'));
@@ -299,8 +330,10 @@ export function scheduleSave() {
     }
     saveStateToDB().catch(err => {
       console.error('CRITICAL: Failed to save to IndexedDB', err);
+      const detail = describeSaveFailure(err);
+      emitSaveStatus('error', { detail });
       if (typeof document !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'ERRO GRAVE: Falha ao salvar no seu disco. Libere espaço ou recarregue a página.', type: 'error' } }));
+        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `ERRO GRAVE: Falha ao salvar. ${detail}`, type: 'error' } }));
       }
     });
   }, 2000); // 2 second debounce
@@ -317,6 +350,7 @@ export function saveStateToDB(skipCloudSync = false) {
     saveTimeout = null;
   }
   if (!db) return Promise.resolve();
+  emitSaveStatus('saving');
 
   if (!state.config) state.config = {};
   state.config.localBackupAt = new Date().toISOString();
@@ -328,6 +362,7 @@ export function saveStateToDB(skipCloudSync = false) {
 
     request.onsuccess = () => {
       document.dispatchEvent(new Event('stateSaved'));
+      emitSaveStatus('saved');
 
       // Cascata de Sincronização: Local -> Cloudflare
       if (!skipCloudSync && state.config && state.config.cfSyncEnabled) {
@@ -338,7 +373,11 @@ export function saveStateToDB(skipCloudSync = false) {
 
       resolve();
     };
-    request.onerror = (e) => reject(e);
+    request.onerror = (e) => {
+      const err = request.error || e?.target?.error || e;
+      emitSaveStatus('error', { detail: describeSaveFailure(err) });
+      reject(err);
+    };
   });
 }
 

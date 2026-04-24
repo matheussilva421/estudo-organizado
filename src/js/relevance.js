@@ -1,4 +1,4 @@
-import { state, scheduleSave } from './store.js?v=8.15';
+import { state, scheduleSave } from './store.js?v=8.17';
 
 // =============================================
 // NLP / Inferência de Textos e Fuzzy Match

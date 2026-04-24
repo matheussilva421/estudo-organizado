@@ -1,9 +1,9 @@
-import { renderCurrentView } from './components.js?v=8.15';
-import { initDB, scheduleSave, state } from './store.js?v=8.15';
-import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.15';
-import { todayStr, esc } from './utils.js?v=8.15';
-import { pullFromCloudflare } from './cloud-sync.js?v=8.15';
-import { initNotifications } from './notifications.js?v=8.15';
+import { renderCurrentView } from './components.js?v=8.17';
+import { initDB, scheduleSave, state } from './store.js?v=8.17';
+import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.17';
+import { todayStr, esc } from './utils.js?v=8.17';
+import { pullFromCloudflare } from './cloud-sync.js?v=8.17';
+import { initNotifications } from './notifications.js?v=8.17';
 
 // =============================================
 // APP STATE & DATA
@@ -16,6 +16,13 @@ import { initNotifications } from './notifications.js?v=8.15';
 export let currentView = 'home';
 
 let _driveSyncInterval = null;
+let _saveStatusListenerAttached = false;
+let _lastSaveStatus = {
+  status: 'saved',
+  message: 'Salvo localmente',
+  detail: '',
+  timestamp: null
+};
 
 export const THEME_OPTIONS = [
   { value: 'grafite', label: 'Grafite' },
@@ -56,6 +63,60 @@ document.addEventListener('app:driveDisconnected', () => {
     _driveSyncInterval = null;
   }
 });
+
+export function getLastSaveStatus() {
+  return { ..._lastSaveStatus };
+}
+
+function getSaveStatusText(statusDetail) {
+  if (statusDetail.status === 'saving') return 'Salvando...';
+  if (statusDetail.status === 'error') return 'Erro ao salvar';
+  return 'Salvo localmente';
+}
+
+function getConfigSaveStatusText(statusDetail) {
+  if (statusDetail.status === 'saving') return 'Salvando alterações no dispositivo...';
+  if (statusDetail.status === 'error') {
+    return `Falha ao salvar: ${statusDetail.detail || 'erro desconhecido'}`;
+  }
+  return 'Último salvamento local concluído. Credenciais não entram em backup/exportação.';
+}
+
+export function renderSaveStatus(statusDetail = _lastSaveStatus) {
+  const normalized = {
+    status: statusDetail.status || 'saved',
+    message: statusDetail.message || getSaveStatusText(statusDetail),
+    detail: statusDetail.detail || '',
+    timestamp: statusDetail.timestamp || new Date().toISOString()
+  };
+  _lastSaveStatus = normalized;
+
+  const topbarStatus = document.getElementById('save-status');
+  if (topbarStatus) {
+    topbarStatus.className = `save-status save-status--${normalized.status}`;
+    topbarStatus.textContent = getSaveStatusText(normalized);
+    topbarStatus.title = normalized.status === 'error'
+      ? getConfigSaveStatusText(normalized)
+      : 'Status do salvamento local';
+    topbarStatus.setAttribute('aria-label', topbarStatus.title);
+  }
+
+  const configStatus = document.getElementById('config-save-status-detail');
+  if (configStatus) {
+    configStatus.className = `config-save-status config-save-status--${normalized.status}`;
+    configStatus.textContent = getConfigSaveStatusText(normalized);
+  }
+}
+
+export function initSaveStatusIndicator() {
+  if (!_saveStatusListenerAttached) {
+    document.addEventListener('app:saveStatus', (event) => {
+      renderSaveStatus(event.detail || {});
+    });
+    _saveStatusListenerAttached = true;
+  }
+  renderSaveStatus(_lastSaveStatus);
+}
 
 // =============================================
 // NAVIGATION

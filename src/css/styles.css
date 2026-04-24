@@ -793,6 +793,45 @@ body {
   gap: 12px;
 }
 
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card), transparent 16%);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.save-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-estudei);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-estudei), transparent 76%);
+}
+
+.save-status--saving::before {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 76%);
+}
+
+.save-status--error {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger), transparent 48%);
+}
+
+.save-status--error::before {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger), transparent 76%);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -2533,6 +2572,11 @@ mark {
     text-overflow: ellipsis;
   }
 
+  .save-status {
+    min-height: 28px;
+    padding: 4px 9px;
+  }
+
   .ciclo-layout {
     grid-template-columns: 1fr !important;
     gap: 24px !important;
@@ -2626,6 +2670,11 @@ mark {
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 15px;
+  }
+
+  .save-status {
+    order: 12;
+    font-size: 11px;
   }
 
   .cal-grid {

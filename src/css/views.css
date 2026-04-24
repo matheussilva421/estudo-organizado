@@ -2219,6 +2219,28 @@
   font-weight: 600;
 }
 
+.config-save-status {
+  margin: 12px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--card), transparent 10%);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.config-save-status--saving {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent), transparent 52%);
+}
+
+.config-save-status--error {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger), transparent 48%);
+  background: color-mix(in srgb, var(--danger), transparent 92%);
+}
+
 .config-emoji-icon {
   font-size: 32px;
 }

@@ -3,8 +3,8 @@
  * Renderiza calendário mensal, semanal e mobile
  */
 
-import { state } from '../store.js?v=8.15';
-import { esc, getEventStatus, todayStr } from '../utils.js?v=8.15';
+import { state } from '../store.js?v=8.17';
+import { esc, getEventStatus, todayStr } from '../utils.js?v=8.17';
 
 // Exported state
 let calDate = new Date();

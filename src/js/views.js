@@ -1,9 +1,9 @@
-import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm } from './app.js?v=8.15';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.15';
-import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.15';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.15';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.15';
-import { updateDriveUI } from './drive-sync.js?v=8.15';
+import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.17';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.17';
+import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.17';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.17';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.17';
+import { updateDriveUI } from './drive-sync.js?v=8.17';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
@@ -2297,7 +2297,7 @@ export function deleteAula(discId, aulaId) {
 }
 window.deleteAula = deleteAula;
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.15';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.17';
 export function runLessonMapperUI(editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -2706,6 +2706,12 @@ function renderCloudflareConflict(conflict) {
 
 export function renderConfig(el) {
   const cfg = state.config;
+  const saveStatus = getLastSaveStatus();
+  const saveStatusText = saveStatus.status === 'error'
+    ? `Falha ao salvar: ${esc(saveStatus.detail || 'erro desconhecido')}`
+    : saveStatus.status === 'saving'
+      ? 'Salvando alterações no dispositivo...'
+      : 'Último salvamento local concluído. Credenciais não entram em backup/exportação.';
   const activeTheme = normalizeTheme(cfg.tema, cfg.darkMode);
   const themeOptionsHtml = THEME_OPTIONS
     .map(theme => `<option value="${theme.value}" ${activeTheme === theme.value ? 'selected' : ''}>${theme.label}</option>`)
@@ -2912,6 +2918,10 @@ export function renderConfig(el) {
             <div class="config-sub">
               ${state.eventos.length} evento(s) ativos
               ${(state.arquivo || []).length > 0 ? ` • ${state.arquivo.length} arquivado(s)` : ''}
+            </div>
+
+            <div id="config-save-status-detail" class="config-save-status config-save-status--${saveStatus.status || 'saved'}">
+              ${saveStatusText}
             </div>
 
             <div class="grid config-backup-grid">
