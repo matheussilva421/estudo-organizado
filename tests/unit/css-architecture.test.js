@@ -92,6 +92,8 @@ describe('CSS architecture', () => {
       '--bg': '#08090d',
       '--card': '#121821',
       '--surface': '#0d1117',
+      '--surface-muted': 'rgba(255, 255, 255, 0.03)',
+      '--surface-soft': 'rgba(255, 255, 255, 0.05)',
       '--border': 'rgba(148, 163, 184, 0.14)',
       '--text-primary': '#f3f6fb',
       '--text-secondary': '#b8c0cc',
@@ -99,7 +101,10 @@ describe('CSS architecture', () => {
       '--accent': '#8aa4bf',
       '--accent-hover': '#a7bdd3',
       '--accent-light': 'rgba(138, 164, 191, 0.16)',
-      '--accent-text': '#071018'
+      '--accent-soft': 'rgba(138, 164, 191, 0.1)',
+      '--accent-text': '#071018',
+      '--question': '#a7a4d6',
+      '--pomodoro': '#a7a4d6'
     });
 
     expect(grafiteVars['--bg']).toBe('#08090d');
@@ -108,6 +113,26 @@ describe('CSS architecture', () => {
     expect(contrastRatio(rootVars['--accent-text'], rootVars['--accent'])).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(rootVars['--text-secondary'], rootVars['--card'])).toBeGreaterThanOrEqual(4.5);
     expect(legacyStyles).toMatch(/\.btn-primary:hover\s*{[^}]*background:\s*var\(--accent-hover\)/s);
+  });
+
+  it('uses semantic visual classes for recurring soft surfaces and selected states', () => {
+    const componentsCss = read('src/css/components.css');
+    const viewsCss = read('src/css/views.css');
+    const homeView = read('src/js/views/home-view.js');
+    const wizard = read('src/js/planejamento-wizard.js');
+    const logic = read('src/js/logic.js');
+
+    expect(componentsCss).toContain('.surface-note');
+    expect(componentsCss).toContain('.selection-card.is-selected');
+    expect(componentsCss).toContain('.priority-badge--p1');
+    expect(componentsCss).toContain('.timer-mode-pill--pomodoro');
+    expect(viewsCss).toContain('.dash-progress-bar--questions');
+    expect(homeView).toContain('surface-note');
+    expect(homeView).toContain('dash-progress-bar--questions');
+    expect(wizard).toContain('selection-card');
+    expect(logic).toContain("classList.toggle('timer-mode-pill--pomodoro'");
+
+    expect(`${homeView}\n${wizard}\n${logic}`).not.toMatch(/rgba\(88,166,255|#8b5cf6|rgba\(139,92,246|rgba\(255,255,255,0\.03\)/);
   });
 
   it('presents only the premium dark themes while keeping old theme names internal', () => {
@@ -194,8 +219,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.14');
-    expect(serviceWorker).toContain("APP_VERSION = '8.14'");
+    expect(html).toContain('css/styles.css?v=8.15');
+    expect(serviceWorker).toContain("APP_VERSION = '8.15'");
     expect(appSources).not.toMatch(/v=8\.[345]|APP_VERSION = '8\.[345]'/);
   });
 

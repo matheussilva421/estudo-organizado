@@ -3,9 +3,9 @@
  * Renderiza dashboard de disciplina (renderDisciplinaDashboard e helpers)
  */
 
-import { scheduleSave, state } from '../store.js?v=8.14';
-import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.14';
-import { getDisc } from '../logic.js?v=8.14';
+import { scheduleSave, state } from '../store.js?v=8.15';
+import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.15';
+import { getDisc } from '../logic.js?v=8.15';
 
 // ── Main Dashboard Render ──
 export function renderDisciplinaDashboard(edital, disc) {
@@ -85,7 +85,7 @@ export function renderDisciplinaDashboard(edital, disc) {
         <div class="card p-16 flex-col" style="min-height:400px; max-height:500px;">
           <div class="flex-between mb-6">
             <div class="dash-label">HISTÓRICO DE SESSÕES (ÚLTIMAS 50)</div>
-            <button class="btn btn-sm rounded-sm" style="font-size:12px; padding:4px 8px; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-secondary);" data-action="open-add-past-session" data-disc-id="${disc.id}">
+            <button class="btn btn-sm rounded-sm soft-action" style="font-size:12px; padding:4px 8px;" data-action="open-add-past-session" data-disc-id="${disc.id}">
               <i class="fa fa-plus"></i> Registrar
             </button>
           </div>
@@ -184,8 +184,8 @@ function renderTopicosEditalDisciplina(edital, disc) {
     <div class="custom-scrollbar scroll-panel">
             ${disc.assuntos.map(ass => {
     const importanceBadge = ass.relevance?.priority === 'P1' ?
-      `<span style="background:rgba(211,47,47,0.1); color:var(--red); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; margin-left:8px;" title="Alta Chance de Cobrança">🔥 P1</span>` :
-      (ass.relevance?.priority === 'P2' ? `<span style="background:rgba(234,179,8,0.1); color:var(--orange); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; margin-left:8px;">⚠️ P2</span>` : '');
+      `<span class="priority-badge priority-badge--p1" title="Alta Chance de Cobrança">🔥 P1</span>` :
+      (ass.relevance?.priority === 'P2' ? `<span class="priority-badge priority-badge--p2">⚠️ P2</span>` : '');
 
     return `
         <div class="list-row rounded-md" style="${ass.concluido ? 'background:var(--bg-secondary); ' : ''};">

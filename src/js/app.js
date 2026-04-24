@@ -1,9 +1,9 @@
-import { renderCurrentView } from './components.js?v=8.14';
-import { initDB, scheduleSave, state } from './store.js?v=8.14';
-import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.14';
-import { todayStr, esc } from './utils.js?v=8.14';
-import { pullFromCloudflare } from './cloud-sync.js?v=8.14';
-import { initNotifications } from './notifications.js?v=8.14';
+import { renderCurrentView } from './components.js?v=8.15';
+import { initDB, scheduleSave, state } from './store.js?v=8.15';
+import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.15';
+import { todayStr, esc } from './utils.js?v=8.15';
+import { pullFromCloudflare } from './cloud-sync.js?v=8.15';
+import { initNotifications } from './notifications.js?v=8.15';
 
 // =============================================
 // APP STATE & DATA

@@ -57,6 +57,59 @@
   border-bottom: 0;
 }
 
+.home-weekly-study-bar {
+  width: 100%;
+  max-width: 30px;
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  transition: height 0.3s;
+}
+
+.home-weekly-study-gridlines {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 25px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.2;
+}
+
+.home-weekly-study-bars {
+  z-index: 1;
+}
+
+.home-weekly-study-legend-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.dash-progress-bar--questions {
+  background: var(--question);
+}
+
+.dash-progress-bar-label {
+  left: 8px;
+  top: 2px;
+  color: var(--accent-text);
+}
+
+.dash-progress-bar--questions .dash-progress-bar-label {
+  color: var(--accent-text);
+}
+
+.home-predictive-card {
+  border-left: 4px solid var(--predictive-status-color, var(--accent));
+}
+
+.home-predictive-icon {
+  color: var(--predictive-status-color, var(--accent));
+  font-size: 16px;
+}
+
 .view-stack {
   display: flex;
   flex-direction: column;
@@ -217,6 +270,20 @@
   padding-right: var(--space-2);
 }
 
+.pw-disc-card {
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pw-disc-card.selection-card {
+  border-width: 1px;
+  padding: 12px;
+}
+
 .pw-main-layout {
   display: flex;
   gap: var(--space-6);
@@ -274,9 +341,13 @@
 
 .pw-bar-track {
   height: 4px;
-  background: rgba(255,255,255,0.05);
+  background: var(--surface-soft);
   border-radius: 2px;
   overflow: hidden;
+}
+
+.pw-bar-fill {
+  height: 100%;
 }
 
 .pw-date-row {
@@ -290,6 +361,36 @@
   border: 1px solid var(--border);
   padding: 20px;
   border-radius: var(--radius-md);
+}
+
+.pw-day-toggle {
+  flex: 1;
+  min-width: 40px;
+  padding: 8px;
+  background: var(--surface-soft);
+  color: var(--text-muted);
+}
+
+.pw-day-toggle.is-selected {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.pw-week-day-label {
+  width: 80px;
+}
+
+.pw-week-day-name.is-active {
+  color: var(--text-primary);
+}
+
+.pw-week-day-name {
+  color: var(--text-muted);
+}
+
+.pw-time-input.is-inactive {
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 .pw-config-heading {
@@ -716,7 +817,7 @@
 .app-error-state {
   padding: 40px;
   text-align: center;
-  color: #ef4444;
+  color: var(--danger);
 }
 
 /* Search result empty */
@@ -984,8 +1085,8 @@
 
 /* Priority badges */
 .priority-badge-p1 {
-  background: rgba(211, 47, 47, 0.1);
-  color: var(--red);
+  background: var(--danger-bg);
+  color: var(--danger);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 10px;
@@ -994,8 +1095,8 @@
 }
 
 .priority-badge-p2 {
-  background: rgba(234, 179, 8, 0.1);
-  color: var(--orange);
+  background: var(--warning-bg);
+  color: var(--warning);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 10px;
@@ -1443,7 +1544,7 @@
 .app-error-state {
   padding: var(--space-6);
   text-align: center;
-  color: #ef4444;
+  color: var(--danger);
 }
 
 /* Search empty */
@@ -2156,8 +2257,8 @@
 }
 
 .sync-conflict-panel {
-  border: 1px solid var(--red);
-  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid var(--danger);
+  background: var(--danger-bg);
   border-radius: var(--radius-md);
   padding: 14px;
   margin: 12px 0 16px;
@@ -2328,7 +2429,7 @@
   align-items: center;
   font-size: 12px;
   padding: 4px 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+  border-bottom: 1px dashed var(--surface-soft);
   width: 100%;
 }
 

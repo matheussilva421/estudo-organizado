@@ -1,7 +1,7 @@
-import { state, scheduleSave } from './store.js?v=8.14';
-import { generatePlanejamento, getAllDisciplinas } from './logic.js?v=8.14';
-import { esc } from './utils.js?v=8.14';
-import { openModal, closeModal } from './app.js?v=8.14';
+import { state, scheduleSave } from './store.js?v=8.15';
+import { generatePlanejamento, getAllDisciplinas } from './logic.js?v=8.15';
+import { esc } from './utils.js?v=8.15';
+import { openModal, closeModal } from './app.js?v=8.15';
 
 let currentStep = 1;
 let draft = {
@@ -263,11 +263,7 @@ function htmlStep1() {
             </p>
 
             <div class="stack-md">
-                <div data-action="pw-select-tipo" data-tipo="ciclo" style="
-                    border: 2px solid ${draft.tipo === 'ciclo' ? 'var(--accent)' : 'var(--border)'};
-                    background: ${draft.tipo === 'ciclo' ? 'rgba(88,166,255,0.1)' : 'var(--bg-secondary)'};
-                    border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s; text-align: left;
-                ">
+                <div data-action="pw-select-tipo" data-tipo="ciclo" class="selection-card ${draft.tipo === 'ciclo' ? 'is-selected' : ''}">
                     <div class="cluster-lg mb-2">
                         <div class="text-3xl">🔄</div>
                         <div>
@@ -277,11 +273,7 @@ function htmlStep1() {
                     </div>
                 </div>
 
-                <div data-action="pw-select-tipo" data-tipo="semanal" style="
-                    border: 2px solid ${draft.tipo === 'semanal' ? 'var(--accent)' : 'var(--border)'};
-                    background: ${draft.tipo === 'semanal' ? 'rgba(88,166,255,0.1)' : 'var(--bg-secondary)'};
-                    border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s; text-align: left;
-                ">
+                <div data-action="pw-select-tipo" data-tipo="semanal" class="selection-card ${draft.tipo === 'semanal' ? 'is-selected' : ''}">
                     <div class="cluster-lg mb-2">
                         <div class="text-3xl">📅</div>
                         <div>
@@ -327,13 +319,8 @@ function htmlStep2() {
                 ${all.map(d => {
         const sel = draft.disciplinas.includes(d.disc.id);
         return `
-                    <div class="pw-disc-card" data-action="pw-toggle-disc" data-disc-id="${d.disc.id}" style="
-                        border: 1px solid ${sel ? 'var(--accent)' : 'var(--border)'};
-                        background: ${sel ? 'rgba(88,166,255,0.1)' : 'var(--bg-secondary)'};
-                        padding: 12px; border-radius: 8px; cursor:pointer; display:flex; align-items:center; gap:8px;
-                        transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
-                    ">
-                        <div style="width:20px; height:20px; border-radius:4px; border:1px solid ${sel ? 'var(--accent)' : 'var(--border)'}; background:${sel ? 'var(--accent)' : 'transparent'}; display:flex; align-items:center; justify-content:center; color:var(--accent-text, #fff); font-size:12px;">
+                    <div class="pw-disc-card selection-card ${sel ? 'is-selected' : ''}" data-action="pw-toggle-disc" data-disc-id="${d.disc.id}">
+                        <div class="selection-check">
                             ${sel ? '✓' : ''}
                         </div>
                         <div class="flex-1 text-md font-medium text-ellipsis" title="${esc(d.disc.nome)}">
@@ -430,7 +417,7 @@ export function pwRenderWeightPreview() {
                     <span class="pw-bar-pct">${pct}%</span>
                 </div>
                 <div class="pw-bar-track">
-                    <div style="height:100%; width:${pct}%; background:${c.color};"></div>
+                    <div class="pw-bar-fill" style="width:${pct}%; background:${c.color};"></div>
                 </div>
             </div>
         `;
@@ -497,10 +484,7 @@ function htmlStep4() {
                 <label class="form-label">Quais dias de sol você pretende estudar? (Apenas para estimativas)</label>
                 <div class="flex-wrap cluster-sm">
                     ${days.map((d, i) => `
-                        <button data-action="pw-toggle-day" data-day-index="${i}" class="btn" style="flex:1; min-width:40px; padding:8px;
-                            background:${draft.horarios.diasAtivos.includes(i) ? 'var(--accent)' : 'rgba(255,255,255,0.05)'};
-                            color:${draft.horarios.diasAtivos.includes(i) ? 'var(--accent-text)' : 'var(--text-muted)'};
-                        ">${d}</button>
+                        <button data-action="pw-toggle-day" data-day-index="${i}" class="btn pw-day-toggle ${draft.horarios.diasAtivos.includes(i) ? 'is-selected' : ''}">${d}</button>
                     `).join('')}
                 </div>
             </div>
@@ -514,11 +498,11 @@ function htmlStep4() {
             const ativo = draft.horarios.diasAtivos.includes(i);
             return `
                         <div class="pw-week-row">
-                            <label class="cluster-sm cursor-pointer" style="width:80px;">
+                            <label class="cluster-sm cursor-pointer pw-week-day-label">
                                 <input type="checkbox" ${ativo ? 'checked' : ''} data-action="pw-toggle-day" data-day-index="${i}">
-                                <span class="font-semibold" style="color:${ativo ? 'var(--text-primary)' : 'var(--text-muted)'}">${d}</span>
+                                <span class="font-semibold pw-week-day-name ${ativo ? 'is-active' : ''}">${d}</span>
                             </label>
-                            <input type="time" class="form-control flex-1" style="opacity: ${ativo ? '1' : '0.3'}; pointer-events: ${ativo ? 'auto' : 'none'};"
+                            <input type="time" class="form-control flex-1 ${ativo ? '' : 'pw-time-input is-inactive'}"
                                 value="${draft.horarios.horasPorDia[i] || ''}" data-action="pw-update-day-hour" data-day-index="${i}">
                         </div>
                     `}).join('')}

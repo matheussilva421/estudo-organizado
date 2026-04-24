@@ -3,8 +3,8 @@
  * Renderiza o dashboard principal com stats, metas, constância e painel de disciplinas
  */
 
-import { state } from '../store.js?v=8.14';
-import { esc, formatDate, formatTime } from '../utils.js?v=8.14';
+import { state } from '../store.js?v=8.15';
+import { esc, formatDate, formatTime } from '../utils.js?v=8.15';
 import {
   getPerformanceStats,
   getSyllabusProgress,
@@ -13,7 +13,7 @@ import {
   getSubjectStats,
   getCurrentWeekStats,
   getPredictiveStats
-} from '../logic.js?v=8.14';
+} from '../logic.js?v=8.15';
 
 export function renderHome(el) {
   const perf = getPerformanceStats();
@@ -73,15 +73,15 @@ export function renderHome(el) {
   const si = statusIcons[pred.status];
 
   const previsorHtml = `
-    <div class="card p-16" style="border-left: 4px solid ${sc};">
+    <div class="card p-16 home-predictive-card" style="--predictive-status-color:${sc};">
       <div class="flex-between mb-3">
         <div class="dash-label">PREVISÃO DA SEMANA</div>
-        <i class="fa ${si}" style="color:${sc}; font-size:16px;"></i>
+        <i class="fa ${si} home-predictive-icon"></i>
       </div>
       <div class="text-md text-primary mb-2">
         Projeção: <strong>${pred.projectedPerc}%</strong> da meta (Ritmo: ${formatTime(pred.burnRate).slice(0, 5)}/dia).
       </div>
-      <div class="text-base text-secondary rounded-md" style="background:rgba(255,255,255,0.03); padding:8px; line-height:1.4;">
+      <div class="text-base text-secondary surface-note">
         ${pred.suggestion}
       </div>
     </div>
@@ -101,7 +101,7 @@ export function renderHome(el) {
     const days = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
     return `
       <div class="flex-col flex-center flex-1 h-full justify-end">
-        <div style="width:100%;max-width:30px;height:${h}%;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px;transition:height 0.3s;" title="${formatTime(sec)}"></div>
+        <div class="home-weekly-study-bar" style="height:${h}%;" title="${formatTime(sec)}"></div>
         <div class="text-xs font-semibold text-muted mt-2">${days[i]}</div>
       </div>
     `;
@@ -230,7 +230,7 @@ export function renderHome(el) {
             </div>
             <div class="dash-progress-track">
               <div class="dash-progress-bar" style="width:${percHoras}%; background:var(--accent);">
-                <span class="text-xs absolute" style="left:8px; top:2px; color:var(--accent-text);">${percHoras}%</span>
+                <span class="text-xs absolute dash-progress-bar-label">${percHoras}%</span>
               </div>
             </div>
           </div>
@@ -241,8 +241,8 @@ export function renderHome(el) {
               <span>Questões</span>
             </div>
             <div class="dash-progress-track">
-              <div class="dash-progress-bar" style="width:${percQuest}%; background:#8b5cf6;">
-                <span class="text-xs absolute" style="left:8px; top:2px; color:#fff;">${percQuest}%</span>
+              <div class="dash-progress-bar dash-progress-bar--questions" style="width:${percQuest}%;">
+                <span class="text-xs absolute dash-progress-bar-label">${percQuest}%</span>
               </div>
             </div>
           </div>
@@ -256,19 +256,19 @@ export function renderHome(el) {
             </div>
           </div>
           <div class="home-weekly-study-chart ${hasWeekData ? '' : 'home-weekly-study-chart--empty'} flex-1 flex border-b gap-sm pb-2 relative" style="align-items:${hasWeekData ? 'flex-end' : 'center'};">
-            ${hasWeekData ? `<div class="flex-col absolute justify-between" style="top:0; left:0; right:0; bottom:25px; pointer-events:none; z-index:0; opacity:0.2;">
+            ${hasWeekData ? `<div class="flex-col absolute justify-between home-weekly-study-gridlines">
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
             </div>` : ''}
-            <div class="flex w-full h-full" style="z-index:1; padding-bottom:${hasWeekData ? '20px' : '0'};">
+            <div class="flex w-full h-full home-weekly-study-bars" style="padding-bottom:${hasWeekData ? '20px' : '0'};">
               ${barsHtml}
             </div>
           </div>
           <div class="flex flex-center text-sm font-semibold text-secondary gap-sm mt-3">
-            <div style="width:8px;height:8px;background:var(--accent);border-radius:2px;"></div> Total Estudado: ${Math.floor(weekStats.totalSeconds / 3600).toString().padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60).toString().padStart(2, '0')}h
+            <div class="home-weekly-study-legend-dot"></div> Total Estudado: ${Math.floor(weekStats.totalSeconds / 3600).toString().padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60).toString().padStart(2, '0')}h
           </div>
         </div>
 

@@ -1,6 +1,6 @@
-import { scheduleSave, state } from './store.js?v=8.14';
-import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid, esc } from './utils.js?v=8.14';
-import { navigate } from './app.js?v=8.14';
+import { scheduleSave, state } from './store.js?v=8.15';
+import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid, esc } from './utils.js?v=8.15';
+import { navigate } from './app.js?v=8.15';
 
 // =============================================
 // TIMER ENGINE
@@ -60,8 +60,7 @@ export function toggleTimerMode() {
   const cronoBtn = document.getElementById('crono-mode-btn');
   if (cronoBtn) {
     cronoBtn.innerHTML = _pomodoroMode ? `🍅 Pomodoro (${foco}/${pausa})` : '⏱ Modo Contínuo';
-    cronoBtn.style.backgroundColor = _pomodoroMode ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.06)';
-    cronoBtn.style.color = _pomodoroMode ? '#a371f7' : '#8b949e';
+    cronoBtn.classList.toggle('timer-mode-pill--pomodoro', _pomodoroMode);
   }
   // Update topbar button
   const topBtn = document.getElementById('timer-mode-btn');

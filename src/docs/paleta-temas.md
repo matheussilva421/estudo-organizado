@@ -34,6 +34,7 @@ Valores antigos como `light`, `dark`, `furtivo`, `abismo`, `matrix`, `rubi` e `c
 | `--accent` | `#8aa4bf` |
 | `--accent-hover` | `#a7bdd3` |
 | `--accent-light` | `rgba(138, 164, 191, 0.16)` |
+| `--accent-soft` | `rgba(138, 164, 191, 0.10)` |
 | `--accent-text` | `#071018` |
 
 ## 4) Tokens semanticos
@@ -43,11 +44,15 @@ Valores antigos como `light`, `dark`, `furtivo`, `abismo`, `matrix`, `rubi` e `c
 - `--danger`: vermelho suave para erros, atrasos e acoes destrutivas.
 - `--info`: azul aco, alinhado ao acento principal.
 - `--panel-border`, `--panel-divider` e `--panel-shadow`: reduzem a aparencia de caixas desenhadas e separam cards por elevacao.
+- `--surface-muted`, `--surface-soft` e `--surface-strong`: camadas neutras para notas, hover, selecao passiva e controles discretos.
+- `--question` e `--question-bg`: progresso de questoes, mantendo o roxo como dado funcional em vez de cor solta.
+- `--pomodoro` e `--pomodoro-bg`: estado do modo Pomodoro sem depender de valores fixos no JavaScript.
 
 ## 5) Regras de manutencao
 
 - Use acento apenas para acao primaria, foco, navegacao ativa e pequenas metricas relevantes.
 - Evite ciano/neon, amarelo forte e vermelho dominante como identidade base.
 - Evite `!important` para temas; se um componente precisar mudar, exponha um token.
+- Evite `style=""` para cores e superficies recorrentes; prefira classes como `surface-note`, `selection-card`, `priority-badge`, `soft-action` e modificadores semanticos.
 - Mantenha contraste minimo de 4.5:1 para texto pequeno.
 - Depois de mudar tema ou cor, rode `npm test` e confira visualmente home, dashboard, calendario, revisoes, configuracoes e modais.

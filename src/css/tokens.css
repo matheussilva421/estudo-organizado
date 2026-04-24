@@ -10,6 +10,7 @@
   --accent: #8aa4bf;
   --accent-hover: #a7bdd3;
   --accent-light: rgba(138, 164, 191, 0.16);
+  --accent-soft: rgba(138, 164, 191, 0.1);
   --accent-dark: #a7bdd3;
   --accent-text: #071018;
   --blue: #8aa4bf;
@@ -46,6 +47,16 @@
   --info-text: #071018;
   --text: var(--text-primary);
   --surface: #0d1117;
+  --surface-muted: rgba(255, 255, 255, 0.03);
+  --surface-soft: rgba(255, 255, 255, 0.05);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --surface-inverse-soft: rgba(0, 0, 0, 0.5);
+  --neutral-soft: rgba(148, 163, 184, 0.1);
+  --neutral-strong: rgba(148, 163, 184, 0.35);
+  --question: #a7a4d6;
+  --question-bg: rgba(167, 164, 214, 0.16);
+  --pomodoro: #a7a4d6;
+  --pomodoro-bg: rgba(167, 164, 214, 0.16);
 
   --space-1: 4px;
   --space-2: 8px;
