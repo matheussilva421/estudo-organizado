@@ -12,10 +12,11 @@
     <!-- Content Security Policy - restringe origens de scripts e recursos -->
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self';
-                 script-src 'self' https://apis.google.com https://accounts.google.com;
+                 script-src 'self' https://apis.google.com https://accounts.google.com https://www.google.com https://www.gstatic.com;
                  style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline';
                  font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
-                 connect-src 'self' https://*.workers.dev https://www.googleapis.com https://accounts.google.com;
+                 connect-src 'self' https://*.workers.dev https://www.googleapis.com https://accounts.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://content-firebaseappcheck.googleapis.com;
+                 frame-src 'self' https://accounts.google.com https://app-de-estudos-14564.firebaseapp.com https://www.google.com;
                  img-src 'self' data: https: blob:;
                  media-src 'self' https://assets.mixkit.co;">
     <link rel="preconnect" href="https://fonts.googleapis.com">

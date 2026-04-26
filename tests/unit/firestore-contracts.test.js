@@ -26,6 +26,23 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain("APP_VERSION = '8.18'");
   });
 
+  it('allows the Firebase Auth and Firestore network surfaces in CSP', () => {
+    const html = read('src/index.html');
+    const csp = html.match(/Content-Security-Policy"\s+content="([^"]+)"/i)?.[1] || '';
+    const scriptSrc = csp.match(/script-src\s+([^;]+)/i)?.[1] || '';
+    const connectSrc = csp.match(/connect-src\s+([^;]+)/i)?.[1] || '';
+    const frameSrc = csp.match(/frame-src\s+([^;]+)/i)?.[1] || '';
+
+    expect(scriptSrc).toContain('https://www.google.com');
+    expect(scriptSrc).toContain('https://www.gstatic.com');
+    expect(connectSrc).toContain('https://identitytoolkit.googleapis.com');
+    expect(connectSrc).toContain('https://securetoken.googleapis.com');
+    expect(connectSrc).toContain('https://firestore.googleapis.com');
+    expect(connectSrc).toContain('https://content-firebaseappcheck.googleapis.com');
+    expect(frameSrc).toContain('https://accounts.google.com');
+    expect(frameSrc).toContain('https://app-de-estudos-14564.firebaseapp.com');
+  });
+
   it('keeps Firestore rules owner-scoped and denies physical deletes', () => {
     const rules = read('firestore.rules');
 
