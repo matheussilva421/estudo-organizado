@@ -7,22 +7,26 @@ Este guia configura o Firestore como caminho remoto principal do Estudo Organiza
 1. Acesse o Firebase Console.
 2. Crie um projeto ou use um projeto dedicado ao app.
 3. Adicione um Web App.
-4. Copie os campos `apiKey`, `authDomain`, `projectId` e `appId`.
+4. Copie os campos `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId` e `appId`.
 
-Edite `src/js/firebase/firebase-config.js`:
+O projeto atual ja esta configurado em `src/js/firebase/firebase-config.js`:
 
 ```js
 export const FIREBASE_CONFIG = {
-  apiKey: 'SUA_API_KEY',
-  authDomain: 'seu-projeto.firebaseapp.com',
-  projectId: 'seu-projeto',
-  appId: 'SEU_APP_ID'
+  apiKey: 'AIzaSyC3wPAXvPRqq-xallRgivfkK5NWiW9wDPk',
+  authDomain: 'app-de-estudos-14564.firebaseapp.com',
+  projectId: 'app-de-estudos-14564',
+  storageBucket: 'app-de-estudos-14564.firebasestorage.app',
+  messagingSenderId: '824173301356',
+  appId: '1:824173301356:web:b346b7d59feca6f5e4d249'
 };
 
 export const FIREBASE_APP_CHECK_SITE_KEY = 'SUA_SITE_KEY_DO_APP_CHECK';
 ```
 
 `apiKey` nao e segredo. A seguranca vem de Auth, regras Firestore, App Check e restricoes de chave no Google Cloud.
+
+Se precisar trocar de projeto sem alterar o arquivo versionado, defina `window.ESTUDO_FIREBASE_CONFIG` antes de carregar os modulos do app.
 
 ## 2. Habilitar Authentication
 

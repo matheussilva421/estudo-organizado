@@ -6,11 +6,13 @@ const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 describe('Firestore integration contracts', () => {
-  it('keeps Firebase config explicit and unconfigured by default', () => {
+  it('keeps Firebase config explicit and runtime-overridable', () => {
     const configSource = read('src/js/firebase/firebase-config.js');
 
     expect(configSource).toContain('FIREBASE_CONFIG');
-    expect(configSource).toContain("apiKey: ''");
+    expect(configSource).toContain("projectId: 'app-de-estudos-14564'");
+    expect(configSource).toContain("storageBucket: 'app-de-estudos-14564.firebasestorage.app'");
+    expect(configSource).toContain("messagingSenderId: '824173301356'");
     expect(configSource).toContain('window.ESTUDO_FIREBASE_CONFIG');
   });
 

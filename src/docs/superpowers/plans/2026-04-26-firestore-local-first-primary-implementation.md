@@ -23,7 +23,7 @@
 - [x] Add Firebase and esbuild dependencies.
 - [x] Add `npm run build:firebase`.
 - [x] Bundle only Firebase APIs used by the app.
-- [x] Keep Firebase disabled when config fields are empty.
+- [x] Keep Firebase disabled when config fields are empty, then wire the real Firebase web config when provided.
 
 ## Task 2: Local Outbox and Snapshot Contract
 
@@ -80,7 +80,7 @@
 - [x] Test rules remain owner-scoped and delete-safe.
 - [x] Run `npm test`.
 - [x] Run `npm run test:e2e`.
-- [ ] Commit and push.
+- [x] Commit and push the configured Firebase project.
 
 ## Operational Notes
 
