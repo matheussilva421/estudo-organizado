@@ -1,9 +1,10 @@
-import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.18';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.18';
-import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.18';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.18';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.18';
-import { updateDriveUI } from './drive-sync.js?v=8.18';
+import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.19';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.19';
+import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.19';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.19';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.19';
+import { updateDriveUI } from './drive-sync.js?v=8.19';
+import { buildSyncCenterModel } from './sync/sync-center.js?v=8.19';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
@@ -2297,7 +2298,7 @@ export function deleteAula(discId, aulaId) {
 }
 window.deleteAula = deleteAula;
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.18';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.19';
 export function runLessonMapperUI(editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -2799,6 +2800,124 @@ function renderFirestoreCard() {
   `;
 }
 
+function getSyncHealthLabel(health) {
+  const labels = {
+    ok: 'OK',
+    idle: 'Inativo',
+    pending: 'Pendente',
+    conflict: 'Conflito',
+    error: 'Erro'
+  };
+  return labels[health] || 'Status';
+}
+
+function getSyncHealthIcon(health) {
+  const icons = {
+    ok: 'fa-circle-check',
+    idle: 'fa-circle',
+    pending: 'fa-clock',
+    conflict: 'fa-triangle-exclamation',
+    error: 'fa-circle-xmark'
+  };
+  return icons[health] || 'fa-circle-info';
+}
+
+function renderSyncSourceActions(source) {
+  if (source.id === 'local') {
+    return `
+      <button type="button" class="btn btn-ghost btn-sm" data-action="sync-center-export-local"><i class="fa fa-download"></i> Exportar local</button>
+      <button type="button" class="btn btn-outline btn-sm" data-action="sync-center-import-local"><i class="fa fa-file-import"></i> Importar JSON</button>
+    `;
+  }
+
+  if (source.id === 'firebase') {
+    const status = window.EstudoApp?.getFirestoreSyncStatus?.() || {};
+    return `
+      ${status.signedIn ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar</button>`}
+      ${status.enabled ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>' : `<button type="button" class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Ativar shadow</button>`}
+      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-merge-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-pull-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
+      <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
+      ${status.enabled ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Pausar</button>' : ''}
+    `;
+  }
+
+  if (source.id === 'cloudflare') {
+    return `
+      <button type="button" class="btn btn-primary btn-sm" data-action="force-cloudflare-sync" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-sync"></i> Sincronizar</button>
+      <button type="button" class="btn btn-outline btn-sm" data-action="cloud-merge-remote" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="cloud-conflict-pull-remote" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
+      <button type="button" class="btn btn-danger btn-sm" data-action="cloud-conflict-force-push" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
+    `;
+  }
+
+  if (source.id === 'drive') {
+    return source.configured ? `
+      <button type="button" class="btn btn-primary btn-sm" data-action="drive-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>
+      <button type="button" class="btn btn-outline btn-sm" data-action="merge-from-drive"><i class="fa fa-code-merge"></i> Mesclar</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="pull-from-drive"><i class="fa fa-cloud-download-alt"></i> Baixar</button>
+      <button type="button" class="btn btn-danger btn-sm" data-action="drive-disconnect">Desconectar</button>
+    ` : `
+      <button type="button" class="btn btn-primary btn-sm" data-action="open-drive-modal"><i class="fa fa-cloud"></i> Conectar</button>
+    `;
+  }
+
+  return '';
+}
+
+function renderSyncCenterCard() {
+  const model = buildSyncCenterModel({
+    state,
+    firestoreStatus: window.EstudoApp?.getFirestoreSyncStatus?.() || {}
+  });
+  const attention = model.needsAttention
+    ? '<div class="config-desc sync-center-attention"><i class="fa fa-triangle-exclamation"></i> Ha uma decisao pendente. Use Mesclar, Baixar ou Enviar local no destino indicado.</div>'
+    : '<div class="config-desc">Uma central para decidir quando sincronizar, importar, mesclar ou enviar dados sem ficar preso em erros automaticos.</div>';
+
+  return `
+    <div class="card config-card sync-center-card" data-testid="sync-center">
+      <div class="card-header">
+        <h3><i class="fa fa-arrows-rotate"></i> Central de Sincronizacao</h3>
+      </div>
+      <div class="card-body">
+        ${attention}
+        <div class="sync-center-summary">
+          <div><span>Ultimo local</span><strong>${formatBackupDateTime(model.newestLocalAt)}</strong></div>
+          <div><span>Remoto mais recente</span><strong>${formatBackupDateTime(model.newestRemoteAt)}</strong></div>
+          <div><span>Fonte primaria</span><strong>Firebase</strong></div>
+        </div>
+        <div class="config-actions-row">
+          <button type="button" class="btn btn-primary btn-sm" data-action="sync-center-smart-sync"><i class="fa fa-wand-magic-sparkles"></i> Sincronizar inteligente</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="sync-center-export-local"><i class="fa fa-download"></i> Backup local</button>
+        </div>
+        <div class="sync-source-grid">
+          ${model.sources.map(source => `
+            <section class="sync-source-card sync-source-card--${source.health}" data-sync-source="${source.id}">
+              <div class="sync-source-head">
+                <div>
+                  <div class="sync-source-title">${esc(source.title)} ${source.primary ? '<span class="badge badge-success">Primario</span>' : ''}</div>
+                  <div class="sync-source-sub">${esc(source.label)}</div>
+                </div>
+                <span class="sync-health sync-health--${source.health}">
+                  <i class="fa ${getSyncHealthIcon(source.health)}"></i> ${getSyncHealthLabel(source.health)}
+                </span>
+              </div>
+              <div class="sync-source-meta">
+                <div><span>Ultimo sync</span><strong>${formatBackupDateTime(source.lastSyncAt)}</strong></div>
+                <div><span>Remoto</span><strong>${formatBackupDateTime(source.remoteAt)}</strong></div>
+                <div><span>Estado</span><strong>${source.pending ? 'Pendente' : source.enabled ? 'Ativo' : 'Inativo'}</strong></div>
+              </div>
+              ${source.conflict ? `<div class="sync-source-note">Conflito detectado em ${formatBackupDateTime(source.conflict.detectedAt)}.</div>` : ''}
+              ${source.lastError ? `<div class="sync-source-note sync-source-note--error">${esc(source.lastError)}</div>` : ''}
+              <div class="sync-source-actions">${renderSyncSourceActions(source)}</div>
+            </section>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 export function renderConfig(el) {
   const cfg = state.config;
   const saveStatus = getLastSaveStatus();
@@ -2916,7 +3035,7 @@ export function renderConfig(el) {
       </div>
 
       <div>
-        ${renderFirestoreCard()}
+        ${renderSyncCenterCard()}
 
         <div class="card config-card">
           <div class="card-header"><h3><i class="fa fa-cloud"></i> Sincronização Cloudflare (Secundária)</h3></div>

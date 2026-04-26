@@ -2319,6 +2319,145 @@
   margin-top: 12px;
 }
 
+.sync-center-card {
+  overflow: hidden;
+}
+
+.sync-center-attention {
+  color: var(--warning);
+}
+
+.sync-center-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.sync-center-summary > div,
+.sync-source-card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+}
+
+.sync-center-summary > div {
+  padding: 12px;
+}
+
+.sync-center-summary span,
+.sync-source-meta span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.sync-center-summary strong,
+.sync-source-meta strong {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+}
+
+.sync-source-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.sync-source-card {
+  padding: 14px;
+}
+
+.sync-source-card--conflict,
+.sync-source-card--error {
+  border-color: var(--danger);
+}
+
+.sync-source-card--pending {
+  border-color: var(--warning);
+}
+
+.sync-source-head,
+.sync-source-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.sync-source-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.sync-source-title {
+  color: var(--text-primary);
+  font-weight: 800;
+}
+
+.sync-source-sub,
+.sync-source-note {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.sync-source-note {
+  margin-top: 10px;
+}
+
+.sync-source-note--error {
+  color: var(--danger);
+}
+
+.sync-source-meta {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sync-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.sync-health--ok {
+  color: var(--success);
+}
+
+.sync-health--idle {
+  color: var(--text-muted);
+}
+
+.sync-health--pending {
+  color: var(--warning);
+}
+
+.sync-health--conflict,
+.sync-health--error {
+  color: var(--danger);
+}
+
+.sync-source-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+  .sync-center-summary,
+  .sync-source-grid,
+  .sync-source-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .sync-source-head {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* =============================================
    Event Modal (Add/Edit Study Event)
    ============================================= */

@@ -1,12 +1,12 @@
-import { getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.18';
-import { saveStateToDB, setState, state, SyncQueue } from '../store.js?v=8.18';
+import { getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.19';
+import { saveStateToDB, setState, state, SyncQueue } from '../store.js?v=8.19';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer
-} from './firestore-schema.js?v=8.18';
+} from './firestore-schema.js?v=8.19';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -15,8 +15,9 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta
-} from './firestore-outbox.js?v=8.18';
-import { readFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.18';
+} from './firestore-outbox.js?v=8.19';
+import { readFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.19';
+import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.19';
 
 let currentUser = null;
 let authUnsubscribe = null;
@@ -114,9 +115,9 @@ export async function enableFirestoreSync(mode = 'shadow') {
   config.enabled = true;
   config.mode = mode === 'primary' ? 'primary' : 'shadow';
   config.lastError = null;
-  await queueFirestoreSnapshotFromState(state);
+  await queueFirestoreSnapshotFromState(state, { manual: true });
   await persistSyncConfig(false);
-  return await flushFirestoreOutbox();
+  return await flushFirestoreOutbox({ manual: true });
 }
 
 export async function disableFirestoreSync() {
@@ -127,9 +128,14 @@ export async function disableFirestoreSync() {
   await persistSyncConfig(false);
 }
 
-export async function queueFirestoreSnapshotFromState(sourceState = state) {
+export async function queueFirestoreSnapshotFromState(sourceState = state, options = {}) {
   const config = getConfig();
   if (!config.enabled) return false;
+  const pending = await getPendingFirestoreSnapshot();
+  if (!options.manual && !canAutoSyncFirestore(config, pending)) {
+    emitStatus(config.conflict ? 'conflict-paused' : 'backoff');
+    return false;
+  }
   const envelope = createFirestoreSnapshotEnvelope(sourceState);
   const queued = await enqueueFirestoreSnapshot(envelope);
   if (queued) {
@@ -171,9 +177,14 @@ export async function flushFirestoreOutbox(options = {}) {
   if (!config.enabled) return false;
 
   isFlushing = true;
-  emitStatus('syncing');
   try {
     const pending = await getPendingFirestoreSnapshot();
+    if (!options.manual && !options.forceOverwrite && !canAutoSyncFirestore(config, pending)) {
+      emitStatus(config.conflict ? 'conflict-paused' : 'backoff');
+      return false;
+    }
+
+    emitStatus('syncing');
     if (!pending) {
       config.hasPendingWrites = false;
       await persistSyncConfig(true);
@@ -262,6 +273,55 @@ export async function pullFromFirestore(forceOverwrite = false) {
 }
 
 export async function forcePushFirestore() {
-  await queueFirestoreSnapshotFromState(state);
-  return await flushFirestoreOutbox({ forceOverwrite: true });
+  await queueFirestoreSnapshotFromState(state, { manual: true });
+  return await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
+}
+
+export async function syncFirestoreNow() {
+  const config = getConfig();
+  if (config.conflict) {
+    emitStatus('conflict-paused', { conflict: config.conflict });
+    return false;
+  }
+  await queueFirestoreSnapshotFromState(state, { manual: true });
+  return await flushFirestoreOutbox({ manual: true });
+}
+
+export async function mergeFromFirestore() {
+  const config = getConfig();
+  emitStatus('syncing');
+
+  try {
+    const { db, uid } = requireSignedInServices();
+    const remote = await readFirestoreSnapshot(db, uid);
+    if (!remote) {
+      return await forcePushFirestore();
+    }
+
+    const previousSyncConfig = { ...config };
+    const merged = mergeStudyStates(state, remote.payload || {});
+    setState(merged);
+    Object.assign(getConfig(), {
+      ...previousSyncConfig,
+      uid,
+      enabled: true,
+      remoteUpdatedAt: getEnvelopeUpdatedAt(remote),
+      lastPullAt: new Date().toISOString(),
+      conflict: null,
+      lastError: null,
+      hasPendingWrites: true
+    });
+
+    await clearFirestoreConflict();
+    await saveStateToDB(true, true);
+    await queueFirestoreSnapshotFromState(state, { manual: true });
+    const ok = await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
+    document.dispatchEvent(new Event('app:renderCurrentView'));
+    return ok;
+  } catch (err) {
+    config.lastError = err.message || String(err);
+    await persistSyncConfig(false);
+    emitStatus('error', { error: config.lastError });
+    return false;
+  }
 }

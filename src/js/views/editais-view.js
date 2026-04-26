@@ -3,9 +3,9 @@
  * Renderiza view de editais (renderEditais, renderEditalTree) e vertical (renderVertical, renderVerticalList)
  */
 
-import { scheduleSave, state } from '../store.js?v=8.18';
-import { esc, todayStr } from '../utils.js?v=8.18';
-import { getDisc } from '../logic.js?v=8.18';
+import { scheduleSave, state } from '../store.js?v=8.19';
+import { esc, todayStr } from '../utils.js?v=8.19';
+import { getDisc } from '../logic.js?v=8.19';
 
 // ── Vertical View State ──
 let vertSearch = '';

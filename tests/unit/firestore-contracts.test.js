@@ -22,8 +22,21 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/firebase/firebase-client.js');
     expect(swSource).toContain('./js/firebase/firebase-config.js');
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
+    expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.18'");
+    expect(swSource).toContain("APP_VERSION = '8.19'");
+  });
+
+  it('renders a central sync surface with manual source decisions', () => {
+    const viewsSource = read('src/js/views.js');
+    const actionsSource = read('src/js/ui/actions/config.js');
+
+    expect(viewsSource).toContain('Central de Sincronizacao');
+    expect(viewsSource).toContain('data-testid="sync-center"');
+    expect(viewsSource).toContain('data-action="firestore-merge-remote"');
+    expect(viewsSource).toContain('data-action="cloud-merge-remote"');
+    expect(viewsSource).toContain('data-action="merge-from-drive"');
+    expect(actionsSource).toContain("registerAction('sync-center-smart-sync'");
   });
 
   it('allows the Firebase Auth and Firestore network surfaces in CSP', () => {

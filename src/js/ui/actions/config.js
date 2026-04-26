@@ -21,10 +21,13 @@ registerAction('firestore-enable-shadow', () => firestoreEnableShadow());
 registerAction('firestore-disable-sync', () => firestoreDisableSync());
 registerAction('firestore-sync-now', () => firestoreSyncNow());
 registerAction('firestore-pull-remote', () => firestorePullRemote());
+registerAction('firestore-merge-remote', () => firestoreMergeRemote());
 registerAction('firestore-force-push', () => firestoreForcePush());
 registerAction('firestore-export-local', () => exportData());
+registerAction('cloud-merge-remote', () => cloudMergeRemote());
 registerAction('drive-sync-now', () => driveSyncNow());
 registerAction('pull-from-drive', () => pullFromDrive());
+registerAction('merge-from-drive', () => mergeFromDrive());
 registerAction('drive-disconnect', () => driveDisconnect());
 registerAction('open-drive-modal', () => openDriveModal());
 registerAction('drive-action', () => driveAction());
@@ -33,6 +36,9 @@ registerAction('request-notification-permission', () => requestNotificationPermi
 registerAction('test-notification', () => testNotification());
 registerAction('export-data', () => exportData());
 registerAction('restore-backup', () => restoreBackup());
+registerAction('sync-center-smart-sync', () => syncCenterSmartSync());
+registerAction('sync-center-export-local', () => exportData());
+registerAction('sync-center-import-local', () => importLocalData());
 registerAction('archive-old-events', (el) => archiveOldEvents(el));
 registerAction('clear-all-data', () => clearAllData());
 registerAction('set-theme', (el) => setTheme(el));
@@ -166,7 +172,7 @@ export function firestoreDisableSync() {
 }
 
 export function firestoreSyncNow() {
-  window.EstudoApp?.flushFirestoreOutbox?.()
+  window.EstudoApp?.syncFirestoreNow?.()
     .then(ok => window.EstudoApp?.showToast?.(ok ? 'Firestore sincronizado.' : 'Firestore aguardando acao.', ok ? 'success' : 'info'))
     .catch(err => window.EstudoApp?.showToast?.(err.message || 'Erro ao sincronizar Firestore', 'error'));
 }
@@ -189,6 +195,24 @@ export function firestoreForcePush() {
   );
 }
 
+export function firestoreMergeRemote() {
+  if (typeof window.EstudoApp?.showConfirm !== 'function') return;
+  window.EstudoApp.showConfirm(
+    'Mesclar Firestore com os dados locais? Itens locais e remotos serao preservados quando possivel, e o resultado sera enviado ao Firestore.',
+    () => window.EstudoApp?.mergeFromFirestore?.(),
+    { label: 'Mesclar Firestore', title: 'Mesclar dados' }
+  );
+}
+
+export function cloudMergeRemote() {
+  if (typeof window.EstudoApp?.showConfirm !== 'function') return;
+  window.EstudoApp.showConfirm(
+    'Mesclar Cloudflare com os dados locais? Itens locais e remotos serao preservados quando possivel, e o resultado sera enviado ao Worker.',
+    () => window.EstudoApp?.mergeFromCloudflare?.(),
+    { label: 'Mesclar Cloudflare', title: 'Mesclar dados' }
+  );
+}
+
 /**
  * Sync com Google Drive
  */
@@ -207,6 +231,46 @@ export function pullFromDrive() {
   if (typeof window.EstudoApp?.pullFromDrive === 'function') {
     window.EstudoApp?.pullFromDrive();
   }
+}
+
+export function mergeFromDrive() {
+  if (typeof window.EstudoApp?.showConfirm !== 'function') return;
+  window.EstudoApp.showConfirm(
+    'Mesclar Google Drive com os dados locais? Itens locais e remotos serao preservados quando possivel, e o resultado sera reenviado ao Drive.',
+    () => window.EstudoApp?.mergeFromDrive?.(),
+    { label: 'Mesclar Drive', title: 'Mesclar dados' }
+  );
+}
+
+export async function syncCenterSmartSync() {
+  const status = window.EstudoApp?.getFirestoreSyncStatus?.();
+  if (status?.conflict) {
+    window.EstudoApp?.showToast?.('Firebase tem conflito. Use Mesclar, Baixar ou Enviar local.', 'info');
+    return;
+  }
+
+  const tasks = [];
+  if (status?.configured && status?.signedIn && status?.enabled) {
+    tasks.push(window.EstudoApp?.syncFirestoreNow?.());
+  }
+  if (window.state?.config?.cfSyncEnabled) {
+    tasks.push(window.EstudoApp?.forceCloudflareSync?.());
+  }
+  if (window.state?.driveFileId) {
+    tasks.push(window.EstudoApp?.syncWithDrive?.());
+  }
+
+  if (tasks.length === 0) {
+    window.EstudoApp?.showToast?.('Nenhum destino online ativo para sincronizar.', 'info');
+    return;
+  }
+
+  const results = await Promise.allSettled(tasks.filter(Boolean));
+  const failed = results.filter(result => result.status === 'rejected').length;
+  window.EstudoApp?.showToast?.(
+    failed ? 'Sincronizacao concluida com alertas. Confira a central.' : 'Central sincronizada.',
+    failed ? 'error' : 'success'
+  );
 }
 
 /**
@@ -276,6 +340,12 @@ export function testNotification() {
 export function exportData() {
   if (typeof window.EstudoApp?.exportData === 'function') {
     window.EstudoApp?.exportData();
+  }
+}
+
+export function importLocalData() {
+  if (typeof window.EstudoApp?.importData === 'function') {
+    window.EstudoApp?.importData();
   }
 }
 

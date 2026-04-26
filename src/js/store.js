@@ -1,9 +1,9 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { pushToCloudflare } from './cloud-sync.js?v=8.18';
-import { uid } from './utils.js?v=8.18';
-import * as credentialsStore from './credentials.js?v=8.18';
+import { pushToCloudflare } from './cloud-sync.js?v=8.19';
+import { uid } from './utils.js?v=8.19';
+import * as credentialsStore from './credentials.js?v=8.19';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 2;
@@ -403,9 +403,9 @@ export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false) 
 
       if (!skipFirestoreSync && state.config?.firestoreSync?.enabled) {
         SyncQueue.add(async () => {
-          const sync = await import('./sync/firestore-sync-engine.js?v=8.18');
-          await sync.queueFirestoreSnapshotFromState(state);
-          await sync.flushFirestoreOutbox();
+          const sync = await import('./sync/firestore-sync-engine.js?v=8.19');
+          const queued = await sync.queueFirestoreSnapshotFromState(state);
+          if (queued) await sync.flushFirestoreOutbox();
         }).catch(err => {
           console.error('Firestore sync failed after save:', err);
         });

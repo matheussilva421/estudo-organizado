@@ -1,10 +1,10 @@
-import { renderCurrentView } from './components.js?v=8.18';
-import { initDB, scheduleSave, state } from './store.js?v=8.18';
-import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.18';
-import { todayStr, esc } from './utils.js?v=8.18';
-import { pullFromCloudflare } from './cloud-sync.js?v=8.18';
-import { initNotifications } from './notifications.js?v=8.18';
-import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.18';
+import { renderCurrentView } from './components.js?v=8.19';
+import { initDB, scheduleSave, state } from './store.js?v=8.19';
+import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.19';
+import { todayStr, esc } from './utils.js?v=8.19';
+import { pullFromCloudflare } from './cloud-sync.js?v=8.19';
+import { initNotifications } from './notifications.js?v=8.19';
+import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.19';
 
 // =============================================
 // APP STATE & DATA

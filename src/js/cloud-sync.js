@@ -1,5 +1,6 @@
-import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.18';
-import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.18';
+import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.19';
+import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.19';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.19';
 
 let isSyncing = false;
 let _lastPushTime = 0;
@@ -97,6 +98,29 @@ function unwrapEnvelope(data) {
     return { envelope: null, payload: data };
 }
 
+async function readCloudflareRemotePayload() {
+    const config = await getSyncConfig();
+    if (!config) return null;
+
+    const response = await fetch(config.url, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${config.token}` }
+    });
+
+    if (!response.ok) {
+        let errorMsg = `HTTP Error: ${response.status}`;
+        try {
+            const errData = await response.json();
+            if (errData && errData.error) errorMsg = `Erro ${response.status}: ${errData.error}`;
+        } catch (e) { /* ignore */ }
+        throw new Error(errorMsg);
+    }
+
+    const rawData = await response.json();
+    if (rawData === null || rawData.data === null) return null;
+    return unwrapEnvelope(rawData);
+}
+
 /**
  * Puxa os dados da Cloudflare e mescla se o timestamp remoto for mais recente
  */
@@ -106,28 +130,14 @@ export async function pullFromCloudflare(forceOverwrite = false) {
 
     updateSyncStatus('Sincronizando puxando dados...');
     try {
-        const response = await fetch(config.url, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${config.token}` }
-        });
+        const remote = await readCloudflareRemotePayload();
 
-        if (!response.ok) {
-            let errorMsg = `HTTP Error: ${response.status}`;
-            try {
-                const errData = await response.json();
-                if (errData && errData.error) errorMsg = `Erro ${response.status}: ${errData.error}`;
-            } catch (e) { /* ignore */ }
-            throw new Error(errorMsg);
-        }
-
-        const rawData = await response.json();
-
-        if (rawData === null || rawData.data === null) {
+        if (!remote) {
             updateSyncStatus('Nenhum dado remoto. Pronto para primeiro push.');
             return true;
         }
 
-        const { envelope, payload: remoteData } = unwrapEnvelope(rawData);
+        const { envelope, payload: remoteData } = remote;
 
         const localTime = state.config && state.config._lastUpdated ? state.config._lastUpdated : 0;
         const remoteUpdatedAt = getRemoteUpdatedAtFromEnvelope(envelope, remoteData);
@@ -170,6 +180,39 @@ export async function pullFromCloudflare(forceOverwrite = false) {
     } catch (err) {
         console.error('Erro no Cloudflare Pull:', err);
         updateSyncStatus(`Erro: ${err.message}`, true);
+        return false;
+    }
+}
+
+export async function mergeFromCloudflare() {
+    const config = await getSyncConfig();
+    if (!config) return false;
+
+    updateSyncStatus('Mesclando dados da Cloudflare...');
+    try {
+        const remote = await readCloudflareRemotePayload();
+        if (!remote?.payload) {
+            return await pushToCloudflare(true);
+        }
+
+        const remoteUpdatedAt = getRemoteUpdatedAtFromEnvelope(remote.envelope, remote.payload);
+        const merged = mergeStudyStates(state, remote.payload);
+        setState(merged);
+        if (!state.config) state.config = {};
+        if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
+        delete state.config.cfConflict;
+
+        await saveStateToDB(true);
+        await pushToCloudflare(true);
+        document.dispatchEvent(new Event('app:invalidateCaches'));
+        document.dispatchEvent(new Event('app:renderCurrentView'));
+        document.dispatchEvent(new CustomEvent('app:showToast', {
+            detail: { msg: 'Cloudflare mesclado com os dados locais.', type: 'success' }
+        }));
+        return true;
+    } catch (err) {
+        console.error('Erro no merge Cloudflare:', err);
+        updateSyncStatus(`Erro no merge: ${err.message}`, true);
         return false;
     }
 }

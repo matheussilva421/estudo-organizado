@@ -1,7 +1,8 @@
-import { closeModal, showConfirm, showToast } from './app.js?v=8.18';
-import { createExportableState, runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js?v=8.18';
-import { renderCurrentView } from './components.js?v=8.18';
-import { setCredential, getCredential } from './credentials.js?v=8.18';
+import { closeModal, showConfirm, showToast } from './app.js?v=8.19';
+import { createExportableState, runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js?v=8.19';
+import { renderCurrentView } from './components.js?v=8.19';
+import { setCredential, getCredential } from './credentials.js?v=8.19';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.19';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE
@@ -348,6 +349,38 @@ export async function pullFromDrive() {
         console.error('Erro ao carregar do Drive:', err);
         showToast('Erro ao carregar dados do Drive', 'error');
         updateDriveUI('connected', 'Google Drive');
+    }
+}
+
+export async function mergeFromDrive() {
+    if (!gapi.client || !gapi.client.drive) { showToast('APIs do Google nao carregadas', 'error'); return false; }
+    if (!state.driveFileId) { showToast('Nenhum arquivo encontrado no Drive. Sincronize primeiro.', 'error'); return false; }
+
+    updateDriveUI('syncing', 'Mesclando Drive...');
+    try {
+        const resp = await gapi.client.drive.files.get({
+            fileId: state.driveFileId,
+            alt: 'media'
+        });
+        const driveData = resp.result;
+        if (!driveData || typeof driveData !== 'object') {
+            showToast('Dados invalidos no Drive', 'error');
+            updateDriveUI('connected', 'Google Drive');
+            return false;
+        }
+        setState(mergeStudyStates(state, driveData));
+        runMigrations();
+        await saveStateToDB(true);
+        await syncWithDrive();
+        renderCurrentView();
+        updateDriveUI('connected', 'Google Drive');
+        showToast('Drive mesclado com os dados locais.', 'success');
+        return true;
+    } catch (err) {
+        console.error('Erro ao mesclar Drive:', err);
+        showToast('Erro ao mesclar dados do Drive', 'error');
+        updateDriveUI('connected', 'Google Drive');
+        return false;
     }
 }
 

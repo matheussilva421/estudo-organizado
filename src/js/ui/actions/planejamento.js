@@ -14,7 +14,7 @@ import {
   pwUpdateHours,
   pwToggleDay,
   pwUpdateDayHour
-} from '../../planejamento-wizard.js?v=8.18';
+} from '../../planejamento-wizard.js?v=8.19';
 
 // Registrar ações do wizard
 registerAction('pw-select-tipo', (el) => pwSelectTipo(el.dataset.tipo));
