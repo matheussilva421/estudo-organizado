@@ -3,18 +3,27 @@ import {
   getApps,
   getAuth,
   GoogleAuthProvider,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
   initializeAppCheck,
   ReCaptchaV3Provider
-} from '../../vendor/firebase-client.bundle.js?v=8.21';
-import { getRuntimeAppCheckSiteKey, getRuntimeFirebaseConfig } from './firebase-config.js?v=8.21';
+} from '../../vendor/firebase-client.bundle.js?v=8.22';
+import { getRuntimeAppCheckSiteKey, getRuntimeFirebaseConfig } from './firebase-config.js?v=8.22';
 
 let services = null;
+
+const POPUP_FALLBACK_CODES = new Set([
+  'auth/cancelled-popup-request',
+  'auth/operation-not-supported-in-this-environment',
+  'auth/popup-blocked',
+  'auth/popup-closed-by-user'
+]);
 
 export function isFirebaseConfigured(config = getRuntimeFirebaseConfig()) {
   return Boolean(config.apiKey && config.authDomain && config.projectId && config.appId);
@@ -73,7 +82,19 @@ export async function signInWithGoogle() {
     throw new Error('Firebase nao configurado. Preencha src/js/firebase/firebase-config.js.');
   }
   const provider = new GoogleAuthProvider();
-  return await signInWithPopup(auth, provider);
+  try {
+    return await signInWithPopup(auth, provider);
+  } catch (err) {
+    if (!POPUP_FALLBACK_CODES.has(err?.code)) throw err;
+    await signInWithRedirect(auth, provider);
+    return null;
+  }
+}
+
+export async function completeGoogleRedirectSignIn() {
+  const { configured, auth } = initFirebaseServices();
+  if (!configured || !auth) return null;
+  return await getRedirectResult(auth);
 }
 
 export async function signOutFirebase() {

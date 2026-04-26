@@ -1,12 +1,12 @@
-import { getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.21';
-import { saveStateToDB, setState, state } from '../store.js?v=8.21';
+import { completeGoogleRedirectSignIn, getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.22';
+import { saveStateToDB, setState, state } from '../store.js?v=8.22';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer
-} from './firestore-schema.js?v=8.21';
+} from './firestore-schema.js?v=8.22';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -15,9 +15,9 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta
-} from './firestore-outbox.js?v=8.21';
-import { readFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.21';
-import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.21';
+} from './firestore-outbox.js?v=8.22';
+import { readFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.22';
+import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.22';
 
 let currentUser = null;
 let authUnsubscribe = null;
@@ -73,6 +73,23 @@ export function initFirestoreSync() {
     return;
   }
 
+  completeGoogleRedirectSignIn()
+    .then(async (credential) => {
+      if (!credential?.user) return;
+      currentUser = credential.user;
+      const syncConfig = getConfig();
+      syncConfig.uid = credential.user.uid;
+      syncConfig.lastError = null;
+      await persistSyncConfig(false);
+      emitStatus('signed-in', { config: { uid: credential.user.uid, lastError: null } });
+    })
+    .catch(async (err) => {
+      const syncConfig = getConfig();
+      syncConfig.lastError = err.message || String(err);
+      await persistSyncConfig(false);
+      emitStatus('error', { error: syncConfig.lastError });
+    });
+
   if (authUnsubscribe) return;
   authUnsubscribe = observeFirebaseAuth((user) => {
     currentUser = user;
@@ -91,6 +108,10 @@ export function initFirestoreSync() {
 
 export async function firestoreSignIn() {
   const credential = await signInWithGoogle();
+  if (!credential?.user) {
+    emitStatus('redirecting');
+    return null;
+  }
   currentUser = credential.user;
   getConfig().uid = currentUser.uid;
   await persistSyncConfig(false);

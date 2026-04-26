@@ -16,6 +16,18 @@ describe('Firestore integration contracts', () => {
     expect(configSource).toContain('window.ESTUDO_FIREBASE_CONFIG');
   });
 
+  it('falls back to Firebase Auth redirect when popup login is blocked', () => {
+    const clientSource = read('src/js/firebase/firebase-client.js');
+    const bundleEntry = read('scripts/firebase-bundle-entry.js');
+
+    expect(bundleEntry).toContain('getRedirectResult');
+    expect(bundleEntry).toContain('signInWithRedirect');
+    expect(clientSource).toContain('POPUP_FALLBACK_CODES');
+    expect(clientSource).toContain("'auth/popup-blocked'");
+    expect(clientSource).toContain('signInWithRedirect(auth, provider)');
+    expect(clientSource).toContain('completeGoogleRedirectSignIn');
+  });
+
   it('caches all runtime Firestore modules in the service worker shell', () => {
     const swSource = read('src/sw.js');
 
@@ -24,7 +36,7 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.21'");
+    expect(swSource).toContain("APP_VERSION = '8.22'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {

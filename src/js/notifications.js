@@ -1,5 +1,5 @@
-import { state } from './store.js?v=8.21';
-import { getPendingRevisoes, getPredictiveStats } from './logic.js?v=8.21';
+import { state } from './store.js?v=8.22';
+import { getPendingRevisoes, getPredictiveStats } from './logic.js?v=8.22';
 
 // =============================================
 // MÓDULO INTELIGENTE DE NOTIFICAÇÕES

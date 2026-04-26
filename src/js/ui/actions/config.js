@@ -151,6 +151,12 @@ export function cloudConflictForcePush() {
 
 export function firestoreSignIn() {
   window.EstudoApp?.firestoreSignIn?.()
+    .then(user => {
+      window.EstudoApp?.showToast?.(
+        user ? 'Login Google conectado.' : 'Abrindo login Google por redirecionamento...',
+        user ? 'success' : 'info'
+      );
+    })
     .catch(err => window.EstudoApp?.showToast?.(err.message || 'Erro ao entrar no Google', 'error'));
 }
 

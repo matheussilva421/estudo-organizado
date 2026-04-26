@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const syncCenter = await import('../../src/js/sync/sync-center.js?v=8.21');
+const syncCenter = await import('../../src/js/sync/sync-center.js?v=8.22');
 
 describe('sync-center.js', () => {
   it('blocks automatic Firestore flushes while a conflict needs a user decision', () => {
