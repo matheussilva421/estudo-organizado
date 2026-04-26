@@ -1,12 +1,12 @@
-import { completeGoogleRedirectSignIn, getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.23';
-import { saveStateToDB, setState, state } from '../store.js?v=8.23';
+import { completeGoogleRedirectSignIn, getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.24';
+import { saveStateToDB, setState, state } from '../store.js?v=8.24';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer
-} from './firestore-schema.js?v=8.23';
+} from './firestore-schema.js?v=8.24';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -15,9 +15,9 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta
-} from './firestore-outbox.js?v=8.23';
-import { readFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.23';
-import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.23';
+} from './firestore-outbox.js?v=8.24';
+import { readFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.24';
+import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.24';
 
 let currentUser = null;
 let authUnsubscribe = null;
@@ -49,6 +49,18 @@ async function persistSyncConfig(skipRender = true) {
   if (!skipRender) document.dispatchEvent(new Event('app:renderCurrentView'));
 }
 
+async function reconcileFirestorePendingState(skipRender = true) {
+  const config = getConfig();
+  const pending = await getPendingFirestoreSnapshot();
+  if (!pending && config.hasPendingWrites && !config.conflict) {
+    config.hasPendingWrites = false;
+    config.lastError = null;
+    await persistSyncConfig(skipRender);
+    emitStatus('synced');
+  }
+  return pending;
+}
+
 export function getFirestoreSyncStatus() {
   const services = initFirebaseServices();
   const configStatus = getFirebaseConfigStatus();
@@ -72,6 +84,10 @@ export function initFirestoreSync() {
     emitStatus('unconfigured', { config: { lastError: null } });
     return;
   }
+
+  reconcileFirestorePendingState(false).catch((err) => {
+    console.warn('Firestore pending state repair failed:', err);
+  });
 
   completeGoogleRedirectSignIn()
     .then(async (credential) => {
@@ -102,6 +118,9 @@ export function initFirestoreSync() {
       return;
     }
     emitStatus('signed-in', { config: { uid: user.uid, lastError: null } });
+    reconcileFirestorePendingState(false).catch((err) => {
+      console.warn('Firestore pending state repair failed:', err);
+    });
     document.dispatchEvent(new Event('app:renderCurrentView'));
   });
 }
@@ -305,6 +324,7 @@ export async function forcePushFirestore() {
 
 export async function syncFirestoreNow() {
   const config = getConfig();
+  await reconcileFirestorePendingState(true);
   if (config.conflict) {
     emitStatus('conflict-paused', { conflict: config.conflict });
     return false;

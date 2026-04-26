@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBaseState, createEvento } from '../helpers/state-builders.js';
 
-vi.mock('../../src/js/store.js?v=8.23', () => ({
+vi.mock('../../src/js/store.js?v=8.24', () => ({
   DEFAULT_SCHEMA_VERSION: 7,
   createExportableState(sourceState) {
     const clone = JSON.parse(JSON.stringify(sourceState));
@@ -14,7 +14,7 @@ vi.mock('../../src/js/store.js?v=8.23', () => ({
   }
 }));
 
-const schema = await import('../../src/js/sync/firestore-schema.js?v=8.23');
+const schema = await import('../../src/js/sync/firestore-schema.js?v=8.24');
 
 describe('firestore-schema.js', () => {
   it('creates a versioned snapshot envelope without sync secrets', () => {
@@ -50,6 +50,30 @@ describe('firestore-schema.js', () => {
     expect(envelope.payload.config.cfToken).toBeUndefined();
     expect(envelope.payload.config.cfUrl).toBeUndefined();
     expect(envelope.payload.config.firestoreSync.enabled).toBe(false);
+  });
+
+  it('uses the newest local content timestamp when legacy Cloudflare metadata is stale', () => {
+    const state = createBaseState({
+      config: {
+        _lastUpdated: new Date('2026-04-21T10:00:00.000Z').getTime(),
+        localBackupAt: '2026-04-21T12:00:00.000Z',
+        firestoreSync: {
+          enabled: true,
+          remoteUpdatedAt: '2026-04-21T09:00:00.000Z'
+        }
+      }
+    });
+
+    const envelope = schema.createFirestoreSnapshotEnvelope(state, {
+      sentAt: '2026-04-21T12:00:01.000Z',
+      deviceId: 'web-test'
+    });
+
+    expect(envelope.payloadUpdatedAt).toBe('2026-04-21T12:00:00.000Z');
+    expect(schema.isRemoteNewer(
+      { payloadUpdatedAt: '2026-04-21T11:00:00.000Z' },
+      state
+    )).toBe(false);
   });
 
   it('applies a remote envelope while keeping Firestore enabled locally', () => {

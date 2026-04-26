@@ -1,4 +1,4 @@
-import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.23';
+import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.24';
 
 export const FIRESTORE_SYNC_VERSION = 1;
 export const FIRESTORE_SNAPSHOT_DOC_ID = 'main';
@@ -18,6 +18,20 @@ export function toIsoTimestamp(value) {
   if (typeof value === 'number') return new Date(value).toISOString();
   const time = new Date(value).getTime();
   return Number.isNaN(time) ? new Date().toISOString() : new Date(time).toISOString();
+}
+
+function toTimestampMs(value) {
+  if (!value) return 0;
+  const time = typeof value === 'number' ? value : new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+export function getLocalContentUpdatedAt(sourceState) {
+  const newest = Math.max(
+    toTimestampMs(sourceState?.config?._lastUpdated),
+    toTimestampMs(sourceState?.config?.localBackupAt)
+  );
+  return newest ? new Date(newest).toISOString() : null;
 }
 
 export function getFirestoreSyncConfig(state) {
@@ -47,8 +61,7 @@ export function createFirestoreSnapshotEnvelope(sourceState, options = {}) {
 
   const payloadUpdatedAt = toIsoTimestamp(
     options.payloadUpdatedAt
-      || sourceState?.config?._lastUpdated
-      || sourceState?.config?.localBackupAt
+      || getLocalContentUpdatedAt(sourceState)
       || Date.now()
   );
 
@@ -79,11 +92,7 @@ export function getEnvelopeUpdatedAt(envelope) {
 
 export function isRemoteNewer(remoteEnvelope, localState) {
   const remoteTime = new Date(getEnvelopeUpdatedAt(remoteEnvelope) || 0).getTime();
-  const localTime = new Date(
-    localState?.config?._lastUpdated
-      || localState?.config?.localBackupAt
-      || 0
-  ).getTime();
+  const localTime = new Date(getLocalContentUpdatedAt(localState) || 0).getTime();
   return remoteTime > localTime;
 }
 

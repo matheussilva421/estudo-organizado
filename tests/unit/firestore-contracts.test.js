@@ -36,7 +36,7 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.23'");
+    expect(swSource).toContain("APP_VERSION = '8.24'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
@@ -99,6 +99,14 @@ describe('Firestore integration contracts', () => {
     expect(flushBody).toContain('if (!pending)');
     expect(flushBody).toContain('config.hasPendingWrites = false');
     expect(flushBody).toContain('emitStatus(\'synced\'');
+  });
+
+  it('repairs stale Firestore pending flags on startup and auth changes', () => {
+    const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
+
+    expect(firestoreSource).toContain('async function reconcileFirestorePendingState');
+    expect(firestoreSource).toContain('reconcileFirestorePendingState(false)');
+    expect(firestoreSource).toContain('!pending && config.hasPendingWrites && !config.conflict');
   });
 
   it('allows the Firebase Auth and Firestore network surfaces in CSP', () => {
