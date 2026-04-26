@@ -1,8 +1,8 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { uid } from './utils.js?v=8.20';
-import * as credentialsStore from './credentials.js?v=8.20';
+import { uid } from './utils.js?v=8.21';
+import * as credentialsStore from './credentials.js?v=8.21';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 2;

@@ -3,11 +3,11 @@
  * Renderiza visualização de Ciclo Contínuo e Grade Semanal
  */
 
-import { esc, formatH, uid } from '../utils.js?v=8.20';
-import { state, scheduleSave } from '../store.js?v=8.20';
-import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from '../logic.js?v=8.20';
-import { renderCurrentView } from '../components.js?v=8.20';
-import { showConfirm, showToast } from '../app.js?v=8.20';
+import { esc, formatH, uid } from '../utils.js?v=8.21';
+import { state, scheduleSave } from '../store.js?v=8.21';
+import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from '../logic.js?v=8.21';
+import { renderCurrentView } from '../components.js?v=8.21';
+import { showConfirm, showToast } from '../app.js?v=8.21';
 
 function formatCycleDuration(minutes) {
   const total = Math.max(0, Math.round(Number(minutes) || 0));

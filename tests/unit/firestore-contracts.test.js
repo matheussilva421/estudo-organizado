@@ -24,7 +24,7 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.20'");
+    expect(swSource).toContain("APP_VERSION = '8.21'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
@@ -56,6 +56,16 @@ describe('Firestore integration contracts', () => {
     expect(enableBody).toContain("config.mode = mode === 'primary' ? 'primary' : 'shadow';");
     expect(enableBody).not.toContain('flushFirestoreOutbox');
     expect(enableBody).not.toContain('queueFirestoreSnapshotFromState');
+  });
+
+  it('uses the current remote revision as the manual Firestore push base', () => {
+    const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
+    const queueBody = firestoreSource.match(/export async function queueFirestoreSnapshotFromState[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
+    const syncBody = firestoreSource.match(/export async function syncFirestoreNow[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
+
+    expect(queueBody).toContain('createFirestoreSnapshotEnvelope(sourceState, options)');
+    expect(syncBody).toContain('const remote = await readFirestoreSnapshot(db, uid);');
+    expect(syncBody).toContain('baseRemoteUpdatedAt: remoteUpdatedAt || config.remoteUpdatedAt || null');
   });
 
   it('allows the Firebase Auth and Firestore network surfaces in CSP', () => {

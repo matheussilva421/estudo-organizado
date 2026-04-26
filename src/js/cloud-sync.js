@@ -1,6 +1,6 @@
-import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.20';
-import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.20';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.20';
+import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.21';
+import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.21';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.21';
 
 let isSyncing = false;
 let _lastPushTime = 0;

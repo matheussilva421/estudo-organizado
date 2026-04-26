@@ -7,11 +7,11 @@ import { vi } from 'vitest';
 export async function loadAppModules() {
   vi.resetModules();
 
-  const store = await import('../../src/js/store.js?v=8.20');
-  const logic = await import('../../src/js/logic.js?v=8.20');
-  const app = await import('../../src/js/app.js?v=8.20');
-  const components = await import('../../src/js/components.js?v=8.20');
-  const views = await import('../../src/js/views.js?v=8.20');
+  const store = await import('../../src/js/store.js?v=8.21');
+  const logic = await import('../../src/js/logic.js?v=8.21');
+  const app = await import('../../src/js/app.js?v=8.21');
+  const components = await import('../../src/js/components.js?v=8.21');
+  const views = await import('../../src/js/views.js?v=8.21');
 
   return { store, logic, app, components, views };
 }
