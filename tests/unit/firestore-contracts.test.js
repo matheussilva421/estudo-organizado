@@ -24,7 +24,7 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.19'");
+    expect(swSource).toContain("APP_VERSION = '8.20'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
@@ -37,6 +37,25 @@ describe('Firestore integration contracts', () => {
     expect(viewsSource).toContain('data-action="cloud-merge-remote"');
     expect(viewsSource).toContain('data-action="merge-from-drive"');
     expect(actionsSource).toContain("registerAction('sync-center-smart-sync'");
+  });
+
+  it('keeps local saves separated from online sync side effects', () => {
+    const storeSource = read('src/js/store.js');
+    const driveSource = read('src/js/drive-sync.js');
+
+    expect(storeSource).not.toContain("import { pushToCloudflare }");
+    expect(storeSource).not.toContain('SyncQueue.add(() => pushToCloudflare())');
+    expect(storeSource).not.toContain('flushFirestoreOutbox()');
+    expect(driveSource).not.toContain("document.addEventListener('stateSaved'");
+  });
+
+  it('does not push to Firestore immediately when shadow mode is enabled', () => {
+    const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
+    const enableBody = firestoreSource.match(/export async function enableFirestoreSync[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
+
+    expect(enableBody).toContain("config.mode = mode === 'primary' ? 'primary' : 'shadow';");
+    expect(enableBody).not.toContain('flushFirestoreOutbox');
+    expect(enableBody).not.toContain('queueFirestoreSnapshotFromState');
   });
 
   it('allows the Firebase Auth and Firestore network surfaces in CSP', () => {

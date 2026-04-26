@@ -1,6 +1,6 @@
-import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.19';
-import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.19';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.19';
+import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.20';
+import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.20';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.20';
 
 let isSyncing = false;
 let _lastPushTime = 0;
@@ -226,10 +226,7 @@ export async function pushToCloudflare(forceOverwrite = false) {
     if (!config) return false;
 
     const now = Date.now();
-    if (!forceOverwrite && now - _lastPushTime < MIN_PUSH_INTERVAL_MS) {
-        console.log(`Cloud push ignorado (rate limit: aguardar ${Math.ceil((MIN_PUSH_INTERVAL_MS - (now - _lastPushTime)) / 1000)}s)`);
-        return false;
-    }
+    if (!forceOverwrite && now - _lastPushTime < MIN_PUSH_INTERVAL_MS) return false;
 
     isSyncing = true;
     updateSyncStatus('Enviando dados para a nuvem...');

@@ -1,8 +1,8 @@
-import { closeModal, showConfirm, showToast } from './app.js?v=8.19';
-import { createExportableState, runMigrations, saveStateToDB, scheduleSave, state, setState, SyncQueue } from './store.js?v=8.19';
-import { renderCurrentView } from './components.js?v=8.19';
-import { setCredential, getCredential } from './credentials.js?v=8.19';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.19';
+import { closeModal, showConfirm, showToast } from './app.js?v=8.20';
+import { createExportableState, runMigrations, saveStateToDB, scheduleSave, state, setState } from './store.js?v=8.20';
+import { renderCurrentView } from './components.js?v=8.20';
+import { setCredential, getCredential } from './credentials.js?v=8.20';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.20';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE
@@ -385,14 +385,3 @@ export async function mergeFromDrive() {
 }
 
 // Google APIs are initialized from app.js init() when client ID is present
-
-// Hook para sincronizar automaticamente quando salva localmente (se estiver conectado)
-document.addEventListener('stateSaved', () => {
-    if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId) {
-        // Debounce para a sincronização na nuvem não ficar sobrecarregada
-        if (window.driveSyncTimeout) clearTimeout(window.driveSyncTimeout);
-        window.driveSyncTimeout = setTimeout(() => {
-            SyncQueue.add(() => syncWithDrive());
-        }, 10000); // 10s debounce para Drive Sync
-    }
-});

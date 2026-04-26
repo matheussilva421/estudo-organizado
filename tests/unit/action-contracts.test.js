@@ -124,17 +124,17 @@ describe('data-action contracts', () => {
     const mainSource = read('src/js/main.js');
     const viewsSource = read('src/js/views.js');
     const calendarSource = read('src/js/views/calendar-view.js');
-    const calendarModule = await import('../../src/js/views/calendar-view.js?v=8.19');
+    const calendarModule = await import('../../src/js/views/calendar-view.js?v=8.20');
 
-    expect(componentsSource).toContain("from './views/calendar-view.js?v=8.19'");
-    expect(mainSource).toContain("import * as calendar_view from './views/calendar-view.js?v=8.19';");
+    expect(componentsSource).toContain("from './views/calendar-view.js?v=8.20'");
+    expect(mainSource).toContain("import * as calendar_view from './views/calendar-view.js?v=8.20';");
     expect(mainSource).toMatch(/exposedModules\s*=\s*\[[^\]]*calendar_view[^\]]*\]/s);
     expect(viewsSource).not.toMatch(/export function (renderCalendar|calNavigate|resetCalDate|renderCalendarGrid|renderCalendarWeek|updateCalendarHeader)\s*\(/);
     expect(calendarModule.renderCalendar).toBeTypeOf('function');
     expect(calendarModule.calNavigate).toBeTypeOf('function');
     expect(calendarModule.resetCalDate).toBeTypeOf('function');
     expect(calendarModule.setCalViewMode).toBeTypeOf('function');
-    expect(calendarSource).toContain("import { esc, getEventStatus, todayStr } from '../utils.js?v=8.19';");
+    expect(calendarSource).toContain("import { esc, getEventStatus, todayStr } from '../utils.js?v=8.20';");
     expect(calendarSource).toContain('role="tablist"');
     expect(calendarSource).toMatch(/<button[^>]*type=["']button["'][^>]*class=["']cal-view-tab/);
   });
@@ -145,12 +145,12 @@ describe('data-action contracts', () => {
     const registroSource = read('src/js/registro-sessao.js');
 
     expect(viewsSource).toMatch(/export function debouncedOnSearch\s*\(/);
-    expect(viewsSource).toMatch(/import\s+\{[^}]*HABIT_TYPES[^}]*\}\s+from\s+['"]\.\/utils\.js\?v=8\.19['"]/s);
+    expect(viewsSource).toMatch(/import\s+\{[^}]*HABIT_TYPES[^}]*\}\s+from\s+['"]\.\/utils\.js\?v=8\.20['"]/s);
 
     expect(wizardSource).toMatch(/export function pwSelectTipo\s*\(/);
 
     expect(registroSource).toMatch(/export function discardTimerUI\s*\(/);
-    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.19['"]/s);
+    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.20['"]/s);
   });
 
   it('exports discipline manager action targets instead of relying on Proxy fallback', () => {
@@ -213,7 +213,7 @@ describe('data-action contracts', () => {
   it('imports the cache invalidators used by revision action handlers', () => {
     const viewsSource = read('src/js/views.js');
 
-    expect(viewsSource).toMatch(/import\s+\{[^}]*invalidatePendingRevCache[^}]*\}\s+from\s+['"]\.\/logic\.js\?v=8\.19['"]/s);
+    expect(viewsSource).toMatch(/import\s+\{[^}]*invalidatePendingRevCache[^}]*\}\s+from\s+['"]\.\/logic\.js\?v=8\.20['"]/s);
     expect(viewsSource).toContain('invalidatePendingRevCache();');
   });
 
@@ -271,7 +271,7 @@ describe('data-action contracts', () => {
   it('imports immediate persistence before saving detailed study sessions', () => {
     const registroSource = read('src/js/registro-sessao.js');
 
-    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.19['"]/s);
+    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.20['"]/s);
     expect(registroSource).toContain('saveStateToDB().then');
   });
 
@@ -342,7 +342,7 @@ describe('data-action contracts', () => {
   it('removes isolated credentials when clearing all app data', () => {
     const storeSource = read('src/js/store.js');
 
-    expect(storeSource).toContain("from './credentials.js?v=8.19';");
+    expect(storeSource).toContain("from './credentials.js?v=8.20';");
     expect(storeSource).toMatch(/clearData[\s\S]*clearAllCredentials\(\)/);
   });
 });

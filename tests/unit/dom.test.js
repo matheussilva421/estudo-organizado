@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { qsa } from '../../src/js/ui/dom.js?v=8.19';
+import { qsa } from '../../src/js/ui/dom.js?v=8.20';
 
 describe('ui/dom.js', () => {
   it('qsa falls back to the raw selector when normalized ID lookup is empty', () => {

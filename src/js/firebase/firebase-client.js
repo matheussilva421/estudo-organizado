@@ -11,8 +11,8 @@ import {
   persistentMultipleTabManager,
   initializeAppCheck,
   ReCaptchaV3Provider
-} from '../../vendor/firebase-client.bundle.js?v=8.19';
-import { getRuntimeAppCheckSiteKey, getRuntimeFirebaseConfig } from './firebase-config.js?v=8.19';
+} from '../../vendor/firebase-client.bundle.js?v=8.20';
+import { getRuntimeAppCheckSiteKey, getRuntimeFirebaseConfig } from './firebase-config.js?v=8.20';
 
 let services = null;
 

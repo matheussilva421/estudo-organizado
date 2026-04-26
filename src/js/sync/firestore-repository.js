@@ -3,8 +3,8 @@ import {
   getDoc,
   serverTimestamp,
   setDoc
-} from '../../vendor/firebase-client.bundle.js?v=8.19';
-import { FIRESTORE_SNAPSHOT_DOC_ID, getEnvelopeUpdatedAt } from './firestore-schema.js?v=8.19';
+} from '../../vendor/firebase-client.bundle.js?v=8.20';
+import { FIRESTORE_SNAPSHOT_DOC_ID, getEnvelopeUpdatedAt } from './firestore-schema.js?v=8.20';
 
 function snapshotRef(db, uid) {
   return doc(db, 'users', uid, 'snapshots', FIRESTORE_SNAPSHOT_DOC_ID);

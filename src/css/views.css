@@ -2391,6 +2391,10 @@
 }
 
 .sync-source-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   color: var(--text-primary);
   font-weight: 800;
 }
@@ -2410,7 +2414,13 @@
 }
 
 .sync-source-meta {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sync-source-meta strong {
+  display: block;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .sync-health {

@@ -1,9 +1,8 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { pushToCloudflare } from './cloud-sync.js?v=8.19';
-import { uid } from './utils.js?v=8.19';
-import * as credentialsStore from './credentials.js?v=8.19';
+import { uid } from './utils.js?v=8.20';
+import * as credentialsStore from './credentials.js?v=8.20';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 2;
@@ -332,15 +331,6 @@ export const SyncQueue = {
 };
 
 let _invalidateTimeout = null;
-let _syncInitiatedSave = false;
-
-export function withSyncSave(fn) {
-  return async (...args) => {
-    _syncInitiatedSave = true;
-    try { return await fn(...args); }
-    finally { _syncInitiatedSave = false; }
-  };
-}
 
 /**
  * Agenda salvamento do estado com debounce de 800ms
@@ -401,31 +391,10 @@ export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false, 
     const request = store.put(state, 'main_state');
 
     request.onsuccess = () => {
-      // Sync-initiated saves suppress all cascade behavior
-      if (!skipDriveSync && !_syncInitiatedSave) {
-        document.dispatchEvent(new Event('stateSaved'));
-      }
+      document.dispatchEvent(new CustomEvent('stateSaved', {
+        detail: { skipCloudSync, skipFirestoreSync, skipDriveSync }
+      }));
       emitSaveStatus('saved');
-
-      if (!_syncInitiatedSave) {
-        // Cascata de Sincronização: Local -> Cloudflare
-        if (!skipCloudSync && state.config && state.config.cfSyncEnabled) {
-          SyncQueue.add(() => pushToCloudflare()).catch(err => {
-            console.error('Cloud sync failed after save:', err);
-          });
-        }
-
-        if (!skipFirestoreSync && state.config?.firestoreSync?.enabled) {
-          SyncQueue.add(async () => {
-            const sync = await import('./sync/firestore-sync-engine.js?v=8.19');
-            const queued = await sync.queueFirestoreSnapshotFromState(state);
-            if (queued) await sync.flushFirestoreOutbox();
-          }).catch(err => {
-            console.error('Firestore sync failed after save:', err);
-          });
-        }
-      }
-
       resolve();
     };
     request.onerror = (e) => {
