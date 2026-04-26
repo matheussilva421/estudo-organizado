@@ -1,19 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBaseState, createEvento } from '../helpers/state-builders.js';
 
-vi.mock('../../src/js/store.js?v=8.22', () => ({
+vi.mock('../../src/js/store.js?v=8.23', () => ({
   DEFAULT_SCHEMA_VERSION: 7,
   createExportableState(sourceState) {
     const clone = JSON.parse(JSON.stringify(sourceState));
     if (!clone.config) clone.config = {};
     delete clone.config.cfToken;
     delete clone.config.cfUrl;
+    delete clone.config.localBackupAt;
     clone.config.cfSyncEnabled = false;
     return clone;
   }
 }));
 
-const schema = await import('../../src/js/sync/firestore-schema.js?v=8.22');
+const schema = await import('../../src/js/sync/firestore-schema.js?v=8.23');
 
 describe('firestore-schema.js', () => {
   it('creates a versioned snapshot envelope without sync secrets', () => {
@@ -74,5 +75,6 @@ describe('firestore-schema.js', () => {
       remoteUpdatedAt: '2026-04-21T12:00:00.000Z',
       hasPendingWrites: false
     });
+    expect(nextState.config.localBackupAt).toBe('2026-04-21T12:00:00.000Z');
   });
 });

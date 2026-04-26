@@ -1,11 +1,11 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { uid } from './utils.js?v=8.22';
-import * as credentialsStore from './credentials.js?v=8.22';
+import { uid } from './utils.js?v=8.23';
+import * as credentialsStore from './credentials.js?v=8.23';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 export const STORE_NAME = 'app_state';
 export const FIRESTORE_OUTBOX_STORE = 'firestore_outbox';
 export const FIRESTORE_META_STORE = 'firestore_meta';
@@ -374,7 +374,7 @@ export function scheduleSave() {
  * @param {boolean} [skipCloudSync=false] - Se true, não sincroniza com Cloudflare
  * @returns {Promise<void>}
  */
-export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false, skipDriveSync = false) {
+export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false, skipDriveSync = false, options = {}) {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
     saveTimeout = null;
@@ -382,8 +382,11 @@ export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false, 
   if (!db) return Promise.resolve();
   emitSaveStatus('saving');
 
+  const saveOptions = options && typeof options === 'object' ? options : {};
   if (!state.config) state.config = {};
-  state.config.localBackupAt = new Date().toISOString();
+  if (saveOptions.touchLocalBackup !== false) {
+    state.config.localBackupAt = new Date().toISOString();
+  }
 
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');

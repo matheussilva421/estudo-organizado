@@ -5,7 +5,7 @@ describe('credentials.js', () => {
     vi.resetModules();
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await import('../../src/js/credentials.js?v=8.22');
+    await import('../../src/js/credentials.js?v=8.23');
 
     expect(errorSpy).not.toHaveBeenCalled();
     errorSpy.mockRestore();

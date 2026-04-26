@@ -36,7 +36,7 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.22'");
+    expect(swSource).toContain("APP_VERSION = '8.23'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
@@ -78,6 +78,27 @@ describe('Firestore integration contracts', () => {
     expect(queueBody).toContain('createFirestoreSnapshotEnvelope(sourceState, options)');
     expect(syncBody).toContain('const remote = await readFirestoreSnapshot(db, uid);');
     expect(syncBody).toContain('baseRemoteUpdatedAt: remoteUpdatedAt || config.remoteUpdatedAt || null');
+  });
+
+  it('persists sync metadata without creating a new local data revision', () => {
+    const storeSource = read('src/js/store.js');
+    const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
+    const cloudflareSource = read('src/js/cloud-sync.js');
+    const driveSource = read('src/js/drive-sync.js');
+
+    expect(storeSource).toContain('touchLocalBackup');
+    expect(firestoreSource).toContain('saveStateToDB(true, true, true, { touchLocalBackup: false })');
+    expect(cloudflareSource).toContain('saveStateToDB(true, true, true, { touchLocalBackup: false })');
+    expect(driveSource).toContain('saveStateToDB(true, true, true, { touchLocalBackup: false })');
+  });
+
+  it('clears stale Firestore pending state when there is no queued snapshot', () => {
+    const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
+    const flushBody = firestoreSource.match(/export async function flushFirestoreOutbox[\s\S]*?export async function pullFromFirestore/)?.[0] || '';
+
+    expect(flushBody).toContain('if (!pending)');
+    expect(flushBody).toContain('config.hasPendingWrites = false');
+    expect(flushBody).toContain('emitStatus(\'synced\'');
   });
 
   it('allows the Firebase Auth and Firestore network surfaces in CSP', () => {

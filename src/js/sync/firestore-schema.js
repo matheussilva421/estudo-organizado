@@ -1,4 +1,4 @@
-import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.22';
+import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.23';
 
 export const FIRESTORE_SYNC_VERSION = 1;
 export const FIRESTORE_SNAPSHOT_DOC_ID = 'main';
@@ -93,11 +93,15 @@ export function applyEnvelopeToLocalState(envelope, previousSyncConfig = {}) {
   }
   const nextState = createExportableState(envelope.payload);
   if (!nextState.config) nextState.config = {};
+  const remoteUpdatedAt = getEnvelopeUpdatedAt(envelope);
+  if (remoteUpdatedAt) {
+    nextState.config.localBackupAt = remoteUpdatedAt;
+  }
   nextState.config.firestoreSync = createDefaultFirestoreSyncConfig({
     ...previousSyncConfig,
     enabled: true,
     mode: previousSyncConfig.mode || 'shadow',
-    remoteUpdatedAt: getEnvelopeUpdatedAt(envelope),
+    remoteUpdatedAt,
     lastPullAt: new Date().toISOString(),
     hasPendingWrites: false,
     conflict: null,

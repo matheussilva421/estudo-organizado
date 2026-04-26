@@ -1,8 +1,8 @@
-import { closeModal, showConfirm, showToast } from './app.js?v=8.22';
-import { createExportableState, runMigrations, saveStateToDB, scheduleSave, state, setState } from './store.js?v=8.22';
-import { renderCurrentView } from './components.js?v=8.22';
-import { setCredential, getCredential } from './credentials.js?v=8.22';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.22';
+import { closeModal, showConfirm, showToast } from './app.js?v=8.23';
+import { createExportableState, runMigrations, saveStateToDB, scheduleSave, state, setState } from './store.js?v=8.23';
+import { renderCurrentView } from './components.js?v=8.23';
+import { setCredential, getCredential } from './credentials.js?v=8.23';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.23';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE
@@ -207,7 +207,7 @@ export async function syncWithDrive(isRecursion = false) {
                     showConfirm('Encontrada versão mais recente no Drive. Deseja sobrescrever os dados locais?', () => {
                         setState(driveData);
                         runMigrations();
-                        saveStateToDB(true, true, true).then(() => {
+                        saveStateToDB(true, true, true, { touchLocalBackup: false }).then(() => {
                             renderCurrentView();
                             showToast('Dados atualizados do Drive!', 'success');
                             updateDriveUI('connected', 'Google Drive');
@@ -235,7 +235,7 @@ export async function syncWithDrive(isRecursion = false) {
                 console.warn('Não foi possível ler do Drive, sobrescrevendo arquivo.', e);
                 if (e.status === 404 || e.result?.error?.code === 404) {
                     state.driveFileId = null;
-                    return saveStateToDB(true, true, true).then(() => {
+                    return saveStateToDB(true, true, true, { touchLocalBackup: false }).then(() => {
                         return syncWithDrive(true); // recursão com flag para não liberar lock duplamente
                     });
                 }
@@ -272,7 +272,7 @@ export async function syncWithDrive(isRecursion = false) {
 
             // Only update lastSync AFTER successful upload
             state.lastSync = new Date().toISOString();
-            await saveStateToDB(true, true, true);
+            await saveStateToDB(true, true, true, { touchLocalBackup: false });
             showToast('Sincronizado com sucesso!', 'success');
         } else {
             // Cria um novo arquivo
@@ -309,7 +309,7 @@ export async function syncWithDrive(isRecursion = false) {
 
             // Only update lastSync AFTER successful upload
             state.lastSync = new Date().toISOString();
-            await saveStateToDB(true, true, true);
+            await saveStateToDB(true, true, true, { touchLocalBackup: false });
             showToast('Backup criado no Drive!', 'success');
         }
         updateDriveUI('connected', 'Google Drive');
@@ -341,7 +341,7 @@ export async function pullFromDrive() {
         }
         setState(driveData);
         runMigrations();
-        await saveStateToDB(true, true, true);
+        await saveStateToDB(true, true, true, { touchLocalBackup: false });
         renderCurrentView();
         updateDriveUI('connected', 'Google Drive');
         showToast('Dados importados do Drive com sucesso!', 'success');

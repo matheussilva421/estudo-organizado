@@ -1,6 +1,6 @@
-import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.22';
-import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.22';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.22';
+import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.23';
+import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.23';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.23';
 
 let isSyncing = false;
 let _lastPushTime = 0;
@@ -158,7 +158,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
                 if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
                 delete state.config.cfConflict;
             }
-            saveStateToDB(true, true, true);
+            saveStateToDB(true, true, true, { touchLocalBackup: false });
             document.dispatchEvent(new Event('app:invalidateCaches'));
             document.dispatchEvent(new Event('app:renderCurrentView'));
             document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Sincronizado via Nuvem (Cloudflare)', type: 'success' } }));
@@ -172,7 +172,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
         if (!state.config) state.config = {};
         if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
         state.config.cfLastSyncAt = new Date(syncTs).toISOString();
-        saveStateToDB(true, true, true);
+        saveStateToDB(true, true, true, { touchLocalBackup: false });
         const lastStr = new Date(syncTs).toLocaleString('pt-BR');
         updateSyncStatus(`Sincronizado em ${lastStr}`);
         return true;
@@ -277,7 +277,7 @@ export async function pushToCloudflare(forceOverwrite = false) {
         state.config.cfLastSyncAt = new Date(pushTimestamp).toISOString();
         state.config.cfRemoteUpdatedAt = responseData?.meta?.updatedAt || envelope.payloadUpdatedAt;
         delete state.config.cfConflict;
-        saveStateToDB(true, true, true);
+        saveStateToDB(true, true, true, { touchLocalBackup: false });
         const lastStr = new Date(pushTimestamp).toLocaleString('pt-BR');
         updateSyncStatus(`Nuvem atualizada em ${lastStr}`);
         console.log('Cloudflare Sync OK');

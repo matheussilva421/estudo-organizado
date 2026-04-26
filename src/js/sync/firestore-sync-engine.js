@@ -1,12 +1,12 @@
-import { completeGoogleRedirectSignIn, getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.22';
-import { saveStateToDB, setState, state } from '../store.js?v=8.22';
+import { completeGoogleRedirectSignIn, getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.23';
+import { saveStateToDB, setState, state } from '../store.js?v=8.23';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer
-} from './firestore-schema.js?v=8.22';
+} from './firestore-schema.js?v=8.23';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -15,9 +15,9 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta
-} from './firestore-outbox.js?v=8.22';
-import { readFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.22';
-import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.22';
+} from './firestore-outbox.js?v=8.23';
+import { readFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.23';
+import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.23';
 
 let currentUser = null;
 let authUnsubscribe = null;
@@ -45,7 +45,7 @@ function emitStatus(status, detail = {}) {
 }
 
 async function persistSyncConfig(skipRender = true) {
-  await saveStateToDB(true, true, true);
+  await saveStateToDB(true, true, true, { touchLocalBackup: false });
   if (!skipRender) document.dispatchEvent(new Event('app:renderCurrentView'));
 }
 
@@ -159,6 +159,11 @@ export async function queueFirestoreSnapshotFromState(sourceState = state, optio
     config.hasPendingWrites = true;
     config.lastError = null;
     emitStatus('pending');
+  } else {
+    config.hasPendingWrites = false;
+    config.lastError = 'Armazenamento local do Firestore indisponivel. Recarregue a pagina para migrar o banco local.';
+    await persistSyncConfig(false);
+    emitStatus('error', { error: config.lastError });
   }
   return queued;
 }
@@ -252,7 +257,8 @@ export async function pullFromFirestore(forceOverwrite = false) {
     const { db, uid } = requireSignedInServices();
     const remote = await readFirestoreSnapshot(db, uid);
     if (!remote) {
-      await queueFirestoreSnapshotFromState(state, { manual: true });
+      const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+      if (!queued) return false;
       return await flushFirestoreOutbox({ manual: true });
     }
 
@@ -268,7 +274,7 @@ export async function pullFromFirestore(forceOverwrite = false) {
       await clearFirestoreConflict();
       await markFirestoreSnapshotSynced();
       await saveFirestoreMeta({ uid, remoteUpdatedAt: getEnvelopeUpdatedAt(remote), lastPullAt: new Date().toISOString() });
-      await saveStateToDB(true, true, true);
+      await saveStateToDB(true, true, true, { touchLocalBackup: false });
       document.dispatchEvent(new Event('app:renderCurrentView'));
     }
 
@@ -292,7 +298,8 @@ export async function pullFromFirestore(forceOverwrite = false) {
 }
 
 export async function forcePushFirestore() {
-  await queueFirestoreSnapshotFromState(state, { manual: true });
+  const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+  if (!queued) return false;
   return await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
 }
 
@@ -317,10 +324,11 @@ export async function syncFirestoreNow() {
     await persistSyncConfig(true);
   }
 
-  await queueFirestoreSnapshotFromState(state, {
+  const queued = await queueFirestoreSnapshotFromState(state, {
     manual: true,
     baseRemoteUpdatedAt: remoteUpdatedAt || config.remoteUpdatedAt || null
   });
+  if (!queued) return false;
   return await flushFirestoreOutbox({ manual: true });
 }
 
@@ -351,7 +359,8 @@ export async function mergeFromFirestore() {
 
     await clearFirestoreConflict();
     await saveStateToDB(true, true, true);
-    await queueFirestoreSnapshotFromState(state, { manual: true });
+    const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+    if (!queued) return false;
     const ok = await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
     document.dispatchEvent(new Event('app:renderCurrentView'));
     document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Firestore mesclado com os dados locais.', type: 'success' } }));
