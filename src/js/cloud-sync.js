@@ -158,7 +158,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
                 if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
                 delete state.config.cfConflict;
             }
-            saveStateToDB(true);
+            saveStateToDB(true, true, true);
             document.dispatchEvent(new Event('app:invalidateCaches'));
             document.dispatchEvent(new Event('app:renderCurrentView'));
             document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Sincronizado via Nuvem (Cloudflare)', type: 'success' } }));
@@ -202,7 +202,7 @@ export async function mergeFromCloudflare() {
         if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
         delete state.config.cfConflict;
 
-        await saveStateToDB(true, false, false);
+        await saveStateToDB(true, true, true);
         await pushToCloudflare(true);
         document.dispatchEvent(new Event('app:invalidateCaches'));
         document.dispatchEvent(new Event('app:renderCurrentView'));

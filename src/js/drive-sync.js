@@ -207,7 +207,7 @@ export async function syncWithDrive(isRecursion = false) {
                     showConfirm('Encontrada versão mais recente no Drive. Deseja sobrescrever os dados locais?', () => {
                         setState(driveData);
                         runMigrations();
-                        saveStateToDB(false, false, true).then(() => {
+                        saveStateToDB(true, true, true).then(() => {
                             renderCurrentView();
                             showToast('Dados atualizados do Drive!', 'success');
                             updateDriveUI('connected', 'Google Drive');
@@ -341,7 +341,7 @@ export async function pullFromDrive() {
         }
         setState(driveData);
         runMigrations();
-        await saveStateToDB(false, false, true);
+        await saveStateToDB(true, true, true);
         renderCurrentView();
         updateDriveUI('connected', 'Google Drive');
         showToast('Dados importados do Drive com sucesso!', 'success');
@@ -370,7 +370,7 @@ export async function mergeFromDrive() {
         }
         setState(mergeStudyStates(state, driveData));
         runMigrations();
-        await saveStateToDB(true, false, false);
+        await saveStateToDB(true, true, true);
         await syncWithDrive();
         renderCurrentView();
         updateDriveUI('connected', 'Google Drive');
