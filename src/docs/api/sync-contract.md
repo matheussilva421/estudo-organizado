@@ -4,6 +4,50 @@
 
 Sync is snapshot-based: the entire app state is pushed/pulled as a single blob. Conflict safety is handled by a versioned envelope around that blob.
 
+Firestore is now the preferred remote channel when configured. Cloudflare remains supported as a secondary/legacy channel with the same conservative overwrite principles.
+
+## Firestore Snapshot
+
+Firestore stores one versioned snapshot per authenticated user:
+
+```text
+users/{uid}/snapshots/main
+```
+
+Envelope:
+
+```json
+{
+  "version": 1,
+  "schemaVersion": 7,
+  "deviceId": "web-abc123",
+  "baseRemoteUpdatedAt": "2026-04-21T10:00:00.000Z",
+  "payloadUpdatedAt": "2026-04-21T11:00:00.000Z",
+  "sentAt": "2026-04-21T11:00:01.000Z",
+  "payload": {
+    "schemaVersion": 7,
+    "editais": [],
+    "eventos": []
+  },
+  "updatedAt": "2026-04-21T11:00:00.000Z"
+}
+```
+
+Write rules:
+
+- user must be authenticated with Firebase Auth
+- document path must match `users/{request.auth.uid}/snapshots/main`
+- physical deletes are denied
+- local save commits to IndexedDB first
+- Firestore writes are queued in `firestore_outbox`
+- stale remote snapshots create a conflict instead of overwriting automatically
+
+Conflict UX:
+
+- export local JSON before destructive resolution
+- pull Firestore to replace local data
+- force local push to replace Firestore snapshot
+
 ## Cloudflare Envelope
 
 ```json

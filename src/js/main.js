@@ -1,26 +1,27 @@
 // ES Module Entry Point
 // Imports all modules and exposes functions via window.EstudoApp namespace
 
-import * as store from './store.js?v=8.17';
-import * as app from './app.js?v=8.17';
-import * as logic from './logic.js?v=8.17';
-import * as components from './components.js?v=8.17';
-import * as views from './views.js?v=8.17';
-import * as calendar_view from './views/calendar-view.js?v=8.17';
-import * as drive_sync from './drive-sync.js?v=8.17';
-import * as cloud_sync from './cloud-sync.js?v=8.17';
-import * as registro from './registro-sessao.js?v=8.17';
-import * as utils from './utils.js?v=8.17';
-import * as wizard from './planejamento-wizard.js?v=8.17';
+import * as store from './store.js?v=8.18';
+import * as app from './app.js?v=8.18';
+import * as logic from './logic.js?v=8.18';
+import * as components from './components.js?v=8.18';
+import * as views from './views.js?v=8.18';
+import * as calendar_view from './views/calendar-view.js?v=8.18';
+import * as drive_sync from './drive-sync.js?v=8.18';
+import * as cloud_sync from './cloud-sync.js?v=8.18';
+import * as registro from './registro-sessao.js?v=8.18';
+import * as utils from './utils.js?v=8.18';
+import * as wizard from './planejamento-wizard.js?v=8.18';
 
-import * as relevance from './relevance.js?v=8.17';
-import * as lesson_mapper from './lesson-mapper.js?v=8.17';
+import * as relevance from './relevance.js?v=8.18';
+import * as lesson_mapper from './lesson-mapper.js?v=8.18';
+import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.18';
 
 // Import UI helpers and action dispatcher
-import { setupActionDispatcher } from './ui/actions/index.js?v=8.17';
-import { qs, qsa } from './ui/dom.js?v=8.17';
-import { initModals, announce } from './ui/dialog.js?v=8.17';
-import { addCleanupListener } from './utils.js?v=8.17';
+import { setupActionDispatcher } from './ui/actions/index.js?v=8.18';
+import { qs, qsa } from './ui/dom.js?v=8.18';
+import { initModals, announce } from './ui/dialog.js?v=8.18';
+import { addCleanupListener } from './utils.js?v=8.18';
 
 // Expose UI helpers to window for gradual migration
 window.qs = qs;
@@ -29,7 +30,7 @@ window.announce = announce;
 
 // Create namespace for all exports (prevents global pollution)
 window.EstudoApp = {};
-const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper];
+const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper, firestore_sync];
 
 for (const mod of exposedModules) {
   for (const key of Object.keys(mod)) {
@@ -111,6 +112,11 @@ addCleanupListener(document, 'app:showToast', (e) => {
 });
 addCleanupListener(document, 'app:showConfirm', (e) => {
   if (typeof window.EstudoApp?.showConfirm === 'function') window.EstudoApp.showConfirm(e.detail.msg, e.detail.onYes, e.detail.opts);
+});
+addCleanupListener(document, 'app:firestoreSyncStatus', () => {
+  if (typeof window.EstudoApp?.renderCurrentView === 'function' && window.EstudoApp?.currentView === 'config') {
+    window.EstudoApp.renderCurrentView();
+  }
 });
 addCleanupListener(document, 'app:invalidateCaches', () => {
   if (typeof window.EstudoApp?.invalidateDiscCache === 'function') window.EstudoApp.invalidateDiscCache();

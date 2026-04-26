@@ -1,9 +1,9 @@
-import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.17';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.17';
-import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.17';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.17';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.17';
-import { updateDriveUI } from './drive-sync.js?v=8.17';
+import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.18';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.18';
+import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.18';
+import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.18';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.18';
+import { updateDriveUI } from './drive-sync.js?v=8.18';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
@@ -2297,7 +2297,7 @@ export function deleteAula(discId, aulaId) {
 }
 window.deleteAula = deleteAula;
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.17';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.18';
 export function runLessonMapperUI(editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -2704,6 +2704,101 @@ function renderCloudflareConflict(conflict) {
   `;
 }
 
+function renderFirestoreConflict(conflict) {
+  if (!conflict) return '';
+
+  return `
+    <div class="sync-conflict-panel" data-testid="firestore-sync-conflict" role="alert">
+      <div class="sync-conflict-header">
+        <i class="fa fa-triangle-exclamation"></i>
+        <div>
+          <div class="sync-conflict-title">Conflito Firestore</div>
+          <div class="sync-conflict-sub">Existe um snapshot remoto diferente do snapshot local pendente.</div>
+        </div>
+      </div>
+      <div class="sync-conflict-meta">
+        <span>Remoto: ${formatBackupDateTime(conflict.remoteUpdatedAt)}</span>
+        <span>Local: ${formatBackupDateTime(conflict.localUpdatedAt)}</span>
+        <span>Detectado: ${formatBackupDateTime(conflict.detectedAt)}</span>
+      </div>
+      <div class="sync-conflict-actions">
+        <button type="button" class="btn btn-outline btn-sm" data-action="firestore-export-local">
+          <i class="fa fa-download"></i> Exportar backup local
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" data-action="firestore-pull-remote">
+          <i class="fa fa-cloud-download-alt"></i> Baixar Firestore
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push">
+          <i class="fa fa-cloud-upload-alt"></i> Forcar envio local
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderFirestoreCard() {
+  const status = window.EstudoApp?.getFirestoreSyncStatus?.() || {
+    configured: false,
+    signedIn: false,
+    enabled: false,
+    mode: 'shadow',
+    hasPendingWrites: false,
+    conflict: null
+  };
+  const configuredText = status.configured ? `Projeto: ${esc(status.projectId || status.uid || 'configurado')}` : 'Configure o Firebase antes de ativar.';
+  const statusText = !status.configured
+    ? 'Nao configurado'
+    : status.signedIn
+      ? status.hasPendingWrites
+        ? 'Alteracoes pendentes'
+        : 'Pronto'
+      : 'Aguardando login Google';
+  const statusDetail = status.lastError
+    ? `Erro: ${esc(status.lastError)}`
+    : status.signedIn
+      ? `Modo ${status.mode}; ultimo push ${formatBackupDateTime(status.lastPushAt)}`
+      : configuredText;
+
+  return `
+    <div class="card config-card">
+      <div class="card-header"><h3><i class="fa fa-database"></i> Firestore (Primario)</h3></div>
+      <div class="card-body">
+        <div class="config-desc">Sincronizacao local-first com login Google. IndexedDB continua como recuperacao local; Cloudflare e Drive seguem como backups secundarios.</div>
+
+        ${renderFirestoreConflict(status.conflict)}
+
+        <div class="config-row">
+          <div>
+            <div class="config-label">${statusText}</div>
+            <div class="config-sub">${statusDetail}</div>
+          </div>
+          <span class="badge ${status.enabled ? 'badge-success' : 'badge-muted'}">${status.enabled ? 'Ativo' : 'Inativo'}</span>
+        </div>
+
+        <div class="grid config-backup-grid">
+          <div class="flex flex-between"><span>Firestore remoto:</span><strong>${formatBackupDateTime(status.remoteUpdatedAt)}</strong></div>
+          <div class="flex flex-between"><span>Ultimo pull:</span><strong>${formatBackupDateTime(status.lastPullAt)}</strong></div>
+          <div class="flex flex-between"><span>Ultimo push:</span><strong>${formatBackupDateTime(status.lastPushAt)}</strong></div>
+        </div>
+
+        <div class="config-actions-row">
+          ${status.signedIn ? `
+            <button class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>
+          ` : `
+            <button class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar com Google</button>
+          `}
+          ${status.enabled ? `
+            <button class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>
+            <button class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Desativar</button>
+          ` : `
+            <button class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Ativar shadow</button>
+          `}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 export function renderConfig(el) {
   const cfg = state.config;
   const saveStatus = getLastSaveStatus();
@@ -2821,8 +2916,10 @@ export function renderConfig(el) {
       </div>
 
       <div>
+        ${renderFirestoreCard()}
+
         <div class="card config-card">
-          <div class="card-header"><h3><i class="fa fa-cloud"></i> Sincronização Cloudflare (Primária)</h3></div>
+          <div class="card-header"><h3><i class="fa fa-cloud"></i> Sincronização Cloudflare (Secundária)</h3></div>
           <div class="card-body">
             <div class="config-desc">Sincronização em tempo real de baixíssima latência entre dispositivos via Cloudflare KV.</div>
 
@@ -2926,6 +3023,7 @@ export function renderConfig(el) {
 
             <div class="grid config-backup-grid">
               <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
+              <div class="flex flex-between"><span>Backup Firestore:</span><strong>${formatBackupDateTime(state.config.firestoreSync?.remoteUpdatedAt)}</strong></div>
               <div class="flex flex-between"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
               <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>
             </div>
@@ -2934,6 +3032,7 @@ export function renderConfig(el) {
               <label class="form-label">Origem do backup para restauração</label>
               <select id="backup-restore-source" class="form-control">
                 <option value="local">Backup local (importar arquivo JSON)</option>
+                <option value="firestore">Firestore</option>
                 <option value="cloudflare">Cloudflare</option>
                 <option value="drive">Google Drive</option>
               </select>
@@ -3180,6 +3279,24 @@ export function restoreBackupFromSelectedSource() {
 
   if (source === 'local') {
     importData();
+    return;
+  }
+
+  if (source === 'firestore') {
+    if (!state.config?.firestoreSync?.enabled) {
+      showToast('Ative o Firestore e entre com Google antes de restaurar por ele.', 'error');
+      return;
+    }
+
+    showConfirm(
+      'Restaurar os dados do Firestore? Isso substituirá os dados locais atuais.',
+      () => {
+        if (typeof window.EstudoApp?.pullFromFirestore === 'function') {
+          window.EstudoApp.pullFromFirestore(true);
+        }
+      },
+      { label: 'Restaurar Firestore', title: 'Restaurar backup' }
+    );
     return;
   }
 

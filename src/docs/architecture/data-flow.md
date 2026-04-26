@@ -13,7 +13,7 @@ Usuário interage com a UI
   -> `scheduleSave()` agenda persistência
   -> `store.js` salva no IndexedDB
   -> eventos do documento invalidam caches e atualizam a UI
-  -> sync opcional pode enviar snapshot para Cloudflare
+  -> sync opcional pode enviar snapshot para Firestore ou Cloudflare
 ```
 
 ## Entrada de dados
@@ -83,6 +83,37 @@ Esse modelo funciona, mas hoje mistura coordenação legítima com bridge de com
 
 ## Sync Cloudflare
 
+Cloudflare permanece como canal secundÃ¡rio/legado. O caminho remoto principal novo Ã© Firestore, mas o app preserva a semÃ¢ntica local-first: salvar localmente primeiro, depois sincronizar.
+
+## Sync Firestore
+
+Fluxo atual:
+
+```text
+Save local concluÃ­do
+  -> se Firestore estiver ativo
+  -> `store.js` cria snapshot versionado
+  -> `firestore_outbox` guarda o snapshot pendente
+  -> `firestore-sync-engine.js` envia para `users/{uid}/snapshots/main`
+```
+
+Pull:
+
+```text
+Login Google ou aÃ§Ã£o manual
+  -> `pullFromFirestore()`
+  -> compara snapshot remoto com pendÃªncias locais
+  -> aplica remoto apenas em restauraÃ§Ã£o explÃ­cita ou quando for seguro
+  -> conflitos ficam em `firestore_conflicts`
+```
+
+Status:
+
+- `config.firestoreSync.hasPendingWrites`
+- `config.firestoreSync.remoteUpdatedAt`
+- `config.firestoreSync.conflict`
+- eventos `app:firestoreSyncStatus` e `app:firestoreConflictDetected`
+
 Fluxo atual:
 
 ```text
@@ -132,4 +163,3 @@ UI sem handlers inline
   -> sync opcional via contrato versionado
   -> UI reativa por eventos explícitos e helpers de renderização mais seguros
 ```
-

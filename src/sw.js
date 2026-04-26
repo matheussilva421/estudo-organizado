@@ -1,4 +1,4 @@
-const APP_VERSION = '8.17';
+const APP_VERSION = '8.18';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -14,6 +14,8 @@ const ASSET_PATHS = [
     './js/components.js',
     './js/credentials.js',
     './js/drive-sync.js',
+    './js/firebase/firebase-client.js',
+    './js/firebase/firebase-config.js',
     './js/lesson-mapper.js',
     './js/logic.js',
     './js/main.js',
@@ -23,6 +25,10 @@ const ASSET_PATHS = [
     './js/relevance.js',
     './js/sw-register.js',
     './js/store.js',
+    './js/sync/firestore-outbox.js',
+    './js/sync/firestore-repository.js',
+    './js/sync/firestore-schema.js',
+    './js/sync/firestore-sync-engine.js',
     './js/utils.js',
     './js/views.js',
     './js/ui/actions/index.js',
@@ -36,6 +42,7 @@ const ASSET_PATHS = [
     './js/views/habitos-view.js',
     './js/views/ciclo-view.js',
     './vendor/chart.umd.min.js',
+    './vendor/firebase-client.bundle.js',
     './assets/icons/icon-192.svg',
     './assets/icons/icon-512.svg',
     './assets/icons/icon-maskable-512.svg',

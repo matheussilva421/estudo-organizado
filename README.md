@@ -128,7 +128,8 @@ Aplicação web premium para **planejamento e organização de estudos** voltada
 - **Frequência de revisão** personalizável (4 intervalos)
 - **Pomodoro**: tempo de foco e pausa configuráveis
 - **Horário silencioso** para notificações (padrão 22h–08h)
-- **Cloudflare Sync** — URL e token para sincronização multi-dispositivo
+- **Firestore Sync** — login Google e snapshot remoto local-first
+- **Cloudflare Sync** — canal secundário via URL e token
 - **Google Drive** — OAuth 2.0 com backup automático
 - **Exportar dados** — JSON completo com formatação
 - **Importar dados** — com validação de estrutura anti-corrupção
@@ -204,6 +205,7 @@ Documentos de arquitetura, planos e segurança ficam em `src/docs/`.
 - `src/docs/architecture/data-flow.md` - fluxo de dados, persistência e sync
 - `src/docs/security/sync-threat-model.md` - riscos e mitigação de persistência/sync
 - `src/docs/api/sync-contract.md` - contrato atual e futuro do sync
+- `src/docs/firebase-firestore-setup.md` - configuração Firebase/Auth/Firestore/App Check
 - `src/docs/qa/manual-regression-checklist.md` - checklist de regressão manual
 - `src/docs/releases/release-checklist.md` - checklist de release, severidade de bugs e definição de pronto
 - `src/docs/superpowers/plans/` - planos de implementação
@@ -212,6 +214,21 @@ Documentos de arquitetura, planos e segurança ficam em `src/docs/`.
 ---
 
 ## ☁️ Sincronização e Backup
+
+### Firestore Local-First
+Firestore é o caminho remoto principal quando configurado:
+
+1. Configure `src/js/firebase/firebase-config.js`
+2. Gere o bundle local com `npm run build:firebase`
+3. Entre com Google em **Configurações > Firestore**
+4. Ative em modo shadow antes de usar como fonte de restauração
+
+Notas importantes:
+
+- IndexedDB continua sendo a gravação local e camada de recuperação
+- Firestore usa snapshot versionado em `users/{uid}/snapshots/main`
+- conflitos exigem export local, pull remoto ou force push explícito
+- guia completo: `src/docs/firebase-firestore-setup.md`
 
 ### Cloudflare Multi-Device Sync
 Espelhe seus dados entre celular e PC em tempo real:

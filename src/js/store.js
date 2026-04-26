@@ -1,16 +1,30 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { pushToCloudflare } from './cloud-sync.js?v=8.17';
-import { uid } from './utils.js?v=8.17';
-import * as credentialsStore from './credentials.js?v=8.17';
+import { pushToCloudflare } from './cloud-sync.js?v=8.18';
+import { uid } from './utils.js?v=8.18';
+import * as credentialsStore from './credentials.js?v=8.18';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 export const STORE_NAME = 'app_state';
+export const FIRESTORE_OUTBOX_STORE = 'firestore_outbox';
+export const FIRESTORE_META_STORE = 'firestore_meta';
+export const FIRESTORE_CONFLICT_STORE = 'firestore_conflicts';
 
 export let db;
 export const DEFAULT_SCHEMA_VERSION = 7;
+export const DEFAULT_FIRESTORE_SYNC_CONFIG = {
+  enabled: false,
+  mode: 'shadow',
+  uid: null,
+  lastPullAt: null,
+  lastPushAt: null,
+  remoteUpdatedAt: null,
+  hasPendingWrites: false,
+  conflict: null,
+  lastError: null
+};
 
 /**
  * Deep clone helper para prevenir mutação de estado
@@ -45,7 +59,7 @@ export function setState(newState) {
     // Hábitos e Histórico
     habitos: deepClone(Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {})),
     revisoes: deepClone(Array.isArray(newState.revisoes) ? newState.revisoes : []),
-    config: deepClone(Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3 }, newState.config || {})),
+    config: deepClone(Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3, firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG } }, newState.config || {})),
     cronoLivre: deepClone(newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 }),
     bancaRelevance: deepClone(newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} }),
     driveFileId: newState.driveFileId || null,
@@ -54,6 +68,11 @@ export function setState(newState) {
 
   // Deep clone do normalized para o state para prevenir mutação externa
   const cloned = deepClone(normalized);
+  cloned.config.firestoreSync = Object.assign(
+    {},
+    DEFAULT_FIRESTORE_SYNC_CONFIG,
+    cloned.config.firestoreSync || {}
+  );
 
   // Replace the state object properties instead of the reference
   Object.keys(state).forEach(k => delete state[k]);
@@ -82,7 +101,8 @@ export let state = {
     mostrarNumeroSemana: false,
     agruparEventos: true,
     frequenciaRevisao: [1, 7, 30, 90],
-    materiasPorDia: 3
+    materiasPorDia: 3,
+    firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG }
   },
   cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
   bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
@@ -102,6 +122,7 @@ export function createExportableState(sourceState = state) {
   delete exportable.config.cfLastSyncAt;
   delete exportable.config._lastUpdated;
   exportable.config.cfSyncEnabled = false;
+  exportable.config.firestoreSync = { ...DEFAULT_FIRESTORE_SYNC_CONFIG };
 
   return exportable;
 }
@@ -124,6 +145,15 @@ export function initDB() {
       db = event.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
+      }
+      if (!db.objectStoreNames.contains(FIRESTORE_OUTBOX_STORE)) {
+        db.createObjectStore(FIRESTORE_OUTBOX_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(FIRESTORE_META_STORE)) {
+        db.createObjectStore(FIRESTORE_META_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(FIRESTORE_CONFLICT_STORE)) {
+        db.createObjectStore(FIRESTORE_CONFLICT_STORE, { keyPath: 'id' });
       }
     };
 
@@ -344,7 +374,7 @@ export function scheduleSave() {
  * @param {boolean} [skipCloudSync=false] - Se true, não sincroniza com Cloudflare
  * @returns {Promise<void>}
  */
-export function saveStateToDB(skipCloudSync = false) {
+export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false) {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
     saveTimeout = null;
@@ -368,6 +398,16 @@ export function saveStateToDB(skipCloudSync = false) {
       if (!skipCloudSync && state.config && state.config.cfSyncEnabled) {
         SyncQueue.add(() => pushToCloudflare()).catch(err => {
           console.error('Cloud sync failed after save:', err);
+        });
+      }
+
+      if (!skipFirestoreSync && state.config?.firestoreSync?.enabled) {
+        SyncQueue.add(async () => {
+          const sync = await import('./sync/firestore-sync-engine.js?v=8.18');
+          await sync.queueFirestoreSnapshotFromState(state);
+          await sync.flushFirestoreOutbox();
+        }).catch(err => {
+          console.error('Firestore sync failed after save:', err);
         });
       }
 
@@ -531,7 +571,7 @@ export function clearData() {
     arquivo: [],
     habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] },
     revisoes: [],
-    config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90] },
+    config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG } },
     cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
     bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
     driveFileId: null,

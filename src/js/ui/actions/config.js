@@ -15,6 +15,14 @@ registerAction('force-cloudflare-sync', () => forceCloudflareSync());
 registerAction('cloud-conflict-export-local', () => cloudConflictExportLocal());
 registerAction('cloud-conflict-pull-remote', () => cloudConflictPullRemote());
 registerAction('cloud-conflict-force-push', () => cloudConflictForcePush());
+registerAction('firestore-sign-in', () => firestoreSignIn());
+registerAction('firestore-sign-out', () => firestoreSignOut());
+registerAction('firestore-enable-shadow', () => firestoreEnableShadow());
+registerAction('firestore-disable-sync', () => firestoreDisableSync());
+registerAction('firestore-sync-now', () => firestoreSyncNow());
+registerAction('firestore-pull-remote', () => firestorePullRemote());
+registerAction('firestore-force-push', () => firestoreForcePush());
+registerAction('firestore-export-local', () => exportData());
 registerAction('drive-sync-now', () => driveSyncNow());
 registerAction('pull-from-drive', () => pullFromDrive());
 registerAction('drive-disconnect', () => driveDisconnect());
@@ -132,6 +140,52 @@ export function cloudConflictForcePush() {
     'Forçar envio local para a nuvem? Isso sobrescreverá a versão remota mais recente.',
     () => window.EstudoApp?.pushToCloudflare(true),
     { label: 'Forçar envio', title: 'Sobrescrever remoto', danger: true }
+  );
+}
+
+export function firestoreSignIn() {
+  window.EstudoApp?.firestoreSignIn?.()
+    .catch(err => window.EstudoApp?.showToast?.(err.message || 'Erro ao entrar no Google', 'error'));
+}
+
+export function firestoreSignOut() {
+  window.EstudoApp?.firestoreSignOut?.()
+    .catch(err => window.EstudoApp?.showToast?.(err.message || 'Erro ao sair do Google', 'error'));
+}
+
+export function firestoreEnableShadow() {
+  window.EstudoApp?.enableFirestoreSync?.('shadow')
+    .then(() => window.EstudoApp?.showToast?.('Firestore ativado em modo shadow.', 'success'))
+    .catch(err => window.EstudoApp?.showToast?.(err.message || 'Erro ao ativar Firestore', 'error'));
+}
+
+export function firestoreDisableSync() {
+  window.EstudoApp?.disableFirestoreSync?.()
+    .then(() => window.EstudoApp?.showToast?.('Firestore desativado. Dados locais preservados.', 'info'))
+    .catch(err => window.EstudoApp?.showToast?.(err.message || 'Erro ao desativar Firestore', 'error'));
+}
+
+export function firestoreSyncNow() {
+  window.EstudoApp?.flushFirestoreOutbox?.()
+    .then(ok => window.EstudoApp?.showToast?.(ok ? 'Firestore sincronizado.' : 'Firestore aguardando acao.', ok ? 'success' : 'info'))
+    .catch(err => window.EstudoApp?.showToast?.(err.message || 'Erro ao sincronizar Firestore', 'error'));
+}
+
+export function firestorePullRemote() {
+  if (typeof window.EstudoApp?.showConfirm !== 'function') return;
+  window.EstudoApp.showConfirm(
+    'Baixar snapshot do Firestore? Isso pode substituir dados locais. Exporte um backup local antes de confirmar.',
+    () => window.EstudoApp?.pullFromFirestore?.(true),
+    { label: 'Baixar Firestore', title: 'Restaurar Firestore' }
+  );
+}
+
+export function firestoreForcePush() {
+  if (typeof window.EstudoApp?.showConfirm !== 'function') return;
+  window.EstudoApp.showConfirm(
+    'Enviar dados locais para o Firestore e sobrescrever o snapshot remoto?',
+    () => window.EstudoApp?.forcePushFirestore?.(),
+    { label: 'Forcar envio', title: 'Sobrescrever Firestore', danger: true }
   );
 }
 

@@ -35,11 +35,19 @@ describe('store.js', () => {
     expect(exportable.config.cfConflict).toBeUndefined();
     expect(exportable.config._lastUpdated).toBeUndefined();
     expect(exportable.config.cfSyncEnabled).toBe(false);
+    expect(exportable.config.firestoreSync.enabled).toBe(false);
     expect(store.state.config.cfToken).toBe('super-secret-token');
   });
 
+  it('declares Firestore local-first IndexedDB stores', () => {
+    expect(store.DB_VERSION).toBe(2);
+    expect(store.FIRESTORE_OUTBOX_STORE).toBe('firestore_outbox');
+    expect(store.FIRESTORE_META_STORE).toBe('firestore_meta');
+    expect(store.FIRESTORE_CONFLICT_STORE).toBe('firestore_conflicts');
+  });
+
   it('clearData also clears isolated credentials', async () => {
-    const credentials = await import('../../src/js/credentials.js?v=8.17');
+    const credentials = await import('../../src/js/credentials.js?v=8.18');
     const spy = vi.spyOn(credentials, 'clearAllCredentials').mockResolvedValue(undefined);
 
     store.clearData();

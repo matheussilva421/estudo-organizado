@@ -10,6 +10,7 @@ Este documento cobre:
 
 - IndexedDB
 - `localStorage`
+- Firestore sync
 - Cloudflare sync
 - Google Drive sync
 - importação/exportação de JSON
@@ -29,6 +30,7 @@ Este documento cobre:
 - todo dado persistido no cliente deve ser tratado como sensível para o usuário
 - qualquer XSS relevante pode expor dados e configurações locais
 - sync remoto hoje é single-user e centrado em snapshots
+- Firestore exige Firebase Auth, regras por `request.auth.uid` e App Check antes de uso publicado
 
 ## Superfícies de ataque
 
@@ -68,6 +70,23 @@ Impacto:
 
 - perda silenciosa de dados
 - divergência entre dispositivos
+
+### 4b. Firestore mal configurado
+
+Regras Firestore abertas, App Check ausente ou API key sem restrição podem permitir leitura/escrita indevida ou abuso de cota.
+
+Impacto:
+
+- exposição de snapshots remotos
+- sobrescrita remota por usuário incorreto
+- consumo de quota/billing por abuso automatizado
+
+Mitigação recomendada:
+
+- regras `users/{uid}` com `request.auth.uid == uid`
+- `allow delete: if false` e restauração por snapshot versionado
+- App Check em monitoramento antes de enforcement
+- restrição de API key por origem e APIs Firebase usadas
 
 ### 5. Importação de JSON
 
@@ -160,6 +179,7 @@ Mitigação recomendada:
 ### Prioridade 1
 
 - formalizar contrato versionado de sync
+- manter Firestore em modo shadow antes de qualquer restauração como fonte primária
 - endurecer Worker com CORS restrito
 - separar UX de sync de UX de backup
 
@@ -174,4 +194,3 @@ Mitigação recomendada:
 - todo HTML dinâmico novo deve preferir DOM seguro ou escape rigoroso
 - toda mudança de sync deve especificar comportamento em conflito
 - toda ação destrutiva ou de restore deve exigir confirmação clara
-

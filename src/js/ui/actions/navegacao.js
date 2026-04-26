@@ -4,8 +4,8 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { debouncedOnSearch, onSearchFocus, clearSearch } from '../../views.js?v=8.17';
-import { setCalViewMode, calNavigate } from '../../views/calendar-view.js?v=8.17';
+import { debouncedOnSearch, onSearchFocus, clearSearch } from '../../views.js?v=8.18';
+import { setCalViewMode, calNavigate } from '../../views/calendar-view.js?v=8.18';
 
 // Registrar ações
 registerAction('navigate', navigate);
