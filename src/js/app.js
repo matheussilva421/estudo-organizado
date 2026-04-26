@@ -170,6 +170,7 @@ export function openModal(id) {
 export function closeModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
+  if (el.contains(document.activeElement)) document.activeElement.blur();
   el.classList.remove('open');
   el.setAttribute('aria-hidden', 'true');
   const hasOpenModal = document.querySelector('.modal-overlay.open');

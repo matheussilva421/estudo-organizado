@@ -114,6 +114,7 @@ export function createExportableState(sourceState = state) {
   const exportable = deepClone(sourceState);
   if (!exportable.config) exportable.config = {};
 
+  delete exportable.config.localBackupAt;
   delete exportable.config.cfUrl;
   delete exportable.config.cfToken;
   delete exportable.config.cfTokenSaved;
@@ -374,7 +375,7 @@ export function scheduleSave() {
  * @param {boolean} [skipCloudSync=false] - Se true, não sincroniza com Cloudflare
  * @returns {Promise<void>}
  */
-export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false) {
+export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false, skipDriveSync = false) {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
     saveTimeout = null;
@@ -391,7 +392,9 @@ export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false) 
     const request = store.put(state, 'main_state');
 
     request.onsuccess = () => {
-      document.dispatchEvent(new Event('stateSaved'));
+      if (!skipDriveSync) {
+        document.dispatchEvent(new Event('stateSaved'));
+      }
       emitSaveStatus('saved');
 
       // Cascata de Sincronização: Local -> Cloudflare

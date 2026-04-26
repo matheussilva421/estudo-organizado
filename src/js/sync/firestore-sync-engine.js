@@ -317,8 +317,10 @@ export async function mergeFromFirestore() {
     await queueFirestoreSnapshotFromState(state, { manual: true });
     const ok = await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
     document.dispatchEvent(new Event('app:renderCurrentView'));
+    document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Firestore mesclado com os dados locais.', type: 'success' } }));
     return ok;
   } catch (err) {
+    document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Erro ao mesclar dados do Firestore', type: 'error' } }));
     config.lastError = err.message || String(err);
     await persistSyncConfig(false);
     emitStatus('error', { error: config.lastError });
