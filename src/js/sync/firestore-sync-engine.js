@@ -313,7 +313,7 @@ export async function mergeFromFirestore() {
     });
 
     await clearFirestoreConflict();
-    await saveStateToDB(true, true);
+    await saveStateToDB(true, true, true);
     await queueFirestoreSnapshotFromState(state, { manual: true });
     const ok = await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
     document.dispatchEvent(new Event('app:renderCurrentView'));
