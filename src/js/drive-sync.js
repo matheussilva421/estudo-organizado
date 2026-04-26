@@ -235,7 +235,7 @@ export async function syncWithDrive(isRecursion = false) {
                 console.warn('Não foi possível ler do Drive, sobrescrevendo arquivo.', e);
                 if (e.status === 404 || e.result?.error?.code === 404) {
                     state.driveFileId = null;
-                    return saveStateToDB(false, false, true).then(() => {
+                    return saveStateToDB(true, true, true).then(() => {
                         return syncWithDrive(true); // recursão com flag para não liberar lock duplamente
                     });
                 }
@@ -272,7 +272,7 @@ export async function syncWithDrive(isRecursion = false) {
 
             // Only update lastSync AFTER successful upload
             state.lastSync = new Date().toISOString();
-            await saveStateToDB(false, false, true);
+            await saveStateToDB(true, true, true);
             showToast('Sincronizado com sucesso!', 'success');
         } else {
             // Cria um novo arquivo
@@ -309,7 +309,7 @@ export async function syncWithDrive(isRecursion = false) {
 
             // Only update lastSync AFTER successful upload
             state.lastSync = new Date().toISOString();
-            await saveStateToDB(false, false, true);
+            await saveStateToDB(true, true, true);
             showToast('Backup criado no Drive!', 'success');
         }
         updateDriveUI('connected', 'Google Drive');
@@ -341,7 +341,7 @@ export async function pullFromDrive() {
         }
         setState(driveData);
         runMigrations();
-        await saveStateToDB();
+        await saveStateToDB(false, false, true);
         renderCurrentView();
         updateDriveUI('connected', 'Google Drive');
         showToast('Dados importados do Drive com sucesso!', 'success');
@@ -370,7 +370,7 @@ export async function mergeFromDrive() {
         }
         setState(mergeStudyStates(state, driveData));
         runMigrations();
-        await saveStateToDB(true);
+        await saveStateToDB(true, false, false);
         await syncWithDrive();
         renderCurrentView();
         updateDriveUI('connected', 'Google Drive');

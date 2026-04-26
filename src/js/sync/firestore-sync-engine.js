@@ -45,7 +45,7 @@ function emitStatus(status, detail = {}) {
 }
 
 async function persistSyncConfig(skipRender = true) {
-  await saveStateToDB(true, true);
+  await saveStateToDB(true, true, true);
   if (!skipRender) document.dispatchEvent(new Event('app:renderCurrentView'));
 }
 
@@ -250,7 +250,7 @@ export async function pullFromFirestore(forceOverwrite = false) {
       setState(nextState);
       await clearFirestoreConflict();
       await saveFirestoreMeta({ uid, remoteUpdatedAt: getEnvelopeUpdatedAt(remote), lastPullAt: new Date().toISOString() });
-      await saveStateToDB(true, true);
+      await saveStateToDB(true, true, true);
       document.dispatchEvent(new Event('app:renderCurrentView'));
     }
 
