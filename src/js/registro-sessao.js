@@ -4,7 +4,7 @@
 // =============================================
 
 import { state, scheduleSave, saveStateToDB } from './store.js?v=8.24';
-import { getAllDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js?v=8.24';
+import { getActiveDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js?v=8.24';
 import { openModal, closeModal, showToast, showConfirm } from './app.js?v=8.24';
 import { todayStr, esc, trunc, uid } from './utils.js?v=8.24';
 import { renderCurrentView, updateBadges } from './components.js?v=8.24';
@@ -152,7 +152,7 @@ function renderRegistroForm(ev) {
 
 
   // Discipline options
-  const allDiscs = getAllDisciplinas();
+  const allDiscs = getActiveDisciplinas();
   const discOptions = allDiscs.map(d =>
     `<option value="${d.disc.id}">${d.disc.icone || '📖'} ${d.disc.nome} — ${d.edital.nome}</option>`
   ).join('');

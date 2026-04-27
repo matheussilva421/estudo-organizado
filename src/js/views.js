@@ -1,7 +1,7 @@
 import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.24';
 import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.24';
 import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.24';
-import { calcRevisionDates, getAllDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.24';
+import { calcRevisionDates, getAllDisciplinas, getActiveDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.24';
 import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.24';
 import { updateDriveUI } from './drive-sync.js?v=8.24';
 import { buildSyncCenterModel } from './sync/sync-center.js?v=8.24';
@@ -932,7 +932,7 @@ export function renderHabitSummary(periodDays) {
 }
 
 export function renderDiscProgress() {
-  const discs = getAllDisciplinas();
+  const discs = getActiveDisciplinas();
   if (discs.length === 0) return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
   return discs.slice(0, 8).map(({ disc, edital }) => {
     const total = (disc.assuntos || []).length;
@@ -999,7 +999,7 @@ export function renderRevisoes(el) {
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Assuntos concluidos</div>
-        <div class="rev-stat-count rev-stat-count--accent">${getAllDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
+        <div class="rev-stat-count rev-stat-count--accent">${getActiveDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Frequência</div>
@@ -2316,7 +2316,7 @@ window.runLessonMapperUI = runLessonMapperUI;
 // ADD EVENT MODAL
 // =============================================
 export function openAddEventModal(dateStr = null) {
-  const allDiscs = getAllDisciplinas();
+  const allDiscs = getActiveDisciplinas();
   const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
   ).join('');
 

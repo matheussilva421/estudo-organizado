@@ -342,6 +342,7 @@ export function getPendingRevisoes() {
   const pending = [];
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
+      if (disc.arquivada) continue;
       for (const ass of (disc.assuntos || [])) {
         if (!ass.concluido || !ass.dataConclusao) continue;
         const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || [], ass.adiamentos || 0);
@@ -384,6 +385,40 @@ export function getAllDisciplinas() {
 export function getDisc(id) {
   if (!_discIndex) getAllDisciplinas();
   return _discIndex.get(id) || null;
+}
+
+export function archiveDiscipline(editalId, disciplineId) {
+  const edital = state.editais.find(e => e.id === editalId);
+  if (!edital) return;
+  const disc = edital.disciplinas?.find(d => d.id === disciplineId);
+  if (!disc) return;
+  disc.arquivada = true;
+  disc.arquivadaEm = new Date().toISOString();
+  invalidateDiscCache();
+  invalidateDashCaches();
+}
+
+export function unarchiveDiscipline(editalId, disciplineId) {
+  const edital = state.editais.find(e => e.id === editalId);
+  if (!edital) return;
+  const disc = edital.disciplinas?.find(d => d.id === disciplineId);
+  if (!disc) return;
+  disc.arquivada = false;
+  disc.arquivadaEm = null;
+  invalidateDiscCache();
+  invalidateDashCaches();
+}
+
+export function getActiveDisciplinas() {
+  const result = [];
+  for (const edital of state.editais) {
+    if (!edital.disciplinas) continue;
+    for (const disc of edital.disciplinas) {
+      if (disc.arquivada) continue;
+      result.push({ disc, edital });
+    }
+  }
+  return result;
 }
 
 // =============================================

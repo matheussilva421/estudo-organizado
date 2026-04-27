@@ -76,6 +76,44 @@ export function deleteDisc(el, event) {
   }
 }
 
+export function archiveDisc(el, event) {
+  if (event) event.stopPropagation();
+  const editalId = el.dataset.editalId;
+  const discId = el.dataset.discId;
+  if (editalId && discId && typeof window.EstudoApp?.showConfirm === 'function') {
+    window.EstudoApp.showConfirm(
+      'Arquivar esta disciplina?\nEla será ocultada da lista principal, mas seus dados e progresso serão mantidos.',
+      () => {
+        window.EstudoApp?.archiveDiscipline(editalId, discId);
+        window.EstudoApp?.scheduleSave();
+        window.EstudoApp?.renderCurrentView();
+        window.EstudoApp?.showToast?.('Disciplina arquivada.', 'info');
+      },
+      { label: 'Arquivar disciplina' }
+    );
+  }
+}
+
+export function unarchiveDisc(el, event) {
+  if (event) event.stopPropagation();
+  const editalId = el.dataset.editalId;
+  const discId = el.dataset.discId;
+  if (editalId && discId) {
+    window.EstudoApp?.unarchiveDiscipline(editalId, discId);
+    window.EstudoApp?.scheduleSave();
+    window.EstudoApp?.renderCurrentView();
+    window.EstudoApp?.showToast?.('Disciplina desarquivada.', 'success');
+  }
+}
+
+export function setDiscFilter(el) {
+  const filter = el.dataset.filter || 'ativas';
+  if (typeof window.EstudoApp?.setDiscFilterStatus === 'function') {
+    window.EstudoApp.setDiscFilterStatus(filter);
+  }
+  window.EstudoApp?.renderCurrentView?.();
+}
+
 /**
  * Abre gerenciador de disciplina
  * @param {HTMLElement} el - Elemento acionador
@@ -312,6 +350,9 @@ registerAction('delete-edital', (el, event) => deleteEdital(el, event));
 registerAction('open-disc-modal', (el) => openDiscModal(el));
 registerAction('save-disc', () => saveDisc());
 registerAction('delete-disc', (el, event) => deleteDisc(el, event));
+registerAction('archive-disc', (el, event) => archiveDisc(el, event));
+registerAction('unarchive-disc', (el, event) => unarchiveDisc(el, event));
+registerAction('set-disc-filter', (el) => setDiscFilter(el));
 
 // openDiscDashboard defined below
 

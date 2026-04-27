@@ -5,7 +5,7 @@
 
 import { esc, formatDate, todayStr, uid, HABIT_TYPES, addCleanupListener } from '../utils.js?v=8.24';
 import { state, scheduleSave } from '../store.js?v=8.24';
-import { getAllDisciplinas, getDisc } from '../logic.js?v=8.24';
+import { getActiveDisciplinas, getDisc } from '../logic.js?v=8.24';
 import { renderCurrentView } from '../components.js?v=8.24';
 import { showConfirm, showToast, openModal } from '../app.js?v=8.24';
 
@@ -182,7 +182,7 @@ export function openHabitModal(tipo) {
   const titleEl = document.getElementById('modal-habit-title');
   if (titleEl) titleEl.textContent = h ? `Registrar: ${h.label}` : 'Registrar Hábito';
 
-  const discOptions = getAllDisciplinas().map(d => `<option value="${d.disc.id}">${esc(d.disc.nome)}</option>`).join('');
+  const discOptions = getActiveDisciplinas().map(d => `<option value="${d.disc.id}">${esc(d.disc.nome)}</option>`).join('');
 
   const habitBody = document.getElementById('modal-habit-body');
   if (!habitBody) return;
@@ -239,7 +239,7 @@ export function openHabitModal(tipo) {
       <details>
         <summary class="simulado-disc-summary">📈 Gabarito por Disciplina (opcional)</summary>
         <div id="sim-disc-list" class="simulado-disc-list">
-          ${getAllDisciplinas().map(({ disc, edital }) => `
+          ${getActiveDisciplinas().map(({ disc, edital }) => `
             <div class="simulado-disc-row">
               <span class="simulado-disc-name" title="${esc(edital.nome)}">${disc.icone || '📚'} ${esc(disc.nome)}</span>
               <input type="number" class="form-control simulado-disc-input" placeholder="Total" id="sim-total-${disc.id}" min="0">
@@ -247,7 +247,7 @@ export function openHabitModal(tipo) {
               <input type="number" class="form-control simulado-disc-input" placeholder="Acertos" id="sim-acertos-${disc.id}" min="0">
             </div>
           `).join('')}
-          ${getAllDisciplinas().length === 0 ? '<div class="simulado-empty">Cadastre disciplinas para usar o gabarito detalhado.</div>' : ''}
+          ${getActiveDisciplinas().length === 0 ? '<div class="simulado-empty">Cadastre disciplinas para usar o gabarito detalhado.</div>' : ''}
         </div>
       </details>
     ` : tipo === 'discursiva' ? `
@@ -315,7 +315,7 @@ export function saveHabit() {
     const total = parseInt(document.getElementById('habit-total')?.value || '0');
     const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
     const gabaritoPorDisc = [];
-    getAllDisciplinas().forEach(({ disc }) => {
+    getActiveDisciplinas().forEach(({ disc }) => {
       const t = parseInt(document.getElementById(`sim-total-${disc.id}`)?.value || '0');
       const a = parseInt(document.getElementById(`sim-acertos-${disc.id}`)?.value || '0');
       if (t > 0) gabaritoPorDisc.push({ discId: disc.id, discNome: disc.nome, total: t, acertos: a });

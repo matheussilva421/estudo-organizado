@@ -3071,6 +3071,30 @@ mark {
   transform: scale(1.1);
 }
 
+.disc-card-archived {
+  opacity: 0.6;
+  filter: grayscale(40%);
+}
+
+.disc-card-archived:hover {
+  transform: none;
+}
+
+.disc-archived-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--text-muted);
+  color: var(--surface);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
 /* =========================================
    SUBJECT MANAGER MODAL
 ========================================= */

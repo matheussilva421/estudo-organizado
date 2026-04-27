@@ -3,7 +3,7 @@ import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, get
 import { openAddEventModal, openEditaModal, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHistoricoSessoes, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts, renderSkeletonLoader } from './views.js?v=8.24';
 import { renderCalendar } from './views/calendar-view.js?v=8.24';
 import { state } from './store.js?v=8.24';
-import { deleteEvento, getAllDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js?v=8.24';
+import { deleteEvento, getActiveDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js?v=8.24';
 
 // =============================================
 // DOM COMPONENTS AND RENDERERS
@@ -71,7 +71,7 @@ export function renderCronometro(el) {
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px;">
           <select class="crono-select" data-action="set-crono-livre-disc" value="${state.cronoLivre?.discId || ''}">
             <option value="">(Opcional) Escolha a Disciplina...</option>
-            ${getAllDisciplinas().map(d => {
+            ${getActiveDisciplinas().map(d => {
       const discLabel = `${d.disc.icone || '📖'} ${truncateOptionLabel(d.disc.nome, 42)}`;
       return `<option value="${d.disc.id}" title="${esc(d.disc.nome)}" ${state.cronoLivre?.discId === d.disc.id ? 'selected' : ''}>${esc(discLabel)}</option>`;
     }).join('')}

@@ -1,5 +1,5 @@
 import { state, scheduleSave } from './store.js?v=8.24';
-import { generatePlanejamento, getAllDisciplinas } from './logic.js?v=8.24';
+import { generatePlanejamento, getActiveDisciplinas } from './logic.js?v=8.24';
 import { esc } from './utils.js?v=8.24';
 import { openModal, closeModal } from './app.js?v=8.24';
 
@@ -125,7 +125,7 @@ export function pwSearchDisc(q) {
 }
 
 export function pwSelectAllDisc() {
-    const all = getAllDisciplinas();
+    const all = getActiveDisciplinas();
     draft.disciplinas = all.map(d => d.disc.id);
     draft.disciplinas.forEach(id => {
         if (!draft.relevancia[id]) draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
@@ -288,7 +288,7 @@ function htmlStep1() {
 }
 
 function htmlStep2() {
-    const all = getAllDisciplinas();
+    const all = getActiveDisciplinas();
 
     if (all.length === 0) {
         return `
@@ -334,7 +334,7 @@ function htmlStep2() {
 }
 
 function htmlStep3() {
-    const selected = getAllDisciplinas().filter(d => draft.disciplinas.includes(d.disc.id));
+    const selected = getActiveDisciplinas().filter(d => draft.disciplinas.includes(d.disc.id));
 
     return `
         <div class="pw-main-layout">
@@ -397,7 +397,7 @@ export function pwRenderWeightPreview() {
 
     let totalPeso = 0;
     const computed = [];
-    const selected = getAllDisciplinas().filter(d => draft.disciplinas.includes(d.disc.id));
+    const selected = getActiveDisciplinas().filter(d => draft.disciplinas.includes(d.disc.id));
 
     selected.forEach(d => {
         const r = draft.relevancia[d.disc.id] || { importancia: 3, conhecimento: 3 };

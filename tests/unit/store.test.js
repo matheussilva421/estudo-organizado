@@ -97,7 +97,7 @@ describe('store.js', () => {
     store.runMigrations();
     vi.runOnlyPendingTimers();
 
-    expect(store.state.schemaVersion).toBe(7);
+    expect(store.state.schemaVersion).toBe(8);
     expect(store.state.editais[0].id).toMatch(/^ed_/);
     expect(store.state.editais[0].disciplinas[0].id).toMatch(/^disc_/);
     expect(store.state.editais[0].disciplinas[0].assuntos).toHaveLength(1);
@@ -107,6 +107,8 @@ describe('store.js', () => {
       dataEstudo: '2026-04-10',
       _migratedFromV6: true
     });
+    expect(store.state.editais[0].disciplinas[0].arquivada).toBe(false);
+    expect(store.state.editais[0].disciplinas[0].arquivadaEm).toBeNull();
     expect(store.state.config.frequenciaRevisao).toEqual([1, 7, 30, 90]);
     expect(store.state.bancaRelevance.lessonMappings).toEqual({});
   });

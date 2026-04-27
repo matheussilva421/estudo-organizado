@@ -12,7 +12,7 @@ export const FIRESTORE_META_STORE = 'firestore_meta';
 export const FIRESTORE_CONFLICT_STORE = 'firestore_conflicts';
 
 export let db;
-export const DEFAULT_SCHEMA_VERSION = 7;
+export const DEFAULT_SCHEMA_VERSION = 8;
 export const DEFAULT_FIRESTORE_SYNC_CONFIG = {
   enabled: false,
   mode: 'shadow',
@@ -537,6 +537,18 @@ export function runMigrations() {
     });
 
     state.schemaVersion = 7;
+    changed = true;
+  }
+
+  // v7 → v8: Add archive flag to disciplines
+  if (state.schemaVersion < 8) {
+    (state.editais || []).forEach(ed => {
+      (ed.disciplinas || []).forEach(d => {
+        if (d.arquivada === undefined) d.arquivada = false;
+        if (d.arquivadaEm === undefined) d.arquivadaEm = null;
+      });
+    });
+    state.schemaVersion = 8;
     changed = true;
   }
 

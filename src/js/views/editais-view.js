@@ -11,6 +11,7 @@ import { getDisc } from '../logic.js?v=8.24';
 let vertSearch = '';
 let vertFilterStatus = 'todos';
 let vertFilterEdital = '';
+let discFilterStatus = 'ativas';
 
 export function getVertSearch() { return vertSearch; }
 export function setVertSearch(val) { vertSearch = val; }
@@ -18,6 +19,8 @@ export function getVertFilterStatus() { return vertFilterStatus; }
 export function setVertFilterStatus(val) { vertFilterStatus = val; }
 export function getVertFilterEdital() { return vertFilterEdital; }
 export function setVertFilterEdital(val) { vertFilterEdital = val; }
+export function getDiscFilterStatus() { return discFilterStatus; }
+export function setDiscFilterStatus(val) { discFilterStatus = val; }
 
 // ── Helper: Get Filtered Vertical Items ──
 export function getFilteredVertItems() {
@@ -25,6 +28,7 @@ export function getFilteredVertItems() {
   for (const edital of state.editais || []) {
     if (vertFilterEdital && edital.id !== vertFilterEdital) continue;
     for (const disc of edital.disciplinas || []) {
+      if (disc.arquivada) continue;
       for (const ass of disc.assuntos || []) {
         if (vertFilterStatus === 'pendentes' && ass.concluido) continue;
         if (vertFilterStatus === 'concluidos' && !ass.concluido) continue;
@@ -307,12 +311,24 @@ export function renderEditais(el) {
 
 // ── Editais View: Tree Render ──
 export function renderEditalTree(edital) {
+  const ativas = (edital.disciplinas || []).filter(d => !d.arquivada);
+  const arquivadas = (edital.disciplinas || []).filter(d => d.arquivada);
+  const discCountText = arquivadas.length > 0
+    ? `${ativas.length} ativas · ${arquivadas.length} arq.`
+    : `${ativas.length} disc.`;
+
+  const filteredDisciplinas = (edital.disciplinas || []).filter(d => {
+    if (discFilterStatus === 'ativas') return !d.arquivada;
+    if (discFilterStatus === 'arquivadas') return d.arquivada;
+    return true;
+  });
+
   return `
     <div class="tree-edital" id="edital-${edital.id}">
       <div class="tree-edital-header" data-action="toggle-edital" data-edital-id="${edital.id}">
         <span class="flex-shrink-0" style="width:10px; height:10px; border-radius:50%; background:${edital.cor || '#8aa4bf'}; display:inline-block;"></span>
         <span class="flex-1 text-lg font-bold">${esc(edital.nome)}</span>
-        <span class="text-sm" style="opacity:0.7;">${edital.disciplinas ? edital.disciplinas.length : 0} disc.</span>
+        <span class="text-sm" style="opacity:0.7;">${discCountText}</span>
         <button class="icon-btn" title="Adicionar Tópicos" data-action="navigate-with-ctx" data-view="vertical" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">📝</button>
         <button class="icon-btn" title="Analisador de Bancas" data-action="navigate-with-ctx" data-view="banca-analyzer" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">🧠</button>
         <button class="icon-btn" title="Editar" data-action="open-edital-modal" data-edital-id="${edital.id}">✏️</button>
@@ -322,9 +338,18 @@ export function renderEditalTree(edital) {
       <div class="flex border-b justify-end" style="padding:10px 16px;">
         <button class="btn btn-ghost btn-sm" data-action="open-disc-modal" data-edital-id="${edital.id}" style="margin-right:15px;margin-bottom:10px;">+ Disciplina</button>
       </div>
+      <div class="disc-filter-row flex gap-xs" style="padding:8px 16px; border-bottom:1px solid var(--border);" role="group" aria-label="Filtro de disciplinas">
+        <button type="button" class="filter-chip ${discFilterStatus === 'ativas' ? 'active' : ''}" data-action="set-disc-filter" data-filter="ativas">Ativas</button>
+        <button type="button" class="filter-chip ${discFilterStatus === 'arquivadas' ? 'active' : ''}" data-action="set-disc-filter" data-filter="arquivadas">Arquivadas</button>
+        <button type="button" class="filter-chip ${discFilterStatus === 'todas' ? 'active' : ''}" data-action="set-disc-filter" data-filter="todas">Todas</button>
+      </div>
       <div id="edital-tree-${edital.id}">
         <div class="disc-grid">
-          ${(edital.disciplinas || []).map(disc => {
+          ${filteredDisciplinas.map(disc => {
+    const isArchived = disc.arquivada === true;
+    const archivedClass = isArchived ? 'disc-card-archived' : '';
+    const archivedBadge = isArchived ? `<div class="disc-archived-badge">Arquivada</div>` : '';
+
     const totaisTopicos = disc.assuntos ? disc.assuntos.length : 0;
     const topicosEstudados = disc.assuntos ? disc.assuntos.filter(a => a.concluido).length : 0;
     const totaisAulas = disc.aulas ? disc.aulas.length : 0;
@@ -340,7 +365,8 @@ export function renderEditalTree(edital) {
     }
 
     return `
-              <div class="disc-card" style="--card-color: ${disc.cor || 'var(--accent)'};" data-action="open-disc-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
+              <div class="disc-card ${archivedClass}" style="--card-color: ${disc.cor || 'var(--accent)'};" data-action="open-disc-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
+                ${archivedBadge}
                 <div class="disc-card-title">${disc.icone || '📚'} ${esc(disc.nome)}</div>
                 <div class="disc-stats">
                   <div class="disc-stat">
@@ -356,7 +382,6 @@ export function renderEditalTree(edital) {
                     <span class="disc-stat-label">Questões<br>Resolvidas</span>
                   </div>
                 </div>
-                <!-- Hover Overlay -->
                 <div class="disc-overlay">
                   <button class="disc-action" data-action="open-disc-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
                     <i class="fa fa-folder-open"></i>
@@ -366,15 +391,26 @@ export function renderEditalTree(edital) {
                     <i class="fa fa-edit"></i>
                     <span>Editar</span>
                   </button>
+                  ${isArchived ? `
+                  <button class="disc-action" data-action="unarchive-disc" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
+                    <i class="fa fa-archive"></i>
+                    <span>Desarquivar</span>
+                  </button>
+                  ` : `
+                  <button class="disc-action" data-action="archive-disc" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
+                    <i class="fa fa-archive"></i>
+                    <span>Arquivar</span>
+                  </button>
                   <button class="disc-action" data-action="delete-disc" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
                     <i class="fa fa-trash"></i>
                     <span>Remover</span>
                   </button>
+                  `}
                 </div>
               </div>
             `;
   }).join('')}
-          ${(edital.disciplinas || []).length === 0 ? '<div class="text-muted" style="font-style:italic; grid-column:1/-1;">Nenhuma disciplina</div>' : ''}
+          ${filteredDisciplinas.length === 0 ? `<div class="text-muted" style="font-style:italic; grid-column:1/-1; padding:16px;">${discFilterStatus === 'arquivadas' ? 'Nenhuma disciplina arquivada' : discFilterStatus === 'ativas' ? 'Nenhuma disciplina ativa' : 'Nenhuma disciplina'}</div>` : ''}
         </div>
       </div>
     </div>
@@ -426,5 +462,7 @@ export default {
   getVertFilterStatus,
   setVertFilterStatus,
   getVertFilterEdital,
-  setVertFilterEdital
+  setVertFilterEdital,
+  getDiscFilterStatus,
+  setDiscFilterStatus
 };
