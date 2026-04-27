@@ -108,10 +108,19 @@ export function unarchiveDisc(el, event) {
 
 export function setDiscFilter(el) {
   const filter = el.dataset.filter || 'ativas';
+  console.log('[setDiscFilter] Filter clicked:', filter);
   if (typeof window.EstudoApp?.setDiscFilterStatus === 'function') {
+    console.log('[setDiscFilter] Calling setDiscFilterStatus');
     window.EstudoApp.setDiscFilterStatus(filter);
+  } else {
+    console.error('[setDiscFilter] setDiscFilterStatus not found in EstudoApp');
   }
-  window.EstudoApp?.renderCurrentView?.();
+  if (typeof window.EstudoApp?.renderCurrentView === 'function') {
+    console.log('[setDiscFilter] Calling renderCurrentView');
+    window.EstudoApp.renderCurrentView();
+  } else {
+    console.error('[setDiscFilter] renderCurrentView not found in EstudoApp');
+  }
 }
 
 /**
