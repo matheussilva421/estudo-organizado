@@ -22,7 +22,9 @@ export {
   getVertFilterStatus,
   setVertFilterStatus,
   getVertFilterEdital,
-  setVertFilterEdital
+  setVertFilterEdital,
+  getDiscFilterStatus,
+  setDiscFilterStatus
 } from './views/editais-view.js';
 export { renderDisciplinaDashboard } from './views/dashboard-view.js';
 export {
