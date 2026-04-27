@@ -7,6 +7,7 @@ import * as logic from './logic.js?v=8.24';
 import * as components from './components.js?v=8.24';
 import * as views from './views.js?v=8.24';
 import * as calendar_view from './views/calendar-view.js?v=8.24';
+import * as editais_view from './views/editais-view.js?v=8.24';
 import * as drive_sync from './drive-sync.js?v=8.24';
 import * as cloud_sync from './cloud-sync.js?v=8.24';
 import * as registro from './registro-sessao.js?v=8.24';
@@ -30,7 +31,7 @@ window.announce = announce;
 
 // Create namespace for all exports (prevents global pollution)
 window.EstudoApp = {};
-const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper, firestore_sync];
+const exposedModules = [store, app, logic, components, views, calendar_view, editais_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper, firestore_sync];
 
 for (const mod of exposedModules) {
   for (const key of Object.keys(mod)) {
