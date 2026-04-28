@@ -969,6 +969,7 @@ export function getUpcomingRevisoes(days = 30) {
   const upcoming = [];
   for (const edital of state.editais) {
     for (const disc of (edital.disciplinas || [])) {
+      if (disc.arquivada) continue;
       for (const ass of (disc.assuntos || [])) {
         if (!ass.concluido || !ass.dataConclusao) continue;
         const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || [], ass.adiamentos || 0);
