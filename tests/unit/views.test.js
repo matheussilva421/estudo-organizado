@@ -374,6 +374,51 @@ describe('views.js - Revisões', () => {
 
       expect(Array.isArray(upcoming)).toBe(true);
     });
+
+    it('ignora revisões de disciplinas arquivadas', () => {
+      const state = createBaseState({
+        config: { frequenciaRevisao: [1] },
+        editais: [
+          createEdital({
+            id: 'ed_1',
+            disciplinas: [
+              createDisciplina({
+                id: 'disc_ativa',
+                assuntos: [
+                  createAssunto({
+                    id: 'ass_ativa',
+                    nome: 'Ativa',
+                    concluido: true,
+                    dataConclusao: '2026-04-20',
+                    revisoesFetas: []
+                  })
+                ]
+              }),
+              createDisciplina({
+                id: 'disc_arq',
+                arquivada: true,
+                assuntos: [
+                  createAssunto({
+                    id: 'ass_arq',
+                    nome: 'Arquivada',
+                    concluido: true,
+                    dataConclusao: '2026-04-20',
+                    revisoesFetas: []
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      });
+      store.setState(state);
+      logic.invalidatePendingRevCache();
+
+      const upcoming = views.getUpcomingRevisoes(7);
+
+      expect(upcoming).toHaveLength(1);
+      expect(upcoming[0].disc.id).toBe('disc_ativa');
+    });
   });
 });
 
