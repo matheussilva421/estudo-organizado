@@ -73,4 +73,74 @@ describe('firestore-entity-schema.js', () => {
       payload: null
     });
   });
+
+  it('handles entity without _sync', () => {
+    const doc = schema.createFirestoreEntityDocument({
+      key: 'eventos/1',
+      collection: 'eventos',
+      id: '1',
+      entity: { id: '1', nome: 'Test' },
+      schemaVersion: 9,
+    });
+    expect(doc.revision).toBe(1);
+    expect(doc.updatedAt).toBeNull();
+    expect(doc.updatedBy).toBeNull();
+    expect(doc.checksum).toBeDefined();
+  });
+
+  it('handles null entity', () => {
+    const doc = schema.createFirestoreEntityDocument({
+      key: 'eventos/1',
+      collection: 'eventos',
+      id: '1',
+      entity: null,
+      schemaVersion: 9,
+    });
+    expect(doc.revision).toBe(1);
+    expect(doc.payload).toBeNull();
+  });
+
+  it('uses current time for sentAt when not provided', () => {
+    const doc = schema.createFirestoreEntityDocument({
+      key: 'eventos/1',
+      collection: 'eventos',
+      id: '1',
+      entity: { id: '1' },
+      schemaVersion: 9,
+    });
+    expect(doc.sentAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('tombstone uses updatedBy as fallback for deletedBy', () => {
+    const doc = schema.createFirestoreTombstoneDocument({
+      tombstone: {
+        key: 'eventos/1',
+        collection: 'eventos',
+        id: '1',
+        updatedBy: 'user123',
+      },
+      schemaVersion: 9,
+    });
+    expect(doc.updatedBy).toBe('user123');
+  });
+
+  it('tombstone defaults revision to 1', () => {
+    const doc = schema.createFirestoreTombstoneDocument({
+      tombstone: {
+        key: 'eventos/1',
+        collection: 'eventos',
+        id: '1',
+      },
+      schemaVersion: 9,
+    });
+    expect(doc.revision).toBe(1);
+  });
+
+  it('encodes special characters in doc id', () => {
+    expect(schema.encodeEntityDocId('habitos.diarios/1')).toBe('habitos.diarios%2F1');
+  });
+
+  it('decodes special characters from doc id', () => {
+    expect(schema.decodeEntityDocId('habitos.diarios%2F1')).toBe('habitos.diarios/1');
+  });
 });
