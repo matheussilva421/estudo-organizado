@@ -1,8 +1,8 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { uid } from './utils.js?v=8.24';
-import * as credentialsStore from './credentials.js?v=8.24';
+import { uid } from './utils.js?v=8.25';
+import * as credentialsStore from './credentials.js?v=8.25';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 3;
@@ -121,6 +121,7 @@ export function createExportableState(sourceState = state) {
   delete exportable.config.cfRemoteUpdatedAt;
   delete exportable.config.cfLastSyncAt;
   delete exportable.config._lastUpdated;
+  delete exportable.config.syncMergeConflicts;
   exportable.config.cfSyncEnabled = false;
   exportable.config.firestoreSync = { ...DEFAULT_FIRESTORE_SYNC_CONFIG };
 

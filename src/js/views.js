@@ -1,10 +1,10 @@
-import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.24';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.24';
-import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.24';
-import { calcRevisionDates, getAllDisciplinas, getActiveDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.24';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.24';
-import { updateDriveUI } from './drive-sync.js?v=8.24';
-import { buildSyncCenterModel } from './sync/sync-center.js?v=8.24';
+import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.25';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.25';
+import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.25';
+import { calcRevisionDates, getAllDisciplinas, getActiveDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.25';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.25';
+import { updateDriveUI } from './drive-sync.js?v=8.25';
+import { buildSyncCenterModel } from './sync/sync-center.js?v=8.25';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
@@ -2301,7 +2301,7 @@ export function deleteAula(discId, aulaId) {
 }
 window.deleteAula = deleteAula;
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.24';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.25';
 export function runLessonMapperUI(editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -2753,7 +2753,9 @@ function renderFirestoreCard() {
   const statusText = !status.configured
     ? 'Nao configurado'
     : status.signedIn
-      ? status.hasPendingWrites
+      ? status.conflict
+        ? 'Conflito precisa de revisao'
+        : status.hasPendingWrites
         ? 'Alteracoes pendentes'
         : 'Pronto'
       : 'Aguardando login Google';
@@ -2767,7 +2769,7 @@ function renderFirestoreCard() {
     <div class="card config-card">
       <div class="card-header"><h3><i class="fa fa-database"></i> Firestore (Primario)</h3></div>
       <div class="card-body">
-        <div class="config-desc">Sincronizacao local-first com login Google. IndexedDB continua como recuperacao local; Cloudflare e Drive seguem como backups secundarios.</div>
+        <div class="config-desc">Sincronizacao local-first automatica com login Google. IndexedDB salva primeiro; Firestore sincroniza entre dispositivos; Cloudflare e Drive ficam como backups manuais.</div>
 
         ${renderFirestoreConflict(status.conflict)}
 
@@ -2795,7 +2797,8 @@ function renderFirestoreCard() {
             <button class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>
             <button class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Desativar</button>
           ` : `
-            <button class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Ativar shadow</button>
+            <button class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? '' : 'disabled'}>Ativar primario</button>
+            <button class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Shadow</button>
           `}
         </div>
       </div>
@@ -2837,7 +2840,7 @@ function renderSyncSourceActions(source) {
     const status = window.EstudoApp?.getFirestoreSyncStatus?.() || {};
     return `
       ${status.signedIn ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar</button>`}
-      ${status.enabled ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>' : `<button type="button" class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Ativar shadow</button>`}
+      ${status.enabled ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? '' : 'disabled'}>Ativar primario</button><button type="button" class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Shadow</button>`}
       <button type="button" class="btn btn-outline btn-sm" data-action="firestore-merge-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
       <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-pull-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
       <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
@@ -2875,7 +2878,7 @@ function renderSyncCenterCard() {
   });
   const attention = model.needsAttention
     ? '<div class="config-desc sync-center-attention"><i class="fa fa-triangle-exclamation"></i> Ha uma decisao pendente. Use Mesclar, Baixar ou Enviar local no destino indicado.</div>'
-    : '<div class="config-desc">Uma central para decidir quando sincronizar, importar, mesclar ou enviar dados sem ficar preso em erros automaticos.</div>';
+    : '<div class="config-desc">Firestore e a rota principal entre dispositivos. Cloudflare e Drive permanecem como backups manuais para recuperacao.</div>';
 
   return `
     <div class="card config-card sync-center-card" data-testid="sync-center">
@@ -2890,7 +2893,7 @@ function renderSyncCenterCard() {
           <div><span>Fonte primaria</span><strong>Firebase</strong></div>
         </div>
         <div class="config-actions-row">
-          <button type="button" class="btn btn-primary btn-sm" data-action="sync-center-smart-sync"><i class="fa fa-wand-magic-sparkles"></i> Sincronizar inteligente</button>
+          <button type="button" class="btn btn-primary btn-sm" data-action="sync-center-smart-sync"><i class="fa fa-wand-magic-sparkles"></i> Sincronizar Firestore</button>
           <button type="button" class="btn btn-ghost btn-sm" data-action="sync-center-export-local"><i class="fa fa-download"></i> Backup local</button>
         </div>
         <div class="sync-source-grid">

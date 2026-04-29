@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const syncCenter = await import('../../src/js/sync/sync-center.js?v=8.24');
+const syncCenter = await import('../../src/js/sync/sync-center.js?v=8.25');
 
 describe('sync-center.js', () => {
   it('blocks automatic Firestore flushes while a conflict needs a user decision', () => {
@@ -8,6 +8,7 @@ describe('sync-center.js', () => {
 
     expect(syncCenter.canAutoSyncFirestore({
       enabled: true,
+      mode: 'primary',
       hasPendingWrites: true,
       conflict: { detectedAt: '2026-04-26T11:59:00.000Z' }
     }, { status: 'pending' }, now)).toBe(false);
@@ -18,6 +19,7 @@ describe('sync-center.js', () => {
 
     expect(syncCenter.canAutoSyncFirestore({
       enabled: true,
+      mode: 'primary',
       hasPendingWrites: true,
       conflict: null
     }, {
@@ -27,12 +29,38 @@ describe('sync-center.js', () => {
 
     expect(syncCenter.canAutoSyncFirestore({
       enabled: true,
+      mode: 'primary',
       hasPendingWrites: true,
       conflict: null
     }, {
       status: 'pending',
       nextAttemptAt: '2026-04-26T11:59:00.000Z'
     }, now)).toBe(true);
+  });
+
+  it('keeps shadow mode out of automatic Firestore sync', () => {
+    expect(syncCenter.canAutoSyncFirestore({
+      enabled: true,
+      mode: 'shadow',
+      hasPendingWrites: false,
+      conflict: null
+    }, null)).toBe(false);
+  });
+
+  it('records same-id merge collisions instead of hiding them', () => {
+    const merged = syncCenter.mergeStudyStates({
+      config: {},
+      editais: [{ id: 'ed-1', nome: 'Local' }]
+    }, {
+      config: {},
+      editais: [{ id: 'ed-1', nome: 'Remoto' }]
+    });
+
+    expect(merged.editais).toEqual([{ id: 'ed-1', nome: 'Local' }]);
+    expect(merged.config.syncMergeConflicts).toMatchObject({
+      total: 1,
+      items: [{ collection: 'editais', id: 'ed-1' }]
+    });
   });
 
   it('builds one dashboard model for local, Firebase, Cloudflare and Drive status', () => {

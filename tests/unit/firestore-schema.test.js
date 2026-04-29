@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBaseState, createEvento } from '../helpers/state-builders.js';
 
-vi.mock('../../src/js/store.js?v=8.24', () => ({
+vi.mock('../../src/js/store.js?v=8.25', () => ({
   DEFAULT_SCHEMA_VERSION: 7,
   createExportableState(sourceState) {
     const clone = JSON.parse(JSON.stringify(sourceState));
@@ -14,7 +14,7 @@ vi.mock('../../src/js/store.js?v=8.24', () => ({
   }
 }));
 
-const schema = await import('../../src/js/sync/firestore-schema.js?v=8.24');
+const schema = await import('../../src/js/sync/firestore-schema.js?v=8.25');
 
 describe('firestore-schema.js', () => {
   it('creates a versioned snapshot envelope without sync secrets', () => {

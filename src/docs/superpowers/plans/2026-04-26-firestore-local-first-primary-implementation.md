@@ -4,7 +4,7 @@
 
 **Goal:** Add Firestore as the primary remote sync path while preserving IndexedDB as local storage and recovery.
 
-**Architecture:** The first production-safe version uses a versioned snapshot envelope, matching the existing Cloudflare safety model. `saveStateToDB()` remains the local commit point, then a Firestore outbox queues the latest snapshot and flushes it only when Firebase is configured and the user is authenticated with Google.
+**Architecture:** The first production-safe version uses a versioned snapshot envelope, matching the existing Cloudflare safety model. `saveStateToDB()` remains the local commit point; `sync-coordinator.js` listens to `stateSaved`, queues the latest snapshot and flushes it automatically only when Firebase is configured, the user is authenticated with Google, and Firestore is in `primary` mode.
 
 **Tech Stack:** Vanilla ES modules, IndexedDB, Firebase JS SDK 12.12.1, Firestore, Firebase Auth, App Check, Vitest, Playwright, PWA service worker.
 
@@ -36,7 +36,7 @@
 - [x] Add `firestore_outbox`, `firestore_meta`, and `firestore_conflicts`.
 - [x] Add `config.firestoreSync` defaults.
 - [x] Strip Firestore runtime status from exportable backups.
-- [x] Queue a Firestore snapshot after local save when Firestore sync is enabled.
+- [x] Queue and flush a Firestore snapshot after local save when Firestore sync is enabled in `primary` mode.
 
 ## Task 3: Firestore Repository and Sync Engine
 
@@ -82,9 +82,25 @@
 - [x] Run `npm run test:e2e`.
 - [x] Commit and push the configured Firebase project.
 
+## Task 6: Firestore Primary Auto-Sync Coordinator
+
+**Files:**
+- Create: `src/js/sync/sync-coordinator.js`
+- Modify: `src/js/sync/firestore-sync-engine.js`
+- Modify: `src/js/sync/sync-center.js`
+- Modify: `src/js/ui/actions/config.js`
+- Modify: `src/docs/api/sync-contract.md`
+
+- [x] Add a coordinator that listens to `stateSaved` without coupling `store.js` to Firestore.
+- [x] Keep automatic sync disabled in `shadow` mode.
+- [x] Make `primary` mode the main UI activation path.
+- [x] Route smart sync through Firestore primary instead of parallel Cloudflare/Drive tasks.
+- [x] Preserve Cloudflare and Drive as manual backup/restore channels.
+- [x] Pause same-ID merge collisions for review instead of silently pushing ambiguous data.
+
 ## Operational Notes
 
-- Firestore is currently activated as `shadow`; this is intentional for the first rollout.
-- Cloudflare and Google Drive remain available as secondary backup channels.
+- Firestore is now activated as `primary` from the main UI path; `shadow` remains available for diagnostics without automatic pushes.
+- Cloudflare and Google Drive remain available as secondary manual backup channels.
 - The current remote document is a versioned snapshot, not an entity graph. This matches the selected low-risk migration path and avoids a large storage rewrite in the same change.
 - A future phase can shard by entity once the Firestore path has proven reliable in real use.

@@ -1,27 +1,28 @@
 // ES Module Entry Point
 // Imports all modules and exposes functions via window.EstudoApp namespace
 
-import * as store from './store.js?v=8.24';
-import * as app from './app.js?v=8.24';
-import * as logic from './logic.js?v=8.24';
-import * as components from './components.js?v=8.24';
-import * as views from './views.js?v=8.24';
-import * as calendar_view from './views/calendar-view.js?v=8.24';
-import * as drive_sync from './drive-sync.js?v=8.24';
-import * as cloud_sync from './cloud-sync.js?v=8.24';
-import * as registro from './registro-sessao.js?v=8.24';
-import * as utils from './utils.js?v=8.24';
-import * as wizard from './planejamento-wizard.js?v=8.24';
+import * as store from './store.js?v=8.25';
+import * as app from './app.js?v=8.25';
+import * as logic from './logic.js?v=8.25';
+import * as components from './components.js?v=8.25';
+import * as views from './views.js?v=8.25';
+import * as calendar_view from './views/calendar-view.js?v=8.25';
+import * as drive_sync from './drive-sync.js?v=8.25';
+import * as cloud_sync from './cloud-sync.js?v=8.25';
+import * as registro from './registro-sessao.js?v=8.25';
+import * as utils from './utils.js?v=8.25';
+import * as wizard from './planejamento-wizard.js?v=8.25';
 
-import * as relevance from './relevance.js?v=8.24';
-import * as lesson_mapper from './lesson-mapper.js?v=8.24';
-import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.24';
+import * as relevance from './relevance.js?v=8.25';
+import * as lesson_mapper from './lesson-mapper.js?v=8.25';
+import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.25';
+import * as sync_coordinator from './sync/sync-coordinator.js?v=8.25';
 
 // Import UI helpers and action dispatcher
-import { setupActionDispatcher } from './ui/actions/index.js?v=8.24';
-import { qs, qsa } from './ui/dom.js?v=8.24';
-import { initModals, announce } from './ui/dialog.js?v=8.24';
-import { addCleanupListener } from './utils.js?v=8.24';
+import { setupActionDispatcher } from './ui/actions/index.js?v=8.25';
+import { qs, qsa } from './ui/dom.js?v=8.25';
+import { initModals, announce } from './ui/dialog.js?v=8.25';
+import { addCleanupListener } from './utils.js?v=8.25';
 
 // Expose UI helpers to window for gradual migration
 window.qs = qs;
@@ -30,7 +31,7 @@ window.announce = announce;
 
 // Create namespace for all exports (prevents global pollution)
 window.EstudoApp = {};
-const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper, firestore_sync];
+const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper, firestore_sync, sync_coordinator];
 
 for (const mod of exposedModules) {
   for (const key of Object.keys(mod)) {

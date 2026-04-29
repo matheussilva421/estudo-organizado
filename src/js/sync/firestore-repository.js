@@ -1,10 +1,11 @@
 import {
   doc,
   getDoc,
+  onSnapshot,
   serverTimestamp,
   setDoc
-} from '../../vendor/firebase-client.bundle.js?v=8.24';
-import { FIRESTORE_SNAPSHOT_DOC_ID, getEnvelopeUpdatedAt } from './firestore-schema.js?v=8.24';
+} from '../../vendor/firebase-client.bundle.js?v=8.25';
+import { FIRESTORE_SNAPSHOT_DOC_ID, getEnvelopeUpdatedAt } from './firestore-schema.js?v=8.25';
 
 function snapshotRef(db, uid) {
   return doc(db, 'users', uid, 'snapshots', FIRESTORE_SNAPSHOT_DOC_ID);
@@ -24,4 +25,12 @@ export async function writeFirestoreSnapshot(db, uid, envelope) {
     serverUpdatedAt: serverTimestamp()
   });
   return { updatedAt };
+}
+
+export function watchFirestoreSnapshot(db, uid, onRemoteSnapshot, onError) {
+  return onSnapshot(
+    snapshotRef(db, uid),
+    (snap) => onRemoteSnapshot(snap.exists() ? snap.data() : null),
+    onError
+  );
 }

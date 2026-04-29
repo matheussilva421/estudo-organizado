@@ -11,12 +11,23 @@ function latestIso(...values) {
   return newest ? new Date(newest).toISOString() : null;
 }
 
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
 function hasCloudflareCredentials(config = {}) {
   return Boolean(config.cfTokenSaved || config.cfToken);
 }
 
 export function canAutoSyncFirestore(config = {}, pending = null, now = Date.now()) {
   if (!config.enabled) return false;
+  if (config.mode !== 'primary') return false;
   if (config.conflict) return false;
   if (!pending) return true;
   if (pending.status === 'conflict') return false;
@@ -65,12 +76,14 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
       remoteAt: firestore.remoteUpdatedAt || null,
       conflict: firestore.conflict || null,
       lastError: firestore.lastError || null,
-      detail: firestore.enabled ? `Modo ${firestore.mode || 'shadow'}` : 'Ative depois de entrar com Google.'
+      detail: firestore.enabled
+        ? (firestore.mode === 'primary' ? 'Sync automatico principal.' : 'Shadow: sem envio automatico.')
+        : 'Ative depois de entrar com Google.'
     },
     {
       id: 'cloudflare',
       title: 'Cloudflare',
-      label: 'Worker/KV secundario',
+      label: 'Backup Worker/KV secundario',
       primary: false,
       enabled: Boolean(config.cfSyncEnabled),
       configured: cloudflareConfigured,
@@ -79,7 +92,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
       lastSyncAt: config.cfLastSyncAt || null,
       remoteAt: config.cfRemoteUpdatedAt || null,
       conflict: config.cfConflict || null,
-      detail: cloudflareConfigured ? 'Worker configurado.' : 'Informe URL e token para usar.'
+      detail: cloudflareConfigured ? 'Backup manual configurado.' : 'Informe URL e token para backup.'
     },
     {
       id: 'drive',
@@ -105,20 +118,32 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
   };
 }
 
-function mergeArrayById(localArray = [], remoteArray = []) {
+function mergeArrayById(localArray = [], remoteArray = [], options = {}) {
   const merged = new Map();
+  const collisions = options.collisions || [];
+  const collection = options.collection || 'items';
   for (const item of remoteArray) {
     const key = item?.id || JSON.stringify(item);
     merged.set(key, item);
   }
   for (const item of localArray) {
     const key = item?.id || JSON.stringify(item);
+    const remoteItem = merged.get(key);
+    if (remoteItem && stableStringify(remoteItem) !== stableStringify(item)) {
+      collisions.push({
+        collection,
+        id: item?.id || key,
+        localUpdatedAt: item?.updatedAt || item?.data || null,
+        remoteUpdatedAt: remoteItem?.updatedAt || remoteItem?.data || null
+      });
+    }
     merged.set(key, item);
   }
   return Array.from(merged.values());
 }
 
 export function mergeStudyStates(localState = {}, remoteState = {}) {
+  const collisions = [];
   const merged = {
     ...remoteState,
     ...localState,
@@ -129,7 +154,7 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   };
 
   for (const key of ['editais', 'eventos', 'arquivo', 'revisoes']) {
-    merged[key] = mergeArrayById(localState[key], remoteState[key]);
+    merged[key] = mergeArrayById(localState[key], remoteState[key], { collection: key, collisions });
   }
 
   const habitTypes = new Set([
@@ -138,9 +163,18 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   ]);
   merged.habitos = {};
   for (const type of habitTypes) {
-    merged.habitos[type] = mergeArrayById(localState.habitos?.[type], remoteState.habitos?.[type]);
+    merged.habitos[type] = mergeArrayById(localState.habitos?.[type], remoteState.habitos?.[type], { collection: `habitos.${type}`, collisions });
   }
 
   merged.config.localBackupAt = new Date().toISOString();
+  if (collisions.length > 0) {
+    merged.config.syncMergeConflicts = {
+      detectedAt: new Date().toISOString(),
+      total: collisions.length,
+      items: collisions.slice(0, 20)
+    };
+  } else {
+    delete merged.config.syncMergeConflicts;
+  }
   return merged;
 }

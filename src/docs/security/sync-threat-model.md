@@ -26,6 +26,11 @@ Este documento cobre:
 
 ## Premissas
 
+- Firestore em modo `primary` e a autoridade remota principal.
+- Cloudflare KV e Google Drive sao canais secundarios de backup/restauracao.
+- O commit local continua sendo IndexedDB antes de qualquer sync online.
+- O coordenador de sync pausa conflitos em vez de sobrescrever snapshots silenciosamente.
+
 - o app roda em contexto de navegador
 - todo dado persistido no cliente deve ser tratado como sensível para o usuário
 - qualquer XSS relevante pode expor dados e configurações locais
@@ -134,6 +139,9 @@ Mitigação recomendada:
 - envelope versionado
 - `updatedAt` explícito
 - `deviceId`
+- IndexedDB como commit local antes do sync online
+- coordenador unico para Firestore primary automatico
+- conflito remoto pausado para revisao
 - restore manual separado de sync automático
 
 ### T3. Uso indevido do endpoint Cloudflare
@@ -179,6 +187,7 @@ Mitigação recomendada:
 ### Prioridade 1
 
 - formalizar contrato versionado de sync
+- manter Firestore primary com outbox, backoff e conflito explicito
 - manter Firestore em modo shadow antes de qualquer restauração como fonte primária
 - endurecer Worker com CORS restrito
 - separar UX de sync de UX de backup

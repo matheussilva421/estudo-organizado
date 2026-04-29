@@ -34,9 +34,10 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/firebase/firebase-client.js');
     expect(swSource).toContain('./js/firebase/firebase-config.js');
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
+    expect(swSource).toContain('./js/sync/sync-coordinator.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.24'");
+    expect(swSource).toContain("APP_VERSION = '8.25'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
@@ -51,13 +52,18 @@ describe('Firestore integration contracts', () => {
     expect(actionsSource).toContain("registerAction('sync-center-smart-sync'");
   });
 
-  it('keeps local saves separated from online sync side effects', () => {
+  it('keeps local save storage separated while the sync coordinator owns online side effects', () => {
     const storeSource = read('src/js/store.js');
+    const mainSource = read('src/js/main.js');
+    const coordinatorSource = read('src/js/sync/sync-coordinator.js');
     const driveSource = read('src/js/drive-sync.js');
 
     expect(storeSource).not.toContain("import { pushToCloudflare }");
     expect(storeSource).not.toContain('SyncQueue.add(() => pushToCloudflare())');
     expect(storeSource).not.toContain('flushFirestoreOutbox()');
+    expect(mainSource).toContain("import * as sync_coordinator from './sync/sync-coordinator.js");
+    expect(coordinatorSource).toContain("document.addEventListener('stateSaved'");
+    expect(coordinatorSource).toContain('queueFirestoreSnapshotFromState');
     expect(driveSource).not.toContain("document.addEventListener('stateSaved'");
   });
 
@@ -68,6 +74,16 @@ describe('Firestore integration contracts', () => {
     expect(enableBody).toContain("config.mode = mode === 'primary' ? 'primary' : 'shadow';");
     expect(enableBody).not.toContain('flushFirestoreOutbox');
     expect(enableBody).not.toContain('queueFirestoreSnapshotFromState');
+  });
+
+  it('routes smart sync through Firestore primary instead of parallel secondary stores', () => {
+    const actionsSource = read('src/js/ui/actions/config.js');
+    const smartSyncBody = actionsSource.match(/export async function syncCenterSmartSync[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
+
+    expect(smartSyncBody).toContain('flushPrimarySyncNow');
+    expect(smartSyncBody).not.toContain('Promise.allSettled');
+    expect(smartSyncBody).not.toContain('forceCloudflareSync');
+    expect(smartSyncBody).not.toContain('syncWithDrive');
   });
 
   it('uses the current remote revision as the manual Firestore push base', () => {

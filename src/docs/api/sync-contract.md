@@ -4,7 +4,7 @@
 
 Sync is snapshot-based: the entire app state is pushed/pulled as a single blob. Conflict safety is handled by a versioned envelope around that blob.
 
-Firestore is now the preferred remote channel when configured. Cloudflare remains supported as a secondary/legacy channel with the same conservative overwrite principles.
+Firestore is now the primary remote channel when configured, signed in, and enabled in `primary` mode. Cloudflare KV and Google Drive remain supported as secondary backup/restore channels and are not treated as equivalent stores by the central smart sync flow.
 
 ## Firestore Snapshot
 
@@ -39,14 +39,26 @@ Write rules:
 - document path must match `users/{request.auth.uid}/snapshots/main`
 - physical deletes are denied
 - local save commits to IndexedDB first
+- `stateSaved` is the local commit event
+- `sync-coordinator.js` listens to `stateSaved`, queues Firestore snapshots, and flushes them automatically only in `primary` mode
 - Firestore writes are queued in `firestore_outbox`
 - stale remote snapshots create a conflict instead of overwriting automatically
+- `shadow` mode never performs automatic pushes
+
+Automatic primary sync:
+
+- `store.js` does not import Firestore or Cloudflare sync modules.
+- `sync-coordinator.js` owns online side effects after local saves.
+- Automatic sync requires configured Firebase, signed-in Google user, `firestoreSync.enabled === true`, `firestoreSync.mode === 'primary'`, and no active conflict.
+- Failed pushes stay in the outbox and reuse the existing retry/backoff metadata.
+- Manual "Sincronizar Firestore" routes through Firestore first; Cloudflare and Drive remain explicit backup actions.
 
 Conflict UX:
 
 - export local JSON before destructive resolution
 - pull Firestore to replace local data
 - force local push to replace Firestore snapshot
+- same-ID merge collisions keep the local item visible and record conflict metadata instead of silently pushing a merged snapshot
 
 ## Cloudflare Envelope
 
@@ -148,4 +160,5 @@ Behavior:
 1. Full-state snapshots still do not merge entity-level changes.
 2. Conflict UX is intentionally conservative: pull remote or force overwrite, with no merge UI yet.
 3. `ALLOWED_ORIGINS` is still permissive when omitted for backward compatibility and should be configured per deployment.
-4. Google Drive sync still has a separate conflict model.
+4. Google Drive sync still has a separate backup/restore conflict model.
+5. Entity-level conflict editing is not implemented yet; same-ID collisions pause for user review.

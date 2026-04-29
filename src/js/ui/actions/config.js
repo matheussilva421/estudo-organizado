@@ -17,6 +17,7 @@ registerAction('cloud-conflict-pull-remote', () => cloudConflictPullRemote());
 registerAction('cloud-conflict-force-push', () => cloudConflictForcePush());
 registerAction('firestore-sign-in', () => firestoreSignIn());
 registerAction('firestore-sign-out', () => firestoreSignOut());
+registerAction('firestore-enable-primary', () => firestoreEnablePrimary());
 registerAction('firestore-enable-shadow', () => firestoreEnableShadow());
 registerAction('firestore-disable-sync', () => firestoreDisableSync());
 registerAction('firestore-sync-now', () => firestoreSyncNow());
@@ -171,6 +172,12 @@ export function firestoreEnableShadow() {
     .catch(err => window.EstudoApp?.showToast?.(err.message || 'Erro ao ativar Firestore', 'error'));
 }
 
+export function firestoreEnablePrimary() {
+  window.EstudoApp?.enableFirestoreSync?.('primary')
+    .then(() => window.EstudoApp?.showToast?.('Firestore primario ativado. O app sincronizara automaticamente apos salvar.', 'success'))
+    .catch(err => window.EstudoApp?.showToast?.(err.message || 'Erro ao ativar Firestore primario', 'error'));
+}
+
 export function firestoreDisableSync() {
   window.EstudoApp?.disableFirestoreSync?.()
     .then(() => window.EstudoApp?.showToast?.('Firestore desativado. Dados locais preservados.', 'info'))
@@ -255,28 +262,18 @@ export async function syncCenterSmartSync() {
     return;
   }
 
-  const tasks = [];
   if (status?.configured && status?.signedIn && status?.enabled) {
-    tasks.push(window.EstudoApp?.syncFirestoreNow?.());
-  }
-  if (window.state?.config?.cfSyncEnabled) {
-    tasks.push(window.EstudoApp?.forceCloudflareSync?.());
-  }
-  if (window.state?.driveFileId) {
-    tasks.push(window.EstudoApp?.syncWithDrive?.());
-  }
-
-  if (tasks.length === 0) {
-    window.EstudoApp?.showToast?.('Nenhum destino online ativo para sincronizar.', 'info');
+    const ok = typeof window.EstudoApp?.flushPrimarySyncNow === 'function'
+      ? await window.EstudoApp.flushPrimarySyncNow({ manual: true, reason: 'smart-sync' })
+      : await window.EstudoApp?.syncFirestoreNow?.();
+    window.EstudoApp?.showToast?.(
+      ok ? 'Firestore primario sincronizado.' : 'Firestore aguardando revisao ou nova tentativa.',
+      ok ? 'success' : 'info'
+    );
     return;
   }
 
-  const results = await Promise.allSettled(tasks.filter(Boolean));
-  const failed = results.filter(result => result.status === 'rejected').length;
-  window.EstudoApp?.showToast?.(
-    failed ? 'Sincronizacao concluida com alertas. Confira a central.' : 'Central sincronizada.',
-    failed ? 'error' : 'success'
-  );
+  window.EstudoApp?.showToast?.('Ative o Firestore primario para sincronizar entre dispositivos. Cloudflare e Drive ficam como backups manuais.', 'info');
 }
 
 /**

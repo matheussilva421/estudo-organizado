@@ -12,6 +12,7 @@ export {
   doc,
   getDoc,
   initializeFirestore,
+  onSnapshot,
   persistentLocalCache,
   persistentMultipleTabManager,
   serverTimestamp,

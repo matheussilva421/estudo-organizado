@@ -1,10 +1,11 @@
-import { renderCurrentView } from './components.js?v=8.24';
-import { initDB, scheduleSave, state } from './store.js?v=8.24';
-import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.24';
-import { todayStr, esc } from './utils.js?v=8.24';
-import { pullFromCloudflare } from './cloud-sync.js?v=8.24';
-import { initNotifications } from './notifications.js?v=8.24';
-import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.24';
+import { renderCurrentView } from './components.js?v=8.25';
+import { initDB, scheduleSave, state } from './store.js?v=8.25';
+import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.25';
+import { todayStr, esc } from './utils.js?v=8.25';
+import { pullFromCloudflare } from './cloud-sync.js?v=8.25';
+import { initNotifications } from './notifications.js?v=8.25';
+import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.25';
+import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.25';
 
 // =============================================
 // APP STATE & DATA
@@ -372,6 +373,7 @@ export function init() {
     document.dispatchEvent(new Event('app:stateLoaded'));
     applyTheme();
     initNotifications();
+    initSyncCoordinator();
     initFirestoreSync();
 
     // Restaurar estado da sidebar (collapsed/expanded)

@@ -24,27 +24,27 @@ const mockGapi = {
 global.gapi = mockGapi;
 
 // Mock de credentials.js
-vi.mock('../../src/js/credentials.js?v=8.24', () => ({
+vi.mock('../../src/js/credentials.js?v=8.25', () => ({
   getCredential: vi.fn().mockResolvedValue(null),
   setCredential: vi.fn().mockResolvedValue(undefined),
   deleteCredential: vi.fn().mockResolvedValue(undefined)
 }));
 
 // Mock de app.js
-vi.mock('../../src/js/app.js?v=8.24', () => ({
+vi.mock('../../src/js/app.js?v=8.25', () => ({
   showToast: vi.fn(),
   showConfirm: vi.fn((msg, cb) => cb()),
   closeModal: vi.fn()
 }));
 
 // Mock de components.js
-vi.mock('../../src/js/components.js?v=8.24', () => ({
+vi.mock('../../src/js/components.js?v=8.25', () => ({
   renderCurrentView: vi.fn()
 }));
 
 // Mock parcial de utils.js - mantém todas as funções originais, mocka apenas uid para teste
-vi.mock('../../src/js/utils.js?v=8.24', async () => {
-  const actual = await vi.importActual('../../src/js/utils.js?v=8.24');
+vi.mock('../../src/js/utils.js?v=8.25', async () => {
+  const actual = await vi.importActual('../../src/js/utils.js?v=8.25');
   let counter = 0;
   return {
     ...actual,
@@ -61,7 +61,7 @@ beforeEach(async () => {
   store = modules.store;
 
   // Carrega utils do mock
-  utils = await import('../../src/js/utils.js?v=8.24');
+  utils = await import('../../src/js/utils.js?v=8.25');
 });
 
 describe('SyncQueue', () => {
@@ -101,7 +101,7 @@ describe('SyncQueue', () => {
 describe('credentials.js', () => {
   describe('setCredential()', () => {
     it('salva credencial no IndexedDB', async () => {
-      const { setCredential } = await import('../../src/js/credentials.js?v=8.24');
+      const { setCredential } = await import('../../src/js/credentials.js?v=8.25');
 
       await setCredential('test_key', { token: 'abc123' });
 
@@ -109,7 +109,7 @@ describe('credentials.js', () => {
     });
 
     it('salva múltiplas credenciais', async () => {
-      const { setCredential } = await import('../../src/js/credentials.js?v=8.24');
+      const { setCredential } = await import('../../src/js/credentials.js?v=8.25');
 
       await setCredential('cloudflare', { url: 'https://api.example.com', token: 'xyz' });
       await setCredential('drive', { clientId: 'client-123' });
@@ -120,7 +120,7 @@ describe('credentials.js', () => {
 
   describe('getCredential()', () => {
     it('recupera credencial do IndexedDB', async () => {
-      const { getCredential } = await import('../../src/js/credentials.js?v=8.24');
+      const { getCredential } = await import('../../src/js/credentials.js?v=8.25');
 
       getCredential.mockResolvedValue({ token: 'abc123' });
 
@@ -130,7 +130,7 @@ describe('credentials.js', () => {
     });
 
     it('retorna null quando credencial não existe', async () => {
-      const { getCredential } = await import('../../src/js/credentials.js?v=8.24');
+      const { getCredential } = await import('../../src/js/credentials.js?v=8.25');
 
       getCredential.mockResolvedValue(null);
 
@@ -140,7 +140,7 @@ describe('credentials.js', () => {
     });
 
     it('retorna undefined quando erro no IndexedDB', async () => {
-      const { getCredential } = await import('../../src/js/credentials.js?v=8.24');
+      const { getCredential } = await import('../../src/js/credentials.js?v=8.25');
 
       getCredential.mockRejectedValue(new Error('IndexedDB error'));
 
@@ -150,7 +150,7 @@ describe('credentials.js', () => {
 
   describe('deleteCredential()', () => {
     it('remove credencial do IndexedDB', async () => {
-      const { deleteCredential } = await import('../../src/js/credentials.js?v=8.24');
+      const { deleteCredential } = await import('../../src/js/credentials.js?v=8.25');
 
       await deleteCredential('test_key');
 
@@ -158,7 +158,7 @@ describe('credentials.js', () => {
     });
 
     it('remove múltiplas credenciais', async () => {
-      const { deleteCredential } = await import('../../src/js/credentials.js?v=8.24');
+      const { deleteCredential } = await import('../../src/js/credentials.js?v=8.25');
 
       await deleteCredential('key1');
       await deleteCredential('key2');

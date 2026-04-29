@@ -82,9 +82,10 @@ No Google Cloud Console:
 3. Abra o app.
 4. Va em Configuracoes > Firestore.
 5. Entre com Google.
-6. Clique em `Ativar shadow`.
-7. Use o app normalmente e confirme se `Backup Firestore` atualiza.
-8. Mantenha Cloudflare e Google Drive ativos como fallback ate confiar no historico de sincronizacao.
+6. Clique em `Ativar primario`.
+7. Use o app normalmente e confirme se o status sai de salvamento local para Firestore sincronizado.
+8. Use `Shadow` apenas para diagnostico sem push automatico.
+9. Mantenha Cloudflare e Google Drive como backups manuais ate confiar no historico de sincronizacao.
 
 ## 7. Recuperacao e conflitos
 
