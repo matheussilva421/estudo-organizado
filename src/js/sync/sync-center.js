@@ -170,8 +170,6 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
       total: collisions.length,
       items: collisions.slice(0, 20),
     };
-  } else {
-    delete merged.config.syncMergeConflicts;
   }
   return merged;
 }

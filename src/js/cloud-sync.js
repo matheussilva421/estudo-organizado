@@ -179,7 +179,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
         if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
         delete state.config.cfConflict;
       }
-      saveStateToDB(true, true, true, { touchLocalBackup: false });
+      await saveStateToDB(true, true, true, { touchLocalBackup: false });
       document.dispatchEvent(new Event('app:invalidateCaches'));
       document.dispatchEvent(new Event('app:renderCurrentView'));
       document.dispatchEvent(
@@ -197,7 +197,7 @@ export async function pullFromCloudflare(forceOverwrite = false) {
     if (!state.config) state.config = {};
     if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
     state.config.cfLastSyncAt = new Date(syncTs).toISOString();
-    saveStateToDB(true, true, true, { touchLocalBackup: false });
+    await saveStateToDB(true, true, true, { touchLocalBackup: false });
     const lastStr = new Date(syncTs).toLocaleString('pt-BR');
     updateSyncStatus(`Sincronizado em ${lastStr}`);
     return true;
@@ -311,7 +311,7 @@ export async function pushToCloudflare(forceOverwrite = false) {
     state.config.cfLastSyncAt = new Date(pushTimestamp).toISOString();
     state.config.cfRemoteUpdatedAt = responseData?.meta?.updatedAt || envelope.payloadUpdatedAt;
     delete state.config.cfConflict;
-    saveStateToDB(true, true, true, { touchLocalBackup: false });
+    await saveStateToDB(true, true, true, { touchLocalBackup: false });
     const lastStr = new Date(pushTimestamp).toLocaleString('pt-BR');
     updateSyncStatus(`Nuvem atualizada em ${lastStr}`);
     console.log('Cloudflare Sync OK');

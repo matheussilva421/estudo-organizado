@@ -27,8 +27,8 @@ registerAction('close-modal', (el) => {
 });
 registerAction('open-planejamento-wizard', openPlanejamentoWizard);
 registerAction('open-registro-sessao', (el) => {
-  const discId = el.dataset.discId;
-  if (discId) openRegistroSessao(discId);
+  const eventId = el.dataset.eventId;
+  if (eventId) openRegistroSessao(eventId);
 });
 registerAction('open-add-past-session', (el) => {
   const discId = el.dataset.discId;

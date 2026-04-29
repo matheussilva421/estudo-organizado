@@ -335,7 +335,7 @@ function comparableRevision(item) {
 }
 
 function comparableUpdatedAt(item) {
-  const value = item?._sync?.updatedAt || item?.updatedAt || item?.data || null;
+  const value = item?._sync?.updatedAt || item?.updatedAt || null;
   return toTime(value) || null;
 }
 
@@ -404,32 +404,41 @@ function requestToPromise(request) {
 
 export async function readEntityIndexStore(db, storeName) {
   if (!db || !storeName || !db.objectStoreNames?.contains(storeName)) return new Map();
-  const transaction = db.transaction([storeName], 'readonly');
-  const store = transaction.objectStore(storeName);
-  if (typeof store.getAll !== 'function') return new Map();
-  const records = await requestToPromise(store.getAll());
-  return normalizePreviousIndex(records || []);
+  try {
+    const transaction = db.transaction([storeName], 'readonly');
+    const store = transaction.objectStore(storeName);
+    if (typeof store.getAll !== 'function') return new Map();
+    const records = await requestToPromise(store.getAll());
+    return normalizePreviousIndex(records || []);
+  } catch (err) {
+    console.error('Failed to read entity index store:', err);
+    return new Map();
+  }
 }
 
 export async function writeEntityIndexStore(db, storeName, index = [], removed = []) {
   if (!db || !storeName || !db.objectStoreNames?.contains(storeName)) return;
-  await new Promise((resolve, reject) => {
-    const transaction = db.transaction([storeName], 'readwrite');
-    const store = transaction.objectStore(storeName);
-    if (typeof store.put !== 'function' || typeof store.delete !== 'function') {
-      resolve();
-      return;
-    }
-    for (const item of index) {
-      store.put(item);
-    }
-    for (const item of removed) {
-      store.delete(item.key);
-    }
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
-  });
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction([storeName], 'readwrite');
+      const store = transaction.objectStore(storeName);
+      if (typeof store.put !== 'function' || typeof store.delete !== 'function') {
+        resolve();
+        return;
+      }
+      for (const item of index) {
+        store.put(item);
+      }
+      for (const item of removed) {
+        store.delete(item.key);
+      }
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+  } catch (err) {
+    console.error('Failed to write entity index store:', err);
+  }
 }
 
 export async function prepareEntityMetadataForSave(sourceState, options = {}) {

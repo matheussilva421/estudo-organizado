@@ -372,12 +372,16 @@ export function renderCurrentView() {
     'banca-analyzer': 'Inteligência de Banca',
     'historico-sessoes': 'Histórico de Sessões',
   };
-  document.getElementById('topbar-title').textContent = titles[currentView] || 'Estudo Organizado';
+  const titleEl = document.getElementById('topbar-title');
+  if (titleEl) titleEl.textContent = titles[currentView] || 'Estudo Organizado';
 
-  document.getElementById('topbar-date').innerHTML =
-    currentView === 'home'
-      ? `<i class="fa fa-calendar-alt"></i> ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`
-      : '';
+  const dateEl = document.getElementById('topbar-date');
+  if (dateEl) {
+    dateEl.innerHTML =
+      currentView === 'home'
+        ? `<i class="fa fa-calendar-alt"></i> ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`
+        : '';
+  }
 
   // Render topbar actions
   const actions = document.getElementById('topbar-actions');

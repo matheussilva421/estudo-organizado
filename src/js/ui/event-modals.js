@@ -207,12 +207,9 @@ export function saveEvent() {
   const legislacao = document.getElementById('event-legislacao')?.value.trim() || '';
 
   const discId = document.getElementById('event-disc')?.value || '';
-  let assId = document.getElementById('event-assunto')?.value || '';
-  let aulaId = document.getElementById('event-aula')?.value || '';
+  const assId = document.getElementById('event-assunto')?.value || '';
+  const aulaId = document.getElementById('event-aula')?.value || '';
   let autoTitle = titulo;
-
-  if (assId && assId.startsWith('ass_')) assId = assId.substring(4);
-  if (aulaId && aulaId.startsWith('aul_')) aulaId = aulaId.substring(4);
 
   if (!titulo && discId) {
     const d = getDisc(discId);

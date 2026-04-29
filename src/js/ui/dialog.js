@@ -157,11 +157,15 @@ export function closeModal(modalId) {
   if (modalStack.length === 0) {
     document.body.style.overflow = '';
 
-    // Restore focus to last focused element
-    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+    // Restore focus to last focused element if still in DOM
+    if (
+      lastFocusedElement &&
+      typeof lastFocusedElement.focus === 'function' &&
+      document.body.contains(lastFocusedElement)
+    ) {
       lastFocusedElement.focus();
-      lastFocusedElement = null;
     }
+    lastFocusedElement = null;
   } else {
     // Focus next modal in stack
     const previousModalId = modalStack[modalStack.length - 1];

@@ -113,7 +113,7 @@ function networkFirst(request) {
     .then((res) => {
       if (res.ok) {
         const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
       }
       return res;
     })
@@ -140,7 +140,7 @@ function cacheFirst(request) {
     return fetch(request).then((res) => {
       if (res.ok) {
         const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
       }
       return res;
     });
@@ -168,6 +168,7 @@ self.addEventListener('fetch', (evt) => {
           .match(`./index.html?v=${APP_VERSION}`)
           .then((v) => v || caches.match('./index.html'))
           .then((v) => v || caches.match('./'))
+          .then((v) => v || fetch('./index.html'))
       )
     );
     return;

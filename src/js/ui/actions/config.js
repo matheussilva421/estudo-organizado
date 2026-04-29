@@ -151,7 +151,10 @@ registerAction('firestore-open-conflict-review', () => {
   const conflict = state?.config?.firestoreSync?.conflict;
   const modal = document.getElementById('modal-prompt');
   if (!modal || !conflict) return;
-  modal.innerHTML = `<pre style="white-space:pre-wrap;font-size:12px;max-height:60vh;overflow:auto;">${JSON.stringify(conflict, null, 2)}</pre>`;
+  const pre = modal.querySelector('pre') || document.createElement('pre');
+  pre.style.cssText = 'white-space:pre-wrap;font-size:12px;max-height:60vh;overflow:auto;';
+  pre.textContent = JSON.stringify(conflict, null, 2);
+  if (!modal.querySelector('pre')) modal.appendChild(pre);
   openModal('modal-prompt');
 });
 registerAction('entity-conflict-keep-local', (el) => entityConflictResolve(el, 'local'));
@@ -256,7 +259,10 @@ async function entityConflictResolve(el, decision) {
   const conflict = state?.config?.firestoreSync?.conflict;
   const modal = document.getElementById('modal-prompt');
   if (modal && conflict) {
-    modal.innerHTML = `<pre style="white-space:pre-wrap;font-size:12px;max-height:60vh;overflow:auto;">${JSON.stringify(conflict, null, 2)}</pre>`;
+    const pre = modal.querySelector('pre') || document.createElement('pre');
+    pre.style.cssText = 'white-space:pre-wrap;font-size:12px;max-height:60vh;overflow:auto;';
+    pre.textContent = JSON.stringify(conflict, null, 2);
+    if (!modal.querySelector('pre')) modal.appendChild(pre);
   }
   document.dispatchEvent(new Event('app:renderCurrentView'));
 }

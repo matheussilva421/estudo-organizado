@@ -113,6 +113,7 @@ function stopFirestoreRemoteWatch() {
 async function applyRemoteSnapshotFromWatch(remote) {
   if (!remote || isFlushing || !shouldWatchPrimaryFirestore()) return;
   if (isEntityPrimaryEnabled()) return;
+  if (!currentUser?.uid) return;
 
   const config = getConfig();
   const pending = await getPendingFirestoreSnapshot();
@@ -167,14 +168,18 @@ function startFirestoreRemoteWatch() {
       applyRemoteSnapshotFromWatch(remote).catch((err) => {
         const config = getConfig();
         config.lastError = err.message || String(err);
-        persistSyncConfig(false).catch(() => {});
+        persistSyncConfig(false).catch((persistErr) => {
+          console.error('Failed to persist sync config after watch error:', persistErr);
+        });
         emitStatus('error', { error: config.lastError });
       });
     },
     (err) => {
       const config = getConfig();
       config.lastError = err.message || String(err);
-      persistSyncConfig(false).catch(() => {});
+      persistSyncConfig(false).catch((persistErr) => {
+        console.error('Failed to persist sync config after watch error:', persistErr);
+      });
       emitStatus('error', { error: config.lastError });
     }
   );
@@ -559,7 +564,7 @@ export async function pullFromFirestore(forceOverwrite = false) {
       if (!entityDocs.length) {
         const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
         if (!queued) return false;
-        return await flushFirestoreOutbox({ manual: true });
+        return await flushFirestoreEntityOutbox({ manual: true });
       }
 
       const pullAt = new Date().toISOString();
@@ -684,7 +689,7 @@ export async function syncFirestoreNow() {
     }
     const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
     if (!queued) return false;
-    return await flushFirestoreOutbox({ manual: true });
+    return await flushFirestoreEntityOutbox({ manual: true });
   }
 
   const { db, uid } = requireSignedInServices();
@@ -782,13 +787,16 @@ export async function mergeFromFirestore() {
         lastPullAt: new Date().toISOString(),
         conflict: null,
         lastError: null,
-        hasPendingWrites: true,
       });
       await clearFirestoreConflict();
       await saveStateToDB(true, true, true);
       const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
-      if (!queued) return false;
-      const ok = await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
+      if (!queued) {
+        getConfig().hasPendingWrites = false;
+        return false;
+      }
+      Object.assign(getConfig(), { hasPendingWrites: true });
+      const ok = await flushFirestoreEntityOutbox({ forceOverwrite: true, manual: true });
       document.dispatchEvent(new Event('app:renderCurrentView'));
       document.dispatchEvent(
         new CustomEvent('app:showToast', {

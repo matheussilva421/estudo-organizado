@@ -36,7 +36,11 @@ registerAction('navigate-with-ctx', (el) => {
   if (view) {
     if (ctx) {
       import('../../app.js?v=8.29').then(({ navigate }) => {
-        setActiveDashboardDiscCtx(JSON.parse(decodeURIComponent(ctx)));
+        try {
+          setActiveDashboardDiscCtx(JSON.parse(decodeURIComponent(ctx)));
+        } catch (err) {
+          console.error('Failed to parse navigation context:', err);
+        }
         navigate(view);
       });
     } else {

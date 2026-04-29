@@ -198,9 +198,9 @@ export function createSafeElement(tag, attrs = {}, content = null) {
       console.warn('[createSafeElement] Use textContent ou appendChild para segurança');
     } else if (key === 'textContent') {
       el.textContent = esc(String(value));
-    } else if (key.startsWith('on') || key.startsWith('data-action')) {
-      // Skip inline handlers
-      console.warn(`[createSafeElement] Skipping handler: ${key} - use data-action`);
+    } else if (key.startsWith('on')) {
+      // Skip inline handlers - use data-action delegation instead
+      console.warn(`[createSafeElement] Skipping inline handler: ${key} - use data-action`);
     } else if (value !== null && value !== undefined) {
       el.setAttribute(key, esc(String(value)));
     }

@@ -8,7 +8,7 @@ import {
   setState,
 } from './store.js?v=8.29';
 import { renderCurrentView } from './components.js?v=8.29';
-import { setCredential, getCredential } from './credentials.js?v=8.29';
+import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.29';
 import { mergeStudyStates } from './sync/sync-center.js?v=8.29';
 
 // =============================================
@@ -192,6 +192,9 @@ export function disconnectDrive() {
   if (gapi.client?.getToken() !== null) {
     google.accounts.oauth2.revoke(gapi.client.getToken().access_token, () => {
       gapi.client.setToken('');
+      deleteCredential(DRIVE_CLIENT_ID_KEY).catch((err) => {
+        console.error('Failed to delete drive credential:', err);
+      });
       localStorage.removeItem('estudo_drive_client_id');
       state.driveFileId = null;
       state.lastSync = null;
@@ -240,10 +243,11 @@ export async function syncWithDrive(isRecursion = false) {
                   renderCurrentView();
                   showToast('Dados mesclados do Drive!', 'success');
                   updateDriveUI('connected', 'Google Drive');
-                  _isSyncing = false;
                 })
                 .catch((e) => {
                   console.error('Force save fail:', e);
+                })
+                .finally(() => {
                   _isSyncing = false;
                 });
             },

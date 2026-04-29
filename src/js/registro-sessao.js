@@ -305,13 +305,13 @@ function renderRegistroForm(ev) {
     <div class="reg-block">
       <h3 class="reg-block-title">💬 Comentários / Observações</h3>
       <textarea id="reg-comentarios" class="reg-textarea" rows="3"
-        placeholder="Dificuldades, pontos de revisão, pegadinhas...">${ev.sessao?.comentarios || ''}</textarea>
+        placeholder="Dificuldades, pontos de revisão, pegadinhas...">${esc(ev.sessao?.comentarios || '')}</textarea>
     </div>
 
     <div class="reg-block">
       <div class="reg-full-width">
         <h3 class="reg-block-title">Resumo / Detalhes <small class="reg-title-subtitle">(Opcional)</small></h3>
-        <textarea id="reg-observacao" class="reg-textarea" placeholder="Anotações, comentários ou percepções sobre o que você estudou hoje..." wrap="soft" spellcheck="true">${ev.sessao?.observacoes || ''}</textarea>
+        <textarea id="reg-observacao" class="reg-textarea" placeholder="Anotações, comentários ou percepções sobre o que você estudou hoje..." wrap="soft" spellcheck="true">${esc(ev.sessao?.observacoes || '')}</textarea>
       </div>
     </div>
 

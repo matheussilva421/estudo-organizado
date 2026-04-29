@@ -171,7 +171,7 @@ function renderHistoricoDisciplina(tempos) {
                     const pags = t.sessao?.paginas?.total || t.paginas || null;
 
                     return `
-              <tr class="session-history-row cursor-pointer" style="border-bottom:1px solid var(--bg);" data-action="open-registro-sessao" data-disc-id="${t.id}">
+              <tr class="session-history-row cursor-pointer" style="border-bottom:1px solid var(--bg);" data-action="open-registro-sessao" data-event-id="${t.id}">
                 <td class="text-primary" style="padding:10px 4px;">${dateStr}</td>
                 <td class="text-mono" style="padding:10px 4px;">${tempoStr}</td>
                 <td style="padding:10px 4px;">${pags ?? '-'}</td>

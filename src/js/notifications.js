@@ -9,6 +9,7 @@ export let hasNotificationPermission = false;
 let notificationEngineInterval = null;
 let lastNotifiedKeys = new Set(); // Para evitar spam da mesma notificação
 let _lastNotifiedDate = ''; // Fecha o Set todo dia
+let _initTimeout = null; // Timeout cancellable para init
 
 function getNotifDateKey() {
   // Stable ISO date string independent of locale
@@ -36,7 +37,9 @@ export async function initNotifications() {
   }
 
   // Aguarda carregar o estado para comecar
-  setTimeout(() => {
+  if (_initTimeout) clearTimeout(_initTimeout);
+  _initTimeout = setTimeout(() => {
+    _initTimeout = null;
     startNotificationEngine();
   }, 5000);
 }

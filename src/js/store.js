@@ -9,7 +9,7 @@ import {
 } from './sync/entity-metadata.js?v=8.29';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 export const STORE_NAME = 'app_state';
 export const FIRESTORE_OUTBOX_STORE = 'firestore_outbox';
 export const FIRESTORE_META_STORE = 'firestore_meta';
@@ -266,6 +266,11 @@ export function initDB() {
  */
 export function loadStateFromDB() {
   return new Promise((resolve) => {
+    if (!db) {
+      loadLegacyState();
+      resolve();
+      return;
+    }
     const transaction = db.transaction([STORE_NAME], 'readonly');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.get('main_state');
@@ -297,6 +302,12 @@ export function loadStateFromDB() {
     };
 
     request.onerror = () => {
+      loadLegacyState();
+      resolve();
+    };
+
+    transaction.onerror = () => {
+      console.error('loadStateFromDB transaction error:', transaction.error);
       loadLegacyState();
       resolve();
     };
@@ -524,12 +535,18 @@ export function saveStateToDB(
           emitSaveStatus('error', { detail: describeSaveFailure(err) });
           reject(err);
         };
+
+        transaction.onerror = () => {
+          const err = transaction.error || new Error('Transaction failed');
+          emitSaveStatus('error', { detail: describeSaveFailure(err) });
+          reject(err);
+        };
       })
   );
 }
 
 /**
- * Executa migrações de schema do estado (v1 → v7)
+ * Executa migrações de schema do estado (v1 → v9)
  * @returns {void}
  */
 export function runMigrations() {
@@ -616,10 +633,8 @@ export function runMigrations() {
     changed = true;
   }
 
-  // v5 and v6 were intermediate states — advance directly to 7
-  // (the schemaVersion < 7 block below will run the aulas migration)
+  // v5 and v6 were intermediate states — let the < 7 block below run the aulas migration
   if (state.schemaVersion === 5 || state.schemaVersion === 6) {
-    state.schemaVersion = 6; // Let the < 7 block below run
     changed = true;
   }
 
@@ -753,7 +768,30 @@ export function clearData() {
     driveFileId: null,
     lastSync: null,
   });
+  const clearAuxStores = () => {
+    if (!db) return Promise.resolve();
+    const stores = [
+      FIRESTORE_OUTBOX_STORE,
+      FIRESTORE_META_STORE,
+      FIRESTORE_CONFLICT_STORE,
+      ENTITY_META_STORE,
+      FIRESTORE_ENTITY_OUTBOX_STORE,
+    ];
+    return Promise.all(
+      stores.map((storeName) => {
+        if (!db.objectStoreNames.contains(storeName)) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction([storeName], 'readwrite');
+          const store = tx.objectStore(storeName);
+          const req = store.clear();
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      })
+    );
+  };
   saveStateToDB()
+    .then(() => clearAuxStores())
     .then(() => {
       document.dispatchEvent(
         new CustomEvent('app:showToast', {

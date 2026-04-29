@@ -1186,7 +1186,7 @@ function _renderHistoricoDisciplina(tempos) {
               const pags = t.sessao?.paginas?.total || t.paginas || null;
 
               return `
-              <tr class="session-history-row" data-action="open-registro-sessao" data-disc-id="${t.id}">
+              <tr class="session-history-row" data-action="open-registro-sessao" data-event-id="${t.id}">
                 <td>${dateStr}</td>
                 <td class="session-history-time">${tempoStr}</td>
                 <td>${pags ?? '-'}</td>
@@ -1707,6 +1707,36 @@ export function saveDisc() {
   scheduleSave();
   closeModal('modal-disc');
   renderCurrentView();
+}
+
+export function saveDiscManager(editalId, discId) {
+  const edital = state.editais.find((e) => e.id === editalId);
+  if (!edital) return;
+  const disc = edital.disciplinas?.find((d) => d.id === discId);
+  if (!disc) return;
+  const nomeEl = document.getElementById('dm-nome');
+  const corEl = document.getElementById('dm-cor');
+  if (nomeEl) disc.nome = nomeEl.value.trim() || disc.nome;
+  if (corEl) disc.cor = corEl.value || disc.cor;
+  scheduleSave();
+  openDiscManager(editalId, discId);
+  showToast('Disciplina atualizada!', 'success');
+}
+
+export function moveSubject(discId, idx, dir) {
+  for (const edital of state.editais) {
+    if (!edital.disciplinas) continue;
+    const disc = edital.disciplinas.find((d) => d.id === discId);
+    if (!disc || !disc.assuntos) continue;
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= disc.assuntos.length) return;
+    const temp = disc.assuntos[idx];
+    disc.assuntos[idx] = disc.assuntos[targetIdx];
+    disc.assuntos[targetIdx] = temp;
+    scheduleSave();
+    openDiscManager(editingSubjectCtx?.editaId || edital.id, discId);
+    return;
+  }
 }
 
 // =============================================
