@@ -9,14 +9,21 @@ export default defineConfig({
   expect: {
     timeout: 10_000
   },
+  retries: process.env.CI ? 2 : 0,
+  reporter: process.env.CI ? [['github'], ['html']] : 'html',
   use: {
     baseURL: BASE_URL,
     serviceWorkers: 'block',
-    trace: 'on-first-retry'
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure'
   },
   webServer: {
     command: `npx http-server src -p ${PORT} -c-1`,
     url: BASE_URL,
     reuseExistingServer: true
-  }
+  },
+  projects: [
+    { name: 'chromium', use: { browserName: 'chromium' } },
+  ]
 });
