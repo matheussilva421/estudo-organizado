@@ -436,8 +436,14 @@ export const SyncQueue = {
         await fn();
       } catch (err) {
         console.error('SyncQueue Error:', err);
+        this.tasks = [];
+        break;
       }
     }
+    this.isProcessing = false;
+  },
+  clear() {
+    this.tasks = [];
     this.isProcessing = false;
   },
 };
@@ -487,15 +493,28 @@ export function scheduleSave() {
 
 /**
  * Salva estado no IndexedDB imediatamente
- * @param {boolean} [skipCloudSync=false] - Se true, não sincroniza com Cloudflare
+ * @param {boolean|Object} [firstArg=false] - Se boolean, skipCloudSync. Se objeto, opções.
+ * @param {boolean} [skipFirestoreSync=false] - Legacy: se true, não sincroniza com Firestore
+ * @param {boolean} [skipDriveSync=false] - Legacy: se true, não sincroniza com Drive
+ * @param {Object} [legacyOptions] - Legacy: opções adicionais
  * @returns {Promise<void>}
  */
 export function saveStateToDB(
-  skipCloudSync = false,
+  firstArg = false,
   skipFirestoreSync = false,
   skipDriveSync = false,
-  options = {}
+  legacyOptions = {}
 ) {
+  let skipCloudSync, options;
+  if (typeof firstArg === 'object' && firstArg !== null) {
+    options = firstArg;
+    skipCloudSync = options.skipCloudSync ?? false;
+    skipFirestoreSync = options.skipFirestoreSync ?? false;
+    skipDriveSync = options.skipDriveSync ?? false;
+  } else {
+    skipCloudSync = firstArg;
+    options = legacyOptions && typeof legacyOptions === 'object' ? legacyOptions : {};
+  }
   if (saveTimeout) {
     clearTimeout(saveTimeout);
     saveTimeout = null;
@@ -503,14 +522,13 @@ export function saveStateToDB(
   if (!db) return Promise.resolve();
   emitSaveStatus('saving');
 
-  const saveOptions = options && typeof options === 'object' ? options : {};
   if (!state.config) state.config = {};
-  if (saveOptions.touchLocalBackup !== false) {
+  if (options.touchLocalBackup !== false) {
     state.config.localBackupAt = new Date().toISOString();
   }
 
   const prepare =
-    saveOptions.touchLocalBackup === false
+    options.touchLocalBackup === false
       ? Promise.resolve()
       : prepareEntityMetadataForSave(state, { db, storeName: ENTITY_META_STORE });
 

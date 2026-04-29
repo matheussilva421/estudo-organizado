@@ -36,12 +36,12 @@ export async function initNotifications() {
     hasNotificationPermission = permission === 'granted';
   }
 
-  // Aguarda carregar o estado para comecar
+  // Aguarda carregar o estado para comecar (2s é suficiente para IndexedDB)
   if (_initTimeout) clearTimeout(_initTimeout);
   _initTimeout = setTimeout(() => {
     _initTimeout = null;
     startNotificationEngine();
-  }, 5000);
+  }, 2000);
 }
 
 function isSilentHour() {

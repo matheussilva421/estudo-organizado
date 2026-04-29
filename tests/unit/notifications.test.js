@@ -148,9 +148,9 @@ describe('notifications.js - initNotifications', () => {
     global.Notification = originalNotification;
   });
 
-  it('schedules engine start after 5 seconds when permission granted', async () => {
+  it('schedules engine start after 2 seconds when permission granted', async () => {
     global.Notification = { permission: 'granted' };
     await notifications.initNotifications();
-    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 5000);
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 2000);
   });
 });
