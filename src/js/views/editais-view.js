@@ -6,6 +6,10 @@
 import { scheduleSave, state } from '../store.js?v=8.29';
 import { esc, todayStr } from '../utils.js?v=8.29';
 import { getDisc } from '../logic.js?v=8.29';
+import { getActiveDashboardDiscCtx } from '../state/dashboard-context.js?v=8.29';
+import { openAddEventModal, loadAssuntos } from '../ui/event-modals.js?v=8.29';
+import { openDiscDashboard } from '../views.js?v=8.29';
+import { renderCurrentView } from '../components.js?v=8.29';
 
 // ── Vertical View State ──
 let vertSearch = '';
@@ -206,14 +210,14 @@ export function renderVerticalList(container) {
               <tbody>
     `;
 
-    dMap.items.forEach(({ ass, edital, disc }) => {
+    dMap.items.forEach(({ ass, edital: _edital, disc: _disc }) => {
       const aStats = (evStats.assuntos && evStats.assuntos[ass.id]) ? evStats.assuntos[ass.id] : { certas: 0, erradas: 0 };
       const aCertas = aStats.certas;
       const aErradas = aStats.erradas;
       const aTotalQ = aCertas + aErradas;
       const aPctQ = aTotalQ > 0 ? Math.round((aCertas / aTotalQ) * 100) : 0;
 
-      const revCount = (ass.revisoesFetas || []).length;
+      const _revCount = (ass.revisoesFetas || []).length;
       let dataStr = '-';
       if (ass.dataConclusao) {
         const d = ass.dataConclusao.split('-');
@@ -273,12 +277,12 @@ export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
   const ass = d?.disc?.assuntos?.find(a => a.id === assId);
   if (!ass || !d) return;
-  window.openAddEventModal?.(todayStr());
+  openAddEventModal(todayStr());
   setTimeout(() => {
     const discSel = document.getElementById('event-disc');
     if (discSel) {
       discSel.value = discId;
-      window.loadAssuntos?.();
+      loadAssuntos();
       setTimeout(() => {
         const assSel = document.getElementById('event-assunto');
         if (assSel) {
@@ -348,7 +352,7 @@ export function renderEditalTree(edital) {
           ${filteredDisciplinas.map(disc => {
     const isArchived = disc.arquivada === true;
     const archivedClass = isArchived ? 'disc-card-archived' : '';
-    const archivedBadge = isArchived ? `<div class="disc-archived-badge">Arquivada</div>` : '';
+    const archivedBadge = isArchived ? '<div class="disc-archived-badge">Arquivada</div>' : '';
 
     const totaisTopicos = disc.assuntos ? disc.assuntos.length : 0;
     const topicosEstudados = disc.assuntos ? disc.assuntos.filter(a => a.concluido).length : 0;
@@ -436,10 +440,11 @@ export function toggleAssunto(discId, assId) {
         if (ass.concluido) ass.revisoesFetas = [];
         scheduleSave();
 
-        if (window.activeDashboardDiscCtx && window.activeDashboardDiscCtx.discId === discId) {
-          window.openDiscDashboard(window.activeDashboardDiscCtx.editaId, discId);
+        const ctx = getActiveDashboardDiscCtx();
+        if (ctx && ctx.discId === discId) {
+          openDiscDashboard(ctx.editaId, discId);
         } else {
-          window.renderCurrentView?.();
+          renderCurrentView();
         }
         return;
       }

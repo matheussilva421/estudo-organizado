@@ -210,11 +210,11 @@ describe('views.js - MED View', () => {
       const state = createBaseState({ eventos: [evento] });
       store.setState(state);
 
-      // A função refreshEventCard chama renderCurrentView internamente
+      // A função refreshEventCard usa querySelector para encontrar o card
       views.refreshEventCard('ev_refresh');
 
       // Verifica que o documento foi consultado
-      expect(global.document.getElementById).toHaveBeenCalled();
+      expect(global.document.querySelector).toHaveBeenCalled();
     });
   });
 
@@ -425,11 +425,11 @@ describe('views.js - Revisões', () => {
 describe('views.js - Ciclo de Estudos', () => {
   describe('toggleEditSeq()', () => {
     it('alterna modo de edição da sequência', () => {
-      global.window._isEditingSequence = false;
+      views.setIsEditingSequence(false);
 
       views.toggleEditSeq();
 
-      expect(global.window._isEditingSequence).toBe(true);
+      expect(views.getIsEditingSequence()).toBe(true);
     });
 
     it('cria cópia temporária da sequência ao entrar em edição', () => {
@@ -441,25 +441,25 @@ describe('views.js - Ciclo de Estudos', () => {
         }
       });
       store.setState(state);
-      global.window._isEditingSequence = false;
-      global.window._tempSequencia = null;
+      views.setIsEditingSequence(false);
+      views.setTempSequencia(null);
 
       views.toggleEditSeq();
 
-      expect(global.window._tempSequencia).toBeDefined();
-      expect(global.window._tempSequencia?.length).toBe(1);
+      expect(views.getTempSequencia()).toBeDefined();
+      expect(views.getTempSequencia()?.length).toBe(1);
     });
   });
 
   describe('cancelEditSeq()', () => {
     it('cancela edição e limpa sequência temporária', () => {
-      global.window._tempSequencia = [{ id: 'seq_temp' }];
-      global.window._isEditingSequence = true;
+      views.setTempSequencia([{ id: 'seq_temp' }]);
+      views.setIsEditingSequence(true);
 
       views.cancelEditSeq?.();
 
-      expect(global.window._isEditingSequence).toBe(false);
-      expect(global.window._tempSequencia).toBeNull();
+      expect(views.getIsEditingSequence()).toBe(false);
+      expect(views.getTempSequencia()).toBeNull();
     });
   });
 
@@ -474,12 +474,12 @@ describe('views.js - Ciclo de Estudos', () => {
         }
       });
       store.setState(state);
-      global.window._isEditingSequence = true;
-      global.window._tempSequencia = [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60 }];
+      views.setIsEditingSequence(true);
+      views.setTempSequencia([{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60 }]);
 
       views.addSeqItem?.();
 
-      expect(global.window._tempSequencia?.length).toBe(2);
+      expect(views.getTempSequencia()?.length).toBe(2);
     });
   });
 });

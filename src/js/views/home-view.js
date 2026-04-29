@@ -51,7 +51,7 @@ export function renderHome(el) {
     if (diffDays > 0) {
       provaText = `<div class="text-3xl font-extrabold text-accent leading-none">${diffDays}</div><div class="text-md text-secondary mt-1">dias para a prova (${formatDate(dataProva)})</div>`;
     } else if (diffDays === 0) {
-      provaText = `<strong class="text-accent" style="font-size:18px;">É hoje! Boa sorte! 🍀</strong>`;
+      provaText = '<strong class="text-accent" style="font-size:18px;">É hoje! Boa sorte! 🍀</strong>';
     } else {
       provaText = `Prova já foi realizada há ${Math.abs(diffDays)} dias. <span data-action="prompt-prova" class="text-accent font-semibold cursor-pointer">Nova Prova</span>`;
     }
@@ -101,7 +101,7 @@ export function renderHome(el) {
     const days = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
     return `
       <div class="flex-col flex-center flex-1 h-full justify-end">
-        <div class="home-weekly-study-bar" style="height:${h}%;" title="${formatTime(sec)}"></div>
+        <div class="home-weekly-study-bar" style="height:${h}%;" title="${formatTime(sec)}" role="img" aria-label="${days[i]}: ${formatTime(sec)} estudados"></div>
         <div class="text-xs font-semibold text-muted mt-2">${days[i]}</div>
       </div>
     `;
@@ -118,12 +118,12 @@ export function renderHome(el) {
     const hasData = s.tempo > 0 || (s.acertos + s.erros) > 0;
 
     return `
-      <div class="border-b text-md flex-center gap-md" style="display:grid; grid-template-columns:1fr 80px 40px 40px 40px; padding:8px 0;">
+      <div class="border-b text-md flex-center gap-md" style="display:grid; grid-template-columns:1fr 80px 40px 40px 40px; padding:8px 0;" role="row" aria-label="${esc(s.nome)}">
         <div class="text-accent font-semibold text-ellipsis" title="${esc(s.nome)}">${esc(s.nome)}</div>
-        <div class="text-secondary text-right text-mono">${s.tempo > 0 ? formatTime(s.tempo) : '-'}</div>
-        <div class="text-green text-center">${s.acertos}</div>
-        <div class="text-red text-center">${s.erros}</div>
-        <div class="flex flex-center"><div class="event-tag ${aprColor} text-center" style="padding:2px 6px; font-size:11px; min-width:32px;">${hasData ? apr : 0}</div></div>
+        <div class="text-secondary text-right text-mono" role="cell">${s.tempo > 0 ? formatTime(s.tempo) : '-'}</div>
+        <div class="text-green text-center" role="cell">${s.acertos}</div>
+        <div class="text-red text-center" role="cell">${s.erros}</div>
+        <div class="flex flex-center"><div class="event-tag ${aprColor} text-center" style="padding:2px 6px; font-size:11px; min-width:32px;" role="cell">${hasData ? apr : 0}</div></div>
       </div>
     `;
   }).join('');
@@ -173,13 +173,13 @@ export function renderHome(el) {
     <!-- LINHA 2: Constância -->
     <div class="card p-16 dash-streak-panel mb-6">
       <div class="flex-between mb-3">
-        <div class="dash-label">CONSTÂNCIA NOS ESTUDOS <i class="fa fa-question-circle" style="opacity:0.5; margin-left:4px;" title="Dias que você registrou sessões nos últimos 30 dias."></i></div>
+        <div class="dash-label">CONSTÂNCIA NOS ESTUDOS <i class="fa fa-question-circle" style="opacity:0.5; margin-left:4px;" title="Dias que você registrou sessões nos últimos 30 dias." role="img" aria-label="Informação sobre constância"></i></div>
         <div class="text-base font-semibold text-accent">Últimos 30 dias</div>
       </div>
-      <div class="text-lg text-primary mb-4">
+      <div class="text-lg text-primary mb-4" aria-live="polite">
         Você está há <strong>${streak.currentStreak} dias sem falhar!</strong> Seu recorde é de <strong>${streak.maxStreak} dias sem falhas.</strong> 📅
       </div>
-      <div class="streak-heatmap">
+      <div class="streak-heatmap" role="img" aria-label="Mapa de calor dos últimos 30 dias de estudo">
         ${heatmapHtml}
       </div>
     </div>
@@ -191,12 +191,12 @@ export function renderHome(el) {
       <div class="card p-16 flex-col" style="max-height:500px;">
         <div class="dash-label mb-4">PAINEL</div>
 
-        <div class="border-b text-base font-bold text-primary flex-center gap-md pb-2" style="display:grid; grid-template-columns:1fr 80px 40px 40px 40px;">
-          <div>Disciplinas</div>
-          <div class="text-right">Tempo</div>
-          <div class="text-green text-center"><i class="fa fa-check"></i></div>
-          <div class="text-red text-center"><i class="fa fa-times"></i></div>
-          <div class="text-center">%</div>
+        <div class="border-b text-base font-bold text-primary flex-center gap-md pb-2" style="display:grid; grid-template-columns:1fr 80px 40px 40px 40px;" role="row" aria-label="Cabeçalho da tabela de disciplinas">
+          <div role="columnheader">Disciplinas</div>
+          <div class="text-right" role="columnheader">Tempo</div>
+          <div class="text-green text-center" role="columnheader" aria-label="Acertos"><i class="fa fa-check"></i></div>
+          <div class="text-red text-center" role="columnheader" aria-label="Erros"><i class="fa fa-times"></i></div>
+          <div class="text-center" role="columnheader">%</div>
         </div>
 
         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
@@ -212,7 +212,7 @@ export function renderHome(el) {
         <div class="card p-16">
           <div class="flex-between mb-2">
             <div class="dash-label">DATA DA PROVA</div>
-            <i class="fa fa-edit text-muted cursor-pointer" data-action="prompt-prova" title="Editar Meta"></i>
+            <i class="fa fa-edit text-muted cursor-pointer" data-action="prompt-prova" title="Editar Meta" aria-label="Editar data da prova"></i>
           </div>
           ${provaText}
         </div>
@@ -220,7 +220,7 @@ export function renderHome(el) {
         <div class="card p-16">
           <div class="flex-between mb-4">
             <div class="dash-label">METAS DE ESTUDO SEMANAL</div>
-            <i class="fa fa-edit text-muted cursor-pointer" data-action="prompt-metas" title="Editar Meta"></i>
+            <i class="fa fa-edit text-muted cursor-pointer" data-action="prompt-metas" title="Editar Meta" aria-label="Editar metas de estudo"></i>
           </div>
 
           <div style="margin-bottom:16px;">

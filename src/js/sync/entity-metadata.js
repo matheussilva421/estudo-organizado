@@ -68,7 +68,7 @@ function getDeviceId(options = {}) {
   if (options.deviceId) return options.deviceId;
   try {
     return localStorage.getItem('estudo_firestore_device_id') || 'local-device';
-  } catch (err) {
+  } catch {
     return 'local-device';
   }
 }

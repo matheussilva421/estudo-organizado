@@ -124,33 +124,40 @@ describe('data-action contracts', () => {
     const mainSource = read('src/js/main.js');
     const viewsSource = read('src/js/views.js');
     const calendarSource = read('src/js/views/calendar-view.js');
-    const calendarModule = await import('../../src/js/views/calendar-view.js?v=8.28');
+    const calendarModule = await import('../../src/js/views/calendar-view.js?v=8.29');
 
-    expect(componentsSource).toContain("from './views/calendar-view.js?v=8.28'");
-    expect(mainSource).toContain("import * as calendar_view from './views/calendar-view.js?v=8.28';");
+    expect(componentsSource).toContain("from './views/calendar-view.js?v=8.29'");
+    expect(mainSource).toContain("import * as calendar_view from './views/calendar-view.js?v=8.29';");
     expect(mainSource).toMatch(/exposedModules\s*=\s*\[[^\]]*calendar_view[^\]]*\]/s);
     expect(viewsSource).not.toMatch(/export function (renderCalendar|calNavigate|resetCalDate|renderCalendarGrid|renderCalendarWeek|updateCalendarHeader)\s*\(/);
     expect(calendarModule.renderCalendar).toBeTypeOf('function');
     expect(calendarModule.calNavigate).toBeTypeOf('function');
     expect(calendarModule.resetCalDate).toBeTypeOf('function');
     expect(calendarModule.setCalViewMode).toBeTypeOf('function');
-    expect(calendarSource).toContain("import { esc, getEventStatus, todayStr } from '../utils.js?v=8.28';");
+    expect(calendarSource).toContain("import { esc, getEventStatus, todayStr } from '../utils.js?v=8.29';");
     expect(calendarSource).toContain('role="tablist"');
     expect(calendarSource).toMatch(/<button[^>]*type=["']button["'][^>]*class=["']cal-view-tab/);
   });
 
   it('keeps EstudoApp action targets exported by their owning modules', () => {
-    const viewsSource = read('src/js/views.js');
+    const searchSource = read('src/js/ui/search.js');
+    const eventModalsSource = read('src/js/ui/event-modals.js');
+    const configViewSource = read('src/js/views/config-view.js');
     const wizardSource = read('src/js/planejamento-wizard.js');
     const registroSource = read('src/js/registro-sessao.js');
 
-    expect(viewsSource).toMatch(/export function debouncedOnSearch\s*\(/);
-    expect(viewsSource).toMatch(/import\s+\{[^}]*HABIT_TYPES[^}]*\}\s+from\s+['"]\.\/utils\.js\?v=8\.28['"]/s);
+    expect(searchSource).toMatch(/export function debouncedOnSearch\s*\(/);
+    expect(searchSource).toMatch(/import\s+\{[^}]*HABIT_TYPES[^}]*\}\s+from\s+['"]\.\.\/utils\.js\?v=8\.29['"]/s);
+
+    expect(eventModalsSource).toMatch(/export function openAddPastSessionModal\s*\(/);
 
     expect(wizardSource).toMatch(/export function pwSelectTipo\s*\(/);
 
     expect(registroSource).toMatch(/export function discardTimerUI\s*\(/);
-    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.28['"]/s);
+    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.29['"]/s);
+
+    expect(configViewSource).toContain('createExportableState()');
+    expect(configViewSource).toMatch(/import\s+\{[^}]*createExportableState[^}]*\}\s+from\s+['"]\.\.\/store\.js\?v=8\.29['"]/s);
   });
 
   it('exports discipline manager action targets instead of relying on Proxy fallback', () => {
@@ -198,33 +205,37 @@ describe('data-action contracts', () => {
 
   it('exports dashboard and session action targets instead of relying on Proxy fallback', () => {
     const viewsSource = read('src/js/views.js');
+    const eventModalsSource = read('src/js/ui/event-modals.js');
     const viewActions = [
       'switchDashboardTab',
-      'openAddPastSessionModal',
-      'savePastEvent',
       'filtrarDropdownBanca'
     ];
 
     for (const actionName of viewActions) {
       expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
     }
+
+    expect(eventModalsSource).toMatch(/export function openAddPastSessionModal\s*\(/);
+    expect(eventModalsSource).toMatch(/export function savePastEvent\s*\(/);
   });
 
   it('imports the cache invalidators used by revision action handlers', () => {
-    const viewsSource = read('src/js/views.js');
+    const revisaoSource = read('src/js/views/revisao-view.js');
 
-    expect(viewsSource).toMatch(/import\s+\{[^}]*invalidatePendingRevCache[^}]*\}\s+from\s+['"]\.\/logic\.js\?v=8\.28['"]/s);
-    expect(viewsSource).toContain('invalidatePendingRevCache();');
+    expect(revisaoSource).toMatch(/import\s+\{[^}]*invalidatePendingRevCache[^}]*\}\s+from\s+['"]\.\.\/logic\.js\?v=8\.29['"]/s);
+    expect(revisaoSource).toContain('invalidatePendingRevCache();');
   });
 
-  it('routes domain events through EstudoApp after namespace migration', () => {
+  it('routes domain events through direct module imports after namespace migration', () => {
     const mainSource = read('src/js/main.js');
 
     expect(mainSource).not.toMatch(/window\.(showConfirm|updateBadges|invalidateDiscCache|invalidateRevCache|invalidatePendingRevCache|invalidateTodayCache|invalidateStreakCache|invalidateDashCaches|refreshEventCard|refreshMEDSections)\b/);
-    expect(mainSource).toContain('window.EstudoApp?.showConfirm');
-    expect(mainSource).toContain('window.EstudoApp?.updateBadges');
-    expect(mainSource).toContain('window.EstudoApp?.refreshEventCard');
-    expect(mainSource).toContain('window.EstudoApp?.refreshMEDSections');
+    expect(mainSource).not.toMatch(/window\.EstudoApp\?\.(showConfirm|updateBadges|refreshEventCard|refreshMEDSections|renderCurrentView)/);
+    expect(mainSource).toContain('app.showConfirm');
+    expect(mainSource).toContain('components.updateBadges');
+    expect(mainSource).toContain('views.refreshEventCard');
+    expect(mainSource).toContain('views.refreshMEDSections');
+    expect(mainSource).toContain('components.renderCurrentView');
   });
 
   it('does not use a Proxy fallback for EstudoApp action resolution', () => {
@@ -271,15 +282,15 @@ describe('data-action contracts', () => {
   it('imports immediate persistence before saving detailed study sessions', () => {
     const registroSource = read('src/js/registro-sessao.js');
 
-    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.28['"]/s);
+    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.29['"]/s);
     expect(registroSource).toContain('saveStateToDB().then');
   });
 
   it('renders revision action buttons as non-submit controls', () => {
-    const viewsSource = read('src/js/views.js');
+    const revisaoSource = read('src/js/views/revisao-view.js');
 
-    expect(viewsSource).toMatch(/<button\s+type="button"[^>]*data-action="mark-revision"/);
-    expect(viewsSource).toMatch(/<button\s+type="button"[^>]*data-action="postpone-revision"/);
+    expect(revisaoSource).toMatch(/<button\s+type="button"[^>]*data-action="mark-revision"/);
+    expect(revisaoSource).toMatch(/<button\s+type="button"[^>]*data-action="postpone-revision"/);
   });
 
   it('precaches every runtime module introduced by the refactor', () => {
@@ -324,10 +335,10 @@ describe('data-action contracts', () => {
   });
 
   it('uses sanitized exportable state for local and Drive backups', () => {
-    const viewsSource = read('src/js/views.js');
+    const configViewSource = read('src/js/views/config-view.js');
     const driveSource = read('src/js/drive-sync.js');
 
-    expect(viewsSource).toContain('createExportableState()');
+    expect(configViewSource).toContain('createExportableState()');
     expect(driveSource).toContain('createExportableState()');
     expect(driveSource).not.toContain('JSON.stringify(state)');
   });
@@ -342,7 +353,7 @@ describe('data-action contracts', () => {
   it('removes isolated credentials when clearing all app data', () => {
     const storeSource = read('src/js/store.js');
 
-    expect(storeSource).toContain("from './credentials.js?v=8.28';");
+    expect(storeSource).toContain("from './credentials.js?v=8.29';");
     expect(storeSource).toMatch(/clearData[\s\S]*clearAllCredentials\(\)/);
   });
 });

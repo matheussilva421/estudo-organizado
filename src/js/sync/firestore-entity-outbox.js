@@ -11,6 +11,8 @@ import {
 } from './entity-metadata.js?v=8.29';
 
 export const FIRESTORE_ENTITY_OUTBOX_ID = 'entity_shadow';
+const MAX_BACKOFF_MS = 300000;
+const MAX_BACKOFF_EXPONENT = 8;
 
 function requestToPromise(request) {
   return new Promise((resolve, reject) => {
@@ -81,6 +83,8 @@ export async function queueFirestoreEntityBatchFromState(state, options = {}) {
     status: 'pending',
     attempts: 0,
     queuedAt: sentAt,
+    nextAttemptAt: null,
+    lastError: null,
     docs: [...activeDocs, ...tombstoneDocs]
   };
   return putRecord(record);
@@ -102,4 +106,26 @@ export async function markFirestoreEntityBatchSynced() {
     status: 'synced',
     syncedAt: new Date().toISOString()
   });
+}
+
+export async function markFirestoreEntityBatchFailed(error) {
+  if (!db || !db.objectStoreNames?.contains(FIRESTORE_ENTITY_OUTBOX_STORE)) return false;
+  const current = await getPendingFirestoreEntityBatch();
+  if (!current) return false;
+  const attempts = (current.attempts || 0) + 1;
+  const delayMs = Math.min(MAX_BACKOFF_MS, 1000 * (2 ** Math.min(attempts, MAX_BACKOFF_EXPONENT)));
+  await putRecord({
+    ...current,
+    status: 'pending',
+    attempts,
+    lastError: error?.message || String(error),
+    nextAttemptAt: new Date(Date.now() + delayMs).toISOString()
+  });
+  return true;
+}
+
+export function canRetryEntityBatch(batch, now = Date.now()) {
+  if (!batch || batch.status !== 'pending') return false;
+  if (!batch.nextAttemptAt) return true;
+  return new Date(batch.nextAttemptAt).getTime() <= now;
 }

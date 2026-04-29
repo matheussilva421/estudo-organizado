@@ -6,6 +6,7 @@
 import { scheduleSave, state } from '../store.js?v=8.29';
 import { esc, uid } from '../utils.js?v=8.29';
 import { openModal, closeModal, showConfirm, showToast } from '../app.js?v=8.29';
+import { getActiveDashboardDiscCtx } from '../state/dashboard-context.js?v=8.29';
 import {
   applyRankingToEdital,
   commitEditalOrdering,
@@ -49,7 +50,7 @@ export function renderBancaAnalyzerModule(el) {
   }
 
   if (!analyzerCtx.editaId) {
-    analyzerCtx.editaId = window.activeDashboardDiscCtx?.editaId || state.editais[0].id;
+    analyzerCtx.editaId = getActiveDashboardDiscCtx()?.editaId || state.editais[0].id;
   }
 
   renderBancaAnalyzerContent(el);
@@ -184,7 +185,7 @@ export function carregarAnaliseBanca(discId) {
     });
 
     const textStr = topicsForDisc.map(ht => {
-      let wStr = ht.weight ? ` (${ht.weight} %)` : '';
+      const wStr = ht.weight ? ` (${ht.weight} %)` : '';
       return `${ht.rank ? ht.rank + '.' : '-'} ${ht.nome}${wStr} `;
     }).join('\n');
 
@@ -229,7 +230,7 @@ export function parseBancaText() {
 
   // Ensure analyzerCtx.editaId is set (fallback if view rendered before state loaded)
   if (!analyzerCtx.editaId) {
-    analyzerCtx.editaId = window.activeDashboardDiscCtx?.editaId || state.editais[0]?.id;
+    analyzerCtx.editaId = getActiveDashboardDiscCtx()?.editaId || state.editais[0]?.id;
     console.log('[BANCA parseBancaText] Initialized editaId:', analyzerCtx.editaId);
   }
 
@@ -237,18 +238,18 @@ export function parseBancaText() {
   if (!rawArgs.trim()) { showToast('Nenhum texto informado.', 'error'); return; }
 
   const lines = rawArgs.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 2);
-  let parsedRows = [];
+  const parsedRows = [];
 
   lines.forEach((line, idx) => {
     let weight = undefined;
     let extName = line;
 
-    const rankMatch = extName.match(/^(\d+)[\.\-\)\–\—]\s+(.*)/);
+    const rankMatch = extName.match(/^(\d+)[.)\u2013\u2014-]\s+(.*)/);
     if (rankMatch) {
       extName = rankMatch[2];
     }
 
-    const percMatch = extName.match(/(.*?)(?:(?:\s*\()|\s*[\-\–\—])?\s*(\d+(?:[.,]\d+)?)\s*%(?:\))?/);
+    const percMatch = extName.match(/(.*?)(?:(?:\s*\()|\s*[\u2013\u2014-])?\s*(\d+(?:[.,]\d+)?)\s*%(?:\))?/);
     if (percMatch && percMatch[2]) {
       extName = percMatch[1].trim();
       weight = parseFloat(percMatch[2].replace(',', '.'));
@@ -260,7 +261,7 @@ export function parseBancaText() {
 
     parsedRows.push({
       id: uid(),
-      nome: extName.replace(/[\*\-\–\—•]/g, '').trim(),
+      nome: extName.replace(/[*\u2013\u2014•-]/g, '').trim(),
       rank: idx + 1,
       weight: weight,
       disciplinaId: discId

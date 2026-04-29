@@ -181,7 +181,7 @@ describe('components.js', () => {
 
   describe('renderCurrentView()', () => {
     it('limpa intervalo do cronômetro ao sair da view cronometro', () => {
-      global.window._cronoInterval = { _interval: true };
+      components.setCronoInterval({ _interval: true });
       // currentView !== 'cronometro' para trigger o cleanup
       global.window.currentView = 'home';
 
@@ -195,7 +195,7 @@ describe('components.js', () => {
 
     it('destroi gráfico ao sair da view dashboard', () => {
       const mockChart = { destroy: vi.fn() };
-      global.window._planjChartInstance = mockChart;
+      components.setPlanjChartInstance(mockChart);
       // currentView !== 'ciclo' para trigger o cleanup
       global.window.currentView = 'home';
 

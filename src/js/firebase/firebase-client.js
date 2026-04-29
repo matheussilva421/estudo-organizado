@@ -79,7 +79,7 @@ export function observeFirebaseAuth(callback) {
 export async function signInWithGoogle() {
   const { configured, auth } = initFirebaseServices();
   if (!configured || !auth) {
-    throw new Error('Firebase nao configurado. Preencha src/js/firebase/firebase-config.js.');
+    throw new Error('Firebase nao configurado. Defina window.ESTUDO_FIREBASE_CONFIG antes de carregar o app ou edite src/js/firebase/firebase-config.js.');
   }
   const provider = new GoogleAuthProvider();
   try {

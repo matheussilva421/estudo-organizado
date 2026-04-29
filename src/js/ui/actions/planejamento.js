@@ -15,6 +15,11 @@ import {
   pwToggleDay,
   pwUpdateDayHour
 } from '../../planejamento-wizard.js?v=8.29';
+import { recomecarCiclo, zerarCiclosCounter, calculateCyclePredictions, toggleEditSeq, saveEditSeq, cancelEditSeq, updateSeqItem, dupSeqItem, remSeqItem, moveSeqItem, addSeqItem, desfazerEtapa, openCicloHistory } from '../../views/ciclo-view.js';
+import { showConfirm, showToast } from '../../app.js?v=8.29';
+import { scheduleSave, state } from '../../store.js?v=8.29';
+import { renderCurrentView } from '../../components.js?v=8.29';
+import { openEventDetail } from '../../ui/event-modals.js?v=8.29';
 
 // Registrar ações do wizard
 registerAction('pw-select-tipo', (el) => pwSelectTipo(el.dataset.tipo));
@@ -43,81 +48,67 @@ registerAction('pw-update-day-hour', (el) => {
   pwUpdateDayHour(idx, val);
 });
 
-registerAction('iniciar-etapa-planejamento', (el) => iniciarEtapaPlanejamento(el));
-registerAction('move-ciclo-seq', (el) => moveCicloSeq(el));
-registerAction('edit-ciclo-seq-hours', (el) => editCicloSeqHours(el));
-registerAction('desfazer-etapa', (el) => desfazerEtapa(el));
-registerAction('open-event-from-ciclo-history', (el) => openEventFromCicloHistory(el));
-registerAction('toggle-edit-seq', () => callApp('toggleEditSeq'));
-registerAction('save-edit-seq', () => callApp('saveEditSeq'));
-registerAction('cancel-edit-seq', () => callApp('cancelEditSeq'));
-registerAction('update-seq-item', (el) => updateSeqItem(el));
-registerAction('dup-seq-item', (el) => callApp('dupSeqItem', parseInt(el.dataset.index, 10)));
-registerAction('rem-seq-item', (el) => callApp('remSeqItem', parseInt(el.dataset.index, 10)));
-registerAction('move-seq-item', (el) => callApp('moveSeqItem', parseInt(el.dataset.index, 10), parseInt(el.dataset.dir, 10)));
-registerAction('add-seq-item', () => callApp('addSeqItem'));
-registerAction('recomecar-ciclo', () => callApp('recomecarCiclo'));
-registerAction('zerar-ciclos-counter', () => callApp('zerarCiclosCounter'));
-registerAction('calculate-cycle-predictions', () => callApp('calculateCyclePredictions'));
-registerAction('remover-planejamento', () => removerPlanejamento());
-
-function callApp(fnName, ...args) {
-  const fn = window.EstudoApp?.[fnName];
-  if (typeof fn === 'function') {
-    return fn(...args);
-  }
-  return undefined;
-}
-
-function iniciarEtapaPlanejamento(el) {
+registerAction('iniciar-etapa-planejamento', (el) => {
   const seqId = el.dataset.seqId;
-  if (seqId) callApp('iniciarEtapaPlanejamento', seqId);
-}
-
-function moveCicloSeq(el) {
+  if (seqId) import('../../views/ciclo-view.js').then(({ iniciarEtapaPlanejamento }) => iniciarEtapaPlanejamento(seqId));
+});
+registerAction('move-ciclo-seq', (el) => {
   const idx = parseInt(el.dataset.index, 10);
   const dir = parseInt(el.dataset.dir, 10);
   if (Number.isFinite(idx) && Number.isFinite(dir)) {
-    callApp('moveCicloSeq', idx, dir);
+    import('../../views/ciclo-view.js').then(({ moveCicloSeq }) => moveCicloSeq(idx, dir));
   }
-}
-
-function editCicloSeqHours(el) {
+});
+registerAction('edit-ciclo-seq-hours', (el) => {
   const idx = parseInt(el.dataset.index, 10);
   if (Number.isFinite(idx)) {
-    callApp('editCicloSeqHours', idx);
+    import('../../views/ciclo-view.js').then(({ editCicloSeqHours }) => editCicloSeqHours(idx));
   }
-}
-
-function desfazerEtapa(el) {
+});
+registerAction('desfazer-etapa', (el) => {
   const seqId = el.dataset.seqId;
-  if (seqId) callApp('desfazerEtapa', seqId);
-}
-
-function openEventFromCicloHistory(el) {
+  if (seqId) desfazerEtapa(seqId);
+});
+registerAction('open-event-from-ciclo-history', (el) => {
   const eventId = el.dataset.eventId;
-  if (eventId) callApp('openRegistroSessao', eventId);
-}
-
-function updateSeqItem(el) {
+  if (eventId) openEventDetail(eventId);
+});
+registerAction('toggle-edit-seq', toggleEditSeq);
+registerAction('save-edit-seq', saveEditSeq);
+registerAction('cancel-edit-seq', cancelEditSeq);
+registerAction('update-seq-item', (el) => {
   const idx = parseInt(el.dataset.index, 10);
   if (!Number.isFinite(idx)) return;
-  callApp('updateSeqItem', idx, el.dataset.field, el.value);
-}
-
-function removerPlanejamento() {
-  const confirm = window.EstudoApp?.showConfirm;
+  updateSeqItem(idx, el.dataset.field, el.value);
+});
+registerAction('dup-seq-item', (el) => {
+  const idx = parseInt(el.dataset.index, 10);
+  dupSeqItem(idx);
+});
+registerAction('rem-seq-item', (el) => {
+  const idx = parseInt(el.dataset.index, 10);
+  remSeqItem(idx);
+});
+registerAction('move-seq-item', (el) => {
+  const idx = parseInt(el.dataset.index, 10);
+  const dir = parseInt(el.dataset.dir, 10);
+  moveSeqItem(idx, dir);
+});
+registerAction('add-seq-item', addSeqItem);
+registerAction('recomecar-ciclo', recomecarCiclo);
+registerAction('zerar-ciclos-counter', zerarCiclosCounter);
+registerAction('calculate-cycle-predictions', calculateCyclePredictions);
+registerAction('open-ciclo-history', (el) => {
+  const seqId = el.dataset.seqId;
+  if (seqId) openCicloHistory(seqId);
+});
+registerAction('remover-planejamento', () => {
   const remove = () => {
-    if (!window.EstudoApp?.state) return;
-    window.EstudoApp.state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
-    window.EstudoApp.scheduleSave?.();
-    window.EstudoApp.renderCurrentView?.();
-    window.EstudoApp.showToast?.('Planejamento removido.', 'info');
+    if (!state) return;
+    state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
+    scheduleSave();
+    renderCurrentView();
+    showToast('Planejamento removido.', 'info');
   };
-
-  if (typeof confirm === 'function') {
-    confirm('Remover o planejamento atual?', remove, { danger: true, label: 'Remover', title: 'Remover planejamento' });
-  } else {
-    remove();
-  }
-}
+  showConfirm('Remover o planejamento atual?', remove, { danger: true, label: 'Remover', title: 'Remover planejamento' });
+});

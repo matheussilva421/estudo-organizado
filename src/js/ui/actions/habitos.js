@@ -4,87 +4,30 @@
  */
 
 import { registerAction } from './dispatcher.js';
+import { openHabitModal, saveHabit, deleteHabito, selectHabitType, setHabitPage, calcSimuladoPerc } from '../../views/habitos-view.js?v=8.29';
 
 // Registrar ações
-registerAction('open-habit-modal', (el) => openHabitModal(el));
-registerAction('save-habit', () => saveHabit());
-registerAction('edit-habit', (el) => editHabit(el));
-registerAction('delete-habit', (el) => deleteHabito(el));
-registerAction('select-habit-type', (el) => selectHabitType(el));
-registerAction('set-habit-page', (el) => setHabitPage(el));
-registerAction('calc-simulado-perc', () => calcSimuladoPerc());
-
-/**
- * Abre modal de novo/editar hábito
- * @param {HTMLElement} el - Elemento acionador
- */
-export function openHabitModal(el) {
+registerAction('open-habit-modal', (el) => {
   const habitKey = el.dataset.habitKey;
-  if (habitKey && typeof window.EstudoApp?.openHabitModal === 'function') {
-    window.EstudoApp?.openHabitModal(habitKey);
-  }
-}
-
-/**
- * Salva hábito (create/update)
- */
-export function saveHabit() {
-  if (typeof window.EstudoApp?.saveHabit === 'function') {
-    window.EstudoApp?.saveHabit();
-  }
-}
-
-/**
- * Edita hábito existente
- * @param {HTMLElement} el - Elemento acionador
- */
-export function editHabit(el) {
+  if (habitKey) openHabitModal(habitKey);
+});
+registerAction('save-habit', saveHabit);
+registerAction('edit-habit', (el) => {
   const habitId = el.dataset.habitId;
   const habitType = el.dataset.type;
-  if (habitId && habitType && typeof window.EstudoApp?.editHabit === 'function') {
-    window.EstudoApp?.editHabit(habitId, habitType);
-  }
-}
-
-/**
- * Exclui hábito
- * @param {HTMLElement} el - Elemento acionador
- */
-export function deleteHabito(el) {
+  if (habitId && habitType) import('../../views/habitos-view.js?v=8.29').then(({ editHabit }) => editHabit(habitId, habitType));
+});
+registerAction('delete-habit', (el) => {
   const habitId = el.dataset.habitId;
   const habitType = el.dataset.type;
-  if (habitId && typeof window.EstudoApp?.deleteHabito === 'function') {
-    window.EstudoApp?.deleteHabito(habitType, habitId);
-  }
-}
-
-/**
- * Seleciona tipo de hábito
- * @param {HTMLElement} el - Elemento acionador
- */
-export function selectHabitType(el) {
+  if (habitId && habitType) deleteHabito(habitType, habitId);
+});
+registerAction('select-habit-type', (el) => {
   const habitKey = el.dataset.tipo;
-  if (habitKey && typeof window.EstudoApp?.selectHabitType === 'function') {
-    window.EstudoApp?.selectHabitType(habitKey, el);
-  }
-}
-
-/**
- * Navega página de hábitos
- * @param {HTMLElement} el - Elemento acionador
- */
-export function setHabitPage(el) {
+  if (habitKey) selectHabitType(habitKey, el);
+});
+registerAction('set-habit-page', (el) => {
   const page = parseInt(el.dataset.page, 10);
-  if (typeof window.EstudoApp?.setHabitPage === 'function') {
-    window.EstudoApp?.setHabitPage(page);
-  }
-}
-
-/**
- * Calcula percentual de simulado
- */
-export function calcSimuladoPerc() {
-  if (typeof window.EstudoApp?.calcSimuladoPerc === 'function') {
-    window.EstudoApp?.calcSimuladoPerc();
-  }
-}
+  setHabitPage(page);
+});
+registerAction('calc-simulado-perc', calcSimuladoPerc);

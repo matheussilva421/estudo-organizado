@@ -5,6 +5,7 @@
 
 import { state } from '../store.js?v=8.29';
 import { esc, getEventStatus, todayStr } from '../utils.js?v=8.29';
+import { renderCurrentView } from '../components.js?v=8.29';
 
 // Exported state
 let calDate = new Date();
@@ -16,9 +17,7 @@ export function getCalViewMode() { return calViewMode; }
 export function setCalDate(d) { calDate = d; }
 export function setCalViewMode(mode) {
   calViewMode = mode;
-  if (typeof window.EstudoApp?.renderCurrentView === 'function') {
-    window.EstudoApp.renderCurrentView();
-  }
+  renderCurrentView();
 }
 
 // ── Helper: Check if mobile calendar should be used ──
@@ -100,9 +99,7 @@ export function renderCalendar(el) {
 // ── Navigation Functions ──
 export function resetCalDate() {
   calDate = new Date();
-  if (typeof window.EstudoApp?.renderCurrentView === 'function') {
-    window.EstudoApp.renderCurrentView();
-  }
+  renderCurrentView();
 }
 
 export function calNavigate(dir) {
@@ -126,9 +123,7 @@ export function calNavigate(dir) {
     }
     updateCalendarHeader();
   } else {
-    if (typeof window.EstudoApp?.renderCurrentView === 'function') {
-      window.EstudoApp.renderCurrentView();
-    }
+    renderCurrentView();
   }
 }
 
@@ -144,7 +139,7 @@ export function renderCalendarMonth() {
   const startDow0 = state.config.primeirodiaSemana || 1;
   const dowOrder = Array.from({ length: 7 }, (_, i) => dows[(startDow0 + i) % 7]);
 
-  let cells = [];
+  const cells = [];
   // Previous month fill
   for (let i = 0; i < startDow; i++) {
     const d = new Date(year, month, 1 - startDow + i);

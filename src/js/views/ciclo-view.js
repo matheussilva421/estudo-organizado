@@ -3,11 +3,19 @@
  * Renderiza visualização de Ciclo Contínuo e Grade Semanal
  */
 
-import { esc, formatH, uid } from '../utils.js?v=8.29';
+import { esc, formatH } from '../utils.js?v=8.29';
 import { state, scheduleSave } from '../store.js?v=8.29';
 import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from '../logic.js?v=8.29';
 import { renderCurrentView } from '../components.js?v=8.29';
-import { showConfirm, showToast } from '../app.js?v=8.29';
+import { showConfirm } from '../app.js?v=8.29';
+import { getIsEditingSequence, getTempSequencia } from '../views.js?v=8.29';
+import { getPlanjChartInstance, setPlanjChartInstance } from '../state/chart-state.js?v=8.29';
+
+// Module-level state
+let _hideConcluidosCiclo = false;
+
+export function getHideConcluidosCiclo() { return _hideConcluidosCiclo; }
+export function setHideConcluidosCiclo(val) { _hideConcluidosCiclo = val; }
 
 function formatCycleDuration(minutes) {
   const total = Math.max(0, Math.round(Number(minutes) || 0));
@@ -131,10 +139,6 @@ export function calculateCyclePredictions() {
   }
 }
 
-window.recomecarCiclo = recomecarCiclo;
-window.zerarCiclosCounter = zerarCiclosCounter;
-window.calculateCyclePredictions = calculateCyclePredictions;
-
 /**
  * Renderiza view de Ciclo/Grade
  * @param {HTMLElement} el - Elemento container
@@ -196,10 +200,10 @@ function renderCicloView(el, plan) {
   let minutosCompletosCiclo = 0;
   let sessoesConcluidas = 0;
 
-  let targetLoop = window._isEditingSequence ? (window._tempSequencia || []) : plan.sequencia;
+  const targetLoop = getIsEditingSequence() ? (getTempSequencia() || []) : plan.sequencia;
 
   let optionsHtml = '<option value="">(Selecione)</option>';
-  if (window._isEditingSequence) {
+  if (getIsEditingSequence()) {
     plan.disciplinas.forEach(dId => {
       const disc = getDisc(dId);
       if (disc) optionsHtml += `<option value="${dId}">${esc(disc.disc.nome)}</option>`;
@@ -209,7 +213,7 @@ function renderCicloView(el, plan) {
   let sequenceHtml = '';
   targetLoop.forEach((seq, i) => {
     const d = dictDisciplinas[seq.discId];
-    if (!window._isEditingSequence && !d) return;
+    if (!getIsEditingSequence() && !d) return;
 
     totalTarget += seq.minutosAlvo;
 
@@ -231,9 +235,9 @@ function renderCicloView(el, plan) {
     const cor = d ? (d.disc.cor || d.edital.cor || '#8aa4bf') : '#7f8a99';
     if (pct >= 100) sessoesConcluidas++;
 
-    if (!window._isEditingSequence && window._hideConcluidosCiclo && pct >= 100) return;
+    if (!getIsEditingSequence() && getHideConcluidosCiclo() && pct >= 100) return;
 
-    if (window._isEditingSequence) {
+    if (getIsEditingSequence()) {
       let selHtml = optionsHtml;
       if (seq.discId) selHtml = selHtml.replace(`value="${seq.discId}"`, `value="${seq.discId}" selected`);
 
@@ -298,7 +302,7 @@ function renderCicloView(el, plan) {
     }
   });
 
-  if (window._isEditingSequence) {
+  if (getIsEditingSequence()) {
     sequenceHtml += `
        <div class="seq-edit-footer">
          <button class="btn btn-ghost seq-edit-footer-btn" data-action="add-seq-item"><i class="fa fa-plus"></i> Adicionar Disciplina</button>
@@ -352,11 +356,11 @@ function renderCicloView(el, plan) {
           <div class="ciclo-sequence-header">
              <div class="ciclo-sequence-title">Sequência dos Estudos</div>
              <div class="ciclo-sequence-controls">
-               ${!window._isEditingSequence ? `
+               ${!getIsEditingSequence() ? `
                  <button class="btn btn-ghost btn-sm ciclo-sequence-edit-btn" data-action="toggle-edit-seq"><i class="fa fa-pencil"></i> Editar Sequência</button>
                ` : ''}
                <label class="ciclo-filter-label">
-                 <input type="checkbox" data-action="toggle-ciclo-fin" ${window._hideConcluidosCiclo ? 'checked' : ''} class="ciclo-filter-checkbox"> FINALIZADOS
+                 <input type="checkbox" data-action="toggle-ciclo-fin" ${getHideConcluidosCiclo() ? 'checked' : ''} class="ciclo-filter-checkbox"> FINALIZADOS
                </label>
              </div>
           </div>
@@ -441,12 +445,12 @@ function renderCicloChart(plan, dictDisciplinas, totalTarget) {
 
     document.getElementById('filete-linear-ciclo').innerHTML = linearHtml;
 
-    if (window._planjChartInstance) {
-      window._planjChartInstance.destroy();
-      window._planjChartInstance = null;
+    if (getPlanjChartInstance()) {
+      getPlanjChartInstance().destroy();
+      setPlanjChartInstance(null);
     }
 
-    window._planjChartInstance = new Chart(ctx, {
+    setPlanjChartInstance(new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: labels,
@@ -476,7 +480,7 @@ function renderCicloChart(plan, dictDisciplinas, totalTarget) {
           }
         }
       }
-    });
+    }));
   }, 100);
 }
 
@@ -486,7 +490,7 @@ function renderCicloChart(plan, dictDisciplinas, totalTarget) {
 function renderGradeView(el, plan) {
   const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
   let weeklyHtml = '';
-  let totalTarget = 0;
+  let _totalTarget = 0;
 
   for (let i = 0; i < 7; i++) {
     if (plan.horarios.diasAtivos.includes(i)) {
@@ -510,7 +514,7 @@ function renderGradeView(el, plan) {
     plan.sequencia.forEach((seq, i) => {
       const d = dictDisciplinas[seq.discId];
       if (!d) return;
-      totalTarget += seq.minutosAlvo;
+      _totalTarget += seq.minutosAlvo;
 
       sequenceHtml += `
         <div class="ciclo-item ${seq.concluido ? 'concluido' : ''} grade-seq-card">
@@ -530,7 +534,7 @@ function renderGradeView(el, plan) {
             <div class="grade-seq-action">
               ${!seq.concluido
                 ? `<button class="btn btn-primary btn-sm" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Estudar Agora</button>`
-                : `<span class="grade-concluded-badge"><i class="fa fa-check"></i> Etapa Concluída</span>`
+                : '<span class="grade-concluded-badge"><i class="fa fa-check"></i> Etapa Concluída</span>'
               }
             </div>
           </div>

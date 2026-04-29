@@ -1,6 +1,7 @@
 import { scheduleSave, state } from './store.js?v=8.29';
 import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid, esc } from './utils.js?v=8.29';
-import { navigate } from './app.js?v=8.29';
+import { navigate, closeModal, openModal } from './app.js?v=8.29';
+import { openRegistroSessao } from './registro-sessao.js?v=8.29';
 
 // =============================================
 // TIMER ENGINE
@@ -10,7 +11,7 @@ import { navigate } from './app.js?v=8.29';
  * Mapa de intervals ativos por eventId
  * @type {Object.<string, number>}
  */
-export let timerIntervals = {};   // eventId → intervalId
+export const timerIntervals = {};   // eventId → intervalId
 
 /**
  * Flag de modo Pomodoro
@@ -23,7 +24,7 @@ document.addEventListener('app:stateLoaded', () => {
   if (state?.config?.pomodoroMode) _pomodoroMode = true;
 });
 
-export let _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+export const _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 /**
  * Verifica se timer está ativo
@@ -95,10 +96,6 @@ export function setCronoLivreAss(assId) {
   document.dispatchEvent(new Event('app:renderCurrentView'));
 }
 
-window.setCronoLivreGoal = setCronoLivreGoal;
-window.setCronoLivreDisc = setCronoLivreDisc;
-window.setCronoLivreAss = setCronoLivreAss;
-
 export function reattachTimers() {
   Object.keys(timerIntervals).forEach(id => {
     clearInterval(timerIntervals[id]);
@@ -127,8 +124,8 @@ export function reattachTimers() {
           _pomodoroAlarm.play().catch(e => console.log('Audio error:', e));
           toggleTimer(id); // Auto-pause
           document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `Pomodoro concluído! Descanse ${pausaTargetMins} minutos.`, type: 'success' } }));
-          if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("Pomodoro Concluído! 🍅", { body: `Descanse ${pausaTargetMins} minutos.`, icon: 'favicon.ico' });
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Pomodoro Concluído! 🍅', { body: `Descanse ${pausaTargetMins} minutos.`, icon: 'favicon.ico' });
           }
           return; // Stop current interval frame
         }
@@ -168,8 +165,8 @@ export function startTimerForEvent(eventId) {
         _pomodoroAlarm.play().catch(e => console.log('Audio error:', e));
         toggleTimer(eventId); // Auto-pause
         document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `Pomodoro concluído! Descanse ${pausaTargetMins} minutos.`, type: 'success' } }));
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("Pomodoro Concluído! 🍅", { body: `Descanse ${pausaTargetMins} minutos.`, icon: 'favicon.ico' });
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Pomodoro Concluído! 🍅', { body: `Descanse ${pausaTargetMins} minutos.`, icon: 'favicon.ico' });
         }
         return;
       }
@@ -237,13 +234,7 @@ export function discardTimer(eventId) {
 }
 
 export function marcarEstudei(eventId) {
-  // Open the Registro da Sessão de Estudo modal instead of immediately marking
-  if (typeof window.openRegistroSessao === 'function') {
-    window.openRegistroSessao(eventId);
-    return;
-  }
-  // Fallback: original behavior if registro module not loaded
-  _marcarEstudeiDirect(eventId);
+  openRegistroSessao(eventId);
 }
 
 
@@ -562,7 +553,7 @@ export function getConsistencyStreak() {
   const todayStrDate = getLocalDateStr();
   let currentStreak = 0;
   let maxStreak = 0;
-  let tempStreak = 0;
+  let tempStreak;
 
   // Calculate max streak
   const sortedDates = Array.from(dates).sort();
@@ -570,9 +561,9 @@ export function getConsistencyStreak() {
     tempStreak = 1;
     maxStreak = 1;
     for (let i = 1; i < sortedDates.length; i++) {
-      let curr = new Date(sortedDates[i] + 'T00:00:00');
-      let prevNorm = new Date(sortedDates[i - 1] + 'T00:00:00');
-      let diff = Math.round((curr - prevNorm) / (1000 * 60 * 60 * 24));
+      const curr = new Date(sortedDates[i] + 'T00:00:00');
+      const prevNorm = new Date(sortedDates[i - 1] + 'T00:00:00');
+      const diff = Math.round((curr - prevNorm) / (1000 * 60 * 60 * 24));
       if (diff === 1) {
         tempStreak++;
         if (tempStreak > maxStreak) maxStreak = tempStreak;
@@ -582,7 +573,7 @@ export function getConsistencyStreak() {
     }
 
     // Current Streak
-    let currDay = new Date(todayStrDate + 'T00:00:00');
+    const currDay = new Date(todayStrDate + 'T00:00:00');
     while (dates.has(getLocalDateStr(currDay)) && currentStreak < 3650) {
       currentStreak++;
       currDay.setDate(currDay.getDate() - 1);
@@ -1001,9 +992,7 @@ export function desfazerEtapa(seqId) {
     syncCicloToEventos();
     scheduleSave();
     document.dispatchEvent(new Event('app:renderCurrentView'));
-    if (typeof window.EstudoApp?.closeModal === 'function') {
-      window.EstudoApp.closeModal('modal-ciclo-history');
-    }
+    closeModal('modal-ciclo-history');
   }
 }
 
@@ -1037,15 +1026,10 @@ export function editCicloSeqHours(idx) {
     seqItem.minutosAlvo = Math.round(novaHoras * 60);
     syncCicloToEventos();
     scheduleSave();
-    if (typeof window.EstudoApp?.closeModal === 'function') window.EstudoApp.closeModal('modal-prompt');
+    closeModal('modal-prompt');
     document.dispatchEvent(new Event('app:renderCurrentView'));
   };
 
-  if (typeof window.EstudoApp?.openModal === 'function') window.EstudoApp.openModal('modal-prompt');
+  openModal('modal-prompt');
   setTimeout(() => document.getElementById('prompt-input-horas')?.focus(), 100);
 }
-
-window.moveCicloSeq = moveCicloSeq;
-window.desfazerEtapa = desfazerEtapa;
-window.editCicloSeqHours = editCicloSeqHours;
-window.iniciarEtapaPlanejamento = iniciarEtapaPlanejamento;

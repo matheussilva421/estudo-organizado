@@ -200,35 +200,35 @@ export async function syncWithDrive(isRecursion = false) {
 
                 const driveData = resp.result;
 
-                // Estratégia simples de merge: usa o arquivo mais recente
+                // Merge inteligente: mescla dados locais e remotos quando remoto é mais novo
                 if (driveData.lastSync && state.lastSync && new Date(driveData.lastSync) > new Date(state.lastSync)) {
                     // O Drive tem uma versão mais nova (modificada em outro dispositivo)
-                    // Mantém _isSyncing = true até usuário decidir - libera apenas nos callbacks
-                    showConfirm('Encontrada versão mais recente no Drive. Deseja sobrescrever os dados locais?', () => {
-                        setState(driveData);
+                    showConfirm('Encontrada versão mais recente no Drive. Deseja mesclar com os dados locais?', () => {
+                        const merged = mergeStudyStates(state, driveData);
+                        setState(merged);
                         runMigrations();
                         saveStateToDB(true, true, true, { touchLocalBackup: false }).then(() => {
                             renderCurrentView();
-                            showToast('Dados atualizados do Drive!', 'success');
+                            showToast('Dados mesclados do Drive!', 'success');
                             updateDriveUI('connected', 'Google Drive');
-                            _isSyncing = false; // libera lock após conclusão com sucesso
+                            _isSyncing = false;
                         }).catch(e => {
                             console.error('Force save fail:', e);
-                            _isSyncing = false; // libera lock mesmo em erro
+                            _isSyncing = false;
                         });
-                    }, { title: 'Sincronização', label: 'Sobrescrever Local' });
+                    }, { title: 'Sincronização', label: 'Mesclar Dados' });
 
                     // Handle cancel: libera lock quando usuário cancela
                     const cancelBtn = document.getElementById('confirm-cancel-btn');
                     if (cancelBtn) {
                         const originalHandler = cancelBtn.onclick || (() => {});
                         cancelBtn.onclick = () => {
-                            _isSyncing = false; // libera lock no cancelamento
+                            _isSyncing = false;
                             originalHandler();
                         };
                     }
 
-                    return; // Não envia o arquivo local, aguarda decisão do usuário
+                    return;
                 }
             } catch (e) {
                 // Arquivo pode ter sido apagado no Drive
@@ -245,8 +245,8 @@ export async function syncWithDrive(isRecursion = false) {
             const accessToken = gapi.client.getToken().access_token;
             const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
             const boundary = '-------314159265358979323846';
-            const delimiter = "\r\n--" + boundary + "\r\n";
-            const close_delim = "\r\n--" + boundary + "--";
+            const delimiter = '\r\n--' + boundary + '\r\n';
+            const close_delim = '\r\n--' + boundary + '--';
 
             const multipartRequestBody =
                 delimiter +
@@ -279,8 +279,8 @@ export async function syncWithDrive(isRecursion = false) {
             const accessToken = gapi.client.getToken().access_token;
             const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
             const boundary = '-------314159265358979323846';
-            const delimiter = "\r\n--" + boundary + "\r\n";
-            const close_delim = "\r\n--" + boundary + "--";
+            const delimiter = '\r\n--' + boundary + '\r\n';
+            const close_delim = '\r\n--' + boundary + '--';
 
             const multipartRequestBody =
                 delimiter +

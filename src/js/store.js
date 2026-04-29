@@ -105,7 +105,7 @@ export function setState(newState) {
   }
 }
 
-export let state = {
+export const state = {
   schemaVersion: DEFAULT_SCHEMA_VERSION,
   ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
   planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
@@ -156,7 +156,7 @@ export function createExportableState(sourceState = state) {
  * @returns {Promise<void>}
  */
 export function initDB() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = (event) => {
@@ -206,7 +206,7 @@ export function loadStateFromDB() {
     const store = transaction.objectStore(STORE_NAME);
     const request = store.get('main_state');
 
-    request.onsuccess = (event) => {
+    request.onsuccess = (_event) => {
       if (request.result) {
         const loadedState = request.result;
 
@@ -333,7 +333,7 @@ export const SyncQueue = {
   isProcessing: false,
   tasks: [],
   add(taskFn) {
-    return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
       this.tasks.push(async () => {
         try {
           await taskFn();

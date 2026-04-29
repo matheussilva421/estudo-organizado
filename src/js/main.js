@@ -17,6 +17,7 @@ import * as relevance from './relevance.js?v=8.29';
 import * as lesson_mapper from './lesson-mapper.js?v=8.29';
 import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.29';
 import * as sync_coordinator from './sync/sync-coordinator.js?v=8.29';
+import * as entity_conflict_model from './sync/entity-conflict-model.js?v=8.29';
 
 // Import UI helpers and action dispatcher
 import { setupActionDispatcher } from './ui/actions/index.js?v=8.29';
@@ -31,7 +32,7 @@ window.announce = announce;
 
 // Create namespace for all exports (prevents global pollution)
 window.EstudoApp = {};
-const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper, firestore_sync, sync_coordinator];
+const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper, firestore_sync, sync_coordinator, entity_conflict_model];
 
 for (const mod of exposedModules) {
   for (const key of Object.keys(mod)) {
@@ -103,51 +104,51 @@ app.init();
 // ============================================================
 // Usar addCleanupListener para prevenir memory leaks
 addCleanupListener(document, 'app:renderCurrentView', () => {
-  if (typeof window.EstudoApp?.renderCurrentView === 'function') window.EstudoApp.renderCurrentView();
+  components.renderCurrentView();
 });
 addCleanupListener(document, 'app:updateBadges', () => {
-  if (typeof window.EstudoApp?.updateBadges === 'function') window.EstudoApp.updateBadges();
+  components.updateBadges();
 });
 addCleanupListener(document, 'app:showToast', (e) => {
-  if (typeof window.EstudoApp?.showToast === 'function') window.EstudoApp.showToast(e.detail.msg, e.detail.type);
+  app.showToast(e.detail.msg, e.detail.type);
 });
 addCleanupListener(document, 'app:showConfirm', (e) => {
-  if (typeof window.EstudoApp?.showConfirm === 'function') window.EstudoApp.showConfirm(e.detail.msg, e.detail.onYes, e.detail.opts);
+  app.showConfirm(e.detail.msg, e.detail.onYes, e.detail.opts);
 });
 addCleanupListener(document, 'app:firestoreSyncStatus', () => {
-  if (typeof window.EstudoApp?.renderCurrentView === 'function' && window.EstudoApp?.currentView === 'config') {
-    window.EstudoApp.renderCurrentView();
+  if (app.currentView === 'config') {
+    components.renderCurrentView();
   }
 });
 addCleanupListener(document, 'app:invalidateCaches', () => {
-  if (typeof window.EstudoApp?.invalidateDiscCache === 'function') window.EstudoApp.invalidateDiscCache();
-  if (typeof window.EstudoApp?.invalidateRevCache === 'function') window.EstudoApp.invalidateRevCache();
-  if (typeof window.EstudoApp?.invalidatePendingRevCache === 'function') window.EstudoApp.invalidatePendingRevCache();
-  if (typeof window.EstudoApp?.invalidateTodayCache === 'function') window.EstudoApp.invalidateTodayCache();
-  if (typeof window.EstudoApp?.invalidateStreakCache === 'function') window.EstudoApp.invalidateStreakCache();
-  if (typeof window.EstudoApp?.invalidateDashCaches === 'function') window.EstudoApp.invalidateDashCaches();
+  logic.invalidateDiscCache();
+  logic.invalidateRevCache();
+  logic.invalidatePendingRevCache();
+  logic.invalidateTodayCache();
+  logic.invalidateStreakCache();
+  logic.invalidateDashCaches();
 });
 
 // Force cache invalidation if user returns to app next day
 addCleanupListener(document, 'visibilitychange', () => {
   if (document.visibilityState === 'visible') {
-    if (typeof window.EstudoApp?.invalidateTodayCache === 'function') window.EstudoApp.invalidateTodayCache();
-    if (typeof window.EstudoApp?.invalidatePendingRevCache === 'function') window.EstudoApp.invalidatePendingRevCache();
-    if (typeof window.EstudoApp?.renderCurrentView === 'function') window.EstudoApp.renderCurrentView();
+    logic.invalidateTodayCache();
+    logic.invalidatePendingRevCache();
+    components.renderCurrentView();
   }
 });
 
 // Domain events fired from logic.js to update specific views
 addCleanupListener(document, 'app:refreshEventCard', (e) => {
-  if (typeof window.EstudoApp?.refreshEventCard === 'function') window.EstudoApp.refreshEventCard(e.detail.eventId);
+  views.refreshEventCard(e.detail.eventId);
 });
 addCleanupListener(document, 'app:refreshMEDSections', () => {
-  if (typeof window.EstudoApp?.refreshMEDSections === 'function') window.EstudoApp.refreshMEDSections();
+  views.refreshMEDSections();
 });
 addCleanupListener(document, 'app:eventoDeleted', (e) => {
-  if (window.EstudoApp?.currentView === 'med' && typeof window.EstudoApp?.removeDOMCard === 'function') {
-    window.EstudoApp.removeDOMCard(e.detail.eventId);
-  } else if (typeof window.EstudoApp?.renderCurrentView === 'function') {
-    window.EstudoApp.renderCurrentView();
+  if (app.currentView === 'med') {
+    views.removeDOMCard(e.detail.eventId);
+  } else {
+    components.renderCurrentView();
   }
 });

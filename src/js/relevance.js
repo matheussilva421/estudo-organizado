@@ -35,8 +35,8 @@ export function levenshteinDistance(s, t) {
     if (s.length === 0) return t.length;
     if (t.length === 0) return s.length;
 
-    let v0 = new Uint16Array(t.length + 1);
-    let v1 = new Uint16Array(t.length + 1);
+    const v0 = new Uint16Array(t.length + 1);
+    const v1 = new Uint16Array(t.length + 1);
 
     for (let i = 0; i < v0.length; i++) v0[i] = i;
 
@@ -176,7 +176,7 @@ export function calculateFinalRelevance(editalSubjectCtx) {
 
     const ht = matchStruct.matchedItem;
 
-    // A. Calcula Incidence (Relevancia Real da Banca) 
+    // A. Calcula Incidence (Relevancia Real da Banca)
     // -> (pode vir como 'rank' numérico ou 'weight' percentual de 0 a 1)
     let incidenceScore = 0;
     if (ht.weight !== undefined) {
@@ -203,7 +203,7 @@ export function calculateFinalRelevance(editalSubjectCtx) {
     }
 
     let priority = 'P3';
-    // Limiares default (Top 20% = P1) (P2 = 60-20%) -> Aqui traduzimos de forma semi-arbitrária até ter o dataset completo do Edital 
+    // Limiares default (Top 20% = P1) (P2 = 60-20%) -> Aqui traduzimos de forma semi-arbitrária até ter o dataset completo do Edital
     if (finalScore >= 0.75) priority = 'P1';
     else if (finalScore >= 0.40) priority = 'P2';
 
@@ -219,7 +219,7 @@ export function applyRankingToEdital(editalId) {
     const edt = state.editais.find(e => e.id === editalId);
     if (!edt) return [];
 
-    let flatList = [];
+    const flatList = [];
 
     // Calcula Score Real Time
     edt.disciplinas.forEach(d => {

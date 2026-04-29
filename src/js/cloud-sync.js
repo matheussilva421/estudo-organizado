@@ -1,5 +1,5 @@
 import { state, setState, SyncQueue, saveStateToDB, createExportableState } from './store.js?v=8.29';
-import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.29';
+import { setCredential, getCredential, deleteCredential as _deleteCredential } from './credentials.js?v=8.29';
 import { mergeStudyStates } from './sync/sync-center.js?v=8.29';
 
 let isSyncing = false;
@@ -112,7 +112,7 @@ async function readCloudflareRemotePayload() {
         try {
             const errData = await response.json();
             if (errData && errData.error) errorMsg = `Erro ${response.status}: ${errData.error}`;
-        } catch (e) { /* ignore */ }
+        } catch { /* ignore */ }
         throw new Error(errorMsg);
     }
 
@@ -149,7 +149,12 @@ export async function pullFromCloudflare(forceOverwrite = false) {
 
         if (forceOverwrite || remoteTime > localTime) {
             console.log(forceOverwrite ? 'Restauração forçada da Cloudflare...' : 'Dados da Cloudflare são mais novos, aplicando...');
-            setState(remoteData);
+            if (forceOverwrite) {
+                setState(remoteData);
+            } else {
+                const merged = mergeStudyStates(state, remoteData);
+                setState(merged);
+            }
             // Strip sync creds from incoming data to avoid overwriting local creds
             if (state.config) {
                 delete state.config.cfUrl;
@@ -253,7 +258,7 @@ export async function pushToCloudflare(forceOverwrite = false) {
         let responseData = null;
         try {
             responseData = await response.json();
-        } catch (e) { /* response body is optional */ }
+        } catch { /* response body is optional */ }
 
         if (!response.ok) {
             let errorMsg = `HTTP Error: ${response.status}`;
@@ -313,8 +318,4 @@ export async function forceCloudflareSync() {
             btn.textContent = originalText;
         }
     }
-}
-
-if (typeof window !== 'undefined') {
-    window.forceCloudflareSync = forceCloudflareSync;
 }

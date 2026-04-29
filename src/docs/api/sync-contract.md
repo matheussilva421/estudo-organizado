@@ -131,6 +131,8 @@ Conflict UX:
 - force local push to replace Firestore snapshot
 - same-ID merge collisions keep the local item visible and record conflict metadata instead of silently pushing a merged snapshot
 - conflicts can list affected entities with collection, id, local/remote revision, and dates
+- per-entity conflict resolution: users can choose to keep local or remote version for each conflicting entity individually
+- entity conflict review modal shows revision comparison and decision hints (local newer, remote newer, or tie)
 
 ## Cloudflare Envelope
 
@@ -230,7 +232,7 @@ Behavior:
 ## Known Limitations
 
 1. Full-state snapshots remain the production remote format; per-entity Firestore collections are not enabled yet.
-2. Conflict UX is intentionally conservative: pull remote or force overwrite, with no merge UI yet.
+2. Entity-level conflict editing is implemented via keep-local/keep-remote decisions per entity.
 3. `ALLOWED_ORIGINS` is still permissive when omitted for backward compatibility and should be configured per deployment.
 4. Google Drive sync still has a separate backup/restore conflict model.
-5. Entity-level conflict editing is not implemented yet; same-ID collisions pause for user review.
+5. Entity shadow mode requires manual verification via "Verificar entidades" button.

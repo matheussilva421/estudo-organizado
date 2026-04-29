@@ -15,11 +15,11 @@ function findBestSubjectForLesson(lessonName, editalTopics) {
     const tokensLesson = tokenize(lessonName);
     const strLesson = lessonName.toLowerCase().trim();
 
-    let bestMatches = [];
+    const bestMatches = [];
 
     // Scan all topics in the discipline
     for (const topic of editalTopics) {
-        let highestScore = 0;
+        let highestScore;
         const strTopic = topic.nome.toLowerCase().trim();
 
         // Exact Match

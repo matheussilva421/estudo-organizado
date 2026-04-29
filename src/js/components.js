@@ -1,9 +1,18 @@
 import { currentView } from './app.js?v=8.29';
-import { formatDate, formatTime, getEventStatus, todayStr, esc, HABIT_TYPES, getHabitType } from './utils.js?v=8.29';
-import { openAddEventModal, openEditaModal, renderConfig, renderDashboard, renderEditais, renderHabitos, renderHistoricoSessoes, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts, renderSkeletonLoader } from './views.js?v=8.29';
+import { formatDate, formatTime, getEventStatus, todayStr, esc, getHabitType } from './utils.js?v=8.29';
+import { renderConfig, renderDashboard, renderEditais, renderHabitos, renderHistoricoSessoes, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts, renderSkeletonLoader } from './views.js?v=8.29';
 import { renderCalendar } from './views/calendar-view.js?v=8.29';
 import { state } from './store.js?v=8.29';
-import { deleteEvento, getActiveDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, marcarEstudei, toggleTimer, discardTimer, toggleTimerMode, _pomodoroMode } from './logic.js?v=8.29';
+import { getActiveDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, _pomodoroMode } from './logic.js?v=8.29';
+import { getActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.29';
+import { getDiscChartInstance, setDiscChartInstance, getPlanjChartInstance, setPlanjChartInstance } from './state/chart-state.js?v=8.29';
+
+export { getDiscChartInstance, setDiscChartInstance, getPlanjChartInstance, setPlanjChartInstance };
+
+// Module-level state
+let _cronoInterval = null;
+export function getCronoInterval() { return _cronoInterval; }
+export function setCronoInterval(val) { _cronoInterval = val; }
 
 // =============================================
 // DOM COMPONENTS AND RENDERERS
@@ -215,10 +224,10 @@ export function renderCronometro(el) {
   `;
 
   // Live update every second
-  if (window._cronoInterval) clearInterval(window._cronoInterval);
-  window._cronoInterval = setInterval(() => {
+  if (getCronoInterval()) clearInterval(getCronoInterval());
+  setCronoInterval(setInterval(() => {
     const ev = focusEvent.id === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === focusEvent.id);
-    if (!ev) { clearInterval(window._cronoInterval); return; }
+    if (!ev) { clearInterval(getCronoInterval()); return; }
     const elapsed = getElapsedSeconds(ev);
     const timerEl = document.getElementById('crono-main-timer');
     if (timerEl) timerEl.textContent = formatTime(elapsed);
@@ -231,7 +240,7 @@ export function renderCronometro(el) {
     if (btnDiscard) {
       btnDiscard.style.display = elapsed > 0 ? 'flex' : 'none';
     }
-  }, 1000);
+  }, 1000));
 }
 
 /**
@@ -239,21 +248,21 @@ export function renderCronometro(el) {
  */
 export function renderCurrentView() {
   // Bug 7: clean up cronometro interval when switching views
-  if (currentView !== 'cronometro' && window._cronoInterval) {
-    clearInterval(window._cronoInterval);
-    window._cronoInterval = null;
+  if (currentView !== 'cronometro' && getCronoInterval()) {
+    clearInterval(getCronoInterval());
+    setCronoInterval(null);
   }
 
   // Clean up disc dashboard chart when leaving editais OR when leaving disc context
-  if ((currentView !== 'editais' || !window.activeDashboardDiscCtx) && window._discChartInstance) {
-    window._discChartInstance.destroy();
-    window._discChartInstance = null;
+  if ((currentView !== 'editais' || !getActiveDashboardDiscCtx()) && getDiscChartInstance()) {
+    getDiscChartInstance().destroy();
+    setDiscChartInstance(null);
   }
 
   // Clean up ciclo doughnut chart when leaving ciclo view
-  if (currentView !== 'ciclo' && window._planjChartInstance) {
-    window._planjChartInstance.destroy();
-    window._planjChartInstance = null;
+  if (currentView !== 'ciclo' && getPlanjChartInstance()) {
+    getPlanjChartInstance().destroy();
+    setPlanjChartInstance(null);
   }
 
   // Clean up analytics dashboard charts when leaving dashboard
@@ -283,17 +292,17 @@ export function renderCurrentView() {
   if (actions) {
     actions.innerHTML = '';
     if (currentView === 'cronometro') {
-      actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="navigate" data-view="med"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+      actions.innerHTML = '<button class="btn btn-ghost btn-sm" data-action="navigate" data-view="med"><i class="fa fa-arrow-left"></i> Voltar</button>';
     } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
-      actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
+      actions.innerHTML = '<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>';
     } else if (currentView === 'editais') {
-      if (window.activeDashboardDiscCtx) {
-        actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+      if (getActiveDashboardDiscCtx()) {
+        actions.innerHTML = '<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>';
       } else {
-        actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>`;
+        actions.innerHTML = '<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>';
       }
     } else if (currentView === 'ciclo') {
-      actions.innerHTML = `<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>`;
+      actions.innerHTML = '<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>';
     }
   }
 
@@ -311,8 +320,9 @@ export function renderCurrentView() {
       if (currentView === 'home') renderHome(el);
       else if (currentView === 'dashboard') renderDashboard(el);
       else if (currentView === 'editais') {
-        if (window.activeDashboardDiscCtx) {
-          window.openDiscDashboard(window.activeDashboardDiscCtx.editaId, window.activeDashboardDiscCtx.discId);
+        if (getActiveDashboardDiscCtx()) {
+          const ctx = getActiveDashboardDiscCtx();
+          import('./views.js?v=8.29').then(({ openDiscDashboard }) => openDiscDashboard(ctx.editaId, ctx.discId));
         } else {
           renderEditais(el);
         }
@@ -389,9 +399,9 @@ export function renderEventCard(evento) {
         </div>
       </div>
       <div class="event-actions" data-action="stop-propagation">
-        ${status !== 'estudei' ? `<button class="icon-btn ${timerActive ? 'active' : ''}" data-action="toggle-timer" data-event-id="${evento.id}" title="${timerActive ? 'Pausar' : 'Iniciar'} cronômetro">${timerActive ? '⏸' : '▶'}</button>` : ''}
-        ${status !== 'estudei' ? `<button class="icon-btn" data-action="mark-studied" data-event-id="${evento.id}" title="Marcar como Estudei">✅</button>` : ''}
-        <button class="icon-btn" data-action="delete-event" data-event-id="${evento.id}" title="Excluir">🗑</button>
+        ${status !== 'estudei' ? `<button class="icon-btn ${timerActive ? 'active' : ''}" data-action="toggle-timer" data-event-id="${evento.id}" title="${timerActive ? 'Pausar' : 'Iniciar'} cronômetro" aria-label="${timerActive ? 'Pausar' : 'Iniciar'} cronômetro">${timerActive ? '⏸' : '▶'}</button>` : ''}
+        ${status !== 'estudei' ? `<button class="icon-btn" data-action="mark-studied" data-event-id="${evento.id}" title="Marcar como Estudei" aria-label="Marcar como Estudei">✅</button>` : ''}
+        <button class="icon-btn" data-action="delete-event" data-event-id="${evento.id}" title="Excluir" aria-label="Excluir evento">🗑</button>
       </div>
     </div>
     `;

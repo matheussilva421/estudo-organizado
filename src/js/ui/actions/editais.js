@@ -3,389 +3,252 @@
  * Handlers para CRUD de editais, disciplinas, assuntos e aulas
  */
 
-/**
- * Abre modal de novo/editar edital
- * @param {HTMLElement} el - Elemento acionador
- */
-export function openEditalModal(el) {
-  const editalId = el.dataset.editalId;
-  if (typeof window.EstudoApp?.openEditaModal === 'function') {
-    window.EstudoApp?.openEditaModal(editalId || null);
-  }
-}
+import { registerAction } from './dispatcher.js';
+import { showConfirm } from '../../app.js?v=8.29';
+import {
+  openEditaModal,
+  saveEdital,
+  deleteEdital,
+  openDiscModal,
+  saveDisc,
+  deleteDisc,
+  openDiscManager,
+  addAssunto,
+  deleteAssunto,
+  editSubjectInline,
+  addBulkAulas,
+  deleteAula,
+  toggleAulaEstudada,
+  editLessonInline,
+  selectColor,
+  selectIcon,
+  selectDiscColor,
+  toggleEdital,
+  toggleVertDisc,
+  toggleAssunto,
+  runLessonMapperUI,
+  switchManagerTab,
+  archiveDiscipline,
+  unarchiveDiscipline,
+  setDiscFilterStatus,
+  renderCurrentView,
+  showToast,
+  scheduleSave,
+  addEventoParaAssunto,
+  toggleAulaDashboard,
+  switchDashboardTab,
+  setVertSearch,
+  setVertFilterEdital,
+  setVertFilterStatus,
+  renderVerticalList,
+  filtrarDropdownBanca
+} from '../../views.js?v=8.29';
+import { parseBancaText, applyBancaRanking, filtrarViewPorDisciplina, mudarEditalAnalisador, carregarAnaliseBanca, excluirAnaliseBanca, openMatchCorrector, saveMatchCorrection } from '../../views/banca-view.js?v=8.29';
+import { openDiscDashboard } from '../../views/dashboard-view.js';
 
-/**
- * Salva edital (create/update)
- * @param {HTMLElement} el - Elemento acionador
- */
-export function saveEdital(el) {
-  const editalId = el.dataset.editalId;
-  if (typeof window.EstudoApp?.saveEdital === 'function') {
-    window.EstudoApp?.saveEdital(editalId);
-  }
-}
+// Registrar ações
+registerAction('navigate', (el) => {
+  const view = el.dataset.view;
+  if (view) import('../../app.js?v=8.29').then(({ navigate }) => navigate(view));
+});
 
-/**
- * Exclui edital com confirmação
- * @param {HTMLElement} el - Elemento acionador
- * @param {Event} event - Evento DOM
- */
-export function deleteEdital(el, event) {
-  if (event) event.stopPropagation();
+registerAction('open-edital-modal', (el) => {
   const editalId = el.dataset.editalId;
-  if (editalId && typeof window.EstudoApp?.deleteEdital === 'function') {
-    window.EstudoApp?.showConfirm('Tem certeza que deseja excluir este edital?', () => {
-      window.EstudoApp?.deleteEdital(editalId);
+  openEditaModal(editalId || null);
+});
+registerAction('save-edital', (el) => {
+  const editalId = el.dataset.editalId;
+  saveEdital(editalId);
+});
+registerAction('delete-edital', (el) => {
+  const editalId = el.dataset.editalId;
+  if (editalId) {
+    showConfirm('Tem certeza que deseja excluir este edital?', () => {
+      deleteEdital(editalId);
     });
   }
-}
+});
 
-/**
- * Abre modal de nova disciplina
- * @param {HTMLElement} el - Elemento acionador
- */
-export function openDiscModal(el) {
+registerAction('open-disc-modal', (el) => {
   const editalId = el.dataset.editalId;
-  if (editalId && typeof window.EstudoApp?.openDiscModal === 'function') {
-    window.EstudoApp?.openDiscModal(editalId);
-  }
-}
-
-/**
- * Salva disciplina
- */
-export function saveDisc() {
-  if (typeof window.EstudoApp?.saveDisc === 'function') {
-    window.EstudoApp?.saveDisc();
-  }
-}
-
-/**
- * Exclui disciplina com confirmação
- * @param {HTMLElement} el - Elemento acionador
- * @param {Event} event - Evento DOM
- */
-export function deleteDisc(el, event) {
-  if (event) event.stopPropagation();
+  if (editalId) openDiscModal(editalId);
+});
+registerAction('save-disc', saveDisc);
+registerAction('delete-disc', (el) => {
   const editalId = el.dataset.editalId;
   const discId = el.dataset.discId;
-  if (editalId && discId && typeof window.EstudoApp?.deleteDisc === 'function') {
-    window.EstudoApp?.showConfirm('Tem certeza que deseja excluir esta disciplina?', () => {
-      window.EstudoApp?.deleteDisc(editalId, discId);
+  if (editalId && discId) {
+    showConfirm('Tem certeza que deseja excluir esta disciplina?', () => {
+      deleteDisc(editalId, discId);
     });
   }
-}
-
-export function archiveDisc(el, event) {
-  if (event) event.stopPropagation();
+});
+registerAction('archive-disc', (el) => {
   const editalId = el.dataset.editalId;
   const discId = el.dataset.discId;
-  if (editalId && discId && typeof window.EstudoApp?.showConfirm === 'function') {
-    window.EstudoApp.showConfirm(
+  if (editalId && discId) {
+    showConfirm(
       'Arquivar esta disciplina?\nEla será ocultada da lista principal, mas seus dados e progresso serão mantidos.',
       () => {
-        window.EstudoApp?.archiveDiscipline(editalId, discId);
-        window.EstudoApp?.scheduleSave();
-        window.EstudoApp?.renderCurrentView();
-        window.EstudoApp?.showToast?.('Disciplina arquivada.', 'info');
+        archiveDiscipline(editalId, discId);
+        scheduleSave();
+        renderCurrentView();
+        showToast('Disciplina arquivada.', 'info');
       },
       { label: 'Arquivar disciplina' }
     );
   }
-}
-
-export function unarchiveDisc(el, event) {
-  if (event) event.stopPropagation();
+});
+registerAction('unarchive-disc', (el) => {
   const editalId = el.dataset.editalId;
   const discId = el.dataset.discId;
   if (editalId && discId) {
-    window.EstudoApp?.unarchiveDiscipline(editalId, discId);
-    window.EstudoApp?.scheduleSave();
-    window.EstudoApp?.renderCurrentView();
-    window.EstudoApp?.showToast?.('Disciplina desarquivada.', 'success');
+    unarchiveDiscipline(editalId, discId);
+    scheduleSave();
+    renderCurrentView();
+    showToast('Disciplina desarquivada.', 'success');
   }
-}
-
-export function setDiscFilter(el) {
+});
+registerAction('set-disc-filter', (el) => {
   const filter = el.dataset.filter || 'ativas';
-  if (typeof window.EstudoApp?.setDiscFilterStatus === 'function') {
-    window.EstudoApp.setDiscFilterStatus(filter);
-  }
-  window.EstudoApp?.renderCurrentView?.();
-}
+  setDiscFilterStatus(filter);
+  renderCurrentView();
+});
 
-/**
- * Abre gerenciador de disciplina
- * @param {HTMLElement} el - Elemento acionador
- * @param {Event} event - Evento DOM
- */
-export function openDiscManager(el, event) {
-  if (event) event.stopPropagation();
+registerAction('open-disc-dashboard', (el) => {
   const editalId = el.dataset.editalId;
   const discId = el.dataset.discId;
-  if (editalId && discId && typeof window.EstudoApp?.openDiscManager === 'function') {
-    window.EstudoApp?.openDiscManager(editalId, discId);
-  }
-}
+  if (editalId && discId) openDiscDashboard(editalId, discId);
+});
 
-/**
- * Salva alterações do gerenciador de disciplina
- * @param {HTMLElement} el - Elemento acionador
- */
-export function saveDiscManager(el) {
+registerAction('open-disc-manager', (el) => {
   const editalId = el.dataset.editalId;
   const discId = el.dataset.discId;
-  if (editalId && discId && typeof window.EstudoApp?.saveDiscManager === 'function') {
-    window.EstudoApp?.saveDiscManager(editalId, discId);
-  }
-}
-
-/**
- * Adiciona novo assunto
- * @param {HTMLElement} el - Elemento acionador
- */
-export function addAssunto(el) {
+  if (editalId && discId) openDiscManager(editalId, discId);
+});
+registerAction('save-disc-manager', (el) => {
+  const editalId = el.dataset.editalId;
   const discId = el.dataset.discId;
-  if (discId && typeof window.EstudoApp?.addAssunto === 'function') {
-    window.EstudoApp?.addAssunto(discId);
+  if (editalId && discId) {
+    import('../../views.js?v=8.29').then(({ saveDiscManager }) => saveDiscManager(editalId, discId));
   }
-}
-
-/**
- * Exclui assunto com confirmação
- * @param {HTMLElement} el - Elemento acionador
- * @param {Event} event - Evento DOM
- */
-export function deleteAssunto(el, event) {
-  if (event) event.stopPropagation();
+});
+registerAction('add-assunto', (el) => {
+  const discId = el.dataset.discId;
+  if (discId) addAssunto(discId);
+});
+registerAction('delete-assunto', (el) => {
   const discId = el.dataset.discId;
   const assuntoId = el.dataset.assuntoId;
-  if (discId && assuntoId && typeof window.EstudoApp?.deleteAssunto === 'function') {
-    window.EstudoApp?.deleteAssunto(discId, assuntoId);
-  }
-}
-
-/**
- * Edita assunto inline
- * @param {HTMLElement} el - Elemento acionador
- */
-export function editSubjectInline(el) {
+  if (discId && assuntoId) deleteAssunto(discId, assuntoId);
+});
+registerAction('edit-subject-inline', (el) => {
   const discId = el.dataset.discId;
   const assuntoId = el.dataset.assuntoId;
-  if (discId && assuntoId && typeof window.EstudoApp?.editSubjectInline === 'function') {
-    window.EstudoApp?.editSubjectInline(discId, assuntoId, el);
-  }
-}
-
-/**
- * Move assunto (cima/baixo)
- * @param {HTMLElement} el - Elemento acionador
- */
-export function moveSubject(el) {
+  if (discId && assuntoId) editSubjectInline(discId, assuntoId, el);
+});
+registerAction('move-subject', (el) => {
   const discId = el.dataset.discId;
   const idx = parseInt(el.dataset.idx, 10);
   const dir = parseInt(el.dataset.dir, 10);
-  if (discId && typeof window.EstudoApp?.moveSubject === 'function') {
-    window.EstudoApp?.moveSubject(discId, idx, dir);
-  }
-}
-
-/**
- * Adiciona aulas em bulk
- * @param {HTMLElement} el - Elemento acionador
- */
-export function addBulkAulas(el) {
+  if (discId) import('../../views.js?v=8.29').then(({ moveSubject }) => moveSubject(discId, idx, dir));
+});
+registerAction('add-bulk-aulas', (el) => {
   const discId = el.dataset.discId;
-  if (discId && typeof window.EstudoApp?.addBulkAulas === 'function') {
-    window.EstudoApp?.addBulkAulas(discId);
-  }
-}
-
-/**
- * Exclui aula
- * @param {HTMLElement} el - Elemento acionador
- * @param {Event} event - Evento DOM
- */
-export function deleteAula(el, event) {
-  if (event) event.stopPropagation();
+  if (discId) addBulkAulas(discId);
+});
+registerAction('delete-aula', (el) => {
   const discId = el.dataset.discId;
   const aulaId = el.dataset.aulaId;
-  if (discId && aulaId && typeof window.EstudoApp?.deleteAula === 'function') {
-    window.EstudoApp?.deleteAula(discId, aulaId);
-  }
-}
-
-/**
- * Toggle aula como estudada
- * @param {HTMLElement} el - Elemento acionador
- * @param {Event} event - Evento DOM
- */
-export function toggleAulaEstudada(el, event) {
-  if (event) event.stopPropagation();
+  if (discId && aulaId) deleteAula(discId, aulaId);
+});
+registerAction('toggle-aula-estudada', (el) => {
   const discId = el.dataset.discId;
   const aulaId = el.dataset.aulaId;
-  if (discId && aulaId && typeof window.EstudoApp?.toggleAulaEstudada === 'function') {
-    window.EstudoApp?.toggleAulaEstudada(discId, aulaId);
-  }
-}
-
-/**
- * Edita aula inline
- * @param {HTMLElement} el - Elemento acionador
- */
-export function editLessonInline(el) {
+  if (discId && aulaId) toggleAulaEstudada(discId, aulaId);
+});
+registerAction('edit-lesson-inline', (el) => {
   const discId = el.dataset.discId;
   const aulaId = el.dataset.aulaId;
-  if (discId && aulaId && typeof window.EstudoApp?.editLessonInline === 'function') {
-    window.EstudoApp?.editLessonInline(discId, aulaId, el);
-  }
-}
-
-/**
- * Seleciona cor do edital
- * @param {HTMLElement} el - Elemento acionador
- */
-export function selectColor(el) {
-  const color = el.dataset.color;
-  const container = el.dataset.container;
-  if (color && container && typeof window.EstudoApp?.selectColor === 'function') {
-    window.EstudoApp?.selectColor(color, container);
-  }
-}
-
-/**
- * Seleciona ícone do edital
- * @param {HTMLElement} el - Elemento acionador
- */
-export function selectIcon(el) {
-  const icon = el.dataset.icon;
-  if (icon && typeof window.EstudoApp?.selectIcon === 'function') {
-    window.EstudoApp?.selectIcon(icon, el);
-  }
-}
-
-/**
- * Seleciona cor da disciplina
- * @param {HTMLElement} el - Elemento acionador
- */
-export function selectDiscColor(el) {
-  const color = el.dataset.color;
-  if (color && typeof window.EstudoApp?.selectDiscColor === 'function') {
-    window.EstudoApp?.selectDiscColor(color);
-  }
-}
-
-/**
- * Alterna visibilidade do edital
- * @param {HTMLElement} el - Elemento acionador
- */
-export function toggleEdital(el) {
-  const editalId = el.dataset.editalId;
-  if (editalId && typeof window.EstudoApp?.toggleEdital === 'function') {
-    window.EstudoApp?.toggleEdital(editalId);
-  }
-}
-
-/**
- * Alterna visibilidade da disciplina no vertical
- * @param {HTMLElement} el - Elemento acionador
- */
-export function toggleVertDisc(el) {
-  const discId = el.dataset.discId;
-  if (discId && typeof window.EstudoApp?.toggleVertDisc === 'function') {
-    window.EstudoApp?.toggleVertDisc(discId);
-  }
-}
-
-/**
- * Alterna visibilidade do assunto
- * @param {HTMLElement} el - Elemento acionador
- */
-export function toggleAssunto(el) {
-  const discId = el.dataset.discId;
-  const assuntoId = el.dataset.assuntoId;
-  if (discId && assuntoId && typeof window.EstudoApp?.toggleAssunto === 'function') {
-    window.EstudoApp?.toggleAssunto(discId, assuntoId);
-  }
-}
-
-/**
- * Executa lesson mapper
- * @param {HTMLElement} el - Elemento acionador
- */
-export function runLessonMapper(el) {
-  const editalId = el.dataset.editalId;
-  const discId = el.dataset.discId;
-  if (editalId && discId && typeof window.EstudoApp?.runLessonMapperUI === 'function') {
-    window.EstudoApp?.runLessonMapperUI(editalId, discId);
-  }
-}
-
-/**
- * Alterna aba do gerenciador
- * @param {HTMLElement} el - Elemento acionador
- */
-export function switchManagerTab(el) {
-  const tab = el.dataset.tab;
-  if (tab && typeof window.EstudoApp?.switchManagerTab === 'function') {
-    window.EstudoApp?.switchManagerTab(tab);
-  }
-}
-
-// Register all action handlers
-import { registerAction } from './dispatcher.js';
-import { parseBancaText, applyBancaRanking, filtrarViewPorDisciplina, mudarEditalAnalisador, carregarAnaliseBanca } from '../../views/banca-view.js?v=8.29';
-
-registerAction('navigate', (el) => {
-  const view = el.dataset.view;
-  if (view && typeof window.EstudoApp?.navigate === 'function') {
-    window.EstudoApp.navigate(view);
-  }
+  if (discId && aulaId) editLessonInline(discId, aulaId, el);
 });
 
-registerAction('open-edital-modal', (el) => openEditalModal(el));
-registerAction('save-edital', (el) => saveEdital(el));
-registerAction('delete-edital', (el, event) => deleteEdital(el, event));
+registerAction('select-color', (el) => {
+  const color = el.dataset.color;
+  const container = el.dataset.container;
+  if (color && container) selectColor(color, container);
+});
+registerAction('select-icon', (el) => {
+  const icon = el.dataset.icon;
+  if (icon) selectIcon(icon, el);
+});
+registerAction('select-disc-color', (el) => {
+  const color = el.dataset.color;
+  if (color) selectDiscColor(color);
+});
 
-registerAction('open-disc-modal', (el) => openDiscModal(el));
-registerAction('save-disc', () => saveDisc());
-registerAction('delete-disc', (el, event) => deleteDisc(el, event));
-registerAction('archive-disc', (el, event) => archiveDisc(el, event));
-registerAction('unarchive-disc', (el, event) => unarchiveDisc(el, event));
-registerAction('set-disc-filter', (el) => setDiscFilter(el));
+registerAction('toggle-edital', (el) => {
+  const editalId = el.dataset.editalId;
+  if (editalId) toggleEdital(editalId);
+});
+registerAction('toggle-vert-disc', (el) => {
+  const discId = el.dataset.discId;
+  if (discId) toggleVertDisc(discId);
+});
+registerAction('toggle-assunto', (el) => {
+  const discId = el.dataset.discId;
+  const assuntoId = el.dataset.assuntoId;
+  if (discId && assuntoId) toggleAssunto(discId, assuntoId);
+});
 
-// openDiscDashboard defined below
-
-registerAction('open-disc-manager', (el, event) => openDiscManager(el, event));
-registerAction('save-disc-manager', (el) => saveDiscManager(el));
-registerAction('add-assunto', (el) => addAssunto(el));
-registerAction('delete-assunto', (el, event) => deleteAssunto(el, event));
-registerAction('edit-subject-inline', (el) => editSubjectInline(el));
-registerAction('move-subject', (el) => moveSubject(el));
-registerAction('add-bulk-aulas', (el) => addBulkAulas(el));
-registerAction('delete-aula', (el, event) => deleteAula(el, event));
-registerAction('toggle-aula-estudada', (el, event) => toggleAulaEstudada(el, event));
-registerAction('edit-lesson-inline', (el) => editLessonInline(el));
-
-registerAction('select-color', (el) => selectColor(el));
-registerAction('select-icon', (el) => selectIcon(el));
-registerAction('select-disc-color', (el) => selectDiscColor(el));
-
-registerAction('toggle-edital', (el) => toggleEdital(el));
-registerAction('toggle-vert-disc', (el) => toggleVertDisc(el));
-registerAction('toggle-assunto', (el) => toggleAssunto(el));
-
-registerAction('run-lesson-mapper', (el) => runLessonMapper(el));
-registerAction('switch-manager-tab', (el) => switchManagerTab(el));
-registerAction('sync-color-to-picker', (el) => syncColorToPicker(el));
-registerAction('add-evento-para-assunto', (el) => addEventoParaAssunto(el));
-registerAction('toggle-aula-dashboard', (el) => toggleAulaDashboard(el));
-registerAction('switch-dashboard-tab', (el) => switchDashboardTab(el));
-registerAction('vert-search', (el) => updateVerticalSearch(el));
-registerAction('set-vert-filter-edital', (el) => updateVerticalEditalFilter(el));
-registerAction('set-vert-filter-status', (el) => updateVerticalStatusFilter(el));
-registerAction('add-novo-topico-vertical', (el) => openDiscManager(el));
-registerAction('filtrar-dropdown-banca', (el) => callApp('filtrarDropdownBanca', el.value));
+registerAction('run-lesson-mapper', (el) => {
+  const editalId = el.dataset.editalId;
+  const discId = el.dataset.discId;
+  if (editalId && discId) runLessonMapperUI(editalId, discId);
+});
+registerAction('switch-manager-tab', (el) => {
+  const tab = el.dataset.tab;
+  if (tab) switchManagerTab(tab);
+});
+registerAction('sync-color-to-picker', (el) => {
+  const picker = document.getElementById('dm-cor-picker');
+  if (picker) picker.value = el.value;
+});
+registerAction('add-evento-para-assunto', (el) => {
+  const editalId = el.dataset.editalId;
+  const discId = el.dataset.discId;
+  const assuntoId = el.dataset.assuntoId;
+  if (editalId && discId && assuntoId) addEventoParaAssunto(editalId, discId, assuntoId);
+});
+registerAction('toggle-aula-dashboard', (el) => {
+  const editalId = el.dataset.editalId;
+  const discId = el.dataset.discId;
+  const aulaId = el.dataset.aulaId;
+  if (editalId && discId && aulaId) toggleAulaDashboard(editalId, discId, aulaId);
+});
+registerAction('switch-dashboard-tab', (el) => {
+  const tab = el.dataset.tab;
+  if (tab) switchDashboardTab(tab);
+});
+registerAction('vert-search', (el) => {
+  setVertSearch(el.value);
+  renderVerticalListOnly();
+});
+registerAction('set-vert-filter-edital', (el) => {
+  setVertFilterEdital(el.value);
+  renderVerticalListOnly();
+});
+registerAction('set-vert-filter-status', (el) => {
+  const status = el.dataset.status || 'todos';
+  setVertFilterStatus(status);
+  renderCurrentView();
+});
+registerAction('add-novo-topico-vertical', (el) => {
+  const editalId = el.dataset.editalId;
+  const discId = el.dataset.discId;
+  if (editalId && discId) openDiscManager(editalId, discId);
+});
+registerAction('filtrar-dropdown-banca', (el) => filtrarDropdownBanca(el.value));
 
 // Banca Analyzer actions
 registerAction('parse-banca-text', parseBancaText);
@@ -393,103 +256,24 @@ registerAction('apply-banca-ranking', applyBancaRanking);
 registerAction('filtrar-view-por-disciplina', filtrarViewPorDisciplina);
 registerAction('mudar-edital-analisador', mudarEditalAnalisador);
 registerAction('carregar-analise-banca', carregarAnaliseBanca);
-registerAction('excluir-analise-banca', (el) => excluirAnaliseBanca(el));
-registerAction('open-match-corrector', (el) => openMatchCorrectorAction(el));
-registerAction('save-match-correction', (el) => saveMatchCorrectionAction(el));
-
-/**
- * Abre dashboard da disciplina
- * @param {HTMLElement} el - Elemento acionador
- */
-export function openDiscDashboard(el) {
-  const editalId = el.dataset.editalId;
+registerAction('excluir-analise-banca', (el) => {
   const discId = el.dataset.discId;
-  if (editalId && discId && typeof window.EstudoApp?.openDiscDashboard === 'function') {
-    window.EstudoApp.openDiscDashboard(editalId, discId);
-  }
-}
-
-// Register open-disc-dashboard after function is defined
-registerAction('open-disc-dashboard', (el) => openDiscDashboard(el));
-
-function callApp(fnName, ...args) {
-  const fn = window.EstudoApp?.[fnName];
-  if (typeof fn === 'function') {
-    return fn(...args);
-  }
-  return undefined;
-}
-
-function syncColorToPicker(el) {
-  const picker = document.getElementById('dm-cor-picker');
-  if (picker) picker.value = el.value;
-}
-
-function addEventoParaAssunto(el) {
-  const editalId = el.dataset.editalId;
-  const discId = el.dataset.discId;
-  const assuntoId = el.dataset.assuntoId;
-  if (editalId && discId && assuntoId) {
-    callApp('addEventoParaAssunto', editalId, discId, assuntoId);
-  }
-}
-
-function toggleAulaDashboard(el) {
-  const editalId = el.dataset.editalId;
-  const discId = el.dataset.discId;
-  const aulaId = el.dataset.aulaId;
-  if (editalId && discId && aulaId) {
-    callApp('toggleAulaDashboard', editalId, discId, aulaId);
-  }
-}
-
-function switchDashboardTab(el) {
-  const tab = el.dataset.tab;
-  if (tab) callApp('switchDashboardTab', tab);
-}
+  if (discId) excluirAnaliseBanca(discId);
+});
+registerAction('open-match-corrector', (el) => {
+  const assuntoNome = el.dataset.assuntoNome;
+  if (assuntoNome) openMatchCorrector(assuntoNome);
+});
+registerAction('save-match-correction', (el) => {
+  const assuntoNome = el.dataset.assuntoNome;
+  if (assuntoNome) saveMatchCorrection(assuntoNome);
+});
 
 function renderVerticalListOnly() {
   const container = document.getElementById('vert-list-container');
-  if (container && typeof window.EstudoApp?.renderVerticalList === 'function') {
-    window.EstudoApp.renderVerticalList(container);
+  if (container) {
+    renderVerticalList(container);
   } else {
-    window.EstudoApp?.renderCurrentView?.();
+    renderCurrentView();
   }
-}
-
-function updateVerticalSearch(el) {
-  if (typeof window.EstudoApp?.setVertSearch === 'function') {
-    window.EstudoApp.setVertSearch(el.value);
-  }
-  renderVerticalListOnly();
-}
-
-function updateVerticalEditalFilter(el) {
-  if (typeof window.EstudoApp?.setVertFilterEdital === 'function') {
-    window.EstudoApp.setVertFilterEdital(el.value);
-  }
-  renderVerticalListOnly();
-}
-
-function updateVerticalStatusFilter(el) {
-  const status = el.dataset.status || 'todos';
-  if (typeof window.EstudoApp?.setVertFilterStatus === 'function') {
-    window.EstudoApp.setVertFilterStatus(status);
-  }
-  window.EstudoApp?.renderCurrentView?.();
-}
-
-function excluirAnaliseBanca(el) {
-  const discId = el.dataset.discId;
-  if (discId) callApp('excluirAnaliseBanca', discId);
-}
-
-function openMatchCorrectorAction(el) {
-  const assuntoNome = el.dataset.assuntoNome;
-  if (assuntoNome) callApp('openMatchCorrector', assuntoNome);
-}
-
-function saveMatchCorrectionAction(el) {
-  const assuntoNome = el.dataset.assuntoNome;
-  if (assuntoNome) callApp('saveMatchCorrection', assuntoNome);
 }

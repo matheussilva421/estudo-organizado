@@ -10,10 +10,10 @@ describe('Firestore integration contracts', () => {
     const configSource = read('src/js/firebase/firebase-config.js');
 
     expect(configSource).toContain('FIREBASE_CONFIG');
-    expect(configSource).toContain("projectId: 'app-de-estudos-14564'");
-    expect(configSource).toContain("storageBucket: 'app-de-estudos-14564.firebasestorage.app'");
-    expect(configSource).toContain("messagingSenderId: '824173301356'");
+    expect(configSource).toContain("apiKey: ''");
+    expect(configSource).toContain("projectId: ''");
     expect(configSource).toContain('window.ESTUDO_FIREBASE_CONFIG');
+    expect(configSource).toContain('window.ESTUDO_APP_CHECK_SITE_KEY');
   });
 
   it('falls back to Firebase Auth redirect when popup login is blocked', () => {
@@ -38,19 +38,18 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/sync-coordinator.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.28'");
+    expect(swSource).toContain("APP_VERSION = '8.29'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
-    const viewsSource = read('src/js/views.js');
+    const configViewSource = read('src/js/views/config-view.js');
     const actionsSource = read('src/js/ui/actions/config.js');
 
-    expect(viewsSource).toContain('Central de Sincronizacao');
-    expect(viewsSource).toContain('data-testid="sync-center"');
-    expect(viewsSource).toContain('data-testid="sync-source-conflict-entities"');
-    expect(viewsSource).toContain('data-action="firestore-merge-remote"');
-    expect(viewsSource).toContain('data-action="cloud-merge-remote"');
-    expect(viewsSource).toContain('data-action="merge-from-drive"');
+    expect(configViewSource).toContain('Central de Sincronização');
+    expect(configViewSource).toContain('data-testid="sync-source-conflict-entities"');
+    expect(configViewSource).toContain('data-action="firestore-merge-remote"');
+    expect(configViewSource).toContain('data-action="cloud-merge-remote"');
+    expect(configViewSource).toContain('data-action="merge-from-drive"');
     expect(actionsSource).toContain("registerAction('sync-center-smart-sync'");
   });
 
@@ -80,7 +79,7 @@ describe('Firestore integration contracts', () => {
 
   it('routes smart sync through Firestore primary instead of parallel secondary stores', () => {
     const actionsSource = read('src/js/ui/actions/config.js');
-    const smartSyncBody = actionsSource.match(/export async function syncCenterSmartSync[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
+    const smartSyncBody = actionsSource.match(/registerAction\('sync-center-smart-sync'[\s\S]*?\}\);/)?.[0] || '';
 
     expect(smartSyncBody).toContain('flushPrimarySyncNow');
     expect(smartSyncBody).not.toContain('Promise.allSettled');
@@ -169,10 +168,10 @@ describe('Firestore integration contracts', () => {
   it('exposes manual entity shadow verification in the sync center', () => {
     const engine = read('src/js/sync/firestore-sync-engine.js');
     const actions = read('src/js/ui/actions/config.js');
-    const views = read('src/js/views.js');
+    const configView = read('src/js/views/config-view.js');
 
     expect(engine).toContain('export async function verifyFirestoreEntityShadow');
     expect(actions).toContain("registerAction('firestore-verify-entity-shadow'");
-    expect(views).toContain('data-action="firestore-verify-entity-shadow"');
+    expect(configView).toContain('data-action="firestore-verify-entity-shadow"');
   });
 });

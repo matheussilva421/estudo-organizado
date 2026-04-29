@@ -1,0 +1,41 @@
+// Copie este arquivo para firebase-config.js e preencha com suas credenciais do Firebase.
+// As credenciais NAO devem ser commitadas no repositorio.
+//
+// Alternativa: defina window.ESTUDO_FIREBASE_CONFIG e window.ESTUDO_APP_CHECK_SITE_KEY
+// em um script inline no index.html ANTES de carregar main.js.
+//
+// Exemplo de configuracao via window:
+// <script>
+//   window.ESTUDO_FIREBASE_CONFIG = {
+//     apiKey: 'SUA_API_KEY',
+//     authDomain: 'SEU_PROJETO.firebaseapp.com',
+//     projectId: 'SEU_PROJETO',
+//     storageBucket: 'SEU_PROJETO.firebasestorage.app',
+//     messagingSenderId: 'SEU_SENDER_ID',
+//     appId: 'SEU_APP_ID'
+//   };
+//   window.ESTUDO_APP_CHECK_SITE_KEY = 'SEU_RECAPTCHA_SITE_KEY'; // opcional
+// </script>
+
+export const FIREBASE_CONFIG = {
+  apiKey: '',
+  authDomain: '',
+  projectId: '',
+  storageBucket: '',
+  messagingSenderId: '',
+  appId: ''
+};
+
+export const FIREBASE_APP_CHECK_SITE_KEY = '';
+
+export function getRuntimeFirebaseConfig() {
+  const runtimeConfig = window.ESTUDO_FIREBASE_CONFIG || {};
+  return {
+    ...FIREBASE_CONFIG,
+    ...runtimeConfig
+  };
+}
+
+export function getRuntimeAppCheckSiteKey() {
+  return window.ESTUDO_APP_CHECK_SITE_KEY || FIREBASE_APP_CHECK_SITE_KEY;
+}

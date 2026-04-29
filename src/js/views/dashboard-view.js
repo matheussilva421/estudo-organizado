@@ -5,7 +5,11 @@
 
 import { scheduleSave, state } from '../store.js?v=8.29';
 import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.29';
-import { getDisc } from '../logic.js?v=8.29';
+import { getActiveDashboardDiscCtx, getActiveDashboardTab } from '../state/dashboard-context.js?v=8.29';
+import { renderCurrentView } from '../components.js?v=8.29';
+import { setDiscChartInstance, getDiscChartInstance } from '../state/chart-state.js?v=8.29';
+import { openDiscDashboard } from '../views.js?v=8.29';
+import { showToast } from '../app.js?v=8.29';
 
 // ── Main Dashboard Render ──
 export function renderDisciplinaDashboard(edital, disc) {
@@ -31,7 +35,7 @@ export function renderDisciplinaDashboard(edital, disc) {
   const totalAulas = disc.aulas ? disc.aulas.length : 0;
   const aulasEstudadas = disc.aulas ? disc.aulas.filter(a => a.estudada).length : 0;
   const percConcluido = totalAulas > 0 ? Math.round((aulasEstudadas / totalAulas) * 100) : 0;
-  const activeDashboardTab = window.activeDashboardTab || 'topicos';
+  const activeDashboardTab = getActiveDashboardTab() || 'topicos';
   const tabBaseStyle = 'padding:8px 0;font-weight:600;font-size:14px;cursor:pointer;background:transparent;border:0;font-family:inherit;text-align:left;';
 
   return `
@@ -184,8 +188,8 @@ function renderTopicosEditalDisciplina(edital, disc) {
     <div class="custom-scrollbar scroll-panel">
             ${disc.assuntos.map(ass => {
     const importanceBadge = ass.relevance?.priority === 'P1' ?
-      `<span class="priority-badge priority-badge--p1" title="Alta Chance de Cobrança">🔥 P1</span>` :
-      (ass.relevance?.priority === 'P2' ? `<span class="priority-badge priority-badge--p2">⚠️ P2</span>` : '');
+      '<span class="priority-badge priority-badge--p1" title="Alta Chance de Cobrança">🔥 P1</span>' :
+      (ass.relevance?.priority === 'P2' ? '<span class="priority-badge priority-badge--p2">⚠️ P2</span>' : '');
 
     return `
         <div class="list-row rounded-md" style="${ass.concluido ? 'background:var(--bg-secondary); ' : ''};">
@@ -202,7 +206,7 @@ function renderTopicosEditalDisciplina(edital, disc) {
             <button class="btn btn-ghost btn-sm btn-xs" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">+ Agenda</button>
           `}
         </div>
-      `}).join('')}
+      `;}).join('')}
     </div>
   `;
 }
@@ -308,8 +312,8 @@ export function initDiscDashboardChart(discId) {
     return total > 0 ? Math.round((grouped[d].certas / total) * 100) : 0;
   });
 
-  if (window._discChartInstance) {
-    window._discChartInstance.destroy();
+  if (getDiscChartInstance()) {
+    getDiscChartInstance().destroy();
   }
 
   if (labels.length === 0) {
@@ -319,7 +323,7 @@ export function initDiscDashboardChart(discId) {
   }
 
   const ctx = canvas.getContext('2d');
-  window._discChartInstance = new window.Chart(ctx, {
+  setDiscChartInstance(new window.Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
@@ -366,7 +370,7 @@ export function initDiscDashboardChart(discId) {
         }
       }
     }
-  });
+  }));
 }
 
 // ── Toggle Assunto Conclusão ──
@@ -382,10 +386,11 @@ export function toggleAssunto(discId, assId) {
         if (ass.concluido) ass.revisoesFetas = [];
         scheduleSave();
 
-        if (window.activeDashboardDiscCtx && window.activeDashboardDiscCtx.discId === discId) {
-          window.openDiscDashboard(window.activeDashboardDiscCtx.editaId, discId);
+        const ctx = getActiveDashboardDiscCtx();
+        if (ctx && ctx.discId === discId) {
+          openDiscDashboard(ctx.editaId, discId);
         } else {
-          window.renderCurrentView?.();
+          renderCurrentView();
         }
         return;
       }
@@ -407,13 +412,14 @@ export function toggleAulaDashboard(editaId, discId, aulaId) {
     aula.dataEstudo = aula.estudada ? todayStr() : null;
     scheduleSave();
 
-    if (window.activeDashboardDiscCtx && window.activeDashboardDiscCtx.discId === discId) {
-      window.openDiscDashboard(editaId, discId);
+    const ctx = getActiveDashboardDiscCtx();
+    if (ctx && ctx.discId === discId) {
+      openDiscDashboard(editaId, discId);
     } else {
-      window.renderCurrentView?.();
+      renderCurrentView();
     }
 
-    window.showToast?.(aula.estudada ? 'Aula marcada como estudada.' : 'Aula desmarcada.', 'success');
+    showToast(aula.estudada ? 'Aula marcada como estudada.' : 'Aula desmarcada.', 'success');
   }
 }
 

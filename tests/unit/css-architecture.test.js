@@ -138,16 +138,17 @@ describe('CSS architecture', () => {
   it('presents only the premium dark themes while keeping old theme names internal', () => {
     const html = read('src/index.html');
     const appSource = read('src/js/app.js');
-    const viewsSource = read('src/js/views.js');
+    const configViewSource = read('src/js/views/config-view.js');
 
     expect(html).toContain('title="Trocar tema"');
     expect(appSource).toContain("label: 'Grafite'");
     expect(appSource).toContain("label: 'Obsidiana'");
     expect(appSource).toContain("label: 'Contraste'");
     expect(appSource).toContain('LEGACY_THEME_ALIASES');
-    expect(viewsSource).toContain('THEME_OPTIONS');
-    expect(`${appSource}\n${viewsSource}`).not.toMatch(/label:\s*'(Neutro|Noite|Furtivo|Abismo|Matrix|Rubi|Cyberpunk 2077)'/);
-    expect(`${html}\n${appSource}\n${viewsSource}`).not.toMatch(/Modo escuro|Modo claro|Claro profissional|Escuro profissional|Extra:/);
+    expect(appSource).toContain('THEME_OPTIONS');
+    expect(configViewSource).toContain('THEME_OPTIONS');
+    expect(`${appSource}\n${configViewSource}`).not.toMatch(/label:\s*'(Neutro|Noite|Furtivo|Abismo|Matrix|Rubi|Cyberpunk 2077)'/);
+    expect(`${html}\n${appSource}\n${configViewSource}`).not.toMatch(/Modo escuro|Modo claro|Claro profissional|Escuro profissional|Extra:/);
   });
 
   it('keeps every visible premium theme from inheriting the root app background', () => {

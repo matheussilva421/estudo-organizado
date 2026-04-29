@@ -3,11 +3,11 @@
  * Renderiza e gerencia tracked de hábitos de estudo
  */
 
-import { esc, formatDate, todayStr, uid, HABIT_TYPES, addCleanupListener } from '../utils.js?v=8.29';
+import { esc, formatDate, todayStr, uid, HABIT_TYPES } from '../utils.js?v=8.29';
 import { state, scheduleSave } from '../store.js?v=8.29';
 import { getActiveDisciplinas, getDisc } from '../logic.js?v=8.29';
 import { renderCurrentView } from '../components.js?v=8.29';
-import { showConfirm, showToast, openModal } from '../app.js?v=8.29';
+import { showConfirm, showToast, openModal, closeModal as appCloseModal } from '../app.js?v=8.29';
 
 export const HABIT_HIST_PAGE_SIZE = 20;
 export let habitHistPage = 1;
@@ -40,20 +40,19 @@ export function renderHabitos(el) {
     <div class="habit-grid">
       ${HABIT_TYPES.map(h => {
         const all = state.habitos[h.key] || [];
-        const recentArr = all.filter(r => r.data >= cutoffStr);
+        const _recentArr = all.filter(r => r.data >= cutoffStr);
 
-        let total = 0;
-        let recentStr = '';
+        let total, recentStr;
 
         if (h.key === 'questoes') {
           total = sumQuestionRecords(all);
-          recentStr = `Total acumulado`;
+          recentStr = 'Total acumulado';
         } else if (h.key === 'paginas') {
           total = sumPageRecords(all);
-          recentStr = `Total acumulado`;
+          recentStr = 'Total acumulado';
         } else {
           total = all.length;
-          recentStr = `Total acumulado`;
+          recentStr = 'Total acumulado';
         }
 
         return `
@@ -143,7 +142,7 @@ export function renderHabitHistPage() {
                 ${r.gabaritoPorDisc.map(g => `<span class="habit-disc-tag">${esc(g.discNome)}: ${g.acertos}/${g.total}</span>`).join('')}
               </div>` : ''}
           </div>
-          <button class="icon-btn" data-action="delete-habit" data-type="${r.tipo.key}" data-habit-id="${r.id}">🗑️</button>
+          <button class="icon-btn" data-action="delete-habit" data-type="${r.tipo.key}" data-habit-id="${r.id}" aria-label="Excluir hábito">🗑️</button>
         </div>
       `;
       }).join('');
@@ -369,17 +368,5 @@ export function deleteHabito(tipo, id) {
 }
 
 function closeModal(modalId) {
-  if (typeof window.EstudoApp?.closeModal === 'function') {
-    window.EstudoApp.closeModal(modalId);
-  }
+  appCloseModal(modalId);
 }
-
-// Legacy global exports (to be removed in v9.0)
-window.renderHabitos = renderHabitos;
-window.renderHabitHistPage = renderHabitHistPage;
-window.setHabitPage = setHabitPage;
-window.openHabitModal = openHabitModal;
-window.selectHabitType = selectHabitType;
-window.saveHabit = saveHabit;
-window.calcSimuladoPerc = calcSimuladoPerc;
-window.deleteHabito = deleteHabito;

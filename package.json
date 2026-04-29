@@ -10,13 +10,23 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test:unit && npm run test:e2e",
-    "build:firebase": "node scripts/build-firebase-bundle.mjs"
+    "build:firebase": "node scripts/build-firebase-bundle.mjs",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.{js,css,html,json}\"",
+    "format:check": "prettier --check \"src/**/*.{js,css,html,json}\"",
+    "ci": "npm run lint && npm run format:check && npm test"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.54.2",
     "esbuild": "^0.28.0",
+    "eslint": "^10.2.1",
+    "eslint-plugin-import": "^2.32.0",
+    "globals": "^17.5.0",
     "http-server": "^14.1.1",
     "jsdom": "^26.1.0",
+    "prettier": "^3.8.3",
     "vitest": "^3.2.4"
   },
   "dependencies": {

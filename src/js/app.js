@@ -1,11 +1,13 @@
 import { renderCurrentView } from './components.js?v=8.29';
 import { initDB, scheduleSave, state } from './store.js?v=8.29';
 import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.29';
-import { todayStr, esc } from './utils.js?v=8.29';
+import { todayStr as _todayStr, esc } from './utils.js?v=8.29';
 import { pullFromCloudflare } from './cloud-sync.js?v=8.29';
 import { initNotifications } from './notifications.js?v=8.29';
 import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.29';
 import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.29';
+import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.29';
+import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.29';
 
 // =============================================
 // APP STATE & DATA
@@ -138,7 +140,7 @@ export function navigate(view) {
   if (window.innerWidth <= 768) closeSidebar();
 
   if (view === 'editais') {
-    window.activeDashboardDiscCtx = null;
+    clearActiveDashboardDiscCtx();
   }
 
   currentView = view;
@@ -501,7 +503,6 @@ export function promptMetas() {
 }
 
 
-
 // recomecarCiclo is defined inside renderCiclo() in views.js
 // and assigned to window.recomecarCiclo — it operates on state.planejamento
 
@@ -510,6 +511,6 @@ export function promptMetas() {
  * @param {boolean} checked - Se true, esconde concluídos
  */
 export function toggleCicloFin(checked) {
-  window._hideConcluidosCiclo = checked;
+  setHideConcluidosCiclo(checked);
   if (currentView === 'ciclo') renderCurrentView();
 }

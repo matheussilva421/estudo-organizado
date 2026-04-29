@@ -16,3 +16,6 @@
 !/playwright.config.js
 !/tests/
 !/tests/**
+
+!src/js/firebase/firebase-config.js.example
+src/js/firebase/firebase-config.js

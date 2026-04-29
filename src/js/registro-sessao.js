@@ -4,10 +4,11 @@
 // =============================================
 
 import { state, scheduleSave, saveStateToDB } from './store.js?v=8.29';
-import { getActiveDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals } from './logic.js?v=8.29';
-import { openModal, closeModal, showToast, showConfirm } from './app.js?v=8.29';
+import { getActiveDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals, discardTimer } from './logic.js?v=8.29';
+import { openModal, closeModal, showToast, showConfirm, navigate } from './app.js?v=8.29';
 import { todayStr, esc, trunc, uid } from './utils.js?v=8.29';
 import { renderCurrentView, updateBadges } from './components.js?v=8.29';
+import { openAddPastSessionModal } from './ui/event-modals.js?v=8.29';
 
 // =============================================
 // STUDY TYPES & MATERIALS DEFINITIONS
@@ -135,15 +136,10 @@ function renderRegistroForm(ev) {
   const horaInicio = _sessionStartTime ? _sessionStartTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
   const horaFim = _sessionEndTime ? _sessionEndTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
 
-  let dataStr = '';
+  let dataStr;
   if (ev.data) {
-    // ev.data is usually YYYY-MM-DD
     const parts = ev.data.split('-');
-    if (parts.length === 3) {
-      dataStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
-    } else {
-      dataStr = ev.data;
-    }
+    dataStr = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ev.data;
   } else {
     dataStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
@@ -192,7 +188,7 @@ function renderRegistroForm(ev) {
         <div class="reg-stat">
           <div class="reg-stat-label">Data</div>
           <div class="reg-stat-value">
-            ${ev.status === 'estudei' || ev._isPastSession ? 
+            ${ev.status === 'estudei' || ev._isPastSession ?
               `<input type="date" id="reg-data-estudo" class="reg-input reg-input-date" value="${ev.data || todayStr()}">` :
               dataStr}
           </div>
@@ -636,8 +632,8 @@ export function saveRegistroSessao() {
   }
 
   const discId = document.getElementById('reg-disciplina')?.value;
-  let assId = document.getElementById('reg-assunto')?.value || '';
-  let aulaId = document.getElementById('reg-aula')?.value || '';
+  const assId = document.getElementById('reg-assunto')?.value || '';
+  const aulaId = document.getElementById('reg-aula')?.value || '';
 
   // Note: assId and aulaId already contain the full ID (e.g. 'ass_xxx') from the select.
   // Do NOT strip prefixes — they are part of the canonical ID used in lookups.
@@ -734,7 +730,7 @@ export function saveRegistroSessao() {
 
   // Save data to event
   ev.status = 'estudei';
-  
+
   const editedData = document.getElementById('reg-data-estudo')?.value;
   const editedMins = parseInt(document.getElementById('reg-tempo-mins')?.value, 10);
 
@@ -754,7 +750,7 @@ export function saveRegistroSessao() {
   if (!isNaN(editedMins) && editedMins > 0) {
     ev.tempoAcumulado = editedMins * 60;
   }
-  
+
   ev.discId = discId || ev.discId;
   // Allow clearing selections when user chooses "Sem tópico" / "Sem material"
   ev.assId = assId || null;
@@ -801,7 +797,7 @@ export function saveRegistroSessao() {
           achadoAula.estudada = true;
         }
       }
-      
+
       if (assId) {
         const ass = d.disc.assuntos?.find(a => a.id === assId);
         if (ass && !ass.concluido) {
@@ -845,7 +841,7 @@ export function saveRegistroSessao() {
   // Update legacy study cycle progress
   if (state.ciclo && state.ciclo.ativo && discId) {
     const discEntry = getDisc(discId);
-    const discNome = discEntry ? discEntry.disc.nome : null;
+    const _discNome = discEntry ? discEntry.disc.nome : null;
     const cycleDisc = discId ? state.ciclo.disciplinas.find(d => {
       // Try to match by discId first (linked editais), fallback to name match
       const discEntry = getDisc(discId);
@@ -904,7 +900,7 @@ export function saveAndStartNew() {
     _selectedMateriais = [];
     _savedTimerStart = null;
     _savedTempoAcumulado = 0;
-    if (typeof window.EstudoApp?.navigate === 'function') window.EstudoApp.navigate('med');
+    if (typeof navigate === 'function') navigate('med');
   }, 400);
 }
 
@@ -933,11 +929,7 @@ export function cancelRegistro() {
 export function discardTimerUI(eventId) {
   closeModal('modal-registro-sessao');
   setTimeout(() => {
-    if (typeof window.EstudoApp?.discardTimer === 'function') {
-      window.EstudoApp.discardTimer(eventId);
-    } else if (typeof window.discardTimer === 'function') {
-      window.discardTimer(eventId);
-    }
+    discardTimer(eventId);
   }, 100);
 }
 
@@ -946,15 +938,9 @@ export function voltarPastSessionUI(eventId, discId) {
   scheduleSave();
   closeModal('modal-registro-sessao');
   setTimeout(() => {
-    if (typeof window.openAddPastSessionModal === 'function') {
-      window.openAddPastSessionModal(discId);
-    }
+    openAddPastSessionModal(discId);
   }, 100);
 }
-
-window.openRegistroSessao = openRegistroSessao;
-window.discardTimerUI = discardTimerUI;
-window.voltarPastSessionUI = voltarPastSessionUI;
 
 // Listener para fechar modal via data-action - chama cancelRegistro para rollback do timer
 document.addEventListener('click', (e) => {
@@ -978,5 +964,3 @@ export function deleteCompletedSession(id) {
     showToast('Sessão excluída com sucesso.', 'info');
   }, { danger: true, label: 'Excluir', title: 'Excluir sessão' });
 }
-
-window.deleteCompletedSession = deleteCompletedSession;

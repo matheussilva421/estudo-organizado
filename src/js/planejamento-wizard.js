@@ -1,4 +1,4 @@
-import { state, scheduleSave } from './store.js?v=8.29';
+import { state } from './store.js?v=8.29';
 import { generatePlanejamento, getActiveDisciplinas } from './logic.js?v=8.29';
 import { esc } from './utils.js?v=8.29';
 import { openModal, closeModal } from './app.js?v=8.29';
@@ -505,7 +505,7 @@ function htmlStep4() {
                             <input type="time" class="form-control flex-1 ${ativo ? '' : 'pw-time-input is-inactive'}"
                                 value="${draft.horarios.horasPorDia[i] || ''}" data-action="pw-update-day-hour" data-day-index="${i}">
                         </div>
-                    `}).join('')}
+                    `;}).join('')}
                 </div>
             </div>
         `;

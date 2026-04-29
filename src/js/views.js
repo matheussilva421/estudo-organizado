@@ -1,11 +1,25 @@
-import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.29';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.29';
-import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.29';
-import { calcRevisionDates, getAllDisciplinas, getActiveDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.29';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.29';
-import { updateDriveUI } from './drive-sync.js?v=8.29';
-import { buildSyncCenterModel } from './sync/sync-center.js?v=8.29';
+import { closeModal, showConfirm, showToast, openModal } from './app.js?v=8.29';
+import { cutoffDateStr, esc, formatDate, formatTime, todayStr, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.29';
+import { scheduleSave, state } from './store.js?v=8.29';
+import { getActiveDisciplinas, getDisc, invalidateDiscCache, invalidateDashCaches, syncCicloToEventos } from './logic.js?v=8.29';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
+import { renderCurrentView, renderEventCard } from './components.js?v=8.29';
+import { setActiveDashboardDiscCtx, clearActiveDashboardDiscCtx, getActiveDashboardDiscCtx, setActiveDashboardTab, resetActiveDashboardTab } from './state/dashboard-context.js?v=8.29';
+import { openAddEventModal, loadAssuntos } from './ui/event-modals.js?v=8.29';
+import { renderVerticalList } from './views/editais-view.js';
+import { setDiscChartInstance, getDiscChartInstance } from './state/chart-state.js?v=8.29';
+
+// Module-level state (replaces window globals)
+let _activeDiscManagerTab = 'topicos';
+let _tempSequencia = null;
+let _isEditingSequence = false;
+
+export function getActiveDiscManagerTab() { return _activeDiscManagerTab; }
+export function setActiveDiscManagerTab(tab) { _activeDiscManagerTab = tab; }
+export function getTempSequencia() { return _tempSequencia; }
+export function setTempSequencia(val) { _tempSequencia = val; }
+export function getIsEditingSequence() { return _isEditingSequence; }
+export function setIsEditingSequence(val) { _isEditingSequence = val; }
 
 // Re-export from extracted view modules
 export { renderHome } from './views/home-view.js';
@@ -28,6 +42,14 @@ export {
 } from './views/editais-view.js';
 export { renderDisciplinaDashboard } from './views/dashboard-view.js';
 export {
+  renderRevisoes,
+  switchRevTab,
+  marcarRevisao,
+  adiarRevisao,
+  deletarRevisao,
+  getUpcomingRevisoes
+} from './views/revisao-view.js';
+export {
   renderBancaAnalyzerModule,
   renderBancaAnalyzerContent,
   mudarEditalAnalisador,
@@ -42,16 +64,58 @@ export {
   getAnalyzerCtx,
   setAnalyzerCtx
 } from './views/banca-view.js';
+export {
+  renderConfig,
+  setTheme,
+  updateConfig,
+  toggleConfig,
+  toggleCfSync,
+  updateFrequencia,
+  openDriveModal,
+  driveDisconnect,
+  archiveOldEvents,
+  exportData,
+  importData,
+  restoreBackupFromSelectedSource,
+  clearAllData
+} from './views/config-view.js';
+export {
+  searchBlurTimeout,
+  debouncedOnSearch,
+  onSearch,
+  onSearchFocus,
+  onSearchBlur,
+  clearSearch
+} from './ui/search.js';
+export {
+  openAddEventModal,
+  updateDayLoad,
+  loadAssuntos,
+  saveEvent,
+  openAddPastSessionModal,
+  savePastEvent,
+  openEventDetail,
+  refreshEventCard,
+  removeDOMCard
+} from './ui/event-modals.js';
+export {
+  getCalDate,
+  getCalViewMode,
+  setCalDate,
+  setCalViewMode,
+  updateCalendarHeader,
+  renderCalendar,
+  resetCalDate,
+  calNavigate,
+  renderCalendarMonth,
+  renderCalendarGrid,
+  renderCalendarWeek,
+  renderCalendarMobileMonth,
+  renderCalendarMobileWeek
+} from './views/calendar-view.js';
 
 let editingSubjectCtx = null;
 let editingDiscCtx = null;
-
-function formatBackupDateTime(value) {
-  if (!value) return 'Nunca';
-  const dt = new Date(value);
-  if (Number.isNaN(dt.getTime())) return 'Nunca';
-  return dt.toLocaleString('pt-BR');
-}
 
 // =============================================
 // LOADING SKELETONS
@@ -105,7 +169,7 @@ export function renderSkeletonTable(rows = 5, cols = 4) {
   for (let i = 0; i < rows; i++) {
     html += '<tr>';
     for (let j = 0; j < cols; j++) {
-      html += `<td><div class="skeleton skeleton-cell"></div></td>`;
+      html += '<td><div class="skeleton skeleton-cell"></div></td>';
     }
     html += '</tr>';
   }
@@ -210,7 +274,7 @@ export function renderMED(el) {
   const todayEvents = state.eventos.filter(e => e.data === today);
   const agendados = todayEvents.filter(e => e.status !== 'estudei');
   const estudados = todayEvents.filter(e => e.status === 'estudei');
-  const totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+  const _totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
 
   el.innerHTML = `
     <div id="med-stats-row" class="med-stats-row">
@@ -242,489 +306,24 @@ export function renderMED(el) {
     `;
 }
 
-// SURGICAL DOM UPDATES ---------------------------------------
-export function refreshEventCard(eventId) {
-  const el = document.querySelector(`[data-event-id="${eventId}"]`);
-  if (!el) { renderCurrentView(); return; }
-  const ev = state.eventos.find(e => e.id === eventId);
-  if (!ev) { el.remove(); return; }
-  const tmp = document.createElement('div');
-  tmp.innerHTML = renderEventCard(ev);
-  el.replaceWith(tmp.firstElementChild);
-  reattachTimers();
-}
+// Surgical DOM updates moved to ui/event-modals.js
+// Re-exported below
 
-export function refreshMEDSections() {
-  if (currentView !== 'med') { renderCurrentView(); return; }
-  const today = todayStr();
-  const todayEvents = state.eventos.filter(e => e.data === today);
-  const agendados = todayEvents.filter(e => e.status !== 'estudei');
-  const estudados = todayEvents.filter(e => e.status === 'estudei');
+// Calendar functions moved to views/calendar-view.js
+// Re-exported below
 
-  const statsRow = document.getElementById('med-stats-row');
-  if (statsRow) statsRow.innerHTML = buildMEDStatsHTML(estudados, agendados);
-
-  const secAgendado = document.getElementById('med-section-agendado');
-  if (secAgendado) {
-    secAgendado.innerHTML = agendados.length > 0
-      ? `<div class="section-header"><h2>📌 Agendado para Hoje</h2></div> ${agendados.map(e => renderEventCard(e)).join('')}`
-      : '';
-  }
-
-  const secEstudado = document.getElementById('med-section-estudado');
-  if (secEstudado) {
-    secEstudado.innerHTML = estudados.length > 0
-      ? `<div class="section-header"><h2>✅ Estudado Hoje</h2></div> ${estudados.map(e => renderEventCard(e)).join('')}`
-      : '';
-  }
-
-  reattachTimers();
-}
-
-export function removeDOMCard(eventId) {
-  const el = document.querySelector(`[data-event-id="${eventId}"]`);
-  if (el) {
-    el.remove();
-  } else {
-    renderCurrentView();
-    return;
-  }
-  refreshMEDSections();
-}
-
-// =============================================
-function isMobileCalendar() {
-  return window.innerWidth <= 600;
-}
-
-function renderCalendar(el) {
-  const mobile = isMobileCalendar();
-  let gridContent;
-  if (mobile) {
-    gridContent = calViewMode === 'mes' ? renderCalendarMobileMonth() : renderCalendarMobileWeek();
-  } else {
-    gridContent = calViewMode === 'mes' ? renderCalendarGrid() : renderCalendarWeek();
-  }
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-body">
-        <div class="cal-header">
-          <div class="cal-nav">
-            <button aria-label="Mês anterior" data-action="cal-navigate" data-dir="-1"><i class="fa fa-chevron-left"></i></button>
-            <button aria-label="Próximo mês" data-action="cal-navigate" data-dir="1"><i class="fa fa-chevron-right"></i></button>
-          </div>
-          <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())} <span class="cal-version-tag">v6.0</span></div>
-          <button class="btn btn-ghost btn-sm" id="cal-today-btn" data-action="cal-today">Hoje</button>
-          <div class="cal-view-tabs ml-auto" role="tablist" aria-label="Visualização do calendário">
-            <button type="button" class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="mes" role="tab" aria-selected="${calViewMode === 'mes'}" aria-controls="cal-grid">Mês</button>
-            <button type="button" class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="semana" role="tab" aria-selected="${calViewMode === 'semana'}" aria-controls="cal-grid">Semana</button>
-          </div>
-        </div>
-        <div id="cal-grid">${gridContent}</div>
-      </div>
-    </div>
-  `;
-  // Auto-scroll mobile list to today
-  if (mobile) {
-    requestAnimationFrame(() => {
-      const todayEl = el.querySelector('.cal-mobile-day.today');
-      if (todayEl) todayEl.scrollIntoView({ block: 'center', behavior: 'instant' });
-    });
-  }
-}
-
-function resetCalDate() {
-  calDate = new Date();
-  renderCurrentView();
-}
-
-function calNavigate(dir) {
-  if (calViewMode === 'mes') {
-    calDate = new Date(calDate.getFullYear(), calDate.getMonth() + dir, 1);
-  } else {
-    calDate.setDate(calDate.getDate() + dir * 7);
-  }
-  // Optimized: update only calendar grid instead of full re-render
-  const grid = document.getElementById('cal-grid');
-  if (grid) {
-    const mobile = isMobileCalendar();
-    if (mobile) {
-      grid.innerHTML = calViewMode === 'mes' ? renderCalendarMobileMonth() : renderCalendarMobileWeek();
-      // Scroll to today if visible in this month/week
-      requestAnimationFrame(() => {
-        const todayEl = grid.querySelector('.cal-mobile-day.today');
-        if (todayEl) todayEl.scrollIntoView({ block: 'center', behavior: 'instant' });
-      });
-    } else {
-      grid.innerHTML = renderCalendarGrid();
-    }
-    updateCalendarHeader();
-  } else {
-    renderCurrentView();
-  }
-}
-
-function renderCalendarMonth() {
-  const year = calDate.getFullYear();
-  const month = calDate.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const today = todayStr();
-  const startDow = (firstDay.getDay() - (state.config.primeirodiaSemana || 1) + 7) % 7;
-  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const startDow0 = state.config.primeirodiaSemana || 1;
-  const dowOrder = Array.from({ length: 7 }, (_, i) => dows[(startDow0 + i) % 7]);
-
-  let cells = [];
-  // Previous month fill
-  for (let i = 0; i < startDow; i++) {
-    const d = new Date(year, month, 1 - startDow + i);
-    cells.push({ date: d, other: true });
-  }
-  for (let d = 1; d <= lastDay.getDate(); d++) {
-    cells.push({ date: new Date(year, month, d), other: false });
-  }
-  // Fill the rest of the grid to ensure always 6 full rows (42 cells)
-  while (cells.length < 42) {
-    const last = cells[cells.length - 1].date;
-    cells.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1), other: true });
-  }
-
-  const getDateStr = d => {
-    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-    return d2.toISOString().split('T')[0];
-  };
-
-  // Pre-index events by date for O(1) lookup
-  const eventsByDate = {};
-  for (const e of state.eventos) {
-    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
-    eventsByDate[e.data].push(e);
-  }
-
-  const gridClass = cells.length > 35 ? 'cal-grid rows-6' : 'cal-grid';
-
-  return `
-    <div class="${gridClass}">
-      ${dowOrder.map(d => `<div class="cal-dow">${d}</div>`).join('')}
-      ${cells.map(cell => {
-    const ds = getDateStr(cell.date);
-    const isToday = ds === today;
-    const dayEvents = eventsByDate[ds] || [];
-    const show = dayEvents.slice(0, 3);
-    const more = dayEvents.length - 3;
-    return `
-          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-action="open-event-modal-date" data-date="${ds}">
-            <div class="cal-date">${cell.date.getDate()}</div>
-            ${show.map(e => {
-      const st = getEventStatus(e);
-      return `<button type="button" class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
-    }).join('')}
-            ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
-          </div>
-        `;
-  }).join('')}
-    </div>
-  `;
-}
-
-// Optimized: render only calendar grid (for navigation without full re-render)
-function renderCalendarGrid() {
-  const year = calDate.getFullYear();
-  const month = calDate.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const today = todayStr();
-  const startDow = (firstDay.getDay() - (state.config.primeirodiaSemana || 1) + 7) % 7;
-  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const startDow0 = state.config.primeirodiaSemana || 1;
-  const dowOrder = Array.from({ length: 7 }, (_, i) => dows[(startDow0 + i) % 7]);
-
-  let cells = [];
-  for (let i = 0; i < startDow; i++) {
-    const d = new Date(year, month, 1 - startDow + i);
-    cells.push({ date: d, other: true });
-  }
-  for (let d = 1; d <= lastDay.getDate(); d++) {
-    cells.push({ date: new Date(year, month, d), other: false });
-  }
-  while (cells.length < 42) {
-    const last = cells[cells.length - 1].date;
-    cells.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1), other: true });
-  }
-
-  const getDateStr = d => {
-    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-    return d2.toISOString().split('T')[0];
-  };
-
-  const eventsByDate = {};
-  for (const e of state.eventos) {
-    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
-    eventsByDate[e.data].push(e);
-  }
-
-  const gridClass = cells.length > 35 ? 'cal-grid rows-6' : 'cal-grid';
-
-  return `
-    <div class="${gridClass}" id="cal-grid-inner">
-      ${dowOrder.map(d => `<div class="cal-dow">${d}</div>`).join('')}
-      ${cells.map(cell => {
-      const ds = getDateStr(cell.date);
-      const isToday = ds === today;
-      const dayEvents = eventsByDate[ds] || [];
-      const show = dayEvents.slice(0, 3);
-      const more = dayEvents.length - 3;
-      return `
-        <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-action="open-event-modal-date" data-date="${ds}">
-          <div class="cal-date">${cell.date.getDate()}</div>
-          ${show.map(e => {
-            const st = getEventStatus(e);
-            return `<button type="button" class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
-          }).join('')}
-          ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
-        </div>
-      `;
-    }).join('')}
-    </div>
-  `;
-}
-
-function updateCalendarHeader() {
-  const title = document.getElementById('cal-title');
-  if (title) {
-    const monthName = calDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-    title.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-  }
-  const todayBtn = document.getElementById('cal-today-btn');
-  if (todayBtn) {
-    const today = todayStr();
-    const current = calDate.toISOString().split('T')[0];
-    const isCurrentMonth = today.slice(0, 7) === current.slice(0, 7);
-    if (todayBtn.classList.contains('cal-view-btn')) {
-      todayBtn.classList.toggle('active', isCurrentMonth);
-    }
-  }
-}
-
-function renderCalendarWeek() {
-  const today = todayStr();
-  const dow = calDate.getDay();
-  const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
-  const weekStart = new Date(calDate);
-  weekStart.setDate(calDate.getDate() - startOffset);
-  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const startDow0 = state.config.primeirodiaSemana || 1;
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    return d;
-  });
-
-  const getDateStr = d => {
-    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-    return d2.toISOString().split('T')[0];
-  };
-
-  // Pre-index events by date for O(1) lookup
-  const eventsByDate = {};
-  for (const e of state.eventos) {
-    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
-    eventsByDate[e.data].push(e);
-  }
-
-  return `
-    <div class="cal-week-grid">
-      ${days.map(d => {
-    const ds = getDateStr(d);
-    const isToday = ds === today;
-    const dayEvents = eventsByDate[ds] || [];
-    return `
-          <div class="cal-week-cell">
-            <div class="cal-week-cell-header ${isToday ? 'cal-week-cell-header--today' : ''}">
-              <div class="text-sm font-semibold text-secondary text-center">${dows[d.getDay()]}</div>
-              <div class="text-xl font-bold ${isToday ? 'text-blue' : ''} text-center">${d.getDate()}</div>
-            </div>
-            <div class="cal-week-cell-body">
-              ${dayEvents.map(e => {
-      const st = getEventStatus(e);
-      return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" class="cal-week-event" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
-    }).join('')}
-              <div class="text-center mt-1">
-                <button class="icon-btn cal-week-add-btn" data-action="open-event-modal-date" data-date="${ds}">+</button>
-              </div>
-            </div>
-          </div>
-        `;
-  }).join('')}
-    </div>
-  `;
-}
-
-// ── Mobile Calendar Views (vertical scrollable list) ──
-
-function renderCalendarMobileMonth() {
-  const year = calDate.getFullYear();
-  const month = calDate.getMonth();
-  const lastDay = new Date(year, month + 1, 0);
-  const today = todayStr();
-  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-  const getDateStr = d => {
-    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-    return d2.toISOString().split('T')[0];
-  };
-
-  const eventsByDate = {};
-  for (const e of state.eventos) {
-    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
-    eventsByDate[e.data].push(e);
-  }
-
-  let html = '<div class="cal-mobile-list">';
-  for (let d = 1; d <= lastDay.getDate(); d++) {
-    const date = new Date(year, month, d);
-    const ds = getDateStr(date);
-    const isToday = ds === today;
-    const dayEvents = eventsByDate[ds] || [];
-    const dowName = dows[date.getDay()];
-
-    html += `
-      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="open-event-modal-date" data-date="${ds}">
-        <div class="cal-mobile-day-header">
-          <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d}</div>
-          <div class="cal-mobile-dow">${dowName}</div>
-          ${dayEvents.length === 0 ? '<span class="cal-mobile-empty">Sem eventos</span>' : ''}
-        </div>
-        ${dayEvents.length > 0 ? `
-          <div class="cal-mobile-events">
-            ${dayEvents.map(e => {
-              const st = getEventStatus(e);
-              return `<div class="cal-event-chip ${st} text-wrap" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
-            }).join('')}
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }
-  html += '</div>';
-  return html;
-}
-
-function renderCalendarMobileWeek() {
-  const today = todayStr();
-  const dow = calDate.getDay();
-  const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
-  const weekStart = new Date(calDate);
-  weekStart.setDate(calDate.getDate() - startOffset);
-  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    return d;
-  });
-
-  const getDateStr = d => {
-    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-    return d2.toISOString().split('T')[0];
-  };
-
-  const eventsByDate = {};
-  for (const e of state.eventos) {
-    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
-    eventsByDate[e.data].push(e);
-  }
-
-  let html = '<div class="cal-mobile-list">';
-  for (const d of days) {
-    const ds = getDateStr(d);
-    const isToday = ds === today;
-    const dayEvents = eventsByDate[ds] || [];
-    const dowName = dows[d.getDay()];
-
-    html += `
-      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="open-event-modal-date" data-date="${ds}">
-        <div class="cal-mobile-day-header">
-          <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d.getDate()}</div>
-          <div class="cal-mobile-dow">${dowName}</div>
-          ${dayEvents.length === 0 ? '<span class="cal-mobile-empty">Sem eventos</span>' : ''}
-        </div>
-        ${dayEvents.length > 0 ? `
-          <div class="cal-mobile-events">
-            ${dayEvents.map(e => {
-              const st = getEventStatus(e);
-              return `<div class="cal-event-chip ${st} text-wrap" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
-            }).join('')}
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }
-  html += '</div>';
-  return html;
-}
-
-// calClickDay removed — inline calls use openAddEventModalDate directly
+// Event modal functions moved to ui/event-modals.js
+// Re-exported below
 
 export function openAddEventModalDate(dateStr) {
   openAddEventModal(dateStr);
 }
 
-// =============================================
-// EVENT DETAIL MODAL
-// =============================================
-export function openEventDetail(eventId) {
-  const ev = state.eventos.find(e => e.id === eventId);
-  if (!ev) return;
-  const body = document.getElementById('modal-event-detail-body');
-  if (!body) return;
-  const status = getEventStatus(ev);
-  const elapsed = getElapsedSeconds(ev);
-  const tempoStr = elapsed > 0 ? formatTime(elapsed) : '00:00:00';
-  const discInfo = ev.discId ? getDisc(ev.discId) : null;
-  const disc = discInfo ? discInfo.disc : null;
-  const ass = disc && ev.assId && disc.assuntos ? disc.assuntos.find(a => a.id === ev.assId) : null;
-
-  let html = `
-    <div class="stack-md">
-      <div class="event-detail-title">
-        ${esc(ev.titulo)}
-      </div>
-      <div class="grid-2">
-        <div class="card p-3">
-          <div class="text-sm text-muted font-semibold mb-1">STATUS</div>
-          <div class="text-lg text-primary font-medium event-tag ${status}">
-            ${status === 'estudei' ? 'concluido' : status === 'atrasado' ? 'Atrasado' : 'Agendado'}
-          </div>
-        </div>
-        <div class="card p-3">
-          <div class="text-sm text-muted font-semibold mb-1">TEMPO ACUMULADO</div>
-          <div class="text-xl text-primary font-bold text-mono">
-            ${tempoStr}
-          </div>
-        </div>
-      </div>
-      <div><strong>Data Inicial:</strong> ${formatDate(ev.data)}</div>
-      ${disc ? `<div><strong>Disciplina:</strong> ${esc(disc.nome)}</div>` : ''}
-      ${ass ? `<div><strong>Assunto:</strong> ${esc(ass.nome)}</div>` : ''}
-      ${ev.notas ? `<div class="mt-2"><strong>Anotações:</strong><div class="card p-3 mt-2 event-detail-notes">${esc(ev.notas)}</div></div>` : ''}
-      ${ev.fontes ? `<div><strong>Fontes:</strong> ${esc(ev.fontes)}</div>` : ''}
-      ${ev.legislacao ? `<div><strong>Legislação:</strong> ${esc(ev.legislacao)}</div>` : ''}
-    </div>
-    <div class="modal-footer event-detail-footer">
-      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-event-detail">Fechar</button>
-      <button class="btn btn-danger" data-action="delete-event-from-modal" data-event-id="${ev.id}">Excluir Evento</button>
-    </div>
-  `;
-  body.innerHTML = html;
-  openModal('modal-event-detail');
-}
+// Event detail modal moved to ui/event-modals.js
+// Re-exported below
 
 // =============================================
 // DASHBOARD VIEW
-// =============================================
 // =============================================
 // UX 4 — DASHBOARD WITH PERIOD FILTER
 // =============================================
@@ -738,7 +337,7 @@ export function destroyDashboardCharts() {
 
 export function renderDashboard(el) {
   const periodDays = dashPeriod; // null = all time
-  const periodLabel = { 7: '7 dias', 30: '30 dias', 90: '3 meses', null: 'Total' }[periodDays];
+  const periodLabel = { 7: '7 dias', 15: '15 dias', 30: '30 dias', 90: '3 meses', 365: '1 ano', null: 'Total' }[periodDays];
 
   // Fix 2: compute cutoff once, reuse across all filters in this render
   const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
@@ -759,9 +358,9 @@ export function renderDashboard(el) {
     <div class="flex-between mb-4">
       <div class="text-md text-secondary">Exibindo dados: <strong class="text-primary">${periodLabel}</strong></div>
       <div class="cal-view-tabs" role="tablist" aria-label="Período do dashboard">
-        ${[7, 30, 90, null].map(p => `
+        ${[7, 15, 30, 90, 365, null].map(p => `
           <button type="button" class="cal-view-tab ${dashPeriod === p ? 'active' : ''}" data-action="set-dash-period" data-period="${p}" role="tab" aria-selected="${dashPeriod === p}">
-            ${{ 7: '7d', 30: '30d', 90: '3m', null: 'Total' }[p]}
+            ${{ 7: '7d', 15: '15d', 30: '30d', 90: '3m', 365: '1a', null: 'Total' }[p]}
           </button>`).join('')}
       </div>
     </div>
@@ -840,7 +439,7 @@ export function renderDailyChart(periodDays) {
   const accentLight = themeVars.getPropertyValue('--accent-light').trim() || 'rgba(138, 164, 191, 0.16)';
   const border = themeVars.getPropertyValue('--border').trim() || 'rgba(148, 163, 184, 0.14)';
   const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#b8c0cc';
-  const numDays = periodDays ? Math.min(periodDays, 90) : 30;
+  const numDays = periodDays ? Math.min(periodDays, 365) : 30;
   // Pre-aggregate study time by date for O(1) lookup
   const secsByDate = {};
   for (const e of state.eventos) {
@@ -868,7 +467,7 @@ export function renderDailyChart(periodDays) {
       plugins: { legend: { display: false } },
       scales: {
         y: { beginAtZero: true, grid: { color: border }, ticks: { color: textSecondary, font: { size: 11 } } },
-        x: { grid: { display: false }, ticks: { color: textSecondary, font: { size: numDays > 20 ? 9 : 11 }, maxRotation: numDays > 20 ? 45 : 0, maxTicksLimit: 20 } }
+        x: { grid: { display: false }, ticks: { color: textSecondary, font: { size: numDays > 60 ? 9 : numDays > 20 ? 10 : 11 }, maxRotation: numDays > 20 ? 45 : 0, maxTicksLimit: numDays > 180 ? 12 : 20 } }
       }
     }
   });
@@ -936,7 +535,7 @@ export function renderHabitSummary(periodDays) {
 export function renderDiscProgress() {
   const discs = getActiveDisciplinas();
   if (discs.length === 0) return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
-  return discs.slice(0, 8).map(({ disc, edital }) => {
+  return discs.slice(0, 8).map(({ disc, edital: _edital }) => {
     const total = (disc.assuntos || []).length;
     const done = (disc.assuntos || []).filter(a => a.concluido).length;
     const pct = total > 0 ? Math.round(done / total * 100) : 0;
@@ -954,198 +553,6 @@ export function renderDiscProgress() {
       </div>
     `;
   }).join('');
-}
-
-// =============================================
-// REVISOES VIEW
-// =============================================
-// Fix 4: Get upcoming revisions for next N days
-export function getUpcomingRevisoes(days = 30) {
-  const today = todayStr();
-  const future = new Date();
-  future.setDate(future.getDate() + days);
-  const future2 = new Date(future.getTime() - (future.getTimezoneOffset() * 60000));
-  const futureStr = future2.toISOString().split('T')[0];
-  const upcoming = [];
-  for (const edital of state.editais) {
-    for (const disc of (edital.disciplinas || [])) {
-      if (disc.arquivada) continue;
-      for (const ass of (disc.assuntos || [])) {
-        if (!ass.concluido || !ass.dataConclusao) continue;
-        const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || [], ass.adiamentos || 0);
-        for (const rd of revDates) {
-          if (rd > today && rd <= futureStr) {
-            upcoming.push({ assunto: ass, disc, edital, data: rd, revNum: (ass.revisoesFetas || []).length + 1 });
-            break; // only the next scheduled one
-          }
-        }
-      }
-    }
-  }
-  return upcoming.sort((a, b) => a.data.localeCompare(b.data));
-}
-
-export function renderRevisoes(el) {
-  const pending = getPendingRevisoes();
-  const upcoming = getUpcomingRevisoes(30);
-  const today = todayStr();
-
-  el.innerHTML = `
-    <div class="rev-summary-grid">
-      <div class="card rev-summary-card">
-        <div class="section-label">Pendentes Hoje</div>
-        <div class="rev-stat-count rev-stat-count--danger">${pending.filter(r => r.data <= today).length}</div>
-      </div>
-      <div class="card rev-summary-card">
-        <div class="section-label">Próx. 30 dias</div>
-        <div class="rev-stat-count rev-stat-count--info">${upcoming.length}</div>
-      </div>
-      <div class="card rev-summary-card">
-        <div class="section-label">Assuntos concluidos</div>
-        <div class="rev-stat-count rev-stat-count--accent">${getActiveDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
-      </div>
-      <div class="card rev-summary-card">
-        <div class="section-label">Frequência</div>
-        <div class="text-md font-bold text-primary mt-2">${(state.config.frequenciaRevisao || [1, 7, 30, 90]).join(', ')} dias</div>
-      </div>
-    </div>
-
-    <div class="tabs rev-tabs" role="tablist" aria-label="Revisões">
-      <button type="button" class="tab-btn active" data-action="switch-revision-tab" data-tab="pendentes" data-target="this" role="tab" aria-selected="true" aria-controls="rev-tab-pendentes">🔄 Pendentes (${pending.length})</button>
-      <button type="button" class="tab-btn" data-action="switch-revision-tab" data-tab="proximas" data-target="this" role="tab" aria-selected="false" aria-controls="rev-tab-proximas">📅 Próximas 30 dias (${upcoming.length})</button>
-    </div>
-
-    <div id="rev-tab-pendentes" class="tab-content active">
-      ${pending.length === 0 ? `
-        <div class="empty-state"><div class="icon">✅</div><h4>Nenhuma revisão pendente!</h4><p>Conclua assuntos para que as revisões sejam agendadas automaticamente.</p></div>
-      ` : pending.map(r => {
-    const isOverdue = r.data < today;
-    const revNum = (r.assunto.revisoesFetas || []).length + 1;
-    return `
-          <div class="rev-item">
-            <div class="rev-days ${isOverdue ? 'overdue' : 'today'}">
-              <div class="num">${revNum}ª</div>
-              <div class="label">Rev</div>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-md font-semibold">${esc(r.assunto.nome)}</div>
-              <div class="text-base text-secondary">${esc(r.disc.nome)} • ${esc(r.edital.nome)}</div>
-              <div class="text-sm mt-1 ${isOverdue ? 'text-red' : 'text-accent'}">
-                ${isOverdue ? '⚠️ Atrasada' : '📅 Hoje'} • Prevista para ${formatDate(r.data)}
-              </div>
-            </div>
-            <div class="rev-item-actions cluster-sm">
-              <button type="button" class="btn btn-primary btn-sm" data-action="mark-revision" data-assunto-id="${r.assunto.id}">✅ Feita</button>
-              <button type="button" class="btn btn-ghost btn-sm" data-action="postpone-revision" data-assunto-id="${r.assunto.id}">⏩ +1 dia</button>
-              <button type="button" class="btn btn-ghost btn-sm" data-action="delete-revision" data-assunto-id="${r.assunto.id}" title="Excluir revisão" style="color:var(--danger);">🗑️</button>
-            </div>
-          </div>
-        `;
-  }).join('')}
-    </div>
-
-    <div id="rev-tab-proximas" class="tab-content">
-      ${upcoming.length === 0 ? `
-        <div class="empty-state"><div class="icon">📅</div><h4>Nenhuma revisão nos próximos 30 dias</h4><p>Continue estudando e concluíndo assuntos!</p></div>
-      ` : (() => {
-      return upcoming.map(r => {
-        const diffDays = Math.ceil((new Date(r.data + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
-        return `
-            <div class="rev-item">
-              <div class="rev-days rev-days--upcoming">
-                <div class="num">${r.revNum}ª</div>
-                <div class="label">Rev</div>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-md font-semibold">${esc(r.assunto.nome)}</div>
-                <div class="text-base text-secondary">${esc(r.disc.nome)} • ${esc(r.edital.nome)}</div>
-              </div>
-              <div class="text-right">
-                <div class="text-base font-bold text-blue">${formatDate(r.data)}</div>
-                <div class="text-sm text-muted">em ${diffDays} dia${diffDays !== 1 ? 's' : ''}</div>
-              </div>
-            </div>
-          `;
-      }).join('');
-    })()}
-    </div>
-  `;
-}
-
-export function switchRevTab(tab, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn?.classList.add('active');
-  document.getElementById('rev-tab-pendentes').classList.toggle('active', tab === 'pendentes');
-  document.getElementById('rev-tab-proximas').classList.toggle('active', tab === 'proximas');
-}
-
-export function marcarRevisao(assId) {
-  for (const edital of state.editais) {
-    for (const disc of (edital.disciplinas || [])) {
-      const ass = (disc.assuntos || []).find(a => a.id === assId);
-      if (ass) {
-        if (!ass.revisoesFetas) ass.revisoesFetas = [];
-        ass.revisoesFetas.push(todayStr());
-        invalidateRevCache();
-        invalidatePendingRevCache();
-        scheduleSave();
-        renderCurrentView();
-        showToast('Revisão registrada! ✅', 'success');
-        return;
-      }
-    }
-  }
-}
-
-export function adiarRevisao(assId) {
-  for (const edital of state.editais) {
-    for (const disc of (edital.disciplinas || [])) {
-      const ass = (disc.assuntos || []).find(a => a.id === assId);
-      if (ass) {
-        // Store a deferral date natively without mutating completion history
-        if (!ass.adiamentos) ass.adiamentos = 0;
-        ass.adiamentos = (ass.adiamentos || 0) + 1;
-        invalidateRevCache();
-        invalidatePendingRevCache();
-        scheduleSave();
-        renderCurrentView();
-        showToast('Revisão adiada por 1 dia', 'info');
-        return;
-      }
-    }
-  }
-}
-
-export function deletarRevisao(assId) {
-  showConfirm('Tem certeza que deseja excluir esta revisão? Isso não removerá o tópico dos concluídos, apenas a removerá da lista de revisões pendentes.', async () => {
-
-    for (const edital of state.editais) {
-      for (const disc of (edital.disciplinas || [])) {
-        const ass = (disc.assuntos || []).find(a => a.id === assId);
-        if (ass) {
-          if (!ass.revisoesFetas) ass.revisoesFetas = [];
-          const today = todayStr();
-          const maxSteps = (state.config.frequenciaRevisao || [1, 7, 30, 90]).length;
-          let removed = 0;
-
-          while (removed < maxSteps) {
-            const dueDate = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas, ass.adiamentos || 0)
-              .find(rd => rd <= today);
-            if (!dueDate) break;
-            ass.revisoesFetas.push(dueDate);
-            removed++;
-          }
-
-          invalidateRevCache();
-          invalidatePendingRevCache();
-          scheduleSave();
-          renderCurrentView();
-          showToast(removed > 0 ? 'Revisão removida da fila.' : 'Nenhuma revisão pendente para remover.', 'info');
-          return;
-        }
-      }
-    }
-  });
 }
 
 // =============================================
@@ -1277,8 +684,8 @@ export function renderHistoricoSessoes(el) {
                           ${assunto ? `<div class="session-detail-subject">Tópico: ${esc(assunto)}</div>` : ''}
                         </div>
                         <div class="session-detail-actions">
-                          <button class="btn btn-ghost btn-sm session-item-btn" data-action="edit-session-record" data-session-id="${eventId}">Editar</button>
-                          <button class="btn btn-ghost btn-sm session-item-btn session-item-btn-danger" data-action="delete-session-record" data-session-id="${eventId}">Apagar</button>
+                          <button class="btn btn-ghost btn-sm session-item-btn" data-action="edit-session-record" data-session-id="${eventId}" aria-label="Editar sessão">Editar</button>
+                          <button class="btn btn-ghost btn-sm session-item-btn session-item-btn-danger" data-action="delete-session-record" data-session-id="${eventId}" aria-label="Apagar sessão">Apagar</button>
                         </div>
                       </div>
 
@@ -1306,8 +713,8 @@ export function renderHistoricoSessoes(el) {
 // =============================================
 
 
-export let vertFilterEdital = '';
-export let vertFilterStatus = 'todos';
+export const vertFilterEdital = '';
+export const vertFilterStatus = 'todos';
 export let vertSearch = '';
 export let _vertSearchDebounce = null;
 
@@ -1347,88 +754,80 @@ export function getFilteredVertItems() {
 // verResumoSimulado removida — funcionalidade descontinuada
 
 export function toggleEditSeq() {
-  window._isEditingSequence = !window._isEditingSequence;
-  if (window._isEditingSequence) {
-    window._tempSequencia = JSON.parse(JSON.stringify(state.planejamento.sequencia));
+  _isEditingSequence = !_isEditingSequence;
+  if (_isEditingSequence) {
+    _tempSequencia = JSON.parse(JSON.stringify(state.planejamento.sequencia));
   } else {
-    window._tempSequencia = null;
+    _tempSequencia = null;
   }
   renderCurrentView();
 }
-window.toggleEditSeq = toggleEditSeq;
 
 export function saveEditSeq() {
-  if (!window._tempSequencia || window._tempSequencia.length === 0) {
-    showToast("A sequência de estudos não pode ficar vazia.", "error");
+  if (!_tempSequencia || _tempSequencia.length === 0) {
+    showToast('A sequência de estudos não pode ficar vazia.', 'error');
     return;
   }
-  for (let s of window._tempSequencia) {
+  for (const s of _tempSequencia) {
     if (!s.discId) {
-      showToast("Por favor, selecione uma disciplina para todas as etapas antes de salvar.", "error");
+      showToast('Por favor, selecione uma disciplina para todas as etapas antes de salvar.', 'error');
       return;
     }
   }
 
-  state.planejamento.sequencia = window._tempSequencia;
+  state.planejamento.sequencia = _tempSequencia;
   syncCicloToEventos();
   scheduleSave();
 
-  window._isEditingSequence = false;
-  window._tempSequencia = null;
+  _isEditingSequence = false;
+  _tempSequencia = null;
   renderCurrentView();
 }
-window.saveEditSeq = saveEditSeq;
 
 export function cancelEditSeq() {
-  window._isEditingSequence = false;
-  window._tempSequencia = null;
+  _isEditingSequence = false;
+  _tempSequencia = null;
   renderCurrentView();
 }
-window.cancelEditSeq = cancelEditSeq;
 
 export function updateSeqItem(i, field, val) {
   i = parseInt(i, 10);
   if (field === 'minutosAlvo') val = parseInt(val) || 0;
-  window._tempSequencia[i][field] = val;
+  _tempSequencia[i][field] = val;
 }
-window.updateSeqItem = updateSeqItem;
 
 export function dupSeqItem(i) {
   i = parseInt(i, 10);
-  const obj = JSON.parse(JSON.stringify(window._tempSequencia[i]));
+  const obj = JSON.parse(JSON.stringify(_tempSequencia[i]));
   obj.id = 'seq_' + uid();
-  window._tempSequencia.splice(i + 1, 0, obj);
+  _tempSequencia.splice(i + 1, 0, obj);
   renderCurrentView();
 }
-window.dupSeqItem = dupSeqItem;
 
 export function remSeqItem(i) {
   i = parseInt(i, 10);
-  window._tempSequencia.splice(i, 1);
+  _tempSequencia.splice(i, 1);
   renderCurrentView();
 }
-window.remSeqItem = remSeqItem;
 
 export function moveSeqItem(i, dir) {
   i = parseInt(i, 10);
-  const arr = window._tempSequencia;
+  const arr = _tempSequencia;
   if (i + dir < 0 || i + dir >= arr.length) return;
   const temp = arr[i];
   arr[i] = arr[i + dir];
   arr[i + dir] = temp;
   renderCurrentView();
 }
-window.moveSeqItem = moveSeqItem;
 
 export function addSeqItem() {
-  window._tempSequencia.push({
+  _tempSequencia.push({
     id: 'seq_' + uid(),
     discId: '',
     minutosAlvo: 60
   });
   renderCurrentView();
 }
-window.addSeqItem = addSeqItem;
 
 export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
@@ -1455,7 +854,6 @@ export function addEventoParaAssunto(editaId, discId, assId) {
 }
 
 
-
 export function toggleEdital(id) {
   const el = document.getElementById(`edital-tree-${id}`);
   if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
@@ -1473,8 +871,9 @@ export function toggleAssunto(discId, assId) {
         scheduleSave();
 
         // Re-render local dashboard if open, otherwise full view
-        if (window.activeDashboardDiscCtx && window.activeDashboardDiscCtx.discId === discId) {
-          openDiscDashboard(window.activeDashboardDiscCtx.editaId, discId);
+        const ctx = getActiveDashboardDiscCtx();
+        if (ctx && ctx.discId === discId) {
+          openDiscDashboard(ctx.editaId, discId);
         } else {
           renderCurrentView();
         }
@@ -1497,7 +896,8 @@ export function toggleAulaDashboard(editaId, discId, aulaId) {
     aula.dataEstudo = aula.estudada ? todayStr() : null;
     scheduleSave();
 
-    if (window.activeDashboardDiscCtx && window.activeDashboardDiscCtx.discId === discId) {
+    const ctx = getActiveDashboardDiscCtx();
+    if (ctx && ctx.discId === discId) {
       openDiscDashboard(editaId, discId);
     } else {
       renderCurrentView();
@@ -1508,22 +908,20 @@ export function toggleAulaDashboard(editaId, discId, aulaId) {
   }
 }
 
-window.activeDashboardDiscCtx = null;
-
 export function openDiscDashboard(editaId, discId) {
   const edital = state.editais.find(e => e.id === editaId);
   if (!edital || !edital.disciplinas) return;
   const disc = edital.disciplinas.find(d => d.id === discId);
   if (!disc) return;
 
-  window.activeDashboardDiscCtx = { editaId, discId };
+  setActiveDashboardDiscCtx({ editaId, discId });
 
   // Set window Topbar
   const topbarTitle = document.getElementById('topbar-title');
   const actions = document.getElementById('topbar-actions');
   if (!topbarTitle || !actions) return;
   topbarTitle.textContent = `${disc.icone || '📚'} ${disc.nome} `;
-  actions.innerHTML = `<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+  actions.innerHTML = '<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>';
 
   const el = document.getElementById('main-content');
   el.innerHTML = renderDisciplinaDashboard(edital, disc);
@@ -1531,14 +929,14 @@ export function openDiscDashboard(editaId, discId) {
 }
 
 export function closeDiscDashboard() {
-  window.activeDashboardDiscCtx = null;
-  window.activeDashboardTab = 'topicos'; // Reset tab
+  clearActiveDashboardDiscCtx();
+  resetActiveDashboardTab();
   renderCurrentView();
 }
 
 export function switchDashboardTab(tabName) {
-  window.activeDashboardTab = tabName;
-  const ctx = window.activeDashboardDiscCtx;
+  setActiveDashboardTab(tabName);
+  const ctx = getActiveDashboardDiscCtx();
   if (ctx && ctx.editaId && ctx.discId) {
     const edital = state.editais.find(e => e.id === ctx.editaId);
     const disc = edital?.disciplinas?.find(d => d.id === ctx.discId);
@@ -1550,11 +948,9 @@ export function switchDashboardTab(tabName) {
 
   renderCurrentView();
 }
-window.switchDashboardTab = switchDashboardTab;
 
 
-
-function renderHistoricoDisciplina(tempos) {
+function _renderHistoricoDisciplina(tempos) {
   const reverseTempos = [...tempos].reverse().slice(0, 50);
   if (reverseTempos.length === 0) {
     return '<div class="empty-state-centered">Nenhuma sessão de estudo registrada.</div>';
@@ -1580,7 +976,7 @@ function renderHistoricoDisciplina(tempos) {
     const totQs = (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
     const certas = qs.acertos || qs.certas || 0;
     const perc = totQs > 0 ? Math.round((certas / totQs) * 100) : 0;
-    const percColor = perc >= 70 ? 'var(--green)' : perc >= 50 ? 'var(--accent)' : 'var(--red)';
+    const _percColor = perc >= 70 ? 'var(--green)' : perc >= 50 ? 'var(--accent)' : 'var(--red)';
     const pags = t.sessao?.paginas?.total || t.paginas || null;
 
     return `
@@ -1599,7 +995,7 @@ function renderHistoricoDisciplina(tempos) {
           `;
 }
 
-function renderTopicosEditalDisciplina(edital, disc) {
+function _renderTopicosEditalDisciplina(edital, disc) {
   if (!disc.assuntos || disc.assuntos.length === 0) {
     return '<div class="empty-state-centered">Nenhum tópico cadastrado.</div>';
   }
@@ -1608,8 +1004,8 @@ function renderTopicosEditalDisciplina(edital, disc) {
     <div class="custom-scrollbar">
       ${disc.assuntos.map(ass => {
     const importanceBadge = ass.relevance?.priority === 'P1' ?
-      `<span class="priority-badge-p1" title="Alta Chance de Cobrança">🔥 P1</span>` :
-      (ass.relevance?.priority === 'P2' ? `<span class="priority-badge-p2">⚠️ P2</span>` : '');
+      '<span class="priority-badge-p1" title="Alta Chance de Cobrança">🔥 P1</span>' :
+      (ass.relevance?.priority === 'P2' ? '<span class="priority-badge-p2">⚠️ P2</span>' : '');
 
     return `
         <div class="subject-item ${ass.concluido ? 'subject-item-concluded' : ''}">
@@ -1626,12 +1022,12 @@ function renderTopicosEditalDisciplina(edital, disc) {
             <button class="btn btn-ghost btn-sm" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">+ Agenda</button>
           `}
         </div>
-      `}).join('')}
+      `;}).join('')}
     </div>
   `;
 }
 
-function renderAulasDisciplinaDashboard(edital, disc) {
+function _renderAulasDisciplinaDashboard(edital, disc) {
   if (!disc.aulas || disc.aulas.length === 0) {
     return `<div class="empty-state-column">
       <div class="empty-state-icon">🗂️</div>
@@ -1657,12 +1053,12 @@ function renderAulasDisciplinaDashboard(edital, disc) {
             <button class="btn btn-ghost btn-sm" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="aul_${aul.id}">+ Agenda</button>
           ` : ''}
         </div>
-      `}).join('')}
+      `;}).join('')}
     </div>
   `;
 }
 
-function renderBancaDisciplinaDashboard(edital, disc) {
+function _renderBancaDisciplinaDashboard(edital, disc) {
   const hasHotTopics = state.bancaRelevance && state.bancaRelevance.hotTopics && state.bancaRelevance.hotTopics.some(ht => ht.disciplinaId === disc.id);
   const hasAulas = disc.aulas && disc.aulas.length > 0;
 
@@ -1737,8 +1133,8 @@ export function initDiscDashboardChart(discId) {
     return total > 0 ? Math.round((grouped[d].certas / total) * 100) : 0;
   });
 
-  if (window._discChartInstance) {
-    window._discChartInstance.destroy();
+  if (getDiscChartInstance()) {
+    getDiscChartInstance().destroy();
   }
 
   if (labels.length === 0) {
@@ -1748,7 +1144,7 @@ export function initDiscDashboardChart(discId) {
   }
 
   const ctx = canvas.getContext('2d');
-  window._discChartInstance = new window.Chart(ctx, {
+  setDiscChartInstance(new window.Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
@@ -1795,7 +1191,7 @@ export function initDiscDashboardChart(discId) {
         }
       }
     }
-  });
+  }));
 }
 
 export function deleteAssunto(discId, assId) {
@@ -1951,14 +1347,14 @@ export function openDiscModal(editaId, discId) {
     <div class="form-group">
       <label class="form-label">Ícone</label>
       <div class="icon-grid" id="disc-icons">
-        ${DISC_ICONS.map((ic, i) => `<div class="icon-grid-item ${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0]) ? 'selected-icon' : ''}" data-action="select-icon" data-icon="${ic}">${ic}</div>`).join('')}
+        ${DISC_ICONS.map((ic, _i) => `<div class="icon-grid-item ${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0]) ? 'selected-icon' : ''}" data-action="select-icon" data-icon="${ic}">${ic}</div>`).join('')}
       </div>
       <input type="hidden" id="disc-icone" value="${isEdit ? existingDisc.icone : DISC_ICONS[0]}">
     </div>
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="disc-colors">
-        ${COLORS.map((c, i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" data-disc-color="${c}" data-action="select-disc-color" data-color="${c}"></div>`).join('')}
+        ${COLORS.map((c, _i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" data-disc-color="${c}" data-action="select-disc-color" data-color="${c}"></div>`).join('')}
       </div>
       <input type="hidden" id="disc-cor" value="${isEdit ? existingDisc.cor : COLORS[0]}">
     </div>
@@ -2026,7 +1422,7 @@ export function openDiscManager(editaId, discId) {
 
   editingSubjectCtx = { editaId, discId };
   // Default tab when opening
-  window._activeDiscManagerTab = window._activeDiscManagerTab || 'topicos';
+  _activeDiscManagerTab = _activeDiscManagerTab || 'topicos';
 
   // Render subject items
   const subjectsHtml = disc.assuntos.map((ass, idx) => `
@@ -2059,7 +1455,7 @@ export function openDiscManager(editaId, discId) {
       `).join('') || '<div class="sm-empty-state">Nenhum tópico no Edital.</div>';
 
   // Render Lesson items
-  const aulasHtml = (disc.aulas || []).map((aula, idx) => `
+  const aulasHtml = (disc.aulas || []).map((aula, _idx) => `
       <div class="sm-list-item sm-list-item--lesson">
       <div class="sm-item-content">
           <div class="sm-item-text sm-item-text--clickable" data-action="edit-lesson-inline" data-disc-id="${disc.id}" data-aula-id="${aula.id}">
@@ -2104,16 +1500,16 @@ export function openDiscManager(editaId, discId) {
 
     <!--TABS de Navegação Wave 39 -->
     <div class="manager-tabs" role="tablist" aria-label="Gerenciamento de disciplina">
-        <button type="button" data-action="switch-manager-tab" data-tab="topicos" class="manager-tab ${window._activeDiscManagerTab === 'topicos' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${window._activeDiscManagerTab === 'topicos'}" aria-controls="tab-manager-topicos">
+        <button type="button" data-action="switch-manager-tab" data-tab="topicos" class="manager-tab ${_activeDiscManagerTab === 'topicos' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${_activeDiscManagerTab === 'topicos'}" aria-controls="tab-manager-topicos">
             Tópicos do Edital (${disc.assuntos.length})
         </button>
-        <button type="button" data-action="switch-manager-tab" data-tab="aulas" class="manager-tab ${window._activeDiscManagerTab === 'aulas' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${window._activeDiscManagerTab === 'aulas'}" aria-controls="tab-manager-aulas">
+        <button type="button" data-action="switch-manager-tab" data-tab="aulas" class="manager-tab ${_activeDiscManagerTab === 'aulas' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${_activeDiscManagerTab === 'aulas'}" aria-controls="tab-manager-aulas">
             Meus Materiais/Aulas (${disc.aulas ? disc.aulas.length : 0})
         </button>
     </div>
 
     <!--ABA TÓPICOS-->
-    <div id="tab-manager-topicos" class="${window._activeDiscManagerTab === 'topicos' ? 'tab-content' : 'tab-content--hidden'}">
+    <div id="tab-manager-topicos" class="${_activeDiscManagerTab === 'topicos' ? 'tab-content' : 'tab-content--hidden'}">
         <div class="sm-add-form">
            <textarea class="form-control" id="new-assunto-nome" placeholder="Novo tópico (Digite ou cole vários separados por quebra de linha)" rows="1"></textarea>
            <button class="btn btn-primary" data-action="add-assunto" data-disc-id="${disc.id}">Adicionar Tópico</button>
@@ -2124,7 +1520,7 @@ export function openDiscManager(editaId, discId) {
     </div>
 
     <!--ABA AULAS-->
-    <div id="tab-manager-aulas" class="${window._activeDiscManagerTab === 'aulas' ? 'tab-content' : 'tab-content--hidden'}">
+    <div id="tab-manager-aulas" class="${_activeDiscManagerTab === 'aulas' ? 'tab-content' : 'tab-content--hidden'}">
         <div class="sm-bulk-import-form">
            <div>
                <label>Adição em Lote (Copie e paste o índice do seu PDF/Cursinho aqui)</label>
@@ -2155,12 +1551,11 @@ export function openDiscManager(editaId, discId) {
 }
 
 export function switchManagerTab(tabName) {
-  window._activeDiscManagerTab = tabName;
+  _activeDiscManagerTab = tabName;
   if (editingSubjectCtx) {
     openDiscManager(editingSubjectCtx.editaId, editingSubjectCtx.discId);
   }
 }
-window.switchManagerTab = switchManagerTab;
 
 export function editSubjectInline(discId, assId, el) {
   const currentText = el.innerText;
@@ -2174,7 +1569,21 @@ export function editSubjectInline(discId, assId, el) {
   input.style.background = 'var(--bg)';
   input.style.color = 'var(--text)';
 
-  input.onblur = () => finishInlineEdit(discId, assId, input.value, el);
+  input.onblur = () => {
+    const newVal = input.value.trim();
+    if (newVal && newVal !== currentText) {
+      for (const edital of state.editais) {
+        const disc = (edital.disciplinas || []).find(d => d.id === discId);
+        const ass = (disc?.assuntos || []).find(a => a.id === assId);
+        if (ass) {
+          ass.nome = newVal;
+          scheduleSave();
+          break;
+        }
+      }
+    }
+    renderCurrentView();
+  };
   input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); else if (e.key === 'Escape') { input.value = currentText; input.blur(); } };
 
   el.innerHTML = '';
@@ -2216,7 +1625,6 @@ export function editLessonInline(discId, aulaId, el) {
   input.focus();
   input.select();
 }
-window.editLessonInline = editLessonInline;
 
 export function toggleAulaEstudada(discId, aulaId) {
   const d = getDisc(discId);
@@ -2229,7 +1637,6 @@ export function toggleAulaEstudada(discId, aulaId) {
   scheduleSave();
   openDiscManager(editingSubjectCtx.editaId, discId);
 }
-window.toggleAulaEstudada = toggleAulaEstudada;
 
 export function addBulkAulas(discId) {
   const textarea = document.getElementById('new-aula-bulk');
@@ -2263,7 +1670,6 @@ export function addBulkAulas(discId) {
   showToast(`${lines.length} Aulas adicionadas!`, 'success');
   openDiscManager(editingSubjectCtx.editaId, discId);
 }
-window.addBulkAulas = addBulkAulas;
 
 export function addAssunto(discId) {
   const input = document.getElementById('new-assunto-nome');
@@ -2280,7 +1686,6 @@ export function addAssunto(discId) {
   scheduleSave();
   openDiscManager(editingSubjectCtx.editaId, discId);
 }
-window.addAssunto = addAssunto;
 
 export function deleteAula(discId, aulaId) {
   showConfirm('Tem certeza que deseja apagar esta Aula?', () => {
@@ -2299,11 +1704,10 @@ export function deleteAula(discId, aulaId) {
     openDiscManager(editingSubjectCtx.editaId, discId);
   });
 }
-window.deleteAula = deleteAula;
 
 import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.29';
 export function runLessonMapperUI(editaId, discId) {
-  showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
+  showConfirm('Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?', () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
     if (resultCount > 0) {
       showToast(`${resultCount} Aulas Conectadas Automaticamente!`, 'success');
@@ -2313,1264 +1717,15 @@ export function runLessonMapperUI(editaId, discId) {
     openDiscManager(editingSubjectCtx.editaId, discId);
   }, { label: 'Rodar Auto-Link', title: 'Mapeador ML' });
 }
-window.runLessonMapperUI = runLessonMapperUI;
 
-// =============================================
-// ADD EVENT MODAL
-// =============================================
-export function openAddEventModal(dateStr = null) {
-  const allDiscs = getActiveDisciplinas();
-  const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
-  ).join('');
+// Event modal functions moved to ui/event-modals.js
+// Re-exported below
 
-  document.getElementById('modal-event-title').textContent = 'Iniciar Estudo';
-  document.getElementById('modal-event-body').innerHTML = `
-    <div id="event-conteudo-fields">
-      <div class="form-group">
-        <label class="form-label">Disciplina</label>
-        <select class="form-control" id="event-disc" data-action="load-assuntos">
-          <option value="">Sem disciplina específica</option>
-          ${discOptions}
-        </select>
-      </div>
-      <div class="form-group event-form-group--hidden" id="event-assunto-group">
-        <label class="form-label">Tópico do Edital (opcional)</label>
-        <select class="form-control" id="event-assunto">
-          <option value="">Sem tópico específico</option>
-        </select>
-      </div>
-      <div class="form-group event-form-group--hidden mt-3" id="event-aula-group">
-        <label class="form-label event-form-label--inline">
-          Material / Aula (opcional)
-        </label>
-        <select class="form-control" id="event-aula">
-          <option value="">Sem material/aula específica</option>
-        </select>
-      </div>
-    </div>
+// Event modal functions moved to ui/event-modals.js
+// Re-exported below
 
-    <div class="form-group">
-      <label class="form-label">Título do Evento</label>
-      <input type="text" class="form-control" id="event-titulo" placeholder="Ex: Estudar Direito Constitucional">
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Data</label>
-        <input type="date" class="form-control" id="event-data" value="${dateStr || todayStr()}"
-          data-action="update-day-load">
-        <div id="day-load-hint" class="event-form-hint"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Duração Prevista</label>
-        <select class="form-control" id="event-duracao">
-          <option value="30">30 min</option>
-          <option value="60" selected>1 hora</option>
-          <option value="90">1h30</option>
-          <option value="120">2 horas</option>
-          <option value="180">3 horas</option>
-          <option value="240">4 horas</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Anotações (opcional)</label>
-      <textarea class="form-control" id="event-notas" rows="2" placeholder="Observações rápidas sobre o estudo..."></textarea>
-    </div>
-    <details class="event-form-details">
-      <summary>📝 Fontes e referências (opcional)</summary>
-      <div class="event-form-details-content">
-        <div class="form-group event-form-group--compact">
-          <label class="form-label">Fontes de Estudo</label>
-          <input type="text" class="form-control" id="event-fontes" placeholder="Ex: Gran Cursos pág. 45, Art. 37 CF/88...">
-        </div>
-        <div class="form-group event-form-group--compact">
-          <label class="form-label">Legislação Pertinente</label>
-          <input type="text" class="form-control" id="event-legislacao" placeholder="Ex: Lei 8.112/90, CF Art. 5º...">
-        </div>
-      </div>
-    </details>
-    <div class="modal-footer-standard--padded">
-      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-event">Cancelar</button>
-      <button class="btn btn-primary" data-action="save-event">Salvar / Iniciar</button>
-    </div>
-  `;
-  openModal('modal-event');
-  // Tech 3: Show day load immediately using requestAnimationFrame
-  requestAnimationFrame(() => updateDayLoad(dateStr || todayStr()));
-}
-
-
-// Tech 3: Real-time day-load hint
-export function updateDayLoad(dateStr) {
-  const el = document.getElementById('day-load-hint');
-  if (!el || !dateStr) return;
-  const evts = state.eventos.filter(e => e.data === dateStr && e.status !== 'estudei');
-  const mins = evts.reduce((s, e) => s + (e.duracao || 0), 0);
-  if (evts.length === 0) {
-    el.textContent = '📅 Dia livre';
-    el.style.color = 'var(--accent)';
-  } else {
-    const horas = (mins / 60).toFixed(1);
-    const color = mins > 480 ? 'var(--red)' : mins > 300 ? 'var(--orange)' : 'var(--text-muted)';
-    el.textContent = `⚠️ ${evts.length} evento(s) já agendado(s) neste dia — ${horas}h previstas`;
-    el.style.color = color;
-  }
-}
-
-export function loadAssuntos() {
-  const discId = document.getElementById('event-disc').value;
-  const assuntoGroup = document.getElementById('event-assunto-group');
-  const assuntoSel = document.getElementById('event-assunto');
-  const aulaGroup = document.getElementById('event-aula-group');
-  const aulaSel = document.getElementById('event-aula');
-  
-  if (!discId) {
-    assuntoGroup.style.display = 'none';
-    if (aulaGroup) aulaGroup.style.display = 'none';
-    return;
-  }
-  
-  const d = getDisc(discId);
-  const tituloInput = document.getElementById('event-titulo');
-  if (d && (!tituloInput.value || tituloInput.dataset.autoFilled === 'true')) {
-    tituloInput.value = `Estudar ${d.disc.nome} `;
-    tituloInput.dataset.autoFilled = 'true';
-  }
-
-  if (!d) return;
-
-  const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
-  if (pendingAssuntos.length > 0) {
-    let html = '<option value="">Sem tópico específico</option>';
-    html += pendingAssuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
-    assuntoSel.innerHTML = html;
-    assuntoGroup.style.display = '';
-  } else {
-    assuntoGroup.style.display = 'none';
-  }
-
-  const aulas = d.disc.aulas || [];
-  const pendingAulas = aulas.filter(a => !a.estudada);
-  if (pendingAulas.length > 0 && aulaGroup && aulaSel) {
-    let ht = '<option value="">Sem material/aula específico</option>';
-    ht += pendingAulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
-    aulaSel.innerHTML = ht;
-    aulaGroup.style.display = '';
-  } else if (aulaGroup) {
-    aulaGroup.style.display = 'none';
-  }
-
-  const buildTitle = () => {
-    const rawAss = assuntoSel.value;
-    const rawAul = aulaSel ? aulaSel.value : '';
-    let name = '';
-    
-    // Choose which name to apply to the auto title
-    if (rawAul) {
-      const aulaObj = d.disc.aulas?.find(a => a.id === rawAul);
-      if (aulaObj) name = aulaObj.nome;
-    } else if (rawAss) {
-      const assObj = d.disc.assuntos?.find(a => a.id === rawAss);
-      if (assObj) name = assObj.nome;
-    }
-
-    if (name) {
-      tituloInput.value = name;
-      tituloInput.dataset.autoFilled = 'true';
-    } else {
-      tituloInput.value = `Estudar ${d.disc.nome} `;
-    }
-  };
-
-  assuntoSel.onchange = () => {
-    if (!tituloInput.value || tituloInput.dataset.autoFilled === 'true') buildTitle();
-  };
-  if (aulaSel) aulaSel.onchange = () => {
-    if (!tituloInput.value || tituloInput.dataset.autoFilled === 'true') buildTitle();
-  };
-}
-
-// Clear auto-filled flag if user manually types in title
-addCleanupListener(document, 'input', e => {
-  if (e.target && e.target.id === 'event-titulo') {
-    e.target.dataset.autoFilled = 'false';
-  }
-});
-
-export function saveEvent() {
-  const titulo = document.getElementById('event-titulo').value.trim();
-  const data = document.getElementById('event-data').value;
-  const duracao = parseInt(document.getElementById('event-duracao').value || '60');
-  const notas = document.getElementById('event-notas').value.trim();
-  const fontes = document.getElementById('event-fontes')?.value.trim() || '';
-  const legislacao = document.getElementById('event-legislacao')?.value.trim() || '';
-
-  let discId = document.getElementById('event-disc')?.value || '';
-  let assId = document.getElementById('event-assunto')?.value || '';
-  let aulaId = document.getElementById('event-aula')?.value || '';
-  let autoTitle = titulo;
-
-  // Cleanup potential prefixes if present (backwards compatibility safety)
-  if (assId && assId.startsWith('ass_')) assId = assId.substring(4);
-  if (aulaId && aulaId.startsWith('aul_')) aulaId = aulaId.substring(4);
-
-  if (!titulo && discId) {
-    const d = getDisc(discId);
-    autoTitle = `Estudar ${d?.disc.nome || 'Disciplina'} `;
-  }
-
-  if (!autoTitle) { showToast('Informe um título para o evento', 'error'); return; }
-
-  // Helper that actually creates and saves the event
-  const doSave = () => {
-    const evento = {
-      id: 'ev_' + uid(), titulo: autoTitle, data, duracao, notas, fontes, legislacao,
-      status: 'agendado', tempoAcumulado: 0,
-      tipo: 'conteudo',
-      discId: discId || null,
-      assId: assId || null,
-      aulaId: aulaId || null,
-      habito: null, // Habit array is formed upon completion
-      criadoEm: new Date().toISOString()
-    };
-
-    state.eventos.push(evento);
-    scheduleSave();
-    closeModal('modal-event');
-    renderCurrentView();
-    showToast('Estudo iniciado/agendado!', 'success');
-  };
-
-  // Tech 3: Warn if there are already many events on this day
-  const existingOnDay = state.eventos.filter(e => e.data === data && e.status !== 'estudei');
-  const totalDuracao = existingOnDay.reduce((s, e) => s + (e.duracao || 0), 0) + duracao;
-  if (existingOnDay.length >= 3 || totalDuracao > 480) {
-    const horas = Math.round(totalDuracao / 60 * 10) / 10;
-    const msg = existingOnDay.length >= 3
-      ? `Você já tem ${existingOnDay.length} evento(s) neste dia.Adicionar mais pode gerar sobrecarga.`
-      : `Você já tem ${Math.round((totalDuracao - duracao) / 60 * 10) / 10}h agendadas neste dia.Com este evento seriam ${horas} h.`;
-    showConfirm(msg, doSave, { label: 'Adicionar mesmo assim', title: 'Muitos eventos no dia' });
-    return;
-  }
-
-  doSave();
-}
-
-// =============================================
-// REGISTRO DE SESSÃO ANTERIOR (DIRETO)
-// =============================================
-export function openAddPastSessionModal(discId) {
-  const d = getDisc(discId);
-  if(!d) return;
-
-  // Monta as opções de assunto baseadas na disciplina
-  let assuntoOptions = '<option value="">Sem tópico específico</option>';
-  
-  const assuntos = d.disc.assuntos || [];
-  if (assuntos.length > 0) {
-    assuntoOptions += assuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${a.concluido ? '✅ ' : ''}${esc(trunc(a.nome, 100))}</option>`).join('');
-  }
-  
-  let aulaOptions = '<option value="">Sem material/aula específico</option>';
-  const aulas = d.disc.aulas || [];
-  if (aulas.length > 0) {
-    aulaOptions += aulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${a.estudada ? '✅ ' : ''}${esc(trunc(a.nome, 100))}</option>`).join('');
-  }
-
-  document.getElementById('modal-event-title').textContent = 'Registrar Sessão Anterior';
-  document.getElementById('modal-event-body').innerHTML = `
-    <div class="config-sub">
-      Disciplina: <strong>${esc(d.disc.nome)}</strong>
-    </div>
-    
-    <div class="form-group" id="event-assunto-group">
-      <label class="form-label">Tópico do Edital (opcional)</label>
-      <select class="form-control" id="past-event-assunto">
-        ${assuntoOptions}
-      </select>
-    </div>
-
-    <div class="form-group mt-3" id="event-aula-group">
-      <label class="form-label">Material / Aula (opcional)</label>
-      <select class="form-control" id="past-event-aula">
-        ${aulaOptions}
-      </select>
-    </div>
-
-    <div class="form-row mt-5">
-      <div class="form-group">
-        <label class="form-label">Data do Estudo</label>
-        <input type="date" class="form-control" id="past-event-data" value="${todayStr()}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Tempo Estudado (minutos)</label>
-        <input type="number" class="form-control" id="past-event-duracao" value="60" min="1">
-      </div>
-    </div>
-    
-    <div class="modal-footer-standard--padded">
-      <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-event">Cancelar</button>
-      <button class="btn btn-primary" data-action="save-past-event" data-disc-id="${discId}">Continuar Registro</button>
-    </div>
-  `;
-  openModal('modal-event');
-}
-window.openAddPastSessionModal = openAddPastSessionModal;
-
-export function savePastEvent(discId) {
-  const d = getDisc(discId);
-  const data = document.getElementById('past-event-data').value;
-  const duracao = parseInt(document.getElementById('past-event-duracao').value, 10) || 60;
-  
-  const assId = document.getElementById('past-event-assunto')?.value || null;
-  const aulaId = document.getElementById('past-event-aula')?.value || null;
-
-  if (!data || duracao <= 0) {
-    showToast('Preencha a data e o tempo estudado corretamente.', 'error');
-    return;
-  }
-
-  let assuntoNome = '';
-
-  if (aulaId) {
-    const achado = d.disc.aulas?.find(a => a.id === aulaId);
-    if(achado) assuntoNome = ' — ' + achado.nome;
-  } else if (assId) {
-    const achado = d.disc.assuntos?.find(a => a.id === assId);
-    if(achado) assuntoNome = ' — ' + achado.nome;
-  }
-
-  // Cria um placeholder de evento que o \`openRegistroSessao\` pode carregar e modificar
-  const evento = {
-    id: 'ev_' + uid(),
-    titulo: d.disc.nome + assuntoNome,
-    data: data,
-    status: 'agendado', // Agendado prevents it from instantly showing up as Estudei before the modal
-    duracao: duracao,
-    tempoAcumulado: duracao * 60,
-    discId: discId,
-    assId: assId,
-    aulaId: aulaId,
-    sessao: {},
-    _isPastSession: true
-  };
-
-  state.eventos.push(evento);
-  scheduleSave();
-  closeModal('modal-event');
-
-  // Abre registro real para input the metadados
-  if (typeof window.EstudoApp?.openRegistroSessao === 'function') {
-    window.EstudoApp.openRegistroSessao(evento.id);
-  } else {
-    showToast('Erro ao abrir registro detalhado.', 'error');
-  }
-}
-window.savePastEvent = savePastEvent;
-
-
-// =============================================
-// CONFIG VIEW
-// =============================================
-function renderCloudflareConflict(conflict) {
-  if (!conflict) return '';
-
-  const remote = formatBackupDateTime(conflict.remoteUpdatedAt);
-  const detected = formatBackupDateTime(conflict.detectedAt);
-  const device = esc(conflict.remoteDeviceId || 'dispositivo remoto');
-
-  return `
-    <div class="sync-conflict-panel" data-testid="cf-sync-conflict" role="alert">
-      <div class="sync-conflict-header">
-        <i class="fa fa-triangle-exclamation"></i>
-        <div>
-          <div class="sync-conflict-title">Conflito de sincronizaÃ§Ã£o</div>
-          <div class="sync-conflict-sub">O remoto mudou antes deste dispositivo enviar seus dados.</div>
-        </div>
-      </div>
-      <div class="sync-conflict-meta">
-        <span>Remoto: ${remote}</span>
-        <span>Origem: ${device}</span>
-        <span>Detectado: ${detected}</span>
-      </div>
-      <div class="sync-conflict-actions">
-        <button type="button" class="btn btn-outline btn-sm" data-action="cloud-conflict-export-local">
-          <i class="fa fa-download"></i> Exportar backup local
-        </button>
-        <button type="button" class="btn btn-primary btn-sm" data-action="cloud-conflict-pull-remote">
-          <i class="fa fa-cloud-download-alt"></i> Baixar remoto
-        </button>
-        <button type="button" class="btn btn-danger btn-sm" data-action="cloud-conflict-force-push">
-          <i class="fa fa-cloud-upload-alt"></i> ForÃ§ar envio local
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-function renderFirestoreConflict(conflict) {
-  if (!conflict) return '';
-  const items = Array.isArray(conflict.items) ? conflict.items : [];
-  const entityRows = items.slice(0, 8).map(item => `
-    <div class="sync-conflict-entity">
-      <span>${esc(item.collection || 'entidade')}</span>
-      <code>${esc(item.id || item.key || 'sem-id')}</code>
-      <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
-      <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
-      <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
-    </div>
-  `).join('');
-
-  return `
-    <div class="sync-conflict-panel" data-testid="firestore-sync-conflict" role="alert">
-      <div class="sync-conflict-header">
-        <i class="fa fa-triangle-exclamation"></i>
-        <div>
-          <div class="sync-conflict-title">Conflito Firestore</div>
-          <div class="sync-conflict-sub">Existe um snapshot remoto diferente do snapshot local pendente.</div>
-        </div>
-      </div>
-      <div class="sync-conflict-meta">
-        <span>Remoto: ${formatBackupDateTime(conflict.remoteUpdatedAt)}</span>
-        <span>Local: ${formatBackupDateTime(conflict.localUpdatedAt)}</span>
-        <span>Detectado: ${formatBackupDateTime(conflict.detectedAt)}</span>
-      </div>
-      ${items.length > 0 ? `
-        <div class="sync-conflict-entities" data-testid="firestore-conflict-entities">
-          <div class="sync-conflict-entities-title">Entidades afetadas (${conflict.total || items.length})</div>
-          ${entityRows}
-          ${items.length > 8 ? `<div class="sync-source-note">Mais ${items.length - 8} entidades omitidas nesta lista.</div>` : ''}
-        </div>
-      ` : ''}
-      <div class="sync-conflict-actions">
-        <button type="button" class="btn btn-outline btn-sm" data-action="firestore-export-local">
-          <i class="fa fa-download"></i> Exportar backup local
-        </button>
-        <button type="button" class="btn btn-primary btn-sm" data-action="firestore-pull-remote">
-          <i class="fa fa-cloud-download-alt"></i> Baixar Firestore
-        </button>
-        <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push">
-          <i class="fa fa-cloud-upload-alt"></i> Forcar envio local
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-function renderFirestoreCard() {
-  const status = window.EstudoApp?.getFirestoreSyncStatus?.() || {
-    configured: false,
-    signedIn: false,
-    enabled: false,
-    mode: 'shadow',
-    hasPendingWrites: false,
-    conflict: null
-  };
-  const configuredText = status.configured ? `Projeto: ${esc(status.projectId || status.uid || 'configurado')}` : 'Configure o Firebase antes de ativar.';
-  const statusText = !status.configured
-    ? 'Nao configurado'
-    : status.signedIn
-      ? status.conflict
-        ? 'Conflito precisa de revisao'
-        : status.hasPendingWrites
-        ? 'Alteracoes pendentes'
-        : 'Pronto'
-      : 'Aguardando login Google';
-  const statusDetail = status.lastError
-    ? `Erro: ${esc(status.lastError)}`
-    : status.signedIn
-      ? `Modo ${status.mode}; ultimo push ${formatBackupDateTime(status.lastPushAt)}`
-      : configuredText;
-
-  return `
-    <div class="card config-card">
-      <div class="card-header"><h3><i class="fa fa-database"></i> Firestore (Primario)</h3></div>
-      <div class="card-body">
-        <div class="config-desc">Sincronizacao local-first automatica com login Google. IndexedDB salva primeiro; Firestore sincroniza entre dispositivos; Cloudflare e Drive ficam como backups manuais.</div>
-
-        ${renderFirestoreConflict(status.conflict)}
-
-        <div class="config-row">
-          <div>
-            <div class="config-label">${statusText}</div>
-            <div class="config-sub">${statusDetail}</div>
-          </div>
-          <span class="badge ${status.enabled ? 'badge-success' : 'badge-muted'}">${status.enabled ? 'Ativo' : 'Inativo'}</span>
-        </div>
-
-        <div class="grid config-backup-grid">
-          <div class="flex flex-between"><span>Firestore remoto:</span><strong>${formatBackupDateTime(status.remoteUpdatedAt)}</strong></div>
-          <div class="flex flex-between"><span>Ultimo pull:</span><strong>${formatBackupDateTime(status.lastPullAt)}</strong></div>
-          <div class="flex flex-between"><span>Ultimo push:</span><strong>${formatBackupDateTime(status.lastPushAt)}</strong></div>
-        </div>
-
-        <div class="config-actions-row">
-          ${status.signedIn ? `
-            <button class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>
-          ` : `
-            <button class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar com Google</button>
-          `}
-          ${status.enabled ? `
-            <button class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>
-            <button class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Desativar</button>
-          ` : `
-            <button class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? '' : 'disabled'}>Ativar primario</button>
-            <button class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Shadow</button>
-          `}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderEntitySyncToggle() {
-  const appState = window.EstudoApp?.state;
-  if (!appState) return '';
-  const entitySync = appState.config?.entitySync || {};
-  const fsStatus = window.EstudoApp?.getFirestoreSyncStatus?.() || {};
-  if (!fsStatus.signedIn || !fsStatus.enabled) return '';
-  const isPrimary = entitySync.mode === 'primary';
-  const isShadow = entitySync.mode === 'shadow';
-  return `
-    <div class="entity-sync-toggle" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Modo de entidades:</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button type="button" class="btn btn-sm ${isPrimary ? 'btn-primary' : 'btn-ghost'}" data-action="entity-sync-set-primary" ${isPrimary ? 'disabled' : ''}>Primario</button>
-        <button type="button" class="btn btn-sm ${isShadow ? 'btn-primary' : 'btn-ghost'}" data-action="entity-sync-set-shadow" ${isShadow ? 'disabled' : ''}>Shadow</button>
-        <button type="button" class="btn btn-sm ${!isPrimary && !isShadow ? 'btn-primary' : 'btn-ghost'}" data-action="entity-sync-set-off" ${!isPrimary && !isShadow ? 'disabled' : ''}>Desativado</button>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
-        ${isPrimary ? 'Entidades como fonte primaria (experimental).' : isShadow ? 'Entidades em shadow com snapshot fallback.' : 'Entidades desativadas; apenas snapshot.'}
-      </div>
-    </div>
-  `;
-}
-
-function getSyncHealthLabel(health) {
-  const labels = {
-    ok: 'OK',
-    idle: 'Inativo',
-    pending: 'Pendente',
-    conflict: 'Conflito',
-    error: 'Erro'
-  };
-  return labels[health] || 'Status';
-}
-
-function getSyncHealthIcon(health) {
-  const icons = {
-    ok: 'fa-circle-check',
-    idle: 'fa-circle',
-    pending: 'fa-clock',
-    conflict: 'fa-triangle-exclamation',
-    error: 'fa-circle-xmark'
-  };
-  return icons[health] || 'fa-circle-info';
-}
-
-function renderSyncSourceActions(source) {
-  if (source.id === 'local') {
-    return `
-      <button type="button" class="btn btn-ghost btn-sm" data-action="sync-center-export-local"><i class="fa fa-download"></i> Exportar local</button>
-      <button type="button" class="btn btn-outline btn-sm" data-action="sync-center-import-local"><i class="fa fa-file-import"></i> Importar JSON</button>
-    `;
-  }
-
-  if (source.id === 'firebase') {
-    const status = window.EstudoApp?.getFirestoreSyncStatus?.() || {};
-    return `
-      ${status.signedIn ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar</button>`}
-      ${status.enabled ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? '' : 'disabled'}>Ativar primario</button><button type="button" class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Shadow</button>`}
-      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-verify-entity-shadow" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-list-check"></i> Verificar entidades</button>
-      ${renderEntitySyncToggle()}
-      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-merge-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
-      <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-pull-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
-      <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
-      ${status.enabled ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Pausar</button>' : ''}
-    `;
-  }
-
-  if (source.id === 'cloudflare') {
-    return `
-      <button type="button" class="btn btn-primary btn-sm" data-action="force-cloudflare-sync" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-sync"></i> Sincronizar</button>
-      <button type="button" class="btn btn-outline btn-sm" data-action="cloud-merge-remote" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
-      <button type="button" class="btn btn-ghost btn-sm" data-action="cloud-conflict-pull-remote" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
-      <button type="button" class="btn btn-danger btn-sm" data-action="cloud-conflict-force-push" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
-    `;
-  }
-
-  if (source.id === 'drive') {
-    return source.configured ? `
-      <button type="button" class="btn btn-primary btn-sm" data-action="drive-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>
-      <button type="button" class="btn btn-outline btn-sm" data-action="merge-from-drive"><i class="fa fa-code-merge"></i> Mesclar</button>
-      <button type="button" class="btn btn-ghost btn-sm" data-action="pull-from-drive"><i class="fa fa-cloud-download-alt"></i> Baixar</button>
-      <button type="button" class="btn btn-danger btn-sm" data-action="drive-disconnect">Desconectar</button>
-    ` : `
-      <button type="button" class="btn btn-primary btn-sm" data-action="open-drive-modal"><i class="fa fa-cloud"></i> Conectar</button>
-    `;
-  }
-
-  return '';
-}
-
-function renderSyncSourceConflictEntities(conflict) {
-  const items = Array.isArray(conflict?.items) ? conflict.items : [];
-  if (items.length === 0) return '';
-  return `
-    <div class="sync-conflict-entities sync-conflict-entities--compact" data-testid="sync-source-conflict-entities">
-      <div class="sync-conflict-entities-title">Entidades afetadas (${conflict.total || items.length})</div>
-      ${items.slice(0, 6).map(item => `
-        <div class="sync-conflict-entity">
-          <span>${esc(item.collection || 'entidade')}</span>
-          <code>${esc(item.id || item.key || 'sem-id')}</code>
-          <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
-          <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
-          <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
-        </div>
-      `).join('')}
-      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-open-conflict-review" style="margin-top:8px;">
-        <i class="fa fa-magnifying-glass"></i> Revisar entidades
-      </button>
-    </div>
-  `;
-}
-
-export function renderEntityConflictReview(conflict) {
-  const items = Array.isArray(conflict?.items) ? conflict.items : [];
-  return `
-    <div class="modal-content" data-testid="entity-conflict-review">
-      <div class="modal-header">
-        <h3>Revisar conflito Firestore</h3>
-        <button type="button" class="icon-btn" data-action="close-modal" data-modal="modal-prompt"><i class="fa fa-xmark"></i></button>
-      </div>
-      <div class="modal-body">
-        ${items.map((item) => `
-          <div class="sync-conflict-entity-review-row">
-            <strong>${esc(item.collection || 'entidade')}</strong>
-            <code>${esc(item.id || item.key || 'sem-id')}</code>
-            <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
-            <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
-          </div>
-        `).join('')}
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" data-action="firestore-export-local">Exportar local</button>
-        <button type="button" class="btn btn-primary" data-action="firestore-pull-remote">Baixar Firestore</button>
-        <button type="button" class="btn btn-danger" data-action="firestore-force-push">Enviar local</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderSyncCenterCard() {
-  const model = buildSyncCenterModel({
-    state,
-    firestoreStatus: window.EstudoApp?.getFirestoreSyncStatus?.() || {}
-  });
-  const attention = model.needsAttention
-    ? '<div class="config-desc sync-center-attention"><i class="fa fa-triangle-exclamation"></i> Ha uma decisao pendente. Use Mesclar, Baixar ou Enviar local no destino indicado.</div>'
-    : '<div class="config-desc">Firestore e a rota principal entre dispositivos. Cloudflare e Drive permanecem como backups manuais para recuperacao.</div>';
-
-  return `
-    <div class="card config-card sync-center-card" data-testid="sync-center">
-      <div class="card-header">
-        <h3><i class="fa fa-arrows-rotate"></i> Central de Sincronizacao</h3>
-      </div>
-      <div class="card-body">
-        ${attention}
-        <div class="sync-center-summary">
-          <div><span>Ultimo local</span><strong>${formatBackupDateTime(model.newestLocalAt)}</strong></div>
-          <div><span>Remoto mais recente</span><strong>${formatBackupDateTime(model.newestRemoteAt)}</strong></div>
-          <div><span>Fonte primaria</span><strong>Firebase</strong></div>
-        </div>
-        <div class="config-actions-row">
-          <button type="button" class="btn btn-primary btn-sm" data-action="sync-center-smart-sync"><i class="fa fa-wand-magic-sparkles"></i> Sincronizar Firestore</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-action="sync-center-export-local"><i class="fa fa-download"></i> Backup local</button>
-        </div>
-        <div class="sync-source-grid">
-          ${model.sources.map(source => `
-            <section class="sync-source-card sync-source-card--${source.health}" data-sync-source="${source.id}">
-              <div class="sync-source-head">
-                <div>
-                  <div class="sync-source-title">${esc(source.title)} ${source.primary ? '<span class="badge badge-success">Primario</span>' : ''}</div>
-                  <div class="sync-source-sub">${esc(source.label)}</div>
-                </div>
-                <span class="sync-health sync-health--${source.health}">
-                  <i class="fa ${getSyncHealthIcon(source.health)}"></i> ${getSyncHealthLabel(source.health)}
-                </span>
-              </div>
-              <div class="sync-source-meta">
-                <div><span>Ultimo sync</span><strong>${formatBackupDateTime(source.lastSyncAt)}</strong></div>
-                <div><span>Remoto</span><strong>${formatBackupDateTime(source.remoteAt)}</strong></div>
-                <div><span>Estado</span><strong>${source.pending ? 'Pendente' : source.enabled ? 'Ativo' : 'Inativo'}</strong></div>
-              </div>
-              ${source.conflict ? `<div class="sync-source-note">Conflito detectado em ${formatBackupDateTime(source.conflict.detectedAt)}.</div>` : ''}
-              ${source.conflict ? renderSyncSourceConflictEntities(source.conflict) : ''}
-              ${source.entityShadowDiff && !source.entityShadowDiff.ok
-                ? `<div class="sync-source-note sync-source-note--error">Shadow divergiu: ${source.entityShadowDiff.missing.length} ausentes, ${source.entityShadowDiff.divergent.length} divergentes.</div>`
-                : ''}
-              ${source.lastError ? `<div class="sync-source-note sync-source-note--error">${esc(source.lastError)}</div>` : ''}
-              <div class="sync-source-actions">${renderSyncSourceActions(source)}</div>
-            </section>
-          `).join('')}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-export function renderConfig(el) {
-  const cfg = state.config;
-  const saveStatus = getLastSaveStatus();
-  const saveStatusText = saveStatus.status === 'error'
-    ? `Falha ao salvar: ${esc(saveStatus.detail || 'erro desconhecido')}`
-    : saveStatus.status === 'saving'
-      ? 'Salvando alterações no dispositivo...'
-      : 'Último salvamento local concluído. Credenciais não entram em backup/exportação.';
-  const activeTheme = normalizeTheme(cfg.tema, cfg.darkMode);
-  const themeOptionsHtml = THEME_OPTIONS
-    .map(theme => `<option value="${theme.value}" ${activeTheme === theme.value ? 'selected' : ''}>${theme.label}</option>`)
-    .join('');
-  el.innerHTML = `
-    <div class="config-grid">
-      <div>
-        <div class="card config-card">
-          <div class="card-header"><h3>🎨 Aparência</h3></div>
-          <div class="card-body">
-            <div class="config-row">
-              <div>
-                <div class="config-label">Tema Visual</div>
-                <div class="config-sub">Personalize a aparência do seu sistema</div>
-              </div>
-              <select class="form-control config-select" data-action="set-theme">
-                ${themeOptionsHtml}
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="card config-card">
-          <div class="card-header"><h3>⚖️ Calendário</h3></div>
-          <div class="card-body">
-            <div class="config-row">
-              <div>
-                <div class="config-label">Visualização padrão</div>
-                <div class="config-sub">Modo inicial do calendário</div>
-              </div>
-              <select class="form-control config-select--narrow" data-action="update-config" data-config-key="visualizacao">
-                <option value="mes" ${cfg.visualizacao === 'mes' ? 'selected' : ''}>Mês</option>
-                <option value="semana" ${cfg.visualizacao === 'semana' ? 'selected' : ''}>Semana</option>
-              </select>
-            </div>
-            <div class="config-row">
-              <div>
-                <div class="config-label">Primeiro dia da semana</div>
-              </div>
-              <select class="form-control config-select--medium" data-action="update-config" data-config-key="primeirodiaSemana" data-value-type="number">
-                <option value="0" ${cfg.primeirodiaSemana === 0 ? 'selected' : ''}>Domingo</option>
-                <option value="1" ${cfg.primeirodiaSemana === 1 ? 'selected' : ''}>Segunda-feira</option>
-              </select>
-            </div>
-            <div class="config-row">
-              <div>
-                <div class="config-label">Número da semana</div>
-              </div>
-              <button type="button" class="toggle ${cfg.mostrarNumeroSemana ? 'on' : ''}" aria-pressed="${cfg.mostrarNumeroSemana ? 'true' : 'false'}" aria-label="Mostrar número da semana" data-action="toggle-config" data-config-key="mostrarNumeroSemana"></button>
-            </div>
-            <div class="config-row">
-              <div>
-                <div class="config-label">Agrupar eventos no dia</div>
-                <div class="config-sub">Limita quantidade visível</div>
-              </div>
-              <button type="button" class="toggle ${cfg.agruparEventos ? 'on' : ''}" aria-pressed="${cfg.agruparEventos ? 'true' : 'false'}" aria-label="Agrupar eventos no dia" data-action="toggle-config" data-config-key="agruparEventos"></button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card config-card">
-          <div class="card-header"><h3>⏱️ Temporizador</h3></div>
-          <div class="card-body">
-            <div class="config-row">
-              <div>
-                <div class="config-label">Foco do Pomodoro (min)</div>
-                <div class="config-sub">Tempo ininterrupto de estudo</div>
-              </div>
-              <input type="number" class="form-control config-input-number" min="1" max="120" value="${cfg.pomodoroFoco || 25}" data-action="update-config" data-config-key="pomodoroFoco" data-value-type="number">
-            </div>
-            <div class="config-row">
-              <div>
-                <div class="config-label">Pausa do Pomodoro (min)</div>
-                <div class="config-sub">Intervalo de descanso</div>
-              </div>
-              <input type="number" class="form-control config-input-number" min="1" max="60" value="${cfg.pomodoroPausa || 5}" data-action="update-config" data-config-key="pomodoroPausa" data-value-type="number">
-            </div>
-          </div>
-        </div>
-
-        <div class="card config-card">
-          <div class="card-header"><h3>📚 Planejamento Diário</h3></div>
-          <div class="card-body">
-            <div class="config-row">
-              <div>
-                <div class="config-label">Matérias por dia no Ciclo</div>
-                <div class="config-sub">Quantidade de disciplinas distribuídas diariamente no calendário/MED.</div>
-              </div>
-              <input type="number" class="form-control config-input-number" min="1" max="15" value="${cfg.materiasPorDia || 3}" data-action="update-config" data-config-key="materiasPorDia" data-value-type="number">
-            </div>
-          </div>
-        </div>
-
-        <div class="card config-card">
-          <div class="card-header"><h3>🔄 Frequência de Revisão</h3></div>
-          <div class="card-body">
-            <div class="config-desc">
-              Defina em quantos dias após concluir um assunto o programa vai sugerir cada revisão.
-            </div>
-            <div class="form-group">
-              <label class="form-label">Intervalos (em dias, separados por vírgula)</label>
-              <input type="text" class="form-control" id="freq-input" value="${(cfg.frequenciaRevisao || [1, 7, 30, 90]).join(', ')}"
-                data-action="update-frequencia">
-            </div>
-            <div class="config-hint">Ex: 1, 7, 30, 90 = 4 revisões no 1º, 7º, 30º e 90º dia</div>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        ${renderSyncCenterCard()}
-
-        <div class="card config-card">
-          <div class="card-header"><h3><i class="fa fa-cloud"></i> Sincronização Cloudflare (Secundária)</h3></div>
-          <div class="card-body">
-            <div class="config-desc">Sincronização em tempo real de baixíssima latência entre dispositivos via Cloudflare KV.</div>
-
-            ${renderCloudflareConflict(cfg.cfConflict)}
-
-            <div class="form-group config-input-group">
-              <label class="form-label">URL do Cloudflare Worker (API)</label>
-              <input type="url" id="config-cf-url" class="form-control" placeholder="Ex: https://estudo-sync-api.xxxx.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
-            </div>
-
-            <div class="form-group config-input-group">
-              <label class="form-label">Token de Acesso (Auth Token)</label>
-              <div class="config-input-group">
-                  <input type="password" id="config-cf-token" class="form-control" placeholder="${cfg.cfTokenSaved ? 'Token salvo em credenciais locais' : 'Sua senha secreta do Worker'}" value="" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
-                  <button type="button" class="btn btn-outline" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/Esconder Senha"><i class="fa fa-eye"></i></button>
-              </div>
-            </div>
-            
-            <div class="config-toggle-row">
-                <label class="btn ${cfg.cfSyncEnabled ? 'btn-primary' : 'btn-outline'}">
-                    <input type="checkbox" id="config-cf-enabled" data-action="toggle-cf-sync" ${cfg.cfSyncEnabled ? 'checked' : ''}>
-                    <i class="fa fa-power-off"></i> <span id="cf-sync-toggle-text">${cfg.cfSyncEnabled ? 'Sincronização Ativada' : 'Ativar Sincronização'}</span>
-                </label>
-                <button type="button" class="btn btn-outline" data-action="force-cloudflare-sync" id="btn-force-cf-sync"><i class="fa fa-sync"></i> Forçar Sincronização Agora</button>
-            </div>
-            <p id="cf-sync-status" class="config-status"></p>
-          </div>
-        </div>
-
-        <div class="card config-card">
-          <div class="card-header"><h3>😁️ Google Drive</h3></div>
-          <div class="card-body">
-            <div class="flex cluster-md mb-4">
-              <div class="config-emoji-icon">😁️</div>
-              <div>
-                <div class="config-title">${state.driveFileId ? 'Conectado ao Google Drive' : 'Não conectado'}</div>
-                <div class="config-subtitle">${state.driveFileId ? 'Seus dados são sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
-              </div>
-            </div>
-            ${state.driveFileId ? `
-              <div class="config-actions-row">
-                <button class="btn btn-primary btn-sm" data-action="drive-sync-now">
-                  <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
-                </button>
-                <button class="btn btn-ghost btn-sm" data-action="pull-from-drive">
-                  <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
-                </button>
-                <button class="btn btn-danger btn-sm" data-action="drive-disconnect">Desconectar</button>
-              </div>
-            ` : `
-              <button class="btn btn-primary" data-action="open-drive-modal">
-                <i class="fa fa-cloud"></i> Conectar ao Google Drive
-              </button>
-            `}
-          </div>
-        </div>
-
-        <div class="card config-card">
-          <div class="card-header"><h3>🔖 Notificações</h3></div>
-          <div class="card-body">
-            <div class="config-row">
-              <div>
-                <div class="config-label">Notificações do browser</div>
-                <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '🚫 Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
-              </div>
-              ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
-                <button class="btn btn-primary btn-sm" data-action="request-notification-permission">🔖 Ativar</button>
-              ` : Notification.permission === 'granted' ? `
-                <button class="btn btn-ghost btn-sm" data-action="test-notification">🔖 Testar</button>
-              ` : ''}
-            </div>
-            <div class="config-row">
-              <div>
-                <div class="config-label">Modo Silencioso (Início)</div>
-                <div class="config-sub">A partir de qual horário silenciar:</div>
-              </div>
-              <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeStart ?? 22}" data-action="update-config" data-config-key="silentModeStart" data-value-type="number">
-            </div>
-            
-            <div class="config-row">
-              <div>
-                <div class="config-label">Modo Silencioso (Fim)</div>
-                <div class="config-sub">Até qual horário silenciar:</div>
-              </div>
-              <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeEnd ?? 8}" data-action="update-config" data-config-key="silentModeEnd" data-value-type="number">
-            </div>
-          </div>
-        </div>
-
-        <div class="card config-card">
-          <div class="card-header"><h3>💾 Dados</h3></div>
-          <div class="card-body">
-            <div class="config-sub">
-              ${state.eventos.length} evento(s) ativos
-              ${(state.arquivo || []).length > 0 ? ` • ${state.arquivo.length} arquivado(s)` : ''}
-            </div>
-
-            <div id="config-save-status-detail" class="config-save-status config-save-status--${saveStatus.status || 'saved'}">
-              ${saveStatusText}
-            </div>
-
-            <div class="grid config-backup-grid">
-              <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
-              <div class="flex flex-between"><span>Backup Firestore:</span><strong>${formatBackupDateTime(state.config.firestoreSync?.remoteUpdatedAt)}</strong></div>
-              <div class="flex flex-between"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
-              <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>
-            </div>
-
-            <div class="form-group mb-3">
-              <label class="form-label">Origem do backup para restauração</label>
-              <select id="backup-restore-source" class="form-control">
-                <option value="local">Backup local (importar arquivo JSON)</option>
-                <option value="firestore">Firestore</option>
-                <option value="cloudflare">Cloudflare</option>
-                <option value="drive">Google Drive</option>
-              </select>
-            </div>
-
-            <div class="flex flex-wrap gap-sm">
-              <button class="btn btn-ghost" data-action="export-data">📱 Exportar JSON</button>
-              <button class="btn btn-ghost" data-action="restore-backup">♻️ Restaurar backup selecionado</button>
-              <button class="btn btn-ghost btn-sm" data-action="archive-old-events" data-days="90" title="Move eventos concluidos há mais de 90 dias para o arquivo">🙉 Arquivar antigos</button>
-              <button class="btn btn-danger btn-sm" data-action="clear-all-data">🙆 Limpar tudo</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><h3>🔄 Service Worker</h3></div>
-          <div class="card-body">
-            <div class="config-desc" style="margin-bottom:12px;">
-              Limpe o cache do service worker e force o carregamento da versão mais recente. Útil quando há problemas de cache após atualizações.
-            </div>
-            <button class="btn btn-primary btn-sm" data-action="force-sw-cache-clear">
-              🔄 Limpar cache e recarregar
-            </button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><h3>ℹ️ Sobre</h3></div>
-          <div class="card-body">
-            <div class="config-desc">
-              <strong>Estudo Organizado</strong> é um app para planejamento e organização de estudos para concursos públicos.<br><br>
-              Baseado no Ciclo PDCA: planeje no Calendário, execute no Study Organizer, meça no Dashboard e corrija com as Revisões.<br><br>
-              <span class="text-xs text-muted">Versão 1.0 • Dados salvos localmente + Google Drive</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-export function setTheme(themeName) {
-  const theme = normalizeTheme(themeName, state.config.darkMode);
-  state.config.tema = theme;
-  state.config.darkMode = true;
-  state.config.lastTheme = theme;
-  applyTheme();
-  scheduleSave();
-  renderCurrentView();
-}
-
-export function updateConfig(key, value) {
-  if (key === 'cfToken') {
-    delete state.config.cfToken;
-    state.config.cfTokenSaved = Boolean(value) || Boolean(state.config.cfTokenSaved);
-    if (value && typeof window.EstudoApp?.setSyncCreds === 'function') {
-      window.EstudoApp.setSyncCreds({
-        url: state.config.cfUrl || '',
-        token: value,
-        enabled: state.config.cfSyncEnabled
-      }).catch(err => console.error('Erro ao salvar credencial Cloudflare:', err));
-    }
-    scheduleSave();
-    return;
-  }
-
-  state.config[key] = value;
-  if (key === 'cfUrl') {
-    const token = document.getElementById('config-cf-token')?.value?.trim();
-    if ((token || state.config.cfTokenSaved) && typeof window.EstudoApp?.setSyncCreds === 'function') {
-      window.EstudoApp.setSyncCreds({
-        url: value,
-        token: token || undefined,
-        enabled: state.config.cfSyncEnabled
-      }).catch(err => console.error('Erro ao salvar credencial Cloudflare:', err));
-    }
-    scheduleSave();
-    return;
-  }
-  if (key === 'materiasPorDia') {
-    syncCicloToEventos();
-  }
-  scheduleSave();
-  renderCurrentView();
-}
-
-export function toggleConfig(key, el) {
-  state.config[key] = !state.config[key];
-  el.classList.toggle('on', state.config[key]);
-  scheduleSave();
-}
-
-export async function toggleCfSync(enabled) {
-  if (enabled) {
-    const url = document.getElementById('config-cf-url').value.trim();
-    const token = document.getElementById('config-cf-token').value.trim();
-    if (!url || (!token && !state.config.cfTokenSaved)) {
-      showToast('Preencha a URL do Worker e o Token antes de ativar.', 'error');
-      const checkbox = document.getElementById('config-cf-enabled');
-      if (checkbox) checkbox.checked = false;
-      return;
-    }
-    if ((token || state.config.cfTokenSaved) && typeof window.EstudoApp?.setSyncCreds === 'function') {
-      await window.EstudoApp.setSyncCreds({ url, token: token || undefined, enabled: true });
-    }
-  }
-
-  state.config.cfSyncEnabled = enabled;
-
-  if (enabled && typeof window.EstudoApp?.forceCloudflareSync === 'function') {
-    if (typeof showToast === 'function') showToast('Conectando à nuvem para sincronizar...', 'info');
-    window.EstudoApp.forceCloudflareSync().finally(() => {
-      scheduleSave();
-      renderCurrentView();
-    });
-  } else {
-    scheduleSave();
-    renderCurrentView();
-  }
-}
-
-export function updateFrequencia(value) {
-  const nums = value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
-  if (nums.length > 0) {
-    state.config.frequenciaRevisao = nums;
-    scheduleSave();
-  }
-}
-
-export function openDriveModal() {
-  openModal('modal-drive');
-  const savedId = localStorage.getItem('estudo_drive_client_id');
-  if (savedId) {
-    const input = document.getElementById('drive-client-id');
-    if (input) input.value = savedId;
-  }
-}
-
-export function driveDisconnect() {
-  // Delegate to the proper disconnectDrive in drive-sync.js which revokes the OAuth token
-  if (typeof window.disconnectDrive === 'function') {
-    window.disconnectDrive();
-  } else {
-    // Fallback: just clear local state
-    state.driveFileId = null;
-    state.lastSync = null;
-    scheduleSave();
-    renderCurrentView();
-    showToast('Google Drive desconectado', 'info');
-  }
-}
-
-// Fix 7: Move concluded events older than N days into state.arquivo.
-// Archived events are excluded from all renders/filters but kept in export/Drive sync.
-export function archiveOldEvents(days = 90) {
-  const cutoffStr = cutoffDateStr(days);
-  const toArchive = state.eventos.filter(e => e.status === 'estudei' && e.data && e.data < cutoffStr);
-  if (toArchive.length === 0) {
-    showToast('Nenhum evento para arquivar.', 'info');
-    return;
-  }
-  showConfirm(
-    `Arquivar ${toArchive.length} evento(s) concluido(s) com mais de ${days} dias?\n\nEles continuarão no export/backup, mas não aparecerão nos relatórios.`,
-    () => {
-      state.arquivo = [...(state.arquivo || []), ...toArchive];
-      const archiveIds = new Set(toArchive.map(e => e.id));
-      state.eventos = state.eventos.filter(e => !archiveIds.has(e.id));
-      scheduleSave();
-      renderCurrentView();
-      showToast(`${toArchive.length} evento(s) arquivados.`, 'success');
-    },
-    { label: 'Arquivar', title: `Arquivar eventos (>${days} dias)` }
-  );
-}
-
-export function exportData() {
-  const blob = new Blob([JSON.stringify(createExportableState(), null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `estudo-organizado-backup-${todayStr()}.json`;
-  a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
-  showToast('Dados exportados!', 'success');
-}
-
-export function importData() {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = '.json';
-  input.className = 'sr-only';
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) {
-      input.remove();
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const imported = JSON.parse(ev.target.result);
-        // Validate JSON structure to prevent data corruption
-        if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
-          showToast('Arquivo inválido! O JSON não contém um objeto de dados válido.', 'error');
-          return;
-        }
-        const hasValidStructure = (
-          (Array.isArray(imported.editais) || imported.editais === undefined) &&
-          (Array.isArray(imported.eventos) || imported.eventos === undefined) &&
-          (typeof imported.config === 'object' || imported.config === undefined)
-        );
-        if (!hasValidStructure) {
-          showToast('Arquivo inválido! Este JSON não parece ser um backup do Estudo Organizado.', 'error');
-          return;
-        }
-        showConfirm(
-          `Importar dados de "${file.name}"?\n\nIsso substituirá todos os dados atuais. Faça um export antes para garantir o backup.`,
-          () => {
-            setState(imported);
-            runMigrations();
-            invalidateDiscCache();
-            invalidateDashCaches();
-            invalidateRevCache();
-            invalidateTodayCache();
-            scheduleSave();
-            renderCurrentView();
-            showToast('Dados importados com sucesso!', 'success');
-          },
-          { label: 'Importar', title: 'Importar dados' }
-        );
-      } catch (err) {
-        showToast('Arquivo inválido! Verifique se é um JSON de backup do Estudo Organizado.', 'error');
-      }
-    };
-    reader.onloadend = () => {
-      input.remove();
-    };
-    reader.readAsText(file);
-  };
-  document.body.appendChild(input);
-  input.click();
-}
-
-
-export function restoreBackupFromSelectedSource() {
-  const source = document.getElementById('backup-restore-source')?.value || 'local';
-
-  if (source === 'local') {
-    importData();
-    return;
-  }
-
-  if (source === 'firestore') {
-    if (!state.config?.firestoreSync?.enabled) {
-      showToast('Ative o Firestore e entre com Google antes de restaurar por ele.', 'error');
-      return;
-    }
-
-    showConfirm(
-      'Restaurar os dados do Firestore? Isso substituirá os dados locais atuais.',
-      () => {
-        if (typeof window.EstudoApp?.pullFromFirestore === 'function') {
-          window.EstudoApp.pullFromFirestore(true);
-        }
-      },
-      { label: 'Restaurar Firestore', title: 'Restaurar backup' }
-    );
-    return;
-  }
-
-  if (source === 'cloudflare') {
-    if (!state.config?.cfSyncEnabled || !state.config?.cfUrl || (!state.config?.cfToken && !state.config?.cfTokenSaved)) {
-      showToast('Configure a sincronização Cloudflare antes de restaurar por ela.', 'error');
-      return;
-    }
-
-    showConfirm(
-      'Restaurar os dados da Cloudflare? Isso substituirá os dados locais atuais.',
-      () => {
-        if (typeof window.EstudoApp?.pullFromCloudflare === 'function') {
-          window.EstudoApp.pullFromCloudflare(true);
-        }
-      },
-      { label: 'Restaurar Cloudflare', title: 'Restaurar backup' }
-    );
-    return;
-  }
-
-  if (source === 'drive') {
-    if (!state.driveFileId) {
-      showToast('Conecte o Google Drive antes de restaurar por ele.', 'error');
-      return;
-    }
-
-    showConfirm(
-      'Restaurar os dados do Google Drive? Isso substituirá os dados locais atuais.',
-      () => {
-        if (typeof window.pullFromDrive === 'function') {
-          window.pullFromDrive().catch(err => console.error('Erro ao restaurar do Drive:', err));
-        }
-      },
-      { label: 'Restaurar Drive', title: 'Restaurar backup' }
-    );
-  }
-}
-
-export function clearAllData() {
-  showConfirm(
-    '⚠️ Apagar TODOS os dados permanentemente?\n\nEditais, eventos, hábitos e configurações serão removidos.\n\nEsta ação é irreversível.',
-    () => {
-      showConfirm(
-        'Última confirmação: isso não pode ser desfeito.',
-        () => {
-          window.clearData(); // usa clearData() do store.js que limpa IndexedDB
-        },
-        { danger: true, label: 'Apagar tudo definitivamente', title: '⚠️ Confirmação final' }
-      );
-    },
-    { danger: true, label: 'Continuar com exclusão', title: '⚠️ Apagar todos os dados' }
-  );
-}
+// Event modal functions moved to ui/event-modals.js
+// Re-exported below
 
 // =============================================
 // UX 3 — DRAG AND DROP ASSUNTOS
@@ -3619,217 +1774,8 @@ export function dndDrop(event, discId, targetIdx) {
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 });
 
-// =============================================
-// UX 1 — GLOBAL SEARCH
-// =============================================
-export let searchBlurTimeout = null;
-
-let _searchDebounceTimer = null;
-export function debouncedOnSearch(query) {
-  if (_searchDebounceTimer) clearTimeout(_searchDebounceTimer);
-  _searchDebounceTimer = setTimeout(() => {
-    onSearch(query);
-  }, 300);
-}
-window.debouncedOnSearch = debouncedOnSearch;
-
-export function onSearch(query) {
-  const box = document.getElementById('search-results');
-  const input = document.getElementById('global-search');
-  if (!box || !input) return;
-
-  if (!query || query.length < 2) {
-    box.classList.remove('open');
-    input.setAttribute('aria-expanded', 'false');
-    return;
-  }
-
-  const q = query.toLowerCase();
-  const results = { eventos: [], disciplinas: [], assuntos: [], habitos: [] };
-
-  // Search eventos
-  state.eventos.forEach(ev => {
-    if (ev.titulo.toLowerCase().includes(q)) {
-      const disc = ev.discId ? getDisc(ev.discId)?.disc : null;
-      results.eventos.push({ ev, disc });
-    }
-  });
-
-  // Search disciplinas (deduplicated by id)
-  const seenDiscIds = new Set();
-  getAllDisciplinas().forEach(({ disc, edital }) => {
-    if (disc.nome.toLowerCase().includes(q) && !seenDiscIds.has(disc.id)) {
-      seenDiscIds.add(disc.id);
-      results.disciplinas.push({ disc, edital });
-    }
-    // Search assuntos
-    (disc.assuntos || []).forEach(ass => {
-      if (ass.nome.toLowerCase().includes(q) || disc.nome.toLowerCase().includes(q)) {
-        results.assuntos.push({ ass, disc, edital });
-      }
-    });
-  });
-
-  // Search hábitos
-  HABIT_TYPES.forEach(h => {
-    (state.habitos[h.key] || []).forEach(r => {
-      if ((r.descricao || '').toLowerCase().includes(q)) {
-        results.habitos.push({ r, h });
-      }
-    });
-  });
-
-  const totalResults = results.eventos.length + results.disciplinas.length + results.assuntos.length + results.habitos.length;
-
-  // Announce results to screen readers
-  const announcer = document.getElementById('aria-announcer');
-  if (announcer) {
-    announcer.textContent = `${totalResults} resultado(s) encontrado(s)`;
-  }
-
-  const highlight = str => esc(str).replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
-  let html = '';
-
-  if (results.eventos.length) {
-    html += `<div class="search-section-title" role="presentation">📅 Eventos</div>`;
-    html += results.eventos.slice(0, 5).map(({ ev, disc }) => `
-      <button type="button" class="search-item" data-action="open-search-event" data-event-id="${ev.id}">
-        <div class="search-item-icon">${disc ? disc.icone || '📚' : '📅'}</div>
-        <div>
-          <div class="search-item-label">${highlight(ev.titulo)}</div>
-          <div class="search-item-sub">${ev.data ? formatDate(ev.data) : ''}${disc ? ' • ' + disc.nome : ''}</div>
-        </div>
-      </button>`).join('');
-  }
-
-  if (results.disciplinas.length) {
-    html += `<div class="search-section-title" role="presentation">📖 Disciplinas</div>`;
-    html += results.disciplinas.slice(0, 5).map(({ disc, edital }) => `
-      <button type="button" class="search-item" data-action="navigate-clear-search" data-view="editais">
-        <div class="search-item-icon">${disc.icone || '📖'}</div>
-        <div>
-          <div class="search-item-label">${highlight(disc.nome)}</div>
-          <div class="search-item-sub">${esc(edital.nome)} • ${(disc.assuntos || []).length} assunto(s)</div>
-        </div>
-      </button>`).join('');
-  }
-
-  if (results.assuntos.length) {
-    html += `<div class="search-section-title" role="presentation">📚 Assuntos</div>`;
-    html += results.assuntos.slice(0, 5).map(({ ass, disc, edital }) => `
-      <button type="button" class="search-item" data-action="navigate-clear-search" data-view="editais">
-        <div class="search-item-icon">${disc.icone || '📚'}</div>
-        <div>
-          <div class="search-item-label">${highlight(ass.nome)}</div>
-          <div class="search-item-sub">${esc(disc.nome)} • ${esc(edital.nome)} ${ass.concluido ? '✅' : ''}</div>
-        </div>
-      </button>`).join('');
-  }
-
-  if (results.habitos.length) {
-    html += `<div class="search-section-title" role="presentation">⚡ Hábitos</div>`;
-    html += results.habitos.slice(0, 3).map(({ r, h }) => `
-      <button type="button" class="search-item" data-action="navigate-clear-search" data-view="habitos">
-        <div class="search-item-icon">${h.icon}</div>
-        <div>
-          <div class="search-item-label">${highlight(r.descricao || h.label)}</div>
-          <div class="search-item-sub">${formatDate(r.data)}</div>
-        </div>
-      </button>`).join('');
-  }
-
-  if (!html) html = `<div class="search-empty">Nenhum resultado para "<strong>${query}</strong>"</div>`;
-  box.innerHTML = html;
-  box.classList.add('open');
-  input.setAttribute('aria-expanded', 'true');
-}
-
-export function onSearchFocus() {
-  clearTimeout(searchBlurTimeout);
-  const input = document.getElementById('global-search');
-  const val = input?.value || '';
-  if (val && val.length >= 2) {
-    onSearch(val);
-  }
-}
-
-export function onSearchBlur() {
-  searchBlurTimeout = setTimeout(() => {
-    document.getElementById('search-results')?.classList.remove('open');
-    document.getElementById('global-search')?.setAttribute('aria-expanded', 'false');
-  }, 200);
-}
-
-export function clearSearch() {
-  const input = document.getElementById('global-search');
-  const results = document.getElementById('search-results');
-  if (input) {
-    input.value = '';
-    input.setAttribute('aria-expanded', 'false');
-  }
-  results?.classList.remove('open');
-}
-
-function handleSearchKeydown(e) {
-  const input = document.getElementById('global-search');
-  const results = document.getElementById('search-results');
-  if (!input || !results || !results.classList.contains('open')) return false;
-
-  const active = document.activeElement;
-  const isInsideSearch = active === input || results.contains(active);
-  if (!isInsideSearch) return false;
-
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    clearSearch();
-    input.focus();
-    return true;
-  }
-
-  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return false;
-
-  const buttons = [...results.querySelectorAll('button.search-item')];
-  if (buttons.length === 0) return false;
-
-  e.preventDefault();
-  const currentIndex = buttons.indexOf(active);
-  const nextIndex = e.key === 'ArrowDown'
-    ? (currentIndex + 1) % buttons.length
-    : (currentIndex <= 0 ? buttons.length - 1 : currentIndex - 1);
-
-  buttons[nextIndex].focus();
-  return true;
-}
-
-// ESC closes search
-addCleanupListener(document, 'keydown', e => {
-  if (handleSearchKeydown(e)) return;
-  // Fix H: ESC — close the topmost open modal, or clear search
-  if (e.key === 'Escape') {
-    const openModals = [...document.querySelectorAll('.modal-overlay.open')];
-    if (openModals.length > 0) {
-      const top = openModals[openModals.length - 1];
-      if (top.id === 'modal-confirm') {
-        // cancel callback handled by app.js
-      }
-      closeModal(top.id);
-    } else {
-      clearSearch();
-    }
-  }
-
-  // Fix H: Enter submits the active modal form (not inside textarea)
-  if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
-    const openModal = document.querySelector('.modal-overlay.open:not(#modal-confirm):not(#modal-event-detail)');
-    if (openModal) {
-      const saveBtn = openModal.querySelector('button[onclick*="save"], button[onclick*="Save"], button.btn-primary');
-      if (saveBtn && !saveBtn.disabled) {
-        e.preventDefault();
-        saveBtn.click();
-      }
-    }
-  }
-});
+// Search functions moved to ui/search.js
+// Re-exported below
 
 
 export function openCicloHistory(seqId) {
@@ -3863,14 +1809,11 @@ export function openCicloHistory(seqId) {
     `;
   }
 
-  let htmlHistorico = '';
-  if (eventosDisc.length === 0) {
-    htmlHistorico = `<div class="ciclo-history-empty">Nenhuma sessão de estudo registrada ainda.</div>`;
-  } else {
-    htmlHistorico = `
+  const htmlHistorico = eventosDisc.length === 0
+    ? '<div class="ciclo-history-empty">Nenhuma sessão de estudo registrada ainda.</div>'
+    : `
       <div class="flex flex-col gap-sm">
-        ${eventosDisc.map(ev => {
-      return `
+        ${eventosDisc.map(ev => `
             <div class="card ciclo-history-session-card">
               <div>
                 <div class="ciclo-history-session-title">
@@ -3887,11 +1830,9 @@ export function openCicloHistory(seqId) {
                 <button class="btn btn-ghost btn-sm" data-action="open-event-from-ciclo-history" data-event-id="${ev.id}"><i class="fa fa-edit"></i> Editar</button>
               </div>
             </div>
-          `;
-    }).join('')}
+          `).join('')}
       </div>
     `;
-  }
 
   if (bodyEl) {
     bodyEl.innerHTML = `
@@ -3905,13 +1846,6 @@ export function openCicloHistory(seqId) {
 
   openModal('modal-ciclo-history');
 }
-window.openCicloHistory = openCicloHistory;
-
-// Global exports for Disc Dashboard
-window.openDiscDashboard = openDiscDashboard;
-window.closeDiscDashboard = closeDiscDashboard;
-window.addEventoParaAssunto = addEventoParaAssunto;
-window.setTheme = setTheme;
 
 export function filtrarDropdownBanca(termo) {
   termo = termo.toLowerCase().trim();
@@ -3923,4 +1857,3 @@ export function filtrarDropdownBanca(termo) {
     opt.style.display = visible ? '' : 'none';
   });
 }
-window.filtrarDropdownBanca = filtrarDropdownBanca;

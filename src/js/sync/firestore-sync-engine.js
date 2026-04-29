@@ -26,6 +26,7 @@ import {
 } from './firestore-entity-outbox.js?v=8.29';
 import { readFirestoreEntityDocuments, writeFirestoreEntityDocuments } from './firestore-repository.js?v=8.29';
 import { compareSnapshotManifestToEntityDocs } from './entity-shadow-verifier.js?v=8.29';
+import { visitTrackedEntities } from './entity-metadata.js?v=8.29';
 
 let currentUser = null;
 let authUnsubscribe = null;
@@ -135,7 +136,7 @@ function startFirestoreRemoteWatch() {
     uid,
     (remote) => {
       applyRemoteSnapshotFromWatch(remote).catch((err) => {
-        const config = getConfig();
+  const config = getConfig();
         config.lastError = err.message || String(err);
         persistSyncConfig(false).catch(() => {});
         emitStatus('error', { error: config.lastError });
@@ -167,7 +168,7 @@ export function getFirestoreSyncStatus() {
 
 export function initFirestoreSync() {
   const services = initFirebaseServices();
-  const config = getConfig();
+  const _config = getConfig();
 
   if (!services.configured) {
     emitStatus('unconfigured', { config: { lastError: null } });
@@ -333,7 +334,7 @@ export async function flushFirestoreEntityOutbox(options = {}) {
 }
 
 export async function verifyFirestoreEntityShadow() {
-  const config = getConfig();
+  const _config = getConfig();
   const { db, uid } = requireSignedInServices();
   const snapshot = await readFirestoreSnapshot(db, uid);
   const entityDocs = await readFirestoreEntityDocuments(db, uid);
@@ -782,4 +783,66 @@ export async function mergeFromFirestore() {
     emitStatus('error', { error: config.lastError });
     return false;
   }
+}
+
+export async function resolveEntityConflict(entityKey, decision) {
+  const config = getConfig();
+  const conflict = config.conflict;
+  if (!conflict || !Array.isArray(conflict.items)) return false;
+
+  const itemIndex = conflict.items.findIndex(item => (item.key || `${item.collection}/${item.id}`) === entityKey);
+  if (itemIndex === -1) return false;
+
+  const item = conflict.items[itemIndex];
+  const { collection, id } = item;
+
+  if (decision === 'remote') {
+    try {
+      const { db, uid } = requireSignedInServices();
+      const remote = await readFirestoreSnapshot(db, uid);
+      if (!remote || !remote.payload) return false;
+
+      const remoteEntities = visitTrackedEntities(remote.payload);
+      const remoteEntityRecord = remoteEntities.find(r => r.collection === collection && r.id === id);
+      if (!remoteEntityRecord) return false;
+
+      const localEntities = visitTrackedEntities(state);
+      const localRecord = localEntities.find(r => r.collection === collection && r.id === id);
+
+      if (localRecord) {
+        const collectionArray = state[collection];
+        if (Array.isArray(collectionArray)) {
+          const localIndex = collectionArray.findIndex(e => (e.id || e.uid) === id);
+          if (localIndex !== -1) {
+            collectionArray[localIndex] = remoteEntityRecord.entity;
+          }
+        } else if (collection.startsWith('habitos.')) {
+          const habitType = collection.replace('habitos.', '');
+          if (state.habitos && Array.isArray(state.habitos[habitType])) {
+            const habitArray = state.habitos[habitType];
+            const habitIndex = habitArray.findIndex(e => (e.id || e.uid) === id);
+            if (habitIndex !== -1) {
+              habitArray[habitIndex] = remoteEntityRecord.entity;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch remote entity for conflict resolution:', err);
+      return false;
+    }
+  }
+
+  conflict.items.splice(itemIndex, 1);
+  conflict.total = conflict.items.length;
+
+  if (conflict.total === 0) {
+    config.conflict = null;
+    await clearFirestoreConflict();
+  } else {
+    await saveFirestoreConflict(conflict);
+  }
+
+  await saveStateToDB(true, true, true, { touchLocalBackup: false });
+  return true;
 }

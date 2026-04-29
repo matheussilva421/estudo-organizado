@@ -191,11 +191,20 @@ Comandos disponíveis:
 
 - `npm test` - executa os testes unitários com Vitest
 - `npm run test:unit` - alias explícito para os unitários
+- `npm run test:watch` - executa testes em modo watch
 - `npm run test:e2e` - executa os testes end-to-end com Playwright
 - `npm run test:e2e:ui` - abre o runner visual do Playwright
 - `npm run test:all` - executa unitários e E2E em sequência
 
-CI: `.github/workflows/ci.yml` executa `npm ci`, `npm run test:unit` e `npm run test:e2e` em push e pull request para `main`.
+### Qualidade de Código
+
+- `npm run lint` - verifica problemas com ESLint
+- `npm run lint:fix` - corrige problemas automaticamente
+- `npm run format` - formata código com Prettier
+- `npm run format:check` - verifica formatação sem alterar arquivos
+- `npm run ci` - pipeline completo (lint + format + test)
+
+CI: `.github/workflows/ci.yml` executa `npm ci`, `npm run lint`, `npm run format:check` e `npm test` em push e pull request para `main`.
 
 ### Documentação Técnica
 
@@ -274,13 +283,27 @@ src/
 ├── css/
 │   └── styles.css             # Design system (~3000 linhas)
 └── js/
-    ├── main.js                # Entry point — expõe 14 módulos ao window
+    ├── main.js                # Entry point — inicializa módulos e expõe EstudoApp
     ├── store.js               # Estado global + IndexedDB + migrações (v1→v7)
     ├── app.js                 # Navegação, modais, toasts, temas
     ├── logic.js               # Timer engine, dashboard stats, revisões, ciclo
-    ├── views.js               # Renderização de 11 views (~4600 linhas, 155 funções)
     ├── components.js          # Event cards, cronômetro, badges
     ├── utils.js               # Formatação, escape, cache, HABIT_TYPES
+    ├── views/
+    │   ├── config-view.js     # Configurações, sync center, data management
+    │   ├── home-view.js       # Dashboard principal (landing page)
+    │   ├── ciclo-view.js      # Ciclo de estudos e planejamento
+    │   ├── editais-view.js    # Editais, disciplinas, assuntos
+    │   ├── habitos-view.js    # Hábitos e histórico
+    │   ├── dashboard-view.js  # Dashboard por disciplina
+    │   └── banca-view.js      # Análise de banca
+    ├── ui/
+    │   ├── search.js          # Busca global com debounce e navegação por teclado
+    │   ├── event-modals.js    # Modais de evento (criar, editar, detalhe)
+    │   └── actions/           # Handlers de ações delegadas
+    ├── sync/
+    │   ├── sync-center.js     # Central de sincronização
+    │   └── sync-coordinator.js# Coordenador de sync local-first
     ├── registro-sessao.js     # Modal de registro pós-estudo
     ├── planejamento-wizard.js # Wizard 4 etapas (Ciclo/Semanal)
     ├── relevance.js           # NLP engine (tokenize, Levenshtein, fuzzy match)
@@ -291,18 +314,24 @@ src/
 ```
 
 ### Stack Técnica
-- **Zero frameworks** — Vanilla JS ES Modules (~8500 linhas)
+- **Zero frameworks** — Vanilla JS ES Modules com arquitetura modular
 - **IndexedDB** — Persistência local com fallback `localStorage`
 - **Chart.js 4.4** — Gráficos interativos do Dashboard
 - **Font Awesome 6.4** — Iconografia
 - **Plus Jakarta Sans** — Tipografia
 - **PWA** — Service Worker + Manifest para instalação nativa e modo offline
+- **ESLint + Prettier** — Linting e formatação automatizados
+- **Vitest + Playwright** — Testes unitários e E2E
 
 ### Estado Atual de Engenharia
 
-- suíte automatizada inicial configurada com **Vitest** e **Playwright**
-- documentação técnica em consolidação dentro de `src/docs/`
-- arquitetura ainda em processo de modularização, com grande concentração em `views.js` e `styles.css`
+- suíte automatizada com **Vitest** (393 testes passando) e **Playwright** para E2E
+- **ESLint** e **Prettier** configurados para lint e formatação automáticos
+- **CI/CD** via GitHub Actions (lint, format check, testes em push/PR)
+- `views.js` modularizado em `views/` e `ui/` para melhor manutenibilidade
+- Busca global com debounce, navegação por teclado e acessibilidade (aria-labels)
+- Dashboard com filtros de período estendidos (7d, 15d, 30d, 3m, 1a, total)
+- Documentação técnica em `src/docs/`
 
 ---
 

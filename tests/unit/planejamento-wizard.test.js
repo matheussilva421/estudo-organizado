@@ -1,0 +1,238 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Mock de app.js
+vi.mock('../../src/js/app.js?v=8.29', () => ({
+  showToast: vi.fn(),
+  showConfirm: vi.fn((msg, cb) => cb()),
+  openModal: vi.fn(),
+  closeModal: vi.fn()
+}));
+
+// Mock de logic.js
+vi.mock('../../src/js/logic.js?v=8.29', () => ({
+  generatePlanejamento: vi.fn(),
+  getActiveDisciplinas: vi.fn().mockReturnValue([
+    { disc: { id: 'disc_1', nome: 'Matemática' }, edital: { cor: '#0f766e' } },
+    { disc: { id: 'disc_2', nome: 'Português' }, edital: { cor: '#1d4ed8' } }
+  ])
+}));
+
+// Mock de store.js
+vi.mock('../../src/js/store.js?v=8.29', () => {
+  const baseState = {
+    schemaVersion: 7,
+    editais: [],
+    eventos: [],
+    config: { visualizacao: 'mes' },
+    habitos: { videoaula: [] },
+    planejamento: {
+      ativo: false,
+      tipo: null,
+      disciplinas: [],
+      relevancia: {},
+      horarios: {},
+      sequencia: [],
+      ciclosCompletos: 0,
+      dataInicioCicloAtual: null
+    }
+  };
+
+  return {
+    state: baseState,
+    scheduleSave: vi.fn()
+  };
+});
+
+let wizard;
+let logic;
+let app;
+
+beforeEach(async () => {
+  vi.resetModules();
+  vi.useFakeTimers();
+
+  document.body.innerHTML = `
+    <div id="modal-planejamento"></div>
+    <div id="modal-planejamento-body"></div>
+    <div id="pw-step-1"></div>
+    <div id="pw-step-2"></div>
+    <div id="pw-step-3"></div>
+    <div id="pw-step-4"></div>
+    <button id="pw-btn-voltar"></button>
+    <button id="pw-btn-proximo"></button>
+    <button id="pw-btn-concluir"></button>
+  `;
+
+  logic = await import('../../src/js/logic.js?v=8.29');
+  app = await import('../../src/js/app.js?v=8.29');
+  wizard = await import('../../src/js/planejamento-wizard.js?v=8.29');
+});
+
+describe('planejamento-wizard.js', () => {
+  describe('openPlanejamentoWizard()', () => {
+    it('abre o modal do wizard', () => {
+      wizard.openPlanejamentoWizard();
+      expect(app.openModal).toHaveBeenCalledWith('modal-planejamento');
+    });
+
+    it('exibe step 1 ao abrir', () => {
+      wizard.openPlanejamentoWizard();
+      const body = document.getElementById('modal-planejamento-body');
+      expect(body.innerHTML).toContain('Qual é a sua estratégia de estudo?');
+    });
+
+    it('exibe botão voltar oculto no step 1', () => {
+      wizard.openPlanejamentoWizard();
+      const btnBack = document.getElementById('pw-btn-voltar');
+      expect(btnBack.style.visibility).toBe('hidden');
+    });
+  });
+
+  describe('pwSelectTipo()', () => {
+    it('seleciona tipo ciclo e atualiza UI', () => {
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      const body = document.getElementById('modal-planejamento-body');
+      expect(body.innerHTML).toContain('is-selected');
+    });
+
+    it('habilita botão próximo após selecionar tipo', () => {
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      const btnNext = document.getElementById('pw-btn-proximo');
+      expect(btnNext.disabled).toBe(false);
+    });
+  });
+
+  describe('pwToggleDisc()', () => {
+    it('adiciona disciplina à seleção', () => {
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      wizard.pwToggleDisc('disc_1');
+      const body = document.getElementById('modal-planejamento-body');
+      expect(body.innerHTML).toContain('is-selected');
+    });
+
+    it('atualiza contador de disciplinas', () => {
+      document.body.innerHTML += '<div id="pw-disc-count"></div>';
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      wizard.pwToggleDisc('disc_1');
+      wizard.pwToggleDisc('disc_2');
+      const counter = document.getElementById('pw-disc-count');
+      expect(counter.textContent).toBe('2 disciplinas selecionadas');
+    });
+  });
+
+  describe('pwUpdateRel()', () => {
+    it('atualiza label de importância', () => {
+      document.body.innerHTML += '<div id="pw-lbl-importancia-disc_1">3</div>';
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      wizard.pwToggleDisc('disc_1');
+      wizard.pwUpdateRel('disc_1', 'importancia', '5');
+      const lbl = document.getElementById('pw-lbl-importancia-disc_1');
+      expect(lbl.textContent).toBe('5');
+    });
+  });
+
+  describe('pwRenderWeightPreview()', () => {
+    it('calcula peso baseado em importância e conhecimento', () => {
+      // Ensure mock returns data
+      logic.getActiveDisciplinas.mockReturnValue([
+        { disc: { id: 'disc_1', nome: 'Matemática' }, edital: { cor: '#0f766e' } }
+      ]);
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      wizard.pwToggleDisc('disc_1');
+      wizard.pwUpdateRel('disc_1', 'importancia', '5');
+      wizard.pwUpdateRel('disc_1', 'conhecimento', '1');
+      document.body.innerHTML += '<div id="pw-weight-preview"></div>';
+      wizard.pwRenderWeightPreview();
+      const preview = document.getElementById('pw-weight-preview');
+      expect(preview.innerHTML).toContain('Matemática');
+      expect(preview.innerHTML).toContain('100.0%');
+    });
+
+    it('retorna cedo quando elemento não existe', () => {
+      document.body.innerHTML = '';
+      expect(() => { wizard.pwRenderWeightPreview(); }).not.toThrow();
+    });
+  });
+
+  describe('pwSearchDisc()', () => {
+    it('filtra disciplinas por texto', () => {
+      document.body.innerHTML += `
+        <div class="pw-disc-card">Matemática</div>
+        <div class="pw-disc-card">Português</div>
+      `;
+      wizard.pwSearchDisc('mat');
+      const cards = document.querySelectorAll('.pw-disc-card');
+      expect(cards[0].style.display).toBe('flex');
+      expect(cards[1].style.display).toBe('none');
+    });
+  });
+
+  describe('wizard navigation', () => {
+    it('desabilita botão próximo sem tipo selecionado', () => {
+      wizard.openPlanejamentoWizard();
+      const btnNext = document.getElementById('pw-btn-proximo');
+      expect(btnNext.disabled).toBe(true);
+    });
+
+    it('exibe botão concluir no step 4', () => {
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      wizard.pwToggleDisc('disc_1');
+      document.getElementById('pw-btn-proximo').click();
+      document.getElementById('pw-btn-proximo').click();
+      document.getElementById('pw-btn-proximo').click();
+      const btnDone = document.getElementById('pw-btn-concluir');
+      const btnNext = document.getElementById('pw-btn-proximo');
+      expect(btnDone.style.display).toBe('block');
+      expect(btnNext.style.display).toBe('none');
+    });
+  });
+
+  describe('wizard completion', () => {
+    it('gera planejamento ao concluir', () => {
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      wizard.pwToggleDisc('disc_1');
+      document.getElementById('pw-btn-proximo').click();
+      document.getElementById('pw-btn-proximo').click();
+      document.getElementById('pw-btn-proximo').click();
+      wizard.pwUpdateHours('horasSemanais', '30');
+      const btnDone = document.getElementById('pw-btn-concluir');
+      btnDone.click();
+      expect(logic.generatePlanejamento).toHaveBeenCalled();
+      expect(app.closeModal).toHaveBeenCalledWith('modal-planejamento');
+    });
+  });
+
+  describe('step 2 empty state', () => {
+    it('exibe mensagem quando sem disciplinas', () => {
+      logic.getActiveDisciplinas.mockReturnValue([]);
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      document.getElementById('pw-btn-proximo').click();
+      const body = document.getElementById('modal-planejamento-body');
+      expect(body.innerHTML).toContain('Nenhuma disciplina encontrada');
+    });
+  });
+
+  describe('window exports', () => {
+    it('exporta funções para window', () => {
+      expect(window.pwSelectTipo).toBeDefined();
+      expect(window.pwToggleDisc).toBeDefined();
+      expect(window.pwSearchDisc).toBeDefined();
+      expect(window.pwSelectAllDisc).toBeDefined();
+      expect(window.pwClearDisc).toBeDefined();
+      expect(window.pwUpdateRel).toBeDefined();
+      expect(window.pwToggleDay).toBeDefined();
+      expect(window.pwUpdateHours).toBeDefined();
+      expect(window.pwUpdateDayHour).toBeDefined();
+      expect(window.pwRenderWeightPreview).toBeDefined();
+    });
+  });
+});

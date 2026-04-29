@@ -99,13 +99,13 @@ function checkTriggers() {
     const metaHoras = state.config?.metas?.horasSemana || 20;
     const predStats = getPredictiveStats(metaHoras);
 
-    // Alerta se está vermelho e só aciona a partir de Quarta-feira (dia 3 da semana) para dar tempo 
+    // Alerta se está vermelho e só aciona a partir de Quarta-feira (dia 3 da semana) para dar tempo
     const isLateWeek = predStats.daysRemaining <= 4 && predStats.daysRemaining > 0;
 
     if (predStats.status === 'vermelho' && isLateWeek) {
         fireNotification(
             'Meta Semanal em Alto Risco ⚠️',
-            predStats.suggestion, // Vem direto do logic.js 
+            predStats.suggestion, // Vem direto do logic.js
             'alerta_risco_metas'
         );
     } else if (predStats.status === 'amarelo' && isLateWeek) {
