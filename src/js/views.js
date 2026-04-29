@@ -1767,10 +1767,9 @@ export function openDiscManager(editaId, discId) {
       <div class="sm-list-item" draggable="true"
     data-disc-id="${disc.id}"
     data-ass-idx="${idx}"
-    ondragstart="dndStart(event,'${disc.id}',${idx})"
-    ondragover="dndOver(event)"
-    ondragleave="dndLeave(event)"
-    ondrop="dndDrop(event,'${disc.id}',${idx})">
+    data-dnd-subject=""
+    data-dnd-disc="${disc.id}"
+    data-dnd-idx="${idx}">
       <div class="sm-drag-handle" title="Arrastar">☰</div>
       <div class="sm-item-text" data-action="edit-subject-inline" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">
         ${esc(ass.nome)}
@@ -2171,6 +2170,34 @@ export function dndDrop(event, discId, targetIdx) {
 addCleanupListener(document, 'dragend', () => {
   document.querySelectorAll('.dragging').forEach((el) => el.classList.remove('dragging'));
   document.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
+});
+
+addCleanupListener(document, 'dragstart', (e) => {
+  const target = e.target.closest('[data-dnd-subject]');
+  if (!target) return;
+  const discId = target.dataset.dndDisc;
+  const idx = parseInt(target.dataset.dndIdx, 10);
+  dndStart(e, discId, idx);
+});
+
+addCleanupListener(document, 'dragover', (e) => {
+  const target = e.target.closest('[data-dnd-subject]');
+  if (!target) return;
+  dndOver(e);
+});
+
+addCleanupListener(document, 'dragleave', (e) => {
+  const target = e.target.closest('[data-dnd-subject]');
+  if (!target) return;
+  dndLeave(e);
+});
+
+addCleanupListener(document, 'drop', (e) => {
+  const target = e.target.closest('[data-dnd-subject]');
+  if (!target) return;
+  const discId = target.dataset.dndDisc;
+  const idx = parseInt(target.dataset.dndIdx, 10);
+  dndDrop(e, discId, idx);
 });
 
 // Search functions moved to ui/search.js

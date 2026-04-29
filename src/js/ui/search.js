@@ -78,7 +78,9 @@ export function onSearch(query) {
 
   const highlight = (str) =>
     esc(str).replace(
-      new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+      q.length > 100
+        ? new RegExp(`(${esc(q)})`, 'gi')
+        : new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
       '<mark>$1</mark>'
     );
   let html = '';

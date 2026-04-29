@@ -8,7 +8,6 @@ import { esc, todayStr } from '../utils.js?v=8.29';
 import { getDisc } from '../logic.js?v=8.29';
 import { getActiveDashboardDiscCtx } from '../state/dashboard-context.js?v=8.29';
 import { openAddEventModal, loadAssuntos } from '../ui/event-modals.js?v=8.29';
-import { openDiscDashboard } from '../views.js?v=8.29';
 import { renderCurrentView } from '../components.js?v=8.29';
 
 // ── Vertical View State ──
@@ -303,32 +302,6 @@ export function toggleVertDisc(id) {
   }
 }
 
-// ── Add Event for Subject (Helper) ──
-export function addEventoParaAssunto(editaId, discId, assId) {
-  const d = getDisc(discId);
-  const ass = d?.disc?.assuntos?.find((a) => a.id === assId);
-  if (!ass || !d) return;
-  openAddEventModal(todayStr());
-  setTimeout(() => {
-    const discSel = document.getElementById('event-disc');
-    if (discSel) {
-      discSel.value = discId;
-      loadAssuntos();
-      setTimeout(() => {
-        const assSel = document.getElementById('event-assunto');
-        if (assSel) {
-          assSel.value = assId;
-          const ti = document.getElementById('event-titulo');
-          if (ti) {
-            ti.value = ass.nome;
-            ti.dataset.autoFilled = 'true';
-          }
-        }
-      }, 50);
-    }
-  }, 50);
-}
-
 // ── Editais View: Main Render ──
 export function renderEditais(el) {
   el.innerHTML = `
@@ -472,54 +445,3 @@ export function renderEditalTree(edital) {
     </div>
           `;
 }
-
-// ── Toggle Edital Expand/Collapse ──
-export function toggleEdital(id) {
-  const el = document.getElementById(`edital-tree-${id}`);
-  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
-}
-
-// ── Toggle Assunto Conclusão ──
-export function toggleAssunto(discId, assId) {
-  for (const edital of state.editais) {
-    if (!edital.disciplinas) continue;
-    const disc = edital.disciplinas.find((d) => d.id === discId);
-    if (disc) {
-      const ass = (disc.assuntos || []).find((a) => a.id === assId);
-      if (ass) {
-        ass.concluido = !ass.concluido;
-        ass.dataConclusao = ass.concluido ? todayStr() : null;
-        if (ass.concluido) ass.revisoesFetas = [];
-        scheduleSave();
-
-        const ctx = getActiveDashboardDiscCtx();
-        if (ctx && ctx.discId === discId) {
-          openDiscDashboard(ctx.editaId, discId);
-        } else {
-          renderCurrentView();
-        }
-        return;
-      }
-    }
-  }
-}
-
-export default {
-  renderVertical,
-  renderVerticalList,
-  renderEditais,
-  renderEditalTree,
-  toggleVertDisc,
-  toggleEdital,
-  toggleAssunto,
-  addEventoParaAssunto,
-  getFilteredVertItems,
-  getVertSearch,
-  setVertSearch,
-  getVertFilterStatus,
-  setVertFilterStatus,
-  getVertFilterEdital,
-  setVertFilterEdital,
-  getDiscFilterStatus,
-  setDiscFilterStatus,
-};

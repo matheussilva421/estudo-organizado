@@ -221,18 +221,18 @@ describe('planejamento-wizard.js', () => {
     });
   });
 
-  describe('window exports', () => {
-    it('exporta funções para window', () => {
-      expect(window.pwSelectTipo).toBeDefined();
-      expect(window.pwToggleDisc).toBeDefined();
-      expect(window.pwSearchDisc).toBeDefined();
-      expect(window.pwSelectAllDisc).toBeDefined();
-      expect(window.pwClearDisc).toBeDefined();
-      expect(window.pwUpdateRel).toBeDefined();
-      expect(window.pwToggleDay).toBeDefined();
-      expect(window.pwUpdateHours).toBeDefined();
-      expect(window.pwUpdateDayHour).toBeDefined();
-      expect(window.pwRenderWeightPreview).toBeDefined();
+  describe('module exports', () => {
+    it('exporta funções do módulo', () => {
+      expect(wizard.pwSelectTipo).toBeDefined();
+      expect(wizard.pwToggleDisc).toBeDefined();
+      expect(wizard.pwSearchDisc).toBeDefined();
+      expect(wizard.pwSelectAllDisc).toBeDefined();
+      expect(wizard.pwClearDisc).toBeDefined();
+      expect(wizard.pwUpdateRel).toBeDefined();
+      expect(wizard.pwToggleDay).toBeDefined();
+      expect(wizard.pwUpdateHours).toBeDefined();
+      expect(wizard.pwUpdateDayHour).toBeDefined();
+      expect(wizard.pwRenderWeightPreview).toBeDefined();
     });
   });
 });

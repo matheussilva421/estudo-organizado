@@ -62,10 +62,7 @@ test.describe('Planejamento de Estudos (Wizard)', () => {
 
     // Step 4: Horários
     await page.fill('input[data-action="pw-update-hours"][data-field="horasSemanais"]', '20');
-    // Ensure the event is caught by the logic
-    await page.evaluate(() => {
-        window.pwUpdateHours('horasSemanais', '20');
-    });
+    await page.dispatchEvent('input[data-action="pw-update-hours"][data-field="horasSemanais"]', 'input');
     
     // Finish wizard
     await page.waitForSelector('#pw-btn-concluir:not([disabled])');

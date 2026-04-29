@@ -5,6 +5,16 @@ import { tokenize, computeTokenMatch } from './relevance.js?v=8.29';
 // Motor de Link Automático (Aulas -> Assuntos)
 // =============================================
 
+// Cache de tokens por objeto (evita mutar state com _tokens)
+const _topicTokenCache = new WeakMap();
+
+function getCachedTopicTokens(topic) {
+  if (!_topicTokenCache.has(topic)) {
+    _topicTokenCache.set(topic, tokenize(topic.nome));
+  }
+  return _topicTokenCache.get(topic);
+}
+
 // =============================================
 // Auto-Link Core Algorithm
 // =============================================
@@ -31,8 +41,7 @@ function findBestSubjectForLesson(lessonName, editalTopics) {
     }
     // Token Fuzzy Matching
     else {
-      if (!topic._tokens) topic._tokens = tokenize(topic.nome);
-      highestScore = computeTokenMatch(tokensLesson, topic._tokens);
+      highestScore = computeTokenMatch(tokensLesson, getCachedTopicTokens(topic));
     }
 
     if (highestScore > 0) {

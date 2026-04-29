@@ -4,6 +4,16 @@ import { state, scheduleSave } from './store.js?v=8.29';
 // NLP / Inferência de Textos e Fuzzy Match
 // =============================================
 
+// Cache de tokens por objeto (evita mutar state com _tokens)
+const _tokenCache = new WeakMap();
+
+function getCachedTokens(item) {
+  if (!_tokenCache.has(item)) {
+    _tokenCache.set(item, tokenize(item.nome));
+  }
+  return _tokenCache.get(item);
+}
+
 // Lista de palavras que não agregam peso semântico na comparação
 const STOPWORDS = new Set([
   'o',
@@ -197,8 +207,7 @@ export function findBestMatch(editalSubjectName, disciplinaId = null) {
     }
 
     // Match Parcial & Fuzzy (Tokenização Complexa)
-    if (!ht._tokens) ht._tokens = tokenize(ht.nome);
-    const tokenScore = computeTokenMatch(tokensA, ht._tokens);
+    const tokenScore = computeTokenMatch(tokensA, getCachedTokens(ht));
 
     if (tokenScore > highestScore) {
       highestScore = tokenScore;

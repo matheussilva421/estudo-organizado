@@ -309,5 +309,3 @@ export function renderHome(el) {
     </div>
   `;
 }
-
-export default { renderHome };

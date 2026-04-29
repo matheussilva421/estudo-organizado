@@ -27,26 +27,8 @@ export function setAnalyzerCtx(ctx) {
   Object.assign(analyzerCtx, ctx);
 }
 
-function bindBancaAnalyzerActions() {
-  Object.assign(window, {
-    _renderBancaAnalyzerContent: renderBancaAnalyzerContent,
-    getAnalyzerCtx,
-    setAnalyzerCtx,
-    mudarEditalAnalisador,
-    filtrarViewPorDisciplina,
-    carregarAnaliseBanca,
-    excluirAnaliseBanca,
-    parseBancaText,
-    renderBancaMatches,
-    applyBancaRanking,
-    openMatchCorrector,
-    saveMatchCorrection,
-  });
-}
-
 // ── Main Banca Analyzer Render ──
 export function renderBancaAnalyzerModule(el) {
-  bindBancaAnalyzerActions();
 
   if (state.editais.length === 0) {
     el.innerHTML =
@@ -474,19 +456,3 @@ export function saveMatchCorrection(assuntoOrigemRaw) {
     }
   }
 }
-
-export default {
-  renderBancaAnalyzerModule,
-  renderBancaAnalyzerContent,
-  mudarEditalAnalisador,
-  filtrarViewPorDisciplina,
-  carregarAnaliseBanca,
-  excluirAnaliseBanca,
-  parseBancaText,
-  renderBancaMatches,
-  applyBancaRanking,
-  openMatchCorrector,
-  saveMatchCorrection,
-  getAnalyzerCtx,
-  setAnalyzerCtx,
-};

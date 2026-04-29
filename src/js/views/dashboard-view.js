@@ -11,7 +11,6 @@ import {
 } from '../state/dashboard-context.js?v=8.29';
 import { renderCurrentView } from '../components.js?v=8.29';
 import { setDiscChartInstance, getDiscChartInstance } from '../state/chart-state.js?v=8.29';
-import { openDiscDashboard } from '../views.js?v=8.29';
 import { showToast } from '../app.js?v=8.29';
 
 // ── Main Dashboard Render ──
@@ -416,31 +415,6 @@ export function initDiscDashboardChart(discId) {
   );
 }
 
-// ── Toggle Assunto Conclusão ──
-export function toggleAssunto(discId, assId) {
-  for (const edital of state.editais) {
-    if (!edital.disciplinas) continue;
-    const disc = edital.disciplinas.find((d) => d.id === discId);
-    if (disc) {
-      const ass = (disc.assuntos || []).find((a) => a.id === assId);
-      if (ass) {
-        ass.concluido = !ass.concluido;
-        ass.dataConclusao = ass.concluido ? todayStr() : null;
-        if (ass.concluido) ass.revisoesFetas = [];
-        scheduleSave();
-
-        const ctx = getActiveDashboardDiscCtx();
-        if (ctx && ctx.discId === discId) {
-          openDiscDashboard(ctx.editaId, discId);
-        } else {
-          renderCurrentView();
-        }
-        return;
-      }
-    }
-  }
-}
-
 // ── Toggle Aula Conclusão ──
 export function toggleAulaDashboard(editaId, discId, aulaId) {
   for (const edital of state.editais) {
@@ -457,7 +431,9 @@ export function toggleAulaDashboard(editaId, discId, aulaId) {
 
     const ctx = getActiveDashboardDiscCtx();
     if (ctx && ctx.discId === discId) {
-      openDiscDashboard(editaId, discId);
+      import('../views.js?v=8.29').then(({ openDiscDashboard }) =>
+        openDiscDashboard(editaId, discId)
+      );
     } else {
       renderCurrentView();
     }
@@ -468,7 +444,5 @@ export function toggleAulaDashboard(editaId, discId, aulaId) {
 
 export default {
   renderDisciplinaDashboard,
-  initDiscDashboardChart,
-  toggleAssunto,
   toggleAulaDashboard,
 };

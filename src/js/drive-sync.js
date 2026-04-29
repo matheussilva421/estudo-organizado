@@ -207,6 +207,25 @@ export function disconnectDrive() {
   }
 }
 
+function buildMultipartBody() {
+  const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
+  const boundary = '-------314159265358979323846';
+  const delimiter = '\r\n--' + boundary + '\r\n';
+  const close_delim = '\r\n--' + boundary + '--';
+  return {
+    boundary,
+    contentType: 'multipart/related; boundary=' + boundary,
+    body:
+      delimiter +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      JSON.stringify(createExportableState()) +
+      close_delim,
+  };
+}
+
 let _isSyncing = false;
 export async function syncWithDrive(isRecursion = false) {
   if (!gapi.client || !gapi.client.drive) return;
@@ -279,19 +298,7 @@ export async function syncWithDrive(isRecursion = false) {
 
       // Atualiza o arquivo existente
       const accessToken = gapi.client.getToken().access_token;
-      const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
-      const boundary = '-------314159265358979323846';
-      const delimiter = '\r\n--' + boundary + '\r\n';
-      const close_delim = '\r\n--' + boundary + '--';
-
-      const multipartRequestBody =
-        delimiter +
-        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-        JSON.stringify(metadata) +
-        delimiter +
-        'Content-Type: application/json\r\n\r\n' +
-        JSON.stringify(createExportableState()) +
-        close_delim;
+      const { boundary, contentType, body: multipartRequestBody } = buildMultipartBody();
 
       const fetchResponse = await fetch(
         `https://www.googleapis.com/upload/drive/v3/files/${state.driveFileId}?uploadType=multipart`,
@@ -299,7 +306,7 @@ export async function syncWithDrive(isRecursion = false) {
           method: 'PATCH',
           headers: new Headers({
             Authorization: 'Bearer ' + accessToken,
-            'Content-Type': 'multipart/related; boundary=' + boundary,
+            'Content-Type': contentType,
           }),
           body: multipartRequestBody,
         }
@@ -316,19 +323,7 @@ export async function syncWithDrive(isRecursion = false) {
     } else {
       // Cria um novo arquivo
       const accessToken = gapi.client.getToken().access_token;
-      const metadata = { name: 'estudo-organizado-data.json', mimeType: 'application/json' };
-      const boundary = '-------314159265358979323846';
-      const delimiter = '\r\n--' + boundary + '\r\n';
-      const close_delim = '\r\n--' + boundary + '--';
-
-      const multipartRequestBody =
-        delimiter +
-        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-        JSON.stringify(metadata) +
-        delimiter +
-        'Content-Type: application/json\r\n\r\n' +
-        JSON.stringify(createExportableState()) +
-        close_delim;
+      const { boundary, contentType, body: multipartRequestBody } = buildMultipartBody();
 
       const res = await fetch(
         'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
@@ -336,7 +331,7 @@ export async function syncWithDrive(isRecursion = false) {
           method: 'POST',
           headers: new Headers({
             Authorization: 'Bearer ' + accessToken,
-            'Content-Type': 'multipart/related; boundary=' + boundary,
+            'Content-Type': contentType,
           }),
           body: multipartRequestBody,
         }

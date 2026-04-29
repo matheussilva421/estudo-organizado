@@ -91,7 +91,11 @@ export function openModal(modalId) {
   // Show modal
   modal.style.display = 'flex';
   modal.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
+
+  // Lock body scroll only when first modal opens
+  if (modalStack.length === 1) {
+    document.body.style.overflow = 'hidden';
+  }
 
   // Setup keyboard handlers
   const handleEscape = (e) => handleKeydown(e, modalId);

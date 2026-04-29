@@ -346,19 +346,3 @@ export function renderCalendarMobileWeek() {
   html += '</div>';
   return html;
 }
-
-export default {
-  renderCalendar,
-  renderCalendarMonth,
-  renderCalendarGrid,
-  renderCalendarWeek,
-  renderCalendarMobileMonth,
-  renderCalendarMobileWeek,
-  resetCalDate,
-  calNavigate,
-  updateCalendarHeader,
-  getCalDate,
-  setCalDate,
-  getCalViewMode,
-  setCalViewMode,
-};

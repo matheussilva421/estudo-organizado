@@ -499,19 +499,6 @@ export function pwRenderWeightPreview() {
     .join('');
 }
 
-Object.assign(window, {
-  pwSelectTipo,
-  pwToggleDisc,
-  pwSearchDisc,
-  pwSelectAllDisc,
-  pwClearDisc,
-  pwUpdateRel,
-  pwToggleDay,
-  pwUpdateHours,
-  pwUpdateDayHour,
-  pwRenderWeightPreview,
-});
-
 function htmlStep4() {
   const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
