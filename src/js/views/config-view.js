@@ -364,16 +364,16 @@ function renderSyncCenterCard() {
               (source) => `
             <div class="sync-source-card" data-sync-source="${source.id}">
               <div class="sync-source-header">
-                <div class="sync-source-icon"><i class="fa ${source.icon}"></i></div>
+                <div class="sync-source-icon"><i class="fa ${source.icon || 'fa-database'}"></i></div>
                 <div class="sync-source-info">
-                  <div class="sync-source-name">${source.name}</div>
-                  <div class="sync-source-sub">${source.subtext || ''}</div>
+                  <div class="sync-source-name">${source.title}</div>
+                  <div class="sync-source-sub">${source.detail || ''}</div>
                 </div>
                 <span class="badge ${source.enabled ? 'badge-success' : 'badge-muted'}">${source.enabled ? 'Ativo' : 'Inativo'}</span>
               </div>
               <div class="sync-source-meta">
                 <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
-                ${source.remoteUpdatedAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteUpdatedAt)}</span>` : ''}
+                ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
               </div>
               ${source.conflict ? renderSyncSourceConflictEntities(source.conflict) : ''}
               <div class="sync-source-actions">

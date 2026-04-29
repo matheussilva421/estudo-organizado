@@ -43,6 +43,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
     {
       id: 'local',
       title: 'Local',
+      icon: 'fa-database',
       label: 'IndexedDB neste dispositivo',
       primary: false,
       enabled: true,
@@ -57,6 +58,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
     {
       id: 'firebase',
       title: 'Firebase',
+      icon: 'fa-fire',
       label: 'Firestore primario',
       primary: true,
       enabled: Boolean(firestore.enabled),
@@ -93,6 +95,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
     {
       id: 'cloudflare',
       title: 'Cloudflare',
+      icon: 'fa-cloud',
       label: 'Backup Worker/KV secundario',
       primary: false,
       enabled: Boolean(config.cfSyncEnabled),
@@ -109,6 +112,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
     {
       id: 'drive',
       title: 'Google Drive',
+      icon: 'fa-brands fa-google-drive',
       label: 'Backup manual/secundario',
       primary: false,
       enabled: driveConfigured,
