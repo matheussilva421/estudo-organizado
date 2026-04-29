@@ -172,6 +172,35 @@ describe('dispatcher.js', () => {
       expect(() => global._listeners['click'][0](event)).not.toThrow();
       expect(event.preventDefault).not.toHaveBeenCalled();
     });
+
+    it('ignores elements without data-action on change', () => {
+      dispatcher.setupActionDispatcher();
+      const target = { tagName: 'INPUT', dataset: {}, closest: vi.fn(() => null) };
+      const event = { target, preventDefault: vi.fn() };
+      expect(() => global._listeners['change'][0](event)).not.toThrow();
+      expect(event.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('ignores elements without data-action on input', () => {
+      dispatcher.setupActionDispatcher();
+      const target = { tagName: 'INPUT', dataset: {}, closest: vi.fn(() => null) };
+      const event = { target, preventDefault: vi.fn() };
+      expect(() => global._listeners['input'][0](event)).not.toThrow();
+    });
+
+    it('ignores elements without data-focus-action on focusin', () => {
+      dispatcher.setupActionDispatcher();
+      const target = { tagName: 'INPUT', dataset: {}, closest: vi.fn(() => null) };
+      const event = { target };
+      expect(() => global._listeners['focusin'][0](event)).not.toThrow();
+    });
+
+    it('ignores elements without data-blur-action on focusout', () => {
+      dispatcher.setupActionDispatcher();
+      const target = { tagName: 'INPUT', dataset: {}, closest: vi.fn(() => null) };
+      const event = { target };
+      expect(() => global._listeners['focusout'][0](event)).not.toThrow();
+    });
   });
 
   describe('actions export', () => {
