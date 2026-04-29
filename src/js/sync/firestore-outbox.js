@@ -1,4 +1,4 @@
-import { db, FIRESTORE_CONFLICT_STORE, FIRESTORE_META_STORE, FIRESTORE_OUTBOX_STORE } from '../store.js?v=8.26';
+import { db, FIRESTORE_CONFLICT_STORE, FIRESTORE_META_STORE, FIRESTORE_OUTBOX_STORE } from '../store.js?v=8.29';
 
 const LATEST_SNAPSHOT_ID = 'latest_snapshot';
 const META_ID = 'firestore_sync';

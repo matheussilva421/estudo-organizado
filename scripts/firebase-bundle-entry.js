@@ -9,14 +9,17 @@ export {
   signOut
 } from 'firebase/auth';
 export {
+  collection,
   doc,
   getDoc,
+  getDocs,
   initializeFirestore,
   onSnapshot,
   persistentLocalCache,
   persistentMultipleTabManager,
   serverTimestamp,
-  setDoc
+  setDoc,
+  writeBatch
 } from 'firebase/firestore';
 export {
   initializeAppCheck,

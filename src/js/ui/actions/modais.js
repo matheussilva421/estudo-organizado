@@ -14,7 +14,7 @@ import {
   saveRegistroSessao,
   saveAndStartNew,
   setPaginaMode
-} from '../../registro-sessao.js?v=8.26';
+} from '../../registro-sessao.js?v=8.29';
 
 // Registrar ações
 registerAction('close-modal', (el) => closeModal(el));

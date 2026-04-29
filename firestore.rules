@@ -32,9 +32,42 @@ service cloud.firestore {
       );
     }
 
+    function validEntityDoc() {
+      return request.resource.data.keys().hasOnly([
+        'version',
+        'schemaVersion',
+        'key',
+        'collection',
+        'id',
+        'checksum',
+        'updatedAt',
+        'deletedAt',
+        'revision',
+        'updatedBy',
+        'payload',
+        'sentAt',
+        'serverUpdatedAt'
+      ])
+      && request.resource.data.version == 1
+      && request.resource.data.key is string
+      && request.resource.data.collection is string
+      && request.resource.data.id is string
+      && request.resource.data.revision is number
+      && (
+        request.resource.data.payload == null
+        || request.resource.data.payload is map
+      );
+    }
+
     match /users/{uid}/snapshots/{snapshotId} {
       allow read: if owns(uid);
       allow create, update: if owns(uid) && snapshotId == 'main' && validSnapshot();
+      allow delete: if false;
+    }
+
+    match /users/{uid}/entities/{entityId} {
+      allow read: if owns(uid);
+      allow create, update: if owns(uid) && validEntityDoc();
       allow delete: if false;
     }
 

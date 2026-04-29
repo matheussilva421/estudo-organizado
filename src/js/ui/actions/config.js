@@ -25,6 +25,17 @@ registerAction('firestore-pull-remote', () => firestorePullRemote());
 registerAction('firestore-merge-remote', () => firestoreMergeRemote());
 registerAction('firestore-force-push', () => firestoreForcePush());
 registerAction('firestore-export-local', () => exportData());
+registerAction('firestore-verify-entity-shadow', () => window.EstudoApp?.verifyFirestoreEntityShadow?.());
+registerAction('firestore-open-conflict-review', () => {
+  const conflict = window.EstudoApp?.state?.config?.firestoreSync?.conflict;
+  const modal = document.getElementById('modal-prompt');
+  if (!modal || typeof window.EstudoApp?.renderEntityConflictReview !== 'function') return;
+  modal.innerHTML = window.EstudoApp.renderEntityConflictReview(conflict);
+  window.EstudoApp.openModal('modal-prompt');
+});
+registerAction('entity-sync-set-primary', () => setEntitySyncMode('primary'));
+registerAction('entity-sync-set-shadow', () => setEntitySyncMode('shadow'));
+registerAction('entity-sync-set-off', () => setEntitySyncMode('off'));
 registerAction('cloud-merge-remote', () => cloudMergeRemote());
 registerAction('drive-sync-now', () => driveSyncNow());
 registerAction('pull-from-drive', () => pullFromDrive());
@@ -425,4 +436,19 @@ export async function forceSwCacheClear() {
     console.error('Erro ao limpar cache do SW:', err);
     window.EstudoApp?.showToast('Erro ao limpar cache. Tente Ctrl+Shift+R.', 'error');
   }
+}
+
+export function setEntitySyncMode(mode) {
+  const state = window.EstudoApp?.state;
+  if (!state?.config) return;
+  if (!state.config.entitySync) state.config.entitySync = { enabled: false, mode: 'off' };
+  state.config.entitySync.enabled = mode !== 'off';
+  state.config.entitySync.mode = mode;
+  window.EstudoApp?.scheduleSave?.();
+  const labels = { primary: 'Entidades primarias ativadas (experimental).', shadow: 'Entidades em shadow ativadas.', off: 'Entidades desativadas.' };
+  window.EstudoApp?.showToast?.(labels[mode] || 'Modo de entidades atualizado.', 'info');
+  if (mode === 'primary') {
+    document.dispatchEvent(new CustomEvent('app:primarySyncRequested', { detail: { reason: 'entity-primary-activated' } }));
+  }
+  document.dispatchEvent(new Event('app:renderCurrentView'));
 }

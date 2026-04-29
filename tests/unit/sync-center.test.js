@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const syncCenter = await import('../../src/js/sync/sync-center.js?v=8.26');
+const syncCenter = await import('../../src/js/sync/sync-center.js?v=8.29');
 
 describe('sync-center.js', () => {
   it('blocks automatic Firestore flushes while a conflict needs a user decision', () => {
@@ -128,5 +128,20 @@ describe('sync-center.js', () => {
       primary: false
     });
     expect(model.needsAttention).toBe(true);
+  });
+
+  it('labels Firestore entity primary as experimental when enabled', () => {
+    const model = syncCenter.buildSyncCenterModel({
+      state: {
+        config: {
+          localBackupAt: '2026-04-29T10:00:00.000Z',
+          firestoreSync: { enabled: true, mode: 'primary' },
+          entitySync: { enabled: true, mode: 'primary' }
+        }
+      },
+      firestoreStatus: { configured: true, signedIn: true, enabled: true, mode: 'primary' }
+    });
+
+    expect(model.sources.find((source) => source.id === 'firebase').detail).toContain('Entidades');
   });
 });

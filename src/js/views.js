@@ -1,10 +1,10 @@
-import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.26';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.26';
-import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.26';
-import { calcRevisionDates, getAllDisciplinas, getActiveDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.26';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.26';
-import { updateDriveUI } from './drive-sync.js?v=8.26';
-import { buildSyncCenterModel } from './sync/sync-center.js?v=8.26';
+import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.29';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.29';
+import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.29';
+import { calcRevisionDates, getAllDisciplinas, getActiveDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.29';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.29';
+import { updateDriveUI } from './drive-sync.js?v=8.29';
+import { buildSyncCenterModel } from './sync/sync-center.js?v=8.29';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
@@ -2301,7 +2301,7 @@ export function deleteAula(discId, aulaId) {
 }
 window.deleteAula = deleteAula;
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.26';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.29';
 export function runLessonMapperUI(editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -2823,6 +2823,29 @@ function renderFirestoreCard() {
   `;
 }
 
+function renderEntitySyncToggle() {
+  const appState = window.EstudoApp?.state;
+  if (!appState) return '';
+  const entitySync = appState.config?.entitySync || {};
+  const fsStatus = window.EstudoApp?.getFirestoreSyncStatus?.() || {};
+  if (!fsStatus.signedIn || !fsStatus.enabled) return '';
+  const isPrimary = entitySync.mode === 'primary';
+  const isShadow = entitySync.mode === 'shadow';
+  return `
+    <div class="entity-sync-toggle" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Modo de entidades:</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm ${isPrimary ? 'btn-primary' : 'btn-ghost'}" data-action="entity-sync-set-primary" ${isPrimary ? 'disabled' : ''}>Primario</button>
+        <button type="button" class="btn btn-sm ${isShadow ? 'btn-primary' : 'btn-ghost'}" data-action="entity-sync-set-shadow" ${isShadow ? 'disabled' : ''}>Shadow</button>
+        <button type="button" class="btn btn-sm ${!isPrimary && !isShadow ? 'btn-primary' : 'btn-ghost'}" data-action="entity-sync-set-off" ${!isPrimary && !isShadow ? 'disabled' : ''}>Desativado</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+        ${isPrimary ? 'Entidades como fonte primaria (experimental).' : isShadow ? 'Entidades em shadow com snapshot fallback.' : 'Entidades desativadas; apenas snapshot.'}
+      </div>
+    </div>
+  `;
+}
+
 function getSyncHealthLabel(health) {
   const labels = {
     ok: 'OK',
@@ -2858,6 +2881,8 @@ function renderSyncSourceActions(source) {
     return `
       ${status.signedIn ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar</button>`}
       ${status.enabled ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? '' : 'disabled'}>Ativar primario</button><button type="button" class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Shadow</button>`}
+      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-verify-entity-shadow" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-list-check"></i> Verificar entidades</button>
+      ${renderEntitySyncToggle()}
       <button type="button" class="btn btn-outline btn-sm" data-action="firestore-merge-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
       <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-pull-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
       <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
@@ -2903,6 +2928,36 @@ function renderSyncSourceConflictEntities(conflict) {
           <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
         </div>
       `).join('')}
+      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-open-conflict-review" style="margin-top:8px;">
+        <i class="fa fa-magnifying-glass"></i> Revisar entidades
+      </button>
+    </div>
+  `;
+}
+
+export function renderEntityConflictReview(conflict) {
+  const items = Array.isArray(conflict?.items) ? conflict.items : [];
+  return `
+    <div class="modal-content" data-testid="entity-conflict-review">
+      <div class="modal-header">
+        <h3>Revisar conflito Firestore</h3>
+        <button type="button" class="icon-btn" data-action="close-modal" data-modal="modal-prompt"><i class="fa fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        ${items.map((item) => `
+          <div class="sync-conflict-entity-review-row">
+            <strong>${esc(item.collection || 'entidade')}</strong>
+            <code>${esc(item.id || item.key || 'sem-id')}</code>
+            <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
+            <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-action="firestore-export-local">Exportar local</button>
+        <button type="button" class="btn btn-primary" data-action="firestore-pull-remote">Baixar Firestore</button>
+        <button type="button" class="btn btn-danger" data-action="firestore-force-push">Enviar local</button>
+      </div>
     </div>
   `;
 }
@@ -2951,6 +3006,9 @@ function renderSyncCenterCard() {
               </div>
               ${source.conflict ? `<div class="sync-source-note">Conflito detectado em ${formatBackupDateTime(source.conflict.detectedAt)}.</div>` : ''}
               ${source.conflict ? renderSyncSourceConflictEntities(source.conflict) : ''}
+              ${source.entityShadowDiff && !source.entityShadowDiff.ok
+                ? `<div class="sync-source-note sync-source-note--error">Shadow divergiu: ${source.entityShadowDiff.missing.length} ausentes, ${source.entityShadowDiff.divergent.length} divergentes.</div>`
+                : ''}
               ${source.lastError ? `<div class="sync-source-note sync-source-note--error">${esc(source.lastError)}</div>` : ''}
               <div class="sync-source-actions">${renderSyncSourceActions(source)}</div>
             </section>

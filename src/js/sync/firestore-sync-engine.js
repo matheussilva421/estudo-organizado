@@ -1,12 +1,12 @@
-import { completeGoogleRedirectSignIn, getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.26';
-import { saveStateToDB, setState, state } from '../store.js?v=8.26';
+import { completeGoogleRedirectSignIn, getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.29';
+import { saveStateToDB, setState, state } from '../store.js?v=8.29';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer
-} from './firestore-schema.js?v=8.26';
+} from './firestore-schema.js?v=8.29';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -15,9 +15,17 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta
-} from './firestore-outbox.js?v=8.26';
-import { readFirestoreSnapshot, watchFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.26';
-import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.26';
+} from './firestore-outbox.js?v=8.29';
+import { readFirestoreSnapshot, watchFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.29';
+import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.29';
+import { applyEntityDocsToState } from './entity-state-builder.js?v=8.29';
+import {
+  getPendingFirestoreEntityBatch,
+  markFirestoreEntityBatchSynced,
+  queueFirestoreEntityBatchFromState
+} from './firestore-entity-outbox.js?v=8.29';
+import { readFirestoreEntityDocuments, writeFirestoreEntityDocuments } from './firestore-repository.js?v=8.29';
+import { compareSnapshotManifestToEntityDocs } from './entity-shadow-verifier.js?v=8.29';
 
 let currentUser = null;
 let authUnsubscribe = null;
@@ -82,6 +90,7 @@ function stopFirestoreRemoteWatch() {
 
 async function applyRemoteSnapshotFromWatch(remote) {
   if (!remote || isFlushing || !shouldWatchPrimaryFirestore()) return;
+  if (isEntityPrimaryEnabled()) return;
 
   const config = getConfig();
   const pending = await getPendingFirestoreSnapshot();
@@ -267,6 +276,10 @@ export async function queueFirestoreSnapshotFromState(sourceState = state, optio
     config.hasPendingWrites = true;
     config.lastError = null;
     emitStatus('pending');
+    const entityMode = state.config?.entitySync?.mode;
+    if (state.config?.entitySync?.enabled && (entityMode === 'shadow' || entityMode === 'primary')) {
+      await queueFirestoreEntityBatchFromState(sourceState, options);
+    }
   } else {
     config.hasPendingWrites = false;
     config.lastError = 'Armazenamento local do Firestore indisponivel. Recarregue a pagina para migrar o banco local.';
@@ -281,6 +294,62 @@ function requireSignedInServices() {
   if (!services.configured) throw new Error('Firebase nao configurado.');
   if (!currentUser) throw new Error('Entre com Google antes de sincronizar com Firestore.');
   return { db: services.db, uid: currentUser.uid };
+}
+
+function canShadowWriteEntities(config = getConfig()) {
+  const entitySync = state.config?.entitySync || {};
+  return Boolean(
+    config.enabled
+    && config.mode === 'primary'
+    && entitySync.enabled
+    && entitySync.mode === 'shadow'
+  );
+}
+
+function isEntityPrimaryEnabled() {
+  const entitySync = state.config?.entitySync || {};
+  return Boolean(entitySync.enabled && entitySync.mode === 'primary');
+}
+
+export async function flushFirestoreEntityOutbox(options = {}) {
+  const config = getConfig();
+  const isPrimary = options.primary && isEntityPrimaryEnabled();
+  if (!options.manual && !canShadowWriteEntities(config) && !isPrimary) return false;
+  const pending = await getPendingFirestoreEntityBatch();
+  if (!pending || pending.status !== 'pending') return false;
+  const { db, uid } = requireSignedInServices();
+  const result = await writeFirestoreEntityDocuments(db, uid, pending.docs || []);
+  await markFirestoreEntityBatchSynced();
+  if (!state.config.entitySync) state.config.entitySync = {};
+  Object.assign(state.config.entitySync, {
+    enabled: true,
+    mode: isPrimary ? 'primary' : 'shadow',
+    lastShadowPushAt: new Date().toISOString(),
+    lastError: null
+  });
+  await persistSyncConfig(false);
+  emitStatus('synced', { entityShadowCount: result.count });
+  return true;
+}
+
+export async function verifyFirestoreEntityShadow() {
+  const config = getConfig();
+  const { db, uid } = requireSignedInServices();
+  const snapshot = await readFirestoreSnapshot(db, uid);
+  const entityDocs = await readFirestoreEntityDocuments(db, uid);
+  const diff = compareSnapshotManifestToEntityDocs(snapshot || {}, entityDocs);
+  if (!state.config.entitySync) state.config.entitySync = {};
+  Object.assign(state.config.entitySync, {
+    enabled: true,
+    mode: state.config.entitySync.mode || 'shadow',
+    lastShadowReadAt: new Date().toISOString(),
+    lastShadowDiff: diff,
+    lastError: diff.ok ? null : 'Entity shadow diverge do snapshot.'
+  });
+  await persistSyncConfig(false);
+  document.dispatchEvent(new Event('app:renderCurrentView'));
+  emitStatus(diff.ok ? 'synced' : 'error', { entityShadowDiff: diff });
+  return diff;
 }
 
 function indexManifest(manifest = []) {
@@ -378,6 +447,15 @@ export async function flushFirestoreOutbox(options = {}) {
       return false;
     }
 
+    if (isEntityPrimaryEnabled()) {
+      const entityFlushed = await flushFirestoreEntityOutbox({ manual: options.manual, primary: true });
+      if (!entityFlushed) {
+        config.lastError = 'Falha no envio de entidades Firestore; push interrompido.';
+        config.hasPendingWrites = true;
+        return false;
+      }
+    }
+
     const result = await writeFirestoreSnapshot(db, uid, pending.envelope);
     await markFirestoreSnapshotSynced();
     await clearFirestoreConflict();
@@ -390,6 +468,9 @@ export async function flushFirestoreOutbox(options = {}) {
       conflict: null,
       lastError: null
     });
+    if (canShadowWriteEntities(config)) {
+      await flushFirestoreEntityOutbox({ manual: options.manual });
+    }
     await persistSyncConfig(false);
     startFirestoreRemoteWatch();
     emitStatus('synced');
@@ -413,6 +494,56 @@ export async function pullFromFirestore(forceOverwrite = false) {
 
   try {
     const { db, uid } = requireSignedInServices();
+    const entitySync = state.config?.entitySync || {};
+    const useEntityPrimary = entitySync.enabled && entitySync.mode === 'primary';
+
+    if (useEntityPrimary) {
+      const pendingEntity = await getPendingFirestoreEntityBatch();
+      if (pendingEntity && pendingEntity.status === 'pending' && !forceOverwrite) {
+        const entityFlushed = await flushFirestoreEntityOutbox({ manual: true, primary: true });
+        if (!entityFlushed) {
+          config.lastError = 'Entidades pendentes falharam no envio antes do pull.';
+          config.hasPendingWrites = true;
+          await persistSyncConfig(false);
+          emitStatus('error', { error: config.lastError });
+          return false;
+        }
+      }
+
+      const entityDocs = await readFirestoreEntityDocuments(db, uid);
+      if (!entityDocs.length) {
+        const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
+        if (!queued) return false;
+        return await flushFirestoreOutbox({ manual: true });
+      }
+
+      const pullAt = new Date().toISOString();
+      const maxEntityUpdatedAt = entityDocs.reduce((max, doc) => {
+        const t = doc.updatedAt || '';
+        return t > max ? t : max;
+      }, '');
+
+      const nextState = applyEntityDocsToState(state, entityDocs);
+      setState(nextState);
+      await clearFirestoreConflict();
+      await markFirestoreEntityBatchSynced();
+      await saveFirestoreMeta({ uid, remoteUpdatedAt: maxEntityUpdatedAt || pullAt, lastPullAt: pullAt });
+      await saveStateToDB(true, true, true, { touchLocalBackup: false });
+      document.dispatchEvent(new Event('app:renderCurrentView'));
+
+      Object.assign(getConfig(), {
+        uid,
+        remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
+        lastPullAt: pullAt,
+        hasPendingWrites: false,
+        conflict: null,
+        lastError: null
+      });
+      await persistSyncConfig(true);
+      emitStatus('synced');
+      return true;
+    }
+
     const remote = await readFirestoreSnapshot(db, uid);
     if (!remote) {
       const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
@@ -463,10 +594,31 @@ export async function forcePushFirestore() {
 
 export async function syncFirestoreNow() {
   const config = getConfig();
+  const entitySync = state.config?.entitySync || {};
+  const useEntityPrimary = entitySync.enabled && entitySync.mode === 'primary';
+
   await reconcileFirestorePendingState(true);
   if (config.conflict) {
     emitStatus('conflict-paused', { conflict: config.conflict });
     return false;
+  }
+
+  if (useEntityPrimary) {
+    const { db, uid } = requireSignedInServices();
+    const entityDocs = await readFirestoreEntityDocuments(db, uid);
+    if (entityDocs.length && isRemoteNewer({ payload: { updatedAt: entityDocs.reduce((max, d) => { const t = d.updatedAt || ''; return t > max ? t : max; }, '') } }, state)) {
+      const nextState = applyEntityDocsToState(state, entityDocs);
+      setState(nextState);
+      await clearFirestoreConflict();
+      await markFirestoreEntityBatchSynced();
+      await saveStateToDB(true, true, true, { touchLocalBackup: false });
+      document.dispatchEvent(new Event('app:renderCurrentView'));
+      emitStatus('synced');
+      return true;
+    }
+    const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
+    if (!queued) return false;
+    return await flushFirestoreOutbox({ manual: true });
   }
 
   const { db, uid } = requireSignedInServices();
@@ -512,10 +664,64 @@ export async function syncFirestoreNow() {
 
 export async function mergeFromFirestore() {
   const config = getConfig();
+  const entitySync = state.config?.entitySync || {};
+  const useEntityPrimary = entitySync.enabled && entitySync.mode === 'primary';
   emitStatus('syncing');
 
   try {
     const { db, uid } = requireSignedInServices();
+
+    if (useEntityPrimary) {
+      const remoteEntityDocs = await readFirestoreEntityDocuments(db, uid);
+      if (!remoteEntityDocs.length) {
+        return await forcePushFirestore();
+      }
+      const merged = mergeStudyStates(state, applyEntityDocsToState({}, remoteEntityDocs));
+      setState(merged);
+      const mergeConflict = merged.config?.syncMergeConflicts;
+      if (mergeConflict) {
+        const conflict = {
+          remoteUpdatedAt: remoteEntityDocs.reduce((max, d) => { const t = d.updatedAt || ''; return t > max ? t : max; }, ''),
+          localUpdatedAt: new Date().toISOString(),
+          detectedAt: mergeConflict.detectedAt,
+          reason: 'merge-collision',
+          total: mergeConflict.total,
+          items: mergeConflict.items
+        };
+        Object.assign(getConfig(), {
+          uid,
+          enabled: true,
+          remoteUpdatedAt: conflict.remoteUpdatedAt,
+          lastPullAt: new Date().toISOString(),
+          conflict,
+          lastError: 'Conflito Firestore: itens com o mesmo ID possuem conteudo diferente.',
+          hasPendingWrites: true
+        });
+        await saveFirestoreConflict(conflict);
+        await saveStateToDB(true, true, true, { touchLocalBackup: false });
+        document.dispatchEvent(new Event('app:renderCurrentView'));
+        emitStatus('conflict', { conflict });
+        return false;
+      }
+      Object.assign(getConfig(), {
+        uid,
+        enabled: true,
+        remoteUpdatedAt: remoteEntityDocs.reduce((max, d) => { const t = d.updatedAt || ''; return t > max ? t : max; }, ''),
+        lastPullAt: new Date().toISOString(),
+        conflict: null,
+        lastError: null,
+        hasPendingWrites: true
+      });
+      await clearFirestoreConflict();
+      await saveStateToDB(true, true, true);
+      const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
+      if (!queued) return false;
+      const ok = await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
+      document.dispatchEvent(new Event('app:renderCurrentView'));
+      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Firestore mesclado com os dados locais.', type: 'success' } }));
+      return ok;
+    }
+
     const remote = await readFirestoreSnapshot(db, uid);
     if (!remote) {
       return await forcePushFirestore();

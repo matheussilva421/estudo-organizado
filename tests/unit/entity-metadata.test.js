@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const metadata = await import('../../src/js/sync/entity-metadata.js?v=8.26');
+const metadata = await import('../../src/js/sync/entity-metadata.js?v=8.28');
 
 describe('entity-metadata.js', () => {
   it('normalizes legacy entities with embedded sync metadata without changing domain fields', () => {

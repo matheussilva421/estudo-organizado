@@ -137,3 +137,5 @@ adds optional `entityManifest` for precise conflict context.
 - [ ] Firestore rules for per-entity documents.
 - [ ] Deep merge UI by entity/field.
 - [ ] Remote cutover from snapshot to entity graph after real-use validation.
+
+**Continuation plan:** `src/docs/superpowers/plans/2026-04-29-firestore-entity-sync-continuation-plan.md`

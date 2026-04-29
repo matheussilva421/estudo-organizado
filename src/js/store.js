@@ -1,20 +1,21 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { uid } from './utils.js?v=8.26';
-import * as credentialsStore from './credentials.js?v=8.26';
+import { uid } from './utils.js?v=8.29';
+import * as credentialsStore from './credentials.js?v=8.29';
 import {
   normalizeEntityMetadata,
   prepareEntityMetadataForSave
-} from './sync/entity-metadata.js?v=8.26';
+} from './sync/entity-metadata.js?v=8.29';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
 export const STORE_NAME = 'app_state';
 export const FIRESTORE_OUTBOX_STORE = 'firestore_outbox';
 export const FIRESTORE_META_STORE = 'firestore_meta';
 export const FIRESTORE_CONFLICT_STORE = 'firestore_conflicts';
 export const ENTITY_META_STORE = 'entity_meta';
+export const FIRESTORE_ENTITY_OUTBOX_STORE = 'firestore_entity_outbox';
 
 export let db;
 export const DEFAULT_SCHEMA_VERSION = 9;
@@ -27,6 +28,15 @@ export const DEFAULT_FIRESTORE_SYNC_CONFIG = {
   remoteUpdatedAt: null,
   hasPendingWrites: false,
   conflict: null,
+  lastError: null
+};
+
+export const DEFAULT_ENTITY_SYNC_CONFIG = {
+  enabled: false,
+  mode: 'off',
+  lastShadowPushAt: null,
+  lastShadowReadAt: null,
+  lastShadowDiff: null,
   lastError: null
 };
 
@@ -63,7 +73,7 @@ export function setState(newState) {
     // Hábitos e Histórico
     habitos: deepClone(Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {})),
     revisoes: deepClone(Array.isArray(newState.revisoes) ? newState.revisoes : []),
-    config: deepClone(Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3, entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG } }, newState.config || {})),
+    config: deepClone(Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3, entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG }, entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG } }, newState.config || {})),
     cronoLivre: deepClone(newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 }),
     bancaRelevance: deepClone(newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} }),
     driveFileId: newState.driveFileId || null,
@@ -76,6 +86,11 @@ export function setState(newState) {
     {},
     DEFAULT_FIRESTORE_SYNC_CONFIG,
     cloned.config.firestoreSync || {}
+  );
+  cloned.config.entitySync = Object.assign(
+    {},
+    DEFAULT_ENTITY_SYNC_CONFIG,
+    cloned.config.entitySync || {}
   );
 
   // Replace the state object properties instead of the reference
@@ -99,16 +114,17 @@ export let state = {
   arquivo: [], // concluded events older than 90 days
   habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] },
   revisoes: [],
-  config: {
-    visualizacao: 'mes',
-    primeirodiaSemana: 1,
-    mostrarNumeroSemana: false,
-    agruparEventos: true,
-    frequenciaRevisao: [1, 7, 30, 90],
-    materiasPorDia: 3,
-    entityTombstones: [],
-    firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG }
-  },
+    config: {
+      visualizacao: 'mes',
+      primeirodiaSemana: 1,
+      mostrarNumeroSemana: false,
+      agruparEventos: true,
+      frequenciaRevisao: [1, 7, 30, 90],
+      materiasPorDia: 3,
+      entityTombstones: [],
+      firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
+      entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG }
+    },
   cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
   bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
   driveFileId: null,
@@ -130,6 +146,7 @@ export function createExportableState(sourceState = state) {
   delete exportable.config.syncMergeConflicts;
   exportable.config.cfSyncEnabled = false;
   exportable.config.firestoreSync = { ...DEFAULT_FIRESTORE_SYNC_CONFIG };
+  exportable.config.entitySync = { ...DEFAULT_ENTITY_SYNC_CONFIG };
 
   return exportable;
 }
@@ -164,6 +181,9 @@ export function initDB() {
       }
       if (!db.objectStoreNames.contains(ENTITY_META_STORE)) {
         db.createObjectStore(ENTITY_META_STORE, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(FIRESTORE_ENTITY_OUTBOX_STORE)) {
+        db.createObjectStore(FIRESTORE_ENTITY_OUTBOX_STORE, { keyPath: 'id' });
       }
     };
 
@@ -591,7 +611,7 @@ export function clearData() {
     arquivo: [],
     habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] },
     revisoes: [],
-    config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG } },
+    config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG }, entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG } },
     cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
     bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
     driveFileId: null,

@@ -1,11 +1,12 @@
-import { state } from '../store.js?v=8.26';
+import { state } from '../store.js?v=8.29';
 import {
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
   syncFirestoreNow
-} from './firestore-sync-engine.js?v=8.26';
-import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.26';
+} from './firestore-sync-engine.js?v=8.29';
+import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.29';
+import { queueFirestoreEntityBatchFromState } from './firestore-entity-outbox.js?v=8.29';
 
 const PRIMARY_SYNC_DEBOUNCE_MS = 1500;
 
@@ -126,6 +127,11 @@ export async function flushPrimarySyncNow(options = {}) {
   if (!queued) {
     await scheduleRetryIfNeeded(reason);
     return false;
+  }
+
+  const entitySync = state.config?.entitySync || {};
+  if (entitySync.enabled && entitySync.mode === 'primary') {
+    await queueFirestoreEntityBatchFromState(state, { manual: false });
   }
 
   const ok = await flushFirestoreOutbox({ manual: false, forceOverwrite: force });

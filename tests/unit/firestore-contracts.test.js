@@ -38,7 +38,7 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/sync-coordinator.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.26'");
+    expect(swSource).toContain("APP_VERSION = '8.28'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
@@ -153,5 +153,26 @@ describe('Firestore integration contracts', () => {
     expect(rules).toContain('request.resource.data.version == 1');
     expect(rules).toContain('entityManifest');
     expect(rules).toContain('request.resource.data.entityManifest is list');
+  });
+
+  it('allows owner-scoped entity docs and still denies physical deletes', () => {
+    const rules = read('firestore.rules');
+
+    expect(rules).toContain('match /users/{uid}/entities/{entityId}');
+    expect(rules).toContain('validEntityDoc()');
+    expect(rules).toContain('request.resource.data.key is string');
+    expect(rules).toContain('request.resource.data.payload == null');
+    expect(rules).toContain('request.resource.data.payload is map');
+    expect(rules).toContain('allow delete: if false;');
+  });
+
+  it('exposes manual entity shadow verification in the sync center', () => {
+    const engine = read('src/js/sync/firestore-sync-engine.js');
+    const actions = read('src/js/ui/actions/config.js');
+    const views = read('src/js/views.js');
+
+    expect(engine).toContain('export async function verifyFirestoreEntityShadow');
+    expect(actions).toContain("registerAction('firestore-verify-entity-shadow'");
+    expect(views).toContain('data-action="firestore-verify-entity-shadow"');
   });
 });

@@ -1,4 +1,4 @@
-import { mergeEntityAwareArrays } from './entity-metadata.js?v=8.26';
+import { mergeEntityAwareArrays } from './entity-metadata.js?v=8.29';
 
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
 
@@ -68,8 +68,15 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
       remoteAt: firestore.remoteUpdatedAt || null,
       conflict: firestore.conflict || null,
       lastError: firestore.lastError || null,
+      entityShadowDiff: state?.config?.entitySync?.lastShadowDiff || null,
       detail: firestore.enabled
-        ? (firestore.mode === 'primary' ? 'Sync automatico principal.' : 'Shadow: sem envio automatico.')
+        ? (firestore.mode === 'primary'
+          ? (state?.config?.entitySync?.mode === 'primary'
+            ? 'Entidades primarias com snapshot de fallback.'
+            : 'Sync automatico principal.')
+          : (state?.config?.entitySync?.mode === 'shadow'
+            ? 'Snapshot primario com entidades em shadow.'
+            : 'Shadow: sem envio automatico.'))
         : 'Ative depois de entrar com Google.'
     },
     {
