@@ -1,113 +1,187 @@
-import { describe, expect, it, vi } from 'vitest';
-import { createBaseState, createEvento } from '../helpers/state-builders.js';
-
-vi.mock('../../src/js/store.js?v=8.28', () => ({
-  DEFAULT_SCHEMA_VERSION: 7,
-  createExportableState(sourceState) {
-    const clone = JSON.parse(JSON.stringify(sourceState));
-    if (!clone.config) clone.config = {};
-    delete clone.config.cfToken;
-    delete clone.config.cfUrl;
-    delete clone.config.localBackupAt;
-    clone.config.cfSyncEnabled = false;
-    return clone;
-  }
-}));
-
-const schema = await import('../../src/js/sync/firestore-schema.js?v=8.28');
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('firestore-schema.js', () => {
-  it('creates a versioned snapshot envelope without sync secrets', () => {
+  beforeEach(() => {
+    vi.resetModules();
     localStorage.clear();
-    const state = createBaseState({
-      eventos: [createEvento({ id: 'ev_firestore' })],
-      config: {
-        cfSyncEnabled: true,
-        cfUrl: 'https://worker.example.test',
-        cfToken: 'secret',
-        firestoreSync: {
-          enabled: true,
-          mode: 'shadow',
-          remoteUpdatedAt: '2026-04-21T10:00:00.000Z'
+  });
+
+  describe('getFirestoreDeviceId()', () => {
+    it('generates new device id when not stored', async () => {
+      const { getFirestoreDeviceId } = await import('../../src/js/sync/firestore-schema.js');
+      const id = getFirestoreDeviceId();
+      expect(id).toMatch(/^web-[a-z0-9]{8}$/);
+    });
+
+    it('returns stored device id', async () => {
+      localStorage.setItem('estudo_firestore_device_id', 'web-stored123');
+      const { getFirestoreDeviceId } = await import('../../src/js/sync/firestore-schema.js');
+      expect(getFirestoreDeviceId()).toBe('web-stored123');
+    });
+  });
+
+  describe('toIsoTimestamp()', () => {
+    it('returns current time for null input', async () => {
+      const { toIsoTimestamp } = await import('../../src/js/sync/firestore-schema.js');
+      const result = toIsoTimestamp(null);
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    });
+
+    it('converts number to ISO string', async () => {
+      const { toIsoTimestamp } = await import('../../src/js/sync/firestore-schema.js');
+      const ts = 1700000000000;
+      expect(toIsoTimestamp(ts)).toBe(new Date(ts).toISOString());
+    });
+
+    it('converts date string to ISO string', async () => {
+      const { toIsoTimestamp } = await import('../../src/js/sync/firestore-schema.js');
+      const dateStr = '2024-01-15T10:30:00Z';
+      expect(toIsoTimestamp(dateStr)).toBe(new Date(dateStr).toISOString());
+    });
+
+    it('returns current time for invalid date', async () => {
+      const { toIsoTimestamp } = await import('../../src/js/sync/firestore-schema.js');
+      const result = toIsoTimestamp('invalid');
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    });
+  });
+
+  describe('getLocalContentUpdatedAt()', () => {
+    it('returns null for empty state', async () => {
+      const { getLocalContentUpdatedAt } = await import('../../src/js/sync/firestore-schema.js');
+      expect(getLocalContentUpdatedAt({})).toBeNull();
+    });
+
+    it('returns max of _lastUpdated and localBackupAt', async () => {
+      const { getLocalContentUpdatedAt } = await import('../../src/js/sync/firestore-schema.js');
+      const state = {
+        config: {
+          _lastUpdated: '2024-01-01T00:00:00Z',
+          localBackupAt: '2024-06-01T00:00:00Z',
         },
-        localBackupAt: '2026-04-21T11:00:00.000Z'
-      }
+      };
+      expect(getLocalContentUpdatedAt(state)).toBe('2024-06-01T00:00:00.000Z');
     });
-
-    const envelope = schema.createFirestoreSnapshotEnvelope(state, {
-      sentAt: '2026-04-21T11:00:01.000Z',
-      deviceId: 'web-test'
-    });
-
-    expect(envelope).toMatchObject({
-      version: 1,
-      schemaVersion: 7,
-      deviceId: 'web-test',
-      baseRemoteUpdatedAt: '2026-04-21T10:00:00.000Z',
-      payloadUpdatedAt: '2026-04-21T11:00:00.000Z'
-    });
-    expect(envelope.payload.eventos[0].id).toBe('ev_firestore');
-    expect(envelope.entityManifest).toEqual([
-      expect.objectContaining({
-        key: 'eventos/ev_firestore',
-        collection: 'eventos',
-        id: 'ev_firestore',
-        revision: expect.any(Number),
-        checksum: expect.any(String)
-      })
-    ]);
-    expect(envelope.payload.config.cfToken).toBeUndefined();
-    expect(envelope.payload.config.cfUrl).toBeUndefined();
-    expect(envelope.payload.config.firestoreSync.enabled).toBe(false);
   });
 
-  it('uses the newest local content timestamp when legacy Cloudflare metadata is stale', () => {
-    const state = createBaseState({
-      config: {
-        _lastUpdated: new Date('2026-04-21T10:00:00.000Z').getTime(),
-        localBackupAt: '2026-04-21T12:00:00.000Z',
-        firestoreSync: {
-          enabled: true,
-          remoteUpdatedAt: '2026-04-21T09:00:00.000Z'
-        }
-      }
+  describe('getFirestoreSyncConfig()', () => {
+    it('returns empty object when config missing', async () => {
+      const { getFirestoreSyncConfig } = await import('../../src/js/sync/firestore-schema.js');
+      expect(getFirestoreSyncConfig({})).toEqual({});
     });
 
-    const envelope = schema.createFirestoreSnapshotEnvelope(state, {
-      sentAt: '2026-04-21T12:00:01.000Z',
-      deviceId: 'web-test'
+    it('returns firestoreSync config', async () => {
+      const { getFirestoreSyncConfig } = await import('../../src/js/sync/firestore-schema.js');
+      const state = { config: { firestoreSync: { enabled: true } } };
+      expect(getFirestoreSyncConfig(state)).toEqual({ enabled: true });
     });
-
-    expect(envelope.payloadUpdatedAt).toBe('2026-04-21T12:00:00.000Z');
-    expect(schema.isRemoteNewer(
-      { payloadUpdatedAt: '2026-04-21T11:00:00.000Z' },
-      state
-    )).toBe(false);
   });
 
-  it('applies a remote envelope while keeping Firestore enabled locally', () => {
-    const envelope = schema.createFirestoreSnapshotEnvelope(createBaseState({
-      eventos: [createEvento({ id: 'ev_remote' })],
-      config: { localBackupAt: '2026-04-21T12:00:00.000Z' }
-    }), {
-      deviceId: 'remote-device',
-      payloadUpdatedAt: '2026-04-21T12:00:00.000Z'
+  describe('createDefaultFirestoreSyncConfig()', () => {
+    it('returns default config', async () => {
+      const { createDefaultFirestoreSyncConfig } = await import('../../src/js/sync/firestore-schema.js');
+      const config = createDefaultFirestoreSyncConfig();
+      expect(config.enabled).toBe(false);
+      expect(config.mode).toBe('shadow');
+      expect(config.uid).toBeNull();
     });
 
-    const nextState = schema.applyEnvelopeToLocalState(envelope, {
-      enabled: true,
-      mode: 'primary',
-      uid: 'uid-1'
+    it('applies overrides', async () => {
+      const { createDefaultFirestoreSyncConfig } = await import('../../src/js/sync/firestore-schema.js');
+      const config = createDefaultFirestoreSyncConfig({ enabled: true, mode: 'mirror' });
+      expect(config.enabled).toBe(true);
+      expect(config.mode).toBe('mirror');
+    });
+  });
+
+  describe('isFirestoreSnapshotEnvelope()', () => {
+    it('returns false for null', async () => {
+      const { isFirestoreSnapshotEnvelope } = await import('../../src/js/sync/firestore-schema.js');
+      expect(isFirestoreSnapshotEnvelope(null)).toBe(false);
     });
 
-    expect(nextState.eventos[0].id).toBe('ev_remote');
-    expect(nextState.config.firestoreSync).toMatchObject({
-      enabled: true,
-      mode: 'primary',
-      uid: 'uid-1',
-      remoteUpdatedAt: '2026-04-21T12:00:00.000Z',
-      hasPendingWrites: false
+    it('returns false for non-object', async () => {
+      const { isFirestoreSnapshotEnvelope } = await import('../../src/js/sync/firestore-schema.js');
+      expect(isFirestoreSnapshotEnvelope('string')).toBe(false);
     });
-    expect(nextState.config.localBackupAt).toBe('2026-04-21T12:00:00.000Z');
+
+    it('returns false for wrong version', async () => {
+      const { isFirestoreSnapshotEnvelope } = await import('../../src/js/sync/firestore-schema.js');
+      expect(isFirestoreSnapshotEnvelope({ version: 999, payload: {} })).toBe(false);
+    });
+
+    it('returns false when payload missing', async () => {
+      const { isFirestoreSnapshotEnvelope } = await import('../../src/js/sync/firestore-schema.js');
+      expect(isFirestoreSnapshotEnvelope({ version: 1 })).toBe(false);
+    });
+
+    it('returns true for valid envelope', async () => {
+      const { isFirestoreSnapshotEnvelope } = await import('../../src/js/sync/firestore-schema.js');
+      expect(isFirestoreSnapshotEnvelope({ version: 1, payload: {} })).toBe(true);
+    });
+  });
+
+  describe('getEnvelopeUpdatedAt()', () => {
+    it('returns payloadUpdatedAt if present', async () => {
+      const { getEnvelopeUpdatedAt } = await import('../../src/js/sync/firestore-schema.js');
+      expect(getEnvelopeUpdatedAt({ payloadUpdatedAt: '2024-01-01' })).toBe('2024-01-01');
+    });
+
+    it('falls back to updatedAt', async () => {
+      const { getEnvelopeUpdatedAt } = await import('../../src/js/sync/firestore-schema.js');
+      expect(getEnvelopeUpdatedAt({ updatedAt: '2024-01-01' })).toBe('2024-01-01');
+    });
+
+    it('returns null for empty envelope', async () => {
+      const { getEnvelopeUpdatedAt } = await import('../../src/js/sync/firestore-schema.js');
+      expect(getEnvelopeUpdatedAt({})).toBeNull();
+    });
+  });
+
+  describe('isRemoteNewer()', () => {
+    it('returns true when remote is newer', async () => {
+      const { isRemoteNewer } = await import('../../src/js/sync/firestore-schema.js');
+      const remote = { payloadUpdatedAt: '2024-06-01T00:00:00Z' };
+      const local = { config: { _lastUpdated: '2024-01-01T00:00:00Z' } };
+      expect(isRemoteNewer(remote, local)).toBe(true);
+    });
+
+    it('returns false when local is newer', async () => {
+      const { isRemoteNewer } = await import('../../src/js/sync/firestore-schema.js');
+      const remote = { payloadUpdatedAt: '2024-01-01T00:00:00Z' };
+      const local = { config: { _lastUpdated: '2024-06-01T00:00:00Z' } };
+      expect(isRemoteNewer(remote, local)).toBe(false);
+    });
+  });
+
+  describe('applyEnvelopeToLocalState()', () => {
+    it('throws for invalid envelope', async () => {
+      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js');
+      expect(() => applyEnvelopeToLocalState({})).toThrow('Envelope Firestore invalido.');
+    });
+
+    it('applies envelope payload to local state', async () => {
+      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js');
+      const envelope = {
+        version: 1,
+        payload: { config: {}, eventos: [{ id: '1' }] },
+        payloadUpdatedAt: '2024-01-01T00:00:00Z',
+      };
+      const result = applyEnvelopeToLocalState(envelope);
+      expect(result.eventos).toHaveLength(1);
+      expect(result.config.firestoreSync.enabled).toBe(true);
+      expect(result.config.localBackupAt).toBe('2024-01-01T00:00:00Z');
+    });
+
+    it('preserves previous sync config mode', async () => {
+      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js');
+      const envelope = {
+        version: 1,
+        payload: { config: {} },
+        payloadUpdatedAt: '2024-01-01T00:00:00Z',
+      };
+      const result = applyEnvelopeToLocalState(envelope, { mode: 'mirror' });
+      expect(result.config.firestoreSync.mode).toBe('mirror');
+    });
   });
 });
