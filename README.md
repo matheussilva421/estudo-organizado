@@ -227,7 +227,7 @@ Documentos de arquitetura, planos e segurança ficam em `src/docs/`.
 ### Firestore Local-First
 Firestore é o caminho remoto principal quando configurado:
 
-1. Configure `src/js/firebase/firebase-config.js`
+1. Defina `window.ESTUDO_FIREBASE_CONFIG` antes de carregar `js/main.js`
 2. Gere o bundle local com `npm run build:firebase`
 3. Entre com Google em **Configurações > Firestore**
 4. Ative em modo shadow antes de usar como fonte de restauração

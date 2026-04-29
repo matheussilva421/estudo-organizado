@@ -1,14 +1,9 @@
-import {
-  db,
-  FIRESTORE_ENTITY_OUTBOX_STORE
-} from '../store.js?v=8.29';
+import { db, FIRESTORE_ENTITY_OUTBOX_STORE } from '../store.js?v=8.29';
 import {
   createFirestoreEntityDocument,
-  createFirestoreTombstoneDocument
+  createFirestoreTombstoneDocument,
 } from './firestore-entity-schema.js?v=8.29';
-import {
-  createEntityIndex
-} from './entity-metadata.js?v=8.29';
+import { createEntityIndex } from './entity-metadata.js?v=8.29';
 
 export const FIRESTORE_ENTITY_OUTBOX_ID = 'entity_shadow';
 const MAX_BACKOFF_MS = 300000;
@@ -37,10 +32,14 @@ function getEntityByKey(state, key) {
   const match = active.find((item) => item.key === key);
   if (!match) return null;
   const segments = key.split('/');
-  if (match.collection === 'editais') return (state.editais || []).find((item) => item.id === match.id) || null;
-  if (match.collection === 'eventos') return (state.eventos || []).find((item) => item.id === match.id) || null;
-  if (match.collection === 'arquivo') return (state.arquivo || []).find((item) => item.id === match.id) || null;
-  if (match.collection === 'revisoes') return (state.revisoes || []).find((item) => item.id === match.id) || null;
+  if (match.collection === 'editais')
+    return (state.editais || []).find((item) => item.id === match.id) || null;
+  if (match.collection === 'eventos')
+    return (state.eventos || []).find((item) => item.id === match.id) || null;
+  if (match.collection === 'arquivo')
+    return (state.arquivo || []).find((item) => item.id === match.id) || null;
+  if (match.collection === 'revisoes')
+    return (state.revisoes || []).find((item) => item.id === match.id) || null;
   if (match.collection.startsWith('habitos.')) {
     const type = match.collection.split('.')[1];
     return (state.habitos?.[type] || []).find((item) => item.id === match.id) || null;
@@ -65,19 +64,25 @@ export async function queueFirestoreEntityBatchFromState(state, options = {}) {
   if (!db || !db.objectStoreNames?.contains(FIRESTORE_ENTITY_OUTBOX_STORE)) return null;
   const schemaVersion = state.schemaVersion || 9;
   const sentAt = options.sentAt || new Date().toISOString();
-  const activeDocs = createEntityIndex(state).map((item) => createFirestoreEntityDocument({
-    key: item.key,
-    collection: item.collection,
-    id: item.id,
-    entity: getEntityByKey(state, item.key),
-    schemaVersion,
-    sentAt
-  })).filter((item) => item.payload);
-  const tombstoneDocs = (state.config?.entityTombstones || []).map((tombstone) => createFirestoreTombstoneDocument({
-    tombstone,
-    schemaVersion,
-    sentAt
-  }));
+  const activeDocs = createEntityIndex(state)
+    .map((item) =>
+      createFirestoreEntityDocument({
+        key: item.key,
+        collection: item.collection,
+        id: item.id,
+        entity: getEntityByKey(state, item.key),
+        schemaVersion,
+        sentAt,
+      })
+    )
+    .filter((item) => item.payload);
+  const tombstoneDocs = (state.config?.entityTombstones || []).map((tombstone) =>
+    createFirestoreTombstoneDocument({
+      tombstone,
+      schemaVersion,
+      sentAt,
+    })
+  );
   const record = {
     id: FIRESTORE_ENTITY_OUTBOX_ID,
     status: 'pending',
@@ -85,7 +90,7 @@ export async function queueFirestoreEntityBatchFromState(state, options = {}) {
     queuedAt: sentAt,
     nextAttemptAt: null,
     lastError: null,
-    docs: [...activeDocs, ...tombstoneDocs]
+    docs: [...activeDocs, ...tombstoneDocs],
   };
   return putRecord(record);
 }
@@ -104,7 +109,7 @@ export async function markFirestoreEntityBatchSynced() {
   await putRecord({
     ...current,
     status: 'synced',
-    syncedAt: new Date().toISOString()
+    syncedAt: new Date().toISOString(),
   });
 }
 
@@ -113,13 +118,13 @@ export async function markFirestoreEntityBatchFailed(error) {
   const current = await getPendingFirestoreEntityBatch();
   if (!current) return false;
   const attempts = (current.attempts || 0) + 1;
-  const delayMs = Math.min(MAX_BACKOFF_MS, 1000 * (2 ** Math.min(attempts, MAX_BACKOFF_EXPONENT)));
+  const delayMs = Math.min(MAX_BACKOFF_MS, 1000 * 2 ** Math.min(attempts, MAX_BACKOFF_EXPONENT));
   await putRecord({
     ...current,
     status: 'pending',
     attempts,
     lastError: error?.message || String(error),
-    nextAttemptAt: new Date(Date.now() + delayMs).toISOString()
+    nextAttemptAt: new Date(Date.now() + delayMs).toISOString(),
   });
   return true;
 }

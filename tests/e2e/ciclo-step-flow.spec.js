@@ -106,6 +106,7 @@ test.describe('Ciclo Step Flow', () => {
     await expect(page.locator('#topbar-title')).toHaveText('Ciclo de Estudos', { timeout: 10000 });
     await page.waitForTimeout(500);
 
+    await page.locator('.seq-item-card--static').first().hover();
     const startBtn = page.locator('[data-action="iniciar-etapa-planejamento"]').first();
     await expect(startBtn).toBeVisible();
     await startBtn.click();

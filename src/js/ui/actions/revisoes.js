@@ -4,7 +4,12 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { switchRevTab, marcarRevisao, adiarRevisao, deletarRevisao } from '../../views/revisao-view.js';
+import {
+  switchRevTab,
+  marcarRevisao,
+  adiarRevisao,
+  deletarRevisao,
+} from '../../views/revisao-view.js';
 
 // Registrar ações
 registerAction('switch-revision-tab', (el) => {

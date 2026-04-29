@@ -18,7 +18,7 @@ export function rebuildStateFromEntityDocs(docs = []) {
     revisoes: [],
     habitos: {},
     planejamento: { sequencia: [] },
-    config: { entityTombstones: [] }
+    config: { entityTombstones: [] },
   };
 
   for (const doc of newest) {
@@ -29,7 +29,7 @@ export function rebuildStateFromEntityDocs(docs = []) {
         id: doc.id,
         deletedAt: doc.deletedAt,
         deletedBy: doc.updatedBy,
-        revision: doc.revision
+        revision: doc.revision,
       });
       continue;
     }
@@ -52,7 +52,9 @@ export function rebuildStateFromEntityDocs(docs = []) {
     if (edital) edital.disciplinas.push({ ...doc.payload, assuntos: [], aulas: [] });
   }
 
-  for (const doc of newest.filter((item) => ['assuntos', 'aulas'].includes(item.collection) && item.payload)) {
+  for (const doc of newest.filter(
+    (item) => ['assuntos', 'aulas'].includes(item.collection) && item.payload
+  )) {
     const segments = doc.key.split('/');
     const edital = state.editais.find((item) => item.id === segments[1]);
     const disciplina = (edital?.disciplinas || []).find((item) => item.id === segments[3]);
@@ -76,11 +78,76 @@ export function applyEntityDocsToState(baseState = {}, docs = []) {
     habitos,
     config: {
       ...(baseState.config || {}),
-      ...(rebuilt.config || {})
+      ...(rebuilt.config || {}),
     },
     planejamento: {
       ...(baseState.planejamento || {}),
-      ...(rebuilt.planejamento || {})
-    }
+      ...(rebuilt.planejamento || {}),
+    },
   };
+}
+
+export function replaceEntityInStateByRecord(targetState = {}, record = {}) {
+  if (!record || !record.entity || !record.collection || !record.id) return false;
+  const { collection, id, key, entity } = record;
+
+  if (collection === 'editais') {
+    const index = (targetState.editais || []).findIndex((item) => item.id === id);
+    if (index === -1) return false;
+    targetState.editais[index] = entity;
+    return true;
+  }
+
+  if (collection === 'eventos' || collection === 'arquivo' || collection === 'revisoes') {
+    const list = targetState[collection];
+    if (!Array.isArray(list)) return false;
+    const index = list.findIndex((item) => item.id === id);
+    if (index === -1) return false;
+    list[index] = entity;
+    return true;
+  }
+
+  if (collection.startsWith('habitos.')) {
+    const type = collection.replace('habitos.', '');
+    const list = targetState.habitos?.[type];
+    if (!Array.isArray(list)) return false;
+    const index = list.findIndex((item) => item.id === id);
+    if (index === -1) return false;
+    list[index] = entity;
+    return true;
+  }
+
+  if (collection === 'planejamento.sequencia') {
+    const list = targetState.planejamento?.sequencia;
+    if (!Array.isArray(list)) return false;
+    const index = list.findIndex((item) => item.id === id);
+    if (index === -1) return false;
+    list[index] = entity;
+    return true;
+  }
+
+  const segments = String(key || '').split('/');
+  const edital = (targetState.editais || []).find((item) => item.id === segments[1]);
+  if (!edital) return false;
+
+  if (collection === 'disciplinas') {
+    const list = edital.disciplinas || [];
+    const index = list.findIndex((item) => item.id === id);
+    if (index === -1) return false;
+    list[index] = entity;
+    return true;
+  }
+
+  if (collection === 'assuntos' || collection === 'aulas') {
+    const disciplina = (edital.disciplinas || []).find((item) => item.id === segments[3]);
+    if (!disciplina) return false;
+    const listName = collection === 'assuntos' ? 'assuntos' : 'aulas';
+    const list = disciplina[listName] || [];
+    const index = list.findIndex((item) => item.id === id);
+    if (index === -1) return false;
+    list[index] = entity;
+    return true;
+  }
+
+  return false;
 }

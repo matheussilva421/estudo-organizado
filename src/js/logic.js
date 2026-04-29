@@ -11,7 +11,7 @@ import { openRegistroSessao } from './registro-sessao.js?v=8.29';
  * Mapa de intervals ativos por eventId
  * @type {Object.<string, number>}
  */
-export const timerIntervals = {};   // eventId → intervalId
+export const timerIntervals = {}; // eventId → intervalId
 
 /**
  * Flag de modo Pomodoro
@@ -24,7 +24,9 @@ document.addEventListener('app:stateLoaded', () => {
   if (state?.config?.pomodoroMode) _pomodoroMode = true;
 });
 
-export const _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+export const _pomodoroAlarm = new Audio(
+  'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'
+);
 
 /**
  * Verifica se timer está ativo
@@ -33,7 +35,7 @@ export const _pomodoroAlarm = new Audio('https://assets.mixkit.co/active_storage
  */
 export function isTimerActive(eventId) {
   if (eventId === 'crono_livre') return !!(state.cronoLivre && state.cronoLivre._timerStart);
-  const ev = state.eventos.find(e => e.id === eventId);
+  const ev = state.eventos.find((e) => e.id === eventId);
   return !!(ev && ev._timerStart);
 }
 
@@ -54,7 +56,10 @@ export function getElapsedSeconds(ev) {
 export function toggleTimerMode() {
   _pomodoroMode = !_pomodoroMode;
   // Persist pomodoro preference
-  if (state?.config) { state.config.pomodoroMode = _pomodoroMode; scheduleSave(); }
+  if (state?.config) {
+    state.config.pomodoroMode = _pomodoroMode;
+    scheduleSave();
+  }
   const foco = state?.config?.pomodoroFoco || 25;
   const pausa = state?.config?.pomodoroPausa || 5;
   // Update cronômetro view button (only exists when view is active)
@@ -70,7 +75,14 @@ export function toggleTimerMode() {
       ? '<i class="fa fa-clock"></i> Pomodoro'
       : '<i class="fa fa-clock"></i> Contínuo';
   }
-  document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: _pomodoroMode ? 'Modo Pomodoro ativado.' : 'Modo Contínuo ativado.', type: 'info' } }));
+  document.dispatchEvent(
+    new CustomEvent('app:showToast', {
+      detail: {
+        msg: _pomodoroMode ? 'Modo Pomodoro ativado.' : 'Modo Contínuo ativado.',
+        type: 'info',
+      },
+    })
+  );
 }
 
 // GUI Hooks for Crono Livre Customization
@@ -97,7 +109,7 @@ export function setCronoLivreAss(assId) {
 }
 
 export function reattachTimers() {
-  Object.keys(timerIntervals).forEach(id => {
+  Object.keys(timerIntervals).forEach((id) => {
     clearInterval(timerIntervals[id]);
     delete timerIntervals[id];
   });
@@ -106,7 +118,7 @@ export function reattachTimers() {
   if (state.cronoLivre && state.cronoLivre._timerStart) {
     allTimers.push({ id: 'crono_livre', ev: state.cronoLivre });
   }
-  state.eventos.forEach(e => {
+  state.eventos.forEach((e) => {
     if (e._timerStart) allTimers.push({ id: e.id, ev: e });
   });
 
@@ -121,11 +133,21 @@ export function reattachTimers() {
         const focoTargetSecs = (state?.config?.pomodoroFoco || 25) * 60;
         const pausaTargetMins = state?.config?.pomodoroPausa || 5;
         if (sessionSeconds >= focoTargetSecs) {
-          _pomodoroAlarm.play().catch(e => console.log('Audio error:', e));
+          _pomodoroAlarm.play().catch((e) => console.log('Audio error:', e));
           toggleTimer(id); // Auto-pause
-          document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `Pomodoro concluído! Descanse ${pausaTargetMins} minutos.`, type: 'success' } }));
+          document.dispatchEvent(
+            new CustomEvent('app:showToast', {
+              detail: {
+                msg: `Pomodoro concluído! Descanse ${pausaTargetMins} minutos.`,
+                type: 'success',
+              },
+            })
+          );
           if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('Pomodoro Concluído! 🍅', { body: `Descanse ${pausaTargetMins} minutos.`, icon: 'favicon.ico' });
+            new Notification('Pomodoro Concluído! 🍅', {
+              body: `Descanse ${pausaTargetMins} minutos.`,
+              icon: 'favicon.ico',
+            });
           }
           return; // Stop current interval frame
         }
@@ -134,7 +156,7 @@ export function reattachTimers() {
       if (!_cachedNodes || _cachedNodes.length === 0 || !document.body.contains(_cachedNodes[0])) {
         _cachedNodes = document.querySelectorAll(`[data-timer="${id}"]`);
       }
-      _cachedNodes.forEach(el => {
+      _cachedNodes.forEach((el) => {
         el.textContent = formatTime(elapsed);
       });
     }, 1000);
@@ -143,7 +165,8 @@ export function reattachTimers() {
 
 // Otimizado: adiciona apenas um timer específico sem recriar todos
 export function startTimerForEvent(eventId) {
-  const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
+  const ev =
+    eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find((e) => e.id === eventId);
   if (!ev || !ev._timerStart) return;
 
   // Clear existing interval for this specific timer only
@@ -162,11 +185,21 @@ export function startTimerForEvent(eventId) {
       const focoTargetSecs = (state?.config?.pomodoroFoco || 25) * 60;
       const pausaTargetMins = state?.config?.pomodoroPausa || 5;
       if (sessionSeconds >= focoTargetSecs) {
-        _pomodoroAlarm.play().catch(e => console.log('Audio error:', e));
+        _pomodoroAlarm.play().catch((e) => console.log('Audio error:', e));
         toggleTimer(eventId); // Auto-pause
-        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `Pomodoro concluído! Descanse ${pausaTargetMins} minutos.`, type: 'success' } }));
+        document.dispatchEvent(
+          new CustomEvent('app:showToast', {
+            detail: {
+              msg: `Pomodoro concluído! Descanse ${pausaTargetMins} minutos.`,
+              type: 'success',
+            },
+          })
+        );
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Pomodoro Concluído! 🍅', { body: `Descanse ${pausaTargetMins} minutos.`, icon: 'favicon.ico' });
+          new Notification('Pomodoro Concluído! 🍅', {
+            body: `Descanse ${pausaTargetMins} minutos.`,
+            icon: 'favicon.ico',
+          });
         }
         return;
       }
@@ -175,14 +208,15 @@ export function startTimerForEvent(eventId) {
     if (!_cachedNodes || _cachedNodes.length === 0 || !document.body.contains(_cachedNodes[0])) {
       _cachedNodes = document.querySelectorAll(`[data-timer="${eventId}"]`);
     }
-    _cachedNodes.forEach(el => {
+    _cachedNodes.forEach((el) => {
       el.textContent = formatTime(elapsed);
     });
   }, 1000);
 }
 
 export function addTimerMinutes(eventId, minutes) {
-  const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
+  const ev =
+    eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find((e) => e.id === eventId);
   if (!ev) return;
   if (eventId === 'crono_livre') {
     ev.duracaoMinutos = Math.max(0, (ev.duracaoMinutos || 0) + minutes);
@@ -190,18 +224,26 @@ export function addTimerMinutes(eventId, minutes) {
     ev.duracao = Math.max(0, (ev.duracao || 0) + minutes);
   }
   scheduleSave();
-  document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `+${minutes} minuto(s) adicionado(s) à meta`, type: 'info' } }));
+  document.dispatchEvent(
+    new CustomEvent('app:showToast', {
+      detail: { msg: `+${minutes} minuto(s) adicionado(s) à meta`, type: 'info' },
+    })
+  );
   document.dispatchEvent(new Event('app:renderCurrentView'));
 }
 
 export function toggleTimer(eventId) {
-  const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
+  const ev =
+    eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find((e) => e.id === eventId);
   if (!ev) return;
   if (ev._timerStart) {
     // PAUSE
     ev.tempoAcumulado = getElapsedSeconds(ev);
-    delete ev._timerStart;
-    if (timerIntervals[eventId]) { clearInterval(timerIntervals[eventId]); delete timerIntervals[eventId]; }
+    ev._timerStart = null;
+    if (timerIntervals[eventId]) {
+      clearInterval(timerIntervals[eventId]);
+      delete timerIntervals[eventId];
+    }
   } else {
     // START
     ev._timerStart = Date.now();
@@ -213,41 +255,46 @@ export function toggleTimer(eventId) {
 }
 
 export function discardTimer(eventId) {
-  const ev = eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === eventId);
+  const ev =
+    eventId === 'crono_livre' ? state.cronoLivre : state.eventos.find((e) => e.id === eventId);
   if (!ev) return;
-  document.dispatchEvent(new CustomEvent('app:showConfirm', {
-    detail: {
-      msg: 'Descartar esta sessão? O tempo de estudo será zerado.',
-      onYes: () => {
-        if (timerIntervals[eventId]) {
-          clearInterval(timerIntervals[eventId]);
-          delete timerIntervals[eventId];
-        }
-        ev.tempoAcumulado = 0;
-        delete ev._timerStart;
-        scheduleSave();
-        document.dispatchEvent(new Event('app:renderCurrentView'));
+  document.dispatchEvent(
+    new CustomEvent('app:showConfirm', {
+      detail: {
+        msg: 'Descartar esta sessão? O tempo de estudo será zerado.',
+        onYes: () => {
+          if (timerIntervals[eventId]) {
+            clearInterval(timerIntervals[eventId]);
+            delete timerIntervals[eventId];
+          }
+          ev.tempoAcumulado = 0;
+          ev._timerStart = null;
+          scheduleSave();
+          document.dispatchEvent(new Event('app:renderCurrentView'));
+        },
+        opts: { title: 'Descartar Sessão', label: 'Descartar', danger: true },
       },
-      opts: { title: 'Descartar Sessão', label: 'Descartar', danger: true }
-    }
-  }));
+    })
+  );
 }
 
 export function marcarEstudei(eventId) {
   openRegistroSessao(eventId);
 }
 
-
 export function _marcarEstudeiDirect(eventId) {
-  const ev = state.eventos.find(e => e.id === eventId);
+  const ev = state.eventos.find((e) => e.id === eventId);
   if (!ev) return;
 
   if (ev._timerStart) {
     ev.tempoAcumulado = getElapsedSeconds(ev);
-    delete ev._timerStart;
+    ev._timerStart = null;
   }
 
-  if (timerIntervals[eventId]) { clearInterval(timerIntervals[eventId]); delete timerIntervals[eventId]; }
+  if (timerIntervals[eventId]) {
+    clearInterval(timerIntervals[eventId]);
+    delete timerIntervals[eventId];
+  }
 
   ev.status = 'estudei';
   ev.dataEstudo = todayStr();
@@ -255,7 +302,7 @@ export function _marcarEstudeiDirect(eventId) {
   if (ev.assId && ev.discId) {
     const d = getDisc(ev.discId);
     if (d) {
-      const ass = d.disc.assuntos.find(a => a.id === ev.assId);
+      const ass = d.disc.assuntos.find((a) => a.id === ev.assId);
       if (ass && !ass.concluido) {
         ass.concluido = true;
         ass.dataConclusao = todayStr();
@@ -267,33 +314,38 @@ export function _marcarEstudeiDirect(eventId) {
   invalidatePendingRevCache();
   document.dispatchEvent(new Event('app:refreshMEDSections'));
 
-  document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Evento marcado como Estudei! ✅', type: 'success' } }));
+  document.dispatchEvent(
+    new CustomEvent('app:showToast', {
+      detail: { msg: 'Evento marcado como Estudei! ✅', type: 'success' },
+    })
+  );
 }
 
 export function deleteEvento(eventId) {
-  document.dispatchEvent(new CustomEvent('app:showConfirm', {
-    detail: {
-      msg: 'Excluir este evento permanentemente?',
-      onYes: () => {
-        if (timerIntervals[eventId]) {
-          clearInterval(timerIntervals[eventId]);
-          delete timerIntervals[eventId];
-        }
-        state.eventos = state.eventos.filter(e => e.id !== eventId);
-        scheduleSave();
-        invalidatePendingRevCache();
-        document.dispatchEvent(new CustomEvent('app:eventoDeleted', { detail: { eventId } }));
+  document.dispatchEvent(
+    new CustomEvent('app:showConfirm', {
+      detail: {
+        msg: 'Excluir este evento permanentemente?',
+        onYes: () => {
+          if (timerIntervals[eventId]) {
+            clearInterval(timerIntervals[eventId]);
+            delete timerIntervals[eventId];
+          }
+          state.eventos = state.eventos.filter((e) => e.id !== eventId);
+          scheduleSave();
+          invalidatePendingRevCache();
+          document.dispatchEvent(new CustomEvent('app:eventoDeleted', { detail: { eventId } }));
+        },
+        opts: { danger: true, label: 'Excluir', title: 'Excluir evento' },
       },
-      opts: { danger: true, label: 'Excluir', title: 'Excluir evento' }
-    }
-  }));
+    })
+  );
 }
-
 
 export function totalStudySeconds(days = null) {
   const cutoffStr = days ? cutoffDateStr(days) : null;
   return state.eventos
-    .filter(e => {
+    .filter((e) => {
       if (e.status !== 'estudei' || !e.tempoAcumulado) return false;
       const studyDate = e.dataEstudo || e.data;
       return !cutoffStr || (studyDate && studyDate >= cutoffStr);
@@ -305,7 +357,9 @@ export function totalStudySeconds(days = null) {
 // REVISIONS
 // =============================================
 export const _revDateCache = new Map();
-export function invalidateRevCache() { _revDateCache.clear(); }
+export function invalidateRevCache() {
+  _revDateCache.clear();
+}
 
 export function calcRevisionDates(dataConclusao, feitas, adiamentos = 0) {
   const freqs = state.config.frequenciaRevisao || [1, 7, 30, 90];
@@ -315,7 +369,7 @@ export function calcRevisionDates(dataConclusao, feitas, adiamentos = 0) {
   const base = new Date(dataConclusao + 'T00:00:00');
   base.setDate(base.getDate() + adiamentos); // shift the revision schedule by the number of postponed days
 
-  const dates = freqs.slice(feitas.length).map(d => {
+  const dates = freqs.slice(feitas.length).map((d) => {
     const dt = new Date(base);
     dt.setDate(dt.getDate() + d);
     return getLocalDateStr(dt);
@@ -325,18 +379,24 @@ export function calcRevisionDates(dataConclusao, feitas, adiamentos = 0) {
 }
 
 export let _pendingRevCache = null;
-export function invalidatePendingRevCache() { _pendingRevCache = null; }
+export function invalidatePendingRevCache() {
+  _pendingRevCache = null;
+}
 
 export function getPendingRevisoes() {
   if (_pendingRevCache) return _pendingRevCache;
   const today = todayStr();
   const pending = [];
   for (const edital of state.editais) {
-    for (const disc of (edital.disciplinas || [])) {
+    for (const disc of edital.disciplinas || []) {
       if (disc.arquivada) continue;
-      for (const ass of (disc.assuntos || [])) {
+      for (const ass of disc.assuntos || []) {
         if (!ass.concluido || !ass.dataConclusao) continue;
-        const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || [], ass.adiamentos || 0);
+        const revDates = calcRevisionDates(
+          ass.dataConclusao,
+          ass.revisoesFetas || [],
+          ass.adiamentos || 0
+        );
         for (const rd of revDates) {
           if (rd <= today) {
             pending.push({ assunto: ass, disc, edital, data: rd });
@@ -355,7 +415,10 @@ export function getPendingRevisoes() {
 // =============================================
 export let _discCache = null;
 export let _discIndex = null;
-export function invalidateDiscCache() { _discCache = null; _discIndex = null; }
+export function invalidateDiscCache() {
+  _discCache = null;
+  _discIndex = null;
+}
 
 export function getAllDisciplinas() {
   if (_discCache) return _discCache;
@@ -379,9 +442,9 @@ export function getDisc(id) {
 }
 
 export function archiveDiscipline(editalId, disciplineId) {
-  const edital = state.editais.find(e => e.id === editalId);
+  const edital = state.editais.find((e) => e.id === editalId);
   if (!edital) return;
-  const disc = edital.disciplinas?.find(d => d.id === disciplineId);
+  const disc = edital.disciplinas?.find((d) => d.id === disciplineId);
   if (!disc) return;
   disc.arquivada = true;
   disc.arquivadaEm = new Date().toISOString();
@@ -390,9 +453,9 @@ export function archiveDiscipline(editalId, disciplineId) {
 }
 
 export function unarchiveDiscipline(editalId, disciplineId) {
-  const edital = state.editais.find(e => e.id === editalId);
+  const edital = state.editais.find((e) => e.id === editalId);
   if (!edital) return;
-  const disc = edital.disciplinas?.find(d => d.id === disciplineId);
+  const disc = edital.disciplinas?.find((d) => d.id === disciplineId);
   if (!disc) return;
   disc.arquivada = false;
   disc.arquivadaEm = null;
@@ -444,13 +507,13 @@ function getAggregatedStats() {
     weekDailySeconds: [0, 0, 0, 0, 0, 0, 0],
     weekTotalSeconds: 0,
     weekTotalQuestions: 0,
-    streakDates: new Set()
+    streakDates: new Set(),
   };
 
   // Initialize subject stats with all disciplines
-  (state.editais || []).forEach(ed => {
+  (state.editais || []).forEach((ed) => {
     if (!ed.disciplinas) return;
-    ed.disciplinas.forEach(d => {
+    ed.disciplinas.forEach((d) => {
       stats.subjectStats[d.id] = { id: d.id, nome: d.nome, tempo: 0, acertos: 0, erros: 0 };
     });
   });
@@ -460,12 +523,30 @@ function getAggregatedStats() {
   const primeirodiaSemana = state.config.primeirodiaSemana || 1;
   let dayOffset = now.getDay() - primeirodiaSemana;
   if (dayOffset < 0) dayOffset += 7;
-  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOffset, 0, 0, 0, 0);
+  const startOfWeek = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - dayOffset,
+    0,
+    0,
+    0,
+    0
+  );
   const startStr = getLocalDateStr(startOfWeek);
-  const endStr = getLocalDateStr(new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 6, 23, 59, 59, 999));
+  const endStr = getLocalDateStr(
+    new Date(
+      startOfWeek.getFullYear(),
+      startOfWeek.getMonth(),
+      startOfWeek.getDate() + 6,
+      23,
+      59,
+      59,
+      999
+    )
+  );
 
   // Single pass through all events
-  state.eventos.forEach(ev => {
+  state.eventos.forEach((ev) => {
     if (ev.status !== 'estudei') return;
 
     const studyDate = ev.dataEstudo || ev.data;
@@ -475,10 +556,10 @@ function getAggregatedStats() {
     // Global stats
     let totalQs = 0;
     if (qs) {
-      totalQs = qs.total ?? ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0));
+      totalQs = qs.total ?? (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
       stats.questionsTotal += totalQs;
-      stats.questionsCorrect += (qs.acertos || qs.certas || 0);
-      stats.questionsWrong += (qs.erros || qs.erradas || 0);
+      stats.questionsCorrect += qs.acertos || qs.certas || 0;
+      stats.questionsWrong += qs.erros || qs.erradas || 0;
     }
     stats.pagesTotal += ev.sessao?.paginas?.total || ev.paginas || 0;
 
@@ -486,8 +567,8 @@ function getAggregatedStats() {
     if (ev.discId && stats.subjectStats[ev.discId]) {
       stats.subjectStats[ev.discId].tempo += elapsed;
       if (qs) {
-        stats.subjectStats[ev.discId].acertos += (qs.acertos || qs.certas || 0);
-        stats.subjectStats[ev.discId].erros += (qs.erros || qs.erradas || 0);
+        stats.subjectStats[ev.discId].acertos += qs.acertos || qs.certas || 0;
+        stats.subjectStats[ev.discId].erros += qs.erros || qs.erradas || 0;
       }
     }
 
@@ -516,7 +597,7 @@ export function getPerformanceStats() {
   return {
     questionsTotal: agg.questionsTotal,
     questionsCorrect: agg.questionsCorrect,
-    questionsWrong: agg.questionsWrong
+    questionsWrong: agg.questionsWrong,
   };
 }
 
@@ -530,11 +611,11 @@ export function getSyllabusProgress() {
   let totalAulas = 0;
   let aulasEstudadas = 0;
 
-  (state.editais || []).forEach(ed => {
+  (state.editais || []).forEach((ed) => {
     if (!ed.disciplinas) return;
-    (ed.disciplinas || []).forEach(d => {
+    (ed.disciplinas || []).forEach((d) => {
       totalAulas += d.aulas ? d.aulas.length : 0;
-      aulasEstudadas += d.aulas ? d.aulas.filter(a => a.estudada).length : 0;
+      aulasEstudadas += d.aulas ? d.aulas.filter((a) => a.estudada).length : 0;
     });
   });
 
@@ -543,7 +624,9 @@ export function getSyllabusProgress() {
 }
 
 let _streakCache = null;
-export function invalidateStreakCache() { _streakCache = null; }
+export function invalidateStreakCache() {
+  _streakCache = null;
+}
 
 export function getConsistencyStreak() {
   if (_streakCache) return _streakCache;
@@ -605,7 +688,7 @@ export function getCurrentWeekStats() {
   return {
     totalSeconds: agg.weekTotalSeconds,
     totalQuestions: agg.weekTotalQuestions,
-    dailySeconds: agg.weekDailySeconds
+    dailySeconds: agg.weekDailySeconds,
   };
 }
 
@@ -622,7 +705,7 @@ export function getPredictiveStats(metaHoras, subjectStats = null) {
 
   // O que foi feito até hoje dividido pelos dias decorridos = ritmo
   const burnRateSecs = weekStats.totalSeconds / daysPassed;
-  const projectedSeconds = weekStats.totalSeconds + (burnRateSecs * daysRemaining);
+  const projectedSeconds = weekStats.totalSeconds + burnRateSecs * daysRemaining;
   const targetSeconds = (metaHoras || 0) * 3600;
 
   const projectedPerc = targetSeconds > 0 ? (projectedSeconds / targetSeconds) * 100 : 0;
@@ -634,7 +717,7 @@ export function getPredictiveStats(metaHoras, subjectStats = null) {
     const deficitSecs = targetSeconds - projectedSeconds;
 
     if (daysRemaining > 0) {
-      const extraPerDayMinutes = Math.ceil((deficitSecs / 60) / daysRemaining);
+      const extraPerDayMinutes = Math.ceil(deficitSecs / 60 / daysRemaining);
       if (projectedPerc >= 80) {
         status = 'amarelo';
         suggestion = `Luz Amarela: Estude +${extraPerDayMinutes} min/dia para alcançar a meta semanal.`;
@@ -673,7 +756,7 @@ export function getPredictiveStats(metaHoras, subjectStats = null) {
     projectedSeconds,
     targetSeconds,
     burnRate: burnRateSecs,
-    daysRemaining
+    daysRemaining,
   };
 }
 
@@ -715,7 +798,7 @@ export function generatePlanejamento(draft) {
     horarios: draft.horarios,
     sequencia: [],
     ciclosCompletos: 0,
-    dataInicioCicloAtual: new Date().toISOString()
+    dataInicioCicloAtual: new Date().toISOString(),
   };
 
   let totalMinutes = 0;
@@ -728,7 +811,7 @@ export function generatePlanejamento(draft) {
       const hora = plan.horarios.horasPorDia[i];
       if (plan.horarios.diasAtivos.includes(i) && hora && hora.includes(':')) {
         const [hh, mm] = hora.split(':');
-        totalMinutes += (parseInt(hh, 10) * 60) + parseInt(mm, 10);
+        totalMinutes += parseInt(hh, 10) * 60 + parseInt(mm, 10);
       }
     }
   }
@@ -744,7 +827,7 @@ export function generatePlanejamento(draft) {
 
   const pools = [];
 
-  sortedDiscs.forEach(discId => {
+  sortedDiscs.forEach((discId) => {
     const perc = plan.relevancia[discId]?.percentual || 0;
     let targetMinutes = Math.round((perc / 100) * totalMinutes);
     if (targetMinutes < minSessao && totalMinutes > 0) targetMinutes = minSessao;
@@ -762,7 +845,7 @@ export function generatePlanejamento(draft) {
         id: 'seq_' + uid(),
         discId: discId,
         minutosAlvo: block,
-        concluido: false
+        concluido: false,
       });
       remaining -= block;
     }
@@ -787,24 +870,33 @@ export function generatePlanejamento(draft) {
 }
 
 export function deletePlanejamento() {
-  document.dispatchEvent(new CustomEvent('app:showConfirm', {
-    detail: {
-      msg: 'Deseja excluir este Planejamento de Estudos? Você precisará criar um novo depois para gerar sequências.',
-      onYes: () => {
-        state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
-        resetCicloAndWipeEvents();
-        document.dispatchEvent(new Event('app:renderCurrentView'));
+  document.dispatchEvent(
+    new CustomEvent('app:showConfirm', {
+      detail: {
+        msg: 'Deseja excluir este Planejamento de Estudos? Você precisará criar um novo depois para gerar sequências.',
+        onYes: () => {
+          state.planejamento = {
+            ativo: false,
+            tipo: null,
+            disciplinas: [],
+            relevancia: {},
+            horarios: {},
+            sequencia: [],
+          };
+          resetCicloAndWipeEvents();
+          document.dispatchEvent(new Event('app:renderCurrentView'));
+        },
+        opts: { title: 'Excluir Planejamento' },
       },
-      opts: { title: 'Excluir Planejamento' }
-    }
-  }));
+    })
+  );
 }
 
 export function resetCicloAndWipeEvents() {
   if (!state.planejamento) return;
 
   // 1. Wipe all auto-generated events that are not studied yet (including past ones).
-  state.eventos = state.eventos.filter(e => {
+  state.eventos = state.eventos.filter((e) => {
     if (!e.isAutoGenerated) return true;
     if (e.status === 'estudei' || (e.tempoAcumulado && e.tempoAcumulado > 0)) return true;
     return false; // Remove pending auto generated events completely
@@ -812,7 +904,7 @@ export function resetCicloAndWipeEvents() {
 
   // 2. Reset the sequence conclusion state
   if (state.planejamento.sequencia) {
-    state.planejamento.sequencia.forEach(seq => {
+    state.planejamento.sequencia.forEach((seq) => {
       seq.concluido = false;
     });
   }
@@ -827,8 +919,8 @@ function getActiveStudyDaysFilter(plan = state.planejamento) {
   if (!Array.isArray(diasAtivos)) return null;
 
   const normalizedDays = diasAtivos
-    .map(day => Number(day))
-    .filter(day => Number.isInteger(day) && day >= 0 && day <= 6);
+    .map((day) => Number(day))
+    .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6);
 
   // No ciclo, os dias são opcionais; lista vazia mantém o comportamento livre (todos os dias).
   if (plan?.tipo === 'ciclo' && normalizedDays.length === 0) return null;
@@ -837,7 +929,12 @@ function getActiveStudyDaysFilter(plan = state.planejamento) {
 }
 
 export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
-  if (!state.planejamento || !state.planejamento.sequencia || state.planejamento.sequencia.length === 0) return {};
+  if (
+    !state.planejamento ||
+    !state.planejamento.sequencia ||
+    state.planejamento.sequencia.length === 0
+  )
+    return {};
 
   const start = new Date(startDateStr + 'T00:00:00');
   const end = new Date(endDateStr + 'T23:59:59');
@@ -872,7 +969,7 @@ export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
 
 export function iniciarEtapaPlanejamento(seqId) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
-  const seq = state.planejamento.sequencia.find(s => s.id === seqId);
+  const seq = state.planejamento.sequencia.find((s) => s.id === seqId);
   if (!seq) return;
   const d = getDisc(seq.discId);
 
@@ -888,7 +985,7 @@ export function iniciarEtapaPlanejamento(seqId) {
     assId: null,
     habito: null,
     seqId: seq.id,
-    criadoEm: new Date().toISOString()
+    criadoEm: new Date().toISOString(),
   };
 
   state.eventos.push(evento);
@@ -902,13 +999,19 @@ export function iniciarEtapaPlanejamento(seqId) {
 }
 
 export function syncCicloToEventos() {
-  if (!state.planejamento || !state.planejamento.ativo || !state.planejamento.sequencia || state.planejamento.sequencia.length === 0) return;
+  if (
+    !state.planejamento ||
+    !state.planejamento.ativo ||
+    !state.planejamento.sequencia ||
+    state.planejamento.sequencia.length === 0
+  )
+    return;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   // 1. Apagar eventos futuros automáticos
-  state.eventos = state.eventos.filter(e => {
+  state.eventos = state.eventos.filter((e) => {
     if (!e.isAutoGenerated) return true;
     if (e.status === 'estudei' || (e.tempoAcumulado && e.tempoAcumulado > 0)) return true;
     const evDate = new Date(e.data + 'T00:00:00');
@@ -922,7 +1025,7 @@ export function syncCicloToEventos() {
   let currentSeqIdx = 0;
 
   // Pega o índice a partir do primeiro bloco "não concluído", caso preexistente no ciclo contínuo
-  const firstPendentIndex = seq.findIndex(s => !s.concluido);
+  const firstPendentIndex = seq.findIndex((s) => !s.concluido);
   if (firstPendentIndex !== -1) currentSeqIdx = firstPendentIndex;
 
   // Determina quantos dias vamos agendar no futuro
@@ -964,7 +1067,7 @@ export function syncCicloToEventos() {
         habito: null,
         seqId: seqItem.id,
         criadoEm: new Date().toISOString(),
-        isAutoGenerated: true
+        isAutoGenerated: true,
       });
 
       currentSeqIdx = (currentSeqIdx + 1) % seq.length;
@@ -986,7 +1089,7 @@ export function moveCicloSeq(idx, dir) {
 
 export function desfazerEtapa(seqId) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
-  const idx = state.planejamento.sequencia.findIndex(s => s.id === seqId);
+  const idx = state.planejamento.sequencia.findIndex((s) => s.id === seqId);
   if (idx > -1) {
     state.planejamento.sequencia[idx].concluido = false;
     syncCicloToEventos();
@@ -996,6 +1099,15 @@ export function desfazerEtapa(seqId) {
   }
 }
 
+export function marcarEtapaConcluida(seqId) {
+  if (!state.planejamento || !state.planejamento.sequencia) return;
+  const seq = state.planejamento.sequencia.find((s) => s.id === seqId);
+  if (!seq) return;
+  seq.concluido = true;
+  syncCicloToEventos();
+  scheduleSave();
+  document.dispatchEvent(new Event('app:renderCurrentView'));
+}
 
 export function editCicloSeqHours(idx) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
@@ -1020,7 +1132,11 @@ export function editCicloSeqHours(idx) {
     const novaStr = document.getElementById('prompt-input-horas')?.value || '';
     const novaHoras = parseFloat(novaStr.replace(',', '.'));
     if (isNaN(novaHoras) || novaHoras <= 0) {
-      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Valor inválido. Digite um número maior que zero.', type: 'error' } }));
+      document.dispatchEvent(
+        new CustomEvent('app:showToast', {
+          detail: { msg: 'Valor inválido. Digite um número maior que zero.', type: 'error' },
+        })
+      );
       return;
     }
     seqItem.minutosAlvo = Math.round(novaHoras * 60);

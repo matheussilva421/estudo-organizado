@@ -4,14 +4,49 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { updateConfig, toggleConfig, updateFrequencia, toggleCfSync, archiveOldEvents, clearAllData, setTheme, exportData, importData, restoreBackupFromSelectedSource, openDriveModal, driveDisconnect } from '../../views/config-view.js?v=8.29';
+import {
+  updateConfig,
+  toggleConfig,
+  updateFrequencia,
+  toggleCfSync,
+  archiveOldEvents,
+  clearAllData,
+  setTheme,
+  exportData,
+  importData,
+  restoreBackupFromSelectedSource,
+  openDriveModal,
+  driveDisconnect,
+} from '../../views/config-view.js?v=8.29';
 import { scheduleSave, state } from '../../store.js?v=8.29';
 import { showToast, openModal, showConfirm } from '../../app.js?v=8.29';
 import { renderCurrentView } from '../../components.js?v=8.29';
-import { forceCloudflareSync, pullFromCloudflare, pushToCloudflare, mergeFromCloudflare } from '../../cloud-sync.js?v=8.29';
-import { firestoreSignIn, firestoreSignOut, enableFirestoreSync, disableFirestoreSync, syncFirestoreNow, pullFromFirestore, mergeFromFirestore, forcePushFirestore, verifyFirestoreEntityShadow, resolveEntityConflict, getFirestoreSyncStatus } from '../../sync/firestore-sync-engine.js?v=8.29';
+import {
+  forceCloudflareSync,
+  pullFromCloudflare,
+  pushToCloudflare,
+  mergeFromCloudflare,
+} from '../../cloud-sync.js?v=8.29';
+import {
+  firestoreSignIn,
+  firestoreSignOut,
+  enableFirestoreSync,
+  disableFirestoreSync,
+  syncFirestoreNow,
+  pullFromFirestore,
+  mergeFromFirestore,
+  forcePushFirestore,
+  verifyFirestoreEntityShadow,
+  resolveEntityConflict,
+  getFirestoreSyncStatus,
+} from '../../sync/firestore-sync-engine.js?v=8.29';
 import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.29';
-import { syncWithDrive, pullFromDrive, mergeFromDrive, driveAction } from '../../drive-sync.js?v=8.29';
+import {
+  syncWithDrive,
+  pullFromDrive,
+  mergeFromDrive,
+  driveAction,
+} from '../../drive-sync.js?v=8.29';
 
 // Registrar ações
 registerAction('update-config', (el) => {
@@ -52,10 +87,12 @@ registerAction('drive-disconnect', driveDisconnect);
 registerAction('disconnect-drive', driveDisconnect);
 registerAction('request-notification-permission', () => {
   if (!('Notification' in window)) return;
-  Notification.requestPermission().then(permission => {
-    if (permission === 'granted') showToast('Notificações ativadas!', 'success');
-    renderCurrentView();
-  }).catch(error => console.warn(error));
+  Notification.requestPermission()
+    .then((permission) => {
+      if (permission === 'granted') showToast('Notificações ativadas!', 'success');
+      renderCurrentView();
+    })
+    .catch((error) => console.warn(error));
 });
 registerAction('test-notification', () => {
   if ('Notification' in window) {
@@ -151,10 +188,16 @@ registerAction('sync-center-smart-sync', async () => {
   }
   if (status?.configured && status?.signedIn && status?.enabled) {
     const ok = await flushPrimarySyncNow({ manual: true, reason: 'smart-sync' });
-    showToast(ok ? 'Firestore primario sincronizado.' : 'Firestore aguardando revisao ou nova tentativa.', ok ? 'success' : 'info');
+    showToast(
+      ok ? 'Firestore primario sincronizado.' : 'Firestore aguardando revisao ou nova tentativa.',
+      ok ? 'success' : 'info'
+    );
     return;
   }
-  showToast('Ative o Firestore primario para sincronizar entre dispositivos. Cloudflare e Drive ficam como backups manuais.', 'info');
+  showToast(
+    'Ative o Firestore primario para sincronizar entre dispositivos. Cloudflare e Drive ficam como backups manuais.',
+    'info'
+  );
 });
 registerAction('sync-center-export-local', exportData);
 registerAction('sync-center-import-local', () => importData());
@@ -166,7 +209,7 @@ registerAction('force-sw-cache-clear', async () => {
   try {
     showToast('Limpando cache...', 'info');
     const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map(name => caches.delete(name)));
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
     const reg = await navigator.serviceWorker.getRegistration();
     if (reg) {
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -185,10 +228,18 @@ function setEntitySyncMode(mode) {
   state.config.entitySync.enabled = mode !== 'off';
   state.config.entitySync.mode = mode;
   scheduleSave();
-  const labels = { primary: 'Entidades primarias ativadas (experimental).', shadow: 'Entidades em shadow ativadas.', off: 'Entidades desativadas.' };
+  const labels = {
+    primary: 'Entidades primarias ativadas (experimental).',
+    shadow: 'Entidades em shadow ativadas.',
+    off: 'Entidades desativadas.',
+  };
   showToast(labels[mode] || 'Modo de entidades atualizado.', 'info');
   if (mode === 'primary') {
-    document.dispatchEvent(new CustomEvent('app:primarySyncRequested', { detail: { reason: 'entity-primary-activated' } }));
+    document.dispatchEvent(
+      new CustomEvent('app:primarySyncRequested', {
+        detail: { reason: 'entity-primary-activated' },
+      })
+    );
   }
   document.dispatchEvent(new Event('app:renderCurrentView'));
 }

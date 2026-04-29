@@ -4,7 +4,14 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { openHabitModal, saveHabit, deleteHabito, selectHabitType, setHabitPage, calcSimuladoPerc } from '../../views/habitos-view.js?v=8.29';
+import {
+  openHabitModal,
+  saveHabit,
+  deleteHabito,
+  selectHabitType,
+  setHabitPage,
+  calcSimuladoPerc,
+} from '../../views/habitos-view.js?v=8.29';
 
 // Registrar ações
 registerAction('open-habit-modal', (el) => {
@@ -15,7 +22,10 @@ registerAction('save-habit', saveHabit);
 registerAction('edit-habit', (el) => {
   const habitId = el.dataset.habitId;
   const habitType = el.dataset.type;
-  if (habitId && habitType) import('../../views/habitos-view.js?v=8.29').then(({ editHabit }) => editHabit(habitId, habitType));
+  if (habitId && habitType)
+    import('../../views/habitos-view.js?v=8.29').then(({ editHabit }) =>
+      editHabit(habitId, habitType)
+    );
 });
 registerAction('delete-habit', (el) => {
   const habitId = el.dataset.habitId;

@@ -15,7 +15,7 @@ import {
   saveRegistroSessao,
   saveAndStartNew,
   setPaginaMode,
-  openRegistroSessao
+  openRegistroSessao,
 } from '../../registro-sessao.js?v=8.29';
 import { openAddPastSessionModal } from '../../ui/event-modals.js?v=8.29';
 import { openPlanejamentoWizard } from '../../planejamento-wizard.js?v=8.29';

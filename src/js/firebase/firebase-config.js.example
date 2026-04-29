@@ -1,5 +1,5 @@
-// Copie este arquivo para firebase-config.js e preencha com suas credenciais do Firebase.
-// As credenciais NAO devem ser commitadas no repositorio.
+// Exemplo de configuracao local. Prefira definir window.ESTUDO_FIREBASE_CONFIG
+// antes de carregar main.js; nao versione firebase-config.js com valores reais.
 //
 // Alternativa: defina window.ESTUDO_FIREBASE_CONFIG e window.ESTUDO_APP_CHECK_SITE_KEY
 // em um script inline no index.html ANTES de carregar main.js.

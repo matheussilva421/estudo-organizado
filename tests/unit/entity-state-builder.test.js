@@ -36,4 +36,29 @@ describe('entity-state-builder.js', () => {
       expect.objectContaining({ key: 'eventos/ev_1', revision: 2 })
     ]);
   });
+
+  it('replaces nested entities by key when resolving remote conflicts', () => {
+    const state = {
+      editais: [{
+        id: 'ed_1',
+        disciplinas: [{
+          id: 'disc_1',
+          nome: 'Administrativo',
+          assuntos: [{ id: 'ass_1', nome: 'Atos locais' }],
+          aulas: [{ id: 'aula_1', nome: 'Aula local' }]
+        }]
+      }],
+      eventos: []
+    };
+
+    const replaced = builder.replaceEntityInStateByRecord(state, {
+      key: 'editais/ed_1/disciplinas/disc_1/assuntos/ass_1',
+      collection: 'assuntos',
+      id: 'ass_1',
+      entity: { id: 'ass_1', nome: 'Atos remoto' }
+    });
+
+    expect(replaced).toBe(true);
+    expect(state.editais[0].disciplinas[0].assuntos[0].nome).toBe('Atos remoto');
+  });
 });

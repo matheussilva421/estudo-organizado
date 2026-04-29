@@ -3,10 +3,30 @@
  * Settings page rendering and configuration helpers
  */
 
-import { THEME_OPTIONS, applyTheme, normalizeTheme, showConfirm, showToast, openModal, getLastSaveStatus } from '../app.js?v=8.29';
-import { cutoffDateStr, esc, todayStr } from '../utils.js?v=8.29';
-import { scheduleSave, state, setState, runMigrations, createExportableState, clearData } from '../store.js?v=8.29';
-import { syncCicloToEventos, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidateTodayCache } from '../logic.js?v=8.29';
+import {
+  THEME_OPTIONS,
+  applyTheme,
+  normalizeTheme,
+  showConfirm,
+  showToast,
+  openModal,
+  getLastSaveStatus,
+} from '../app.js?v=8.29';
+import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.29';
+import {
+  scheduleSave,
+  state,
+  setState,
+  runMigrations,
+  createExportableState,
+  clearData,
+} from '../store.js?v=8.29';
+import {
+  syncCicloToEventos,
+  invalidateDiscCache,
+  invalidateDashCaches,
+  invalidateRevCache,
+} from '../logic.js?v=8.29';
 import { renderCurrentView } from '../components.js?v=8.29';
 import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.29';
 import { getFirestoreSyncStatus, pullFromFirestore } from '../sync/firestore-sync-engine.js?v=8.29';
@@ -63,7 +83,10 @@ function renderCloudflareConflict(conflict) {
 function renderFirestoreConflict(conflict) {
   if (!conflict) return '';
   const items = Array.isArray(conflict.items) ? conflict.items : [];
-  const entityRows = items.slice(0, 8).map(item => `
+  const entityRows = items
+    .slice(0, 8)
+    .map(
+      (item) => `
     <div class="sync-conflict-entity">
       <span>${esc(item.collection || 'entidade')}</span>
       <code>${esc(item.id || item.key || 'sem-id')}</code>
@@ -71,7 +94,9 @@ function renderFirestoreConflict(conflict) {
       <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
       <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   return `
     <div class="sync-conflict-panel" data-testid="firestore-sync-conflict" role="alert">
@@ -87,13 +112,17 @@ function renderFirestoreConflict(conflict) {
         <span>Local: ${formatBackupDateTime(conflict.localUpdatedAt)}</span>
         <span>Detectado: ${formatBackupDateTime(conflict.detectedAt)}</span>
       </div>
-      ${items.length > 0 ? `
+      ${
+        items.length > 0
+          ? `
         <div class="sync-conflict-entities" data-testid="firestore-conflict-entities">
           <div class="sync-conflict-entities-title">Entidades afetadas (${conflict.total || items.length})</div>
           ${entityRows}
           ${items.length > 8 ? `<div class="sync-source-note">Mais ${items.length - 8} entidades omitidas nesta lista.</div>` : ''}
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       <div class="sync-conflict-actions">
         <button type="button" class="btn btn-outline btn-sm" data-action="firestore-export-local">
           <i class="fa fa-download"></i> Exportar backup local
@@ -116,9 +145,11 @@ function _renderFirestoreCard() {
     enabled: false,
     mode: 'shadow',
     hasPendingWrites: false,
-    conflict: null
+    conflict: null,
   };
-  const configuredText = status.configured ? `Projeto: ${esc(status.projectId || status.uid || 'configurado')}` : 'Configure o Firebase antes de ativar.';
+  const configuredText = status.configured
+    ? `Projeto: ${esc(status.projectId || status.uid || 'configurado')}`
+    : 'Configure o Firebase antes de ativar.';
   const statusText = !status.configured
     ? 'Não configurado'
     : status.signedIn
@@ -157,18 +188,26 @@ function _renderFirestoreCard() {
         </div>
 
         <div class="config-actions-row">
-          ${status.signedIn ? `
+          ${
+            status.signedIn
+              ? `
             <button class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>
-          ` : `
+          `
+              : `
             <button class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar com Google</button>
-          `}
-          ${status.enabled ? `
+          `
+          }
+          ${
+            status.enabled
+              ? `
             <button class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>
             <button class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Desativar</button>
-          ` : `
+          `
+              : `
             <button class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? '' : 'disabled'}>Ativar primário</button>
             <button class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Shadow</button>
-          `}
+          `
+          }
         </div>
       </div>
     </div>
@@ -197,12 +236,24 @@ function renderEntitySyncToggle() {
 }
 
 function getSyncHealthLabel(health) {
-  const labels = { ok: 'OK', idle: 'Inativo', pending: 'Pendente', conflict: 'Conflito', error: 'Erro' };
+  const labels = {
+    ok: 'OK',
+    idle: 'Inativo',
+    pending: 'Pendente',
+    conflict: 'Conflito',
+    error: 'Erro',
+  };
   return labels[health] || 'Status';
 }
 
 function getSyncHealthIcon(health) {
-  const icons = { ok: 'fa-circle-check', idle: 'fa-circle', pending: 'fa-clock', conflict: 'fa-triangle-exclamation', error: 'fa-circle-xmark' };
+  const icons = {
+    ok: 'fa-circle-check',
+    idle: 'fa-circle',
+    pending: 'fa-clock',
+    conflict: 'fa-triangle-exclamation',
+    error: 'fa-circle-xmark',
+  };
   return icons[health] || 'fa-circle-info';
 }
 
@@ -238,12 +289,14 @@ function renderSyncSourceActions(source) {
   }
 
   if (source.id === 'drive') {
-    return source.configured ? `
+    return source.configured
+      ? `
       <button type="button" class="btn btn-primary btn-sm" data-action="drive-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>
       <button type="button" class="btn btn-outline btn-sm" data-action="merge-from-drive"><i class="fa fa-code-merge"></i> Mesclar</button>
       <button type="button" class="btn btn-ghost btn-sm" data-action="pull-from-drive"><i class="fa fa-cloud-download-alt"></i> Baixar</button>
       <button type="button" class="btn btn-danger btn-sm" data-action="drive-disconnect">Desconectar</button>
-    ` : `
+    `
+      : `
       <button type="button" class="btn btn-primary btn-sm" data-action="open-drive-modal"><i class="fa fa-cloud"></i> Conectar</button>
     `;
   }
@@ -257,7 +310,10 @@ function renderSyncSourceConflictEntities(conflict) {
   return `
     <div class="sync-conflict-entities sync-conflict-entities--compact" data-testid="sync-source-conflict-entities">
       <div class="sync-conflict-entities-title">Entidades afetadas (${conflict.total || items.length})</div>
-      ${items.slice(0, 6).map(item => `
+      ${items
+        .slice(0, 6)
+        .map(
+          (item) => `
         <div class="sync-conflict-entity">
           <span>${esc(item.collection || 'entidade')}</span>
           <code>${esc(item.id || item.key || 'sem-id')}</code>
@@ -265,7 +321,9 @@ function renderSyncSourceConflictEntities(conflict) {
           <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
           <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
         </div>
-      `).join('')}
+      `
+        )
+        .join('')}
       <button type="button" class="btn btn-outline btn-sm" data-action="firestore-open-conflict-review" style="margin-top:8px;">
         <i class="fa fa-magnifying-glass"></i> Revisar entidades
       </button>
@@ -280,9 +338,9 @@ function renderSyncCenterCard() {
     getCloudflareCreds: () => ({
       url: state.config?.cfUrl || '',
       enabled: state.config?.cfSyncEnabled || false,
-      hasToken: !!(state.config?.cfToken || state.config?.cfTokenSaved)
+      hasToken: !!(state.config?.cfToken || state.config?.cfTokenSaved),
     }),
-    getDriveStatus: () => ({ configured: !!state.driveFileId })
+    getDriveStatus: () => ({ configured: !!state.driveFileId }),
   });
 
   const health = model.health || { status: 'idle' };
@@ -301,7 +359,9 @@ function renderSyncCenterCard() {
         </div>
 
         <div class="sync-sources-list">
-          ${model.sources.map(source => `
+          ${model.sources
+            .map(
+              (source) => `
             <div class="sync-source-card" data-sync-source="${source.id}">
               <div class="sync-source-header">
                 <div class="sync-source-icon"><i class="fa ${source.icon}"></i></div>
@@ -320,7 +380,9 @@ function renderSyncCenterCard() {
                 ${renderSyncSourceActions(source)}
               </div>
             </div>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       </div>
     </div>
@@ -330,15 +392,17 @@ function renderSyncCenterCard() {
 export function renderConfig(el) {
   const cfg = state.config;
   const saveStatus = getLastSaveStatus();
-  const saveStatusText = saveStatus.status === 'error'
-    ? `Falha ao salvar: ${esc(saveStatus.detail || 'erro desconhecido')}`
-    : saveStatus.status === 'saving'
-      ? 'Salvando alterações no dispositivo...'
-      : 'Último salvamento local concluído. Credenciais não entram em backup/exportação.';
+  const saveStatusText =
+    saveStatus.status === 'error'
+      ? `Falha ao salvar: ${esc(saveStatus.detail || 'erro desconhecido')}`
+      : saveStatus.status === 'saving'
+        ? 'Salvando alterações no dispositivo...'
+        : 'Último salvamento local concluído. Credenciais não entram em backup/exportação.';
   const activeTheme = normalizeTheme(cfg.tema, cfg.darkMode);
-  const themeOptionsHtml = THEME_OPTIONS
-    .map(theme => `<option value="${theme.value}" ${activeTheme === theme.value ? 'selected' : ''}>${theme.label}</option>`)
-    .join('');
+  const themeOptionsHtml = THEME_OPTIONS.map(
+    (theme) =>
+      `<option value="${theme.value}" ${activeTheme === theme.value ? 'selected' : ''}>${theme.label}</option>`
+  ).join('');
   el.innerHTML = `
     <div class="config-grid">
       <div>
@@ -487,7 +551,9 @@ export function renderConfig(el) {
                 <div class="config-subtitle">${state.driveFileId ? 'Seus dados são sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
               </div>
             </div>
-            ${state.driveFileId ? `
+            ${
+              state.driveFileId
+                ? `
               <div class="config-actions-row">
                 <button class="btn btn-primary btn-sm" data-action="drive-sync-now">
                   <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
@@ -497,11 +563,13 @@ export function renderConfig(el) {
                 </button>
                 <button class="btn btn-danger btn-sm" data-action="drive-disconnect">Desconectar</button>
               </div>
-            ` : `
+            `
+                : `
               <button class="btn btn-primary" data-action="open-drive-modal">
                 <i class="fa fa-cloud"></i> Conectar ao Google Drive
               </button>
-            `}
+            `
+            }
           </div>
         </div>
 
@@ -513,11 +581,19 @@ export function renderConfig(el) {
                 <div class="config-label">Notificações do browser</div>
                 <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '🚫 Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
               </div>
-              ${'Notification' in window && Notification.permission !== 'denied' && Notification.permission !== 'granted' ? `
+              ${
+                'Notification' in window &&
+                Notification.permission !== 'denied' &&
+                Notification.permission !== 'granted'
+                  ? `
                 <button class="btn btn-primary btn-sm" data-action="request-notification-permission">🔖 Ativar</button>
-              ` : Notification.permission === 'granted' ? `
+              `
+                  : Notification.permission === 'granted'
+                    ? `
                 <button class="btn btn-ghost btn-sm" data-action="test-notification">🔖 Testar</button>
-              ` : ''}
+              `
+                    : ''
+              }
             </div>
             <div class="config-row">
               <div>
@@ -620,8 +696,8 @@ export function updateConfig(key, value) {
       setSyncCreds({
         url: state.config.cfUrl || '',
         token: value,
-        enabled: state.config.cfSyncEnabled
-      }).catch(err => console.error('Erro ao salvar credencial Cloudflare:', err));
+        enabled: state.config.cfSyncEnabled,
+      }).catch((err) => console.error('Erro ao salvar credencial Cloudflare:', err));
     }
     scheduleSave();
     return;
@@ -634,8 +710,8 @@ export function updateConfig(key, value) {
       setSyncCreds({
         url: value,
         token: token || undefined,
-        enabled: state.config.cfSyncEnabled
-      }).catch(err => console.error('Erro ao salvar credencial Cloudflare:', err));
+        enabled: state.config.cfSyncEnabled,
+      }).catch((err) => console.error('Erro ao salvar credencial Cloudflare:', err));
     }
     scheduleSave();
     return;
@@ -683,7 +759,10 @@ export async function toggleCfSync(enabled) {
 }
 
 export function updateFrequencia(value) {
-  const nums = value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
+  const nums = value
+    .split(',')
+    .map((s) => parseInt(s.trim()))
+    .filter((n) => !isNaN(n) && n > 0);
   if (nums.length > 0) {
     state.config.frequenciaRevisao = nums;
     scheduleSave();
@@ -705,7 +784,9 @@ export function driveDisconnect() {
 
 export function archiveOldEvents(days = 90) {
   const cutoffStr = cutoffDateStr(days);
-  const toArchive = state.eventos.filter(e => e.status === 'estudei' && e.data && e.data < cutoffStr);
+  const toArchive = state.eventos.filter(
+    (e) => e.status === 'estudei' && e.data && e.data < cutoffStr
+  );
   if (toArchive.length === 0) {
     showToast('Nenhum evento para arquivar.', 'info');
     return;
@@ -714,8 +795,8 @@ export function archiveOldEvents(days = 90) {
     `Arquivar ${toArchive.length} evento(s) concluído(s) com mais de ${days} dias?\n\nEles continuarão no export/backup, mas não aparecerão nos relatórios.`,
     () => {
       state.arquivo = [...(state.arquivo || []), ...toArchive];
-      const archiveIds = new Set(toArchive.map(e => e.id));
-      state.eventos = state.eventos.filter(e => !archiveIds.has(e.id));
+      const archiveIds = new Set(toArchive.map((e) => e.id));
+      state.eventos = state.eventos.filter((e) => !archiveIds.has(e.id));
       scheduleSave();
       renderCurrentView();
       showToast(`${toArchive.length} evento(s) arquivados.`, 'success');
@@ -725,39 +806,46 @@ export function archiveOldEvents(days = 90) {
 }
 
 export function exportData() {
-  const blob = new Blob([JSON.stringify(createExportableState(), null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(createExportableState(), null, 2)], {
+    type: 'application/json',
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `estudo-organizado-backup-${todayStr()}.json`;
-  a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+  a.href = url;
+  a.download = `estudo-organizado-backup-${todayStr()}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
   showToast('Dados exportados!', 'success');
 }
 
 export function importData() {
   const input = document.createElement('input');
-  input.type = 'file'; input.accept = '.json';
+  input.type = 'file';
+  input.accept = '.json';
   input.className = 'sr-only';
-  input.onchange = e => {
+  input.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) {
       input.remove();
       return;
     }
     const reader = new FileReader();
-    reader.onload = ev => {
+    reader.onload = (ev) => {
       try {
         const imported = JSON.parse(ev.target.result);
         if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
           showToast('Arquivo inválido! O JSON não contém um objeto de dados válido.', 'error');
           return;
         }
-        const hasValidStructure = (
+        const hasValidStructure =
           (Array.isArray(imported.editais) || imported.editais === undefined) &&
           (Array.isArray(imported.eventos) || imported.eventos === undefined) &&
-          (typeof imported.config === 'object' || imported.config === undefined)
-        );
+          (typeof imported.config === 'object' || imported.config === undefined);
         if (!hasValidStructure) {
-          showToast('Arquivo inválido! Este JSON não parece ser um backup do Estudo Organizado.', 'error');
+          showToast(
+            'Arquivo inválido! Este JSON não parece ser um backup do Estudo Organizado.',
+            'error'
+          );
           return;
         }
         showConfirm(
@@ -776,7 +864,10 @@ export function importData() {
           { label: 'Importar', title: 'Importar dados' }
         );
       } catch {
-        showToast('Arquivo inválido! Verifique se é um JSON de backup do Estudo Organizado.', 'error');
+        showToast(
+          'Arquivo inválido! Verifique se é um JSON de backup do Estudo Organizado.',
+          'error'
+        );
       }
     };
     reader.onloadend = () => {
@@ -810,7 +901,11 @@ export function restoreBackupFromSelectedSource() {
   }
 
   if (source === 'cloudflare') {
-    if (!state.config?.cfSyncEnabled || !state.config?.cfUrl || (!state.config?.cfToken && !state.config?.cfTokenSaved)) {
+    if (
+      !state.config?.cfSyncEnabled ||
+      !state.config?.cfUrl ||
+      (!state.config?.cfToken && !state.config?.cfTokenSaved)
+    ) {
       showToast('Configure a sincronização Cloudflare antes de restaurar por ela.', 'error');
       return;
     }
@@ -829,7 +924,7 @@ export function restoreBackupFromSelectedSource() {
     }
     showConfirm(
       'Restaurar os dados do Google Drive? Isso substituirá os dados locais atuais.',
-      () => pullFromDrive().catch(err => console.error('Erro ao restaurar do Drive:', err)),
+      () => pullFromDrive().catch((err) => console.error('Erro ao restaurar do Drive:', err)),
       { label: 'Restaurar Drive', title: 'Restaurar backup' }
     );
   }
@@ -839,11 +934,11 @@ export function clearAllData() {
   showConfirm(
     '⚠️ Apagar TODOS os dados permanentemente?\n\nEditais, eventos, hábitos e configurações serão removidos.\n\nEsta ação é irreversível.',
     () => {
-      showConfirm(
-        'Última confirmação: isso não pode ser desfeito.',
-        () => clearData(),
-        { danger: true, label: 'Apagar tudo definitivamente', title: '⚠️ Confirmação final' }
-      );
+      showConfirm('Última confirmação: isso não pode ser desfeito.', () => clearData(), {
+        danger: true,
+        label: 'Apagar tudo definitivamente',
+        title: '⚠️ Confirmação final',
+      });
     },
     { danger: true, label: 'Continuar com exclusão', title: '⚠️ Apagar todos os dados' }
   );

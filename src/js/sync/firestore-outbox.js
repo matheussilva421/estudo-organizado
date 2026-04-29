@@ -1,4 +1,9 @@
-import { db, FIRESTORE_CONFLICT_STORE, FIRESTORE_META_STORE, FIRESTORE_OUTBOX_STORE } from '../store.js?v=8.29';
+import {
+  db,
+  FIRESTORE_CONFLICT_STORE,
+  FIRESTORE_META_STORE,
+  FIRESTORE_OUTBOX_STORE,
+} from '../store.js?v=8.29';
 
 const LATEST_SNAPSHOT_ID = 'latest_snapshot';
 const META_ID = 'firestore_sync';
@@ -28,7 +33,7 @@ export async function enqueueFirestoreSnapshot(envelope) {
     queuedAt: new Date().toISOString(),
     nextAttemptAt: null,
     lastError: null,
-    envelope
+    envelope,
   };
   await requestToPromise(store.put(record));
   return true;
@@ -51,16 +56,18 @@ export async function markFirestoreSnapshotFailed(error) {
   const pending = await getPendingFirestoreSnapshot();
   if (!pending) return false;
   const attempts = (pending.attempts || 0) + 1;
-  const delayMs = Math.min(300000, 1000 * (2 ** Math.min(attempts, 8)));
+  const delayMs = Math.min(300000, 1000 * 2 ** Math.min(attempts, 8));
   const store = getObjectStore(FIRESTORE_OUTBOX_STORE, 'readwrite');
   if (!store) return false;
-  await requestToPromise(store.put({
-    ...pending,
-    status: 'pending',
-    attempts,
-    lastError: error?.message || String(error),
-    nextAttemptAt: new Date(Date.now() + delayMs).toISOString()
-  }));
+  await requestToPromise(
+    store.put({
+      ...pending,
+      status: 'pending',
+      attempts,
+      lastError: error?.message || String(error),
+      nextAttemptAt: new Date(Date.now() + delayMs).toISOString(),
+    })
+  );
   return true;
 }
 

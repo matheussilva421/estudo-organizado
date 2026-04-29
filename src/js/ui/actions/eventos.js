@@ -4,12 +4,33 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { toggleTimer, discardTimer, toggleTimerMode, addTimerMinutes, setCronoLivreGoal, setCronoLivreDisc, setCronoLivreAss } from '../../logic.js?v=8.29';
-import { openAddEventModal, updateDayLoad, loadAssuntos, saveEvent, savePastEvent, openEventDetail } from '../../ui/event-modals.js?v=8.29';
+import {
+  toggleTimer,
+  discardTimer,
+  toggleTimerMode,
+  addTimerMinutes,
+  setCronoLivreGoal,
+  setCronoLivreDisc,
+  setCronoLivreAss,
+} from '../../logic.js?v=8.29';
+import {
+  openAddEventModal,
+  updateDayLoad,
+  loadAssuntos,
+  saveEvent,
+  savePastEvent,
+  openEventDetail,
+} from '../../ui/event-modals.js?v=8.29';
 import { showConfirm, closeModal } from '../../app.js?v=8.29';
 import { deleteEvento, marcarEstudei } from '../../logic.js?v=8.29';
 import { clearSearch } from '../../views.js?v=8.29';
-import { openRegistroSessao, cancelRegistro, discardTimerUI, voltarPastSessionUI, deleteCompletedSession } from '../../registro-sessao.js?v=8.29';
+import {
+  openRegistroSessao,
+  cancelRegistro,
+  discardTimerUI,
+  voltarPastSessionUI,
+  deleteCompletedSession,
+} from '../../registro-sessao.js?v=8.29';
 import { state } from '../../store.js?v=8.29';
 
 // Registrar ações
@@ -101,9 +122,10 @@ registerAction('set-crono-livre-ass', (el) => setCronoLivreAss(el.value));
 registerAction('set-crono-livre-goal', (el) => {
   const raw = el.dataset.value || el.value;
   const current = Number(state?.cronoLivre?.duracaoMinutos || 0);
-  const minutes = String(raw).startsWith('+') || String(raw).startsWith('-')
-    ? Math.max(0, current + parseInt(raw, 10))
-    : Math.max(0, parseInt(raw, 10) || 0);
+  const minutes =
+    String(raw).startsWith('+') || String(raw).startsWith('-')
+      ? Math.max(0, current + parseInt(raw, 10))
+      : Math.max(0, parseInt(raw, 10) || 0);
   setCronoLivreGoal(minutes);
 });
 registerAction('open-search-event', (el) => {

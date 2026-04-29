@@ -50,7 +50,7 @@ export function createDefaultFirestoreSyncConfig(overrides = {}) {
     hasPendingWrites: false,
     conflict: null,
     lastError: null,
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -61,9 +61,7 @@ export function createFirestoreSnapshotEnvelope(sourceState, options = {}) {
   payload.config.firestoreSync = createDefaultFirestoreSyncConfig();
 
   const payloadUpdatedAt = toIsoTimestamp(
-    options.payloadUpdatedAt
-      || getLocalContentUpdatedAt(sourceState)
-      || Date.now()
+    options.payloadUpdatedAt || getLocalContentUpdatedAt(sourceState) || Date.now()
   );
 
   return {
@@ -74,17 +72,17 @@ export function createFirestoreSnapshotEnvelope(sourceState, options = {}) {
     payloadUpdatedAt,
     sentAt: toIsoTimestamp(options.sentAt || Date.now()),
     entityManifest: buildEntityManifest(payload),
-    payload
+    payload,
   };
 }
 
 export function isFirestoreSnapshotEnvelope(value) {
   return Boolean(
-    value
-    && typeof value === 'object'
-    && value.version === FIRESTORE_SYNC_VERSION
-    && value.payload
-    && typeof value.payload === 'object'
+    value &&
+    typeof value === 'object' &&
+    value.version === FIRESTORE_SYNC_VERSION &&
+    value.payload &&
+    typeof value.payload === 'object'
   );
 }
 
@@ -116,7 +114,7 @@ export function applyEnvelopeToLocalState(envelope, previousSyncConfig = {}) {
     lastPullAt: new Date().toISOString(),
     hasPendingWrites: false,
     conflict: null,
-    lastError: null
+    lastError: null,
   });
   return nextState;
 }

@@ -111,6 +111,9 @@ test.describe('Revision Flow', () => {
 
   test('handles multiple disciplines with pending revisions', async ({ page }) => {
     const state = createE2EState();
+    state.editais[0].disciplinas[0].assuntos[0].concluido = true;
+    state.editais[0].disciplinas[0].assuntos[0].dataConclusao = localDateStr(new Date(Date.now() - 86400000));
+    state.editais[0].disciplinas[0].assuntos[0].revisoesFetas = [];
     state.editais[0].disciplinas.push({
       id: 'disc_2',
       nome: 'Direito Administrativo',

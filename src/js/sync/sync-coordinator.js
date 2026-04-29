@@ -3,7 +3,7 @@ import {
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
-  syncFirestoreNow
+  syncFirestoreNow,
 } from './firestore-sync-engine.js?v=8.29';
 import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.29';
 import { queueFirestoreEntityBatchFromState } from './firestore-entity-outbox.js?v=8.29';
@@ -16,14 +16,16 @@ let lastQueuedAt = null;
 let lastReason = null;
 
 function emitCoordinatorStatus(status, detail = {}) {
-  document.dispatchEvent(new CustomEvent('app:primarySyncStatus', {
-    detail: {
-      status,
-      lastQueuedAt,
-      lastReason,
-      ...detail
-    }
-  }));
+  document.dispatchEvent(
+    new CustomEvent('app:primarySyncStatus', {
+      detail: {
+        status,
+        lastQueuedAt,
+        lastReason,
+        ...detail,
+      },
+    })
+  );
 }
 
 function toDelayFromPending(pending) {
@@ -34,11 +36,11 @@ function toDelayFromPending(pending) {
 
 function canUsePrimaryFirestore(status = getFirestoreSyncStatus()) {
   return Boolean(
-    status.configured
-    && status.signedIn
-    && status.enabled
-    && status.mode === 'primary'
-    && !status.conflict
+    status.configured &&
+    status.signedIn &&
+    status.enabled &&
+    status.mode === 'primary' &&
+    !status.conflict
   );
 }
 
@@ -57,7 +59,7 @@ export function getSyncCoordinatorStatus() {
     timerActive: syncTimer !== null,
     lastQueuedAt,
     lastReason,
-    firestore
+    firestore,
   };
 }
 
@@ -79,9 +81,11 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
   const delayMs = typeof options.delayMs === 'number' ? options.delayMs : PRIMARY_SYNC_DEBOUNCE_MS;
   lastQueuedAt = new Date().toISOString();
   emitCoordinatorStatus('queued', { reason, delayMs, firestore: status });
-  document.dispatchEvent(new CustomEvent('app:primarySyncQueued', {
-    detail: { reason, delayMs, queuedAt: lastQueuedAt }
-  }));
+  document.dispatchEvent(
+    new CustomEvent('app:primarySyncQueued', {
+      detail: { reason, delayMs, queuedAt: lastQueuedAt },
+    })
+  );
 
   syncTimer = setTimeout(() => {
     syncTimer = null;

@@ -7,7 +7,9 @@ const srcDir = join(rootDir, 'src');
 const cssDir = join(srcDir, 'css');
 
 function read(relativePath) {
-  return readFileSync(join(rootDir, relativePath), 'utf8');
+  const content = readFileSync(join(rootDir, relativePath), 'utf8');
+  if (!relativePath.endsWith('.css')) return content;
+  return content.replace(/\[data-theme='([^']+)'\]/g, '[data-theme="$1"]');
 }
 
 function extractCssBlock(content, selector) {

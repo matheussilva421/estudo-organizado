@@ -6,79 +6,123 @@ import { state, scheduleSave } from './store.js?v=8.29';
 
 // Lista de palavras que não agregam peso semântico na comparação
 const STOPWORDS = new Set([
-    'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas',
-    'de', 'do', 'da', 'dos', 'das',
-    'em', 'no', 'na', 'nos', 'nas',
-    'por', 'pelo', 'pela', 'pelos', 'pelas',
-    'para', 'pro', 'pra', 'com', 'sem',
-    'e', 'ou', 'mas', 'porém', 'todavia', 'contudo',
-    'que', 'se', 'como', 'quando', 'onde',
-    'lei', 'artigo', 'art', 'inciso', 'capítulo', 'título',
-    'conceito', 'noções', 'introdução', 'teoria', 'geral', 'parte'
+  'o',
+  'a',
+  'os',
+  'as',
+  'um',
+  'uma',
+  'uns',
+  'umas',
+  'de',
+  'do',
+  'da',
+  'dos',
+  'das',
+  'em',
+  'no',
+  'na',
+  'nos',
+  'nas',
+  'por',
+  'pelo',
+  'pela',
+  'pelos',
+  'pelas',
+  'para',
+  'pro',
+  'pra',
+  'com',
+  'sem',
+  'e',
+  'ou',
+  'mas',
+  'porém',
+  'todavia',
+  'contudo',
+  'que',
+  'se',
+  'como',
+  'quando',
+  'onde',
+  'lei',
+  'artigo',
+  'art',
+  'inciso',
+  'capítulo',
+  'título',
+  'conceito',
+  'noções',
+  'introdução',
+  'teoria',
+  'geral',
+  'parte',
 ]);
 
 // Normalização pesada: minúsculas, remove acentos, remove pontuação, split em tokens válidos
 export function tokenize(text) {
-    if (!text) return [];
-    const normalized = text.toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove acentos
-        .replace(/[^\w\s]/gi, ' ') // Remove non-alfanumerico
-        .replace(/\s+/g, ' ')
-        .trim();
+  if (!text) return [];
+  const normalized = text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^\w\s]/gi, ' ') // Remove non-alfanumerico
+    .replace(/\s+/g, ' ')
+    .trim();
 
-    return normalized.split(' ').filter(word => word.length > 2 && !STOPWORDS.has(word));
+  return normalized.split(' ').filter((word) => word.length > 2 && !STOPWORDS.has(word));
 }
 
 // Distância de Levenshtein Clássica (para achar typos ou variações mínimas)
 export function levenshteinDistance(s, t) {
-    if (s === t) return 0;
-    if (s.length === 0) return t.length;
-    if (t.length === 0) return s.length;
+  if (s === t) return 0;
+  if (s.length === 0) return t.length;
+  if (t.length === 0) return s.length;
 
-    const v0 = new Uint16Array(t.length + 1);
-    const v1 = new Uint16Array(t.length + 1);
+  const v0 = new Uint16Array(t.length + 1);
+  const v1 = new Uint16Array(t.length + 1);
 
-    for (let i = 0; i < v0.length; i++) v0[i] = i;
+  for (let i = 0; i < v0.length; i++) v0[i] = i;
 
-    for (let i = 0; i < s.length; i++) {
-        v1[0] = i + 1;
-        for (let j = 0; j < t.length; j++) {
-            const cost = (s[i] === t[j]) ? 0 : 1;
-            v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost);
-        }
-        for (let j = 0; j < v0.length; j++) v0[j] = v1[j];
+  for (let i = 0; i < s.length; i++) {
+    v1[0] = i + 1;
+    for (let j = 0; j < t.length; j++) {
+      const cost = s[i] === t[j] ? 0 : 1;
+      v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost);
     }
-    return v1[t.length];
+    for (let j = 0; j < v0.length; j++) v0[j] = v1[j];
+  }
+  return v1[t.length];
 }
 
 // Retorna similaridade entre 0 e 1 usando Levenshtein
 export function fuzzySimilarity(word1, word2) {
-    const dist = levenshteinDistance(word1, word2);
-    const maxLen = Math.max(word1.length, word2.length);
-    if (maxLen === 0) return 1.0;
-    return (maxLen - dist) / maxLen;
+  const dist = levenshteinDistance(word1, word2);
+  const maxLen = Math.max(word1.length, word2.length);
+  if (maxLen === 0) return 1.0;
+  return (maxLen - dist) / maxLen;
 }
 
 // Compara dois conjuntos de tokens e retorna % de match (0.0 a 1.0)
 export function computeTokenMatch(tokensA, tokensB) {
-    if (tokensA.length === 0 || tokensB.length === 0) return 0;
+  if (tokensA.length === 0 || tokensB.length === 0) return 0;
 
-    let matches = 0;
-    // Tenta o Jaccard Similarity (Intersecção sobre União) ajustado com Fuzzy
-    for (const ta of tokensA) {
-        let bestWordScore = 0;
-        for (const tb of tokensB) {
-            const sc = fuzzySimilarity(ta, tb);
-            if (sc > bestWordScore) bestWordScore = sc;
-        }
-        if (bestWordScore > 0.8) { // Considera matching se fuzzy > 80%
-            matches++;
-        }
+  let matches = 0;
+  // Tenta o Jaccard Similarity (Intersecção sobre União) ajustado com Fuzzy
+  for (const ta of tokensA) {
+    let bestWordScore = 0;
+    for (const tb of tokensB) {
+      const sc = fuzzySimilarity(ta, tb);
+      if (sc > bestWordScore) bestWordScore = sc;
     }
-    // Penaliza baseado no tamanho do texto base (Assunto do Edital)
-    return matches / Math.max(tokensA.length, tokensB.length);
+    if (bestWordScore > 0.8) {
+      // Considera matching se fuzzy > 80%
+      matches++;
+    }
+  }
+  // Penaliza baseado no tamanho do texto base (Assunto do Edital)
+  return matches / Math.max(tokensA.length, tokensB.length);
 }
-
 
 // =============================================
 // Motor de Busca - Edital vs Ranking
@@ -89,76 +133,97 @@ export function computeTokenMatch(tokensA, tokensB) {
  * Retorno: { matchedItem, score: (0..1), confidence: 'HIGH'/'MEDIUM'/'LOW', reason: string }
  */
 export function findBestMatch(editalSubjectName, disciplinaId = null) {
-    const hotTopics = state.bancaRelevance?.hotTopics || [];
-    const userMap = state.bancaRelevance?.userMappings?.[editalSubjectName];
+  const hotTopics = state.bancaRelevance?.hotTopics || [];
+  const userMap = state.bancaRelevance?.userMappings?.[editalSubjectName];
 
-    // 1. OVERRIDE MANUAL: se o usuário já fixou um mapeamento na revisão assistida
-    if (userMap) {
-        if (userMap === 'NONE') {
-            return { matchedItem: null, score: 0.05, confidence: 'HIGH', reason: 'Marcado como sem incidência pelo usuário' };
-        }
-        const forcedMatch = hotTopics.find(h => h.id === userMap);
-        if (forcedMatch) {
-            return { matchedItem: forcedMatch, score: 1.0, confidence: 'HIGH', reason: 'Mapeamento Fixado Manualmente' };
-        }
+  // 1. OVERRIDE MANUAL: se o usuário já fixou um mapeamento na revisão assistida
+  if (userMap) {
+    if (userMap === 'NONE') {
+      return {
+        matchedItem: null,
+        score: 0.05,
+        confidence: 'HIGH',
+        reason: 'Marcado como sem incidência pelo usuário',
+      };
+    }
+    const forcedMatch = hotTopics.find((h) => h.id === userMap);
+    if (forcedMatch) {
+      return {
+        matchedItem: forcedMatch,
+        score: 1.0,
+        confidence: 'HIGH',
+        reason: 'Mapeamento Fixado Manualmente',
+      };
+    }
+  }
+
+  // 2. BUSCA NO HOT TOPICS (Se não há override)
+  if (!hotTopics.length)
+    return {
+      matchedItem: null,
+      score: 0.05,
+      confidence: 'LOW',
+      reason: 'Nenhum dado de banca definido',
+    };
+
+  const tokensA = tokenize(editalSubjectName);
+  const strA = editalSubjectName.toLowerCase().trim();
+
+  let bestMatch = null;
+  let highestScore = 0;
+  let bestReason = '';
+  let bestConf = 'LOW';
+
+  for (const ht of hotTopics) {
+    // Opcional: Filtra por disciplina se a lista tiver `disciplinaId` setado
+    if (disciplinaId && ht.disciplinaId && ht.disciplinaId !== disciplinaId) continue;
+
+    const strB = ht.nome.toLowerCase().trim();
+
+    // Match Exato
+    if (strA === strB) {
+      return { matchedItem: ht, score: 1.0, confidence: 'HIGH', reason: 'Match Exato de Título' };
     }
 
-    // 2. BUSCA NO HOT TOPICS (Se não há override)
-    if (!hotTopics.length) return { matchedItem: null, score: 0.05, confidence: 'LOW', reason: 'Nenhum dado de banca definido' };
-
-    const tokensA = tokenize(editalSubjectName);
-    const strA = editalSubjectName.toLowerCase().trim();
-
-    let bestMatch = null;
-    let highestScore = 0;
-    let bestReason = '';
-    let bestConf = 'LOW';
-
-    for (const ht of hotTopics) {
-        // Opcional: Filtra por disciplina se a lista tiver `disciplinaId` setado
-        if (disciplinaId && ht.disciplinaId && ht.disciplinaId !== disciplinaId) continue;
-
-        const strB = ht.nome.toLowerCase().trim();
-
-        // Match Exato
-        if (strA === strB) {
-            return { matchedItem: ht, score: 1.0, confidence: 'HIGH', reason: 'Match Exato de Título' };
-        }
-
-        // Match de Inclusão (Um contém totalmente o outro)
-        if (strA.includes(strB) || strB.includes(strA)) {
-            const sc = 0.9;
-            if (sc > highestScore) {
-                highestScore = sc;
-                bestMatch = ht;
-                bestReason = 'Contém Nome Parcial';
-                bestConf = 'HIGH';
-            }
-        }
-
-        // Match Parcial & Fuzzy (Tokenização Complexa)
-        if (!ht._tokens) ht._tokens = tokenize(ht.nome);
-        const tokenScore = computeTokenMatch(tokensA, ht._tokens);
-
-        if (tokenScore > highestScore) {
-            highestScore = tokenScore;
-            bestMatch = ht;
-            if (tokenScore > 0.8) {
-                bestConf = 'MEDIUM';
-                bestReason = 'Termos Altamente Similares (Algoritmo)';
-            } else {
-                bestConf = 'LOW';
-                bestReason = `Plausível Semelhança Textual (${Math.round(tokenScore * 100)}%)`;
-            }
-        }
+    // Match de Inclusão (Um contém totalmente o outro)
+    if (strA.includes(strB) || strB.includes(strA)) {
+      const sc = 0.9;
+      if (sc > highestScore) {
+        highestScore = sc;
+        bestMatch = ht;
+        bestReason = 'Contém Nome Parcial';
+        bestConf = 'HIGH';
+      }
     }
 
-    // Se nem o Fuzzy achar algo decente (> 40%), assume que não cai/não bateu
-    if (highestScore < 0.4) {
-        return { matchedItem: null, score: 0.05, confidence: 'HIGH', reason: 'Sem incidência detectada nas chaves da Banca' };
-    }
+    // Match Parcial & Fuzzy (Tokenização Complexa)
+    if (!ht._tokens) ht._tokens = tokenize(ht.nome);
+    const tokenScore = computeTokenMatch(tokensA, ht._tokens);
 
-    return { matchedItem: bestMatch, score: highestScore, confidence: bestConf, reason: bestReason };
+    if (tokenScore > highestScore) {
+      highestScore = tokenScore;
+      bestMatch = ht;
+      if (tokenScore > 0.8) {
+        bestConf = 'MEDIUM';
+        bestReason = 'Termos Altamente Similares (Algoritmo)';
+      } else {
+        bestConf = 'LOW';
+        bestReason = `Plausível Semelhança Textual (${Math.round(tokenScore * 100)}%)`;
+      }
+    }
+  }
+
+  // Se nem o Fuzzy achar algo decente (> 40%), assume que não cai/não bateu
+  if (highestScore < 0.4) {
+    return {
+      matchedItem: null,
+      score: 0.05,
+      confidence: 'HIGH',
+      reason: 'Sem incidência detectada nas chaves da Banca',
+    };
+  }
+
+  return { matchedItem: bestMatch, score: highestScore, confidence: bestConf, reason: bestReason };
 }
 
 // =============================================
@@ -166,161 +231,160 @@ export function findBestMatch(editalSubjectName, disciplinaId = null) {
 // =============================================
 
 export function calculateFinalRelevance(editalSubjectCtx) {
-    /*
+  /*
        editalSubjectCtx = { assuntoNome, disciplinaId, ... }
     */
-    const matchStruct = findBestMatch(editalSubjectCtx.assuntoNome, editalSubjectCtx.disciplinaId);
-    if (!matchStruct.matchedItem) {
-        return { finalScore: 0.0, priority: 'P3', matchData: matchStruct };
-    }
+  const matchStruct = findBestMatch(editalSubjectCtx.assuntoNome, editalSubjectCtx.disciplinaId);
+  if (!matchStruct.matchedItem) {
+    return { finalScore: 0.0, priority: 'P3', matchData: matchStruct };
+  }
 
-    const ht = matchStruct.matchedItem;
+  const ht = matchStruct.matchedItem;
 
-    // A. Calcula Incidence (Relevancia Real da Banca)
-    // -> (pode vir como 'rank' numérico ou 'weight' percentual de 0 a 1)
-    let incidenceScore = 0;
-    if (ht.weight !== undefined) {
-        incidenceScore = ht.weight; // já vem de 0 a 100 ou 0 a 1
-        if (incidenceScore > 1) incidenceScore = incidenceScore / 100;
-    } else if (ht.rank !== undefined) {
-        // Rank #1 = peso máximo, decai progressivamente (alpha = 0.7 aprox)
-        incidenceScore = 1 / Math.pow(ht.rank, 0.7);
-    } else if (ht.level !== undefined) {
-        // "Alta" = 1.0 | "Media" = 0.6 | "Baixa" = 0.3
-        incidenceScore = ht.level === 'ALTA' ? 1.0 : (ht.level === 'MEDIA' ? 0.6 : 0.3);
-    }
+  // A. Calcula Incidence (Relevancia Real da Banca)
+  // -> (pode vir como 'rank' numérico ou 'weight' percentual de 0 a 1)
+  let incidenceScore = 0;
+  if (ht.weight !== undefined) {
+    incidenceScore = ht.weight; // já vem de 0 a 100 ou 0 a 1
+    if (incidenceScore > 1) incidenceScore = incidenceScore / 100;
+  } else if (ht.rank !== undefined) {
+    // Rank #1 = peso máximo, decai progressivamente (alpha = 0.7 aprox)
+    incidenceScore = 1 / Math.pow(ht.rank, 0.7);
+  } else if (ht.level !== undefined) {
+    // "Alta" = 1.0 | "Media" = 0.6 | "Baixa" = 0.3
+    incidenceScore = ht.level === 'ALTA' ? 1.0 : ht.level === 'MEDIA' ? 0.6 : 0.3;
+  }
 
-    // B. Combina IncidenceScore (A Banca Cobra?) com MatchScore (Quão exato bate a String?)
-    // peso do MatchScore é vital, porque se a string bater apenas 50%, a certeza cai pela metade.
-    let finalScore = incidenceScore * matchStruct.score;
+  // B. Combina IncidenceScore (A Banca Cobra?) com MatchScore (Quão exato bate a String?)
+  // peso do MatchScore é vital, porque se a string bater apenas 50%, a certeza cai pela metade.
+  let finalScore = incidenceScore * matchStruct.score;
 
-    // Plus: Context Bonus (+0.1 se for pré-requisito ou alvo ruim)
-    // Se o acerto < 60% e o arquivo tem mts erros.. aumenta a prioridade!
-    const acertos = editalSubjectCtx.acertos || 0;
-    const erros = editalSubjectCtx.erros || 0;
-    if (erros / (acertos + erros + 1) > 0.6) {
-        finalScore += 0.1;
-    }
+  // Plus: Context Bonus (+0.1 se for pré-requisito ou alvo ruim)
+  // Se o acerto < 60% e o arquivo tem mts erros.. aumenta a prioridade!
+  const acertos = editalSubjectCtx.acertos || 0;
+  const erros = editalSubjectCtx.erros || 0;
+  if (erros / (acertos + erros + 1) > 0.6) {
+    finalScore += 0.1;
+  }
 
-    let priority = 'P3';
-    // Limiares default (Top 20% = P1) (P2 = 60-20%) -> Aqui traduzimos de forma semi-arbitrária até ter o dataset completo do Edital
-    if (finalScore >= 0.75) priority = 'P1';
-    else if (finalScore >= 0.40) priority = 'P2';
+  let priority = 'P3';
+  // Limiares default (Top 20% = P1) (P2 = 60-20%) -> Aqui traduzimos de forma semi-arbitrária até ter o dataset completo do Edital
+  if (finalScore >= 0.75) priority = 'P1';
+  else if (finalScore >= 0.4) priority = 'P2';
 
-    return {
-        finalScore: Math.round(finalScore * 100), // Ex: 85 (score bruto)
-        priority,
-        matchData: matchStruct
-    };
+  return {
+    finalScore: Math.round(finalScore * 100), // Ex: 85 (score bruto)
+    priority,
+    matchData: matchStruct,
+  };
 }
 
 // Engine de Macro-Ordenação (Iterador do Edital)
 export function applyRankingToEdital(editalId) {
-    const edt = state.editais.find(e => e.id === editalId);
-    if (!edt) return [];
+  const edt = state.editais.find((e) => e.id === editalId);
+  if (!edt) return [];
 
-    const flatList = [];
+  const flatList = [];
 
-    // Calcula Score Real Time
-    edt.disciplinas.forEach(d => {
-        d.assuntos.forEach(a => {
-            const result = calculateFinalRelevance({
-                assuntoNome: a.nome,
-                disciplinaId: d.id,
-                acertos: a.acertos || 0,
-                erros: a.erros || 0
-            });
+  // Calcula Score Real Time
+  edt.disciplinas.forEach((d) => {
+    d.assuntos.forEach((a) => {
+      const result = calculateFinalRelevance({
+        assuntoNome: a.nome,
+        disciplinaId: d.id,
+        acertos: a.acertos || 0,
+        erros: a.erros || 0,
+      });
 
-            flatList.push({
-                discId: d.id,
-                discNome: d.nome,
-                assuntoId: a.id,
-                assuntoNome: a.nome,
-                ...result
-            });
-        });
+      flatList.push({
+        discId: d.id,
+        discNome: d.nome,
+        assuntoId: a.id,
+        assuntoNome: a.nome,
+        ...result,
+      });
     });
+  });
 
-    // Ordena do Maior Score pro Menor
-    flatList.sort((a, b) => b.finalScore - a.finalScore);
+  // Ordena do Maior Score pro Menor
+  flatList.sort((a, b) => b.finalScore - a.finalScore);
 
-    const top20Index = Math.max(0, Math.floor(flatList.length * 0.2) - 1);
-    const top60Index = Math.max(0, Math.floor(flatList.length * 0.6) - 1);
+  const top20Index = Math.max(0, Math.floor(flatList.length * 0.2) - 1);
+  const top60Index = Math.max(0, Math.floor(flatList.length * 0.6) - 1);
 
-    flatList.forEach((item, index) => {
-        if (index <= top20Index) item.priority = 'P1';
-        else if (index <= top60Index) item.priority = 'P2';
-        else item.priority = 'P3';
-    });
+  flatList.forEach((item, index) => {
+    if (index <= top20Index) item.priority = 'P1';
+    else if (index <= top60Index) item.priority = 'P2';
+    else item.priority = 'P3';
+  });
 
-    // Persist as temporary metadata for the View, will be committed later
-    return flatList;
+  // Persist as temporary metadata for the View, will be committed later
+  return flatList;
 }
 
 // Aceita a Ordem Sugerida e joga pro Array principal (Persistindo no State)
 export function commitEditalOrdering(editalId, rankedFlatList) {
-    const edt = state.editais.find(e => e.id === editalId);
-    if (!edt) return false;
+  const edt = state.editais.find((e) => e.id === editalId);
+  if (!edt) return false;
 
-    // Agrupa a FlatList de volta em Disciplinas
-    const grouped = {};
-    rankedFlatList.forEach(item => {
-        if (!grouped[item.discId]) grouped[item.discId] = [];
-        grouped[item.discId].push(item);
+  // Agrupa a FlatList de volta em Disciplinas
+  const grouped = {};
+  rankedFlatList.forEach((item) => {
+    if (!grouped[item.discId]) grouped[item.discId] = [];
+    grouped[item.discId].push(item);
+  });
+
+  // Reorganiza os arrays `assuntos` baseados no Score
+  edt.disciplinas.forEach((d) => {
+    const sortedItemsForDisc = grouped[d.id] || [];
+    // Mapeia o array original de assuntos pro ordenado e insere a Relevância Real Preditiva!
+    const newAssuntosArray = [];
+    sortedItemsForDisc.forEach((sItem) => {
+      const originalAssunto = d.assuntos.find((a) => a.id === sItem.assuntoId);
+      if (originalAssunto) {
+        // Persistent Injection
+        originalAssunto.relevance = {
+          priority: sItem.priority,
+          finalScore: sItem.finalScore,
+          reason: sItem.matchData?.reason || '',
+          confidence: sItem.matchData?.confidence || 'LOW',
+        };
+        newAssuntosArray.push(originalAssunto);
+      }
     });
 
-    // Reorganiza os arrays `assuntos` baseados no Score
-    edt.disciplinas.forEach(d => {
-        const sortedItemsForDisc = grouped[d.id] || [];
-        // Mapeia o array original de assuntos pro ordenado e insere a Relevância Real Preditiva!
-        const newAssuntosArray = [];
-        sortedItemsForDisc.forEach(sItem => {
-            const originalAssunto = d.assuntos.find(a => a.id === sItem.assuntoId);
-            if (originalAssunto) {
-                // Persistent Injection
-                originalAssunto.relevance = {
-                    priority: sItem.priority,
-                    finalScore: sItem.finalScore,
-                    reason: sItem.matchData?.reason || '',
-                    confidence: sItem.matchData?.confidence || 'LOW'
-                };
-                newAssuntosArray.push(originalAssunto);
-            }
-        });
-
-        // Se alguma coisa ficou de fora do rank (bug), adere no final pra não excluir dados
-        d.assuntos.forEach(a => {
-            if (!newAssuntosArray.find(na => na.id === a.id)) {
-                // Ensure default relevance to avoid null references
-                a.relevance = { priority: 'P3', finalScore: 0, reason: 'Não Rankeado', confidence: 'LOW' };
-                newAssuntosArray.push(a);
-            }
-        });
-
-        d.assuntos = newAssuntosArray;
+    // Se alguma coisa ficou de fora do rank (bug), adere no final pra não excluir dados
+    d.assuntos.forEach((a) => {
+      if (!newAssuntosArray.find((na) => na.id === a.id)) {
+        // Ensure default relevance to avoid null references
+        a.relevance = { priority: 'P3', finalScore: 0, reason: 'Não Rankeado', confidence: 'LOW' };
+        newAssuntosArray.push(a);
+      }
     });
 
-    scheduleSave();
-    return true;
+    d.assuntos = newAssuntosArray;
+  });
+
+  scheduleSave();
+  return true;
 }
 
 // Reverte a marcação de P1/P2/P3 e ordena os Assuntos ao estado neutro de um Edital específico
 export function revertEditalOrdering(editalId, disciplinaId) {
-    const edt = state.editais.find(e => e.id === editalId);
-    if (!edt) return false;
+  const edt = state.editais.find((e) => e.id === editalId);
+  if (!edt) return false;
 
-    // Busca a disciplina desejada
-    const disc = edt.disciplinas.find(d => d.id === disciplinaId);
-    if (!disc) return false;
+  // Busca a disciplina desejada
+  const disc = edt.disciplinas.find((d) => d.id === disciplinaId);
+  if (!disc) return false;
 
-    // Retira do DB qualquer tag de simulaçao persistente da Wave 39 e limpa a ordem
-    disc.assuntos.forEach(a => {
-        delete a.relevance;
-    });
+  // Retira do DB qualquer tag de simulaçao persistente da Wave 39 e limpa a ordem
+  disc.assuntos.forEach((a) => {
+    delete a.relevance;
+  });
 
-    disc.assuntos = [...disc.assuntos].sort((a, b) => a.nome.localeCompare(b.nome));
+  disc.assuntos = [...disc.assuntos].sort((a, b) => a.nome.localeCompare(b.nome));
 
-    scheduleSave();
-    return true;
+  scheduleSave();
+  return true;
 }
-

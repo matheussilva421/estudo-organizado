@@ -19,7 +19,7 @@ const FOCUSABLE_SELECTOR = [
   'input:not([disabled]):not([type="hidden"])',
   'select:not([disabled])',
   'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])'
+  '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
 /**
@@ -27,11 +27,9 @@ const FOCUSABLE_SELECTOR = [
  */
 function getFocusableElements(container) {
   const elements = Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR));
-  return elements.filter(el => {
+  return elements.filter((el) => {
     const style = window.getComputedStyle(el);
-    return style.display !== 'none' &&
-           style.visibility !== 'hidden' &&
-           el.offsetParent !== null;
+    return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
   });
 }
 
@@ -184,7 +182,7 @@ export function closeModal(modalId) {
 export function initModals() {
   const modals = document.querySelectorAll('[id^="modal-"]');
 
-  modals.forEach(modal => {
+  modals.forEach((modal) => {
     // Set ARIA attributes
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
@@ -223,5 +221,5 @@ export default {
   openModal,
   closeModal,
   initModals,
-  announce
+  announce,
 };

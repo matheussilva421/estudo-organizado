@@ -1,43 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#08090d">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#08090d" />
     <title>Estudo Organizado</title>
-    <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E"
+    />
     <!-- Content Security Policy - restringe origens de scripts e recursos -->
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self';
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self';
                  script-src 'self' https://apis.google.com https://accounts.google.com https://www.google.com https://www.gstatic.com;
                  style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline';
                  font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
                  connect-src 'self' https://*.workers.dev https://www.googleapis.com https://accounts.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://content-firebaseappcheck.googleapis.com;
                  frame-src 'self' https://accounts.google.com https://app-de-estudos-14564.firebaseapp.com https://www.google.com;
                  img-src 'self' data: https: blob:;
-                 media-src 'self' https://assets.mixkit.co;">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    <link rel="preconnect" href="https://apis.google.com">
+                 media-src 'self' https://assets.mixkit.co;"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link rel="preconnect" href="https://apis.google.com" />
     <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
-    <link rel="stylesheet" href="css/tokens.css?v=8.29">
-    <link rel="stylesheet" href="css/base.css?v=8.29">
-    <link rel="stylesheet" href="css/components.css?v=8.29">
-    <link rel="stylesheet" href="css/views.css?v=8.29">
-    <link rel="stylesheet" href="css/styles.css?v=8.29">
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+      integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="css/tokens.css?v=8.29" />
+    <link rel="stylesheet" href="css/base.css?v=8.29" />
+    <link rel="stylesheet" href="css/components.css?v=8.29" />
+    <link rel="stylesheet" href="css/views.css?v=8.29" />
+    <link rel="stylesheet" href="css/styles.css?v=8.29" />
     <script src="vendor/chart.umd.min.js?v=8.29" defer></script>
     <script src="js/sw-register.js?v=8.29" defer></script>
-</head>
+  </head>
 
-<body>
-
+  <body>
     <!-- SKIP LINKS (Accessibility) -->
     <a href="#main-content" class="skip-link">Pular para conteúdo principal</a>
     <a href="#sidebar" class="skip-link">Pular para navegação</a>
@@ -47,123 +56,152 @@
 
     <!-- SIDEBAR -->
     <nav id="sidebar" role="navigation" aria-label="Menu principal">
-        <div class="sidebar-logo">
-            <div class="logo-icon">📚</div>
-            <div class="logo-text">Estudo<br><span>Organizado</span></div>
-            <button class="sidebar-toggle-btn" data-action="toggle-sidebar-collapse" title="Recolher sidebar" aria-label="Recolher menu lateral">
-                <i class="fa fa-chevron-left"></i>
-            </button>
-        </div>
+      <div class="sidebar-logo">
+        <div class="logo-icon">📚</div>
+        <div class="logo-text">Estudo<br /><span>Organizado</span></div>
+        <button
+          class="sidebar-toggle-btn"
+          data-action="toggle-sidebar-collapse"
+          title="Recolher sidebar"
+          aria-label="Recolher menu lateral"
+        >
+          <i class="fa fa-chevron-left"></i>
+        </button>
+      </div>
 
-        <!-- Expand button visible only when sidebar is collapsed -->
-        <div class="sidebar-expand-hint hidden" data-action="toggle-sidebar-collapse" title="Expandir menu">
-            <i class="fa fa-chevron-right"></i>
-        </div>
+      <!-- Expand button visible only when sidebar is collapsed -->
+      <div class="sidebar-expand-hint hidden" data-action="toggle-sidebar-collapse" title="Expandir menu">
+        <i class="fa fa-chevron-right"></i>
+      </div>
 
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">Principal</div>
-            <div class="nav-item active" data-view="home" data-action="navigate" data-tooltip="Página Inicial">
-                <span class="icon">🏠</span> Página Inicial
-            </div>
-            <div class="nav-item" data-view="med" data-action="navigate" data-tooltip="Study Organizer">
-                <span class="icon">⏱️</span> Study Organizer
-                <span class="badge hidden" id="badge-med">0</span>
-            </div>
-            <div class="nav-item" id="nav-cronometro" data-view="cronometro" data-action="navigate" data-tooltip="Cronômetro">
-                <span class="icon">⏱</span> Cronômetro
-                <span class="badge badge-crono hidden" id="badge-crono">0</span>
-            </div>
-            <div class="nav-item" data-view="calendar" data-action="navigate" data-tooltip="Calendário">
-                <span class="icon">📅</span> Calendário
-            </div>
-            <div class="nav-item" data-view="ciclo" data-action="navigate" data-tooltip="Ciclo de Estudos">
-                <span class="icon">♻️</span> Ciclo de Estudos
-            </div>
-            <div class="nav-item" data-view="dashboard" data-action="navigate" data-tooltip="Dashboard">
-                <span class="icon">📊</span> Dashboard
-            </div>
-            <div class="nav-item" data-view="revisoes" data-action="navigate" data-tooltip="Revisões">
-                <span class="icon">🔄</span> Revisões
-                <span class="badge hidden" id="badge-rev">0</span>
-            </div>
-            <div class="nav-item" data-view="historico-sessoes" data-action="navigate" data-tooltip="Histórico de Sessões">
-                <span class="icon">🕘</span> Histórico
-            </div>
-            <div class="nav-item" data-view="habitos" data-action="navigate" data-tooltip="Hábitos">
-                <span class="icon">⚡</span> Hábitos
-            </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Principal</div>
+        <div class="nav-item active" data-view="home" data-action="navigate" data-tooltip="Página Inicial">
+          <span class="icon">🏠</span> Página Inicial
         </div>
+        <div class="nav-item" data-view="med" data-action="navigate" data-tooltip="Study Organizer">
+          <span class="icon">⏱️</span> Study Organizer
+          <span class="badge hidden" id="badge-med">0</span>
+        </div>
+        <div
+          class="nav-item"
+          id="nav-cronometro"
+          data-view="cronometro"
+          data-action="navigate"
+          data-tooltip="Cronômetro"
+        >
+          <span class="icon">⏱</span> Cronômetro
+          <span class="badge badge-crono hidden" id="badge-crono">0</span>
+        </div>
+        <div class="nav-item" data-view="calendar" data-action="navigate" data-tooltip="Calendário">
+          <span class="icon">📅</span> Calendário
+        </div>
+        <div class="nav-item" data-view="ciclo" data-action="navigate" data-tooltip="Ciclo de Estudos">
+          <span class="icon">♻️</span> Ciclo de Estudos
+        </div>
+        <div class="nav-item" data-view="dashboard" data-action="navigate" data-tooltip="Dashboard">
+          <span class="icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" data-view="revisoes" data-action="navigate" data-tooltip="Revisões">
+          <span class="icon">🔄</span> Revisões
+          <span class="badge hidden" id="badge-rev">0</span>
+        </div>
+        <div class="nav-item" data-view="historico-sessoes" data-action="navigate" data-tooltip="Histórico de Sessões">
+          <span class="icon">🕘</span> Histórico
+        </div>
+        <div class="nav-item" data-view="habitos" data-action="navigate" data-tooltip="Hábitos">
+          <span class="icon">⚡</span> Hábitos
+        </div>
+      </div>
 
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">Gerenciar</div>
-            <div class="nav-item" data-view="editais" data-action="navigate" data-tooltip="Editais">
-                <span class="icon">📋</span> Editais
-            </div>
-            <div class="nav-item" data-view="vertical" data-action="navigate" data-tooltip="Ed. Verticalizado">
-                <span class="icon">📑</span> Ed. Verticalizado
-            </div>
-            <div class="nav-item" data-view="banca-analyzer" data-action="navigate" data-tooltip="Intelig. de Banca">
-                <span class="icon">🧠</span> Intelig. de Banca
-            </div>
-            <div class="nav-item" data-view="config" data-action="navigate" data-tooltip="Configurações">
-                <span class="icon">⚙️</span> Configurações
-            </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Gerenciar</div>
+        <div class="nav-item" data-view="editais" data-action="navigate" data-tooltip="Editais">
+          <span class="icon">📋</span> Editais
         </div>
+        <div class="nav-item" data-view="vertical" data-action="navigate" data-tooltip="Ed. Verticalizado">
+          <span class="icon">📑</span> Ed. Verticalizado
+        </div>
+        <div class="nav-item" data-view="banca-analyzer" data-action="navigate" data-tooltip="Intelig. de Banca">
+          <span class="icon">🧠</span> Intelig. de Banca
+        </div>
+        <div class="nav-item" data-view="config" data-action="navigate" data-tooltip="Configurações">
+          <span class="icon">⚙️</span> Configurações
+        </div>
+      </div>
 
-        <div class="sidebar-drive" data-tooltip="Google Drive">
-            <div class="drive-status" data-action="open-drive-modal">
-                <div class="drive-dot" id="drive-dot"></div>
-                <div class="drive-text">
-                    <strong id="drive-label">Google Drive</strong>
-                    <span id="drive-sublabel">Clique para conectar</span>
-                </div>
-                <i class="fa fa-cloud drive-cloud-icon"></i>
-            </div>
+      <div class="sidebar-drive" data-tooltip="Google Drive">
+        <div class="drive-status" data-action="open-drive-modal">
+          <div class="drive-dot" id="drive-dot"></div>
+          <div class="drive-text">
+            <strong id="drive-label">Google Drive</strong>
+            <span id="drive-sublabel">Clique para conectar</span>
+          </div>
+          <i class="fa fa-cloud drive-cloud-icon"></i>
         </div>
+      </div>
     </nav>
 
     <!-- MAIN -->
     <div id="main">
-        <div class="topbar" role="banner">
-            <button class="hamburger" data-action="toggle-sidebar" aria-label="Menu">☰</button>
-            <div>
-                <div class="topbar-title" id="topbar-title">Página Inicial</div>
-                <div class="topbar-subtitle" id="topbar-date"></div>
-            </div>
-            <div class="topbar-right" id="topbar-actions">
-                <button id="timer-mode-btn" class="btn btn-sm topbar-timer-btn" data-action="toggle-timer-mode"
-                    title="Alternar modo de cronômetro">
-                    <i class="fa fa-clock"></i> Contínuo
-                </button>
-            </div>
-            <div id="save-status" class="save-status save-status--saved" role="status" aria-live="polite">
-                Salvo localmente
-            </div>
-            <!-- Theme switcher -->
-            <button id="theme-toggle-btn" data-action="toggle-theme" class="btn btn-ghost btn-sm topbar-theme-btn"
-                title="Trocar tema">
-                Tema
-            </button>
-            <!-- UX 1: Global Search -->
-            <div class="search-wrap topbar-search" role="search">
-                <i class="fa fa-search search-icon"></i>
-                <input class="search-input" id="global-search" placeholder="Buscar eventos, assuntos, hábitos..."
-                    autocomplete="off"
-                    data-action="search-input"
-                    data-focus-action="search-focus"
-                    data-blur-action="search-blur"
-                    role="searchbox"
-                    aria-label="Buscar eventos, assuntos, hábitos"
-                    aria-controls="search-results"
-                    aria-expanded="false">
-                <div class="search-results" id="search-results" role="region" aria-label="Resultados da busca" aria-live="polite"></div>
-            </div>
+      <div class="topbar" role="banner">
+        <button class="hamburger" data-action="toggle-sidebar" aria-label="Menu">☰</button>
+        <div>
+          <div class="topbar-title" id="topbar-title">Página Inicial</div>
+          <div class="topbar-subtitle" id="topbar-date"></div>
         </div>
-        <div id="main-content" role="main">
-            <div class="loading">
-                <div class="spinner"></div>
-            </div>
+        <div class="topbar-right" id="topbar-actions">
+          <button
+            id="timer-mode-btn"
+            class="btn btn-sm topbar-timer-btn"
+            data-action="toggle-timer-mode"
+            title="Alternar modo de cronômetro"
+          >
+            <i class="fa fa-clock"></i> Contínuo
+          </button>
         </div>
+        <div id="save-status" class="save-status save-status--saved" role="status" aria-live="polite">
+          Salvo localmente
+        </div>
+        <!-- Theme switcher -->
+        <button
+          id="theme-toggle-btn"
+          data-action="toggle-theme"
+          class="btn btn-ghost btn-sm topbar-theme-btn"
+          title="Trocar tema"
+        >
+          Tema
+        </button>
+        <!-- UX 1: Global Search -->
+        <div class="search-wrap topbar-search" role="search">
+          <i class="fa fa-search search-icon"></i>
+          <input
+            class="search-input"
+            id="global-search"
+            placeholder="Buscar eventos, assuntos, hábitos..."
+            autocomplete="off"
+            data-action="search-input"
+            data-focus-action="search-focus"
+            data-blur-action="search-blur"
+            role="searchbox"
+            aria-label="Buscar eventos, assuntos, hábitos"
+            aria-controls="search-results"
+            aria-expanded="false"
+          />
+          <div
+            class="search-results"
+            id="search-results"
+            role="region"
+            aria-label="Resultados da busca"
+            aria-live="polite"
+          ></div>
+        </div>
+      </div>
+      <div id="main-content" role="main">
+        <div class="loading">
+          <div class="spinner"></div>
+        </div>
+      </div>
     </div>
 
     <!-- TOAST CONTAINER -->
@@ -172,298 +210,599 @@
     <!-- MODALS -->
 
     <!-- Fix B: CONFIRM MODAL — replaces all browser confirm() dialogs -->
-    <div class="modal-overlay" id="modal-confirm" role="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-msg" aria-modal="true"
-        aria-hidden="true">
-        <div class="modal modal-sm">
-            <div class="modal-header modal-confirm-header">
-                <h3 id="confirm-title" class="modal-confirm-title">Confirmar</h3>
-            </div>
-            <div class="modal-body modal-confirm-body">
-                <p id="confirm-msg" class="modal-confirm-msg">
-                </p>
-            </div>
-            <div class="modal-confirm-footer">
-                <button class="btn btn-ghost btn-sm" id="confirm-cancel-btn" aria-label="Cancelar">Cancelar</button>
-                <button class="btn btn-sm" id="confirm-ok-btn">Confirmar</button>
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-confirm"
+      role="dialog"
+      aria-labelledby="confirm-title"
+      aria-describedby="confirm-msg"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal modal-sm">
+        <div class="modal-header modal-confirm-header">
+          <h3 id="confirm-title" class="modal-confirm-title">Confirmar</h3>
         </div>
+        <div class="modal-body modal-confirm-body">
+          <p id="confirm-msg" class="modal-confirm-msg"></p>
+        </div>
+        <div class="modal-confirm-footer">
+          <button class="btn btn-ghost btn-sm" id="confirm-cancel-btn" aria-label="Cancelar">Cancelar</button>
+          <button class="btn btn-sm" id="confirm-ok-btn">Confirmar</button>
+        </div>
+      </div>
     </div>
 
     <!-- ADD EVENT MODAL -->
-    <div class="modal-overlay" id="modal-event" role="dialog" aria-labelledby="modal-event-title" aria-describedby="modal-event-body" aria-modal="true"
-        aria-hidden="true">
-        <div class="modal modal-md">
-            <div class="modal-header">
-                <h2 id="modal-event-title">Iniciar Estudo</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-event" aria-label="Fechar"
-                    title="Fechar">×</button>
-            </div>
-            <div class="modal-body" id="modal-event-body">
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-event"
+      role="dialog"
+      aria-labelledby="modal-event-title"
+      aria-describedby="modal-event-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal modal-md">
+        <div class="modal-header">
+          <h2 id="modal-event-title">Iniciar Estudo</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-event"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            ×
+          </button>
         </div>
+        <div class="modal-body" id="modal-event-body"></div>
+      </div>
     </div>
 
     <!-- EDITAL MODAL -->
-    <div class="modal-overlay" id="modal-edital" role="dialog" aria-labelledby="modal-edital-title" aria-describedby="modal-edital-body" aria-modal="true"
-        aria-hidden="true">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="modal-edital-title">Novo Edital</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-edital" aria-label="Fechar"
-                    title="Fechar">×</button>
-            </div>
-            <div class="modal-body" id="modal-edital-body">
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-edital"
+      role="dialog"
+      aria-labelledby="modal-edital-title"
+      aria-describedby="modal-edital-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="modal-edital-title">Novo Edital</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-edital"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            ×
+          </button>
         </div>
+        <div class="modal-body" id="modal-edital-body"></div>
+      </div>
     </div>
 
     <!-- DISCIPLINE MODAL -->
-    <div class="modal-overlay" id="modal-disc" role="dialog" aria-labelledby="modal-disc-title" aria-describedby="modal-disc-body" aria-modal="true"
-        aria-hidden="true">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="modal-disc-title">Nova Disciplina</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-disc" aria-label="Fechar"
-                    title="Fechar">×</button>
-            </div>
-            <div class="modal-body" id="modal-disc-body">
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-disc">Cancelar</button>
-                <button class="btn btn-primary" data-action="save-disc">Salvar</button>
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-disc"
+      role="dialog"
+      aria-labelledby="modal-disc-title"
+      aria-describedby="modal-disc-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="modal-disc-title">Nova Disciplina</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-disc"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            ×
+          </button>
         </div>
+        <div class="modal-body" id="modal-disc-body"></div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-disc">Cancelar</button>
+          <button class="btn btn-primary" data-action="save-disc">Salvar</button>
+        </div>
+      </div>
     </div>
 
     <!-- HABIT MODAL -->
-    <div class="modal-overlay" id="modal-habit" role="dialog" aria-labelledby="modal-habit-title" aria-describedby="modal-habit-body" aria-modal="true"
-        aria-hidden="true">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="modal-habit-title">Registrar Hábito</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-habit" aria-label="Fechar"
-                    title="Fechar">×</button>
-            </div>
-            <div class="modal-body" id="modal-habit-body"></div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-habit">Cancelar</button>
-                <button class="btn btn-primary" data-action="save-habit">Registrar</button>
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-habit"
+      role="dialog"
+      aria-labelledby="modal-habit-title"
+      aria-describedby="modal-habit-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="modal-habit-title">Registrar Hábito</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-habit"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            ×
+          </button>
         </div>
+        <div class="modal-body" id="modal-habit-body"></div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-habit">Cancelar</button>
+          <button class="btn btn-primary" data-action="save-habit">Registrar</button>
+        </div>
+      </div>
     </div>
 
     <!-- DRIVE MODAL -->
-    <div class="modal-overlay" id="modal-drive" role="dialog" aria-labelledby="modal-drive-title" aria-describedby="modal-drive-body" aria-modal="true" aria-hidden="true">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="modal-drive-title">Sincronização com Google Drive</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-drive" aria-label="Fechar"
-                    title="Fechar">×</button>
-            </div>
-            <div class="modal-body" id="modal-drive-body">
-                <div class="drive-guide">
-                    <p>Para sincronizar seus dados com o Google Drive:</p>
-                    <p>1. Acesse <strong>console.cloud.google.com</strong></p>
-                    <p>2. Crie um projeto e habilite a <strong>Google Drive API</strong></p>
-                    <p>3. Crie credenciais OAuth 2.0 (Aplicativo Web)</p>
-                    <p>4. Adicione seu domínio como URL autorizada</p>
-                    <p>5. Cole o <strong>Client ID</strong> abaixo</p>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Google OAuth Client ID</label>
-                    <input type="text" class="form-control" id="drive-client-id"
-                        placeholder="123456789-xxx.apps.googleusercontent.com">
-                </div>
-                <div id="drive-status-area"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-drive">Fechar</button>
-                <button class="btn btn-primary" id="drive-action-btn" data-action="drive-action">Conectar</button>
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-drive"
+      role="dialog"
+      aria-labelledby="modal-drive-title"
+      aria-describedby="modal-drive-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="modal-drive-title">Sincronização com Google Drive</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-drive"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            ×
+          </button>
         </div>
+        <div class="modal-body" id="modal-drive-body">
+          <div class="drive-guide">
+            <p>Para sincronizar seus dados com o Google Drive:</p>
+            <p>1. Acesse <strong>console.cloud.google.com</strong></p>
+            <p>2. Crie um projeto e habilite a <strong>Google Drive API</strong></p>
+            <p>3. Crie credenciais OAuth 2.0 (Aplicativo Web)</p>
+            <p>4. Adicione seu domínio como URL autorizada</p>
+            <p>5. Cole o <strong>Client ID</strong> abaixo</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Google OAuth Client ID</label>
+            <input
+              type="text"
+              class="form-control"
+              id="drive-client-id"
+              placeholder="123456789-xxx.apps.googleusercontent.com"
+            />
+          </div>
+          <div id="drive-status-area"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-drive">Fechar</button>
+          <button class="btn btn-primary" id="drive-action-btn" data-action="drive-action">Conectar</button>
+        </div>
+      </div>
     </div>
 
     <!-- GENERIC PROMPT MODAL -->
-    <div class="modal-overlay" id="modal-prompt" role="dialog" aria-labelledby="modal-prompt-title" aria-describedby="modal-prompt-body" aria-modal="true" aria-hidden="true">
-        <div class="modal" style="width: 400px; max-width: 90%;">
-            <div class="modal-header">
-                <h2 id="modal-prompt-title">Prompt</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-prompt" aria-label="Fechar"
-                    title="Fechar">&times;</button>
-            </div>
-            <div class="modal-body" id="modal-prompt-body"></div>
-            <div class="modal-footer"
-                style="padding:16px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
-                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-prompt">Cancelar</button>
-                <button class="btn btn-primary" id="modal-prompt-save">Salvar</button>
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-prompt"
+      role="dialog"
+      aria-labelledby="modal-prompt-title"
+      aria-describedby="modal-prompt-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal" style="width: 400px; max-width: 90%">
+        <div class="modal-header">
+          <h2 id="modal-prompt-title">Prompt</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-prompt"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            &times;
+          </button>
         </div>
+        <div class="modal-body" id="modal-prompt-body"></div>
+        <div
+          class="modal-footer"
+          style="
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 20px;
+          "
+        >
+          <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-prompt">Cancelar</button>
+          <button class="btn btn-primary" id="modal-prompt-save">Salvar</button>
+        </div>
+      </div>
     </div>
 
     <!-- EVENT DETAIL MODAL -->
-    <div class="modal-overlay" id="modal-event-detail" role="dialog" aria-labelledby="med-detail-title" aria-describedby="modal-event-detail-body"
-        aria-modal="true" aria-hidden="true">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="med-detail-title">Detalhes do Evento</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-event-detail"
-                    aria-label="Fechar" title="Fechar">×</button>
-            </div>
-            <div class="modal-body" id="modal-event-detail-body"></div>
+    <div
+      class="modal-overlay"
+      id="modal-event-detail"
+      role="dialog"
+      aria-labelledby="med-detail-title"
+      aria-describedby="modal-event-detail-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="med-detail-title">Detalhes do Evento</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-event-detail"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            ×
+          </button>
         </div>
+        <div class="modal-body" id="modal-event-detail-body"></div>
+      </div>
     </div>
 
     <!-- SUBJECT MANAGER MODAL -->
-    <div class="modal-overlay" id="modal-disc-manager" role="dialog" aria-labelledby="modal-disc-manager-title" aria-describedby="modal-disc-manager-body"
-        aria-modal="true" aria-hidden="true">
-        <div class="modal" style="width: 800px; max-width: 95%;">
-            <div class="modal-header">
-                <h2 id="modal-disc-manager-title">Gerenciar Assuntos</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-disc-manager"
-                    aria-label="Fechar" title="Fechar">&times;</button>
-            </div>
-            <div class="modal-body" id="modal-disc-manager-body"></div>
+    <div
+      class="modal-overlay"
+      id="modal-disc-manager"
+      role="dialog"
+      aria-labelledby="modal-disc-manager-title"
+      aria-describedby="modal-disc-manager-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal" style="width: 800px; max-width: 95%">
+        <div class="modal-header">
+          <h2 id="modal-disc-manager-title">Gerenciar Assuntos</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-disc-manager"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            &times;
+          </button>
         </div>
+        <div class="modal-body" id="modal-disc-manager-body"></div>
+      </div>
     </div>
 
     <!-- BULK ADD SUBJECT MODAL -->
-    <div class="modal-overlay" id="modal-subject-add" role="dialog" aria-labelledby="modal-subject-add-title" aria-describedby="modal-subject-add-body"
-        aria-modal="true" aria-hidden="true">
-        <div class="modal" style="width: 600px; max-width: 95%;">
-            <div class="modal-header">
-                <h2 id="modal-subject-add-title">Tópico</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-subject-add" aria-label="Fechar"
-                    title="Fechar">&times;</button>
-            </div>
-            <div class="modal-body" id="modal-subject-add-body"></div>
+    <div
+      class="modal-overlay"
+      id="modal-subject-add"
+      role="dialog"
+      aria-labelledby="modal-subject-add-title"
+      aria-describedby="modal-subject-add-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal" style="width: 600px; max-width: 95%">
+        <div class="modal-header">
+          <h2 id="modal-subject-add-title">Tópico</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-subject-add"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            &times;
+          </button>
         </div>
+        <div class="modal-body" id="modal-subject-add-body"></div>
+      </div>
     </div>
 
     <!-- MODAL CICLO WIZARD -->
-    <div class="modal-overlay" id="modal-ciclo" role="dialog" aria-labelledby="modal-ciclo-title" aria-describedby="modal-ciclo-body" aria-modal="true" aria-hidden="true">
-        <div class="modal" style="width: 700px; max-width: 95%;">
-            <div class="modal-header">
-                <h2 id="modal-ciclo-title">Configurar Ciclo de Estudos</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-ciclo"
-                    aria-label="Fechar">&times;</button>
-            </div>
-            <div class="modal-body" id="modal-ciclo-body" style="padding: 24px; max-height: 70vh; overflow-y: auto;">
-                <!-- Dinâmico via JS -->
-            </div>
-            <div class="modal-footer" id="modal-ciclo-footer"
-                style="padding: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                <button class="btn btn-ghost" id="btn-ciclo-prev" style="display:none;"><i class="fa fa-arrow-left"></i>
-                    Voltar</button>
-                <div style="flex:1;"></div>
-                <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-ciclo"
-                    id="btn-ciclo-cancel">Cancelar</button>
-                <button class="btn btn-primary" id="btn-ciclo-next">Próximo <i class="fa fa-arrow-right"></i></button>
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-ciclo"
+      role="dialog"
+      aria-labelledby="modal-ciclo-title"
+      aria-describedby="modal-ciclo-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal" style="width: 700px; max-width: 95%">
+        <div class="modal-header">
+          <h2 id="modal-ciclo-title">Configurar Ciclo de Estudos</h2>
+          <button class="modal-close" data-action="close-modal" data-modal="modal-ciclo" aria-label="Fechar">
+            &times;
+          </button>
         </div>
+        <div class="modal-body" id="modal-ciclo-body" style="padding: 24px; max-height: 70vh; overflow-y: auto">
+          <!-- Dinâmico via JS -->
+        </div>
+        <div
+          class="modal-footer"
+          id="modal-ciclo-footer"
+          style="
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <button class="btn btn-ghost" id="btn-ciclo-prev" style="display: none">
+            <i class="fa fa-arrow-left"></i> Voltar
+          </button>
+          <div style="flex: 1"></div>
+          <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-ciclo" id="btn-ciclo-cancel">
+            Cancelar
+          </button>
+          <button class="btn btn-primary" id="btn-ciclo-next">Próximo <i class="fa fa-arrow-right"></i></button>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="js/main.js?v=8.29"></script>
 
     <!-- REGISTRO SESSÃO MODAL -->
-    <div class="modal-overlay" id="modal-registro-sessao" role="dialog" aria-labelledby="modal-registro-title" aria-describedby="modal-registro-body" aria-modal="true" aria-hidden="true">
-        <div class="modal modal-lg">
-            <div class="modal-header modal-dark-header">
-                <h2 class="modal-dark-title">📝 Registro da Sessão de Estudo</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-registro-sessao" aria-label="Fechar" title="Fechar">×</button>
-            </div>
-            <div class="modal-body modal-scrollable-body" id="modal-registro-body">
-                <!-- Dynamic content rendered by JS -->
-            </div>
-
+    <div
+      class="modal-overlay"
+      id="modal-registro-sessao"
+      role="dialog"
+      aria-labelledby="modal-registro-title"
+      aria-describedby="modal-registro-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal modal-lg">
+        <div class="modal-header modal-dark-header">
+          <h2 class="modal-dark-title">📝 Registro da Sessão de Estudo</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-registro-sessao"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            ×
+          </button>
         </div>
+        <div class="modal-body modal-scrollable-body" id="modal-registro-body">
+          <!-- Dynamic content rendered by JS -->
+        </div>
+      </div>
     </div>
 
     <!-- PLANEJAMENTO WIZARD MODAL -->
-    <div class="modal-overlay" id="modal-planejamento" role="dialog" aria-labelledby="modal-planejamento-title" aria-describedby="modal-planejamento-body" aria-modal="true" aria-hidden="true">
-        <div class="modal" style="width: 700px; max-width: 95vw;">
-            <div class="modal-header">
-                <h2>Planejamento de Estudos</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-planejamento"
-                    aria-label="Fechar" title="Fechar">×</button>
-            </div>
-            <div class="modal-body" style="padding: 0;">
-                <div
-                    style="display: flex; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 16px 24px; gap: 8px; overflow-x: auto;">
-                    <div id="pw-step-1"
-                        style="flex: 1; text-align: center; font-size: 13px; font-weight: 600; color: var(--accent); white-space: nowrap;">
-                        01. Organização</div>
-                    <div style="color: var(--border);">›</div>
-                    <div id="pw-step-2"
-                        style="flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap;">
-                        02. Disciplinas</div>
-                    <div style="color: var(--border);">›</div>
-                    <div id="pw-step-3"
-                        style="flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap;">
-                        03. Relevância</div>
-                    <div style="color: var(--border);">›</div>
-                    <div id="pw-step-4"
-                        style="flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap;">
-                        04. Horários</div>
-                </div>
-                <div id="modal-planejamento-body"
-                    style="padding: 24px; min-height: 350px; max-height: 60vh; overflow-y: auto;">
-                    <!-- Wizard content injected here -->
-                </div>
-            </div>
-            <div class="modal-footer"
-                style="display: flex; justify-content: space-between; position: relative; z-index: 10; padding: 16px 24px; background: var(--bg); border-top: 1px solid var(--border);">
-                <button class="btn btn-ghost" id="pw-btn-voltar"
-                    style="visibility: hidden; padding: 10px 20px;">Voltar</button>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-planejamento"
-                        style="padding: 10px 20px;">Cancelar</button>
-                    <button class="btn btn-primary" id="pw-btn-proximo" disabled
-                        style="padding: 10px 20px;">Próximo</button>
-                    <button class="btn btn-primary" id="pw-btn-concluir"
-                        style="display: none; padding: 10px 20px;">Concluir Planejamento</button>
-                </div>
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-planejamento"
+      role="dialog"
+      aria-labelledby="modal-planejamento-title"
+      aria-describedby="modal-planejamento-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal" style="width: 700px; max-width: 95vw">
+        <div class="modal-header">
+          <h2>Planejamento de Estudos</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-planejamento"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            ×
+          </button>
         </div>
+        <div class="modal-body" style="padding: 0">
+          <div
+            style="
+              display: flex;
+              background: var(--bg-secondary);
+              border-bottom: 1px solid var(--border);
+              padding: 16px 24px;
+              gap: 8px;
+              overflow-x: auto;
+            "
+          >
+            <div
+              id="pw-step-1"
+              style="
+                flex: 1;
+                text-align: center;
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--accent);
+                white-space: nowrap;
+              "
+            >
+              01. Organização
+            </div>
+            <div style="color: var(--border)">›</div>
+            <div
+              id="pw-step-2"
+              style="
+                flex: 1;
+                text-align: center;
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--text-muted);
+                white-space: nowrap;
+              "
+            >
+              02. Disciplinas
+            </div>
+            <div style="color: var(--border)">›</div>
+            <div
+              id="pw-step-3"
+              style="
+                flex: 1;
+                text-align: center;
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--text-muted);
+                white-space: nowrap;
+              "
+            >
+              03. Relevância
+            </div>
+            <div style="color: var(--border)">›</div>
+            <div
+              id="pw-step-4"
+              style="
+                flex: 1;
+                text-align: center;
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--text-muted);
+                white-space: nowrap;
+              "
+            >
+              04. Horários
+            </div>
+          </div>
+          <div
+            id="modal-planejamento-body"
+            style="padding: 24px; min-height: 350px; max-height: 60vh; overflow-y: auto"
+          >
+            <!-- Wizard content injected here -->
+          </div>
+        </div>
+        <div
+          class="modal-footer"
+          style="
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            z-index: 10;
+            padding: 16px 24px;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+          "
+        >
+          <button class="btn btn-ghost" id="pw-btn-voltar" style="visibility: hidden; padding: 10px 20px">
+            Voltar
+          </button>
+          <div style="display: flex; gap: 8px">
+            <button
+              class="btn btn-ghost"
+              data-action="close-modal"
+              data-modal="modal-planejamento"
+              style="padding: 10px 20px"
+            >
+              Cancelar
+            </button>
+            <button class="btn btn-primary" id="pw-btn-proximo" disabled style="padding: 10px 20px">Próximo</button>
+            <button class="btn btn-primary" id="pw-btn-concluir" style="display: none; padding: 10px 20px">
+              Concluir Planejamento
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-
-
 
     <!-- CICLO HISTORY MODAL -->
-    <div class="modal-overlay" id="modal-ciclo-history" role="dialog" aria-labelledby="modal-ciclo-history-title" aria-describedby="modal-ciclo-history-body" aria-modal="true" aria-hidden="true">
-        <div class="modal modal-lg">
-            <div class="modal-header modal-dark-header">
-                <h2 class="modal-dark-title" id="modal-ciclo-history-title">🕒 Histórico da Disciplina</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-ciclo-history"
-                    aria-label="Fechar" title="Fechar">×</button>
-            </div>
-            <div class="modal-body modal-scrollable-body" id="modal-ciclo-history-body">
-                <!-- dynamic content -->
-            </div>
-            <div class="modal-footer modal-dark-footer">
-                <button class="btn btn-primary" data-action="close-modal" data-modal="modal-ciclo-history">Fechar</button>
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-ciclo-history"
+      role="dialog"
+      aria-labelledby="modal-ciclo-history-title"
+      aria-describedby="modal-ciclo-history-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal modal-lg">
+        <div class="modal-header modal-dark-header">
+          <h2 class="modal-dark-title" id="modal-ciclo-history-title">🕒 Histórico da Disciplina</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-ciclo-history"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            ×
+          </button>
         </div>
+        <div class="modal-body modal-scrollable-body" id="modal-ciclo-history-body">
+          <!-- dynamic content -->
+        </div>
+        <div class="modal-footer modal-dark-footer">
+          <button class="btn btn-primary" data-action="close-modal" data-modal="modal-ciclo-history">Fechar</button>
+        </div>
+      </div>
     </div>
 
-
-
     <!-- MODAL MATCH CORRECTOR -->
-    <div class="modal-overlay" id="modal-match-corrector" role="dialog" aria-labelledby="modal-match-corrector-title" aria-describedby="modal-match-corrector-body" aria-modal="true" aria-hidden="true">
-        <div class="modal" style="max-width:400px;">
-            <div class="modal-header">
-                <h2 id="modal-match-corrector-title">Corrigir Assunto</h2>
-                <button class="modal-close" data-action="close-modal" data-modal="modal-match-corrector"
-                    aria-label="Fechar" title="Fechar">&times;</button>
-            </div>
-            <div class="modal-body" id="modal-match-corrector-body">
-                <!-- dynamic content -->
-            </div>
+    <div
+      class="modal-overlay"
+      id="modal-match-corrector"
+      role="dialog"
+      aria-labelledby="modal-match-corrector-title"
+      aria-describedby="modal-match-corrector-body"
+      aria-modal="true"
+      aria-hidden="true"
+    >
+      <div class="modal" style="max-width: 400px">
+        <div class="modal-header">
+          <h2 id="modal-match-corrector-title">Corrigir Assunto</h2>
+          <button
+            class="modal-close"
+            data-action="close-modal"
+            data-modal="modal-match-corrector"
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            &times;
+          </button>
         </div>
+        <div class="modal-body" id="modal-match-corrector-body">
+          <!-- dynamic content -->
+        </div>
+      </div>
     </div>
 
     <!-- ARIA Live Region for Screen Reader Announcements -->
-    <div id="aria-announcer" aria-live="polite" aria-atomic="true" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"></div>
-
-</body>
-
+    <div
+      id="aria-announcer"
+      aria-live="polite"
+      aria-atomic="true"
+      class="sr-only"
+      style="
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      "
+    ></div>
+  </body>
 </html>

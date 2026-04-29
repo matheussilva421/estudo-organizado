@@ -6,7 +6,12 @@
 import { showConfirm, showToast } from '../app.js?v=8.29';
 import { esc, formatDate, todayStr } from '../utils.js?v=8.29';
 import { scheduleSave, state } from '../store.js?v=8.29';
-import { calcRevisionDates, getPendingRevisoes, invalidateRevCache, invalidatePendingRevCache } from '../logic.js?v=8.29';
+import {
+  calcRevisionDates,
+  getPendingRevisoes,
+  invalidateRevCache,
+  invalidatePendingRevCache,
+} from '../logic.js?v=8.29';
 import { getActiveDisciplinas } from '../logic.js?v=8.29';
 import { renderCurrentView } from '../components.js?v=8.29';
 
@@ -14,18 +19,28 @@ export function getUpcomingRevisoes(days = 30) {
   const today = todayStr();
   const future = new Date();
   future.setDate(future.getDate() + days);
-  const future2 = new Date(future.getTime() - (future.getTimezoneOffset() * 60000));
+  const future2 = new Date(future.getTime() - future.getTimezoneOffset() * 60000);
   const futureStr = future2.toISOString().split('T')[0];
   const upcoming = [];
   for (const edital of state.editais) {
-    for (const disc of (edital.disciplinas || [])) {
+    for (const disc of edital.disciplinas || []) {
       if (disc.arquivada) continue;
-      for (const ass of (disc.assuntos || [])) {
+      for (const ass of disc.assuntos || []) {
         if (!ass.concluido || !ass.dataConclusao) continue;
-        const revDates = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas || [], ass.adiamentos || 0);
+        const revDates = calcRevisionDates(
+          ass.dataConclusao,
+          ass.revisoesFetas || [],
+          ass.adiamentos || 0
+        );
         for (const rd of revDates) {
           if (rd > today && rd <= futureStr) {
-            upcoming.push({ assunto: ass, disc, edital, data: rd, revNum: (ass.revisoesFetas || []).length + 1 });
+            upcoming.push({
+              assunto: ass,
+              disc,
+              edital,
+              data: rd,
+              revNum: (ass.revisoesFetas || []).length + 1,
+            });
             break;
           }
         }
@@ -44,7 +59,7 @@ export function renderRevisoes(el) {
     <div class="rev-summary-grid">
       <div class="card rev-summary-card">
         <div class="section-label">Pendentes Hoje</div>
-        <div class="rev-stat-count rev-stat-count--danger">${pending.filter(r => r.data <= today).length}</div>
+        <div class="rev-stat-count rev-stat-count--danger">${pending.filter((r) => r.data <= today).length}</div>
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Próx. 30 dias</div>
@@ -52,7 +67,7 @@ export function renderRevisoes(el) {
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Assuntos concluidos</div>
-        <div class="rev-stat-count rev-stat-count--accent">${getActiveDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter(a => a.concluido).length, 0)}</div>
+        <div class="rev-stat-count rev-stat-count--accent">${getActiveDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter((a) => a.concluido).length, 0)}</div>
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Frequência</div>
@@ -66,13 +81,17 @@ export function renderRevisoes(el) {
     </div>
 
     <div id="rev-tab-pendentes" class="tab-content active">
-      ${pending.length === 0 ? `
+      ${
+        pending.length === 0
+          ? `
         <div class="empty-state"><div class="icon">✅</div><h4>Nenhuma revisão pendente!</h4><p>Conclua assuntos para que as revisões sejam agendadas automaticamente.</p></div>
-      ` : pending.map(r => {
-    const isOverdue = r.data < today;
-    const revNum = (r.assunto.revisoesFetas || []).length + 1;
-    return `
-          <div class="rev-item">
+      `
+          : pending
+              .map((r) => {
+                const isOverdue = r.data < today;
+                const revNum = (r.assunto.revisoesFetas || []).length + 1;
+                return `
+          <div class="rev-item revision-card" data-revision-date="${esc(r.data)}">
             <div class="rev-days ${isOverdue ? 'overdue' : 'today'}">
               <div class="num">${revNum}ª</div>
               <div class="label">Rev</div>
@@ -91,17 +110,25 @@ export function renderRevisoes(el) {
             </div>
           </div>
         `;
-  }).join('')}
+              })
+              .join('')
+      }
     </div>
 
     <div id="rev-tab-proximas" class="tab-content">
-      ${upcoming.length === 0 ? `
+      ${
+        upcoming.length === 0
+          ? `
         <div class="empty-state"><div class="icon">📅</div><h4>Nenhuma revisão nos próximos 30 dias</h4><p>Continue estudando e concluíndo assuntos!</p></div>
-      ` : (() => {
-      return upcoming.map(r => {
-        const diffDays = Math.ceil((new Date(r.data + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
-        return `
-            <div class="rev-item">
+      `
+          : (() => {
+              return upcoming
+                .map((r) => {
+                  const diffDays = Math.ceil(
+                    (new Date(r.data + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000
+                  );
+                  return `
+            <div class="rev-item revision-card" data-revision-date="${esc(r.data)}">
               <div class="rev-days rev-days--upcoming">
                 <div class="num">${r.revNum}ª</div>
                 <div class="label">Rev</div>
@@ -116,14 +143,16 @@ export function renderRevisoes(el) {
               </div>
             </div>
           `;
-      }).join('');
-    })()}
+                })
+                .join('');
+            })()
+      }
     </div>
   `;
 }
 
 export function switchRevTab(tab, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
   btn?.classList.add('active');
   document.getElementById('rev-tab-pendentes').classList.toggle('active', tab === 'pendentes');
   document.getElementById('rev-tab-proximas').classList.toggle('active', tab === 'proximas');
@@ -131,8 +160,8 @@ export function switchRevTab(tab, btn) {
 
 export function marcarRevisao(assId) {
   for (const edital of state.editais) {
-    for (const disc of (edital.disciplinas || [])) {
-      const ass = (disc.assuntos || []).find(a => a.id === assId);
+    for (const disc of edital.disciplinas || []) {
+      const ass = (disc.assuntos || []).find((a) => a.id === assId);
       if (ass) {
         if (!ass.revisoesFetas) ass.revisoesFetas = [];
         ass.revisoesFetas.push(todayStr());
@@ -149,8 +178,8 @@ export function marcarRevisao(assId) {
 
 export function adiarRevisao(assId) {
   for (const edital of state.editais) {
-    for (const disc of (edital.disciplinas || [])) {
-      const ass = (disc.assuntos || []).find(a => a.id === assId);
+    for (const disc of edital.disciplinas || []) {
+      const ass = (disc.assuntos || []).find((a) => a.id === assId);
       if (ass) {
         if (!ass.adiamentos) ass.adiamentos = 0;
         ass.adiamentos = (ass.adiamentos || 0) + 1;
@@ -166,32 +195,39 @@ export function adiarRevisao(assId) {
 }
 
 export function deletarRevisao(assId) {
-  showConfirm('Tem certeza que deseja excluir esta revisão? Isso não removerá o tópico dos concluídos, apenas a removerá da lista de revisões pendentes.', async () => {
-    for (const edital of state.editais) {
-      for (const disc of (edital.disciplinas || [])) {
-        const ass = (disc.assuntos || []).find(a => a.id === assId);
-        if (ass) {
-          if (!ass.revisoesFetas) ass.revisoesFetas = [];
-          const today = todayStr();
-          const maxSteps = (state.config.frequenciaRevisao || [1, 7, 30, 90]).length;
-          let removed = 0;
+  showConfirm(
+    'Tem certeza que deseja excluir esta revisão? Isso não removerá o tópico dos concluídos, apenas a removerá da lista de revisões pendentes.',
+    async () => {
+      for (const edital of state.editais) {
+        for (const disc of edital.disciplinas || []) {
+          const ass = (disc.assuntos || []).find((a) => a.id === assId);
+          if (ass) {
+            if (!ass.revisoesFetas) ass.revisoesFetas = [];
+            const today = todayStr();
+            const maxSteps = (state.config.frequenciaRevisao || [1, 7, 30, 90]).length;
+            let removed = 0;
 
-          while (removed < maxSteps) {
-            const dueDate = calcRevisionDates(ass.dataConclusao, ass.revisoesFetas, ass.adiamentos || 0)
-              .find(rd => rd <= today);
-            if (!dueDate) break;
-            ass.revisoesFetas.push(dueDate);
-            removed++;
+            while (removed < maxSteps) {
+              const dueDate = calcRevisionDates(
+                ass.dataConclusao,
+                ass.revisoesFetas,
+                ass.adiamentos || 0
+              ).find((rd) => rd <= today);
+              if (!dueDate) break;
+              ass.revisoesFetas.push(dueDate);
+              removed++;
+            }
+
+            invalidateRevCache();
+            invalidatePendingRevCache();
+            scheduleSave();
+            renderCurrentView();
+            showToast('Revisão removida.', 'info');
+            return;
           }
-
-          invalidateRevCache();
-          invalidatePendingRevCache();
-          scheduleSave();
-          renderCurrentView();
-          showToast('Revisão removida.', 'info');
-          return;
         }
       }
-    }
-  }, { label: 'Excluir', title: 'Excluir revisão' });
+    },
+    { label: 'Excluir', title: 'Excluir revisão' }
+  );
 }

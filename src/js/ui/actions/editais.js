@@ -4,7 +4,10 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { showConfirm } from '../../app.js?v=8.29';
+import { showConfirm, showToast } from '../../app.js?v=8.29';
+import { renderCurrentView } from '../../components.js?v=8.29';
+import { archiveDiscipline, unarchiveDiscipline } from '../../logic.js?v=8.29';
+import { scheduleSave } from '../../store.js?v=8.29';
 import {
   openEditaModal,
   saveEdital,
@@ -28,12 +31,8 @@ import {
   toggleAssunto,
   runLessonMapperUI,
   switchManagerTab,
-  archiveDiscipline,
-  unarchiveDiscipline,
   setDiscFilterStatus,
-  renderCurrentView,
-  showToast,
-  scheduleSave,
+  openDiscDashboard,
   addEventoParaAssunto,
   toggleAulaDashboard,
   switchDashboardTab,
@@ -41,10 +40,18 @@ import {
   setVertFilterEdital,
   setVertFilterStatus,
   renderVerticalList,
-  filtrarDropdownBanca
+  filtrarDropdownBanca,
 } from '../../views.js?v=8.29';
-import { parseBancaText, applyBancaRanking, filtrarViewPorDisciplina, mudarEditalAnalisador, carregarAnaliseBanca, excluirAnaliseBanca, openMatchCorrector, saveMatchCorrection } from '../../views/banca-view.js?v=8.29';
-import { openDiscDashboard } from '../../views/dashboard-view.js';
+import {
+  parseBancaText,
+  applyBancaRanking,
+  filtrarViewPorDisciplina,
+  mudarEditalAnalisador,
+  carregarAnaliseBanca,
+  excluirAnaliseBanca,
+  openMatchCorrector,
+  saveMatchCorrection,
+} from '../../views/banca-view.js?v=8.29';
 
 // Registrar ações
 registerAction('navigate', (el) => {
@@ -130,7 +137,9 @@ registerAction('save-disc-manager', (el) => {
   const editalId = el.dataset.editalId;
   const discId = el.dataset.discId;
   if (editalId && discId) {
-    import('../../views.js?v=8.29').then(({ saveDiscManager }) => saveDiscManager(editalId, discId));
+    import('../../views.js?v=8.29').then(({ saveDiscManager }) =>
+      saveDiscManager(editalId, discId)
+    );
   }
 });
 registerAction('add-assunto', (el) => {
@@ -151,7 +160,8 @@ registerAction('move-subject', (el) => {
   const discId = el.dataset.discId;
   const idx = parseInt(el.dataset.idx, 10);
   const dir = parseInt(el.dataset.dir, 10);
-  if (discId) import('../../views.js?v=8.29').then(({ moveSubject }) => moveSubject(discId, idx, dir));
+  if (discId)
+    import('../../views.js?v=8.29').then(({ moveSubject }) => moveSubject(discId, idx, dir));
 });
 registerAction('add-bulk-aulas', (el) => {
   const discId = el.dataset.discId;

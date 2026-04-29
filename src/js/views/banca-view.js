@@ -10,18 +10,22 @@ import { getActiveDashboardDiscCtx } from '../state/dashboard-context.js?v=8.29'
 import {
   applyRankingToEdital,
   commitEditalOrdering,
-  revertEditalOrdering
+  revertEditalOrdering,
 } from '../relevance.js?v=8.29';
 
 // ── Analyzer Context State ──
 const analyzerCtx = {
   editaId: null,
   parsedHotTopics: null,
-  tempMatchResults: []
+  tempMatchResults: [],
 };
 
-export function getAnalyzerCtx() { return analyzerCtx; }
-export function setAnalyzerCtx(ctx) { Object.assign(analyzerCtx, ctx); }
+export function getAnalyzerCtx() {
+  return analyzerCtx;
+}
+export function setAnalyzerCtx(ctx) {
+  Object.assign(analyzerCtx, ctx);
+}
 
 function bindBancaAnalyzerActions() {
   Object.assign(window, {
@@ -36,7 +40,7 @@ function bindBancaAnalyzerActions() {
     renderBancaMatches,
     applyBancaRanking,
     openMatchCorrector,
-    saveMatchCorrection
+    saveMatchCorrection,
   });
 }
 
@@ -45,7 +49,8 @@ export function renderBancaAnalyzerModule(el) {
   bindBancaAnalyzerActions();
 
   if (state.editais.length === 0) {
-    el.innerHTML = '<div class="card p-24" style="text-align:center;margin-top:24px;"><i class="fa fa-folder-open" style="font-size:32px;color:var(--text-muted);margin-bottom:16px;"></i><h3 style="margin-bottom:8px;">Nenhum Edital Cadastrado</h3><p style="color:var(--text-secondary);">Crie um Edital primeiro para usar a Inteligência da Banca.</p></div>';
+    el.innerHTML =
+      '<div class="card p-24" style="text-align:center;margin-top:24px;"><i class="fa fa-folder-open" style="font-size:32px;color:var(--text-muted);margin-bottom:16px;"></i><h3 style="margin-bottom:8px;">Nenhum Edital Cadastrado</h3><p style="color:var(--text-secondary);">Crie um Edital primeiro para usar a Inteligência da Banca.</p></div>';
     return;
   }
 
@@ -58,36 +63,48 @@ export function renderBancaAnalyzerModule(el) {
 
 // ── Render Banca Analyzer Content ──
 export function renderBancaAnalyzerContent(el) {
-  const edital = state.editais.find(e => e.id === analyzerCtx.editaId);
+  const edital = state.editais.find((e) => e.id === analyzerCtx.editaId);
   if (!edital) return;
 
   const hotTopics = state.bancaRelevance?.hotTopics || [];
-  const editaisOptions = state.editais.map(e => `<option value="${e.id}" ${e.id === analyzerCtx.editaId ? 'selected' : ''}>${esc(e.nome)}</option>`).join('');
+  const editaisOptions = state.editais
+    .map(
+      (e) =>
+        `<option value="${e.id}" ${e.id === analyzerCtx.editaId ? 'selected' : ''}>${esc(e.nome)}</option>`
+    )
+    .join('');
 
-  const discOptions = (edital.disciplinas || []).map(d => {
-    const hasTopics = hotTopics.some(ht => ht.disciplinaId === d.id);
-    return `<option value="${d.id}">${hasTopics ? '✅ ' : '⚪ '}${esc(d.nome)}</option>`;
-  }).join('');
+  const discOptions = (edital.disciplinas || [])
+    .map((d) => {
+      const hasTopics = hotTopics.some((ht) => ht.disciplinaId === d.id);
+      return `<option value="${d.id}">${hasTopics ? '✅ ' : '⚪ '}${esc(d.nome)}</option>`;
+    })
+    .join('');
 
   // Clear Temp Matches on re-render
   analyzerCtx.tempMatchResults = [];
 
-  const savedDiscsHtml = (edital.disciplinas || []).filter(d => hotTopics.some(ht => ht.disciplinaId === d.id)).map(d => {
-    const topicCount = hotTopics.filter(ht => ht.disciplinaId === d.id).length;
-    return `<div style="display:inline-flex; align-items:center; background:var(--bg-hover); border:1px solid var(--border); border-radius:16px; padding:4px 12px; font-size:12px; gap:8px;">
+  const savedDiscsHtml = (edital.disciplinas || [])
+    .filter((d) => hotTopics.some((ht) => ht.disciplinaId === d.id))
+    .map((d) => {
+      const topicCount = hotTopics.filter((ht) => ht.disciplinaId === d.id).length;
+      return `<div style="display:inline-flex; align-items:center; background:var(--bg-hover); border:1px solid var(--border); border-radius:16px; padding:4px 12px; font-size:12px; gap:8px;">
           <span style="font-weight:600; cursor:pointer;" data-action="carregar-analise-banca" data-disc-id="${d.id}" title="Visualizar e Editar">${esc(d.nome)} (${topicCount})</span>
           <button class="icon-btn" style="width:20px;height:20px;font-size:11px;color:var(--red);" data-action="excluir-analise-banca" data-disc-id="${d.id}" title="Excluir Importação"><i class="fa fa-trash"></i></button>
       </div>`;
-  }).join('');
+    })
+    .join('');
 
-  const savedAnalysisSection = savedDiscsHtml ? `
+  const savedAnalysisSection = savedDiscsHtml
+    ? `
       <div style="margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
           <div class="dash-label" style="margin-bottom:12px; font-size:11px;">Análises Salvas (Edição Rápida)</div>
           <div style="display:flex; flex-wrap:wrap; gap:8px;">
               ${savedDiscsHtml}
           </div>
       </div>
-      ` : '';
+      `
+    : '';
 
   el.innerHTML = `
       <div class="banca-analyzer-shell">
@@ -158,10 +175,12 @@ export function mudarEditalAnalisador(editaId) {
 // ── Filter View by Discipline ──
 export function filtrarViewPorDisciplina(discId) {
   const hotTopics = state.bancaRelevance?.hotTopics || [];
-  const hasTopics = hotTopics.some(ht => ht.disciplinaId === discId);
+  const hasTopics = hotTopics.some((ht) => ht.disciplinaId === discId);
 
   if (hasTopics) {
-    analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
+    analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(
+      (res) => res.discId === discId
+    );
     renderBancaMatches();
   } else {
     analyzerCtx.tempMatchResults = [];
@@ -175,7 +194,7 @@ export function carregarAnaliseBanca(discId) {
   if (selectEl) selectEl.value = discId;
 
   const hotTopics = state.bancaRelevance?.hotTopics || [];
-  const topicsForDisc = hotTopics.filter(ht => ht.disciplinaId === discId);
+  const topicsForDisc = hotTopics.filter((ht) => ht.disciplinaId === discId);
 
   if (topicsForDisc.length > 0) {
     topicsForDisc.sort((a, b) => {
@@ -184,10 +203,12 @@ export function carregarAnaliseBanca(discId) {
       return 0;
     });
 
-    const textStr = topicsForDisc.map(ht => {
-      const wStr = ht.weight ? ` (${ht.weight} %)` : '';
-      return `${ht.rank ? ht.rank + '.' : '-'} ${ht.nome}${wStr} `;
-    }).join('\n');
+    const textStr = topicsForDisc
+      .map((ht) => {
+        const wStr = ht.weight ? ` (${ht.weight} %)` : '';
+        return `${ht.rank ? ht.rank + '.' : '-'} ${ht.nome}${wStr} `;
+      })
+      .join('\n');
 
     const textarea = document.getElementById('banca-input-text');
     if (textarea) textarea.value = textStr;
@@ -198,35 +219,44 @@ export function carregarAnaliseBanca(discId) {
 
 // ── Delete Analysis ──
 export function excluirAnaliseBanca(discId) {
-  const edital = state.editais.find(e => e.id === analyzerCtx.editaId);
-  const discName = edital?.disciplinas?.find(d => d.id === discId)?.nome || 'esta disciplina';
+  const edital = state.editais.find((e) => e.id === analyzerCtx.editaId);
+  const discName = edital?.disciplinas?.find((d) => d.id === discId)?.nome || 'esta disciplina';
 
-  showConfirm(`Tem certeza que deseja apagar a análise preditiva salva de "${discName}" ?\nOs Hot Topics importados serão removidos.`, () => {
-    state.bancaRelevance.hotTopics = state.bancaRelevance.hotTopics.filter(ht => ht.disciplinaId !== discId);
+  showConfirm(
+    `Tem certeza que deseja apagar a análise preditiva salva de "${discName}" ?\nOs Hot Topics importados serão removidos.`,
+    () => {
+      state.bancaRelevance.hotTopics = state.bancaRelevance.hotTopics.filter(
+        (ht) => ht.disciplinaId !== discId
+      );
 
-    if (analyzerCtx.editaId) {
-      revertEditalOrdering(analyzerCtx.editaId, discId);
-    } else {
-      scheduleSave();
-    }
+      if (analyzerCtx.editaId) {
+        revertEditalOrdering(analyzerCtx.editaId, discId);
+      } else {
+        scheduleSave();
+      }
 
-    const selectEl = document.getElementById('banca-disc-select');
-    if (selectEl && selectEl.value === discId) {
-      selectEl.value = '';
-      const textEl = document.getElementById('banca-input-text');
-      if (textEl) textEl.value = '';
-      analyzerCtx.tempMatchResults = [];
-    }
+      const selectEl = document.getElementById('banca-disc-select');
+      if (selectEl && selectEl.value === discId) {
+        selectEl.value = '';
+        const textEl = document.getElementById('banca-input-text');
+        if (textEl) textEl.value = '';
+        analyzerCtx.tempMatchResults = [];
+      }
 
-    renderBancaAnalyzerContent(document.getElementById('main-content'));
-    showToast('Análise excluída e Assuntos Reordenados para o Default.', 'success');
-  }, { title: 'Excluir Análise', danger: true });
+      renderBancaAnalyzerContent(document.getElementById('main-content'));
+      showToast('Análise excluída e Assuntos Reordenados para o Default.', 'success');
+    },
+    { title: 'Excluir Análise', danger: true }
+  );
 }
 
 // ── Parse Banca Text ──
 export function parseBancaText() {
   const discId = document.getElementById('banca-disc-select').value;
-  if (!discId) { showToast('Selecione uma matéria no campo acima antes de processar.', 'error'); return; }
+  if (!discId) {
+    showToast('Selecione uma matéria no campo acima antes de processar.', 'error');
+    return;
+  }
 
   // Ensure analyzerCtx.editaId is set (fallback if view rendered before state loaded)
   if (!analyzerCtx.editaId) {
@@ -235,9 +265,15 @@ export function parseBancaText() {
   }
 
   const rawArgs = document.getElementById('banca-input-text').value;
-  if (!rawArgs.trim()) { showToast('Nenhum texto informado.', 'error'); return; }
+  if (!rawArgs.trim()) {
+    showToast('Nenhum texto informado.', 'error');
+    return;
+  }
 
-  const lines = rawArgs.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 2);
+  const lines = rawArgs
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 2);
   const parsedRows = [];
 
   lines.forEach((line, idx) => {
@@ -249,7 +285,9 @@ export function parseBancaText() {
       extName = rankMatch[2];
     }
 
-    const percMatch = extName.match(/(.*?)(?:(?:\s*\()|\s*[\u2013\u2014-])?\s*(\d+(?:[.,]\d+)?)\s*%(?:\))?/);
+    const percMatch = extName.match(
+      /(.*?)(?:(?:\s*\()|\s*[\u2013\u2014-])?\s*(\d+(?:[.,]\d+)?)\s*%(?:\))?/
+    );
     if (percMatch && percMatch[2]) {
       extName = percMatch[1].trim();
       weight = parseFloat(percMatch[2].replace(',', '.'));
@@ -264,12 +302,13 @@ export function parseBancaText() {
       nome: extName.replace(/[*\u2013\u2014•-]/g, '').trim(),
       rank: idx + 1,
       weight: weight,
-      disciplinaId: discId
+      disciplinaId: discId,
     });
   });
 
-  let existingTopics = state.bancaRelevance && state.bancaRelevance.hotTopics ? state.bancaRelevance.hotTopics : [];
-  existingTopics = existingTopics.filter(ht => ht.disciplinaId !== discId);
+  let existingTopics =
+    state.bancaRelevance && state.bancaRelevance.hotTopics ? state.bancaRelevance.hotTopics : [];
+  existingTopics = existingTopics.filter((ht) => ht.disciplinaId !== discId);
 
   if (!state.bancaRelevance) state.bancaRelevance = {};
   state.bancaRelevance.hotTopics = existingTopics.concat(parsedRows);
@@ -283,7 +322,7 @@ export function parseBancaText() {
 
   // Apply ranking
   const results = applyRankingToEdital(analyzerCtx.editaId);
-  analyzerCtx.tempMatchResults = results.filter(res => res.discId === discId);
+  analyzerCtx.tempMatchResults = results.filter((res) => res.discId === discId);
 
   renderBancaMatches();
   showToast('Matéria processada com sucesso!', 'success');
@@ -304,16 +343,28 @@ export function renderBancaMatches() {
     return;
   }
 
-  let p1c = 0, p2c = 0;
+  let p1c = 0,
+    p2c = 0;
 
-  const rows = analyzerCtx.tempMatchResults.map(res => {
+  const rows = analyzerCtx.tempMatchResults.map((res) => {
     if (res.priority === 'P1') p1c++;
     if (res.priority === 'P2') p2c++;
 
-    const stIcon = res.priority === 'P1' ? 'fa-fire' : (res.priority === 'P2' ? 'fa-bolt' : 'fa-check');
-    const stColor = res.priority === 'P1' ? 'var(--red)' : (res.priority === 'P2' ? 'var(--orange)' : 'var(--text-muted)');
+    const stIcon =
+      res.priority === 'P1' ? 'fa-fire' : res.priority === 'P2' ? 'fa-bolt' : 'fa-check';
+    const stColor =
+      res.priority === 'P1'
+        ? 'var(--red)'
+        : res.priority === 'P2'
+          ? 'var(--orange)'
+          : 'var(--text-muted)';
 
-    const confBadgeColor = res.matchData.confidence === 'HIGH' ? 'var(--green)' : (res.matchData.confidence === 'MEDIUM' ? 'var(--yellow)' : 'var(--text-muted)');
+    const confBadgeColor =
+      res.matchData.confidence === 'HIGH'
+        ? 'var(--green)'
+        : res.matchData.confidence === 'MEDIUM'
+          ? 'var(--yellow)'
+          : 'var(--text-muted)';
 
     return `
       <div style="display:grid; grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 45px 40px; gap:8px; border-bottom:1px solid var(--border); padding:10px 0; align-items:center;">
@@ -366,13 +417,18 @@ export function openMatchCorrector(assuntoNome) {
   let hotTopics = state.bancaRelevance?.hotTopics || [];
 
   const lenOriginal = hotTopics.length;
-  hotTopics = hotTopics.filter(ht => ht.nome.length < 150);
+  hotTopics = hotTopics.filter((ht) => ht.nome.length < 150);
   if (hotTopics.length !== lenOriginal) {
     state.bancaRelevance.hotTopics = hotTopics;
     scheduleSave();
   }
 
-  const optionsHtml = hotTopics.map(ht => `<option value = "${ht.id}" style = "width:100%;max-width:350px;" > ${esc(ht.nome)} (Rank: ${ht.rank || ht.weight})</option> `).join('');
+  const optionsHtml = hotTopics
+    .map(
+      (ht) =>
+        `<option value = "${ht.id}" style = "width:100%;max-width:350px;" > ${esc(ht.nome)} (Rank: ${ht.rank || ht.weight})</option> `
+    )
+    .join('');
 
   document.getElementById('modal-match-corrector-title').textContent = 'Corrigir Assunto';
   document.getElementById('modal-match-corrector-body').innerHTML = `
@@ -411,7 +467,9 @@ export function saveMatchCorrection(assuntoOrigemRaw) {
   if (analyzerCtx.parsedHotTopics || analyzerCtx.tempMatchResults) {
     const discId = document.getElementById('banca-disc-select').value;
     if (discId) {
-      analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(res => res.discId === discId);
+      analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(
+        (res) => res.discId === discId
+      );
       renderBancaMatches();
     }
   }
@@ -430,5 +488,5 @@ export default {
   openMatchCorrector,
   saveMatchCorrection,
   getAnalyzerCtx,
-  setAnalyzerCtx
+  setAnalyzerCtx,
 };

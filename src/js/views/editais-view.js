@@ -17,14 +17,30 @@ let vertFilterStatus = 'todos';
 let vertFilterEdital = '';
 let discFilterStatus = 'ativas';
 
-export function getVertSearch() { return vertSearch; }
-export function setVertSearch(val) { vertSearch = val; }
-export function getVertFilterStatus() { return vertFilterStatus; }
-export function setVertFilterStatus(val) { vertFilterStatus = val; }
-export function getVertFilterEdital() { return vertFilterEdital; }
-export function setVertFilterEdital(val) { vertFilterEdital = val; }
-export function getDiscFilterStatus() { return discFilterStatus; }
-export function setDiscFilterStatus(val) { discFilterStatus = val; }
+export function getVertSearch() {
+  return vertSearch;
+}
+export function setVertSearch(val) {
+  vertSearch = val;
+}
+export function getVertFilterStatus() {
+  return vertFilterStatus;
+}
+export function setVertFilterStatus(val) {
+  vertFilterStatus = val;
+}
+export function getVertFilterEdital() {
+  return vertFilterEdital;
+}
+export function setVertFilterEdital(val) {
+  vertFilterEdital = val;
+}
+export function getDiscFilterStatus() {
+  return discFilterStatus;
+}
+export function setDiscFilterStatus(val) {
+  discFilterStatus = val;
+}
 
 // ── Helper: Get Filtered Vertical Items ──
 export function getFilteredVertItems() {
@@ -38,7 +54,8 @@ export function getFilteredVertItems() {
         if (vertFilterStatus === 'concluidos' && !ass.concluido) continue;
         if (vertSearch) {
           const search = vertSearch.toLowerCase();
-          if (!disc.nome.toLowerCase().includes(search) && !ass.nome.toLowerCase().includes(search)) continue;
+          if (!disc.nome.toLowerCase().includes(search) && !ass.nome.toLowerCase().includes(search))
+            continue;
         }
         items.push({ ass, disc, edital });
       }
@@ -60,13 +77,17 @@ export function renderVertical(el) {
       </div>
       <select class="form-control vertical-toolbar-select" style="width:auto;" data-action="set-vert-filter-edital">
         <option value="">Todos os editais</option>
-        ${state.editais.map(e => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
+        ${state.editais.map((e) => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
       </select>
       <div class="filter-row vertical-toolbar-filters gap-xs" style="margin:0;" role="group" aria-label="Filtro de status">
-        ${['todos', 'pendentes', 'concluidos'].map(s => `
+        ${['todos', 'pendentes', 'concluidos']
+          .map(
+            (s) => `
           <button type="button" class="filter-chip ${vertFilterStatus === s ? 'active' : ''}" data-action="set-vert-filter-status" data-status="${s}" aria-pressed="${vertFilterStatus === s}">
             ${{ todos: 'Todos', pendentes: 'Pendentes', concluidos: 'Concluídos' }[s]}
-          </button>`).join('')}
+          </button>`
+          )
+          .join('')}
       </div>
     </div>
 
@@ -81,7 +102,7 @@ export function renderVerticalList(container) {
   if (!container) return;
   const allItems = getFilteredVertItems();
   const total = allItems.length;
-  const concluidos = allItems.filter(i => i.ass.concluido).length;
+  const concluidos = allItems.filter((i) => i.ass.concluido).length;
   const pct = total > 0 ? Math.round((concluidos / total) * 100) : 0;
 
   if (total === 0) {
@@ -110,7 +131,7 @@ export function renderVerticalList(container) {
 
   // Agrupar itens por disciplina
   const discMap = {};
-  allItems.forEach(item => {
+  allItems.forEach((item) => {
     const did = item.disc.id;
     if (!discMap[did]) {
       discMap[did] = { disc: item.disc, edital: item.edital, items: [] };
@@ -121,27 +142,32 @@ export function renderVerticalList(container) {
   // Agrupar logs de questoes do 'state.eventos'
   const eventosAgrupados = {};
   if (state.eventos) {
-    state.eventos.forEach(ev => {
+    state.eventos.forEach((ev) => {
       if (ev.status === 'estudei' && ev.discId) {
-        if (!eventosAgrupados[ev.discId]) eventosAgrupados[ev.discId] = { sCertas: 0, sErradas: 0, assuntos: {} };
+        if (!eventosAgrupados[ev.discId])
+          eventosAgrupados[ev.discId] = { sCertas: 0, sErradas: 0, assuntos: {} };
         const evtQs = ev.sessao?.questoes || ev.questoes || { certas: 0, erradas: 0 };
-        eventosAgrupados[ev.discId].sCertas += (evtQs.acertos || evtQs.certas || 0);
-        eventosAgrupados[ev.discId].sErradas += (evtQs.erros || evtQs.erradas || 0);
+        eventosAgrupados[ev.discId].sCertas += evtQs.acertos || evtQs.certas || 0;
+        eventosAgrupados[ev.discId].sErradas += evtQs.erros || evtQs.erradas || 0;
         if (ev.assId) {
           if (!eventosAgrupados[ev.discId].assuntos[ev.assId]) {
             eventosAgrupados[ev.discId].assuntos[ev.assId] = { certas: 0, erradas: 0 };
           }
-          eventosAgrupados[ev.discId].assuntos[ev.assId].certas += (evtQs.acertos || evtQs.certas || 0);
-          eventosAgrupados[ev.discId].assuntos[ev.assId].erradas += (evtQs.erros || evtQs.erradas || 0);
+          eventosAgrupados[ev.discId].assuntos[ev.assId].certas +=
+            evtQs.acertos || evtQs.certas || 0;
+          eventosAgrupados[ev.discId].assuntos[ev.assId].erradas +=
+            evtQs.erros || evtQs.erradas || 0;
         }
       }
     });
   }
 
-  const hiReg = vertSearch ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi') : null;
-  const highlight = str => hiReg ? esc(str).replace(hiReg, '<mark>$1</mark>') : esc(str);
+  const hiReg = vertSearch
+    ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    : null;
+  const highlight = (str) => (hiReg ? esc(str).replace(hiReg, '<mark>$1</mark>') : esc(str));
 
-  Object.values(discMap).forEach(dMap => {
+  Object.values(discMap).forEach((dMap) => {
     const discId = dMap.disc.id;
     const evStats = eventosAgrupados[discId] || { sCertas: 0, sErradas: 0, assuntos: {} };
     const dCertas = evStats.sCertas;
@@ -150,7 +176,7 @@ export function renderVerticalList(container) {
     const dPctQ = dTotalQ > 0 ? Math.round((dCertas / dTotalQ) * 100) : 0;
 
     const dTotalItems = dMap.items.length;
-    const dConcluidos = dMap.items.filter(i => i.ass.concluido).length;
+    const dConcluidos = dMap.items.filter((i) => i.ass.concluido).length;
     const dPctConcluido = dTotalItems > 0 ? Math.round((dConcluidos / dTotalItems) * 100) : 0;
 
     const cor = dMap.disc.cor || dMap.edital.cor || 'var(--accent)';
@@ -211,7 +237,10 @@ export function renderVerticalList(container) {
     `;
 
     dMap.items.forEach(({ ass, edital: _edital, disc: _disc }) => {
-      const aStats = (evStats.assuntos && evStats.assuntos[ass.id]) ? evStats.assuntos[ass.id] : { certas: 0, erradas: 0 };
+      const aStats =
+        evStats.assuntos && evStats.assuntos[ass.id]
+          ? evStats.assuntos[ass.id]
+          : { certas: 0, erradas: 0 };
       const aCertas = aStats.certas;
       const aErradas = aStats.erradas;
       const aTotalQ = aCertas + aErradas;
@@ -225,7 +254,9 @@ export function renderVerticalList(container) {
       }
 
       const chColor = ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)';
-      const decor = ass.concluido ? 'text-decoration:line-through;opacity:0.6;' : 'font-weight:600;';
+      const decor = ass.concluido
+        ? 'text-decoration:line-through;opacity:0.6;'
+        : 'font-weight:600;';
 
       html += `
                 <tr style="border-bottom:1px solid var(--bg);">
@@ -275,7 +306,7 @@ export function toggleVertDisc(id) {
 // ── Add Event for Subject (Helper) ──
 export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
-  const ass = d?.disc?.assuntos?.find(a => a.id === assId);
+  const ass = d?.disc?.assuntos?.find((a) => a.id === assId);
   if (!ass || !d) return;
   openAddEventModal(todayStr());
   setTimeout(() => {
@@ -288,7 +319,10 @@ export function addEventoParaAssunto(editaId, discId, assId) {
         if (assSel) {
           assSel.value = assId;
           const ti = document.getElementById('event-titulo');
-          if (ti) { ti.value = ass.nome; ti.dataset.autoFilled = 'true'; }
+          if (ti) {
+            ti.value = ass.nome;
+            ti.dataset.autoFilled = 'true';
+          }
         }
       }, 50);
     }
@@ -298,30 +332,35 @@ export function addEventoParaAssunto(editaId, discId, assId) {
 // ── Editais View: Main Render ──
 export function renderEditais(el) {
   el.innerHTML = `
-    ${state.editais.length === 0 ? `
+    ${
+      state.editais.length === 0
+        ? `
       <div class="empty-state" style="padding:80px 20px;">
         <div class="icon">📋</div>
         <h4>Nenhum edital cadastrado</h4>
         <p class="mb-4">Crie seu edital com disciplinas e assuntos para organizar seus estudos.</p>
         <button class="btn btn-primary" data-action="open-edital-modal"><i class="fa fa-plus"></i> Criar Edital</button>
       </div>
-    ` : `
+    `
+        : `
       <div class="edital-tree">
-        ${state.editais.map(edital => renderEditalTree(edital)).join('')}
+        ${state.editais.map((edital) => renderEditalTree(edital)).join('')}
       </div>
-    `}
+    `
+    }
         `;
 }
 
 // ── Editais View: Tree Render ──
 export function renderEditalTree(edital) {
-  const ativas = (edital.disciplinas || []).filter(d => !d.arquivada);
-  const arquivadas = (edital.disciplinas || []).filter(d => d.arquivada);
-  const discCountText = arquivadas.length > 0
-    ? `${ativas.length} ativas · ${arquivadas.length} arq.`
-    : `${ativas.length} disc.`;
+  const ativas = (edital.disciplinas || []).filter((d) => !d.arquivada);
+  const arquivadas = (edital.disciplinas || []).filter((d) => d.arquivada);
+  const discCountText =
+    arquivadas.length > 0
+      ? `${ativas.length} ativas · ${arquivadas.length} arq.`
+      : `${ativas.length} disc.`;
 
-  const filteredDisciplinas = (edital.disciplinas || []).filter(d => {
+  const filteredDisciplinas = (edital.disciplinas || []).filter((d) => {
     if (discFilterStatus === 'ativas') return !d.arquivada;
     if (discFilterStatus === 'arquivadas') return d.arquivada;
     return true;
@@ -349,26 +388,34 @@ export function renderEditalTree(edital) {
       </div>
       <div id="edital-tree-${edital.id}">
         <div class="disc-grid">
-          ${filteredDisciplinas.map(disc => {
-    const isArchived = disc.arquivada === true;
-    const archivedClass = isArchived ? 'disc-card-archived' : '';
-    const archivedBadge = isArchived ? '<div class="disc-archived-badge">Arquivada</div>' : '';
+          ${filteredDisciplinas
+            .map((disc) => {
+              const isArchived = disc.arquivada === true;
+              const archivedClass = isArchived ? 'disc-card-archived' : '';
+              const archivedBadge = isArchived
+                ? '<div class="disc-archived-badge">Arquivada</div>'
+                : '';
 
-    const totaisTopicos = disc.assuntos ? disc.assuntos.length : 0;
-    const topicosEstudados = disc.assuntos ? disc.assuntos.filter(a => a.concluido).length : 0;
-    const totaisAulas = disc.aulas ? disc.aulas.length : 0;
-    const aulasEstudadas = disc.aulas ? disc.aulas.filter(a => a.estudada).length : 0;
+              const totaisTopicos = disc.assuntos ? disc.assuntos.length : 0;
+              const topicosEstudados = disc.assuntos
+                ? disc.assuntos.filter((a) => a.concluido).length
+                : 0;
+              const totaisAulas = disc.aulas ? disc.aulas.length : 0;
+              const aulasEstudadas = disc.aulas ? disc.aulas.filter((a) => a.estudada).length : 0;
 
-    let qResolvidas = 0;
-    if (state.eventos) {
-      const evts = state.eventos.filter(e => e.discId === disc.id && e.status === 'estudei');
-      evts.forEach(e => {
-        const qs = e.sessao?.questoes || e.questoes;
-        if (qs) qResolvidas += (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
-      });
-    }
+              let qResolvidas = 0;
+              if (state.eventos) {
+                const evts = state.eventos.filter(
+                  (e) => e.discId === disc.id && e.status === 'estudei'
+                );
+                evts.forEach((e) => {
+                  const qs = e.sessao?.questoes || e.questoes;
+                  if (qs)
+                    qResolvidas += (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
+                });
+              }
 
-    return `
+              return `
               <div class="disc-card ${archivedClass}" style="--card-color: ${disc.cor || 'var(--accent)'};" data-action="open-disc-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
                 ${archivedBadge}
                 <div class="disc-card-title">${disc.icone || '📚'} ${esc(disc.nome)}</div>
@@ -395,12 +442,15 @@ export function renderEditalTree(edital) {
                     <i class="fa fa-edit"></i>
                     <span>Editar</span>
                   </button>
-                  ${isArchived ? `
+                  ${
+                    isArchived
+                      ? `
                   <button class="disc-action" data-action="unarchive-disc" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
                     <i class="fa fa-archive"></i>
                     <span>Desarquivar</span>
                   </button>
-                  ` : `
+                  `
+                      : `
                   <button class="disc-action" data-action="archive-disc" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
                     <i class="fa fa-archive"></i>
                     <span>Arquivar</span>
@@ -409,11 +459,13 @@ export function renderEditalTree(edital) {
                     <i class="fa fa-trash"></i>
                     <span>Remover</span>
                   </button>
-                  `}
+                  `
+                  }
                 </div>
               </div>
             `;
-  }).join('')}
+            })
+            .join('')}
           ${filteredDisciplinas.length === 0 ? `<div class="text-muted" style="font-style:italic; grid-column:1/-1; padding:16px;">${discFilterStatus === 'arquivadas' ? 'Nenhuma disciplina arquivada' : discFilterStatus === 'ativas' ? 'Nenhuma disciplina ativa' : 'Nenhuma disciplina'}</div>` : ''}
         </div>
       </div>
@@ -431,9 +483,9 @@ export function toggleEdital(id) {
 export function toggleAssunto(discId, assId) {
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue;
-    const disc = edital.disciplinas.find(d => d.id === discId);
+    const disc = edital.disciplinas.find((d) => d.id === discId);
     if (disc) {
-      const ass = (disc.assuntos || []).find(a => a.id === assId);
+      const ass = (disc.assuntos || []).find((a) => a.id === assId);
       if (ass) {
         ass.concluido = !ass.concluido;
         ass.dataConclusao = ass.concluido ? todayStr() : null;
@@ -469,5 +521,5 @@ export default {
   getVertFilterEdital,
   setVertFilterEdital,
   getDiscFilterStatus,
-  setDiscFilterStatus
+  setDiscFilterStatus,
 };

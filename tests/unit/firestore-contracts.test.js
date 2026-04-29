@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 const root = process.cwd();
@@ -7,13 +8,22 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 describe('Firestore integration contracts', () => {
   it('keeps Firebase config explicit and runtime-overridable', () => {
-    const configSource = read('src/js/firebase/firebase-config.js');
+    const configSource = read('src/js/firebase/firebase-config-default.js');
 
     expect(configSource).toContain('FIREBASE_CONFIG');
     expect(configSource).toContain("apiKey: ''");
     expect(configSource).toContain("projectId: ''");
     expect(configSource).toContain('window.ESTUDO_FIREBASE_CONFIG');
     expect(configSource).toContain('window.ESTUDO_APP_CHECK_SITE_KEY');
+  });
+
+  it('keeps local Firebase credentials out of tracked files', () => {
+    const tracked = execFileSync('git', ['ls-files', 'src/js/firebase/firebase-config.js'], {
+      cwd: root,
+      encoding: 'utf8'
+    });
+
+    expect(tracked.trim()).toBe('');
   });
 
   it('falls back to Firebase Auth redirect when popup login is blocked', () => {
@@ -32,7 +42,7 @@ describe('Firestore integration contracts', () => {
     const swSource = read('src/sw.js');
 
     expect(swSource).toContain('./js/firebase/firebase-client.js');
-    expect(swSource).toContain('./js/firebase/firebase-config.js');
+    expect(swSource).toContain('./js/firebase/firebase-config-default.js');
     expect(swSource).toContain('./js/sync/entity-metadata.js');
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-coordinator.js');

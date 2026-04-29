@@ -4,12 +4,25 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { debouncedOnSearch, onSearchFocus, clearSearch } from '../../views.js?v=8.29';
+import {
+  debouncedOnSearch,
+  onSearchFocus,
+  clearSearch,
+  setDashPeriod,
+  closeDiscDashboard,
+} from '../../views.js?v=8.29';
 import { setCalViewMode, calNavigate } from '../../views/calendar-view.js?v=8.29';
-import { navigate, closeSidebar, toggleSidebar, toggleSidebarCollapse, applyTheme, promptDataProva, promptMetas } from '../../app.js?v=8.29';
-import { setDashPeriod, renderCurrentView } from '../../components.js?v=8.29';
-import { closeDiscDashboard } from '../../views/dashboard-view.js';
-import { toggleCicloFin } from '../../views/ciclo-view.js';
+import {
+  navigate,
+  closeSidebar,
+  toggleSidebar,
+  toggleSidebarCollapse,
+  applyTheme,
+  promptDataProva,
+  promptMetas,
+  toggleCicloFin,
+} from '../../app.js?v=8.29';
+import { renderCurrentView } from '../../components.js?v=8.29';
 import { setActiveDashboardDiscCtx } from '../../state/dashboard-context.js?v=8.29';
 
 // Registrar ações

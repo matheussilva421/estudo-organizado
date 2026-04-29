@@ -19,7 +19,10 @@ let _indexedDBAvailable = typeof indexedDB !== 'undefined';
  * @returns {Promise<IDBDatabase>}
  */
 export function initCredentialsDB() {
-  if (!_indexedDBAvailable) return Promise.reject(new Error('IndexedDB indisponivel — credenciais nao podem ser armazenadas com seguranca.'));
+  if (!_indexedDBAvailable)
+    return Promise.reject(
+      new Error('IndexedDB indisponivel — credenciais nao podem ser armazenadas com seguranca.')
+    );
   if (_initPromise) return _initPromise;
   if (credsDb) return Promise.resolve(credsDb);
 
@@ -131,5 +134,5 @@ export async function listCredentialKeys() {
 export async function clearAllCredentials() {
   await initCredentialsDB();
   const keys = await listCredentialKeys();
-  await Promise.all(keys.map(key => deleteCredential(key)));
+  await Promise.all(keys.map((key) => deleteCredential(key)));
 }

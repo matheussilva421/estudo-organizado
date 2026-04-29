@@ -6,13 +6,10 @@ import {
   onSnapshot,
   serverTimestamp,
   setDoc,
-  writeBatch
+  writeBatch,
 } from '../../vendor/firebase-client.bundle.js?v=8.29';
 import { FIRESTORE_SNAPSHOT_DOC_ID, getEnvelopeUpdatedAt } from './firestore-schema.js?v=8.29';
-import {
-  decodeEntityDocId,
-  encodeEntityDocId
-} from './firestore-entity-schema.js?v=8.29';
+import { decodeEntityDocId, encodeEntityDocId } from './firestore-entity-schema.js?v=8.29';
 
 function snapshotRef(db, uid) {
   return doc(db, 'users', uid, 'snapshots', FIRESTORE_SNAPSHOT_DOC_ID);
@@ -29,7 +26,7 @@ export async function writeFirestoreSnapshot(db, uid, envelope) {
   await setDoc(snapshotRef(db, uid), {
     ...envelope,
     updatedAt,
-    serverUpdatedAt: serverTimestamp()
+    serverUpdatedAt: serverTimestamp(),
   });
   return { updatedAt };
 }
@@ -55,7 +52,9 @@ export async function writeFirestoreEntityDocuments(db, uid, entityDocs = []) {
     const batch = writeBatch(db);
     const chunk = entityDocs.slice(i, i + 450);
     for (const entityDoc of chunk) {
-      batch.set(doc(entityCollection, encodeEntityDocId(entityDoc.key)), entityDoc, { merge: true });
+      batch.set(doc(entityCollection, encodeEntityDocId(entityDoc.key)), entityDoc, {
+        merge: true,
+      });
     }
     await batch.commit();
     count += chunk.length;
@@ -69,6 +68,6 @@ export async function readFirestoreEntityDocuments(db, uid) {
   const snapshot = await getDocs(entityCollection);
   return snapshot.docs.map((entry) => ({
     ...entry.data(),
-    key: entry.data().key || decodeEntityDocId(entry.id)
+    key: entry.data().key || decodeEntityDocId(entry.id),
   }));
 }

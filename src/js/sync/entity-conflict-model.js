@@ -5,13 +5,13 @@ export function buildEntityConflictReviewModel(items = []) {
     if (Number(item.remoteRevision) > Number(item.localRevision)) decisionHint = 'remote-newer';
     return {
       ...item,
-      decisionHint
+      decisionHint,
     };
   });
 
   return {
     total: normalized.length,
     requiresManualReview: normalized.some((item) => item.decisionHint === 'manual'),
-    items: normalized
+    items: normalized,
   };
 }

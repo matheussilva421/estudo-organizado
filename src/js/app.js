@@ -25,16 +25,16 @@ let _lastSaveStatus = {
   status: 'saved',
   message: 'Salvo localmente',
   detail: '',
-  timestamp: null
+  timestamp: null,
 };
 
 export const THEME_OPTIONS = [
   { value: 'grafite', label: 'Grafite' },
   { value: 'obsidiana', label: 'Obsidiana' },
-  { value: 'contraste', label: 'Contraste' }
+  { value: 'contraste', label: 'Contraste' },
 ];
 
-const THEME_VALUES = THEME_OPTIONS.map(theme => theme.value);
+const THEME_VALUES = THEME_OPTIONS.map((theme) => theme.value);
 const LEGACY_THEME_ALIASES = {
   light: 'grafite',
   dark: 'grafite',
@@ -42,7 +42,7 @@ const LEGACY_THEME_ALIASES = {
   cyberpunk2077: 'grafite',
   furtivo: 'obsidiana',
   matrix: 'obsidiana',
-  rubi: 'contraste'
+  rubi: 'contraste',
 };
 
 export function normalizeTheme(themeName, legacyDarkMode = false) {
@@ -53,7 +53,7 @@ export function normalizeTheme(themeName, legacyDarkMode = false) {
 
 export function getThemeLabel(themeName) {
   const normalizedTheme = normalizeTheme(themeName);
-  return THEME_OPTIONS.find(theme => theme.value === normalizedTheme)?.label || 'Grafite';
+  return THEME_OPTIONS.find((theme) => theme.value === normalizedTheme)?.label || 'Grafite';
 }
 
 function getNextTheme(themeName) {
@@ -91,7 +91,7 @@ export function renderSaveStatus(statusDetail = _lastSaveStatus) {
     status: statusDetail.status || 'saved',
     message: statusDetail.message || getSaveStatusText(statusDetail),
     detail: statusDetail.detail || '',
-    timestamp: statusDetail.timestamp || new Date().toISOString()
+    timestamp: statusDetail.timestamp || new Date().toISOString(),
   };
   _lastSaveStatus = normalized;
 
@@ -99,9 +99,10 @@ export function renderSaveStatus(statusDetail = _lastSaveStatus) {
   if (topbarStatus) {
     topbarStatus.className = `save-status save-status--${normalized.status}`;
     topbarStatus.textContent = getSaveStatusText(normalized);
-    topbarStatus.title = normalized.status === 'error'
-      ? getConfigSaveStatusText(normalized)
-      : 'Status do salvamento local';
+    topbarStatus.title =
+      normalized.status === 'error'
+        ? getConfigSaveStatusText(normalized)
+        : 'Status do salvamento local';
     topbarStatus.setAttribute('aria-label', topbarStatus.title);
   }
 
@@ -144,7 +145,7 @@ export function navigate(view) {
   }
 
   currentView = view;
-  document.querySelectorAll('.nav-item').forEach(el => {
+  document.querySelectorAll('.nav-item').forEach((el) => {
     el.classList.toggle('active', el.dataset.view === view);
   });
   renderCurrentView();
@@ -214,13 +215,19 @@ export function showConfirm(msg, onYes, opts = {}) {
 export function setupConfirmHandlers() {
   const okBtn = document.getElementById('confirm-ok-btn');
   const cancelBtn = document.getElementById('confirm-cancel-btn');
-  if (okBtn) okBtn.addEventListener('click', () => {
-    closeModal('modal-confirm');
-    if (_confirmCallback) { const cb = _confirmCallback; _confirmCallback = null; cb(); }
-  });
-  if (cancelBtn) cancelBtn.addEventListener('click', () => {
-    cancelConfirm();
-  });
+  if (okBtn)
+    okBtn.addEventListener('click', () => {
+      closeModal('modal-confirm');
+      if (_confirmCallback) {
+        const cb = _confirmCallback;
+        _confirmCallback = null;
+        cb();
+      }
+    });
+  if (cancelBtn)
+    cancelBtn.addEventListener('click', () => {
+      cancelConfirm();
+    });
 }
 
 /**
@@ -286,7 +293,9 @@ export function showToast(msg, type = '') {
   toast.addEventListener('mouseleave', scheduleDismiss);
   toast.addEventListener('click', () => toast.remove());
 
-  requestAnimationFrame(() => { toast.classList.add('show'); });
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
   scheduleDismiss();
 }
 
@@ -370,58 +379,62 @@ export function applyTheme(toggle = false) {
  * Inicializa aplicação: DB, tema, sync, navegação
  */
 export function init() {
-  initDB().then(async () => {
-    // Notify modules that state is loaded from IndexedDB
-    document.dispatchEvent(new Event('app:stateLoaded'));
-    applyTheme();
-    initNotifications();
-    initSyncCoordinator();
-    initFirestoreSync();
+  initDB()
+    .then(async () => {
+      // Notify modules that state is loaded from IndexedDB
+      document.dispatchEvent(new Event('app:stateLoaded'));
+      applyTheme();
+      initNotifications();
+      initSyncCoordinator();
+      initFirestoreSync();
 
-    // Restaurar estado da sidebar (collapsed/expanded)
-    const sidebarCollapsed = localStorage.getItem('estudo_sidebar_collapsed') === 'true';
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-      if (sidebarCollapsed && window.innerWidth > 768) {
-        sidebar.classList.add('collapsed');
-      } else {
-        sidebar.classList.remove('collapsed');
+      // Restaurar estado da sidebar (collapsed/expanded)
+      const sidebarCollapsed = localStorage.getItem('estudo_sidebar_collapsed') === 'true';
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) {
+        if (sidebarCollapsed && window.innerWidth > 768) {
+          sidebar.classList.add('collapsed');
+        } else {
+          sidebar.classList.remove('collapsed');
+        }
       }
-    }
 
-    // Primeira Sincronização: Cloudflare (Primária Rápida)
-    if (state.config && state.config.cfSyncEnabled) {
-      try {
-        await pullFromCloudflare();
-      } catch (e) {
-        console.error('Falha no Boot Sync (Cloudflare)', e);
+      // Primeira Sincronização: Cloudflare (Primária Rápida)
+      if (state.config && state.config.cfSyncEnabled) {
+        try {
+          await pullFromCloudflare();
+        } catch (e) {
+          console.error('Falha no Boot Sync (Cloudflare)', e);
+        }
       }
-    }
 
-    // Segunda Sincronização: Google Drive (Secundária Lenta)
-    updateDriveUI('disconnected', 'Google Drive');
-    const savedClientId = localStorage.getItem('estudo_drive_client_id');
-    if (savedClientId) {
-      initGoogleAPIs();
-    }
+      // Segunda Sincronização: Google Drive (Secundária Lenta)
+      updateDriveUI('disconnected', 'Google Drive');
+      const savedClientId = localStorage.getItem('estudo_drive_client_id');
+      if (savedClientId) {
+        initGoogleAPIs();
+      }
 
-    navigate('home');
+      navigate('home');
 
-    // Note: event statuses ('atrasado') are computed dynamically by getEventStatus().
-    // No need to mutate or save here — avoids triggering Cloudflare push on every boot.
+      // Note: event statuses ('atrasado') are computed dynamically by getEventStatus().
+      // No need to mutate or save here — avoids triggering Cloudflare push on every boot.
 
-    // Check Drive Sync Every 5 Min
-    if (_driveSyncInterval) clearInterval(_driveSyncInterval);
-    _driveSyncInterval = setInterval(() => {
-      if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId) syncWithDrive();
-    }, 300000);
-  }).catch(err => {
-    console.error('Falha ao inicializar o aplicativo:', err);
-    const content = document.getElementById('main-content');
-    if (content) {
-      content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--danger);"><h2>Erro ao carregar o aplicativo</h2><p>Tente recarregar a página. Se o erro persistir, limpe os dados do navegador.</p></div>';
-    }
-  });
+      // Check Drive Sync Every 5 Min
+      if (_driveSyncInterval) clearInterval(_driveSyncInterval);
+      _driveSyncInterval = setInterval(() => {
+        if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId)
+          syncWithDrive();
+      }, 300000);
+    })
+    .catch((err) => {
+      console.error('Falha ao inicializar o aplicativo:', err);
+      const content = document.getElementById('main-content');
+      if (content) {
+        content.innerHTML =
+          '<div style="padding:40px;text-align:center;color:var(--danger);"><h2>Erro ao carregar o aplicativo</h2><p>Tente recarregar a página. Se o erro persistir, limpe os dados do navegador.</p></div>';
+      }
+    });
 }
 
 // init() is called from main.js
@@ -501,7 +514,6 @@ export function promptMetas() {
 
   openModal('modal-prompt');
 }
-
 
 // recomecarCiclo is defined inside renderCiclo() in views.js
 // and assigned to window.recomecarCiclo — it operates on state.planejamento

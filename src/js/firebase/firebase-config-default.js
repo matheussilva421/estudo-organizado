@@ -4,7 +4,7 @@ export const FIREBASE_CONFIG = {
   projectId: '',
   storageBucket: '',
   messagingSenderId: '',
-  appId: ''
+  appId: '',
 };
 
 export const FIREBASE_APP_CHECK_SITE_KEY = '';
@@ -13,7 +13,7 @@ export function getRuntimeFirebaseConfig() {
   const runtimeConfig = window.ESTUDO_FIREBASE_CONFIG || {};
   return {
     ...FIREBASE_CONFIG,
-    ...runtimeConfig
+    ...runtimeConfig,
   };
 }
 

@@ -1,6 +1,4 @@
-import {
-  stableEntityChecksum
-} from './entity-metadata.js?v=8.29';
+import { stableEntityChecksum } from './entity-metadata.js?v=8.29';
 
 export const FIRESTORE_ENTITY_VERSION = 1;
 
@@ -18,7 +16,7 @@ export function createFirestoreEntityDocument({
   id,
   entity,
   schemaVersion,
-  sentAt = new Date().toISOString()
+  sentAt = new Date().toISOString(),
 }) {
   const sync = entity?._sync || {};
   return {
@@ -33,14 +31,14 @@ export function createFirestoreEntityDocument({
     revision: Number(sync.revision || 1),
     updatedBy: sync.updatedBy || null,
     payload: entity,
-    sentAt
+    sentAt,
   };
 }
 
 export function createFirestoreTombstoneDocument({
   tombstone,
   schemaVersion,
-  sentAt = new Date().toISOString()
+  sentAt = new Date().toISOString(),
 }) {
   return {
     version: FIRESTORE_ENTITY_VERSION,
@@ -54,6 +52,6 @@ export function createFirestoreTombstoneDocument({
     revision: Number(tombstone.revision || 1),
     updatedBy: tombstone.deletedBy || tombstone.updatedBy || null,
     payload: null,
-    sentAt
+    sentAt,
   };
 }

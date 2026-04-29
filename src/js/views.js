@@ -1,10 +1,31 @@
 import { closeModal, showConfirm, showToast, openModal } from './app.js?v=8.29';
-import { cutoffDateStr, esc, formatDate, formatTime, todayStr, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.29';
+import {
+  cutoffDateStr,
+  esc,
+  formatDate,
+  formatTime,
+  todayStr,
+  uid,
+  HABIT_TYPES,
+  addCleanupListener,
+} from './utils.js?v=8.29';
 import { scheduleSave, state } from './store.js?v=8.29';
-import { getActiveDisciplinas, getDisc, invalidateDiscCache, invalidateDashCaches, syncCicloToEventos } from './logic.js?v=8.29';
+import {
+  getActiveDisciplinas,
+  getDisc,
+  invalidateDiscCache,
+  invalidateDashCaches,
+  syncCicloToEventos,
+} from './logic.js?v=8.29';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 import { renderCurrentView, renderEventCard } from './components.js?v=8.29';
-import { setActiveDashboardDiscCtx, clearActiveDashboardDiscCtx, getActiveDashboardDiscCtx, setActiveDashboardTab, resetActiveDashboardTab } from './state/dashboard-context.js?v=8.29';
+import {
+  setActiveDashboardDiscCtx,
+  clearActiveDashboardDiscCtx,
+  getActiveDashboardDiscCtx,
+  setActiveDashboardTab,
+  resetActiveDashboardTab,
+} from './state/dashboard-context.js?v=8.29';
 import { openAddEventModal, loadAssuntos } from './ui/event-modals.js?v=8.29';
 import { renderVerticalList } from './views/editais-view.js';
 import { setDiscChartInstance, getDiscChartInstance } from './state/chart-state.js?v=8.29';
@@ -14,17 +35,45 @@ let _activeDiscManagerTab = 'topicos';
 let _tempSequencia = null;
 let _isEditingSequence = false;
 
-export function getActiveDiscManagerTab() { return _activeDiscManagerTab; }
-export function setActiveDiscManagerTab(tab) { _activeDiscManagerTab = tab; }
-export function getTempSequencia() { return _tempSequencia; }
-export function setTempSequencia(val) { _tempSequencia = val; }
-export function getIsEditingSequence() { return _isEditingSequence; }
-export function setIsEditingSequence(val) { _isEditingSequence = val; }
+export function getActiveDiscManagerTab() {
+  return _activeDiscManagerTab;
+}
+export function setActiveDiscManagerTab(tab) {
+  _activeDiscManagerTab = tab;
+}
+export function getTempSequencia() {
+  return _tempSequencia;
+}
+export function setTempSequencia(val) {
+  _tempSequencia = val;
+}
+export function getIsEditingSequence() {
+  return _isEditingSequence;
+}
+export function setIsEditingSequence(val) {
+  _isEditingSequence = val;
+}
 
 // Re-export from extracted view modules
 export { renderHome } from './views/home-view.js';
-export { renderCiclo, recomecarCiclo, zerarCiclosCounter, calculateCyclePredictions } from './views/ciclo-view.js';
-export { renderHabitos, renderHabitHistPage, setHabitPage, openHabitModal, selectHabitType, saveHabit, calcSimuladoPerc, deleteHabito, HABIT_HIST_PAGE_SIZE, habitHistPage } from './views/habitos-view.js';
+export {
+  renderCiclo,
+  recomecarCiclo,
+  zerarCiclosCounter,
+  calculateCyclePredictions,
+} from './views/ciclo-view.js';
+export {
+  renderHabitos,
+  renderHabitHistPage,
+  setHabitPage,
+  openHabitModal,
+  selectHabitType,
+  saveHabit,
+  calcSimuladoPerc,
+  deleteHabito,
+  HABIT_HIST_PAGE_SIZE,
+  habitHistPage,
+} from './views/habitos-view.js';
 export {
   renderVertical,
   renderVerticalList,
@@ -38,7 +87,7 @@ export {
   getVertFilterEdital,
   setVertFilterEdital,
   getDiscFilterStatus,
-  setDiscFilterStatus
+  setDiscFilterStatus,
 } from './views/editais-view.js';
 export { renderDisciplinaDashboard } from './views/dashboard-view.js';
 export {
@@ -47,7 +96,7 @@ export {
   marcarRevisao,
   adiarRevisao,
   deletarRevisao,
-  getUpcomingRevisoes
+  getUpcomingRevisoes,
 } from './views/revisao-view.js';
 export {
   renderBancaAnalyzerModule,
@@ -62,7 +111,7 @@ export {
   openMatchCorrector,
   saveMatchCorrection,
   getAnalyzerCtx,
-  setAnalyzerCtx
+  setAnalyzerCtx,
 } from './views/banca-view.js';
 export {
   renderConfig,
@@ -77,7 +126,7 @@ export {
   exportData,
   importData,
   restoreBackupFromSelectedSource,
-  clearAllData
+  clearAllData,
 } from './views/config-view.js';
 export {
   searchBlurTimeout,
@@ -85,7 +134,7 @@ export {
   onSearch,
   onSearchFocus,
   onSearchBlur,
-  clearSearch
+  clearSearch,
 } from './ui/search.js';
 export {
   openAddEventModal,
@@ -96,7 +145,7 @@ export {
   savePastEvent,
   openEventDetail,
   refreshEventCard,
-  removeDOMCard
+  removeDOMCard,
 } from './ui/event-modals.js';
 export {
   getCalDate,
@@ -111,7 +160,7 @@ export {
   renderCalendarGrid,
   renderCalendarWeek,
   renderCalendarMobileMonth,
-  renderCalendarMobileWeek
+  renderCalendarMobileWeek,
 } from './views/calendar-view.js';
 
 let editingSubjectCtx = null;
@@ -177,21 +226,61 @@ export function renderSkeletonTable(rows = 5, cols = 4) {
   return html;
 }
 
-
 // =============================================
 // CONSTANTS
 // =============================================
 export const COLORS = [
-  '#8aa4bf', '#7dd3a8', '#d8a657', '#ef7777', '#a7a4d6',
-  '#b6a28a', '#7fb7c7', '#9fbf8a', '#c58f6b', '#8e9fd0',
-  '#79b8ad', '#d58c9d', '#83a9cb', '#b7a1cf', '#93c9a8',
-  '#c6b176', '#c59ac1', '#7f8a99'
+  '#8aa4bf',
+  '#7dd3a8',
+  '#d8a657',
+  '#ef7777',
+  '#a7a4d6',
+  '#b6a28a',
+  '#7fb7c7',
+  '#9fbf8a',
+  '#c58f6b',
+  '#8e9fd0',
+  '#79b8ad',
+  '#d58c9d',
+  '#83a9cb',
+  '#b7a1cf',
+  '#93c9a8',
+  '#c6b176',
+  '#c59ac1',
+  '#7f8a99',
 ];
 
 export const DISC_ICONS = [
-  '📚', '📖', '📝', '📋', '📊', '📈', '🔬', '🧪', '🧮', '💻',
-  '🌍', '🏛️', '⚖️', '🧠', '💡', '📐', '🔢', '🗂️', '📜', '🎯',
-  '🩺', '🔧', '🎨', '🎵', '🏃', '🌱', '💰', '📡', '🔐', '📦'
+  '📚',
+  '📖',
+  '📝',
+  '📋',
+  '📊',
+  '📈',
+  '🔬',
+  '🧪',
+  '🧮',
+  '💻',
+  '🌍',
+  '🏛️',
+  '⚖️',
+  '🧠',
+  '💡',
+  '📐',
+  '🔢',
+  '🗂️',
+  '📜',
+  '🎯',
+  '🩺',
+  '🔧',
+  '🎨',
+  '🎵',
+  '🏃',
+  '🌱',
+  '💰',
+  '📡',
+  '🔐',
+  '📦',
 ];
 
 function getQuestionTotal(record) {
@@ -204,26 +293,30 @@ function getQuestionTotal(record) {
   if (Number.isFinite(derived) && derived > 0) return derived;
 
   // Legacy compatibility: some old habit records store only eventoId.
-  const ev = (state.eventos || []).find(e => e.id === record.eventoId);
+  const ev = (state.eventos || []).find((e) => e.id === record.eventoId);
   if (!ev) return 0;
   const qs = ev.sessao?.questoes || ev.questoes;
   if (!qs) return 0;
-  const eventTotal = Number(qs.total ?? qs.quantidade ?? ((qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0)));
+  const eventTotal = Number(
+    qs.total ?? qs.quantidade ?? (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0)
+  );
   return Number.isFinite(eventTotal) && eventTotal > 0 ? eventTotal : 0;
 }
 
 function getPagesTotal(record) {
   if (!record) return 0;
   const rawPages = record.paginas;
-  const pagesValue = (rawPages && typeof rawPages === 'object') ? rawPages.total : rawPages;
+  const pagesValue = rawPages && typeof rawPages === 'object' ? rawPages.total : rawPages;
   const total = Number(record.total ?? pagesValue ?? record.quantidade ?? record.paginasLidas ?? 0);
   if (Number.isFinite(total) && total > 0) return total;
 
   // Legacy compatibility: some old habit records store only eventoId.
-  const ev = (state.eventos || []).find(e => e.id === record.eventoId);
+  const ev = (state.eventos || []).find((e) => e.id === record.eventoId);
   if (!ev) return 0;
   const evPages = ev.sessao?.paginas;
-  const eventTotal = Number((evPages && typeof evPages === 'object' ? evPages.total : evPages) ?? ev.paginas ?? 0);
+  const eventTotal = Number(
+    (evPages && typeof evPages === 'object' ? evPages.total : evPages) ?? ev.paginas ?? 0
+  );
   return Number.isFinite(eventTotal) && eventTotal > 0 ? eventTotal : 0;
 }
 
@@ -240,7 +333,6 @@ function sumPageRecords(records = []) {
 // =============================================
 // renderHome exported to home-view.js
 
-
 // =============================================
 // MED VIEW
 // =============================================
@@ -248,9 +340,10 @@ function sumPageRecords(records = []) {
 // Shared stats row builder — eliminates duplication between renderMED and refreshMEDSections
 function buildMEDStatsHTML(estudados, agendados) {
   const totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
-  const best = estudados.length > 0
-    ? estudados.reduce((a, b) => (b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a)
-    : null;
+  const best =
+    estudados.length > 0
+      ? estudados.reduce((a, b) => ((b.tempoAcumulado || 0) > (a.tempoAcumulado || 0) ? b : a))
+      : null;
   return `
     <div class="card med-stat-card med-stat-card--wide">
       <div class="section-label">Tempo Total Hoje</div>
@@ -271,9 +364,9 @@ function buildMEDStatsHTML(estudados, agendados) {
 
 export function renderMED(el) {
   const today = todayStr();
-  const todayEvents = state.eventos.filter(e => e.data === today);
-  const agendados = todayEvents.filter(e => e.status !== 'estudei');
-  const estudados = todayEvents.filter(e => e.status === 'estudei');
+  const todayEvents = state.eventos.filter((e) => e.data === today);
+  const agendados = todayEvents.filter((e) => e.status !== 'estudei');
+  const estudados = todayEvents.filter((e) => e.status === 'estudei');
   const _totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
 
   el.innerHTML = `
@@ -282,28 +375,46 @@ export function renderMED(el) {
     </div>
 
 
-        ${agendados.length === 0 && estudados.length === 0 ? `
+        ${
+          agendados.length === 0 && estudados.length === 0
+            ? `
       <div class="empty-state med-empty-state">
         <div class="icon">📅</div>
         <h4>Nenhum evento para hoje</h4>
         <p class="mb-4">Adicione eventos de estudo para começar a registrar seu tempo.</p>
         <button class="btn btn-primary" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>
       </div>
-    ` : `
+    `
+            : `
       <div id="med-section-agendado">
-        ${agendados.length > 0 ? `
+        ${
+          agendados.length > 0
+            ? `
           <div class="section-header"><h2>📌 Agendado para Hoje</h2></div>
-          ${agendados.map(e => renderEventCard(e)).join('')}
-        ` : ''}
+          ${agendados.map((e) => renderEventCard(e)).join('')}
+        `
+            : ''
+        }
       </div>
       <div id="med-section-estudado">
-        ${estudados.length > 0 ? `
+        ${
+          estudados.length > 0
+            ? `
           <div class="section-header"><h2>✅ Estudado Hoje</h2></div>
-          ${estudados.map(e => renderEventCard(e)).join('')}
-        ` : ''}
+          ${estudados.map((e) => renderEventCard(e)).join('')}
+        `
+            : ''
+        }
       </div>
-    `}
+    `
+        }
     `;
+}
+
+export function refreshMEDSections() {
+  const el = document.getElementById('main-content');
+  if (!el) return;
+  renderMED(el);
 }
 
 // Surgical DOM updates moved to ui/event-modals.js
@@ -328,29 +439,43 @@ export function openAddEventModalDate(dateStr) {
 // UX 4 — DASHBOARD WITH PERIOD FILTER
 // =============================================
 export let dashPeriod = 7; // default: last 7 days
-export let _chartDaily = null, _chartDisc = null;
+export let _chartDaily = null,
+  _chartDisc = null;
 
 export function destroyDashboardCharts() {
-  if (_chartDaily) { _chartDaily.destroy(); _chartDaily = null; }
-  if (_chartDisc) { _chartDisc.destroy(); _chartDisc = null; }
+  if (_chartDaily) {
+    _chartDaily.destroy();
+    _chartDaily = null;
+  }
+  if (_chartDisc) {
+    _chartDisc.destroy();
+    _chartDisc = null;
+  }
 }
 
 export function renderDashboard(el) {
   const periodDays = dashPeriod; // null = all time
-  const periodLabel = { 7: '7 dias', 15: '15 dias', 30: '30 dias', 90: '3 meses', 365: '1 ano', null: 'Total' }[periodDays];
+  const periodLabel = {
+    7: '7 dias',
+    15: '15 dias',
+    30: '30 dias',
+    90: '3 meses',
+    365: '1 ano',
+    null: 'Total',
+  }[periodDays];
 
   // Fix 2: compute cutoff once, reuse across all filters in this render
   const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
   const filteredEvts = cutoffStr
-    ? state.eventos.filter(e => e.status === 'estudei' && e.data && e.data >= cutoffStr)
-    : state.eventos.filter(e => e.status === 'estudei');
+    ? state.eventos.filter((e) => e.status === 'estudei' && e.data && e.data >= cutoffStr)
+    : state.eventos.filter((e) => e.status === 'estudei');
 
   const totalSecs = filteredEvts.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
   const questTot = cutoffStr
-    ? sumQuestionRecords((state.habitos.questoes || []).filter(r => r.data >= cutoffStr))
+    ? sumQuestionRecords((state.habitos.questoes || []).filter((r) => r.data >= cutoffStr))
     : sumQuestionRecords(state.habitos.questoes || []);
   const simTot = cutoffStr
-    ? (state.habitos.simulado || []).filter(r => r.data >= cutoffStr).length
+    ? (state.habitos.simulado || []).filter((r) => r.data >= cutoffStr).length
     : (state.habitos.simulado || []).length;
 
   el.innerHTML = `
@@ -358,10 +483,14 @@ export function renderDashboard(el) {
     <div class="flex-between mb-4">
       <div class="text-md text-secondary">Exibindo dados: <strong class="text-primary">${periodLabel}</strong></div>
       <div class="cal-view-tabs" role="tablist" aria-label="Período do dashboard">
-        ${[7, 15, 30, 90, 365, null].map(p => `
+        ${[7, 15, 30, 90, 365, null]
+          .map(
+            (p) => `
           <button type="button" class="cal-view-tab ${dashPeriod === p ? 'active' : ''}" data-action="set-dash-period" data-period="${p}" role="tab" aria-selected="${dashPeriod === p}">
             ${{ 7: '7d', 15: '15d', 30: '30d', 90: '3m', 365: '1a', null: 'Total' }[p]}
-          </button>`).join('')}
+          </button>`
+          )
+          .join('')}
       </div>
     </div>
 
@@ -433,10 +562,14 @@ export function setDashPeriod(p) {
 export function renderDailyChart(periodDays) {
   const ctx = document.getElementById('chart-daily');
   if (!ctx) return;
-  if (_chartDaily) { _chartDaily.destroy(); _chartDaily = null; }
+  if (_chartDaily) {
+    _chartDaily.destroy();
+    _chartDaily = null;
+  }
   const themeVars = getComputedStyle(document.documentElement);
   const accent = themeVars.getPropertyValue('--accent').trim() || '#8aa4bf';
-  const accentLight = themeVars.getPropertyValue('--accent-light').trim() || 'rgba(138, 164, 191, 0.16)';
+  const accentLight =
+    themeVars.getPropertyValue('--accent-light').trim() || 'rgba(138, 164, 191, 0.16)';
   const border = themeVars.getPropertyValue('--border').trim() || 'rgba(148, 163, 184, 0.14)';
   const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#b8c0cc';
   const numDays = periodDays ? Math.min(periodDays, 365) : 30;
@@ -447,11 +580,12 @@ export function renderDailyChart(periodDays) {
       secsByDate[e.data] = (secsByDate[e.data] || 0) + (e.tempoAcumulado || 0);
     }
   }
-  const days = [], data = [];
+  const days = [],
+    data = [];
   for (let i = numDays - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const d2 = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+    const d2 = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
     const ds = d2.toISOString().split('T')[0];
     days.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
     data.push(Math.round((secsByDate[ds] || 0) / 60));
@@ -460,38 +594,69 @@ export function renderDailyChart(periodDays) {
     type: 'bar',
     data: {
       labels: days,
-      datasets: [{ label: 'Minutos', data, backgroundColor: accentLight, borderColor: accent, borderWidth: 2, borderRadius: 6 }]
+      datasets: [
+        {
+          label: 'Minutos',
+          data,
+          backgroundColor: accentLight,
+          borderColor: accent,
+          borderWidth: 2,
+          borderRadius: 6,
+        },
+      ],
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, grid: { color: border }, ticks: { color: textSecondary, font: { size: 11 } } },
-        x: { grid: { display: false }, ticks: { color: textSecondary, font: { size: numDays > 60 ? 9 : numDays > 20 ? 10 : 11 }, maxRotation: numDays > 20 ? 45 : 0, maxTicksLimit: numDays > 180 ? 12 : 20 } }
-      }
-    }
+        y: {
+          beginAtZero: true,
+          grid: { color: border },
+          ticks: { color: textSecondary, font: { size: 11 } },
+        },
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: textSecondary,
+            font: { size: numDays > 60 ? 9 : numDays > 20 ? 10 : 11 },
+            maxRotation: numDays > 20 ? 45 : 0,
+            maxTicksLimit: numDays > 180 ? 12 : 20,
+          },
+        },
+      },
+    },
   });
 }
 
 export function renderDiscChart(periodDays) {
   const ctx = document.getElementById('chart-disc');
   if (!ctx) return;
-  if (_chartDisc) { _chartDisc.destroy(); _chartDisc = null; }
+  if (_chartDisc) {
+    _chartDisc.destroy();
+    _chartDisc = null;
+  }
   const themeVars = getComputedStyle(document.documentElement);
   const border = themeVars.getPropertyValue('--border').trim() || '#e2e8f0';
   const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#475569';
   const discTime = {};
   const cutoffStr2 = periodDays ? cutoffDateStr(periodDays) : null;
   const evts = cutoffStr2
-    ? state.eventos.filter(e => e.status === 'estudei' && e.discId && e.tempoAcumulado && e.data >= cutoffStr2)
-    : state.eventos.filter(e => e.status === 'estudei' && e.discId && e.tempoAcumulado);
-  evts.forEach(e => { discTime[e.discId] = (discTime[e.discId] || 0) + e.tempoAcumulado; });
-  const labels = [], data = [], colors = [];
+    ? state.eventos.filter(
+        (e) => e.status === 'estudei' && e.discId && e.tempoAcumulado && e.data >= cutoffStr2
+      )
+    : state.eventos.filter((e) => e.status === 'estudei' && e.discId && e.tempoAcumulado);
+  evts.forEach((e) => {
+    discTime[e.discId] = (discTime[e.discId] || 0) + e.tempoAcumulado;
+  });
+  const labels = [],
+    data = [],
+    colors = [];
   Object.entries(discTime).forEach(([id, secs]) => {
     const d = getDisc(id);
     labels.push(d ? d.disc.nome : id);
     data.push(Math.round(secs / 60));
-    colors.push(d ? (d.disc.cor || '#8aa4bf') : '#7f8a99');
+    colors.push(d ? d.disc.cor || '#8aa4bf' : '#7f8a99');
   });
   let dummyTooltip = false;
   if (data.length === 0) {
@@ -502,23 +667,30 @@ export function renderDiscChart(periodDays) {
   }
   _chartDisc = new Chart(ctx, {
     type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: 'transparent' }] },
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: 'transparent' }],
+    },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'right', labels: { color: textSecondary, font: { size: 11 }, boxWidth: 12 } },
-        tooltip: { enabled: !dummyTooltip }
-      }
-    }
+        legend: {
+          position: 'right',
+          labels: { color: textSecondary, font: { size: 11 }, boxWidth: 12 },
+        },
+        tooltip: { enabled: !dummyTooltip },
+      },
+    },
   });
 }
 
 export function renderHabitSummary(periodDays) {
   const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
-  return HABIT_TYPES.map(h => {
+  return HABIT_TYPES.map((h) => {
     const recent = cutoffStr
-      ? (state.habitos[h.key] || []).filter(r => r.data >= cutoffStr)
-      : (state.habitos[h.key] || []);
+      ? (state.habitos[h.key] || []).filter((r) => r.data >= cutoffStr)
+      : state.habitos[h.key] || [];
     let count = recent.length;
     if (h.key === 'questoes') count = sumQuestionRecords(recent);
     if (h.key === 'paginas') count = sumPageRecords(recent);
@@ -534,12 +706,15 @@ export function renderHabitSummary(periodDays) {
 
 export function renderDiscProgress() {
   const discs = getActiveDisciplinas();
-  if (discs.length === 0) return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
-  return discs.slice(0, 8).map(({ disc, edital: _edital }) => {
-    const total = (disc.assuntos || []).length;
-    const done = (disc.assuntos || []).filter(a => a.concluido).length;
-    const pct = total > 0 ? Math.round(done / total * 100) : 0;
-    return `
+  if (discs.length === 0)
+    return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
+  return discs
+    .slice(0, 8)
+    .map(({ disc, edital: _edital }) => {
+      const total = (disc.assuntos || []).length;
+      const done = (disc.assuntos || []).filter((a) => a.concluido).length;
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      return `
       <div class="mb-3">
         <div class="flex-between mb-1">
           <div class="text-base font-semibold cluster-sm">
@@ -552,7 +727,8 @@ export function renderDiscProgress() {
         </div>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 }
 
 // =============================================
@@ -560,11 +736,8 @@ export function renderDiscProgress() {
 // =============================================
 
 export function renderHistoricoSessoes(el) {
-  const eventosEstudados = [
-    ...(state.eventos || []),
-    ...(state.arquivo || [])
-  ]
-    .filter(ev => ev && ev.status === 'estudei')
+  const eventosEstudados = [...(state.eventos || []), ...(state.arquivo || [])]
+    .filter((ev) => ev && ev.status === 'estudei')
     .sort((a, b) => {
       const dateA = String(a.dataEstudo || a.data || '');
       const dateB = String(b.dataEstudo || b.data || '');
@@ -587,7 +760,7 @@ export function renderHistoricoSessoes(el) {
   }
 
   const gruposPorData = new Map();
-  eventosEstudados.forEach(ev => {
+  eventosEstudados.forEach((ev) => {
     const dateKey = ev.dataEstudo || ev.data || '__sem_data__';
     if (!gruposPorData.has(dateKey)) gruposPorData.set(dateKey, new Map());
 
@@ -600,7 +773,7 @@ export function renderHistoricoSessoes(el) {
         discNome: discInfo?.disc?.nome || 'Sem disciplina',
         discIcone: discInfo?.disc?.icone || '📚',
         discCor: discInfo?.disc?.cor || discInfo?.edital?.cor || '#64748b',
-        itens: []
+        itens: [],
       });
     }
 
@@ -614,7 +787,10 @@ export function renderHistoricoSessoes(el) {
   });
 
   const totalSessoes = eventosEstudados.length;
-  const totalTempo = eventosEstudados.reduce((sum, ev) => sum + (Number(ev.tempoAcumulado) || 0), 0);
+  const totalTempo = eventosEstudados.reduce(
+    (sum, ev) => sum + (Number(ev.tempoAcumulado) || 0),
+    0
+  );
 
   el.innerHTML = `
     <div class="card p-16 session-history-summary">
@@ -628,15 +804,16 @@ export function renderHistoricoSessoes(el) {
       <div class="session-history-hint">Agrupado pela data real do estudo e por disciplina. Use "Editar" para ajustar o registro e "Apagar" para remover permanentemente.</div>
     </div>
 
-    ${dateKeys.map(dateKey => {
-    const disciplinas = [...gruposPorData.get(dateKey).values()].sort((a, b) =>
-      String(a.discNome).localeCompare(String(b.discNome), 'pt-BR', { sensitivity: 'base' })
-    );
+    ${dateKeys
+      .map((dateKey) => {
+        const disciplinas = [...gruposPorData.get(dateKey).values()].sort((a, b) =>
+          String(a.discNome).localeCompare(String(b.discNome), 'pt-BR', { sensitivity: 'base' })
+        );
 
-    const dateLabel = dateKey === '__sem_data__' ? 'Sem data' : formatDate(dateKey);
-    const sessoesNoDia = disciplinas.reduce((sum, d) => sum + d.itens.length, 0);
+        const dateLabel = dateKey === '__sem_data__' ? 'Sem data' : formatDate(dateKey);
+        const sessoesNoDia = disciplinas.reduce((sum, d) => sum + d.itens.length, 0);
 
-    return `
+        return `
         <section class="card p-16 session-group-section">
           <div class="session-group-header">
             <div class="session-group-title">${esc(dateLabel)}</div>
@@ -644,13 +821,17 @@ export function renderHistoricoSessoes(el) {
           </div>
 
           <div class="session-group-list">
-            ${disciplinas.map(group => {
-              // Fallback para disciplina sem nome
-              const discName = group.discNome === 'Sem disciplina' || !group.discNome ? 'Disciplina não vinculada' : group.discNome;
-              const discIcon = group.discIcone || '📚';
+            ${disciplinas
+              .map((group) => {
+                // Fallback para disciplina sem nome
+                const discName =
+                  group.discNome === 'Sem disciplina' || !group.discNome
+                    ? 'Disciplina não vinculada'
+                    : group.discNome;
+                const discIcon = group.discIcone || '📚';
 
-              const discColor = group.discCor || '#64748b';
-              return `
+                const discColor = group.discCor || '#64748b';
+                return `
               <div class="session-disc-card" style="--session-disc-color:${esc(discColor)};">
                 <div class="session-disc-header">
                   <div class="session-disc-title">${esc(discIcon)} ${esc(discName)}</div>
@@ -658,25 +839,38 @@ export function renderHistoricoSessoes(el) {
                 </div>
 
                 <div class="custom-scrollbar session-scroll-container">
-                  ${group.itens.map(ev => {
-      const questoes = ev.sessao?.questoes || ev.questoes || {};
-      const acertos = Number(questoes.acertos ?? questoes.certas ?? 0) || 0;
-      const erros = Number(questoes.erros ?? questoes.erradas ?? 0) || 0;
-      const totalExplicito = Number(questoes.total ?? questoes.quantidade);
-      const totalQuestoes = Number.isFinite(totalExplicito) && totalExplicito > 0 ? totalExplicito : (acertos + erros);
-      const percAcertos = totalQuestoes > 0 ? Math.round((acertos / totalQuestoes) * 100) : 0;
+                  ${group.itens
+                    .map((ev) => {
+                      const questoes = ev.sessao?.questoes || ev.questoes || {};
+                      const acertos = Number(questoes.acertos ?? questoes.certas ?? 0) || 0;
+                      const erros = Number(questoes.erros ?? questoes.erradas ?? 0) || 0;
+                      const totalExplicito = Number(questoes.total ?? questoes.quantidade);
+                      const totalQuestoes =
+                        Number.isFinite(totalExplicito) && totalExplicito > 0
+                          ? totalExplicito
+                          : acertos + erros;
+                      const percAcertos =
+                        totalQuestoes > 0 ? Math.round((acertos / totalQuestoes) * 100) : 0;
 
-      const paginasRaw = ev.sessao?.paginas;
-      const paginas = Number((paginasRaw && typeof paginasRaw === 'object' ? paginasRaw.total : paginasRaw) ?? ev.paginas ?? 0) || 0;
-      const tempoLabel = formatTime(Number(ev.tempoAcumulado) || 0);
+                      const paginasRaw = ev.sessao?.paginas;
+                      const paginas =
+                        Number(
+                          (paginasRaw && typeof paginasRaw === 'object'
+                            ? paginasRaw.total
+                            : paginasRaw) ??
+                            ev.paginas ??
+                            0
+                        ) || 0;
+                      const tempoLabel = formatTime(Number(ev.tempoAcumulado) || 0);
 
-      const discInfo = ev.discId ? getDisc(ev.discId) : null;
-      const assunto = ev.assId && discInfo?.disc?.assuntos
-        ? discInfo.disc.assuntos.find(a => a.id === ev.assId)?.nome
-        : '';
-      const eventId = esc(String(ev.id || ''));
+                      const discInfo = ev.discId ? getDisc(ev.discId) : null;
+                      const assunto =
+                        ev.assId && discInfo?.disc?.assuntos
+                          ? discInfo.disc.assuntos.find((a) => a.id === ev.assId)?.nome
+                          : '';
+                      const eventId = esc(String(ev.id || ''));
 
-      return `
+                      return `
                     <div class="session-detail-card">
                       <div class="session-detail-row">
                         <div class="session-detail-content">
@@ -696,22 +890,24 @@ export function renderHistoricoSessoes(el) {
                       </div>
                     </div>
                   `;
-                  }).join('')}
+                    })
+                    .join('')}
                 </div>
               </div>
             `;
-            }).join('')}
+              })
+              .join('')}
           </div>
         </section>
       `;
-  }).join('')}
+      })
+      .join('')}
   `;
 }
 
 // =============================================
 // EDITAIS VIEW
 // =============================================
-
 
 export const vertFilterEdital = '';
 export const vertFilterStatus = 'todos';
@@ -735,18 +931,20 @@ export function onVertSearch(val) {
 export function getFilteredVertItems() {
   let items = [];
   for (const edital of state.editais) {
-    for (const disc of (edital.disciplinas || [])) {
-      for (const ass of (disc.assuntos || [])) {
+    for (const disc of edital.disciplinas || []) {
+      for (const ass of disc.assuntos || []) {
         items.push({ edital, disc, ass });
       }
     }
   }
-  if (vertFilterEdital) items = items.filter(i => i.edital.id === vertFilterEdital);
-  if (vertFilterStatus === 'pendentes') items = items.filter(i => !i.ass.concluido);
-  if (vertFilterStatus === 'concluidos') items = items.filter(i => i.ass.concluido);
+  if (vertFilterEdital) items = items.filter((i) => i.edital.id === vertFilterEdital);
+  if (vertFilterStatus === 'pendentes') items = items.filter((i) => !i.ass.concluido);
+  if (vertFilterStatus === 'concluidos') items = items.filter((i) => i.ass.concluido);
   if (vertSearch) {
     const q = vertSearch.toLowerCase();
-    items = items.filter(i => i.ass.nome.toLowerCase().includes(q) || i.disc.nome.toLowerCase().includes(q));
+    items = items.filter(
+      (i) => i.ass.nome.toLowerCase().includes(q) || i.disc.nome.toLowerCase().includes(q)
+    );
   }
   return items;
 }
@@ -770,7 +968,10 @@ export function saveEditSeq() {
   }
   for (const s of _tempSequencia) {
     if (!s.discId) {
-      showToast('Por favor, selecione uma disciplina para todas as etapas antes de salvar.', 'error');
+      showToast(
+        'Por favor, selecione uma disciplina para todas as etapas antes de salvar.',
+        'error'
+      );
       return;
     }
   }
@@ -824,14 +1025,14 @@ export function addSeqItem() {
   _tempSequencia.push({
     id: 'seq_' + uid(),
     discId: '',
-    minutosAlvo: 60
+    minutosAlvo: 60,
   });
   renderCurrentView();
 }
 
 export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
-  const ass = d?.disc?.assuntos?.find(a => a.id === assId);
+  const ass = d?.disc?.assuntos?.find((a) => a.id === assId);
   if (!ass || !d) return;
   // Pre-select discipline and subject then open modal
   openAddEventModal(todayStr());
@@ -846,13 +1047,15 @@ export function addEventoParaAssunto(editaId, discId, assId) {
         if (assSel) {
           assSel.value = assId;
           const ti = document.getElementById('event-titulo');
-          if (ti) { ti.value = ass.nome; ti.dataset.autoFilled = 'true'; }
+          if (ti) {
+            ti.value = ass.nome;
+            ti.dataset.autoFilled = 'true';
+          }
         }
       }, 50);
     }
   }, 50);
 }
-
 
 export function toggleEdital(id) {
   const el = document.getElementById(`edital-tree-${id}`);
@@ -861,9 +1064,10 @@ export function toggleEdital(id) {
 
 export function toggleAssunto(discId, assId) {
   for (const edital of state.editais) {
-    if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
+    if (!edital.disciplinas) continue;
+    const disc = edital.disciplinas.find((d) => d.id === discId);
     if (disc) {
-      const ass = (disc.assuntos || []).find(a => a.id === assId);
+      const ass = (disc.assuntos || []).find((a) => a.id === assId);
       if (ass) {
         ass.concluido = !ass.concluido;
         ass.dataConclusao = ass.concluido ? todayStr() : null;
@@ -886,10 +1090,10 @@ export function toggleAssunto(discId, assId) {
 export function toggleAulaDashboard(editaId, discId, aulaId) {
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue;
-    const disc = edital.disciplinas.find(d => d.id === discId);
+    const disc = edital.disciplinas.find((d) => d.id === discId);
     if (!disc) continue;
 
-    const aula = (disc.aulas || []).find(a => a.id === aulaId);
+    const aula = (disc.aulas || []).find((a) => a.id === aulaId);
     if (!aula) return;
 
     aula.estudada = !aula.estudada;
@@ -909,9 +1113,9 @@ export function toggleAulaDashboard(editaId, discId, aulaId) {
 }
 
 export function openDiscDashboard(editaId, discId) {
-  const edital = state.editais.find(e => e.id === editaId);
+  const edital = state.editais.find((e) => e.id === editaId);
   if (!edital || !edital.disciplinas) return;
-  const disc = edital.disciplinas.find(d => d.id === discId);
+  const disc = edital.disciplinas.find((d) => d.id === discId);
   if (!disc) return;
 
   setActiveDashboardDiscCtx({ editaId, discId });
@@ -921,7 +1125,8 @@ export function openDiscDashboard(editaId, discId) {
   const actions = document.getElementById('topbar-actions');
   if (!topbarTitle || !actions) return;
   topbarTitle.textContent = `${disc.icone || '📚'} ${disc.nome} `;
-  actions.innerHTML = '<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>';
+  actions.innerHTML =
+    '<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>';
 
   const el = document.getElementById('main-content');
   el.innerHTML = renderDisciplinaDashboard(edital, disc);
@@ -938,8 +1143,8 @@ export function switchDashboardTab(tabName) {
   setActiveDashboardTab(tabName);
   const ctx = getActiveDashboardDiscCtx();
   if (ctx && ctx.editaId && ctx.discId) {
-    const edital = state.editais.find(e => e.id === ctx.editaId);
-    const disc = edital?.disciplinas?.find(d => d.id === ctx.discId);
+    const edital = state.editais.find((e) => e.id === ctx.editaId);
+    const disc = edital?.disciplinas?.find((d) => d.id === ctx.discId);
     if (disc) {
       openDiscDashboard(ctx.editaId, ctx.discId);
       return;
@@ -948,7 +1153,6 @@ export function switchDashboardTab(tabName) {
 
   renderCurrentView();
 }
-
 
 function _renderHistoricoDisciplina(tempos) {
   const reverseTempos = [...tempos].reverse().slice(0, 50);
@@ -969,17 +1173,19 @@ function _renderHistoricoDisciplina(tempos) {
           </tr>
         </thead>
         <tbody>
-          ${reverseTempos.map(t => {
-    const dateStr = formatDate(t.data);
-    const tempoStr = formatTime(t.tempoAcumulado || 0).substring(0, 5);
-    const qs = t.sessao?.questoes || t.questoes || { certas: 0, erradas: 0 };
-    const totQs = (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
-    const certas = qs.acertos || qs.certas || 0;
-    const perc = totQs > 0 ? Math.round((certas / totQs) * 100) : 0;
-    const _percColor = perc >= 70 ? 'var(--green)' : perc >= 50 ? 'var(--accent)' : 'var(--red)';
-    const pags = t.sessao?.paginas?.total || t.paginas || null;
+          ${reverseTempos
+            .map((t) => {
+              const dateStr = formatDate(t.data);
+              const tempoStr = formatTime(t.tempoAcumulado || 0).substring(0, 5);
+              const qs = t.sessao?.questoes || t.questoes || { certas: 0, erradas: 0 };
+              const totQs = (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
+              const certas = qs.acertos || qs.certas || 0;
+              const perc = totQs > 0 ? Math.round((certas / totQs) * 100) : 0;
+              const _percColor =
+                perc >= 70 ? 'var(--green)' : perc >= 50 ? 'var(--accent)' : 'var(--red)';
+              const pags = t.sessao?.paginas?.total || t.paginas || null;
 
-    return `
+              return `
               <tr class="session-history-row" data-action="open-registro-sessao" data-disc-id="${t.id}">
                 <td>${dateStr}</td>
                 <td class="session-history-time">${tempoStr}</td>
@@ -988,7 +1194,8 @@ function _renderHistoricoDisciplina(tempos) {
                 <td class="session-history-acerto ${totQs > 0 ? (perc >= 70 ? 'text-green' : perc >= 50 ? 'text-accent' : 'text-red') : ''}">${totQs > 0 ? perc + '%' : '-'}</td>
               </tr>
             `;
-  }).join('')}
+            })
+            .join('')}
         </tbody>
       </table>
     </div>
@@ -1002,27 +1209,37 @@ function _renderTopicosEditalDisciplina(edital, disc) {
 
   return `
     <div class="custom-scrollbar">
-      ${disc.assuntos.map(ass => {
-    const importanceBadge = ass.relevance?.priority === 'P1' ?
-      '<span class="priority-badge-p1" title="Alta Chance de Cobrança">🔥 P1</span>' :
-      (ass.relevance?.priority === 'P2' ? '<span class="priority-badge-p2">⚠️ P2</span>' : '');
+      ${disc.assuntos
+        .map((ass) => {
+          const importanceBadge =
+            ass.relevance?.priority === 'P1'
+              ? '<span class="priority-badge-p1" title="Alta Chance de Cobrança">🔥 P1</span>'
+              : ass.relevance?.priority === 'P2'
+                ? '<span class="priority-badge-p2">⚠️ P2</span>'
+                : '';
 
-    return `
+          return `
         <div class="subject-item ${ass.concluido ? 'subject-item-concluded' : ''}">
           <div class="check-circle ${ass.concluido ? 'done' : ''}" data-action="toggle-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
           <div class="flex-1 min-width-0 subject-item-title ${ass.concluido ? 'subject-item-title--concluded' : ''}">
              ${esc(ass.nome)} ${importanceBadge}
           </div>
-          ${ass.concluido ? `
+          ${
+            ass.concluido
+              ? `
             <div class="text-right">
               <div class="text-concluded-badge">✅ concluído</div>
               <div class="text-concluded-date">${formatDate(ass.dataConclusao)}</div>
             </div>
-          ` : `
+          `
+              : `
             <button class="btn btn-ghost btn-sm" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">+ Agenda</button>
-          `}
+          `
+          }
         </div>
-      `;}).join('')}
+      `;
+        })
+        .join('')}
     </div>
   `;
 }
@@ -1038,28 +1255,38 @@ function _renderAulasDisciplinaDashboard(edital, disc) {
 
   return `
     <div class="custom-scrollbar">
-      ${disc.aulas.map(aul => {
-    const itemClass = aul.estudada ? 'aula-item aula-item-concluded' : 'aula-item';
-    const titleClass = aul.estudada ? 'aula-title aula-title-concluded' : 'aula-title';
+      ${disc.aulas
+        .map((aul) => {
+          const itemClass = aul.estudada ? 'aula-item aula-item-concluded' : 'aula-item';
+          const titleClass = aul.estudada ? 'aula-title aula-title-concluded' : 'aula-title';
 
-    return `
+          return `
         <div class="${itemClass}">
           <div class="check-circle ${aul.estudada ? 'done' : ''}" data-action="toggle-aula-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-aula-id="${aul.id}" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
           <div class="${titleClass}">
              ${esc(aul.nome)}
              ${aul.linkedAssuntoIds && aul.linkedAssuntoIds.length > 0 ? `<div class="aula-linked-count">🔗 ${aul.linkedAssuntoIds.length} tópico(s) do edital conectado(s)</div>` : ''}
           </div>
-          ${!aul.estudada ? `
+          ${
+            !aul.estudada
+              ? `
             <button class="btn btn-ghost btn-sm" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="aul_${aul.id}">+ Agenda</button>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
-      `;}).join('')}
+      `;
+        })
+        .join('')}
     </div>
   `;
 }
 
 function _renderBancaDisciplinaDashboard(edital, disc) {
-  const hasHotTopics = state.bancaRelevance && state.bancaRelevance.hotTopics && state.bancaRelevance.hotTopics.some(ht => ht.disciplinaId === disc.id);
+  const hasHotTopics =
+    state.bancaRelevance &&
+    state.bancaRelevance.hotTopics &&
+    state.bancaRelevance.hotTopics.some((ht) => ht.disciplinaId === disc.id);
   const hasAulas = disc.aulas && disc.aulas.length > 0;
 
   if (!hasHotTopics) {
@@ -1112,23 +1339,31 @@ export function initDiscDashboardChart(discId) {
   const grid = border;
   const accentSoft = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}29` : 'rgba(138, 164, 191, 0.16)';
 
-  const tempos = state.eventos ? state.eventos.filter(e => {
-    const qs = e.sessao?.questoes || e.questoes;
-    return e.discId === discId && e.status === 'estudei' && qs &&
-      ((qs.acertos || qs.certas || 0) > 0 || (qs.erros || qs.erradas || 0) > 0);
-  }) : [];
+  const tempos = state.eventos
+    ? state.eventos.filter((e) => {
+        const qs = e.sessao?.questoes || e.questoes;
+        return (
+          e.discId === discId &&
+          e.status === 'estudei' &&
+          qs &&
+          ((qs.acertos || qs.certas || 0) > 0 || (qs.erros || qs.erradas || 0) > 0)
+        );
+      })
+    : [];
 
   const grouped = {};
-  [...tempos].sort((a, b) => a.data.localeCompare(b.data)).forEach(t => {
-    if (!grouped[t.data]) grouped[t.data] = { certas: 0, erradas: 0 };
-    const qs = t.sessao?.questoes || t.questoes;
-    grouped[t.data].certas += (qs.acertos || qs.certas || 0);
-    grouped[t.data].erradas += (qs.erros || qs.erradas || 0);
-  });
+  [...tempos]
+    .sort((a, b) => a.data.localeCompare(b.data))
+    .forEach((t) => {
+      if (!grouped[t.data]) grouped[t.data] = { certas: 0, erradas: 0 };
+      const qs = t.sessao?.questoes || t.questoes;
+      grouped[t.data].certas += qs.acertos || qs.certas || 0;
+      grouped[t.data].erradas += qs.erros || qs.erradas || 0;
+    });
 
   const rawLabels = Object.keys(grouped).slice(-15);
-  const labels = rawLabels.map(d => formatDate(d));
-  const dataPerc = rawLabels.map(d => {
+  const labels = rawLabels.map((d) => formatDate(d));
+  const dataPerc = rawLabels.map((d) => {
     const total = grouped[d].certas + grouped[d].erradas;
     return total > 0 ? Math.round((grouped[d].certas / total) * 100) : 0;
   });
@@ -1139,142 +1374,185 @@ export function initDiscDashboardChart(discId) {
 
   if (labels.length === 0) {
     const parent = canvas.parentElement;
-    parent.innerHTML = '<div class="dashboard-chart-empty">Métricas insuficientes. Registre sessões com número de questões para gerar o gráfico de evolução.</div>';
+    parent.innerHTML =
+      '<div class="dashboard-chart-empty">Métricas insuficientes. Registre sessões com número de questões para gerar o gráfico de evolução.</div>';
     return;
   }
 
   const ctx = canvas.getContext('2d');
-  setDiscChartInstance(new window.Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: '% de Acertos',
-        data: dataPerc,
-        borderColor: accent,
-        backgroundColor: accentSoft,
-        borderWidth: 2,
-        pointBackgroundColor: bg,
-        pointBorderColor: accent,
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        tension: 0.3,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: card,
-          titleColor: textMuted,
-          bodyColor: textPrimary,
-          borderColor: border,
-          borderWidth: 1,
-          callbacks: {
-            label: (ctx) => `${ctx.raw}% de Acerto`
-          }
-        }
+  setDiscChartInstance(
+    new window.Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: '% de Acertos',
+            data: dataPerc,
+            borderColor: accent,
+            backgroundColor: accentSoft,
+            borderWidth: 2,
+            pointBackgroundColor: bg,
+            pointBorderColor: accent,
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            tension: 0.3,
+            fill: true,
+          },
+        ],
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          ticks: { color: textMuted, callback: v => v + '%' },
-          grid: { color: grid }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: card,
+            titleColor: textMuted,
+            bodyColor: textPrimary,
+            borderColor: border,
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx) => `${ctx.raw}% de Acerto`,
+            },
+          },
         },
-        x: {
-          ticks: { color: textMuted },
-          grid: { display: false }
-        }
-      }
-    }
-  }));
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { color: textMuted, callback: (v) => v + '%' },
+            grid: { color: grid },
+          },
+          x: {
+            ticks: { color: textMuted },
+            grid: { display: false },
+          },
+        },
+      },
+    })
+  );
 }
 
 export function deleteAssunto(discId, assId) {
-  showConfirm('Excluir este assunto? Eventos vinculados serão desvinculados.', () => {
-    const entry = getDisc(discId);
-    if (entry) {
-      entry.disc.assuntos = entry.disc.assuntos.filter(a => a.id !== assId);
+  showConfirm(
+    'Excluir este assunto? Eventos vinculados serão desvinculados.',
+    () => {
+      const entry = getDisc(discId);
+      if (entry) {
+        entry.disc.assuntos = entry.disc.assuntos.filter((a) => a.id !== assId);
+
+        if (state.eventos) {
+          state.eventos.forEach((e) => {
+            if (e.assId === assId) {
+              delete e.assId;
+            }
+          });
+        }
+
+        invalidateDiscCache();
+        invalidateDashCaches();
+        scheduleSave();
+        renderCurrentView();
+        if (
+          typeof editingSubjectCtx !== 'undefined' &&
+          editingSubjectCtx &&
+          editingSubjectCtx.discId === discId
+        ) {
+          openDiscManager(editingSubjectCtx.editaId, discId);
+        }
+      }
+    },
+    { danger: true, label: 'Excluir', title: 'Excluir assunto' }
+  );
+}
+
+export function deleteDisc(editaId, discId) {
+  showConfirm(
+    'Excluir esta disciplina e todos seus assuntos?\n\nEsta ação não pode ser desfeita.',
+    () => {
+      const edital = state.editais.find((e) => e.id === editaId);
+      if (!edital || !edital.disciplinas) return;
+      edital.disciplinas = edital.disciplinas.filter((d) => d.id !== discId);
 
       if (state.eventos) {
-        state.eventos.forEach(e => {
-          if (e.assId === assId) { delete e.assId; }
+        state.eventos.forEach((e) => {
+          if (e.discId === discId) {
+            delete e.discId;
+            delete e.assId;
+          }
         });
+      }
+      if (state.planejamento && state.planejamento.disciplinas) {
+        state.planejamento.disciplinas = state.planejamento.disciplinas.filter(
+          (id) => id !== discId
+        );
+        if (state.planejamento.relevancia && state.planejamento.relevancia[discId])
+          delete state.planejamento.relevancia[discId];
+        if (state.planejamento.sequencia)
+          state.planejamento.sequencia = state.planejamento.sequencia.filter(
+            (s) => s.discId !== discId
+          );
       }
 
       invalidateDiscCache();
       invalidateDashCaches();
       scheduleSave();
       renderCurrentView();
-      if (typeof editingSubjectCtx !== 'undefined' && editingSubjectCtx && editingSubjectCtx.discId === discId) {
-        openDiscManager(editingSubjectCtx.editaId, discId);
-      }
-    }
-  }, { danger: true, label: 'Excluir', title: 'Excluir assunto' });
-}
-
-export function deleteDisc(editaId, discId) {
-  showConfirm('Excluir esta disciplina e todos seus assuntos?\n\nEsta ação não pode ser desfeita.', () => {
-    const edital = state.editais.find(e => e.id === editaId);
-    if (!edital || !edital.disciplinas) return;
-    edital.disciplinas = edital.disciplinas.filter(d => d.id !== discId);
-
-    if (state.eventos) {
-      state.eventos.forEach(e => {
-        if (e.discId === discId) { delete e.discId; delete e.assId; }
-      });
-    }
-    if (state.planejamento && state.planejamento.disciplinas) {
-      state.planejamento.disciplinas = state.planejamento.disciplinas.filter(id => id !== discId);
-      if (state.planejamento.relevancia && state.planejamento.relevancia[discId]) delete state.planejamento.relevancia[discId];
-      if (state.planejamento.sequencia) state.planejamento.sequencia = state.planejamento.sequencia.filter(s => s.discId !== discId);
-    }
-
-    invalidateDiscCache();
-    invalidateDashCaches();
-    scheduleSave();
-    renderCurrentView();
-  }, { danger: true, label: 'Excluir disciplina', title: 'Excluir disciplina' });
+    },
+    { danger: true, label: 'Excluir disciplina', title: 'Excluir disciplina' }
+  );
 }
 
 export function deleteEdital(editaId) {
-  const edital = state.editais.find(e => e.id === editaId);
+  const edital = state.editais.find((e) => e.id === editaId);
   const nome = edital ? edital.nome : 'edital';
-  showConfirm(`Excluir "${nome}" completamente ?
+  showConfirm(
+    `Excluir "${nome}" completamente ?
 
-      Todos os grupos, disciplinas e assuntos serão removidos.Esta ação não pode ser desfeita.`, () => {
-    const discIds = edital && edital.disciplinas ? edital.disciplinas.map(d => d.id) : [];
-    state.editais = state.editais.filter(e => e.id !== editaId);
+      Todos os grupos, disciplinas e assuntos serão removidos.Esta ação não pode ser desfeita.`,
+    () => {
+      const discIds = edital && edital.disciplinas ? edital.disciplinas.map((d) => d.id) : [];
+      state.editais = state.editais.filter((e) => e.id !== editaId);
 
-    if (discIds.length > 0 && state.eventos) {
-      state.eventos.forEach(e => {
-        if (discIds.includes(e.discId)) { delete e.discId; delete e.assId; }
-      });
-    }
-    if (discIds.length > 0 && state.planejamento && state.planejamento.disciplinas) {
-      state.planejamento.disciplinas = state.planejamento.disciplinas.filter(id => !discIds.includes(id));
-      discIds.forEach(id => {
-        if (state.planejamento.relevancia && state.planejamento.relevancia[id]) delete state.planejamento.relevancia[id];
-      });
-      if (state.planejamento.sequencia) state.planejamento.sequencia = state.planejamento.sequencia.filter(s => !discIds.includes(s.discId));
-    }
+      if (discIds.length > 0 && state.eventos) {
+        state.eventos.forEach((e) => {
+          if (discIds.includes(e.discId)) {
+            delete e.discId;
+            delete e.assId;
+          }
+        });
+      }
+      if (discIds.length > 0 && state.planejamento && state.planejamento.disciplinas) {
+        state.planejamento.disciplinas = state.planejamento.disciplinas.filter(
+          (id) => !discIds.includes(id)
+        );
+        discIds.forEach((id) => {
+          if (state.planejamento.relevancia && state.planejamento.relevancia[id])
+            delete state.planejamento.relevancia[id];
+        });
+        if (state.planejamento.sequencia)
+          state.planejamento.sequencia = state.planejamento.sequencia.filter(
+            (s) => !discIds.includes(s.discId)
+          );
+      }
 
-    invalidateDiscCache();
-    scheduleSave();
-    renderCurrentView();
-  }, { danger: true, label: 'Excluir edital', title: 'Excluir edital' });
+      invalidateDiscCache();
+      scheduleSave();
+      renderCurrentView();
+    },
+    { danger: true, label: 'Excluir edital', title: 'Excluir edital' }
+  );
 }
 
 // =============================================
 // EDITAL MODAL
 // =============================================
 export function openEditaModal(editaId = null) {
-  const edital = editaId ? state.editais.find(e => e.id === editaId) : null;
-  document.getElementById('modal-edital-title').textContent = edital ? 'Editar Edital' : 'Novo Edital';
+  const edital = editaId ? state.editais.find((e) => e.id === editaId) : null;
+  document.getElementById('modal-edital-title').textContent = edital
+    ? 'Editar Edital'
+    : 'Novo Edital';
   document.getElementById('modal-edital-body').innerHTML = `
       <div class="form-group" >
       <label class="form-label">Nome do Edital</label>
@@ -1283,7 +1561,7 @@ export function openEditaModal(editaId = null) {
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="edital-colors">
-        ${COLORS.map(c => `<div class="color-swatch ${edital && edital.cor === c ? 'selected' : ''}" data-action="select-color" data-color="${c}" data-container="edital-colors" data-color-value="${c}"></div>`).join('')}
+        ${COLORS.map((c) => `<div class="color-swatch ${edital && edital.cor === c ? 'selected' : ''}" data-action="select-color" data-color="${c}" data-container="edital-colors" data-color-value="${c}"></div>`).join('')}
       </div>
       <input type="hidden" id="edital-cor" value="${edital ? edital.cor : COLORS[0]}">
     </div>
@@ -1301,9 +1579,15 @@ export function openEditaModal(editaId = null) {
 export function selectColor(color, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  container.querySelectorAll('.color-swatch').forEach((s) => s.classList.remove('selected'));
   container.querySelector(`[data-color-value="${color}"]`)?.classList.add('selected');
-  const input = document.getElementById(containerId === 'edital-colors' ? 'edital-cor' : containerId === 'disc-colors' ? 'disc-cor' : 'edital-cor');
+  const input = document.getElementById(
+    containerId === 'edital-colors'
+      ? 'edital-cor'
+      : containerId === 'disc-colors'
+        ? 'disc-cor'
+        : 'edital-cor'
+  );
   if (input) input.value = color;
 }
 
@@ -1311,16 +1595,24 @@ export function saveEdital(editaId) {
   const nomeEl = document.getElementById('edital-nome');
   if (!nomeEl) return;
   const nome = nomeEl.value.trim();
-  if (!nome) { showToast('Informe o nome do edital', 'error'); return; }
+  if (!nome) {
+    showToast('Informe o nome do edital', 'error');
+    return;
+  }
   const cor = document.getElementById('edital-cor')?.value || COLORS[0];
 
   if (editaId) {
-    const edital = state.editais.find(e => e.id === editaId);
-    if (edital) { edital.nome = nome; edital.cor = cor; }
+    const edital = state.editais.find((e) => e.id === editaId);
+    if (edital) {
+      edital.nome = nome;
+      edital.cor = cor;
+    }
   } else {
     state.editais.push({
-      id: uid(), nome, cor,
-      disciplinas: []
+      id: uid(),
+      nome,
+      cor,
+      disciplinas: [],
     });
   }
   scheduleSave();
@@ -1334,11 +1626,13 @@ export function saveEdital(editaId) {
 // =============================================
 export function openDiscModal(editaId, discId) {
   editingDiscCtx = { editaId, discId: discId || null };
-  const edital = state.editais.find(e => e.id === editaId);
-  const existingDisc = discId && edital ? edital.disciplinas.find(d => d.id === discId) : null;
+  const edital = state.editais.find((e) => e.id === editaId);
+  const existingDisc = discId && edital ? edital.disciplinas.find((d) => d.id === discId) : null;
   const isEdit = !!existingDisc;
 
-  document.getElementById('modal-disc-title').textContent = isEdit ? 'Editar Disciplina' : 'Nova Disciplina';
+  document.getElementById('modal-disc-title').textContent = isEdit
+    ? 'Editar Disciplina'
+    : 'Nova Disciplina';
   document.getElementById('modal-disc-body').innerHTML = `
       <div class="form-group" >
       <label class="form-label">Nome da Disciplina</label>
@@ -1363,7 +1657,7 @@ export function openDiscModal(editaId, discId) {
 }
 
 export function selectIcon(icon, el) {
-  document.querySelectorAll('#disc-icons > .icon-grid-item').forEach(d => {
+  document.querySelectorAll('#disc-icons > .icon-grid-item').forEach((d) => {
     d.classList.remove('selected-icon');
   });
   el.classList.add('selected-icon');
@@ -1371,8 +1665,12 @@ export function selectIcon(icon, el) {
 }
 
 export function selectDiscColor(color) {
-  document.querySelectorAll('#disc-colors .color-swatch').forEach(s => s.classList.remove('selected'));
-  document.querySelector(`#disc-colors .color-swatch[data-disc-color="${color}"]`)?.classList.add('selected');
+  document
+    .querySelectorAll('#disc-colors .color-swatch')
+    .forEach((s) => s.classList.remove('selected'));
+  document
+    .querySelector(`#disc-colors .color-swatch[data-disc-color="${color}"]`)
+    ?.classList.add('selected');
   document.getElementById('disc-cor').value = color;
 }
 
@@ -1380,18 +1678,21 @@ export function saveDisc() {
   const nomeEl = document.getElementById('disc-nome');
   if (!nomeEl) return;
   const nome = nomeEl.value.trim();
-  if (!nome) { showToast('Informe o nome da disciplina', 'error'); return; }
+  if (!nome) {
+    showToast('Informe o nome da disciplina', 'error');
+    return;
+  }
   const icone = document.getElementById('disc-icone')?.value || '📖';
   const cor = document.getElementById('disc-cor')?.value || '#8aa4bf';
   if (!editingDiscCtx) return;
   const { editaId, discId } = editingDiscCtx;
-  const edital = state.editais.find(e => e.id === editaId);
+  const edital = state.editais.find((e) => e.id === editaId);
   if (!edital) return;
   if (!edital.disciplinas) edital.disciplinas = [];
 
   if (discId) {
     // Edit existing discipline
-    const disc = edital.disciplinas.find(d => d.id === discId);
+    const disc = edital.disciplinas.find((d) => d.id === discId);
     if (disc) {
       disc.nome = nome;
       disc.icone = icone;
@@ -1415,8 +1716,11 @@ export function openDiscManager(editaId, discId) {
   let disc = null;
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue;
-    const d = edital.disciplinas.find(x => x.id === discId);
-    if (d) { disc = d; break; }
+    const d = edital.disciplinas.find((x) => x.id === discId);
+    if (d) {
+      disc = d;
+      break;
+    }
   }
   if (!disc) return;
 
@@ -1425,7 +1729,11 @@ export function openDiscManager(editaId, discId) {
   _activeDiscManagerTab = _activeDiscManagerTab || 'topicos';
 
   // Render subject items
-  const subjectsHtml = disc.assuntos.map((ass, idx) => `
+  const subjectsHtml =
+    disc.assuntos
+      .map(
+        (ass, idx) =>
+          `
       <div class="sm-list-item" draggable="true"
     data-disc-id="${disc.id}"
     data-ass-idx="${idx}"
@@ -1436,15 +1744,27 @@ export function openDiscManager(editaId, discId) {
       <div class="sm-drag-handle" title="Arrastar">☰</div>
       <div class="sm-item-text" data-action="edit-subject-inline" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">
         ${esc(ass.nome)}
-        ` + (ass.relevance ? `<span class="relevance-badge relevance-badge-${ass.relevance.priority === 'P1' ? 'p1' : ass.relevance.priority === 'P2' ? 'p2' : 'muted'}" title="${esc(ass.relevance.reason)}">${ass.relevance.priority}</span>` : '') + `
-        ${(ass.linkedAulaIds && ass.linkedAulaIds.length > 0) ? `
+        ` +
+          (ass.relevance
+            ? `<span class="relevance-badge relevance-badge-${ass.relevance.priority === 'P1' ? 'p1' : ass.relevance.priority === 'P2' ? 'p2' : 'muted'}" title="${esc(ass.relevance.reason)}">${ass.relevance.priority}</span>`
+            : '') +
+          `
+        ${
+          ass.linkedAulaIds && ass.linkedAulaIds.length > 0
+            ? `
            <div class="linked-aulas-list">
-             ${ass.linkedAulaIds.map(auId => {
-    const aulaObj = (disc.aulas || []).find(a => a.id === auId);
-    return aulaObj ? `<span class="linked-aula-tag"><i class="fa fa-play-circle"></i> ${esc(aulaObj.nome)}</span>` : '';
-  }).join('')}
+             ${ass.linkedAulaIds
+               .map((auId) => {
+                 const aulaObj = (disc.aulas || []).find((a) => a.id === auId);
+                 return aulaObj
+                   ? `<span class="linked-aula-tag"><i class="fa fa-play-circle"></i> ${esc(aulaObj.nome)}</span>`
+                   : '';
+               })
+               .join('')}
            </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
       <div class="sm-item-actions">
         <button aria-label="Subir tópico" data-action="move-subject" data-disc-id="${disc.id}" data-idx="${idx}" data-dir="-1" title="Subir"><i class="fa fa-chevron-up"></i></button>
@@ -1452,34 +1772,52 @@ export function openDiscManager(editaId, discId) {
         <button aria-label="Excluir tópico" data-action="delete-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
     </div>
-      `).join('') || '<div class="sm-empty-state">Nenhum tópico no Edital.</div>';
+      `
+      )
+      .join('') || '<div class="sm-empty-state">Nenhum tópico no Edital.</div>';
 
   // Render Lesson items
-  const aulasHtml = (disc.aulas || []).map((aula, _idx) => `
+  const aulasHtml =
+    (disc.aulas || [])
+      .map(
+        (aula, _idx) => `
       <div class="sm-list-item sm-list-item--lesson">
       <div class="sm-item-content">
           <div class="sm-item-text sm-item-text--clickable" data-action="edit-lesson-inline" data-disc-id="${disc.id}" data-aula-id="${aula.id}">
              <input type="checkbox" ${aula.estudada ? 'checked' : ''} data-action="toggle-aula-estudada" data-disc-id="${disc.id}" data-aula-id="${aula.id}" class="sm-checkbox" title="Marcar como Estudada">
              <span class="${aula.estudada ? 'sm-text-concluded' : ''}">${esc(aula.nome)}</span>
           </div>
-          ${(aula.linkedAssuntoIds && aula.linkedAssuntoIds.length > 0) ? `
+          ${
+            aula.linkedAssuntoIds && aula.linkedAssuntoIds.length > 0
+              ? `
            <div class="sm-linked-info">
-             <strong>Cobre: </strong> ${aula.linkedAssuntoIds.map(asId => {
-    const assObj = disc.assuntos.find(a => a.id === asId);
-    return assObj ? esc(assObj.nome) : '';
-  }).filter(n => n).join(', ')}
+             <strong>Cobre: </strong> ${aula.linkedAssuntoIds
+               .map((asId) => {
+                 const assObj = disc.assuntos.find((a) => a.id === asId);
+                 return assObj ? esc(assObj.nome) : '';
+               })
+               .filter((n) => n)
+               .join(', ')}
            </div>
-        ` : '<div class="sm-linked-info sm-linked-info--empty">Não conectada a assunto do edital.</div>'}
+        `
+              : '<div class="sm-linked-info sm-linked-info--empty">Não conectada a assunto do edital.</div>'
+          }
       </div>
       <div class="sm-item-actions">
          <button aria-label="Excluir aula" data-action="delete-aula" data-disc-id="${disc.id}" data-aula-id="${aula.id}" title="Excluir"><i class="fa fa-trash"></i></button>
       </div>
     </div>
-      `).join('') || '<div class="sm-empty-state">Nenhuma Aula adicionada.</div>';
+      `
+      )
+      .join('') || '<div class="sm-empty-state">Nenhuma Aula adicionada.</div>';
 
-  const colorOptions = COLORS.map(c => `<option value="${c}" ${disc.cor === c ? 'selected' : ''}" data-color-option="${c}">${c}</option>`).join('');
+  const colorOptions = COLORS.map(
+    (c) =>
+      `<option value="${c}" ${disc.cor === c ? 'selected' : ''}" data-color-option="${c}">${c}</option>`
+  ).join('');
 
-  document.getElementById('modal-disc-manager-title').textContent = disc.nome || 'Gerenciar Disciplina';
+  document.getElementById('modal-disc-manager-title').textContent =
+    disc.nome || 'Gerenciar Disciplina';
   document.getElementById('modal-disc-manager-body').innerHTML = `
       <!--Configurações Globais da Disciplina-->
     <div class="sm-header">
@@ -1529,12 +1867,16 @@ export function openDiscManager(editaId, discId) {
            <button class="btn btn-primary" data-action="add-bulk-aulas" data-disc-id="${disc.id}">Importar Lote</button>
         </div>
 
-        ${(disc.aulas && disc.aulas.length > 0 && disc.assuntos.length > 0) ? `
+        ${
+          disc.aulas && disc.aulas.length > 0 && disc.assuntos.length > 0
+            ? `
           <div class="sm-auto-link-card">
              <div class="sm-auto-link-card-text">O Sistema pode analisar os nomes e conectá-los automaticamente ao Edital.</div>
              <button class="btn btn-ghost btn-sm" data-action="run-lesson-mapper" data-edital-id="${editaId}" data-disc-id="${disc.id}"><i class="fa fa-magic"></i> Auto-Link ML</button>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <div class="sm-list custom-scrollbar">
           ${aulasHtml}
@@ -1573,8 +1915,8 @@ export function editSubjectInline(discId, assId, el) {
     const newVal = input.value.trim();
     if (newVal && newVal !== currentText) {
       for (const edital of state.editais) {
-        const disc = (edital.disciplinas || []).find(d => d.id === discId);
-        const ass = (disc?.assuntos || []).find(a => a.id === assId);
+        const disc = (edital.disciplinas || []).find((d) => d.id === discId);
+        const ass = (disc?.assuntos || []).find((a) => a.id === assId);
         if (ass) {
           ass.nome = newVal;
           scheduleSave();
@@ -1584,7 +1926,13 @@ export function editSubjectInline(discId, assId, el) {
     }
     renderCurrentView();
   };
-  input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); else if (e.key === 'Escape') { input.value = currentText; input.blur(); } };
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') input.blur();
+    else if (e.key === 'Escape') {
+      input.value = currentText;
+      input.blur();
+    }
+  };
 
   el.innerHTML = '';
   el.appendChild(input);
@@ -1593,7 +1941,7 @@ export function editSubjectInline(discId, assId, el) {
 
 export function editLessonInline(discId, aulaId, el) {
   const d = getDisc(discId);
-  const aulaObj = (d.disc.aulas || []).find(a => a.id === aulaId);
+  const aulaObj = (d.disc.aulas || []).find((a) => a.id === aulaId);
   if (!aulaObj) return;
 
   const originalText = aulaObj.nome;
@@ -1629,7 +1977,7 @@ export function editLessonInline(discId, aulaId, el) {
 export function toggleAulaEstudada(discId, aulaId) {
   const d = getDisc(discId);
   if (!d) return;
-  const aulaObj = (d.disc.aulas || []).find(a => a.id === aulaId);
+  const aulaObj = (d.disc.aulas || []).find((a) => a.id === aulaId);
   if (!aulaObj) return;
 
   aulaObj.estudada = !aulaObj.estudada;
@@ -1642,7 +1990,10 @@ export function addBulkAulas(discId) {
   const textarea = document.getElementById('new-aula-bulk');
   if (!textarea) return;
 
-  const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const lines = textarea.value
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   if (lines.length === 0) {
     showToast('Nenhum texto de aula encontrado.', 'error');
     return;
@@ -1653,7 +2004,7 @@ export function addBulkAulas(discId) {
 
   if (!d.disc.aulas) d.disc.aulas = [];
 
-  lines.forEach(lineNome => {
+  lines.forEach((lineNome) => {
     d.disc.aulas.push({
       id: 'aula_' + uid(),
       nome: lineNome,
@@ -1661,7 +2012,7 @@ export function addBulkAulas(discId) {
       estudada: false,
       dataEstudo: null,
       progress: 0,
-      linkedAssuntoIds: []
+      linkedAssuntoIds: [],
     });
   });
 
@@ -1674,13 +2025,23 @@ export function addBulkAulas(discId) {
 export function addAssunto(discId) {
   const input = document.getElementById('new-assunto-nome');
   if (!input) return;
-  const lines = input.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const lines = input.value
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   if (lines.length === 0) return;
   const d = getDisc(discId);
   if (!d) return;
   if (!d.disc.assuntos) d.disc.assuntos = [];
-  lines.forEach(nome => {
-    d.disc.assuntos.push({ id: 'ass_' + uid(), nome: nome, concluido: false, revisoesFetas: [], adiamentos: 0, linkedAulaIds: [] });
+  lines.forEach((nome) => {
+    d.disc.assuntos.push({
+      id: 'ass_' + uid(),
+      nome: nome,
+      concluido: false,
+      revisoesFetas: [],
+      adiamentos: 0,
+      linkedAulaIds: [],
+    });
   });
   input.value = '';
   scheduleSave();
@@ -1693,13 +2054,13 @@ export function deleteAula(discId, aulaId) {
     if (!d) return;
 
     // Remove backlinks
-    d.disc.assuntos.forEach(ass => {
+    d.disc.assuntos.forEach((ass) => {
       if (ass.linkedAulaIds) {
-        ass.linkedAulaIds = ass.linkedAulaIds.filter(id => id !== aulaId);
+        ass.linkedAulaIds = ass.linkedAulaIds.filter((id) => id !== aulaId);
       }
     });
 
-    d.disc.aulas = d.disc.aulas.filter(a => a.id !== aulaId);
+    d.disc.aulas = d.disc.aulas.filter((a) => a.id !== aulaId);
     scheduleSave();
     openDiscManager(editingSubjectCtx.editaId, discId);
   });
@@ -1707,15 +2068,19 @@ export function deleteAula(discId, aulaId) {
 
 import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.29';
 export function runLessonMapperUI(editaId, discId) {
-  showConfirm('Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?', () => {
-    const resultCount = mapAulasToAssuntos(editaId, discId);
-    if (resultCount > 0) {
-      showToast(`${resultCount} Aulas Conectadas Automaticamente!`, 'success');
-    } else {
-      showToast('Nenhum Tópico bateu com 70%+ de precisão com esta base de Aulas.', 'info');
-    }
-    openDiscManager(editingSubjectCtx.editaId, discId);
-  }, { label: 'Rodar Auto-Link', title: 'Mapeador ML' });
+  showConfirm(
+    'Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?',
+    () => {
+      const resultCount = mapAulasToAssuntos(editaId, discId);
+      if (resultCount > 0) {
+        showToast(`${resultCount} Aulas Conectadas Automaticamente!`, 'success');
+      } else {
+        showToast('Nenhum Tópico bateu com 70%+ de precisão com esta base de Aulas.', 'info');
+      }
+      openDiscManager(editingSubjectCtx.editaId, discId);
+    },
+    { label: 'Rodar Auto-Link', title: 'Mapeador ML' }
+  );
 }
 
 // Event modal functions moved to ui/event-modals.js
@@ -1751,11 +2116,12 @@ export function dndLeave(event) {
 export function dndDrop(event, discId, targetIdx) {
   event.preventDefault();
   event.stopPropagation();
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  document.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
   const srcIdx = _dndSrcIdx;
   if (srcIdx === null || srcIdx === targetIdx || _dndSrcDiscId !== discId) return;
   for (const edital of state.editais) {
-    if (!edital.disciplinas) continue; const disc = edital.disciplinas.find(d => d.id === discId);
+    if (!edital.disciplinas) continue;
+    const disc = edital.disciplinas.find((d) => d.id === discId);
     if (disc) {
       const moved = disc.assuntos.splice(srcIdx, 1)[0];
       disc.assuntos.splice(targetIdx, 0, moved);
@@ -1766,37 +2132,41 @@ export function dndDrop(event, discId, targetIdx) {
         openDiscManager(editingSubjectCtx.editaId, discId);
       }
       showToast('Assunto reordenado!', 'success');
-      _dndSrcDiscId = null; _dndSrcIdx = null; return;
+      _dndSrcDiscId = null;
+      _dndSrcIdx = null;
+      return;
     }
   }
-} addCleanupListener(document, 'dragend', () => {
-  document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+addCleanupListener(document, 'dragend', () => {
+  document.querySelectorAll('.dragging').forEach((el) => el.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
 });
 
 // Search functions moved to ui/search.js
 // Re-exported below
 
-
 export function openCicloHistory(seqId) {
   const plan = state.planejamento;
   if (!plan || !plan.sequencia) return;
-  const seqItem = plan.sequencia.find(s => s.id === seqId);
+  const seqItem = plan.sequencia.find((s) => s.id === seqId);
   if (!seqItem) return;
 
   const discInfo = getDisc(seqItem.discId);
   if (!discInfo) return;
 
   const titleEl = document.getElementById('modal-ciclo-history-title');
-  if (titleEl) titleEl.innerHTML = `🕒 Histórico: ${discInfo.disc.icone || '📚'} ${esc(discInfo.disc.nome)}`;
+  if (titleEl)
+    titleEl.innerHTML = `🕒 Histórico: ${discInfo.disc.icone || '📚'} ${esc(discInfo.disc.nome)}`;
 
   const bodyEl = document.getElementById('modal-ciclo-history-body');
 
   // Filtrar histórico de estudos da disciplina
   const eventosDisc = state.eventos
-    .filter(e => e.discId === seqItem.discId && e.status === 'estudei' && e.tempoAcumulado > 0)
-    .sort((a, b) => (b.data + 'T' + (b.hora || '00:00:00')).localeCompare(a.data + 'T' + (a.hora || '00:00:00')));
-
+    .filter((e) => e.discId === seqItem.discId && e.status === 'estudei' && e.tempoAcumulado > 0)
+    .sort((a, b) =>
+      (b.data + 'T' + (b.hora || '00:00:00')).localeCompare(a.data + 'T' + (a.hora || '00:00:00'))
+    );
 
   let btnDesfazer = '';
   if (seqItem.concluido) {
@@ -1809,11 +2179,14 @@ export function openCicloHistory(seqId) {
     `;
   }
 
-  const htmlHistorico = eventosDisc.length === 0
-    ? '<div class="ciclo-history-empty">Nenhuma sessão de estudo registrada ainda.</div>'
-    : `
+  const htmlHistorico =
+    eventosDisc.length === 0
+      ? '<div class="ciclo-history-empty">Nenhuma sessão de estudo registrada ainda.</div>'
+      : `
       <div class="flex flex-col gap-sm">
-        ${eventosDisc.map(ev => `
+        ${eventosDisc
+          .map(
+            (ev) => `
             <div class="card ciclo-history-session-card">
               <div>
                 <div class="ciclo-history-session-title">
@@ -1830,7 +2203,9 @@ export function openCicloHistory(seqId) {
                 <button class="btn btn-ghost btn-sm" data-action="open-event-from-ciclo-history" data-event-id="${ev.id}"><i class="fa fa-edit"></i> Editar</button>
               </div>
             </div>
-          `).join('')}
+          `
+          )
+          .join('')}
       </div>
     `;
 
@@ -1851,7 +2226,7 @@ export function filtrarDropdownBanca(termo) {
   termo = termo.toLowerCase().trim();
   const select = document.getElementById('banca-disc-select');
   if (!select) return;
-  Array.from(select.options).forEach(opt => {
+  Array.from(select.options).forEach((opt) => {
     if (opt.value === '') return;
     const visible = opt.text.toLowerCase().includes(termo);
     opt.style.display = visible ? '' : 'none';

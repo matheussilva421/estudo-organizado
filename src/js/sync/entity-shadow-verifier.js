@@ -3,11 +3,7 @@ function byKey(items = []) {
 }
 
 function signature(item = {}) {
-  return [
-    item.revision ?? null,
-    item.checksum ?? null,
-    item.deletedAt ?? null
-  ].join('|');
+  return [item.revision ?? null, item.checksum ?? null, item.deletedAt ?? null].join('|');
 }
 
 export function compareSnapshotManifestToEntityDocs(snapshotEnvelope = {}, entityDocs = []) {
@@ -34,6 +30,6 @@ export function compareSnapshotManifestToEntityDocs(snapshotEnvelope = {}, entit
     ok: missing.length === 0 && divergent.length === 0 && extra.length === 0,
     missing,
     divergent,
-    extra
+    extra,
   };
 }

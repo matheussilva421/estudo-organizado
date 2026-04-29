@@ -15,8 +15,12 @@ import { openRegistroSessao } from '../registro-sessao.js?v=8.29';
 // =============================================
 export function openAddEventModal(dateStr = null) {
   const allDiscs = getActiveDisciplinas();
-  const discOptions = allDiscs.map(({ disc, edital }) => `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
-  ).join('');
+  const discOptions = allDiscs
+    .map(
+      ({ disc, edital }) =>
+        `<option value="${disc.id}" data-edital="${edital.id}">${esc(edital.nome)} → ${esc(disc.nome)}</option>`
+    )
+    .join('');
 
   document.getElementById('modal-event-title').textContent = 'Iniciar Estudo';
   document.getElementById('modal-event-body').innerHTML = `
@@ -97,7 +101,7 @@ export function openAddEventModal(dateStr = null) {
 export function updateDayLoad(dateStr) {
   const el = document.getElementById('day-load-hint');
   if (!el || !dateStr) return;
-  const evts = state.eventos.filter(e => e.data === dateStr && e.status !== 'estudei');
+  const evts = state.eventos.filter((e) => e.data === dateStr && e.status !== 'estudei');
   const mins = evts.reduce((s, e) => s + (e.duracao || 0), 0);
   if (evts.length === 0) {
     el.textContent = '📅 Dia livre';
@@ -132,10 +136,12 @@ export function loadAssuntos() {
 
   if (!d) return;
 
-  const pendingAssuntos = d.disc.assuntos.filter(a => !a.concluido);
+  const pendingAssuntos = d.disc.assuntos.filter((a) => !a.concluido);
   if (pendingAssuntos.length > 0) {
     let html = '<option value="">Sem tópico específico</option>';
-    html += pendingAssuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
+    html += pendingAssuntos
+      .map((a) => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`)
+      .join('');
     assuntoSel.innerHTML = html;
     assuntoGroup.style.display = '';
   } else {
@@ -143,10 +149,12 @@ export function loadAssuntos() {
   }
 
   const aulas = d.disc.aulas || [];
-  const pendingAulas = aulas.filter(a => !a.estudada);
+  const pendingAulas = aulas.filter((a) => !a.estudada);
   if (pendingAulas.length > 0 && aulaGroup && aulaSel) {
     let ht = '<option value="">Sem material/aula específico</option>';
-    ht += pendingAulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`).join('');
+    ht += pendingAulas
+      .map((a) => `<option value="${a.id}" title="${esc(a.nome)}">${esc(trunc(a.nome))}</option>`)
+      .join('');
     aulaSel.innerHTML = ht;
     aulaGroup.style.display = '';
   } else if (aulaGroup) {
@@ -159,10 +167,10 @@ export function loadAssuntos() {
     let name = '';
 
     if (rawAul) {
-      const aulaObj = d.disc.aulas?.find(a => a.id === rawAul);
+      const aulaObj = d.disc.aulas?.find((a) => a.id === rawAul);
       if (aulaObj) name = aulaObj.nome;
     } else if (rawAss) {
-      const assObj = d.disc.assuntos?.find(a => a.id === rawAss);
+      const assObj = d.disc.assuntos?.find((a) => a.id === rawAss);
       if (assObj) name = assObj.nome;
     }
 
@@ -177,13 +185,14 @@ export function loadAssuntos() {
   assuntoSel.onchange = () => {
     if (!tituloInput.value || tituloInput.dataset.autoFilled === 'true') buildTitle();
   };
-  if (aulaSel) aulaSel.onchange = () => {
-    if (!tituloInput.value || tituloInput.dataset.autoFilled === 'true') buildTitle();
-  };
+  if (aulaSel)
+    aulaSel.onchange = () => {
+      if (!tituloInput.value || tituloInput.dataset.autoFilled === 'true') buildTitle();
+    };
 }
 
 // Clear auto-filled flag if user manually types in title
-addCleanupListener(document, 'input', e => {
+addCleanupListener(document, 'input', (e) => {
   if (e.target && e.target.id === 'event-titulo') {
     e.target.dataset.autoFilled = 'false';
   }
@@ -210,18 +219,28 @@ export function saveEvent() {
     autoTitle = `Estudar ${d?.disc.nome || 'Disciplina'} `;
   }
 
-  if (!autoTitle) { showToast('Informe um título para o evento', 'error'); return; }
+  if (!autoTitle) {
+    showToast('Informe um título para o evento', 'error');
+    return;
+  }
 
   const doSave = () => {
     const evento = {
-      id: 'ev_' + uid(), titulo: autoTitle, data, duracao, notas, fontes, legislacao,
-      status: 'agendado', tempoAcumulado: 0,
+      id: 'ev_' + uid(),
+      titulo: autoTitle,
+      data,
+      duracao,
+      notas,
+      fontes,
+      legislacao,
+      status: 'agendado',
+      tempoAcumulado: 0,
       tipo: 'conteudo',
       discId: discId || null,
       assId: assId || null,
       aulaId: aulaId || null,
       habito: null,
-      criadoEm: new Date().toISOString()
+      criadoEm: new Date().toISOString(),
     };
 
     state.eventos.push(evento);
@@ -231,13 +250,14 @@ export function saveEvent() {
     showToast('Estudo iniciado/agendado!', 'success');
   };
 
-  const existingOnDay = state.eventos.filter(e => e.data === data && e.status !== 'estudei');
+  const existingOnDay = state.eventos.filter((e) => e.data === data && e.status !== 'estudei');
   const totalDuracao = existingOnDay.reduce((s, e) => s + (e.duracao || 0), 0) + duracao;
   if (existingOnDay.length >= 3 || totalDuracao > 480) {
-    const horas = Math.round(totalDuracao / 60 * 10) / 10;
-    const msg = existingOnDay.length >= 3
-      ? `Você já tem ${existingOnDay.length} evento(s) neste dia. Adicionar mais pode gerar sobrecarga.`
-      : `Você já tem ${Math.round((totalDuracao - duracao) / 60 * 10) / 10}h agendadas neste dia. Com este evento seriam ${horas}h.`;
+    const horas = Math.round((totalDuracao / 60) * 10) / 10;
+    const msg =
+      existingOnDay.length >= 3
+        ? `Você já tem ${existingOnDay.length} evento(s) neste dia. Adicionar mais pode gerar sobrecarga.`
+        : `Você já tem ${Math.round(((totalDuracao - duracao) / 60) * 10) / 10}h agendadas neste dia. Com este evento seriam ${horas}h.`;
     showConfirm(msg, doSave, { label: 'Adicionar mesmo assim', title: 'Muitos eventos no dia' });
     return;
   }
@@ -250,19 +270,29 @@ export function saveEvent() {
 // =============================================
 export function openAddPastSessionModal(discId) {
   const d = getDisc(discId);
-  if(!d) return;
+  if (!d) return;
 
   let assuntoOptions = '<option value="">Sem tópico específico</option>';
 
   const assuntos = d.disc.assuntos || [];
   if (assuntos.length > 0) {
-    assuntoOptions += assuntos.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${a.concluido ? '✅ ' : ''}${esc(trunc(a.nome, 100))}</option>`).join('');
+    assuntoOptions += assuntos
+      .map(
+        (a) =>
+          `<option value="${a.id}" title="${esc(a.nome)}">${a.concluido ? '✅ ' : ''}${esc(trunc(a.nome, 100))}</option>`
+      )
+      .join('');
   }
 
   let aulaOptions = '<option value="">Sem material/aula específico</option>';
   const aulas = d.disc.aulas || [];
   if (aulas.length > 0) {
-    aulaOptions += aulas.map(a => `<option value="${a.id}" title="${esc(a.nome)}">${a.estudada ? '✅ ' : ''}${esc(trunc(a.nome, 100))}</option>`).join('');
+    aulaOptions += aulas
+      .map(
+        (a) =>
+          `<option value="${a.id}" title="${esc(a.nome)}">${a.estudada ? '✅ ' : ''}${esc(trunc(a.nome, 100))}</option>`
+      )
+      .join('');
   }
 
   document.getElementById('modal-event-title').textContent = 'Registrar Sessão Anterior';
@@ -320,11 +350,11 @@ export function savePastEvent(discId) {
   let assuntoNome = '';
 
   if (aulaId) {
-    const achado = d.disc.aulas?.find(a => a.id === aulaId);
-    if(achado) assuntoNome = ' — ' + achado.nome;
+    const achado = d.disc.aulas?.find((a) => a.id === aulaId);
+    if (achado) assuntoNome = ' — ' + achado.nome;
   } else if (assId) {
-    const achado = d.disc.assuntos?.find(a => a.id === assId);
-    if(achado) assuntoNome = ' — ' + achado.nome;
+    const achado = d.disc.assuntos?.find((a) => a.id === assId);
+    if (achado) assuntoNome = ' — ' + achado.nome;
   }
 
   const evento = {
@@ -338,7 +368,7 @@ export function savePastEvent(discId) {
     assId: assId,
     aulaId: aulaId,
     sessao: {},
-    _isPastSession: true
+    _isPastSession: true,
   };
 
   state.eventos.push(evento);
@@ -352,7 +382,7 @@ export function savePastEvent(discId) {
 // EVENT DETAIL MODAL
 // =============================================
 export function openEventDetail(eventId) {
-  const ev = state.eventos.find(e => e.id === eventId);
+  const ev = state.eventos.find((e) => e.id === eventId);
   if (!ev) return;
 
   const disc = ev.discId ? getDisc(ev.discId) : null;
@@ -379,42 +409,66 @@ export function openEventDetail(eventId) {
         <div class="event-detail-label">Tempo Acumulado</div>
         <div class="event-detail-value">${ev.tempoAcumulado > 0 ? formatTime(ev.tempoAcumulado) : '—'}</div>
       </div>
-      ${disc ? `
+      ${
+        disc
+          ? `
         <div class="event-detail-field">
           <div class="event-detail-label">Disciplina</div>
           <div class="event-detail-value">${disc.disc.icone || '📚'} ${esc(disc.disc.nome)}</div>
         </div>
-      ` : ''}
-      ${ev.assId ? `
+      `
+          : ''
+      }
+      ${
+        ev.assId
+          ? `
         <div class="event-detail-field">
           <div class="event-detail-label">Assunto</div>
           <div class="event-detail-value">${esc(getAssuntoName(ev.discId, ev.assId))}</div>
         </div>
-      ` : ''}
-      ${ev.aulaId ? `
+      `
+          : ''
+      }
+      ${
+        ev.aulaId
+          ? `
         <div class="event-detail-field">
           <div class="event-detail-label">Aula</div>
           <div class="event-detail-value">${esc(getAulaName(ev.discId, ev.aulaId))}</div>
         </div>
-      ` : ''}
-      ${ev.notas ? `
+      `
+          : ''
+      }
+      ${
+        ev.notas
+          ? `
         <div class="event-detail-field event-detail-field--full">
           <div class="event-detail-label">Anotações</div>
           <div class="event-detail-value event-detail-notes">${esc(ev.notas)}</div>
         </div>
-      ` : ''}
-      ${ev.fontes ? `
+      `
+          : ''
+      }
+      ${
+        ev.fontes
+          ? `
         <div class="event-detail-field event-detail-field--full">
           <div class="event-detail-label">Fontes</div>
           <div class="event-detail-value">${esc(ev.fontes)}</div>
         </div>
-      ` : ''}
-      ${ev.legislacao ? `
+      `
+          : ''
+      }
+      ${
+        ev.legislacao
+          ? `
         <div class="event-detail-field event-detail-field--full">
           <div class="event-detail-label">Legislação</div>
           <div class="event-detail-value">${esc(ev.legislacao)}</div>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 
@@ -433,24 +487,30 @@ function formatTime(seconds) {
 function getAssuntoName(discId, assId) {
   const d = getDisc(discId);
   if (!d) return '';
-  const a = d.disc.assuntos?.find(x => x.id === assId);
+  const a = d.disc.assuntos?.find((x) => x.id === assId);
   return a ? a.nome : '';
 }
 
 function getAulaName(discId, aulaId) {
   const d = getDisc(discId);
   if (!d) return '';
-  const a = d.disc.aulas?.find(x => x.id === aulaId);
+  const a = d.disc.aulas?.find((x) => x.id === aulaId);
   return a ? a.nome : '';
 }
 
 export function refreshEventCard(eventId) {
-  const card = document.querySelector(`[data-event-id="${eventId}"]`);
-  if (!card) return;
-  const ev = state.eventos.find(e => e.id === eventId);
+  const card = document.querySelector(`.event-card[data-event-id="${eventId}"]`);
+  if (!card) {
+    renderCurrentView();
+    reattachTimers();
+    return;
+  }
+  const ev = state.eventos.find((e) => e.id === eventId);
   if (!ev) return;
-  const newCard = renderEventCard(ev);
-  card.replaceWith(newCard);
+  const template = document.createElement('template');
+  template.innerHTML = renderEventCard(ev).trim();
+  const newCard = template.content.firstElementChild;
+  if (newCard) card.replaceWith(newCard);
   reattachTimers();
 }
 

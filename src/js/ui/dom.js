@@ -12,9 +12,8 @@
 export function qs(selector, root = document) {
   if (!selector) return null;
   // Handle ID selectors sem #
-  const normalized = selector.startsWith('#') || selector.startsWith('.')
-    ? selector
-    : `#${selector}`;
+  const normalized =
+    selector.startsWith('#') || selector.startsWith('.') ? selector : `#${selector}`;
   return root.querySelector(normalized) || root.querySelector(selector);
 }
 
@@ -27,9 +26,10 @@ export function qs(selector, root = document) {
 export function qsa(selector, root = document) {
   if (!selector) return [];
   const shouldNormalize = /^[A-Za-z][\w-]*$/.test(selector);
-  const normalized = !shouldNormalize || selector.startsWith('#') || selector.startsWith('.')
-    ? selector
-    : `#${selector}`;
+  const normalized =
+    !shouldNormalize || selector.startsWith('#') || selector.startsWith('.')
+      ? selector
+      : `#${selector}`;
   const normalizedResult = root.querySelectorAll(normalized);
   if (normalized === selector || normalizedResult.length > 0) return normalizedResult;
   return root.querySelectorAll(selector);
@@ -151,12 +151,13 @@ export function esc(str) {
  * @returns {boolean} - Sucesso
  */
 export function safeSetHTML(nodeOrId, html) {
-  const node = typeof nodeOrId === 'string'
-    ? document.getElementById(nodeOrId.replace('#', ''))
-    : nodeOrId;
+  const node =
+    typeof nodeOrId === 'string' ? document.getElementById(nodeOrId.replace('#', '')) : nodeOrId;
 
   if (!node) {
-    console.warn(`[DOM] Element not found: ${typeof nodeOrId === 'string' ? '#' + nodeOrId : nodeOrId}`);
+    console.warn(
+      `[DOM] Element not found: ${typeof nodeOrId === 'string' ? '#' + nodeOrId : nodeOrId}`
+    );
     return false;
   }
 

@@ -4,7 +4,14 @@
 // =============================================
 
 import { state, scheduleSave, saveStateToDB } from './store.js?v=8.29';
-import { getActiveDisciplinas, getDisc, getElapsedSeconds, _pomodoroMode, timerIntervals, discardTimer } from './logic.js?v=8.29';
+import {
+  getActiveDisciplinas,
+  getDisc,
+  getElapsedSeconds,
+  _pomodoroMode,
+  timerIntervals,
+  discardTimer,
+} from './logic.js?v=8.29';
 import { openModal, closeModal, showToast, showConfirm, navigate } from './app.js?v=8.29';
 import { todayStr, esc, trunc, uid } from './utils.js?v=8.29';
 import { renderCurrentView, updateBadges } from './components.js?v=8.29';
@@ -57,8 +64,11 @@ export function openRegistroSessao(eventId) {
   if (eventId === 'crono_livre') {
     ev = { ...state.cronoLivre, id: 'crono_livre', sessao: {} };
   } else {
-    ev = state.eventos.find(e => e.id === eventId);
-    if (!ev) { showToast('Evento não encontrado', 'error'); return; }
+    ev = state.eventos.find((e) => e.id === eventId);
+    if (!ev) {
+      showToast('Evento não encontrado', 'error');
+      return;
+    }
   }
 
   // Save timer state for rollback if user cancels
@@ -70,7 +80,7 @@ export function openRegistroSessao(eventId) {
     ev.tempoAcumulado = getElapsedSeconds(ev);
     _sessionEndTime = new Date();
     _sessionStartTime = new Date(ev._timerStart);
-    delete ev._timerStart;
+    ev._timerStart = null;
     if (timerIntervals[eventId]) {
       clearInterval(timerIntervals[eventId]);
       delete timerIntervals[eventId];
@@ -133,28 +143,41 @@ function renderRegistroForm(ev) {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
 
-  const horaInicio = _sessionStartTime ? _sessionStartTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-  const horaFim = _sessionEndTime ? _sessionEndTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+  const horaInicio = _sessionStartTime
+    ? _sessionStartTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : '--:--';
+  const horaFim = _sessionEndTime
+    ? _sessionEndTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : '--:--';
 
   let dataStr;
   if (ev.data) {
     const parts = ev.data.split('-');
     dataStr = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ev.data;
   } else {
-    dataStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    dataStr = new Date().toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   }
 
-  const modeLabel = _sessionMode === 'pomodoro' ? `🍅 Pomodoro (${state?.config?.pomodoroFoco || 25}/${state?.config?.pomodoroPausa || 5})` : '⏱ Cronômetro';
-
+  const modeLabel =
+    _sessionMode === 'pomodoro'
+      ? `🍅 Pomodoro (${state?.config?.pomodoroFoco || 25}/${state?.config?.pomodoroPausa || 5})`
+      : '⏱ Cronômetro';
 
   // Discipline options
   const allDiscs = getActiveDisciplinas();
-  const discOptions = allDiscs.map(d =>
-    `<option value="${d.disc.id}">${d.disc.icone || '📖'} ${d.disc.nome} — ${d.edital.nome}</option>`
-  ).join('');
+  const discOptions = allDiscs
+    .map(
+      (d) =>
+        `<option value="${d.disc.id}">${d.disc.icone || '📖'} ${d.disc.nome} — ${d.edital.nome}</option>`
+    )
+    .join('');
 
   // Study type chips
-  const tipoChips = TIPOS_ESTUDO.map(t => {
+  const tipoChips = TIPOS_ESTUDO.map((t) => {
     const sel = _selectedTipos.includes(t.id);
     return `<button type="button" class="chip ${sel ? 'chip-active' : ''}"
       data-action="toggle-study-type"
@@ -164,7 +187,7 @@ function renderRegistroForm(ev) {
   }).join('');
 
   // Material chips
-  const materialChips = MATERIAIS.map(m => {
+  const materialChips = MATERIAIS.map((m) => {
     const sel = _selectedMateriais.includes(m.id);
     return `<button type="button" class="chip ${sel ? 'chip-active' : ''}"
       data-action="toggle-material"
@@ -180,17 +203,21 @@ function renderRegistroForm(ev) {
         <div class="reg-stat">
           <div class="reg-stat-label">Tempo estudado ${ev.status === 'estudei' || ev._isPastSession ? '(minutos)' : ''}</div>
           <div class="reg-stat-value reg-stat-value-mono">
-            ${ev.status === 'estudei' || ev._isPastSession ?
-              `<input type="number" id="reg-tempo-mins" class="reg-input reg-input-time" value="${Math.round(elapsed / 60)}" min="1">` :
-              fmtTime(elapsed)}
+            ${
+              ev.status === 'estudei' || ev._isPastSession
+                ? `<input type="number" id="reg-tempo-mins" class="reg-input reg-input-time" value="${Math.round(elapsed / 60)}" min="1">`
+                : fmtTime(elapsed)
+            }
           </div>
         </div>
         <div class="reg-stat">
           <div class="reg-stat-label">Data</div>
           <div class="reg-stat-value">
-            ${ev.status === 'estudei' || ev._isPastSession ?
-              `<input type="date" id="reg-data-estudo" class="reg-input reg-input-date" value="${ev.data || todayStr()}">` :
-              dataStr}
+            ${
+              ev.status === 'estudei' || ev._isPastSession
+                ? `<input type="date" id="reg-data-estudo" class="reg-input reg-input-date" value="${ev.data || todayStr()}">`
+                : dataStr
+            }
           </div>
         </div>
         <div class="reg-stat">
@@ -290,26 +317,30 @@ function renderRegistroForm(ev) {
 
     <!-- 7) AÇÕES / FOOTER -->
     <div class="reg-footer-actions">
-      ${ev.status === 'estudei' && !ev._isPastSession ?
-        `<button type="button" class="btn-outline reg-btn-danger" data-action="delete-completed-session" data-session-id="${ev.id}">
+      ${
+        ev.status === 'estudei' && !ev._isPastSession
+          ? `<button type="button" class="btn-outline reg-btn-danger" data-action="delete-completed-session" data-session-id="${ev.id}">
           <i class="fa fa-trash"></i> Excluir
         </button>`
-        : ev._isPastSession ?
-        `<button type="button" class="btn-outline" data-action="voltar-past-session-ui" data-event-id="${_currentEventId}" data-disc-id="${ev.discId}">
+          : ev._isPastSession
+            ? `<button type="button" class="btn-outline" data-action="voltar-past-session-ui" data-event-id="${_currentEventId}" data-disc-id="${ev.discId}">
           <i class="fa fa-arrow-left"></i> Voltar
         </button>`
-        :
-        `<button type="button" class="btn-outline reg-btn-danger" data-action="discard-timer-ui" data-event-id="${_currentEventId}">
+            : `<button type="button" class="btn-outline reg-btn-danger" data-action="discard-timer-ui" data-event-id="${_currentEventId}">
           <i class="fa fa-trash"></i> Descartar
         </button>`
       }
 
       <div class="reg-footer-buttons">
         <button type="button" class="btn-outline" data-action="cancel-registro">Cancelar</button>
-        ${!ev._isPastSession && ev.status !== 'estudei' ? `
+        ${
+          !ev._isPastSession && ev.status !== 'estudei'
+            ? `
         <button type="button" class="btn-outline reg-btn-success" data-action="save-and-start-new">
           Salvar e iniciar nova ↻
-        </button>` : ''}
+        </button>`
+            : ''
+        }
         <button type="button" class="btn-primary reg-btn-primary" data-action="save-registro-sessao">
           <i class="fa fa-save"></i> ${ev.status === 'estudei' && !ev._isPastSession ? 'Salvar Alterações' : 'Salvar Registro'}
         </button>
@@ -324,8 +355,9 @@ function renderRegistroForm(ev) {
 
 function renderConditionalFields() {
   const showQuestoes = _selectedTipos.includes('questoes') || _selectedTipos.includes('simulado');
-  const showPaginas = ['leitura', 'informativo', 'sumula'].some(t => _selectedTipos.includes(t)) ||
-    ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some(m => _selectedMateriais.includes(m));
+  const showPaginas =
+    ['leitura', 'informativo', 'sumula'].some((t) => _selectedTipos.includes(t)) ||
+    ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some((m) => _selectedMateriais.includes(m));
   const showVideo = _selectedTipos.includes('videoaula');
 
   if (!showQuestoes && !showPaginas && !showVideo) {
@@ -402,18 +434,22 @@ function renderConditionalFields() {
     let aulaNomeSelecionada = '';
     if (discId && aulaId) {
       const disc = getDisc(discId);
-      const aula = disc?.disc?.aulas?.find(a => a.id === aulaId);
+      const aula = disc?.disc?.aulas?.find((a) => a.id === aulaId);
       if (aula?.nome) aulaNomeSelecionada = aula.nome;
     }
     const videoTituloPrefill = vid.titulo || aulaNomeSelecionada || '';
     html += `
       <div class="reg-results-card">
         <div class="reg-results-header">🎬 Vídeoaula</div>
-        ${aulaNomeSelecionada ? `
+        ${
+          aulaNomeSelecionada
+            ? `
           <div class="reg-linked-info">
             Aula vinculada automaticamente: <strong>${esc(trunc(aulaNomeSelecionada, 96))}</strong>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
         <div class="reg-field reg-field-spaced">
           <label class="reg-label">Título da aula (opcional)</label>
           <input type="text" id="reg-video-titulo" class="reg-input" placeholder="Opcional: será preenchido com Material / Aula quando selecionado" value="${esc(videoTituloPrefill)}">
@@ -471,7 +507,8 @@ export function onDisciplinaChange() {
 
   if (!discId) {
     assSelect.innerHTML = '<option value="">Selecione a disciplina primeiro</option>';
-    if (aulaSelect) aulaSelect.innerHTML = '<option value="">Selecione a disciplina primeiro</option>';
+    if (aulaSelect)
+      aulaSelect.innerHTML = '<option value="">Selecione a disciplina primeiro</option>';
     if (aulaContainer) aulaContainer.style.display = '';
     return;
   }
@@ -482,12 +519,14 @@ export function onDisciplinaChange() {
   const assuntos = d.disc.assuntos || [];
   if (assuntos.length > 0) {
     let html = '<option value="">Sem tópico específico</option>';
-    html += assuntos.map((a) => {
-      const nomeCompleto = esc(a.nome);
-      const nomeCurto = esc(trunc(a.nome, 96));
-      const prefixo = a.concluido ? '✓ ' : '';
-      return `<option value="${a.id}" title="${nomeCompleto}">${prefixo}${nomeCurto}</option>`;
-    }).join('');
+    html += assuntos
+      .map((a) => {
+        const nomeCompleto = esc(a.nome);
+        const nomeCurto = esc(trunc(a.nome, 96));
+        const prefixo = a.concluido ? '✓ ' : '';
+        return `<option value="${a.id}" title="${nomeCompleto}">${prefixo}${nomeCurto}</option>`;
+      })
+      .join('');
     assSelect.innerHTML = html;
   } else {
     assSelect.innerHTML = '<option value="">Nenhum tópico cadastrado</option>';
@@ -497,12 +536,14 @@ export function onDisciplinaChange() {
   if (aulaSelect && aulaContainer) {
     let ht = '<option value="">Sem material/aula específico</option>';
     if (aulas.length > 0) {
-      ht += aulas.map((a) => {
-        const nomeCompleto = esc(a.nome);
-        const nomeCurto = esc(trunc(a.nome, 96));
-        const prefixo = a.estudada ? '✓ ' : '';
-        return `<option value="${a.id}" title="${nomeCompleto}">${prefixo}${nomeCurto}</option>`;
-      }).join('');
+      ht += aulas
+        .map((a) => {
+          const nomeCompleto = esc(a.nome);
+          const nomeCurto = esc(trunc(a.nome, 96));
+          const prefixo = a.estudada ? '✓ ' : '';
+          return `<option value="${a.id}" title="${nomeCompleto}">${prefixo}${nomeCurto}</option>`;
+        })
+        .join('');
     }
     aulaSelect.innerHTML = ht;
     aulaContainer.style.display = '';
@@ -522,7 +563,7 @@ export function onAulaChange() {
   const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
   if (!discId) return;
   const d = getDisc(discId);
-  const aula = d?.disc?.aulas?.find(a => a.id === aulaId);
+  const aula = d?.disc?.aulas?.find((a) => a.id === aulaId);
   if (aula?.nome) inputTitulo.value = aula.nome;
 }
 
@@ -547,13 +588,16 @@ export function addNovoTopico() {
   const saveBtn = document.getElementById('modal-prompt-save');
   saveBtn.onclick = () => {
     const nome = document.getElementById('prompt-input-topico')?.value.trim();
-    if (!nome) { showToast('Informe o nome do tópico', 'error'); return; }
+    if (!nome) {
+      showToast('Informe o nome do tópico', 'error');
+      return;
+    }
 
     const novoTopico = {
       id: 'ass_' + uid(),
       nome,
       concluido: false,
-      revisoesFetas: []
+      revisoesFetas: [],
     };
 
     d.disc.assuntos.push(novoTopico);
@@ -582,7 +626,8 @@ export function validateQuestoes() {
   if (!fb) return;
 
   if ((ac + er > total && total > 0) || (total === 0 && ac + er > 0)) {
-    fb.innerHTML = '<span class="reg-feedback-error">⚠️ Acertos + Erros não pode ser maior que o Total</span>';
+    fb.innerHTML =
+      '<span class="reg-feedback-error">⚠️ Acertos + Erros não pode ser maior que o Total</span>';
   } else if (total > 0) {
     const pct = Math.round((ac / total) * 100);
     fb.innerHTML = `<span class="reg-feedback-success">${esc(pct)}% de aproveitamento</span>`;
@@ -621,14 +666,18 @@ export function saveRegistroSessao() {
   if (isLivre) {
     ev = state.cronoLivre;
   } else {
-    ev = state.eventos.find(e => e.id === _currentEventId);
+    ev = state.eventos.find((e) => e.id === _currentEventId);
   }
 
-  if (!ev) { showToast('Evento não encontrado', 'error'); return false; }
+  if (!ev) {
+    showToast('Evento não encontrado', 'error');
+    return false;
+  }
 
   // Validation
   if (_selectedTipos.length === 0) {
-    showToast('Selecione ao menos um tipo de estudo', 'error'); return false;
+    showToast('Selecione ao menos um tipo de estudo', 'error');
+    return false;
   }
 
   const discId = document.getElementById('reg-disciplina')?.value;
@@ -639,7 +688,11 @@ export function saveRegistroSessao() {
   // Do NOT strip prefixes — they are part of the canonical ID used in lookups.
 
   if (isLivre && !discId) {
-    showToast('Em sessões livres, escolha pelo menos uma Disciplina para vincular o tempo estudado', 'error'); return false;
+    showToast(
+      'Em sessões livres, escolha pelo menos uma Disciplina para vincular o tempo estudado',
+      'error'
+    );
+    return false;
   }
 
   // Se for Sessão Livre, cria um evento real permanente pro Histórico
@@ -648,10 +701,10 @@ export function saveRegistroSessao() {
     let assName = 'Estudo Genérico';
     if (d) {
       if (aulaId) {
-        const achado = d.disc.aulas?.find(a => a.id === aulaId);
+        const achado = d.disc.aulas?.find((a) => a.id === aulaId);
         if (achado) assName = achado.nome;
       } else {
-        const achado = d.disc.assuntos?.find(a => a.id === assId);
+        const achado = d.disc.assuntos?.find((a) => a.id === assId);
         if (achado) assName = achado.nome;
       }
     }
@@ -665,7 +718,7 @@ export function saveRegistroSessao() {
       assId: assId || null,
       aulaId: aulaId || null,
       tipoInfo: 'Sessão Livre',
-      tempoAcumulado: Math.round(state.cronoLivre.tempoAcumulado || 0)
+      tempoAcumulado: Math.round(state.cronoLivre.tempoAcumulado || 0),
     };
     state.eventos.push(evtReal);
     ev = evtReal; // Swap reference!
@@ -678,8 +731,14 @@ export function saveRegistroSessao() {
     const total = parseInt(document.getElementById('reg-q-total')?.value, 10) || 0;
     const acertos = parseInt(document.getElementById('reg-q-acertos')?.value, 10) || 0;
     const erros = parseInt(document.getElementById('reg-q-erros')?.value, 10) || 0;
-    if (total <= 0) { showToast('Informe o total de questões', 'error'); return false; }
-    if (acertos + erros > total) { showToast('Acertos + Erros não pode ser maior que o Total', 'error'); return false; }
+    if (total <= 0) {
+      showToast('Informe o total de questões', 'error');
+      return false;
+    }
+    if (acertos + erros > total) {
+      showToast('Acertos + Erros não pode ser maior que o Total', 'error');
+      return false;
+    }
     questoes = { total, acertos, erros };
   }
 
@@ -691,15 +750,16 @@ export function saveRegistroSessao() {
     const tempoMin = Number.isFinite(tempoRaw) && tempoRaw > 0 ? tempoRaw : 0;
     if (!titulo && discId && aulaId) {
       const d = getDisc(discId);
-      const aula = d?.disc?.aulas?.find(a => a.id === aulaId);
+      const aula = d?.disc?.aulas?.find((a) => a.id === aulaId);
       if (aula?.nome) titulo = aula.nome;
     }
     videoaula = { titulo, tempoMin };
   }
 
   // Validate páginas if needed
-  const showPaginas = ['leitura', 'informativo', 'sumula'].some(t => _selectedTipos.includes(t)) ||
-    ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some(m => _selectedMateriais.includes(m));
+  const showPaginas =
+    ['leitura', 'informativo', 'sumula'].some((t) => _selectedTipos.includes(t)) ||
+    ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some((m) => _selectedMateriais.includes(m));
 
   let paginas = null;
   if (showPaginas) {
@@ -711,7 +771,10 @@ export function saveRegistroSessao() {
       const inicio = parseInt(document.getElementById('reg-pag-inicio')?.value || '0');
       const fim = parseInt(document.getElementById('reg-pag-fim')?.value || '0');
       if (fim > inicio) paginas = { modo: 'detalhado', inicio, fim, total: fim - inicio };
-      else if (fim > 0 || inicio > 0) { showToast('Página final deve ser maior que a página inicial', 'error'); return false; }
+      else if (fim > 0 || inicio > 0) {
+        showToast('Página final deve ser maior que a página inicial', 'error');
+        return false;
+      }
     }
   }
 
@@ -721,9 +784,9 @@ export function saveRegistroSessao() {
   // Handle Editing Flow
   const isEditingOld = ev.status === 'estudei' && !ev._isPastSession;
   if (isEditingOld) {
-    Object.keys(state.habitos).forEach(tipo => {
+    Object.keys(state.habitos).forEach((tipo) => {
       if (state.habitos[tipo]) {
-        state.habitos[tipo] = state.habitos[tipo].filter(h => h.eventoId !== ev.id);
+        state.habitos[tipo] = state.habitos[tipo].filter((h) => h.eventoId !== ev.id);
       }
     });
   }
@@ -740,8 +803,8 @@ export function saveRegistroSessao() {
     if (editedData) ev.data = editedData;
   } else if (isEditingOld) {
     if (editedData) {
-        ev.data = editedData;
-        ev.dataEstudo = editedData;
+      ev.data = editedData;
+      ev.dataEstudo = editedData;
     }
   } else {
     ev.dataEstudo = todayStr();
@@ -762,10 +825,10 @@ export function saveRegistroSessao() {
     if (d) {
       let titulo = d.disc.nome;
       if (aulaId) {
-        const aula = d.disc.aulas?.find(a => a.id === aulaId);
+        const aula = d.disc.aulas?.find((a) => a.id === aulaId);
         if (aula) titulo += ' — ' + aula.nome;
       } else if (assId) {
-        const ass = d.disc.assuntos?.find(a => a.id === assId);
+        const ass = d.disc.assuntos?.find((a) => a.id === assId);
         if (ass) titulo += ' — ' + ass.nome;
       }
       ev.titulo = titulo;
@@ -792,14 +855,14 @@ export function saveRegistroSessao() {
     const d = getDisc(discId);
     if (d) {
       if (aulaId) {
-        const achadoAula = d.disc.aulas?.find(a => a.id === aulaId);
+        const achadoAula = d.disc.aulas?.find((a) => a.id === aulaId);
         if (achadoAula && !achadoAula.estudada) {
           achadoAula.estudada = true;
         }
       }
 
       if (assId) {
-        const ass = d.disc.assuntos?.find(a => a.id === assId);
+        const ass = d.disc.assuntos?.find((a) => a.id === assId);
         if (ass && !ass.concluido) {
           ass.concluido = true;
           ass.dataConclusao = todayStr();
@@ -810,14 +873,14 @@ export function saveRegistroSessao() {
   }
 
   // Register habits
-  _selectedTipos.forEach(tipo => {
+  _selectedTipos.forEach((tipo) => {
     if (state.habitos[tipo]) {
       state.habitos[tipo].push({
         id: 'hab_' + uid(),
         data: todayStr(),
         eventoId: ev.id,
         tempoMin: Math.round((ev.tempoAcumulado || 0) / 60),
-        ...(questoes && (tipo === 'questoes' || tipo === 'simulado') ? questoes : {})
+        ...(questoes && (tipo === 'questoes' || tipo === 'simulado') ? questoes : {}),
       });
     }
   });
@@ -829,7 +892,7 @@ export function saveRegistroSessao() {
       data: todayStr(),
       eventoId: ev.id,
       tempoMin: Math.round((ev.tempoAcumulado || 0) / 60),
-      total: parseInt(paginas.total, 10)
+      total: parseInt(paginas.total, 10),
     });
   }
 
@@ -842,11 +905,13 @@ export function saveRegistroSessao() {
   if (state.ciclo && state.ciclo.ativo && discId) {
     const discEntry = getDisc(discId);
     const _discNome = discEntry ? discEntry.disc.nome : null;
-    const cycleDisc = discId ? state.ciclo.disciplinas.find(d => {
-      // Try to match by discId first (linked editais), fallback to name match
-      const discEntry = getDisc(discId);
-      return d.id === discId || (discEntry && d.nome === discEntry.disc.nome);
-    }) : null;
+    const cycleDisc = discId
+      ? state.ciclo.disciplinas.find((d) => {
+          // Try to match by discId first (linked editais), fallback to name match
+          const discEntry = getDisc(discId);
+          return d.id === discId || (discEntry && d.nome === discEntry.disc.nome);
+        })
+      : null;
     if (cycleDisc && !cycleDisc.concluido) {
       const addedMin = Math.round((ev.tempoAcumulado || 0) / 60);
       cycleDisc.estudadoMin = (cycleDisc.estudadoMin || 0) + addedMin;
@@ -854,7 +919,7 @@ export function saveRegistroSessao() {
         cycleDisc.concluido = true;
 
         // Check if entire cycle was concluded by this action
-        const allCompleted = state.ciclo.disciplinas.every(d => d.concluido);
+        const allCompleted = state.ciclo.disciplinas.every((d) => d.concluido);
         if (allCompleted) {
           state.ciclo.ciclosCompletos = (state.ciclo.ciclosCompletos || 0) + 1;
         }
@@ -865,7 +930,7 @@ export function saveRegistroSessao() {
   // Update new Planejamento sequence progress
   if (state.planejamento && state.planejamento.ativo && ev.seqId) {
     if (state.planejamento.sequencia) {
-      const seq = state.planejamento.sequencia.find(s => s.id === ev.seqId);
+      const seq = state.planejamento.sequencia.find((s) => s.id === ev.seqId);
       if (seq && !seq.concluido) {
         // We can check if they studied enough, but marking it unconditionally is safer UX for now
         // if they hit "Concluir" in the session register.
@@ -907,15 +972,17 @@ export function saveAndStartNew() {
 // Rollback timer state if user cancels the registro modal
 export function cancelRegistro() {
   const isLivre = _currentEventId === 'crono_livre';
-  const ev = isLivre ? state.cronoLivre : state.eventos.find(e => e.id === _currentEventId);
+  const ev = isLivre ? state.cronoLivre : state.eventos.find((e) => e.id === _currentEventId);
 
   if (ev) {
     if (ev._isPastSession) {
-      state.eventos = state.eventos.filter(e => e.id !== _currentEventId);
+      state.eventos = state.eventos.filter((e) => e.id !== _currentEventId);
       scheduleSave();
     } else if (_savedTimerStart) {
       ev._timerStart = _savedTimerStart;
       ev.tempoAcumulado = _savedTempoAcumulado;
+    } else if (ev && !ev._timerStart) {
+      ev._timerStart = null;
     }
   }
 
@@ -934,7 +1001,7 @@ export function discardTimerUI(eventId) {
 }
 
 export function voltarPastSessionUI(eventId, discId) {
-  state.eventos = state.eventos.filter(e => e.id !== eventId);
+  state.eventos = state.eventos.filter((e) => e.id !== eventId);
   scheduleSave();
   closeModal('modal-registro-sessao');
   setTimeout(() => {
@@ -944,23 +1011,30 @@ export function voltarPastSessionUI(eventId, discId) {
 
 // Listener para fechar modal via data-action - chama cancelRegistro para rollback do timer
 document.addEventListener('click', (e) => {
-  if (e.target.dataset.action === 'close-modal' && e.target.dataset.modal === 'modal-registro-sessao') {
+  if (
+    e.target.dataset.action === 'close-modal' &&
+    e.target.dataset.modal === 'modal-registro-sessao'
+  ) {
     cancelRegistro();
   }
 });
 
 // Global deletion handler for previously registered sessions
 export function deleteCompletedSession(id) {
-  showConfirm('Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?', () => {
-    state.eventos = state.eventos.filter(e => e.id !== id);
-    Object.keys(state.habitos).forEach(tipo => {
-      if (state.habitos[tipo]) {
-        state.habitos[tipo] = state.habitos[tipo].filter(h => h.eventoId !== id);
-      }
-    });
-    scheduleSave();
-    closeModal('modal-registro-sessao');
-    renderCurrentView();
-    showToast('Sessão excluída com sucesso.', 'info');
-  }, { danger: true, label: 'Excluir', title: 'Excluir sessão' });
+  showConfirm(
+    'Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?',
+    () => {
+      state.eventos = state.eventos.filter((e) => e.id !== id);
+      Object.keys(state.habitos).forEach((tipo) => {
+        if (state.habitos[tipo]) {
+          state.habitos[tipo] = state.habitos[tipo].filter((h) => h.eventoId !== id);
+        }
+      });
+      scheduleSave();
+      closeModal('modal-registro-sessao');
+      renderCurrentView();
+      showToast('Sessão excluída com sucesso.', 'info');
+    },
+    { danger: true, label: 'Excluir', title: 'Excluir sessão' }
+  );
 }

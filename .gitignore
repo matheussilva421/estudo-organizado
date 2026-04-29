@@ -2,6 +2,7 @@
 /*
 
 !/.gitignore
+!/.prettierignore
 !/src/
 !/src/**
 !/scripts/

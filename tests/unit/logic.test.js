@@ -125,7 +125,7 @@ describe('logic.js', () => {
         logic.toggleTimer('ev_1');
 
         const ev = store.state.eventos.find(e => e.id === 'ev_1');
-        expect(ev._timerStart).toBeUndefined();
+        expect(ev._timerStart).toBeNull();
         expect(ev.tempoAcumulado).toBe(5);
       });
 
@@ -147,7 +147,7 @@ describe('logic.js', () => {
 
         logic.toggleTimer('crono_livre');
 
-        expect(store.state.cronoLivre._timerStart).toBeUndefined();
+        expect(store.state.cronoLivre._timerStart).toBeNull();
         expect(store.state.cronoLivre.tempoAcumulado).toBe(40);
       });
 
@@ -302,7 +302,7 @@ describe('logic.js', () => {
 
       const ev = store.state.eventos.find(e => e.id === 'ev_1');
       expect(ev.tempoAcumulado).toBe(0);
-      expect(ev._timerStart).toBeUndefined();
+      expect(ev._timerStart).toBeNull();
       expect(global.clearInterval).toHaveBeenCalled();
     });
 
@@ -319,7 +319,7 @@ describe('logic.js', () => {
       confirmCall.detail.onYes();
 
       expect(store.state.cronoLivre.tempoAcumulado).toBe(0);
-      expect(store.state.cronoLivre._timerStart).toBeUndefined();
+      expect(store.state.cronoLivre._timerStart).toBeNull();
     });
 
     it('does nothing for non-existent event', () => {
@@ -440,7 +440,7 @@ describe('logic.js', () => {
         logic._marcarEstudeiDirect('ev_1');
 
         const ev = store.state.eventos.find(e => e.id === 'ev_1');
-        expect(ev._timerStart).toBeUndefined();
+        expect(ev._timerStart).toBeNull();
         expect(ev.tempoAcumulado).toBe(10);
         expect(global.clearInterval).toHaveBeenCalled();
       });

@@ -5,257 +5,316 @@ import { openModal, closeModal } from './app.js?v=8.29';
 
 let currentStep = 1;
 let draft = {
-    tipo: null, // 'ciclo' ou 'semanal'
-    disciplinas: [], // ids
-    relevancia: {}, // { id: { importancia, conhecimento } }
-    horarios: {
-        horasSemanais: '',
-        sessaoMin: 30,
-        sessaoMax: 120,
-        dataInicial: '',
-        dataFinal: '',
-        diasAtivos: [],
-        horasPorDia: { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }
-    }
+  tipo: null, // 'ciclo' ou 'semanal'
+  disciplinas: [], // ids
+  relevancia: {}, // { id: { importancia, conhecimento } }
+  horarios: {
+    horasSemanais: '',
+    sessaoMin: 30,
+    sessaoMax: 120,
+    dataInicial: '',
+    dataFinal: '',
+    diasAtivos: [],
+    horasPorDia: { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' },
+  },
 };
 
-export function openPlanejamentoWizard() {
-    // Carregar estado existente seo houver
-    if (state.planejamento && state.planejamento.tipo) {
-        draft = JSON.parse(JSON.stringify({
-            tipo: state.planejamento.tipo || null,
-            disciplinas: state.planejamento.disciplinas || [],
-            relevancia: state.planejamento.relevancia || {},
-            horarios: state.planejamento.horarios || {
-                horasSemanais: '', sessaoMin: 30, sessaoMax: 120, diasAtivos: [], dataInicial: '', dataFinal: '',
-                horasPorDia: { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }
-            }
-        }));
-    } else {
-        draft = {
-            tipo: null, disciplinas: [], relevancia: {}, horarios: {
-                horasSemanais: '', sessaoMin: 30, sessaoMax: 120, diasAtivos: [], dataInicial: '', dataFinal: '',
-                horasPorDia: { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }
-            }
-        };
-    }
+function createDefaultDraft() {
+  return {
+    tipo: null,
+    disciplinas: [],
+    relevancia: {},
+    horarios: {
+      horasSemanais: '',
+      sessaoMin: 30,
+      sessaoMax: 120,
+      dataInicial: '',
+      dataFinal: '',
+      diasAtivos: [],
+      horasPorDia: { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' },
+    },
+  };
+}
 
-    currentStep = 1;
-    openModal('modal-planejamento');
-    attachWizardListeners();
-    renderStep();
+function normalizeDraft(value = {}) {
+  const base = createDefaultDraft();
+  return {
+    ...base,
+    ...value,
+    disciplinas: Array.isArray(value.disciplinas) ? value.disciplinas : [],
+    relevancia: value.relevancia && typeof value.relevancia === 'object' ? value.relevancia : {},
+    horarios: {
+      ...base.horarios,
+      ...(value.horarios && typeof value.horarios === 'object' ? value.horarios : {}),
+      diasAtivos: Array.isArray(value.horarios?.diasAtivos) ? value.horarios.diasAtivos : [],
+      horasPorDia: {
+        ...base.horarios.horasPorDia,
+        ...(value.horarios?.horasPorDia && typeof value.horarios.horasPorDia === 'object'
+          ? value.horarios.horasPorDia
+          : {}),
+      },
+    },
+  };
+}
+
+export function openPlanejamentoWizard() {
+  // Carregar estado existente seo houver
+  if (state.planejamento && state.planejamento.tipo) {
+    draft = normalizeDraft(
+      JSON.parse(
+        JSON.stringify({
+          tipo: state.planejamento.tipo || null,
+          disciplinas: state.planejamento.disciplinas || [],
+          relevancia: state.planejamento.relevancia || {},
+          horarios: state.planejamento.horarios || {
+            horasSemanais: '',
+            sessaoMin: 30,
+            sessaoMax: 120,
+            diasAtivos: [],
+            dataInicial: '',
+            dataFinal: '',
+            horasPorDia: { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' },
+          },
+        })
+      )
+    );
+  } else {
+    draft = createDefaultDraft();
+  }
+
+  currentStep = 1;
+  openModal('modal-planejamento');
+  attachWizardListeners();
+  renderStep();
 }
 
 function attachWizardListeners() {
-    const btnNext = document.getElementById('pw-btn-proximo');
-    const btnBack = document.getElementById('pw-btn-voltar');
-    const btnDone = document.getElementById('pw-btn-concluir');
+  const btnNext = document.getElementById('pw-btn-proximo');
+  const btnBack = document.getElementById('pw-btn-voltar');
+  const btnDone = document.getElementById('pw-btn-concluir');
 
-    if (!btnNext || !btnBack || !btnDone) {
-        console.error('attachWizardListeners: elementos do wizard não encontrados');
-        return;
+  if (!btnNext || !btnBack || !btnDone) {
+    console.error('attachWizardListeners: elementos do wizard não encontrados');
+    return;
+  }
+
+  // Remove old listeners by cloning
+  btnNext.replaceWith(btnNext.cloneNode(true));
+  btnBack.replaceWith(btnBack.cloneNode(true));
+  btnDone.replaceWith(btnDone.cloneNode(true));
+
+  document.getElementById('pw-btn-proximo').addEventListener('click', () => {
+    if (validateStep(currentStep)) {
+      currentStep++;
+      renderStep();
     }
+  });
 
-    // Remove old listeners by cloning
-    btnNext.replaceWith(btnNext.cloneNode(true));
-    btnBack.replaceWith(btnBack.cloneNode(true));
-    btnDone.replaceWith(btnDone.cloneNode(true));
+  document.getElementById('pw-btn-voltar').addEventListener('click', () => {
+    if (currentStep > 1) {
+      currentStep--;
+      renderStep();
+    }
+  });
 
-    document.getElementById('pw-btn-proximo').addEventListener('click', () => {
-        if (validateStep(currentStep)) {
-            currentStep++;
-            renderStep();
-        }
-    });
-
-    document.getElementById('pw-btn-voltar').addEventListener('click', () => {
-        if (currentStep > 1) {
-            currentStep--;
-            renderStep();
-        }
-    });
-
-    document.getElementById('pw-btn-concluir').addEventListener('click', () => {
-        if (validateStep(4)) {
-            try {
-                generatePlanejamento(draft);
-                document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Planejamento gerado com sucesso!', type: 'success' } }));
-                closeModal('modal-planejamento');
-                document.dispatchEvent(new Event('app:renderCurrentView'));
-            } catch (err) {
-                document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Erro ao gerar Planejamento: ' + err.message, type: 'error' } }));
-                console.error(err);
-            }
-        } else {
-            document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Erro de validação no passo 4. Verifique os campos.', type: 'error' } }));
-        }
-    });
+  document.getElementById('pw-btn-concluir').addEventListener('click', () => {
+    if (validateStep(4)) {
+      try {
+        generatePlanejamento(draft);
+        document.dispatchEvent(
+          new CustomEvent('app:showToast', {
+            detail: { msg: 'Planejamento gerado com sucesso!', type: 'success' },
+          })
+        );
+        closeModal('modal-planejamento');
+        document.dispatchEvent(new Event('app:renderCurrentView'));
+      } catch (err) {
+        document.dispatchEvent(
+          new CustomEvent('app:showToast', {
+            detail: { msg: 'Erro ao gerar Planejamento: ' + err.message, type: 'error' },
+          })
+        );
+        console.error(err);
+      }
+    } else {
+      document.dispatchEvent(
+        new CustomEvent('app:showToast', {
+          detail: { msg: 'Erro de validação no passo 4. Verifique os campos.', type: 'error' },
+        })
+      );
+    }
+  });
 }
 
 export function pwSelectTipo(tipo) {
-    draft.tipo = tipo;
-    renderStep();
+  draft.tipo = tipo;
+  renderStep();
 }
 
 export function pwToggleDisc(id) {
-    if (draft.disciplinas.includes(id)) {
-        draft.disciplinas = draft.disciplinas.filter(d => d !== id);
-    } else {
-        draft.disciplinas.push(id);
-    }
+  draft = normalizeDraft(draft);
+  if (draft.disciplinas.includes(id)) {
+    draft.disciplinas = draft.disciplinas.filter((d) => d !== id);
+  } else {
+    draft.disciplinas.push(id);
+  }
 
-    // Auto populate relevance if not exists
-    if (!draft.relevancia[id]) {
-        draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
-    }
+  // Auto populate relevance if not exists
+  if (!draft.relevancia[id]) {
+    draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
+  }
 
-    // Update counter
-    const c = document.getElementById('pw-disc-count');
-    if (c) c.textContent = `${draft.disciplinas.length} disciplinas selecionadas`;
+  // Update counter
+  const c = document.getElementById('pw-disc-count');
+  if (c) c.textContent = `${draft.disciplinas.length} disciplinas selecionadas`;
 
-    renderStep(); // Recalculate button states
+  renderStep(); // Recalculate button states
 }
 
 export function pwSearchDisc(q) {
-    const query = q.toLowerCase();
-    document.querySelectorAll('.pw-disc-card').forEach(el => {
-        const text = el.textContent.toLowerCase();
-        el.style.display = text.includes(query) ? 'flex' : 'none';
-    });
+  const query = q.toLowerCase();
+  document.querySelectorAll('.pw-disc-card').forEach((el) => {
+    const text = el.textContent.toLowerCase();
+    el.style.display = text.includes(query) ? 'flex' : 'none';
+  });
 }
 
 export function pwSelectAllDisc() {
-    const all = getActiveDisciplinas();
-    draft.disciplinas = all.map(d => d.disc.id);
-    draft.disciplinas.forEach(id => {
-        if (!draft.relevancia[id]) draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
-    });
-    renderStep();
+  draft = normalizeDraft(draft);
+  const all = getActiveDisciplinas() || [];
+  draft.disciplinas = all.map((d) => d.disc.id);
+  draft.disciplinas.forEach((id) => {
+    if (!draft.relevancia[id]) draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
+  });
+  renderStep();
 }
 
 export function pwClearDisc() {
-    draft.disciplinas = [];
-    renderStep();
+  draft = normalizeDraft(draft);
+  draft.disciplinas = [];
+  renderStep();
 }
 
 let _relDebounce = null;
 export function pwUpdateRel(id, field, val) {
-    if (!draft.relevancia[id]) draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
-    draft.relevancia[id][field] = parseInt(val, 10);
+  if (!draft.relevancia[id]) draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
+  draft.relevancia[id][field] = parseInt(val, 10);
 
-    // Update label visual
-    const lbl = document.getElementById(`pw-lbl-${field}-${id}`);
-    if (lbl) lbl.textContent = val;
+  // Update label visual
+  const lbl = document.getElementById(`pw-lbl-${field}-${id}`);
+  if (lbl) lbl.textContent = val;
 
-    if (_relDebounce) clearTimeout(_relDebounce);
-    _relDebounce = setTimeout(() => {
-        pwRenderWeightPreview();
-    }, 100);
+  if (_relDebounce) clearTimeout(_relDebounce);
+  _relDebounce = setTimeout(() => {
+    pwRenderWeightPreview();
+  }, 100);
 }
 
 export function pwToggleDay(dayIndex) {
-    const idx = parseInt(dayIndex, 10);
-    if (draft.horarios.diasAtivos.includes(idx)) {
-        draft.horarios.diasAtivos = draft.horarios.diasAtivos.filter(d => d !== idx);
-    } else {
-        draft.horarios.diasAtivos.push(idx);
-    }
-    renderStep(); // Checkboxes can re-render safely
+  const idx = parseInt(dayIndex, 10);
+  if (draft.horarios.diasAtivos.includes(idx)) {
+    draft.horarios.diasAtivos = draft.horarios.diasAtivos.filter((d) => d !== idx);
+  } else {
+    draft.horarios.diasAtivos.push(idx);
+  }
+  renderStep(); // Checkboxes can re-render safely
 }
 
 export function pwUpdateHours(field, val) {
-    draft.horarios[field] = val;
-    pwUpdateButtons();
+  draft.horarios[field] = val;
+  pwUpdateButtons();
 }
 
 let _hoursDebounce = null;
 export function pwUpdateDayHour(dayIdx, val) {
-    draft.horarios.horasPorDia[dayIdx] = val;
-    if (_hoursDebounce) clearTimeout(_hoursDebounce);
-    _hoursDebounce = setTimeout(() => {
-        pwUpdateButtons();
-    }, 100);
+  draft.horarios.horasPorDia[dayIdx] = val;
+  if (_hoursDebounce) clearTimeout(_hoursDebounce);
+  _hoursDebounce = setTimeout(() => {
+    pwUpdateButtons();
+  }, 100);
 }
 
 function pwUpdateButtons() {
-    const btnNext = document.getElementById('pw-btn-proximo');
-    const btnDone = document.getElementById('pw-btn-concluir');
-    if (currentStep === 4) {
-        if (btnDone) btnDone.disabled = !validateStep(4);
-    } else {
-        if (btnNext) btnNext.disabled = !validateStep(currentStep);
-    }
+  const btnNext = document.getElementById('pw-btn-proximo');
+  const btnDone = document.getElementById('pw-btn-concluir');
+  if (currentStep === 4) {
+    if (btnDone) btnDone.disabled = !validateStep(4);
+  } else {
+    if (btnNext) btnNext.disabled = !validateStep(currentStep);
+  }
 }
 
 function renderStep() {
-    // Update Stepper UI
-    for (let i = 1; i <= 4; i++) {
-        const el = document.getElementById(`pw-step-${i}`);
-        if (el) {
-            if (i === currentStep) {
-                el.style.color = 'var(--accent)';
-                el.style.fontWeight = '600';
-            } else if (i < currentStep) {
-                el.style.color = 'var(--green)';
-                el.style.fontWeight = '500';
-            } else {
-                el.style.color = 'var(--text-muted)';
-                el.style.fontWeight = '500';
-            }
-        }
+  // Update Stepper UI
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`pw-step-${i}`);
+    if (el) {
+      if (i === currentStep) {
+        el.style.color = 'var(--accent)';
+        el.style.fontWeight = '600';
+      } else if (i < currentStep) {
+        el.style.color = 'var(--green)';
+        el.style.fontWeight = '500';
+      } else {
+        el.style.color = 'var(--text-muted)';
+        el.style.fontWeight = '500';
+      }
     }
+  }
 
-    // Buttons
-    document.getElementById('pw-btn-voltar').style.visibility = currentStep === 1 ? 'hidden' : 'visible';
-    const btnNext = document.getElementById('pw-btn-proximo');
-    const btnDone = document.getElementById('pw-btn-concluir');
+  // Buttons
+  document.getElementById('pw-btn-voltar').style.visibility =
+    currentStep === 1 ? 'hidden' : 'visible';
+  const btnNext = document.getElementById('pw-btn-proximo');
+  const btnDone = document.getElementById('pw-btn-concluir');
 
-    if (currentStep === 4) {
-        btnNext.style.display = 'none';
-        btnDone.style.display = 'block';
-        btnDone.disabled = !validateStep(4);
-    } else {
-        btnNext.style.display = 'block';
-        btnDone.style.display = 'none';
-        btnNext.disabled = !validateStep(currentStep);
-    }
+  if (currentStep === 4) {
+    btnNext.style.display = 'none';
+    btnDone.style.display = 'block';
+    btnDone.disabled = !validateStep(4);
+  } else {
+    btnNext.style.display = 'block';
+    btnDone.style.display = 'none';
+    btnNext.disabled = !validateStep(currentStep);
+  }
 
-    const body = document.getElementById('modal-planejamento-body');
-    if (currentStep === 1) body.innerHTML = htmlStep1();
-    if (currentStep === 2) body.innerHTML = htmlStep2();
-    if (currentStep === 3) {
-        body.innerHTML = htmlStep3();
-        pwRenderWeightPreview();
-    }
-    if (currentStep === 4) body.innerHTML = htmlStep4();
+  const body = document.getElementById('modal-planejamento-body');
+  if (currentStep === 1) body.innerHTML = htmlStep1();
+  if (currentStep === 2) body.innerHTML = htmlStep2();
+  if (currentStep === 3) {
+    body.innerHTML = htmlStep3();
+    pwRenderWeightPreview();
+  }
+  if (currentStep === 4) body.innerHTML = htmlStep4();
 }
 
 function validateStep(step) {
-    if (step === 1) return !!draft.tipo;
-    if (step === 2) return draft.disciplinas.length > 0;
-    if (step === 3) return true; // sliders always have values
-    if (step === 4) {
-        const min = parseInt(draft.horarios.sessaoMin, 10) || 0;
-        const max = parseInt(draft.horarios.sessaoMax, 10) || 0;
-        if (min < 1 || max < min) return false;
+  draft = normalizeDraft(draft);
+  if (step === 1) return !!draft.tipo;
+  if (step === 2) return draft.disciplinas.length > 0;
+  if (step === 3) return true; // sliders always have values
+  if (step === 4) {
+    const min = parseInt(draft.horarios.sessaoMin, 10) || 0;
+    const max = parseInt(draft.horarios.sessaoMax, 10) || 0;
+    if (min < 1 || max < min) return false;
 
-        if (draft.tipo === 'ciclo') {
-            const hs = parseFloat(draft.horarios.horasSemanais) || 0;
-            return hs > 0;
-        } else {
-            let hasTime = false;
-            for (let i = 0; i < 7; i++) {
-                const val = draft.horarios.horasPorDia[i];
-                if (val && val.trim() !== '' && draft.horarios.diasAtivos.includes(i)) hasTime = true;
-            }
-            return hasTime && draft.horarios.diasAtivos.length > 0;
-        }
+    if (draft.tipo === 'ciclo') {
+      const hs = parseFloat(draft.horarios.horasSemanais) || 0;
+      return hs > 0;
+    } else {
+      let hasTime = false;
+      for (let i = 0; i < 7; i++) {
+        const val = draft.horarios.horasPorDia[i];
+        if (val && val.trim() !== '' && draft.horarios.diasAtivos.includes(i)) hasTime = true;
+      }
+      return hasTime && draft.horarios.diasAtivos.length > 0;
     }
-    return false;
+  }
+  return false;
 }
 
 function htmlStep1() {
-    return `
+  return `
         <div class="pw-center-container">
             <h3 class="mb-2 text-20px">Qual é a sua estratégia de estudo?</h3>
             <p class="text-secondary text-lg mb-6">
@@ -288,19 +347,20 @@ function htmlStep1() {
 }
 
 function htmlStep2() {
-    const all = getActiveDisciplinas();
+  draft = normalizeDraft(draft);
+  const all = getActiveDisciplinas() || [];
 
-    if (all.length === 0) {
-        return `
+  if (all.length === 0) {
+    return `
             <div class="pw-empty-state">
                 <h3 class="mb-4 text-red">Nenhuma disciplina encontrada</h3>
                 <p class="text-secondary mb-6">Você precisa cadastrar editais e disciplinas antes de planejar.</p>
                 <button class="btn btn-primary" data-action="navigate" data-view="editais">Ir para Editais</button>
             </div>
         `;
-    }
+  }
 
-    return `
+  return `
         <div>
             <div class="flex-between mb-4">
                 <div>
@@ -316,9 +376,10 @@ function htmlStep2() {
             <input type="text" class="form-control mb-4" placeholder="Buscar disciplina..." data-action="pw-search-disc">
 
             <div class="pw-disc-grid">
-                ${all.map(d => {
-        const sel = draft.disciplinas.includes(d.disc.id);
-        return `
+                ${all
+                  .map((d) => {
+                    const sel = draft.disciplinas.includes(d.disc.id);
+                    return `
                     <div class="pw-disc-card selection-card ${sel ? 'is-selected' : ''}" data-action="pw-toggle-disc" data-disc-id="${d.disc.id}">
                         <div class="selection-check">
                             ${sel ? '✓' : ''}
@@ -327,25 +388,33 @@ function htmlStep2() {
                             ${d.disc.icone || '📚'} ${esc(d.disc.nome)}
                         </div>
                     </div>`;
-    }).join('')}
+                  })
+                  .join('')}
             </div>
         </div>
     `;
 }
 
 function htmlStep3() {
-    const selected = getActiveDisciplinas().filter(d => draft.disciplinas.includes(d.disc.id));
+  draft = normalizeDraft(draft);
+  const selected = (getActiveDisciplinas() || []).filter((d) =>
+    draft.disciplinas.includes(d.disc.id)
+  );
 
-    return `
+  return `
         <div class="pw-main-layout">
             <div class="pw-main-left">
                 <h3 class="text-18px mb-1">Relevância e Domínio</h3>
                 <p class="text-secondary text-md mb-6">Defina a importância da matéria para sua prova e o seu nível de conhecimento atual. O sistema priorizará matérias muito importantes que você ainda não domina.</p>
 
                 <div class="pw-slider-group">
-                    ${selected.map(d => {
-        const rel = draft.relevancia[d.disc.id] || { importancia: 3, conhecimento: 3 };
-        return `
+                    ${selected
+                      .map((d) => {
+                        const rel = draft.relevancia[d.disc.id] || {
+                          importancia: 3,
+                          conhecimento: 3,
+                        };
+                        return `
                         <div class="pw-slider-card">
                             <div class="font-semibold text-lg mb-3 text-primary">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
 
@@ -376,7 +445,8 @@ function htmlStep3() {
                                 </div>
                             </div>
                         </div>`;
-    }).join('')}
+                      })
+                      .join('')}
                 </div>
             </div>
 
@@ -392,25 +462,29 @@ function htmlStep3() {
 }
 
 export function pwRenderWeightPreview() {
-    const el = document.getElementById('pw-weight-preview');
-    if (!el) return;
+  const el = document.getElementById('pw-weight-preview');
+  if (!el) return;
 
-    let totalPeso = 0;
-    const computed = [];
-    const selected = getActiveDisciplinas().filter(d => draft.disciplinas.includes(d.disc.id));
+  draft = normalizeDraft(draft);
+  let totalPeso = 0;
+  const computed = [];
+  const selected = (getActiveDisciplinas() || []).filter((d) =>
+    draft.disciplinas.includes(d.disc.id)
+  );
 
-    selected.forEach(d => {
-        const r = draft.relevancia[d.disc.id] || { importancia: 3, conhecimento: 3 };
-        const peso = r.importancia * (6 - r.conhecimento);
-        totalPeso += peso;
-        computed.push({ name: d.disc.nome, color: d.edital.cor || 'var(--accent)', peso });
-    });
+  selected.forEach((d) => {
+    const r = draft.relevancia[d.disc.id] || { importancia: 3, conhecimento: 3 };
+    const peso = r.importancia * (6 - r.conhecimento);
+    totalPeso += peso;
+    computed.push({ name: d.disc.nome, color: d.edital?.cor || 'var(--accent)', peso });
+  });
 
-    computed.sort((a, b) => b.peso - a.peso);
+  computed.sort((a, b) => b.peso - a.peso);
 
-    el.innerHTML = computed.map(c => {
-        const pct = totalPeso > 0 ? ((c.peso / totalPeso) * 100).toFixed(1) : 0;
-        return `
+  el.innerHTML = computed
+    .map((c) => {
+      const pct = totalPeso > 0 ? ((c.peso / totalPeso) * 100).toFixed(1) : 0;
+      return `
             <div>
                 <div class="pw-bar-label-row">
                     <span class="pw-bar-name">${esc(c.name)}</span>
@@ -421,26 +495,27 @@ export function pwRenderWeightPreview() {
                 </div>
             </div>
         `;
-    }).join('');
+    })
+    .join('');
 }
 
 Object.assign(window, {
-    pwSelectTipo,
-    pwToggleDisc,
-    pwSearchDisc,
-    pwSelectAllDisc,
-    pwClearDisc,
-    pwUpdateRel,
-    pwToggleDay,
-    pwUpdateHours,
-    pwUpdateDayHour,
-    pwRenderWeightPreview
+  pwSelectTipo,
+  pwToggleDisc,
+  pwSearchDisc,
+  pwSelectAllDisc,
+  pwClearDisc,
+  pwUpdateRel,
+  pwToggleDay,
+  pwUpdateHours,
+  pwUpdateDayHour,
+  pwRenderWeightPreview,
 });
 
 function htmlStep4() {
-    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-    let html = `
+  let html = `
         <h3 class="text-18px mb-1">Configuração de Horários</h3>
         <p class="text-secondary text-md mb-6">Defina os limites corporais do seu estudo. Qual o tamanho de um "bloco de estudo" para este longo prazo?</p>
 
@@ -471,8 +546,8 @@ function htmlStep4() {
         </div>
     `;
 
-    if (draft.tipo === 'ciclo') {
-        html += `
+  if (draft.tipo === 'ciclo') {
+    html += `
             <div class="pw-config-card">
                 <h4 class="pw-config-heading">Meta do Ciclo</h4>
                 <div class="mb-6">
@@ -483,20 +558,25 @@ function htmlStep4() {
 
                 <label class="form-label">Quais dias de sol você pretende estudar? (Apenas para estimativas)</label>
                 <div class="flex-wrap cluster-sm">
-                    ${days.map((d, i) => `
+                    ${days
+                      .map(
+                        (d, i) => `
                         <button data-action="pw-toggle-day" data-day-index="${i}" class="btn pw-day-toggle ${draft.horarios.diasAtivos.includes(i) ? 'is-selected' : ''}">${d}</button>
-                    `).join('')}
+                    `
+                      )
+                      .join('')}
                 </div>
             </div>
         `;
-    } else {
-        html += `
+  } else {
+    html += `
             <div class="pw-config-card">
                 <h4 class="pw-config-heading">Agenda Semanal</h4>
                 <div class="pw-week-grid">
-                    ${days.map((d, i) => {
-            const ativo = draft.horarios.diasAtivos.includes(i);
-            return `
+                    ${days
+                      .map((d, i) => {
+                        const ativo = draft.horarios.diasAtivos.includes(i);
+                        return `
                         <div class="pw-week-row">
                             <label class="cluster-sm cursor-pointer pw-week-day-label">
                                 <input type="checkbox" ${ativo ? 'checked' : ''} data-action="pw-toggle-day" data-day-index="${i}">
@@ -505,11 +585,13 @@ function htmlStep4() {
                             <input type="time" class="form-control flex-1 ${ativo ? '' : 'pw-time-input is-inactive'}"
                                 value="${draft.horarios.horasPorDia[i] || ''}" data-action="pw-update-day-hour" data-day-index="${i}">
                         </div>
-                    `;}).join('')}
+                    `;
+                      })
+                      .join('')}
                 </div>
             </div>
         `;
-    }
+  }
 
-    return html;
+  return html;
 }

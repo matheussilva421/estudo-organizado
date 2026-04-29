@@ -1,18 +1,55 @@
 import { currentView } from './app.js?v=8.29';
-import { formatDate, formatTime, getEventStatus, todayStr, esc, getHabitType } from './utils.js?v=8.29';
-import { renderConfig, renderDashboard, renderEditais, renderHabitos, renderHistoricoSessoes, renderHome, renderMED, renderRevisoes, renderVertical, renderCiclo, renderBancaAnalyzerModule, destroyDashboardCharts, renderSkeletonLoader } from './views.js?v=8.29';
+import {
+  formatDate,
+  formatTime,
+  getEventStatus,
+  todayStr,
+  esc,
+  getHabitType,
+} from './utils.js?v=8.29';
+import {
+  renderConfig,
+  renderDashboard,
+  renderEditais,
+  renderHabitos,
+  renderHistoricoSessoes,
+  renderHome,
+  renderMED,
+  renderRevisoes,
+  renderVertical,
+  renderCiclo,
+  renderBancaAnalyzerModule,
+  destroyDashboardCharts,
+  renderSkeletonLoader,
+} from './views.js?v=8.29';
 import { renderCalendar } from './views/calendar-view.js?v=8.29';
 import { state } from './store.js?v=8.29';
-import { getActiveDisciplinas, getDisc, getElapsedSeconds, getPendingRevisoes, isTimerActive, _pomodoroMode } from './logic.js?v=8.29';
+import {
+  getActiveDisciplinas,
+  getDisc,
+  getElapsedSeconds,
+  getPendingRevisoes,
+  isTimerActive,
+  _pomodoroMode,
+} from './logic.js?v=8.29';
 import { getActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.29';
-import { getDiscChartInstance, setDiscChartInstance, getPlanjChartInstance, setPlanjChartInstance } from './state/chart-state.js?v=8.29';
+import {
+  getDiscChartInstance,
+  setDiscChartInstance,
+  getPlanjChartInstance,
+  setPlanjChartInstance,
+} from './state/chart-state.js?v=8.29';
 
 export { getDiscChartInstance, setDiscChartInstance, getPlanjChartInstance, setPlanjChartInstance };
 
 // Module-level state
 let _cronoInterval = null;
-export function getCronoInterval() { return _cronoInterval; }
-export function setCronoInterval(val) { _cronoInterval = val; }
+export function getCronoInterval() {
+  return _cronoInterval;
+}
+export function setCronoInterval(val) {
+  _cronoInterval = val;
+}
 
 // =============================================
 // DOM COMPONENTS AND RENDERERS
@@ -23,11 +60,13 @@ export function setCronoInterval(val) { _cronoInterval = val; }
  * @param {HTMLElement} el - Container da view
  */
 export function renderCronometro(el) {
-  let allTimerEvents = state.eventos.filter(e =>
-    e._timerStart || (!e._timerStart && (e.tempoAcumulado || 0) > 0 && e.status !== 'estudei')
+  let allTimerEvents = state.eventos.filter(
+    (e) =>
+      e._timerStart || (!e._timerStart && (e.tempoAcumulado || 0) > 0 && e.status !== 'estudei')
   );
 
-  const isLivreActiveOrPaused = state.cronoLivre && (state.cronoLivre._timerStart || state.cronoLivre.tempoAcumulado > 0);
+  const isLivreActiveOrPaused =
+    state.cronoLivre && (state.cronoLivre._timerStart || state.cronoLivre.tempoAcumulado > 0);
 
   if (allTimerEvents.length === 0 || isLivreActiveOrPaused) {
     const cronoLivreMock = {
@@ -37,19 +76,23 @@ export function renderCronometro(el) {
       assId: state.cronoLivre?.assId || null,
       duracaoMinutos: state.cronoLivre?.duracaoMinutos || 0,
       tempoAcumulado: state.cronoLivre?.tempoAcumulado || 0,
-      _timerStart: state.cronoLivre?._timerStart || null
+      _timerStart: state.cronoLivre?._timerStart || null,
     };
     // Criar novo array ao invés de mutar com unshift/push
     if (isLivreActiveOrPaused) allTimerEvents = [cronoLivreMock, ...allTimerEvents];
     else if (allTimerEvents.length === 0) allTimerEvents = [cronoLivreMock];
   }
 
-  const focusEvent = allTimerEvents.find(e => e._timerStart) || allTimerEvents[0];
+  const focusEvent = allTimerEvents.find((e) => e._timerStart) || allTimerEvents[0];
   const discEntry = focusEvent?.discId ? getDisc(focusEvent.discId) : null;
-  const discName = discEntry ? discEntry.disc.nome : (focusEvent.id === 'crono_livre' ? 'Nenhuma' : 'Sem disciplina');
+  const discName = discEntry
+    ? discEntry.disc.nome
+    : focusEvent.id === 'crono_livre'
+      ? 'Nenhuma'
+      : 'Sem disciplina';
   let assName = focusEvent.titulo;
   if (discEntry && focusEvent.assId) {
-    const achado = discEntry.disc.assuntos.find(a => a.id === focusEvent.assId);
+    const achado = discEntry.disc.assuntos.find((a) => a.id === focusEvent.assId);
     if (achado) assName = achado.nome;
   }
 
@@ -57,14 +100,19 @@ export function renderCronometro(el) {
   const isActive = !!focusEvent._timerStart;
 
   // Calculate progress (if event has planned time, default 1h30 (5400s) if not free session)
-  const plannedSecs = (focusEvent.duracaoMinutos || focusEvent.duracao) ? (focusEvent.duracaoMinutos || focusEvent.duracao) * 60 : (focusEvent.id === 'crono_livre' ? 0 : 5400);
+  const plannedSecs =
+    focusEvent.duracaoMinutos || focusEvent.duracao
+      ? (focusEvent.duracaoMinutos || focusEvent.duracao) * 60
+      : focusEvent.id === 'crono_livre'
+        ? 0
+        : 5400;
   const progress = plannedSecs > 0 ? Math.min((elapsed / plannedSecs) * 100, 100) : 0;
   const truncateOptionLabel = (text, max = 64) => {
     const normalized = String(text || '').trim();
     return normalized.length > max ? `${normalized.slice(0, max - 1)}…` : normalized;
   };
 
-  const otherEvents = allTimerEvents.filter(e => e.id !== focusEvent.id);
+  const otherEvents = allTimerEvents.filter((e) => e.id !== focusEvent.id);
 
   el.innerHTML = `
     <div class="crono-fullscreen">
@@ -76,29 +124,43 @@ export function renderCronometro(el) {
         <div class="crono-pill">
           Você está estudando:
         </div>
-        ${focusEvent.id === 'crono_livre' ? `
+        ${
+          focusEvent.id === 'crono_livre'
+            ? `
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px;">
           <select class="crono-select" data-action="set-crono-livre-disc" value="${state.cronoLivre?.discId || ''}">
             <option value="">(Opcional) Escolha a Disciplina...</option>
-            ${getActiveDisciplinas().map(d => {
-      const discLabel = `${d.disc.icone || '📖'} ${truncateOptionLabel(d.disc.nome, 42)}`;
-      return `<option value="${d.disc.id}" title="${esc(d.disc.nome)}" ${state.cronoLivre?.discId === d.disc.id ? 'selected' : ''}>${esc(discLabel)}</option>`;
-    }).join('')}
+            ${getActiveDisciplinas()
+              .map((d) => {
+                const discLabel = `${d.disc.icone || '📖'} ${truncateOptionLabel(d.disc.nome, 42)}`;
+                return `<option value="${d.disc.id}" title="${esc(d.disc.nome)}" ${state.cronoLivre?.discId === d.disc.id ? 'selected' : ''}>${esc(discLabel)}</option>`;
+              })
+              .join('')}
           </select>
-          ${state.cronoLivre?.discId ? `
+          ${
+            state.cronoLivre?.discId
+              ? `
             <select class="crono-select" data-action="set-crono-livre-ass" value="${state.cronoLivre?.assId || ''}">
               <option value="">(Opcional) Tópico...</option>
               ${(() => {
                 const d = getDisc(state.cronoLivre.discId);
-                return d ? d.disc.assuntos.filter(a => !a.concluido).map(a => {
-                  const assuntoLabel = truncateOptionLabel(a.nome, 72);
-                  return `<option value="${a.id}" title="${esc(a.nome)}" ${state.cronoLivre?.assId === a.id ? 'selected' : ''}>${esc(assuntoLabel)}</option>`;
-                }).join('') : '';
+                return d
+                  ? d.disc.assuntos
+                      .filter((a) => !a.concluido)
+                      .map((a) => {
+                        const assuntoLabel = truncateOptionLabel(a.nome, 72);
+                        return `<option value="${a.id}" title="${esc(a.nome)}" ${state.cronoLivre?.assId === a.id ? 'selected' : ''}>${esc(assuntoLabel)}</option>`;
+                      })
+                      .join('')
+                  : '';
               })()}
             </select>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
-        ` : `
+        `
+            : `
         <div style="color:var(--text-primary);font-size:20px;margin-top:16px;font-weight:700;">
            ${discName}
         </div>
@@ -109,7 +171,8 @@ export function renderCronometro(el) {
         ">
           ${assName}
         </div>
-        `}
+        `
+        }
       </div>
 
       <!-- Progress bar -->
@@ -162,7 +225,9 @@ export function renderCronometro(el) {
 
         <!-- Add time buttons / Goal Input -->
         <div style="margin-top:40px;text-align:center;">
-          ${focusEvent.id === 'crono_livre' ? `
+          ${
+            focusEvent.id === 'crono_livre'
+              ? `
           <div style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;letter-spacing:1px;">
             Definir Meta de Tempo (minutos):
           </div>
@@ -175,7 +240,8 @@ export function renderCronometro(el) {
                    style="width:80px;">
             <button data-action="set-crono-livre-goal" data-value="+5" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">+</button>
           </div>
-          ` : `
+          `
+              : `
           <div style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;letter-spacing:1px;">
             Adicione mais tempo se quiser continuar estudando:
           </div>
@@ -184,7 +250,8 @@ export function renderCronometro(el) {
             <button data-action="add-minutes" data-event-id="${focusEvent.id}" data-minutes="5" class="btn btn-primary">+ 5min</button>
             <button data-action="add-minutes" data-event-id="${focusEvent.id}" data-minutes="15" class="btn btn-primary">+ 15min</button>
           </div>
-          `}
+          `
+          }
         </div>
       </div>
 
@@ -195,52 +262,68 @@ export function renderCronometro(el) {
         <button id="crono-mode-btn" data-action="toggle-timer-mode" style="
           padding:8px 20px;border-radius:20px;border:none;cursor:pointer;
           font-size:13px;font-weight:500;transition:background-color 0.3s, color 0.3s, border-color 0.3s;
-          ${_pomodoroMode
-      ? 'background:var(--accent-light);color:var(--accent-dark);'
-      : 'background:var(--bg);color:var(--text-secondary);border:1px solid var(--border);'}
+          ${
+            _pomodoroMode
+              ? 'background:var(--accent-light);color:var(--accent-dark);'
+              : 'background:var(--bg);color:var(--text-secondary);border:1px solid var(--border);'
+          }
         ">
           ${_pomodoroMode ? `🍅 Pomodoro (${state?.config?.pomodoroFoco || 25}/${state?.config?.pomodoroPausa || 5})` : '⏱ Modo Contínuo'}
         </button>
       </div>
 
-      ${otherEvents.length > 0 ? `
+      ${
+        otherEvents.length > 0
+          ? `
         <!-- Other timers -->
         <div style="padding:0 32px 24px;position:relative;z-index:1;">
           <div style="color:var(--text-secondary);font-size:12px;margin-bottom:8px;">Outros cronômetros:</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            ${otherEvents.map(ev => {
-        const evActive = !!ev._timerStart;
-        const evDisc = getDisc(ev.discId);
-        return `
+            ${otherEvents
+              .map((ev) => {
+                const evActive = !!ev._timerStart;
+                const evDisc = getDisc(ev.discId);
+                return `
                 <button data-action="switch-to-event-timer" data-event-id="${ev.id}" data-view="cronometro" class="btn ${evActive ? 'btn-primary' : 'btn-ghost'}" style="
                    font-size:13px;font-weight:600;
                 ">${evDisc ? evDisc.disc.nome : 'Evento'} ${evActive ? '⏱️' : '⏸️'}</button>
               `;
-      }).join('')}
+              })
+              .join('')}
           </div>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 
   // Live update every second
   if (getCronoInterval()) clearInterval(getCronoInterval());
-  setCronoInterval(setInterval(() => {
-    const ev = focusEvent.id === 'crono_livre' ? state.cronoLivre : state.eventos.find(e => e.id === focusEvent.id);
-    if (!ev) { clearInterval(getCronoInterval()); return; }
-    const elapsed = getElapsedSeconds(ev);
-    const timerEl = document.getElementById('crono-main-timer');
-    if (timerEl) timerEl.textContent = formatTime(elapsed);
-    const progressBar = document.getElementById('crono-progress-bar');
-    if (progressBar) {
-      const pct = plannedSecs > 0 ? Math.min((elapsed / plannedSecs) * 100, 100) : 0;
-      progressBar.style.width = pct + '%';
-    }
-    const btnDiscard = document.getElementById('btn-discard-timer');
-    if (btnDiscard) {
-      btnDiscard.style.display = elapsed > 0 ? 'flex' : 'none';
-    }
-  }, 1000));
+  setCronoInterval(
+    setInterval(() => {
+      const ev =
+        focusEvent.id === 'crono_livre'
+          ? state.cronoLivre
+          : state.eventos.find((e) => e.id === focusEvent.id);
+      if (!ev) {
+        clearInterval(getCronoInterval());
+        return;
+      }
+      const elapsed = getElapsedSeconds(ev);
+      const timerEl = document.getElementById('crono-main-timer');
+      if (timerEl) timerEl.textContent = formatTime(elapsed);
+      const progressBar = document.getElementById('crono-progress-bar');
+      if (progressBar) {
+        const pct = plannedSecs > 0 ? Math.min((elapsed / plannedSecs) * 100, 100) : 0;
+        progressBar.style.width = pct + '%';
+      }
+      const btnDiscard = document.getElementById('btn-discard-timer');
+      if (btnDiscard) {
+        btnDiscard.style.display = elapsed > 0 ? 'flex' : 'none';
+      }
+    }, 1000)
+  );
 }
 
 /**
@@ -276,33 +359,47 @@ export function renderCurrentView() {
   // Keep a consistent vertical spacing rhythm between top-level blocks per view.
   el.classList.toggle('main-content-stack', currentView !== 'cronometro');
   const titles = {
-    home: 'Página Inicial', med: 'Study Organizer', calendar: 'Calendário',
-    revisoes: 'Revisões Pendentes', habitos: 'Hábitos de Estudo',
-    editais: 'Editais', vertical: 'Edital Verticalizado', config: 'Configurações', cronometro: 'Cronômetro', ciclo: 'Ciclo de Estudos', 'banca-analyzer': 'Inteligência de Banca',
-    'historico-sessoes': 'Histórico de Sessões'
+    home: 'Página Inicial',
+    med: 'Study Organizer',
+    calendar: 'Calendário',
+    revisoes: 'Revisões Pendentes',
+    habitos: 'Hábitos de Estudo',
+    editais: 'Editais',
+    vertical: 'Edital Verticalizado',
+    config: 'Configurações',
+    cronometro: 'Cronômetro',
+    ciclo: 'Ciclo de Estudos',
+    'banca-analyzer': 'Inteligência de Banca',
+    'historico-sessoes': 'Histórico de Sessões',
   };
   document.getElementById('topbar-title').textContent = titles[currentView] || 'Estudo Organizado';
 
-  document.getElementById('topbar-date').innerHTML = currentView === 'home'
-    ? `<i class="fa fa-calendar-alt"></i> ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`
-    : '';
+  document.getElementById('topbar-date').innerHTML =
+    currentView === 'home'
+      ? `<i class="fa fa-calendar-alt"></i> ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`
+      : '';
 
   // Render topbar actions
   const actions = document.getElementById('topbar-actions');
   if (actions) {
     actions.innerHTML = '';
     if (currentView === 'cronometro') {
-      actions.innerHTML = '<button class="btn btn-ghost btn-sm" data-action="navigate" data-view="med"><i class="fa fa-arrow-left"></i> Voltar</button>';
+      actions.innerHTML =
+        '<button class="btn btn-ghost btn-sm" data-action="navigate" data-view="med"><i class="fa fa-arrow-left"></i> Voltar</button>';
     } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
-      actions.innerHTML = '<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>';
+      actions.innerHTML =
+        '<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>';
     } else if (currentView === 'editais') {
       if (getActiveDashboardDiscCtx()) {
-        actions.innerHTML = '<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>';
+        actions.innerHTML =
+          '<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>';
       } else {
-        actions.innerHTML = '<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>';
+        actions.innerHTML =
+          '<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>';
       }
     } else if (currentView === 'ciclo') {
-      actions.innerHTML = '<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>';
+      actions.innerHTML =
+        '<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>';
     }
   }
 
@@ -322,12 +419,13 @@ export function renderCurrentView() {
       else if (currentView === 'editais') {
         if (getActiveDashboardDiscCtx()) {
           const ctx = getActiveDashboardDiscCtx();
-          import('./views.js?v=8.29').then(({ openDiscDashboard }) => openDiscDashboard(ctx.editaId, ctx.discId));
+          import('./views.js?v=8.29').then(({ openDiscDashboard }) =>
+            openDiscDashboard(ctx.editaId, ctx.discId)
+          );
         } else {
           renderEditais(el);
         }
-      }
-      else if (currentView === 'vertical') renderVertical(el);
+      } else if (currentView === 'vertical') renderVertical(el);
       else if (currentView === 'ciclo') renderCiclo(el);
     }, 50);
   } else {
@@ -348,7 +446,7 @@ export function renderCurrentView() {
  */
 export function updateBadges() {
   // Update cronometro badge
-  const activeTimers = state.eventos.filter(e => e._timerStart);
+  const activeTimers = state.eventos.filter((e) => e._timerStart);
   const cronoBadge = document.getElementById('badge-crono');
   if (cronoBadge) {
     cronoBadge.style.display = activeTimers.length > 0 ? 'inline-block' : 'none';
@@ -358,7 +456,9 @@ export function updateBadges() {
   const med = document.getElementById('badge-med');
   const rev = document.getElementById('badge-rev');
   if (!med || !rev) return;
-  const pendingMed = state.eventos.filter(e => e.data === todayStr() && e.status !== 'estudei').length;
+  const pendingMed = state.eventos.filter(
+    (e) => e.data === todayStr() && e.status !== 'estudei'
+  ).length;
   med.style.display = pendingMed > 0 ? 'inline-block' : 'none';
   med.textContent = pendingMed;
   const pendingRev = getPendingRevisoes().length;
@@ -379,8 +479,10 @@ export function renderEventCard(evento) {
   const status = getEventStatus(evento);
   const discInfo = evento.discId ? getDisc(evento.discId) : null;
   const disc = discInfo ? discInfo.disc : null;
-  const iconBg = disc ? (disc.cor || 'var(--accent)') : (getHabitType(evento.habito)?.color || '#64748b');
-  const icon = disc ? (disc.icone || '📖') : (getHabitType(evento.habito)?.icon || '📚');
+  const iconBg = disc
+    ? disc.cor || 'var(--accent)'
+    : getHabitType(evento.habito)?.color || '#64748b';
+  const icon = disc ? disc.icone || '📖' : getHabitType(evento.habito)?.icon || '📚';
   const timerActive = isTimerActive(evento.id);
   const elapsed = getElapsedSeconds(evento);
   const tempo = formatTime(elapsed);

@@ -9,7 +9,10 @@ function toTime(value) {
 }
 
 function latestIso(...values) {
-  const newest = values.map(toTime).filter(Boolean).sort((a, b) => b - a)[0];
+  const newest = values
+    .map(toTime)
+    .filter(Boolean)
+    .sort((a, b) => b - a)[0];
   return newest ? new Date(newest).toISOString() : null;
 }
 
@@ -31,7 +34,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
   const config = state?.config || {};
   const firestore = {
     ...config.firestoreSync,
-    ...firestoreStatus
+    ...firestoreStatus,
   };
   const cloudflareConfigured = Boolean(config.cfUrl && hasCloudflareCredentials(config));
   const driveConfigured = Boolean(state?.driveFileId);
@@ -49,7 +52,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
       lastLocalAt: config.localBackupAt || null,
       lastSyncAt: config.localBackupAt || null,
       remoteAt: null,
-      detail: 'Fonte de recuperacao imediata.'
+      detail: 'Fonte de recuperacao imediata.',
     },
     {
       id: 'firebase',
@@ -60,7 +63,15 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
       configured: Boolean(firestore.configured),
       signedIn: Boolean(firestore.signedIn || firestore.uid),
       mode: firestore.mode || 'shadow',
-      health: firestore.conflict ? 'conflict' : firestore.lastError ? 'error' : firestore.hasPendingWrites ? 'pending' : firestore.enabled ? 'ok' : 'idle',
+      health: firestore.conflict
+        ? 'conflict'
+        : firestore.lastError
+          ? 'error'
+          : firestore.hasPendingWrites
+            ? 'pending'
+            : firestore.enabled
+              ? 'ok'
+              : 'idle',
       pending: Boolean(firestore.hasPendingWrites),
       lastPullAt: firestore.lastPullAt || null,
       lastPushAt: firestore.lastPushAt || null,
@@ -70,14 +81,14 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
       lastError: firestore.lastError || null,
       entityShadowDiff: state?.config?.entitySync?.lastShadowDiff || null,
       detail: firestore.enabled
-        ? (firestore.mode === 'primary'
-          ? (state?.config?.entitySync?.mode === 'primary'
+        ? firestore.mode === 'primary'
+          ? state?.config?.entitySync?.mode === 'primary'
             ? 'Entidades primarias com snapshot de fallback.'
-            : 'Sync automatico principal.')
-          : (state?.config?.entitySync?.mode === 'shadow'
+            : 'Sync automatico principal.'
+          : state?.config?.entitySync?.mode === 'shadow'
             ? 'Snapshot primario com entidades em shadow.'
-            : 'Shadow: sem envio automatico.'))
-        : 'Ative depois de entrar com Google.'
+            : 'Shadow: sem envio automatico.'
+        : 'Ative depois de entrar com Google.',
     },
     {
       id: 'cloudflare',
@@ -91,7 +102,9 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
       lastSyncAt: config.cfLastSyncAt || null,
       remoteAt: config.cfRemoteUpdatedAt || null,
       conflict: config.cfConflict || null,
-      detail: cloudflareConfigured ? 'Backup manual configurado.' : 'Informe URL e token para backup.'
+      detail: cloudflareConfigured
+        ? 'Backup manual configurado.'
+        : 'Informe URL e token para backup.',
     },
     {
       id: 'drive',
@@ -104,16 +117,18 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
       pending: false,
       lastSyncAt: state?.lastSync || null,
       remoteAt: state?.lastSync || null,
-      detail: driveConfigured ? 'Arquivo de backup conectado.' : 'Conecte para backup em arquivo.'
-    }
+      detail: driveConfigured ? 'Arquivo de backup conectado.' : 'Conecte para backup em arquivo.',
+    },
   ];
 
   return {
-    sources: SOURCE_ORDER.map(id => sources.find(source => source.id === id)),
+    sources: SOURCE_ORDER.map((id) => sources.find((source) => source.id === id)),
     primarySource: 'firebase',
-    needsAttention: sources.some(source => source.health === 'conflict' || source.health === 'error'),
+    needsAttention: sources.some(
+      (source) => source.health === 'conflict' || source.health === 'error'
+    ),
     newestRemoteAt: latestIso(firestore.remoteUpdatedAt, config.cfRemoteUpdatedAt, state?.lastSync),
-    newestLocalAt: config.localBackupAt || null
+    newestLocalAt: config.localBackupAt || null,
   };
 }
 
@@ -124,21 +139,28 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
     ...localState,
     config: {
       ...(remoteState.config || {}),
-      ...(localState.config || {})
-    }
+      ...(localState.config || {}),
+    },
   };
 
   for (const key of ['editais', 'eventos', 'arquivo', 'revisoes']) {
-    merged[key] = mergeEntityAwareArrays(localState[key], remoteState[key], { collection: key, collisions });
+    merged[key] = mergeEntityAwareArrays(localState[key], remoteState[key], {
+      collection: key,
+      collisions,
+    });
   }
 
   const habitTypes = new Set([
     ...Object.keys(remoteState.habitos || {}),
-    ...Object.keys(localState.habitos || {})
+    ...Object.keys(localState.habitos || {}),
   ]);
   merged.habitos = {};
   for (const type of habitTypes) {
-    merged.habitos[type] = mergeEntityAwareArrays(localState.habitos?.[type], remoteState.habitos?.[type], { collection: `habitos.${type}`, collisions });
+    merged.habitos[type] = mergeEntityAwareArrays(
+      localState.habitos?.[type],
+      remoteState.habitos?.[type],
+      { collection: `habitos.${type}`, collisions }
+    );
   }
 
   merged.config.localBackupAt = new Date().toISOString();
@@ -146,7 +168,7 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
     merged.config.syncMergeConflicts = {
       detectedAt: new Date().toISOString(),
       total: collisions.length,
-      items: collisions.slice(0, 20)
+      items: collisions.slice(0, 20),
     };
   } else {
     delete merged.config.syncMergeConflicts;

@@ -1,7 +1,17 @@
 export const ENTITY_TOMBSTONE_LIMIT = 500;
 export const ENTITY_TOMBSTONE_TTL_DAYS = 180;
 
-const HABIT_DEFAULT_TYPES = ['questoes', 'revisao', 'discursiva', 'simulado', 'leitura', 'informativo', 'sumula', 'videoaula', 'paginas'];
+const HABIT_DEFAULT_TYPES = [
+  'questoes',
+  'revisao',
+  'discursiva',
+  'simulado',
+  'leitura',
+  'informativo',
+  'sumula',
+  'videoaula',
+  'paginas',
+];
 
 export const TRACKED_ENTITY_COLLECTIONS = [
   'editais',
@@ -12,7 +22,7 @@ export const TRACKED_ENTITY_COLLECTIONS = [
   'arquivo',
   'revisoes',
   'habitos.*',
-  'planejamento.sequencia'
+  'planejamento.sequencia',
 ];
 
 function cloneWithoutSync(value) {
@@ -20,11 +30,13 @@ function cloneWithoutSync(value) {
     return value.map(cloneWithoutSync);
   }
   if (value && typeof value === 'object') {
-    return Object.keys(value).sort().reduce((acc, key) => {
-      if (key === '_sync') return acc;
-      acc[key] = cloneWithoutSync(value[key]);
-      return acc;
-    }, {});
+    return Object.keys(value)
+      .sort()
+      .reduce((acc, key) => {
+        if (key === '_sync') return acc;
+        acc[key] = cloneWithoutSync(value[key]);
+        return acc;
+      }, {});
   }
   return value;
 }
@@ -34,7 +46,10 @@ function stableStringify(value) {
     return `[${value.map(stableStringify).join(',')}]`;
   }
   if (value && typeof value === 'object') {
-    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+      .join(',')}}`;
   }
   return JSON.stringify(value);
 }
@@ -90,7 +105,7 @@ function pushEntity(target, collection, key, entity) {
   target.push({ collection, key, id: String(id), entity });
 }
 
-function visitTrackedEntities(state = {}) {
+export function visitTrackedEntities(state = {}) {
   const entities = [];
 
   for (const edital of Array.isArray(state.editais) ? state.editais : []) {
@@ -101,16 +116,33 @@ function visitTrackedEntities(state = {}) {
     for (const disciplina of Array.isArray(edital.disciplinas) ? edital.disciplinas : []) {
       const disciplinaId = getEntityId(disciplina);
       if (!disciplinaId) continue;
-      pushEntity(entities, 'disciplinas', `editais/${editalId}/disciplinas/${disciplinaId}`, disciplina);
+      pushEntity(
+        entities,
+        'disciplinas',
+        `editais/${editalId}/disciplinas/${disciplinaId}`,
+        disciplina
+      );
 
       for (const assunto of Array.isArray(disciplina.assuntos) ? disciplina.assuntos : []) {
         const assuntoId = getEntityId(assunto);
-        if (assuntoId) pushEntity(entities, 'assuntos', `editais/${editalId}/disciplinas/${disciplinaId}/assuntos/${assuntoId}`, assunto);
+        if (assuntoId)
+          pushEntity(
+            entities,
+            'assuntos',
+            `editais/${editalId}/disciplinas/${disciplinaId}/assuntos/${assuntoId}`,
+            assunto
+          );
       }
 
       for (const aula of Array.isArray(disciplina.aulas) ? disciplina.aulas : []) {
         const aulaId = getEntityId(aula);
-        if (aulaId) pushEntity(entities, 'aulas', `editais/${editalId}/disciplinas/${disciplinaId}/aulas/${aulaId}`, aula);
+        if (aulaId)
+          pushEntity(
+            entities,
+            'aulas',
+            `editais/${editalId}/disciplinas/${disciplinaId}/aulas/${aulaId}`,
+            aula
+          );
       }
     }
   }
@@ -139,7 +171,9 @@ function visitTrackedEntities(state = {}) {
     }
   }
 
-  for (const item of Array.isArray(state.planejamento?.sequencia) ? state.planejamento.sequencia : []) {
+  for (const item of Array.isArray(state.planejamento?.sequencia)
+    ? state.planejamento.sequencia
+    : []) {
     const id = getEntityId(item);
     if (id) pushEntity(entities, 'planejamento.sequencia', `planejamento/sequencia/${id}`, item);
   }
@@ -154,7 +188,7 @@ export function stableEntityChecksum(entity) {
 function normalizePreviousIndex(previousIndex) {
   if (!previousIndex) return new Map();
   if (previousIndex instanceof Map) return previousIndex;
-  if (Array.isArray(previousIndex)) return new Map(previousIndex.map(item => [item.key, item]));
+  if (Array.isArray(previousIndex)) return new Map(previousIndex.map((item) => [item.key, item]));
   if (typeof previousIndex === 'object') return new Map(Object.entries(previousIndex));
   return new Map();
 }
@@ -166,18 +200,20 @@ function normalizeEntitySync(entity, record, options) {
   const existing = entity._sync && typeof entity._sync === 'object' ? entity._sync : {};
   const checksum = stableEntityChecksum(entity);
   const previousRevision = Number(previous?.revision || existing.revision || 0);
-  const changed = Boolean(previous && previous.checksum && previous.checksum !== checksum && !options.baselineOnly);
-  const revision = changed ? previousRevision + 1 : Math.max(1, previousRevision || Number(existing.revision || 1));
-  const updatedAt = changed
-    ? now
-    : normalizeNow(existing.updatedAt || previous?.updatedAt || now);
+  const changed = Boolean(
+    previous && previous.checksum && previous.checksum !== checksum && !options.baselineOnly
+  );
+  const revision = changed
+    ? previousRevision + 1
+    : Math.max(1, previousRevision || Number(existing.revision || 1));
+  const updatedAt = changed ? now : normalizeNow(existing.updatedAt || previous?.updatedAt || now);
 
   entity._sync = {
     createdAt: normalizeNow(existing.createdAt || previous?.createdAt || updatedAt || now),
     updatedAt,
     deletedAt: existing.deletedAt ? normalizeNow(existing.deletedAt) : null,
     revision,
-    updatedBy: changed ? updatedBy : (existing.updatedBy || previous?.updatedBy || updatedBy)
+    updatedBy: changed ? updatedBy : existing.updatedBy || previous?.updatedBy || updatedBy,
   };
 
   return {
@@ -189,7 +225,7 @@ function normalizeEntitySync(entity, record, options) {
     revision: entity._sync.revision,
     createdAt: entity._sync.createdAt,
     updatedBy: entity._sync.updatedBy,
-    changed
+    changed,
   };
 }
 
@@ -207,28 +243,28 @@ function createTombstones(state, currentKeys, options) {
       id: String(record.id || key.split('/').pop()),
       deletedAt,
       deletedBy: getDeviceId(options),
-      revision: Number(record.revision || 0) + 1
+      revision: Number(record.revision || 0) + 1,
     });
   }
 
   if (tombstones.length === 0) return tombstones;
   const config = ensureConfig(state);
-  const byKey = new Map((config.entityTombstones || []).map(item => [item.key, item]));
-  tombstones.forEach(item => byKey.set(item.key, item));
+  const byKey = new Map((config.entityTombstones || []).map((item) => [item.key, item]));
+  tombstones.forEach((item) => byKey.set(item.key, item));
   config.entityTombstones = pruneTombstones(Array.from(byKey.values()), options.now);
   return tombstones;
 }
 
 export function pruneTombstones(tombstones = [], now = Date.now()) {
-  const cutoff = toTime(now) - (ENTITY_TOMBSTONE_TTL_DAYS * 24 * 60 * 60 * 1000);
+  const cutoff = toTime(now) - ENTITY_TOMBSTONE_TTL_DAYS * 24 * 60 * 60 * 1000;
   return tombstones
-    .filter(item => item?.key && toTime(item.deletedAt) >= cutoff)
+    .filter((item) => item?.key && toTime(item.deletedAt) >= cutoff)
     .sort((a, b) => toTime(b.deletedAt) - toTime(a.deletedAt))
     .slice(0, ENTITY_TOMBSTONE_LIMIT);
 }
 
 export function createEntityIndex(sourceState = {}) {
-  return visitTrackedEntities(sourceState).map(record => {
+  return visitTrackedEntities(sourceState).map((record) => {
     const sync = record.entity._sync || {};
     return {
       key: record.key,
@@ -236,7 +272,7 @@ export function createEntityIndex(sourceState = {}) {
       id: record.id,
       checksum: stableEntityChecksum(record.entity),
       updatedAt: toIso(sync.updatedAt),
-      revision: Number(sync.revision || 1)
+      revision: Number(sync.revision || 1),
     };
   });
 }
@@ -263,28 +299,28 @@ export function normalizeEntityMetadata(sourceState = {}, options = {}) {
     index,
     changed,
     removed,
-    manifest: buildEntityManifest(sourceState)
+    manifest: buildEntityManifest(sourceState),
   };
 }
 
 export function buildEntityManifest(sourceState = {}) {
-  const active = createEntityIndex(sourceState).map(item => ({
+  const active = createEntityIndex(sourceState).map((item) => ({
     key: item.key,
     collection: item.collection,
     id: item.id,
     updatedAt: item.updatedAt,
     deletedAt: null,
     revision: item.revision,
-    checksum: item.checksum
+    checksum: item.checksum,
   }));
-  const tombstones = (sourceState.config?.entityTombstones || []).map(item => ({
+  const tombstones = (sourceState.config?.entityTombstones || []).map((item) => ({
     key: item.key,
     collection: item.collection,
     id: String(item.id),
     updatedAt: null,
     deletedAt: toIso(item.deletedAt),
     revision: Number(item.revision || 1),
-    checksum: null
+    checksum: null,
   }));
   return [...active, ...tombstones];
 }
@@ -346,7 +382,8 @@ export function mergeEntityAwareArrays(localArray = [], remoteArray = [], option
           localRevision: comparableRevision(item),
           remoteRevision: comparableRevision(remoteItem),
           localUpdatedAt: item?._sync?.updatedAt || item?.updatedAt || item?.data || null,
-          remoteUpdatedAt: remoteItem?._sync?.updatedAt || remoteItem?.updatedAt || remoteItem?.data || null
+          remoteUpdatedAt:
+            remoteItem?._sync?.updatedAt || remoteItem?.updatedAt || remoteItem?.data || null,
         });
         merged.set(key, item);
       }
@@ -396,12 +433,13 @@ export async function writeEntityIndexStore(db, storeName, index = [], removed =
 }
 
 export async function prepareEntityMetadataForSave(sourceState, options = {}) {
-  const previousIndex = options.previousIndex || await readEntityIndexStore(options.db, options.storeName);
+  const previousIndex =
+    options.previousIndex || (await readEntityIndexStore(options.db, options.storeName));
   const result = normalizeEntityMetadata(sourceState, {
     previousIndex,
     now: options.now,
     updatedBy: options.updatedBy || options.deviceId,
-    baselineOnly: Boolean(options.baselineOnly)
+    baselineOnly: Boolean(options.baselineOnly),
   });
   await writeEntityIndexStore(options.db, options.storeName, result.index, result.removed);
   return result;

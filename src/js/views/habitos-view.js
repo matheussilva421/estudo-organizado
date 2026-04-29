@@ -32,15 +32,16 @@ function sumPageRecords(records = []) {
  * @param {HTMLElement} el - Container
  */
 export function renderHabitos(el) {
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
-  const cutoff2 = new Date(cutoff.getTime() - (cutoff.getTimezoneOffset() * 60000));
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+  const cutoff2 = new Date(cutoff.getTime() - cutoff.getTimezoneOffset() * 60000);
   const cutoffStr = cutoff2.toISOString().split('T')[0];
 
   el.innerHTML = `
     <div class="habit-grid">
-      ${HABIT_TYPES.map(h => {
+      ${HABIT_TYPES.map((h) => {
         const all = state.habitos[h.key] || [];
-        const _recentArr = all.filter(r => r.data >= cutoffStr);
+        const _recentArr = all.filter((r) => r.data >= cutoffStr);
 
         let total, recentStr;
 
@@ -83,9 +84,9 @@ export function renderHabitos(el) {
  * Renderiza página do histórico de hábitos
  */
 export function renderHabitHistPage() {
-  const all = HABIT_TYPES
-    .flatMap(h => (state.habitos[h.key] || []).map(r => ({ ...r, tipo: h })))
-    .sort((a, b) => b.data.localeCompare(a.data));
+  const all = HABIT_TYPES.flatMap((h) =>
+    (state.habitos[h.key] || []).map((r) => ({ ...r, tipo: h }))
+  ).sort((a, b) => b.data.localeCompare(a.data));
   const total = all.length;
   const page = habitHistPage;
   const start = (page - 1) * HABIT_HIST_PAGE_SIZE;
@@ -98,54 +99,61 @@ export function renderHabitHistPage() {
 
   const listEl = document.getElementById('habit-hist-list');
   if (listEl) {
-    listEl.innerHTML = items.length === 0
-      ? '<div class="empty-state"><div class="icon">⚡</div><p>Nenhum hábito registrado ainda</p></div>'
-      : items.map(r => {
-        // Constrói informações adicionais de forma consistente
-        const extraInfo = [];
+    listEl.innerHTML =
+      items.length === 0
+        ? '<div class="empty-state"><div class="icon">⚡</div><p>Nenhum hábito registrado ainda</p></div>'
+        : items
+            .map((r) => {
+              // Constrói informações adicionais de forma consistente
+              const extraInfo = [];
 
-        // Adiciona quantidade de questões para hábito de questões
-        if (r.tipo.key === 'questoes' && (r.quantidade || r.total)) {
-          extraInfo.push(`${r.quantidade || r.total} questões`);
-        }
+              // Adiciona quantidade de questões para hábito de questões
+              if (r.tipo.key === 'questoes' && (r.quantidade || r.total)) {
+                extraInfo.push(`${r.quantidade || r.total} questões`);
+              }
 
-        // Adiciona páginas para hábito de páginas
-        if (r.tipo.key === 'paginas' && r.total) {
-          extraInfo.push(`${r.total} páginas`);
-        }
+              // Adiciona páginas para hábito de páginas
+              if (r.tipo.key === 'paginas' && r.total) {
+                extraInfo.push(`${r.total} páginas`);
+              }
 
-        // Adiciona acertos para questões
-        if (r.tipo.key === 'questoes' && r.acertos !== undefined) {
-          extraInfo.push(`${r.acertos} acertos`);
-        }
+              // Adiciona acertos para questões
+              if (r.tipo.key === 'questoes' && r.acertos !== undefined) {
+                extraInfo.push(`${r.acertos} acertos`);
+              }
 
-        // Adiciona porcentagem de acertos
-        if (r.tipo.key === 'questoes' && r.total && r.total > 0) {
-          const perc = Math.round((r.acertos / r.total) * 100);
-          extraInfo.push(`${perc}%`);
-        }
+              // Adiciona porcentagem de acertos
+              if (r.tipo.key === 'questoes' && r.total && r.total > 0) {
+                const perc = Math.round((r.acertos / r.total) * 100);
+                extraInfo.push(`${perc}%`);
+              }
 
-        if (r.tipo.key === 'discursiva' && r.nota !== undefined && r.nota !== '') {
-          extraInfo.push(`Nota ${r.nota}`);
-        }
+              if (r.tipo.key === 'discursiva' && r.nota !== undefined && r.nota !== '') {
+                extraInfo.push(`Nota ${r.nota}`);
+              }
 
-        const extraStr = extraInfo.length > 0 ? ` • ${extraInfo.join(' • ')}` : '';
+              const extraStr = extraInfo.length > 0 ? ` • ${extraInfo.join(' • ')}` : '';
 
-        return `
+              return `
         <div class="flex border-b habit-hist-item">
           <div class="habit-item-icon">${r.tipo.icon}</div>
           <div class="flex-1">
             <div class="text-md font-semibold">${esc(r.tipo.label)}${r.descricao ? ' - ' + esc(r.descricao) : ''}</div>
             <div class="text-base text-secondary">${formatDate(r.data)}${extraStr}</div>
-            ${r.gabaritoPorDisc && r.gabaritoPorDisc.length ? `
+            ${
+              r.gabaritoPorDisc && r.gabaritoPorDisc.length
+                ? `
               <div class="flex-wrap gap-sm mt-1 habit-disc-tags">
-                ${r.gabaritoPorDisc.map(g => `<span class="habit-disc-tag">${esc(g.discNome)}: ${g.acertos}/${g.total}</span>`).join('')}
-              </div>` : ''}
+                ${r.gabaritoPorDisc.map((g) => `<span class="habit-disc-tag">${esc(g.discNome)}: ${g.acertos}/${g.total}</span>`).join('')}
+              </div>`
+                : ''
+            }
           </div>
           <button class="icon-btn" data-action="delete-habit" data-type="${r.tipo.key}" data-habit-id="${r.id}" aria-label="Excluir hábito">🗑️</button>
         </div>
       `;
-      }).join('');
+            })
+            .join('');
   }
 
   const footerEl = document.getElementById('habit-hist-footer');
@@ -165,11 +173,15 @@ export function renderHabitHistPage() {
  * Navega para página do histórico
  */
 export function setHabitPage(p) {
-  const all = HABIT_TYPES.flatMap(h => (state.habitos[h.key] || []).map(r => ({ ...r, tipo: h })));
+  const all = HABIT_TYPES.flatMap((h) =>
+    (state.habitos[h.key] || []).map((r) => ({ ...r, tipo: h }))
+  );
   const totalPages = Math.max(1, Math.ceil(all.length / HABIT_HIST_PAGE_SIZE));
   habitHistPage = Math.max(1, Math.min(p, totalPages));
   renderHabitHistPage();
-  document.getElementById('habit-hist-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document
+    .getElementById('habit-hist-list')
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /**
@@ -177,33 +189,43 @@ export function setHabitPage(p) {
  */
 export function openHabitModal(tipo) {
   currentHabitType = tipo;
-  const h = tipo ? HABIT_TYPES.find(ht => ht.key === tipo) : null;
+  const h = tipo ? HABIT_TYPES.find((ht) => ht.key === tipo) : null;
   const titleEl = document.getElementById('modal-habit-title');
   if (titleEl) titleEl.textContent = h ? `Registrar: ${h.label}` : 'Registrar Hábito';
 
-  const discOptions = getActiveDisciplinas().map(d => `<option value="${d.disc.id}">${esc(d.disc.nome)}</option>`).join('');
+  const discOptions = getActiveDisciplinas()
+    .map((d) => `<option value="${d.disc.id}">${esc(d.disc.nome)}</option>`)
+    .join('');
 
   const habitBody = document.getElementById('modal-habit-body');
   if (!habitBody) return;
   habitBody.innerHTML = `
-    ${!tipo ? `
+    ${
+      !tipo
+        ? `
       <div class="form-group">
         <label class="form-label">Tipo de Hábito</label>
         <div class="event-type-grid">
-          ${HABIT_TYPES.map(h => `
+          ${HABIT_TYPES.map(
+            (h) => `
             <div class="event-type-card" data-action="select-habit-type" data-tipo="${h.key}">
               <div class="et-icon">${h.icon}</div>
               <div class="et-label">${h.label}</div>
             </div>
-          `).join('')}
+          `
+          ).join('')}
         </div>
       </div>
-    ` : ''}
+    `
+        : ''
+    }
     <div class="form-group">
       <label class="form-label">Data</label>
       <input type="date" class="form-control" id="habit-data" value="${todayStr()}">
     </div>
-    ${tipo === 'questoes' ? `
+    ${
+      tipo === 'questoes'
+        ? `
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Quantidade de Questões</label>
@@ -218,7 +240,9 @@ export function openHabitModal(tipo) {
         <label class="form-label">Disciplina</label>
         <select class="form-control" id="habit-disc">${discOptions}</select>
       </div>
-    ` : tipo === 'simulado' ? `
+    `
+        : tipo === 'simulado'
+          ? `
       <div class="form-group">
         <label class="form-label">Nome do Simulado</label>
         <input type="text" class="form-control" id="habit-desc" placeholder="Ex: Simulado CEBRASPE 01">
@@ -238,18 +262,24 @@ export function openHabitModal(tipo) {
       <details>
         <summary class="simulado-disc-summary">📈 Gabarito por Disciplina (opcional)</summary>
         <div id="sim-disc-list" class="simulado-disc-list">
-          ${getActiveDisciplinas().map(({ disc, edital }) => `
+          ${getActiveDisciplinas()
+            .map(
+              ({ disc, edital }) => `
             <div class="simulado-disc-row">
               <span class="simulado-disc-name" title="${esc(edital.nome)}">${disc.icone || '📚'} ${esc(disc.nome)}</span>
               <input type="number" class="form-control simulado-disc-input" placeholder="Total" id="sim-total-${disc.id}" min="0">
               <span class="simulado-disc-separator">/</span>
               <input type="number" class="form-control simulado-disc-input" placeholder="Acertos" id="sim-acertos-${disc.id}" min="0">
             </div>
-          `).join('')}
+          `
+            )
+            .join('')}
           ${getActiveDisciplinas().length === 0 ? '<div class="simulado-empty">Cadastre disciplinas para usar o gabarito detalhado.</div>' : ''}
         </div>
       </details>
-    ` : tipo === 'discursiva' ? `
+    `
+          : tipo === 'discursiva'
+            ? `
       <div class="form-group">
         <label class="form-label">Tema</label>
         <input type="text" class="form-control" id="habit-desc" placeholder="Tema da discursiva">
@@ -258,7 +288,9 @@ export function openHabitModal(tipo) {
         <label class="form-label">Nota/Pontuação (opcional)</label>
         <input type="number" class="form-control" id="habit-nota" placeholder="Ex: 8.5">
       </div>
-    ` : tipo === 'leitura' ? `
+    `
+            : tipo === 'leitura'
+              ? `
       <div class="form-group">
         <label class="form-label">Título / Legislação</label>
         <input type="text" class="form-control" id="habit-desc" placeholder="Ex: Lei 8.112/1990">
@@ -267,12 +299,14 @@ export function openHabitModal(tipo) {
         <label class="form-label">Páginas/Artigos lidos</label>
         <input type="number" class="form-control" id="habit-paginas" placeholder="Ex: 30">
       </div>
-    ` : `
+    `
+              : `
       <div class="form-group">
         <label class="form-label">Descrição (opcional)</label>
         <input type="text" class="form-control" id="habit-desc" placeholder="Observações">
       </div>
-    `}
+    `
+    }
   `;
 
   openModal('modal-habit');
@@ -284,7 +318,7 @@ export function openHabitModal(tipo) {
 export function selectHabitType(tipo, el) {
   currentHabitType = tipo;
   const all = document.querySelectorAll('.event-type-card');
-  all.forEach(card => card.classList.remove('selected'));
+  all.forEach((card) => card.classList.remove('selected'));
   el.closest('.event-type-card')?.classList.add('selected');
 }
 
@@ -293,8 +327,14 @@ export function selectHabitType(tipo, el) {
  */
 export function saveHabit() {
   const data = document.getElementById('habit-data')?.value;
-  if (!data) { showToast('Data é obrigatória', 'error'); return; }
-  if (!currentHabitType) { showToast('Selecione o tipo de hábito', 'error'); return; }
+  if (!data) {
+    showToast('Data é obrigatória', 'error');
+    return;
+  }
+  if (!currentHabitType) {
+    showToast('Selecione o tipo de hábito', 'error');
+    return;
+  }
 
   const registro = { id: uid(), data, tipo: currentHabitType };
 
@@ -302,7 +342,10 @@ export function saveHabit() {
     const quantidade = parseInt(document.getElementById('habit-qtd')?.value || '0');
     const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
     const discId = document.getElementById('habit-disc')?.value;
-    if (!quantidade) { showToast('Quantidade de questões é obrigatória', 'error'); return; }
+    if (!quantidade) {
+      showToast('Quantidade de questões é obrigatória', 'error');
+      return;
+    }
     registro.quantidade = quantidade;
     registro.acertos = acertos;
     if (discId) {
@@ -317,7 +360,8 @@ export function saveHabit() {
     getActiveDisciplinas().forEach(({ disc }) => {
       const t = parseInt(document.getElementById(`sim-total-${disc.id}`)?.value || '0');
       const a = parseInt(document.getElementById(`sim-acertos-${disc.id}`)?.value || '0');
-      if (t > 0) gabaritoPorDisc.push({ discId: disc.id, discNome: disc.nome, total: t, acertos: a });
+      if (t > 0)
+        gabaritoPorDisc.push({ discId: disc.id, discNome: disc.nome, total: t, acertos: a });
     });
     registro.quantidade = total;
     registro.acertos = acertos;
@@ -339,7 +383,9 @@ export function saveHabit() {
   scheduleSave();
   closeModal('modal-habit');
   renderCurrentView();
-  document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Hábito registrado!', type: 'success' } }));
+  document.dispatchEvent(
+    new CustomEvent('app:showToast', { detail: { msg: 'Hábito registrado!', type: 'success' } })
+  );
 }
 
 /**
@@ -350,7 +396,7 @@ export function calcSimuladoPerc() {
   const ace = parseInt(document.getElementById('habit-acertos')?.value || '0');
   const el = document.getElementById('sim-perc');
   if (!el || !tot) return;
-  const pct = Math.round(ace / tot * 100);
+  const pct = Math.round((ace / tot) * 100);
   const colorClass = pct >= 70 ? 'text-accent' : pct >= 50 ? 'text-orange' : 'text-red';
   el.innerHTML = `<span class="${esc(colorClass)}">${esc(pct)}% de aproveitamento (${esc(ace)}/${esc(tot)})</span>`;
 }
@@ -359,12 +405,16 @@ export function calcSimuladoPerc() {
  * Exclui registro de hábito
  */
 export function deleteHabito(tipo, id) {
-  showConfirm('Excluir este registro de hábito?', () => {
-    state.habitos[tipo] = (state.habitos[tipo] || []).filter(h => h.id !== id);
-    habitHistPage = 1;
-    scheduleSave();
-    renderCurrentView();
-  }, { danger: true, label: 'Excluir', title: 'Excluir registro' });
+  showConfirm(
+    'Excluir este registro de hábito?',
+    () => {
+      state.habitos[tipo] = (state.habitos[tipo] || []).filter((h) => h.id !== id);
+      habitHistPage = 1;
+      scheduleSave();
+      renderCurrentView();
+    },
+    { danger: true, label: 'Excluir', title: 'Excluir registro' }
+  );
 }
 
 function closeModal(modalId) {

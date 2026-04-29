@@ -12,15 +12,17 @@ import {
   getConsistencyStreak,
   getSubjectStats,
   getCurrentWeekStats,
-  getPredictiveStats
+  getPredictiveStats,
 } from '../logic.js?v=8.29';
 
 export function renderHome(el) {
   const perf = getPerformanceStats();
-  const perfPerc = perf.questionsTotal > 0 ? Math.round((perf.questionsCorrect / perf.questionsTotal) * 100) : 0;
+  const perfPerc =
+    perf.questionsTotal > 0 ? Math.round((perf.questionsCorrect / perf.questionsTotal) * 100) : 0;
 
   const prog = getSyllabusProgress();
-  const progPerc = prog.totalAssuntos > 0 ? Math.round((prog.totalConcluidos / prog.totalAssuntos) * 100) : 0;
+  const progPerc =
+    prog.totalAssuntos > 0 ? Math.round((prog.totalConcluidos / prog.totalAssuntos) * 100) : 0;
 
   const pagesReadTotal = getPagesReadStats();
 
@@ -40,7 +42,8 @@ export function renderHome(el) {
 
   // Data da Prova
   const dataProva = state.config.dataProva;
-  let provaText = 'Acompanhe aqui quantos dias faltam para a sua prova! <span data-action="prompt-prova" class="text-accent font-semibold cursor-pointer">Criar Prova</span>';
+  let provaText =
+    'Acompanhe aqui quantos dias faltam para a sua prova! <span data-action="prompt-prova" class="text-accent font-semibold cursor-pointer">Criar Prova</span>';
   if (dataProva) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -51,7 +54,8 @@ export function renderHome(el) {
     if (diffDays > 0) {
       provaText = `<div class="text-3xl font-extrabold text-accent leading-none">${diffDays}</div><div class="text-md text-secondary mt-1">dias para a prova (${formatDate(dataProva)})</div>`;
     } else if (diffDays === 0) {
-      provaText = '<strong class="text-accent" style="font-size:18px;">É hoje! Boa sorte! 🍀</strong>';
+      provaText =
+        '<strong class="text-accent" style="font-size:18px;">É hoje! Boa sorte! 🍀</strong>';
     } else {
       provaText = `Prova já foi realizada há ${Math.abs(diffDays)} dias. <span data-action="prompt-prova" class="text-accent font-semibold cursor-pointer">Nova Prova</span>`;
     }
@@ -60,14 +64,14 @@ export function renderHome(el) {
   // Previsões da Semana
   const pred = getPredictiveStats(metaHoras, subjStats);
   const statusColors = {
-    'verde': 'var(--green)',
-    'amarelo': 'var(--yellow)',
-    'vermelho': 'var(--red)'
+    verde: 'var(--green)',
+    amarelo: 'var(--yellow)',
+    vermelho: 'var(--red)',
   };
   const statusIcons = {
-    'verde': 'fa-check-circle',
-    'amarelo': 'fa-exclamation-triangle',
-    'vermelho': 'fa-skull-crossbones'
+    verde: 'fa-check-circle',
+    amarelo: 'fa-exclamation-triangle',
+    vermelho: 'fa-skull-crossbones',
   };
   const sc = statusColors[pred.status];
   const si = statusIcons[pred.status];
@@ -88,36 +92,45 @@ export function renderHome(el) {
   `;
 
   // HEATMAP
-  const heatmapHtml = streak.heatmap.map(x =>
-    `<div class="streak-dot ${x ? 'streak-dot-ok' : 'streak-dot-miss'}"><i class="fa ${x ? 'fa-check' : 'fa-times'}"></i></div>`
-  ).join('');
+  const heatmapHtml = streak.heatmap
+    .map(
+      (x) =>
+        `<div class="streak-dot ${x ? 'streak-dot-ok' : 'streak-dot-miss'}"><i class="fa ${x ? 'fa-check' : 'fa-times'}"></i></div>`
+    )
+    .join('');
 
   // SESSIONS CHART
   const maxWeeklySec = Math.max(...weekStats.dailySeconds, 3600);
   const hasWeekData = weekStats.totalSeconds > 0;
 
-  const barsHtml = hasWeekData ? weekStats.dailySeconds.map((sec, i) => {
-    const h = (sec / maxWeeklySec) * 100;
-    const days = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
-    return `
+  const barsHtml = hasWeekData
+    ? weekStats.dailySeconds
+        .map((sec, i) => {
+          const h = (sec / maxWeeklySec) * 100;
+          const days = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+          return `
       <div class="flex-col flex-center flex-1 h-full justify-end">
         <div class="home-weekly-study-bar" style="height:${h}%;" title="${formatTime(sec)}" role="img" aria-label="${days[i]}: ${formatTime(sec)} estudados"></div>
         <div class="text-xs font-semibold text-muted mt-2">${days[i]}</div>
       </div>
     `;
-  }).join('') : `
+        })
+        .join('')
+    : `
     <div class="flex flex-center flex-1 text-muted text-sm">
       <em>Nenhuma sessão de estudo registrada esta semana</em>
     </div>
   `;
 
   // SUBJECTS TABLE
-  const subjHtml = subjStats.map(s => {
-    const apr = s.acertos + s.erros > 0 ? Math.round((s.acertos / (s.acertos + s.erros)) * 100) : 0;
-    const aprColor = apr >= 80 ? 'green' : apr >= 60 ? 'orange' : apr > 0 ? 'red' : 'gray';
-    const hasData = s.tempo > 0 || (s.acertos + s.erros) > 0;
+  const subjHtml = subjStats
+    .map((s) => {
+      const apr =
+        s.acertos + s.erros > 0 ? Math.round((s.acertos / (s.acertos + s.erros)) * 100) : 0;
+      const aprColor = apr >= 80 ? 'green' : apr >= 60 ? 'orange' : apr > 0 ? 'red' : 'gray';
+      const hasData = s.tempo > 0 || s.acertos + s.erros > 0;
 
-    return `
+      return `
       <div class="border-b text-md flex-center gap-md" style="display:grid; grid-template-columns:1fr 80px 40px 40px 40px; padding:8px 0;" role="row" aria-label="${esc(s.nome)}">
         <div class="text-accent font-semibold text-ellipsis" title="${esc(s.nome)}">${esc(s.nome)}</div>
         <div class="text-secondary text-right text-mono" role="cell">${s.tempo > 0 ? formatTime(s.tempo) : '-'}</div>
@@ -126,9 +139,14 @@ export function renderHome(el) {
         <div class="flex flex-center"><div class="event-tag ${aprColor} text-center" style="padding:2px 6px; font-size:11px; min-width:32px;" role="cell">${hasData ? apr : 0}</div></div>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 
-  const totalTimeStr = formatTime(state.eventos.filter(e => e.status === 'estudei').reduce((s, e) => s + (e.tempoAcumulado || 0), 0));
+  const totalTimeStr = formatTime(
+    state.eventos
+      .filter((e) => e.status === 'estudei')
+      .reduce((s, e) => s + (e.tempoAcumulado || 0), 0)
+  );
 
   el.innerHTML = `
     <!-- LINHA 1: Cards Principais -->
@@ -225,7 +243,11 @@ export function renderHome(el) {
 
           <div style="margin-bottom:16px;">
             <div class="flex-between text-base font-semibold text-primary mb-2">
-              <span class="text-mono">${Math.floor(weekStats.totalSeconds / 3600).toString().padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60).toString().padStart(2, '0')}/${metaHoras}h00min</span>
+              <span class="text-mono">${Math.floor(weekStats.totalSeconds / 3600)
+                .toString()
+                .padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60)
+                .toString()
+                .padStart(2, '0')}/${metaHoras}h00min</span>
               <span>Horas de Estudo</span>
             </div>
             <div class="dash-progress-track">
@@ -256,19 +278,29 @@ export function renderHome(el) {
             </div>
           </div>
           <div class="home-weekly-study-chart ${hasWeekData ? '' : 'home-weekly-study-chart--empty'} flex-1 flex border-b gap-sm pb-2 relative" style="align-items:${hasWeekData ? 'flex-end' : 'center'};">
-            ${hasWeekData ? `<div class="flex-col absolute justify-between home-weekly-study-gridlines">
+            ${
+              hasWeekData
+                ? `<div class="flex-col absolute justify-between home-weekly-study-gridlines">
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
               <div class="border-t-muted"></div>
-            </div>` : ''}
+            </div>`
+                : ''
+            }
             <div class="flex w-full h-full home-weekly-study-bars" style="padding-bottom:${hasWeekData ? '20px' : '0'};">
               ${barsHtml}
             </div>
           </div>
           <div class="flex flex-center text-sm font-semibold text-secondary gap-sm mt-3">
-            <div class="home-weekly-study-legend-dot"></div> Total Estudado: ${Math.floor(weekStats.totalSeconds / 3600).toString().padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60).toString().padStart(2, '0')}h
+            <div class="home-weekly-study-legend-dot"></div> Total Estudado: ${Math.floor(
+              weekStats.totalSeconds / 3600
+            )
+              .toString()
+              .padStart(2, '0')}:${Math.floor((weekStats.totalSeconds % 3600) / 60)
+              .toString()
+              .padStart(2, '0')}h
           </div>
         </div>
 

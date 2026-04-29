@@ -5,7 +5,11 @@
 
 import { esc, formatH } from '../utils.js?v=8.29';
 import { state, scheduleSave } from '../store.js?v=8.29';
-import { getDisc, resetCicloAndWipeEvents, calculateCyclePredictionsModel } from '../logic.js?v=8.29';
+import {
+  getDisc,
+  resetCicloAndWipeEvents,
+  calculateCyclePredictionsModel,
+} from '../logic.js?v=8.29';
 import { renderCurrentView } from '../components.js?v=8.29';
 import { showConfirm } from '../app.js?v=8.29';
 import { getIsEditingSequence, getTempSequencia } from '../views.js?v=8.29';
@@ -14,8 +18,12 @@ import { getPlanjChartInstance, setPlanjChartInstance } from '../state/chart-sta
 // Module-level state
 let _hideConcluidosCiclo = false;
 
-export function getHideConcluidosCiclo() { return _hideConcluidosCiclo; }
-export function setHideConcluidosCiclo(val) { _hideConcluidosCiclo = val; }
+export function getHideConcluidosCiclo() {
+  return _hideConcluidosCiclo;
+}
+export function setHideConcluidosCiclo(val) {
+  _hideConcluidosCiclo = val;
+}
 
 function formatCycleDuration(minutes) {
   const total = Math.max(0, Math.round(Number(minutes) || 0));
@@ -42,15 +50,22 @@ function pluralizeSession(count) {
 }
 
 export function recomecarCiclo() {
-  showConfirm('Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?', () => {
-    if (state.planejamento && state.planejamento.tipo) {
-      state.planejamento.ciclosCompletos = (state.planejamento.ciclosCompletos || 0) + 1;
-      state.planejamento.dataInicioCicloAtual = new Date().toISOString();
-      resetCicloAndWipeEvents();
-      renderCurrentView();
-      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Ciclo recomeçado com sucesso! (Eventos Limpos)', type: 'success' } }));
+  showConfirm(
+    'Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?',
+    () => {
+      if (state.planejamento && state.planejamento.tipo) {
+        state.planejamento.ciclosCompletos = (state.planejamento.ciclosCompletos || 0) + 1;
+        state.planejamento.dataInicioCicloAtual = new Date().toISOString();
+        resetCicloAndWipeEvents();
+        renderCurrentView();
+        document.dispatchEvent(
+          new CustomEvent('app:showToast', {
+            detail: { msg: 'Ciclo recomeçado com sucesso! (Eventos Limpos)', type: 'success' },
+          })
+        );
+      }
     }
-  });
+  );
 }
 
 export function zerarCiclosCounter() {
@@ -59,7 +74,11 @@ export function zerarCiclosCounter() {
       state.planejamento.ciclosCompletos = 0;
       scheduleSave();
       renderCurrentView();
-      document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Contador de ciclos zerado!', type: 'info' } }));
+      document.dispatchEvent(
+        new CustomEvent('app:showToast', {
+          detail: { msg: 'Contador de ciclos zerado!', type: 'info' },
+        })
+      );
     }
   });
 }
@@ -108,15 +127,16 @@ export function calculateCyclePredictions() {
         </div>
       `;
 
-      const listHTML = keys.map(id => {
-        const disc = getDisc(id);
-        const name = disc ? disc.disc.nome : 'Desconhecida';
-        const color = disc ? (disc.disc.cor || disc.edital.cor || '#888') : '#888';
-        const sessCount = proj[id].sessoes;
-        const mins = proj[id].minutos;
-        const hrStr = formatCycleDuration(mins);
+      const listHTML = keys
+        .map((id) => {
+          const disc = getDisc(id);
+          const name = disc ? disc.disc.nome : 'Desconhecida';
+          const color = disc ? disc.disc.cor || disc.edital.cor || '#888' : '#888';
+          const sessCount = proj[id].sessoes;
+          const mins = proj[id].minutos;
+          const hrStr = formatCycleDuration(mins);
 
-        return `
+          return `
           <div class="seq-discipline-list-item">
              <div class="seq-discipline-info">
                <div class="seq-discipline-dot" style="background:${color};"></div>
@@ -127,7 +147,8 @@ export function calculateCyclePredictions() {
              </div>
           </div>
         `;
-      }).join('');
+        })
+        .join('');
       container.innerHTML = `${summaryHTML}${listHTML}`;
     }
   } else {
@@ -175,23 +196,23 @@ function renderCicloView(el, plan) {
   let dataInicio = plan.dataInicioCicloAtual || '1970-01-01T00:00:00.000Z';
   dataInicio = dataInicio.substring(0, 10);
   const statsPorDisc = {};
-  plan.disciplinas.forEach(id => statsPorDisc[id] = 0);
+  plan.disciplinas.forEach((id) => (statsPorDisc[id] = 0));
 
-  const eventosFiltrados = state.eventos.filter(ev => {
-    const isEstudado = ev.status === 'estudei' && (ev.tempoAcumulado && ev.tempoAcumulado > 0);
+  const eventosFiltrados = state.eventos.filter((ev) => {
+    const isEstudado = ev.status === 'estudei' && ev.tempoAcumulado && ev.tempoAcumulado > 0;
     const evDate = ev.dataEstudo || ev.data;
     return isEstudado && evDate >= dataInicio;
   });
 
-  eventosFiltrados.forEach(ev => {
+  eventosFiltrados.forEach((ev) => {
     if (statsPorDisc[ev.discId] !== undefined) {
-      statsPorDisc[ev.discId] += (ev.tempoAcumulado / 60);
+      statsPorDisc[ev.discId] += ev.tempoAcumulado / 60;
     }
   });
 
   let totalTarget = 0;
   const dictDisciplinas = {};
-  plan.disciplinas.forEach(id => {
+  plan.disciplinas.forEach((id) => {
     const disc = getDisc(id);
     if (disc) dictDisciplinas[id] = disc;
   });
@@ -200,11 +221,11 @@ function renderCicloView(el, plan) {
   let minutosCompletosCiclo = 0;
   let sessoesConcluidas = 0;
 
-  const targetLoop = getIsEditingSequence() ? (getTempSequencia() || []) : plan.sequencia;
+  const targetLoop = getIsEditingSequence() ? getTempSequencia() || [] : plan.sequencia;
 
   let optionsHtml = '<option value="">(Selecione)</option>';
   if (getIsEditingSequence()) {
-    plan.disciplinas.forEach(dId => {
+    plan.disciplinas.forEach((dId) => {
       const disc = getDisc(dId);
       if (disc) optionsHtml += `<option value="${dId}">${esc(disc.disc.nome)}</option>`;
     });
@@ -232,14 +253,15 @@ function renderCicloView(el, plan) {
     }
     minutosCompletosCiclo += usedMins;
     const pctInt = formatCyclePercent(pct);
-    const cor = d ? (d.disc.cor || d.edital.cor || '#8aa4bf') : '#7f8a99';
+    const cor = d ? d.disc.cor || d.edital.cor || '#8aa4bf' : '#7f8a99';
     if (pct >= 100) sessoesConcluidas++;
 
     if (!getIsEditingSequence() && getHideConcluidosCiclo() && pct >= 100) return;
 
     if (getIsEditingSequence()) {
       let selHtml = optionsHtml;
-      if (seq.discId) selHtml = selHtml.replace(`value="${seq.discId}"`, `value="${seq.discId}" selected`);
+      if (seq.discId)
+        selHtml = selHtml.replace(`value="${seq.discId}"`, `value="${seq.discId}" selected`);
 
       sequenceHtml += `
         <div class="seq-item-card seq-item-card--editing">
@@ -280,7 +302,7 @@ function renderCicloView(el, plan) {
           <div class="seq-item-color-bar" style="background:${cor};"></div>
           <div class="seq-item-content seq-item-content--static">
             <div class="seq-item-header">
-              <div class="seq-item-title" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+              <div class="seq-item-title seq-item-discipline" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
               <div class="seq-item-time-display">
                  <i class="fa fa-clock"></i> <span class="seq-item-time-value">${formatCycleDuration(usedMins)}</span> de ${formatCycleDuration(seq.minutosAlvo)}
               </div>
@@ -314,7 +336,8 @@ function renderCicloView(el, plan) {
     `;
   }
 
-  const progressoGlobalPct = totalTarget > 0 ? formatCyclePercent((minutosCompletosCiclo / totalTarget) * 100) : 0;
+  const progressoGlobalPct =
+    totalTarget > 0 ? formatCyclePercent((minutosCompletosCiclo / totalTarget) * 100) : 0;
   const minutosRestantes = Math.max(totalTarget - minutosCompletosCiclo, 0);
   const totalSessoes = targetLoop.length;
   const ciclosFeitos = plan.ciclosCompletos || 0;
@@ -356,9 +379,13 @@ function renderCicloView(el, plan) {
           <div class="ciclo-sequence-header">
              <div class="ciclo-sequence-title">Sequência dos Estudos</div>
              <div class="ciclo-sequence-controls">
-               ${!getIsEditingSequence() ? `
+               ${
+                 !getIsEditingSequence()
+                   ? `
                  <button class="btn btn-ghost btn-sm ciclo-sequence-edit-btn" data-action="toggle-edit-seq"><i class="fa fa-pencil"></i> Editar Sequência</button>
-               ` : ''}
+               `
+                   : ''
+               }
                <label class="ciclo-filter-label">
                  <input type="checkbox" data-action="toggle-ciclo-fin" ${getHideConcluidosCiclo() ? 'checked' : ''} class="ciclo-filter-checkbox"> FINALIZADOS
                </label>
@@ -425,7 +452,7 @@ function renderCicloChart(plan, dictDisciplinas, totalTarget) {
     const bgColors = [];
     const chartData = {};
 
-    plan.sequencia.forEach(seq => {
+    plan.sequencia.forEach((seq) => {
       if (!chartData[seq.discId]) chartData[seq.discId] = 0;
       chartData[seq.discId] += seq.minutosAlvo;
     });
@@ -450,37 +477,41 @@ function renderCicloChart(plan, dictDisciplinas, totalTarget) {
       setPlanjChartInstance(null);
     }
 
-    setPlanjChartInstance(new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: data,
-          backgroundColor: bgColors,
-          borderColor: 'transparent',
-          borderWidth: 0,
-          hoverOffset: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '60%',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            titleFont: { size: 13 },
-            bodyFont: { size: 14, weight: 'bold' },
-            padding: 12,
-            cornerRadius: 8,
-            callbacks: {
-              label: (context) => ' ' + formatH(context.raw)
-            }
-          }
-        }
-      }
-    }));
+    setPlanjChartInstance(
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              data: data,
+              backgroundColor: bgColors,
+              borderColor: 'transparent',
+              borderWidth: 0,
+              hoverOffset: 6,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '60%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              titleFont: { size: 13 },
+              bodyFont: { size: 14, weight: 'bold' },
+              padding: 12,
+              cornerRadius: 8,
+              callbacks: {
+                label: (context) => ' ' + formatH(context.raw),
+              },
+            },
+          },
+        },
+      })
+    );
   }, 100);
 }
 
@@ -506,7 +537,7 @@ function renderGradeView(el, plan) {
   let sequenceHtml = '';
   const dictDisciplinas = {};
   if (plan.disciplinas && plan.sequencia) {
-    plan.disciplinas.forEach(id => {
+    plan.disciplinas.forEach((id) => {
       const disc = getDisc(id);
       if (disc) dictDisciplinas[id] = disc;
     });
@@ -532,9 +563,10 @@ function renderGradeView(el, plan) {
             </div>
             <div class="grade-seq-step-label">Etapa ${i + 1} da sequência global da semana</div>
             <div class="grade-seq-action">
-              ${!seq.concluido
-                ? `<button class="btn btn-primary btn-sm" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Estudar Agora</button>`
-                : '<span class="grade-concluded-badge"><i class="fa fa-check"></i> Etapa Concluída</span>'
+              ${
+                !seq.concluido
+                  ? `<button class="btn btn-primary btn-sm" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Estudar Agora</button>`
+                  : '<span class="grade-concluded-badge"><i class="fa fa-check"></i> Etapa Concluída</span>'
               }
             </div>
           </div>

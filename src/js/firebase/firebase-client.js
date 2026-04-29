@@ -12,9 +12,12 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   initializeAppCheck,
-  ReCaptchaV3Provider
+  ReCaptchaV3Provider,
 } from '../../vendor/firebase-client.bundle.js?v=8.29';
-import { getRuntimeAppCheckSiteKey, getRuntimeFirebaseConfig } from './firebase-config.js?v=8.29';
+import {
+  getRuntimeAppCheckSiteKey,
+  getRuntimeFirebaseConfig,
+} from './firebase-config-default.js?v=8.29';
 
 let services = null;
 
@@ -22,7 +25,7 @@ const POPUP_FALLBACK_CODES = new Set([
   'auth/cancelled-popup-request',
   'auth/operation-not-supported-in-this-environment',
   'auth/popup-blocked',
-  'auth/popup-closed-by-user'
+  'auth/popup-closed-by-user',
 ]);
 
 export function isFirebaseConfigured(config = getRuntimeFirebaseConfig()) {
@@ -34,7 +37,7 @@ export function getFirebaseConfigStatus() {
   return {
     configured: isFirebaseConfigured(config),
     projectId: config.projectId || '',
-    authDomain: config.authDomain || ''
+    authDomain: config.authDomain || '',
   };
 }
 
@@ -51,15 +54,15 @@ export function initFirebaseServices() {
   const auth = getAuth(app);
   const db = initializeFirestore(app, {
     localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
+      tabManager: persistentMultipleTabManager(),
+    }),
   });
 
   const appCheckSiteKey = getRuntimeAppCheckSiteKey();
   if (appCheckSiteKey) {
     initializeAppCheck(app, {
       provider: new ReCaptchaV3Provider(appCheckSiteKey),
-      isTokenAutoRefreshEnabled: true
+      isTokenAutoRefreshEnabled: true,
     });
   }
 
@@ -79,7 +82,9 @@ export function observeFirebaseAuth(callback) {
 export async function signInWithGoogle() {
   const { configured, auth } = initFirebaseServices();
   if (!configured || !auth) {
-    throw new Error('Firebase nao configurado. Defina window.ESTUDO_FIREBASE_CONFIG antes de carregar o app ou edite src/js/firebase/firebase-config.js.');
+    throw new Error(
+      'Firebase nao configurado. Defina window.ESTUDO_FIREBASE_CONFIG antes de carregar o app.'
+    );
   }
   const provider = new GoogleAuthProvider();
   try {

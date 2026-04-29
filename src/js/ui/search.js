@@ -33,7 +33,7 @@ export function onSearch(query) {
   const results = { eventos: [], disciplinas: [], assuntos: [], habitos: [] };
 
   // Search eventos
-  state.eventos.forEach(ev => {
+  state.eventos.forEach((ev) => {
     if (ev.titulo.toLowerCase().includes(q)) {
       const disc = ev.discId ? getDisc(ev.discId)?.disc : null;
       results.eventos.push({ ev, disc });
@@ -48,7 +48,7 @@ export function onSearch(query) {
       results.disciplinas.push({ disc, edital });
     }
     // Search assuntos
-    (disc.assuntos || []).forEach(ass => {
+    (disc.assuntos || []).forEach((ass) => {
       if (ass.nome.toLowerCase().includes(q) || disc.nome.toLowerCase().includes(q)) {
         results.assuntos.push({ ass, disc, edital });
       }
@@ -56,15 +56,19 @@ export function onSearch(query) {
   });
 
   // Search hábitos
-  HABIT_TYPES.forEach(h => {
-    (state.habitos[h.key] || []).forEach(r => {
+  HABIT_TYPES.forEach((h) => {
+    (state.habitos[h.key] || []).forEach((r) => {
       if ((r.descricao || '').toLowerCase().includes(q)) {
         results.habitos.push({ r, h });
       }
     });
   });
 
-  const totalResults = results.eventos.length + results.disciplinas.length + results.assuntos.length + results.habitos.length;
+  const totalResults =
+    results.eventos.length +
+    results.disciplinas.length +
+    results.assuntos.length +
+    results.habitos.length;
 
   // Announce results to screen readers
   const announcer = document.getElementById('aria-announcer');
@@ -72,58 +76,83 @@ export function onSearch(query) {
     announcer.textContent = `${totalResults} resultado(s) encontrado(s)`;
   }
 
-  const highlight = str => esc(str).replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
+  const highlight = (str) =>
+    esc(str).replace(
+      new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+      '<mark>$1</mark>'
+    );
   let html = '';
 
   if (results.eventos.length) {
     html += '<div class="search-section-title" role="presentation">📅 Eventos</div>';
-    html += results.eventos.slice(0, 5).map(({ ev, disc }) => `
+    html += results.eventos
+      .slice(0, 5)
+      .map(
+        ({ ev, disc }) => `
       <button type="button" class="search-item" data-action="open-search-event" data-event-id="${ev.id}">
         <div class="search-item-icon">${disc ? disc.icone || '📚' : '📅'}</div>
         <div>
           <div class="search-item-label">${highlight(ev.titulo)}</div>
           <div class="search-item-sub">${ev.data ? formatDate(ev.data) : ''}${disc ? ' • ' + disc.nome : ''}</div>
         </div>
-      </button>`).join('');
+      </button>`
+      )
+      .join('');
   }
 
   if (results.disciplinas.length) {
     html += '<div class="search-section-title" role="presentation">📖 Disciplinas</div>';
-    html += results.disciplinas.slice(0, 5).map(({ disc, edital }) => `
+    html += results.disciplinas
+      .slice(0, 5)
+      .map(
+        ({ disc, edital }) => `
       <button type="button" class="search-item" data-action="navigate-clear-search" data-view="editais">
         <div class="search-item-icon">${disc.icone || '📖'}</div>
         <div>
           <div class="search-item-label">${highlight(disc.nome)}</div>
           <div class="search-item-sub">${esc(edital.nome)} • ${(disc.assuntos || []).length} assunto(s)</div>
         </div>
-      </button>`).join('');
+      </button>`
+      )
+      .join('');
   }
 
   if (results.assuntos.length) {
     html += '<div class="search-section-title" role="presentation">📚 Assuntos</div>';
-    html += results.assuntos.slice(0, 5).map(({ ass, disc, edital }) => `
+    html += results.assuntos
+      .slice(0, 5)
+      .map(
+        ({ ass, disc, edital }) => `
       <button type="button" class="search-item" data-action="navigate-clear-search" data-view="editais">
         <div class="search-item-icon">${disc.icone || '📚'}</div>
         <div>
           <div class="search-item-label">${highlight(ass.nome)}</div>
           <div class="search-item-sub">${esc(disc.nome)} • ${esc(edital.nome)} ${ass.concluido ? '✅' : ''}</div>
         </div>
-      </button>`).join('');
+      </button>`
+      )
+      .join('');
   }
 
   if (results.habitos.length) {
     html += '<div class="search-section-title" role="presentation">⚡ Hábitos</div>';
-    html += results.habitos.slice(0, 3).map(({ r, h }) => `
+    html += results.habitos
+      .slice(0, 3)
+      .map(
+        ({ r, h }) => `
       <button type="button" class="search-item" data-action="navigate-clear-search" data-view="habitos">
         <div class="search-item-icon">${h.icon}</div>
         <div>
           <div class="search-item-label">${highlight(r.descricao || h.label)}</div>
           <div class="search-item-sub">${formatDate(r.data)}</div>
         </div>
-      </button>`).join('');
+      </button>`
+      )
+      .join('');
   }
 
-  if (!html) html = `<div class="search-empty">Nenhum resultado para "<strong>${query}</strong>"</div>`;
+  if (!html)
+    html = `<div class="search-empty">Nenhum resultado para "<strong>${query}</strong>"</div>`;
   box.innerHTML = html;
   box.classList.add('open');
   input.setAttribute('aria-expanded', 'true');
@@ -178,16 +207,19 @@ function handleSearchKeydown(e) {
 
   e.preventDefault();
   const currentIndex = buttons.indexOf(active);
-  const nextIndex = e.key === 'ArrowDown'
-    ? (currentIndex + 1) % buttons.length
-    : (currentIndex <= 0 ? buttons.length - 1 : currentIndex - 1);
+  const nextIndex =
+    e.key === 'ArrowDown'
+      ? (currentIndex + 1) % buttons.length
+      : currentIndex <= 0
+        ? buttons.length - 1
+        : currentIndex - 1;
 
   buttons[nextIndex].focus();
   return true;
 }
 
 // ESC closes search / topmost modal
-addCleanupListener(document, 'keydown', e => {
+addCleanupListener(document, 'keydown', (e) => {
   if (handleSearchKeydown(e)) return;
   if (e.key === 'Escape') {
     const openModals = [...document.querySelectorAll('.modal-overlay.open')];
@@ -203,10 +235,19 @@ addCleanupListener(document, 'keydown', e => {
   }
 
   // Enter submits the active modal form (not inside textarea)
-  if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
-    const openModalEl = document.querySelector('.modal-overlay.open:not(#modal-confirm):not(#modal-event-detail)');
+  if (
+    e.key === 'Enter' &&
+    !e.shiftKey &&
+    e.target.tagName !== 'TEXTAREA' &&
+    e.target.tagName !== 'SELECT'
+  ) {
+    const openModalEl = document.querySelector(
+      '.modal-overlay.open:not(#modal-confirm):not(#modal-event-detail)'
+    );
     if (openModalEl) {
-      const saveBtn = openModalEl.querySelector('button[onclick*="save"], button[onclick*="Save"], button.btn-primary');
+      const saveBtn = openModalEl.querySelector(
+        'button[onclick*="save"], button[onclick*="Save"], button.btn-primary'
+      );
       if (saveBtn && !saveBtn.disabled) {
         e.preventDefault();
         saveBtn.click();

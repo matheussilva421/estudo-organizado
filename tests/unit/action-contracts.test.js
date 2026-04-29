@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const rootDir = process.cwd();
@@ -348,6 +350,19 @@ describe('data-action contracts', () => {
 
     expect(mainSource).toContain('Object.defineProperty(window.EstudoApp, key');
     expect(mainSource).toContain('get: () => mod[key]');
+  });
+
+  it('keeps the browser module graph bundleable without missing exports', () => {
+    const outfile = join(tmpdir(), 'estudo-organizado-main-esbuild-check.js');
+    const args = ['esbuild', 'src/js/main.js', '--bundle', '--format=esm', `--outfile=${outfile}`, '--log-level=silent'];
+
+    expect(() => {
+      if (process.platform === 'win32') {
+        execFileSync('cmd.exe', ['/d', '/s', '/c', `npx ${args.join(' ')}`], { cwd: rootDir, stdio: 'pipe' });
+      } else {
+        execFileSync('npx', args, { cwd: rootDir, stdio: 'pipe' });
+      }
+    }).not.toThrow();
   });
 
   it('removes isolated credentials when clearing all app data', () => {

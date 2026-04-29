@@ -5,7 +5,10 @@
 
 import { scheduleSave, state } from '../store.js?v=8.29';
 import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.29';
-import { getActiveDashboardDiscCtx, getActiveDashboardTab } from '../state/dashboard-context.js?v=8.29';
+import {
+  getActiveDashboardDiscCtx,
+  getActiveDashboardTab,
+} from '../state/dashboard-context.js?v=8.29';
 import { renderCurrentView } from '../components.js?v=8.29';
 import { setDiscChartInstance, getDiscChartInstance } from '../state/chart-state.js?v=8.29';
 import { openDiscDashboard } from '../views.js?v=8.29';
@@ -13,18 +16,20 @@ import { showToast } from '../app.js?v=8.29';
 
 // ── Main Dashboard Render ──
 export function renderDisciplinaDashboard(edital, disc) {
-  const tempos = state.eventos ? state.eventos.filter(e => e.discId === disc.id && e.status === 'estudei') : [];
+  const tempos = state.eventos
+    ? state.eventos.filter((e) => e.discId === disc.id && e.status === 'estudei')
+    : [];
   let tempoTotal = 0;
   let qCertas = 0;
   let qErradas = 0;
   let pagLidas = 0;
 
-  tempos.forEach(e => {
+  tempos.forEach((e) => {
     tempoTotal += e.tempoAcumulado || 0;
     const qs = e.sessao?.questoes || e.questoes;
     if (qs) {
-      qCertas += (qs.acertos || qs.certas || 0);
-      qErradas += (qs.erros || qs.erradas || 0);
+      qCertas += qs.acertos || qs.certas || 0;
+      qErradas += qs.erros || qs.erradas || 0;
     }
     pagLidas += e.sessao?.paginas?.total || e.paginas || 0;
   });
@@ -33,10 +38,11 @@ export function renderDisciplinaDashboard(edital, disc) {
   const percAcertos = totalQuestoes > 0 ? Math.round((qCertas / totalQuestoes) * 100) : 0;
 
   const totalAulas = disc.aulas ? disc.aulas.length : 0;
-  const aulasEstudadas = disc.aulas ? disc.aulas.filter(a => a.estudada).length : 0;
+  const aulasEstudadas = disc.aulas ? disc.aulas.filter((a) => a.estudada).length : 0;
   const percConcluido = totalAulas > 0 ? Math.round((aulasEstudadas / totalAulas) * 100) : 0;
   const activeDashboardTab = getActiveDashboardTab() || 'topicos';
-  const tabBaseStyle = 'padding:8px 0;font-weight:600;font-size:14px;cursor:pointer;background:transparent;border:0;font-family:inherit;text-align:left;';
+  const tabBaseStyle =
+    'padding:8px 0;font-weight:600;font-size:14px;cursor:pointer;background:transparent;border:0;font-family:inherit;text-align:left;';
 
   return `
     <div class="disc-dashboard-shell">
@@ -152,17 +158,19 @@ function renderHistoricoDisciplina(tempos) {
                 </tr>
               </thead>
               <tbody>
-                ${reverseTempos.map(t => {
-    const dateStr = formatDate(t.data);
-    const tempoStr = formatTime(t.tempoAcumulado || 0).substring(0, 5);
-    const qs = t.sessao?.questoes || t.questoes || { certas: 0, erradas: 0 };
-    const totQs = (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
-    const certas = qs.acertos || qs.certas || 0;
-    const perc = totQs > 0 ? Math.round((certas / totQs) * 100) : 0;
-    const percColor = perc >= 70 ? 'var(--green)' : perc >= 50 ? 'var(--accent)' : 'var(--red)';
-    const pags = t.sessao?.paginas?.total || t.paginas || null;
+                ${reverseTempos
+                  .map((t) => {
+                    const dateStr = formatDate(t.data);
+                    const tempoStr = formatTime(t.tempoAcumulado || 0).substring(0, 5);
+                    const qs = t.sessao?.questoes || t.questoes || { certas: 0, erradas: 0 };
+                    const totQs = (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
+                    const certas = qs.acertos || qs.certas || 0;
+                    const perc = totQs > 0 ? Math.round((certas / totQs) * 100) : 0;
+                    const percColor =
+                      perc >= 70 ? 'var(--green)' : perc >= 50 ? 'var(--accent)' : 'var(--red)';
+                    const pags = t.sessao?.paginas?.total || t.paginas || null;
 
-    return `
+                    return `
               <tr class="session-history-row cursor-pointer" style="border-bottom:1px solid var(--bg);" data-action="open-registro-sessao" data-disc-id="${t.id}">
                 <td class="text-primary" style="padding:10px 4px;">${dateStr}</td>
                 <td class="text-mono" style="padding:10px 4px;">${tempoStr}</td>
@@ -171,7 +179,8 @@ function renderHistoricoDisciplina(tempos) {
                 <td class="font-bold" style="padding:10px 4px; color:${totQs > 0 ? percColor : 'inherit'};">${totQs > 0 ? perc + '%' : '-'}</td>
               </tr>
             `;
-  }).join('')}
+                  })
+                  .join('')}
               </tbody>
             </table>
     </div>
@@ -186,27 +195,37 @@ function renderTopicosEditalDisciplina(edital, disc) {
 
   return `
     <div class="custom-scrollbar scroll-panel">
-            ${disc.assuntos.map(ass => {
-    const importanceBadge = ass.relevance?.priority === 'P1' ?
-      '<span class="priority-badge priority-badge--p1" title="Alta Chance de Cobrança">🔥 P1</span>' :
-      (ass.relevance?.priority === 'P2' ? '<span class="priority-badge priority-badge--p2">⚠️ P2</span>' : '');
+            ${disc.assuntos
+              .map((ass) => {
+                const importanceBadge =
+                  ass.relevance?.priority === 'P1'
+                    ? '<span class="priority-badge priority-badge--p1" title="Alta Chance de Cobrança">🔥 P1</span>'
+                    : ass.relevance?.priority === 'P2'
+                      ? '<span class="priority-badge priority-badge--p2">⚠️ P2</span>'
+                      : '';
 
-    return `
+                return `
         <div class="list-row rounded-md" style="${ass.concluido ? 'background:var(--bg-secondary); ' : ''};">
           <div class="check-circle ${ass.concluido ? 'done' : ''} flex-shrink-0" data-action="toggle-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
           <div class="flex-1 min-w-0 text-md" style="font-weight:${ass.concluido ? '400' : '600'}; color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'}; ${ass.concluido ? 'text-decoration:line-through; ' : ''};">
              ${esc(ass.nome)} ${importanceBadge}
           </div>
-          ${ass.concluido ? `
+          ${
+            ass.concluido
+              ? `
             <div class="text-right flex-shrink-0">
               <div class="text-xs font-bold text-green">✅ concluído</div>
               <div class="text-xs text-muted">${formatDate(ass.dataConclusao)}</div>
             </div>
-          ` : `
+          `
+              : `
             <button class="btn btn-ghost btn-sm btn-xs" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">+ Agenda</button>
-          `}
+          `
+          }
         </div>
-      `;}).join('')}
+      `;
+              })
+              .join('')}
     </div>
   `;
 }
@@ -219,25 +238,36 @@ function renderAulasDisciplinaDashboard(edital, disc) {
 
   return `
     <div class="custom-scrollbar scroll-panel">
-        ${disc.aulas.map(aul => `
+        ${disc.aulas
+          .map(
+            (aul) => `
         <div class="list-row rounded-md" style="${aul.estudada ? 'background:var(--bg-secondary); ' : ''};">
           <div class="check-circle ${aul.estudada ? 'done' : ''} flex-shrink-0 cursor-pointer" data-action="toggle-aula-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-aula-id="${aul.id}" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
           <div class="flex-1 min-w-0 text-md" style="font-weight:${aul.estudada ? '400' : '600'}; color:${aul.estudada ? 'var(--text-muted)' : 'var(--text-primary)'}; ${aul.estudada ? 'text-decoration:line-through; ' : ''};">
              ${esc(aul.nome)}
              ${aul.linkedAssuntoIds && aul.linkedAssuntoIds.length > 0 ? `<div class="text-xs text-muted mt-1">🔗 ${aul.linkedAssuntoIds.length} tópico(s) do edital conectado(s)</div>` : ''}
           </div>
-          ${!aul.estudada ? `
+          ${
+            !aul.estudada
+              ? `
             <button class="btn btn-ghost btn-sm btn-xs" data-action="add-evento-para-assunto" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-assunto-id="aul_${aul.id}">+ Agenda</button>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
-      `).join('')}
+      `
+          )
+          .join('')}
     </div>
   `;
 }
 
 // ── Helper: Render Banca/Hot Topics Tab ──
 function renderBancaDisciplinaDashboard(edital, disc) {
-  const hasHotTopics = state.bancaRelevance && state.bancaRelevance.hotTopics && state.bancaRelevance.hotTopics.some(ht => ht.disciplinaId === disc.id);
+  const hasHotTopics =
+    state.bancaRelevance &&
+    state.bancaRelevance.hotTopics &&
+    state.bancaRelevance.hotTopics.some((ht) => ht.disciplinaId === disc.id);
   const hasAulas = disc.aulas && disc.aulas.length > 0;
 
   if (!hasHotTopics) {
@@ -291,23 +321,31 @@ export function initDiscDashboardChart(discId) {
   const grid = border;
   const accentSoft = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}29` : 'rgba(138, 164, 191, 0.16)';
 
-  const tempos = state.eventos ? state.eventos.filter(e => {
-    const qs = e.sessao?.questoes || e.questoes;
-    return e.discId === discId && e.status === 'estudei' && qs &&
-      ((qs.acertos || qs.certas || 0) > 0 || (qs.erros || qs.erradas || 0) > 0);
-  }) : [];
+  const tempos = state.eventos
+    ? state.eventos.filter((e) => {
+        const qs = e.sessao?.questoes || e.questoes;
+        return (
+          e.discId === discId &&
+          e.status === 'estudei' &&
+          qs &&
+          ((qs.acertos || qs.certas || 0) > 0 || (qs.erros || qs.erradas || 0) > 0)
+        );
+      })
+    : [];
 
   const grouped = {};
-  [...tempos].sort((a, b) => a.data.localeCompare(b.data)).forEach(t => {
-    if (!grouped[t.data]) grouped[t.data] = { certas: 0, erradas: 0 };
-    const qs = t.sessao?.questoes || t.questoes;
-    grouped[t.data].certas += (qs.acertos || qs.certas || 0);
-    grouped[t.data].erradas += (qs.erros || qs.erradas || 0);
-  });
+  [...tempos]
+    .sort((a, b) => a.data.localeCompare(b.data))
+    .forEach((t) => {
+      if (!grouped[t.data]) grouped[t.data] = { certas: 0, erradas: 0 };
+      const qs = t.sessao?.questoes || t.questoes;
+      grouped[t.data].certas += qs.acertos || qs.certas || 0;
+      grouped[t.data].erradas += qs.erros || qs.erradas || 0;
+    });
 
   const rawLabels = Object.keys(grouped).slice(-15);
-  const labels = rawLabels.map(d => formatDate(d));
-  const dataPerc = rawLabels.map(d => {
+  const labels = rawLabels.map((d) => formatDate(d));
+  const dataPerc = rawLabels.map((d) => {
     const total = grouped[d].certas + grouped[d].erradas;
     return total > 0 ? Math.round((grouped[d].certas / total) * 100) : 0;
   });
@@ -318,68 +356,73 @@ export function initDiscDashboardChart(discId) {
 
   if (labels.length === 0) {
     const parent = canvas.parentElement;
-    parent.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;font-style:italic;">Métricas insuficientes. Registre sessões com número de questões para gerar o gráfico de evolução.</div>';
+    parent.innerHTML =
+      '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;font-style:italic;">Métricas insuficientes. Registre sessões com número de questões para gerar o gráfico de evolução.</div>';
     return;
   }
 
   const ctx = canvas.getContext('2d');
-  setDiscChartInstance(new window.Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: '% de Acertos',
-        data: dataPerc,
-        borderColor: accent,
-        backgroundColor: accentSoft,
-        borderWidth: 2,
-        pointBackgroundColor: bg,
-        pointBorderColor: accent,
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        tension: 0.3,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: card,
-          titleColor: textMuted,
-          bodyColor: textPrimary,
-          borderColor: border,
-          borderWidth: 1,
-          callbacks: {
-            label: (ctx) => `${ctx.raw}% de Acerto`
-          }
-        }
+  setDiscChartInstance(
+    new window.Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: '% de Acertos',
+            data: dataPerc,
+            borderColor: accent,
+            backgroundColor: accentSoft,
+            borderWidth: 2,
+            pointBackgroundColor: bg,
+            pointBorderColor: accent,
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            tension: 0.3,
+            fill: true,
+          },
+        ],
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          grid: { color: grid },
-          ticks: { color: textMuted, callback: (v) => `${v}%` }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: card,
+            titleColor: textMuted,
+            bodyColor: textPrimary,
+            borderColor: border,
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx) => `${ctx.raw}% de Acerto`,
+            },
+          },
         },
-        x: {
-          grid: { display: false },
-          ticks: { color: textMuted, maxRotation: 45, minRotation: 45 }
-        }
-      }
-    }
-  }));
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            grid: { color: grid },
+            ticks: { color: textMuted, callback: (v) => `${v}%` },
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: textMuted, maxRotation: 45, minRotation: 45 },
+          },
+        },
+      },
+    })
+  );
 }
 
 // ── Toggle Assunto Conclusão ──
 export function toggleAssunto(discId, assId) {
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue;
-    const disc = edital.disciplinas.find(d => d.id === discId);
+    const disc = edital.disciplinas.find((d) => d.id === discId);
     if (disc) {
-      const ass = (disc.assuntos || []).find(a => a.id === assId);
+      const ass = (disc.assuntos || []).find((a) => a.id === assId);
       if (ass) {
         ass.concluido = !ass.concluido;
         ass.dataConclusao = ass.concluido ? todayStr() : null;
@@ -402,10 +445,10 @@ export function toggleAssunto(discId, assId) {
 export function toggleAulaDashboard(editaId, discId, aulaId) {
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue;
-    const disc = edital.disciplinas.find(d => d.id === discId);
+    const disc = edital.disciplinas.find((d) => d.id === discId);
     if (!disc) continue;
 
-    const aula = (disc.aulas || []).find(a => a.id === aulaId);
+    const aula = (disc.aulas || []).find((a) => a.id === aulaId);
     if (!aula) return;
 
     aula.estudada = !aula.estudada;
@@ -427,5 +470,5 @@ export default {
   renderDisciplinaDashboard,
   initDiscDashboardChart,
   toggleAssunto,
-  toggleAulaDashboard
+  toggleAulaDashboard,
 };

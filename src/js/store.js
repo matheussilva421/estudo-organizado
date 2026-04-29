@@ -5,7 +5,7 @@ import { uid } from './utils.js?v=8.29';
 import * as credentialsStore from './credentials.js?v=8.29';
 import {
   normalizeEntityMetadata,
-  prepareEntityMetadataForSave
+  prepareEntityMetadataForSave,
 } from './sync/entity-metadata.js?v=8.29';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
@@ -28,7 +28,7 @@ export const DEFAULT_FIRESTORE_SYNC_CONFIG = {
   remoteUpdatedAt: null,
   hasPendingWrites: false,
   conflict: null,
-  lastError: null
+  lastError: null,
 };
 
 export const DEFAULT_ENTITY_SYNC_CONFIG = {
@@ -37,7 +37,7 @@ export const DEFAULT_ENTITY_SYNC_CONFIG = {
   lastShadowPushAt: null,
   lastShadowReadAt: null,
   lastShadowDiff: null,
-  lastError: null
+  lastError: null,
 };
 
 /**
@@ -66,18 +66,61 @@ export function setState(newState) {
   const normalized = {
     schemaVersion: newState.schemaVersion || DEFAULT_SCHEMA_VERSION,
     ciclo: deepClone(newState.ciclo || { ativo: false, ciclosCompletos: 0, disciplinas: [] }),
-    planejamento: deepClone(newState.planejamento || { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null }),
+    planejamento: deepClone(
+      newState.planejamento || {
+        ativo: false,
+        tipo: null,
+        disciplinas: [],
+        relevancia: {},
+        horarios: {},
+        sequencia: [],
+        ciclosCompletos: 0,
+        dataInicioCicloAtual: null,
+      }
+    ),
     editais: deepClone(Array.isArray(newState.editais) ? newState.editais : []),
     eventos: deepClone(Array.isArray(newState.eventos) ? newState.eventos : []),
     arquivo: deepClone(Array.isArray(newState.arquivo) ? newState.arquivo : []),
     // Hábitos e Histórico
-    habitos: deepClone(Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {})),
+    habitos: deepClone(
+      Object.assign(
+        {
+          questoes: [],
+          revisao: [],
+          discursiva: [],
+          simulado: [],
+          leitura: [],
+          informativo: [],
+          sumula: [],
+          videoaula: [],
+          paginas: [],
+        },
+        typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {}
+      )
+    ),
     revisoes: deepClone(Array.isArray(newState.revisoes) ? newState.revisoes : []),
-    config: deepClone(Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3, entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG }, entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG } }, newState.config || {})),
+    config: deepClone(
+      Object.assign(
+        {
+          visualizacao: 'mes',
+          primeirodiaSemana: 1,
+          mostrarNumeroSemana: false,
+          agruparEventos: true,
+          frequenciaRevisao: [1, 7, 30, 90],
+          materiasPorDia: 3,
+          entityTombstones: [],
+          firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
+          entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG },
+        },
+        newState.config || {}
+      )
+    ),
     cronoLivre: deepClone(newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 }),
-    bancaRelevance: deepClone(newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} }),
+    bancaRelevance: deepClone(
+      newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} }
+    ),
     driveFileId: newState.driveFileId || null,
-    lastSync: newState.lastSync || null
+    lastSync: newState.lastSync || null,
   };
 
   // Deep clone do normalized para o state para prevenir mutação externa
@@ -94,41 +137,62 @@ export function setState(newState) {
   );
 
   // Replace the state object properties instead of the reference
-  Object.keys(state).forEach(k => delete state[k]);
+  Object.keys(state).forEach((k) => delete state[k]);
   Object.assign(state, cloned);
 
   // Disparar evento de state alterado para debugging (apenas em ambiente browser)
   if (typeof document !== 'undefined') {
-    document.dispatchEvent(new CustomEvent('app:stateChanged', {
-      detail: { timestamp: Date.now(), source: 'setState' }
-    }));
+    document.dispatchEvent(
+      new CustomEvent('app:stateChanged', {
+        detail: { timestamp: Date.now(), source: 'setState' },
+      })
+    );
   }
 }
 
 export const state = {
   schemaVersion: DEFAULT_SCHEMA_VERSION,
   ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
-  planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
+  planejamento: {
+    ativo: false,
+    tipo: null,
+    disciplinas: [],
+    relevancia: {},
+    horarios: {},
+    sequencia: [],
+    ciclosCompletos: 0,
+    dataInicioCicloAtual: null,
+  },
   editais: [],
   eventos: [],
   arquivo: [], // concluded events older than 90 days
-  habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] },
+  habitos: {
+    questoes: [],
+    revisao: [],
+    discursiva: [],
+    simulado: [],
+    leitura: [],
+    informativo: [],
+    sumula: [],
+    videoaula: [],
+    paginas: [],
+  },
   revisoes: [],
-    config: {
-      visualizacao: 'mes',
-      primeirodiaSemana: 1,
-      mostrarNumeroSemana: false,
-      agruparEventos: true,
-      frequenciaRevisao: [1, 7, 30, 90],
-      materiasPorDia: 3,
-      entityTombstones: [],
-      firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
-      entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG }
-    },
+  config: {
+    visualizacao: 'mes',
+    primeirodiaSemana: 1,
+    mostrarNumeroSemana: false,
+    agruparEventos: true,
+    frequenciaRevisao: [1, 7, 30, 90],
+    materiasPorDia: 3,
+    entityTombstones: [],
+    firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
+    entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG },
+  },
   cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
   bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
   driveFileId: null,
-  lastSync: null
+  lastSync: null,
 };
 
 export function createExportableState(sourceState = state) {
@@ -217,7 +281,7 @@ export function loadStateFromDB() {
             loadedState.cronoLivre._timerStart = null;
           }
           if (loadedState.eventos) {
-            loadedState.eventos.forEach(ev => {
+            loadedState.eventos.forEach((ev) => {
               if (ev._timerStart) ev._timerStart = null;
             });
           }
@@ -284,16 +348,23 @@ export function describeSaveFailure(err) {
 
 function emitSaveStatus(status, detail = {}) {
   if (typeof document === 'undefined') return;
-  const message = detail.message
-    || (status === 'saving' ? 'Salvando...' : status === 'error' ? 'Erro ao salvar' : 'Salvo localmente');
-  document.dispatchEvent(new CustomEvent('app:saveStatus', {
-    detail: {
-      status,
-      message,
-      detail: detail.detail || '',
-      timestamp: new Date().toISOString()
-    }
-  }));
+  const message =
+    detail.message ||
+    (status === 'saving'
+      ? 'Salvando...'
+      : status === 'error'
+        ? 'Erro ao salvar'
+        : 'Salvo localmente');
+  document.dispatchEvent(
+    new CustomEvent('app:saveStatus', {
+      detail: {
+        status,
+        message,
+        detail: detail.detail || '',
+        timestamp: new Date().toISOString(),
+      },
+    })
+  );
 }
 
 // Handler pagehide - mais confiável que beforeunload em mobile e fechamentos bruscos
@@ -333,7 +404,7 @@ export const SyncQueue = {
   isProcessing: false,
   tasks: [],
   add(taskFn) {
-  return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this.tasks.push(async () => {
         try {
           await taskFn();
@@ -357,7 +428,7 @@ export const SyncQueue = {
       }
     }
     this.isProcessing = false;
-  }
+  },
 };
 
 let _invalidateTimeout = null;
@@ -388,12 +459,16 @@ export function scheduleSave() {
       _invalidateTimeout = null;
       document.dispatchEvent(new Event('app:invalidateCaches'));
     }
-    saveStateToDB().catch(err => {
+    saveStateToDB().catch((err) => {
       console.error('CRITICAL: Failed to save to IndexedDB', err);
       const detail = describeSaveFailure(err);
       emitSaveStatus('error', { detail });
       if (typeof document !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: `ERRO GRAVE: Falha ao salvar. ${detail}`, type: 'error' } }));
+        document.dispatchEvent(
+          new CustomEvent('app:showToast', {
+            detail: { msg: `ERRO GRAVE: Falha ao salvar. ${detail}`, type: 'error' },
+          })
+        );
       }
     });
   }, 2000); // 2 second debounce
@@ -404,7 +479,12 @@ export function scheduleSave() {
  * @param {boolean} [skipCloudSync=false] - Se true, não sincroniza com Cloudflare
  * @returns {Promise<void>}
  */
-export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false, skipDriveSync = false, options = {}) {
+export function saveStateToDB(
+  skipCloudSync = false,
+  skipFirestoreSync = false,
+  skipDriveSync = false,
+  options = {}
+) {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
     saveTimeout = null;
@@ -418,28 +498,34 @@ export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false, 
     state.config.localBackupAt = new Date().toISOString();
   }
 
-  const prepare = saveOptions.touchLocalBackup === false
-    ? Promise.resolve()
-    : prepareEntityMetadataForSave(state, { db, storeName: ENTITY_META_STORE });
+  const prepare =
+    saveOptions.touchLocalBackup === false
+      ? Promise.resolve()
+      : prepareEntityMetadataForSave(state, { db, storeName: ENTITY_META_STORE });
 
-  return prepare.then(() => new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.put(state, 'main_state');
+  return prepare.then(
+    () =>
+      new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put(state, 'main_state');
 
-    request.onsuccess = () => {
-      document.dispatchEvent(new CustomEvent('stateSaved', {
-        detail: { skipCloudSync, skipFirestoreSync, skipDriveSync }
-      }));
-      emitSaveStatus('saved');
-      resolve();
-    };
-    request.onerror = (e) => {
-      const err = request.error || e?.target?.error || e;
-      emitSaveStatus('error', { detail: describeSaveFailure(err) });
-      reject(err);
-    };
-  }));
+        request.onsuccess = () => {
+          document.dispatchEvent(
+            new CustomEvent('stateSaved', {
+              detail: { skipCloudSync, skipFirestoreSync, skipDriveSync },
+            })
+          );
+          emitSaveStatus('saved');
+          resolve();
+        };
+        request.onerror = (e) => {
+          const err = request.error || e?.target?.error || e;
+          emitSaveStatus('error', { detail: describeSaveFailure(err) });
+          reject(err);
+        };
+      })
+  );
 }
 
 /**
@@ -453,27 +539,38 @@ export function runMigrations() {
     if (!state.revisoes) state.revisoes = [];
     if (!state.config) state.config = { visualizacao: 'mes', agruparEventos: true };
     if (!state.config.frequenciaRevisao) state.config.frequenciaRevisao = [1, 7, 30, 90];
-    if (!state.habitos) state.habitos = { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] };
+    if (!state.habitos)
+      state.habitos = {
+        questoes: [],
+        revisao: [],
+        discursiva: [],
+        simulado: [],
+        leitura: [],
+        informativo: [],
+        sumula: [],
+        videoaula: [],
+        paginas: [],
+      };
 
     // Add IDs where missing
     if (!state.editais) state.editais = [];
-    state.editais.forEach(ed => {
+    state.editais.forEach((ed) => {
       if (!ed.id) ed.id = 'ed_' + uid();
       if (!ed.cor) ed.cor = '#8aa4bf';
       // Migration: flatten grupos into disciplinas
       if (ed.grupos && !ed.disciplinas) {
         ed.disciplinas = [];
-        ed.grupos.forEach(gr => {
-          gr.disciplinas.forEach(d => ed.disciplinas.push(d));
+        ed.grupos.forEach((gr) => {
+          gr.disciplinas.forEach((d) => ed.disciplinas.push(d));
         });
         delete ed.grupos;
       }
       if (!ed.disciplinas) ed.disciplinas = [];
-      ed.disciplinas.forEach(d => {
+      ed.disciplinas.forEach((d) => {
         if (!d.id) d.id = 'disc_' + uid();
         if (!d.icone) d.icone = '📖';
         if (!d.assuntos) d.assuntos = [];
-        d.assuntos.forEach(a => {
+        d.assuntos.forEach((a) => {
           if (!a.id) a.id = 'ass_' + uid();
           if (!a.revisoesFetas) a.revisoesFetas = [];
         });
@@ -487,7 +584,10 @@ export function runMigrations() {
   if (state.schemaVersion === 2) {
     if (!state.arquivo) state.arquivo = [];
     if (state.config.frequenciaRevisao && typeof state.config.frequenciaRevisao === 'string') {
-      state.config.frequenciaRevisao = state.config.frequenciaRevisao.split(',').map(Number).filter(n => !isNaN(n));
+      state.config.frequenciaRevisao = state.config.frequenciaRevisao
+        .split(',')
+        .map(Number)
+        .filter((n) => !isNaN(n));
     }
     state.schemaVersion = 3;
     changed = true;
@@ -503,7 +603,14 @@ export function runMigrations() {
 
   if (state.schemaVersion === 4) {
     if (!state.planejamento) {
-      state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
+      state.planejamento = {
+        ativo: false,
+        tipo: null,
+        disciplinas: [],
+        relevancia: {},
+        horarios: {},
+        sequencia: [],
+      };
     }
     state.schemaVersion = 5;
     changed = true;
@@ -529,23 +636,24 @@ export function runMigrations() {
 
   // Wave 39: Separation between Assuntos (Edital Topics) and Aulas (Course Materials)
   if (state.schemaVersion < 7) {
-    if (!state.bancaRelevance) state.bancaRelevance = { hotTopics: [], userMappings: {}, lessonMappings: {} };
+    if (!state.bancaRelevance)
+      state.bancaRelevance = { hotTopics: [], userMappings: {}, lessonMappings: {} };
     if (!state.bancaRelevance.lessonMappings) state.bancaRelevance.lessonMappings = {};
 
     const classRegex = /(^aula\s*\d+)|(^modulo\s*\d+)/i;
 
-    state.editais.forEach(ed => {
-      ed.disciplinas.forEach(d => {
+    state.editais.forEach((ed) => {
+      ed.disciplinas.forEach((d) => {
         if (!d.aulas) d.aulas = []; // Initialize aulas array
 
         // Ensure reverse link exists on old items
-        d.assuntos.forEach(a => {
+        d.assuntos.forEach((a) => {
           if (!a.linkedAulaIds) a.linkedAulaIds = [];
         });
 
         // Scan for lesson-like topics and migrate them
         const remainingAssuntos = [];
-        d.assuntos.forEach(ass => {
+        d.assuntos.forEach((ass) => {
           if (classRegex.test(ass.nome.trim())) {
             // Is a lesson! Move to disc.aulas
             const newAula = {
@@ -557,7 +665,7 @@ export function runMigrations() {
               dataEstudo: ass.dataConclusao || null,
               progress: 0,
               linkedAssuntoIds: [], // Will be populated by ML Mapping
-              _migratedFromV6: true
+              _migratedFromV6: true,
             };
             d.aulas.push(newAula);
           } else {
@@ -576,8 +684,8 @@ export function runMigrations() {
 
   // v7 → v8: Add archive flag to disciplines
   if (state.schemaVersion < 8) {
-    (state.editais || []).forEach(ed => {
-      (ed.disciplinas || []).forEach(d => {
+    (state.editais || []).forEach((ed) => {
+      (ed.disciplinas || []).forEach((d) => {
         if (d.arquivada === undefined) d.arquivada = false;
         if (d.arquivadaEm === undefined) d.arquivadaEm = null;
       });
@@ -599,26 +707,60 @@ export function runMigrations() {
 
 // Clean up state (called by clearAllData in views.js which already double-confirms)
 export function clearData() {
-  credentialsStore.clearAllCredentials().catch(err => {
+  credentialsStore.clearAllCredentials().catch((err) => {
     console.error('Erro ao limpar credenciais:', err);
   });
   setState({
     schemaVersion: DEFAULT_SCHEMA_VERSION,
     ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
-    planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
+    planejamento: {
+      ativo: false,
+      tipo: null,
+      disciplinas: [],
+      relevancia: {},
+      horarios: {},
+      sequencia: [],
+      ciclosCompletos: 0,
+      dataInicioCicloAtual: null,
+    },
     editais: [],
     eventos: [],
     arquivo: [],
-    habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] },
+    habitos: {
+      questoes: [],
+      revisao: [],
+      discursiva: [],
+      simulado: [],
+      leitura: [],
+      informativo: [],
+      sumula: [],
+      videoaula: [],
+      paginas: [],
+    },
     revisoes: [],
-    config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG }, entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG } },
+    config: {
+      visualizacao: 'mes',
+      primeirodiaSemana: 1,
+      mostrarNumeroSemana: false,
+      agruparEventos: true,
+      frequenciaRevisao: [1, 7, 30, 90],
+      entityTombstones: [],
+      firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
+      entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG },
+    },
     cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
     bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
     driveFileId: null,
-    lastSync: null
+    lastSync: null,
   });
-  saveStateToDB().then(() => {
-    document.dispatchEvent(new CustomEvent('app:showToast', { detail: { msg: 'Dados apagados com sucesso.', type: 'info' } }));
-    document.dispatchEvent(new Event('app:renderCurrentView'));
-  }).catch(e => console.error('Erro ao limpar dados:', e));
+  saveStateToDB()
+    .then(() => {
+      document.dispatchEvent(
+        new CustomEvent('app:showToast', {
+          detail: { msg: 'Dados apagados com sucesso.', type: 'info' },
+        })
+      );
+      document.dispatchEvent(new Event('app:renderCurrentView'));
+    })
+    .catch((e) => console.error('Erro ao limpar dados:', e));
 }

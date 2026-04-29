@@ -32,7 +32,24 @@ window.announce = announce;
 
 // Create namespace for all exports (prevents global pollution)
 window.EstudoApp = {};
-const exposedModules = [store, app, logic, components, views, calendar_view, drive_sync, cloud_sync, registro, utils, wizard, relevance, lesson_mapper, firestore_sync, sync_coordinator, entity_conflict_model];
+const exposedModules = [
+  store,
+  app,
+  logic,
+  components,
+  views,
+  calendar_view,
+  drive_sync,
+  cloud_sync,
+  registro,
+  utils,
+  wizard,
+  relevance,
+  lesson_mapper,
+  firestore_sync,
+  sync_coordinator,
+  entity_conflict_model,
+];
 
 for (const mod of exposedModules) {
   for (const key of Object.keys(mod)) {
@@ -47,7 +64,7 @@ for (const mod of exposedModules) {
     Object.defineProperty(window.EstudoApp, key, {
       configurable: true,
       enumerable: true,
-      get: () => mod[key]
+      get: () => mod[key],
     });
   }
 }
@@ -57,29 +74,53 @@ console.log(`[EstudoApp] ${Object.keys(window.EstudoApp).length} módulos carreg
 
 // Legacy bridge for backward compatibility (to be removed in v9.0)
 // Gradually migrated to direct imports in each module
-const legacyBridgeKeys = ['state', 'setState', 'scheduleSave', 'navigate', 'renderCurrentView', 'showToast', 'openModal', 'closeModal', 'saveStateToDB'];
-legacyBridgeKeys.forEach(key => {
+const legacyBridgeKeys = [
+  'state',
+  'setState',
+  'scheduleSave',
+  'navigate',
+  'renderCurrentView',
+  'showToast',
+  'openModal',
+  'closeModal',
+  'saveStateToDB',
+];
+legacyBridgeKeys.forEach((key) => {
   if (key in window.EstudoApp) {
     window[key] = window.EstudoApp[key];
   }
 });
 
 // Legacy bridge for registro-sessao functions
-const registroBridgeKeys = ['openRegistroSessao', 'discardTimerUI', 'voltarPastSessionUI', 'deleteCompletedSession'];
-registroBridgeKeys.forEach(key => {
+const registroBridgeKeys = [
+  'openRegistroSessao',
+  'discardTimerUI',
+  'voltarPastSessionUI',
+  'deleteCompletedSession',
+];
+registroBridgeKeys.forEach((key) => {
   if (key in window.EstudoApp) {
     window[key] = window.EstudoApp[key];
   }
 });
 
 // Legacy bridge for planejamento wizard functions
-const wizardBridgeKeys = ['pwUpdateHours', 'pwSelectTipo', 'pwToggleDisc', 'pwToggleDay', 'pwUpdateRelevancia', 'pwUpdateDayHour', 'pwClearDisc', 'pwSearchDisc', 'pwSelectAllDisc'];
-wizardBridgeKeys.forEach(key => {
+const wizardBridgeKeys = [
+  'pwUpdateHours',
+  'pwSelectTipo',
+  'pwToggleDisc',
+  'pwToggleDay',
+  'pwUpdateRelevancia',
+  'pwUpdateDayHour',
+  'pwClearDisc',
+  'pwSearchDisc',
+  'pwSelectAllDisc',
+];
+wizardBridgeKeys.forEach((key) => {
   if (key in window.EstudoApp) {
     window[key] = window.EstudoApp[key];
   }
 });
-
 
 // ============================================================
 // INITIALIZE APPLICATION
@@ -124,7 +165,7 @@ addCleanupListener(document, 'app:invalidateCaches', () => {
   logic.invalidateDiscCache();
   logic.invalidateRevCache();
   logic.invalidatePendingRevCache();
-  logic.invalidateTodayCache();
+  utils.invalidateTodayCache();
   logic.invalidateStreakCache();
   logic.invalidateDashCaches();
 });
@@ -132,7 +173,7 @@ addCleanupListener(document, 'app:invalidateCaches', () => {
 // Force cache invalidation if user returns to app next day
 addCleanupListener(document, 'visibilitychange', () => {
   if (document.visibilityState === 'visible') {
-    logic.invalidateTodayCache();
+    utils.invalidateTodayCache();
     logic.invalidatePendingRevCache();
     components.renderCurrentView();
   }

@@ -170,7 +170,7 @@ describe('registro-sessao.js', () => {
       registroSessao.openRegistroSessao('ev_1');
 
       const ev = store.state.eventos.find(e => e.id === 'ev_1');
-      expect(ev._timerStart).toBeUndefined();
+      expect(ev._timerStart).toBeNull();
       expect(ev.tempoAcumulado).toBeGreaterThan(0);
       expect(global.clearInterval).toHaveBeenCalled();
     });

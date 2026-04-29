@@ -13,9 +13,23 @@ import {
   pwUpdateRel,
   pwUpdateHours,
   pwToggleDay,
-  pwUpdateDayHour
+  pwUpdateDayHour,
 } from '../../planejamento-wizard.js?v=8.29';
-import { recomecarCiclo, zerarCiclosCounter, calculateCyclePredictions, toggleEditSeq, saveEditSeq, cancelEditSeq, updateSeqItem, dupSeqItem, remSeqItem, moveSeqItem, addSeqItem, desfazerEtapa, openCicloHistory } from '../../views/ciclo-view.js';
+import {
+  recomecarCiclo,
+  zerarCiclosCounter,
+  calculateCyclePredictions,
+  toggleEditSeq,
+  saveEditSeq,
+  cancelEditSeq,
+  updateSeqItem,
+  dupSeqItem,
+  remSeqItem,
+  moveSeqItem,
+  addSeqItem,
+  openCicloHistory,
+} from '../../views.js?v=8.29';
+import { desfazerEtapa, iniciarEtapaPlanejamento } from '../../logic.js?v=8.29';
 import { showConfirm, showToast } from '../../app.js?v=8.29';
 import { scheduleSave, state } from '../../store.js?v=8.29';
 import { renderCurrentView } from '../../components.js?v=8.29';
@@ -50,7 +64,7 @@ registerAction('pw-update-day-hour', (el) => {
 
 registerAction('iniciar-etapa-planejamento', (el) => {
   const seqId = el.dataset.seqId;
-  if (seqId) import('../../views/ciclo-view.js').then(({ iniciarEtapaPlanejamento }) => iniciarEtapaPlanejamento(seqId));
+  if (seqId) iniciarEtapaPlanejamento(seqId);
 });
 registerAction('move-ciclo-seq', (el) => {
   const idx = parseInt(el.dataset.index, 10);
@@ -105,10 +119,21 @@ registerAction('open-ciclo-history', (el) => {
 registerAction('remover-planejamento', () => {
   const remove = () => {
     if (!state) return;
-    state.planejamento = { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [] };
+    state.planejamento = {
+      ativo: false,
+      tipo: null,
+      disciplinas: [],
+      relevancia: {},
+      horarios: {},
+      sequencia: [],
+    };
     scheduleSave();
     renderCurrentView();
     showToast('Planejamento removido.', 'info');
   };
-  showConfirm('Remover o planejamento atual?', remove, { danger: true, label: 'Remover', title: 'Remover planejamento' });
+  showConfirm('Remover o planejamento atual?', remove, {
+    danger: true,
+    label: 'Remover',
+    title: 'Remover planejamento',
+  });
 });
