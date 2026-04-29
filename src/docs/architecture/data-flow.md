@@ -54,9 +54,15 @@ O estado em memória vive em `src/js/store.js` e contém, entre outros:
 Mutação do estado
   -> `scheduleSave()`
   -> debounce
+  -> normalizacao de metadados `_sync` por entidade
   -> `saveStateToDB()`
   -> gravação em `main_state`
 ```
+
+Antes de gravar `main_state`, saves locais que representam mudanca do usuario
+atualizam o indice `entity_meta`. Esse indice detecta criacao, edicao e remocao
+por checksum estavel, ignorando `_sync`. Salvamentos de metadados remotos usam
+`touchLocalBackup: false` e nao geram nova revisao local.
 
 ### localStorage
 
@@ -92,10 +98,16 @@ Fluxo atual:
 ```text
 Save local concluÃ­do
   -> se Firestore estiver ativo
-  -> `store.js` cria snapshot versionado
+  -> `sync-coordinator.js` escuta `stateSaved`
+  -> `firestore-sync-engine.js` cria snapshot versionado
   -> `firestore_outbox` guarda o snapshot pendente
   -> `firestore-sync-engine.js` envia para `users/{uid}/snapshots/main`
 ```
+
+O snapshot continua carregando o `payload` completo, mas tambem inclui
+`entityManifest`. O manifesto lista entidades ativas e tombstones para que
+conflitos mostrem colecao, id, revisao e datas sem trocar ainda o armazenamento
+remoto de producao.
 
 Pull:
 
@@ -112,9 +124,10 @@ Status:
 - `config.firestoreSync.hasPendingWrites`
 - `config.firestoreSync.remoteUpdatedAt`
 - `config.firestoreSync.conflict`
+- `config.entityTombstones`
 - eventos `app:firestoreSyncStatus` e `app:firestoreConflictDetected`
 
-Fluxo atual:
+Fluxo Cloudflare legado:
 
 ```text
 Save local concluído

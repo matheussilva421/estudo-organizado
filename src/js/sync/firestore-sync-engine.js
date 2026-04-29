@@ -1,12 +1,12 @@
-import { completeGoogleRedirectSignIn, getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.25';
-import { saveStateToDB, setState, state } from '../store.js?v=8.25';
+import { completeGoogleRedirectSignIn, getFirebaseConfigStatus, initFirebaseServices, observeFirebaseAuth, signInWithGoogle, signOutFirebase } from '../firebase/firebase-client.js?v=8.26';
+import { saveStateToDB, setState, state } from '../store.js?v=8.26';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer
-} from './firestore-schema.js?v=8.25';
+} from './firestore-schema.js?v=8.26';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -15,9 +15,9 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta
-} from './firestore-outbox.js?v=8.25';
-import { readFirestoreSnapshot, watchFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.25';
-import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.25';
+} from './firestore-outbox.js?v=8.26';
+import { readFirestoreSnapshot, watchFirestoreSnapshot, writeFirestoreSnapshot } from './firestore-repository.js?v=8.26';
+import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.26';
 
 let currentUser = null;
 let authUnsubscribe = null;
@@ -283,14 +283,63 @@ function requireSignedInServices() {
   return { db: services.db, uid: currentUser.uid };
 }
 
+function indexManifest(manifest = []) {
+  return new Map((manifest || []).map(item => [item.key, item]));
+}
+
+function describeEntityManifestDiff(remoteEnvelope, localEnvelope) {
+  const remote = indexManifest(remoteEnvelope?.entityManifest || []);
+  const local = indexManifest(localEnvelope?.entityManifest || []);
+  const keys = new Set([...remote.keys(), ...local.keys()]);
+  const items = [];
+
+  for (const key of keys) {
+    const remoteItem = remote.get(key);
+    const localItem = local.get(key);
+    if (!remoteItem || !localItem) {
+      items.push({
+        key,
+        collection: (remoteItem || localItem)?.collection || key.split('/')[0],
+        id: (remoteItem || localItem)?.id || key.split('/').pop(),
+        localRevision: localItem?.revision ?? null,
+        remoteRevision: remoteItem?.revision ?? null,
+        localUpdatedAt: localItem?.updatedAt || localItem?.deletedAt || null,
+        remoteUpdatedAt: remoteItem?.updatedAt || remoteItem?.deletedAt || null
+      });
+      continue;
+    }
+    if (
+      remoteItem.checksum !== localItem.checksum
+      || remoteItem.revision !== localItem.revision
+      || remoteItem.deletedAt !== localItem.deletedAt
+    ) {
+      items.push({
+        key,
+        collection: localItem.collection || remoteItem.collection,
+        id: localItem.id || remoteItem.id,
+        localRevision: localItem.revision ?? null,
+        remoteRevision: remoteItem.revision ?? null,
+        localUpdatedAt: localItem.updatedAt || localItem.deletedAt || null,
+        remoteUpdatedAt: remoteItem.updatedAt || remoteItem.deletedAt || null
+      });
+    }
+    if (items.length >= 20) break;
+  }
+
+  return items;
+}
+
 async function registerConflict(remoteEnvelope, localEnvelope) {
   const config = getConfig();
+  const items = describeEntityManifestDiff(remoteEnvelope, localEnvelope);
   const conflict = {
     remoteUpdatedAt: getEnvelopeUpdatedAt(remoteEnvelope),
     localUpdatedAt: getEnvelopeUpdatedAt(localEnvelope),
     detectedAt: new Date().toISOString(),
     remoteDeviceId: remoteEnvelope?.deviceId || null,
-    localDeviceId: localEnvelope?.deviceId || null
+    localDeviceId: localEnvelope?.deviceId || null,
+    items,
+    total: items.length
   };
   config.conflict = conflict;
   config.hasPendingWrites = true;

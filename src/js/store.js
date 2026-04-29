@@ -1,18 +1,23 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { uid } from './utils.js?v=8.25';
-import * as credentialsStore from './credentials.js?v=8.25';
+import { uid } from './utils.js?v=8.26';
+import * as credentialsStore from './credentials.js?v=8.26';
+import {
+  normalizeEntityMetadata,
+  prepareEntityMetadataForSave
+} from './sync/entity-metadata.js?v=8.26';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 export const STORE_NAME = 'app_state';
 export const FIRESTORE_OUTBOX_STORE = 'firestore_outbox';
 export const FIRESTORE_META_STORE = 'firestore_meta';
 export const FIRESTORE_CONFLICT_STORE = 'firestore_conflicts';
+export const ENTITY_META_STORE = 'entity_meta';
 
 export let db;
-export const DEFAULT_SCHEMA_VERSION = 8;
+export const DEFAULT_SCHEMA_VERSION = 9;
 export const DEFAULT_FIRESTORE_SYNC_CONFIG = {
   enabled: false,
   mode: 'shadow',
@@ -58,7 +63,7 @@ export function setState(newState) {
     // Hábitos e Histórico
     habitos: deepClone(Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {})),
     revisoes: deepClone(Array.isArray(newState.revisoes) ? newState.revisoes : []),
-    config: deepClone(Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3, firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG } }, newState.config || {})),
+    config: deepClone(Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3, entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG } }, newState.config || {})),
     cronoLivre: deepClone(newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 }),
     bancaRelevance: deepClone(newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} }),
     driveFileId: newState.driveFileId || null,
@@ -101,6 +106,7 @@ export let state = {
     agruparEventos: true,
     frequenciaRevisao: [1, 7, 30, 90],
     materiasPorDia: 3,
+    entityTombstones: [],
     firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG }
   },
   cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
@@ -155,6 +161,9 @@ export function initDB() {
       }
       if (!db.objectStoreNames.contains(FIRESTORE_CONFLICT_STORE)) {
         db.createObjectStore(FIRESTORE_CONFLICT_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(ENTITY_META_STORE)) {
+        db.createObjectStore(ENTITY_META_STORE, { keyPath: 'key' });
       }
     };
 
@@ -389,7 +398,11 @@ export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false, 
     state.config.localBackupAt = new Date().toISOString();
   }
 
-  return new Promise((resolve, reject) => {
+  const prepare = saveOptions.touchLocalBackup === false
+    ? Promise.resolve()
+    : prepareEntityMetadataForSave(state, { db, storeName: ENTITY_META_STORE });
+
+  return prepare.then(() => new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.put(state, 'main_state');
@@ -406,7 +419,7 @@ export function saveStateToDB(skipCloudSync = false, skipFirestoreSync = false, 
       emitSaveStatus('error', { detail: describeSaveFailure(err) });
       reject(err);
     };
-  });
+  }));
 }
 
 /**
@@ -553,6 +566,13 @@ export function runMigrations() {
     changed = true;
   }
 
+  // v8 -> v9: Prepare entity-level sync metadata without creating tombstones.
+  if (state.schemaVersion < 9) {
+    normalizeEntityMetadata(state, { baselineOnly: true });
+    state.schemaVersion = 9;
+    changed = true;
+  }
+
   if (changed) scheduleSave();
   // archiveOldEvents removido do boot — disponível manualmente em Configurações
 }
@@ -571,7 +591,7 @@ export function clearData() {
     arquivo: [],
     habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] },
     revisoes: [],
-    config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG } },
+    config: { visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG } },
     cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
     bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
     driveFileId: null,

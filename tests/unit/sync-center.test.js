@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const syncCenter = await import('../../src/js/sync/sync-center.js?v=8.25');
+const syncCenter = await import('../../src/js/sync/sync-center.js?v=8.26');
 
 describe('sync-center.js', () => {
   it('blocks automatic Firestore flushes while a conflict needs a user decision', () => {
@@ -59,8 +59,29 @@ describe('sync-center.js', () => {
     expect(merged.editais).toEqual([{ id: 'ed-1', nome: 'Local' }]);
     expect(merged.config.syncMergeConflicts).toMatchObject({
       total: 1,
-      items: [{ collection: 'editais', id: 'ed-1' }]
+      items: [{ collection: 'editais', id: 'ed-1', localRevision: null, remoteRevision: null }]
     });
+  });
+
+  it('uses entity revision metadata when merging same-id records', () => {
+    const merged = syncCenter.mergeStudyStates({
+      config: {},
+      editais: [{
+        id: 'ed-1',
+        nome: 'Local',
+        _sync: { revision: 1, updatedAt: '2026-04-28T10:00:00.000Z' }
+      }]
+    }, {
+      config: {},
+      editais: [{
+        id: 'ed-1',
+        nome: 'Remoto',
+        _sync: { revision: 2, updatedAt: '2026-04-29T10:00:00.000Z' }
+      }]
+    });
+
+    expect(merged.editais[0].nome).toBe('Remoto');
+    expect(merged.config.syncMergeConflicts).toBeUndefined();
   });
 
   it('builds one dashboard model for local, Firebase, Cloudflare and Drive status', () => {

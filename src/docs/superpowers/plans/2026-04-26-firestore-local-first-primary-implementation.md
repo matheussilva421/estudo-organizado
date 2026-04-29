@@ -104,3 +104,36 @@
 - Cloudflare and Google Drive remain available as secondary manual backup channels.
 - The current remote document is a versioned snapshot, not an entity graph. This matches the selected low-risk migration path and avoids a large storage rewrite in the same change.
 - A future phase can shard by entity once the Firestore path has proven reliable in real use.
+
+## Phase A: Entity-Ready Snapshot Metadata
+
+**Goal:** Prepare the local model for future per-entity sync without changing the
+production remote path.
+
+**Contract:** Firestore still writes only `users/{uid}/snapshots/main`. The
+snapshot payload remains complete and backward-compatible, while the envelope
+adds optional `entityManifest` for precise conflict context.
+
+**Files:**
+- Create: `src/js/sync/entity-metadata.js`
+- Modify: `src/js/store.js`
+- Modify: `src/js/sync/firestore-schema.js`
+- Modify: `src/js/sync/firestore-sync-engine.js`
+- Modify: `src/js/sync/sync-center.js`
+- Modify: `src/js/views.js`
+- Modify: `firestore.rules`
+- Modify: sync docs and cache-busting version.
+
+- [x] Add embedded `_sync` metadata for tracked entities.
+- [x] Add IndexedDB `entity_meta` store with DB version 4.
+- [x] Generate tombstones in `config.entityTombstones` for removed entities.
+- [x] Add `entityManifest` to Firestore envelopes while preserving `payload`.
+- [x] Keep `shadow`, `primary`, outbox, and explicit conflict behavior.
+- [x] Use revisions and update timestamps in same-id merge decisions.
+- [x] Show affected entity details in Firestore conflict review.
+
+**Deferred to Phase B:**
+- [ ] Dual-write entity collections in shadow mode.
+- [ ] Firestore rules for per-entity documents.
+- [ ] Deep merge UI by entity/field.
+- [ ] Remote cutover from snapshot to entity graph after real-use validation.

@@ -1,11 +1,11 @@
-import { state } from '../store.js?v=8.25';
+import { state } from '../store.js?v=8.26';
 import {
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
   syncFirestoreNow
-} from './firestore-sync-engine.js?v=8.25';
-import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.25';
+} from './firestore-sync-engine.js?v=8.26';
+import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.26';
 
 const PRIMARY_SYNC_DEBOUNCE_MS = 1500;
 

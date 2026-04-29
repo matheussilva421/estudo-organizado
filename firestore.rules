@@ -17,6 +17,7 @@ service cloud.firestore {
         'baseRemoteUpdatedAt',
         'payloadUpdatedAt',
         'sentAt',
+        'entityManifest',
         'payload',
         'updatedAt',
         'serverUpdatedAt'
@@ -24,7 +25,11 @@ service cloud.firestore {
       && request.resource.data.version == 1
       && request.resource.data.payload is map
       && request.resource.data.deviceId is string
-      && request.resource.data.payloadUpdatedAt is string;
+      && request.resource.data.payloadUpdatedAt is string
+      && (
+        !request.resource.data.keys().hasAny(['entityManifest'])
+        || request.resource.data.entityManifest is list
+      );
     }
 
     match /users/{uid}/snapshots/{snapshotId} {

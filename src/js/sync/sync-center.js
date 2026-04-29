@@ -1,3 +1,5 @@
+import { mergeEntityAwareArrays } from './entity-metadata.js?v=8.26';
+
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
 
 function toTime(value) {
@@ -9,16 +11,6 @@ function toTime(value) {
 function latestIso(...values) {
   const newest = values.map(toTime).filter(Boolean).sort((a, b) => b - a)[0];
   return newest ? new Date(newest).toISOString() : null;
-}
-
-function stableStringify(value) {
-  if (Array.isArray(value)) {
-    return `[${value.map(stableStringify).join(',')}]`;
-  }
-  if (value && typeof value === 'object') {
-    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
 }
 
 function hasCloudflareCredentials(config = {}) {
@@ -118,30 +110,6 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
   };
 }
 
-function mergeArrayById(localArray = [], remoteArray = [], options = {}) {
-  const merged = new Map();
-  const collisions = options.collisions || [];
-  const collection = options.collection || 'items';
-  for (const item of remoteArray) {
-    const key = item?.id || JSON.stringify(item);
-    merged.set(key, item);
-  }
-  for (const item of localArray) {
-    const key = item?.id || JSON.stringify(item);
-    const remoteItem = merged.get(key);
-    if (remoteItem && stableStringify(remoteItem) !== stableStringify(item)) {
-      collisions.push({
-        collection,
-        id: item?.id || key,
-        localUpdatedAt: item?.updatedAt || item?.data || null,
-        remoteUpdatedAt: remoteItem?.updatedAt || remoteItem?.data || null
-      });
-    }
-    merged.set(key, item);
-  }
-  return Array.from(merged.values());
-}
-
 export function mergeStudyStates(localState = {}, remoteState = {}) {
   const collisions = [];
   const merged = {
@@ -154,7 +122,7 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   };
 
   for (const key of ['editais', 'eventos', 'arquivo', 'revisoes']) {
-    merged[key] = mergeArrayById(localState[key], remoteState[key], { collection: key, collisions });
+    merged[key] = mergeEntityAwareArrays(localState[key], remoteState[key], { collection: key, collisions });
   }
 
   const habitTypes = new Set([
@@ -163,7 +131,7 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   ]);
   merged.habitos = {};
   for (const type of habitTypes) {
-    merged.habitos[type] = mergeArrayById(localState.habitos?.[type], remoteState.habitos?.[type], { collection: `habitos.${type}`, collisions });
+    merged.habitos[type] = mergeEntityAwareArrays(localState.habitos?.[type], remoteState.habitos?.[type], { collection: `habitos.${type}`, collisions });
   }
 
   merged.config.localBackupAt = new Date().toISOString();

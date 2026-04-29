@@ -19,17 +19,87 @@ Envelope:
 ```json
 {
   "version": 1,
-  "schemaVersion": 7,
+  "schemaVersion": 9,
   "deviceId": "web-abc123",
   "baseRemoteUpdatedAt": "2026-04-21T10:00:00.000Z",
   "payloadUpdatedAt": "2026-04-21T11:00:00.000Z",
   "sentAt": "2026-04-21T11:00:01.000Z",
+  "entityManifest": [
+    {
+      "key": "eventos/ev_123",
+      "collection": "eventos",
+      "id": "ev_123",
+      "updatedAt": "2026-04-21T11:00:00.000Z",
+      "deletedAt": null,
+      "revision": 3,
+      "checksum": "8f0a1c2b"
+    }
+  ],
   "payload": {
-    "schemaVersion": 7,
+    "schemaVersion": 9,
     "editais": [],
     "eventos": []
   },
   "updatedAt": "2026-04-21T11:00:00.000Z"
+}
+```
+
+`entityManifest` is additive and backward-compatible. Older clients can keep reading
+`payload`; newer clients use the manifest to show more precise conflict context.
+
+## Entity Metadata Phase A
+
+The app is now entity-ready while still using the snapshot document as the
+production remote contract.
+
+Tracked entities:
+
+- `editais`
+- `disciplinas`
+- `assuntos`
+- `aulas`
+- `eventos`
+- `arquivo`
+- `revisoes`
+- `habitos.*`
+- `planejamento.sequencia`
+
+Each tracked entity can carry embedded `_sync` metadata:
+
+```json
+{
+  "_sync": {
+    "createdAt": "2026-04-21T10:00:00.000Z",
+    "updatedAt": "2026-04-21T11:00:00.000Z",
+    "deletedAt": null,
+    "revision": 3,
+    "updatedBy": "web-abc123"
+  }
+}
+```
+
+Local saves compare stable checksums that ignore `_sync`. When content changes,
+the entity revision is incremented and `updatedAt`/`updatedBy` are updated. When
+an entity disappears from the local index, the visible list stays deleted and a
+tombstone is stored in `config.entityTombstones`.
+
+Tombstones:
+
+- are synced/exported because they protect multi-device deletes
+- live under `config.entityTombstones`
+- are capped at 500 records
+- expire after 180 days
+
+IndexedDB also stores the local entity index in `entity_meta`:
+
+```json
+{
+  "key": "eventos/ev_123",
+  "collection": "eventos",
+  "id": "ev_123",
+  "checksum": "8f0a1c2b",
+  "updatedAt": "2026-04-21T11:00:00.000Z",
+  "revision": 3
 }
 ```
 
@@ -44,6 +114,7 @@ Write rules:
 - Firestore writes are queued in `firestore_outbox`
 - stale remote snapshots create a conflict instead of overwriting automatically
 - `shadow` mode never performs automatic pushes
+- `entityManifest` is optional but must be a list when present
 
 Automatic primary sync:
 
@@ -59,6 +130,7 @@ Conflict UX:
 - pull Firestore to replace local data
 - force local push to replace Firestore snapshot
 - same-ID merge collisions keep the local item visible and record conflict metadata instead of silently pushing a merged snapshot
+- conflicts can list affected entities with collection, id, local/remote revision, and dates
 
 ## Cloudflare Envelope
 
@@ -157,7 +229,7 @@ Behavior:
 
 ## Known Limitations
 
-1. Full-state snapshots still do not merge entity-level changes.
+1. Full-state snapshots remain the production remote format; per-entity Firestore collections are not enabled yet.
 2. Conflict UX is intentionally conservative: pull remote or force overwrite, with no merge UI yet.
 3. `ALLOWED_ORIGINS` is still permissive when omitted for backward compatibility and should be configured per deployment.
 4. Google Drive sync still has a separate backup/restore conflict model.

@@ -23,7 +23,14 @@ describe('store.js', () => {
         cfConflict: { remoteDeviceId: 'device-a' },
         cfRemoteUpdatedAt: '2026-04-19T11:00:00.000Z',
         cfLastSyncAt: '2026-04-19T12:00:00.000Z',
-        _lastUpdated: 1770000000000
+        _lastUpdated: 1770000000000,
+        entityTombstones: [{
+          key: 'eventos/ev-1',
+          collection: 'eventos',
+          id: 'ev-1',
+          deletedAt: '2026-04-29T10:00:00.000Z',
+          revision: 2
+        }]
       }
     }));
 
@@ -34,20 +41,22 @@ describe('store.js', () => {
     expect(exportable.config.cfTokenSaved).toBeUndefined();
     expect(exportable.config.cfConflict).toBeUndefined();
     expect(exportable.config._lastUpdated).toBeUndefined();
+    expect(exportable.config.entityTombstones).toHaveLength(1);
     expect(exportable.config.cfSyncEnabled).toBe(false);
     expect(exportable.config.firestoreSync.enabled).toBe(false);
     expect(store.state.config.cfToken).toBe('super-secret-token');
   });
 
   it('declares Firestore local-first IndexedDB stores', () => {
-    expect(store.DB_VERSION).toBeGreaterThanOrEqual(3);
+    expect(store.DB_VERSION).toBeGreaterThanOrEqual(4);
     expect(store.FIRESTORE_OUTBOX_STORE).toBe('firestore_outbox');
     expect(store.FIRESTORE_META_STORE).toBe('firestore_meta');
     expect(store.FIRESTORE_CONFLICT_STORE).toBe('firestore_conflicts');
+    expect(store.ENTITY_META_STORE).toBe('entity_meta');
   });
 
   it('clearData also clears isolated credentials', async () => {
-    const credentials = await import('../../src/js/credentials.js?v=8.25');
+    const credentials = await import('../../src/js/credentials.js?v=8.26');
     const spy = vi.spyOn(credentials, 'clearAllCredentials').mockResolvedValue(undefined);
 
     store.clearData();
@@ -67,6 +76,7 @@ describe('store.js', () => {
     expect(store.state.eventos).toEqual([]);
     expect(store.state.config.visualizacao).toBe('semana');
     expect(store.state.config.materiasPorDia).toBe(3);
+    expect(store.state.config.entityTombstones).toEqual([]);
     expect(store.state.habitos.videoaula).toEqual([]);
   });
 
@@ -97,8 +107,9 @@ describe('store.js', () => {
     store.runMigrations();
     vi.runOnlyPendingTimers();
 
-    expect(store.state.schemaVersion).toBe(8);
+    expect(store.state.schemaVersion).toBe(9);
     expect(store.state.editais[0].id).toMatch(/^ed_/);
+    expect(store.state.editais[0]._sync).toMatchObject({ revision: 1 });
     expect(store.state.editais[0].disciplinas[0].id).toMatch(/^disc_/);
     expect(store.state.editais[0].disciplinas[0].assuntos).toHaveLength(1);
     expect(store.state.editais[0].disciplinas[0].aulas).toHaveLength(1);

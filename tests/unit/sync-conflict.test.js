@@ -41,8 +41,8 @@ function createEnv(initial = {}) {
 
 async function importFreshSyncModules() {
   vi.resetModules();
-  const store = await import('../../src/js/store.js?v=8.25');
-  const cloudSync = await import('../../src/js/cloud-sync.js?v=8.25');
+  const store = await import('../../src/js/store.js?v=8.26');
+  const cloudSync = await import('../../src/js/cloud-sync.js?v=8.26');
   return { store, cloudSync };
 }
 

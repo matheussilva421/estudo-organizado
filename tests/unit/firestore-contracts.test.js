@@ -33,11 +33,12 @@ describe('Firestore integration contracts', () => {
 
     expect(swSource).toContain('./js/firebase/firebase-client.js');
     expect(swSource).toContain('./js/firebase/firebase-config.js');
+    expect(swSource).toContain('./js/sync/entity-metadata.js');
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-coordinator.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.25'");
+    expect(swSource).toContain("APP_VERSION = '8.26'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
@@ -46,6 +47,7 @@ describe('Firestore integration contracts', () => {
 
     expect(viewsSource).toContain('Central de Sincronizacao');
     expect(viewsSource).toContain('data-testid="sync-center"');
+    expect(viewsSource).toContain('data-testid="sync-source-conflict-entities"');
     expect(viewsSource).toContain('data-action="firestore-merge-remote"');
     expect(viewsSource).toContain('data-action="cloud-merge-remote"');
     expect(viewsSource).toContain('data-action="merge-from-drive"');
@@ -149,5 +151,7 @@ describe('Firestore integration contracts', () => {
     expect(rules).toContain("match /users/{uid}/snapshots/{snapshotId}");
     expect(rules).toContain('allow delete: if false;');
     expect(rules).toContain('request.resource.data.version == 1');
+    expect(rules).toContain('entityManifest');
+    expect(rules).toContain('request.resource.data.entityManifest is list');
   });
 });

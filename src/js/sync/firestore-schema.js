@@ -1,4 +1,5 @@
-import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.25';
+import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.26';
+import { buildEntityManifest } from './entity-metadata.js?v=8.26';
 
 export const FIRESTORE_SYNC_VERSION = 1;
 export const FIRESTORE_SNAPSHOT_DOC_ID = 'main';
@@ -72,6 +73,7 @@ export function createFirestoreSnapshotEnvelope(sourceState, options = {}) {
     baseRemoteUpdatedAt: options.baseRemoteUpdatedAt ?? syncConfig.remoteUpdatedAt ?? null,
     payloadUpdatedAt,
     sentAt: toIsoTimestamp(options.sentAt || Date.now()),
+    entityManifest: buildEntityManifest(payload),
     payload
   };
 }

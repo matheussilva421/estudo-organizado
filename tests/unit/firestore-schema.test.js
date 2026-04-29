@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBaseState, createEvento } from '../helpers/state-builders.js';
 
-vi.mock('../../src/js/store.js?v=8.25', () => ({
+vi.mock('../../src/js/store.js?v=8.26', () => ({
   DEFAULT_SCHEMA_VERSION: 7,
   createExportableState(sourceState) {
     const clone = JSON.parse(JSON.stringify(sourceState));
@@ -14,7 +14,7 @@ vi.mock('../../src/js/store.js?v=8.25', () => ({
   }
 }));
 
-const schema = await import('../../src/js/sync/firestore-schema.js?v=8.25');
+const schema = await import('../../src/js/sync/firestore-schema.js?v=8.26');
 
 describe('firestore-schema.js', () => {
   it('creates a versioned snapshot envelope without sync secrets', () => {
@@ -47,6 +47,15 @@ describe('firestore-schema.js', () => {
       payloadUpdatedAt: '2026-04-21T11:00:00.000Z'
     });
     expect(envelope.payload.eventos[0].id).toBe('ev_firestore');
+    expect(envelope.entityManifest).toEqual([
+      expect.objectContaining({
+        key: 'eventos/ev_firestore',
+        collection: 'eventos',
+        id: 'ev_firestore',
+        revision: expect.any(Number),
+        checksum: expect.any(String)
+      })
+    ]);
     expect(envelope.payload.config.cfToken).toBeUndefined();
     expect(envelope.payload.config.cfUrl).toBeUndefined();
     expect(envelope.payload.config.firestoreSync.enabled).toBe(false);

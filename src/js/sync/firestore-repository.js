@@ -4,8 +4,8 @@ import {
   onSnapshot,
   serverTimestamp,
   setDoc
-} from '../../vendor/firebase-client.bundle.js?v=8.25';
-import { FIRESTORE_SNAPSHOT_DOC_ID, getEnvelopeUpdatedAt } from './firestore-schema.js?v=8.25';
+} from '../../vendor/firebase-client.bundle.js?v=8.26';
+import { FIRESTORE_SNAPSHOT_DOC_ID, getEnvelopeUpdatedAt } from './firestore-schema.js?v=8.26';
 
 function snapshotRef(db, uid) {
   return doc(db, 'users', uid, 'snapshots', FIRESTORE_SNAPSHOT_DOC_ID);

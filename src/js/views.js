@@ -1,10 +1,10 @@
-import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.25';
-import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.25';
-import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.25';
-import { calcRevisionDates, getAllDisciplinas, getActiveDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.25';
-import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.25';
-import { updateDriveUI } from './drive-sync.js?v=8.25';
-import { buildSyncCenterModel } from './sync/sync-center.js?v=8.25';
+import { THEME_OPTIONS, applyTheme, closeModal, currentView, navigate, normalizeTheme, showConfirm, showToast, openModal, cancelConfirm, getLastSaveStatus } from './app.js?v=8.26';
+import { cutoffDateStr, esc, formatDate, formatTime, formatH, getEventStatus, invalidateTodayCache, todayStr, trunc, uid, HABIT_TYPES, addCleanupListener } from './utils.js?v=8.26';
+import { scheduleSave, state, setState, runMigrations, createExportableState } from './store.js?v=8.26';
+import { calcRevisionDates, getAllDisciplinas, getActiveDisciplinas, getDisc, getPendingRevisoes, invalidateDiscCache, invalidateDashCaches, invalidateRevCache, invalidatePendingRevCache, reattachTimers, getElapsedSeconds, getPerformanceStats, getPagesReadStats, getSyllabusProgress, getConsistencyStreak, getSubjectStats, getCurrentWeekStats, getPredictiveStats, syncCicloToEventos } from './logic.js?v=8.26';
+import { renderCurrentView, renderEventCard, updateBadges } from './components.js?v=8.26';
+import { updateDriveUI } from './drive-sync.js?v=8.26';
+import { buildSyncCenterModel } from './sync/sync-center.js?v=8.26';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
 
 // Re-export from extracted view modules
@@ -2301,7 +2301,7 @@ export function deleteAula(discId, aulaId) {
 }
 window.deleteAula = deleteAula;
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.25';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.26';
 export function runLessonMapperUI(editaId, discId) {
   showConfirm("Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?", () => {
     const resultCount = mapAulasToAssuntos(editaId, discId);
@@ -2710,6 +2710,16 @@ function renderCloudflareConflict(conflict) {
 
 function renderFirestoreConflict(conflict) {
   if (!conflict) return '';
+  const items = Array.isArray(conflict.items) ? conflict.items : [];
+  const entityRows = items.slice(0, 8).map(item => `
+    <div class="sync-conflict-entity">
+      <span>${esc(item.collection || 'entidade')}</span>
+      <code>${esc(item.id || item.key || 'sem-id')}</code>
+      <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
+      <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
+      <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
+    </div>
+  `).join('');
 
   return `
     <div class="sync-conflict-panel" data-testid="firestore-sync-conflict" role="alert">
@@ -2725,6 +2735,13 @@ function renderFirestoreConflict(conflict) {
         <span>Local: ${formatBackupDateTime(conflict.localUpdatedAt)}</span>
         <span>Detectado: ${formatBackupDateTime(conflict.detectedAt)}</span>
       </div>
+      ${items.length > 0 ? `
+        <div class="sync-conflict-entities" data-testid="firestore-conflict-entities">
+          <div class="sync-conflict-entities-title">Entidades afetadas (${conflict.total || items.length})</div>
+          ${entityRows}
+          ${items.length > 8 ? `<div class="sync-source-note">Mais ${items.length - 8} entidades omitidas nesta lista.</div>` : ''}
+        </div>
+      ` : ''}
       <div class="sync-conflict-actions">
         <button type="button" class="btn btn-outline btn-sm" data-action="firestore-export-local">
           <i class="fa fa-download"></i> Exportar backup local
@@ -2871,6 +2888,25 @@ function renderSyncSourceActions(source) {
   return '';
 }
 
+function renderSyncSourceConflictEntities(conflict) {
+  const items = Array.isArray(conflict?.items) ? conflict.items : [];
+  if (items.length === 0) return '';
+  return `
+    <div class="sync-conflict-entities sync-conflict-entities--compact" data-testid="sync-source-conflict-entities">
+      <div class="sync-conflict-entities-title">Entidades afetadas (${conflict.total || items.length})</div>
+      ${items.slice(0, 6).map(item => `
+        <div class="sync-conflict-entity">
+          <span>${esc(item.collection || 'entidade')}</span>
+          <code>${esc(item.id || item.key || 'sem-id')}</code>
+          <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
+          <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
+          <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderSyncCenterCard() {
   const model = buildSyncCenterModel({
     state,
@@ -2914,6 +2950,7 @@ function renderSyncCenterCard() {
                 <div><span>Estado</span><strong>${source.pending ? 'Pendente' : source.enabled ? 'Ativo' : 'Inativo'}</strong></div>
               </div>
               ${source.conflict ? `<div class="sync-source-note">Conflito detectado em ${formatBackupDateTime(source.conflict.detectedAt)}.</div>` : ''}
+              ${source.conflict ? renderSyncSourceConflictEntities(source.conflict) : ''}
               ${source.lastError ? `<div class="sync-source-note sync-source-note--error">${esc(source.lastError)}</div>` : ''}
               <div class="sync-source-actions">${renderSyncSourceActions(source)}</div>
             </section>

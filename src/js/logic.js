@@ -1,6 +1,6 @@
-import { scheduleSave, state } from './store.js?v=8.25';
-import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid, esc } from './utils.js?v=8.25';
-import { navigate } from './app.js?v=8.25';
+import { scheduleSave, state } from './store.js?v=8.26';
+import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid, esc } from './utils.js?v=8.26';
+import { navigate } from './app.js?v=8.26';
 
 // =============================================
 // TIMER ENGINE
