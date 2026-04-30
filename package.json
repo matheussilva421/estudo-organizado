@@ -32,6 +32,8 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "firebase": "^12.12.1"
+    "@sparticuz/chromium": "^148.0.0",
+    "firebase": "^12.12.1",
+    "puppeteer-core": "^24.42.0"
   }
 }
