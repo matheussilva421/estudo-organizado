@@ -189,21 +189,26 @@ export async function driveAction() {
 }
 
 export function disconnectDrive() {
-  if (gapi.client?.getToken() !== null) {
-    google.accounts.oauth2.revoke(gapi.client.getToken().access_token, () => {
-      gapi.client.setToken('');
-      deleteCredential(DRIVE_CLIENT_ID_KEY).catch((err) => {
-        console.error('Failed to delete drive credential:', err);
-      });
-      localStorage.removeItem('estudo_drive_client_id');
-      state.driveFileId = null;
-      state.lastSync = null;
-      updateDriveUI('disconnected', 'Google Drive');
-      closeModal('modal-drive');
-      showToast('Desconectado do Drive', 'info');
-      scheduleSave();
-      document.dispatchEvent(new Event('app:driveDisconnected'));
+  const token = gapi.client?.getToken?.() || null;
+  const finishDisconnect = () => {
+    gapi.client?.setToken?.('');
+    Promise.resolve(deleteCredential(DRIVE_CLIENT_ID_KEY)).catch((err) => {
+      console.error('Failed to delete drive credential:', err);
     });
+    localStorage.removeItem('estudo_drive_client_id');
+    state.driveFileId = null;
+    state.lastSync = null;
+    updateDriveUI('disconnected', 'Google Drive');
+    closeModal('modal-drive');
+    showToast('Desconectado do Drive', 'info');
+    scheduleSave();
+    document.dispatchEvent(new Event('app:driveDisconnected'));
+  };
+
+  if (token?.access_token) {
+    google.accounts.oauth2.revoke(token.access_token, finishDisconnect);
+  } else {
+    finishDisconnect();
   }
 }
 
@@ -298,7 +303,7 @@ export async function syncWithDrive(isRecursion = false) {
 
       // Atualiza o arquivo existente
       const accessToken = gapi.client.getToken().access_token;
-      const { boundary, contentType, body: multipartRequestBody } = buildMultipartBody();
+      const { contentType, body: multipartRequestBody } = buildMultipartBody();
 
       const fetchResponse = await fetch(
         `https://www.googleapis.com/upload/drive/v3/files/${state.driveFileId}?uploadType=multipart`,
@@ -323,7 +328,7 @@ export async function syncWithDrive(isRecursion = false) {
     } else {
       // Cria um novo arquivo
       const accessToken = gapi.client.getToken().access_token;
-      const { boundary, contentType, body: multipartRequestBody } = buildMultipartBody();
+      const { contentType, body: multipartRequestBody } = buildMultipartBody();
 
       const res = await fetch(
         'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',

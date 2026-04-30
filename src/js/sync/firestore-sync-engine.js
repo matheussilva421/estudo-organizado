@@ -352,7 +352,7 @@ function isEntityPrimaryEnabled() {
 
 export async function flushFirestoreEntityOutbox(options = {}) {
   const config = getConfig();
-  const isPrimary = options.primary && isEntityPrimaryEnabled();
+  const isPrimary = isEntityPrimaryEnabled() || Boolean(options.primary);
   if (!options.manual && !canShadowWriteEntities(config) && !isPrimary) return false;
   const pending = await getPendingFirestoreEntityBatch();
   if (!pending || pending.status !== 'pending') return false;
@@ -369,6 +369,13 @@ export async function flushFirestoreEntityOutbox(options = {}) {
   await persistSyncConfig(false);
   emitStatus('synced', { entityShadowCount: result.count });
   return true;
+}
+
+async function forcePushFirestoreEntities() {
+  const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
+  if (!queued) return false;
+  getConfig().hasPendingWrites = true;
+  return await flushFirestoreEntityOutbox({ manual: true, primary: true });
 }
 
 export async function verifyFirestoreEntityShadow() {
@@ -562,9 +569,7 @@ export async function pullFromFirestore(forceOverwrite = false) {
 
       const entityDocs = await readFirestoreEntityDocuments(db, uid);
       if (!entityDocs.length) {
-        const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
-        if (!queued) return false;
-        return await flushFirestoreEntityOutbox({ manual: true });
+        return await forcePushFirestoreEntities();
       }
 
       const pullAt = new Date().toISOString();
@@ -689,7 +694,7 @@ export async function syncFirestoreNow() {
     }
     const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
     if (!queued) return false;
-    return await flushFirestoreEntityOutbox({ manual: true });
+    return await flushFirestoreEntityOutbox({ manual: true, primary: true });
   }
 
   const { db, uid } = requireSignedInServices();
@@ -745,7 +750,7 @@ export async function mergeFromFirestore() {
     if (useEntityPrimary) {
       const remoteEntityDocs = await readFirestoreEntityDocuments(db, uid);
       if (!remoteEntityDocs.length) {
-        return await forcePushFirestore();
+        return await forcePushFirestoreEntities();
       }
       const merged = mergeStudyStates(state, applyEntityDocsToState({}, remoteEntityDocs));
       setState(merged);
@@ -796,7 +801,11 @@ export async function mergeFromFirestore() {
         return false;
       }
       Object.assign(getConfig(), { hasPendingWrites: true });
-      const ok = await flushFirestoreEntityOutbox({ forceOverwrite: true, manual: true });
+      const ok = await flushFirestoreEntityOutbox({
+        forceOverwrite: true,
+        manual: true,
+        primary: true,
+      });
       document.dispatchEvent(new Event('app:renderCurrentView'));
       document.dispatchEvent(
         new CustomEvent('app:showToast', {

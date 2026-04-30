@@ -8,8 +8,15 @@ function createMockState(overrides = {}) {
     eventos: [],
     editais: [],
     habitos: {
-      questoes: [], revisao: [], discursiva: [], simulado: [],
-      leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [],
+      questoes: [],
+      revisao: [],
+      discursiva: [],
+      simulado: [],
+      leitura: [],
+      informativo: [],
+      sumula: [],
+      videoaula: [],
+      paginas: [],
     },
     config: {},
     ...overrides,
@@ -63,6 +70,17 @@ describe('search.js', () => {
       search.onSearch('nonexistent');
       const box = global.document.getElementById('search-results');
       expect(box.innerHTML).toContain('Nenhum resultado');
+    });
+
+    it('does not throw for long queries with regex metacharacters', () => {
+      const query = `${'a'.repeat(101)}[`;
+      store.setState(
+        createMockState({
+          eventos: [{ id: 'ev_regex', titulo: query, data: '2026-04-29' }],
+        })
+      );
+
+      expect(() => search.onSearch(query)).not.toThrow();
     });
   });
 

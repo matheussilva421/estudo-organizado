@@ -11,6 +11,10 @@ import { closeModal } from '../app.js?v=8.29';
 export let searchBlurTimeout = null;
 
 let _searchDebounceTimer = null;
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function debouncedOnSearch(query) {
   if (_searchDebounceTimer) clearTimeout(_searchDebounceTimer);
   _searchDebounceTimer = setTimeout(() => {
@@ -77,12 +81,7 @@ export function onSearch(query) {
   }
 
   const highlight = (str) =>
-    esc(str).replace(
-      q.length > 100
-        ? new RegExp(`(${esc(q)})`, 'gi')
-        : new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
-      '<mark>$1</mark>'
-    );
+    esc(str).replace(new RegExp(`(${escapeRegex(q)})`, 'gi'), '<mark>$1</mark>');
   let html = '';
 
   if (results.eventos.length) {
@@ -154,7 +153,7 @@ export function onSearch(query) {
   }
 
   if (!html)
-    html = `<div class="search-empty">Nenhum resultado para "<strong>${query}</strong>"</div>`;
+    html = `<div class="search-empty">Nenhum resultado para "<strong>${esc(query)}</strong>"</div>`;
   box.innerHTML = html;
   box.classList.add('open');
   input.setAttribute('aria-expanded', 'true');

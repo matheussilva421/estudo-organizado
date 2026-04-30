@@ -1,7 +1,5 @@
 function byKey(items = []) {
-  return new Map(
-    items.filter((item) => item && item.key != null).map((item) => [item.key, item])
-  );
+  return new Map(items.filter((item) => item && item.key != null).map((item) => [item.key, item]));
 }
 
 function signature(item = {}) {

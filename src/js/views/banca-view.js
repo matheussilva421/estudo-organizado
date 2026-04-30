@@ -29,7 +29,6 @@ export function setAnalyzerCtx(ctx) {
 
 // ── Main Banca Analyzer Render ──
 export function renderBancaAnalyzerModule(el) {
-
   if (state.editais.length === 0) {
     el.innerHTML =
       '<div class="card p-24" style="text-align:center;margin-top:24px;"><i class="fa fa-folder-open" style="font-size:32px;color:var(--text-muted);margin-bottom:16px;"></i><h3 style="margin-bottom:8px;">Nenhum Edital Cadastrado</h3><p style="color:var(--text-secondary);">Crie um Edital primeiro para usar a Inteligência da Banca.</p></div>';

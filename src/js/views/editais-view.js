@@ -3,12 +3,8 @@
  * Renderiza view de editais (renderEditais, renderEditalTree) e vertical (renderVertical, renderVerticalList)
  */
 
-import { scheduleSave, state } from '../store.js?v=8.29';
-import { esc, todayStr } from '../utils.js?v=8.29';
-import { getDisc } from '../logic.js?v=8.29';
-import { getActiveDashboardDiscCtx } from '../state/dashboard-context.js?v=8.29';
-import { openAddEventModal, loadAssuntos } from '../ui/event-modals.js?v=8.29';
-import { renderCurrentView } from '../components.js?v=8.29';
+import { state } from '../store.js?v=8.29';
+import { esc } from '../utils.js?v=8.29';
 
 // ── Vertical View State ──
 let vertSearch = '';

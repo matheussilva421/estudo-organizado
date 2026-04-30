@@ -4,24 +4,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/js/credentials.js?v=8.29', () => ({
   getCredential: vi.fn().mockResolvedValue(null),
   setCredential: vi.fn().mockResolvedValue(undefined),
-  deleteCredential: vi.fn().mockResolvedValue(undefined)
+  deleteCredential: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock de app.js
 vi.mock('../../src/js/app.js?v=8.29', () => ({
   showToast: vi.fn(),
   showConfirm: vi.fn((msg, cb) => cb()),
-  closeModal: vi.fn()
+  closeModal: vi.fn(),
 }));
 
 // Mock de components.js
 vi.mock('../../src/js/components.js?v=8.29', () => ({
-  renderCurrentView: vi.fn()
+  renderCurrentView: vi.fn(),
 }));
 
 // Mock de sync-center.js
 vi.mock('../../src/js/sync/sync-center.js?v=8.29', () => ({
-  mergeStudyStates: vi.fn((local, remote) => ({ ...local, ...remote, merged: true }))
+  mergeStudyStates: vi.fn((local, remote) => ({ ...local, ...remote, merged: true })),
 }));
 
 // Mock de store.js
@@ -33,17 +33,21 @@ vi.mock('../../src/js/store.js?v=8.29', () => {
     config: { visualizacao: 'mes' },
     habitos: { videoaula: [] },
     driveFileId: null,
-    lastSync: null
+    lastSync: null,
   };
   let currentState = JSON.parse(JSON.stringify(baseState));
 
   return {
-    get state() { return currentState; },
-    setState: vi.fn((newState) => { Object.assign(currentState, newState); }),
+    get state() {
+      return currentState;
+    },
+    setState: vi.fn((newState) => {
+      Object.assign(currentState, newState);
+    }),
     saveStateToDB: vi.fn().mockResolvedValue(undefined),
     runMigrations: vi.fn(),
     scheduleSave: vi.fn(),
-    createExportableState: vi.fn(() => JSON.parse(JSON.stringify(currentState)))
+    createExportableState: vi.fn(() => JSON.parse(JSON.stringify(currentState))),
   };
 });
 
@@ -52,9 +56,9 @@ const mockGoogle = {
   accounts: {
     oauth2: {
       initTokenClient: vi.fn().mockReturnValue({ requestAccessToken: vi.fn() }),
-      revoke: vi.fn()
-    }
-  }
+      revoke: vi.fn(),
+    },
+  },
 };
 global.google = mockGoogle;
 
@@ -93,10 +97,10 @@ beforeEach(async () => {
         files: {
           get: vi.fn(),
           create: vi.fn(),
-          update: vi.fn()
-        }
-      }
-    }
+          update: vi.fn(),
+        },
+      },
+    },
   };
 });
 
@@ -177,6 +181,23 @@ describe('drive-sync.js', () => {
     });
   });
 
+  describe('disconnectDrive()', () => {
+    it('limpa credencial salva mesmo quando nao ha token ativo', async () => {
+      localStorage.setItem('estudo_drive_client_id', 'saved-client-id');
+      store.state.driveFileId = 'drive-file-id';
+      store.state.lastSync = '2026-04-29T10:00:00.000Z';
+      global.gapi.client.getToken.mockReturnValue(null);
+
+      driveSync.disconnectDrive();
+
+      expect(credentials.deleteCredential).toHaveBeenCalledWith('drive_client_id');
+      expect(localStorage.getItem('estudo_drive_client_id')).toBeNull();
+      expect(store.state.driveFileId).toBeNull();
+      expect(store.state.lastSync).toBeNull();
+      expect(global.google.accounts.oauth2.revoke).not.toHaveBeenCalled();
+    });
+  });
+
   describe('syncWithDrive()', () => {
     it('retorna quando gapi não inicializado', async () => {
       global.gapi = { client: null };
@@ -190,7 +211,7 @@ describe('drive-sync.js', () => {
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ id: 'new-file-123' })
+        json: () => Promise.resolve({ id: 'new-file-123' }),
       });
 
       await driveSync.syncWithDrive();
@@ -208,7 +229,7 @@ describe('drive-sync.js', () => {
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({})
+        json: () => Promise.resolve({}),
       });
 
       await driveSync.syncWithDrive();
@@ -218,9 +239,10 @@ describe('drive-sync.js', () => {
 
     it('oferece merge quando remoto mais recente', async () => {
       global.gapi.client.drive.files.get.mockResolvedValue({
-        result: { lastSync: '2026-04-30T10:00:00.000Z' }
+        result: { lastSync: '2026-04-30T10:00:00.000Z' },
       });
       global.gapi.client.getToken.mockReturnValue({ access_token: 'token123' });
+      app.showConfirm.mockImplementationOnce(() => {});
 
       store.state.driveFileId = 'file-merge-test';
       store.state.lastSync = '2026-04-28T10:00:00.000Z';
@@ -255,15 +277,18 @@ describe('drive-sync.js', () => {
       global.gapi.client.drive.files.get.mockResolvedValue({
         result: {
           config: { _lastUpdated: Date.now() },
-          editais: [{ id: 'ed_drive', nome: 'Drive Edital' }]
-        }
+          editais: [{ id: 'ed_drive', nome: 'Drive Edital' }],
+        },
       });
 
       store.state.driveFileId = 'file-pull-test';
 
       await driveSync.pullFromDrive();
 
-      expect(app.showToast).toHaveBeenCalledWith('Dados importados do Drive com sucesso!', 'success');
+      expect(app.showToast).toHaveBeenCalledWith(
+        'Dados importados do Drive com sucesso!',
+        'success'
+      );
     });
 
     it('rejeita dados inválidos do Drive', async () => {
@@ -298,8 +323,13 @@ describe('drive-sync.js', () => {
       global.gapi.client.drive.files.get.mockResolvedValue({
         result: {
           config: { _lastUpdated: Date.now() },
-          editais: [{ id: 'ed_merge', nome: 'Merge Edital' }]
-        }
+          editais: [{ id: 'ed_merge', nome: 'Merge Edital' }],
+        },
+      });
+      global.gapi.client.getToken.mockReturnValue({ access_token: 'token123' });
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({}),
       });
 
       store.state.driveFileId = 'file-merge-test';

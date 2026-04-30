@@ -113,7 +113,10 @@ function networkFirst(request) {
     .then((res) => {
       if (res.ok) {
         const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
+        caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(request, clone))
+          .catch(() => {});
       }
       return res;
     })
@@ -140,7 +143,10 @@ function cacheFirst(request) {
     return fetch(request).then((res) => {
       if (res.ok) {
         const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
+        caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(request, clone))
+          .catch(() => {});
       }
       return res;
     });
