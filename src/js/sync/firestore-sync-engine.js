@@ -757,24 +757,37 @@ export async function syncFirestoreNow() {
   if (useEntityPrimary) {
     const { db, uid } = requireSignedInServices();
     const entityDocs = await readFirestoreEntityDocuments(db, uid);
+    const maxEntityUpdatedAt = entityDocs.reduce((max, d) => {
+      const t = d.updatedAt || '';
+      return t > max ? t : max;
+    }, '');
     if (
       entityDocs.length &&
       isRemoteNewer(
         {
-          payload: {
-            updatedAt: entityDocs.reduce((max, d) => {
-              const t = d.updatedAt || '';
-              return t > max ? t : max;
-            }, ''),
-          },
+          payloadUpdatedAt: maxEntityUpdatedAt,
         },
         state
       )
     ) {
+      const pullAt = new Date().toISOString();
       const nextState = applyEntityDocsToState(state, entityDocs);
       setState(nextState);
       await clearFirestoreConflict();
       await markFirestoreEntityBatchSynced();
+      Object.assign(getConfig(), {
+        uid,
+        remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
+        lastPullAt: pullAt,
+        hasPendingWrites: false,
+        conflict: null,
+        lastError: null,
+      });
+      await saveFirestoreMeta({
+        uid,
+        remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
+        lastPullAt: pullAt,
+      });
       await saveStateToDB(true, true, true, { touchLocalBackup: false });
       document.dispatchEvent(new Event('app:renderCurrentView'));
       emitStatus('synced');

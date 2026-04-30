@@ -133,4 +133,37 @@ describe('Firestore entity primary regressions', () => {
     expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
     expect(state.config.entitySync.mode).toBe('primary');
   });
+
+  it('updates sync metadata after pulling newer primary entity docs', async () => {
+    repository.readFirestoreEntityDocuments.mockResolvedValue([
+      {
+        key: 'eventos/ev_1',
+        collection: 'eventos',
+        id: 'ev_1',
+        updatedAt: '2026-04-29T21:00:00.000Z',
+        revision: 2,
+        payload: {
+          id: 'ev_1',
+          titulo: 'Remoto',
+          _sync: { updatedAt: '2026-04-29T21:00:00.000Z', revision: 2 },
+        },
+      },
+    ]);
+    state.config.firestoreSync.hasPendingWrites = true;
+
+    const result = await syncEngine.syncFirestoreNow();
+
+    expect(result).toBe(true);
+    expect(snapshotOutbox.saveFirestoreMeta).toHaveBeenCalledWith(
+      expect.objectContaining({
+        uid: 'user-1',
+        remoteUpdatedAt: '2026-04-29T21:00:00.000Z',
+      })
+    );
+    expect(state.eventos[0].titulo).toBe('Remoto');
+    expect(state.config.firestoreSync.remoteUpdatedAt).toBe('2026-04-29T21:00:00.000Z');
+    expect(state.config.firestoreSync.lastPullAt).toBeTruthy();
+    expect(state.config.firestoreSync.hasPendingWrites).toBe(false);
+    expect(state.config.firestoreSync.conflict).toBeNull();
+  });
 });
