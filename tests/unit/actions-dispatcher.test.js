@@ -14,7 +14,7 @@ beforeEach(async () => {
   };
   global._listeners = listeners;
 
-  dispatcher = await import('../../src/js/ui/actions/dispatcher.js?v=8.30');
+  dispatcher = await import('../../src/js/ui/actions/dispatcher.js?v=8.31');
 });
 
 describe('dispatcher.js', () => {

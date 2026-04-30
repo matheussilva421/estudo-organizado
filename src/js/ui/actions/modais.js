@@ -4,7 +4,7 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { closeModal } from '../../app.js?v=8.30';
+import { closeModal } from '../../app.js?v=8.31';
 import {
   onDisciplinaChange,
   onAulaChange,
@@ -16,9 +16,9 @@ import {
   saveAndStartNew,
   setPaginaMode,
   openRegistroSessao,
-} from '../../registro-sessao.js?v=8.30';
-import { openAddPastSessionModal } from '../../ui/event-modals.js?v=8.30';
-import { openPlanejamentoWizard } from '../../planejamento-wizard.js?v=8.30';
+} from '../../registro-sessao.js?v=8.31';
+import { openAddPastSessionModal } from '../../ui/event-modals.js?v=8.31';
+import { openPlanejamentoWizard } from '../../planejamento-wizard.js?v=8.31';
 
 // Registrar ações
 registerAction('close-modal', (el) => {

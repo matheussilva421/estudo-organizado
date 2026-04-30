@@ -18,6 +18,7 @@
 - [x] Phase 5: Sync Center now surfaces retry/ack metrics and entity shadow drift.
 - [x] Phase 6: Added restore validation and dry-run impact helpers for JSON backup imports.
 - [x] Phase 7: Added focused unit coverage for sync health, backup restore, double-buffer recovery, coordinator degradation, and Sync Center metrics.
+- [x] Follow-up: Added Backup Center UI, dedicated restore preview modal, export-before-restore action, richer conflict review hints, conflict decision history, entity-first automatic flush guard, and an operational security checklist.
 
 ## Implementation Notes
 
@@ -40,4 +41,4 @@ npm run test:e2e
 
 - Add browser screenshots for the Sync Center and Backup Center after visual QA.
 - Expand chaos E2E coverage for tab crash, offline reconnect, and two-device entity conflict simulation.
-- Consider a dedicated restore modal instead of the current confirm prompt once impact details need richer presentation.
+- Turn the restore preview for remote channels into a true remote dry-run once Firestore/Drive/Cloudflare expose a safe read-without-apply adapter.

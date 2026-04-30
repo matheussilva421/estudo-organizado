@@ -11,8 +11,8 @@ import {
   showToast,
   openModal,
   getLastSaveStatus,
-} from '../app.js?v=8.30';
-import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.30';
+} from '../app.js?v=8.31';
+import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.31';
 import {
   scheduleSave,
   state,
@@ -20,19 +20,19 @@ import {
   runMigrations,
   createExportableState,
   clearData,
-} from '../store.js?v=8.30';
+} from '../store.js?v=8.31';
 import {
   syncCicloToEventos,
   invalidateDiscCache,
   invalidateDashCaches,
   invalidateRevCache,
-} from '../logic.js?v=8.30';
-import { renderCurrentView } from '../components.js?v=8.30';
-import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.30';
-import { getFirestoreSyncStatus, pullFromFirestore } from '../sync/firestore-sync-engine.js?v=8.30';
-import { setSyncCreds, forceCloudflareSync, pullFromCloudflare } from '../cloud-sync.js?v=8.30';
-import { disconnectDrive, pullFromDrive } from '../drive-sync.js?v=8.30';
-import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.30';
+} from '../logic.js?v=8.31';
+import { renderCurrentView } from '../components.js?v=8.31';
+import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.31';
+import { getFirestoreSyncStatus, pullFromFirestore } from '../sync/firestore-sync-engine.js?v=8.31';
+import { setSyncCreds, forceCloudflareSync, pullFromCloudflare } from '../cloud-sync.js?v=8.31';
+import { disconnectDrive, pullFromDrive } from '../drive-sync.js?v=8.31';
+import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.31';
 
 function formatBackupDateTime(value) {
   if (!value) return 'Nunca';
@@ -43,6 +43,111 @@ function formatBackupDateTime(value) {
   } catch {
     return 'Nunca';
   }
+}
+
+function formatRestoreCount(value, singular, plural) {
+  const count = Number(value) || 0;
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function renderRestoreImpactSummary(impact) {
+  const totals = impact?.totals || {};
+  const byCollection = impact?.byCollection || {};
+  const rows = Object.entries(byCollection)
+    .map(
+      ([collection, stats]) => `
+        <div class="restore-preview-row">
+          <span>${esc(collection)}</span>
+          <strong>${formatRestoreCount(stats.added, 'adicionado', 'adicionados')}</strong>
+          <strong>${formatRestoreCount(stats.changed, 'alterado', 'alterados')}</strong>
+          <strong>${formatRestoreCount(stats.removed, 'removido', 'removidos')}</strong>
+        </div>
+      `
+    )
+    .join('');
+
+  return `
+    <div class="restore-preview-summary" data-testid="restore-preview-summary">
+      <div class="restore-preview-totals">
+        <span>${formatRestoreCount(totals.added, 'adicionado', 'adicionados')}</span>
+        <span>${formatRestoreCount(totals.changed, 'alterado', 'alterados')}</span>
+        <span>${formatRestoreCount(totals.removed, 'removido', 'removidos')}</span>
+        <span>${formatRestoreCount(totals.preserved, 'preservado', 'preservados')}</span>
+      </div>
+      ${rows ? `<div class="restore-preview-table">${rows}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderBackupCenterCard() {
+  const fs = state.config?.firestoreSync || {};
+  const sources = [
+    {
+      id: 'local',
+      title: 'Backup local',
+      status: 'Pronto para exportar',
+      at: state.config?.localBackupAt,
+      detail: 'JSON validado com dry-run antes de substituir dados.',
+    },
+    {
+      id: 'firestore',
+      title: 'Firestore primary',
+      status: fs.enabled ? 'Canal remoto ativo' : 'Aguardando login/ativacao',
+      at: fs.remoteUpdatedAt || fs.lastPushAt || fs.lastPullAt,
+      detail: 'Fonte remota principal; snapshot permanece fallback.',
+    },
+    {
+      id: 'cloudflare',
+      title: 'Cloudflare secundario',
+      status: state.config?.cfSyncEnabled ? 'Backup manual configurado' : 'Nao configurado',
+      at: state.config?.cfLastSyncAt,
+      detail: 'Canal manual/secundario fora do sync primary.',
+    },
+    {
+      id: 'drive',
+      title: 'Google Drive',
+      status: state.driveFileId ? 'Backup manual conectado' : 'Nao conectado',
+      at: state.lastSync,
+      detail: 'Importacao e exportacao manual para recuperacao.',
+    },
+  ];
+
+  return `
+    <div class="card config-card" data-testid="backup-center">
+      <div class="card-header"><h3><i class="fa fa-shield-heart"></i> Backup Center</h3></div>
+      <div class="card-body">
+        <div class="config-desc">Restaure com previa de impacto, exporte antes de sobrescrever e acompanhe a ultima confirmacao de cada canal.</div>
+        <div class="backup-center-grid">
+          ${sources
+            .map(
+              (source) => `
+            <div class="backup-source-card" data-backup-source="${source.id}">
+              <div class="backup-source-title">${source.title}</div>
+              <div class="backup-source-status">${source.status}</div>
+              <div class="backup-source-date">${formatBackupDateTime(source.at)}</div>
+              <div class="backup-source-detail">${source.detail}</div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label">Origem do backup para restauracao</label>
+          <select id="backup-restore-source" class="form-control">
+            <option value="local">Backup local (importar arquivo JSON)</option>
+            <option value="firestore">Firestore</option>
+            <option value="cloudflare">Cloudflare</option>
+            <option value="drive">Google Drive</option>
+          </select>
+        </div>
+        <div class="config-actions-row">
+          <button class="btn btn-primary" data-action="export-data"><i class="fa fa-download"></i> Exportar agora</button>
+          <button class="btn btn-outline" data-action="open-restore-preview"><i class="fa fa-rotate-left"></i> Restaurar com previa</button>
+          <button class="btn btn-ghost" data-action="export-data">Exportar antes de restaurar</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderCloudflareConflict(conflict) {
@@ -410,7 +515,7 @@ function renderSyncCenterCard() {
 
 export function renderConfig(el) {
   const cfg = state.config;
-  const saveStatus = getLastSaveStatus();
+  const saveStatus = getLastSaveStatus() || { status: 'saved' };
   const saveStatusText =
     saveStatus.status === 'error'
       ? `Falha ao salvar: ${esc(saveStatus.detail || 'erro desconhecido')}`
@@ -632,6 +737,8 @@ export function renderConfig(el) {
           </div>
         </div>
 
+        ${renderBackupCenterCard()}
+
         <div class="card config-card">
           <div class="card-header"><h3>💾 Dados</h3></div>
           <div class="card-body">
@@ -838,6 +945,44 @@ export function exportData() {
   showToast('Dados exportados!', 'success');
 }
 
+export function openRestorePreviewModal(payload = state, options = {}) {
+  const modal = document.getElementById('modal-prompt');
+  const title = document.getElementById('modal-prompt-title');
+  const body = document.getElementById('modal-prompt-body');
+  const saveBtn = document.getElementById('modal-prompt-save');
+  if (!modal || !title || !body || !saveBtn) {
+    showToast('Modal de restauracao indisponivel.', 'error');
+    return false;
+  }
+
+  const sourceLabel = options.sourceLabel || 'backup selecionado';
+  const impact = previewRestoreImpact(state, payload || {});
+  title.textContent = 'Previa de restauracao';
+  body.innerHTML = `
+    <div class="restore-preview-modal">
+      <div class="config-desc">Origem: <strong>${esc(sourceLabel)}</strong>. Revise o impacto antes de substituir os dados locais.</div>
+      ${renderRestoreImpactSummary(impact)}
+      <div class="restore-preview-warning">
+        A restauracao pode substituir eventos, editais, habitos, revisoes e configuracoes locais.
+      </div>
+      <div class="config-actions-row">
+        <button type="button" class="btn btn-ghost btn-sm" data-action="export-data">
+          <i class="fa fa-download"></i> Exportar antes de restaurar
+        </button>
+      </div>
+    </div>
+  `;
+  saveBtn.textContent = options.label || 'Restaurar';
+  saveBtn.className = 'btn btn-danger';
+  saveBtn.onclick = () => {
+    if (typeof options.onConfirm === 'function') {
+      options.onConfirm();
+    }
+  };
+  openModal('modal-prompt');
+  return true;
+}
+
 export function importData() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -869,10 +1014,10 @@ export function importData() {
           );
           return;
         }
-        const impact = previewRestoreImpact(state, imported);
-        showConfirm(
-          `Importar dados de "${file.name}"?\n\nIsso substituirá todos os dados atuais. Faça um export antes para garantir o backup.`,
-          () => {
+        openRestorePreviewModal(imported, {
+          sourceLabel: file.name,
+          label: 'Importar',
+          onConfirm: () => {
             setState(imported);
             runMigrations();
             invalidateDiscCache();
@@ -883,11 +1028,7 @@ export function importData() {
             renderCurrentView();
             showToast('Dados importados com sucesso!', 'success');
           },
-          {
-            label: 'Importar',
-            title: `Importar dados (${impact.totals.added}+/${impact.totals.removed}-)`,
-          }
-        );
+        });
       } catch {
         showToast(
           'Arquivo inválido! Verifique se é um JSON de backup do Estudo Organizado.',
@@ -917,11 +1058,11 @@ export function restoreBackupFromSelectedSource() {
       showToast('Ative o Firestore e entre com Google antes de restaurar por ele.', 'error');
       return;
     }
-    showConfirm(
-      'Restaurar os dados do Firestore? Isso substituirá os dados locais atuais.',
-      () => pullFromFirestore(true),
-      { label: 'Restaurar Firestore', title: 'Restaurar backup' }
-    );
+    openRestorePreviewModal(state, {
+      sourceLabel: 'Firestore',
+      label: 'Restaurar Firestore',
+      onConfirm: () => pullFromFirestore(true),
+    });
     return;
   }
 
@@ -934,11 +1075,11 @@ export function restoreBackupFromSelectedSource() {
       showToast('Configure a sincronização Cloudflare antes de restaurar por ela.', 'error');
       return;
     }
-    showConfirm(
-      'Restaurar os dados da Cloudflare? Isso substituirá os dados locais atuais.',
-      () => pullFromCloudflare(true),
-      { label: 'Restaurar Cloudflare', title: 'Restaurar backup' }
-    );
+    openRestorePreviewModal(state, {
+      sourceLabel: 'Cloudflare',
+      label: 'Restaurar Cloudflare',
+      onConfirm: () => pullFromCloudflare(true),
+    });
     return;
   }
 
@@ -947,11 +1088,12 @@ export function restoreBackupFromSelectedSource() {
       showToast('Conecte o Google Drive antes de restaurar por ele.', 'error');
       return;
     }
-    showConfirm(
-      'Restaurar os dados do Google Drive? Isso substituirá os dados locais atuais.',
-      () => pullFromDrive().catch((err) => console.error('Erro ao restaurar do Drive:', err)),
-      { label: 'Restaurar Drive', title: 'Restaurar backup' }
-    );
+    openRestorePreviewModal(state, {
+      sourceLabel: 'Google Drive',
+      label: 'Restaurar Drive',
+      onConfirm: () =>
+        pullFromDrive().catch((err) => console.error('Erro ao restaurar do Drive:', err)),
+    });
   }
 }
 

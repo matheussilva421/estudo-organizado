@@ -2601,10 +2601,74 @@
   margin-top: 14px;
 }
 
+.backup-center-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.backup-source-card,
+.restore-preview-summary {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.backup-source-title {
+  color: var(--text-primary);
+  font-weight: 800;
+}
+
+.backup-source-status,
+.backup-source-date,
+.backup-source-detail {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 4px;
+}
+
+.restore-preview-modal {
+  display: grid;
+  gap: 12px;
+}
+
+.restore-preview-totals,
+.restore-preview-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.restore-preview-totals span,
+.restore-preview-row strong,
+.restore-preview-row span {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.restore-preview-table {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.restore-preview-warning {
+  color: var(--danger);
+  font-size: 0.86rem;
+}
+
 @media (max-width: 900px) {
   .sync-center-summary,
   .sync-source-grid,
-  .sync-source-meta {
+  .sync-source-meta,
+  .backup-center-grid,
+  .restore-preview-totals,
+  .restore-preview-row {
     grid-template-columns: 1fr;
   }
 

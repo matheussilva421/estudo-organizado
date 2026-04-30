@@ -50,7 +50,12 @@ describe('views/config-view.js', () => {
       invalidateRevCache: vi.fn(),
     };
     componentsModule = { renderCurrentView: vi.fn() };
-    syncCenter = { buildSyncCenterModel: vi.fn(() => ({ status: 'ok' })) };
+    syncCenter = {
+      buildSyncCenterModel: vi.fn(() => ({
+        health: { status: 'synced', metrics: {} },
+        sources: [],
+      })),
+    };
     firestoreSync = {
       getFirestoreSyncStatus: vi.fn(() => ({ configured: false })),
       pullFromFirestore: vi.fn(),
@@ -64,9 +69,20 @@ describe('views/config-view.js', () => {
       disconnectDrive: vi.fn(),
       pullFromDrive: vi.fn(),
     };
+    vi.doMock('../../src/js/backup-restore.js?v=8.31', () => ({
+      previewRestoreImpact: vi.fn(() => ({
+        totals: { added: 2, removed: 1, changed: 1, preserved: 3 },
+        byCollection: {
+          eventos: { added: 1, removed: 1, changed: 0, preserved: 2 },
+          habitos: { added: 1, removed: 0, changed: 1, preserved: 1 },
+        },
+        risks: ['remove-data'],
+      })),
+      validateBackupPayload: vi.fn(() => ({ ok: true, issues: [] })),
+    }));
 
-    vi.doMock('../../src/js/app.js?v=8.30', () => appModule);
-    vi.doMock('../../src/js/utils.js?v=8.30', () => ({
+    vi.doMock('../../src/js/app.js?v=8.31', () => appModule);
+    vi.doMock('../../src/js/utils.js?v=8.31', () => ({
       cutoffDateStr: vi.fn((d) => {
         const dt = new Date();
         dt.setDate(dt.getDate() - d);
@@ -76,15 +92,15 @@ describe('views/config-view.js', () => {
       todayStr: vi.fn(() => '2026-04-29'),
       invalidateTodayCache: vi.fn(),
     }));
-    vi.doMock('../../src/js/store.js?v=8.30', () => storeModule);
-    vi.doMock('../../src/js/logic.js?v=8.30', () => logicModule);
-    vi.doMock('../../src/js/components.js?v=8.30', () => componentsModule);
-    vi.doMock('../../src/js/sync/sync-center.js?v=8.30', () => syncCenter);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.30', () => firestoreSync);
-    vi.doMock('../../src/js/cloud-sync.js?v=8.30', () => cloudSync);
-    vi.doMock('../../src/js/drive-sync.js?v=8.30', () => driveSync);
+    vi.doMock('../../src/js/store.js?v=8.31', () => storeModule);
+    vi.doMock('../../src/js/logic.js?v=8.31', () => logicModule);
+    vi.doMock('../../src/js/components.js?v=8.31', () => componentsModule);
+    vi.doMock('../../src/js/sync/sync-center.js?v=8.31', () => syncCenter);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.31', () => firestoreSync);
+    vi.doMock('../../src/js/cloud-sync.js?v=8.31', () => cloudSync);
+    vi.doMock('../../src/js/drive-sync.js?v=8.31', () => driveSync);
 
-    configView = await import('../../src/js/views/config-view.js?v=8.30');
+    configView = await import('../../src/js/views/config-view.js?v=8.31');
   });
 
   describe('setTheme()', () => {
@@ -267,6 +283,46 @@ describe('views/config-view.js', () => {
         'Conecte o Google Drive antes de restaurar por ele.',
         'error'
       );
+    });
+  });
+
+  describe('renderConfig()', () => {
+    it('renders a dedicated Backup Center with source history and safe restore actions', () => {
+      storeModule.state.config.localBackupAt = '2026-04-30T10:00:00.000Z';
+      storeModule.state.config.firestoreSync = { remoteUpdatedAt: '2026-04-30T10:05:00.000Z' };
+      storeModule.state.config.cfLastSyncAt = '2026-04-30T10:10:00.000Z';
+      storeModule.state.lastSync = '2026-04-30T10:15:00.000Z';
+      const el = document.createElement('div');
+
+      configView.renderConfig(el);
+
+      expect(el.innerHTML).toContain('Backup Center');
+      expect(el.innerHTML).toContain('data-testid="backup-center"');
+      expect(el.innerHTML).toContain('data-action="open-restore-preview"');
+      expect(el.innerHTML).toContain('Exportar antes de restaurar');
+    });
+  });
+
+  describe('openRestorePreviewModal()', () => {
+    it('opens a restore preview modal with impact totals and export-before-restore action', () => {
+      document.body.innerHTML = `
+        <div id="modal-prompt">
+          <h2 id="modal-prompt-title"></h2>
+          <div id="modal-prompt-body"></div>
+          <button id="modal-prompt-save"></button>
+        </div>
+      `;
+      const onConfirm = vi.fn();
+
+      configView.openRestorePreviewModal({ eventos: [{ id: 'novo' }], config: {} }, {
+        sourceLabel: 'JSON local',
+        onConfirm,
+      });
+
+      expect(document.getElementById('modal-prompt-title').textContent).toBe('Previa de restauracao');
+      expect(document.getElementById('modal-prompt-body').innerHTML).toContain('2 adicionados');
+      expect(document.getElementById('modal-prompt-body').innerHTML).toContain('Exportar antes de restaurar');
+      expect(appModule.openModal).toHaveBeenCalledWith('modal-prompt');
     });
   });
 });

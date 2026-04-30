@@ -108,7 +108,7 @@ describe('store.js', () => {
   });
 
   it('clearData also clears isolated credentials', async () => {
-    const credentials = await import('../../src/js/credentials.js?v=8.30');
+    const credentials = await import('../../src/js/credentials.js?v=8.31');
     const spy = vi.spyOn(credentials, 'clearAllCredentials').mockResolvedValue(undefined);
 
     store.clearData();

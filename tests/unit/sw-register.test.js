@@ -39,12 +39,12 @@ beforeEach(async () => {
 
 describe('sw-register.js', () => {
   it('registers service worker when supported', async () => {
-    await import('../../src/js/sw-register.js?v=8.30');
+    await import('../../src/js/sw-register.js?v=8.31');
     expect(global.navigator.serviceWorker.register).toHaveBeenCalled();
   });
 
   it('passes updateViaCache none to registration', async () => {
-    await import('../../src/js/sw-register.js?v=8.30');
+    await import('../../src/js/sw-register.js?v=8.31');
     expect(global.navigator.serviceWorker.register).toHaveBeenCalledWith(
       './sw.js',
       { updateViaCache: 'none' }
@@ -54,14 +54,14 @@ describe('sw-register.js', () => {
   it('does not register when serviceWorker not in navigator', async () => {
     vi.resetModules();
     delete global.navigator.serviceWorker;
-    await import('../../src/js/sw-register.js?v=8.30');
+    await import('../../src/js/sw-register.js?v=8.31');
   });
 
   it('handles registration error gracefully', async () => {
     vi.resetModules();
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     global.navigator.serviceWorker.register = vi.fn(() => Promise.reject(new Error('Network error')));
-    await import('../../src/js/sw-register.js?v=8.30');
+    await import('../../src/js/sw-register.js?v=8.31');
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
   });
@@ -72,7 +72,7 @@ describe('sw-register.js', () => {
       'estudo-organizado-v1.0',
       'estudo-organizado-v0.9',
     ]));
-    await import('../../src/js/sw-register.js?v=8.30');
+    await import('../../src/js/sw-register.js?v=8.31');
     expect(global.caches.delete).toHaveBeenCalledWith('estudo-organizado-v0.9');
   });
 });

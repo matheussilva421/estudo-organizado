@@ -36,11 +36,11 @@ describe('ui/actions/navegacao.js', () => {
     dashboardContext = { setActiveDashboardDiscCtx: vi.fn() };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
-    vi.doMock('../../src/js/app.js?v=8.30', () => appModule);
-    vi.doMock('../../src/js/views.js?v=8.30', () => viewsModule);
-    vi.doMock('../../src/js/views/calendar-view.js?v=8.30', () => calendarView);
-    vi.doMock('../../src/js/components.js?v=8.30', () => componentsModule);
-    vi.doMock('../../src/js/state/dashboard-context.js?v=8.30', () => dashboardContext);
+    vi.doMock('../../src/js/app.js?v=8.31', () => appModule);
+    vi.doMock('../../src/js/views.js?v=8.31', () => viewsModule);
+    vi.doMock('../../src/js/views/calendar-view.js?v=8.31', () => calendarView);
+    vi.doMock('../../src/js/components.js?v=8.31', () => componentsModule);
+    vi.doMock('../../src/js/state/dashboard-context.js?v=8.31', () => dashboardContext);
 
     await import('../../src/js/ui/actions/navegacao.js');
   });

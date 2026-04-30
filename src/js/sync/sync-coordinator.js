@@ -1,13 +1,17 @@
-import { state } from '../store.js?v=8.30';
+import { state } from '../store.js?v=8.31';
 import {
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
   syncFirestoreNow,
-} from './firestore-sync-engine.js?v=8.30';
-import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.30';
-import { queueFirestoreEntityBatchFromState } from './firestore-entity-outbox.js?v=8.30';
-import { appendSyncHealthEvent, deriveSyncHealthState } from './sync-health.js?v=8.30';
+} from './firestore-sync-engine.js?v=8.31';
+import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.31';
+import {
+  canRetryEntityBatch,
+  getPendingFirestoreEntityBatch,
+  queueFirestoreEntityBatchFromState,
+} from './firestore-entity-outbox.js?v=8.31';
+import { appendSyncHealthEvent, deriveSyncHealthState } from './sync-health.js?v=8.31';
 
 const PRIMARY_SYNC_DEBOUNCE_MS = 1500;
 const CIRCUIT_BREAKER_FAILURES = 3;
@@ -57,6 +61,26 @@ async function scheduleRetryIfNeeded(reason) {
   if (!pending?.nextAttemptAt) return;
   const delay = toDelayFromPending(pending);
   schedulePrimarySync(reason, { delayMs: delay });
+}
+
+function isPrimaryEntitySyncEnabled() {
+  const entitySync = state.config?.entitySync || {};
+  return Boolean(entitySync.enabled && entitySync.mode === 'primary');
+}
+
+async function ensurePrimaryEntityBatchReady(reason) {
+  if (!isPrimaryEntitySyncEnabled()) return true;
+  const pendingEntityBatch = await getPendingFirestoreEntityBatch();
+  if (pendingEntityBatch && !canRetryEntityBatch(pendingEntityBatch)) {
+    emitCoordinatorStatus('queued', {
+      reason,
+      delayMs: toDelayFromPending(pendingEntityBatch),
+      pending: pendingEntityBatch,
+    });
+    return false;
+  }
+  const queuedEntity = await queueFirestoreEntityBatchFromState(state, { manual: false });
+  return Boolean(queuedEntity);
 }
 
 export function getSyncCoordinatorStatus() {
@@ -149,15 +173,16 @@ export async function flushPrimarySyncNow(options = {}) {
     return ok;
   }
 
-  const queued = await queueFirestoreSnapshotFromState(state, { manual: false });
-  if (!queued) {
+  const entityReady = await ensurePrimaryEntityBatchReady(reason);
+  if (!entityReady) {
     await scheduleRetryIfNeeded(reason);
     return false;
   }
 
-  const entitySync = state.config?.entitySync || {};
-  if (entitySync.enabled && entitySync.mode === 'primary') {
-    await queueFirestoreEntityBatchFromState(state, { manual: false });
+  const queued = await queueFirestoreSnapshotFromState(state, { manual: false });
+  if (!queued) {
+    await scheduleRetryIfNeeded(reason);
+    return false;
   }
 
   const ok = await flushFirestoreOutbox({ manual: false, forceOverwrite: force });

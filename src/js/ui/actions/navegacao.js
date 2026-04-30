@@ -10,8 +10,8 @@ import {
   clearSearch,
   setDashPeriod,
   closeDiscDashboard,
-} from '../../views.js?v=8.30';
-import { setCalViewMode, calNavigate } from '../../views/calendar-view.js?v=8.30';
+} from '../../views.js?v=8.31';
+import { setCalViewMode, calNavigate } from '../../views/calendar-view.js?v=8.31';
 import {
   navigate,
   closeSidebar,
@@ -21,9 +21,9 @@ import {
   promptDataProva,
   promptMetas,
   toggleCicloFin,
-} from '../../app.js?v=8.30';
-import { renderCurrentView } from '../../components.js?v=8.30';
-import { setActiveDashboardDiscCtx } from '../../state/dashboard-context.js?v=8.30';
+} from '../../app.js?v=8.31';
+import { renderCurrentView } from '../../components.js?v=8.31';
+import { setActiveDashboardDiscCtx } from '../../state/dashboard-context.js?v=8.31';
 
 // Registrar ações
 registerAction('navigate', (el) => {
@@ -35,7 +35,7 @@ registerAction('navigate-with-ctx', (el) => {
   const ctx = el.dataset.ctx;
   if (view) {
     if (ctx) {
-      import('../../app.js?v=8.30').then(({ navigate }) => {
+      import('../../app.js?v=8.31').then(({ navigate }) => {
         try {
           setActiveDashboardDiscCtx(JSON.parse(decodeURIComponent(ctx)));
         } catch (err) {

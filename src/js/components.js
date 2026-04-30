@@ -1,4 +1,4 @@
-import { currentView } from './app.js?v=8.30';
+import { currentView } from './app.js?v=8.31';
 import {
   formatDate,
   formatTime,
@@ -6,7 +6,7 @@ import {
   todayStr,
   esc,
   getHabitType,
-} from './utils.js?v=8.30';
+} from './utils.js?v=8.31';
 import {
   renderConfig,
   renderDashboard,
@@ -21,9 +21,9 @@ import {
   renderBancaAnalyzerModule,
   destroyDashboardCharts,
   renderSkeletonLoader,
-} from './views.js?v=8.30';
-import { renderCalendar } from './views/calendar-view.js?v=8.30';
-import { state } from './store.js?v=8.30';
+} from './views.js?v=8.31';
+import { renderCalendar } from './views/calendar-view.js?v=8.31';
+import { state } from './store.js?v=8.31';
 import {
   getActiveDisciplinas,
   getDisc,
@@ -31,14 +31,14 @@ import {
   getPendingRevisoes,
   isTimerActive,
   _pomodoroMode,
-} from './logic.js?v=8.30';
-import { getActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.30';
+} from './logic.js?v=8.31';
+import { getActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.31';
 import {
   getDiscChartInstance,
   setDiscChartInstance,
   getPlanjChartInstance,
   setPlanjChartInstance,
-} from './state/chart-state.js?v=8.30';
+} from './state/chart-state.js?v=8.31';
 
 export { getDiscChartInstance, setDiscChartInstance, getPlanjChartInstance, setPlanjChartInstance };
 
@@ -423,7 +423,7 @@ export function renderCurrentView() {
       else if (currentView === 'editais') {
         if (getActiveDashboardDiscCtx()) {
           const ctx = getActiveDashboardDiscCtx();
-          import('./views.js?v=8.30').then(({ openDiscDashboard }) =>
+          import('./views.js?v=8.31').then(({ openDiscDashboard }) =>
             openDiscDashboard(ctx.editaId, ctx.discId)
           );
         } else {

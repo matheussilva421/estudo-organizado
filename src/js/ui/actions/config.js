@@ -17,17 +17,17 @@ import {
   restoreBackupFromSelectedSource,
   openDriveModal,
   driveDisconnect,
-} from '../../views/config-view.js?v=8.30';
-import { scheduleSave, state } from '../../store.js?v=8.30';
-import { showToast, openModal, showConfirm } from '../../app.js?v=8.30';
-import { renderCurrentView } from '../../components.js?v=8.30';
-import { esc } from '../../utils.js?v=8.30';
+} from '../../views/config-view.js?v=8.31';
+import { scheduleSave, state } from '../../store.js?v=8.31';
+import { showToast, openModal, showConfirm } from '../../app.js?v=8.31';
+import { renderCurrentView } from '../../components.js?v=8.31';
+import { esc } from '../../utils.js?v=8.31';
 import {
   forceCloudflareSync,
   pullFromCloudflare,
   pushToCloudflare,
   mergeFromCloudflare,
-} from '../../cloud-sync.js?v=8.30';
+} from '../../cloud-sync.js?v=8.31';
 import {
   firestoreSignIn,
   firestoreSignOut,
@@ -40,14 +40,14 @@ import {
   verifyFirestoreEntityShadow,
   resolveEntityConflict,
   getFirestoreSyncStatus,
-} from '../../sync/firestore-sync-engine.js?v=8.30';
-import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.30';
+} from '../../sync/firestore-sync-engine.js?v=8.31';
+import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.31';
 import {
   syncWithDrive,
   pullFromDrive,
   mergeFromDrive,
   driveAction,
-} from '../../drive-sync.js?v=8.30';
+} from '../../drive-sync.js?v=8.31';
 
 // Registrar ações
 registerAction('update-config', (el) => {
@@ -83,6 +83,7 @@ registerAction('clear-all-data', clearAllData);
 registerAction('set-theme', (el) => setTheme(el.value));
 registerAction('export-data', exportData);
 registerAction('restore-backup', restoreBackupFromSelectedSource);
+registerAction('open-restore-preview', restoreBackupFromSelectedSource);
 registerAction('open-drive-modal', openDriveModal);
 registerAction('drive-disconnect', driveDisconnect);
 registerAction('disconnect-drive', driveDisconnect);
@@ -156,10 +157,22 @@ registerAction('firestore-open-conflict-review', () => {
   const body = modal.querySelector('#modal-prompt-body');
   const items = Array.isArray(conflict.items) ? conflict.items : [];
   const entityKey = (item) => item.key || `${item.collection}/${item.id}`;
+  const hintLabel = (item) => {
+    if (item.hint === 'remote-newer' || item.remoteDeleted) return 'Remoto mais novo';
+    if (item.hint === 'tie') return 'Empate';
+    if (item.localDeleted) return 'Deletado localmente';
+    if (item.remoteDeleted) return 'Deletado remotamente';
+    return 'Local mais novo';
+  };
 
   if (title) title.textContent = 'Revisar conflito Firestore';
   if (body) {
     body.innerHTML = `
+      <div class="config-actions-row">
+        <button type="button" class="btn btn-outline btn-sm" data-action="firestore-export-local">
+          <i class="fa fa-download"></i> Exportar backup antes
+        </button>
+      </div>
       <div class="sync-conflict-entities">
         ${items
           .map(
@@ -167,6 +180,7 @@ registerAction('firestore-open-conflict-review', () => {
           <div class="sync-conflict-entity">
             <span>${esc(item.collection || 'entidade')}</span>
             <code>${esc(item.id || item.key || 'sem-id')}</code>
+            <span>${esc(hintLabel(item))}</span>
             <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
             <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
             <div class="sync-conflict-entity-actions">

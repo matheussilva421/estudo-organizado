@@ -3,11 +3,11 @@
  * Renderiza e gerencia tracked de hábitos de estudo
  */
 
-import { esc, formatDate, todayStr, uid, HABIT_TYPES } from '../utils.js?v=8.30';
-import { state, scheduleSave } from '../store.js?v=8.30';
-import { getActiveDisciplinas, getDisc } from '../logic.js?v=8.30';
-import { renderCurrentView } from '../components.js?v=8.30';
-import { showConfirm, showToast, openModal, closeModal as appCloseModal } from '../app.js?v=8.30';
+import { esc, formatDate, todayStr, uid, HABIT_TYPES } from '../utils.js?v=8.31';
+import { state, scheduleSave } from '../store.js?v=8.31';
+import { getActiveDisciplinas, getDisc } from '../logic.js?v=8.31';
+import { renderCurrentView } from '../components.js?v=8.31';
+import { showConfirm, showToast, openModal, closeModal as appCloseModal } from '../app.js?v=8.31';
 
 export const HABIT_HIST_PAGE_SIZE = 20;
 export let habitHistPage = 1;

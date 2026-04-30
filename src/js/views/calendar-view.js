@@ -3,9 +3,9 @@
  * Renderiza calendário mensal, semanal e mobile
  */
 
-import { state } from '../store.js?v=8.30';
-import { esc, getEventStatus, todayStr } from '../utils.js?v=8.30';
-import { renderCurrentView } from '../components.js?v=8.30';
+import { state } from '../store.js?v=8.31';
+import { esc, getEventStatus, todayStr } from '../utils.js?v=8.31';
+import { renderCurrentView } from '../components.js?v=8.31';
 
 // Exported state
 let calDate = new Date();

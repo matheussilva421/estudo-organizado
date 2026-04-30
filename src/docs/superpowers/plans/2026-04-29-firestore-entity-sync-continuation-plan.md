@@ -1231,7 +1231,7 @@ Create `tests/unit/entity-conflict-model.test.js`:
 ```js
 import { describe, expect, it } from 'vitest';
 
-const model = await import('../../src/js/sync/entity-conflict-model.js?v=8.30');
+const model = await import('../../src/js/sync/entity-conflict-model.js?v=8.31');
 
 describe('entity-conflict-model.js', () => {
   it('classifies conflicts with safe and manual decisions', () => {

@@ -4,13 +4,13 @@ import {
   SyncQueue,
   saveStateToDB,
   createExportableState,
-} from './store.js?v=8.30';
+} from './store.js?v=8.31';
 import {
   setCredential,
   getCredential,
   deleteCredential as _deleteCredential,
-} from './credentials.js?v=8.30';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.30';
+} from './credentials.js?v=8.31';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.31';
 
 let isSyncing = false;
 let _lastPushTime = 0;

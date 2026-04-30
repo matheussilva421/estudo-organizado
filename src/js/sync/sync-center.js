@@ -1,5 +1,5 @@
-import { mergeEntityAwareArrays } from './entity-metadata.js?v=8.30';
-import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.30';
+import { mergeEntityAwareArrays } from './entity-metadata.js?v=8.31';
+import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.31';
 
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
 
