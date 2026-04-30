@@ -1,31 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock de credentials.js
-vi.mock('../../src/js/credentials.js?v=8.31', () => ({
+vi.mock('../../src/js/credentials.js?v=8.32', () => ({
   getCredential: vi.fn().mockResolvedValue(null),
   setCredential: vi.fn().mockResolvedValue(undefined),
   deleteCredential: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock de app.js
-vi.mock('../../src/js/app.js?v=8.31', () => ({
+vi.mock('../../src/js/app.js?v=8.32', () => ({
   showToast: vi.fn(),
   showConfirm: vi.fn((msg, cb) => cb()),
   closeModal: vi.fn(),
 }));
 
 // Mock de components.js
-vi.mock('../../src/js/components.js?v=8.31', () => ({
+vi.mock('../../src/js/components.js?v=8.32', () => ({
   renderCurrentView: vi.fn(),
 }));
 
 // Mock de sync-center.js
-vi.mock('../../src/js/sync/sync-center.js?v=8.31', () => ({
+vi.mock('../../src/js/sync/sync-center.js?v=8.32', () => ({
   mergeStudyStates: vi.fn((local, remote) => ({ ...local, ...remote, merged: true })),
 }));
 
 // Mock de store.js
-vi.mock('../../src/js/store.js?v=8.31', () => {
+vi.mock('../../src/js/store.js?v=8.32', () => {
   const baseState = {
     schemaVersion: 7,
     editais: [],
@@ -79,10 +79,10 @@ beforeEach(async () => {
     <div id="drive-status-area"></div>
   `;
 
-  driveSync = await import('../../src/js/drive-sync.js?v=8.31');
-  credentials = await import('../../src/js/credentials.js?v=8.31');
-  app = await import('../../src/js/app.js?v=8.31');
-  store = await import('../../src/js/store.js?v=8.31');
+  driveSync = await import('../../src/js/drive-sync.js?v=8.32');
+  credentials = await import('../../src/js/credentials.js?v=8.32');
+  app = await import('../../src/js/app.js?v=8.32');
+  store = await import('../../src/js/store.js?v=8.32');
 
   credentials.getCredential.mockResolvedValue(null);
 

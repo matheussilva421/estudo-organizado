@@ -1,5 +1,5 @@
-import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.31';
-import { buildEntityManifest } from './entity-metadata.js?v=8.31';
+import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.32';
+import { buildEntityManifest } from './entity-metadata.js?v=8.32';
 
 export const FIRESTORE_SYNC_VERSION = 1;
 export const FIRESTORE_SNAPSHOT_DOC_ID = 'main';

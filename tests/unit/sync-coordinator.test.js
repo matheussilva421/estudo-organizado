@@ -41,12 +41,12 @@ describe('sync/sync-coordinator.js', () => {
       canRetryEntityBatch: vi.fn(() => true),
     };
 
-    vi.doMock('../../src/js/store.js?v=8.31', () => storeModule);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.31', () => firestoreSync);
-    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.31', () => firestoreOutbox);
-    vi.doMock('../../src/js/sync/firestore-entity-outbox.js?v=8.31', () => entityOutbox);
+    vi.doMock('../../src/js/store.js?v=8.32', () => storeModule);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.32', () => firestoreSync);
+    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.32', () => firestoreOutbox);
+    vi.doMock('../../src/js/sync/firestore-entity-outbox.js?v=8.32', () => entityOutbox);
 
-    coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.31');
+    coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.32');
   });
 
   describe('getSyncCoordinatorStatus()', () => {

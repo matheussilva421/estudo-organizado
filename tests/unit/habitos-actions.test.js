@@ -18,7 +18,7 @@ describe('ui/actions/habitos.js', () => {
     };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
-    vi.doMock('../../src/js/views/habitos-view.js?v=8.31', () => habitosView);
+    vi.doMock('../../src/js/views/habitos-view.js?v=8.32', () => habitosView);
 
     await import('../../src/js/ui/actions/habitos.js');
   });

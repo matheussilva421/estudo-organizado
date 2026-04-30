@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadAppModules } from '../helpers/module-loader.js';
 import { createBaseState, createEvento, createDisciplina, createEdital, createAssunto } from '../helpers/state-builders.js';
 
-vi.mock('../../src/js/app.js?v=8.31', () => ({
+vi.mock('../../src/js/app.js?v=8.32', () => ({
   openModal: vi.fn(),
   closeModal: vi.fn(),
   showToast: vi.fn(),
@@ -104,7 +104,7 @@ beforeEach(async () => {
   store = modules.store;
   logic = modules.logic;
   app = modules.app;
-  registroSessao = await import('../../src/js/registro-sessao.js?v=8.31');
+  registroSessao = await import('../../src/js/registro-sessao.js?v=8.32');
 
   store.setState(createBaseState());
   logic.invalidateDiscCache();

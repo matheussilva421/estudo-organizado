@@ -58,18 +58,21 @@ describe('views/config-view.js', () => {
     };
     firestoreSync = {
       getFirestoreSyncStatus: vi.fn(() => ({ configured: false })),
+      previewFirestoreRestore: vi.fn(() => Promise.resolve({ eventos: [{ id: 'fs_remote' }], config: {} })),
       pullFromFirestore: vi.fn(),
     };
     cloudSync = {
       setSyncCreds: vi.fn(() => Promise.resolve()),
       forceCloudflareSync: vi.fn(() => Promise.resolve()),
+      previewCloudflareRestore: vi.fn(() => Promise.resolve({ eventos: [{ id: 'cf_remote' }], config: {} })),
       pullFromCloudflare: vi.fn(),
     };
     driveSync = {
       disconnectDrive: vi.fn(),
+      previewDriveRestore: vi.fn(() => Promise.resolve({ eventos: [{ id: 'drive_remote' }], config: {} })),
       pullFromDrive: vi.fn(),
     };
-    vi.doMock('../../src/js/backup-restore.js?v=8.31', () => ({
+    vi.doMock('../../src/js/backup-restore.js?v=8.32', () => ({
       previewRestoreImpact: vi.fn(() => ({
         totals: { added: 2, removed: 1, changed: 1, preserved: 3 },
         byCollection: {
@@ -81,8 +84,8 @@ describe('views/config-view.js', () => {
       validateBackupPayload: vi.fn(() => ({ ok: true, issues: [] })),
     }));
 
-    vi.doMock('../../src/js/app.js?v=8.31', () => appModule);
-    vi.doMock('../../src/js/utils.js?v=8.31', () => ({
+    vi.doMock('../../src/js/app.js?v=8.32', () => appModule);
+    vi.doMock('../../src/js/utils.js?v=8.32', () => ({
       cutoffDateStr: vi.fn((d) => {
         const dt = new Date();
         dt.setDate(dt.getDate() - d);
@@ -92,15 +95,15 @@ describe('views/config-view.js', () => {
       todayStr: vi.fn(() => '2026-04-29'),
       invalidateTodayCache: vi.fn(),
     }));
-    vi.doMock('../../src/js/store.js?v=8.31', () => storeModule);
-    vi.doMock('../../src/js/logic.js?v=8.31', () => logicModule);
-    vi.doMock('../../src/js/components.js?v=8.31', () => componentsModule);
-    vi.doMock('../../src/js/sync/sync-center.js?v=8.31', () => syncCenter);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.31', () => firestoreSync);
-    vi.doMock('../../src/js/cloud-sync.js?v=8.31', () => cloudSync);
-    vi.doMock('../../src/js/drive-sync.js?v=8.31', () => driveSync);
+    vi.doMock('../../src/js/store.js?v=8.32', () => storeModule);
+    vi.doMock('../../src/js/logic.js?v=8.32', () => logicModule);
+    vi.doMock('../../src/js/components.js?v=8.32', () => componentsModule);
+    vi.doMock('../../src/js/sync/sync-center.js?v=8.32', () => syncCenter);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.32', () => firestoreSync);
+    vi.doMock('../../src/js/cloud-sync.js?v=8.32', () => cloudSync);
+    vi.doMock('../../src/js/drive-sync.js?v=8.32', () => driveSync);
 
-    configView = await import('../../src/js/views/config-view.js?v=8.31');
+    configView = await import('../../src/js/views/config-view.js?v=8.32');
   });
 
   describe('setTheme()', () => {
@@ -284,6 +287,74 @@ describe('views/config-view.js', () => {
         'error'
       );
     });
+
+    it('previews Firestore remote data before pulling it', async () => {
+      document.body.innerHTML = `
+        <div id="modal-prompt">
+          <h2 id="modal-prompt-title"></h2>
+          <div id="modal-prompt-body"></div>
+          <button id="modal-prompt-save"></button>
+        </div>
+      `;
+      vi.spyOn(document, 'getElementById').mockImplementation((id) => {
+        if (id === 'backup-restore-source') return { value: 'firestore' };
+        return document.querySelector(`#${id}`);
+      });
+      storeModule.state.config.firestoreSync = { enabled: true };
+
+      await configView.restoreBackupFromSelectedSource();
+
+      expect(firestoreSync.previewFirestoreRestore).toHaveBeenCalled();
+      expect(firestoreSync.pullFromFirestore).not.toHaveBeenCalled();
+      expect(appModule.openModal).toHaveBeenCalledWith('modal-prompt');
+
+      document.getElementById('modal-prompt-save').onclick();
+      expect(firestoreSync.pullFromFirestore).toHaveBeenCalledWith(true);
+    });
+
+    it('previews Cloudflare remote data before pulling it', async () => {
+      document.body.innerHTML = `
+        <div id="modal-prompt">
+          <h2 id="modal-prompt-title"></h2>
+          <div id="modal-prompt-body"></div>
+          <button id="modal-prompt-save"></button>
+        </div>
+      `;
+      vi.spyOn(document, 'getElementById').mockImplementation((id) => {
+        if (id === 'backup-restore-source') return { value: 'cloudflare' };
+        return document.querySelector(`#${id}`);
+      });
+      storeModule.state.config.cfSyncEnabled = true;
+      storeModule.state.config.cfUrl = 'https://worker.example';
+      storeModule.state.config.cfTokenSaved = true;
+
+      await configView.restoreBackupFromSelectedSource();
+
+      expect(cloudSync.previewCloudflareRestore).toHaveBeenCalled();
+      expect(cloudSync.pullFromCloudflare).not.toHaveBeenCalled();
+      expect(appModule.openModal).toHaveBeenCalledWith('modal-prompt');
+    });
+
+    it('previews Drive remote data before pulling it', async () => {
+      document.body.innerHTML = `
+        <div id="modal-prompt">
+          <h2 id="modal-prompt-title"></h2>
+          <div id="modal-prompt-body"></div>
+          <button id="modal-prompt-save"></button>
+        </div>
+      `;
+      vi.spyOn(document, 'getElementById').mockImplementation((id) => {
+        if (id === 'backup-restore-source') return { value: 'drive' };
+        return document.querySelector(`#${id}`);
+      });
+      storeModule.state.driveFileId = 'drive-file';
+
+      await configView.restoreBackupFromSelectedSource();
+
+      expect(driveSync.previewDriveRestore).toHaveBeenCalled();
+      expect(driveSync.pullFromDrive).not.toHaveBeenCalled();
+      expect(appModule.openModal).toHaveBeenCalledWith('modal-prompt');
+    });
   });
 
   describe('renderConfig()', () => {
@@ -298,6 +369,7 @@ describe('views/config-view.js', () => {
 
       expect(el.innerHTML).toContain('Backup Center');
       expect(el.innerHTML).toContain('data-testid="backup-center"');
+      expect(el.innerHTML).toContain('data-testid="sync-center"');
       expect(el.innerHTML).toContain('data-action="open-restore-preview"');
       expect(el.innerHTML).toContain('Exportar antes de restaurar');
     });

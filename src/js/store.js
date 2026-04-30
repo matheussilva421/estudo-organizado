@@ -1,12 +1,12 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { uid } from './utils.js?v=8.31';
-import * as credentialsStore from './credentials.js?v=8.31';
+import { uid } from './utils.js?v=8.32';
+import * as credentialsStore from './credentials.js?v=8.32';
 import {
   normalizeEntityMetadata,
   prepareEntityMetadataForSave,
-} from './sync/entity-metadata.js?v=8.31';
+} from './sync/entity-metadata.js?v=8.32';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 6;

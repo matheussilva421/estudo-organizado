@@ -11,8 +11,8 @@ import {
   showToast,
   openModal,
   getLastSaveStatus,
-} from '../app.js?v=8.31';
-import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.31';
+} from '../app.js?v=8.32';
+import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.32';
 import {
   scheduleSave,
   state,
@@ -20,19 +20,28 @@ import {
   runMigrations,
   createExportableState,
   clearData,
-} from '../store.js?v=8.31';
+} from '../store.js?v=8.32';
 import {
   syncCicloToEventos,
   invalidateDiscCache,
   invalidateDashCaches,
   invalidateRevCache,
-} from '../logic.js?v=8.31';
-import { renderCurrentView } from '../components.js?v=8.31';
-import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.31';
-import { getFirestoreSyncStatus, pullFromFirestore } from '../sync/firestore-sync-engine.js?v=8.31';
-import { setSyncCreds, forceCloudflareSync, pullFromCloudflare } from '../cloud-sync.js?v=8.31';
-import { disconnectDrive, pullFromDrive } from '../drive-sync.js?v=8.31';
-import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.31';
+} from '../logic.js?v=8.32';
+import { renderCurrentView } from '../components.js?v=8.32';
+import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.32';
+import {
+  getFirestoreSyncStatus,
+  previewFirestoreRestore,
+  pullFromFirestore,
+} from '../sync/firestore-sync-engine.js?v=8.32';
+import {
+  setSyncCreds,
+  forceCloudflareSync,
+  previewCloudflareRestore,
+  pullFromCloudflare,
+} from '../cloud-sync.js?v=8.32';
+import { disconnectDrive, previewDriveRestore, pullFromDrive } from '../drive-sync.js?v=8.32';
+import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.32';
 
 function formatBackupDateTime(value) {
   if (!value) return 'Nunca';
@@ -464,7 +473,7 @@ function renderSyncCenterCard() {
   const metrics = health.metrics || {};
 
   return `
-    <div class="card config-card">
+    <div class="card config-card" data-testid="sync-center">
       <div class="card-header"><h3><i class="fa fa-arrows-rotate"></i> Central de Sincronização</h3></div>
       <div class="card-body">
         <div class="config-desc">Gerencie todas as fontes de backup e sincronização em um só lugar.</div>
@@ -1045,6 +1054,27 @@ export function importData() {
   input.click();
 }
 
+function openRemoteRestorePreview(sourceLabel, previewPromise, onConfirm, label) {
+  showToast(`Lendo backup ${sourceLabel} para previa...`, 'info');
+  return previewPromise
+    .then((payload) => {
+      if (!payload || typeof payload !== 'object') {
+        showToast(`Nenhum backup valido encontrado em ${sourceLabel}.`, 'error');
+        return false;
+      }
+      return openRestorePreviewModal(payload, {
+        sourceLabel,
+        label,
+        onConfirm,
+      });
+    })
+    .catch((err) => {
+      console.error(`Erro ao preparar restore ${sourceLabel}:`, err);
+      showToast(`Nao foi possivel ler o backup ${sourceLabel}.`, 'error');
+      return false;
+    });
+}
+
 export function restoreBackupFromSelectedSource() {
   const source = document.getElementById('backup-restore-source')?.value || 'local';
 
@@ -1058,12 +1088,12 @@ export function restoreBackupFromSelectedSource() {
       showToast('Ative o Firestore e entre com Google antes de restaurar por ele.', 'error');
       return;
     }
-    openRestorePreviewModal(state, {
-      sourceLabel: 'Firestore',
-      label: 'Restaurar Firestore',
-      onConfirm: () => pullFromFirestore(true),
-    });
-    return;
+    return openRemoteRestorePreview(
+      'Firestore',
+      previewFirestoreRestore(),
+      () => pullFromFirestore(true),
+      'Restaurar Firestore'
+    );
   }
 
   if (source === 'cloudflare') {
@@ -1075,12 +1105,12 @@ export function restoreBackupFromSelectedSource() {
       showToast('Configure a sincronização Cloudflare antes de restaurar por ela.', 'error');
       return;
     }
-    openRestorePreviewModal(state, {
-      sourceLabel: 'Cloudflare',
-      label: 'Restaurar Cloudflare',
-      onConfirm: () => pullFromCloudflare(true),
-    });
-    return;
+    return openRemoteRestorePreview(
+      'Cloudflare',
+      previewCloudflareRestore(),
+      () => pullFromCloudflare(true),
+      'Restaurar Cloudflare'
+    );
   }
 
   if (source === 'drive') {
@@ -1088,12 +1118,12 @@ export function restoreBackupFromSelectedSource() {
       showToast('Conecte o Google Drive antes de restaurar por ele.', 'error');
       return;
     }
-    openRestorePreviewModal(state, {
-      sourceLabel: 'Google Drive',
-      label: 'Restaurar Drive',
-      onConfirm: () =>
-        pullFromDrive().catch((err) => console.error('Erro ao restaurar do Drive:', err)),
-    });
+    return openRemoteRestorePreview(
+      'Google Drive',
+      previewDriveRestore(),
+      () => pullFromDrive().catch((err) => console.error('Erro ao restaurar do Drive:', err)),
+      'Restaurar Drive'
+    );
   }
 }
 

@@ -17,17 +17,17 @@ import {
   restoreBackupFromSelectedSource,
   openDriveModal,
   driveDisconnect,
-} from '../../views/config-view.js?v=8.31';
-import { scheduleSave, state } from '../../store.js?v=8.31';
-import { showToast, openModal, showConfirm } from '../../app.js?v=8.31';
-import { renderCurrentView } from '../../components.js?v=8.31';
-import { esc } from '../../utils.js?v=8.31';
+} from '../../views/config-view.js?v=8.32';
+import { scheduleSave, state } from '../../store.js?v=8.32';
+import { showToast, openModal, showConfirm } from '../../app.js?v=8.32';
+import { renderCurrentView } from '../../components.js?v=8.32';
+import { esc } from '../../utils.js?v=8.32';
 import {
   forceCloudflareSync,
   pullFromCloudflare,
   pushToCloudflare,
   mergeFromCloudflare,
-} from '../../cloud-sync.js?v=8.31';
+} from '../../cloud-sync.js?v=8.32';
 import {
   firestoreSignIn,
   firestoreSignOut,
@@ -40,14 +40,14 @@ import {
   verifyFirestoreEntityShadow,
   resolveEntityConflict,
   getFirestoreSyncStatus,
-} from '../../sync/firestore-sync-engine.js?v=8.31';
-import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.31';
+} from '../../sync/firestore-sync-engine.js?v=8.32';
+import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.32';
 import {
   syncWithDrive,
   pullFromDrive,
   mergeFromDrive,
   driveAction,
-} from '../../drive-sync.js?v=8.31';
+} from '../../drive-sync.js?v=8.32';
 
 // Registrar ações
 registerAction('update-config', (el) => {

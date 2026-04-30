@@ -5,15 +5,15 @@ import {
   observeFirebaseAuth,
   signInWithGoogle,
   signOutFirebase,
-} from '../firebase/firebase-client.js?v=8.31';
-import { saveStateToDB, setState, state } from '../store.js?v=8.31';
+} from '../firebase/firebase-client.js?v=8.32';
+import { saveStateToDB, setState, state } from '../store.js?v=8.32';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer,
-} from './firestore-schema.js?v=8.31';
+} from './firestore-schema.js?v=8.32';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -22,25 +22,25 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta,
-} from './firestore-outbox.js?v=8.31';
+} from './firestore-outbox.js?v=8.32';
 import {
   readFirestoreSnapshot,
   watchFirestoreSnapshot,
   writeFirestoreSnapshot,
-} from './firestore-repository.js?v=8.31';
-import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.31';
-import { applyEntityDocsToState } from './entity-state-builder.js?v=8.31';
+} from './firestore-repository.js?v=8.32';
+import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.32';
+import { applyEntityDocsToState } from './entity-state-builder.js?v=8.32';
 import {
   getPendingFirestoreEntityBatch,
   markFirestoreEntityBatchSynced,
   queueFirestoreEntityBatchFromState,
-} from './firestore-entity-outbox.js?v=8.31';
+} from './firestore-entity-outbox.js?v=8.32';
 import {
   readFirestoreEntityDocuments,
   writeFirestoreEntityDocuments,
-} from './firestore-repository.js?v=8.31';
-import { compareSnapshotManifestToEntityDocs } from './entity-shadow-verifier.js?v=8.31';
-import { visitTrackedEntities } from './entity-metadata.js?v=8.31';
+} from './firestore-repository.js?v=8.32';
+import { compareSnapshotManifestToEntityDocs } from './entity-shadow-verifier.js?v=8.32';
+import { visitTrackedEntities } from './entity-metadata.js?v=8.32';
 
 let currentUser = null;
 let authUnsubscribe = null;
@@ -735,6 +735,23 @@ export async function pullFromFirestore(forceOverwrite = false) {
     emitStatus('error', { error: config.lastError });
     return false;
   }
+}
+
+export async function previewFirestoreRestore() {
+  const { db, uid } = requireSignedInServices();
+  const entitySync = state.config?.entitySync || {};
+  const useEntityPrimary = entitySync.enabled && entitySync.mode === 'primary';
+
+  if (useEntityPrimary) {
+    const entityDocs = await readFirestoreEntityDocuments(db, uid);
+    if (entityDocs.length) {
+      return applyEntityDocsToState(state, entityDocs);
+    }
+  }
+
+  const remote = await readFirestoreSnapshot(db, uid);
+  if (!remote) return null;
+  return applyEnvelopeToLocalState(remote, getConfig());
 }
 
 export async function forcePushFirestore() {

@@ -4,13 +4,13 @@ import {
   SyncQueue,
   saveStateToDB,
   createExportableState,
-} from './store.js?v=8.31';
+} from './store.js?v=8.32';
 import {
   setCredential,
   getCredential,
   deleteCredential as _deleteCredential,
-} from './credentials.js?v=8.31';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.31';
+} from './credentials.js?v=8.32';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.32';
 
 let isSyncing = false;
 let _lastPushTime = 0;
@@ -131,6 +131,11 @@ async function readCloudflareRemotePayload() {
   const rawData = await response.json();
   if (rawData === null || rawData.data === null) return null;
   return unwrapEnvelope(rawData);
+}
+
+export async function previewCloudflareRestore() {
+  const remote = await readCloudflareRemotePayload();
+  return remote?.payload || null;
 }
 
 /**

@@ -1,7 +1,7 @@
-import { scheduleSave, state } from './store.js?v=8.31';
-import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid, esc } from './utils.js?v=8.31';
-import { navigate, closeModal, openModal } from './app.js?v=8.31';
-import { openRegistroSessao } from './registro-sessao.js?v=8.31';
+import { scheduleSave, state } from './store.js?v=8.32';
+import { cutoffDateStr, formatTime, todayStr, getLocalDateStr, uid, esc } from './utils.js?v=8.32';
+import { navigate, closeModal, openModal } from './app.js?v=8.32';
+import { openRegistroSessao } from './registro-sessao.js?v=8.32';
 
 // =============================================
 // TIMER ENGINE

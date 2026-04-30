@@ -1,4 +1,4 @@
-import { closeModal, showConfirm, showToast, openModal } from './app.js?v=8.31';
+import { closeModal, showConfirm, showToast, openModal } from './app.js?v=8.32';
 import {
   cutoffDateStr,
   esc,
@@ -8,27 +8,27 @@ import {
   uid,
   HABIT_TYPES,
   addCleanupListener,
-} from './utils.js?v=8.31';
-import { scheduleSave, state } from './store.js?v=8.31';
+} from './utils.js?v=8.32';
+import { scheduleSave, state } from './store.js?v=8.32';
 import {
   getActiveDisciplinas,
   getDisc,
   invalidateDiscCache,
   invalidateDashCaches,
   syncCicloToEventos,
-} from './logic.js?v=8.31';
+} from './logic.js?v=8.32';
 import { renderDisciplinaDashboard } from './views/dashboard-view.js';
-import { renderCurrentView, renderEventCard } from './components.js?v=8.31';
+import { renderCurrentView, renderEventCard } from './components.js?v=8.32';
 import {
   setActiveDashboardDiscCtx,
   clearActiveDashboardDiscCtx,
   getActiveDashboardDiscCtx,
   setActiveDashboardTab,
   resetActiveDashboardTab,
-} from './state/dashboard-context.js?v=8.31';
-import { openAddEventModal, loadAssuntos } from './ui/event-modals.js?v=8.31';
+} from './state/dashboard-context.js?v=8.32';
+import { openAddEventModal, loadAssuntos } from './ui/event-modals.js?v=8.32';
 import { renderVerticalList } from './views/editais-view.js';
-import { setDiscChartInstance, getDiscChartInstance } from './state/chart-state.js?v=8.31';
+import { setDiscChartInstance, getDiscChartInstance } from './state/chart-state.js?v=8.32';
 
 // Module-level state (replaces window globals)
 let _activeDiscManagerTab = 'topicos';
@@ -2095,7 +2095,7 @@ export function deleteAula(discId, aulaId) {
   });
 }
 
-import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.31';
+import { mapAulasToAssuntos } from './lesson-mapper.js?v=8.32';
 export function runLessonMapperUI(editaId, discId) {
   showConfirm(
     'Deseja aplicar Inteligência Artificial para conectar automaticamente as Aulas aos Assuntos deste Edital com base em similaridade (NLP + Levenshtein)?',

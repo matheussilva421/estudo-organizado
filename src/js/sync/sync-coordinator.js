@@ -1,17 +1,17 @@
-import { state } from '../store.js?v=8.31';
+import { state } from '../store.js?v=8.32';
 import {
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
   syncFirestoreNow,
-} from './firestore-sync-engine.js?v=8.31';
-import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.31';
+} from './firestore-sync-engine.js?v=8.32';
+import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.32';
 import {
   canRetryEntityBatch,
   getPendingFirestoreEntityBatch,
   queueFirestoreEntityBatchFromState,
-} from './firestore-entity-outbox.js?v=8.31';
-import { appendSyncHealthEvent, deriveSyncHealthState } from './sync-health.js?v=8.31';
+} from './firestore-entity-outbox.js?v=8.32';
+import { appendSyncHealthEvent, deriveSyncHealthState } from './sync-health.js?v=8.32';
 
 const PRIMARY_SYNC_DEBOUNCE_MS = 1500;
 const CIRCUIT_BREAKER_FAILURES = 3;

@@ -13,11 +13,11 @@ beforeEach(async () => {
     addEventListener: vi.fn(),
   };
 
-  const modules = await import('../../src/js/store.js?v=8.31');
+  const modules = await import('../../src/js/store.js?v=8.32');
   store = modules;
   store.setState(createBaseState());
 
-  vi.doMock('../../src/js/firebase/firebase-client.js?v=8.31', () => ({
+  vi.doMock('../../src/js/firebase/firebase-client.js?v=8.32', () => ({
     completeGoogleRedirectSignIn: vi.fn(() => Promise.resolve(null)),
     getFirebaseConfigStatus: vi.fn(() => ({ projectId: null, authDomain: null })),
     initFirebaseServices: vi.fn(() => ({ configured: false, db: null })),
@@ -26,7 +26,7 @@ beforeEach(async () => {
     signOutFirebase: vi.fn(() => Promise.resolve()),
   }));
 
-  vi.doMock('../../src/js/sync/firestore-repository.js?v=8.31', () => ({
+  vi.doMock('../../src/js/sync/firestore-repository.js?v=8.32', () => ({
     readFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
     watchFirestoreSnapshot: vi.fn(() => {}),
     writeFirestoreSnapshot: vi.fn(() => Promise.resolve(true)),
@@ -34,7 +34,7 @@ beforeEach(async () => {
     writeFirestoreEntityDocuments: vi.fn(() => Promise.resolve({ count: 0 })),
   }));
 
-  syncEngine = await import('../../src/js/sync/firestore-sync-engine.js?v=8.31');
+  syncEngine = await import('../../src/js/sync/firestore-sync-engine.js?v=8.32');
 });
 
 afterEach(() => {

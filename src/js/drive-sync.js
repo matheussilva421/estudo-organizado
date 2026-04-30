@@ -1,4 +1,4 @@
-import { closeModal, showConfirm, showToast } from './app.js?v=8.31';
+import { closeModal, showConfirm, showToast } from './app.js?v=8.32';
 import {
   createExportableState,
   runMigrations,
@@ -6,10 +6,10 @@ import {
   scheduleSave,
   state,
   setState,
-} from './store.js?v=8.31';
-import { renderCurrentView } from './components.js?v=8.31';
-import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.31';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.31';
+} from './store.js?v=8.32';
+import { renderCurrentView } from './components.js?v=8.32';
+import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.32';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.32';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE
@@ -362,6 +362,25 @@ export async function syncWithDrive(isRecursion = false) {
   } finally {
     if (!isRecursion) _isSyncing = false;
   }
+}
+
+export async function previewDriveRestore() {
+  if (!gapi.client || !gapi.client.drive) {
+    throw new Error('APIs do Google nao carregadas');
+  }
+  if (!state.driveFileId) {
+    throw new Error('Nenhum arquivo encontrado no Drive.');
+  }
+
+  const resp = await gapi.client.drive.files.get({
+    fileId: state.driveFileId,
+    alt: 'media',
+  });
+  const driveData = resp.result;
+  if (!driveData || typeof driveData !== 'object') {
+    throw new Error('Dados invalidos no Drive');
+  }
+  return driveData;
 }
 
 // Pull-only: force download from Drive without uploading local data

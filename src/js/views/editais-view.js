@@ -3,8 +3,8 @@
  * Renderiza view de editais (renderEditais, renderEditalTree) e vertical (renderVertical, renderVerticalList)
  */
 
-import { state } from '../store.js?v=8.31';
-import { esc } from '../utils.js?v=8.31';
+import { state } from '../store.js?v=8.32';
+import { esc } from '../utils.js?v=8.32';
 
 // ── Vertical View State ──
 let vertSearch = '';

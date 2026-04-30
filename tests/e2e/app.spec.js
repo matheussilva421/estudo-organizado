@@ -296,6 +296,121 @@ test.describe('Estudo Organizado', () => {
     expect(mobileLayout.toggleHeights.every(height => height <= 36)).toBe(true);
   });
 
+  test('captures Sync Center and Backup Center visual QA evidence', async ({ page }, testInfo) => {
+    const state = createE2EState();
+    state.config.localBackupAt = '2026-04-30T10:00:00.000Z';
+    state.config.firestoreSync = {
+      enabled: true,
+      mode: 'primary',
+      remoteUpdatedAt: '2026-04-30T10:05:00.000Z',
+      lastPushAt: '2026-04-30T10:05:00.000Z',
+      hasPendingWrites: false
+    };
+    state.config.entitySync = { enabled: true, mode: 'primary', lastShadowDiff: { ok: true } };
+    state.config.cfSyncEnabled = true;
+    state.config.cfUrl = 'https://sync.example.test';
+    state.config.cfTokenSaved = true;
+    state.config.cfLastSyncAt = '2026-04-30T10:10:00.000Z';
+    state.driveFileId = 'drive-file';
+    state.lastSync = '2026-04-30T10:15:00.000Z';
+
+    await seedLegacyState(page, state);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/');
+    await page.click('[data-view="config"]');
+
+    const syncCenter = page.locator('[data-testid="sync-center"]');
+    const backupCenter = page.locator('[data-testid="backup-center"]');
+    await expect(syncCenter).toBeVisible();
+    await expect(backupCenter).toBeVisible();
+    await expect(syncCenter).toContainText('Central de Sincroniza');
+    await expect(backupCenter).toContainText('Backup Center');
+
+    const syncShot = await syncCenter.screenshot();
+    const backupShot = await backupCenter.screenshot();
+    await testInfo.attach('sync-center-visual-qa', {
+      body: syncShot,
+      contentType: 'image/png'
+    });
+    await testInfo.attach('backup-center-visual-qa', {
+      body: backupShot,
+      contentType: 'image/png'
+    });
+
+    expect(syncShot.length).toBeGreaterThan(1000);
+    expect(backupShot.length).toBeGreaterThan(1000);
+  });
+
+  test('recovers the latest IndexedDB state after an abrupt tab close', async ({ page, context }) => {
+    const state = createE2EState();
+    state.eventos.push({
+      id: 'ev_crash_recovery',
+      titulo: 'Recuperacao apos fechamento abrupto',
+      data: new Date().toISOString().slice(0, 10),
+      dataEstudo: new Date().toISOString().slice(0, 10),
+      duracao: 45,
+      status: 'agendado',
+      tempoAcumulado: 0,
+      tipo: 'conteudo',
+      discId: 'disc_1',
+      assId: 'ass_1',
+      habito: null,
+      criadoEm: '2026-04-30T10:20:00.000Z'
+    });
+
+    await page.goto('/');
+    await page.waitForFunction(() => typeof window.EstudoApp?.setState === 'function');
+    await page.evaluate(async (nextState) => {
+      window.EstudoApp.setState(nextState);
+      await window.EstudoApp.saveStateToDB();
+    }, state);
+    await page.close();
+
+    const reopened = await context.newPage();
+    await reopened.goto('/');
+    await reopened.click('[data-view="med"]');
+
+    await expect(reopened.locator('#main-content')).toContainText('Recuperacao apos fechamento abrupto');
+  });
+
+  test('shows simulated Firestore entity conflict actions without applying remote data', async ({ page }) => {
+    const state = createE2EState();
+    state.config.firestoreSync = {
+      enabled: true,
+      mode: 'primary',
+      configured: true,
+      signedIn: true,
+      conflict: {
+        type: 'entity-conflict',
+        detectedAt: '2026-04-30T10:30:00.000Z',
+        total: 1,
+        items: [
+          {
+            key: 'eventos/ev_conflict',
+            collection: 'eventos',
+            id: 'ev_conflict',
+            hint: 'remote-newer',
+            localRevision: 2,
+            remoteRevision: 3,
+            localUpdatedAt: '2026-04-30T10:10:00.000Z',
+            remoteUpdatedAt: '2026-04-30T10:20:00.000Z'
+          }
+        ]
+      }
+    };
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="config"]');
+
+    const conflict = page.locator('[data-testid="sync-source-conflict-entities"]').first();
+    await expect(conflict).toBeVisible();
+    await expect(conflict).toContainText('Entidades afetadas');
+    await expect(conflict.locator('[data-action="entity-conflict-keep-local"]')).toBeVisible();
+    await expect(conflict.locator('[data-action="entity-conflict-keep-remote"]')).toBeVisible();
+    await expect(page.locator('[data-action="firestore-open-conflict-review"]').first()).toBeVisible();
+  });
+
   test('persists Banca Analyzer ranking through the extracted view module', async ({ page }) => {
     const state = createE2EState();
     state.editais[0].disciplinas[0].assuntos.push({
