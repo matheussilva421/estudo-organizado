@@ -72,7 +72,7 @@ describe('ui/actions/config.js', () => {
   });
 
   it('registers config actions', () => {
-    const calls = registerAction.mock.calls.map(c => c[0]);
+    const calls = registerAction.mock.calls.map((c) => c[0]);
     expect(calls).toContain('update-config');
     expect(calls).toContain('toggle-config');
     expect(calls).toContain('update-frequencia');
@@ -121,45 +121,52 @@ describe('ui/actions/config.js', () => {
   });
 
   it('update-config handler parses number values', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'update-config')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'update-config')[1];
     handler({ dataset: { configKey: 'revisoesIntervalo', valueType: 'number' }, value: '7' });
     expect(configView.updateConfig).toHaveBeenCalledWith('revisoesIntervalo', 7);
   });
 
   it('update-config handler trims URL values', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'update-config')[1];
-    handler({ dataset: { configKey: 'apiUrl', valueTransform: 'trim-url' }, value: 'https://api.test/' });
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'update-config')[1];
+    handler({
+      dataset: { configKey: 'apiUrl', valueTransform: 'trim-url' },
+      value: 'https://api.test/',
+    });
     expect(configView.updateConfig).toHaveBeenCalledWith('apiUrl', 'https://api.test');
   });
 
   it('update-config handler trims plain text values', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'update-config')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'update-config')[1];
     handler({ dataset: { configKey: 'nome', valueTransform: 'trim' }, value: '  test  ' });
     expect(configView.updateConfig).toHaveBeenCalledWith('nome', 'test');
   });
 
   it('update-config handler skips when no key', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'update-config')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'update-config')[1];
     handler({ dataset: {}, value: 'test' });
     expect(configView.updateConfig).not.toHaveBeenCalled();
   });
 
   it('toggle-config handler updates aria-pressed', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'toggle-config')[1];
-    const el = { dataset: { configKey: 'darkMode' }, classList: { contains: () => true }, setAttribute: vi.fn() };
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'toggle-config')[1];
+    const el = {
+      dataset: { configKey: 'darkMode' },
+      classList: { contains: () => true },
+      setAttribute: vi.fn(),
+    };
     handler(el);
     expect(configView.toggleConfig).toHaveBeenCalledWith('darkMode', el);
     expect(el.setAttribute).toHaveBeenCalledWith('aria-pressed', 'true');
   });
 
   it('update-frequencia handler passes value', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'update-frequencia')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'update-frequencia')[1];
     handler({ value: '15' });
     expect(configView.updateFrequencia).toHaveBeenCalledWith('15');
   });
 
   it('toggle-password-visibility toggles input type', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'toggle-password-visibility')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'toggle-password-visibility')[1];
     const input = { type: 'password' };
     vi.spyOn(document, 'getElementById').mockReturnValue(input);
     handler({ dataset: { targetId: 'pwd-input' } });
@@ -167,109 +174,128 @@ describe('ui/actions/config.js', () => {
   });
 
   it('toggle-cf-sync handler passes checked state', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'toggle-cf-sync')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'toggle-cf-sync')[1];
     handler({ checked: true });
     expect(configView.toggleCfSync).toHaveBeenCalledWith(true);
   });
 
   it('archive-old-events handler parses days', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'archive-old-events')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'archive-old-events')[1];
     handler({ dataset: { days: '30' } });
     expect(configView.archiveOldEvents).toHaveBeenCalledWith(30);
   });
 
   it('archive-old-events handler uses default 90 days', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'archive-old-events')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'archive-old-events')[1];
     handler({ dataset: {} });
     expect(configView.archiveOldEvents).toHaveBeenCalledWith(90);
   });
 
   it('set-theme handler passes value', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'set-theme')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'set-theme')[1];
     handler({ value: 'dark' });
     expect(configView.setTheme).toHaveBeenCalledWith('dark');
   });
 
   it('cloud-conflict-pull-remote shows confirmation', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'cloud-conflict-pull-remote')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'cloud-conflict-pull-remote')[1];
     handler({});
     expect(appModule.showConfirm).toHaveBeenCalled();
   });
 
   it('cloud-conflict-force-push shows confirmation', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'cloud-conflict-force-push')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'cloud-conflict-force-push')[1];
     handler({});
     expect(appModule.showConfirm).toHaveBeenCalled();
   });
 
   it('firestore-enable-primary calls enableFirestoreSync with primary', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'firestore-enable-primary')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'firestore-enable-primary')[1];
     handler({});
     expect(firestoreSync.enableFirestoreSync).toHaveBeenCalledWith('primary');
   });
 
   it('firestore-enable-shadow calls enableFirestoreSync with shadow', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'firestore-enable-shadow')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'firestore-enable-shadow')[1];
     handler({});
     expect(firestoreSync.enableFirestoreSync).toHaveBeenCalledWith('shadow');
   });
 
   it('firestore-pull-remote shows confirmation', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'firestore-pull-remote')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'firestore-pull-remote')[1];
     handler({});
     expect(appModule.showConfirm).toHaveBeenCalled();
   });
 
   it('firestore-merge-remote shows confirmation', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'firestore-merge-remote')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'firestore-merge-remote')[1];
     handler({});
     expect(appModule.showConfirm).toHaveBeenCalled();
   });
 
   it('firestore-force-push shows confirmation', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'firestore-force-push')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'firestore-force-push')[1];
     handler({});
     expect(appModule.showConfirm).toHaveBeenCalled();
   });
 
   it('firestore-open-conflict-review opens modal with conflict JSON', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'firestore-open-conflict-review')[1];
-    storeModule.state.config.firestoreSync = { conflict: { key: 'test' } };
+    const handler = registerAction.mock.calls.find(
+      (c) => c[0] === 'firestore-open-conflict-review'
+    )[1];
+    storeModule.state.config.firestoreSync = {
+      conflict: { items: [{ key: 'test', collection: 'eventos', id: 'test' }] },
+    };
+    const title = { textContent: '' };
+    const body = { innerHTML: '' };
     const pre = { style: {}, textContent: '' };
-    const modal = { querySelector: vi.fn(() => pre), appendChild: vi.fn() };
+    const modal = {
+      querySelector: vi.fn((selector) => {
+        if (selector === '#modal-prompt-title') return title;
+        if (selector === '#modal-prompt-body') return body;
+        if (selector === 'pre') return pre;
+        return null;
+      }),
+      appendChild: vi.fn(),
+    };
     vi.spyOn(document, 'getElementById').mockReturnValue(modal);
     handler({});
     expect(appModule.openModal).toHaveBeenCalledWith('modal-prompt');
-    expect(pre.textContent).toContain('test');
+    expect(body.innerHTML).toContain('test');
+    expect(body.innerHTML).toContain('entity-conflict-keep-remote');
   });
 
   it('firestore-open-conflict-review skips when no modal', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'firestore-open-conflict-review')[1];
+    const handler = registerAction.mock.calls.find(
+      (c) => c[0] === 'firestore-open-conflict-review'
+    )[1];
     vi.spyOn(document, 'getElementById').mockReturnValue(null);
     handler({});
     expect(appModule.openModal).not.toHaveBeenCalled();
   });
 
   it('entity-conflict-keep-local resolves conflict', async () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'entity-conflict-keep-local')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'entity-conflict-keep-local')[1];
     await handler({ dataset: { entityKey: 'disc_1' } });
     expect(firestoreSync.resolveEntityConflict).toHaveBeenCalledWith('disc_1', 'local');
   });
 
   it('entity-conflict-keep-remote resolves conflict', async () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'entity-conflict-keep-remote')[1];
+    const handler = registerAction.mock.calls.find(
+      (c) => c[0] === 'entity-conflict-keep-remote'
+    )[1];
     await handler({ dataset: { entityKey: 'disc_1' } });
     expect(firestoreSync.resolveEntityConflict).toHaveBeenCalledWith('disc_1', 'remote');
   });
 
   it('entity-conflict handler skips when no entityKey', async () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'entity-conflict-keep-local')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'entity-conflict-keep-local')[1];
     await handler({ dataset: {} });
     expect(firestoreSync.resolveEntityConflict).not.toHaveBeenCalled();
   });
 
   it('entity-sync-set-primary dispatches event', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'entity-sync-set-primary')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'entity-sync-set-primary')[1];
     const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
     handler({});
     expect(dispatchSpy).toHaveBeenCalledWith(
@@ -278,24 +304,21 @@ describe('ui/actions/config.js', () => {
   });
 
   it('entity-sync-set-off sets mode to off', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'entity-sync-set-off')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'entity-sync-set-off')[1];
     handler({});
     expect(storeModule.state.config.entitySync.mode).toBe('off');
     expect(storeModule.state.config.entitySync.enabled).toBe(false);
   });
 
   it('sync-center-smart-sync shows success when configured', async () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'sync-center-smart-sync')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'sync-center-smart-sync')[1];
     await handler({});
-    expect(appModule.showToast).toHaveBeenCalledWith(
-      'Firestore primario sincronizado.',
-      'success'
-    );
+    expect(appModule.showToast).toHaveBeenCalledWith('Firestore primario sincronizado.', 'success');
   });
 
   it('sync-center-smart-sync warns on conflict', async () => {
     firestoreSync.getFirestoreSyncStatus.mockReturnValue({ conflict: true });
-    const handler = registerAction.mock.calls.find(c => c[0] === 'sync-center-smart-sync')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'sync-center-smart-sync')[1];
     await handler({});
     expect(appModule.showToast).toHaveBeenCalledWith(
       'Firebase tem conflito. Use Mesclar, Baixar ou Enviar local.',
@@ -305,7 +328,7 @@ describe('ui/actions/config.js', () => {
 
   it('sync-center-smart-sync prompts to activate Firestore', async () => {
     firestoreSync.getFirestoreSyncStatus.mockReturnValue({ configured: false });
-    const handler = registerAction.mock.calls.find(c => c[0] === 'sync-center-smart-sync')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'sync-center-smart-sync')[1];
     await handler({});
     expect(appModule.showToast).toHaveBeenCalledWith(
       'Ative o Firestore primario para sincronizar entre dispositivos. Cloudflare e Drive ficam como backups manuais.',
@@ -314,13 +337,13 @@ describe('ui/actions/config.js', () => {
   });
 
   it('sync-center-import-local calls importData', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'sync-center-import-local')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'sync-center-import-local')[1];
     handler({});
     expect(configView.importData).toHaveBeenCalled();
   });
 
   it('drive-sync-now shows success toast', async () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'drive-sync-now')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'drive-sync-now')[1];
     await handler({});
     expect(appModule.showToast).toHaveBeenCalledWith('Sincronizado!', 'success');
   });
@@ -328,9 +351,11 @@ describe('ui/actions/config.js', () => {
   it('drive-sync-now shows error toast on failure', async () => {
     let rejectFn;
     driveSync.syncWithDrive.mockImplementation(() => {
-      return new Promise((_, reject) => { rejectFn = reject; });
+      return new Promise((_, reject) => {
+        rejectFn = reject;
+      });
     });
-    const handler = registerAction.mock.calls.find(c => c[0] === 'drive-sync-now')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'drive-sync-now')[1];
     handler({});
     rejectFn(new Error('fail'));
     await vi.waitFor(() => {
@@ -339,13 +364,13 @@ describe('ui/actions/config.js', () => {
   });
 
   it('merge-from-drive shows confirmation', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'merge-from-drive')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'merge-from-drive')[1];
     handler({});
     expect(appModule.showConfirm).toHaveBeenCalled();
   });
 
   it('cloud-merge-remote shows confirmation', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'cloud-merge-remote')[1];
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'cloud-merge-remote')[1];
     handler({});
     expect(appModule.showConfirm).toHaveBeenCalled();
   });

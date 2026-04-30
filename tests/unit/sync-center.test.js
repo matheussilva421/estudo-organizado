@@ -16,7 +16,9 @@ describe('sync-center.js', () => {
     });
 
     it('returns false when conflict exists', () => {
-      expect(canAutoSyncFirestore({ enabled: true, mode: 'primary', conflict: { type: 'diverge' } })).toBe(false);
+      expect(
+        canAutoSyncFirestore({ enabled: true, mode: 'primary', conflict: { type: 'diverge' } })
+      ).toBe(false);
     });
 
     it('returns true when enabled and primary with no pending', () => {
@@ -46,7 +48,7 @@ describe('sync-center.js', () => {
     it('returns model with 4 sources', () => {
       const model = buildSyncCenterModel({ state: { config: {} } });
       expect(model.sources).toHaveLength(4);
-      expect(model.sources.map(s => s.id)).toEqual(['local', 'firebase', 'cloudflare', 'drive']);
+      expect(model.sources.map((s) => s.id)).toEqual(['local', 'firebase', 'cloudflare', 'drive']);
     });
 
     it('marks firebase as primary source', () => {
@@ -72,7 +74,7 @@ describe('sync-center.js', () => {
       const model = buildSyncCenterModel({
         state: { config: { firestoreSync: { enabled: true, configured: true, signedIn: true } } },
       });
-      const firebase = model.sources.find(s => s.id === 'firebase');
+      const firebase = model.sources.find((s) => s.id === 'firebase');
       expect(firebase.health).toBe('ok');
     });
 
@@ -80,7 +82,7 @@ describe('sync-center.js', () => {
       const model = buildSyncCenterModel({
         state: { config: { firestoreSync: { enabled: false } } },
       });
-      const firebase = model.sources.find(s => s.id === 'firebase');
+      const firebase = model.sources.find((s) => s.id === 'firebase');
       expect(firebase.health).toBe('idle');
     });
 
@@ -88,7 +90,7 @@ describe('sync-center.js', () => {
       const model = buildSyncCenterModel({
         state: { config: { cfUrl: 'https://worker.test', cfTokenSaved: 'token123' } },
       });
-      const cloudflare = model.sources.find(s => s.id === 'cloudflare');
+      const cloudflare = model.sources.find((s) => s.id === 'cloudflare');
       expect(cloudflare.configured).toBe(true);
     });
 
@@ -96,7 +98,7 @@ describe('sync-center.js', () => {
       const model = buildSyncCenterModel({
         state: { driveFileId: 'abc123' },
       });
-      const drive = model.sources.find(s => s.id === 'drive');
+      const drive = model.sources.find((s) => s.id === 'drive');
       expect(drive.configured).toBe(true);
       expect(drive.health).toBe('ok');
     });
@@ -176,6 +178,24 @@ describe('sync-center.js', () => {
       const merged = mergeStudyStates(local, remote);
       // Collision detection depends on mergeEntityAwareArrays implementation
       expect(merged.config.localBackupAt).toBeDefined();
+    });
+
+    it('clears stale syncMergeConflicts when a later merge has no collisions', () => {
+      const local = {
+        config: {
+          syncMergeConflicts: {
+            detectedAt: '2026-04-29T00:00:00.000Z',
+            total: 1,
+            items: [{ id: 'old' }],
+          },
+        },
+        eventos: [{ id: '1', titulo: 'Local' }],
+      };
+      const remote = { eventos: [{ id: '2', titulo: 'Remote' }] };
+
+      const merged = mergeStudyStates(local, remote);
+
+      expect(merged.config.syncMergeConflicts).toBeUndefined();
     });
 
     it('updates localBackupAt timestamp', () => {

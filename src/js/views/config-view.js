@@ -307,6 +307,7 @@ function renderSyncSourceActions(source) {
 function renderSyncSourceConflictEntities(conflict) {
   const items = Array.isArray(conflict?.items) ? conflict.items : [];
   if (items.length === 0) return '';
+  const entityKey = (item) => item.key || `${item.collection}/${item.id}`;
   return `
     <div class="sync-conflict-entities sync-conflict-entities--compact" data-testid="sync-source-conflict-entities">
       <div class="sync-conflict-entities-title">Entidades afetadas (${conflict.total || items.length})</div>
@@ -317,11 +318,19 @@ function renderSyncSourceConflictEntities(conflict) {
         <div class="sync-conflict-entity">
           <span>${esc(item.collection || 'entidade')}</span>
           <code>${esc(item.id || item.key || 'sem-id')}</code>
-          <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
-          <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
-          <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
-        </div>
-      `
+           <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
+           <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
+           <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
+           <div class="sync-conflict-entity-actions">
+             <button type="button" class="btn btn-ghost btn-sm" data-action="entity-conflict-keep-local" data-entity-key="${esc(entityKey(item))}">
+               Manter local
+             </button>
+             <button type="button" class="btn btn-outline btn-sm" data-action="entity-conflict-keep-remote" data-entity-key="${esc(entityKey(item))}">
+               Usar remoto
+             </button>
+           </div>
+         </div>
+       `
         )
         .join('')}
       <button type="button" class="btn btn-outline btn-sm" data-action="firestore-open-conflict-review" style="margin-top:8px;">

@@ -168,6 +168,7 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   }
 
   merged.config.localBackupAt = new Date().toISOString();
+  delete merged.config.syncMergeConflicts;
   if (collisions.length > 0) {
     merged.config.syncMergeConflicts = {
       detectedAt: new Date().toISOString(),

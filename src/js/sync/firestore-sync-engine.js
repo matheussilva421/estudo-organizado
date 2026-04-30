@@ -29,10 +29,7 @@ import {
   writeFirestoreSnapshot,
 } from './firestore-repository.js?v=8.29';
 import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.29';
-import {
-  applyEntityDocsToState,
-  replaceEntityInStateByRecord,
-} from './entity-state-builder.js?v=8.29';
+import { applyEntityDocsToState } from './entity-state-builder.js?v=8.29';
 import {
   getPendingFirestoreEntityBatch,
   markFirestoreEntityBatchSynced,
@@ -348,6 +345,97 @@ function canShadowWriteEntities(config = getConfig()) {
 function isEntityPrimaryEnabled() {
   const entitySync = state.config?.entitySync || {};
   return Boolean(entitySync.enabled && entitySync.mode === 'primary');
+}
+
+function getConflictEntityKey(record = {}) {
+  return record.key || `${record.collection}/${record.id}`;
+}
+
+function entityMatchesKey(record = {}, entityKey) {
+  return (
+    getConflictEntityKey(record) === entityKey || `${record.collection}/${record.id}` === entityKey
+  );
+}
+
+function upsertEntityInStateByRecord(targetState = {}, record = {}) {
+  if (!record || !record.entity || !record.collection || !record.id) return false;
+  const { collection, id, key, entity } = record;
+  const upsert = (list) => {
+    if (!Array.isArray(list)) return false;
+    const index = list.findIndex((item) => item.id === id);
+    if (index === -1) list.push(entity);
+    else list[index] = entity;
+    return true;
+  };
+
+  if (collection === 'editais') {
+    if (!Array.isArray(targetState.editais)) targetState.editais = [];
+    return upsert(targetState.editais);
+  }
+  if (collection === 'eventos' || collection === 'arquivo' || collection === 'revisoes') {
+    if (!Array.isArray(targetState[collection])) targetState[collection] = [];
+    return upsert(targetState[collection]);
+  }
+  if (collection.startsWith('habitos.')) {
+    const type = collection.replace('habitos.', '');
+    if (!targetState.habitos || typeof targetState.habitos !== 'object') targetState.habitos = {};
+    if (!Array.isArray(targetState.habitos[type])) targetState.habitos[type] = [];
+    return upsert(targetState.habitos[type]);
+  }
+  if (collection === 'planejamento.sequencia') {
+    if (!targetState.planejamento || typeof targetState.planejamento !== 'object') {
+      targetState.planejamento = {};
+    }
+    if (!Array.isArray(targetState.planejamento.sequencia)) targetState.planejamento.sequencia = [];
+    return upsert(targetState.planejamento.sequencia);
+  }
+
+  const segments = String(key || '').split('/');
+  const edital = (targetState.editais || []).find((entry) => entry.id === segments[1]);
+  if (!edital) return false;
+
+  if (collection === 'disciplinas') {
+    if (!Array.isArray(edital.disciplinas)) edital.disciplinas = [];
+    return upsert(edital.disciplinas);
+  }
+
+  const disciplina = (edital.disciplinas || []).find((entry) => entry.id === segments[3]);
+  if (!disciplina) return false;
+  const listName = collection === 'assuntos' ? 'assuntos' : collection === 'aulas' ? 'aulas' : null;
+  if (!listName) return false;
+  if (!Array.isArray(disciplina[listName])) disciplina[listName] = [];
+  return upsert(disciplina[listName]);
+}
+
+function removeEntityFromStateByConflictItem(targetState = {}, item = {}) {
+  const { collection, id, key } = item;
+  const remove = (list) => {
+    if (!Array.isArray(list)) return false;
+    const next = list.filter((entry) => entry.id !== id);
+    const changed = next.length !== list.length;
+    list.splice(0, list.length, ...next);
+    return changed;
+  };
+
+  if (collection === 'editais') return remove(targetState.editais);
+  if (collection === 'eventos' || collection === 'arquivo' || collection === 'revisoes') {
+    return remove(targetState[collection]);
+  }
+  if (collection?.startsWith('habitos.')) {
+    const type = collection.replace('habitos.', '');
+    return remove(targetState.habitos?.[type]);
+  }
+  if (collection === 'planejamento.sequencia') return remove(targetState.planejamento?.sequencia);
+
+  const segments = String(key || '').split('/');
+  const edital = (targetState.editais || []).find((entry) => entry.id === segments[1]);
+  if (!edital) return false;
+  if (collection === 'disciplinas') return remove(edital.disciplinas);
+  const disciplina = (edital.disciplinas || []).find((entry) => entry.id === segments[3]);
+  if (!disciplina) return false;
+  if (collection === 'assuntos') return remove(disciplina.assuntos);
+  if (collection === 'aulas') return remove(disciplina.aulas);
+  return false;
 }
 
 export async function flushFirestoreEntityOutbox(options = {}) {
@@ -898,25 +986,42 @@ export async function resolveEntityConflict(entityKey, decision) {
   if (itemIndex === -1) return false;
 
   const item = conflict.items[itemIndex];
-  const { collection, id } = item;
 
   if (decision === 'remote') {
     try {
       const { db, uid } = requireSignedInServices();
-      const remote = await readFirestoreSnapshot(db, uid);
-      if (!remote || !remote.payload) return false;
+      let remoteEntityRecord = null;
+      let remoteDeletesEntity = false;
 
-      const remoteEntities = visitTrackedEntities(remote.payload);
-      const remoteEntityRecord = remoteEntities.find(
-        (r) => r.collection === collection && r.id === id
-      );
-      if (!remoteEntityRecord) return false;
+      if (isEntityPrimaryEnabled()) {
+        const remoteEntityDocs = await readFirestoreEntityDocuments(db, uid);
+        const remoteDoc = remoteEntityDocs.find((doc) => entityMatchesKey(doc, entityKey));
+        if (!remoteDoc) return false;
+        if (remoteDoc?.payload) {
+          remoteEntityRecord = {
+            collection: remoteDoc.collection,
+            key: remoteDoc.key,
+            id: remoteDoc.id,
+            entity: remoteDoc.payload,
+          };
+        } else {
+          remoteDeletesEntity = true;
+        }
+      } else {
+        const remote = await readFirestoreSnapshot(db, uid);
+        if (!remote || !remote.payload) return false;
 
-      const localEntities = visitTrackedEntities(state);
-      const localRecord = localEntities.find((r) => r.collection === collection && r.id === id);
+        const remoteEntities = visitTrackedEntities(remote.payload);
+        remoteEntityRecord = remoteEntities.find((r) => entityMatchesKey(r, entityKey));
+        remoteDeletesEntity = !remoteEntityRecord;
+      }
 
-      if (localRecord) {
-        replaceEntityInStateByRecord(state, remoteEntityRecord);
+      if (remoteDeletesEntity) {
+        if (!removeEntityFromStateByConflictItem(state, item)) return false;
+      } else if (!remoteEntityRecord) {
+        return false;
+      } else if (!upsertEntityInStateByRecord(state, remoteEntityRecord)) {
+        return false;
       }
     } catch (err) {
       console.error('Failed to fetch remote entity for conflict resolution:', err);

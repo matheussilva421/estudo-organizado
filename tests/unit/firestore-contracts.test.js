@@ -20,7 +20,7 @@ describe('Firestore integration contracts', () => {
   it('keeps local Firebase credentials out of tracked files', () => {
     const tracked = execFileSync('git', ['ls-files', 'src/js/firebase/firebase-config.js'], {
       cwd: root,
-      encoding: 'utf8'
+      encoding: 'utf8',
     });
 
     expect(tracked.trim()).toBe('');
@@ -69,7 +69,7 @@ describe('Firestore integration contracts', () => {
     const coordinatorSource = read('src/js/sync/sync-coordinator.js');
     const driveSource = read('src/js/drive-sync.js');
 
-    expect(storeSource).not.toContain("import { pushToCloudflare }");
+    expect(storeSource).not.toContain('import { pushToCloudflare }');
     expect(storeSource).not.toContain('SyncQueue.add(() => pushToCloudflare())');
     expect(storeSource).not.toContain('flushFirestoreOutbox()');
     expect(mainSource).toContain("import * as sync_coordinator from './sync/sync-coordinator.js");
@@ -80,7 +80,9 @@ describe('Firestore integration contracts', () => {
 
   it('does not push to Firestore immediately when shadow mode is enabled', () => {
     const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
-    const enableBody = firestoreSource.match(/export async function enableFirestoreSync[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
+    const enableBody =
+      firestoreSource.match(/export async function enableFirestoreSync[\s\S]*?\r?\n}\r?\n/)?.[0] ||
+      '';
 
     expect(enableBody).toContain("config.mode = mode === 'primary' ? 'primary' : 'shadow';");
     expect(enableBody).not.toContain('flushFirestoreOutbox');
@@ -89,7 +91,8 @@ describe('Firestore integration contracts', () => {
 
   it('routes smart sync through Firestore primary instead of parallel secondary stores', () => {
     const actionsSource = read('src/js/ui/actions/config.js');
-    const smartSyncBody = actionsSource.match(/registerAction\('sync-center-smart-sync'[\s\S]*?\}\);/)?.[0] || '';
+    const smartSyncBody =
+      actionsSource.match(/registerAction\('sync-center-smart-sync'[\s\S]*?\}\);/)?.[0] || '';
 
     expect(smartSyncBody).toContain('flushPrimarySyncNow');
     expect(smartSyncBody).not.toContain('Promise.allSettled');
@@ -99,12 +102,18 @@ describe('Firestore integration contracts', () => {
 
   it('uses the current remote revision as the manual Firestore push base', () => {
     const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
-    const queueBody = firestoreSource.match(/export async function queueFirestoreSnapshotFromState[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
-    const syncBody = firestoreSource.match(/export async function syncFirestoreNow[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
+    const queueBody =
+      firestoreSource.match(
+        /export async function queueFirestoreSnapshotFromState[\s\S]*?\r?\n}\r?\n/
+      )?.[0] || '';
+    const syncBody =
+      firestoreSource.match(/export async function syncFirestoreNow[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
 
     expect(queueBody).toContain('createFirestoreSnapshotEnvelope(sourceState, options)');
     expect(syncBody).toContain('const remote = await readFirestoreSnapshot(db, uid);');
-    expect(syncBody).toContain('baseRemoteUpdatedAt: remoteUpdatedAt || config.remoteUpdatedAt || null');
+    expect(syncBody).toContain(
+      'baseRemoteUpdatedAt: remoteUpdatedAt || config.remoteUpdatedAt || null'
+    );
   });
 
   it('persists sync metadata without creating a new local data revision', () => {
@@ -114,18 +123,68 @@ describe('Firestore integration contracts', () => {
     const driveSource = read('src/js/drive-sync.js');
 
     expect(storeSource).toContain('touchLocalBackup');
-    expect(firestoreSource).toContain('saveStateToDB(true, true, true, { touchLocalBackup: false })');
-    expect(cloudflareSource).toContain('saveStateToDB(true, true, true, { touchLocalBackup: false })');
+    expect(storeSource).toContain('baselineOnly:');
+    expect(storeSource).toContain('options.touchLocalBackup === false');
+    expect(firestoreSource).toContain(
+      'saveStateToDB(true, true, true, { touchLocalBackup: false })'
+    );
+    expect(cloudflareSource).toContain(
+      'saveStateToDB(true, true, true, { touchLocalBackup: false })'
+    );
     expect(driveSource).toContain('saveStateToDB(true, true, true, { touchLocalBackup: false })');
+  });
+
+  it('resolves entity-primary conflicts from entity documents instead of stale snapshots', () => {
+    const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
+    const resolveBody =
+      firestoreSource.match(
+        /export async function resolveEntityConflict[\s\S]*?\r?\n}\r?\n/
+      )?.[0] || '';
+
+    expect(resolveBody).toContain('isEntityPrimaryEnabled()');
+    expect(resolveBody).toContain('readFirestoreEntityDocuments(db, uid)');
+    expect(resolveBody).toContain('readFirestoreSnapshot(db, uid)');
+    expect(resolveBody.indexOf('readFirestoreEntityDocuments(db, uid)')).toBeLessThan(
+      resolveBody.indexOf('readFirestoreSnapshot(db, uid)')
+    );
+  });
+
+  it('pre-caches modules that are imported by the modular app shell', () => {
+    const swSource = read('src/sw.js');
+
+    [
+      './js/ui/search.js',
+      './js/ui/event-modals.js',
+      './js/ui/actions/config.js',
+      './js/views/config-view.js',
+      './js/views/revisao-view.js',
+      './js/state/chart-state.js',
+      './js/sync/firestore-entity-outbox.js',
+      './js/sync/firestore-entity-schema.js',
+    ].forEach((asset) => expect(swSource).toContain(asset));
+  });
+
+  it('renders actionable entity conflict review controls', () => {
+    const configViewSource = read('src/js/views/config-view.js');
+    const configActionsSource = read('src/js/ui/actions/config.js');
+
+    expect(configViewSource).toContain('data-action="entity-conflict-keep-local"');
+    expect(configViewSource).toContain('data-action="entity-conflict-keep-remote"');
+    expect(configViewSource).toContain('data-entity-key');
+    expect(configActionsSource).toContain('data-action="entity-conflict-keep-local"');
+    expect(configActionsSource).toContain('data-action="entity-conflict-keep-remote"');
   });
 
   it('clears stale Firestore pending state when there is no queued snapshot', () => {
     const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
-    const flushBody = firestoreSource.match(/export async function flushFirestoreOutbox[\s\S]*?export async function pullFromFirestore/)?.[0] || '';
+    const flushBody =
+      firestoreSource.match(
+        /export async function flushFirestoreOutbox[\s\S]*?export async function pullFromFirestore/
+      )?.[0] || '';
 
     expect(flushBody).toContain('if (!pending)');
     expect(flushBody).toContain('config.hasPendingWrites = false');
-    expect(flushBody).toContain('emitStatus(\'synced\'');
+    expect(flushBody).toContain("emitStatus('synced'");
   });
 
   it('repairs stale Firestore pending flags on startup and auth changes', () => {
@@ -157,7 +216,7 @@ describe('Firestore integration contracts', () => {
     const rules = read('firestore.rules');
 
     expect(rules).toContain('request.auth.uid == uid');
-    expect(rules).toContain("match /users/{uid}/snapshots/{snapshotId}");
+    expect(rules).toContain('match /users/{uid}/snapshots/{snapshotId}');
     expect(rules).toContain('allow delete: if false;');
     expect(rules).toContain('request.resource.data.version == 1');
     expect(rules).toContain('entityManifest');

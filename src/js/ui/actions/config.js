@@ -21,6 +21,7 @@ import {
 import { scheduleSave, state } from '../../store.js?v=8.29';
 import { showToast, openModal, showConfirm } from '../../app.js?v=8.29';
 import { renderCurrentView } from '../../components.js?v=8.29';
+import { esc } from '../../utils.js?v=8.29';
 import {
   forceCloudflareSync,
   pullFromCloudflare,
@@ -151,10 +152,41 @@ registerAction('firestore-open-conflict-review', () => {
   const conflict = state?.config?.firestoreSync?.conflict;
   const modal = document.getElementById('modal-prompt');
   if (!modal || !conflict) return;
-  const pre = modal.querySelector('pre') || document.createElement('pre');
-  pre.style.cssText = 'white-space:pre-wrap;font-size:12px;max-height:60vh;overflow:auto;';
-  pre.textContent = JSON.stringify(conflict, null, 2);
-  if (!modal.querySelector('pre')) modal.appendChild(pre);
+  const title = modal.querySelector('#modal-prompt-title');
+  const body = modal.querySelector('#modal-prompt-body');
+  const items = Array.isArray(conflict.items) ? conflict.items : [];
+  const entityKey = (item) => item.key || `${item.collection}/${item.id}`;
+
+  if (title) title.textContent = 'Revisar conflito Firestore';
+  if (body) {
+    body.innerHTML = `
+      <div class="sync-conflict-entities">
+        ${items
+          .map(
+            (item) => `
+          <div class="sync-conflict-entity">
+            <span>${esc(item.collection || 'entidade')}</span>
+            <code>${esc(item.id || item.key || 'sem-id')}</code>
+            <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
+            <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
+            <div class="sync-conflict-entity-actions">
+              <button type="button" class="btn btn-ghost btn-sm" data-action="entity-conflict-keep-local" data-entity-key="${esc(entityKey(item))}">
+                Manter local
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" data-action="entity-conflict-keep-remote" data-entity-key="${esc(entityKey(item))}">
+                Usar remoto
+              </button>
+            </div>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+      <pre style="white-space:pre-wrap;font-size:12px;max-height:32vh;overflow:auto;">${esc(
+        JSON.stringify(conflict, null, 2)
+      )}</pre>
+    `;
+  }
   openModal('modal-prompt');
 });
 registerAction('entity-conflict-keep-local', (el) => entityConflictResolve(el, 'local'));
@@ -259,10 +291,8 @@ async function entityConflictResolve(el, decision) {
   const conflict = state?.config?.firestoreSync?.conflict;
   const modal = document.getElementById('modal-prompt');
   if (modal && conflict) {
-    const pre = modal.querySelector('pre') || document.createElement('pre');
-    pre.style.cssText = 'white-space:pre-wrap;font-size:12px;max-height:60vh;overflow:auto;';
-    pre.textContent = JSON.stringify(conflict, null, 2);
-    if (!modal.querySelector('pre')) modal.appendChild(pre);
+    const pre = modal.querySelector('pre');
+    if (pre) pre.textContent = JSON.stringify(conflict, null, 2);
   }
   document.dispatchEvent(new Event('app:renderCurrentView'));
 }

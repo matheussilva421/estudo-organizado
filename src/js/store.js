@@ -528,9 +528,14 @@ export function saveStateToDB(
   }
 
   const prepare =
-    options.touchLocalBackup === false
+    options.prepareEntityMetadata === false
       ? Promise.resolve()
-      : prepareEntityMetadataForSave(state, { db, storeName: ENTITY_META_STORE });
+      : prepareEntityMetadataForSave(state, {
+          db,
+          storeName: ENTITY_META_STORE,
+          baselineOnly:
+            options.baselineEntityMetadata === true || options.touchLocalBackup === false,
+        });
 
   return prepare.then(
     () =>
