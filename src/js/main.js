@@ -1,29 +1,29 @@
 // ES Module Entry Point
 // Imports all modules and exposes functions via window.EstudoApp namespace
 
-import * as store from './store.js?v=8.29';
-import * as app from './app.js?v=8.29';
-import * as logic from './logic.js?v=8.29';
-import * as components from './components.js?v=8.29';
-import * as views from './views.js?v=8.29';
-import * as calendar_view from './views/calendar-view.js?v=8.29';
-import * as drive_sync from './drive-sync.js?v=8.29';
-import * as cloud_sync from './cloud-sync.js?v=8.29';
-import * as registro from './registro-sessao.js?v=8.29';
-import * as utils from './utils.js?v=8.29';
-import * as wizard from './planejamento-wizard.js?v=8.29';
+import * as store from './store.js?v=8.30';
+import * as app from './app.js?v=8.30';
+import * as logic from './logic.js?v=8.30';
+import * as components from './components.js?v=8.30';
+import * as views from './views.js?v=8.30';
+import * as calendar_view from './views/calendar-view.js?v=8.30';
+import * as drive_sync from './drive-sync.js?v=8.30';
+import * as cloud_sync from './cloud-sync.js?v=8.30';
+import * as registro from './registro-sessao.js?v=8.30';
+import * as utils from './utils.js?v=8.30';
+import * as wizard from './planejamento-wizard.js?v=8.30';
 
-import * as relevance from './relevance.js?v=8.29';
-import * as lesson_mapper from './lesson-mapper.js?v=8.29';
-import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.29';
-import * as sync_coordinator from './sync/sync-coordinator.js?v=8.29';
-import * as entity_conflict_model from './sync/entity-conflict-model.js?v=8.29';
+import * as relevance from './relevance.js?v=8.30';
+import * as lesson_mapper from './lesson-mapper.js?v=8.30';
+import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.30';
+import * as sync_coordinator from './sync/sync-coordinator.js?v=8.30';
+import * as entity_conflict_model from './sync/entity-conflict-model.js?v=8.30';
 
 // Import UI helpers and action dispatcher
-import { setupActionDispatcher } from './ui/actions/index.js?v=8.29';
-import { qs, qsa } from './ui/dom.js?v=8.29';
-import { initModals, announce } from './ui/dialog.js?v=8.29';
-import { addCleanupListener } from './utils.js?v=8.29';
+import { setupActionDispatcher } from './ui/actions/index.js?v=8.30';
+import { qs, qsa } from './ui/dom.js?v=8.30';
+import { initModals, announce } from './ui/dialog.js?v=8.30';
+import { addCleanupListener } from './utils.js?v=8.30';
 
 // Expose UI helpers to window for gradual migration
 window.qs = qs;

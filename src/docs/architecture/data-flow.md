@@ -13,7 +13,7 @@ Usuário interage com a UI
   -> `scheduleSave()` agenda persistência
   -> `store.js` salva no IndexedDB
   -> eventos do documento invalidam caches e atualizam a UI
-  -> sync opcional pode enviar snapshot para Firestore ou Cloudflare
+  -> sync opcional envia entidades/snapshot para Firestore ou backup manual para Cloudflare/Drive
 ```
 
 ## Entrada de dados
@@ -101,13 +101,14 @@ Save local concluÃ­do
   -> `sync-coordinator.js` escuta `stateSaved`
   -> `firestore-sync-engine.js` cria snapshot versionado
   -> `firestore_outbox` guarda o snapshot pendente
-  -> `firestore-sync-engine.js` envia para `users/{uid}/snapshots/main`
+  -> `firestore_entity_outbox` guarda o lote de entidades quando `entitySync` esta em `shadow` ou `primary`
+  -> em `entitySync.primary`, entidades sao enviadas antes do snapshot fallback
 ```
 
-O snapshot continua carregando o `payload` completo, mas tambem inclui
-`entityManifest`. O manifesto lista entidades ativas e tombstones para que
-conflitos mostrem colecao, id, revisao e datas sem trocar ainda o armazenamento
-remoto de producao.
+O snapshot continua carregando o `payload` completo e `entityManifest` como
+fallback de recuperacao. Quando `entitySync.mode === 'primary'`, os documentos
+em `users/{uid}/entities/{entityId}` sao a fonte remota ativa e o snapshot fica
+como espelho operacional.
 
 Pull:
 
@@ -159,7 +160,7 @@ O Drive funciona mais como backup sincronizado e restauração do que como mecan
 
 ## Riscos atuais do fluxo
 
-- o contrato de sync ainda é orientado a snapshot, não a entidades versionadas
+- entity-primary ainda precisa de validacao de caos e browser antes de remover qualquer dependencia do snapshot fallback
 - segredos e configurações de sync ficam próximos demais dos dados de negócio
 - parte da UI usa HTML dinâmico demais para um CSP mais estrito
 - busca global ainda tem lógica duplicada em mais de um ponto do código

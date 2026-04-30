@@ -1,4 +1,4 @@
-import { stableEntityChecksum } from './entity-metadata.js?v=8.29';
+import { stableEntityChecksum } from './entity-metadata.js?v=8.30';
 
 export const FIRESTORE_ENTITY_VERSION = 1;
 

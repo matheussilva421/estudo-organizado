@@ -2,7 +2,7 @@
 
 ## Current Model
 
-Sync is snapshot-based: the entire app state is pushed/pulled as a single blob. Conflict safety is handled by a versioned envelope around that blob.
+Sync is local-first and Firestore-primary. The local commit point is IndexedDB; Firestore can operate in entity-primary mode, while the versioned snapshot remains a fallback mirror and compatibility/recovery contract.
 
 Firestore is now the primary remote channel when configured, signed in, and enabled in `primary` mode. Cloudflare KV and Google Drive remain supported as secondary backup/restore channels and are not treated as equivalent stores by the central smart sync flow.
 
@@ -47,10 +47,12 @@ Envelope:
 `entityManifest` is additive and backward-compatible. Older clients can keep reading
 `payload`; newer clients use the manifest to show more precise conflict context.
 
-## Entity Metadata Phase A
+## Entity Sync
 
-The app is now entity-ready while still using the snapshot document as the
-production remote contract.
+The app now supports entity metadata, shadow entity writes, shadow verification,
+entity conflict review, and controlled `entitySync.mode === 'primary'`. In
+primary mode, entity docs are the active remote source and the snapshot document
+is preserved as a fallback mirror.
 
 Tracked entities:
 
@@ -106,11 +108,12 @@ IndexedDB also stores the local entity index in `entity_meta`:
 Write rules:
 
 - user must be authenticated with Firebase Auth
-- document path must match `users/{request.auth.uid}/snapshots/main`
+- snapshot document path must match `users/{request.auth.uid}/snapshots/main`
+- entity document paths must match `users/{request.auth.uid}/entities/{entityId}`
 - physical deletes are denied
 - local save commits to IndexedDB first
 - `stateSaved` is the local commit event
-- `sync-coordinator.js` listens to `stateSaved`, queues Firestore snapshots, and flushes them automatically only in `primary` mode
+- `sync-coordinator.js` listens to `stateSaved`, queues Firestore snapshots, queues entity batches when entity sync is active, and flushes automatically only in Firestore `primary` mode
 - Firestore writes are queued in `firestore_outbox`
 - stale remote snapshots create a conflict instead of overwriting automatically
 - `shadow` mode never performs automatic pushes
@@ -231,8 +234,8 @@ Behavior:
 
 ## Known Limitations
 
-1. Full-state snapshots remain the production remote format; per-entity Firestore collections are not enabled yet.
-2. Entity-level conflict editing is implemented via keep-local/keep-remote decisions per entity.
+1. Entity-primary is available but should still be treated as experimental until chaos/browser validation proves real-use stability.
+2. Snapshots remain required as fallback mirrors and should not be deleted in this cycle.
 3. `ALLOWED_ORIGINS` is still permissive when omitted for backward compatibility and should be configured per deployment.
 4. Google Drive sync still has a separate backup/restore conflict model.
 5. Entity shadow mode requires manual verification via "Verificar entidades" button.

@@ -7,9 +7,9 @@ import {
   serverTimestamp,
   setDoc,
   writeBatch,
-} from '../../vendor/firebase-client.bundle.js?v=8.29';
-import { FIRESTORE_SNAPSHOT_DOC_ID, getEnvelopeUpdatedAt } from './firestore-schema.js?v=8.29';
-import { decodeEntityDocId, encodeEntityDocId } from './firestore-entity-schema.js?v=8.29';
+} from '../../vendor/firebase-client.bundle.js?v=8.30';
+import { FIRESTORE_SNAPSHOT_DOC_ID, getEnvelopeUpdatedAt } from './firestore-schema.js?v=8.30';
+import { decodeEntityDocId, encodeEntityDocId } from './firestore-entity-schema.js?v=8.30';
 
 function snapshotRef(db, uid) {
   return doc(db, 'users', uid, 'snapshots', FIRESTORE_SNAPSHOT_DOC_ID);

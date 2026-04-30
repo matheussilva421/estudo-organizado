@@ -1,5 +1,5 @@
-import { state, scheduleSave } from './store.js?v=8.29';
-import { tokenize, computeTokenMatch } from './relevance.js?v=8.29';
+import { state, scheduleSave } from './store.js?v=8.30';
+import { tokenize, computeTokenMatch } from './relevance.js?v=8.30';
 
 // =============================================
 // Motor de Link Automático (Aulas -> Assuntos)

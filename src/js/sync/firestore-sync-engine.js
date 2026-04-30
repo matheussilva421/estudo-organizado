@@ -5,15 +5,15 @@ import {
   observeFirebaseAuth,
   signInWithGoogle,
   signOutFirebase,
-} from '../firebase/firebase-client.js?v=8.29';
-import { saveStateToDB, setState, state } from '../store.js?v=8.29';
+} from '../firebase/firebase-client.js?v=8.30';
+import { saveStateToDB, setState, state } from '../store.js?v=8.30';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer,
-} from './firestore-schema.js?v=8.29';
+} from './firestore-schema.js?v=8.30';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -22,25 +22,25 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta,
-} from './firestore-outbox.js?v=8.29';
+} from './firestore-outbox.js?v=8.30';
 import {
   readFirestoreSnapshot,
   watchFirestoreSnapshot,
   writeFirestoreSnapshot,
-} from './firestore-repository.js?v=8.29';
-import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.29';
-import { applyEntityDocsToState } from './entity-state-builder.js?v=8.29';
+} from './firestore-repository.js?v=8.30';
+import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.30';
+import { applyEntityDocsToState } from './entity-state-builder.js?v=8.30';
 import {
   getPendingFirestoreEntityBatch,
   markFirestoreEntityBatchSynced,
   queueFirestoreEntityBatchFromState,
-} from './firestore-entity-outbox.js?v=8.29';
+} from './firestore-entity-outbox.js?v=8.30';
 import {
   readFirestoreEntityDocuments,
   writeFirestoreEntityDocuments,
-} from './firestore-repository.js?v=8.29';
-import { compareSnapshotManifestToEntityDocs } from './entity-shadow-verifier.js?v=8.29';
-import { visitTrackedEntities } from './entity-metadata.js?v=8.29';
+} from './firestore-repository.js?v=8.30';
+import { compareSnapshotManifestToEntityDocs } from './entity-shadow-verifier.js?v=8.30';
+import { visitTrackedEntities } from './entity-metadata.js?v=8.30';
 
 let currentUser = null;
 let authUnsubscribe = null;

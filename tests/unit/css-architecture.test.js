@@ -222,9 +222,9 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.29');
-    expect(serviceWorker).toContain("APP_VERSION = '8.29'");
-    expect(appSources).not.toMatch(/v=8\.[345]|APP_VERSION = '8\.[345]'/);
+    expect(html).toContain('css/styles.css?v=8.30');
+    expect(serviceWorker).toContain("APP_VERSION = '8.30'");
+    expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 
   it('moves repeated home dashboard stat-card layout into a view class', () => {

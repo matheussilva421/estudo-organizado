@@ -115,6 +115,31 @@ describe('sync-center.js', () => {
       });
       expect(model.newestRemoteAt).toBe('2024-06-01T00:00:00.000Z');
     });
+
+    it('includes compact health metrics for pending Firestore writes', () => {
+      const model = buildSyncCenterModel({
+        state: {
+          config: {
+            localBackupAt: '2026-04-30T10:00:00.000Z',
+            firestoreSync: {
+              enabled: true,
+              mode: 'primary',
+              hasPendingWrites: true,
+              pending: {
+                attempts: 2,
+                queuedAt: '2026-04-30T10:00:00.000Z',
+                nextAttemptAt: '2026-04-30T10:04:00.000Z',
+              },
+            },
+          },
+        },
+      });
+
+      const firebase = model.sources.find((source) => source.id === 'firebase');
+      expect(model.health.status).toBe('queued');
+      expect(firebase.metrics.retryAttempts).toBe(2);
+      expect(firebase.metrics.nextRetryAt).toBe('2026-04-30T10:04:00.000Z');
+    });
   });
 
   describe('mergeStudyStates()', () => {

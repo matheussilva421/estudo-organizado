@@ -1,21 +1,29 @@
-import { state } from '../store.js?v=8.29';
+import { state } from '../store.js?v=8.30';
 import {
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
   syncFirestoreNow,
-} from './firestore-sync-engine.js?v=8.29';
-import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.29';
-import { queueFirestoreEntityBatchFromState } from './firestore-entity-outbox.js?v=8.29';
+} from './firestore-sync-engine.js?v=8.30';
+import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.30';
+import { queueFirestoreEntityBatchFromState } from './firestore-entity-outbox.js?v=8.30';
+import { appendSyncHealthEvent, deriveSyncHealthState } from './sync-health.js?v=8.30';
 
 const PRIMARY_SYNC_DEBOUNCE_MS = 1500;
+const CIRCUIT_BREAKER_FAILURES = 3;
 
 let initialized = false;
 let syncTimer = null;
 let lastQueuedAt = null;
 let lastReason = null;
+let failureCount = 0;
 
 function emitCoordinatorStatus(status, detail = {}) {
+  appendSyncHealthEvent(state, {
+    type: status,
+    reason: detail.reason,
+    detail: detail.error || null,
+  });
   document.dispatchEvent(
     new CustomEvent('app:primarySyncStatus', {
       detail: {
@@ -53,12 +61,22 @@ async function scheduleRetryIfNeeded(reason) {
 
 export function getSyncCoordinatorStatus() {
   const firestore = getFirestoreSyncStatus();
+  const health = deriveSyncHealthState({
+    firestore,
+    failureCount,
+    lastError: firestore.lastError,
+    queued: syncTimer !== null,
+    localSavedAt: state.config?.localBackupAt,
+    remoteAckAt: firestore.lastPushAt || firestore.remoteUpdatedAt,
+  });
   return {
     primary: 'firebase',
     autoSyncEnabled: canUsePrimaryFirestore(firestore),
     timerActive: syncTimer !== null,
     lastQueuedAt,
     lastReason,
+    failureCount,
+    health,
     firestore,
   };
 }
@@ -123,6 +141,10 @@ export async function flushPrimarySyncNow(options = {}) {
     const ok = force
       ? await flushFirestoreOutbox({ manual: true, forceOverwrite: true })
       : await syncFirestoreNow();
+    failureCount = ok ? 0 : failureCount + 1;
+    if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
+      emitCoordinatorStatus('degraded', { reason, firestore: status });
+    }
     if (!ok) await scheduleRetryIfNeeded(reason);
     return ok;
   }
@@ -139,6 +161,10 @@ export async function flushPrimarySyncNow(options = {}) {
   }
 
   const ok = await flushFirestoreOutbox({ manual: false, forceOverwrite: force });
+  failureCount = ok ? 0 : failureCount + 1;
+  if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
+    emitCoordinatorStatus('degraded', { reason, firestore: status });
+  }
   if (!ok) await scheduleRetryIfNeeded(reason);
   return ok;
 }
@@ -154,6 +180,16 @@ export function initSyncCoordinator() {
 
   document.addEventListener('app:primarySyncRequested', (event) => {
     schedulePrimarySync(event.detail?.reason || 'requested');
+  });
+
+  window.addEventListener('online', () => {
+    schedulePrimarySync('reconnect', { delayMs: 0 });
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      schedulePrimarySync('foreground', { delayMs: 0 });
+    }
   });
 
   document.addEventListener('app:firestoreSyncStatus', (event) => {

@@ -3,7 +3,7 @@ import {
   FIRESTORE_CONFLICT_STORE,
   FIRESTORE_META_STORE,
   FIRESTORE_OUTBOX_STORE,
-} from '../store.js?v=8.29';
+} from '../store.js?v=8.30';
 
 const LATEST_SNAPSHOT_ID = 'latest_snapshot';
 const META_ID = 'firestore_sync';

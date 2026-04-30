@@ -1,5 +1,7 @@
 # Firestore Entity Sync Continuation Implementation Plan
 
+> Status update 2026-04-30: Phases B-E described in this handoff have since been implemented in the live repo. Use `src/docs/superpowers/plans/2026-04-30-sync-recovery-backup-hardening-plan.md` as the current plan for sync health, local recovery, restore dry-run, and release hardening. Keep this file as historical implementation detail, not as the next starting point.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Evolve Firestore sync from an entity-ready snapshot into a safe per-entity sync model without losing the local-first recovery guarantees.
@@ -1229,7 +1231,7 @@ Create `tests/unit/entity-conflict-model.test.js`:
 ```js
 import { describe, expect, it } from 'vitest';
 
-const model = await import('../../src/js/sync/entity-conflict-model.js?v=8.29');
+const model = await import('../../src/js/sync/entity-conflict-model.js?v=8.30');
 
 describe('entity-conflict-model.js', () => {
   it('classifies conflicts with safe and manual decisions', () => {
@@ -1709,7 +1711,7 @@ Save local concluido
 
 - [ ] **Step 1: Bump cache version**
 
-Bump current cache/import version from the previous value to the next one. If the project is at `8.29`, use `8.30`.
+Bump current cache/import version from the previous value to the next one. If the project is at `8.30`, use `8.30`.
 
 Files to check:
 

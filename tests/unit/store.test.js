@@ -13,6 +13,58 @@ beforeEach(async () => {
 });
 
 describe('store.js', () => {
+  it('wraps local state in a checksum envelope for double-buffer recovery', () => {
+    const source = createBaseState({
+      schemaVersion: 9,
+      eventos: [{ id: 'ev_safe', titulo: 'Seguro', status: 'agendado' }],
+    });
+
+    const envelope = store.createLocalStateEnvelope(source, {
+      slot: 'current',
+      savedAt: '2026-04-30T10:00:00.000Z',
+    });
+
+    expect(envelope).toMatchObject({
+      version: 1,
+      slot: 'current',
+      schemaVersion: 9,
+      savedAt: '2026-04-30T10:00:00.000Z',
+    });
+    expect(envelope.checksum).toEqual(expect.any(String));
+    expect(store.isLocalStateEnvelopeValid(envelope)).toBe(true);
+  });
+
+  it('rejects corrupted local state envelopes', () => {
+    const envelope = store.createLocalStateEnvelope(createBaseState(), {
+      slot: 'current',
+      savedAt: '2026-04-30T10:00:00.000Z',
+    });
+    envelope.payload.eventos.push({ id: 'ev_corrupt' });
+
+    expect(store.isLocalStateEnvelopeValid(envelope)).toBe(false);
+  });
+
+  it('chooses current, then previous, then emergency state during recovery', () => {
+    const current = store.createLocalStateEnvelope(createBaseState({
+      eventos: [{ id: 'current' }],
+    }), { slot: 'current' });
+    const previous = store.createLocalStateEnvelope(createBaseState({
+      eventos: [{ id: 'previous' }],
+    }), { slot: 'previous' });
+    const emergency = createBaseState({ eventos: [{ id: 'emergency' }] });
+
+    current.payload.eventos.push({ id: 'corrupted' });
+
+    const recovered = store.pickRecoverableLocalState({
+      current,
+      previous,
+      emergency,
+    });
+
+    expect(recovered.source).toBe('previous');
+    expect(recovered.state.eventos[0].id).toBe('previous');
+  });
+
   it('createExportableState strips sync secrets without mutating local state', () => {
     store.setState(createBaseState({
       config: {
@@ -56,7 +108,7 @@ describe('store.js', () => {
   });
 
   it('clearData also clears isolated credentials', async () => {
-    const credentials = await import('../../src/js/credentials.js?v=8.29');
+    const credentials = await import('../../src/js/credentials.js?v=8.30');
     const spy = vi.spyOn(credentials, 'clearAllCredentials').mockResolvedValue(undefined);
 
     store.clearData();

@@ -43,12 +43,12 @@ describe('ui/actions/eventos.js', () => {
     storeModule = { state: { cronoLivre: { duracaoMinutos: 30 } } };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
-    vi.doMock('../../src/js/logic.js?v=8.29', () => logicModule);
-    vi.doMock('../../src/js/ui/event-modals.js?v=8.29', () => eventModals);
-    vi.doMock('../../src/js/app.js?v=8.29', () => appModule);
-    vi.doMock('../../src/js/views.js?v=8.29', () => viewsModule);
-    vi.doMock('../../src/js/registro-sessao.js?v=8.29', () => registroSessao);
-    vi.doMock('../../src/js/store.js?v=8.29', () => storeModule);
+    vi.doMock('../../src/js/logic.js?v=8.30', () => logicModule);
+    vi.doMock('../../src/js/ui/event-modals.js?v=8.30', () => eventModals);
+    vi.doMock('../../src/js/app.js?v=8.30', () => appModule);
+    vi.doMock('../../src/js/views.js?v=8.30', () => viewsModule);
+    vi.doMock('../../src/js/registro-sessao.js?v=8.30', () => registroSessao);
+    vi.doMock('../../src/js/store.js?v=8.30', () => storeModule);
 
     await import('../../src/js/ui/actions/eventos.js');
   });

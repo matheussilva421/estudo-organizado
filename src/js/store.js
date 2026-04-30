@@ -1,12 +1,12 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { uid } from './utils.js?v=8.29';
-import * as credentialsStore from './credentials.js?v=8.29';
+import { uid } from './utils.js?v=8.30';
+import * as credentialsStore from './credentials.js?v=8.30';
 import {
   normalizeEntityMetadata,
   prepareEntityMetadataForSave,
-} from './sync/entity-metadata.js?v=8.29';
+} from './sync/entity-metadata.js?v=8.30';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 6;
@@ -16,6 +16,9 @@ export const FIRESTORE_META_STORE = 'firestore_meta';
 export const FIRESTORE_CONFLICT_STORE = 'firestore_conflicts';
 export const ENTITY_META_STORE = 'entity_meta';
 export const FIRESTORE_ENTITY_OUTBOX_STORE = 'firestore_entity_outbox';
+export const LOCAL_STATE_CURRENT_KEY = 'main_state_current';
+export const LOCAL_STATE_PREVIOUS_KEY = 'main_state_previous';
+export const LOCAL_STATE_LEGACY_KEY = 'main_state';
 
 export let db;
 export const DEFAULT_SCHEMA_VERSION = 9;
@@ -56,6 +59,64 @@ function deepClone(obj) {
   }
   // Fallback para JSON (funciona para objetos JSON-serializáveis)
   return JSON.parse(JSON.stringify(obj));
+}
+
+function stableStringify(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+    .join(',')}}`;
+}
+
+function checksumString(value) {
+  const text = stableStringify(value);
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+export function createLocalStateEnvelope(sourceState, options = {}) {
+  const payload = deepClone(sourceState);
+  return {
+    version: 1,
+    slot: options.slot || 'current',
+    schemaVersion: payload?.schemaVersion || DEFAULT_SCHEMA_VERSION,
+    savedAt: options.savedAt || new Date().toISOString(),
+    checksum: checksumString(payload),
+    payload,
+  };
+}
+
+export function isLocalStateEnvelopeValid(envelope) {
+  if (!envelope || envelope.version !== 1 || !envelope.payload) return false;
+  if (!envelope.schemaVersion || envelope.schemaVersion !== envelope.payload.schemaVersion)
+    return false;
+  return envelope.checksum === checksumString(envelope.payload);
+}
+
+function readEmergencyState() {
+  for (const key of ['estudo_state_emergency', 'estudo_state']) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) return JSON.parse(raw);
+    } catch (err) {
+      console.error(`Error reading ${key}:`, err);
+    }
+  }
+  return null;
+}
+
+export function pickRecoverableLocalState({ current, previous, legacy, emergency } = {}) {
+  if (isLocalStateEnvelopeValid(current)) return { source: 'current', state: current.payload };
+  if (isLocalStateEnvelopeValid(previous)) return { source: 'previous', state: previous.payload };
+  if (legacy && typeof legacy === 'object') return { source: 'legacy', state: legacy };
+  if (emergency && typeof emergency === 'object') return { source: 'emergency', state: emergency };
+  return { source: 'empty', state: null };
 }
 
 /**
@@ -273,15 +334,25 @@ export function loadStateFromDB() {
     }
     const transaction = db.transaction([STORE_NAME], 'readonly');
     const store = transaction.objectStore(STORE_NAME);
-    const request = store.get('main_state');
+    const currentRequest = store.get(LOCAL_STATE_CURRENT_KEY);
+    const previousRequest = store.get(LOCAL_STATE_PREVIOUS_KEY);
+    const legacyRequest = store.get(LOCAL_STATE_LEGACY_KEY);
+    const loaded = {};
 
-    request.onsuccess = (_event) => {
-      if (request.result) {
-        const loadedState = request.result;
+    const finishLoad = () => {
+      if (!('current' in loaded) || !('previous' in loaded) || !('legacy' in loaded)) return;
+      const recovered = pickRecoverableLocalState({
+        current: loaded.current,
+        previous: loaded.previous,
+        legacy: loaded.legacy,
+        emergency: readEmergencyState(),
+      });
+      if (recovered.state) {
+        const loadedState = recovered.state;
 
         // BUG 3: Prevenir persistência inflada de timer ao fechar a aba
         const isSameSession = sessionStorage.getItem('estudo_session_active');
-        if (!isSameSession) {
+        if (!isSameSession && recovered.source !== 'emergency') {
           if (loadedState.cronoLivre && loadedState.cronoLivre._timerStart) {
             loadedState.cronoLivre._timerStart = null;
           }
@@ -301,9 +372,29 @@ export function loadStateFromDB() {
       resolve();
     };
 
-    request.onerror = () => {
-      loadLegacyState();
-      resolve();
+    currentRequest.onsuccess = () => {
+      loaded.current = currentRequest.result || null;
+      finishLoad();
+    };
+    previousRequest.onsuccess = () => {
+      loaded.previous = previousRequest.result || null;
+      finishLoad();
+    };
+    legacyRequest.onsuccess = () => {
+      loaded.legacy = legacyRequest.result || null;
+      finishLoad();
+    };
+    currentRequest.onerror = () => {
+      loaded.current = null;
+      finishLoad();
+    };
+    previousRequest.onerror = () => {
+      loaded.previous = null;
+      finishLoad();
+    };
+    legacyRequest.onerror = () => {
+      loaded.legacy = null;
+      finishLoad();
     };
 
     transaction.onerror = () => {
@@ -542,19 +633,38 @@ export function saveStateToDB(
       new Promise((resolve, reject) => {
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
-        const request = store.put(state, 'main_state');
+        const currentRequest = store.get(LOCAL_STATE_CURRENT_KEY);
 
-        request.onsuccess = () => {
-          document.dispatchEvent(
-            new CustomEvent('stateSaved', {
-              detail: { skipCloudSync, skipFirestoreSync, skipDriveSync },
-            })
-          );
-          emitSaveStatus('saved');
-          resolve();
+        currentRequest.onsuccess = () => {
+          const currentEnvelope = currentRequest.result;
+          if (isLocalStateEnvelopeValid(currentEnvelope)) {
+            store.put({ ...currentEnvelope, slot: 'previous' }, LOCAL_STATE_PREVIOUS_KEY);
+          }
+          const envelope = createLocalStateEnvelope(state, { slot: 'current' });
+          const currentWrite = store.put(envelope, LOCAL_STATE_CURRENT_KEY);
+          const legacyWrite = store.put(state, LOCAL_STATE_LEGACY_KEY);
+          let completed = 0;
+          const finish = () => {
+            completed += 1;
+            if (completed < 2) return;
+            document.dispatchEvent(
+              new CustomEvent('stateSaved', {
+                detail: { skipCloudSync, skipFirestoreSync, skipDriveSync },
+              })
+            );
+            emitSaveStatus('saved');
+            resolve();
+          };
+          currentWrite.onsuccess = finish;
+          legacyWrite.onsuccess = finish;
+          currentWrite.onerror = legacyWrite.onerror = (e) => {
+            const err = e?.target?.error || e;
+            emitSaveStatus('error', { detail: describeSaveFailure(err) });
+            reject(err);
+          };
         };
-        request.onerror = (e) => {
-          const err = request.error || e?.target?.error || e;
+        currentRequest.onerror = (e) => {
+          const err = currentRequest.error || e?.target?.error || e;
           emitSaveStatus('error', { detail: describeSaveFailure(err) });
           reject(err);
         };

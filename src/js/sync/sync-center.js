@@ -1,4 +1,5 @@
-import { mergeEntityAwareArrays } from './entity-metadata.js?v=8.29';
+import { mergeEntityAwareArrays } from './entity-metadata.js?v=8.30';
+import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.30';
 
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
 
@@ -30,14 +31,26 @@ export function canAutoSyncFirestore(config = {}, pending = null, now = Date.now
   return true;
 }
 
-export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
+export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestoreStatus = null }) {
   const config = state?.config || {};
   const firestore = {
     ...config.firestoreSync,
+    ...(typeof getFirestoreStatus === 'function' ? getFirestoreStatus() : {}),
     ...firestoreStatus,
   };
   const cloudflareConfigured = Boolean(config.cfUrl && hasCloudflareCredentials(config));
   const driveConfigured = Boolean(state?.driveFileId);
+  const firestorePending = firestore.pending || null;
+  const syncHealth = deriveSyncHealthState({
+    firestore,
+    pending: firestorePending,
+    conflict: firestore.conflict,
+    lastError: firestore.lastError,
+    localSavedAt: config.localBackupAt || null,
+    remoteAckAt: firestore.lastPushAt || firestore.remoteUpdatedAt || null,
+    failureCount: config.syncHealth?.failureCount || 0,
+  });
+  const syncMetrics = summarizeSyncMetrics(syncHealth.metrics);
 
   const sources = [
     {
@@ -75,6 +88,8 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
               ? 'ok'
               : 'idle',
       pending: Boolean(firestore.hasPendingWrites),
+      healthState: syncHealth.state,
+      metrics: syncMetrics,
       lastPullAt: firestore.lastPullAt || null,
       lastPushAt: firestore.lastPushAt || null,
       lastSyncAt: latestIso(firestore.lastPullAt, firestore.lastPushAt),
@@ -128,6 +143,12 @@ export function buildSyncCenterModel({ state, firestoreStatus = {} }) {
   return {
     sources: SOURCE_ORDER.map((id) => sources.find((source) => source.id === id)),
     primarySource: 'firebase',
+    health: {
+      status: syncHealth.state,
+      requiresAction: syncHealth.requiresAction,
+      metrics: syncMetrics,
+      events: config.syncHealth?.events || [],
+    },
     needsAttention: sources.some(
       (source) => source.health === 'conflict' || source.health === 'error'
     ),

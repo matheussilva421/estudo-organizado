@@ -1,4 +1,4 @@
-const APP_VERSION = '8.29';
+const APP_VERSION = '8.30';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -14,6 +14,7 @@ const ASSET_PATHS = [
   './js/components.js',
   './js/credentials.js',
   './js/drive-sync.js',
+  './js/backup-restore.js',
   './js/firebase/firebase-client.js',
   './js/firebase/firebase-config-default.js',
   './js/lesson-mapper.js',
@@ -37,6 +38,7 @@ const ASSET_PATHS = [
   './js/sync/firestore-repository.js',
   './js/sync/firestore-schema.js',
   './js/sync/firestore-sync-engine.js',
+  './js/sync/sync-health.js',
   './js/sync/sync-coordinator.js',
   './js/sync/sync-center.js',
   './js/utils.js',

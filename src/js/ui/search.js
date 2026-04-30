@@ -3,10 +3,10 @@
  * UX 1 — Global search with debounced input, results highlighting, keyboard navigation
  */
 
-import { state } from '../store.js?v=8.29';
-import { esc, formatDate, HABIT_TYPES, addCleanupListener } from '../utils.js?v=8.29';
-import { getAllDisciplinas, getDisc } from '../logic.js?v=8.29';
-import { closeModal } from '../app.js?v=8.29';
+import { state } from '../store.js?v=8.30';
+import { esc, formatDate, HABIT_TYPES, addCleanupListener } from '../utils.js?v=8.30';
+import { getAllDisciplinas, getDisc } from '../logic.js?v=8.30';
+import { closeModal } from '../app.js?v=8.30';
 
 export let searchBlurTimeout = null;
 

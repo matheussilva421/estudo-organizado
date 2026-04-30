@@ -65,8 +65,8 @@ describe('views/config-view.js', () => {
       pullFromDrive: vi.fn(),
     };
 
-    vi.doMock('../../src/js/app.js?v=8.29', () => appModule);
-    vi.doMock('../../src/js/utils.js?v=8.29', () => ({
+    vi.doMock('../../src/js/app.js?v=8.30', () => appModule);
+    vi.doMock('../../src/js/utils.js?v=8.30', () => ({
       cutoffDateStr: vi.fn((d) => {
         const dt = new Date();
         dt.setDate(dt.getDate() - d);
@@ -76,15 +76,15 @@ describe('views/config-view.js', () => {
       todayStr: vi.fn(() => '2026-04-29'),
       invalidateTodayCache: vi.fn(),
     }));
-    vi.doMock('../../src/js/store.js?v=8.29', () => storeModule);
-    vi.doMock('../../src/js/logic.js?v=8.29', () => logicModule);
-    vi.doMock('../../src/js/components.js?v=8.29', () => componentsModule);
-    vi.doMock('../../src/js/sync/sync-center.js?v=8.29', () => syncCenter);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.29', () => firestoreSync);
-    vi.doMock('../../src/js/cloud-sync.js?v=8.29', () => cloudSync);
-    vi.doMock('../../src/js/drive-sync.js?v=8.29', () => driveSync);
+    vi.doMock('../../src/js/store.js?v=8.30', () => storeModule);
+    vi.doMock('../../src/js/logic.js?v=8.30', () => logicModule);
+    vi.doMock('../../src/js/components.js?v=8.30', () => componentsModule);
+    vi.doMock('../../src/js/sync/sync-center.js?v=8.30', () => syncCenter);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.30', () => firestoreSync);
+    vi.doMock('../../src/js/cloud-sync.js?v=8.30', () => cloudSync);
+    vi.doMock('../../src/js/drive-sync.js?v=8.30', () => driveSync);
 
-    configView = await import('../../src/js/views/config-view.js?v=8.29');
+    configView = await import('../../src/js/views/config-view.js?v=8.30');
   });
 
   describe('setTheme()', () => {

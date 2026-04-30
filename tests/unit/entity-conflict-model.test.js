@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const model = await import('../../src/js/sync/entity-conflict-model.js?v=8.29');
+const model = await import('../../src/js/sync/entity-conflict-model.js?v=8.30');
 
 describe('entity-conflict-model.js', () => {
   it('classifies conflicts with safe and manual decisions', () => {

@@ -1,9 +1,9 @@
-import { db, FIRESTORE_ENTITY_OUTBOX_STORE } from '../store.js?v=8.29';
+import { db, FIRESTORE_ENTITY_OUTBOX_STORE } from '../store.js?v=8.30';
 import {
   createFirestoreEntityDocument,
   createFirestoreTombstoneDocument,
-} from './firestore-entity-schema.js?v=8.29';
-import { createEntityIndex } from './entity-metadata.js?v=8.29';
+} from './firestore-entity-schema.js?v=8.30';
+import { createEntityIndex } from './entity-metadata.js?v=8.30';
 
 export const FIRESTORE_ENTITY_OUTBOX_ID = 'entity_shadow';
 const MAX_BACKOFF_MS = 300000;

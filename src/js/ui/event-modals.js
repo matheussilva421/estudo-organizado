@@ -3,12 +3,12 @@
  * Event creation, editing, and session registration modals
  */
 
-import { state, scheduleSave } from '../store.js?v=8.29';
-import { esc, todayStr, trunc, uid, getEventStatus, addCleanupListener } from '../utils.js?v=8.29';
-import { getDisc, getActiveDisciplinas, reattachTimers } from '../logic.js?v=8.29';
-import { renderCurrentView, renderEventCard } from '../components.js?v=8.29';
-import { openModal, closeModal, showConfirm, showToast } from '../app.js?v=8.29';
-import { openRegistroSessao } from '../registro-sessao.js?v=8.29';
+import { state, scheduleSave } from '../store.js?v=8.30';
+import { esc, todayStr, trunc, uid, getEventStatus, addCleanupListener } from '../utils.js?v=8.30';
+import { getDisc, getActiveDisciplinas, reattachTimers } from '../logic.js?v=8.30';
+import { renderCurrentView, renderEventCard } from '../components.js?v=8.30';
+import { openModal, closeModal, showConfirm, showToast } from '../app.js?v=8.30';
+import { openRegistroSessao } from '../registro-sessao.js?v=8.30';
 
 // =============================================
 // ADD EVENT MODAL

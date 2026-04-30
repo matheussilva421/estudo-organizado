@@ -11,8 +11,8 @@ import {
   showToast,
   openModal,
   getLastSaveStatus,
-} from '../app.js?v=8.29';
-import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.29';
+} from '../app.js?v=8.30';
+import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.30';
 import {
   scheduleSave,
   state,
@@ -20,18 +20,19 @@ import {
   runMigrations,
   createExportableState,
   clearData,
-} from '../store.js?v=8.29';
+} from '../store.js?v=8.30';
 import {
   syncCicloToEventos,
   invalidateDiscCache,
   invalidateDashCaches,
   invalidateRevCache,
-} from '../logic.js?v=8.29';
-import { renderCurrentView } from '../components.js?v=8.29';
-import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.29';
-import { getFirestoreSyncStatus, pullFromFirestore } from '../sync/firestore-sync-engine.js?v=8.29';
-import { setSyncCreds, forceCloudflareSync, pullFromCloudflare } from '../cloud-sync.js?v=8.29';
-import { disconnectDrive, pullFromDrive } from '../drive-sync.js?v=8.29';
+} from '../logic.js?v=8.30';
+import { renderCurrentView } from '../components.js?v=8.30';
+import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.30';
+import { getFirestoreSyncStatus, pullFromFirestore } from '../sync/firestore-sync-engine.js?v=8.30';
+import { setSyncCreds, forceCloudflareSync, pullFromCloudflare } from '../cloud-sync.js?v=8.30';
+import { disconnectDrive, pullFromDrive } from '../drive-sync.js?v=8.30';
+import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.30';
 
 function formatBackupDateTime(value) {
   if (!value) return 'Nunca';
@@ -355,6 +356,7 @@ function renderSyncCenterCard() {
   const health = model.health || { status: 'idle' };
   const statusLabel = getSyncHealthLabel(health.status);
   const statusIcon = getSyncHealthIcon(health.status);
+  const metrics = health.metrics || {};
 
   return `
     <div class="card config-card">
@@ -365,6 +367,12 @@ function renderSyncCenterCard() {
         <div class="sync-health-badge sync-health-badge--${health.status}">
           <i class="fa ${statusIcon}"></i>
           <span>${statusLabel}</span>
+        </div>
+        <div class="sync-source-meta">
+          <span>Fila: ${esc(metrics.pendingAgeLabel || '0 min')}</span>
+          <span>Retries: ${esc(metrics.retryAttempts ?? 0)}</span>
+          ${metrics.nextRetryAt ? `<span>Proxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ''}
+          ${metrics.remoteAckAt ? `<span>Ack remoto: ${formatBackupDateTime(metrics.remoteAckAt)}</span>` : ''}
         </div>
 
         <div class="sync-sources-list">
@@ -383,6 +391,8 @@ function renderSyncCenterCard() {
               <div class="sync-source-meta">
                 <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
                 ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
+                ${source.metrics?.retryAttempts ? `<span>Retries: ${esc(source.metrics.retryAttempts)}</span>` : ''}
+                ${source.entityShadowDiff ? `<span>Shadow diff: ${source.entityShadowDiff.ok ? 'OK' : 'Divergente'}</span>` : ''}
               </div>
               ${source.conflict ? renderSyncSourceConflictEntities(source.conflict) : ''}
               <div class="sync-source-actions">
@@ -633,6 +643,7 @@ export function renderConfig(el) {
             <div id="config-save-status-detail" class="config-save-status config-save-status--${saveStatus.status || 'saved'}">
               ${saveStatusText}
             </div>
+            <div class="config-desc">Importacoes JSON passam por validacao e previa de impacto antes de substituir os dados atuais.</div>
 
             <div class="grid config-backup-grid">
               <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
@@ -850,13 +861,15 @@ export function importData() {
           (Array.isArray(imported.editais) || imported.editais === undefined) &&
           (Array.isArray(imported.eventos) || imported.eventos === undefined) &&
           (typeof imported.config === 'object' || imported.config === undefined);
-        if (!hasValidStructure) {
+        const validation = validateBackupPayload(imported);
+        if (!hasValidStructure || !validation.ok) {
           showToast(
             'Arquivo inválido! Este JSON não parece ser um backup do Estudo Organizado.',
             'error'
           );
           return;
         }
+        const impact = previewRestoreImpact(state, imported);
         showConfirm(
           `Importar dados de "${file.name}"?\n\nIsso substituirá todos os dados atuais. Faça um export antes para garantir o backup.`,
           () => {
@@ -870,7 +883,10 @@ export function importData() {
             renderCurrentView();
             showToast('Dados importados com sucesso!', 'success');
           },
-          { label: 'Importar', title: 'Importar dados' }
+          {
+            label: 'Importar',
+            title: `Importar dados (${impact.totals.added}+/${impact.totals.removed}-)`,
+          }
         );
       } catch {
         showToast(

@@ -39,12 +39,12 @@ describe('sync/sync-coordinator.js', () => {
       queueFirestoreEntityBatchFromState: vi.fn(() => Promise.resolve(true)),
     };
 
-    vi.doMock('../../src/js/store.js?v=8.29', () => storeModule);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.29', () => firestoreSync);
-    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.29', () => firestoreOutbox);
-    vi.doMock('../../src/js/sync/firestore-entity-outbox.js?v=8.29', () => entityOutbox);
+    vi.doMock('../../src/js/store.js?v=8.30', () => storeModule);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.30', () => firestoreSync);
+    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.30', () => firestoreOutbox);
+    vi.doMock('../../src/js/sync/firestore-entity-outbox.js?v=8.30', () => entityOutbox);
 
-    coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.29');
+    coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.30');
   });
 
   describe('getSyncCoordinatorStatus()', () => {
@@ -53,6 +53,18 @@ describe('sync/sync-coordinator.js', () => {
       expect(status.primary).toBe('firebase');
       expect(status.autoSyncEnabled).toBe(true);
       expect(status.firestore).toBeDefined();
+    });
+
+    it('reports degraded after repeated automatic failures', async () => {
+      firestoreSync.flushFirestoreOutbox.mockResolvedValue(false);
+
+      await coordinator.flushPrimarySyncNow({ manual: false, reason: 'auto-1' });
+      await coordinator.flushPrimarySyncNow({ manual: false, reason: 'auto-2' });
+      await coordinator.flushPrimarySyncNow({ manual: false, reason: 'auto-3' });
+
+      const status = coordinator.getSyncCoordinatorStatus();
+      expect(status.health.state).toBe('degraded');
+      expect(status.failureCount).toBe(3);
     });
 
     it('reports autoSyncEnabled as false when not configured', () => {
@@ -172,6 +184,20 @@ describe('sync/sync-coordinator.js', () => {
       coordinator.initSyncCoordinator();
       document.dispatchEvent(new CustomEvent('stateSaved', { detail: { reason: 'test' } }));
       expect(dispatchSpy).toHaveBeenCalled();
+    });
+
+    it('schedules immediate sync when browser reconnects', () => {
+      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+      coordinator.initSyncCoordinator();
+
+      window.dispatchEvent(new Event('online'));
+
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'app:primarySyncQueued',
+          detail: expect.objectContaining({ reason: 'reconnect', delayMs: 0 }),
+        })
+      );
     });
   });
 });

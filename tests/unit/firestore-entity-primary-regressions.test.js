@@ -36,7 +36,7 @@ let snapshotOutbox;
 let syncEngine;
 
 async function importEngine() {
-  vi.doMock('../../src/js/store.js?v=8.29', () => ({
+  vi.doMock('../../src/js/store.js?v=8.30', () => ({
     get state() {
       return state;
     },
@@ -46,7 +46,7 @@ async function importEngine() {
     saveStateToDB: vi.fn(() => Promise.resolve()),
   }));
 
-  vi.doMock('../../src/js/firebase/firebase-client.js?v=8.29', () => ({
+  vi.doMock('../../src/js/firebase/firebase-client.js?v=8.30', () => ({
     completeGoogleRedirectSignIn: vi.fn(() => Promise.resolve(null)),
     getFirebaseConfigStatus: vi.fn(() => ({ projectId: 'test', authDomain: 'test.local' })),
     initFirebaseServices: vi.fn(() => ({ configured: true, db: { name: 'db' } })),
@@ -66,7 +66,7 @@ async function importEngine() {
     saveFirestoreConflict: vi.fn(() => Promise.resolve()),
     saveFirestoreMeta: vi.fn(() => Promise.resolve()),
   };
-  vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.29', () => snapshotOutbox);
+  vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.30', () => snapshotOutbox);
 
   entityOutbox = {
     getPendingFirestoreEntityBatch: vi.fn(() =>
@@ -75,7 +75,7 @@ async function importEngine() {
     markFirestoreEntityBatchSynced: vi.fn(() => Promise.resolve()),
     queueFirestoreEntityBatchFromState: vi.fn(() => Promise.resolve(true)),
   };
-  vi.doMock('../../src/js/sync/firestore-entity-outbox.js?v=8.29', () => entityOutbox);
+  vi.doMock('../../src/js/sync/firestore-entity-outbox.js?v=8.30', () => entityOutbox);
 
   repository = {
     readFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
@@ -84,14 +84,14 @@ async function importEngine() {
     readFirestoreEntityDocuments: vi.fn(() => Promise.resolve([])),
     writeFirestoreEntityDocuments: vi.fn(() => Promise.resolve({ count: 1 })),
   };
-  vi.doMock('../../src/js/sync/firestore-repository.js?v=8.29', () => repository);
+  vi.doMock('../../src/js/sync/firestore-repository.js?v=8.30', () => repository);
 
-  vi.doMock('../../src/js/sync/sync-center.js?v=8.29', () => ({
+  vi.doMock('../../src/js/sync/sync-center.js?v=8.30', () => ({
     canAutoSyncFirestore: vi.fn(() => true),
     mergeStudyStates: vi.fn((local, remote) => ({ ...local, ...remote })),
   }));
 
-  syncEngine = await import('../../src/js/sync/firestore-sync-engine.js?v=8.29');
+  syncEngine = await import('../../src/js/sync/firestore-sync-engine.js?v=8.30');
   await syncEngine.firestoreSignIn();
 }
 
