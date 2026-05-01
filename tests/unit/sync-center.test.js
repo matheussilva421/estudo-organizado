@@ -140,6 +140,46 @@ describe('sync-center.js', () => {
       expect(firebase.metrics.retryAttempts).toBe(2);
       expect(firebase.metrics.nextRetryAt).toBe('2026-04-30T10:04:00.000Z');
     });
+
+    it('describes automatic synced state in quiet language', () => {
+      const model = buildSyncCenterModel({
+        state: {
+          config: {
+            firestoreSync: {
+              enabled: true,
+              configured: true,
+              signedIn: true,
+              mode: 'primary',
+              lastPushAt: '2026-05-01T10:00:00.000Z',
+            },
+          },
+        },
+      });
+
+      expect(model.quiet.title).toBe('Tudo salvo automaticamente');
+      expect(model.quiet.tone).toBe('ok');
+      expect(model.quiet.detail).toContain('Firestore sincroniza sozinho');
+    });
+
+    it('asks for action only when a real sync conflict exists', () => {
+      const model = buildSyncCenterModel({
+        state: {
+          config: {
+            firestoreSync: {
+              enabled: true,
+              configured: true,
+              signedIn: true,
+              mode: 'primary',
+              conflict: { type: 'entity-diverged' },
+            },
+          },
+        },
+      });
+
+      expect(model.quiet.title).toBe('Acao necessaria');
+      expect(model.quiet.tone).toBe('danger');
+      expect(model.quiet.primaryAction).toBe('advanced');
+    });
   });
 
   describe('mergeStudyStates()', () => {

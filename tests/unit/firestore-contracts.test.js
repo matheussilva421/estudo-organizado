@@ -56,6 +56,8 @@ describe('Firestore integration contracts', () => {
     const actionsSource = read('src/js/ui/actions/config.js');
 
     expect(configViewSource).toContain('Central de Sincronização');
+    expect(configViewSource).toContain('data-testid="sync-quiet-panel"');
+    expect(configViewSource).toContain('data-testid="sync-advanced-panel"');
     expect(configViewSource).toContain('data-testid="sync-source-conflict-entities"');
     expect(configViewSource).toContain('data-action="firestore-merge-remote"');
     expect(configViewSource).toContain('data-action="cloud-merge-remote"');

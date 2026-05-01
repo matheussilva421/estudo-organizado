@@ -455,7 +455,20 @@ function renderSyncSourceConflictEntities(conflict) {
   `;
 }
 
-function renderSyncCenterCard() {
+function buildCurrentSyncCenterModel() {
+  return buildSyncCenterModel({
+    state,
+    getFirestoreStatus: () => getFirestoreSyncStatus() || {},
+    getCloudflareCreds: () => ({
+      url: state.config?.cfUrl || '',
+      enabled: state.config?.cfSyncEnabled || false,
+      hasToken: !!(state.config?.cfToken || state.config?.cfTokenSaved),
+    }),
+    getDriveStatus: () => ({ configured: !!state.driveFileId }),
+  });
+}
+
+function _renderSyncCenterCard() {
   const model = buildSyncCenterModel({
     state,
     getFirestoreStatus: () => getFirestoreSyncStatus() || {},
@@ -517,6 +530,98 @@ function renderSyncCenterCard() {
             )
             .join('')}
         </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderQuietSyncCenterCard() {
+  const model = buildCurrentSyncCenterModel();
+  const health = model.health || { status: 'idle' };
+  const statusLabel = getSyncHealthLabel(health.status);
+  const statusIcon = getSyncHealthIcon(health.status);
+  const metrics = health.metrics || {};
+  const quiet = model.quiet || {
+    title: statusLabel,
+    detail: 'O app salva localmente e sincroniza quando possivel.',
+    tone: health.status || 'idle',
+    primaryAction: null,
+  };
+  const quietAction =
+    quiet.primaryAction === 'sign-in'
+      ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sign-in"><i class="fa fa-user"></i> Entrar com Google</button>'
+      : '';
+  const advancedOpen = quiet.primaryAction === 'advanced' ? ' open' : '';
+
+  return `
+    <div class="card config-card" data-testid="sync-center">
+      <div class="card-header"><h3><i class="fa fa-arrows-rotate"></i> Central de SincronizaÃ§Ã£o</h3></div>
+      <div class="card-body">
+        <div class="config-desc">Edite normalmente. O app salva localmente e sincroniza em segundo plano.</div>
+
+        <div class="sync-quiet-panel sync-quiet-panel--${esc(quiet.tone)}" data-testid="sync-quiet-panel">
+          <div class="sync-quiet-main">
+            <div class="sync-quiet-icon"><i class="fa ${statusIcon}"></i></div>
+            <div>
+              <div class="sync-quiet-kicker">Sincronizacao automatica</div>
+              <div class="sync-quiet-title">${esc(quiet.title)}</div>
+              <div class="sync-quiet-detail">${esc(quiet.detail)}</div>
+            </div>
+          </div>
+          ${
+            quietAction
+              ? `
+          <div class="sync-quiet-actions">
+            ${quietAction}
+          </div>`
+              : ''
+          }
+        </div>
+
+        <details class="sync-advanced-panel" data-testid="sync-advanced-panel"${advancedOpen}>
+          <summary>Opcoes avancadas de sync</summary>
+          <div class="sync-advanced-content">
+            <div class="sync-health-badge sync-health-badge--${health.status}">
+              <i class="fa ${statusIcon}"></i>
+              <span>${statusLabel}</span>
+            </div>
+            <div class="sync-source-meta">
+              <span>Fila: ${esc(metrics.pendingAgeLabel || '0 min')}</span>
+              <span>Retries: ${esc(metrics.retryAttempts ?? 0)}</span>
+              ${metrics.nextRetryAt ? `<span>Proxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ''}
+              ${metrics.remoteAckAt ? `<span>Ack remoto: ${formatBackupDateTime(metrics.remoteAckAt)}</span>` : ''}
+            </div>
+
+            <div class="sync-sources-list">
+              ${model.sources
+                .map(
+                  (source) => `
+                <div class="sync-source-card" data-sync-source="${source.id}">
+                  <div class="sync-source-header">
+                    <div class="sync-source-icon"><i class="fa ${source.icon || 'fa-database'}"></i></div>
+                    <div class="sync-source-info">
+                      <div class="sync-source-name">${source.title}</div>
+                      <div class="sync-source-sub">${source.detail || ''}</div>
+                    </div>
+                    <span class="badge ${source.enabled ? 'badge-success' : 'badge-muted'}">${source.enabled ? 'Ativo' : 'Inativo'}</span>
+                  </div>
+                  <div class="sync-source-meta">
+                    <span>Ãšltimo sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
+                    ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
+                    ${source.metrics?.retryAttempts ? `<span>Retries: ${esc(source.metrics.retryAttempts)}</span>` : ''}
+                    ${source.entityShadowDiff ? `<span>Shadow diff: ${source.entityShadowDiff.ok ? 'OK' : 'Divergente'}</span>` : ''}
+                  </div>
+                  ${source.conflict ? renderSyncSourceConflictEntities(source.conflict) : ''}
+                  <div class="sync-source-actions">
+                    ${source.id === 'cloudflare' || source.id === 'drive' ? '' : renderSyncSourceActions(source)}
+                  </div>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   `;
@@ -763,7 +868,7 @@ export function renderConfig(el) {
       </div>
 
       <div>
-        ${renderSyncCenterCard()}
+        ${renderQuietSyncCenterCard()}
 
         <div class="card config-card">
           <div class="card-header"><h3><i class="fa fa-cloud"></i> Sincronização Cloudflare (Secundária)</h3></div>

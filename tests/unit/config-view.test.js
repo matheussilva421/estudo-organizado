@@ -370,6 +370,9 @@ describe('views/config-view.js', () => {
       expect(el.innerHTML).toContain('Backup Center');
       expect(el.innerHTML).toContain('data-testid="backup-center"');
       expect(el.innerHTML).toContain('data-testid="sync-center"');
+      expect(el.innerHTML).toContain('data-testid="sync-quiet-panel"');
+      expect(el.innerHTML).toContain('Sincronizacao automatica');
+      expect(el.innerHTML).toContain('data-testid="sync-advanced-panel"');
       expect(el.innerHTML).toContain('data-action="open-restore-preview"');
       expect(el.innerHTML).toContain('Exportar antes de restaurar');
     });

@@ -21,6 +21,98 @@ function hasCloudflareCredentials(config = {}) {
   return Boolean(config.cfTokenSaved || config.cfToken);
 }
 
+function deriveQuietSyncView({ syncHealth, firestore }) {
+  const signedIn = Boolean(firestore.signedIn || firestore.uid);
+  const isPrimary = firestore.mode === 'primary';
+
+  if (syncHealth.state === 'conflict') {
+    return {
+      title: 'Acao necessaria',
+      detail:
+        'Existe um conflito real de sync. Seus dados locais continuam preservados; abra as opcoes avancadas para resolver.',
+      tone: 'danger',
+      primaryAction: 'advanced',
+    };
+  }
+
+  if (syncHealth.state === 'degraded' || firestore.lastError) {
+    return {
+      title: 'Sync aguardando recuperacao',
+      detail:
+        'O app continua salvando neste dispositivo e tentara sincronizar novamente. Use as opcoes avancadas se o erro persistir.',
+      tone: 'warning',
+      primaryAction: 'advanced',
+    };
+  }
+
+  if (!firestore.configured) {
+    return {
+      title: 'Salvo neste dispositivo',
+      detail:
+        'O salvamento local esta ativo. Configure o Firebase para sincronizacao automatica entre dispositivos.',
+      tone: 'idle',
+      primaryAction: null,
+    };
+  }
+
+  if (!signedIn) {
+    return {
+      title: 'Salvo neste dispositivo',
+      detail:
+        'Entre com Google para ativar o sync automatico. Enquanto isso, o app continua seguro localmente.',
+      tone: 'idle',
+      primaryAction: 'sign-in',
+    };
+  }
+
+  if (!firestore.enabled) {
+    return {
+      title: 'Sync remoto pausado',
+      detail:
+        'O salvamento local esta funcionando. Ative o Firestore primary para sincronizar automaticamente.',
+      tone: 'idle',
+      primaryAction: 'advanced',
+    };
+  }
+
+  if (syncHealth.state === 'syncing') {
+    return {
+      title: 'Sincronizando automaticamente',
+      detail: 'As alteracoes ja foram salvas no dispositivo e estao sendo enviadas ao Firestore.',
+      tone: 'pending',
+      primaryAction: null,
+    };
+  }
+
+  if (syncHealth.state === 'queued') {
+    return {
+      title: 'Sync automatico na fila',
+      detail:
+        'As alteracoes estao salvas localmente e serao enviadas pelo app assim que a tentativa atual puder rodar.',
+      tone: 'pending',
+      primaryAction: null,
+    };
+  }
+
+  if (isPrimary) {
+    return {
+      title: 'Tudo salvo automaticamente',
+      detail:
+        'Suas alteracoes ficam salvas neste dispositivo e o Firestore sincroniza sozinho em segundo plano.',
+      tone: 'ok',
+      primaryAction: null,
+    };
+  }
+
+  return {
+    title: 'Sync em modo de verificacao',
+    detail:
+      'O Firestore esta ativo fora do modo primary. Use o modo primary para sync automatico completo.',
+    tone: 'idle',
+    primaryAction: 'advanced',
+  };
+}
+
 export function canAutoSyncFirestore(config = {}, pending = null, now = Date.now()) {
   if (!config.enabled) return false;
   if (config.mode !== 'primary') return false;
@@ -143,6 +235,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
   return {
     sources: SOURCE_ORDER.map((id) => sources.find((source) => source.id === id)),
     primarySource: 'firebase',
+    quiet: deriveQuietSyncView({ syncHealth, firestore }),
     health: {
       status: syncHealth.state,
       requiresAction: syncHealth.requiresAction,
