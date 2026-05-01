@@ -144,6 +144,43 @@ app.init();
 // DOMAIN EVENT LISTENERS (Etapa 2 - Quebrando ciclos)
 // ============================================================
 // Usar addCleanupListener para prevenir memory leaks
+let configSyncRenderQueued = false;
+let lastConfigSyncStatusSignature = '';
+
+function getFirestoreSyncRenderSignature(detail = {}) {
+  return JSON.stringify({
+    status: detail.status || '',
+    uid: detail.uid || '',
+    mode: detail.mode || '',
+    enabled: !!detail.enabled,
+    hasPendingWrites: !!detail.hasPendingWrites,
+    conflict: !!detail.conflict,
+    remoteUpdatedAt: detail.remoteUpdatedAt || '',
+    lastPullAt: detail.lastPullAt || '',
+    lastPushAt: detail.lastPushAt || '',
+    lastError: detail.lastError || detail.error || '',
+  });
+}
+
+function scheduleConfigSyncRender(detail = {}) {
+  if (app.currentView !== 'config') return;
+  const signature = getFirestoreSyncRenderSignature(detail);
+  if (signature === lastConfigSyncStatusSignature) return;
+  lastConfigSyncStatusSignature = signature;
+  if (configSyncRenderQueued) return;
+  configSyncRenderQueued = true;
+  const raf =
+    window.requestAnimationFrame ||
+    globalThis.requestAnimationFrame ||
+    ((callback) => setTimeout(callback, 16));
+  raf(() => {
+    configSyncRenderQueued = false;
+    if (app.currentView === 'config') {
+      components.renderCurrentView();
+    }
+  });
+}
+
 addCleanupListener(document, 'app:renderCurrentView', () => {
   components.renderCurrentView();
 });
@@ -156,10 +193,8 @@ addCleanupListener(document, 'app:showToast', (e) => {
 addCleanupListener(document, 'app:showConfirm', (e) => {
   app.showConfirm(e.detail.msg, e.detail.onYes, e.detail.opts);
 });
-addCleanupListener(document, 'app:firestoreSyncStatus', () => {
-  if (app.currentView === 'config') {
-    components.renderCurrentView();
-  }
+addCleanupListener(document, 'app:firestoreSyncStatus', (event) => {
+  scheduleConfigSyncRender(event.detail || {});
 });
 addCleanupListener(document, 'app:invalidateCaches', () => {
   logic.invalidateDiscCache();

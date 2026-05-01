@@ -63,6 +63,18 @@ describe('Firestore integration contracts', () => {
     expect(actionsSource).toContain("registerAction('sync-center-smart-sync'");
   });
 
+  it('coalesces Firestore status renders on the config screen', () => {
+    const mainSource = read('src/js/main.js');
+    const firestoreStatusListener =
+      mainSource.match(/addCleanupListener\(document, 'app:firestoreSyncStatus'[\s\S]*?\}\);/)?.[0] ||
+      '';
+
+    expect(mainSource).toContain('function scheduleConfigSyncRender');
+    expect(mainSource).toContain('lastConfigSyncStatusSignature');
+    expect(firestoreStatusListener).toContain('scheduleConfigSyncRender');
+    expect(firestoreStatusListener).not.toContain('components.renderCurrentView()');
+  });
+
   it('keeps local save storage separated while the sync coordinator owns online side effects', () => {
     const storeSource = read('src/js/store.js');
     const mainSource = read('src/js/main.js');

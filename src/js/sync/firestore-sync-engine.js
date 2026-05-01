@@ -46,6 +46,7 @@ let currentUser = null;
 let authUnsubscribe = null;
 let snapshotUnsubscribe = null;
 let isFlushing = false;
+let lastStatusSignature = '';
 
 function getConfig() {
   if (!state.config) state.config = {};
@@ -56,16 +57,37 @@ function getConfig() {
 function emitStatus(status, detail = {}) {
   const config = getConfig();
   Object.assign(config, detail.config || {});
+  const eventDetail = {
+    status,
+    uid: currentUser?.uid || config.uid || null,
+    mode: config.mode,
+    enabled: !!config.enabled,
+    hasPendingWrites: !!config.hasPendingWrites,
+    conflict: config.conflict || null,
+    remoteUpdatedAt: config.remoteUpdatedAt || null,
+    lastPullAt: config.lastPullAt || null,
+    lastPushAt: config.lastPushAt || null,
+    lastError: config.lastError || null,
+    ...detail,
+  };
+  const signature = JSON.stringify({
+    status: eventDetail.status,
+    uid: eventDetail.uid,
+    mode: eventDetail.mode,
+    enabled: eventDetail.enabled,
+    hasPendingWrites: eventDetail.hasPendingWrites,
+    conflict: !!eventDetail.conflict,
+    remoteUpdatedAt: eventDetail.remoteUpdatedAt,
+    lastPullAt: eventDetail.lastPullAt,
+    lastPushAt: eventDetail.lastPushAt,
+    lastError: eventDetail.lastError,
+    error: eventDetail.error || null,
+  });
+  if (signature === lastStatusSignature) return;
+  lastStatusSignature = signature;
   document.dispatchEvent(
     new CustomEvent('app:firestoreSyncStatus', {
-      detail: {
-        status,
-        uid: currentUser?.uid || config.uid || null,
-        mode: config.mode,
-        hasPendingWrites: !!config.hasPendingWrites,
-        lastError: config.lastError || null,
-        ...detail,
-      },
+      detail: eventDetail,
     })
   );
 }

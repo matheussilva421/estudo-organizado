@@ -101,6 +101,23 @@ describe('firestore-sync-engine.js', () => {
       expect(statusCall).toBeDefined();
       expect(statusCall[0].detail.status).toBe('enabled');
     });
+
+    it('does not emit duplicate unchanged status events', async () => {
+      await syncEngine.enableFirestoreSync('shadow');
+      await syncEngine.enableFirestoreSync('shadow');
+
+      const statusCalls = global.document.dispatchEvent.mock.calls.filter(
+        (c) => c[0].type === 'app:firestoreSyncStatus'
+      );
+      expect(statusCalls).toHaveLength(1);
+      expect(statusCalls[0][0].detail).toEqual(
+        expect.objectContaining({
+          status: 'enabled',
+          mode: 'shadow',
+          enabled: true,
+        })
+      );
+    });
   });
 
   describe('disableFirestoreSync', () => {
