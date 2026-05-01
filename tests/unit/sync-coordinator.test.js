@@ -214,6 +214,24 @@ describe('sync/sync-coordinator.js', () => {
       expect(dispatchSpy).toHaveBeenCalled();
     });
 
+    it('ignores metadata-only stateSaved events from sync persistence', () => {
+      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+      coordinator.initSyncCoordinator();
+
+      document.dispatchEvent(
+        new CustomEvent('stateSaved', {
+          detail: {
+            touchLocalBackup: false,
+            metadataOnly: true,
+          },
+        })
+      );
+
+      expect(dispatchSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'app:primarySyncQueued' })
+      );
+    });
+
     it('schedules immediate sync when browser reconnects', () => {
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       coordinator.initSyncCoordinator();

@@ -200,6 +200,7 @@ export function initSyncCoordinator() {
 
   document.addEventListener('stateSaved', (event) => {
     if (event.detail?.skipFirestoreSync) return;
+    if (event.detail?.metadataOnly || event.detail?.touchLocalBackup === false) return;
     schedulePrimarySync('local-save');
   });
 

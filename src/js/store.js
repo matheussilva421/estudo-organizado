@@ -611,10 +611,12 @@ export function saveStateToDB(
     saveTimeout = null;
   }
   if (!db) return Promise.resolve();
-  emitSaveStatus('saving');
+  const touchLocalBackup = options.touchLocalBackup !== false;
+  const emitUserSaveStatus = options.emitSaveStatus !== false && touchLocalBackup;
+  if (emitUserSaveStatus) emitSaveStatus('saving');
 
   if (!state.config) state.config = {};
-  if (options.touchLocalBackup !== false) {
+  if (touchLocalBackup) {
     state.config.localBackupAt = new Date().toISOString();
   }
 
@@ -649,29 +651,35 @@ export function saveStateToDB(
             if (completed < 2) return;
             document.dispatchEvent(
               new CustomEvent('stateSaved', {
-                detail: { skipCloudSync, skipFirestoreSync, skipDriveSync },
+                detail: {
+                  skipCloudSync,
+                  skipFirestoreSync,
+                  skipDriveSync,
+                  touchLocalBackup,
+                  metadataOnly: !touchLocalBackup,
+                },
               })
             );
-            emitSaveStatus('saved');
+            if (emitUserSaveStatus) emitSaveStatus('saved');
             resolve();
           };
           currentWrite.onsuccess = finish;
           legacyWrite.onsuccess = finish;
           currentWrite.onerror = legacyWrite.onerror = (e) => {
             const err = e?.target?.error || e;
-            emitSaveStatus('error', { detail: describeSaveFailure(err) });
+            if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
             reject(err);
           };
         };
         currentRequest.onerror = (e) => {
           const err = currentRequest.error || e?.target?.error || e;
-          emitSaveStatus('error', { detail: describeSaveFailure(err) });
+          if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
           reject(err);
         };
 
         transaction.onerror = () => {
           const err = transaction.error || new Error('Transaction failed');
-          emitSaveStatus('error', { detail: describeSaveFailure(err) });
+          if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
           reject(err);
         };
       })

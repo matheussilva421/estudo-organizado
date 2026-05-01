@@ -101,6 +101,10 @@ describe('persistence contracts', () => {
 
   it('can skip local backup timestamp for remote shadow writes', async () => {
     const store = await importFreshStore();
+    const statuses = [];
+    const savedEvents = [];
+    document.addEventListener('app:saveStatus', (event) => statuses.push(event.detail.status));
+    document.addEventListener('stateSaved', (event) => savedEvents.push(event.detail));
     store.setState(createBaseState({ config: { localBackupAt: '2026-04-28T10:00:00.000Z' } }));
 
     await store.saveStateToDB({
@@ -110,5 +114,12 @@ describe('persistence contracts', () => {
     });
 
     expect(store.state.config.localBackupAt).toBe('2026-04-28T10:00:00.000Z');
+    expect(statuses).toEqual([]);
+    expect(savedEvents).toEqual([
+      expect.objectContaining({
+        touchLocalBackup: false,
+        metadataOnly: true
+      })
+    ]);
   });
 });
