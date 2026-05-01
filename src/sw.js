@@ -17,6 +17,7 @@ const ASSET_PATHS = [
   './js/backup-restore.js',
   './js/firebase/firebase-client.js',
   './js/firebase/firebase-config-default.js',
+  './js/firebase/firebase-runtime-config.js',
   './js/lesson-mapper.js',
   './js/logic.js',
   './js/main.js',
