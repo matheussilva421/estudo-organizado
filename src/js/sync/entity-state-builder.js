@@ -280,6 +280,7 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
           localUpdatedAt: local._sync?.updatedAt || null,
           remoteUpdatedAt: doc.payload._sync?.updatedAt || doc.updatedAt || null,
         });
+        continue;
       }
     }
 

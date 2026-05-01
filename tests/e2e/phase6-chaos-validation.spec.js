@@ -174,7 +174,7 @@ test.describe('Fase 6 - Release Gate e Validacao de Caos', () => {
 
     await context.setOffline(true);
     try {
-      await page.evaluate(() => {
+      await page.evaluate(async () => {
         const today = window.EstudoApp.todayStr();
         window.state.eventos.push({
           id: 'ev_offline_persist',
@@ -190,6 +190,7 @@ test.describe('Fase 6 - Release Gate e Validacao de Caos', () => {
           habito: null,
           criadoEm: new Date().toISOString()
         });
+        await window.EstudoApp.saveStateToDB();
       });
 
       await expect.poll(() => page.evaluate(() =>

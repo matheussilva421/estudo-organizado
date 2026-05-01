@@ -221,6 +221,7 @@ describe('mergeEntityDocsIntoState', () => {
     expect(collisions[0].localRevision).toBe(3);
     expect(collisions[0].remoteRevision).toBe(2);
     expect(mergedState.eventos).toHaveLength(1);
+    expect(mergedState.eventos[0].titulo).toBe('Local');
   });
 
   it('applies tombstone idempotently', () => {

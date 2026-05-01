@@ -229,6 +229,18 @@ describe('sync/sync-coordinator.js', () => {
       expect(result).toBe(true);
     });
 
+    it('does not pre-read remote data on local save auto sync', async () => {
+      const result = await coordinator.flushPrimarySyncNow({
+        manual: false,
+        reason: 'local-save',
+      });
+
+      expect(firestoreSync.autoPullRemoteWhenNewer).not.toHaveBeenCalled();
+      expect(firestoreSync.queueFirestoreSnapshotFromState).toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalled();
+      expect(result).toBe(true);
+    });
+
     it('resets failure count on successful auto-pull', async () => {
       coordinator.flushPrimarySyncNow({ manual: false, reason: 'fail-1' });
       coordinator.flushPrimarySyncNow({ manual: false, reason: 'fail-2' });

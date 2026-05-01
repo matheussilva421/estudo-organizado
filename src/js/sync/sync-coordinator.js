@@ -23,6 +23,12 @@ let lastQueuedAt = null;
 let lastReason = null;
 let failureCount = 0;
 
+function shouldCheckRemoteBeforeAutoSync(reason) {
+  // Local edits must stay local-first: reading Firestore entity docs before every save makes
+  // normal typing/editing depend on network latency and can freeze the UI.
+  return reason !== 'local-save';
+}
+
 function emitCoordinatorStatus(status, detail = {}) {
   appendSyncHealthEvent(state, {
     type: status,
@@ -194,10 +200,12 @@ export async function flushPrimarySyncNow(options = {}) {
     return ok;
   }
 
-  const pulled = await autoPullRemoteWhenNewer();
-  if (pulled) {
-    failureCount = 0;
-    return true;
+  if (shouldCheckRemoteBeforeAutoSync(reason)) {
+    const pulled = await autoPullRemoteWhenNewer();
+    if (pulled) {
+      failureCount = 0;
+      return true;
+    }
   }
 
   const entityReady = await ensurePrimaryEntityBatchReady(reason);
