@@ -52,6 +52,23 @@ describe('sync/sync-coordinator.js', () => {
     vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.32', () => firestoreSync);
     vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.32', () => firestoreOutbox);
     vi.doMock('../../src/js/sync/firestore-entity-outbox.js?v=8.32', () => entityOutbox);
+    vi.doMock('../../src/js/sync/sync-health.js?v=8.32', async () => {
+      const realHealth = await import('../../src/js/sync/sync-health.js?v=8.32');
+      return {
+        appendSyncHealthEvent: vi.fn(),
+        deriveSyncHealthState: vi.fn((input) => realHealth.deriveSyncHealthState(input)),
+      };
+    });
+    vi.doMock('../../src/js/sync/sync-planner.js?v=8.32', async () => {
+      const realPlanner = await import('../../src/js/sync/sync-planner.js?v=8.32');
+      return {
+        planNextSyncAction: vi.fn((input) => realPlanner.planNextSyncAction(input)),
+        ACTIONS: realPlanner.ACTIONS,
+      };
+    });
+    vi.doMock('../../src/js/sync/sync-yield.js?v=8.32', () => ({
+      yieldToUI: vi.fn(() => Promise.resolve()),
+    }));
 
     coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.32');
   });

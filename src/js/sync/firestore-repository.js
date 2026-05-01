@@ -26,6 +26,22 @@ export async function readFirestoreSnapshot(db, uid) {
   }
 }
 
+export async function readFirestoreRemoteManifest(db, uid) {
+  try {
+    const snap = await getDoc(snapshotRef(db, uid));
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    return {
+      remoteUpdatedAt: data?.payloadUpdatedAt || data?.updatedAt || null,
+      entityManifest: data?.entityManifest || null,
+      deviceId: data?.deviceId || null,
+    };
+  } catch (err) {
+    console.error('Firestore read manifest failed:', err);
+    return null;
+  }
+}
+
 export async function writeFirestoreSnapshot(db, uid, envelope) {
   try {
     const updatedAt = getEnvelopeUpdatedAt(envelope) || new Date().toISOString();

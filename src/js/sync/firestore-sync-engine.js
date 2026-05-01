@@ -25,6 +25,7 @@ import {
 } from './firestore-outbox.js?v=8.32';
 import {
   readFirestoreSnapshot,
+  readFirestoreRemoteManifest,
   watchFirestoreSnapshot,
   writeFirestoreSnapshot,
 } from './firestore-repository.js?v=8.32';
@@ -590,6 +591,14 @@ export async function autoPullRemoteWhenNewer() {
     const { db, uid } = requireSignedInServices();
 
     if (isEntityPrimaryEnabled()) {
+      const manifest = await readFirestoreRemoteManifest(db, uid);
+      if (
+        !manifest?.remoteUpdatedAt ||
+        !isRemoteNewer({ payloadUpdatedAt: manifest.remoteUpdatedAt }, state)
+      ) {
+        return false;
+      }
+
       const entityDocs = await readFirestoreEntityDocuments(db, uid);
       if (!entityDocs.length) return false;
       const maxEntityUpdatedAt = entityDocs.reduce((max, doc) => {

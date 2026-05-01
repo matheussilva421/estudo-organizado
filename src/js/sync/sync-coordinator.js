@@ -13,6 +13,8 @@ import {
   queueFirestoreEntityBatchFromState,
 } from './firestore-entity-outbox.js?v=8.32';
 import { appendSyncHealthEvent, deriveSyncHealthState } from './sync-health.js?v=8.32';
+import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.32';
+import { yieldToUI } from './sync-yield.js?v=8.32';
 
 const PRIMARY_SYNC_DEBOUNCE_MS = 1500;
 const CIRCUIT_BREAKER_FAILURES = 3;
@@ -176,13 +178,26 @@ export async function flushPrimarySyncNow(options = {}) {
   const status = getFirestoreSyncStatus();
   lastReason = reason;
 
-  if (status.conflict) {
-    emitCoordinatorStatus('conflict-paused', { reason, firestore: status });
-    return false;
-  }
+  const plan = planNextSyncAction({
+    firestoreConfigured: status.configured,
+    signedIn: status.signedIn,
+    enabled: status.enabled,
+    mode: status.mode,
+    conflict: status.conflict,
+    offline: !navigator.onLine,
+    reason,
+    backoffActive: false,
+    pendingLocal: false,
+  });
 
-  if (!canUsePrimaryFirestore(status)) {
-    emitCoordinatorStatus('idle', { reason, firestore: status });
+  if (!plan.canRunNow) {
+    const statusLabel =
+      plan.action === ACTIONS.BLOCKED_CONFLICT
+        ? 'conflict-paused'
+        : plan.action === ACTIONS.OFFLINE
+          ? 'offline'
+          : 'idle';
+    emitCoordinatorStatus(statusLabel, { reason, firestore: status, plan });
     return false;
   }
 
@@ -200,7 +215,7 @@ export async function flushPrimarySyncNow(options = {}) {
     return ok;
   }
 
-  if (shouldCheckRemoteBeforeAutoSync(reason)) {
+  if (plan.action === ACTIONS.CHECK_REMOTE_THEN_PULL) {
     const pulled = await autoPullRemoteWhenNewer();
     if (pulled) {
       failureCount = 0;
@@ -208,12 +223,14 @@ export async function flushPrimarySyncNow(options = {}) {
     }
   }
 
+  await yieldToUI();
   const entityReady = await ensurePrimaryEntityBatchReady(reason);
   if (!entityReady) {
     await scheduleRetryIfNeeded(reason);
     return false;
   }
 
+  await yieldToUI();
   const queued = await queueFirestoreSnapshotFromState(state, { manual: false });
   if (!queued) {
     await scheduleRetryIfNeeded(reason);

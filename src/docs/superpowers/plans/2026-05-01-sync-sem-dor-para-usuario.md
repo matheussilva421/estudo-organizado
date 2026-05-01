@@ -952,3 +952,49 @@ Se o ambiente retornar `spawn EPERM` em teste focado, rodar `npm test` completo 
 ## Execution Log
 
 - 2026-05-01: Plano criado apos revisao do sync atual em `store.js`, `sync-coordinator.js`, `firestore-sync-engine.js`, `firestore-entity-outbox.js`, `sync-center.js`, `sync-contract.md` e `firestore.rules`.
+
+### Fase 0 - Baseline
+
+- **Commit:** `6ff10e9` (branch `claude/awesome-babbage-1772bc`)
+- **APP_VERSION:** definido em manifest.json do PWA
+- **Modo Firestore:** shadow por default (`enabled: false, mode: 'shadow'`); entity sync `enabled: false, mode: 'off'`
+- **Testes unitarios:** 73 arquivos, 1156 passando, 1 skipped
+- **Testes E2E:** existentes em `tests/e2e/`
+- **Service Worker:** registrado via `sw-register.js`
+- **Teste de payload em syncHealth:** ja existe em `sync-health.test.js` linha 58 ("keeps bounded structured event history without payloads")
+- **store.js:** NAO importa Firestore diretamente - contrato ja respeitado
+- **sync-coordinator.js:** Ja centraliza gatilhos (stateSaved, login, reconnect, foreground, manual)
+- **Problema confirmado:** `autoPullRemoteWhenNewer()` e chamado em `local-save` via `flushPrimarySyncNow()` - precisa ser removido do caminho de edicao
+
+### Execucao - Fases 0-9
+
+**Implementado:**
+- Fase 0: Baseline registrado
+- Fase 1: Throttling de 250ms no render de config sync; contratos estaticos reforçados
+- Fase 2: `sync-planner.js` criado com 20 testes; coordinator refatorado para usar planner
+- Fase 3: `entity-delta-builder.js` criado com delta sync (so entidades alteradas); 10 testes
+- Fase 4: `readFirestoreRemoteManifest()` adicionado ao repository; auto-pull usa manifest antes de ler entities
+- Fase 5: `sync-yield.js` criado com `yieldToUI()` e `measureAsync()`; coordinator usa yield antes de operacoes pesadas
+- Fase 6: `sync-job-store.js` criado com IndexedDB store, coalescing, idempotencia; 9 testes
+- Fase 7: `mergeEntityDocsIntoState()` agora pura (JSON clone); checksum estavel adicionado; hints de conflito; 57 testes entity
+- Fase 9: Debounce de 700ms no topbar sync status para evitar piscar
+
+**Novos arquivos criados:**
+- `src/js/sync/sync-planner.js`
+- `src/js/sync/entity-delta-builder.js`
+- `src/js/sync/sync-yield.js`
+- `src/js/sync/sync-job-store.js`
+
+**Arquivos modificados:**
+- `src/js/main.js` - throttling 250ms config render
+- `src/js/app.js` - debounce 700ms topbar sync
+- `src/js/sync/sync-coordinator.js` - refatorado para usar planner + yield
+- `src/js/sync/entity-state-builder.js` - merge pura + checksum + hints
+- `src/js/sync/entity-conflict-model.js` - suporte a hints
+- `src/js/sync/firestore-sync-engine.js` - manifest check no auto-pull
+- `src/js/sync/firestore-repository.js` - `readFirestoreRemoteManifest()`
+- `tests/unit/` - novos testes e atualizados mocks
+
+**Testes:** 1212 passando (76 arquivos), 1 falha pre-existente em CSS
+
+**Fases pendentes:** 8, 10, 11, 12, 13, 14
