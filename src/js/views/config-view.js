@@ -522,6 +522,123 @@ function renderSyncCenterCard() {
   `;
 }
 
+function renderPreferenceNotificationsCard(cfg) {
+  return `
+    <div class="card config-card">
+      <div class="card-header"><h3><i class="fa fa-bell"></i> Notifica&ccedil;&otilde;es</h3></div>
+      <div class="card-body">
+        <div class="config-row">
+          <div>
+            <div class="config-label">Notifica&ccedil;&otilde;es do browser</div>
+            <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? 'Ativadas' : Notification.permission === 'denied' ? 'Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revis&otilde;es') : 'Browser n&atilde;o suporta'}</div>
+          </div>
+          ${
+            'Notification' in window &&
+            Notification.permission !== 'denied' &&
+            Notification.permission !== 'granted'
+              ? `
+            <button class="btn btn-primary btn-sm" data-action="request-notification-permission"><i class="fa fa-bell"></i> Ativar</button>
+          `
+              : Notification.permission === 'granted'
+                ? `
+            <button class="btn btn-ghost btn-sm" data-action="test-notification"><i class="fa fa-bell"></i> Testar</button>
+          `
+                : ''
+          }
+        </div>
+        <div class="config-row">
+          <div>
+            <div class="config-label">Modo Silencioso (In&iacute;cio)</div>
+            <div class="config-sub">A partir de qual hor&aacute;rio silenciar:</div>
+          </div>
+          <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeStart ?? 22}" data-action="update-config" data-config-key="silentModeStart" data-value-type="number">
+        </div>
+        <div class="config-row">
+          <div>
+            <div class="config-label">Modo Silencioso (Fim)</div>
+            <div class="config-sub">At&eacute; qual hor&aacute;rio silenciar:</div>
+          </div>
+          <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeEnd ?? 8}" data-action="update-config" data-config-key="silentModeEnd" data-value-type="number">
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPreferenceDataCard(saveStatus, saveStatusText) {
+  return `
+    <div class="card config-card">
+      <div class="card-header"><h3><i class="fa fa-database"></i> Dados</h3></div>
+      <div class="card-body">
+        <div class="config-sub">
+          ${state.eventos.length} evento(s) ativos
+          ${(state.arquivo || []).length > 0 ? ` &bull; ${state.arquivo.length} arquivado(s)` : ''}
+        </div>
+
+        <div id="config-save-status-detail" class="config-save-status config-save-status--${saveStatus.status || 'saved'}">
+          ${saveStatusText}
+        </div>
+        <div class="config-desc">Importa&ccedil;&otilde;es JSON passam por valida&ccedil;&atilde;o e pr&eacute;via de impacto antes de substituir os dados atuais.</div>
+
+        <div class="grid config-backup-grid">
+          <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
+          <div class="flex flex-between"><span>Backup Firestore:</span><strong>${formatBackupDateTime(state.config.firestoreSync?.remoteUpdatedAt)}</strong></div>
+          <div class="flex flex-between"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
+          <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label">Origem do backup para restaura&ccedil;&atilde;o</label>
+          <select id="backup-restore-source" class="form-control">
+            <option value="local">Backup local (importar arquivo JSON)</option>
+            <option value="firestore">Firestore</option>
+            <option value="cloudflare">Cloudflare</option>
+            <option value="drive">Google Drive</option>
+          </select>
+        </div>
+
+        <div class="flex flex-wrap gap-sm">
+          <button class="btn btn-ghost" data-action="export-data"><i class="fa fa-file-export"></i> Exportar JSON</button>
+          <button class="btn btn-ghost" data-action="restore-backup"><i class="fa fa-rotate-left"></i> Restaurar backup selecionado</button>
+          <button class="btn btn-ghost btn-sm" data-action="archive-old-events" data-days="90" title="Move eventos concluidos ha mais de 90 dias para o arquivo"><i class="fa fa-box-archive"></i> Arquivar antigos</button>
+          <button class="btn btn-danger btn-sm" data-action="clear-all-data"><i class="fa fa-trash"></i> Limpar tudo</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPreferenceServiceWorkerCard() {
+  return `
+    <div class="card config-card">
+      <div class="card-header"><h3><i class="fa fa-rotate"></i> Service Worker</h3></div>
+      <div class="card-body">
+        <div class="config-desc" style="margin-bottom:12px;">
+          Limpe o cache do service worker e force o carregamento da vers&atilde;o mais recente. &Uacute;til quando h&aacute; problemas de cache ap&oacute;s atualiza&ccedil;&otilde;es.
+        </div>
+        <button class="btn btn-primary btn-sm" data-action="force-sw-cache-clear">
+          <i class="fa fa-rotate"></i> Limpar cache e recarregar
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderPreferenceAboutCard() {
+  return `
+    <div class="card config-card">
+      <div class="card-header"><h3><i class="fa fa-circle-info"></i> Sobre</h3></div>
+      <div class="card-body">
+        <div class="config-desc">
+          <strong>Estudo Organizado</strong> &eacute; um app para planejamento e organiza&ccedil;&atilde;o de estudos para concursos p&uacute;blicos.<br><br>
+          Baseado no Ciclo PDCA: planeje no Calend&aacute;rio, execute no Study Organizer, me&ccedil;a no Dashboard e corrija com as Revis&otilde;es.<br><br>
+          <span class="text-xs text-muted">Vers&atilde;o 1.0 &bull; Dados salvos localmente + Google Drive</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 export function renderConfig(el) {
   const cfg = state.config;
   const saveStatus = getLastSaveStatus() || { status: 'saved' };
@@ -638,6 +755,11 @@ export function renderConfig(el) {
             <div class="config-hint">Ex: 1, 7, 30, 90 = 4 revisões no 1º, 7º, 30º e 90º dia</div>
           </div>
         </div>
+
+        ${renderPreferenceNotificationsCard(cfg)}
+        ${renderPreferenceDataCard(saveStatus, saveStatusText)}
+        ${renderPreferenceServiceWorkerCard()}
+        ${renderPreferenceAboutCard()}
       </div>
 
       <div>
@@ -706,109 +828,8 @@ export function renderConfig(el) {
           </div>
         </div>
 
-        <div class="card config-card">
-          <div class="card-header"><h3>🔖 Notificações</h3></div>
-          <div class="card-body">
-            <div class="config-row">
-              <div>
-                <div class="config-label">Notificações do browser</div>
-                <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? '✅ Ativadas' : Notification.permission === 'denied' ? '🚫 Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revisões') : '❌ Browser não suporta'}</div>
-              </div>
-              ${
-                'Notification' in window &&
-                Notification.permission !== 'denied' &&
-                Notification.permission !== 'granted'
-                  ? `
-                <button class="btn btn-primary btn-sm" data-action="request-notification-permission">🔖 Ativar</button>
-              `
-                  : Notification.permission === 'granted'
-                    ? `
-                <button class="btn btn-ghost btn-sm" data-action="test-notification">🔖 Testar</button>
-              `
-                    : ''
-              }
-            </div>
-            <div class="config-row">
-              <div>
-                <div class="config-label">Modo Silencioso (Início)</div>
-                <div class="config-sub">A partir de qual horário silenciar:</div>
-              </div>
-              <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeStart ?? 22}" data-action="update-config" data-config-key="silentModeStart" data-value-type="number">
-            </div>
-            
-            <div class="config-row">
-              <div>
-                <div class="config-label">Modo Silencioso (Fim)</div>
-                <div class="config-sub">Até qual horário silenciar:</div>
-              </div>
-              <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeEnd ?? 8}" data-action="update-config" data-config-key="silentModeEnd" data-value-type="number">
-            </div>
-          </div>
-        </div>
-
         ${renderBackupCenterCard()}
 
-        <div class="card config-card">
-          <div class="card-header"><h3>💾 Dados</h3></div>
-          <div class="card-body">
-            <div class="config-sub">
-              ${state.eventos.length} evento(s) ativos
-              ${(state.arquivo || []).length > 0 ? ` • ${state.arquivo.length} arquivado(s)` : ''}
-            </div>
-
-            <div id="config-save-status-detail" class="config-save-status config-save-status--${saveStatus.status || 'saved'}">
-              ${saveStatusText}
-            </div>
-            <div class="config-desc">Importacoes JSON passam por validacao e previa de impacto antes de substituir os dados atuais.</div>
-
-            <div class="grid config-backup-grid">
-              <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
-              <div class="flex flex-between"><span>Backup Firestore:</span><strong>${formatBackupDateTime(state.config.firestoreSync?.remoteUpdatedAt)}</strong></div>
-              <div class="flex flex-between"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
-              <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>
-            </div>
-
-            <div class="form-group mb-3">
-              <label class="form-label">Origem do backup para restauração</label>
-              <select id="backup-restore-source" class="form-control">
-                <option value="local">Backup local (importar arquivo JSON)</option>
-                <option value="firestore">Firestore</option>
-                <option value="cloudflare">Cloudflare</option>
-                <option value="drive">Google Drive</option>
-              </select>
-            </div>
-
-            <div class="flex flex-wrap gap-sm">
-              <button class="btn btn-ghost" data-action="export-data">📱 Exportar JSON</button>
-              <button class="btn btn-ghost" data-action="restore-backup">♻️ Restaurar backup selecionado</button>
-              <button class="btn btn-ghost btn-sm" data-action="archive-old-events" data-days="90" title="Move eventos concluídos há mais de 90 dias para o arquivo">🙉 Arquivar antigos</button>
-              <button class="btn btn-danger btn-sm" data-action="clear-all-data">🙆 Limpar tudo</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><h3>🔄 Service Worker</h3></div>
-          <div class="card-body">
-            <div class="config-desc" style="margin-bottom:12px;">
-              Limpe o cache do service worker e force o carregamento da versão mais recente. Útil quando há problemas de cache após atualizações.
-            </div>
-            <button class="btn btn-primary btn-sm" data-action="force-sw-cache-clear">
-              🔄 Limpar cache e recarregar
-            </button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><h3>ℹ️ Sobre</h3></div>
-          <div class="card-body">
-            <div class="config-desc">
-              <strong>Estudo Organizado</strong> é um app para planejamento e organização de estudos para concursos públicos.<br><br>
-              Baseado no Ciclo PDCA: planeje no Calendário, execute no Study Organizer, meça no Dashboard e corrija com as Revisões.<br><br>
-              <span class="text-xs text-muted">Versão 1.0 • Dados salvos localmente + Google Drive</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   `;
