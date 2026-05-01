@@ -86,10 +86,28 @@ describe('Firestore integration contracts', () => {
     expect(storeSource).not.toContain('import { pushToCloudflare }');
     expect(storeSource).not.toContain('SyncQueue.add(() => pushToCloudflare())');
     expect(storeSource).not.toContain('flushFirestoreOutbox()');
+    expect(storeSource).not.toContain('firestore-sync-engine');
+    expect(storeSource).not.toContain('autoPullRemoteWhenNewer');
     expect(mainSource).toContain("import * as sync_coordinator from './sync/sync-coordinator.js");
     expect(coordinatorSource).toContain("document.addEventListener('stateSaved'");
     expect(coordinatorSource).toContain('queueFirestoreSnapshotFromState');
     expect(driveSource).not.toContain("document.addEventListener('stateSaved'");
+  });
+
+  it('prevents local-save from reading remote data before pushing queued changes', () => {
+    const coordinatorSource = read('src/js/sync/sync-coordinator.js');
+
+    expect(coordinatorSource).toContain("reason !== 'local-save'");
+    expect(coordinatorSource).toContain('autoPullRemoteWhenNewer');
+    expect(coordinatorSource).toContain('shouldCheckRemoteBeforeAutoSync');
+  });
+
+  it('throttles config sync status renders to avoid UI freezes during active sync', () => {
+    const mainSource = read('src/js/main.js');
+
+    expect(mainSource).toContain('CONFIG_SYNC_RENDER_THROTTLE_MS');
+    expect(mainSource).toContain('lastConfigSyncRenderAt');
+    expect(mainSource).toContain('scheduleConfigSyncRender');
   });
 
   it('does not push to Firestore immediately when shadow mode is enabled', () => {
@@ -256,5 +274,18 @@ describe('Firestore integration contracts', () => {
     expect(engine).toContain('export async function verifyFirestoreEntityShadow');
     expect(actions).toContain("registerAction('firestore-verify-entity-shadow'");
     expect(configView).toContain('data-action="firestore-verify-entity-shadow"');
+  });
+
+  it('reads remote manifest before loading all entity docs on auto-pull', () => {
+    const repo = read('src/js/sync/firestore-repository.js');
+    const engine = read('src/js/sync/firestore-sync-engine.js');
+
+    expect(repo).toContain('export async function readFirestoreRemoteManifest');
+    expect(repo).toContain('entityManifest');
+    expect(engine).toContain('readFirestoreRemoteManifest');
+    expect(engine).toContain('isEntityPrimaryEnabled()');
+    const manifestUsage = engine.indexOf('readFirestoreRemoteManifest');
+    const entityReadUsage = engine.indexOf('readFirestoreEntityDocuments(db, uid)', manifestUsage);
+    expect(entityReadUsage).toBeGreaterThan(manifestUsage);
   });
 });

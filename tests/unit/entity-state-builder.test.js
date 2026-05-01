@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+  computeEntityChecksum,
   pickNewestEntityDocs,
   rebuildStateFromEntityDocs,
   applyEntityDocsToState,
+  mergeEntityDocsIntoState,
   replaceEntityInStateByRecord,
 } from '../../src/js/sync/entity-state-builder.js';
 
@@ -265,6 +267,85 @@ describe('entity-state-builder.js', () => {
       const state = { editais: [{ id: '1', disciplinas: [] }] };
       const record = { collection: 'assuntos', id: '3', key: 'editais/1/disciplinas/99/assuntos/3', entity: {} };
       expect(replaceEntityInStateByRecord(state, record)).toBe(false);
+    });
+  });
+
+  describe('computeEntityChecksum()', () => {
+    it('returns stable checksum ignoring _sync', () => {
+      const entity = { id: '1', titulo: 'test', _sync: { revision: 5 } };
+      const checksum = computeEntityChecksum(entity);
+      expect(checksum).toContain('test');
+      expect(checksum).not.toContain('revision');
+    });
+
+    it('returns empty string for null', () => {
+      expect(computeEntityChecksum(null)).toBe('');
+    });
+  });
+
+  describe('mergeEntityDocsIntoState() - pure and checksum', () => {
+    it('does not mutate the original state', () => {
+      const original = { eventos: [{ id: 'ev1', titulo: 'original', _sync: { revision: 1 } }] };
+      const frozen = JSON.parse(JSON.stringify(original));
+      mergeEntityDocsIntoState(original, [{
+        key: 'eventos/ev1',
+        collection: 'eventos',
+        id: 'ev1',
+        revision: 2,
+        payload: { id: 'ev1', titulo: 'updated', _sync: { revision: 2 } },
+      }]);
+      expect(original).toEqual(frozen);
+    });
+
+    it('skips entity when checksums match', () => {
+      const state = { eventos: [{ id: 'ev1', titulo: 'same', _sync: { revision: 1 } }] };
+      const { collisions } = mergeEntityDocsIntoState(state, [{
+        key: 'eventos/ev1',
+        collection: 'eventos',
+        id: 'ev1',
+        revision: 1,
+        payload: { id: 'ev1', titulo: 'same', _sync: { revision: 1 } },
+      }]);
+      expect(collisions).toHaveLength(0);
+    });
+
+    it('detects collision with same revision but different checksum', () => {
+      const state = { eventos: [{ id: 'ev1', titulo: 'local', _sync: { revision: 3 } }] };
+      const { collisions } = mergeEntityDocsIntoState(state, [{
+        key: 'eventos/ev1',
+        collection: 'eventos',
+        id: 'ev1',
+        revision: 3,
+        payload: { id: 'ev1', titulo: 'remote', _sync: { revision: 3 } },
+      }]);
+      expect(collisions).toHaveLength(1);
+      expect(collisions[0].hint).toBe('same-revision-different-checksum');
+    });
+
+    it('detects collision when both changed with different revisions', () => {
+      const state = { eventos: [{ id: 'ev1', titulo: 'local', _sync: { revision: 5, updatedAt: '2026-05-01T10:00:00.000Z' } }] };
+      const { collisions } = mergeEntityDocsIntoState(state, [{
+        key: 'eventos/ev1',
+        collection: 'eventos',
+        id: 'ev1',
+        revision: 4,
+        payload: { id: 'ev1', titulo: 'remote', _sync: { revision: 4, updatedAt: '2026-05-01T09:00:00.000Z' } },
+      }]);
+      expect(collisions).toHaveLength(1);
+      expect(collisions[0].hint).toBe('local-newer');
+    });
+
+    it('applies remote when remote has higher revision and local has not changed', () => {
+      const state = { eventos: [{ id: 'ev1', titulo: 'old', _sync: { revision: 1 } }] };
+      const { mergedState, collisions } = mergeEntityDocsIntoState(state, [{
+        key: 'eventos/ev1',
+        collection: 'eventos',
+        id: 'ev1',
+        revision: 5,
+        payload: { id: 'ev1', titulo: 'new', _sync: { revision: 5 } },
+      }]);
+      expect(collisions).toHaveLength(1);
+      expect(collisions[0].hint).toBe('remote-newer');
     });
   });
 });

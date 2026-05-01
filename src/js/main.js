@@ -146,6 +146,8 @@ app.init();
 // Usar addCleanupListener para prevenir memory leaks
 let configSyncRenderQueued = false;
 let lastConfigSyncStatusSignature = '';
+let lastConfigSyncRenderAt = 0;
+const CONFIG_SYNC_RENDER_THROTTLE_MS = 250;
 
 function getFirestoreSyncRenderSignature(detail = {}) {
   return JSON.stringify({
@@ -168,17 +170,16 @@ function scheduleConfigSyncRender(detail = {}) {
   if (signature === lastConfigSyncStatusSignature) return;
   lastConfigSyncStatusSignature = signature;
   if (configSyncRenderQueued) return;
+  const elapsed = Date.now() - lastConfigSyncRenderAt;
+  const delay = Math.max(0, CONFIG_SYNC_RENDER_THROTTLE_MS - elapsed);
   configSyncRenderQueued = true;
-  const raf =
-    window.requestAnimationFrame ||
-    globalThis.requestAnimationFrame ||
-    ((callback) => setTimeout(callback, 16));
-  raf(() => {
+  setTimeout(() => {
     configSyncRenderQueued = false;
+    lastConfigSyncRenderAt = Date.now();
     if (app.currentView === 'config') {
       components.renderCurrentView();
     }
-  });
+  }, delay);
 }
 
 addCleanupListener(document, 'app:renderCurrentView', () => {

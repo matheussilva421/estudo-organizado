@@ -123,15 +123,21 @@ const QUIET_SYNC_LABELS = {
 };
 
 let _topbarSyncState = 'ok';
+let _topbarSyncTimer = null;
+const TOPBAR_SYNC_DEBOUNCE_MS = 700;
 
 function renderSyncTopbarStatus(quietTone) {
-  const topbarStatus = document.getElementById('save-status');
-  if (!topbarStatus) return;
-  const label = QUIET_SYNC_LABELS[quietTone] || 'Tudo salvo';
-  _topbarSyncState = quietTone;
-  topbarStatus.className = `save-status save-status--${quietTone}`;
-  topbarStatus.textContent = label;
-  topbarStatus.setAttribute('aria-label', label);
+  if (_topbarSyncTimer) clearTimeout(_topbarSyncTimer);
+  _topbarSyncTimer = setTimeout(() => {
+    _topbarSyncTimer = null;
+    const topbarStatus = document.getElementById('save-status');
+    if (!topbarStatus) return;
+    const label = QUIET_SYNC_LABELS[quietTone] || 'Tudo salvo';
+    _topbarSyncState = quietTone;
+    topbarStatus.className = `save-status save-status--${quietTone}`;
+    topbarStatus.textContent = label;
+    topbarStatus.setAttribute('aria-label', label);
+  }, TOPBAR_SYNC_DEBOUNCE_MS);
 }
 
 export function initSaveStatusIndicator() {

@@ -1,3 +1,10 @@
+export function computeEntityChecksum(entity) {
+  if (!entity) return '';
+  const clone = { ...entity };
+  delete clone._sync;
+  return JSON.stringify(clone);
+}
+
 export function pickNewestEntityDocs(docs = []) {
   const byKey = new Map();
   for (const doc of docs) {
@@ -88,45 +95,68 @@ export function applyEntityDocsToState(baseState = {}, docs = []) {
 }
 
 export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
+  const state = JSON.parse(JSON.stringify(baseState));
   const newest = pickNewestEntityDocs(docs);
   const collisions = [];
-  const tombstones = baseState.config?.entityTombstones || [];
+  const tombstones = state.config?.entityTombstones || [];
   const tombstoneKeys = new Map(tombstones.map((t) => [t.key, t]));
 
   function getLocalEntity(doc) {
     const { collection, id, key } = doc;
-    if (collection === 'editais') return (baseState.editais || []).find((e) => e.id === id);
-    if (collection === 'eventos') return (baseState.eventos || []).find((e) => e.id === id);
-    if (collection === 'arquivo') return (baseState.arquivo || []).find((e) => e.id === id);
-    if (collection === 'revisoes') return (baseState.revisoes || []).find((e) => e.id === id);
+    if (collection === 'editais') return (state.editais || []).find((e) => e.id === id);
+    if (collection === 'eventos') return (state.eventos || []).find((e) => e.id === id);
+    if (collection === 'arquivo') return (state.arquivo || []).find((e) => e.id === id);
+    if (collection === 'revisoes') return (state.revisoes || []).find((e) => e.id === id);
     if (collection.startsWith('habitos.')) {
       const type = collection.split('.')[1];
-      return (baseState.habitos?.[type] || []).find((e) => e.id === id);
+      return (state.habitos?.[type] || []).find((e) => e.id === id);
     }
     if (collection === 'planejamento.sequencia') {
-      return (baseState.planejamento?.sequencia || []).find((e) => e.id === id);
+      return (state.planejamento?.sequencia || []).find((e) => e.id === id);
     }
     if (collection === 'disciplinas') {
       const editalId = key.split('/')[1];
-      const edital = (baseState.editais || []).find((e) => e.id === editalId);
+      const edital = (state.editais || []).find((e) => e.id === editalId);
       return (edital?.disciplinas || []).find((d) => d.id === id);
     }
     if (collection === 'assuntos' || collection === 'aulas') {
       const segments = key.split('/');
-      const edital = (baseState.editais || []).find((e) => e.id === segments[1]);
+      const edital = (state.editais || []).find((e) => e.id === segments[1]);
       const disciplina = (edital?.disciplinas || []).find((d) => d.id === segments[3]);
       return (disciplina?.[collection] || []).find((a) => a.id === id);
     }
     return null;
   }
 
+  function classifyCollision(local, remoteDoc) {
+    const localRev = local?._sync?.revision || 0;
+    const remoteRev = remoteDoc?.payload?._sync?.revision || remoteDoc?.revision || 0;
+    const isRemoteDelete = remoteDoc.deletedAt || remoteDoc.payload === null;
+    const isLocalDelete = false;
+
+    if (isRemoteDelete && remoteRev > localRev) return 'remote-delete';
+    if (isRemoteDelete) return 'local-delete';
+
+    if (!local) return 'remote-newer';
+
+    const localChecksum = local._sync?.checksum || computeEntityChecksum(local);
+    const remoteChecksum =
+      remoteDoc.payload?._sync?.checksum || computeEntityChecksum(remoteDoc.payload);
+
+    if (localChecksum === remoteChecksum) return 'same-checksum';
+
+    if (remoteRev > localRev) return 'remote-newer';
+    if (localRev > remoteRev) return 'local-newer';
+    if (localRev === remoteRev && localChecksum !== remoteChecksum)
+      return 'same-revision-different-checksum';
+    return 'both-changed';
+  }
+
   function entitiesDiffer(local, remote) {
     if (!local || !remote) return true;
-    const localSync = local._sync || {};
-    const remoteSync = remote._sync || {};
-    if (localSync.revision && remoteSync.revision && localSync.revision === remoteSync.revision) {
-      return JSON.stringify(local) !== JSON.stringify(remote);
-    }
+    const localChecksum = local._sync?.checksum || computeEntityChecksum(local);
+    const remoteChecksum = remote._sync?.checksum || computeEntityChecksum(remote);
+    if (localChecksum === remoteChecksum) return false;
     return true;
   }
 
@@ -135,47 +165,47 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
     if (!payload) return;
 
     if (collection === 'editais') {
-      if (!Array.isArray(baseState.editais)) baseState.editais = [];
-      const idx = baseState.editais.findIndex((e) => e.id === id);
-      if (idx === -1) baseState.editais.push({ ...payload, disciplinas: [] });
+      if (!Array.isArray(state.editais)) state.editais = [];
+      const idx = state.editais.findIndex((e) => e.id === id);
+      if (idx === -1) state.editais.push({ ...payload, disciplinas: [] });
       else
-        baseState.editais[idx] = {
+        state.editais[idx] = {
           ...payload,
-          disciplinas: baseState.editais[idx].disciplinas || [],
+          disciplinas: state.editais[idx].disciplinas || [],
         };
       return;
     }
 
     if (collection === 'eventos' || collection === 'arquivo' || collection === 'revisoes') {
-      if (!Array.isArray(baseState[collection])) baseState[collection] = [];
-      const idx = baseState[collection].findIndex((e) => e.id === id);
-      if (idx === -1) baseState[collection].push(payload);
-      else baseState[collection][idx] = payload;
+      if (!Array.isArray(state[collection])) state[collection] = [];
+      const idx = state[collection].findIndex((e) => e.id === id);
+      if (idx === -1) state[collection].push(payload);
+      else state[collection][idx] = payload;
       return;
     }
 
     if (collection.startsWith('habitos.')) {
       const type = collection.split('.')[1];
-      if (!baseState.habitos) baseState.habitos = {};
-      if (!Array.isArray(baseState.habitos[type])) baseState.habitos[type] = [];
-      const idx = baseState.habitos[type].findIndex((e) => e.id === id);
-      if (idx === -1) baseState.habitos[type].push(payload);
-      else baseState.habitos[type][idx] = payload;
+      if (!state.habitos) state.habitos = {};
+      if (!Array.isArray(state.habitos[type])) state.habitos[type] = [];
+      const idx = state.habitos[type].findIndex((e) => e.id === id);
+      if (idx === -1) state.habitos[type].push(payload);
+      else state.habitos[type][idx] = payload;
       return;
     }
 
     if (collection === 'planejamento.sequencia') {
-      if (!baseState.planejamento) baseState.planejamento = {};
-      if (!Array.isArray(baseState.planejamento.sequencia)) baseState.planejamento.sequencia = [];
-      const idx = baseState.planejamento.sequencia.findIndex((e) => e.id === id);
-      if (idx === -1) baseState.planejamento.sequencia.push(payload);
-      else baseState.planejamento.sequencia[idx] = payload;
+      if (!state.planejamento) state.planejamento = {};
+      if (!Array.isArray(state.planejamento.sequencia)) state.planejamento.sequencia = [];
+      const idx = state.planejamento.sequencia.findIndex((e) => e.id === id);
+      if (idx === -1) state.planejamento.sequencia.push(payload);
+      else state.planejamento.sequencia[idx] = payload;
       return;
     }
 
     if (collection === 'disciplinas') {
       const editalId = key.split('/')[1];
-      const edital = (baseState.editais || []).find((e) => e.id === editalId);
+      const edital = (state.editais || []).find((e) => e.id === editalId);
       if (!edital) return;
       if (!Array.isArray(edital.disciplinas)) edital.disciplinas = [];
       const idx = edital.disciplinas.findIndex((d) => d.id === id);
@@ -191,7 +221,7 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
 
     if (collection === 'assuntos' || collection === 'aulas') {
       const segments = key.split('/');
-      const edital = (baseState.editais || []).find((e) => e.id === segments[1]);
+      const edital = (state.editais || []).find((e) => e.id === segments[1]);
       if (!edital) return;
       const disciplina = (edital.disciplinas || []).find((d) => d.id === segments[3]);
       if (!disciplina) return;
@@ -206,23 +236,23 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
   function applyTombstone(tombstone) {
     const { collection, id, key } = tombstone;
     if (collection === 'editais') {
-      baseState.editais = (baseState.editais || []).filter((e) => e.id !== id);
+      state.editais = (state.editais || []).filter((e) => e.id !== id);
       return;
     }
     if (collection === 'eventos' || collection === 'arquivo' || collection === 'revisoes') {
-      baseState[collection] = (baseState[collection] || []).filter((e) => e.id !== id);
+      state[collection] = (state[collection] || []).filter((e) => e.id !== id);
       return;
     }
     if (collection.startsWith('habitos.')) {
       const type = collection.split('.')[1];
-      if (baseState.habitos?.[type]) {
-        baseState.habitos[type] = baseState.habitos[type].filter((e) => e.id !== id);
+      if (state.habitos?.[type]) {
+        state.habitos[type] = state.habitos[type].filter((e) => e.id !== id);
       }
       return;
     }
     if (collection === 'planejamento.sequencia') {
-      if (baseState.planejamento?.sequencia) {
-        baseState.planejamento.sequencia = baseState.planejamento.sequencia.filter(
+      if (state.planejamento?.sequencia) {
+        state.planejamento.sequencia = state.planejamento.sequencia.filter(
           (e) => e.id !== id
         );
       }
@@ -230,13 +260,13 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
     }
     if (collection === 'disciplinas') {
       const editalId = key.split('/')[1];
-      const edital = (baseState.editais || []).find((e) => e.id === editalId);
+      const edital = (state.editais || []).find((e) => e.id === editalId);
       if (edital) edital.disciplinas = (edital.disciplinas || []).filter((d) => d.id !== id);
       return;
     }
     if (collection === 'assuntos' || collection === 'aulas') {
       const segments = key.split('/');
-      const edital = (baseState.editais || []).find((e) => e.id === segments[1]);
+      const edital = (state.editais || []).find((e) => e.id === segments[1]);
       if (!edital) return;
       const disciplina = (edital.disciplinas || []).find((d) => d.id === segments[3]);
       if (disciplina)
@@ -270,7 +300,13 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
     if (local && entitiesDiffer(local, doc.payload)) {
       const localRev = local._sync?.revision || 0;
       const remoteRev = doc.payload._sync?.revision || 0;
-      if (localRev > 0 && remoteRev > 0 && localRev !== remoteRev) {
+      const hint = classifyCollision(local, doc);
+      if (hint === 'same-checksum') continue;
+      if (
+        hint === 'both-changed' ||
+        hint === 'same-revision-different-checksum' ||
+        (localRev > 0 && remoteRev > 0 && localRev !== remoteRev)
+      ) {
         collisions.push({
           key: doc.key,
           collection: doc.collection,
@@ -279,6 +315,7 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
           remoteRevision: remoteRev,
           localUpdatedAt: local._sync?.updatedAt || null,
           remoteUpdatedAt: doc.payload._sync?.updatedAt || doc.updatedAt || null,
+          hint,
         });
         continue;
       }
@@ -287,10 +324,10 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
     upsertEntity(doc);
   }
 
-  if (!baseState.config) baseState.config = {};
-  baseState.config.entityTombstones = tombstones;
+  if (!state.config) state.config = {};
+  state.config.entityTombstones = tombstones;
 
-  return { mergedState: baseState, collisions };
+  return { mergedState: state, collisions };
 }
 
 export function replaceEntityInStateByRecord(targetState = {}, record = {}) {

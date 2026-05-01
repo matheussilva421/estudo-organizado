@@ -45,4 +45,41 @@ describe('entity-conflict-model.js', () => {
     expect(result.items[0].custom).toBe('value');
     expect(result.items[0].collection).toBe('eventos');
   });
+
+  it('uses hint from entity-state-builder when available', () => {
+    const result = model.buildEntityConflictReviewModel([
+      { collection: 'eventos', id: 'ev_1', localRevision: 3, remoteRevision: 3, hint: 'same-revision-different-checksum' },
+    ]);
+    expect(result.items[0].decisionHint).toBe('manual');
+    expect(result.requiresManualReview).toBe(true);
+  });
+
+  it('classifies remote-delete hint as remote-newer', () => {
+    const result = model.buildEntityConflictReviewModel([
+      { collection: 'eventos', id: 'ev_1', localRevision: 1, remoteRevision: 5, hint: 'remote-delete' },
+    ]);
+    expect(result.items[0].decisionHint).toBe('remote-newer');
+  });
+
+  it('classifies both-changed hint as manual', () => {
+    const result = model.buildEntityConflictReviewModel([
+      { collection: 'eventos', id: 'ev_1', localRevision: 5, remoteRevision: 5, hint: 'both-changed' },
+    ]);
+    expect(result.items[0].decisionHint).toBe('manual');
+    expect(result.requiresManualReview).toBe(true);
+  });
+
+  it('classifies local-newer hint correctly', () => {
+    const result = model.buildEntityConflictReviewModel([
+      { collection: 'eventos', id: 'ev_1', localRevision: 5, remoteRevision: 3, hint: 'local-newer' },
+    ]);
+    expect(result.items[0].decisionHint).toBe('local-newer');
+  });
+
+  it('falls back to revision comparison when hint is absent', () => {
+    const result = model.buildEntityConflictReviewModel([
+      { collection: 'eventos', id: 'ev_1', localRevision: 5, remoteRevision: 3 },
+    ]);
+    expect(result.items[0].decisionHint).toBe('local-newer');
+  });
 });
