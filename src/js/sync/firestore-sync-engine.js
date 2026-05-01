@@ -29,7 +29,7 @@ import {
   writeFirestoreSnapshot,
 } from './firestore-repository.js?v=8.32';
 import { canAutoSyncFirestore, mergeStudyStates } from './sync-center.js?v=8.32';
-import { applyEntityDocsToState } from './entity-state-builder.js?v=8.32';
+import { applyEntityDocsToState, mergeEntityDocsIntoState } from './entity-state-builder.js?v=8.32';
 import {
   getPendingFirestoreEntityBatch,
   markFirestoreEntityBatchSynced,
@@ -575,6 +575,108 @@ async function registerConflict(remoteEnvelope, localEnvelope) {
   emitStatus('conflict', { conflict });
 }
 
+export async function autoPullRemoteWhenNewer() {
+  const config = getConfig();
+  if (!config.enabled || config.mode !== 'primary') return false;
+  if (config.conflict) return false;
+
+  const pending = await getPendingFirestoreSnapshot();
+  if (pending) return false;
+
+  const pendingEntity = await getPendingFirestoreEntityBatch();
+  if (pendingEntity && pendingEntity.status === 'pending') return false;
+
+  try {
+    const { db, uid } = requireSignedInServices();
+
+    if (isEntityPrimaryEnabled()) {
+      const entityDocs = await readFirestoreEntityDocuments(db, uid);
+      if (!entityDocs.length) return false;
+      const maxEntityUpdatedAt = entityDocs.reduce((max, doc) => {
+        const t = doc.updatedAt || '';
+        return t > max ? t : max;
+      }, '');
+      if (!isRemoteNewer({ payloadUpdatedAt: maxEntityUpdatedAt }, state)) return false;
+
+      const pullAt = new Date().toISOString();
+      const { mergedState, collisions } = mergeEntityDocsIntoState(state, entityDocs);
+      if (collisions.length > 0) {
+        const conflict = {
+          remoteUpdatedAt: maxEntityUpdatedAt,
+          localUpdatedAt: pullAt,
+          detectedAt: pullAt,
+          reason: 'entity-collision',
+          total: collisions.length,
+          items: collisions.slice(0, 20),
+        };
+        Object.assign(config, {
+          uid,
+          remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
+          lastPullAt: pullAt,
+          conflict,
+          lastError: 'Conflito Firestore: entidades com revisoes diferentes.',
+          hasPendingWrites: true,
+        });
+        await saveFirestoreConflict(conflict);
+        await persistSyncConfig(true);
+        document.dispatchEvent(new Event('app:renderCurrentView'));
+        emitStatus('conflict', { conflict });
+        return false;
+      }
+
+      setState(mergedState);
+      await clearFirestoreConflict();
+      await markFirestoreEntityBatchSynced();
+      await saveFirestoreMeta({
+        uid,
+        remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
+        lastPullAt: pullAt,
+      });
+      Object.assign(config, {
+        uid,
+        remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
+        lastPullAt: pullAt,
+        hasPendingWrites: false,
+        conflict: null,
+        lastError: null,
+      });
+      await persistSyncConfig(true);
+      document.dispatchEvent(new Event('app:renderCurrentView'));
+      emitStatus('synced');
+      return true;
+    }
+
+    const remote = await readFirestoreSnapshot(db, uid);
+    if (!remote) return false;
+    if (!isRemoteNewer(remote, state)) return false;
+
+    const nextState = applyEnvelopeToLocalState(remote, config);
+    setState(nextState);
+    await clearFirestoreConflict();
+    await markFirestoreSnapshotSynced();
+    const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
+    const pullAt = new Date().toISOString();
+    await saveFirestoreMeta({ uid, remoteUpdatedAt, lastPullAt: pullAt });
+    Object.assign(config, {
+      uid,
+      remoteUpdatedAt,
+      lastPullAt: pullAt,
+      hasPendingWrites: false,
+      conflict: null,
+      lastError: null,
+    });
+    await persistSyncConfig(true);
+    document.dispatchEvent(new Event('app:renderCurrentView'));
+    emitStatus('synced');
+    return true;
+  } catch (err) {
+    config.lastError = err.message || String(err);
+    await persistSyncConfig(true);
+    emitStatus('error', { error: config.lastError });
+    return false;
+  }
+}
+
 export async function flushFirestoreOutbox(options = {}) {
   if (isFlushing) return false;
   const config = getConfig();
@@ -688,8 +790,32 @@ export async function pullFromFirestore(forceOverwrite = false) {
         return t > max ? t : max;
       }, '');
 
-      const nextState = applyEntityDocsToState(state, entityDocs);
-      setState(nextState);
+      const { mergedState, collisions } = mergeEntityDocsIntoState(state, entityDocs);
+      if (collisions.length > 0) {
+        const conflict = {
+          remoteUpdatedAt: maxEntityUpdatedAt,
+          localUpdatedAt: pullAt,
+          detectedAt: pullAt,
+          reason: 'entity-collision',
+          total: collisions.length,
+          items: collisions.slice(0, 20),
+        };
+        Object.assign(getConfig(), {
+          uid,
+          remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
+          lastPullAt: pullAt,
+          conflict,
+          lastError: 'Conflito Firestore: entidades com revisoes diferentes.',
+          hasPendingWrites: true,
+        });
+        await saveFirestoreConflict(conflict);
+        await saveStateToDB(true, true, true, { touchLocalBackup: false });
+        document.dispatchEvent(new Event('app:renderCurrentView'));
+        emitStatus('conflict', { conflict });
+        return false;
+      }
+
+      setState(mergedState);
       await clearFirestoreConflict();
       await markFirestoreEntityBatchSynced();
       await saveFirestoreMeta({
@@ -810,8 +936,31 @@ export async function syncFirestoreNow() {
       )
     ) {
       const pullAt = new Date().toISOString();
-      const nextState = applyEntityDocsToState(state, entityDocs);
-      setState(nextState);
+      const { mergedState, collisions } = mergeEntityDocsIntoState(state, entityDocs);
+      if (collisions.length > 0) {
+        const conflict = {
+          remoteUpdatedAt: maxEntityUpdatedAt,
+          localUpdatedAt: pullAt,
+          detectedAt: pullAt,
+          reason: 'entity-collision',
+          total: collisions.length,
+          items: collisions.slice(0, 20),
+        };
+        Object.assign(getConfig(), {
+          uid,
+          remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
+          lastPullAt: pullAt,
+          conflict,
+          lastError: 'Conflito Firestore: entidades com revisoes diferentes.',
+          hasPendingWrites: true,
+        });
+        await saveFirestoreConflict(conflict);
+        await saveStateToDB(true, true, true, { touchLocalBackup: false });
+        document.dispatchEvent(new Event('app:renderCurrentView'));
+        emitStatus('conflict', { conflict });
+        return false;
+      }
+      setState(mergedState);
       await clearFirestoreConflict();
       await markFirestoreEntityBatchSynced();
       Object.assign(getConfig(), {
@@ -892,20 +1041,18 @@ export async function mergeFromFirestore() {
       if (!remoteEntityDocs.length) {
         return await forcePushFirestoreEntities();
       }
-      const merged = mergeStudyStates(state, applyEntityDocsToState({}, remoteEntityDocs));
-      setState(merged);
-      const mergeConflict = merged.config?.syncMergeConflicts;
-      if (mergeConflict) {
+      const { mergedState, collisions } = mergeEntityDocsIntoState(state, remoteEntityDocs);
+      if (collisions.length > 0) {
         const conflict = {
           remoteUpdatedAt: remoteEntityDocs.reduce((max, d) => {
             const t = d.updatedAt || '';
             return t > max ? t : max;
           }, ''),
           localUpdatedAt: new Date().toISOString(),
-          detectedAt: mergeConflict.detectedAt,
-          reason: 'merge-collision',
-          total: mergeConflict.total,
-          items: mergeConflict.items,
+          detectedAt: new Date().toISOString(),
+          reason: 'entity-collision',
+          total: collisions.length,
+          items: collisions.slice(0, 20),
         };
         Object.assign(getConfig(), {
           uid,
@@ -922,6 +1069,7 @@ export async function mergeFromFirestore() {
         emitStatus('conflict', { conflict });
         return false;
       }
+      setState(mergedState);
       Object.assign(getConfig(), {
         uid,
         enabled: true,

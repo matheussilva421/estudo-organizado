@@ -224,6 +224,7 @@ test.describe('Estudo Organizado', () => {
     await page.goto('/');
     await page.click('[data-view="config"]');
 
+    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
     const conflict = page.locator('[data-testid="cf-sync-conflict"]');
     await expect(conflict).toBeVisible();
     await expect(conflict).toContainText('Conflito');
@@ -244,6 +245,8 @@ test.describe('Estudo Organizado', () => {
     await page.waitForFunction(() => typeof window.EstudoApp?.navigate === 'function');
     await page.evaluate(() => window.EstudoApp.navigate('config'));
     await expect(page.locator('#topbar-title')).toHaveText('Configurações', { timeout: 10000 });
+
+    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
     await page.locator('#config-cf-url').scrollIntoViewIfNeeded();
 
     const metrics = await page.evaluate(() => {
@@ -255,7 +258,8 @@ test.describe('Estudo Organizado', () => {
         '.config-row',
         '.config-input-group',
         '.config-toggle-row',
-        '.config-actions-row'
+        '.config-actions-row',
+        '.backup-advanced-source-card'
       ];
       return selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map((element, index) => ({
         selector,

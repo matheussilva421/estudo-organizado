@@ -87,6 +87,211 @@ export function applyEntityDocsToState(baseState = {}, docs = []) {
   };
 }
 
+export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
+  const newest = pickNewestEntityDocs(docs);
+  const collisions = [];
+  const tombstones = baseState.config?.entityTombstones || [];
+  const tombstoneKeys = new Map(tombstones.map((t) => [t.key, t]));
+
+  function getLocalEntity(doc) {
+    const { collection, id, key } = doc;
+    if (collection === 'editais') return (baseState.editais || []).find((e) => e.id === id);
+    if (collection === 'eventos') return (baseState.eventos || []).find((e) => e.id === id);
+    if (collection === 'arquivo') return (baseState.arquivo || []).find((e) => e.id === id);
+    if (collection === 'revisoes') return (baseState.revisoes || []).find((e) => e.id === id);
+    if (collection.startsWith('habitos.')) {
+      const type = collection.split('.')[1];
+      return (baseState.habitos?.[type] || []).find((e) => e.id === id);
+    }
+    if (collection === 'planejamento.sequencia') {
+      return (baseState.planejamento?.sequencia || []).find((e) => e.id === id);
+    }
+    if (collection === 'disciplinas') {
+      const editalId = key.split('/')[1];
+      const edital = (baseState.editais || []).find((e) => e.id === editalId);
+      return (edital?.disciplinas || []).find((d) => d.id === id);
+    }
+    if (collection === 'assuntos' || collection === 'aulas') {
+      const segments = key.split('/');
+      const edital = (baseState.editais || []).find((e) => e.id === segments[1]);
+      const disciplina = (edital?.disciplinas || []).find((d) => d.id === segments[3]);
+      return (disciplina?.[collection] || []).find((a) => a.id === id);
+    }
+    return null;
+  }
+
+  function entitiesDiffer(local, remote) {
+    if (!local || !remote) return true;
+    const localSync = local._sync || {};
+    const remoteSync = remote._sync || {};
+    if (localSync.revision && remoteSync.revision && localSync.revision === remoteSync.revision) {
+      return JSON.stringify(local) !== JSON.stringify(remote);
+    }
+    return true;
+  }
+
+  function upsertEntity(doc) {
+    const { collection, id, key, payload } = doc;
+    if (!payload) return;
+
+    if (collection === 'editais') {
+      if (!Array.isArray(baseState.editais)) baseState.editais = [];
+      const idx = baseState.editais.findIndex((e) => e.id === id);
+      if (idx === -1) baseState.editais.push({ ...payload, disciplinas: [] });
+      else
+        baseState.editais[idx] = {
+          ...payload,
+          disciplinas: baseState.editais[idx].disciplinas || [],
+        };
+      return;
+    }
+
+    if (collection === 'eventos' || collection === 'arquivo' || collection === 'revisoes') {
+      if (!Array.isArray(baseState[collection])) baseState[collection] = [];
+      const idx = baseState[collection].findIndex((e) => e.id === id);
+      if (idx === -1) baseState[collection].push(payload);
+      else baseState[collection][idx] = payload;
+      return;
+    }
+
+    if (collection.startsWith('habitos.')) {
+      const type = collection.split('.')[1];
+      if (!baseState.habitos) baseState.habitos = {};
+      if (!Array.isArray(baseState.habitos[type])) baseState.habitos[type] = [];
+      const idx = baseState.habitos[type].findIndex((e) => e.id === id);
+      if (idx === -1) baseState.habitos[type].push(payload);
+      else baseState.habitos[type][idx] = payload;
+      return;
+    }
+
+    if (collection === 'planejamento.sequencia') {
+      if (!baseState.planejamento) baseState.planejamento = {};
+      if (!Array.isArray(baseState.planejamento.sequencia)) baseState.planejamento.sequencia = [];
+      const idx = baseState.planejamento.sequencia.findIndex((e) => e.id === id);
+      if (idx === -1) baseState.planejamento.sequencia.push(payload);
+      else baseState.planejamento.sequencia[idx] = payload;
+      return;
+    }
+
+    if (collection === 'disciplinas') {
+      const editalId = key.split('/')[1];
+      const edital = (baseState.editais || []).find((e) => e.id === editalId);
+      if (!edital) return;
+      if (!Array.isArray(edital.disciplinas)) edital.disciplinas = [];
+      const idx = edital.disciplinas.findIndex((d) => d.id === id);
+      if (idx === -1) edital.disciplinas.push({ ...payload, assuntos: [], aulas: [] });
+      else
+        edital.disciplinas[idx] = {
+          ...payload,
+          assuntos: edital.disciplinas[idx].assuntos || [],
+          aulas: edital.disciplinas[idx].aulas || [],
+        };
+      return;
+    }
+
+    if (collection === 'assuntos' || collection === 'aulas') {
+      const segments = key.split('/');
+      const edital = (baseState.editais || []).find((e) => e.id === segments[1]);
+      if (!edital) return;
+      const disciplina = (edital.disciplinas || []).find((d) => d.id === segments[3]);
+      if (!disciplina) return;
+      if (!Array.isArray(disciplina[collection])) disciplina[collection] = [];
+      const idx = disciplina[collection].findIndex((a) => a.id === id);
+      if (idx === -1) disciplina[collection].push(payload);
+      else disciplina[collection][idx] = payload;
+      return;
+    }
+  }
+
+  function applyTombstone(tombstone) {
+    const { collection, id, key } = tombstone;
+    if (collection === 'editais') {
+      baseState.editais = (baseState.editais || []).filter((e) => e.id !== id);
+      return;
+    }
+    if (collection === 'eventos' || collection === 'arquivo' || collection === 'revisoes') {
+      baseState[collection] = (baseState[collection] || []).filter((e) => e.id !== id);
+      return;
+    }
+    if (collection.startsWith('habitos.')) {
+      const type = collection.split('.')[1];
+      if (baseState.habitos?.[type]) {
+        baseState.habitos[type] = baseState.habitos[type].filter((e) => e.id !== id);
+      }
+      return;
+    }
+    if (collection === 'planejamento.sequencia') {
+      if (baseState.planejamento?.sequencia) {
+        baseState.planejamento.sequencia = baseState.planejamento.sequencia.filter(
+          (e) => e.id !== id
+        );
+      }
+      return;
+    }
+    if (collection === 'disciplinas') {
+      const editalId = key.split('/')[1];
+      const edital = (baseState.editais || []).find((e) => e.id === editalId);
+      if (edital) edital.disciplinas = (edital.disciplinas || []).filter((d) => d.id !== id);
+      return;
+    }
+    if (collection === 'assuntos' || collection === 'aulas') {
+      const segments = key.split('/');
+      const edital = (baseState.editais || []).find((e) => e.id === segments[1]);
+      if (!edital) return;
+      const disciplina = (edital.disciplinas || []).find((d) => d.id === segments[3]);
+      if (disciplina)
+        disciplina[collection] = (disciplina[collection] || []).filter((a) => a.id !== id);
+    }
+  }
+
+  for (const doc of newest) {
+    if (doc.deletedAt || doc.payload === null) {
+      const existingTombstone = tombstoneKeys.get(doc.key);
+      if (existingTombstone && existingTombstone.revision >= doc.revision) continue;
+      applyTombstone(doc);
+      const newTombstone = {
+        key: doc.key,
+        collection: doc.collection,
+        id: doc.id,
+        deletedAt: doc.deletedAt,
+        deletedBy: doc.updatedBy,
+        revision: doc.revision,
+      };
+      if (existingTombstone) {
+        Object.assign(existingTombstone, newTombstone);
+      } else {
+        tombstones.push(newTombstone);
+        tombstoneKeys.set(doc.key, newTombstone);
+      }
+      continue;
+    }
+
+    const local = getLocalEntity(doc);
+    if (local && entitiesDiffer(local, doc.payload)) {
+      const localRev = local._sync?.revision || 0;
+      const remoteRev = doc.payload._sync?.revision || 0;
+      if (localRev > 0 && remoteRev > 0 && localRev !== remoteRev) {
+        collisions.push({
+          key: doc.key,
+          collection: doc.collection,
+          id: doc.id,
+          localRevision: localRev,
+          remoteRevision: remoteRev,
+          localUpdatedAt: local._sync?.updatedAt || null,
+          remoteUpdatedAt: doc.payload._sync?.updatedAt || doc.updatedAt || null,
+        });
+      }
+    }
+
+    upsertEntity(doc);
+  }
+
+  if (!baseState.config) baseState.config = {};
+  baseState.config.entityTombstones = tombstones;
+
+  return { mergedState: baseState, collisions };
+}
+
 export function replaceEntityInStateByRecord(targetState = {}, record = {}) {
   if (!record || !record.entity || !record.collection || !record.id) return false;
   const { collection, id, key, entity } = record;

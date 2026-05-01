@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { describe, expect, it } from 'vitest';
+import { mergeEntityDocsIntoState } from '../../src/js/sync/entity-state-builder.js';
+
 const baseState = () => ({
   schemaVersion: 7,
   editais: [],
@@ -165,5 +168,143 @@ describe('Firestore entity primary regressions', () => {
     expect(state.config.firestoreSync.lastPullAt).toBeTruthy();
     expect(state.config.firestoreSync.hasPendingWrites).toBe(false);
     expect(state.config.firestoreSync.conflict).toBeNull();
+  });
+});
+
+describe('mergeEntityDocsIntoState', () => {
+  it('merges different entities without collision', () => {
+    const localState = {
+      eventos: [{ id: 'ev_1', titulo: 'Local', _sync: { revision: 1, updatedAt: '2026-04-29T20:00:00.000Z' } }],
+      editais: [],
+      config: { entityTombstones: [] },
+    };
+    const remoteDocs = [
+      {
+        key: 'eventos/ev_2',
+        collection: 'eventos',
+        id: 'ev_2',
+        updatedAt: '2026-04-29T21:00:00.000Z',
+        revision: 1,
+        payload: { id: 'ev_2', titulo: 'Remoto', _sync: { revision: 1, updatedAt: '2026-04-29T21:00:00.000Z' } },
+      },
+    ];
+
+    const { mergedState, collisions } = mergeEntityDocsIntoState(localState, remoteDocs);
+
+    expect(collisions).toHaveLength(0);
+    expect(mergedState.eventos).toHaveLength(2);
+    expect(mergedState.eventos.find((e) => e.id === 'ev_1').titulo).toBe('Local');
+    expect(mergedState.eventos.find((e) => e.id === 'ev_2').titulo).toBe('Remoto');
+  });
+
+  it('detects collision when same entity has different revisions', () => {
+    const localState = {
+      eventos: [{ id: 'ev_1', titulo: 'Local', _sync: { revision: 3, updatedAt: '2026-04-29T22:00:00.000Z' } }],
+      editais: [],
+      config: { entityTombstones: [] },
+    };
+    const remoteDocs = [
+      {
+        key: 'eventos/ev_1',
+        collection: 'eventos',
+        id: 'ev_1',
+        updatedAt: '2026-04-29T21:00:00.000Z',
+        revision: 2,
+        payload: { id: 'ev_1', titulo: 'Remoto', _sync: { revision: 2, updatedAt: '2026-04-29T21:00:00.000Z' } },
+      },
+    ];
+
+    const { mergedState, collisions } = mergeEntityDocsIntoState(localState, remoteDocs);
+
+    expect(collisions).toHaveLength(1);
+    expect(collisions[0].key).toBe('eventos/ev_1');
+    expect(collisions[0].localRevision).toBe(3);
+    expect(collisions[0].remoteRevision).toBe(2);
+    expect(mergedState.eventos).toHaveLength(1);
+  });
+
+  it('applies tombstone idempotently', () => {
+    const localState = {
+      eventos: [{ id: 'ev_1', titulo: 'Para deletar' }],
+      editais: [],
+      config: { entityTombstones: [] },
+    };
+    const remoteDocs = [
+      {
+        key: 'eventos/ev_1',
+        collection: 'eventos',
+        id: 'ev_1',
+        updatedAt: '2026-04-29T21:00:00.000Z',
+        revision: 2,
+        deletedAt: '2026-04-29T21:00:00.000Z',
+        payload: null,
+      },
+    ];
+
+    const { mergedState } = mergeEntityDocsIntoState(localState, remoteDocs);
+
+    expect(mergedState.eventos).toHaveLength(0);
+    expect(mergedState.config.entityTombstones).toHaveLength(1);
+    expect(mergedState.config.entityTombstones[0].key).toBe('eventos/ev_1');
+  });
+
+  it('skips tombstone when local revision is equal or higher', () => {
+    const localState = {
+      eventos: [],
+      editais: [],
+      config: {
+        entityTombstones: [
+          { key: 'eventos/ev_1', collection: 'eventos', id: 'ev_1', deletedAt: '2026-04-29T20:00:00.000Z', revision: 3 },
+        ],
+      },
+    };
+    const remoteDocs = [
+      {
+        key: 'eventos/ev_1',
+        collection: 'eventos',
+        id: 'ev_1',
+        updatedAt: '2026-04-29T21:00:00.000Z',
+        revision: 2,
+        deletedAt: '2026-04-29T19:00:00.000Z',
+        payload: null,
+      },
+    ];
+
+    const { mergedState } = mergeEntityDocsIntoState(localState, remoteDocs);
+
+    expect(mergedState.config.entityTombstones[0].revision).toBe(3);
+  });
+
+  it('merges entities across nested collections', () => {
+    const localState = {
+      editais: [
+        {
+          id: 'ed_1',
+          nome: 'Edital Local',
+          disciplinas: [
+            { id: 'disc_1', nome: 'Disciplina Local', assuntos: [], aulas: [] },
+          ],
+        },
+      ],
+      eventos: [],
+      config: { entityTombstones: [] },
+    };
+    const remoteDocs = [
+      {
+        key: 'editais/ed_1/disciplinas/disc_2',
+        collection: 'disciplinas',
+        id: 'disc_2',
+        updatedAt: '2026-04-29T21:00:00.000Z',
+        revision: 1,
+        payload: { id: 'disc_2', nome: 'Disciplina Remota', assuntos: [], aulas: [] },
+      },
+    ];
+
+    const { mergedState, collisions } = mergeEntityDocsIntoState(localState, remoteDocs);
+
+    expect(collisions).toHaveLength(0);
+    expect(mergedState.editais[0].disciplinas).toHaveLength(2);
+    expect(mergedState.editais[0].disciplinas.find((d) => d.id === 'disc_1').nome).toBe('Disciplina Local');
+    expect(mergedState.editais[0].disciplinas.find((d) => d.id === 'disc_2').nome).toBe('Disciplina Remota');
   });
 });

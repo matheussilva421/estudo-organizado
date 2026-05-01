@@ -82,6 +82,7 @@ registerAction('archive-old-events', (el) => {
 registerAction('clear-all-data', clearAllData);
 registerAction('set-theme', (el) => setTheme(el.value));
 registerAction('export-data', exportData);
+registerAction('import-data', importData);
 registerAction('restore-backup', restoreBackupFromSelectedSource);
 registerAction('open-restore-preview', restoreBackupFromSelectedSource);
 registerAction('open-drive-modal', openDriveModal);

@@ -45,6 +45,16 @@ describe('sync-health.js', () => {
     expect(health.lastError).toBe('network timeout');
   });
 
+  it('marks offline state as queued for later sync without requiring action', () => {
+    const health = deriveSyncHealthState({
+      offline: true,
+      localSavedAt: '2026-05-01T10:00:00.000Z',
+    });
+
+    expect(health.state).toBe('offline');
+    expect(health.requiresAction).toBe(false);
+  });
+
   it('keeps bounded structured event history without payloads', () => {
     const target = { config: {} };
     appendSyncHealthEvent(target, {

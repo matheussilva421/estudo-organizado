@@ -128,6 +128,7 @@ test.describe('Sync simulado', () => {
       .toBe('2026-04-29T19:00:00.000Z');
     await page.evaluate(() => window.EstudoApp.renderCurrentView());
 
+    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
     const conflict = page.locator('[data-testid="cf-sync-conflict"]');
     await expect(conflict).toBeVisible();
     await expect(conflict.locator('[data-action="cloud-conflict-export-local"]')).toBeVisible();
@@ -143,7 +144,8 @@ test.describe('Sync simulado', () => {
     await bootE2EApp(page, state);
     await page.click('[data-view="config"]');
 
-    await expect(page.locator('#main-content')).toContainText('Conectado ao Google Drive');
+    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
+    await expect(page.locator('#main-content')).toContainText('Google Drive (Secundario)');
     await expect(page.locator('#main-content [data-action="drive-sync-now"]').first()).toBeVisible();
     await expect(page.locator('#main-content [data-action="pull-from-drive"]').first()).toBeVisible();
     await expect(page.locator('#main-content [data-action="drive-disconnect"]').first()).toBeVisible();

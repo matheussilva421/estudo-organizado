@@ -852,6 +852,57 @@ body {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger), transparent 76%);
 }
 
+.save-status--pending {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent), transparent 48%);
+}
+
+.save-status--pending::before {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 76%);
+  animation: save-status-pulse 1.5s ease-in-out infinite;
+}
+
+.save-status--offline {
+  color: var(--text-secondary);
+  border-color: color-mix(in srgb, var(--text-secondary), transparent 48%);
+}
+
+.save-status--offline::before {
+  background: var(--text-secondary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-secondary), transparent 76%);
+}
+
+.save-status--danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger), transparent 48%);
+}
+
+.save-status--danger::before {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger), transparent 76%);
+}
+
+.save-status--warning {
+  color: var(--warning, #f59e0b);
+  border-color: color-mix(in srgb, var(--warning, #f59e0b), transparent 48%);
+}
+
+.save-status--warning::before {
+  background: var(--warning, #f59e0b);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning, #f59e0b), transparent 76%);
+}
+
+@keyframes save-status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

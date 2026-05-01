@@ -7,6 +7,12 @@ describe('sync/sync-coordinator.js', () => {
   let entityOutbox;
   let coordinator;
 
+  async function flushCoordinatorPromises() {
+    for (let i = 0; i < 6; i += 1) {
+      await Promise.resolve();
+    }
+  }
+
   beforeEach(async () => {
     vi.resetModules();
     vi.useFakeTimers();
@@ -21,6 +27,7 @@ describe('sync/sync-coordinator.js', () => {
       },
     };
     firestoreSync = {
+      autoPullRemoteWhenNewer: vi.fn(() => Promise.resolve(false)),
       flushFirestoreOutbox: vi.fn(() => Promise.resolve(true)),
       getFirestoreSyncStatus: vi.fn(() => ({
         configured: true,
@@ -199,6 +206,40 @@ describe('sync/sync-coordinator.js', () => {
       );
       expect(result).toBe(true);
     });
+
+    it('auto-pulls remote when newer and no local pending', async () => {
+      firestoreSync.autoPullRemoteWhenNewer.mockResolvedValue(true);
+
+      const result = await coordinator.flushPrimarySyncNow({ manual: false });
+
+      expect(firestoreSync.autoPullRemoteWhenNewer).toHaveBeenCalled();
+      expect(result).toBe(true);
+      expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
+    });
+
+    it('skips auto-pull and pushes when local has pending data', async () => {
+      firestoreSync.autoPullRemoteWhenNewer.mockResolvedValue(false);
+
+      const result = await coordinator.flushPrimarySyncNow({ manual: false });
+
+      expect(firestoreSync.autoPullRemoteWhenNewer).toHaveBeenCalled();
+      expect(firestoreSync.queueFirestoreSnapshotFromState).toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalled();
+      expect(result).toBe(true);
+    });
+
+    it('resets failure count on successful auto-pull', async () => {
+      coordinator.flushPrimarySyncNow({ manual: false, reason: 'fail-1' });
+      coordinator.flushPrimarySyncNow({ manual: false, reason: 'fail-2' });
+
+      firestoreSync.autoPullRemoteWhenNewer.mockResolvedValue(true);
+      const result = await coordinator.flushPrimarySyncNow({ manual: false });
+
+      expect(result).toBe(true);
+      const status = coordinator.getSyncCoordinatorStatus();
+      expect(status.failureCount).toBe(0);
+    });
   });
 
   describe('initSyncCoordinator()', () => {
@@ -232,18 +273,56 @@ describe('sync/sync-coordinator.js', () => {
       );
     });
 
-    it('schedules immediate sync when browser reconnects', () => {
+    it('flushes sync immediately when browser reconnects without active backoff', async () => {
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       coordinator.initSyncCoordinator();
 
       window.dispatchEvent(new Event('online'));
+      await flushCoordinatorPromises();
 
-      expect(dispatchSpy).toHaveBeenCalledWith(
+      expect(firestoreSync.queueFirestoreSnapshotFromState).toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalled();
+      expect(dispatchSpy).not.toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'app:primarySyncQueued',
           detail: expect.objectContaining({ reason: 'reconnect', delayMs: 0 }),
         })
       );
+    });
+
+    it('respects snapshot retry backoff when browser reconnects', async () => {
+      const nextAttemptAt = new Date(Date.now() + 120000).toISOString();
+      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+      firestoreOutbox.getPendingFirestoreSnapshot.mockResolvedValue({
+        status: 'pending',
+        nextAttemptAt,
+      });
+      coordinator.initSyncCoordinator();
+
+      window.dispatchEvent(new Event('online'));
+      await flushCoordinatorPromises();
+
+      expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'app:primarySyncQueued',
+          detail: expect.objectContaining({ reason: 'reconnect' }),
+        })
+      );
+    });
+
+    it('flushes sync immediately when returning to foreground without backoff', async () => {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        value: 'visible',
+      });
+      coordinator.initSyncCoordinator();
+
+      document.dispatchEvent(new Event('visibilitychange'));
+      await flushCoordinatorPromises();
+
+      expect(firestoreSync.queueFirestoreSnapshotFromState).toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalled();
     });
   });
 });

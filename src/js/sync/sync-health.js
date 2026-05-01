@@ -32,6 +32,7 @@ export function deriveSyncHealthState(input = {}) {
 
   if (input.recovery) state = 'recovery';
   else if (conflict) state = 'conflict';
+  else if (input.offline) state = 'offline';
   else if (input.syncing) state = 'syncing';
   else if (failureCount >= 3 || (lastError && failureCount > 0)) state = 'degraded';
   else if (pending || input.queued) state = 'queued';

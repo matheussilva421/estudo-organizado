@@ -1,5 +1,6 @@
 import { state } from '../store.js?v=8.32';
 import {
+  autoPullRemoteWhenNewer,
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
@@ -61,6 +62,24 @@ async function scheduleRetryIfNeeded(reason) {
   if (!pending?.nextAttemptAt) return;
   const delay = toDelayFromPending(pending);
   schedulePrimarySync(reason, { delayMs: delay });
+}
+
+async function flushPrimarySyncWhenAllowed(reason) {
+  const pendingSnapshot = await getPendingFirestoreSnapshot();
+  if (pendingSnapshot?.nextAttemptAt) {
+    const delay = toDelayFromPending(pendingSnapshot);
+    if (delay > PRIMARY_SYNC_DEBOUNCE_MS) {
+      return schedulePrimarySync(reason, { delayMs: delay });
+    }
+  }
+
+  const pendingEntityBatch = await getPendingFirestoreEntityBatch();
+  if (pendingEntityBatch && !canRetryEntityBatch(pendingEntityBatch)) {
+    const delay = toDelayFromPending(pendingEntityBatch);
+    return schedulePrimarySync(reason, { delayMs: delay });
+  }
+
+  return await flushPrimarySyncNow({ reason });
 }
 
 function isPrimaryEntitySyncEnabled() {
@@ -131,8 +150,10 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
 
   syncTimer = setTimeout(() => {
     syncTimer = null;
-    flushPrimarySyncNow({ reason }).catch((err) => {
-      emitCoordinatorStatus('error', { reason, error: err.message || String(err) });
+    flushPrimarySyncNow({ reason }).catch(() => {
+      if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
+        emitCoordinatorStatus('degraded', { reason });
+      }
     });
   }, delayMs);
 
@@ -173,6 +194,12 @@ export async function flushPrimarySyncNow(options = {}) {
     return ok;
   }
 
+  const pulled = await autoPullRemoteWhenNewer();
+  if (pulled) {
+    failureCount = 0;
+    return true;
+  }
+
   const entityReady = await ensurePrimaryEntityBatchReady(reason);
   if (!entityReady) {
     await scheduleRetryIfNeeded(reason);
@@ -209,12 +236,20 @@ export function initSyncCoordinator() {
   });
 
   window.addEventListener('online', () => {
-    schedulePrimarySync('reconnect', { delayMs: 0 });
+    flushPrimarySyncWhenAllowed('reconnect').catch(() => {
+      if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
+        emitCoordinatorStatus('degraded', { reason: 'reconnect' });
+      }
+    });
   });
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      schedulePrimarySync('foreground', { delayMs: 0 });
+      flushPrimarySyncWhenAllowed('foreground').catch(() => {
+        if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
+          emitCoordinatorStatus('degraded', { reason: 'foreground' });
+        }
+      });
     }
   });
 

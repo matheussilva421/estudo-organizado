@@ -180,6 +180,27 @@ describe('sync-center.js', () => {
       expect(model.quiet.tone).toBe('danger');
       expect(model.quiet.primaryAction).toBe('advanced');
     });
+
+    it('explains offline automatic sync without asking for manual action', () => {
+      const model = buildSyncCenterModel({
+        state: {
+          config: {
+            localBackupAt: '2026-05-01T10:00:00.000Z',
+            syncHealth: { offline: true },
+            firestoreSync: {
+              enabled: true,
+              configured: true,
+              signedIn: true,
+              mode: 'primary',
+            },
+          },
+        },
+      });
+
+      expect(model.health.status).toBe('offline');
+      expect(model.quiet.title).toBe('Offline, sync automatico pausado');
+      expect(model.quiet.primaryAction).toBeNull();
+    });
   });
 
   describe('mergeStudyStates()', () => {

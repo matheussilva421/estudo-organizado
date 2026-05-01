@@ -4,7 +4,15 @@
 
 Sync is local-first and Firestore-primary. The local commit point is IndexedDB; Firestore can operate in entity-primary mode, while the versioned snapshot remains a fallback mirror and compatibility/recovery contract.
 
-Firestore is now the primary remote channel when configured, signed in, and enabled in `primary` mode. Cloudflare KV and Google Drive remain supported as secondary backup/restore channels and are not treated as equivalent stores by the central smart sync flow.
+Firestore is the primary remote channel when configured, signed in, and enabled in `primary` mode. Cloudflare KV and Google Drive are **secondary backup/restore channels only** and are not treated as equivalent stores by the central smart sync flow.
+
+### Secondary Channel Rules (Phase 5)
+
+- Cloudflare and Drive are **manual-only** backup channels. They never participate in automatic sync.
+- Toggling Cloudflare sync or triggering Drive sync does **not** fire the primary Firestore sync coordinator.
+- Cloudflare and Drive configuration lives inside the Backup Center's advanced panel (`backup-advanced-panel`), keeping them out of the primary sync flow.
+- JSON export/import is the **first-class recovery option** and appears as the primary action in the Backup Center.
+- The UI describes Cloudflare and Drive explicitly as "secundario" with the note: "Nao participa do sync automatico."
 
 ## Firestore Snapshot
 

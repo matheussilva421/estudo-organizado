@@ -45,6 +45,16 @@ function deriveQuietSyncView({ syncHealth, firestore }) {
     };
   }
 
+  if (syncHealth.state === 'offline') {
+    return {
+      title: 'Offline, sync automatico pausado',
+      detail:
+        'Suas alteracoes continuam salvas neste dispositivo e serao enviadas ao Firestore quando a conexao voltar.',
+      tone: 'pending',
+      primaryAction: null,
+    };
+  }
+
   if (!firestore.configured) {
     return {
       title: 'Salvo neste dispositivo',
@@ -125,6 +135,9 @@ export function canAutoSyncFirestore(config = {}, pending = null, now = Date.now
 
 export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestoreStatus = null }) {
   const config = state?.config || {};
+  const offline =
+    config.syncHealth?.offline === true ||
+    (typeof navigator !== 'undefined' && navigator.onLine === false);
   const firestore = {
     ...config.firestoreSync,
     ...(typeof getFirestoreStatus === 'function' ? getFirestoreStatus() : {}),
@@ -141,6 +154,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
     localSavedAt: config.localBackupAt || null,
     remoteAckAt: firestore.lastPushAt || firestore.remoteUpdatedAt || null,
     failureCount: config.syncHealth?.failureCount || 0,
+    offline,
   });
   const syncMetrics = summarizeSyncMetrics(syncHealth.metrics);
 

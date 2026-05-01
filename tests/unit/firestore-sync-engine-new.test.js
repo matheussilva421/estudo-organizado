@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createBaseState } from '../helpers/state-builders.js';
 
 let syncEngine;
@@ -177,6 +177,41 @@ describe('firestore-sync-engine.js', () => {
       await syncEngine.firestoreSignOut();
       const status = syncEngine.getFirestoreSyncStatus();
       expect(status.signedIn).toBe(false);
+    });
+  });
+
+  describe('autoPullRemoteWhenNewer', () => {
+    it('returns false when sync not enabled', async () => {
+      const result = await syncEngine.autoPullRemoteWhenNewer();
+      expect(result).toBe(false);
+    });
+
+    it('returns false when mode is not primary', async () => {
+      await syncEngine.enableFirestoreSync('shadow');
+      const result = await syncEngine.autoPullRemoteWhenNewer();
+      expect(result).toBe(false);
+    });
+
+    it('returns false when there is pending snapshot', async () => {
+      await syncEngine.enableFirestoreSync('primary');
+      store.state.config.firestoreSync.hasPendingWrites = true;
+
+      vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.32', () => ({
+        getPendingFirestoreSnapshot: vi.fn(() =>
+          Promise.resolve({ status: 'pending', envelope: {} })
+        ),
+      }));
+
+      const result = await syncEngine.autoPullRemoteWhenNewer();
+      expect(result).toBe(false);
+    });
+
+    it('returns false when remote is not newer', async () => {
+      await syncEngine.enableFirestoreSync('primary');
+      store.state.config.localBackupAt = new Date().toISOString();
+
+      const result = await syncEngine.autoPullRemoteWhenNewer();
+      expect(result).toBe(false);
     });
   });
 });

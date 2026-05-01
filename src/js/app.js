@@ -113,10 +113,47 @@ export function renderSaveStatus(statusDetail = _lastSaveStatus) {
   }
 }
 
+const QUIET_SYNC_LABELS = {
+  ok: 'Tudo salvo',
+  pending: 'Sincronizando',
+  offline: 'Offline',
+  danger: 'Acao necessaria',
+  warning: 'Sincronizando',
+  idle: 'Tudo salvo',
+};
+
+let _topbarSyncState = 'ok';
+
+function renderSyncTopbarStatus(quietTone) {
+  const topbarStatus = document.getElementById('save-status');
+  if (!topbarStatus) return;
+  const label = QUIET_SYNC_LABELS[quietTone] || 'Tudo salvo';
+  _topbarSyncState = quietTone;
+  topbarStatus.className = `save-status save-status--${quietTone}`;
+  topbarStatus.textContent = label;
+  topbarStatus.setAttribute('aria-label', label);
+}
+
 export function initSaveStatusIndicator() {
   if (!_saveStatusListenerAttached) {
     document.addEventListener('app:saveStatus', (event) => {
       renderSaveStatus(event.detail || {});
+    });
+    document.addEventListener('app:primarySyncStatus', (event) => {
+      const detail = event.detail || {};
+      const status = detail.status || 'idle';
+      const toneMap = {
+        synced: 'ok',
+        syncing: 'pending',
+        queued: 'pending',
+        'conflict-paused': 'danger',
+        degraded: 'warning',
+        error: 'danger',
+        offline: 'offline',
+        idle: 'ok',
+        recovery: 'pending',
+      };
+      renderSyncTopbarStatus(toneMap[status] || 'ok');
     });
     _saveStatusListenerAttached = true;
   }

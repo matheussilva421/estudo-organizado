@@ -172,11 +172,11 @@ Ensure the quiet panel stacks and the advanced panel does not overflow horizonta
 
 Tasks:
 
-- [ ] Garantir que `stateSaved` sempre agenda Firestore primary quando usuario esta logado, sem exigir clique em "Enviar local".
-- [ ] Usar reconnect/foreground para flush imediato quando `nextAttemptAt` permite.
-- [ ] Reduzir emissao de status repetido durante `queued -> syncing -> synced`.
-- [ ] Criar regra: se nao ha conflito e ha local mais novo, enviar automaticamente.
-- [ ] Criar regra: se nao ha local pendente e remoto e mais novo, baixar automaticamente apenas quando entity-primary puder aplicar sem overwrite inseguro.
+- [x] Garantir que `stateSaved` sempre agenda Firestore primary quando usuario esta logado, sem exigir clique em "Enviar local".
+- [x] Usar reconnect/foreground para flush imediato quando `nextAttemptAt` permite.
+- [x] Reduzir emissao de status repetido durante `queued -> syncing -> synced`.
+- [x] Criar regra: se nao ha conflito e ha local mais novo, enviar automaticamente.
+- [x] Criar regra: se nao ha local pendente e remoto e mais novo, baixar automaticamente apenas quando entity-primary puder aplicar sem overwrite inseguro.
 
 ---
 
@@ -194,10 +194,10 @@ Tasks:
 
 Tasks:
 
-- [ ] Mesclar automaticamente entidades diferentes.
-- [ ] Tratar tombstones de forma idempotente.
-- [ ] Gerar conflito apenas quando a mesma entidade tiver alteracao concorrente incompatível.
-- [ ] Persistir decisao de conflito sem payload sensivel.
+- [x] Mesclar automaticamente entidades diferentes.
+- [x] Tratar tombstones de forma idempotente.
+- [x] Gerar conflito apenas quando a mesma entidade tiver alteracao concorrente incompatível.
+- [x] Persistir decisao de conflito sem payload sensivel.
 
 ---
 
@@ -215,10 +215,10 @@ Tasks:
 
 Tasks:
 
-- [ ] Topbar mostra somente `Tudo salvo`, `Sincronizando`, `Offline` ou `Acao necessaria`.
-- [ ] Toasts de sucesso repetidos deixam de aparecer em sync automatico.
-- [ ] Erros temporarios ficam silenciosos ate atingir circuito degradado.
-- [ ] Conflitos reais abrem CTA claro para resolver.
+- [x] Topbar mostra somente `Tudo salvo`, `Sincronizando`, `Offline` ou `Acao necessaria`.
+- [x] Toasts de sucesso repetidos deixam de aparecer em sync automatico.
+- [x] Erros temporarios ficam silenciosos ate circuito degradado.
+- [x] Conflitos reais abrem CTA claro para resolver.
 
 ---
 
@@ -237,10 +237,10 @@ Tasks:
 
 Tasks:
 
-- [ ] Mover Cloudflare e Drive para "Backups avancados".
-- [ ] Manter export/import JSON como primeiro botao de recuperacao.
-- [ ] Garantir que backup manual nao dispare sync primary automaticamente.
-- [ ] Documentar que Cloudflare e Drive sao canais secundarios.
+- [x] Mover Cloudflare e Drive para "Backups avancados".
+- [x] Manter export/import JSON como primeiro botao de recuperacao.
+- [x] Garantir que backup manual nao dispare sync primary automaticamente.
+- [x] Documentar que Cloudflare e Drive sao canais secundarios.
 
 ---
 
@@ -259,12 +259,12 @@ npm run test:e2e
 
 Scenarios:
 
-- [ ] Salvar evento e fechar aba abruptamente.
-- [ ] Reabrir offline e editar outro item.
-- [ ] Reconectar e confirmar sync automatico.
-- [ ] Simular conflito da mesma entidade.
-- [ ] Exportar JSON antes de restore.
-- [ ] Confirmar que nenhuma credencial aparece no export.
+- [x] Salvar evento e fechar aba abruptamente.
+- [x] Reabrir offline e editar outro item.
+- [x] Reconectar e confirmar sync automatico.
+- [x] Simular conflito da mesma entidade.
+- [x] Exportar JSON antes de restore.
+- [x] Confirmar que nenhuma credencial aparece no export.
 
 ---
 
@@ -273,3 +273,9 @@ Scenarios:
 - 2026-05-01: Plano criado para reduzir o sync a um Modo Tranquilo e iniciar pela Central de Sync.
 - 2026-05-01: Fase 1 iniciada. `buildSyncCenterModel()` agora expõe `quiet`, `renderConfig()` usa a Central em Modo Tranquilo, comandos manuais continuam em `sync-advanced-panel`, e testes focados passaram com 76 testes.
 - 2026-05-01: Fase 1 validada. `npm run format:check`, `npm run lint`, `npm test` e `npm run test:e2e` passaram. O E2E completo fechou com 110 testes verdes.
+- 2026-05-01: Fase 2 iniciada. A Central agora reconhece estado `offline` como pausa automatica sem acao manual, e `sync-coordinator.js` tenta flush imediato em reconnect/foreground apenas quando o `nextAttemptAt` permite; caso contrario, agenda o retry correto. Validacao: `npm run format:check`, `npm run lint`, `npm test` e `npm run test:e2e` passaram.
+- 2026-05-01: Fase 2 concluida. `autoPullRemoteWhenNewer()` baixa dados remotos automaticamente quando nao ha pendencia local e o remoto e mais novo, suportando tanto snapshot quanto entity-primary. `flushPrimarySyncNow()` executa auto-pull antes de tentar push local. Validacao: `npm run format:check`, `npm run lint`, `npm test` (1150 passed) e `npm run test:e2e` (110 passed) passaram.
+- 2026-05-01: Fase 3 concluida. `mergeEntityDocsIntoState()` em `entity-state-builder.js` faz merge entidade-por-entidade preservando dados locais, aplica tombstones de forma idempotente (respeitando revision), e gera conflito apenas quando a mesma entidade tem revisoes diferentes. Integrado em `autoPullRemoteWhenNewer()`, `pullFromFirestore()`, `syncFirestoreNow()` e `mergeFromFirestore()`. 5 novos testes de contrato de merge. Validacao: `npm run format:check`, `npm run lint`, `npm test` (1155 passed) e `npm run test:e2e` (110 passed) passaram.
+- 2026-05-01: Fase 4 concluida. Topbar agora mostra estados simplificados (`Tudo salvo`, `Sincronizando`, `Offline`, `Acao necessaria`) via listener `app:primarySyncStatus` mapeando tons do quiet sync view. Erros temporarios em reconnect/foreground/debounce ficam silenciosos ate circuito degradado (3 falhas). CSS adiciona estados visuais `pending`, `offline`, `danger`, `warning` com animacao de pulso para sync ativo. Validacao: `npm run format:check`, `npm run lint`, `npm test` (1155 passed) e `npm run test:e2e` (110 passed) passaram.
+- 2026-05-01: Fase 5 concluida. Cloudflare e Drive movidos para painel avancado colapsavel (`backup-advanced-panel`) dentro do Backup Center. Export/import JSON sao agora acoes primarias em destaque. Cards standalone de Cloudflare e Drive removidos do `renderConfig()`. `import-data` action registrada no dispatcher. Documentacao `sync-contract.md` atualizada com regras de canais secundarios. Validacao: `npm run format:check`, `npm run lint`, `npm test` (1155 passed) e `npm run test:e2e` (110 passed) passaram.
+- 2026-05-01: Fase 6 concluida. 6 novos testes de caos em `phase6-chaos-validation.spec.js`: reconexao apos offline, export antes de restore, credenciais ausentes no export, persistencia apos crash, edicao offline sem perda, conflito de entidade com CTA. Cenarios 1-4 ja tinham cobertura parcial em testes existentes. Validacao: `npm run format:check`, `npm run lint`, `npm test` (1155 passed) e `npm run test:e2e` (116 passed) passaram. Plano completo.

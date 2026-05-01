@@ -125,8 +125,28 @@ function renderBackupCenterCard() {
     <div class="card config-card" data-testid="backup-center">
       <div class="card-header"><h3><i class="fa fa-shield-heart"></i> Backup Center</h3></div>
       <div class="card-body">
-        <div class="config-desc">Restaure com previa de impacto, exporte antes de sobrescrever e acompanhe a ultima confirmacao de cada canal.</div>
-        <div class="backup-center-grid">
+        <div class="config-desc">Exporte seus dados como JSON para backup seguro. A importacao valida o arquivo e mostra previa de impacto antes de substituir.</div>
+
+        <div class="backup-center-primary-actions">
+          <button class="btn btn-primary" data-action="export-data"><i class="fa fa-download"></i> Exportar JSON</button>
+          <button class="btn btn-outline" data-action="import-data"><i class="fa fa-file-import"></i> Importar JSON</button>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label">Origem do backup para restauracao</label>
+          <select id="backup-restore-source" class="form-control">
+            <option value="local">Backup local (importar arquivo JSON)</option>
+            <option value="firestore">Firestore</option>
+            <option value="cloudflare">Cloudflare</option>
+            <option value="drive">Google Drive</option>
+          </select>
+        </div>
+        <div class="config-actions-row">
+          <button class="btn btn-ghost" data-action="open-restore-preview"><i class="fa fa-rotate-left"></i> Restaurar com previa</button>
+          <button class="btn btn-ghost btn-sm" data-action="export-data">Exportar antes de restaurar</button>
+        </div>
+
+        <div class="backup-center-sources">
           ${sources
             .map(
               (source) => `
@@ -140,20 +160,16 @@ function renderBackupCenterCard() {
             )
             .join('')}
         </div>
-        <div class="form-group mb-3">
-          <label class="form-label">Origem do backup para restauracao</label>
-          <select id="backup-restore-source" class="form-control">
-            <option value="local">Backup local (importar arquivo JSON)</option>
-            <option value="firestore">Firestore</option>
-            <option value="cloudflare">Cloudflare</option>
-            <option value="drive">Google Drive</option>
-          </select>
-        </div>
-        <div class="config-actions-row">
-          <button class="btn btn-primary" data-action="export-data"><i class="fa fa-download"></i> Exportar agora</button>
-          <button class="btn btn-outline" data-action="open-restore-preview"><i class="fa fa-rotate-left"></i> Restaurar com previa</button>
-          <button class="btn btn-ghost" data-action="export-data">Exportar antes de restaurar</button>
-        </div>
+
+        <details class="backup-advanced-panel" data-testid="backup-advanced-panel">
+          <summary>Backups avancados (Cloudflare e Drive)</summary>
+          <div class="backup-advanced-content">
+            <div class="config-desc">Cloudflare e Drive sao canais secundarios para backup manual. Eles nao participam do sync automatico e devem ser usados apenas para recuperacao avancada.</div>
+
+            ${renderCloudflareAdvancedCard()}
+            ${renderDriveAdvancedCard()}
+          </div>
+        </details>
       </div>
     </div>
   `;
@@ -191,6 +207,75 @@ function renderCloudflareConflict(conflict) {
           <i class="fa fa-cloud-upload-alt"></i> Forçar envio local
         </button>
       </div>
+    </div>
+  `;
+}
+
+function renderCloudflareAdvancedCard() {
+  const cfg = state.config;
+  return `
+    <div class="backup-advanced-source-card" data-testid="cloudflare-advanced-card">
+      <div class="backup-advanced-source-header">
+        <h4><i class="fa fa-cloud"></i> Cloudflare (Secundario)</h4>
+        <span class="badge ${cfg.cfSyncEnabled ? 'badge-success' : 'badge-muted'}">${cfg.cfSyncEnabled ? 'Ativo' : 'Inativo'}</span>
+      </div>
+      <div class="config-desc">Sincronizacao manual via Cloudflare KV. Nao participa do sync automatico.</div>
+
+      ${renderCloudflareConflict(cfg.cfConflict)}
+
+      <div class="form-group config-input-group">
+        <label class="form-label">URL do Cloudflare Worker (API)</label>
+        <input type="url" id="config-cf-url" class="form-control" placeholder="Ex: https://estudo-sync-api.xxxx.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
+      </div>
+
+      <div class="form-group config-input-group">
+        <label class="form-label">Token de Acesso (Auth Token)</label>
+        <div class="config-input-group">
+            <input type="password" id="config-cf-token" class="form-control" placeholder="${cfg.cfTokenSaved ? 'Token salvo em credenciais locais' : 'Sua senha secreta do Worker'}" value="" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
+            <button type="button" class="btn btn-outline" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/Esconder Senha"><i class="fa fa-eye"></i></button>
+        </div>
+      </div>
+      
+      <div class="config-toggle-row">
+          <label class="btn ${cfg.cfSyncEnabled ? 'btn-primary' : 'btn-outline'}">
+              <input type="checkbox" id="config-cf-enabled" data-action="toggle-cf-sync" ${cfg.cfSyncEnabled ? 'checked' : ''}>
+              <i class="fa fa-power-off"></i> <span id="cf-sync-toggle-text">${cfg.cfSyncEnabled ? 'Sincronizacao Ativada' : 'Ativar Sincronizacao'}</span>
+          </label>
+          <button type="button" class="btn btn-outline" data-action="force-cloudflare-sync" id="btn-force-cf-sync"><i class="fa fa-sync"></i> Forcar Sincronizacao Agora</button>
+      </div>
+      <p id="cf-sync-status" class="config-status"></p>
+    </div>
+  `;
+}
+
+function renderDriveAdvancedCard() {
+  return `
+    <div class="backup-advanced-source-card" data-testid="drive-advanced-card">
+      <div class="backup-advanced-source-header">
+        <h4><i class="fa fa-drive"></i> Google Drive (Secundario)</h4>
+        <span class="badge ${state.driveFileId ? 'badge-success' : 'badge-muted'}">${state.driveFileId ? 'Conectado' : 'Desconectado'}</span>
+      </div>
+      <div class="config-desc">Backup manual via Google Drive. Nao participa do sync automatico.</div>
+
+      ${
+        state.driveFileId
+          ? `
+        <div class="config-actions-row">
+          <button class="btn btn-outline btn-sm" data-action="drive-sync-now">
+            <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
+          </button>
+          <button class="btn btn-ghost btn-sm" data-action="pull-from-drive">
+            <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
+          </button>
+          <button class="btn btn-danger btn-sm" data-action="drive-disconnect">Desconectar</button>
+        </div>
+      `
+          : `
+        <button class="btn btn-primary btn-sm" data-action="open-drive-modal">
+          <i class="fa fa-cloud"></i> Conectar ao Google Drive
+        </button>
+      `
+      }
     </div>
   `;
 }
@@ -357,6 +442,7 @@ function getSyncHealthLabel(health) {
     pending: 'Pendente',
     conflict: 'Conflito',
     error: 'Erro',
+    offline: 'Offline',
   };
   return labels[health] || 'Status';
 }
@@ -368,6 +454,7 @@ function getSyncHealthIcon(health) {
     pending: 'fa-clock',
     conflict: 'fa-triangle-exclamation',
     error: 'fa-circle-xmark',
+    offline: 'fa-wifi',
   };
   return icons[health] || 'fa-circle-info';
 }
@@ -869,69 +956,6 @@ export function renderConfig(el) {
 
       <div>
         ${renderQuietSyncCenterCard()}
-
-        <div class="card config-card">
-          <div class="card-header"><h3><i class="fa fa-cloud"></i> Sincronização Cloudflare (Secundária)</h3></div>
-          <div class="card-body">
-            <div class="config-desc">Sincronização em tempo real de baixíssima latência entre dispositivos via Cloudflare KV.</div>
-
-            ${renderCloudflareConflict(cfg.cfConflict)}
-
-            <div class="form-group config-input-group">
-              <label class="form-label">URL do Cloudflare Worker (API)</label>
-              <input type="url" id="config-cf-url" class="form-control" placeholder="Ex: https://estudo-sync-api.xxxx.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
-            </div>
-
-            <div class="form-group config-input-group">
-              <label class="form-label">Token de Acesso (Auth Token)</label>
-              <div class="config-input-group">
-                  <input type="password" id="config-cf-token" class="form-control" placeholder="${cfg.cfTokenSaved ? 'Token salvo em credenciais locais' : 'Sua senha secreta do Worker'}" value="" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
-                  <button type="button" class="btn btn-outline" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/Esconder Senha"><i class="fa fa-eye"></i></button>
-              </div>
-            </div>
-            
-            <div class="config-toggle-row">
-                <label class="btn ${cfg.cfSyncEnabled ? 'btn-primary' : 'btn-outline'}">
-                    <input type="checkbox" id="config-cf-enabled" data-action="toggle-cf-sync" ${cfg.cfSyncEnabled ? 'checked' : ''}>
-                    <i class="fa fa-power-off"></i> <span id="cf-sync-toggle-text">${cfg.cfSyncEnabled ? 'Sincronização Ativada' : 'Ativar Sincronização'}</span>
-                </label>
-                <button type="button" class="btn btn-outline" data-action="force-cloudflare-sync" id="btn-force-cf-sync"><i class="fa fa-sync"></i> Forçar Sincronização Agora</button>
-            </div>
-            <p id="cf-sync-status" class="config-status"></p>
-          </div>
-        </div>
-
-        <div class="card config-card">
-          <div class="card-header"><h3>😁️ Google Drive</h3></div>
-          <div class="card-body">
-            <div class="flex cluster-md mb-4">
-              <div class="config-emoji-icon">😁️</div>
-              <div>
-                <div class="config-title">${state.driveFileId ? 'Conectado ao Google Drive' : 'Não conectado'}</div>
-                <div class="config-subtitle">${state.driveFileId ? 'Seus dados são sincronizados automaticamente' : 'Sincronize seus dados entre dispositivos'}</div>
-              </div>
-            </div>
-            ${
-              state.driveFileId
-                ? `
-              <div class="config-actions-row">
-                <button class="btn btn-primary btn-sm" data-action="drive-sync-now">
-                  <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
-                </button>
-                <button class="btn btn-ghost btn-sm" data-action="pull-from-drive">
-                  <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
-                </button>
-                <button class="btn btn-danger btn-sm" data-action="drive-disconnect">Desconectar</button>
-              </div>
-            `
-                : `
-              <button class="btn btn-primary" data-action="open-drive-modal">
-                <i class="fa fa-cloud"></i> Conectar ao Google Drive
-              </button>
-            `
-            }
-          </div>
-        </div>
 
         ${renderBackupCenterCard()}
 
