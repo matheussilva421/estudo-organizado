@@ -71,3 +71,59 @@ export function createE2EState() {
     lastSync: null
   };
 }
+
+export function serializeE2EState(state) {
+  return JSON.stringify(state);
+}
+
+export async function seedE2EState(page, state = createE2EState()) {
+  await page.addInitScript((serializedState) => {
+    window.Chart = class {
+      destroy() {}
+    };
+
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('estudo_state', serializedState);
+  }, serializeE2EState(state));
+}
+
+export async function bootCleanE2EApp(page) {
+  await page.addInitScript(() => {
+    window.Chart = class {
+      destroy() {}
+    };
+
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.goto('/');
+}
+
+export async function bootE2EApp(page, state = createE2EState()) {
+  await seedE2EState(page, state);
+  await page.goto('/');
+}
+
+export function collectConsoleErrors(page) {
+  const errors = [];
+
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      errors.push(message.text());
+    }
+  });
+
+  page.on('pageerror', (error) => {
+    errors.push(error.message);
+  });
+
+  return errors;
+}
+
+export async function flushSaveAndReload(page) {
+  await page.evaluate(async () => {
+    await window.saveStateToDB?.();
+  });
+  await page.reload();
+}
