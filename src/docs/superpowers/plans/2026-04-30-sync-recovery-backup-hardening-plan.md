@@ -22,6 +22,7 @@
 - [x] Follow-up: Added true remote restore preview adapters for Firestore, Cloudflare, and Google Drive before any destructive pull.
 - [x] Follow-up: Added Playwright visual QA evidence for Sync Center and Backup Center via screenshot attachments.
 - [x] Follow-up: Added chaos-style E2E coverage for abrupt tab close recovery and simulated Firestore entity conflict actions.
+- [x] Follow-up: Added service-worker-enabled offline/reconnect E2E coverage that saves locally while offline, reloads from cache, reconnects, and verifies the local event persists.
 
 ## Implementation Notes
 
@@ -38,6 +39,7 @@
 npm run test:unit -- tests/unit/sync-health.test.js tests/unit/backup-restore.test.js tests/unit/store.test.js tests/unit/sync-coordinator.test.js tests/unit/sync-center.test.js
 npm run test:unit -- tests/unit/config-view.test.js
 npm run test:e2e -- tests/e2e/app.spec.js
+npm run test:e2e -- tests/e2e/offline-import.spec.js
 npm test
 npm run test:e2e
 ```
@@ -45,5 +47,4 @@ npm run test:e2e
 ## Remaining Follow-Up
 
 - Add a true two-browser Firestore emulator conflict test when the project has a deterministic emulator fixture for entity docs.
-- Add a real offline/reconnect browser test with service worker enabled; current Playwright config blocks service workers to keep the suite deterministic.
 - Capture manual desktop/mobile screenshots from a real authenticated Firestore session before release notes.

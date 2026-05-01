@@ -361,6 +361,10 @@ test.describe('Estudo Organizado', () => {
     await page.goto('/');
     await page.waitForFunction(() => typeof window.EstudoApp?.setState === 'function');
     await page.evaluate(async (nextState) => {
+      const today = window.EstudoApp.todayStr();
+      const recoveryEvent = nextState.eventos.find((event) => event.id === 'ev_crash_recovery');
+      recoveryEvent.data = today;
+      recoveryEvent.dataEstudo = today;
       window.EstudoApp.setState(nextState);
       await window.EstudoApp.saveStateToDB();
     }, state);

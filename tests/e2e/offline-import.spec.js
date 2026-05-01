@@ -27,6 +27,7 @@ offlineTest.describe('Offline recovery', () => {
     await seedLegacyState(page, state);
     await page.goto('/');
     await expect(page.locator('#topbar-title')).toBeVisible();
+    await page.waitForFunction(() => Boolean(window.EstudoApp?.db));
 
     const serviceWorkerReady = await page.evaluate(async () => {
       if (!('serviceWorker' in navigator)) return false;
@@ -45,6 +46,71 @@ offlineTest.describe('Offline recovery', () => {
     } finally {
       await context.setOffline(false);
     }
+  });
+
+  offlineTest('keeps local changes through offline save, reload, and reconnect', async ({ page, context }) => {
+    const state = createE2EState();
+    const offlineTitle = 'Alteracao feita offline';
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await expect(page.locator('#topbar-title')).toBeVisible();
+
+    const serviceWorkerReady = await page.evaluate(async () => {
+      if (!('serviceWorker' in navigator)) return false;
+      await navigator.serviceWorker.ready;
+      return true;
+    });
+    expect(serviceWorkerReady).toBe(true);
+
+    await context.setOffline(true);
+    try {
+      await page.evaluate(async (title) => {
+        const nextState = structuredClone(window.EstudoApp.state);
+        const today = window.EstudoApp.todayStr();
+        nextState.eventos.push({
+          id: 'ev_offline_reconnect',
+          titulo: title,
+          data: today,
+          dataEstudo: today,
+          duracao: 30,
+          status: 'agendado',
+          tempoAcumulado: 0,
+          tipo: 'conteudo',
+          discId: 'disc_1',
+          assId: 'ass_1',
+          habito: null,
+          criadoEm: '2026-05-01T10:00:00.000Z'
+        });
+        window.EstudoApp.setState(nextState);
+        await window.EstudoApp.saveStateToDB();
+      }, offlineTitle);
+      await expect.poll(() => page.evaluate((title) => {
+        return window.EstudoApp.state.eventos.some((event) => event.titulo === title);
+      }, offlineTitle)).toBe(true);
+
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => typeof window.EstudoApp?.navigate === 'function');
+      await page.waitForFunction(() => Boolean(window.EstudoApp?.db));
+      await expect.poll(() => page.evaluate((title) => {
+        return window.EstudoApp.state.eventos.some((event) => event.titulo === title);
+      }, offlineTitle)).toBe(true);
+      await page.evaluate(() => window.EstudoApp.navigate('med'));
+      await expect(page.locator('#topbar-title')).toHaveText('Study Organizer');
+      await expect(page.locator('#main-content')).toContainText(offlineTitle);
+    } finally {
+      await context.setOffline(false);
+    }
+
+    await page.reload();
+    await page.waitForFunction(() => typeof window.EstudoApp?.navigate === 'function');
+    await page.waitForFunction(() => Boolean(window.EstudoApp?.db));
+    await expect.poll(() => page.evaluate((title) => {
+      return window.EstudoApp.state.eventos.some((event) => event.titulo === title);
+    }, offlineTitle)).toBe(true);
+    await page.evaluate(() => window.EstudoApp.navigate('med'));
+    await expect(page.locator('#topbar-title')).toHaveText('Study Organizer');
+    await expect(page.locator('#main-content')).toContainText(offlineTitle);
   });
 });
 
