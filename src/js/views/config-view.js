@@ -642,7 +642,7 @@ function renderQuietSyncCenterCard() {
 
   return `
     <div class="card config-card" data-testid="sync-center">
-      <div class="card-header"><h3><i class="fa fa-arrows-rotate"></i> Central de SincronizaÃ§Ã£o</h3></div>
+      <div class="card-header"><h3><i class="fa fa-arrows-rotate"></i> Central de Sincronização</h3></div>
       <div class="card-body">
         <div class="config-desc">Edite normalmente. O app salva localmente e sincroniza em segundo plano.</div>
 
