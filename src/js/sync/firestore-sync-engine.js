@@ -206,7 +206,25 @@ function startFirestoreRemoteWatch() {
 }
 
 export function getFirestoreSyncStatus() {
-  const services = initFirebaseServices();
+  let services;
+  try {
+    services = initFirebaseServices();
+  } catch (err) {
+    console.warn('getFirestoreSyncStatus: initFirebaseServices failed:', err);
+    return {
+      configured: false,
+      projectId: '',
+      authDomain: '',
+      signedIn: false,
+      uid: null,
+      email: null,
+      enabled: false,
+      mode: 'off',
+      conflict: null,
+      hasPendingWrites: false,
+      lastError: err.message || String(err),
+    };
+  }
   const configStatus = getFirebaseConfigStatus();
   const config = getConfig();
   return {

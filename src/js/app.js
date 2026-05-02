@@ -442,13 +442,18 @@ export function init() {
         }
       }
 
-      // Primeira Sincronização: Cloudflare (Primária Rápida)
+      // Render UI first — user can interact while sync runs in background
+      navigate('home');
+
+      // Primeira Sincronização: Cloudflare (Primária Rápida) — background com timeout
       if (state.config && state.config.cfSyncEnabled) {
-        try {
-          await pullFromCloudflare();
-        } catch (e) {
-          console.error('Falha no Boot Sync (Cloudflare)', e);
-        }
+        const cfSync = pullFromCloudflare();
+        const cfTimeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Cloudflare sync timeout (5s)')), 5000)
+        );
+        Promise.race([cfSync, cfTimeout]).catch((e) => {
+          console.error('Boot Sync (Cloudflare) falhou ou expirou:', e.message);
+        });
       }
 
       // Segunda Sincronização: Google Drive (Secundária Lenta)
@@ -457,8 +462,6 @@ export function init() {
       if (savedClientId) {
         initGoogleAPIs();
       }
-
-      navigate('home');
 
       // Note: event statuses ('atrasado') are computed dynamically by getEventStatus().
       // No need to mutate or save here — avoids triggering Cloudflare push on every boot.

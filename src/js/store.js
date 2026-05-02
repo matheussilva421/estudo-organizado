@@ -185,8 +185,8 @@ export function setState(newState) {
     lastSync: newState.lastSync || null,
   };
 
-  // Deep clone do normalized para o state para prevenir mutação externa
-  const cloned = deepClone(normalized);
+  // Avoid redundant deep clone — per-field cloning above (lines 130-186) already isolates state
+  const cloned = normalized;
   cloned.config.firestoreSync = Object.assign(
     {},
     DEFAULT_FIRESTORE_SYNC_CONFIG,
@@ -529,9 +529,7 @@ export const SyncQueue = {
       try {
         await fn();
       } catch (err) {
-        console.error('SyncQueue Error:', err);
-        this.tasks = [];
-        break;
+        console.error('SyncQueue Error (task skipped, remaining will continue):', err);
       }
     }
     this.isProcessing = false;
@@ -625,14 +623,14 @@ export function saveStateToDB(
   }
 
   const prepare =
-    options.prepareEntityMetadata === false
-      ? Promise.resolve()
-      : prepareEntityMetadataForSave(state, {
+    options.prepareEntityMetadata === true
+      ? prepareEntityMetadataForSave(state, {
           db,
           storeName: ENTITY_META_STORE,
           baselineOnly:
             options.baselineEntityMetadata === true || options.touchLocalBackup === false,
-        });
+        })
+      : Promise.resolve();
 
   return prepare.then(
     () =>

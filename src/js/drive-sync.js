@@ -232,10 +232,10 @@ function buildMultipartBody() {
 }
 
 let _isSyncing = false;
-export async function syncWithDrive(isRecursion = false) {
+export async function syncWithDrive(recursionDepth = 0) {
   if (!gapi.client || !gapi.client.drive) return;
-  if (_isSyncing && !isRecursion) return;
-  if (!isRecursion) _isSyncing = true;
+  if (_isSyncing && recursionDepth === 0) return;
+  if (recursionDepth === 0) _isSyncing = true;
   updateDriveUI('syncing', 'Sincronizando...');
 
   try {
@@ -294,10 +294,12 @@ export async function syncWithDrive(isRecursion = false) {
         // Arquivo pode ter sido apagado no Drive
         console.warn('Não foi possível ler do Drive, sobrescrevendo arquivo.', e);
         if (e.status === 404 || e.result?.error?.code === 404) {
-          state.driveFileId = null;
-          return saveStateToDB(true, true, true, { touchLocalBackup: false }).then(() => {
-            return syncWithDrive(true); // recursão com flag para não liberar lock duplamente
-          });
+          if (recursionDepth < 2) {
+            state.driveFileId = null;
+            return saveStateToDB(true, true, true, { touchLocalBackup: false }).then(() => {
+              return syncWithDrive(recursionDepth + 1);
+            });
+          }
         }
       }
 
@@ -360,7 +362,7 @@ export async function syncWithDrive(isRecursion = false) {
     showToast('Erro ao sincronizar com Drive', 'error');
     updateDriveUI('disconnected', 'Erro na Sincronização');
   } finally {
-    if (!isRecursion) _isSyncing = false;
+    if (recursionDepth === 0) _isSyncing = false;
   }
 }
 
