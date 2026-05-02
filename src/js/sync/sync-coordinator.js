@@ -12,7 +12,11 @@ import {
   getPendingFirestoreEntityBatch,
   queueFirestoreEntityBatchFromState,
 } from './firestore-entity-outbox.js?v=8.32';
-import { appendSyncHealthEvent, deriveSyncHealthState } from './sync-health.js?v=8.32';
+import {
+  appendSyncHealthEvent,
+  appendSyncPerformanceMetric,
+  deriveSyncHealthState,
+} from './sync-health.js?v=8.32';
 import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.32';
 import { yieldToUI } from './sync-yield.js?v=8.32';
 
@@ -100,7 +104,12 @@ async function ensurePrimaryEntityBatchReady(reason) {
     });
     return false;
   }
+  const start = performance.now();
   const queuedEntity = await queueFirestoreEntityBatchFromState(state, { manual: false });
+  appendSyncPerformanceMetric(state, {
+    name: 'entityBuildMs',
+    durationMs: performance.now() - start,
+  });
   return Boolean(queuedEntity);
 }
 
@@ -172,6 +181,7 @@ export async function flushPrimarySyncNow(options = {}) {
   const status = getFirestoreSyncStatus();
   lastReason = reason;
 
+  const plannerStart = performance.now();
   const plan = planNextSyncAction({
     firestoreConfigured: status.configured,
     signedIn: status.signedIn,
@@ -182,6 +192,10 @@ export async function flushPrimarySyncNow(options = {}) {
     reason,
     backoffActive: false,
     pendingLocal: false,
+  });
+  appendSyncPerformanceMetric(state, {
+    name: 'plannerMs',
+    durationMs: performance.now() - plannerStart,
   });
 
   if (!plan.canRunNow) {
@@ -231,7 +245,12 @@ export async function flushPrimarySyncNow(options = {}) {
     return false;
   }
 
+  const firestoreWriteStart = performance.now();
   const ok = await flushFirestoreOutbox({ manual: false, forceOverwrite: force });
+  appendSyncPerformanceMetric(state, {
+    name: 'firestoreWriteMs',
+    durationMs: performance.now() - firestoreWriteStart,
+  });
   failureCount = ok ? 0 : failureCount + 1;
   if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
     emitCoordinatorStatus('degraded', { reason, firestore: status });

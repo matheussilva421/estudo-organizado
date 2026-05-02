@@ -18,13 +18,26 @@ function idSet(items = []) {
 function collectionImpact(currentItems = [], incomingItems = []) {
   const currentIds = idSet(currentItems);
   const incomingIds = idSet(incomingItems);
+  const currentById = new Map(
+    (Array.isArray(currentItems) ? currentItems : [])
+      .filter((item) => item?.id)
+      .map((item) => [item.id, JSON.stringify(item)])
+  );
   let added = 0;
   let removed = 0;
   let kept = 0;
+  let changed = 0;
 
   for (const id of incomingIds) {
-    if (currentIds.has(id)) kept += 1;
-    else added += 1;
+    if (!currentIds.has(id)) {
+      added += 1;
+      continue;
+    }
+    const incomingItem = (Array.isArray(incomingItems) ? incomingItems : []).find(
+      (item) => item?.id === id
+    );
+    if (currentById.get(id) === JSON.stringify(incomingItem)) kept += 1;
+    else changed += 1;
   }
   for (const id of currentIds) {
     if (!incomingIds.has(id)) removed += 1;
@@ -36,6 +49,7 @@ function collectionImpact(currentItems = [], incomingItems = []) {
     added,
     removed,
     kept,
+    changed,
   };
 }
 
@@ -54,9 +68,25 @@ export function validateBackupPayload(payload) {
   }
 
   const config = payload.config || {};
+  if (payload.driveFileId) errors.push('backup must not include Google Drive file id');
+  if (payload.lastSync) errors.push('backup must not include remote sync timestamps');
   if (config.cfToken) errors.push('backup must not include Cloudflare token');
   if (config.cfUrl) errors.push('backup must not include Cloudflare URL');
   if (config.cfTokenSaved) errors.push('backup must not include Cloudflare token marker');
+  if (config.firestoreSync?.uid) errors.push('backup must not include Firestore uid');
+  if (
+    config.firestoreSync?.remoteUpdatedAt ||
+    config.firestoreSync?.lastPullAt ||
+    config.firestoreSync?.lastPushAt
+  ) {
+    errors.push('backup must not include remote sync timestamps');
+  }
+  if (
+    Array.isArray(config.firestoreSync?.conflictHistory) ||
+    Array.isArray(config.entitySync?.conflictHistory)
+  ) {
+    errors.push('backup must not include conflict history');
+  }
   if (config.firestoreSync?.enabled) {
     errors.push('backup must not include enabled Firestore runtime sync');
   }
@@ -89,13 +119,16 @@ export function previewRestoreImpact(currentState = {}, incomingState = {}) {
       acc.added += item.added;
       acc.removed += item.removed;
       acc.kept += item.kept;
+      acc.changed += item.changed;
       return acc;
     },
-    { added: 0, removed: 0, kept: 0 }
+    { added: 0, removed: 0, kept: 0, changed: 0 }
   );
+  totals.preserved = totals.kept;
 
   return {
     collections,
+    byCollection: collections,
     totals,
     destructive: totals.removed > 0,
   };

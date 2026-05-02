@@ -18,6 +18,7 @@ import * as lesson_mapper from './lesson-mapper.js?v=8.32';
 import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.32';
 import * as sync_coordinator from './sync/sync-coordinator.js?v=8.32';
 import * as entity_conflict_model from './sync/entity-conflict-model.js?v=8.32';
+import { appendSyncPerformanceMetric } from './sync/sync-health.js?v=8.32';
 
 // Import UI helpers and action dispatcher
 import { setupActionDispatcher } from './ui/actions/index.js?v=8.32';
@@ -177,7 +178,12 @@ function scheduleConfigSyncRender(detail = {}) {
     configSyncRenderQueued = false;
     lastConfigSyncRenderAt = Date.now();
     if (app.currentView === 'config') {
+      const renderStart = performance.now();
       components.renderCurrentView();
+      appendSyncPerformanceMetric(store.state, {
+        name: 'renderSyncMs',
+        durationMs: performance.now() - renderStart,
+      });
     }
   }, delay);
 }

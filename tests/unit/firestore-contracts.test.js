@@ -68,8 +68,9 @@ describe('Firestore integration contracts', () => {
   it('coalesces Firestore status renders on the config screen', () => {
     const mainSource = read('src/js/main.js');
     const firestoreStatusListener =
-      mainSource.match(/addCleanupListener\(document, 'app:firestoreSyncStatus'[\s\S]*?\}\);/)?.[0] ||
-      '';
+      mainSource.match(
+        /addCleanupListener\(document, 'app:firestoreSyncStatus'[\s\S]*?\}\);/
+      )?.[0] || '';
 
     expect(mainSource).toContain('function scheduleConfigSyncRender');
     expect(mainSource).toContain('lastConfigSyncStatusSignature');
@@ -110,6 +111,20 @@ describe('Firestore integration contracts', () => {
     expect(mainSource).toContain('CONFIG_SYNC_RENDER_THROTTLE_MS');
     expect(mainSource).toContain('lastConfigSyncRenderAt');
     expect(mainSource).toContain('scheduleConfigSyncRender');
+    expect(mainSource).toContain("name: 'renderSyncMs'");
+  });
+
+  it('records numeric sync performance budgets without user payloads', () => {
+    const storeSource = read('src/js/store.js');
+    const coordinatorSource = read('src/js/sync/sync-coordinator.js');
+    const healthSource = read('src/js/sync/sync-health.js');
+
+    expect(storeSource).toContain("name: 'localCommitMs'");
+    expect(coordinatorSource).toContain("name: 'plannerMs'");
+    expect(coordinatorSource).toContain("name: 'entityBuildMs'");
+    expect(coordinatorSource).toContain("name: 'firestoreWriteMs'");
+    expect(healthSource).toContain('appendSyncPerformanceMetric');
+    expect(healthSource).not.toContain('payload:');
   });
 
   it('does not push to Firestore immediately when shadow mode is enabled', () => {
@@ -181,6 +196,9 @@ describe('Firestore integration contracts', () => {
     expect(resolveBody.indexOf('readFirestoreEntityDocuments(db, uid)')).toBeLessThan(
       resolveBody.indexOf('readFirestoreSnapshot(db, uid)')
     );
+    expect(resolveBody).toContain('state.config.firestoreSync.conflictHistory');
+    expect(resolveBody).toContain('queueFirestoreEntityBatchFromState(state');
+    expect(resolveBody).toContain("touchLocalBackup: decision === 'remote'");
   });
 
   it('pre-caches modules that are imported by the modular app shell', () => {
@@ -262,6 +280,11 @@ describe('Firestore integration contracts', () => {
 
     expect(rules).toContain('match /users/{uid}/entities/{entityId}');
     expect(rules).toContain('validEntityDoc()');
+    expect(rules).toContain('validEntityCollection()');
+    expect(rules).toContain("collection in ['editais', 'eventos', 'arquivo', 'revisoes']");
+    expect(rules).toContain('immutableEntityIdentity()');
+    expect(rules).toContain('request.resource.data.revision > 0');
+    expect(rules).toContain('validEntityTombstone()');
     expect(rules).toContain('request.resource.data.key is string');
     expect(rules).toContain('request.resource.data.payload == null');
     expect(rules).toContain('request.resource.data.payload is map');

@@ -89,15 +89,40 @@ No Google Cloud Console:
 
 ## 7. Recuperacao e conflitos
 
-Quando houver conflito, o app mostra um painel Firestore com tres acoes:
+Quando houver conflito por entidade, o app mostra uma revisao humana por item. O usuario nao precisa ler JSON ou revision manualmente.
 
 - Exportar backup local: baixa JSON antes de qualquer decisao destrutiva.
-- Baixar Firestore: aplica o snapshot remoto sobre o local.
-- Forcar envio local: sobrescreve o snapshot remoto com o estado local.
+- Manter este dispositivo: preserva a entidade local, remove o item do conflito e agenda o delta local para envio.
+- Usar nuvem: aplica a entidade remota ou tombstone remoto, salva localmente e remove o item do conflito.
+- Resolver depois: fecha a revisao e deixa o app continuar salvando localmente.
 
 Nunca resolva conflito sem exportar backup local quando houver duvida.
 
-## 8. Emuladores
+O historico de decisoes fica em `config.firestoreSync.conflictHistory` e deve conter apenas metadados: `entityKey`, `decision`, `decidedAt`, `hint`, revisions e identificadores. Payloads de usuario nao devem entrar nesse historico.
+
+## 8. Rules baseline para publicar
+
+Antes de publicar rules, confirme que `firestore.rules` preserva:
+
+- `owns(uid)` em todas as leituras/escritas de usuario.
+- Snapshot somente em `users/{uid}/snapshots/main`.
+- `allow delete: if false` para snapshots e entities.
+- `payload is map` para snapshots.
+- Entity doc com `payload == null` ou `payload is map`.
+- Lista permitida de `collection`.
+- `key`, `collection` e `id` imutaveis em update.
+- `revision` numerico positivo.
+- Tombstone valido quando `deletedAt` existir.
+
+Checklist de console Firebase:
+
+- Authentication com Google habilitado.
+- Dominios autorizados cadastrados.
+- Firestore Database em Native mode.
+- Rules e indexes publicados a partir do repositorio.
+- App Check em monitoramento antes de enforcement.
+
+## 9. Emuladores
 
 O reposititorio inclui `firebase.json` para Auth e Firestore Emulator:
 

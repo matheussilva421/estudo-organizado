@@ -159,6 +159,9 @@ registerAction('firestore-open-conflict-review', () => {
   const items = Array.isArray(conflict.items) ? conflict.items : [];
   const entityKey = (item) => item.key || `${item.collection}/${item.id}`;
   const hintLabel = (item) => {
+    if (item.hint === 'both-changed' || item.hint === 'same-revision-different-checksum') {
+      return 'Alterado nos dois dispositivos';
+    }
     if (item.hint === 'remote-newer' || item.remoteDeleted) return 'Remoto mais novo';
     if (item.hint === 'tie') return 'Empate';
     if (item.localDeleted) return 'Deletado localmente';
@@ -186,10 +189,13 @@ registerAction('firestore-open-conflict-review', () => {
             <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
             <div class="sync-conflict-entity-actions">
               <button type="button" class="btn btn-ghost btn-sm" data-action="entity-conflict-keep-local" data-entity-key="${esc(entityKey(item))}">
-                Manter local
+                Manter este dispositivo
               </button>
               <button type="button" class="btn btn-outline btn-sm" data-action="entity-conflict-keep-remote" data-entity-key="${esc(entityKey(item))}">
-                Usar remoto
+                Usar nuvem
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" data-action="close-modal" data-modal="modal-prompt">
+                Resolver depois
               </button>
             </div>
           </div>
@@ -197,9 +203,6 @@ registerAction('firestore-open-conflict-review', () => {
           )
           .join('')}
       </div>
-      <pre style="white-space:pre-wrap;font-size:12px;max-height:32vh;overflow:auto;">${esc(
-        JSON.stringify(conflict, null, 2)
-      )}</pre>
     `;
   }
   openModal('modal-prompt');

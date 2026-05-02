@@ -35,6 +35,16 @@ function deriveQuietSyncView({ syncHealth, firestore }) {
     };
   }
 
+  if (/permission|denied|permiss/i.test(String(firestore.lastError || ''))) {
+    return {
+      title: 'Acao necessaria',
+      detail:
+        'O Firestore negou permissao para sincronizar. Seus dados locais continuam preservados; revise login e regras nas opcoes avancadas.',
+      tone: 'danger',
+      primaryAction: 'advanced',
+    };
+  }
+
   if (syncHealth.state === 'degraded' || firestore.lastError) {
     return {
       title: 'Sync aguardando recuperacao',
@@ -157,6 +167,15 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
     offline,
   });
   const syncMetrics = summarizeSyncMetrics(syncHealth.metrics);
+  const performanceMetrics = Array.isArray(config.syncPerformance?.metrics)
+    ? config.syncPerformance.metrics
+        .filter((metric) => metric && typeof metric.name === 'string')
+        .map((metric) => ({
+          name: metric.name,
+          durationMs: Number(metric.durationMs || 0),
+          at: metric.at || null,
+        }))
+    : [];
 
   const sources = [
     {
@@ -256,6 +275,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
       metrics: syncMetrics,
       events: config.syncHealth?.events || [],
     },
+    performanceMetrics,
     needsAttention: sources.some(
       (source) => source.health === 'conflict' || source.health === 'error'
     ),

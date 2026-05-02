@@ -141,6 +141,28 @@ describe('sync-center.js', () => {
       expect(firebase.metrics.nextRetryAt).toBe('2026-04-30T10:04:00.000Z');
     });
 
+    it('exposes performance metrics only in the advanced model', () => {
+      const model = buildSyncCenterModel({
+        state: {
+          config: {
+            syncPerformance: {
+              metrics: [
+                { name: 'localCommitMs', durationMs: 42, at: '2026-05-02T10:00:00.000Z' },
+                { name: 'firestoreWriteMs', durationMs: 120, at: '2026-05-02T10:00:01.000Z' },
+              ],
+            },
+            firestoreSync: { enabled: true, mode: 'primary' },
+          },
+        },
+      });
+
+      expect(model.quiet.detail).not.toContain('firestoreWriteMs');
+      expect(model.performanceMetrics).toEqual([
+        { name: 'localCommitMs', durationMs: 42, at: '2026-05-02T10:00:00.000Z' },
+        { name: 'firestoreWriteMs', durationMs: 120, at: '2026-05-02T10:00:01.000Z' },
+      ]);
+    });
+
     it('describes automatic synced state in quiet language', () => {
       const model = buildSyncCenterModel({
         state: {
@@ -178,6 +200,26 @@ describe('sync-center.js', () => {
 
       expect(model.quiet.title).toBe('Acao necessaria');
       expect(model.quiet.tone).toBe('danger');
+      expect(model.quiet.primaryAction).toBe('advanced');
+    });
+
+    it('asks for action when Firestore denies permission without exposing payloads', () => {
+      const model = buildSyncCenterModel({
+        state: {
+          config: {
+            firestoreSync: {
+              enabled: true,
+              configured: true,
+              signedIn: true,
+              mode: 'primary',
+              lastError: 'permission-denied',
+            },
+          },
+        },
+      });
+
+      expect(model.quiet.title).toBe('Acao necessaria');
+      expect(model.quiet.detail).toContain('negou permissao');
       expect(model.quiet.primaryAction).toBe('advanced');
     });
 

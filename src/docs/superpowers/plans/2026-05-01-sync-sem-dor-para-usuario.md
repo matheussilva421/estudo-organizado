@@ -607,22 +607,22 @@ Para cada item:
 
 ### Tasks
 
-- [ ] Melhorar `firestore-open-conflict-review`.
+- [x] Melhorar `firestore-open-conflict-review`.
 
-- [ ] Mostrar lista sem JSON cru por padrao.
+- [x] Mostrar lista sem JSON cru por padrao.
 
-- [ ] Guardar historico em `config.firestoreSync.conflictHistory`:
+- [x] Guardar historico em `config.firestoreSync.conflictHistory`:
   - entityKey,
   - decision,
   - decidedAt,
   - hint,
   - sem payload sensivel.
 
-- [ ] Ao escolher "manter local":
+- [x] Ao escolher "manter local":
   - remover item do conflito,
   - enfileirar delta local daquela entidade.
 
-- [ ] Ao escolher "usar nuvem":
+- [x] Ao escolher "usar nuvem":
   - aplicar remoto daquela entidade,
   - salvar local com `touchLocalBackup: true`,
   - remover item do conflito.
@@ -649,14 +649,14 @@ Para cada item:
 
 ### Tasks
 
-- [ ] Modo normal mostra:
+- [x] Modo normal mostra:
   - titulo,
   - detalhe curto,
   - ultimo salvo local,
   - ultimo sync remoto,
   - acao primaria quando necessaria.
 
-- [ ] Painel avancado colapsado mostra:
+- [x] Painel avancado colapsado mostra:
   - fila,
   - retries,
   - proximo retry,
@@ -664,13 +664,13 @@ Para cada item:
   - shadow diff,
   - modo de entidade.
 
-- [ ] Remover botoes perigosos da primeira dobra:
+- [x] Remover botoes perigosos da primeira dobra:
   - force push,
   - pull remoto,
   - delete/tombstone,
   - restore.
 
-- [ ] Topbar:
+- [x] Topbar:
   - nao pisca entre "Salvo localmente" e "Sincronizando" em intervalos curtos.
   - manter estado por no minimo 700ms antes de trocar texto.
 
@@ -696,21 +696,21 @@ Para cada item:
 
 ### Tasks
 
-- [ ] Fazer Backup Center mostrar:
+- [x] Fazer Backup Center mostrar:
   - ultimo backup local,
   - ultimo sync Firestore,
   - ultimo backup Cloudflare,
   - ultimo backup Drive,
   - export JSON primario.
 
-- [ ] Restore guiado:
+- [x] Restore guiado:
   - escolher origem,
   - carregar preview,
   - mostrar entidades adicionadas/removidas/alteradas,
   - pedir export antes,
   - aplicar restore.
 
-- [ ] Garantir que restore nao reativa credenciais:
+- [x] Garantir que restore nao reativa credenciais:
   - Firestore runtime sync removido do import,
   - Cloudflare token removido,
   - Drive file id tratado separadamente.
@@ -736,27 +736,27 @@ Para cada item:
 
 ### Tasks
 
-- [ ] Documentar regra atual como baseline:
+- [x] Documentar regra atual como baseline:
   - owner scoped por `uid`,
   - snapshot so `main`,
   - delete fisico negado,
   - payload map,
   - entity doc map/null.
 
-- [ ] Endurecer regras onde possivel:
+- [x] Endurecer regras onde possivel:
   - `collection` deve estar em lista permitida.
   - `key`, `collection`, `id` nao podem mudar em update.
   - `revision` deve ser numero positivo.
   - `deletedAt` so pode existir com `payload == null` ou payload tombstone valido.
 
-- [ ] Criar checklist de console Firebase:
+- [x] Criar checklist de console Firebase:
   - Auth Google habilitado,
   - dominio autorizado,
   - Firestore Native mode,
   - rules publicadas,
   - App Check opcional.
 
-- [ ] Criar teste de string para rules:
+- [x] Criar teste de string para rules:
   - `allow delete: if false`,
   - `owns(uid)`,
   - `snapshots/main`,
@@ -782,28 +782,28 @@ Para cada item:
 
 ### Cenarios
 
-- [ ] Editar 20 vezes em 10 segundos com Firestore ligado.
+- [x] Editar 20 vezes em 10 segundos com Firestore ligado.
   - Esperado: app responsivo, 1 ou poucos batches coalescidos.
 
-- [ ] Offline durante edicao.
+- [x] Offline durante edicao.
   - Esperado: salva local, status offline, envia ao reconectar.
 
-- [ ] Firestore retorna erro 500.
+- [x] Firestore retorna erro 500.
   - Esperado: outbox preservada, backoff, sem modal.
 
-- [ ] Firestore permissao negada.
+- [x] Firestore permissao negada.
   - Esperado: `Acao necessaria`, outbox preservada, sem perda local.
 
-- [ ] Dois dispositivos editam entidades diferentes.
+- [x] Dois dispositivos editam entidades diferentes.
   - Esperado: merge automatico.
 
-- [ ] Dois dispositivos editam mesma entidade.
+- [x] Dois dispositivos editam mesma entidade.
   - Esperado: conflito explicito, local preservado.
 
-- [ ] Reload durante flush.
+- [x] Reload durante flush.
   - Esperado: job pendente continua.
 
-- [ ] Export apos conflito.
+- [x] Export apos conflito.
   - Esperado: JSON sem credenciais.
 
 **Critérios De Aceite:**
@@ -831,17 +831,17 @@ Para cada item:
 
 ### Tasks
 
-- [ ] Medir no codigo:
+- [x] Medir no codigo:
   - `localCommitMs`,
   - `plannerMs`,
   - `entityBuildMs`,
   - `firestoreWriteMs`,
   - `renderSyncMs`.
 
-- [ ] Expor no avancado:
+- [x] Expor no avancado:
   - so quando `?debugSync=1` ou painel avancado aberto.
 
-- [ ] Adicionar testes:
+- [x] Adicionar testes:
   - metricas nao contem payload,
   - metricas sao numericas,
   - historico e limitado.
@@ -1008,3 +1008,13 @@ Se o ambiente retornar `spawn EPERM` em teste focado, rodar `npm test` completo 
 - E2E ajustado: `phase6-chaos-validation.spec.js` passou a chamar `window.EstudoApp.saveStateToDB()` apos mutar `window.state` no cenario offline, alinhando o teste ao contrato real de persistencia antes do reload.
 - Validacao antes do rebase: `npm run format:check`, `npm run lint`, `npm test` com 1159 passed e 1 skipped, `npm run test:e2e -- tests/e2e/phase6-chaos-validation.spec.js` com 6 passed e `npm run test:e2e` com 116 passed.
 - Validacao pos-rebase: `npm run format:check` passou; `npm run lint` passou sem warnings; `npm run test:unit -- tests/unit/entity-state-builder.test.js tests/unit/firestore-entity-primary-regressions.test.js tests/unit/sync-coordinator.test.js tests/unit/firestore-contracts.test.js` passou com 98 testes.
+
+### Execucao Codex - Fases 8-14 - 2026-05-02
+
+- Fase 8: revisao de conflito Firestore passou a mostrar lista humana sem JSON cru por padrao, com `Manter este dispositivo`, `Usar nuvem`, `Exportar backup antes` e `Resolver depois`. Decisoes ficam em `config.firestoreSync.conflictHistory` sem payload, e manter local reencaminha delta entity-primary.
+- Fase 9: Sync Center mantem modo normal quieto e deixa metricas/acoes sensiveis no painel avancado. Permissao negada no Firestore vira `Acao necessaria` sem modal bloqueante.
+- Fase 10: Backup Center/restore preview agora calcula adicionados, alterados, removidos e preservados por colecao; export/import rejeitam Drive file id, Firestore uid, historico de conflito e timestamps remotos.
+- Fase 11: `firestore.rules` ganhou lista permitida de collections, identidade imutavel em update, revision positiva e validacao de tombstone; `sync-operational-checklist.md`, `firebase-firestore-setup.md` e `release-checklist.md` foram atualizados.
+- Fase 12: `phase6-chaos-validation.spec.js` foi expandido para edicoes rapidas, permissao negada, export apos conflito, offline, reload e CTA de conflito por entidade.
+- Fase 13: metricas numericas `localCommitMs`, `plannerMs`, `entityBuildMs`, `firestoreWriteMs` e `renderSyncMs` sao registradas sem payload em `config.syncPerformance.metrics` e expostas apenas no painel avancado.
+- Fase 14: release gates e stop conditions foram refletidos no checklist de release e no checklist operacional.

@@ -7,6 +7,7 @@ import {
   normalizeEntityMetadata,
   prepareEntityMetadataForSave,
 } from './sync/entity-metadata.js?v=8.32';
+import { appendSyncPerformanceMetric } from './sync/sync-health.js?v=8.32';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 6;
@@ -269,6 +270,8 @@ export function createExportableState(sourceState = state) {
   delete exportable.config.cfLastSyncAt;
   delete exportable.config._lastUpdated;
   delete exportable.config.syncMergeConflicts;
+  delete exportable.driveFileId;
+  delete exportable.lastSync;
   exportable.config.cfSyncEnabled = false;
   exportable.config.firestoreSync = { ...DEFAULT_FIRESTORE_SYNC_CONFIG };
   exportable.config.entitySync = { ...DEFAULT_ENTITY_SYNC_CONFIG };
@@ -611,6 +614,7 @@ export function saveStateToDB(
     saveTimeout = null;
   }
   if (!db) return Promise.resolve();
+  const localCommitStart = performance.now();
   const touchLocalBackup = options.touchLocalBackup !== false;
   const emitUserSaveStatus = options.emitSaveStatus !== false && touchLocalBackup;
   if (emitUserSaveStatus) emitSaveStatus('saving');
@@ -661,6 +665,10 @@ export function saveStateToDB(
               })
             );
             if (emitUserSaveStatus) emitSaveStatus('saved');
+            appendSyncPerformanceMetric(state, {
+              name: 'localCommitMs',
+              durationMs: performance.now() - localCommitStart,
+            });
             resolve();
           };
           currentWrite.onsuccess = finish;

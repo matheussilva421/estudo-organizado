@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  appendSyncPerformanceMetric,
   appendSyncHealthEvent,
   deriveSyncHealthState,
   summarizeSyncMetrics,
@@ -57,15 +58,23 @@ describe('sync-health.js', () => {
 
   it('keeps bounded structured event history without payloads', () => {
     const target = { config: {} };
-    appendSyncHealthEvent(target, {
-      type: 'queued',
-      payload: { secret: 'must-not-persist' },
-      reason: 'local-save',
-    }, { now: '2026-04-30T10:00:00.000Z', max: 1 });
-    appendSyncHealthEvent(target, {
-      type: 'synced',
-      detail: 'remote ack',
-    }, { now: '2026-04-30T10:01:00.000Z', max: 1 });
+    appendSyncHealthEvent(
+      target,
+      {
+        type: 'queued',
+        payload: { secret: 'must-not-persist' },
+        reason: 'local-save',
+      },
+      { now: '2026-04-30T10:00:00.000Z', max: 1 }
+    );
+    appendSyncHealthEvent(
+      target,
+      {
+        type: 'synced',
+        detail: 'remote ack',
+      },
+      { now: '2026-04-30T10:01:00.000Z', max: 1 }
+    );
 
     expect(target.config.syncHealth.events).toHaveLength(1);
     expect(target.config.syncHealth.events[0]).toEqual({
@@ -77,15 +86,48 @@ describe('sync-health.js', () => {
   });
 
   it('returns compact metrics for the Sync Center', () => {
-    expect(summarizeSyncMetrics({
-      pendingAgeMs: 120000,
-      retryAttempts: 4,
-      nextRetryAt: '2026-04-30T10:02:00.000Z',
-      remoteAckAt: '2026-04-30T10:01:00.000Z',
-    })).toMatchObject({
+    expect(
+      summarizeSyncMetrics({
+        pendingAgeMs: 120000,
+        retryAttempts: 4,
+        nextRetryAt: '2026-04-30T10:02:00.000Z',
+        remoteAckAt: '2026-04-30T10:01:00.000Z',
+      })
+    ).toMatchObject({
       pendingAgeLabel: '2 min',
       retryAttempts: 4,
       nextRetryAt: '2026-04-30T10:02:00.000Z',
     });
+  });
+
+  it('keeps bounded numeric performance metrics without payloads', () => {
+    const target = { config: {} };
+
+    appendSyncPerformanceMetric(
+      target,
+      {
+        name: 'firestoreWriteMs',
+        durationMs: 123.456,
+        payload: { secret: 'must-not-persist' },
+        detail: 'contains user text',
+      },
+      { now: '2026-05-02T10:00:00.000Z', max: 1 }
+    );
+    appendSyncPerformanceMetric(
+      target,
+      {
+        name: 'localCommitMs',
+        durationMs: 42,
+      },
+      { now: '2026-05-02T10:01:00.000Z', max: 1 }
+    );
+
+    expect(target.config.syncPerformance.metrics).toEqual([
+      {
+        name: 'localCommitMs',
+        durationMs: 42,
+        at: '2026-05-02T10:01:00.000Z',
+      },
+    ]);
   });
 });

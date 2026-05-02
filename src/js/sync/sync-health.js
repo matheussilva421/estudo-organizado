@@ -1,4 +1,5 @@
 const HEALTH_EVENT_LIMIT = 30;
+const PERFORMANCE_METRIC_LIMIT = 40;
 
 function toTime(value) {
   if (!value) return 0;
@@ -80,4 +81,22 @@ export function appendSyncHealthEvent(targetState, event = {}, options = {}) {
     : [];
   targetState.config.syncHealth.events = [...current, safeEvent].slice(-max);
   return safeEvent;
+}
+
+export function appendSyncPerformanceMetric(targetState, metric = {}, options = {}) {
+  if (!targetState.config) targetState.config = {};
+  if (!targetState.config.syncPerformance) targetState.config.syncPerformance = { metrics: [] };
+  const name = typeof metric.name === 'string' ? metric.name : 'unknown';
+  const duration = Number(metric.durationMs);
+  const safeMetric = {
+    name,
+    durationMs: Number.isFinite(duration) ? Math.round(duration * 100) / 100 : 0,
+    at: options.now || new Date().toISOString(),
+  };
+  const max = options.max || PERFORMANCE_METRIC_LIMIT;
+  const current = Array.isArray(targetState.config.syncPerformance.metrics)
+    ? targetState.config.syncPerformance.metrics
+    : [];
+  targetState.config.syncPerformance.metrics = [...current, safeMetric].slice(-max);
+  return safeMetric;
 }

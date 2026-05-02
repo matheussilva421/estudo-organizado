@@ -56,6 +56,7 @@ describe('sync/sync-coordinator.js', () => {
       const realHealth = await import('../../src/js/sync/sync-health.js?v=8.32');
       return {
         appendSyncHealthEvent: vi.fn(),
+        appendSyncPerformanceMetric: vi.fn(),
         deriveSyncHealthState: vi.fn((input) => realHealth.deriveSyncHealthState(input)),
       };
     });

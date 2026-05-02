@@ -23,6 +23,11 @@
 - [ ] Sync fails gracefully with invalid credentials
 - [ ] No data loss on schema migration
 - [ ] Backup export/import works
+- [ ] Firestore permission denied shows action needed without opening a blocking modal
+- [ ] Entity conflict review shows human choices and no raw JSON by default
+- [ ] Export after conflict has no Cloudflare token/URL, Firestore uid, Drive file id, or conflict history
+- [ ] `firestore.rules` keeps owner scope, immutable entity identity, positive revision, tombstone validation, and no physical deletes
+- [ ] Rapid local edits with Firestore enabled remain responsive and persist after reload
 
 ## After Release
 

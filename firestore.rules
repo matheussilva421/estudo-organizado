@@ -51,12 +51,42 @@ service cloud.firestore {
       && request.resource.data.version == 1
       && request.resource.data.key is string
       && request.resource.data.collection is string
+      && validEntityCollection()
       && request.resource.data.id is string
       && request.resource.data.revision is number
+      && request.resource.data.revision > 0
       && (
         request.resource.data.payload == null
         || request.resource.data.payload is map
-      );
+      )
+      && validEntityTombstone();
+    }
+
+    function validEntityCollection() {
+      return request.resource.data.collection in ['editais', 'eventos', 'arquivo', 'revisoes']
+        || request.resource.data.collection in [
+          'habitos.questoes',
+          'habitos.revisao',
+          'habitos.discursiva',
+          'habitos.simulado',
+          'habitos.leitura',
+          'habitos.informativo',
+          'habitos.sumula',
+          'habitos.videoaula',
+          'habitos.paginas'
+        ];
+    }
+
+    function immutableEntityIdentity() {
+      return resource.data.key == request.resource.data.key
+        && resource.data.collection == request.resource.data.collection
+        && resource.data.id == request.resource.data.id;
+    }
+
+    function validEntityTombstone() {
+      return !request.resource.data.keys().hasAny(['deletedAt'])
+        || request.resource.data.payload == null
+        || request.resource.data.payload.deletedAt is string;
     }
 
     match /users/{uid}/snapshots/{snapshotId} {
@@ -67,7 +97,8 @@ service cloud.firestore {
 
     match /users/{uid}/entities/{entityId} {
       allow read: if owns(uid);
-      allow create, update: if owns(uid) && validEntityDoc();
+      allow create: if owns(uid) && validEntityDoc();
+      allow update: if owns(uid) && validEntityDoc() && immutableEntityIdentity();
       allow delete: if false;
     }
 

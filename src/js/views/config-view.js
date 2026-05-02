@@ -628,6 +628,7 @@ function renderQuietSyncCenterCard() {
   const statusLabel = getSyncHealthLabel(health.status);
   const statusIcon = getSyncHealthIcon(health.status);
   const metrics = health.metrics || {};
+  const performanceMetrics = model.performanceMetrics || [];
   const quiet = model.quiet || {
     title: statusLabel,
     detail: 'O app salva localmente e sincroniza quando possivel.',
@@ -678,6 +679,17 @@ function renderQuietSyncCenterCard() {
               ${metrics.nextRetryAt ? `<span>Proxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ''}
               ${metrics.remoteAckAt ? `<span>Ack remoto: ${formatBackupDateTime(metrics.remoteAckAt)}</span>` : ''}
             </div>
+            ${
+              performanceMetrics.length
+                ? `
+            <div class="sync-source-meta" data-testid="sync-performance-metrics">
+              ${performanceMetrics
+                .slice(-6)
+                .map((metric) => `<span>${esc(metric.name)}: ${esc(metric.durationMs)}ms</span>`)
+                .join('')}
+            </div>`
+                : ''
+            }
 
             <div class="sync-sources-list">
               ${model.sources

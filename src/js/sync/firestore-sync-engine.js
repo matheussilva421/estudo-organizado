@@ -1255,12 +1255,19 @@ export async function resolveEntityConflict(entityKey, decision) {
     await saveFirestoreConflict(conflict);
   }
 
-  if (!state.config.entitySync) state.config.entitySync = { enabled: false, mode: 'off' };
-  const history = Array.isArray(state.config.entitySync.conflictHistory)
-    ? state.config.entitySync.conflictHistory
-    : [];
-  state.config.entitySync.conflictHistory = [decisionRecord, ...history].slice(0, 50);
+  if (decision === 'local' && isEntityPrimaryEnabled()) {
+    await queueFirestoreEntityBatchFromState(state, {
+      manual: true,
+      reason: 'conflict-keep-local',
+    });
+  }
 
-  await saveStateToDB(true, true, true, { touchLocalBackup: false });
+  if (!state.config.firestoreSync) state.config.firestoreSync = createDefaultFirestoreSyncConfig();
+  const history = Array.isArray(state.config.firestoreSync.conflictHistory)
+    ? state.config.firestoreSync.conflictHistory
+    : [];
+  state.config.firestoreSync.conflictHistory = [decisionRecord, ...history].slice(0, 50);
+
+  await saveStateToDB(true, true, true, { touchLocalBackup: decision === 'remote' });
   return true;
 }

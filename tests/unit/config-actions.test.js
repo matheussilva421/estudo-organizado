@@ -239,7 +239,7 @@ describe('ui/actions/config.js', () => {
     expect(appModule.showConfirm).toHaveBeenCalled();
   });
 
-  it('firestore-open-conflict-review opens modal with conflict JSON', () => {
+  it('firestore-open-conflict-review opens a human conflict review without raw JSON', () => {
     const handler = registerAction.mock.calls.find(
       (c) => c[0] === 'firestore-open-conflict-review'
     )[1];
@@ -265,6 +265,9 @@ describe('ui/actions/config.js', () => {
     expect(body.innerHTML).toContain('entity-conflict-keep-remote');
     expect(body.innerHTML).toContain('Exportar backup antes');
     expect(body.innerHTML).toContain('Local mais novo');
+    expect(body.innerHTML).toContain('Resolver depois');
+    expect(body.innerHTML).not.toContain('<pre');
+    expect(body.innerHTML).not.toContain('"items"');
   });
 
   it('firestore-open-conflict-review skips when no modal', () => {
