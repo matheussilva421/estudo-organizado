@@ -183,6 +183,93 @@ describe('entity-state-builder.js', () => {
     });
   });
 
+  describe('mergeEntityDocsIntoState()', () => {
+    it('does not mutate the source state while merging remote docs', () => {
+      const source = {
+        eventos: [
+          {
+            id: 'ev_1',
+            titulo: 'Local',
+            _sync: { revision: 1, updatedAt: '2026-05-01T10:00:00.000Z' },
+          },
+        ],
+        editais: [],
+        config: { entityTombstones: [] },
+      };
+      const before = structuredClone(source);
+      const docs = [
+        {
+          key: 'eventos/ev_2',
+          collection: 'eventos',
+          id: 'ev_2',
+          revision: 1,
+          updatedAt: '2026-05-01T11:00:00.000Z',
+          payload: {
+            id: 'ev_2',
+            titulo: 'Remoto',
+            _sync: { revision: 1, updatedAt: '2026-05-01T11:00:00.000Z' },
+          },
+        },
+      ];
+
+      const { mergedState, collisions } = mergeEntityDocsIntoState(source, docs);
+
+      expect(collisions).toHaveLength(0);
+      expect(source).toEqual(before);
+      expect(mergedState).not.toBe(source);
+      expect(mergedState.eventos).toHaveLength(2);
+    });
+
+    it('detects a collision when equal revisions have different content', () => {
+      const source = {
+        eventos: [
+          {
+            id: 'ev_1',
+            titulo: 'Local',
+            _sync: {
+              revision: 3,
+              updatedAt: '2026-05-01T10:00:00.000Z',
+              checksum: 'local-checksum',
+            },
+          },
+        ],
+        editais: [],
+        config: { entityTombstones: [] },
+      };
+      const docs = [
+        {
+          key: 'eventos/ev_1',
+          collection: 'eventos',
+          id: 'ev_1',
+          revision: 3,
+          checksum: 'remote-checksum',
+          updatedAt: '2026-05-01T11:00:00.000Z',
+          payload: {
+            id: 'ev_1',
+            titulo: 'Remoto',
+            _sync: {
+              revision: 3,
+              updatedAt: '2026-05-01T11:00:00.000Z',
+              checksum: 'remote-checksum',
+            },
+          },
+        },
+      ];
+
+      const { mergedState, collisions } = mergeEntityDocsIntoState(source, docs);
+
+      expect(collisions).toHaveLength(1);
+      expect(collisions[0]).toEqual(
+        expect.objectContaining({
+          key: 'eventos/ev_1',
+          localRevision: 3,
+          remoteRevision: 3,
+        })
+      );
+      expect(mergedState.eventos[0].titulo).toBe('Local');
+    });
+  });
+
   describe('replaceEntityInStateByRecord()', () => {
     it('returns false for invalid record', () => {
       expect(replaceEntityInStateByRecord({}, null)).toBe(false);

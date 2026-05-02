@@ -259,9 +259,12 @@ describe('sync/sync-coordinator.js', () => {
     });
 
     it('resets failure count on successful auto-pull', async () => {
-      coordinator.flushPrimarySyncNow({ manual: false, reason: 'fail-1' });
-      coordinator.flushPrimarySyncNow({ manual: false, reason: 'fail-2' });
+      firestoreSync.flushFirestoreOutbox.mockResolvedValue(false);
+      await coordinator.flushPrimarySyncNow({ manual: false, reason: 'fail-1' });
+      await coordinator.flushPrimarySyncNow({ manual: false, reason: 'fail-2' });
+      expect(coordinator.getSyncCoordinatorStatus().failureCount).toBe(2);
 
+      firestoreSync.flushFirestoreOutbox.mockResolvedValue(true);
       firestoreSync.autoPullRemoteWhenNewer.mockResolvedValue(true);
       const result = await coordinator.flushPrimarySyncNow({ manual: false });
 

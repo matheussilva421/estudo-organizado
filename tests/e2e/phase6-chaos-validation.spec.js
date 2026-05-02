@@ -49,6 +49,7 @@ test.describe('Fase 6 - Release Gate e Validacao de Caos', () => {
           habito: null,
           criadoEm: new Date().toISOString()
         });
+        return window.EstudoApp.saveStateToDB();
       });
       await expect.poll(() => page.evaluate(() =>
         window.state.eventos.some(e => e.titulo === 'Editado offline')

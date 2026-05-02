@@ -1,4 +1,4 @@
-import { createEntityIndex, stableEntityChecksum } from './entity-metadata.js?v=8.32';
+import { createEntityIndex } from './entity-metadata.js?v=8.32';
 import {
   createFirestoreEntityDocument,
   createFirestoreTombstoneDocument,

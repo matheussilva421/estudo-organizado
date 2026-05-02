@@ -29,7 +29,13 @@ function makeOpId(entityKey, revision) {
   return `${entityKey}@rev${revision}`;
 }
 
-export async function createSyncJob({ channel = 'firestore', kind = 'entity_delta', reason = 'local-save', docs = [], summary = {} }) {
+export async function createSyncJob({
+  channel = 'firestore',
+  kind = 'entity_delta',
+  reason = 'local-save',
+  docs = [],
+  summary = {},
+}) {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);
@@ -45,7 +51,10 @@ export async function createSyncJob({ channel = 'firestore', kind = 'entity_delt
   );
 
   if (matchingJob) {
-    const mergedOpIds = new Set([...matchingJob.opIds, ...docs.map((d) => makeOpId(d.key, d.revision))]);
+    const mergedOpIds = new Set([
+      ...matchingJob.opIds,
+      ...docs.map((d) => makeOpId(d.key, d.revision)),
+    ]);
     const mergedDocs = coalesceDocs(matchingJob.docs || [], docs);
 
     const updatedJob = {

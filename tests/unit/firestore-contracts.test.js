@@ -96,10 +96,12 @@ describe('Firestore integration contracts', () => {
 
   it('prevents local-save from reading remote data before pushing queued changes', () => {
     const coordinatorSource = read('src/js/sync/sync-coordinator.js');
+    const plannerSource = read('src/js/sync/sync-planner.js');
 
-    expect(coordinatorSource).toContain("reason !== 'local-save'");
+    expect(plannerSource).toContain("if (reason === 'local-save')");
+    expect(plannerSource).toContain('action: ACTIONS.PUSH_LOCAL');
     expect(coordinatorSource).toContain('autoPullRemoteWhenNewer');
-    expect(coordinatorSource).toContain('shouldCheckRemoteBeforeAutoSync');
+    expect(coordinatorSource).toContain('plan.action === ACTIONS.CHECK_REMOTE_THEN_PULL');
   });
 
   it('throttles config sync status renders to avoid UI freezes during active sync', () => {

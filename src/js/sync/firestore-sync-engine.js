@@ -332,10 +332,7 @@ export async function queueFirestoreSnapshotFromState(sourceState = state, optio
     config.lastError = null;
     emitStatus('pending');
     const entityMode = state.config?.entitySync?.mode;
-    if (
-      state.config?.entitySync?.enabled &&
-      (entityMode === 'shadow' || entityMode === 'primary')
-    ) {
+    if (state.config?.entitySync?.enabled && entityMode === 'shadow') {
       await queueFirestoreEntityBatchFromState(sourceState, options);
     }
   } else {

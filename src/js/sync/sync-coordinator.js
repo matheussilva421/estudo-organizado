@@ -25,12 +25,6 @@ let lastQueuedAt = null;
 let lastReason = null;
 let failureCount = 0;
 
-function shouldCheckRemoteBeforeAutoSync(reason) {
-  // Local edits must stay local-first: reading Firestore entity docs before every save makes
-  // normal typing/editing depend on network latency and can freeze the UI.
-  return reason !== 'local-save';
-}
-
 function emitCoordinatorStatus(status, detail = {}) {
   appendSyncHealthEvent(state, {
     type: status,

@@ -132,7 +132,6 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
     const localRev = local?._sync?.revision || 0;
     const remoteRev = remoteDoc?.payload?._sync?.revision || remoteDoc?.revision || 0;
     const isRemoteDelete = remoteDoc.deletedAt || remoteDoc.payload === null;
-    const isLocalDelete = false;
 
     if (isRemoteDelete && remoteRev > localRev) return 'remote-delete';
     if (isRemoteDelete) return 'local-delete';
@@ -252,9 +251,7 @@ export function mergeEntityDocsIntoState(baseState = {}, docs = []) {
     }
     if (collection === 'planejamento.sequencia') {
       if (state.planejamento?.sequencia) {
-        state.planejamento.sequencia = state.planejamento.sequencia.filter(
-          (e) => e.id !== id
-        );
+        state.planejamento.sequencia = state.planejamento.sequencia.filter((e) => e.id !== id);
       }
       return;
     }

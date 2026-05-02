@@ -926,6 +926,7 @@ Para fases pequenas e unitarias, antes do gate completo:
 
 ```powershell
 npm run test:unit -- tests/unit/sync-coordinator.test.js
+npm run test:unit -- tests/unit/entity-state-builder.test.js
 npm run test:unit -- tests/unit/firestore-sync-engine-new.test.js
 npm run test:unit -- tests/unit/firestore-entity-primary-regressions.test.js
 ```
@@ -998,3 +999,12 @@ Se o ambiente retornar `spawn EPERM` em teste focado, rodar `npm test` completo 
 **Testes:** 1212 passando (76 arquivos), 1 falha pre-existente em CSS
 
 **Fases pendentes:** 8, 10, 11, 12, 13, 14
+
+### Revisao Codex Pos-Rebase - 2026-05-02
+
+- Base remota integrada durante rebase: `481516a` em `origin/main`, com Fases 0-9 parcialmente implementadas.
+- Correcao preservada sobre a base remota: `queueFirestoreSnapshotFromState()` nao enfileira entity docs em `entitySync.mode === 'primary'`, evitando batch duplo quando o coordinator/planner ja preparou entidades.
+- Testes adicionados/refinados: `entity-state-builder.test.js` cobre merge sem mutar o estado de origem e colisao com mesma revisao/conteudo divergente; `firestore-entity-primary-regressions.test.js` cobre ausencia de batch duplo em snapshot fallback; `sync-coordinator.test.js` agora simula falhas reais antes de validar reset de `failureCount`.
+- E2E ajustado: `phase6-chaos-validation.spec.js` passou a chamar `window.EstudoApp.saveStateToDB()` apos mutar `window.state` no cenario offline, alinhando o teste ao contrato real de persistencia antes do reload.
+- Validacao antes do rebase: `npm run format:check`, `npm run lint`, `npm test` com 1159 passed e 1 skipped, `npm run test:e2e -- tests/e2e/phase6-chaos-validation.spec.js` com 6 passed e `npm run test:e2e` com 116 passed.
+- Validacao pos-rebase: `npm run format:check` passou; `npm run lint` passou sem warnings; `npm run test:unit -- tests/unit/entity-state-builder.test.js tests/unit/firestore-entity-primary-regressions.test.js tests/unit/sync-coordinator.test.js tests/unit/firestore-contracts.test.js` passou com 98 testes.

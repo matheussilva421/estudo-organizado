@@ -43,6 +43,8 @@ async function importEngine() {
     get state() {
       return state;
     },
+    DEFAULT_SCHEMA_VERSION: 9,
+    createExportableState: vi.fn((sourceState) => structuredClone(sourceState)),
     setState: vi.fn((nextState) => {
       state = nextState;
     }),
@@ -168,6 +170,15 @@ describe('Firestore entity primary regressions', () => {
     expect(state.config.firestoreSync.lastPullAt).toBeTruthy();
     expect(state.config.firestoreSync.hasPendingWrites).toBe(false);
     expect(state.config.firestoreSync.conflict).toBeNull();
+  });
+
+  it('does not queue entity docs again while queueing the snapshot fallback in entity primary mode', async () => {
+    entityOutbox.queueFirestoreEntityBatchFromState.mockClear();
+
+    const result = await syncEngine.queueFirestoreSnapshotFromState(state, { manual: true });
+
+    expect(result).toBe(true);
+    expect(entityOutbox.queueFirestoreEntityBatchFromState).not.toHaveBeenCalled();
   });
 });
 
