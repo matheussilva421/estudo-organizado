@@ -251,6 +251,9 @@ export function getFirestoreSyncStatus() {
 }
 
 export async function downloadSyncDiagnosticLog() {
+  // Import Cloudflare sync functions dynamically to avoid circular deps
+  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.32');
+
   const log = {
     timestamp: new Date().toISOString(),
     userAgent: navigator.userAgent,
@@ -266,7 +269,43 @@ export async function downloadSyncDiagnosticLog() {
     },
     syncHistory: state.config?.syncHealth?.events?.slice(-10) || [],
     performanceMetrics: state.config?.syncPerformance?.metrics?.slice(-10) || [],
+    // Cloudflare sync data
+    cloudflare: {
+      configured: !!(state.config?.cfUrl && state.config?.cfTokenSaved),
+      enabled: !!state.config?.cfSyncEnabled,
+      url: state.config?.cfUrl || null,
+      tokenSaved: !!state.config?.cfTokenSaved,
+      lastSyncAt: state.config?.cfLastSyncAt || null,
+      remoteUpdatedAt: state.config?.cfRemoteUpdatedAt || null,
+      conflict: state.config?.cfConflict || null,
+      lastError: state.config?.cfLastError || null,
+    },
   };
+
+  // Get Cloudflare credential store data
+  try {
+    const cfCreds = await getSyncCreds();
+    log.cloudflare.credentialStore = {
+      hasData: !!cfCreds,
+      url: cfCreds?.url || null,
+      hasToken: !!cfCreds?.token,
+      enabled: cfCreds?.enabled || false,
+    };
+  } catch (err) {
+    log.cloudflare.credentialStoreError = err.message || String(err);
+  }
+
+  // Get Cloudflare remote data
+  try {
+    const cfConfig = await getSyncConfig();
+    log.cloudflare.remoteConfig = {
+      hasConfig: !!cfConfig,
+      url: cfConfig?.url || null,
+      hasToken: !!cfConfig?.token,
+    };
+  } catch (err) {
+    log.cloudflare.remoteConfigError = err.message || String(err);
+  }
 
   try {
     log.pendingSnapshot = await getPendingFirestoreSnapshot();
