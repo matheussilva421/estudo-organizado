@@ -67,15 +67,12 @@ describe('Firestore integration contracts', () => {
 
   it('coalesces Firestore status renders on the config screen', () => {
     const mainSource = read('src/js/main.js');
-    const firestoreStatusListener =
-      mainSource.match(
-        /addCleanupListener\(document, 'app:firestoreSyncStatus'[\s\S]*?\}\);/
-      )?.[0] || '';
 
-    expect(mainSource).toContain('function scheduleConfigSyncRender');
-    expect(mainSource).toContain('lastConfigSyncStatusSignature');
-    expect(firestoreStatusListener).toContain('scheduleConfigSyncRender');
-    expect(firestoreStatusListener).not.toContain('components.renderCurrentView()');
+    // Sync status is now handled by dedicated sync-status-ui component (no throttle logic)
+    expect(mainSource).toContain("import { initSyncStatusUI } from './sync/sync-status-ui.js");
+    expect(mainSource).toContain('initSyncStatusUI()');
+    // No more renderCurrentView dispatches from sync status events
+    expect(mainSource).not.toMatch(/app:primarySyncStatus.*renderCurrentView/s);
   });
 
   it('keeps local save storage separated while the sync coordinator owns online side effects', () => {
@@ -90,7 +87,7 @@ describe('Firestore integration contracts', () => {
     expect(storeSource).not.toContain('firestore-sync-engine');
     expect(storeSource).not.toContain('autoPullRemoteWhenNewer');
     expect(mainSource).toContain("import * as sync_coordinator from './sync/sync-coordinator.js");
-    expect(coordinatorSource).toContain("document.addEventListener('stateSaved'");
+    expect(coordinatorSource).toContain("'stateSaved'");
     expect(coordinatorSource).toContain('queueFirestoreSnapshotFromState');
     expect(driveSource).not.toContain("document.addEventListener('stateSaved'");
   });
@@ -105,13 +102,19 @@ describe('Firestore integration contracts', () => {
     expect(coordinatorSource).toContain('plan.action === ACTIONS.CHECK_REMOTE_THEN_PULL');
   });
 
-  it('throttles config sync status renders to avoid UI freezes during active sync', () => {
+  it('uses dedicated sync status UI instead of throttled config renders', () => {
     const mainSource = read('src/js/main.js');
 
-    expect(mainSource).toContain('CONFIG_SYNC_RENDER_THROTTLE_MS');
-    expect(mainSource).toContain('lastConfigSyncRenderAt');
-    expect(mainSource).toContain('scheduleConfigSyncRender');
-    expect(mainSource).toContain("name: 'renderSyncMs'");
+    // Old throttle logic removed — replaced by dedicated sync-status-ui component
+    expect(mainSource).not.toContain('CONFIG_SYNC_RENDER_THROTTLE_MS');
+    expect(mainSource).not.toContain('lastConfigSyncRenderAt');
+    expect(mainSource).not.toContain('scheduleConfigSyncRender');
+    // New approach: dedicated UI component
+    expect(mainSource).toContain('initSyncStatusUI');
+    // Performance metrics still recorded via sync-health
+    const coordinatorSource = read('src/js/sync/sync-coordinator.js');
+    expect(coordinatorSource).toContain("name: 'plannerMs'");
+    expect(coordinatorSource).toContain("name: 'entityBuildMs'");
   });
 
   it('records numeric sync performance budgets without user payloads', () => {
@@ -174,13 +177,14 @@ describe('Firestore integration contracts', () => {
     expect(storeSource).toContain('touchLocalBackup');
     expect(storeSource).toContain('baselineOnly:');
     expect(storeSource).toContain('options.touchLocalBackup === false');
+    // All sync modules use object-form saveStateToDB (no positional args)
     expect(firestoreSource).toContain(
-      'saveStateToDB(true, true, true, { touchLocalBackup: false })'
+      'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'
     );
     expect(cloudflareSource).toContain(
-      'saveStateToDB(true, true, true, { touchLocalBackup: false })'
+      'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'
     );
-    expect(driveSource).toContain('saveStateToDB(true, true, true, { touchLocalBackup: false })');
+    expect(driveSource).toContain('saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true');
   });
 
   it('resolves entity-primary conflicts from entity documents instead of stale snapshots', () => {

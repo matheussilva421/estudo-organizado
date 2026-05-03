@@ -163,12 +163,12 @@ describe('firestore-sync-engine.js', () => {
       expect(result).toBe(true);
     });
 
-    it('prevents concurrent flushes', async () => {
+    it('serializes concurrent flushes via SyncLock', async () => {
       await syncEngine.enableFirestoreSync();
       const p1 = syncEngine.flushFirestoreOutbox({ manual: true });
       const p2 = syncEngine.flushFirestoreOutbox({ manual: true });
       const results = await Promise.all([p1, p2]);
-      expect(results.some((r) => r === false)).toBe(true);
+      expect(results.every((r) => r === true)).toBe(true);
     });
   });
 
