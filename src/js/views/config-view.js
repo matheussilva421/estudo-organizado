@@ -161,121 +161,7 @@ function renderBackupCenterCard() {
             .join('')}
         </div>
 
-        <details class="backup-advanced-panel" data-testid="backup-advanced-panel">
-          <summary>Backups avancados (Cloudflare e Drive)</summary>
-          <div class="backup-advanced-content">
-            <div class="config-desc">Cloudflare e Drive sao canais secundarios para backup manual. Eles nao participam do sync automatico e devem ser usados apenas para recuperacao avancada.</div>
-
-            ${renderCloudflareAdvancedCard()}
-            ${renderDriveAdvancedCard()}
-          </div>
-        </details>
       </div>
-    </div>
-  `;
-}
-
-function renderCloudflareConflict(conflict) {
-  if (!conflict) return '';
-
-  const remote = formatBackupDateTime(conflict.remoteUpdatedAt);
-  const detected = formatBackupDateTime(conflict.detectedAt);
-  const device = esc(conflict.remoteDeviceId || 'dispositivo remoto');
-
-  return `
-    <div class="sync-conflict-panel" data-testid="cf-sync-conflict" role="alert">
-      <div class="sync-conflict-header">
-        <i class="fa fa-triangle-exclamation"></i>
-        <div>
-          <div class="sync-conflict-title">Conflito de sincronização</div>
-          <div class="sync-conflict-sub">O remoto mudou antes deste dispositivo enviar seus dados.</div>
-        </div>
-      </div>
-      <div class="sync-conflict-meta">
-        <span>Remoto: ${remote}</span>
-        <span>Origem: ${device}</span>
-        <span>Detectado: ${detected}</span>
-      </div>
-      <div class="sync-conflict-actions">
-        <button type="button" class="btn btn-outline btn-sm" data-action="cloud-conflict-export-local">
-          <i class="fa fa-download"></i> Exportar backup local
-        </button>
-        <button type="button" class="btn btn-primary btn-sm" data-action="cloud-conflict-pull-remote">
-          <i class="fa fa-cloud-download-alt"></i> Baixar remoto
-        </button>
-        <button type="button" class="btn btn-danger btn-sm" data-action="cloud-conflict-force-push">
-          <i class="fa fa-cloud-upload-alt"></i> Forçar envio local
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-function renderCloudflareAdvancedCard() {
-  const cfg = state.config;
-  return `
-    <div class="backup-advanced-source-card" data-testid="cloudflare-advanced-card">
-      <div class="backup-advanced-source-header">
-        <h4><i class="fa fa-cloud"></i> Cloudflare (Secundario)</h4>
-        <span class="badge ${cfg.cfSyncEnabled ? 'badge-success' : 'badge-muted'}">${cfg.cfSyncEnabled ? 'Ativo' : 'Inativo'}</span>
-      </div>
-      <div class="config-desc">Sincronizacao manual via Cloudflare KV. Nao participa do sync automatico.</div>
-
-      ${renderCloudflareConflict(cfg.cfConflict)}
-
-      <div class="form-group config-input-group">
-        <label class="form-label">URL do Cloudflare Worker (API)</label>
-        <input type="url" id="config-cf-url" class="form-control" placeholder="Ex: https://estudo-sync-api.xxxx.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
-      </div>
-
-      <div class="form-group config-input-group">
-        <label class="form-label">Token de Acesso (Auth Token)</label>
-        <div class="config-input-group">
-            <input type="password" id="config-cf-token" class="form-control" placeholder="${cfg.cfTokenSaved ? 'Token salvo em credenciais locais' : 'Sua senha secreta do Worker'}" value="" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
-            <button type="button" class="btn btn-outline" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/Esconder Senha"><i class="fa fa-eye"></i></button>
-        </div>
-      </div>
-      
-      <div class="config-toggle-row">
-          <label class="btn ${cfg.cfSyncEnabled ? 'btn-primary' : 'btn-outline'}">
-              <input type="checkbox" id="config-cf-enabled" data-action="toggle-cf-sync" ${cfg.cfSyncEnabled ? 'checked' : ''}>
-              <i class="fa fa-power-off"></i> <span id="cf-sync-toggle-text">${cfg.cfSyncEnabled ? 'Sincronizacao Ativada' : 'Ativar Sincronizacao'}</span>
-          </label>
-          <button type="button" class="btn btn-outline" data-action="force-cloudflare-sync" id="btn-force-cf-sync"><i class="fa fa-sync"></i> Forcar Sincronizacao Agora</button>
-      </div>
-      <p id="cf-sync-status" class="config-status"></p>
-    </div>
-  `;
-}
-
-function renderDriveAdvancedCard() {
-  return `
-    <div class="backup-advanced-source-card" data-testid="drive-advanced-card">
-      <div class="backup-advanced-source-header">
-        <h4><i class="fa fa-drive"></i> Google Drive (Secundario)</h4>
-        <span class="badge ${state.driveFileId ? 'badge-success' : 'badge-muted'}">${state.driveFileId ? 'Conectado' : 'Desconectado'}</span>
-      </div>
-      <div class="config-desc">Backup manual via Google Drive. Nao participa do sync automatico.</div>
-
-      ${
-        state.driveFileId
-          ? `
-        <div class="config-actions-row">
-          <button class="btn btn-outline btn-sm" data-action="drive-sync-now">
-            <i class="fa fa-cloud-upload-alt"></i> Sincronizar agora
-          </button>
-          <button class="btn btn-ghost btn-sm" data-action="pull-from-drive">
-            <i class="fa fa-cloud-download-alt"></i> Carregar do Drive
-          </button>
-          <button class="btn btn-danger btn-sm" data-action="drive-disconnect">Desconectar</button>
-        </div>
-      `
-          : `
-        <button class="btn btn-primary btn-sm" data-action="open-drive-modal">
-          <i class="fa fa-cloud"></i> Conectar ao Google Drive
-        </button>
-      `
-      }
     </div>
   `;
 }
@@ -915,13 +801,16 @@ export function updateConfig(key, value) {
 
   state.config[key] = value;
   if (key === 'cfUrl') {
-    const token = document.getElementById('config-cf-token')?.value?.trim();
-    if (token || state.config.cfTokenSaved) {
+    const tokenInput = document.getElementById('config-cf-token');
+    const tokenValue = tokenInput?.value?.trim();
+    if (tokenValue || state.config.cfTokenSaved) {
       setSyncCreds({
         url: value,
-        token: token || undefined,
+        token: tokenValue || undefined,
         enabled: state.config.cfSyncEnabled,
       }).catch((err) => console.error('Erro ao salvar credencial Cloudflare:', err));
+    } else {
+      state.config.cfUrl = value;
     }
     scheduleSave();
     return;

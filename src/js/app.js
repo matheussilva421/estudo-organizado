@@ -2,7 +2,7 @@ import { renderCurrentView } from './components.js?v=8.32';
 import { initDB, scheduleSave, state } from './store.js?v=8.32';
 import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.32';
 import { todayStr as _todayStr, esc } from './utils.js?v=8.32';
-import { pullFromCloudflare } from './cloud-sync.js?v=8.32';
+import { pullFromCloudflare, initCloudflareCreds } from './cloud-sync.js?v=8.32';
 import { initNotifications } from './notifications.js?v=8.32';
 import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.32';
 import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.32';
@@ -441,6 +441,9 @@ export function init() {
           sidebar.classList.remove('collapsed');
         }
       }
+
+      // Sync credential store back to state.config before rendering
+      await initCloudflareCreds();
 
       // Render UI first — user can interact while sync runs in background
       navigate('home');

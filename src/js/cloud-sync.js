@@ -80,6 +80,21 @@ export async function setSyncCreds({ url, token, enabled }) {
   state.config.cfTokenSaved = Boolean(nextCreds.token);
 }
 
+export async function initCloudflareCreds() {
+  const creds = await getSyncCreds();
+  if (!state.config) state.config = {};
+
+  if (creds && creds.url) {
+    state.config.cfUrl = creds.url;
+    state.config.cfSyncEnabled = !!creds.enabled;
+    state.config.cfTokenSaved = Boolean(creds.token);
+  } else {
+    state.config.cfUrl = state.config.cfUrl || '';
+    state.config.cfSyncEnabled = false;
+    state.config.cfTokenSaved = false;
+  }
+}
+
 async function getSyncConfig() {
   // Prefer isolated creds, fall back to state.config for backward compat
   const creds = await getSyncCreds();
