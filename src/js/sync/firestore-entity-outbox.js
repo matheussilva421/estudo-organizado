@@ -16,17 +16,6 @@ function requestToPromise(request) {
   });
 }
 
-function putRecord(record) {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction([FIRESTORE_ENTITY_OUTBOX_STORE], 'readwrite');
-    const store = transaction.objectStore(FIRESTORE_ENTITY_OUTBOX_STORE);
-    store.put(record);
-    transaction.oncomplete = () => resolve(record);
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
-  });
-}
-
 function getEntityByKey(state, key) {
   const active = createEntityIndex(state);
   const match = active.find((item) => item.key === key);
@@ -92,40 +81,58 @@ export async function queueFirestoreEntityBatchFromState(state, options = {}) {
     lastError: null,
     docs: [...activeDocs, ...tombstoneDocs],
   };
-  return putRecord(record);
+
+  const tx = db.transaction([FIRESTORE_ENTITY_OUTBOX_STORE], 'readwrite');
+  const store = tx.objectStore(FIRESTORE_ENTITY_OUTBOX_STORE);
+  const existing = await requestToPromise(store.get(FIRESTORE_ENTITY_OUTBOX_ID));
+  if (existing && existing.status === 'pending') {
+    record.attempts = existing.attempts || 0;
+    record.nextAttemptAt = existing.nextAttemptAt;
+  }
+  await requestToPromise(store.put(record));
+  return record;
 }
 
 export async function getPendingFirestoreEntityBatch() {
   if (!db || !db.objectStoreNames?.contains(FIRESTORE_ENTITY_OUTBOX_STORE)) return null;
-  const transaction = db.transaction([FIRESTORE_ENTITY_OUTBOX_STORE], 'readonly');
-  const store = transaction.objectStore(FIRESTORE_ENTITY_OUTBOX_STORE);
+  const tx = db.transaction([FIRESTORE_ENTITY_OUTBOX_STORE], 'readonly');
+  const store = tx.objectStore(FIRESTORE_ENTITY_OUTBOX_STORE);
   return requestToPromise(store.get(FIRESTORE_ENTITY_OUTBOX_ID));
 }
 
 export async function markFirestoreEntityBatchSynced() {
-  if (!db || !db.objectStoreNames?.contains(FIRESTORE_ENTITY_OUTBOX_STORE)) return;
-  const current = await getPendingFirestoreEntityBatch();
-  if (!current) return;
-  await putRecord({
-    ...current,
-    status: 'synced',
-    syncedAt: new Date().toISOString(),
-  });
+  if (!db || !db.objectStoreNames?.contains(FIRESTORE_ENTITY_OUTBOX_STORE)) return false;
+  const tx = db.transaction([FIRESTORE_ENTITY_OUTBOX_STORE], 'readwrite');
+  const store = tx.objectStore(FIRESTORE_ENTITY_OUTBOX_STORE);
+  const current = await requestToPromise(store.get(FIRESTORE_ENTITY_OUTBOX_ID));
+  if (!current) return false;
+  await requestToPromise(
+    store.put({
+      ...current,
+      status: 'synced',
+      syncedAt: new Date().toISOString(),
+    })
+  );
+  return true;
 }
 
 export async function markFirestoreEntityBatchFailed(error) {
   if (!db || !db.objectStoreNames?.contains(FIRESTORE_ENTITY_OUTBOX_STORE)) return false;
-  const current = await getPendingFirestoreEntityBatch();
+  const tx = db.transaction([FIRESTORE_ENTITY_OUTBOX_STORE], 'readwrite');
+  const store = tx.objectStore(FIRESTORE_ENTITY_OUTBOX_STORE);
+  const current = await requestToPromise(store.get(FIRESTORE_ENTITY_OUTBOX_ID));
   if (!current) return false;
   const attempts = (current.attempts || 0) + 1;
   const delayMs = Math.min(MAX_BACKOFF_MS, 1000 * 2 ** Math.min(attempts, MAX_BACKOFF_EXPONENT));
-  await putRecord({
-    ...current,
-    status: 'pending',
-    attempts,
-    lastError: error?.message || String(error),
-    nextAttemptAt: new Date(Date.now() + delayMs).toISOString(),
-  });
+  await requestToPromise(
+    store.put({
+      ...current,
+      status: 'pending',
+      attempts,
+      lastError: error?.message || String(error),
+      nextAttemptAt: new Date(Date.now() + delayMs).toISOString(),
+    })
+  );
   return true;
 }
 
