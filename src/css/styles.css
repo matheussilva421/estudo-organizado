@@ -903,6 +903,35 @@ body {
   }
 }
 
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.sync-status--syncing {
+  color: var(--warning, #f59e0b);
+}
+
+.sync-status--synced {
+  color: var(--success, #10b981);
+}
+
+.sync-status--error {
+  color: var(--danger, #ef4444);
+}
+
+.sync-status--offline {
+  color: var(--text-muted, #6b7280);
+}
+
+.sync-status--degraded {
+  color: var(--warning, #f59e0b);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

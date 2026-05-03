@@ -18,7 +18,7 @@ import * as lesson_mapper from './lesson-mapper.js?v=8.32';
 import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.32';
 import * as sync_coordinator from './sync/sync-coordinator.js?v=8.32';
 import * as entity_conflict_model from './sync/entity-conflict-model.js?v=8.32';
-import { appendSyncPerformanceMetric } from './sync/sync-health.js?v=8.32';
+import { initSyncStatusUI } from './sync/sync-status-ui.js?v=8.32';
 
 // Import UI helpers and action dispatcher
 import { setupActionDispatcher } from './ui/actions/index.js?v=8.32';
@@ -141,52 +141,15 @@ app.initSaveStatusIndicator();
 // Call init - modules are deferred, so DOM is ready
 app.init();
 
+// Initialize sync status UI component (decoupled from renderCurrentView)
+initSyncStatusUI();
+
 // ============================================================
 // DOMAIN EVENT LISTENERS (Etapa 2 - Quebrando ciclos)
 // ============================================================
 // Usar addCleanupListener para prevenir memory leaks
-let configSyncRenderQueued = false;
-let lastConfigSyncStatusSignature = '';
-let lastConfigSyncRenderAt = 0;
-const CONFIG_SYNC_RENDER_THROTTLE_MS = 250;
-
-function getFirestoreSyncRenderSignature(detail = {}) {
-  return JSON.stringify({
-    status: detail.status || '',
-    uid: detail.uid || '',
-    mode: detail.mode || '',
-    enabled: !!detail.enabled,
-    hasPendingWrites: !!detail.hasPendingWrites,
-    conflict: !!detail.conflict,
-    remoteUpdatedAt: detail.remoteUpdatedAt || '',
-    lastPullAt: detail.lastPullAt || '',
-    lastPushAt: detail.lastPushAt || '',
-    lastError: detail.lastError || detail.error || '',
-  });
-}
-
-function scheduleConfigSyncRender(detail = {}) {
-  if (app.currentView !== 'config') return;
-  const signature = getFirestoreSyncRenderSignature(detail);
-  if (signature === lastConfigSyncStatusSignature) return;
-  lastConfigSyncStatusSignature = signature;
-  if (configSyncRenderQueued) return;
-  const elapsed = Date.now() - lastConfigSyncRenderAt;
-  const delay = Math.max(0, CONFIG_SYNC_RENDER_THROTTLE_MS - elapsed);
-  configSyncRenderQueued = true;
-  setTimeout(() => {
-    configSyncRenderQueued = false;
-    lastConfigSyncRenderAt = Date.now();
-    if (app.currentView === 'config') {
-      const renderStart = performance.now();
-      components.renderCurrentView();
-      appendSyncPerformanceMetric(store.state, {
-        name: 'renderSyncMs',
-        durationMs: performance.now() - renderStart,
-      });
-    }
-  }, delay);
-}
+// NOTE: Sync status is now handled by sync-status-ui.js (imported above).
+// No longer trigger full re-renders on sync status changes.
 
 addCleanupListener(document, 'app:renderCurrentView', () => {
   components.renderCurrentView();
@@ -199,9 +162,6 @@ addCleanupListener(document, 'app:showToast', (e) => {
 });
 addCleanupListener(document, 'app:showConfirm', (e) => {
   app.showConfirm(e.detail.msg, e.detail.onYes, e.detail.opts);
-});
-addCleanupListener(document, 'app:firestoreSyncStatus', (event) => {
-  scheduleConfigSyncRender(event.detail || {});
 });
 addCleanupListener(document, 'app:invalidateCaches', () => {
   logic.invalidateDiscCache();
