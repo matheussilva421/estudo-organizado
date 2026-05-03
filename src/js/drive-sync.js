@@ -274,26 +274,21 @@ async function _syncWithDriveInternal(recursionDepth = 0) {
           // O Drive tem uma versão mais nova (modificada em outro dispositivo)
           showConfirm(
             'Encontrada versão mais recente no Drive. Deseja mesclar com os dados locais?',
-            () => {
+            async () => {
               const merged = mergeStudyStates(state, driveData);
               setState(merged);
               // Re-sync Cloudflare credentials from isolated store after remote merge
-              initCloudflareCreds().catch(() => {});
+              await initCloudflareCreds();
               runMigrations();
-              saveStateToDB({
+              await saveStateToDB({
                 skipCloudSync: true,
                 skipFirestoreSync: true,
                 skipDriveSync: true,
                 touchLocalBackup: false,
-              })
-                .then(() => {
-                  renderCurrentView();
-                  showToast('Dados mesclados do Drive!', 'success');
-                  updateDriveUI('connected', 'Google Drive');
-                })
-                .catch((e) => {
-                  console.error('Force save fail:', e);
-                });
+              });
+              renderCurrentView();
+              showToast('Dados mesclados do Drive!', 'success');
+              updateDriveUI('connected', 'Google Drive');
             },
             { title: 'Sincronização', label: 'Mesclar Dados' }
           );

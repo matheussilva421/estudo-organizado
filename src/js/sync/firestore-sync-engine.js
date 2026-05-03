@@ -664,7 +664,7 @@ export async function pullFromFirestore(forceOverwrite = false) {
       const nextState = applyEnvelopeToLocalState(remote, config);
       setState(nextState, { merge: true });
       // Re-sync Cloudflare credentials from isolated store after remote merge
-      initCloudflareCreds().catch(() => {});
+      await initCloudflareCreds();
       await clearFirestoreConflict();
       await markFirestoreSnapshotSynced();
       await saveFirestoreMeta({
@@ -739,7 +739,7 @@ async function syncFirestoreNowUnlocked() {
     const nextState = applyEnvelopeToLocalState(remote, config);
     setState(nextState, { merge: true });
     // Re-sync Cloudflare credentials from isolated store after remote merge
-    initCloudflareCreds().catch(() => {});
+    await initCloudflareCreds();
     await clearFirestoreConflict();
     await markFirestoreSnapshotSynced();
     await saveFirestoreMeta({ uid, remoteUpdatedAt, lastPullAt: new Date().toISOString() });
@@ -802,7 +802,7 @@ export async function mergeFromFirestore() {
     const merged = mergeStudyStates(state, remote.payload || {});
     setState(merged, { merge: true });
     // Re-sync Cloudflare credentials from isolated store after remote merge
-    initCloudflareCreds().catch(() => {});
+    await initCloudflareCreds();
     const mergeConflict = merged.config?.syncMergeConflicts;
     if (mergeConflict) {
       const conflict = {
