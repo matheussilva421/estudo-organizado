@@ -1,4 +1,4 @@
-import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.32';
+import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.33';
 
 export const FIRESTORE_SYNC_VERSION = 1;
 export const FIRESTORE_SNAPSHOT_DOC_ID = 'main';

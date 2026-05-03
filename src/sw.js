@@ -1,4 +1,4 @@
-const APP_VERSION = '8.32';
+const APP_VERSION = '8.33';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -29,12 +29,6 @@ const ASSET_PATHS = [
   './js/store.js',
   './js/state/chart-state.js',
   './js/state/dashboard-context.js',
-  './js/sync/entity-conflict-model.js',
-  './js/sync/entity-metadata.js',
-  './js/sync/entity-shadow-verifier.js',
-  './js/sync/entity-state-builder.js',
-  './js/sync/firestore-entity-outbox.js',
-  './js/sync/firestore-entity-schema.js',
   './js/sync/firestore-outbox.js',
   './js/sync/firestore-repository.js',
   './js/sync/firestore-schema.js',

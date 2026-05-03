@@ -44,11 +44,11 @@ describe('views.js - CRUD, modals, sequence ops', () => {
     };
     componentsModule = { renderCurrentView: vi.fn(), renderEventCard: vi.fn(() => '<div>card</div>') };
 
-    vi.doMock('../../src/js/store.js?v=8.32', () => storeModule);
-    vi.doMock('../../src/js/app.js?v=8.32', () => appModule);
-    vi.doMock('../../src/js/logic.js?v=8.32', () => logicModule);
-    vi.doMock('../../src/js/components.js?v=8.32', () => componentsModule);
-    vi.doMock('../../src/js/utils.js?v=8.32', () => ({
+    vi.doMock('../../src/js/store.js?v=8.33', () => storeModule);
+    vi.doMock('../../src/js/app.js?v=8.33', () => appModule);
+    vi.doMock('../../src/js/logic.js?v=8.33', () => logicModule);
+    vi.doMock('../../src/js/components.js?v=8.33', () => componentsModule);
+    vi.doMock('../../src/js/utils.js?v=8.33', () => ({
       esc: vi.fn((s) => s || ''),
       todayStr: vi.fn(() => '2026-04-29'),
       cutoffDateStr: vi.fn((d) => {
@@ -65,14 +65,14 @@ describe('views.js - CRUD, modals, sequence ops', () => {
       ],
       addCleanupListener: vi.fn(),
     }));
-    vi.doMock('../../src/js/state/dashboard-context.js?v=8.32', () => ({
+    vi.doMock('../../src/js/state/dashboard-context.js?v=8.33', () => ({
       getActiveDashboardDiscCtx: vi.fn(() => null),
       setActiveDashboardDiscCtx: vi.fn(),
       clearActiveDashboardDiscCtx: vi.fn(),
       setActiveDashboardTab: vi.fn(),
       resetActiveDashboardTab: vi.fn(),
     }));
-    vi.doMock('../../src/js/ui/event-modals.js?v=8.32', () => ({
+    vi.doMock('../../src/js/ui/event-modals.js?v=8.33', () => ({
       openAddEventModal: vi.fn(),
       loadAssuntos: vi.fn(),
     }));
@@ -82,12 +82,12 @@ describe('views.js - CRUD, modals, sequence ops', () => {
     vi.doMock('../../src/js/views/editais-view.js', () => ({
       renderVerticalList: vi.fn(),
     }));
-    vi.doMock('../../src/js/state/chart-state.js?v=8.32', () => ({
+    vi.doMock('../../src/js/state/chart-state.js?v=8.33', () => ({
       setDiscChartInstance: vi.fn(),
       getDiscChartInstance: vi.fn(() => null),
     }));
 
-    views = await import('../../src/js/views.js?v=8.32');
+    views = await import('../../src/js/views.js?v=8.33');
   });
 
   describe('deleteAssunto()', () => {

@@ -1,13 +1,13 @@
-import { renderCurrentView } from './components.js?v=8.32';
-import { initDB, scheduleSave, state } from './store.js?v=8.32';
-import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.32';
-import { todayStr as _todayStr, esc } from './utils.js?v=8.32';
-import { pullFromCloudflare, initCloudflareCreds } from './cloud-sync.js?v=8.32';
-import { initNotifications } from './notifications.js?v=8.32';
-import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.32';
-import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.32';
-import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.32';
-import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.32';
+import { renderCurrentView } from './components.js?v=8.33';
+import { initDB, scheduleSave, state } from './store.js?v=8.33';
+import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.33';
+import { todayStr as _todayStr, esc } from './utils.js?v=8.33';
+import { pullFromCloudflare, initCloudflareCreds } from './cloud-sync.js?v=8.33';
+import { initNotifications } from './notifications.js?v=8.33';
+import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.33';
+import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.33';
+import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.33';
+import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.33';
 
 // =============================================
 // APP STATE & DATA
@@ -117,7 +117,7 @@ const QUIET_SYNC_LABELS = {
   ok: 'Tudo salvo',
   pending: 'Sincronizando',
   offline: 'Offline',
-  danger: 'Acao necessaria',
+  danger: 'Ação necessária',
   warning: 'Sincronizando',
   idle: 'Tudo salvo',
 };

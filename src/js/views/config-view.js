@@ -11,8 +11,8 @@ import {
   showToast,
   openModal,
   getLastSaveStatus,
-} from '../app.js?v=8.32';
-import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.32';
+} from '../app.js?v=8.33';
+import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.33';
 import {
   scheduleSave,
   state,
@@ -20,28 +20,28 @@ import {
   runMigrations,
   createExportableState,
   clearData,
-} from '../store.js?v=8.32';
+} from '../store.js?v=8.33';
 import {
   syncCicloToEventos,
   invalidateDiscCache,
   invalidateDashCaches,
   invalidateRevCache,
-} from '../logic.js?v=8.32';
-import { renderCurrentView } from '../components.js?v=8.32';
-import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.32';
+} from '../logic.js?v=8.33';
+import { renderCurrentView } from '../components.js?v=8.33';
+import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.33';
 import {
   getFirestoreSyncStatus,
   previewFirestoreRestore,
   pullFromFirestore,
-} from '../sync/firestore-sync-engine.js?v=8.32';
+} from '../sync/firestore-sync-engine.js?v=8.33';
 import {
   setSyncCreds,
   forceCloudflareSync,
   previewCloudflareRestore,
   pullFromCloudflare,
-} from '../cloud-sync.js?v=8.32';
-import { disconnectDrive, previewDriveRestore, pullFromDrive } from '../drive-sync.js?v=8.32';
-import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.32';
+} from '../cloud-sync.js?v=8.33';
+import { disconnectDrive, previewDriveRestore, pullFromDrive } from '../drive-sync.js?v=8.33';
+import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.33';
 
 function formatBackupDateTime(value) {
   if (!value) return 'Nunca';
@@ -101,23 +101,23 @@ function renderBackupCenterCard() {
     {
       id: 'firestore',
       title: 'Firestore primary',
-      status: fs.enabled ? 'Canal remoto ativo' : 'Aguardando login/ativacao',
+      status: fs.enabled ? 'Canal remoto ativo' : 'Aguardando login/ativação',
       at: fs.remoteUpdatedAt || fs.lastPushAt || fs.lastPullAt,
       detail: 'Fonte remota principal; snapshot permanece fallback.',
     },
     {
       id: 'cloudflare',
-      title: 'Cloudflare secundario',
-      status: state.config?.cfSyncEnabled ? 'Backup manual configurado' : 'Nao configurado',
+      title: 'Cloudflare secundário',
+      status: state.config?.cfSyncEnabled ? 'Backup manual configurado' : 'Não configurado',
       at: state.config?.cfLastSyncAt,
-      detail: 'Canal manual/secundario fora do sync primary.',
+      detail: 'Canal manual/secundário fora do sync primary.',
     },
     {
       id: 'drive',
       title: 'Google Drive',
-      status: state.driveFileId ? 'Backup manual conectado' : 'Nao conectado',
+      status: state.driveFileId ? 'Backup manual conectado' : 'Não conectado',
       at: state.lastSync,
-      detail: 'Importacao e exportacao manual para recuperacao.',
+      detail: 'Importação e exportação manual para recuperação.',
     },
   ];
 
@@ -125,7 +125,7 @@ function renderBackupCenterCard() {
     <div class="card config-card" data-testid="backup-center">
       <div class="card-header"><h3><i class="fa fa-shield-heart"></i> Backup Center</h3></div>
       <div class="card-body">
-        <div class="config-desc">Exporte seus dados como JSON para backup seguro. A importacao valida o arquivo e mostra previa de impacto antes de substituir.</div>
+        <div class="config-desc">Exporte seus dados como JSON para backup seguro. A importação valida o arquivo e mostra prévia de impacto antes de substituir.</div>
 
         <div class="backup-center-primary-actions">
           <button class="btn btn-primary" data-action="export-data"><i class="fa fa-download"></i> Exportar JSON</button>
@@ -133,7 +133,7 @@ function renderBackupCenterCard() {
         </div>
 
         <div class="form-group mb-3">
-          <label class="form-label">Origem do backup para restauracao</label>
+          <label class="form-label">Origem do backup para restauração</label>
           <select id="backup-restore-source" class="form-control">
             <option value="local">Backup local (importar arquivo JSON)</option>
             <option value="firestore">Firestore</option>
@@ -142,7 +142,7 @@ function renderBackupCenterCard() {
           </select>
         </div>
         <div class="config-actions-row">
-          <button class="btn btn-ghost" data-action="open-restore-preview"><i class="fa fa-rotate-left"></i> Restaurar com previa</button>
+          <button class="btn btn-ghost" data-action="open-restore-preview"><i class="fa fa-rotate-left"></i> Restaurar com prévia</button>
           <button class="btn btn-ghost btn-sm" data-action="export-data">Exportar antes de restaurar</button>
         </div>
 
@@ -298,6 +298,85 @@ function getSyncHealthIcon(health) {
   return icons[health] || 'fa-circle-info';
 }
 
+function renderCloudflareConflict(source) {
+  if (!source?.conflict) return '';
+  return `
+    <div class="sync-conflict-panel" data-testid="cf-sync-conflict" role="alert">
+      <div class="sync-conflict-header">
+        <i class="fa fa-triangle-exclamation"></i>
+        <div>
+          <div class="sync-conflict-title">Conflito Cloudflare</div>
+          <div class="sync-conflict-sub">O backup remoto mudou antes do envio local.</div>
+        </div>
+      </div>
+      <div class="sync-conflict-meta">
+        <span>Remoto: ${formatBackupDateTime(source.conflict.remoteUpdatedAt)}</span>
+        <span>Detectado: ${formatBackupDateTime(source.conflict.detectedAt)}</span>
+      </div>
+      <div class="sync-conflict-actions">
+        <button type="button" class="btn btn-outline btn-sm" data-action="cloud-conflict-export-local">
+          <i class="fa fa-download"></i> Exportar backup local
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" data-action="cloud-conflict-pull-remote">
+          <i class="fa fa-cloud-download-alt"></i> Baixar remoto
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" data-action="cloud-conflict-force-push">
+          <i class="fa fa-cloud-upload-alt"></i> Enviar local
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderEntityConflictPanel(source) {
+  const conflict = source?.conflict;
+  const items = Array.isArray(conflict?.items) ? conflict.items : [];
+  if (conflict?.type !== 'entity-conflict' || items.length === 0) return '';
+
+  return `
+    <div class="sync-conflict-panel" data-testid="sync-source-conflict-entities" role="alert">
+      <div class="sync-conflict-header">
+        <i class="fa fa-code-branch"></i>
+        <div>
+          <div class="sync-conflict-title">Entidades afetadas</div>
+          <div class="sync-conflict-sub">${esc(items.length)} item(ns) precisam de decisão.</div>
+        </div>
+      </div>
+      <div class="entity-conflict-review-list">
+        ${items
+          .slice(0, 4)
+          .map(
+            (item) => `
+          <div class="entity-conflict-review-row">
+            <div class="entity-conflict-review-info">
+              <strong>${esc(item.collection || 'item')}</strong>
+              <code>${esc(item.id || item.key || '')}</code>
+              <span class="entity-conflict-review-hint">${esc(item.hint || 'revisar')}</span>
+            </div>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+      <div class="sync-conflict-actions">
+        <button type="button" class="btn btn-outline btn-sm" data-action="firestore-open-conflict-review">
+          Revisar conflito
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="entity-conflict-keep-local">
+          Manter este dispositivo
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" data-action="entity-conflict-keep-remote">
+          Usar nuvem
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSyncSourceExtras(source) {
+  return `${renderCloudflareConflict(source)}${renderEntityConflictPanel(source)}`;
+}
+
 function renderSyncSourceActions(source) {
   if (source.id === 'local') {
     return `
@@ -349,18 +428,18 @@ function renderCloudflareConfigFields(source) {
   const cfTokenSaved = !!cfg.cfTokenSaved;
   return `
     <div class="sync-source-config" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color,#2a2a3e);">
-      <div class="form-group" style="margin-bottom:8px;">
+      <div class="form-group config-input-group" style="margin-bottom:8px;">
         <label class="form-label" style="font-size:0.85em;">URL do Cloudflare Worker (API)</label>
         <input type="url" id="config-cf-url" class="form-control form-control-sm" placeholder="https://seu-worker.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
       </div>
-      <div class="form-group" style="margin-bottom:8px;">
+      <div class="form-group config-input-group" style="margin-bottom:8px;">
         <label class="form-label" style="font-size:0.85em;">Token de Acesso (Auth Token)</label>
         <div style="display:flex;gap:8px;">
           <input type="password" id="config-cf-token" class="form-control form-control-sm" placeholder="${cfTokenSaved ? 'Token salvo em credenciais locais' : 'Sua senha secreta do Worker'}" value="" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
           <button type="button" class="btn btn-ghost btn-sm" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/ocultar token"><i class="fa fa-eye"></i></button>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom:0;">
+      <div class="form-group config-toggle-row" style="margin-bottom:0;">
         <label style="display:flex;align-items:center;gap:8px;font-size:0.85em;cursor:pointer;">
           <input type="checkbox" id="config-cf-enabled" ${cfg.cfSyncEnabled ? 'checked' : ''} data-action="toggle-cf-sync">
           Ativar Sincronização
@@ -413,7 +492,7 @@ function _renderSyncCenterCard() {
         <div class="sync-source-meta">
           <span>Fila: ${esc(metrics.pendingAgeLabel || '0 min')}</span>
           <span>Retries: ${esc(metrics.retryAttempts ?? 0)}</span>
-          ${metrics.nextRetryAt ? `<span>Proxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ''}
+          ${metrics.nextRetryAt ? `<span>Próxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ''}
           ${metrics.remoteAckAt ? `<span>Ack remoto: ${formatBackupDateTime(metrics.remoteAckAt)}</span>` : ''}
         </div>
 
@@ -438,6 +517,8 @@ function _renderSyncCenterCard() {
               <div class="sync-source-actions">
                 ${renderSyncSourceActions(source)}
               </div>
+              ${source.id === 'cloudflare' ? '<div id="cf-sync-status" class="config-save-status"></div>' : ''}
+              ${renderSyncSourceExtras(source)}
             </div>
           `
             )
@@ -457,7 +538,7 @@ function renderQuietSyncCenterCard() {
   const performanceMetrics = model.performanceMetrics || [];
   const quiet = model.quiet || {
     title: statusLabel,
-    detail: 'O app salva localmente e sincroniza quando possivel.',
+    detail: 'O app salva localmente e sincroniza quando possível.',
     tone: health.status || 'idle',
     primaryAction: null,
   };
@@ -477,7 +558,7 @@ function renderQuietSyncCenterCard() {
           <div class="sync-quiet-main">
             <div class="sync-quiet-icon"><i class="fa ${statusIcon}"></i></div>
             <div>
-              <div class="sync-quiet-kicker">Sincronizacao automatica</div>
+              <div class="sync-quiet-kicker">Sincronização automática</div>
               <div class="sync-quiet-title">${esc(quiet.title)}</div>
               <div class="sync-quiet-detail">${esc(quiet.detail)}</div>
             </div>
@@ -492,9 +573,9 @@ function renderQuietSyncCenterCard() {
           }
         </div>
 
-        <details class="sync-advanced-panel" data-testid="sync-advanced-panel"${advancedOpen}>
-          <summary>Opcoes avancadas de sync</summary>
-          <div class="sync-advanced-content">
+        <details class="sync-advanced-panel" data-testid="backup-advanced-panel"${advancedOpen}>
+          <summary>Opções avançadas de sync</summary>
+          <div class="sync-advanced-content" data-testid="sync-advanced-panel">
             <div class="sync-health-badge sync-health-badge--${health.status}">
               <i class="fa ${statusIcon}"></i>
               <span>${statusLabel}</span>
@@ -502,7 +583,7 @@ function renderQuietSyncCenterCard() {
             <div class="sync-source-meta">
               <span>Fila: ${esc(metrics.pendingAgeLabel || '0 min')}</span>
               <span>Retries: ${esc(metrics.retryAttempts ?? 0)}</span>
-              ${metrics.nextRetryAt ? `<span>Proxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ''}
+              ${metrics.nextRetryAt ? `<span>Próxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ''}
               ${metrics.remoteAckAt ? `<span>Ack remoto: ${formatBackupDateTime(metrics.remoteAckAt)}</span>` : ''}
             </div>
             ${
@@ -531,13 +612,15 @@ function renderQuietSyncCenterCard() {
                     <span class="badge ${source.enabled ? 'badge-success' : 'badge-muted'}">${source.enabled ? 'Ativo' : 'Inativo'}</span>
                   </div>
                   <div class="sync-source-meta">
-                    <span>Ãšltimo sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
+                    <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
                     ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
                     ${source.metrics?.retryAttempts ? `<span>Retries: ${esc(source.metrics.retryAttempts)}</span>` : ''}
                   </div>
                   <div class="sync-source-actions">
                     ${renderSyncSourceActions(source)}
                   </div>
+                  ${source.id === 'cloudflare' ? '<div id="cf-sync-status" class="config-save-status"></div>' : ''}
+                  ${renderSyncSourceExtras(source)}
                   ${source.id === 'cloudflare' ? renderCloudflareConfigFields(source) : ''}
                 </div>
               `
@@ -950,19 +1033,19 @@ export function openRestorePreviewModal(payload = state, options = {}) {
   const body = document.getElementById('modal-prompt-body');
   const saveBtn = document.getElementById('modal-prompt-save');
   if (!modal || !title || !body || !saveBtn) {
-    showToast('Modal de restauracao indisponivel.', 'error');
+    showToast('Modal de restauração indisponível.', 'error');
     return false;
   }
 
   const sourceLabel = options.sourceLabel || 'backup selecionado';
   const impact = previewRestoreImpact(state, payload || {});
-  title.textContent = 'Previa de restauracao';
+  title.textContent = 'Prévia de restauração';
   body.innerHTML = `
     <div class="restore-preview-modal">
       <div class="config-desc">Origem: <strong>${esc(sourceLabel)}</strong>. Revise o impacto antes de substituir os dados locais.</div>
       ${renderRestoreImpactSummary(impact)}
       <div class="restore-preview-warning">
-        A restauracao pode substituir eventos, editais, habitos, revisoes e configuracoes locais.
+        A restauração pode substituir eventos, editais, hábitos, revisões e configurações locais.
       </div>
       <div class="config-actions-row">
         <button type="button" class="btn btn-ghost btn-sm" data-action="export-data">
@@ -1045,7 +1128,7 @@ export function importData() {
 }
 
 function openRemoteRestorePreview(sourceLabel, previewPromise, onConfirm, label) {
-  showToast(`Lendo backup ${sourceLabel} para previa...`, 'info');
+  showToast(`Lendo backup ${sourceLabel} para prévia...`, 'info');
   return previewPromise
     .then((payload) => {
       if (!payload || typeof payload !== 'object') {
@@ -1060,7 +1143,7 @@ function openRemoteRestorePreview(sourceLabel, previewPromise, onConfirm, label)
     })
     .catch((err) => {
       console.error(`Erro ao preparar restore ${sourceLabel}:`, err);
-      showToast(`Nao foi possivel ler o backup ${sourceLabel}.`, 'error');
+      showToast(`Não foi possível ler o backup ${sourceLabel}.`, 'error');
       return false;
     });
 }

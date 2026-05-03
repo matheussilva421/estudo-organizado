@@ -145,7 +145,7 @@ test.describe('Sync simulado', () => {
     await page.click('[data-view="config"]');
 
     await page.locator('[data-testid="backup-advanced-panel"] summary').click();
-    await expect(page.locator('#main-content')).toContainText('Google Drive (Secundario)');
+    await expect(page.locator('#main-content')).toContainText('Google Drive');
     await expect(page.locator('#main-content [data-action="drive-sync-now"]').first()).toBeVisible();
     await expect(page.locator('#main-content [data-action="pull-from-drive"]').first()).toBeVisible();
     await expect(page.locator('#main-content [data-action="drive-disconnect"]').first()).toBeVisible();

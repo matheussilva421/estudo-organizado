@@ -4,7 +4,7 @@ let dashboardContext;
 
 beforeEach(async () => {
   vi.resetModules();
-  dashboardContext = await import('../../src/js/state/dashboard-context.js?v=8.32');
+  dashboardContext = await import('../../src/js/state/dashboard-context.js?v=8.33');
 });
 
 describe('dashboard-context.js', () => {

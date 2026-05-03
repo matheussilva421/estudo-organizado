@@ -8,10 +8,10 @@ describe('sync-coordinator.js', () => {
 
   describe('getSyncCoordinatorStatus()', () => {
     it('returns status with primary source and timer state', async () => {
-      vi.doMock('../store.js?v=8.32', () => ({
+      vi.doMock('../store.js?v=8.33', () => ({
         state: { config: { firestoreSync: { enabled: false, mode: 'shadow' } } },
       }));
-      vi.doMock('./firestore-sync-engine.js?v=8.32', () => ({
+      vi.doMock('./firestore-sync-engine.js?v=8.33', () => ({
         flushFirestoreOutbox: vi.fn(),
         getFirestoreSyncStatus: vi.fn(() => ({
           configured: false,
@@ -23,14 +23,14 @@ describe('sync-coordinator.js', () => {
         queueFirestoreSnapshotFromState: vi.fn(),
         syncFirestoreNow: vi.fn(),
       }));
-      vi.doMock('./firestore-outbox.js?v=8.32', () => ({
+      vi.doMock('./firestore-outbox.js?v=8.33', () => ({
         getPendingFirestoreSnapshot: vi.fn(() => null),
       }));
-      vi.doMock('./firestore-entity-outbox.js?v=8.32', () => ({
+      vi.doMock('./firestore-entity-outbox.js?v=8.33', () => ({
         queueFirestoreEntityBatchFromState: vi.fn(),
       }));
 
-      const coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.32');
+      const coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.33');
       const status = coordinator.getSyncCoordinatorStatus();
 
       expect(status.primary).toBe('firebase');
@@ -41,10 +41,10 @@ describe('sync-coordinator.js', () => {
 
   describe('schedulePrimarySync()', () => {
     it('returns false when conflict exists', async () => {
-      vi.doMock('../store.js?v=8.32', () => ({
+      vi.doMock('../store.js?v=8.33', () => ({
         state: { config: { firestoreSync: { enabled: true, mode: 'primary', conflict: { type: 'diverge' } } } },
       }));
-      vi.doMock('./firestore-sync-engine.js?v=8.32', () => ({
+      vi.doMock('./firestore-sync-engine.js?v=8.33', () => ({
         flushFirestoreOutbox: vi.fn(),
         getFirestoreSyncStatus: vi.fn(() => ({
           configured: true,
@@ -56,23 +56,23 @@ describe('sync-coordinator.js', () => {
         queueFirestoreSnapshotFromState: vi.fn(),
         syncFirestoreNow: vi.fn(),
       }));
-      vi.doMock('./firestore-outbox.js?v=8.32', () => ({
+      vi.doMock('./firestore-outbox.js?v=8.33', () => ({
         getPendingFirestoreSnapshot: vi.fn(() => null),
       }));
-      vi.doMock('./firestore-entity-outbox.js?v=8.32', () => ({
+      vi.doMock('./firestore-entity-outbox.js?v=8.33', () => ({
         queueFirestoreEntityBatchFromState: vi.fn(),
       }));
 
-      const coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.32');
+      const coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.33');
       const result = coordinator.schedulePrimarySync('test');
       expect(result).toBe(false);
     });
 
     it('returns false when not configured for primary', async () => {
-      vi.doMock('../store.js?v=8.32', () => ({
+      vi.doMock('../store.js?v=8.33', () => ({
         state: { config: { firestoreSync: { enabled: false, mode: 'shadow' } } },
       }));
-      vi.doMock('./firestore-sync-engine.js?v=8.32', () => ({
+      vi.doMock('./firestore-sync-engine.js?v=8.33', () => ({
         flushFirestoreOutbox: vi.fn(),
         getFirestoreSyncStatus: vi.fn(() => ({
           configured: false,
@@ -84,14 +84,14 @@ describe('sync-coordinator.js', () => {
         queueFirestoreSnapshotFromState: vi.fn(),
         syncFirestoreNow: vi.fn(),
       }));
-      vi.doMock('./firestore-outbox.js?v=8.32', () => ({
+      vi.doMock('./firestore-outbox.js?v=8.33', () => ({
         getPendingFirestoreSnapshot: vi.fn(() => null),
       }));
-      vi.doMock('./firestore-entity-outbox.js?v=8.32', () => ({
+      vi.doMock('./firestore-entity-outbox.js?v=8.33', () => ({
         queueFirestoreEntityBatchFromState: vi.fn(),
       }));
 
-      const coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.32');
+      const coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.33');
       const result = coordinator.schedulePrimarySync('test');
       expect(result).toBe(false);
     });

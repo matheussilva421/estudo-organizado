@@ -5,15 +5,15 @@ import {
   observeFirebaseAuth,
   signInWithGoogle,
   signOutFirebase,
-} from '../firebase/firebase-client.js?v=8.32';
-import { saveStateToDB, setState, state } from '../store.js?v=8.32';
+} from '../firebase/firebase-client.js?v=8.33';
+import { saveStateToDB, setState, state } from '../store.js?v=8.33';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer,
-} from './firestore-schema.js?v=8.32';
+} from './firestore-schema.js?v=8.33';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -21,15 +21,15 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta,
-} from './firestore-outbox.js?v=8.32';
+} from './firestore-outbox.js?v=8.33';
 import {
   readFirestoreSnapshot,
   writeFirestoreSnapshot,
-} from './firestore-repository.js?v=8.32';
-import { canAutoSyncFirestore, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.32';
-import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.32';
-import { firestoreLock } from './sync-lock.js?v=8.32';
-import { yieldToUIWithBudget } from './sync-yield.js?v=8.32';
+} from './firestore-repository.js?v=8.33';
+import { canAutoSyncFirestore, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.33';
+import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.33';
+import { firestoreLock } from './sync-lock.js?v=8.33';
+import { yieldToUIWithBudget } from './sync-yield.js?v=8.33';
 
 let currentUser = null;
 
@@ -107,10 +107,9 @@ async function reconcileFirestorePendingState(skipRender = true) {
   const config = getConfig();
   const pending = await getPendingFirestoreSnapshot();
 
-  // Clear stale conflicts: if there's no pending snapshot to resolve,
-  // the conflict is either resolved or stale (e.g., old entity-style conflict).
-  // Also clear hasPendingWrites since there's nothing in the outbox.
-  if (config.conflict && !pending) {
+  // Clear stale snapshot conflicts when there is no pending snapshot to resolve.
+  // Entity-level conflicts are already the conflict payload and must remain visible.
+  if (config.conflict && config.conflict.type !== 'entity-conflict' && !pending) {
     config.conflict = null;
     config.hasPendingWrites = false;
     config.lastError = null;
@@ -144,18 +143,16 @@ export async function pollFirestoreRemote() {
   const config = getConfig();
   if (!config.enabled || config.mode !== 'primary' || !currentUser?.uid) return false;
 
-  // Auto-clear stale conflicts: if conflict exists but no pending snapshot to resolve it,
-  // the conflict is stale (e.g., old entity-style conflict) and should be cleared.
   if (config.conflict) {
     const pending = await getPendingFirestoreSnapshot();
-    if (!pending) {
+    if (!pending && config.conflict.type !== 'entity-conflict') {
       config.conflict = null;
       config.hasPendingWrites = false;
       config.lastError = null;
       await persistSyncConfig(true);
       emitStatus('synced');
-    } else {
-      return false; // Real conflict with pending snapshot, block polling
+    } else if (pending || config.conflict.type === 'entity-conflict') {
+      return false;
     }
   }
 
@@ -253,7 +250,7 @@ export function getFirestoreSyncStatus() {
 
 export async function downloadSyncDiagnosticLog() {
   // Import Cloudflare sync functions dynamically to avoid circular deps
-  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.32');
+  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.33');
 
   const log = {
     timestamp: new Date().toISOString(),
@@ -858,4 +855,3 @@ export async function mergeFromFirestore() {
     return false;
   }
 }
-

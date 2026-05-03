@@ -186,7 +186,7 @@ test.describe('Fase 6 - Release Gate e Validacao de Caos', () => {
     });
     await page.click('[data-view="config"]');
 
-    await expect(page.locator('[data-testid="sync-quiet-panel"]')).toContainText('Acao necessaria');
+    await expect(page.locator('[data-testid="sync-quiet-panel"]')).toContainText('Ação necessária');
     await expect(page.locator('#modal-prompt')).not.toHaveClass(/show|active/);
     await expect
       .poll(() =>
@@ -232,7 +232,7 @@ test.describe('Fase 6 - Release Gate e Validacao de Caos', () => {
     await page.click('[data-view="config"]');
 
     await expect(page.locator('[data-testid="sync-quiet-panel"]')).toContainText(
-      'Sync aguardando recuperacao'
+      'Sync aguardando recuperação'
     );
     await expect(page.locator('[data-testid="sync-advanced-panel"]')).toContainText('Retries');
     await expect(page.locator('#modal-prompt')).not.toHaveClass(/show|active/);

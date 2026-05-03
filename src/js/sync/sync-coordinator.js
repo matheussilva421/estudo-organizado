@@ -1,20 +1,20 @@
-import { state } from '../store.js?v=8.32';
+import { state } from '../store.js?v=8.33';
 import {
   autoPullRemoteWhenNewer,
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
   syncFirestoreNow,
-} from './firestore-sync-engine.js?v=8.32';
-import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.32';
+} from './firestore-sync-engine.js?v=8.33';
+import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.33';
 import {
   appendSyncHealthEvent,
   appendSyncPerformanceMetric,
   deriveSyncHealthState,
-} from './sync-health.js?v=8.32';
-import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.32';
-import { yieldToUI } from './sync-yield.js?v=8.32';
-import { primarySyncLock } from './sync-lock.js?v=8.32';
+} from './sync-health.js?v=8.33';
+import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.33';
+import { yieldToUI } from './sync-yield.js?v=8.33';
+import { primarySyncLock } from './sync-lock.js?v=8.33';
 
 const AUTO_SYNC_DEBOUNCE_MS = 3000;
 const CIRCUIT_BREAKER_DEGRADED = 3;
@@ -180,8 +180,33 @@ async function _executeFlush(options) {
     syncTimer = null;
   }
 
-  const status = getFirestoreSyncStatus();
+  let status = getFirestoreSyncStatus();
   lastReason = reason;
+
+  if (status.conflict) {
+    const pending = await getPendingFirestoreSnapshot();
+    if (!pending && status.conflict.type !== 'entity-conflict') {
+      emitCoordinatorStatus('syncing', {
+        reason,
+        firestore: status,
+        repair: 'stale-conflict',
+      });
+      const ok = await syncFirestoreNow();
+      failureCount = ok ? 0 : failureCount + 1;
+      updateCircuitBreaker(reason, status);
+      const retryQueued = ok ? false : await scheduleRetryIfNeeded(reason);
+      if (!retryQueued) emitTerminalFlushStatus(ok, reason);
+      return ok;
+    }
+    if (status.conflict.type === 'entity-conflict') {
+      emitCoordinatorStatus('conflict-paused', {
+        reason,
+        firestore: status,
+      });
+      return false;
+    }
+    status = getFirestoreSyncStatus();
+  }
 
   const plannerStart = performance.now();
   const plan = planNextSyncAction({

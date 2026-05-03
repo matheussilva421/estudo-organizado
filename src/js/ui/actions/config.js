@@ -17,16 +17,16 @@ import {
   restoreBackupFromSelectedSource,
   openDriveModal,
   driveDisconnect,
-} from '../../views/config-view.js?v=8.32';
-import { scheduleSave, state } from '../../store.js?v=8.32';
-import { showToast, showConfirm } from '../../app.js?v=8.32';
-import { renderCurrentView } from '../../components.js?v=8.32';
+} from '../../views/config-view.js?v=8.33';
+import { scheduleSave, state } from '../../store.js?v=8.33';
+import { showToast, showConfirm } from '../../app.js?v=8.33';
+import { renderCurrentView } from '../../components.js?v=8.33';
 import {
   forceCloudflareSync,
   pullFromCloudflare,
   pushToCloudflare,
   mergeFromCloudflare,
-} from '../../cloud-sync.js?v=8.32';
+} from '../../cloud-sync.js?v=8.33';
 import {
   firestoreSignIn,
   firestoreSignOut,
@@ -38,14 +38,14 @@ import {
   forcePushFirestore,
   getFirestoreSyncStatus,
   downloadSyncDiagnosticLog,
-} from '../../sync/firestore-sync-engine.js?v=8.32';
-import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.32';
+} from '../../sync/firestore-sync-engine.js?v=8.33';
+import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.33';
 import {
   syncWithDrive,
   pullFromDrive,
   mergeFromDrive,
   driveAction,
-} from '../../drive-sync.js?v=8.32';
+} from '../../drive-sync.js?v=8.33';
 
 // Registrar ações
 registerAction('update-config', (el) => {
@@ -134,7 +134,7 @@ registerAction('firestore-pull-remote', () => {
 });
 registerAction('firestore-merge-remote', () => {
   showConfirm(
-    'Mesclar Firestore com os dados locais? Itens locais e remotos serao preservados quando possivel, e o resultado sera enviado ao Firestore.',
+    'Mesclar Firestore com os dados locais? Itens locais e remotos serão preservados quando possível, e o resultado será enviado ao Firestore.',
     () => mergeFromFirestore(),
     { label: 'Mesclar Firestore', title: 'Mesclar dados' }
   );
@@ -147,6 +147,15 @@ registerAction('firestore-force-push', () => {
   );
 });
 registerAction('firestore-export-local', exportData);
+registerAction('firestore-open-conflict-review', () => {
+  showToast('Revise as entidades afetadas nas opções avançadas de sync.', 'info');
+});
+registerAction('entity-conflict-keep-local', () => {
+  showToast('Resolva pelo painel de revisão antes de aplicar a decisão.', 'info');
+});
+registerAction('entity-conflict-keep-remote', () => {
+  showToast('Resolva pelo painel de revisão antes de aplicar a decisão.', 'info');
+});
 registerAction('firestore-download-log', async () => {
   try {
     await downloadSyncDiagnosticLog();
@@ -157,7 +166,7 @@ registerAction('firestore-download-log', async () => {
 });
 registerAction('cloud-merge-remote', () => {
   showConfirm(
-    'Mesclar Cloudflare com os dados locais? Itens locais e remotos serao preservados quando possivel, e o resultado sera enviado ao Worker.',
+    'Mesclar Cloudflare com os dados locais? Itens locais e remotos serão preservados quando possível, e o resultado será enviado ao Worker.',
     () => mergeFromCloudflare(),
     { label: 'Mesclar Cloudflare', title: 'Mesclar dados' }
   );
@@ -170,7 +179,7 @@ registerAction('drive-sync-now', () => {
 registerAction('pull-from-drive', pullFromDrive);
 registerAction('merge-from-drive', () => {
   showConfirm(
-    'Mesclar Google Drive com os dados locais? Itens locais e remotos serao preservados quando possivel, e o resultado sera reenviado ao Drive.',
+    'Mesclar Google Drive com os dados locais? Itens locais e remotos serão preservados quando possível, e o resultado será reenviado ao Drive.',
     () => mergeFromDrive(),
     { label: 'Mesclar Drive', title: 'Mesclar dados' }
   );
@@ -217,4 +226,3 @@ registerAction('force-sw-cache-clear', async () => {
     showToast('Erro ao limpar cache. Tente Ctrl+Shift+R.', 'error');
   }
 });
-

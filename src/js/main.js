@@ -1,29 +1,29 @@
 // ES Module Entry Point
 // Imports all modules and exposes functions via window.EstudoApp namespace
 
-import * as store from './store.js?v=8.32';
-import * as app from './app.js?v=8.32';
-import * as logic from './logic.js?v=8.32';
-import * as components from './components.js?v=8.32';
-import * as views from './views.js?v=8.32';
-import * as calendar_view from './views/calendar-view.js?v=8.32';
-import * as drive_sync from './drive-sync.js?v=8.32';
-import * as cloud_sync from './cloud-sync.js?v=8.32';
-import * as registro from './registro-sessao.js?v=8.32';
-import * as utils from './utils.js?v=8.32';
-import * as wizard from './planejamento-wizard.js?v=8.32';
+import * as store from './store.js?v=8.33';
+import * as app from './app.js?v=8.33';
+import * as logic from './logic.js?v=8.33';
+import * as components from './components.js?v=8.33';
+import * as views from './views.js?v=8.33';
+import * as calendar_view from './views/calendar-view.js?v=8.33';
+import * as drive_sync from './drive-sync.js?v=8.33';
+import * as cloud_sync from './cloud-sync.js?v=8.33';
+import * as registro from './registro-sessao.js?v=8.33';
+import * as utils from './utils.js?v=8.33';
+import * as wizard from './planejamento-wizard.js?v=8.33';
 
-import * as relevance from './relevance.js?v=8.32';
-import * as lesson_mapper from './lesson-mapper.js?v=8.32';
-import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.32';
-import * as sync_coordinator from './sync/sync-coordinator.js?v=8.32';
-import { initSyncStatusUI } from './sync/sync-status-ui.js?v=8.32';
+import * as relevance from './relevance.js?v=8.33';
+import * as lesson_mapper from './lesson-mapper.js?v=8.33';
+import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.33';
+import * as sync_coordinator from './sync/sync-coordinator.js?v=8.33';
+import { initSyncStatusUI } from './sync/sync-status-ui.js?v=8.33';
 
 // Import UI helpers and action dispatcher
-import { setupActionDispatcher } from './ui/actions/index.js?v=8.32';
-import { qs, qsa } from './ui/dom.js?v=8.32';
-import { initModals, announce } from './ui/dialog.js?v=8.32';
-import { addCleanupListener } from './utils.js?v=8.32';
+import { setupActionDispatcher } from './ui/actions/index.js?v=8.33';
+import { qs, qsa } from './ui/dom.js?v=8.33';
+import { initModals, announce } from './ui/dialog.js?v=8.33';
+import { addCleanupListener } from './utils.js?v=8.33';
 
 // Expose UI helpers to window for gradual migration
 window.qs = qs;

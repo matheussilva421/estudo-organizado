@@ -3,12 +3,12 @@ import { createBaseState, createEvento } from '../helpers/state-builders.js';
 
 async function importCloudSync({ credential = null, fetchImpl } = {}) {
   vi.resetModules();
-  vi.doMock('../../src/js/credentials.js?v=8.32', () => ({
+  vi.doMock('../../src/js/credentials.js?v=8.33', () => ({
     setCredential: vi.fn(() => Promise.resolve()),
     getCredential: vi.fn(() => Promise.resolve(credential)),
     deleteCredential: vi.fn(() => Promise.resolve())
   }));
-  vi.doMock('../../src/js/sync/sync-center.js?v=8.32', () => ({
+  vi.doMock('../../src/js/sync/sync-center.js?v=8.33', () => ({
     mergeStudyStates: vi.fn((local, remote) => ({
       ...local,
       eventos: [...(local.eventos || []), ...(remote.eventos || [])]
@@ -16,8 +16,8 @@ async function importCloudSync({ credential = null, fetchImpl } = {}) {
   }));
   vi.stubGlobal('fetch', fetchImpl || vi.fn());
 
-  const store = await import('../../src/js/store.js?v=8.32');
-  const cloudSync = await import('../../src/js/cloud-sync.js?v=8.32');
+  const store = await import('../../src/js/store.js?v=8.33');
+  const cloudSync = await import('../../src/js/cloud-sync.js?v=8.33');
   return { store, cloudSync };
 }
 
@@ -132,6 +132,6 @@ describe('sync simulation contracts', () => {
       remoteDeviceId: 'remote-device',
     });
     expect(store.state.config.cfConflict.detectedAt).toBeDefined();
-    expect(document.getElementById('cf-sync-status').textContent).toContain('Erro no Push');
+    expect(document.getElementById('cf-sync-status').textContent).toContain('Erro 409: stale write');
   }, 90000);
 });

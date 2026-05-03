@@ -14,7 +14,11 @@ describe('views/config-view.js', () => {
   beforeEach(async () => {
     vi.resetModules();
     appModule = {
-      THEME_OPTIONS: ['dark', 'light', 'auto'],
+      THEME_OPTIONS: [
+        { value: 'dark', label: 'Grafite' },
+        { value: 'light', label: 'Claro' },
+        { value: 'auto', label: 'Automático' },
+      ],
       applyTheme: vi.fn(),
       normalizeTheme: vi.fn((t) => t || 'dark'),
       showConfirm: vi.fn((msg, cb) => cb()),
@@ -53,6 +57,13 @@ describe('views/config-view.js', () => {
     syncCenter = {
       buildSyncCenterModel: vi.fn(() => ({
         health: { status: 'synced', metrics: {} },
+        quiet: {
+          title: 'Tudo salvo automaticamente',
+          detail: 'Suas alterações ficam salvas neste dispositivo.',
+          tone: 'ok',
+          primaryAction: null,
+        },
+        performanceMetrics: [],
         sources: [],
       })),
     };
@@ -72,7 +83,7 @@ describe('views/config-view.js', () => {
       previewDriveRestore: vi.fn(() => Promise.resolve({ eventos: [{ id: 'drive_remote' }], config: {} })),
       pullFromDrive: vi.fn(),
     };
-    vi.doMock('../../src/js/backup-restore.js?v=8.32', () => ({
+    vi.doMock('../../src/js/backup-restore.js?v=8.33', () => ({
       previewRestoreImpact: vi.fn(() => ({
         totals: { added: 2, removed: 1, changed: 1, preserved: 3 },
         byCollection: {
@@ -84,8 +95,8 @@ describe('views/config-view.js', () => {
       validateBackupPayload: vi.fn(() => ({ ok: true, issues: [] })),
     }));
 
-    vi.doMock('../../src/js/app.js?v=8.32', () => appModule);
-    vi.doMock('../../src/js/utils.js?v=8.32', () => ({
+    vi.doMock('../../src/js/app.js?v=8.33', () => appModule);
+    vi.doMock('../../src/js/utils.js?v=8.33', () => ({
       cutoffDateStr: vi.fn((d) => {
         const dt = new Date();
         dt.setDate(dt.getDate() - d);
@@ -95,15 +106,15 @@ describe('views/config-view.js', () => {
       todayStr: vi.fn(() => '2026-04-29'),
       invalidateTodayCache: vi.fn(),
     }));
-    vi.doMock('../../src/js/store.js?v=8.32', () => storeModule);
-    vi.doMock('../../src/js/logic.js?v=8.32', () => logicModule);
-    vi.doMock('../../src/js/components.js?v=8.32', () => componentsModule);
-    vi.doMock('../../src/js/sync/sync-center.js?v=8.32', () => syncCenter);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.32', () => firestoreSync);
-    vi.doMock('../../src/js/cloud-sync.js?v=8.32', () => cloudSync);
-    vi.doMock('../../src/js/drive-sync.js?v=8.32', () => driveSync);
+    vi.doMock('../../src/js/store.js?v=8.33', () => storeModule);
+    vi.doMock('../../src/js/logic.js?v=8.33', () => logicModule);
+    vi.doMock('../../src/js/components.js?v=8.33', () => componentsModule);
+    vi.doMock('../../src/js/sync/sync-center.js?v=8.33', () => syncCenter);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.33', () => firestoreSync);
+    vi.doMock('../../src/js/cloud-sync.js?v=8.33', () => cloudSync);
+    vi.doMock('../../src/js/drive-sync.js?v=8.33', () => driveSync);
 
-    configView = await import('../../src/js/views/config-view.js?v=8.32');
+    configView = await import('../../src/js/views/config-view.js?v=8.33');
   });
 
   describe('setTheme()', () => {
@@ -358,6 +369,19 @@ describe('views/config-view.js', () => {
   });
 
   describe('renderConfig()', () => {
+    it('renders sync labels with Portuguese accents', () => {
+      const el = document.createElement('div');
+
+      configView.renderConfig(el);
+
+      expect(el.innerHTML).toContain('Sincronização automática');
+      expect(el.innerHTML).toContain('Opções avançadas de sync');
+      expect(el.innerHTML).not.toContain('Sincronizacao automatica');
+      expect(el.innerHTML).not.toContain('Opcoes avancadas');
+    });
+  });
+
+  describe('renderConfig()', () => {
     it('renders a dedicated Backup Center with source history and safe restore actions', () => {
       storeModule.state.config.localBackupAt = '2026-04-30T10:00:00.000Z';
       storeModule.state.config.firestoreSync = { remoteUpdatedAt: '2026-04-30T10:05:00.000Z' };
@@ -371,7 +395,7 @@ describe('views/config-view.js', () => {
       expect(el.innerHTML).toContain('data-testid="backup-center"');
       expect(el.innerHTML).toContain('data-testid="sync-center"');
       expect(el.innerHTML).toContain('data-testid="sync-quiet-panel"');
-      expect(el.innerHTML).toContain('Sincronizacao automatica');
+      expect(el.innerHTML).toContain('Sincronização automática');
       expect(el.innerHTML).toContain('data-testid="sync-advanced-panel"');
       expect(el.innerHTML).toContain('data-action="open-restore-preview"');
       expect(el.innerHTML).toContain('Exportar antes de restaurar');
@@ -394,7 +418,7 @@ describe('views/config-view.js', () => {
         onConfirm,
       });
 
-      expect(document.getElementById('modal-prompt-title').textContent).toBe('Previa de restauracao');
+      expect(document.getElementById('modal-prompt-title').textContent).toBe('Prévia de restauração');
       expect(document.getElementById('modal-prompt-body').innerHTML).toContain('2 adicionados');
       expect(document.getElementById('modal-prompt-body').innerHTML).toContain('Exportar antes de restaurar');
       expect(appModule.openModal).toHaveBeenCalledWith('modal-prompt');

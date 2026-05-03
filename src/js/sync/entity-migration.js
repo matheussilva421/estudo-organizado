@@ -8,7 +8,7 @@
  * New structure:  users/{uid}/snapshots/main (single document with full state)
  *
  * Usage:
- *   import { migrateEntitiesToSnapshot } from './sync/entity-migration.js?v=8.32';
+ *   import { migrateEntitiesToSnapshot } from './sync/entity-migration.js?v=8.33';
  *   await migrateEntitiesToSnapshot(db, uid);
  *
  * Note: This script uses Firebase Admin SDK or REST API for entity collection reads.
@@ -20,12 +20,12 @@ import {
   doc,
   getDoc,
   setDoc,
-} from '../../vendor/firebase-client.bundle.js?v=8.32';
+} from '../../vendor/firebase-client.bundle.js?v=8.33';
 import {
   FIRESTORE_SNAPSHOT_DOC_ID,
   createFirestoreSnapshotEnvelope,
-} from './firestore-schema.js?v=8.32';
-import { mergeStudyStates } from './sync-center.js?v=8.32';
+} from './firestore-schema.js?v=8.33';
+import { mergeStudyStates } from './sync-center.js?v=8.33';
 
 function snapshotRef(db, uid) {
   return doc(db, 'users', uid, 'snapshots', FIRESTORE_SNAPSHOT_DOC_ID);

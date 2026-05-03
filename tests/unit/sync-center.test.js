@@ -198,7 +198,7 @@ describe('sync-center.js', () => {
         },
       });
 
-      expect(model.quiet.title).toBe('Acao necessaria');
+      expect(model.quiet.title).toBe('Ação necessária');
       expect(model.quiet.tone).toBe('danger');
       expect(model.quiet.primaryAction).toBe('advanced');
     });
@@ -218,8 +218,8 @@ describe('sync-center.js', () => {
         },
       });
 
-      expect(model.quiet.title).toBe('Acao necessaria');
-      expect(model.quiet.detail).toContain('negou permissao');
+      expect(model.quiet.title).toBe('Ação necessária');
+      expect(model.quiet.detail).toContain('negou permissão');
       expect(model.quiet.primaryAction).toBe('advanced');
     });
 
@@ -240,7 +240,7 @@ describe('sync-center.js', () => {
       });
 
       expect(model.health.status).toBe('offline');
-      expect(model.quiet.title).toBe('Offline, sync automatico pausado');
+      expect(model.quiet.title).toBe('Offline, sync automático pausado');
       expect(model.quiet.primaryAction).toBeNull();
     });
   });
