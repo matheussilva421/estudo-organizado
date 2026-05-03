@@ -4,6 +4,23 @@ export const FIRESTORE_SYNC_VERSION = 1;
 export const FIRESTORE_SNAPSHOT_DOC_ID = 'main';
 export const FIRESTORE_DEVICE_ID_KEY = 'estudo_firestore_device_id';
 
+/**
+ * Recursively strip undefined values from an object.
+ * Firestore's setDoc() rejects undefined field values — they must be omitted or null.
+ */
+function stripUndefined(obj) {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(stripUndefined);
+  const result = {};
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    if (value === undefined) continue; // Omit undefined fields for Firestore
+    result[key] = stripUndefined(value);
+  }
+  return result;
+}
+
 export function getFirestoreDeviceId() {
   let id = localStorage.getItem(FIRESTORE_DEVICE_ID_KEY);
   if (!id) {
@@ -55,9 +72,12 @@ export function createDefaultFirestoreSyncConfig(overrides = {}) {
 
 export function createFirestoreSnapshotEnvelope(sourceState, options = {}) {
   const syncConfig = getFirestoreSyncConfig(sourceState);
-  const payload = createExportableState(sourceState);
-  if (!payload.config) payload.config = {};
-  payload.config.firestoreSync = createDefaultFirestoreSyncConfig();
+  const rawPayload = createExportableState(sourceState);
+  if (!rawPayload.config) rawPayload.config = {};
+  rawPayload.config.firestoreSync = createDefaultFirestoreSyncConfig();
+
+  // CRITICAL: Strip undefined values — Firestore setDoc() rejects them
+  const payload = stripUndefined(rawPayload);
 
   const payloadUpdatedAt = toIsoTimestamp(
     options.payloadUpdatedAt || getLocalContentUpdatedAt(sourceState) || Date.now()

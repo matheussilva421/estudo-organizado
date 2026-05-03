@@ -19,6 +19,7 @@ import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
   getPendingFirestoreSnapshot,
+  markFirestoreSnapshotFailed,
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta,
@@ -667,8 +668,18 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
   await yieldToUIWithBudget(50, startTime);
 
   console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: calling writeFirestoreSnapshot...');
-  const result = await writeFirestoreSnapshot(db, uid, pending.envelope);
-  console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: writeFirestoreSnapshot succeeded:', result);
+  let result;
+  try {
+    result = await writeFirestoreSnapshot(db, uid, pending.envelope);
+    console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: writeFirestoreSnapshot succeeded:', result);
+  } catch (err) {
+    console.error('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: writeFirestoreSnapshot FAILED:', err.message);
+    config.lastError = err.message || String(err);
+    await markFirestoreSnapshotFailed(err);
+    await persistSyncConfig(true);
+    emitStatus('error', { error: config.lastError });
+    return false;
+  }
   await markFirestoreSnapshotSynced();
   await clearFirestoreConflict();
   await saveFirestoreMeta({
