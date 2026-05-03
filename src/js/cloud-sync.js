@@ -85,11 +85,18 @@ export async function initCloudflareCreds() {
   if (!state.config) state.config = {};
 
   if (creds && creds.url) {
+    // Credential store has data — sync to state.config
     state.config.cfUrl = creds.url;
     state.config.cfSyncEnabled = !!creds.enabled;
     state.config.cfTokenSaved = Boolean(creds.token);
+  } else if (state.config.cfUrl) {
+    // Credential store empty but state.config has URL — preserve existing state
+    // (migration path: old saves had cfUrl/cfTokenSaved in state.config)
+    state.config.cfSyncEnabled = !!state.config.cfSyncEnabled;
+    state.config.cfTokenSaved = !!state.config.cfTokenSaved;
   } else {
-    state.config.cfUrl = state.config.cfUrl || '';
+    // No credentials anywhere — clear flags
+    state.config.cfUrl = '';
     state.config.cfSyncEnabled = false;
     state.config.cfTokenSaved = false;
   }

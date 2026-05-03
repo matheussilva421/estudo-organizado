@@ -344,6 +344,32 @@ function renderSyncSourceActions(source) {
   return '';
 }
 
+function renderCloudflareConfigFields(source) {
+  const cfg = state.config || {};
+  const cfTokenSaved = !!cfg.cfTokenSaved;
+  return `
+    <div class="sync-source-config" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color,#2a2a3e);">
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label" style="font-size:0.85em;">URL do Cloudflare Worker (API)</label>
+        <input type="url" id="config-cf-url" class="form-control form-control-sm" placeholder="https://seu-worker.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label" style="font-size:0.85em;">Token de Acesso (Auth Token)</label>
+        <div style="display:flex;gap:8px;">
+          <input type="password" id="config-cf-token" class="form-control form-control-sm" placeholder="${cfTokenSaved ? 'Token salvo em credenciais locais' : 'Sua senha secreta do Worker'}" value="" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
+          <button type="button" class="btn btn-ghost btn-sm" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/ocultar token"><i class="fa fa-eye"></i></button>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.85em;cursor:pointer;">
+          <input type="checkbox" id="config-cf-enabled" ${cfg.cfSyncEnabled ? 'checked' : ''} data-action="toggle-cf-sync">
+          Ativar Sincronização
+        </label>
+      </div>
+    </div>
+  `;
+}
+
 function buildCurrentSyncCenterModel() {
   return buildSyncCenterModel({
     state,
@@ -510,8 +536,9 @@ function renderQuietSyncCenterCard() {
                     ${source.metrics?.retryAttempts ? `<span>Retries: ${esc(source.metrics.retryAttempts)}</span>` : ''}
                   </div>
                   <div class="sync-source-actions">
-                    ${source.id === 'cloudflare' || source.id === 'drive' ? '' : renderSyncSourceActions(source)}
+                    ${renderSyncSourceActions(source)}
                   </div>
+                  ${source.id === 'cloudflare' ? renderCloudflareConfigFields(source) : ''}
                 </div>
               `
                 )
