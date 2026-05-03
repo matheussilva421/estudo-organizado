@@ -35,7 +35,6 @@ import {
   pullFromFirestore,
 } from '../sync/firestore-sync-engine.js?v=8.36';
 import {
-  setSyncCreds,
   forceCloudflareSync,
   previewCloudflareRestore,
   pullFromCloudflare,
@@ -425,7 +424,7 @@ function renderSyncSourceActions(source) {
 
 function renderCloudflareConfigFields(source) {
   const cfg = state.config || {};
-  const cfTokenSaved = !!cfg.cfTokenSaved;
+  const hasToken = !!cfg.cfToken;
   return `
     <div class="sync-source-config" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color,#2a2a3e);">
       <div class="form-group config-input-group" style="margin-bottom:8px;">
@@ -435,7 +434,7 @@ function renderCloudflareConfigFields(source) {
       <div class="form-group config-input-group" style="margin-bottom:8px;">
         <label class="form-label" style="font-size:0.85em;">Token de Acesso (Auth Token)</label>
         <div style="display:flex;gap:8px;">
-          <input type="password" id="config-cf-token" class="form-control form-control-sm" placeholder="${cfTokenSaved ? 'Token salvo em credenciais locais' : 'Sua senha secreta do Worker'}" value="" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
+          <input type="password" id="config-cf-token" class="form-control form-control-sm" placeholder="${hasToken ? 'Token salvo' : 'Sua senha secreta do Worker'}" value="${esc(cfg.cfToken || '')}" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
           <button type="button" class="btn btn-ghost btn-sm" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/ocultar token"><i class="fa fa-eye"></i></button>
         </div>
       </div>
@@ -456,7 +455,7 @@ function buildCurrentSyncCenterModel() {
     getCloudflareCreds: () => ({
       url: state.config?.cfUrl || '',
       enabled: state.config?.cfSyncEnabled || false,
-      hasToken: !!(state.config?.cfToken || state.config?.cfTokenSaved),
+      hasToken: !!state.config?.cfToken,
     }),
     getDriveStatus: () => ({ configured: !!state.driveFileId }),
   });
@@ -469,7 +468,7 @@ function _renderSyncCenterCard() {
     getCloudflareCreds: () => ({
       url: state.config?.cfUrl || '',
       enabled: state.config?.cfSyncEnabled || false,
-      hasToken: !!(state.config?.cfToken || state.config?.cfTokenSaved),
+      hasToken: !!state.config?.cfToken,
     }),
     getDriveStatus: () => ({ configured: !!state.driveFileId }),
   });
@@ -895,36 +894,7 @@ export function setTheme(themeName) {
 }
 
 export function updateConfig(key, value) {
-  if (key === 'cfToken') {
-    delete state.config.cfToken;
-    state.config.cfTokenSaved = Boolean(value) || Boolean(state.config.cfTokenSaved);
-    if (value) {
-      setSyncCreds({
-        url: state.config.cfUrl || '',
-        token: value,
-        enabled: state.config.cfSyncEnabled,
-      }).catch((err) => console.error('Erro ao salvar credencial Cloudflare:', err));
-    }
-    scheduleSave();
-    return;
-  }
-
   state.config[key] = value;
-  if (key === 'cfUrl') {
-    const tokenInput = document.getElementById('config-cf-token');
-    const tokenValue = tokenInput?.value?.trim();
-    if (tokenValue || state.config.cfTokenSaved) {
-      setSyncCreds({
-        url: value,
-        token: tokenValue || undefined,
-        enabled: state.config.cfSyncEnabled,
-      }).catch((err) => console.error('Erro ao salvar credencial Cloudflare:', err));
-    } else {
-      state.config.cfUrl = value;
-    }
-    scheduleSave();
-    return;
-  }
   if (key === 'materiasPorDia') {
     syncCicloToEventos();
   }
@@ -942,15 +912,14 @@ export async function toggleCfSync(enabled) {
   if (enabled) {
     const url = document.getElementById('config-cf-url').value.trim();
     const token = document.getElementById('config-cf-token').value.trim();
-    if (!url || (!token && !state.config.cfTokenSaved)) {
+    if (!url || !token) {
       showToast('Preencha a URL do Worker e o Token antes de ativar.', 'error');
       const checkbox = document.getElementById('config-cf-enabled');
       if (checkbox) checkbox.checked = false;
       return;
     }
-    if (token || state.config.cfTokenSaved) {
-      await setSyncCreds({ url, token: token || undefined, enabled: true });
-    }
+    state.config.cfUrl = url;
+    state.config.cfToken = token;
   }
 
   state.config.cfSyncEnabled = enabled;
@@ -1173,7 +1142,7 @@ export function restoreBackupFromSelectedSource() {
     if (
       !state.config?.cfSyncEnabled ||
       !state.config?.cfUrl ||
-      (!state.config?.cfToken && !state.config?.cfTokenSaved)
+      !state.config?.cfToken
     ) {
       showToast('Configure a sincronização Cloudflare antes de restaurar por ela.', 'error');
       return;

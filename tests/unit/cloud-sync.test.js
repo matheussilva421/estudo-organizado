@@ -45,37 +45,30 @@ describe('cloud-sync.js', () => {
   });
 
   describe('setSyncCreds()', () => {
-    it('saves credentials to IndexedDB', async () => {
-      await cloudSync.setSyncCreds({
-        url: 'https://new-worker.test',
-        token: 'new-token',
-        enabled: true,
-      });
-      expect(credentialsModule.setCredential).toHaveBeenCalledWith(
-        'cloudflare',
-        expect.objectContaining({
-          url: 'https://new-worker.test',
-          token: 'new-token',
-          enabled: true,
-        })
-      );
-    });
-
-    it('updates state.config for backward compat', async () => {
+    it('writes credentials directly to state.config', async () => {
       await cloudSync.setSyncCreds({
         url: 'https://new-worker.test',
         token: 'new-token',
         enabled: true,
       });
       expect(storeModule.state.config.cfUrl).toBe('https://new-worker.test');
+      expect(storeModule.state.config.cfToken).toBe('new-token');
       expect(storeModule.state.config.cfSyncEnabled).toBe(true);
-      expect(storeModule.state.config.cfTokenSaved).toBe(true);
+    });
+
+    it('preserves existing values when partial update', async () => {
+      storeModule.state.config.cfUrl = 'https://existing.test';
+      storeModule.state.config.cfToken = 'existing-token';
+      storeModule.state.config.cfSyncEnabled = true;
+      await cloudSync.setSyncCreds({ url: 'https://updated.test' });
+      expect(storeModule.state.config.cfUrl).toBe('https://updated.test');
+      expect(storeModule.state.config.cfToken).toBe('existing-token');
+      expect(storeModule.state.config.cfSyncEnabled).toBe(true);
     });
   });
 
   describe('forceCloudflareSync()', () => {
     it('returns early when not configured', async () => {
-      credentialsModule.getCredential.mockResolvedValue(null);
       storeModule.state.config.cfSyncEnabled = false;
       storeModule.state.config.cfUrl = '';
       storeModule.state.config.cfToken = '';
@@ -86,18 +79,15 @@ describe('cloud-sync.js', () => {
 
   describe('pullFromCloudflare()', () => {
     it('returns early when not configured', async () => {
-      credentialsModule.getCredential.mockResolvedValue(null);
       storeModule.state.config.cfSyncEnabled = false;
       const result = await cloudSync.pullFromCloudflare();
       expect(result).toBe(false);
     });
 
     it('fetches remote data when configured', async () => {
-      credentialsModule.getCredential.mockResolvedValue({
-        url: 'https://worker.test',
-        token: 'token123',
-        enabled: true,
-      });
+      storeModule.state.config.cfSyncEnabled = true;
+      storeModule.state.config.cfUrl = 'https://worker.test';
+      storeModule.state.config.cfToken = 'token123';
       fetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
@@ -112,18 +102,15 @@ describe('cloud-sync.js', () => {
 
   describe('pushToCloudflare()', () => {
     it('returns early when not configured', async () => {
-      credentialsModule.getCredential.mockResolvedValue(null);
       storeModule.state.config.cfSyncEnabled = false;
       const result = await cloudSync.pushToCloudflare();
       expect(result).toBe(false);
     });
 
     it('sends local data when configured', async () => {
-      credentialsModule.getCredential.mockResolvedValue({
-        url: 'https://worker.test',
-        token: 'token123',
-        enabled: true,
-      });
+      storeModule.state.config.cfSyncEnabled = true;
+      storeModule.state.config.cfUrl = 'https://worker.test';
+      storeModule.state.config.cfToken = 'token123';
       fetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -135,18 +122,15 @@ describe('cloud-sync.js', () => {
 
   describe('mergeFromCloudflare()', () => {
     it('returns early when not configured', async () => {
-      credentialsModule.getCredential.mockResolvedValue(null);
       storeModule.state.config.cfSyncEnabled = false;
       const result = await cloudSync.mergeFromCloudflare();
       expect(result).toBe(false);
     });
 
     it('merges remote with local data', async () => {
-      credentialsModule.getCredential.mockResolvedValue({
-        url: 'https://worker.test',
-        token: 'token123',
-        enabled: true,
-      });
+      storeModule.state.config.cfSyncEnabled = true;
+      storeModule.state.config.cfUrl = 'https://worker.test';
+      storeModule.state.config.cfToken = 'token123';
       fetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({

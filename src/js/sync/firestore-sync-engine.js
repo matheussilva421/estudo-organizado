@@ -7,7 +7,6 @@ import {
   signOutFirebase,
 } from '../firebase/firebase-client.js?v=8.36';
 import { saveStateToDB, setState, state } from '../store.js?v=8.36';
-import { initCloudflareCreds } from '../cloud-sync.js?v=8.36';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
@@ -552,8 +551,6 @@ export async function autoPullRemoteWhenNewer() {
 
     const nextState = applyEnvelopeToLocalState(remote, config);
     setState(nextState, { merge: true });
-    // Re-sync Cloudflare credentials from isolated store after remote merge
-    initCloudflareCreds().catch(() => {});
     await clearFirestoreConflict();
     await markFirestoreSnapshotSynced();
     const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
@@ -663,8 +660,6 @@ export async function pullFromFirestore(forceOverwrite = false) {
       await yieldToUIWithBudget(50, performance.now());
       const nextState = applyEnvelopeToLocalState(remote, config);
       setState(nextState, { merge: true });
-      // Re-sync Cloudflare credentials from isolated store after remote merge
-      await initCloudflareCreds();
       await clearFirestoreConflict();
       await markFirestoreSnapshotSynced();
       await saveFirestoreMeta({
@@ -738,8 +733,6 @@ async function syncFirestoreNowUnlocked() {
     await yieldToUIWithBudget(50, performance.now());
     const nextState = applyEnvelopeToLocalState(remote, config);
     setState(nextState, { merge: true });
-    // Re-sync Cloudflare credentials from isolated store after remote merge
-    await initCloudflareCreds();
     await clearFirestoreConflict();
     await markFirestoreSnapshotSynced();
     await saveFirestoreMeta({ uid, remoteUpdatedAt, lastPullAt: new Date().toISOString() });
@@ -801,8 +794,6 @@ export async function mergeFromFirestore() {
     const previousSyncConfig = { ...config };
     const merged = mergeStudyStates(state, remote.payload || {});
     setState(merged, { merge: true });
-    // Re-sync Cloudflare credentials from isolated store after remote merge
-    await initCloudflareCreds();
     const mergeConflict = merged.config?.syncMergeConflicts;
     if (mergeConflict) {
       const conflict = {

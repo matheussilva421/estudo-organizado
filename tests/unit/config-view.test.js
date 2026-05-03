@@ -141,11 +141,10 @@ describe('views/config-view.js', () => {
       expect(logicModule.syncCicloToEventos).toHaveBeenCalled();
     });
 
-    it('handles cfToken key specially', () => {
+    it('stores cfToken directly in state.config', () => {
       configView.updateConfig('cfToken', 'new-token');
-      expect(storeModule.state.config.cfToken).toBeUndefined();
-      expect(storeModule.state.config.cfTokenSaved).toBe(true);
-      expect(cloudSync.setSyncCreds).toHaveBeenCalled();
+      expect(storeModule.state.config.cfToken).toBe('new-token');
+      expect(storeModule.scheduleSave).toHaveBeenCalled();
     });
   });
 
@@ -337,7 +336,7 @@ describe('views/config-view.js', () => {
       });
       storeModule.state.config.cfSyncEnabled = true;
       storeModule.state.config.cfUrl = 'https://worker.example';
-      storeModule.state.config.cfTokenSaved = true;
+      storeModule.state.config.cfToken = 'saved-token';
 
       await configView.restoreBackupFromSelectedSource();
 

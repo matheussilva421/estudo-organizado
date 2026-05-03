@@ -1,13 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createBaseState, createEvento } from '../helpers/state-builders.js';
 
-async function importCloudSync({ credential = null, fetchImpl } = {}) {
+async function importCloudSync({ fetchImpl } = {}) {
   vi.resetModules();
-  vi.doMock('../../src/js/credentials.js?v=8.36', () => ({
-    setCredential: vi.fn(() => Promise.resolve()),
-    getCredential: vi.fn(() => Promise.resolve(credential)),
-    deleteCredential: vi.fn(() => Promise.resolve())
-  }));
   vi.doMock('../../src/js/sync/sync-center.js?v=8.36', () => ({
     mergeStudyStates: vi.fn((local, remote) => ({
       ...local,
@@ -35,7 +30,7 @@ describe('sync simulation contracts', () => {
     vi.unstubAllGlobals();
   });
 
-  it('pushes a sanitized Cloudflare envelope using isolated credentials', async () => {
+  it('pushes a Cloudflare envelope using state.config credentials', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       success: true,
       meta: {
@@ -45,11 +40,6 @@ describe('sync simulation contracts', () => {
       }
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     const { store, cloudSync } = await importCloudSync({
-      credential: {
-        enabled: true,
-        url: 'https://sync.example.test',
-        token: 'isolated-token'
-      },
       fetchImpl: fetchMock
     });
 
@@ -57,8 +47,8 @@ describe('sync simulation contracts', () => {
       eventos: [createEvento({ id: 'ev_sync', titulo: 'Evento sync' })],
       config: {
         cfSyncEnabled: true,
-        cfUrl: 'https://legacy-url.example.test',
-        cfToken: 'legacy-token',
+        cfUrl: 'https://sync.example.test',
+        cfToken: 'isolated-token',
         cfRemoteUpdatedAt: '2026-04-29T20:00:00.000Z'
       }
     }));
@@ -83,21 +73,27 @@ describe('sync simulation contracts', () => {
   });
 
   it('surfaces Cloudflare pull network failures in the config status element', async () => {
-    vi.useRealTimers();
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       error: 'service unavailable'
     }), { status: 503, headers: { 'Content-Type': 'application/json' } }));
     const { store, cloudSync } = await importCloudSync({
-      credential: {
-        enabled: true,
-        url: 'https://sync.example.test',
-        token: 'isolated-token'
-      },
       fetchImpl: fetchMock
     });
-    store.setState(createBaseState({ config: { cfSyncEnabled: true } }));
+    store.setState(createBaseState({
+      config: {
+        cfSyncEnabled: true,
+        cfUrl: 'https://sync.example.test',
+        cfToken: 'isolated-token'
+      }
+    }));
 
-    await expect(cloudSync.pullFromCloudflare()).resolves.toBe(false);
+    await Promise.all([
+      (async () => {
+        const result = await cloudSync.pullFromCloudflare();
+        expect(result).toBe(false);
+      })(),
+      vi.runAllTimersAsync()
+    ]);
 
     expect(document.getElementById('cf-sync-status').textContent)
       .toContain('Erro 503: service unavailable');
@@ -111,16 +107,13 @@ describe('sync simulation contracts', () => {
       remoteDeviceId: 'remote-device'
     }), { status: 409, headers: { 'Content-Type': 'application/json' } }));
     const { store, cloudSync } = await importCloudSync({
-      credential: {
-        enabled: true,
-        url: 'https://sync.example.test',
-        token: 'isolated-token'
-      },
       fetchImpl: fetchMock
     });
     store.setState(createBaseState({
       config: {
         cfSyncEnabled: true,
+        cfUrl: 'https://sync.example.test',
+        cfToken: 'isolated-token',
         cfRemoteUpdatedAt: '2026-04-29T20:00:00.000Z'
       }
     }));

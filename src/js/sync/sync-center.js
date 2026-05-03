@@ -18,7 +18,7 @@ function latestIso(...values) {
 }
 
 function hasCloudflareCredentials(config = {}) {
-  return Boolean(config.cfTokenSaved || config.cfToken);
+  return Boolean(config.cfToken);
 }
 
 function getItemUpdatedAt(item) {

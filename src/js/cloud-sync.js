@@ -5,11 +5,6 @@ import {
   saveStateToDB,
   createExportableState,
 } from './store.js?v=8.36';
-import {
-  setCredential,
-  getCredential,
-  deleteCredential as _deleteCredential,
-} from './credentials.js?v=8.36';
 import { mergeStudyStates } from './sync/sync-center.js?v=8.36';
 import { cloudflareLock } from './sync/sync-lock.js?v=8.36';
 
@@ -47,8 +42,8 @@ async function withRetry(fn, maxRetries = MAX_RETRIES) {
   throw lastError;
 }
 
-// Chaves de credenciais (nomes lógicos, armazenamento em IndexedDB)
-const CF_CREDS_KEY = 'cloudflare';
+// Cloudflare credentials are stored directly in state.config (cfUrl, cfToken, cfSyncEnabled).
+// No isolated credential store — this is a personal app, simplicity over security theater.
 
 function getDeviceId() {
   let id = localStorage.getItem(DEVICE_ID_KEY);
@@ -59,101 +54,25 @@ function getDeviceId() {
   return id;
 }
 
-export async function getSyncCreds() {
-  // Usa IndexedDB isolado para credenciais
-  const creds = await getCredential(CF_CREDS_KEY);
-  console.log('[Cloudflare] getSyncCreds:', {
-    hasCreds: !!creds,
-    url: creds?.url ? `${creds.url.substring(0, 30)}...` : null,
-    hasToken: !!creds?.token,
-    enabled: creds?.enabled,
-  });
-  return creds;
+export function getSyncCreds() {
+  if (!state.config) return null;
+  const { cfUrl, cfToken, cfSyncEnabled } = state.config;
+  return cfUrl ? { url: cfUrl, token: cfToken || '', enabled: !!cfSyncEnabled } : null;
 }
 
-export async function setSyncCreds({ url, token, enabled }) {
-  const currentCreds = await getSyncCreds();
-  console.log('[Cloudflare] setSyncCreds BEFORE:', {
-    currentUrl: currentCreds?.url ? `${currentCreds.url.substring(0, 30)}...` : null,
-    currentHasToken: !!currentCreds?.token,
-    currentEnabled: currentCreds?.enabled,
-    newUrl: url ? `${url.substring(0, 30)}...` : null,
-    newHasToken: !!token,
-    newEnabled: enabled,
-  });
-
-  const nextCreds = {
-    url: url ?? currentCreds?.url ?? '',
-    token: token || currentCreds?.token || '',
-    enabled: enabled ?? currentCreds?.enabled ?? false,
-  };
-
-  await setCredential(CF_CREDS_KEY, nextCreds);
-
-  console.log('[Cloudflare] setSyncCreds AFTER - IndexedDB updated:', {
-    url: nextCreds.url ? `${nextCreds.url.substring(0, 30)}...` : null,
-    hasToken: !!nextCreds.token,
-    enabled: nextCreds.enabled,
-  });
-
-  // Backward compat: keep state.config in sync for legacy reads
+export function setSyncCreds({ url, token, enabled }) {
   if (!state.config) state.config = {};
-  state.config.cfUrl = nextCreds.url;
-  delete state.config.cfToken;
-  state.config.cfSyncEnabled = !!nextCreds.enabled;
-  state.config.cfTokenSaved = Boolean(nextCreds.token);
-
-  console.log('[Cloudflare] setSyncCreds AFTER - state.config updated:', {
-    cfUrl: state.config.cfUrl ? `${state.config.cfUrl.substring(0, 30)}...` : null,
-    cfSyncEnabled: state.config.cfSyncEnabled,
-    cfTokenSaved: state.config.cfTokenSaved,
-  });
+  state.config.cfUrl = url ?? state.config.cfUrl ?? '';
+  state.config.cfToken = token || state.config.cfToken || '';
+  state.config.cfSyncEnabled = enabled ?? state.config.cfSyncEnabled ?? false;
 }
 
+// Legacy alias — no-op, credentials are always in sync with state.config
 export async function initCloudflareCreds() {
-  const creds = await getSyncCreds();
-  if (!state.config) state.config = {};
-
-  console.log('[Cloudflare] initCloudflareCreds:', {
-    storeHasCreds: !!(creds && creds.url),
-    storeUrl: creds?.url,
-    storeEnabled: creds?.enabled,
-    storeHasToken: !!creds?.token,
-    stateConfigUrl: state.config.cfUrl,
-    stateConfigEnabled: state.config.cfSyncEnabled,
-    stateConfigTokenSaved: state.config.cfTokenSaved,
-  });
-
-  if (creds && creds.url) {
-    // Credential store has data — sync to state.config
-    state.config.cfUrl = creds.url;
-    state.config.cfSyncEnabled = !!creds.enabled;
-    state.config.cfTokenSaved = Boolean(creds.token);
-  } else if (state.config.cfUrl) {
-    // Credential store empty but state.config has URL — preserve existing state
-    // (migration path: old saves had cfUrl/cfTokenSaved in state.config)
-    state.config.cfSyncEnabled = !!state.config.cfSyncEnabled;
-    state.config.cfTokenSaved = !!state.config.cfTokenSaved;
-  } else {
-    // No credentials anywhere — clear flags
-    state.config.cfUrl = '';
-    state.config.cfSyncEnabled = false;
-    state.config.cfTokenSaved = false;
-  }
-
-  console.log('[Cloudflare] After initCloudflareCreds:', {
-    url: state.config.cfUrl,
-    enabled: state.config.cfSyncEnabled,
-    tokenSaved: state.config.cfTokenSaved,
-  });
+  // Credentials live in state.config directly. Nothing to init.
 }
 
-export async function getSyncConfig() {
-  // Prefer isolated creds, fall back to state.config for backward compat
-  const creds = await getSyncCreds();
-  if (creds && creds.enabled && creds.url && creds.token) {
-    return { url: creds.url, token: creds.token };
-  }
+export function getSyncConfig() {
   if (!state || !state.config) return null;
   const { cfUrl, cfToken, cfSyncEnabled } = state.config;
   if (cfSyncEnabled && cfUrl && cfToken) {

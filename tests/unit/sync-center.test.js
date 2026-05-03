@@ -88,7 +88,7 @@ describe('sync-center.js', () => {
 
     it('shows cloudflare configured when cfUrl and token present', () => {
       const model = buildSyncCenterModel({
-        state: { config: { cfUrl: 'https://worker.test', cfTokenSaved: 'token123' } },
+        state: { config: { cfUrl: 'https://worker.test', cfToken: 'token123', cfSyncEnabled: true } },
       });
       const cloudflare = model.sources.find((s) => s.id === 'cloudflare');
       expect(cloudflare.configured).toBe(true);
