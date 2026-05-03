@@ -1,5 +1,5 @@
-import { mergeEntityAwareArrays } from './entity-metadata.js?v=8.32';
 import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.32';
+import { getEnvelopeUpdatedAt, getLocalContentUpdatedAt } from './firestore-schema.js?v=8.32';
 
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
 
@@ -19,6 +19,31 @@ function latestIso(...values) {
 
 function hasCloudflareCredentials(config = {}) {
   return Boolean(config.cfTokenSaved || config.cfToken);
+}
+
+function getItemUpdatedAt(item) {
+  return item?.updatedAt || item?._sync?.updatedAt || item?.criadoEm || 0;
+}
+
+function mergeById(localArr, remoteArr) {
+  const localItems = Array.isArray(localArr) ? localArr : [];
+  const remoteItems = Array.isArray(remoteArr) ? remoteArr : [];
+  const map = new Map();
+  for (const item of remoteItems) {
+    if (item?.id) map.set(item.id, item);
+  }
+  for (const item of localItems) {
+    if (!item?.id) continue;
+    const existing = map.get(item.id);
+    if (!existing) {
+      map.set(item.id, item);
+      continue;
+    }
+    const localTime = getItemUpdatedAt(item);
+    const remoteTime = getItemUpdatedAt(existing);
+    if (localTime >= remoteTime) map.set(item.id, item);
+  }
+  return Array.from(map.values());
 }
 
 function deriveQuietSyncView({ syncHealth, firestore }) {
@@ -221,15 +246,11 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
       remoteAt: firestore.remoteUpdatedAt || null,
       conflict: firestore.conflict || null,
       lastError: firestore.lastError || null,
-      entityShadowDiff: state?.config?.entitySync?.lastShadowDiff || null,
+      entityShadowDiff: null,
       detail: firestore.enabled
         ? firestore.mode === 'primary'
-          ? state?.config?.entitySync?.mode === 'primary'
-            ? 'Entidades primarias com snapshot de fallback.'
-            : 'Sync automatico principal.'
-          : state?.config?.entitySync?.mode === 'shadow'
-            ? 'Snapshot primario com entidades em shadow.'
-            : 'Shadow: sem envio automatico.'
+          ? 'Sync automatico principal.'
+          : 'Shadow: sem envio automatico.'
         : 'Ative depois de entrar com Google.',
     },
     {
@@ -285,7 +306,6 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
 }
 
 export function mergeStudyStates(localState = {}, remoteState = {}) {
-  const collisions = [];
   const merged = {
     ...remoteState,
     ...localState,
@@ -296,10 +316,7 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   };
 
   for (const key of ['editais', 'eventos', 'arquivo', 'revisoes']) {
-    merged[key] = mergeEntityAwareArrays(localState[key], remoteState[key], {
-      collection: key,
-      collisions,
-    });
+    merged[key] = mergeById(localState[key], remoteState[key]);
   }
 
   const habitTypes = new Set([
@@ -308,21 +325,58 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   ]);
   merged.habitos = {};
   for (const type of habitTypes) {
-    merged.habitos[type] = mergeEntityAwareArrays(
-      localState.habitos?.[type],
-      remoteState.habitos?.[type],
-      { collection: `habitos.${type}`, collisions }
-    );
+    merged.habitos[type] = mergeById(localState.habitos?.[type], remoteState.habitos?.[type]);
   }
 
   merged.config.localBackupAt = new Date().toISOString();
   delete merged.config.syncMergeConflicts;
-  if (collisions.length > 0) {
-    merged.config.syncMergeConflicts = {
-      detectedAt: new Date().toISOString(),
-      total: collisions.length,
-      items: collisions.slice(0, 20),
-    };
-  }
   return merged;
+}
+
+export function isEmptyState(state = {}) {
+  const hasData = (arr) => Array.isArray(arr) && arr.length > 0;
+  const hasHabits = (habitos) => {
+    if (!habitos || typeof habitos !== 'object') return false;
+    return Object.values(habitos).some((arr) => Array.isArray(arr) && arr.length > 0);
+  };
+  return (
+    !hasData(state.editais) &&
+    !hasData(state.eventos) &&
+    !hasData(state.disciplinas) &&
+    !hasData(state.arquivo) &&
+    !hasData(state.revisoes) &&
+    !hasHabits(state.habitos) &&
+    !hasData(state.planejamento?.sequencia)
+  );
+}
+
+export function isRemoteStateNewer(remoteEnvelope, localState) {
+  const remoteRaw = remoteEnvelope?.payloadUpdatedAt || remoteEnvelope?.updatedAt;
+  const remoteTime = remoteRaw ? new Date(remoteRaw).getTime() : 0;
+  const localRaw = localState?.config?.localBackupAt || localState?.config?._lastUpdated;
+  const localTime = localRaw ? new Date(localRaw).getTime() : 0;
+  if (remoteTime <= localTime) return false;
+  // Empty-state guard: if remote is newer but appears empty, reject it
+  const payload = remoteEnvelope?.payload;
+  if (payload && isEmptyState(payload)) return false;
+  return true;
+}
+
+export function resolveConflict(remoteEnvelope, localState) {
+  const remoteRaw = remoteEnvelope?.payloadUpdatedAt || remoteEnvelope?.updatedAt;
+  const remoteTime = remoteRaw ? new Date(remoteRaw).getTime() : 0;
+  const localRaw = localState?.config?.localBackupAt || localState?.config?._lastUpdated;
+  const localTime = localRaw ? new Date(localRaw).getTime() : 0;
+  const remoteNewer = isRemoteStateNewer(remoteEnvelope, localState);
+
+  if (remoteNewer) return { decision: 'remote', reason: 'remote is newer and has data' };
+
+  // Remote is newer but empty (empty-state guard) - preserve local
+  const payload = remoteEnvelope?.payload;
+  if (remoteTime > localTime && payload && isEmptyState(payload)) {
+    return { decision: 'local', reason: 'remote is newer but empty - preserving local data' };
+  }
+
+  if (localTime > remoteTime) return { decision: 'local', reason: 'local is newer' };
+  return { decision: 'noop', reason: 'timestamps equal' };
 }
