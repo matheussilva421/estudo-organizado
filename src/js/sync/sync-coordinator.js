@@ -8,11 +8,6 @@ import {
 } from './firestore-sync-engine.js?v=8.32';
 import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.32';
 import {
-  canRetryEntityBatch,
-  getPendingFirestoreEntityBatch,
-  queueFirestoreEntityBatchFromState,
-} from './firestore-entity-outbox.js?v=8.32';
-import {
   appendSyncHealthEvent,
   appendSyncPerformanceMetric,
   deriveSyncHealthState,
@@ -117,38 +112,7 @@ export async function flushPrimarySyncWhenAllowed(reason) {
     }
   }
 
-  const pendingEntityBatch = await getPendingFirestoreEntityBatch();
-  if (pendingEntityBatch && !canRetryEntityBatch(pendingEntityBatch)) {
-    const delay = toDelayFromPending(pendingEntityBatch);
-    return schedulePrimarySync(reason, { delayMs: delay });
-  }
-
   return await flushPrimarySyncNow({ reason });
-}
-
-function isPrimaryEntitySyncEnabled() {
-  const entitySync = state.config?.entitySync || {};
-  return Boolean(entitySync.enabled && entitySync.mode === 'primary');
-}
-
-async function ensurePrimaryEntityBatchReady(reason) {
-  if (!isPrimaryEntitySyncEnabled()) return true;
-  const pendingEntityBatch = await getPendingFirestoreEntityBatch();
-  if (pendingEntityBatch && !canRetryEntityBatch(pendingEntityBatch)) {
-    emitCoordinatorStatus('queued', {
-      reason,
-      delayMs: toDelayFromPending(pendingEntityBatch),
-      pending: pendingEntityBatch,
-    });
-    return false;
-  }
-  const start = performance.now();
-  const queuedEntity = await queueFirestoreEntityBatchFromState(state, { manual: false });
-  appendSyncPerformanceMetric(state, {
-    name: 'entityBuildMs',
-    durationMs: performance.now() - start,
-  });
-  return Boolean(queuedEntity);
 }
 
 export function getSyncCoordinatorStatus() {
@@ -270,14 +234,6 @@ async function _executeFlush(options) {
   }
 
   await yieldToUI();
-  const entityReady = await ensurePrimaryEntityBatchReady(reason);
-  if (!entityReady) {
-    const retryQueued = await scheduleRetryIfNeeded(reason);
-    if (!retryQueued) emitTerminalFlushStatus(false, reason);
-    return false;
-  }
-
-  await yieldToUI();
   const queued = await queueFirestoreSnapshotFromState(state, { manual: false });
   if (!queued) {
     const retryQueued = await scheduleRetryIfNeeded(reason);
@@ -334,12 +290,7 @@ export function initSyncCoordinator() {
     }
   });
 
-  addListener(document, 'app:firestoreSyncStatus', (event) => {
-    const status = event.detail || {};
-    if (['signed-in', 'enabled'].includes(status.status) && status.mode === 'primary') {
-      schedulePrimarySync(status.status);
-    }
-  });
+
 }
 
 export { teardownListeners as teardownSyncCoordinator };
