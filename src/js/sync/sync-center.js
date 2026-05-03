@@ -1,5 +1,5 @@
-import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.34';
-import { getEnvelopeUpdatedAt, getLocalContentUpdatedAt } from './firestore-schema.js?v=8.34';
+import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.36';
+import { getEnvelopeUpdatedAt, getLocalContentUpdatedAt } from './firestore-schema.js?v=8.36';
 
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
 
@@ -226,7 +226,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
       id: 'firebase',
       title: 'Firebase',
       icon: 'fa-fire',
-      label: 'Firestore primario',
+      label: 'Firestore primário',
       primary: true,
       enabled: Boolean(firestore.enabled),
       configured: Boolean(firestore.configured),

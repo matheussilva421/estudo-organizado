@@ -6,7 +6,7 @@ describe('merge-study-states-simplified (TDD - RED phase)', () => {
   beforeEach(async () => {
     vi.resetModules();
 
-    vi.doMock('../../src/js/store.js?v=8.34', () => ({
+    vi.doMock('../../src/js/store.js?v=8.36', () => ({
       state: {
         config: {},
         eventos: [],
@@ -20,12 +20,12 @@ describe('merge-study-states-simplified (TDD - RED phase)', () => {
       saveStateToDB: vi.fn(() => Promise.resolve()),
     }));
 
-    vi.doMock('../../src/js/sync/firestore-schema.js?v=8.34', () => ({
+    vi.doMock('../../src/js/sync/firestore-schema.js?v=8.36', () => ({
       getEnvelopeUpdatedAt: vi.fn((env) => env?.payloadUpdatedAt),
       getLocalContentUpdatedAt: vi.fn((state) => state?.config?.localBackupAt || null),
     }));
 
-    const module = await import('../../src/js/sync/sync-center.js?v=8.34');
+    const module = await import('../../src/js/sync/sync-center.js?v=8.36');
     mergeStudyStates = module.mergeStudyStates;
   });
 

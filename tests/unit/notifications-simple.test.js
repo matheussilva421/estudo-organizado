@@ -9,7 +9,7 @@ describe('notifications.js', () => {
 
   describe('hasNotificationPermission', () => {
     it('exports initial permission state as false', async () => {
-      const notif = await import('../../src/js/notifications.js?v=8.34');
+      const notif = await import('../../src/js/notifications.js?v=8.36');
       expect(notif.hasNotificationPermission).toBe(false);
     });
   });
@@ -17,10 +17,10 @@ describe('notifications.js', () => {
   describe('fireNotification()', () => {
     it('dispatches toast fallback when no permission', async () => {
       vi.resetModules();
-      vi.doMock('../../src/js/store.js?v=8.34', () => ({
+      vi.doMock('../../src/js/store.js?v=8.36', () => ({
         state: { config: {} },
       }));
-      const notif = await import('../../src/js/notifications.js?v=8.34');
+      const notif = await import('../../src/js/notifications.js?v=8.36');
       vi.setSystemTime(new Date('2026-04-19T14:00:00.000Z'));
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       notif.fireNotification('Test', 'Body', 'test-key-1');
@@ -31,10 +31,10 @@ describe('notifications.js', () => {
 
     it('prevents duplicate notifications for same key on same day', async () => {
       vi.resetModules();
-      vi.doMock('../../src/js/store.js?v=8.34', () => ({
+      vi.doMock('../../src/js/store.js?v=8.36', () => ({
         state: { config: {} },
       }));
-      const notif = await import('../../src/js/notifications.js?v=8.34');
+      const notif = await import('../../src/js/notifications.js?v=8.36');
       vi.setSystemTime(new Date('2026-04-19T14:00:00.000Z'));
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       notif.fireNotification('Test', 'Body', 'unique-key-1');
@@ -45,10 +45,10 @@ describe('notifications.js', () => {
 
     it('allows same key on different day', async () => {
       vi.resetModules();
-      vi.doMock('../../src/js/store.js?v=8.34', () => ({
+      vi.doMock('../../src/js/store.js?v=8.36', () => ({
         state: { config: {} },
       }));
-      const notif = await import('../../src/js/notifications.js?v=8.34');
+      const notif = await import('../../src/js/notifications.js?v=8.36');
       vi.setSystemTime(new Date('2026-04-19T14:00:00.000Z'));
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       notif.fireNotification('Test', 'Body', 'daily-key');
@@ -61,14 +61,14 @@ describe('notifications.js', () => {
   describe('cleanupNotificationEngine()', () => {
     it('clears the interval after startNotificationEngine', async () => {
       vi.resetModules();
-      vi.doMock('../../src/js/store.js?v=8.34', () => ({
+      vi.doMock('../../src/js/store.js?v=8.36', () => ({
         state: { config: {} },
       }));
-      vi.doMock('../../src/js/logic.js?v=8.34', () => ({
+      vi.doMock('../../src/js/logic.js?v=8.36', () => ({
         getPendingRevisoes: vi.fn(() => []),
         getPredictiveStats: vi.fn(() => ({ status: 'verde', daysRemaining: 5 })),
       }));
-      const notif = await import('../../src/js/notifications.js?v=8.34');
+      const notif = await import('../../src/js/notifications.js?v=8.36');
       notif.startNotificationEngine();
       notif.cleanupNotificationEngine();
       vi.advanceTimersByTime(15000000);
@@ -76,7 +76,7 @@ describe('notifications.js', () => {
     });
 
     it('handles cleanup when no interval is set', async () => {
-      const notif = await import('../../src/js/notifications.js?v=8.34');
+      const notif = await import('../../src/js/notifications.js?v=8.36');
       expect(() => notif.cleanupNotificationEngine()).not.toThrow();
     });
   });
@@ -86,14 +86,14 @@ describe('notifications.js', () => {
       vi.resetModules();
       const mockGetPending = vi.fn(() => []);
       const mockGetPredictive = vi.fn(() => ({ status: 'verde', daysRemaining: 5 }));
-      vi.doMock('../../src/js/store.js?v=8.34', () => ({
+      vi.doMock('../../src/js/store.js?v=8.36', () => ({
         state: { config: {} },
       }));
-      vi.doMock('../../src/js/logic.js?v=8.34', () => ({
+      vi.doMock('../../src/js/logic.js?v=8.36', () => ({
         getPendingRevisoes: mockGetPending,
         getPredictiveStats: mockGetPredictive,
       }));
-      const notif = await import('../../src/js/notifications.js?v=8.34');
+      const notif = await import('../../src/js/notifications.js?v=8.36');
       notif.startNotificationEngine();
       expect(mockGetPending).toHaveBeenCalled();
       expect(mockGetPredictive).toHaveBeenCalled();

@@ -3,17 +3,17 @@
  * Renderiza visualização de Ciclo Contínuo e Grade Semanal
  */
 
-import { esc, formatH } from '../utils.js?v=8.34';
-import { state, scheduleSave } from '../store.js?v=8.34';
+import { esc, formatH } from '../utils.js?v=8.36';
+import { state, scheduleSave } from '../store.js?v=8.36';
 import {
   getDisc,
   resetCicloAndWipeEvents,
   calculateCyclePredictionsModel,
-} from '../logic.js?v=8.34';
-import { renderCurrentView } from '../components.js?v=8.34';
-import { showConfirm } from '../app.js?v=8.34';
-import { getIsEditingSequence, getTempSequencia } from '../views.js?v=8.34';
-import { getPlanjChartInstance, setPlanjChartInstance } from '../state/chart-state.js?v=8.34';
+} from '../logic.js?v=8.36';
+import { renderCurrentView } from '../components.js?v=8.36';
+import { showConfirm } from '../app.js?v=8.36';
+import { getIsEditingSequence, getTempSequencia } from '../views.js?v=8.36';
+import { getPlanjChartInstance, setPlanjChartInstance } from '../state/chart-state.js?v=8.36';
 
 // Module-level state
 let _hideConcluidosCiclo = false;

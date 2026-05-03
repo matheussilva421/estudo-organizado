@@ -17,16 +17,16 @@ import {
   restoreBackupFromSelectedSource,
   openDriveModal,
   driveDisconnect,
-} from '../../views/config-view.js?v=8.34';
-import { scheduleSave, state } from '../../store.js?v=8.34';
-import { showToast, showConfirm } from '../../app.js?v=8.34';
-import { renderCurrentView } from '../../components.js?v=8.34';
+} from '../../views/config-view.js?v=8.36';
+import { scheduleSave, state } from '../../store.js?v=8.36';
+import { showToast, showConfirm } from '../../app.js?v=8.36';
+import { renderCurrentView } from '../../components.js?v=8.36';
 import {
   forceCloudflareSync,
   pullFromCloudflare,
   pushToCloudflare,
   mergeFromCloudflare,
-} from '../../cloud-sync.js?v=8.34';
+} from '../../cloud-sync.js?v=8.36';
 import {
   firestoreSignIn,
   firestoreSignOut,
@@ -38,14 +38,14 @@ import {
   forcePushFirestore,
   getFirestoreSyncStatus,
   downloadSyncDiagnosticLog,
-} from '../../sync/firestore-sync-engine.js?v=8.34';
-import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.34';
+} from '../../sync/firestore-sync-engine.js?v=8.36';
+import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.36';
 import {
   syncWithDrive,
   pullFromDrive,
   mergeFromDrive,
   driveAction,
-} from '../../drive-sync.js?v=8.34';
+} from '../../drive-sync.js?v=8.36';
 
 // Registrar ações
 registerAction('update-config', (el) => {
@@ -143,7 +143,7 @@ registerAction('firestore-force-push', () => {
   showConfirm(
     'Enviar dados locais para o Firestore e sobrescrever o snapshot remoto?',
     () => forcePushFirestore(),
-    { label: 'Forcar envio', title: 'Sobrescrever Firestore', danger: true }
+    { label: 'Forçar envio', title: 'Sobrescrever Firestore', danger: true }
   );
 });
 registerAction('firestore-export-local', exportData);
@@ -194,13 +194,13 @@ registerAction('sync-center-smart-sync', async () => {
   if (status?.configured && status?.signedIn && status?.enabled) {
     const ok = await flushPrimarySyncNow({ manual: true, reason: 'smart-sync' });
     showToast(
-      ok ? 'Firestore primario sincronizado.' : 'Firestore aguardando revisao ou nova tentativa.',
+      ok ? 'Firestore primário sincronizado.' : 'Firestore aguardando revisão ou nova tentativa.',
       ok ? 'success' : 'info'
     );
     return;
   }
   showToast(
-    'Ative o Firestore primario para sincronizar entre dispositivos. Cloudflare e Drive ficam como backups manuais.',
+    'Ative o Firestore primário para sincronizar entre dispositivos. Cloudflare e Drive ficam como backups manuais.',
     'info'
   );
 });

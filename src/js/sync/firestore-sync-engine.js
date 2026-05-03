@@ -5,15 +5,15 @@ import {
   observeFirebaseAuth,
   signInWithGoogle,
   signOutFirebase,
-} from '../firebase/firebase-client.js?v=8.34';
-import { saveStateToDB, setState, state } from '../store.js?v=8.34';
+} from '../firebase/firebase-client.js?v=8.36';
+import { saveStateToDB, setState, state } from '../store.js?v=8.36';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer,
-} from './firestore-schema.js?v=8.34';
+} from './firestore-schema.js?v=8.36';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -21,15 +21,15 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta,
-} from './firestore-outbox.js?v=8.34';
+} from './firestore-outbox.js?v=8.36';
 import {
   readFirestoreSnapshot,
   writeFirestoreSnapshot,
-} from './firestore-repository.js?v=8.34';
-import { canAutoSyncFirestore, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.34';
-import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.34';
-import { firestoreLock } from './sync-lock.js?v=8.34';
-import { yieldToUIWithBudget } from './sync-yield.js?v=8.34';
+} from './firestore-repository.js?v=8.36';
+import { canAutoSyncFirestore, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.36';
+import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.36';
+import { firestoreLock } from './sync-lock.js?v=8.36';
+import { yieldToUIWithBudget } from './sync-yield.js?v=8.36';
 
 let currentUser = null;
 
@@ -250,7 +250,7 @@ export function getFirestoreSyncStatus() {
 
 export async function downloadSyncDiagnosticLog() {
   // Import Cloudflare sync functions dynamically to avoid circular deps
-  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.34');
+  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.36');
 
   const log = {
     timestamp: new Date().toISOString(),
@@ -494,7 +494,7 @@ export async function queueFirestoreSnapshotFromState(sourceState = state, optio
   } else {
     config.hasPendingWrites = false;
     config.lastError =
-      'Armazenamento local do Firestore indisponivel. Recarregue a pagina para migrar o banco local.';
+      'Armazenamento local do Firestore indisponível. Recarregue a página para migrar o banco local.';
     await persistSyncConfig(false);
     emitStatus('error', { error: config.lastError });
   }
@@ -717,6 +717,7 @@ async function syncFirestoreNowUnlocked() {
   // Force-clear stale conflicts on manual sync (user-initiated resolution)
   if (config.conflict) {
     config.conflict = null;
+    config.hasPendingWrites = false;
     config.lastError = null;
     await persistSyncConfig(true);
   }
@@ -741,6 +742,12 @@ async function syncFirestoreNowUnlocked() {
       skipDriveSync: true,
       touchLocalBackup: false,
     });
+    // CRITICAL: clear hasPendingWrites since we pulled instead of pushing
+    // and there is no pending snapshot in the outbox
+    config.hasPendingWrites = false;
+    config.conflict = null;
+    config.lastError = null;
+    await persistSyncConfig(true);
     emitPrimaryStatus('synced', { source: 'sync-now-pull', remoteUpdatedAt });
     emitStatus('synced');
     return true;

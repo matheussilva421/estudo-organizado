@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-vi.mock('../../src/js/sync/sync-job-store.js?v=8.34', async () => {
+vi.mock('../../src/js/sync/sync-job-store.js?v=8.36', async () => {
   const jobs = new Map();
   let idCounter = 0;
 
@@ -89,7 +89,7 @@ import {
   markSyncJobAttempt,
   markSyncJobCompleted,
   getAllSyncJobs,
-} from '../../src/js/sync/sync-job-store.js?v=8.34';
+} from '../../src/js/sync/sync-job-store.js?v=8.36';
 
 describe('sync/sync-job-store.js', () => {
   beforeEach(() => {

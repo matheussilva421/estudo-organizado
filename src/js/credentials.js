@@ -1,9 +1,9 @@
 // =============================================
 // CREDENTIALS MANAGEMENT (IndexedDB)
 // =============================================
-// Armazena credenciais de sync separadamente do estado exportavel.
-// Previne exfiltracao de tokens via backup/exportacao.
-// Se IndexedDB estiver indisponivel, operacoes falham explicitamente
+// Armazena credenciais de sync separadamente do estado exportável.
+// Previne exfiltração de tokens via backup/exportação.
+// Se IndexedDB estiver indisponível, operações falham explicitamente
 // em vez de fallback para localStorage (risco XSS).
 
 const CREDS_DB_NAME = 'EstudoCredenciaisDB';
@@ -21,7 +21,7 @@ let _indexedDBAvailable = typeof indexedDB !== 'undefined';
 export function initCredentialsDB() {
   if (!_indexedDBAvailable)
     return Promise.reject(
-      new Error('IndexedDB indisponivel — credenciais nao podem ser armazenadas com seguranca.')
+      new Error('IndexedDB indisponível — credenciais não podem ser armazenadas com segurança.')
     );
   if (_initPromise) return _initPromise;
   if (credsDb) return Promise.resolve(credsDb);

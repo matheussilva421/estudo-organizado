@@ -3,7 +3,7 @@
  * Registry central de ações e setup de event delegation
  */
 
-import { addCleanupListener } from '../../utils.js?v=8.34';
+import { addCleanupListener } from '../../utils.js?v=8.36';
 
 /**
  * Registry de ações disponíveis

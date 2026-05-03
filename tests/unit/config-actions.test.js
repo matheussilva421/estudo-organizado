@@ -57,14 +57,14 @@ describe('ui/actions/config.js', () => {
     };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
-    vi.doMock('../../src/js/views/config-view.js?v=8.34', () => configView);
-    vi.doMock('../../src/js/store.js?v=8.34', () => storeModule);
-    vi.doMock('../../src/js/app.js?v=8.34', () => appModule);
-    vi.doMock('../../src/js/components.js?v=8.34', () => componentsModule);
-    vi.doMock('../../src/js/cloud-sync.js?v=8.34', () => cloudSync);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.34', () => firestoreSync);
-    vi.doMock('../../src/js/sync/sync-coordinator.js?v=8.34', () => syncCoordinator);
-    vi.doMock('../../src/js/drive-sync.js?v=8.34', () => driveSync);
+    vi.doMock('../../src/js/views/config-view.js?v=8.36', () => configView);
+    vi.doMock('../../src/js/store.js?v=8.36', () => storeModule);
+    vi.doMock('../../src/js/app.js?v=8.36', () => appModule);
+    vi.doMock('../../src/js/components.js?v=8.36', () => componentsModule);
+    vi.doMock('../../src/js/cloud-sync.js?v=8.36', () => cloudSync);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.36', () => firestoreSync);
+    vi.doMock('../../src/js/sync/sync-coordinator.js?v=8.36', () => syncCoordinator);
+    vi.doMock('../../src/js/drive-sync.js?v=8.36', () => driveSync);
 
     await import('../../src/js/ui/actions/config.js');
   });
@@ -233,7 +233,7 @@ describe('ui/actions/config.js', () => {
   it('sync-center-smart-sync shows success when configured', async () => {
     const handler = registerAction.mock.calls.find((c) => c[0] === 'sync-center-smart-sync')[1];
     await handler({});
-    expect(appModule.showToast).toHaveBeenCalledWith('Firestore primario sincronizado.', 'success');
+    expect(appModule.showToast).toHaveBeenCalledWith('Firestore primário sincronizado.', 'success');
   });
 
   it('sync-center-smart-sync warns on conflict', async () => {
@@ -251,7 +251,7 @@ describe('ui/actions/config.js', () => {
     const handler = registerAction.mock.calls.find((c) => c[0] === 'sync-center-smart-sync')[1];
     await handler({});
     expect(appModule.showToast).toHaveBeenCalledWith(
-      'Ative o Firestore primario para sincronizar entre dispositivos. Cloudflare e Drive ficam como backups manuais.',
+      'Ative o Firestore primário para sincronizar entre dispositivos. Cloudflare e Drive ficam como backups manuais.',
       'info'
     );
   });

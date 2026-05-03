@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-vi.mock('../../src/js/store.js?v=8.34', () => ({
+vi.mock('../../src/js/store.js?v=8.36', () => ({
   state: {
     bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
     editais: []
@@ -8,8 +8,8 @@ vi.mock('../../src/js/store.js?v=8.34', () => ({
   scheduleSave: vi.fn()
 }));
 
-const relevance = await import('../../src/js/relevance.js?v=8.34');
-const { state } = await import('../../src/js/store.js?v=8.34');
+const relevance = await import('../../src/js/relevance.js?v=8.36');
+const { state } = await import('../../src/js/store.js?v=8.36');
 
 describe('relevance.js - Tokenization', () => {
   it('tokenize returns empty array for null/undefined', () => {

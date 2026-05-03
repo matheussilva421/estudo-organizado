@@ -3,15 +3,15 @@
  * Renderiza dashboard de disciplina (renderDisciplinaDashboard e helpers)
  */
 
-import { scheduleSave, state } from '../store.js?v=8.34';
-import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.34';
+import { scheduleSave, state } from '../store.js?v=8.36';
+import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.36';
 import {
   getActiveDashboardDiscCtx,
   getActiveDashboardTab,
-} from '../state/dashboard-context.js?v=8.34';
-import { renderCurrentView } from '../components.js?v=8.34';
-import { setDiscChartInstance, getDiscChartInstance } from '../state/chart-state.js?v=8.34';
-import { showToast } from '../app.js?v=8.34';
+} from '../state/dashboard-context.js?v=8.36';
+import { renderCurrentView } from '../components.js?v=8.36';
+import { setDiscChartInstance, getDiscChartInstance } from '../state/chart-state.js?v=8.36';
+import { showToast } from '../app.js?v=8.36';
 
 // ── Main Dashboard Render ──
 export function renderDisciplinaDashboard(edital, disc) {
@@ -431,7 +431,7 @@ export function toggleAulaDashboard(editaId, discId, aulaId) {
 
     const ctx = getActiveDashboardDiscCtx();
     if (ctx && ctx.discId === discId) {
-      import('../views.js?v=8.34').then(({ openDiscDashboard }) =>
+      import('../views.js?v=8.36').then(({ openDiscDashboard }) =>
         openDiscDashboard(editaId, discId)
       );
     } else {

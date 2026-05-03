@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock de app.js
-vi.mock('../../src/js/app.js?v=8.34', () => ({
+vi.mock('../../src/js/app.js?v=8.36', () => ({
   showToast: vi.fn(),
   showConfirm: vi.fn((msg, cb) => cb()),
   openModal: vi.fn(),
@@ -9,7 +9,7 @@ vi.mock('../../src/js/app.js?v=8.34', () => ({
 }));
 
 // Mock de logic.js
-vi.mock('../../src/js/logic.js?v=8.34', () => ({
+vi.mock('../../src/js/logic.js?v=8.36', () => ({
   generatePlanejamento: vi.fn(),
   getActiveDisciplinas: vi.fn().mockReturnValue([
     { disc: { id: 'disc_1', nome: 'Matemática' }, edital: { cor: '#0f766e' } },
@@ -18,7 +18,7 @@ vi.mock('../../src/js/logic.js?v=8.34', () => ({
 }));
 
 // Mock de store.js
-vi.mock('../../src/js/store.js?v=8.34', () => {
+vi.mock('../../src/js/store.js?v=8.36', () => {
   const baseState = {
     schemaVersion: 7,
     editais: [],
@@ -63,9 +63,9 @@ beforeEach(async () => {
     <button id="pw-btn-concluir"></button>
   `;
 
-  logic = await import('../../src/js/logic.js?v=8.34');
-  app = await import('../../src/js/app.js?v=8.34');
-  wizard = await import('../../src/js/planejamento-wizard.js?v=8.34');
+  logic = await import('../../src/js/logic.js?v=8.36');
+  app = await import('../../src/js/app.js?v=8.36');
+  wizard = await import('../../src/js/planejamento-wizard.js?v=8.36');
 });
 
 describe('planejamento-wizard.js', () => {

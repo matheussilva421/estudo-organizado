@@ -14,7 +14,7 @@ import {
   pwUpdateHours,
   pwToggleDay,
   pwUpdateDayHour,
-} from '../../planejamento-wizard.js?v=8.34';
+} from '../../planejamento-wizard.js?v=8.36';
 import {
   recomecarCiclo,
   zerarCiclosCounter,
@@ -28,12 +28,12 @@ import {
   moveSeqItem,
   addSeqItem,
   openCicloHistory,
-} from '../../views.js?v=8.34';
-import { desfazerEtapa, iniciarEtapaPlanejamento } from '../../logic.js?v=8.34';
-import { showConfirm, showToast } from '../../app.js?v=8.34';
-import { scheduleSave, state } from '../../store.js?v=8.34';
-import { renderCurrentView } from '../../components.js?v=8.34';
-import { openEventDetail } from '../../ui/event-modals.js?v=8.34';
+} from '../../views.js?v=8.36';
+import { desfazerEtapa, iniciarEtapaPlanejamento } from '../../logic.js?v=8.36';
+import { showConfirm, showToast } from '../../app.js?v=8.36';
+import { scheduleSave, state } from '../../store.js?v=8.36';
+import { renderCurrentView } from '../../components.js?v=8.36';
+import { openEventDetail } from '../../ui/event-modals.js?v=8.36';
 
 // Registrar ações do wizard
 registerAction('pw-select-tipo', (el) => pwSelectTipo(el.dataset.tipo));

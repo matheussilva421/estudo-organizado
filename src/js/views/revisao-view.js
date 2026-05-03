@@ -3,17 +3,17 @@
  * Renderiza página de revisões espaçadas e handlers
  */
 
-import { showConfirm, showToast } from '../app.js?v=8.34';
-import { esc, formatDate, todayStr } from '../utils.js?v=8.34';
-import { scheduleSave, state } from '../store.js?v=8.34';
+import { showConfirm, showToast } from '../app.js?v=8.36';
+import { esc, formatDate, todayStr } from '../utils.js?v=8.36';
+import { scheduleSave, state } from '../store.js?v=8.36';
 import {
   calcRevisionDates,
   getPendingRevisoes,
   invalidateRevCache,
   invalidatePendingRevCache,
-} from '../logic.js?v=8.34';
-import { getActiveDisciplinas } from '../logic.js?v=8.34';
-import { renderCurrentView } from '../components.js?v=8.34';
+} from '../logic.js?v=8.36';
+import { getActiveDisciplinas } from '../logic.js?v=8.36';
+import { renderCurrentView } from '../components.js?v=8.36';
 
 export function getUpcomingRevisoes(days = 30) {
   const today = todayStr();

@@ -4,7 +4,7 @@ let chartState;
 
 beforeEach(async () => {
   vi.resetModules();
-  chartState = await import('../../src/js/state/chart-state.js?v=8.34');
+  chartState = await import('../../src/js/state/chart-state.js?v=8.36');
 });
 
 describe('chart-state.js', () => {

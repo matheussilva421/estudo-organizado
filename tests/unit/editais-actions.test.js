@@ -62,12 +62,12 @@ describe('ui/actions/editais.js', () => {
     };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
-    vi.doMock('../../src/js/app.js?v=8.34', () => appModule);
-    vi.doMock('../../src/js/components.js?v=8.34', () => componentsModule);
-    vi.doMock('../../src/js/logic.js?v=8.34', () => logicModule);
-    vi.doMock('../../src/js/store.js?v=8.34', () => storeModule);
-    vi.doMock('../../src/js/views.js?v=8.34', () => viewsModule);
-    vi.doMock('../../src/js/views/banca-view.js?v=8.34', () => bancaView);
+    vi.doMock('../../src/js/app.js?v=8.36', () => appModule);
+    vi.doMock('../../src/js/components.js?v=8.36', () => componentsModule);
+    vi.doMock('../../src/js/logic.js?v=8.36', () => logicModule);
+    vi.doMock('../../src/js/store.js?v=8.36', () => storeModule);
+    vi.doMock('../../src/js/views.js?v=8.36', () => viewsModule);
+    vi.doMock('../../src/js/views/banca-view.js?v=8.36', () => bancaView);
 
     await import('../../src/js/ui/actions/editais.js');
   });

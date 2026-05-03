@@ -16,32 +16,32 @@ describe('views/editais-view.js - render functions', () => {
       scheduleSave: vi.fn(),
     };
 
-    vi.doMock('../../src/js/store.js?v=8.34', () => storeModule);
-    vi.doMock('../../src/js/app.js?v=8.34', () => ({
+    vi.doMock('../../src/js/store.js?v=8.36', () => storeModule);
+    vi.doMock('../../src/js/app.js?v=8.36', () => ({
       showToast: vi.fn(),
       openModal: vi.fn(),
       closeModal: vi.fn(),
       showConfirm: vi.fn((msg, cb) => cb()),
     }));
-    vi.doMock('../../src/js/components.js?v=8.34', () => ({ renderCurrentView: vi.fn() }));
-    vi.doMock('../../src/js/logic.js?v=8.34', () => ({
+    vi.doMock('../../src/js/components.js?v=8.36', () => ({ renderCurrentView: vi.fn() }));
+    vi.doMock('../../src/js/logic.js?v=8.36', () => ({
       getDisciplinaById: vi.fn(),
       invalidateDiscCache: vi.fn(),
     }));
-    vi.doMock('../../src/js/utils.js?v=8.34', () => ({
+    vi.doMock('../../src/js/utils.js?v=8.36', () => ({
       esc: vi.fn((s) => s || ''),
       todayStr: vi.fn(() => '2026-04-29'),
       addCleanupListener: vi.fn(),
     }));
-    vi.doMock('../../src/js/state/dashboard-context.js?v=8.34', () => ({
+    vi.doMock('../../src/js/state/dashboard-context.js?v=8.36', () => ({
       getActiveDashboardDiscCtx: vi.fn(() => null),
     }));
-    vi.doMock('../../src/js/ui/event-modals.js?v=8.34', () => ({
+    vi.doMock('../../src/js/ui/event-modals.js?v=8.36', () => ({
       openAddEventModal: vi.fn(),
       loadAssuntos: vi.fn(),
     }));
 
-    editaisView = await import('../../src/js/views/editais-view.js?v=8.34');
+    editaisView = await import('../../src/js/views/editais-view.js?v=8.36');
   });
 
   describe('renderVertical()', () => {

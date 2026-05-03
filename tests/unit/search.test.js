@@ -45,11 +45,11 @@ beforeEach(async () => {
     dispatchEvent: vi.fn(),
   };
 
-  const modules = await import('../../src/js/store.js?v=8.34');
+  const modules = await import('../../src/js/store.js?v=8.36');
   store = modules;
   store.setState(createMockState());
 
-  search = await import('../../src/js/ui/search.js?v=8.34');
+  search = await import('../../src/js/ui/search.js?v=8.36');
 });
 
 describe('search.js', () => {

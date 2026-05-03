@@ -1,20 +1,20 @@
-import { state } from '../store.js?v=8.34';
+import { state } from '../store.js?v=8.36';
 import {
   autoPullRemoteWhenNewer,
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
   syncFirestoreNow,
-} from './firestore-sync-engine.js?v=8.34';
-import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.34';
+} from './firestore-sync-engine.js?v=8.36';
+import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.36';
 import {
   appendSyncHealthEvent,
   appendSyncPerformanceMetric,
   deriveSyncHealthState,
-} from './sync-health.js?v=8.34';
-import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.34';
-import { yieldToUI } from './sync-yield.js?v=8.34';
-import { primarySyncLock } from './sync-lock.js?v=8.34';
+} from './sync-health.js?v=8.36';
+import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.36';
+import { yieldToUI } from './sync-yield.js?v=8.36';
+import { primarySyncLock } from './sync-lock.js?v=8.36';
 
 const AUTO_SYNC_DEBOUNCE_MS = 3000;
 const CIRCUIT_BREAKER_DEGRADED = 3;
@@ -27,6 +27,10 @@ let lastReason = null;
 let failureCount = 0;
 
 let _listeners = [];
+
+function isBlockingConflict(conflict) {
+  return conflict?.type === 'entity-conflict';
+}
 
 function addListener(target, event, handler) {
   target.addEventListener(event, handler);
@@ -70,7 +74,7 @@ function canUsePrimaryFirestore(status = getFirestoreSyncStatus()) {
     status.signedIn &&
     status.enabled &&
     status.mode === 'primary' &&
-    !status.conflict
+    !isBlockingConflict(status.conflict)
   );
 }
 
@@ -141,7 +145,7 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
   const status = getFirestoreSyncStatus();
   lastReason = reason;
 
-  if (status.conflict) {
+  if (isBlockingConflict(status.conflict)) {
     emitCoordinatorStatus('conflict-paused', { reason, firestore: status });
     return false;
   }
@@ -205,6 +209,30 @@ async function _executeFlush(options) {
       });
       return false;
     }
+    if (reason === 'local-save') {
+      emitCoordinatorStatus('syncing', {
+        reason,
+        firestore: status,
+        repair: 'snapshot-conflict-local-save',
+      });
+      const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+      if (!queued) {
+        const retryQueued = await scheduleRetryIfNeeded(reason);
+        if (!retryQueued) emitTerminalFlushStatus(false, reason);
+        return false;
+      }
+      const firestoreWriteStart = performance.now();
+      const ok = await flushFirestoreOutbox({ manual: false, forceOverwrite: true });
+      appendSyncPerformanceMetric(state, {
+        name: 'firestoreWriteMs',
+        durationMs: performance.now() - firestoreWriteStart,
+      });
+      failureCount = ok ? 0 : failureCount + 1;
+      updateCircuitBreaker(reason, status);
+      const retryQueued = ok ? false : await scheduleRetryIfNeeded(reason);
+      if (!retryQueued) emitTerminalFlushStatus(ok, reason);
+      return ok;
+    }
     status = getFirestoreSyncStatus();
   }
 
@@ -267,7 +295,10 @@ async function _executeFlush(options) {
   }
 
   const firestoreWriteStart = performance.now();
-  const ok = await flushFirestoreOutbox({ manual: false, forceOverwrite: force });
+  const ok = await flushFirestoreOutbox({
+    manual: false,
+    forceOverwrite: force || reason === 'local-save',
+  });
   appendSyncPerformanceMetric(state, {
     name: 'firestoreWriteMs',
     durationMs: performance.now() - firestoreWriteStart,

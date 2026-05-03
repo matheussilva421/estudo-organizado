@@ -35,13 +35,13 @@ describe('cloud-sync.js', () => {
       mergeStudyStates: vi.fn((local, remote) => local),
     };
 
-    vi.doMock('../../src/js/store.js?v=8.34', () => storeModule);
-    vi.doMock('../../src/js/credentials.js?v=8.34', () => credentialsModule);
-    vi.doMock('../../src/js/sync/sync-center.js?v=8.34', () => syncCenter);
+    vi.doMock('../../src/js/store.js?v=8.36', () => storeModule);
+    vi.doMock('../../src/js/credentials.js?v=8.36', () => credentialsModule);
+    vi.doMock('../../src/js/sync/sync-center.js?v=8.36', () => syncCenter);
 
     vi.stubGlobal('fetch', vi.fn());
 
-    cloudSync = await import('../../src/js/cloud-sync.js?v=8.34');
+    cloudSync = await import('../../src/js/cloud-sync.js?v=8.36');
   });
 
   describe('setSyncCreds()', () => {

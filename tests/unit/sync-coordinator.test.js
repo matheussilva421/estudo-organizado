@@ -50,29 +50,29 @@ describe('sync/sync-coordinator.js', () => {
       getPendingFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
     };
 
-    vi.doMock('../../src/js/store.js?v=8.34', () => storeModule);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.34', () => firestoreSync);
-    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.34', () => firestoreOutbox);
-    vi.doMock('../../src/js/sync/sync-health.js?v=8.34', async () => {
-      const realHealth = await import('../../src/js/sync/sync-health.js?v=8.34');
+    vi.doMock('../../src/js/store.js?v=8.36', () => storeModule);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.36', () => firestoreSync);
+    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.36', () => firestoreOutbox);
+    vi.doMock('../../src/js/sync/sync-health.js?v=8.36', async () => {
+      const realHealth = await import('../../src/js/sync/sync-health.js?v=8.36');
       return {
         appendSyncHealthEvent: vi.fn(),
         appendSyncPerformanceMetric: vi.fn(),
         deriveSyncHealthState: vi.fn((input) => realHealth.deriveSyncHealthState(input)),
       };
     });
-    vi.doMock('../../src/js/sync/sync-planner.js?v=8.34', async () => {
-      const realPlanner = await import('../../src/js/sync/sync-planner.js?v=8.34');
+    vi.doMock('../../src/js/sync/sync-planner.js?v=8.36', async () => {
+      const realPlanner = await import('../../src/js/sync/sync-planner.js?v=8.36');
       return {
         planNextSyncAction: vi.fn((input) => realPlanner.planNextSyncAction(input)),
         ACTIONS: realPlanner.ACTIONS,
       };
     });
-    vi.doMock('../../src/js/sync/sync-yield.js?v=8.34', () => ({
+    vi.doMock('../../src/js/sync/sync-yield.js?v=8.36', () => ({
       yieldToUI: vi.fn(() => Promise.resolve()),
     }));
 
-    coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.34');
+    coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.36');
   });
 
   describe('getSyncCoordinatorStatus()', () => {
@@ -121,16 +121,37 @@ describe('sync/sync-coordinator.js', () => {
       expect(result).toBe(false);
     });
 
-    it('returns false when conflict exists', () => {
+    it('returns false when entity conflict exists', () => {
       firestoreSync.getFirestoreSyncStatus.mockReturnValue({
         configured: true,
         signedIn: true,
         enabled: true,
         mode: 'primary',
-        conflict: { items: [] },
+        conflict: { type: 'entity-conflict', items: [] },
       });
       const result = coordinator.schedulePrimarySync('test');
       expect(result).toBe(false);
+    });
+
+    it('queues snapshot conflict repair after a local save', () => {
+      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+      firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+        configured: true,
+        signedIn: true,
+        enabled: true,
+        mode: 'primary',
+        conflict: {
+          detectedAt: '2026-05-03T17:19:21.463Z',
+          remoteUpdatedAt: '2026-05-03T17:18:21.848Z',
+        },
+      });
+
+      const result = coordinator.schedulePrimarySync('local-save');
+
+      expect(result).toBe(true);
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'app:primarySyncQueued' })
+      );
     });
 
     it('schedules sync with debounce delay', () => {
@@ -191,6 +212,37 @@ describe('sync/sync-coordinator.js', () => {
       expect(result).toBe(true);
       expect(firestoreSync.syncFirestoreNow).toHaveBeenCalled();
       expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
+    });
+
+    it('force pushes the latest local save when a snapshot conflict still has pending data', async () => {
+      firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+        configured: true,
+        signedIn: true,
+        enabled: true,
+        mode: 'primary',
+        conflict: {
+          detectedAt: '2026-05-03T17:19:21.463Z',
+          remoteUpdatedAt: '2026-05-03T17:18:21.848Z',
+        },
+      });
+      firestoreOutbox.getPendingFirestoreSnapshot.mockResolvedValue({
+        status: 'conflict',
+        envelope: {},
+      });
+
+      const result = await coordinator.flushPrimarySyncNow({
+        manual: false,
+        reason: 'local-save',
+      });
+
+      expect(result).toBe(true);
+      expect(firestoreSync.queueFirestoreSnapshotFromState).toHaveBeenCalledWith(
+        storeModule.state,
+        expect.objectContaining({ manual: true })
+      );
+      expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalledWith(
+        expect.objectContaining({ forceOverwrite: true })
+      );
     });
 
     it('returns false when not configured', async () => {
@@ -287,7 +339,9 @@ describe('sync/sync-coordinator.js', () => {
 
       expect(firestoreSync.autoPullRemoteWhenNewer).not.toHaveBeenCalled();
       expect(firestoreSync.queueFirestoreSnapshotFromState).toHaveBeenCalled();
-      expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalledWith(
+        expect.objectContaining({ forceOverwrite: true })
+      );
       expect(result).toBe(true);
     });
 

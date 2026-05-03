@@ -3,12 +3,12 @@ import { createBaseState, createEvento } from '../helpers/state-builders.js';
 
 async function importCloudSync({ credential = null, fetchImpl } = {}) {
   vi.resetModules();
-  vi.doMock('../../src/js/credentials.js?v=8.34', () => ({
+  vi.doMock('../../src/js/credentials.js?v=8.36', () => ({
     setCredential: vi.fn(() => Promise.resolve()),
     getCredential: vi.fn(() => Promise.resolve(credential)),
     deleteCredential: vi.fn(() => Promise.resolve())
   }));
-  vi.doMock('../../src/js/sync/sync-center.js?v=8.34', () => ({
+  vi.doMock('../../src/js/sync/sync-center.js?v=8.36', () => ({
     mergeStudyStates: vi.fn((local, remote) => ({
       ...local,
       eventos: [...(local.eventos || []), ...(remote.eventos || [])]
@@ -16,8 +16,8 @@ async function importCloudSync({ credential = null, fetchImpl } = {}) {
   }));
   vi.stubGlobal('fetch', fetchImpl || vi.fn());
 
-  const store = await import('../../src/js/store.js?v=8.34');
-  const cloudSync = await import('../../src/js/cloud-sync.js?v=8.34');
+  const store = await import('../../src/js/store.js?v=8.36');
+  const cloudSync = await import('../../src/js/cloud-sync.js?v=8.36');
   return { store, cloudSync };
 }
 

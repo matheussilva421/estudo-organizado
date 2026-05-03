@@ -6,7 +6,7 @@ import {
   primarySyncLock,
   cloudflareLock,
   driveLock,
-} from '../../src/js/sync/sync-lock.js?v=8.34';
+} from '../../src/js/sync/sync-lock.js?v=8.36';
 
 describe('sync/sync-lock.js', () => {
   beforeEach(() => {

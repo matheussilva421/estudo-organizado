@@ -12,7 +12,7 @@ import {
   setCronoLivreGoal,
   setCronoLivreDisc,
   setCronoLivreAss,
-} from '../../logic.js?v=8.34';
+} from '../../logic.js?v=8.36';
 import {
   openAddEventModal,
   updateDayLoad,
@@ -20,18 +20,18 @@ import {
   saveEvent,
   savePastEvent,
   openEventDetail,
-} from '../../ui/event-modals.js?v=8.34';
-import { showConfirm, closeModal } from '../../app.js?v=8.34';
-import { deleteEvento, marcarEstudei } from '../../logic.js?v=8.34';
-import { clearSearch } from '../../views.js?v=8.34';
+} from '../../ui/event-modals.js?v=8.36';
+import { showConfirm, closeModal } from '../../app.js?v=8.36';
+import { deleteEvento, marcarEstudei } from '../../logic.js?v=8.36';
+import { clearSearch } from '../../views.js?v=8.36';
 import {
   openRegistroSessao,
   cancelRegistro,
   discardTimerUI,
   voltarPastSessionUI,
   deleteCompletedSession,
-} from '../../registro-sessao.js?v=8.34';
-import { state } from '../../store.js?v=8.34';
+} from '../../registro-sessao.js?v=8.36';
+import { state } from '../../store.js?v=8.36';
 
 // Registrar ações
 registerAction('toggle-timer', (el) => {
@@ -84,7 +84,7 @@ registerAction('open-event-detail', (el) => {
 registerAction('switch-to-event-timer', (el) => {
   const eventId = el.dataset.eventId;
   const view = el.dataset.view || 'cronometro';
-  import('../../app.js?v=8.34').then(({ navigate }) => {
+  import('../../app.js?v=8.36').then(({ navigate }) => {
     navigate(view);
     setTimeout(() => {
       if (eventId) toggleTimer(eventId);
