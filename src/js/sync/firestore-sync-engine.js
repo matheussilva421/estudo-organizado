@@ -150,6 +150,7 @@ export async function pollFirestoreRemote() {
     const pending = await getPendingFirestoreSnapshot();
     if (!pending) {
       config.conflict = null;
+      config.hasPendingWrites = false;
       config.lastError = null;
       await persistSyncConfig(true);
       emitStatus('synced');
@@ -530,6 +531,7 @@ export async function autoPullRemoteWhenNewer() {
     const pending = await getPendingFirestoreSnapshot();
     if (!pending) {
       config.conflict = null;
+      config.hasPendingWrites = false;
       config.lastError = null;
       await persistSyncConfig(true);
       emitStatus('synced');
