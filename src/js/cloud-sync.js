@@ -61,23 +61,53 @@ function getDeviceId() {
 
 async function getSyncCreds() {
   // Usa IndexedDB isolado para credenciais
-  return await getCredential(CF_CREDS_KEY);
+  const creds = await getCredential(CF_CREDS_KEY);
+  console.log('[Cloudflare] getSyncCreds:', {
+    hasCreds: !!creds,
+    url: creds?.url ? `${creds.url.substring(0, 30)}...` : null,
+    hasToken: !!creds?.token,
+    enabled: creds?.enabled,
+  });
+  return creds;
 }
 
 export async function setSyncCreds({ url, token, enabled }) {
   const currentCreds = await getSyncCreds();
+  console.log('[Cloudflare] setSyncCreds BEFORE:', {
+    currentUrl: currentCreds?.url ? `${currentCreds.url.substring(0, 30)}...` : null,
+    currentHasToken: !!currentCreds?.token,
+    currentEnabled: currentCreds?.enabled,
+    newUrl: url ? `${url.substring(0, 30)}...` : null,
+    newHasToken: !!token,
+    newEnabled: enabled,
+  });
+
   const nextCreds = {
     url: url ?? currentCreds?.url ?? '',
     token: token || currentCreds?.token || '',
     enabled: enabled ?? currentCreds?.enabled ?? false,
   };
+
   await setCredential(CF_CREDS_KEY, nextCreds);
+
+  console.log('[Cloudflare] setSyncCreds AFTER - IndexedDB updated:', {
+    url: nextCreds.url ? `${nextCreds.url.substring(0, 30)}...` : null,
+    hasToken: !!nextCreds.token,
+    enabled: nextCreds.enabled,
+  });
+
   // Backward compat: keep state.config in sync for legacy reads
   if (!state.config) state.config = {};
   state.config.cfUrl = nextCreds.url;
   delete state.config.cfToken;
   state.config.cfSyncEnabled = !!nextCreds.enabled;
   state.config.cfTokenSaved = Boolean(nextCreds.token);
+
+  console.log('[Cloudflare] setSyncCreds AFTER - state.config updated:', {
+    cfUrl: state.config.cfUrl ? `${state.config.cfUrl.substring(0, 30)}...` : null,
+    cfSyncEnabled: state.config.cfSyncEnabled,
+    cfTokenSaved: state.config.cfTokenSaved,
+  });
 }
 
 export async function initCloudflareCreds() {
@@ -209,14 +239,35 @@ export async function previewCloudflareRestore() {
  * Puxa os dados da Cloudflare e mescla se o timestamp remoto for mais recente
  */
 export async function pullFromCloudflare(forceOverwrite = false) {
+  console.log('[Cloudflare] pullFromCloudflare START:', {
+    forceOverwrite,
+    configUrl: state.config?.cfUrl ? `${state.config.cfUrl.substring(0, 30)}...` : null,
+    configEnabled: state.config?.cfSyncEnabled,
+    configTokenSaved: state.config?.cfTokenSaved,
+  });
+
   return cloudflareLock
     .withLock(async () => {
       const config = await getSyncConfig();
-      if (!config) return false;
+      console.log('[Cloudflare] pullFromCloudflare getSyncConfig:', {
+        hasConfig: !!config,
+        configUrl: config?.url ? `${config.url.substring(0, 30)}...` : null,
+        hasToken: !!config?.token,
+      });
+
+      if (!config) {
+        console.log('[Cloudflare] pullFromCloudflare ABORT: no config');
+        return false;
+      }
 
       updateSyncStatus('Sincronizando puxando dados...');
       try {
         const remote = await withRetry(() => readCloudflareRemotePayload());
+        console.log('[Cloudflare] pullFromCloudflare remote data:', {
+          hasRemote: !!remote,
+          remoteTimestamp: remote?.envelope?.timestamp || remote?.payload?.updatedAt || 'N/A',
+          remoteEventCount: remote?.payload?.eventos?.length ?? 'N/A',
+        });
 
         if (!remote) {
           updateSyncStatus('Nenhum dado remoto. Pronto para primeiro push.');
@@ -236,8 +287,8 @@ export async function pullFromCloudflare(forceOverwrite = false) {
         if (forceOverwrite || remoteTime > localTime) {
           console.log(
             forceOverwrite
-              ? 'Restauração forçada da Cloudflare...'
-              : 'Dados da Cloudflare são mais novos, aplicando...'
+              ? '[Cloudflare] Restaurao forada da Cloudflare...'
+              : `[Cloudflare] Dados da Cloudflare so mais novos, aplicando... (remoteTime=${remoteTime}, localTime=${localTime})`
           );
           if (forceOverwrite) {
             setState(remoteData);
@@ -253,12 +304,18 @@ export async function pullFromCloudflare(forceOverwrite = false) {
             if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
             delete state.config.cfConflict;
           }
+          console.log('[Cloudflare] pullFromCloudflare AFTER setState:', {
+            stateConfigUrl: state.config?.cfUrl,
+            stateConfigTokenSaved: state.config?.cfTokenSaved,
+            stateConfigCfRemoteUpdatedAt: state.config?.cfRemoteUpdatedAt,
+          });
           await saveStateToDB({
             skipCloudSync: true,
             skipFirestoreSync: true,
             skipDriveSync: true,
             touchLocalBackup: false,
           });
+          console.log('[Cloudflare] pullFromCloudflare saveStateToDB completed');
           document.dispatchEvent(new Event('app:invalidateCaches'));
           document.dispatchEvent(
             new CustomEvent('app:cloudSyncStatus', {
@@ -271,32 +328,37 @@ export async function pullFromCloudflare(forceOverwrite = false) {
             })
           );
         } else if (remoteTime < localTime) {
-          console.log('Dados locais mais recentes, ignorando pull.');
+          console.log(`[Cloudflare] Dados locais mais recentes, ignorando pull. (localTime=${localTime}, remoteTime=${remoteTime})`);
         } else {
-          console.log('Dados sincronizados perfeitamente.');
+          console.log('[Cloudflare] Dados sincronizados perfeitamente.');
         }
 
         const syncTs = remoteTime || Date.now();
         if (!state.config) state.config = {};
         if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
         state.config.cfLastSyncAt = new Date(syncTs).toISOString();
+        console.log('[Cloudflare] pullFromCloudflare saving state:', {
+          cfLastSyncAt: state.config.cfLastSyncAt,
+          cfRemoteUpdatedAt: state.config.cfRemoteUpdatedAt,
+        });
         await saveStateToDB({
           skipCloudSync: true,
           skipFirestoreSync: true,
           skipDriveSync: true,
           touchLocalBackup: false,
         });
+        console.log('[Cloudflare] pullFromCloudflare saveStateToDB completed');
         const lastStr = new Date(syncTs).toLocaleString('pt-BR');
         updateSyncStatus(`Sincronizado em ${lastStr}`);
         return true;
       } catch (err) {
-        console.error('Erro no Cloudflare Pull:', err);
+        console.error('[Cloudflare] Erro no Cloudflare Pull:', err);
         updateSyncStatus(`Erro: ${err.message}`, true);
         return false;
       }
     })
     .catch((err) => {
-      console.error('Erro no Cloudflare Pull (lock):', err);
+      console.error('[Cloudflare] Erro no Cloudflare Pull (lock):', err);
       updateSyncStatus(`Erro: ${err.message}`, true);
       return false;
     });
@@ -357,11 +419,31 @@ export async function pushToCloudflare(forceOverwrite = false) {
 }
 
 async function pushToCloudflareUnlocked(forceOverwrite = false) {
+  console.log('[Cloudflare] pushToCloudflareUnlocked START:', {
+    forceOverwrite,
+    configUrl: state.config?.cfUrl ? `${state.config.cfUrl.substring(0, 30)}...` : null,
+    configEnabled: state.config?.cfSyncEnabled,
+    configTokenSaved: state.config?.cfTokenSaved,
+    configLastSyncAt: state.config?.cfLastSyncAt,
+  });
+
   const config = await getSyncConfig();
-  if (!config) return false;
+  console.log('[Cloudflare] pushToCloudflareUnlocked getSyncConfig:', {
+    hasConfig: !!config,
+    configUrl: config?.url ? `${config.url.substring(0, 30)}...` : null,
+    hasToken: !!config?.token,
+  });
+
+  if (!config) {
+    console.log('[Cloudflare] pushToCloudflareUnlocked ABORT: no config');
+    return false;
+  }
 
   const now = Date.now();
-  if (!forceOverwrite && now - _lastPushTime < MIN_PUSH_INTERVAL_MS) return false;
+  if (!forceOverwrite && now - _lastPushTime < MIN_PUSH_INTERVAL_MS) {
+    console.log(`[Cloudflare] pushToCloudflareUnlocked ABORT: rate limit (${now - _lastPushTime}ms since last push, min=${MIN_PUSH_INTERVAL_MS}ms)`);
+    return false;
+  }
 
   updateSyncStatus('Enviando dados para a nuvem...');
 
@@ -374,6 +456,13 @@ async function pushToCloudflareUnlocked(forceOverwrite = false) {
 
     const envelope = wrapInEnvelope(snapshot, { forceOverwrite });
     const payload = JSON.stringify(envelope);
+
+    console.log('[Cloudflare] pushToCloudflareUnlocked sending:', {
+      payloadSize: payload.length,
+      envelopeTimestamp: envelope.timestamp,
+      payloadUpdatedAt: envelope.payloadUpdatedAt,
+      forceOverwrite: envelope.forceOverwrite,
+    });
 
     const responseData = await withRetry(async () => {
       const response = await fetch(config.url, {
@@ -391,6 +480,14 @@ async function pushToCloudflareUnlocked(forceOverwrite = false) {
       } catch {
         /* response body is optional */
       }
+
+      console.log('[Cloudflare] pushToCloudflareUnlocked fetch response:', {
+        status: response.status,
+        ok: response.ok,
+        hasData: !!data,
+        dataError: data?.error,
+        dataRemoteUpdatedAt: data?.remoteUpdatedAt,
+      });
 
       if (!response.ok) {
         let errorMsg = `HTTP Error: ${response.status}`;
@@ -416,30 +513,50 @@ async function pushToCloudflareUnlocked(forceOverwrite = false) {
       return data;
     });
 
+    console.log('[Cloudflare] pushToCloudflareUnlocked push success:', {
+      responseDataMeta: responseData?.meta,
+    });
+
     _lastPushTime = Date.now();
 
     state.config._lastUpdated = pushTimestamp;
     state.config.cfLastSyncAt = new Date(pushTimestamp).toISOString();
     state.config.cfRemoteUpdatedAt = responseData?.meta?.updatedAt || envelope.payloadUpdatedAt;
     delete state.config.cfConflict;
+    console.log('[Cloudflare] pushToCloudflareUnlocked updating state.config:', {
+      cfLastSyncAt: state.config.cfLastSyncAt,
+      cfRemoteUpdatedAt: state.config.cfRemoteUpdatedAt,
+      cfConflict: state.config.cfConflict,
+    });
     await saveStateToDB({
       skipCloudSync: true,
       skipFirestoreSync: true,
       skipDriveSync: true,
-      touchLocalBackup: false,
     });
-    const lastStr = new Date(pushTimestamp).toLocaleString('pt-BR');
-    updateSyncStatus(`Nuvem atualizada em ${lastStr}`);
-    console.log('Cloudflare Sync OK');
+    console.log('[Cloudflare] pushToCloudflareUnlocked saveStateToDB completed');
+
+    document.dispatchEvent(new Event('app:invalidateCaches'));
+    document.dispatchEvent(
+      new CustomEvent('app:cloudSyncStatus', {
+        detail: { status: 'synced', reason: 'push' },
+      })
+    );
+    document.dispatchEvent(
+      new CustomEvent('app:showToast', {
+        detail: { msg: 'Enviado para a nuvem (Cloudflare)', type: 'success' },
+      })
+    );
+    console.log('[Cloudflare] pushToCloudflareUnlocked COMPLETE');
     return true;
   } catch (err) {
-    console.error('Erro no Cloudflare Push:', err);
-    updateSyncStatus(`Erro no Push: ${err.message}`, true);
+    console.error('[Cloudflare] Erro no Cloudflare Push:', err);
+    updateSyncStatus(`Erro: ${err.message}`, true);
     return false;
   }
 }
 
 export async function forceCloudflareSync() {
+  console.log('[Cloudflare] forceCloudflareSync START');
   const btn = document.getElementById('btn-force-cf-sync');
   const originalText = btn ? btn.textContent : 'Sincronizar';
   if (btn) {
@@ -449,12 +566,13 @@ export async function forceCloudflareSync() {
 
   try {
     _lastPushTime = 0;
+    console.log('[Cloudflare] forceCloudflareSync pulling...');
     await SyncQueue.add(() => pullFromCloudflare());
-    await SyncQueue.add(() => pushToCloudflare());
-    updateSyncStatus('Sincronizado com sucesso', false);
+    console.log('[Cloudflare] forceCloudflareSync pushing...');
+    await SyncQueue.add(() => pushToCloudflare(true));
+    console.log('[Cloudflare] forceCloudflareSync COMPLETE');
   } catch (err) {
-    console.error('Force sync failed:', err);
-    updateSyncStatus('Erro na sincronização forçada', true);
+    console.error('[Cloudflare] forceCloudflareSync ERROR:', err);
   } finally {
     if (btn) {
       btn.disabled = false;

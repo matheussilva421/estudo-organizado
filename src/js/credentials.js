@@ -66,14 +66,29 @@ export function initCredentialsDB() {
  * @returns {Promise<void>}
  */
 export async function setCredential(key, value) {
+  console.log('[Credentials] setCredential START:', {
+    key,
+    hasValue: !!value,
+    valueKeys: value ? Object.keys(value) : null,
+    valueUrl: value?.url ? `${value.url.substring(0, 30)}...` : null,
+    valueHasToken: !!value?.token,
+    valueEnabled: value?.enabled,
+  });
+
   await initCredentialsDB();
   return new Promise((resolve, reject) => {
     const tx = credsDb.transaction([CREDS_STORE_NAME], 'readwrite');
     const store = tx.objectStore(CREDS_STORE_NAME);
     const req = store.put(value, key);
 
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      console.log('[Credentials] setCredential SUCCESS:', { key });
+      resolve();
+    };
+    req.onerror = () => {
+      console.error('[Credentials] setCredential ERROR:', { key, error: req.error });
+      reject(req.error);
+    };
   });
 }
 
@@ -83,14 +98,30 @@ export async function setCredential(key, value) {
  * @returns {Promise<object|undefined>}
  */
 export async function getCredential(key) {
+  console.log('[Credentials] getCredential START:', { key });
+
   await initCredentialsDB();
   return new Promise((resolve, reject) => {
     const tx = credsDb.transaction([CREDS_STORE_NAME], 'readonly');
     const store = tx.objectStore(CREDS_STORE_NAME);
     const req = store.get(key);
 
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const result = req.result;
+      console.log('[Credentials] getCredential RESULT:', {
+        key,
+        hasResult: !!result,
+        resultKeys: result ? Object.keys(result) : null,
+        resultUrl: result?.url ? `${result.url.substring(0, 30)}...` : null,
+        resultHasToken: !!result?.token,
+        resultEnabled: result?.enabled,
+      });
+      resolve(result);
+    };
+    req.onerror = () => {
+      console.error('[Credentials] getCredential ERROR:', { key, error: req.error });
+      reject(req.error);
+    };
   });
 }
 
@@ -100,30 +131,44 @@ export async function getCredential(key) {
  * @returns {Promise<void>}
  */
 export async function deleteCredential(key) {
+  console.log('[Credentials] deleteCredential START:', { key });
   await initCredentialsDB();
   return new Promise((resolve, reject) => {
     const tx = credsDb.transaction([CREDS_STORE_NAME], 'readwrite');
     const store = tx.objectStore(CREDS_STORE_NAME);
     const req = store.delete(key);
 
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      console.log('[Credentials] deleteCredential SUCCESS:', { key });
+      resolve();
+    };
+    req.onerror = () => {
+      console.error('[Credentials] deleteCredential ERROR:', { key, error: req.error });
+      reject(req.error);
+    };
   });
 }
 
 /**
- * Lista todas as chaves de credenciais (para debug)
+ * Lista todas as chaves de credenciais
  * @returns {Promise<string[]>}
  */
 export async function listCredentialKeys() {
+  console.log('[Credentials] listCredentialKeys START');
   await initCredentialsDB();
   return new Promise((resolve, reject) => {
     const tx = credsDb.transaction([CREDS_STORE_NAME], 'readonly');
     const store = tx.objectStore(CREDS_STORE_NAME);
     const req = store.getAllKeys();
 
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      console.log('[Credentials] listCredentialKeys RESULT:', { keys: req.result });
+      resolve(req.result);
+    };
+    req.onerror = () => {
+      console.error('[Credentials] listCredentialKeys ERROR:', { error: req.error });
+      reject(req.error);
+    };
   });
 }
 
@@ -132,7 +177,20 @@ export async function listCredentialKeys() {
  * @returns {Promise<void>}
  */
 export async function clearAllCredentials() {
+  console.log('[Credentials] clearAllCredentials START');
   await initCredentialsDB();
-  const keys = await listCredentialKeys();
-  await Promise.all(keys.map((key) => deleteCredential(key)));
+  return new Promise((resolve, reject) => {
+    const tx = credsDb.transaction([CREDS_STORE_NAME], 'readwrite');
+    const store = tx.objectStore(CREDS_STORE_NAME);
+    const req = store.clear();
+
+    req.onsuccess = () => {
+      console.log('[Credentials] clearAllCredentials SUCCESS');
+      resolve();
+    };
+    req.onerror = () => {
+      console.error('[Credentials] clearAllCredentials ERROR:', { error: req.error });
+      reject(req.error);
+    };
+  });
 }
