@@ -3,10 +3,6 @@
 // =============================================
 import { uid } from './utils.js?v=8.32';
 import * as credentialsStore from './credentials.js?v=8.32';
-import {
-  normalizeEntityMetadata,
-  prepareEntityMetadataForSave,
-} from './sync/entity-metadata.js?v=8.32';
 import { appendSyncPerformanceMetric } from './sync/sync-health.js?v=8.32';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
@@ -32,15 +28,6 @@ export const DEFAULT_FIRESTORE_SYNC_CONFIG = {
   remoteUpdatedAt: null,
   hasPendingWrites: false,
   conflict: null,
-  lastError: null,
-};
-
-export const DEFAULT_ENTITY_SYNC_CONFIG = {
-  enabled: false,
-  mode: 'off',
-  lastShadowPushAt: null,
-  lastShadowReadAt: null,
-  lastShadowDiff: null,
   lastError: null,
 };
 
@@ -267,9 +254,7 @@ export function setState(newState, options = {}) {
               agruparEventos: true,
               frequenciaRevisao: [1, 7, 30, 90],
               materiasPorDia: 3,
-              entityTombstones: [],
               firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
-              entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG },
             },
             newState.config || {}
           )
@@ -283,9 +268,7 @@ export function setState(newState, options = {}) {
               agruparEventos: true,
               frequenciaRevisao: [1, 7, 30, 90],
               materiasPorDia: 3,
-              entityTombstones: [],
               firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
-              entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG },
             },
             newState.config || {}
           )
@@ -315,11 +298,6 @@ export function setState(newState, options = {}) {
     {},
     DEFAULT_FIRESTORE_SYNC_CONFIG,
     cloned.config.firestoreSync || {}
-  );
-  cloned.config.entitySync = Object.assign(
-    {},
-    DEFAULT_ENTITY_SYNC_CONFIG,
-    cloned.config.entitySync || {}
   );
 
   // Replace the state object properties instead of the reference
@@ -371,9 +349,7 @@ export const state = {
     agruparEventos: true,
     frequenciaRevisao: [1, 7, 30, 90],
     materiasPorDia: 3,
-    entityTombstones: [],
     firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
-    entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG },
   },
   cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
   bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
@@ -398,7 +374,6 @@ export function createExportableState(sourceState = state) {
   delete exportable.lastSync;
   exportable.config.cfSyncEnabled = false;
   exportable.config.firestoreSync = { ...DEFAULT_FIRESTORE_SYNC_CONFIG };
-  exportable.config.entitySync = { ...DEFAULT_ENTITY_SYNC_CONFIG };
 
   return exportable;
 }
@@ -747,15 +722,7 @@ export function saveStateToDB(
     state.config.localBackupAt = new Date().toISOString();
   }
 
-  const prepare =
-    options.prepareEntityMetadata === true
-      ? prepareEntityMetadataForSave(state, {
-          db,
-          storeName: ENTITY_META_STORE,
-          baselineOnly:
-            options.baselineEntityMetadata === true || options.touchLocalBackup === false,
-        })
-      : Promise.resolve();
+  const prepare = Promise.resolve();
 
   return prepare.then(
     () =>
@@ -987,13 +954,6 @@ export function runMigrations() {
     changed = true;
   }
 
-  // v8 -> v9: Prepare entity-level sync metadata without creating tombstones.
-  if (state.schemaVersion < 9) {
-    normalizeEntityMetadata(state, { baselineOnly: true });
-    state.schemaVersion = 9;
-    changed = true;
-  }
-
   if (changed) scheduleSave();
   // archiveOldEvents removido do boot — disponível manualmente em Configurações
 }
@@ -1037,9 +997,7 @@ export function clearData() {
       mostrarNumeroSemana: false,
       agruparEventos: true,
       frequenciaRevisao: [1, 7, 30, 90],
-      entityTombstones: [],
       firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
-      entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG },
     },
     cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
     bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },

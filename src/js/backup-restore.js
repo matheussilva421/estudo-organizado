@@ -81,17 +81,11 @@ export function validateBackupPayload(payload) {
   ) {
     errors.push('backup must not include remote sync timestamps');
   }
-  if (
-    Array.isArray(config.firestoreSync?.conflictHistory) ||
-    Array.isArray(config.entitySync?.conflictHistory)
-  ) {
+  if (Array.isArray(config.firestoreSync?.conflictHistory)) {
     errors.push('backup must not include conflict history');
   }
   if (config.firestoreSync?.enabled) {
     errors.push('backup must not include enabled Firestore runtime sync');
-  }
-  if (config.entitySync?.mode && config.entitySync.mode !== 'off') {
-    errors.push('backup must not include active entity runtime sync');
   }
 
   return {

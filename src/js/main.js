@@ -17,7 +17,6 @@ import * as relevance from './relevance.js?v=8.32';
 import * as lesson_mapper from './lesson-mapper.js?v=8.32';
 import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.32';
 import * as sync_coordinator from './sync/sync-coordinator.js?v=8.32';
-import * as entity_conflict_model from './sync/entity-conflict-model.js?v=8.32';
 import { initSyncStatusUI } from './sync/sync-status-ui.js?v=8.32';
 
 // Import UI helpers and action dispatcher
@@ -49,7 +48,6 @@ const exposedModules = [
   lesson_mapper,
   firestore_sync,
   sync_coordinator,
-  entity_conflict_model,
 ];
 
 for (const mod of exposedModules) {

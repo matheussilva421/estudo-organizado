@@ -282,21 +282,6 @@ function renderDriveAdvancedCard() {
 
 function renderFirestoreConflict(conflict) {
   if (!conflict) return '';
-  const items = Array.isArray(conflict.items) ? conflict.items : [];
-  const entityRows = items
-    .slice(0, 8)
-    .map(
-      (item) => `
-    <div class="sync-conflict-entity">
-      <span>${esc(item.collection || 'entidade')}</span>
-      <code>${esc(item.id || item.key || 'sem-id')}</code>
-      <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
-      <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
-      <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
-    </div>
-  `
-    )
-    .join('');
 
   return `
     <div class="sync-conflict-panel" data-testid="firestore-sync-conflict" role="alert">
@@ -312,17 +297,6 @@ function renderFirestoreConflict(conflict) {
         <span>Local: ${formatBackupDateTime(conflict.localUpdatedAt)}</span>
         <span>Detectado: ${formatBackupDateTime(conflict.detectedAt)}</span>
       </div>
-      ${
-        items.length > 0
-          ? `
-        <div class="sync-conflict-entities" data-testid="firestore-conflict-entities">
-          <div class="sync-conflict-entities-title">Entidades afetadas (${conflict.total || items.length})</div>
-          ${entityRows}
-          ${items.length > 8 ? `<div class="sync-source-note">Mais ${items.length - 8} entidades omitidas nesta lista.</div>` : ''}
-        </div>
-      `
-          : ''
-      }
       <div class="sync-conflict-actions">
         <button type="button" class="btn btn-outline btn-sm" data-action="firestore-export-local">
           <i class="fa fa-download"></i> Exportar backup local
@@ -414,27 +388,6 @@ function _renderFirestoreCard() {
   `;
 }
 
-function renderEntitySyncToggle() {
-  const entitySync = state.config?.entitySync || {};
-  const fsStatus = getFirestoreSyncStatus() || {};
-  if (!fsStatus.signedIn || !fsStatus.enabled) return '';
-  const isPrimary = entitySync.mode === 'primary';
-  const isShadow = entitySync.mode === 'shadow';
-  return `
-    <div class="entity-sync-toggle" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Modo de entidades:</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button type="button" class="btn btn-sm ${isPrimary ? 'btn-primary' : 'btn-ghost'}" data-action="entity-sync-set-primary" ${isPrimary ? 'disabled' : ''}>Primário</button>
-        <button type="button" class="btn btn-sm ${isShadow ? 'btn-primary' : 'btn-ghost'}" data-action="entity-sync-set-shadow" ${isShadow ? 'disabled' : ''}>Shadow</button>
-        <button type="button" class="btn btn-sm ${!isPrimary && !isShadow ? 'btn-primary' : 'btn-ghost'}" data-action="entity-sync-set-off" ${!isPrimary && !isShadow ? 'disabled' : ''}>Desativado</button>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
-        ${isPrimary ? 'Entidades como fonte primária (experimental).' : isShadow ? 'Entidades em shadow com snapshot fallback.' : 'Entidades desativadas; apenas snapshot.'}
-      </div>
-    </div>
-  `;
-}
-
 function getSyncHealthLabel(health) {
   const labels = {
     ok: 'OK',
@@ -472,8 +425,6 @@ function renderSyncSourceActions(source) {
     return `
       ${status.signedIn ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar</button>`}
       ${status.enabled ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? '' : 'disabled'}>Ativar primário</button><button type="button" class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Shadow</button>`}
-      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-verify-entity-shadow" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-list-check"></i> Verificar entidades</button>
-      ${renderEntitySyncToggle()}
       <button type="button" class="btn btn-outline btn-sm" data-action="firestore-merge-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
       <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-pull-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
       <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
@@ -504,42 +455,6 @@ function renderSyncSourceActions(source) {
   }
 
   return '';
-}
-
-function renderSyncSourceConflictEntities(conflict) {
-  const items = Array.isArray(conflict?.items) ? conflict.items : [];
-  if (items.length === 0) return '';
-  const entityKey = (item) => item.key || `${item.collection}/${item.id}`;
-  return `
-    <div class="sync-conflict-entities sync-conflict-entities--compact" data-testid="sync-source-conflict-entities">
-      <div class="sync-conflict-entities-title">Entidades afetadas (${conflict.total || items.length})</div>
-      ${items
-        .slice(0, 6)
-        .map(
-          (item) => `
-        <div class="sync-conflict-entity">
-          <span>${esc(item.collection || 'entidade')}</span>
-          <code>${esc(item.id || item.key || 'sem-id')}</code>
-           <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
-           <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
-           <span>${formatBackupDateTime(item.localUpdatedAt || item.remoteUpdatedAt)}</span>
-           <div class="sync-conflict-entity-actions">
-             <button type="button" class="btn btn-ghost btn-sm" data-action="entity-conflict-keep-local" data-entity-key="${esc(entityKey(item))}">
-               Manter local
-             </button>
-             <button type="button" class="btn btn-outline btn-sm" data-action="entity-conflict-keep-remote" data-entity-key="${esc(entityKey(item))}">
-               Usar remoto
-             </button>
-           </div>
-         </div>
-       `
-        )
-        .join('')}
-      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-open-conflict-review" style="margin-top:8px;">
-        <i class="fa fa-magnifying-glass"></i> Revisar entidades
-      </button>
-    </div>
-  `;
 }
 
 function buildCurrentSyncCenterModel() {
@@ -606,9 +521,7 @@ function _renderSyncCenterCard() {
                 <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
                 ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
                 ${source.metrics?.retryAttempts ? `<span>Retries: ${esc(source.metrics.retryAttempts)}</span>` : ''}
-                ${source.entityShadowDiff ? `<span>Shadow diff: ${source.entityShadowDiff.ok ? 'OK' : 'Divergente'}</span>` : ''}
               </div>
-              ${source.conflict ? renderSyncSourceConflictEntities(source.conflict) : ''}
               <div class="sync-source-actions">
                 ${renderSyncSourceActions(source)}
               </div>
@@ -708,9 +621,7 @@ function renderQuietSyncCenterCard() {
                     <span>Ãšltimo sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
                     ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
                     ${source.metrics?.retryAttempts ? `<span>Retries: ${esc(source.metrics.retryAttempts)}</span>` : ''}
-                    ${source.entityShadowDiff ? `<span>Shadow diff: ${source.entityShadowDiff.ok ? 'OK' : 'Divergente'}</span>` : ''}
                   </div>
-                  ${source.conflict ? renderSyncSourceConflictEntities(source.conflict) : ''}
                   <div class="sync-source-actions">
                     ${source.id === 'cloudflare' || source.id === 'drive' ? '' : renderSyncSourceActions(source)}
                   </div>

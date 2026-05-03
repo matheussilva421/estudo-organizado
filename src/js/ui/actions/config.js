@@ -19,9 +19,8 @@ import {
   driveDisconnect,
 } from '../../views/config-view.js?v=8.32';
 import { scheduleSave, state } from '../../store.js?v=8.32';
-import { showToast, openModal, showConfirm } from '../../app.js?v=8.32';
+import { showToast, showConfirm } from '../../app.js?v=8.32';
 import { renderCurrentView } from '../../components.js?v=8.32';
-import { esc } from '../../utils.js?v=8.32';
 import {
   forceCloudflareSync,
   pullFromCloudflare,
@@ -37,8 +36,6 @@ import {
   pullFromFirestore,
   mergeFromFirestore,
   forcePushFirestore,
-  verifyFirestoreEntityShadow,
-  resolveEntityConflict,
   getFirestoreSyncStatus,
 } from '../../sync/firestore-sync-engine.js?v=8.32';
 import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.32';
@@ -149,69 +146,6 @@ registerAction('firestore-force-push', () => {
   );
 });
 registerAction('firestore-export-local', exportData);
-registerAction('firestore-verify-entity-shadow', verifyFirestoreEntityShadow);
-registerAction('firestore-open-conflict-review', () => {
-  const conflict = state?.config?.firestoreSync?.conflict;
-  const modal = document.getElementById('modal-prompt');
-  if (!modal || !conflict) return;
-  const title = modal.querySelector('#modal-prompt-title');
-  const body = modal.querySelector('#modal-prompt-body');
-  const items = Array.isArray(conflict.items) ? conflict.items : [];
-  const entityKey = (item) => item.key || `${item.collection}/${item.id}`;
-  const hintLabel = (item) => {
-    if (item.hint === 'both-changed' || item.hint === 'same-revision-different-checksum') {
-      return 'Alterado nos dois dispositivos';
-    }
-    if (item.hint === 'remote-newer' || item.remoteDeleted) return 'Remoto mais novo';
-    if (item.hint === 'tie') return 'Empate';
-    if (item.localDeleted) return 'Deletado localmente';
-    if (item.remoteDeleted) return 'Deletado remotamente';
-    return 'Local mais novo';
-  };
-
-  if (title) title.textContent = 'Revisar conflito Firestore';
-  if (body) {
-    body.innerHTML = `
-      <div class="config-actions-row">
-        <button type="button" class="btn btn-outline btn-sm" data-action="firestore-export-local">
-          <i class="fa fa-download"></i> Exportar backup antes
-        </button>
-      </div>
-      <div class="sync-conflict-entities">
-        ${items
-          .map(
-            (item) => `
-          <div class="sync-conflict-entity">
-            <span>${esc(item.collection || 'entidade')}</span>
-            <code>${esc(item.id || item.key || 'sem-id')}</code>
-            <span>${esc(hintLabel(item))}</span>
-            <span>Local rev. ${esc(item.localRevision ?? '-')}</span>
-            <span>Remoto rev. ${esc(item.remoteRevision ?? '-')}</span>
-            <div class="sync-conflict-entity-actions">
-              <button type="button" class="btn btn-ghost btn-sm" data-action="entity-conflict-keep-local" data-entity-key="${esc(entityKey(item))}">
-                Manter este dispositivo
-              </button>
-              <button type="button" class="btn btn-outline btn-sm" data-action="entity-conflict-keep-remote" data-entity-key="${esc(entityKey(item))}">
-                Usar nuvem
-              </button>
-              <button type="button" class="btn btn-ghost btn-sm" data-action="close-modal" data-modal="modal-prompt">
-                Resolver depois
-              </button>
-            </div>
-          </div>
-        `
-          )
-          .join('')}
-      </div>
-    `;
-  }
-  openModal('modal-prompt');
-});
-registerAction('entity-conflict-keep-local', (el) => entityConflictResolve(el, 'local'));
-registerAction('entity-conflict-keep-remote', (el) => entityConflictResolve(el, 'remote'));
-registerAction('entity-sync-set-primary', () => setEntitySyncMode('primary'));
-registerAction('entity-sync-set-shadow', () => setEntitySyncMode('shadow'));
-registerAction('entity-sync-set-off', () => setEntitySyncMode('off'));
 registerAction('cloud-merge-remote', () => {
   showConfirm(
     'Mesclar Cloudflare com os dados locais? Itens locais e remotos serao preservados quando possivel, e o resultado sera enviado ao Worker.',
@@ -275,42 +209,3 @@ registerAction('force-sw-cache-clear', async () => {
   }
 });
 
-function setEntitySyncMode(mode) {
-  if (!state?.config) return;
-  if (!state.config.entitySync) state.config.entitySync = { enabled: false, mode: 'off' };
-  state.config.entitySync.enabled = mode !== 'off';
-  state.config.entitySync.mode = mode;
-  scheduleSave();
-  const labels = {
-    primary: 'Entidades primarias ativadas (experimental).',
-    shadow: 'Entidades em shadow ativadas.',
-    off: 'Entidades desativadas.',
-  };
-  showToast(labels[mode] || 'Modo de entidades atualizado.', 'info');
-  if (mode === 'primary') {
-    document.dispatchEvent(
-      new CustomEvent('app:primarySyncRequested', {
-        detail: { reason: 'entity-primary-activated' },
-      })
-    );
-  }
-  document.dispatchEvent(new Event('app:renderCurrentView'));
-}
-
-async function entityConflictResolve(el, decision) {
-  const entityKey = el.dataset.entityKey;
-  if (!entityKey) return;
-  const ok = await resolveEntityConflict(entityKey, decision);
-  if (!ok) {
-    showToast('Falha ao resolver conflito da entidade.', 'error');
-    return;
-  }
-  showToast('Entidade resolvida.', 'success');
-  const conflict = state?.config?.firestoreSync?.conflict;
-  const modal = document.getElementById('modal-prompt');
-  if (modal && conflict) {
-    const pre = modal.querySelector('pre');
-    if (pre) pre.textContent = JSON.stringify(conflict, null, 2);
-  }
-  document.dispatchEvent(new Event('app:renderCurrentView'));
-}
