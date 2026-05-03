@@ -38,6 +38,8 @@ import {
   forcePushFirestore,
   getFirestoreSyncStatus,
   downloadSyncDiagnosticLog,
+  resolveEntityConflictKeepLocal,
+  resolveEntityConflictKeepRemote,
 } from '../../sync/firestore-sync-engine.js?v=8.36';
 import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.36';
 import {
@@ -125,6 +127,13 @@ registerAction('firestore-enable-primary', () => enableFirestoreSync('primary'))
 registerAction('firestore-enable-shadow', () => enableFirestoreSync('shadow'));
 registerAction('firestore-disable-sync', disableFirestoreSync);
 registerAction('firestore-sync-now', syncFirestoreNow);
+registerAction('firestore-force-sync', async () => {
+  const ok = await syncFirestoreNow();
+  showToast(
+    ok ? 'Sincronização forçada concluída.' : 'Sincronização forçada falhou. Verifique o log.',
+    ok ? 'success' : 'error'
+  );
+});
 registerAction('firestore-pull-remote', () => {
   showConfirm(
     'Baixar snapshot do Firestore? Isso pode substituir dados locais. Exporte um backup local antes de confirmar.',
@@ -150,11 +159,19 @@ registerAction('firestore-export-local', exportData);
 registerAction('firestore-open-conflict-review', () => {
   showToast('Revise as entidades afetadas nas opções avançadas de sync.', 'info');
 });
-registerAction('entity-conflict-keep-local', () => {
-  showToast('Resolva pelo painel de revisão antes de aplicar a decisão.', 'info');
+registerAction('entity-conflict-keep-local', async () => {
+  const ok = await resolveEntityConflictKeepLocal();
+  showToast(
+    ok ? 'Conflito resolvido: dados locais enviados.' : 'Erro ao resolver conflito.',
+    ok ? 'success' : 'error'
+  );
 });
-registerAction('entity-conflict-keep-remote', () => {
-  showToast('Resolva pelo painel de revisão antes de aplicar a decisão.', 'info');
+registerAction('entity-conflict-keep-remote', async () => {
+  const ok = await resolveEntityConflictKeepRemote();
+  showToast(
+    ok ? 'Conflito resolvido: dados da nuvem aplicados.' : 'Erro ao resolver conflito.',
+    ok ? 'success' : 'error'
+  );
 });
 registerAction('firestore-download-log', async () => {
   try {
