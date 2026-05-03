@@ -4,9 +4,9 @@ import {
   SyncQueue,
   saveStateToDB,
   createExportableState,
-} from './store.js?v=8.36';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.36';
-import { cloudflareLock } from './sync/sync-lock.js?v=8.36';
+} from './store.js?v=8.37';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.37';
+import { cloudflareLock } from './sync/sync-lock.js?v=8.37';
 
 const MAX_RETRIES = 3;
 const OPERATION_TIMEOUT_MS = 15_000;

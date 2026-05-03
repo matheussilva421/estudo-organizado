@@ -1,7 +1,7 @@
 /* global cancelAnimationFrame */
-import { state } from '../store.js?v=8.36';
-import { getFirestoreSyncStatus } from './firestore-sync-engine.js?v=8.36';
-import { buildSyncCenterModel } from './sync-center.js?v=8.36';
+import { state } from '../store.js?v=8.37';
+import { getFirestoreSyncStatus } from './firestore-sync-engine.js?v=8.37';
+import { buildSyncCenterModel } from './sync-center.js?v=8.37';
 
 /**
  * Sync Status UI Component

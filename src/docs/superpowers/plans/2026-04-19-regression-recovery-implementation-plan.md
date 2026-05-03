@@ -1,4 +1,4 @@
-﻿# Regression Recovery Implementation Plan
+# Regression Recovery Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -61,7 +61,7 @@ npm run test:e2e
 - [x] Consolidate `.empty-state` into one definition with `display: flex`, `flex-direction: column`, centered text, `gap`, and responsive `max-width`.
 - [x] Add an explicit `.empty-state-actions` or `.empty-state .btn` rule so CTA buttons keep readable width on mobile.
 - [x] Remove conflicting empty-state declarations or make later stylesheet declarations intentionally override the base.
-- [x] Audit empty state call sites: Study Organizer, Ciclo, RevisÃµes, HÃ¡bitos, Editais, Banca.
+- [x] Audit empty state call sites: Study Organizer, Ciclo, Revisões, Hábitos, Editais, Banca.
 - [x] Verify desktop screenshot no longer shows inline icon/title/paragraph/button.
 - [x] Verify mobile screenshot no longer squeezes CTA text.
 

@@ -1,20 +1,20 @@
-import { state } from '../store.js?v=8.36';
+import { state } from '../store.js?v=8.37';
 import {
   autoPullRemoteWhenNewer,
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
   syncFirestoreNow,
-} from './firestore-sync-engine.js?v=8.36';
-import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.36';
+} from './firestore-sync-engine.js?v=8.37';
+import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.37';
 import {
   appendSyncHealthEvent,
   appendSyncPerformanceMetric,
   deriveSyncHealthState,
-} from './sync-health.js?v=8.36';
-import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.36';
-import { yieldToUI } from './sync-yield.js?v=8.36';
-import { primarySyncLock } from './sync-lock.js?v=8.36';
+} from './sync-health.js?v=8.37';
+import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.37';
+import { yieldToUI } from './sync-yield.js?v=8.37';
+import { primarySyncLock } from './sync-lock.js?v=8.37';
 
 const AUTO_SYNC_DEBOUNCE_MS = 3000;
 const CIRCUIT_BREAKER_DEGRADED = 3;

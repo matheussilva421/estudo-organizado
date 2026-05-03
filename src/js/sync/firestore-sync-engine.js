@@ -5,8 +5,8 @@ import {
   observeFirebaseAuth,
   signInWithGoogle,
   signOutFirebase,
-} from '../firebase/firebase-client.js?v=8.36';
-import { saveStateToDB, setState, state } from '../store.js?v=8.36';
+} from '../firebase/firebase-client.js?v=8.37';
+import { saveStateToDB, setState, state } from '../store.js?v=8.37';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
@@ -14,7 +14,7 @@ import {
   getEnvelopeUpdatedAt,
   getFirestoreDeviceId,
   isRemoteNewer,
-} from './firestore-schema.js?v=8.36';
+} from './firestore-schema.js?v=8.37';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -23,15 +23,15 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta,
-} from './firestore-outbox.js?v=8.36';
+} from './firestore-outbox.js?v=8.37';
 import {
   readFirestoreSnapshot,
   writeFirestoreSnapshot,
-} from './firestore-repository.js?v=8.36';
-import { canAutoSyncFirestore, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.36';
-import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.36';
-import { firestoreLock } from './sync-lock.js?v=8.36';
-import { yieldToUIWithBudget } from './sync-yield.js?v=8.36';
+} from './firestore-repository.js?v=8.37';
+import { canAutoSyncFirestore, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.37';
+import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.37';
+import { firestoreLock } from './sync-lock.js?v=8.37';
+import { yieldToUIWithBudget } from './sync-yield.js?v=8.37';
 
 let currentUser = null;
 
@@ -275,7 +275,7 @@ export function getFirestoreSyncStatus() {
 
 export async function downloadSyncDiagnosticLog() {
   // Import Cloudflare sync functions dynamically to avoid circular deps
-  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.36');
+  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.37');
 
   const log = {
     timestamp: new Date().toISOString(),
