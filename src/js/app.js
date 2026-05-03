@@ -1,13 +1,13 @@
-import { renderCurrentView } from './components.js?v=8.33';
-import { initDB, scheduleSave, state } from './store.js?v=8.33';
-import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.33';
-import { todayStr as _todayStr, esc } from './utils.js?v=8.33';
-import { pullFromCloudflare, initCloudflareCreds } from './cloud-sync.js?v=8.33';
-import { initNotifications } from './notifications.js?v=8.33';
-import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.33';
-import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.33';
-import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.33';
-import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.33';
+import { renderCurrentView } from './components.js?v=8.34';
+import { initDB, scheduleSave, state } from './store.js?v=8.34';
+import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.34';
+import { todayStr as _todayStr, esc } from './utils.js?v=8.34';
+import { pullFromCloudflare, initCloudflareCreds } from './cloud-sync.js?v=8.34';
+import { initNotifications } from './notifications.js?v=8.34';
+import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.34';
+import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.34';
+import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.34';
+import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.34';
 
 // =============================================
 // APP STATE & DATA

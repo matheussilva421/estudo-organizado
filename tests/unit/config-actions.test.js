@@ -57,14 +57,14 @@ describe('ui/actions/config.js', () => {
     };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
-    vi.doMock('../../src/js/views/config-view.js?v=8.33', () => configView);
-    vi.doMock('../../src/js/store.js?v=8.33', () => storeModule);
-    vi.doMock('../../src/js/app.js?v=8.33', () => appModule);
-    vi.doMock('../../src/js/components.js?v=8.33', () => componentsModule);
-    vi.doMock('../../src/js/cloud-sync.js?v=8.33', () => cloudSync);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.33', () => firestoreSync);
-    vi.doMock('../../src/js/sync/sync-coordinator.js?v=8.33', () => syncCoordinator);
-    vi.doMock('../../src/js/drive-sync.js?v=8.33', () => driveSync);
+    vi.doMock('../../src/js/views/config-view.js?v=8.34', () => configView);
+    vi.doMock('../../src/js/store.js?v=8.34', () => storeModule);
+    vi.doMock('../../src/js/app.js?v=8.34', () => appModule);
+    vi.doMock('../../src/js/components.js?v=8.34', () => componentsModule);
+    vi.doMock('../../src/js/cloud-sync.js?v=8.34', () => cloudSync);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.34', () => firestoreSync);
+    vi.doMock('../../src/js/sync/sync-coordinator.js?v=8.34', () => syncCoordinator);
+    vi.doMock('../../src/js/drive-sync.js?v=8.34', () => driveSync);
 
     await import('../../src/js/ui/actions/config.js');
   });

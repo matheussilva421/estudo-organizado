@@ -233,6 +233,37 @@ test.describe('Estudo Organizado', () => {
     await expect(conflict.locator('[data-action="cloud-conflict-force-push"]')).toBeVisible();
   });
 
+  test('refreshes settings sync conflicts after background sync clears them', async ({ page }) => {
+    const state = createE2EState();
+    state.config.cfSyncEnabled = true;
+    state.config.cfUrl = 'https://sync.example.test';
+    state.config.cfTokenSaved = true;
+    state.config.cfConflict = {
+      remoteUpdatedAt: '2026-05-03T13:24:36.000Z',
+      detectedAt: '2026-05-03T13:25:14.000Z'
+    };
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="config"]');
+    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
+
+    await expect(page.locator('[data-testid="cf-sync-conflict"]').first()).toBeVisible();
+
+    await page.evaluate(() => {
+      delete window.state.config.cfConflict;
+      document.dispatchEvent(new CustomEvent('app:firestoreSyncStatus', {
+        detail: { status: 'synced', conflict: null }
+      }));
+      document.dispatchEvent(new CustomEvent('app:cloudSyncStatus', {
+        detail: { status: 'synced', reason: 'push' }
+      }));
+    });
+
+    await expect(page.locator('[data-testid="cf-sync-conflict"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="sync-center"]')).not.toContainText('Ação necessária');
+  });
+
   test('keeps settings sync controls inside mobile cards', async ({ page }) => {
     const state = createE2EState();
     state.config.cfSyncEnabled = true;

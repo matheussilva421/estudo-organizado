@@ -11,8 +11,8 @@ import {
   showToast,
   openModal,
   getLastSaveStatus,
-} from '../app.js?v=8.33';
-import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.33';
+} from '../app.js?v=8.34';
+import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.34';
 import {
   scheduleSave,
   state,
@@ -20,28 +20,28 @@ import {
   runMigrations,
   createExportableState,
   clearData,
-} from '../store.js?v=8.33';
+} from '../store.js?v=8.34';
 import {
   syncCicloToEventos,
   invalidateDiscCache,
   invalidateDashCaches,
   invalidateRevCache,
-} from '../logic.js?v=8.33';
-import { renderCurrentView } from '../components.js?v=8.33';
-import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.33';
+} from '../logic.js?v=8.34';
+import { renderCurrentView } from '../components.js?v=8.34';
+import { buildSyncCenterModel } from '../sync/sync-center.js?v=8.34';
 import {
   getFirestoreSyncStatus,
   previewFirestoreRestore,
   pullFromFirestore,
-} from '../sync/firestore-sync-engine.js?v=8.33';
+} from '../sync/firestore-sync-engine.js?v=8.34';
 import {
   setSyncCreds,
   forceCloudflareSync,
   previewCloudflareRestore,
   pullFromCloudflare,
-} from '../cloud-sync.js?v=8.33';
-import { disconnectDrive, previewDriveRestore, pullFromDrive } from '../drive-sync.js?v=8.33';
-import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.33';
+} from '../cloud-sync.js?v=8.34';
+import { disconnectDrive, previewDriveRestore, pullFromDrive } from '../drive-sync.js?v=8.34';
+import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.34';
 
 function formatBackupDateTime(value) {
   if (!value) return 'Nunca';

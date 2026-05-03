@@ -21,7 +21,7 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
     mockQueueSnapshot = vi.fn(() => Promise.resolve(true));
     mockFlushOutbox = vi.fn(() => Promise.resolve(true));
 
-    vi.doMock('../../src/js/store.js?v=8.33', () => ({
+    vi.doMock('../../src/js/store.js?v=8.34', () => ({
       state: createBaseState({
         config: {
           firestoreSync: { enabled: true, mode: 'primary' },
@@ -32,7 +32,7 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
       saveStateToDB: mockSaveStateToDB,
     }));
 
-    vi.doMock('../../src/js/firebase/firebase-client.js?v=8.33', () => ({
+    vi.doMock('../../src/js/firebase/firebase-client.js?v=8.34', () => ({
       getFirebaseConfigStatus: vi.fn(() => ({ projectId: 'test-project' })),
       initFirebaseServices: vi.fn(() => ({
         configured: true,
@@ -45,12 +45,12 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
       completeGoogleRedirectSignIn: vi.fn(),
     }));
 
-    vi.doMock('../../src/js/sync/firestore-repository.js?v=8.33', () => ({
+    vi.doMock('../../src/js/sync/firestore-repository.js?v=8.34', () => ({
       readFirestoreSnapshot: mockReadSnapshot,
       writeFirestoreSnapshot: vi.fn(() => Promise.resolve(true)),
     }));
 
-    vi.doMock('../../src/js/sync/firestore-schema.js?v=8.33', () => ({
+    vi.doMock('../../src/js/sync/firestore-schema.js?v=8.34', () => ({
       isRemoteNewer: vi.fn(() => true),
       applyEnvelopeToLocalState: vi.fn(() => ({
         config: { localBackupAt: '2026-01-02T00:00:00.000Z' },
@@ -68,7 +68,7 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
       getFirestoreSyncConfig: vi.fn(() => ({})),
     }));
 
-    vi.doMock('../../src/js/sync/sync-center.js?v=8.33', () => ({
+    vi.doMock('../../src/js/sync/sync-center.js?v=8.34', () => ({
       canAutoSyncFirestore: vi.fn(() => true),
       isRemoteStateNewer: vi.fn(() => true),
       isEmptyState: vi.fn(() => false),
@@ -76,14 +76,14 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
       buildSyncCenterModel: vi.fn(() => ({})),
     }));
 
-    vi.doMock('../../src/js/sync/sync-health.js?v=8.33', () => ({
+    vi.doMock('../../src/js/sync/sync-health.js?v=8.34', () => ({
       deriveSyncHealthState: vi.fn(() => ({ state: 'synced', requiresAction: false, metrics: {} })),
       summarizeSyncMetrics: vi.fn(() => ({ successRate: 1, avgDuration: 0 })),
       appendSyncHealthEvent: vi.fn(),
       appendSyncPerformanceMetric: vi.fn(),
     }));
 
-    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.33', () => ({
+    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.34', () => ({
       clearFirestoreConflict: vi.fn(() => Promise.resolve()),
       enqueueFirestoreSnapshot: mockQueueSnapshot,
       getPendingFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
@@ -92,22 +92,22 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
       saveFirestoreMeta: vi.fn(() => Promise.resolve()),
     }));
 
-    vi.doMock('../../src/js/sync/sync-lock.js?v=8.33', () => ({
+    vi.doMock('../../src/js/sync/sync-lock.js?v=8.34', () => ({
       firestoreLock: { acquire: vi.fn(() => Promise.resolve(true)), release: vi.fn() },
     }));
 
-    vi.doMock('../../src/js/sync/sync-yield.js?v=8.33', () => ({
+    vi.doMock('../../src/js/sync/sync-yield.js?v=8.34', () => ({
       yieldToUIWithBudget: vi.fn(() => Promise.resolve()),
       yieldToUI: vi.fn(() => Promise.resolve()),
     }));
 
-    vi.doMock('../../src/js/sync/sync-planner.js?v=8.33', () => ({
+    vi.doMock('../../src/js/sync/sync-planner.js?v=8.34', () => ({
       planNextSyncAction: vi.fn(() => ({ action: 'none' })),
       ACTIONS: { NONE: 'none', PULL: 'pull', PUSH: 'push' },
     }));
 
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.33', async () => {
-      const actual = await vi.importActual('../../src/js/sync/firestore-sync-engine.js?v=8.33');
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.34', async () => {
+      const actual = await vi.importActual('../../src/js/sync/firestore-sync-engine.js?v=8.34');
       return {
         ...actual,
         pollFirestoreRemote: vi.fn(actual.pollFirestoreRemote),
@@ -119,7 +119,7 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
       };
     });
 
-    const engine = await import('../../src/js/sync/firestore-sync-engine.js?v=8.33');
+    const engine = await import('../../src/js/sync/firestore-sync-engine.js?v=8.34');
     pollFirestoreRemote = engine.pollFirestoreRemote;
     startPolling = engine.startPolling;
     stopPolling = engine.stopPolling;
@@ -129,7 +129,7 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
     // Set test user
     engine.__setCurrentUser({ uid: 'test-uid' });
 
-    const coord = await import('../../src/js/sync/sync-coordinator.js?v=8.33');
+    const coord = await import('../../src/js/sync/sync-coordinator.js?v=8.34');
     schedulePrimarySync = coord.schedulePrimarySync;
     initSyncCoordinator = coord.initSyncCoordinator;
   });
@@ -171,7 +171,7 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
     });
 
     it('after a manual push, polling-pull reads the just-pushed state and does NOT re-push', async () => {
-      const { isRemoteStateNewer } = await import('../../src/js/sync/sync-center.js?v=8.33');
+      const { isRemoteStateNewer } = await import('../../src/js/sync/sync-center.js?v=8.34');
 
       mockReadSnapshot.mockResolvedValue({
         payloadUpdatedAt: '2026-01-02T00:00:00.000Z',

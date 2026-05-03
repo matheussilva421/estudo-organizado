@@ -1,4 +1,4 @@
-import { closeModal, showConfirm, showToast } from './app.js?v=8.33';
+import { closeModal, showConfirm, showToast } from './app.js?v=8.34';
 import {
   createExportableState,
   runMigrations,
@@ -6,11 +6,11 @@ import {
   scheduleSave,
   state,
   setState,
-} from './store.js?v=8.33';
-import { renderCurrentView } from './components.js?v=8.33';
-import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.33';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.33';
-import { driveLock } from './sync/sync-lock.js?v=8.33';
+} from './store.js?v=8.34';
+import { renderCurrentView } from './components.js?v=8.34';
+import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.34';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.34';
+import { driveLock } from './sync/sync-lock.js?v=8.34';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE

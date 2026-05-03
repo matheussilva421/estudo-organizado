@@ -4,14 +4,14 @@ import {
   SyncQueue,
   saveStateToDB,
   createExportableState,
-} from './store.js?v=8.33';
+} from './store.js?v=8.34';
 import {
   setCredential,
   getCredential,
   deleteCredential as _deleteCredential,
-} from './credentials.js?v=8.33';
-import { mergeStudyStates } from './sync/sync-center.js?v=8.33';
-import { cloudflareLock } from './sync/sync-lock.js?v=8.33';
+} from './credentials.js?v=8.34';
+import { mergeStudyStates } from './sync/sync-center.js?v=8.34';
+import { cloudflareLock } from './sync/sync-lock.js?v=8.34';
 
 const MAX_RETRIES = 3;
 const OPERATION_TIMEOUT_MS = 15_000;

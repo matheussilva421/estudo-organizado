@@ -11,7 +11,7 @@ import {
   selectHabitType,
   setHabitPage,
   calcSimuladoPerc,
-} from '../../views/habitos-view.js?v=8.33';
+} from '../../views/habitos-view.js?v=8.34';
 
 // Registrar ações
 registerAction('open-habit-modal', (el) => {
@@ -23,7 +23,7 @@ registerAction('edit-habit', (el) => {
   const habitId = el.dataset.habitId;
   const habitType = el.dataset.type;
   if (habitId && habitType)
-    import('../../views/habitos-view.js?v=8.33').then(({ editHabit }) =>
+    import('../../views/habitos-view.js?v=8.34').then(({ editHabit }) =>
       editHabit(habitId, habitType)
     );
 });

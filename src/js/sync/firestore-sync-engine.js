@@ -5,15 +5,15 @@ import {
   observeFirebaseAuth,
   signInWithGoogle,
   signOutFirebase,
-} from '../firebase/firebase-client.js?v=8.33';
-import { saveStateToDB, setState, state } from '../store.js?v=8.33';
+} from '../firebase/firebase-client.js?v=8.34';
+import { saveStateToDB, setState, state } from '../store.js?v=8.34';
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
   isRemoteNewer,
-} from './firestore-schema.js?v=8.33';
+} from './firestore-schema.js?v=8.34';
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -21,15 +21,15 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta,
-} from './firestore-outbox.js?v=8.33';
+} from './firestore-outbox.js?v=8.34';
 import {
   readFirestoreSnapshot,
   writeFirestoreSnapshot,
-} from './firestore-repository.js?v=8.33';
-import { canAutoSyncFirestore, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.33';
-import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.33';
-import { firestoreLock } from './sync-lock.js?v=8.33';
-import { yieldToUIWithBudget } from './sync-yield.js?v=8.33';
+} from './firestore-repository.js?v=8.34';
+import { canAutoSyncFirestore, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.34';
+import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.34';
+import { firestoreLock } from './sync-lock.js?v=8.34';
+import { yieldToUIWithBudget } from './sync-yield.js?v=8.34';
 
 let currentUser = null;
 
@@ -250,7 +250,7 @@ export function getFirestoreSyncStatus() {
 
 export async function downloadSyncDiagnosticLog() {
   // Import Cloudflare sync functions dynamically to avoid circular deps
-  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.33');
+  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.34');
 
   const log = {
     timestamp: new Date().toISOString(),

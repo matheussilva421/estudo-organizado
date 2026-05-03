@@ -1,5 +1,5 @@
-import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.33';
-import { getEnvelopeUpdatedAt, getLocalContentUpdatedAt } from './firestore-schema.js?v=8.33';
+import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.34';
+import { getEnvelopeUpdatedAt, getLocalContentUpdatedAt } from './firestore-schema.js?v=8.34';
 
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
 

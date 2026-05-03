@@ -1,9 +1,9 @@
 // =============================================
 // SCHEMA & STATE MANAGEMENT (INDEXEDDB)
 // =============================================
-import { uid } from './utils.js?v=8.33';
-import * as credentialsStore from './credentials.js?v=8.33';
-import { appendSyncPerformanceMetric } from './sync/sync-health.js?v=8.33';
+import { uid } from './utils.js?v=8.34';
+import * as credentialsStore from './credentials.js?v=8.34';
+import { appendSyncPerformanceMetric } from './sync/sync-health.js?v=8.34';
 
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 6;

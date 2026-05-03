@@ -4,10 +4,10 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { showConfirm, showToast } from '../../app.js?v=8.33';
-import { renderCurrentView } from '../../components.js?v=8.33';
-import { archiveDiscipline, unarchiveDiscipline } from '../../logic.js?v=8.33';
-import { scheduleSave } from '../../store.js?v=8.33';
+import { showConfirm, showToast } from '../../app.js?v=8.34';
+import { renderCurrentView } from '../../components.js?v=8.34';
+import { archiveDiscipline, unarchiveDiscipline } from '../../logic.js?v=8.34';
+import { scheduleSave } from '../../store.js?v=8.34';
 import {
   openEditaModal,
   saveEdital,
@@ -41,7 +41,7 @@ import {
   setVertFilterStatus,
   renderVerticalList,
   filtrarDropdownBanca,
-} from '../../views.js?v=8.33';
+} from '../../views.js?v=8.34';
 import {
   parseBancaText,
   applyBancaRanking,
@@ -51,12 +51,12 @@ import {
   excluirAnaliseBanca,
   openMatchCorrector,
   saveMatchCorrection,
-} from '../../views/banca-view.js?v=8.33';
+} from '../../views/banca-view.js?v=8.34';
 
 // Registrar ações
 registerAction('navigate', (el) => {
   const view = el.dataset.view;
-  if (view) import('../../app.js?v=8.33').then(({ navigate }) => navigate(view));
+  if (view) import('../../app.js?v=8.34').then(({ navigate }) => navigate(view));
 });
 
 registerAction('open-edital-modal', (el) => {
@@ -137,7 +137,7 @@ registerAction('save-disc-manager', (el) => {
   const editalId = el.dataset.editalId;
   const discId = el.dataset.discId;
   if (editalId && discId) {
-    import('../../views.js?v=8.33').then(({ saveDiscManager }) =>
+    import('../../views.js?v=8.34').then(({ saveDiscManager }) =>
       saveDiscManager(editalId, discId)
     );
   }
@@ -161,7 +161,7 @@ registerAction('move-subject', (el) => {
   const idx = parseInt(el.dataset.idx, 10);
   const dir = parseInt(el.dataset.dir, 10);
   if (discId)
-    import('../../views.js?v=8.33').then(({ moveSubject }) => moveSubject(discId, idx, dir));
+    import('../../views.js?v=8.34').then(({ moveSubject }) => moveSubject(discId, idx, dir));
 });
 registerAction('add-bulk-aulas', (el) => {
   const discId = el.dataset.discId;
