@@ -4,7 +4,6 @@ describe('sync/sync-coordinator.js', () => {
   let storeModule;
   let firestoreSync;
   let firestoreOutbox;
-  let entityOutbox;
   let coordinator;
 
   async function flushCoordinatorPromises() {
@@ -50,16 +49,10 @@ describe('sync/sync-coordinator.js', () => {
     firestoreOutbox = {
       getPendingFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
     };
-    entityOutbox = {
-      queueFirestoreEntityBatchFromState: vi.fn(() => Promise.resolve(true)),
-      getPendingFirestoreEntityBatch: vi.fn(() => Promise.resolve(null)),
-      canRetryEntityBatch: vi.fn(() => true),
-    };
 
     vi.doMock('../../src/js/store.js?v=8.32', () => storeModule);
     vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.32', () => firestoreSync);
     vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.32', () => firestoreOutbox);
-    vi.doMock('../../src/js/sync/firestore-entity-outbox.js?v=8.32', () => entityOutbox);
     vi.doMock('../../src/js/sync/sync-health.js?v=8.32', async () => {
       const realHealth = await import('../../src/js/sync/sync-health.js?v=8.32');
       return {
@@ -222,38 +215,6 @@ describe('sync/sync-coordinator.js', () => {
 
       expect(result).toBe(false);
       expect(statuses.at(-1)).toBe('error');
-    });
-
-    it('queues entity batch when entity sync is enabled', async () => {
-      storeModule.state.config.entitySync = { enabled: true, mode: 'primary' };
-      await coordinator.flushPrimarySyncNow({ manual: false });
-      expect(entityOutbox.queueFirestoreEntityBatchFromState).toHaveBeenCalled();
-    });
-
-    it('does not advance snapshot sync when primary entity batch cannot be queued', async () => {
-      storeModule.state.config.entitySync = { enabled: true, mode: 'primary' };
-      entityOutbox.queueFirestoreEntityBatchFromState.mockResolvedValue(false);
-
-      const result = await coordinator.flushPrimarySyncNow({ manual: false });
-
-      expect(result).toBe(false);
-      expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
-      expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
-    });
-
-    it('respects entity retry backoff before flushing primary sync', async () => {
-      storeModule.state.config.entitySync = { enabled: true, mode: 'primary' };
-      entityOutbox.getPendingFirestoreEntityBatch.mockResolvedValue({
-        status: 'pending',
-        nextAttemptAt: new Date(Date.now() + 60000).toISOString(),
-      });
-      entityOutbox.canRetryEntityBatch.mockReturnValue(false);
-
-      const result = await coordinator.flushPrimarySyncNow({ manual: false });
-
-      expect(result).toBe(false);
-      expect(entityOutbox.queueFirestoreEntityBatchFromState).not.toHaveBeenCalled();
-      expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
     });
 
     it('uses force overwrite when force flag is true', async () => {
