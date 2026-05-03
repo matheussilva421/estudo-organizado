@@ -901,7 +901,6 @@ export function updateConfig(key, value) {
     syncCicloToEventos();
   }
   scheduleSave();
-  renderCurrentView();
 }
 
 export function toggleConfig(key, el) {
