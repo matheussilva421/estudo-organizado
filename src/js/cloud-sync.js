@@ -84,6 +84,16 @@ export async function initCloudflareCreds() {
   const creds = await getSyncCreds();
   if (!state.config) state.config = {};
 
+  console.log('[Cloudflare] initCloudflareCreds:', {
+    storeHasCreds: !!(creds && creds.url),
+    storeUrl: creds?.url,
+    storeEnabled: creds?.enabled,
+    storeHasToken: !!creds?.token,
+    stateConfigUrl: state.config.cfUrl,
+    stateConfigEnabled: state.config.cfSyncEnabled,
+    stateConfigTokenSaved: state.config.cfTokenSaved,
+  });
+
   if (creds && creds.url) {
     // Credential store has data — sync to state.config
     state.config.cfUrl = creds.url;
@@ -100,6 +110,12 @@ export async function initCloudflareCreds() {
     state.config.cfSyncEnabled = false;
     state.config.cfTokenSaved = false;
   }
+
+  console.log('[Cloudflare] After initCloudflareCreds:', {
+    url: state.config.cfUrl,
+    enabled: state.config.cfSyncEnabled,
+    tokenSaved: state.config.cfTokenSaved,
+  });
 }
 
 async function getSyncConfig() {
