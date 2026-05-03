@@ -59,7 +59,7 @@ function getDeviceId() {
   return id;
 }
 
-async function getSyncCreds() {
+export async function getSyncCreds() {
   // Usa IndexedDB isolado para credenciais
   const creds = await getCredential(CF_CREDS_KEY);
   console.log('[Cloudflare] getSyncCreds:', {
@@ -148,7 +148,7 @@ export async function initCloudflareCreds() {
   });
 }
 
-async function getSyncConfig() {
+export async function getSyncConfig() {
   // Prefer isolated creds, fall back to state.config for backward compat
   const creds = await getSyncCreds();
   if (creds && creds.enabled && creds.url && creds.token) {
