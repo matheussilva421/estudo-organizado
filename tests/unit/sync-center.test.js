@@ -15,10 +15,16 @@ describe('sync-center.js', () => {
       expect(canAutoSyncFirestore({ enabled: true, mode: 'shadow' })).toBe(false);
     });
 
-    it('returns false when conflict exists', () => {
+    it('returns false when entity-conflict exists', () => {
+      expect(
+        canAutoSyncFirestore({ enabled: true, mode: 'primary', conflict: { type: 'entity-conflict' } })
+      ).toBe(false);
+    });
+
+    it('returns true when non-entity conflict exists (snapshot conflict allows retry)', () => {
       expect(
         canAutoSyncFirestore({ enabled: true, mode: 'primary', conflict: { type: 'diverge' } })
-      ).toBe(false);
+      ).toBe(true);
     });
 
     it('returns true when enabled and primary with no pending', () => {
