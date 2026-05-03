@@ -143,14 +143,17 @@ export function getSyncCoordinatorStatus() {
 
 export function schedulePrimarySync(reason = 'local-save', options = {}) {
   const status = getFirestoreSyncStatus();
+  console.log('[SYNC-DEBUG] schedulePrimarySync called:', { reason, statusEnabled: status.enabled, statusMode: status.mode, statusSignedIn: status.signedIn, statusConflict: status.conflict?.type || null });
   lastReason = reason;
 
   if (isBlockingConflict(status.conflict)) {
+    console.log('[SYNC-DEBUG] schedulePrimarySync: blocking conflict, returning false');
     emitCoordinatorStatus('conflict-paused', { reason, firestore: status });
     return false;
   }
 
   if (!canUsePrimaryFirestore(status)) {
+    console.log('[SYNC-DEBUG] schedulePrimarySync: canUsePrimaryFirestore returned false, returning false');
     emitCoordinatorStatus('idle', { reason, firestore: status });
     return false;
   }
@@ -158,6 +161,7 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
   if (syncTimer) clearTimeout(syncTimer);
   const delayMs = typeof options.delayMs === 'number' ? options.delayMs : AUTO_SYNC_DEBOUNCE_MS;
   lastQueuedAt = new Date().toISOString();
+  console.log('[SYNC-DEBUG] schedulePrimarySync: scheduling flush in', delayMs, 'ms');
   emitCoordinatorStatus('queued', { reason, delayMs, firestore: status });
   document.dispatchEvent(
     new CustomEvent('app:primarySyncQueued', {
@@ -166,8 +170,10 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
   );
 
   syncTimer = setTimeout(() => {
+    console.log('[SYNC-DEBUG] schedulePrimarySync: timeout fired, calling flushPrimarySyncNow');
     syncTimer = null;
-    flushPrimarySyncNow({ reason }).catch(() => {
+    flushPrimarySyncNow({ reason }).catch((err) => {
+      console.error('[SYNC-DEBUG] schedulePrimarySync: flushPrimarySyncNow caught error:', err);
       if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
         updateCircuitBreaker(reason, status);
       }
@@ -179,6 +185,7 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
 
 async function _executeFlush(options) {
   const { manual = false, force = false, reason = manual ? 'manual' : 'auto' } = options;
+  console.log('[SYNC-DEBUG] _executeFlush called:', { manual, force, reason });
   if (syncTimer) {
     clearTimeout(syncTimer);
     syncTimer = null;
@@ -252,6 +259,7 @@ async function _executeFlush(options) {
     name: 'plannerMs',
     durationMs: performance.now() - plannerStart,
   });
+  console.log('[SYNC-DEBUG] _executeFlush: plan result:', { canRunNow: plan.canRunNow, action: plan.action });
 
   if (!plan.canRunNow) {
     const statusLabel =
@@ -260,6 +268,7 @@ async function _executeFlush(options) {
         : plan.action === ACTIONS.OFFLINE
           ? 'offline'
           : 'idle';
+    console.log('[SYNC-DEBUG] _executeFlush: plan.canRunNow is false, returning false');
     emitCoordinatorStatus(statusLabel, { reason, firestore: status, plan });
     return false;
   }
@@ -267,6 +276,7 @@ async function _executeFlush(options) {
   emitCoordinatorStatus('syncing', { reason, firestore: status });
 
   if (manual) {
+    console.log('[SYNC-DEBUG] _executeFlush: manual=true, calling flushFirestoreOutbox or syncFirestoreNow');
     const ok = force
       ? await flushFirestoreOutbox({ manual: true, forceOverwrite: true })
       : await syncFirestoreNow();
@@ -278,6 +288,7 @@ async function _executeFlush(options) {
   }
 
   if (plan.action === ACTIONS.CHECK_REMOTE_THEN_PULL) {
+    console.log('[SYNC-DEBUG] _executeFlush: CHECK_REMOTE_THEN_PULL, calling autoPullRemoteWhenNewer');
     const pulled = await autoPullRemoteWhenNewer();
     if (pulled) {
       failureCount = 0;
@@ -287,7 +298,9 @@ async function _executeFlush(options) {
   }
 
   await yieldToUI();
+  console.log('[SYNC-DEBUG] _executeFlush: calling queueFirestoreSnapshotFromState');
   const queued = await queueFirestoreSnapshotFromState(state, { manual: false });
+  console.log('[SYNC-DEBUG] _executeFlush: queueFirestoreSnapshotFromState result:', queued);
   if (!queued) {
     const retryQueued = await scheduleRetryIfNeeded(reason);
     if (!retryQueued) emitTerminalFlushStatus(false, reason);
@@ -295,10 +308,12 @@ async function _executeFlush(options) {
   }
 
   const firestoreWriteStart = performance.now();
+  console.log('[SYNC-DEBUG] _executeFlush: calling flushFirestoreOutbox, forceOverwrite:', force || reason === 'local-save');
   const ok = await flushFirestoreOutbox({
     manual: false,
     forceOverwrite: force || reason === 'local-save',
   });
+  console.log('[SYNC-DEBUG] _executeFlush: flushFirestoreOutbox result:', ok);
   appendSyncPerformanceMetric(state, {
     name: 'firestoreWriteMs',
     durationMs: performance.now() - firestoreWriteStart,
@@ -319,8 +334,16 @@ export function initSyncCoordinator() {
   initialized = true;
 
   addListener(document, 'stateSaved', (event) => {
-    if (event.detail?.skipFirestoreSync) return;
-    if (event.detail?.metadataOnly || event.detail?.touchLocalBackup === false) return;
+    console.log('[SYNC-DEBUG] stateSaved event received:', event.detail);
+    if (event.detail?.skipFirestoreSync) {
+      console.log('[SYNC-DEBUG] stateSaved: skipFirestoreSync is true, ignoring');
+      return;
+    }
+    if (event.detail?.metadataOnly || event.detail?.touchLocalBackup === false) {
+      console.log('[SYNC-DEBUG] stateSaved: metadataOnly or touchLocalBackup=false, ignoring');
+      return;
+    }
+    console.log('[SYNC-DEBUG] stateSaved: calling schedulePrimarySync');
     schedulePrimarySync('local-save');
   });
 

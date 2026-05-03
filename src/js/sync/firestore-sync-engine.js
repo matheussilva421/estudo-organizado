@@ -94,6 +94,7 @@ function emitPrimaryStatus(status, detail = {}) {
 }
 
 async function persistSyncConfig(skipRender = true) {
+  console.log('[SYNC-DEBUG] persistSyncConfig called, skipRender:', skipRender);
   await saveStateToDB({
     skipCloudSync: true,
     skipFirestoreSync: true,
@@ -101,6 +102,7 @@ async function persistSyncConfig(skipRender = true) {
     touchLocalBackup: false,
     skipSyncEvent: true,
   });
+  console.log('[SYNC-DEBUG] persistSyncConfig: saveStateToDB completed');
   if (!skipRender) emitPrimaryStatus('config-updated');
 }
 
@@ -501,14 +503,20 @@ export async function disableFirestoreSync() {
 
 export async function queueFirestoreSnapshotFromState(sourceState = state, options = {}) {
   const config = getConfig();
-  if (!config.enabled) return false;
+  console.log('[SYNC-DEBUG] queueFirestoreSnapshotFromState called:', { manual: options.manual, configEnabled: config.enabled });
+  if (!config.enabled) {
+    console.log('[SYNC-DEBUG] queueFirestoreSnapshotFromState: config not enabled, returning false');
+    return false;
+  }
   const pending = await getPendingFirestoreSnapshot();
   if (!options.manual && !canAutoSyncFirestore(config, pending)) {
+    console.log('[SYNC-DEBUG] queueFirestoreSnapshotFromState: canAutoSyncFirestore returned false');
     emitStatus(config.conflict ? 'conflict-paused' : 'backoff');
     return false;
   }
   const envelope = createFirestoreSnapshotEnvelope(sourceState, options);
   const queued = await enqueueFirestoreSnapshot(envelope);
+  console.log('[SYNC-DEBUG] queueFirestoreSnapshotFromState: enqueue result:', queued);
   if (queued) {
     config.hasPendingWrites = true;
     config.lastError = null;
@@ -600,18 +608,37 @@ export async function autoPullRemoteWhenNewer() {
 
 async function flushFirestoreOutboxUnlocked(options = {}) {
   const config = getConfig();
-  if (!config.enabled) return false;
+  console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked called:', {
+    manual: options.manual,
+    forceOverwrite: options.forceOverwrite,
+    configEnabled: config.enabled,
+    configMode: config.mode,
+    configConflict: config.conflict?.type || null,
+  });
+  if (!config.enabled) {
+    console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: config not enabled, returning false');
+    return false;
+  }
 
   const startTime = performance.now();
 
   const pending = await getPendingFirestoreSnapshot();
+  console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: pending snapshot:', pending ? {
+    id: pending.id,
+    attempts: pending.attempts,
+    queuedAt: pending.queuedAt,
+    nextAttemptAt: pending.nextAttemptAt,
+  } : null);
+
   if (!options.manual && !options.forceOverwrite && !canAutoSyncFirestore(config, pending)) {
+    console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: canAutoSyncFirestore returned false, returning false');
     emitStatus(config.conflict ? 'conflict-paused' : 'backoff');
     return false;
   }
 
   emitStatus('syncing');
   if (!pending) {
+    console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: no pending snapshot, returning true');
     config.hasPendingWrites = false;
     await persistSyncConfig(true);
     emitStatus('synced');
@@ -629,6 +656,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     const localDeviceId = getFirestoreDeviceId();
 
     if (remoteDeviceId && remoteDeviceId !== localDeviceId) {
+      console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: device ID mismatch, registering conflict');
       await registerConflict(remote, pending.envelope);
       return false;
     }
@@ -638,7 +666,9 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
 
   await yieldToUIWithBudget(50, startTime);
 
+  console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: calling writeFirestoreSnapshot...');
   const result = await writeFirestoreSnapshot(db, uid, pending.envelope);
+  console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: writeFirestoreSnapshot succeeded:', result);
   await markFirestoreSnapshotSynced();
   await clearFirestoreConflict();
   await saveFirestoreMeta({
@@ -654,7 +684,9 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     conflict: null,
     lastError: null,
   });
+  console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: config after assign, lastPushAt:', config.lastPushAt);
   await persistSyncConfig(false);
+  console.log('[SYNC-DEBUG] flushFirestoreOutboxUnlocked: persistSyncConfig done, emitting synced');
   startPolling();
   emitStatus('synced');
   return true;

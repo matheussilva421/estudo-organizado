@@ -133,7 +133,7 @@ describe('views/config-view.js', () => {
       configView.updateConfig('revisoesIntervalo', 14);
       expect(storeModule.state.config.revisoesIntervalo).toBe(14);
       expect(storeModule.scheduleSave).toHaveBeenCalled();
-      expect(componentsModule.renderCurrentView).toHaveBeenCalled();
+      // renderCurrentView removed to prevent input focus loss (fix: Cloudflare credentials)
     });
 
     it('calls syncCicloToEventos for materiasPorDia', () => {
