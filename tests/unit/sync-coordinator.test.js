@@ -8,7 +8,15 @@ describe('sync/sync-coordinator.js', () => {
   let coordinator;
 
   async function flushCoordinatorPromises() {
-    for (let i = 0; i < 6; i += 1) {
+    for (let i = 0; i < 10; i += 1) {
+      await Promise.resolve();
+    }
+    await vi.advanceTimersByTimeAsync(0);
+    for (let i = 0; i < 10; i += 1) {
+      await Promise.resolve();
+    }
+    await vi.advanceTimersByTimeAsync(100);
+    for (let i = 0; i < 10; i += 1) {
       await Promise.resolve();
     }
   }

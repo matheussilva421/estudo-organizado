@@ -19,15 +19,32 @@ import {
 } from './sync-health.js?v=8.32';
 import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.32';
 import { yieldToUI } from './sync-yield.js?v=8.32';
+import { firestoreLock } from './sync-lock.js?v=8.32';
 
-const PRIMARY_SYNC_DEBOUNCE_MS = 1500;
-const CIRCUIT_BREAKER_FAILURES = 3;
+const AUTO_SYNC_DEBOUNCE_MS = 3000;
+const CIRCUIT_BREAKER_DEGRADED = 3;
+const CIRCUIT_BREAKER_OFFLINE = 5;
 
 let initialized = false;
 let syncTimer = null;
 let lastQueuedAt = null;
 let lastReason = null;
 let failureCount = 0;
+let isManualTrigger = false;
+
+let _listeners = [];
+
+function addListener(target, event, handler) {
+  target.addEventListener(event, handler);
+  _listeners.push({ target, event, handler });
+}
+
+function teardownListeners() {
+  for (const { target, event, handler } of _listeners) {
+    target.removeEventListener(event, handler);
+  }
+  _listeners = [];
+}
 
 function emitCoordinatorStatus(status, detail = {}) {
   appendSyncHealthEvent(state, {
@@ -48,9 +65,9 @@ function emitCoordinatorStatus(status, detail = {}) {
 }
 
 function toDelayFromPending(pending) {
-  if (!pending?.nextAttemptAt) return PRIMARY_SYNC_DEBOUNCE_MS;
+  if (!pending?.nextAttemptAt) return AUTO_SYNC_DEBOUNCE_MS;
   const delay = new Date(pending.nextAttemptAt).getTime() - Date.now();
-  return Number.isFinite(delay) && delay > 0 ? delay : PRIMARY_SYNC_DEBOUNCE_MS;
+  return Number.isFinite(delay) && delay > 0 ? delay : AUTO_SYNC_DEBOUNCE_MS;
 }
 
 function canUsePrimaryFirestore(status = getFirestoreSyncStatus()) {
@@ -63,6 +80,14 @@ function canUsePrimaryFirestore(status = getFirestoreSyncStatus()) {
   );
 }
 
+function updateCircuitBreaker(reason, firestoreStatus) {
+  if (failureCount >= CIRCUIT_BREAKER_OFFLINE) {
+    emitCoordinatorStatus('offline', { reason, firestore: firestoreStatus });
+  } else if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
+    emitCoordinatorStatus('degraded', { reason, firestore: firestoreStatus });
+  }
+}
+
 async function scheduleRetryIfNeeded(reason) {
   const pending = await getPendingFirestoreSnapshot();
   if (!pending?.nextAttemptAt) return;
@@ -70,11 +95,11 @@ async function scheduleRetryIfNeeded(reason) {
   schedulePrimarySync(reason, { delayMs: delay });
 }
 
-async function flushPrimarySyncWhenAllowed(reason) {
+export async function flushPrimarySyncWhenAllowed(reason) {
   const pendingSnapshot = await getPendingFirestoreSnapshot();
   if (pendingSnapshot?.nextAttemptAt) {
     const delay = toDelayFromPending(pendingSnapshot);
-    if (delay > PRIMARY_SYNC_DEBOUNCE_MS) {
+    if (delay > AUTO_SYNC_DEBOUNCE_MS) {
       return schedulePrimarySync(reason, { delayMs: delay });
     }
   }
@@ -150,7 +175,7 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
   }
 
   if (syncTimer) clearTimeout(syncTimer);
-  const delayMs = typeof options.delayMs === 'number' ? options.delayMs : PRIMARY_SYNC_DEBOUNCE_MS;
+  const delayMs = typeof options.delayMs === 'number' ? options.delayMs : AUTO_SYNC_DEBOUNCE_MS;
   lastQueuedAt = new Date().toISOString();
   emitCoordinatorStatus('queued', { reason, delayMs, firestore: status });
   document.dispatchEvent(
@@ -161,9 +186,10 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
 
   syncTimer = setTimeout(() => {
     syncTimer = null;
+    isManualTrigger = false;
     flushPrimarySyncNow({ reason }).catch(() => {
-      if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
-        emitCoordinatorStatus('degraded', { reason });
+      if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
+        updateCircuitBreaker(reason, status);
       }
     });
   }, delayMs);
@@ -171,7 +197,7 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
   return true;
 }
 
-export async function flushPrimarySyncNow(options = {}) {
+async function _executeFlush(options) {
   const { manual = false, force = false, reason = manual ? 'manual' : 'auto' } = options;
   if (syncTimer) {
     clearTimeout(syncTimer);
@@ -216,9 +242,7 @@ export async function flushPrimarySyncNow(options = {}) {
       ? await flushFirestoreOutbox({ manual: true, forceOverwrite: true })
       : await syncFirestoreNow();
     failureCount = ok ? 0 : failureCount + 1;
-    if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
-      emitCoordinatorStatus('degraded', { reason, firestore: status });
-    }
+    updateCircuitBreaker(reason, status);
     if (!ok) await scheduleRetryIfNeeded(reason);
     return ok;
   }
@@ -252,49 +276,55 @@ export async function flushPrimarySyncNow(options = {}) {
     durationMs: performance.now() - firestoreWriteStart,
   });
   failureCount = ok ? 0 : failureCount + 1;
-  if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
-    emitCoordinatorStatus('degraded', { reason, firestore: status });
-  }
+  updateCircuitBreaker(reason, status);
   if (!ok) await scheduleRetryIfNeeded(reason);
   return ok;
+}
+
+export async function flushPrimarySyncNow(options = {}) {
+  return firestoreLock.withLock(() => _executeFlush(options));
 }
 
 export function initSyncCoordinator() {
   if (initialized) return;
   initialized = true;
 
-  document.addEventListener('stateSaved', (event) => {
+  addListener(document, 'stateSaved', (event) => {
     if (event.detail?.skipFirestoreSync) return;
     if (event.detail?.metadataOnly || event.detail?.touchLocalBackup === false) return;
     schedulePrimarySync('local-save');
   });
 
-  document.addEventListener('app:primarySyncRequested', (event) => {
+  addListener(document, 'app:primarySyncRequested', (event) => {
     schedulePrimarySync(event.detail?.reason || 'requested');
   });
 
-  window.addEventListener('online', () => {
+  addListener(window, 'online', () => {
+    isManualTrigger = false;
     flushPrimarySyncWhenAllowed('reconnect').catch(() => {
-      if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
-        emitCoordinatorStatus('degraded', { reason: 'reconnect' });
+      if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
+        updateCircuitBreaker('reconnect', getFirestoreSyncStatus());
       }
     });
   });
 
-  document.addEventListener('visibilitychange', () => {
+  addListener(document, 'visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+      isManualTrigger = false;
       flushPrimarySyncWhenAllowed('foreground').catch(() => {
-        if (failureCount >= CIRCUIT_BREAKER_FAILURES) {
-          emitCoordinatorStatus('degraded', { reason: 'foreground' });
+        if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
+          updateCircuitBreaker('foreground', getFirestoreSyncStatus());
         }
       });
     }
   });
 
-  document.addEventListener('app:firestoreSyncStatus', (event) => {
+  addListener(document, 'app:firestoreSyncStatus', (event) => {
     const status = event.detail || {};
     if (['signed-in', 'enabled'].includes(status.status) && status.mode === 'primary') {
       schedulePrimarySync(status.status);
     }
   });
 }
+
+export { teardownListeners as teardownSyncCoordinator };
