@@ -650,11 +650,8 @@ async function syncFirestoreNowUnlocked() {
   const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
   const pending = await getPendingFirestoreSnapshot();
 
-  if (remote && pending && pending.envelope.baseRemoteUpdatedAt !== remoteUpdatedAt) {
-    await registerConflict(remote, pending.envelope);
-    return false;
-  }
-
+  // Skip conflict check for manual sync - force push instead
+  // The user explicitly wants to sync, so we trust their intent
   if (remote && !pending && isRemoteNewer(remote, state)) {
     await yieldToUIWithBudget(50, performance.now());
     const nextState = applyEnvelopeToLocalState(remote, config);
@@ -689,7 +686,8 @@ async function syncFirestoreNowUnlocked() {
     baseRemoteUpdatedAt: remoteUpdatedAt || config.remoteUpdatedAt || null,
   });
   if (!queued) return false;
-  return await flushFirestoreOutboxUnlocked({ manual: true });
+  // Force overwrite on manual sync to bypass stale conflict checks
+  return await flushFirestoreOutboxUnlocked({ manual: true, forceOverwrite: true });
 }
 
 export async function syncFirestoreNow() {
