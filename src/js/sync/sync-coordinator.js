@@ -89,9 +89,23 @@ function updateCircuitBreaker(reason, firestoreStatus) {
 
 async function scheduleRetryIfNeeded(reason) {
   const pending = await getPendingFirestoreSnapshot();
-  if (!pending?.nextAttemptAt) return;
+  if (!pending?.nextAttemptAt) return false;
   const delay = toDelayFromPending(pending);
-  schedulePrimarySync(reason, { delayMs: delay });
+  return schedulePrimarySync(reason, { delayMs: delay });
+}
+
+function emitTerminalFlushStatus(ok, reason) {
+  if (ok) {
+    emitCoordinatorStatus('synced', { reason, firestore: getFirestoreSyncStatus() });
+    return;
+  }
+
+  const firestore = getFirestoreSyncStatus();
+  emitCoordinatorStatus(firestore.conflict ? 'conflict-paused' : 'error', {
+    reason,
+    firestore,
+    error: firestore.lastError || 'Primary sync failed',
+  });
 }
 
 export async function flushPrimarySyncWhenAllowed(reason) {
@@ -241,7 +255,8 @@ async function _executeFlush(options) {
       : await syncFirestoreNow();
     failureCount = ok ? 0 : failureCount + 1;
     updateCircuitBreaker(reason, status);
-    if (!ok) await scheduleRetryIfNeeded(reason);
+    const retryQueued = ok ? false : await scheduleRetryIfNeeded(reason);
+    if (!retryQueued) emitTerminalFlushStatus(ok, reason);
     return ok;
   }
 
@@ -249,6 +264,7 @@ async function _executeFlush(options) {
     const pulled = await autoPullRemoteWhenNewer();
     if (pulled) {
       failureCount = 0;
+      emitTerminalFlushStatus(true, reason);
       return true;
     }
   }
@@ -256,14 +272,16 @@ async function _executeFlush(options) {
   await yieldToUI();
   const entityReady = await ensurePrimaryEntityBatchReady(reason);
   if (!entityReady) {
-    await scheduleRetryIfNeeded(reason);
+    const retryQueued = await scheduleRetryIfNeeded(reason);
+    if (!retryQueued) emitTerminalFlushStatus(false, reason);
     return false;
   }
 
   await yieldToUI();
   const queued = await queueFirestoreSnapshotFromState(state, { manual: false });
   if (!queued) {
-    await scheduleRetryIfNeeded(reason);
+    const retryQueued = await scheduleRetryIfNeeded(reason);
+    if (!retryQueued) emitTerminalFlushStatus(false, reason);
     return false;
   }
 
@@ -275,7 +293,8 @@ async function _executeFlush(options) {
   });
   failureCount = ok ? 0 : failureCount + 1;
   updateCircuitBreaker(reason, status);
-  if (!ok) await scheduleRetryIfNeeded(reason);
+  const retryQueued = ok ? false : await scheduleRetryIfNeeded(reason);
+  if (!retryQueued) emitTerminalFlushStatus(ok, reason);
   return ok;
 }
 

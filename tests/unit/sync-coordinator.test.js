@@ -193,6 +193,37 @@ describe('sync/sync-coordinator.js', () => {
       expect(result).toBe(true);
     });
 
+    it('emits a terminal synced status after successful automatic push', async () => {
+      const statuses = [];
+      document.addEventListener('app:primarySyncStatus', (event) => {
+        statuses.push(event.detail.status);
+      });
+
+      const result = await coordinator.flushPrimarySyncNow({
+        manual: false,
+        reason: 'local-save',
+      });
+
+      expect(result).toBe(true);
+      expect(statuses).toEqual(['syncing', 'synced']);
+    });
+
+    it('emits a terminal error status after failed automatic push without retry', async () => {
+      firestoreSync.flushFirestoreOutbox.mockResolvedValue(false);
+      const statuses = [];
+      document.addEventListener('app:primarySyncStatus', (event) => {
+        statuses.push(event.detail.status);
+      });
+
+      const result = await coordinator.flushPrimarySyncNow({
+        manual: false,
+        reason: 'local-save',
+      });
+
+      expect(result).toBe(false);
+      expect(statuses.at(-1)).toBe('error');
+    });
+
     it('queues entity batch when entity sync is enabled', async () => {
       storeModule.state.config.entitySync = { enabled: true, mode: 'primary' };
       await coordinator.flushPrimarySyncNow({ manual: false });
