@@ -141,7 +141,20 @@ const DEFAULT_POLL_INTERVAL_MS = 30000;
 export async function pollFirestoreRemote() {
   const config = getConfig();
   if (!config.enabled || config.mode !== 'primary' || !currentUser?.uid) return false;
-  if (config.conflict) return false;
+
+  // Auto-clear stale conflicts: if conflict exists but no pending snapshot to resolve it,
+  // the conflict is stale (e.g., old entity-style conflict) and should be cleared.
+  if (config.conflict) {
+    const pending = await getPendingFirestoreSnapshot();
+    if (!pending) {
+      config.conflict = null;
+      config.lastError = null;
+      await persistSyncConfig(true);
+      emitStatus('synced');
+    } else {
+      return false; // Real conflict with pending snapshot, block polling
+    }
+  }
 
   try {
     const { db, uid } = requireSignedInServices();
@@ -434,7 +447,19 @@ async function registerConflict(remoteEnvelope, localEnvelope) {
 export async function autoPullRemoteWhenNewer() {
   const config = getConfig();
   if (!config.enabled || config.mode !== 'primary') return false;
-  if (config.conflict) return false;
+
+  // Auto-clear stale conflicts
+  if (config.conflict) {
+    const pending = await getPendingFirestoreSnapshot();
+    if (!pending) {
+      config.conflict = null;
+      config.lastError = null;
+      await persistSyncConfig(true);
+      emitStatus('synced');
+    } else {
+      return false;
+    }
+  }
 
   const pending = await getPendingFirestoreSnapshot();
   if (pending) return false;
@@ -612,9 +637,12 @@ async function syncFirestoreNowUnlocked() {
   const config = getConfig();
 
   await reconcileFirestorePendingState(true);
+
+  // Force-clear stale conflicts on manual sync (user-initiated resolution)
   if (config.conflict) {
-    emitStatus('conflict-paused', { conflict: config.conflict });
-    return false;
+    config.conflict = null;
+    config.lastError = null;
+    await persistSyncConfig(true);
   }
 
   const { db, uid } = requireSignedInServices();
