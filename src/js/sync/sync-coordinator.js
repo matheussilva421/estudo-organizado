@@ -209,11 +209,11 @@ async function _executeFlush(options) {
       });
       return false;
     }
-    if (reason === 'local-save') {
+    if (reason === 'local-save' || reason === 'foreground') {
       emitCoordinatorStatus('syncing', {
         reason,
         firestore: status,
-        repair: 'snapshot-conflict-local-save',
+        repair: reason === 'foreground' ? 'snapshot-conflict-foreground' : 'snapshot-conflict-local-save',
       });
       const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
       if (!queued) {
