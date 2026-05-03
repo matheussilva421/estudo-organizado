@@ -108,9 +108,11 @@ async function reconcileFirestorePendingState(skipRender = true) {
   const pending = await getPendingFirestoreSnapshot();
 
   // Clear stale conflicts: if there's no pending snapshot to resolve,
-  // the conflict is either resolved or stale (e.g., old entity-style conflict)
+  // the conflict is either resolved or stale (e.g., old entity-style conflict).
+  // Also clear hasPendingWrites since there's nothing in the outbox.
   if (config.conflict && !pending) {
     config.conflict = null;
+    config.hasPendingWrites = false;
     config.lastError = null;
     await persistSyncConfig(skipRender);
     emitStatus('synced');
