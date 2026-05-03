@@ -37,6 +37,7 @@ import {
   mergeFromFirestore,
   forcePushFirestore,
   getFirestoreSyncStatus,
+  downloadSyncDiagnosticLog,
 } from '../../sync/firestore-sync-engine.js?v=8.32';
 import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.32';
 import {
@@ -146,6 +147,14 @@ registerAction('firestore-force-push', () => {
   );
 });
 registerAction('firestore-export-local', exportData);
+registerAction('firestore-download-log', async () => {
+  try {
+    await downloadSyncDiagnosticLog();
+    showToast('Log de sync baixado', 'success');
+  } catch (err) {
+    showToast('Erro ao gerar log: ' + err.message, 'error');
+  }
+});
 registerAction('cloud-merge-remote', () => {
   showConfirm(
     'Mesclar Cloudflare com os dados locais? Itens locais e remotos serao preservados quando possivel, e o resultado sera enviado ao Worker.',

@@ -248,6 +248,42 @@ export function getFirestoreSyncStatus() {
   };
 }
 
+export async function downloadSyncDiagnosticLog() {
+  const log = {
+    timestamp: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+    syncStatus: getFirestoreSyncStatus(),
+    pendingSnapshot: null,
+    pendingError: null,
+    localState: {
+      eventCount: state.eventos?.length || 0,
+      editalCount: state.editais?.length || 0,
+      disciplinaCount: state.disciplinas?.length || 0,
+      lastBackupAt: state.config?.localBackupAt || null,
+      schemaVersion: state.schemaVersion || null,
+    },
+    syncHistory: state.config?.syncHealth?.events?.slice(-10) || [],
+    performanceMetrics: state.config?.syncPerformance?.metrics?.slice(-10) || [],
+  };
+
+  try {
+    log.pendingSnapshot = await getPendingFirestoreSnapshot();
+  } catch (err) {
+    log.pendingError = err.message || String(err);
+  }
+
+  const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sync-diagnostic-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return log;
+}
+
 export function initFirestoreSync() {
   const services = initFirebaseServices();
   const _config = getConfig();

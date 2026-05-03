@@ -428,6 +428,7 @@ function renderSyncSourceActions(source) {
       <button type="button" class="btn btn-outline btn-sm" data-action="firestore-merge-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
       <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-pull-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
       <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-download-log"><i class="fa fa-file-lines"></i> Baixar log</button>
       ${status.enabled ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Pausar</button>' : ''}
     `;
   }
