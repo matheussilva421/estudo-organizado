@@ -46,8 +46,6 @@ describe('ui/actions/config.js', () => {
       pullFromFirestore: vi.fn(),
       mergeFromFirestore: vi.fn(),
       forcePushFirestore: vi.fn(),
-      verifyFirestoreEntityShadow: vi.fn(),
-      resolveEntityConflict: vi.fn(() => Promise.resolve(true)),
       getFirestoreSyncStatus: vi.fn(() => ({ configured: true, signedIn: true, enabled: true })),
     };
     syncCoordinator = { flushPrimarySyncNow: vi.fn(() => Promise.resolve(true)) };
@@ -102,13 +100,6 @@ describe('ui/actions/config.js', () => {
     expect(calls).toContain('firestore-merge-remote');
     expect(calls).toContain('firestore-force-push');
     expect(calls).toContain('firestore-export-local');
-    expect(calls).toContain('firestore-verify-entity-shadow');
-    expect(calls).toContain('firestore-open-conflict-review');
-    expect(calls).toContain('entity-conflict-keep-local');
-    expect(calls).toContain('entity-conflict-keep-remote');
-    expect(calls).toContain('entity-sync-set-primary');
-    expect(calls).toContain('entity-sync-set-shadow');
-    expect(calls).toContain('entity-sync-set-off');
     expect(calls).toContain('cloud-merge-remote');
     expect(calls).toContain('drive-sync-now');
     expect(calls).toContain('pull-from-drive');
@@ -237,82 +228,6 @@ describe('ui/actions/config.js', () => {
     const handler = registerAction.mock.calls.find((c) => c[0] === 'firestore-force-push')[1];
     handler({});
     expect(appModule.showConfirm).toHaveBeenCalled();
-  });
-
-  it('firestore-open-conflict-review opens a human conflict review without raw JSON', () => {
-    const handler = registerAction.mock.calls.find(
-      (c) => c[0] === 'firestore-open-conflict-review'
-    )[1];
-    storeModule.state.config.firestoreSync = {
-      conflict: { items: [{ key: 'test', collection: 'eventos', id: 'test' }] },
-    };
-    const title = { textContent: '' };
-    const body = { innerHTML: '' };
-    const pre = { style: {}, textContent: '' };
-    const modal = {
-      querySelector: vi.fn((selector) => {
-        if (selector === '#modal-prompt-title') return title;
-        if (selector === '#modal-prompt-body') return body;
-        if (selector === 'pre') return pre;
-        return null;
-      }),
-      appendChild: vi.fn(),
-    };
-    vi.spyOn(document, 'getElementById').mockReturnValue(modal);
-    handler({});
-    expect(appModule.openModal).toHaveBeenCalledWith('modal-prompt');
-    expect(body.innerHTML).toContain('test');
-    expect(body.innerHTML).toContain('entity-conflict-keep-remote');
-    expect(body.innerHTML).toContain('Exportar backup antes');
-    expect(body.innerHTML).toContain('Local mais novo');
-    expect(body.innerHTML).toContain('Resolver depois');
-    expect(body.innerHTML).not.toContain('<pre');
-    expect(body.innerHTML).not.toContain('"items"');
-  });
-
-  it('firestore-open-conflict-review skips when no modal', () => {
-    const handler = registerAction.mock.calls.find(
-      (c) => c[0] === 'firestore-open-conflict-review'
-    )[1];
-    vi.spyOn(document, 'getElementById').mockReturnValue(null);
-    handler({});
-    expect(appModule.openModal).not.toHaveBeenCalled();
-  });
-
-  it('entity-conflict-keep-local resolves conflict', async () => {
-    const handler = registerAction.mock.calls.find((c) => c[0] === 'entity-conflict-keep-local')[1];
-    await handler({ dataset: { entityKey: 'disc_1' } });
-    expect(firestoreSync.resolveEntityConflict).toHaveBeenCalledWith('disc_1', 'local');
-  });
-
-  it('entity-conflict-keep-remote resolves conflict', async () => {
-    const handler = registerAction.mock.calls.find(
-      (c) => c[0] === 'entity-conflict-keep-remote'
-    )[1];
-    await handler({ dataset: { entityKey: 'disc_1' } });
-    expect(firestoreSync.resolveEntityConflict).toHaveBeenCalledWith('disc_1', 'remote');
-  });
-
-  it('entity-conflict handler skips when no entityKey', async () => {
-    const handler = registerAction.mock.calls.find((c) => c[0] === 'entity-conflict-keep-local')[1];
-    await handler({ dataset: {} });
-    expect(firestoreSync.resolveEntityConflict).not.toHaveBeenCalled();
-  });
-
-  it('entity-sync-set-primary dispatches event', () => {
-    const handler = registerAction.mock.calls.find((c) => c[0] === 'entity-sync-set-primary')[1];
-    const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
-    handler({});
-    expect(dispatchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'app:primarySyncRequested' })
-    );
-  });
-
-  it('entity-sync-set-off sets mode to off', () => {
-    const handler = registerAction.mock.calls.find((c) => c[0] === 'entity-sync-set-off')[1];
-    handler({});
-    expect(storeModule.state.config.entitySync.mode).toBe('off');
-    expect(storeModule.state.config.entitySync.enabled).toBe(false);
   });
 
   it('sync-center-smart-sync shows success when configured', async () => {

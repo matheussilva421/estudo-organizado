@@ -43,7 +43,6 @@ describe('Firestore integration contracts', () => {
 
     expect(swSource).toContain('./js/firebase/firebase-client.js');
     expect(swSource).toContain('./js/firebase/firebase-config-default.js');
-    expect(swSource).toContain('./js/sync/entity-metadata.js');
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-coordinator.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
@@ -58,7 +57,6 @@ describe('Firestore integration contracts', () => {
     expect(configViewSource).toContain('Central de Sincronização');
     expect(configViewSource).toContain('data-testid="sync-quiet-panel"');
     expect(configViewSource).toContain('data-testid="sync-advanced-panel"');
-    expect(configViewSource).toContain('data-testid="sync-source-conflict-entities"');
     expect(configViewSource).toContain('data-action="firestore-merge-remote"');
     expect(configViewSource).toContain('data-action="cloud-merge-remote"');
     expect(configViewSource).toContain('data-action="merge-from-drive"');
@@ -114,7 +112,6 @@ describe('Firestore integration contracts', () => {
     // Performance metrics still recorded via sync-health
     const coordinatorSource = read('src/js/sync/sync-coordinator.js');
     expect(coordinatorSource).toContain("name: 'plannerMs'");
-    expect(coordinatorSource).toContain("name: 'entityBuildMs'");
   });
 
   it('records numeric sync performance budgets without user payloads', () => {
@@ -124,7 +121,6 @@ describe('Firestore integration contracts', () => {
 
     expect(storeSource).toContain("name: 'localCommitMs'");
     expect(coordinatorSource).toContain("name: 'plannerMs'");
-    expect(coordinatorSource).toContain("name: 'entityBuildMs'");
     expect(coordinatorSource).toContain("name: 'firestoreWriteMs'");
     expect(healthSource).toContain('appendSyncPerformanceMetric');
     expect(healthSource).not.toContain('payload:');
@@ -180,8 +176,6 @@ describe('Firestore integration contracts', () => {
     const driveSource = read('src/js/drive-sync.js');
 
     expect(storeSource).toContain('touchLocalBackup');
-    expect(storeSource).toContain('baselineOnly:');
-    expect(storeSource).toContain('options.touchLocalBackup === false');
     // All sync modules use object-form saveStateToDB (no positional args)
     expect(firestoreSource).toContain(
       'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'
@@ -194,24 +188,6 @@ describe('Firestore integration contracts', () => {
     );
   });
 
-  it('resolves entity-primary conflicts from entity documents instead of stale snapshots', () => {
-    const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
-    const resolveBody =
-      firestoreSource.match(
-        /export async function resolveEntityConflict[\s\S]*?\r?\n}\r?\n/
-      )?.[0] || '';
-
-    expect(resolveBody).toContain('isEntityPrimaryEnabled()');
-    expect(resolveBody).toContain('readFirestoreEntityDocuments(db, uid)');
-    expect(resolveBody).toContain('readFirestoreSnapshot(db, uid)');
-    expect(resolveBody.indexOf('readFirestoreEntityDocuments(db, uid)')).toBeLessThan(
-      resolveBody.indexOf('readFirestoreSnapshot(db, uid)')
-    );
-    expect(resolveBody).toContain('state.config.firestoreSync.conflictHistory');
-    expect(resolveBody).toContain('queueFirestoreEntityBatchFromState(state');
-    expect(resolveBody).toContain("touchLocalBackup: decision === 'remote'");
-  });
-
   it('pre-caches modules that are imported by the modular app shell', () => {
     const swSource = read('src/sw.js');
 
@@ -222,20 +198,7 @@ describe('Firestore integration contracts', () => {
       './js/views/config-view.js',
       './js/views/revisao-view.js',
       './js/state/chart-state.js',
-      './js/sync/firestore-entity-outbox.js',
-      './js/sync/firestore-entity-schema.js',
     ].forEach((asset) => expect(swSource).toContain(asset));
-  });
-
-  it('renders actionable entity conflict review controls', () => {
-    const configViewSource = read('src/js/views/config-view.js');
-    const configActionsSource = read('src/js/ui/actions/config.js');
-
-    expect(configViewSource).toContain('data-action="entity-conflict-keep-local"');
-    expect(configViewSource).toContain('data-action="entity-conflict-keep-remote"');
-    expect(configViewSource).toContain('data-entity-key');
-    expect(configActionsSource).toContain('data-action="entity-conflict-keep-local"');
-    expect(configActionsSource).toContain('data-action="entity-conflict-keep-remote"');
   });
 
   it('clears stale Firestore pending state when there is no queued snapshot', () => {
@@ -287,46 +250,6 @@ describe('Firestore integration contracts', () => {
     expect(rules).toContain('match /users/{uid}/snapshots/{snapshotId}');
     expect(rules).toContain('allow delete: if false;');
     expect(rules).toContain('request.resource.data.version == 1');
-    expect(rules).toContain('entityManifest');
-    expect(rules).toContain('request.resource.data.entityManifest is list');
   });
 
-  it('allows owner-scoped entity docs and still denies physical deletes', () => {
-    const rules = read('firestore.rules');
-
-    expect(rules).toContain('match /users/{uid}/entities/{entityId}');
-    expect(rules).toContain('validEntityDoc()');
-    expect(rules).toContain('validEntityCollection()');
-    expect(rules).toContain("collection in ['editais', 'eventos', 'arquivo', 'revisoes']");
-    expect(rules).toContain('immutableEntityIdentity()');
-    expect(rules).toContain('request.resource.data.revision > 0');
-    expect(rules).toContain('validEntityTombstone()');
-    expect(rules).toContain('request.resource.data.key is string');
-    expect(rules).toContain('request.resource.data.payload == null');
-    expect(rules).toContain('request.resource.data.payload is map');
-    expect(rules).toContain('allow delete: if false;');
-  });
-
-  it('exposes manual entity shadow verification in the sync center', () => {
-    const engine = read('src/js/sync/firestore-sync-engine.js');
-    const actions = read('src/js/ui/actions/config.js');
-    const configView = read('src/js/views/config-view.js');
-
-    expect(engine).toContain('export async function verifyFirestoreEntityShadow');
-    expect(actions).toContain("registerAction('firestore-verify-entity-shadow'");
-    expect(configView).toContain('data-action="firestore-verify-entity-shadow"');
-  });
-
-  it('reads remote manifest before loading all entity docs on auto-pull', () => {
-    const repo = read('src/js/sync/firestore-repository.js');
-    const engine = read('src/js/sync/firestore-sync-engine.js');
-
-    expect(repo).toContain('export async function readFirestoreRemoteManifest');
-    expect(repo).toContain('entityManifest');
-    expect(engine).toContain('readFirestoreRemoteManifest');
-    expect(engine).toContain('isEntityPrimaryEnabled()');
-    const manifestUsage = engine.indexOf('readFirestoreRemoteManifest');
-    const entityReadUsage = engine.indexOf('readFirestoreEntityDocuments(db, uid)', manifestUsage);
-    expect(entityReadUsage).toBeGreaterThan(manifestUsage);
-  });
 });

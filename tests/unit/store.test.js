@@ -76,13 +76,6 @@ describe('store.js', () => {
         cfRemoteUpdatedAt: '2026-04-19T11:00:00.000Z',
         cfLastSyncAt: '2026-04-19T12:00:00.000Z',
         _lastUpdated: 1770000000000,
-        entityTombstones: [{
-          key: 'eventos/ev-1',
-          collection: 'eventos',
-          id: 'ev-1',
-          deletedAt: '2026-04-29T10:00:00.000Z',
-          revision: 2
-        }]
       }
     }));
 
@@ -93,7 +86,6 @@ describe('store.js', () => {
     expect(exportable.config.cfTokenSaved).toBeUndefined();
     expect(exportable.config.cfConflict).toBeUndefined();
     expect(exportable.config._lastUpdated).toBeUndefined();
-    expect(exportable.config.entityTombstones).toHaveLength(1);
     expect(exportable.config.cfSyncEnabled).toBe(false);
     expect(exportable.config.firestoreSync.enabled).toBe(false);
     expect(store.state.config.cfToken).toBe('super-secret-token');
@@ -128,7 +120,6 @@ describe('store.js', () => {
     expect(store.state.eventos).toEqual([]);
     expect(store.state.config.visualizacao).toBe('semana');
     expect(store.state.config.materiasPorDia).toBe(3);
-    expect(store.state.config.entityTombstones).toEqual([]);
     expect(store.state.habitos.videoaula).toEqual([]);
   });
 
@@ -159,9 +150,8 @@ describe('store.js', () => {
     store.runMigrations();
     vi.runOnlyPendingTimers();
 
-    expect(store.state.schemaVersion).toBe(9);
+    expect(store.state.schemaVersion).toBe(8);
     expect(store.state.editais[0].id).toMatch(/^ed_/);
-    expect(store.state.editais[0]._sync).toMatchObject({ revision: 1 });
     expect(store.state.editais[0].disciplinas[0].id).toMatch(/^disc_/);
     expect(store.state.editais[0].disciplinas[0].assuntos).toHaveLength(1);
     expect(store.state.editais[0].disciplinas[0].aulas).toHaveLength(1);

@@ -8,7 +8,7 @@ describe('backup-restore.js', () => {
     const backup = createBaseState({
       schemaVersion: 9,
       eventos: [createEvento({ id: 'ev_1' })],
-      config: { firestoreSync: { enabled: false }, entitySync: { enabled: false, mode: 'off' } },
+      config: { firestoreSync: { enabled: false } },
     });
 
     const result = validateBackupPayload(backup);
@@ -73,7 +73,6 @@ describe('backup-restore.js', () => {
       lastSync: '2026-05-01T10:00:00.000Z',
       config: {
         firestoreSync: { enabled: false, uid: 'firebase-user', remoteUpdatedAt: 'remote' },
-        entitySync: { enabled: false, mode: 'off', conflictHistory: [{ entityKey: 'eventos/a' }] },
       },
     });
 
@@ -81,6 +80,5 @@ describe('backup-restore.js', () => {
     expect(result.errors).toContain('backup must not include Google Drive file id');
     expect(result.errors).toContain('backup must not include remote sync timestamps');
     expect(result.errors).toContain('backup must not include Firestore uid');
-    expect(result.errors).toContain('backup must not include conflict history');
   });
 });

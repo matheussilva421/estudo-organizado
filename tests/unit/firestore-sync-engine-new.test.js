@@ -30,8 +30,6 @@ beforeEach(async () => {
     readFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
     watchFirestoreSnapshot: vi.fn(() => {}),
     writeFirestoreSnapshot: vi.fn(() => Promise.resolve(true)),
-    readFirestoreEntityDocuments: vi.fn(() => Promise.resolve([])),
-    writeFirestoreEntityDocuments: vi.fn(() => Promise.resolve({ count: 0 })),
   }));
 
   syncEngine = await import('../../src/js/sync/firestore-sync-engine.js?v=8.32');
