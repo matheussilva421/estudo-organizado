@@ -11,6 +11,7 @@ import { renderCurrentView } from './components.js?v=8.36';
 import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.36';
 import { mergeStudyStates } from './sync/sync-center.js?v=8.36';
 import { driveLock } from './sync/sync-lock.js?v=8.36';
+import { initCloudflareCreds } from './cloud-sync.js?v=8.36';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE
@@ -276,6 +277,8 @@ async function _syncWithDriveInternal(recursionDepth = 0) {
             () => {
               const merged = mergeStudyStates(state, driveData);
               setState(merged);
+              // Re-sync Cloudflare credentials from isolated store after remote merge
+              initCloudflareCreds().catch(() => {});
               runMigrations();
               saveStateToDB({
                 skipCloudSync: true,
@@ -429,6 +432,8 @@ export async function pullFromDrive() {
       return;
     }
     setState(driveData);
+    // Re-sync Cloudflare credentials from isolated store after remote overwrite
+    await initCloudflareCreds();
     runMigrations();
     await saveStateToDB({
       skipCloudSync: true,
@@ -469,6 +474,8 @@ export async function mergeFromDrive() {
       return false;
     }
     setState(mergeStudyStates(state, driveData));
+    // Re-sync Cloudflare credentials from isolated store after remote merge
+    await initCloudflareCreds();
     runMigrations();
     await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true });
     await syncWithDrive();

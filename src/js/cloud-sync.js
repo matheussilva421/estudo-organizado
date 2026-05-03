@@ -304,6 +304,8 @@ export async function pullFromCloudflare(forceOverwrite = false) {
             if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
             delete state.config.cfConflict;
           }
+          // Re-sync Cloudflare credentials from isolated store after remote merge
+          await initCloudflareCreds();
           console.log('[Cloudflare] pullFromCloudflare AFTER setState:', {
             stateConfigUrl: state.config?.cfUrl,
             stateConfigTokenSaved: state.config?.cfTokenSaved,
@@ -380,6 +382,8 @@ export async function mergeFromCloudflare() {
         const remoteUpdatedAt = getRemoteUpdatedAtFromEnvelope(remote.envelope, remote.payload);
         const merged = mergeStudyStates(state, remote.payload);
         setState(merged);
+        // Re-sync Cloudflare credentials from isolated store after remote merge
+        await initCloudflareCreds();
         if (!state.config) state.config = {};
         if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
         delete state.config.cfConflict;
