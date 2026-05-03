@@ -6,7 +6,6 @@ import * as app from './app.js?v=8.37';
 import * as logic from './logic.js?v=8.37';
 import * as components from './components.js?v=8.37';
 import * as views from './views.js?v=8.37';
-import * as calendar_view from './views/calendar-view.js?v=8.37';
 import * as drive_sync from './drive-sync.js?v=8.37';
 import * as cloud_sync from './cloud-sync.js?v=8.37';
 import * as registro from './registro-sessao.js?v=8.37';
@@ -38,7 +37,6 @@ const exposedModules = [
   logic,
   components,
   views,
-  calendar_view,
   drive_sync,
   cloud_sync,
   registro,
