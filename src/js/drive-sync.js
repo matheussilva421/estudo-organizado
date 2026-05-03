@@ -10,6 +10,7 @@ import {
 import { renderCurrentView } from './components.js?v=8.32';
 import { setCredential, getCredential, deleteCredential } from './credentials.js?v=8.32';
 import { mergeStudyStates } from './sync/sync-center.js?v=8.32';
+import { driveLock } from './sync/sync-lock.js?v=8.32';
 
 // =============================================
 // GOOGLE DRIVE SYNC MODULE
@@ -231,11 +232,23 @@ function buildMultipartBody() {
   };
 }
 
-let _isSyncing = false;
 export async function syncWithDrive(recursionDepth = 0) {
   if (!gapi.client || !gapi.client.drive) return;
-  if (_isSyncing && recursionDepth === 0) return;
-  if (recursionDepth === 0) _isSyncing = true;
+
+  return driveLock.withLock(async () => {
+    await _syncWithDriveInternal(recursionDepth);
+  }).catch((err) => {
+    if (err.message && err.message.includes('timeout after')) {
+      console.warn('Drive sync lock timeout');
+      return;
+    }
+    console.error('Drive sync error:', err);
+    showToast('Erro ao sincronizar com Drive', 'error');
+    updateDriveUI('disconnected', 'Erro na Sincronização');
+  });
+}
+
+async function _syncWithDriveInternal(recursionDepth = 0) {
   updateDriveUI('syncing', 'Sincronizando...');
 
   try {
@@ -262,7 +275,7 @@ export async function syncWithDrive(recursionDepth = 0) {
               const merged = mergeStudyStates(state, driveData);
               setState(merged);
               runMigrations();
-              saveStateToDB(true, true, true, { touchLocalBackup: false })
+              saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false })
                 .then(() => {
                   renderCurrentView();
                   showToast('Dados mesclados do Drive!', 'success');
@@ -270,23 +283,10 @@ export async function syncWithDrive(recursionDepth = 0) {
                 })
                 .catch((e) => {
                   console.error('Force save fail:', e);
-                })
-                .finally(() => {
-                  _isSyncing = false;
                 });
             },
             { title: 'Sincronização', label: 'Mesclar Dados' }
           );
-
-          // Handle cancel: libera lock quando usuário cancela
-          const cancelBtn = document.getElementById('confirm-cancel-btn');
-          if (cancelBtn) {
-            const originalHandler = cancelBtn.onclick || (() => {});
-            cancelBtn.onclick = () => {
-              _isSyncing = false;
-              originalHandler();
-            };
-          }
 
           return;
         }
@@ -296,8 +296,8 @@ export async function syncWithDrive(recursionDepth = 0) {
         if (e.status === 404 || e.result?.error?.code === 404) {
           if (recursionDepth < 2) {
             state.driveFileId = null;
-            return saveStateToDB(true, true, true, { touchLocalBackup: false }).then(() => {
-              return syncWithDrive(recursionDepth + 1);
+            return saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false }).then(() => {
+              return _syncWithDriveInternal(recursionDepth + 1);
             });
           }
         }
@@ -325,7 +325,7 @@ export async function syncWithDrive(recursionDepth = 0) {
 
       // Only update lastSync AFTER successful upload
       state.lastSync = new Date().toISOString();
-      await saveStateToDB(true, true, true, { touchLocalBackup: false });
+      await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
       showToast('Sincronizado com sucesso!', 'success');
     } else {
       // Cria um novo arquivo
@@ -353,7 +353,7 @@ export async function syncWithDrive(recursionDepth = 0) {
 
       // Only update lastSync AFTER successful upload
       state.lastSync = new Date().toISOString();
-      await saveStateToDB(true, true, true, { touchLocalBackup: false });
+      await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
       showToast('Backup criado no Drive!', 'success');
     }
     updateDriveUI('connected', 'Google Drive');
@@ -361,8 +361,6 @@ export async function syncWithDrive(recursionDepth = 0) {
     console.error('Erro ao sincronizar:', err);
     showToast('Erro ao sincronizar com Drive', 'error');
     updateDriveUI('disconnected', 'Erro na Sincronização');
-  } finally {
-    if (recursionDepth === 0) _isSyncing = false;
   }
 }
 
@@ -410,7 +408,7 @@ export async function pullFromDrive() {
     }
     setState(driveData);
     runMigrations();
-    await saveStateToDB(true, true, true, { touchLocalBackup: false });
+    await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
     renderCurrentView();
     updateDriveUI('connected', 'Google Drive');
     showToast('Dados importados do Drive com sucesso!', 'success');
@@ -445,7 +443,7 @@ export async function mergeFromDrive() {
     }
     setState(mergeStudyStates(state, driveData));
     runMigrations();
-    await saveStateToDB(true, true, true);
+    await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true });
     await syncWithDrive();
     renderCurrentView();
     updateDriveUI('connected', 'Google Drive');
