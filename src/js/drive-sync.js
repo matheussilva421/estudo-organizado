@@ -235,17 +235,19 @@ function buildMultipartBody() {
 export async function syncWithDrive(recursionDepth = 0) {
   if (!gapi.client || !gapi.client.drive) return;
 
-  return driveLock.withLock(async () => {
-    await _syncWithDriveInternal(recursionDepth);
-  }).catch((err) => {
-    if (err.message && err.message.includes('timeout after')) {
-      console.warn('Drive sync lock timeout');
-      return;
-    }
-    console.error('Drive sync error:', err);
-    showToast('Erro ao sincronizar com Drive', 'error');
-    updateDriveUI('disconnected', 'Erro na Sincronização');
-  });
+  return driveLock
+    .withLock(async () => {
+      await _syncWithDriveInternal(recursionDepth);
+    })
+    .catch((err) => {
+      if (err.message && err.message.includes('timeout after')) {
+        console.warn('Drive sync lock timeout');
+        return;
+      }
+      console.error('Drive sync error:', err);
+      showToast('Erro ao sincronizar com Drive', 'error');
+      updateDriveUI('disconnected', 'Erro na Sincronização');
+    });
 }
 
 async function _syncWithDriveInternal(recursionDepth = 0) {
@@ -275,7 +277,12 @@ async function _syncWithDriveInternal(recursionDepth = 0) {
               const merged = mergeStudyStates(state, driveData);
               setState(merged);
               runMigrations();
-              saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false })
+              saveStateToDB({
+                skipCloudSync: true,
+                skipFirestoreSync: true,
+                skipDriveSync: true,
+                touchLocalBackup: false,
+              })
                 .then(() => {
                   renderCurrentView();
                   showToast('Dados mesclados do Drive!', 'success');
@@ -296,7 +303,12 @@ async function _syncWithDriveInternal(recursionDepth = 0) {
         if (e.status === 404 || e.result?.error?.code === 404) {
           if (recursionDepth < 2) {
             state.driveFileId = null;
-            return saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false }).then(() => {
+            return saveStateToDB({
+              skipCloudSync: true,
+              skipFirestoreSync: true,
+              skipDriveSync: true,
+              touchLocalBackup: false,
+            }).then(() => {
               return _syncWithDriveInternal(recursionDepth + 1);
             });
           }
@@ -325,7 +337,12 @@ async function _syncWithDriveInternal(recursionDepth = 0) {
 
       // Only update lastSync AFTER successful upload
       state.lastSync = new Date().toISOString();
-      await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+      await saveStateToDB({
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+        touchLocalBackup: false,
+      });
       showToast('Sincronizado com sucesso!', 'success');
     } else {
       // Cria um novo arquivo
@@ -353,7 +370,12 @@ async function _syncWithDriveInternal(recursionDepth = 0) {
 
       // Only update lastSync AFTER successful upload
       state.lastSync = new Date().toISOString();
-      await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+      await saveStateToDB({
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+        touchLocalBackup: false,
+      });
       showToast('Backup criado no Drive!', 'success');
     }
     updateDriveUI('connected', 'Google Drive');
@@ -408,7 +430,12 @@ export async function pullFromDrive() {
     }
     setState(driveData);
     runMigrations();
-    await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+    await saveStateToDB({
+      skipCloudSync: true,
+      skipFirestoreSync: true,
+      skipDriveSync: true,
+      touchLocalBackup: false,
+    });
     renderCurrentView();
     updateDriveUI('connected', 'Google Drive');
     showToast('Dados importados do Drive com sucesso!', 'success');

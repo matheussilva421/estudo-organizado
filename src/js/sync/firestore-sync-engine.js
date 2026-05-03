@@ -18,7 +18,6 @@ import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
   getPendingFirestoreSnapshot,
-  markFirestoreSnapshotFailed,
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta,
@@ -188,7 +187,12 @@ async function applyRemoteSnapshotFromWatch(remote) {
     remoteUpdatedAt,
     lastPullAt: new Date().toISOString(),
   });
-  await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+  await saveStateToDB({
+    skipCloudSync: true,
+    skipFirestoreSync: true,
+    skipDriveSync: true,
+    touchLocalBackup: false,
+  });
   emitPrimaryStatus('remote-applied', { remoteUpdatedAt });
   emitStatus('synced');
 }
@@ -491,30 +495,32 @@ function removeEntityFromStateByConflictItem(targetState = {}, item = {}) {
   return false;
 }
 
-export async function flushFirestoreEntityOutbox(options = {}) {
-  return firestoreLock.withLock(async () => {
-    const config = getConfig();
-    const isPrimary = isEntityPrimaryEnabled() || Boolean(options.primary);
-    if (!options.manual && !canShadowWriteEntities(config) && !isPrimary) return false;
-    const pending = await getPendingFirestoreEntityBatch();
-    if (!pending || pending.status !== 'pending') return false;
-    const { db, uid } = requireSignedInServices();
+async function flushFirestoreEntityOutboxUnlocked(options = {}) {
+  const config = getConfig();
+  const isPrimary = isEntityPrimaryEnabled() || Boolean(options.primary);
+  if (!options.manual && !canShadowWriteEntities(config) && !isPrimary) return false;
+  const pending = await getPendingFirestoreEntityBatch();
+  if (!pending || pending.status !== 'pending') return false;
+  const { db, uid } = requireSignedInServices();
 
-    await yieldToUIWithBudget(50, performance.now());
+  await yieldToUIWithBudget(50, performance.now());
 
-    const result = await writeFirestoreEntityDocuments(db, uid, pending.docs || []);
-    await markFirestoreEntityBatchSynced();
-    if (!state.config.entitySync) state.config.entitySync = {};
-    Object.assign(state.config.entitySync, {
-      enabled: true,
-      mode: isPrimary ? 'primary' : 'shadow',
-      lastShadowPushAt: new Date().toISOString(),
-      lastError: null,
-    });
-    await persistSyncConfig(false);
-    emitStatus('synced', { entityShadowCount: result.count });
-    return true;
+  const result = await writeFirestoreEntityDocuments(db, uid, pending.docs || []);
+  await markFirestoreEntityBatchSynced();
+  if (!state.config.entitySync) state.config.entitySync = {};
+  Object.assign(state.config.entitySync, {
+    enabled: true,
+    mode: isPrimary ? 'primary' : 'shadow',
+    lastShadowPushAt: new Date().toISOString(),
+    lastError: null,
   });
+  await persistSyncConfig(false);
+  emitStatus('synced', { entityShadowCount: result.count });
+  return true;
+}
+
+export async function flushFirestoreEntityOutbox(options = {}) {
+  return firestoreLock.withLock(() => flushFirestoreEntityOutboxUnlocked(options));
 }
 
 async function forcePushFirestoreEntities() {
@@ -723,78 +729,80 @@ export async function autoPullRemoteWhenNewer() {
   }
 }
 
-export async function flushFirestoreOutbox(options = {}) {
-  return firestoreLock.withLock(async () => {
-    const config = getConfig();
-    if (!config.enabled) return false;
+async function flushFirestoreOutboxUnlocked(options = {}) {
+  const config = getConfig();
+  if (!config.enabled) return false;
 
-    const startTime = performance.now();
+  const startTime = performance.now();
 
-    const pending = await getPendingFirestoreSnapshot();
-    if (!options.manual && !options.forceOverwrite && !canAutoSyncFirestore(config, pending)) {
-      emitStatus(config.conflict ? 'conflict-paused' : 'backoff');
-      return false;
-    }
+  const pending = await getPendingFirestoreSnapshot();
+  if (!options.manual && !options.forceOverwrite && !canAutoSyncFirestore(config, pending)) {
+    emitStatus(config.conflict ? 'conflict-paused' : 'backoff');
+    return false;
+  }
 
-    emitStatus('syncing');
-    if (!pending) {
-      config.hasPendingWrites = false;
-      await persistSyncConfig(true);
-      emitStatus('synced');
-      return true;
-    }
-
-    const { db, uid } = requireSignedInServices();
-    const remote = await readFirestoreSnapshot(db, uid);
-    if (
-      remote &&
-      !options.forceOverwrite &&
-      pending.envelope.baseRemoteUpdatedAt !== getEnvelopeUpdatedAt(remote)
-    ) {
-      await registerConflict(remote, pending.envelope);
-      return false;
-    }
-
-    await yieldToUIWithBudget(50, startTime);
-
-    if (isEntityPrimaryEnabled()) {
-      const entityFlushed = await flushFirestoreEntityOutbox({
-        manual: options.manual,
-        primary: true,
-      });
-      if (!entityFlushed) {
-        config.lastError = 'Falha no envio de entidades Firestore; push interrompido.';
-        config.hasPendingWrites = true;
-        return false;
-      }
-    }
-
-    await yieldToUIWithBudget(50, startTime);
-
-    const result = await writeFirestoreSnapshot(db, uid, pending.envelope);
-    await markFirestoreSnapshotSynced();
-    await clearFirestoreConflict();
-    await saveFirestoreMeta({
-      uid,
-      remoteUpdatedAt: result.updatedAt,
-      lastPushAt: new Date().toISOString(),
-    });
-    Object.assign(config, {
-      uid,
-      remoteUpdatedAt: result.updatedAt,
-      lastPushAt: new Date().toISOString(),
-      hasPendingWrites: false,
-      conflict: null,
-      lastError: null,
-    });
-    if (canShadowWriteEntities(config)) {
-      await flushFirestoreEntityOutbox({ manual: options.manual });
-    }
-    await persistSyncConfig(false);
-    startFirestoreRemoteWatch();
+  emitStatus('syncing');
+  if (!pending) {
+    config.hasPendingWrites = false;
+    await persistSyncConfig(true);
     emitStatus('synced');
     return true;
+  }
+
+  const { db, uid } = requireSignedInServices();
+  const remote = await readFirestoreSnapshot(db, uid);
+  if (
+    remote &&
+    !options.forceOverwrite &&
+    pending.envelope.baseRemoteUpdatedAt !== getEnvelopeUpdatedAt(remote)
+  ) {
+    await registerConflict(remote, pending.envelope);
+    return false;
+  }
+
+  await yieldToUIWithBudget(50, startTime);
+
+  if (isEntityPrimaryEnabled()) {
+    const entityFlushed = await flushFirestoreEntityOutboxUnlocked({
+      manual: options.manual,
+      primary: true,
+    });
+    if (!entityFlushed) {
+      config.lastError = 'Falha no envio de entidades Firestore; push interrompido.';
+      config.hasPendingWrites = true;
+      return false;
+    }
+  }
+
+  await yieldToUIWithBudget(50, startTime);
+
+  const result = await writeFirestoreSnapshot(db, uid, pending.envelope);
+  await markFirestoreSnapshotSynced();
+  await clearFirestoreConflict();
+  await saveFirestoreMeta({
+    uid,
+    remoteUpdatedAt: result.updatedAt,
+    lastPushAt: new Date().toISOString(),
   });
+  Object.assign(config, {
+    uid,
+    remoteUpdatedAt: result.updatedAt,
+    lastPushAt: new Date().toISOString(),
+    hasPendingWrites: false,
+    conflict: null,
+    lastError: null,
+  });
+  if (canShadowWriteEntities(config)) {
+    await flushFirestoreEntityOutboxUnlocked({ manual: options.manual });
+  }
+  await persistSyncConfig(false);
+  startFirestoreRemoteWatch();
+  emitStatus('synced');
+  return true;
+}
+
+export async function flushFirestoreOutbox(options = {}) {
+  return firestoreLock.withLock(() => flushFirestoreOutboxUnlocked(options));
 }
 
 export async function pullFromFirestore(forceOverwrite = false) {
@@ -850,7 +858,12 @@ export async function pullFromFirestore(forceOverwrite = false) {
           hasPendingWrites: true,
         });
         await saveFirestoreConflict(conflict);
-        await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+        await saveStateToDB({
+          skipCloudSync: true,
+          skipFirestoreSync: true,
+          skipDriveSync: true,
+          touchLocalBackup: false,
+        });
         emitPrimaryStatus('conflict', { conflict });
         emitStatus('conflict', { conflict });
         return false;
@@ -864,7 +877,12 @@ export async function pullFromFirestore(forceOverwrite = false) {
         remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
         lastPullAt: pullAt,
       });
-      await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+      await saveStateToDB({
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+        touchLocalBackup: false,
+      });
 
       Object.assign(getConfig(), {
         uid,
@@ -904,7 +922,12 @@ export async function pullFromFirestore(forceOverwrite = false) {
         remoteUpdatedAt: getEnvelopeUpdatedAt(remote),
         lastPullAt: new Date().toISOString(),
       });
-      await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+      await saveStateToDB({
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+        touchLocalBackup: false,
+      });
       emitPrimaryStatus('remote-applied', { remoteUpdatedAt: getEnvelopeUpdatedAt(remote) });
     }
 
@@ -950,7 +973,7 @@ export async function forcePushFirestore() {
   return await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
 }
 
-export async function syncFirestoreNow() {
+async function syncFirestoreNowUnlocked() {
   const config = getConfig();
   const entitySync = state.config?.entitySync || {};
   const useEntityPrimary = entitySync.enabled && entitySync.mode === 'primary';
@@ -997,7 +1020,12 @@ export async function syncFirestoreNow() {
           hasPendingWrites: true,
         });
         await saveFirestoreConflict(conflict);
-        await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+        await saveStateToDB({
+          skipCloudSync: true,
+          skipFirestoreSync: true,
+          skipDriveSync: true,
+          touchLocalBackup: false,
+        });
         emitPrimaryStatus('conflict', { conflict });
         emitStatus('conflict', { conflict });
         return false;
@@ -1018,14 +1046,19 @@ export async function syncFirestoreNow() {
         remoteUpdatedAt: maxEntityUpdatedAt || pullAt,
         lastPullAt: pullAt,
       });
-      await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+      await saveStateToDB({
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+        touchLocalBackup: false,
+      });
       emitPrimaryStatus('synced', { source: 'sync-now-entity' });
       emitStatus('synced');
       return true;
     }
     const queued = await queueFirestoreEntityBatchFromState(state, { manual: true });
     if (!queued) return false;
-    return await flushFirestoreEntityOutbox({ manual: true, primary: true });
+    return await flushFirestoreEntityOutboxUnlocked({ manual: true, primary: true });
   }
 
   const { db, uid } = requireSignedInServices();
@@ -1045,7 +1078,12 @@ export async function syncFirestoreNow() {
     await clearFirestoreConflict();
     await markFirestoreSnapshotSynced();
     await saveFirestoreMeta({ uid, remoteUpdatedAt, lastPullAt: new Date().toISOString() });
-    await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+    await saveStateToDB({
+      skipCloudSync: true,
+      skipFirestoreSync: true,
+      skipDriveSync: true,
+      touchLocalBackup: false,
+    });
     emitPrimaryStatus('synced', { source: 'sync-now-pull', remoteUpdatedAt });
     emitStatus('synced');
     return true;
@@ -1067,7 +1105,11 @@ export async function syncFirestoreNow() {
     baseRemoteUpdatedAt: remoteUpdatedAt || config.remoteUpdatedAt || null,
   });
   if (!queued) return false;
-  return await flushFirestoreOutbox({ manual: true });
+  return await flushFirestoreOutboxUnlocked({ manual: true });
+}
+
+export async function syncFirestoreNow() {
+  return firestoreLock.withLock(() => syncFirestoreNowUnlocked());
 }
 
 export async function mergeFromFirestore() {
@@ -1107,7 +1149,12 @@ export async function mergeFromFirestore() {
           hasPendingWrites: true,
         });
         await saveFirestoreConflict(conflict);
-        await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+        await saveStateToDB({
+          skipCloudSync: true,
+          skipFirestoreSync: true,
+          skipDriveSync: true,
+          touchLocalBackup: false,
+        });
         emitPrimaryStatus('conflict', { conflict });
         emitStatus('conflict', { conflict });
         return false;
@@ -1179,7 +1226,12 @@ export async function mergeFromFirestore() {
         hasPendingWrites: true,
       });
       await saveFirestoreConflict(conflict);
-      await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: false });
+      await saveStateToDB({
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+        touchLocalBackup: false,
+      });
       emitPrimaryStatus('conflict', { conflict });
       emitStatus('conflict', { conflict });
       return false;
@@ -1307,6 +1359,11 @@ export async function resolveEntityConflict(entityKey, decision) {
     : [];
   state.config.firestoreSync.conflictHistory = [decisionRecord, ...history].slice(0, 50);
 
-  await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true, touchLocalBackup: decision === 'remote' });
+  await saveStateToDB({
+    skipCloudSync: true,
+    skipFirestoreSync: true,
+    skipDriveSync: true,
+    touchLocalBackup: decision === 'remote',
+  });
   return true;
 }

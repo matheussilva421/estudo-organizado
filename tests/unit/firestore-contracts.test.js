@@ -159,9 +159,14 @@ describe('Firestore integration contracts', () => {
         /export async function queueFirestoreSnapshotFromState[\s\S]*?\r?\n}\r?\n/
       )?.[0] || '';
     const syncBody =
+      firestoreSource.match(/async function syncFirestoreNowUnlocked[\s\S]*?\r?\n}\r?\n/)?.[0] ||
+      '';
+    const syncExport =
       firestoreSource.match(/export async function syncFirestoreNow[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
 
     expect(queueBody).toContain('createFirestoreSnapshotEnvelope(sourceState, options)');
+    expect(syncExport).toContain('firestoreLock.withLock');
+    expect(syncExport).toContain('syncFirestoreNowUnlocked()');
     expect(syncBody).toContain('const remote = await readFirestoreSnapshot(db, uid);');
     expect(syncBody).toContain(
       'baseRemoteUpdatedAt: remoteUpdatedAt || config.remoteUpdatedAt || null'
@@ -184,7 +189,9 @@ describe('Firestore integration contracts', () => {
     expect(cloudflareSource).toContain(
       'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'
     );
-    expect(driveSource).toContain('saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true');
+    expect(driveSource).toContain(
+      'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'
+    );
   });
 
   it('resolves entity-primary conflicts from entity documents instead of stale snapshots', () => {
@@ -235,9 +242,14 @@ describe('Firestore integration contracts', () => {
     const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
     const flushBody =
       firestoreSource.match(
-        /export async function flushFirestoreOutbox[\s\S]*?export async function pullFromFirestore/
+        /async function flushFirestoreOutboxUnlocked[\s\S]*?export async function flushFirestoreOutbox/
       )?.[0] || '';
+    const flushExport =
+      firestoreSource.match(/export async function flushFirestoreOutbox[\s\S]*?\r?\n}\r?\n/)?.[0] ||
+      '';
 
+    expect(flushExport).toContain('firestoreLock.withLock');
+    expect(flushExport).toContain('flushFirestoreOutboxUnlocked(options)');
     expect(flushBody).toContain('if (!pending)');
     expect(flushBody).toContain('config.hasPendingWrites = false');
     expect(flushBody).toContain("emitStatus('synced'");

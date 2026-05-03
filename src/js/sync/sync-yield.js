@@ -34,8 +34,15 @@ export async function yieldToUIWithBudget(budgetMs = 50, startTime = performance
   const elapsed = performance.now() - startTime;
   const exceeded = elapsed > budgetMs;
 
-  if (exceeded && typeof console !== 'undefined' && typeof process !== 'undefined' && process?.env?.NODE_ENV !== 'production') {
-    console.warn(`[sync-yield] Operation exceeded ${budgetMs}ms budget (${Math.round(elapsed)}ms elapsed)`);
+  if (
+    exceeded &&
+    typeof console !== 'undefined' &&
+    typeof process !== 'undefined' &&
+    process?.env?.NODE_ENV !== 'production'
+  ) {
+    console.warn(
+      `[sync-yield] Operation exceeded ${budgetMs}ms budget (${Math.round(elapsed)}ms elapsed)`
+    );
   }
 
   return { shouldYield: true, exceeded };

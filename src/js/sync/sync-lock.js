@@ -10,7 +10,6 @@
  * - Mutual exclusion: only one operation runs at a time
  * - Queue: concurrent calls wait in order
  * - Timeout: configurable, rejects if lock cannot be acquired
- * - Re-entrant: same call can acquire lock multiple times
  * - Safe: releases lock even if operation throws
  */
 
@@ -18,8 +17,6 @@ export class SyncLock {
   #locked = false;
   #queue = [];
   #timeoutMs;
-  #owner = null; // Track current owner for re-entrancy
-  #depth = 0;    // Re-entrancy depth counter
 
   constructor(options = {}) {
     this.#timeoutMs = options.timeoutMs ?? 30_000; // Default 30s
@@ -35,30 +32,15 @@ export class SyncLock {
   async withLock(fn, options = {}) {
     const timeout = options.timeoutMs ?? this.#timeoutMs;
 
-    // Re-entrancy: if we already hold the lock, just run
-    if (this.#owner !== null && this.#depth > 0) {
-      this.#depth++;
-      try {
-        return await fn();
-      } finally {
-        this.#depth--;
-      }
-    }
-
     // Wait for lock with timeout
     const acquired = await this.#acquire(timeout);
     if (!acquired) {
       throw new Error(`SyncLock: timeout after ${timeout}ms waiting for lock`);
     }
 
-    this.#owner = this;
-    this.#depth = 1;
-
     try {
       return await fn();
     } finally {
-      this.#depth = 0;
-      this.#owner = null;
       this.#release();
     }
   }
@@ -69,8 +51,6 @@ export class SyncLock {
    */
   reset() {
     this.#locked = false;
-    this.#owner = null;
-    this.#depth = 0;
 
     // Reject all queued waiters
     const queue = this.#queue;
@@ -130,5 +110,6 @@ export class SyncLock {
 
 // Singleton instances for each sync channel
 export const firestoreLock = new SyncLock();
+export const primarySyncLock = new SyncLock();
 export const cloudflareLock = new SyncLock();
 export const driveLock = new SyncLock();

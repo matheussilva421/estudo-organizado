@@ -6,28 +6,39 @@ function createIndexedDBMock() {
   const fakeDb = {
     objectStoreNames: { contains: () => true },
     createObjectStore: vi.fn(),
-    transaction: vi.fn(() => ({
-      objectStore: () => ({
-        get: (key) => {
-          const req = {};
-          queueMicrotask(() => {
-            req.result = persisted.get(key) || null;
-            req.onsuccess?.({ target: req });
-          });
-          return req;
-        },
-        put: (value, key) => {
-          const req = {};
-          queueMicrotask(() => {
-            persisted.set(key, structuredClone(value));
-            req.onsuccess?.({ target: req });
-          });
-          return req;
-        }
-      }),
-      onerror: null
-    })),
-    persisted
+    transaction: vi.fn(() => {
+      let pendingWrites = 0;
+      const tx = {
+        objectStore: () => ({
+          get: (key) => {
+            const req = {};
+            queueMicrotask(() => {
+              req.result = persisted.get(key) || null;
+              req.onsuccess?.({ target: req });
+            });
+            return req;
+          },
+          put: (value, key) => {
+            pendingWrites += 1;
+            const req = {};
+            queueMicrotask(() => {
+              persisted.set(key, structuredClone(value));
+              req.onsuccess?.({ target: req });
+              pendingWrites -= 1;
+              if (pendingWrites === 0) {
+                queueMicrotask(() => tx.oncomplete?.());
+              }
+            });
+            return req;
+          },
+        }),
+        oncomplete: null,
+        onerror: null,
+        onabort: null,
+      };
+      return tx;
+    }),
+    persisted,
   };
 
   return {
@@ -39,7 +50,7 @@ function createIndexedDBMock() {
       });
       return req;
     }),
-    fakeDb
+    fakeDb,
   };
 }
 
@@ -68,14 +79,14 @@ describe('persistence contracts', () => {
     store.setState({
       schemaVersion: 3,
       editais: [{ id: 'ed_legacy', nome: 'Legacy', disciplinas: [] }],
-      config: { cfSyncEnabled: true }
+      config: { cfSyncEnabled: true },
     });
 
     expect(store.state.habitos).toMatchObject({
       questoes: [],
       revisao: [],
       videoaula: [],
-      paginas: []
+      paginas: [],
     });
     expect(store.state.config.firestoreSync).toMatchObject(store.DEFAULT_FIRESTORE_SYNC_CONFIG);
     expect(store.state.config.entitySync).toMatchObject(store.DEFAULT_ENTITY_SYNC_CONFIG);
@@ -89,9 +100,11 @@ describe('persistence contracts', () => {
     const statuses = [];
     document.addEventListener('app:saveStatus', (event) => statuses.push(event.detail.status));
 
-    store.setState(createBaseState({
-      eventos: [{ id: 'ev_persist', titulo: 'Persistido', status: 'agendado' }]
-    }));
+    store.setState(
+      createBaseState({
+        eventos: [{ id: 'ev_persist', titulo: 'Persistido', status: 'agendado' }],
+      })
+    );
 
     await store.saveStateToDB({ skipCloudSync: true, prepareEntityMetadata: false });
 
@@ -110,7 +123,7 @@ describe('persistence contracts', () => {
     await store.saveStateToDB({
       skipCloudSync: true,
       prepareEntityMetadata: false,
-      touchLocalBackup: false
+      touchLocalBackup: false,
     });
 
     expect(store.state.config.localBackupAt).toBe('2026-04-28T10:00:00.000Z');
@@ -118,8 +131,70 @@ describe('persistence contracts', () => {
     expect(savedEvents).toEqual([
       expect.objectContaining({
         touchLocalBackup: false,
-        metadataOnly: true
-      })
+        metadataOnly: true,
+      }),
     ]);
+  });
+
+  it('emits stateSaved only after the IndexedDB transaction commits', async () => {
+    const order = [];
+    const persisted = new Map();
+    const indexedDBMock = {
+      open: vi.fn(() => {
+        const req = {};
+        const fakeDb = {
+          objectStoreNames: { contains: () => true },
+          createObjectStore: vi.fn(),
+          transaction: vi.fn(() => {
+            let pendingWrites = 0;
+            const tx = {
+              objectStore: () => ({
+                get: (key) => {
+                  const getReq = {};
+                  queueMicrotask(() => {
+                    getReq.result = persisted.get(key) || null;
+                    getReq.onsuccess?.({ target: getReq });
+                  });
+                  return getReq;
+                },
+                put: (value, key) => {
+                  pendingWrites += 1;
+                  const putReq = {};
+                  queueMicrotask(() => {
+                    persisted.set(key, structuredClone(value));
+                    order.push(`put:${key}`);
+                    putReq.onsuccess?.({ target: putReq });
+                    pendingWrites -= 1;
+                    if (pendingWrites === 0) {
+                      queueMicrotask(() => {
+                        order.push('transaction:complete');
+                        tx.oncomplete?.();
+                      });
+                    }
+                  });
+                  return putReq;
+                },
+              }),
+              oncomplete: null,
+              onerror: null,
+              onabort: null,
+            };
+            return tx;
+          }),
+        };
+        queueMicrotask(() => {
+          req.result = fakeDb;
+          req.onsuccess?.({ target: req });
+        });
+        return req;
+      }),
+    };
+    const store = await importFreshStore(indexedDBMock);
+    document.addEventListener('stateSaved', () => order.push('stateSaved'), { once: true });
+
+    await store.saveStateToDB({ skipCloudSync: true, prepareEntityMetadata: false });
+
+    expect(order.indexOf('transaction:complete')).toBeGreaterThan(-1);
+    expect(order.indexOf('stateSaved')).toBeGreaterThan(order.indexOf('transaction:complete'));
   });
 });

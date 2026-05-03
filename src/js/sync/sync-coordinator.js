@@ -19,7 +19,7 @@ import {
 } from './sync-health.js?v=8.32';
 import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.32';
 import { yieldToUI } from './sync-yield.js?v=8.32';
-import { firestoreLock } from './sync-lock.js?v=8.32';
+import { primarySyncLock } from './sync-lock.js?v=8.32';
 
 const AUTO_SYNC_DEBOUNCE_MS = 3000;
 const CIRCUIT_BREAKER_DEGRADED = 3;
@@ -30,7 +30,6 @@ let syncTimer = null;
 let lastQueuedAt = null;
 let lastReason = null;
 let failureCount = 0;
-let isManualTrigger = false;
 
 let _listeners = [];
 
@@ -186,7 +185,6 @@ export function schedulePrimarySync(reason = 'local-save', options = {}) {
 
   syncTimer = setTimeout(() => {
     syncTimer = null;
-    isManualTrigger = false;
     flushPrimarySyncNow({ reason }).catch(() => {
       if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
         updateCircuitBreaker(reason, status);
@@ -282,7 +280,7 @@ async function _executeFlush(options) {
 }
 
 export async function flushPrimarySyncNow(options = {}) {
-  return firestoreLock.withLock(() => _executeFlush(options));
+  return primarySyncLock.withLock(() => _executeFlush(options));
 }
 
 export function initSyncCoordinator() {
@@ -300,7 +298,6 @@ export function initSyncCoordinator() {
   });
 
   addListener(window, 'online', () => {
-    isManualTrigger = false;
     flushPrimarySyncWhenAllowed('reconnect').catch(() => {
       if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
         updateCircuitBreaker('reconnect', getFirestoreSyncStatus());
@@ -310,7 +307,6 @@ export function initSyncCoordinator() {
 
   addListener(document, 'visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      isManualTrigger = false;
       flushPrimarySyncWhenAllowed('foreground').catch(() => {
         if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
           updateCircuitBreaker('foreground', getFirestoreSyncStatus());

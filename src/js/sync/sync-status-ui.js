@@ -17,7 +17,11 @@ const STATUS_CONFIG = {
   synced: { icon: 'fa-check-circle', text: 'Sincronizado', cssClass: 'sync-status--synced' },
   error: { icon: 'fa-exclamation-circle', text: 'Erro no sync', cssClass: 'sync-status--error' },
   offline: { icon: 'fa-wifi fa-offline-icon', text: 'Offline', cssClass: 'sync-status--offline' },
-  degraded: { icon: 'fa-exclamation-triangle', text: 'Sync degradado', cssClass: 'sync-status--degraded' },
+  degraded: {
+    icon: 'fa-exclamation-triangle',
+    text: 'Sync degradado',
+    cssClass: 'sync-status--degraded',
+  },
 };
 
 // Map firestore-sync-engine statuses to canonical states

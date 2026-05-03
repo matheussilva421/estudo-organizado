@@ -135,9 +135,14 @@ export function setState(newState, options = {}) {
     if (Array.isArray(newVal)) {
       if (!Array.isArray(oldVal)) return deepClone(newVal);
       // Merge arrays by ID if items have id field
-      if (newVal.length > 0 && typeof newVal[0] === 'object' && newVal[0] !== null && 'id' in newVal[0]) {
-        const oldMap = new Map(oldVal.map(item => [item.id, item]));
-        const merged = newVal.map(item => {
+      if (
+        newVal.length > 0 &&
+        typeof newVal[0] === 'object' &&
+        newVal[0] !== null &&
+        'id' in newVal[0]
+      ) {
+        const oldMap = new Map(oldVal.map((item) => [item.id, item]));
+        const merged = newVal.map((item) => {
           if (item.id && oldMap.has(item.id)) {
             // Merge: prefer new value but preserve old fields not in new
             return { ...oldMap.get(item.id), ...item };
@@ -146,7 +151,7 @@ export function setState(newState, options = {}) {
         });
         // Keep old items that weren't in new array
         for (const oldItem of oldVal) {
-          if (!newVal.some(n => n.id === oldItem.id)) {
+          if (!newVal.some((n) => n.id === oldItem.id)) {
             merged.push(oldItem);
           }
         }
@@ -169,11 +174,37 @@ export function setState(newState, options = {}) {
   const normalized = {
     schemaVersion: newState.schemaVersion || (merge ? state.schemaVersion : DEFAULT_SCHEMA_VERSION),
     ciclo: merge
-      ? mergeValues(state.ciclo, newState.ciclo || { ativo: false, ciclosCompletos: 0, disciplinas: [] })
+      ? mergeValues(
+          state.ciclo,
+          newState.ciclo || { ativo: false, ciclosCompletos: 0, disciplinas: [] }
+        )
       : deepClone(newState.ciclo || { ativo: false, ciclosCompletos: 0, disciplinas: [] }),
     planejamento: merge
-      ? mergeValues(state.planejamento, newState.planejamento || { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null })
-      : deepClone(newState.planejamento || { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null }),
+      ? mergeValues(
+          state.planejamento,
+          newState.planejamento || {
+            ativo: false,
+            tipo: null,
+            disciplinas: [],
+            relevancia: {},
+            horarios: {},
+            sequencia: [],
+            ciclosCompletos: 0,
+            dataInicioCicloAtual: null,
+          }
+        )
+      : deepClone(
+          newState.planejamento || {
+            ativo: false,
+            tipo: null,
+            disciplinas: [],
+            relevancia: {},
+            horarios: {},
+            sequencia: [],
+            ciclosCompletos: 0,
+            dataInicioCicloAtual: null,
+          }
+        ),
     editais: merge
       ? mergeValues(state.editais, Array.isArray(newState.editais) ? newState.editais : [])
       : deepClone(Array.isArray(newState.editais) ? newState.editais : []),
@@ -185,28 +216,111 @@ export function setState(newState, options = {}) {
       : deepClone(Array.isArray(newState.arquivo) ? newState.arquivo : []),
     // Hábitos e Histórico
     habitos: merge
-      ? mergeValues(state.habitos, Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {}))
-      : deepClone(Object.assign({ questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] }, typeof newState.habitos === 'object' && newState.habitos !== null ? newState.habitos : {})),
+      ? mergeValues(
+          state.habitos,
+          Object.assign(
+            {
+              questoes: [],
+              revisao: [],
+              discursiva: [],
+              simulado: [],
+              leitura: [],
+              informativo: [],
+              sumula: [],
+              videoaula: [],
+              paginas: [],
+            },
+            typeof newState.habitos === 'object' && newState.habitos !== null
+              ? newState.habitos
+              : {}
+          )
+        )
+      : deepClone(
+          Object.assign(
+            {
+              questoes: [],
+              revisao: [],
+              discursiva: [],
+              simulado: [],
+              leitura: [],
+              informativo: [],
+              sumula: [],
+              videoaula: [],
+              paginas: [],
+            },
+            typeof newState.habitos === 'object' && newState.habitos !== null
+              ? newState.habitos
+              : {}
+          )
+        ),
     revisoes: merge
       ? mergeValues(state.revisoes, Array.isArray(newState.revisoes) ? newState.revisoes : [])
       : deepClone(Array.isArray(newState.revisoes) ? newState.revisoes : []),
     config: merge
-      ? mergeValues(state.config, Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3, entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG }, entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG } }, newState.config || {}))
-      : deepClone(Object.assign({ visualizacao: 'mes', primeirodiaSemana: 1, mostrarNumeroSemana: false, agruparEventos: true, frequenciaRevisao: [1, 7, 30, 90], materiasPorDia: 3, entityTombstones: [], firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG }, entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG } }, newState.config || {})),
+      ? mergeValues(
+          state.config,
+          Object.assign(
+            {
+              visualizacao: 'mes',
+              primeirodiaSemana: 1,
+              mostrarNumeroSemana: false,
+              agruparEventos: true,
+              frequenciaRevisao: [1, 7, 30, 90],
+              materiasPorDia: 3,
+              entityTombstones: [],
+              firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
+              entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG },
+            },
+            newState.config || {}
+          )
+        )
+      : deepClone(
+          Object.assign(
+            {
+              visualizacao: 'mes',
+              primeirodiaSemana: 1,
+              mostrarNumeroSemana: false,
+              agruparEventos: true,
+              frequenciaRevisao: [1, 7, 30, 90],
+              materiasPorDia: 3,
+              entityTombstones: [],
+              firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
+              entitySync: { ...DEFAULT_ENTITY_SYNC_CONFIG },
+            },
+            newState.config || {}
+          )
+        ),
     cronoLivre: merge
-      ? mergeValues(state.cronoLivre, newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 })
+      ? mergeValues(
+          state.cronoLivre,
+          newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 }
+        )
       : deepClone(newState.cronoLivre || { _timerStart: null, tempoAcumulado: 0 }),
     bancaRelevance: merge
-      ? mergeValues(state.bancaRelevance, newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} })
-      : deepClone(newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} }),
-    driveFileId: newState.driveFileId !== undefined ? newState.driveFileId : (merge ? state.driveFileId : null),
-    lastSync: newState.lastSync !== undefined ? newState.lastSync : (merge ? state.lastSync : null),
+      ? mergeValues(
+          state.bancaRelevance,
+          newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} }
+        )
+      : deepClone(
+          newState.bancaRelevance || { hotTopics: [], userMappings: {}, lessonMappings: {} }
+        ),
+    driveFileId:
+      newState.driveFileId !== undefined ? newState.driveFileId : merge ? state.driveFileId : null,
+    lastSync: newState.lastSync !== undefined ? newState.lastSync : merge ? state.lastSync : null,
   };
 
   // Avoid redundant deep clone — per-field cloning above already isolates state
   const cloned = normalized;
-  cloned.config.firestoreSync = Object.assign({}, DEFAULT_FIRESTORE_SYNC_CONFIG, cloned.config.firestoreSync || {});
-  cloned.config.entitySync = Object.assign({}, DEFAULT_ENTITY_SYNC_CONFIG, cloned.config.entitySync || {});
+  cloned.config.firestoreSync = Object.assign(
+    {},
+    DEFAULT_FIRESTORE_SYNC_CONFIG,
+    cloned.config.firestoreSync || {}
+  );
+  cloned.config.entitySync = Object.assign(
+    {},
+    DEFAULT_ENTITY_SYNC_CONFIG,
+    cloned.config.entitySync || {}
+  );
 
   // Replace the state object properties instead of the reference
   Object.keys(state).forEach((k) => delete state[k]);
@@ -649,6 +763,46 @@ export function saveStateToDB(
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
         const currentRequest = store.get(LOCAL_STATE_CURRENT_KEY);
+        let settled = false;
+
+        const rejectOnce = (err) => {
+          if (settled) return;
+          settled = true;
+          if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
+          reject(err);
+        };
+
+        transaction.oncomplete = () => {
+          if (settled) return;
+          settled = true;
+          if (!skipSyncEvent) {
+            document.dispatchEvent(
+              new CustomEvent('stateSaved', {
+                detail: {
+                  skipCloudSync,
+                  skipFirestoreSync,
+                  skipDriveSync,
+                  touchLocalBackup,
+                  metadataOnly: !touchLocalBackup,
+                },
+              })
+            );
+          }
+          if (emitUserSaveStatus) emitSaveStatus('saved');
+          appendSyncPerformanceMetric(state, {
+            name: 'localCommitMs',
+            durationMs: performance.now() - localCommitStart,
+          });
+          resolve();
+        };
+
+        transaction.onerror = () => {
+          rejectOnce(transaction.error || new Error('Transaction failed'));
+        };
+
+        transaction.onabort = () => {
+          rejectOnce(transaction.error || new Error('Transaction aborted'));
+        };
 
         currentRequest.onsuccess = () => {
           const currentEnvelope = currentRequest.result;
@@ -658,48 +812,12 @@ export function saveStateToDB(
           const envelope = createLocalStateEnvelope(state, { slot: 'current' });
           const currentWrite = store.put(envelope, LOCAL_STATE_CURRENT_KEY);
           const legacyWrite = store.put(state, LOCAL_STATE_LEGACY_KEY);
-          let completed = 0;
-          const finish = () => {
-            completed += 1;
-            if (completed < 2) return;
-            if (!skipSyncEvent) {
-              document.dispatchEvent(
-                new CustomEvent('stateSaved', {
-                  detail: {
-                    skipCloudSync,
-                    skipFirestoreSync,
-                    skipDriveSync,
-                    touchLocalBackup,
-                    metadataOnly: !touchLocalBackup,
-                  },
-                })
-              );
-            }
-            if (emitUserSaveStatus) emitSaveStatus('saved');
-            appendSyncPerformanceMetric(state, {
-              name: 'localCommitMs',
-              durationMs: performance.now() - localCommitStart,
-            });
-            resolve();
-          };
-          currentWrite.onsuccess = finish;
-          legacyWrite.onsuccess = finish;
           currentWrite.onerror = legacyWrite.onerror = (e) => {
-            const err = e?.target?.error || e;
-            if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
-            reject(err);
+            rejectOnce(e?.target?.error || e);
           };
         };
         currentRequest.onerror = (e) => {
-          const err = currentRequest.error || e?.target?.error || e;
-          if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
-          reject(err);
-        };
-
-        transaction.onerror = () => {
-          const err = transaction.error || new Error('Transaction failed');
-          if (emitUserSaveStatus) emitSaveStatus('error', { detail: describeSaveFailure(err) });
-          reject(err);
+          rejectOnce(currentRequest.error || e?.target?.error || e);
         };
       })
   );

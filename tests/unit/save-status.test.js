@@ -4,30 +4,45 @@ function createIndexedDBMock({ putError = null } = {}) {
   const fakeDb = {
     objectStoreNames: { contains: () => true },
     createObjectStore: vi.fn(),
-    transaction: vi.fn(() => ({
-      objectStore: () => ({
-        get: () => {
-          const req = {};
-          queueMicrotask(() => {
-            req.result = null;
-            req.onsuccess?.({ target: req });
-          });
-          return req;
-        },
-        put: () => {
-          const req = {};
-          queueMicrotask(() => {
-            if (putError) {
-              req.error = putError;
-              req.onerror?.({ target: req });
-            } else {
+    transaction: vi.fn(() => {
+      let pendingWrites = 0;
+      const tx = {
+        objectStore: () => ({
+          get: () => {
+            const req = {};
+            queueMicrotask(() => {
+              req.result = null;
               req.onsuccess?.({ target: req });
-            }
-          });
-          return req;
-        }
-      })
-    }))
+            });
+            return req;
+          },
+          put: () => {
+            pendingWrites += 1;
+            const req = {};
+            queueMicrotask(() => {
+              if (putError) {
+                req.error = putError;
+                tx.error = putError;
+                req.onerror?.({ target: req });
+                tx.onerror?.({ target: tx });
+              } else {
+                req.onsuccess?.({ target: req });
+                pendingWrites -= 1;
+                if (pendingWrites === 0) {
+                  queueMicrotask(() => tx.oncomplete?.());
+                }
+              }
+            });
+            return req;
+          },
+        }),
+        oncomplete: null,
+        onerror: null,
+        onabort: null,
+        error: null,
+      };
+      return tx;
+    }),
   };
 
   return {
@@ -38,7 +53,7 @@ function createIndexedDBMock({ putError = null } = {}) {
         req.onsuccess?.({ target: req });
       });
       return req;
-    })
+    }),
   };
 }
 
@@ -75,7 +90,7 @@ describe('save status indicator contract', () => {
 
   it('emits specific failure details when IndexedDB save fails', async () => {
     const store = await importStoreWithDB({
-      putError: new DOMException('Storage quota exceeded', 'QuotaExceededError')
+      putError: new DOMException('Storage quota exceeded', 'QuotaExceededError'),
     });
     const events = [];
     document.addEventListener('app:saveStatus', (event) => events.push(event.detail));
@@ -84,7 +99,7 @@ describe('save status indicator contract', () => {
 
     expect(events.at(-1)).toMatchObject({
       status: 'error',
-      message: 'Erro ao salvar'
+      message: 'Erro ao salvar',
     });
     expect(events.at(-1).detail).toContain('Espaço de armazenamento insuficiente');
     expect(events.at(-1).detail).toContain('QuotaExceededError');
@@ -99,16 +114,19 @@ describe('save status indicator contract', () => {
     const app = await import('../../src/js/app.js?v=8.28');
     app.initSaveStatusIndicator();
 
-    document.dispatchEvent(new CustomEvent('app:saveStatus', {
-      detail: {
-        status: 'error',
-        message: 'Erro ao salvar',
-        detail: 'IndexedDB indisponível: InvalidStateError'
-      }
-    }));
+    document.dispatchEvent(
+      new CustomEvent('app:saveStatus', {
+        detail: {
+          status: 'error',
+          message: 'Erro ao salvar',
+          detail: 'IndexedDB indisponível: InvalidStateError',
+        },
+      })
+    );
 
     expect(document.getElementById('save-status').textContent).toContain('Erro ao salvar');
-    expect(document.getElementById('config-save-status-detail').textContent)
-      .toContain('IndexedDB indisponível: InvalidStateError');
+    expect(document.getElementById('config-save-status-detail').textContent).toContain(
+      'IndexedDB indisponível: InvalidStateError'
+    );
   });
 });

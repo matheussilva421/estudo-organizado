@@ -1,11 +1,18 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-import { SyncLock, firestoreLock, cloudflareLock, driveLock } from '../../src/js/sync/sync-lock.js?v=8.32';
+import {
+  SyncLock,
+  firestoreLock,
+  primarySyncLock,
+  cloudflareLock,
+  driveLock,
+} from '../../src/js/sync/sync-lock.js?v=8.32';
 
 describe('sync/sync-lock.js', () => {
   beforeEach(() => {
     // Reset all locks before each test
     firestoreLock.reset();
+    primarySyncLock.reset();
     cloudflareLock.reset();
     driveLock.reset();
   });
@@ -17,7 +24,7 @@ describe('sync/sync-lock.js', () => {
 
       await lock.withLock(async () => {
         order.push('first-start');
-        await new Promise(r => setTimeout(r, 50));
+        await new Promise((r) => setTimeout(r, 50));
         order.push('first-end');
       });
 
@@ -35,7 +42,7 @@ describe('sync/sync-lock.js', () => {
 
       const p1 = lock.withLock(async () => {
         concurrent = true;
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 100));
         concurrent = false;
         return 'first';
       });
@@ -56,38 +63,57 @@ describe('sync/sync-lock.js', () => {
 
       // Hold the lock longer than timeout
       const held = lock.withLock(async () => {
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 500));
         return 'held';
       });
 
       // This should timeout
-      await expect(lock.withLock(async () => 'should-not-run', { timeoutMs: 100 }))
-        .rejects.toThrow(/timeout/i);
+      await expect(lock.withLock(async () => 'should-not-run', { timeoutMs: 100 })).rejects.toThrow(
+        /timeout/i
+      );
 
       // Original should still complete
       await held;
     });
 
-    it('supports re-entrancy — same call can acquire twice', async () => {
+    it('queues calls started after the first operation has entered the critical section', async () => {
       const lock = new SyncLock();
-      let depth = 0;
-
-      await lock.withLock(async () => {
-        depth++;
-        await lock.withLock(async () => {
-          depth++;
-        });
+      const order = [];
+      let releaseFirst;
+      const firstCanFinish = new Promise((resolve) => {
+        releaseFirst = resolve;
       });
 
-      expect(depth).toBe(2);
+      const first = lock.withLock(async () => {
+        order.push('first-start');
+        await firstCanFinish;
+        order.push('first-end');
+      });
+
+      await vi.waitFor(() => {
+        expect(order).toEqual(['first-start']);
+      });
+
+      const second = lock.withLock(async () => {
+        order.push('second-start');
+      });
+
+      await Promise.resolve();
+      expect(order).toEqual(['first-start']);
+
+      releaseFirst();
+      await Promise.all([first, second]);
+      expect(order).toEqual(['first-start', 'first-end', 'second-start']);
     });
 
     it('releases lock even if operation throws', async () => {
       const lock = new SyncLock();
 
-      await expect(lock.withLock(async () => {
-        throw new Error('intentional');
-      })).rejects.toThrow('intentional');
+      await expect(
+        lock.withLock(async () => {
+          throw new Error('intentional');
+        })
+      ).rejects.toThrow('intentional');
 
       // Lock should be released — this should not hang
       let ran = false;
@@ -110,7 +136,7 @@ describe('sync/sync-lock.js', () => {
       // Start a long-running operation
       const p = lock.withLock(async () => {
         started = true;
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise((r) => setTimeout(r, 5000));
       });
 
       // Reset should allow new operations
@@ -132,21 +158,36 @@ describe('sync/sync-lock.js', () => {
     it('exports firestoreLock', async () => {
       expect(firestoreLock).toBeInstanceOf(SyncLock);
       let ran = false;
-      await firestoreLock.withLock(async () => { ran = true; });
+      await firestoreLock.withLock(async () => {
+        ran = true;
+      });
       expect(ran).toBe(true);
     });
 
     it('exports cloudflareLock', async () => {
       expect(cloudflareLock).toBeInstanceOf(SyncLock);
       let ran = false;
-      await cloudflareLock.withLock(async () => { ran = true; });
+      await cloudflareLock.withLock(async () => {
+        ran = true;
+      });
+      expect(ran).toBe(true);
+    });
+
+    it('exports primarySyncLock', async () => {
+      expect(primarySyncLock).toBeInstanceOf(SyncLock);
+      let ran = false;
+      await primarySyncLock.withLock(async () => {
+        ran = true;
+      });
       expect(ran).toBe(true);
     });
 
     it('exports driveLock', async () => {
       expect(driveLock).toBeInstanceOf(SyncLock);
       let ran = false;
-      await driveLock.withLock(async () => { ran = true; });
+      await driveLock.withLock(async () => {
+        ran = true;
+      });
       expect(ran).toBe(true);
     });
 
