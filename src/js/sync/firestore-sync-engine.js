@@ -12,6 +12,7 @@ import {
   createDefaultFirestoreSyncConfig,
   createFirestoreSnapshotEnvelope,
   getEnvelopeUpdatedAt,
+  getFirestoreDeviceId,
   isRemoteNewer,
 } from './firestore-schema.js?v=8.36';
 import {
@@ -107,7 +108,7 @@ async function reconcileFirestorePendingState(skipRender = true) {
   const config = getConfig();
   const pending = await getPendingFirestoreSnapshot();
 
-  // Clear stale snapshot conflicts when there is no pending snapshot to resolve.
+  // Clear stale conflicts when there is no pending snapshot to resolve.
   // Entity-level conflicts are already the conflict payload and must remain visible.
   if (config.conflict && config.conflict.type !== 'entity-conflict' && !pending) {
     config.conflict = null;
@@ -117,12 +118,33 @@ async function reconcileFirestorePendingState(skipRender = true) {
     emitStatus('synced');
   }
 
+  // Entity-conflict with no pending snapshot: clear hasPendingWrites but keep conflict for UI resolution.
+  if (config.conflict?.type === 'entity-conflict' && !pending && config.hasPendingWrites) {
+    config.hasPendingWrites = false;
+    await persistSyncConfig(skipRender);
+  }
+
   if (!pending && config.hasPendingWrites && !config.conflict) {
     config.hasPendingWrites = false;
     config.lastError = null;
     await persistSyncConfig(skipRender);
     emitStatus('synced');
   }
+
+  // Stale pending snapshot: enqueued >60s ago with zero attempts and no conflict.
+  // Clear it to prevent hasPendingWrites from being stuck forever.
+  if (pending && !config.conflict && pending.attempts === 0) {
+    const queuedAge = Date.now() - new Date(pending.queuedAt).getTime();
+    if (Number.isFinite(queuedAge) && queuedAge > 60000) {
+      await markFirestoreSnapshotSynced();
+      config.hasPendingWrites = false;
+      config.lastError = null;
+      await persistSyncConfig(skipRender);
+      emitStatus('synced');
+      return null;
+    }
+  }
+
   return pending;
 }
 
@@ -603,8 +625,15 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     !options.forceOverwrite &&
     pending.envelope.baseRemoteUpdatedAt !== getEnvelopeUpdatedAt(remote)
   ) {
-    await registerConflict(remote, pending.envelope);
-    return false;
+    const remoteDeviceId = remote.deviceId || null;
+    const localDeviceId = getFirestoreDeviceId();
+
+    if (remoteDeviceId && remoteDeviceId !== localDeviceId) {
+      await registerConflict(remote, pending.envelope);
+      return false;
+    }
+
+    pending.envelope.baseRemoteUpdatedAt = getEnvelopeUpdatedAt(remote);
   }
 
   await yieldToUIWithBudget(50, startTime);
@@ -856,6 +885,61 @@ export async function mergeFromFirestore() {
         detail: { msg: 'Erro ao mesclar dados do Firestore', type: 'error' },
       })
     );
+    config.lastError = err.message || String(err);
+    await persistSyncConfig(false);
+    emitStatus('error', { error: config.lastError });
+    return false;
+  }
+}
+
+export async function resolveEntityConflictKeepLocal() {
+  const config = getConfig();
+  if (!config.conflict?.items) return false;
+
+  config.conflict = null;
+  config.hasPendingWrites = true;
+  config.lastError = null;
+  await persistSyncConfig(true);
+  await clearFirestoreConflict();
+
+  const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+  if (!queued) return false;
+  return await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
+}
+
+export async function resolveEntityConflictKeepRemote() {
+  const config = getConfig();
+  if (!config.conflict?.items) return false;
+
+  try {
+    const { db, uid } = requireSignedInServices();
+    const remote = await readFirestoreSnapshot(db, uid);
+    if (!remote) {
+      config.conflict = null;
+      await persistSyncConfig(true);
+      return false;
+    }
+
+    const nextState = applyEnvelopeToLocalState(remote, config);
+    setState(nextState, { merge: true });
+
+    config.conflict = null;
+    config.hasPendingWrites = false;
+    config.lastError = null;
+    await persistSyncConfig(true);
+    await clearFirestoreConflict();
+    await markFirestoreSnapshotSynced();
+    await saveStateToDB({
+      skipCloudSync: true,
+      skipFirestoreSync: true,
+      skipDriveSync: true,
+      touchLocalBackup: false,
+    });
+
+    const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+    if (!queued) return false;
+    return await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
+  } catch (err) {
     config.lastError = err.message || String(err);
     await persistSyncConfig(false);
     emitStatus('error', { error: config.lastError });

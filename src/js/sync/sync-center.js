@@ -161,7 +161,7 @@ function deriveQuietSyncView({ syncHealth, firestore }) {
 export function canAutoSyncFirestore(config = {}, pending = null, now = Date.now()) {
   if (!config.enabled) return false;
   if (config.mode !== 'primary') return false;
-  if (config.conflict) return false;
+  if (config.conflict?.type === 'entity-conflict') return false;
   if (!pending) return true;
   if (pending.status === 'conflict') return false;
   if (pending.nextAttemptAt && toTime(pending.nextAttemptAt) > now) return false;
