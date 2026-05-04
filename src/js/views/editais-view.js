@@ -322,6 +322,9 @@ export function renderEditais(el) {
 
 // ── Editais View: Tree Render ──
 export function renderEditalTree(edital) {
+  const editalIndex = state.editais.findIndex((item) => item.id === edital.id);
+  const isFirstEdital = editalIndex <= 0;
+  const isLastEdital = editalIndex === -1 || editalIndex >= state.editais.length - 1;
   const ativas = (edital.disciplinas || []).filter((d) => !d.arquivada);
   const arquivadas = (edital.disciplinas || []).filter((d) => d.arquivada);
   const discCountText =
@@ -341,6 +344,8 @@ export function renderEditalTree(edital) {
         <span class="flex-shrink-0" style="width:10px; height:10px; border-radius:50%; background:${edital.cor || '#8aa4bf'}; display:inline-block;"></span>
         <span class="flex-1 text-lg font-bold">${esc(edital.nome)}</span>
         <span class="text-sm" style="opacity:0.7;">${discCountText}</span>
+        <button type="button" class="icon-btn" title="Mover edital para cima" data-action="move-edital" data-edital-id="${edital.id}" data-dir="-1" ${isFirstEdital ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
+        <button type="button" class="icon-btn" title="Mover edital para baixo" data-action="move-edital" data-edital-id="${edital.id}" data-dir="1" ${isLastEdital ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
         <button class="icon-btn" title="Adicionar Tópicos" data-action="navigate-with-ctx" data-view="vertical" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">📝</button>
         <button class="icon-btn" title="Analisador de Bancas" data-action="navigate-with-ctx" data-view="banca-analyzer" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">🧠</button>
         <button class="icon-btn" title="Editar" data-action="open-edital-modal" data-edital-id="${edital.id}">✏️</button>

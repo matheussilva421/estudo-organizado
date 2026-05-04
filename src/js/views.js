@@ -1561,7 +1561,7 @@ export function openEditaModal(editaId = null) {
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="edital-colors">
-        ${COLORS.map((c) => `<div class="color-swatch ${edital && edital.cor === c ? 'selected' : ''}" data-action="select-color" data-color="${c}" data-container="edital-colors" data-color-value="${c}"></div>`).join('')}
+        ${COLORS.map((c) => `<div class="color-swatch ${edital && edital.cor === c ? 'selected' : ''}" style="background:${c};" data-action="select-color" data-color="${c}" data-container="edital-colors" data-color-value="${c}" title="${c}" aria-label="Selecionar cor ${c}"></div>`).join('')}
       </div>
       <input type="hidden" id="edital-cor" value="${edital ? edital.cor : COLORS[0]}">
     </div>
@@ -1621,6 +1621,17 @@ export function saveEdital(editaId) {
   showToast('Edital salvo!', 'success');
 }
 
+export function moveEdital(editaId, dir) {
+  const currentIndex = state.editais.findIndex((edital) => edital.id === editaId);
+  const targetIndex = currentIndex + Number(dir);
+  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= state.editais.length) return;
+
+  const [edital] = state.editais.splice(currentIndex, 1);
+  state.editais.splice(targetIndex, 0, edital);
+  scheduleSave();
+  renderCurrentView();
+}
+
 // =============================================
 // DISCIPLINE MODAL
 // =============================================
@@ -1648,7 +1659,7 @@ export function openDiscModal(editaId, discId) {
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="disc-colors">
-        ${COLORS.map((c, _i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" data-disc-color="${c}" data-action="select-disc-color" data-color="${c}"></div>`).join('')}
+        ${COLORS.map((c, _i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" style="background:${c};" data-disc-color="${c}" data-action="select-disc-color" data-color="${c}" title="${c}" aria-label="Selecionar cor ${c}"></div>`).join('')}
       </div>
       <input type="hidden" id="disc-cor" value="${isEdit ? existingDisc.cor : COLORS[0]}">
     </div>

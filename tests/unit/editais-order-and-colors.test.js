@@ -1,0 +1,132 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+describe('editais colors and ordering', () => {
+  let views;
+  let editaisView;
+  let storeModule;
+  let componentsModule;
+  let appModule;
+
+  beforeEach(async () => {
+    vi.resetModules();
+
+    storeModule = {
+      state: {
+        config: {},
+        editais: [],
+        eventos: [],
+        arquivo: [],
+        revisoes: [],
+        habitos: { questoes: [], simulado: [] },
+        planejamento: { ativo: false, sequencia: [], disciplinas: [], relevancia: {} },
+      },
+      scheduleSave: vi.fn(),
+    };
+    componentsModule = {
+      renderCurrentView: vi.fn(),
+      renderEventCard: vi.fn(() => '<div>card</div>'),
+    };
+    appModule = {
+      showToast: vi.fn(),
+      openModal: vi.fn(),
+      closeModal: vi.fn(),
+      showConfirm: vi.fn((message, callback) => callback()),
+      getLastSaveStatus: vi.fn(() => ({ status: 'ok' })),
+      THEME_OPTIONS: [{ value: 'grafite', label: 'Grafite' }],
+      normalizeTheme: vi.fn((theme) => theme || 'grafite'),
+      applyTheme: vi.fn(),
+    };
+
+    vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
+    vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
+    vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
+    vi.doMock('../../src/js/logic.js?v=8.37', () => ({
+      getDisc: vi.fn(),
+      getDisciplinaById: vi.fn(),
+      invalidateDiscCache: vi.fn(),
+      invalidateDashCaches: vi.fn(),
+      invalidateRevCache: vi.fn(),
+      syncCicloToEventos: vi.fn(),
+    }));
+    vi.doMock('../../src/js/utils.js?v=8.37', () => ({
+      esc: vi.fn((value) => value || ''),
+      todayStr: vi.fn(() => '2026-05-04'),
+      cutoffDateStr: vi.fn(() => '2026-04-29'),
+      formatDate: vi.fn((value) => value),
+      formatTime: vi.fn((value) => `${value}s`),
+      uid: vi.fn(() => 'ed_new'),
+      HABIT_TYPES: [],
+      addCleanupListener: vi.fn(),
+    }));
+    vi.doMock('../../src/js/state/dashboard-context.js?v=8.37', () => ({
+      getActiveDashboardDiscCtx: vi.fn(() => null),
+      setActiveDashboardDiscCtx: vi.fn(),
+      clearActiveDashboardDiscCtx: vi.fn(),
+      setActiveDashboardTab: vi.fn(),
+      resetActiveDashboardTab: vi.fn(),
+    }));
+    vi.doMock('../../src/js/ui/event-modals.js?v=8.37', () => ({
+      openAddEventModal: vi.fn(),
+      loadAssuntos: vi.fn(),
+    }));
+    vi.doMock('../../src/js/views/dashboard-view.js', () => ({
+      renderDisciplinaDashboard: vi.fn(),
+    }));
+    vi.doMock('../../src/js/state/chart-state.js?v=8.37', () => ({
+      setDiscChartInstance: vi.fn(),
+      getDiscChartInstance: vi.fn(() => null),
+    }));
+
+    views = await import('../../src/js/views.js?v=8.37');
+    editaisView = await import('../../src/js/views/editais-view.js?v=8.37');
+  });
+
+  it('renders visible color swatches when opening the edital modal', () => {
+    const titleEl = { textContent: '' };
+    const bodyEl = { innerHTML: '' };
+    const firstSwatch = { classList: { add: vi.fn() } };
+    vi.spyOn(document, 'getElementById')
+      .mockReturnValueOnce(titleEl)
+      .mockReturnValueOnce(bodyEl);
+    vi.spyOn(document, 'querySelector').mockReturnValue(firstSwatch);
+
+    views.openEditaModal();
+
+    expect(bodyEl.innerHTML).toContain('style="background:#8aa4bf;"');
+    expect(bodyEl.innerHTML).toContain('data-color-value="#8aa4bf"');
+    expect(firstSwatch.classList.add).toHaveBeenCalledWith('selected');
+    expect(appModule.openModal).toHaveBeenCalledWith('modal-edital');
+  });
+
+  it('renders edital ordering controls on edital cards', () => {
+    storeModule.state.editais = [
+      { id: 'ed_1', nome: 'TCE - RN', cor: '#8aa4bf', disciplinas: [] },
+      { id: 'ed_2', nome: 'PGE-RN', cor: '#7dd3a8', disciplinas: [] },
+    ];
+
+    const html = editaisView.renderEditalTree(storeModule.state.editais[1]);
+
+    expect(html).toContain('data-action="move-edital"');
+    expect(html).toContain('data-dir="-1"');
+    expect(html).toContain('data-dir="1"');
+  });
+
+  it('moves editais up and down while preserving bounds', () => {
+    storeModule.state.editais = [
+      { id: 'ed_1', nome: 'TCE - RN', disciplinas: [] },
+      { id: 'ed_2', nome: 'PGE-RN', disciplinas: [] },
+      { id: 'ed_3', nome: 'TRF', disciplinas: [] },
+    ];
+
+    views.moveEdital('ed_2', -1);
+    expect(storeModule.state.editais.map((edital) => edital.id)).toEqual(['ed_2', 'ed_1', 'ed_3']);
+
+    views.moveEdital('ed_2', -1);
+    expect(storeModule.state.editais.map((edital) => edital.id)).toEqual(['ed_2', 'ed_1', 'ed_3']);
+
+    views.moveEdital('ed_2', 1);
+    expect(storeModule.state.editais.map((edital) => edital.id)).toEqual(['ed_1', 'ed_2', 'ed_3']);
+    expect(storeModule.scheduleSave).toHaveBeenCalledTimes(2);
+    expect(componentsModule.renderCurrentView).toHaveBeenCalledTimes(2);
+  });
+});

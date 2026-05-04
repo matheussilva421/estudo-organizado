@@ -75,6 +75,13 @@ registerAction('delete-edital', (el) => {
     });
   }
 });
+registerAction('move-edital', (el) => {
+  const editalId = el.dataset.editalId;
+  const dir = parseInt(el.dataset.dir, 10);
+  if (editalId && Number.isFinite(dir)) {
+    import('../../views.js?v=8.37').then(({ moveEdital }) => moveEdital(editalId, dir));
+  }
+});
 
 registerAction('open-disc-modal', (el) => {
   const editalId = el.dataset.editalId;
