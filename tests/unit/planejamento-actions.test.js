@@ -45,13 +45,13 @@ describe('ui/actions/planejamento.js', () => {
     eventModals = { openEventDetail: vi.fn() };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
-    vi.doMock('../../src/js/planejamento-wizard.js?v=8.36', () => wizard);
-    vi.doMock('../../src/js/views.js?v=8.36', () => viewsModule);
-    vi.doMock('../../src/js/logic.js?v=8.36', () => logicModule);
-    vi.doMock('../../src/js/app.js?v=8.36', () => appModule);
-    vi.doMock('../../src/js/store.js?v=8.36', () => storeModule);
-    vi.doMock('../../src/js/components.js?v=8.36', () => componentsModule);
-    vi.doMock('../../src/js/ui/event-modals.js?v=8.36', () => eventModals);
+    vi.doMock('../../src/js/planejamento-wizard.js?v=8.37', () => wizard);
+    vi.doMock('../../src/js/views.js?v=8.37', () => viewsModule);
+    vi.doMock('../../src/js/logic.js?v=8.37', () => logicModule);
+    vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
+    vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
+    vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
+    vi.doMock('../../src/js/ui/event-modals.js?v=8.37', () => eventModals);
 
     await import('../../src/js/ui/actions/planejamento.js');
   });

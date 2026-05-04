@@ -27,10 +27,10 @@ describe('ui/actions/modais.js', () => {
     planejamentoWizard = { openPlanejamentoWizard: vi.fn() };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
-    vi.doMock('../../src/js/app.js?v=8.36', () => appModule);
-    vi.doMock('../../src/js/registro-sessao.js?v=8.36', () => registroSessao);
-    vi.doMock('../../src/js/ui/event-modals.js?v=8.36', () => eventModals);
-    vi.doMock('../../src/js/planejamento-wizard.js?v=8.36', () => planejamentoWizard);
+    vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
+    vi.doMock('../../src/js/registro-sessao.js?v=8.37', () => registroSessao);
+    vi.doMock('../../src/js/ui/event-modals.js?v=8.37', () => eventModals);
+    vi.doMock('../../src/js/planejamento-wizard.js?v=8.37', () => planejamentoWizard);
 
     await import('../../src/js/ui/actions/modais.js');
   });

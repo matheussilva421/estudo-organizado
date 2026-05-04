@@ -83,7 +83,7 @@ describe('views/config-view.js', () => {
       previewDriveRestore: vi.fn(() => Promise.resolve({ eventos: [{ id: 'drive_remote' }], config: {} })),
       pullFromDrive: vi.fn(),
     };
-    vi.doMock('../../src/js/backup-restore.js?v=8.36', () => ({
+    vi.doMock('../../src/js/backup-restore.js?v=8.37', () => ({
       previewRestoreImpact: vi.fn(() => ({
         totals: { added: 2, removed: 1, changed: 1, preserved: 3 },
         byCollection: {
@@ -95,8 +95,8 @@ describe('views/config-view.js', () => {
       validateBackupPayload: vi.fn(() => ({ ok: true, issues: [] })),
     }));
 
-    vi.doMock('../../src/js/app.js?v=8.36', () => appModule);
-    vi.doMock('../../src/js/utils.js?v=8.36', () => ({
+    vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
+    vi.doMock('../../src/js/utils.js?v=8.37', () => ({
       cutoffDateStr: vi.fn((d) => {
         const dt = new Date();
         dt.setDate(dt.getDate() - d);
@@ -106,15 +106,15 @@ describe('views/config-view.js', () => {
       todayStr: vi.fn(() => '2026-04-29'),
       invalidateTodayCache: vi.fn(),
     }));
-    vi.doMock('../../src/js/store.js?v=8.36', () => storeModule);
-    vi.doMock('../../src/js/logic.js?v=8.36', () => logicModule);
-    vi.doMock('../../src/js/components.js?v=8.36', () => componentsModule);
-    vi.doMock('../../src/js/sync/sync-center.js?v=8.36', () => syncCenter);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.36', () => firestoreSync);
-    vi.doMock('../../src/js/cloud-sync.js?v=8.36', () => cloudSync);
-    vi.doMock('../../src/js/drive-sync.js?v=8.36', () => driveSync);
+    vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
+    vi.doMock('../../src/js/logic.js?v=8.37', () => logicModule);
+    vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
+    vi.doMock('../../src/js/sync/sync-center.js?v=8.37', () => syncCenter);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.37', () => firestoreSync);
+    vi.doMock('../../src/js/cloud-sync.js?v=8.37', () => cloudSync);
+    vi.doMock('../../src/js/drive-sync.js?v=8.37', () => driveSync);
 
-    configView = await import('../../src/js/views/config-view.js?v=8.36');
+    configView = await import('../../src/js/views/config-view.js?v=8.37');
   });
 
   describe('setTheme()', () => {

@@ -3,7 +3,7 @@ import { createBaseState, createEvento } from '../helpers/state-builders.js';
 
 async function importCloudSync({ fetchImpl } = {}) {
   vi.resetModules();
-  vi.doMock('../../src/js/sync/sync-center.js?v=8.36', () => ({
+  vi.doMock('../../src/js/sync/sync-center.js?v=8.37', () => ({
     mergeStudyStates: vi.fn((local, remote) => ({
       ...local,
       eventos: [...(local.eventos || []), ...(remote.eventos || [])]
@@ -11,8 +11,8 @@ async function importCloudSync({ fetchImpl } = {}) {
   }));
   vi.stubGlobal('fetch', fetchImpl || vi.fn());
 
-  const store = await import('../../src/js/store.js?v=8.36');
-  const cloudSync = await import('../../src/js/cloud-sync.js?v=8.36');
+  const store = await import('../../src/js/store.js?v=8.37');
+  const cloudSync = await import('../../src/js/cloud-sync.js?v=8.37');
   return { store, cloudSync };
 }
 

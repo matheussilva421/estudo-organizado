@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { yieldToUI, yieldToUIWithBudget, measureAsync } from '../../src/js/sync/sync-yield.js?v=8.36';
+import { yieldToUI, yieldToUIWithBudget, measureAsync } from '../../src/js/sync/sync-yield.js?v=8.37';
 
 describe('sync/sync-yield.js', () => {
   it('yields to UI via rAF+MessageChannel (or setTimeout fallback)', async () => {

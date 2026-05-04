@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { planNextSyncAction, ACTIONS } from '../../src/js/sync/sync-planner.js?v=8.36';
+import { planNextSyncAction, ACTIONS } from '../../src/js/sync/sync-planner.js?v=8.37';
 
 const BASE_INPUT = {
   firestoreConfigured: true,

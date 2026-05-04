@@ -50,29 +50,29 @@ describe('sync/sync-coordinator.js', () => {
       getPendingFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
     };
 
-    vi.doMock('../../src/js/store.js?v=8.36', () => storeModule);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.36', () => firestoreSync);
-    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.36', () => firestoreOutbox);
-    vi.doMock('../../src/js/sync/sync-health.js?v=8.36', async () => {
-      const realHealth = await import('../../src/js/sync/sync-health.js?v=8.36');
+    vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.37', () => firestoreSync);
+    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.37', () => firestoreOutbox);
+    vi.doMock('../../src/js/sync/sync-health.js?v=8.37', async () => {
+      const realHealth = await import('../../src/js/sync/sync-health.js?v=8.37');
       return {
         appendSyncHealthEvent: vi.fn(),
         appendSyncPerformanceMetric: vi.fn(),
         deriveSyncHealthState: vi.fn((input) => realHealth.deriveSyncHealthState(input)),
       };
     });
-    vi.doMock('../../src/js/sync/sync-planner.js?v=8.36', async () => {
-      const realPlanner = await import('../../src/js/sync/sync-planner.js?v=8.36');
+    vi.doMock('../../src/js/sync/sync-planner.js?v=8.37', async () => {
+      const realPlanner = await import('../../src/js/sync/sync-planner.js?v=8.37');
       return {
         planNextSyncAction: vi.fn((input) => realPlanner.planNextSyncAction(input)),
         ACTIONS: realPlanner.ACTIONS,
       };
     });
-    vi.doMock('../../src/js/sync/sync-yield.js?v=8.36', () => ({
+    vi.doMock('../../src/js/sync/sync-yield.js?v=8.37', () => ({
       yieldToUI: vi.fn(() => Promise.resolve()),
     }));
 
-    coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.36');
+    coordinator = await import('../../src/js/sync/sync-coordinator.js?v=8.37');
   });
 
   describe('getSyncCoordinatorStatus()', () => {

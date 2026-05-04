@@ -23,7 +23,7 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
       addEventListener: vi.fn(),
     };
 
-    vi.doMock('../../src/js/store.js?v=8.36', () => ({
+    vi.doMock('../../src/js/store.js?v=8.37', () => ({
       state: {
         config: {
           firestoreSync: { enabled: true, mode: 'primary' },
@@ -37,7 +37,7 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
       saveStateToDB: mockSaveStateToDB,
     }));
 
-    vi.doMock('../../src/js/firebase/firebase-client.js?v=8.36', () => ({
+    vi.doMock('../../src/js/firebase/firebase-client.js?v=8.37', () => ({
       getFirebaseConfigStatus: vi.fn(() => ({ projectId: 'test-project' })),
       initFirebaseServices: vi.fn(() => ({
         configured: true,
@@ -50,12 +50,12 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
       completeGoogleRedirectSignIn: vi.fn(),
     }));
 
-    vi.doMock('../../src/js/sync/firestore-repository.js?v=8.36', () => ({
+    vi.doMock('../../src/js/sync/firestore-repository.js?v=8.37', () => ({
       readFirestoreSnapshot: mockReadSnapshot,
       writeFirestoreSnapshot: vi.fn(() => Promise.resolve(true)),
     }));
 
-    vi.doMock('../../src/js/sync/firestore-schema.js?v=8.36', () => ({
+    vi.doMock('../../src/js/sync/firestore-schema.js?v=8.37', () => ({
       isRemoteNewer: vi.fn(() => true),
       applyEnvelopeToLocalState: vi.fn(() => ({
         config: { localBackupAt: '2026-01-02T00:00:00.000Z' },
@@ -74,7 +74,7 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
       isRemoteStateNewer: vi.fn(() => true),
     }));
 
-    vi.doMock('../../src/js/sync/sync-center.js?v=8.36', () => ({
+    vi.doMock('../../src/js/sync/sync-center.js?v=8.37', () => ({
       canAutoSyncFirestore: vi.fn(() => true),
       isRemoteStateNewer: mockIsRemoteStateNewer,
       isEmptyState: vi.fn(() => false),
@@ -82,12 +82,12 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
       buildSyncCenterModel: vi.fn(() => ({})),
     }));
 
-    vi.doMock('../../src/js/sync/sync-health.js?v=8.36', () => ({
+    vi.doMock('../../src/js/sync/sync-health.js?v=8.37', () => ({
       deriveSyncHealthState: vi.fn(() => ({ state: 'synced', requiresAction: false, metrics: {} })),
       summarizeSyncMetrics: vi.fn(() => ({ successRate: 1, avgDuration: 0 })),
     }));
 
-    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.36', () => ({
+    vi.doMock('../../src/js/sync/firestore-outbox.js?v=8.37', () => ({
       clearFirestoreConflict: vi.fn(() => Promise.resolve()),
       enqueueFirestoreSnapshot: vi.fn(() => Promise.resolve()),
       getPendingFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
@@ -96,15 +96,15 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
       saveFirestoreMeta: vi.fn(() => Promise.resolve()),
     }));
 
-    vi.doMock('../../src/js/sync/sync-lock.js?v=8.36', () => ({
+    vi.doMock('../../src/js/sync/sync-lock.js?v=8.37', () => ({
       firestoreLock: { acquire: vi.fn(() => Promise.resolve(true)), release: vi.fn() },
     }));
 
-    vi.doMock('../../src/js/sync/sync-yield.js?v=8.36', () => ({
+    vi.doMock('../../src/js/sync/sync-yield.js?v=8.37', () => ({
       yieldToUIWithBudget: vi.fn(() => Promise.resolve()),
     }));
 
-    const module = await import('../../src/js/sync/firestore-sync-engine.js?v=8.36');
+    const module = await import('../../src/js/sync/firestore-sync-engine.js?v=8.37');
     pollFirestoreRemote = module.pollFirestoreRemote;
     startPolling = module.startPolling;
     stopPolling = module.stopPolling;
@@ -120,9 +120,9 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
 
   describe('pollFirestoreRemote()', () => {
     it('applies remote state when remote is newer', async () => {
-      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.36');
-      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js?v=8.36');
-      const { setState } = await import('../../src/js/store.js?v=8.36');
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js?v=8.37');
+      const { setState } = await import('../../src/js/store.js?v=8.37');
 
       readFirestoreSnapshot.mockResolvedValue({
         payloadUpdatedAt: '2026-01-02T00:00:00.000Z',
@@ -137,9 +137,9 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     });
 
     it('does not change state when remote is null', async () => {
-      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.36');
-      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js?v=8.36');
-      const { setState } = await import('../../src/js/store.js?v=8.36');
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js?v=8.37');
+      const { setState } = await import('../../src/js/store.js?v=8.37');
 
       readFirestoreSnapshot.mockResolvedValue(null);
 
@@ -150,8 +150,8 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     });
 
     it('does not change state when remote is older than local', async () => {
-      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.36');
-      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js?v=8.36');
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js?v=8.37');
 
       readFirestoreSnapshot.mockResolvedValue({
         payloadUpdatedAt: '2025-01-01T00:00:00.000Z',
@@ -166,8 +166,8 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     });
 
     it('does not change state when timestamps are equal', async () => {
-      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.36');
-      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js?v=8.36');
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+      const { applyEnvelopeToLocalState } = await import('../../src/js/sync/firestore-schema.js?v=8.37');
 
       readFirestoreSnapshot.mockResolvedValue({
         payloadUpdatedAt: '2026-01-01T00:00:00.000Z',
@@ -181,8 +181,8 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     });
 
     it('calls saveStateToDB with skipFirestoreSync after applying remote state', async () => {
-      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.36');
-      const { saveStateToDB } = await import('../../src/js/store.js?v=8.36');
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+      const { saveStateToDB } = await import('../../src/js/store.js?v=8.37');
 
       readFirestoreSnapshot.mockResolvedValue({
         payloadUpdatedAt: '2026-01-02T00:00:00.000Z',
@@ -199,7 +199,7 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
 
   describe('startPolling() / stopPolling()', () => {
     it('startPolling starts an interval at 30000ms by default', async () => {
-      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.36');
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
 
       startPolling();
 
@@ -210,7 +210,7 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     });
 
     it('startPolling accepts a custom interval', async () => {
-      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.36');
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
 
       startPolling(60000);
 
@@ -224,7 +224,7 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     });
 
     it('stopPolling clears the interval', async () => {
-      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.36');
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
 
       startPolling(30000);
       expect(readFirestoreSnapshot).toHaveBeenCalledTimes(1);
@@ -236,7 +236,7 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     });
 
     it('first poll happens immediately on start (no 30s wait)', async () => {
-      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.36');
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
 
       startPolling(30000);
 

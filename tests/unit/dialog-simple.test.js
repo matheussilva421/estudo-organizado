@@ -8,7 +8,7 @@ describe('ui/dialog.js', () => {
 
   describe('openModal()', () => {
     it('warns when modal not found', async () => {
-      const { openModal } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { openModal } = await import('../../src/js/ui/dialog.js?v=8.37');
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       openModal('nonexistent-modal');
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('not found'));
@@ -21,7 +21,7 @@ describe('ui/dialog.js', () => {
       modal.style.display = 'none';
       document.body.appendChild(modal);
 
-      const { openModal } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { openModal } = await import('../../src/js/ui/dialog.js?v=8.37');
       openModal('modal-test');
 
       expect(modal.style.display).toBe('flex');
@@ -33,7 +33,7 @@ describe('ui/dialog.js', () => {
       modal.id = 'modal-test';
       document.body.appendChild(modal);
 
-      const { openModal } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { openModal } = await import('../../src/js/ui/dialog.js?v=8.37');
       openModal('modal-test');
 
       expect(document.body.style.overflow).toBe('hidden');
@@ -44,7 +44,7 @@ describe('ui/dialog.js', () => {
       modal.id = 'modal-test';
       document.body.appendChild(modal);
 
-      const { openModal } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { openModal } = await import('../../src/js/ui/dialog.js?v=8.37');
       openModal('modal-test');
       // Modal should be in stack (body scroll locked indicates this)
       expect(document.body.style.overflow).toBe('hidden');
@@ -58,7 +58,7 @@ describe('ui/dialog.js', () => {
       modal.style.display = 'flex';
       document.body.appendChild(modal);
 
-      const { openModal, closeModal } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { openModal, closeModal } = await import('../../src/js/ui/dialog.js?v=8.37');
       openModal('modal-test');
       closeModal('modal-test');
 
@@ -71,7 +71,7 @@ describe('ui/dialog.js', () => {
       modal.id = 'modal-test';
       document.body.appendChild(modal);
 
-      const { openModal, closeModal } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { openModal, closeModal } = await import('../../src/js/ui/dialog.js?v=8.37');
       openModal('modal-test');
       closeModal('modal-test');
 
@@ -79,7 +79,7 @@ describe('ui/dialog.js', () => {
     });
 
     it('does nothing when modal not found', async () => {
-      const { closeModal } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { closeModal } = await import('../../src/js/ui/dialog.js?v=8.37');
       expect(() => closeModal('nonexistent')).not.toThrow();
     });
   });
@@ -90,7 +90,7 @@ describe('ui/dialog.js', () => {
       modal.id = 'modal-test';
       document.body.appendChild(modal);
 
-      const { initModals } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { initModals } = await import('../../src/js/ui/dialog.js?v=8.37');
       initModals();
 
       expect(modal.getAttribute('role')).toBe('dialog');
@@ -106,21 +106,21 @@ describe('ui/dialog.js', () => {
       modal.appendChild(title);
       document.body.appendChild(modal);
 
-      const { initModals } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { initModals } = await import('../../src/js/ui/dialog.js?v=8.37');
       initModals();
 
       expect(modal.getAttribute('aria-labelledby')).toBe('modal-test-title');
     });
 
     it('handles no modals gracefully', async () => {
-      const { initModals } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { initModals } = await import('../../src/js/ui/dialog.js?v=8.37');
       expect(() => initModals()).not.toThrow();
     });
   });
 
   describe('announce()', () => {
     it('warns when announcer not found', async () => {
-      const { announce } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { announce } = await import('../../src/js/ui/dialog.js?v=8.37');
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       announce('Test message');
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('not found'));
@@ -132,7 +132,7 @@ describe('ui/dialog.js', () => {
       announcer.id = 'aria-announcer';
       document.body.appendChild(announcer);
 
-      const { announce } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { announce } = await import('../../src/js/ui/dialog.js?v=8.37');
       announce('Test message');
 
       expect(announcer.textContent).toBe('Test message');
@@ -143,7 +143,7 @@ describe('ui/dialog.js', () => {
       announcer.id = 'aria-announcer';
       document.body.appendChild(announcer);
 
-      const { announce } = await import('../../src/js/ui/dialog.js?v=8.36');
+      const { announce } = await import('../../src/js/ui/dialog.js?v=8.37');
       announce('Test message', 'assertive');
 
       expect(announcer.getAttribute('aria-live')).toBe('assertive');

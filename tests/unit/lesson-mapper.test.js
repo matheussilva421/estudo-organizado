@@ -1,14 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-vi.mock('../../src/js/store.js?v=8.36', () => ({
+vi.mock('../../src/js/store.js?v=8.37', () => ({
   state: {
     editais: []
   },
   scheduleSave: vi.fn()
 }));
 
-const mapper = await import('../../src/js/lesson-mapper.js?v=8.36');
-const { state, scheduleSave } = await import('../../src/js/store.js?v=8.36');
+const mapper = await import('../../src/js/lesson-mapper.js?v=8.37');
+const { state, scheduleSave } = await import('../../src/js/store.js?v=8.37');
 
 describe('lesson-mapper.js - mapAulasToAssuntos', () => {
   beforeEach(() => {

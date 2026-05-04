@@ -9,13 +9,13 @@ describe('timestamp-wins-merge (TDD - RED phase)', () => {
   beforeEach(async () => {
     vi.resetModules();
 
-    vi.doMock('../../src/js/store.js?v=8.36', () => ({
+    vi.doMock('../../src/js/store.js?v=8.37', () => ({
       state: createBaseState(),
       setState: vi.fn(),
       saveStateToDB: vi.fn(() => Promise.resolve()),
     }));
 
-    vi.doMock('../../src/js/sync/firestore-schema.js?v=8.36', () => ({
+    vi.doMock('../../src/js/sync/firestore-schema.js?v=8.37', () => ({
       getEnvelopeUpdatedAt: vi.fn((env) => env?.payloadUpdatedAt),
       getLocalContentUpdatedAt: vi.fn((state) => state?.config?.localBackupAt || null),
       applyEnvelopeToLocalState: vi.fn(() => ({
@@ -25,7 +25,7 @@ describe('timestamp-wins-merge (TDD - RED phase)', () => {
       })),
     }));
 
-    const module = await import('../../src/js/sync/sync-center.js?v=8.36');
+    const module = await import('../../src/js/sync/sync-center.js?v=8.37');
     isRemoteStateNewer = module.isRemoteStateNewer;
     isEmptyState = module.isEmptyState;
     resolveConflict = module.resolveConflict;

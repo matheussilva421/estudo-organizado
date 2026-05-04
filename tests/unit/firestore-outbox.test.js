@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 describe('firestore-outbox.js', () => {
   it('exports all queue and meta functions', async () => {
-    const outbox = await import('../../src/js/sync/firestore-outbox.js?v=8.36');
+    const outbox = await import('../../src/js/sync/firestore-outbox.js?v=8.37');
 
     expect(typeof outbox.enqueueFirestoreSnapshot).toBe('function');
     expect(typeof outbox.getPendingFirestoreSnapshot).toBe('function');
@@ -15,7 +15,7 @@ describe('firestore-outbox.js', () => {
   });
 
   it('returns false when IndexedDB not available', async () => {
-    const outbox = await import('../../src/js/sync/firestore-outbox.js?v=8.36');
+    const outbox = await import('../../src/js/sync/firestore-outbox.js?v=8.37');
     // Without a real db connection, these should return false/null
     expect(await outbox.enqueueFirestoreSnapshot({})).toBe(false);
     expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();

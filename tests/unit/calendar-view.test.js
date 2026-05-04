@@ -23,11 +23,11 @@ describe('views/calendar-view.js', () => {
       todayStr: vi.fn(() => '2026-04-29'),
     };
 
-    vi.doMock('../../src/js/store.js?v=8.36', () => storeModule);
-    vi.doMock('../../src/js/components.js?v=8.36', () => componentsModule);
-    vi.doMock('../../src/js/utils.js?v=8.36', () => utilsModule);
+    vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
+    vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
+    vi.doMock('../../src/js/utils.js?v=8.37', () => utilsModule);
 
-    calendarView = await import('../../src/js/views/calendar-view.js?v=8.36');
+    calendarView = await import('../../src/js/views/calendar-view.js?v=8.37');
   });
 
   describe('state getters/setters', () => {
