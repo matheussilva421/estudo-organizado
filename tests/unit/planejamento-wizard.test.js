@@ -124,6 +124,55 @@ describe('planejamento-wizard.js', () => {
     });
   });
 
+  describe('step 2 edital grouping', () => {
+    it('agrupa disciplinas por edital no passo de selecao', () => {
+      logic.getActiveDisciplinas.mockReturnValue([
+        {
+          disc: { id: 'disc_1', nome: 'Direito Administrativo', icone: '📚' },
+          edital: { id: 'ed_1', nome: 'TCE - RN', cor: '#0f766e' }
+        },
+        {
+          disc: { id: 'disc_2', nome: 'Direito Civil', icone: '⚖️' },
+          edital: { id: 'ed_2', nome: 'PGE-RN', cor: '#1d4ed8' }
+        }
+      ]);
+
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      document.getElementById('pw-btn-proximo').click();
+
+      const body = document.getElementById('modal-planejamento-body');
+      expect(body.innerHTML).toContain('pw-edital-group');
+      expect(body.innerHTML).toContain('TCE - RN');
+      expect(body.innerHTML).toContain('PGE-RN');
+      expect(body.innerHTML).toContain('data-action="pw-select-edital-disc"');
+      expect(body.innerHTML).toContain('data-edital-id="ed_1"');
+      expect(body.innerHTML).toContain('data-edital-id="ed_2"');
+    });
+
+    it('seleciona e limpa disciplinas por edital', () => {
+      logic.getActiveDisciplinas.mockReturnValue([
+        { disc: { id: 'disc_1', nome: 'Administrativo' }, edital: { id: 'ed_1', nome: 'TCE - RN' } },
+        { disc: { id: 'disc_2', nome: 'Constitucional' }, edital: { id: 'ed_1', nome: 'TCE - RN' } },
+        { disc: { id: 'disc_3', nome: 'Civil' }, edital: { id: 'ed_2', nome: 'PGE-RN' } }
+      ]);
+
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      document.getElementById('pw-btn-proximo').click();
+
+      wizard.pwSelectEditalDisc('ed_1');
+      let cards = document.querySelectorAll('.pw-disc-card.is-selected');
+      expect(cards).toHaveLength(2);
+      expect(document.getElementById('pw-disc-count').textContent).toBe('2 disciplinas selecionadas');
+
+      wizard.pwClearEditalDisc('ed_1');
+      cards = document.querySelectorAll('.pw-disc-card.is-selected');
+      expect(cards).toHaveLength(0);
+      expect(document.getElementById('pw-disc-count').textContent).toBe('0 disciplinas selecionadas');
+    });
+  });
+
   describe('pwUpdateRel()', () => {
     it('atualiza label de importância', () => {
       document.body.innerHTML += '<div id="pw-lbl-importancia-disc_1">3</div>';
@@ -228,6 +277,8 @@ describe('planejamento-wizard.js', () => {
       expect(wizard.pwSearchDisc).toBeDefined();
       expect(wizard.pwSelectAllDisc).toBeDefined();
       expect(wizard.pwClearDisc).toBeDefined();
+      expect(wizard.pwSelectEditalDisc).toBeDefined();
+      expect(wizard.pwClearEditalDisc).toBeDefined();
       expect(wizard.pwUpdateRel).toBeDefined();
       expect(wizard.pwToggleDay).toBeDefined();
       expect(wizard.pwUpdateHours).toBeDefined();

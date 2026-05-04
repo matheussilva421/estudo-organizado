@@ -10,6 +10,8 @@ import {
   pwSearchDisc,
   pwSelectAllDisc,
   pwClearDisc,
+  pwSelectEditalDisc,
+  pwClearEditalDisc,
   pwUpdateRel,
   pwUpdateHours,
   pwToggleDay,
@@ -41,6 +43,8 @@ registerAction('pw-toggle-disc', (el) => pwToggleDisc(el.dataset.discId));
 registerAction('pw-search-disc', (el) => pwSearchDisc(el.value));
 registerAction('pw-select-all-disc', pwSelectAllDisc);
 registerAction('pw-clear-disc', pwClearDisc);
+registerAction('pw-select-edital-disc', (el) => pwSelectEditalDisc(el.dataset.editalId));
+registerAction('pw-clear-edital-disc', (el) => pwClearEditalDisc(el.dataset.editalId));
 registerAction('pw-update-relevancia', (el) => {
   const discId = el.dataset.discId;
   const type = el.dataset.type;

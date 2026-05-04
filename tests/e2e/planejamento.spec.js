@@ -51,6 +51,7 @@ test.describe('Planejamento de Estudos (Wizard)', () => {
     // Step 2: Disciplinas
     // Need to select at least one discipline. The UI probably renders checkboxes.
     // We will click the first discipline checkbox.
+    await expect(page.locator('.pw-edital-group').first()).toBeVisible();
     const discCheckboxes = page.locator('.pw-disc-card');
     if (await discCheckboxes.count() > 0) {
       await discCheckboxes.first().click();

@@ -177,6 +177,11 @@ export function pwSearchDisc(q) {
     const text = el.textContent.toLowerCase();
     el.style.display = text.includes(query) ? 'flex' : 'none';
   });
+
+  document.querySelectorAll('.pw-edital-group').forEach((group) => {
+    const visibleCards = group.querySelectorAll('.pw-disc-card:not([style*="display: none"])');
+    group.style.display = visibleCards.length > 0 ? 'block' : 'none';
+  });
 }
 
 export function pwSelectAllDisc() {
@@ -192,6 +197,24 @@ export function pwSelectAllDisc() {
 export function pwClearDisc() {
   draft = normalizeDraft(draft);
   draft.disciplinas = [];
+  renderStep();
+}
+
+export function pwSelectEditalDisc(editalId) {
+  draft = normalizeDraft(draft);
+  getDisciplinasByEditalId(editalId).forEach((d) => {
+    if (!draft.disciplinas.includes(d.disc.id)) draft.disciplinas.push(d.disc.id);
+    if (!draft.relevancia[d.disc.id]) {
+      draft.relevancia[d.disc.id] = { importancia: 3, conhecimento: 3 };
+    }
+  });
+  renderStep();
+}
+
+export function pwClearEditalDisc(editalId) {
+  draft = normalizeDraft(draft);
+  const ids = new Set(getDisciplinasByEditalId(editalId).map((d) => d.disc.id));
+  draft.disciplinas = draft.disciplinas.filter((id) => !ids.has(id));
   renderStep();
 }
 
@@ -313,6 +336,74 @@ function validateStep(step) {
   return false;
 }
 
+function getEditalGroupId(item) {
+  return item.edital?.id || item.edital?.nome || 'sem-edital';
+}
+
+function getDisciplinasByEditalId(editalId) {
+  return (getActiveDisciplinas() || []).filter((item) => getEditalGroupId(item) === editalId);
+}
+
+function groupDisciplinasByEdital(items) {
+  const groups = [];
+  const byId = new Map();
+
+  items.forEach((item) => {
+    const id = getEditalGroupId(item);
+    if (!byId.has(id)) {
+      const group = {
+        id,
+        edital: item.edital || {},
+        disciplinas: [],
+      };
+      byId.set(id, group);
+      groups.push(group);
+    }
+    byId.get(id).disciplinas.push(item);
+  });
+
+  return groups;
+}
+
+function renderPlanejamentoDiscCard(d) {
+  const sel = draft.disciplinas.includes(d.disc.id);
+  return `
+                                <div class="pw-disc-card selection-card ${sel ? 'is-selected' : ''}" data-action="pw-toggle-disc" data-disc-id="${d.disc.id}">
+                                    <div class="selection-check">
+                                        ${sel ? 'âœ“' : ''}
+                                    </div>
+                                    <div class="flex-1 text-md font-medium text-ellipsis" title="${esc(d.disc.nome)}">
+                                        ${d.disc.icone || 'ðŸ“š'} ${esc(d.disc.nome)}
+                                    </div>
+                                </div>`;
+}
+
+function renderPlanejamentoEditalGroup(group) {
+  const selectedCount = group.disciplinas.filter((d) =>
+    draft.disciplinas.includes(d.disc.id)
+  ).length;
+
+  return `
+                    <section class="pw-edital-group" data-edital-id="${esc(group.id)}">
+                        <div class="pw-edital-group-header">
+                            <div class="pw-edital-title-row">
+                                <span class="pw-edital-color" style="background:${group.edital.cor || 'var(--accent)'};"></span>
+                                <div>
+                                    <h4 class="pw-edital-title">${esc(group.edital.nome || 'Sem edital')}</h4>
+                                    <div class="pw-edital-count">${selectedCount}/${group.disciplinas.length} disciplinas selecionadas</div>
+                                </div>
+                            </div>
+                            <div class="cluster-sm">
+                                <button type="button" class="btn btn-ghost btn-sm" data-action="pw-select-edital-disc" data-edital-id="${esc(group.id)}">Todas deste edital</button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-action="pw-clear-edital-disc" data-edital-id="${esc(group.id)}">Limpar edital</button>
+                            </div>
+                        </div>
+                        <div class="pw-disc-grid">
+                            ${group.disciplinas.map(renderPlanejamentoDiscCard).join('')}
+                        </div>
+                    </section>`;
+}
+
 function htmlStep1() {
   return `
         <div class="pw-center-container">
@@ -349,6 +440,7 @@ function htmlStep1() {
 function htmlStep2() {
   draft = normalizeDraft(draft);
   const all = getActiveDisciplinas() || [];
+  const groups = groupDisciplinasByEdital(all);
 
   if (all.length === 0) {
     return `
@@ -359,7 +451,6 @@ function htmlStep2() {
             </div>
         `;
   }
-
   return `
         <div>
             <div class="flex-between mb-4">
@@ -375,21 +466,8 @@ function htmlStep2() {
 
             <input type="text" class="form-control mb-4" placeholder="Buscar disciplina..." data-action="pw-search-disc">
 
-            <div class="pw-disc-grid">
-                ${all
-                  .map((d) => {
-                    const sel = draft.disciplinas.includes(d.disc.id);
-                    return `
-                    <div class="pw-disc-card selection-card ${sel ? 'is-selected' : ''}" data-action="pw-toggle-disc" data-disc-id="${d.disc.id}">
-                        <div class="selection-check">
-                            ${sel ? '✓' : ''}
-                        </div>
-                        <div class="flex-1 text-md font-medium text-ellipsis" title="${esc(d.disc.nome)}">
-                            ${d.disc.icone || '📚'} ${esc(d.disc.nome)}
-                        </div>
-                    </div>`;
-                  })
-                  .join('')}
+            <div class="pw-edital-groups">
+                ${groups.map(renderPlanejamentoEditalGroup).join('')}
             </div>
         </div>
     `;

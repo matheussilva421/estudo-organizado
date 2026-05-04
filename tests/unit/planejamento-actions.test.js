@@ -19,6 +19,8 @@ describe('ui/actions/planejamento.js', () => {
       pwSearchDisc: vi.fn(),
       pwSelectAllDisc: vi.fn(),
       pwClearDisc: vi.fn(),
+      pwSelectEditalDisc: vi.fn(),
+      pwClearEditalDisc: vi.fn(),
       pwUpdateRel: vi.fn(),
       pwUpdateHours: vi.fn(),
       pwToggleDay: vi.fn(),
@@ -63,6 +65,8 @@ describe('ui/actions/planejamento.js', () => {
     expect(calls).toContain('pw-search-disc');
     expect(calls).toContain('pw-select-all-disc');
     expect(calls).toContain('pw-clear-disc');
+    expect(calls).toContain('pw-select-edital-disc');
+    expect(calls).toContain('pw-clear-edital-disc');
     expect(calls).toContain('pw-update-relevancia');
     expect(calls).toContain('pw-update-hours');
     expect(calls).toContain('pw-toggle-day');
@@ -113,6 +117,18 @@ describe('ui/actions/planejamento.js', () => {
   it('pw-clear-disc handler is pwClearDisc directly', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'pw-clear-disc')[1];
     expect(handler).toBe(wizard.pwClearDisc);
+  });
+
+  it('pw-select-edital-disc handler passes edital id', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'pw-select-edital-disc')[1];
+    handler({ dataset: { editalId: 'ed_1' } });
+    expect(wizard.pwSelectEditalDisc).toHaveBeenCalledWith('ed_1');
+  });
+
+  it('pw-clear-edital-disc handler passes edital id', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'pw-clear-edital-disc')[1];
+    handler({ dataset: { editalId: 'ed_1' } });
+    expect(wizard.pwClearEditalDisc).toHaveBeenCalledWith('ed_1');
   });
 
   it('pw-update-relevancia handler passes discId, type, value', () => {
