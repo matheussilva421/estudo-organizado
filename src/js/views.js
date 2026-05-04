@@ -1726,9 +1726,10 @@ export function saveDiscManager(editalId, discId) {
   const disc = edital.disciplinas?.find((d) => d.id === discId);
   if (!disc) return;
   const nomeEl = document.getElementById('dm-nome');
+  const corPickerEl = document.getElementById('dm-cor-picker');
   const corEl = document.getElementById('dm-cor');
   if (nomeEl) disc.nome = nomeEl.value.trim() || disc.nome;
-  if (corEl) disc.cor = corEl.value || disc.cor;
+  if (corPickerEl || corEl) disc.cor = corPickerEl?.value || corEl?.value || disc.cor;
   scheduleSave();
   closeModal('modal-disc-manager');
   renderCurrentView();

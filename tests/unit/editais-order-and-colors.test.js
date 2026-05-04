@@ -164,4 +164,31 @@ describe('editais colors and ordering', () => {
     expect(componentsModule.renderCurrentView).toHaveBeenCalledTimes(1);
     expect(appModule.showToast).toHaveBeenCalledWith('Disciplina atualizada!', 'success');
   });
+
+  it('saves the color selected from the discipline manager color picker', () => {
+    document.body.innerHTML = `
+      <input id="dm-nome" value="Direito Administrativo">
+      <input id="dm-cor-picker" type="color" value="#ef7777">
+      <select id="dm-cor"><option value="#8aa4bf" selected>#8aa4bf</option></select>
+    `;
+    storeModule.state.editais = [
+      {
+        id: 'ed_1',
+        nome: 'TCE - RN',
+        disciplinas: [
+          {
+            id: 'disc_1',
+            nome: 'Direito Administrativo',
+            cor: '#8aa4bf',
+            assuntos: [],
+            aulas: [],
+          },
+        ],
+      },
+    ];
+
+    views.saveDiscManager('ed_1', 'disc_1');
+
+    expect(storeModule.state.editais[0].disciplinas[0].cor).toBe('#ef7777');
+  });
 });
