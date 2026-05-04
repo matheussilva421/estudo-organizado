@@ -1876,7 +1876,7 @@ export function openDiscManager(editaId, discId) {
     </div>
 
     <!--ABA TÓPICOS-->
-    <div id="tab-manager-topicos" class="${_activeDiscManagerTab === 'topicos' ? 'tab-content' : 'tab-content--hidden'}">
+    <div id="tab-manager-topicos" class="${_activeDiscManagerTab === 'topicos' ? 'tab-content active' : 'tab-content--hidden'}">
         <div class="sm-add-form">
            <textarea class="form-control" id="new-assunto-nome" placeholder="Novo tópico (Digite ou cole vários separados por quebra de linha)" rows="1"></textarea>
            <button class="btn btn-primary" data-action="add-assunto" data-disc-id="${disc.id}">Adicionar Tópico</button>
@@ -1887,7 +1887,7 @@ export function openDiscManager(editaId, discId) {
     </div>
 
     <!--ABA AULAS-->
-    <div id="tab-manager-aulas" class="${_activeDiscManagerTab === 'aulas' ? 'tab-content' : 'tab-content--hidden'}">
+    <div id="tab-manager-aulas" class="${_activeDiscManagerTab === 'aulas' ? 'tab-content active' : 'tab-content--hidden'}">
         <div class="sm-bulk-import-form">
            <div>
                <label>Adição em Lote (Copie e paste o índice do seu PDF/Cursinho aqui)</label>
