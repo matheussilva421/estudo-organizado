@@ -129,4 +129,39 @@ describe('editais colors and ordering', () => {
     expect(storeModule.scheduleSave).toHaveBeenCalledTimes(2);
     expect(componentsModule.renderCurrentView).toHaveBeenCalledTimes(2);
   });
+
+  it('closes the discipline manager after saving global discipline changes', () => {
+    document.body.innerHTML = `
+      <input id="dm-nome" value="Direito Administrativo Atualizado">
+      <select id="dm-cor"><option value="#7dd3a8" selected>#7dd3a8</option></select>
+      <div id="modal-disc-manager-title"></div>
+      <div id="modal-disc-manager-body"></div>
+    `;
+    storeModule.state.editais = [
+      {
+        id: 'ed_1',
+        nome: 'TCE - RN',
+        disciplinas: [
+          {
+            id: 'disc_1',
+            nome: 'Direito Administrativo',
+            cor: '#8aa4bf',
+            assuntos: [{ id: 'ass_1', nome: 'Atos administrativos' }],
+            aulas: [],
+          },
+        ],
+      },
+    ];
+
+    views.saveDiscManager('ed_1', 'disc_1');
+
+    expect(storeModule.state.editais[0].disciplinas[0]).toMatchObject({
+      nome: 'Direito Administrativo Atualizado',
+      cor: '#7dd3a8',
+    });
+    expect(storeModule.scheduleSave).toHaveBeenCalledTimes(1);
+    expect(appModule.closeModal).toHaveBeenCalledWith('modal-disc-manager');
+    expect(componentsModule.renderCurrentView).toHaveBeenCalledTimes(1);
+    expect(appModule.showToast).toHaveBeenCalledWith('Disciplina atualizada!', 'success');
+  });
 });

@@ -1730,7 +1730,8 @@ export function saveDiscManager(editalId, discId) {
   if (nomeEl) disc.nome = nomeEl.value.trim() || disc.nome;
   if (corEl) disc.cor = corEl.value || disc.cor;
   scheduleSave();
-  openDiscManager(editalId, discId);
+  closeModal('modal-disc-manager');
+  renderCurrentView();
   showToast('Disciplina atualizada!', 'success');
 }
 
