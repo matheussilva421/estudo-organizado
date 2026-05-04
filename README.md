@@ -178,6 +178,37 @@ python -m http.server 8080 --directory src
 ```
 Acesse: `http://localhost:8080`
 
+### Ambiente Mock para Testes Manuais
+
+O projeto inclui um ambiente de teste local isolado com dados mock realistas para testes manuais sem risco de afetar dados de produção.
+
+**Via BAT (Windows):**
+Dê dois cliques em `Abrir_Estudo_Organizado_Mock.bat`. Um menu será exibido:
+
+| Opção | Comportamento |
+|-------|---------------|
+| `[1] Preservar` | Abre mantendo dados existentes |
+| `[2] Resetar` | Limpa e recria o dataset mock completo |
+| `[3] Limpar` | Abre o app sem dados (tela limpa) |
+
+**Via npm:**
+```bash
+npm run mock           # modo reset (dados mock completos)
+npm run mock:preserve  # modo preservar (mantém dados existentes)
+npm run mock:clean     # modo limpar (app vazio)
+```
+
+O ambiente roda em `http://127.0.0.1:18765` — origem separada do launcher principal (`localhost:8000`) e da produção.
+
+**O que o ambiente mock inclui:**
+- **3 editais** (TRF 3ª Região, CEBRASPE Analista, TJ-SP)
+- **15+ disciplinas** com 60-100+ assuntos
+- **40-80 eventos** com status variados (agendado, estudei, atrasado)
+- **30-50 registros de hábitos** em todas as 9 categorias
+- **20-40 revisões** pendentes e concluídas
+- Service Worker bloqueado (sem cache)
+- Firebase/Cloudflare/Drive desativados
+
 ### Testes Automatizados
 Para rodar a nova suíte de testes:
 

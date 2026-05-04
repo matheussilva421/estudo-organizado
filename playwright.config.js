@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 18345;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -18,12 +18,28 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure'
   },
-  webServer: {
-    command: `npx http-server src -p ${PORT} -c-1`,
-    url: BASE_URL,
-    reuseExistingServer: true
-  },
+  webServer: [
+    {
+      command: `npx http-server src -p ${PORT} -c-1`,
+      url: BASE_URL,
+      reuseExistingServer: true,
+    },
+    {
+      command: 'node scripts/local-mock-server.mjs',
+      url: 'http://127.0.0.1:18765',
+      reuseExistingServer: true,
+      timeout: 10000,
+    },
+  ],
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
+    {
+      name: 'mock',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://127.0.0.1:18765',
+        serviceWorkers: 'block',
+      },
+    },
   ]
 });

@@ -11,10 +11,12 @@
 !/LICENSE
 !/wrangler.jsonc
 !/Abrir_Estudo_Organizado.bat
+!/Abrir_Estudo_Organizado_Mock.bat
 !/package.json
 !/package-lock.json
 !/vitest.config.js
 !/playwright.config.js
+!/eslint.config.js
 !/tests/
 !/tests/**
 
