@@ -1,10 +1,12 @@
-// =============================================
+﻿// =============================================
 // CREDENTIALS MANAGEMENT (IndexedDB)
 // =============================================
 // Armazena credenciais de sync separadamente do estado exportável.
 // Previne exfiltração de tokens via backup/exportação.
 // Se IndexedDB estiver indisponível, operações falham explicitamente
 // em vez de fallback para localStorage (risco XSS).
+
+import { debugLog } from './debug.js?v=8.37';
 
 const CREDS_DB_NAME = 'EstudoCredenciaisDB';
 const CREDS_DB_VERSION = 1;
@@ -21,7 +23,7 @@ let _indexedDBAvailable = typeof indexedDB !== 'undefined';
 export function initCredentialsDB() {
   if (!_indexedDBAvailable)
     return Promise.reject(
-      new Error('IndexedDB indisponível — credenciais não podem ser armazenadas com segurança.')
+      new Error('IndexedDB indisponível - credenciais não podem ser armazenadas com segurança.')
     );
   if (_initPromise) return _initPromise;
   if (credsDb) return Promise.resolve(credsDb);
@@ -66,7 +68,7 @@ export function initCredentialsDB() {
  * @returns {Promise<void>}
  */
 export async function setCredential(key, value) {
-  console.log('[Credentials] setCredential START:', {
+  debugLog('credentials', '[Credentials] setCredential START:', {
     key,
     hasValue: !!value,
     valueKeys: value ? Object.keys(value) : null,
@@ -82,7 +84,7 @@ export async function setCredential(key, value) {
     const req = store.put(value, key);
 
     req.onsuccess = () => {
-      console.log('[Credentials] setCredential SUCCESS:', { key });
+      debugLog('credentials', '[Credentials] setCredential SUCCESS:', { key });
       resolve();
     };
     req.onerror = () => {
@@ -98,7 +100,7 @@ export async function setCredential(key, value) {
  * @returns {Promise<object|undefined>}
  */
 export async function getCredential(key) {
-  console.log('[Credentials] getCredential START:', { key });
+  debugLog('credentials', '[Credentials] getCredential START:', { key });
 
   await initCredentialsDB();
   return new Promise((resolve, reject) => {
@@ -108,7 +110,7 @@ export async function getCredential(key) {
 
     req.onsuccess = () => {
       const result = req.result;
-      console.log('[Credentials] getCredential RESULT:', {
+      debugLog('credentials', '[Credentials] getCredential RESULT:', {
         key,
         hasResult: !!result,
         resultKeys: result ? Object.keys(result) : null,
@@ -131,7 +133,7 @@ export async function getCredential(key) {
  * @returns {Promise<void>}
  */
 export async function deleteCredential(key) {
-  console.log('[Credentials] deleteCredential START:', { key });
+  debugLog('credentials', '[Credentials] deleteCredential START:', { key });
   await initCredentialsDB();
   return new Promise((resolve, reject) => {
     const tx = credsDb.transaction([CREDS_STORE_NAME], 'readwrite');
@@ -139,7 +141,7 @@ export async function deleteCredential(key) {
     const req = store.delete(key);
 
     req.onsuccess = () => {
-      console.log('[Credentials] deleteCredential SUCCESS:', { key });
+      debugLog('credentials', '[Credentials] deleteCredential SUCCESS:', { key });
       resolve();
     };
     req.onerror = () => {
@@ -154,7 +156,7 @@ export async function deleteCredential(key) {
  * @returns {Promise<string[]>}
  */
 export async function listCredentialKeys() {
-  console.log('[Credentials] listCredentialKeys START');
+  debugLog('credentials', '[Credentials] listCredentialKeys START');
   await initCredentialsDB();
   return new Promise((resolve, reject) => {
     const tx = credsDb.transaction([CREDS_STORE_NAME], 'readonly');
@@ -162,7 +164,7 @@ export async function listCredentialKeys() {
     const req = store.getAllKeys();
 
     req.onsuccess = () => {
-      console.log('[Credentials] listCredentialKeys RESULT:', { keys: req.result });
+      debugLog('credentials', '[Credentials] listCredentialKeys RESULT:', { keys: req.result });
       resolve(req.result);
     };
     req.onerror = () => {
@@ -177,7 +179,7 @@ export async function listCredentialKeys() {
  * @returns {Promise<void>}
  */
 export async function clearAllCredentials() {
-  console.log('[Credentials] clearAllCredentials START');
+  debugLog('credentials', '[Credentials] clearAllCredentials START');
   await initCredentialsDB();
   return new Promise((resolve, reject) => {
     const tx = credsDb.transaction([CREDS_STORE_NAME], 'readwrite');
@@ -185,7 +187,7 @@ export async function clearAllCredentials() {
     const req = store.clear();
 
     req.onsuccess = () => {
-      console.log('[Credentials] clearAllCredentials SUCCESS');
+      debugLog('credentials', '[Credentials] clearAllCredentials SUCCESS');
       resolve();
     };
     req.onerror = () => {

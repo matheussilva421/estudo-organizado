@@ -1,4 +1,4 @@
-// ES Module Entry Point
+﻿// ES Module Entry Point
 // Imports all modules and exposes functions via window.EstudoApp namespace
 
 import * as store from './store.js?v=8.37';
@@ -17,6 +17,7 @@ import * as lesson_mapper from './lesson-mapper.js?v=8.37';
 import * as firestore_sync from './sync/firestore-sync-engine.js?v=8.37';
 import * as sync_coordinator from './sync/sync-coordinator.js?v=8.37';
 import { initSyncStatusUI } from './sync/sync-status-ui.js?v=8.37';
+import { debugLog } from './debug.js?v=8.37';
 
 // Import UI helpers and action dispatcher
 import { setupActionDispatcher } from './ui/actions/index.js?v=8.37';
@@ -66,8 +67,8 @@ for (const mod of exposedModules) {
   }
 }
 
-// Log loaded modules for debugging
-console.log(`[EstudoApp] ${Object.keys(window.EstudoApp).length} módulos carregados`);
+// Log loaded modules only when bootstrap debug is enabled.
+debugLog('bootstrap', `${Object.keys(window.EstudoApp).length} modulos carregados`);
 
 // Legacy bridge for backward compatibility (to be removed in v9.0)
 // Gradually migrated to direct imports in each module

@@ -3,11 +3,18 @@
 
 !/.gitignore
 !/.prettierignore
+!/.aiexclude
+!/.codexignore
+!/.cursorignore
 !/src/
 !/src/**
 !/scripts/
 !/scripts/**
+!/docs/
+!/docs/**
 !/README.md
+!/README_DEV.md
+!/AGENTS.md
 !/LICENSE
 !/wrangler.jsonc
 !/Abrir_Estudo_Organizado.bat
@@ -19,6 +26,31 @@
 !/eslint.config.js
 !/tests/
 !/tests/**
+
+# Dependencies and generated artifacts. These are already ignored by the
+# allowlist above, but are listed explicitly for humans and agents.
+node_modules/
+coverage/
+playwright-report/
+test-results/
+dist/
+build/
+.cache/
+.turbo/
+
+# Local and agent artifacts.
+.claude/worktrees/
+.sisyphus/
+.playwright-mcp/
+_local_archive/
+output/
+
+# Local secrets, logs, and databases.
+*.log
+*.sqlite
+*.db
+.env
+.env.local
 
 !src/js/firebase/firebase-config.js.example
 src/js/firebase/firebase-config.js
