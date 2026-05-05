@@ -101,6 +101,19 @@ Arquivos locais fora de `.git`: 19.462.
 - `npm run test:e2e:chromium -- tests/e2e/app.spec.js --grep "SW precache"`: 1 teste passando.
 - `npm run test:e2e`: executou a suite completa; 214 testes passaram e 90 falharam. As falhas ficaram concentradas no conjunto E2E amplo, especialmente projeto `mock` em paralelo e contratos de UI/sync ja sensiveis, enquanto os E2E focados de mock e service worker passaram quando isolados. Esta fase nao tentou corrigir a saude global da suite E2E para evitar misturar reducao de contexto com refatoracao de produto/testes.
 
+### Continuidade em 2026-05-05
+
+- Corrigido `tests/unit/css-architecture.test.js` para normalizar CRLF antes de extrair blocos CSS; isso evita falha falsa quando o checkout Windows troca LF por CRLF.
+- `playwright.config.js` agora usa reporter local `line`; HTML fica reservado para `npm run test:e2e:debug`.
+- Adicionados `npm run test:e2e:release` (`chromium`, `line`, `--workers=1`) e `npm run test:e2e:debug`; o projeto `mock` permanece separado em `npm run test:e2e:mock`.
+- `npm run test:css`: 1 arquivo, 26 testes passando.
+- `npm test`: 77 arquivos, 1291 testes passando.
+- `npm run test:e2e:quick -- --list`: listou 304 testes.
+- `npm run test:e2e:release -- --list`: listou 152 testes do projeto `chromium`.
+- `npm run test:e2e:mock -- tests/e2e/mock-environment.spec.js`: 10 testes passando.
+- `npm run test:e2e:release -- tests/e2e/app.spec.js --grep "SW precache"`: 1 teste passando.
+- `npm run test:e2e:chromium -- tests/e2e/app.spec.js --grep "SW precache"`: 1 teste passando apos rerodada sequencial; a tentativa paralela anterior falhou por colisao temporaria de porta `18345`.
+
 ## Artefatos locais a preservar ou limpar
 
 Preservar ou mover para arquivo externo:

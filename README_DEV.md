@@ -54,7 +54,7 @@ rg "termo" src tests scripts -g '!src/vendor/**' -g '!node_modules/**' -g '!cove
 | Sync/cloud | `src/js/sync/`, `cloud-sync`, `drive-sync` | `npm run test:sync` | CSS, planos antigos |
 | Views/renderizacao | `src/js/views*`, testes de views | `npm run test:views` | Playwright completo |
 | Fluxo de usuario | arquivos do fluxo e E2E especifico | `npm run test:e2e:quick -- tests/e2e/<arquivo>` | coverage |
-| Fechamento | diff completo | `npm test` e E2E relevante | pular git status |
+| Fechamento | diff completo | `npm test` e E2E relevante ou `npm run test:e2e:release` | pular git status |
 
 ## Fluxos de trabalho
 
@@ -84,9 +84,18 @@ npm run test:sync
 npm run test:views
 npm run test:css
 npm run test:e2e:quick -- --list
+npm run test:e2e:release -- --list
 ```
 
 Use `npm run test:coverage` apenas para auditoria de cobertura.
+
+## Playwright sem ruido
+
+- `npm run test:e2e:quick`: reporter `line`, bom para specs focadas e listagem.
+- `npm run test:e2e:release`: projeto `chromium`, reporter `line` com `--workers=1`, use como gate sequencial principal.
+- `npm run test:e2e:mock`: projeto `mock`, reporter `line`, use para validar o ambiente mock isolado.
+- `npm run test:e2e:debug`: reporter HTML, use apenas para investigar falhas e gerar `playwright-report/`.
+- Evite rodar projetos E2E em paralelo manualmente na mesma worktree; eles podem disputar as portas `18345` e `18765`.
 
 ## Modulos extraidos para reduzir contexto
 

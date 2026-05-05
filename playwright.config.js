@@ -11,7 +11,7 @@ export default defineConfig({
     timeout: 10_000
   },
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? [['github'], ['html']] : 'html',
+  reporter: process.env.CI ? [['github'], ['html']] : 'line',
   use: {
     baseURL: BASE_URL,
     serviceWorkers: 'block',

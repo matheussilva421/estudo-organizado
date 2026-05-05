@@ -7,7 +7,7 @@ const srcDir = join(rootDir, 'src');
 const cssDir = join(srcDir, 'css');
 
 function read(relativePath) {
-  const content = readFileSync(join(rootDir, relativePath), 'utf8');
+  const content = readFileSync(join(rootDir, relativePath), 'utf8').replace(/\r\n/g, '\n');
   if (!relativePath.endsWith('.css')) return content;
   return inlineCssImports(relativePath, content).replace(/\[data-theme='([^']+)'\]/g, '[data-theme="$1"]');
 }
@@ -20,7 +20,7 @@ function inlineCssImports(relativePath, content, seen = new Set()) {
   const baseDir = dirname(normalizedPath);
   return content.replace(/@import\s+['"]([^'"]+)['"]\s*;/g, (_match, importPath) => {
     const importedPath = normalize(join(baseDir, importPath)).replace(/\\/g, '/');
-    const importedContent = readFileSync(join(rootDir, importedPath), 'utf8');
+    const importedContent = readFileSync(join(rootDir, importedPath), 'utf8').replace(/\r\n/g, '\n');
     return inlineCssImports(importedPath, importedContent, seen);
   });
 }

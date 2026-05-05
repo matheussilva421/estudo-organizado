@@ -48,6 +48,45 @@ Validacoes da rodada inicial:
 - `npm run test:e2e:chromium -- tests/e2e/app.spec.js --grep "SW precache"`: passou.
 - `npm run test:e2e`: executou, mas falhou como suite ampla: 214 passaram e 90 falharam.
 
+## Continuidade executada em 2026-05-05
+
+Arquivos alterados nesta continuidade:
+
+- `tests/unit/css-architecture.test.js`
+- `package.json`
+- `playwright.config.js`
+- `README_DEV.md`
+- `docs/relatorio-reducao-contexto-codex.md`
+- `docs/handoff-reducao-contexto-codex.md`
+
+O que foi feito:
+
+- Corrigido o helper do teste de arquitetura CSS para normalizar CRLF para LF antes de resolver imports e extrair blocos; o CSS ja continha o contrato correto, mas o teste falhava no Windows ao procurar seletor multiline.
+- Adicionado `test:e2e:release` como gate sequencial do projeto `chromium`, com reporter `line` e `--workers=1`.
+- Mantido `test:e2e:mock` como gate separado do ambiente mock.
+- Adicionado `test:e2e:debug` para manter HTML report disponivel somente quando alguem quiser investigar falhas.
+- Alterado reporter local padrao do Playwright de `html` para `line`.
+- Documentado o fluxo Playwright de baixo ruido no `README_DEV.md`.
+- Atualizado o relatorio de reducao de contexto com evidencias desta rodada.
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 1 arquivo, 26 testes passando.
+- `npm test`: 77 arquivos, 1291 testes passando.
+- `npm run test:e2e:quick -- --list`: 304 testes listados.
+- `npm run test:e2e:release -- --list`: 152 testes do projeto `chromium` listados.
+- `npm run test:e2e:mock -- tests/e2e/mock-environment.spec.js`: 10 testes passando.
+- `npm run test:e2e:release -- tests/e2e/app.spec.js --grep "SW precache"`: 1 teste passando.
+- `npm run test:e2e:chromium -- tests/e2e/app.spec.js --grep "SW precache"`: 1 teste passando.
+- Observacao: nao rode E2E isolados em paralelo na mesma worktree; a primeira tentativa paralela do SW falhou por `EADDRINUSE` na porta `18345`, e passou ao rerodar de forma sequencial.
+- Observacao: uma tentativa intermediaria de `test:e2e:release -- tests/e2e/mock-environment.spec.js` mostrou que specs mock nao devem ser executadas pelo gate Chromium; por isso `release` ficou Chromium-only e `mock` continua separado.
+
+Proxima IA deve continuar em:
+
+1. Rodar `npm run test:e2e:release -- --workers=1` se o objetivo for medir o gate Chromium completo.
+2. Rodar `npm run test:e2e:mock -- --workers=1` se o objetivo for medir o gate mock completo.
+3. Seguir para a Task 1 se o objetivo for sanear a suite completa ou para a Task 3 se o objetivo for modularizacao CSS, mas registrando que `chromium` e `mock` agora sao gates separados.
+
 Nao reabra por padrao:
 
 - `node_modules/`
