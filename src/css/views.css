@@ -1,120 +1,4 @@
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--space-4);
-}
-
-.dashboard-stat-card {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.dashboard-stat-value {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--text-primary);
-  line-height: 1;
-}
-
-.dashboard-stat-value--mono {
-  margin-top: var(--space-3);
-  font-family: 'DM Mono', monospace;
-}
-
-.dashboard-stat-detail-list {
-  margin-top: var(--space-2);
-}
-
-.dashboard-stat-detail {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.dashboard-stat-detail + .dashboard-stat-detail {
-  margin-top: 2px;
-}
-
-.dashboard-stat-detail--positive {
-  color: var(--green);
-}
-
-.dashboard-stat-detail--negative {
-  color: var(--red);
-}
-
-.home-weekly-study-card {
-  min-height: 260px;
-}
-
-.home-weekly-study-chart {
-  min-height: 160px;
-}
-
-.home-weekly-study-chart--empty {
-  justify-content: center;
-  border-bottom: 0;
-}
-
-.home-weekly-study-bar {
-  width: 100%;
-  max-width: 30px;
-  background: var(--accent);
-  border-radius: 4px 4px 0 0;
-  min-height: 2px;
-  transition: height 0.3s;
-}
-
-.home-weekly-study-gridlines {
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 25px;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.2;
-}
-
-.home-weekly-study-bars {
-  z-index: 1;
-}
-
-.home-weekly-study-legend-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
-.dash-progress-bar--questions {
-  background: var(--question);
-}
-
-.dash-progress-bar-label {
-  left: 8px;
-  top: 2px;
-  color: var(--accent-text);
-}
-
-.dash-progress-bar--questions .dash-progress-bar-label {
-  color: var(--accent-text);
-}
-
-.home-predictive-card {
-  border-left: 4px solid var(--predictive-status-color, var(--accent));
-}
-
-.home-predictive-icon {
-  color: var(--predictive-status-color, var(--accent));
-  font-size: 16px;
-}
-
-.view-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
+@import './views/dashboard.css';
 
 /* MED stat card with wide center layout */
 .med-stat-card--wide {
@@ -931,7 +815,7 @@
   font-weight: 600;
 }
 
-/* === Registro Sessão - Inline Style Migrations === */
+/* === Registro Sessao - Inline Style Migrations === */
 
 /* Main form row layouts */
 .reg-row-column {
@@ -1574,7 +1458,7 @@
   border-radius: var(--radius-sm);
 }
 
-/* Revisões stats */
+/* Revisoes stats */
 .rev-stat-overdue {
   color: var(--red);
 }
@@ -1858,7 +1742,7 @@
   margin-top: var(--space-2);
 }
 
-/* Revisões stat counts */
+/* Revisoes stat counts */
 .rev-stat-count {
   font-size: 28px;
   font-weight: 800;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, normalize } from 'node:path';
 
 const rootDir = process.cwd();
 const srcDir = join(rootDir, 'src');
@@ -9,7 +9,20 @@ const cssDir = join(srcDir, 'css');
 function read(relativePath) {
   const content = readFileSync(join(rootDir, relativePath), 'utf8');
   if (!relativePath.endsWith('.css')) return content;
-  return content.replace(/\[data-theme='([^']+)'\]/g, '[data-theme="$1"]');
+  return inlineCssImports(relativePath, content).replace(/\[data-theme='([^']+)'\]/g, '[data-theme="$1"]');
+}
+
+function inlineCssImports(relativePath, content, seen = new Set()) {
+  const normalizedPath = normalize(relativePath).replace(/\\/g, '/');
+  if (seen.has(normalizedPath)) return '';
+  seen.add(normalizedPath);
+
+  const baseDir = dirname(normalizedPath);
+  return content.replace(/@import\s+['"]([^'"]+)['"]\s*;/g, (_match, importPath) => {
+    const importedPath = normalize(join(baseDir, importPath)).replace(/\\/g, '/');
+    const importedContent = readFileSync(join(rootDir, importedPath), 'utf8');
+    return inlineCssImports(importedPath, importedContent, seen);
+  });
 }
 
 function extractCssBlock(content, selector) {

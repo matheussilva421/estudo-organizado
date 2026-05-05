@@ -1,5 +1,5 @@
 /**
- * Local Mock Server — Estudo Organizado
+ * Local Mock Server - Estudo Organizado
  *
  * Standalone Node.js HTTP server that serves the src/ directory with
  * HTML injection for SW blocking, Firebase stubbing, and mock data seeding.
@@ -28,6 +28,7 @@ const __dirname = dirname(__filename);
 const MOCK_MODE = process.env.MOCK_MODE || 'reset';
 const MOCK_PORT = parseInt(process.env.MOCK_PORT || '18765', 10);
 const MOCK_SEED = process.env.MOCK_SEED || 'estudo-mock-2026';
+const MOCK_VERBOSE = process.env.MOCK_VERBOSE === 'true';
 
 const VALID_MODES = ['preserve', 'reset', 'clean'];
 if (!VALID_MODES.includes(MOCK_MODE)) {
@@ -66,7 +67,8 @@ function getMimeType(filePath) {
 // 3. Security Headers
 // ---------------------------------------------------------------------------
 
-const CSP_HEADER = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://cdnjs.cloudflare.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src 'self'; img-src 'self' data: https: blob:; media-src 'self';";
+const CSP_HEADER =
+  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://cdnjs.cloudflare.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src 'self'; img-src 'self' data: https: blob:; media-src 'self';";
 
 // ---------------------------------------------------------------------------
 // 4. Helpers
@@ -99,7 +101,9 @@ function sendFile(res, filePath, mimeType, headOnly = false) {
 }
 
 function logRequest(method, url, statusCode, bytes) {
-  console.log(`[MOCK] ${method} ${url} \u2192 ${statusCode} (${bytes} bytes)`);
+  if (MOCK_VERBOSE) {
+    console.log(`[MOCK] ${method} ${url} \u2192 ${statusCode} (${bytes} bytes)`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +147,7 @@ const server = createServer((req, res) => {
       return;
     }
 
-    // Route: GET/HEAD /js/firebase/firebase-runtime-config.js → serve mock stub
+    // Route: GET/HEAD /js/firebase/firebase-runtime-config.js -> serve mock stub
     if (pathname === '/js/firebase/firebase-runtime-config.js') {
       const stubPath = join(SCRIPTS_DIR, 'mock-firebase-stub.js');
       const bytes = sendFile(res, stubPath, 'application/javascript; charset=utf-8', isHead);

@@ -41,51 +41,10 @@ import {
 } from '../cloud-sync.js?v=8.37';
 import { disconnectDrive, previewDriveRestore, pullFromDrive } from '../drive-sync.js?v=8.37';
 import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.37';
-
-function formatBackupDateTime(value) {
-  if (!value) return 'Nunca';
-  try {
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return 'Nunca';
-    return d.toLocaleString('pt-BR');
-  } catch {
-    return 'Nunca';
-  }
-}
-
-function formatRestoreCount(value, singular, plural) {
-  const count = Number(value) || 0;
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
-function renderRestoreImpactSummary(impact) {
-  const totals = impact?.totals || {};
-  const byCollection = impact?.byCollection || {};
-  const rows = Object.entries(byCollection)
-    .map(
-      ([collection, stats]) => `
-        <div class="restore-preview-row">
-          <span>${esc(collection)}</span>
-          <strong>${formatRestoreCount(stats.added, 'adicionado', 'adicionados')}</strong>
-          <strong>${formatRestoreCount(stats.changed, 'alterado', 'alterados')}</strong>
-          <strong>${formatRestoreCount(stats.removed, 'removido', 'removidos')}</strong>
-        </div>
-      `
-    )
-    .join('');
-
-  return `
-    <div class="restore-preview-summary" data-testid="restore-preview-summary">
-      <div class="restore-preview-totals">
-        <span>${formatRestoreCount(totals.added, 'adicionado', 'adicionados')}</span>
-        <span>${formatRestoreCount(totals.changed, 'alterado', 'alterados')}</span>
-        <span>${formatRestoreCount(totals.removed, 'removido', 'removidos')}</span>
-        <span>${formatRestoreCount(totals.preserved, 'preservado', 'preservados')}</span>
-      </div>
-      ${rows ? `<div class="restore-preview-table">${rows}</div>` : ''}
-    </div>
-  `;
-}
+import {
+  formatBackupDateTime,
+  renderRestoreImpactSummary,
+} from './config/backup-settings.js?v=8.37';
 
 function renderBackupCenterCard() {
   const fs = state.config?.firestoreSync || {};
@@ -1178,11 +1137,7 @@ export function restoreBackupFromSelectedSource() {
   }
 
   if (source === 'cloudflare') {
-    if (
-      !state.config?.cfSyncEnabled ||
-      !state.config?.cfUrl ||
-      !state.config?.cfToken
-    ) {
+    if (!state.config?.cfSyncEnabled || !state.config?.cfUrl || !state.config?.cfToken) {
       showToast('Configure a sincronização Cloudflare antes de restaurar por ela.', 'error');
       return;
     }
