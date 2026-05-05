@@ -2,6 +2,8 @@
 
 Guia curto para trabalhar no `estudo-organizado` com pouco contexto e validacao proporcional ao risco.
 
+Para continuar o plano de reducao de contexto com outra IA, leia tambem `docs/handoff-reducao-contexto-codex.md`.
+
 ## Regras de contexto
 
 Para microalteracoes, leia apenas os arquivos diretamente relacionados e imports diretos. Nao varra o projeto inteiro.

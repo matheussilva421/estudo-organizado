@@ -122,3 +122,5 @@ Regeneraveis, podendo ser removidos quando nao houver investigacao ativa:
 - `src/js/views.js`
 - `src/js/views/config-view.js`
 - suite E2E completa, que ainda produz muita saida e apresenta falhas em execucao ampla/paralela.
+
+Plano detalhado de continuidade para outra IA: `docs/handoff-reducao-contexto-codex.md`.
