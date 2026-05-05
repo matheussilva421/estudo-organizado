@@ -4,6 +4,7 @@
  */
 
 import { addCleanupListener } from '../../utils.js?v=8.37';
+import { debugLog } from '../../debug.js';
 
 /**
  * Registry de ações disponíveis
@@ -100,7 +101,7 @@ export function setupActionDispatcher() {
     }
   });
 
-  console.log('[actions.js] Dispatcher initialized');
+  debugLog('ui', '[actions.js] Dispatcher initialized');
 }
 
 export { actions };

@@ -6,6 +6,8 @@
  * - Focus restoration
  */
 
+import { debugLog } from '../debug.js';
+
 // Stack for nested modals
 const modalStack = [];
 
@@ -203,7 +205,7 @@ export function initModals() {
     }
   });
 
-  console.log('[dialog.js] Modals initialized with ARIA attributes');
+  debugLog('ui', '[dialog.js] Modals initialized with ARIA attributes');
 }
 
 /**
