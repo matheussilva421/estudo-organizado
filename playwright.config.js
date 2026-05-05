@@ -33,7 +33,11 @@ export default defineConfig({
     },
   ],
   projects: [
-    { name: 'chromium', use: { browserName: 'chromium' } },
+    {
+      name: 'chromium',
+      testIgnore: ['mock-environment.spec.js'],
+      use: { browserName: 'chromium' }
+    },
     {
       name: 'mock',
       use: {

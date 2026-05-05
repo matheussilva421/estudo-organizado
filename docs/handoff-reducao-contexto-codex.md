@@ -87,6 +87,32 @@ Proxima IA deve continuar em:
 2. Rodar `npm run test:e2e:mock -- --workers=1` se o objetivo for medir o gate mock completo.
 3. Seguir para a Task 1 se o objetivo for sanear a suite completa ou para a Task 3 se o objetivo for modularizacao CSS, mas registrando que `chromium` e `mock` agora sao gates separados.
 
+## Continuidade executada em 2026-05-05 - separacao de projetos E2E
+
+Arquivos alterados nesta continuidade:
+
+- `package.json`
+- `playwright.config.js`
+- `README_DEV.md`
+- `docs/relatorio-reducao-contexto-codex.md`
+- `docs/handoff-reducao-contexto-codex.md`
+
+O que foi feito:
+
+- O projeto Playwright `chromium` agora ignora `mock-environment.spec.js`, que e especifico do servidor mock.
+- `npm run test:e2e:mock` virou gate enxuto do ambiente mock e roda somente `tests/e2e/mock-environment.spec.js`.
+- `npm run test:e2e:mock:all` foi adicionado para investigacao explicita do projeto mock completo.
+- `README_DEV.md` e este handoff foram atualizados para evitar que outra IA trate os 2 projetos como duplicatas equivalentes.
+
+Validacoes desta continuidade:
+
+- Baseline antes da mudanca: `npm run test:e2e:release -- --list` ainda listava 10 testes `mock-environment` no projeto `chromium`; `npm run test:e2e:mock -- --list` listava 152 testes.
+- `npm run test:e2e:release -- --list`: listou 143 testes e nenhum `mock-environment`.
+- `npm run test:e2e:mock -- --list`: listou 10 testes em `mock-environment.spec.js`.
+- `npm run test:e2e:release -- tests/e2e/app.spec.js --grep "SW precache"`: 1 teste passando.
+- `npm run test:e2e:mock`: 10 testes passando quando executado sequencialmente.
+- Nota: nao execute `test:e2e:release` e `test:e2e:mock` em paralelo na mesma worktree; ambos usam o mesmo array `webServer`, e um comando pode encerrar o servidor mock enquanto o outro ainda roda.
+
 Nao reabra por padrao:
 
 - `node_modules/`

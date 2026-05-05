@@ -93,7 +93,8 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 
 - `npm run test:e2e:quick`: reporter `line`, bom para specs focadas e listagem.
 - `npm run test:e2e:release`: projeto `chromium`, reporter `line` com `--workers=1`, use como gate sequencial principal.
-- `npm run test:e2e:mock`: projeto `mock`, reporter `line`, use para validar o ambiente mock isolado.
+- `npm run test:e2e:mock`: projeto `mock`, reporter `line`, roda apenas `mock-environment.spec.js`.
+- `npm run test:e2e:mock:all`: projeto `mock` completo, use apenas para investigar paridade entre mock e Chromium.
 - `npm run test:e2e:debug`: reporter HTML, use apenas para investigar falhas e gerar `playwright-report/`.
 - Evite rodar projetos E2E em paralelo manualmente na mesma worktree; eles podem disputar as portas `18345` e `18765`.
 

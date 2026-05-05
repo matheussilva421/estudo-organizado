@@ -114,6 +114,17 @@ Arquivos locais fora de `.git`: 19.462.
 - `npm run test:e2e:release -- tests/e2e/app.spec.js --grep "SW precache"`: 1 teste passando.
 - `npm run test:e2e:chromium -- tests/e2e/app.spec.js --grep "SW precache"`: 1 teste passando apos rerodada sequencial; a tentativa paralela anterior falhou por colisao temporaria de porta `18345`.
 
+### Continuidade em 2026-05-05 - separacao de projetos E2E
+
+- `playwright.config.js`: o projeto `chromium` passou a ignorar `mock-environment.spec.js`, que depende de `window.__MOCK_MODE__` e dados do mock server.
+- `package.json`: `test:e2e:mock` agora roda somente `tests/e2e/mock-environment.spec.js`; `test:e2e:mock:all` ficou como comando explicito de investigacao.
+- `README_DEV.md`: documenta o mock gate enxuto e o mock completo como fluxo de investigacao.
+- `npm run test:e2e:release -- --list`: listou 143 testes e nenhum `mock-environment`.
+- `npm run test:e2e:mock -- --list`: listou 10 testes em 1 arquivo.
+- `npm run test:e2e:release -- tests/e2e/app.spec.js --grep "SW precache"`: 1 teste passando.
+- `npm run test:e2e:mock`: 10 testes passando em execucao sequencial.
+- Observacao operacional: os gates Playwright nao devem ser executados em paralelo na mesma worktree porque compartilham `webServer`.
+
 ## Artefatos locais a preservar ou limpar
 
 Preservar ou mover para arquivo externo:
