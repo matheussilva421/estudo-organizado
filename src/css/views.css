@@ -1,4 +1,5 @@
 @import './views/dashboard.css';
+@import './views/calendar.css';
 
 /* MED stat card with wide center layout */
 .med-stat-card--wide {
@@ -21,49 +22,9 @@
   padding: 60px 20px;
 }
 
-/* Calendar version tag */
-.cal-version-tag {
-  font-size: 9px;
-  color: var(--text-muted);
-  opacity: 0.5;
-}
-
 /* Margin-left auto (for push-right layouts) */
 .ml-auto {
   margin-left: auto;
-}
-
-/* Calendar week grid */
-.cal-week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-}
-
-.cal-week-cell {
-  min-height: 200px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-
-.cal-week-cell-header {
-  padding: 8px;
-  text-align: center;
-  border-bottom: 1px solid var(--border);
-}
-
-.cal-week-cell-body {
-  padding: 6px;
-}
-
-.cal-week-event {
-  margin-bottom: 3px;
-}
-
-.cal-week-add-btn {
-  width: 24px;
-  height: 24px;
 }
 
 /* Event detail modal */
@@ -1419,17 +1380,6 @@
 
 .skeleton-text-width-sm {
   width: 40%;
-}
-
-/* Calendar week cell */
-.cal-week-cell-header {
-  text-align: center;
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--border);
-}
-
-.cal-week-cell-header--today {
-  background: var(--accent-light);
 }
 
 /* Habits summary */
