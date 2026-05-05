@@ -36,8 +36,10 @@ test.describe('Manual Sync UI — Quiet Panel', () => {
     await page.evaluate(() => window.EstudoApp.navigate('config'));
     await expect(page.locator('#topbar-title')).toHaveText('Configurações');
 
-    // "Sincronizar agora" button should be visible
-    const syncNowBtn = page.locator('[data-action="sync-now"]');
+    // The quiet panel action is separate from the global topbar sync button.
+    const syncNowBtn = page
+      .locator('[data-testid="sync-quiet-panel"]')
+      .getByRole('button', { name: /Sincronizar agora/i });
     await expect(syncNowBtn).toBeVisible();
     await expect(syncNowBtn).toContainText('Sincronizar agora');
   });
@@ -65,9 +67,10 @@ test.describe('Manual Sync UI — Quiet Panel', () => {
     await page.evaluate(() => window.EstudoApp.navigate('config'));
     await expect(page.locator('#topbar-title')).toHaveText('Configurações');
 
-    // "Sincronizar agora" button should NOT be visible
-    const syncNowBtn = page.locator('[data-action="sync-now"]');
-    await expect(syncNowBtn).not.toBeVisible();
+    const quietSyncButton = page
+      .locator('[data-testid="sync-quiet-panel"]')
+      .getByRole('button', { name: /Sincronizar agora/i });
+    await expect(quietSyncButton).toHaveCount(0);
   });
 
   test('shows paused health badge when globalSyncPaused is true', async ({ page }) => {
@@ -98,8 +101,7 @@ test.describe('Manual Sync UI — Quiet Panel', () => {
     await page.evaluate(() => window.EstudoApp.navigate('config'));
     await expect(page.locator('#topbar-title')).toHaveText('Configurações');
 
-    // Description should mention manual sync
-    const desc = page.locator('.config-desc').first();
+    const desc = page.locator('[data-testid="sync-center"] .config-desc').first();
     await expect(desc).toContainText('apenas quando você pedir');
   });
 });

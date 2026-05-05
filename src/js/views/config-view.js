@@ -543,16 +543,6 @@ function renderQuietSyncCenterCard() {
                 : ''
           }
         </div>
-          </div>
-          ${
-            quietAction
-              ? `
-          <div class="sync-quiet-actions">
-            ${quietAction}
-          </div>`
-              : ''
-          }
-        </div>
 
         <details class="sync-advanced-panel" data-testid="backup-advanced-panel"${advancedOpen}>
           <summary>Opções avançadas de sync</summary>

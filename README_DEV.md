@@ -93,6 +93,8 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 
 - `npm run test:e2e:quick`: reporter `line`, bom para specs focadas e listagem.
 - `npm run test:e2e:release`: projeto `chromium`, reporter `line` com `--workers=1`, use como gate sequencial principal.
+- `npm run test:e2e`: alias do gate release estavel; use no fechamento quando precisar do E2E padrao do repo.
+- `npm run test:e2e:all`: matriz completa Playwright, com `chromium` e `mock`; use apenas para investigar paridade ampla.
 - `npm run test:e2e:mock`: projeto `mock`, reporter `line`, roda apenas `mock-environment.spec.js`.
 - `npm run test:e2e:mock:all`: projeto `mock` completo, use apenas para investigar paridade entre mock e Chromium.
 - `npm run test:e2e:debug`: reporter HTML, use apenas para investigar falhas e gerar `playwright-report/`.

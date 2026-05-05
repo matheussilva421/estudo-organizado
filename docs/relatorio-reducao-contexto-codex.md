@@ -125,6 +125,18 @@ Arquivos locais fora de `.git`: 19.462.
 - `npm run test:e2e:mock`: 10 testes passando em execucao sequencial.
 - Observacao operacional: os gates Playwright nao devem ser executados em paralelo na mesma worktree porque compartilham `webServer`.
 
+### Continuidade em 2026-05-05 - gate release E2E completo
+
+- `package.json`: `npm run test:e2e` passou a apontar para `npm run test:e2e:release`; `test:e2e:all` preserva a matriz Playwright completa como investigacao explicita.
+- `playwright.config.js`: o projeto `chromium` agora ignora `manual/**` alem de `mock-environment.spec.js`; isso evita que specs manuais entrem no release por sobrescrita do `testIgnore` global.
+- `src/js/views/config-view.js`: corrigida a arvore DOM do Sync Center removendo fechamentos excedentes e um bloco duplicado de acoes; o painel avancado voltou a ficar dentro de `[data-testid="sync-center"]`.
+- `tests/e2e/manual-sync-ui.spec.js`: seletores escopados ao quiet panel para nao conflitar com o botao global `sync-now`.
+- `tests/e2e/app.spec.js`: limpeza de conflito Cloudflare passa por `window.EstudoApp.setState()` antes dos eventos de status.
+- Baseline antes do fix: `npm run test:e2e:release` teve 137 passes e 5 falhas.
+- Depois do fix: `npm run test:e2e:release -- --list` listou 142 testes em 23 arquivos; `npm run test:e2e:quick -- --list` listou 294 testes em 24 arquivos.
+- `npm run test:config`: 60 testes passando.
+- `npm run test:e2e:release`: 142 testes passando.
+
 ## Artefatos locais a preservar ou limpar
 
 Preservar ou mover para arquivo externo:
@@ -145,6 +157,6 @@ Regeneraveis, podendo ser removidos quando nao houver investigacao ativa:
 - `src/css/views.css`
 - `src/js/views.js`
 - `src/js/views/config-view.js`
-- suite E2E completa, que ainda produz muita saida e apresenta falhas em execucao ampla/paralela.
+- matriz E2E completa (`test:e2e:all`), que continua sendo investigativa e inclui `chromium` + `mock`; o gate release Chromium ja esta estavel em `test:e2e`.
 
 Plano detalhado de continuidade para outra IA: `docs/handoff-reducao-contexto-codex.md`.

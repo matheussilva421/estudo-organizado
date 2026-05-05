@@ -251,7 +251,9 @@ test.describe('Estudo Organizado', () => {
     await expect(page.locator('[data-testid="cf-sync-conflict"]').first()).toBeVisible();
 
     await page.evaluate(() => {
-      delete window.state.config.cfConflict;
+      const nextState = structuredClone(window.state);
+      nextState.config.cfConflict = null;
+      window.EstudoApp.setState(nextState);
       document.dispatchEvent(new CustomEvent('app:firestoreSyncStatus', {
         detail: { status: 'synced', conflict: null }
       }));

@@ -113,6 +113,46 @@ Validacoes desta continuidade:
 - `npm run test:e2e:mock`: 10 testes passando quando executado sequencialmente.
 - Nota: nao execute `test:e2e:release` e `test:e2e:mock` em paralelo na mesma worktree; ambos usam o mesmo array `webServer`, e um comando pode encerrar o servidor mock enquanto o outro ainda roda.
 
+## Continuidade executada em 2026-05-05 - gate release E2E completo
+
+Arquivos alterados nesta continuidade:
+
+- `package.json`
+- `playwright.config.js`
+- `README_DEV.md`
+- `src/js/views/config-view.js`
+- `tests/e2e/app.spec.js`
+- `tests/e2e/manual-sync-ui.spec.js`
+- `docs/relatorio-reducao-contexto-codex.md`
+- `docs/handoff-reducao-contexto-codex.md`
+
+O que foi feito:
+
+- `npm run test:e2e` agora e alias do gate estavel `npm run test:e2e:release`.
+- Adicionado `npm run test:e2e:all` para a matriz Playwright completa (`chromium` + `mock`) ficar explicita como investigacao ampla.
+- O projeto Playwright `chromium` agora ignora tambem `manual/**`; antes o `testIgnore` do projeto sobrescrevia o ignore global e deixava `tests/e2e/manual/debug.spec.js` entrar no release.
+- Corrigido `renderQuietSyncCenterCard()` em `src/js/views/config-view.js`: havia fechamentos `</div>` sobrando e um bloco duplicado de `sync-quiet-actions`, deixando o painel avancado fora de `[data-testid="sync-center"]`. Isso impedia `refreshConfigSyncSurface()` de remover `cf-sync-conflict` e tambem deixava o screenshot do Backup Center instavel.
+- `tests/e2e/manual-sync-ui.spec.js` passou a buscar o botao "Sincronizar agora" dentro de `[data-testid="sync-quiet-panel"]`, porque existe outro botao global com o mesmo `data-action` na topbar.
+- `tests/e2e/app.spec.js` passou a limpar o conflito via `window.EstudoApp.setState()` antes de disparar os eventos de status, usando o contrato real de atualizacao de estado.
+
+Validacoes desta continuidade:
+
+- Baseline do release antes das correcoes: `npm run test:e2e:release` rodou 142 testes, com 137 passes e 5 falhas concentradas em `app.spec.js` e `manual-sync-ui.spec.js`.
+- `npm run test:e2e:release -- --list`: listou 142 testes em 23 arquivos, sem `mock-environment` e sem `tests/e2e/manual/debug.spec.js`.
+- `npm run test:e2e:quick -- --list`: listou 294 testes em 24 arquivos.
+- `npm run test:e2e:release -- tests/e2e/manual-sync-ui.spec.js`: 9 testes passando.
+- `npm run test:e2e:release -- tests/e2e/app.spec.js --grep "refreshes settings sync conflicts"`: 1 teste passando.
+- `npm run test:e2e:release -- tests/e2e/app.spec.js --grep "captures Sync Center"`: 1 teste passando.
+- `npm run test:config`: 2 arquivos, 60 testes passando.
+- `npm run test:e2e:release`: 142 testes passando.
+
+Proxima IA deve continuar em:
+
+1. Rodar `npm test` e `npm run test:e2e` como gates de fechamento padrao; agora `test:e2e` aponta para o release estavel.
+2. Usar `npm run test:e2e:mock` para o gate mock enxuto.
+3. Usar `npm run test:e2e:all` ou `npm run test:e2e:mock:all` apenas se o objetivo for investigar paridade ampla entre projetos.
+4. Seguir para a Task 3 (modularizacao CSS) se quiser continuar a reducao de contexto com menor risco; a Task 1 do release Chromium esta estabilizada.
+
 Nao reabra por padrao:
 
 - `node_modules/`
