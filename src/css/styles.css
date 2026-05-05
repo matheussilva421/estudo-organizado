@@ -936,17 +936,36 @@ body {
   color: var(--warning, #f59e0b);
 }
 
-.global-sync-toggle {
+#sync-now-btn {
   min-height: 34px;
   padding-inline: 12px;
   border-color: color-mix(in srgb, var(--border), transparent 10%);
   color: var(--text-secondary);
 }
 
-.global-sync-toggle.sync-toggle--paused {
-  border-color: color-mix(in srgb, var(--warning, #f59e0b), transparent 42%);
-  background: color-mix(in srgb, var(--warning, #f59e0b), transparent 88%);
+#sync-now-btn:hover {
+  color: var(--accent);
+}
+
+#sync-now-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sync-now-btn--syncing {
+  color: var(--accent);
+}
+
+.sync-now-btn--error {
+  color: var(--danger, #ef4444);
+}
+
+.sync-now-btn--offline {
   color: var(--warning, #f59e0b);
+}
+
+.sync-now-btn--no-channels {
+  color: var(--text-muted);
 }
 
 .btn {

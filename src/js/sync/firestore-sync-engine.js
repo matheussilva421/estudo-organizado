@@ -28,7 +28,7 @@ import {
   readFirestoreSnapshot,
   writeFirestoreSnapshot,
 } from './firestore-repository.js?v=8.37';
-import { canAutoSyncFirestore, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.37';
+import { canAutoSyncFirestore, isGlobalSyncPaused, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.37';
 import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.37';
 import { firestoreLock } from './sync-lock.js?v=8.37';
 import { yieldToUIWithBudget } from './sync-yield.js?v=8.37';
@@ -223,6 +223,7 @@ export async function pollFirestoreRemote() {
 
 export function startPolling(intervalMs = DEFAULT_POLL_INTERVAL_MS) {
   if (pollingInterval) return;
+  if (isGlobalSyncPaused(state.config)) return;
   pollFirestoreRemote().catch(() => {});
   pollingInterval = setInterval(() => {
     pollFirestoreRemote().catch(() => {});
@@ -431,7 +432,9 @@ export function initFirestoreSync() {
       console.warn('Entity migration check failed (non-critical):', err.message);
     }
 
-    startPolling();
+    if (!isGlobalSyncPaused(state.config)) {
+      startPolling();
+    }
     requestPrimarySync('signed-in');
     emitPrimaryStatus('signed-in', { uid: user.uid });
   });
@@ -464,7 +467,9 @@ export async function firestoreSignIn() {
     console.warn('Entity migration check failed (non-critical):', err.message);
   }
 
-  startPolling();
+  if (!isGlobalSyncPaused(state.config)) {
+    startPolling();
+  }
   requestPrimarySync('signed-in');
   return currentUser;
 }

@@ -42,6 +42,7 @@ import {
   resolveEntityConflictKeepRemote,
 } from '../../sync/firestore-sync-engine.js?v=8.37';
 import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.37';
+import { primarySyncLock } from '../../sync/sync-lock.js?v=8.37';
 import {
   syncWithDrive,
   pullFromDrive,
@@ -246,6 +247,102 @@ registerAction('toggle-global-sync', () => {
       : 'Sync global retomado. O app voltará a sincronizar automaticamente.',
     paused ? 'info' : 'success'
   );
+});
+registerAction('toggle-auto-sync', () => {
+  if (!state.config) state.config = {};
+  const paused = state.config.globalSyncPaused !== true;
+  state.config.globalSyncPaused = paused;
+  scheduleSave();
+  document.dispatchEvent(
+    new CustomEvent('app:globalSyncPauseChanged', {
+      detail: { paused },
+    })
+  );
+  document.dispatchEvent(
+    new CustomEvent('app:primarySyncStatus', {
+      detail: { status: paused ? 'paused' : 'idle', reason: 'global-toggle' },
+    })
+  );
+  showToast(
+    paused
+      ? 'Sync global pausado. O salvamento local continua ativo.'
+      : 'Sync global retomado. O app voltará a sincronizar automaticamente.',
+    paused ? 'info' : 'success'
+  );
+  renderCurrentView();
+});
+registerAction('sync-now', async () => {
+  if (!navigator.onLine) {
+    showToast('Sem conexão. Sincronize quando estiver online.', 'info');
+    return;
+  }
+
+  const firestoreStatus = getFirestoreSyncStatus();
+  const hasFirestore = firestoreStatus?.configured && firestoreStatus?.signedIn;
+  const hasCloudflare = Boolean(
+    state.config?.cfUrl && state.config?.cfToken && state.config?.cfSyncEnabled
+  );
+
+  if (!hasFirestore && !hasCloudflare) {
+    showToast(
+      'Nenhum canal de sincronização configurado. Vá em Configurações → Central de Sincronização.',
+      'info'
+    );
+    return;
+  }
+
+  // Double-click protection: check if a sync is already in progress
+  if (primarySyncLock.isLocked) {
+    showToast('Sincronização já em andamento.', 'info');
+    return;
+  }
+
+  // Run Firestore and Cloudflare in parallel — independent channels
+  const results = await Promise.allSettled([
+    hasFirestore
+      ? flushPrimarySyncNow({
+          manual: true,
+          ignoreGlobalPause: true,
+          reason: 'manual-button',
+        })
+      : Promise.resolve(null),
+    hasCloudflare ? forceCloudflareSync() : Promise.resolve(null),
+  ]);
+
+  const [firestoreResult, cloudflareResult] = results;
+
+  const firestoreOk = hasFirestore
+    ? firestoreResult.status === 'fulfilled' && firestoreResult.value === true
+    : true;
+  const cloudflareOk = hasCloudflare
+    ? cloudflareResult.status === 'fulfilled'
+    : true;
+
+  // Per-channel result toasts
+  if (firestoreOk && cloudflareOk) {
+    showToast('Sincronização manual concluída.', 'success');
+  } else if (!firestoreOk && !cloudflareOk) {
+    showToast(
+      'Sincronização manual falhou em todos os canais. Verifique o log.',
+      'error'
+    );
+  } else {
+    // At least one channel failed, at least one succeeded
+    const activeCount = (hasFirestore ? 1 : 0) + (hasCloudflare ? 1 : 0);
+    if (activeCount === 1) {
+      // Single channel was active and it failed → full error
+      showToast('Sincronização manual falhou. Verifique o log.', 'error');
+    } else {
+      // Multi-channel with partial failure
+      const failedChannels = [];
+      if (!firestoreOk && hasFirestore) failedChannels.push('Firestore');
+      if (!cloudflareOk && hasCloudflare) failedChannels.push('Cloudflare');
+      showToast(
+        `Sincronização parcial: ${failedChannels.join(' e ')} falhou. Verifique o log.`,
+        'info'
+      );
+    }
+  }
 });
 registerAction('sync-center-export-local', exportData);
 registerAction('sync-center-import-local', () => importData());

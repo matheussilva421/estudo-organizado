@@ -4,6 +4,8 @@ import {
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
+  startPolling,
+  stopPolling,
   syncFirestoreNow,
 } from './firestore-sync-engine.js?v=8.37';
 import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.37';
@@ -362,6 +364,15 @@ export function initSyncCoordinator() {
           updateCircuitBreaker('foreground', getFirestoreSyncStatus());
         }
       });
+    }
+  });
+
+  addListener(document, 'app:globalSyncPauseChanged', (event) => {
+    const paused = event.detail?.paused;
+    if (paused === true) {
+      stopPolling();
+    } else if (paused === false) {
+      startPolling();
     }
   });
 }

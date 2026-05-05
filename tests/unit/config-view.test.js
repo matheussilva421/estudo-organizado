@@ -378,6 +378,133 @@ describe('views/config-view.js', () => {
       expect(el.innerHTML).not.toContain('Sincronizacao automatica');
       expect(el.innerHTML).not.toContain('Opcoes avancadas');
     });
+
+    it('renders manual sync messaging when globalSyncPaused is true', () => {
+      storeModule.state.config.globalSyncPaused = true;
+      syncCenter.buildSyncCenterModel.mockReturnValue({
+        health: { status: 'paused', metrics: {} },
+        quiet: {
+          title: 'Sincronização manual',
+          detail: 'O app salva neste dispositivo e só sincroniza quando você iniciar manualmente.',
+          tone: 'idle',
+          primaryAction: null,
+        },
+        performanceMetrics: [],
+        sources: [],
+        manualSyncEnabled: true,
+      });
+      const el = document.createElement('div');
+
+      configView.renderConfig(el);
+
+      expect(el.innerHTML).toContain('Sincronização manual');
+      expect(el.innerHTML).toContain('Sincronizar agora');
+      expect(el.innerHTML).toContain('data-action="sync-now"');
+      // The auto-sync toggle label is always present in the advanced accordion
+      expect(el.innerHTML).toContain('data-testid="auto-sync-toggle"');
+    });
+
+    it('renders auto sync messaging when globalSyncPaused is false', () => {
+      storeModule.state.config.globalSyncPaused = false;
+      syncCenter.buildSyncCenterModel.mockReturnValue({
+        health: { status: 'ok', metrics: {} },
+        quiet: {
+          title: 'Tudo salvo automaticamente',
+          detail: 'Suas alterações ficam salvas neste dispositivo.',
+          tone: 'ok',
+          primaryAction: null,
+        },
+        performanceMetrics: [],
+        sources: [],
+        manualSyncEnabled: false,
+      });
+      const el = document.createElement('div');
+
+      configView.renderConfig(el);
+
+      expect(el.innerHTML).toContain('Sincronização automática');
+      expect(el.innerHTML).not.toContain('Sincronizar agora');
+    });
+
+    it('shows paused health badge when globalSyncPaused is true', () => {
+      storeModule.state.config.globalSyncPaused = true;
+      syncCenter.buildSyncCenterModel.mockReturnValue({
+        health: { status: 'paused', metrics: {} },
+        quiet: {
+          title: 'Sincronização manual',
+          detail: 'O app salva neste dispositivo.',
+          tone: 'idle',
+          primaryAction: null,
+        },
+        performanceMetrics: [],
+        sources: [],
+        manualSyncEnabled: true,
+      });
+      const el = document.createElement('div');
+
+      configView.renderConfig(el);
+
+      expect(el.innerHTML).toContain('sync-health-badge--paused');
+      expect(el.innerHTML).toContain('Pausado');
+    });
+
+    it('shows manual sync labels in Data card when globalSyncPaused is true', () => {
+      storeModule.state.config.globalSyncPaused = true;
+      storeModule.state.config.localBackupAt = '2026-04-30T10:00:00.000Z';
+      storeModule.state.config.firestoreSync = { remoteUpdatedAt: '2026-04-30T10:05:00.000Z' };
+      storeModule.state.config.cfLastSyncAt = '2026-04-30T10:10:00.000Z';
+      storeModule.state.lastSync = '2026-04-30T10:15:00.000Z';
+      syncCenter.buildSyncCenterModel.mockReturnValue({
+        health: { status: 'paused', metrics: {} },
+        quiet: {
+          title: 'Sincronização manual',
+          detail: 'O app salva neste dispositivo.',
+          tone: 'idle',
+          primaryAction: null,
+        },
+        performanceMetrics: [],
+        sources: [],
+        manualSyncEnabled: true,
+      });
+      const el = document.createElement('div');
+
+      configView.renderConfig(el);
+
+      expect(el.innerHTML).toContain('Última sincronização manual:');
+      expect(el.innerHTML).not.toContain('Backup local:');
+      expect(el.innerHTML).not.toContain('Backup Firestore:');
+      expect(el.innerHTML).not.toContain('Backup Cloudflare:');
+      expect(el.innerHTML).not.toContain('Backup Google Drive:');
+    });
+
+    it('shows auto sync labels in Data card when globalSyncPaused is false', () => {
+      storeModule.state.config.globalSyncPaused = false;
+      storeModule.state.config.localBackupAt = '2026-04-30T10:00:00.000Z';
+      storeModule.state.config.firestoreSync = { remoteUpdatedAt: '2026-04-30T10:05:00.000Z' };
+      storeModule.state.config.cfLastSyncAt = '2026-04-30T10:10:00.000Z';
+      storeModule.state.lastSync = '2026-04-30T10:15:00.000Z';
+      syncCenter.buildSyncCenterModel.mockReturnValue({
+        health: { status: 'ok', metrics: {} },
+        quiet: {
+          title: 'Tudo salvo automaticamente',
+          detail: 'Suas alterações ficam salvas neste dispositivo.',
+          tone: 'ok',
+          primaryAction: null,
+        },
+        performanceMetrics: [],
+        sources: [],
+        manualSyncEnabled: false,
+      });
+      const el = document.createElement('div');
+
+      configView.renderConfig(el);
+
+      expect(el.innerHTML).toContain('Backup local:');
+      expect(el.innerHTML).toContain('Backup Firestore:');
+      expect(el.innerHTML).toContain('Backup Cloudflare:');
+      expect(el.innerHTML).toContain('Backup Google Drive:');
+      expect(el.innerHTML).not.toContain('Última sincronização manual:');
+    });
   });
 
   describe('renderConfig()', () => {

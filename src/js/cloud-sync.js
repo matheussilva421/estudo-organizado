@@ -497,6 +497,8 @@ export async function forceCloudflareSync() {
     console.log('[Cloudflare] forceCloudflareSync COMPLETE');
   } catch (err) {
     console.error('[Cloudflare] forceCloudflareSync ERROR:', err);
+    // Re-throw so callers (e.g. sync-now handler) can detect per-channel failure
+    throw err;
   } finally {
     if (btn) {
       btn.disabled = false;

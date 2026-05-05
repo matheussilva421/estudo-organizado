@@ -202,5 +202,50 @@ describe('sync/sync-lock.js', () => {
       expect(r2).toBe('cf');
       expect(r3).toBe('drive');
     });
+
+    it('isLocked reflects whether lock is currently held', async () => {
+      const lock = new SyncLock();
+      expect(lock.isLocked).toBe(false);
+
+      let releaseFirst;
+      const firstCanFinish = new Promise((resolve) => {
+        releaseFirst = resolve;
+      });
+
+      const first = lock.withLock(async () => {
+        expect(lock.isLocked).toBe(true);
+        await firstCanFinish;
+        expect(lock.isLocked).toBe(true);
+      });
+
+      await vi.waitFor(() => {
+        expect(lock.isLocked).toBe(true);
+      });
+
+      releaseFirst();
+      await first;
+      expect(lock.isLocked).toBe(false);
+
+      await lock.withLock(async () => {
+        expect(lock.isLocked).toBe(true);
+      });
+      expect(lock.isLocked).toBe(false);
+    });
+
+    it('isLocked returns false after reset', async () => {
+      const lock = new SyncLock();
+
+      // Start a long-running operation
+      const p = lock.withLock(async () => {
+        await new Promise((r) => setTimeout(r, 5000));
+      });
+
+      await vi.waitFor(() => {
+        expect(lock.isLocked).toBe(true);
+      });
+
+      lock.reset();
+      expect(lock.isLocked).toBe(false);
+    });
   });
 });

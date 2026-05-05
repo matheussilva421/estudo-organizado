@@ -432,7 +432,7 @@ describe('data-action contracts', () => {
 
     expect(mainSource).not.toContain('CONFIG_SYNC_RENDER_THROTTLE_MS');
     expect(mainSource).not.toContain('scheduleConfigSyncRender');
-    expect(indexSource).toContain('data-action="toggle-global-sync"');
+    expect(indexSource).toContain('data-action="sync-now"');
     expect(syncStatusSource).toContain("document.addEventListener('app:firestoreSyncStatus'");
     expect(syncStatusSource).toContain("document.addEventListener('app:primarySyncStatus'");
     expect(syncStatusSource).toContain("document.addEventListener('app:globalSyncPauseChanged'");

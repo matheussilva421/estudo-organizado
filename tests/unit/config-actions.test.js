@@ -107,6 +107,7 @@ describe('ui/actions/config.js', () => {
     expect(calls).toContain('drive-action');
     expect(calls).toContain('sync-center-smart-sync');
     expect(calls).toContain('toggle-global-sync');
+    expect(calls).toContain('toggle-auto-sync');
     expect(calls).toContain('sync-center-export-local');
     expect(calls).toContain('sync-center-import-local');
     expect(calls).toContain('force-sw-cache-clear');

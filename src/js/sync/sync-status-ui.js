@@ -60,11 +60,13 @@ const COORDINATOR_STATUS_MAP = {
 
 let container = null;
 let syncToggle = null;
+let syncNowBtn = null;
 let rafId = null;
 let syncCenterRafId = null;
 let pendingStatus = null;
 let lastPrimaryStatusAt = 0;
 let listeners = [];
+let currentSyncNowState = 'idle';
 
 const HEALTH_ICONS = {
   ok: 'fa-circle-check',
@@ -107,6 +109,8 @@ function renderStatus(statusKey) {
   container.className = `sync-status ${config.cssClass}`;
   container.innerHTML = `<i class="fa ${config.icon}"></i> ${config.text}`;
   renderGlobalSyncToggle();
+  currentSyncNowState = deriveSyncNowState(statusKey);
+  renderSyncNowButton();
 }
 
 function renderGlobalSyncToggle() {
@@ -119,6 +123,68 @@ function renderGlobalSyncToggle() {
     paused ? 'Retomar sincronização global' : 'Pausar sincronização global'
   );
   syncToggle.innerHTML = `<i class="fa ${paused ? 'fa-play' : 'fa-pause'}"></i><span>${paused ? 'Retomar sync' : 'Pausar sync'}</span>`;
+}
+
+const SYNC_NOW_STATES = {
+  idle: {
+    icon: 'fa-arrows-rotate',
+    title: 'Sincronizar agora',
+    disabled: false,
+    cssClass: '',
+  },
+  syncing: {
+    icon: 'fa-spinner fa-spin',
+    title: 'Sincronizando…',
+    disabled: true,
+    cssClass: 'sync-now-btn--syncing',
+  },
+  error: {
+    icon: 'fa-exclamation-triangle',
+    title: 'Erro na sincronização — toque para tentar novamente',
+    disabled: false,
+    cssClass: 'sync-now-btn--error',
+  },
+  offline: {
+    icon: 'fa-wifi-slash',
+    title: 'Sem conexão',
+    disabled: false,
+    cssClass: 'sync-now-btn--offline',
+  },
+  'no-channels': {
+    icon: 'fa-arrows-rotate',
+    title: 'Configure um canal de sincronização',
+    disabled: false,
+    cssClass: 'sync-now-btn--no-channels',
+  },
+};
+
+function renderSyncNowButton() {
+  if (!syncNowBtn) return;
+  const config = SYNC_NOW_STATES[currentSyncNowState] || SYNC_NOW_STATES.idle;
+
+  // Remove previous state classes
+  for (const className of [...syncNowBtn.classList]) {
+    if (className.startsWith('sync-now-btn--')) syncNowBtn.classList.remove(className);
+  }
+  if (config.cssClass) syncNowBtn.classList.add(config.cssClass);
+
+  syncNowBtn.setAttribute('title', config.title);
+  syncNowBtn.disabled = config.disabled;
+  if (config.disabled) {
+    syncNowBtn.setAttribute('disabled', '');
+  } else {
+    syncNowBtn.removeAttribute('disabled');
+  }
+
+  const icon = syncNowBtn.querySelector('i');
+  if (icon) icon.className = `fa ${config.icon}`;
+}
+
+function deriveSyncNowState(statusKey) {
+  if (!navigator.onLine) return 'offline';
+  if (statusKey === 'syncing') return 'syncing';
+  if (statusKey === 'error') return 'error';
+  return 'idle';
 }
 
 function requestFrame(callback) {
@@ -261,6 +327,7 @@ export function initSyncStatusUI() {
   if (container) return; // already initialized
   container = document.getElementById('sync-status');
   syncToggle = document.getElementById('global-sync-toggle');
+  syncNowBtn = document.getElementById('sync-now-btn');
   if (!container) return;
 
   document.addEventListener('app:primarySyncStatus', handlePrimarySyncStatus);
@@ -276,6 +343,8 @@ export function initSyncStatusUI() {
 
   // Initial state
   renderGlobalSyncToggle();
+  currentSyncNowState = navigator.onLine ? 'idle' : 'offline';
+  renderSyncNowButton();
   scheduleRender(state.config?.globalSyncPaused ? 'paused' : 'idle');
 }
 
@@ -294,8 +363,10 @@ export function destroySyncStatusUI() {
   listeners = [];
   container = null;
   syncToggle = null;
+  syncNowBtn = null;
   pendingStatus = null;
   lastPrimaryStatusAt = 0;
+  currentSyncNowState = 'idle';
 }
 
 // Auto-init on module import when DOM is ready
@@ -304,3 +375,6 @@ if (document.readyState === 'loading') {
 } else {
   initSyncStatusUI();
 }
+
+// Exports for testing
+export { SYNC_NOW_STATES, renderSyncNowButton, deriveSyncNowState };

@@ -50,15 +50,24 @@ export function isGlobalSyncPaused(config = {}) {
   return config.globalSyncPaused === true;
 }
 
+export function getManualSyncStatus(config = {}) {
+  const enabled = isGlobalSyncPaused(config);
+  return {
+    enabled,
+    label: enabled ? 'Sincronização manual ativa' : 'Sincronização automática',
+    lastSyncAt: config.lastManualSyncAt || null,
+  };
+}
+
 function deriveQuietSyncView({ syncHealth, firestore, globalSyncPaused = false }) {
   const signedIn = Boolean(firestore.signedIn || firestore.uid);
   const isPrimary = firestore.mode === 'primary';
 
   if (globalSyncPaused) {
     return {
-      title: 'Sync global pausado',
+      title: 'Sincronização manual',
       detail:
-        'O app continua salvando neste dispositivo. A sincronização remota fica parada até você retomar.',
+        'O app salva neste dispositivo e só sincroniza quando você iniciar manualmente. Os dados locais continuam preservados.',
       tone: 'idle',
       primaryAction: null,
     };
@@ -326,6 +335,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
     ),
     newestRemoteAt: latestIso(firestore.remoteUpdatedAt, config.cfRemoteUpdatedAt, state?.lastSync),
     newestLocalAt: config.localBackupAt || null,
+    manualSyncEnabled: globalSyncPaused,
   };
 }
 

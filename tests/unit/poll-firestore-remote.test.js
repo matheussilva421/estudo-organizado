@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-describe('poll-firestore-remote (TDD - RED phase)', () => {
+describe('poll-firestore-remote (TDD)', () => {
   let pollFirestoreRemote;
   let startPolling;
   let stopPolling;
@@ -8,6 +8,8 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
   let mockSaveStateToDB;
   let mockSetState;
   let mockIsRemoteStateNewer;
+  let mockIsGlobalSyncPaused;
+  let storeState;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -17,6 +19,18 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     mockSaveStateToDB = vi.fn(() => Promise.resolve());
     mockSetState = vi.fn();
     mockIsRemoteStateNewer = vi.fn(() => true);
+    mockIsGlobalSyncPaused = vi.fn(() => false);
+
+    storeState = {
+      config: {
+        firestoreSync: { enabled: true, mode: 'primary' },
+        localBackupAt: '2026-01-01T00:00:00.000Z',
+        globalSyncPaused: false,
+      },
+      eventos: [],
+      editais: [],
+      disciplinas: [],
+    };
 
     global.document = {
       dispatchEvent: vi.fn(),
@@ -24,15 +38,7 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     };
 
     vi.doMock('../../src/js/store.js?v=8.37', () => ({
-      state: {
-        config: {
-          firestoreSync: { enabled: true, mode: 'primary' },
-          localBackupAt: '2026-01-01T00:00:00.000Z',
-        },
-        eventos: [],
-        editais: [],
-        disciplinas: [],
-      },
+      state: storeState,
       setState: mockSetState,
       saveStateToDB: mockSaveStateToDB,
     }));
@@ -77,6 +83,7 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
     vi.doMock('../../src/js/sync/sync-center.js?v=8.37', () => ({
       canAutoSyncFirestore: vi.fn(() => true),
       isRemoteStateNewer: mockIsRemoteStateNewer,
+      isGlobalSyncPaused: mockIsGlobalSyncPaused,
       isEmptyState: vi.fn(() => false),
       mergeStudyStates: vi.fn((local, remote) => ({ ...local, ...remote })),
       buildSyncCenterModel: vi.fn(() => ({})),
@@ -242,6 +249,83 @@ describe('poll-firestore-remote (TDD - RED phase)', () => {
 
       // Should have polled immediately, not waited 30s
       expect(readFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    });
+
+    it('does NOT start polling when globalSyncPaused is true', async () => {
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+
+      storeState.config.globalSyncPaused = true;
+      mockIsGlobalSyncPaused.mockReturnValue(true);
+
+      startPolling(30000);
+
+      // No immediate poll
+      expect(readFirestoreSnapshot).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(30000);
+      // Still no polls after interval
+      expect(readFirestoreSnapshot).not.toHaveBeenCalled();
+    });
+
+    it('starts polling when globalSyncPaused is false (default)', async () => {
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+
+      storeState.config.globalSyncPaused = false;
+      mockIsGlobalSyncPaused.mockReturnValue(false);
+
+      startPolling(30000);
+
+      // Immediate poll happens
+      expect(readFirestoreSnapshot).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(readFirestoreSnapshot).toHaveBeenCalledTimes(2);
+    });
+
+    it('startPolling is idempotent (calling twice does not create two intervals)', async () => {
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+
+      startPolling(30000);
+      startPolling(30000); // second call should be no-op
+
+      expect(readFirestoreSnapshot).toHaveBeenCalledTimes(1); // only one immediate poll
+
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(readFirestoreSnapshot).toHaveBeenCalledTimes(2); // one interval poll, not two
+    });
+
+    it('stopPolling is idempotent (calling twice does not throw)', async () => {
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+
+      startPolling(30000);
+      expect(readFirestoreSnapshot).toHaveBeenCalledTimes(1);
+
+      stopPolling();
+      stopPolling(); // second call should not throw
+
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(readFirestoreSnapshot).toHaveBeenCalledTimes(1); // no extra polls
+    });
+
+    it('resumes polling after pause is toggled off', async () => {
+      const { readFirestoreSnapshot } = await import('../../src/js/sync/firestore-repository.js?v=8.37');
+
+      // Start with pause ON
+      storeState.config.globalSyncPaused = true;
+      mockIsGlobalSyncPaused.mockReturnValue(true);
+      startPolling(30000);
+      expect(readFirestoreSnapshot).not.toHaveBeenCalled();
+
+      // Toggle pause OFF
+      storeState.config.globalSyncPaused = false;
+      mockIsGlobalSyncPaused.mockReturnValue(false);
+      startPolling(30000);
+
+      // Now should poll immediately
+      expect(readFirestoreSnapshot).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(readFirestoreSnapshot).toHaveBeenCalledTimes(2);
     });
   });
 });

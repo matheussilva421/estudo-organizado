@@ -71,6 +71,7 @@ describe('no-feedback-loop (TDD - RED phase)', () => {
     vi.doMock('../../src/js/sync/sync-center.js?v=8.37', () => ({
       canAutoSyncFirestore: vi.fn(() => true),
       isRemoteStateNewer: vi.fn(() => true),
+      isGlobalSyncPaused: vi.fn(() => false),
       isEmptyState: vi.fn(() => false),
       mergeStudyStates: vi.fn((local, remote) => ({ ...local, ...remote })),
       buildSyncCenterModel: vi.fn(() => ({})),

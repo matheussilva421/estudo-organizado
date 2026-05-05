@@ -281,6 +281,7 @@ function getSyncHealthLabel(health) {
     conflict: 'Conflito',
     error: 'Erro',
     offline: 'Offline',
+    paused: 'Pausado',
   };
   return labels[health] || 'Status';
 }
@@ -293,6 +294,7 @@ function getSyncHealthIcon(health) {
     conflict: 'fa-triangle-exclamation',
     error: 'fa-circle-xmark',
     offline: 'fa-wifi',
+    paused: 'fa-pause-circle',
   };
   return icons[health] || 'fa-circle-info';
 }
@@ -537,9 +539,13 @@ function renderQuietSyncCenterCard() {
   const statusIcon = getSyncHealthIcon(health.status);
   const metrics = health.metrics || {};
   const performanceMetrics = model.performanceMetrics || [];
+  const isManualMode = model.manualSyncEnabled === true;
+  const globalSyncPaused = state.config?.globalSyncPaused === true;
   const quiet = model.quiet || {
     title: statusLabel,
-    detail: 'O app salva localmente e sincroniza quando possível.',
+    detail: isManualMode
+      ? 'O app salva neste dispositivo e só sincroniza quando você iniciar manualmente.'
+      : 'O app salva localmente e sincroniza quando possível.',
     tone: health.status || 'idle',
     primaryAction: null,
   };
@@ -553,16 +559,31 @@ function renderQuietSyncCenterCard() {
     <div class="card config-card" data-testid="sync-center">
       <div class="card-header"><h3><i class="fa fa-arrows-rotate"></i> Central de Sincronização</h3></div>
       <div class="card-body">
-        <div class="config-desc">Edite normalmente. O app salva localmente e sincroniza em segundo plano.</div>
+        <div class="config-desc">${isManualMode ? 'Edite normalmente. O app salva localmente e sincroniza apenas quando você pedir.' : 'Edite normalmente. O app salva localmente e sincroniza em segundo plano.'}</div>
 
         <div class="sync-quiet-panel sync-quiet-panel--${esc(quiet.tone)}" data-testid="sync-quiet-panel">
           <div class="sync-quiet-main">
             <div class="sync-quiet-icon"><i class="fa ${statusIcon}"></i></div>
             <div>
-              <div class="sync-quiet-kicker">Sincronização automática</div>
+              <div class="sync-quiet-kicker">${isManualMode ? 'Sincronização manual' : 'Sincronização automática'}</div>
               <div class="sync-quiet-title">${esc(quiet.title)}</div>
               <div class="sync-quiet-detail">${esc(quiet.detail)}</div>
             </div>
+          </div>
+          ${
+            isManualMode
+              ? `
+          <div class="sync-quiet-actions">
+            <button type="button" class="btn btn-primary btn-sm" data-action="sync-now"><i class="fa fa-arrows-rotate"></i> Sincronizar agora</button>
+          </div>`
+              : quietAction
+                ? `
+          <div class="sync-quiet-actions">
+            ${quietAction}
+          </div>`
+                : ''
+          }
+        </div>
           </div>
           ${
             quietAction
@@ -598,6 +619,17 @@ function renderQuietSyncCenterCard() {
             </div>`
                 : ''
             }
+
+            <div class="config-row" style="margin-top:12px;margin-bottom:12px;">
+              <div>
+                <div class="config-label" data-testid="auto-sync-label">Sincronização automática</div>
+                <div class="config-sub">${isManualMode ? 'Sync pausado — salvamento local ativo' : 'Sync ativo — dados sincronizam automaticamente'}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="badge ${isManualMode ? 'badge-gray' : 'badge-green'}" data-testid="auto-sync-badge">${isManualMode ? 'OFF' : 'ON'}</span>
+                <button type="button" class="toggle ${isManualMode ? '' : 'on'}" aria-pressed="${isManualMode ? 'false' : 'true'}" aria-label="Sincronização automática" data-action="toggle-auto-sync" data-testid="auto-sync-toggle"></button>
+              </div>
+            </div>
 
             <div class="sync-sources-list">
               ${model.sources
@@ -679,6 +711,7 @@ function renderPreferenceNotificationsCard(cfg) {
 }
 
 function renderPreferenceDataCard(saveStatus, saveStatusText) {
+  const isManualMode = state.config?.globalSyncPaused === true;
   return `
     <div class="card config-card">
       <div class="card-header"><h3><i class="fa fa-database"></i> Dados</h3></div>
@@ -694,10 +727,15 @@ function renderPreferenceDataCard(saveStatus, saveStatusText) {
         <div class="config-desc">Importa&ccedil;&otilde;es JSON passam por valida&ccedil;&atilde;o e pr&eacute;via de impacto antes de substituir os dados atuais.</div>
 
         <div class="grid config-backup-grid">
+          ${
+            isManualMode
+              ? `<div class="flex flex-between"><span>Última sincronização manual:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>`
+              : `
           <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
           <div class="flex flex-between"><span>Backup Firestore:</span><strong>${formatBackupDateTime(state.config.firestoreSync?.remoteUpdatedAt)}</strong></div>
           <div class="flex flex-between"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
-          <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>
+          <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>`
+          }
         </div>
 
         <div class="form-group mb-3">

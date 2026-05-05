@@ -45,6 +45,8 @@ describe('sync/sync-coordinator.js', () => {
       })),
       queueFirestoreSnapshotFromState: vi.fn(() => Promise.resolve(true)),
       syncFirestoreNow: vi.fn(() => Promise.resolve(true)),
+      startPolling: vi.fn(),
+      stopPolling: vi.fn(),
     };
     firestoreOutbox = {
       getPendingFirestoreSnapshot: vi.fn(() => Promise.resolve(null)),
@@ -499,6 +501,37 @@ describe('sync/sync-coordinator.js', () => {
 
       expect(firestoreSync.queueFirestoreSnapshotFromState).toHaveBeenCalled();
       expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalled();
+    });
+
+    it('calls stopPolling when global sync is paused via app:globalSyncPauseChanged', () => {
+      coordinator.initSyncCoordinator();
+
+      document.dispatchEvent(
+        new CustomEvent('app:globalSyncPauseChanged', { detail: { paused: true } })
+      );
+
+      expect(firestoreSync.stopPolling).toHaveBeenCalledTimes(1);
+      expect(firestoreSync.startPolling).not.toHaveBeenCalled();
+    });
+
+    it('calls startPolling when global sync is resumed via app:globalSyncPauseChanged', () => {
+      coordinator.initSyncCoordinator();
+
+      document.dispatchEvent(
+        new CustomEvent('app:globalSyncPauseChanged', { detail: { paused: false } })
+      );
+
+      expect(firestoreSync.startPolling).toHaveBeenCalledTimes(1);
+      expect(firestoreSync.stopPolling).not.toHaveBeenCalled();
+    });
+
+    it('does not call startPolling or stopPolling on undefined detail', () => {
+      coordinator.initSyncCoordinator();
+
+      document.dispatchEvent(new CustomEvent('app:globalSyncPauseChanged', { detail: null }));
+
+      expect(firestoreSync.startPolling).not.toHaveBeenCalled();
+      expect(firestoreSync.stopPolling).not.toHaveBeenCalled();
     });
   });
 });

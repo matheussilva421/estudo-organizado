@@ -68,6 +68,41 @@ document.addEventListener('app:driveDisconnected', () => {
   }
 });
 
+/**
+ * Stops the Drive polling interval, if active.
+ * Idempotent — safe to call multiple times.
+ */
+export function stopDrivePolling() {
+  if (_driveSyncInterval) {
+    clearInterval(_driveSyncInterval);
+    _driveSyncInterval = null;
+  }
+}
+
+/**
+ * Starts the Drive polling interval (every 5 minutes).
+ * Will NOT start if globalSyncPaused is true.
+ * The interval callback itself guards against Drive not being
+ * connected (checks gapi, token, and driveFileId).
+ * Idempotent — safe to call multiple times.
+ */
+export function startDrivePolling() {
+  stopDrivePolling();
+  if (state.config?.globalSyncPaused === true) return;
+  _driveSyncInterval = setInterval(() => {
+    if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId)
+      syncWithDrive();
+  }, 300000);
+}
+
+document.addEventListener('app:globalSyncPauseChanged', (e) => {
+  if (e.detail?.paused) {
+    stopDrivePolling();
+  } else {
+    startDrivePolling();
+  }
+});
+
 export function getLastSaveStatus() {
   return { ..._lastSaveStatus };
 }
@@ -466,12 +501,8 @@ export function init() {
       // Note: event statuses ('atrasado') are computed dynamically by getEventStatus().
       // No need to mutate or save here — avoids triggering Cloudflare push on every boot.
 
-      // Check Drive Sync Every 5 Min
-      if (_driveSyncInterval) clearInterval(_driveSyncInterval);
-      _driveSyncInterval = setInterval(() => {
-        if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId)
-          syncWithDrive();
-      }, 300000);
+      // Check Drive Sync Every 5 Min (paused if globalSyncPaused is true)
+      startDrivePolling();
     })
     .catch((err) => {
       console.error('Falha ao inicializar o aplicativo:', err);

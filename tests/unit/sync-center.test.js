@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   canAutoSyncFirestore,
   buildSyncCenterModel,
+  getManualSyncStatus,
   mergeStudyStates,
 } from '../../src/js/sync/sync-center.js';
 
@@ -201,7 +202,7 @@ describe('sync-center.js', () => {
       expect(model.quiet.detail).toContain('Firestore sincroniza sozinho');
     });
 
-    it('describes global sync pause without disabling local save', () => {
+    it('describes manual-first sync when global sync is paused', () => {
       const model = buildSyncCenterModel({
         state: {
           config: {
@@ -217,8 +218,21 @@ describe('sync-center.js', () => {
       });
 
       expect(model.health.status).toBe('paused');
-      expect(model.quiet.title).toBe('Sync global pausado');
-      expect(model.quiet.detail).toContain('salvando neste dispositivo');
+      expect(model.quiet.title).toBe('Sincronização manual');
+      expect(model.quiet.detail).toContain('sincroniza quando você iniciar manualmente');
+      expect(model.manualSyncEnabled).toBe(true);
+    });
+
+    it('sets manualSyncEnabled to false when globalSyncPaused is not set', () => {
+      const model = buildSyncCenterModel({
+        state: {
+          config: {
+            firestoreSync: { enabled: true, mode: 'primary' },
+          },
+        },
+      });
+
+      expect(model.manualSyncEnabled).toBe(false);
     });
 
     it('asks for action only when a real sync conflict exists', () => {
@@ -280,6 +294,33 @@ describe('sync-center.js', () => {
       expect(model.health.status).toBe('offline');
       expect(model.quiet.title).toBe('Offline, sync automático pausado');
       expect(model.quiet.primaryAction).toBeNull();
+    });
+  });
+
+  describe('getManualSyncStatus()', () => {
+    it('returns enabled=true when globalSyncPaused is true', () => {
+      const status = getManualSyncStatus({ globalSyncPaused: true });
+      expect(status.enabled).toBe(true);
+      expect(status.label).toContain('manual');
+    });
+
+    it('returns enabled=false when globalSyncPaused is not set', () => {
+      const status = getManualSyncStatus({});
+      expect(status.enabled).toBe(false);
+      expect(status.label).toContain('automática');
+    });
+
+    it('returns lastSyncAt from config when available', () => {
+      const status = getManualSyncStatus({
+        globalSyncPaused: true,
+        lastManualSyncAt: '2026-05-01T10:00:00.000Z',
+      });
+      expect(status.lastSyncAt).toBe('2026-05-01T10:00:00.000Z');
+    });
+
+    it('returns lastSyncAt null when no manual sync has occurred', () => {
+      const status = getManualSyncStatus({ globalSyncPaused: true });
+      expect(status.lastSyncAt).toBeNull();
     });
   });
 

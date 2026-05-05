@@ -23,6 +23,14 @@ export class SyncLock {
   }
 
   /**
+   * Whether the lock is currently held (acquired by a caller).
+   * @returns {boolean}
+   */
+  get isLocked() {
+    return this.#locked;
+  }
+
+  /**
    * Execute fn inside the lock. Waits if lock is held.
    * @param {Function} fn - Async function to execute
    * @param {Object} options
