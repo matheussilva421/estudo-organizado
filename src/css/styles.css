@@ -1530,6 +1530,15 @@ body {
   border: 1px solid var(--border);
 }
 
+.calendar-shell-card.card {
+  height: auto;
+  overflow: visible;
+}
+
+.calendar-shell-card .card-body {
+  overflow: visible;
+}
+
 .cal-dow {
   background: var(--bg);
   padding: 8px 4px;
@@ -1551,7 +1560,7 @@ body {
 }
 
 .cal-grid.rows-6 .cal-cell {
-  min-height: 70px;
+  min-height: clamp(64px, calc((100vh - 310px) / 6), 82px);
 }
 
 .cal-cell:hover {
@@ -2167,10 +2176,34 @@ select.form-control {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: var(--sidebar-bg);
   color: var(--text-primary);
   cursor: pointer;
+  min-height: 48px;
+}
+
+.tree-edital-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-edital-count {
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.tree-edital-add-btn {
+  height: 34px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.tree-edital-header-main .icon-btn {
+  width: 36px;
+  height: 36px;
 }
 
 .tree-group {
@@ -2219,6 +2252,66 @@ select.form-control {
 .tree-assunto.done {
   color: var(--text-muted);
   text-decoration: line-through;
+}
+
+.home-card.card {
+  height: auto;
+  overflow: visible;
+}
+
+.home-subject-panel-card.card {
+  overflow: hidden;
+}
+
+.home-edital-group {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0 6px;
+}
+
+.home-edital-group:first-child {
+  padding-top: 0;
+}
+
+.home-edital-group:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.home-edital-group-header {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.home-edital-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.home-edital-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-edital-count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-subject-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px 40px 40px 40px;
+  padding: 8px 0;
 }
 
 .check-circle {

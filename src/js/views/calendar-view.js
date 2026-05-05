@@ -75,7 +75,7 @@ export function renderCalendar(el) {
     gridContent = calViewMode === 'mes' ? renderCalendarGrid() : renderCalendarWeek();
   }
   el.innerHTML = `
-    <div class="card">
+    <div class="card calendar-shell-card">
       <div class="card-body">
         <div class="cal-header">
           <div class="cal-nav">

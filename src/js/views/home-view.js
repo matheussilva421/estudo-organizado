@@ -77,7 +77,7 @@ export function renderHome(el) {
   const si = statusIcons[pred.status];
 
   const previsorHtml = `
-    <div class="card p-16 home-predictive-card" style="--predictive-status-color:${sc};">
+    <div class="card p-16 home-card home-predictive-card" style="--predictive-status-color:${sc};">
       <div class="flex-between mb-3">
         <div class="dash-label">PREVISÃO DA SEMANA</div>
         <i class="fa ${si} home-predictive-icon"></i>
@@ -123,15 +123,15 @@ export function renderHome(el) {
   `;
 
   // SUBJECTS TABLE
-  const subjHtml = subjStats
-    .map((s) => {
-      const apr =
-        s.acertos + s.erros > 0 ? Math.round((s.acertos / (s.acertos + s.erros)) * 100) : 0;
-      const aprColor = apr >= 80 ? 'green' : apr >= 60 ? 'orange' : apr > 0 ? 'red' : 'gray';
-      const hasData = s.tempo > 0 || s.acertos + s.erros > 0;
+  const statsByDiscId = new Map(subjStats.map((s) => [s.id, s]));
+  const groupedDiscIds = new Set();
+  const renderSubjectRow = (s) => {
+    const apr = s.acertos + s.erros > 0 ? Math.round((s.acertos / (s.acertos + s.erros)) * 100) : 0;
+    const aprColor = apr >= 80 ? 'green' : apr >= 60 ? 'orange' : apr > 0 ? 'red' : 'gray';
+    const hasData = s.tempo > 0 || s.acertos + s.erros > 0;
 
-      return `
-      <div class="border-b text-md flex-center gap-md" style="display:grid; grid-template-columns:1fr 80px 40px 40px 40px; padding:8px 0;" role="row" aria-label="${esc(s.nome)}">
+    return `
+      <div class="home-subject-row border-b text-md flex-center gap-md" role="row" aria-label="${esc(s.nome)}">
         <div class="text-accent font-semibold text-ellipsis" title="${esc(s.nome)}">${esc(s.nome)}</div>
         <div class="text-secondary text-right text-mono" role="cell">${s.tempo > 0 ? formatTime(s.tempo) : '-'}</div>
         <div class="text-green text-center" role="cell">${s.acertos}</div>
@@ -139,7 +139,44 @@ export function renderHome(el) {
         <div class="flex flex-center"><div class="event-tag ${aprColor} text-center" style="padding:2px 6px; font-size:11px; min-width:32px;" role="cell">${hasData ? apr : 0}</div></div>
       </div>
     `;
+  };
+
+  const subjHtml = (state.editais || [])
+    .map((edital) => {
+      const rows = (edital.disciplinas || [])
+        .filter((disc) => !disc.arquivada)
+        .map((disc) => {
+          groupedDiscIds.add(disc.id);
+          return (
+            statsByDiscId.get(disc.id) || {
+              id: disc.id,
+              nome: disc.nome,
+              tempo: 0,
+              acertos: 0,
+              erros: 0,
+            }
+          );
+        });
+
+      if (rows.length === 0) return '';
+
+      const studiedCount = rows.filter((s) => s.tempo > 0 || s.acertos + s.erros > 0).length;
+      return `
+        <section class="home-edital-group" aria-label="Edital ${esc(edital.nome)}">
+          <div class="home-edital-group-header">
+            <span class="home-edital-dot" style="background:${edital.cor || 'var(--accent)'};"></span>
+            <span class="home-edital-name">${esc(edital.nome)}</span>
+            <span class="home-edital-count">${studiedCount}/${rows.length}</span>
+          </div>
+          ${rows.map(renderSubjectRow).join('')}
+        </section>
+      `;
     })
+    .join('');
+
+  const ungroupedSubjHtml = subjStats
+    .filter((s) => !groupedDiscIds.has(s.id))
+    .map(renderSubjectRow)
     .join('');
 
   const totalTimeStr = formatTime(
@@ -151,14 +188,14 @@ export function renderHome(el) {
   el.innerHTML = `
     <!-- LINHA 1: Cards Principais -->
     <div class="dash-grid-top">
-      <div class="card p-16 dashboard-stat-card">
+      <div class="card p-16 dashboard-stat-card home-card">
         <div>
           <div class="dash-label">TEMPO DE ESTUDO</div>
           <div class="dashboard-stat-value dashboard-stat-value--mono">${totalTimeStr}</div>
         </div>
       </div>
 
-      <div class="card p-16 dashboard-stat-card">
+      <div class="card p-16 dashboard-stat-card home-card">
         <div>
           <div class="dash-label">DESEMPENHO</div>
           <div class="dashboard-stat-detail-list">
@@ -169,7 +206,7 @@ export function renderHome(el) {
         <div class="dashboard-stat-value">${perfPerc}%</div>
       </div>
 
-      <div class="card p-16 dashboard-stat-card">
+      <div class="card p-16 dashboard-stat-card home-card">
         <div>
           <div class="dash-label">PROGRESSO NO EDITAL</div>
            <div class="dashboard-stat-detail-list">
@@ -180,7 +217,7 @@ export function renderHome(el) {
         <div class="dashboard-stat-value">${progPerc}%</div>
       </div>
 
-      <div class="card p-16 dashboard-stat-card">
+      <div class="card p-16 dashboard-stat-card home-card">
          <div>
           <div class="dash-label">PÁGINAS LIDAS</div>
           <div class="dashboard-stat-value dashboard-stat-value--mono">${pagesReadTotal}</div>
@@ -189,7 +226,7 @@ export function renderHome(el) {
     </div>
 
     <!-- LINHA 2: Constância -->
-    <div class="card p-16 dash-streak-panel mb-6">
+    <div class="card p-16 dash-streak-panel mb-6 home-card">
       <div class="flex-between mb-3">
         <div class="dash-label">CONSTÂNCIA NOS ESTUDOS <i class="fa fa-question-circle" style="opacity:0.5; margin-left:4px;" title="Dias que você registrou sessões nos últimos 30 dias." role="img" aria-label="Informação sobre constância"></i></div>
         <div class="text-base font-semibold text-accent">Últimos 30 dias</div>
@@ -206,7 +243,7 @@ export function renderHome(el) {
     <div class="dash-grid-bottom">
 
       <!-- Esquerda: Tabela de Disciplinas -->
-      <div class="card p-16 flex-col" style="max-height:500px;">
+      <div class="card p-16 flex-col home-card home-subject-panel-card" style="max-height:500px;">
         <div class="dash-label mb-4">PAINEL</div>
 
         <div class="border-b text-base font-bold text-primary flex-center gap-md pb-2" style="display:grid; grid-template-columns:1fr 80px 40px 40px 40px;" role="row" aria-label="Cabeçalho da tabela de disciplinas">
@@ -218,7 +255,7 @@ export function renderHome(el) {
         </div>
 
         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-          ${subjHtml || '<div class="text-center text-muted" style="padding:20px;">Nenhuma disciplina com histórico ainda.</div>'}
+          ${subjHtml || ungroupedSubjHtml || '<div class="text-center text-muted" style="padding:20px;">Nenhuma disciplina com histórico ainda.</div>'}
         </div>
       </div>
 
@@ -227,7 +264,7 @@ export function renderHome(el) {
 
         ${previsorHtml}
 
-        <div class="card p-16">
+        <div class="card p-16 home-card">
           <div class="flex-between mb-2">
             <div class="dash-label">DATA DA PROVA</div>
             <i class="fa fa-edit text-muted cursor-pointer" data-action="prompt-prova" title="Editar Meta" aria-label="Editar data da prova"></i>
@@ -235,7 +272,7 @@ export function renderHome(el) {
           ${provaText}
         </div>
 
-        <div class="card p-16">
+        <div class="card p-16 home-card home-weekly-goals-card">
           <div class="flex-between mb-4">
             <div class="dash-label">METAS DE ESTUDO SEMANAL</div>
             <i class="fa fa-edit text-muted cursor-pointer" data-action="prompt-metas" title="Editar Meta" aria-label="Editar metas de estudo"></i>
@@ -270,7 +307,7 @@ export function renderHome(el) {
           </div>
         </div>
 
-        <div class="card p-16 flex-1 flex-col home-weekly-study-card">
+        <div class="card p-16 flex-1 flex-col home-card home-weekly-study-card">
           <div class="flex-between mb-5">
             <div class="dash-label">ESTUDO SEMANAL</div>
             <div class="flex text-sm gap-xs">

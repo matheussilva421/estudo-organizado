@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadAppModules } from '../helpers/module-loader.js';
-import { createBaseState, createEvento, createDisciplina, createEdital, createAssunto } from '../helpers/state-builders.js';
+import {
+  createBaseState,
+  createEvento,
+  createDisciplina,
+  createEdital,
+  createAssunto,
+} from '../helpers/state-builders.js';
 
 let store;
 let logic;
@@ -27,7 +33,7 @@ function createMockDOM() {
       blur: vi.fn(),
       remove: vi.fn(),
       contains: vi.fn(() => true),
-      getBoundingClientRect: vi.fn(() => ({ top: 0, bottom: 0, left: 0, right: 0 }))
+      getBoundingClientRect: vi.fn(() => ({ top: 0, bottom: 0, left: 0, right: 0 })),
     };
     elements[id] = el;
     return el;
@@ -45,7 +51,7 @@ function createMockDOM() {
     removeEventListener: vi.fn(),
     activeElement: { blur: vi.fn() },
     body: { contains: vi.fn(() => true), style: {} },
-    elements
+    elements,
   };
 
   return mockDocument;
@@ -68,7 +74,7 @@ beforeEach(async () => {
     activeDashboardDiscCtx: null,
     navigate: vi.fn(),
     openDiscDashboard: vi.fn(),
-    currentView: 'home'
+    currentView: 'home',
   };
   global.Notification = { permission: 'granted' };
   global.Audio = vi.fn(() => ({ play: vi.fn(() => Promise.resolve()) }));
@@ -78,13 +84,13 @@ beforeEach(async () => {
     getItem: vi.fn(() => null),
     setItem: vi.fn(),
     removeItem: vi.fn(),
-    clear: vi.fn()
+    clear: vi.fn(),
   };
   global.sessionStorage = {
     getItem: vi.fn(() => null),
     setItem: vi.fn(),
     removeItem: vi.fn(),
-    clear: vi.fn()
+    clear: vi.fn(),
   };
 
   const modules = await loadAppModules();
@@ -98,7 +104,7 @@ beforeEach(async () => {
   logic.invalidateDashCaches();
   logic.invalidateStreakCache();
 
-  Object.keys(logic.timerIntervals).forEach(id => {
+  Object.keys(logic.timerIntervals).forEach((id) => {
     delete logic.timerIntervals[id];
   });
 });
@@ -112,7 +118,7 @@ describe('logic.js', () => {
 
         logic.toggleTimer('ev_1');
 
-        const ev = store.state.eventos.find(e => e.id === 'ev_1');
+        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
         expect(ev._timerStart).toBeGreaterThan(0);
         expect(global.document.dispatchEvent).toHaveBeenCalled();
       });
@@ -124,15 +130,17 @@ describe('logic.js', () => {
 
         logic.toggleTimer('ev_1');
 
-        const ev = store.state.eventos.find(e => e.id === 'ev_1');
+        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
         expect(ev._timerStart).toBeNull();
         expect(ev.tempoAcumulado).toBe(5);
       });
 
       it('starts crono_livre timer', () => {
-        store.setState(createBaseState({
-          cronoLivre: { _timerStart: null, tempoAcumulado: 0 }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
+          })
+        );
 
         logic.toggleTimer('crono_livre');
 
@@ -141,9 +149,11 @@ describe('logic.js', () => {
 
       it('pauses crono_livre timer', () => {
         const startTime = Date.now() - 10000;
-        store.setState(createBaseState({
-          cronoLivre: { _timerStart: startTime, tempoAcumulado: 30 }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { _timerStart: startTime, tempoAcumulado: 30 },
+          })
+        );
 
         logic.toggleTimer('crono_livre');
 
@@ -174,17 +184,21 @@ describe('logic.js', () => {
       });
 
       it('returns true for crono_livre with _timerStart', () => {
-        store.setState(createBaseState({
-          cronoLivre: { _timerStart: Date.now(), tempoAcumulado: 0 }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { _timerStart: Date.now(), tempoAcumulado: 0 },
+          })
+        );
 
         expect(logic.isTimerActive('crono_livre')).toBe(true);
       });
 
       it('returns false for crono_livre without _timerStart', () => {
-        store.setState(createBaseState({
-          cronoLivre: { _timerStart: null, tempoAcumulado: 0 }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
+          })
+        );
 
         expect(logic.isTimerActive('crono_livre')).toBe(false);
       });
@@ -233,14 +247,16 @@ describe('logic.js', () => {
 
         logic.addTimerMinutes('ev_1', 15);
 
-        const ev = store.state.eventos.find(e => e.id === 'ev_1');
+        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
         expect(ev.duracao).toBe(45);
       });
 
       it('adds minutes to crono_livre duracaoMinutos', () => {
-        store.setState(createBaseState({
-          cronoLivre: { duracaoMinutos: 20, _timerStart: null, tempoAcumulado: 0 }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { duracaoMinutos: 20, _timerStart: null, tempoAcumulado: 0 },
+          })
+        );
 
         logic.addTimerMinutes('crono_livre', 10);
 
@@ -253,7 +269,7 @@ describe('logic.js', () => {
 
         logic.addTimerMinutes('ev_1', -10);
 
-        const ev = store.state.eventos.find(e => e.id === 'ev_1');
+        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
         expect(ev.duracao).toBe(0);
       });
 
@@ -263,7 +279,7 @@ describe('logic.js', () => {
 
         logic.addTimerMinutes('ev_1', 25);
 
-        const ev = store.state.eventos.find(e => e.id === 'ev_1');
+        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
         expect(ev.duracao).toBe(25);
       });
 
@@ -300,16 +316,18 @@ describe('logic.js', () => {
       const confirmCall = global.document.dispatchEvent.mock.calls[0][0];
       confirmCall.detail.onYes();
 
-      const ev = store.state.eventos.find(e => e.id === 'ev_1');
+      const ev = store.state.eventos.find((e) => e.id === 'ev_1');
       expect(ev.tempoAcumulado).toBe(0);
       expect(ev._timerStart).toBeNull();
       expect(global.clearInterval).toHaveBeenCalled();
     });
 
     it('handles crono_livre discard', () => {
-      store.setState(createBaseState({
-        cronoLivre: { tempoAcumulado: 200, _timerStart: Date.now() }
-      }));
+      store.setState(
+        createBaseState({
+          cronoLivre: { tempoAcumulado: 200, _timerStart: Date.now() },
+        })
+      );
       logic.timerIntervals['crono_livre'] = { _mock: true };
       global.document.dispatchEvent.mockClear();
 
@@ -332,9 +350,11 @@ describe('logic.js', () => {
   describe('Crono livre', () => {
     describe('setCronoLivreGoal', () => {
       it('sets duracaoMinutos on cronoLivre', () => {
-        store.setState(createBaseState({
-          cronoLivre: { _timerStart: null, tempoAcumulado: 0 }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
+          })
+        );
 
         logic.setCronoLivreGoal(45);
 
@@ -350,9 +370,11 @@ describe('logic.js', () => {
       });
 
       it('parses string input', () => {
-        store.setState(createBaseState({
-          cronoLivre: { _timerStart: null, tempoAcumulado: 0 }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
+          })
+        );
 
         logic.setCronoLivreGoal('60');
 
@@ -360,9 +382,11 @@ describe('logic.js', () => {
       });
 
       it('sets 0 for invalid input', () => {
-        store.setState(createBaseState({
-          cronoLivre: { _timerStart: null, tempoAcumulado: 0 }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
+          })
+        );
 
         logic.setCronoLivreGoal('abc');
 
@@ -372,9 +396,11 @@ describe('logic.js', () => {
 
     describe('setCronoLivreDisc', () => {
       it('sets discId and resets assId', () => {
-        store.setState(createBaseState({
-          cronoLivre: { _timerStart: null, tempoAcumulado: 0, discId: 'old', assId: 'ass_1' }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { _timerStart: null, tempoAcumulado: 0, discId: 'old', assId: 'ass_1' },
+          })
+        );
 
         logic.setCronoLivreDisc('disc_2');
 
@@ -394,9 +420,11 @@ describe('logic.js', () => {
 
     describe('setCronoLivreAss', () => {
       it('sets assId', () => {
-        store.setState(createBaseState({
-          cronoLivre: { _timerStart: null, tempoAcumulado: 0, assId: null }
-        }));
+        store.setState(
+          createBaseState({
+            cronoLivre: { _timerStart: null, tempoAcumulado: 0, assId: null },
+          })
+        );
 
         logic.setCronoLivreAss('ass_5');
 
@@ -421,7 +449,7 @@ describe('logic.js', () => {
 
         logic._marcarEstudeiDirect('ev_1');
 
-        const ev = store.state.eventos.find(e => e.id === 'ev_1');
+        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
         expect(ev.status).toBe('estudei');
         expect(ev.dataEstudo).toBe('2026-04-20');
       });
@@ -432,14 +460,14 @@ describe('logic.js', () => {
           id: 'ev_1',
           status: 'agendado',
           _timerStart: startTime,
-          tempoAcumulado: 0
+          tempoAcumulado: 0,
         });
         store.setState(createBaseState({ eventos: [evento] }));
         logic.timerIntervals['ev_1'] = { _mock: true };
 
         logic._marcarEstudeiDirect('ev_1');
 
-        const ev = store.state.eventos.find(e => e.id === 'ev_1');
+        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
         expect(ev._timerStart).toBeNull();
         expect(ev.tempoAcumulado).toBe(10);
         expect(global.clearInterval).toHaveBeenCalled();
@@ -448,18 +476,25 @@ describe('logic.js', () => {
       it('marks assunto as concluido when event has discId and assId', () => {
         const disc = createDisciplina({
           id: 'disc_1',
-          assuntos: [createAssunto({ id: 'ass_1', concluido: false })]
+          assuntos: [createAssunto({ id: 'ass_1', concluido: false })],
         });
         const edital = createEdital({ disciplinas: [disc] });
-        const evento = createEvento({ id: 'ev_1', discId: 'disc_1', assId: 'ass_1', status: 'agendado' });
+        const evento = createEvento({
+          id: 'ev_1',
+          discId: 'disc_1',
+          assId: 'ass_1',
+          status: 'agendado',
+        });
         store.setState(createBaseState({ eventos: [evento], editais: [edital] }));
         logic.invalidateDiscCache();
 
         logic._marcarEstudeiDirect('ev_1');
 
-        const ev = store.state.eventos.find(e => e.id === 'ev_1');
+        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
         expect(ev.status).toBe('estudei');
-        const storedAss = store.state.editais[0].disciplinas[0].assuntos.find(a => a.id === 'ass_1');
+        const storedAss = store.state.editais[0].disciplinas[0].assuntos.find(
+          (a) => a.id === 'ass_1'
+        );
         expect(storedAss.concluido).toBe(true);
         expect(storedAss.dataConclusao).toBe('2026-04-20');
         expect(storedAss.revisoesFetas).toEqual([]);
@@ -474,16 +509,23 @@ describe('logic.js', () => {
       it('does not mark assunto if already concluido', () => {
         const disc = createDisciplina({
           id: 'disc_1',
-          assuntos: [createAssunto({ id: 'ass_1', concluido: true, dataConclusao: '2026-04-15' })]
+          assuntos: [createAssunto({ id: 'ass_1', concluido: true, dataConclusao: '2026-04-15' })],
         });
         const edital = createEdital({ disciplinas: [disc] });
-        const evento = createEvento({ id: 'ev_1', discId: 'disc_1', assId: 'ass_1', status: 'agendado' });
+        const evento = createEvento({
+          id: 'ev_1',
+          discId: 'disc_1',
+          assId: 'ass_1',
+          status: 'agendado',
+        });
         store.setState(createBaseState({ eventos: [evento], editais: [edital] }));
         logic.invalidateDiscCache();
 
         logic._marcarEstudeiDirect('ev_1');
 
-        const storedAss = store.state.editais[0].disciplinas[0].assuntos.find(a => a.id === 'ass_1');
+        const storedAss = store.state.editais[0].disciplinas[0].assuntos.find(
+          (a) => a.id === 'ass_1'
+        );
         expect(storedAss.dataConclusao).toBe('2026-04-15');
       });
     });
@@ -660,7 +702,7 @@ describe('logic.js', () => {
         id: 'ass_1',
         concluido: true,
         dataConclusao: '2026-04-19',
-        revisoesFetas: []
+        revisoesFetas: [],
       });
       const disc = createDisciplina({ id: 'disc_1', assuntos: [assunto] });
       const edital = createEdital({ disciplinas: [disc] });
@@ -690,9 +732,11 @@ describe('logic.js', () => {
   describe('Pomodoro mode', () => {
     describe('toggleTimerMode', () => {
       it('toggles pomodoro mode and updates config', () => {
-        store.setState(createBaseState({
-          config: { pomodoroMode: false, pomodoroFoco: 25, pomodoroPausa: 5 }
-        }));
+        store.setState(
+          createBaseState({
+            config: { pomodoroMode: false, pomodoroFoco: 25, pomodoroPausa: 5 },
+          })
+        );
 
         const initialMode = logic._pomodoroMode;
         logic.toggleTimerMode();
@@ -705,7 +749,7 @@ describe('logic.js', () => {
         logic.toggleTimerMode();
 
         const toastCall = global.document.dispatchEvent.mock.calls.find(
-          c => c[0].type === 'app:showToast'
+          (c) => c[0].type === 'app:showToast'
         );
         expect(toastCall).toBeDefined();
         expect(toastCall[0].detail.msg).toMatch(/Modo (Pomodoro|Cont.nuo) ativado/);
@@ -721,17 +765,27 @@ describe('logic.js', () => {
   describe('Ciclo', () => {
     describe('syncCicloToEventos', () => {
       it('does nothing when planejamento is not active', () => {
-        store.setState(createBaseState({
-          planejamento: { ativo: false, sequencia: [] }
-        }));
+        store.setState(
+          createBaseState({
+            planejamento: { ativo: false, sequencia: [] },
+          })
+        );
 
         expect(() => logic.syncCicloToEventos()).not.toThrow();
       });
 
       it('does nothing when sequencia is empty', () => {
-        store.setState(createBaseState({
-          planejamento: { ativo: true, sequencia: [], disciplinas: [], relevancia: {}, horarios: {} }
-        }));
+        store.setState(
+          createBaseState({
+            planejamento: {
+              ativo: true,
+              sequencia: [],
+              disciplinas: [],
+              relevancia: {},
+              horarios: {},
+            },
+          })
+        );
 
         logic.syncCicloToEventos();
 
@@ -741,29 +795,61 @@ describe('logic.js', () => {
       it('creates auto-generated events from sequencia', () => {
         const disc = createDisciplina({ id: 'disc_1', nome: 'Matemtica' });
         const edital = createEdital({ disciplinas: [disc] });
-        const seq = [
-          { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false }
-        ];
-        store.setState(createBaseState({
-          editais: [edital],
-          planejamento: {
-            ativo: true,
-            tipo: 'ciclo',
-            disciplinas: ['disc_1'],
-            relevancia: { disc_1: { peso: 100, percentual: 100 } },
-            horarios: { diasAtivos: [1, 2, 3, 4, 5], horasSemanais: 20 },
-            sequencia: seq
-          }
-        }));
+        const seq = [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false }];
+        store.setState(
+          createBaseState({
+            editais: [edital],
+            planejamento: {
+              ativo: true,
+              tipo: 'ciclo',
+              disciplinas: ['disc_1'],
+              relevancia: { disc_1: { peso: 100, percentual: 100 } },
+              horarios: { diasAtivos: [1, 2, 3, 4, 5], horasSemanais: 20 },
+              sequencia: seq,
+            },
+          })
+        );
         logic.invalidateDiscCache();
 
         logic.syncCicloToEventos();
 
-        const autoEvents = store.state.eventos.filter(e => e.isAutoGenerated);
+        const autoEvents = store.state.eventos.filter((e) => e.isAutoGenerated);
         expect(autoEvents.length).toBeGreaterThan(0);
         expect(autoEvents[0].discId).toBe('disc_1');
         expect(autoEvents[0].duracao).toBe(60);
         expect(autoEvents[0].status).toBe('agendado');
+      });
+
+      it('respeita a data inicial das previsoes ao gerar sessoes automaticas', () => {
+        const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
+        const edital = createEdital({ disciplinas: [disc] });
+        const seq = [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 120, concluido: false }];
+        store.setState(
+          createBaseState({
+            editais: [edital],
+            planejamento: {
+              ativo: true,
+              tipo: 'ciclo',
+              disciplinas: ['disc_1'],
+              relevancia: {},
+              horarios: {
+                dataInicial: '2026-04-25',
+                dataFinal: '2026-04-27',
+                diasAtivos: [0, 1, 2, 3, 4, 5, 6],
+              },
+              sequencia: seq,
+            },
+            config: { materiasPorDia: 2, primeirodiaSemana: 1 },
+          })
+        );
+        logic.invalidateDiscCache();
+
+        logic.syncCicloToEventos();
+
+        const autoDates = store.state.eventos.filter((e) => e.isAutoGenerated).map((e) => e.data);
+        expect(autoDates).not.toContain('2026-04-20');
+        expect(autoDates[0]).toBe('2026-04-25');
+        expect(autoDates).toContain('2026-04-27');
       });
 
       it('removes future auto-generated events that are not studied', () => {
@@ -772,42 +858,42 @@ describe('logic.js', () => {
           data: '2026-12-01',
           status: 'agendado',
           isAutoGenerated: true,
-          tempoAcumulado: 0
+          tempoAcumulado: 0,
         });
         const studiedEvent = createEvento({
           id: 'auto_studied',
           data: '2026-12-01',
           status: 'estudei',
           isAutoGenerated: true,
-          tempoAcumulado: 3600
+          tempoAcumulado: 3600,
         });
         const manualEvent = createEvento({
           id: 'ev_manual',
           data: '2026-12-01',
           status: 'agendado',
-          isAutoGenerated: false
+          isAutoGenerated: false,
         });
-        const seq = [
-          { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false }
-        ];
+        const seq = [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false }];
         const disc = createDisciplina({ id: 'disc_1', nome: 'Matemtica' });
         const edital = createEdital({ disciplinas: [disc] });
-        store.setState(createBaseState({
-          eventos: [futureEvent, studiedEvent, manualEvent],
-          editais: [edital],
-          planejamento: {
-            ativo: true,
-            tipo: 'ciclo',
-            disciplinas: ['disc_1'],
-            relevancia: {},
-            horarios: { diasAtivos: [1, 2, 3, 4, 5] },
-            sequencia: seq
-          }
-        }));
+        store.setState(
+          createBaseState({
+            eventos: [futureEvent, studiedEvent, manualEvent],
+            editais: [edital],
+            planejamento: {
+              ativo: true,
+              tipo: 'ciclo',
+              disciplinas: ['disc_1'],
+              relevancia: {},
+              horarios: { diasAtivos: [1, 2, 3, 4, 5] },
+              sequencia: seq,
+            },
+          })
+        );
 
         logic.syncCicloToEventos();
 
-        const remainingIds = store.state.eventos.map(e => e.id);
+        const remainingIds = store.state.eventos.map((e) => e.id);
         expect(remainingIds).toContain('auto_studied');
         expect(remainingIds).toContain('ev_manual');
         expect(remainingIds).not.toContain('auto_future');
@@ -816,16 +902,18 @@ describe('logic.js', () => {
 
     describe('moveCicloSeq', () => {
       it('swaps sequence items in the specified direction', () => {
-        store.setState(createBaseState({
-          planejamento: {
-            ativo: true,
-            sequencia: [
-              { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60 },
-              { id: 'seq_2', discId: 'disc_2', minutosAlvo: 90 }
-            ],
-            horarios: {}
-          }
-        }));
+        store.setState(
+          createBaseState({
+            planejamento: {
+              ativo: true,
+              sequencia: [
+                { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60 },
+                { id: 'seq_2', discId: 'disc_2', minutosAlvo: 90 },
+              ],
+              horarios: {},
+            },
+          })
+        );
 
         logic.moveCicloSeq(0, 1);
 
@@ -834,16 +922,18 @@ describe('logic.js', () => {
       });
 
       it('does nothing when move would go out of bounds', () => {
-        store.setState(createBaseState({
-          planejamento: {
-            ativo: true,
-            sequencia: [
-              { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60 },
-              { id: 'seq_2', discId: 'disc_2', minutosAlvo: 90 }
-            ],
-            horarios: {}
-          }
-        }));
+        store.setState(
+          createBaseState({
+            planejamento: {
+              ativo: true,
+              sequencia: [
+                { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60 },
+                { id: 'seq_2', discId: 'disc_2', minutosAlvo: 90 },
+              ],
+              horarios: {},
+            },
+          })
+        );
 
         logic.moveCicloSeq(0, -1);
 
@@ -859,15 +949,15 @@ describe('logic.js', () => {
 
     describe('desfazerEtapa', () => {
       it('marks sequence item as not concluido', () => {
-        store.setState(createBaseState({
-          planejamento: {
-            ativo: true,
-            sequencia: [
-              { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: true }
-            ],
-            horarios: {}
-          }
-        }));
+        store.setState(
+          createBaseState({
+            planejamento: {
+              ativo: true,
+              sequencia: [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: true }],
+              horarios: {},
+            },
+          })
+        );
 
         logic.desfazerEtapa('seq_1');
 
@@ -875,15 +965,15 @@ describe('logic.js', () => {
       });
 
       it('does nothing when seqId not found', () => {
-        store.setState(createBaseState({
-          planejamento: {
-            ativo: true,
-            sequencia: [
-              { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: true }
-            ],
-            horarios: {}
-          }
-        }));
+        store.setState(
+          createBaseState({
+            planejamento: {
+              ativo: true,
+              sequencia: [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: true }],
+              horarios: {},
+            },
+          })
+        );
 
         expect(() => logic.desfazerEtapa('seq_missing')).not.toThrow();
       });
@@ -899,18 +989,18 @@ describe('logic.js', () => {
       it('creates event from sequence item and starts timer', () => {
         const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Penal' });
         const edital = createEdital({ disciplinas: [disc] });
-        const seq = [
-          { id: 'seq_1', discId: 'disc_1', minutosAlvo: 90, concluido: false }
-        ];
-        store.setState(createBaseState({
-          editais: [edital],
-          planejamento: { ativo: true, sequencia: seq, horarios: {} }
-        }));
+        const seq = [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 90, concluido: false }];
+        store.setState(
+          createBaseState({
+            editais: [edital],
+            planejamento: { ativo: true, sequencia: seq, horarios: {} },
+          })
+        );
         logic.invalidateDiscCache();
 
         logic.iniciarEtapaPlanejamento('seq_1');
 
-        const newEvents = store.state.eventos.filter(e => e.seqId === 'seq_1');
+        const newEvents = store.state.eventos.filter((e) => e.seqId === 'seq_1');
         expect(newEvents).toHaveLength(1);
         expect(newEvents[0].discId).toBe('disc_1');
         expect(newEvents[0].duracao).toBe(90);
@@ -918,9 +1008,11 @@ describe('logic.js', () => {
       });
 
       it('does nothing when seqId not found', () => {
-        store.setState(createBaseState({
-          planejamento: { ativo: true, sequencia: [], horarios: {} }
-        }));
+        store.setState(
+          createBaseState({
+            planejamento: { ativo: true, sequencia: [], horarios: {} },
+          })
+        );
 
         expect(() => logic.iniciarEtapaPlanejamento('seq_missing')).not.toThrow();
       });
@@ -940,7 +1032,7 @@ describe('logic.js', () => {
           id: 'ass_1',
           concluido: true,
           dataConclusao: '2026-04-19',
-          revisoesFetas: []
+          revisoesFetas: [],
         });
         const disc = createDisciplina({ id: 'disc_1', assuntos: [assunto] });
         const edital = createEdital({ disciplinas: [disc] });
@@ -958,7 +1050,7 @@ describe('logic.js', () => {
           id: 'ass_1',
           concluido: true,
           dataConclusao: '2026-04-19',
-          revisoesFetas: []
+          revisoesFetas: [],
         });
         const disc = createDisciplina({ id: 'disc_1', assuntos: [assunto], arquivada: true });
         const edital = createEdital({ disciplinas: [disc] });
@@ -975,7 +1067,7 @@ describe('logic.js', () => {
           id: 'ass_1',
           concluido: false,
           dataConclusao: null,
-          revisoesFetas: []
+          revisoesFetas: [],
         });
         const disc = createDisciplina({ id: 'disc_1', assuntos: [assunto] });
         const edital = createEdital({ disciplinas: [disc] });
@@ -992,7 +1084,7 @@ describe('logic.js', () => {
           id: 'ass_1',
           concluido: true,
           dataConclusao: '2026-04-19',
-          revisoesFetas: []
+          revisoesFetas: [],
         });
         const disc = createDisciplina({ id: 'disc_1', assuntos: [assunto] });
         const edital = createEdital({ disciplinas: [disc] });

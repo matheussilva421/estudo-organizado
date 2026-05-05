@@ -165,6 +165,12 @@ describe('views/calendar-view.js', () => {
       expect(el.innerHTML).toContain('cal-grid');
     });
 
+    it('uses a dedicated shell class so month content can escape generic card clipping', () => {
+      const el = { innerHTML: '', querySelector: vi.fn(() => null) };
+      calendarView.renderCalendar(el);
+      expect(el.innerHTML).toContain('calendar-shell-card');
+    });
+
     it('includes navigation buttons with data-action', () => {
       const el = { innerHTML: '', querySelector: vi.fn(() => null) };
       calendarView.renderCalendar(el);

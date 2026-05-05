@@ -340,10 +340,11 @@ export function renderEditalTree(edital) {
 
   return `
     <div class="tree-edital" id="edital-${edital.id}">
-      <div class="tree-edital-header" data-action="toggle-edital" data-edital-id="${edital.id}">
+      <div class="tree-edital-header tree-edital-header-main" data-action="toggle-edital" data-edital-id="${edital.id}">
         <span class="flex-shrink-0" style="width:10px; height:10px; border-radius:50%; background:${edital.cor || '#8aa4bf'}; display:inline-block;"></span>
-        <span class="flex-1 text-lg font-bold">${esc(edital.nome)}</span>
-        <span class="text-sm" style="opacity:0.7;">${discCountText}</span>
+        <span class="flex-1 text-lg font-bold tree-edital-title">${esc(edital.nome)}</span>
+        <span class="text-sm tree-edital-count">${discCountText}</span>
+        <button class="btn btn-ghost btn-sm tree-edital-add-btn" data-action="open-disc-modal" data-edital-id="${edital.id}">+ Disciplina</button>
         <button type="button" class="icon-btn" title="Mover edital para cima" data-action="move-edital" data-edital-id="${edital.id}" data-dir="-1" ${isFirstEdital ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
         <button type="button" class="icon-btn" title="Mover edital para baixo" data-action="move-edital" data-edital-id="${edital.id}" data-dir="1" ${isLastEdital ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
         <button class="icon-btn" title="Adicionar Tópicos" data-action="navigate-with-ctx" data-view="vertical" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">📝</button>
@@ -351,9 +352,6 @@ export function renderEditalTree(edital) {
         <button class="icon-btn" title="Editar" data-action="open-edital-modal" data-edital-id="${edital.id}">✏️</button>
         <button class="icon-btn" title="Excluir" data-action="delete-edital" data-edital-id="${edital.id}">🗑️</button>
         <i class="fa fa-chevron-down text-base" style="opacity:0.7;"></i>
-      </div>
-      <div class="flex border-b justify-end" style="padding:10px 16px;">
-        <button class="btn btn-ghost btn-sm" data-action="open-disc-modal" data-edital-id="${edital.id}" style="margin-right:15px;margin-bottom:10px;">+ Disciplina</button>
       </div>
       <div class="disc-filter-row flex gap-xs" style="padding:8px 16px; border-bottom:1px solid var(--border);" role="group" aria-label="Filtro de disciplinas">
         <button type="button" class="filter-chip ${discFilterStatus === 'ativas' ? 'active' : ''}" data-action="set-disc-filter" data-filter="ativas">Ativas</button>
