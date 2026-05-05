@@ -1,3 +1,4 @@
+import { debugLog } from '../debug.js';
 import {
   completeGoogleRedirectSignIn,
   getFirebaseConfigStatus,
@@ -375,12 +376,12 @@ export function initFirestoreSync() {
         const { db, uid } = requireSignedInServices();
         const migrationCheck = await checkEntityMigrationNeeded(db, uid);
         if (migrationCheck.needed) {
-          console.log(`Entity migration needed: ${migrationCheck.entityCount} entities found.`);
+          debugLog('sync', `Entity migration needed: ${migrationCheck.entityCount} entities found.`);
           emitPrimaryStatus('migrating', { entityCount: migrationCheck.entityCount });
           const report = await migrateEntitiesToSnapshot(db, uid, {
-            onProgress: (msg) => console.log(`[Entity Migration] ${msg}`),
+            onProgress: (msg) => debugLog('sync', `[Entity Migration] ${msg}`),
           });
-          console.log('Entity migration complete:', JSON.stringify(report));
+          debugLog('sync', 'Entity migration complete:', JSON.stringify(report));
           emitPrimaryStatus('migrated', report);
         }
       } catch (err) {
@@ -417,12 +418,12 @@ export function initFirestoreSync() {
       checkEntityMigrationNeeded(db, uid)
         .then(async (migrationCheck) => {
           if (!migrationCheck.needed) return;
-          console.log(`Entity migration needed: ${migrationCheck.entityCount} entities found.`);
+          debugLog('sync', `Entity migration needed: ${migrationCheck.entityCount} entities found.`);
           emitPrimaryStatus('migrating', { entityCount: migrationCheck.entityCount });
           const report = await migrateEntitiesToSnapshot(db, uid, {
-            onProgress: (msg) => console.log(`[Entity Migration] ${msg}`),
+            onProgress: (msg) => debugLog('sync', `[Entity Migration] ${msg}`),
           });
-          console.log('Entity migration complete:', JSON.stringify(report));
+          debugLog('sync', 'Entity migration complete:', JSON.stringify(report));
           emitPrimaryStatus('migrated', report);
         })
         .catch((err) => {
@@ -455,12 +456,12 @@ export async function firestoreSignIn() {
     const { db, uid } = requireSignedInServices();
     const migrationCheck = await checkEntityMigrationNeeded(db, uid);
     if (migrationCheck.needed) {
-      console.log(`Entity migration needed: ${migrationCheck.entityCount} entities found.`);
+      debugLog('sync', `Entity migration needed: ${migrationCheck.entityCount} entities found.`);
       emitPrimaryStatus('migrating', { entityCount: migrationCheck.entityCount });
       const report = await migrateEntitiesToSnapshot(db, uid, {
-        onProgress: (msg) => console.log(`[Entity Migration] ${msg}`),
+        onProgress: (msg) => debugLog('sync', `[Entity Migration] ${msg}`),
       });
-      console.log('Entity migration complete:', JSON.stringify(report));
+      debugLog('sync', 'Entity migration complete:', JSON.stringify(report));
       emitPrimaryStatus('migrated', report);
     }
   } catch (err) {
