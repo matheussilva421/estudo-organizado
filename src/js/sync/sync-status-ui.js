@@ -21,6 +21,7 @@ const STATUS_CONFIG = {
   synced: { icon: 'fa-check-circle', text: 'Sincronizado', cssClass: 'sync-status--synced' },
   error: { icon: 'fa-exclamation-circle', text: 'Erro no sync', cssClass: 'sync-status--error' },
   offline: { icon: 'fa-wifi fa-offline-icon', text: 'Offline', cssClass: 'sync-status--offline' },
+  paused: { icon: 'fa-pause-circle', text: 'Sync pausado', cssClass: 'sync-status--paused' },
   degraded: {
     icon: 'fa-exclamation-triangle',
     text: 'Sync degradado',
@@ -52,14 +53,17 @@ const COORDINATOR_STATUS_MAP = {
   synced: 'synced',
   error: 'error',
   offline: 'offline',
+  paused: 'paused',
   degraded: 'degraded',
   'conflict-paused': 'error',
 };
 
 let container = null;
+let syncToggle = null;
 let rafId = null;
 let syncCenterRafId = null;
 let pendingStatus = null;
+let lastPrimaryStatusAt = 0;
 let listeners = [];
 
 const HEALTH_ICONS = {
@@ -69,6 +73,7 @@ const HEALTH_ICONS = {
   conflict: 'fa-triangle-exclamation',
   error: 'fa-circle-xmark',
   offline: 'fa-wifi',
+  paused: 'fa-pause-circle',
   synced: 'fa-circle-check',
   queued: 'fa-clock',
   syncing: 'fa-spinner fa-spin',
@@ -83,6 +88,7 @@ const HEALTH_LABELS = {
   conflict: 'Conflito',
   error: 'Erro',
   offline: 'Offline',
+  paused: 'Pausado',
   synced: 'OK',
   queued: 'Pendente',
   syncing: 'Pendente',
@@ -100,6 +106,19 @@ function renderStatus(statusKey) {
   const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG.idle;
   container.className = `sync-status ${config.cssClass}`;
   container.innerHTML = `<i class="fa ${config.icon}"></i> ${config.text}`;
+  renderGlobalSyncToggle();
+}
+
+function renderGlobalSyncToggle() {
+  if (!syncToggle) return;
+  const paused = state.config?.globalSyncPaused === true;
+  syncToggle.classList.toggle('sync-toggle--paused', paused);
+  syncToggle.setAttribute('aria-pressed', paused ? 'true' : 'false');
+  syncToggle.setAttribute(
+    'title',
+    paused ? 'Retomar sincronização global' : 'Pausar sincronização global'
+  );
+  syncToggle.innerHTML = `<i class="fa ${paused ? 'fa-play' : 'fa-pause'}"></i><span>${paused ? 'Retomar sync' : 'Pausar sync'}</span>`;
 }
 
 function requestFrame(callback) {
@@ -211,6 +230,7 @@ function scheduleSyncCenterRefresh() {
 function handlePrimarySyncStatus(event) {
   const raw = event.detail?.status;
   if (!raw) return;
+  lastPrimaryStatusAt = Date.now();
   scheduleRender(mapToCanonicalStatus('coordinator', raw));
   scheduleSyncCenterRefresh();
 }
@@ -218,7 +238,12 @@ function handlePrimarySyncStatus(event) {
 function handleFirestoreSyncStatus(event) {
   const raw = event.detail?.status;
   if (!raw) return;
-  scheduleRender(mapToCanonicalStatus('firestore', raw));
+  const status = mapToCanonicalStatus('firestore', raw);
+  if (status === 'idle' && Date.now() - lastPrimaryStatusAt < 1000) {
+    scheduleSyncCenterRefresh();
+    return;
+  }
+  scheduleRender(status);
   scheduleSyncCenterRefresh();
 }
 
@@ -226,22 +251,32 @@ function handleCloudSyncStatus() {
   scheduleSyncCenterRefresh();
 }
 
+function handleGlobalSyncPauseChanged(event) {
+  renderGlobalSyncToggle();
+  scheduleRender(event.detail?.paused ? 'paused' : 'idle');
+  scheduleSyncCenterRefresh();
+}
+
 export function initSyncStatusUI() {
   if (container) return; // already initialized
   container = document.getElementById('sync-status');
+  syncToggle = document.getElementById('global-sync-toggle');
   if (!container) return;
 
   document.addEventListener('app:primarySyncStatus', handlePrimarySyncStatus);
   document.addEventListener('app:firestoreSyncStatus', handleFirestoreSyncStatus);
   document.addEventListener('app:cloudSyncStatus', handleCloudSyncStatus);
+  document.addEventListener('app:globalSyncPauseChanged', handleGlobalSyncPauseChanged);
   listeners = [
     { event: 'app:primarySyncStatus', handler: handlePrimarySyncStatus },
     { event: 'app:firestoreSyncStatus', handler: handleFirestoreSyncStatus },
     { event: 'app:cloudSyncStatus', handler: handleCloudSyncStatus },
+    { event: 'app:globalSyncPauseChanged', handler: handleGlobalSyncPauseChanged },
   ];
 
   // Initial state
-  scheduleRender('idle');
+  renderGlobalSyncToggle();
+  scheduleRender(state.config?.globalSyncPaused ? 'paused' : 'idle');
 }
 
 export function destroySyncStatusUI() {
@@ -258,7 +293,9 @@ export function destroySyncStatusUI() {
   }
   listeners = [];
   container = null;
+  syncToggle = null;
   pendingStatus = null;
+  lastPrimaryStatusAt = 0;
 }
 
 // Auto-init on module import when DOM is ready

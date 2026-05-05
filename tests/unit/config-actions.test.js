@@ -106,6 +106,7 @@ describe('ui/actions/config.js', () => {
     expect(calls).toContain('merge-from-drive');
     expect(calls).toContain('drive-action');
     expect(calls).toContain('sync-center-smart-sync');
+    expect(calls).toContain('toggle-global-sync');
     expect(calls).toContain('sync-center-export-local');
     expect(calls).toContain('sync-center-import-local');
     expect(calls).toContain('force-sw-cache-clear');
@@ -234,6 +235,26 @@ describe('ui/actions/config.js', () => {
     const handler = registerAction.mock.calls.find((c) => c[0] === 'sync-center-smart-sync')[1];
     await handler({});
     expect(appModule.showToast).toHaveBeenCalledWith('Firestore primário sincronizado.', 'success');
+  });
+
+  it('toggle-global-sync pauses remote sync and persists the preference', () => {
+    const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'toggle-global-sync')[1];
+
+    handler({});
+
+    expect(storeModule.state.config.globalSyncPaused).toBe(true);
+    expect(storeModule.scheduleSave).toHaveBeenCalled();
+    expect(appModule.showToast).toHaveBeenCalledWith(
+      'Sync global pausado. O salvamento local continua ativo.',
+      'info'
+    );
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'app:globalSyncPauseChanged',
+        detail: expect.objectContaining({ paused: true }),
+      })
+    );
   });
 
   it('sync-center-smart-sync warns on conflict', async () => {

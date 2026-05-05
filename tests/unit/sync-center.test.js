@@ -7,6 +7,12 @@ import {
 
 describe('sync-center.js', () => {
   describe('canAutoSyncFirestore()', () => {
+    it('returns false when global sync is paused by the user', () => {
+      expect(canAutoSyncFirestore({ enabled: true, mode: 'primary', globalSyncPaused: true })).toBe(
+        false
+      );
+    });
+
     it('returns false when not enabled', () => {
       expect(canAutoSyncFirestore({ enabled: false })).toBe(false);
     });
@@ -17,7 +23,11 @@ describe('sync-center.js', () => {
 
     it('returns false when entity-conflict exists', () => {
       expect(
-        canAutoSyncFirestore({ enabled: true, mode: 'primary', conflict: { type: 'entity-conflict' } })
+        canAutoSyncFirestore({
+          enabled: true,
+          mode: 'primary',
+          conflict: { type: 'entity-conflict' },
+        })
       ).toBe(false);
     });
 
@@ -94,7 +104,9 @@ describe('sync-center.js', () => {
 
     it('shows cloudflare configured when cfUrl and token present', () => {
       const model = buildSyncCenterModel({
-        state: { config: { cfUrl: 'https://worker.test', cfToken: 'token123', cfSyncEnabled: true } },
+        state: {
+          config: { cfUrl: 'https://worker.test', cfToken: 'token123', cfSyncEnabled: true },
+        },
       });
       const cloudflare = model.sources.find((s) => s.id === 'cloudflare');
       expect(cloudflare.configured).toBe(true);
@@ -187,6 +199,26 @@ describe('sync-center.js', () => {
       expect(model.quiet.title).toBe('Tudo salvo automaticamente');
       expect(model.quiet.tone).toBe('ok');
       expect(model.quiet.detail).toContain('Firestore sincroniza sozinho');
+    });
+
+    it('describes global sync pause without disabling local save', () => {
+      const model = buildSyncCenterModel({
+        state: {
+          config: {
+            globalSyncPaused: true,
+            firestoreSync: {
+              enabled: true,
+              configured: true,
+              signedIn: true,
+              mode: 'primary',
+            },
+          },
+        },
+      });
+
+      expect(model.health.status).toBe('paused');
+      expect(model.quiet.title).toBe('Sync global pausado');
+      expect(model.quiet.detail).toContain('salvando neste dispositivo');
     });
 
     it('asks for action only when a real sync conflict exists', () => {

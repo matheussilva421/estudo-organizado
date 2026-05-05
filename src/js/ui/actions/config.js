@@ -203,6 +203,10 @@ registerAction('merge-from-drive', () => {
 });
 registerAction('drive-action', driveAction);
 registerAction('sync-center-smart-sync', async () => {
+  if (state.config?.globalSyncPaused) {
+    showToast('Sync global pausado. Retome o sync para enviar dados à nuvem.', 'info');
+    return;
+  }
   const status = getFirestoreSyncStatus();
   if (status?.conflict) {
     showToast('Firebase tem conflito. Use Mesclar, Baixar ou Enviar local.', 'info');
@@ -219,6 +223,28 @@ registerAction('sync-center-smart-sync', async () => {
   showToast(
     'Ative o Firestore primário para sincronizar entre dispositivos. Cloudflare e Drive ficam como backups manuais.',
     'info'
+  );
+});
+registerAction('toggle-global-sync', () => {
+  if (!state.config) state.config = {};
+  const paused = state.config.globalSyncPaused !== true;
+  state.config.globalSyncPaused = paused;
+  scheduleSave();
+  document.dispatchEvent(
+    new CustomEvent('app:globalSyncPauseChanged', {
+      detail: { paused },
+    })
+  );
+  document.dispatchEvent(
+    new CustomEvent('app:primarySyncStatus', {
+      detail: { status: paused ? 'paused' : 'idle', reason: 'global-toggle' },
+    })
+  );
+  showToast(
+    paused
+      ? 'Sync global pausado. O salvamento local continua ativo.'
+      : 'Sync global retomado. O app voltará a sincronizar automaticamente.',
+    paused ? 'info' : 'success'
   );
 });
 registerAction('sync-center-export-local', exportData);

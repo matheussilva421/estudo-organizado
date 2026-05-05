@@ -7,7 +7,7 @@ export function createAssunto(overrides = {}) {
     revisoesFetas: [],
     adiamentos: 0,
     linkedAulaIds: [],
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -19,7 +19,7 @@ export function createDisciplina(overrides = {}) {
     cor: '#0f766e',
     assuntos: [],
     aulas: [],
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -29,7 +29,7 @@ export function createEdital(overrides = {}) {
     nome: 'Edital',
     cor: '#0f766e',
     disciplinas: [],
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -43,7 +43,7 @@ export function createEvento(overrides = {}) {
     discId: null,
     assId: null,
     criadoEm: '2026-04-18T12:00:00.000Z',
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -59,7 +59,7 @@ export function createBaseState(overrides = {}) {
       horarios: {},
       sequencia: [],
       ciclosCompletos: 0,
-      dataInicioCicloAtual: null
+      dataInicioCicloAtual: null,
     },
     editais: [],
     eventos: [],
@@ -73,7 +73,7 @@ export function createBaseState(overrides = {}) {
       informativo: [],
       sumula: [],
       videoaula: [],
-      paginas: []
+      paginas: [],
     },
     revisoes: [],
     config: {
@@ -82,12 +82,13 @@ export function createBaseState(overrides = {}) {
       mostrarNumeroSemana: false,
       agruparEventos: true,
       frequenciaRevisao: [1, 7, 30, 90],
-      materiasPorDia: 3
+      materiasPorDia: 3,
+      globalSyncPaused: false,
     },
     cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
     bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
     driveFileId: null,
     lastSync: null,
-    ...overrides
+    ...overrides,
   };
 }

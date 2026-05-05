@@ -10,7 +10,7 @@
  * @returns {Promise<void>}
  */
 export function delayMs(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -22,11 +22,30 @@ export function createMockState(overrides = {}) {
   return {
     schemaVersion: 9,
     ciclo: { ativo: false, ciclosCompletos: 0, disciplinas: [] },
-    planejamento: { ativo: false, tipo: null, disciplinas: [], relevancia: {}, horarios: {}, sequencia: [], ciclosCompletos: 0, dataInicioCicloAtual: null },
+    planejamento: {
+      ativo: false,
+      tipo: null,
+      disciplinas: [],
+      relevancia: {},
+      horarios: {},
+      sequencia: [],
+      ciclosCompletos: 0,
+      dataInicioCicloAtual: null,
+    },
     editais: [],
     eventos: [],
     arquivo: [],
-    habitos: { questoes: [], revisao: [], discursiva: [], simulado: [], leitura: [], informativo: [], sumula: [], videoaula: [], paginas: [] },
+    habitos: {
+      questoes: [],
+      revisao: [],
+      discursiva: [],
+      simulado: [],
+      leitura: [],
+      informativo: [],
+      sumula: [],
+      videoaula: [],
+      paginas: [],
+    },
     revisoes: [],
     config: {
       visualizacao: 'mes',
@@ -35,6 +54,7 @@ export function createMockState(overrides = {}) {
       agruparEventos: true,
       frequenciaRevisao: [1, 7, 30, 90],
       materiasPorDia: 3,
+      globalSyncPaused: false,
       entityTombstones: [],
       firestoreSync: { enabled: false, uid: null, lastSyncAt: null },
       entitySync: { primaryEnabled: false, lastSyncAt: null },
@@ -43,7 +63,7 @@ export function createMockState(overrides = {}) {
     bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
     driveFileId: null,
     lastSync: null,
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -72,12 +92,20 @@ export async function waitForCondition(predicate, timeoutMs = 5000, intervalMs =
  */
 export function countEventDispatches(target, eventType) {
   let count = 0;
-  const handler = () => { count++; };
+  const handler = () => {
+    count++;
+  };
   target.addEventListener(eventType, handler);
   return {
-    get count() { return count; },
-    reset() { count = 0; },
-    cleanup() { target.removeEventListener(eventType, handler); }
+    get count() {
+      return count;
+    },
+    reset() {
+      count = 0;
+    },
+    cleanup() {
+      target.removeEventListener(eventType, handler);
+    },
   };
 }
 
@@ -120,6 +148,6 @@ export function createMockIndexedDB() {
 
     clear() {
       stores.clear();
-    }
+    },
   };
 }

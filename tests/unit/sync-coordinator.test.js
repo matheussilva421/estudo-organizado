@@ -83,6 +83,16 @@ describe('sync/sync-coordinator.js', () => {
       expect(status.firestore).toBeDefined();
     });
 
+    it('reports global pause as auto sync disabled', () => {
+      storeModule.state.config.globalSyncPaused = true;
+
+      const status = coordinator.getSyncCoordinatorStatus();
+
+      expect(status.globalSyncPaused).toBe(true);
+      expect(status.autoSyncEnabled).toBe(false);
+      expect(status.health.state).toBe('paused');
+    });
+
     it('reports degraded after repeated automatic failures', async () => {
       firestoreSync.flushFirestoreOutbox.mockResolvedValue(false);
 
@@ -119,6 +129,24 @@ describe('sync/sync-coordinator.js', () => {
       });
       const result = coordinator.schedulePrimarySync('test');
       expect(result).toBe(false);
+    });
+
+    it('does not queue automatic sync while global pause is active', () => {
+      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+      storeModule.state.config.globalSyncPaused = true;
+
+      const result = coordinator.schedulePrimarySync('local-save');
+
+      expect(result).toBe(false);
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'app:primarySyncStatus',
+          detail: expect.objectContaining({ status: 'paused' }),
+        })
+      );
+      expect(dispatchSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'app:primarySyncQueued' })
+      );
     });
 
     it('returns false when entity conflict exists', () => {
@@ -184,6 +212,17 @@ describe('sync/sync-coordinator.js', () => {
       });
       const result = await coordinator.flushPrimarySyncNow({ manual: true });
       expect(result).toBe(false);
+    });
+
+    it('does not flush remote data while global pause is active', async () => {
+      storeModule.state.config.globalSyncPaused = true;
+
+      const result = await coordinator.flushPrimarySyncNow({ manual: true, reason: 'manual' });
+
+      expect(result).toBe(false);
+      expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
+      expect(firestoreSync.syncFirestoreNow).not.toHaveBeenCalled();
     });
 
     it('repairs stale conflict status when no pending snapshot exists', async () => {
@@ -372,6 +411,24 @@ describe('sync/sync-coordinator.js', () => {
       coordinator.initSyncCoordinator();
       document.dispatchEvent(new CustomEvent('stateSaved', { detail: { reason: 'test' } }));
       expect(dispatchSpy).toHaveBeenCalled();
+    });
+
+    it('ignores stateSaved remote sync while global pause is active', () => {
+      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+      storeModule.state.config.globalSyncPaused = true;
+      coordinator.initSyncCoordinator();
+      dispatchSpy.mockClear();
+
+      document.dispatchEvent(new CustomEvent('stateSaved', { detail: { reason: 'test' } }));
+
+      const dispatchedEvents = dispatchSpy.mock.calls.map(([event]) => event);
+      expect(
+        dispatchedEvents.some(
+          (event) => event.type === 'app:primarySyncStatus' && event.detail?.status === 'paused'
+        )
+      ).toBe(true);
+      expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
     });
 
     it('ignores metadata-only stateSaved events from sync persistence', () => {

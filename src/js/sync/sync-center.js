@@ -46,9 +46,23 @@ function mergeById(localArr, remoteArr) {
   return Array.from(map.values());
 }
 
-function deriveQuietSyncView({ syncHealth, firestore }) {
+export function isGlobalSyncPaused(config = {}) {
+  return config.globalSyncPaused === true;
+}
+
+function deriveQuietSyncView({ syncHealth, firestore, globalSyncPaused = false }) {
   const signedIn = Boolean(firestore.signedIn || firestore.uid);
   const isPrimary = firestore.mode === 'primary';
+
+  if (globalSyncPaused) {
+    return {
+      title: 'Sync global pausado',
+      detail:
+        'O app continua salvando neste dispositivo. A sincronização remota fica parada até você retomar.',
+      tone: 'idle',
+      primaryAction: null,
+    };
+  }
 
   if (syncHealth.state === 'conflict') {
     return {
@@ -159,6 +173,7 @@ function deriveQuietSyncView({ syncHealth, firestore }) {
 }
 
 export function canAutoSyncFirestore(config = {}, pending = null, now = Date.now()) {
+  if (isGlobalSyncPaused(config)) return false;
   if (!config.enabled) return false;
   if (config.mode !== 'primary') return false;
   if (config.conflict?.type === 'entity-conflict') return false;
@@ -174,7 +189,9 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
     config.syncHealth?.offline === true ||
     (typeof navigator !== 'undefined' && navigator.onLine === false);
   const configuredFirestore = config.firestoreSync || {};
-  const runtimeFirestore = typeof getFirestoreStatus === 'function' ? getFirestoreStatus() || {} : {};
+  const globalSyncPaused = isGlobalSyncPaused(config);
+  const runtimeFirestore =
+    typeof getFirestoreStatus === 'function' ? getFirestoreStatus() || {} : {};
   const firestore = {
     ...configuredFirestore,
     ...runtimeFirestore,
@@ -195,6 +212,7 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
     failureCount: config.syncHealth?.failureCount || 0,
     offline,
   });
+  const healthStatus = globalSyncPaused ? 'paused' : syncHealth.state;
   const syncMetrics = summarizeSyncMetrics(syncHealth.metrics);
   const performanceMetrics = Array.isArray(config.syncPerformance?.metrics)
     ? config.syncPerformance.metrics
@@ -236,11 +254,13 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
         ? 'conflict'
         : firestore.lastError
           ? 'error'
-          : firestore.hasPendingWrites
-            ? 'pending'
-            : firestore.enabled
-              ? 'ok'
-              : 'idle',
+          : globalSyncPaused
+            ? 'idle'
+            : firestore.hasPendingWrites
+              ? 'pending'
+              : firestore.enabled
+                ? 'ok'
+                : 'idle',
       pending: Boolean(firestore.hasPendingWrites),
       healthState: syncHealth.state,
       metrics: syncMetrics,
@@ -293,9 +313,9 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
   return {
     sources: SOURCE_ORDER.map((id) => sources.find((source) => source.id === id)),
     primarySource: 'firebase',
-    quiet: deriveQuietSyncView({ syncHealth, firestore }),
+    quiet: deriveQuietSyncView({ syncHealth, firestore, globalSyncPaused }),
     health: {
-      status: syncHealth.state,
+      status: healthStatus,
       requiresAction: syncHealth.requiresAction,
       metrics: syncMetrics,
       events: config.syncHealth?.events || [],

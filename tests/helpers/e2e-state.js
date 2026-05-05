@@ -10,7 +10,7 @@ export function createE2EState() {
       horarios: {},
       sequencia: [],
       ciclosCompletos: 0,
-      dataInicioCicloAtual: null
+      dataInicioCicloAtual: null,
     },
     editais: [
       {
@@ -31,13 +31,13 @@ export function createE2EState() {
                 dataConclusao: null,
                 revisoesFetas: [],
                 adiamentos: 0,
-                linkedAulaIds: []
-              }
+                linkedAulaIds: [],
+              },
             ],
-            aulas: []
-          }
-        ]
-      }
+            aulas: [],
+          },
+        ],
+      },
     ],
     eventos: [],
     arquivo: [],
@@ -50,7 +50,7 @@ export function createE2EState() {
       informativo: [],
       sumula: [],
       videoaula: [],
-      paginas: []
+      paginas: [],
     },
     revisoes: [],
     config: {
@@ -60,15 +60,16 @@ export function createE2EState() {
       agruparEventos: true,
       frequenciaRevisao: [1, 7, 30, 90],
       materiasPorDia: 3,
+      globalSyncPaused: false,
       metas: {
         horasSemana: 10,
-        questoesSemana: 50
-      }
+        questoesSemana: 50,
+      },
     },
     cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
     bancaRelevance: { hotTopics: [], userMappings: {}, lessonMappings: {} },
     driveFileId: null,
-    lastSync: null
+    lastSync: null,
   };
 }
 

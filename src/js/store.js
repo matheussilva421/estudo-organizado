@@ -254,6 +254,7 @@ export function setState(newState, options = {}) {
               agruparEventos: true,
               frequenciaRevisao: [1, 7, 30, 90],
               materiasPorDia: 3,
+              globalSyncPaused: false,
               firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
             },
             newState.config || {}
@@ -268,6 +269,7 @@ export function setState(newState, options = {}) {
               agruparEventos: true,
               frequenciaRevisao: [1, 7, 30, 90],
               materiasPorDia: 3,
+              globalSyncPaused: false,
               firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
             },
             newState.config || {}
@@ -349,6 +351,7 @@ export const state = {
     agruparEventos: true,
     frequenciaRevisao: [1, 7, 30, 90],
     materiasPorDia: 3,
+    globalSyncPaused: false,
     firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
   },
   cronoLivre: { _timerStart: null, tempoAcumulado: 0 },
@@ -997,6 +1000,8 @@ export function clearData() {
       mostrarNumeroSemana: false,
       agruparEventos: true,
       frequenciaRevisao: [1, 7, 30, 90],
+      materiasPorDia: 3,
+      globalSyncPaused: false,
       firestoreSync: { ...DEFAULT_FIRESTORE_SYNC_CONFIG },
     },
     cronoLivre: { _timerStart: null, tempoAcumulado: 0 },

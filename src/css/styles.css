@@ -928,7 +928,24 @@ body {
   color: var(--text-muted, #6b7280);
 }
 
+.sync-status--paused {
+  color: var(--warning, #f59e0b);
+}
+
 .sync-status--degraded {
+  color: var(--warning, #f59e0b);
+}
+
+.global-sync-toggle {
+  min-height: 34px;
+  padding-inline: 12px;
+  border-color: color-mix(in srgb, var(--border), transparent 10%);
+  color: var(--text-secondary);
+}
+
+.global-sync-toggle.sync-toggle--paused {
+  border-color: color-mix(in srgb, var(--warning, #f59e0b), transparent 42%);
+  background: color-mix(in srgb, var(--warning, #f59e0b), transparent 88%);
   color: var(--warning, #f59e0b);
 }
 

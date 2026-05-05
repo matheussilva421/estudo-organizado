@@ -15,6 +15,7 @@ import {
 import { planNextSyncAction, ACTIONS } from './sync-planner.js?v=8.37';
 import { yieldToUI } from './sync-yield.js?v=8.37';
 import { primarySyncLock } from './sync-lock.js?v=8.37';
+import { isGlobalSyncPaused } from './sync-center.js?v=8.37';
 
 const AUTO_SYNC_DEBOUNCE_MS = 3000;
 const CIRCUIT_BREAKER_DEGRADED = 3;
@@ -70,6 +71,7 @@ function toDelayFromPending(pending) {
 
 function canUsePrimaryFirestore(status = getFirestoreSyncStatus()) {
   return Boolean(
+    !isGlobalSyncPaused(state.config || {}) &&
     status.configured &&
     status.signedIn &&
     status.enabled &&
@@ -121,6 +123,7 @@ export async function flushPrimarySyncWhenAllowed(reason) {
 
 export function getSyncCoordinatorStatus() {
   const firestore = getFirestoreSyncStatus();
+  const globalSyncPaused = isGlobalSyncPaused(state.config || {});
   const health = deriveSyncHealthState({
     firestore,
     failureCount,
@@ -132,11 +135,12 @@ export function getSyncCoordinatorStatus() {
   return {
     primary: 'firebase',
     autoSyncEnabled: canUsePrimaryFirestore(firestore),
+    globalSyncPaused,
     timerActive: syncTimer !== null,
     lastQueuedAt,
     lastReason,
     failureCount,
-    health,
+    health: globalSyncPaused ? { ...health, state: 'paused', requiresAction: false } : health,
     firestore,
   };
 }
@@ -144,6 +148,15 @@ export function getSyncCoordinatorStatus() {
 export function schedulePrimarySync(reason = 'local-save', options = {}) {
   const status = getFirestoreSyncStatus();
   lastReason = reason;
+
+  if (isGlobalSyncPaused(state.config || {})) {
+    if (syncTimer) {
+      clearTimeout(syncTimer);
+      syncTimer = null;
+    }
+    emitCoordinatorStatus('paused', { reason, firestore: status });
+    return false;
+  }
 
   if (isBlockingConflict(status.conflict)) {
     emitCoordinatorStatus('conflict-paused', { reason, firestore: status });
@@ -187,6 +200,11 @@ async function _executeFlush(options) {
   let status = getFirestoreSyncStatus();
   lastReason = reason;
 
+  if (isGlobalSyncPaused(state.config || {}) && options.ignoreGlobalPause !== true) {
+    emitCoordinatorStatus('paused', { reason, firestore: status });
+    return false;
+  }
+
   if (status.conflict) {
     const pending = await getPendingFirestoreSnapshot();
     if (!pending && status.conflict.type !== 'entity-conflict') {
@@ -213,7 +231,8 @@ async function _executeFlush(options) {
       emitCoordinatorStatus('syncing', {
         reason,
         firestore: status,
-        repair: reason === 'foreground' ? 'snapshot-conflict-foreground' : 'snapshot-conflict-local-save',
+        repair:
+          reason === 'foreground' ? 'snapshot-conflict-foreground' : 'snapshot-conflict-local-save',
       });
       const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
       if (!queued) {
@@ -345,8 +364,6 @@ export function initSyncCoordinator() {
       });
     }
   });
-
-
 }
 
 export { teardownListeners as teardownSyncCoordinator };

@@ -27,7 +27,7 @@ function walkFiles(dir, predicate, files = []) {
 function collectDataActions() {
   const files = [
     join(srcDir, 'index.html'),
-    ...walkFiles(join(srcDir, 'js'), file => file.endsWith('.js'))
+    ...walkFiles(join(srcDir, 'js'), (file) => file.endsWith('.js')),
   ];
   const actions = new Set();
   const actionPattern = /data-action=["']([^"']+)["']/g;
@@ -49,8 +49,14 @@ function collectActionRegistryEntries() {
   const actionKeyPattern = /registerAction\s*\(\s*['"]([a-z0-9-]+)['"]/gm;
 
   const actionFiles = [
-    'eventos.js', 'editais.js', 'revisoes.js', 'habitos.js',
-    'config.js', 'navegacao.js', 'modais.js', 'planejamento.js'
+    'eventos.js',
+    'editais.js',
+    'revisoes.js',
+    'habitos.js',
+    'config.js',
+    'navegacao.js',
+    'modais.js',
+    'planejamento.js',
   ];
 
   for (const file of actionFiles) {
@@ -74,7 +80,7 @@ function collectActionRegistryEntries() {
 
 function collectMainLegacyCases() {
   const mainSource = read('src/js/main.js');
-  return new Set([...mainSource.matchAll(/case\s+['"]([^'"]+)['"]\s*:/g)].map(match => match[1]));
+  return new Set([...mainSource.matchAll(/case\s+['"]([^'"]+)['"]\s*:/g)].map((match) => match[1]));
 }
 
 describe('data-action contracts', () => {
@@ -86,7 +92,9 @@ describe('data-action contracts', () => {
 
     // Allow known duplicates: 'navigate' is registered in both editais.js and navegacao.js intentionally
     const allowedDuplicates = ['navigate'];
-    const actualDuplicates = duplicates.filter(d => !allowedDuplicates.some(a => d.startsWith(a)));
+    const actualDuplicates = duplicates.filter(
+      (d) => !allowedDuplicates.some((a) => d.startsWith(a))
+    );
 
     expect(actualDuplicates).toEqual([]);
   });
@@ -96,7 +104,7 @@ describe('data-action contracts', () => {
     const registryActions = new Set(collectActionRegistryEntries().keys());
     const legacyCases = collectMainLegacyCases();
     const doubleHandled = [...usedActions]
-      .filter(action => registryActions.has(action) && legacyCases.has(action))
+      .filter((action) => registryActions.has(action) && legacyCases.has(action))
       .sort();
 
     expect(doubleHandled).toEqual([]);
@@ -105,9 +113,7 @@ describe('data-action contracts', () => {
   it('has a handler for every used data-action', () => {
     const usedActions = collectDataActions();
     const registryActions = new Set(collectActionRegistryEntries().keys());
-    const missing = [...usedActions]
-      .filter(action => !registryActions.has(action))
-      .sort();
+    const missing = [...usedActions].filter((action) => !registryActions.has(action)).sort();
 
     expect(missing).toEqual([]);
   });
@@ -116,9 +122,15 @@ describe('data-action contracts', () => {
     const dashboardView = read('src/js/views/dashboard-view.js');
 
     expect(dashboardView).not.toMatch(/<div[^>]*data-action=["']switch-dashboard-tab["']/);
-    expect(dashboardView).toMatch(/<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']topicos["']/);
-    expect(dashboardView).toMatch(/<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']aulas["']/);
-    expect(dashboardView).toMatch(/<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']banca["']/);
+    expect(dashboardView).toMatch(
+      /<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']topicos["']/
+    );
+    expect(dashboardView).toMatch(
+      /<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']aulas["']/
+    );
+    expect(dashboardView).toMatch(
+      /<button[^>]*type=["']button["'][^>]*data-action=["']switch-dashboard-tab["'][^>]*data-tab=["']banca["']/
+    );
   });
 
   it('uses the extracted calendar view as the runtime calendar owner', async () => {
@@ -131,12 +143,16 @@ describe('data-action contracts', () => {
     expect(componentsSource).toContain("from './views/calendar-view.js?v=8.37'");
     expect(mainSource).not.toContain("import * as calendar_view from './views/calendar-view.js");
     expect(mainSource).not.toMatch(/exposedModules\s*=\s*\[[^\]]*calendar_view[^\]]*\]/s);
-    expect(viewsSource).not.toMatch(/export function (renderCalendar|calNavigate|resetCalDate|renderCalendarGrid|renderCalendarWeek|updateCalendarHeader)\s*\(/);
+    expect(viewsSource).not.toMatch(
+      /export function (renderCalendar|calNavigate|resetCalDate|renderCalendarGrid|renderCalendarWeek|updateCalendarHeader)\s*\(/
+    );
     expect(calendarModule.renderCalendar).toBeTypeOf('function');
     expect(calendarModule.calNavigate).toBeTypeOf('function');
     expect(calendarModule.resetCalDate).toBeTypeOf('function');
     expect(calendarModule.setCalViewMode).toBeTypeOf('function');
-    expect(calendarSource).toContain("import { esc, getEventStatus, todayStr } from '../utils.js?v=8.37';");
+    expect(calendarSource).toContain(
+      "import { esc, getEventStatus, todayStr } from '../utils.js?v=8.37';"
+    );
     expect(calendarSource).toContain('role="tablist"');
     expect(calendarSource).toMatch(/<button[^>]*type=["']button["'][^>]*class=["']cal-view-tab/);
   });
@@ -149,17 +165,23 @@ describe('data-action contracts', () => {
     const registroSource = read('src/js/registro-sessao.js');
 
     expect(searchSource).toMatch(/export function debouncedOnSearch\s*\(/);
-    expect(searchSource).toMatch(/import\s+\{[^}]*HABIT_TYPES[^}]*\}\s+from\s+['"]\.\.\/utils\.js\?v=8\.37['"]/s);
+    expect(searchSource).toMatch(
+      /import\s+\{[^}]*HABIT_TYPES[^}]*\}\s+from\s+['"]\.\.\/utils\.js\?v=8\.37['"]/s
+    );
 
     expect(eventModalsSource).toMatch(/export function openAddPastSessionModal\s*\(/);
 
     expect(wizardSource).toMatch(/export function pwSelectTipo\s*\(/);
 
     expect(registroSource).toMatch(/export function discardTimerUI\s*\(/);
-    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.37['"]/s);
+    expect(registroSource).toMatch(
+      /import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.37['"]/s
+    );
 
     expect(configViewSource).toContain('createExportableState()');
-    expect(configViewSource).toMatch(/import\s+\{[^}]*createExportableState[^}]*\}\s+from\s+['"]\.\.\/store\.js\?v=8\.37['"]/s);
+    expect(configViewSource).toMatch(
+      /import\s+\{[^}]*createExportableState[^}]*\}\s+from\s+['"]\.\.\/store\.js\?v=8\.37['"]/s
+    );
   });
 
   it('exports discipline manager action targets instead of relying on Proxy fallback', () => {
@@ -171,7 +193,7 @@ describe('data-action contracts', () => {
       'addBulkAulas',
       'addAssunto',
       'deleteAula',
-      'runLessonMapperUI'
+      'runLessonMapperUI',
     ];
 
     for (const actionName of managerActions) {
@@ -197,7 +219,7 @@ describe('data-action contracts', () => {
       'remSeqItem',
       'moveSeqItem',
       'addSeqItem',
-      'openCicloHistory'
+      'openCicloHistory',
     ];
 
     for (const actionName of cycleActions) {
@@ -208,10 +230,7 @@ describe('data-action contracts', () => {
   it('exports dashboard and session action targets instead of relying on Proxy fallback', () => {
     const viewsSource = read('src/js/views.js');
     const eventModalsSource = read('src/js/ui/event-modals.js');
-    const viewActions = [
-      'switchDashboardTab',
-      'filtrarDropdownBanca'
-    ];
+    const viewActions = ['switchDashboardTab', 'filtrarDropdownBanca'];
 
     for (const actionName of viewActions) {
       expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
@@ -224,15 +243,21 @@ describe('data-action contracts', () => {
   it('imports the cache invalidators used by revision action handlers', () => {
     const revisaoSource = read('src/js/views/revisao-view.js');
 
-    expect(revisaoSource).toMatch(/import\s+\{[^}]*invalidatePendingRevCache[^}]*\}\s+from\s+['"]\.\.\/logic\.js\?v=8\.37['"]/s);
+    expect(revisaoSource).toMatch(
+      /import\s+\{[^}]*invalidatePendingRevCache[^}]*\}\s+from\s+['"]\.\.\/logic\.js\?v=8\.37['"]/s
+    );
     expect(revisaoSource).toContain('invalidatePendingRevCache();');
   });
 
   it('routes domain events through direct module imports after namespace migration', () => {
     const mainSource = read('src/js/main.js');
 
-    expect(mainSource).not.toMatch(/window\.(showConfirm|updateBadges|invalidateDiscCache|invalidateRevCache|invalidatePendingRevCache|invalidateTodayCache|invalidateStreakCache|invalidateDashCaches|refreshEventCard|refreshMEDSections)\b/);
-    expect(mainSource).not.toMatch(/window\.EstudoApp\?\.(showConfirm|updateBadges|refreshEventCard|refreshMEDSections|renderCurrentView)/);
+    expect(mainSource).not.toMatch(
+      /window\.(showConfirm|updateBadges|invalidateDiscCache|invalidateRevCache|invalidatePendingRevCache|invalidateTodayCache|invalidateStreakCache|invalidateDashCaches|refreshEventCard|refreshMEDSections)\b/
+    );
+    expect(mainSource).not.toMatch(
+      /window\.EstudoApp\?\.(showConfirm|updateBadges|refreshEventCard|refreshMEDSections|renderCurrentView)/
+    );
     expect(mainSource).toContain('app.showConfirm');
     expect(mainSource).toContain('components.updateBadges');
     expect(mainSource).toContain('views.refreshEventCard');
@@ -249,14 +274,16 @@ describe('data-action contracts', () => {
   });
 
   it('does not create action handlers directly as window function expressions', () => {
-    const files = walkFiles(join(srcDir, 'js'), file =>
-      file.endsWith('.js') && !file.includes(`${join('src', 'vendor')}`)
+    const files = walkFiles(
+      join(srcDir, 'js'),
+      (file) => file.endsWith('.js') && !file.includes(`${join('src', 'vendor')}`)
     );
     const offenders = files
-      .map(file => [file, readFileSync(file, 'utf8')])
-      .filter(([, source]) =>
-        /window\.[A-Za-z0-9_]+\s*=\s*function\b/.test(source) ||
-        /window\.[A-Za-z0-9_]+\s*=\s*\([^)]*\)\s*=>/.test(source)
+      .map((file) => [file, readFileSync(file, 'utf8')])
+      .filter(
+        ([, source]) =>
+          /window\.[A-Za-z0-9_]+\s*=\s*function\b/.test(source) ||
+          /window\.[A-Za-z0-9_]+\s*=\s*\([^)]*\)\s*=>/.test(source)
       )
       .map(([file]) => file);
 
@@ -269,11 +296,22 @@ describe('data-action contracts', () => {
     const cicloViewSource = read('src/js/views/ciclo-view.js');
     const registroSource = read('src/js/registro-sessao.js');
 
-    for (const actionName of ['setCronoLivreGoal', 'setCronoLivreDisc', 'setCronoLivreAss', 'moveCicloSeq', 'desfazerEtapa', 'editCicloSeqHours']) {
+    for (const actionName of [
+      'setCronoLivreGoal',
+      'setCronoLivreDisc',
+      'setCronoLivreAss',
+      'moveCicloSeq',
+      'desfazerEtapa',
+      'editCicloSeqHours',
+    ]) {
       expect(logicSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
     }
 
-    for (const actionName of ['recomecarCiclo', 'zerarCiclosCounter', 'calculateCyclePredictions']) {
+    for (const actionName of [
+      'recomecarCiclo',
+      'zerarCiclosCounter',
+      'calculateCyclePredictions',
+    ]) {
       expect(cicloViewSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
       expect(viewsSource).toContain(actionName);
     }
@@ -284,7 +322,9 @@ describe('data-action contracts', () => {
   it('imports immediate persistence before saving detailed study sessions', () => {
     const registroSource = read('src/js/registro-sessao.js');
 
-    expect(registroSource).toMatch(/import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.37['"]/s);
+    expect(registroSource).toMatch(
+      /import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.37['"]/s
+    );
     expect(registroSource).toContain('saveStateToDB().then');
   });
 
@@ -300,7 +340,7 @@ describe('data-action contracts', () => {
     const requiredModules = [
       './js/credentials.js',
       './js/views/habitos-view.js',
-      './js/views/ciclo-view.js'
+      './js/views/ciclo-view.js',
     ];
 
     for (const mod of requiredModules) {
@@ -311,16 +351,24 @@ describe('data-action contracts', () => {
   it('does not reload the page when the service worker claims first control', () => {
     const swRegisterSource = read('src/js/sw-register.js');
 
-    expect(swRegisterSource).toContain('const hadServiceWorkerController = Boolean(navigator.serviceWorker.controller);');
-    expect(swRegisterSource).toMatch(/controllerchange[\s\S]*if \(!hadServiceWorkerController\) return;/);
+    expect(swRegisterSource).toContain(
+      'const hadServiceWorkerController = Boolean(navigator.serviceWorker.controller);'
+    );
+    expect(swRegisterSource).toMatch(
+      /controllerchange[\s\S]*if \(!hadServiceWorkerController\) return;/
+    );
   });
 
   it('preserves the current service worker precache while clearing old caches', () => {
     const swRegisterSource = read('src/js/sw-register.js');
 
-    expect(swRegisterSource).toContain('const serviceWorkerScriptUrl = document.currentScript?.src || window.location.href;');
-    expect(swRegisterSource).toContain('const currentCacheName = assetVersion ? `estudo-organizado-v${assetVersion}` : null;');
-    expect(swRegisterSource).toContain("cacheName !== currentCacheName");
+    expect(swRegisterSource).toContain(
+      'const serviceWorkerScriptUrl = document.currentScript?.src || window.location.href;'
+    );
+    expect(swRegisterSource).toContain(
+      'const currentCacheName = assetVersion ? `estudo-organizado-v${assetVersion}` : null;'
+    );
+    expect(swRegisterSource).toContain('cacheName !== currentCacheName');
   });
 
   it('guards service worker registration before reading registration scope', () => {
@@ -333,7 +381,9 @@ describe('data-action contracts', () => {
     const swRegisterSource = read('src/js/sw-register.js');
 
     expect(swRegisterSource).toContain("postMessage({ type: 'SKIP_WAITING' })");
-    expect(swRegisterSource).not.toContain("postMessage({ type: 'SKIP_WAITING' }, window.location.origin)");
+    expect(swRegisterSource).not.toContain(
+      "postMessage({ type: 'SKIP_WAITING' }, window.location.origin)"
+    );
   });
 
   it('uses sanitized exportable state for local and Drive backups', () => {
@@ -354,11 +404,21 @@ describe('data-action contracts', () => {
 
   it('keeps the browser module graph bundleable without missing exports', () => {
     const outfile = join(tmpdir(), 'estudo-organizado-main-esbuild-check.js');
-    const args = ['esbuild', 'src/js/main.js', '--bundle', '--format=esm', `--outfile=${outfile}`, '--log-level=silent'];
+    const args = [
+      'esbuild',
+      'src/js/main.js',
+      '--bundle',
+      '--format=esm',
+      `--outfile=${outfile}`,
+      '--log-level=silent',
+    ];
 
     expect(() => {
       if (process.platform === 'win32') {
-        execFileSync('cmd.exe', ['/d', '/s', '/c', `npx ${args.join(' ')}`], { cwd: rootDir, stdio: 'pipe' });
+        execFileSync('cmd.exe', ['/d', '/s', '/c', `npx ${args.join(' ')}`], {
+          cwd: rootDir,
+          stdio: 'pipe',
+        });
       } else {
         execFileSync('npx', args, { cwd: rootDir, stdio: 'pipe' });
       }
@@ -368,11 +428,14 @@ describe('data-action contracts', () => {
   it('refreshes stale config sync indicators through the dedicated sync status UI', () => {
     const mainSource = read('src/js/main.js');
     const syncStatusSource = read('src/js/sync/sync-status-ui.js');
+    const indexSource = read('src/index.html');
 
     expect(mainSource).not.toContain('CONFIG_SYNC_RENDER_THROTTLE_MS');
     expect(mainSource).not.toContain('scheduleConfigSyncRender');
+    expect(indexSource).toContain('data-action="toggle-global-sync"');
     expect(syncStatusSource).toContain("document.addEventListener('app:firestoreSyncStatus'");
     expect(syncStatusSource).toContain("document.addEventListener('app:primarySyncStatus'");
+    expect(syncStatusSource).toContain("document.addEventListener('app:globalSyncPauseChanged'");
     expect(syncStatusSource).toContain("document.addEventListener('app:cloudSyncStatus'");
     expect(syncStatusSource).toContain('refreshConfigSyncSurface');
     expect(syncStatusSource).toContain('cf-sync-conflict');
