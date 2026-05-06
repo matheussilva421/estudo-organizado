@@ -102,9 +102,27 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 
 ## Modulos extraidos para reduzir contexto
 
-- `src/css/views/dashboard.css`: primeira fatia extraida de `src/css/views.css`.
+- `src/css/views/dashboard.css`: dashboard/home.
+- `src/css/views/calendar.css`: calendario.
+- `src/css/views/ciclo.css`: ciclo e grade semanal.
+- `src/css/views/config/config-view.css`: configuracao, sync e backup.
+- `src/css/views/sessions.css`: registro e historico de sessoes.
+- `src/css/views/wizard.css`: wizard de planejamento.
+- `src/css/views/modals.css`: modais e formularios de evento.
+- `src/css/views/banca.css`: analise de banca.
+- `src/css/views/cronometro.css`: cronometro.
+- `src/css/views/subject-manager.css`: gerenciador de disciplinas.
+- `src/css/base/accessibility.css`: skip links.
+- `src/css/base/utilities.css`: utilitarios base.
+- `src/css/base/forms.css`: formularios.
+- `src/css/components/buttons.css`: botoes.
+- `src/css/components/sidebar.css`: sidebar.
 - `src/js/views/skeleton-view.js`: skeleton loaders antes concentrados em `src/js/views.js`.
 - `src/js/views/config/backup-settings.js`: formatacao e resumo de backup antes concentrados em `src/js/views/config-view.js`.
+- `src/js/views/config/sync-center.js`: renderizacao do sync center e backup center.
+- `src/js/views/config/theme-settings.js`: tema e preferencias.
+- `src/js/views/config/data-management.js`: import/export/restore/limpeza de dados.
+- `src/js/views/state/disc-manager-state.js`: getters/setters do gerenciador de disciplinas.
 
 ## Debug controlado
 

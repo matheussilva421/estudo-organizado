@@ -82,7 +82,7 @@ describe('CSS architecture', () => {
   });
 
   it('keeps design tokens in css/tokens.css', () => {
-    for (const filename of ['tokens.css', 'base.css', 'components.css', 'views.css']) {
+    for (const filename of ['tokens.css', 'base.css', 'components.css', 'views.css', 'base/accessibility.css']) {
       expect(existsSync(join(cssDir, filename))).toBe(true);
     }
 
@@ -93,6 +93,21 @@ describe('CSS architecture', () => {
     expect(tokens).toContain('--radius-sm:');
     expect(tokens).toContain('--shadow-sm:');
     expect(legacyStyles).not.toMatch(/^:root\s*{/m);
+  });
+
+  it('keeps legacy stylesheet imports before style rules', () => {
+    const legacyStyles = readFileSync(join(rootDir, 'src/css/styles.css'), 'utf8').replace(/\r\n/g, '\n');
+    const importBlock = [
+      "@import './base/accessibility.css';",
+      "@import './components/sidebar.css';",
+      "@import './components/buttons.css';",
+      "@import './base/utilities.css';",
+      "@import './base/forms.css';"
+    ].join('\n');
+
+    expect(legacyStyles.startsWith(`${importBlock}\n\n`)).toBe(true);
+    expect(legacyStyles.slice(importBlock.length)).not.toMatch(/^@import/m);
+    expect(read('src/css/base/accessibility.css')).toContain('.skip-link:focus');
   });
 
   it('keeps the dark premium theme contracts', () => {

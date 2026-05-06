@@ -6,7 +6,7 @@ Execucao completa das Waves 3-6 do plano de reducao de contexto, extraindo CSS e
 
 ---
 
-## Commits Realizados (17 commits)
+## Commits Realizados (18 commits)
 
 ```
 64c7b83 refactor(css): extract calendar view styles
@@ -77,7 +77,12 @@ e2b1fc8 docs(context): update handoff with wave 3-6 extraction results
 - `npm run test:css`: **26/26** passando
 - `npm run test:views`: **207/207** passando
 - `npm run test:config`: **60/60** passando
-- `npm test`: **1290/1291** passando (1 falha pre-existente no esbuild Windows)
+- `npm test`: inicialmente registrado como **1290/1291** por uma falha no esbuild.
+- A revisao posterior confirmou que a falha nao era pre-existente: `src/js/views/config/data-management.js` importava `invalidateTodayCache` do modulo errado.
+- Correcao aplicada depois desta sessao: `invalidateTodayCache` passou a vir de `src/js/utils.js`, e `src/js/views/config-view.js` voltou a importar/reexportar `theme-settings.js` com `?v=8.37`.
+- Tambem foi corrigida a ordem real dos `@import` em `src/css/styles.css`; imports depois de regras CSS podem ser ignorados pelo navegador.
+- A revisao posterior tambem estabilizou `sync-status-ui.js` para impedir que um `idle` de background esconda um erro recente de sync.
+- Validacao final posterior: `npm test` com **1293/1293** e `npm run test:e2e` com **142/142**.
 
 ---
 

@@ -58,6 +58,9 @@ const COORDINATOR_STATUS_MAP = {
   'conflict-paused': 'error',
 };
 
+const ATTENTION_STATUS_STICKY_MS = 1000;
+const ATTENTION_STATUSES = new Set(['syncing', 'error', 'offline', 'paused', 'degraded']);
+
 let container = null;
 let syncToggle = null;
 let syncNowBtn = null;
@@ -65,6 +68,7 @@ let rafId = null;
 let syncCenterRafId = null;
 let pendingStatus = null;
 let lastPrimaryStatusAt = 0;
+let lastAttentionStatusAt = 0;
 let listeners = [];
 let currentSyncNowState = 'idle';
 
@@ -296,8 +300,15 @@ function scheduleSyncCenterRefresh() {
 function handlePrimarySyncStatus(event) {
   const raw = event.detail?.status;
   if (!raw) return;
-  lastPrimaryStatusAt = Date.now();
-  scheduleRender(mapToCanonicalStatus('coordinator', raw));
+  const now = Date.now();
+  const status = mapToCanonicalStatus('coordinator', raw);
+  lastPrimaryStatusAt = now;
+  if (status === 'idle' && now - lastAttentionStatusAt < ATTENTION_STATUS_STICKY_MS) {
+    scheduleSyncCenterRefresh();
+    return;
+  }
+  if (ATTENTION_STATUSES.has(status)) lastAttentionStatusAt = now;
+  scheduleRender(status);
   scheduleSyncCenterRefresh();
 }
 
@@ -366,6 +377,7 @@ export function destroySyncStatusUI() {
   syncNowBtn = null;
   pendingStatus = null;
   lastPrimaryStatusAt = 0;
+  lastAttentionStatusAt = 0;
   currentSyncNowState = 'idle';
 }
 

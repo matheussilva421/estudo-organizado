@@ -55,6 +55,10 @@ describe('sync-now-button states', () => {
     });
   }
 
+  function waitFrame() {
+    return new Promise((resolve) => setTimeout(resolve, 30));
+  }
+
   it('renders idle state with fa-arrows-rotate icon and enabled', async () => {
     setOnline(true);
     const { SYNC_NOW_STATES } = await import('../../src/js/sync/sync-status-ui.js?v=8.37&test=idle');
@@ -188,5 +192,31 @@ describe('sync-now-button states', () => {
         expect(config.disabled).toBe(false);
       }
     }
+  });
+
+  it('keeps a recent error visible when a background idle status arrives immediately', async () => {
+    setOnline(true);
+    const { destroySyncStatusUI, initSyncStatusUI } = await import(
+      '../../src/js/sync/sync-status-ui.js?v=8.37&test=sticky-error'
+    );
+
+    initSyncStatusUI();
+    document.dispatchEvent(
+      new CustomEvent('app:primarySyncStatus', {
+        detail: { status: 'error', reason: 'unit-test' },
+      })
+    );
+    await waitFrame();
+    expect(container.textContent).toMatch(/Erro/i);
+
+    document.dispatchEvent(
+      new CustomEvent('app:primarySyncStatus', {
+        detail: { status: 'idle', reason: 'background-check' },
+      })
+    );
+    await waitFrame();
+    expect(container.textContent).toMatch(/Erro/i);
+
+    destroySyncStatusUI();
   });
 });

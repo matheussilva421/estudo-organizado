@@ -1053,16 +1053,15 @@ O que foi feito:
 - `npm run test:css`: 1 arquivo, 26 testes passando.
 - `npm run test:views`: 12 arquivos, 207 testes passando.
 - `npm run test:config`: 2 arquivos, 60 testes passando.
-- `npm test`: 76 arquivos passando, 1290/1291 testes passando (1 falha pre-existente em esbuild no Windows).
+- `npm test`: 76 arquivos passando, 1290/1291 testes passando na execucao da IA anterior; a revisao posterior confirmou que a falha do esbuild vinha de import incorreto em `data-management.js`, nao de um problema pre-existente do Windows.
 - APP_VERSION final: 8.43
 
 Proxima IA deve continuar em:
 
-1. `README_DEV.md` e `docs/relatorio-reducao-contexto-codex.md` precisam ser atualizados com os novos arquivos.
-2. Task 4 do handoff original (styles.css) pode continuar extraindo blocos restantes.
-3. Task 5 do handoff (views.js) pode continuar com mais extractions de views.
-4. Task 7 (logs) pode verificar se ha mais logs para converter.
-5. Task 8 (docs) registrar antes/after line counts.
+1. Task 4 do handoff original (`styles.css`) pode continuar extraindo blocos restantes, mas sempre mantendo todos os `@import` no topo do arquivo ou usando outro mecanismo valido.
+2. Task 5 do handoff (`views.js`) pode continuar com mais extractions de views.
+3. Task 7 (logs) pode verificar se ha mais logs para converter.
+4. Task 8 (docs) deve registrar antes/after line counts a cada fatia.
 
 Nao reabra por padrao:
 
@@ -1086,5 +1085,51 @@ Nao reabra por padrao:
 - Nao mexa em `src/vendor/`.
 - Nao altere `package-lock.json` salvo se dependencia realmente mudar.
 - Nao use `src/docs/superpowers/plans/` como fonte atual; e historico.
+- Se `npm test` falhar no contrato "keeps the browser module graph bundleable without missing exports", rode o esbuild manualmente com log visivel antes de assumir que e falha de ambiente.
+- Em CSS, `@import` comum deve ficar antes de regras CSS. O teste `npm run test:css` cobre isso agora para `src/css/styles.css`.
 - Se `npm run test:e2e` recriar `playwright-report/` ou `test-results/`, remova ao final se nao houver investigacao ativa.
 - Se o Git falhar com `.git/index.lock` ou permission denied, pare e reporte comandos manuais em vez de insistir.
+
+## Continuidade executada em 2026-05-06 - revisao Codex pos-IA
+
+Arquivos alterados nesta continuidade:
+
+- `src/js/views/config/data-management.js`
+- `src/js/views/config-view.js`
+- `src/js/sync/sync-status-ui.js`
+- `src/css/styles.css`
+- `src/css/base/accessibility.css`
+- `src/sw.js`
+- `tests/unit/action-contracts.test.js`
+- `tests/unit/css-architecture.test.js`
+- `tests/unit/sync-now-button.test.js`
+- `README_DEV.md`
+- `docs/relatorio-reducao-contexto-codex.md`
+- `docs/resumo-sessao-2026-05-06.md`
+- `docs/handoff-reducao-contexto-codex.md`
+
+O que foi corrigido:
+
+- `invalidateTodayCache` agora vem de `../../utils.js?v=8.37`, que e o modulo dono real da funcao.
+- `theme-settings.js` voltou a ser importado/reexportado por `config-view.js` com `?v=8.37`.
+- `styles.css` agora coloca `@import` no topo. Os estilos de skip link foram movidos para `src/css/base/accessibility.css`.
+- `src/sw.js` precacheia `./css/base/accessibility.css`.
+- `sync-status-ui.js` agora mantem estados recentes de atencao por uma janela curta, evitando que um `idle` de background derrube imediatamente um erro/sync em andamento.
+- `README_DEV.md`, relatorio e resumo foram atualizados para nao repassar o diagnostico incorreto de falha pre-existente do esbuild.
+
+Validacoes desta continuidade:
+
+- `npx esbuild src/js/main.js --bundle --format=esm --outfile=C:\tmp\estudo-organizado-main-esbuild-check-debug.js --log-level=debug`: passou.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
+- `npm run test:css`: 27 testes passando.
+- `npm run test:unit -- tests/unit/sync-now-button.test.js`: 15 testes passando.
+- `npm test`: 77 arquivos, 1293 testes passando.
+- `npm run test:e2e -- tests/e2e/sync-e2e.spec.js`: 8 testes passando.
+- `npm run test:e2e`: 142 testes passando.
+
+Proxima IA deve continuar em:
+
+1. Rodar `npm test` como gate unitario amplo antes de fechar/publicar.
+2. Rodar `npm run test:e2e` se houver nova mudanca visual, fluxo de usuario, PWA/offline ou sync.
+3. Continuar a Task 4 em fatias pequenas: candidatos seguros sao temas/layout/tipografia/tabelas/cards em `src/css/styles.css`.
+4. Apos cada extração CSS, atualizar `src/sw.js`, `README_DEV.md`, este handoff e `docs/relatorio-reducao-contexto-codex.md`.

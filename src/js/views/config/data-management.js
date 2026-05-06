@@ -4,7 +4,7 @@
  */
 
 import { showConfirm, showToast, openModal } from '../../app.js?v=8.37';
-import { cutoffDateStr, esc, todayStr } from '../../utils.js?v=8.37';
+import { cutoffDateStr, esc, invalidateTodayCache, todayStr } from '../../utils.js?v=8.37';
 import {
   state,
   setState,
@@ -17,7 +17,6 @@ import {
   invalidateDiscCache,
   invalidateDashCaches,
   invalidateRevCache,
-  invalidateTodayCache,
 } from '../../logic.js?v=8.37';
 import { renderCurrentView } from '../../components.js?v=8.37';
 import {

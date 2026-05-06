@@ -53,7 +53,7 @@ import {
   updateConfig,
   toggleConfig,
   updateFrequencia,
-} from './config/theme-settings.js';
+} from './config/theme-settings.js?v=8.37';
 
 export function renderConfig(el) {
   const cfg = state.config;
@@ -262,4 +262,4 @@ export {
   updateConfig,
   toggleConfig,
   updateFrequencia,
-} from './config/theme-settings.js';
+} from './config/theme-settings.js?v=8.37';

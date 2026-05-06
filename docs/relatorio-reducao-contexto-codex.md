@@ -153,7 +153,7 @@ Regeneraveis, podendo ser removidos quando nao houver investigacao ativa:
 
 ### Continuidade em 2026-05-06 - Waves 3-6: modularizacao CSS e JS completa
 
-**Commits realizados (17 commits desde b8d3151):**
+**Commits realizados (19 commits desde b8d3151 antes desta revisao Codex):**
 
 | Commit | Tipo | Descricao |
 |--------|------|-----------|
@@ -174,6 +174,8 @@ Regeneraveis, podendo ser removidos quando nao houver investigacao ativa:
 | `e833941` | refactor(css) | extract session, wizard, and modal view styles |
 | `995986e` | refactor(css) | extract cronometro, banca, and subject manager styles |
 | `e2b1fc8` | docs(context) | update handoff with wave 3-6 extraction results |
+| `389872e` | docs(context) | update relatorio with wave 3-6 metrics and line counts |
+| `cb812f6` | docs(context) | add session summary report |
 
 **Arquivos CSS extraidos:**
 
@@ -218,9 +220,30 @@ Regeneraveis, podendo ser removidos quando nao houver investigacao ativa:
 - `npm run test:css`: 1 arquivo, 26 testes passando.
 - `npm run test:views`: 12 arquivos, 207 testes passando.
 - `npm run test:config`: 2 arquivos, 60 testes passando.
-- `npm test`: 76 arquivos passando, 1290/1291 testes passando (1 falha pre-existente em esbuild no Windows).
+- `npm test`: 76 arquivos passando, 1290/1291 testes passando na execucao anterior; a revisao posterior mostrou que a falha vinha de import incorreto, nao de um problema pre-existente do Windows.
 - `npm run lint`: passou sem erros novos.
-- `git push origin main`: 17 commits publicados.
+- `git push origin main`: commits publicados em `main`.
+
+### Continuidade em 2026-05-06 - revisao Codex pos-extracoes
+
+- A falha do `npm test` nao era apenas pre-existente do Windows. O bundle esbuild falhava porque `src/js/views/config/data-management.js` importava `invalidateTodayCache` de `logic.js`, mas a funcao pertence a `utils.js`.
+- Corrigido o import de `invalidateTodayCache` para `../../utils.js?v=8.37`.
+- Corrigidos os imports/re-exports de `src/js/views/config-view.js` para usar `./config/theme-settings.js?v=8.37`, alinhando com os outros modulos extraidos e com o cache busting do app.
+- Corrigida a arquitetura de `src/css/styles.css`: todos os `@import` agora ficam no topo, antes de qualquer regra CSS. Antes, `components/buttons.css`, `base/utilities.css` e `base/forms.css` apareciam no meio do arquivo, o que pode ser ignorado por navegadores.
+- Extraido `src/css/base/accessibility.css` para os skip links e incluido no precache do service worker.
+- Reforcados testes:
+  - `tests/unit/action-contracts.test.js` agora cobre o import correto de `invalidateTodayCache` e o import versionado de `theme-settings.js`.
+  - `tests/unit/css-architecture.test.js` agora falha se `styles.css` voltar a ter `@import` depois de regras CSS.
+
+Validacoes desta continuidade:
+
+- `npx esbuild src/js/main.js --bundle --format=esm --outfile=C:\tmp\estudo-organizado-main-esbuild-check-debug.js --log-level=debug`: passou.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 1 arquivo, 27 testes passando.
+- `npm run test:css`: 1 arquivo, 27 testes passando.
+- `npm run test:unit -- tests/unit/sync-now-button.test.js`: 1 arquivo, 15 testes passando.
+- `npm test`: 77 arquivos, 1293 testes passando.
+- `npm run test:e2e -- tests/e2e/sync-e2e.spec.js`: 8 testes passando.
+- `npm run test:e2e`: 142 testes passando.
 
 ## Proximos hotspots estruturais
 

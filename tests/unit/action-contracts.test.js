@@ -180,9 +180,17 @@ describe('data-action contracts', () => {
 
     const dataMgmtSource = read('src/js/views/config/data-management.js');
 
+    expect(configViewSource).toContain("from './config/theme-settings.js?v=8.37'");
+    expect(configViewSource).not.toContain("from './config/theme-settings.js';");
     expect(dataMgmtSource).toContain('createExportableState()');
     expect(dataMgmtSource).toMatch(
       /import\s+\{[^}]*createExportableState[^}]*\}\s+from\s+['"]\.\.\/\.\.\/store\.js\?v=8\.37['"]/s
+    );
+    expect(dataMgmtSource).toMatch(
+      /import\s+\{[^}]*invalidateTodayCache[^}]*\}\s+from\s+['"]\.\.\/\.\.\/utils\.js\?v=8\.37['"]/s
+    );
+    expect(dataMgmtSource).not.toMatch(
+      /import\s+\{[^}]*invalidateTodayCache[^}]*\}\s+from\s+['"]\.\.\/\.\.\/logic\.js\?v=8\.37['"]/s
     );
   });
 

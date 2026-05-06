@@ -1,27 +1,9 @@
-/* =============================================
-   ACCESSIBILITY: Skip Links
-   ============================================= */
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: var(--accent);
-  color: var(--accent-text);
-  padding: 8px 16px;
-  z-index: 10000;
-  text-decoration: none;
-  font-weight: 600;
-  border-radius: 0 0 4px 0;
-  transition: top 0.2s;
-}
-
-.skip-link:focus {
-  top: 0;
-  outline: 2px solid var(--accent-dark);
-  outline-offset: 2px;
-}
-
+@import './base/accessibility.css';
 @import './components/sidebar.css';
+@import './components/buttons.css';
+@import './base/utilities.css';
+@import './base/forms.css';
+
 /* =========================================
    DARK PREMIUM THEME LIBRARY
 ========================================= */
@@ -584,8 +566,6 @@ body {
   color: var(--text-muted);
 }
 
-@import './components/buttons.css';
-
 /* CONTENT SPACING */
 #content,
 #main-content {
@@ -808,8 +788,6 @@ body {
   font-size: 12px;
   color: var(--text-muted);
 }
-
-@import './base/utilities.css';
 
 /* EVENT CARD */
 .event-card {
@@ -1263,8 +1241,6 @@ button.cal-event-chip:focus-visible {
   justify-content: flex-end;
   gap: 8px;
 }
-
-@import './base/forms.css';
 
 /* MOBILE HELPERS (dynamic views) */
 .rev-summary-grid {
