@@ -1257,9 +1257,37 @@ Validacoes desta continuidade:
 - `npm run test:css`: 27 testes passando.
 - `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
 
+## Continuidade executada em 2026-05-06 - extracao de busca global
+
+Arquivos alterados nesta continuidade:
+
+- `src/css/styles.css` (reduzido de 3419 para 3289 linhas)
+- `src/css/components/search.css` (novo modulo com 131 linhas)
+- `src/sw.js`
+- `tests/unit/css-architecture.test.js`
+- `README_DEV.md`
+
+O que foi feito:
+
+- Movido bloco `SEARCH BAR` de `src/css/styles.css` para `src/css/components/search.css`.
+- `styles.css` continua com todos os `@import` no topo; o import de search fica logo apos `./components/status-feedback.css`.
+- `src/sw.js` agora precacheia `./css/components/search.css`.
+- `tests/unit/css-architecture.test.js` cobre a existencia do modulo, a ordem de import e os marcadores `SEARCH BAR` e `button.search-item`.
+- `README_DEV.md` atualizado com o novo modulo.
+
+Reducao desta fatia:
+
+- `src/css/styles.css`: 3419 -> 3289 linhas.
+- `src/css/components/search.css`: novo modulo com 131 linhas.
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
+
 Proxima IA deve continuar em:
 
-1. Task 4 do plano: extrair `components/search.css` de `src/css/styles.css`.
+1. Task 5 do plano: extrair `base/mobile.css` de `src/css/styles.css`.
 2. Manter `@import` no topo de `styles.css` e atualizar `src/sw.js` a cada extracao.
 
 ## Plano detalhado de continuidade em 2026-05-06

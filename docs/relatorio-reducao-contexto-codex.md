@@ -333,7 +333,29 @@ Validacoes desta continuidade:
 
 ## Proximos hotspots estruturais
 
-- `src/css/styles.css` (3419 linhas nesta branch) - ainda pode ser reduzido extraindo busca, mobile, etc.
+### Continuidade em 2026-05-06 - extracao de busca global
+
+- Movido bloco `SEARCH BAR` de `src/css/styles.css` para `src/css/components/search.css`.
+- `src/css/styles.css` continua com todos os `@import` no topo; o import de search fica logo apos `./components/status-feedback.css`.
+- `src/sw.js` passou a precachear `./css/components/search.css`.
+- `tests/unit/css-architecture.test.js` foi atualizado para exigir o novo modulo e manter o contrato de imports antes de regras CSS.
+- `README_DEV.md` foi atualizado com o novo mapa de modulo.
+
+Reducao desta fatia:
+
+| Arquivo | Antes | Depois | Observacao |
+|---------|-------|--------|------------|
+| `src/css/styles.css` | 3419 | 3289 | -130 linhas nesta continuidade |
+| `src/css/components/search.css` | 0 | 131 | novo modulo de busca |
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 1 arquivo, 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 1 arquivo, 27 testes passando.
+
+## Proximos hotspots estruturais
+
+- `src/css/styles.css` (3289 linhas nesta branch) - ainda pode ser reduzido extraindo mobile, etc.
 - `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/logic.js` e `src/js/app.js` — nao foram atacados nesta fase.
