@@ -4,6 +4,10 @@
  * Replaces window globals for disc manager panel
  */
 
+let _activeDiscManagerTab = 'topicos';
+let _tempSequencia = null;
+let _isEditingSequence = false;
+
 export function getActiveDiscManagerTab() {
   return _activeDiscManagerTab;
 }

@@ -29,11 +29,14 @@ import {
 import { openAddEventModal, loadAssuntos } from './ui/event-modals.js?v=8.37';
 import { renderVerticalList } from './views/editais-view.js';
 import { setDiscChartInstance, getDiscChartInstance } from './state/chart-state.js?v=8.37';
-
-// Module-level state (replaces window globals)
-let _activeDiscManagerTab = 'topicos';
-let _tempSequencia = null;
-let _isEditingSequence = false;
+import {
+  getActiveDiscManagerTab,
+  setActiveDiscManagerTab,
+  getTempSequencia,
+  setTempSequencia,
+  getIsEditingSequence,
+  setIsEditingSequence,
+} from './views/state/disc-manager-state.js';
 
 // Re-export from extracted view modules
 export {
@@ -43,7 +46,7 @@ export {
   setTempSequencia,
   getIsEditingSequence,
   setIsEditingSequence,
-} from './state/disc-manager-state.js';
+} from './views/state/disc-manager-state.js';
 export { renderHome } from './views/home-view.js';
 export {
   renderCiclo,
@@ -886,21 +889,22 @@ export function getFilteredVertItems() {
 // verResumoSimulado removida — funcionalidade descontinuada
 
 export function toggleEditSeq() {
-  _isEditingSequence = !_isEditingSequence;
-  if (_isEditingSequence) {
-    _tempSequencia = JSON.parse(JSON.stringify(state.planejamento.sequencia));
+  setIsEditingSequence(!getIsEditingSequence());
+  if (getIsEditingSequence()) {
+    setTempSequencia(JSON.parse(JSON.stringify(state.planejamento.sequencia)));
   } else {
-    _tempSequencia = null;
+    setTempSequencia(null);
   }
   renderCurrentView();
 }
 
 export function saveEditSeq() {
-  if (!_tempSequencia || _tempSequencia.length === 0) {
+  const ts = getTempSequencia();
+  if (!ts || ts.length === 0) {
     showToast('A sequência de estudos não pode ficar vazia.', 'error');
     return;
   }
-  for (const s of _tempSequencia) {
+  for (const s of ts) {
     if (!s.discId) {
       showToast(
         'Por favor, selecione uma disciplina para todas as etapas antes de salvar.',
@@ -910,57 +914,66 @@ export function saveEditSeq() {
     }
   }
 
-  state.planejamento.sequencia = _tempSequencia;
+  state.planejamento.sequencia = ts;
   syncCicloToEventos();
   scheduleSave();
 
-  _isEditingSequence = false;
-  _tempSequencia = null;
+  setIsEditingSequence(false);
+  setTempSequencia(null);
   renderCurrentView();
 }
 
 export function cancelEditSeq() {
-  _isEditingSequence = false;
-  _tempSequencia = null;
+  setIsEditingSequence(false);
+  setTempSequencia(null);
   renderCurrentView();
 }
 
 export function updateSeqItem(i, field, val) {
   i = parseInt(i, 10);
   if (field === 'minutosAlvo') val = parseInt(val) || 0;
-  _tempSequencia[i][field] = val;
+  const ts = getTempSequencia();
+  ts[i][field] = val;
+  setTempSequencia(ts);
 }
 
 export function dupSeqItem(i) {
   i = parseInt(i, 10);
-  const obj = JSON.parse(JSON.stringify(_tempSequencia[i]));
+  const ts = getTempSequencia();
+  const obj = JSON.parse(JSON.stringify(ts[i]));
   obj.id = 'seq_' + uid();
-  _tempSequencia.splice(i + 1, 0, obj);
+  ts.splice(i + 1, 0, obj);
+  setTempSequencia(ts);
   renderCurrentView();
 }
 
 export function remSeqItem(i) {
   i = parseInt(i, 10);
-  _tempSequencia.splice(i, 1);
+  const ts = getTempSequencia();
+  ts.splice(i, 1);
+  setTempSequencia(ts);
   renderCurrentView();
 }
 
 export function moveSeqItem(i, dir) {
   i = parseInt(i, 10);
-  const arr = _tempSequencia;
-  if (i + dir < 0 || i + dir >= arr.length) return;
-  const temp = arr[i];
-  arr[i] = arr[i + dir];
-  arr[i + dir] = temp;
+  const ts = getTempSequencia();
+  if (i + dir < 0 || i + dir >= ts.length) return;
+  const temp = ts[i];
+  ts[i] = ts[i + dir];
+  ts[i + dir] = temp;
+  setTempSequencia(ts);
   renderCurrentView();
 }
 
 export function addSeqItem() {
-  _tempSequencia.push({
+  const ts = getTempSequencia();
+  ts.push({
     id: 'seq_' + uid(),
     discId: '',
     minutosAlvo: 60,
   });
+  setTempSequencia(ts);
   renderCurrentView();
 }
 
@@ -1703,7 +1716,9 @@ export function openDiscManager(editaId, discId) {
 
   editingSubjectCtx = { editaId, discId };
   // Default tab when opening
-  _activeDiscManagerTab = _activeDiscManagerTab || 'topicos';
+  if (!getActiveDiscManagerTab()) {
+    setActiveDiscManagerTab('topicos');
+  }
 
   // Render subject items
   const subjectsHtml =
@@ -1814,16 +1829,16 @@ export function openDiscManager(editaId, discId) {
 
     <!--TABS de Navegação Wave 39 -->
     <div class="manager-tabs" role="tablist" aria-label="Gerenciamento de disciplina">
-        <button type="button" data-action="switch-manager-tab" data-tab="topicos" class="manager-tab ${_activeDiscManagerTab === 'topicos' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${_activeDiscManagerTab === 'topicos'}" aria-controls="tab-manager-topicos">
+        <button type="button" data-action="switch-manager-tab" data-tab="topicos" class="manager-tab ${getActiveDiscManagerTab() === 'topicos' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${getActiveDiscManagerTab() === 'topicos'}" aria-controls="tab-manager-topicos">
             Tópicos do Edital (${disc.assuntos.length})
         </button>
-        <button type="button" data-action="switch-manager-tab" data-tab="aulas" class="manager-tab ${_activeDiscManagerTab === 'aulas' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${_activeDiscManagerTab === 'aulas'}" aria-controls="tab-manager-aulas">
+        <button type="button" data-action="switch-manager-tab" data-tab="aulas" class="manager-tab ${getActiveDiscManagerTab() === 'aulas' ? 'manager-tab--active' : ''}" role="tab" aria-selected="${getActiveDiscManagerTab() === 'aulas'}" aria-controls="tab-manager-aulas">
             Meus Materiais/Aulas (${disc.aulas ? disc.aulas.length : 0})
         </button>
     </div>
 
     <!--ABA TÓPICOS-->
-    <div id="tab-manager-topicos" class="${_activeDiscManagerTab === 'topicos' ? 'tab-content active' : 'tab-content--hidden'}">
+    <div id="tab-manager-topicos" class="${getActiveDiscManagerTab() === 'topicos' ? 'tab-content active' : 'tab-content--hidden'}">
         <div class="sm-add-form">
            <textarea class="form-control" id="new-assunto-nome" placeholder="Novo tópico (Digite ou cole vários separados por quebra de linha)" rows="1"></textarea>
            <button class="btn btn-primary" data-action="add-assunto" data-disc-id="${disc.id}">Adicionar Tópico</button>
@@ -1834,7 +1849,7 @@ export function openDiscManager(editaId, discId) {
     </div>
 
     <!--ABA AULAS-->
-    <div id="tab-manager-aulas" class="${_activeDiscManagerTab === 'aulas' ? 'tab-content active' : 'tab-content--hidden'}">
+    <div id="tab-manager-aulas" class="${getActiveDiscManagerTab() === 'aulas' ? 'tab-content active' : 'tab-content--hidden'}">
         <div class="sm-bulk-import-form">
            <div>
                <label>Adição em Lote (Copie e paste o índice do seu PDF/Cursinho aqui)</label>
@@ -1869,7 +1884,7 @@ export function openDiscManager(editaId, discId) {
 }
 
 export function switchManagerTab(tabName) {
-  _activeDiscManagerTab = tabName;
+  setActiveDiscManagerTab(tabName);
   if (editingSubjectCtx) {
     openDiscManager(editingSubjectCtx.editaId, editingSubjectCtx.discId);
   }
