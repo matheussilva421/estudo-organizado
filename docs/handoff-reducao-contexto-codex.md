@@ -1133,3 +1133,42 @@ Proxima IA deve continuar em:
 2. Rodar `npm run test:e2e` se houver nova mudanca visual, fluxo de usuario, PWA/offline ou sync.
 3. Continuar a Task 4 em fatias pequenas: candidatos seguros sao temas/layout/tipografia/tabelas/cards em `src/css/styles.css`.
 4. Apos cada extração CSS, atualizar `src/sw.js`, `README_DEV.md`, este handoff e `docs/relatorio-reducao-contexto-codex.md`.
+
+## Continuidade executada em 2026-05-06 - extracao de temas CSS
+
+Arquivos alterados nesta continuidade:
+
+- `src/css/styles.css`
+- `src/css/base/themes.css`
+- `src/sw.js`
+- `tests/unit/css-architecture.test.js`
+- `README_DEV.md`
+- `docs/relatorio-reducao-contexto-codex.md`
+- `docs/resumo-sessao-2026-05-06.md`
+- `docs/handoff-reducao-contexto-codex.md`
+
+O que foi feito:
+
+- Movido o bloco `DARK PREMIUM THEME LIBRARY` de `src/css/styles.css` para `src/css/base/themes.css`.
+- `styles.css` continua com todos os `@import` no topo; o import de temas fica logo apos `./base/accessibility.css`.
+- `src/sw.js` agora precacheia `./css/base/themes.css`.
+- `tests/unit/css-architecture.test.js` cobre a existencia do modulo de temas e o bloco de imports atualizado.
+- `README_DEV.md` e o relatorio foram atualizados com a nova fatia.
+
+Reducao desta fatia:
+
+- `src/css/styles.css`: 4474 -> 4123 linhas.
+- `src/css/base/themes.css`: novo modulo com 352 linhas.
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
+- `npm test`: 77 arquivos, 1293 testes passando.
+- `npm run test:e2e`: 142 testes passando.
+
+Proxima IA deve continuar em:
+
+1. Rodar `npm test` antes de fechamento/publicacao.
+2. Se seguir em CSS, continuar Task 4 com layout, tipografia, tabelas ou cards em `src/css/styles.css`.
+3. A cada novo CSS importado por `styles.css`, manter `@import` no topo e atualizar `src/sw.js`.

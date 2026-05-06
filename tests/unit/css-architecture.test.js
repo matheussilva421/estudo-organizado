@@ -82,7 +82,14 @@ describe('CSS architecture', () => {
   });
 
   it('keeps design tokens in css/tokens.css', () => {
-    for (const filename of ['tokens.css', 'base.css', 'components.css', 'views.css', 'base/accessibility.css']) {
+    for (const filename of [
+      'tokens.css',
+      'base.css',
+      'components.css',
+      'views.css',
+      'base/accessibility.css',
+      'base/themes.css'
+    ]) {
       expect(existsSync(join(cssDir, filename))).toBe(true);
     }
 
@@ -99,6 +106,7 @@ describe('CSS architecture', () => {
     const legacyStyles = readFileSync(join(rootDir, 'src/css/styles.css'), 'utf8').replace(/\r\n/g, '\n');
     const importBlock = [
       "@import './base/accessibility.css';",
+      "@import './base/themes.css';",
       "@import './components/sidebar.css';",
       "@import './components/buttons.css';",
       "@import './base/utilities.css';",
@@ -108,6 +116,7 @@ describe('CSS architecture', () => {
     expect(legacyStyles.startsWith(`${importBlock}\n\n`)).toBe(true);
     expect(legacyStyles.slice(importBlock.length)).not.toMatch(/^@import/m);
     expect(read('src/css/base/accessibility.css')).toContain('.skip-link:focus');
+    expect(read('src/css/base/themes.css')).toContain("DARK PREMIUM THEME LIBRARY");
   });
 
   it('keeps the dark premium theme contracts', () => {

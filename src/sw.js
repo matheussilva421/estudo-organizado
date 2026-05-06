@@ -9,6 +9,7 @@ const ASSET_PATHS = [
   './css/base.css',
   './css/components.css',
   './css/base/accessibility.css',
+  './css/base/themes.css',
   './css/components/buttons.css',
   './css/components/sidebar.css',
   './css/base/utilities.css',

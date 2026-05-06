@@ -83,6 +83,9 @@ e2b1fc8 docs(context): update handoff with wave 3-6 extraction results
 - Tambem foi corrigida a ordem real dos `@import` em `src/css/styles.css`; imports depois de regras CSS podem ser ignorados pelo navegador.
 - A revisao posterior tambem estabilizou `sync-status-ui.js` para impedir que um `idle` de background esconda um erro recente de sync.
 - Validacao final posterior: `npm test` com **1293/1293** e `npm run test:e2e` com **142/142**.
+- Continuidade posterior da Task 4: `DARK PREMIUM THEME LIBRARY` saiu de `src/css/styles.css` para `src/css/base/themes.css`.
+- `src/css/styles.css` ficou em **4123** linhas nesta branch; `src/css/base/themes.css` tem **352** linhas.
+- Validacao desta fatia: `npm run test:css` com **27/27**, `npm run test:unit -- tests/unit/action-contracts.test.js` com **27/27**, `npm test` com **1293/1293** e `npm run test:e2e` com **142/142**.
 
 ---
 
@@ -104,7 +107,7 @@ e2b1fc8 docs(context): update handoff with wave 3-6 extraction results
 
 ## Proximos Passos Sugeridos
 
-1. Continuar extraindo CSS de `styles.css` (temas, layout, tipografia, tabelas, cards)
+1. Continuar extraindo CSS de `styles.css` (layout, tipografia, tabelas, cards)
 2. Extrair mais renderizadores de `views.js` (dashboard, editais, habitos)
 3. Verificar se ha mais logs informativos para converter em `debugLog`
 4. Executar verificacao final F1-F4 do plano Momus se necessario

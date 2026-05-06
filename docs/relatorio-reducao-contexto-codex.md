@@ -245,9 +245,31 @@ Validacoes desta continuidade:
 - `npm run test:e2e -- tests/e2e/sync-e2e.spec.js`: 8 testes passando.
 - `npm run test:e2e`: 142 testes passando.
 
+### Continuidade em 2026-05-06 - extracao de temas CSS
+
+- Extraido o bloco `DARK PREMIUM THEME LIBRARY` de `src/css/styles.css` para `src/css/base/themes.css`.
+- `src/css/styles.css` continua com todos os `@import` no topo e agora importa `./base/themes.css` logo apos `./base/accessibility.css`.
+- `src/sw.js` passou a precachear `./css/base/themes.css`.
+- `tests/unit/css-architecture.test.js` foi atualizado para exigir o novo modulo e manter o contrato de imports antes de regras CSS.
+- `README_DEV.md` foi atualizado com o novo mapa de modulo.
+
+Reducao desta fatia:
+
+| Arquivo | Antes | Depois | Observacao |
+|---------|-------|--------|------------|
+| `src/css/styles.css` | 4474 | 4123 | -351 linhas nesta continuidade |
+| `src/css/base/themes.css` | 0 | 352 | novo modulo tematico |
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 1 arquivo, 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 1 arquivo, 27 testes passando.
+- `npm test`: 77 arquivos, 1293 testes passando.
+- `npm run test:e2e`: 142 testes passando.
+
 ## Proximos hotspots estruturais
 
-- `src/css/styles.css` (3872 linhas) — ainda pode ser reduzido extraindo temas, layout, tipografia, tabelas, cards, etc.
+- `src/css/styles.css` (4123 linhas nesta branch) - ainda pode ser reduzido extraindo layout, tipografia, tabelas, cards, etc.
 - `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/logic.js` e `src/js/app.js` — nao foram atacados nesta fase.
 - `src/js/components.js` — potencial para extracao de componentes reutilizaveis.
