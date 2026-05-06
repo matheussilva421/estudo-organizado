@@ -37,13 +37,13 @@
       integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="css/tokens.css?v=8.55" />
-    <link rel="stylesheet" href="css/base.css?v=8.55" />
-    <link rel="stylesheet" href="css/components.css?v=8.55" />
-    <link rel="stylesheet" href="css/views.css?v=8.55" />
-    <link rel="stylesheet" href="css/styles.css?v=8.55" />
-    <script src="vendor/chart.umd.min.js?v=8.55" defer></script>
-    <script src="js/sw-register.js?v=8.55" defer></script>
+    <link rel="stylesheet" href="css/tokens.css?v=8.56" />
+    <link rel="stylesheet" href="css/base.css?v=8.56" />
+    <link rel="stylesheet" href="css/components.css?v=8.56" />
+    <link rel="stylesheet" href="css/views.css?v=8.56" />
+    <link rel="stylesheet" href="css/styles.css?v=8.56" />
+    <script src="vendor/chart.umd.min.js?v=8.56" defer></script>
+    <script src="js/sw-register.js?v=8.56" defer></script>
   </head>
 
   <body>
@@ -455,14 +455,14 @@
       class="modal-overlay"
       id="modal-event-detail"
       role="dialog"
-      aria-labelledby="med-detail-title"
+      aria-labelledby="modal-event-detail-title"
       aria-describedby="modal-event-detail-body"
       aria-modal="true"
       aria-hidden="true"
     >
       <div class="modal">
         <div class="modal-header">
-          <h2 id="med-detail-title">Detalhes do Evento</h2>
+          <h2 id="modal-event-detail-title">Detalhes do Evento</h2>
           <button
             class="modal-close"
             data-action="close-modal"
@@ -474,6 +474,24 @@
           </button>
         </div>
         <div class="modal-body" id="modal-event-detail-body"></div>
+        <div class="modal-footer modal-dark-footer">
+          <button
+            class="btn btn-ghost"
+            id="modal-event-detail-edit"
+            data-action="edit-event"
+            data-event-id=""
+          >
+            Editar
+          </button>
+          <button
+            class="btn btn-danger"
+            id="modal-event-detail-delete"
+            data-action="delete-event-from-modal"
+            data-event-id=""
+          >
+            Excluir
+          </button>
+        </div>
       </div>
     </div>
 
@@ -574,8 +592,8 @@
       </div>
     </div>
 
-    <script src="js/firebase/firebase-runtime-config.js?v=8.55"></script>
-    <script type="module" src="js/main.js?v=8.55"></script>
+    <script src="js/firebase/firebase-runtime-config.js?v=8.56"></script>
+    <script type="module" src="js/main.js?v=8.56"></script>
 
     <!-- REGISTRO SESSÃO MODAL -->
     <div

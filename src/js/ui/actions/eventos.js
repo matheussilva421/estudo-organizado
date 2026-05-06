@@ -12,6 +12,7 @@ import {
   setCronoLivreGoal,
   setCronoLivreDisc,
   setCronoLivreAss,
+  removeEvento,
 } from '../../logic.js?v=8.37';
 import {
   openAddEventModal,
@@ -22,7 +23,7 @@ import {
   openEventDetail,
 } from '../../ui/event-modals.js?v=8.37';
 import { showConfirm, closeModal } from '../../app.js?v=8.37';
-import { deleteEvento, marcarEstudei } from '../../logic.js?v=8.37';
+import { marcarEstudei } from '../../logic.js?v=8.37';
 import { clearSearch } from '../../views.js?v=8.37';
 import {
   openRegistroSessao,
@@ -55,7 +56,7 @@ registerAction('delete-event', (el) => {
   const eventId = el.dataset.eventId;
   if (eventId) {
     showConfirm('Tem certeza que deseja excluir este evento?', () => {
-      deleteEvento(eventId);
+      removeEvento(eventId);
     });
   }
 });
@@ -63,7 +64,7 @@ registerAction('delete-event-from-modal', (el) => {
   const eventId = el.dataset.eventId;
   if (eventId) {
     showConfirm('Tem certeza que deseja excluir este evento?', () => {
-      deleteEvento(eventId);
+      removeEvento(eventId);
       closeModal('modal-event-detail');
     });
   }

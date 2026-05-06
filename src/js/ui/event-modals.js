@@ -385,9 +385,20 @@ export function openEventDetail(eventId) {
   const disc = ev.discId ? getDisc(ev.discId) : null;
   const status = getEventStatus(ev);
 
-  document.getElementById('modal-event-detail-title').textContent = ev.titulo;
-
+  const title = document.getElementById('modal-event-detail-title');
   const body = document.getElementById('modal-event-detail-body');
+  if (!title || !body) {
+    console.error('openEventDetail: elementos do modal de evento não encontrados');
+    return;
+  }
+
+  title.textContent = ev.titulo;
+
+  const editBtn = document.getElementById('modal-event-detail-edit');
+  const deleteBtn = document.getElementById('modal-event-detail-delete');
+  if (editBtn) editBtn.dataset.eventId = eventId;
+  if (deleteBtn) deleteBtn.dataset.eventId = eventId;
+
   body.innerHTML = `
     <div class="event-detail-grid">
       <div class="event-detail-field">

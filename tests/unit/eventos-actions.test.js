@@ -21,6 +21,7 @@ describe('ui/actions/eventos.js', () => {
       setCronoLivreDisc: vi.fn(),
       setCronoLivreAss: vi.fn(),
       deleteEvento: vi.fn(),
+      removeEvento: vi.fn(),
       marcarEstudei: vi.fn(),
     };
     eventModals = {
@@ -125,6 +126,16 @@ describe('ui/actions/eventos.js', () => {
     expect(appModule.showConfirm).toHaveBeenCalled();
   });
 
+  it('delete-event handler removes event after confirmation', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'delete-event')[1];
+    handler({ dataset: { eventId: 'evt_1' } });
+
+    const onConfirm = appModule.showConfirm.mock.calls[0][1];
+    onConfirm();
+
+    expect(logicModule.removeEvento).toHaveBeenCalledWith('evt_1');
+  });
+
   it('delete-event skips when no eventId', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'delete-event')[1];
     handler({ dataset: {} });
@@ -135,6 +146,12 @@ describe('ui/actions/eventos.js', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'delete-event-from-modal')[1];
     handler({ dataset: { eventId: 'evt_1' } });
     expect(appModule.showConfirm).toHaveBeenCalled();
+
+    const onConfirm = appModule.showConfirm.mock.calls[0][1];
+    onConfirm();
+
+    expect(logicModule.removeEvento).toHaveBeenCalledWith('evt_1');
+    expect(appModule.closeModal).toHaveBeenCalledWith('modal-event-detail');
   });
 
   it('open-add-event handler calls openAddEventModal without args', () => {

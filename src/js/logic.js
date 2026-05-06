@@ -321,20 +321,24 @@ export function _marcarEstudeiDirect(eventId) {
   );
 }
 
+export function removeEvento(eventId) {
+  if (timerIntervals[eventId]) {
+    clearInterval(timerIntervals[eventId]);
+    delete timerIntervals[eventId];
+  }
+  state.eventos = state.eventos.filter((e) => e.id !== eventId);
+  scheduleSave();
+  invalidatePendingRevCache();
+  document.dispatchEvent(new CustomEvent('app:eventoDeleted', { detail: { eventId } }));
+}
+
 export function deleteEvento(eventId) {
   document.dispatchEvent(
     new CustomEvent('app:showConfirm', {
       detail: {
         msg: 'Excluir este evento permanentemente?',
         onYes: () => {
-          if (timerIntervals[eventId]) {
-            clearInterval(timerIntervals[eventId]);
-            delete timerIntervals[eventId];
-          }
-          state.eventos = state.eventos.filter((e) => e.id !== eventId);
-          scheduleSave();
-          invalidatePendingRevCache();
-          document.dispatchEvent(new CustomEvent('app:eventoDeleted', { detail: { eventId } }));
+          removeEvento(eventId);
         },
         opts: { danger: true, label: 'Excluir', title: 'Excluir evento' },
       },
