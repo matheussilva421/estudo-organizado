@@ -2,9 +2,9 @@
 // HISTORICO DE SESSOES
 // =============================================
 
-import { state } from '../store.js';
-import { formatDate, formatTime, esc } from '../utils.js';
-import { getDisc } from '../logic.js';
+import { state } from '../store.js?v=8.37';
+import { formatDate, formatTime, esc } from '../utils.js?v=8.37';
+import { getDisc } from '../logic.js?v=8.37';
 
 export function renderHistoricoSessoes(el) {
   const eventosEstudados = [...(state.eventos || []), ...(state.arquivo || [])]

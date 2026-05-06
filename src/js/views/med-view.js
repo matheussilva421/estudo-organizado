@@ -2,9 +2,9 @@
 // MED VIEW
 // =============================================
 
-import { state } from '../store.js';
-import { todayStr, formatTime, esc } from '../utils.js';
-import { renderEventCard } from '../components.js';
+import { state } from '../store.js?v=8.37';
+import { todayStr, formatTime, esc } from '../utils.js?v=8.37';
+import { renderEventCard } from '../components.js?v=8.37';
 
 // Shared stats row builder — eliminates duplication between renderMED and refreshMEDSections
 function buildMEDStatsHTML(estudados, agendados) {
