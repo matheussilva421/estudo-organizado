@@ -1,0 +1,384 @@
+/* ── SIDEBAR MOBILE OVERLAY ── */
+#sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--surface-inverse-soft);
+  z-index: 99;
+  opacity: 1;
+  transition: opacity 0.25s;
+}
+
+#sidebar-overlay.open {
+  opacity: 1;
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow: 8px 0 28px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 100;
+  transition: width 0.3s ease;
+}
+
+.sidebar-logo {
+  padding: 24px 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--sidebar-border);
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.logo-icon {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, var(--accent), var(--info));
+  border-radius: 12px;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--sidebar-text-active);
+  /* Sidebar é sempre escura em todos os temas */
+  line-height: 1.2;
+}
+
+.logo-text span {
+  color: var(--accent);
+}
+
+/* =============================================
+   SIDEBAR COLLAPSE BUTTON
+   ============================================= */
+.sidebar-toggle-btn {
+  margin-left: auto;
+  background: var(--surface-soft);
+  border: none;
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--surface-strong);
+  color: var(--text-primary);
+}
+
+.sidebar-toggle-btn i {
+  font-size: 12px;
+  transition: transform 0.3s;
+}
+
+/* Sidebar collapsed state */
+#sidebar.collapsed {
+  width: 70px;
+  min-width: 70px;
+  overflow: hidden !important;
+}
+
+#sidebar.collapsed .sidebar-logo {
+  justify-content: center;
+  padding: 16px 8px;
+}
+
+#sidebar.collapsed .logo-text {
+  display: none !important;
+}
+
+#sidebar.collapsed .logo-icon {
+  margin-right: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+}
+
+/* Hide toggle button when collapsed - expand on hover of top area */
+#sidebar.collapsed .sidebar-toggle-btn {
+  display: none;
+}
+
+/* Sidebar expand hint button */
+.sidebar-expand-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition:
+    background 0.2s,
+    color 0.2s;
+  font-size: 14px;
+}
+
+.sidebar-expand-hint:hover {
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+}
+
+#sidebar.collapsed .sidebar-expand-hint {
+  display: flex !important;
+}
+
+#sidebar:not(.collapsed) .sidebar-expand-hint {
+  display: none !important;
+}
+
+/* Hide section titles when collapsed */
+#sidebar.collapsed .sidebar-section-title {
+  display: none !important;
+}
+
+/* Hide drive text when collapsed */
+#sidebar.collapsed .sidebar-drive .drive-text,
+#sidebar.collapsed .sidebar-drive .drive-status-dot {
+  display: none !important;
+}
+
+#sidebar.collapsed .sidebar-drive {
+  justify-content: center;
+  padding: 12px 8px;
+  overflow: hidden;
+}
+
+#sidebar.collapsed .sidebar-drive .fa-cloud {
+  display: none;
+}
+
+/* Hide badges when collapsed */
+#sidebar.collapsed .nav-item .badge {
+  display: none !important;
+}
+
+/* Nav items centered when collapsed */
+#sidebar.collapsed .nav-item {
+  justify-content: center !important;
+  padding: 12px 8px !important;
+  text-align: center;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+/* Hide all text content inside nav-item when collapsed */
+#sidebar.collapsed .nav-item .icon {
+  margin-right: 0 !important;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+}
+
+/* Hide text nodes by targeting child text via :not selector */
+#sidebar.collapsed .nav-item > *:not(.icon) {
+  display: none !important;
+}
+
+/* Force hide any remaining text by using visibility */
+#sidebar.collapsed .nav-item {
+  position: relative;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+#sidebar.collapsed .nav-item .icon {
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
+/* Tooltip on hover when collapsed */
+#sidebar.collapsed .nav-item:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--card);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-left: 8px;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.sidebar-section {
+  padding: 4px 10px;
+  margin-bottom: 6px;
+}
+
+.sidebar-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: color-mix(in srgb, var(--sidebar-text) 52%, transparent);
+  padding: 6px 8px 4px;
+  margin-top: 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 13px;
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--sidebar-text);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition:
+    transform 0.2s,
+    background-color 0.2s,
+    opacity 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+  text-decoration: none;
+  margin-bottom: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-item:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text-active);
+}
+
+.nav-item.active {
+  background: var(--sidebar-active-bg);
+  border-color: var(--surface-strong);
+  border-left-color: var(--sidebar-active-border);
+  box-shadow: inset 0 0 0 1px var(--surface-muted);
+  color: var(--sidebar-text-active) !important;
+}
+
+.nav-item.active * {
+  color: inherit !important;
+}
+
+.nav-item .icon {
+  width: 18px;
+  text-align: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.nav-item .badge {
+  margin-left: auto;
+  background: var(--red);
+  color: var(--danger-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 20px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.nav-item.active .badge {
+  background: var(--accent);
+  color: var(--accent-text) !important;
+  border: 1px solid var(--surface-strong);
+}
+
+.nav-item .badge.badge-crono {
+  background: var(--green);
+}
+
+.sidebar-drive {
+  margin-top: auto;
+  padding: 12px;
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.drive-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.drive-status:hover {
+  background: var(--surface-strong);
+}
+
+.drive-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-atrasado);
+  flex-shrink: 0;
+}
+
+.drive-dot.connected {
+  background: var(--accent);
+}
+
+.drive-dot.syncing {
+  background: var(--orange);
+  animation: pulse 1s infinite;
+}
+
+.drive-text {
+  font-size: 11.5px;
+  color: var(--sidebar-text);
+  flex: 1;
+}
+
+.drive-text strong {
+  display: block;
+  color: var(--sidebar-text-active);
+  font-size: 12px;
+  margin-bottom: 1px;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
