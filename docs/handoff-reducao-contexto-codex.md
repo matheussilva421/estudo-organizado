@@ -1004,6 +1004,82 @@ Nao rode E2E completo, commit ou push sem eu pedir fechamento.
 
 ---
 
+## Continuidade executada em 2026-05-05 - modularizacao CSS e JS completa
+
+Arquivos alterados nesta continuidade:
+
+- `src/css/views.css` (reduzido de ~3700 para 714 linhas)
+- `src/css/styles.css` (reduzido de ~5050 para 3872 linhas)
+- `src/js/views.js` (reduzido de ~2249 para 2062 linhas)
+- `src/js/views/config-view.js` (reduzido de ~1168 para 247 linhas)
+- `src/sw.js` (APP_VERSION bumped de 8.37 para 8.43)
+- `src/index.html` (version query strings atualizados)
+- `tests/unit/css-architecture.test.js`
+- `tests/unit/firestore-contracts.test.js`
+- `tests/unit/action-contracts.test.js`
+- `tests/unit/config-view.test.js`
+- `docs/handoff-reducao-contexto-codex.md`
+
+O que foi feito:
+
+**CSS extractions (views.css):**
+- `src/css/views/calendar.css` - calendario (64c7b83)
+- `src/css/views/ciclo.css` - ciclo e grade semanal (a5327d9)
+- `src/css/views/config/config-view.css` - config, sync e backup (4e2499e)
+- `src/css/views/sessions.css` - registro de sessao, historico, grupos (e833941)
+- `src/css/views/wizard.css` - wizard de planejamento (e833941)
+- `src/css/views/modals.css` - modais e event forms (e833941)
+- `src/css/views/cronometro.css` - cronometro (995986e)
+- `src/css/views/banca.css` - analise de banca (995986e)
+- `src/css/views/subject-manager.css` - gerenciador de disciplinas (995986e)
+
+**CSS extractions (styles.css):**
+- `src/css/base/utilities.css` - utilitarios base (d9d07f0)
+- `src/css/base/forms.css` - formularios (b47c4e7)
+- `src/css/components/buttons.css` - botoes (b47c4e7)
+- `src/css/components/sidebar.css` - sidebar (b64d531)
+
+**JS extractions:**
+- `src/js/views/state/disc-manager-state.js` - estado do disc manager (8c8e31e, corrigido em 3b305c9)
+- `src/js/views/config/sync-center.js` - renderizacao do sync center (f58cb70)
+- `src/js/views/config/theme-settings.js` - tema e preferencias (d1ae2c8)
+- `src/js/views/config/data-management.js` - gestao de dados (cd5a879)
+
+**Log reduction:**
+- `chore(logs): convert informational logs to debugLog` (42e5609)
+- `chore(logs): convert sync logs to debugLog` (f8ed4bc)
+
+**Validacoes desta continuidade:**
+- `npm run test:css`: 1 arquivo, 26 testes passando.
+- `npm run test:views`: 12 arquivos, 207 testes passando.
+- `npm run test:config`: 2 arquivos, 60 testes passando.
+- `npm test`: 76 arquivos passando, 1290/1291 testes passando (1 falha pre-existente em esbuild no Windows).
+- APP_VERSION final: 8.43
+
+Proxima IA deve continuar em:
+
+1. `README_DEV.md` e `docs/relatorio-reducao-contexto-codex.md` precisam ser atualizados com os novos arquivos.
+2. Task 4 do handoff original (styles.css) pode continuar extraindo blocos restantes.
+3. Task 5 do handoff (views.js) pode continuar com mais extractions de views.
+4. Task 7 (logs) pode verificar se ha mais logs para converter.
+5. Task 8 (docs) registrar antes/after line counts.
+
+Nao reabra por padrao:
+
+- `node_modules/`
+- `.git/`
+- `.claude/`
+- `.sisyphus/`
+- `.playwright-mcp/`
+- `coverage/`
+- `playwright-report/`
+- `test-results/`
+- `_local_archive/`
+- `output/`
+- `src/vendor/`
+- `package-lock.json`
+- `src/docs/superpowers/plans/`
+
 ## Observacoes finais para outra IA
 
 - Nao refatore produto e testes na mesma task.
