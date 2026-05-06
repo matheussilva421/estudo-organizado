@@ -1172,3 +1172,16 @@ Proxima IA deve continuar em:
 1. Rodar `npm test` antes de fechamento/publicacao.
 2. Se seguir em CSS, continuar Task 4 com layout, tipografia, tabelas ou cards em `src/css/styles.css`.
 3. A cada novo CSS importado por `styles.css`, manter `@import` no topo e atualizar `src/sw.js`.
+
+## Plano detalhado de continuidade em 2026-05-06
+
+Plano criado para a proxima fase:
+
+- `docs/plano-continuacao-reducao-contexto-codex.md`
+
+Resumo do plano:
+
+1. Continuar primeiro em CSS, por fatias pequenas: `base/layout.css`, `components/cards.css`, `components/status-feedback.css`, `components/search.css` e `base/mobile.css`.
+2. Depois atacar `src/js/views.js` extraindo `renderDashboard()` para `src/js/views/dashboard-view.js`, mantendo `views.js` como fachada publica.
+3. Em cada fatia CSS, atualizar `src/sw.js`, `tests/unit/css-architecture.test.js`, `README_DEV.md`, este handoff e o relatorio.
+4. No fechamento, rodar `npm test` e `npm run test:e2e` no `main`, limpar artefatos Playwright e publicar no GitHub.
