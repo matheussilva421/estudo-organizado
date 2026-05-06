@@ -378,7 +378,30 @@ Validacoes desta continuidade:
 ## Proximos hotspots estruturais
 
 - `src/css/styles.css` (3224 linhas nesta branch) - ainda contem modais, tabelas, tipografia, filtros, etc.
-- `src/js/views.js` (2062 linhas) — proximo alvo de extracao.
+### Continuidade em 2026-05-06 - extracao de dashboard
+
+- Movido `renderDashboard()`, `setDashPeriod()`, `renderDailyChart()`, `renderDiscChart()`, `renderHabitSummary()`, `renderDiscProgress()`, `destroyDashboardCharts()` e variaveis `dashPeriod`, `_chartDaily`, `_chartDisc` de `src/js/views.js` para `src/js/views/dashboard-view.js`.
+- Movidos tambem os helpers privados `getQuestionTotal()`, `getPagesTotal()`, `sumQuestionRecords()`, `sumPageRecords()`.
+- `views.js` preserva fachada publica com re-exports do `dashboard-view.js`.
+- `src/js/views/dashboard-view.js` ja existia com `renderDisciplinaDashboard()`; agora tambem contem o dashboard principal.
+
+Reducao desta fatia:
+
+| Arquivo | Antes | Depois | Observacao |
+|---------|-------|--------|------------|
+| `src/js/views.js` | 2062 | 1927 | -135 linhas nesta continuidade |
+| `src/js/views/dashboard-view.js` | 456 | 754 | +298 linhas (dashboard principal) |
+
+Validacoes desta continuidade:
+
+- `npm run test:unit -- tests/unit/views.test.js`: 1 arquivo, 29 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 1 arquivo, 27 testes passando.
+- `npm run test:e2e -- tests/e2e/dashboard-stats.spec.js --project=chromium`: 5 testes passando.
+
+## Proximos hotspots estruturais
+
+- `src/css/styles.css` (3224 linhas nesta branch) - ainda contem modais, tabelas, tipografia, filtros, etc.
+- `src/js/views.js` (1927 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/logic.js` e `src/js/app.js` — nao foram atacados nesta fase.
 - `src/js/components.js` — potencial para extracao de componentes reutilizaveis.

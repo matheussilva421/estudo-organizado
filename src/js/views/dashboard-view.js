@@ -4,7 +4,15 @@
  */
 
 import { scheduleSave, state } from '../store.js?v=8.37';
-import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.37';
+import {
+  cutoffDateStr,
+  esc,
+  formatDate,
+  formatTime,
+  HABIT_TYPES,
+  todayStr,
+} from '../utils.js?v=8.37';
+import { getActiveDisciplinas, getDisc } from '../logic.js?v=8.37';
 import {
   getActiveDashboardDiscCtx,
   getActiveDashboardTab,
@@ -442,7 +450,353 @@ export function toggleAulaDashboard(editaId, discId, aulaId) {
   }
 }
 
+// =============================================
+// HOME DASHBOARD (period filter + charts)
+// =============================================
+
+export let dashPeriod = 7; // default: last 7 days
+export let _chartDaily = null,
+  _chartDisc = null;
+
+function getQuestionTotal(record) {
+  if (!record) return 0;
+  const explicit = Number(record.total ?? record.quantidade);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const acertos = Number(record.acertos ?? record.certas ?? 0);
+  const erros = Number(record.erros ?? record.erradas ?? 0);
+  const derived = acertos + erros;
+  if (Number.isFinite(derived) && derived > 0) return derived;
+
+  // Legacy compatibility: some old habit records store only eventoId.
+  const ev = (state.eventos || []).find((e) => e.id === record.eventoId);
+  if (!ev) return 0;
+  const qs = ev.sessao?.questoes || ev.questoes;
+  if (!qs) return 0;
+  const eventTotal = Number(
+    qs.total ?? qs.quantidade ?? (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0)
+  );
+  return Number.isFinite(eventTotal) && eventTotal > 0 ? eventTotal : 0;
+}
+
+function getPagesTotal(record) {
+  if (!record) return 0;
+  const rawPages = record.paginas;
+  const pagesValue = rawPages && typeof rawPages === 'object' ? rawPages.total : rawPages;
+  const total = Number(record.total ?? pagesValue ?? record.quantidade ?? record.paginasLidas ?? 0);
+  if (Number.isFinite(total) && total > 0) return total;
+
+  // Legacy compatibility: some old habit records store only eventoId.
+  const ev = (state.eventos || []).find((e) => e.id === record.eventoId);
+  if (!ev) return 0;
+  const evPages = ev.sessao?.paginas;
+  const eventTotal = Number(
+    (evPages && typeof evPages === 'object' ? evPages.total : evPages) ?? ev.paginas ?? 0
+  );
+  return Number.isFinite(eventTotal) && eventTotal > 0 ? eventTotal : 0;
+}
+
+function sumQuestionRecords(records = []) {
+  return records.reduce((sum, r) => sum + getQuestionTotal(r), 0);
+}
+
+function sumPageRecords(records = []) {
+  return records.reduce((sum, r) => sum + getPagesTotal(r), 0);
+}
+
+export function destroyDashboardCharts() {
+  if (_chartDaily) {
+    _chartDaily.destroy();
+    _chartDaily = null;
+  }
+  if (_chartDisc) {
+    _chartDisc.destroy();
+    _chartDisc = null;
+  }
+}
+
+export function renderDashboard(el) {
+  const periodDays = dashPeriod; // null = all time
+  const periodLabel = {
+    7: '7 dias',
+    15: '15 dias',
+    30: '30 dias',
+    90: '3 meses',
+    365: '1 ano',
+    null: 'Total',
+  }[periodDays];
+
+  const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
+  const filteredEvts = cutoffStr
+    ? state.eventos.filter((e) => e.status === 'estudei' && e.data && e.data >= cutoffStr)
+    : state.eventos.filter((e) => e.status === 'estudei');
+
+  const totalSecs = filteredEvts.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+  const questTot = cutoffStr
+    ? sumQuestionRecords((state.habitos.questoes || []).filter((r) => r.data >= cutoffStr))
+    : sumQuestionRecords(state.habitos.questoes || []);
+  const simTot = cutoffStr
+    ? (state.habitos.simulado || []).filter((r) => r.data >= cutoffStr).length
+    : (state.habitos.simulado || []).length;
+
+  el.innerHTML = `
+    <div class="flex-between mb-4">
+      <div class="text-md text-secondary">Exibindo dados: <strong class="text-primary">${periodLabel}</strong></div>
+      <div class="cal-view-tabs" role="tablist" aria-label="Período do dashboard">
+        ${[7, 15, 30, 90, 365, null]
+          .map(
+            (p) => `
+          <button type="button" class="cal-view-tab ${dashPeriod === p ? 'active' : ''}" data-action="set-dash-period" data-period="${p}" role="tab" aria-selected="${dashPeriod === p}">
+            ${{ 7: '7d', 15: '15d', 30: '30d', 90: '3m', 365: '1a', null: 'Total' }[p]}
+          </button>`
+          )
+          .join('')}
+      </div>
+    </div>
+
+    <div class="stats-grid mb-6">
+      <div class="stat-card green">
+        <div class="stat-label">Tempo Estudado</div>
+        <div class="stat-value">${formatTime(totalSecs)}</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Sessões Realizadas</div>
+        <div class="stat-value">${filteredEvts.length}</div>
+        <div class="stat-sub">eventos concluidos</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">Questões</div>
+        <div class="stat-value">${questTot}</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Simulados</div>
+        <div class="stat-value">${simTot}</div>
+        <div class="stat-sub">${periodLabel}</div>
+      </div>
+    </div>
+
+    <div class="grid-2 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h3>📊 Horas por Dia</h3>
+          <span class="text-sm text-muted">${periodLabel}</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>📚 Tempo por Disciplina</h3>
+          <span class="text-sm text-muted">${periodLabel}</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="chart-disc"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><h3>⚡ Hábitos (${periodLabel})</h3></div>
+        <div class="card-body">${renderHabitSummary(periodDays)}</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>📏 Progresso por Disciplina</h3></div>
+        <div class="card-body">${renderDiscProgress()}</div>
+      </div>
+    </div>
+  `;
+
+  renderDailyChart(periodDays);
+  renderDiscChart(periodDays);
+}
+
+export function setDashPeriod(p) {
+  dashPeriod = p;
+  renderCurrentView();
+}
+
+export function renderDailyChart(periodDays) {
+  const ctx = document.getElementById('chart-daily');
+  if (!ctx) return;
+  if (_chartDaily) {
+    _chartDaily.destroy();
+    _chartDaily = null;
+  }
+  const themeVars = getComputedStyle(document.documentElement);
+  const accent = themeVars.getPropertyValue('--accent').trim() || '#8aa4bf';
+  const accentLight =
+    themeVars.getPropertyValue('--accent-light').trim() || 'rgba(138, 164, 191, 0.16)';
+  const border = themeVars.getPropertyValue('--border').trim() || 'rgba(148, 163, 184, 0.14)';
+  const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#b8c0cc';
+  const numDays = periodDays ? Math.min(periodDays, 365) : 30;
+  const secsByDate = {};
+  for (const e of state.eventos) {
+    if (e.status === 'estudei' && e.tempoAcumulado) {
+      secsByDate[e.data] = (secsByDate[e.data] || 0) + (e.tempoAcumulado || 0);
+    }
+  }
+  const days = [],
+    data = [];
+  for (let i = numDays - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const d2 = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    const ds = d2.toISOString().split('T')[0];
+    days.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+    data.push(Math.round((secsByDate[ds] || 0) / 60));
+  }
+  _chartDaily = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [
+        {
+          label: 'Minutos',
+          data,
+          backgroundColor: accentLight,
+          borderColor: accent,
+          borderWidth: 2,
+          borderRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: border },
+          ticks: { color: textSecondary, font: { size: 11 } },
+        },
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: textSecondary,
+            font: { size: numDays > 60 ? 9 : numDays > 20 ? 10 : 11 },
+            maxRotation: numDays > 20 ? 45 : 0,
+            maxTicksLimit: numDays > 180 ? 12 : 20,
+          },
+        },
+      },
+    },
+  });
+}
+
+export function renderDiscChart(periodDays) {
+  const ctx = document.getElementById('chart-disc');
+  if (!ctx) return;
+  if (_chartDisc) {
+    _chartDisc.destroy();
+    _chartDisc = null;
+  }
+  const themeVars = getComputedStyle(document.documentElement);
+  const border = themeVars.getPropertyValue('--border').trim() || '#e2e8f0';
+  const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#475569';
+  const discTime = {};
+  const cutoffStr2 = periodDays ? cutoffDateStr(periodDays) : null;
+  const evts = cutoffStr2
+    ? state.eventos.filter(
+        (e) => e.status === 'estudei' && e.discId && e.tempoAcumulado && e.data >= cutoffStr2
+      )
+    : state.eventos.filter((e) => e.status === 'estudei' && e.discId && e.tempoAcumulado);
+  evts.forEach((e) => {
+    discTime[e.discId] = (discTime[e.discId] || 0) + e.tempoAcumulado;
+  });
+  const labels = [],
+    data = [],
+    colors = [];
+  Object.entries(discTime).forEach(([id, secs]) => {
+    const d = getDisc(id);
+    labels.push(d ? d.disc.nome : id);
+    data.push(Math.round(secs / 60));
+    colors.push(d ? d.disc.cor || '#8aa4bf' : '#7f8a99');
+  });
+  let dummyTooltip = false;
+  if (data.length === 0) {
+    labels.push('Sem Dados Registrados');
+    data.push(1);
+    colors.push(border);
+    dummyTooltip = true;
+  }
+  _chartDisc = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: 'transparent' }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: textSecondary, font: { size: 11 }, boxWidth: 12 },
+        },
+        tooltip: { enabled: !dummyTooltip },
+      },
+    },
+  });
+}
+
+export function renderHabitSummary(periodDays) {
+  const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
+  return HABIT_TYPES.map((h) => {
+    const recent = cutoffStr
+      ? (state.habitos[h.key] || []).filter((r) => r.data >= cutoffStr)
+      : state.habitos[h.key] || [];
+    let count = recent.length;
+    if (h.key === 'questoes') count = sumQuestionRecords(recent);
+    if (h.key === 'paginas') count = sumPageRecords(recent);
+    return `
+      <div class="flex border-b habit-row">
+        <div class="text-xl">${h.icon}</div>
+        <div class="flex-1 text-md font-medium">${h.label}</div>
+        <div class="text-xl font-bold habit-count" data-habit-color="${h.color}">${count}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+export function renderDiscProgress() {
+  const discs = getActiveDisciplinas();
+  if (discs.length === 0)
+    return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
+  return discs
+    .slice(0, 8)
+    .map(({ disc, edital: _edital }) => {
+      const total = (disc.assuntos || []).length;
+      const done = (disc.assuntos || []).filter((a) => a.concluido).length;
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      return `
+      <div class="mb-3">
+        <div class="flex-between mb-1">
+          <div class="text-base font-semibold cluster-sm">
+            <span>${disc.icone || '📚'}</span> ${esc(disc.nome)}
+          </div>
+          <div class="text-sm text-muted">${done}/${total}</div>
+        </div>
+        <div class="progress">
+          <div class="progress-bar" data-progress-width="${pct}" data-progress-color="${disc.cor || 'var(--accent)'}"></div>
+        </div>
+      </div>
+    `;
+    })
+    .join('');
+}
+
 export default {
   renderDisciplinaDashboard,
   toggleAulaDashboard,
+  renderDashboard,
+  destroyDashboardCharts,
+  setDashPeriod,
+  renderDailyChart,
+  renderDiscChart,
+  renderHabitSummary,
+  renderDiscProgress,
 };

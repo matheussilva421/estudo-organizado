@@ -129,6 +129,7 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 - `src/js/views/config/theme-settings.js`: tema e preferencias.
 - `src/js/views/config/data-management.js`: import/export/restore/limpeza de dados.
 - `src/js/views/state/disc-manager-state.js`: getters/setters do gerenciador de disciplinas.
+- `src/js/views/dashboard-view.js`: dashboard principal (home) e dashboard de disciplina.
 
 ## Debug controlado
 

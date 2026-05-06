@@ -1313,10 +1313,39 @@ Validacoes desta continuidade:
 - `npm run test:css`: 27 testes passando.
 - `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
 
+## Continuidade executada em 2026-05-06 - extracao de dashboard
+
+Arquivos alterados nesta continuidade:
+
+- `src/js/views.js` (reduzido de 2062 para 1927 linhas)
+- `src/js/views/dashboard-view.js` (expandido com 298 linhas de dashboard principal)
+- `src/sw.js` (ja precacheava dashboard-view.js)
+- `tests/unit/views.test.js`
+- `tests/unit/action-contracts.test.js`
+- `README_DEV.md`
+
+O que foi feito:
+
+- Movido `renderDashboard()`, `setDashPeriod()`, `renderDailyChart()`, `renderDiscChart()`, `renderHabitSummary()`, `renderDiscProgress()`, `destroyDashboardCharts()` e variaveis `dashPeriod`, `_chartDaily`, `_chartDisc` de `src/js/views.js` para `src/js/views/dashboard-view.js`.
+- Movidos tambem os helpers privados `getQuestionTotal()`, `getPagesTotal()`, `sumQuestionRecords()`, `sumPageRecords()`.
+- `views.js` preserva fachada publica com re-exports do `dashboard-view.js`.
+- `src/js/views/dashboard-view.js` ja existia com `renderDisciplinaDashboard()`; agora tambem contem o dashboard principal.
+
+Reducao desta fatia:
+
+- `src/js/views.js`: 2062 -> 1927 linhas.
+- `src/js/views/dashboard-view.js`: 456 -> 754 linhas (expandido com dashboard principal).
+
+Validacoes desta continuidade:
+
+- `npm run test:unit -- tests/unit/views.test.js`: 29 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
+- `npm run test:e2e -- tests/e2e/dashboard-stats.spec.js --project=chromium`: 5 testes passando.
+
 Proxima IA deve continuar em:
 
-1. Task 6 do plano: extrair `renderDashboard()` de `src/js/views.js` para `src/js/views/dashboard-view.js`.
-2. Manter fachada publica em `views.js` com re-export.
+1. Task 7 do plano: fechamento, testes finais e push.
+2. Ou retornar a CSS para continuar extraindo blocos restantes de `styles.css`.
 
 ## Plano detalhado de continuidade em 2026-05-06
 
