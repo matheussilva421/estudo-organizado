@@ -311,7 +311,29 @@ Validacoes desta continuidade:
 
 ## Proximos hotspots estruturais
 
-- `src/css/styles.css` (3529 linhas nesta branch) - ainda pode ser reduzido extraindo feedback visual, busca, mobile, etc.
+### Continuidade em 2026-05-06 - extracao de feedback visual
+
+- Movido blocos `PROGRESS BAR`, `BADGE` e `TOAST` de `src/css/styles.css` para `src/css/components/status-feedback.css`.
+- `src/css/styles.css` continua com todos os `@import` no topo; o import de status-feedback fica logo apos `./components/cards.css`.
+- `src/sw.js` passou a precachear `./css/components/status-feedback.css`.
+- `tests/unit/css-architecture.test.js` foi atualizado para exigir o novo modulo e manter o contrato de imports antes de regras CSS.
+- `README_DEV.md` foi atualizado com o novo mapa de modulo.
+
+Reducao desta fatia:
+
+| Arquivo | Antes | Depois | Observacao |
+|---------|-------|--------|------------|
+| `src/css/styles.css` | 3529 | 3419 | -110 linhas nesta continuidade |
+| `src/css/components/status-feedback.css` | 0 | 110 | novo modulo de feedback visual |
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 1 arquivo, 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 1 arquivo, 27 testes passando.
+
+## Proximos hotspots estruturais
+
+- `src/css/styles.css` (3419 linhas nesta branch) - ainda pode ser reduzido extraindo busca, mobile, etc.
 - `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/logic.js` e `src/js/app.js` — nao foram atacados nesta fase.

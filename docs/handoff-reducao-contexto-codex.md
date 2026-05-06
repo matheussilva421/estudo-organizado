@@ -1229,9 +1229,37 @@ Validacoes desta continuidade:
 - `npm run test:css`: 27 testes passando.
 - `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
 
+## Continuidade executada em 2026-05-06 - extracao de feedback visual
+
+Arquivos alterados nesta continuidade:
+
+- `src/css/styles.css` (reduzido de 3529 para 3419 linhas)
+- `src/css/components/status-feedback.css` (novo modulo com 110 linhas)
+- `src/sw.js`
+- `tests/unit/css-architecture.test.js`
+- `README_DEV.md`
+
+O que foi feito:
+
+- Movido blocos `PROGRESS BAR`, `BADGE` e `TOAST` de `src/css/styles.css` para `src/css/components/status-feedback.css`.
+- `styles.css` continua com todos os `@import` no topo; o import de status-feedback fica logo apos `./components/cards.css`.
+- `src/sw.js` agora precacheia `./css/components/status-feedback.css`.
+- `tests/unit/css-architecture.test.js` cobre a existencia do modulo, a ordem de import e os marcadores `TOAST`, `PROGRESS BAR` e `BADGE`.
+- `README_DEV.md` atualizado com o novo modulo.
+
+Reducao desta fatia:
+
+- `src/css/styles.css`: 3529 -> 3419 linhas.
+- `src/css/components/status-feedback.css`: novo modulo com 110 linhas.
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
+
 Proxima IA deve continuar em:
 
-1. Task 3 do plano: extrair `components/status-feedback.css` de `src/css/styles.css`.
+1. Task 4 do plano: extrair `components/search.css` de `src/css/styles.css`.
 2. Manter `@import` no topo de `styles.css` e atualizar `src/sw.js` a cada extracao.
 
 ## Plano detalhado de continuidade em 2026-05-06

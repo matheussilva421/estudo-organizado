@@ -90,7 +90,8 @@ describe('CSS architecture', () => {
       'base/accessibility.css',
       'base/themes.css',
       'base/layout.css',
-      'components/cards.css'
+      'components/cards.css',
+      'components/status-feedback.css'
     ]) {
       expect(existsSync(join(cssDir, filename))).toBe(true);
     }
@@ -113,6 +114,7 @@ describe('CSS architecture', () => {
       "@import './components/sidebar.css';",
       "@import './components/buttons.css';",
       "@import './components/cards.css';",
+      "@import './components/status-feedback.css';",
       "@import './base/utilities.css';",
       "@import './base/forms.css';"
     ].join('\n');
@@ -124,6 +126,9 @@ describe('CSS architecture', () => {
     expect(read('src/css/base/layout.css')).toContain('MAIN CONTENT');
     expect(read('src/css/components/cards.css')).toContain('CARDS');
     expect(read('src/css/components/cards.css')).toContain('STATS CARDS');
+    expect(read('src/css/components/status-feedback.css')).toContain('TOAST');
+    expect(read('src/css/components/status-feedback.css')).toContain('PROGRESS BAR');
+    expect(read('src/css/components/status-feedback.css')).toContain('BADGE');
   });
 
   it('keeps the dark premium theme contracts', () => {

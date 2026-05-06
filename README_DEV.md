@@ -119,6 +119,7 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 - `src/css/base/forms.css`: formularios.
 - `src/css/components/buttons.css`: botoes.
 - `src/css/components/cards.css`: cards, estatisticas, event cards e chart container.
+- `src/css/components/status-feedback.css`: progress bar, badges e toasts.
 - `src/css/components/sidebar.css`: sidebar.
 - `src/js/views/skeleton-view.js`: skeleton loaders antes concentrados em `src/js/views.js`.
 - `src/js/views/config/backup-settings.js`: formatacao e resumo de backup antes concentrados em `src/js/views/config-view.js`.

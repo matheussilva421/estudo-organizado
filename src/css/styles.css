@@ -4,6 +4,7 @@
 @import './components/sidebar.css';
 @import './components/buttons.css';
 @import './components/cards.css';
+@import './components/status-feedback.css';
 @import './base/utilities.css';
 @import './base/forms.css';
 
@@ -375,65 +376,6 @@ button.cal-event-chip:focus-visible {
   display: block;
 }
 
-/* PROGRESS BAR */
-.progress {
-  background: var(--border);
-  border-radius: 100px;
-  height: 6px;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 100%;
-  border-radius: 100px;
-  background: var(--accent);
-  transition: width 0.3s;
-}
-
-.progress-bar.blue {
-  background: var(--blue);
-}
-
-.progress-bar.orange {
-  background: var(--orange);
-}
-
-/* BADGE */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.badge-green {
-  background: var(--accent-light);
-  color: var(--accent-dark);
-}
-
-.badge-blue {
-  background: var(--info-bg);
-  color: var(--info);
-}
-
-.badge-orange {
-  background: var(--warning-bg);
-  color: var(--warning);
-}
-
-.badge-red {
-  background: var(--danger-bg);
-  color: var(--danger);
-}
-
-.badge-gray {
-  background: var(--surface);
-  color: var(--text-secondary);
-}
-
 /* DISCIPLINE COLOR CIRCLES */
 .disc-dot {
   width: 10px;
@@ -586,58 +528,6 @@ button.cal-event-chip:focus-visible {
 .habit-card .hc-sub {
   font-size: 11px;
   color: var(--text-muted);
-}
-
-/* TOAST */
-.toast-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.toast {
-  background: var(--card);
-  /* Fundo do card do tema */
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  padding: 12px 18px;
-  border-radius: 10px;
-  font-size: 13.5px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: var(--shadow-lg);
-  transform: translateX(120%);
-  transition: transform 0.3s;
-  max-width: 320px;
-}
-
-.toast.show {
-  transform: translateX(0);
-}
-
-.toast.success {
-  background: var(--accent);
-  color: var(--accent-text) !important;
-}
-
-.toast.success * {
-  color: inherit !important;
-}
-
-.toast.error {
-  background: var(--danger);
-  color: var(--danger-text);
-}
-
-.toast.info {
-  background: var(--info);
-  color: var(--info-text);
 }
 
 /* REVISOES */
