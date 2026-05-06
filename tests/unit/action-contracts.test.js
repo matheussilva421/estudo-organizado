@@ -178,9 +178,11 @@ describe('data-action contracts', () => {
       /import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.37['"]/s
     );
 
-    expect(configViewSource).toContain('createExportableState()');
-    expect(configViewSource).toMatch(
-      /import\s+\{[^}]*createExportableState[^}]*\}\s+from\s+['"]\.\.\/store\.js\?v=8\.37['"]/s
+    const dataMgmtSource = read('src/js/views/config/data-management.js');
+
+    expect(dataMgmtSource).toContain('createExportableState()');
+    expect(dataMgmtSource).toMatch(
+      /import\s+\{[^}]*createExportableState[^}]*\}\s+from\s+['"]\.\.\/\.\.\/store\.js\?v=8\.37['"]/s
     );
   });
 
@@ -387,10 +389,10 @@ describe('data-action contracts', () => {
   });
 
   it('uses sanitized exportable state for local and Drive backups', () => {
-    const configViewSource = read('src/js/views/config-view.js');
+    const dataMgmtSource = read('src/js/views/config/data-management.js');
     const driveSource = read('src/js/drive-sync.js');
 
-    expect(configViewSource).toContain('createExportableState()');
+    expect(dataMgmtSource).toContain('createExportableState()');
     expect(driveSource).toContain('createExportableState()');
     expect(driveSource).not.toContain('JSON.stringify(state)');
   });

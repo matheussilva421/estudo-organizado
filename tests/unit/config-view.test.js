@@ -25,6 +25,7 @@ describe('views/config-view.js', () => {
       showToast: vi.fn(),
       openModal: vi.fn(),
       getLastSaveStatus: vi.fn(() => null),
+      currentView: 'config',
     };
     storeModule = {
       scheduleSave: vi.fn(),
@@ -105,6 +106,7 @@ describe('views/config-view.js', () => {
       esc: vi.fn((s) => s || ''),
       todayStr: vi.fn(() => '2026-04-29'),
       invalidateTodayCache: vi.fn(),
+      addCleanupListener: vi.fn(),
     }));
     vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
     vi.doMock('../../src/js/logic.js?v=8.37', () => logicModule);
