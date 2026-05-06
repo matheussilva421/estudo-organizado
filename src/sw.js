@@ -82,6 +82,7 @@ const ASSET_PATHS = [
   './js/ui/event-modals.js',
   './js/ui/search.js',
   './js/views/home-view.js',
+  './js/views/med-view.js',
   './js/views/editais-view.js',
   './js/views/banca-view.js',
   './js/views/dashboard-view.js',
