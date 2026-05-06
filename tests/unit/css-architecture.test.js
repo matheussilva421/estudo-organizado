@@ -81,6 +81,19 @@ describe('CSS architecture', () => {
     ]);
   });
 
+  it('keeps static HTML shell text readable as UTF-8', () => {
+    const html = read('src/index.html');
+
+    expect(html).toContain('Pular para conteúdo principal');
+    expect(html).toContain('Página Inicial');
+    expect(html).toContain('Cronômetro');
+    expect(html).toContain('Histórico de Sessões');
+    expect(html).toContain('Configurações');
+    expect(html).toContain('Registro da Sessão de Estudo');
+    expect(html).toContain('Próximo');
+    expect(html).not.toMatch(/\u00c3[\u0080-\u00bf]|\u00c3\u0192|\u00c3\u201a|\u00f0\u0178|\u00e2[\u0080-\u009f]/);
+  });
+
   it('keeps design tokens in css/tokens.css', () => {
     for (const filename of [
       'tokens.css',
@@ -332,8 +345,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.53');
-    expect(serviceWorker).toContain("APP_VERSION = '8.53'");
+    expect(html).toContain('css/styles.css?v=8.54');
+    expect(serviceWorker).toContain("APP_VERSION = '8.54'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 

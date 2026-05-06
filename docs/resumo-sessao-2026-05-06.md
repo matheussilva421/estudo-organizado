@@ -229,3 +229,14 @@ f9249db refactor(views): extract Editais CRUD functions into editais-crud.js
 - `npm run test:e2e`: 142/142 passando.
 - `README_DEV.md` atualizado para listar todos os modulos CSS/JS extraidos na Fase 2.
 - Fase 2 pode ser considerada fechada. Proxima fase deve ter plano proprio para `logic.js`, `app.js` ou blocos remanescentes de `styles.css`.
+
+---
+
+## Correcao posterior - mojibake no app
+
+- Problema visto pelo usuario: sidebar e textos do shell apareciam com `Ãƒ...`/`ðŸ...`.
+- Causa raiz: `src/index.html` foi corrompido no commit `aed2bf9 refactor(css): extract shared modal styles`.
+- Correcao: `src/index.html` recuperado do ultimo estado bom antes desse commit, com cache busting reaplicado para `8.54`.
+- Regressao adicionada: `tests/unit/css-architecture.test.js` agora verifica textos UTF-8 essenciais do shell HTML e bloqueia padroes comuns de mojibake.
+- Validacao executada: `npm run test:css` 29/29 passando, `npm test` 1295/1295 passando, `npm run test:e2e` 142/142 passando e Playwright local com `hasBadEncoding: false`.
+- Falta antes de fechar/publicar: publicar o commit no `main`.

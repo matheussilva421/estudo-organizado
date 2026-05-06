@@ -464,3 +464,32 @@ Pendencias recomendadas:
 1. Tratar a Fase 2 como fechada apos CSS, unitarios e E2E release verdes.
 2. Para uma nova fase, criar plano separado antes de mexer em `logic.js`, `app.js` ou nos blocos restantes de `styles.css`.
 3. Preservar `views.js` como fachada; novas extracoes dali devem ser pequenas e orientadas por estado compartilhado.
+
+### Correcao posterior - mojibake no index.html - 2026-05-06
+
+Problema observado:
+
+- O app renderizava a sidebar e textos do shell com caracteres quebrados (`Ãƒ...`, `ðŸ...`), apesar de os testes anteriores estarem verdes.
+
+Causa raiz:
+
+- O primeiro commit que introduziu mojibake no `src/index.html` foi `aed2bf9 refactor(css): extract shared modal styles`.
+- O problema estava no HTML estatico, nao no tema/CSS nem nos dados do usuario.
+
+Mudancas:
+
+- `src/index.html` recuperado do ultimo estado bom antes de `aed2bf9`.
+- Cache busting e `APP_VERSION` atualizados para `8.54`.
+- Novo teste de regressao em `tests/unit/css-architecture.test.js` para bloquear mojibake no shell HTML.
+
+Validacao:
+
+- `npm run test:css`: 29/29 passando.
+- `npm test`: 1295/1295 passando.
+- `npm run test:e2e`: 142/142 passando.
+- Playwright local em `http://127.0.0.1:8090`: sidebar legivel, `hasBadEncoding: false`, sem erros/warnings de console.
+
+Pendencias:
+
+1. Publicar o commit no `main`.
+2. Em uma proxima fase, se aparecer mojibake em view dinamica, investigar o modulo JS especifico ou dados persistidos.

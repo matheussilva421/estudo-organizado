@@ -1499,3 +1499,33 @@ O que falta fazer:
 2. Iniciar nova fase apenas com plano novo. Candidatos: modularizar `src/js/logic.js` (~1161 linhas), modularizar `src/js/app.js` (~605 linhas) ou fazer uma rodada CSS especifica para calendar/home/ciclo ainda remanescentes em `src/css/styles.css`.
 3. Nao continuar extraindo `src/js/views.js` sem novo plano pequeno: o arquivo ja virou fachada + ciclo/sequencia/DnD, e novas extracoes podem envolver estado compartilhado.
 4. Manter `test:e2e:all` como investigativo; o gate de release segue sendo `npm run test:e2e`.
+
+---
+
+## Correcao de mojibake no shell HTML - 2026-05-06
+
+Contexto:
+
+- Apos a continuidade de outra IA, o app carregava com sidebar, skip links, tooltips e modais do `src/index.html` exibindo textos como `Ãƒ...`, `ðŸ...` e acentos quebrados.
+- A causa raiz foi rastreada no historico: o commit `aed2bf9 refactor(css): extract shared modal styles` foi o primeiro ponto em que `src/index.html` deixou de conter UTF-8 legivel e passou a conter mojibake.
+- Os testes anteriores passavam porque validavam fluxos e seletores, mas nao protegiam a legibilidade do shell HTML estatico.
+
+Correcao aplicada:
+
+- `src/index.html` foi recuperado do ultimo estado bom anterior a `aed2bf9` e teve apenas o cache busting reaplicado para `8.54`.
+- `src/sw.js` foi atualizado para `APP_VERSION = 8.54`.
+- `tests/unit/css-architecture.test.js` ganhou regressao `keeps static HTML shell text readable as UTF-8`, cobrindo textos visiveis essenciais: skip links, `Pagina Inicial`, `Cronometro`, `Historico de Sessoes`, `Configuracoes`, `Registro da Sessao de Estudo` e `Proximo`.
+- `tests/unit/firestore-contracts.test.js` foi alinhado ao novo `APP_VERSION`.
+
+Validacoes desta correcao:
+
+- `npm run test:css`: 29 testes passando.
+- `npm test`: 77 arquivos, 1295 testes passando.
+- `npm run test:e2e`: 142 testes passando.
+- Validacao visual via Playwright em `http://127.0.0.1:8090`: sidebar renderizada com textos legiveis, `hasBadEncoding: false`, sem mensagens de console `error`/`warning`.
+
+O que ainda falta fazer:
+
+1. Publicar o commit desta correcao no `main`.
+2. Se qualquer outra tela dinamica exibir mojibake depois disso, investigar os modulos JS especificos da tela ou dados persistidos no IndexedDB; esta correcao cobre o shell HTML estatico.
+3. Evitar edicoes futuras de arquivos UTF-8 por ferramentas que regravem o conteudo como Windows-1252/ANSI.
