@@ -1,0 +1,54 @@
+/* =============================================
+   HABIT CARDS
+   ============================================= */
+
+.habit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.habit-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    background-color 0.2s,
+    opacity 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+  text-align: center;
+}
+
+.habit-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+
+.habit-card .hc-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.habit-card .hc-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.habit-card .hc-count {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-top: 4px;
+}
+
+.habit-card .hc-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
