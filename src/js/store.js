@@ -18,7 +18,7 @@ export const LOCAL_STATE_PREVIOUS_KEY = 'main_state_previous';
 export const LOCAL_STATE_LEGACY_KEY = 'main_state';
 
 export let db;
-export const DEFAULT_SCHEMA_VERSION = 9;
+export const DEFAULT_SCHEMA_VERSION = 10;
 export const DEFAULT_FIRESTORE_SYNC_CONFIG = {
   enabled: false,
   mode: 'shadow',
@@ -954,6 +954,16 @@ export function runMigrations() {
       });
     });
     state.schemaVersion = 8;
+    changed = true;
+  }
+
+  // v9 → v10: Manual-only sync mode. The auto-sync infrastructure was removed
+  // and the user now triggers sync via a single button. We normalize the legacy
+  // toggle to "paused=true" so any code paths still reading it behave manually.
+  if (!state.schemaVersion || state.schemaVersion < 10) {
+    if (!state.config) state.config = {};
+    state.config.globalSyncPaused = true;
+    state.schemaVersion = 10;
     changed = true;
   }
 

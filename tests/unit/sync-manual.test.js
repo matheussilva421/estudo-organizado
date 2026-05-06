@@ -1,22 +1,273 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-describe('sync-now action', () => {
-  let registerAction;
-  let configView;
+// Tests for the manual sync orchestrator (`src/js/sync/manual-sync.js`) and the
+// thin action handler that wires it to the UI button. Auto-sync was removed —
+// these tests cover the single user-initiated sync flow.
+
+describe('manual-sync orchestrator', () => {
   let storeModule;
-  let appModule;
-  let componentsModule;
-  let cloudSync;
   let firestoreSync;
-  let syncCoordinator;
-  let syncLockModule;
+  let cloudSync;
   let driveSync;
+
+  async function loadOrchestrator() {
+    vi.resetModules();
+    storeModule = {
+      state: { config: {}, driveFileId: null },
+      saveStateToDB: vi.fn(() => Promise.resolve()),
+    };
+    firestoreSync = {
+      getFirestoreSyncStatus: vi.fn(() => ({
+        configured: false,
+        signedIn: false,
+        enabled: false,
+        mode: 'shadow',
+        conflict: null,
+      })),
+      syncFirestoreNow: vi.fn(() => Promise.resolve(true)),
+    };
+    cloudSync = {
+      forceCloudflareSync: vi.fn(() => Promise.resolve()),
+    };
+    driveSync = {
+      syncWithDrive: vi.fn(() => Promise.resolve()),
+    };
+    vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.37', () => firestoreSync);
+    vi.doMock('../../src/js/cloud-sync.js?v=8.37', () => cloudSync);
+    vi.doMock('../../src/js/drive-sync.js?v=8.37', () => driveSync);
+    return import('../../src/js/sync/manual-sync.js');
+  }
+
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'onLine', {
+      value: true,
+      writable: true,
+      configurable: true,
+    });
+    if (typeof globalThis.gapi !== 'undefined') delete globalThis.gapi;
+  });
+
+  it('returns "no-channels" when nothing is configured', async () => {
+    const mod = await loadOrchestrator();
+    const result = await mod.syncAllChannels({ trigger: 'test' });
+    expect(result.summary.overall).toBe('no-channels');
+    expect(firestoreSync.syncFirestoreNow).not.toHaveBeenCalled();
+    expect(cloudSync.forceCloudflareSync).not.toHaveBeenCalled();
+    expect(driveSync.syncWithDrive).not.toHaveBeenCalled();
+  });
+
+  it('returns "offline" when navigator is offline', async () => {
+    Object.defineProperty(navigator, 'onLine', {
+      value: false,
+      writable: true,
+      configurable: true,
+    });
+    const mod = await loadOrchestrator();
+    storeModule.state.config.cfUrl = 'https://w.dev';
+    storeModule.state.config.cfToken = 't';
+    storeModule.state.config.cfSyncEnabled = true;
+    const result = await mod.syncAllChannels();
+    expect(result.summary.overall).toBe('offline');
+    expect(cloudSync.forceCloudflareSync).not.toHaveBeenCalled();
+  });
+
+  it('runs Firestore when eligible and reports ok', async () => {
+    const mod = await loadOrchestrator();
+    firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+      configured: true,
+      signedIn: true,
+      enabled: true,
+      mode: 'primary',
+      conflict: null,
+      lastError: null,
+    });
+    const result = await mod.syncAllChannels();
+    expect(firestoreSync.syncFirestoreNow).toHaveBeenCalled();
+    expect(result.firestore.status).toBe('ok');
+    expect(result.summary.overall).toBe('synced');
+  });
+
+  it('reports firestore conflict', async () => {
+    const mod = await loadOrchestrator();
+    let firstCall = true;
+    firestoreSync.getFirestoreSyncStatus.mockImplementation(() => ({
+      configured: true,
+      signedIn: true,
+      enabled: true,
+      mode: 'primary',
+      // First call (eligibility) returns no conflict; later calls return conflict
+      conflict: firstCall ? null : { detectedAt: '2026-05-06' },
+      lastError: null,
+    }));
+    firestoreSync.syncFirestoreNow.mockImplementation(async () => {
+      firstCall = false;
+      return false;
+    });
+    const result = await mod.syncAllChannels();
+    expect(result.firestore.status).toBe('conflict');
+    expect(result.summary.overall).toBe('conflict');
+  });
+
+  it('runs Cloudflare with overwriteRemote=false (safe push)', async () => {
+    const mod = await loadOrchestrator();
+    storeModule.state.config = {
+      cfUrl: 'https://w.dev',
+      cfToken: 't',
+      cfSyncEnabled: true,
+    };
+    await mod.syncAllChannels();
+    expect(cloudSync.forceCloudflareSync).toHaveBeenCalledWith({
+      overwriteRemote: false,
+    });
+  });
+
+  it('runs Cloudflare and Firestore in parallel', async () => {
+    const mod = await loadOrchestrator();
+    firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+      configured: true,
+      signedIn: true,
+      enabled: true,
+      mode: 'primary',
+      conflict: null,
+    });
+    storeModule.state.config = {
+      cfUrl: 'https://w.dev',
+      cfToken: 't',
+      cfSyncEnabled: true,
+    };
+
+    let fsResolve;
+    let cfResolve;
+    firestoreSync.syncFirestoreNow.mockReturnValue(
+      new Promise((r) => {
+        fsResolve = r;
+      })
+    );
+    cloudSync.forceCloudflareSync.mockReturnValue(
+      new Promise((r) => {
+        cfResolve = r;
+      })
+    );
+
+    const promise = mod.syncAllChannels();
+    // Both should be invoked before either resolves
+    await vi.waitFor(() => {
+      expect(firestoreSync.syncFirestoreNow).toHaveBeenCalled();
+      expect(cloudSync.forceCloudflareSync).toHaveBeenCalled();
+    });
+
+    fsResolve(true);
+    cfResolve();
+    await promise;
+  });
+
+  it('skips Drive silently when no GAPI token is in memory', async () => {
+    const mod = await loadOrchestrator();
+    storeModule.state.driveFileId = 'fileId123';
+    // gapi is undefined
+    const result = await mod.syncAllChannels();
+    expect(driveSync.syncWithDrive).not.toHaveBeenCalled();
+    expect(result.drive.status).toBe('skipped');
+  });
+
+  it('runs Drive with autoMerge when token is present and fileId set', async () => {
+    const mod = await loadOrchestrator();
+    storeModule.state.driveFileId = 'file-x';
+    globalThis.gapi = {
+      client: { getToken: () => ({ access_token: 'tok' }) },
+    };
+    const result = await mod.syncAllChannels();
+    expect(driveSync.syncWithDrive).toHaveBeenCalledWith(0, { autoMerge: true });
+    expect(result.drive.status).toBe('ok');
+  });
+
+  it('persists lastManualSyncAt after a successful run', async () => {
+    const mod = await loadOrchestrator();
+    firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+      configured: true,
+      signedIn: true,
+      enabled: true,
+      mode: 'primary',
+      conflict: null,
+    });
+    await mod.syncAllChannels();
+    expect(storeModule.state.config.lastManualSyncAt).toBeTruthy();
+    expect(storeModule.saveStateToDB).toHaveBeenCalled();
+  });
+
+  it('emits app:manualSyncStatus events with status transitions', async () => {
+    const mod = await loadOrchestrator();
+    firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+      configured: true,
+      signedIn: true,
+      enabled: true,
+      mode: 'primary',
+      conflict: null,
+    });
+    const events = [];
+    const handler = (e) => events.push(e.detail.status);
+    document.addEventListener('app:manualSyncStatus', handler);
+    try {
+      await mod.syncAllChannels();
+    } finally {
+      document.removeEventListener('app:manualSyncStatus', handler);
+    }
+    expect(events).toContain('syncing');
+    expect(events).toContain('synced');
+  });
+
+  it('is re-entrant: concurrent calls share the same in-flight promise', async () => {
+    const mod = await loadOrchestrator();
+    firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+      configured: true,
+      signedIn: true,
+      enabled: true,
+      mode: 'primary',
+      conflict: null,
+    });
+    let resolve;
+    firestoreSync.syncFirestoreNow.mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
+
+    const p1 = mod.syncAllChannels();
+    const p2 = mod.syncAllChannels();
+    expect(firestoreSync.syncFirestoreNow).toHaveBeenCalledTimes(1);
+    resolve(true);
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(r1).toBe(r2);
+  });
+});
+
+describe('runManualSync action handler', () => {
+  let registerAction;
+  let appModule;
+  let manualSync;
+  let componentsModule;
   let handler;
 
   beforeEach(async () => {
     vi.resetModules();
     registerAction = vi.fn();
-    configView = {
+    appModule = { showToast: vi.fn(), openModal: vi.fn(), showConfirm: vi.fn() };
+    componentsModule = { renderCurrentView: vi.fn() };
+    manualSync = {
+      syncAllChannels: vi.fn(() =>
+        Promise.resolve({
+          firestore: { status: 'ok' },
+          cloudflare: { status: 'ok' },
+          drive: { status: 'skipped' },
+          summary: { ok: 2, conflict: 0, error: 0, skipped: 1, overall: 'synced' },
+        })
+      ),
+      isManualSyncRunning: vi.fn(() => false),
+    };
+
+    vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
+    vi.doMock('../../src/js/views/config-view.js?v=8.37', () => ({
       updateConfig: vi.fn(),
       toggleConfig: vi.fn(),
       updateFrequencia: vi.fn(),
@@ -29,22 +280,20 @@ describe('sync-now action', () => {
       restoreBackupFromSelectedSource: vi.fn(),
       openDriveModal: vi.fn(),
       driveDisconnect: vi.fn(),
-    };
-    storeModule = {
+    }));
+    vi.doMock('../../src/js/store.js?v=8.37', () => ({
       scheduleSave: vi.fn(),
-      state: {
-        config: { cfUrl: '', cfToken: '', cfSyncEnabled: false },
-      },
-    };
-    appModule = { showToast: vi.fn(), openModal: vi.fn(), showConfirm: vi.fn() };
-    componentsModule = { renderCurrentView: vi.fn() };
-    cloudSync = {
-      forceCloudflareSync: vi.fn(() => Promise.resolve()),
+      state: { config: {} },
+    }));
+    vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
+    vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
+    vi.doMock('../../src/js/cloud-sync.js?v=8.37', () => ({
+      forceCloudflareSync: vi.fn(),
       pullFromCloudflare: vi.fn(),
       pushToCloudflare: vi.fn(),
       mergeFromCloudflare: vi.fn(),
-    };
-    firestoreSync = {
+    }));
+    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.37', () => ({
       firestoreSignIn: vi.fn(),
       firestoreSignOut: vi.fn(),
       enableFirestoreSync: vi.fn(),
@@ -54,35 +303,26 @@ describe('sync-now action', () => {
       mergeFromFirestore: vi.fn(),
       forcePushFirestore: vi.fn(),
       getFirestoreSyncStatus: vi.fn(() => ({
-        configured: true,
-        signedIn: true,
-        enabled: true,
-        mode: 'primary',
+        configured: false,
+        signedIn: false,
+        enabled: false,
+        mode: 'shadow',
         conflict: null,
       })),
-    };
-    syncCoordinator = { flushPrimarySyncNow: vi.fn(() => Promise.resolve(true)) };
-    syncLockModule = {
-      primarySyncLock: { isLocked: false },
-      cloudflareLock: { isLocked: false },
-    };
-    driveSync = {
-      syncWithDrive: vi.fn(() => Promise.resolve()),
+      downloadSyncDiagnosticLog: vi.fn(),
+      resolveEntityConflictKeepLocal: vi.fn(),
+      resolveEntityConflictKeepRemote: vi.fn(),
+    }));
+    vi.doMock('../../src/js/sync/sync-coordinator.js?v=8.37', () => ({
+      flushPrimarySyncNow: vi.fn(),
+    }));
+    vi.doMock('../../src/js/sync/manual-sync.js?v=8.37', () => manualSync);
+    vi.doMock('../../src/js/drive-sync.js?v=8.37', () => ({
+      syncWithDrive: vi.fn(),
       pullFromDrive: vi.fn(),
       mergeFromDrive: vi.fn(),
       driveAction: vi.fn(),
-    };
-
-    vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
-    vi.doMock('../../src/js/views/config-view.js?v=8.37', () => configView);
-    vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
-    vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
-    vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
-    vi.doMock('../../src/js/cloud-sync.js?v=8.37', () => cloudSync);
-    vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.37', () => firestoreSync);
-    vi.doMock('../../src/js/sync/sync-coordinator.js?v=8.37', () => syncCoordinator);
-    vi.doMock('../../src/js/sync/sync-lock.js?v=8.37', () => syncLockModule);
-    vi.doMock('../../src/js/drive-sync.js?v=8.37', () => driveSync);
+    }));
 
     await import('../../src/js/ui/actions/config.js');
 
@@ -90,352 +330,76 @@ describe('sync-now action', () => {
     handler = calls.length > 0 ? calls[0][1] : null;
   });
 
-  // --- Registration ---
-  it('registers the sync-now action', () => {
-    const calls = registerAction.mock.calls.map((c) => c[0]);
-    expect(calls).toContain('sync-now');
-    expect(handler).not.toBeNull();
+  it('registers both sync-now and manual-sync-all actions', () => {
+    const names = registerAction.mock.calls.map((c) => c[0]);
+    expect(names).toContain('sync-now');
+    expect(names).toContain('manual-sync-all');
   });
 
-  // --- Offline guard ---
-  it('shows offline toast when navigator.onLine is false', async () => {
-    const originalOnLine = navigator.onLine;
-    Object.defineProperty(navigator, 'onLine', {
-      value: false,
-      writable: true,
-      configurable: true,
-    });
-
+  it('shows offline toast when offline', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
     await handler();
-
     expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sem conexão. Sincronize quando estiver online.',
+      expect.stringContaining('Sem conexão'),
       'info'
     );
-
-    Object.defineProperty(navigator, 'onLine', {
-      value: originalOnLine,
-      writable: true,
-      configurable: true,
-    });
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
   });
 
-  it('does not call sync when offline even if channels are available', async () => {
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    const originalOnLine = navigator.onLine;
-    Object.defineProperty(navigator, 'onLine', {
-      value: false,
-      writable: true,
-      configurable: true,
-    });
-
+  it('shows "in progress" toast when a sync is already running', async () => {
+    manualSync.isManualSyncRunning.mockReturnValue(true);
     await handler();
-
-    expect(syncCoordinator.flushPrimarySyncNow).not.toHaveBeenCalled();
-    expect(cloudSync.forceCloudflareSync).not.toHaveBeenCalled();
     expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sem conexão. Sincronize quando estiver online.',
+      expect.stringContaining('em andamento'),
       'info'
     );
-
-    Object.defineProperty(navigator, 'onLine', {
-      value: originalOnLine,
-      writable: true,
-      configurable: true,
-    });
+    expect(manualSync.syncAllChannels).not.toHaveBeenCalled();
   });
 
-  // --- No channels guard ---
-  it('shows no channel toast when no sync channel is available', async () => {
-    firestoreSync.getFirestoreSyncStatus.mockReturnValue({
-      configured: false,
-      signedIn: false,
-      enabled: false,
-      mode: 'shadow',
-      conflict: null,
-    });
-    storeModule.state.config = { cfUrl: '', cfToken: '', cfSyncEnabled: false };
-
+  it('shows success toast when summary.overall is synced', async () => {
     await handler();
+    expect(appModule.showToast).toHaveBeenCalledWith('Sincronização concluída.', 'success');
+  });
 
+  it('shows partial toast when some channels fail', async () => {
+    manualSync.syncAllChannels.mockResolvedValue({
+      firestore: { status: 'ok' },
+      cloudflare: { status: 'error', error: 'boom' },
+      drive: { status: 'skipped' },
+      summary: { ok: 1, conflict: 0, error: 1, skipped: 1, overall: 'partial' },
+    });
+    await handler();
     expect(appModule.showToast).toHaveBeenCalledWith(
-      'Nenhum canal de sincronização configurado. Vá em Configurações → Central de Sincronização.',
+      expect.stringContaining('parcial'),
       'info'
     );
   });
 
-  // --- Double-click protection ---
-  it('shows "already in progress" toast when primarySyncLock is locked', async () => {
-    syncLockModule.primarySyncLock.isLocked = true;
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    await handler();
-
-    expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização já em andamento.',
-      'info'
-    );
-    expect(syncCoordinator.flushPrimarySyncNow).not.toHaveBeenCalled();
-    expect(cloudSync.forceCloudflareSync).not.toHaveBeenCalled();
-  });
-
-  it('does not block sync when lock is free', async () => {
-    syncLockModule.primarySyncLock.isLocked = false;
-
-    await handler();
-
-    expect(syncCoordinator.flushPrimarySyncNow).toHaveBeenCalled();
-    expect(appModule.showToast).not.toHaveBeenCalledWith(
-      'Sincronização já em andamento.',
-      'info'
-    );
-  });
-
-  // --- Firestore-only (no Cloudflare) ---
-  it('calls flushPrimarySyncNow with ignoreGlobalPause when Firestore is available', async () => {
-    await handler();
-
-    expect(syncCoordinator.flushPrimarySyncNow).toHaveBeenCalledWith({
-      manual: true,
-      ignoreGlobalPause: true,
-      reason: 'manual-button',
+  it('shows conflict toast when overall is conflict', async () => {
+    manualSync.syncAllChannels.mockResolvedValue({
+      firestore: { status: 'conflict', conflict: {} },
+      cloudflare: { status: 'skipped' },
+      drive: { status: 'skipped' },
+      summary: { ok: 0, conflict: 1, error: 0, skipped: 2, overall: 'conflict' },
     });
-  });
-
-  it('does not call forceCloudflareSync when Cloudflare is not configured', async () => {
-    storeModule.state.config = { cfUrl: '', cfToken: '', cfSyncEnabled: false };
-
     await handler();
-
-    expect(cloudSync.forceCloudflareSync).not.toHaveBeenCalled();
-  });
-
-  it('shows success toast when only Firestore sync succeeds', async () => {
-    syncCoordinator.flushPrimarySyncNow.mockResolvedValue(true);
-
-    await handler();
-
     expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização manual concluída.',
-      'success'
-    );
-  });
-
-  it('shows error toast when only Firestore sync fails', async () => {
-    syncCoordinator.flushPrimarySyncNow.mockResolvedValue(false);
-
-    await handler();
-
-    expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização manual falhou. Verifique o log.',
+      expect.stringContaining('Conflito'),
       'error'
     );
   });
 
-  it('does not require Firestore enabled flag for manual sync-now', async () => {
-    firestoreSync.getFirestoreSyncStatus.mockReturnValue({
-      configured: true,
-      signedIn: true,
-      enabled: false,
-      mode: 'shadow',
-      conflict: null,
+  it('shows no-channels toast when nothing is configured', async () => {
+    manualSync.syncAllChannels.mockResolvedValue({
+      firestore: { status: 'skipped' },
+      cloudflare: { status: 'skipped' },
+      drive: { status: 'skipped' },
+      summary: { ok: 0, conflict: 0, error: 0, skipped: 3, overall: 'no-channels' },
     });
-
     await handler();
-
-    expect(syncCoordinator.flushPrimarySyncNow).toHaveBeenCalledWith({
-      manual: true,
-      ignoreGlobalPause: true,
-      reason: 'manual-button',
-    });
-  });
-
-  // --- Cloudflare-only (no Firestore) ---
-  it('shows success toast when only Cloudflare is available', async () => {
-    firestoreSync.getFirestoreSyncStatus.mockReturnValue({
-      configured: false,
-      signedIn: false,
-      enabled: false,
-      mode: 'shadow',
-      conflict: null,
-    });
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    await handler();
-
-    expect(cloudSync.forceCloudflareSync).toHaveBeenCalled();
-    expect(syncCoordinator.flushPrimarySyncNow).not.toHaveBeenCalled();
     expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização manual concluída.',
-      'success'
-    );
-  });
-
-  it('shows error toast when only Cloudflare fails', async () => {
-    firestoreSync.getFirestoreSyncStatus.mockReturnValue({
-      configured: false,
-      signedIn: false,
-      enabled: false,
-      mode: 'shadow',
-      conflict: null,
-    });
-    cloudSync.forceCloudflareSync.mockRejectedValue(new Error('CF failure'));
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    await handler();
-
-    expect(cloudSync.forceCloudflareSync).toHaveBeenCalled();
-    expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização manual falhou. Verifique o log.',
-      'error'
-    );
-  });
-
-  // --- Both channels available ---
-  it('calls both Firestore and Cloudflare when both are available', async () => {
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    await handler();
-
-    expect(syncCoordinator.flushPrimarySyncNow).toHaveBeenCalledWith({
-      manual: true,
-      ignoreGlobalPause: true,
-      reason: 'manual-button',
-    });
-    expect(cloudSync.forceCloudflareSync).toHaveBeenCalled();
-  });
-
-  // --- Parallel execution ---
-  it('runs Firestore and Cloudflare in parallel (not sequentially)', async () => {
-    let fsResolve;
-    let cfResolve;
-    const fsPromise = new Promise((r) => { fsResolve = r; });
-    const cfPromise = new Promise((r) => { cfResolve = r; });
-
-    syncCoordinator.flushPrimarySyncNow.mockReturnValue(fsPromise);
-    cloudSync.forceCloudflareSync.mockReturnValue(cfPromise);
-
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    // Start the handler but don't await it
-    const handlerPromise = handler();
-
-    // Both should have been called even though neither has resolved yet
-    await vi.waitFor(() => {
-      expect(syncCoordinator.flushPrimarySyncNow).toHaveBeenCalled();
-      expect(cloudSync.forceCloudflareSync).toHaveBeenCalled();
-    });
-
-    // Clean up
-    fsResolve(true);
-    cfResolve();
-    await handlerPromise;
-  });
-
-  // --- Partial failure ---
-  it('shows partial success toast when Firestore succeeds but Cloudflare fails', async () => {
-    syncCoordinator.flushPrimarySyncNow.mockResolvedValue(true);
-    cloudSync.forceCloudflareSync.mockRejectedValue(new Error('Cloudflare error'));
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    await handler();
-
-    expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização parcial: Cloudflare falhou. Verifique o log.',
+      expect.stringContaining('Nenhum canal'),
       'info'
-    );
-  });
-
-  it('shows partial success toast when Cloudflare succeeds but Firestore fails', async () => {
-    syncCoordinator.flushPrimarySyncNow.mockResolvedValue(false);
-    cloudSync.forceCloudflareSync.mockResolvedValue();
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    await handler();
-
-    expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização parcial: Firestore falhou. Verifique o log.',
-      'info'
-    );
-  });
-
-  it('shows error toast when both Firestore and Cloudflare fail', async () => {
-    syncCoordinator.flushPrimarySyncNow.mockResolvedValue(false);
-    cloudSync.forceCloudflareSync.mockRejectedValue(new Error('Cloudflare error'));
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    await handler();
-
-    expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização manual falhou em todos os canais. Verifique o log.',
-      'error'
-    );
-  });
-
-  it('shows success toast when both channels succeed', async () => {
-    syncCoordinator.flushPrimarySyncNow.mockResolvedValue(true);
-    cloudSync.forceCloudflareSync.mockResolvedValue();
-    storeModule.state.config = {
-      cfUrl: 'https://worker.example.com',
-      cfToken: 'secret-token',
-      cfSyncEnabled: true,
-    };
-
-    await handler();
-
-    expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização manual concluída.',
-      'success'
-    );
-  });
-
-  // --- Edge: Firestore fails alone (no Cloudflare) ---
-  it('shows error toast when Firestore fails and Cloudflare is not enabled', async () => {
-    syncCoordinator.flushPrimarySyncNow.mockResolvedValue(false);
-    storeModule.state.config = { cfUrl: '', cfToken: '', cfSyncEnabled: false };
-
-    await handler();
-
-    expect(appModule.showToast).toHaveBeenCalledWith(
-      'Sincronização manual falhou. Verifique o log.',
-      'error'
     );
   });
 });

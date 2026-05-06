@@ -46,9 +46,10 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-coordinator.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
+    expect(swSource).toContain('./js/sync/manual-sync.js');
     expect(swSource).toContain('./js/views/config/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.56'");
+    expect(swSource).toContain("APP_VERSION = '8.57'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
@@ -57,13 +58,12 @@ describe('Firestore integration contracts', () => {
     const actionsSource = read('src/js/ui/actions/config.js');
 
     expect(syncCenterSource).toContain('Central de Sincronização');
-    expect(syncCenterSource).toContain('data-testid="sync-quiet-panel"');
-    expect(syncCenterSource).toContain('data-testid="sync-advanced-panel"');
+    expect(syncCenterSource).toContain('data-action="manual-sync-all"');
     expect(syncCenterSource).toContain('data-action="firestore-merge-remote"');
     expect(syncCenterSource).toContain('data-action="cloud-merge-remote"');
     expect(syncCenterSource).toContain('data-action="merge-from-drive"');
     expect(configViewSource).toContain("from './config/sync-center.js");
-    expect(actionsSource).toContain("registerAction('sync-center-smart-sync'");
+    expect(actionsSource).toContain("registerAction('manual-sync-all'");
   });
 
   it('coalesces Firestore status renders on the config screen', () => {
@@ -76,11 +76,11 @@ describe('Firestore integration contracts', () => {
     expect(mainSource).not.toMatch(/app:primarySyncStatus.*renderCurrentView/s);
   });
 
-  it('keeps local save storage separated while the sync coordinator owns online side effects', () => {
+  it('keeps local save storage separated while sync side effects live elsewhere (manual-only)', () => {
     const storeSource = read('src/js/store.js');
     const mainSource = read('src/js/main.js');
-    const coordinatorSource = read('src/js/sync/sync-coordinator.js');
     const driveSource = read('src/js/drive-sync.js');
+    const manualSyncSource = read('src/js/sync/manual-sync.js');
 
     expect(storeSource).not.toContain('import { pushToCloudflare }');
     expect(storeSource).not.toContain('SyncQueue.add(() => pushToCloudflare())');
@@ -88,8 +88,7 @@ describe('Firestore integration contracts', () => {
     expect(storeSource).not.toContain('firestore-sync-engine');
     expect(storeSource).not.toContain('autoPullRemoteWhenNewer');
     expect(mainSource).toContain("import * as sync_coordinator from './sync/sync-coordinator.js");
-    expect(coordinatorSource).toContain("'stateSaved'");
-    expect(coordinatorSource).toContain('queueFirestoreSnapshotFromState');
+    expect(manualSyncSource).toContain('syncAllChannels');
     expect(driveSource).not.toContain("document.addEventListener('stateSaved'");
   });
 

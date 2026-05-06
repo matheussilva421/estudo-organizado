@@ -49,7 +49,6 @@ export function renderPreferenceNotificationsCard(cfg) {
 }
 
 export function renderPreferenceDataCard(saveStatus, saveStatusText) {
-  const isManualMode = state.config?.globalSyncPaused === true;
   return `
     <div class="card config-card">
       <div class="card-header"><h3><i class="fa fa-database"></i> Dados</h3></div>
@@ -65,15 +64,8 @@ export function renderPreferenceDataCard(saveStatus, saveStatusText) {
         <div class="config-desc">Importa&ccedil;&otilde;es JSON passam por valida&ccedil;&atilde;o e pr&eacute;via de impacto antes de substituir os dados atuais.</div>
 
         <div class="grid config-backup-grid">
-          ${
-            isManualMode
-              ? `<div class="flex flex-between"><span>Última sincronização manual:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>`
-              : `
-          <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
-          <div class="flex flex-between"><span>Backup Firestore:</span><strong>${formatBackupDateTime(state.config.firestoreSync?.remoteUpdatedAt)}</strong></div>
-          <div class="flex flex-between"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
-          <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>`
-          }
+          <div class="flex flex-between"><span>Último salvamento local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
+          <div class="flex flex-between"><span>Última sincronização manual:</span><strong>${formatBackupDateTime(state.config.lastManualSyncAt)}</strong></div>
         </div>
 
         <div class="form-group mb-3">

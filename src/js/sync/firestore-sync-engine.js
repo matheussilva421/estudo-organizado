@@ -433,10 +433,8 @@ export function initFirestoreSync() {
       console.warn('Entity migration check failed (non-critical):', err.message);
     }
 
-    if (!isGlobalSyncPaused(state.config)) {
-      startPolling();
-    }
-    requestPrimarySync('signed-in');
+    // Manual-only mode: no automatic polling. Login still emits status so the UI
+    // can show "Conectado como ...", but the user must press Sync to push/pull.
     emitPrimaryStatus('signed-in', { uid: user.uid });
   });
 }
@@ -468,10 +466,8 @@ export async function firestoreSignIn() {
     console.warn('Entity migration check failed (non-critical):', err.message);
   }
 
-  if (!isGlobalSyncPaused(state.config)) {
-    startPolling();
-  }
-  requestPrimarySync('signed-in');
+  // Manual-only mode: no polling and no auto-push on sign-in. The user controls
+  // when to sync via the manual button.
   return currentUser;
 }
 
@@ -492,8 +488,7 @@ export async function enableFirestoreSync(mode = 'shadow') {
   config.lastError = null;
   await persistSyncConfig(false);
   emitStatus('enabled');
-  startPolling();
-  if (config.mode === 'primary') requestPrimarySync('enabled');
+  // Manual-only mode: no automatic polling or auto-push when activating.
   return true;
 }
 
@@ -672,7 +667,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     lastError: null,
   });
   await persistSyncConfig(false);
-  startPolling();
+  // Manual-only mode: do not start polling after a successful push.
   emitStatus('synced');
   return true;
 }

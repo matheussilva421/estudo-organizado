@@ -408,130 +408,34 @@ describe('sync/sync-coordinator.js', () => {
       coordinator.initSyncCoordinator();
     });
 
-    it('listens for stateSaved events', () => {
+    it('does not subscribe to stateSaved (manual-only mode)', () => {
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
-      coordinator.initSyncCoordinator();
-      document.dispatchEvent(new CustomEvent('stateSaved', { detail: { reason: 'test' } }));
-      expect(dispatchSpy).toHaveBeenCalled();
-    });
-
-    it('ignores stateSaved remote sync while global pause is active', () => {
-      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
-      storeModule.state.config.globalSyncPaused = true;
       coordinator.initSyncCoordinator();
       dispatchSpy.mockClear();
-
       document.dispatchEvent(new CustomEvent('stateSaved', { detail: { reason: 'test' } }));
-
-      const dispatchedEvents = dispatchSpy.mock.calls.map(([event]) => event);
-      expect(
-        dispatchedEvents.some(
-          (event) => event.type === 'app:primarySyncStatus' && event.detail?.status === 'paused'
-        )
-      ).toBe(true);
-      expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
-      expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
-    });
-
-    it('ignores metadata-only stateSaved events from sync persistence', () => {
-      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
-      coordinator.initSyncCoordinator();
-
-      document.dispatchEvent(
-        new CustomEvent('stateSaved', {
-          detail: {
-            touchLocalBackup: false,
-            metadataOnly: true,
-          },
-        })
-      );
-
+      // No primarySyncQueued event should fire — auto-sync was removed.
       expect(dispatchSpy).not.toHaveBeenCalledWith(
         expect.objectContaining({ type: 'app:primarySyncQueued' })
       );
+      expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
     });
 
-    it('flushes sync immediately when browser reconnects without active backoff', async () => {
-      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+    it('does not auto-flush on online (manual-only mode)', async () => {
       coordinator.initSyncCoordinator();
-
       window.dispatchEvent(new Event('online'));
       await flushCoordinatorPromises();
-
-      expect(firestoreSync.queueFirestoreSnapshotFromState).toHaveBeenCalled();
-      expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalled();
-      expect(dispatchSpy).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'app:primarySyncQueued',
-          detail: expect.objectContaining({ reason: 'reconnect', delayMs: 0 }),
-        })
-      );
-    });
-
-    it('respects snapshot retry backoff when browser reconnects', async () => {
-      const nextAttemptAt = new Date(Date.now() + 120000).toISOString();
-      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
-      firestoreOutbox.getPendingFirestoreSnapshot.mockResolvedValue({
-        status: 'pending',
-        nextAttemptAt,
-      });
-      coordinator.initSyncCoordinator();
-
-      window.dispatchEvent(new Event('online'));
-      await flushCoordinatorPromises();
-
       expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
-      expect(dispatchSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'app:primarySyncQueued',
-          detail: expect.objectContaining({ reason: 'reconnect' }),
-        })
-      );
     });
 
-    it('flushes sync immediately when returning to foreground without backoff', async () => {
+    it('does not auto-flush on visibilitychange (manual-only mode)', async () => {
       Object.defineProperty(document, 'visibilityState', {
         configurable: true,
         value: 'visible',
       });
       coordinator.initSyncCoordinator();
-
       document.dispatchEvent(new Event('visibilitychange'));
       await flushCoordinatorPromises();
-
-      expect(firestoreSync.queueFirestoreSnapshotFromState).toHaveBeenCalled();
-      expect(firestoreSync.flushFirestoreOutbox).toHaveBeenCalled();
-    });
-
-    it('calls stopPolling when global sync is paused via app:globalSyncPauseChanged', () => {
-      coordinator.initSyncCoordinator();
-
-      document.dispatchEvent(
-        new CustomEvent('app:globalSyncPauseChanged', { detail: { paused: true } })
-      );
-
-      expect(firestoreSync.stopPolling).toHaveBeenCalledTimes(1);
-      expect(firestoreSync.startPolling).not.toHaveBeenCalled();
-    });
-
-    it('calls startPolling when global sync is resumed via app:globalSyncPauseChanged', () => {
-      coordinator.initSyncCoordinator();
-
-      document.dispatchEvent(
-        new CustomEvent('app:globalSyncPauseChanged', { detail: { paused: false } })
-      );
-
-      expect(firestoreSync.startPolling).toHaveBeenCalledTimes(1);
-      expect(firestoreSync.stopPolling).not.toHaveBeenCalled();
-    });
-
-    it('does not call startPolling or stopPolling on undefined detail', () => {
-      coordinator.initSyncCoordinator();
-
-      document.dispatchEvent(new CustomEvent('app:globalSyncPauseChanged', { detail: null }));
-
-      expect(firestoreSync.startPolling).not.toHaveBeenCalled();
-      expect(firestoreSync.stopPolling).not.toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
     });
   });
 });

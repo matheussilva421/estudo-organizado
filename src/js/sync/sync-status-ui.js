@@ -45,7 +45,7 @@ const FIRESTORE_STATUS_MAP = {
   error: 'error',
 };
 
-// Map sync-coordinator statuses to canonical states
+// Map sync-coordinator statuses to canonical states (legacy, kept for log paths)
 const COORDINATOR_STATUS_MAP = {
   idle: 'idle',
   queued: 'syncing',
@@ -56,6 +56,18 @@ const COORDINATOR_STATUS_MAP = {
   paused: 'paused',
   degraded: 'degraded',
   'conflict-paused': 'error',
+};
+
+// Map manual-sync orchestrator statuses to canonical states
+const MANUAL_STATUS_MAP = {
+  idle: 'idle',
+  syncing: 'syncing',
+  synced: 'synced',
+  partial: 'error',
+  conflict: 'error',
+  error: 'error',
+  offline: 'offline',
+  'no-channels': 'idle',
 };
 
 const ATTENTION_STATUS_STICKY_MS = 1000;
@@ -103,7 +115,10 @@ const HEALTH_LABELS = {
 };
 
 function mapToCanonicalStatus(source, rawStatus) {
-  const map = source === 'coordinator' ? COORDINATOR_STATUS_MAP : FIRESTORE_STATUS_MAP;
+  let map;
+  if (source === 'coordinator') map = COORDINATOR_STATUS_MAP;
+  else if (source === 'manual') map = MANUAL_STATUS_MAP;
+  else map = FIRESTORE_STATUS_MAP;
   return map[rawStatus] || 'idle';
 }
 
@@ -112,21 +127,12 @@ function renderStatus(statusKey) {
   const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG.idle;
   container.className = `sync-status ${config.cssClass}`;
   container.innerHTML = `<i class="fa ${config.icon}"></i> ${config.text}`;
-  renderGlobalSyncToggle();
+  if (syncToggle) {
+    // Manual-only mode: hide the legacy pause-sync toggle from the topbar.
+    syncToggle.style.display = 'none';
+  }
   currentSyncNowState = deriveSyncNowState(statusKey);
   renderSyncNowButton();
-}
-
-function renderGlobalSyncToggle() {
-  if (!syncToggle) return;
-  const paused = state.config?.globalSyncPaused === true;
-  syncToggle.classList.toggle('sync-toggle--paused', paused);
-  syncToggle.setAttribute('aria-pressed', paused ? 'true' : 'false');
-  syncToggle.setAttribute(
-    'title',
-    paused ? 'Retomar sincronização global' : 'Pausar sincronização global'
-  );
-  syncToggle.innerHTML = `<i class="fa ${paused ? 'fa-play' : 'fa-pause'}"></i><span>${paused ? 'Retomar sync' : 'Pausar sync'}</span>`;
 }
 
 const SYNC_NOW_STATES = {
@@ -312,6 +318,17 @@ function handlePrimarySyncStatus(event) {
   scheduleSyncCenterRefresh();
 }
 
+function handleManualSyncStatus(event) {
+  const raw = event.detail?.status;
+  if (!raw) return;
+  const now = Date.now();
+  const status = mapToCanonicalStatus('manual', raw);
+  lastPrimaryStatusAt = now;
+  if (ATTENTION_STATUSES.has(status)) lastAttentionStatusAt = now;
+  scheduleRender(status);
+  scheduleSyncCenterRefresh();
+}
+
 function handleFirestoreSyncStatus(event) {
   const raw = event.detail?.status;
   if (!raw) return;
@@ -328,9 +345,9 @@ function handleCloudSyncStatus() {
   scheduleSyncCenterRefresh();
 }
 
-function handleGlobalSyncPauseChanged(event) {
-  renderGlobalSyncToggle();
-  scheduleRender(event.detail?.paused ? 'paused' : 'idle');
+function handleGlobalSyncPauseChanged() {
+  // Manual-only mode: the pause toggle is hidden, but legacy events may still
+  // fire from imported state. Just refresh the panel without changing status.
   scheduleSyncCenterRefresh();
 }
 
@@ -345,18 +362,20 @@ export function initSyncStatusUI() {
   document.addEventListener('app:firestoreSyncStatus', handleFirestoreSyncStatus);
   document.addEventListener('app:cloudSyncStatus', handleCloudSyncStatus);
   document.addEventListener('app:globalSyncPauseChanged', handleGlobalSyncPauseChanged);
+  document.addEventListener('app:manualSyncStatus', handleManualSyncStatus);
   listeners = [
     { event: 'app:primarySyncStatus', handler: handlePrimarySyncStatus },
     { event: 'app:firestoreSyncStatus', handler: handleFirestoreSyncStatus },
     { event: 'app:cloudSyncStatus', handler: handleCloudSyncStatus },
     { event: 'app:globalSyncPauseChanged', handler: handleGlobalSyncPauseChanged },
+    { event: 'app:manualSyncStatus', handler: handleManualSyncStatus },
   ];
 
-  // Initial state
-  renderGlobalSyncToggle();
+  // Initial state — manual-only mode
+  if (syncToggle) syncToggle.style.display = 'none';
   currentSyncNowState = navigator.onLine ? 'idle' : 'offline';
   renderSyncNowButton();
-  scheduleRender(state.config?.globalSyncPaused ? 'paused' : 'idle');
+  scheduleRender('idle');
 }
 
 export function destroySyncStatusUI() {
