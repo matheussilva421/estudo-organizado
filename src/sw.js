@@ -14,6 +14,7 @@ const ASSET_PATHS = [
   './css/views.css',
   './css/views/dashboard.css',
   './css/views/calendar.css',
+  './css/views/ciclo.css',
   './js/app.js',
   './js/cloud-sync.js',
   './js/components.js',
