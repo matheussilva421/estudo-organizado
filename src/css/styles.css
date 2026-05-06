@@ -10,12 +10,17 @@
 @import './components/tabs.css';
 @import './components/toggle-drag.css';
 @import './components/timer.css';
+@import './components/misc-ui.css';
+@import './components/filter-row.css';
+@import './components/loading.css';
+@import './components/skeleton.css';
 @import './views/habitos.css';
 @import './views/revisoes.css';
 @import './views/editais-tree.css';
 @import './base/mobile.css';
 @import './base/utilities.css';
 @import './base/forms.css';
+@import './base/animations.css';
 
 /* CALENDAR */
 .cal-header {
@@ -258,27 +263,7 @@ button.cal-event-chip:focus-visible {
   min-width: 0;
 }
 
-/* DISCIPLINE COLOR CIRCLES */
-.disc-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
 
-/* SECTION HEADER */
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.section-header h2 {
-  font-size: 16px;
-  font-weight: 700;
-}
 
 .home-card.card {
   height: auto;
@@ -370,119 +355,8 @@ button.cal-event-chip:focus-visible {
   border-color: var(--accent);
 }
 
-/* CONFIGURACOES */
-.config-section {
-  margin-bottom: 24px;
-}
 
-.config-section h3 {
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
 
-.config-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.config-row:last-child {
-  border-bottom: none;
-}
-
-.config-label {
-  font-size: 13.5px;
-  font-weight: 500;
-}
-
-.config-sub {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-/* COLOR PICKER SWATCH */
-.color-swatch {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: border-color 0.15s;
-}
-
-.color-swatch.selected {
-  border-color: var(--text-primary);
-}
-
-.color-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-/* FILTER ROW */
-.filter-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.filter-chip {
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition:
-    transform 0.2s,
-    background-color 0.2s,
-    opacity 0.2s,
-    color 0.2s,
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
-/* Filter chip as button: reset default button styles */
-button.filter-chip {
-  background: var(--card);
-  border: 1px solid var(--border);
-  font: inherit;
-  cursor: pointer;
-  padding: 5px 12px;
-  border-radius: 20px;
-  color: var(--text-secondary);
-}
-
-button.filter-chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-text) !important;
-}
-
-button.filter-chip:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.filter-chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-text) !important;
-}
-
-.filter-chip.active * {
-  color: inherit !important;
-}
 
 /* =========================================
    CRONÃ”METRO (WAVE 24)
@@ -1067,28 +941,6 @@ button.filter-chip:focus-visible {
   background: #94a3b8;
 }
 
-/* LOADING */
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 /* Highlight today's date */
 .today-highlight {
@@ -1927,182 +1779,6 @@ button.filter-chip:focus-visible {
   }
 }
 
-/* =============================================
-   ACCESSIBILITY: Loading Skeletons
-   ============================================= */
-@keyframes skeleton-shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
-}
-
-.skeleton {
-  background: linear-gradient(90deg, var(--bg) 0%, var(--bg-secondary) 50%, var(--bg) 100%);
-  background-size: 200px 100%;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-  border-radius: 8px;
-  pointer-events: none;
-}
-
-.skeleton-text {
-  height: 16px;
-  margin-bottom: 8px;
-}
-
-.skeleton-title {
-  height: 24px;
-  width: 60%;
-  margin-bottom: 16px;
-}
-
-.skeleton-subtitle {
-  height: 14px;
-  width: 40%;
-  margin-bottom: 12px;
-}
-
-.skeleton-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  margin-right: 12px;
-}
-
-.skeleton-card {
-  background: var(--card);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
-  border: 1px solid var(--border);
-}
-
-.skeleton-card-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.skeleton-image {
-  width: 100%;
-  height: 120px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-
-.skeleton-chart {
-  width: 100%;
-  height: 200px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.skeleton-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.skeleton-stat-card {
-  background: var(--card);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.skeleton-stat-value {
-  height: 32px;
-  width: 70%;
-}
-
-.skeleton-stat-label {
-  height: 14px;
-  width: 80%;
-}
-
-.skeleton-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.skeleton-list-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: var(--card);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-
-.skeleton-list-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  flex-shrink: 0;
-}
-
-.skeleton-list-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.skeleton-button {
-  height: 40px;
-  width: 120px;
-  border-radius: 8px;
-}
-
-.skeleton-input {
-  height: 44px;
-  width: 100%;
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.skeleton-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.skeleton-table td {
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.skeleton-header-cell {
-  height: 20px;
-  width: 100%;
-}
-
-.skeleton-cell {
-  height: 16px;
-  width: 100%;
-}
-
-/* Loading container */
-.loading-skeleton {
-  padding: 24px;
-  animation: fade-in 0.3s ease-out;
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MOBILE RESPONSIVENESS FIXES

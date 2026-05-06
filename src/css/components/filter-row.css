@@ -1,0 +1,57 @@
+/* FILTER ROW */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition:
+    transform 0.2s,
+    background-color 0.2s,
+    opacity 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+/* Filter chip as button: reset default button styles */
+button.filter-chip {
+  background: var(--card);
+  border: 1px solid var(--border);
+  font: inherit;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 20px;
+  color: var(--text-secondary);
+}
+
+button.filter-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text) !important;
+}
+
+button.filter-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.filter-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text) !important;
+}
+
+.filter-chip.active * {
+  color: inherit !important;
+}

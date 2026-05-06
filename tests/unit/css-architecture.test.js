@@ -95,6 +95,10 @@ describe('CSS architecture', () => {
       'components/tabs.css',
       'components/toggle-drag.css',
       'components/timer.css',
+      'components/misc-ui.css',
+      'components/filter-row.css',
+      'components/loading.css',
+      'components/skeleton.css',
       'views/habitos.css',
       'views/revisoes.css',
       'views/editais-tree.css',
@@ -129,6 +133,10 @@ describe('CSS architecture', () => {
       "@import './components/tabs.css';",
       "@import './components/toggle-drag.css';",
       "@import './components/timer.css';",
+      "@import './components/misc-ui.css';",
+      "@import './components/filter-row.css';",
+      "@import './components/loading.css';",
+      "@import './components/skeleton.css';",
       "@import './views/habitos.css';",
 
       "@import './views/revisoes.css';",
@@ -139,7 +147,8 @@ describe('CSS architecture', () => {
 
 
       "@import './base/utilities.css';",
-      "@import './base/forms.css';"
+      "@import './base/forms.css';",
+      "@import './base/animations.css';"
 
     ].join('\n');
 
@@ -163,6 +172,11 @@ describe('CSS architecture', () => {
     expect(read('src/css/components/toggle-drag.css')).toContain('TOGGLE');
     expect(read('src/css/components/toggle-drag.css')).toContain('DRAG HANDLES');
     expect(read('src/css/components/timer.css')).toContain('TIMER');
+    expect(read('src/css/components/misc-ui.css')).toContain('DISCIPLINE COLOR CIRCLES');
+    expect(read('src/css/components/filter-row.css')).toContain('FILTER ROW');
+    expect(read('src/css/components/loading.css')).toContain('LOADING');
+    expect(read('src/css/components/skeleton.css')).toContain('Loading Skeletons');
+    expect(read('src/css/base/animations.css')).toContain('@keyframes spin');
     expect(read('src/css/views/habitos.css')).toContain('HABIT CARDS');
     expect(read('src/css/views/revisoes.css')).toContain('REVISOES');
     expect(read('src/css/views/editais-tree.css')).toContain('EDITAL TREE');
@@ -308,8 +322,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-expect(html).toContain('css/styles.css?v=8.50');
-    expect(serviceWorker).toContain("APP_VERSION = '8.50'");
+expect(html).toContain('css/styles.css?v=8.51');
+    expect(serviceWorker).toContain("APP_VERSION = '8.51'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 
@@ -459,6 +473,7 @@ expect(html).toContain('css/styles.css?v=8.50');
 
   it('keeps session history as stacked rectangular discipline rows', () => {
     const views = read('src/js/views.js');
+    const historicoView = read('src/js/views/historico-view.js');
     const legacyStyles = read('src/css/styles.css');
     const historyListBlock = extractCssBlock(legacyStyles, '.session-group-section .session-group-list');
     const discCardBlock = extractCssBlock(legacyStyles, '.session-group-section .session-disc-card');
@@ -467,7 +482,7 @@ expect(html).toContain('css/styles.css?v=8.50');
     const detailContentBlock = extractCssBlock(legacyStyles, '.session-group-section .session-detail-content');
     const detailTitleBlock = extractCssBlock(legacyStyles, '.session-group-section .session-detail-title');
 
-    expect(views).toContain('session-group-list');
+    expect(historicoView).toContain('session-group-list');
     expect(historyListBlock).toContain('display: flex');
     expect(historyListBlock).toContain('flex-direction: column');
     expect(discCardBlock).toContain('display: grid');

@@ -1,0 +1,158 @@
+/* =============================================
+   ACCESSIBILITY: Loading Skeletons
+   ============================================= */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg) 0%, var(--bg-secondary) 50%, var(--bg) 100%);
+  background-size: 200px 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.skeleton-text {
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeleton-title {
+  height: 24px;
+  width: 60%;
+  margin-bottom: 16px;
+}
+
+.skeleton-subtitle {
+  height: 14px;
+  width: 40%;
+  margin-bottom: 12px;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.skeleton-card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.skeleton-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-image {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.skeleton-chart {
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.skeleton-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.skeleton-stat-card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-stat-value {
+  height: 32px;
+  width: 70%;
+}
+
+.skeleton-stat-label {
+  height: 14px;
+  width: 80%;
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.skeleton-list-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.skeleton-list-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-button {
+  height: 40px;
+  width: 120px;
+  border-radius: 8px;
+}
+
+.skeleton-input {
+  height: 44px;
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.skeleton-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.skeleton-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.skeleton-header-cell {
+  height: 20px;
+  width: 100%;
+}
+
+.skeleton-cell {
+  height: 16px;
+  width: 100%;
+}
+
+/* Loading container */
+.loading-skeleton {
+  padding: 24px;
+  animation: fade-in 0.3s ease-out;
+}
