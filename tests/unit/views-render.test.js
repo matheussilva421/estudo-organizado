@@ -78,6 +78,16 @@ describe('views.js - CRUD, modals, sequence ops', () => {
     }));
     vi.doMock('../../src/js/views/dashboard-view.js', () => ({
       renderDisciplinaDashboard: vi.fn(),
+      dashPeriod: 7,
+      _chartDaily: null,
+      _chartDisc: null,
+      destroyDashboardCharts: vi.fn(),
+      renderDashboard: vi.fn(),
+      setDashPeriod: vi.fn(),
+      renderDailyChart: vi.fn(),
+      renderDiscChart: vi.fn(),
+      renderHabitSummary: vi.fn(() => ''),
+      renderDiscProgress: vi.fn(() => ''),
     }));
     vi.doMock('../../src/js/views/editais-view.js', () => ({
       renderVerticalList: vi.fn(),

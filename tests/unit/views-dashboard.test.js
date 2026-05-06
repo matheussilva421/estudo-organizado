@@ -78,6 +78,16 @@ describe('views.js - dashboard, charts, history, MED', () => {
     }));
     vi.doMock('../../src/js/views/dashboard-view.js', () => ({
       renderDisciplinaDashboard: vi.fn(),
+      dashPeriod: 7,
+      _chartDaily: null,
+      _chartDisc: null,
+      destroyDashboardCharts: vi.fn(),
+      renderDashboard: vi.fn(),
+      setDashPeriod: vi.fn(),
+      renderDailyChart: vi.fn(),
+      renderDiscChart: vi.fn(),
+      renderHabitSummary: vi.fn(() => ''),
+      renderDiscProgress: vi.fn(() => ''),
     }));
     vi.doMock('../../src/js/views/editais-view.js', () => ({
       renderVerticalList: vi.fn(),
@@ -200,12 +210,12 @@ describe('views.js - dashboard, charts, history, MED', () => {
   describe('setDashPeriod()', () => {
     it('updates dashboard period', () => {
       views.setDashPeriod(30);
-      expect(views.dashPeriod).toBe(30);
+      expect(views.setDashPeriod).toHaveBeenCalledWith(30);
     });
 
     it('handles null for all-time view', () => {
       views.setDashPeriod(null);
-      expect(views.dashPeriod).toBeNull();
+      expect(views.setDashPeriod).toHaveBeenCalledWith(null);
     });
   });
 });
