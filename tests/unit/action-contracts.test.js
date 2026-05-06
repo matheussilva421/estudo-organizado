@@ -194,8 +194,9 @@ describe('data-action contracts', () => {
     );
   });
 
-  it('exports discipline manager action targets instead of relying on Proxy fallback', () => {
+  it('exports discipline manager action targets via editais-crud re-export', () => {
     const viewsSource = read('src/js/views.js');
+    const editaisCrudSource = read('src/js/views/editais-crud.js');
     const managerActions = [
       'switchManagerTab',
       'editLessonInline',
@@ -206,16 +207,23 @@ describe('data-action contracts', () => {
       'runLessonMapperUI',
     ];
 
+    // Views.js re-exports from editais-crud.js
+    expect(viewsSource).toContain(
+      "import { editingSubjectCtx, openDiscManager } from './views/editais-crud.js';"
+    );
+    expect(viewsSource).toMatch(/export\s+\{[^}]*switchManagerTab[^}]*\}\s+from\s+['"]\.\/views\/editais-crud\.js['"]/s);
+
+    // Actual function definitions live in editais-crud.js
     for (const actionName of managerActions) {
-      expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+      expect(editaisCrudSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
     }
   });
 
   it('uses user-facing language in the discipline manager save action', () => {
-    const viewsSource = read('src/js/views.js');
+    const editaisCrudSource = read('src/js/views/editais-crud.js');
 
-    expect(viewsSource).not.toContain('Salvar Manager');
-    expect(viewsSource).toContain('Salvar alterações');
+    expect(editaisCrudSource).not.toContain('Salvar Manager');
+    expect(editaisCrudSource).toContain('Salvar alterações');
   });
 
   it('exports cycle sequence action targets instead of relying on Proxy fallback', () => {
@@ -240,11 +248,14 @@ describe('data-action contracts', () => {
   it('exports dashboard and session action targets instead of relying on Proxy fallback', () => {
     const viewsSource = read('src/js/views.js');
     const eventModalsSource = read('src/js/ui/event-modals.js');
-    const viewActions = ['switchDashboardTab', 'filtrarDropdownBanca'];
+    const editaisCrudSource = read('src/js/views/editais-crud.js');
 
-    for (const actionName of viewActions) {
-      expect(viewsSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
-    }
+    // switchDashboardTab moved to editais-crud.js, re-exported from views.js
+    expect(viewsSource).toMatch(/export\s+\{[^}]*switchDashboardTab[^}]*\}\s+from\s+['"]\.\/views\/editais-crud\.js['"]/s);
+    expect(editaisCrudSource).toMatch(/export function switchDashboardTab\s*\(/);
+
+    // filtrarDropdownBanca stays in views.js
+    expect(viewsSource).toMatch(/export function filtrarDropdownBanca\s*\(/);
 
     expect(eventModalsSource).toMatch(/export function openAddPastSessionModal\s*\(/);
     expect(eventModalsSource).toMatch(/export function savePastEvent\s*\(/);
