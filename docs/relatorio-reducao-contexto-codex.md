@@ -151,12 +151,83 @@ Regeneraveis, podendo ser removidos quando nao houver investigacao ativa:
 - `playwright-report/`
 - `test-results/`
 
+### Continuidade em 2026-05-06 - Waves 3-6: modularizacao CSS e JS completa
+
+**Commits realizados (17 commits desde b8d3151):**
+
+| Commit | Tipo | Descricao |
+|--------|------|-----------|
+| `64c7b83` | refactor(css) | extract calendar view styles |
+| `d9d07f0` | refactor(css) | extract base utilities |
+| `b47c4e7` | refactor(css) | extract form and button styles |
+| `a5327d9` | refactor(css) | extract ciclo and grade view styles |
+| `f8ed4bc` | chore(logs) | convert sync logs to debugLog |
+| `42e5609` | chore(logs) | convert informational logs to debugLog |
+| `8c8e31e` | refactor(views) | extract disc manager state accessors |
+| `3b305c9` | fix(views) | declare state variables in disc-manager-state and refactor views.js to use getters/setters |
+| `b64d531` | refactor(css) | extract sidebar styles |
+| `4e2499e` | refactor(css) | extract config and sync view styles |
+| `f58cb70` | refactor(views) | extract sync center rendering |
+| `d1ae2c8` | refactor(views) | extract theme settings rendering |
+| `cd5a879` | refactor(views) | extract data management rendering |
+| `95e2942` | test(config) | update mocks and assertions for data-management extraction |
+| `e833941` | refactor(css) | extract session, wizard, and modal view styles |
+| `995986e` | refactor(css) | extract cronometro, banca, and subject manager styles |
+| `e2b1fc8` | docs(context) | update handoff with wave 3-6 extraction results |
+
+**Arquivos CSS extraidos:**
+
+| Novo arquivo | Origem | Linhas | Prefixos |
+|--------------|--------|--------|----------|
+| `src/css/views/calendar.css` | views.css | ~45 | `.cal-*` |
+| `src/css/views/ciclo.css` | views.css | ~230 | `.ciclo-*`, `.grade-*`, `.seq-*` |
+| `src/css/views/config/config-view.css` | views.css | ~674 | `.config-*`, `.sync-*`, `.backup-*`, `.restore-preview-*` |
+| `src/css/views/sessions.css` | views.css | ~497 | `.reg-*`, `.session-*` |
+| `src/css/views/wizard.css` | views.css | ~215 | `.pw-*` |
+| `src/css/views/modals.css` | views.css | ~135 | `.modal-*`, `.event-form-*` |
+| `src/css/views/cronometro.css` | views.css | ~135 | `.crono-*` |
+| `src/css/views/banca.css` | views.css | ~140 | `.banca-*` |
+| `src/css/views/subject-manager.css` | views.css | ~226 | `.sm-*`, `.manager-*`, `.tab-content-*` |
+| `src/css/base/utilities.css` | styles.css | ~13 | `.grid-*` |
+| `src/css/base/forms.css` | styles.css | ~46 | `.form-group`, `.form-control` |
+| `src/css/components/buttons.css` | styles.css | ~240 | `.btn-*` |
+| `src/css/components/sidebar.css` | styles.css | ~385 | `#sidebar-*`, `.sidebar-*` |
+
+**Arquivos JS extraidos:**
+
+| Novo arquivo | Origem | Linhas | Funcoes |
+|--------------|--------|--------|---------|
+| `src/js/views/state/disc-manager-state.js` | views.js | 29 | getters/setters de estado do disc manager |
+| `src/js/views/config/sync-center.js` | config-view.js | ~569 | renderBackupCenterCard, renderFirestoreConflict, _renderFirestoreCard, getSyncHealthLabel, getSyncHealthIcon, renderCloudflareConflict, renderEntityConflictPanel, renderSyncSourceExtras, renderSyncSourceActions, renderCloudflareConfigFields, buildCurrentSyncCenterModel, _renderSyncCenterCard, renderQuietSyncCenterCard |
+| `src/js/views/config/theme-settings.js` | config-view.js | ~140 | renderPreferenceNotificationsCard, renderPreferenceDataCard, renderPreferenceServiceWorkerCard, renderPreferenceAboutCard, setTheme, updateConfig, toggleConfig, updateFrequencia |
+| `src/js/views/config/data-management.js` | config-view.js | ~252 | archiveOldEvents, exportData, openRestorePreviewModal, importData, openRemoteRestorePreview, restoreBackupFromSelectedSource, clearAllData |
+
+**Reducao de linhas:**
+
+| Arquivo | Antes | Depois | Reducao |
+|---------|-------|--------|---------|
+| `src/css/views.css` | ~3700 | 714 | -81% |
+| `src/css/styles.css` | ~5050 | 3872 | -23% |
+| `src/js/views.js` | ~2249 | 2062 | -8% |
+| `src/js/views/config-view.js` | ~1168 | 247 | -79% |
+
+**APP_VERSION:** `8.37` → `8.43` (6 bumps ao longo das extracoes)
+
+**Validacoes desta continuidade:**
+
+- `npm run test:css`: 1 arquivo, 26 testes passando.
+- `npm run test:views`: 12 arquivos, 207 testes passando.
+- `npm run test:config`: 2 arquivos, 60 testes passando.
+- `npm test`: 76 arquivos passando, 1290/1291 testes passando (1 falha pre-existente em esbuild no Windows).
+- `npm run lint`: passou sem erros novos.
+- `git push origin main`: 17 commits publicados.
+
 ## Proximos hotspots estruturais
 
-- `src/css/styles.css`
-- `src/css/views.css`
-- `src/js/views.js`
-- `src/js/views/config-view.js`
+- `src/css/styles.css` (3872 linhas) — ainda pode ser reduzido extraindo temas, layout, tipografia, tabelas, cards, etc.
+- `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
+- `src/js/logic.js` e `src/js/app.js` — nao foram atacados nesta fase.
+- `src/js/components.js` — potencial para extracao de componentes reutilizaveis.
 - matriz E2E completa (`test:e2e:all`), que continua sendo investigativa e inclui `chromium` + `mock`; o gate release Chromium ja esta estavel em `test:e2e`.
 
 Plano detalhado de continuidade para outra IA: `docs/handoff-reducao-contexto-codex.md`.
