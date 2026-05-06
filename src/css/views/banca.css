@@ -1,0 +1,145 @@
+/* Banca status card */
+.banca-empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  text-align: center;
+  padding: var(--space-6);
+}
+
+.banca-empty-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-4);
+  color: var(--border);
+}
+
+.banca-empty-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.banca-empty-hint {
+  font-size: 13px;
+  max-width: 250px;
+}
+
+.banca-status-card {
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--border);
+}
+
+.banca-status-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.banca-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: var(--space-2);
+}
+
+.banca-status-success {
+  font-weight: 600;
+  color: var(--green);
+}
+
+.banca-status-warning {
+  font-weight: 600;
+  color: var(--orange);
+}
+
+.banca-info-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--space-4);
+}
+
+.banca-action-btn {
+  width: 100%;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* =============================================
+   Banca Corrector Modal
+   ============================================= */
+
+.banca-match-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 45px 40px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+  align-items: center;
+}
+
+.banca-match-priority-icon {
+  color: inherit;
+  font-size: 14px;
+  text-align: center;
+}
+
+.banca-match-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.banca-match-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.banca-match-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.banca-match-score {
+  font-size: 10px;
+  color: inherit;
+}
+
+.banca-match-tag {
+  background: inherit;
+  font-weight: 900;
+}
+
+.banca-corrector-label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.banca-corrector-select {
+  max-width: 350px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.banca-corrector-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}

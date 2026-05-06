@@ -1,0 +1,227 @@
+/* =============================================
+   Subject Manager (Discipline Modal)
+   ============================================= */
+
+/* Subject manager header */
+.sm-header {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.sm-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sm-form-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sm-form-group--narrow {
+  flex: 0.4;
+}
+
+.form-control--resize {
+  resize: vertical;
+}
+
+.btn-text-danger {
+  color: var(--danger);
+}
+
+.form-control--mono {
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+/* Color picker group */
+.sm-color-picker-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sm-color-picker-group input[type='color'] {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Manager tabs */
+.manager-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+.manager-tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.manager-tab:hover {
+  color: var(--text-primary);
+}
+
+.manager-tab--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Tab content */
+.tab-content {
+  display: block;
+}
+
+.tab-content--hidden {
+  display: none;
+}
+
+/* Add form */
+.sm-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sm-add-form textarea {
+  flex: 1;
+  min-width: 200px;
+  resize: vertical;
+}
+
+/* Subject list */
+.sm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sm-list-item {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.sm-list-item--lesson {
+  border-left: 4px solid var(--accent);
+  padding-left: 8px;
+}
+
+.sm-item-content {
+  flex: 1;
+}
+
+.sm-item-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-item-text--clickable {
+  cursor: pointer;
+}
+
+.sm-checkbox {
+  cursor: pointer;
+}
+
+.sm-text-concluded {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.sm-linked-info {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.sm-linked-info--empty {
+  font-style: italic;
+}
+
+/* Empty state */
+.sm-empty-state {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Bulk import form */
+.sm-bulk-import-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: flex-end;
+}
+
+.sm-bulk-import-form > div {
+  flex: 1;
+}
+
+.sm-bulk-import-form label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sm-bulk-import-form textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.sm-bulk-import-form button {
+  height: fit-content;
+  margin-bottom: 4px;
+}
+
+/* Auto-link suggestion card */
+.sm-auto-link-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sm-auto-link-card-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Modal footer actions */
+.sm-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Subject Manager textarea */
+.sm-bulk-textarea {
+  min-height: 80px;
+}
