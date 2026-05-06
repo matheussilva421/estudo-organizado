@@ -116,10 +116,29 @@ describe('manual-sync orchestrator', () => {
       cfToken: 't',
       cfSyncEnabled: true,
     };
-    await mod.syncAllChannels();
+    cloudSync.forceCloudflareSync.mockImplementation(async () => {
+      storeModule.state.config.cfLastSyncAt = new Date().toISOString();
+    });
+    const result = await mod.syncAllChannels();
     expect(cloudSync.forceCloudflareSync).toHaveBeenCalledWith({
       overwriteRemote: false,
     });
+    expect(result.cloudflare.status).toBe('ok');
+  });
+
+  it('reports cloudflare error when push silently fails (timestamp did not advance)', async () => {
+    const mod = await loadOrchestrator();
+    storeModule.state.config = {
+      cfUrl: 'https://w.dev',
+      cfToken: 't',
+      cfSyncEnabled: true,
+      cfLastSyncAt: '2026-05-01T00:00:00.000Z',
+    };
+    // forceCloudflareSync resolves but does not advance cfLastSyncAt — mimics
+    // the real-world case where pushToCloudflare swallows a network error.
+    cloudSync.forceCloudflareSync.mockResolvedValue();
+    const result = await mod.syncAllChannels();
+    expect(result.cloudflare.status).toBe('error');
   });
 
   it('runs Cloudflare and Firestore in parallel', async () => {

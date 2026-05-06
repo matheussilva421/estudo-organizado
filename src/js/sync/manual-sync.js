@@ -93,10 +93,20 @@ async function syncCloudflareChannel() {
   // Pull-then-push without server overwrite — the worker returns 409 if the
   // remote envelope's baseRemoteUpdatedAt mismatches the live one. The 409
   // path stores config.cfConflict for user resolution.
+  // Note: pushToCloudflare swallows network errors and returns false; we
+  // detect silent failures by checking whether cfLastSyncAt advanced.
+  const beforeAt = state.config?.cfLastSyncAt || null;
   try {
     await forceCloudflareSync({ overwriteRemote: false });
     if (state.config?.cfConflict) {
       return { status: 'conflict', conflict: state.config.cfConflict };
+    }
+    const afterAt = state.config?.cfLastSyncAt || null;
+    if (afterAt === beforeAt) {
+      return {
+        status: 'error',
+        error: 'Sincronização do Cloudflare não progrediu — verifique URL e token.',
+      };
     }
     return { status: 'ok' };
   } catch (err) {
@@ -177,14 +187,33 @@ async function _runAll(trigger) {
   const summary = aggregateSummary(result);
 
   if (!state.config) state.config = {};
-  state.config.lastManualSyncAt = new Date().toISOString();
+  const finishedAt = new Date().toISOString();
+  state.config.lastManualSyncAt = finishedAt;
   state.config.lastManualSyncResults = {
-    at: state.config.lastManualSyncAt,
+    at: finishedAt,
     trigger,
     firestore: result.firestore.status,
     cloudflare: result.cloudflare.status,
     drive: result.drive.status,
   };
+
+  // Normalize per-channel timestamps so the Sync Center UI reflects the click.
+  // Some engine paths (no-op pulls, merges that don't push) don't advance
+  // lastPushAt/cfLastSyncAt — but for the user's mental model, a successful
+  // manual sync click means "this channel is up to date right now".
+  if (result.firestore.status === 'ok') {
+    if (!state.config.firestoreSync) state.config.firestoreSync = {};
+    state.config.firestoreSync.lastPushAt = finishedAt;
+    if (!state.config.firestoreSync.lastPullAt) {
+      state.config.firestoreSync.lastPullAt = finishedAt;
+    }
+  }
+  if (result.cloudflare.status === 'ok') {
+    state.config.cfLastSyncAt = finishedAt;
+  }
+  if (result.drive.status === 'ok') {
+    state.lastSync = finishedAt;
+  }
   try {
     await saveStateToDB({
       skipCloudSync: true,
