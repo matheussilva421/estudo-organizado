@@ -31,9 +31,13 @@ import {
   addSeqItem,
   openCicloHistory,
 } from '../../views.js?v=8.37';
-import { desfazerEtapa, iniciarEtapaPlanejamento } from '../../logic.js?v=8.37';
+import {
+  desfazerEtapa,
+  iniciarEtapaPlanejamento,
+  resetCicloAndWipeEvents,
+} from '../../logic.js?v=8.37';
 import { showConfirm, showToast } from '../../app.js?v=8.37';
-import { scheduleSave, state } from '../../store.js?v=8.37';
+import { state } from '../../store.js?v=8.37';
 import { renderCurrentView } from '../../components.js?v=8.37';
 import { openEventDetail } from '../../ui/event-modals.js?v=8.37';
 
@@ -131,7 +135,7 @@ registerAction('remover-planejamento', () => {
       horarios: {},
       sequencia: [],
     };
-    scheduleSave();
+    resetCicloAndWipeEvents();
     renderCurrentView();
     showToast('Planejamento removido.', 'info');
   };

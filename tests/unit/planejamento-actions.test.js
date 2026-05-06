@@ -40,7 +40,11 @@ describe('ui/actions/planejamento.js', () => {
       addSeqItem: vi.fn(),
       openCicloHistory: vi.fn(),
     };
-    logicModule = { desfazerEtapa: vi.fn(), iniciarEtapaPlanejamento: vi.fn() };
+    logicModule = {
+      desfazerEtapa: vi.fn(),
+      iniciarEtapaPlanejamento: vi.fn(),
+      resetCicloAndWipeEvents: vi.fn(),
+    };
     appModule = { showConfirm: vi.fn(), showToast: vi.fn() };
     storeModule = { scheduleSave: vi.fn(), state: { planejamento: { ativo: true } } };
     componentsModule = { renderCurrentView: vi.fn() };
@@ -246,5 +250,24 @@ describe('ui/actions/planejamento.js', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'remover-planejamento')[1];
     handler({});
     expect(appModule.showConfirm).toHaveBeenCalled();
+  });
+
+  it('remover-planejamento clears linked planned sessions after confirmation', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'remover-planejamento')[1];
+    handler({});
+
+    const onConfirm = appModule.showConfirm.mock.calls[0][1];
+    onConfirm();
+
+    expect(storeModule.state.planejamento).toMatchObject({
+      ativo: false,
+      tipo: null,
+      disciplinas: [],
+      sequencia: [],
+    });
+    expect(logicModule.resetCicloAndWipeEvents).toHaveBeenCalled();
+    expect(storeModule.scheduleSave).not.toHaveBeenCalled();
+    expect(componentsModule.renderCurrentView).toHaveBeenCalled();
+    expect(appModule.showToast).toHaveBeenCalledWith('Planejamento removido.', 'info');
   });
 });

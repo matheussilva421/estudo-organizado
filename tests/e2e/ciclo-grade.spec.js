@@ -540,4 +540,78 @@ test.describe('Previsão de Sessões (Ciclo)', () => {
     expect(summaryMetrics.summaryOverflows).toBe(false);
     expect(summaryMetrics.dateOverflows).toBe(false);
   });
+
+  test('remover planejamento limpa sessoes previstas do calendario e study organizer', async ({ page }) => {
+    const state = createE2EState();
+    state.planejamento = {
+      ativo: true,
+      tipo: 'ciclo',
+      disciplinas: ['disc_1'],
+      sequencia: [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false }],
+      ciclosCompletos: 0,
+      dataInicioCicloAtual: new Date().toISOString(),
+      horarios: {
+        diasAtivos: [1, 2, 3, 4, 5],
+        horasPorDia: { 1: '02:00', 2: '02:00', 3: '02:00', 4: '02:00', 5: '02:00' },
+      },
+    };
+    state.eventos = [
+      {
+        id: 'ev_pending_seq',
+        titulo: 'Estudar Sessao Planejada',
+        data: '2026-05-05',
+        duracao: 60,
+        status: 'agendado',
+        tempoAcumulado: 0,
+        tipo: 'conteudo',
+        discId: 'disc_1',
+        seqId: 'seq_1',
+      },
+      {
+        id: 'ev_studied_seq',
+        titulo: 'Sessao Ja Estudada',
+        data: '2026-05-05',
+        duracao: 60,
+        status: 'estudei',
+        tempoAcumulado: 1800,
+        tipo: 'conteudo',
+        discId: 'disc_1',
+        seqId: 'seq_1',
+      },
+      {
+        id: 'ev_manual_keep',
+        titulo: 'Evento Manual Mantido',
+        data: '2026-05-05',
+        duracao: 30,
+        status: 'agendado',
+        tempoAcumulado: 0,
+        tipo: 'conteudo',
+        discId: 'disc_1',
+      },
+    ];
+    await seedLegacyState(page, state);
+
+    await page.goto('/');
+    await page.click('[data-view="calendar"]');
+    await expect(page.locator('#topbar-title')).toHaveText('Calendário', { timeout: 10000 });
+    await expect(page.locator('#main-content')).toContainText('Estudar Sessao Planejada');
+
+    await page.click('[data-view="ciclo"]');
+    await expect(page.locator('#topbar-title')).toHaveText('Ciclo de Estudos', { timeout: 10000 });
+    await page.click('[data-action="remover-planejamento"]');
+    await expect(page.locator('#modal-confirm')).toHaveClass(/open/);
+    await page.click('#confirm-ok-btn');
+
+    const remainingIds = await page.evaluate(() => window.state.eventos.map((event) => event.id));
+    expect(remainingIds).not.toContain('ev_pending_seq');
+    expect(remainingIds).toContain('ev_studied_seq');
+    expect(remainingIds).toContain('ev_manual_keep');
+
+    await page.click('[data-view="calendar"]');
+    await expect(page.locator('#main-content')).not.toContainText('Estudar Sessao Planejada');
+    await expect(page.locator('#main-content')).toContainText('Evento Manual Mantido');
+
+    await page.click('[data-view="med"]');
+    await expect(page.locator('#main-content')).not.toContainText('Estudar Sessao Planejada');
+  });
 });
