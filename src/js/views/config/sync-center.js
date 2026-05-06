@@ -454,20 +454,45 @@ function _renderSyncCenterCard() {
   `;
 }
 
+function getChannelManualResult(sourceId) {
+  const results = state.config?.lastManualSyncResults;
+  if (!results) return null;
+  // Map UI source id to result key (firebase → firestore in results)
+  const key = sourceId === 'firebase' ? 'firestore' : sourceId;
+  const status = results[key];
+  if (!status) return null;
+  return { status, at: results.at };
+}
+
 function renderChannelSummaryRow(source) {
   const enabled = source.enabled === true;
-  const hasConflict = !!source.conflict;
-  const lastSync = source.lastSyncAt ? formatBackupDateTime(source.lastSyncAt) : 'nunca';
-  const dotClass = hasConflict
-    ? 'sync-summary-dot--conflict'
-    : enabled
-      ? 'sync-summary-dot--ok'
-      : 'sync-summary-dot--idle';
-  const label = hasConflict
-    ? 'Conflito — abra Avançado'
-    : enabled
-      ? `último sync ${lastSync}`
-      : 'não configurado';
+  const manual = getChannelManualResult(source.id);
+  const hasConflict = !!source.conflict || manual?.status === 'conflict';
+  const lastFailed = manual?.status === 'error';
+
+  let dotClass;
+  let label;
+
+  if (hasConflict) {
+    dotClass = 'sync-summary-dot--conflict';
+    label = 'Conflito — abra Avançado';
+  } else if (lastFailed) {
+    dotClass = 'sync-summary-dot--error';
+    label = `falhou em ${formatBackupDateTime(manual.at)}`;
+  } else if (manual?.status === 'ok') {
+    dotClass = 'sync-summary-dot--ok';
+    label = `sincronizado em ${formatBackupDateTime(manual.at)}`;
+  } else if (enabled) {
+    // Configured but never manually synced in this session — fall back to engine timestamp
+    dotClass = 'sync-summary-dot--ok';
+    label = source.lastSyncAt
+      ? `último sync ${formatBackupDateTime(source.lastSyncAt)}`
+      : 'aguardando primeiro sync';
+  } else {
+    dotClass = 'sync-summary-dot--idle';
+    label = 'não configurado';
+  }
+
   return `
     <div class="sync-summary-row" data-summary-source="${source.id}">
       <span class="sync-summary-dot ${dotClass}" aria-hidden="true"></span>
@@ -479,7 +504,12 @@ function renderChannelSummaryRow(source) {
 
 function renderSourceAdvancedBlock(source) {
   const hasConflict = !!source.conflict;
-  const open = hasConflict ? ' open' : '';
+  const manual = getChannelManualResult(source.id);
+  const lastFailed = manual?.status === 'error' || manual?.status === 'conflict';
+  const open = hasConflict || lastFailed ? ' open' : '';
+  const manualLine = manual
+    ? `<span>Última manual: ${formatBackupDateTime(manual.at)} — ${esc(manual.status)}</span>`
+    : '';
   return `
     <div class="sync-source-card" data-sync-source="${source.id}">
       <div class="sync-source-header">
@@ -493,6 +523,7 @@ function renderSourceAdvancedBlock(source) {
       <div class="sync-source-meta">
         <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
         ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
+        ${manualLine}
       </div>
       ${source.id === 'cloudflare' ? renderCloudflareConfigFields(source) : ''}
       ${source.id === 'drive' && !source.configured ? '' : ''}
