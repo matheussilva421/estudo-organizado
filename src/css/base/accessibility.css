@@ -2,9 +2,13 @@
    ACCESSIBILITY: Skip Links
    ============================================= */
 .skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
+  position: fixed;
+  top: 0;
+  left: 8px;
+  max-width: calc(100vw - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background: var(--accent);
   color: var(--accent-text);
   padding: 8px 16px;
@@ -12,11 +16,14 @@
   text-decoration: none;
   font-weight: 600;
   border-radius: 0 0 4px 0;
-  transition: top 0.2s;
+  transform: translateY(calc(-100% - 8px));
+  pointer-events: none;
+  transition: transform 0.2s;
 }
 
 .skip-link:focus {
-  top: 0;
+  transform: translateY(0);
+  pointer-events: auto;
   outline: 2px solid var(--accent-dark);
   outline-offset: 2px;
 }

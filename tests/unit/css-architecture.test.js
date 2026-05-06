@@ -182,6 +182,16 @@ describe('CSS architecture', () => {
     expect(read('src/css/views/editais-tree.css')).toContain('EDITAL TREE');
   });
 
+  it('keeps skip links hidden without intercepting pointer events until focused', () => {
+    const accessibility = read('src/css/base/accessibility.css');
+
+    expect(accessibility).toMatch(/\.skip-link\s*\{[^}]*position:\s*fixed;/s);
+    expect(accessibility).toMatch(/\.skip-link\s*\{[^}]*transform:\s*translateY\(/s);
+    expect(accessibility).toMatch(/\.skip-link\s*\{[^}]*pointer-events:\s*none;/s);
+    expect(accessibility).toMatch(/\.skip-link:focus\s*\{[^}]*transform:\s*translateY\(0\);/s);
+    expect(accessibility).toMatch(/\.skip-link:focus\s*\{[^}]*pointer-events:\s*auto;/s);
+  });
+
   it('keeps the dark premium theme contracts', () => {
     const tokens = read('src/css/tokens.css');
     const legacyStyles = read('src/css/styles.css');
@@ -322,8 +332,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-expect(html).toContain('css/styles.css?v=8.52');
-    expect(serviceWorker).toContain("APP_VERSION = '8.52'");
+    expect(html).toContain('css/styles.css?v=8.53');
+    expect(serviceWorker).toContain("APP_VERSION = '8.53'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 

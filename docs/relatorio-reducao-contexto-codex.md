@@ -433,3 +433,34 @@ Validacoes desta continuidade:
 
 Plano detalhado de continuidade: `docs/handoff-reducao-contexto-codex.md`.
 Plano da Fase 2: `.sisyphus/plans/reducao-contexto-fase2.md`.
+
+### Revisao Codex apos continuidade de outra IA - 2026-05-06
+
+O estado publicado pela outra IA foi revisado no `main`:
+
+- `src/css/styles.css`: 2487 linhas.
+- `src/js/views.js`: 549 linhas.
+- `src/js/views/editais-crud.js`: 1011 linhas.
+- `src/js/views/med-view.js`: 87 linhas.
+- `src/js/views/historico-view.js`: 177 linhas.
+- `APP_VERSION`: 8.53 apos a correcao desta revisao.
+
+Validacoes executadas nesta revisao:
+
+- `npm run test:css`: 28 testes passando.
+- `npm test`: 77 arquivos, 1294 testes passando.
+- `npm run test:e2e -- tests/e2e/crud-operations.spec.js tests/e2e/persistence-regression.spec.js tests/e2e/planejamento.spec.js tests/e2e/smoke-critical.spec.js`: 19 testes passando.
+- `npm run test:e2e`: 142 testes passando.
+
+Correcoes aplicadas:
+
+- `README_DEV.md` agora lista os modulos CSS e JS extraidos na Fase 2 que ainda faltavam no mapa de arquivos.
+- `.skip-link` deixou de ser oculto por deslocamento fixo de `top: -40px` e agora usa `transform` + `pointer-events: none` enquanto esta escondido. Isso corrige cliques bloqueados em E2E e reduz risco de overflow por texto longo.
+- `src/index.html`, `src/sw.js` e testes de contrato foram alinhados no cache busting `8.53`.
+- `tests/unit/css-architecture.test.js` cobre a regressao dos skip links ocultos.
+
+Pendencias recomendadas:
+
+1. Tratar a Fase 2 como fechada apos CSS, unitarios e E2E release verdes.
+2. Para uma nova fase, criar plano separado antes de mexer em `logic.js`, `app.js` ou nos blocos restantes de `styles.css`.
+3. Preservar `views.js` como fachada; novas extracoes dali devem ser pequenas e orientadas por estado compartilhado.

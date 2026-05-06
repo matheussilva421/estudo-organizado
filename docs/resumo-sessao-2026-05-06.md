@@ -216,3 +216,16 @@ f9249db refactor(views): extract Editais CRUD functions into editais-crud.js
 *31 commits total publicados no GitHub (main).*
 *Push realizado em 2026-05-06: 14 commits enviados para origin/main (fc80e84..a5ec5b9).*
 *Todos os testes passando: 1293/1293.*
+
+---
+
+## Revisao Codex posterior a outra IA
+
+- Estado revisado no commit `4e88bc5` em `main`, alinhado com `origin/main`.
+- Corrigida regressao real encontrada no E2E: `.skip-link` oculto interceptava cliques por usar `top: -40px`; agora fica fora da tela com `transform` e `pointer-events: none`, reativando no foco.
+- `APP_VERSION` e cache busting alinhados para `8.53`.
+- `npm run test:css`: 28/28 passando.
+- `npm test`: 1294/1294 passando.
+- `npm run test:e2e`: 142/142 passando.
+- `README_DEV.md` atualizado para listar todos os modulos CSS/JS extraidos na Fase 2.
+- Fase 2 pode ser considerada fechada. Proxima fase deve ter plano proprio para `logic.js`, `app.js` ou blocos remanescentes de `styles.css`.

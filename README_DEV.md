@@ -112,18 +112,33 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 - `src/css/views/banca.css`: analise de banca.
 - `src/css/views/cronometro.css`: cronometro.
 - `src/css/views/subject-manager.css`: gerenciador de disciplinas.
+- `src/css/views/habitos.css`: cards e historico de habitos.
+- `src/css/views/revisoes.css`: itens e lista de revisoes.
+- `src/css/views/editais-tree.css`: arvore de editais e disciplinas.
 - `src/css/base/accessibility.css`: skip links.
 - `src/css/base/themes.css`: temas premium (`grafite`, `obsidiana`, `contraste`) e overrides tematicos.
 - `src/css/base/layout.css`: layout base, topbar e espacamentos globais.
 - `src/css/base/mobile.css`: helpers touch/mobile, safe-area e scrollbars.
 - `src/css/base/utilities.css`: utilitarios base.
 - `src/css/base/forms.css`: formularios.
+- `src/css/base/animations.css`: keyframes compartilhados (`spin`, skeleton shimmer, fade-in).
 - `src/css/components/buttons.css`: botoes.
 - `src/css/components/cards.css`: cards, estatisticas, event cards e chart container.
 - `src/css/components/status-feedback.css`: progress bar, badges e toasts.
 - `src/css/components/search.css`: barra de busca global, resultados e highlight.
 - `src/css/components/sidebar.css`: sidebar.
+- `src/css/components/modals-shared.css`: base compartilhada de modais.
+- `src/css/components/tabs.css`: abas e conteudo tabulado.
+- `src/css/components/toggle-drag.css`: toggles, drag handles e drag/drop de assuntos.
+- `src/css/components/timer.css`: display compacto de timer.
+- `src/css/components/misc-ui.css`: disc-dot, section header, color picker e blocos auxiliares.
+- `src/css/components/filter-row.css`: linhas de filtro e filter chips.
+- `src/css/components/loading.css`: spinner/loading simples.
+- `src/css/components/skeleton.css`: skeleton loaders.
 - `src/js/views/skeleton-view.js`: skeleton loaders antes concentrados em `src/js/views.js`.
+- `src/js/views/med-view.js`: renderizacao da view MED.
+- `src/js/views/historico-view.js`: historico de sessoes.
+- `src/js/views/editais-crud.js`: CRUD de editais, disciplinas, assuntos e aulas.
 - `src/js/views/config/backup-settings.js`: formatacao e resumo de backup antes concentrados em `src/js/views/config-view.js`.
 - `src/js/views/config/sync-center.js`: renderizacao do sync center e backup center.
 - `src/js/views/config/theme-settings.js`: tema e preferencias.

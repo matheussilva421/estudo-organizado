@@ -1464,3 +1464,38 @@ Existem 6 falhas pre-existentes nao causadas por esta fase:
 - Nao alterar seletores ou propriedades CSS
 - Nao misturar mudanca de produto com mudanca de contexto
 - Nao misturar mudanca de produto com mudanca de contexto
+
+---
+
+## Revisao Codex apos continuidade de outra IA - 2026-05-06
+
+Estado revisado:
+
+- Branch `main` alinhada com `origin/main` no commit `4e88bc5 docs(context): mark session as pushed with test results`.
+- `src/css/styles.css`: 2487 linhas.
+- `src/js/views.js`: 549 linhas.
+- `src/js/views/editais-crud.js`: 1011 linhas.
+- `src/js/views/med-view.js`: 87 linhas.
+- `src/js/views/historico-view.js`: 177 linhas.
+- `src/sw.js`: `APP_VERSION = 8.53` apos a correcao desta revisao.
+
+Verificacoes executadas nesta revisao:
+
+- `npm run test:css`: 28 testes passando.
+- `npm test`: 77 arquivos, 1294 testes passando.
+- `npm run test:e2e -- tests/e2e/crud-operations.spec.js tests/e2e/persistence-regression.spec.js tests/e2e/planejamento.spec.js tests/e2e/smoke-critical.spec.js`: 19 testes passando.
+- `npm run test:e2e`: 142 testes passando.
+
+Correcoes aplicadas nesta revisao:
+
+- `README_DEV.md` foi atualizado para listar os modulos CSS e JS extraidos na Fase 2 que ainda nao apareciam no mapa de arquivos: `modals-shared`, `tabs`, `toggle-drag`, `timer`, `misc-ui`, `filter-row`, `loading`, `skeleton`, `animations`, `habitos`, `revisoes`, `editais-tree`, `med-view`, `historico-view` e `editais-crud`.
+- A auditoria E2E encontrou uma regressao real: `.skip-link` ficava visualmente escondido por `top: -40px`, mas ainda interceptava cliques quando o texto era alto/largo. A correcao mudou o padrao para `position: fixed`, `transform: translateY(...)`, `pointer-events: none` enquanto oculto e `pointer-events: auto` no foco.
+- `src/index.html`, `src/sw.js` e testes de contrato foram alinhados para cache busting `8.53`.
+- `tests/unit/css-architecture.test.js` ganhou regressao para impedir que skip links ocultos voltem a capturar cliques.
+
+O que falta fazer:
+
+1. Considerar a Fase 2 fechada: CSS, unitarios e E2E release estao verdes apos a revisao.
+2. Iniciar nova fase apenas com plano novo. Candidatos: modularizar `src/js/logic.js` (~1161 linhas), modularizar `src/js/app.js` (~605 linhas) ou fazer uma rodada CSS especifica para calendar/home/ciclo ainda remanescentes em `src/css/styles.css`.
+3. Nao continuar extraindo `src/js/views.js` sem novo plano pequeno: o arquivo ja virou fachada + ciclo/sequencia/DnD, e novas extracoes podem envolver estado compartilhado.
+4. Manter `test:e2e:all` como investigativo; o gate de release segue sendo `npm run test:e2e`.
