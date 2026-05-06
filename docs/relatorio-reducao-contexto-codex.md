@@ -355,8 +355,30 @@ Validacoes desta continuidade:
 
 ## Proximos hotspots estruturais
 
-- `src/css/styles.css` (3289 linhas nesta branch) - ainda pode ser reduzido extraindo mobile, etc.
-- `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
+### Continuidade em 2026-05-06 - extracao de helpers mobile
+
+- Movido blocos de touch feedback, touch targets (WCAG 44px), safe-area-inset e hide custom scrollbars de `src/css/styles.css` para `src/css/base/mobile.css`.
+- `src/css/styles.css` continua com todos os `@import` no topo; o import de mobile fica logo apos `./components/search.css`.
+- `src/sw.js` passou a precachear `./css/base/mobile.css`.
+- `tests/unit/css-architecture.test.js` foi atualizado para exigir o novo modulo e manter o contrato de imports antes de regras CSS.
+- `README_DEV.md` foi atualizado com o novo mapa de modulo.
+
+Reducao desta fatia:
+
+| Arquivo | Antes | Depois | Observacao |
+|---------|-------|--------|------------|
+| `src/css/styles.css` | 3289 | 3224 | -65 linhas nesta continuidade |
+| `src/css/base/mobile.css` | 0 | 49 | novo modulo mobile |
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 1 arquivo, 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 1 arquivo, 27 testes passando.
+
+## Proximos hotspots estruturais
+
+- `src/css/styles.css` (3224 linhas nesta branch) - ainda contem modais, tabelas, tipografia, filtros, etc.
+- `src/js/views.js` (2062 linhas) — proximo alvo de extracao.
 - `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/logic.js` e `src/js/app.js` — nao foram atacados nesta fase.
 - `src/js/components.js` — potencial para extracao de componentes reutilizaveis.

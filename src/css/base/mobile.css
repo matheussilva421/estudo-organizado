@@ -1,0 +1,66 @@
+/* Touch feedback on interactive elements */
+@media (hover: none) and (pointer: coarse) {
+  .btn:active,
+  .nav-item:active,
+  .cal-cell:active,
+  .tab-btn:active,
+  .icon-btn:active,
+  .wizard-box:active,
+  .card[onclick]:active,
+  .disc-card:active {
+    opacity: 0.7;
+    transform: scale(0.97);
+    transition:
+      transform 0.1s,
+      opacity 0.1s;
+  }
+}
+
+/* Touch targets: WCAG 44px minimum */
+@media (pointer: coarse) {
+  .cal-nav button {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+  }
+
+  .icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .modal-close {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Safe-area-inset for notched devices */
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+.toast-container {
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  right: calc(20px + env(safe-area-inset-right));
+}
+
+#sidebar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Hide custom scrollbars on touch devices */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  * {
+    scrollbar-width: none;
+  }
+}

@@ -90,6 +90,7 @@ describe('CSS architecture', () => {
       'base/accessibility.css',
       'base/themes.css',
       'base/layout.css',
+      'base/mobile.css',
       'components/cards.css',
       'components/status-feedback.css',
       'components/search.css'
@@ -117,6 +118,7 @@ describe('CSS architecture', () => {
       "@import './components/cards.css';",
       "@import './components/status-feedback.css';",
       "@import './components/search.css';",
+      "@import './base/mobile.css';",
       "@import './base/utilities.css';",
       "@import './base/forms.css';"
     ].join('\n');
@@ -133,6 +135,8 @@ describe('CSS architecture', () => {
     expect(read('src/css/components/status-feedback.css')).toContain('BADGE');
     expect(read('src/css/components/search.css')).toContain('SEARCH BAR');
     expect(read('src/css/components/search.css')).toContain('button.search-item');
+    expect(read('src/css/base/mobile.css')).toContain('Touch feedback');
+    expect(read('src/css/base/mobile.css')).toContain('Touch targets');
   });
 
   it('keeps the dark premium theme contracts', () => {

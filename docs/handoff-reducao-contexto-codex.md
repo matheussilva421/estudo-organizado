@@ -1285,10 +1285,38 @@ Validacoes desta continuidade:
 - `npm run test:css`: 27 testes passando.
 - `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
 
+## Continuidade executada em 2026-05-06 - extracao de helpers mobile
+
+Arquivos alterados nesta continuidade:
+
+- `src/css/styles.css` (reduzido de 3289 para 3224 linhas)
+- `src/css/base/mobile.css` (novo modulo com 49 linhas)
+- `src/sw.js`
+- `tests/unit/css-architecture.test.js`
+- `README_DEV.md`
+
+O que foi feito:
+
+- Movido blocos de touch feedback, touch targets (WCAG 44px), safe-area-inset e hide custom scrollbars de `src/css/styles.css` para `src/css/base/mobile.css`.
+- `styles.css` continua com todos os `@import` no topo; o import de mobile fica logo apos `./components/search.css`.
+- `src/sw.js` agora precacheia `./css/base/mobile.css`.
+- `tests/unit/css-architecture.test.js` cobre a existencia do modulo, a ordem de import e os marcadores `Touch feedback` e `Touch targets`.
+- `README_DEV.md` atualizado com o novo modulo.
+
+Reducao desta fatia:
+
+- `src/css/styles.css`: 3289 -> 3224 linhas.
+- `src/css/base/mobile.css`: novo modulo com 49 linhas.
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
+
 Proxima IA deve continuar em:
 
-1. Task 5 do plano: extrair `base/mobile.css` de `src/css/styles.css`.
-2. Manter `@import` no topo de `styles.css` e atualizar `src/sw.js` a cada extracao.
+1. Task 6 do plano: extrair `renderDashboard()` de `src/js/views.js` para `src/js/views/dashboard-view.js`.
+2. Manter fachada publica em `views.js` com re-export.
 
 ## Plano detalhado de continuidade em 2026-05-06
 
