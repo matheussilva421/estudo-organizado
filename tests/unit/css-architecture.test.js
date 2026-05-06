@@ -90,9 +90,10 @@ describe('CSS architecture', () => {
       'base/accessibility.css',
       'base/themes.css',
       'base/layout.css',
-    'base/mobile.css',
-    'components/modals-shared.css',
-    'components/cards.css',
+      'base/mobile.css',
+      'components/modals-shared.css',
+      'components/tabs.css',
+      'components/cards.css',
       'components/status-feedback.css',
       'components/search.css'
     ]) {
@@ -120,9 +121,11 @@ describe('CSS architecture', () => {
       "@import './components/status-feedback.css';",
       "@import './components/search.css';",
       "@import './components/modals-shared.css';",
+      "@import './components/tabs.css';",
       "@import './base/mobile.css';",
       "@import './base/utilities.css';",
       "@import './base/forms.css';"
+
     ].join('\n');
 
     expect(legacyStyles.startsWith(`${importBlock}\n\n`)).toBe(true);
@@ -141,6 +144,7 @@ describe('CSS architecture', () => {
     expect(read('src/css/base/mobile.css')).toContain('Touch targets');
     expect(read('src/css/components/modals-shared.css')).toContain('MODAL');
     expect(read('src/css/components/modals-shared.css')).toContain('DRIVE MODAL');
+    expect(read('src/css/components/tabs.css')).toContain('TABS');
   });
 
   it('keeps the dark premium theme contracts', () => {
@@ -283,8 +287,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-expect(html).toContain('css/styles.css?v=8.44');
-    expect(serviceWorker).toContain("APP_VERSION = '8.44'");
+expect(html).toContain('css/styles.css?v=8.45');
+    expect(serviceWorker).toContain("APP_VERSION = '8.45'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 

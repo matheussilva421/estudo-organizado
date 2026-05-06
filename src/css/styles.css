@@ -7,6 +7,7 @@
 @import './components/status-feedback.css';
 @import './components/search.css';
 @import './components/modals-shared.css';
+@import './components/tabs.css';
 @import './base/mobile.css';
 @import './base/utilities.css';
 @import './base/forms.css';
@@ -259,46 +260,6 @@ button.cal-event-chip:focus-visible {
 .vertical-disc-header-main,
 .vertical-disc-header-meta {
   min-width: 0;
-}
-
-/* TABS */
-.tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 20px;
-}
-
-.tab-btn {
-  padding: 10px 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition:
-    transform 0.2s,
-    background-color 0.2s,
-    opacity 0.2s,
-    color 0.2s,
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
-.tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
 }
 
 /* DISCIPLINE COLOR CIRCLES */
