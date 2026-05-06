@@ -1424,22 +1424,43 @@ Existem 6 falhas pre-existentes nao causadas por esta fase:
 2. `views-modules.test.js` (2 falhas): Mesmo problema de mock state para `renderHistoricoSessoes`.
 3. `views-dashboard.test.js`: `renderMED() > renders scheduled events section` — mesmo problema.
 
-**Nota**: Estas falhas ja existiam antes da Fase 2 e devem ser corrigidas antes de extrair mais funcoes de `views.js`.
+**Nota**: **CORRIGIDO** — Os 6 testes que falhavam foram corrigidos adicionando `?v=8.37` aos imports dos modulos extraidos (`med-view.js`, `historico-view.js`). Commit `6cd78ac`.
 
 ### Proxima IA deve continuar em
 
-1. **Corrigir testes pre-existentes** (views-dashboard.test.js, views-modules.test.js) antes de qualquer nova extracao JS
-2. **Task 11 do plano**: Extrair Editais CRUD de `views.js` para `views/editais-crud.js` (cuidado: shared state `editingSubjectCtx`/`editingDiscCtx`)
-3. **Task 8 completada**: Todas as secoes menores de CSS foram extraidas
-4. **Documentacao**: Atualizar `README_DEV.md` se necessario
-5. **Final Verification Wave**: F1-F4 (auditoria de plano, qualidade, QA manual, fidelidade)
+1. **Task 11 COMPLETADA**: Editais CRUD extraido para `views/editais-crud.js` (1011 linhas, 28 funcoes, estado compartilhado)
+2. **Final Verification Wave**: F1-F4 (auditoria de plano, qualidade, QA manual, fidelidade)
+3. **Potenciais proximos alvos** (nao obrigatorios):
+   - Extrair ciclo/sequencia operations de `views.js` (~200 linhas restantes)
+   - Extrair seletores MED de `styles.css` (arriscado devido a `@media` blocks espalhados)
+   - Modularizar `logic.js` (~1161 linhas) ou `app.js` (~605 linhas)
+
+### Estado Atual do Repo
+
+| Arquivo | Linhas | Status |
+|---------|--------|--------|
+| `src/css/styles.css` | ~2487 | Aguardando extracao de calendar, home cards, ciclo/grade |
+| `src/js/views.js` | **549** | Fachada com re-exports; ciclo/sequencia e DnD ainda aqui |
+| `src/js/views/editais-crud.js` | 1011 | Novo modulo CRUD completo |
+| `src/js/views/med-view.js` | 93 | Extraido |
+| `src/js/views/historico-view.js` | 182 | Extraido |
+
+**Testes**: 1293/1293 passando
+**APP_VERSION**: 8.52
+
+### Commits adicionais desta continuacao
+
+| Commit | Tipo | Descricao |
+|--------|------|-----------|
+| `6cd78ac` | fix(views) | add cache-busting query string to imports |
+| `354dfac` | docs(context) | update documentation with Fase 2 extractions |
+| `f9249db` | refactor(views) | extract Editais CRUD into editais-crud.js |
 
 ### Guardrails para a proxima rodada
 
-- Corrigir mocks de teste antes de extrair mais funcoes JS
-- `editingSubjectCtx`/`editingDiscCtx` devem ser extraidos junto com as funcoes que os usam
 - Cada extracao = commit separado com APP_VERSION bumped
-- `css-architecture.test.js` atualizado para cada novo modulo
+- `css-architecture.test.js` atualizado para cada novo modulo CSS
 - `views.js` mantem re-exports de todas as funcoes extraidas
 - Nao alterar seletores ou propriedades CSS
+- Nao misturar mudanca de produto com mudanca de contexto
 - Nao misturar mudanca de produto com mudanca de contexto

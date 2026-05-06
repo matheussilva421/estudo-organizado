@@ -91,7 +91,7 @@ e2b1fc8 docs(context): update handoff with wave 3-6 extraction results
 
 ## APP_VERSION
 
-`8.37` → **8.43** (6 bumps ao longo das extracoes)
+`8.37` → **8.52** (15 bumps ao longo das extracoes)
 
 ---
 
@@ -166,5 +166,51 @@ ca571f6 refactor(css): extract remaining small UI blocks
 
 ---
 
+---
+
+## Continuacao da Sessao — Correcao de Testes e Extraçao Editais CRUD
+
+### Commits Realizados (3 commits adicionais)
+
+```
+6cd78ac fix(views): add cache-busting query string to imports in extracted view modules
+354dfac docs(context): update documentation with Fase 2 extractions and metrics
+f9249db refactor(views): extract Editais CRUD functions into editais-crud.js
+```
+
+### Correcao de Testes Pre-existentes
+
+- **Problema**: `med-view.js` e `historico-view.js` importavam `../store.js` sem `?v=8.37`, causando falha nos mocks dos testes
+- **Solucao**: Adicionado `?v=8.37` aos imports para alinhar com o sistema de cache-busting
+- **Resultado**: 6 testes que falhavam agora passam (1293/1293)
+
+### Arquivos JS Extraidos (1 novo arquivo)
+
+1. `src/js/views/editais-crud.js` — 28 funcoes CRUD + estado compartilhado (1011 linhas)
+   - `toggleEdital`, `toggleAssunto`, `toggleAulaDashboard`
+   - `openDiscDashboard`, `closeDiscDashboard`, `switchDashboardTab`
+   - `deleteAssunto`, `deleteDisc`, `deleteEdital`
+   - `openEditaModal`, `selectColor`, `saveEdital`, `moveEdital`
+   - `openDiscModal`, `selectIcon`, `selectDiscColor`, `saveDisc`
+   - `saveDiscManager`, `moveSubject`, `openDiscManager`, `switchManagerTab`
+   - `editSubjectInline`, `editLessonInline`, `toggleAulaEstudada`
+   - `addBulkAulas`, `addAssunto`, `deleteAula`, `runLessonMapperUI`
+   - Estado compartilhado: `editingSubjectCtx`, `editingDiscCtx`
+
+### Reduçao de Linhas (Total da Sessao)
+
+| Arquivo | Antes (baseline) | Depois | Reduçao |
+|---------|-----------------|--------|---------|
+| `src/css/styles.css` | 3224 | **2487** | -23% |
+| `src/js/views.js` | 1927 | **549** | **-71%** |
+
+### Resultados dos Testes (Final)
+
+- `npm run test:css`: **27/27** passando
+- `npm test`: **1293/1293** passando (100%)
+- APP_VERSION: **8.52**
+
+---
+
 *Sessao executada por Sisyphus em 2026-05-06.*
-*28 commits total publicados no GitHub (main).**
+*31 commits total publicados no GitHub (main).*

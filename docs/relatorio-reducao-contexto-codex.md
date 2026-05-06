@@ -400,21 +400,29 @@ Validacoes desta continuidade:
 
 ## Proximos hotspots estruturais
 
-### Estado apos Fase 2 (2026-05-06)
+### Estado apos Fase 2 completa (2026-05-06)
 
 | Arquivo | Linhas atuais | Reducao total desde o inicio |
 |---------|---------------|------------------------------|
 | `src/css/styles.css` | ~2487 | -23% (de 3224) |
-| `src/js/views.js` | ~1686 | -12% (de 1927) |
+| `src/js/views.js` | **549** | **-71%** (de 1927) |
 
 **CSS restante em `styles.css` (~2487 linhas)**:
 - Calendar, home cards, ciclo/grade sections, responsive blocks
 - Seletores MED espalhados em multiplos `@media` blocks (extraçao arriscada)
 
-**JS restante em `views.js` (~1686 linhas)**:
-- Editais CRUD (~600 linhas, shared state `editingSubjectCtx`/`editingDiscCtx`)
-- Ciclo/sequencia operations
-- Event modal helpers
+**JS restante em `views.js` (549 linhas)**:
+- Ciclo/sequencia operations (~200 linhas)
+- Event modal helpers (~50 linhas)
+- DnD handlers (~80 linhas)
+- Re-exports e wrappers (~100 linhas)
+
+**Novos modulos extraidos nesta sessao:**
+- `src/js/views/editais-crud.js` (1011 linhas) — 28 funcoes CRUD + estado compartilhado
+- `src/js/views/med-view.js` (93 linhas) — renderMED + helpers
+- `src/js/views/historico-view.js` (182 linhas) — renderHistoricoSessoes
+
+**Testes**: 1293/1293 passando
 
 **Outros arquivos grandes nao atacados**:
 - `src/js/logic.js` (~1161 linhas)
