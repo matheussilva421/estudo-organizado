@@ -9,21 +9,13 @@
 @import './components/modals-shared.css';
 @import './components/tabs.css';
 @import './components/toggle-drag.css';
+@import './components/timer.css';
 @import './views/habitos.css';
 @import './views/revisoes.css';
 @import './views/editais-tree.css';
 @import './base/mobile.css';
 @import './base/utilities.css';
 @import './base/forms.css';
-
-/* TIMER */
-.timer-display {
-  font-family: 'DM Mono', monospace;
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--text-primary);
-  letter-spacing: 2px;
-}
 
 /* CALENDAR */
 .cal-header {

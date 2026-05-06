@@ -1,0 +1,11 @@
+/* =============================================
+   TIMER
+   ============================================= */
+
+.timer-display {
+  font-family: 'DM Mono', monospace;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 2px;
+}
