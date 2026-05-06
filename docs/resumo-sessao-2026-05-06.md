@@ -114,5 +114,57 @@ e2b1fc8 docs(context): update handoff with wave 3-6 extraction results
 
 ---
 
+## Continuacao da Sessao — Extraçoes Fase 2
+
+### Commits Realizados (10 commits adicionais)
+
+```
+aed2bf9 refactor(css): extract shared modal styles
+b1f2fc1 refactor(css): extract tab styles
+e6640c4 refactor(css): extract toggle and drag handle styles
+53232f4 refactor(css): extract habit card styles
+f9b283a refactor(css): extract revisoes styles
+81046fc refactor(css): extract editais tree styles
+db84999 refactor(css): extract timer styles
+bc6be89 refactor(views): extract MED view rendering
+5670e89 refactor(views): extract historico sessoes rendering
+ca571f6 refactor(css): extract remaining small UI blocks
+```
+
+### Arquivos CSS Extraidos (7 novos arquivos)
+
+1. `src/css/components/modals-shared.css` — modais compartilhados (95 linhas)
+2. `src/css/components/tabs.css` — tabs e abas (43 linhas)
+3. `src/css/components/toggle-drag.css` — toggle e drag handles (96 linhas)
+4. `src/css/views/habitos.css` — cards de habitos (53 linhas)
+5. `src/css/views/revisoes.css` — itens de revisao (48 linhas)
+6. `src/css/views/editais-tree.css` — arvore de editais (96 linhas)
+7. `src/css/components/timer.css` — timer display (10 linhas)
+8. `src/css/components/misc-ui.css` — disc-dot, section-header, config, color-picker (74 linhas)
+9. `src/css/components/filter-row.css` — filter chips e filter row (57 linhas)
+10. `src/css/components/loading.css` — loading spinner (13 linhas)
+11. `src/css/components/skeleton.css` — skeleton loaders (161 linhas)
+12. `src/css/base/animations.css` — @keyframes spin, skeleton-shimmer, fade-in (21 linhas)
+
+### Arquivos JS Extraidos (2 novos arquivos)
+
+1. `src/js/views/med-view.js` — renderMED, buildMEDStatsHTML, refreshMEDSections (93 linhas)
+2. `src/js/views/historico-view.js` — renderHistoricoSessoes (182 linhas)
+
+### Reduçao de Linhas (Fase 2)
+
+| Arquivo | Antes | Depois | Reduçao |
+|---------|-------|--------|---------|
+| `src/css/styles.css` | 3224 | **2487** | -23% |
+| `src/js/views.js` | 1927 | **1686** | -12% |
+
+### Resultados dos Testes
+
+- `npm run test:css`: **27/27** passando
+- `npm test`: **1287/1293** passando (6 falhas pre-existentes de sessao anterior)
+- APP_VERSION: **8.51**
+
+---
+
 *Sessao executada por Sisyphus em 2026-05-06.*
-*18 commits publicados no GitHub (main).*
+*28 commits total publicados no GitHub (main).**

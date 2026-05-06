@@ -400,11 +400,28 @@ Validacoes desta continuidade:
 
 ## Proximos hotspots estruturais
 
-- `src/css/styles.css` (3224 linhas nesta branch) - ainda contem modais, tabelas, tipografia, filtros, etc.
-- `src/js/views.js` (1927 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
-- `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
-- `src/js/logic.js` e `src/js/app.js` — nao foram atacados nesta fase.
-- `src/js/components.js` — potencial para extracao de componentes reutilizaveis.
-- matriz E2E completa (`test:e2e:all`), que continua sendo investigativa e inclui `chromium` + `mock`; o gate release Chromium ja esta estavel em `test:e2e`.
+### Estado apos Fase 2 (2026-05-06)
 
-Plano detalhado de continuidade para outra IA: `docs/handoff-reducao-contexto-codex.md`.
+| Arquivo | Linhas atuais | Reducao total desde o inicio |
+|---------|---------------|------------------------------|
+| `src/css/styles.css` | ~2487 | -23% (de 3224) |
+| `src/js/views.js` | ~1686 | -12% (de 1927) |
+
+**CSS restante em `styles.css` (~2487 linhas)**:
+- Calendar, home cards, ciclo/grade sections, responsive blocks
+- Seletores MED espalhados em multiplos `@media` blocks (extraçao arriscada)
+
+**JS restante em `views.js` (~1686 linhas)**:
+- Editais CRUD (~600 linhas, shared state `editingSubjectCtx`/`editingDiscCtx`)
+- Ciclo/sequencia operations
+- Event modal helpers
+
+**Outros arquivos grandes nao atacados**:
+- `src/js/logic.js` (~1161 linhas)
+- `src/js/app.js` (~605 linhas)
+- `src/js/components.js` (~514 linhas)
+
+**Matriz E2E**: Gate release `test:e2e` estavel em Chromium. `test:e2e:all` continua investigativo.
+
+Plano detalhado de continuidade: `docs/handoff-reducao-contexto-codex.md`.
+Plano da Fase 2: `.sisyphus/plans/reducao-contexto-fase2.md`.
