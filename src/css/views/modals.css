@@ -1,0 +1,174 @@
+/* === Modal Styles === */
+
+.modal-sm {
+  max-width: 380px;
+}
+
+.modal-md {
+  max-width: 600px;
+}
+
+.modal-lg {
+  max-width: 720px;
+  max-height: 90vh;
+}
+
+.modal-xl {
+  width: 800px;
+  max-width: 95%;
+}
+
+.modal-confirm-header {
+  padding: 16px 20px 12px;
+}
+
+.modal-confirm-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-confirm-body {
+  padding: 12px 20px 16px;
+}
+
+.modal-confirm-msg {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.modal-confirm-footer {
+  padding: 12px 20px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.modal-dark-header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-dark-title {
+  color: var(--text-primary);
+}
+
+.modal-scrollable-body {
+  overflow-y: auto;
+  max-height: calc(90vh - 140px);
+  padding: 0;
+}
+
+.modal-scrollable-body-padded {
+  padding: 24px;
+  min-height: 350px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modal-footer-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  padding: 16px 24px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.modal-footer-end {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.modal-dark-footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  text-align: right;
+}
+
+.modal-prompt-footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.modal-prompt {
+  width: 400px;
+  max-width: 90%;
+}
+
+/* Modal footer standard */
+.modal-footer-standard {
+  padding: 16px 0 0;
+  border-top: 1px solid var(--border);
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* =============================================
+   Event Modal (Add/Edit Study Event)
+   ============================================= */
+
+.event-form-group--hidden {
+  display: none;
+}
+
+.event-form-label--inline {
+  display: flex;
+  align-items: center;
+}
+
+.event-form-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.event-form-details {
+  margin-bottom: 12px;
+}
+
+.event-form-details summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.event-form-details-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.event-form-group--compact {
+  margin-bottom: 0;
+}
+
+.modal-footer-standard--padded {
+  padding: 16px 0 0;
+  border-top: 1px solid var(--border);
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Modal body padding */
+.modal-body-padded {
+  padding: 16px;
+}
