@@ -267,9 +267,30 @@ Validacoes desta continuidade:
 - `npm test`: 77 arquivos, 1293 testes passando.
 - `npm run test:e2e`: 142 testes passando.
 
+### Continuidade em 2026-05-06 - extracao de layout base
+
+- Extraido bloco de layout base (`*`, `body`, `#main`, `.topbar`, `.save-status`, `.sync-status`, `#sync-now-btn`, `#content`, `#main-content`, `.disc-dashboard-shell`, `.banca-analyzer-shell` e media queries) de `src/css/styles.css` para `src/css/base/layout.css`.
+- `src/css/styles.css` continua com todos os `@import` no topo; o import de layout fica logo apos `./base/themes.css`.
+- `src/sw.js` passou a precachear `./css/base/layout.css`.
+- `tests/unit/css-architecture.test.js` foi atualizado para exigir o novo modulo, validar a ordem de imports e o marcador `MAIN CONTENT`.
+- `README_DEV.md` foi atualizado com o novo mapa de modulo.
+
+Reducao desta fatia:
+
+| Arquivo | Antes | Depois | Observacao |
+|---------|-------|--------|------------|
+| `src/css/styles.css` | 4123 | 3789 | -334 linhas nesta continuidade |
+| `src/css/base/layout.css` | 0 | 335 | novo modulo de layout base |
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 1 arquivo, 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 1 arquivo, 27 testes passando.
+
 ## Proximos hotspots estruturais
 
-- `src/css/styles.css` (4123 linhas nesta branch) - ainda pode ser reduzido extraindo layout, tipografia, tabelas, cards, etc.
+- `src/css/styles.css` (3789 linhas nesta branch) - ainda pode ser reduzido extraindo cards, feedback visual, busca, mobile, etc.
+- `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/views.js` (2062 linhas) — ainda pode ser reduzido extraindo mais renderizadores.
 - `src/js/logic.js` e `src/js/app.js` — nao foram atacados nesta fase.
 - `src/js/components.js` — potencial para extracao de componentes reutilizaveis.

@@ -114,6 +114,7 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 - `src/css/views/subject-manager.css`: gerenciador de disciplinas.
 - `src/css/base/accessibility.css`: skip links.
 - `src/css/base/themes.css`: temas premium (`grafite`, `obsidiana`, `contraste`) e overrides tematicos.
+- `src/css/base/layout.css`: layout base, topbar e espacamentos globais.
 - `src/css/base/utilities.css`: utilitarios base.
 - `src/css/base/forms.css`: formularios.
 - `src/css/components/buttons.css`: botoes.

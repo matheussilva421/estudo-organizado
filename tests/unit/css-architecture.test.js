@@ -88,7 +88,8 @@ describe('CSS architecture', () => {
       'components.css',
       'views.css',
       'base/accessibility.css',
-      'base/themes.css'
+      'base/themes.css',
+      'base/layout.css'
     ]) {
       expect(existsSync(join(cssDir, filename))).toBe(true);
     }
@@ -107,6 +108,7 @@ describe('CSS architecture', () => {
     const importBlock = [
       "@import './base/accessibility.css';",
       "@import './base/themes.css';",
+      "@import './base/layout.css';",
       "@import './components/sidebar.css';",
       "@import './components/buttons.css';",
       "@import './base/utilities.css';",
@@ -117,6 +119,7 @@ describe('CSS architecture', () => {
     expect(legacyStyles.slice(importBlock.length)).not.toMatch(/^@import/m);
     expect(read('src/css/base/accessibility.css')).toContain('.skip-link:focus');
     expect(read('src/css/base/themes.css')).toContain("DARK PREMIUM THEME LIBRARY");
+    expect(read('src/css/base/layout.css')).toContain('MAIN CONTENT');
   });
 
   it('keeps the dark premium theme contracts', () => {

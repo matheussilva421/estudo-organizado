@@ -1173,6 +1173,39 @@ Proxima IA deve continuar em:
 2. Se seguir em CSS, continuar Task 4 com layout, tipografia, tabelas ou cards em `src/css/styles.css`.
 3. A cada novo CSS importado por `styles.css`, manter `@import` no topo e atualizar `src/sw.js`.
 
+## Continuidade executada em 2026-05-06 - extracao de layout base
+
+Arquivos alterados nesta continuidade:
+
+- `src/css/styles.css` (reduzido de 4123 para 3789 linhas)
+- `src/css/base/layout.css` (novo modulo com 335 linhas)
+- `src/sw.js`
+- `tests/unit/css-architecture.test.js`
+- `README_DEV.md`
+
+O que foi feito:
+
+- Movido bloco de layout base (`*`, `body`, `#main`, `.topbar`, `.save-status`, `.sync-status`, `#sync-now-btn`, `#content`, `#main-content`, `.disc-dashboard-shell`, `.banca-analyzer-shell` e media queries associadas) de `src/css/styles.css` para `src/css/base/layout.css`.
+- `styles.css` continua com todos os `@import` no topo; o import de layout fica logo apos `./base/themes.css`.
+- `src/sw.js` agora precacheia `./css/base/layout.css`.
+- `tests/unit/css-architecture.test.js` cobre a existencia do modulo de layout, a ordem de import e o marcador `MAIN CONTENT`.
+- `README_DEV.md` atualizado com o novo modulo.
+
+Reducao desta fatia:
+
+- `src/css/styles.css`: 4123 -> 3789 linhas.
+- `src/css/base/layout.css`: novo modulo com 335 linhas.
+
+Validacoes desta continuidade:
+
+- `npm run test:css`: 27 testes passando.
+- `npm run test:unit -- tests/unit/action-contracts.test.js`: 27 testes passando.
+
+Proxima IA deve continuar em:
+
+1. Task 2 do plano: extrair `components/cards.css` de `src/css/styles.css`.
+2. Manter `@import` no topo de `styles.css` e atualizar `src/sw.js` a cada extracao.
+
 ## Plano detalhado de continuidade em 2026-05-06
 
 Plano criado para a proxima fase:
