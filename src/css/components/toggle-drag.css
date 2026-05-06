@@ -1,0 +1,88 @@
+/* =============================================
+   TOGGLE
+   ============================================= */
+
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle {
+  width: 40px;
+  height: 22px;
+  background: var(--border);
+  border-radius: 100px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle.on {
+  background: var(--accent);
+}
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-text);
+  /* Cor contrastante com o fundo do toggle ativado */
+  transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle.on::after {
+  left: 21px;
+}
+
+/* =============================================
+   DRAG HANDLES
+   ============================================= */
+
+.drag-handle {
+  color: var(--text-muted);
+  cursor: grab;
+  font-size: 14px;
+  padding: 4px;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* =============================================
+   UX 3 — DRAG AND DROP ASSUNTOS
+   ============================================= */
+
+.tree-assunto[draggable] {
+  cursor: default;
+}
+
+.tree-assunto.drag-over {
+  background: var(--accent-light) !important;
+  border-top: 2px solid var(--accent);
+}
+
+.tree-assunto.dragging {
+  opacity: 0.35;
+  background: var(--card-hover);
+}
+
+.drag-handle-icon {
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 0 3px 0 0;
+  cursor: grab;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.drag-handle-icon:active {
+  cursor: grabbing;
+}
