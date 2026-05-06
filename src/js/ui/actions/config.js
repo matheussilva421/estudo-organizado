@@ -42,7 +42,7 @@ import {
   resolveEntityConflictKeepRemote,
 } from '../../sync/firestore-sync-engine.js?v=8.37';
 import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.37';
-import { primarySyncLock } from '../../sync/sync-lock.js?v=8.37';
+import { syncAllChannels, isManualSyncRunning } from '../../sync/manual-sync.js?v=8.37';
 import {
   syncWithDrive,
   pullFromDrive,
@@ -248,42 +248,21 @@ registerAction('toggle-global-sync', () => {
     paused ? 'info' : 'success'
   );
 });
-registerAction('toggle-auto-sync', () => {
-  if (!state.config) state.config = {};
-  const paused = state.config.globalSyncPaused !== true;
-  state.config.globalSyncPaused = paused;
-  scheduleSave();
-  document.dispatchEvent(
-    new CustomEvent('app:globalSyncPauseChanged', {
-      detail: { paused },
-    })
-  );
-  document.dispatchEvent(
-    new CustomEvent('app:primarySyncStatus', {
-      detail: { status: paused ? 'paused' : 'idle', reason: 'global-toggle' },
-    })
-  );
-  showToast(
-    paused
-      ? 'Sync global pausado. O salvamento local continua ativo.'
-      : 'Sync global retomado. O app voltará a sincronizar automaticamente.',
-    paused ? 'info' : 'success'
-  );
-  renderCurrentView();
-});
-registerAction('sync-now', async () => {
+async function runManualSync(trigger) {
+  if (isManualSyncRunning()) {
+    showToast('Sincronização já em andamento.', 'info');
+    return;
+  }
+
   if (!navigator.onLine) {
     showToast('Sem conexão. Sincronize quando estiver online.', 'info');
     return;
   }
 
-  const firestoreStatus = getFirestoreSyncStatus();
-  const hasFirestore = firestoreStatus?.configured && firestoreStatus?.signedIn;
-  const hasCloudflare = Boolean(
-    state.config?.cfUrl && state.config?.cfToken && state.config?.cfSyncEnabled
-  );
+  const result = await syncAllChannels({ trigger });
+  const { summary } = result;
 
-  if (!hasFirestore && !hasCloudflare) {
+  if (summary.overall === 'no-channels') {
     showToast(
       'Nenhum canal de sincronização configurado. Vá em Configurações → Central de Sincronização.',
       'info'
@@ -291,59 +270,44 @@ registerAction('sync-now', async () => {
     return;
   }
 
-  // Double-click protection: check if a sync is already in progress
-  if (primarySyncLock.isLocked) {
-    showToast('Sincronização já em andamento.', 'info');
+  if (summary.overall === 'offline') {
+    showToast('Sem conexão. Sincronize quando estiver online.', 'info');
     return;
   }
 
-  // Run Firestore and Cloudflare in parallel — independent channels
-  const results = await Promise.allSettled([
-    hasFirestore
-      ? flushPrimarySyncNow({
-          manual: true,
-          ignoreGlobalPause: true,
-          reason: 'manual-button',
-        })
-      : Promise.resolve(null),
-    hasCloudflare ? forceCloudflareSync() : Promise.resolve(null),
-  ]);
+  if (summary.overall === 'synced') {
+    showToast('Sincronização concluída.', 'success');
+    renderCurrentView();
+    return;
+  }
 
-  const [firestoreResult, cloudflareResult] = results;
-
-  const firestoreOk = hasFirestore
-    ? firestoreResult.status === 'fulfilled' && firestoreResult.value === true
-    : true;
-  const cloudflareOk = hasCloudflare
-    ? cloudflareResult.status === 'fulfilled'
-    : true;
-
-  // Per-channel result toasts
-  if (firestoreOk && cloudflareOk) {
-    showToast('Sincronização manual concluída.', 'success');
-  } else if (!firestoreOk && !cloudflareOk) {
+  if (summary.overall === 'conflict') {
     showToast(
-      'Sincronização manual falhou em todos os canais. Verifique o log.',
+      'Conflito detectado. Resolva em Configurações → Central de Sincronização → Avançado.',
       'error'
     );
-  } else {
-    // At least one channel failed, at least one succeeded
-    const activeCount = (hasFirestore ? 1 : 0) + (hasCloudflare ? 1 : 0);
-    if (activeCount === 1) {
-      // Single channel was active and it failed → full error
-      showToast('Sincronização manual falhou. Verifique o log.', 'error');
-    } else {
-      // Multi-channel with partial failure
-      const failedChannels = [];
-      if (!firestoreOk && hasFirestore) failedChannels.push('Firestore');
-      if (!cloudflareOk && hasCloudflare) failedChannels.push('Cloudflare');
-      showToast(
-        `Sincronização parcial: ${failedChannels.join(' e ')} falhou. Verifique o log.`,
-        'info'
-      );
-    }
+    renderCurrentView();
+    return;
   }
-});
+
+  if (summary.overall === 'partial') {
+    const failed = [];
+    if (result.firestore.status === 'error' || result.firestore.status === 'conflict') failed.push('Firebase');
+    if (result.cloudflare.status === 'error' || result.cloudflare.status === 'conflict') failed.push('Cloudflare');
+    if (result.drive.status === 'error' || result.drive.status === 'conflict') failed.push('Google Drive');
+    showToast(
+      `Sincronização parcial. Verifique: ${failed.join(', ')}.`,
+      'info'
+    );
+    renderCurrentView();
+    return;
+  }
+
+  showToast('Sincronização falhou. Verifique o log.', 'error');
+  renderCurrentView();
+}
+registerAction('sync-now', () => runManualSync('header-button'));
+registerAction('manual-sync-all', () => runManualSync('config-button'));
 registerAction('sync-center-export-local', exportData);
 registerAction('sync-center-import-local', () => importData());
 registerAction('force-sw-cache-clear', async () => {

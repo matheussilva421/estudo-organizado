@@ -4,8 +4,6 @@ import {
   flushFirestoreOutbox,
   getFirestoreSyncStatus,
   queueFirestoreSnapshotFromState,
-  startPolling,
-  stopPolling,
   syncFirestoreNow,
 } from './firestore-sync-engine.js?v=8.37';
 import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.37';
@@ -336,45 +334,11 @@ export async function flushPrimarySyncNow(options = {}) {
 }
 
 export function initSyncCoordinator() {
+  // Manual-only mode: the coordinator no longer attaches automatic listeners.
+  // schedulePrimarySync / flushPrimarySyncNow remain available as helpers
+  // invoked by advanced "Forçar sincronização" actions in the Sync Center.
   if (initialized) return;
   initialized = true;
-
-  addListener(document, 'stateSaved', (event) => {
-    if (event.detail?.skipFirestoreSync) return;
-    if (event.detail?.metadataOnly || event.detail?.touchLocalBackup === false) return;
-    schedulePrimarySync('local-save');
-  });
-
-  addListener(document, 'app:primarySyncRequested', (event) => {
-    schedulePrimarySync(event.detail?.reason || 'requested');
-  });
-
-  addListener(window, 'online', () => {
-    flushPrimarySyncWhenAllowed('reconnect').catch(() => {
-      if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
-        updateCircuitBreaker('reconnect', getFirestoreSyncStatus());
-      }
-    });
-  });
-
-  addListener(document, 'visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      flushPrimarySyncWhenAllowed('foreground').catch(() => {
-        if (failureCount >= CIRCUIT_BREAKER_DEGRADED) {
-          updateCircuitBreaker('foreground', getFirestoreSyncStatus());
-        }
-      });
-    }
-  });
-
-  addListener(document, 'app:globalSyncPauseChanged', (event) => {
-    const paused = event.detail?.paused;
-    if (paused === true) {
-      stopPolling();
-    } else if (paused === false) {
-      startPolling();
-    }
-  });
 }
 
 export { teardownListeners as teardownSyncCoordinator };

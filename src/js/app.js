@@ -1,8 +1,7 @@
 import { renderCurrentView } from './components.js?v=8.37';
 import { initDB, scheduleSave, state } from './store.js?v=8.37';
-import { initGoogleAPIs, updateDriveUI, syncWithDrive } from './drive-sync.js?v=8.37';
+import { initGoogleAPIs, updateDriveUI } from './drive-sync.js?v=8.37';
 import { todayStr as _todayStr, esc } from './utils.js?v=8.37';
-import { pullFromCloudflare } from './cloud-sync.js?v=8.37';
 import { initNotifications } from './notifications.js?v=8.37';
 import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.37';
 import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.37';
@@ -19,7 +18,6 @@ import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.37';
  */
 export let currentView = 'home';
 
-let _driveSyncInterval = null;
 let _saveStatusListenerAttached = false;
 let _lastSaveStatus = {
   status: 'saved',
@@ -61,47 +59,8 @@ function getNextTheme(themeName) {
   return THEME_VALUES[(currentIndex + 1) % THEME_VALUES.length];
 }
 
-document.addEventListener('app:driveDisconnected', () => {
-  if (_driveSyncInterval) {
-    clearInterval(_driveSyncInterval);
-    _driveSyncInterval = null;
-  }
-});
-
-/**
- * Stops the Drive polling interval, if active.
- * Idempotent — safe to call multiple times.
- */
-export function stopDrivePolling() {
-  if (_driveSyncInterval) {
-    clearInterval(_driveSyncInterval);
-    _driveSyncInterval = null;
-  }
-}
-
-/**
- * Starts the Drive polling interval (every 5 minutes).
- * Will NOT start if globalSyncPaused is true.
- * The interval callback itself guards against Drive not being
- * connected (checks gapi, token, and driveFileId).
- * Idempotent — safe to call multiple times.
- */
-export function startDrivePolling() {
-  stopDrivePolling();
-  if (state.config?.globalSyncPaused === true) return;
-  _driveSyncInterval = setInterval(() => {
-    if (typeof gapi !== 'undefined' && gapi.client?.getToken() !== null && state.driveFileId)
-      syncWithDrive();
-  }, 300000);
-}
-
-document.addEventListener('app:globalSyncPauseChanged', (e) => {
-  if (e.detail?.paused) {
-    stopDrivePolling();
-  } else {
-    startDrivePolling();
-  }
-});
+// Manual-only mode: Drive polling and the global-sync-pause toggle were
+// removed. Sync only runs when the user clicks the "Sincronizar agora" button.
 
 export function getLastSaveStatus() {
   return { ..._lastSaveStatus };
@@ -180,20 +139,26 @@ export function initSaveStatusIndicator() {
     document.addEventListener('app:saveStatus', (event) => {
       renderSaveStatus(event.detail || {});
     });
+    const toneMap = {
+      synced: 'ok',
+      syncing: 'pending',
+      queued: 'pending',
+      'conflict-paused': 'danger',
+      degraded: 'warning',
+      error: 'danger',
+      offline: 'offline',
+      idle: 'ok',
+      recovery: 'pending',
+      partial: 'warning',
+      conflict: 'danger',
+      'no-channels': 'idle',
+    };
     document.addEventListener('app:primarySyncStatus', (event) => {
-      const detail = event.detail || {};
-      const status = detail.status || 'idle';
-      const toneMap = {
-        synced: 'ok',
-        syncing: 'pending',
-        queued: 'pending',
-        'conflict-paused': 'danger',
-        degraded: 'warning',
-        error: 'danger',
-        offline: 'offline',
-        idle: 'ok',
-        recovery: 'pending',
-      };
+      const status = (event.detail || {}).status || 'idle';
+      renderSyncTopbarStatus(toneMap[status] || 'ok');
+    });
+    document.addEventListener('app:manualSyncStatus', (event) => {
+      const status = (event.detail || {}).status || 'idle';
       renderSyncTopbarStatus(toneMap[status] || 'ok');
     });
     _saveStatusListenerAttached = true;
@@ -477,32 +442,16 @@ export function init() {
         }
       }
 
-      // Render UI first — user can interact while sync runs in background
+      // Render UI first — user can interact, sync only runs on manual click.
       navigate('home');
 
-      // Primeira Sincronização: Cloudflare (Primária Rápida) — background com timeout
-      if (state.config && state.config.cfSyncEnabled) {
-        const cfSync = pullFromCloudflare();
-        const cfTimeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Cloudflare sync timeout (5s)')), 5000)
-        );
-        Promise.race([cfSync, cfTimeout]).catch((e) => {
-          console.error('Boot Sync (Cloudflare) falhou ou expirou:', e.message);
-        });
-      }
-
-      // Segunda Sincronização: Google Drive (Secundária Lenta)
+      // Drive: load Google APIs if a client ID was previously saved, but do
+      // NOT trigger any sync. The user starts sync via the manual button.
       updateDriveUI('disconnected', 'Google Drive');
       const savedClientId = localStorage.getItem('estudo_drive_client_id');
       if (savedClientId) {
         initGoogleAPIs();
       }
-
-      // Note: event statuses ('atrasado') are computed dynamically by getEventStatus().
-      // No need to mutate or save here — avoids triggering Cloudflare push on every boot.
-
-      // Check Drive Sync Every 5 Min (paused if globalSyncPaused is true)
-      startDrivePolling();
     })
     .catch((err) => {
       console.error('Falha ao inicializar o aplicativo:', err);

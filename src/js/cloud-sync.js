@@ -487,8 +487,12 @@ async function pushToCloudflareUnlocked(forceOverwrite = false) {
   }
 }
 
-export async function forceCloudflareSync() {
-  debugLog('sync', '[Cloudflare] forceCloudflareSync START');
+export async function forceCloudflareSync(options = {}) {
+  // overwriteRemote=true (default) preserves the legacy behavior used by the
+  // advanced "force push" buttons. Manual sync passes false so the worker
+  // returns 409 instead of silently overwriting another device's push.
+  const overwriteRemote = options.overwriteRemote !== false;
+  debugLog('sync', '[Cloudflare] forceCloudflareSync START', { overwriteRemote });
   const btn = document.getElementById('btn-force-cf-sync');
   const originalText = btn ? btn.textContent : 'Sincronizar';
   if (btn) {
@@ -501,7 +505,7 @@ export async function forceCloudflareSync() {
     debugLog('sync', '[Cloudflare] forceCloudflareSync pulling...');
     await SyncQueue.add(() => pullFromCloudflare());
     debugLog('sync', '[Cloudflare] forceCloudflareSync pushing...');
-    await SyncQueue.add(() => pushToCloudflare(true));
+    await SyncQueue.add(() => pushToCloudflare(overwriteRemote));
     debugLog('sync', '[Cloudflare] forceCloudflareSync COMPLETE');
   } catch (err) {
     console.error('[Cloudflare] forceCloudflareSync ERROR:', err);

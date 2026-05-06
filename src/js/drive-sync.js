@@ -232,12 +232,12 @@ function buildMultipartBody() {
   };
 }
 
-export async function syncWithDrive(recursionDepth = 0) {
+export async function syncWithDrive(recursionDepth = 0, options = {}) {
   if (!gapi.client || !gapi.client.drive) return;
 
   return driveLock
     .withLock(async () => {
-      await _syncWithDriveInternal(recursionDepth);
+      await _syncWithDriveInternal(recursionDepth, options);
     })
     .catch((err) => {
       if (err.message && err.message.includes('timeout after')) {
@@ -250,7 +250,8 @@ export async function syncWithDrive(recursionDepth = 0) {
     });
 }
 
-async function _syncWithDriveInternal(recursionDepth = 0) {
+async function _syncWithDriveInternal(recursionDepth = 0, options = {}) {
+  const autoMerge = options.autoMerge === true;
   updateDriveUI('syncing', 'Sincronizando...');
 
   try {
@@ -270,27 +271,43 @@ async function _syncWithDriveInternal(recursionDepth = 0) {
           state.lastSync &&
           new Date(driveData.lastSync) > new Date(state.lastSync)
         ) {
-          // O Drive tem uma versão mais nova (modificada em outro dispositivo)
-          showConfirm(
-            'Encontrada versão mais recente no Drive. Deseja mesclar com os dados locais?',
-            async () => {
-              const merged = mergeStudyStates(state, driveData);
-              setState(merged);
-              runMigrations();
-              await saveStateToDB({
-                skipCloudSync: true,
-                skipFirestoreSync: true,
-                skipDriveSync: true,
-                touchLocalBackup: false,
-              });
-              renderCurrentView();
-              showToast('Dados mesclados do Drive!', 'success');
-              updateDriveUI('connected', 'Google Drive');
-            },
-            { title: 'Sincronização', label: 'Mesclar Dados' }
-          );
+          // O Drive tem uma versão mais nova (modificada em outro dispositivo).
+          // Quando chamado pelo orquestrador manual-sync, autoMerge pula o confirm
+          // e aplica a mesclagem direto — o usuário já clicou no botão único.
+          if (autoMerge) {
+            const merged = mergeStudyStates(state, driveData);
+            setState(merged);
+            runMigrations();
+            await saveStateToDB({
+              skipCloudSync: true,
+              skipFirestoreSync: true,
+              skipDriveSync: true,
+              touchLocalBackup: false,
+            });
+            // Continua o fluxo normal abaixo — agora o merged será re-enviado.
+            state.lastSync = new Date().toISOString();
+          } else {
+            showConfirm(
+              'Encontrada versão mais recente no Drive. Deseja mesclar com os dados locais?',
+              async () => {
+                const merged = mergeStudyStates(state, driveData);
+                setState(merged);
+                runMigrations();
+                await saveStateToDB({
+                  skipCloudSync: true,
+                  skipFirestoreSync: true,
+                  skipDriveSync: true,
+                  touchLocalBackup: false,
+                });
+                renderCurrentView();
+                showToast('Dados mesclados do Drive!', 'success');
+                updateDriveUI('connected', 'Google Drive');
+              },
+              { title: 'Sincronização', label: 'Mesclar Dados' }
+            );
 
-          return;
+            return;
+          }
         }
       } catch (e) {
         // Arquivo pode ter sido apagado no Drive

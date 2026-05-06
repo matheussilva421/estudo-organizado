@@ -150,7 +150,8 @@ describe('store.js', () => {
     store.runMigrations();
     vi.runOnlyPendingTimers();
 
-    expect(store.state.schemaVersion).toBe(8);
+    expect(store.state.schemaVersion).toBe(10);
+    expect(store.state.config.globalSyncPaused).toBe(true);
     expect(store.state.editais[0].id).toMatch(/^ed_/);
     expect(store.state.editais[0].disciplinas[0].id).toMatch(/^disc_/);
     expect(store.state.editais[0].disciplinas[0].assuntos).toHaveLength(1);

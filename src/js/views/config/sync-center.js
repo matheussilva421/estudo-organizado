@@ -454,126 +454,99 @@ function _renderSyncCenterCard() {
   `;
 }
 
+function renderChannelSummaryRow(source) {
+  const enabled = source.enabled === true;
+  const hasConflict = !!source.conflict;
+  const lastSync = source.lastSyncAt ? formatBackupDateTime(source.lastSyncAt) : 'nunca';
+  const dotClass = hasConflict
+    ? 'sync-summary-dot--conflict'
+    : enabled
+      ? 'sync-summary-dot--ok'
+      : 'sync-summary-dot--idle';
+  const label = hasConflict
+    ? 'Conflito — abra Avançado'
+    : enabled
+      ? `último sync ${lastSync}`
+      : 'não configurado';
+  return `
+    <div class="sync-summary-row" data-summary-source="${source.id}">
+      <span class="sync-summary-dot ${dotClass}" aria-hidden="true"></span>
+      <span class="sync-summary-name"><i class="fa ${source.icon || 'fa-database'}"></i> ${esc(source.title)}</span>
+      <span class="sync-summary-status">${esc(label)}</span>
+    </div>
+  `;
+}
+
+function renderSourceAdvancedBlock(source) {
+  const hasConflict = !!source.conflict;
+  const open = hasConflict ? ' open' : '';
+  return `
+    <div class="sync-source-card" data-sync-source="${source.id}">
+      <div class="sync-source-header">
+        <div class="sync-source-icon"><i class="fa ${source.icon || 'fa-database'}"></i></div>
+        <div class="sync-source-info">
+          <div class="sync-source-name">${esc(source.title)}</div>
+          <div class="sync-source-sub">${source.detail || ''}</div>
+        </div>
+        <span class="badge ${source.enabled ? 'badge-success' : 'badge-muted'}">${source.enabled ? 'Ativo' : 'Inativo'}</span>
+      </div>
+      <div class="sync-source-meta">
+        <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
+        ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
+      </div>
+      ${source.id === 'cloudflare' ? renderCloudflareConfigFields(source) : ''}
+      ${source.id === 'drive' && !source.configured ? '' : ''}
+      <details class="sync-source-advanced"${open}>
+        <summary>Avançado${hasConflict ? ' — resolver conflito' : ''}</summary>
+        <div class="sync-source-actions">
+          ${renderSyncSourceActions(source)}
+        </div>
+        ${source.id === 'cloudflare' ? '<div id="cf-sync-status" class="config-save-status"></div>' : ''}
+        ${renderSyncSourceExtras(source)}
+      </details>
+    </div>
+  `;
+}
+
 function renderQuietSyncCenterCard() {
   const model = buildCurrentSyncCenterModel();
-  const health = model.health || { status: 'idle' };
-  const statusLabel = getSyncHealthLabel(health.status);
-  const statusIcon = getSyncHealthIcon(health.status);
-  const metrics = health.metrics || {};
-  const performanceMetrics = model.performanceMetrics || [];
-  const isManualMode = model.manualSyncEnabled === true;
-  const globalSyncPaused = state.config?.globalSyncPaused === true;
-  const quiet = model.quiet || {
-    title: statusLabel,
-    detail: isManualMode
-      ? 'O app salva neste dispositivo e só sincroniza quando você iniciar manualmente.'
-      : 'O app salva localmente e sincroniza quando possível.',
-    tone: health.status || 'idle',
-    primaryAction: null,
-  };
-  const quietAction =
-    quiet.primaryAction === 'sign-in'
-      ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sign-in"><i class="fa fa-user"></i> Entrar com Google</button>'
-      : '';
-  const advancedOpen = quiet.primaryAction === 'advanced' ? ' open' : '';
+  const sources = (model.sources || []).filter((source) => source && source.id !== 'local');
+  const lastManualSyncAt = state.config?.lastManualSyncAt || null;
+  const lastSummaryLine = lastManualSyncAt
+    ? `Último envio manual: ${formatBackupDateTime(lastManualSyncAt)}`
+    : 'Nenhuma sincronização manual ainda neste dispositivo.';
+  const anyConflict = sources.some((source) => !!source.conflict);
 
   return `
     <div class="card config-card" data-testid="sync-center">
       <div class="card-header"><h3><i class="fa fa-arrows-rotate"></i> Central de Sincronização</h3></div>
       <div class="card-body">
-        <div class="config-desc">${isManualMode ? 'Edite normalmente. O app salva localmente e sincroniza apenas quando você pedir.' : 'Edite normalmente. O app salva localmente e sincroniza em segundo plano.'}</div>
+        <div class="config-desc">Edite normalmente — suas alterações ficam salvas neste dispositivo. Use o botão abaixo para enviar para a nuvem quando quiser.</div>
 
-        <div class="sync-quiet-panel sync-quiet-panel--${esc(quiet.tone)}" data-testid="sync-quiet-panel">
-          <div class="sync-quiet-main">
-            <div class="sync-quiet-icon"><i class="fa ${statusIcon}"></i></div>
-            <div>
-              <div class="sync-quiet-kicker">${isManualMode ? 'Sincronização manual' : 'Sincronização automática'}</div>
-              <div class="sync-quiet-title">${esc(quiet.title)}</div>
-              <div class="sync-quiet-detail">${esc(quiet.detail)}</div>
-            </div>
-          </div>
-          ${
-            isManualMode
-              ? `
-          <div class="sync-quiet-actions">
-            <button type="button" class="btn btn-primary btn-sm" data-action="sync-now"><i class="fa fa-arrows-rotate"></i> Sincronizar agora</button>
-          </div>`
-              : quietAction
-                ? `
-          <div class="sync-quiet-actions">
-            ${quietAction}
-          </div>`
-                : ''
-          }
+        <div class="sync-manual-primary">
+          <button type="button" class="btn btn-primary btn-lg" data-action="manual-sync-all">
+            <i class="fa fa-arrows-rotate"></i> Sincronizar agora
+          </button>
+          <div class="sync-manual-primary-meta">${esc(lastSummaryLine)}</div>
         </div>
 
-        <details class="sync-advanced-panel" data-testid="backup-advanced-panel"${advancedOpen}>
-          <summary>Opções avançadas de sync</summary>
-          <div class="sync-advanced-content" data-testid="sync-advanced-panel">
-            <div class="sync-health-badge sync-health-badge--${health.status}">
-              <i class="fa ${statusIcon}"></i>
-              <span>${statusLabel}</span>
-            </div>
-            <div class="sync-source-meta">
-              <span>Fila: ${esc(metrics.pendingAgeLabel || '0 min')}</span>
-              <span>Retries: ${esc(metrics.retryAttempts ?? 0)}</span>
-              ${metrics.nextRetryAt ? `<span>Próxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ''}
-              ${metrics.remoteAckAt ? `<span>Ack remoto: ${formatBackupDateTime(metrics.remoteAckAt)}</span>` : ''}
-            </div>
-            ${
-              performanceMetrics.length
-                ? `
-            <div class="sync-source-meta" data-testid="sync-performance-metrics">
-              ${performanceMetrics
-                .slice(-6)
-                .map((metric) => `<span>${esc(metric.name)}: ${esc(metric.durationMs)}ms</span>`)
-                .join('')}
-            </div>`
-                : ''
-            }
+        ${
+          anyConflict
+            ? `
+        <div class="sync-conflict-callout" role="alert">
+          <i class="fa fa-triangle-exclamation"></i>
+          <span>Conflito detectado em pelo menos um canal. Expanda o bloco correspondente abaixo e use Mesclar (recomendado), Baixar ou Forçar envio para resolver.</span>
+        </div>`
+            : ''
+        }
 
-            <div class="config-row" style="margin-top:12px;margin-bottom:12px;">
-              <div>
-                <div class="config-label" data-testid="auto-sync-label">Sincronização automática</div>
-                <div class="config-sub">${isManualMode ? 'Sync pausado — salvamento local ativo' : 'Sync ativo — dados sincronizam automaticamente'}</div>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span class="badge ${isManualMode ? 'badge-gray' : 'badge-green'}" data-testid="auto-sync-badge">${isManualMode ? 'OFF' : 'ON'}</span>
-                <button type="button" class="toggle ${isManualMode ? '' : 'on'}" aria-pressed="${isManualMode ? 'false' : 'true'}" aria-label="Sincronização automática" data-action="toggle-auto-sync" data-testid="auto-sync-toggle"></button>
-              </div>
-            </div>
+        <div class="sync-summary-list">
+          ${sources.map(renderChannelSummaryRow).join('')}
+        </div>
 
-            <div class="sync-sources-list">
-              ${model.sources
-                .map(
-                  (source) => `
-                <div class="sync-source-card" data-sync-source="${source.id}">
-                  <div class="sync-source-header">
-                    <div class="sync-source-icon"><i class="fa ${source.icon || 'fa-database'}"></i></div>
-                    <div class="sync-source-info">
-                      <div class="sync-source-name">${source.title}</div>
-                      <div class="sync-source-sub">${source.detail || ''}</div>
-                    </div>
-                    <span class="badge ${source.enabled ? 'badge-success' : 'badge-muted'}">${source.enabled ? 'Ativo' : 'Inativo'}</span>
-                  </div>
-                  <div class="sync-source-meta">
-                    <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
-                    ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
-                    ${source.metrics?.retryAttempts ? `<span>Retries: ${esc(source.metrics.retryAttempts)}</span>` : ''}
-                  </div>
-                  <div class="sync-source-actions">
-                    ${renderSyncSourceActions(source)}
-                  </div>
-                  ${source.id === 'cloudflare' ? '<div id="cf-sync-status" class="config-save-status"></div>' : ''}
-                  ${renderSyncSourceExtras(source)}
-                  ${source.id === 'cloudflare' ? renderCloudflareConfigFields(source) : ''}
-                </div>
-              `
-                )
-                .join('')}
-            </div>
-          </div>
-        </details>
+        <div class="sync-source-advanced-list">
+          ${sources.map(renderSourceAdvancedBlock).join('')}
+        </div>
       </div>
     </div>
   `;
