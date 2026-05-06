@@ -10,6 +10,7 @@
 @import './components/tabs.css';
 @import './components/toggle-drag.css';
 @import './views/habitos.css';
+@import './views/revisoes.css';
 @import './base/mobile.css';
 @import './base/utilities.css';
 @import './base/forms.css';
@@ -284,54 +285,6 @@ button.cal-event-chip:focus-visible {
 .section-header h2 {
   font-size: 16px;
   font-weight: 700;
-}
-
-/* REVISOES */
-.rev-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  margin-bottom: 8px;
-}
-
-.rev-days {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.rev-days .num {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.rev-days .label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-}
-
-.rev-days.overdue {
-  background: var(--danger-bg);
-  color: var(--danger);
-}
-
-.rev-days.today {
-  background: var(--accent-light);
-  color: var(--accent-dark);
 }
 
 /* EDITAL TREE */

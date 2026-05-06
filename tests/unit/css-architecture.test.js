@@ -95,6 +95,7 @@ describe('CSS architecture', () => {
       'components/tabs.css',
       'components/toggle-drag.css',
       'views/habitos.css',
+      'views/revisoes.css',
       'components/cards.css',
       'components/status-feedback.css',
       'components/search.css'
@@ -126,7 +127,9 @@ describe('CSS architecture', () => {
       "@import './components/tabs.css';",
       "@import './components/toggle-drag.css';",
       "@import './views/habitos.css';",
+      "@import './views/revisoes.css';",
       "@import './base/mobile.css';",
+
 
 
       "@import './base/utilities.css';",
@@ -154,6 +157,7 @@ describe('CSS architecture', () => {
     expect(read('src/css/components/toggle-drag.css')).toContain('TOGGLE');
     expect(read('src/css/components/toggle-drag.css')).toContain('DRAG HANDLES');
     expect(read('src/css/views/habitos.css')).toContain('HABIT CARDS');
+    expect(read('src/css/views/revisoes.css')).toContain('REVISOES');
   });
 
   it('keeps the dark premium theme contracts', () => {
@@ -296,8 +300,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-expect(html).toContain('css/styles.css?v=8.47');
-    expect(serviceWorker).toContain("APP_VERSION = '8.47'");
+expect(html).toContain('css/styles.css?v=8.48');
+    expect(serviceWorker).toContain("APP_VERSION = '8.48'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 

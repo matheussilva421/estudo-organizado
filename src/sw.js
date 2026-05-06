@@ -1,4 +1,4 @@
-const APP_VERSION = '8.47';
+const APP_VERSION = '8.48';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -20,6 +20,7 @@ const ASSET_PATHS = [
   './css/components/tabs.css',
   './css/components/toggle-drag.css',
   './css/views/habitos.css',
+  './css/views/revisoes.css',
   './css/base/mobile.css',
   './css/base/utilities.css',
   './css/base/forms.css',
