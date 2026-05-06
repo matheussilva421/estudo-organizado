@@ -1,0 +1,260 @@
+/* CARDS */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+  border: 1px solid var(--panel-border);
+  height: 100%;
+  overflow: hidden;
+}
+
+.card-header {
+  background: var(--card-header) !important;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--panel-divider);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.card-body {
+  padding: 20px;
+}
+
+/* STATS CARDS */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--panel-shadow);
+  border: 1px solid var(--panel-border);
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.stat-card.green::before {
+  background: var(--accent);
+}
+
+.stat-card.blue::before {
+  background: var(--blue);
+}
+
+.stat-card.orange::before {
+  background: var(--orange);
+}
+
+.stat-card.red::before {
+  background: var(--red);
+}
+
+.stat-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* EVENT CARD */
+.event-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  margin-bottom: 8px;
+  transition:
+    transform 0.2s,
+    background-color 0.2s,
+    opacity 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.event-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: #cbd5e1;
+}
+
+.event-stripe {
+  width: 4px;
+  border-radius: 4px;
+  align-self: stretch;
+  flex-shrink: 0;
+  background: var(--status-agendado);
+  min-height: 40px;
+}
+
+.event-stripe.estudei {
+  background: var(--status-estudei);
+}
+
+.event-stripe.atrasado {
+  background: var(--status-atrasado);
+}
+
+.event-stripe.nao {
+  background: var(--status-nao);
+}
+
+.event-disc-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.event-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.event-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.event-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--accent-light);
+  color: var(--text-primary);
+}
+
+.event-tag.atrasado {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.event-tag.estudei {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.event-tag.nao {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.event-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  transition:
+    transform 0.2s,
+    background-color 0.2s,
+    opacity 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.icon-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Foco visÃ­vel para acessibilidade - navegaÃ§Ã£o por teclado */
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.icon-btn:hover {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+.icon-btn.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* CHART CONTAINER */
+.chart-wrap {
+  position: relative;
+  height: 220px;
+}

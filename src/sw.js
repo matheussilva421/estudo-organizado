@@ -13,6 +13,7 @@ const ASSET_PATHS = [
   './css/base/layout.css',
   './css/components/buttons.css',
   './css/components/sidebar.css',
+  './css/components/cards.css',
   './css/base/utilities.css',
   './css/base/forms.css',
   './css/views.css',

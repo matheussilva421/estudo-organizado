@@ -89,7 +89,8 @@ describe('CSS architecture', () => {
       'views.css',
       'base/accessibility.css',
       'base/themes.css',
-      'base/layout.css'
+      'base/layout.css',
+      'components/cards.css'
     ]) {
       expect(existsSync(join(cssDir, filename))).toBe(true);
     }
@@ -111,6 +112,7 @@ describe('CSS architecture', () => {
       "@import './base/layout.css';",
       "@import './components/sidebar.css';",
       "@import './components/buttons.css';",
+      "@import './components/cards.css';",
       "@import './base/utilities.css';",
       "@import './base/forms.css';"
     ].join('\n');
@@ -120,6 +122,8 @@ describe('CSS architecture', () => {
     expect(read('src/css/base/accessibility.css')).toContain('.skip-link:focus');
     expect(read('src/css/base/themes.css')).toContain("DARK PREMIUM THEME LIBRARY");
     expect(read('src/css/base/layout.css')).toContain('MAIN CONTENT');
+    expect(read('src/css/components/cards.css')).toContain('CARDS');
+    expect(read('src/css/components/cards.css')).toContain('STATS CARDS');
   });
 
   it('keeps the dark premium theme contracts', () => {
