@@ -46,20 +46,23 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
     expect(swSource).toContain('./js/sync/sync-coordinator.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
+    expect(swSource).toContain('./js/views/config/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
     expect(swSource).toContain("APP_VERSION = '8.41'");
   });
 
   it('renders a central sync surface with manual source decisions', () => {
+    const syncCenterSource = read('src/js/views/config/sync-center.js');
     const configViewSource = read('src/js/views/config-view.js');
     const actionsSource = read('src/js/ui/actions/config.js');
 
-    expect(configViewSource).toContain('Central de Sincronização');
-    expect(configViewSource).toContain('data-testid="sync-quiet-panel"');
-    expect(configViewSource).toContain('data-testid="sync-advanced-panel"');
-    expect(configViewSource).toContain('data-action="firestore-merge-remote"');
-    expect(configViewSource).toContain('data-action="cloud-merge-remote"');
-    expect(configViewSource).toContain('data-action="merge-from-drive"');
+    expect(syncCenterSource).toContain('Central de Sincronização');
+    expect(syncCenterSource).toContain('data-testid="sync-quiet-panel"');
+    expect(syncCenterSource).toContain('data-testid="sync-advanced-panel"');
+    expect(syncCenterSource).toContain('data-action="firestore-merge-remote"');
+    expect(syncCenterSource).toContain('data-action="cloud-merge-remote"');
+    expect(syncCenterSource).toContain('data-action="merge-from-drive"');
+    expect(configViewSource).toContain("from './config/sync-center.js");
     expect(actionsSource).toContain("registerAction('sync-center-smart-sync'");
   });
 
