@@ -35,26 +35,15 @@ let _activeDiscManagerTab = 'topicos';
 let _tempSequencia = null;
 let _isEditingSequence = false;
 
-export function getActiveDiscManagerTab() {
-  return _activeDiscManagerTab;
-}
-export function setActiveDiscManagerTab(tab) {
-  _activeDiscManagerTab = tab;
-}
-export function getTempSequencia() {
-  return _tempSequencia;
-}
-export function setTempSequencia(val) {
-  _tempSequencia = val;
-}
-export function getIsEditingSequence() {
-  return _isEditingSequence;
-}
-export function setIsEditingSequence(val) {
-  _isEditingSequence = val;
-}
-
 // Re-export from extracted view modules
+export {
+  getActiveDiscManagerTab,
+  setActiveDiscManagerTab,
+  getTempSequencia,
+  setTempSequencia,
+  getIsEditingSequence,
+  setIsEditingSequence,
+} from './state/disc-manager-state.js';
 export { renderHome } from './views/home-view.js';
 export {
   renderCiclo,

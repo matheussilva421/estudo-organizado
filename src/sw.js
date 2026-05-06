@@ -1,4 +1,4 @@
-const APP_VERSION = '8.39';
+const APP_VERSION = '8.40';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -70,6 +70,7 @@ const ASSET_PATHS = [
   './js/views/ciclo-view.js',
   './js/views/revisao-view.js',
   './js/views/skeleton-view.js',
+  './js/views/state/disc-manager-state.js',
   './vendor/chart.umd.min.js',
   './vendor/firebase-client.bundle.js',
   './assets/icons/icon-192.svg',
