@@ -5,44 +5,30 @@
 
 import {
   THEME_OPTIONS,
-  applyTheme,
   normalizeTheme,
-  showConfirm,
   showToast,
   openModal,
   getLastSaveStatus,
 } from '../app.js?v=8.37';
-import { cutoffDateStr, esc, todayStr, invalidateTodayCache } from '../utils.js?v=8.37';
+import { esc } from '../utils.js?v=8.37';
 import {
   scheduleSave,
   state,
-  setState,
-  runMigrations,
-  createExportableState,
-  clearData,
 } from '../store.js?v=8.37';
-import {
-  syncCicloToEventos,
-  invalidateDiscCache,
-  invalidateDashCaches,
-  invalidateRevCache,
-} from '../logic.js?v=8.37';
+
 import { renderCurrentView } from '../components.js?v=8.37';
 import {
-  previewFirestoreRestore,
-  pullFromFirestore,
-} from '../sync/firestore-sync-engine.js?v=8.37';
-import {
   forceCloudflareSync,
-  previewCloudflareRestore,
-  pullFromCloudflare,
 } from '../cloud-sync.js?v=8.37';
-import { disconnectDrive, previewDriveRestore, pullFromDrive } from '../drive-sync.js?v=8.37';
-import { previewRestoreImpact, validateBackupPayload } from '../backup-restore.js?v=8.37';
+import { disconnectDrive } from '../drive-sync.js?v=8.37';
 import {
-  formatBackupDateTime,
-  renderRestoreImpactSummary,
-} from './config/backup-settings.js?v=8.37';
+  archiveOldEvents,
+  clearAllData,
+  exportData,
+  importData,
+  openRestorePreviewModal,
+  restoreBackupFromSelectedSource,
+} from './config/data-management.js?v=8.37';
 import {
   renderBackupCenterCard,
   renderFirestoreConflict,
@@ -58,129 +44,16 @@ import {
   _renderSyncCenterCard,
   renderQuietSyncCenterCard,
 } from './config/sync-center.js?v=8.37';
-
-function renderPreferenceNotificationsCard(cfg) {
-  return `
-    <div class="card config-card">
-      <div class="card-header"><h3><i class="fa fa-bell"></i> Notifica&ccedil;&otilde;es</h3></div>
-      <div class="card-body">
-        <div class="config-row">
-          <div>
-            <div class="config-label">Notifica&ccedil;&otilde;es do browser</div>
-            <div class="config-sub">${'Notification' in window ? (Notification.permission === 'granted' ? 'Ativadas' : Notification.permission === 'denied' ? 'Bloqueadas (altere nas config do browser)' : 'Permite receber lembretes de eventos e revis&otilde;es') : 'Browser n&atilde;o suporta'}</div>
-          </div>
-          ${
-            'Notification' in window &&
-            Notification.permission !== 'denied' &&
-            Notification.permission !== 'granted'
-              ? `
-            <button class="btn btn-primary btn-sm" data-action="request-notification-permission"><i class="fa fa-bell"></i> Ativar</button>
-          `
-              : Notification.permission === 'granted'
-                ? `
-            <button class="btn btn-ghost btn-sm" data-action="test-notification"><i class="fa fa-bell"></i> Testar</button>
-          `
-                : ''
-          }
-        </div>
-        <div class="config-row">
-          <div>
-            <div class="config-label">Modo Silencioso (In&iacute;cio)</div>
-            <div class="config-sub">A partir de qual hor&aacute;rio silenciar:</div>
-          </div>
-          <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeStart ?? 22}" data-action="update-config" data-config-key="silentModeStart" data-value-type="number">
-        </div>
-        <div class="config-row">
-          <div>
-            <div class="config-label">Modo Silencioso (Fim)</div>
-            <div class="config-sub">At&eacute; qual hor&aacute;rio silenciar:</div>
-          </div>
-          <input type="number" class="form-control config-input-number" min="0" max="23" value="${cfg.silentModeEnd ?? 8}" data-action="update-config" data-config-key="silentModeEnd" data-value-type="number">
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderPreferenceDataCard(saveStatus, saveStatusText) {
-  const isManualMode = state.config?.globalSyncPaused === true;
-  return `
-    <div class="card config-card">
-      <div class="card-header"><h3><i class="fa fa-database"></i> Dados</h3></div>
-      <div class="card-body">
-        <div class="config-sub">
-          ${state.eventos.length} evento(s) ativos
-          ${(state.arquivo || []).length > 0 ? ` &bull; ${state.arquivo.length} arquivado(s)` : ''}
-        </div>
-
-        <div id="config-save-status-detail" class="config-save-status config-save-status--${saveStatus.status || 'saved'}">
-          ${saveStatusText}
-        </div>
-        <div class="config-desc">Importa&ccedil;&otilde;es JSON passam por valida&ccedil;&atilde;o e pr&eacute;via de impacto antes de substituir os dados atuais.</div>
-
-        <div class="grid config-backup-grid">
-          ${
-            isManualMode
-              ? `<div class="flex flex-between"><span>Última sincronização manual:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>`
-              : `
-          <div class="flex flex-between"><span>Backup local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
-          <div class="flex flex-between"><span>Backup Firestore:</span><strong>${formatBackupDateTime(state.config.firestoreSync?.remoteUpdatedAt)}</strong></div>
-          <div class="flex flex-between"><span>Backup Cloudflare:</span><strong>${formatBackupDateTime(state.config.cfLastSyncAt)}</strong></div>
-          <div class="flex flex-between"><span>Backup Google Drive:</span><strong>${formatBackupDateTime(state.lastSync)}</strong></div>`
-          }
-        </div>
-
-        <div class="form-group mb-3">
-          <label class="form-label">Origem do backup para restaura&ccedil;&atilde;o</label>
-          <select id="backup-restore-source" class="form-control">
-            <option value="local">Backup local (importar arquivo JSON)</option>
-            <option value="firestore">Firestore</option>
-            <option value="cloudflare">Cloudflare</option>
-            <option value="drive">Google Drive</option>
-          </select>
-        </div>
-
-        <div class="flex flex-wrap gap-sm">
-          <button class="btn btn-ghost" data-action="export-data"><i class="fa fa-file-export"></i> Exportar JSON</button>
-          <button class="btn btn-ghost" data-action="restore-backup"><i class="fa fa-rotate-left"></i> Restaurar backup selecionado</button>
-          <button class="btn btn-ghost btn-sm" data-action="archive-old-events" data-days="90" title="Move eventos concluidos ha mais de 90 dias para o arquivo"><i class="fa fa-box-archive"></i> Arquivar antigos</button>
-          <button class="btn btn-danger btn-sm" data-action="clear-all-data"><i class="fa fa-trash"></i> Limpar tudo</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderPreferenceServiceWorkerCard() {
-  return `
-    <div class="card config-card">
-      <div class="card-header"><h3><i class="fa fa-rotate"></i> Service Worker</h3></div>
-      <div class="card-body">
-        <div class="config-desc" style="margin-bottom:12px;">
-          Limpe o cache do service worker e force o carregamento da vers&atilde;o mais recente. &Uacute;til quando h&aacute; problemas de cache ap&oacute;s atualiza&ccedil;&otilde;es.
-        </div>
-        <button class="btn btn-primary btn-sm" data-action="force-sw-cache-clear">
-          <i class="fa fa-rotate"></i> Limpar cache e recarregar
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-function renderPreferenceAboutCard() {
-  return `
-    <div class="card config-card">
-      <div class="card-header"><h3><i class="fa fa-circle-info"></i> Sobre</h3></div>
-      <div class="card-body">
-        <div class="config-desc">
-          <strong>Estudo Organizado</strong> &eacute; um app para planejamento e organiza&ccedil;&atilde;o de estudos para concursos p&uacute;blicos.<br><br>
-          Baseado no Ciclo PDCA: planeje no Calend&aacute;rio, execute no Study Organizer, me&ccedil;a no Dashboard e corrija com as Revis&otilde;es.<br><br>
-          <span class="text-xs text-muted">Vers&atilde;o 1.0 &bull; Dados salvos localmente + Google Drive</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
+import {
+  renderPreferenceNotificationsCard,
+  renderPreferenceDataCard,
+  renderPreferenceServiceWorkerCard,
+  renderPreferenceAboutCard,
+  setTheme,
+  updateConfig,
+  toggleConfig,
+  updateFrequencia,
+} from './config/theme-settings.js';
 
 export function renderConfig(el) {
   const cfg = state.config;
@@ -315,30 +188,6 @@ export function renderConfig(el) {
   `;
 }
 
-export function setTheme(themeName) {
-  const theme = normalizeTheme(themeName, state.config.darkMode);
-  state.config.tema = theme;
-  state.config.darkMode = true;
-  state.config.lastTheme = theme;
-  applyTheme();
-  scheduleSave();
-  renderCurrentView();
-}
-
-export function updateConfig(key, value) {
-  state.config[key] = value;
-  if (key === 'materiasPorDia') {
-    syncCicloToEventos();
-  }
-  scheduleSave();
-}
-
-export function toggleConfig(key, el) {
-  state.config[key] = !state.config[key];
-  el.classList.toggle('on', state.config[key]);
-  scheduleSave();
-}
-
 export async function toggleCfSync(enabled) {
   if (enabled) {
     const url = document.getElementById('config-cf-url').value.trim();
@@ -367,17 +216,6 @@ export async function toggleCfSync(enabled) {
   }
 }
 
-export function updateFrequencia(value) {
-  const nums = value
-    .split(',')
-    .map((s) => parseInt(s.trim()))
-    .filter((n) => !isNaN(n) && n > 0);
-  if (nums.length > 0) {
-    state.config.frequenciaRevisao = nums;
-    scheduleSave();
-  }
-}
-
 export function openDriveModal() {
   openModal('modal-drive');
   const savedId = localStorage.getItem('estudo_drive_client_id');
@@ -391,224 +229,15 @@ export function driveDisconnect() {
   disconnectDrive();
 }
 
-export function archiveOldEvents(days = 90) {
-  const cutoffStr = cutoffDateStr(days);
-  const toArchive = state.eventos.filter(
-    (e) => e.status === 'estudei' && e.data && e.data < cutoffStr
-  );
-  if (toArchive.length === 0) {
-    showToast('Nenhum evento para arquivar.', 'info');
-    return;
-  }
-  showConfirm(
-    `Arquivar ${toArchive.length} evento(s) concluído(s) com mais de ${days} dias?\n\nEles continuarão no export/backup, mas não aparecerão nos relatórios.`,
-    () => {
-      state.arquivo = [...(state.arquivo || []), ...toArchive];
-      const archiveIds = new Set(toArchive.map((e) => e.id));
-      state.eventos = state.eventos.filter((e) => !archiveIds.has(e.id));
-      scheduleSave();
-      renderCurrentView();
-      showToast(`${toArchive.length} evento(s) arquivados.`, 'success');
-    },
-    { label: 'Arquivar', title: `Arquivar eventos (>${days} dias)` }
-  );
-}
-
-export function exportData() {
-  const blob = new Blob([JSON.stringify(createExportableState(), null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `estudo-organizado-backup-${todayStr()}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-  showToast('Dados exportados!', 'success');
-}
-
-export function openRestorePreviewModal(payload = state, options = {}) {
-  const modal = document.getElementById('modal-prompt');
-  const title = document.getElementById('modal-prompt-title');
-  const body = document.getElementById('modal-prompt-body');
-  const saveBtn = document.getElementById('modal-prompt-save');
-  if (!modal || !title || !body || !saveBtn) {
-    showToast('Modal de restauração indisponível.', 'error');
-    return false;
-  }
-
-  const sourceLabel = options.sourceLabel || 'backup selecionado';
-  const impact = previewRestoreImpact(state, payload || {});
-  title.textContent = 'Prévia de restauração';
-  body.innerHTML = `
-    <div class="restore-preview-modal">
-      <div class="config-desc">Origem: <strong>${esc(sourceLabel)}</strong>. Revise o impacto antes de substituir os dados locais.</div>
-      ${renderRestoreImpactSummary(impact)}
-      <div class="restore-preview-warning">
-        A restauração pode substituir eventos, editais, hábitos, revisões e configurações locais.
-      </div>
-      <div class="config-actions-row">
-        <button type="button" class="btn btn-ghost btn-sm" data-action="export-data">
-          <i class="fa fa-download"></i> Exportar antes de restaurar
-        </button>
-      </div>
-    </div>
-  `;
-  saveBtn.textContent = options.label || 'Restaurar';
-  saveBtn.className = 'btn btn-danger';
-  saveBtn.onclick = () => {
-    if (typeof options.onConfirm === 'function') {
-      options.onConfirm();
-    }
-  };
-  openModal('modal-prompt');
-  return true;
-}
-
-export function importData() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.className = 'sr-only';
-  input.onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-      input.remove();
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const imported = JSON.parse(ev.target.result);
-        if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
-          showToast('Arquivo inválido! O JSON não contém um objeto de dados válido.', 'error');
-          return;
-        }
-        const hasValidStructure =
-          (Array.isArray(imported.editais) || imported.editais === undefined) &&
-          (Array.isArray(imported.eventos) || imported.eventos === undefined) &&
-          (typeof imported.config === 'object' || imported.config === undefined);
-        const validation = validateBackupPayload(imported);
-        if (!hasValidStructure || !validation.ok) {
-          showToast(
-            'Arquivo inválido! Este JSON não parece ser um backup do Estudo Organizado.',
-            'error'
-          );
-          return;
-        }
-        openRestorePreviewModal(imported, {
-          sourceLabel: file.name,
-          label: 'Importar',
-          onConfirm: () => {
-            setState(imported);
-            runMigrations();
-            invalidateDiscCache();
-            invalidateDashCaches();
-            invalidateRevCache();
-            invalidateTodayCache();
-            scheduleSave();
-            renderCurrentView();
-            showToast('Dados importados com sucesso!', 'success');
-          },
-        });
-      } catch {
-        showToast(
-          'Arquivo inválido! Verifique se é um JSON de backup do Estudo Organizado.',
-          'error'
-        );
-      }
-    };
-    reader.onloadend = () => {
-      input.remove();
-    };
-    reader.readAsText(file);
-  };
-  document.body.appendChild(input);
-  input.click();
-}
-
-function openRemoteRestorePreview(sourceLabel, previewPromise, onConfirm, label) {
-  showToast(`Lendo backup ${sourceLabel} para prévia...`, 'info');
-  return previewPromise
-    .then((payload) => {
-      if (!payload || typeof payload !== 'object') {
-        showToast(`Nenhum backup valido encontrado em ${sourceLabel}.`, 'error');
-        return false;
-      }
-      return openRestorePreviewModal(payload, {
-        sourceLabel,
-        label,
-        onConfirm,
-      });
-    })
-    .catch((err) => {
-      console.error(`Erro ao preparar restore ${sourceLabel}:`, err);
-      showToast(`Não foi possível ler o backup ${sourceLabel}.`, 'error');
-      return false;
-    });
-}
-
-export function restoreBackupFromSelectedSource() {
-  const source = document.getElementById('backup-restore-source')?.value || 'local';
-
-  if (source === 'local') {
-    importData();
-    return;
-  }
-
-  if (source === 'firestore') {
-    if (!state.config?.firestoreSync?.enabled) {
-      showToast('Ative o Firestore e entre com Google antes de restaurar por ele.', 'error');
-      return;
-    }
-    return openRemoteRestorePreview(
-      'Firestore',
-      previewFirestoreRestore(),
-      () => pullFromFirestore(true),
-      'Restaurar Firestore'
-    );
-  }
-
-  if (source === 'cloudflare') {
-    if (!state.config?.cfSyncEnabled || !state.config?.cfUrl || !state.config?.cfToken) {
-      showToast('Configure a sincronização Cloudflare antes de restaurar por ela.', 'error');
-      return;
-    }
-    return openRemoteRestorePreview(
-      'Cloudflare',
-      previewCloudflareRestore(),
-      () => pullFromCloudflare(true),
-      'Restaurar Cloudflare'
-    );
-  }
-
-  if (source === 'drive') {
-    if (!state.driveFileId) {
-      showToast('Conecte o Google Drive antes de restaurar por ele.', 'error');
-      return;
-    }
-    return openRemoteRestorePreview(
-      'Google Drive',
-      previewDriveRestore(),
-      () => pullFromDrive().catch((err) => console.error('Erro ao restaurar do Drive:', err)),
-      'Restaurar Drive'
-    );
-  }
-}
-
-export function clearAllData() {
-  showConfirm(
-    '⚠️ Apagar TODOS os dados permanentemente?\n\nEditais, eventos, hábitos e configurações serão removidos.\n\nEsta ação é irreversível.',
-    () => {
-      showConfirm('Última confirmação: isso não pode ser desfeito.', () => clearData(), {
-        danger: true,
-        label: 'Apagar tudo definitivamente',
-        title: '⚠️ Confirmação final',
-      });
-    },
-    { danger: true, label: 'Continuar com exclusão', title: '⚠️ Apagar todos os dados' }
-  );
-}
+// Re-exported from data-management.js for backward compatibility
+export {
+  archiveOldEvents,
+  clearAllData,
+  exportData,
+  importData,
+  openRestorePreviewModal,
+  restoreBackupFromSelectedSource,
+} from './config/data-management.js?v=8.37';
 
 // Re-exported from sync-center.js for backward compatibility
 export {
@@ -626,3 +255,11 @@ export {
   _renderSyncCenterCard,
   renderQuietSyncCenterCard,
 } from './config/sync-center.js?v=8.37';
+
+// Re-exported from theme-settings.js for backward compatibility
+export {
+  setTheme,
+  updateConfig,
+  toggleConfig,
+  updateFrequencia,
+} from './config/theme-settings.js';
