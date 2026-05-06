@@ -90,8 +90,9 @@ describe('CSS architecture', () => {
       'base/accessibility.css',
       'base/themes.css',
       'base/layout.css',
-      'base/mobile.css',
-      'components/cards.css',
+    'base/mobile.css',
+    'components/modals-shared.css',
+    'components/cards.css',
       'components/status-feedback.css',
       'components/search.css'
     ]) {
@@ -118,6 +119,7 @@ describe('CSS architecture', () => {
       "@import './components/cards.css';",
       "@import './components/status-feedback.css';",
       "@import './components/search.css';",
+      "@import './components/modals-shared.css';",
       "@import './base/mobile.css';",
       "@import './base/utilities.css';",
       "@import './base/forms.css';"
@@ -137,6 +139,8 @@ describe('CSS architecture', () => {
     expect(read('src/css/components/search.css')).toContain('button.search-item');
     expect(read('src/css/base/mobile.css')).toContain('Touch feedback');
     expect(read('src/css/base/mobile.css')).toContain('Touch targets');
+    expect(read('src/css/components/modals-shared.css')).toContain('MODAL');
+    expect(read('src/css/components/modals-shared.css')).toContain('DRIVE MODAL');
   });
 
   it('keeps the dark premium theme contracts', () => {
@@ -279,8 +283,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-expect(html).toContain('css/styles.css?v=8.43');
-  expect(serviceWorker).toContain("APP_VERSION = '8.43'");
+expect(html).toContain('css/styles.css?v=8.44');
+    expect(serviceWorker).toContain("APP_VERSION = '8.44'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 
