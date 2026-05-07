@@ -48,6 +48,7 @@ import {
   openDownloadFromSourceDialog,
   openCfActivationDirectionDialog,
 } from '../../views/config/sync-dialogs.js?v=8.37';
+import { toggleSyncPopover, setSyncPopoverOpen } from '../../sync/sync-status-ui.js?v=8.37';
 import {
   syncWithDrive,
   pullFromDrive,
@@ -311,9 +312,13 @@ async function runManualSync(trigger) {
   showToast('Sincronização falhou. Verifique o log.', 'error');
   renderCurrentView();
 }
-registerAction('sync-now', () => runManualSync('header-button'));
+registerAction('sync-now', () => {
+  setSyncPopoverOpen(false);
+  return runManualSync('header-button');
+});
 registerAction('manual-sync-all', () => runManualSync('config-button'));
 registerAction('download-sync-log', async () => {
+  setSyncPopoverOpen(false);
   try {
     await downloadSyncLog();
     showToast('Log de sync baixado.', 'success');
@@ -322,7 +327,11 @@ registerAction('download-sync-log', async () => {
   }
 });
 registerAction('download-from-source', () => {
+  setSyncPopoverOpen(false);
   openDownloadFromSourceDialog();
+});
+registerAction('toggle-sync-popover', () => {
+  toggleSyncPopover();
 });
 registerAction('sync-center-export-local', exportData);
 registerAction('sync-center-import-local', () => importData());

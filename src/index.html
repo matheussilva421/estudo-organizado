@@ -37,13 +37,13 @@
       integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="css/tokens.css?v=8.68" />
-    <link rel="stylesheet" href="css/base.css?v=8.68" />
-    <link rel="stylesheet" href="css/components.css?v=8.68" />
-    <link rel="stylesheet" href="css/views.css?v=8.68" />
-    <link rel="stylesheet" href="css/styles.css?v=8.68" />
-    <script src="vendor/chart.umd.min.js?v=8.68" defer></script>
-    <script src="js/sw-register.js?v=8.68" defer></script>
+    <link rel="stylesheet" href="css/tokens.css?v=8.69" />
+    <link rel="stylesheet" href="css/base.css?v=8.69" />
+    <link rel="stylesheet" href="css/components.css?v=8.69" />
+    <link rel="stylesheet" href="css/views.css?v=8.69" />
+    <link rel="stylesheet" href="css/styles.css?v=8.69" />
+    <script src="vendor/chart.umd.min.js?v=8.69" defer></script>
+    <script src="js/sw-register.js?v=8.69" defer></script>
   </head>
 
   <body>
@@ -160,27 +160,70 @@
             <i class="fa fa-clock"></i> Contínuo
           </button>
         </div>
-        <div id="save-status" class="save-status save-status--saved" role="status" aria-live="polite">
-          Salvo localmente
+        <!-- Unified sync pill (replaces the old save-status / sync-status badges
+             and the standalone refresh icon). Click toggles the popover with
+             detailed status + actions. -->
+        <div class="sync-pill-wrapper">
+          <button
+            id="sync-pill"
+            class="sync-pill sync-pill--idle"
+            type="button"
+            data-action="toggle-sync-popover"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="sync-popover"
+            title="Status de sincronização"
+          >
+            <span class="sync-pill-icon" aria-hidden="true">
+              <i class="fa fa-circle"></i>
+            </span>
+            <span class="sync-pill-label" id="sync-pill-label">Aguardando sync</span>
+            <i class="fa fa-chevron-down sync-pill-caret" aria-hidden="true"></i>
+          </button>
+          <div
+            id="sync-popover"
+            class="sync-popover"
+            role="menu"
+            aria-labelledby="sync-pill"
+            hidden
+          >
+            <div class="sync-popover-status">
+              <div class="sync-popover-row">
+                <span class="sync-popover-row-label">Local</span>
+                <span class="sync-popover-row-value" id="sync-popover-local">Aguardando…</span>
+              </div>
+              <div class="sync-popover-row">
+                <span class="sync-popover-row-label">Sincronização remota</span>
+                <span class="sync-popover-row-value" id="sync-popover-remote">Aguardando…</span>
+              </div>
+              <div class="sync-popover-row">
+                <span class="sync-popover-row-label">Última sync manual</span>
+                <span class="sync-popover-row-value" id="sync-popover-last">Nunca</span>
+              </div>
+            </div>
+            <hr class="sync-popover-divider" />
+            <div class="sync-popover-actions">
+              <button class="btn btn-primary btn-sm" type="button" data-action="sync-now">
+                <i class="fa fa-arrows-rotate"></i> Sincronizar agora
+              </button>
+              <button class="btn btn-outline btn-sm" type="button" data-action="download-from-source">
+                <i class="fa fa-cloud-arrow-down"></i> Baixar dados
+              </button>
+              <button class="btn btn-ghost btn-sm" type="button" data-action="download-sync-log">
+                <i class="fa fa-file-lines"></i> Baixar log
+              </button>
+            </div>
+          </div>
         </div>
-        <div id="sync-status" class="sync-status" role="status" aria-live="polite"></div>
-        <button
-          id="sync-now-btn"
-          data-action="sync-now"
-          class="btn btn-ghost btn-sm"
-          type="button"
-          title="Sincronizar agora"
-        >
-          <i class="fa fa-arrows-rotate"></i>
-        </button>
-        <!-- Theme switcher -->
+        <!-- Theme switcher (icon-only with tooltip) -->
         <button
           id="theme-toggle-btn"
           data-action="toggle-theme"
           class="btn btn-ghost btn-sm topbar-theme-btn"
           title="Trocar tema"
+          aria-label="Trocar tema"
         >
-          Tema
+          <i class="fa fa-palette"></i>
         </button>
         <!-- UX 1: Global Search -->
         <div class="search-wrap topbar-search" role="search">
@@ -592,8 +635,8 @@
       </div>
     </div>
 
-    <script src="js/firebase/firebase-runtime-config.js?v=8.68"></script>
-    <script type="module" src="js/main.js?v=8.68"></script>
+    <script src="js/firebase/firebase-runtime-config.js?v=8.69"></script>
+    <script type="module" src="js/main.js?v=8.69"></script>
 
     <!-- REGISTRO SESSÃO MODAL -->
     <div

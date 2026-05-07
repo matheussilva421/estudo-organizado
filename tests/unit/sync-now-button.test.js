@@ -19,21 +19,26 @@ describe('sync-now-button states', () => {
   let originalNavigatorOnLine;
 
   beforeEach(() => {
-    // Set up DOM
+    // Set up DOM with the new sync pill structure (replaces old sync-status +
+    // sync-now-btn). Legacy ids are also created for tests that still reference
+    // them.
     document.body.innerHTML = `
+      <div class="sync-pill-wrapper">
+        <button id="sync-pill" class="sync-pill sync-pill--idle" data-action="toggle-sync-popover" aria-expanded="false">
+          <span class="sync-pill-icon"><i class="fa fa-circle"></i></span>
+          <span class="sync-pill-label" id="sync-pill-label">Aguardando sync</span>
+        </button>
+        <div id="sync-popover" hidden>
+          <span id="sync-popover-local"></span>
+          <span id="sync-popover-remote"></span>
+          <span id="sync-popover-last"></span>
+        </div>
+      </div>
       <div id="sync-status" class="sync-status" role="status" aria-live="polite"></div>
-      <button
-        id="sync-now-btn"
-        data-action="sync-now"
-        class="btn btn-ghost btn-sm"
-        type="button"
-        title="Sincronizar agora"
-      >
-        <i class="fa fa-arrows-rotate"></i>
-      </button>
+      <button id="sync-now-btn" type="button"><i class="fa fa-arrows-rotate"></i></button>
     `;
 
-    container = document.getElementById('sync-status');
+    container = document.getElementById('sync-pill-label');
     syncNowBtn = document.getElementById('sync-now-btn');
 
     // Save original navigator.onLine
