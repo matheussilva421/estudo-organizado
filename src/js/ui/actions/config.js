@@ -43,6 +43,7 @@ import {
 } from '../../sync/firestore-sync-engine.js?v=8.37';
 import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.37';
 import { syncAllChannels, isManualSyncRunning } from '../../sync/manual-sync.js?v=8.37';
+import { downloadSyncLog } from '../../sync/sync-diagnostic.js?v=8.37';
 import {
   syncWithDrive,
   pullFromDrive,
@@ -308,6 +309,14 @@ async function runManualSync(trigger) {
 }
 registerAction('sync-now', () => runManualSync('header-button'));
 registerAction('manual-sync-all', () => runManualSync('config-button'));
+registerAction('download-sync-log', async () => {
+  try {
+    await downloadSyncLog();
+    showToast('Log de sync baixado.', 'success');
+  } catch (err) {
+    showToast('Erro ao gerar log: ' + (err?.message || 'desconhecido'), 'error');
+  }
+});
 registerAction('sync-center-export-local', exportData);
 registerAction('sync-center-import-local', () => importData());
 registerAction('force-sw-cache-clear', async () => {

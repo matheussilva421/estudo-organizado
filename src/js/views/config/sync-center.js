@@ -558,6 +558,9 @@ function renderQuietSyncCenterCard() {
           <button type="button" class="btn btn-primary btn-lg" data-action="manual-sync-all">
             <i class="fa fa-arrows-rotate"></i> Sincronizar agora
           </button>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="download-sync-log" title="Baixa um JSON com o estado de todos os canais de sync para diagnóstico">
+            <i class="fa fa-file-lines"></i> Baixar log
+          </button>
           <div class="sync-manual-primary-meta">${esc(lastSummaryLine)}</div>
         </div>
 

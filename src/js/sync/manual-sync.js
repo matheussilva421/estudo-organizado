@@ -189,13 +189,29 @@ async function _runAll(trigger) {
   if (!state.config) state.config = {};
   const finishedAt = new Date().toISOString();
   state.config.lastManualSyncAt = finishedAt;
-  state.config.lastManualSyncResults = {
+  const runRecord = {
     at: finishedAt,
     trigger,
     firestore: result.firestore.status,
     cloudflare: result.cloudflare.status,
     drive: result.drive.status,
+    errors: {
+      firestore: result.firestore.error || null,
+      cloudflare: result.cloudflare.error || null,
+      drive: result.drive.error || null,
+    },
+    conflicts: {
+      firestore: result.firestore.conflict || null,
+      cloudflare: result.cloudflare.conflict || null,
+    },
   };
+  state.config.lastManualSyncResults = runRecord;
+  if (!Array.isArray(state.config.manualSyncHistory)) state.config.manualSyncHistory = [];
+  state.config.manualSyncHistory.push(runRecord);
+  // Keep only the last 20 runs.
+  if (state.config.manualSyncHistory.length > 20) {
+    state.config.manualSyncHistory = state.config.manualSyncHistory.slice(-20);
+  }
 
   // Normalize per-channel timestamps so the Sync Center UI reflects the click.
   // Some engine paths (no-op pulls, merges that don't push) don't advance
