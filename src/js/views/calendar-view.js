@@ -88,6 +88,9 @@ export function renderCalendar(el) {
             <button type="button" class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="mes" role="tab" aria-selected="${calViewMode === 'mes'}" aria-controls="cal-grid">Mês</button>
             <button type="button" class="cal-view-tab ${calViewMode === 'semana' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="semana" role="tab" aria-selected="${calViewMode === 'semana'}" aria-controls="cal-grid">Semana</button>
           </div>
+          <button type="button" class="btn btn-ghost btn-sm cal-clear-btn" data-action="clear-ciclo-events" title="Apaga eventos auto-gerados pelo Ciclo de Estudos que ainda não começaram. Eventos manuais e com tempo registrado são preservados.">
+            <i class="fa fa-broom"></i> Limpar agendados
+          </button>
         </div>
         <div id="cal-grid">${gridContent}</div>
       </div>
