@@ -76,6 +76,8 @@ describe('views/config-view.js', () => {
     cloudSync = {
       setSyncCreds: vi.fn(() => Promise.resolve()),
       forceCloudflareSync: vi.fn(() => Promise.resolve()),
+      pushToCloudflare: vi.fn(() => Promise.resolve(true)),
+      mergeFromCloudflare: vi.fn(() => Promise.resolve(true)),
       previewCloudflareRestore: vi.fn(() => Promise.resolve({ eventos: [{ id: 'cf_remote' }], config: {} })),
       pullFromCloudflare: vi.fn(),
     };

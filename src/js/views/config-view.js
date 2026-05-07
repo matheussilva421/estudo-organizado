@@ -22,6 +22,7 @@ import {
   pushToCloudflare,
 } from '../cloud-sync.js?v=8.37';
 import { disconnectDrive } from '../drive-sync.js?v=8.37';
+import { openCfActivationDirectionDialog } from './config/sync-dialogs.js?v=8.37';
 import {
   archiveOldEvents,
   clearAllData,
@@ -195,28 +196,21 @@ export async function toggleCfSync(enabled) {
   state.config.cfSyncEnabled = enabled;
 
   if (enabled) {
-    // CRITICAL: When the user activates Cloudflare sync, their LOCAL data is
-    // canonical — they want to use CF as a backup target. Doing a pull-then-
-    // merge here would resurrect items previously deleted locally if the CF
-    // backup is older than the deletions (mergeStudyStates preserves remote-
-    // only items). So push-only with overwrite=true. The "Sincronizar agora"
-    // button later handles bidirectional sync safely with conflict checks.
-    showToast('Enviando seus dados locais para o Cloudflare...', 'info');
-    pushToCloudflare(true)
-      .then(() => {
-        showToast('Cloudflare ativado e atualizado com seus dados locais.', 'success');
-      })
-      .catch((err) => {
-        console.error('[CF activation] push failed:', err);
-        showToast(
-          'Falha ao enviar dados para o Cloudflare. Verifique URL/token.',
-          'error'
-        );
-      })
-      .finally(() => {
+    // Activation can mean different intents: this device is canonical (push),
+    // remote is canonical (pull), or both have valid changes (merge). Asking
+    // explicitly avoids data loss in any direction. The dialog also offers
+    // an auto-export before applying — recoverable if the user picks wrong.
+    scheduleSave();
+    openCfActivationDirectionDialog({
+      onCancel: () => {
+        // User dismissed without choosing: revert toggle and persist.
+        state.config.cfSyncEnabled = false;
+        const checkbox = document.getElementById('config-cf-enabled');
+        if (checkbox) checkbox.checked = false;
         scheduleSave();
         renderCurrentView();
-      });
+      },
+    });
   } else {
     scheduleSave();
     renderCurrentView();
@@ -224,6 +218,7 @@ export async function toggleCfSync(enabled) {
 }
 // Imported but kept for backwards-compat with callers outside this file.
 void forceCloudflareSync;
+void pushToCloudflare;
 
 export function openDriveModal() {
   openModal('modal-drive');

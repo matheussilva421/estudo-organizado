@@ -815,3 +815,67 @@
   border: 1px solid rgba(214, 69, 69, 0.32);
   background: rgba(214, 69, 69, 0.06);
 }
+
+/* Sync direction radio modals (download/CF activation) */
+.sync-direction-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sync-direction-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  background: var(--surface-2, rgba(255, 255, 255, 0.03));
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.sync-direction-option:hover {
+  background: var(--surface-3, rgba(255, 255, 255, 0.06));
+  border-color: var(--accent, #3b82f6);
+}
+
+.sync-direction-option:has(input:checked) {
+  border-color: var(--accent, #3b82f6);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.sync-direction-option:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sync-direction-option > input[type='radio'] {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.sync-direction-option-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sync-direction-option-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.sync-direction-option-meta {
+  font-size: 0.85em;
+  color: var(--text-secondary, #aab);
+  line-height: 1.4;
+}
+
+.sync-direction-checkbox {
+  font-size: 0.9em;
+}
+
+.sync-direction-checkbox > input[type='checkbox'] {
+  margin-top: 4px;
+  flex-shrink: 0;
+}

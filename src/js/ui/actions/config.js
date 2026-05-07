@@ -45,6 +45,10 @@ import { flushPrimarySyncNow } from '../../sync/sync-coordinator.js?v=8.37';
 import { syncAllChannels, isManualSyncRunning } from '../../sync/manual-sync.js?v=8.37';
 import { downloadSyncLog } from '../../sync/sync-diagnostic.js?v=8.37';
 import {
+  openDownloadFromSourceDialog,
+  openCfActivationDirectionDialog,
+} from '../../views/config/sync-dialogs.js?v=8.37';
+import {
   syncWithDrive,
   pullFromDrive,
   mergeFromDrive,
@@ -316,6 +320,9 @@ registerAction('download-sync-log', async () => {
   } catch (err) {
     showToast('Erro ao gerar log: ' + (err?.message || 'desconhecido'), 'error');
   }
+});
+registerAction('download-from-source', () => {
+  openDownloadFromSourceDialog();
 });
 registerAction('sync-center-export-local', exportData);
 registerAction('sync-center-import-local', () => importData());
