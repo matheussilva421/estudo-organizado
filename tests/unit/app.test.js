@@ -94,15 +94,18 @@ describe('app.js', () => {
   describe('normalizeTheme', () => {
     it('returns valid theme as-is', () => {
       expect(app.normalizeTheme('grafite')).toBe('grafite');
-      expect(app.normalizeTheme('obsidiana')).toBe('obsidiana');
-      expect(app.normalizeTheme('contraste')).toBe('contraste');
+      expect(app.normalizeTheme('ardosia')).toBe('ardosia');
+      expect(app.normalizeTheme('pergaminho')).toBe('pergaminho');
     });
 
     it('converts legacy aliases to modern themes', () => {
       expect(app.normalizeTheme('dark')).toBe('grafite');
       expect(app.normalizeTheme('light')).toBe('grafite');
-      expect(app.normalizeTheme('furtivo')).toBe('obsidiana');
-      expect(app.normalizeTheme('rubi')).toBe('contraste');
+      expect(app.normalizeTheme('obsidiana')).toBe('ardosia');
+      expect(app.normalizeTheme('contraste')).toBe('pergaminho');
+      expect(app.normalizeTheme('furtivo')).toBe('ardosia');
+      expect(app.normalizeTheme('matrix')).toBe('ardosia');
+      expect(app.normalizeTheme('rubi')).toBe('pergaminho');
     });
 
     it('defaults to grafite for unknown themes', () => {
@@ -113,7 +116,8 @@ describe('app.js', () => {
   describe('getThemeLabel', () => {
     it('returns label for valid theme', () => {
       expect(app.getThemeLabel('grafite')).toBe('Grafite');
-      expect(app.getThemeLabel('obsidiana')).toBe('Obsidiana');
+      expect(app.getThemeLabel('ardosia')).toBe('Ardósia');
+      expect(app.getThemeLabel('pergaminho')).toBe('Pergaminho');
     });
 
     it('normalizes theme before getting label', () => {
@@ -263,8 +267,8 @@ describe('app.js', () => {
     it('exports theme options array', () => {
       expect(app.THEME_OPTIONS).toHaveLength(3);
       expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('grafite');
-      expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('obsidiana');
-      expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('contraste');
+      expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('ardosia');
+      expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('pergaminho');
     });
   });
 
