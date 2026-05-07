@@ -115,3 +115,416 @@
   flex-direction: column;
   gap: var(--space-6);
 }
+
+/* ============================================================
+   DASHBOARD HOME — 4 FAIXAS (lifetime, hero, semana, análise)
+   ============================================================ */
+
+/* Faixa 1: Lifetime delta */
+.dash-stat-delta {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+  letter-spacing: 0.2px;
+}
+
+/* Faixa 2: HERO */
+.dash-hero {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+
+.dash-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-right: 1px solid var(--border);
+  padding-right: 24px;
+}
+
+.dash-hero-countdown {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-hero-countdown-num {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  font-family: 'DM Mono', monospace;
+}
+
+.dash-hero-countdown-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.dash-hero-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--orange, #f59e0b);
+}
+
+.dash-hero-streak--idle {
+  color: var(--text-muted);
+}
+
+.dash-hero-mid {
+  min-width: 0;
+}
+
+.dash-hero-suggestion .dash-hero-next-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 16px;
+  flex-wrap: wrap;
+}
+
+.dash-hero-edital-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dash-hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.dash-hero-cta {
+  white-space: nowrap;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .dash-hero {
+    grid-template-columns: 1fr;
+  }
+  .dash-hero-left {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: 16px;
+  }
+  .dash-hero-actions {
+    flex-direction: row;
+  }
+  .dash-hero-actions .dash-hero-cta {
+    flex: 1;
+  }
+}
+
+/* Faixa 3: Esta Semana */
+.dash-week-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-week-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-top: 6px;
+}
+
+.dash-week-target {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Faixa 4: Painel de disciplinas */
+.dash-subject-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 620px;
+}
+
+.dash-edital-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-edital-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.dash-edital-tab:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.dash-edital-tab--active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.dash-edital-tab--active .home-edital-dot {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 1px;
+}
+
+.dash-subject-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.dash-subject-progress-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(120px, 2fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dash-subject-progress-row:hover {
+  background: var(--surface, var(--bg));
+}
+
+.dash-subject-progress-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.dash-subject-progress-bar-wrap {
+  height: 10px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+[data-theme='dark'] .dash-subject-progress-bar-wrap {
+  background: var(--surface);
+}
+
+.dash-subject-progress-bar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s;
+}
+
+.dash-subject-progress-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 70px;
+}
+
+.dash-subject-progress-perc {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.dash-subject-progress-tempo {
+  font-size: 11px;
+}
+
+/* Coluna de análise */
+.dash-analysis-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Previsão visual */
+.dash-prediction-bar {
+  margin-top: 8px;
+}
+
+.dash-prediction-bar-track {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background: var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+[data-theme='dark'] .dash-prediction-bar-track {
+  background: var(--surface);
+}
+
+.dash-prediction-bar-fill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.3s;
+}
+
+.dash-prediction-bar-mark {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--text-primary);
+  opacity: 0.6;
+}
+
+.dash-prediction-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.dash-prediction-bar-target {
+  position: relative;
+  left: -6.5%;
+}
+
+/* Heatmap compacto */
+.dash-streak-compact .streak-heatmap--compact {
+  gap: 3px;
+}
+
+.streak-dot--compact {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.streak-dot--compact i {
+  display: none;
+}
+
+/* Empty state do gráfico semanal com CTA */
+.dash-week-empty {
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Botões rápidos no rodapé da home */
+.dash-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Cards lifetime clicáveis */
+.dash-stat-card--clickable {
+  cursor: pointer;
+  transition:
+    transform 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+
+.dash-stat-card--clickable:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.25);
+}
+
+.dash-stat-card--clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Linha extra de delta (vs semana anterior) */
+.dash-stat-delta-row {
+  margin-top: 4px;
+}
+
+.dash-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  letter-spacing: 0.2px;
+  background: var(--surface, var(--bg));
+  border: 1px solid var(--border);
+}
+
+.dash-delta--up {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 30%, transparent);
+}
+
+.dash-delta--down {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 30%, transparent);
+}
+
+.dash-delta--neutral {
+  color: var(--text-muted);
+}
+
+/* Sparkline na lista de disciplinas */
+.dash-subject-progress-row {
+  /* override: 4 colunas (nome | barra | sparkline | meta) */
+  grid-template-columns: minmax(140px, 1fr) minmax(120px, 2fr) 60px auto;
+}
+
+.dash-subject-sparkline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-sparkline {
+  display: block;
+}
+
+.dash-sparkline-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 600px) {
+  .dash-subject-progress-row {
+    grid-template-columns: minmax(120px, 1fr) minmax(80px, 2fr) auto;
+  }
+  .dash-subject-sparkline {
+    display: none;
+  }
+}

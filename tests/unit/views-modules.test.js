@@ -458,7 +458,7 @@ describe('home-view.js', () => {
       const container = { innerHTML: '' };
       views.renderHome(container);
 
-      expect(container.innerHTML).toContain('home-edital-group');
+      expect(container.innerHTML).toContain('dash-subject-panel');
       expect(container.innerHTML).toContain('PGE-RN');
       expect(container.innerHTML).toContain('TRF 6');
       expect(container.innerHTML.indexOf('PGE-RN')).toBeLessThan(
