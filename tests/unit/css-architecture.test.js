@@ -210,8 +210,8 @@ describe('CSS architecture', () => {
     const legacyStyles = read('src/css/styles.css');
     const rootVars = extractCssVars(extractCssBlock(tokens, ':root'));
     const grafiteVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="grafite"]'));
-    const obsidianaVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="obsidiana"]'));
-    const contrasteVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="contraste"]'));
+    const ardosiaVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="ardosia"]'));
+    const pergaminhoVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="pergaminho"]'));
 
     expect(rootVars).toMatchObject({
       '--bg': '#08090d',
@@ -233,8 +233,28 @@ describe('CSS architecture', () => {
     });
 
     expect(grafiteVars['--bg']).toBe('#08090d');
-    expect(obsidianaVars['--bg']).toBe('#030405');
-    expect(contrasteVars['--text-primary']).toBe('#ffffff');
+    expect(ardosiaVars).toMatchObject({
+      '--bg': '#101216',
+      '--card': '#1d2027',
+      '--card-header': '#262a32',
+      '--card-hover': '#2d313b',
+      '--border': 'rgba(220, 225, 232, 0.14)',
+      '--text-secondary': '#a8aeb8',
+      '--accent': '#c0c5cd'
+    });
+    expect(pergaminhoVars).toMatchObject({
+      '--bg': '#0e0b08',
+      '--card': '#1c1812',
+      '--card-header': '#25201a',
+      '--card-hover': '#2d2820',
+      '--border': 'rgba(238, 224, 196, 0.14)',
+      '--accent': '#cbb892',
+      '--info': '#9bb4cf'
+    });
+    expect(contrastRatio(ardosiaVars['--text-primary'], ardosiaVars['--bg'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(ardosiaVars['--text-secondary'], ardosiaVars['--card'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(pergaminhoVars['--text-primary'], pergaminhoVars['--bg'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(pergaminhoVars['--text-secondary'], pergaminhoVars['--card'])).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(rootVars['--accent-text'], rootVars['--accent'])).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(rootVars['--text-secondary'], rootVars['--card'])).toBeGreaterThanOrEqual(4.5);
     expect(legacyStyles).toMatch(/\.btn-primary:hover\s*{[^}]*background:\s*var\(--accent-hover\)/s);
@@ -267,8 +287,8 @@ describe('CSS architecture', () => {
 
     expect(html).toContain('title="Trocar tema"');
     expect(appSource).toContain("label: 'Grafite'");
-    expect(appSource).toContain("label: 'Obsidiana'");
-    expect(appSource).toContain("label: 'Contraste'");
+    expect(appSource).toContain("label: 'Ardósia'");
+    expect(appSource).toContain("label: 'Pergaminho'");
     expect(appSource).toContain('LEGACY_THEME_ALIASES');
     expect(appSource).toContain('THEME_OPTIONS');
     expect(configViewSource).toContain('THEME_OPTIONS');
@@ -282,8 +302,8 @@ describe('CSS architecture', () => {
     const rootVars = getThemeVars(tokens, ':root');
     const themedSelectors = [
       '[data-theme="grafite"]',
-      '[data-theme="obsidiana"]',
-      '[data-theme="contraste"]'
+      '[data-theme="ardosia"]',
+      '[data-theme="pergaminho"]'
     ];
 
     for (const selector of themedSelectors) {

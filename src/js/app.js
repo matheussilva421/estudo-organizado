@@ -28,19 +28,21 @@ let _lastSaveStatus = {
 
 export const THEME_OPTIONS = [
   { value: 'grafite', label: 'Grafite' },
-  { value: 'obsidiana', label: 'Obsidiana' },
-  { value: 'contraste', label: 'Contraste' },
+  { value: 'ardosia', label: 'Ardósia' },
+  { value: 'pergaminho', label: 'Pergaminho' },
 ];
 
 const THEME_VALUES = THEME_OPTIONS.map((theme) => theme.value);
 const LEGACY_THEME_ALIASES = {
   light: 'grafite',
   dark: 'grafite',
+  obsidiana: 'ardosia',
+  contraste: 'pergaminho',
   abismo: 'grafite',
   cyberpunk2077: 'grafite',
-  furtivo: 'obsidiana',
-  matrix: 'obsidiana',
-  rubi: 'contraste',
+  furtivo: 'ardosia',
+  matrix: 'ardosia',
+  rubi: 'pergaminho',
 };
 
 export function normalizeTheme(themeName, legacyDarkMode = false) {

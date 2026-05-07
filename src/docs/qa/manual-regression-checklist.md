@@ -7,7 +7,7 @@ Use this checklist before each release to verify critical flows.
 - [ ] App boots without console errors
 - [ ] Sidebar navigation switches between all views
 - [ ] Mobile sidebar opens/closes correctly
-- [ ] Theme switching works for all 7 themes
+- [ ] Theme switching works for all 3 visible themes
 - [ ] Back/forward browser navigation works
 
 ## Events (Estudo)
