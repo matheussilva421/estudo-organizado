@@ -19,6 +19,7 @@ import {
 import { renderCurrentView } from '../components.js?v=8.37';
 import {
   forceCloudflareSync,
+  pushToCloudflare,
 } from '../cloud-sync.js?v=8.37';
 import { disconnectDrive } from '../drive-sync.js?v=8.37';
 import {
@@ -194,16 +195,35 @@ export async function toggleCfSync(enabled) {
   state.config.cfSyncEnabled = enabled;
 
   if (enabled) {
-    showToast('Conectando à nuvem para sincronizar...', 'info');
-    forceCloudflareSync().finally(() => {
-      scheduleSave();
-      renderCurrentView();
-    });
+    // CRITICAL: When the user activates Cloudflare sync, their LOCAL data is
+    // canonical — they want to use CF as a backup target. Doing a pull-then-
+    // merge here would resurrect items previously deleted locally if the CF
+    // backup is older than the deletions (mergeStudyStates preserves remote-
+    // only items). So push-only with overwrite=true. The "Sincronizar agora"
+    // button later handles bidirectional sync safely with conflict checks.
+    showToast('Enviando seus dados locais para o Cloudflare...', 'info');
+    pushToCloudflare(true)
+      .then(() => {
+        showToast('Cloudflare ativado e atualizado com seus dados locais.', 'success');
+      })
+      .catch((err) => {
+        console.error('[CF activation] push failed:', err);
+        showToast(
+          'Falha ao enviar dados para o Cloudflare. Verifique URL/token.',
+          'error'
+        );
+      })
+      .finally(() => {
+        scheduleSave();
+        renderCurrentView();
+      });
   } else {
     scheduleSave();
     renderCurrentView();
   }
 }
+// Imported but kept for backwards-compat with callers outside this file.
+void forceCloudflareSync;
 
 export function openDriveModal() {
   openModal('modal-drive');
