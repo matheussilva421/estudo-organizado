@@ -29,7 +29,7 @@ let _lastSaveStatus = {
 export const THEME_OPTIONS = [
   { value: 'grafite', label: 'Grafite' },
   { value: 'ardosia', label: 'Ardósia' },
-  { value: 'pergaminho', label: 'Pergaminho' },
+  { value: 'platina', label: 'Platina' },
 ];
 
 const THEME_VALUES = THEME_OPTIONS.map((theme) => theme.value);
@@ -37,12 +37,13 @@ const LEGACY_THEME_ALIASES = {
   light: 'grafite',
   dark: 'grafite',
   obsidiana: 'ardosia',
-  contraste: 'pergaminho',
+  contraste: 'platina',
   abismo: 'grafite',
   cyberpunk2077: 'grafite',
   furtivo: 'ardosia',
   matrix: 'ardosia',
-  rubi: 'pergaminho',
+  rubi: 'platina',
+  pergaminho: 'platina',
 };
 
 export function normalizeTheme(themeName, legacyDarkMode = false) {

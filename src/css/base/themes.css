@@ -134,73 +134,73 @@
   --panel-shadow: 0 20px 48px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-[data-theme='pergaminho'] {
+[data-theme='platina'] {
   --color-scheme: dark;
-  --app-bg: linear-gradient(180deg, #0e0b08 0%, #131009 50%, #1a160e 100%);
-  --bg: #0e0b08;
-  --card: #1c1812;
-  --card-bg: #1c1812;
-  --card-header: #25201a;
-  --card-hover: #2d2820;
-  --bg-secondary: #15110b;
-  --surface: #15110b;
-  --border: rgba(238, 224, 196, 0.14);
-  --text-primary: #f4efe6;
-  --text-secondary: #b9b0a0;
-  --text-muted: #847b6d;
-  --accent: #cbb892;
-  --accent-hover: #e0cfaa;
-  --accent-light: rgba(203, 184, 146, 0.18);
-  --accent-soft: rgba(203, 184, 146, 0.1);
-  --accent-dark: #e0cfaa;
-  --accent-text: #100c06;
-  --blue: #9bb4cf;
-  --orange: #e0a960;
-  --red: #f08585;
-  --purple: #b6a8d8;
-  --yellow: #e0a960;
-  --green: #88d2a4;
-  --success: #88d2a4;
-  --success-bg: rgba(136, 210, 164, 0.14);
-  --warning: #e0a960;
-  --warning-bg: rgba(224, 169, 96, 0.15);
-  --danger: #f08585;
-  --danger-bg: rgba(240, 133, 133, 0.14);
-  --danger-text: #100c06;
-  --info: #9bb4cf;
-  --info-bg: rgba(155, 180, 207, 0.16);
-  --info-text: #100c06;
-  --surface-muted: rgba(255, 240, 215, 0.035);
-  --surface-soft: rgba(255, 240, 215, 0.06);
-  --surface-strong: rgba(255, 240, 215, 0.09);
-  --surface-inverse-soft: rgba(0, 0, 0, 0.52);
-  --neutral-soft: rgba(238, 224, 196, 0.1);
-  --neutral-strong: rgba(238, 224, 196, 0.34);
-  --question: #b6a8d8;
-  --question-bg: rgba(182, 168, 216, 0.16);
-  --pomodoro: #b6a8d8;
-  --pomodoro-bg: rgba(182, 168, 216, 0.16);
-  --sidebar-bg: linear-gradient(180deg, #080603 0%, #120f08 100%);
-  --sidebar-hover: rgba(203, 184, 146, 0.09);
-  --sidebar-active: #cbb892;
-  --sidebar-active-bg: rgba(203, 184, 146, 0.18);
-  --sidebar-active-border: #e0cfaa;
-  --sidebar-border: rgba(238, 224, 196, 0.1);
-  --sidebar-text: #c4b9a8;
-  --sidebar-text-active: #f4efe6;
-  --status-agendado: #9bb4cf;
-  --status-estudei: #88d2a4;
-  --status-atrasado: #f08585;
-  --status-nao: #847b6d;
-  --shadow: 0 14px 32px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 240, 215, 0.025);
-  --shadow-md: 0 22px 52px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 34px 78px rgba(0, 0, 0, 0.5);
+  --app-bg: linear-gradient(180deg, #111112 0%, #171819 58%, #1e2022 100%);
+  --bg: #111112;
+  --card: #202225;
+  --card-bg: #202225;
+  --card-header: #2b2e32;
+  --card-hover: #363a40;
+  --bg-secondary: #1a1b1d;
+  --surface: #1a1b1d;
+  --border: rgba(235, 238, 242, 0.14);
+  --text-primary: #f4f4f2;
+  --text-secondary: #aaaead;
+  --text-muted: #797f80;
+  --accent: #d7d7d2;
+  --accent-hover: #eeeeea;
+  --accent-light: rgba(215, 215, 210, 0.18);
+  --accent-soft: rgba(215, 215, 210, 0.1);
+  --accent-dark: #eeeeea;
+  --accent-text: #111111;
+  --blue: #aebfd0;
+  --orange: #d8a657;
+  --red: #ef7f7f;
+  --purple: #b8b3dc;
+  --yellow: #d8a657;
+  --green: #86d1a2;
+  --success: #86d1a2;
+  --success-bg: rgba(134, 209, 162, 0.14);
+  --warning: #d8a657;
+  --warning-bg: rgba(216, 166, 87, 0.15);
+  --danger: #ef7f7f;
+  --danger-bg: rgba(239, 127, 127, 0.14);
+  --danger-text: #111111;
+  --info: #aebfd0;
+  --info-bg: rgba(174, 191, 208, 0.16);
+  --info-text: #111111;
+  --surface-muted: rgba(255, 255, 250, 0.04);
+  --surface-soft: rgba(255, 255, 250, 0.07);
+  --surface-strong: rgba(255, 255, 250, 0.1);
+  --surface-inverse-soft: rgba(0, 0, 0, 0.48);
+  --neutral-soft: rgba(235, 238, 242, 0.1);
+  --neutral-strong: rgba(235, 238, 242, 0.35);
+  --question: #b8b3dc;
+  --question-bg: rgba(184, 179, 220, 0.16);
+  --pomodoro: #b8b3dc;
+  --pomodoro-bg: rgba(184, 179, 220, 0.16);
+  --sidebar-bg: linear-gradient(180deg, #0d0d0e 0%, #171819 100%);
+  --sidebar-hover: rgba(215, 215, 210, 0.09);
+  --sidebar-active: #d7d7d2;
+  --sidebar-active-bg: rgba(215, 215, 210, 0.18);
+  --sidebar-active-border: #eeeeea;
+  --sidebar-border: rgba(235, 238, 242, 0.1);
+  --sidebar-text: #b9bdbd;
+  --sidebar-text-active: #f4f4f2;
+  --status-agendado: #aebfd0;
+  --status-estudei: #86d1a2;
+  --status-atrasado: #ef7f7f;
+  --status-nao: #797f80;
+  --shadow: 0 14px 32px rgba(0, 0, 0, 0.31), inset 0 1px 0 rgba(255, 255, 250, 0.035);
+  --shadow-md: 0 22px 52px rgba(0, 0, 0, 0.38);
+  --shadow-lg: 0 34px 78px rgba(0, 0, 0, 0.48);
   --panel-border: transparent;
-  --panel-divider: rgba(238, 224, 196, 0.14);
-  --panel-shadow: 0 20px 48px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 240, 215, 0.025);
+  --panel-divider: rgba(235, 238, 242, 0.14);
+  --panel-shadow: 0 20px 48px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 250, 0.035);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) {
   --sidebar-hover: color-mix(in srgb, var(--accent) 9%, transparent);
   --sidebar-active: var(--accent);
   --sidebar-active-bg: var(--accent-light);
@@ -208,145 +208,145 @@
   --panel-border: transparent;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .topbar {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .topbar {
   border-bottom-color: transparent;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .form-control {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .form-control {
   background: var(--bg-secondary);
   color: var(--text-primary);
   border-color: var(--border);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   .form-control::placeholder {
   color: var(--text-muted);
   opacity: 1;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   .form-control:focus {
   border-color: var(--accent);
   background: var(--surface);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .modal {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .modal {
   background: var(--card);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .modal-header {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .modal-header {
   border-bottom-color: var(--panel-divider);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .search-box {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .search-box {
   background: var(--surface);
   border-color: var(--border);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .search-results {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .search-results {
   background: var(--card);
   border-color: var(--border);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .search-item:hover {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .search-item:hover {
   background: var(--card-hover);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .cal-cell {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .cal-cell {
   background: var(--card);
   border-color: var(--border);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .cal-cell.today {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .cal-cell.today {
   background: var(--accent-light);
   opacity: 0.92;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   .cal-cell.other-month {
   background: var(--bg);
   opacity: 0.56;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .cal-cell:hover {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .cal-cell:hover {
   background: var(--card-hover);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   .cal-event-chip.agendado {
   background: var(--info-bg);
   color: var(--info);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   .cal-event-chip.estudei {
   background: var(--success-bg);
   color: var(--success);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   .cal-event-chip.atrasado {
   background: var(--danger-bg);
   color: var(--danger);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) select option {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) select option {
   background: var(--card);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .badge-green {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .badge-green {
   background: var(--success-bg);
   color: var(--success);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .badge-blue {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .badge-blue {
   background: var(--info-bg);
   color: var(--info);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) label.btn-primary {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) label.btn-primary {
   color: var(--accent-text) !important;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   label.btn-primary
   * {
   color: inherit !important;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .badge-gray {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .badge-gray {
   background: var(--surface);
   color: var(--text-secondary);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .config-row {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .config-row {
   border-bottom-color: var(--panel-divider);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .event-card:hover {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .event-card:hover {
   background: var(--card-hover);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .tree-group-header {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .tree-group-header {
   background: var(--card);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .tree-disc:hover,
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .tree-disc:hover,
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   .tree-group-header:hover {
   background: var(--card-hover);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(0.86);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'])
   .search-input:focus {
   background: var(--bg-secondary);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='pergaminho']) .search-results {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina']) .search-results {
   background: var(--card);
 }
