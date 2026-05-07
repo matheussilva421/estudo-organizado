@@ -3,7 +3,7 @@ if ('serviceWorker' in navigator) {
   // How often to ask the SW to look for a new version while the tab is open.
   // Without this, reg.update() would only run on window.load — leaving tabs
   // that stay open for hours stuck on stale code until manual refresh.
-  const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+  const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
   function showUpdateBanner(onAccept) {
     if (document.getElementById('sw-update-banner')) return;
