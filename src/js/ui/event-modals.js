@@ -383,7 +383,15 @@ export function openEventDetail(eventId) {
   if (!ev) return;
 
   const disc = ev.discId ? getDisc(ev.discId) : null;
-  const status = getEventStatus(ev);
+  // getEventStatus returns a string ('estudei' | 'agendado' | 'atrasado').
+  // Map it to the label/class the modal renders.
+  const statusKey = getEventStatus(ev);
+  const STATUS_VIEW = {
+    estudei: { label: 'Concluído', class: 'badge-success' },
+    agendado: { label: 'Agendado', class: 'badge-muted' },
+    atrasado: { label: 'Atrasado', class: 'badge-danger' },
+  };
+  const status = STATUS_VIEW[statusKey] || { label: statusKey || '—', class: 'badge-muted' };
 
   const title = document.getElementById('modal-event-detail-title');
   const body = document.getElementById('modal-event-detail-body');
