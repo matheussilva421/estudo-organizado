@@ -7,10 +7,14 @@
  * failing without exposing the user's actual study data.
  */
 
-import { state } from '../store.js?v=8.59';
-import { getFirestoreSyncStatus } from './firestore-sync-engine.js?v=8.59';
-import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.59';
-import { getSyncCreds, getSyncConfig } from '../cloud-sync.js?v=8.59';
+import { state } from '../store.js?v=8.37';
+import { getFirestoreSyncStatus } from './firestore-sync-engine.js?v=8.37';
+import { getPendingFirestoreSnapshot } from './firestore-outbox.js?v=8.37';
+import { getSyncCreds, getSyncConfig } from '../cloud-sync.js?v=8.37';
+
+// The version baked at write time. Each APP_VERSION bump should also touch
+// this constant so the log surfaces the JS module version actually loaded.
+const DIAGNOSTIC_BUILD_VERSION = '8.62';
 
 function safeCount(arr) {
   return Array.isArray(arr) ? arr.length : 0;
@@ -32,16 +36,48 @@ function getDriveStatus() {
   };
 }
 
+async function getServiceWorkerInfo() {
+  const info = {
+    diagnosticBuildVersion: DIAGNOSTIC_BUILD_VERSION,
+    controllerScriptURL: null,
+    controllerState: null,
+    registeredScopes: [],
+    cacheNames: [],
+    cacheVersionMatch: null,
+  };
+  try {
+    if (typeof navigator !== 'undefined' && navigator.serviceWorker?.controller) {
+      info.controllerScriptURL = navigator.serviceWorker.controller.scriptURL || null;
+      info.controllerState = navigator.serviceWorker.controller.state || null;
+    }
+    if (typeof navigator !== 'undefined' && navigator.serviceWorker?.getRegistrations) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      info.registeredScopes = regs.map((r) => r.scope || null);
+    }
+    if (typeof caches !== 'undefined' && caches.keys) {
+      info.cacheNames = await caches.keys();
+      const expected = `estudo-organizado-v${DIAGNOSTIC_BUILD_VERSION}`;
+      info.cacheVersionMatch = info.cacheNames.includes(expected);
+    }
+  } catch (err) {
+    info.error = err?.message || String(err);
+  }
+  return info;
+}
+
 export async function buildSyncDiagnostic() {
   const config = state.config || {};
   const firestoreStatus = getFirestoreSyncStatus();
 
+  const swInfo = await getServiceWorkerInfo();
+
   const log = {
     timestamp: new Date().toISOString(),
-    appVersion: '8.59',
+    appVersion: DIAGNOSTIC_BUILD_VERSION,
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     online: typeof navigator !== 'undefined' ? navigator.onLine : null,
     schemaVersion: state.schemaVersion || null,
+    serviceWorker: swInfo,
 
     localState: {
       eventCount: safeCount(state.eventos),
