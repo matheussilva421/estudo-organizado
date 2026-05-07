@@ -30,7 +30,9 @@ import {
   restoreBackupFromSelectedSource,
 } from './config/data-management.js?v=8.37';
 import {
+  renderBackupRestoreCard,
   renderBackupCenterCard,
+  renderAdvancedCard,
   renderFirestoreConflict,
   _renderFirestoreCard,
   getSyncHealthLabel,
@@ -46,9 +48,6 @@ import {
 } from './config/sync-center.js?v=8.37';
 import {
   renderPreferenceNotificationsCard,
-  renderPreferenceDataCard,
-  renderPreferenceServiceWorkerCard,
-  renderPreferenceAboutCard,
   setTheme,
   updateConfig,
   toggleConfig,
@@ -57,13 +56,10 @@ import {
 
 export function renderConfig(el) {
   const cfg = state.config;
-  const saveStatus = getLastSaveStatus() || { status: 'saved' };
-  const saveStatusText =
-    saveStatus.status === 'error'
-      ? `Falha ao salvar: ${esc(saveStatus.detail || 'erro desconhecido')}`
-      : saveStatus.status === 'saving'
-        ? 'Salvando alterações no dispositivo...'
-        : 'Último salvamento local concluído. Credenciais não entram em backup/exportação.';
+  // saveStatus / saveStatusText kept for parity with backwards-compat callers,
+  // but the unified Backup & Restauração card no longer renders them inline.
+  void getLastSaveStatus;
+  void esc;
   const activeTheme = normalizeTheme(cfg.tema, cfg.darkMode);
   const themeOptionsHtml = THEME_OPTIONS.map(
     (theme) =>
@@ -86,8 +82,9 @@ export function renderConfig(el) {
             </div>
           </div>
         </div>
+
         <div class="card config-card">
-          <div class="card-header"><h3>⚖️ Calendário</h3></div>
+          <div class="card-header"><h3>📅 Calendário &amp; Estudos</h3></div>
           <div class="card-body">
             <div class="config-row">
               <div>
@@ -121,6 +118,28 @@ export function renderConfig(el) {
               </div>
               <button type="button" class="toggle ${cfg.agruparEventos ? 'on' : ''}" aria-pressed="${cfg.agruparEventos ? 'true' : 'false'}" aria-label="Agrupar eventos no dia" data-action="toggle-config" data-config-key="agruparEventos"></button>
             </div>
+            <div class="config-row">
+              <div>
+                <div class="config-label">Matérias por dia no Ciclo</div>
+                <div class="config-sub">Quantidade de disciplinas distribuídas diariamente no calendário/MED</div>
+              </div>
+              <input type="number" class="form-control config-input-number" min="1" max="15" value="${cfg.materiasPorDia || 3}" data-action="update-config" data-config-key="materiasPorDia" data-value-type="number">
+            </div>
+          </div>
+        </div>
+
+        <div class="card config-card">
+          <div class="card-header"><h3>🔁 Revisões</h3></div>
+          <div class="card-body">
+            <div class="config-desc">
+              Defina em quantos dias após concluir um assunto o programa vai sugerir cada revisão.
+            </div>
+            <div class="form-group">
+              <label class="form-label">Intervalos (em dias, separados por vírgula)</label>
+              <input type="text" class="form-control" id="freq-input" value="${(cfg.frequenciaRevisao || [1, 7, 30, 90]).join(', ')}"
+                data-action="update-frequencia">
+            </div>
+            <div class="config-hint">Ex: 1, 7, 30, 90 = 4 revisões no 1º, 7º, 30º e 90º dia</div>
           </div>
         </div>
 
@@ -144,45 +163,15 @@ export function renderConfig(el) {
           </div>
         </div>
 
-        <div class="card config-card">
-          <div class="card-header"><h3>📚 Planejamento Diário</h3></div>
-          <div class="card-body">
-            <div class="config-row">
-              <div>
-                <div class="config-label">Matérias por dia no Ciclo</div>
-                <div class="config-sub">Quantidade de disciplinas distribuídas diariamente no calendário/MED.</div>
-              </div>
-              <input type="number" class="form-control config-input-number" min="1" max="15" value="${cfg.materiasPorDia || 3}" data-action="update-config" data-config-key="materiasPorDia" data-value-type="number">
-            </div>
-          </div>
-        </div>
-
-        <div class="card config-card">
-          <div class="card-header"><h3>🔄 Frequência de Revisão</h3></div>
-          <div class="card-body">
-            <div class="config-desc">
-              Defina em quantos dias após concluir um assunto o programa vai sugerir cada revisão.
-            </div>
-            <div class="form-group">
-              <label class="form-label">Intervalos (em dias, separados por vírgula)</label>
-              <input type="text" class="form-control" id="freq-input" value="${(cfg.frequenciaRevisao || [1, 7, 30, 90]).join(', ')}"
-                data-action="update-frequencia">
-            </div>
-            <div class="config-hint">Ex: 1, 7, 30, 90 = 4 revisões no 1º, 7º, 30º e 90º dia</div>
-          </div>
-        </div>
-
         ${renderPreferenceNotificationsCard(cfg)}
-        ${renderPreferenceDataCard(saveStatus, saveStatusText)}
-        ${renderPreferenceServiceWorkerCard()}
-        ${renderPreferenceAboutCard()}
       </div>
 
       <div>
         ${renderQuietSyncCenterCard()}
 
-        ${renderBackupCenterCard()}
+        ${renderBackupRestoreCard()}
 
+        ${renderAdvancedCard()}
       </div>
     </div>
   `;

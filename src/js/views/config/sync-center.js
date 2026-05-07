@@ -9,8 +9,13 @@ import { buildSyncCenterModel } from '../../sync/sync-center.js?v=8.37';
 import { getFirestoreSyncStatus } from '../../sync/firestore-sync-engine.js?v=8.37';
 import { formatBackupDateTime } from './backup-settings.js?v=8.37';
 
-function renderBackupCenterCard() {
+function renderBackupRestoreCard() {
   const fs = state.config?.firestoreSync || {};
+  const eventCount = (state.eventos || []).length;
+  const archivedCount = (state.arquivo || []).length;
+  const lastLocal = formatBackupDateTime(state.config?.localBackupAt);
+  const lastManual = formatBackupDateTime(state.config?.lastManualSyncAt);
+
   const sources = [
     {
       id: 'local',
@@ -21,32 +26,42 @@ function renderBackupCenterCard() {
     },
     {
       id: 'firestore',
-      title: 'Firestore primary',
+      title: 'Firestore',
       status: fs.enabled ? 'Canal remoto ativo' : 'Aguardando login/ativação',
       at: fs.remoteUpdatedAt || fs.lastPushAt || fs.lastPullAt,
-      detail: 'Fonte remota principal; snapshot permanece fallback.',
+      detail: 'Fonte remota principal.',
     },
     {
       id: 'cloudflare',
-      title: 'Cloudflare secundário',
-      status: state.config?.cfSyncEnabled ? 'Backup manual configurado' : 'Não configurado',
+      title: 'Cloudflare',
+      status: state.config?.cfSyncEnabled ? 'Backup configurado' : 'Não configurado',
       at: state.config?.cfLastSyncAt,
-      detail: 'Canal manual/secundário fora do sync primary.',
+      detail: 'Backup secundário.',
     },
     {
       id: 'drive',
       title: 'Google Drive',
-      status: state.driveFileId ? 'Backup manual conectado' : 'Não conectado',
+      status: state.driveFileId ? 'Backup conectado' : 'Não conectado',
       at: state.lastSync,
-      detail: 'Importação e exportação manual para recuperação.',
+      detail: 'Importação e exportação manual.',
     },
   ];
 
   return `
     <div class="card config-card" data-testid="backup-center">
-      <div class="card-header"><h3><i class="fa fa-shield-heart"></i> Backup Center</h3></div>
+      <div class="card-header"><h3><i class="fa fa-shield-heart"></i> Backup &amp; Restauração</h3></div>
       <div class="card-body">
-        <div class="config-desc">Exporte seus dados como JSON para backup seguro. A importação valida o arquivo e mostra prévia de impacto antes de substituir.</div>
+        <div class="config-sub">
+          ${eventCount} evento(s) ativos${archivedCount > 0 ? ` &bull; ${archivedCount} arquivado(s)` : ''}
+        </div>
+        <div class="config-desc">
+          Exporte como JSON para backup seguro. A importação valida o arquivo e mostra prévia de impacto antes de substituir.
+        </div>
+
+        <div class="grid config-backup-grid">
+          <div class="flex flex-between"><span>Último salvamento local:</span><strong>${lastLocal}</strong></div>
+          <div class="flex flex-between"><span>Última sincronização manual:</span><strong>${lastManual}</strong></div>
+        </div>
 
         <div class="backup-center-primary-actions">
           <button class="btn btn-primary" data-action="export-data"><i class="fa fa-download"></i> Exportar JSON</button>
@@ -81,7 +96,54 @@ function renderBackupCenterCard() {
             )
             .join('')}
         </div>
+      </div>
+    </div>
+  `;
+}
 
+function renderAdvancedCard() {
+  return `
+    <div class="card config-card" data-testid="advanced-settings">
+      <div class="card-header"><h3><i class="fa fa-triangle-exclamation"></i> Avançado</h3></div>
+      <div class="card-body">
+        <details class="advanced-details">
+          <summary>Mostrar opções avançadas</summary>
+          <div class="advanced-content">
+            <div class="config-desc">
+              Operações pouco frequentes. Algumas são destrutivas — leia antes de clicar.
+            </div>
+
+            <div class="config-row">
+              <div>
+                <div class="config-label">Arquivar eventos antigos</div>
+                <div class="config-sub">Move concluídos com mais de 90 dias para o arquivo.</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" data-action="archive-old-events" data-days="90">
+                <i class="fa fa-box-archive"></i> Arquivar
+              </button>
+            </div>
+
+            <div class="config-row">
+              <div>
+                <div class="config-label">Cache do app</div>
+                <div class="config-sub">Limpa cache do Service Worker e força a versão mais recente. Útil se a interface estiver travada numa versão antiga.</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" data-action="force-sw-cache-clear">
+                <i class="fa fa-rotate"></i> Limpar cache
+              </button>
+            </div>
+
+            <div class="config-row advanced-danger-row">
+              <div>
+                <div class="config-label">Limpar todos os dados</div>
+                <div class="config-sub">Remove eventos, editais, hábitos, revisões e configurações deste dispositivo. Não pode ser desfeito. Exporte um backup antes.</div>
+              </div>
+              <button class="btn btn-danger btn-sm" data-action="clear-all-data">
+                <i class="fa fa-trash"></i> Limpar tudo
+              </button>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   `;
@@ -586,8 +648,13 @@ function renderQuietSyncCenterCard() {
   `;
 }
 
+// Backwards-compat alias: external imports may still reference the old name.
+const renderBackupCenterCard = renderBackupRestoreCard;
+
 export {
+  renderBackupRestoreCard,
   renderBackupCenterCard,
+  renderAdvancedCard,
   renderFirestoreConflict,
   _renderFirestoreCard,
   getSyncHealthLabel,

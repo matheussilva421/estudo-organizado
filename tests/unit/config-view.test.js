@@ -420,7 +420,7 @@ describe('views/config-view.js', () => {
   });
 
   describe('renderConfig()', () => {
-    it('renders a dedicated Backup Center with source history and safe restore actions', () => {
+    it('renders a unified Backup & Restauração card with source history and safe restore actions', () => {
       storeModule.state.config.localBackupAt = '2026-04-30T10:00:00.000Z';
       storeModule.state.config.firestoreSync = { remoteUpdatedAt: '2026-04-30T10:05:00.000Z' };
       storeModule.state.config.cfLastSyncAt = '2026-04-30T10:10:00.000Z';
@@ -429,13 +429,38 @@ describe('views/config-view.js', () => {
 
       configView.renderConfig(el);
 
-      expect(el.innerHTML).toContain('Backup Center');
+      expect(el.innerHTML).toContain('Backup &amp; Restauração');
       expect(el.innerHTML).toContain('data-testid="backup-center"');
       expect(el.innerHTML).toContain('data-testid="sync-center"');
       expect(el.innerHTML).toContain('Sincronizar agora');
       expect(el.innerHTML).toContain('data-action="manual-sync-all"');
       expect(el.innerHTML).toContain('data-action="open-restore-preview"');
       expect(el.innerHTML).toContain('Exportar antes de restaurar');
+    });
+
+    it('renders the Avançado collapsed section with destructive actions', () => {
+      const el = document.createElement('div');
+      configView.renderConfig(el);
+      expect(el.innerHTML).toContain('data-testid="advanced-settings"');
+      expect(el.innerHTML).toContain('data-action="archive-old-events"');
+      expect(el.innerHTML).toContain('data-action="force-sw-cache-clear"');
+      expect(el.innerHTML).toContain('data-action="clear-all-data"');
+    });
+
+    it('does not render the Sobre card', () => {
+      const el = document.createElement('div');
+      configView.renderConfig(el);
+      expect(el.innerHTML).not.toContain('Estudo Organizado é um app');
+      expect(el.innerHTML).not.toContain('fa-circle-info');
+    });
+
+    it('merges Calendário and Planejamento Diário into a single card', () => {
+      const el = document.createElement('div');
+      configView.renderConfig(el);
+      expect(el.innerHTML).toContain('Calendário &amp; Estudos');
+      expect(el.innerHTML).toContain('Matérias por dia no Ciclo');
+      // Standalone "Planejamento Diário" header should be gone
+      expect(el.innerHTML).not.toContain('>📚 Planejamento Diário<');
     });
   });
 

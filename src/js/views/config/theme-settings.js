@@ -1,9 +1,7 @@
-import { esc } from '../../utils.js?v=8.37';
-import { THEME_OPTIONS, applyTheme, normalizeTheme } from '../../app.js?v=8.37';
+import { applyTheme, normalizeTheme } from '../../app.js?v=8.37';
 import { scheduleSave, state } from '../../store.js?v=8.37';
 import { syncCicloToEventos } from '../../logic.js?v=8.37';
 import { renderCurrentView } from '../../components.js?v=8.37';
-import { formatBackupDateTime } from './backup-settings.js?v=8.37';
 
 export function renderPreferenceNotificationsCard(cfg) {
   return `
@@ -48,77 +46,12 @@ export function renderPreferenceNotificationsCard(cfg) {
   `;
 }
 
-export function renderPreferenceDataCard(saveStatus, saveStatusText) {
-  return `
-    <div class="card config-card">
-      <div class="card-header"><h3><i class="fa fa-database"></i> Dados</h3></div>
-      <div class="card-body">
-        <div class="config-sub">
-          ${state.eventos.length} evento(s) ativos
-          ${(state.arquivo || []).length > 0 ? ` &bull; ${state.arquivo.length} arquivado(s)` : ''}
-        </div>
-
-        <div id="config-save-status-detail" class="config-save-status config-save-status--${saveStatus.status || 'saved'}">
-          ${saveStatusText}
-        </div>
-        <div class="config-desc">Importa&ccedil;&otilde;es JSON passam por valida&ccedil;&atilde;o e pr&eacute;via de impacto antes de substituir os dados atuais.</div>
-
-        <div class="grid config-backup-grid">
-          <div class="flex flex-between"><span>Último salvamento local:</span><strong>${formatBackupDateTime(state.config.localBackupAt)}</strong></div>
-          <div class="flex flex-between"><span>Última sincronização manual:</span><strong>${formatBackupDateTime(state.config.lastManualSyncAt)}</strong></div>
-        </div>
-
-        <div class="form-group mb-3">
-          <label class="form-label">Origem do backup para restaura&ccedil;&atilde;o</label>
-          <select id="backup-restore-source" class="form-control">
-            <option value="local">Backup local (importar arquivo JSON)</option>
-            <option value="firestore">Firestore</option>
-            <option value="cloudflare">Cloudflare</option>
-            <option value="drive">Google Drive</option>
-          </select>
-        </div>
-
-        <div class="flex flex-wrap gap-sm">
-          <button class="btn btn-ghost" data-action="export-data"><i class="fa fa-file-export"></i> Exportar JSON</button>
-          <button class="btn btn-ghost" data-action="restore-backup"><i class="fa fa-rotate-left"></i> Restaurar backup selecionado</button>
-          <button class="btn btn-ghost btn-sm" data-action="archive-old-events" data-days="90" title="Move eventos concluidos ha mais de 90 dias para o arquivo"><i class="fa fa-box-archive"></i> Arquivar antigos</button>
-          <button class="btn btn-danger btn-sm" data-action="clear-all-data"><i class="fa fa-trash"></i> Limpar tudo</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-export function renderPreferenceServiceWorkerCard() {
-  return `
-    <div class="card config-card">
-      <div class="card-header"><h3><i class="fa fa-rotate"></i> Service Worker</h3></div>
-      <div class="card-body">
-        <div class="config-desc" style="margin-bottom:12px;">
-          Limpe o cache do service worker e force o carregamento da vers&atilde;o mais recente. &Uacute;til quando h&aacute; problemas de cache ap&oacute;s atualiza&ccedil;&otilde;es.
-        </div>
-        <button class="btn btn-primary btn-sm" data-action="force-sw-cache-clear">
-          <i class="fa fa-rotate"></i> Limpar cache e recarregar
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-export function renderPreferenceAboutCard() {
-  return `
-    <div class="card config-card">
-      <div class="card-header"><h3><i class="fa fa-circle-info"></i> Sobre</h3></div>
-      <div class="card-body">
-        <div class="config-desc">
-          <strong>Estudo Organizado</strong> &eacute; um app para planejamento e organiza&ccedil;&atilde;o de estudos para concursos p&uacute;blicos.<br><br>
-          Baseado no Ciclo PDCA: planeje no Calend&aacute;rio, execute no Study Organizer, me&ccedil;a no Dashboard e corrija com as Revis&otilde;es.<br><br>
-          <span class="text-xs text-muted">Vers&atilde;o 1.0 &bull; Dados salvos localmente + Google Drive</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
+// Note: renderPreferenceDataCard, renderPreferenceServiceWorkerCard and
+// renderPreferenceAboutCard were removed in the Configurações refactor.
+// Their responsibilities are now in:
+//   - renderBackupRestoreCard (sync-center.js): export/import/restore
+//   - renderAdvancedCard (sync-center.js): archive, SW cache, clear-all
+//   - "Sobre" card was removed entirely.
 
 export function setTheme(themeName) {
   const theme = normalizeTheme(themeName, state.config.darkMode);
