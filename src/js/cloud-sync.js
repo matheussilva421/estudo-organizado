@@ -211,21 +211,31 @@ export async function pullFromCloudflare(forceOverwrite = false) {
               ? '[Cloudflare] Restauração forçada da Cloudflare...'
               : `[Cloudflare] Dados da Cloudflare são mais novos, aplicando... (remoteTime=${remoteTime}, localTime=${localTime})`
           );
+          // Capture local Cloudflare credentials BEFORE setState — they live in
+          // state.config and would otherwise be wiped by setState(remoteData)
+          // (forceOverwrite path) or by the defensive delete below.
+          const savedCfUrl = state.config?.cfUrl || null;
+          const savedCfToken = state.config?.cfToken || null;
+          const savedCfSyncEnabled = state.config?.cfSyncEnabled === true;
           if (forceOverwrite) {
             setState(remoteData);
           } else {
             const merged = mergeStudyStates(state, remoteData);
             setState(merged);
           }
-          // Strip sync creds from incoming data to avoid overwriting local creds
+          // Restore local credentials. Remote payloads must never carry creds
+          // (createExportableState strips them), so any incoming cfUrl/cfToken
+          // is stale legacy data that should be discarded in favor of local.
           if (state.config) {
-            delete state.config.cfUrl;
-            delete state.config.cfToken;
+            if (savedCfUrl) state.config.cfUrl = savedCfUrl;
+            else delete state.config.cfUrl;
+            if (savedCfToken) state.config.cfToken = savedCfToken;
+            else delete state.config.cfToken;
+            state.config.cfSyncEnabled = savedCfSyncEnabled;
             delete state.config.cfTokenSaved;
             if (remoteUpdatedAt) state.config.cfRemoteUpdatedAt = remoteUpdatedAt;
             delete state.config.cfConflict;
           }
-          // Re-sync Cloudflare credentials from isolated store after remote merge
           await initCloudflareCreds();
           debugLog('sync', '[Cloudflare] pullFromCloudflare AFTER setState:', {
             stateConfigUrl: state.config?.cfUrl,
