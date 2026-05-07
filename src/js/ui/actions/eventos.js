@@ -13,6 +13,8 @@ import {
   setCronoLivreDisc,
   setCronoLivreAss,
   removeEvento,
+  previewClearAutoCicloEvents,
+  clearAutoCicloEvents,
 } from '../../logic.js?v=8.37';
 import {
   openAddEventModal,
@@ -22,7 +24,8 @@ import {
   savePastEvent,
   openEventDetail,
 } from '../../ui/event-modals.js?v=8.37';
-import { showConfirm, closeModal } from '../../app.js?v=8.37';
+import { showConfirm, closeModal, showToast } from '../../app.js?v=8.37';
+import { renderCurrentView } from '../../components.js?v=8.37';
 import { marcarEstudei } from '../../logic.js?v=8.37';
 import { clearSearch } from '../../views.js?v=8.37';
 import {
@@ -142,4 +145,35 @@ registerAction('edit-session-record', (el) => {
 registerAction('delete-session-record', (el) => {
   const sessionId = el.dataset.sessionId;
   if (sessionId) deleteCompletedSession(sessionId);
+});
+registerAction('clear-ciclo-events', () => {
+  const preview = previewClearAutoCicloEvents();
+  if (preview.toDelete.length === 0) {
+    showToast('Nenhum evento agendado do Ciclo para remover.', 'info');
+    return;
+  }
+  const count = preview.toDelete.length;
+  const preservedSummary = [
+    preview.preservedManual.length ? `${preview.preservedManual.length} manuais` : null,
+    preview.preservedWithProgress.length
+      ? `${preview.preservedWithProgress.length} com progresso`
+      : null,
+    preview.preservedConcluded.length ? `${preview.preservedConcluded.length} concluídos` : null,
+    preview.preservedPast.length ? `${preview.preservedPast.length} passados` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const msg =
+    `Apagar ${count} evento(s) agendado(s) do Ciclo?` +
+    (preservedSummary ? `\n\nPreservados: ${preservedSummary}.` : '') +
+    '\n\nApenas eventos auto-gerados pelo Ciclo, sem tempo registrado e que ainda não começaram são removidos. Esta ação não pode ser desfeita.';
+  showConfirm(
+    msg,
+    () => {
+      const summary = clearAutoCicloEvents();
+      showToast(`${summary.deleted} evento(s) removido(s).`, 'success');
+      renderCurrentView();
+    },
+    { title: 'Limpar agendados do Ciclo', label: `Apagar ${count}`, danger: true }
+  );
 });
