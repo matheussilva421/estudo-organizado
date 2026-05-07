@@ -39,10 +39,17 @@ function emitStatus(status, payload = {}) {
 
 export function isFirestoreEligible() {
   const status = getFirestoreSyncStatus();
+  // Note: signedIn is intentionally NOT checked here. The currentUser variable
+  // inside firestore-sync-engine flaps after page reloads (auth restores async
+  // via observeFirebaseAuth). If we required signedIn=true, a user clicking
+  // sync immediately after reload would hit "no-channels" and the orchestrator
+  // would early-return without recording anything. Instead, we let the engine
+  // itself decide — syncFirestoreNow throws if currentUser is null, and our
+  // catch wraps that into a clean "error" status that gets surfaced to the UI.
   return Boolean(
     status &&
       status.configured &&
-      status.signedIn &&
+      (status.signedIn || status.uid) &&
       status.enabled &&
       status.mode === 'primary'
   );
@@ -153,16 +160,8 @@ async function _runAll(trigger) {
   }
 
   const eligibility = getEligibility();
-  if (!eligibility.firestore && !eligibility.cloudflare && !eligibility.drive) {
-    const payload = {
-      firestore: { status: 'skipped', reason: 'not-configured' },
-      cloudflare: { status: 'skipped', reason: 'not-configured' },
-      drive: { status: 'skipped', reason: 'not-configured' },
-      summary: { ok: 0, conflict: 0, error: 0, skipped: 3, overall: 'no-channels' },
-    };
-    emitStatus('no-channels', { trigger, ...payload });
-    return payload;
-  }
+  const noChannelsConfigured =
+    !eligibility.firestore && !eligibility.cloudflare && !eligibility.drive;
 
   emitStatus('syncing', { trigger, eligibility });
 
@@ -185,6 +184,10 @@ async function _runAll(trigger) {
   };
 
   const summary = aggregateSummary(result);
+  // Surface "no-channels" only when nothing was even attempted. This still
+  // records the run in history so users see in the diagnostic that they
+  // tried to sync but no channel was eligible.
+  if (noChannelsConfigured) summary.overall = 'no-channels';
 
   if (!state.config) state.config = {};
   const finishedAt = new Date().toISOString();
@@ -192,6 +195,7 @@ async function _runAll(trigger) {
   const runRecord = {
     at: finishedAt,
     trigger,
+    eligibility,
     firestore: result.firestore.status,
     cloudflare: result.cloudflare.status,
     drive: result.drive.status,
