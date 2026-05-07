@@ -332,3 +332,230 @@ body {
     width: 100% !important;
   }
 }
+
+/* ============================================================
+   Sync Pill — unified topbar status indicator + popover
+   ============================================================ */
+
+.sync-pill-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card, #1f2937), transparent 12%);
+  color: var(--text-primary, inherit);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.sync-pill:hover {
+  background: color-mix(in srgb, var(--card, #1f2937), transparent 4%);
+  border-color: color-mix(in srgb, var(--accent, #3b82f6), transparent 50%);
+}
+
+.sync-pill:focus-visible {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: 2px;
+}
+
+.sync-pill[aria-expanded='true'] {
+  border-color: var(--accent, #3b82f6);
+  background: color-mix(in srgb, var(--accent, #3b82f6), transparent 88%);
+}
+
+.sync-pill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+}
+
+.sync-pill-label {
+  flex: 1;
+}
+
+.sync-pill-caret {
+  font-size: 9px;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+/* State coloring */
+.sync-pill--ok .sync-pill-icon {
+  color: var(--status-estudei, #22c55e);
+}
+
+.sync-pill--syncing {
+  color: var(--accent, #3b82f6);
+}
+
+.sync-pill--syncing .sync-pill-icon {
+  color: var(--accent, #3b82f6);
+}
+
+.sync-pill--saving {
+  color: var(--accent, #3b82f6);
+}
+
+.sync-pill--pending {
+  color: var(--warning, #f59e0b);
+  border-color: color-mix(in srgb, var(--warning, #f59e0b), transparent 60%);
+}
+
+.sync-pill--pending .sync-pill-icon {
+  color: var(--warning, #f59e0b);
+}
+
+.sync-pill--error,
+.sync-pill--save-error {
+  color: var(--danger, #d64545);
+  border-color: color-mix(in srgb, var(--danger, #d64545), transparent 50%);
+}
+
+.sync-pill--error .sync-pill-icon,
+.sync-pill--save-error .sync-pill-icon {
+  color: var(--danger, #d64545);
+}
+
+.sync-pill--conflict {
+  color: var(--warning, #f59e0b);
+  border-color: color-mix(in srgb, var(--warning, #f59e0b), transparent 40%);
+}
+
+.sync-pill--conflict .sync-pill-icon {
+  color: var(--warning, #f59e0b);
+}
+
+.sync-pill--offline {
+  color: var(--text-secondary, #9ca3af);
+  border-color: color-mix(in srgb, var(--text-secondary, #9ca3af), transparent 60%);
+}
+
+.sync-pill--paused {
+  color: var(--text-secondary, #9ca3af);
+}
+
+.sync-pill--idle .sync-pill-icon {
+  color: var(--text-secondary, #9ca3af);
+}
+
+/* ── Popover ── */
+
+.sync-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 200;
+  min-width: 280px;
+  max-width: 320px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: var(--card, #1f2937);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  animation: sync-popover-in 140ms ease;
+}
+
+@keyframes sync-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sync-popover[hidden] {
+  display: none;
+}
+
+.sync-popover-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.sync-popover-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.sync-popover-row-label {
+  color: var(--text-secondary, #9ca3af);
+  font-weight: 500;
+}
+
+.sync-popover-row-value {
+  color: var(--text-primary, inherit);
+  font-weight: 600;
+  text-align: right;
+}
+
+.sync-popover-row-value--ok {
+  color: var(--status-estudei, #22c55e);
+}
+
+.sync-popover-row-value--pending {
+  color: var(--accent, #3b82f6);
+}
+
+.sync-popover-row-value--error {
+  color: var(--danger, #d64545);
+}
+
+.sync-popover-row-value--offline {
+  color: var(--text-secondary, #9ca3af);
+}
+
+.sync-popover-divider {
+  margin: 12px 0;
+  border: none;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+.sync-popover-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sync-popover-actions .btn {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* Mobile: keep popover anchored to pill but cap width */
+@media (max-width: 600px) {
+  .sync-popover {
+    right: auto;
+    left: 0;
+    min-width: 240px;
+    max-width: calc(100vw - 32px);
+  }
+  .sync-pill-label {
+    display: none; /* icon-only on small screens to save space */
+  }
+}
+
+/* Theme button: now icon-only, slightly tighter padding */
+.topbar-theme-btn {
+  padding-inline: 10px;
+}
+

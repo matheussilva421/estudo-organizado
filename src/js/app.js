@@ -412,7 +412,8 @@ export function applyTheme(toggle = false) {
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) {
     const themeLabel = getThemeLabel(theme);
-    btn.textContent = `Tema: ${themeLabel}`;
+    // Icon-only button — keep label only as tooltip / a11y text.
+    btn.innerHTML = '<i class="fa fa-palette" aria-hidden="true"></i>';
     btn.setAttribute('title', `Tema atual: ${themeLabel}. Clique para trocar.`);
     btn.setAttribute('aria-label', `Tema atual: ${themeLabel}. Clique para trocar.`);
   }
