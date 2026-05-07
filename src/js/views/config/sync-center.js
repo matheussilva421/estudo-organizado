@@ -620,6 +620,9 @@ function renderQuietSyncCenterCard() {
           <button type="button" class="btn btn-primary btn-lg" data-action="manual-sync-all">
             <i class="fa fa-arrows-rotate"></i> Sincronizar agora
           </button>
+          <button type="button" class="btn btn-outline btn-sm" data-action="download-from-source" title="Baixa dados de um canal remoto e substitui os dados locais. Use ao iniciar em um dispositivo desatualizado.">
+            <i class="fa fa-cloud-arrow-down"></i> Baixar dados
+          </button>
           <button type="button" class="btn btn-ghost btn-sm" data-action="download-sync-log" title="Baixa um JSON com o estado de todos os canais de sync para diagnóstico">
             <i class="fa fa-file-lines"></i> Baixar log
           </button>

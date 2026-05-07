@@ -14,7 +14,7 @@ import { getSyncCreds, getSyncConfig } from '../cloud-sync.js?v=8.37';
 
 // The version baked at write time. Each APP_VERSION bump should also touch
 // this constant so the log surfaces the JS module version actually loaded.
-const DIAGNOSTIC_BUILD_VERSION = '8.67';
+const DIAGNOSTIC_BUILD_VERSION = '8.68';
 
 function safeCount(arr) {
   return Array.isArray(arr) ? arr.length : 0;
