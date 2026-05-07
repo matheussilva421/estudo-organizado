@@ -211,7 +211,7 @@ describe('CSS architecture', () => {
     const rootVars = extractCssVars(extractCssBlock(tokens, ':root'));
     const grafiteVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="grafite"]'));
     const ardosiaVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="ardosia"]'));
-    const pergaminhoVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="pergaminho"]'));
+    const platinaVars = extractCssVars(extractCssBlock(legacyStyles, '[data-theme="platina"]'));
 
     expect(rootVars).toMatchObject({
       '--bg': '#08090d',
@@ -242,19 +242,20 @@ describe('CSS architecture', () => {
       '--text-secondary': '#a8aeb8',
       '--accent': '#c0c5cd'
     });
-    expect(pergaminhoVars).toMatchObject({
-      '--bg': '#0e0b08',
-      '--card': '#1c1812',
-      '--card-header': '#25201a',
-      '--card-hover': '#2d2820',
-      '--border': 'rgba(238, 224, 196, 0.14)',
-      '--accent': '#cbb892',
-      '--info': '#9bb4cf'
+    expect(platinaVars).toMatchObject({
+      '--bg': '#111112',
+      '--card': '#202225',
+      '--card-header': '#2b2e32',
+      '--card-hover': '#363a40',
+      '--border': 'rgba(235, 238, 242, 0.14)',
+      '--text-secondary': '#aaaead',
+      '--accent': '#d7d7d2',
+      '--accent-hover': '#eeeeea'
     });
     expect(contrastRatio(ardosiaVars['--text-primary'], ardosiaVars['--bg'])).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(ardosiaVars['--text-secondary'], ardosiaVars['--card'])).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(pergaminhoVars['--text-primary'], pergaminhoVars['--bg'])).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(pergaminhoVars['--text-secondary'], pergaminhoVars['--card'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(platinaVars['--text-primary'], platinaVars['--bg'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(platinaVars['--text-secondary'], platinaVars['--card'])).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(rootVars['--accent-text'], rootVars['--accent'])).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(rootVars['--text-secondary'], rootVars['--card'])).toBeGreaterThanOrEqual(4.5);
     expect(legacyStyles).toMatch(/\.btn-primary:hover\s*{[^}]*background:\s*var\(--accent-hover\)/s);
@@ -288,7 +289,8 @@ describe('CSS architecture', () => {
     expect(html).toContain('title="Trocar tema"');
     expect(appSource).toContain("label: 'Grafite'");
     expect(appSource).toContain("label: 'Ardósia'");
-    expect(appSource).toContain("label: 'Pergaminho'");
+    expect(appSource).toContain("label: 'Platina'");
+    expect(appSource).not.toContain("label: 'Pergaminho'");
     expect(appSource).toContain('LEGACY_THEME_ALIASES');
     expect(appSource).toContain('THEME_OPTIONS');
     expect(configViewSource).toContain('THEME_OPTIONS');
@@ -303,7 +305,7 @@ describe('CSS architecture', () => {
     const themedSelectors = [
       '[data-theme="grafite"]',
       '[data-theme="ardosia"]',
-      '[data-theme="pergaminho"]'
+      '[data-theme="platina"]'
     ];
 
     for (const selector of themedSelectors) {

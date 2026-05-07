@@ -95,17 +95,18 @@ describe('app.js', () => {
     it('returns valid theme as-is', () => {
       expect(app.normalizeTheme('grafite')).toBe('grafite');
       expect(app.normalizeTheme('ardosia')).toBe('ardosia');
-      expect(app.normalizeTheme('pergaminho')).toBe('pergaminho');
+      expect(app.normalizeTheme('platina')).toBe('platina');
     });
 
     it('converts legacy aliases to modern themes', () => {
       expect(app.normalizeTheme('dark')).toBe('grafite');
       expect(app.normalizeTheme('light')).toBe('grafite');
       expect(app.normalizeTheme('obsidiana')).toBe('ardosia');
-      expect(app.normalizeTheme('contraste')).toBe('pergaminho');
+      expect(app.normalizeTheme('contraste')).toBe('platina');
       expect(app.normalizeTheme('furtivo')).toBe('ardosia');
       expect(app.normalizeTheme('matrix')).toBe('ardosia');
-      expect(app.normalizeTheme('rubi')).toBe('pergaminho');
+      expect(app.normalizeTheme('rubi')).toBe('platina');
+      expect(app.normalizeTheme('pergaminho')).toBe('platina');
     });
 
     it('defaults to grafite for unknown themes', () => {
@@ -117,7 +118,7 @@ describe('app.js', () => {
     it('returns label for valid theme', () => {
       expect(app.getThemeLabel('grafite')).toBe('Grafite');
       expect(app.getThemeLabel('ardosia')).toBe('Ardósia');
-      expect(app.getThemeLabel('pergaminho')).toBe('Pergaminho');
+      expect(app.getThemeLabel('platina')).toBe('Platina');
     });
 
     it('normalizes theme before getting label', () => {
@@ -268,7 +269,8 @@ describe('app.js', () => {
       expect(app.THEME_OPTIONS).toHaveLength(3);
       expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('grafite');
       expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('ardosia');
-      expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('pergaminho');
+      expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('platina');
+      expect(app.THEME_OPTIONS.map((t) => t.value)).not.toContain('pergaminho');
     });
   });
 

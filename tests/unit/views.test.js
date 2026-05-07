@@ -94,7 +94,7 @@ describe('app.js - Theme contracts', () => {
     expect(app.THEME_OPTIONS).toEqual([
       { value: 'grafite', label: 'Grafite' },
       { value: 'ardosia', label: 'Ardósia' },
-      { value: 'pergaminho', label: 'Pergaminho' }
+      { value: 'platina', label: 'Platina' }
     ]);
   });
 
@@ -102,11 +102,12 @@ describe('app.js - Theme contracts', () => {
     expect(app.normalizeTheme('light')).toBe('grafite');
     expect(app.normalizeTheme('dark')).toBe('grafite');
     expect(app.normalizeTheme('obsidiana')).toBe('ardosia');
-    expect(app.normalizeTheme('contraste')).toBe('pergaminho');
+    expect(app.normalizeTheme('contraste')).toBe('platina');
     expect(app.normalizeTheme('furtivo')).toBe('ardosia');
     expect(app.normalizeTheme('abismo')).toBe('grafite');
     expect(app.normalizeTheme('matrix')).toBe('ardosia');
-    expect(app.normalizeTheme('rubi')).toBe('pergaminho');
+    expect(app.normalizeTheme('rubi')).toBe('platina');
+    expect(app.normalizeTheme('pergaminho')).toBe('platina');
     expect(app.normalizeTheme('cyberpunk2077')).toBe('grafite');
     expect(app.normalizeTheme('desconhecido', true)).toBe('grafite');
   });

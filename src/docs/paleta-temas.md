@@ -5,7 +5,7 @@ Este guia define a direcao visual oficial do app: dark premium, discreta e consi
 ## 1) Fonte da verdade
 
 - Os tokens base ficam em `src/css/tokens.css`, no bloco `:root`.
-- As variacoes visiveis ficam em `src/css/base/themes.css`: `[data-theme="grafite"]`, `[data-theme="ardosia"]` e `[data-theme="pergaminho"]`.
+- As variacoes visiveis ficam em `src/css/base/themes.css`: `[data-theme="grafite"]`, `[data-theme="ardosia"]` e `[data-theme="platina"]`.
 - Componentes devem consumir tokens, nao cores fixas.
 - O tema ativo continua sendo aplicado via `data-theme` no elemento `<html>`.
 
@@ -15,9 +15,9 @@ Este guia define a direcao visual oficial do app: dark premium, discreta e consi
 |---|---|---|
 | Grafite | Padrao | Dark premium frio e equilibrado |
 | Ardosia | Leitura | Cinza neutro com elevacao mais clara entre superficies |
-| Pergaminho | Estudo noturno | Dark warm, sepia discreto e menos azulado |
+| Platina | Foco limpo | Dark cinza puro, claro o bastante para leitura e hierarquia |
 
-Valores antigos como `light`, `dark`, `obsidiana`, `contraste`, `furtivo`, `abismo`, `matrix`, `rubi` e `cyberpunk2077` continuam aceitos internamente, mas sao normalizados para um dos tres temas acima.
+Valores antigos como `light`, `dark`, `obsidiana`, `contraste`, `furtivo`, `abismo`, `matrix`, `rubi`, `pergaminho` e `cyberpunk2077` continuam aceitos internamente, mas sao normalizados para um dos tres temas acima.
 
 ## 3) Paleta base
 
