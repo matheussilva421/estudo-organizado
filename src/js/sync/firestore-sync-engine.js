@@ -700,7 +700,27 @@ export async function pullFromFirestore(forceOverwrite = false) {
     if (forceOverwrite || isRemoteNewer(remote, state)) {
       await yieldToUIWithBudget(50, performance.now());
       const nextState = applyEnvelopeToLocalState(remote, config);
-      setState(nextState, { merge: true });
+      // CRITICAL: with forceOverwrite the user explicitly wants to REPLACE
+      // local data with remote (e.g. via "Baixar dados" or restore preview).
+      // setState(merge: true) merges arrays by id and preserves local-only
+      // items — that's wrong for overwrite semantics because items deleted
+      // locally would survive. Force a full replace; preserve sync-related
+      // creds/metadata that must not come from a remote payload.
+      if (forceOverwrite) {
+        const preservedCfUrl = state.config?.cfUrl || null;
+        const preservedCfToken = state.config?.cfToken || null;
+        const preservedCfSyncEnabled = state.config?.cfSyncEnabled === true;
+        const preservedFirestoreSync = state.config?.firestoreSync || null;
+        setState(nextState);
+        if (state.config) {
+          if (preservedCfUrl) state.config.cfUrl = preservedCfUrl;
+          if (preservedCfToken) state.config.cfToken = preservedCfToken;
+          state.config.cfSyncEnabled = preservedCfSyncEnabled;
+          if (preservedFirestoreSync) state.config.firestoreSync = preservedFirestoreSync;
+        }
+      } else {
+        setState(nextState, { merge: true });
+      }
       await clearFirestoreConflict();
       await markFirestoreSnapshotSynced();
       await saveFirestoreMeta({
