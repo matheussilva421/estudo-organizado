@@ -1432,13 +1432,21 @@ button.cal-event-chip:focus-visible {
   margin-bottom: 24px;
 }
 
-.dash-grid-bottom {
+.dash-week-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
 }
 
-@media (max-width: 768px) {
+.dash-grid-bottom {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+@media (max-width: 1024px) {
   .dash-grid-bottom {
     grid-template-columns: 1fr;
   }
