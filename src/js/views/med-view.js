@@ -76,7 +76,7 @@ export function renderMED(el) {
         <div class="med-empty-actions">
           <button class="btn btn-primary" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Evento</button>
           <button class="btn btn-ghost" data-action="navigate" data-view="cronometro"><i class="fa fa-stopwatch"></i> Sessão Livre</button>
-          <button class="btn btn-ghost" data-action="navigate" data-view="calendario"><i class="fa fa-calendar"></i> Ver Calendário</button>
+          <button class="btn btn-ghost" data-action="navigate" data-view="calendar"><i class="fa fa-calendar"></i> Ver Calendário</button>
         </div>
       </div>
     `;
