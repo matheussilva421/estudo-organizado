@@ -4,31 +4,29 @@
  */
 
 import { state } from '../store.js?v=8.37';
-import { esc } from '../utils.js?v=8.37';
+import { esc, normalizeSearch } from '../utils.js?v=8.37';
+import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
 
-// ── Vertical View State ──
-let vertSearch = '';
-let vertFilterStatus = 'todos';
-let vertFilterEdital = '';
-let discFilterStatus = 'ativas';
+// ── Vertical View State (persisted via ui-state) ──
+let discFilterStatus = 'ativas'; // não persiste — é filtro por sessão dentro do dashboard de disciplinas
 
 export function getVertSearch() {
-  return vertSearch;
+  return getUiSection('verticalizado').busca || '';
 }
 export function setVertSearch(val) {
-  vertSearch = val;
+  setUiSection('verticalizado', { busca: val });
 }
 export function getVertFilterStatus() {
-  return vertFilterStatus;
+  return getUiSection('verticalizado').filtroStatus || 'todos';
 }
 export function setVertFilterStatus(val) {
-  vertFilterStatus = val;
+  setUiSection('verticalizado', { filtroStatus: val });
 }
 export function getVertFilterEdital() {
-  return vertFilterEdital;
+  return getUiSection('verticalizado').filtroEdital || '';
 }
 export function setVertFilterEdital(val) {
-  vertFilterEdital = val;
+  setUiSection('verticalizado', { filtroEdital: val });
 }
 export function getDiscFilterStatus() {
   return discFilterStatus;
@@ -40,16 +38,22 @@ export function setDiscFilterStatus(val) {
 // ── Helper: Get Filtered Vertical Items ──
 export function getFilteredVertItems() {
   const items = [];
+  const ui = getUiSection('verticalizado');
+  const filtroEdital = ui.filtroEdital || '';
+  const filtroStatus = ui.filtroStatus || 'todos';
+  const buscaNorm = ui.busca ? normalizeSearch(ui.busca) : '';
   for (const edital of state.editais || []) {
-    if (vertFilterEdital && edital.id !== vertFilterEdital) continue;
+    if (filtroEdital && edital.id !== filtroEdital) continue;
     for (const disc of edital.disciplinas || []) {
       if (disc.arquivada) continue;
       for (const ass of disc.assuntos || []) {
-        if (vertFilterStatus === 'pendentes' && ass.concluido) continue;
-        if (vertFilterStatus === 'concluidos' && !ass.concluido) continue;
-        if (vertSearch) {
-          const search = vertSearch.toLowerCase();
-          if (!disc.nome.toLowerCase().includes(search) && !ass.nome.toLowerCase().includes(search))
+        if (filtroStatus === 'pendentes' && ass.concluido) continue;
+        if (filtroStatus === 'concluidos' && !ass.concluido) continue;
+        if (buscaNorm) {
+          if (
+            !normalizeSearch(disc.nome).includes(buscaNorm) &&
+            !normalizeSearch(ass.nome).includes(buscaNorm)
+          )
             continue;
         }
         items.push({ ass, disc, edital });
@@ -61,6 +65,10 @@ export function getFilteredVertItems() {
 
 // ── Vertical View: Main Render ──
 export function renderVertical(el) {
+  const ui = getUiSection('verticalizado');
+  const vertSearch = ui.busca || '';
+  const vertFilterEdital = ui.filtroEdital || '';
+  const vertFilterStatus = ui.filtroStatus || 'todos';
   el.innerHTML = `
     <!-- Filters row — full re-render only when filter chips change -->
     <div class="vertical-toolbar flex gap-sm mb-4 items-center" style="flex-wrap:wrap;">
@@ -157,6 +165,7 @@ export function renderVerticalList(container) {
     });
   }
 
+  const vertSearch = getUiSection('verticalizado').busca || '';
   const hiReg = vertSearch
     ? new RegExp(`(${vertSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
     : null;
@@ -327,10 +336,21 @@ export function renderEditalTree(edital) {
   const isLastEdital = editalIndex === -1 || editalIndex >= state.editais.length - 1;
   const ativas = (edital.disciplinas || []).filter((d) => !d.arquivada);
   const arquivadas = (edital.disciplinas || []).filter((d) => d.arquivada);
+  // Aggregate progress: how many subjects across all active disciplines are concluded
+  const allAss = ativas.flatMap((d) => d.assuntos || []);
+  const totalAss = allAss.length;
+  const concAss = allAss.filter((a) => a.concluido).length;
+  const progressBadge =
+    totalAss > 0
+      ? `<span class="tree-edital-progress" title="Tópicos concluídos no edital">${concAss}/${totalAss} tópicos</span>`
+      : '';
   const discCountText =
     arquivadas.length > 0
       ? `${ativas.length} ativas · ${arquivadas.length} arq.`
       : `${ativas.length} disc.`;
+  // Read collapsed state (per-device) — defaults to expanded
+  const collapsedMap = getUiSection('editais').collapsed || {};
+  const isCollapsed = !!collapsedMap[edital.id];
 
   const filteredDisciplinas = (edital.disciplinas || []).filter((d) => {
     if (discFilterStatus === 'ativas') return !d.arquivada;
@@ -340,9 +360,10 @@ export function renderEditalTree(edital) {
 
   return `
     <div class="tree-edital" id="edital-${edital.id}">
-      <div class="tree-edital-header tree-edital-header-main" data-action="toggle-edital" data-edital-id="${edital.id}">
+      <div class="tree-edital-header tree-edital-header-main ${isCollapsed ? 'tree-edital-header--collapsed' : ''}" data-action="toggle-edital" data-edital-id="${edital.id}">
         <span class="flex-shrink-0" style="width:10px; height:10px; border-radius:50%; background:${edital.cor || '#8aa4bf'}; display:inline-block;"></span>
         <span class="flex-1 text-lg font-bold tree-edital-title">${esc(edital.nome)}</span>
+        ${progressBadge}
         <span class="text-sm tree-edital-count">${discCountText}</span>
         <button class="btn btn-ghost btn-sm tree-edital-add-btn" data-action="open-disc-modal" data-edital-id="${edital.id}">+ Disciplina</button>
         <button type="button" class="icon-btn" title="Mover edital para cima" data-action="move-edital" data-edital-id="${edital.id}" data-dir="-1" ${isFirstEdital ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
@@ -358,7 +379,7 @@ export function renderEditalTree(edital) {
         <button type="button" class="filter-chip ${discFilterStatus === 'arquivadas' ? 'active' : ''}" data-action="set-disc-filter" data-filter="arquivadas">Arquivadas</button>
         <button type="button" class="filter-chip ${discFilterStatus === 'todas' ? 'active' : ''}" data-action="set-disc-filter" data-filter="todas">Todas</button>
       </div>
-      <div id="edital-tree-${edital.id}">
+      <div id="edital-tree-${edital.id}" style="${isCollapsed ? 'display:none;' : ''}">
         <div class="disc-grid">
           ${filteredDisciplinas
             .map((disc) => {

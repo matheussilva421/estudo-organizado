@@ -159,6 +159,89 @@ export function getHabitType(key) {
 }
 
 // =============================================
+// SHARED VISUAL HELPERS (Batch 1)
+// =============================================
+
+/**
+ * Formata delta numérico com seta padronizada (▲ ▼ —).
+ * @param {number} value - Variação numérica (positiva, negativa ou zero)
+ * @param {Object} [opts]
+ * @param {string} [opts.suffix=''] - Sufixo (ex: '%', 'h')
+ * @param {number} [opts.fractionDigits=0] - Casas decimais
+ * @param {boolean} [opts.html=true] - Se true, retorna HTML com classes; caso contrário texto puro
+ * @returns {string}
+ */
+export function formatDelta(value, opts = {}) {
+  const { suffix = '', fractionDigits = 0, html = true } = opts;
+  if (value == null || Number.isNaN(value)) {
+    return html ? '<span class="delta delta-neutral">—</span>' : '—';
+  }
+  const num = Number(value);
+  const abs = Math.abs(num).toFixed(fractionDigits);
+  let arrow;
+  let cls;
+  if (num > 0) {
+    arrow = '▲';
+    cls = 'delta-up';
+  } else if (num < 0) {
+    arrow = '▼';
+    cls = 'delta-down';
+  } else {
+    arrow = '—';
+    cls = 'delta-neutral';
+  }
+  const text = num === 0 ? `${arrow}` : `${arrow} ${abs}${suffix}`;
+  return html ? `<span class="delta ${cls}">${text}</span>` : text;
+}
+
+/**
+ * Normaliza string para busca: lowercase + sem acento + trim.
+ * @param {string} str
+ * @returns {string}
+ */
+export function normalizeSearch(str) {
+  if (str == null) return '';
+  return String(str)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim();
+}
+
+/**
+ * Gera SVG inline de sparkline a partir de uma série numérica.
+ * @param {number[]} data - Série de valores
+ * @param {Object} [opts]
+ * @param {number} [opts.width=80]
+ * @param {number} [opts.height=24]
+ * @param {string} [opts.stroke='currentColor']
+ * @param {number} [opts.strokeWidth=1.5]
+ * @param {boolean} [opts.fill=false] - Se true, preenche área abaixo da linha
+ * @returns {string} SVG markup
+ */
+export function renderSparkline(data, opts = {}) {
+  const { width = 80, height = 24, stroke = 'currentColor', strokeWidth = 1.5, fill = false } = opts;
+  if (!Array.isArray(data) || data.length === 0) {
+    return `<svg class="sparkline sparkline-empty" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true"></svg>`;
+  }
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const stepX = data.length > 1 ? width / (data.length - 1) : 0;
+  const points = data
+    .map((v, i) => {
+      const x = i * stepX;
+      const y = height - ((v - min) / range) * (height - strokeWidth) - strokeWidth / 2;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(' ');
+  const fillPath = fill
+    ? `<polygon points="0,${height} ${points} ${width},${height}" fill="${stroke}" opacity="0.18"/>`
+    : '';
+  return `<svg class="sparkline" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true">${fillPath}<polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+// =============================================
 // CLEANUP REGISTRY PARA EVENT LISTENERS
 // =============================================
 

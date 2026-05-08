@@ -9,6 +9,7 @@
 
 import { state } from '../store.js?v=8.37';
 import { esc, formatDate, formatTime } from '../utils.js?v=8.37';
+import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
 import {
   getAggregatedStats,
   getPerformanceStats,
@@ -25,13 +26,16 @@ import {
   getDisciplineProgressByEdital,
 } from '../logic.js?v=8.37';
 
-// Edital ativo selecionado nas tabs da Faixa 4 (persistido em memória entre re-renders).
-let _activeEditalId = null;
-
+// Edital ativo selecionado nas tabs da Faixa 4 — persistido em ui-state (per-device).
 function getActiveEditalId() {
   const editais = state.editais || [];
-  if (_activeEditalId && editais.some((e) => e.id === _activeEditalId)) return _activeEditalId;
+  const stored = getUiSection('home').activeEditalId;
+  if (stored && editais.some((e) => e.id === stored)) return stored;
   return editais.length > 0 ? editais[0].id : null;
+}
+
+function setActiveEditalId(id) {
+  setUiSection('home', { activeEditalId: id });
 }
 
 function fmtHM(totalSeconds) {
@@ -555,6 +559,6 @@ export function renderHome(el) {
  * Action handler exportado para tabs de edital (registrado em navegacao.js).
  */
 export function setActiveEdital(editalId) {
-  _activeEditalId = editalId;
+  setActiveEditalId(editalId);
   document.dispatchEvent(new Event('app:renderCurrentView'));
 }

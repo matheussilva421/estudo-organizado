@@ -86,32 +86,64 @@ export function renderRevisoes(el) {
           ? `
         <div class="empty-state"><div class="icon">✅</div><h4>Nenhuma revisão pendente!</h4><p>Conclua assuntos para que as revisões sejam agendadas automaticamente.</p></div>
       `
-          : pending
-              .map((r) => {
-                const isOverdue = r.data < today;
+          : (() => {
+              const todayDate = new Date(today + 'T00:00:00');
+              // Agrupa por nível de revisão (1ª, 2ª, 3ª, ...)
+              const byLevel = new Map();
+              for (const r of pending) {
                 const revNum = (r.assunto.revisoesFetas || []).length + 1;
-                return `
-          <div class="rev-item revision-card" data-revision-date="${esc(r.data)}">
-            <div class="rev-days ${isOverdue ? 'overdue' : 'today'}">
-              <div class="num">${revNum}ª</div>
-              <div class="label">Rev</div>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-md font-semibold">${esc(r.assunto.nome)}</div>
-              <div class="text-base text-secondary">${esc(r.disc.nome)} • ${esc(r.edital.nome)}</div>
-              <div class="text-sm mt-1 ${isOverdue ? 'text-red' : 'text-accent'}">
-                ${isOverdue ? '⚠️ Atrasada' : '📅 Hoje'} • Prevista para ${formatDate(r.data)}
-              </div>
-            </div>
-            <div class="rev-item-actions cluster-sm">
-              <button type="button" class="btn btn-primary btn-sm" data-action="mark-revision" data-assunto-id="${r.assunto.id}" aria-label="Marcar revisão como feita">✅ Feita</button>
-              <button type="button" class="btn btn-ghost btn-sm" data-action="postpone-revision" data-assunto-id="${r.assunto.id}" aria-label="Adiar revisão para amanhã">⏩ +1 dia</button>
-              <button type="button" class="btn btn-ghost btn-sm" data-action="delete-revision" data-assunto-id="${r.assunto.id}" title="Excluir revisão" aria-label="Excluir revisão" style="color:var(--danger);">🗑️</button>
-            </div>
-          </div>
-        `;
-              })
-              .join('')
+                if (!byLevel.has(revNum)) byLevel.set(revNum, []);
+                byLevel.get(revNum).push(r);
+              }
+              const levels = [...byLevel.keys()].sort((a, b) => a - b);
+              return levels
+                .map((level) => {
+                  const items = byLevel.get(level);
+                  const overdueCount = items.filter((r) => r.data < today).length;
+                  return `
+              <details class="rev-level-section" open>
+                <summary class="rev-level-header">
+                  <span class="rev-level-title">${level}ª Revisão</span>
+                  <span class="rev-level-counts">
+                    <span class="badge">${items.length} pendente(s)</span>
+                    ${overdueCount > 0 ? `<span class="badge rev-badge--overdue">⚠️ ${overdueCount} atrasada(s)</span>` : ''}
+                  </span>
+                </summary>
+                <div class="rev-level-body">
+                  ${items
+                    .map((r) => {
+                      const isOverdue = r.data < today;
+                      const daysOverdue = isOverdue
+                        ? Math.round((todayDate - new Date(r.data + 'T00:00:00')) / 86400000)
+                        : 0;
+                      return `
+                  <div class="rev-item revision-card" data-revision-date="${esc(r.data)}">
+                    <div class="rev-days ${isOverdue ? 'overdue' : 'today'}">
+                      <div class="num">${level}ª</div>
+                      <div class="label">Rev</div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-md font-semibold">${esc(r.assunto.nome)}</div>
+                      <div class="text-base text-secondary">${esc(r.disc.nome)} • ${esc(r.edital.nome)}</div>
+                      <div class="text-sm mt-1 ${isOverdue ? 'text-red' : 'text-accent'}">
+                        ${isOverdue ? `⚠️ Atrasada há ${daysOverdue} dia${daysOverdue !== 1 ? 's' : ''}` : '📅 Hoje'} • Prevista para ${formatDate(r.data)}
+                      </div>
+                    </div>
+                    <div class="rev-item-actions cluster-sm">
+                      <button type="button" class="btn btn-primary btn-sm" data-action="mark-revision" data-assunto-id="${r.assunto.id}" aria-label="Marcar revisão como feita">✅ Feita</button>
+                      <button type="button" class="btn btn-ghost btn-sm" data-action="postpone-revision" data-assunto-id="${r.assunto.id}" aria-label="Adiar revisão para amanhã">⏩ +1 dia</button>
+                      <button type="button" class="btn btn-ghost btn-sm" data-action="delete-revision" data-assunto-id="${r.assunto.id}" title="Excluir revisão" aria-label="Excluir revisão" style="color:var(--danger);">🗑️</button>
+                    </div>
+                  </div>
+                `;
+                    })
+                    .join('')}
+                </div>
+              </details>
+              `;
+                })
+                .join('');
+            })()
       }
     </div>
 

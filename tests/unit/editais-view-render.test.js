@@ -32,6 +32,7 @@ describe('views/editais-view.js - render functions', () => {
       esc: vi.fn((s) => s || ''),
       todayStr: vi.fn(() => '2026-04-29'),
       addCleanupListener: vi.fn(),
+      normalizeSearch: vi.fn((s) => String(s || '').toLowerCase()),
     }));
     vi.doMock('../../src/js/state/dashboard-context.js?v=8.37', () => ({
       getActiveDashboardDiscCtx: vi.fn(() => null),

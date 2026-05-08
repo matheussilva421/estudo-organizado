@@ -48,3 +48,61 @@
   background: var(--accent-light);
   color: var(--accent-dark);
 }
+
+/* === Level grouping (Batch 2) === */
+.rev-level-section {
+  margin-bottom: 12px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border-radius: 8px;
+  background: var(--card, rgba(255, 255, 255, 0.02));
+}
+
+.rev-level-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.rev-level-header::-webkit-details-marker {
+  display: none;
+}
+
+.rev-level-header::before {
+  content: '▸';
+  margin-right: 8px;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+details[open] > .rev-level-header::before {
+  transform: rotate(90deg);
+}
+
+.rev-level-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.rev-level-counts {
+  display: flex;
+  gap: 6px;
+}
+
+.rev-level-body {
+  padding: 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rev-badge--overdue {
+  background: rgba(239, 68, 68, 0.18);
+  color: var(--red, #ef4444);
+  font-weight: 600;
+}

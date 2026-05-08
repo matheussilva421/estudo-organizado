@@ -145,3 +145,26 @@ registerAction('remover-planejamento', () => {
     title: 'Remover planejamento',
   });
 });
+
+// Ciclo kebab popover — toggles secondary actions (recomeçar, remover)
+registerAction('ciclo-toggle-kebab', (el) => {
+  const wrap = el.closest('.ciclo-kebab-wrap');
+  if (!wrap) return;
+  const menu = wrap.querySelector('.ciclo-kebab-menu');
+  if (!menu) return;
+  const willOpen = menu.hidden;
+  menu.hidden = !willOpen;
+  el.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  if (willOpen) {
+    setTimeout(() => {
+      const off = (e) => {
+        if (!wrap.contains(e.target)) {
+          menu.hidden = true;
+          el.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('click', off, true);
+        }
+      };
+      document.addEventListener('click', off, true);
+    }, 0);
+  }
+});

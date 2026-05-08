@@ -7,6 +7,29 @@ import { state } from '../store.js?v=8.37';
 import { esc, getEventStatus, todayStr } from '../utils.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 
+// Local discipline-color lookup (lazy memo) — avoids static dependency on logic.js
+// which would pull half the app graph into calendar-view tests.
+let _discColorMemo = null;
+function getDiscColor(discId) {
+  if (!discId) return '';
+  if (!_discColorMemo) {
+    _discColorMemo = new Map();
+    for (const ed of state.editais || []) {
+      for (const d of ed.disciplinas || []) {
+        _discColorMemo.set(d.id, d.cor || ed.cor || '');
+      }
+    }
+  }
+  return _discColorMemo.get(discId) || '';
+}
+function resetDiscColorMemo() {
+  _discColorMemo = null;
+}
+// Reset memo on any state change (cheap; fires on every save)
+if (typeof document !== 'undefined') {
+  document.addEventListener('app:invalidateCaches', resetDiscColorMemo);
+}
+
 // Exported state
 let calDate = new Date();
 let calViewMode = 'mes';
@@ -82,7 +105,7 @@ export function renderCalendar(el) {
             <button aria-label="Mês anterior" data-action="cal-navigate" data-dir="-1"><i class="fa fa-chevron-left"></i></button>
             <button aria-label="Próximo mês" data-action="cal-navigate" data-dir="1"><i class="fa fa-chevron-right"></i></button>
           </div>
-          <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, (c) => c.toUpperCase())} <span class="cal-version-tag">v6.0</span></div>
+          <div class="cal-title" id="cal-title">${calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, (c) => c.toUpperCase())}</div>
           <button class="btn btn-ghost btn-sm" id="cal-today-btn" data-action="cal-today">Hoje</button>
           <div class="cal-view-tabs ml-auto" role="tablist" aria-label="Visualizacao do calendario">
             <button type="button" class="cal-view-tab ${calViewMode === 'mes' ? 'active' : ''}" data-action="set-cal-view-mode" data-mode="mes" role="tab" aria-selected="${calViewMode === 'mes'}" aria-controls="cal-grid">Mês</button>
@@ -180,16 +203,27 @@ export function renderCalendarMonth() {
           const dayEvents = eventsByDate[ds] || [];
           const show = dayEvents.slice(0, 3);
           const more = dayEvents.length - 3;
+          const moreTitle =
+            more > 0
+              ? esc(
+                  dayEvents
+                    .slice(3)
+                    .map((e) => `• ${e.titulo}`)
+                    .join('\n')
+                )
+              : '';
           return `
           <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-action="open-event-modal-date" data-date="${ds}">
             <div class="cal-date">${cell.date.getDate()}</div>
             ${show
               .map((e) => {
                 const st = getEventStatus(e);
-                return `<button type="button" class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
+                const cor = getDiscColor(e.discId);
+                const styleAttr = cor ? ` style="border-left:3px solid ${esc(cor)};"` : '';
+                return `<button type="button" class="cal-event-chip ${st}"${styleAttr} data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
               })
               .join('')}
-            ${more > 0 ? `<div class="cal-more">+${more} mais</div>` : ''}
+            ${more > 0 ? `<button type="button" class="cal-more" data-action="open-event-modal-date" data-date="${ds}" title="${moreTitle}">+${more} mais</button>` : ''}
           </div>
         `;
         })
@@ -237,7 +271,9 @@ export function renderCalendarWeek() {
               ${dayEvents
                 .map((e) => {
                   const st = getEventStatus(e);
-                  return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="margin-bottom:3px;" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+                  const cor = getDiscColor(e.discId);
+                  const borderStyle = cor ? `border-left:3px solid ${esc(cor)};` : '';
+                  return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="margin-bottom:3px;${borderStyle}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
                 })
                 .join('')}
               <div style="text-align:center;margin-top:4px;">
@@ -284,7 +320,9 @@ export function renderCalendarMobileMonth() {
             ${dayEvents
               .map((e) => {
                 const st = getEventStatus(e);
-                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="white-space:normal;" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+                const cor = getDiscColor(e.discId);
+                const borderStyle = cor ? `border-left:3px solid ${esc(cor)};` : '';
+                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="white-space:normal;${borderStyle}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
               })
               .join('')}
           </div>
@@ -336,7 +374,9 @@ export function renderCalendarMobileWeek() {
             ${dayEvents
               .map((e) => {
                 const st = getEventStatus(e);
-                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="white-space:normal;" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+                const cor = getDiscColor(e.discId);
+                const borderStyle = cor ? `border-left:3px solid ${esc(cor)};` : '';
+                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="white-space:normal;${borderStyle}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
               })
               .join('')}
           </div>

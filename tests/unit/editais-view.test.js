@@ -6,6 +6,14 @@ describe('views/editais-view.js', () => {
 
   beforeEach(async () => {
     vi.resetModules();
+    // Clear UI-state localStorage so filters from previous test cases don't leak
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('estudo_ui_state');
+      } catch {
+        /* ignore */
+      }
+    }
     storeModule = {
       state: {
         config: {},
@@ -31,6 +39,7 @@ describe('views/editais-view.js', () => {
     vi.doMock('../../src/js/utils.js?v=8.37', () => ({
       esc: vi.fn((s) => s || ''),
       todayStr: vi.fn(() => '2026-04-29'),
+      normalizeSearch: vi.fn((s) => String(s || '').toLowerCase()),
     }));
     vi.doMock('../../src/js/state/dashboard-context.js?v=8.37', () => ({
       getActiveDashboardDiscCtx: vi.fn(() => null),

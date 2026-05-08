@@ -51,6 +51,10 @@ import {
   excluirAnaliseBanca,
   openMatchCorrector,
   saveMatchCorrection,
+  bancaToggleRow,
+  bancaSelectAll,
+  bancaDeselectAll,
+  bancaSelectHighOnly,
 } from '../../views/banca-view.js?v=8.37';
 
 // Registrar ações
@@ -281,6 +285,13 @@ registerAction('open-match-corrector', (el) => {
   const assuntoNome = el.dataset.assuntoNome;
   if (assuntoNome) openMatchCorrector(assuntoNome);
 });
+registerAction('banca-toggle-row', (el) => {
+  const key = el.dataset.key;
+  if (key) bancaToggleRow(key);
+});
+registerAction('banca-select-all', () => bancaSelectAll());
+registerAction('banca-deselect-all', () => bancaDeselectAll());
+registerAction('banca-select-high-only', () => bancaSelectHighOnly());
 registerAction('save-match-correction', (el) => {
   const assuntoNome = el.dataset.assuntoNome;
   if (assuntoNome) saveMatchCorrection(assuntoNome);

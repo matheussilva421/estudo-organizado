@@ -175,30 +175,43 @@ export function renderCronometro(el) {
         }
       </div>
 
-      <!-- Progress bar -->
-      <div style="padding:24px 48px 0;position:relative;z-index:1; ${plannedSecs === 0 ? 'opacity:0;' : ''}">
-        <div style="
-          display:flex;justify-content:space-between;
-          color:var(--text-secondary);font-size:12px;margin-bottom:6px;
-        ">
-          <span>${formatTime(elapsed)}</span>
-          <span>${formatTime(plannedSecs)}</span>
-        </div>
-        <div class="progress-track" style="height:8px;">
-          <div id="crono-progress-bar" class="progress-bar" style="
-            width:${progress}%;
-          "></div>
-        </div>
-      </div>
+      <!-- "Hoje" chip — total time studied today -->
+      ${(() => {
+        const today = todayStr();
+        const todaySecs = state.eventos
+          .filter((e) => (e.dataEstudo || e.data) === today && e.status === 'estudei')
+          .reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+        return todaySecs > 0
+          ? `<div class="crono-today-chip" title="Tempo total estudado hoje">Hoje: ${formatTime(todaySecs)}</div>`
+          : '';
+      })()}
 
-      <!-- TIMER DISPLAY -->
+      <!-- TIMER DISPLAY w/ progress ring -->
       <div style="
         flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
         padding:40px 24px;position:relative;z-index:1;
       ">
-        <div id="crono-main-timer" class="crono-timer-display ${isActive ? 'active' : ''}">
-          ${formatTime(elapsed)}
+        <div class="crono-ring-wrap">
+          <svg class="crono-ring" viewBox="0 0 220 220" aria-hidden="true">
+            <circle class="crono-ring-track" cx="110" cy="110" r="100"></circle>
+            <circle id="crono-ring-progress" class="crono-ring-progress ${plannedSecs === 0 ? 'crono-ring-progress--idle' : ''}"
+                    cx="110" cy="110" r="100"
+                    stroke-dasharray="${(2 * Math.PI * 100).toFixed(2)}"
+                    stroke-dashoffset="${((1 - progress / 100) * 2 * Math.PI * 100).toFixed(2)}"></circle>
+          </svg>
+          <div class="crono-ring-content">
+            <div id="crono-main-timer" class="crono-timer-display ${isActive ? 'active' : ''}">
+              ${formatTime(elapsed)}
+            </div>
+            ${
+              plannedSecs > 0
+                ? `<div id="crono-ring-meta" class="crono-ring-meta">/ ${formatTime(plannedSecs)}</div>`
+                : ''
+            }
+          </div>
         </div>
+        <!-- Hidden legacy progress bar element (id retained for compatibility) -->
+        <div id="crono-progress-bar" style="display:none;width:${progress}%;"></div>
 
         <!-- Controls -->
         <div style="display:flex;gap:24px;margin-top:40px;align-items:center;">
@@ -313,10 +326,13 @@ export function renderCronometro(el) {
       const elapsed = getElapsedSeconds(ev);
       const timerEl = document.getElementById('crono-main-timer');
       if (timerEl) timerEl.textContent = formatTime(elapsed);
+      const pct = plannedSecs > 0 ? Math.min((elapsed / plannedSecs) * 100, 100) : 0;
       const progressBar = document.getElementById('crono-progress-bar');
-      if (progressBar) {
-        const pct = plannedSecs > 0 ? Math.min((elapsed / plannedSecs) * 100, 100) : 0;
-        progressBar.style.width = pct + '%';
+      if (progressBar) progressBar.style.width = pct + '%';
+      const ring = document.getElementById('crono-ring-progress');
+      if (ring) {
+        const C = 2 * Math.PI * 100;
+        ring.setAttribute('stroke-dashoffset', String(((1 - pct / 100) * C).toFixed(2)));
       }
       const btnDiscard = document.getElementById('btn-discard-timer');
       if (btnDiscard) {

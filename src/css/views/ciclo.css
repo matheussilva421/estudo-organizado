@@ -563,3 +563,71 @@
   gap: 16px;
   font-size: 11px;
 }
+
+/* === Kebab menu (secondary destructive actions) === */
+.ciclo-kebab-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.ciclo-kebab-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ciclo-kebab-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  min-width: 220px;
+  background: var(--card, #1a1a1d);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ciclo-kebab-menu[hidden] {
+  display: none;
+}
+
+.ciclo-kebab-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  border-radius: 6px;
+}
+
+.ciclo-kebab-item:hover {
+  background: var(--bg, rgba(255, 255, 255, 0.04));
+}
+
+.ciclo-kebab-item--danger {
+  color: var(--red, #ef4444);
+}
+
+.ciclo-kebab-item--danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Sub-label for ciclos completos card */
+.ciclo-stat-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+}
