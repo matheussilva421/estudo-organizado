@@ -34,7 +34,7 @@ export {
   getIsEditingSequence,
   setIsEditingSequence,
 } from './views/state/disc-manager-state.js';
-export { renderHome } from './views/home-view.js';
+export { renderHome } from './views/home-view.js?v=8.37';
 export {
   renderCiclo,
   recomecarCiclo,
