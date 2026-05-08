@@ -14,15 +14,14 @@ import { renderCurrentView } from '../components.js?v=8.37';
 import { showConfirm } from '../app.js?v=8.37';
 import { getIsEditingSequence, getTempSequencia } from '../views.js?v=8.37';
 import { getPlanjChartInstance, setPlanjChartInstance } from '../state/chart-state.js?v=8.37';
+import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
 
-// Module-level state
-let _hideConcluidosCiclo = false;
-
+// Persisted (per-device) UI toggle — replaces previous module-level _hideConcluidosCiclo.
 export function getHideConcluidosCiclo() {
-  return _hideConcluidosCiclo;
+  return !!getUiSection('ciclo').hideConcluidos;
 }
 export function setHideConcluidosCiclo(val) {
-  _hideConcluidosCiclo = val;
+  setUiSection('ciclo', { hideConcluidos: !!val });
 }
 
 function formatCycleDuration(minutes) {
@@ -347,8 +346,13 @@ function renderCicloView(el, plan) {
       <h2 class="ciclo-header-title">Planejamento</h2>
       <div class="ciclo-header-buttons">
         <button class="btn btn-primary btn-sm ciclo-btn ciclo-btn--primary" data-action="open-planejamento-wizard"><i class="fa fa-edit"></i> Replanejar</button>
-        <button class="btn btn-ghost btn-sm ciclo-btn ciclo-btn--secondary" data-action="recomecar-ciclo"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
-        <button class="btn btn-danger btn-sm ciclo-btn ciclo-btn--danger" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover</button>
+        <div class="ciclo-kebab-wrap">
+          <button class="btn btn-ghost btn-sm ciclo-kebab-btn" data-action="ciclo-toggle-kebab" aria-haspopup="true" aria-expanded="false" title="Mais ações"><i class="fa fa-ellipsis-v"></i></button>
+          <div class="ciclo-kebab-menu" role="menu" hidden>
+            <button class="ciclo-kebab-item" role="menuitem" data-action="recomecar-ciclo"><i class="fa fa-sync"></i> Recomeçar Ciclo</button>
+            <button class="ciclo-kebab-item ciclo-kebab-item--danger" role="menuitem" data-action="remover-planejamento"><i class="fa fa-trash"></i> Remover planejamento</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -358,6 +362,11 @@ function renderCicloView(el, plan) {
           <div class="card ciclo-stat-card ciclo-stat-card--center">
             <div class="ciclo-stat-label">CICLOS COMPLETOS</div>
             <div class="ciclo-stat-value">${ciclosFeitos}</div>
+            <div class="ciclo-stat-sub">${
+              ciclosFeitos === 0
+                ? `próximo: ${formatCycleDuration(totalTarget)}`
+                : `acumulado: ${formatCycleDuration(ciclosFeitos * totalTarget)}`
+            }</div>
           </div>
           <div class="card ciclo-stat-card ciclo-stat-card--fill">
             <div class="ciclo-stat-label">PROGRESSO</div>

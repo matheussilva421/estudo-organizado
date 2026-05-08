@@ -12,6 +12,7 @@ import {
   uid,
 } from '../utils.js?v=8.37';
 import { scheduleSave, state } from '../store.js?v=8.37';
+import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
 import {
   getDisc,
   invalidateDiscCache,
@@ -94,7 +95,19 @@ const DISC_ICONS = [
 // ── Toggle & Dashboard ──
 export function toggleEdital(id) {
   const el = document.getElementById(`edital-tree-${id}`);
-  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+  if (!el) return;
+  const willCollapse = el.style.display !== 'none';
+  el.style.display = willCollapse ? 'none' : '';
+  // Persist per-edital collapsed state via ui-state helper (keeps in-memory
+  // cache and localStorage in sync).
+  const collapsed = { ...(getUiSection('editais').collapsed || {}) };
+  collapsed[id] = willCollapse;
+  setUiSection('editais', { collapsed });
+  // Toggle chevron rotation
+  const header = document.querySelector(
+    `[data-action="toggle-edital"][data-edital-id="${id}"]`
+  );
+  if (header) header.classList.toggle('tree-edital-header--collapsed', willCollapse);
 }
 
 export function toggleAssunto(discId, assId) {

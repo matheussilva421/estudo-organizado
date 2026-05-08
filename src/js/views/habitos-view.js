@@ -3,7 +3,14 @@
  * Renderiza e gerencia tracked de hábitos de estudo
  */
 
-import { esc, formatDate, todayStr, uid, HABIT_TYPES } from '../utils.js?v=8.37';
+import {
+  esc,
+  formatDate,
+  todayStr,
+  uid,
+  HABIT_TYPES,
+  renderSparkline,
+} from '../utils.js?v=8.37';
 import { state, scheduleSave } from '../store.js?v=8.37';
 import { getActiveDisciplinas, getDisc } from '../logic.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
@@ -25,6 +32,59 @@ function sumQuestionRecords(records = []) {
  */
 function sumPageRecords(records = []) {
   return records.reduce((sum, r) => sum + (Number(r.total) || 0), 0);
+}
+
+/**
+ * Computa série diária de um hábito nos últimos N dias.
+ * Para 'questoes' soma .quantidade, para 'paginas' soma .total, demais: count.
+ */
+function buildHabitSeries(habitKey, records, days = 7) {
+  const series = new Array(days).fill(0);
+  const today = todayStr();
+  const todayDate = new Date(today + 'T00:00:00');
+  for (const r of records) {
+    if (!r?.data) continue;
+    const dt = new Date(r.data + 'T00:00:00');
+    const diff = Math.round((todayDate - dt) / 86400000);
+    if (diff < 0 || diff >= days) continue;
+    const idx = days - 1 - diff;
+    if (habitKey === 'questoes') series[idx] += Number(r.quantidade) || 0;
+    else if (habitKey === 'paginas') series[idx] += Number(r.total) || 0;
+    else series[idx] += 1;
+  }
+  return series;
+}
+
+/**
+ * Streak = dias consecutivos com pelo menos 1 registro, terminando hoje OU ontem.
+ */
+function computeHabitStreak(records) {
+  if (!records || records.length === 0) return 0;
+  const dates = new Set(records.map((r) => r.data).filter(Boolean));
+  let streak = 0;
+  // `cursor` is local midnight (constructed from local date string).
+  // Format it back to YYYY-MM-DD using local components — calling toISOString
+  // would shift to UTC and produce a wrong date in negative timezones.
+  const cursor = new Date(todayStr() + 'T00:00:00');
+  const formatLocal = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate()
+    ).padStart(2, '0')}`;
+  let started = false;
+  for (let i = 0; i < 365; i++) {
+    const ds = formatLocal(cursor);
+    if (dates.has(ds)) {
+      streak += 1;
+      started = true;
+    } else if (started) {
+      break;
+    } else if (i > 0) {
+      // permite gap apenas no dia atual (não estudei hoje ainda)
+      break;
+    }
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
 }
 
 /**
@@ -56,12 +116,27 @@ export function renderHabitos(el) {
           recentStr = 'Total acumulado';
         }
 
+        const series = buildHabitSeries(h.key, all, 7);
+        const sparkline = renderSparkline(series, {
+          width: 90,
+          height: 22,
+          stroke: h.color,
+          fill: true,
+        });
+        const streak = computeHabitStreak(all);
+        const streakBadge =
+          streak > 0
+            ? `<div class="hc-streak" title="Sequência de dias com registro">🔥 ${streak}d</div>`
+            : '';
+
         return `
           <div class="habit-card" data-action="open-habit-modal" data-habit-key="${h.key}">
             <div class="hc-icon">${h.icon}</div>
             <div class="hc-label">${h.label}</div>
             <div class="hc-count" data-habit-color="${h.color}">${total}</div>
             <div class="hc-sub">${recentStr}</div>
+            <div class="hc-spark" style="color:${h.color};margin-top:6px;">${sparkline}</div>
+            ${streakBadge}
           </div>
         `;
       }).join('')}

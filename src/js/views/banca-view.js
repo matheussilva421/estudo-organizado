@@ -158,6 +158,10 @@ export function filtrarViewPorDisciplina(discId) {
   const hotTopics = state.bancaRelevance?.hotTopics || [];
   const hasTopics = hotTopics.some((ht) => ht.disciplinaId === discId);
 
+  // Reset selection state when the result set changes
+  analyzerCtx.selectedAssuntos = new Set();
+  analyzerCtx.selectionInitialized = false;
+
   if (hasTopics) {
     analyzerCtx.tempMatchResults = applyRankingToEdital(analyzerCtx.editaId).filter(
       (res) => res.discId === discId
@@ -305,6 +309,10 @@ export function parseBancaText() {
   const results = applyRankingToEdital(analyzerCtx.editaId);
   analyzerCtx.tempMatchResults = results.filter((res) => res.discId === discId);
 
+  // Reset selection so newly-parsed rows get default selection (HIGH/MEDIUM auto-checked)
+  analyzerCtx.selectedAssuntos = new Set();
+  analyzerCtx.selectionInitialized = false;
+
   renderBancaMatches();
   showToast('Matéria processada com sucesso!', 'success');
 }
@@ -324,12 +332,27 @@ export function renderBancaMatches() {
     return;
   }
 
+  // Initialize per-row selection state on first render of these results.
+  // Default: HIGH/MEDIUM are checked, LOW is unchecked (user explicitly opts in).
+  if (!analyzerCtx.selectedAssuntos) analyzerCtx.selectedAssuntos = new Set();
+  for (const res of analyzerCtx.tempMatchResults) {
+    const key = res.assuntoId || res.assuntoNome;
+    if (!analyzerCtx.selectedAssuntos.has(key) && !analyzerCtx.selectionInitialized) {
+      if (res.matchData?.confidence !== 'LOW') {
+        analyzerCtx.selectedAssuntos.add(key);
+      }
+    }
+  }
+  analyzerCtx.selectionInitialized = true;
+
   let p1c = 0,
-    p2c = 0;
+    p2c = 0,
+    lowMatchCount = 0;
 
   const rows = analyzerCtx.tempMatchResults.map((res) => {
     if (res.priority === 'P1') p1c++;
     if (res.priority === 'P2') p2c++;
+    if (res.matchData?.confidence === 'LOW') lowMatchCount++;
 
     const stIcon =
       res.priority === 'P1' ? 'fa-fire' : res.priority === 'P2' ? 'fa-bolt' : 'fa-check';
@@ -347,8 +370,12 @@ export function renderBancaMatches() {
           ? 'var(--yellow)'
           : 'var(--text-muted)';
 
+    const key = res.assuntoId || res.assuntoNome;
+    const checked = analyzerCtx.selectedAssuntos.has(key) ? 'checked' : '';
+
     return `
-      <div style="display:grid; grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 45px 40px; gap:8px; border-bottom:1px solid var(--border); padding:10px 0; align-items:center;">
+      <div class="banca-match-row" style="display:grid; grid-template-columns:24px 30px minmax(0,1fr) minmax(0,1fr) 45px 40px; gap:8px; border-bottom:1px solid var(--border); padding:10px 0; align-items:center;">
+                <div><input type="checkbox" data-action="banca-toggle-row" data-key="${esc(key)}" ${checked} title="Incluir este tópico ao gravar"></div>
                 <div style="color:${stColor}; font-size:14px; text-align:center;"><i class="fa ${stIcon}"></i></div>
                 <div>
                    <div style="font-size:13px; font-weight:700; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${esc(res.assuntoNome)}">${esc(res.assuntoNome)}</div>
@@ -371,8 +398,19 @@ export function renderBancaMatches() {
   });
 
   emptyView.style.display = 'none';
+  const lowBadge =
+    lowMatchCount > 0
+      ? `<span class="badge" style="background:rgba(148,163,184,0.18);color:var(--text-muted);font-weight:600;" title="Matches de baixa confiança não vêm marcados por padrão. Revise antes de gravar.">⚠ ${lowMatchCount} incerto(s)</span>`
+      : '';
   container.innerHTML = `
-      <div class="dash-label" style = "margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:8px; display:flex; justify-content:space-between;" >
+      <div class="banca-match-toolbar" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:8px;">
+        <button class="btn btn-ghost btn-sm" data-action="banca-select-all">Selecionar todos</button>
+        <button class="btn btn-ghost btn-sm" data-action="banca-deselect-all">Desmarcar todos</button>
+        <button class="btn btn-ghost btn-sm" data-action="banca-select-high-only">Só alta confiança</button>
+        <span style="margin-left:auto;font-size:11px;color:var(--text-muted);" id="banca-selected-count"></span>
+        ${lowBadge}
+      </div>
+      <div class="dash-label" style="margin-bottom:8px;display:flex;justify-content:space-between;">
            <span>Matéria Processada (Assuntos do Edital local)</span>
            <span>Prioridade Reordenada</span>
         </div>
@@ -381,13 +419,60 @@ export function renderBancaMatches() {
 
   container.style.display = 'block';
   applyBtn.style.display = 'inline-block';
-  statsDiv.textContent = `P1: ${p1c} incríveis | P2: ${p2c} de suporte`;
+  applyBtn.disabled = analyzerCtx.selectedAssuntos.size === 0;
+  statsDiv.textContent = `P1: ${p1c} | P2: ${p2c} | Selecionados: ${analyzerCtx.selectedAssuntos.size}/${analyzerCtx.tempMatchResults.length}`;
+  const cntEl = document.getElementById('banca-selected-count');
+  if (cntEl) cntEl.textContent = `${analyzerCtx.selectedAssuntos.size} selecionado(s)`;
+}
+
+// ── Per-row selection helpers (Batch 3) ──
+export function bancaToggleRow(key) {
+  if (!analyzerCtx.selectedAssuntos) analyzerCtx.selectedAssuntos = new Set();
+  if (analyzerCtx.selectedAssuntos.has(key)) analyzerCtx.selectedAssuntos.delete(key);
+  else analyzerCtx.selectedAssuntos.add(key);
+  renderBancaMatches();
+}
+
+export function bancaSelectAll() {
+  analyzerCtx.selectedAssuntos = new Set(
+    (analyzerCtx.tempMatchResults || []).map((r) => r.assuntoId || r.assuntoNome)
+  );
+  renderBancaMatches();
+}
+
+export function bancaDeselectAll() {
+  analyzerCtx.selectedAssuntos = new Set();
+  renderBancaMatches();
+}
+
+export function bancaSelectHighOnly() {
+  analyzerCtx.selectedAssuntos = new Set(
+    (analyzerCtx.tempMatchResults || [])
+      .filter((r) => r.matchData?.confidence === 'HIGH')
+      .map((r) => r.assuntoId || r.assuntoNome)
+  );
+  renderBancaMatches();
 }
 
 // ── Apply Banca Ranking ──
 export function applyBancaRanking() {
-  if (commitEditalOrdering(analyzerCtx.editaId, analyzerCtx.tempMatchResults)) {
-    showToast('Prioridades P1/P2/P3 gravadas na Memória Principal!', 'success');
+  const selected = analyzerCtx.selectedAssuntos || new Set();
+  if (selected.size === 0) {
+    showToast('Nenhum tópico selecionado para gravar.', 'error');
+    return;
+  }
+  const filtered = (analyzerCtx.tempMatchResults || []).filter((r) =>
+    selected.has(r.assuntoId || r.assuntoNome)
+  );
+  if (filtered.length === 0) {
+    showToast('Nenhum tópico selecionado para gravar.', 'error');
+    return;
+  }
+  if (commitEditalOrdering(analyzerCtx.editaId, filtered)) {
+    showToast(
+      `Prioridades gravadas! (${filtered.length} de ${analyzerCtx.tempMatchResults.length} tópicos)`,
+      'success'
+    );
   } else {
     showToast('Falha crítica ao gravar novo Edital na Store', 'error');
   }
@@ -411,8 +496,23 @@ export function openMatchCorrector(assuntoNome) {
     )
     .join('');
 
+  // Onboarding hint — shown only the first time the user opens this modal
+  let onboardingHtml = '';
+  try {
+    if (!localStorage.getItem('estudo_onboarding_match_corrector_seen')) {
+      onboardingHtml = `
+        <div class="onboarding-hint" style="background:rgba(78,161,255,0.08);border:1px solid rgba(78,161,255,0.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
+          <strong style="color:var(--accent);">💡 Como funciona:</strong> O parser tentou cruzar este tópico do seu Edital com os "hot topics" colados da banca. Se o match foi errado, escolha aqui o tema correto — daqui pra frente esse assunto sempre vai casar com a sua escolha (HIGH 100%).
+        </div>`;
+      localStorage.setItem('estudo_onboarding_match_corrector_seen', '1');
+    }
+  } catch {
+    /* ignore localStorage failures */
+  }
+
   document.getElementById('modal-match-corrector-title').textContent = 'Corrigir Assunto';
   document.getElementById('modal-match-corrector-body').innerHTML = `
+    ${onboardingHtml}
     <div class="form-group" >
             <div style="margin-bottom:8px;font-size:13px;font-weight:700;">${esc(assuntoNome)}</div>
             <label class="form-label" style="margin-top:16px;">Qual tema real da Banca equivale a esse tópico do Edital?</label>

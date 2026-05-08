@@ -146,6 +146,54 @@ registerAction('delete-session-record', (el) => {
   const sessionId = el.dataset.sessionId;
   if (sessionId) deleteCompletedSession(sessionId);
 });
+
+// Histórico — filtros, paginação e export
+import {
+  setHistoricoFilter,
+  loadMoreHistorico,
+  exportHistoricoCsv,
+  exportHistoricoJson,
+} from '../../views/historico-view.js?v=8.37';
+
+registerAction('historico-set-range', (el) => {
+  setHistoricoFilter({ rangeDays: el.value });
+  renderCurrentView();
+});
+registerAction('historico-set-disciplina', (el) => {
+  setHistoricoFilter({ disciplinaId: el.value });
+  renderCurrentView();
+});
+let _historicoSearchTimer = null;
+registerAction('historico-set-busca', (el) => {
+  const value = el.value;
+  if (_historicoSearchTimer) clearTimeout(_historicoSearchTimer);
+  _historicoSearchTimer = setTimeout(() => {
+    setHistoricoFilter({ busca: value });
+    renderCurrentView();
+    // Restore focus + cursor on the search input after re-render
+    requestAnimationFrame(() => {
+      const next = document.querySelector('[data-action="historico-set-busca"]');
+      if (next) {
+        next.focus();
+        try {
+          next.setSelectionRange(value.length, value.length);
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+  }, 250);
+});
+registerAction('historico-load-more', () => {
+  loadMoreHistorico();
+  renderCurrentView();
+});
+registerAction('historico-export-csv', () => {
+  if (!exportHistoricoCsv()) showToast('Sem sessões para exportar.', 'info');
+});
+registerAction('historico-export-json', () => {
+  if (!exportHistoricoJson()) showToast('Sem sessões para exportar.', 'info');
+});
 registerAction('clear-ciclo-events', () => {
   const preview = previewClearAutoCicloEvents();
   if (preview.toDelete.length === 0) {
