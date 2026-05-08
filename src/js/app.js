@@ -30,6 +30,9 @@ export const THEME_OPTIONS = [
   { value: 'grafite', label: 'Grafite' },
   { value: 'ardosia', label: 'Ardósia' },
   { value: 'platina', label: 'Platina' },
+  { value: 'terminal', label: 'Terminal' },
+  { value: 'neon', label: 'Neon' },
+  { value: 'arrakis', label: 'Arrakis' },
 ];
 
 const THEME_VALUES = THEME_OPTIONS.map((theme) => theme.value);

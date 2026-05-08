@@ -19,6 +19,18 @@ Este guia define a direcao visual oficial do app: dark premium, discreta e consi
 
 Valores antigos como `light`, `dark`, `obsidiana`, `contraste`, `furtivo`, `abismo`, `matrix`, `rubi`, `pergaminho` e `cyberpunk2077` continuam aceitos internamente, mas sao normalizados para um dos tres temas acima.
 
+### 2.1) Temas tematicos (extras)
+
+Alem dos tres premium neutros, ficam disponiveis tres temas tematicos opt-in com identidade visual mais marcada. Eles compartilham o mesmo contrato de tokens (todas as variaveis `--bg`, `--card`, `--accent*`, `--surface-*`, `--status-*`, etc.) e participam dos mesmos seletores compartilhados `:is(...)` para overrides de componentes.
+
+| Tema | Inspiracao | Base visual |
+|---|---|---|
+| Terminal | Matrix / CRT verde | Preto profundo com accent verde fosforo (#39ff8a) |
+| Neon | Cyberpunk / Tron | Azul-noite com ciano eletrico (#00e5ff) e magenta (#ff2bd6) em modulos especiais |
+| Arrakis | Dune / deserto | Marrom-areia escuro com accent laranja-especiaria (#e8a04f) - unico tema quente |
+
+Os tematicos nao substituem os tres neutros e nao mudam o default (`grafite`). Sao escolha consciente do usuario que prefere uma identidade mais distintiva sem abrir mao do contrato de tokens nem do contraste minimo de leitura.
+
 ## 3) Paleta base
 
 | Token | Valor |
