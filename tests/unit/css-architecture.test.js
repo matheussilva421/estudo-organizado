@@ -281,6 +281,23 @@ describe('CSS architecture', () => {
     expect(`${homeView}\n${wizard}\n${logic}`).not.toMatch(/rgba\(88,166,255|#8b5cf6|rgba\(139,92,246|rgba\(255,255,255,0\.03\)/);
   });
 
+  it('keeps WCAG AA contrast on thematic dark themes', () => {
+    const legacyStyles = read('src/css/styles.css');
+    for (const themeName of ['terminal', 'neon', 'arrakis']) {
+      const vars = extractCssVars(extractCssBlock(legacyStyles, `[data-theme="${themeName}"]`));
+      expect(vars['--bg'], `${themeName} must define --bg`).toBeTruthy();
+      expect(vars['--text-primary'], `${themeName} must define --text-primary`).toBeTruthy();
+      expect(
+        contrastRatio(vars['--text-primary'], vars['--bg']),
+        `${themeName} text-primary vs bg must meet WCAG AA`
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(vars['--text-secondary'], vars['--card']),
+        `${themeName} text-secondary vs card must meet WCAG AA`
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('presents only the premium dark themes while keeping old theme names internal', () => {
     const html = read('src/index.html');
     const appSource = read('src/js/app.js');
@@ -305,7 +322,10 @@ describe('CSS architecture', () => {
     const themedSelectors = [
       '[data-theme="grafite"]',
       '[data-theme="ardosia"]',
-      '[data-theme="platina"]'
+      '[data-theme="platina"]',
+      '[data-theme="terminal"]',
+      '[data-theme="neon"]',
+      '[data-theme="arrakis"]'
     ];
 
     for (const selector of themedSelectors) {
@@ -367,8 +387,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.70');
-    expect(serviceWorker).toContain("APP_VERSION = '8.70'");
+    expect(html).toContain('css/styles.css?v=8.71');
+    expect(serviceWorker).toContain("APP_VERSION = '8.71'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 

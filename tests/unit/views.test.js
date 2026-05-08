@@ -90,11 +90,14 @@ beforeEach(async () => {
 });
 
 describe('app.js - Theme contracts', () => {
-  it('exposes only the premium dark themes', () => {
+  it('exposes the premium dark themes plus thematic extras', () => {
     expect(app.THEME_OPTIONS).toEqual([
       { value: 'grafite', label: 'Grafite' },
       { value: 'ardosia', label: 'Ardósia' },
-      { value: 'platina', label: 'Platina' }
+      { value: 'platina', label: 'Platina' },
+      { value: 'terminal', label: 'Terminal' },
+      { value: 'neon', label: 'Neon' },
+      { value: 'arrakis', label: 'Arrakis' }
     ]);
   });
 
