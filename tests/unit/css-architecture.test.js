@@ -387,9 +387,21 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.71');
-    expect(serviceWorker).toContain("APP_VERSION = '8.71'");
+    expect(html).toContain('css/styles.css?v=8.72');
+    expect(serviceWorker).toContain("APP_VERSION = '8.72'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
+  });
+
+  it('lets the revisions configuration panel grow instead of clipping controls', () => {
+    const styles = read('src/css/styles.css');
+    const panelBlock = extractCssBlock(styles, '.rev-control-panel.card');
+    const editorBlock = extractCssBlock(styles, '.rev-frequency-editor .form-control');
+
+    expect(panelBlock).toContain('height: auto');
+    expect(panelBlock).toContain('min-height: max-content');
+    expect(panelBlock).toContain('overflow: visible');
+    expect(editorBlock).toContain('width: auto');
+    expect(editorBlock).toContain('flex: 1 1 0');
   });
 
   it('moves repeated home dashboard stat-card layout into a view class', () => {

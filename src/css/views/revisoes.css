@@ -49,10 +49,12 @@
   color: var(--accent-dark);
 }
 
-.rev-control-panel {
+.rev-control-panel.card {
   height: auto;
-  margin-bottom: 16px;
-  padding: 16px;
+  min-height: max-content;
+  margin-bottom: 24px;
+  padding: 18px 20px;
+  overflow: visible;
 }
 
 .rev-control-main {
@@ -72,9 +74,12 @@
 .rev-frequency-editor {
   display: flex;
   gap: 8px;
+  min-width: 0;
 }
 
 .rev-frequency-editor .form-control {
+  width: auto;
+  flex: 1 1 0;
   min-width: 0;
 }
 
