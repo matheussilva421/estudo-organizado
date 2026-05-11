@@ -49,6 +49,45 @@
   color: var(--accent-dark);
 }
 
+.rev-control-panel {
+  height: auto;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.rev-control-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
+  gap: 16px;
+  align-items: end;
+}
+
+.rev-control-preview {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rev-frequency-editor {
+  display: flex;
+  gap: 8px;
+}
+
+.rev-frequency-editor .form-control {
+  min-width: 0;
+}
+
+.rev-control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
 /* === Level grouping (Batch 2) === */
 .rev-level-section {
   margin-bottom: 12px;
@@ -105,4 +144,20 @@ details[open] > .rev-level-header::before {
   background: rgba(239, 68, 68, 0.18);
   color: var(--red, #ef4444);
   font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .rev-control-main {
+    grid-template-columns: 1fr;
+  }
+
+  .rev-frequency-editor,
+  .rev-control-actions {
+    justify-content: stretch;
+  }
+
+  .rev-frequency-editor .btn,
+  .rev-control-actions .btn {
+    flex: 1;
+  }
 }

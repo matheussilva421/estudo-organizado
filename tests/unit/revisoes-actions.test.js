@@ -12,6 +12,8 @@ describe('ui/actions/revisoes.js', () => {
       marcarRevisao: vi.fn(),
       adiarRevisao: vi.fn(),
       deletarRevisao: vi.fn(),
+      updateRevisionFrequency: vi.fn(),
+      clearVisibleRevisions: vi.fn(),
     };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
@@ -26,6 +28,9 @@ describe('ui/actions/revisoes.js', () => {
     expect(calls).toContain('mark-revision');
     expect(calls).toContain('postpone-revision');
     expect(calls).toContain('delete-revision');
+    expect(calls).toContain('delete-upcoming-revision');
+    expect(calls).toContain('update-revision-frequency');
+    expect(calls).toContain('clear-visible-revisions');
   });
 
   it('mark-revision handler calls marcarRevisao with assuntoId', () => {
@@ -50,6 +55,12 @@ describe('ui/actions/revisoes.js', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'delete-revision')[1];
     handler({ dataset: { assuntoId: 'assunto_3' } });
     expect(revisaoView.deletarRevisao).toHaveBeenCalledWith('assunto_3');
+  });
+
+  it('delete-upcoming-revision handler passes revision date when present', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'delete-upcoming-revision')[1];
+    handler({ dataset: { assuntoId: 'assunto_3', revisionDate: '2026-04-21' } });
+    expect(revisaoView.deletarRevisao).toHaveBeenCalledWith('assunto_3', '2026-04-21');
   });
 
   it('switch-revision-tab handler passes tab and element', () => {

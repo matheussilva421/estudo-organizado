@@ -20,18 +20,65 @@ export const HABIT_HIST_PAGE_SIZE = 20;
 export let habitHistPage = 1;
 let currentHabitType = null;
 
-/**
- * Soma total de questões em registros de hábito
- */
-function sumQuestionRecords(records = []) {
-  return records.reduce((sum, r) => sum + (Number(r.quantidade) || 0), 0);
+function getQuestionTotal(record) {
+  if (!record) return 0;
+  const explicit = Number(record.total ?? record.quantidade);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const acertos = Number(record.acertos ?? record.certas ?? 0);
+  const erros = Number(record.erros ?? record.erradas ?? 0);
+  const derived = acertos + erros;
+  if (Number.isFinite(derived) && derived > 0) return derived;
+
+  const ev = (state.eventos || []).find((e) => e.id === record.eventoId);
+  const qs = ev?.sessao?.questoes || ev?.questoes;
+  if (!qs) return 0;
+  const eventTotal = Number(
+    qs.total ?? qs.quantidade ?? (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0)
+  );
+  return Number.isFinite(eventTotal) && eventTotal > 0 ? eventTotal : 0;
 }
 
-/**
- * Soma total de páginas em registros de hábito
- */
+function getPagesTotal(record) {
+  if (!record) return 0;
+  const rawPages = record.paginas;
+  const pagesValue = rawPages && typeof rawPages === 'object' ? rawPages.total : rawPages;
+  const total = Number(record.total ?? pagesValue ?? record.quantidade ?? record.paginasLidas ?? 0);
+  if (Number.isFinite(total) && total > 0) return total;
+
+  const ev = (state.eventos || []).find((e) => e.id === record.eventoId);
+  const evPages = ev?.sessao?.paginas;
+  const eventTotal = Number(
+    (evPages && typeof evPages === 'object' ? evPages.total : evPages) ?? ev?.paginas ?? 0
+  );
+  return Number.isFinite(eventTotal) && eventTotal > 0 ? eventTotal : 0;
+}
+
+function getVideoMinutes(record) {
+  if (!record) return 0;
+  const total = Number(record.tempoMin ?? record.tempo ?? record.minutos ?? record.duracaoMin);
+  return Number.isFinite(total) && total > 0 ? total : 0;
+}
+
+function getVideoLessons(record) {
+  if (!record) return 0;
+  const total = Number(record.aulas ?? record.quantidade ?? record.total);
+  return Number.isFinite(total) && total > 0 ? total : 0;
+}
+
+function sumQuestionRecords(records = []) {
+  return records.reduce((sum, r) => sum + getQuestionTotal(r), 0);
+}
+
 function sumPageRecords(records = []) {
-  return records.reduce((sum, r) => sum + (Number(r.total) || 0), 0);
+  return records.reduce((sum, r) => sum + getPagesTotal(r), 0);
+}
+
+function sumVideoMinutes(records = []) {
+  return records.reduce((sum, r) => sum + getVideoMinutes(r), 0);
+}
+
+function sumVideoLessons(records = []) {
+  return records.reduce((sum, r) => sum + getVideoLessons(r), 0);
 }
 
 /**
@@ -48,8 +95,9 @@ function buildHabitSeries(habitKey, records, days = 7) {
     const diff = Math.round((todayDate - dt) / 86400000);
     if (diff < 0 || diff >= days) continue;
     const idx = days - 1 - diff;
-    if (habitKey === 'questoes') series[idx] += Number(r.quantidade) || 0;
-    else if (habitKey === 'paginas') series[idx] += Number(r.total) || 0;
+    if (habitKey === 'questoes') series[idx] += getQuestionTotal(r);
+    else if (habitKey === 'paginas' || habitKey === 'leitura') series[idx] += getPagesTotal(r);
+    else if (habitKey === 'videoaula') series[idx] += getVideoMinutes(r) || getVideoLessons(r) || 1;
     else series[idx] += 1;
   }
   return series;
@@ -107,13 +155,17 @@ export function renderHabitos(el) {
 
         if (h.key === 'questoes') {
           total = sumQuestionRecords(all);
-          recentStr = 'Total acumulado';
-        } else if (h.key === 'paginas') {
+          recentStr = 'questões acumuladas';
+        } else if (h.key === 'paginas' || h.key === 'leitura') {
           total = sumPageRecords(all);
-          recentStr = 'Total acumulado';
+          recentStr = 'páginas acumuladas';
+        } else if (h.key === 'videoaula') {
+          const minutes = sumVideoMinutes(all);
+          total = minutes || sumVideoLessons(all) || all.length;
+          recentStr = minutes ? 'min acumulados' : total === all.length ? 'registros acumulados' : 'aulas acumuladas';
         } else {
           total = all.length;
-          recentStr = 'Total acumulado';
+          recentStr = h.key === 'simulado' ? 'simulados registrados' : 'registros acumulados';
         }
 
         const series = buildHabitSeries(h.key, all, 7);

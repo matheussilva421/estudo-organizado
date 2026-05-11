@@ -46,6 +46,11 @@ describe('editais colors and ordering', () => {
       invalidateDiscCache: vi.fn(),
       invalidateDashCaches: vi.fn(),
       invalidateRevCache: vi.fn(),
+      calculateContentProgress: vi.fn(() => ({
+        topics: { done: 0, total: 0, pct: 0 },
+        lessons: { done: 0, total: 0, pct: 0 },
+        overall: { done: 0, total: 0, pct: 0 },
+      })),
       syncCicloToEventos: vi.fn(),
     }));
     vi.doMock('../../src/js/utils.js?v=8.37', () => ({

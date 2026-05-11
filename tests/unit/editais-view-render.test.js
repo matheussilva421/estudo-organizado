@@ -27,6 +27,19 @@ describe('views/editais-view.js - render functions', () => {
     vi.doMock('../../src/js/logic.js?v=8.37', () => ({
       getDisciplinaById: vi.fn(),
       invalidateDiscCache: vi.fn(),
+      calculateContentProgress: vi.fn((discOrDiscs) => {
+        const discs = Array.isArray(discOrDiscs) ? discOrDiscs : [discOrDiscs].filter(Boolean);
+        const topics = discs.flatMap((disc) => disc.assuntos || []);
+        const lessons = discs.flatMap((disc) => disc.aulas || []);
+        const make = (done, total) => ({ done, total, pct: total ? Math.round((done / total) * 100) : 0 });
+        const topicAxis = make(topics.filter((item) => item.concluido).length, topics.length);
+        const lessonAxis = make(lessons.filter((item) => item.estudada).length, lessons.length);
+        return {
+          topics: topicAxis,
+          lessons: lessonAxis,
+          overall: make(topicAxis.done + lessonAxis.done, topicAxis.total + lessonAxis.total),
+        };
+      }),
     }));
     vi.doMock('../../src/js/utils.js?v=8.37', () => ({
       esc: vi.fn((s) => s || ''),

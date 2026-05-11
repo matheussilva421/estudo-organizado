@@ -12,7 +12,7 @@ import {
   HABIT_TYPES,
   todayStr,
 } from '../utils.js?v=8.37';
-import { getActiveDisciplinas, getDisc } from '../logic.js?v=8.37';
+import { calculateContentProgress, getActiveDisciplinas, getDisc } from '../logic.js?v=8.37';
 import {
   getActiveDashboardDiscCtx,
   getActiveDashboardTab,
@@ -44,9 +44,7 @@ export function renderDisciplinaDashboard(edital, disc) {
   const totalQuestoes = qCertas + qErradas;
   const percAcertos = totalQuestoes > 0 ? Math.round((qCertas / totalQuestoes) * 100) : 0;
 
-  const totalAulas = disc.aulas ? disc.aulas.length : 0;
-  const aulasEstudadas = disc.aulas ? disc.aulas.filter((a) => a.estudada).length : 0;
-  const percConcluido = totalAulas > 0 ? Math.round((aulasEstudadas / totalAulas) * 100) : 0;
+  const progress = calculateContentProgress(disc);
   const activeDashboardTab = getActiveDashboardTab() || 'topicos';
   const tabBaseStyle =
     'padding:8px 0;font-weight:600;font-size:14px;cursor:pointer;background:transparent;border:0;font-family:inherit;text-align:left;';
@@ -79,11 +77,15 @@ export function renderDisciplinaDashboard(edital, disc) {
           <div class="dash-label">PROGRESSO DO EDITAL</div>
           <div class="cluster-sm mt-4" style="align-items:baseline;">
             <div class="stat-value">
-              ${aulasEstudadas} / ${totalAulas}
+              ${progress.overall.done} / ${progress.overall.total}
             </div>
             <div class="text-xl font-bold text-accent">
-              ${percConcluido}%
+              ${progress.overall.pct}%
             </div>
+          </div>
+          <div class="progress-split mt-4">
+            ${renderProgressMiniMetric('Tópicos', progress.topics)}
+            ${renderProgressMiniMetric('Aulas', progress.lessons)}
           </div>
         </div>
 
@@ -141,6 +143,21 @@ export function renderDisciplinaDashboard(edital, disc) {
         </div>
       </div>
 
+    </div>
+  `;
+}
+
+function renderProgressMiniMetric(label, axis) {
+  const isEmpty = axis.total === 0;
+  return `
+    <div class="progress-mini ${isEmpty ? 'progress-mini--empty' : ''}">
+      <div class="progress-mini-head">
+        <span>${label}</span>
+        <strong>${axis.done}/${axis.total}</strong>
+      </div>
+      <div class="progress-mini-track">
+        <div class="progress-mini-fill" style="width:${axis.pct}%;"></div>
+      </div>
     </div>
   `;
 }
@@ -769,24 +786,37 @@ export function renderDiscProgress() {
   return discs
     .slice(0, 8)
     .map(({ disc, edital: _edital }) => {
-      const total = (disc.assuntos || []).length;
-      const done = (disc.assuntos || []).filter((a) => a.concluido).length;
-      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      const progress = calculateContentProgress(disc);
+      const color = disc.cor || 'var(--accent)';
       return `
-      <div class="mb-3">
-        <div class="flex-between mb-1">
-          <div class="text-base font-semibold cluster-sm">
+      <button type="button" class="dash-progress-row" data-action="open-disc-dashboard" data-edital-id="${_edital.id}" data-disc-id="${disc.id}" title="${esc(disc.nome)}" style="--progress-color:${color};">
+        <div class="dash-progress-main">
+          <div class="dash-progress-title" title="${esc(disc.nome)}">
             <span>${disc.icone || '📚'}</span> ${esc(disc.nome)}
           </div>
-          <div class="text-sm text-muted">${done}/${total}</div>
+          <div class="dash-progress-sub">Geral ${progress.overall.done}/${progress.overall.total}</div>
         </div>
-        <div class="progress">
-          <div class="progress-bar" data-progress-width="${pct}" data-progress-color="${disc.cor || 'var(--accent)'}"></div>
+        <div class="dash-progress-bars" aria-label="Progresso de ${esc(disc.nome)}">
+          ${renderProgressLine('Geral', progress.overall)}
+          ${renderProgressLine('Tópicos', progress.topics)}
+          ${renderProgressLine('Aulas', progress.lessons)}
         </div>
-      </div>
+      </button>
     `;
     })
     .join('');
+}
+
+function renderProgressLine(label, axis) {
+  return `
+    <div class="dash-progress-line ${axis.total === 0 ? 'dash-progress-line--empty' : ''}">
+      <span class="dash-progress-line-label">${label}</span>
+      <div class="dash-progress-line-track">
+        <div class="dash-progress-line-fill" style="width:${axis.pct}%;"></div>
+      </div>
+      <span class="dash-progress-line-meta">${axis.pct}% · ${axis.done}/${axis.total}</span>
+    </div>
+  `;
 }
 
 export default {

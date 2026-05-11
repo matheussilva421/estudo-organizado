@@ -346,6 +346,41 @@ describe('habitos-view.js', () => {
       expect(container.innerHTML).toContain('Lei 8.112');
       expect(container.innerHTML).toContain('42 páginas');
     });
+
+    it('usa volume real nos cards de hábitos, incluindo campos legados e sessões', () => {
+      const state = createBaseState({
+        eventos: [
+          createEvento({
+            id: 'ev_questoes',
+            sessao: { questoes: { acertos: 7, erros: 3 } },
+          }),
+        ],
+        habitos: {
+          questoes: [{ id: 'hab_q1', data: '2026-04-20', eventoId: 'ev_questoes' }],
+          revisao: [],
+          discursiva: [],
+          simulado: [],
+          leitura: [{ id: 'hab_l1', data: '2026-04-20', paginas: 24 }],
+          informativo: [],
+          sumula: [],
+          videoaula: [
+            { id: 'hab_v1', data: '2026-04-20', tempoMin: 30 },
+            { id: 'hab_v2', data: '2026-04-20', aulas: 2, tempo: 45 },
+          ],
+          paginas: [{ id: 'hab_p1', data: '2026-04-20', total: 12 }],
+        },
+      });
+      store.setState(state);
+
+      const container = document.createElement('div');
+      views.renderHabitos(container);
+
+      expect(container.innerHTML).toContain('10');
+      expect(container.innerHTML).toContain('24');
+      expect(container.innerHTML).toContain('75');
+      expect(container.innerHTML).toContain('min acumulados');
+      expect(container.innerHTML).toContain('páginas');
+    });
   });
 
   describe('calcSimuladoPerc()', () => {
@@ -639,6 +674,50 @@ describe('revisoes view actions', () => {
       '2026-03-23',
       '2026-04-15',
     ]);
+  });
+
+  it('permite remover uma revisão futura específica sem apagar o assunto concluído', () => {
+    document.body.innerHTML = `
+      <div id="modal-confirm" class="modal-overlay" aria-hidden="true">
+        <div id="confirm-title"></div>
+        <div id="confirm-msg"></div>
+        <button id="confirm-ok-btn"></button>
+        <button id="confirm-cancel-btn"></button>
+      </div>
+    `;
+    app.setupConfirmHandlers();
+
+    const state = createBaseState({
+      config: { frequenciaRevisao: [1, 7, 30, 90] },
+      editais: [
+        createEdital({
+          disciplinas: [
+            createDisciplina({
+              id: 'disc_1',
+              assuntos: [
+                {
+                  id: 'ass_1',
+                  nome: 'Orçamento público',
+                  concluido: true,
+                  dataConclusao: '2026-04-20',
+                  revisoesFetas: [],
+                },
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+    store.setState(state);
+    logic.invalidateRevCache();
+    logic.invalidatePendingRevCache();
+
+    views.deletarRevisao('ass_1', '2026-04-21');
+    document.getElementById('confirm-ok-btn').click();
+
+    const assunto = store.state.editais[0].disciplinas[0].assuntos[0];
+    expect(assunto.concluido).toBe(true);
+    expect(assunto.revisoesFetas).toContain('2026-04-21');
   });
 });
 

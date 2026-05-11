@@ -572,6 +572,50 @@ export function getActiveDisciplinas() {
   return result;
 }
 
+function makeProgressAxis(done, total) {
+  const safeDone = Number.isFinite(done) ? Math.max(0, done) : 0;
+  const safeTotal = Number.isFinite(total) ? Math.max(0, total) : 0;
+  return {
+    done: safeDone,
+    total: safeTotal,
+    pct: safeTotal > 0 ? Math.round((safeDone / safeTotal) * 100) : 0,
+  };
+}
+
+export function calculateContentProgress(source) {
+  const disciplinas = Array.isArray(source) ? source : [source].filter(Boolean);
+  const topicsTotal = disciplinas.reduce((sum, disc) => sum + (disc.assuntos || []).length, 0);
+  const topicsDone = disciplinas.reduce(
+    (sum, disc) => sum + (disc.assuntos || []).filter((ass) => ass.concluido).length,
+    0
+  );
+  const lessonsTotal = disciplinas.reduce((sum, disc) => sum + (disc.aulas || []).length, 0);
+  const lessonsDone = disciplinas.reduce(
+    (sum, disc) => sum + (disc.aulas || []).filter((aula) => aula.estudada).length,
+    0
+  );
+
+  const topics = makeProgressAxis(topicsDone, topicsTotal);
+  const lessons = makeProgressAxis(lessonsDone, lessonsTotal);
+  const activeAxes = [topics, lessons].filter((axis) => axis.total > 0);
+  const overallDone = topics.done + lessons.done;
+  const overallTotal = topics.total + lessons.total;
+  const overallPct =
+    activeAxes.length > 0
+      ? Math.round(activeAxes.reduce((sum, axis) => sum + axis.pct, 0) / activeAxes.length)
+      : 0;
+
+  return {
+    topics,
+    lessons,
+    overall: {
+      done: overallDone,
+      total: overallTotal,
+      pct: overallPct,
+    },
+  };
+}
+
 // =============================================
 // DASHBOARD ANALYTICS
 // =============================================

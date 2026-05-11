@@ -54,6 +54,7 @@ export function renderRevisoes(el) {
   const pending = getPendingRevisoes();
   const upcoming = getUpcomingRevisoes(30);
   const today = todayStr();
+  const frequency = state.config.frequenciaRevisao || [1, 7, 30, 90];
 
   el.innerHTML = `
     <div class="rev-summary-grid">
@@ -71,7 +72,24 @@ export function renderRevisoes(el) {
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Frequência</div>
-        <div class="text-md font-bold text-primary mt-2">${(state.config.frequenciaRevisao || [1, 7, 30, 90]).join(', ')} dias</div>
+        <div class="text-md font-bold text-primary mt-2">${frequency.join(', ')} dias</div>
+      </div>
+    </div>
+
+    <div class="card rev-control-panel">
+      <div class="rev-control-main">
+        <div>
+          <div class="section-label">Configurar revisões</div>
+          <div class="rev-control-preview">${frequency.map((d, i) => `${i + 1}ª em ${d}d`).join(' · ')}</div>
+        </div>
+        <div class="rev-frequency-editor">
+          <input type="text" class="form-control" id="rev-frequency-input" value="${frequency.join(', ')}" aria-label="Intervalos de revisão em dias">
+          <button type="button" class="btn btn-primary btn-sm" data-action="update-revision-frequency">Salvar</button>
+        </div>
+      </div>
+      <div class="rev-control-actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-action="clear-visible-revisions" data-scope="pending" ${pending.length === 0 ? 'disabled' : ''}>Excluir pendentes visíveis</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="clear-visible-revisions" data-scope="upcoming" ${upcoming.length === 0 ? 'disabled' : ''}>Excluir próximas visíveis</button>
       </div>
     </div>
 
@@ -173,6 +191,9 @@ export function renderRevisoes(el) {
                 <div class="text-base font-bold text-blue">${formatDate(r.data)}</div>
                 <div class="text-sm text-muted">em ${diffDays} dia${diffDays !== 1 ? 's' : ''}</div>
               </div>
+              <div class="rev-item-actions cluster-sm">
+                <button type="button" class="btn btn-ghost btn-sm" data-action="delete-upcoming-revision" data-assunto-id="${r.assunto.id}" data-revision-date="${esc(r.data)}" title="Excluir revisão" aria-label="Excluir revisão" style="color:var(--danger);">🗑️</button>
+              </div>
             </div>
           `;
                 })
@@ -190,76 +211,122 @@ export function switchRevTab(tab, btn) {
   document.getElementById('rev-tab-proximas').classList.toggle('active', tab === 'proximas');
 }
 
-export function marcarRevisao(assId) {
+function findAssuntoById(assId) {
   for (const edital of state.editais) {
     for (const disc of edital.disciplinas || []) {
       const ass = (disc.assuntos || []).find((a) => a.id === assId);
-      if (ass) {
-        if (!ass.revisoesFetas) ass.revisoesFetas = [];
-        ass.revisoesFetas.push(todayStr());
-        invalidateRevCache();
-        invalidatePendingRevCache();
-        scheduleSave();
-        renderCurrentView();
-        showToast('Revisão registrada! ✅', 'success');
-        return;
-      }
+      if (ass) return ass;
     }
+  }
+  return null;
+}
+
+function skipRevisionDate(assId, revisionDate) {
+  const ass = findAssuntoById(assId);
+  if (!ass || !revisionDate) return false;
+  if (!ass.revisoesFetas) ass.revisoesFetas = [];
+  if (!ass.revisoesFetas.includes(revisionDate)) ass.revisoesFetas.push(revisionDate);
+  ass.revisoesFetas.sort();
+  return true;
+}
+
+export function marcarRevisao(assId) {
+  const ass = findAssuntoById(assId);
+  if (ass) {
+    if (!ass.revisoesFetas) ass.revisoesFetas = [];
+    ass.revisoesFetas.push(todayStr());
+    invalidateRevCache();
+    invalidatePendingRevCache();
+    scheduleSave();
+    renderCurrentView();
+    showToast('Revisão registrada! ✅', 'success');
   }
 }
 
 export function adiarRevisao(assId) {
-  for (const edital of state.editais) {
-    for (const disc of edital.disciplinas || []) {
-      const ass = (disc.assuntos || []).find((a) => a.id === assId);
-      if (ass) {
-        if (!ass.adiamentos) ass.adiamentos = 0;
-        ass.adiamentos = (ass.adiamentos || 0) + 1;
-        invalidateRevCache();
-        invalidatePendingRevCache();
-        scheduleSave();
-        renderCurrentView();
-        showToast('Revisão adiada por 1 dia', 'info');
-        return;
-      }
-    }
+  const ass = findAssuntoById(assId);
+  if (ass) {
+    if (!ass.adiamentos) ass.adiamentos = 0;
+    ass.adiamentos = (ass.adiamentos || 0) + 1;
+    invalidateRevCache();
+    invalidatePendingRevCache();
+    scheduleSave();
+    renderCurrentView();
+    showToast('Revisão adiada por 1 dia', 'info');
   }
 }
 
-export function deletarRevisao(assId) {
+export function deletarRevisao(assId, revisionDate = null) {
   showConfirm(
     'Tem certeza que deseja excluir esta revisão? Isso não removerá o tópico dos concluídos, apenas a removerá da lista de revisões pendentes.',
     async () => {
-      for (const edital of state.editais) {
-        for (const disc of edital.disciplinas || []) {
-          const ass = (disc.assuntos || []).find((a) => a.id === assId);
-          if (ass) {
-            if (!ass.revisoesFetas) ass.revisoesFetas = [];
-            const today = todayStr();
-            const maxSteps = (state.config.frequenciaRevisao || [1, 7, 30, 90]).length;
-            let removed = 0;
+      const ass = findAssuntoById(assId);
+      if (!ass) return;
+      if (!ass.revisoesFetas) ass.revisoesFetas = [];
 
-            while (removed < maxSteps) {
-              const dueDate = calcRevisionDates(
-                ass.dataConclusao,
-                ass.revisoesFetas,
-                ass.adiamentos || 0
-              ).find((rd) => rd <= today);
-              if (!dueDate) break;
-              ass.revisoesFetas.push(dueDate);
-              removed++;
-            }
+      if (revisionDate) {
+        skipRevisionDate(assId, revisionDate);
+      } else {
+        const today = todayStr();
+        const maxSteps = (state.config.frequenciaRevisao || [1, 7, 30, 90]).length;
+        let removed = 0;
 
-            invalidateRevCache();
-            invalidatePendingRevCache();
-            scheduleSave();
-            renderCurrentView();
-            showToast('Revisão removida.', 'info');
-            return;
-          }
+        while (removed < maxSteps) {
+          const dueDate = calcRevisionDates(
+            ass.dataConclusao,
+            ass.revisoesFetas,
+            ass.adiamentos || 0
+          ).find((rd) => rd <= today);
+          if (!dueDate) break;
+          ass.revisoesFetas.push(dueDate);
+          removed++;
         }
       }
+
+      invalidateRevCache();
+      invalidatePendingRevCache();
+      scheduleSave();
+      renderCurrentView();
+      showToast('Revisão removida.', 'info');
     },
     { label: 'Excluir', title: 'Excluir revisão' }
+  );
+}
+
+export function updateRevisionFrequency(value) {
+  const nums = String(value || '')
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (nums.length === 0) {
+    showToast('Informe pelo menos um intervalo válido.', 'error');
+    return;
+  }
+  state.config.frequenciaRevisao = [...new Set(nums)].sort((a, b) => a - b);
+  invalidateRevCache();
+  invalidatePendingRevCache();
+  scheduleSave();
+  renderCurrentView();
+  showToast('Frequência de revisões atualizada.', 'success');
+}
+
+export function clearVisibleRevisions(scope = 'pending') {
+  const items = scope === 'upcoming' ? getUpcomingRevisoes(30) : getPendingRevisoes();
+  if (items.length === 0) return;
+  const label = scope === 'upcoming' ? 'próximas revisões visíveis' : 'revisões pendentes visíveis';
+  showConfirm(
+    `Excluir ${items.length} ${label}? Isso apenas remove essas ocorrências da fila.`,
+    () => {
+      let removed = 0;
+      items.forEach((item) => {
+        if (skipRevisionDate(item.assunto.id, item.data)) removed++;
+      });
+      invalidateRevCache();
+      invalidatePendingRevCache();
+      scheduleSave();
+      renderCurrentView();
+      showToast(`${removed} revisão(ões) removida(s).`, 'info');
+    },
+    { label: 'Excluir visíveis', title: 'Limpar revisões' }
   );
 }

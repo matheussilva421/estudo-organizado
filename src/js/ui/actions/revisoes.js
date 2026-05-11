@@ -9,6 +9,8 @@ import {
   marcarRevisao,
   adiarRevisao,
   deletarRevisao,
+  updateRevisionFrequency,
+  clearVisibleRevisions,
 } from '../../views/revisao-view.js';
 
 // Registrar ações
@@ -29,5 +31,20 @@ registerAction('postpone-revision', (el) => {
 
 registerAction('delete-revision', (el) => {
   const assuntoId = el.dataset.assuntoId;
-  if (assuntoId) deletarRevisao(assuntoId);
+  if (!assuntoId) return;
+  deletarRevisao(assuntoId);
+});
+
+registerAction('delete-upcoming-revision', (el) => {
+  const assuntoId = el.dataset.assuntoId;
+  const revisionDate = el.dataset.revisionDate;
+  if (assuntoId && revisionDate) deletarRevisao(assuntoId, revisionDate);
+});
+
+registerAction('update-revision-frequency', () => {
+  updateRevisionFrequency(document.getElementById('rev-frequency-input')?.value || '');
+});
+
+registerAction('clear-visible-revisions', (el) => {
+  clearVisibleRevisions(el.dataset.scope || 'pending');
 });

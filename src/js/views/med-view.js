@@ -26,7 +26,7 @@ function buildMEDStatsHTML(estudados, agendados) {
     </div>
     <div class="card med-stat-card med-stat-card--wide">
       <div class="section-label">Maior Foco</div>
-      <div class="text-lg font-bold text-primary mt-2">${best ? esc(best.titulo || 'N/A') : '\u2014'}</div>
+      <div class="text-lg font-bold text-primary mt-2 med-focus-title" title="${best ? esc(best.titulo || 'N/A') : ''}">${best ? esc(best.titulo || 'N/A') : '\u2014'}</div>
       <div class="caption">${best ? formatTime(best.tempoAcumulado || 0) : ''}</div>
     </div>`;
 }
@@ -52,7 +52,7 @@ export function renderMED(el) {
                 <div class="med-sticky-bar"><div class="med-sticky-bar-fill" style="width:${metaPct}%"></div></div>
                 <span class="med-sticky-meta-label">${metaPct}% da meta diária</span>
               </div>`
-            : `<div class="med-sticky-meta-empty">Sem meta diária definida</div>`
+            : '<div class="med-sticky-meta-empty">Sem meta diária definida</div>'
         }
         <div class="med-sticky-counts">
           ${emAndamento.length > 0 ? `<span class="badge med-badge--running">⏱ ${emAndamento.length} ativo(s)</span>` : ''}

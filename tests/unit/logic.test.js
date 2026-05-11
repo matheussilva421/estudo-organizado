@@ -1172,6 +1172,45 @@ describe('logic.js', () => {
         expect(first).toBe(second);
       });
     });
+
+    describe('calculateContentProgress', () => {
+      it('splits progress by topics, lessons, and combined overall percentage', () => {
+        const disc = createDisciplina({
+          assuntos: [
+            createAssunto({ id: 'ass_1', concluido: true }),
+            createAssunto({ id: 'ass_2', concluido: false }),
+          ],
+          aulas: [
+            { id: 'aula_1', estudada: true },
+            { id: 'aula_2', estudada: true },
+            { id: 'aula_3', estudada: false },
+            { id: 'aula_4', estudada: false },
+          ],
+        });
+
+        expect(logic.calculateContentProgress(disc)).toMatchObject({
+          topics: { done: 1, total: 2, pct: 50 },
+          lessons: { done: 2, total: 4, pct: 50 },
+          overall: { done: 3, total: 6, pct: 50 },
+        });
+      });
+
+      it('uses the only available axis for overall progress when lessons are absent', () => {
+        const disc = createDisciplina({
+          assuntos: [
+            createAssunto({ id: 'ass_1', concluido: true }),
+            createAssunto({ id: 'ass_2', concluido: false }),
+          ],
+          aulas: [],
+        });
+
+        expect(logic.calculateContentProgress(disc).overall).toMatchObject({
+          done: 1,
+          total: 2,
+          pct: 50,
+        });
+      });
+    });
   });
 
   describe('timerIntervals', () => {

@@ -5,6 +5,7 @@
 
 import { state } from '../store.js?v=8.37';
 import { esc, normalizeSearch } from '../utils.js?v=8.37';
+import { calculateContentProgress } from '../logic.js?v=8.37';
 import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
 
 // ── Vertical View State (persisted via ui-state) ──
@@ -336,13 +337,10 @@ export function renderEditalTree(edital) {
   const isLastEdital = editalIndex === -1 || editalIndex >= state.editais.length - 1;
   const ativas = (edital.disciplinas || []).filter((d) => !d.arquivada);
   const arquivadas = (edital.disciplinas || []).filter((d) => d.arquivada);
-  // Aggregate progress: how many subjects across all active disciplines are concluded
-  const allAss = ativas.flatMap((d) => d.assuntos || []);
-  const totalAss = allAss.length;
-  const concAss = allAss.filter((a) => a.concluido).length;
+  const progress = calculateContentProgress(ativas);
   const progressBadge =
-    totalAss > 0
-      ? `<span class="tree-edital-progress" title="Tópicos concluídos no edital">${concAss}/${totalAss} tópicos</span>`
+    progress.overall.total > 0
+      ? `<span class="tree-edital-progress" title="Progresso geral do edital">Geral ${progress.overall.pct}% · T ${progress.topics.done}/${progress.topics.total} · A ${progress.lessons.done}/${progress.lessons.total}</span>`
       : '';
   const discCountText =
     arquivadas.length > 0
@@ -389,12 +387,7 @@ export function renderEditalTree(edital) {
                 ? '<div class="disc-archived-badge">Arquivada</div>'
                 : '';
 
-              const totaisTopicos = disc.assuntos ? disc.assuntos.length : 0;
-              const topicosEstudados = disc.assuntos
-                ? disc.assuntos.filter((a) => a.concluido).length
-                : 0;
-              const totaisAulas = disc.aulas ? disc.aulas.length : 0;
-              const aulasEstudadas = disc.aulas ? disc.aulas.filter((a) => a.estudada).length : 0;
+              const discProgress = calculateContentProgress(disc);
 
               let qResolvidas = 0;
               if (state.eventos) {
@@ -414,11 +407,11 @@ export function renderEditalTree(edital) {
                 <div class="disc-card-title">${disc.icone || '📚'} ${esc(disc.nome)}</div>
                 <div class="disc-stats">
                   <div class="disc-stat">
-                    <span class="disc-stat-val">${topicosEstudados}/${totaisTopicos}</span>
+                    <span class="disc-stat-val">${discProgress.topics.done}/${discProgress.topics.total}</span>
                     <span class="disc-stat-label">Tópicos<br>do Edital</span>
                   </div>
                   <div class="disc-stat">
-                    <span class="disc-stat-val">${aulasEstudadas}/${totaisAulas}</span>
+                    <span class="disc-stat-val">${discProgress.lessons.done}/${discProgress.lessons.total}</span>
                     <span class="disc-stat-label">Aulas<br>Estudadas</span>
                   </div>
                   <div class="disc-stat">
