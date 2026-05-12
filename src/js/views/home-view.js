@@ -9,11 +9,10 @@
 
 import { state } from '../store.js?v=8.37';
 import { esc, formatDate, formatTime } from '../utils.js?v=8.37';
-import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
+import { setUiSection } from '../ui-state.js?v=8.37';
 import {
   getAggregatedStats,
   getPerformanceStats,
-  getSyllabusProgress,
   getSyllabusProgressByEdital,
   getPagesReadStats,
   getConsistencyStreak,
@@ -25,17 +24,20 @@ import {
   getAulasWeeklyStats,
   getDisciplineProgressByEdital,
 } from '../logic.js?v=8.37';
+import {
+  filterEventsBySelectedEdital,
+  getSelectedEditalId,
+  setSelectedEditalId,
+} from '../edital-filter.js?v=8.37';
 
 // Edital ativo selecionado nas tabs da Faixa 4 — persistido em ui-state (per-device).
 function getActiveEditalId() {
-  const editais = state.editais || [];
-  const stored = getUiSection('home').activeEditalId;
-  if (stored && editais.some((e) => e.id === stored)) return stored;
-  return editais.length > 0 ? editais[0].id : null;
+  return getSelectedEditalId({ allowAll: true });
 }
 
 function setActiveEditalId(id) {
   setUiSection('home', { activeEditalId: id });
+  setSelectedEditalId(id);
 }
 
 function fmtHM(totalSeconds) {
@@ -223,7 +225,7 @@ function renderHero(ctx) {
 
   const streakBadge = streak.currentStreak > 0
     ? `<span class="dash-hero-streak"><i class="fa fa-fire"></i> ${streak.currentStreak} dia${streak.currentStreak === 1 ? '' : 's'} sem falhar</span>`
-    : `<span class="dash-hero-streak dash-hero-streak--idle"><i class="fa fa-fire"></i> Comece um novo streak hoje</span>`;
+    : '<span class="dash-hero-streak dash-hero-streak--idle"><i class="fa fa-fire"></i> Comece um novo streak hoje</span>';
 
   return `
     <div class="card p-16 home-card dash-hero">
@@ -331,7 +333,10 @@ function renderSubjectProgress(ctx) {
   const editais = state.editais || [];
   const activeId = getActiveEditalId();
   const groups = ctx.disciplineProgress;
-  const activeGroup = groups.find((g) => g.edital.id === activeId);
+  const visibleGroups = activeId ? groups.filter((g) => g.edital.id === activeId) : groups;
+  const allRows = visibleGroups.flatMap((group) =>
+    group.disciplinas.map((row) => ({ ...row, edital: group.edital }))
+  );
 
   const tabsHtml = editais.length > 1
     ? editais.map((e) => `
@@ -342,7 +347,7 @@ function renderSubjectProgress(ctx) {
       `).join('')
     : '';
 
-  if (!activeGroup || activeGroup.disciplinas.length === 0) {
+  if (allRows.length === 0) {
     return `
       <div class="card p-16 home-card dash-subject-panel">
         <div class="flex-between mb-3">
@@ -354,7 +359,7 @@ function renderSubjectProgress(ctx) {
   }
 
   // Ordena pelo MENOR progresso (precisa de atenção primeiro), com tempo > 0 vindo após zerados.
-  const sorted = [...activeGroup.disciplinas].sort((a, b) => {
+  const sorted = [...allRows].sort((a, b) => {
     if (a.percent !== b.percent) return a.percent - b.percent;
     return a.tempo - b.tempo;
   });
@@ -367,8 +372,8 @@ function renderSubjectProgress(ctx) {
     const tempoStr = row.tempo > 0 ? formatTime(row.tempo).slice(0, 5) + 'h' : '—';
     const sparklineHtml = renderSparkline(row.sparkline || [0,0,0,0,0,0,0], color);
     return `
-      <div class="dash-subject-progress-row" data-action="navigate-with-ctx" data-view="dashboard" data-ctx="${encodeURIComponent(JSON.stringify({ discId: row.disc.id, editalId: activeGroup.edital.id }))}" title="Abrir ${esc(row.disc.nome)}">
-        <div class="dash-subject-progress-name text-ellipsis" title="${esc(row.disc.nome)}">${esc(row.disc.nome)}</div>
+      <div class="dash-subject-progress-row" data-action="navigate-with-ctx" data-view="dashboard" data-ctx="${encodeURIComponent(JSON.stringify({ discId: row.disc.id, editalId: row.edital.id }))}" title="Abrir ${esc(row.disc.nome)}">
+        <div class="dash-subject-progress-name text-ellipsis" title="${esc(row.disc.nome)}">${esc(row.disc.nome)}${activeId ? '' : ` · ${esc(row.edital.nome)}`}</div>
         <div class="dash-subject-progress-bar-wrap">
           <div class="dash-subject-progress-bar" style="width:${fill}%; background:${color};"></div>
         </div>
@@ -384,7 +389,7 @@ function renderSubjectProgress(ctx) {
     <div class="card p-16 home-card dash-subject-panel">
       <div class="flex-between mb-3">
         <div class="dash-label">PROGRESSO POR DISCIPLINA</div>
-        <span class="text-xs text-muted">${activeGroup.disciplinas.filter(d => d.percent >= 100).length}/${activeGroup.disciplinas.length} concluídas</span>
+        <span class="text-xs text-muted">${allRows.filter(d => d.percent >= 100).length}/${allRows.length} concluídas</span>
       </div>
       ${tabsHtml ? `<div class="dash-edital-tabs">${tabsHtml}</div>` : ''}
       <div class="dash-subject-progress-list">
@@ -479,32 +484,120 @@ function renderAnalysisColumn(ctx) {
   `;
 }
 
+function getWeekBounds(offsetWeeks = 0) {
+  const now = new Date();
+  const primeirodiaSemana = state.config.primeirodiaSemana || 1;
+  let dayOffset = now.getDay() - primeirodiaSemana;
+  if (dayOffset < 0) dayOffset += 7;
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOffset + offsetWeeks * 7);
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+  const toStr = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  return { startStr: toStr(start), endStr: toStr(end), primeirodiaSemana };
+}
+
+function buildScopedWeekStats(events, offsetWeeks = 0) {
+  const { startStr, endStr, primeirodiaSemana } = getWeekBounds(offsetWeeks);
+  const stats = {
+    totalSeconds: 0,
+    totalQuestions: 0,
+    questionsCorrect: 0,
+    questionsWrong: 0,
+    totalPages: 0,
+    dailySeconds: [0, 0, 0, 0, 0, 0, 0],
+  };
+  for (const event of events || []) {
+    if (event.status !== 'estudei') continue;
+    const studyDate = event.dataEstudo || event.data || '';
+    if (studyDate < startStr || studyDate > endStr) continue;
+    const elapsed = event.tempoAcumulado || 0;
+    const qs = event.sessao?.questoes || event.questoes;
+    const totalQs = qs ? (qs.total ?? (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0)) : 0;
+    stats.totalSeconds += elapsed;
+    stats.totalQuestions += totalQs;
+    stats.questionsCorrect += qs ? qs.acertos || qs.certas || 0 : 0;
+    stats.questionsWrong += qs ? qs.erros || qs.erradas || 0 : 0;
+    stats.totalPages += event.sessao?.paginas?.total || event.paginas || 0;
+    const evDate = new Date(studyDate + 'T00:00:00');
+    let dayIndex = evDate.getDay() - primeirodiaSemana;
+    if (dayIndex < 0) dayIndex += 7;
+    stats.dailySeconds[dayIndex] += elapsed;
+  }
+  return stats;
+}
+
+function buildScopedAulasWeekStats(editais) {
+  const current = getWeekBounds(0);
+  const previous = getWeekBounds(-1);
+  let thisWeek = 0;
+  let prevWeek = 0;
+  let totalPending = 0;
+  for (const edital of editais || []) {
+    for (const disc of edital.disciplinas || []) {
+      if (disc.arquivada) continue;
+      for (const aula of disc.aulas || []) {
+        if (!aula.estudada) {
+          totalPending += 1;
+        } else if (aula.dataEstudo >= current.startStr && aula.dataEstudo <= current.endStr) {
+          thisWeek += 1;
+        } else if (aula.dataEstudo >= previous.startStr && aula.dataEstudo <= previous.endStr) {
+          prevWeek += 1;
+        }
+      }
+    }
+  }
+  return { thisWeek, prevWeek, totalPending };
+}
+
 // --- ENTRY POINT -----------------------------------------------------------
 export function renderHome(el) {
   // Memoização explícita: garante que o aggregator é construído uma única vez por turno.
   // (cache interno de logic.js é preservado entre re-renders, mas aqui força preenchimento
   // antes das demais chamadas e dá contexto explícito de performance.)
   const agg = getAggregatedStats();
+  const activeEditalId = getActiveEditalId();
+  const scopedEvents = filterEventsBySelectedEdital(state.eventos || [], { allowAll: true });
+  const scopedCompletedEvents = scopedEvents.filter((event) => event.status === 'estudei');
 
   // Calcula tudo uma vez.
-  const perf = getPerformanceStats();
+  const perf = activeEditalId
+    ? scopedCompletedEvents.reduce(
+        (acc, event) => {
+          const qs = event.sessao?.questoes || event.questoes;
+          if (!qs) return acc;
+          const total = qs.total ?? (qs.acertos || qs.certas || 0) + (qs.erros || qs.erradas || 0);
+          acc.questionsTotal += total;
+          acc.questionsCorrect += qs.acertos || qs.certas || 0;
+          acc.questionsWrong += qs.erros || qs.erradas || 0;
+          return acc;
+        },
+        { questionsTotal: 0, questionsCorrect: 0, questionsWrong: 0 }
+      )
+    : getPerformanceStats();
   const perfPerc = perf.questionsTotal > 0
     ? Math.round((perf.questionsCorrect / perf.questionsTotal) * 100)
     : 0;
 
-  const activeEditalId = getActiveEditalId();
   const prog = getSyllabusProgressByEdital(activeEditalId);
   const progPerc = prog.totalAssuntos > 0
     ? Math.round((prog.totalConcluidos / prog.totalAssuntos) * 100)
     : 0;
 
-  const pagesReadTotal = getPagesReadStats();
+  const pagesReadTotal = activeEditalId
+    ? scopedCompletedEvents.reduce(
+        (sum, event) => sum + (event.sessao?.paginas?.total || event.paginas || 0),
+        0
+      )
+    : getPagesReadStats();
   const streak = getConsistencyStreak();
   const subjStats = getSubjectStats();
-  const weekStats = getCurrentWeekStats();
-  const prevWeekStats = getPreviousWeekStats();
-  const aulasWeek = getAulasWeeklyStats();
-  const disciplineProgress = getDisciplineProgressByEdital();
+  const weekStats = activeEditalId ? buildScopedWeekStats(scopedEvents, 0) : getCurrentWeekStats();
+  const prevWeekStats = activeEditalId ? buildScopedWeekStats(scopedEvents, -1) : getPreviousWeekStats();
+  const disciplineProgress = getDisciplineProgressByEdital().filter(
+    (group) => !activeEditalId || group.edital.id === activeEditalId
+  );
+  const aulasWeek = activeEditalId
+    ? buildScopedAulasWeekStats(disciplineProgress.map((group) => group.edital))
+    : getAulasWeeklyStats();
 
   const metaHoras = state.config.metas?.horasSemana || 20;
   const metaQuest = state.config.metas?.questoesSemana || 150;
@@ -517,7 +610,7 @@ export function renderHome(el) {
 
   // Tempo total lifetime — usa agg em vez de re-iterar eventos.
   let totalSeconds = 0;
-  state.eventos.forEach((e) => {
+  scopedEvents.forEach((e) => {
     if (e.status === 'estudei') totalSeconds += e.tempoAcumulado || 0;
   });
   const totalTimeStr = formatTime(totalSeconds);

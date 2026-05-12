@@ -13,6 +13,7 @@ describe('views/calendar-view.js', () => {
     storeModule = {
       state: {
         config: { primeirodiaSemana: 1 },
+        editais: [],
         eventos: [],
       },
     };
@@ -26,6 +27,9 @@ describe('views/calendar-view.js', () => {
     vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
     vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
     vi.doMock('../../src/js/utils.js?v=8.37', () => utilsModule);
+    vi.doMock('../../src/js/edital-filter.js?v=8.37', () => ({
+      filterEventsBySelectedEdital: vi.fn((events) => events),
+    }));
 
     calendarView = await import('../../src/js/views/calendar-view.js?v=8.37');
   });
@@ -184,6 +188,17 @@ describe('views/calendar-view.js', () => {
       expect(el.innerHTML).toContain('data-action="set-cal-view-mode"');
       expect(el.innerHTML).toContain('data-mode="mes"');
       expect(el.innerHTML).toContain('data-mode="semana"');
+    });
+
+    it('includes selected day panel with add button for the current day', () => {
+      const el = { innerHTML: '', querySelector: vi.fn(() => null) };
+      storeModule.state.eventos = [
+        { id: 'ev_1', titulo: 'Direito Administrativo', data: '2026-04-29', status: 'agendado' },
+      ];
+      calendarView.renderCalendar(el);
+      expect(el.innerHTML).toContain('data-testid="calendar-day-panel"');
+      expect(el.innerHTML).toContain('data-testid="calendar-day-panel-event"');
+      expect(el.innerHTML).toContain('data-action="open-event-modal-date" data-date="2026-04-29"');
     });
   });
 });

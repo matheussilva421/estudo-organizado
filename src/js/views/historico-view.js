@@ -6,6 +6,10 @@ import { state } from '../store.js?v=8.37';
 import { formatDate, formatTime, esc, normalizeSearch } from '../utils.js?v=8.37';
 import { getDisc } from '../logic.js?v=8.37';
 import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
+import {
+  disciplineBelongsToSelectedEdital,
+  eventBelongsToSelectedEdital,
+} from '../edital-filter.js?v=8.37';
 
 const PAGE_SIZE = 30; // grupos por dia exibidos por página
 
@@ -26,6 +30,7 @@ function applyFilters(eventos, filters) {
     }
   }
   return eventos.filter((ev) => {
+    if (!eventBelongsToSelectedEdital(ev, { allowAll: false })) return false;
     const dt = ev.dataEstudo || ev.data || '';
     if (cutoff && dt < cutoff) return false;
     if (disciplinaId && ev.discId !== disciplinaId) return false;
@@ -112,7 +117,9 @@ export function renderHistoricoSessoes(el) {
   const disciplinas = [];
   for (const ed of state.editais || []) {
     for (const d of ed.disciplinas || []) {
-      if (!d.arquivada) disciplinas.push({ disc: d, edital: ed });
+      if (!d.arquivada && disciplineBelongsToSelectedEdital(d.id, { allowAll: false })) {
+        disciplinas.push({ disc: d, edital: ed });
+      }
     }
   }
   disciplinas.sort((a, b) =>

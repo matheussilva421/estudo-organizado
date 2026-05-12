@@ -6,6 +6,7 @@
 import { state } from '../store.js?v=8.37';
 import { esc, getEventStatus, todayStr } from '../utils.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
+import { filterEventsBySelectedEdital } from '../edital-filter.js?v=8.37';
 
 // Local discipline-color lookup (lazy memo) — avoids static dependency on logic.js
 // which would pull half the app graph into calendar-view tests.
@@ -33,6 +34,7 @@ if (typeof document !== 'undefined') {
 // Exported state
 let calDate = new Date();
 let calViewMode = 'mes';
+let selectedDayStr = todayStr();
 
 // Re-export for external access
 export function getCalDate() {
@@ -81,11 +83,50 @@ function getDateStr(d) {
 // ── Helper: Pre-index events by date ──
 function indexEventsByDate() {
   const eventsByDate = {};
-  for (const e of state.eventos) {
+  for (const e of filterEventsBySelectedEdital(state.eventos || [], { allowAll: false })) {
     if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
     eventsByDate[e.data].push(e);
   }
   return eventsByDate;
+}
+
+export function setSelectedCalendarDay(dateStr) {
+  selectedDayStr = dateStr || todayStr();
+  renderCurrentView();
+}
+
+function renderSelectedDayPanel() {
+  const events = filterEventsBySelectedEdital(state.eventos || [], { allowAll: false })
+    .filter((event) => event.data === selectedDayStr)
+    .sort((a, b) => String(a.titulo || '').localeCompare(String(b.titulo || ''), 'pt-BR'));
+  return `
+    <div class="cal-day-panel" data-testid="calendar-day-panel">
+      <div class="cal-day-panel-header">
+        <div>
+          <div class="section-label">Dia selecionado</div>
+          <h3>${selectedDayStr.split('-').reverse().join('/')}</h3>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm cal-day-add" data-action="open-event-modal-date" data-date="${selectedDayStr}">
+          <i class="fa fa-plus"></i> Adicionar sessão
+        </button>
+      </div>
+      ${
+        events.length === 0
+          ? '<div class="cal-day-empty">Nada agendado para este dia.</div>'
+          : `<div class="cal-day-event-list">
+              ${events
+                .map(
+                  (event) => `
+                    <button type="button" class="cal-day-event" data-testid="calendar-day-panel-event" data-action="open-event-detail" data-event-id="${esc(event.id)}">
+                      <span>${esc(event.titulo || 'Evento')}</span>
+                      <small>${getEventStatus(event)}</small>
+                    </button>`
+                )
+                .join('')}
+            </div>`
+      }
+    </div>
+  `;
 }
 
 // ── Main Render Function ──
@@ -116,6 +157,7 @@ export function renderCalendar(el) {
           </button>
         </div>
         <div id="cal-grid">${gridContent}</div>
+        ${renderSelectedDayPanel()}
       </div>
     </div>
   `;
@@ -213,8 +255,9 @@ export function renderCalendarMonth() {
                 )
               : '';
           return `
-          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-action="open-event-modal-date" data-date="${ds}">
+          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-action="select-calendar-day" data-date="${ds}">
             <div class="cal-date">${cell.date.getDate()}</div>
+            <button type="button" class="cal-day-add-inline" data-action="open-event-modal-date" data-date="${ds}" aria-label="Adicionar sessao em ${ds}" title="Adicionar sessao">+</button>
             ${show
               .map((e) => {
                 const st = getEventStatus(e);
@@ -223,7 +266,7 @@ export function renderCalendarMonth() {
                 return `<button type="button" class="cal-event-chip ${st}"${styleAttr} data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
               })
               .join('')}
-            ${more > 0 ? `<button type="button" class="cal-more" data-action="open-event-modal-date" data-date="${ds}" title="${moreTitle}">+${more} mais</button>` : ''}
+            ${more > 0 ? `<button type="button" class="cal-more" data-action="select-calendar-day" data-date="${ds}" title="${moreTitle}">+${more} mais</button>` : ''}
           </div>
         `;
         })
@@ -307,7 +350,7 @@ export function renderCalendarMobileMonth() {
     const dowName = dows[date.getDay()];
 
     html += `
-      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="open-event-modal-date" data-date="${ds}">
+      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="select-calendar-day" data-date="${ds}">
         <div class="cal-mobile-day-header">
           <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d}</div>
           <div class="cal-mobile-dow">${dowName}</div>
@@ -361,7 +404,7 @@ export function renderCalendarMobileWeek() {
     const dowName = dows[d.getDay()];
 
     html += `
-      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="open-event-modal-date" data-date="${ds}">
+      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="select-calendar-day" data-date="${ds}">
         <div class="cal-mobile-day-header">
           <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d.getDate()}</div>
           <div class="cal-mobile-dow">${dowName}</div>

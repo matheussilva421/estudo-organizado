@@ -6,6 +6,7 @@
 import { state, scheduleSave } from '../store.js?v=8.37';
 import { esc, todayStr, trunc, uid, getEventStatus, addCleanupListener } from '../utils.js?v=8.37';
 import { getDisc, getActiveDisciplinas, reattachTimers } from '../logic.js?v=8.37';
+import { getSelectedEditalId } from '../edital-filter.js?v=8.37';
 import { renderCurrentView, renderEventCard } from '../components.js?v=8.37';
 import { openModal, closeModal, showConfirm, showToast } from '../app.js?v=8.37';
 import { openRegistroSessao } from '../registro-sessao.js?v=8.37';
@@ -14,7 +15,10 @@ import { openRegistroSessao } from '../registro-sessao.js?v=8.37';
 // ADD EVENT MODAL
 // =============================================
 export function openAddEventModal(dateStr = null) {
-  const allDiscs = getActiveDisciplinas();
+  const selectedEditalId = getSelectedEditalId({ allowAll: true });
+  const allDiscs = getActiveDisciplinas().filter(
+    ({ edital }) => !selectedEditalId || edital.id === selectedEditalId
+  );
   const discOptions = allDiscs
     .map(
       ({ disc, edital }) =>

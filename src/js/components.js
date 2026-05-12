@@ -25,7 +25,6 @@ import {
 import { renderCalendar } from './views/calendar-view.js?v=8.37';
 import { state } from './store.js?v=8.37';
 import {
-  getActiveDisciplinas,
   getDisc,
   getElapsedSeconds,
   getPendingRevisoes,
@@ -33,6 +32,11 @@ import {
   _pomodoroMode,
 } from './logic.js?v=8.37';
 import { getActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.37';
+import {
+  filterEventsBySelectedEdital,
+  getFilteredActiveDisciplinas,
+  getSelectedEditalId,
+} from './edital-filter.js?v=8.37';
 import {
   getDiscChartInstance,
   setDiscChartInstance,
@@ -60,7 +64,10 @@ export function setCronoInterval(val) {
  * @param {HTMLElement} el - Container da view
  */
 export function renderCronometro(el) {
-  let allTimerEvents = state.eventos.filter(
+  let allTimerEvents = filterEventsBySelectedEdital(state.eventos || [], {
+    allowAll: false,
+    includeUndisciplinedActive: true,
+  }).filter(
     (e) =>
       e._timerStart || (!e._timerStart && (e.tempoAcumulado || 0) > 0 && e.status !== 'estudei')
   );
@@ -130,7 +137,7 @@ export function renderCronometro(el) {
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px;">
           <select class="crono-select" data-action="set-crono-livre-disc" value="${state.cronoLivre?.discId || ''}">
             <option value="">(Opcional) Escolha a Disciplina...</option>
-            ${getActiveDisciplinas()
+          ${getFilteredActiveDisciplinas({ allowAll: false })
               .map((d) => {
                 const discLabel = `${d.disc.icone || '📖'} ${truncateOptionLabel(d.disc.nome, 42)}`;
                 return `<option value="${d.disc.id}" title="${esc(d.disc.nome)}" ${state.cronoLivre?.discId === d.disc.id ? 'selected' : ''}>${esc(discLabel)}</option>`;
@@ -403,23 +410,48 @@ export function renderCurrentView() {
   const actions = document.getElementById('topbar-actions');
   if (actions) {
     actions.innerHTML = '';
+    const renderEditalFilter = () => {
+      const editais = state.editais || [];
+      if (editais.length === 0 || currentView === 'cronometro' || currentView === 'config') return '';
+      const allowAll = currentView === 'home';
+      const selectedId = getSelectedEditalId({ allowAll });
+      const allOption = allowAll
+        ? `<option value="" ${selectedId ? '' : 'selected'}>Todos os editais</option>`
+        : '';
+      return `
+        <label class="topbar-edital-filter" title="Filtrar dados por edital">
+          <span class="sr-only">Edital</span>
+          <select class="edital-filter-select" data-action="set-edital-filter" aria-label="Filtrar por edital">
+            ${allOption}
+            ${editais
+              .map(
+                (edital) =>
+                  `<option value="${esc(edital.id)}" ${selectedId === edital.id ? 'selected' : ''}>${esc(edital.nome || 'Edital')}</option>`
+              )
+              .join('')}
+          </select>
+        </label>`;
+    };
+    const editalFilterHtml = renderEditalFilter();
     if (currentView === 'cronometro') {
       actions.innerHTML =
         '<button class="btn btn-ghost btn-sm" data-action="navigate" data-view="med"><i class="fa fa-arrow-left"></i> Voltar</button>';
     } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
       actions.innerHTML =
-        '<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>';
+        `${editalFilterHtml}<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
     } else if (currentView === 'editais') {
       if (getActiveDashboardDiscCtx()) {
         actions.innerHTML =
-          '<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>';
+          `${editalFilterHtml}<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>`;
       } else {
         actions.innerHTML =
-          '<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>';
+          `${editalFilterHtml}<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>`;
       }
     } else if (currentView === 'ciclo') {
       actions.innerHTML =
-        '<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>';
+        `${editalFilterHtml}<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>`;
+    } else {
+      actions.innerHTML = editalFilterHtml;
     }
   }
 
@@ -476,7 +508,7 @@ export function updateBadges() {
   const med = document.getElementById('badge-med');
   const rev = document.getElementById('badge-rev');
   if (!med || !rev) return;
-  const pendingMed = state.eventos.filter(
+  const pendingMed = filterEventsBySelectedEdital(state.eventos || [], { allowAll: false }).filter(
     (e) => e.data === todayStr() && e.status !== 'estudei'
   ).length;
   med.style.display = pendingMed > 0 ? 'inline-block' : 'none';

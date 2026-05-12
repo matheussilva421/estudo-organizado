@@ -3,8 +3,9 @@
 // =============================================
 
 import { state } from '../store.js?v=8.37';
-import { todayStr, formatTime, esc } from '../utils.js?v=8.37';
+import { todayStr, formatTime, esc, formatDate } from '../utils.js?v=8.37';
 import { renderEventCard } from '../components.js?v=8.37';
+import { filterEventsBySelectedEdital } from '../edital-filter.js?v=8.37';
 
 // Shared stats row builder — eliminates duplication between renderMED and refreshMEDSections
 function buildMEDStatsHTML(estudados, agendados) {
@@ -33,11 +34,36 @@ function buildMEDStatsHTML(estudados, agendados) {
 
 export function renderMED(el) {
   const today = todayStr();
-  const todayEvents = state.eventos.filter((e) => e.data === today);
+  const visibleEvents = filterEventsBySelectedEdital(state.eventos || [], {
+    allowAll: false,
+    includeUndisciplinedActive: true,
+  });
+  const todayEvents = visibleEvents.filter((e) => e.data === today);
   const emAndamento = todayEvents.filter((e) => e._timerStart);
   const agendados = todayEvents.filter((e) => e.status !== 'estudei' && !e._timerStart);
   const estudados = todayEvents.filter((e) => e.status === 'estudei');
   const totalSeconds = estudados.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
+  const addDays = (dateStr, days) => {
+    const date = new Date(dateStr + 'T00:00:00');
+    date.setDate(date.getDate() + days);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  };
+  const tomorrow = addDays(today, 1);
+  const horizon = addDays(today, 7);
+  const pendingFuture = visibleEvents
+    .filter((event) => event.status !== 'estudei' && event.data >= today && event.data <= horizon)
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  const renderGroup = (title, events) =>
+    events.length > 0
+      ? `
+      <div class="med-agenda-group">
+        <div class="section-header"><h2>${title}</h2></div>
+        ${events.map((e) => renderEventCard(e)).join('')}
+      </div>`
+      : '';
+  const todayPending = pendingFuture.filter((event) => event.data === today && !event._timerStart);
+  const tomorrowPending = pendingFuture.filter((event) => event.data === tomorrow);
+  const nextDays = pendingFuture.filter((event) => event.data > tomorrow);
 
   // Sticky header with daily progress (uses optional `metaDiariaSeg` if user has set one)
   const metaSeg = (state.config?.metaDiariaSeg || 0);
@@ -63,7 +89,7 @@ export function renderMED(el) {
     </div>
   `;
 
-  if (todayEvents.length === 0) {
+  if (pendingFuture.length === 0 && emAndamento.length === 0 && estudados.length === 0) {
     el.innerHTML = `
       ${stickyHeader}
       <div id="med-stats-row" class="med-stats-row">
@@ -71,7 +97,7 @@ export function renderMED(el) {
       </div>
       <div class="empty-state med-empty-state">
         <div class="icon">📅</div>
-        <h4>Nenhum evento para hoje</h4>
+        <h4>Nenhum evento nos próximos 7 dias</h4>
         <p class="mb-4">Como você quer começar?</p>
         <div class="med-empty-actions">
           <button class="btn btn-primary" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Evento</button>
@@ -100,7 +126,14 @@ export function renderMED(el) {
         : ''
     }
 
-    <div id="med-section-agendado">
+    <div id="med-section-agendado" class="med-agenda-list">
+      ${renderGroup('Agendado para Hoje', todayPending)}
+      ${renderGroup('Amanhã', tomorrowPending)}
+      ${renderGroup('Próximos 7 dias', nextDays.map((event) => ({
+        ...event,
+        titulo: `${formatDate(event.data)} · ${event.titulo || 'Evento'}`,
+      })))}
+      <template data-obsolete="legacy-today-only">
       ${
         agendados.length > 0
           ? `
@@ -109,6 +142,7 @@ export function renderMED(el) {
       `
           : ''
       }
+      </template>
     </div>
     <div id="med-section-estudado">
       ${

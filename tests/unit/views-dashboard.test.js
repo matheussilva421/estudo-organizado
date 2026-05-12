@@ -48,6 +48,13 @@ describe('views.js - dashboard, charts, history, MED', () => {
     vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
     vi.doMock('../../src/js/logic.js?v=8.37', () => logicModule);
     vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
+    vi.doMock('../../src/js/edital-filter.js?v=8.37', () => ({
+      filterEventsBySelectedEdital: vi.fn((events) => events),
+      eventBelongsToSelectedEdital: vi.fn(() => true),
+      disciplineBelongsToSelectedEdital: vi.fn(() => true),
+      getFilteredActiveDisciplinas: vi.fn(() => []),
+      getSelectedEditalId: vi.fn(() => null),
+    }));
     vi.doMock('../../src/js/utils.js?v=8.37', () => ({
       esc: vi.fn((s) => s || ''),
       todayStr: vi.fn(() => '2026-04-29'),
@@ -179,7 +186,7 @@ describe('views.js - dashboard, charts, history, MED', () => {
       const el = { innerHTML: '' };
       storeModule.state.eventos = [];
       views.renderMED(el);
-      expect(el.innerHTML).toContain('Nenhum evento para hoje');
+      expect(el.innerHTML).toContain('Nenhum evento nos próximos 7 dias');
     });
 
     it('filters events by today date', () => {
@@ -188,7 +195,22 @@ describe('views.js - dashboard, charts, history, MED', () => {
         { id: 'e1', status: 'estudei', data: '2026-04-28', tempoAcumulado: 3600 },
       ];
       views.renderMED(el);
-      expect(el.innerHTML).toContain('Nenhum evento para hoje');
+      expect(el.innerHTML).toContain('Nenhum evento nos próximos 7 dias');
+    });
+
+    it('groups scheduled events for today, tomorrow and next 7 days', () => {
+      const el = { innerHTML: '' };
+      storeModule.state.eventos = [
+        { id: 'e1', status: 'agendado', data: '2026-04-29', titulo: 'Hoje' },
+        { id: 'e2', status: 'agendado', data: '2026-04-30', titulo: 'Amanha' },
+        { id: 'e3', status: 'agendado', data: '2026-05-04', titulo: 'Semana' },
+        { id: 'e4', status: 'agendado', data: '2026-05-08', titulo: 'Fora' },
+      ];
+      views.renderMED(el);
+      expect(el.innerHTML).toContain('Agendado para Hoje');
+      expect(el.innerHTML).toContain('Amanhã');
+      expect(el.innerHTML).toContain('Próximos 7 dias');
+      expect(el.innerHTML).not.toContain('Fora');
     });
   });
 

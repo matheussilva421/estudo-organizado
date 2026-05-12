@@ -7,6 +7,7 @@ describe('ui/actions/navegacao.js', () => {
   let calendarView;
   let componentsModule;
   let dashboardContext;
+  let editalFilter;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -31,9 +32,11 @@ describe('ui/actions/navegacao.js', () => {
     calendarView = {
       setCalViewMode: vi.fn(),
       calNavigate: vi.fn(),
+      setSelectedCalendarDay: vi.fn(),
     };
     componentsModule = { renderCurrentView: vi.fn() };
     dashboardContext = { setActiveDashboardDiscCtx: vi.fn() };
+    editalFilter = { setSelectedEditalId: vi.fn() };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
     vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
@@ -41,6 +44,7 @@ describe('ui/actions/navegacao.js', () => {
     vi.doMock('../../src/js/views/calendar-view.js?v=8.37', () => calendarView);
     vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
     vi.doMock('../../src/js/state/dashboard-context.js?v=8.37', () => dashboardContext);
+    vi.doMock('../../src/js/edital-filter.js?v=8.37', () => editalFilter);
 
     await import('../../src/js/ui/actions/navegacao.js');
   });
@@ -56,6 +60,8 @@ describe('ui/actions/navegacao.js', () => {
     expect(calls).toContain('set-cal-view-mode');
     expect(calls).toContain('cal-navigate');
     expect(calls).toContain('cal-today');
+    expect(calls).toContain('select-calendar-day');
+    expect(calls).toContain('set-edital-filter');
     expect(calls).toContain('set-dash-period');
     expect(calls).toContain('close-sidebar');
     expect(calls).toContain('toggle-sidebar');
@@ -125,6 +131,12 @@ describe('ui/actions/navegacao.js', () => {
     expect(calendarView.calNavigate).toHaveBeenCalledWith(0);
   });
 
+  it('select-calendar-day handler updates selected day', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'select-calendar-day')[1];
+    handler({ dataset: { date: '2026-05-12' } });
+    expect(calendarView.setSelectedCalendarDay).toHaveBeenCalledWith('2026-05-12');
+  });
+
   it('set-dash-period handler parses period', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'set-dash-period')[1];
     handler({ dataset: { period: '30' } });
@@ -141,6 +153,13 @@ describe('ui/actions/navegacao.js', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'toggle-theme')[1];
     handler({});
     expect(appModule.applyTheme).toHaveBeenCalledWith(true);
+    expect(componentsModule.renderCurrentView).toHaveBeenCalled();
+  });
+
+  it('set-edital-filter stores selection and re-renders', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'set-edital-filter')[1];
+    handler({ value: 'ed_2' });
+    expect(editalFilter.setSelectedEditalId).toHaveBeenCalledWith('ed_2');
     expect(componentsModule.renderCurrentView).toHaveBeenCalled();
   });
 

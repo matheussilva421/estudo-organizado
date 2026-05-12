@@ -11,7 +11,7 @@ import {
   setDashPeriod,
   closeDiscDashboard,
 } from '../../views.js?v=8.37';
-import { setCalViewMode, calNavigate } from '../../views/calendar-view.js?v=8.37';
+import { setCalViewMode, calNavigate, setSelectedCalendarDay } from '../../views/calendar-view.js?v=8.37';
 import {
   navigate,
   closeSidebar,
@@ -25,6 +25,7 @@ import {
 import { renderCurrentView } from '../../components.js?v=8.37';
 import { setActiveDashboardDiscCtx } from '../../state/dashboard-context.js?v=8.37';
 import { setActiveEdital } from '../../views/home-view.js?v=8.37';
+import { setSelectedEditalId } from '../../edital-filter.js?v=8.37';
 
 // Registrar ações
 registerAction('navigate', (el) => {
@@ -62,6 +63,10 @@ registerAction('clear-search', clearSearch);
 registerAction('set-cal-view-mode', (el) => setCalViewMode(el.dataset.mode));
 registerAction('cal-navigate', (el) => calNavigate(parseInt(el.dataset.dir, 10)));
 registerAction('cal-today', () => calNavigate(0));
+registerAction('select-calendar-day', (el) => {
+  const date = el.dataset.date;
+  if (date) setSelectedCalendarDay(date);
+});
 registerAction('set-dash-period', (el) => {
   const raw = el.dataset.period;
   const period = raw === 'null' ? null : parseInt(raw, 10);
@@ -80,5 +85,9 @@ registerAction('close-disc-dashboard', closeDiscDashboard);
 registerAction('set-active-edital', (el) => {
   const id = el.dataset.editalId;
   if (id) setActiveEdital(id);
+});
+registerAction('set-edital-filter', (el) => {
+  setSelectedEditalId(el.value || null);
+  renderCurrentView();
 });
 registerAction('toggle-ciclo-fin', (el) => toggleCicloFin(el.checked));

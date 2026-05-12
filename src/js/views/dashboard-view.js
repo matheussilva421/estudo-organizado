@@ -12,7 +12,7 @@ import {
   HABIT_TYPES,
   todayStr,
 } from '../utils.js?v=8.37';
-import { calculateContentProgress, getActiveDisciplinas, getDisc } from '../logic.js?v=8.37';
+import { calculateContentProgress, getDisc } from '../logic.js?v=8.37';
 import {
   getActiveDashboardDiscCtx,
   getActiveDashboardTab,
@@ -20,6 +20,10 @@ import {
 import { renderCurrentView } from '../components.js?v=8.37';
 import { setDiscChartInstance, getDiscChartInstance } from '../state/chart-state.js?v=8.37';
 import { showToast } from '../app.js?v=8.37';
+import {
+  filterEventsBySelectedEdital,
+  getFilteredActiveDisciplinas,
+} from '../edital-filter.js?v=8.37';
 
 // ── Main Dashboard Render ──
 export function renderDisciplinaDashboard(edital, disc) {
@@ -543,9 +547,10 @@ export function renderDashboard(el) {
   }[periodDays];
 
   const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
+  const visibleEvents = filterEventsBySelectedEdital(state.eventos || [], { allowAll: false });
   const filteredEvts = cutoffStr
-    ? state.eventos.filter((e) => e.status === 'estudei' && e.data && e.data >= cutoffStr)
-    : state.eventos.filter((e) => e.status === 'estudei');
+    ? visibleEvents.filter((e) => e.status === 'estudei' && e.data && e.data >= cutoffStr)
+    : visibleEvents.filter((e) => e.status === 'estudei');
 
   const totalSecs = filteredEvts.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
   const questTot = cutoffStr
@@ -650,7 +655,7 @@ export function renderDailyChart(periodDays) {
   const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#b8c0cc';
   const numDays = periodDays ? Math.min(periodDays, 365) : 30;
   const secsByDate = {};
-  for (const e of state.eventos) {
+  for (const e of filterEventsBySelectedEdital(state.eventos || [], { allowAll: false })) {
     if (e.status === 'estudei' && e.tempoAcumulado) {
       secsByDate[e.data] = (secsByDate[e.data] || 0) + (e.tempoAcumulado || 0);
     }
@@ -716,11 +721,12 @@ export function renderDiscChart(periodDays) {
   const textSecondary = themeVars.getPropertyValue('--text-secondary').trim() || '#475569';
   const discTime = {};
   const cutoffStr2 = periodDays ? cutoffDateStr(periodDays) : null;
+  const visibleEvents = filterEventsBySelectedEdital(state.eventos || [], { allowAll: false });
   const evts = cutoffStr2
-    ? state.eventos.filter(
+    ? visibleEvents.filter(
         (e) => e.status === 'estudei' && e.discId && e.tempoAcumulado && e.data >= cutoffStr2
       )
-    : state.eventos.filter((e) => e.status === 'estudei' && e.discId && e.tempoAcumulado);
+    : visibleEvents.filter((e) => e.status === 'estudei' && e.discId && e.tempoAcumulado);
   evts.forEach((e) => {
     discTime[e.discId] = (discTime[e.discId] || 0) + e.tempoAcumulado;
   });
@@ -780,7 +786,7 @@ export function renderHabitSummary(periodDays) {
 }
 
 export function renderDiscProgress() {
-  const discs = getActiveDisciplinas();
+  const discs = getFilteredActiveDisciplinas({ allowAll: false });
   if (discs.length === 0)
     return '<div class="empty-state"><div class="icon">📋</div><p>Nenhuma disciplina cadastrada</p></div>';
   return discs

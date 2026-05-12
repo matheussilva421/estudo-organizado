@@ -12,8 +12,13 @@ import {
   invalidateRevCache,
   invalidatePendingRevCache,
 } from '../logic.js?v=8.37';
-import { getActiveDisciplinas } from '../logic.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
+import { getFilteredActiveDisciplinas, getSelectedEditalId } from '../edital-filter.js?v=8.37';
+
+function filterRevisionItems(items) {
+  const selectedEditalId = getSelectedEditalId({ allowAll: false });
+  return selectedEditalId ? items.filter((item) => item.edital?.id === selectedEditalId) : items;
+}
 
 export function getUpcomingRevisoes(days = 30) {
   const today = todayStr();
@@ -51,8 +56,8 @@ export function getUpcomingRevisoes(days = 30) {
 }
 
 export function renderRevisoes(el) {
-  const pending = getPendingRevisoes();
-  const upcoming = getUpcomingRevisoes(30);
+  const pending = filterRevisionItems(getPendingRevisoes());
+  const upcoming = filterRevisionItems(getUpcomingRevisoes(30));
   const today = todayStr();
   const frequency = state.config.frequenciaRevisao || [1, 7, 30, 90];
 
@@ -68,7 +73,7 @@ export function renderRevisoes(el) {
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Assuntos concluidos</div>
-        <div class="rev-stat-count rev-stat-count--accent">${getActiveDisciplinas().reduce((s, { disc }) => s + (disc.assuntos || []).filter((a) => a.concluido).length, 0)}</div>
+        <div class="rev-stat-count rev-stat-count--accent">${getFilteredActiveDisciplinas({ allowAll: false }).reduce((s, { disc }) => s + (disc.assuntos || []).filter((a) => a.concluido).length, 0)}</div>
       </div>
       <div class="card rev-summary-card">
         <div class="section-label">Frequência</div>
@@ -311,7 +316,7 @@ export function updateRevisionFrequency(value) {
 }
 
 export function clearVisibleRevisions(scope = 'pending') {
-  const items = scope === 'upcoming' ? getUpcomingRevisoes(30) : getPendingRevisoes();
+  const items = filterRevisionItems(scope === 'upcoming' ? getUpcomingRevisoes(30) : getPendingRevisoes());
   if (items.length === 0) return;
   const label = scope === 'upcoming' ? 'próximas revisões visíveis' : 'revisões pendentes visíveis';
   showConfirm(

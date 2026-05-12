@@ -7,6 +7,7 @@ import { state } from '../store.js?v=8.37';
 import { esc, normalizeSearch } from '../utils.js?v=8.37';
 import { calculateContentProgress } from '../logic.js?v=8.37';
 import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
+import { getFilteredEditais, getSelectedEditalId } from '../edital-filter.js?v=8.37';
 
 // ── Vertical View State (persisted via ui-state) ──
 let discFilterStatus = 'ativas'; // não persiste — é filtro por sessão dentro do dashboard de disciplinas
@@ -41,9 +42,11 @@ export function getFilteredVertItems() {
   const items = [];
   const ui = getUiSection('verticalizado');
   const filtroEdital = ui.filtroEdital || '';
+  const globalEditalId = getSelectedEditalId({ allowAll: false });
   const filtroStatus = ui.filtroStatus || 'todos';
   const buscaNorm = ui.busca ? normalizeSearch(ui.busca) : '';
   for (const edital of state.editais || []) {
+    if (globalEditalId && edital.id !== globalEditalId) continue;
     if (filtroEdital && edital.id !== filtroEdital) continue;
     for (const disc of edital.disciplinas || []) {
       if (disc.arquivada) continue;
@@ -68,7 +71,7 @@ export function getFilteredVertItems() {
 export function renderVertical(el) {
   const ui = getUiSection('verticalizado');
   const vertSearch = ui.busca || '';
-  const vertFilterEdital = ui.filtroEdital || '';
+  const vertFilterEdital = getSelectedEditalId({ allowAll: false }) || ui.filtroEdital || '';
   const vertFilterStatus = ui.filtroStatus || 'todos';
   el.innerHTML = `
     <!-- Filters row — full re-render only when filter chips change -->
@@ -310,9 +313,10 @@ export function toggleVertDisc(id) {
 
 // ── Editais View: Main Render ──
 export function renderEditais(el) {
+  const editais = getFilteredEditais({ allowAll: false });
   el.innerHTML = `
     ${
-      state.editais.length === 0
+      editais.length === 0
         ? `
       <div class="empty-state" style="padding:80px 20px;">
         <div class="icon">📋</div>
@@ -323,7 +327,7 @@ export function renderEditais(el) {
     `
         : `
       <div class="edital-tree">
-        ${state.editais.map((edital) => renderEditalTree(edital)).join('')}
+        ${editais.map((edital) => renderEditalTree(edital)).join('')}
       </div>
     `
     }
