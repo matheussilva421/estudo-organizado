@@ -238,6 +238,53 @@
   margin-right: var(--space-2);
 }
 
+.topbar-edital-filter {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: min(280px, 32vw);
+  order: -1;
+}
+
+.edital-filter-select {
+  width: 100%;
+  min-width: 160px;
+  max-width: 100%;
+  height: 34px;
+  padding: 6px 34px 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--card);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.edital-filter-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+@media (max-width: 768px) {
+  .topbar-edital-filter {
+    flex: 1 1 100%;
+    max-width: 100%;
+    order: 18;
+  }
+
+  .edital-filter-select {
+    min-width: 0;
+    font-size: 16px;
+  }
+}
+
 /* Drive cloud icon */
 
 .drive-cloud-icon {
