@@ -572,6 +572,13 @@ function renderSourceAdvancedBlock(source) {
   const manualLine = manual
     ? `<span>Última manual: ${formatBackupDateTime(manual.at)} — ${esc(manual.status)}</span>`
     : '';
+  const retryLine =
+    source.metrics?.retryAttempts || source.metrics?.nextRetryAt
+      ? `<span>Retries: ${esc(source.metrics?.retryAttempts ?? 0)}${source.metrics?.nextRetryAt ? ` · próxima tentativa ${formatBackupDateTime(source.metrics.nextRetryAt)}` : ''}</span>`
+      : '';
+  const errorLine = source.lastError
+    ? `<span class="sync-source-error">Erro: ${esc(source.lastError)}</span>`
+    : '';
   return `
     <div class="sync-source-card" data-sync-source="${source.id}">
       <div class="sync-source-header">
@@ -586,6 +593,8 @@ function renderSourceAdvancedBlock(source) {
         <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
         ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
         ${manualLine}
+        ${retryLine}
+        ${errorLine}
       </div>
       ${source.id === 'cloudflare' ? renderCloudflareConfigFields(source) : ''}
       ${source.id === 'drive' && !source.configured ? '' : ''}

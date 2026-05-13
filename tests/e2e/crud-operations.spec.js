@@ -35,7 +35,7 @@ test.describe('CRUD Editais', () => {
     await page.waitForTimeout(300);
 
     // Preencher formulário
-    await page.fill('#edital-nome', 'Concurso TRF 2026');
+    await page.fill('#edital-nome', 'Concurso TRF');
     // Campos cor e ícone são definidos via UI de seleção
     await page.evaluate(() => {
       const cor = document.getElementById('edital-cor');
@@ -51,7 +51,7 @@ test.describe('CRUD Editais', () => {
     await expect(page.locator('#toast-container')).toContainText('Edital salvo');
 
     // Verificar se edital aparece na lista
-    await expect(page.locator('#main-content')).toContainText('Concurso TRF 2026');
+    await expect(page.locator('#main-content')).toContainText('Concurso TRF');
   });
 
   test('edita edital existente', async ({ page }) => {

@@ -598,7 +598,8 @@ test.describe('Previsão de Sessões (Ciclo)', () => {
 
     await page.click('[data-view="ciclo"]');
     await expect(page.locator('#topbar-title')).toHaveText('Ciclo de Estudos', { timeout: 10000 });
-    await page.click('[data-action="remover-planejamento"]');
+    await page.locator('[data-action="ciclo-toggle-kebab"]').click();
+    await page.locator('.ciclo-kebab-menu:not([hidden]) [data-action="remover-planejamento"]').click();
     await expect(page.locator('#modal-confirm')).toHaveClass(/open/);
     await page.click('#confirm-ok-btn');
 

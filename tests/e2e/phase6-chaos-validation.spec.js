@@ -17,6 +17,17 @@ async function seedLegacyState(page, state) {
   }, serializeState(state));
 }
 
+async function openSyncSourceAdvanced(page, sourceId) {
+  const source = page.locator(`[data-sync-source="${sourceId}"]`).first();
+  await expect(source).toBeVisible();
+  const details = source.locator('details.sync-source-advanced');
+  await details.evaluate((element) => {
+    element.open = true;
+  });
+  await expect(details.locator('.sync-source-actions')).toBeVisible();
+  return source;
+}
+
 test.describe('Fase 6 - Release Gate e Validacao de Caos', () => {
   test('reconecta e confirma sync automatico apos offline', async ({ page, context }) => {
     const state = createE2EState();
@@ -88,6 +99,16 @@ test.describe('Fase 6 - Release Gate e Validacao de Caos', () => {
 
     await seedLegacyState(page, state);
     await page.goto('/');
+    await page.evaluate(() => {
+      window.state.config.firestoreSync.lastError = '500 internal server error';
+      window.state.config.firestoreSync.hasPendingWrites = true;
+      window.state.config.firestoreSync.pending = {
+        status: 'pending',
+        attempts: 2,
+        queuedAt: '2026-05-02T10:00:00.000Z',
+        nextAttemptAt: '2026-05-02T10:05:00.000Z',
+      };
+    });
     await page.click('[data-view="config"]');
 
     const exportBtn = page.locator('[data-action="export-data"]').first();
@@ -186,7 +207,11 @@ test.describe('Fase 6 - Release Gate e Validacao de Caos', () => {
     });
     await page.click('[data-view="config"]');
 
-    await expect(page.locator('[data-testid="sync-quiet-panel"]')).toContainText('Ação necessária');
+    const syncCenter = page.locator('[data-testid="sync-center"]');
+    await expect(syncCenter).toBeVisible();
+    await expect(page.locator('[data-summary-source="firebase"]')).toContainText('Firebase');
+    const firebaseSource = await openSyncSourceAdvanced(page, 'firebase');
+    await expect(firebaseSource).toContainText('permission-denied');
     await expect(page.locator('#modal-prompt')).not.toHaveClass(/show|active/);
     await expect
       .poll(() =>
@@ -231,10 +256,10 @@ test.describe('Fase 6 - Release Gate e Validacao de Caos', () => {
     await page.goto('/');
     await page.click('[data-view="config"]');
 
-    await expect(page.locator('[data-testid="sync-quiet-panel"]')).toContainText(
-      'Sync aguardando recuperação'
-    );
-    await expect(page.locator('[data-testid="sync-advanced-panel"]')).toContainText('Retries');
+    const syncCenter = page.locator('[data-testid="sync-center"]');
+    await expect(syncCenter).toBeVisible();
+    const firebaseSource = await openSyncSourceAdvanced(page, 'firebase');
+    await expect(firebaseSource).toContainText('Retries');
     await expect(page.locator('#modal-prompt')).not.toHaveClass(/show|active/);
     await expect
       .poll(() => page.evaluate(() => window.state.eventos.some((e) => e.id === 'ev_500_local')))

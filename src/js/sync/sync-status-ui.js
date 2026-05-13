@@ -368,7 +368,7 @@ function refreshConfigSyncSurface() {
   }
   // Update advanced health badge if present
   const healthStatus = model.health?.status || 'idle';
-  const badge = syncCenter.querySelector('[data-testid="sync-advanced-panel"] .sync-health-badge');
+  const badge = syncCenter.querySelector('.sync-health-badge');
   if (badge) {
     for (const cls of [...badge.classList]) {
       if (cls.startsWith('sync-health-badge--')) badge.classList.remove(cls);

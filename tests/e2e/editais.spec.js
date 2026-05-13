@@ -1,27 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { createE2EState } from '../helpers/e2e-state.js';
-
-function serializeState(state) {
-  return JSON.stringify(state);
-}
-
-async function seedLegacyState(page, state) {
-  await page.addInitScript((serializedState) => {
-    window.Chart = class {
-      destroy() {}
-    };
-
-    localStorage.clear();
-    sessionStorage.clear();
-    localStorage.setItem('estudo_state', serializedState);
-  }, serializeState(state));
-}
+import { bootE2EApp, createE2EState } from '../helpers/e2e-state.js';
 
 test.describe('Editais e Disciplinas', () => {
   test('creates a new Edital, adds a Discipline, and manages Subjects', async ({ page }) => {
     const state = createE2EState();
-    await seedLegacyState(page, state);
-    await page.goto('/');
+    state.editais = [];
+
+    await bootE2EApp(page, state);
+    await page.waitForFunction(() => typeof window.EstudoApp?.navigate === 'function');
 
     // Go to Editais view
     await page.click('[data-view="editais"]');

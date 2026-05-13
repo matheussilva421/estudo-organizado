@@ -208,6 +208,11 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
   };
   firestore.conflict =
     firestoreStatus.conflict ?? runtimeFirestore.conflict ?? configuredFirestore.conflict ?? null;
+  firestore.lastError =
+    firestoreStatus.lastError ||
+    runtimeFirestore.lastError ||
+    configuredFirestore.lastError ||
+    null;
   const cloudflareConfigured = Boolean(config.cfUrl && hasCloudflareCredentials(config));
   const driveConfigured = Boolean(state?.driveFileId);
   const firestorePending = firestore.pending || null;

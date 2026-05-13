@@ -127,9 +127,9 @@ base.describe('Import recovery', () => {
     await page.evaluate(() => {
       window.navigate('config');
     });
-    await expect(page.locator('[data-action="restore-backup"]')).toBeVisible();
+    await expect(page.locator('[data-action="import-data"]')).toBeVisible();
 
-    await page.locator('[data-action="restore-backup"]').dispatchEvent('click');
+    await page.locator('[data-action="import-data"]').dispatchEvent('click');
     const fileInput = page.locator('input[type="file"][accept=".json"]').last();
     await expect(fileInput).toHaveCount(1);
     await fileInput.setInputFiles({

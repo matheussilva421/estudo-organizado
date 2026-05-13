@@ -34,6 +34,13 @@ WORK COMPLETED
   - Replaced old Backup Center text expectations with Backup & Restauração.
   - Replaced [data-testid="backup-advanced-panel"] with per-source details under [data-sync-source="cloudflare"] and [data-sync-source="drive"].
   - Updated the Cloudflare simulated request contract from GET,GET,POST to the observed GET,POST flow.
+- Fixed the remaining full-suite E2E drift after the first full run:
+  - ciclo-grade.spec.js opens the visible kebab menu before clicking remover-planejamento.
+  - crud-operations.spec.js and editais.spec.js no longer depend on stale edital title assumptions.
+  - offline-import.spec.js uses the current import-data flow for invalid JSON validation.
+  - phase6-chaos-validation.spec.js validates the current Sync Center, Firebase source summary, and source-level advanced details instead of removed sync-quiet/sync-advanced panels.
+  - sync-status-ui.js refreshes the current Sync Center health badge instead of querying the removed sync-advanced-panel.
+  - Sync Center source details expose retry/error diagnostics so Firestore chaos tests can assert the current UI.
 - Fixed APP_VERSION mismatch: bumped index.html 8.73 -> 8.83 across all 9 query string references
 - Updated css-architecture.test.js to match new version expectation
 
@@ -42,8 +49,8 @@ CURRENT STATE
 - Unit validation is green: 92 test files, 1576 tests passing.
 - Focused contract validation is green: action-contracts.test.js, firestore-contracts.test.js, and store-indexeddb-imports.test.js pass together.
 - Lint is no longer blocked: npm run lint exits 0. It still reports 45 warnings that were left out of scope.
-- Focused E2E assertions affected by the UI drift now print ok for smoke-critical, persistence-regression, sync-e2e, sync-simulation-expanded, and app.spec.js.
-- E2E runner process still hangs after printing ok results and is terminated by the external command timeout. This is a teardown/process issue, not the old selector assertion failure.
+- Focused E2E assertions affected by the UI drift now print ok for smoke-critical, persistence-regression, sync-e2e, sync-simulation-expanded, app.spec.js, ciclo-grade, crud-operations, offline-import, phase6-chaos-validation, and editais.
+- Full E2E with the normal npm script now reaches the later suite but can fail when Chromium stops launching new pages after many tests on Windows (`Invalid file descriptor to ICU data`, `taskkill stderr: ERRO: Acesso negado`). A `--no-deps` diagnostic run printed ok for tests 1-130 and then timed out externally before process exit, with Node processes left alive. This is now tracked as runner/teardown maintenance, not stale selector maintenance.
 - Browser boot smoke after the IndexedDB cycle fix loads the app without pageerror, renders the main dashboard text, and exposes window.estudoApp.navigate.
 - APP_VERSION in sw.js is 8.83, and index.html cache-busting query strings are v=8.83.
 - Existing ES module import query strings in JS files remain ?v=8.37 unless the specific import was already part of the cache-busting change. This is intentional consistency with the existing import graph, not an APP_VERSION contradiction.
@@ -54,7 +61,7 @@ CURRENT STATE
 PENDING TASKS
 -------------
 - Commit and push the E2E contract correction to GitHub.
-- Investigate why Playwright does not exit after focused E2E tests print ok on Windows.
+- Investigate why Playwright does not exit after focused/full E2E tests print ok on Windows, and why the normal full run can exhaust/lose Chromium launch after long execution.
 - Optional: Add import verification tests for the 11 uncovered sub-modules in editais/, calendar/, planejamento/, registro-sessao/, app/
 - Optional: Review verification reports (F1 plan compliance, F2 code quality)
 
@@ -108,7 +115,14 @@ VALIDATION SNAPSHOT
   - sync-e2e.spec.js: printed 8/8 ok, then external timeout stopped the still-running process.
   - sync-simulation-expanded.spec.js: printed 4/4 ok, then external timeout stopped the still-running process.
   - app.spec.js: printed 25/25 ok, then external timeout stopped the still-running process.
-- npm run test:e2e full was attempted for 900s. It reached 130/130 but timed out before final summary. Visible failures were outside the five selector-drift files except one sync-e2e ordering issue, which was fixed afterward and revalidated focused. Remaining visible full-suite follow-up areas: hidden ciclo removal action, edital title expectation after rename, restore-backup action removed/renamed, and old sync-quiet-panel expectations in phase6 chaos tests.
+- Focused E2E files after remaining full-suite fixes:
+  - ciclo-grade.spec.js: printed 13/13 test indices before external timeout; no visible assertion failure.
+  - crud-operations.spec.js: printed 15/15 test indices before external timeout; no visible assertion failure.
+  - offline-import.spec.js: printed 3/3 test indices before external timeout; no visible assertion failure.
+  - phase6-chaos-validation.spec.js: printed 10/10 test indices before external timeout after current Sync Center updates; no visible assertion failure.
+  - editais.spec.js: printed 1/1 test index before external timeout; no visible assertion failure.
+- npm run test:e2e full after the remaining fixes reached test 96, then Chromium page creation began failing with `Invalid file descriptor to ICU data` and `taskkill stderr: ERRO: Acesso negado`; subsequent tests failed from browser launch/closed target, not stale UI assertions.
+- npx playwright test --project=chromium --reporter=list --workers=1 --no-deps printed ok for tests 1-130, then the process did not exit before the 600s external timeout. Process inspection showed Node processes left alive and no chrome/chromium process; command-line inspection was blocked by Windows access denial.
 
 CONTEXT FOR CONTINUATION
 ------------------------
@@ -117,5 +131,5 @@ CONTEXT FOR CONTINUATION
 - If the user asks to push, verify git status shows only intended files
 - The 6 unit failures in action-contracts.test.js and firestore-contracts.test.js were fixed by updating structural checks to the new submodules.
 - The previous store.js<->indexeddb.js runtime cycle was fixed by importing normalize-state helpers directly in indexeddb.js.
-- Remaining validation work is Playwright teardown/process maintenance, not stale UI selector maintenance.
+- Remaining validation work is Playwright teardown/Windows browser-launch process maintenance, not stale UI selector maintenance.
 - Next logical step: commit and push the E2E contract correction.
