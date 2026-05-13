@@ -39,9 +39,11 @@ test.describe('Persistência local', () => {
     });
 
     await flushSaveAndReload(page);
-    await expect(page.locator('#save-status')).toContainText('Salvo localmente');
+    await page.locator('#sync-pill').click();
+    await expect(page.locator('#sync-popover')).toBeVisible();
+    await expect(page.locator('#sync-popover-local')).toContainText('Salvo');
     await page.click('[data-view="config"]');
-    await expect(page.locator('#config-save-status-detail')).toContainText('Último salvamento local concluído');
+    await expect(page.locator('[data-testid="backup-center"]')).toContainText('Último salvamento local');
 
     const persistedAfterReload = await page.evaluate(() => ({
       eventExists: window.state.eventos.some((event) => event.titulo === 'Persistência de Constitucional'),

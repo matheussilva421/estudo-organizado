@@ -17,6 +17,17 @@ async function seedLegacyState(page, state) {
   }, serializeState(state));
 }
 
+async function openSyncSourceAdvanced(page, sourceId) {
+  const source = page.locator(`[data-sync-source="${sourceId}"]`).first();
+  await expect(source).toBeVisible();
+  const details = source.locator('details.sync-source-advanced');
+  await details.evaluate((element) => {
+    element.open = true;
+  });
+  await expect(details.locator('.sync-source-actions')).toBeVisible();
+  return source;
+}
+
 test.describe('Estudo Organizado', () => {
   test('boots the app and renders the home dashboard from seeded state', async ({ page }) => {
     const state = createE2EState();
@@ -224,8 +235,8 @@ test.describe('Estudo Organizado', () => {
     await page.goto('/');
     await page.click('[data-view="config"]');
 
-    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
-    const conflict = page.locator('[data-testid="cf-sync-conflict"]');
+    const cloudflareSource = await openSyncSourceAdvanced(page, 'cloudflare');
+    const conflict = cloudflareSource.locator('[data-testid="cf-sync-conflict"]');
     await expect(conflict).toBeVisible();
     await expect(conflict).toContainText('Conflito');
     await expect(conflict.locator('[data-action="cloud-conflict-export-local"]')).toBeVisible();
@@ -246,7 +257,7 @@ test.describe('Estudo Organizado', () => {
     await seedLegacyState(page, state);
     await page.goto('/');
     await page.click('[data-view="config"]');
-    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
+    await openSyncSourceAdvanced(page, 'cloudflare');
 
     await expect(page.locator('[data-testid="cf-sync-conflict"]').first()).toBeVisible();
 
@@ -279,8 +290,8 @@ test.describe('Estudo Organizado', () => {
     await page.evaluate(() => window.EstudoApp.navigate('config'));
     await expect(page.locator('#topbar-title')).toHaveText('Configurações', { timeout: 10000 });
 
-    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
-    await page.locator('#config-cf-url').scrollIntoViewIfNeeded();
+    const cloudflareSource = await openSyncSourceAdvanced(page, 'cloudflare');
+    await cloudflareSource.locator('#config-cf-url').scrollIntoViewIfNeeded();
 
     const metrics = await page.evaluate(() => {
       const selectors = [
@@ -292,7 +303,9 @@ test.describe('Estudo Organizado', () => {
         '.config-input-group',
         '.config-toggle-row',
         '.config-actions-row',
-        '.backup-advanced-source-card'
+        '.sync-source-card',
+        '.sync-source-advanced',
+        '.sync-source-config'
       ];
       return selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map((element, index) => ({
         selector,
@@ -305,8 +318,8 @@ test.describe('Estudo Organizado', () => {
     expect(metrics).toEqual([]);
 
     const mobileLayout = await page.evaluate(() => ({
-      formGroups: Array.from(document.querySelectorAll('.form-group.config-input-group')).map((element) => window.getComputedStyle(element).flexDirection),
-      toggleRow: window.getComputedStyle(document.querySelector('.config-toggle-row')).flexWrap,
+      formGroups: Array.from(document.querySelectorAll('.sync-source-config .form-group.config-input-group')).map((element) => window.getComputedStyle(element).flexDirection),
+      toggleRow: window.getComputedStyle(document.querySelector('.sync-source-config .config-toggle-row')).flexWrap,
       credentialTargets: ['#config-cf-url', '#config-cf-token'].map((selector) => {
         const input = document.querySelector(selector);
         const rect = input.getBoundingClientRect();
@@ -317,6 +330,7 @@ test.describe('Estudo Organizado', () => {
           height: Math.round(rect.height)
         };
       }),
+      enabledVisible: Boolean(document.querySelector('#config-cf-enabled')?.getBoundingClientRect().height),
       toggleWidths: Array.from(document.querySelectorAll('.config-row .toggle')).map((toggle) => Math.round(toggle.getBoundingClientRect().width)),
       toggleHeights: Array.from(document.querySelectorAll('.config-row .toggle')).map((toggle) => Math.round(toggle.getBoundingClientRect().height))
     }));
@@ -328,12 +342,13 @@ test.describe('Estudo Organizado', () => {
       expect.objectContaining({ selector: '#config-cf-url', hitSelf: true }),
       expect.objectContaining({ selector: '#config-cf-token', hitSelf: true })
     ]);
+    expect(mobileLayout.enabledVisible).toBe(true);
     expect(mobileLayout.credentialTargets.every(target => target.height >= 44)).toBe(true);
     expect(mobileLayout.toggleWidths.every(width => width <= 64)).toBe(true);
     expect(mobileLayout.toggleHeights.every(height => height <= 36)).toBe(true);
   });
 
-  test('captures Sync Center and Backup Center visual QA evidence', async ({ page }, testInfo) => {
+  test('captures Sync Center and Backup & Restauração visual QA evidence', async ({ page }, testInfo) => {
     const state = createE2EState();
     state.config.localBackupAt = '2026-04-30T10:00:00.000Z';
     state.config.firestoreSync = {
@@ -361,7 +376,7 @@ test.describe('Estudo Organizado', () => {
     await expect(syncCenter).toBeVisible();
     await expect(backupCenter).toBeVisible();
     await expect(syncCenter).toContainText('Central de Sincroniza');
-    await expect(backupCenter).toContainText('Backup Center');
+    await expect(backupCenter).toContainText('Backup & Restaura');
 
     const syncShot = await syncCenter.screenshot();
     const backupShot = await backupCenter.screenshot();

@@ -221,9 +221,9 @@ test.describe('Sync E2E: Sync status UI updates without full re-render', () => {
 
     await expect(page.locator('#topbar-title')).toBeVisible();
 
-    // Sync status container should be present
-    const syncStatus = page.locator('#sync-status');
-    await expect(syncStatus).toBeVisible();
+    // Unified sync pill should be present.
+    await expect(page.locator('#sync-pill')).toBeVisible();
+    await expect(page.locator('#sync-pill-label')).toBeVisible();
   });
 
   test('sync status updates do not trigger full page re-render', async ({ page }) => {
@@ -277,18 +277,24 @@ test.describe('Sync E2E: Sync status UI updates without full re-render', () => {
     await page.click('[data-view="config"]');
     await expect(page.locator('#topbar-title')).toHaveText('Configurações');
 
-    const syncStatus = page.locator('#sync-status');
-    await expect(syncStatus).toBeVisible();
+    const syncPill = page.locator('#sync-pill');
+    const syncPillLabel = page.locator('#sync-pill-label');
+    await expect(syncPill).toBeVisible();
 
     // Test different status states via event dispatch
     const statuses = [
       { status: 'syncing', expectedText: /sincronizando/i },
-      { status: 'synced', expectedText: /sincronizado/i },
+      { status: 'synced', expectedText: /tudo sincronizado/i },
       { status: 'error', expectedText: /erro/i },
     ];
 
     for (const { status, expectedText } of statuses) {
       await page.evaluate((s) => {
+        document.dispatchEvent(
+          new CustomEvent('app:saveStatus', {
+            detail: { status: 'saved', message: 'Salvo localmente' }
+          })
+        );
         document.dispatchEvent(
           new CustomEvent('app:primarySyncStatus', {
             detail: { status: s, reason: 'test' }
@@ -298,8 +304,8 @@ test.describe('Sync E2E: Sync status UI updates without full re-render', () => {
 
       await page.waitForTimeout(150);
 
-      // Status container should reflect the state
-      const textContent = await syncStatus.textContent();
+      // Unified pill label should reflect the state.
+      const textContent = await syncPillLabel.textContent();
       expect(textContent.toLowerCase()).toMatch(expectedText);
     }
   });

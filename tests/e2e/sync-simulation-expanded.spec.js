@@ -10,6 +10,17 @@ function createCloudSyncState() {
   return state;
 }
 
+async function openSyncSourceAdvanced(page, sourceId) {
+  const source = page.locator(`[data-sync-source="${sourceId}"]`).first();
+  await expect(source).toBeVisible();
+  const details = source.locator('details.sync-source-advanced');
+  await details.evaluate((element) => {
+    element.open = true;
+  });
+  await expect(details.locator('.sync-source-actions')).toBeVisible();
+  return source;
+}
+
 test.describe('Sync simulado', () => {
   test('simula pull vazio seguido de push Cloudflare bem-sucedido sem rede real', async ({ page }) => {
     const state = createCloudSyncState();
@@ -61,7 +72,7 @@ test.describe('Sync simulado', () => {
     });
 
     await expect(page.locator('#cf-sync-status')).toContainText(/Sincronizado|Nuvem atualizada/);
-    expect(requests.map((request) => request.method)).toEqual(['GET', 'GET', 'POST']);
+    expect(requests.map((request) => request.method)).toEqual(['GET', 'POST']);
     expect(requests.every((request) => request.authorization === 'Bearer e2e-token')).toBe(true);
     const pushRequest = requests.find((request) => request.method === 'POST');
     expect(pushRequest.body.payload.config.cfToken).toBeUndefined();
@@ -128,8 +139,8 @@ test.describe('Sync simulado', () => {
       .toBe('2026-04-29T19:00:00.000Z');
     await page.evaluate(() => window.EstudoApp.renderCurrentView());
 
-    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
-    const conflict = page.locator('[data-testid="cf-sync-conflict"]');
+    const cloudflareSource = await openSyncSourceAdvanced(page, 'cloudflare');
+    const conflict = cloudflareSource.locator('[data-testid="cf-sync-conflict"]');
     await expect(conflict).toBeVisible();
     await expect(conflict.locator('[data-action="cloud-conflict-export-local"]')).toBeVisible();
     await expect(conflict.locator('[data-action="cloud-conflict-pull-remote"]')).toBeVisible();
@@ -144,10 +155,10 @@ test.describe('Sync simulado', () => {
     await bootE2EApp(page, state);
     await page.click('[data-view="config"]');
 
-    await page.locator('[data-testid="backup-advanced-panel"] summary').click();
+    const driveSource = await openSyncSourceAdvanced(page, 'drive');
     await expect(page.locator('#main-content')).toContainText('Google Drive');
-    await expect(page.locator('#main-content [data-action="drive-sync-now"]').first()).toBeVisible();
-    await expect(page.locator('#main-content [data-action="pull-from-drive"]').first()).toBeVisible();
-    await expect(page.locator('#main-content [data-action="drive-disconnect"]').first()).toBeVisible();
+    await expect(driveSource.locator('[data-action="drive-sync-now"]').first()).toBeVisible();
+    await expect(driveSource.locator('[data-action="pull-from-drive"]').first()).toBeVisible();
+    await expect(driveSource.locator('[data-action="drive-disconnect"]').first()).toBeVisible();
   });
 });

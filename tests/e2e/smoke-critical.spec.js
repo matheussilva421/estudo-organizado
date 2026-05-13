@@ -10,7 +10,8 @@ test.describe('Smoke crítico', () => {
 
     await expect(page.locator('#topbar-title')).toBeVisible();
     await expect(page.locator('#main-content')).toBeVisible();
-    await expect(page.locator('#save-status')).toBeVisible();
+    await expect(page.locator('#sync-pill')).toBeVisible();
+    await expect(page.locator('#sync-pill-label')).toBeVisible();
     await expect(page.locator('#global-search')).toBeVisible();
     await expect(page.locator('#sidebar')).toBeVisible();
 
