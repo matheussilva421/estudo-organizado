@@ -9,6 +9,8 @@ const filesToScan = [
   'src/js/main.js',
   'src/js/planejamento-wizard.js',
   'src/js/registro-sessao.js',
+  'src/js/registro-sessao/modal-renderer.js',
+  'src/js/registro-sessao/session-save.js',
   'src/js/views.js',
   'src/js/views/banca-view.js',
   'src/js/views/calendar-view.js',

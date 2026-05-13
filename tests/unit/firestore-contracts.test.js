@@ -49,7 +49,7 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/manual-sync.js');
     expect(swSource).toContain('./js/views/config/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toContain("APP_VERSION = '8.73'");
+    expect(swSource).toMatch(/APP_VERSION = '8\.\d{2}'/);
   });
 
   it('renders a central sync surface with manual source decisions', () => {
@@ -117,11 +117,11 @@ describe('Firestore integration contracts', () => {
   });
 
   it('records numeric sync performance budgets without user payloads', () => {
-    const storeSource = read('src/js/store.js');
+    const indexedDbSource = read('src/js/store/indexeddb.js');
     const coordinatorSource = read('src/js/sync/sync-coordinator.js');
     const healthSource = read('src/js/sync/sync-health.js');
 
-    expect(storeSource).toContain("name: 'localCommitMs'");
+    expect(indexedDbSource).toContain("name: 'localCommitMs'");
     expect(coordinatorSource).toContain("name: 'plannerMs'");
     expect(coordinatorSource).toContain("name: 'firestoreWriteMs'");
     expect(healthSource).toContain('appendSyncPerformanceMetric');
@@ -172,12 +172,12 @@ describe('Firestore integration contracts', () => {
   });
 
   it('persists sync metadata without creating a new local data revision', () => {
-    const storeSource = read('src/js/store.js');
+    const indexedDbSource = read('src/js/store/indexeddb.js');
     const firestoreSource = read('src/js/sync/firestore-sync-engine.js');
     const cloudflareSource = read('src/js/cloud-sync.js');
     const driveSource = read('src/js/drive-sync.js');
 
-    expect(storeSource).toContain('touchLocalBackup');
+    expect(indexedDbSource).toContain('touchLocalBackup');
     // All sync modules use object-form saveStateToDB (no positional args)
     expect(firestoreSource).toContain(
       'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'

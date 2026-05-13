@@ -1,429 +1,72 @@
+// =============================================
+// APP ORCHESTRATOR
+// Re-exports from domain sub-modules + init, prompts, ciclo toggle
+// =============================================
+
+// ── Domain sub-module imports (also re-exported below) ────────────────
+import {
+  THEME_OPTIONS,
+  normalizeTheme,
+  getThemeLabel,
+  applyTheme,
+} from './app/themes.js';
+import {
+  openModal,
+  closeModal,
+  showConfirm,
+  setupConfirmHandlers,
+  cancelConfirm,
+  _confirmCallback,
+} from './app/modals.js';
+import {
+  currentView,
+  navigate,
+  toggleSidebar,
+  closeSidebar,
+  toggleSidebarCollapse,
+} from './app/navigation.js';
+import { showToast } from './app/toast.js';
+import {
+  getLastSaveStatus,
+  renderSaveStatus,
+  initSaveStatusIndicator,
+} from './app/save-status.js';
+
+// ── Other module imports for orchestrator functions ──────────────────
 import { renderCurrentView } from './components.js?v=8.37';
 import { initDB, scheduleSave, state } from './store.js?v=8.37';
 import { initGoogleAPIs, updateDriveUI } from './drive-sync.js?v=8.37';
-import { todayStr as _todayStr, esc } from './utils.js?v=8.37';
+import { esc } from './utils.js?v=8.37';
 import { initNotifications } from './notifications.js?v=8.37';
 import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.37';
 import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.37';
 import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.37';
 import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.37';
 
-// =============================================
-// APP STATE & DATA
-// =============================================
-
-/**
- * View atual sendo renderizada
- * @type {string}
- */
-export let currentView = 'home';
-
-let _saveStatusListenerAttached = false;
-let _lastSaveStatus = {
-  status: 'saved',
-  message: 'Salvo localmente',
-  detail: '',
-  timestamp: null,
+// ── Re-exports ────────────────────────────────────────────────────────
+export {
+  THEME_OPTIONS,
+  normalizeTheme,
+  getThemeLabel,
+  applyTheme,
+  openModal,
+  closeModal,
+  showConfirm,
+  setupConfirmHandlers,
+  cancelConfirm,
+  _confirmCallback,
+  currentView,
+  navigate,
+  toggleSidebar,
+  closeSidebar,
+  toggleSidebarCollapse,
+  showToast,
+  getLastSaveStatus,
+  renderSaveStatus,
+  initSaveStatusIndicator,
 };
 
-export const THEME_OPTIONS = [
-  { value: 'grafite', label: 'Grafite' },
-  { value: 'ardosia', label: 'Ardósia' },
-  { value: 'platina', label: 'Platina' },
-  { value: 'terminal', label: 'Terminal' },
-  { value: 'neon', label: 'Neon' },
-  { value: 'arrakis', label: 'Arrakis' },
-];
-
-const THEME_VALUES = THEME_OPTIONS.map((theme) => theme.value);
-const LEGACY_THEME_ALIASES = {
-  light: 'grafite',
-  dark: 'grafite',
-  obsidiana: 'ardosia',
-  contraste: 'platina',
-  abismo: 'grafite',
-  cyberpunk2077: 'grafite',
-  furtivo: 'ardosia',
-  matrix: 'ardosia',
-  rubi: 'platina',
-  pergaminho: 'platina',
-};
-
-export function normalizeTheme(themeName, legacyDarkMode = false) {
-  if (THEME_VALUES.includes(themeName)) return themeName;
-  if (themeName && LEGACY_THEME_ALIASES[themeName]) return LEGACY_THEME_ALIASES[themeName];
-  return legacyDarkMode ? 'grafite' : 'grafite';
-}
-
-export function getThemeLabel(themeName) {
-  const normalizedTheme = normalizeTheme(themeName);
-  return THEME_OPTIONS.find((theme) => theme.value === normalizedTheme)?.label || 'Grafite';
-}
-
-function getNextTheme(themeName) {
-  const currentIndex = THEME_VALUES.indexOf(normalizeTheme(themeName));
-  return THEME_VALUES[(currentIndex + 1) % THEME_VALUES.length];
-}
-
-// Manual-only mode: Drive polling and the global-sync-pause toggle were
-// removed. Sync only runs when the user clicks the "Sincronizar agora" button.
-
-export function getLastSaveStatus() {
-  return { ..._lastSaveStatus };
-}
-
-function getSaveStatusText(statusDetail) {
-  if (statusDetail.status === 'saving') return 'Salvando...';
-  if (statusDetail.status === 'error') return 'Erro ao salvar';
-  return 'Salvo localmente';
-}
-
-function getConfigSaveStatusText(statusDetail) {
-  if (statusDetail.status === 'saving') return 'Salvando alterações no dispositivo...';
-  if (statusDetail.status === 'error') {
-    return `Falha ao salvar: ${statusDetail.detail || 'erro desconhecido'}`;
-  }
-  return 'Último salvamento local concluído. Credenciais não entram em backup/exportação.';
-}
-
-export function renderSaveStatus(statusDetail = _lastSaveStatus) {
-  const normalized = {
-    status: statusDetail.status || 'saved',
-    message: statusDetail.message || getSaveStatusText(statusDetail),
-    detail: statusDetail.detail || '',
-    timestamp: statusDetail.timestamp || new Date().toISOString(),
-  };
-  _lastSaveStatus = normalized;
-
-  const topbarStatus = document.getElementById('save-status');
-  if (topbarStatus) {
-    topbarStatus.className = `save-status save-status--${normalized.status}`;
-    topbarStatus.textContent = getSaveStatusText(normalized);
-    topbarStatus.title =
-      normalized.status === 'error'
-        ? getConfigSaveStatusText(normalized)
-        : 'Status do salvamento local';
-    topbarStatus.setAttribute('aria-label', topbarStatus.title);
-  }
-
-  const configStatus = document.getElementById('config-save-status-detail');
-  if (configStatus) {
-    configStatus.className = `config-save-status config-save-status--${normalized.status}`;
-    configStatus.textContent = getConfigSaveStatusText(normalized);
-  }
-}
-
-const QUIET_SYNC_LABELS = {
-  ok: 'Tudo salvo',
-  pending: 'Sincronizando',
-  offline: 'Offline',
-  danger: 'Ação necessária',
-  warning: 'Sincronizando',
-  idle: 'Tudo salvo',
-};
-
-let _topbarSyncState = 'ok';
-let _topbarSyncTimer = null;
-const TOPBAR_SYNC_DEBOUNCE_MS = 700;
-
-function renderSyncTopbarStatus(quietTone) {
-  if (_topbarSyncTimer) clearTimeout(_topbarSyncTimer);
-  _topbarSyncTimer = setTimeout(() => {
-    _topbarSyncTimer = null;
-    const topbarStatus = document.getElementById('save-status');
-    if (!topbarStatus) return;
-    const label = QUIET_SYNC_LABELS[quietTone] || 'Tudo salvo';
-    _topbarSyncState = quietTone;
-    topbarStatus.className = `save-status save-status--${quietTone}`;
-    topbarStatus.textContent = label;
-    topbarStatus.setAttribute('aria-label', label);
-  }, TOPBAR_SYNC_DEBOUNCE_MS);
-}
-
-export function initSaveStatusIndicator() {
-  if (!_saveStatusListenerAttached) {
-    document.addEventListener('app:saveStatus', (event) => {
-      renderSaveStatus(event.detail || {});
-    });
-    const toneMap = {
-      synced: 'ok',
-      syncing: 'pending',
-      queued: 'pending',
-      'conflict-paused': 'danger',
-      degraded: 'warning',
-      error: 'danger',
-      offline: 'offline',
-      idle: 'ok',
-      recovery: 'pending',
-      partial: 'warning',
-      conflict: 'danger',
-      'no-channels': 'idle',
-    };
-    document.addEventListener('app:primarySyncStatus', (event) => {
-      const status = (event.detail || {}).status || 'idle';
-      renderSyncTopbarStatus(toneMap[status] || 'ok');
-    });
-    document.addEventListener('app:manualSyncStatus', (event) => {
-      const status = (event.detail || {}).status || 'idle';
-      renderSyncTopbarStatus(toneMap[status] || 'ok');
-    });
-    _saveStatusListenerAttached = true;
-  }
-  renderSaveStatus(_lastSaveStatus);
-}
-
-// =============================================
-// NAVIGATION
-// =============================================
-
-/**
- * Navega para uma view específica
- * @param {string} view - Nome da view
- */
-export function navigate(view) {
-  // Keep navigation responsive even if a modal is currently open.
-  // This prevents stale overlays from trapping pointer events after view switches.
-  document.querySelectorAll('.modal-overlay.open').forEach((modal) => {
-    closeModal(modal.id);
-  });
-
-  if (window.innerWidth <= 768) closeSidebar();
-
-  if (view === 'editais') {
-    clearActiveDashboardDiscCtx();
-  }
-
-  currentView = view;
-  document.querySelectorAll('.nav-item').forEach((el) => {
-    el.classList.toggle('active', el.dataset.view === view);
-  });
-  renderCurrentView();
-}
-
-// removed utilities to utils.js
-
-// UI Modals - wrapper around dialog.js for backward compatibility
-
-/**
- * Abre modal pelo ID
- * @param {string} id - ID do elemento modal
- */
-export function openModal(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.classList.add('open');
-  el.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-}
-
-/**
- * Fecha modal pelo ID
- * @param {string} id - ID do elemento modal
- */
-export function closeModal(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (el.contains(document.activeElement)) document.activeElement.blur();
-  el.classList.remove('open');
-  el.setAttribute('aria-hidden', 'true');
-  const hasOpenModal = document.querySelector('.modal-overlay.open');
-  document.body.style.overflow = hasOpenModal ? 'hidden' : '';
-}
-
-// Custom Confirm
-
-/**
- * Exibe modal de confirmação customizado
- * @param {string} msg - Mensagem de confirmação
- * @param {Function} onYes - Callback ao confirmar
- * @param {{title?: string, label?: string, danger?: boolean}} [opts] - Opções
- */
-export let _confirmCallback = null;
-export function showConfirm(msg, onYes, opts = {}) {
-  const { title = 'Confirmar', label = 'Confirmar', danger = false } = opts;
-  const titleEl = document.getElementById('confirm-title');
-  const msgEl = document.getElementById('confirm-msg');
-  const okBtn = document.getElementById('confirm-ok-btn');
-
-  if (!titleEl || !msgEl || !okBtn) {
-    console.error('showConfirm: elementos do modal não encontrados');
-    return;
-  }
-
-  titleEl.textContent = title;
-  msgEl.textContent = msg;
-  okBtn.textContent = label;
-  okBtn.className = `btn btn-sm ${danger ? 'btn-danger' : 'btn-primary'}`;
-  _confirmCallback = onYes;
-  openModal('modal-confirm');
-}
-
-/**
- * Configura handlers dos botões de confirmação
- */
-export function setupConfirmHandlers() {
-  const okBtn = document.getElementById('confirm-ok-btn');
-  const cancelBtn = document.getElementById('confirm-cancel-btn');
-  if (okBtn)
-    okBtn.addEventListener('click', () => {
-      closeModal('modal-confirm');
-      if (_confirmCallback) {
-        const cb = _confirmCallback;
-        _confirmCallback = null;
-        cb();
-      }
-    });
-  if (cancelBtn)
-    cancelBtn.addEventListener('click', () => {
-      cancelConfirm();
-    });
-}
-
-/**
- * Cancela confirmação e fecha modal
- */
-export function cancelConfirm() {
-  _confirmCallback = null;
-  closeModal('modal-confirm');
-}
-
-// Toast Notifications
-
-/**
- * Exibe notificação toast
- * @param {string} msg - Mensagem a exibir
- * @param {'success'|'error'|'info'} [type=''] - Tipo do toast
- */
-export function showToast(msg, type = '') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-
-  const last = container.lastElementChild;
-  if (last && last.dataset.msg === msg) {
-    last.classList.remove('show');
-    void last.offsetWidth;
-    last.classList.add('show');
-    return;
-  }
-  while (container.children.length >= 3) {
-    const oldest = container.firstElementChild;
-    oldest.remove();
-  }
-
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.setAttribute('role', 'status');
-  toast.setAttribute('aria-live', 'polite');
-  toast.dataset.msg = msg;
-  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
-  const iconSpan = document.createElement('span');
-  iconSpan.textContent = icons[type] || '💬';
-  const msgSpan = document.createElement('span');
-  msgSpan.textContent = msg;
-  toast.appendChild(iconSpan);
-  toast.appendChild(document.createTextNode(' '));
-  toast.appendChild(msgSpan);
-  container.appendChild(toast);
-
-  // Auto-dismiss with pause on hover
-  let dismissTimeout;
-  const scheduleDismiss = () => {
-    dismissTimeout = setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 300);
-    }, 3500);
-  };
-
-  const cancelDismiss = () => {
-    if (dismissTimeout) clearTimeout(dismissTimeout);
-  };
-
-  toast.addEventListener('mouseenter', cancelDismiss);
-  toast.addEventListener('mouseleave', scheduleDismiss);
-  toast.addEventListener('click', () => toast.remove());
-
-  requestAnimationFrame(() => {
-    toast.classList.add('show');
-  });
-  scheduleDismiss();
-}
-
-// Sidebars
-
-/**
- * Toggle sidebar (abre/fecha no mobile)
- */
-export function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  if (!sidebar || !overlay) return;
-  // On mobile we always open the full sidebar drawer.
-  if (window.innerWidth <= 768 && sidebar.classList.contains('collapsed')) {
-    sidebar.classList.remove('collapsed');
-  }
-  sidebar.classList.toggle('open');
-  overlay.classList.toggle('open');
-}
-
-/**
- * Fecha sidebar e overlay
- */
-export function closeSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  if (!sidebar || !overlay) return;
-  sidebar.classList.remove('open');
-  overlay.classList.remove('open');
-}
-
-/**
- * Toggle collapse da sidebar (desktop apenas)
- */
-export function toggleSidebarCollapse() {
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar) return;
-  // On mobile, collapsing the sidebar is confusing and causes layout overlap.
-  // Treat this action as "close drawer".
-  if (window.innerWidth <= 768) {
-    closeSidebar();
-    return;
-  }
-  sidebar.classList.toggle('collapsed');
-  // Salvar preferencia
-  if (sidebar.classList.contains('collapsed')) {
-    localStorage.setItem('estudo_sidebar_collapsed', 'true');
-  } else {
-    localStorage.removeItem('estudo_sidebar_collapsed');
-  }
-}
-
-// Init Setup
-
-/**
- * Aplica ou troca tema visual
- * @param {boolean} [toggle=false] - Se true, avanca para o proximo tema
- */
-export function applyTheme(toggle = false) {
-  if (toggle) {
-    const currentTheme = normalizeTheme(state.config.tema, state.config.darkMode);
-    const nextTheme = getNextTheme(currentTheme);
-    state.config.tema = nextTheme;
-    state.config.darkMode = true;
-    state.config.lastTheme = nextTheme;
-    scheduleSave();
-  }
-  const theme = normalizeTheme(state.config.tema, state.config.darkMode);
-  document.documentElement.setAttribute('data-theme', theme);
-
-  const btn = document.getElementById('theme-toggle-btn');
-  if (btn) {
-    const themeLabel = getThemeLabel(theme);
-    // Icon-only button — keep label only as tooltip / a11y text.
-    btn.innerHTML = '<i class="fa fa-palette" aria-hidden="true"></i>';
-    btn.setAttribute('title', `Tema atual: ${themeLabel}. Clique para trocar.`);
-    btn.setAttribute('aria-label', `Tema atual: ${themeLabel}. Clique para trocar.`);
-  }
-}
+// ── Initialization ────────────────────────────────────────────────────
 
 /**
  * Inicializa aplicação: DB, tema, sync, navegação
@@ -470,11 +113,7 @@ export function init() {
     });
 }
 
-// init() is called from main.js
-
-// =============================================
-// INTERACTIVE PROMPTS
-// =============================================
+// ── Interactive Prompts ───────────────────────────────────────────────
 
 /**
  * Abre modal para definir data da prova
@@ -548,8 +187,7 @@ export function promptMetas() {
   openModal('modal-prompt');
 }
 
-// recomecarCiclo is defined inside renderCiclo() in views.js
-// and assigned to window.recomecarCiclo — it operates on state.planejamento
+// ── Ciclo Toggle ─────────────────────────────────────────────────────
 
 /**
  * Toggle filtro de concluídos no Ciclo

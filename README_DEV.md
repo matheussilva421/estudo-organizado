@@ -51,10 +51,87 @@ rg "termo" src tests scripts -g '!src/vendor/**' -g '!node_modules/**' -g '!cove
 | Texto pequeno | view/componente especifico | teste unitario relacionado ou revisao manual | `npm run test:e2e` |
 | CSS visual | CSS relacionado e view afetada | `npm run test:css` | coverage |
 | Tela de configuracao | `config-view`, action de config | `npm run test:config` | `npm run test:all` |
-| Sync/cloud | `src/js/sync/`, `cloud-sync`, `drive-sync` | `npm run test:sync` | CSS, planos antigos |
+| Sync/cloud | `src/js/sync/`, `cloud-sync`, `drive-sync` | `npm run test:sync` | CSS e docs antigas |
 | Views/renderizacao | `src/js/views*`, testes de views | `npm run test:views` | Playwright completo |
 | Fluxo de usuario | arquivos do fluxo e E2E especifico | `npm run test:e2e:quick -- tests/e2e/<arquivo>` | coverage |
 | Fechamento | diff completo | `npm test` e E2E relevante ou `npm run test:e2e:release` | pular git status |
+
+## Matriz de testes proporcional
+
+Execute apenas os testes necessarios para o risco da alteracao.
+
+| Tipo de alteracao | Escopo de teste | Comandos |
+|---|---|---|
+| **Texto/CSS pequeno** | Teste unitario especifico ou revisao manual | `npm run test:css` (CSS) <br> `npm test -- tests/unit/<arquivo>.test.js` (texto/logica) |
+| **View isolada** | Teste da view + E2E da tela se houve interacao | `npm run test:views` <br> `npm run test:e2e:quick -- tests/e2e/<tela>.spec.js` |
+| **Fluxo cross-view** | Testes unitarios focais + E2E do fluxo | `npm test -- tests/unit/<modulos>.test.js` <br> `npm run test:e2e:quick -- tests/e2e/<fluxo>.spec.js` |
+| **Sync/salvamento/PWA** | Suite sync completa + E2E relevante | `npm run test:sync` <br> `npm run test:e2e:quick -- tests/e2e/sync-*.spec.js` |
+| **Fechamento/publicacao** | Diff, testes focados, `npm test`, E2E relevante, commit, push | `npm test` <br> `npm run test:e2e:release` (se UI/fluxo/PWA) |
+
+### Regra de justificativa para E2E completo
+
+**Nao rode** `npm run test:e2e:release` ou `npm run test:e2e:all` a menos que:
+
+1. A alteracao afete **fluxo de usuario visivel** (navegacao, modais, interacoes)
+2. Haja mudanca em **PWA/offline** (Service Worker, cache, persistencia)
+3. Esteja modificando **sync/cloud** (Firestore, Cloudflare, Drive)
+4. Seja **fechamento para publicacao** (commit, push, release)
+
+Para todo outro caso, use `npm run test:e2e:quick` com o arquivo especifico.
+
+## Exemplos de comandos por area
+
+**Calendario:**
+```powershell
+npm test -- tests/unit/calendar-view.test.js
+npm run test:e2e:quick -- tests/e2e/calendar.spec.js
+```
+
+**Home/Dashboard:**
+```powershell
+npm test -- tests/unit/views-dashboard.test.js
+npm run test:e2e:quick -- tests/e2e/app.spec.js
+npm run test:e2e:quick -- tests/e2e/dashboard-stats.spec.js
+```
+
+**Sync:**
+```powershell
+npm run test:sync
+npm run test:e2e:quick -- tests/e2e/sync-e2e.spec.js
+npm run test:e2e:quick -- tests/e2e/sync-dados.spec.js
+```
+
+**CSS apenas:**
+```powershell
+npm run test:css
+```
+
+**Ciclo/Planejamento:**
+```powershell
+npm test -- tests/unit/planejamento-wizard.test.js
+npm run test:e2e:quick -- tests/e2e/ciclo-grade.spec.js
+npm run test:e2e:quick -- tests/e2e/planejamento.spec.js
+```
+
+**Editais/CRUD:**
+```powershell
+npm test -- tests/unit/editais-view.test.js
+npm run test:e2e:quick -- tests/e2e/editais.spec.js
+npm run test:e2e:quick -- tests/e2e/crud-operations.spec.js
+```
+
+**Revisoes/Habitos:**
+```powershell
+npm test -- tests/unit/revisoes-actions.test.js
+npm run test:e2e:quick -- tests/e2e/revisoes-habitos.spec.js
+```
+
+**Sessoes/Timer:**
+```powershell
+npm test -- tests/unit/registro-sessao.test.js
+npm run test:e2e:quick -- tests/e2e/sessoes.spec.js
+npm run test:e2e:quick -- tests/e2e/timer-flow.spec.js
+```
 
 ## Fluxos de trabalho
 

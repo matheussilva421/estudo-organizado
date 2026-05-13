@@ -1,78 +1,43 @@
 /**
- * Calendar View Module
- * Renderiza calendário mensal, semanal e mobile
+ * Calendar View Module (Orchestrator)
+ * Coordinates calendar state, events, day-panel, and rendering.
  */
-
 import { state } from '../store.js?v=8.37';
 import { esc, getEventStatus, todayStr } from '../utils.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
-import { filterEventsBySelectedEdital } from '../edital-filter.js?v=8.37';
 
-// Local discipline-color lookup (lazy memo) — avoids static dependency on logic.js
-// which would pull half the app graph into calendar-view tests.
-let _discColorMemo = null;
-function getDiscColor(discId) {
-  if (!discId) return '';
-  if (!_discColorMemo) {
-    _discColorMemo = new Map();
-    for (const ed of state.editais || []) {
-      for (const d of ed.disciplinas || []) {
-        _discColorMemo.set(d.id, d.cor || ed.cor || '');
-      }
-    }
-  }
-  return _discColorMemo.get(discId) || '';
-}
-function resetDiscColorMemo() {
-  _discColorMemo = null;
-}
-// Reset memo on any state change (cheap; fires on every save)
-if (typeof document !== 'undefined') {
-  document.addEventListener('app:invalidateCaches', resetDiscColorMemo);
-}
+import {
+  getCalDate,
+  getCalViewMode,
+  getSelectedDayStr,
+  setCalDate,
+  setCalViewMode,
+  setSelectedCalendarDay,
+  isMobileCalendar,
+  updateCalendarHeader,
+  resetCalDate,
+} from './calendar/calendar-state.js?v=8.37';
 
-// Exported state
-let calDate = new Date();
-let calViewMode = 'mes';
-let selectedDayStr = todayStr();
+import { getDiscColor, resetDiscColorMemo, indexEventsByDate } from './calendar/calendar-events.js?v=8.37';
 
-// Re-export for external access
-export function getCalDate() {
-  return calDate;
-}
-export function getCalViewMode() {
-  return calViewMode;
-}
-export function setCalDate(d) {
-  calDate = d;
-}
-export function setCalViewMode(mode) {
-  calViewMode = mode;
-  renderCurrentView();
-}
+import { renderSelectedDayPanel } from './calendar/calendar-day-panel.js?v=8.37';
 
-// ── Helper: Check if mobile calendar should be used ──
-function isMobileCalendar() {
-  return window.innerWidth < 768;
-}
+// ── Re-exports from sub-modules ──
+export {
+  getCalDate,
+  getCalViewMode,
+  getSelectedDayStr,
+  setCalDate,
+  setCalViewMode,
+  setSelectedCalendarDay,
+  isMobileCalendar,
+  updateCalendarHeader,
+  resetCalDate,
+} from './calendar/calendar-state.js?v=8.37';
 
-// ── Helper: Update calendar header title ──
-export function updateCalendarHeader() {
-  const title = document.getElementById('cal-title');
-  if (title) {
-    const monthName = calDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-    title.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-  }
-  const todayBtn = document.getElementById('cal-today-btn');
-  if (todayBtn) {
-    const today = todayStr();
-    const current = calDate.toISOString().split('T')[0];
-    const isCurrentMonth = today.slice(0, 7) === current.slice(0, 7);
-    if (todayBtn.classList.contains('cal-view-btn')) {
-      todayBtn.classList.toggle('active', isCurrentMonth);
-    }
-  }
-}
+export { getDiscColor, resetDiscColorMemo, indexEventsByDate } from './calendar/calendar-events.js?v=8.37';
+
+export { renderSelectedDayPanel } from './calendar/calendar-day-panel.js?v=8.37';
 
 // ── Helper: Get date string from Date object ──
 function getDateStr(d) {
@@ -80,58 +45,41 @@ function getDateStr(d) {
   return d2.toISOString().split('T')[0];
 }
 
-// ── Helper: Pre-index events by date ──
-function indexEventsByDate() {
-  const eventsByDate = {};
-  for (const e of filterEventsBySelectedEdital(state.eventos || [], { allowAll: false })) {
-    if (!eventsByDate[e.data]) eventsByDate[e.data] = [];
-    eventsByDate[e.data].push(e);
+// ── Navigation ──
+export function calNavigate(dir) {
+  const calViewMode = getCalViewMode();
+  const calDate = getCalDate();
+  if (calViewMode === 'mes') {
+    setCalDate(new Date(calDate.getFullYear(), calDate.getMonth() + dir, 1));
+  } else {
+    calDate.setDate(calDate.getDate() + dir * 7);
+    setCalDate(calDate);
   }
-  return eventsByDate;
+  // Optimized: update only calendar grid instead of full re-render
+  const grid = document.getElementById('cal-grid');
+  if (grid) {
+    const mobile = isMobileCalendar();
+    if (mobile) {
+      grid.innerHTML =
+        calViewMode === 'mes' ? renderCalendarMobileMonth() : renderCalendarMobileWeek();
+      requestAnimationFrame(() => {
+        const todayEl = grid.querySelector('.cal-mobile-day.today');
+        if (todayEl) todayEl.scrollIntoView({ block: 'center', behavior: 'instant' });
+      });
+    } else {
+      grid.innerHTML = renderCalendarGrid();
+    }
+    updateCalendarHeader();
+  } else {
+    renderCurrentView();
+  }
 }
 
-export function setSelectedCalendarDay(dateStr) {
-  selectedDayStr = dateStr || todayStr();
-  renderCurrentView();
-}
-
-function renderSelectedDayPanel() {
-  const events = filterEventsBySelectedEdital(state.eventos || [], { allowAll: false })
-    .filter((event) => event.data === selectedDayStr)
-    .sort((a, b) => String(a.titulo || '').localeCompare(String(b.titulo || ''), 'pt-BR'));
-  return `
-    <div class="cal-day-panel" data-testid="calendar-day-panel">
-      <div class="cal-day-panel-header">
-        <div>
-          <div class="section-label">Dia selecionado</div>
-          <h3>${selectedDayStr.split('-').reverse().join('/')}</h3>
-        </div>
-        <button type="button" class="btn btn-primary btn-sm cal-day-add" data-action="open-event-modal-date" data-date="${selectedDayStr}">
-          <i class="fa fa-plus"></i> Adicionar sessão
-        </button>
-      </div>
-      ${
-        events.length === 0
-          ? '<div class="cal-day-empty">Nada agendado para este dia.</div>'
-          : `<div class="cal-day-event-list">
-              ${events
-                .map(
-                  (event) => `
-                    <button type="button" class="cal-day-event" data-testid="calendar-day-panel-event" data-action="open-event-detail" data-event-id="${esc(event.id)}">
-                      <span>${esc(event.titulo || 'Evento')}</span>
-                      <small>${getEventStatus(event)}</small>
-                    </button>`
-                )
-                .join('')}
-            </div>`
-      }
-    </div>
-  `;
-}
-
-// ── Main Render Function ──
+// ── Main Render ──
 export function renderCalendar(el) {
   const mobile = isMobileCalendar();
+  const calViewMode = getCalViewMode();
+  const calDate = getCalDate();
   let gridContent;
   if (mobile) {
     gridContent = calViewMode === 'mes' ? renderCalendarMobileMonth() : renderCalendarMobileWeek();
@@ -157,7 +105,7 @@ export function renderCalendar(el) {
           </button>
         </div>
         <div id="cal-grid">${gridContent}</div>
-        ${renderSelectedDayPanel()}
+        ${renderSelectedDayPanel(getSelectedDayStr())}
       </div>
     </div>
   `;
@@ -170,40 +118,9 @@ export function renderCalendar(el) {
   }
 }
 
-// ── Navigation Functions ──
-export function resetCalDate() {
-  calDate = new Date();
-  renderCurrentView();
-}
-
-export function calNavigate(dir) {
-  if (calViewMode === 'mes') {
-    calDate = new Date(calDate.getFullYear(), calDate.getMonth() + dir, 1);
-  } else {
-    calDate.setDate(calDate.getDate() + dir * 7);
-  }
-  // Optimized: update only calendar grid instead of full re-render
-  const grid = document.getElementById('cal-grid');
-  if (grid) {
-    const mobile = isMobileCalendar();
-    if (mobile) {
-      grid.innerHTML =
-        calViewMode === 'mes' ? renderCalendarMobileMonth() : renderCalendarMobileWeek();
-      requestAnimationFrame(() => {
-        const todayEl = grid.querySelector('.cal-mobile-day.today');
-        if (todayEl) todayEl.scrollIntoView({ block: 'center', behavior: 'instant' });
-      });
-    } else {
-      grid.innerHTML = renderCalendarGrid();
-    }
-    updateCalendarHeader();
-  } else {
-    renderCurrentView();
-  }
-}
-
 // ── Month View (Desktop) ──
 export function renderCalendarMonth() {
+  const calDate = getCalDate();
   const year = calDate.getFullYear();
   const month = calDate.getMonth();
   const firstDay = new Date(year, month, 1);
@@ -282,6 +199,7 @@ export function renderCalendarGrid() {
 
 // ── Week View (Desktop) ──
 export function renderCalendarWeek() {
+  const calDate = getCalDate();
   const today = todayStr();
   const dow = calDate.getDay();
   const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
@@ -333,6 +251,7 @@ export function renderCalendarWeek() {
 
 // ── Mobile Month View ──
 export function renderCalendarMobileMonth() {
+  const calDate = getCalDate();
   const year = calDate.getFullYear();
   const month = calDate.getMonth();
   const lastDay = new Date(year, month + 1, 0);
@@ -381,6 +300,7 @@ export function renderCalendarMobileMonth() {
 
 // ── Mobile Week View ──
 export function renderCalendarMobileWeek() {
+  const calDate = getCalDate();
   const today = todayStr();
   const dow = calDate.getDay();
   const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;

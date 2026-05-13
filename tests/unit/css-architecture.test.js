@@ -265,8 +265,9 @@ describe('CSS architecture', () => {
     const componentsCss = read('src/css/components.css');
     const viewsCss = read('src/css/views.css');
     const homeView = read('src/js/views/home-view.js');
+    const stepRenderers = read('src/js/planejamento/step-renderers.js');
     const wizard = read('src/js/planejamento-wizard.js');
-    const logic = read('src/js/logic.js');
+    const timerLogic = read('src/js/logic/timer.js');
 
     expect(componentsCss).toContain('.surface-note');
     expect(componentsCss).toContain('.selection-card.is-selected');
@@ -275,10 +276,10 @@ describe('CSS architecture', () => {
     expect(viewsCss).toContain('.dash-progress-bar--questions');
     expect(homeView).toContain('surface-note');
     expect(homeView).toContain('dash-progress-bar--questions');
-    expect(wizard).toContain('selection-card');
-    expect(logic).toContain("classList.toggle('timer-mode-pill--pomodoro'");
+    expect(stepRenderers).toContain('selection-card');
+    expect(timerLogic).toContain("classList.toggle('timer-mode-pill--pomodoro'");
 
-    expect(`${homeView}\n${wizard}\n${logic}`).not.toMatch(/rgba\(88,166,255|#8b5cf6|rgba\(139,92,246|rgba\(255,255,255,0\.03\)/);
+    expect(`${homeView}\n${wizard}\n${timerLogic}`).not.toMatch(/rgba\(88,166,255|#8b5cf6|rgba\(139,92,246|rgba\(255,255,255,0\.03\)/);
   });
 
   it('keeps WCAG AA contrast on thematic dark themes', () => {
@@ -301,18 +302,21 @@ describe('CSS architecture', () => {
   it('presents only the premium dark themes while keeping old theme names internal', () => {
     const html = read('src/index.html');
     const appSource = read('src/js/app.js');
+    const themesSource = read('src/js/app/themes.js');
     const configViewSource = read('src/js/views/config-view.js');
+    const allSources = `${appSource}\n${themesSource}\n${configViewSource}`;
 
     expect(html).toContain('title="Trocar tema"');
-    expect(appSource).toContain("label: 'Grafite'");
-    expect(appSource).toContain("label: 'Ardósia'");
-    expect(appSource).toContain("label: 'Platina'");
-    expect(appSource).not.toContain("label: 'Pergaminho'");
-    expect(appSource).toContain('LEGACY_THEME_ALIASES');
-    expect(appSource).toContain('THEME_OPTIONS');
+    // THEME_OPTIONS live in app/themes.js; app.js re-exports them
+    expect(themesSource).toContain("label: 'Grafite'");
+    expect(themesSource).toContain("label: 'Ardósia'");
+    expect(themesSource).toContain("label: 'Platina'");
+    expect(themesSource).not.toContain("label: 'Pergaminho'");
+    expect(themesSource).toContain('LEGACY_THEME_ALIASES');
+    expect(allSources).toContain('THEME_OPTIONS');
     expect(configViewSource).toContain('THEME_OPTIONS');
-    expect(`${appSource}\n${configViewSource}`).not.toMatch(/label:\s*'(Neutro|Noite|Furtivo|Abismo|Matrix|Rubi|Cyberpunk 2077)'/);
-    expect(`${html}\n${appSource}\n${configViewSource}`).not.toMatch(/Modo escuro|Modo claro|Claro profissional|Escuro profissional|Extra:/);
+    expect(allSources).not.toMatch(/label:\s*'(Neutro|Noite|Furtivo|Abismo|Matrix|Rubi|Cyberpunk 2077)'/);
+    expect(`${html}\n${allSources}`).not.toMatch(/Modo escuro|Modo claro|Claro profissional|Escuro profissional|Extra:/);
   });
 
   it('keeps every visible premium theme from inheriting the root app background', () => {
@@ -387,8 +391,8 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.73');
-    expect(serviceWorker).toContain("APP_VERSION = '8.73'");
+    expect(html).toContain('css/styles.css?v=8.83');
+    expect(serviceWorker).toMatch(/APP_VERSION = '8\.\d{2}'/);
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 

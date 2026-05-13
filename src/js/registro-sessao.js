@@ -1,11 +1,11 @@
 // =============================================
 // REGISTRO DA SESSÃO DE ESTUDO
-// Módulo dedicado ao registro pós-sessão
+// Módulo orquestrador — coordena sub-módulos de
+// renderização e persistência
 // =============================================
 
-import { state, scheduleSave, saveStateToDB } from './store.js?v=8.37';
+import { state, scheduleSave } from './store.js?v=8.37';
 import {
-  getActiveDisciplinas,
   getDisc,
   getElapsedSeconds,
   _pomodoroMode,
@@ -13,38 +13,26 @@ import {
   discardTimer,
 } from './logic.js?v=8.37';
 import { openModal, closeModal, showToast, showConfirm, navigate } from './app.js?v=8.37';
-import { todayStr, esc, trunc, uid } from './utils.js?v=8.37';
-import { renderCurrentView, updateBadges } from './components.js?v=8.37';
+import { esc, trunc, uid } from './utils.js?v=8.37';
+import { renderCurrentView } from './components.js?v=8.37';
 import { openAddPastSessionModal } from './ui/event-modals.js?v=8.37';
 
+// Sub-módulos
+import {
+  TIPOS_ESTUDO,
+  MATERIAIS,
+  renderRegistroForm,
+  renderConditionalFields,
+} from './registro-sessao/modal-renderer.js?v=8.37';
+import { performSave } from './registro-sessao/session-save.js?v=8.37';
+
+// Re-export domain constants
+export { TIPOS_ESTUDO, MATERIAIS };
+
 // =============================================
-// STUDY TYPES & MATERIALS DEFINITIONS
+// INTERNAL STATE
 // =============================================
 
-const TIPOS_ESTUDO = [
-  { id: 'leitura', label: 'Leitura', icon: '📖' },
-  { id: 'videoaula', label: 'Vídeoaula', icon: '🎬' },
-  { id: 'questoes', label: 'Questões', icon: '❓' },
-  { id: 'revisao', label: 'Revisão', icon: '🔄' },
-  { id: 'informativo', label: 'Informativos', icon: '📰' },
-  { id: 'discursiva', label: 'Discursiva', icon: '✍️' },
-  { id: 'simulado', label: 'Simulado', icon: '📝' },
-  { id: 'sumula', label: 'Súmulas', icon: '⚖️' },
-];
-
-const MATERIAIS = [
-  { id: 'pdf', label: 'PDF', icon: '📄' },
-  { id: 'videoaula_mat', label: 'Vídeoaula', icon: '🎬' },
-  { id: 'lei_seca', label: 'Lei seca', icon: '⚖️' },
-  { id: 'livro', label: 'Livro', icon: '📕' },
-  { id: 'caderno', label: 'Caderno', icon: '📓' },
-  { id: 'flashcards', label: 'Flashcards / Anki', icon: '🃏' },
-  { id: 'jurisprudencia', label: 'Jurisprudência', icon: '🏛️' },
-  { id: 'informativo_mat', label: 'Informativo', icon: '📰' },
-  { id: 'outro', label: 'Outro', icon: '📦' },
-];
-
-// Internal state for the form
 let _selectedTipos = [];
 let _selectedMateriais = [];
 let _currentEventId = null;
@@ -97,10 +85,17 @@ export function openRegistroSessao(eventId) {
   _selectedMateriais = ev.sessao?.materiais || [];
   _sessionMode = _pomodoroMode ? 'pomodoro' : 'cronometro';
 
-  // Build and render the form
+  // Build and render the form via sub-module
   const body = document.getElementById('modal-registro-body');
   if (body) {
-    body.innerHTML = renderRegistroForm(ev);
+    body.innerHTML = renderRegistroForm({
+      ev,
+      sessionStartTime: _sessionStartTime,
+      sessionEndTime: _sessionEndTime,
+      sessionMode: _sessionMode,
+      selectedTipos: _selectedTipos,
+      selectedMateriais: _selectedMateriais,
+    });
   }
 
   openModal('modal-registro-sessao');
@@ -131,342 +126,6 @@ export function openRegistroSessao(eventId) {
 }
 
 // =============================================
-// RENDER FORM HTML
-// =============================================
-
-function renderRegistroForm(ev) {
-  const elapsed = ev.tempoAcumulado || 0;
-  const fmtTime = (s) => {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  };
-
-  const horaInicio = _sessionStartTime
-    ? _sessionStartTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    : '--:--';
-  const horaFim = _sessionEndTime
-    ? _sessionEndTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    : '--:--';
-
-  let dataStr;
-  if (ev.data) {
-    const parts = ev.data.split('-');
-    dataStr = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : ev.data;
-  } else {
-    dataStr = new Date().toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  const modeLabel =
-    _sessionMode === 'pomodoro'
-      ? `🍅 Pomodoro (${state?.config?.pomodoroFoco || 25}/${state?.config?.pomodoroPausa || 5})`
-      : '⏱ Cronômetro';
-
-  // Discipline options
-  const allDiscs = getActiveDisciplinas();
-  const discOptions = allDiscs
-    .map(
-      (d) =>
-        `<option value="${d.disc.id}">${d.disc.icone || '📖'} ${d.disc.nome} — ${d.edital.nome}</option>`
-    )
-    .join('');
-
-  // Study type chips
-  const tipoChips = TIPOS_ESTUDO.map((t) => {
-    const sel = _selectedTipos.includes(t.id);
-    return `<button type="button" class="chip ${sel ? 'chip-active' : ''}"
-      data-action="toggle-study-type"
-      data-tipo="${t.id}">
-      ${t.icon} ${t.label}
-    </button>`;
-  }).join('');
-
-  // Material chips
-  const materialChips = MATERIAIS.map((m) => {
-    const sel = _selectedMateriais.includes(m.id);
-    return `<button type="button" class="chip ${sel ? 'chip-active' : ''}"
-      data-action="toggle-material"
-      data-mat="${m.id}">
-      ${m.icon} ${m.label}
-    </button>`;
-  }).join('');
-
-  return `
-    <!-- 1) RESUMO DA SESSÃO -->
-    <div class="reg-block reg-summary">
-      <div class="reg-summary-grid">
-        <div class="reg-stat">
-          <div class="reg-stat-label">Tempo estudado ${ev.status === 'estudei' || ev._isPastSession ? '(minutos)' : ''}</div>
-          <div class="reg-stat-value reg-stat-value-mono">
-            ${
-              ev.status === 'estudei' || ev._isPastSession
-                ? `<input type="number" id="reg-tempo-mins" class="reg-input reg-input-time" value="${Math.round(elapsed / 60)}" min="1">`
-                : fmtTime(elapsed)
-            }
-          </div>
-        </div>
-        <div class="reg-stat">
-          <div class="reg-stat-label">Data</div>
-          <div class="reg-stat-value">
-            ${
-              ev.status === 'estudei' || ev._isPastSession
-                ? `<input type="date" id="reg-data-estudo" class="reg-input reg-input-date" value="${ev.data || todayStr()}">`
-                : dataStr
-            }
-          </div>
-        </div>
-        <div class="reg-stat">
-          <div class="reg-stat-label">Horário</div>
-          <div class="reg-stat-value">${horaInicio} — ${horaFim}</div>
-        </div>
-        <div class="reg-stat">
-          <div class="reg-stat-label">Modo</div>
-          <div class="reg-stat-value">${modeLabel}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2) O QUE FOI ESTUDADO -->
-    <div class="reg-block">
-      <h3 class="reg-block-title">📚 O que foi estudado</h3>
-      <div class="reg-row">
-        <div class="reg-field flex-1">
-          <label class="reg-label">Disciplina <span class="req">*</span></label>
-          <select id="reg-disciplina" class="reg-select" data-action="on-disciplina-change">
-            <option value="">Selecione uma disciplina...</option>
-            ${discOptions}
-          </select>
-        </div>
-      </div>
-      <div class="reg-row reg-row-column">
-        <div class="reg-field flex-1">
-          <label class="reg-label">Tópico do Edital (opcional)</label>
-          <div class="cluster-sm">
-            <select id="reg-assunto" class="reg-select flex-1">
-              <option value="">Selecione a disciplina primeiro</option>
-            </select>
-            <button type="button" class="btn-inline" data-action="add-novo-topico" title="Criar novo tópico">
-              + Novo
-            </button>
-          </div>
-        </div>
-        <div class="reg-field flex-1 hidden" id="reg-aula-container">
-          <label class="reg-label">Material / Aula (opcional)</label>
-          <select id="reg-aula" class="reg-select flex-1" data-action="on-aula-change">
-            <option value="">Selecione a disciplina primeiro</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3) COMO FOI ESTUDADO -->
-    <div class="reg-block">
-      <h3 class="reg-block-title">🎯 Tipo de estudo na sessão <span class="req">*</span></h3>
-      <div class="chip-group" id="tipo-chips">
-        ${tipoChips}
-      </div>
-    </div>
-
-    <div class="reg-block">
-      <h3 class="reg-block-title">🧰 Materiais utilizados</h3>
-      <div class="chip-group" id="material-chips">
-        ${materialChips}
-      </div>
-      <div class="reg-field mt-3">
-        <input type="text" id="reg-material-detalhe" class="reg-input"
-          placeholder="Detalhe do material (ex.: Aula 03 Estratégia, CF/88 arts. 5º ao 17)">
-      </div>
-    </div>
-
-    <!-- 4) RESULTADOS DA SESSÃO -->
-    <div id="reg-resultados">
-      ${renderConditionalFields()}
-    </div>
-
-    <!-- 5) PROGRESSO DO TÓPICO -->
-    <div class="reg-block">
-      <h3 class="reg-block-title">📈 Progresso do tópico</h3>
-      <div class="reg-field">
-        <label class="reg-label">Status do tópico/assunto</label>
-        <select id="reg-status-topico" class="reg-select">
-          <option value="nao_iniciado">Não iniciado</option>
-          <option value="em_andamento" selected>Em andamento</option>
-          <option value="finalizado">Finalizado nesta sessão ✅</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- 6) COMENTÁRIOS -->
-    <div class="reg-block">
-      <h3 class="reg-block-title">💬 Comentários / Observações</h3>
-      <textarea id="reg-comentarios" class="reg-textarea" rows="3"
-        placeholder="Dificuldades, pontos de revisão, pegadinhas...">${esc(ev.sessao?.comentarios || '')}</textarea>
-    </div>
-
-    <div class="reg-block">
-      <div class="reg-full-width">
-        <h3 class="reg-block-title">Resumo / Detalhes <small class="reg-title-subtitle">(Opcional)</small></h3>
-        <textarea id="reg-observacao" class="reg-textarea" placeholder="Anotações, comentários ou percepções sobre o que você estudou hoje..." wrap="soft" spellcheck="true">${esc(ev.sessao?.observacoes || '')}</textarea>
-      </div>
-    </div>
-
-    <!-- 7) AÇÕES / FOOTER -->
-    <div class="reg-footer-actions">
-      ${
-        ev.status === 'estudei' && !ev._isPastSession
-          ? `<button type="button" class="btn-outline reg-btn-danger" data-action="delete-completed-session" data-session-id="${ev.id}">
-          <i class="fa fa-trash"></i> Excluir
-        </button>`
-          : ev._isPastSession
-            ? `<button type="button" class="btn-outline" data-action="voltar-past-session-ui" data-event-id="${_currentEventId}" data-disc-id="${ev.discId}">
-          <i class="fa fa-arrow-left"></i> Voltar
-        </button>`
-            : `<button type="button" class="btn-outline reg-btn-danger" data-action="discard-timer-ui" data-event-id="${_currentEventId}">
-          <i class="fa fa-trash"></i> Descartar
-        </button>`
-      }
-
-      <div class="reg-footer-buttons">
-        <button type="button" class="btn-outline" data-action="cancel-registro">Cancelar</button>
-        ${
-          !ev._isPastSession && ev.status !== 'estudei'
-            ? `
-        <button type="button" class="btn-outline reg-btn-success" data-action="save-and-start-new">
-          Salvar e iniciar nova ↻
-        </button>`
-            : ''
-        }
-        <button type="button" class="btn-primary reg-btn-primary" data-action="save-registro-sessao">
-          <i class="fa fa-save"></i> ${ev.status === 'estudei' && !ev._isPastSession ? 'Salvar Alterações' : 'Salvar Registro'}
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-// =============================================
-// CONDITIONAL FIELDS (Resultados)
-// =============================================
-
-function renderConditionalFields() {
-  const showQuestoes = _selectedTipos.includes('questoes') || _selectedTipos.includes('simulado');
-  const showPaginas =
-    ['leitura', 'informativo', 'sumula'].some((t) => _selectedTipos.includes(t)) ||
-    ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some((m) => _selectedMateriais.includes(m));
-  const showVideo = _selectedTipos.includes('videoaula');
-
-  if (!showQuestoes && !showPaginas && !showVideo) {
-    return '<div class="reg-block reg-no-results"><em>Selecione tipos de estudo para preencher resultados</em></div>';
-  }
-
-  let html = '<div class="reg-block"><h3 class="reg-block-title">📊 Resultados da sessão</h3>';
-
-  if (showQuestoes) {
-    const qs = _currentEv.sessao?.questoes || {};
-    html += `
-      <div class="reg-results-card">
-        <div class="reg-results-header">❓ Questões</div>
-        <div class="reg-results-row">
-          <div class="reg-field">
-            <label class="reg-label">Total</label>
-            <input type="number" id="reg-q-total" class="reg-input" min="0" placeholder="0"
-              value="${qs.total || ''}" data-action="validate-questoes">
-          </div>
-          <div class="reg-field">
-            <label class="reg-label reg-label-positive">Acertos</label>
-            <input type="number" id="reg-q-acertos" class="reg-input" min="0" placeholder="0"
-              value="${qs.acertos || qs.certas || ''}" data-action="validate-questoes">
-          </div>
-          <div class="reg-field">
-            <label class="reg-label reg-label-negative">Erros</label>
-            <input type="number" id="reg-q-erros" class="reg-input" min="0" placeholder="0"
-              value="${qs.erros || qs.erradas || ''}" data-action="validate-questoes">
-          </div>
-        </div>
-        <div id="reg-q-feedback" class="reg-feedback-text"></div>
-      </div>
-    `;
-  }
-
-  if (showPaginas) {
-    const pg = _currentEv.sessao?.paginas || {};
-    const modo = pg.modo || 'simples';
-    html += `
-      <div class="reg-results-card">
-        <div class="reg-results-header">📖 Páginas lidas</div>
-        <div class="reg-mode-toggle-row">
-          <button type="button" class="chip ${modo === 'simples' ? 'chip-active' : ''}" id="pag-modo-simples"
-            data-action="set-pagina-mode" data-mode="simples">Simples</button>
-          <button type="button" class="chip ${modo === 'detalhado' ? 'chip-active' : ''}" id="pag-modo-detalhado"
-            data-action="set-pagina-mode" data-mode="detalhado">Detalhado</button>
-        </div>
-        <div id="pag-simples" class="${modo === 'simples' ? '' : 'hidden'}">
-          <div class="reg-field">
-            <label class="reg-label">Total de páginas</label>
-            <input type="number" id="reg-pag-total" class="reg-input" min="0" placeholder="0" value="${pg.total || ''}">
-          </div>
-        </div>
-        <div id="pag-detalhado" class="${modo === 'detalhado' ? '' : 'hidden'}">
-          <div class="reg-results-row">
-            <div class="reg-field">
-              <label class="reg-label">Página inicial</label>
-              <input type="number" id="reg-pag-inicio" class="reg-input" min="0" placeholder="0" value="${pg.inicio || ''}">
-            </div>
-            <div class="reg-field">
-              <label class="reg-label">Página final</label>
-              <input type="number" id="reg-pag-fim" class="reg-input" min="0" placeholder="0" value="${pg.fim || ''}">
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  if (showVideo) {
-    const vid = _currentEv.sessao?.videoaula || {};
-    const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
-    const aulaId = document.getElementById('reg-aula')?.value || _currentEv?.aulaId || '';
-    let aulaNomeSelecionada = '';
-    if (discId && aulaId) {
-      const disc = getDisc(discId);
-      const aula = disc?.disc?.aulas?.find((a) => a.id === aulaId);
-      if (aula?.nome) aulaNomeSelecionada = aula.nome;
-    }
-    const videoTituloPrefill = vid.titulo || aulaNomeSelecionada || '';
-    html += `
-      <div class="reg-results-card">
-        <div class="reg-results-header">🎬 Vídeoaula</div>
-        ${
-          aulaNomeSelecionada
-            ? `
-          <div class="reg-linked-info">
-            Aula vinculada automaticamente: <strong>${esc(trunc(aulaNomeSelecionada, 96))}</strong>
-          </div>
-        `
-            : ''
-        }
-        <div class="reg-field reg-field-spaced">
-          <label class="reg-label">Título da aula (opcional)</label>
-          <input type="text" id="reg-video-titulo" class="reg-input" placeholder="Opcional: será preenchido com Material / Aula quando selecionado" value="${esc(videoTituloPrefill)}">
-        </div>
-        <div class="reg-field">
-          <label class="reg-label">Tempo assistido (minutos) (opcional)</label>
-          <input type="number" id="reg-video-tempo" class="reg-input" min="0" placeholder="0" value="${vid.tempoMin || ''}">
-        </div>
-      </div>
-    `;
-  }
-
-  html += '</div>';
-  return html;
-}
-
-// =============================================
 // INTERACTIVE FUNCTIONS
 // =============================================
 
@@ -481,7 +140,17 @@ export function toggleStudyType(typeId) {
 
   // Re-render conditional fields
   const container = document.getElementById('reg-resultados');
-  if (container) container.innerHTML = renderConditionalFields();
+  if (container) {
+    const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
+    const aulaId = document.getElementById('reg-aula')?.value || _currentEv?.aulaId || '';
+    container.innerHTML = renderConditionalFields({
+      selectedTipos: _selectedTipos,
+      selectedMateriais: _selectedMateriais,
+      sessao: _currentEv.sessao || {},
+      discId,
+      aulaId,
+    });
+  }
 }
 
 export function toggleMaterial(matId) {
@@ -495,7 +164,17 @@ export function toggleMaterial(matId) {
 
   // Re-render conditional fields (materials affect page fields)
   const container = document.getElementById('reg-resultados');
-  if (container) container.innerHTML = renderConditionalFields();
+  if (container) {
+    const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
+    const aulaId = document.getElementById('reg-aula')?.value || _currentEv?.aulaId || '';
+    container.innerHTML = renderConditionalFields({
+      selectedTipos: _selectedTipos,
+      selectedMateriais: _selectedMateriais,
+      sessao: _currentEv.sessao || {},
+      discId,
+      aulaId,
+    });
+  }
 }
 
 export function onDisciplinaChange() {
@@ -656,303 +335,18 @@ export function setPaginaMode(mode) {
 }
 
 // =============================================
-// SAVE
+// SAVE — delegates to sub-module
 // =============================================
 
 export function saveRegistroSessao() {
-  let ev = null;
-  const isLivre = _currentEventId === 'crono_livre';
-
-  if (isLivre) {
-    ev = state.cronoLivre;
-  } else {
-    ev = state.eventos.find((e) => e.id === _currentEventId);
-  }
-
-  if (!ev) {
-    showToast('Evento não encontrado', 'error');
-    return false;
-  }
-
-  // Validation
-  if (_selectedTipos.length === 0) {
-    showToast('Selecione ao menos um tipo de estudo', 'error');
-    return false;
-  }
-
-  const discId = document.getElementById('reg-disciplina')?.value;
-  const assId = document.getElementById('reg-assunto')?.value || '';
-  const aulaId = document.getElementById('reg-aula')?.value || '';
-
-  // Note: assId and aulaId already contain the full ID (e.g. 'ass_xxx') from the select.
-  // Do NOT strip prefixes — they are part of the canonical ID used in lookups.
-
-  if (isLivre && !discId) {
-    showToast(
-      'Em sessões livres, escolha pelo menos uma Disciplina para vincular o tempo estudado',
-      'error'
-    );
-    return false;
-  }
-
-  // Se for Sessão Livre, cria um evento real permanente pro Histórico
-  if (isLivre && discId) {
-    const d = getDisc(discId);
-    let assName = 'Estudo Genérico';
-    if (d) {
-      if (aulaId) {
-        const achado = d.disc.aulas?.find((a) => a.id === aulaId);
-        if (achado) assName = achado.nome;
-      } else {
-        const achado = d.disc.assuntos?.find((a) => a.id === assId);
-        if (achado) assName = achado.nome;
-      }
-    }
-    const evtReal = {
-      id: 'ev_' + uid(),
-      titulo: assName,
-      data: todayStr(),
-      status: 'agendado', // Will turn 'estudei' down there
-      dataEstudo: null,
-      discId: discId,
-      assId: assId || null,
-      aulaId: aulaId || null,
-      tipoInfo: 'Sessão Livre',
-      tempoAcumulado: Math.round(state.cronoLivre.tempoAcumulado || 0),
-    };
-    state.eventos.push(evtReal);
-    ev = evtReal; // Swap reference!
-  }
-
-  // Validate questões if type selected
-  const hasQuestoes = _selectedTipos.includes('questoes') || _selectedTipos.includes('simulado');
-  let questoes = null;
-  if (hasQuestoes) {
-    const total = parseInt(document.getElementById('reg-q-total')?.value, 10) || 0;
-    const acertos = parseInt(document.getElementById('reg-q-acertos')?.value, 10) || 0;
-    const erros = parseInt(document.getElementById('reg-q-erros')?.value, 10) || 0;
-    if (total <= 0) {
-      showToast('Informe o total de questões', 'error');
-      return false;
-    }
-    if (acertos + erros > total) {
-      showToast('Acertos + Erros não pode ser maior que o Total', 'error');
-      return false;
-    }
-    questoes = { total, acertos, erros };
-  }
-
-  // Validate vídeo if type selected
-  let videoaula = null;
-  if (_selectedTipos.includes('videoaula')) {
-    let titulo = document.getElementById('reg-video-titulo')?.value.trim() || '';
-    const tempoRaw = parseInt(document.getElementById('reg-video-tempo')?.value || '0', 10);
-    const tempoMin = Number.isFinite(tempoRaw) && tempoRaw > 0 ? tempoRaw : 0;
-    if (!titulo && discId && aulaId) {
-      const d = getDisc(discId);
-      const aula = d?.disc?.aulas?.find((a) => a.id === aulaId);
-      if (aula?.nome) titulo = aula.nome;
-    }
-    videoaula = { titulo, tempoMin };
-  }
-
-  // Validate páginas if needed
-  const showPaginas =
-    ['leitura', 'informativo', 'sumula'].some((t) => _selectedTipos.includes(t)) ||
-    ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some((m) => _selectedMateriais.includes(m));
-
-  let paginas = null;
-  if (showPaginas) {
-    const simplesVisible = document.getElementById('pag-simples')?.style.display !== 'none';
-    if (simplesVisible) {
-      const total = parseInt(document.getElementById('reg-pag-total')?.value || '0');
-      if (total > 0) paginas = { modo: 'simples', total };
-    } else {
-      const inicio = parseInt(document.getElementById('reg-pag-inicio')?.value || '0');
-      const fim = parseInt(document.getElementById('reg-pag-fim')?.value || '0');
-      if (fim > inicio) paginas = { modo: 'detalhado', inicio, fim, total: fim - inicio };
-      else if (fim > 0 || inicio > 0) {
-        showToast('Página final deve ser maior que a página inicial', 'error');
-        return false;
-      }
-    }
-  }
-
-  // Topic status
-  const statusTopico = document.getElementById('reg-status-topico')?.value || 'em_andamento';
-
-  // Handle Editing Flow
-  const isEditingOld = ev.status === 'estudei' && !ev._isPastSession;
-  if (isEditingOld) {
-    Object.keys(state.habitos).forEach((tipo) => {
-      if (state.habitos[tipo]) {
-        state.habitos[tipo] = state.habitos[tipo].filter((h) => h.eventoId !== ev.id);
-      }
-    });
-  }
-
-  // Save data to event
-  ev.status = 'estudei';
-
-  const editedData = document.getElementById('reg-data-estudo')?.value;
-  const editedMins = parseInt(document.getElementById('reg-tempo-mins')?.value, 10);
-
-  if (ev._isPastSession) {
-    delete ev._isPastSession;
-    ev.dataEstudo = editedData || ev.data;
-    if (editedData) ev.data = editedData;
-  } else if (isEditingOld) {
-    if (editedData) {
-      ev.data = editedData;
-      ev.dataEstudo = editedData;
-    }
-  } else {
-    ev.dataEstudo = todayStr();
-  }
-
-  if (!isNaN(editedMins) && editedMins > 0) {
-    ev.tempoAcumulado = editedMins * 60;
-  }
-
-  ev.discId = discId || ev.discId;
-  // Allow clearing selections when user chooses "Sem tópico" / "Sem material"
-  ev.assId = assId || null;
-  ev.aulaId = aulaId || null;
-
-  // Build titulo from discipline + topic
-  if (discId) {
-    const d = getDisc(discId);
-    if (d) {
-      let titulo = d.disc.nome;
-      if (aulaId) {
-        const aula = d.disc.aulas?.find((a) => a.id === aulaId);
-        if (aula) titulo += ' — ' + aula.nome;
-      } else if (assId) {
-        const ass = d.disc.assuntos?.find((a) => a.id === assId);
-        if (ass) titulo += ' — ' + ass.nome;
-      }
-      ev.titulo = titulo;
-    }
-  }
-
-  ev.sessao = {
-    tiposEstudo: [..._selectedTipos],
-    materiais: [..._selectedMateriais],
-    materialDetalhe: document.getElementById('reg-material-detalhe')?.value.trim() || '',
-    questoes,
-    paginas,
-    videoaula,
-    statusTopico,
-    comentarios: document.getElementById('reg-comentarios')?.value.trim() || '',
-    observacoes: document.getElementById('reg-observacao')?.value.trim() || '',
-    horaInicio: _sessionStartTime ? _sessionStartTime.toTimeString().slice(0, 8) : null,
-    horaFim: _sessionEndTime ? _sessionEndTime.toTimeString().slice(0, 8) : null,
-    modo: _sessionMode,
-  };
-
-  // Progress: mark as concluded
-  if (statusTopico === 'finalizado' && discId) {
-    const d = getDisc(discId);
-    if (d) {
-      if (aulaId) {
-        const achadoAula = d.disc.aulas?.find((a) => a.id === aulaId);
-        if (achadoAula && !achadoAula.estudada) {
-          achadoAula.estudada = true;
-        }
-      }
-
-      if (assId) {
-        const ass = d.disc.assuntos?.find((a) => a.id === assId);
-        if (ass && !ass.concluido) {
-          ass.concluido = true;
-          ass.dataConclusao = todayStr();
-          ass.revisoesFetas = [];
-        }
-      }
-    }
-  }
-
-  // Register habits
-  _selectedTipos.forEach((tipo) => {
-    if (state.habitos[tipo]) {
-      state.habitos[tipo].push({
-        id: 'hab_' + uid(),
-        data: todayStr(),
-        eventoId: ev.id,
-        tempoMin: Math.round((ev.tempoAcumulado || 0) / 60),
-        ...(questoes && (tipo === 'questoes' || tipo === 'simulado') ? questoes : {}),
-      });
-    }
+  return performSave({
+    currentEventId: _currentEventId,
+    selectedTipos: _selectedTipos,
+    selectedMateriais: _selectedMateriais,
+    sessionStartTime: _sessionStartTime,
+    sessionEndTime: _sessionEndTime,
+    sessionMode: _sessionMode,
   });
-
-  if (paginas && paginas.total > 0) {
-    if (!state.habitos.paginas) state.habitos.paginas = [];
-    state.habitos.paginas.push({
-      id: 'hab_' + uid(),
-      data: todayStr(),
-      eventoId: ev.id,
-      tempoMin: Math.round((ev.tempoAcumulado || 0) / 60),
-      total: parseInt(paginas.total, 10),
-    });
-  }
-
-  // Limpa o cronometro livre da memória caso tenha sido ele
-  if (isLivre) {
-    state.cronoLivre = { _timerStart: null, tempoAcumulado: 0 };
-  }
-
-  // Update legacy study cycle progress
-  if (state.ciclo && state.ciclo.ativo && discId) {
-    const discEntry = getDisc(discId);
-    const _discNome = discEntry ? discEntry.disc.nome : null;
-    const cycleDisc = discId
-      ? state.ciclo.disciplinas.find((d) => {
-          // Try to match by discId first (linked editais), fallback to name match
-          const discEntry = getDisc(discId);
-          return d.id === discId || (discEntry && d.nome === discEntry.disc.nome);
-        })
-      : null;
-    if (cycleDisc && !cycleDisc.concluido) {
-      const addedMin = Math.round((ev.tempoAcumulado || 0) / 60);
-      cycleDisc.estudadoMin = (cycleDisc.estudadoMin || 0) + addedMin;
-      if (cycleDisc.estudadoMin >= cycleDisc.planejadoMin) {
-        cycleDisc.concluido = true;
-
-        // Check if entire cycle was concluded by this action
-        const allCompleted = state.ciclo.disciplinas.every((d) => d.concluido);
-        if (allCompleted) {
-          state.ciclo.ciclosCompletos = (state.ciclo.ciclosCompletos || 0) + 1;
-        }
-      }
-    }
-  }
-
-  // Update new Planejamento sequence progress
-  if (state.planejamento && state.planejamento.ativo && ev.seqId) {
-    if (state.planejamento.sequencia) {
-      const seq = state.planejamento.sequencia.find((s) => s.id === ev.seqId);
-      if (seq && !seq.concluido) {
-        // We can check if they studied enough, but marking it unconditionally is safer UX for now
-        // if they hit "Concluir" in the session register.
-        seq.concluido = true;
-      }
-    }
-  }
-
-  // FLUSH IMEDIATO para operações críticas - registro de sessão é dado importante
-  saveStateToDB().then(() => {
-    closeModal('modal-registro-sessao');
-
-    // Bug 1 Fix: Explicitly flush UI updates after save completes
-    setTimeout(() => {
-      document.dispatchEvent(new Event('app:refreshMEDSections'));
-      updateBadges();
-      renderCurrentView();
-      showToast('Sessão registrada com sucesso! ✅', 'success');
-    }, 50);
-  });
-
-  return true;
 }
 
 export function saveAndStartNew() {
@@ -968,6 +362,10 @@ export function saveAndStartNew() {
     if (typeof navigate === 'function') navigate('med');
   }, 400);
 }
+
+// =============================================
+// CANCEL / DISCARD / NAVIGATION
+// =============================================
 
 // Rollback timer state if user cancels the registro modal
 export function cancelRegistro() {
@@ -1009,16 +407,6 @@ export function voltarPastSessionUI(eventId, discId) {
   }, 100);
 }
 
-// Listener para fechar modal via data-action - chama cancelRegistro para rollback do timer
-document.addEventListener('click', (e) => {
-  if (
-    e.target.dataset.action === 'close-modal' &&
-    e.target.dataset.modal === 'modal-registro-sessao'
-  ) {
-    cancelRegistro();
-  }
-});
-
 // Global deletion handler for previously registered sessions
 export function deleteCompletedSession(id) {
   showConfirm(
@@ -1038,3 +426,13 @@ export function deleteCompletedSession(id) {
     { danger: true, label: 'Excluir', title: 'Excluir sessão' }
   );
 }
+
+// Listener para fechar modal via data-action - chama cancelRegistro para rollback do timer
+document.addEventListener('click', (e) => {
+  if (
+    e.target.dataset.action === 'close-modal' &&
+    e.target.dataset.modal === 'modal-registro-sessao'
+  ) {
+    cancelRegistro();
+  }
+});

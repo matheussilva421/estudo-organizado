@@ -15,7 +15,7 @@ import {
 import { renderCurrentView } from './components.js?v=8.37';
 import { openAddEventModal, loadAssuntos } from './ui/event-modals.js?v=8.37';
 import { renderVerticalList } from './views/editais-view.js';
-import { editingSubjectCtx, openDiscManager } from './views/editais-crud.js';
+import { getEditingSubjectCtx, openDiscManager } from './views/editais-crud.js';
 import {
   getActiveDiscManagerTab,
   setActiveDiscManagerTab,
@@ -413,8 +413,9 @@ export function dndDrop(event, discId, targetIdx) {
       scheduleSave();
       // Re-render then re-open that disc's assuntos if available
       renderCurrentView();
-      if (editingSubjectCtx && editingSubjectCtx.discId === discId) {
-        openDiscManager(editingSubjectCtx.editaId, discId);
+      const subjCtx = getEditingSubjectCtx();
+      if (subjCtx && subjCtx.discId === discId) {
+        openDiscManager(subjCtx.editaId, discId);
       }
       showToast('Assunto reordenado!', 'success');
       _dndSrcDiscId = null;

@@ -175,8 +175,20 @@ describe('data-action contracts', () => {
 
     expect(registroSource).toMatch(/export function discardTimerUI\s*\(/);
     expect(registroSource).toMatch(
-      /import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.37['"]/s
+      /import\s+\{[^}]*renderRegistroForm[^}]*\}\s+from\s+['"]\.\/registro-sessao\/modal-renderer\.js\?v=8\.37['"]/s
     );
+    expect(registroSource).toMatch(
+      /import\s+\{[^}]*performSave[^}]*\}\s+from\s+['"]\.\/registro-sessao\/session-save\.js\?v=8\.37['"]/s
+    );
+
+    const saveModuleSource = read('src/js/registro-sessao/session-save.js');
+    expect(saveModuleSource).toMatch(
+      /import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\.\/store\.js\?v=8\.37['"]/s
+    );
+
+    const rendererModuleSource = read('src/js/registro-sessao/modal-renderer.js');
+    expect(rendererModuleSource).toMatch(/export function renderRegistroForm\s*\(/);
+    expect(rendererModuleSource).toMatch(/export function renderConditionalFields\s*\(/);
 
     const dataMgmtSource = read('src/js/views/config/data-management.js');
 
@@ -197,33 +209,50 @@ describe('data-action contracts', () => {
   it('exports discipline manager action targets via editais-crud re-export', () => {
     const viewsSource = read('src/js/views.js');
     const editaisCrudSource = read('src/js/views/editais-crud.js');
-    const managerActions = [
+    const discManagerSource = read('src/js/views/editais/disc-manager.js');
+    const discCrudSource = read('src/js/views/editais/disc-crud.js');
+    const inlineEditingSource = read('src/js/views/editais/inline-editing.js');
+    const aulaOperationsSource = read('src/js/views/editais/aula-operations.js');
+
+    expect(viewsSource).toContain(
+      "import { getEditingSubjectCtx, openDiscManager } from './views/editais-crud.js';"
+    );
+    expect(viewsSource).toMatch(/export\s+\{[^}]*switchManagerTab[^}]*\}\s+from\s+['"]\.\/views\/editais-crud\.js['"]/s);
+
+    for (const actionName of [
+      'saveDiscManager',
+      'moveSubject',
+      'openDiscManager',
       'switchManagerTab',
+      'editSubjectInline',
       'editLessonInline',
       'toggleAulaEstudada',
       'addBulkAulas',
       'addAssunto',
       'deleteAula',
       'runLessonMapperUI',
-    ];
-
-    // Views.js re-exports from editais-crud.js
-    expect(viewsSource).toContain(
-      "import { editingSubjectCtx, openDiscManager } from './views/editais-crud.js';"
-    );
-    expect(viewsSource).toMatch(/export\s+\{[^}]*switchManagerTab[^}]*\}\s+from\s+['"]\.\/views\/editais-crud\.js['"]/s);
-
-    // Actual function definitions live in editais-crud.js
-    for (const actionName of managerActions) {
-      expect(editaisCrudSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+    ]) {
+      expect(editaisCrudSource).toMatch(new RegExp(`export\\s+\\{[^}]*${actionName}[^}]*\\}\\s+from\\s+['"]\\.\\/editais\\/`));
     }
+
+    expect(discCrudSource).toMatch(/export function saveDiscManager\s*\(/);
+    expect(discCrudSource).toMatch(/export function moveSubject\s*\(/);
+    expect(discManagerSource).toMatch(/export function openDiscManager\s*\(/);
+    expect(discManagerSource).toMatch(/export function switchManagerTab\s*\(/);
+    expect(inlineEditingSource).toMatch(/export function editSubjectInline\s*\(/);
+    expect(inlineEditingSource).toMatch(/export function editLessonInline\s*\(/);
+    expect(aulaOperationsSource).toMatch(/export function toggleAulaEstudada\s*\(/);
+    expect(aulaOperationsSource).toMatch(/export function addBulkAulas\s*\(/);
+    expect(aulaOperationsSource).toMatch(/export function addAssunto\s*\(/);
+    expect(aulaOperationsSource).toMatch(/export function deleteAula\s*\(/);
+    expect(aulaOperationsSource).toMatch(/export function runLessonMapperUI\s*\(/);
   });
 
   it('uses user-facing language in the discipline manager save action', () => {
-    const editaisCrudSource = read('src/js/views/editais-crud.js');
+    const discManagerSource = read('src/js/views/editais/disc-manager.js');
 
-    expect(editaisCrudSource).not.toContain('Salvar Manager');
-    expect(editaisCrudSource).toContain('Salvar alterações');
+    expect(discManagerSource).not.toContain('Salvar Manager');
+    expect(discManagerSource).toContain('Salvar alterações');
   });
 
   it('exports cycle sequence action targets instead of relying on Proxy fallback', () => {
@@ -313,6 +342,8 @@ describe('data-action contracts', () => {
 
   it('exports legacy cycle, free timer, and session handlers before action dispatch', () => {
     const logicSource = read('src/js/logic.js');
+    const logicTimerSource = read('src/js/logic/timer.js');
+    const logicCycleSource = read('src/js/logic/cycle.js');
     const viewsSource = read('src/js/views.js');
     const cicloViewSource = read('src/js/views/ciclo-view.js');
     const registroSource = read('src/js/registro-sessao.js');
@@ -321,11 +352,18 @@ describe('data-action contracts', () => {
       'setCronoLivreGoal',
       'setCronoLivreDisc',
       'setCronoLivreAss',
+    ]) {
+      expect(logicSource).toContain(actionName);
+      expect(logicTimerSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+    }
+
+    for (const actionName of [
       'moveCicloSeq',
       'desfazerEtapa',
       'editCicloSeqHours',
     ]) {
-      expect(logicSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
+      expect(logicSource).toContain(actionName);
+      expect(logicCycleSource).toMatch(new RegExp(`export function ${actionName}\\s*\\(`));
     }
 
     for (const actionName of [
@@ -342,11 +380,15 @@ describe('data-action contracts', () => {
 
   it('imports immediate persistence before saving detailed study sessions', () => {
     const registroSource = read('src/js/registro-sessao.js');
+    const saveModuleSource = read('src/js/registro-sessao/session-save.js');
 
     expect(registroSource).toMatch(
-      /import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\/store\.js\?v=8\.37['"]/s
+      /import\s+\{[^}]*performSave[^}]*\}\s+from\s+['"]\.\/registro-sessao\/session-save\.js\?v=8\.37['"]/s
     );
-    expect(registroSource).toContain('saveStateToDB().then');
+    expect(saveModuleSource).toMatch(
+      /import\s+\{[^}]*saveStateToDB[^}]*\}\s+from\s+['"]\.\.\/store\.js\?v=8\.37['"]/s
+    );
+    expect(saveModuleSource).toContain('saveStateToDB().then');
   });
 
   it('renders revision action buttons as non-submit controls', () => {
@@ -362,6 +404,8 @@ describe('data-action contracts', () => {
       './js/credentials.js',
       './js/views/habitos-view.js',
       './js/views/ciclo-view.js',
+      './js/registro-sessao/modal-renderer.js',
+      './js/registro-sessao/session-save.js',
     ];
 
     for (const mod of requiredModules) {
@@ -465,8 +509,10 @@ describe('data-action contracts', () => {
 
   it('removes isolated credentials when clearing all app data', () => {
     const storeSource = read('src/js/store.js');
+    const indexedDbSource = read('src/js/store/indexeddb.js');
 
-    expect(storeSource).toContain("from './credentials.js?v=8.37';");
-    expect(storeSource).toMatch(/clearData[\s\S]*clearAllCredentials\(\)/);
+    expect(storeSource).toMatch(/clearData/);
+    expect(indexedDbSource).toContain("from '../credentials.js?v=8.37';");
+    expect(indexedDbSource).toMatch(/clearData[\s\S]*clearAllCredentials\(\)/);
   });
 });
