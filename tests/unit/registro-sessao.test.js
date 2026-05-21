@@ -310,6 +310,72 @@ describe('registro-sessao.js', () => {
       expect(store.state.habitos.leitura).toHaveLength(0);
       expect(app.closeModal).toHaveBeenCalledWith('modal-registro-sessao');
     });
+
+    it('reverts seq.concluido when deleting the only completed session for seqId', () => {
+      const evento = createEvento({
+        id: 'ev_completed',
+        status: 'estudei',
+        discId: 'disc_1',
+        seqId: 'seq_1',
+        tempoAcumulado: 3600,
+        sessao: { tiposEstudo: ['leitura'] }
+      });
+      store.setState(createBaseState({
+        eventos: [evento],
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          relevancia: {},
+          horarios: {},
+          sequencia: [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: true }]
+        }
+      }));
+
+      registroSessao.deleteCompletedSession('ev_completed');
+      const confirmCallback = app.showConfirm.mock.calls[0][1];
+      confirmCallback();
+
+      expect(store.state.planejamento.sequencia[0].concluido).toBe(false);
+    });
+
+    it('keeps seq.concluido when another completed session exists for same seqId', () => {
+      const deletedEvent = createEvento({
+        id: 'ev_completed_1',
+        status: 'estudei',
+        discId: 'disc_1',
+        seqId: 'seq_1',
+        tempoAcumulado: 3600,
+        sessao: { tiposEstudo: ['leitura'] }
+      });
+      const remainingEvent = createEvento({
+        id: 'ev_completed_2',
+        status: 'estudei',
+        discId: 'disc_1',
+        seqId: 'seq_1',
+        tempoAcumulado: 1800,
+        sessao: { tiposEstudo: ['questoes'] }
+      });
+      store.setState(createBaseState({
+        eventos: [deletedEvent, remainingEvent],
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          relevancia: {},
+          horarios: {},
+          sequencia: [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: true }]
+        }
+      }));
+
+      registroSessao.deleteCompletedSession('ev_completed_1');
+      const confirmCallback = app.showConfirm.mock.calls[0][1];
+      confirmCallback();
+
+      expect(store.state.planejamento.sequencia[0].concluido).toBe(true);
+      expect(store.state.eventos).toHaveLength(1);
+      expect(store.state.eventos[0].id).toBe('ev_completed_2');
+    });
   });
 
   describe('toggleStudyType', () => {
