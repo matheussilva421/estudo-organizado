@@ -408,10 +408,27 @@ export function voltarPastSessionUI(eventId, discId) {
 }
 
 // Global deletion handler for previously registered sessions
+function rollbackPlanningSequenceCompletionIfNeeded(eventToDelete) {
+  const seqId = eventToDelete?.seqId;
+  if (!seqId || !state.planejamento?.sequencia) return;
+
+  const seq = state.planejamento.sequencia.find((s) => s.id === seqId);
+  if (!seq) return;
+
+  const hasOtherCompletedSessionForSeq = state.eventos.some(
+    (ev) => ev.id !== eventToDelete.id && ev.seqId === seqId && ev.status === 'estudei'
+  );
+  if (!hasOtherCompletedSessionForSeq) {
+    seq.concluido = false;
+  }
+}
+
 export function deleteCompletedSession(id) {
   showConfirm(
     'Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?',
     () => {
+      const ev = state.eventos.find((e) => e.id === id);
+      rollbackPlanningSequenceCompletionIfNeeded(ev);
       state.eventos = state.eventos.filter((e) => e.id !== id);
       Object.keys(state.habitos).forEach((tipo) => {
         if (state.habitos[tipo]) {
