@@ -266,6 +266,44 @@ describe('ciclo-view.js', () => {
       expect(container.innerHTML).toContain('4h totais');
       expect(container.innerHTML).toContain('20/04/2026 a 21/04/2026');
     });
+
+    it('mostra etapa concluida manualmente como 100% mesmo com tempo parcial', () => {
+      const state = createBaseState({
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          sequencia: [
+            { id: 'seq_1', discId: 'disc_1', minutosAlvo: 120, concluido: true, status: 'concluida' },
+          ],
+          ciclosCompletos: 0,
+          dataInicioCicloAtual: '2026-04-20T00:00:00.000Z',
+        },
+        editais: [
+          createEdital({
+            disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' })],
+          }),
+        ],
+        eventos: [
+          createEvento({
+            id: 'ev_partial',
+            data: '2026-04-20',
+            dataEstudo: '2026-04-20',
+            status: 'estudei',
+            tempoAcumulado: 4260,
+            discId: 'disc_1',
+            seqId: 'seq_1',
+          }),
+        ],
+      });
+      store.setState(state);
+
+      const container = { innerHTML: '' };
+      views.renderCiclo(container);
+
+      expect(container.innerHTML).toContain('100%');
+      expect(container.innerHTML).toContain('2h</span> de 2h');
+    });
   });
 
   describe('recomecarCiclo()', () => {
@@ -280,6 +318,53 @@ describe('ciclo-view.js', () => {
       expect(views.zerarCiclosCounter).toBeDefined();
       expect(typeof views.zerarCiclosCounter).toBe('function');
     });
+  });
+});
+
+describe('ciclo history modal', () => {
+  it('mostra progresso, tempo restante e status da etapa parcial', () => {
+    document.body.innerHTML = `
+      <div id="modal-ciclo-history" class="modal-overlay" aria-hidden="true"></div>
+      <h2 id="modal-ciclo-history-title"></h2>
+      <div id="modal-ciclo-history-body"></div>
+    `;
+    const state = createBaseState({
+      planejamento: {
+        ativo: true,
+        tipo: 'ciclo',
+        disciplinas: ['disc_1'],
+        sequencia: [
+          { id: 'seq_1', discId: 'disc_1', minutosAlvo: 120, concluido: false, status: 'pendente' },
+        ],
+        ciclosCompletos: 0,
+        dataInicioCicloAtual: '2026-04-20T00:00:00.000Z',
+      },
+      editais: [
+        createEdital({
+          disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' })],
+        }),
+      ],
+      eventos: [
+        createEvento({
+          id: 'ev_partial',
+          data: '2026-04-20',
+          dataEstudo: '2026-04-20',
+          status: 'estudei',
+          tempoAcumulado: 4260,
+          discId: 'disc_1',
+          seqId: 'seq_1',
+        }),
+      ],
+    });
+    store.setState(state);
+    logic.invalidateDiscCache();
+
+    views.openCicloHistory('seq_1');
+
+    const body = document.getElementById('modal-ciclo-history-body').innerHTML;
+    expect(body).toContain('1h 11min de 2h');
+    expect(body).toContain('49min restantes');
+    expect(body).toContain('Status: pendente');
   });
 });
 

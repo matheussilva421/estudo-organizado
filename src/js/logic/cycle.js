@@ -289,6 +289,28 @@ function getPendingPlanejamentoSequence(plan = state.planejamento) {
   return (plan?.sequencia || []).filter((seq) => isPlanejamentoSeqPending(seq));
 }
 
+function getStudiedMinutesForSeq(seqId) {
+  if (!seqId) return 0;
+  return (state.eventos || [])
+    .filter((event) => event?.seqId === seqId && event.status === 'estudei')
+    .reduce((total, event) => total + Math.round((Number(event.tempoAcumulado) || 0) / 60), 0);
+}
+
+function getRemainingMinutesForSeq(seq) {
+  const target = Math.max(0, Math.round(Number(seq?.minutosAlvo) || 0));
+  if (target <= 0) return 0;
+  if (getSeqStatus(seq) === 'concluida') return 0;
+  return Math.max(target - getStudiedMinutesForSeq(seq.id), 0);
+}
+
+function formatPlanningMinutes(minutes) {
+  const total = Math.max(0, Math.round(Number(minutes) || 0));
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  if (hours > 0) return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  return `${mins}min`;
+}
+
 function getSkippedSlotKey(data, slotIndex) {
   return `${data || ''}#${Number(slotIndex) || 0}`;
 }
@@ -381,8 +403,13 @@ export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
       if (!projection[seqItem.discId]) {
         projection[seqItem.discId] = { sessoes: 0, minutos: 0 };
       }
+      const remainingMinutes = getRemainingMinutesForSeq(seqItem);
+      if (remainingMinutes <= 0) {
+        simulatedIdx = (simulatedIdx + 1) % seq.length;
+        continue;
+      }
       projection[seqItem.discId].sessoes++;
-      projection[seqItem.discId].minutos += seqItem.minutosAlvo;
+      projection[seqItem.discId].minutos += remainingMinutes;
 
       simulatedIdx = (simulatedIdx + 1) % seq.length;
     }
@@ -395,13 +422,26 @@ export function iniciarEtapaPlanejamento(seqId) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
   const seq = state.planejamento.sequencia.find((s) => s.id === seqId);
   if (!seq) return;
+  const targetMinutes = Math.max(0, Math.round(Number(seq.minutosAlvo) || 0));
+  const studiedMinutes = getStudiedMinutesForSeq(seq.id);
+  const remainingMinutes = getRemainingMinutesForSeq(seq) || targetMinutes;
+
+  if (studiedMinutes > 0 && remainingMinutes > 0 && remainingMinutes < targetMinutes) {
+    openPartialPlanningStartPrompt(seq, remainingMinutes, studiedMinutes, targetMinutes);
+    return;
+  }
+
+  startPlanningSequenceEvent(seq, remainingMinutes);
+}
+
+function startPlanningSequenceEvent(seq, durationMinutes, extra = {}) {
   const d = getDisc(seq.discId);
 
   const evento = {
     id: 'ev_' + uid(),
     titulo: `Estudar ${d?.disc.nome || 'Disciplina'}`,
     data: todayStr(),
-    duracao: seq.minutosAlvo,
+    duracao: durationMinutes,
     status: 'agendado',
     tempoAcumulado: 0,
     tipo: 'conteudo',
@@ -410,6 +450,7 @@ export function iniciarEtapaPlanejamento(seqId) {
     habito: null,
     seqId: seq.id,
     criadoEm: new Date().toISOString(),
+    ...extra,
   };
 
   state.eventos.push(evento);
@@ -420,6 +461,43 @@ export function iniciarEtapaPlanejamento(seqId) {
 
   // Switch to Cronometro and let the component render the already active event
   navigate('cronometro');
+}
+
+function openPartialPlanningStartPrompt(seq, remainingMinutes, studiedMinutes, targetMinutes) {
+  const titleEl = document.getElementById('modal-prompt-title');
+  const bodyEl = document.getElementById('modal-prompt-body');
+  const saveBtn = document.getElementById('modal-prompt-save');
+  if (!titleEl || !bodyEl || !saveBtn) {
+    startPlanningSequenceEvent(seq, remainingMinutes);
+    return;
+  }
+
+  titleEl.textContent = 'Continuar etapa parcial';
+  saveBtn.textContent = 'Retomar anterior';
+  bodyEl.innerHTML = `
+    <div class="modal-note">
+      VocÃª jÃ¡ estudou ${esc(formatPlanningMinutes(studiedMinutes))} de ${esc(formatPlanningMinutes(targetMinutes))}.
+      A prÃ³xima meta serÃ¡ de ${esc(formatPlanningMinutes(remainingMinutes))}.
+    </div>
+    <div class="flex gap-sm mt-3">
+      <button type="button" class="btn btn-ghost" id="prompt-start-new-session">Criar nova sessÃ£o</button>
+    </div>
+  `;
+
+  const start = (mode) => {
+    closeModal('modal-prompt');
+    saveBtn.textContent = 'Salvar';
+    startPlanningSequenceEvent(seq, remainingMinutes, {
+      partialMode: mode,
+      minutosAlvoOriginal: targetMinutes,
+      minutosJaEstudadosAoIniciar: studiedMinutes,
+    });
+  };
+
+  saveBtn.onclick = () => start('retomar');
+  document.getElementById('prompt-start-new-session').onclick = () => start('nova');
+
+  openModal('modal-prompt');
 }
 
 export function syncCicloToEventos() {
@@ -487,13 +565,18 @@ export function syncCicloToEventos() {
       if (skippedSlots.has(getSkippedSlotKey(dtStr, m))) continue;
       const seqItem = seq[currentSeqIdx];
       if (!seqItem) break; // guard: empty or exhausted sequence
+      const remainingMinutes = getRemainingMinutesForSeq(seqItem);
+      if (remainingMinutes <= 0) {
+        currentSeqIdx = (currentSeqIdx + 1) % seq.length;
+        continue;
+      }
       const discEntry = getDisc(seqItem.discId);
 
       state.eventos.push({
         id: 'auto_' + dtStr + '_' + currentSeqIdx + '_' + uid(),
         titulo: `Estudar ${discEntry?.disc.nome || 'Disciplina'}`,
         data: dtStr,
-        duracao: seqItem.minutosAlvo,
+        duracao: remainingMinutes,
         status: 'agendado',
         tempoAcumulado: 0,
         tipo: 'conteudo',

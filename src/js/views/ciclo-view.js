@@ -245,7 +245,13 @@ function renderCicloView(el, plan) {
 
     let pct = 0;
     let usedMins = 0;
-    if (seq.discId && copyStats[seq.discId] > 0) {
+    if (seqStatus === 'concluida') {
+      usedMins = seq.minutosAlvo;
+      pct = 100;
+      if (seq.discId && copyStats[seq.discId] > 0) {
+        copyStats[seq.discId] = Math.max(copyStats[seq.discId] - seq.minutosAlvo, 0);
+      }
+    } else if (seq.discId && copyStats[seq.discId] > 0) {
       if (copyStats[seq.discId] >= seq.minutosAlvo) {
         usedMins = seq.minutosAlvo;
         pct = 100;

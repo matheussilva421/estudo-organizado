@@ -4,8 +4,8 @@
 // =============================================
 
 import { state, saveStateToDB } from '../store.js?v=8.37';
-import { getDisc } from '../logic.js?v=8.37';
-import { showToast, closeModal } from '../app.js?v=8.37';
+import { getDisc, syncCicloToEventos } from '../logic.js?v=8.37';
+import { showToast, closeModal, showConfirm } from '../app.js?v=8.37';
 import { todayStr, uid } from '../utils.js?v=8.37';
 import { updateBadges, renderCurrentView } from '../components.js?v=8.37';
 
@@ -40,6 +40,48 @@ function markPlanningSequenceCompleted(seq) {
   seq.status = 'concluida';
   seq.finalizadoEm = new Date().toISOString();
   delete seq.puladaEm;
+}
+
+function getStudiedMinutesForSeq(seqId) {
+  if (!seqId) return 0;
+  return (state.eventos || [])
+    .filter((event) => event.seqId === seqId && event.status === 'estudei')
+    .reduce((total, event) => total + Math.round((Number(event.tempoAcumulado) || 0) / 60), 0);
+}
+
+function formatPlanningMinutes(minutes) {
+  const total = Math.max(0, Math.round(Number(minutes) || 0));
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  if (hours > 0) return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  return `${mins}min`;
+}
+
+function updatePlanningSequenceProgress(seq) {
+  if (!seq || getSeqStatus(seq) !== 'pendente') return;
+
+  const targetMinutes = Math.max(0, Math.round(Number(seq.minutosAlvo) || 0));
+  const studiedMinutes = getStudiedMinutesForSeq(seq.id);
+  if (targetMinutes <= 0 || studiedMinutes >= targetMinutes) {
+    markPlanningSequenceCompleted(seq);
+    syncCicloToEventos();
+    return;
+  }
+
+  const remainingMinutes = targetMinutes - studiedMinutes;
+  showConfirm(
+    `Concluir mesmo assim esta etapa do planejamento? VocÃª estudou ${formatPlanningMinutes(studiedMinutes)} de ${formatPlanningMinutes(targetMinutes)}. Se cancelar, ela continua pendente com ${formatPlanningMinutes(remainingMinutes)} restantes.`,
+    () => {
+      markPlanningSequenceCompleted(seq);
+      syncCicloToEventos();
+      saveStateToDB().then(() => {
+        renderCurrentView();
+        showToast('Etapa concluÃ­da manualmente.', 'success');
+      });
+    },
+    { title: 'SessÃ£o parcial', label: 'Concluir mesmo assim' }
+  );
+  syncCicloToEventos();
 }
 
 export function performSave({
@@ -328,11 +370,7 @@ export function performSave({
   if (state.planejamento && state.planejamento.ativo && ev.seqId) {
     if (state.planejamento.sequencia) {
       const seq = state.planejamento.sequencia.find((s) => s.id === ev.seqId);
-      if (seq && !seq.concluido) {
-        // We can check if they studied enough, but marking it unconditionally is safer UX for now
-        // if they hit "Concluir" in the session register.
-        markPlanningSequenceCompleted(seq);
-      }
+      updatePlanningSequenceProgress(seq);
     }
   }
 

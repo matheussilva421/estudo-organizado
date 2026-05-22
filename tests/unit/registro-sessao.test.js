@@ -740,6 +740,89 @@ describe('registro-sessao.js', () => {
       expect(store.state.planejamento.sequencia[0].finalizadoEm).toBeTruthy();
     });
 
+    it('keeps a linked planning step pending when saved below target and asks for manual conclusion', () => {
+      app.showConfirm.mockImplementation(() => {});
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
+      const edital = createEdital({ disciplinas: [disc] });
+      const evento = createEvento({
+        id: 'ev_partial',
+        discId: 'disc_1',
+        seqId: 'seq_1',
+        tempoAcumulado: 4260,
+        sessao: {}
+      });
+      store.setState(createBaseState({
+        editais: [edital],
+        eventos: [evento],
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          relevancia: {},
+          horarios: {},
+          sequencia: [
+            { id: 'seq_1', discId: 'disc_1', minutosAlvo: 120, concluido: false, status: 'pendente' }
+          ]
+        }
+      }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('ev_partial');
+      registroSessao.toggleStudyType('leitura');
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(true);
+      expect(app.showConfirm).toHaveBeenCalledWith(
+        expect.stringContaining('Concluir mesmo assim'),
+        expect.any(Function),
+        expect.objectContaining({ label: 'Concluir mesmo assim' })
+      );
+      expect(store.state.planejamento.sequencia[0]).toMatchObject({
+        concluido: false,
+        status: 'pendente'
+      });
+    });
+
+    it('allows manually concluding a linked planning step even when saved below target', () => {
+      app.showConfirm.mockImplementation(() => {});
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
+      const edital = createEdital({ disciplinas: [disc] });
+      const evento = createEvento({
+        id: 'ev_partial',
+        discId: 'disc_1',
+        seqId: 'seq_1',
+        tempoAcumulado: 4260,
+        sessao: {}
+      });
+      store.setState(createBaseState({
+        editais: [edital],
+        eventos: [evento],
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          relevancia: {},
+          horarios: {},
+          sequencia: [
+            { id: 'seq_1', discId: 'disc_1', minutosAlvo: 120, concluido: false, status: 'pendente' }
+          ]
+        }
+      }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('ev_partial');
+      registroSessao.toggleStudyType('leitura');
+      registroSessao.saveRegistroSessao();
+      const concludeCallback = app.showConfirm.mock.calls[0][1];
+      concludeCallback();
+
+      expect(store.state.planejamento.sequencia[0]).toMatchObject({
+        concluido: true,
+        status: 'concluida'
+      });
+      expect(store.state.planejamento.sequencia[0].finalizadoEm).toBeTruthy();
+    });
+
     it('registers habit entries for selected types', () => {
       const evento = createEvento({
         id: 'ev_1',

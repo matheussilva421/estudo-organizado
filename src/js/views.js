@@ -475,6 +475,35 @@ export function openCicloHistory(seqId) {
 
   const bodyEl = document.getElementById('modal-ciclo-history-body');
 
+  const formatCycleDuration = (minutes) => {
+    const total = Math.max(0, Math.round(Number(minutes) || 0));
+    const hours = Math.floor(total / 60);
+    const mins = total % 60;
+    if (hours > 0) return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+    return `${mins}min`;
+  };
+  const getSeqStatus = (seq) => {
+    if (seq?.status) return seq.status;
+    return seq?.concluido ? 'concluida' : 'pendente';
+  };
+  const eventosSeq = state.eventos.filter(
+    (e) => e.seqId === seqId && e.status === 'estudei' && e.tempoAcumulado > 0
+  );
+  const studiedMinutes = eventosSeq.reduce(
+    (total, ev) => total + Math.round((Number(ev.tempoAcumulado) || 0) / 60),
+    0
+  );
+  const targetMinutes = Math.max(0, Math.round(Number(seqItem.minutosAlvo) || 0));
+  const remainingMinutes = Math.max(targetMinutes - studiedMinutes, 0);
+  const progressSummary = `
+    <div class="card ciclo-history-progress-card">
+      <div class="ciclo-history-session-title">Progresso da etapa</div>
+      <div class="ciclo-history-session-time">${formatCycleDuration(studiedMinutes)} de ${formatCycleDuration(targetMinutes)}</div>
+      <div class="ciclo-history-session-location">${formatCycleDuration(remainingMinutes)} restantes</div>
+      <div class="ciclo-history-session-location">Status: ${esc(getSeqStatus(seqItem))}</div>
+    </div>
+  `;
+
   // Filtrar histórico de estudos da disciplina
   const eventosDisc = state.eventos
     .filter((e) => e.discId === seqItem.discId && e.status === 'estudei' && e.tempoAcumulado > 0)
@@ -526,6 +555,7 @@ export function openCicloHistory(seqId) {
   if (bodyEl) {
     bodyEl.innerHTML = `
       <div class="modal-body-padded">
+        ${progressSummary}
         ${btnDesfazer}
         <h4 class="ciclo-history-sessions-title">Sessões Recentes (${eventosDisc.length})</h4>
         ${htmlHistorico}
