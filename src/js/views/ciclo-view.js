@@ -48,6 +48,11 @@ function pluralizeSession(count) {
   return count === 1 ? 'sessão' : 'sessões';
 }
 
+function getSeqStatus(seq) {
+  if (seq?.status) return seq.status;
+  return seq?.concluido ? 'concluida' : 'pendente';
+}
+
 export function recomecarCiclo() {
   showConfirm(
     'Isto irá arquivar a rodada e reiniciar toda a sequência do zero, mantendo as configurações. Tem certeza?',
@@ -234,6 +239,7 @@ function renderCicloView(el, plan) {
   targetLoop.forEach((seq, i) => {
     const d = dictDisciplinas[seq.discId];
     if (!getIsEditingSequence() && !d) return;
+    const seqStatus = getSeqStatus(seq);
 
     totalTarget += seq.minutosAlvo;
 
@@ -313,8 +319,13 @@ function renderCicloView(el, plan) {
             </div>
 
             <div class="ciclo-sequence-actions">
-              <button type="button" class="ciclo-action-link ciclo-action-link--primary" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Iniciar Estudo</button>
-              <button type="button" class="ciclo-action-link" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</button>
+              ${
+                seqStatus === 'pulada'
+                  ? `<span class="grade-concluded-badge"><i class="fa fa-forward"></i> Etapa pulada</span>
+                     <button type="button" class="ciclo-action-link" data-action="desfazer-etapa" data-seq-id="${seq.id}"><i class="fa fa-undo"></i> Reabrir etapa</button>`
+                  : `<button type="button" class="ciclo-action-link ciclo-action-link--primary" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Iniciar Estudo</button>
+                     <button type="button" class="ciclo-action-link" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</button>`
+              }
               <button type="button" class="ciclo-action-link" data-action="open-ciclo-history" data-seq-id="${seq.id}"><i class="fa fa-history"></i> Ver Últimos Estudos</button>
             </div>
           </div>

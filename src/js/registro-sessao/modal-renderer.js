@@ -102,6 +102,21 @@ export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessi
 
   const discId = ev.discId || '';
   const aulaId = ev.aulaId || '';
+  const canLinkToPlanning =
+    !ev.seqId &&
+    state?.planejamento?.ativo &&
+    Array.isArray(state.planejamento.sequencia) &&
+    state.planejamento.sequencia.some(
+      (seq) => (!seq.status && !seq.concluido) || seq.status === 'pendente'
+    );
+  const planningLinkHtml = canLinkToPlanning
+    ? `
+      <label class="reg-checkbox-row">
+        <input type="checkbox" id="reg-vincular-planejamento">
+        <span>Vincular à próxima etapa pendente desta disciplina no planejamento</span>
+      </label>
+    `
+    : '';
 
   return `
     <!-- 1) RESUMO DA SESSÃO -->
@@ -148,6 +163,7 @@ export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessi
             <option value="">Selecione uma disciplina...</option>
             ${discOptions}
           </select>
+          ${planningLinkHtml}
         </div>
       </div>
       <div class="reg-row reg-row-column">

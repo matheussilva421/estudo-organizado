@@ -51,6 +51,7 @@ export {
 } from './logic/disc.js';
 
 import { invalidateDiscCache, getDisc } from './logic/disc.js';
+import { skipPlanejamentoEventBeforeDelete, syncCicloToEventos } from './logic/cycle.js';
 
 // PROGRESS & DASHBOARD ANALYTICS (extracted to ./logic/progress.js)
 export {
@@ -136,11 +137,16 @@ export function _marcarEstudeiDirect(eventId) {
 }
 
 export function removeEvento(eventId) {
+  const ev = state.eventos.find((e) => e.id === eventId);
   if (timerIntervals[eventId]) {
     clearInterval(timerIntervals[eventId]);
     delete timerIntervals[eventId];
   }
+  const skippedPlanejamentoSlot = skipPlanejamentoEventBeforeDelete(ev);
   state.eventos = state.eventos.filter((e) => e.id !== eventId);
+  if (skippedPlanejamentoSlot) {
+    syncCicloToEventos();
+  }
   scheduleSave();
   invalidatePendingRevCache();
   document.dispatchEvent(new CustomEvent('app:eventoDeleted', { detail: { eventId } }));

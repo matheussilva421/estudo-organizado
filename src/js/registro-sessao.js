@@ -11,6 +11,7 @@ import {
   _pomodoroMode,
   timerIntervals,
   discardTimer,
+  syncCicloToEventos,
 } from './logic.js?v=8.37';
 import { openModal, closeModal, showToast, showConfirm, navigate } from './app.js?v=8.37';
 import { esc, trunc, uid } from './utils.js?v=8.37';
@@ -408,19 +409,27 @@ export function voltarPastSessionUI(eventId, discId) {
 }
 
 // Global deletion handler for previously registered sessions
-function rollbackPlanningSequenceCompletionIfNeeded(eventToDelete) {
+function getLinkedPlanningSequenceForDeletedSession(eventToDelete) {
   const seqId = eventToDelete?.seqId;
-  if (!seqId || !state.planejamento?.sequencia) return;
+  if (!seqId || !state.planejamento?.sequencia) return null;
 
   const seq = state.planejamento.sequencia.find((s) => s.id === seqId);
-  if (!seq) return;
+  if (!seq) return null;
 
   const hasOtherCompletedSessionForSeq = state.eventos.some(
     (ev) => ev.id !== eventToDelete.id && ev.seqId === seqId && ev.status === 'estudei'
   );
-  if (!hasOtherCompletedSessionForSeq) {
-    seq.concluido = false;
-  }
+  return hasOtherCompletedSessionForSeq ? null : seq;
+}
+
+function reopenPlanningSequence(seq) {
+  seq.concluido = false;
+  seq.status = 'pendente';
+  delete seq.finalizadoEm;
+  delete seq.puladaEm;
+  syncCicloToEventos();
+  scheduleSave();
+  renderCurrentView();
 }
 
 export function deleteCompletedSession(id) {
@@ -428,7 +437,7 @@ export function deleteCompletedSession(id) {
     'Tem certeza que deseja excluir permanentemente este registro de estudo do seu histórico?',
     () => {
       const ev = state.eventos.find((e) => e.id === id);
-      rollbackPlanningSequenceCompletionIfNeeded(ev);
+      const linkedSeqToReopen = getLinkedPlanningSequenceForDeletedSession(ev);
       state.eventos = state.eventos.filter((e) => e.id !== id);
       Object.keys(state.habitos).forEach((tipo) => {
         if (state.habitos[tipo]) {
@@ -439,6 +448,16 @@ export function deleteCompletedSession(id) {
       closeModal('modal-registro-sessao');
       renderCurrentView();
       showToast('Sessão excluída com sucesso.', 'info');
+      if (linkedSeqToReopen) {
+        showConfirm(
+          'Reabrir esta etapa no planejamento? Se você confirmar, ela volta para pendente e novas previsões podem ser geradas.',
+          () => {
+            reopenPlanningSequence(linkedSeqToReopen);
+            showToast('Etapa reaberta no planejamento.', 'info');
+          },
+          { title: 'Reabrir etapa', label: 'Reabrir etapa' }
+        );
+      }
     },
     { danger: true, label: 'Excluir', title: 'Excluir sessão' }
   );

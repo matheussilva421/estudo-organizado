@@ -311,7 +311,8 @@ describe('registro-sessao.js', () => {
       expect(app.closeModal).toHaveBeenCalledWith('modal-registro-sessao');
     });
 
-    it('reverts seq.concluido when deleting the only completed session for seqId', () => {
+    it('asks before reopening the linked planning step when deleting the only completed session', () => {
+      app.showConfirm.mockImplementation(() => {});
       const evento = createEvento({
         id: 'ev_completed',
         status: 'estudei',
@@ -328,7 +329,15 @@ describe('registro-sessao.js', () => {
           disciplinas: ['disc_1'],
           relevancia: {},
           horarios: {},
-          sequencia: [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: true }]
+          sequencia: [
+            {
+              id: 'seq_1',
+              discId: 'disc_1',
+              minutosAlvo: 60,
+              concluido: true,
+              status: 'concluida'
+            }
+          ]
         }
       }));
 
@@ -336,7 +345,61 @@ describe('registro-sessao.js', () => {
       const confirmCallback = app.showConfirm.mock.calls[0][1];
       confirmCallback();
 
-      expect(store.state.planejamento.sequencia[0].concluido).toBe(false);
+      expect(app.showConfirm).toHaveBeenCalledTimes(2);
+      expect(app.showConfirm.mock.calls[1][0]).toContain('Reabrir esta etapa');
+      expect(store.state.planejamento.sequencia[0]).toMatchObject({
+        concluido: true,
+        status: 'concluida'
+      });
+
+      const reopenCallback = app.showConfirm.mock.calls[1][1];
+      reopenCallback();
+
+      expect(store.state.planejamento.sequencia[0]).toMatchObject({
+        concluido: false,
+        status: 'pendente'
+      });
+      expect(store.state.planejamento.sequencia[0].finalizadoEm).toBeUndefined();
+    });
+
+    it('keeps the planning step advanced when deletion is confirmed but reopening is cancelled', () => {
+      app.showConfirm.mockImplementation(() => {});
+      const evento = createEvento({
+        id: 'ev_completed',
+        status: 'estudei',
+        discId: 'disc_1',
+        seqId: 'seq_1',
+        tempoAcumulado: 3600,
+        sessao: { tiposEstudo: ['leitura'] }
+      });
+      store.setState(createBaseState({
+        eventos: [evento],
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          relevancia: {},
+          horarios: {},
+          sequencia: [
+            {
+              id: 'seq_1',
+              discId: 'disc_1',
+              minutosAlvo: 60,
+              concluido: true,
+              status: 'concluida'
+            }
+          ]
+        }
+      }));
+
+      registroSessao.deleteCompletedSession('ev_completed');
+      const confirmCallback = app.showConfirm.mock.calls[0][1];
+      confirmCallback();
+
+      expect(store.state.planejamento.sequencia[0]).toMatchObject({
+        concluido: true,
+        status: 'concluida'
+      });
     });
 
     it('keeps seq.concluido when another completed session exists for same seqId', () => {
@@ -607,6 +670,74 @@ describe('registro-sessao.js', () => {
       expect(result).toBe(true);
       const savedEv = store.state.eventos.find(e => e.id === 'ev_1');
       expect(savedEv.status).toBe('estudei');
+    });
+
+    it('does not link a free manual session to planejamento unless the option is checked', () => {
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
+      const edital = createEdital({ disciplinas: [disc] });
+      store.setState(createBaseState({
+        editais: [edital],
+        cronoLivre: { _timerStart: null, tempoAcumulado: 1800 },
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          relevancia: {},
+          horarios: {},
+          sequencia: [
+            { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false, status: 'pendente' }
+          ]
+        }
+      }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('crono_livre');
+      global.document.getElementById('reg-disciplina').value = 'disc_1';
+      registroSessao.toggleStudyType('leitura');
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(true);
+      const savedEv = store.state.eventos.find(e => e.discId === 'disc_1');
+      expect(savedEv.seqId).toBeUndefined();
+      expect(store.state.planejamento.sequencia[0]).toMatchObject({
+        concluido: false,
+        status: 'pendente'
+      });
+    });
+
+    it('links a free manual session to the next pending planning step when checked', () => {
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
+      const edital = createEdital({ disciplinas: [disc] });
+      store.setState(createBaseState({
+        editais: [edital],
+        cronoLivre: { _timerStart: null, tempoAcumulado: 3600 },
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          relevancia: {},
+          horarios: {},
+          sequencia: [
+            { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false, status: 'pendente' }
+          ]
+        }
+      }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('crono_livre');
+      global.document.getElementById('reg-disciplina').value = 'disc_1';
+      global.document.getElementById('reg-vincular-planejamento').checked = true;
+      registroSessao.toggleStudyType('leitura');
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(true);
+      const savedEv = store.state.eventos.find(e => e.discId === 'disc_1');
+      expect(savedEv.seqId).toBe('seq_1');
+      expect(store.state.planejamento.sequencia[0]).toMatchObject({
+        concluido: true,
+        status: 'concluida'
+      });
+      expect(store.state.planejamento.sequencia[0].finalizadoEm).toBeTruthy();
     });
 
     it('registers habit entries for selected types', () => {
