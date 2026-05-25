@@ -5,6 +5,13 @@ function serializeState(state) {
   return JSON.stringify(state);
 }
 
+function localDateStr(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 async function seedLegacyState(page, state) {
   await page.addInitScript((serializedState) => {
     window.Chart = class {
@@ -149,5 +156,81 @@ test.describe('Calendario', () => {
     await expect(page.locator('.ciclo-predict-summary')).toContainText('5 sessões previstas');
     await expect(page.locator('#predict-results-container')).toContainText('Direito Constitucional');
     await expect(page.locator('#predict-results-container')).toContainText('5 sessões');
+  });
+  test('day load hint ignores scheduled events hidden by the active edital filter', async ({ page }) => {
+    const state = createE2EState();
+    const today = localDateStr();
+    state.editais.push({
+      id: 'ed_2',
+      nome: 'Concurso TRT',
+      cor: '#7c3aed',
+      disciplinas: [
+        {
+          id: 'disc_2',
+          nome: 'Direito do Trabalho',
+          icone: '📘',
+          cor: '#7c3aed',
+          assuntos: [],
+          aulas: [],
+        },
+      ],
+    });
+    state.eventos.push(
+      {
+        id: 'ev_visible_delete',
+        titulo: 'Evento visivel para apagar',
+        data: today,
+        status: 'agendado',
+        tempoAcumulado: 0,
+        duracao: 60,
+        tipo: 'conteudo',
+        discId: 'disc_1',
+      },
+      {
+        id: 'ev_hidden_1',
+        titulo: 'Evento escondido 1',
+        data: today,
+        status: 'agendado',
+        tempoAcumulado: 0,
+        duracao: 120,
+        tipo: 'conteudo',
+        discId: 'disc_2',
+      },
+      {
+        id: 'ev_hidden_2',
+        titulo: 'Evento escondido 2',
+        data: today,
+        status: 'agendado',
+        tempoAcumulado: 0,
+        duracao: 120,
+        tipo: 'conteudo',
+        discId: 'disc_2',
+      }
+    );
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="calendar"]');
+
+    const visibleChip = page.locator(
+      '.cal-event-chip[data-action="open-event-detail"][data-event-id="ev_visible_delete"]'
+    );
+    await expect(visibleChip).toBeVisible();
+    await expect(page.locator('#main-content')).not.toContainText('Evento escondido 1');
+
+    await visibleChip.click();
+    await page.click('[data-action="delete-event-from-modal"][data-event-id="ev_visible_delete"]');
+    await expect(page.locator('#modal-confirm')).toHaveClass(/open/);
+    await page.click('#confirm-ok-btn');
+
+    await expect(visibleChip).not.toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.state.eventos.some((event) => event.id === 'ev_visible_delete'))
+      )
+      .toBe(false);
+
+    await page.click('[data-action="open-add-event"]');
+    await expect(page.locator('#day-load-hint')).toContainText('Dia livre');
   });
 });

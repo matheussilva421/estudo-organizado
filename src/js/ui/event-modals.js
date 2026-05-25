@@ -6,16 +6,26 @@
 import { state, scheduleSave } from '../store.js?v=8.37';
 import { esc, todayStr, trunc, uid, getEventStatus, addCleanupListener } from '../utils.js?v=8.37';
 import { getDisc, getActiveDisciplinas, reattachTimers } from '../logic.js?v=8.37';
-import { getSelectedEditalId } from '../edital-filter.js?v=8.37';
+import { filterEventsBySelectedEdital, getSelectedEditalId } from '../edital-filter.js?v=8.37';
 import { renderCurrentView, renderEventCard } from '../components.js?v=8.37';
-import { openModal, closeModal, showConfirm, showToast } from '../app.js?v=8.37';
+import { currentView, openModal, closeModal, showConfirm, showToast } from '../app.js?v=8.37';
 import { openRegistroSessao } from '../registro-sessao.js?v=8.37';
 
 // =============================================
 // ADD EVENT MODAL
 // =============================================
+function allowAllEditaisInEventModal() {
+  return currentView === 'home';
+}
+
+function getEventsInEventModalScope() {
+  return filterEventsBySelectedEdital(state.eventos || [], {
+    allowAll: allowAllEditaisInEventModal(),
+  });
+}
+
 export function openAddEventModal(dateStr = null) {
-  const selectedEditalId = getSelectedEditalId({ allowAll: true });
+  const selectedEditalId = getSelectedEditalId({ allowAll: allowAllEditaisInEventModal() });
   const allDiscs = getActiveDisciplinas().filter(
     ({ edital }) => !selectedEditalId || edital.id === selectedEditalId
   );
@@ -105,7 +115,7 @@ export function openAddEventModal(dateStr = null) {
 export function updateDayLoad(dateStr) {
   const el = document.getElementById('day-load-hint');
   if (!el || !dateStr) return;
-  const evts = state.eventos.filter((e) => e.data === dateStr && e.status !== 'estudei');
+  const evts = getEventsInEventModalScope().filter((e) => e.data === dateStr && e.status !== 'estudei');
   const mins = evts.reduce((s, e) => s + (e.duracao || 0), 0);
   if (evts.length === 0) {
     el.textContent = '📅 Dia livre';
@@ -251,7 +261,9 @@ export function saveEvent() {
     showToast('Estudo iniciado/agendado!', 'success');
   };
 
-  const existingOnDay = state.eventos.filter((e) => e.data === data && e.status !== 'estudei');
+  const existingOnDay = getEventsInEventModalScope().filter(
+    (e) => e.data === data && e.status !== 'estudei'
+  );
   const totalDuracao = existingOnDay.reduce((s, e) => s + (e.duracao || 0), 0) + duracao;
   if (existingOnDay.length >= 3 || totalDuracao > 480) {
     const horas = Math.round((totalDuracao / 60) * 10) / 10;
