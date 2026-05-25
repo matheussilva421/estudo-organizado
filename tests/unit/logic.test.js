@@ -942,10 +942,12 @@ describe('logic.js', () => {
         expect(remainingIds).toContain('ev_manual');
       });
 
-      it('skips a planned calendar slot when deleting its pending generated event', () => {
+      it('removes only the selected planned calendar slot and keeps the sequence pending', () => {
         const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
         const edital = createEdital({ disciplinas: [disc] });
-        const seq = [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false }];
+        const seq = [
+          { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false, status: 'pendente' },
+        ];
         const generatedEvent = createEvento({
           id: 'auto_2026-04-21_0_abc',
           data: '2026-04-21',
@@ -967,24 +969,25 @@ describe('logic.js', () => {
               relevancia: {},
               horarios: {
                 dataInicial: '2026-04-21',
-                dataFinal: '2026-04-21',
+                dataFinal: '2026-04-22',
                 diasAtivos: [0, 1, 2, 3, 4, 5, 6],
               },
               sequencia: seq,
               skippedSlots: [],
             },
-            config: { materiasPorDia: 1, primeirodiaSemana: 1 },
+            config: { materiasPorDia: 3, primeirodiaSemana: 1 },
           })
         );
         logic.invalidateDiscCache();
 
         logic.removeEvento('auto_2026-04-21_0_abc');
+        const projection = logic.calculateCyclePredictionsModel('2026-04-21', '2026-04-22');
 
         expect(store.state.planejamento.sequencia[0]).toMatchObject({
-          status: 'pulada',
+          status: 'pendente',
           concluido: false,
         });
-        expect(store.state.planejamento.sequencia[0].puladaEm).toBeTruthy();
+        expect(store.state.planejamento.sequencia[0].puladaEm).toBeUndefined();
         expect(store.state.planejamento.skippedSlots).toEqual([
           expect.objectContaining({
             data: '2026-04-21',
@@ -997,6 +1000,7 @@ describe('logic.js', () => {
         expect(
           store.state.eventos.some((ev) => ev.data === '2026-04-21' && ev.slotIndex === 0)
         ).toBe(false);
+        expect(projection.disc_1).toEqual({ sessoes: 5, minutos: 300 });
       });
 
       it('reduces session predictions when a planned slot was skipped', () => {

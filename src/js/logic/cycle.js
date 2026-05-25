@@ -363,10 +363,6 @@ export function skipPlanejamentoEventBeforeDelete(eventToDelete) {
     });
   }
 
-  seq.status = 'pulada';
-  seq.concluido = false;
-  seq.puladaEm = new Date().toISOString();
-  delete seq.finalizadoEm;
   return true;
 }
 
