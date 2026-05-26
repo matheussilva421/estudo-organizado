@@ -10,7 +10,7 @@ import { scheduleSave } from '../../store.js?v=8.37';
 import { getDisc } from '../../logic.js?v=8.37';
 import { mapAulasToAssuntos } from '../../lesson-mapper.js?v=8.37';
 import { getEditingSubjectCtx } from './shared-state.js';
-import { openDiscManager } from './disc-manager.js';
+import { captureDiscManagerScroll, openDiscManager } from './disc-manager.js';
 
 export function toggleAulaEstudada(discId, aulaId) {
   const d = getDisc(discId);
@@ -20,8 +20,9 @@ export function toggleAulaEstudada(discId, aulaId) {
 
   aulaObj.estudada = !aulaObj.estudada;
   aulaObj.dataEstudo = aulaObj.estudada ? todayStr() : null;
+  const scrollSnapshot = captureDiscManagerScroll();
   scheduleSave();
-  openDiscManager(getEditingSubjectCtx().editaId, discId);
+  openDiscManager(getEditingSubjectCtx().editaId, discId, { scrollSnapshot });
 }
 
 export function addBulkAulas(discId) {

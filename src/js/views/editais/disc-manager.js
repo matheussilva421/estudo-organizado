@@ -12,7 +12,19 @@ import {
 } from '../state/disc-manager-state.js';
 import { COLORS, getEditingSubjectCtx, setEditingSubjectCtx } from './shared-state.js';
 
-export function openDiscManager(editaId, discId) {
+export function captureDiscManagerScroll() {
+  const tab = getActiveDiscManagerTab() || 'topicos';
+  const panel = document.querySelector(`#tab-manager-${tab} .sm-list`);
+  return panel ? { tab, top: panel.scrollTop } : null;
+}
+
+function restoreDiscManagerScroll(snapshot) {
+  if (!snapshot) return;
+  const panel = document.querySelector(`#tab-manager-${snapshot.tab} .sm-list`);
+  if (panel) panel.scrollTop = snapshot.top;
+}
+
+export function openDiscManager(editaId, discId, options = {}) {
   let disc = null;
   for (const edital of state.editais) {
     if (!edital.disciplinas) continue;
@@ -190,6 +202,7 @@ export function openDiscManager(editaId, discId) {
         <button class="btn btn-primary" data-action="save-disc-manager" data-edital-id="${editaId}" data-disc-id="${discId}">Salvar alterações</button>
       </div>
     `;
+  restoreDiscManagerScroll(options.scrollSnapshot);
   openModal('modal-disc-manager');
 }
 

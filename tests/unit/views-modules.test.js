@@ -160,6 +160,115 @@ describe('dashboard-view.js', () => {
       const disc = store.state.editais[0].disciplinas.find((d) => d.id === 'disc_1');
       expect(disc.assuntos[0].concluido).toBe(true);
     });
+
+    it('preserva a rolagem da lista ao marcar assunto no dashboard', () => {
+      document.body.innerHTML = `
+        <div id="topbar-title"></div>
+        <div id="topbar-actions"></div>
+        <main id="main-content"></main>
+      `;
+      const state = createBaseState({
+        editais: [
+          createEdital({
+            id: 'ed_1',
+            disciplinas: [
+              createDisciplina({
+                id: 'disc_1',
+                assuntos: Array.from({ length: 20 }, (_, index) => ({
+                  id: `ass_${index + 1}`,
+                  nome: `Assunto ${index + 1}`,
+                  concluido: false,
+                  dataConclusao: null,
+                  revisoesFetas: [],
+                })),
+              }),
+            ],
+          }),
+        ],
+      });
+      store.setState(state);
+
+      views.openDiscDashboard('ed_1', 'disc_1');
+      const panel = document.querySelector('[data-dashboard-scroll="topicos"]');
+      panel.scrollTop = 128;
+
+      views.toggleAssunto('disc_1', 'ass_18');
+
+      expect(document.querySelector('[data-dashboard-scroll="topicos"]').scrollTop).toBe(128);
+    });
+
+    it('preserva a rolagem da lista ao marcar aula no dashboard', () => {
+      document.body.innerHTML = `
+        <div id="topbar-title"></div>
+        <div id="topbar-actions"></div>
+        <main id="main-content"></main>
+      `;
+      const state = createBaseState({
+        editais: [
+          createEdital({
+            id: 'ed_1',
+            disciplinas: [
+              createDisciplina({
+                id: 'disc_1',
+                aulas: Array.from({ length: 20 }, (_, index) => ({
+                  id: `aula_${index + 1}`,
+                  nome: `Aula ${index + 1}`,
+                  estudada: false,
+                  dataEstudo: null,
+                })),
+              }),
+            ],
+          }),
+        ],
+      });
+      store.setState(state);
+
+      views.openDiscDashboard('ed_1', 'disc_1');
+      views.switchDashboardTab('aulas');
+      const panel = document.querySelector('[data-dashboard-scroll="aulas"]');
+      panel.scrollTop = 96;
+
+      views.toggleAulaDashboard('ed_1', 'disc_1', 'aula_18');
+
+      expect(document.querySelector('[data-dashboard-scroll="aulas"]').scrollTop).toBe(96);
+    });
+
+    it('preserva a rolagem do gerenciador ao marcar aula como estudada', () => {
+      document.body.innerHTML = `
+        <div id="modal-disc-manager" class="modal">
+          <div id="modal-disc-manager-title"></div>
+          <div id="modal-disc-manager-body"></div>
+        </div>
+      `;
+      const state = createBaseState({
+        editais: [
+          createEdital({
+            id: 'ed_1',
+            disciplinas: [
+              createDisciplina({
+                id: 'disc_1',
+                aulas: Array.from({ length: 20 }, (_, index) => ({
+                  id: `aula_${index + 1}`,
+                  nome: `Aula ${index + 1}`,
+                  estudada: false,
+                  dataEstudo: null,
+                })),
+              }),
+            ],
+          }),
+        ],
+      });
+      store.setState(state);
+
+      views.openDiscManager('ed_1', 'disc_1');
+      views.switchManagerTab('aulas');
+      const panel = document.querySelector('#tab-manager-aulas .sm-list');
+      panel.scrollTop = 144;
+
+      views.toggleAulaEstudada('disc_1', 'aula_18');
+
+      expect(document.querySelector('#tab-manager-aulas .sm-list').scrollTop).toBe(144);
+    });
   });
 });
 

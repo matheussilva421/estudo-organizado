@@ -264,6 +264,36 @@ describe('views.js - CRUD, inline editing, dashboard ops', () => {
       expect(el.appendChild).toHaveBeenCalledWith(input);
       expect(input.focus).toHaveBeenCalled();
     });
+
+    it('prefills the input from the stored subject name instead of rendered text', () => {
+      storeModule.state.editais = [
+        {
+          id: 'ed_1',
+          disciplinas: [
+            {
+              id: 'disc_1',
+              assuntos: [{ id: 'ass_1', nome: '18. Fundamentos e objetivos da República' }],
+            },
+          ],
+        },
+      ];
+      const el = {
+        innerText: '',
+        innerHTML: '',
+        appendChild: vi.fn(),
+      };
+      const input = {
+        type: '',
+        value: '',
+        style: {},
+        focus: vi.fn(),
+        onblur: null,
+        onkeydown: null,
+      };
+      vi.spyOn(document, 'createElement').mockReturnValue(input);
+      views.editSubjectInline('disc_1', 'ass_1', el);
+      expect(input.value).toBe('18. Fundamentos e objetivos da República');
+    });
   });
 
   describe('editLessonInline()', () => {

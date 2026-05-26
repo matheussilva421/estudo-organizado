@@ -20,11 +20,24 @@ import {
   setActiveDashboardDiscCtx,
   clearActiveDashboardDiscCtx,
   getActiveDashboardDiscCtx,
+  getActiveDashboardTab,
   setActiveDashboardTab,
   resetActiveDashboardTab,
 } from '../state/dashboard-context.js?v=8.37';
 import { initDiscDashboardChart, renderDisciplinaDashboard } from './dashboard-view.js';
 import { COLORS, DISC_ICONS } from './editais/shared-state.js';
+
+function captureDashboardScroll() {
+  const tab = getActiveDashboardTab() || 'topicos';
+  const panel = document.querySelector(`[data-dashboard-scroll="${tab}"]`);
+  return panel ? { tab, top: panel.scrollTop } : null;
+}
+
+function restoreDashboardScroll(snapshot) {
+  if (!snapshot) return;
+  const panel = document.querySelector(`[data-dashboard-scroll="${snapshot.tab}"]`);
+  if (panel) panel.scrollTop = snapshot.top;
+}
 
 // ── Shared State (re-exported for backward compat) ──
 export {
@@ -75,7 +88,9 @@ export function toggleAssunto(discId, assId) {
         // Re-render local dashboard if open, otherwise full view
         const ctx = getActiveDashboardDiscCtx();
         if (ctx && ctx.discId === discId) {
+          const scrollSnapshot = captureDashboardScroll();
           openDiscDashboard(ctx.editaId, discId);
+          restoreDashboardScroll(scrollSnapshot);
         } else {
           renderCurrentView();
         }
@@ -100,7 +115,9 @@ export function toggleAulaDashboard(editaId, discId, aulaId) {
 
     const ctx = getActiveDashboardDiscCtx();
     if (ctx && ctx.discId === discId) {
+      const scrollSnapshot = captureDashboardScroll();
       openDiscDashboard(editaId, discId);
+      restoreDashboardScroll(scrollSnapshot);
     } else {
       renderCurrentView();
     }

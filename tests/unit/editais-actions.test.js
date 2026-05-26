@@ -212,6 +212,14 @@ describe('ui/actions/editais.js', () => {
     expect(viewsModule.toggleAulaEstudada).toHaveBeenCalledWith('disc_1', 'aula_1');
   });
 
+  it('toggle-aula-estudada handler stops the checkbox click from opening inline edit', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'toggle-aula-estudada')[1];
+    const event = { stopPropagation: vi.fn(), preventDefault: vi.fn() };
+    handler({ dataset: { discId: 'disc_1', aulaId: 'aula_1' } }, event);
+    expect(event.stopPropagation).toHaveBeenCalled();
+    expect(viewsModule.editLessonInline).not.toHaveBeenCalled();
+  });
+
   it('edit-subject-inline handler passes discId, assuntoId, and element', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'edit-subject-inline')[1];
     const el = { dataset: { discId: 'disc_1', assuntoId: 'ass_1' } };

@@ -174,7 +174,7 @@ function renderHistoricoDisciplina(tempos) {
   }
 
   return `
-    <div class="custom-scrollbar scroll-panel">
+    <div class="custom-scrollbar scroll-panel" data-dashboard-scroll="historico">
             <table class="w-full text-md" style="border-collapse:collapse; text-align:left;">
               <thead style="position:sticky;top:0;background:var(--card);z-index:2;">
                 <tr class="border-b text-muted">
@@ -222,7 +222,7 @@ function renderTopicosEditalDisciplina(edital, disc) {
   }
 
   return `
-    <div class="custom-scrollbar scroll-panel">
+    <div class="custom-scrollbar scroll-panel" data-dashboard-scroll="topicos">
             ${disc.assuntos
               .map((ass) => {
                 const importanceBadge =
@@ -265,7 +265,7 @@ function renderAulasDisciplinaDashboard(edital, disc) {
   }
 
   return `
-    <div class="custom-scrollbar scroll-panel">
+    <div class="custom-scrollbar scroll-panel" data-dashboard-scroll="aulas">
         ${disc.aulas
           .map(
             (aul) => `
@@ -309,7 +309,7 @@ function renderBancaDisciplinaDashboard(edital, disc) {
   }
 
   return `
-       <div class="custom-scrollbar scroll-panel" style="padding-top:8px;">
+       <div class="custom-scrollbar scroll-panel" data-dashboard-scroll="banca" style="padding-top:8px;">
          <div class="bg-surface border rounded-md mb-6" style="padding:12px;">
             <div class="text-base font-bold text-secondary mb-3">STATUS DO MAPEADOR DE INTELIGÊNCIA</div>
 

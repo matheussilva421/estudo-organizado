@@ -183,7 +183,8 @@ registerAction('delete-aula', (el) => {
   const aulaId = el.dataset.aulaId;
   if (discId && aulaId) deleteAula(discId, aulaId);
 });
-registerAction('toggle-aula-estudada', (el) => {
+registerAction('toggle-aula-estudada', (el, event) => {
+  event?.stopPropagation?.();
   const discId = el.dataset.discId;
   const aulaId = el.dataset.aulaId;
   if (discId && aulaId) toggleAulaEstudada(discId, aulaId);

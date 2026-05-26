@@ -9,8 +9,18 @@ import { getDisc } from '../../logic.js?v=8.37';
 import { getEditingSubjectCtx } from './shared-state.js';
 import { openDiscManager } from './disc-manager.js';
 
+function findSubject(discId, assId) {
+  for (const edital of state.editais || []) {
+    const disc = (edital.disciplinas || []).find((d) => d.id === discId);
+    const subject = (disc?.assuntos || []).find((a) => a.id === assId);
+    if (subject) return subject;
+  }
+  return null;
+}
+
 export function editSubjectInline(discId, assId, el) {
-  const currentText = el.innerText;
+  const subject = findSubject(discId, assId);
+  const currentText = subject?.nome || el.innerText || '';
   const input = document.createElement('input');
   input.type = 'text';
   input.value = currentText;
@@ -24,14 +34,10 @@ export function editSubjectInline(discId, assId, el) {
   input.onblur = () => {
     const newVal = input.value.trim();
     if (newVal && newVal !== currentText) {
-      for (const edital of state.editais) {
-        const disc = (edital.disciplinas || []).find((d) => d.id === discId);
-        const ass = (disc?.assuntos || []).find((a) => a.id === assId);
-        if (ass) {
-          ass.nome = newVal;
-          scheduleSave();
-          break;
-        }
+      const ass = subject || findSubject(discId, assId);
+      if (ass) {
+        ass.nome = newVal;
+        scheduleSave();
       }
     }
     renderCurrentView();
