@@ -392,7 +392,10 @@ export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
     const dateStr = getLocalDateStr(d);
 
     for (let m = 0; m < materiasPorDia; m++) {
-      if (skippedSlots.has(getSkippedSlotKey(dateStr, m))) continue;
+      if (skippedSlots.has(getSkippedSlotKey(dateStr, m))) {
+        simulatedIdx = (simulatedIdx + 1) % seq.length;
+        continue;
+      }
       const seqItem = seq[simulatedIdx];
       if (!seqItem) break;
 
@@ -558,7 +561,10 @@ export function syncCicloToEventos() {
     const dtStr = getLocalDateStr(d);
 
     for (let m = 0; m < materiasPorDia; m++) {
-      if (skippedSlots.has(getSkippedSlotKey(dtStr, m))) continue;
+      if (skippedSlots.has(getSkippedSlotKey(dtStr, m))) {
+        currentSeqIdx = (currentSeqIdx + 1) % seq.length;
+        continue;
+      }
       const seqItem = seq[currentSeqIdx];
       if (!seqItem) break; // guard: empty or exhausted sequence
       const remainingMinutes = getRemainingMinutesForSeq(seqItem);
