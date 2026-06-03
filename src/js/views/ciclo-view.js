@@ -9,6 +9,7 @@ import {
   getDisc,
   resetCicloAndWipeEvents,
   calculateCyclePredictionsModel,
+  getStudiedMinutesByDiscipline,
 } from '../logic.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 import { showConfirm } from '../app.js?v=8.37';
@@ -196,23 +197,14 @@ export function renderCiclo(el) {
  * @param {Object} plan - Planejamento state
  */
 function renderCicloView(el, plan) {
-  // Cálculo do tempo estudado desde dataInicioCicloAtual
+  // Cálculo do tempo estudado desde dataInicioCicloAtual.
+  // Fonte única: getStudiedMinutesByDiscipline deriva os minutos por disciplina de state.eventos,
+  // garantindo que registrar/editar/excluir sessões reflita aqui automaticamente.
   let dataInicio = plan.dataInicioCicloAtual || '1970-01-01T00:00:00.000Z';
   dataInicio = dataInicio.substring(0, 10);
+  const minutosPorDisc = getStudiedMinutesByDiscipline({ since: dataInicio });
   const statsPorDisc = {};
-  plan.disciplinas.forEach((id) => (statsPorDisc[id] = 0));
-
-  const eventosFiltrados = state.eventos.filter((ev) => {
-    const isEstudado = ev.status === 'estudei' && ev.tempoAcumulado && ev.tempoAcumulado > 0;
-    const evDate = ev.dataEstudo || ev.data;
-    return isEstudado && evDate >= dataInicio;
-  });
-
-  eventosFiltrados.forEach((ev) => {
-    if (statsPorDisc[ev.discId] !== undefined) {
-      statsPorDisc[ev.discId] += ev.tempoAcumulado / 60;
-    }
-  });
+  plan.disciplinas.forEach((id) => (statsPorDisc[id] = minutosPorDisc[id] || 0));
 
   let totalTarget = 0;
   const dictDisciplinas = {};

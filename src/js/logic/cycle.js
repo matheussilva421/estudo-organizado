@@ -296,6 +296,34 @@ function getStudiedMinutesForSeq(seqId) {
     .reduce((total, event) => total + Math.round((Number(event.tempoAcumulado) || 0) / 60), 0);
 }
 
+/**
+ * Soma (em minutos) das sessões concluídas por disciplina, derivada de state.eventos.
+ * Fonte única para "minutos estudados por disciplina" — qualquer view deve usar este helper
+ * em vez de contadores incrementais persistidos, garantindo que editar/excluir uma sessão
+ * reflita automaticamente em todos os lugares.
+ * @param {{ since?: string, discId?: string }} [opts]
+ *   since  = data mínima 'YYYY-MM-DD' (compara com ev.dataEstudo||ev.data); sem corte por padrão.
+ *   discId = se passado, retorna apenas os minutos dessa disciplina (number) em vez do mapa.
+ * @returns {Record<string, number> | number} mapa discId->minutos, ou número se discId for dado.
+ */
+export function getStudiedMinutesByDiscipline(opts = {}) {
+  const { since, discId } = opts;
+  const totals = {};
+  for (const ev of state.eventos || []) {
+    if (!ev || ev.status !== 'estudei') continue;
+    const minutos = Math.round((Number(ev.tempoAcumulado) || 0) / 60);
+    if (minutos <= 0) continue;
+    if (since) {
+      const evDate = ev.dataEstudo || ev.data;
+      if (!evDate || evDate < since) continue;
+    }
+    if (discId && ev.discId !== discId) continue;
+    if (!ev.discId) continue;
+    totals[ev.discId] = (totals[ev.discId] || 0) + minutos;
+  }
+  return discId ? totals[discId] || 0 : totals;
+}
+
 function getRemainingMinutesForSeq(seq) {
   const target = Math.max(0, Math.round(Number(seq?.minutosAlvo) || 0));
   if (target <= 0) return 0;

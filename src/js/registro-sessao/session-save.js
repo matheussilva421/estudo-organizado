@@ -311,12 +311,14 @@ export function performSave({
     }
   }
 
-  // Register habits
+  // Register habits. Use the session's study date (not "today") so that editing a past/manual
+  // session keeps its habit entries on the correct day and weekly stats don't drift.
+  const habitoData = ev.dataEstudo || ev.data || todayStr();
   selectedTipos.forEach((tipo) => {
     if (state.habitos[tipo]) {
       state.habitos[tipo].push({
         id: 'hab_' + uid(),
-        data: todayStr(),
+        data: habitoData,
         eventoId: ev.id,
         tempoMin: Math.round((ev.tempoAcumulado || 0) / 60),
         ...(questoes && (tipo === 'questoes' || tipo === 'simulado') ? questoes : {}),
@@ -328,7 +330,7 @@ export function performSave({
     if (!state.habitos.paginas) state.habitos.paginas = [];
     state.habitos.paginas.push({
       id: 'hab_' + uid(),
-      data: todayStr(),
+      data: habitoData,
       eventoId: ev.id,
       tempoMin: Math.round((ev.tempoAcumulado || 0) / 60),
       total: parseInt(paginas.total, 10),
@@ -340,31 +342,10 @@ export function performSave({
     state.cronoLivre = { _timerStart: null, tempoAcumulado: 0 };
   }
 
-  // Update legacy study cycle progress
-  if (state.ciclo && state.ciclo.ativo && discId) {
-    const discEntry = getDisc(discId);
-    const _discNome = discEntry ? discEntry.disc.nome : null;
-    const cycleDisc = discId
-      ? state.ciclo.disciplinas.find((d) => {
-          // Try to match by discId first (linked editais), fallback to name match
-          const discEntry = getDisc(discId);
-          return d.id === discId || (discEntry && d.nome === discEntry.disc.nome);
-        })
-      : null;
-    if (cycleDisc && !cycleDisc.concluido) {
-      const addedMin = Math.round((ev.tempoAcumulado || 0) / 60);
-      cycleDisc.estudadoMin = (cycleDisc.estudadoMin || 0) + addedMin;
-      if (cycleDisc.estudadoMin >= cycleDisc.planejadoMin) {
-        cycleDisc.concluido = true;
-
-        // Check if entire cycle was concluded by this action
-        const allCompleted = state.ciclo.disciplinas.every((d) => d.concluido);
-        if (allCompleted) {
-          state.ciclo.ciclosCompletos = (state.ciclo.ciclosCompletos || 0) + 1;
-        }
-      }
-    }
-  }
+  // NOTE: o progresso por disciplina (ciclo/dashboard/previsão) é DERIVADO de state.eventos no
+  // momento do render (ver getStudiedMinutesByDiscipline em logic/cycle.js). Não mantemos mais
+  // contadores incrementais em state.ciclo aqui — isso evita contagem dupla ao editar e drift ao
+  // excluir uma sessão, e faz a troca de disciplina na edição refletir automaticamente.
 
   // Update new Planejamento sequence progress
   if (state.planejamento && state.planejamento.ativo && ev.seqId) {

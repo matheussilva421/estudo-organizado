@@ -861,6 +861,62 @@ describe('registro-sessao.js', () => {
       expect(store.state.habitos.leitura.length).toBeGreaterThan(0);
       expect(store.state.habitos.leitura[0].eventoId).toBe('ev_1');
     });
+
+    it('records habit entries on the session study date, not "today"', () => {
+      // System time is 2026-04-20; this past session was studied on 2026-04-10.
+      const disc = createDisciplina({ id: 'disc_1' });
+      const edital = createEdital({ disciplinas: [disc] });
+      const pastEvento = createEvento({
+        id: 'ev_past',
+        _isPastSession: true,
+        discId: 'disc_1',
+        data: '2026-04-10',
+        tempoAcumulado: 1800,
+        sessao: {}
+      });
+      store.setState(createBaseState({ eventos: [pastEvento], editais: [edital] }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('ev_past');
+      registroSessao.toggleStudyType('leitura');
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(true);
+      expect(store.state.habitos.leitura).toHaveLength(1);
+      expect(store.state.habitos.leitura[0].data).toBe('2026-04-10');
+    });
+
+    it('does not incrementally mutate legacy state.ciclo counters on save (progress is derived)', () => {
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Disc' });
+      const edital = createEdital({ disciplinas: [disc] });
+      const evento = createEvento({
+        id: 'ev_1',
+        discId: 'disc_1',
+        tempoAcumulado: 1800,
+        sessao: {}
+      });
+      store.setState(createBaseState({
+        eventos: [evento],
+        editais: [edital],
+        ciclo: {
+          ativo: true,
+          ciclosCompletos: 0,
+          disciplinas: [
+            { id: 'disc_1', nome: 'Disc', planejadoMin: 1000, estudadoMin: 30, concluido: false }
+          ]
+        }
+      }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('ev_1');
+      registroSessao.toggleStudyType('leitura');
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(true);
+      // The legacy counter must be left untouched — derived views read from state.eventos.
+      expect(store.state.ciclo.disciplinas[0].estudadoMin).toBe(30);
+      expect(store.state.ciclo.ciclosCompletos).toBe(0);
+    });
   });
 
   describe('saveAndStartNew', () => {

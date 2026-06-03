@@ -85,6 +85,7 @@ export {
   deletePlanejamento,
   resetCicloAndWipeEvents,
   calculateCyclePredictionsModel,
+  getStudiedMinutesByDiscipline,
   iniciarEtapaPlanejamento,
   syncCicloToEventos,
   moveCicloSeq,

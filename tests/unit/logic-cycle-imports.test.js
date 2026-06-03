@@ -59,6 +59,7 @@ describe('logic/cycle.js - Module integrity', () => {
     expect(cycle.deletePlanejamento).toBeTypeOf('function');
     expect(cycle.resetCicloAndWipeEvents).toBeTypeOf('function');
     expect(cycle.calculateCyclePredictionsModel).toBeTypeOf('function');
+    expect(cycle.getStudiedMinutesByDiscipline).toBeTypeOf('function');
     expect(cycle.iniciarEtapaPlanejamento).toBeTypeOf('function');
     expect(cycle.syncCicloToEventos).toBeTypeOf('function');
     expect(cycle.moveCicloSeq).toBeTypeOf('function');
@@ -91,6 +92,7 @@ describe('logic.js → re-exports from cycle.js (same binding)', () => {
     expect(logic.deletePlanejamento).toBe(cycle.deletePlanejamento);
     expect(logic.resetCicloAndWipeEvents).toBe(cycle.resetCicloAndWipeEvents);
     expect(logic.calculateCyclePredictionsModel).toBe(cycle.calculateCyclePredictionsModel);
+    expect(logic.getStudiedMinutesByDiscipline).toBe(cycle.getStudiedMinutesByDiscipline);
     expect(logic.iniciarEtapaPlanejamento).toBe(cycle.iniciarEtapaPlanejamento);
     expect(logic.syncCicloToEventos).toBe(cycle.syncCicloToEventos);
     expect(logic.moveCicloSeq).toBe(cycle.moveCicloSeq);
@@ -270,5 +272,42 @@ describe('Functional: calculateCyclePredictionsModel via logic.js re-export', ()
     state.planejamento = null;
     const proj = logic.calculateCyclePredictionsModel('2026-04-20', '2026-04-22');
     expect(proj).toEqual({});
+  });
+});
+
+describe('Functional: getStudiedMinutesByDiscipline (derived from state.eventos)', () => {
+  it('returns empty map when there are no events', () => {
+    state.eventos = [];
+    expect(logic.getStudiedMinutesByDiscipline()).toEqual({});
+  });
+
+  it('sums minutes per discipline only for completed sessions with time', () => {
+    state.eventos = [
+      { id: 'a', status: 'estudei', discId: 'disc1', tempoAcumulado: 1800, data: '2026-04-18' }, // 30min
+      { id: 'b', status: 'estudei', discId: 'disc1', tempoAcumulado: 3600, data: '2026-04-19' }, // 60min
+      { id: 'c', status: 'estudei', discId: 'disc2', tempoAcumulado: 1200, data: '2026-04-19' }, // 20min
+      { id: 'd', status: 'agendado', discId: 'disc1', tempoAcumulado: 6000, data: '2026-04-19' }, // ignored
+      { id: 'e', status: 'estudei', discId: 'disc1', tempoAcumulado: 0, data: '2026-04-19' }, // ignored (0)
+      { id: 'f', status: 'estudei', discId: null, tempoAcumulado: 1800, data: '2026-04-19' }, // ignored (no disc)
+    ];
+    expect(logic.getStudiedMinutesByDiscipline()).toEqual({ disc1: 90, disc2: 20 });
+  });
+
+  it('applies the "since" cutoff using dataEstudo when present, falling back to data', () => {
+    state.eventos = [
+      { id: 'a', status: 'estudei', discId: 'disc1', tempoAcumulado: 1800, data: '2026-04-10' }, // before
+      { id: 'b', status: 'estudei', discId: 'disc1', tempoAcumulado: 1800, data: '2026-04-20' }, // on/after
+      { id: 'c', status: 'estudei', discId: 'disc1', tempoAcumulado: 1800, data: '2026-04-10', dataEstudo: '2026-04-25' }, // dataEstudo wins
+    ];
+    expect(logic.getStudiedMinutesByDiscipline({ since: '2026-04-20' })).toEqual({ disc1: 60 });
+  });
+
+  it('returns a single number when discId is provided', () => {
+    state.eventos = [
+      { id: 'a', status: 'estudei', discId: 'disc1', tempoAcumulado: 1800, data: '2026-04-19' },
+      { id: 'b', status: 'estudei', discId: 'disc2', tempoAcumulado: 3600, data: '2026-04-19' },
+    ];
+    expect(logic.getStudiedMinutesByDiscipline({ discId: 'disc1' })).toBe(30);
+    expect(logic.getStudiedMinutesByDiscipline({ discId: 'disc_missing' })).toBe(0);
   });
 });
