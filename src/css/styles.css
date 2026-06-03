@@ -362,7 +362,8 @@ button.cal-event-chip:focus-visible {
    CRONÃ”METRO (WAVE 24)
 ========================================= */
 .crono-fullscreen {
-  min-height: calc(100vh - 84px);
+  height: calc(100vh - 84px);
+  max-height: calc(100vh - 84px);
   background: var(--card);
   /* Base */
   background: linear-gradient(135deg, var(--card) 0%, var(--bg) 100%);
@@ -399,7 +400,7 @@ button.cal-event-chip:focus-visible {
 
 .crono-timer-display {
   font-family: 'DM Mono', 'JetBrains Mono', monospace;
-  font-size: min(12vw, 96px);
+  font-size: clamp(40px, min(12vw, 14vh), 96px);
   font-weight: 500;
   letter-spacing: 4px;
   color: var(--text-primary);

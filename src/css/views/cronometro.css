@@ -135,16 +135,17 @@
 /* === Progress Ring === */
 .crono-ring-wrap {
   position: relative;
-  width: 220px;
-  height: 220px;
+  --crono-ring-size: clamp(140px, min(34vw, 34vh), 220px);
+  width: var(--crono-ring-size);
+  height: var(--crono-ring-size);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .crono-ring {
-  width: 220px;
-  height: 220px;
+  width: var(--crono-ring-size);
+  height: var(--crono-ring-size);
   transform: rotate(-90deg);
 }
 
@@ -200,4 +201,17 @@
   border-radius: 10px;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
+}
+
+/* === Short-viewport safeguard (e.g. landscape phones) === */
+@media (max-height: 560px) {
+  .crono-ring-wrap {
+    --crono-ring-size: clamp(110px, 28vh, 160px);
+  }
+  .crono-today-chip {
+    display: none;
+  }
+  .crono-grid-overlay {
+    display: none;
+  }
 }
