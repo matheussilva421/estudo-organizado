@@ -10,6 +10,7 @@ import {
   resetCicloAndWipeEvents,
   calculateCyclePredictionsModel,
   getStudiedMinutesByDiscipline,
+  distributeStudiedAcrossSeq,
 } from '../logic.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 import { showConfirm } from '../app.js?v=8.37';
@@ -107,6 +108,18 @@ export function calculateCyclePredictions() {
       container.style.display = 'none';
       container.innerHTML = '';
       return;
+    }
+
+    // Persiste a janela escolhida no estado para que sobreviva a recálculos disparados por outras
+    // ações (estudar uma sessão, concluir etapa, etc.). Idempotente no recálculo automático.
+    if (state.planejamento) {
+      if (!state.planejamento.horarios) state.planejamento.horarios = {};
+      const h = state.planejamento.horarios;
+      if (h.dataInicial !== sVal || h.dataFinal !== eVal) {
+        h.dataInicial = sVal;
+        h.dataFinal = eVal;
+        scheduleSave();
+      }
     }
 
     const proj = calculateCyclePredictionsModel(sVal, eVal);
@@ -213,11 +226,13 @@ function renderCicloView(el, plan) {
     if (disc) dictDisciplinas[id] = disc;
   });
 
-  const copyStats = { ...statsPorDisc };
   let minutosCompletosCiclo = 0;
   let sessoesConcluidas = 0;
 
   const targetLoop = getIsEditingSequence() ? getTempSequencia() || [] : plan.sequencia;
+  // Fonte única compartilhada com a Previsão de Sessões: distribui o tempo estudado por disciplina
+  // pelos passos da sequência (mesma regra dos dois lugares).
+  const dist = distributeStudiedAcrossSeq(targetLoop, statsPorDisc);
 
   let optionsHtml = '<option value="">(Selecione)</option>';
   if (getIsEditingSequence()) {
@@ -235,25 +250,10 @@ function renderCicloView(el, plan) {
 
     totalTarget += seq.minutosAlvo;
 
-    let pct = 0;
-    let usedMins = 0;
-    if (seqStatus === 'concluida') {
-      usedMins = seq.minutosAlvo;
-      pct = 100;
-      if (seq.discId && copyStats[seq.discId] > 0) {
-        copyStats[seq.discId] = Math.max(copyStats[seq.discId] - seq.minutosAlvo, 0);
-      }
-    } else if (seq.discId && copyStats[seq.discId] > 0) {
-      if (copyStats[seq.discId] >= seq.minutosAlvo) {
-        usedMins = seq.minutosAlvo;
-        pct = 100;
-        copyStats[seq.discId] -= seq.minutosAlvo;
-      } else {
-        usedMins = copyStats[seq.discId];
-        pct = (usedMins / seq.minutosAlvo) * 100;
-        copyStats[seq.discId] = 0;
-      }
-    }
+    const seqDist = dist[seq.id] || { usedMins: 0, pct: 0 };
+    // Passo concluído sempre exibe 100%, mesmo sem tempo registrado.
+    const usedMins = seqStatus === 'concluida' ? seq.minutosAlvo : seqDist.usedMins;
+    const pct = seqStatus === 'concluida' ? 100 : seqDist.pct;
     minutosCompletosCiclo += usedMins;
     const pctInt = formatCyclePercent(pct);
     const cor = d ? d.disc.cor || d.edital.cor || '#8aa4bf' : '#7f8a99';

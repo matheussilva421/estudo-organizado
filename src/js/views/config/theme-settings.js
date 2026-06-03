@@ -67,6 +67,8 @@ export function updateConfig(key, value) {
   state.config[key] = value;
   if (key === 'materiasPorDia') {
     syncCicloToEventos();
+    // Recalcula a Previsão de Sessões na hora (matérias/dia altera quantos slots o ciclo preenche).
+    document.dispatchEvent(new Event('app:renderCurrentView'));
   }
   scheduleSave();
 }

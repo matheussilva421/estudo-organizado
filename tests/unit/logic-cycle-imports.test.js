@@ -60,6 +60,7 @@ describe('logic/cycle.js - Module integrity', () => {
     expect(cycle.resetCicloAndWipeEvents).toBeTypeOf('function');
     expect(cycle.calculateCyclePredictionsModel).toBeTypeOf('function');
     expect(cycle.getStudiedMinutesByDiscipline).toBeTypeOf('function');
+    expect(cycle.distributeStudiedAcrossSeq).toBeTypeOf('function');
     expect(cycle.iniciarEtapaPlanejamento).toBeTypeOf('function');
     expect(cycle.syncCicloToEventos).toBeTypeOf('function');
     expect(cycle.moveCicloSeq).toBeTypeOf('function');
@@ -93,6 +94,7 @@ describe('logic.js → re-exports from cycle.js (same binding)', () => {
     expect(logic.resetCicloAndWipeEvents).toBe(cycle.resetCicloAndWipeEvents);
     expect(logic.calculateCyclePredictionsModel).toBe(cycle.calculateCyclePredictionsModel);
     expect(logic.getStudiedMinutesByDiscipline).toBe(cycle.getStudiedMinutesByDiscipline);
+    expect(logic.distributeStudiedAcrossSeq).toBe(cycle.distributeStudiedAcrossSeq);
     expect(logic.iniciarEtapaPlanejamento).toBe(cycle.iniciarEtapaPlanejamento);
     expect(logic.syncCicloToEventos).toBe(cycle.syncCicloToEventos);
     expect(logic.moveCicloSeq).toBe(cycle.moveCicloSeq);
@@ -272,6 +274,75 @@ describe('Functional: calculateCyclePredictionsModel via logic.js re-export', ()
     state.planejamento = null;
     const proj = logic.calculateCyclePredictionsModel('2026-04-20', '2026-04-22');
     expect(proj).toEqual({});
+  });
+
+  it('deducts studied time from a discipline even when the session has no seqId link', () => {
+    state.planejamento = {
+      ativo: true,
+      sequencia: [{ id: 'seq1', discId: 'disc1', minutosAlvo: 60, concluido: false }],
+      horarios: { diasAtivos: [] },
+      tipo: 'ciclo',
+      dataInicioCicloAtual: '2026-04-01',
+    };
+    state.config.materiasPorDia = 1;
+    // Sessão livre/manual: discId correto mas SEM seqId. Deve reduzir a previsão do 1º passo.
+    state.eventos = [
+      { id: 'ev1', status: 'estudei', discId: 'disc1', tempoAcumulado: 1500, data: '2026-04-19' }, // 25min
+    ];
+
+    // 1 dia, 1 matéria/dia → 1 slot (primeira visita ao passo). Restante = 60 - 25 = 35.
+    const proj = logic.calculateCyclePredictionsModel('2026-04-20', '2026-04-20');
+    expect(proj.disc1.sessoes).toBe(1);
+    expect(proj.disc1.minutos).toBe(35);
+  });
+
+  it('uses the full target for repeated visits (future cycles are not yet studied)', () => {
+    state.planejamento = {
+      ativo: true,
+      sequencia: [{ id: 'seq1', discId: 'disc1', minutosAlvo: 60, concluido: false }],
+      horarios: { diasAtivos: [] },
+      tipo: 'ciclo',
+      dataInicioCicloAtual: '2026-04-01',
+    };
+    state.config.materiasPorDia = 1;
+    state.eventos = [
+      { id: 'ev1', status: 'estudei', discId: 'disc1', tempoAcumulado: 1500, data: '2026-04-19' }, // 25min
+    ];
+
+    // 2 dias, 1 slot/dia → 2 visitas ao mesmo passo. 1ª = 35 (restante), 2ª = 60 (alvo cheio).
+    const proj = logic.calculateCyclePredictionsModel('2026-04-20', '2026-04-21');
+    expect(proj.disc1.sessoes).toBe(2);
+    expect(proj.disc1.minutos).toBe(95); // 35 + 60
+  });
+});
+
+describe('Functional: distributeStudiedAcrossSeq (shared by progress bars and forecast)', () => {
+  it('distributes a discipline\'s studied minutes across its steps in order', () => {
+    const sequence = [
+      { id: 's1', discId: 'd1', minutosAlvo: 60, status: 'pendente' },
+      { id: 's2', discId: 'd1', minutosAlvo: 60, status: 'pendente' },
+    ];
+    // 90min studied: fills s1 fully (60), then 30 of s2.
+    const out = logic.distributeStudiedAcrossSeq(sequence, { d1: 90 });
+    expect(out.s1).toEqual({ usedMins: 60, remaining: 0, pct: 100 });
+    expect(out.s2).toEqual({ usedMins: 30, remaining: 30, pct: 50 });
+  });
+
+  it('lets concluded steps consume their target first', () => {
+    const sequence = [
+      { id: 's1', discId: 'd1', minutosAlvo: 60, status: 'concluida', concluido: true },
+      { id: 's2', discId: 'd1', minutosAlvo: 60, status: 'pendente' },
+    ];
+    // 70min studied: concluded s1 absorbs 60, leaving 10 for s2.
+    const out = logic.distributeStudiedAcrossSeq(sequence, { d1: 70 });
+    expect(out.s1.usedMins).toBe(60);
+    expect(out.s2).toEqual({ usedMins: 10, remaining: 50, pct: expect.closeTo(16.67, 1) });
+  });
+
+  it('returns zero usage when there is no studied time for the discipline', () => {
+    const sequence = [{ id: 's1', discId: 'd1', minutosAlvo: 60, status: 'pendente' }];
+    const out = logic.distributeStudiedAcrossSeq(sequence, {});
+    expect(out.s1).toEqual({ usedMins: 0, remaining: 60, pct: 0 });
   });
 });
 

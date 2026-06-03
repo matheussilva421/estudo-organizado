@@ -145,6 +145,14 @@ describe('views/config-view.js', () => {
       expect(logicModule.syncCicloToEventos).toHaveBeenCalled();
     });
 
+    it('re-renders the current view for materiasPorDia so the forecast recalculates', () => {
+      const handler = vi.fn();
+      document.addEventListener('app:renderCurrentView', handler);
+      configView.updateConfig('materiasPorDia', 4);
+      document.removeEventListener('app:renderCurrentView', handler);
+      expect(handler).toHaveBeenCalled();
+    });
+
     it('stores cfToken directly in state.config', () => {
       configView.updateConfig('cfToken', 'new-token');
       expect(storeModule.state.config.cfToken).toBe('new-token');
