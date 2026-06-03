@@ -53,7 +53,7 @@ registerAction('mark-studied', (el) => {
 registerAction('toggle-timer-mode', toggleTimerMode);
 registerAction('edit-event', (el) => {
   const eventId = el.dataset.eventId;
-  if (eventId) openAddEventModal(eventId);
+  if (eventId) openAddEventModal(null, eventId);
 });
 registerAction('delete-event', (el) => {
   const eventId = el.dataset.eventId;

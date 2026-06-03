@@ -24,7 +24,13 @@ function getEventsInEventModalScope() {
   });
 }
 
-export function openAddEventModal(dateStr = null) {
+// Holds the id of the event currently being edited (null when creating a new one).
+let editingEventId = null;
+
+export function openAddEventModal(dateStr = null, editId = null) {
+  const editEv = editId ? state.eventos.find((e) => e.id === editId) : null;
+  editingEventId = editEv ? editEv.id : null;
+
   const selectedEditalId = getSelectedEditalId({ allowAll: allowAllEditaisInEventModal() });
   const allDiscs = getActiveDisciplinas().filter(
     ({ edital }) => !selectedEditalId || edital.id === selectedEditalId
@@ -36,7 +42,11 @@ export function openAddEventModal(dateStr = null) {
     )
     .join('');
 
-  document.getElementById('modal-event-title').textContent = 'Iniciar Estudo';
+  const defaultDate = editEv ? editEv.data : dateStr || todayStr();
+
+  document.getElementById('modal-event-title').textContent = editEv
+    ? 'Editar Estudo'
+    : 'Iniciar Estudo';
   document.getElementById('modal-event-body').innerHTML = `
     <div id="event-conteudo-fields">
       <div class="form-group">
@@ -69,7 +79,7 @@ export function openAddEventModal(dateStr = null) {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Data</label>
-        <input type="date" class="form-control" id="event-data" value="${dateStr || todayStr()}"
+        <input type="date" class="form-control" id="event-data" value="${defaultDate}"
           data-action="update-day-load">
         <div id="day-load-hint" class="event-form-hint"></div>
       </div>
@@ -104,11 +114,48 @@ export function openAddEventModal(dateStr = null) {
     </details>
     <div class="modal-footer-standard--padded">
       <button class="btn btn-ghost" data-action="close-modal" data-modal="modal-event">Cancelar</button>
-      <button class="btn btn-primary" data-action="save-event">Salvar / Iniciar</button>
+      <button class="btn btn-primary" data-action="save-event">${editEv ? 'Salvar' : 'Salvar / Iniciar'}</button>
     </div>
   `;
   openModal('modal-event');
-  requestAnimationFrame(() => updateDayLoad(dateStr || todayStr()));
+
+  if (editEv) {
+    // Editing replaces the detail modal — close it so only the edit form is shown.
+    closeModal('modal-event-detail');
+    prefillEventForm(editEv);
+  }
+
+  requestAnimationFrame(() => updateDayLoad(defaultDate));
+}
+
+// Populate the event form fields from an existing event (edit mode).
+function prefillEventForm(ev) {
+  const discSel = document.getElementById('event-disc');
+  if (discSel && ev.discId) {
+    discSel.value = ev.discId;
+    // Build the dependent assunto/aula selects for this disciplina, then
+    // restore the previously chosen options.
+    loadAssuntos();
+    const assSel = document.getElementById('event-assunto');
+    const aulaSel = document.getElementById('event-aula');
+    if (assSel && ev.assId) assSel.value = ev.assId;
+    if (aulaSel && ev.aulaId) aulaSel.value = ev.aulaId;
+  }
+
+  const setVal = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value ?? '';
+  };
+  // Title is set last so loadAssuntos' auto-fill does not overwrite it.
+  const tituloInput = document.getElementById('event-titulo');
+  if (tituloInput) {
+    tituloInput.value = ev.titulo || '';
+    tituloInput.dataset.autoFilled = 'false';
+  }
+  setVal('event-duracao', String(ev.duracao || 60));
+  setVal('event-notas', ev.notas);
+  setVal('event-fontes', ev.fontes);
+  setVal('event-legislacao', ev.legislacao);
 }
 
 // Tech 3: Real-time day-load hint
@@ -232,6 +279,28 @@ export function saveEvent() {
 
   if (!autoTitle) {
     showToast('Informe um título para o evento', 'error');
+    return;
+  }
+
+  // Edit mode: update the existing event in place instead of creating a new one.
+  if (editingEventId) {
+    const ev = state.eventos.find((e) => e.id === editingEventId);
+    if (ev) {
+      ev.titulo = autoTitle;
+      ev.data = data;
+      ev.duracao = duracao;
+      ev.notas = notas;
+      ev.fontes = fontes;
+      ev.legislacao = legislacao;
+      ev.discId = discId || null;
+      ev.assId = assId || null;
+      ev.aulaId = aulaId || null;
+    }
+    editingEventId = null;
+    scheduleSave();
+    closeModal('modal-event');
+    renderCurrentView();
+    showToast('Evento atualizado!', 'success');
     return;
   }
 

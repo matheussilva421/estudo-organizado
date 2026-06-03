@@ -114,10 +114,10 @@ describe('ui/actions/eventos.js', () => {
     expect(handler).toBe(logicModule.toggleTimerMode);
   });
 
-  it('edit-event handler passes eventId', () => {
+  it('edit-event handler passes eventId as edit target', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'edit-event')[1];
     handler({ dataset: { eventId: 'evt_1' } });
-    expect(eventModals.openAddEventModal).toHaveBeenCalledWith('evt_1');
+    expect(eventModals.openAddEventModal).toHaveBeenCalledWith(null, 'evt_1');
   });
 
   it('delete-event handler shows confirmation', () => {
