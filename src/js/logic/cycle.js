@@ -296,11 +296,72 @@ function getStudiedMinutesForSeq(seqId) {
     .reduce((total, event) => total + Math.round((Number(event.tempoAcumulado) || 0) / 60), 0);
 }
 
+/**
+ * Soma (em minutos) das sessões concluídas por disciplina, derivada de state.eventos.
+ * Fonte única para "minutos estudados por disciplina" — qualquer view deve usar este helper
+ * em vez de contadores incrementais persistidos, garantindo que editar/excluir uma sessão
+ * reflita automaticamente em todos os lugares.
+ * @param {{ since?: string, discId?: string }} [opts]
+ *   since  = data mínima 'YYYY-MM-DD' (compara com ev.dataEstudo||ev.data); sem corte por padrão.
+ *   discId = se passado, retorna apenas os minutos dessa disciplina (number) em vez do mapa.
+ * @returns {Record<string, number> | number} mapa discId->minutos, ou número se discId for dado.
+ */
+export function getStudiedMinutesByDiscipline(opts = {}) {
+  const { since, discId } = opts;
+  const totals = {};
+  for (const ev of state.eventos || []) {
+    if (!ev || ev.status !== 'estudei') continue;
+    const minutos = Math.round((Number(ev.tempoAcumulado) || 0) / 60);
+    if (minutos <= 0) continue;
+    if (since) {
+      const evDate = ev.dataEstudo || ev.data;
+      if (!evDate || evDate < since) continue;
+    }
+    if (discId && ev.discId !== discId) continue;
+    if (!ev.discId) continue;
+    totals[ev.discId] = (totals[ev.discId] || 0) + minutos;
+  }
+  return discId ? totals[discId] || 0 : totals;
+}
+
 function getRemainingMinutesForSeq(seq) {
   const target = Math.max(0, Math.round(Number(seq?.minutosAlvo) || 0));
   if (target <= 0) return 0;
   if (getSeqStatus(seq) === 'concluida') return 0;
   return Math.max(target - getStudiedMinutesForSeq(seq.id), 0);
+}
+
+/**
+ * Distribui os minutos estudados por disciplina (de getStudiedMinutesByDiscipline) pelos passos
+ * da sequência, em ordem. Passos concluídos consomem o alvo primeiro. Função pura: é a fonte única
+ * compartilhada entre as barras de progresso (ciclo-view) e a Previsão de Sessões, garantindo que
+ * ambas reajam igualmente a todas as sessões de estudo da disciplina (inclusive sessões livres).
+ * @param {Array} sequence - state.planejamento.sequencia (ou a sequência temporária em edição)
+ * @param {Record<string, number>} minutosPorDisc - mapa discId -> minutos estudados
+ * @returns {Record<string, { usedMins: number, remaining: number, pct: number }>} mapa por seq.id
+ */
+export function distributeStudiedAcrossSeq(sequence, minutosPorDisc) {
+  const copy = { ...(minutosPorDisc || {}) };
+  const result = {};
+  for (const seq of sequence || []) {
+    const target = Math.max(0, Math.round(Number(seq?.minutosAlvo) || 0));
+    let usedMins = 0;
+    if (getSeqStatus(seq) === 'concluida') {
+      usedMins = target;
+      if (seq.discId && copy[seq.discId] > 0) {
+        copy[seq.discId] = Math.max(copy[seq.discId] - target, 0);
+      }
+    } else if (seq.discId && copy[seq.discId] > 0) {
+      usedMins = Math.min(target, copy[seq.discId]);
+      copy[seq.discId] -= usedMins;
+    }
+    result[seq.id] = {
+      usedMins,
+      remaining: Math.max(target - usedMins, 0),
+      pct: target > 0 ? (usedMins / target) * 100 : 0,
+    };
+  }
+  return result;
 }
 
 function formatPlanningMinutes(minutes) {
@@ -385,6 +446,14 @@ export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
   const skippedSlots = getSkippedSlotKeySet(state.planejamento);
   let simulatedIdx = 0;
 
+  // Desconta TODO o tempo estudado por disciplina (não só sessões vinculadas ao passo), usando a
+  // mesma distribuição das barras de progresso da Sequência. Assim a previsão reage a qualquer
+  // sessão (inclusive Sessão Livre). A janela "since" é o início do ciclo atual, igual à view.
+  const sinceCiclo = (state.planejamento.dataInicioCicloAtual || '').substring(0, 10) || undefined;
+  const minutosPorDisc = getStudiedMinutesByDiscipline({ since: sinceCiclo });
+  const remBySeq = distributeStudiedAcrossSeq(state.planejamento.sequencia, minutosPorDisc);
+  const firstVisit = new Set();
+
   const projection = {};
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -402,7 +471,17 @@ export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
       if (!projection[seqItem.discId]) {
         projection[seqItem.discId] = { sessoes: 0, minutos: 0 };
       }
-      const remainingMinutes = getRemainingMinutesForSeq(seqItem);
+      // 1ª visita ao passo: usa o restante já descontado do estudado. Repetições (ciclos futuros)
+      // ainda não foram estudadas, então usam o alvo cheio.
+      let remainingMinutes;
+      if (!firstVisit.has(seqItem.id)) {
+        firstVisit.add(seqItem.id);
+        remainingMinutes = remBySeq[seqItem.id]
+          ? remBySeq[seqItem.id].remaining
+          : Math.max(0, Math.round(Number(seqItem.minutosAlvo) || 0));
+      } else {
+        remainingMinutes = Math.max(0, Math.round(Number(seqItem.minutosAlvo) || 0));
+      }
       if (remainingMinutes <= 0) {
         simulatedIdx = (simulatedIdx + 1) % seq.length;
         continue;

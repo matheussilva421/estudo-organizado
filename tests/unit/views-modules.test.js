@@ -376,6 +376,71 @@ describe('ciclo-view.js', () => {
       expect(container.innerHTML).toContain('20/04/2026 a 21/04/2026');
     });
 
+    it('persiste a janela de datas da previsão no estado ao recalcular', () => {
+      document.body.innerHTML = '<main id="test-root"></main>';
+      store.setState(
+        createBaseState({
+          config: { ...createBaseState().config, materiasPorDia: 2 },
+          planejamento: {
+            ativo: true,
+            tipo: 'ciclo',
+            disciplinas: ['disc_1'],
+            sequencia: [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false }],
+            ciclosCompletos: 0,
+            horarios: { diasAtivos: [1, 2], dataInicial: '2026-04-20', dataFinal: '2026-04-21' },
+          },
+          editais: [createEdital({ disciplinas: [createDisciplina({ id: 'disc_1', nome: 'T' })] })],
+        })
+      );
+
+      const container = document.getElementById('test-root');
+      views.renderCiclo(container);
+      // Usuário muda a data final no input e dispara o recálculo.
+      document.getElementById('predict-end-date').value = '2026-04-28';
+      views.calculateCyclePredictions();
+
+      expect(store.state.planejamento.horarios.dataFinal).toBe('2026-04-28');
+      expect(store.state.planejamento.horarios.dataInicial).toBe('2026-04-20');
+    });
+
+    it('reduz a previsão ao registrar uma sessão livre (sem seqId) na disciplina', () => {
+      document.body.innerHTML = '<main id="test-root"></main>';
+      store.setState(
+        createBaseState({
+          config: { ...createBaseState().config, materiasPorDia: 1 },
+          planejamento: {
+            ativo: true,
+            tipo: 'ciclo',
+            disciplinas: ['disc_1'],
+            sequencia: [{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false }],
+            ciclosCompletos: 0,
+            dataInicioCicloAtual: '2026-04-01',
+            horarios: { diasAtivos: [1], dataInicial: '2026-04-20', dataFinal: '2026-04-20' },
+          },
+          // Sessão livre: discId correto, SEM seqId.
+          eventos: [
+            createEvento({
+              id: 'ev_livre',
+              status: 'estudei',
+              discId: 'disc_1',
+              tempoAcumulado: 1500,
+              data: '2026-04-19',
+            }),
+          ],
+          editais: [createEdital({ disciplinas: [createDisciplina({ id: 'disc_1', nome: 'T' })] })],
+        })
+      );
+      logic.invalidateDiscCache();
+
+      const container = document.getElementById('test-root');
+      views.renderCiclo(container);
+      views.calculateCyclePredictions();
+
+      // 1 slot, restante = 60 - 25 = 35min.
+      expect(container.innerHTML).toContain('1 sessão previstas');
+      expect(container.innerHTML).toContain('35min totais');
+    });
+
     it('mostra etapa concluida manualmente como 100% mesmo com tempo parcial', () => {
       const state = createBaseState({
         planejamento: {
