@@ -127,14 +127,14 @@ export function renderCronometro(el) {
       <div class="crono-grid-overlay"></div>
 
       <!-- Header: studying indicator -->
-      <div style="text-align:center;padding:clamp(12px,4vh,32px) 24px 0;position:relative;z-index:1;">
+      <div style="text-align:center;padding:clamp(8px,2.5vh,32px) 24px 0;position:relative;z-index:1;">
         <div class="crono-pill">
           Você está estudando:
         </div>
         ${
           focusEvent.id === 'crono_livre'
             ? `
-        <div style="display:flex; flex-direction:column; align-items:center; gap:clamp(4px,1.5vh,8px); margin-top:clamp(6px,2vh,16px);">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:clamp(4px,1vh,8px); margin-top:clamp(4px,1.5vh,16px);">
           <select class="crono-select" data-action="set-crono-livre-disc" value="${state.cronoLivre?.discId || ''}">
             <option value="">(Opcional) Escolha a Disciplina...</option>
           ${getFilteredActiveDisciplinas({ allowAll: false })
@@ -168,7 +168,7 @@ export function renderCronometro(el) {
         </div>
         `
             : `
-        <div style="color:var(--text-primary);font-size:20px;margin-top:clamp(6px,2vh,16px);font-weight:700;">
+        <div style="color:var(--text-primary);font-size:20px;margin-top:clamp(4px,1.5vh,16px);font-weight:700;">
            ${discName}
         </div>
         <div style="
@@ -196,7 +196,7 @@ export function renderCronometro(el) {
       <!-- TIMER DISPLAY w/ progress ring -->
       <div style="
         flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-        padding:clamp(8px,3vh,40px) 24px;position:relative;z-index:1;
+        padding:clamp(4px,2vh,40px) 24px;position:relative;z-index:1;
       ">
         <div class="crono-ring-wrap">
           <svg class="crono-ring" viewBox="0 0 220 220" aria-hidden="true">
@@ -221,7 +221,7 @@ export function renderCronometro(el) {
         <div id="crono-progress-bar" style="display:none;width:${progress}%;"></div>
 
         <!-- Controls -->
-        <div style="display:flex;gap:24px;margin-top:clamp(12px,4vh,40px);align-items:center;">
+        <div style="display:flex;gap:24px;margin-top:clamp(8px,2.5vh,40px);align-items:center;">
           <button data-action="toggle-timer" data-event-id="${focusEvent.id}"
                   class="crono-btn-main ${isActive ? 'pause' : 'play'}"
                   title="${isActive ? 'Pausar' : 'Retomar'}">
@@ -244,11 +244,11 @@ export function renderCronometro(el) {
         </div>
 
         <!-- Add time buttons / Goal Input -->
-        <div style="margin-top:clamp(12px,4vh,40px);text-align:center;">
+        <div style="margin-top:clamp(8px,2.5vh,40px);text-align:center;">
           ${
             focusEvent.id === 'crono_livre'
               ? `
-          <div style="color:var(--text-secondary);font-size:12px;margin-bottom:clamp(4px,1.5vh,12px);letter-spacing:1px;">
+          <div style="color:var(--text-secondary);font-size:12px;margin-bottom:clamp(2px,1vh,12px);letter-spacing:1px;">
             Definir Meta de Tempo (minutos):
           </div>
           <div style="display:flex;gap:12px;justify-content:center;align-items:center;">
@@ -262,7 +262,7 @@ export function renderCronometro(el) {
           </div>
           `
               : `
-          <div style="color:var(--text-secondary);font-size:12px;margin-bottom:clamp(4px,1.5vh,12px);letter-spacing:1px;">
+          <div style="color:var(--text-secondary);font-size:12px;margin-bottom:clamp(2px,1vh,12px);letter-spacing:1px;">
             Adicione mais tempo se quiser continuar estudando:
           </div>
           <div style="display:flex;gap:12px;justify-content:center;">
@@ -277,7 +277,7 @@ export function renderCronometro(el) {
 
       <!-- Mode toggle (Cronômetro / Timer) -->
       <div style="
-        display:flex;justify-content:center;gap:4px;padding:0 0 clamp(8px,3vh,24px);position:relative;z-index:1;
+        display:flex;justify-content:center;gap:4px;padding:0 0 clamp(6px,2vh,24px);position:relative;z-index:1;
       ">
         <button id="crono-mode-btn" data-action="toggle-timer-mode" style="
           padding:8px 20px;border-radius:20px;border:none;cursor:pointer;
@@ -296,7 +296,7 @@ export function renderCronometro(el) {
         otherEvents.length > 0
           ? `
         <!-- Other timers -->
-        <div style="padding:0 32px clamp(8px,3vh,24px);position:relative;z-index:1;">
+        <div style="padding:0 32px clamp(6px,2vh,24px);position:relative;z-index:1;">
           <div style="color:var(--text-secondary);font-size:12px;margin-bottom:8px;">Outros cronômetros:</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
             ${otherEvents
