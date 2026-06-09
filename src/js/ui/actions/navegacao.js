@@ -59,7 +59,6 @@ registerAction('navigate-clear-search', (el) => {
 });
 registerAction('search-input', (el) => debouncedOnSearch(el.value));
 registerAction('search-focus', onSearchFocus);
-registerAction('clear-search', clearSearch);
 registerAction('set-cal-view-mode', (el) => setCalViewMode(el.dataset.mode));
 registerAction('cal-navigate', (el) => calNavigate(parseInt(el.dataset.dir, 10)));
 registerAction('cal-today', () => calNavigate(0));

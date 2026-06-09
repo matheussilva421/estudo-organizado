@@ -76,7 +76,8 @@ describe('ui/actions/eventos.js', () => {
     expect(calls).toContain('delete-event-from-modal');
     expect(calls).toContain('open-add-event');
     expect(calls).toContain('open-event-modal-date');
-    expect(calls).toContain('open-event-from-calo');
+    // 'open-event-from-calo' removido: registro morto (nenhum markup o usava)
+    expect(calls).not.toContain('open-event-from-calo');
     expect(calls).toContain('open-event-detail');
     expect(calls).toContain('switch-to-event-timer');
     expect(calls).toContain('add-minutes');
@@ -187,12 +188,6 @@ describe('ui/actions/eventos.js', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'open-event-modal-date')[1];
     handler({ dataset: { date: '2026-04-29' } });
     expect(eventModals.openAddEventModal).toHaveBeenCalledWith('2026-04-29');
-  });
-
-  it('open-event-from-calo handler passes date', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'open-event-from-calo')[1];
-    handler({ dataset: { date: '2026-04-30' } });
-    expect(eventModals.openAddEventModal).toHaveBeenCalledWith('2026-04-30');
   });
 
   it('open-event-detail handler passes eventId', () => {

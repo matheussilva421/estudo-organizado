@@ -56,7 +56,8 @@ describe('ui/actions/navegacao.js', () => {
     expect(calls).toContain('navigate-clear-search');
     expect(calls).toContain('search-input');
     expect(calls).toContain('search-focus');
-    expect(calls).toContain('clear-search');
+    // 'clear-search' removido: registro morto (markup usa 'navigate-clear-search')
+    expect(calls).not.toContain('clear-search');
     expect(calls).toContain('set-cal-view-mode');
     expect(calls).toContain('cal-navigate');
     expect(calls).toContain('cal-today');

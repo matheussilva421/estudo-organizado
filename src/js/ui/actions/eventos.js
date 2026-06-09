@@ -77,10 +77,6 @@ registerAction('open-event-modal-date', (el) => {
   const date = el.dataset.date;
   if (date) openAddEventModal(date);
 });
-registerAction('open-event-from-calo', (el) => {
-  const date = el.dataset.date;
-  if (date) openAddEventModal(date);
-});
 registerAction('open-event-detail', (el) => {
   const eventId = el.dataset.eventId;
   if (eventId) openEventDetail(eventId);
