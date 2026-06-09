@@ -71,7 +71,8 @@ Testes: `actions-dispatcher`, `editais-actions`, `habitos-actions`, `views-crud-
 
 ## GitHub
 
-Branch `claude/auditoria-abas-fixes` com commit convencional + push (ver status final da sessão).
+- Rodada 1: branch `claude/auditoria-abas-fixes`, commit `75d73c4` → **PR #76, mergeado em 2026-06-09**.
+- Rodada 2: commit `060e61e` direto na `main` (o PR #76 já havia sido mergeado e o checkout local estava em `main`; suíte completa verde antes do push).
 
 ## Rodada 2 (mesma sessão, mesma branch)
 
