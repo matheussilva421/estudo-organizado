@@ -84,6 +84,18 @@ describe('logic/timer.js - Exports exist', () => {
     expect(typeof timer._pomodoroAlarm.play).toBe('function');
   });
 
+  it('does not create Audio at module import (lazy alarm)', () => {
+    expect(global.Audio).not.toHaveBeenCalled();
+  });
+
+  it('creates Audio lazily on first play and reuses the instance', async () => {
+    await timer._pomodoroAlarm.play();
+    expect(global.Audio).toHaveBeenCalledTimes(1);
+    expect(global.Audio).toHaveBeenCalledWith(expect.stringContaining('mixkit'));
+    await timer._pomodoroAlarm.play();
+    expect(global.Audio).toHaveBeenCalledTimes(1);
+  });
+
   it('exports isTimerActive', () => {
     expect(typeof timer.isTimerActive).toBe('function');
   });
