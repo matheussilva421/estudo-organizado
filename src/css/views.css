@@ -109,6 +109,7 @@
 .med-sticky-counts {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .med-badge--running {
