@@ -57,6 +57,7 @@ export function editSubjectInline(discId, assId, el) {
 
 export function editLessonInline(discId, aulaId, el) {
   const d = getDisc(discId);
+  if (!d) return;
   const aulaObj = (d.disc.aulas || []).find((a) => a.id === aulaId);
   if (!aulaObj) return;
 
