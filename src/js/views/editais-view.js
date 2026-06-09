@@ -368,13 +368,13 @@ export function renderEditalTree(edital) {
         ${progressBadge}
         <span class="text-sm tree-edital-count">${discCountText}</span>
         <button class="btn btn-ghost btn-sm tree-edital-add-btn" data-action="open-disc-modal" data-edital-id="${edital.id}">+ Disciplina</button>
-        <button type="button" class="icon-btn" title="Mover edital para cima" data-action="move-edital" data-edital-id="${edital.id}" data-dir="-1" ${isFirstEdital ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
-        <button type="button" class="icon-btn" title="Mover edital para baixo" data-action="move-edital" data-edital-id="${edital.id}" data-dir="1" ${isLastEdital ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
-        <button class="icon-btn" title="Adicionar Tópicos" data-action="navigate-with-ctx" data-view="vertical" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">📝</button>
-        <button class="icon-btn" title="Analisador de Bancas" data-action="navigate-with-ctx" data-view="banca-analyzer" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">🧠</button>
-        <button class="icon-btn" title="Editar" data-action="open-edital-modal" data-edital-id="${edital.id}">✏️</button>
-        <button class="icon-btn" title="Excluir" data-action="delete-edital" data-edital-id="${edital.id}">🗑️</button>
-        <i class="fa fa-chevron-down text-base" style="opacity:0.7;"></i>
+        <button type="button" class="icon-btn" title="Mover edital para cima" aria-label="Mover edital para cima" data-action="move-edital" data-edital-id="${edital.id}" data-dir="-1" ${isFirstEdital ? 'disabled' : ''}><i class="fa fa-chevron-up" aria-hidden="true"></i></button>
+        <button type="button" class="icon-btn" title="Mover edital para baixo" aria-label="Mover edital para baixo" data-action="move-edital" data-edital-id="${edital.id}" data-dir="1" ${isLastEdital ? 'disabled' : ''}><i class="fa fa-chevron-down" aria-hidden="true"></i></button>
+        <button class="icon-btn" title="Adicionar Tópicos" aria-label="Adicionar tópicos" data-action="navigate-with-ctx" data-view="vertical" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">📝</button>
+        <button class="icon-btn" title="Analisador de Bancas" aria-label="Analisador de bancas" data-action="navigate-with-ctx" data-view="banca-analyzer" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">🧠</button>
+        <button class="icon-btn" title="Editar" aria-label="Editar edital" data-action="open-edital-modal" data-edital-id="${edital.id}">✏️</button>
+        <button class="icon-btn" title="Excluir" aria-label="Excluir edital" data-action="delete-edital" data-edital-id="${edital.id}">🗑️</button>
+        <i class="fa fa-chevron-down text-base" style="opacity:0.7;" aria-hidden="true"></i>
       </div>
       <div class="disc-filter-row flex gap-xs" style="padding:8px 16px; border-bottom:1px solid var(--border);" role="group" aria-label="Filtro de disciplinas">
         <button type="button" class="filter-chip ${discFilterStatus === 'ativas' ? 'active' : ''}" data-action="set-disc-filter" data-filter="ativas">Ativas</button>

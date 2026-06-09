@@ -379,4 +379,28 @@ describe('views.js - CRUD, inline editing, dashboard ops', () => {
       expect(componentsModule.renderCurrentView).toHaveBeenCalled();
     });
   });
+
+  describe('updateSeqItem()', () => {
+    it('updates minutosAlvo with a valid value', () => {
+      views.setTempSequencia([{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60 }]);
+      views.updateSeqItem(0, 'minutosAlvo', '45');
+      expect(views.getTempSequencia()[0].minutosAlvo).toBe(45);
+    });
+
+    it('clamps minutosAlvo to at least 1 (zero, negative, invalid input)', () => {
+      views.setTempSequencia([{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60 }]);
+      views.updateSeqItem(0, 'minutosAlvo', '0');
+      expect(views.getTempSequencia()[0].minutosAlvo).toBe(1);
+      views.updateSeqItem(0, 'minutosAlvo', '-30');
+      expect(views.getTempSequencia()[0].minutosAlvo).toBe(1);
+      views.updateSeqItem(0, 'minutosAlvo', 'abc');
+      expect(views.getTempSequencia()[0].minutosAlvo).toBe(1);
+    });
+
+    it('updates non-numeric fields without clamping', () => {
+      views.setTempSequencia([{ id: 'seq_1', discId: 'disc_1', minutosAlvo: 60 }]);
+      views.updateSeqItem(0, 'discId', 'disc_2');
+      expect(views.getTempSequencia()[0].discId).toBe('disc_2');
+    });
+  });
 });

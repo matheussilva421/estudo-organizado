@@ -19,14 +19,6 @@ registerAction('open-habit-modal', (el) => {
   if (habitKey) openHabitModal(habitKey);
 });
 registerAction('save-habit', saveHabit);
-registerAction('edit-habit', (el) => {
-  const habitId = el.dataset.habitId;
-  const habitType = el.dataset.type;
-  if (habitId && habitType)
-    import('../../views/habitos-view.js?v=8.37').then(({ editHabit }) =>
-      editHabit(habitId, habitType)
-    );
-});
 registerAction('delete-habit', (el) => {
   const habitId = el.dataset.habitId;
   const habitType = el.dataset.type;

@@ -14,7 +14,6 @@ describe('ui/actions/habitos.js', () => {
       selectHabitType: vi.fn(),
       setHabitPage: vi.fn(),
       calcSimuladoPerc: vi.fn(),
-      editHabit: vi.fn(),
     };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
@@ -27,7 +26,8 @@ describe('ui/actions/habitos.js', () => {
     const calls = registerAction.mock.calls.map(c => c[0]);
     expect(calls).toContain('open-habit-modal');
     expect(calls).toContain('save-habit');
-    expect(calls).toContain('edit-habit');
+    // 'edit-habit' removido: handler morto (editHabit nunca existiu na view)
+    expect(calls).not.toContain('edit-habit');
     expect(calls).toContain('delete-habit');
     expect(calls).toContain('select-habit-type');
     expect(calls).toContain('set-habit-page');

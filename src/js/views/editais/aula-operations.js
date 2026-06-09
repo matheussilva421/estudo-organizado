@@ -96,13 +96,13 @@ export function deleteAula(discId, aulaId) {
     if (!d) return;
 
     // Remove backlinks
-    d.disc.assuntos.forEach((ass) => {
+    (d.disc.assuntos || []).forEach((ass) => {
       if (ass.linkedAulaIds) {
         ass.linkedAulaIds = ass.linkedAulaIds.filter((id) => id !== aulaId);
       }
     });
 
-    d.disc.aulas = d.disc.aulas.filter((a) => a.id !== aulaId);
+    d.disc.aulas = (d.disc.aulas || []).filter((a) => a.id !== aulaId);
     scheduleSave();
     openDiscManager(getEditingSubjectCtx().editaId, discId);
   });

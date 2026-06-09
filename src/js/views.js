@@ -305,7 +305,7 @@ export function cancelEditSeq() {
 
 export function updateSeqItem(i, field, val) {
   i = parseInt(i, 10);
-  if (field === 'minutosAlvo') val = parseInt(val) || 0;
+  if (field === 'minutosAlvo') val = Math.max(1, parseInt(val) || 0);
   const ts = getTempSequencia();
   ts[i][field] = val;
   setTempSequencia(ts);
