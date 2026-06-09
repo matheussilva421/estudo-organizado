@@ -107,6 +107,8 @@ Sondagens finais sem achados (codebase saudável): listeners em render (delegaç
 
 23. **Causa-raiz das 12 falhas do mock em `app.spec.js` resolvida**: o servidor mock em modo `reset` (default) **apaga o IndexedDB e re-seeda a cada page load** (`scripts/mock-inject.mjs`), então specs de "persiste após reload" não podem passar nesse projeto por design — não são bugs do app. Fix de tooling: `test:e2e:quick` agora é escopado a `--project=chromium` (era o comando documentado que gerava as falhas espúrias); `test:e2e:all`/`test:e2e:mock:all` mantêm a matriz completa para investigação de paridade. README_DEV atualizado.
 
+26. **Calendário — navegação por teclado no grid mensal (roving tabindex)**: células `.cal-cell` agora têm `role="button"`, `aria-label` ("D de mês, N evento(s)") e tabindex rotativo — um único Tab-stop entra no grid (hoje, ou 1º dia do mês), setas movem o foco entre células e Enter/Space seleciona o dia (via delegação keydown do dispatcher já existente). Handler exportado `handleCalGridKeydown` em `calendar-view.js` + 5 testes. E2E calendar+smoke 6/6.
+
 ## Próximos passos sugeridos
 
 1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+Enter nos cards da Home e Hábitos.
