@@ -98,6 +98,9 @@ Auditoria de contratos `data-action`×`registerAction`: **íntegra** (nenhuma a�
 **Pré-existente (fora de escopo)**: 12 specs de `app.spec.js` falham no projeto **mock** (paridade do ambiente; vários são de sync). Chromium passa 27/27. Gate oficial do mock (`mock-environment.spec.js`) verde.
 
 18. **A11y — Calendário (semana) e Cronômetro**: chips de evento da view semanal eram `<div>` clicáveis (sem teclado) → agora `<button>` como na view de mês; "+" do dia da semana ganhou `aria-label`/`title`; botões ±5min e input de meta do Cronômetro Livre ganharam `aria-label`. Validação: calendar-view/components unit 48 verdes + `calendar.spec.js` chromium 4/4.
+19. **Editais — `editLessonInline` tolera disciplina removida**: mesmo null-deref de `getDisc` já corrigido em `deleteAula`/`saveHabit`. Demais call-sites de `getDisc` auditados — todos guardados (classe de bug fechada). Teste novo: `tests/unit/inline-editing-guards.test.js`.
+20. **Limpeza**: registros de ação mortos removidos (`open-event-from-calo`, `clear-search` — nenhum markup os usava). `restore-backup` mantido (contrato em `import-export-contracts.test.js`); ações de sync intocadas.
+21. **Validação E2E ampla (chromium)**: app+smoke 27/27, calendar 4/4, revisões/hábitos/sessões/timer/editais 11/11, dashboard/ciclo/crud/persistência/revision-flow 45/45 — todas as abas do menu cobertas por E2E verde após as mudanças.
 
 ## Próximos passos sugeridos
 
