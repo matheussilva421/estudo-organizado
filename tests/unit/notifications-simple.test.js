@@ -79,6 +79,23 @@ describe('notifications.js', () => {
       const notif = await import('../../src/js/notifications.js?v=8.37');
       expect(() => notif.cleanupNotificationEngine()).not.toThrow();
     });
+
+    it('cancels the pending init timeout from initNotifications', async () => {
+      vi.resetModules();
+      const mockGetPending = vi.fn(() => []);
+      vi.doMock('../../src/js/store.js?v=8.37', () => ({
+        state: { config: {} },
+      }));
+      vi.doMock('../../src/js/logic.js?v=8.37', () => ({
+        getPendingRevisoes: mockGetPending,
+        getPredictiveStats: vi.fn(() => ({ status: 'verde', daysRemaining: 5 })),
+      }));
+      const notif = await import('../../src/js/notifications.js?v=8.37');
+      await notif.initNotifications();
+      notif.cleanupNotificationEngine();
+      vi.advanceTimersByTime(3000);
+      expect(mockGetPending).not.toHaveBeenCalled();
+    });
   });
 
   describe('startNotificationEngine()', () => {

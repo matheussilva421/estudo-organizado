@@ -15,6 +15,13 @@ async function seedLegacyState(page, state) {
   }, JSON.stringify(state));
 }
 
+function localDateStr(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 test.describe('Ciclo de Estudos', () => {
   test('inicia ciclo vazio e exibe mensagem de planejamento', async ({ page }) => {
     const state = createE2EState();
@@ -559,7 +566,7 @@ test.describe('Previsão de Sessões (Ciclo)', () => {
       {
         id: 'ev_pending_seq',
         titulo: 'Estudar Sessao Planejada',
-        data: '2026-05-05',
+        data: localDateStr(),
         duracao: 60,
         status: 'agendado',
         tempoAcumulado: 0,
@@ -570,7 +577,7 @@ test.describe('Previsão de Sessões (Ciclo)', () => {
       {
         id: 'ev_studied_seq',
         titulo: 'Sessao Ja Estudada',
-        data: '2026-05-05',
+        data: localDateStr(),
         duracao: 60,
         status: 'estudei',
         tempoAcumulado: 1800,
@@ -581,7 +588,7 @@ test.describe('Previsão de Sessões (Ciclo)', () => {
       {
         id: 'ev_manual_keep',
         titulo: 'Evento Manual Mantido',
-        data: '2026-05-05',
+        data: localDateStr(),
         duracao: 30,
         status: 'agendado',
         tempoAcumulado: 0,
