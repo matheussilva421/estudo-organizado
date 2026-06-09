@@ -182,7 +182,7 @@ export function renderHabitos(el) {
             : '';
 
         return `
-          <div class="habit-card" data-action="open-habit-modal" data-habit-key="${h.key}">
+          <div class="habit-card" data-action="open-habit-modal" data-habit-key="${h.key}" role="button" tabindex="0" aria-label="Registrar ${h.label}">
             <div class="hc-icon">${h.icon}</div>
             <div class="hc-label">${h.label}</div>
             <div class="hc-count" data-habit-color="${h.color}">${total}</div>
@@ -477,7 +477,9 @@ export function saveHabit() {
     registro.acertos = acertos;
     if (discId) {
       const d = getDisc(discId);
-      registro.gabaritoPorDisc = [{ discId, discNome: d.disc.nome, total: quantidade, acertos }];
+      if (d) {
+        registro.gabaritoPorDisc = [{ discId, discNome: d.disc.nome, total: quantidade, acertos }];
+      }
     }
   } else if (currentHabitType === 'simulado') {
     registro.descricao = document.getElementById('habit-desc')?.value || '';

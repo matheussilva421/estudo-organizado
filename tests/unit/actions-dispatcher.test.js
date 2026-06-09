@@ -35,12 +35,13 @@ describe('dispatcher.js', () => {
   });
 
   describe('setupActionDispatcher', () => {
-    it('registers click, change, input, focusin, focusout listeners', () => {
+    it('registers click, change, input, keydown, focusin, focusout listeners', () => {
       dispatcher.setupActionDispatcher();
       const calls = global.document.addEventListener.mock.calls.map((c) => c[0]);
       expect(calls).toContain('click');
       expect(calls).toContain('change');
       expect(calls).toContain('input');
+      expect(calls).toContain('keydown');
       expect(calls).toContain('focusin');
       expect(calls).toContain('focusout');
     });
@@ -200,6 +201,78 @@ describe('dispatcher.js', () => {
       const target = { tagName: 'INPUT', dataset: {}, closest: vi.fn(() => null) };
       const event = { target };
       expect(() => global._listeners['focusout'][0](event)).not.toThrow();
+    });
+  });
+
+  describe('keyboard activation of role=button elements', () => {
+    function makeRoleButtonTarget(action, tagName = 'DIV', role = 'button') {
+      return {
+        tagName,
+        dataset: { action },
+        getAttribute: vi.fn((name) => (name === 'role' ? role : null)),
+        closest: vi.fn(function () { return this; }),
+      };
+    }
+
+    it('activates [role=button] div on Enter keydown', () => {
+      const handler = vi.fn();
+      dispatcher.registerAction('kb-action', handler);
+      dispatcher.setupActionDispatcher();
+
+      const target = makeRoleButtonTarget('kb-action');
+      const event = { key: 'Enter', target, preventDefault: vi.fn(), stopPropagation: vi.fn() };
+
+      global._listeners['keydown'][0](event);
+      expect(handler).toHaveBeenCalledWith(target, event);
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    it('activates [role=button] div on Space keydown', () => {
+      const handler = vi.fn();
+      dispatcher.registerAction('kb-action-space', handler);
+      dispatcher.setupActionDispatcher();
+
+      const target = makeRoleButtonTarget('kb-action-space');
+      const event = { key: ' ', target, preventDefault: vi.fn(), stopPropagation: vi.fn() };
+
+      global._listeners['keydown'][0](event);
+      expect(handler).toHaveBeenCalledWith(target, event);
+    });
+
+    it('does not double-activate native buttons on keydown', () => {
+      const handler = vi.fn();
+      dispatcher.registerAction('kb-native', handler);
+      dispatcher.setupActionDispatcher();
+
+      const target = makeRoleButtonTarget('kb-native', 'BUTTON');
+      const event = { key: 'Enter', target, preventDefault: vi.fn(), stopPropagation: vi.fn() };
+
+      global._listeners['keydown'][0](event);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('ignores keydown on elements without role=button', () => {
+      const handler = vi.fn();
+      dispatcher.registerAction('kb-norole', handler);
+      dispatcher.setupActionDispatcher();
+
+      const target = makeRoleButtonTarget('kb-norole', 'DIV', null);
+      const event = { key: 'Enter', target, preventDefault: vi.fn(), stopPropagation: vi.fn() };
+
+      global._listeners['keydown'][0](event);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('ignores other keys', () => {
+      const handler = vi.fn();
+      dispatcher.registerAction('kb-otherkey', handler);
+      dispatcher.setupActionDispatcher();
+
+      const target = makeRoleButtonTarget('kb-otherkey');
+      const event = { key: 'a', target, preventDefault: vi.fn(), stopPropagation: vi.fn() };
+
+      global._listeners['keydown'][0](event);
+      expect(handler).not.toHaveBeenCalled();
     });
   });
 

@@ -63,6 +63,25 @@ export function setupActionDispatcher() {
     }
   });
 
+  // Keyboard activation para elementos com role="button" (ex.: cards clicáveis)
+  // Botões/links nativos já disparam click no Enter/Space — ficam de fora para não duplicar.
+  const NATIVE_INTERACTIVE = ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'];
+  addCleanupListener(document, 'keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+    const target = event.target.closest('[data-action]');
+    if (!target) return;
+    if (NATIVE_INTERACTIVE.includes(target.tagName)) return;
+    if (target.getAttribute('role') !== 'button') return;
+
+    const handler = actions[target.dataset.action];
+    if (handler) {
+      event.preventDefault();
+      event.stopPropagation();
+      handler(target, event);
+    }
+  });
+
   // Input handler para search
   addCleanupListener(document, 'input', (event) => {
     const target = event.target.closest('[data-action]');

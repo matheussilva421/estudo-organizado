@@ -278,7 +278,7 @@ function renderCicloView(el, plan) {
              </div>
              <div class="seq-item-field seq-item-field--narrow">
                <div class="seq-item-field-label">Minutos</div>
-               <input type="number" class="form-control seq-item-input" value="${seq.minutosAlvo}" data-action="update-seq-item" data-index="${i}" data-field="minutosAlvo">
+               <input type="number" min="1" class="form-control seq-item-input" value="${seq.minutosAlvo}" data-action="update-seq-item" data-index="${i}" data-field="minutosAlvo">
              </div>
 
              <div class="seq-item-actions">

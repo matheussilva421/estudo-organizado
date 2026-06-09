@@ -275,9 +275,12 @@ registerAction('filtrar-dropdown-banca', (el) => filtrarDropdownBanca(el.value))
 // Banca Analyzer actions
 registerAction('parse-banca-text', parseBancaText);
 registerAction('apply-banca-ranking', applyBancaRanking);
-registerAction('filtrar-view-por-disciplina', filtrarViewPorDisciplina);
-registerAction('mudar-edital-analisador', mudarEditalAnalisador);
-registerAction('carregar-analise-banca', carregarAnaliseBanca);
+registerAction('filtrar-view-por-disciplina', (el) => filtrarViewPorDisciplina(el.value));
+registerAction('mudar-edital-analisador', (el) => mudarEditalAnalisador(el.value));
+registerAction('carregar-analise-banca', (el) => {
+  const discId = el.dataset.discId;
+  if (discId) carregarAnaliseBanca(discId);
+});
 registerAction('excluir-analise-banca', (el) => {
   const discId = el.dataset.discId;
   if (discId) excluirAnaliseBanca(discId);

@@ -299,8 +299,21 @@ describe('ui/actions/editais.js', () => {
     expect(handler).toBe(bancaView.applyBancaRanking);
   });
 
-  it('mudar-edital-analisador handler is mudarEditalAnalisador directly', () => {
+  it('mudar-edital-analisador handler passes select value, not the element', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'mudar-edital-analisador')[1];
-    expect(handler).toBe(bancaView.mudarEditalAnalisador);
+    handler({ value: 'edital_1', dataset: {} });
+    expect(bancaView.mudarEditalAnalisador).toHaveBeenCalledWith('edital_1');
+  });
+
+  it('filtrar-view-por-disciplina handler passes select value, not the element', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'filtrar-view-por-disciplina')[1];
+    handler({ value: 'disc_1', dataset: {} });
+    expect(bancaView.filtrarViewPorDisciplina).toHaveBeenCalledWith('disc_1');
+  });
+
+  it('carregar-analise-banca handler passes data-disc-id, not the element', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'carregar-analise-banca')[1];
+    handler({ dataset: { discId: 'disc_2' } });
+    expect(bancaView.carregarAnaliseBanca).toHaveBeenCalledWith('disc_2');
   });
 });

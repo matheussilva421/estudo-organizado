@@ -210,8 +210,12 @@ export function renderRevisoes(el) {
 }
 
 export function switchRevTab(tab, btn) {
-  document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+  document.querySelectorAll('.rev-tabs .tab-btn').forEach((b) => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected', 'false');
+  });
   btn?.classList.add('active');
+  btn?.setAttribute('aria-selected', 'true');
   document.getElementById('rev-tab-pendentes').classList.toggle('active', tab === 'pendentes');
   document.getElementById('rev-tab-proximas').classList.toggle('active', tab === 'proximas');
 }
