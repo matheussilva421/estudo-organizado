@@ -229,7 +229,7 @@ export function renderVerticalList(container) {
 
         <!-- LISTA DE TÓPICOS ANINHADA -->
         <div id="vert-disc-body-${discId}" class="border-t" style="display:none; padding:16px;">
-          <div style="overflow-x:auto;">
+          <div class="table-scroll-hint" style="overflow-x:auto;">
             <table class="w-full text-base text-center" style="border-collapse:collapse;">
               <thead>
                 <tr class="text-primary font-semibold border-b">

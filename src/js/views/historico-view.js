@@ -77,6 +77,11 @@ function buildFilterToolbar(filters, disciplinas, totalAfter, totalBefore) {
         <input type="search" placeholder="Buscar título ou descrição…" value="${esc(filters.busca || '')}" data-action="historico-set-busca" />
       </label>
       <div style="display:flex;gap:6px;align-items:flex-end;">
+        ${
+          rangeSel !== '30' || filters.disciplinaId || (filters.busca || '').trim()
+            ? '<button class="btn btn-ghost btn-sm" data-action="historico-clear-filters" title="Limpar todos os filtros"><i class="fa fa-times" aria-hidden="true"></i> Limpar filtros</button>'
+            : ''
+        }
         <button class="btn btn-ghost btn-sm" data-action="historico-export-csv" title="Exportar resultado filtrado em CSV"><i class="fa fa-download"></i> CSV</button>
         <button class="btn btn-ghost btn-sm" data-action="historico-export-json" title="Exportar resultado filtrado em JSON"><i class="fa fa-download"></i> JSON</button>
       </div>

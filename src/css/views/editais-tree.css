@@ -111,3 +111,24 @@
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
+
+/* Sombras de borda indicam colunas fora da área visível (scroll horizontal) */
+.table-scroll-hint {
+  background:
+    linear-gradient(to right, var(--card) 30%, transparent),
+    linear-gradient(to left, var(--card) 30%, transparent),
+    radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.35), transparent),
+    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.35), transparent);
+  background-position:
+    left center,
+    right center,
+    left center,
+    right center;
+  background-repeat: no-repeat;
+  background-size:
+    40px 100%,
+    40px 100%,
+    14px 100%,
+    14px 100%;
+  background-attachment: local, local, scroll, scroll;
+}

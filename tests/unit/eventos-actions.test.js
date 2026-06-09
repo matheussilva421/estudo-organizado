@@ -8,6 +8,8 @@ describe('ui/actions/eventos.js', () => {
   let viewsModule;
   let registroSessao;
   let storeModule;
+  let historicoView;
+  let componentsModule;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -42,8 +44,17 @@ describe('ui/actions/eventos.js', () => {
       deleteCompletedSession: vi.fn(),
     };
     storeModule = { state: { cronoLivre: { duracaoMinutos: 30 } } };
+    historicoView = {
+      setHistoricoFilter: vi.fn(),
+      loadMoreHistorico: vi.fn(),
+      exportHistoricoCsv: vi.fn(() => true),
+      exportHistoricoJson: vi.fn(() => true),
+    };
+    componentsModule = { renderCurrentView: vi.fn() };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
+    vi.doMock('../../src/js/views/historico-view.js?v=8.37', () => historicoView);
+    vi.doMock('../../src/js/components.js?v=8.37', () => componentsModule);
     vi.doMock('../../src/js/logic.js?v=8.37', () => logicModule);
     vi.doMock('../../src/js/ui/event-modals.js?v=8.37', () => eventModals);
     vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
@@ -83,6 +94,18 @@ describe('ui/actions/eventos.js', () => {
     expect(calls).toContain('open-search-event');
     expect(calls).toContain('edit-session-record');
     expect(calls).toContain('delete-session-record');
+    expect(calls).toContain('historico-clear-filters');
+  });
+
+  it('historico-clear-filters resets all filters and re-renders', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'historico-clear-filters')[1];
+    handler();
+    expect(historicoView.setHistoricoFilter).toHaveBeenCalledWith({
+      rangeDays: '30',
+      disciplinaId: '',
+      busca: '',
+    });
+    expect(componentsModule.renderCurrentView).toHaveBeenCalled();
   });
 
   it('toggle-timer handler passes eventId', () => {

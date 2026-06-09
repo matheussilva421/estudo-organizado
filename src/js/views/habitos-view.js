@@ -286,9 +286,9 @@ export function renderHabitHistPage() {
   const footerEl = document.getElementById('habit-hist-footer');
   if (footerEl && total > HABIT_HIST_PAGE_SIZE) {
     footerEl.innerHTML = `
-      <button class="btn btn-ghost btn-sm" data-action="set-habit-page" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>⇉ Anterior</button>
+      <button class="btn btn-ghost btn-sm" data-action="set-habit-page" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>← Anterior</button>
       <span class="text-base text-muted flex-1 text-center">Página ${page} de ${totalPages}</span>
-      <button class="btn btn-ghost btn-sm" data-action="set-habit-page" data-page="${page + 1}" ${page >= totalPages ? 'disabled' : ''}>Próxima ⇆</button>
+      <button class="btn btn-ghost btn-sm" data-action="set-habit-page" data-page="${page + 1}" ${page >= totalPages ? 'disabled' : ''}>Próxima →</button>
     `;
     footerEl.style.display = 'flex';
   } else if (footerEl) {
@@ -447,6 +447,10 @@ export function selectHabitType(tipo, el) {
   const all = document.querySelectorAll('.event-type-card');
   all.forEach((card) => card.classList.remove('selected'));
   el.closest('.event-type-card')?.classList.add('selected');
+
+  const h = HABIT_TYPES.find((ht) => ht.key === tipo);
+  const titleEl = document.getElementById('modal-habit-title');
+  if (titleEl && h) titleEl.textContent = `Registrar: ${h.label}`;
 }
 
 /**
@@ -524,7 +528,11 @@ export function calcSimuladoPerc() {
   const tot = parseInt(document.getElementById('habit-total')?.value || '0');
   const ace = parseInt(document.getElementById('habit-acertos')?.value || '0');
   const el = document.getElementById('sim-perc');
-  if (!el || !tot) return;
+  if (!el) return;
+  if (!tot) {
+    el.innerHTML = '';
+    return;
+  }
   const pct = Math.round((ace / tot) * 100);
   const colorClass = pct >= 70 ? 'text-accent' : pct >= 50 ? 'text-orange' : 'text-red';
   el.innerHTML = `<span class="${esc(colorClass)}">${esc(pct)}% de aproveitamento (${esc(ace)}/${esc(tot)})</span>`;

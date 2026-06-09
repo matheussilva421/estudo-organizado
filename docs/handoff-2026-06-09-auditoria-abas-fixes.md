@@ -73,6 +73,18 @@ Testes: `actions-dispatcher`, `editais-actions`, `habitos-actions`, `views-crud-
 
 Branch `claude/auditoria-abas-fixes` com commit convencional + push (ver status final da sessão).
 
+## Rodada 2 (mesma sessão, mesma branch)
+
+12. **Hábitos — paginação confusa**: «⇉ Anterior» / «Próxima ⇆» (setas erradas) → «← Anterior» / «Próxima →».
+13. **Hábitos — título do modal obsoleto**: trocar o tipo dentro do modal não atualizava o título; `selectHabitType` agora sincroniza. Teste novo: `tests/unit/habitos-view-ux.test.js`.
+14. **Hábitos — percentual obsoleto no simulado**: apagar o total deixava o % antigo na tela; `calcSimuladoPerc` agora limpa. Mesmo arquivo de teste.
+15. **Histórico — "Limpar filtros"**: filtros persistem entre navegações sem reset rápido; botão aparece na toolbar quando período≠30d, disciplina ou busca ativos. Ação `historico-clear-filters` em `ui/actions/eventos.js`. Testes em `eventos-actions.test.js` (+mocks de historico-view/components).
+16. **Ed. Verticalizado — hint de scroll**: tabela de tópicos ganhou sombras de borda CSS (`.table-scroll-hint`, `background-attachment: local/scroll`) indicando colunas fora da viewport no mobile. Validação: test:css verde + validação manual recomendada.
+
+Mais achados verificados como **falsos** na rodada 2: `toggleEdital` já faz update cirúrgico de DOM (não re-renderiza tudo); trocar modo mês/semana no Calendário **preserva** a data navegada (`setCalViewMode` não toca `calDate`).
+
+Suíte após rodada 2: **97 arquivos, 1634 testes, 0 falhas**; test:css 31/31; eslint 0 erros.
+
 ## Próximos passos sugeridos
 
 1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+Enter nos cards da Home e Hábitos.

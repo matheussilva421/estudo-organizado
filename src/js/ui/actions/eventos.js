@@ -188,6 +188,10 @@ registerAction('historico-load-more', () => {
   loadMoreHistorico();
   renderCurrentView();
 });
+registerAction('historico-clear-filters', () => {
+  setHistoricoFilter({ rangeDays: '30', disciplinaId: '', busca: '' });
+  renderCurrentView();
+});
 registerAction('historico-export-csv', () => {
   if (!exportHistoricoCsv()) showToast('Sem sessões para exportar.', 'info');
 });
