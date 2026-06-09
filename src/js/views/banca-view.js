@@ -71,7 +71,7 @@ export function renderBancaAnalyzerContent(el) {
       const topicCount = hotTopics.filter((ht) => ht.disciplinaId === d.id).length;
       return `<div style="display:inline-flex; align-items:center; background:var(--bg-hover); border:1px solid var(--border); border-radius:16px; padding:4px 12px; font-size:12px; gap:8px;">
           <span style="font-weight:600; cursor:pointer;" data-action="carregar-analise-banca" data-disc-id="${d.id}" title="Visualizar e Editar">${esc(d.nome)} (${topicCount})</span>
-          <button class="icon-btn" style="width:20px;height:20px;font-size:11px;color:var(--red);" data-action="excluir-analise-banca" data-disc-id="${d.id}" title="Excluir Importação"><i class="fa fa-trash"></i></button>
+          <button class="icon-btn" style="width:20px;height:20px;font-size:11px;color:var(--red);" data-action="excluir-analise-banca" data-disc-id="${d.id}" title="Excluir Importação" aria-label="Excluir importação de ${esc(d.nome)}"><i class="fa fa-trash" aria-hidden="true"></i></button>
       </div>`;
     })
     .join('');
@@ -246,7 +246,6 @@ export function parseBancaText() {
   // Ensure analyzerCtx.editaId is set (fallback if view rendered before state loaded)
   if (!analyzerCtx.editaId) {
     analyzerCtx.editaId = getActiveDashboardDiscCtx()?.editaId || state.editais[0]?.id;
-    console.log('[BANCA parseBancaText] Initialized editaId:', analyzerCtx.editaId);
   }
 
   const rawArgs = document.getElementById('banca-input-text').value;

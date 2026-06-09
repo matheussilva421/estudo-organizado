@@ -131,7 +131,7 @@ export function reattachTimers() {
         const focoTargetSecs = (state?.config?.pomodoroFoco || 25) * 60;
         const pausaTargetMins = state?.config?.pomodoroPausa || 5;
         if (sessionSeconds >= focoTargetSecs) {
-          _pomodoroAlarm.play().catch((e) => console.log('Audio error:', e));
+          _pomodoroAlarm.play().catch((e) => console.warn('Audio error:', e));
           toggleTimer(id); // Auto-pause
           document.dispatchEvent(
             new CustomEvent('app:showToast', {
@@ -183,7 +183,7 @@ export function startTimerForEvent(eventId) {
       const focoTargetSecs = (state?.config?.pomodoroFoco || 25) * 60;
       const pausaTargetMins = state?.config?.pomodoroPausa || 5;
       if (sessionSeconds >= focoTargetSecs) {
-        _pomodoroAlarm.play().catch((e) => console.log('Audio error:', e));
+        _pomodoroAlarm.play().catch((e) => console.warn('Audio error:', e));
         toggleTimer(eventId); // Auto-pause
         document.dispatchEvent(
           new CustomEvent('app:showToast', {

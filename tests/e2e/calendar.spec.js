@@ -59,7 +59,7 @@ test.describe('Calendario', () => {
     state.eventos.push({
       id: 'ev_calendar_delete',
       titulo: 'Evento para apagar no calendario',
-      data: '2026-05-06',
+      data: localDateStr(),
       status: 'agendado',
       tempoAcumulado: 0,
       duracao: 60,
@@ -71,7 +71,9 @@ test.describe('Calendario', () => {
     await page.goto('/');
     await page.click('[data-view="calendar"]');
 
-    const chip = page.locator('[data-action="open-event-detail"][data-event-id="ev_calendar_delete"]');
+    const chip = page.locator(
+      '.cal-event-chip[data-action="open-event-detail"][data-event-id="ev_calendar_delete"]'
+    );
     await expect(chip).toBeVisible();
     await chip.click();
 
@@ -92,6 +94,10 @@ test.describe('Calendario', () => {
 
   test('deleting an auto-generated cycle event keeps future predictions for the discipline', async ({ page }) => {
     const state = createE2EState();
+    // Datas relativas a hoje: o chip do evento so aparece no mes exibido pelo calendario
+    const today = new Date();
+    const todayDateStr = localDateStr(today);
+    const tomorrowDateStr = localDateStr(new Date(today.getTime() + 24 * 60 * 60 * 1000));
     state.planejamento = {
       ativo: true,
       tipo: 'ciclo',
@@ -100,18 +106,18 @@ test.describe('Calendario', () => {
         { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false, status: 'pendente' },
       ],
       ciclosCompletos: 0,
-      dataInicioCicloAtual: '2026-05-25T00:00:00.000Z',
+      dataInicioCicloAtual: today.toISOString(),
       horarios: {
         diasAtivos: [0, 1, 2, 3, 4, 5, 6],
-        dataInicial: '2026-05-26',
-        dataFinal: '2026-05-27',
+        dataInicial: todayDateStr,
+        dataFinal: tomorrowDateStr,
       },
       skippedSlots: [],
     };
     state.eventos.push({
-      id: 'auto_2026-05-26_0_keep_prediction',
+      id: 'auto_slot0_keep_prediction',
       titulo: 'Estudar Direito Constitucional',
-      data: '2026-05-26',
+      data: todayDateStr,
       status: 'agendado',
       tempoAcumulado: 0,
       duracao: 60,
@@ -127,13 +133,13 @@ test.describe('Calendario', () => {
     await page.click('[data-view="calendar"]');
 
     const chip = page.locator(
-      '[data-action="open-event-detail"][data-event-id="auto_2026-05-26_0_keep_prediction"]'
+      '.cal-event-chip[data-action="open-event-detail"][data-event-id="auto_slot0_keep_prediction"]'
     );
     await expect(chip).toBeVisible();
     await chip.click();
 
     await page.click(
-      '[data-action="delete-event-from-modal"][data-event-id="auto_2026-05-26_0_keep_prediction"]'
+      '[data-action="delete-event-from-modal"][data-event-id="auto_slot0_keep_prediction"]'
     );
     await expect(page.locator('#modal-confirm')).toHaveClass(/open/);
     await page.click('#confirm-ok-btn');
@@ -143,7 +149,7 @@ test.describe('Calendario', () => {
       .poll(() =>
         page.evaluate(() => ({
           removed: !window.state.eventos.some(
-            (evento) => evento.id === 'auto_2026-05-26_0_keep_prediction'
+            (evento) => evento.id === 'auto_slot0_keep_prediction'
           ),
           status: window.state.planejamento.sequencia[0]?.status,
           skipped: window.state.planejamento.skippedSlots?.length,

@@ -228,6 +228,14 @@ describe('views.js - CRUD, inline editing, dashboard ops', () => {
   });
 
   describe('addAssunto()', () => {
+    it('shows error when input is empty', () => {
+      const inputEl = { value: '   ' };
+      vi.spyOn(document, 'getElementById').mockReturnValue(inputEl);
+      views.addAssunto('disc_1');
+      expect(appModule.showToast).toHaveBeenCalledWith('Informe o nome do tópico.', 'error');
+      expect(storeModule.scheduleSave).not.toHaveBeenCalled();
+    });
+
     it('returns early when disc not found', () => {
       const inputEl = { value: 'Test' };
       vi.spyOn(document, 'getElementById').mockReturnValue(inputEl);

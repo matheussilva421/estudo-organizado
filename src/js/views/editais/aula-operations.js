@@ -68,7 +68,10 @@ export function addAssunto(discId) {
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
-  if (lines.length === 0) return;
+  if (lines.length === 0) {
+    showToast('Informe o nome do tópico.', 'error');
+    return;
+  }
   const d = getDisc(discId);
   if (!d) return;
   if (!d.disc.assuntos) d.disc.assuntos = [];

@@ -133,6 +133,10 @@ export function startNotificationEngine() {
  * Deve ser chamado no beforeunload ou quando o módulo for descarregado
  */
 export function cleanupNotificationEngine() {
+  if (_initTimeout) {
+    clearTimeout(_initTimeout);
+    _initTimeout = null;
+  }
   if (notificationEngineInterval) {
     clearInterval(notificationEngineInterval);
     notificationEngineInterval = null;
