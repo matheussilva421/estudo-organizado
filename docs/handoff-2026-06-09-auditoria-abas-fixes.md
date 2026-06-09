@@ -116,8 +116,14 @@ Specs de busca do mock também confirmadas como ambientais: `seedLegacyState` + 
 
 27. **Temas — contraste AA do `--text-muted`**: 5 dos 6 temas premium reprovavam WCAG AA (4.5:1) sobre `--card` — ardosia 3.73, platina 3.92, terminal 4.50⁻, neon 4.09, arrakis 3.82. Tokens clareados preservando o matiz (todos ≥4.55 agora). Teste de regressão novo `tests/unit/theme-contrast.test.js` (audita muted e secondary de todos os temas) + script `scripts/check-theme-contrast.mjs` para auditoria manual. `grafite` já passava (5.09).
 
+28. **Smoke E2E ampliado (commits `667c008`, `096ca30` na main)**: (a) overflow horizontal mobile agora é verificado **por view** (12 views em 390px) e a view `vertical` entrou no sweep de erros de console (estava fora das listas); (b) novo teste com **dados populados e nomes longos** (edital/disciplina/tópico/evento extensos) navegando as 11 views de conteúdo — tudo passa hoje; fica como rede de regressão de layout mobile.
+29. **E2E chromium completo validado**: full-study-flow, offline-import, phase6-chaos, planejamento e ciclo-step-flow 20/20 — toda a superfície E2E não-sync verde.
+
+Nota: `Abrar_Estudo_Organizado_Mock.bat` (typo de `Abrir_`) existe na raiz mas **não é rastreado pelo git** — arquivo local do usuário, não tocado.
+
 ## Próximos passos sugeridos
 
-1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+Enter nos cards da Home e Hábitos.
-2. Avaliar as observações não corrigidas acima (perf do toggleEdital, hint de scroll no verticalizado).
+1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+setas+Enter no grid do Calendário; conferência visual dos 5 temas com `--text-muted` clareado.
+2. Avaliar as observações não corrigidas acima (perf do toggleEdital).
 3. Se desejar, subir cobertura E2E para o fluxo do Analisador de Banca (não existia teste que pegasse o wiring quebrado).
+4. Investigação de paridade do ambiente mock (apenas se houver interesse): rodar `test:e2e:mock:all` e decidir se as specs de persistência devem ser excluídas do projeto mock via `testIgnore`.
