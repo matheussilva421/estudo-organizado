@@ -101,6 +101,9 @@ Auditoria de contratos `data-action`×`registerAction`: **íntegra** (nenhuma a�
 19. **Editais — `editLessonInline` tolera disciplina removida**: mesmo null-deref de `getDisc` já corrigido em `deleteAula`/`saveHabit`. Demais call-sites de `getDisc` auditados — todos guardados (classe de bug fechada). Teste novo: `tests/unit/inline-editing-guards.test.js`.
 20. **Limpeza**: registros de ação mortos removidos (`open-event-from-calo`, `clear-search` — nenhum markup os usava). `restore-backup` mantido (contrato em `import-export-contracts.test.js`); ações de sync intocadas.
 21. **Validação E2E ampla (chromium)**: app+smoke 27/27, calendar 4/4, revisões/hábitos/sessões/timer/editais 11/11, dashboard/ciclo/crud/persistência/revision-flow 45/45 — todas as abas do menu cobertas por E2E verde após as mudanças.
+22. **Ciclo — guards de índice NaN** em `dup/rem/move-seq-item` (`ui/actions/planejamento.js`): `splice(NaN,1)` removeria o primeiro passo da sequência com `data-index` inválido; `update-seq-item` já tinha o guard. +3 testes.
+
+Sondagens finais sem achados (codebase saudável): listeners em render (delegação ok), `setInterval` fora do timer (crono singleton auto-guardado; engine de notificações com clear antes de set), call-sites de `getDisc` todos guardados.
 
 ## Próximos passos sugeridos
 
