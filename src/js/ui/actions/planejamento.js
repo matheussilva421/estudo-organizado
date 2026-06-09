@@ -105,15 +105,18 @@ registerAction('update-seq-item', (el) => {
 });
 registerAction('dup-seq-item', (el) => {
   const idx = parseInt(el.dataset.index, 10);
+  if (!Number.isFinite(idx)) return;
   dupSeqItem(idx);
 });
 registerAction('rem-seq-item', (el) => {
   const idx = parseInt(el.dataset.index, 10);
+  if (!Number.isFinite(idx)) return;
   remSeqItem(idx);
 });
 registerAction('move-seq-item', (el) => {
   const idx = parseInt(el.dataset.index, 10);
   const dir = parseInt(el.dataset.dir, 10);
+  if (!Number.isFinite(idx) || !Number.isFinite(dir)) return;
   moveSeqItem(idx, dir);
 });
 registerAction('add-seq-item', addSeqItem);
