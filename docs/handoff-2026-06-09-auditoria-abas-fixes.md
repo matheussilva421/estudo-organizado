@@ -105,6 +105,11 @@ Auditoria de contratos `data-action`×`registerAction`: **íntegra** (nenhuma a�
 
 Sondagens finais sem achados (codebase saudável): listeners em render (delegação ok), `setInterval` fora do timer (crono singleton auto-guardado; engine de notificações com clear antes de set), call-sites de `getDisc` todos guardados.
 
+24. **`saveEvent` valida data vazia** (`ui/event-modals.js`): evento salvo com `data: ''` ficava invisível no Calendário e no MED (indexados por data) — "evento fantasma" no state. Agora rejeita com toast, em criação e edição. +2 testes em `event-modals-edit.test.js`.
+25. **`savePastEvent` tolera disciplina removida**: mesmo null-deref de `getDisc` (classe já fechada nos outros módulos); agora rejeita com toast. +1 teste.
+
+Specs de busca do mock também confirmadas como ambientais: `seedLegacyState` + `goto('/')` → o reset-on-load do mock apaga o seed do teste antes do app ler.
+
 23. **Causa-raiz das 12 falhas do mock em `app.spec.js` resolvida**: o servidor mock em modo `reset` (default) **apaga o IndexedDB e re-seeda a cada page load** (`scripts/mock-inject.mjs`), então specs de "persiste após reload" não podem passar nesse projeto por design — não são bugs do app. Fix de tooling: `test:e2e:quick` agora é escopado a `--project=chromium` (era o comando documentado que gerava as falhas espúrias); `test:e2e:all`/`test:e2e:mock:all` mantêm a matriz completa para investigação de paridade. README_DEV atualizado.
 
 ## Próximos passos sugeridos
