@@ -151,7 +151,7 @@ describe('data-action contracts', () => {
     expect(calendarModule.resetCalDate).toBeTypeOf('function');
     expect(calendarModule.setCalViewMode).toBeTypeOf('function');
     expect(calendarSource).toContain(
-      "import { esc, getEventStatus, todayStr } from '../utils.js?v=8.37';"
+      "import { addCleanupListener, esc, getEventStatus, todayStr } from '../utils.js?v=8.37';"
     );
     expect(calendarSource).toContain('role="tablist"');
     expect(calendarSource).toMatch(/<button[^>]*type=["']button["'][^>]*class=["']cal-view-tab/);
