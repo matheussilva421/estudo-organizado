@@ -234,11 +234,11 @@ export function renderCalendarWeek() {
                   const st = getEventStatus(e);
                   const cor = getDiscColor(e.discId);
                   const borderStyle = cor ? `border-left:3px solid ${esc(cor)};` : '';
-                  return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="margin-bottom:3px;${borderStyle}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+                  return `<button type="button" class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="margin-bottom:3px;${borderStyle}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
                 })
                 .join('')}
               <div style="text-align:center;margin-top:4px;">
-                <button class="icon-btn" data-action="open-event-modal-date" data-date="${ds}" style="width:24px;height:24px;">+</button>
+                <button class="icon-btn" data-action="open-event-modal-date" data-date="${ds}" aria-label="Adicionar sessao em ${ds}" title="Adicionar sessao" style="width:24px;height:24px;">+</button>
               </div>
             </div>
           </div>
