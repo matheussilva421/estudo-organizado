@@ -252,13 +252,14 @@ export function renderCronometro(el) {
             Definir Meta de Tempo (minutos):
           </div>
           <div style="display:flex;gap:12px;justify-content:center;align-items:center;">
-            <button data-action="set-crono-livre-goal" data-value="-5" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">-</button>
+            <button data-action="set-crono-livre-goal" data-value="-5" aria-label="Diminuir 5 minutos" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">-</button>
             <input type="number"
                    data-action="set-crono-livre-goal"
                    value="${state.cronoLivre?.duracaoMinutos || 0}"
+                   aria-label="Meta de tempo em minutos"
                    class="crono-select"
                    style="width:80px;">
-            <button data-action="set-crono-livre-goal" data-value="+5" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">+</button>
+            <button data-action="set-crono-livre-goal" data-value="+5" aria-label="Aumentar 5 minutos" class="btn-outline" style="min-width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;">+</button>
           </div>
           `
               : `

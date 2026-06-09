@@ -86,6 +86,25 @@ Mais achados verificados como **falsos** na rodada 2: `toggleEdital` já faz upd
 
 Suíte após rodada 2: **97 arquivos, 1634 testes, 0 falhas**; test:css 31/31; eslint 0 erros.
 
+## Rodada 3 (loop contínuo — PR #78)
+
+17. **Erros de console no boot** (achados via smoke E2E do mock):
+    - `logic/timer.js`: `new Audio(CDN)` top-level baixava mp3 remoto em todo boot + violação CSP onde `media-src 'self'`. Audio agora lazy no primeiro `play()` (mesma API). Testes em `logic-timer.test.js`.
+    - `sw-register.js`: `reg.addEventListener is not a function` com stub mínimo de registration (ambiente mock). Guards tipados (`checkForUpdate`). Teste em `sw-register.test.js`.
+    - Validação: smoke-critical mock 2/2, gate mock 10/10, chromium 27/27, npm test 1637 verdes.
+
+Auditoria de contratos `data-action`×`registerAction`: **íntegra** (nenhuma ação usada sem handler). Registros sem uso no markup: `clear-search`, `open-event-from-calo`, `restore-backup` (alias morto de `open-restore-preview`) — limpeza opcional de baixo valor; `sync-center-smart-sync` e `toggle-global-sync` são de sync, **não tocados**.
+
+**Pré-existente (fora de escopo)**: 12 specs de `app.spec.js` falham no projeto **mock** (paridade do ambiente; vários são de sync). Chromium passa 27/27. Gate oficial do mock (`mock-environment.spec.js`) verde.
+
+18. **A11y — Calendário (semana) e Cronômetro**: chips de evento da view semanal eram `<div>` clicáveis (sem teclado) → agora `<button>` como na view de mês; "+" do dia da semana ganhou `aria-label`/`title`; botões ±5min e input de meta do Cronômetro Livre ganharam `aria-label`. Validação: calendar-view/components unit 48 verdes + `calendar.spec.js` chromium 4/4.
+19. **Editais — `editLessonInline` tolera disciplina removida**: mesmo null-deref de `getDisc` já corrigido em `deleteAula`/`saveHabit`. Demais call-sites de `getDisc` auditados — todos guardados (classe de bug fechada). Teste novo: `tests/unit/inline-editing-guards.test.js`.
+20. **Limpeza**: registros de ação mortos removidos (`open-event-from-calo`, `clear-search` — nenhum markup os usava). `restore-backup` mantido (contrato em `import-export-contracts.test.js`); ações de sync intocadas.
+21. **Validação E2E ampla (chromium)**: app+smoke 27/27, calendar 4/4, revisões/hábitos/sessões/timer/editais 11/11, dashboard/ciclo/crud/persistência/revision-flow 45/45 — todas as abas do menu cobertas por E2E verde após as mudanças.
+22. **Ciclo — guards de índice NaN** em `dup/rem/move-seq-item` (`ui/actions/planejamento.js`): `splice(NaN,1)` removeria o primeiro passo da sequência com `data-index` inválido; `update-seq-item` já tinha o guard. +3 testes.
+
+Sondagens finais sem achados (codebase saudável): listeners em render (delegação ok), `setInterval` fora do timer (crono singleton auto-guardado; engine de notificações com clear antes de set), call-sites de `getDisc` todos guardados.
+
 ## Próximos passos sugeridos
 
 1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+Enter nos cards da Home e Hábitos.

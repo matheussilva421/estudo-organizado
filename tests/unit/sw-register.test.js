@@ -25,6 +25,8 @@ beforeEach(async () => {
 
   global.document = {
     currentScript: { src: 'http://localhost/sw-register.js?v=1.0' },
+    addEventListener: vi.fn(),
+    visibilityState: 'hidden',
   };
 
   global.window = {
@@ -74,5 +76,19 @@ describe('sw-register.js', () => {
     ]));
     await import('../../src/js/sw-register.js?v=8.37');
     expect(global.caches.delete).toHaveBeenCalledWith('estudo-organizado-v0.9');
+  });
+
+  it('tolerates minimal registration objects without addEventListener/update', async () => {
+    vi.resetModules();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // Ambientes mockados (ex.: servidor mock local) retornam um stub mínimo
+    global.navigator.serviceWorker.register = vi.fn(() =>
+      Promise.resolve({ scope: '/', installing: null, waiting: null })
+    );
+    await import('../../src/js/sw-register.js?v=8.37');
+    // flush async load handler
+    await new Promise((r) => setTimeout(r, 0));
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });

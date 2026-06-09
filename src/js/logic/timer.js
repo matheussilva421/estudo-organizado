@@ -22,9 +22,17 @@ document.addEventListener('app:stateLoaded', () => {
   if (state?.config?.pomodoroMode) _pomodoroMode = true;
 });
 
-export const _pomodoroAlarm = new Audio(
-  'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'
-);
+// Lazy: o Audio só é criado no primeiro play, evitando download do mp3 em
+// todo boot e erro de CSP em ambientes que bloqueiam media externa.
+const POMODORO_ALARM_URL = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+let _alarmAudio = null;
+export const _pomodoroAlarm = {
+  play() {
+    if (!_alarmAudio) _alarmAudio = new Audio(POMODORO_ALARM_URL);
+    const result = _alarmAudio.play();
+    return result && typeof result.catch === 'function' ? result : Promise.resolve();
+  },
+};
 
 /**
  * Verifica se timer está ativo

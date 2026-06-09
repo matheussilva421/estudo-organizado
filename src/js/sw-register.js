@@ -92,27 +92,33 @@ if ('serviceWorker' in navigator) {
       // Check current state at registration time.
       if (reg.waiting) handleWaitingWorkerReady();
 
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            handleWaitingWorkerReady();
-          }
+      // Stubs de registro (ex.: servidor mock local) podem não implementar
+      // addEventListener/update — degrade sem quebrar o boot.
+      if (typeof reg.addEventListener === 'function') {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              handleWaitingWorkerReady();
+            }
+          });
         });
-      });
+      }
+
+      const checkForUpdate = () => {
+        if (typeof reg.update === 'function') reg.update().catch(() => {});
+      };
 
       // Run an immediate update check.
-      reg.update().catch(() => {});
+      checkForUpdate();
 
       // Periodic update check while the tab is visible. Stops while hidden
       // to avoid wasting bandwidth on background tabs.
       let updateInterval = null;
       function startPeriodicUpdates() {
         if (updateInterval) return;
-        updateInterval = setInterval(() => {
-          reg.update().catch(() => {});
-        }, UPDATE_CHECK_INTERVAL_MS);
+        updateInterval = setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
       }
       function stopPeriodicUpdates() {
         if (!updateInterval) return;
@@ -125,7 +131,7 @@ if ('serviceWorker' in navigator) {
           startPeriodicUpdates();
           // Re-check immediately on tab focus — picks up newly deployed
           // versions even if the periodic interval hasn't ticked yet.
-          reg.update().catch(() => {});
+          checkForUpdate();
         } else {
           stopPeriodicUpdates();
         }

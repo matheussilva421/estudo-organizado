@@ -212,16 +212,35 @@ describe('ui/actions/planejamento.js', () => {
     expect(viewsModule.dupSeqItem).toHaveBeenCalledWith(1);
   });
 
+  it('dup-seq-item skips when invalid index', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'dup-seq-item')[1];
+    handler({ dataset: {} });
+    expect(viewsModule.dupSeqItem).not.toHaveBeenCalled();
+  });
+
   it('rem-seq-item handler passes index', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'rem-seq-item')[1];
     handler({ dataset: { index: '0' } });
     expect(viewsModule.remSeqItem).toHaveBeenCalledWith(0);
   });
 
+  it('rem-seq-item skips when invalid index (splice(NaN) removeria o primeiro item)', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'rem-seq-item')[1];
+    handler({ dataset: { index: 'abc' } });
+    expect(viewsModule.remSeqItem).not.toHaveBeenCalled();
+  });
+
   it('move-seq-item handler parses index and dir', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'move-seq-item')[1];
     handler({ dataset: { index: '1', dir: '1' } });
     expect(viewsModule.moveSeqItem).toHaveBeenCalledWith(1, 1);
+  });
+
+  it('move-seq-item skips when invalid index or dir', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'move-seq-item')[1];
+    handler({ dataset: { index: 'abc', dir: '1' } });
+    handler({ dataset: { index: '1' } });
+    expect(viewsModule.moveSeqItem).not.toHaveBeenCalled();
   });
 
   it('add-seq-item handler is addSeqItem directly', () => {
