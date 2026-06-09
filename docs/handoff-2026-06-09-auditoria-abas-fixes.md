@@ -105,6 +105,8 @@ Auditoria de contratos `data-action`×`registerAction`: **íntegra** (nenhuma a�
 
 Sondagens finais sem achados (codebase saudável): listeners em render (delegação ok), `setInterval` fora do timer (crono singleton auto-guardado; engine de notificações com clear antes de set), call-sites de `getDisc` todos guardados.
 
+23. **Causa-raiz das 12 falhas do mock em `app.spec.js` resolvida**: o servidor mock em modo `reset` (default) **apaga o IndexedDB e re-seeda a cada page load** (`scripts/mock-inject.mjs`), então specs de "persiste após reload" não podem passar nesse projeto por design — não são bugs do app. Fix de tooling: `test:e2e:quick` agora é escopado a `--project=chromium` (era o comando documentado que gerava as falhas espúrias); `test:e2e:all`/`test:e2e:mock:all` mantêm a matriz completa para investigação de paridade. README_DEV atualizado.
+
 ## Próximos passos sugeridos
 
 1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+Enter nos cards da Home e Hábitos.

@@ -168,7 +168,7 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 
 ## Playwright sem ruido
 
-- `npm run test:e2e:quick`: reporter `line`, bom para specs focadas e listagem.
+- `npm run test:e2e:quick`: projeto `chromium`, reporter `line`, bom para specs focadas e listagem. (Specs de persistência falham por design no projeto `mock`, que reseta o IndexedDB a cada load — por isso o quick não roda o mock.)
 - `npm run test:e2e:release`: projeto `chromium`, reporter `line` com `--workers=1`, use como gate sequencial principal.
 - `npm run test:e2e`: alias do gate release estavel; use no fechamento quando precisar do E2E padrao do repo.
 - `npm run test:e2e:all`: matriz completa Playwright, com `chromium` e `mock`; use apenas para investigar paridade ampla.
