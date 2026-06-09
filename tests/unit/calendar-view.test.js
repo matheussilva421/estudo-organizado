@@ -22,6 +22,7 @@ describe('views/calendar-view.js', () => {
       esc: vi.fn((s) => s || ''),
       getEventStatus: vi.fn(() => 'pendente'),
       todayStr: vi.fn(() => '2026-04-29'),
+      addCleanupListener: vi.fn(),
     };
 
     vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
@@ -129,6 +130,75 @@ describe('views/calendar-view.js', () => {
     it('includes weekday headers', () => {
       const html = calendarView.renderCalendarMonth();
       expect(html).toContain('cal-dow');
+    });
+
+    it('cells are keyboard-operable with roving tabindex (exactly one tabindex=0)', () => {
+      document.body.innerHTML = calendarView.renderCalendarMonth();
+      const cells = [...document.querySelectorAll('.cal-cell')];
+      expect(cells.length).toBeGreaterThan(27);
+      cells.forEach((c) => {
+        expect(c.getAttribute('role')).toBe('button');
+        expect(c.getAttribute('aria-label')).toBeTruthy();
+      });
+      const focusable = cells.filter((c) => c.getAttribute('tabindex') === '0');
+      expect(focusable).toHaveLength(1);
+      // hoje (2026-04-29) está visível no mês renderizado → recebe o foco inicial
+      expect(focusable[0].dataset.date).toBe('2026-04-29');
+    });
+  });
+
+  describe('handleCalGridKeydown()', () => {
+    function buildGrid() {
+      document.body.innerHTML = `
+        <div class="cal-grid">
+          ${Array.from({ length: 14 }, (_, i) =>
+            `<div class="cal-cell" data-date="d${i}" role="button" tabindex="${i === 0 ? '0' : '-1'}"></div>`
+          ).join('')}
+        </div>
+      `;
+      return [...document.querySelectorAll('.cal-cell')];
+    }
+
+    function press(cell, key) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'target', { value: cell });
+      calendarView.handleCalGridKeydown(event);
+      return event;
+    }
+
+    it('ArrowRight moves focus to the next cell and updates roving tabindex', () => {
+      const cells = buildGrid();
+      cells[0].focus();
+      const event = press(cells[0], 'ArrowRight');
+      expect(event.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(cells[1]);
+      expect(cells[0].getAttribute('tabindex')).toBe('-1');
+      expect(cells[1].getAttribute('tabindex')).toBe('0');
+    });
+
+    it('ArrowDown moves focus one week ahead (7 cells)', () => {
+      const cells = buildGrid();
+      cells[2].focus();
+      press(cells[2], 'ArrowDown');
+      expect(document.activeElement).toBe(cells[9]);
+    });
+
+    it('does not move past the grid edges', () => {
+      const cells = buildGrid();
+      cells[0].focus();
+      const event = press(cells[0], 'ArrowLeft');
+      expect(event.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(cells[0]);
+    });
+
+    it('ignores non-arrow keys and targets outside the grid', () => {
+      const cells = buildGrid();
+      cells[0].focus();
+      press(cells[0], 'a');
+      expect(document.activeElement).toBe(cells[0]);
+      const outside = document.createElement('div');
+      document.body.appendChild(outside);
+      expect(() => press(outside, 'ArrowRight')).not.toThrow();
     });
   });
 

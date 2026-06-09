@@ -3,7 +3,7 @@
  * Coordinates calendar state, events, day-panel, and rendering.
  */
 import { state } from '../store.js?v=8.37';
-import { esc, getEventStatus, todayStr } from '../utils.js?v=8.37';
+import { addCleanupListener, esc, getEventStatus, todayStr } from '../utils.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 
 import {
@@ -152,6 +152,12 @@ export function renderCalendarMonth() {
   const eventsByDate = indexEventsByDate();
   const gridClass = cells.length > 35 ? 'cal-grid rows-6' : 'cal-grid';
 
+  // Roving tabindex: um único ponto de entrada por Tab (hoje, ou o 1º dia do
+  // mês corrente); as setas movem o foco entre as células.
+  const todayVisible = cells.some((c) => getDateStr(c.date) === today);
+  const firstCurrent = cells.find((c) => !c.other) || cells[0];
+  const focusDs = todayVisible ? today : getDateStr(firstCurrent.date);
+
   return `
     <div class="${gridClass}">
       ${dowOrder.map((d) => `<div class="cal-dow">${d}</div>`).join('')}
@@ -172,7 +178,7 @@ export function renderCalendarMonth() {
                 )
               : '';
           return `
-          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-action="select-calendar-day" data-date="${ds}">
+          <div class="cal-cell ${cell.other ? 'other-month' : ''} ${isToday ? 'today' : ''}" data-action="select-calendar-day" data-date="${ds}" role="button" tabindex="${ds === focusDs ? '0' : '-1'}" aria-label="${cell.date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}${dayEvents.length > 0 ? `, ${dayEvents.length} evento(s)` : ''}">
             <div class="cal-date">${cell.date.getDate()}</div>
             <button type="button" class="cal-day-add-inline" data-action="open-event-modal-date" data-date="${ds}" aria-label="Adicionar sessao em ${ds}" title="Adicionar sessao">+</button>
             ${show
@@ -196,6 +202,26 @@ export function renderCalendarMonth() {
 export function renderCalendarGrid() {
   return renderCalendarMonth();
 }
+
+// ── Keyboard navigation entre células do grid mensal (roving tabindex) ──
+export function handleCalGridKeydown(event) {
+  const cell = event.target?.closest?.('.cal-cell');
+  if (!cell) return;
+  const moves = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+  const delta = moves[event.key];
+  if (!delta) return;
+  const cells = [...document.querySelectorAll('.cal-grid .cal-cell')];
+  const idx = cells.indexOf(cell);
+  if (idx === -1) return;
+  const next = cells[idx + delta];
+  if (!next) return;
+  event.preventDefault();
+  cell.setAttribute('tabindex', '-1');
+  next.setAttribute('tabindex', '0');
+  next.focus();
+}
+
+addCleanupListener(document, 'keydown', handleCalGridKeydown);
 
 // ── Week View (Desktop) ──
 export function renderCalendarWeek() {
