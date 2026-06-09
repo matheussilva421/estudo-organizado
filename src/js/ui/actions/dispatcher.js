@@ -4,7 +4,7 @@
  */
 
 import { addCleanupListener } from '../../utils.js?v=8.37';
-import { debugLog } from '../../debug.js';
+import { debugLog } from '../../debug.js?v=8.37';
 
 /**
  * Registry de ações disponíveis

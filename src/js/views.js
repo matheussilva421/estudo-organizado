@@ -40,7 +40,7 @@ export {
   recomecarCiclo,
   zerarCiclosCounter,
   calculateCyclePredictions,
-} from './views/ciclo-view.js';
+} from './views/ciclo-view.js?v=8.37';
 export {
   renderHabitos,
   renderHabitHistPage,
@@ -52,7 +52,7 @@ export {
   deleteHabito,
   HABIT_HIST_PAGE_SIZE,
   habitHistPage,
-} from './views/habitos-view.js';
+} from './views/habitos-view.js?v=8.37';
 export {
   renderVertical,
   renderVerticalList,
@@ -103,7 +103,7 @@ export {
   saveMatchCorrection,
   getAnalyzerCtx,
   setAnalyzerCtx,
-} from './views/banca-view.js';
+} from './views/banca-view.js?v=8.37';
 export {
   renderConfig,
   setTheme,
@@ -118,7 +118,7 @@ export {
   importData,
   restoreBackupFromSelectedSource,
   clearAllData,
-} from './views/config-view.js';
+} from './views/config-view.js?v=8.37';
 export {
   searchBlurTimeout,
   debouncedOnSearch,
@@ -137,7 +137,7 @@ export {
   openEventDetail,
   refreshEventCard,
   removeDOMCard,
-} from './ui/event-modals.js';
+} from './ui/event-modals.js?v=8.37';
 export {
   getCalDate,
   getCalViewMode,
@@ -152,7 +152,7 @@ export {
   renderCalendarWeek,
   renderCalendarMobileMonth,
   renderCalendarMobileWeek,
-} from './views/calendar-view.js';
+} from './views/calendar-view.js?v=8.37';
 export {
   renderSkeletonLoader,
   renderSkeletonList,
@@ -164,7 +164,7 @@ export {
 } from './views/med-view.js';
 export {
   renderHistoricoSessoes,
-} from './views/historico-view.js';
+} from './views/historico-view.js?v=8.37';
 
 export {
   toggleEdital, toggleAssunto, toggleAulaDashboard,

@@ -1,7 +1,7 @@
 // =============================================
 // SCHEMA MIGRATIONS (v1 → v10)
 // =============================================
-import { uid } from '../utils.js';
+import { uid } from '../utils.js?v=8.37';
 
 export const DEFAULT_SCHEMA_VERSION = 10;
 

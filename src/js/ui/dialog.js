@@ -6,7 +6,7 @@
  * - Focus restoration
  */
 
-import { debugLog } from '../debug.js';
+import { debugLog } from '../debug.js?v=8.37';
 
 // Stack for nested modals
 const modalStack = [];
