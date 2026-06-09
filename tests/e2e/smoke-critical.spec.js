@@ -22,6 +22,7 @@ test.describe('Smoke crítico', () => {
       'revisoes',
       'cronometro',
       'editais',
+      'vertical',
       'habitos',
       'banca-analyzer',
       'ciclo',
@@ -60,5 +61,38 @@ test.describe('Smoke crítico', () => {
       mainVisible: true,
       topbarVisible: true
     });
+  });
+
+  test('todas as views ficam sem overflow horizontal em viewport mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await bootCleanE2EApp(page);
+    await page.waitForFunction(() => typeof window.EstudoApp?.navigate === 'function');
+
+    const views = [
+      'home',
+      'med',
+      'calendar',
+      'revisoes',
+      'cronometro',
+      'editais',
+      'vertical',
+      'habitos',
+      'banca-analyzer',
+      'ciclo',
+      'historico-sessoes',
+      'config'
+    ];
+
+    const overflowing = [];
+    for (const view of views) {
+      await page.evaluate((viewName) => window.EstudoApp.navigate(viewName), view);
+      await expect(page.locator('#main-content')).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+      );
+      if (overflow) overflowing.push(view);
+    }
+
+    expect(overflowing).toEqual([]);
   });
 });
