@@ -119,6 +119,40 @@ describe('ui/event-modals.js - edit mode', () => {
     expect(showToast).toHaveBeenCalledWith('Evento atualizado!', 'success');
   });
 
+  it('saveEvent rejects empty date on create (evento sem data fica invisível no calendário)', () => {
+    eventModals.openAddEventModal();
+    document.getElementById('event-titulo').value = 'Evento sem data';
+    document.getElementById('event-data').value = '';
+
+    eventModals.saveEvent();
+
+    expect(store.state.eventos).toHaveLength(1); // só o ev_1 original
+    expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/data/i), 'error');
+    expect(closeModal).not.toHaveBeenCalled();
+  });
+
+  it('saveEvent rejects empty date on edit and preserves the original date', () => {
+    eventModals.openAddEventModal(null, 'ev_1');
+    document.getElementById('event-data').value = '';
+
+    eventModals.saveEvent();
+
+    expect(store.state.eventos[0].data).toBe('2026-06-03');
+    expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/data/i), 'error');
+    // abrir o modo edição fecha 'modal-event-detail'; o save inválido não pode fechar 'modal-event'
+    expect(closeModal).not.toHaveBeenCalledWith('modal-event');
+  });
+
+  it('savePastEvent does not throw when the discipline no longer exists', () => {
+    document.body.innerHTML += `
+      <input id="past-event-data" value="2026-06-08">
+      <input id="past-event-duracao" value="60">
+    `;
+    expect(() => eventModals.savePastEvent('disc_removida')).not.toThrow();
+    expect(store.state.eventos).toHaveLength(1); // nada criado
+    expect(showToast).toHaveBeenCalledWith(expect.any(String), 'error');
+  });
+
   it('after editing, a subsequent create does not fall back into edit mode', () => {
     eventModals.openAddEventModal(null, 'ev_1');
     eventModals.saveEvent();

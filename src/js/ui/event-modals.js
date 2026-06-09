@@ -282,6 +282,12 @@ export function saveEvent() {
     return;
   }
 
+  // Evento sem data não aparece no calendário nem no MED (indexados por data).
+  if (!data) {
+    showToast('Informe a data do evento', 'error');
+    return;
+  }
+
   // Edit mode: update the existing event in place instead of creating a new one.
   if (editingEventId) {
     const ev = state.eventos.find((e) => e.id === editingEventId);
@@ -418,6 +424,10 @@ export function openAddPastSessionModal(discId) {
 
 export function savePastEvent(discId) {
   const d = getDisc(discId);
+  if (!d) {
+    showToast('Disciplina não encontrada.', 'error');
+    return;
+  }
   const data = document.getElementById('past-event-data').value;
   const duracao = parseInt(document.getElementById('past-event-duracao').value, 10) || 60;
 
