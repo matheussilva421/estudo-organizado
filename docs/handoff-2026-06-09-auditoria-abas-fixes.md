@@ -184,6 +184,18 @@ Suíte final da sessão: **102 arquivos, 1685 testes, 0 falhas**; test:css 31/31
 
 Suíte após rodada 9: **103 arquivos, 1697 testes, 0 falhas**. Push feito até `5bd77e4`.
 
+## Rodada 10 (mesma sessão 2026-06-10, ciclos 27-31 — a11y sistêmica)
+
+57. **Árvore de Editais expansível por teclado** (`5100fa8`): header era div clicável sem role/tabindex/aria-expanded; `toggleEdital` agora sincroniza o atributo no update cirúrgico.
+58. **Ed. Verticalizado idem** (`f0978fe`): `toggleVertDisc` sincroniza `aria-expanded`; header com role/tabindex/aria-controls.
+59. **Event cards e calendário mobile** (`57f9067`): `renderEventCard` (MED/busca), dias mobile e chips de evento mobile ganham role/tabindex/aria-label. E2E calendar+smoke 29/29.
+60. **Check-circles e disc-card** (`6bda9a8`): toggles de assunto/aula (dashboard + gerenciador) com role/aria-pressed/aria-label; card de disciplina com role/tabindex.
+61. **Classe fechada + guard permanente** (`bd008a6`): wizard (tipo/disciplina), ciclo (histórico/horas), pickers de cor/ícone, tipo de hábito, linha de progresso da Home, edição inline de assunto/aula. **Novo guard `clickable-divs-a11y.test.js`**: falha quando um `<div data-action>` nasce sem `role` (allowlist: `stop-propagation`).
+
+Suíte após rodada 10: **104 arquivos, 1707 testes, 0 falhas**; E2E planejamento/ciclo/crud 29/29 + calendar/smoke 29/29 + editais 1/1.
+
+Guards estáticos criados na sessão (rede de regressão permanente): `duplicate-exports`, `module-specifier-consistency` (agora cobre dynamic imports), `clickable-divs-a11y`, `theme-contrast` (sessão anterior).
+
 ## Pendências / próximos ciclos sugeridos (atualizado 2026-06-10)
 
 1. **Migração completa de modais para `ui/dialog.js`** (pilha + focus trap completos, hoje não importado) — médio risco, avaliar com calma; a restauração de foco já foi coberta no item 47.
