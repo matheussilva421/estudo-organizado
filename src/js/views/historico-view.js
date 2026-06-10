@@ -58,23 +58,23 @@ function buildFilterToolbar(filters, disciplinas, totalAfter, totalBefore) {
     )
     .join('');
   return `
-    <div class="card p-12 historico-toolbar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;">
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--text-secondary);">
+    <div class="card p-12 historico-toolbar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:12px;">
+      <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-secondary);">
         Período
-        <select data-action="historico-set-range" style="min-width:140px;">
+        <select class="form-control" data-action="historico-set-range" style="min-width:140px;">
           ${opts.map((o) => `<option value="${o.value}" ${rangeSel === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
         </select>
       </label>
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--text-secondary);">
+      <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-secondary);">
         Disciplina
-        <select data-action="historico-set-disciplina" style="min-width:160px;">
+        <select class="form-control" data-action="historico-set-disciplina" style="min-width:160px;">
           <option value="">Todas</option>
           ${discOptions}
         </select>
       </label>
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--text-secondary);flex:1;min-width:160px;">
+      <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-secondary);flex:1;min-width:160px;">
         Busca
-        <input type="search" placeholder="Buscar título ou descrição…" value="${esc(filters.busca || '')}" data-action="historico-set-busca" />
+        <input type="search" class="form-control" placeholder="Buscar título ou descrição…" value="${esc(filters.busca || '')}" data-action="historico-set-busca" />
       </label>
       <div style="display:flex;gap:6px;align-items:flex-end;">
         ${

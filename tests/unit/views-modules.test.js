@@ -903,6 +903,45 @@ describe('historico-sessoes view', () => {
     expect(container.innerHTML).toContain('Direito Administrativo');
     expect(container.innerHTML).toContain('01:00:00');
   });
+
+  it('estiliza os controles da toolbar de filtros com form-control', () => {
+    const state = createBaseState({
+      editais: [
+        createEdital({
+          disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' })],
+        }),
+      ],
+      eventos: [
+        createEvento({
+          id: 'ev_1',
+          data: '2026-04-20',
+          dataEstudo: '2026-04-20',
+          status: 'estudei',
+          tempoAcumulado: 1800,
+          discId: 'disc_1',
+        }),
+      ],
+    });
+    store.setState(state);
+    logic.invalidateDiscCache();
+
+    const container = { innerHTML: '' };
+    views.renderHistoricoSessoes(container);
+
+    const rangeSelect = container.innerHTML.match(
+      /<select[^>]*data-action="historico-set-range"[^>]*>/
+    )?.[0];
+    const discSelect = container.innerHTML.match(
+      /<select[^>]*data-action="historico-set-disciplina"[^>]*>/
+    )?.[0];
+    const buscaInput = container.innerHTML.match(
+      /<input[^>]*data-action="historico-set-busca"[^>]*>/
+    )?.[0];
+
+    expect(rangeSelect).toContain('form-control');
+    expect(discSelect).toContain('form-control');
+    expect(buscaInput).toContain('form-control');
+  });
 });
 
 describe('revisoes view actions', () => {

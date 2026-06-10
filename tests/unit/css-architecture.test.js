@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 
 const rootDir = process.cwd();
@@ -193,6 +193,44 @@ describe('CSS architecture', () => {
     expect(read('src/css/views/habitos.css')).toContain('HABIT CARDS');
     expect(read('src/css/views/revisoes.css')).toContain('REVISOES');
     expect(read('src/css/views/editais-tree.css')).toContain('EDITAL TREE');
+  });
+
+  it('toda classe utilitária p-N usada nos templates existe no CSS', () => {
+    // p-12/p-24 já foram usadas em templates sem existir no CSS — o card
+    // renderizava sem padding nenhum (toolbar e empty states colados na borda).
+    const collectJsFiles = (dir, out = []) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const entryPath = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name === 'vendor') continue;
+          collectJsFiles(entryPath, out);
+        } else if (entry.name.endsWith('.js')) {
+          out.push(entryPath);
+        }
+      }
+      return out;
+    };
+
+    const allCss = read('src/css/styles.css');
+    const missing = [];
+    for (const file of collectJsFiles(join(srcDir, 'js'))) {
+      const source = readFileSync(file, 'utf8');
+      for (const classAttr of source.matchAll(/class="([^"]*)"/g)) {
+        for (const padding of classAttr[1].matchAll(/\bp-(\d+)\b/g)) {
+          if (!new RegExp(`\\.p-${padding[1]}\\s*\\{`).test(allCss)) {
+            missing.push(`p-${padding[1]} (${file})`);
+          }
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  it('impede que cards filhos diretos do main-content-stack estiquem para preencher a viewport', () => {
+    const cards = read('src/css/components/cards.css');
+
+    expect(cards).toMatch(/#main-content\.main-content-stack\s*>\s*\.card\s*\{[^}]*height:\s*auto;/s);
   });
 
   it('keeps skip links hidden without intercepting pointer events until focused', () => {

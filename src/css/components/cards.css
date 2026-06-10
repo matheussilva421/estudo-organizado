@@ -8,6 +8,13 @@
   overflow: hidden;
 }
 
+/* height:100% existe para nivelar células de grid; como filho direto do flex
+   column do main-content, faria cada card disputar 100% da viewport e esticar
+   com espaço vazio em views com pouco conteúdo. */
+#main-content.main-content-stack > .card {
+  height: auto;
+}
+
 .card-header {
   background: var(--card-header) !important;
   padding: 16px 20px;

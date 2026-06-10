@@ -11,6 +11,14 @@
   gap: 16px;
 }
 
+.p-12 {
+  padding: 12px !important;
+}
+
 .p-16 {
   padding: 16px !important;
+}
+
+.p-24 {
+  padding: 24px !important;
 }
