@@ -174,6 +174,16 @@ Suíte após rodada 7: **101 arquivos, 1680 testes, 0 falhas**. Push feito até 
 
 Suíte final da sessão: **102 arquivos, 1685 testes, 0 falhas**; test:css 31/31.
 
+## Rodada 9 (mesma sessão 2026-06-10, retomada após hook de loop)
+
+52. **Registro — acertos/erros negativos rejeitados** (`2e3f2f4`): `acertos=-5` passava em `acertos+erros > total` e corrompia estatísticas; feedback ao vivo também acusava "-50% de aproveitamento" (`da570bb`).
+53. **Hábitos — validações do modal** (`2dc4177`, `9e1ddb5`, `9055a71`): quantidade negativa passava em `!quantidade`; acertos negativos/maiores que o total (questões, simulado e gabarito por disciplina) e páginas negativas eram salvos; `calcSimuladoPerc` mostrava percentual absurdo.
+54. **Banca — texto sem tópicos reconhecíveis não apaga análise salva** (`8fc9b43`): `parseBancaText` com linhas todas inválidas zerava os hotTopics da disciplina e dizia "sucesso". Cobertura nova `banca-parse.test.js`.
+55. **Ciclo — instância dupla via dynamic import** (`b4768b4`): `move-ciclo-seq`/`edit-ciclo-seq-hours` importavam `ciclo-view.js` **sem `?v=`** (mesma classe do bug grave da rodada 4/PR #81) — invisível ao guard, que só varria imports estáticos. **Guard `module-specifier-consistency` agora cobre `import('...')` dinâmicos.** Bônus: `editCicloSeqHours` com guard de índice obsoleto.
+56. **Config — campo numérico limpo gravava NaN** (`dbd223a`): `update-config` fazia `parseInt` sem guard; com os novos defaults via `??`, o NaN passava adiante (ex.: modo silencioso quebrado silenciosamente). Valor inválido agora é ignorado; 0 segue aceito. Defesa em profundidade: `isSilentHour` tolera NaN já persistido (`5bd77e4`).
+
+Suíte após rodada 9: **103 arquivos, 1697 testes, 0 falhas**. Push feito até `5bd77e4`.
+
 ## Pendências / próximos ciclos sugeridos (atualizado 2026-06-10)
 
 1. **Migração completa de modais para `ui/dialog.js`** (pilha + focus trap completos, hoje não importado) — médio risco, avaliar com calma; a restauração de foco já foi coberta no item 47.
