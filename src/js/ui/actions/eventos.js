@@ -185,6 +185,11 @@ registerAction('historico-load-more', () => {
   renderCurrentView();
 });
 registerAction('historico-clear-filters', () => {
+  // Cancela debounce pendente da busca para ele não reaplicar o valor antigo após o clear.
+  if (_historicoSearchTimer) {
+    clearTimeout(_historicoSearchTimer);
+    _historicoSearchTimer = null;
+  }
   setHistoricoFilter({ rangeDays: '30', disciplinaId: '', busca: '' });
   renderCurrentView();
 });

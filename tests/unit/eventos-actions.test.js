@@ -98,6 +98,33 @@ describe('ui/actions/eventos.js', () => {
     expect(calls).toContain('historico-clear-filters');
   });
 
+  it('historico-set-busca aplica o filtro após o debounce', () => {
+    vi.useFakeTimers();
+    const busca = registerAction.mock.calls.find(c => c[0] === 'historico-set-busca')[1];
+    busca({ value: 'constitucional' });
+    expect(historicoView.setHistoricoFilter).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(250);
+    expect(historicoView.setHistoricoFilter).toHaveBeenCalledWith({ busca: 'constitucional' });
+    vi.useRealTimers();
+  });
+
+  it('historico-clear-filters cancela debounce pendente da busca', () => {
+    vi.useFakeTimers();
+    const busca = registerAction.mock.calls.find(c => c[0] === 'historico-set-busca')[1];
+    const clear = registerAction.mock.calls.find(c => c[0] === 'historico-clear-filters')[1];
+    busca({ value: 'abc' });
+    clear();
+    vi.advanceTimersByTime(300);
+    // o debounce antigo não pode reaplicar a busca depois do clear
+    expect(historicoView.setHistoricoFilter).toHaveBeenCalledTimes(1);
+    expect(historicoView.setHistoricoFilter).toHaveBeenCalledWith({
+      rangeDays: '30',
+      disciplinaId: '',
+      busca: '',
+    });
+    vi.useRealTimers();
+  });
+
   it('historico-clear-filters resets all filters and re-renders', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'historico-clear-filters')[1];
     handler();
