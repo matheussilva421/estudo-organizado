@@ -570,6 +570,18 @@ describe('registro-sessao.js', () => {
       expect(fb.innerHTML).toContain('80%');
     });
 
+    it('shows feedback when acertos or erros are negative', () => {
+      global.document.getElementById('reg-q-total').value = '10';
+      global.document.getElementById('reg-q-acertos').value = '-5';
+      global.document.getElementById('reg-q-erros').value = '3';
+
+      registroSessao.validateQuestoes();
+
+      const fb = global.document.getElementById('reg-q-feedback');
+      expect(fb.innerHTML).toContain('negativos');
+      expect(fb.innerHTML).not.toContain('aproveitamento');
+    });
+
     it('clears feedback when total is zero', () => {
       const totalEl = global.document.getElementById('reg-q-total');
       totalEl.value = '0';

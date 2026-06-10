@@ -305,7 +305,10 @@ export function validateQuestoes() {
   const fb = document.getElementById('reg-q-feedback');
   if (!fb) return;
 
-  if ((ac + er > total && total > 0) || (total === 0 && ac + er > 0)) {
+  if (ac < 0 || er < 0) {
+    fb.innerHTML =
+      '<span class="reg-feedback-error">⚠️ Acertos e erros não podem ser negativos</span>';
+  } else if ((ac + er > total && total > 0) || (total === 0 && ac + er > 0)) {
     fb.innerHTML =
       '<span class="reg-feedback-error">⚠️ Acertos + Erros não pode ser maior que o Total</span>';
   } else if (total > 0) {
