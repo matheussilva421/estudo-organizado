@@ -84,6 +84,17 @@ describe('editais-view.js', () => {
 });
 
 describe('dashboard-view.js', () => {
+  describe('toggleAulaDashboard()', () => {
+    it('é exportado apenas por editais-crud (sem cópia duplicada no dashboard-view)', async () => {
+      const dashboardView = await import('../../src/js/views/dashboard-view.js');
+      const editaisCrud = await import('../../src/js/views/editais-crud.js');
+      expect(typeof editaisCrud.toggleAulaDashboard).toBe('function');
+      // cópia antiga divergia da canônica (sem preservar scroll, sem return no loop)
+      expect(dashboardView.toggleAulaDashboard).toBeUndefined();
+      expect(dashboardView.default.toggleAulaDashboard).toBeUndefined();
+    });
+  });
+
   describe('renderDisciplinaDashboard()', () => {
     it('renderiza dashboard de disciplina com shell', () => {
       const edital = createEdital({

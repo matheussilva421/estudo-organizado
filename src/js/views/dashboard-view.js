@@ -3,23 +3,12 @@
  * Renderiza dashboard de disciplina (renderDisciplinaDashboard e helpers)
  */
 
-import { scheduleSave, state } from '../store.js?v=8.37';
-import {
-  cutoffDateStr,
-  esc,
-  formatDate,
-  formatTime,
-  HABIT_TYPES,
-  todayStr,
-} from '../utils.js?v=8.37';
+import { state } from '../store.js?v=8.37';
+import { cutoffDateStr, esc, formatDate, formatTime, HABIT_TYPES } from '../utils.js?v=8.37';
 import { calculateContentProgress, getDisc } from '../logic.js?v=8.37';
-import {
-  getActiveDashboardDiscCtx,
-  getActiveDashboardTab,
-} from '../state/dashboard-context.js?v=8.37';
+import { getActiveDashboardTab } from '../state/dashboard-context.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 import { setDiscChartInstance, getDiscChartInstance } from '../state/chart-state.js?v=8.37';
-import { showToast } from '../app.js?v=8.37';
 import {
   filterEventsBySelectedEdital,
   getFilteredActiveDisciplinas,
@@ -444,32 +433,8 @@ export function initDiscDashboardChart(discId) {
   );
 }
 
-// ── Toggle Aula Conclusão ──
-export function toggleAulaDashboard(editaId, discId, aulaId) {
-  for (const edital of state.editais) {
-    if (!edital.disciplinas) continue;
-    const disc = edital.disciplinas.find((d) => d.id === discId);
-    if (!disc) continue;
-
-    const aula = (disc.aulas || []).find((a) => a.id === aulaId);
-    if (!aula) return;
-
-    aula.estudada = !aula.estudada;
-    aula.dataEstudo = aula.estudada ? todayStr() : null;
-    scheduleSave();
-
-    const ctx = getActiveDashboardDiscCtx();
-    if (ctx && ctx.discId === discId) {
-      import('../views.js?v=8.37').then(({ openDiscDashboard }) =>
-        openDiscDashboard(editaId, discId)
-      );
-    } else {
-      renderCurrentView();
-    }
-
-    showToast(aula.estudada ? 'Aula marcada como estudada.' : 'Aula desmarcada.', 'success');
-  }
-}
+// toggleAulaDashboard vive em editais-crud.js (cópia duplicada removida daqui —
+// divergia: não preservava o scroll do painel e não interrompia o loop).
 
 // =============================================
 // HOME DASHBOARD (period filter + charts)
@@ -827,7 +792,6 @@ function renderProgressLine(label, axis) {
 
 export default {
   renderDisciplinaDashboard,
-  toggleAulaDashboard,
   renderDashboard,
   destroyDashboardCharts,
   setDashPeriod,
