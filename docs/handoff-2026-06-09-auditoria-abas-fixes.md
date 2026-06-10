@@ -140,6 +140,18 @@ Achados verificados como **falsos** na rodada 5 (de varredura por agentes): `sav
 
 Suíte após rodada 5: **101 arquivos, 1667 testes, 0 falhas**. Push feito (`291fbcf..435261a`).
 
+## Rodada 6 (mesma sessão 2026-06-10, continuação)
+
+37. **`_marcarEstudeiDirect` removida** (`logic.js`, commit `1141275`): sem callers em produção (fluxo real: `marcarEstudei` → modal de registro → `session-save.js`); disparava `app:refreshMEDSections` sem guard de view — se reativada fora da MED sobrescreveria o `#main-content`. Testes do código morto substituídos por contrato do fluxo real; imports órfãos limpos.
+38. **MED — template legado removido** (`med-view.js`, commit `d1d4790`): `<template data-obsolete="legacy-today-only">` montava event cards nunca exibidos em todo render.
+39. **Meta diária de estudo conectada** (commit `9cf67e06`): o sticky header da MED já exibia barra de progresso de meta diária, mas nenhuma UI definia a config (pendurada desde o redesign `4580962`). Campo novo em Configurações → "Calendário & Estudos" grava `metaDiariaMin` via `update-config`; MED lê `metaDiariaMin*60` com fallback ao legado `metaDiariaSeg`. Smoke E2E 25/25.
+40. **Busca global — escape e limpeza** (`ui/search.js`, commit `a1d7c6d`): `disc.nome`/`disc.icone` interpolados sem `esc()` no subtítulo de eventos e nos ícones (inconsistente com o resto do arquivo; XSS local com dados do usuário); `clearSearch` agora descarta o innerHTML dos resultados antigos.
+41. **Cache de revisões pendentes invalidado em 6 mutações** (commit `a6e4432`): `deleteAssunto`/`deleteDisc`/`deleteEdital` (delete-operations.js), `toggleAssunto` (editais-crud.js) e `archive/unarchiveDiscipline` (logic.js) mutavam assuntos sem `invalidatePendingRevCache()` — badge da sidebar, view Revisões e engine de notificações mostravam revisões de assuntos excluídos/arquivados até o próximo `visibilitychange`. 6 testes novos (archive/unarchive comportamentais com cache real).
+
+Achados de agentes **descartados** na rodada 6: `onSearchBlur` "flicker de resultados obsoletos" (onSearch seta innerHTML e classe na mesma chamada — atômico); `validation.js` NaN→0 no wizard (0 reprova em `min < 1`, rejeita como esperado); `saveBtn.onclick` null em registro-sessao (exige HTML adulterado); negativos via DevTools em sliders range.
+
+Suíte após rodada 6: **101 arquivos, 1671 testes, 0 falhas**. Push feito até `a6e4432`.
+
 ## Próximos passos sugeridos
 
 1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+setas+Enter no grid do Calendário; conferência visual dos 5 temas com `--text-muted` clareado.
