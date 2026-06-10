@@ -144,3 +144,15 @@ Implementação dos tombstones conforme a proposta abaixo (TDD, 17 testes novos)
 3. Validação manual opcional: repetir o cenário com 2 dispositivos reais e o
    sync de produção (Cloudflare/Firestore) — o e2e cobre o merge, não o
    transporte/credenciais.
+
+## Extra na mesma sessão (`c5cbc07`)
+
+Bug de UI no Histórico (screenshot do usuário): a toolbar de filtros aparecia
+esmagada (~26px) com a lista populada. Causa: `.card` base tem `overflow:hidden`
+→ `min-height:auto` = 0 → o flex column do `#main-content` encolhe o card quando
+o conteúdo passa da viewport (por isso só com lista populada). Fix: 
+`.historico-toolbar.card` na lista de isenção `height:auto/overflow:visible`
+(`styles.css`, bloco "Dynamic cards"). E2E geométrico novo em
+`tests/e2e/sessoes.spec.js`. Padrão a lembrar: qualquer card novo numa view que
+rola PRECISA da isenção, senão é esmagado. Bumps de cache: `492ab0f` (8.91) e
+`c5cbc07` (8.92).
