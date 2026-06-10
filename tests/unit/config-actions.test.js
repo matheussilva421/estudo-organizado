@@ -10,6 +10,7 @@ describe('ui/actions/config.js', () => {
   let firestoreSync;
   let syncCoordinator;
   let driveSync;
+  let notificationsModule;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -49,6 +50,7 @@ describe('ui/actions/config.js', () => {
       getFirestoreSyncStatus: vi.fn(() => ({ configured: true, signedIn: true, enabled: true })),
     };
     syncCoordinator = { flushPrimarySyncNow: vi.fn(() => Promise.resolve(true)) };
+    notificationsModule = { adoptNotificationPermission: vi.fn() };
     driveSync = {
       syncWithDrive: vi.fn(() => Promise.resolve()),
       pullFromDrive: vi.fn(),
@@ -65,8 +67,24 @@ describe('ui/actions/config.js', () => {
     vi.doMock('../../src/js/sync/firestore-sync-engine.js?v=8.37', () => firestoreSync);
     vi.doMock('../../src/js/sync/sync-coordinator.js?v=8.37', () => syncCoordinator);
     vi.doMock('../../src/js/drive-sync.js?v=8.37', () => driveSync);
+    vi.doMock('../../src/js/notifications.js?v=8.37', () => notificationsModule);
 
     await import('../../src/js/ui/actions/config.js');
+  });
+
+  it('request-notification-permission sincroniza o engine após conceder', async () => {
+    const requestPermission = vi.fn(() => Promise.resolve('granted'));
+    window.Notification = { permission: 'default', requestPermission };
+    const handler = registerAction.mock.calls.find(
+      (c) => c[0] === 'request-notification-permission'
+    )[1];
+
+    handler();
+    await vi.waitFor(() => expect(componentsModule.renderCurrentView).toHaveBeenCalled());
+
+    expect(requestPermission).toHaveBeenCalled();
+    expect(notificationsModule.adoptNotificationPermission).toHaveBeenCalled();
+    delete window.Notification;
   });
 
   it('registers config actions', () => {

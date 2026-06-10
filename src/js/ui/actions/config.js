@@ -4,6 +4,7 @@
  */
 
 import { registerAction } from './dispatcher.js';
+import { adoptNotificationPermission } from '../../notifications.js?v=8.37';
 import {
   updateConfig,
   toggleConfig,
@@ -99,6 +100,7 @@ registerAction('request-notification-permission', () => {
   if (!('Notification' in window)) return;
   Notification.requestPermission()
     .then((permission) => {
+      adoptNotificationPermission();
       if (permission === 'granted') showToast('Notificações ativadas!', 'success');
       renderCurrentView();
     })

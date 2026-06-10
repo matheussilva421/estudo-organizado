@@ -58,6 +58,54 @@ describe('notifications.js', () => {
     });
   });
 
+  describe('initNotifications()', () => {
+    it('não solicita permissão no boot quando ela está em default (sem gesto do usuário)', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/js/store.js?v=8.37', () => ({ state: { config: {} } }));
+      const requestPermission = vi.fn(() => Promise.resolve('granted'));
+      window.Notification = { permission: 'default', requestPermission };
+      const notif = await import('../../src/js/notifications.js?v=8.37');
+
+      await notif.initNotifications();
+
+      expect(requestPermission).not.toHaveBeenCalled();
+      expect(notif.hasNotificationPermission).toBe(false);
+      notif.cleanupNotificationEngine();
+      delete window.Notification;
+    });
+
+    it('adota permissão já concedida no boot', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/js/store.js?v=8.37', () => ({ state: { config: {} } }));
+      window.Notification = { permission: 'granted', requestPermission: vi.fn() };
+      const notif = await import('../../src/js/notifications.js?v=8.37');
+
+      await notif.initNotifications();
+
+      expect(notif.hasNotificationPermission).toBe(true);
+      notif.cleanupNotificationEngine();
+      delete window.Notification;
+    });
+  });
+
+  describe('adoptNotificationPermission()', () => {
+    it('sincroniza o engine quando a permissão foi concedida depois do boot', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/js/store.js?v=8.37', () => ({ state: { config: {} } }));
+      window.Notification = { permission: 'default', requestPermission: vi.fn() };
+      const notif = await import('../../src/js/notifications.js?v=8.37');
+      await notif.initNotifications();
+      expect(notif.hasNotificationPermission).toBe(false);
+
+      window.Notification.permission = 'granted';
+      notif.adoptNotificationPermission();
+
+      expect(notif.hasNotificationPermission).toBe(true);
+      notif.cleanupNotificationEngine();
+      delete window.Notification;
+    });
+  });
+
   describe('modo silencioso com horários zero', () => {
     it('silentModeStart=0 não cai no default 22h (23h local deve notificar)', async () => {
       vi.resetModules();

@@ -25,15 +25,15 @@ function resetDailyNotifKeysIfNeeded() {
 }
 
 export async function initNotifications() {
-  // 1. Checa a permissão atual ou solicita
+  // Adota a permissão atual; NÃO solicita no boot — sem gesto do usuário os
+  // browsers ignoram ou penalizam o prompt. O pedido fica no botão de
+  // Configurações (request-notification-permission), que sincroniza o engine
+  // via adoptNotificationPermission() ao conceder.
   if (!('Notification' in window)) {
     console.warn('Este browser não suporta notificações nativas.');
     hasNotificationPermission = false;
-  } else if (Notification.permission === 'granted') {
-    hasNotificationPermission = true;
-  } else if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission();
-    hasNotificationPermission = permission === 'granted';
+  } else {
+    hasNotificationPermission = Notification.permission === 'granted';
   }
 
   // Aguarda carregar o estado para comecar (2s é suficiente para IndexedDB)
@@ -42,6 +42,12 @@ export async function initNotifications() {
     _initTimeout = null;
     startNotificationEngine();
   }, 2000);
+}
+
+// Chamada pelo fluxo de Configurações depois que o usuário responde ao prompt;
+// sem isso, conceder a permissão só surtia efeito no próximo reload.
+export function adoptNotificationPermission() {
+  hasNotificationPermission = 'Notification' in window && Notification.permission === 'granted';
 }
 
 function isSilentHour() {
