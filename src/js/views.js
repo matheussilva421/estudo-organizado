@@ -14,7 +14,6 @@ import {
 } from './logic.js?v=8.37';
 import { renderCurrentView } from './components.js?v=8.37';
 import { openAddEventModal, loadAssuntos } from './ui/event-modals.js?v=8.37';
-import { renderVerticalList } from './views/editais-view.js';
 import { getEditingSubjectCtx, openDiscManager } from './views/editais-crud.js';
 import {
   getActiveDiscManagerTab,
@@ -220,45 +219,9 @@ export function openAddEventModalDate(dateStr) {
 // EDITAIS VIEW
 // =============================================
 
-export const vertFilterEdital = '';
-export const vertFilterStatus = 'todos';
-export let vertSearch = '';
-export let _vertSearchDebounce = null;
-
-export function onVertSearch(val) {
-  vertSearch = val;
-  clearTimeout(_vertSearchDebounce);
-  _vertSearchDebounce = setTimeout(() => {
-    // Fix 3: only re-render the list portion, not the entire view
-    const listEl = document.getElementById('vert-list-container');
-    if (listEl) {
-      renderVerticalList(listEl);
-    } else {
-      renderCurrentView(); // fallback if container not found
-    }
-  }, 200);
-}
-
-export function getFilteredVertItems() {
-  let items = [];
-  for (const edital of state.editais) {
-    for (const disc of edital.disciplinas || []) {
-      for (const ass of disc.assuntos || []) {
-        items.push({ edital, disc, ass });
-      }
-    }
-  }
-  if (vertFilterEdital) items = items.filter((i) => i.edital.id === vertFilterEdital);
-  if (vertFilterStatus === 'pendentes') items = items.filter((i) => !i.ass.concluido);
-  if (vertFilterStatus === 'concluidos') items = items.filter((i) => i.ass.concluido);
-  if (vertSearch) {
-    const q = vertSearch.toLowerCase();
-    items = items.filter(
-      (i) => i.ass.nome.toLowerCase().includes(q) || i.disc.nome.toLowerCase().includes(q)
-    );
-  }
-  return items;
-}
+// Filtros/busca do Ed. Verticalizado vivem em editais-view.js (cópia legada
+// removida daqui — ignorava edital global, disciplinas arquivadas e busca
+// normalizada; nenhum call site usava esta versão).
 
 // verResumoSimulado removida — funcionalidade descontinuada
 
