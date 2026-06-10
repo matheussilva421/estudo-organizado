@@ -66,10 +66,17 @@ Implementação dos tombstones conforme a proposta abaixo (TDD, 17 testes novos)
   antigos ignoram (merge sem o campo = comportamento anterior).
 - Validações: unit **1757/1757**; e2e chromium **137/137**; lint 43 warnings
   (mesma baseline, 0 erros).
-- Gap conhecido (registrado, não corrigido): `voltarPastSessionUI`
-  (registro-sessao.js) remove um evento sem tombstone — fluxo de recriar sessão
-  passada; risco baixo. `planejamento` continua local-wins no merge (etapas
-  puladas não propagam entre dispositivos) — defeito separado, decisão pendente.
+- CORRIGIDO em `9effb30` (pedido do usuário): (a) `voltarPastSessionUI` agora grava
+  tombstone do evento removido; (b) `planejamento` propaga entre dispositivos via
+  LWW por `planejamento.updatedAt` — `touchPlanejamento()` (cycle.js, exportada por
+  logic.js) é chamada em TODA mutação real do plano (pular/reabrir/concluir etapa,
+  mover/editar/salvar sequência, reset/recomeçar/zerar ciclo, purgas ao excluir
+  disciplina/edital, persistir janela de previsão); `mergeStudyStates` usa o plano
+  remoto quando `updatedAt` remoto > local; sem o campo nos dois lados o local
+  segue vencendo (clientes antigos = comportamento anterior). NUNCA chamar
+  `touchPlanejamento` em regen de eventos (`syncCicloToEventos`) ou salvamentos
+  genéricos — todo dispositivo reclamaria autoria e o LWW degeneraria.
+  Validações: unit 1764/1764; e2e chromium 137/137; lint baseline (43 warnings).
 
 ## Proposta original (referência — implementada acima)
 
@@ -116,10 +123,9 @@ Implementação dos tombstones conforme a proposta abaixo (TDD, 17 testes novos)
 
 ## Como retomar
 
-1. `git status -sb` (limpo; main = origin/main até `1e3d329`).
-2. Validação manual recomendada: 2 dispositivos (ou 2 navegadores) com Cloudflare
-   sync ativo — excluir sessão/hábito no A, sincronizar o B, confirmar que a
-   exclusão propaga e nada ressuscita.
-3. Pendências menores registradas: tombstone em `voltarPastSessionUI`;
-   `planejamento` local-wins no merge (etapas puladas não propagam); UX do badge
-   "Etapa pulada" só visível no hover em desktop.
+1. `git status -sb` (limpo; main = origin/main até `9effb30`).
+2. Validação manual recomendada: 2 dispositivos (ou 2 navegadores) com sync ativo —
+   excluir sessão/hábito no A, sincronizar o B, confirmar que a exclusão propaga e
+   nada ressuscita; pular uma etapa no A e confirmar que ela aparece pulada no B.
+3. Pendência menor restante: UX do badge "Etapa pulada" só visível no hover em
+   desktop (no mobile aparece sempre) — decidir com o usuário.
