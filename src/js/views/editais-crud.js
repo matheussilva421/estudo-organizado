@@ -71,7 +71,10 @@ export function toggleEdital(id) {
   const header = document.querySelector(
     `[data-action="toggle-edital"][data-edital-id="${id}"]`
   );
-  if (header) header.classList.toggle('tree-edital-header--collapsed', willCollapse);
+  if (header) {
+    header.classList.toggle('tree-edital-header--collapsed', willCollapse);
+    header.setAttribute('aria-expanded', String(!willCollapse));
+  }
 }
 
 export function toggleAssunto(discId, assId) {

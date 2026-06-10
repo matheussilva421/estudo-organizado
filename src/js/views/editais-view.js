@@ -362,7 +362,7 @@ export function renderEditalTree(edital) {
 
   return `
     <div class="tree-edital" id="edital-${edital.id}">
-      <div class="tree-edital-header tree-edital-header-main ${isCollapsed ? 'tree-edital-header--collapsed' : ''}" data-action="toggle-edital" data-edital-id="${edital.id}">
+      <div class="tree-edital-header tree-edital-header-main ${isCollapsed ? 'tree-edital-header--collapsed' : ''}" data-action="toggle-edital" data-edital-id="${edital.id}" role="button" tabindex="0" aria-expanded="${!isCollapsed}" aria-controls="edital-tree-${edital.id}" aria-label="Expandir ou recolher ${esc(edital.nome)}">
         <span class="flex-shrink-0" style="width:10px; height:10px; border-radius:50%; background:${edital.cor || '#8aa4bf'}; display:inline-block;"></span>
         <span class="flex-1 text-lg font-bold tree-edital-title">${esc(edital.nome)}</span>
         ${progressBadge}

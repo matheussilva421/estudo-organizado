@@ -73,6 +73,27 @@ describe('editais-view.js', () => {
       expect(views.toggleEdital).toBeDefined();
       expect(typeof views.toggleEdital).toBe('function');
     });
+
+    it('header é acionável por teclado e expõe aria-expanded', () => {
+      const edital = createEdital({ id: 'ed_1', nome: 'Concurso TRF' });
+      const html = views.renderEditalTree(edital);
+      expect(html).toMatch(/data-action="toggle-edital"[^>]*role="button"/);
+      expect(html).toMatch(/data-action="toggle-edital"[^>]*tabindex="0"/);
+      expect(html).toMatch(/data-action="toggle-edital"[^>]*aria-expanded="true"/);
+    });
+
+    it('sincroniza aria-expanded ao recolher/expandir', () => {
+      const edital = createEdital({ id: 'ed_1', nome: 'Concurso TRF' });
+      store.setState(createBaseState({ editais: [edital] }));
+      document.body.innerHTML = views.renderEditalTree(edital);
+
+      views.toggleEdital('ed_1');
+      const header = document.querySelector('[data-action="toggle-edital"]');
+      expect(header.getAttribute('aria-expanded')).toBe('false');
+
+      views.toggleEdital('ed_1');
+      expect(header.getAttribute('aria-expanded')).toBe('true');
+    });
   });
 
   describe('toggleAssunto()', () => {
