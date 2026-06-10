@@ -215,11 +215,13 @@ export function renderHabitHistPage() {
     (state.habitos[h.key] || []).map((r) => ({ ...r, tipo: h }))
   ).sort((a, b) => b.data.localeCompare(a.data));
   const total = all.length;
+  const totalPages = Math.max(1, Math.ceil(total / HABIT_HIST_PAGE_SIZE));
+  // Exclusões podem deixar a página atual fora do range — clampa antes de fatiar.
+  if (habitHistPage > totalPages) habitHistPage = totalPages;
   const page = habitHistPage;
   const start = (page - 1) * HABIT_HIST_PAGE_SIZE;
   const end = start + HABIT_HIST_PAGE_SIZE;
   const items = all.slice(start, end);
-  const totalPages = Math.max(1, Math.ceil(total / HABIT_HIST_PAGE_SIZE));
 
   const countEl = document.getElementById('habit-hist-count');
   if (countEl) countEl.textContent = `${total} registro(s)`;

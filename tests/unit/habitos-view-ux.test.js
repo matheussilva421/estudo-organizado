@@ -45,6 +45,32 @@ describe('habitos-view UX (modal title + simulado perc)', () => {
     expect(document.getElementById('sim-perc').innerHTML).toBe('');
   });
 
+  it('clampa a página do histórico quando registros são excluídos', async () => {
+    const store = await import('../../src/js/store.js?v=8.37');
+    const mkRecords = (n) =>
+      Array.from({ length: n }, (_, i) => ({
+        id: `h${i}`,
+        data: `2026-04-${String((i % 28) + 1).padStart(2, '0')}`,
+        quantidade: 1,
+      }));
+    store.state.habitos = { questoes: mkRecords(21) };
+    document.body.innerHTML = `
+      <div id="habit-hist-count"></div>
+      <div id="habit-hist-list"></div>
+      <div id="habit-hist-footer"></div>
+    `;
+
+    document.getElementById('habit-hist-list').scrollIntoView = vi.fn(); // jsdom não implementa
+    mod.setHabitPage(3); // 21 registros / 10 por página = 3 páginas
+
+    // exclusões reduzem para 11 registros (2 páginas); página 3 ficou órfã
+    store.state.habitos = { questoes: mkRecords(11) };
+    mod.renderHabitHistPage();
+
+    expect(document.getElementById('habit-hist-list').innerHTML).not.toContain('Nenhum hábito');
+    expect(document.getElementById('habit-hist-footer').innerHTML).toContain('Página 2 de 2');
+  });
+
   it('calcSimuladoPerc still renders percentage for valid totals', () => {
     document.body.innerHTML = `
       <input id="habit-total" value="10">
