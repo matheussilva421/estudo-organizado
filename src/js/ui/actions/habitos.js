@@ -30,6 +30,6 @@ registerAction('select-habit-type', (el) => {
 });
 registerAction('set-habit-page', (el) => {
   const page = parseInt(el.dataset.page, 10);
-  setHabitPage(page);
+  if (Number.isFinite(page)) setHabitPage(page);
 });
 registerAction('calc-simulado-perc', calcSimuladoPerc);

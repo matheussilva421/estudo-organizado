@@ -46,6 +46,13 @@ describe('ui/actions/habitos.js', () => {
     expect(habitosView.setHabitPage).toHaveBeenCalledWith(2);
   });
 
+  it('set-habit-page ignora data-page inválido (NaN viraria "Página NaN")', () => {
+    const handler = registerAction.mock.calls.find(c => c[0] === 'set-habit-page')[1];
+    handler({ dataset: {} });
+    handler({ dataset: { page: 'abc' } });
+    expect(habitosView.setHabitPage).not.toHaveBeenCalled();
+  });
+
   it('save-habit handler is saveHabit directly', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'save-habit')[1];
     expect(handler).toBe(habitosView.saveHabit);
