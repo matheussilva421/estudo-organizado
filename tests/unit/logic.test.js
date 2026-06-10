@@ -442,92 +442,17 @@ describe('logic.js', () => {
   });
 
   describe('Study actions', () => {
-    describe('_marcarEstudeiDirect', () => {
-      it('marks event as studied with session data', () => {
-        const evento = createEvento({ id: 'ev_1', status: 'agendado' });
-        store.setState(createBaseState({ eventos: [evento] }));
+    it('marcarEstudei abre o modal de registro de sessão (sem marcar direto)', () => {
+      const evento = createEvento({ id: 'ev_1', status: 'agendado' });
+      store.setState(createBaseState({ eventos: [evento] }));
 
-        logic._marcarEstudeiDirect('ev_1');
+      logic.marcarEstudei('ev_1');
 
-        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
-        expect(ev.status).toBe('estudei');
-        expect(ev.dataEstudo).toBe('2026-04-20');
-      });
-
-      it('stops running timer when marking as studied', () => {
-        const startTime = Date.now() - 10000;
-        const evento = createEvento({
-          id: 'ev_1',
-          status: 'agendado',
-          _timerStart: startTime,
-          tempoAcumulado: 0,
-        });
-        store.setState(createBaseState({ eventos: [evento] }));
-        logic.timerIntervals['ev_1'] = { _mock: true };
-
-        logic._marcarEstudeiDirect('ev_1');
-
-        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
-        expect(ev._timerStart).toBeNull();
-        expect(ev.tempoAcumulado).toBe(10);
-        expect(global.clearInterval).toHaveBeenCalled();
-      });
-
-      it('marks assunto as concluido when event has discId and assId', () => {
-        const disc = createDisciplina({
-          id: 'disc_1',
-          assuntos: [createAssunto({ id: 'ass_1', concluido: false })],
-        });
-        const edital = createEdital({ disciplinas: [disc] });
-        const evento = createEvento({
-          id: 'ev_1',
-          discId: 'disc_1',
-          assId: 'ass_1',
-          status: 'agendado',
-        });
-        store.setState(createBaseState({ eventos: [evento], editais: [edital] }));
-        logic.invalidateDiscCache();
-
-        logic._marcarEstudeiDirect('ev_1');
-
-        const ev = store.state.eventos.find((e) => e.id === 'ev_1');
-        expect(ev.status).toBe('estudei');
-        const storedAss = store.state.editais[0].disciplinas[0].assuntos.find(
-          (a) => a.id === 'ass_1'
-        );
-        expect(storedAss.concluido).toBe(true);
-        expect(storedAss.dataConclusao).toBe('2026-04-20');
-        expect(storedAss.revisoesFetas).toEqual([]);
-      });
-
-      it('does nothing for non-existent event', () => {
-        store.setState(createBaseState({ eventos: [] }));
-
-        expect(() => logic._marcarEstudeiDirect('ev_missing')).not.toThrow();
-      });
-
-      it('does not mark assunto if already concluido', () => {
-        const disc = createDisciplina({
-          id: 'disc_1',
-          assuntos: [createAssunto({ id: 'ass_1', concluido: true, dataConclusao: '2026-04-15' })],
-        });
-        const edital = createEdital({ disciplinas: [disc] });
-        const evento = createEvento({
-          id: 'ev_1',
-          discId: 'disc_1',
-          assId: 'ass_1',
-          status: 'agendado',
-        });
-        store.setState(createBaseState({ eventos: [evento], editais: [edital] }));
-        logic.invalidateDiscCache();
-
-        logic._marcarEstudeiDirect('ev_1');
-
-        const storedAss = store.state.editais[0].disciplinas[0].assuntos.find(
-          (a) => a.id === 'ass_1'
-        );
-        expect(storedAss.dataConclusao).toBe('2026-04-15');
-      });
+      // O fluxo real passa pelo modal (session-save.js); o evento NÃO muda aqui.
+      const ev = store.state.eventos.find((e) => e.id === 'ev_1');
+      expect(ev.status).toBe('agendado');
+      // _marcarEstudeiDirect foi removida (código morto com refreshMEDSections fora da view MED)
+      expect(logic._marcarEstudeiDirect).toBeUndefined();
     });
   });
 

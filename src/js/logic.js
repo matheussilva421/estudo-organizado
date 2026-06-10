@@ -1,5 +1,4 @@
 import { scheduleSave, state } from './store.js?v=8.37';
-import { todayStr } from './utils.js?v=8.37';
 import { openRegistroSessao } from './registro-sessao.js?v=8.37';
 
 // TIMER ENGINE (extracted to ./logic/timer.js)
@@ -21,7 +20,7 @@ export {
 } from './logic/timer.js';
 
 // Internal imports for functions staying in logic.js that reference timer state
-import { timerIntervals, toggleTimer, getElapsedSeconds } from './logic/timer.js';
+import { timerIntervals } from './logic/timer.js';
 
 // REVISIONS & SPACED REPETITION (extracted to ./logic/revisions.js)
 export {
@@ -50,7 +49,7 @@ export {
   getDisc,
 } from './logic/disc.js';
 
-import { invalidateDiscCache, getDisc } from './logic/disc.js';
+import { invalidateDiscCache } from './logic/disc.js';
 import { skipPlanejamentoEventBeforeDelete, syncCicloToEventos } from './logic/cycle.js';
 
 // PROGRESS & DASHBOARD ANALYTICS (extracted to ./logic/progress.js)
@@ -99,44 +98,9 @@ export function marcarEstudei(eventId) {
   openRegistroSessao(eventId);
 }
 
-export function _marcarEstudeiDirect(eventId) {
-  const ev = state.eventos.find((e) => e.id === eventId);
-  if (!ev) return;
-
-  if (ev._timerStart) {
-    ev.tempoAcumulado = getElapsedSeconds(ev);
-    ev._timerStart = null;
-  }
-
-  if (timerIntervals[eventId]) {
-    clearInterval(timerIntervals[eventId]);
-    delete timerIntervals[eventId];
-  }
-
-  ev.status = 'estudei';
-  ev.dataEstudo = todayStr();
-
-  if (ev.assId && ev.discId) {
-    const d = getDisc(ev.discId);
-    if (d) {
-      const ass = d.disc.assuntos.find((a) => a.id === ev.assId);
-      if (ass && !ass.concluido) {
-        ass.concluido = true;
-        ass.dataConclusao = todayStr();
-        ass.revisoesFetas = [];
-      }
-    }
-  }
-  scheduleSave();
-  invalidatePendingRevCache();
-  document.dispatchEvent(new Event('app:refreshMEDSections'));
-
-  document.dispatchEvent(
-    new CustomEvent('app:showToast', {
-      detail: { msg: 'Evento marcado como Estudei! ✅', type: 'success' },
-    })
-  );
-}
+// _marcarEstudeiDirect removida: sem callers em produção (o fluxo real passa
+// pelo modal de registro → session-save.js) e disparava refreshMEDSections
+// fora da view MED, o que sobrescreveria o main-content com a tela MED.
 
 export function removeEvento(eventId) {
   const ev = state.eventos.find((e) => e.id === eventId);
