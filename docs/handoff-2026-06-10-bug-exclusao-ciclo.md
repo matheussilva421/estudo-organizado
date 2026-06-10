@@ -145,6 +145,17 @@ Implementação dos tombstones conforme a proposta abaixo (TDD, 17 testes novos)
    sync de produção (Cloudflare/Firestore) — o e2e cobre o merge, não o
    transporte/credenciais.
 
+## Extra: README reorganizado (após `67511de`)
+
+`README.md` reescrito para refletir o app atual (pedido do usuário). Correções:
+temas reais (Grafite/Ardósia/Platina/Terminal/Neon/Arrakis — antes citava temas
+legados Furtivo/Rubi/Matrix), 9 categorias de hábitos (antes 6, incluía "Flash
+Cards" inexistente), view Histórico de Sessões adicionada, contagem de testes
+(~1760 unit + 24 specs e2e, antes "393"), migrações v1→v10, árvore de pastas
+atual (css modularizado, store/, sync/ completo), seção nova "Merge entre
+dispositivos" (tombstones + LWW do planejamento), scripts npm atuais e sumário.
+Sem mudança de código; nenhum teste referencia o README.
+
 ## Extra na mesma sessão (`c5cbc07`)
 
 Bug de UI no Histórico (screenshot do usuário): a toolbar de filtros aparecia
