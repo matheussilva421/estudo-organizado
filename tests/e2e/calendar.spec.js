@@ -92,7 +92,7 @@ test.describe('Calendario', () => {
     })).toBe(false);
   });
 
-  test('deleting an auto-generated cycle event keeps future predictions for the discipline', async ({ page }) => {
+  test('deleting an auto-generated cycle event skips the etapa (pulada) and allows reopening', async ({ page }) => {
     const state = createE2EState();
     // Datas relativas a hoje: o chip do evento so aparece no mes exibido pelo calendario
     const today = new Date();
@@ -155,13 +155,21 @@ test.describe('Calendario', () => {
           skipped: window.state.planejamento.skippedSlots?.length,
         }))
       )
-      .toEqual({ removed: true, status: 'pendente', skipped: 1 });
+      .toEqual({ removed: true, status: 'pulada', skipped: 0 });
 
     await page.click('[data-view="ciclo"]');
     await expect(page.locator('#topbar-title')).toHaveText('Ciclo de Estudos', { timeout: 10000 });
-    await expect(page.locator('.ciclo-predict-summary')).toContainText('5 sessões previstas');
-    await expect(page.locator('#predict-results-container')).toContainText('Direito Constitucional');
-    await expect(page.locator('#predict-results-container')).toContainText('5 sessões');
+    // A etapa pulada sai da agenda e da previsão, com badge e reabertura na tela Ciclo
+    await expect(page.locator('.grade-concluded-badge')).toContainText('Etapa pulada');
+    await expect(page.locator('#predict-empty-state')).toContainText('não gera sessões');
+
+    // As ações do card só expandem no hover (desktop) — replica a interação real
+    await page.hover('.seq-item-card--static');
+    await page.click('[data-action="desfazer-etapa"][data-seq-id="seq_1"]');
+    await expect
+      .poll(() => page.evaluate(() => window.state.planejamento.sequencia[0]?.status))
+      .toBe('pendente');
+    await expect(page.locator('.grade-concluded-badge')).toHaveCount(0);
   });
   test('day load hint ignores scheduled events hidden by the active edital filter', async ({ page }) => {
     const state = createE2EState();
