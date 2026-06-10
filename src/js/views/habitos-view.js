@@ -251,9 +251,12 @@ export function renderHabitHistPage() {
                 extraInfo.push(`${r.acertos} acertos`);
               }
 
-              // Adiciona porcentagem de acertos
-              if (r.tipo.key === 'questoes' && r.total && r.total > 0) {
-                const perc = Math.round((r.acertos / r.total) * 100);
+              // Adiciona porcentagem de acertos — registros manuais usam `quantidade`,
+              // registros vindos do registro de sessão usam `total`.
+              const totQuestoes = Number(r.total ?? r.quantidade) || 0;
+              const acertosNum = Number(r.acertos);
+              if (r.tipo.key === 'questoes' && totQuestoes > 0 && Number.isFinite(acertosNum)) {
+                const perc = Math.round((acertosNum / totQuestoes) * 100);
                 extraInfo.push(`${perc}%`);
               }
 
@@ -495,7 +498,7 @@ export function saveHabit() {
     registro.descricao = document.getElementById('habit-desc')?.value || '';
     const total = parseInt(document.getElementById('habit-total')?.value || '0');
     const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
-    if (total < 0 || acertos < 0 || (total > 0 && acertos > total)) {
+    if (total < 0 || acertos < 0 || acertos > total) {
       showToast('Acertos deve estar entre 0 e o total do simulado', 'error');
       return;
     }

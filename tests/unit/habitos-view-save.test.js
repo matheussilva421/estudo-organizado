@@ -99,6 +99,23 @@ describe('habitos-view saveHabit', () => {
     );
   });
 
+  it('rejeita simulado com acertos > 0 e total 0', () => {
+    document.body.innerHTML += `
+      <input id="habit-desc" value="Simulado sem total">
+      <input id="habit-total" value="0">
+    `;
+    document.getElementById('habit-acertos').value = '12';
+    mod.selectHabitType('simulado', document.getElementById('type-btn'));
+
+    mod.saveHabit();
+
+    expect(storeModule.state.habitos.simulado).toBeUndefined();
+    expect(appModule.showToast).toHaveBeenCalledWith(
+      'Acertos deve estar entre 0 e o total do simulado',
+      'error'
+    );
+  });
+
   it('rejeita páginas negativas em leitura', () => {
     document.body.innerHTML += '<input id="habit-paginas" value="-20">';
     mod.selectHabitType('leitura', document.getElementById('type-btn'));

@@ -71,6 +71,40 @@ describe('habitos-view UX (modal title + simulado perc)', () => {
     expect(document.getElementById('habit-hist-footer').innerHTML).toContain('Página 2 de 2');
   });
 
+  it('mostra % de aproveitamento para registro manual de questões (que usa quantidade, não total)', async () => {
+    const store = await import('../../src/js/store.js?v=8.37');
+    // saveHabit grava { quantidade, acertos } — sem `total`, que só existe em
+    // registros criados pelo registro de sessão.
+    store.state.habitos = {
+      questoes: [{ id: 'h1', data: '2026-04-10', quantidade: 10, acertos: 7 }],
+    };
+    document.body.innerHTML = `
+      <div id="habit-hist-count"></div>
+      <div id="habit-hist-list"></div>
+      <div id="habit-hist-footer"></div>
+    `;
+
+    mod.renderHabitHistPage();
+
+    expect(document.getElementById('habit-hist-list').innerHTML).toContain('70%');
+  });
+
+  it('não mostra NaN% quando o registro de questões não tem acertos', async () => {
+    const store = await import('../../src/js/store.js?v=8.37');
+    store.state.habitos = {
+      questoes: [{ id: 'h1', data: '2026-04-10', total: 10 }],
+    };
+    document.body.innerHTML = `
+      <div id="habit-hist-count"></div>
+      <div id="habit-hist-list"></div>
+      <div id="habit-hist-footer"></div>
+    `;
+
+    mod.renderHabitHistPage();
+
+    expect(document.getElementById('habit-hist-list').innerHTML).not.toContain('NaN');
+  });
+
   it('calcSimuladoPerc acusa acertos negativos em vez de mostrar percentual absurdo', () => {
     document.body.innerHTML = `
       <input id="habit-total" value="10">
