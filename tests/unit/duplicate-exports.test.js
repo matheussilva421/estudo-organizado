@@ -13,8 +13,6 @@ const ALLOWED_DUPLICATES = new Set([
   'createExportableState', // store.js é wrapper fino de store/export-state.js
   'runMigrations', // domínios distintos: schema do IndexedDB vs migrações de state
   'pwRenderWeightPreview', // planejamento-wizard.js delega para planejamento/step-renderers.js
-  'openModal', // app/modals.js (em uso) vs ui/dialog.js (não importado) — decisão pendente
-  'closeModal', // idem openModal
   'getRuntimeFirebaseConfig', // firebase-config.js local (gitignored) sobrepõe o default — intencional
   'getRuntimeAppCheckSiteKey', // idem firebase-config
 ]);

@@ -36,6 +36,8 @@ beforeEach(async () => {
           classList: { add: vi.fn(), remove: vi.fn(), contains: vi.fn(() => false) },
           setAttribute: vi.fn(),
           contains: vi.fn(() => false),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
           value: '',
           innerHTML: '',
         };

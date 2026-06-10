@@ -1,46 +1,12 @@
 // =============================================
 // MODAL MANAGEMENT
 // =============================================
+// openModal/closeModal vivem em ui/dialog.js (controller único: pilha, focus
+// trap e restauração de foco por modal). Re-exportados aqui para os
+// consumidores de app.js continuarem funcionando sem mudança.
 
-// Foco de origem por modal: devolvido no closeModal (teclado/leitores de tela).
-const _lastFocusedByModal = new Map();
-
-/**
- * Abre modal pelo ID
- * @param {string} id - ID do elemento modal
- */
-export function openModal(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const active = document.activeElement;
-  if (active && active !== document.body && !el.contains(active)) {
-    _lastFocusedByModal.set(id, active);
-  }
-  el.classList.add('open');
-  el.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-}
-
-/**
- * Fecha modal pelo ID
- * @param {string} id - ID do elemento modal
- */
-export function closeModal(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (el.contains(document.activeElement)) document.activeElement.blur();
-  el.classList.remove('open');
-  el.setAttribute('aria-hidden', 'true');
-  const hasOpenModal = document.querySelector('.modal-overlay.open');
-  document.body.style.overflow = hasOpenModal ? 'hidden' : '';
-
-  const last = _lastFocusedByModal.get(id);
-  _lastFocusedByModal.delete(id);
-  // Re-renders podem ter removido o elemento de origem; só restaura se vivo.
-  if (last && typeof last.focus === 'function' && document.contains(last)) {
-    last.focus();
-  }
-}
+import { openModal, closeModal } from '../ui/dialog.js?v=8.37';
+export { openModal, closeModal };
 
 // Custom Confirm
 

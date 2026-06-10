@@ -7,24 +7,21 @@ describe('ui/dialog.js', () => {
   });
 
   describe('openModal()', () => {
-    it('warns when modal not found', async () => {
+    it('returns silently when modal not found', async () => {
       const { openModal } = await import('../../src/js/ui/dialog.js?v=8.37');
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      openModal('nonexistent-modal');
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('not found'));
-      warnSpy.mockRestore();
+      expect(() => openModal('nonexistent-modal')).not.toThrow();
     });
 
-    it('shows modal and sets aria-hidden to false', async () => {
+    it('shows modal via .open class and sets aria-hidden to false', async () => {
       const modal = document.createElement('div');
       modal.id = 'modal-test';
-      modal.style.display = 'none';
       document.body.appendChild(modal);
 
       const { openModal } = await import('../../src/js/ui/dialog.js?v=8.37');
       openModal('modal-test');
 
-      expect(modal.style.display).toBe('flex');
+      // contrato visual do CSS é a classe .open (não style.display)
+      expect(modal.classList.contains('open')).toBe(true);
       expect(modal.getAttribute('aria-hidden')).toBe('false');
     });
 
@@ -52,17 +49,16 @@ describe('ui/dialog.js', () => {
   });
 
   describe('closeModal()', () => {
-    it('hides modal and sets aria-hidden to true', async () => {
+    it('hides modal (remove .open) and sets aria-hidden to true', async () => {
       const modal = document.createElement('div');
       modal.id = 'modal-test';
-      modal.style.display = 'flex';
       document.body.appendChild(modal);
 
       const { openModal, closeModal } = await import('../../src/js/ui/dialog.js?v=8.37');
       openModal('modal-test');
       closeModal('modal-test');
 
-      expect(modal.style.display).toBe('none');
+      expect(modal.classList.contains('open')).toBe(false);
       expect(modal.getAttribute('aria-hidden')).toBe('true');
     });
 
@@ -119,12 +115,9 @@ describe('ui/dialog.js', () => {
   });
 
   describe('announce()', () => {
-    it('warns when announcer not found', async () => {
+    it('returns silently when announcer not found', async () => {
       const { announce } = await import('../../src/js/ui/dialog.js?v=8.37');
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      announce('Test message');
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('not found'));
-      warnSpy.mockRestore();
+      expect(() => announce('Test message')).not.toThrow();
     });
 
     it('announces message to screen reader', async () => {

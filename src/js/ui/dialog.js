@@ -1,18 +1,27 @@
 /**
- * Dialog/Modal Controller with Accessibility Support
- * - Focus trap
- * - ESC key handling
- * - ARIA attributes management
- * - Focus restoration
+ * Dialog/Modal Controller — controller único de modais do app
+ * - contrato visual por classe `.open` (CSS de .modal-overlay)
+ * - pilha de modais aninhados
+ * - focus trap (Tab/Shift+Tab cicla dentro do modal)
+ * - restauração de foco por modal (devolve a quem abriu)
+ * - ARIA (aria-hidden, anúncio de abertura via #aria-announcer)
+ *
+ * Escape NÃO é tratado aqui: o handler global de teclado (ui/search.js) é o
+ * dono do Escape, pois conhece o caso especial do modal-confirm
+ * (cancelConfirm limpa o callback pendente). Tratar Escape por modal aqui
+ * causaria fechamento duplo com modais empilhados.
+ *
+ * app/modals.js re-exporta openModal/closeModal daqui — os consumidores
+ * continuam importando de app.js sem mudança.
  */
 
 import { debugLog } from '../debug.js?v=8.37';
 
-// Stack for nested modals
+// Pilha de modais abertos (para foco do nível anterior e scroll do body)
 const modalStack = [];
 
-// Track previously focused element
-let lastFocusedElement = null;
+// Foco de origem por modal: devolvido no closeModal (teclado/leitores de tela)
+const lastFocusedByModal = new Map();
 
 // Focusable elements selector
 const FOCUSABLE_SELECTOR = [
@@ -25,13 +34,19 @@ const FOCUSABLE_SELECTOR = [
 ].join(', ');
 
 /**
- * Get all focusable elements within a container
+ * Get all focusable elements within a container.
+ * Não usa offsetParent: ele é null em overlays position:fixed (e no jsdom),
+ * o que esvaziaria a lista; display/visibility computados cobrem o essencial.
  */
 function getFocusableElements(container) {
+  if (typeof container.querySelectorAll !== 'function') return [];
   const elements = Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR));
+  if (typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') {
+    return elements;
+  }
   return elements.filter((el) => {
     const style = window.getComputedStyle(el);
-    return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
+    return style.display !== 'none' && style.visibility !== 'hidden';
   });
 }
 
@@ -48,13 +63,11 @@ function trapFocus(e, container) {
   const lastElement = focusableElements[focusableElements.length - 1];
 
   if (e.shiftKey) {
-    // Shift + Tab
     if (document.activeElement === firstElement) {
       e.preventDefault();
       lastElement.focus();
     }
   } else {
-    // Tab
     if (document.activeElement === lastElement) {
       e.preventDefault();
       firstElement.focus();
@@ -63,125 +76,81 @@ function trapFocus(e, container) {
 }
 
 /**
- * Handle keyboard events for modal (ESC to close)
- */
-function handleKeydown(e, modalId) {
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    closeModal(modalId);
-  }
-}
-
-/**
- * Open a modal with accessibility features
+ * Abre modal pelo ID
+ * @param {string} modalId - ID do elemento modal
  */
 export function openModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (!modal) {
-    console.warn(`[dialog.js] Modal "${modalId}" not found`);
-    return;
+  if (!modal) return;
+
+  const active = document.activeElement;
+  if (active && active !== document.body && !modal.contains?.(active)) {
+    lastFocusedByModal.set(modalId, active);
   }
+  if (!modalStack.includes(modalId)) modalStack.push(modalId);
 
-  // Store last focused element for restoration
-  if (modalStack.length === 0) {
-    lastFocusedElement = document.activeElement;
-  }
-
-  // Add to stack
-  modalStack.push(modalId);
-
-  // Show modal
-  modal.style.display = 'flex';
+  modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
 
-  // Lock body scroll only when first modal opens
-  if (modalStack.length === 1) {
-    document.body.style.overflow = 'hidden';
+  // Focus trap por modal (removido no closeModal)
+  if (!modal._dialogHandlers) {
+    const handleTab = (e) => trapFocus(e, modal);
+    modal.addEventListener('keydown', handleTab);
+    modal._dialogHandlers = { handleTab };
   }
 
-  // Setup keyboard handlers
-  const handleEscape = (e) => handleKeydown(e, modalId);
-  const handleTab = (e) => trapFocus(e, modal);
-
-  modal.addEventListener('keydown', handleEscape);
-  modal.addEventListener('keydown', handleTab);
-
-  // Store handlers for cleanup
-  modal._dialogHandlers = { handleEscape, handleTab };
-
-  // Focus first focusable element
-  setTimeout(() => {
+  // Move o foco para dentro do modal, sem roubar foco que o app já tenha
+  // posicionado (vários modais focam um input específico ao abrir). O timer é
+  // cancelado no closeModal (e guardado contra teardown de ambiente de teste).
+  modal._dialogFocusTimer = setTimeout(() => {
+    modal._dialogFocusTimer = null;
+    if (typeof document === 'undefined') return;
+    if (modal.contains?.(document.activeElement)) return;
     const focusableElements = getFocusableElements(modal);
-    if (focusableElements.length > 0) {
-      focusableElements[0].focus();
-    } else {
-      // If no focusable elements, make modal itself focusable
-      modal.setAttribute('tabindex', '-1');
-      modal.focus();
-    }
+    if (focusableElements.length > 0) focusableElements[0].focus();
   }, 50);
 
-  // Announce to screen readers
-  const title = modal.querySelector('[id$="-title"]');
-  if (title) {
-    const announcement = document.createElement('div');
-    announcement.setAttribute('aria-live', 'polite');
-    announcement.setAttribute('aria-atomic', 'true');
-    announcement.className = 'sr-only';
-    announcement.textContent = `Janela modal aberta: ${title.textContent}`;
-    modal.appendChild(announcement);
-    setTimeout(() => announcement.remove(), 1000);
+  // Anuncia a abertura para leitores de tela
+  const title = modal.querySelector?.('[id$="-title"]');
+  if (title?.textContent) {
+    announce(`Janela modal aberta: ${title.textContent}`);
   }
 }
 
 /**
- * Close a modal with accessibility features
+ * Fecha modal pelo ID
+ * @param {string} modalId - ID do elemento modal
  */
 export function closeModal(modalId) {
   const modal = document.getElementById(modalId);
   if (!modal) return;
 
-  // Remove from stack
   const index = modalStack.indexOf(modalId);
-  if (index > -1) {
-    modalStack.splice(index, 1);
-  }
+  if (index > -1) modalStack.splice(index, 1);
 
-  // Hide modal
-  modal.style.display = 'none';
+  if (modal.contains?.(document.activeElement)) document.activeElement.blur();
+  modal.classList.remove('open');
   modal.setAttribute('aria-hidden', 'true');
 
-  // Cleanup handlers
   if (modal._dialogHandlers) {
-    const { handleEscape, handleTab } = modal._dialogHandlers;
-    modal.removeEventListener('keydown', handleEscape);
-    modal.removeEventListener('keydown', handleTab);
+    modal.removeEventListener('keydown', modal._dialogHandlers.handleTab);
     delete modal._dialogHandlers;
   }
+  if (modal._dialogFocusTimer) {
+    clearTimeout(modal._dialogFocusTimer);
+    modal._dialogFocusTimer = null;
+  }
 
-  // Restore body scroll if no more modals
-  if (modalStack.length === 0) {
-    document.body.style.overflow = '';
+  // Consulta o DOM (e não só a pilha) para tolerar open/close desbalanceados.
+  const hasOpenModal = document.querySelector?.('.modal-overlay.open');
+  document.body.style.overflow = hasOpenModal ? 'hidden' : '';
 
-    // Restore focus to last focused element if still in DOM
-    if (
-      lastFocusedElement &&
-      typeof lastFocusedElement.focus === 'function' &&
-      document.body.contains(lastFocusedElement)
-    ) {
-      lastFocusedElement.focus();
-    }
-    lastFocusedElement = null;
-  } else {
-    // Focus next modal in stack
-    const previousModalId = modalStack[modalStack.length - 1];
-    const previousModal = document.getElementById(previousModalId);
-    if (previousModal) {
-      const focusableElements = getFocusableElements(previousModal);
-      if (focusableElements.length > 0) {
-        focusableElements[0].focus();
-      }
-    }
+  const last = lastFocusedByModal.get(modalId);
+  lastFocusedByModal.delete(modalId);
+  // Re-renders podem ter removido o elemento de origem; só restaura se vivo.
+  if (last && typeof last.focus === 'function' && document.contains?.(last)) {
+    last.focus();
   }
 }
 
@@ -213,10 +182,7 @@ export function initModals() {
  */
 export function announce(message, priority = 'polite') {
   const announcer = document.getElementById('aria-announcer');
-  if (!announcer) {
-    console.warn('[dialog.js] Announcer element not found');
-    return;
-  }
+  if (!announcer) return;
 
   announcer.setAttribute('aria-live', priority);
   announcer.textContent = '';
