@@ -8,6 +8,7 @@ import {
   getDisc,
   invalidateDiscCache,
   invalidateDashCaches,
+  invalidatePendingRevCache,
 } from '../../logic.js?v=8.37';
 import { scheduleSave, state } from '../../store.js?v=8.37';
 import { renderCurrentView } from '../../components.js?v=8.37';
@@ -32,6 +33,7 @@ export function deleteAssunto(discId, assId) {
 
         invalidateDiscCache();
         invalidateDashCaches();
+        invalidatePendingRevCache();
         scheduleSave();
         renderCurrentView();
         const subjCtx = getEditingSubjectCtx();
@@ -78,6 +80,7 @@ export function deleteDisc(editaId, discId) {
 
       invalidateDiscCache();
       invalidateDashCaches();
+      invalidatePendingRevCache();
       scheduleSave();
       renderCurrentView();
     },
@@ -119,6 +122,7 @@ export function deleteEdital(editaId) {
       }
 
       invalidateDiscCache();
+      invalidatePendingRevCache();
       scheduleSave();
       renderCurrentView();
     },

@@ -145,6 +145,7 @@ export function archiveDiscipline(editalId, disciplineId) {
   disc.arquivadaEm = new Date().toISOString();
   invalidateDiscCache();
   invalidateDashCaches();
+  invalidatePendingRevCache();
   scheduleSave();
 }
 
@@ -157,6 +158,7 @@ export function unarchiveDiscipline(editalId, disciplineId) {
   disc.arquivadaEm = null;
   invalidateDiscCache();
   invalidateDashCaches();
+  invalidatePendingRevCache();
   scheduleSave();
 }
 

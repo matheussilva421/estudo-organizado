@@ -1325,6 +1325,44 @@ describe('logic.js', () => {
 
         expect(first).toBe(second);
       });
+
+      it('archiveDiscipline invalida o cache (revisões da disciplina somem na hora)', () => {
+        const assunto = createAssunto({
+          id: 'ass_1',
+          concluido: true,
+          dataConclusao: '2026-04-19',
+          revisoesFetas: [],
+        });
+        const disc = createDisciplina({ id: 'disc_1', assuntos: [assunto] });
+        const edital = createEdital({ id: 'ed_1', disciplinas: [disc] });
+        store.setState(createBaseState({ editais: [edital] }));
+        logic.invalidatePendingRevCache();
+
+        expect(logic.getPendingRevisoes().length).toBeGreaterThan(0);
+
+        logic.archiveDiscipline('ed_1', 'disc_1');
+
+        expect(logic.getPendingRevisoes()).toEqual([]);
+      });
+
+      it('unarchiveDiscipline invalida o cache (revisões voltam na hora)', () => {
+        const assunto = createAssunto({
+          id: 'ass_1',
+          concluido: true,
+          dataConclusao: '2026-04-19',
+          revisoesFetas: [],
+        });
+        const disc = createDisciplina({ id: 'disc_1', assuntos: [assunto], arquivada: true });
+        const edital = createEdital({ id: 'ed_1', disciplinas: [disc] });
+        store.setState(createBaseState({ editais: [edital] }));
+        logic.invalidatePendingRevCache();
+
+        expect(logic.getPendingRevisoes()).toEqual([]);
+
+        logic.unarchiveDiscipline('ed_1', 'disc_1');
+
+        expect(logic.getPendingRevisoes().length).toBeGreaterThan(0);
+      });
     });
 
     describe('calcRevisionDates', () => {

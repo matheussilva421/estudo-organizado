@@ -41,6 +41,7 @@ describe('views.js - CRUD, inline editing, dashboard ops', () => {
       invalidateDiscCache: vi.fn(),
       invalidateDashCaches: vi.fn(),
       invalidateRevCache: vi.fn(),
+      invalidatePendingRevCache: vi.fn(),
       syncCicloToEventos: vi.fn(),
     };
     componentsModule = { renderCurrentView: vi.fn(), renderEventCard: vi.fn(() => '<div>card</div>') };
@@ -107,6 +108,8 @@ describe('views.js - CRUD, inline editing, dashboard ops', () => {
       expect(storeModule.state.editais[0].disciplinas[0].assuntos[0].concluido).toBe(true);
       expect(storeModule.state.editais[0].disciplinas[0].assuntos[0].dataConclusao).toBe('2026-04-29');
       expect(storeModule.scheduleSave).toHaveBeenCalled();
+      // concluir/desconcluir assunto muda as revisões pendentes — cache deve ser invalidado
+      expect(logicModule.invalidatePendingRevCache).toHaveBeenCalled();
     });
 
     it('unmarks assunto when already completed', () => {

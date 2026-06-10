@@ -14,6 +14,7 @@ import {
   uid,
 } from '../utils.js?v=8.37';
 import { scheduleSave, state } from '../store.js?v=8.37';
+import { invalidatePendingRevCache } from '../logic.js?v=8.37';
 import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 import {
@@ -83,6 +84,7 @@ export function toggleAssunto(discId, assId) {
         ass.concluido = !ass.concluido;
         ass.dataConclusao = ass.concluido ? todayStr() : null;
         if (ass.concluido) ass.revisoesFetas = [];
+        invalidatePendingRevCache();
         scheduleSave();
 
         // Re-render local dashboard if open, otherwise full view

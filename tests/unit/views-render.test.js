@@ -40,6 +40,7 @@ describe('views.js - CRUD, modals, sequence ops', () => {
       invalidateDiscCache: vi.fn(),
       invalidateDashCaches: vi.fn(),
       invalidateRevCache: vi.fn(),
+      invalidatePendingRevCache: vi.fn(),
       syncCicloToEventos: vi.fn(),
     };
     componentsModule = { renderCurrentView: vi.fn(), renderEventCard: vi.fn(() => '<div>card</div>') };
@@ -112,6 +113,8 @@ describe('views.js - CRUD, modals, sequence ops', () => {
       views.deleteAssunto('disc_1', 'ass_1');
       expect(appModule.showConfirm).toHaveBeenCalled();
       expect(logicModule.invalidateDiscCache).toHaveBeenCalled();
+      // revisões pendentes derivam dos assuntos — o cache precisa ser invalidado
+      expect(logicModule.invalidatePendingRevCache).toHaveBeenCalled();
       expect(storeModule.scheduleSave).toHaveBeenCalled();
       expect(componentsModule.renderCurrentView).toHaveBeenCalled();
     });
@@ -142,6 +145,7 @@ describe('views.js - CRUD, modals, sequence ops', () => {
       views.deleteDisc('ed_1', 'disc_1');
       expect(appModule.showConfirm).toHaveBeenCalled();
       expect(storeModule.state.editais[0].disciplinas.length).toBe(0);
+      expect(logicModule.invalidatePendingRevCache).toHaveBeenCalled();
     });
 
     it('cleans up events and planning references', () => {
@@ -189,6 +193,7 @@ describe('views.js - CRUD, modals, sequence ops', () => {
       views.deleteEdital('ed_1');
       expect(storeModule.state.editais.length).toBe(0);
       expect(storeModule.state.eventos[0].discId).toBeUndefined();
+      expect(logicModule.invalidatePendingRevCache).toHaveBeenCalled();
     });
 
     it('handles edital not found gracefully', () => {
