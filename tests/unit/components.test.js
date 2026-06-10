@@ -374,6 +374,21 @@ describe('components.js', () => {
       expect(html).toContain('delete-event');
     });
 
+    it('card é acionável por teclado (role=button, tabindex e aria-label)', () => {
+      const evento = createEvento({
+        titulo: 'Sessão de Estudos',
+        data: '2026-04-25',
+        status: 'agendado'
+      });
+
+      const html = components.renderEventCard(evento);
+      const cardTag = html.match(/<div class="event-card[^>]*>/)[0];
+
+      expect(cardTag).toContain('role="button"');
+      expect(cardTag).toContain('tabindex="0"');
+      expect(cardTag).toContain('aria-label=');
+    });
+
     it('renderiza card com status estudei', () => {
       const evento = createEvento({
         titulo: 'Sessão Concluída',

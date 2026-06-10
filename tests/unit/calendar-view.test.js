@@ -74,6 +74,34 @@ describe('views/calendar-view.js', () => {
     });
   });
 
+  describe('views mobile — acessibilidade por teclado', () => {
+    it('dias do mês mobile são acionáveis (role=button) e chips de evento também', () => {
+      storeModule.state.eventos = [
+        { id: 'e1', titulo: 'Estudo', data: '2026-04-29', status: 'agendado' },
+      ];
+      const html = calendarView.renderCalendarMobileMonth();
+
+      const dayTag = html.match(/<div class="cal-mobile-day[^>]*>/)[0];
+      expect(dayTag).toContain('role="button"');
+      expect(dayTag).toContain('tabindex="0"');
+
+      const chipTag = html.match(/<div class="cal-event-chip[^>]*>/)[0];
+      expect(chipTag).toContain('role="button"');
+      expect(chipTag).toContain('tabindex="0"');
+    });
+
+    it('semana mobile segue o mesmo contrato', () => {
+      storeModule.state.eventos = [
+        { id: 'e1', titulo: 'Estudo', data: '2026-04-29', status: 'agendado' },
+      ];
+      const html = calendarView.renderCalendarMobileWeek();
+      const dayTag = html.match(/<div class="cal-mobile-day[^>]*>/)[0];
+      expect(dayTag).toContain('role="button"');
+      const chipTag = html.match(/<div class="cal-event-chip[^>]*>/)[0];
+      expect(chipTag).toContain('role="button"');
+    });
+  });
+
   describe('calNavigate()', () => {
     it('navigates forward by 1 month in mes mode', () => {
       const start = new Date(calendarView.getCalDate());

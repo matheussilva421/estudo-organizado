@@ -541,7 +541,7 @@ export function renderEventCard(evento) {
   const tempo = formatTime(elapsed);
 
   return `
-    <div class="event-card" data-event-id="${evento.id}" data-action="open-event-detail">
+    <div class="event-card" data-event-id="${evento.id}" data-action="open-event-detail" role="button" tabindex="0" aria-label="Abrir detalhes de ${esc(evento.titulo || 'Evento')}">
       <div class="event-stripe ${status}"></div>
       <div class="event-disc-icon" style="background:${iconBg}20;color:${iconBg};">${icon}</div>
       <div class="event-info">

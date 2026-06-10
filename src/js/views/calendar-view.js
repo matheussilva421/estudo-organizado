@@ -295,7 +295,7 @@ export function renderCalendarMobileMonth() {
     const dowName = dows[date.getDay()];
 
     html += `
-      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="select-calendar-day" data-date="${ds}">
+      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="select-calendar-day" data-date="${ds}" role="button" tabindex="0" aria-label="${date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}${dayEvents.length > 0 ? `, ${dayEvents.length} evento(s)` : ', sem eventos'}">
         <div class="cal-mobile-day-header">
           <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d}</div>
           <div class="cal-mobile-dow">${dowName}</div>
@@ -310,7 +310,7 @@ export function renderCalendarMobileMonth() {
                 const st = getEventStatus(e);
                 const cor = getDiscColor(e.discId);
                 const borderStyle = cor ? `border-left:3px solid ${esc(cor)};` : '';
-                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="white-space:normal;${borderStyle}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" role="button" tabindex="0" style="white-space:normal;${borderStyle}" title="${esc(e.titulo)}" aria-label="Abrir evento ${esc(e.titulo)}">${esc(e.titulo)}</div>`;
               })
               .join('')}
           </div>
@@ -350,7 +350,7 @@ export function renderCalendarMobileWeek() {
     const dowName = dows[d.getDay()];
 
     html += `
-      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="select-calendar-day" data-date="${ds}">
+      <div class="cal-mobile-day ${isToday ? 'today' : ''} ${dayEvents.length === 0 ? 'empty' : ''}" data-action="select-calendar-day" data-date="${ds}" role="button" tabindex="0" aria-label="${d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}${dayEvents.length > 0 ? `, ${dayEvents.length} evento(s)` : ', sem eventos'}">
         <div class="cal-mobile-day-header">
           <div class="cal-mobile-date ${isToday ? 'today' : ''}">${d.getDate()}</div>
           <div class="cal-mobile-dow">${dowName}</div>
@@ -365,7 +365,7 @@ export function renderCalendarMobileWeek() {
                 const st = getEventStatus(e);
                 const cor = getDiscColor(e.discId);
                 const borderStyle = cor ? `border-left:3px solid ${esc(cor)};` : '';
-                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="white-space:normal;${borderStyle}" title="${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" role="button" tabindex="0" style="white-space:normal;${borderStyle}" title="${esc(e.titulo)}" aria-label="Abrir evento ${esc(e.titulo)}">${esc(e.titulo)}</div>`;
               })
               .join('')}
           </div>
