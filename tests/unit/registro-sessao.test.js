@@ -1011,6 +1011,39 @@ describe('registro-sessao.js', () => {
       expect(aula.dataEstudo).toBe('2026-04-20');
     });
 
+    it('usa a data real do estudo como dataConclusao do assunto em sessão passada', () => {
+      // Sistema em 2026-04-20; sessão passada estudada em 2026-04-10.
+      // As revisões (1/7/30/90) devem contar a partir da conclusão REAL —
+      // com dataConclusao = hoje, a 1ª revisão só venceria amanhã.
+      const assunto = createAssunto({ id: 'ass_1', nome: 'Topic', concluido: false });
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Disc', assuntos: [assunto] });
+      const edital = createEdital({ disciplinas: [disc] });
+      const pastEvento = createEvento({
+        id: 'ev_past',
+        _isPastSession: true,
+        discId: 'disc_1',
+        assId: 'ass_1',
+        data: '2026-04-10',
+        tempoAcumulado: 1800,
+        sessao: {}
+      });
+      store.setState(createBaseState({ eventos: [pastEvento], editais: [edital] }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('ev_past');
+      registroSessao.toggleStudyType('leitura');
+      global.document.getElementById('reg-disciplina').value = 'disc_1';
+      global.document.getElementById('reg-assunto').value = 'ass_1';
+      global.document.getElementById('reg-status-topico').value = 'finalizado';
+
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(true);
+      const ass = store.state.editais[0].disciplinas[0].assuntos[0];
+      expect(ass.concluido).toBe(true);
+      expect(ass.dataConclusao).toBe('2026-04-10');
+    });
+
     it('invalida os caches de estatísticas ao salvar (dashboard reflete a sessão imediatamente)', () => {
       const disc = createDisciplina({ id: 'disc_1', nome: 'Disc' });
       const edital = createEdital({ disciplinas: [disc] });

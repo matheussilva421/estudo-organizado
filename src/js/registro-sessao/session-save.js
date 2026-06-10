@@ -321,7 +321,9 @@ export function performSave({
         const ass = d.disc.assuntos?.find((a) => a.id === assId);
         if (ass && !ass.concluido) {
           ass.concluido = true;
-          ass.dataConclusao = todayStr();
+          // Data REAL do estudo: numa sessão passada, as revisões (1/7/30/90)
+          // devem contar a partir da conclusão de fato, não de "hoje".
+          ass.dataConclusao = ev.dataEstudo || ev.data || todayStr();
           ass.revisoesFetas = [];
         }
       }
