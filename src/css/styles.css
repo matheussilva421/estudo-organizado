@@ -2080,10 +2080,13 @@ button.cal-event-chip:focus-visible {
   border-radius: 4px;
 }
 
-/* Dynamic cards that must grow after the final legacy card rule is applied. */
+/* Dynamic cards that must grow after the final legacy card rule is applied.
+   (.card tem overflow:hidden, então min-height:auto vira 0 e o flex column do
+   main-content esmaga o card quando o conteúdo da view passa da viewport.) */
 .ciclo-sequence-card.card,
 .session-group-section.card,
 .session-disc-card,
+.historico-toolbar.card,
 .habit-history-card.card {
   height: auto;
   overflow: visible;

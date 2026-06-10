@@ -184,3 +184,43 @@ test.describe('Registro de Sessoes', () => {
     expect(multiDay.detailOverflows.some(Boolean)).toBe(false);
   });
 });
+
+test.describe('Historico de Sessoes - toolbar', () => {
+  test('toolbar de filtros nao e esmagada quando a lista esta populada', async ({ page }) => {
+    // #main-content e flex column; .card tem overflow:hidden, entao min-height:auto
+    // vira 0 e o flex encolhe a toolbar para ~26px quando o conteudo passa da
+    // viewport - os selects/botoes ficavam cortados (bug visto em producao).
+    const state = createE2EState();
+    for (let i = 0; i < 12; i++) {
+      state.eventos.push({
+        id: `ev_hist_${i}`,
+        titulo: `Sessao ${i + 1}`,
+        data: '2026-06-08',
+        dataEstudo: `2026-06-0${(i % 8) + 1}`,
+        duracao: 60,
+        status: 'estudei',
+        tempoAcumulado: 1800,
+        tipo: 'conteudo',
+        discId: 'disc_1',
+        assId: 'ass_1',
+        habito: null,
+      });
+    }
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="historico-sessoes"]');
+
+    const toolbar = page.locator('.historico-toolbar');
+    await expect(toolbar).toBeVisible();
+    await expect(page.locator('.session-group-section').first()).toBeVisible();
+
+    const toolbarBox = await toolbar.boundingBox();
+    const selectBox = await page.locator('[data-action="historico-set-range"]').boundingBox();
+    const buscaBox = await page.locator('[data-action="historico-set-busca"]').boundingBox();
+
+    // os controles precisam caber DENTRO da area visivel da toolbar
+    expect(selectBox.y + selectBox.height).toBeLessThanOrEqual(toolbarBox.y + toolbarBox.height + 1);
+    expect(buscaBox.y + buscaBox.height).toBeLessThanOrEqual(toolbarBox.y + toolbarBox.height + 1);
+  });
+});
