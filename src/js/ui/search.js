@@ -6,7 +6,7 @@
 import { state } from '../store.js?v=8.37';
 import { esc, formatDate, HABIT_TYPES, addCleanupListener } from '../utils.js?v=8.37';
 import { getAllDisciplinas, getDisc } from '../logic.js?v=8.37';
-import { closeModal } from '../app.js?v=8.37';
+import { closeModal, cancelConfirm } from '../app.js?v=8.37';
 
 export let searchBlurTimeout = null;
 
@@ -230,9 +230,11 @@ addCleanupListener(document, 'keydown', (e) => {
     if (openModals.length > 0) {
       const top = openModals[openModals.length - 1];
       if (top.id === 'modal-confirm') {
-        // cancel callback handled by app.js
+        // Escape equivale a Cancelar: limpa o callback pendente além de fechar.
+        cancelConfirm();
+      } else {
+        closeModal(top.id);
       }
-      closeModal(top.id);
     } else {
       clearSearch();
     }
