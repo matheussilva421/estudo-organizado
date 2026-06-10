@@ -425,6 +425,42 @@ describe('views.js - Revisões', () => {
       expect(upcoming).toHaveLength(1);
       expect(upcoming[0].disc.id).toBe('disc_ativa');
     });
+
+    it('numera a próxima revisão pela posição na fila restante, não por feitas+1', () => {
+      // Sistema em 2026-04-20. Concluído em 2026-04-15 com frequência [1, 7]:
+      // 1ª revisão (2026-04-16) está atrasada/pendente; a que aparece em
+      // "Próximas 30 dias" é a 2ª (2026-04-22) — não pode exibir "1ª Rev".
+      const state = createBaseState({
+        config: { frequenciaRevisao: [1, 7] },
+        editais: [
+          createEdital({
+            disciplinas: [
+              createDisciplina({
+                id: 'disc_1',
+                assuntos: [
+                  createAssunto({
+                    id: 'ass_1',
+                    nome: 'Assunto',
+                    concluido: true,
+                    dataConclusao: '2026-04-15',
+                    revisoesFetas: [],
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      });
+      store.setState(state);
+      logic.invalidateRevCache();
+      logic.invalidatePendingRevCache();
+
+      const upcoming = views.getUpcomingRevisoes(30);
+
+      expect(upcoming).toHaveLength(1);
+      expect(upcoming[0].data).toBe('2026-04-22');
+      expect(upcoming[0].revNum).toBe(2);
+    });
   });
 });
 

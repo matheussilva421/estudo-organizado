@@ -1112,6 +1112,47 @@ describe('revisoes view actions', () => {
     ]);
   });
 
+  it('adiar revisão atrasada move a pendência para amanhã e não conta como feita', () => {
+    // Sistema em 2026-04-20. Concluído em 2026-04-14 com frequência [1,7,...]:
+    // 1ª revisão prevista para 2026-04-15 → atrasada há 5 dias.
+    const state = createBaseState({
+      editais: [
+        createEdital({
+          disciplinas: [
+            createDisciplina({
+              id: 'disc_1',
+              assuntos: [
+                {
+                  id: 'ass_1',
+                  nome: 'Controle de Constitucionalidade',
+                  concluido: true,
+                  dataConclusao: '2026-04-14',
+                  revisoesFetas: [],
+                },
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+    store.setState(state);
+    logic.invalidateRevCache();
+    logic.invalidatePendingRevCache();
+
+    expect(logic.getPendingRevisoes()).toHaveLength(1);
+
+    views.adiarRevisao('ass_1');
+
+    const ass = store.state.editais[0].disciplinas[0].assuntos[0];
+    // Adiar NÃO pode contar como revisão feita.
+    expect(ass.revisoesFetas).toEqual([]);
+    // "+1 dia" significa próxima ocorrência AMANHÃ — somar só 1 em adiamentos
+    // deixaria a data ainda <= hoje e o item continuaria pendente.
+    expect(logic.getPendingRevisoes()).toHaveLength(0);
+    const upcoming = views.getUpcomingRevisoes(30);
+    expect(upcoming[0]?.data).toBe('2026-04-21');
+  });
+
   it('remove revisão inicial atrasada mesmo quando ainda não há revisões feitas', () => {
     document.body.innerHTML = `
       <div id="modal-confirm" class="modal-overlay" aria-hidden="true">

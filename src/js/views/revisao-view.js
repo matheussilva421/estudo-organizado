@@ -37,14 +37,17 @@ export function getUpcomingRevisoes(days = 30) {
           ass.revisoesFetas || [],
           ass.adiamentos || 0
         );
-        for (const rd of revDates) {
+        for (let i = 0; i < revDates.length; i++) {
+          const rd = revDates[i];
           if (rd > today && rd <= futureStr) {
             upcoming.push({
               assunto: ass,
               disc,
               edital,
               data: rd,
-              revNum: (ass.revisoesFetas || []).length + 1,
+              // posição na fila restante: se houver uma revisão anterior ainda
+              // pendente (atrasada), esta aqui não é a "feitas+1"-ésima.
+              revNum: (ass.revisoesFetas || []).length + 1 + i,
             });
             break;
           }
@@ -154,7 +157,7 @@ export function renderRevisoes(el) {
                     </div>
                     <div class="rev-item-actions cluster-sm">
                       <button type="button" class="btn btn-primary btn-sm" data-action="mark-revision" data-assunto-id="${r.assunto.id}" aria-label="Marcar revisão como feita">✅ Feita</button>
-                      <button type="button" class="btn btn-ghost btn-sm" data-action="postpone-revision" data-assunto-id="${r.assunto.id}" aria-label="Adiar revisão para amanhã">⏩ +1 dia</button>
+                      <button type="button" class="btn btn-ghost btn-sm" data-action="postpone-revision" data-assunto-id="${r.assunto.id}" aria-label="Adiar revisão para amanhã">⏩ Amanhã</button>
                       <button type="button" class="btn btn-ghost btn-sm" data-action="delete-revision" data-assunto-id="${r.assunto.id}" title="Excluir revisão" aria-label="Excluir revisão" style="color:var(--danger);">🗑️</button>
                     </div>
                   </div>
@@ -255,13 +258,28 @@ export function marcarRevisao(assId) {
 export function adiarRevisao(assId) {
   const ass = findAssuntoById(assId);
   if (ass) {
-    if (!ass.adiamentos) ass.adiamentos = 0;
-    ass.adiamentos = (ass.adiamentos || 0) + 1;
+    // Adiar = próxima ocorrência AMANHÃ. Numa revisão atrasada há N dias, somar
+    // só 1 em adiamentos deixaria a data ainda <= hoje e o item continuaria
+    // pendente — o turno inteiro precisa ser N+1.
+    const today = todayStr();
+    const due = calcRevisionDates(
+      ass.dataConclusao,
+      ass.revisoesFetas || [],
+      ass.adiamentos || 0
+    ).find((rd) => rd <= today);
+    let shift = 1;
+    if (due) {
+      const diasAtraso = Math.round(
+        (new Date(today + 'T00:00:00') - new Date(due + 'T00:00:00')) / 86400000
+      );
+      shift = Math.max(1, diasAtraso + 1);
+    }
+    ass.adiamentos = (ass.adiamentos || 0) + shift;
     invalidateRevCache();
     invalidatePendingRevCache();
     scheduleSave();
     renderCurrentView();
-    showToast('Revisão adiada por 1 dia', 'info');
+    showToast('Revisão adiada para amanhã', 'info');
   }
 }
 
