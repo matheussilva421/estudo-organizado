@@ -99,6 +99,7 @@ npm run test:e2e:quick -- tests/e2e/dashboard-stats.spec.js
 npm run test:sync
 npm run test:e2e:quick -- tests/e2e/sync-e2e.spec.js
 npm run test:e2e:quick -- tests/e2e/sync-dados.spec.js
+npm run test:e2e:quick -- tests/e2e/sync-devices.spec.js
 ```
 
 **CSS apenas:**
@@ -193,7 +194,7 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 - `src/css/views/revisoes.css`: itens e lista de revisoes.
 - `src/css/views/editais-tree.css`: arvore de editais e disciplinas.
 - `src/css/base/accessibility.css`: skip links.
-- `src/css/base/themes.css`: temas premium (`grafite`, `obsidiana`, `contraste`) e overrides tematicos.
+- `src/css/base/themes.css`: os 6 temas atuais (`grafite`, `ardosia`, `platina`, `terminal`, `neon`, `arrakis`) e overrides tematicos. Nomes legados (`furtivo`, `obsidiana`, `contraste`, `rubi`, `matrix`...) viram aliases em `src/js/app/themes.js`.
 - `src/css/base/layout.css`: layout base, topbar e espacamentos globais.
 - `src/css/base/mobile.css`: helpers touch/mobile, safe-area e scrollbars.
 - `src/css/base/utilities.css`: utilitarios base.
@@ -222,6 +223,18 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 - `src/js/views/config/data-management.js`: import/export/restore/limpeza de dados.
 - `src/js/views/state/disc-manager-state.js`: getters/setters do gerenciador de disciplinas.
 - `src/js/views/dashboard-view.js`: dashboard principal (home) e dashboard de disciplina.
+
+## Armadilhas conhecidas
+
+Licoes que ja custaram debugging real. Verifique antes de mexer nas areas relacionadas.
+
+- **Whitelist do `setState`** (`src/js/store.js`): `setState` normaliza para um conjunto FIXO de chaves e roda no boot e nos pulls de sync. Campo novo de estado que nao entrar na whitelist e silenciosamente apagado em todo reload/pull. Exemplo: `syncTombstones` precisou ser adicionado.
+- **Tombstones de exclusao** (`src/js/sync/sync-center.js`): exclusoes reais do usuario devem gravar tombstone via `recordSyncTombstone(state, col, id)`, senao o merge entre dispositivos ressuscita o item. Excecao: eventos auto-gerados pendentes sem tempo (derivados do plano, regenerados, id por dispositivo).
+- **`touchPlanejamento()`** (`src/js/logic/cycle.js`): toda mutacao REAL do plano do ciclo deve chama-la (e o LWW por `planejamento.updatedAt` propaga entre dispositivos). NUNCA chamar em regen de eventos (`syncCicloToEventos`) ou salvamentos genericos — o LWW degenera porque todo dispositivo reclamaria autoria.
+- **Card esmagado pelo flex** (`src/css/components/cards.css` + `#main-content`): `.card` tem `height:100%; overflow:hidden`; em view que rola, o flex column esmaga o card (min-height vira 0). Todo card novo em view rolavel precisa entrar na lista de isencao `height:auto; overflow:visible` no bloco "Dynamic cards" de `src/css/styles.css`. Validar com a view POPULADA — o estado vazio cabe na viewport e esconde o bug.
+- **Bump de cache**: atualizar em conjunto as query strings `?v=8.XX` em `src/index.html`, `APP_VERSION` em `src/sw.js` e a expectativa em `tests/unit/css-architecture.test.js`. NAO mexer nos specifiers `?v=8.37` dos imports de modulos ES — sao versionados separadamente.
+- **Edicao de arquivos fonte no Windows**: nao usar `Get-Content`/`Set-Content` do PowerShell 5.1 em arquivos UTF-8 — insere BOM e corrompe acentuacao. Usar ferramentas de edicao que preservem encoding.
+- **`npm run format:check` falha por CRLF**: ambiental (autocrlf=true vs `endOfLine:lf`); o indice do git esta LF. Nao rodar `prettier --write` para "corrigir".
 
 ## Debug controlado
 
