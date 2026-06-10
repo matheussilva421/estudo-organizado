@@ -311,6 +311,9 @@ export function performSave({
         const achadoAula = d.disc.aulas?.find((a) => a.id === aulaId);
         if (achadoAula && !achadoAula.estudada) {
           achadoAula.estudada = true;
+          // getAulasWeeklyStats só conta aulas com dataEstudo — o toggle manual
+          // (editais-crud/aula-operations) grava; o caminho da sessão também precisa.
+          achadoAula.dataEstudo = ev.dataEstudo || ev.data || todayStr();
         }
       }
 

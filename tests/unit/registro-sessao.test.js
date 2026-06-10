@@ -978,6 +978,39 @@ describe('registro-sessao.js', () => {
       expect(store.state.habitos.leitura[0].data).toBe('2026-04-10');
     });
 
+    it('grava dataEstudo na aula concluída via sessão (conta nas aulas da semana)', () => {
+      const disc = createDisciplina({
+        id: 'disc_1',
+        nome: 'Disc',
+        aulas: [{ id: 'aula_1', nome: 'Aula 01', estudada: false }]
+      });
+      const edital = createEdital({ disciplinas: [disc] });
+      const evento = createEvento({
+        id: 'ev_1',
+        discId: 'disc_1',
+        aulaId: 'aula_1',
+        tempoAcumulado: 1800,
+        sessao: {}
+      });
+      store.setState(createBaseState({ eventos: [evento], editais: [edital] }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('ev_1');
+      registroSessao.toggleStudyType('videoaula');
+      global.document.getElementById('reg-disciplina').value = 'disc_1';
+      global.document.getElementById('reg-aula').value = 'aula_1';
+      global.document.getElementById('reg-status-topico').value = 'finalizado';
+
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(true);
+      const aula = store.state.editais[0].disciplinas[0].aulas[0];
+      expect(aula.estudada).toBe(true);
+      // getAulasWeeklyStats ignora aulas sem dataEstudo — o toggle manual grava
+      // (editais-crud/aula-operations); o caminho da sessão também precisa gravar.
+      expect(aula.dataEstudo).toBe('2026-04-20');
+    });
+
     it('invalida os caches de estatísticas ao salvar (dashboard reflete a sessão imediatamente)', () => {
       const disc = createDisciplina({ id: 'disc_1', nome: 'Disc' });
       const edital = createEdital({ disciplinas: [disc] });
