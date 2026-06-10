@@ -196,6 +196,8 @@ Suíte após rodada 10: **104 arquivos, 1707 testes, 0 falhas**; E2E planejament
 
 Guards estáticos criados na sessão (rede de regressão permanente): `duplicate-exports`, `module-specifier-consistency` (agora cobre dynamic imports), `clickable-divs-a11y`, `theme-contrast` (sessão anterior).
 
+**Validação final da sessão**: `npm run test:e2e:release` → **137/137 verdes** (gate completo chromium, 3,6 min) sobre o estado final `8a92932`. Suíte unitária 1707/1707; test:css 31/31.
+
 ## Pendências / próximos ciclos sugeridos (atualizado 2026-06-10)
 
 1. **Migração completa de modais para `ui/dialog.js`** (pilha + focus trap completos, hoje não importado) — médio risco, avaliar com calma; a restauração de foco já foi coberta no item 47.
