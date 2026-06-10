@@ -8,7 +8,9 @@ estrutural): só registrar achados aqui, nunca corrigir.
 ## Estado
 
 - Branch `main`, working tree limpo, push em dia.
-- Suíte de unidade: **1723/1723 verde** após os ciclos abaixo.
+- Suíte de unidade: **1734/1734 verde** após os 8 ciclos abaixo.
+- E2E (chromium): smoke `app.spec.js` 25/25; `revisoes-habitos` + `dashboard-stats` +
+  `sessoes` 11/11.
 
 ## Ciclo 1 — caches de estatísticas não invalidados ao salvar/excluir sessão (`864b142`)
 
@@ -78,6 +80,28 @@ disciplinas (ganhou flag `arquivada`); só o resultado exposto filtra.
   (skip estrutural via push em `revisoesFetas`), `clearVisibleRevisions`,
   `computeHabitStreak` (hábitos), `calcRevisionDates` (cache por chave completa).
 
+## Ciclo 6 — Dashboard cortava período pela data agendada (`57f9022`)
+
+`src/js/views/dashboard-view.js`: `renderDashboard`, `renderDailyChart` e `renderDiscChart`
+usavam `e.data` (agendada) para o corte de período e para acumular minutos por dia,
+enquanto Histórico/Home/`getAggregatedStats` usam `dataEstudo || data`. Sessão agendada em
+janeiro e estudada ontem não aparecia no dashboard de 7 dias. Teste novo:
+`tests/unit/dashboard-period.test.js` (3 testes, incluindo os dois gráficos via mock de
+`Chart`).
+
+## Ciclo 7 — Aula concluída via sessão sem dataEstudo (`1595577`)
+
+`src/js/registro-sessao/session-save.js`: concluir aula pelo modal de sessão (status
+"finalizado") marcava `estudada=true` sem `dataEstudo`; `getAulasWeeklyStats` ignora aulas
+sem essa data → "Aulas concluídas na semana" (Home) nunca contava esse caminho. Agora
+grava `ev.dataEstudo || ev.data`.
+
+## Ciclo 8 — dataConclusao do assunto usa a data real do estudo (`5fc1fac`)
+
+`src/js/registro-sessao/session-save.js`: finalizar tópico ao registrar sessão PASSADA
+gravava `dataConclusao = hoje`, atrasando o cronograma de revisões (1/7/30/90) em relação
+à conclusão real. Agora usa `ev.dataEstudo || ev.data` (mesmo padrão de hábitos/aulas).
+
 ## Achados ainda NÃO corrigidos (candidatos aos próximos ciclos)
 
 1. **`getPredictiveStats` ignora o filtro de edital da Home**: a Home escopa weekStats por
@@ -92,6 +116,14 @@ disciplinas (ganhou flag `arquivada`); só o resultado exposto filtra.
    produto, não mexer sem o usuário pedir.
 4. **`revisoesFetas`** (typo) é o nome canônico consistente em todo o código e nos dados
    persistidos — NÃO "corrigir" o nome.
+5. **Áreas auditadas e consideradas corretas** (não re-varrer sem motivo): timer
+   (`getElapsedSeconds`/pause/retomada/descarte), `calculateContentProgress` (eixos
+   tópicos/aulas), `getAggregatedStats` (semana/semana anterior/sparkline/streak dates),
+   `calculateRelevanceWeights` + `generatePlanejamento` (pesos/round-robin),
+   `distributeStudiedAcrossSeq` e `calculateCyclePredictionsModel` (fonte única
+   `getStudiedMinutesByDiscipline`, derivada de eventos), validações de questões/páginas
+   do registro de sessão, `computeHabitStreak`, percentuais da Home (guards `|| 0` e
+   `Math.min(100, ...)`).
 
 ## Bloqueados (sync — não tocar)
 
