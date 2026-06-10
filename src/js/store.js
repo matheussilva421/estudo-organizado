@@ -206,6 +206,15 @@ export function setState(newState, options = {}) {
     revisoes: merge
       ? mergeValues(state.revisoes, Array.isArray(newState.revisoes) ? newState.revisoes : [])
       : deepClone(Array.isArray(newState.revisoes) ? newState.revisoes : []),
+    // Tombstones de exclusão para o merge de sync (sync-center.js). Precisam
+    // estar nesta whitelist: setState também roda no boot e nos pulls — sem
+    // isso, todo reload apagaria os tombstones e exclusões ressuscitariam.
+    syncTombstones: merge
+      ? mergeValues(
+          state.syncTombstones,
+          Array.isArray(newState.syncTombstones) ? newState.syncTombstones : []
+        )
+      : deepClone(Array.isArray(newState.syncTombstones) ? newState.syncTombstones : []),
     config: merge
       ? mergeValues(
           state.config,

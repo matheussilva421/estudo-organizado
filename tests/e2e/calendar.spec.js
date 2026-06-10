@@ -161,6 +161,17 @@ test.describe('Calendario', () => {
     await expect(page.locator('#topbar-title')).toHaveText('Ciclo de Estudos', { timeout: 10000 });
     // A etapa pulada sai da agenda e da previsão, com badge e reabertura na tela Ciclo
     await expect(page.locator('.grade-concluded-badge')).toContainText('Etapa pulada');
+    // O badge precisa estar visível SEM hover: não pode viver dentro do bloco
+    // de ações que fica colapsado (max-height:0/opacity:0) até o mouse entrar.
+    const escondidoSemHover = await page
+      .locator('.grade-concluded-badge')
+      .evaluate((el) => {
+        const actions = el.closest('.ciclo-sequence-actions');
+        if (!actions) return false;
+        const cs = getComputedStyle(actions);
+        return parseFloat(cs.maxHeight) === 0 || parseFloat(cs.opacity) === 0;
+      });
+    expect(escondidoSemHover).toBe(false);
     await expect(page.locator('#predict-empty-state')).toContainText('não gera sessões');
 
     // As ações do card só expandem no hover (desktop) — replica a interação real

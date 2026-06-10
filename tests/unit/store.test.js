@@ -13,6 +13,33 @@ beforeEach(async () => {
 });
 
 describe('store.js', () => {
+  describe('setState preserva syncTombstones', () => {
+    // setState normaliza para um conjunto fixo de chaves; sem syncTombstones na
+    // lista, todo pull/restore/boot apagaria os tombstones e as exclusões
+    // voltariam a ressuscitar no merge (bug pego pelo e2e sync-devices).
+    it('mantém syncTombstones no replace (pull/boot)', () => {
+      const incoming = createBaseState();
+      incoming.syncTombstones = [
+        { col: 'eventos', id: 'ev_1', deletedAt: '2026-06-10T12:00:00.000Z' },
+      ];
+
+      store.setState(incoming);
+
+      expect(store.state.syncTombstones).toEqual([
+        { col: 'eventos', id: 'ev_1', deletedAt: '2026-06-10T12:00:00.000Z' },
+      ]);
+    });
+
+    it('estado sem o campo (cliente antigo) vira lista vazia, sem crash', () => {
+      const incoming = createBaseState();
+      delete incoming.syncTombstones;
+
+      store.setState(incoming);
+
+      expect(store.state.syncTombstones).toEqual([]);
+    });
+  });
+
   it('wraps local state in a checksum envelope for double-buffer recovery', () => {
     const source = createBaseState({
       schemaVersion: 9,

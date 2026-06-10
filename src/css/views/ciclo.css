@@ -496,6 +496,13 @@
   font-weight: 600;
 }
 
+/* Badge "Etapa pulada" no header do card (sempre visível, fora do bloco de
+   ações que colapsa até o hover em desktop) */
+.seq-item-pulada-badge {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .grade-seq-title {
   text-decoration: underline;
 }

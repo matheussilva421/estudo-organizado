@@ -309,6 +309,11 @@ function renderCicloView(el, plan) {
           <div class="seq-item-content seq-item-content--static">
             <div class="seq-item-header">
               <div class="seq-item-title seq-item-discipline" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}" role="button" tabindex="0" aria-label="Ver histórico de ${esc(d.disc.nome)}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+              ${
+                seqStatus === 'pulada'
+                  ? '<span class="grade-concluded-badge seq-item-pulada-badge"><i class="fa fa-forward"></i> Etapa pulada</span>'
+                  : ''
+              }
               <div class="seq-item-time-display">
                  <i class="fa fa-clock"></i> <span class="seq-item-time-value">${formatCycleDuration(usedMins)}</span> de ${formatCycleDuration(seq.minutosAlvo)}
               </div>
@@ -322,8 +327,7 @@ function renderCicloView(el, plan) {
             <div class="ciclo-sequence-actions">
               ${
                 seqStatus === 'pulada'
-                  ? `<span class="grade-concluded-badge"><i class="fa fa-forward"></i> Etapa pulada</span>
-                     <button type="button" class="ciclo-action-link" data-action="desfazer-etapa" data-seq-id="${seq.id}"><i class="fa fa-undo"></i> Reabrir etapa</button>`
+                  ? `<button type="button" class="ciclo-action-link" data-action="desfazer-etapa" data-seq-id="${seq.id}"><i class="fa fa-undo"></i> Reabrir etapa</button>`
                   : `<button type="button" class="ciclo-action-link ciclo-action-link--primary" data-action="iniciar-etapa-planejamento" data-seq-id="${seq.id}"><i class="fa fa-play"></i> Iniciar Estudo</button>
                      <button type="button" class="ciclo-action-link" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Estudo Manualmente</button>`
               }
