@@ -171,6 +171,10 @@ export function performSave({
       showToast('Informe o total de questões', 'error');
       return false;
     }
+    if (acertos < 0 || erros < 0) {
+      showToast('Acertos e erros não podem ser negativos', 'error');
+      return false;
+    }
     if (acertos + erros > total) {
       showToast('Acertos + Erros não pode ser maior que o Total', 'error');
       return false;

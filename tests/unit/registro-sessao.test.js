@@ -672,6 +672,33 @@ describe('registro-sessao.js', () => {
       expect(savedEv.status).toBe('estudei');
     });
 
+    it('rejeita acertos/erros negativos em questões', () => {
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Disc' });
+      const edital = createEdital({ disciplinas: [disc] });
+      const evento = createEvento({
+        id: 'ev_1',
+        discId: 'disc_1',
+        tempoAcumulado: 1800,
+        sessao: {}
+      });
+      store.setState(createBaseState({ eventos: [evento], editais: [edital] }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('ev_1');
+      registroSessao.toggleStudyType('questoes');
+      global.document.getElementById('reg-q-total').value = '10';
+      global.document.getElementById('reg-q-acertos').value = '-5';
+      global.document.getElementById('reg-q-erros').value = '3';
+
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(false);
+      expect(app.showToast).toHaveBeenCalledWith(
+        'Acertos e erros não podem ser negativos',
+        'error'
+      );
+    });
+
     it('rejeita páginas negativas no modo detalhado', () => {
       const disc = createDisciplina({ id: 'disc_1', nome: 'Disc' });
       const edital = createEdital({ disciplinas: [disc] });
