@@ -152,6 +152,18 @@ Achados de agentes **descartados** na rodada 6: `onSearchBlur` "flicker de resul
 
 Suíte após rodada 6: **101 arquivos, 1671 testes, 0 falhas**. Push feito até `a6e4432`.
 
+## Rodada 7 (mesma sessão 2026-06-10, continuação)
+
+42. **Registro — páginas negativas rejeitadas** (`session-save.js`, commit `4cd52c5`): `inicio=-5/fim=10` passava em `fim > inicio` e salvava `paginas={total:15}`; agora toast de erro bloqueia o save.
+43. **`esc` única** (`ui/dom.js`, commit `760cde4`): cópia local exportada removida (uso interno passa a importar de `utils.js`); allowlist do guard `duplicate-exports` apertada.
+44. **Notificações — silent mode com 0** (`notifications.js`, commit `e0c03d5`): `silentModeStart||22`/`silentModeEnd||8` descartavam 0 (meia-noite), que a UI permite (`min="0"`); trocado por `??` (a config-view já usava `??` no markup).
+45. **Calendário — "Domingo" como 1º dia da semana voltou a funcionar** (commit `f2080c1`): a config oferece `value="0"`, mas `primeirodiaSemana || 1` descartava o 0 em 7 pontos — grade mês/semana do Calendário, estatísticas semanais (`logic/progress.js`) e resumo semanal da Home ignoravam a escolha. Trocado por `??`. Mesma classe do item 44; varredura `config.X || <número>` concluída (demais usos têm `min=1` na UI — ok com `||`).
+46. **Notificações — sem prompt no boot + permissão vale na hora** (commit `f02d109`): `initNotifications` chamava `requestPermission()` no boot sem gesto do usuário (browsers ignoram/penalizam); agora o boot só adota a permissão atual. O botão de Configurações passou a sincronizar o engine (`adoptNotificationPermission`) — antes, conceder permissão só tinha efeito após reload (caía no fallback de toast).
+
+⚠️ Incidente evitado: substituição em massa via `Get-Content`/`Set-Content` (PS 5.1) corrompeu UTF-8 (mojibake) e inseriu BOM nos 3 arquivos do item 45 — revertido com `git checkout` e refeito com edições pontuais. **Não usar Get/Set-Content para editar fonte neste repo.**
+
+Suíte após rodada 7: **101 arquivos, 1680 testes, 0 falhas**. Push feito até `f02d109`.
+
 ## Próximos passos sugeridos
 
 1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+setas+Enter no grid do Calendário; conferência visual dos 5 temas com `--text-muted` clareado.
