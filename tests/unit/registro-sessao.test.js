@@ -672,6 +672,30 @@ describe('registro-sessao.js', () => {
       expect(savedEv.status).toBe('estudei');
     });
 
+    it('rejeita páginas negativas no modo detalhado', () => {
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Disc' });
+      const edital = createEdital({ disciplinas: [disc] });
+      const evento = createEvento({
+        id: 'ev_1',
+        discId: 'disc_1',
+        tempoAcumulado: 1800,
+        sessao: {}
+      });
+      store.setState(createBaseState({ eventos: [evento], editais: [edital] }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('ev_1');
+      registroSessao.toggleStudyType('leitura');
+      registroSessao.setPaginaMode('detalhado');
+      global.document.getElementById('reg-pag-inicio').value = '-5';
+      global.document.getElementById('reg-pag-fim').value = '10';
+
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(false);
+      expect(app.showToast).toHaveBeenCalledWith('Páginas não podem ser negativas', 'error');
+    });
+
     it('does not link a free manual session to planejamento unless the option is checked', () => {
       const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
       const edital = createEdital({ disciplinas: [disc] });

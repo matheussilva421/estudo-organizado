@@ -206,6 +206,10 @@ export function performSave({
     } else {
       const inicio = parseInt(document.getElementById('reg-pag-inicio')?.value || '0');
       const fim = parseInt(document.getElementById('reg-pag-fim')?.value || '0');
+      if (inicio < 0 || fim < 0) {
+        showToast('Páginas não podem ser negativas', 'error');
+        return false;
+      }
       if (fim > inicio) paginas = { modo: 'detalhado', inicio, fim, total: fim - inicio };
       else if (fim > 0 || inicio > 0) {
         showToast('Página final deve ser maior que a página inicial', 'error');
