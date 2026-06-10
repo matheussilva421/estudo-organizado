@@ -52,9 +52,12 @@ export function adoptNotificationPermission() {
 
 function isSilentHour() {
   const horaAtual = new Date().getHours();
-  // Default silent mode: 22h às 08h (?? preserva 0 = meia-noite, que || descartaria)
-  const silenciosoInicio = state.config?.silentModeStart ?? 22;
-  const silenciosoFim = state.config?.silentModeEnd ?? 8;
+  // Default silent mode: 22h às 08h. Preserva 0 (meia-noite) mas rejeita NaN
+  // persistido por versões antigas do update-config (?? não recupera NaN).
+  const cfgInicio = state.config?.silentModeStart;
+  const cfgFim = state.config?.silentModeEnd;
+  const silenciosoInicio = Number.isFinite(cfgInicio) ? cfgInicio : 22;
+  const silenciosoFim = Number.isFinite(cfgFim) ? cfgFim : 8;
 
   if (silenciosoInicio > silenciosoFim) {
     return horaAtual >= silenciosoInicio || horaAtual < silenciosoFim;

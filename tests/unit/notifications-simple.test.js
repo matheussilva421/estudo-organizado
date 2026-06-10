@@ -106,6 +106,20 @@ describe('notifications.js', () => {
     });
   });
 
+  describe('modo silencioso com config corrompida', () => {
+    it('NaN persistido cai no default 22h (silencia às 23h local)', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/js/store.js?v=8.37', () => ({
+        state: { config: { silentModeStart: NaN, silentModeEnd: NaN } },
+      }));
+      const notif = await import('../../src/js/notifications.js?v=8.37');
+      vi.setSystemTime(new Date('2026-04-19T23:00:00'));
+      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+      notif.fireNotification('Test', 'Body', 'nan-config');
+      expect(dispatchSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('modo silencioso com horários zero', () => {
     it('silentModeStart=0 não cai no default 22h (23h local deve notificar)', async () => {
       vi.resetModules();
