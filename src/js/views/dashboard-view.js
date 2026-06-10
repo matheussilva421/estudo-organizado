@@ -513,8 +513,13 @@ export function renderDashboard(el) {
 
   const cutoffStr = periodDays ? cutoffDateStr(periodDays) : null;
   const visibleEvents = filterEventsBySelectedEdital(state.eventos || [], { allowAll: false });
+  // Período corta pela data REAL do estudo (dataEstudo || data) — mesma régua
+  // do Histórico, da Home e do getAggregatedStats. e.data é a data agendada.
   const filteredEvts = cutoffStr
-    ? visibleEvents.filter((e) => e.status === 'estudei' && e.data && e.data >= cutoffStr)
+    ? visibleEvents.filter((e) => {
+        const studyDate = e.dataEstudo || e.data;
+        return e.status === 'estudei' && studyDate && studyDate >= cutoffStr;
+      })
     : visibleEvents.filter((e) => e.status === 'estudei');
 
   const totalSecs = filteredEvts.reduce((s, e) => s + (e.tempoAcumulado || 0), 0);
@@ -622,7 +627,8 @@ export function renderDailyChart(periodDays) {
   const secsByDate = {};
   for (const e of filterEventsBySelectedEdital(state.eventos || [], { allowAll: false })) {
     if (e.status === 'estudei' && e.tempoAcumulado) {
-      secsByDate[e.data] = (secsByDate[e.data] || 0) + (e.tempoAcumulado || 0);
+      const studyDate = e.dataEstudo || e.data;
+      secsByDate[studyDate] = (secsByDate[studyDate] || 0) + (e.tempoAcumulado || 0);
     }
   }
   const days = [],
@@ -689,7 +695,11 @@ export function renderDiscChart(periodDays) {
   const visibleEvents = filterEventsBySelectedEdital(state.eventos || [], { allowAll: false });
   const evts = cutoffStr2
     ? visibleEvents.filter(
-        (e) => e.status === 'estudei' && e.discId && e.tempoAcumulado && e.data >= cutoffStr2
+        (e) =>
+          e.status === 'estudei' &&
+          e.discId &&
+          e.tempoAcumulado &&
+          (e.dataEstudo || e.data) >= cutoffStr2
       )
     : visibleEvents.filter((e) => e.status === 'estudei' && e.discId && e.tempoAcumulado);
   evts.forEach((e) => {
