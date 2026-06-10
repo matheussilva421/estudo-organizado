@@ -198,12 +198,16 @@ Guards estáticos criados na sessão (rede de regressão permanente): `duplicate
 
 **Validação final da sessão**: `npm run test:e2e:release` → **137/137 verdes** (gate completo chromium, 3,6 min) sobre o estado final `8a92932`. Suíte unitária 1707/1707; test:css 31/31.
 
-## Pendências / próximos ciclos sugeridos (atualizado 2026-06-10)
+## Rodada 11 (2026-06-10, continuação a pedido do usuário)
 
-1. **Migração completa de modais para `ui/dialog.js`** (pilha + focus trap completos, hoje não importado) — médio risco, avaliar com calma; a restauração de foco já foi coberta no item 47.
-2. `sync.test.js` e `credentials.test.js` com specifiers `?v=8.28` — mesmo problema do item 49, mas são **arquivos de sync** (não tocados por restrição). Corrigir quando a restrição não se aplicar.
-3. Escape no `modal-confirm` fecha sem limpar `_confirmCallback` (search.js keydown) — sem repro de dano real (próximo `showConfirm` sobrescreve); registrado por completude.
-4. `import sem ?v` remanescente em `sync/firestore-sync-engine.js` (restrição de sync, já registrado na rodada 4).
+62. **Escape no modal-confirm cancela a confirmação** (`455bbb7`): o handler global fechava o modal sem limpar `_confirmCallback`; agora chama `cancelConfirm()` (pendência 3 resolvida).
+63. **MIGRAÇÃO DOS MODAIS CONCLUÍDA** (`17c1003`, pendência 1 resolvida): `ui/dialog.js` é o controller único — `app/modals.js` delega `openModal/closeModal`. O dialog foi portado ao contrato visual do app (classe `.open`; antes usava `style.display`, incompatível com o CSS) e entrega: **focus trap** Tab/Shift+Tab por modal, **pilha** para modais aninhados, **restauração de foco por modal** (Map, tolerante a re-render), autofocus no primeiro focável (sem roubar foco que o app já posicionou; timer cancelado no close) e anúncio de abertura via `#aria-announcer`. Decisões registradas: Escape continua exclusivo do handler global de `search.js` (conhece o caso do modal-confirm; Escape por modal causaria fechamento duplo em pilha); filtro de focáveis sem `offsetParent` (null em overlays `position:fixed` e no jsdom); overflow do body consultado no DOM (tolera open/close desbalanceados). Allowlist do `duplicate-exports` apertada. Testes: `dialog-controller.test.js` novo (7 specs: classe/aria/scroll, trap, pilha, Escape-não-fecha, handlers limpos); `dialog-simple` atualizado ao novo contrato. **Suíte 1715/1715 exit 0 (resolvido unhandled error do timer de autofocus); release gate E2E 137/137.**
+
+## Pendências / próximos ciclos sugeridos (atualizado 2026-06-10, pós-rodada 11)
+
+1. `sync.test.js` e `credentials.test.js` com specifiers `?v=8.28` — mesmo problema do item 49, mas são **arquivos de sync** (não tocados por restrição). Corrigir quando a restrição não se aplicar.
+2. `import sem ?v` remanescente em `sync/firestore-sync-engine.js` (restrição de sync, já registrado na rodada 4).
+3. Validação manual (navegador) recomendada para a migração de modais: Tab/Shift+Tab ciclando dentro de um modal aberto; abrir modal aninhado (ex.: confirmação dentro de edição) e conferir foco ao fechar; Escape fechando o topo da pilha.
 
 ## Próximos passos sugeridos
 
