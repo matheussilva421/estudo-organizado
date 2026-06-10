@@ -127,6 +127,13 @@ export function renderConfig(el) {
               </div>
               <input type="number" class="form-control config-input-number" min="1" max="15" value="${cfg.materiasPorDia || 3}" data-action="update-config" data-config-key="materiasPorDia" data-value-type="number">
             </div>
+            <div class="config-row">
+              <div>
+                <div class="config-label">Meta diária de estudo (min)</div>
+                <div class="config-sub">Aparece como barra de progresso no Study Organizer (0 = sem meta)</div>
+              </div>
+              <input type="number" class="form-control config-input-number" min="0" max="1440" value="${cfg.metaDiariaMin || 0}" data-action="update-config" data-config-key="metaDiariaMin" data-value-type="number">
+            </div>
           </div>
         </div>
 

@@ -198,6 +198,25 @@ describe('views.js - dashboard, charts, history, MED', () => {
       expect(el.innerHTML).toContain('Nenhum evento nos próximos 7 dias');
     });
 
+    it('mostra progresso da meta diária quando metaDiariaMin está definida', () => {
+      const el = { innerHTML: '' };
+      storeModule.state.config.metaDiariaMin = 60;
+      storeModule.state.eventos = [
+        { id: 'e1', status: 'estudei', data: '2026-04-29', tempoAcumulado: 1800, titulo: 'Estudo' },
+      ];
+      views.renderMED(el);
+      expect(el.innerHTML).toContain('50% da meta diária');
+    });
+
+    it('mostra "Sem meta diária definida" quando não há meta', () => {
+      const el = { innerHTML: '' };
+      storeModule.state.eventos = [
+        { id: 'e1', status: 'estudei', data: '2026-04-29', tempoAcumulado: 1800, titulo: 'Estudo' },
+      ];
+      views.renderMED(el);
+      expect(el.innerHTML).toContain('Sem meta diária definida');
+    });
+
     it('não emite o template legado obsoleto no markup', () => {
       const el = { innerHTML: '' };
       storeModule.state.eventos = [

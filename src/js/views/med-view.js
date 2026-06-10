@@ -65,8 +65,9 @@ export function renderMED(el) {
   const tomorrowPending = pendingFuture.filter((event) => event.data === tomorrow);
   const nextDays = pendingFuture.filter((event) => event.data > tomorrow);
 
-  // Sticky header with daily progress (uses optional `metaDiariaSeg` if user has set one)
-  const metaSeg = (state.config?.metaDiariaSeg || 0);
+  // Sticky header com progresso da meta diária (Configurações → Meta diária de estudo).
+  // `metaDiariaSeg` é o nome legado em segundos, mantido como fallback.
+  const metaSeg = (state.config?.metaDiariaMin || 0) * 60 || state.config?.metaDiariaSeg || 0;
   const metaPct = metaSeg > 0 ? Math.min(100, Math.round((totalSeconds / metaSeg) * 100)) : 0;
   const stickyHeader = `
     <div class="med-sticky-header">

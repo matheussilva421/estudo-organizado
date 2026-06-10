@@ -464,6 +464,15 @@ describe('views/config-view.js', () => {
       expect(el.innerHTML).not.toContain('fa-circle-info');
     });
 
+    it('renders the daily study goal field (metaDiariaMin) used by the MED sticky header', () => {
+      storeModule.state.config.metaDiariaMin = 120;
+      const el = document.createElement('div');
+      configView.renderConfig(el);
+      expect(el.innerHTML).toContain('data-config-key="metaDiariaMin"');
+      expect(el.innerHTML).toContain('Meta diária de estudo');
+      expect(el.innerHTML).toMatch(/data-config-key="metaDiariaMin"[^>]*value="120"|value="120"[^>]*data-config-key="metaDiariaMin"/);
+    });
+
     it('merges Calendário and Planejamento Diário into a single card', () => {
       const el = document.createElement('div');
       configView.renderConfig(el);
