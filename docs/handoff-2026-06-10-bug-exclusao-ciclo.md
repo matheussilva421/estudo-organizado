@@ -48,7 +48,30 @@ Ciclo ("Reabrir etapa") e restaurada ao recomeçar o ciclo (`resetCicloAndWipeEv
 - Suíte de unidade: **1740/1740 verde**. E2E chromium: **137/137** (1 chaos test
   flaky de timing falhou na 1ª rodada e passou isolado — não relacionado).
 
-## Achado de SYNC (NÃO corrigido — aguarda aprovação; usuário autorizou investigar e propor)
+## Achado de SYNC — CORRIGIDO (commit `1e3d329`, autorização expressa do usuário)
+
+Implementação dos tombstones conforme a proposta abaixo (TDD, 17 testes novos):
+
+- `src/js/sync/sync-center.js`: `recordSyncTombstone(state, col, id)` exportado;
+  `mergeTombstones` (união por col:id com deletedAt mais novo, poda >180 dias,
+  cap 2000); `mergeById` ganhou 3º parâmetro (índice de tombstones) e filtra item
+  com tombstone `deletedAt >= updatedAt||criadoEm` — recriação posterior sobrevive.
+  `merged.syncTombstones` sai do merge.
+- Call-sites que gravam tombstone: `logic.js removeEvento` (exceto auto-gerado
+  pendente sem tempo — derivado do plano, id por dispositivo);
+  `registro-sessao.js deleteCompletedSession` (evento + hábitos vinculados por
+  `eventoId`); `habitos-view.js deleteHabito`.
+- Campo aditivo `state.syncTombstones`: viaja no payload (`createExportableState`
+  clona o estado inteiro), sobrevive a `setState` (assign integral), clientes
+  antigos ignoram (merge sem o campo = comportamento anterior).
+- Validações: unit **1757/1757**; e2e chromium **137/137**; lint 43 warnings
+  (mesma baseline, 0 erros).
+- Gap conhecido (registrado, não corrigido): `voltarPastSessionUI`
+  (registro-sessao.js) remove um evento sem tombstone — fluxo de recriar sessão
+  passada; risco baixo. `planejamento` continua local-wins no merge (etapas
+  puladas não propagam entre dispositivos) — defeito separado, decisão pendente.
+
+## Proposta original (referência — implementada acima)
 
 **Exclusões locais ressuscitam no merge.** Evidências:
 
@@ -93,9 +116,10 @@ Ciclo ("Reabrir etapa") e restaurada ao recomeçar o ciclo (`resetCicloAndWipeEv
 
 ## Como retomar
 
-1. `git status -sb` (limpo; main = origin/main até `dce29d7`).
-2. Se o usuário aprovar a proposta de sync: TDD conforme plano acima (ALTO RISCO —
-   área de sync, mudanças mínimas, sem tocar storage keys/schema destrutivo).
-3. UX menor (opcional, decidir com usuário): no desktop, o badge "Etapa pulada" fica
-   no bloco de ações que só aparece no hover — etapa pulada não é visível à primeira
-   vista no card (no mobile aparece sempre).
+1. `git status -sb` (limpo; main = origin/main até `1e3d329`).
+2. Validação manual recomendada: 2 dispositivos (ou 2 navegadores) com Cloudflare
+   sync ativo — excluir sessão/hábito no A, sincronizar o B, confirmar que a
+   exclusão propaga e nada ressuscita.
+3. Pendências menores registradas: tombstone em `voltarPastSessionUI`;
+   `planejamento` local-wins no merge (etapas puladas não propagam); UX do badge
+   "Etapa pulada" só visível no hover em desktop.
