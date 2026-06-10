@@ -198,6 +198,15 @@ describe('views.js - dashboard, charts, history, MED', () => {
       expect(el.innerHTML).toContain('Nenhum evento nos próximos 7 dias');
     });
 
+    it('não emite o template legado obsoleto no markup', () => {
+      const el = { innerHTML: '' };
+      storeModule.state.eventos = [
+        { id: 'e1', status: 'agendado', data: '2026-04-29', titulo: 'Estudo Tarde' },
+      ];
+      views.renderMED(el);
+      expect(el.innerHTML).not.toContain('data-obsolete');
+    });
+
     it('groups scheduled events for today, tomorrow and next 7 days', () => {
       const el = { innerHTML: '' };
       storeModule.state.eventos = [

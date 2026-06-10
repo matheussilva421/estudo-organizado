@@ -133,16 +133,6 @@ export function renderMED(el) {
         ...event,
         titulo: `${formatDate(event.data)} · ${event.titulo || 'Evento'}`,
       })))}
-      <template data-obsolete="legacy-today-only">
-      ${
-        agendados.length > 0
-          ? `
-        <div class="section-header"><h2>📌 Agendado para Hoje</h2></div>
-        ${agendados.map((e) => renderEventCard(e)).join('')}
-      `
-          : ''
-      }
-      </template>
     </div>
     <div id="med-section-estudado">
       ${
