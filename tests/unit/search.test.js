@@ -72,6 +72,33 @@ describe('search.js', () => {
       expect(box.innerHTML).toContain('Nenhum resultado');
     });
 
+    it('escapa nome e ícone da disciplina nos resultados (sem HTML cru)', () => {
+      store.setState(
+        createMockState({
+          editais: [
+            {
+              id: 'ed1',
+              nome: 'Edital A',
+              disciplinas: [
+                {
+                  id: 'd1',
+                  nome: 'Matemática <img src=x onerror=alert(1)>',
+                  icone: '<img src=y>',
+                  assuntos: [],
+                },
+              ],
+            },
+          ],
+          eventos: [{ id: 'e1', titulo: 'Estudar matemática', data: '2026-04-29', discId: 'd1' }],
+        })
+      );
+
+      search.onSearch('matemática');
+
+      const box = global.document.getElementById('search-results');
+      expect(box.innerHTML).not.toContain('<img');
+    });
+
     it('does not throw for long queries with regex metacharacters', () => {
       const query = `${'a'.repeat(101)}[`;
       store.setState(
@@ -90,6 +117,13 @@ describe('search.js', () => {
       input.value = 'test';
       search.clearSearch();
       expect(input.value).toBe('');
+    });
+
+    it('descarta o markup de resultados antigos', () => {
+      const box = global.document.getElementById('search-results');
+      box.innerHTML = '<button class="search-item">resultado antigo</button>';
+      search.clearSearch();
+      expect(box.innerHTML).toBe('');
     });
   });
 });

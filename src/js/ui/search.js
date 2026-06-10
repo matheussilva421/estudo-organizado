@@ -91,10 +91,10 @@ export function onSearch(query) {
       .map(
         ({ ev, disc }) => `
       <button type="button" class="search-item" data-action="open-search-event" data-event-id="${ev.id}">
-        <div class="search-item-icon">${disc ? disc.icone || '📚' : '📅'}</div>
+        <div class="search-item-icon">${disc ? esc(disc.icone) || '📚' : '📅'}</div>
         <div>
           <div class="search-item-label">${highlight(ev.titulo)}</div>
-          <div class="search-item-sub">${ev.data ? formatDate(ev.data) : ''}${disc ? ' • ' + disc.nome : ''}</div>
+          <div class="search-item-sub">${ev.data ? formatDate(ev.data) : ''}${disc ? ' • ' + esc(disc.nome) : ''}</div>
         </div>
       </button>`
       )
@@ -108,7 +108,7 @@ export function onSearch(query) {
       .map(
         ({ disc, edital }) => `
       <button type="button" class="search-item" data-action="navigate-clear-search" data-view="editais">
-        <div class="search-item-icon">${disc.icone || '📖'}</div>
+        <div class="search-item-icon">${esc(disc.icone) || '📖'}</div>
         <div>
           <div class="search-item-label">${highlight(disc.nome)}</div>
           <div class="search-item-sub">${esc(edital.nome)} • ${(disc.assuntos || []).length} assunto(s)</div>
@@ -125,7 +125,7 @@ export function onSearch(query) {
       .map(
         ({ ass, disc, edital }) => `
       <button type="button" class="search-item" data-action="navigate-clear-search" data-view="editais">
-        <div class="search-item-icon">${disc.icone || '📚'}</div>
+        <div class="search-item-icon">${esc(disc.icone) || '📚'}</div>
         <div>
           <div class="search-item-label">${highlight(ass.nome)}</div>
           <div class="search-item-sub">${esc(disc.nome)} • ${esc(edital.nome)} ${ass.concluido ? '✅' : ''}</div>
@@ -182,7 +182,10 @@ export function clearSearch() {
     input.value = '';
     input.setAttribute('aria-expanded', 'false');
   }
-  results?.classList.remove('open');
+  if (results) {
+    results.classList.remove('open');
+    results.innerHTML = '';
+  }
 }
 
 function handleSearchKeydown(e) {
