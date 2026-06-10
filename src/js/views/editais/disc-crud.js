@@ -29,14 +29,14 @@ export function openDiscModal(editaId, discId) {
     <div class="form-group">
       <label class="form-label">Ícone</label>
       <div class="icon-grid" id="disc-icons">
-        ${DISC_ICONS.map((ic, _i) => `<div class="icon-grid-item ${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0]) ? 'selected-icon' : ''}" data-action="select-icon" data-icon="${ic}">${ic}</div>`).join('')}
+        ${DISC_ICONS.map((ic, _i) => `<div class="icon-grid-item ${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0]) ? 'selected-icon' : ''}" data-action="select-icon" data-icon="${ic}" role="button" tabindex="0" aria-pressed="${ic === (isEdit ? existingDisc.icone : DISC_ICONS[0])}" aria-label="Selecionar ícone ${ic}">${ic}</div>`).join('')}
       </div>
       <input type="hidden" id="disc-icone" value="${isEdit ? existingDisc.icone : DISC_ICONS[0]}">
     </div>
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="disc-colors">
-        ${COLORS.map((c, _i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" style="background:${c};" data-disc-color="${c}" data-action="select-disc-color" data-color="${c}" title="${c}" aria-label="Selecionar cor ${c}"></div>`).join('')}
+        ${COLORS.map((c, _i) => `<div class="color-swatch ${c === (isEdit ? existingDisc.cor : COLORS[0]) ? 'selected' : ''}" style="background:${c};" data-disc-color="${c}" data-action="select-disc-color" data-color="${c}" role="button" tabindex="0" aria-pressed="${c === (isEdit ? existingDisc.cor : COLORS[0])}" title="${c}" aria-label="Selecionar cor ${c}"></div>`).join('')}
       </div>
       <input type="hidden" id="disc-cor" value="${isEdit ? existingDisc.cor : COLORS[0]}">
     </div>

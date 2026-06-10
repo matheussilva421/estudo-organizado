@@ -372,7 +372,7 @@ function renderSubjectProgress(ctx) {
     const tempoStr = row.tempo > 0 ? formatTime(row.tempo).slice(0, 5) + 'h' : '—';
     const sparklineHtml = renderSparkline(row.sparkline || [0,0,0,0,0,0,0], color);
     return `
-      <div class="dash-subject-progress-row" data-action="navigate-with-ctx" data-view="dashboard" data-ctx="${encodeURIComponent(JSON.stringify({ discId: row.disc.id, editalId: row.edital.id }))}" title="Abrir ${esc(row.disc.nome)}">
+      <div class="dash-subject-progress-row" data-action="navigate-with-ctx" data-view="dashboard" data-ctx="${encodeURIComponent(JSON.stringify({ discId: row.disc.id, editalId: row.edital.id }))}" role="button" tabindex="0" title="Abrir ${esc(row.disc.nome)}" aria-label="Abrir ${esc(row.disc.nome)}">
         <div class="dash-subject-progress-name text-ellipsis" title="${esc(row.disc.nome)}">${esc(row.disc.nome)}${activeId ? '' : ` · ${esc(row.edital.nome)}`}</div>
         <div class="dash-subject-progress-bar-wrap">
           <div class="dash-subject-progress-bar" style="width:${fill}%; background:${color};"></div>

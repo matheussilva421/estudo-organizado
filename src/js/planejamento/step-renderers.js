@@ -37,7 +37,7 @@ export function groupDisciplinasByEdital(items) {
 function renderPlanejamentoDiscCard(d, draft) {
   const sel = draft.disciplinas.includes(d.disc.id);
   return `
-                                <div class="pw-disc-card selection-card ${sel ? 'is-selected' : ''}" data-action="pw-toggle-disc" data-disc-id="${d.disc.id}">
+                                <div class="pw-disc-card selection-card ${sel ? 'is-selected' : ''}" data-action="pw-toggle-disc" data-disc-id="${d.disc.id}" role="button" tabindex="0" aria-pressed="${!!sel}">
                                     <div class="selection-check">
                                         ${sel ? '\u2713' : ''}
                                     </div>
@@ -84,7 +84,7 @@ export function htmlStep1(draft) {
             </p>
 
             <div class="stack-md">
-                <div data-action="pw-select-tipo" data-tipo="ciclo" class="selection-card ${draft.tipo === 'ciclo' ? 'is-selected' : ''}">
+                <div data-action="pw-select-tipo" data-tipo="ciclo" class="selection-card ${draft.tipo === 'ciclo' ? 'is-selected' : ''}" role="button" tabindex="0" aria-pressed="${draft.tipo === 'ciclo'}">
                     <div class="cluster-lg mb-2">
                         <div class="text-3xl">\uD83D\uDD04</div>
                         <div>
@@ -94,7 +94,7 @@ export function htmlStep1(draft) {
                     </div>
                 </div>
 
-                <div data-action="pw-select-tipo" data-tipo="semanal" class="selection-card ${draft.tipo === 'semanal' ? 'is-selected' : ''}">
+                <div data-action="pw-select-tipo" data-tipo="semanal" class="selection-card ${draft.tipo === 'semanal' ? 'is-selected' : ''}" role="button" tabindex="0" aria-pressed="${draft.tipo === 'semanal'}">
                     <div class="cluster-lg mb-2">
                         <div class="text-3xl">\uD83D\uDCC5</div>
                         <div>

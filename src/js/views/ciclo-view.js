@@ -305,7 +305,7 @@ function renderCicloView(el, plan) {
           <div class="seq-item-color-bar" style="background:${cor};"></div>
           <div class="seq-item-content seq-item-content--static">
             <div class="seq-item-header">
-              <div class="seq-item-title seq-item-discipline" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
+              <div class="seq-item-title seq-item-discipline" title="Editar Nome do Evento" data-action="open-ciclo-history" data-seq-id="${seq.id}" role="button" tabindex="0" aria-label="Ver histórico de ${esc(d.disc.nome)}">${d.disc.icone || '📚'} ${esc(d.disc.nome)}</div>
               <div class="seq-item-time-display">
                  <i class="fa fa-clock"></i> <span class="seq-item-time-value">${formatCycleDuration(usedMins)}</span> de ${formatCycleDuration(seq.minutosAlvo)}
               </div>
@@ -575,9 +575,9 @@ function renderGradeView(el, plan) {
                   <button aria-label="Subir" class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''}><i class="fa fa-chevron-up"></i></button>
                   <button aria-label="Descer" class="icon-btn grade-seq-move-btn" data-action="move-ciclo-seq" data-index="${i}" data-dir="1" ${i === plan.sequencia.length - 1 ? 'disabled' : ''}><i class="fa fa-chevron-down"></i></button>
                 </div>
-                <div data-action="open-ciclo-history" data-seq-id="${seq.id}" title="Ver Histórico de Sessões">${d.disc.icone || '📚'} <span class="grade-seq-title">${esc(d.disc.nome)}</span></div>
+                <div data-action="open-ciclo-history" data-seq-id="${seq.id}" title="Ver Histórico de Sessões" role="button" tabindex="0" aria-label="Ver histórico de ${esc(d.disc.nome)}">${d.disc.icone || '📚'} <span class="grade-seq-title">${esc(d.disc.nome)}</span></div>
               </div>
-              <div class="ciclo-item-meta grade-seq-meta" data-action="edit-ciclo-seq-hours" data-index="${i}" title="Clique para editar as horas planejadas">${formatH(seq.minutosAlvo)} planejado</div>
+              <div class="ciclo-item-meta grade-seq-meta" data-action="edit-ciclo-seq-hours" data-index="${i}" title="Clique para editar as horas planejadas" role="button" tabindex="0" aria-label="Editar horas planejadas de ${esc(d.disc.nome)}">${formatH(seq.minutosAlvo)} planejado</div>
             </div>
             <div class="grade-seq-step-label">Etapa ${i + 1} da sequência global da semana</div>
             <div class="grade-seq-action">

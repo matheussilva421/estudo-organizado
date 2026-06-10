@@ -337,7 +337,7 @@ export function openHabitModal(tipo) {
         <div class="event-type-grid">
           ${HABIT_TYPES.map(
             (h) => `
-            <div class="event-type-card" data-action="select-habit-type" data-tipo="${h.key}">
+            <div class="event-type-card" data-action="select-habit-type" data-tipo="${h.key}" role="button" tabindex="0" aria-label="Tipo ${h.label}">
               <div class="et-icon">${h.icon}</div>
               <div class="et-label">${h.label}</div>
             </div>

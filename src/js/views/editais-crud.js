@@ -319,7 +319,7 @@ export function openEditaModal(editaId = null) {
     <div class="form-group">
       <label class="form-label">Cor</label>
       <div class="color-row" id="edital-colors">
-        ${COLORS.map((c) => `<div class="color-swatch ${edital && edital.cor === c ? 'selected' : ''}" style="background:${c};" data-action="select-color" data-color="${c}" data-container="edital-colors" data-color-value="${c}" title="${c}" aria-label="Selecionar cor ${c}"></div>`).join('')}
+        ${COLORS.map((c) => `<div class="color-swatch ${edital && edital.cor === c ? 'selected' : ''}" style="background:${c};" data-action="select-color" data-color="${c}" data-container="edital-colors" data-color-value="${c}" role="button" tabindex="0" aria-pressed="${!!(edital && edital.cor === c)}" title="${c}" aria-label="Selecionar cor ${c}"></div>`).join('')}
       </div>
       <input type="hidden" id="edital-cor" value="${edital ? edital.cor : COLORS[0]}">
     </div>

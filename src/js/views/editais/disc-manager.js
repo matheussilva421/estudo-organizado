@@ -55,7 +55,7 @@ export function openDiscManager(editaId, discId, options = {}) {
     data-dnd-disc="${disc.id}"
     data-dnd-idx="${idx}">
       <div class="sm-drag-handle" title="Arrastar">☰</div>
-      <div class="sm-item-text" data-action="edit-subject-inline" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">
+      <div class="sm-item-text" data-action="edit-subject-inline" data-disc-id="${disc.id}" data-assunto-id="${ass.id}" role="button" tabindex="0" aria-label="Editar assunto ${esc(ass.nome)}">
         ${esc(ass.nome)}
         ` +
           (ass.relevance
@@ -96,7 +96,7 @@ export function openDiscManager(editaId, discId, options = {}) {
         (aula, _idx) => `
       <div class="sm-list-item sm-list-item--lesson">
       <div class="sm-item-content">
-          <div class="sm-item-text sm-item-text--clickable" data-action="edit-lesson-inline" data-disc-id="${disc.id}" data-aula-id="${aula.id}">
+          <div class="sm-item-text sm-item-text--clickable" data-action="edit-lesson-inline" data-disc-id="${disc.id}" data-aula-id="${aula.id}" role="button" tabindex="0" aria-label="Editar aula ${esc(aula.nome)}">
              <input type="checkbox" ${aula.estudada ? 'checked' : ''} data-action="toggle-aula-estudada" data-disc-id="${disc.id}" data-aula-id="${aula.id}" class="sm-checkbox" title="Marcar como Estudada">
              <span class="${aula.estudada ? 'sm-text-concluded' : ''}">${esc(aula.nome)}</span>
           </div>
