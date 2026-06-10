@@ -11,6 +11,7 @@ import {
   calculateCyclePredictionsModel,
   getStudiedMinutesByDiscipline,
   distributeStudiedAcrossSeq,
+  touchPlanejamento,
 } from '../logic.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 import { showConfirm } from '../app.js?v=8.37';
@@ -78,6 +79,7 @@ export function zerarCiclosCounter() {
   showConfirm('Isso voltará a contagem de "Ciclos Completos" para zero. Tem certeza?', () => {
     if (state.planejamento) {
       state.planejamento.ciclosCompletos = 0;
+      touchPlanejamento();
       scheduleSave();
       renderCurrentView();
       document.dispatchEvent(
@@ -118,6 +120,7 @@ export function calculateCyclePredictions() {
       if (h.dataInicial !== sVal || h.dataFinal !== eVal) {
         h.dataInicial = sVal;
         h.dataFinal = eVal;
+        touchPlanejamento();
         scheduleSave();
       }
     }

@@ -12,6 +12,7 @@ import {
   timerIntervals,
   discardTimer,
   syncCicloToEventos,
+  touchPlanejamento,
   invalidateDashCaches,
   invalidateStreakCache,
   invalidatePendingRevCache,
@@ -407,6 +408,8 @@ export function discardTimerUI(eventId) {
 }
 
 export function voltarPastSessionUI(eventId, discId) {
+  // Tombstone para o merge de sync não ressuscitar o evento descartado
+  recordSyncTombstone(state, 'eventos', eventId);
   state.eventos = state.eventos.filter((e) => e.id !== eventId);
   scheduleSave();
   closeModal('modal-registro-sessao');
@@ -434,6 +437,7 @@ function reopenPlanningSequence(seq) {
   seq.status = 'pendente';
   delete seq.finalizadoEm;
   delete seq.puladaEm;
+  touchPlanejamento();
   syncCicloToEventos();
   scheduleSave();
   renderCurrentView();

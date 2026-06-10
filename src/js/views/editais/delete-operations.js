@@ -9,6 +9,7 @@ import {
   invalidateDiscCache,
   invalidateDashCaches,
   invalidatePendingRevCache,
+  touchPlanejamento,
 } from '../../logic.js?v=8.37';
 import { scheduleSave, state } from '../../store.js?v=8.37';
 import { renderCurrentView } from '../../components.js?v=8.37';
@@ -76,6 +77,7 @@ export function deleteDisc(editaId, discId) {
           state.planejamento.sequencia = state.planejamento.sequencia.filter(
             (s) => s.discId !== discId
           );
+        touchPlanejamento();
       }
 
       invalidateDiscCache();
@@ -119,6 +121,7 @@ export function deleteEdital(editaId) {
           state.planejamento.sequencia = state.planejamento.sequencia.filter(
             (s) => !discIds.includes(s.discId)
           );
+        touchPlanejamento();
       }
 
       invalidateDiscCache();

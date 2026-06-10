@@ -235,9 +235,22 @@ export function deletePlanejamento() {
   );
 }
 
+/**
+ * Marca a autoria da última mutação real do plano. O merge de sync usa este
+ * timestamp para LWW do planejamento inteiro (sync-center.js) — sem ele, o
+ * lado local sempre venceria e mudanças de plano não propagariam entre
+ * dispositivos. Chamar APENAS quando o plano de fato muda (nunca em regen de
+ * eventos ou salvamentos genéricos, senão todo dispositivo reclama autoria).
+ */
+export function touchPlanejamento() {
+  if (!state.planejamento) return;
+  state.planejamento.updatedAt = new Date().toISOString();
+}
+
 export function resetCicloAndWipeEvents() {
   if (!state.planejamento) return;
   state.planejamento.skippedSlots = [];
+  touchPlanejamento();
 
   // 1. Wipe all planned cycle events that are not studied yet (including past ones).
   state.eventos = state.eventos.filter((e) => {
@@ -401,6 +414,7 @@ export function skipPlanejamentoEventBeforeDelete(eventToDelete) {
   seq.concluido = false;
   seq.puladaEm = new Date().toISOString();
   delete seq.finalizadoEm;
+  touchPlanejamento();
 
   return true;
 }
@@ -660,6 +674,7 @@ export function moveCicloSeq(idx, dir) {
   const temp = seq[idx];
   seq[idx] = seq[idx + dir];
   seq[idx + dir] = temp;
+  touchPlanejamento();
   syncCicloToEventos();
   scheduleSave();
   document.dispatchEvent(new Event('app:renderCurrentView'));
@@ -673,6 +688,7 @@ export function desfazerEtapa(seqId) {
     state.planejamento.sequencia[idx].status = 'pendente';
     delete state.planejamento.sequencia[idx].puladaEm;
     delete state.planejamento.sequencia[idx].finalizadoEm;
+    touchPlanejamento();
     syncCicloToEventos();
     scheduleSave();
     document.dispatchEvent(new Event('app:renderCurrentView'));
@@ -688,6 +704,7 @@ export function marcarEtapaConcluida(seqId) {
   seq.status = 'concluida';
   seq.finalizadoEm = new Date().toISOString();
   delete seq.puladaEm;
+  touchPlanejamento();
   syncCicloToEventos();
   scheduleSave();
   document.dispatchEvent(new Event('app:renderCurrentView'));
@@ -725,6 +742,7 @@ export function editCicloSeqHours(idx) {
       return;
     }
     seqItem.minutosAlvo = Math.round(novaHoras * 60);
+    touchPlanejamento();
     syncCicloToEventos();
     scheduleSave();
     closeModal('modal-prompt');

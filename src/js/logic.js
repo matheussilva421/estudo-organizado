@@ -93,6 +93,7 @@ export {
   desfazerEtapa,
   marcarEtapaConcluida,
   editCicloSeqHours,
+  touchPlanejamento,
 } from './logic/cycle.js';
 
 export function marcarEstudei(eventId) {

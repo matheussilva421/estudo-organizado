@@ -42,6 +42,7 @@ describe('views.js - CRUD, modals, sequence ops', () => {
       invalidateRevCache: vi.fn(),
       invalidatePendingRevCache: vi.fn(),
       syncCicloToEventos: vi.fn(),
+      touchPlanejamento: vi.fn(),
     };
     componentsModule = { renderCurrentView: vi.fn(), renderEventCard: vi.fn(() => '<div>card</div>') };
 

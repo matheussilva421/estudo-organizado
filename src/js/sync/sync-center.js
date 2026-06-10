@@ -417,6 +417,16 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   const tombstones = mergeTombstones(localState.syncTombstones, remoteState.syncTombstones);
   merged.syncTombstones = tombstones;
 
+  // Planejamento é singleton: o spread acima deixa o LOCAL vencer sempre, então
+  // mudanças de plano (etapa pulada/concluída, sequência editada) nunca
+  // propagariam. LWW pelo planejamento.updatedAt (gravado em toda mutação real
+  // do plano); sem o campo nos dois lados, o local segue vencendo (clientes
+  // antigos, comportamento anterior).
+  const remotePlan = remoteState.planejamento;
+  if (remotePlan && toTime(remotePlan.updatedAt) > toTime(localState.planejamento?.updatedAt)) {
+    merged.planejamento = remotePlan;
+  }
+
   for (const key of ['editais', 'eventos', 'arquivo', 'revisoes']) {
     merged[key] = mergeById(localState[key], remoteState[key], buildTombstoneIndex(tombstones, key));
   }

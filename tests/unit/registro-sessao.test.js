@@ -1189,5 +1189,24 @@ describe('registro-sessao.js', () => {
       expect(store.state.eventos).toHaveLength(0);
       expect(app.closeModal).toHaveBeenCalledWith('modal-registro-sessao');
     });
+
+    it('grava tombstone de sync para o evento removido', () => {
+      // Sem tombstone, o evento descartado no "voltar" ressuscitaria no merge
+      // se outro dispositivo ainda tivesse a cópia.
+      const pastEvento = createEvento({
+        id: 'ev_past',
+        _isPastSession: true,
+        discId: 'disc_1',
+        tempoAcumulado: 1800,
+        sessao: {}
+      });
+      store.setState(createBaseState({ eventos: [pastEvento] }));
+
+      registroSessao.voltarPastSessionUI('ev_past', 'disc_1');
+
+      expect(store.state.syncTombstones).toContainEqual(
+        expect.objectContaining({ col: 'eventos', id: 'ev_past' })
+      );
+    });
   });
 });

@@ -11,6 +11,7 @@ import { scheduleSave, state } from './store.js?v=8.37';
 import {
   getDisc,
   syncCicloToEventos,
+  touchPlanejamento,
 } from './logic.js?v=8.37';
 import { renderCurrentView } from './components.js?v=8.37';
 import { openAddEventModal, loadAssuntos } from './ui/event-modals.js?v=8.37';
@@ -252,6 +253,7 @@ export function saveEditSeq() {
   }
 
   state.planejamento.sequencia = ts;
+  touchPlanejamento();
   syncCicloToEventos();
   scheduleSave();
 

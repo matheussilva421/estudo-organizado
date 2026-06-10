@@ -7,6 +7,7 @@ import { state, saveStateToDB } from '../store.js?v=8.37';
 import {
   getDisc,
   syncCicloToEventos,
+  touchPlanejamento,
   invalidateDashCaches,
   invalidateStreakCache,
   invalidatePendingRevCache,
@@ -46,6 +47,7 @@ function markPlanningSequenceCompleted(seq) {
   seq.status = 'concluida';
   seq.finalizadoEm = new Date().toISOString();
   delete seq.puladaEm;
+  touchPlanejamento();
 }
 
 function getStudiedMinutesForSeq(seqId) {

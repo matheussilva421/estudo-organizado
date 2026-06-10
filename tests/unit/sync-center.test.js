@@ -576,3 +576,74 @@ describe('syncTombstones (exclusões propagadas no merge)', () => {
     });
   });
 });
+
+// Planejamento é um objeto singleton: o merge fazia {...remote, ...local} e o
+// LOCAL sempre vencia — mudanças de plano (ex.: etapa pulada) nunca propagavam
+// entre dispositivos. Agora cada mutação real do plano grava
+// planejamento.updatedAt e o merge aplica LWW pelo timestamp; sem updatedAt nos
+// dois lados, o local continua vencendo (comportamento antigo, clientes antigos).
+describe('merge do planejamento (LWW por updatedAt)', () => {
+  it('planejamento remoto mais novo vence — etapa pulada propaga', () => {
+    const local = {
+      planejamento: {
+        ativo: true,
+        updatedAt: '2026-06-09T10:00:00.000Z',
+        sequencia: [{ id: 'seq_1', status: 'pendente' }],
+      },
+    };
+    const remote = {
+      planejamento: {
+        ativo: true,
+        updatedAt: '2026-06-10T10:00:00.000Z',
+        sequencia: [{ id: 'seq_1', status: 'pulada', puladaEm: '2026-06-10T10:00:00.000Z' }],
+      },
+    };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.planejamento.sequencia[0].status).toBe('pulada');
+  });
+
+  it('planejamento local mais novo vence', () => {
+    const local = {
+      planejamento: { updatedAt: '2026-06-10T10:00:00.000Z', sequencia: [{ id: 'a' }] },
+    };
+    const remote = {
+      planejamento: { updatedAt: '2026-06-09T10:00:00.000Z', sequencia: [{ id: 'b' }] },
+    };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.planejamento.sequencia[0].id).toBe('a');
+  });
+
+  it('sem updatedAt nos dois lados, o local vence (comportamento atual)', () => {
+    const local = { planejamento: { sequencia: [{ id: 'a' }] } };
+    const remote = { planejamento: { sequencia: [{ id: 'b' }] } };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.planejamento.sequencia[0].id).toBe('a');
+  });
+
+  it('remoto com updatedAt vence local sem updatedAt (cliente antigo)', () => {
+    const local = { planejamento: { sequencia: [{ id: 'a' }] } };
+    const remote = {
+      planejamento: { updatedAt: '2026-06-10T10:00:00.000Z', sequencia: [{ id: 'b' }] },
+    };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.planejamento.sequencia[0].id).toBe('b');
+  });
+
+  it('remoto sem planejamento mantém o local', () => {
+    const local = {
+      planejamento: { updatedAt: '2026-06-10T10:00:00.000Z', sequencia: [{ id: 'a' }] },
+    };
+
+    const merged = mergeStudyStates(local, {});
+
+    expect(merged.planejamento.sequencia[0].id).toBe('a');
+  });
+});
