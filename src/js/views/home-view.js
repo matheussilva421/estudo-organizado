@@ -486,7 +486,7 @@ function renderAnalysisColumn(ctx) {
 
 function getWeekBounds(offsetWeeks = 0) {
   const now = new Date();
-  const primeirodiaSemana = state.config.primeirodiaSemana || 1;
+  const primeirodiaSemana = state.config.primeirodiaSemana ?? 1;
   let dayOffset = now.getDay() - primeirodiaSemana;
   if (dayOffset < 0) dayOffset += 7;
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOffset + offsetWeeks * 7);

@@ -122,7 +122,7 @@ export function getAggregatedStats() {
 
   // Determine week boundaries once
   const now = new Date();
-  const primeirodiaSemana = state.config.primeirodiaSemana || 1;
+  const primeirodiaSemana = state.config.primeirodiaSemana ?? 1;
   let dayOffset = now.getDay() - primeirodiaSemana;
   if (dayOffset < 0) dayOffset += 7;
   const startOfWeek = new Date(
@@ -463,7 +463,7 @@ export function getSyllabusProgressByEdital(editalId) {
 export function getPredictiveStats(metaHoras, subjectStats = null) {
   const weekStats = getCurrentWeekStats();
   const today = new Date();
-  const primeirodiaSemana = state.config.primeirodiaSemana || 1;
+  const primeirodiaSemana = state.config.primeirodiaSemana ?? 1;
   let dIndex = today.getDay() - primeirodiaSemana;
   if (dIndex < 0) dIndex += 7;
 

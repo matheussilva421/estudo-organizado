@@ -58,6 +58,22 @@ describe('views/calendar-view.js', () => {
     });
   });
 
+  describe('primeiro dia da semana', () => {
+    it('Domingo (0) é respeitado no cabeçalho do mês (|| descartava o 0)', () => {
+      storeModule.state.config.primeirodiaSemana = 0;
+      const html = calendarView.renderCalendarMonth();
+      const firstDow = html.match(/cal-dow">([^<]+)</)[1];
+      expect(firstDow).toBe('Dom');
+    });
+
+    it('Segunda (1) continua sendo o default', () => {
+      delete storeModule.state.config.primeirodiaSemana;
+      const html = calendarView.renderCalendarMonth();
+      const firstDow = html.match(/cal-dow">([^<]+)</)[1];
+      expect(firstDow).toBe('Seg');
+    });
+  });
+
   describe('calNavigate()', () => {
     it('navigates forward by 1 month in mes mode', () => {
       const start = new Date(calendarView.getCalDate());

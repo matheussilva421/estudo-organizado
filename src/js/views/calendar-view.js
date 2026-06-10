@@ -126,9 +126,9 @@ export function renderCalendarMonth() {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const today = todayStr();
-  const startDow = (firstDay.getDay() - (state.config.primeirodiaSemana || 1) + 7) % 7;
+  const startDow = (firstDay.getDay() - (state.config.primeirodiaSemana ?? 1) + 7) % 7;
   const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const startDow0 = state.config.primeirodiaSemana || 1;
+  const startDow0 = state.config.primeirodiaSemana ?? 1;
   const dowOrder = Array.from({ length: 7 }, (_, i) => dows[(startDow0 + i) % 7]);
 
   const cells = [];
@@ -228,7 +228,7 @@ export function renderCalendarWeek() {
   const calDate = getCalDate();
   const today = todayStr();
   const dow = calDate.getDay();
-  const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
+  const startOffset = (dow - (state.config.primeirodiaSemana ?? 1) + 7) % 7;
   const weekStart = new Date(calDate);
   weekStart.setDate(calDate.getDate() - startOffset);
   const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -329,7 +329,7 @@ export function renderCalendarMobileWeek() {
   const calDate = getCalDate();
   const today = todayStr();
   const dow = calDate.getDay();
-  const startOffset = (dow - (state.config.primeirodiaSemana || 1) + 7) % 7;
+  const startOffset = (dow - (state.config.primeirodiaSemana ?? 1) + 7) % 7;
   const weekStart = new Date(calDate);
   weekStart.setDate(calDate.getDate() - startOffset);
   const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
