@@ -3,6 +3,8 @@
  * Reduz dependência de string concatenation e inline handlers
  */
 
+import { esc } from '../utils.js?v=8.37';
+
 /**
  * Query selector wrapper com fallback seguro
  * @param {string} selector - CSS selector
@@ -128,20 +130,7 @@ export function toggleClass(node, className, force) {
   node?.classList?.toggle(className, force);
 }
 
-/**
- * Import esc from utils (safe HTML escape)
- * @param {string} str - String to escape
- * @returns {string} - Escaped string
- */
-export function esc(str) {
-  if (!str && str !== 0) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+// esc vem de utils.js (definição única — cópia local removida).
 
 /**
  * Set innerHTML com validação de segurança

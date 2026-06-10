@@ -10,7 +10,6 @@ import path from 'node:path';
 // Wrappers/delegações intencionais entram na allowlist abaixo, com o motivo.
 
 const ALLOWED_DUPLICATES = new Set([
-  'esc', // utils.js e ui/dom.js — implementações idênticas (escape de HTML)
   'createExportableState', // store.js é wrapper fino de store/export-state.js
   'runMigrations', // domínios distintos: schema do IndexedDB vs migrações de state
   'pwRenderWeightPreview', // planejamento-wizard.js delega para planejamento/step-renderers.js
