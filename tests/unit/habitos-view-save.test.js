@@ -77,6 +77,28 @@ describe('habitos-view saveHabit', () => {
     );
   });
 
+  it('rejeita acertos por disciplina fora do range no simulado', () => {
+    logicModule.getActiveDisciplinas.mockReturnValue([
+      { disc: { id: 'disc_x', nome: 'Direito' } },
+    ]);
+    document.body.innerHTML += `
+      <input id="habit-desc" value="Simulado A">
+      <input id="habit-total" value="20">
+      <input id="sim-total-disc_x" value="10">
+      <input id="sim-acertos-disc_x" value="15">
+    `;
+    document.getElementById('habit-acertos').value = '12';
+    mod.selectHabitType('simulado', document.getElementById('type-btn'));
+
+    mod.saveHabit();
+
+    expect(storeModule.state.habitos.simulado).toBeUndefined();
+    expect(appModule.showToast).toHaveBeenCalledWith(
+      'Acertos de Direito deve estar entre 0 e o total da disciplina',
+      'error'
+    );
+  });
+
   it('rejeita páginas negativas em leitura', () => {
     document.body.innerHTML += '<input id="habit-paginas" value="-20">';
     mod.selectHabitType('leitura', document.getElementById('type-btn'));

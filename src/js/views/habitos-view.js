@@ -500,12 +500,16 @@ export function saveHabit() {
       return;
     }
     const gabaritoPorDisc = [];
-    getActiveDisciplinas().forEach(({ disc }) => {
+    for (const { disc } of getActiveDisciplinas()) {
       const t = parseInt(document.getElementById(`sim-total-${disc.id}`)?.value || '0');
       const a = parseInt(document.getElementById(`sim-acertos-${disc.id}`)?.value || '0');
+      if (t > 0 && (a < 0 || a > t)) {
+        showToast(`Acertos de ${disc.nome} deve estar entre 0 e o total da disciplina`, 'error');
+        return;
+      }
       if (t > 0)
         gabaritoPorDisc.push({ discId: disc.id, discNome: disc.nome, total: t, acertos: a });
-    });
+    }
     registro.quantidade = total;
     registro.acertos = acertos;
     registro.total = total;
