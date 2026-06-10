@@ -52,4 +52,39 @@ describe('habitos-view saveHabit', () => {
       { discId: 'disc_x', discNome: 'Direito', total: 10, acertos: 7 },
     ]);
   });
+
+  it('rejeita quantidade negativa de questões', () => {
+    document.getElementById('habit-qtd').value = '-10';
+    mod.saveHabit();
+    expect(storeModule.state.habitos.questoes).toBeUndefined();
+    expect(appModule.showToast).toHaveBeenCalledWith(
+      'Quantidade de questões é obrigatória',
+      'error'
+    );
+  });
+
+  it('rejeita acertos negativos ou maiores que a quantidade', () => {
+    document.getElementById('habit-acertos').value = '-3';
+    mod.saveHabit();
+    expect(storeModule.state.habitos.questoes).toBeUndefined();
+
+    document.getElementById('habit-acertos').value = '15';
+    mod.saveHabit();
+    expect(storeModule.state.habitos.questoes).toBeUndefined();
+    expect(appModule.showToast).toHaveBeenCalledWith(
+      'Acertos deve estar entre 0 e a quantidade de questões',
+      'error'
+    );
+  });
+
+  it('rejeita páginas negativas em leitura', () => {
+    document.body.innerHTML += '<input id="habit-paginas" value="-20">';
+    mod.selectHabitType('leitura', document.getElementById('type-btn'));
+    mod.saveHabit();
+    expect(storeModule.state.habitos.leitura).toBeUndefined();
+    expect(appModule.showToast).toHaveBeenCalledWith(
+      'Páginas não podem ser negativas',
+      'error'
+    );
+  });
 });

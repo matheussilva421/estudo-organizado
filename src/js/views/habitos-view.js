@@ -475,8 +475,12 @@ export function saveHabit() {
     const quantidade = parseInt(document.getElementById('habit-qtd')?.value || '0');
     const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
     const discId = document.getElementById('habit-disc')?.value;
-    if (!quantidade) {
+    if (!quantidade || quantidade < 0) {
       showToast('Quantidade de questões é obrigatória', 'error');
+      return;
+    }
+    if (acertos < 0 || acertos > quantidade) {
+      showToast('Acertos deve estar entre 0 e a quantidade de questões', 'error');
       return;
     }
     registro.quantidade = quantidade;
@@ -491,6 +495,10 @@ export function saveHabit() {
     registro.descricao = document.getElementById('habit-desc')?.value || '';
     const total = parseInt(document.getElementById('habit-total')?.value || '0');
     const acertos = parseInt(document.getElementById('habit-acertos')?.value || '0');
+    if (total < 0 || acertos < 0 || (total > 0 && acertos > total)) {
+      showToast('Acertos deve estar entre 0 e o total do simulado', 'error');
+      return;
+    }
     const gabaritoPorDisc = [];
     getActiveDisciplinas().forEach(({ disc }) => {
       const t = parseInt(document.getElementById(`sim-total-${disc.id}`)?.value || '0');
@@ -507,7 +515,12 @@ export function saveHabit() {
     registro.nota = document.getElementById('habit-nota')?.value || '';
   } else if (currentHabitType === 'leitura') {
     registro.descricao = document.getElementById('habit-desc')?.value || '';
-    registro.total = parseInt(document.getElementById('habit-paginas')?.value || '0');
+    const paginas = parseInt(document.getElementById('habit-paginas')?.value || '0');
+    if (paginas < 0) {
+      showToast('Páginas não podem ser negativas', 'error');
+      return;
+    }
+    registro.total = paginas;
   } else {
     registro.descricao = document.getElementById('habit-desc')?.value || '';
   }
