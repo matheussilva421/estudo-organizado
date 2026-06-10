@@ -193,7 +193,7 @@ export function renderVerticalList(container) {
       <div class="card vertical-disc-card mb-3" style="overflow:hidden; border:none; height:auto; min-height:0;">
 
         <!-- HEADER DISCIPLINA -->
-        <div class="vertical-disc-header flex-between" style="padding:12px 16px; background:var(--card); cursor:pointer;" data-action="toggle-vert-disc" data-disc-id="${discId}">
+        <div class="vertical-disc-header flex-between" style="padding:12px 16px; background:var(--card); cursor:pointer;" data-action="toggle-vert-disc" data-disc-id="${discId}" role="button" tabindex="0" aria-expanded="false" aria-controls="vert-disc-body-${discId}" aria-label="Expandir ou recolher ${esc(dMap.disc.nome)}">
           <div class="vertical-disc-header-main flex font-semibold text-primary items-center gap-md" style="font-size:15px; min-width:0;">
             <div style="width:5px;height:24px;background:${cor};border-radius:4px;"></div>
             <span class="text-ellipsis" title="${esc(dMap.disc.nome)}">${esc(dMap.disc.nome)}</span>
@@ -300,7 +300,8 @@ export function toggleVertDisc(id) {
   const body = document.getElementById('vert-disc-body-' + id);
   const icon = document.getElementById('vert-disc-icon-' + id);
   if (!body || !icon) return;
-  if (body.style.display === 'none') {
+  const willExpand = body.style.display === 'none';
+  if (willExpand) {
     body.style.display = 'block';
     icon.classList.remove('fa-chevron-down');
     icon.classList.add('fa-chevron-up');
@@ -309,6 +310,9 @@ export function toggleVertDisc(id) {
     icon.classList.remove('fa-chevron-up');
     icon.classList.add('fa-chevron-down');
   }
+  document
+    .querySelector(`[data-action="toggle-vert-disc"][data-disc-id="${id}"]`)
+    ?.setAttribute('aria-expanded', String(willExpand));
 }
 
 // ── Editais View: Main Render ──

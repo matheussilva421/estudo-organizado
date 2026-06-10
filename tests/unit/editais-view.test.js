@@ -261,5 +261,28 @@ describe('views/editais-view.js', () => {
       expect(body.style.display).toBe('block');
       expect(icon.classList.add).toHaveBeenCalledWith('fa-chevron-up');
     });
+
+    it('sincroniza aria-expanded no header ao expandir/recolher', () => {
+      document.body.innerHTML = `
+        <div data-action="toggle-vert-disc" data-disc-id="d1" role="button" tabindex="0" aria-expanded="false"></div>
+        <i id="vert-disc-icon-d1" class="fa fa-chevron-down"></i>
+        <div id="vert-disc-body-d1" style="display:none"></div>
+      `;
+      editaisView.toggleVertDisc('d1');
+      const header = document.querySelector('[data-action="toggle-vert-disc"]');
+      expect(header.getAttribute('aria-expanded')).toBe('true');
+
+      editaisView.toggleVertDisc('d1');
+      expect(header.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('markup do header declara role, tabindex e aria-expanded', async () => {
+      const { readFileSync } = await import('node:fs');
+      const src = readFileSync('src/js/views/editais-view.js', 'utf8');
+      const headerTag = src.match(/<div[^>]*data-action="toggle-vert-disc"[^>]*>/)[0];
+      expect(headerTag).toContain('role="button"');
+      expect(headerTag).toContain('tabindex="0"');
+      expect(headerTag).toContain('aria-expanded="false"');
+    });
   });
 });
