@@ -64,6 +64,8 @@ registerAction('update-config', (el) => {
   let value = el.value;
   if (el.dataset.valueType === 'number') {
     value = parseInt(value, 10);
+    // Campo limpo/inválido viraria NaN no estado (e NaN ?? default não recupera).
+    if (!Number.isFinite(value)) return;
   } else if (el.dataset.valueTransform === 'trim-url') {
     value = value.trim().replace(/\/$/, '');
   } else if (el.dataset.valueTransform === 'trim') {

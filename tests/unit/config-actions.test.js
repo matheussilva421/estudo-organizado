@@ -137,6 +137,19 @@ describe('ui/actions/config.js', () => {
     expect(configView.updateConfig).toHaveBeenCalledWith('revisoesIntervalo', 7);
   });
 
+  it('update-config ignora campo numérico limpo/inválido (NaN não vai para o estado)', () => {
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'update-config')[1];
+    handler({ dataset: { configKey: 'silentModeStart', valueType: 'number' }, value: '' });
+    handler({ dataset: { configKey: 'silentModeStart', valueType: 'number' }, value: 'abc' });
+    expect(configView.updateConfig).not.toHaveBeenCalled();
+  });
+
+  it('update-config aceita 0 como valor numérico válido', () => {
+    const handler = registerAction.mock.calls.find((c) => c[0] === 'update-config')[1];
+    handler({ dataset: { configKey: 'silentModeStart', valueType: 'number' }, value: '0' });
+    expect(configView.updateConfig).toHaveBeenCalledWith('silentModeStart', 0);
+  });
+
   it('update-config handler trims URL values', () => {
     const handler = registerAction.mock.calls.find((c) => c[0] === 'update-config')[1];
     handler({
