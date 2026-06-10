@@ -15,6 +15,7 @@ import { state, scheduleSave } from '../store.js?v=8.37';
 import { getActiveDisciplinas, getDisc } from '../logic.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 import { showConfirm, showToast, openModal, closeModal as appCloseModal } from '../app.js?v=8.37';
+import { recordSyncTombstone } from '../sync/sync-center.js?v=8.37';
 
 export const HABIT_HIST_PAGE_SIZE = 20;
 export let habitHistPage = 1;
@@ -571,6 +572,9 @@ export function deleteHabito(tipo, id) {
   showConfirm(
     'Excluir este registro de hábito?',
     () => {
+      const existed = (state.habitos[tipo] || []).some((h) => h.id === id);
+      // Tombstone para o merge de sync não ressuscitar a exclusão
+      if (existed) recordSyncTombstone(state, `habitos.${tipo}`, id);
       state.habitos[tipo] = (state.habitos[tipo] || []).filter((h) => h.id !== id);
       habitHistPage = 1;
       scheduleSave();

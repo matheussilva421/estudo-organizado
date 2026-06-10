@@ -4,6 +4,7 @@ import {
   buildSyncCenterModel,
   getManualSyncStatus,
   mergeStudyStates,
+  recordSyncTombstone,
 } from '../../src/js/sync/sync-center.js';
 
 describe('sync-center.js', () => {
@@ -408,6 +409,170 @@ describe('sync-center.js', () => {
     it('updates localBackupAt timestamp', () => {
       const merged = mergeStudyStates({}, {});
       expect(merged.config.localBackupAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    });
+  });
+});
+
+// =============================================
+// TOMBSTONES DE EXCLUSÃO
+// =============================================
+// mergeById é uma união por id: sem tombstones, um item excluído localmente que
+// ainda exista no payload remoto ressuscita em qualquer merge (pull automático
+// do Cloudflare/Drive/Firestore). Os tombstones registram a exclusão e viajam
+// no payload (createExportableState clona o estado inteiro).
+describe('syncTombstones (exclusões propagadas no merge)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const iso = (offsetMs) => new Date(Date.now() + offsetMs).toISOString();
+
+  it('exclusão local sobrevive ao merge quando o remoto ainda tem o item', () => {
+    const local = {
+      eventos: [],
+      syncTombstones: [{ col: 'eventos', id: 'ev_1', deletedAt: iso(0) }],
+    };
+    const remote = { eventos: [{ id: 'ev_1', criadoEm: iso(-5 * DAY) }] };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.eventos).toEqual([]);
+    expect(merged.syncTombstones).toContainEqual(
+      expect.objectContaining({ col: 'eventos', id: 'ev_1' })
+    );
+  });
+
+  it('exclusão remota remove o item local', () => {
+    const local = { eventos: [{ id: 'ev_1', criadoEm: iso(-5 * DAY) }] };
+    const remote = {
+      eventos: [],
+      syncTombstones: [{ col: 'eventos', id: 'ev_1', deletedAt: iso(0) }],
+    };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.eventos).toEqual([]);
+  });
+
+  it('item recriado depois do tombstone sobrevive', () => {
+    const local = { syncTombstones: [{ col: 'eventos', id: 'ev_1', deletedAt: iso(-2 * DAY) }] };
+    const remote = { eventos: [{ id: 'ev_1', criadoEm: iso(-10 * DAY), updatedAt: iso(-1 * DAY) }] };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.eventos).toHaveLength(1);
+  });
+
+  it('tombstones dos dois lados são unidos mantendo o deletedAt mais novo', () => {
+    const newer = iso(0);
+    const local = { syncTombstones: [{ col: 'eventos', id: 'ev_1', deletedAt: iso(-1 * DAY) }] };
+    const remote = {
+      syncTombstones: [
+        { col: 'eventos', id: 'ev_1', deletedAt: newer },
+        { col: 'eventos', id: 'ev_2', deletedAt: iso(-3 * DAY) },
+      ],
+    };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.syncTombstones).toHaveLength(2);
+    expect(merged.syncTombstones.find((t) => t.id === 'ev_1').deletedAt).toBe(newer);
+  });
+
+  it('payload de cliente antigo sem syncTombstones mantém o comportamento atual', () => {
+    const local = { eventos: [{ id: '1' }] };
+    const remote = { eventos: [{ id: '2' }] };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.eventos).toHaveLength(2);
+    expect(merged.syncTombstones).toEqual([]);
+  });
+
+  it('tombstones com mais de 180 dias são podados no merge', () => {
+    const local = {
+      syncTombstones: [
+        { col: 'eventos', id: 'ev_velho', deletedAt: iso(-200 * DAY) },
+        { col: 'eventos', id: 'ev_novo', deletedAt: iso(-1 * DAY) },
+      ],
+    };
+
+    const merged = mergeStudyStates(local, {});
+
+    expect(merged.syncTombstones.map((t) => t.id)).toEqual(['ev_novo']);
+  });
+
+  it('cap de 2000 tombstones mantém os mais recentes', () => {
+    const many = Array.from({ length: 2005 }, (_, i) => ({
+      col: 'eventos',
+      id: 'ev_' + i,
+      // i maior = mais novo
+      deletedAt: iso(-(2005 - i) * 60 * 1000),
+    }));
+    const merged = mergeStudyStates({ syncTombstones: many }, {});
+
+    expect(merged.syncTombstones).toHaveLength(2000);
+    const ids = new Set(merged.syncTombstones.map((t) => t.id));
+    expect(ids.has('ev_2004')).toBe(true); // mais novo permanece
+    expect(ids.has('ev_0')).toBe(false); // mais velho cai
+  });
+
+  it('tombstone de hábito filtra só o registro do tipo correspondente', () => {
+    const local = {
+      habitos: { questoes: [] },
+      syncTombstones: [{ col: 'habitos.questoes', id: 'hab_1', deletedAt: iso(0) }],
+    };
+    const remote = {
+      habitos: {
+        questoes: [{ id: 'hab_1', criadoEm: iso(-2 * DAY) }],
+        leitura: [{ id: 'hab_1', criadoEm: iso(-2 * DAY) }],
+      },
+    };
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.habitos.questoes).toEqual([]);
+    expect(merged.habitos.leitura).toHaveLength(1);
+  });
+
+  it('tombstone sem deletedAt válido é ignorado (não derruba o merge)', () => {
+    const local = {
+      eventos: [{ id: 'ev_1', criadoEm: iso(-1 * DAY) }],
+      syncTombstones: [{ col: 'eventos', id: 'ev_1' }, null, { id: 'sem_col' }],
+    };
+
+    const merged = mergeStudyStates(local, {});
+
+    expect(merged.eventos).toHaveLength(1);
+    expect(merged.syncTombstones).toEqual([]);
+  });
+
+  describe('recordSyncTombstone()', () => {
+    it('cria a lista e registra a exclusão', () => {
+      const state = {};
+
+      recordSyncTombstone(state, 'eventos', 'ev_1');
+
+      expect(state.syncTombstones).toHaveLength(1);
+      expect(state.syncTombstones[0]).toMatchObject({ col: 'eventos', id: 'ev_1' });
+      expect(state.syncTombstones[0].deletedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    });
+
+    it('atualiza o deletedAt sem duplicar quando o mesmo item é excluído de novo', () => {
+      const state = {
+        syncTombstones: [
+          { col: 'eventos', id: 'ev_1', deletedAt: '2026-01-01T00:00:00.000Z' },
+        ],
+      };
+
+      recordSyncTombstone(state, 'eventos', 'ev_1');
+
+      expect(state.syncTombstones).toHaveLength(1);
+      expect(state.syncTombstones[0].deletedAt).not.toBe('2026-01-01T00:00:00.000Z');
+    });
+
+    it('ignora chamadas sem col ou id', () => {
+      const state = {};
+      recordSyncTombstone(state, '', 'x');
+      recordSyncTombstone(state, 'eventos', null);
+      expect(state.syncTombstones).toBeUndefined();
     });
   });
 });

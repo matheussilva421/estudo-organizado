@@ -25,7 +25,67 @@ function getItemUpdatedAt(item) {
   return item?.updatedAt || item?._sync?.updatedAt || item?.criadoEm || 0;
 }
 
-function mergeById(localArr, remoteArr) {
+// =============================================
+// TOMBSTONES DE EXCLUSÃO
+// =============================================
+// mergeById é uma união por id: a ausência de um item não carrega informação,
+// então uma exclusão local ressuscitava no merge se o payload remoto ainda
+// tivesse o item. Os tombstones ({ col, id, deletedAt }) registram exclusões
+// reais do usuário, viajam dentro do payload (createExportableState clona o
+// estado inteiro) e filtram o item nos dois sentidos do merge. Um item
+// recriado/atualizado DEPOIS do deletedAt sobrevive (LWW). Clientes antigos
+// ignoram o campo — comportamento atual preservado quando ele não existe.
+const TOMBSTONE_MAX_AGE_DAYS = 180;
+const TOMBSTONE_CAP = 2000;
+
+export function recordSyncTombstone(state, col, id) {
+  if (!state || !col || !id) return;
+  if (!Array.isArray(state.syncTombstones)) state.syncTombstones = [];
+  const deletedAt = new Date().toISOString();
+  const existing = state.syncTombstones.find((t) => t?.col === col && t?.id === id);
+  if (existing) {
+    existing.deletedAt = deletedAt;
+    return;
+  }
+  state.syncTombstones.push({ col, id, deletedAt });
+}
+
+function mergeTombstones(localList, remoteList) {
+  const all = [
+    ...(Array.isArray(localList) ? localList : []),
+    ...(Array.isArray(remoteList) ? remoteList : []),
+  ];
+  const cutoff = Date.now() - TOMBSTONE_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+  const byKey = new Map();
+  for (const t of all) {
+    if (!t?.col || !t?.id) continue;
+    const time = toTime(t.deletedAt);
+    if (!time || time < cutoff) continue;
+    const key = `${t.col}:${t.id}`;
+    const existing = byKey.get(key);
+    if (!existing || toTime(existing.deletedAt) < time) byKey.set(key, t);
+  }
+  return Array.from(byKey.values())
+    .sort((a, b) => toTime(b.deletedAt) - toTime(a.deletedAt))
+    .slice(0, TOMBSTONE_CAP);
+}
+
+function buildTombstoneIndex(tombstones, col) {
+  const index = new Map();
+  for (const t of tombstones || []) {
+    if (t.col === col) index.set(t.id, toTime(t.deletedAt));
+  }
+  return index;
+}
+
+function isTombstoned(item, tombstoneIndex) {
+  if (!tombstoneIndex || tombstoneIndex.size === 0) return false;
+  const deletedTime = tombstoneIndex.get(item?.id);
+  if (!deletedTime) return false;
+  return deletedTime >= toTime(getItemUpdatedAt(item));
+}
+
+function mergeById(localArr, remoteArr, tombstoneIndex) {
   const localItems = Array.isArray(localArr) ? localArr : [];
   const remoteItems = Array.isArray(remoteArr) ? remoteArr : [];
   const map = new Map();
@@ -43,7 +103,7 @@ function mergeById(localArr, remoteArr) {
     const remoteTime = getItemUpdatedAt(existing);
     if (localTime >= remoteTime) map.set(item.id, item);
   }
-  return Array.from(map.values());
+  return Array.from(map.values()).filter((item) => !isTombstoned(item, tombstoneIndex));
 }
 
 export function isGlobalSyncPaused(config = {}) {
@@ -354,8 +414,11 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
     },
   };
 
+  const tombstones = mergeTombstones(localState.syncTombstones, remoteState.syncTombstones);
+  merged.syncTombstones = tombstones;
+
   for (const key of ['editais', 'eventos', 'arquivo', 'revisoes']) {
-    merged[key] = mergeById(localState[key], remoteState[key]);
+    merged[key] = mergeById(localState[key], remoteState[key], buildTombstoneIndex(tombstones, key));
   }
 
   const habitTypes = new Set([
@@ -364,7 +427,11 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   ]);
   merged.habitos = {};
   for (const type of habitTypes) {
-    merged.habitos[type] = mergeById(localState.habitos?.[type], remoteState.habitos?.[type]);
+    merged.habitos[type] = mergeById(
+      localState.habitos?.[type],
+      remoteState.habitos?.[type],
+      buildTombstoneIndex(tombstones, `habitos.${type}`)
+    );
   }
 
   merged.config.localBackupAt = new Date().toISOString();

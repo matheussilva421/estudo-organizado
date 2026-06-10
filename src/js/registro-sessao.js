@@ -20,6 +20,7 @@ import { openModal, closeModal, showToast, showConfirm, navigate } from './app.j
 import { esc, trunc, uid } from './utils.js?v=8.37';
 import { renderCurrentView } from './components.js?v=8.37';
 import { openAddPastSessionModal } from './ui/event-modals.js?v=8.37';
+import { recordSyncTombstone } from './sync/sync-center.js?v=8.37';
 
 // Sub-módulos
 import {
@@ -444,9 +445,15 @@ export function deleteCompletedSession(id) {
     () => {
       const ev = state.eventos.find((e) => e.id === id);
       const linkedSeqToReopen = getLinkedPlanningSequenceForDeletedSession(ev);
+      // Tombstones para o merge de sync não ressuscitar a sessão nem os
+      // registros de hábito vinculados em outro dispositivo.
+      recordSyncTombstone(state, 'eventos', id);
       state.eventos = state.eventos.filter((e) => e.id !== id);
       Object.keys(state.habitos).forEach((tipo) => {
         if (state.habitos[tipo]) {
+          for (const h of state.habitos[tipo]) {
+            if (h.eventoId === id) recordSyncTombstone(state, `habitos.${tipo}`, h.id);
+          }
           state.habitos[tipo] = state.habitos[tipo].filter((h) => h.eventoId !== id);
         }
       });

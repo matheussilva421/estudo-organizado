@@ -721,6 +721,33 @@ describe('habitos-view.js', () => {
       expect(views.deleteHabito).toBeDefined();
       expect(typeof views.deleteHabito).toBe('function');
     });
+
+    it('grava tombstone de sync ao excluir um registro de hábito', async () => {
+      // Sem tombstone, o registro excluído ressuscita no merge (união por id).
+      const state = createBaseState();
+      state.habitos.questoes = [{ id: 'hab_1', data: '2026-04-20', quantidade: 10 }];
+      store.setState(state);
+
+      // monta o modal real de confirmação e liga os handlers (mesma instância
+      // de módulo usada por habitos-view via app.js)
+      document.body.innerHTML = `
+        <div id="modal-confirm">
+          <div id="confirm-title"></div>
+          <div id="confirm-msg"></div>
+          <button id="confirm-ok-btn"></button>
+          <button id="confirm-cancel-btn"></button>
+        </div>`;
+      const modals = await import('../../src/js/app/modals.js');
+      modals.setupConfirmHandlers();
+
+      views.deleteHabito('questoes', 'hab_1');
+      document.getElementById('confirm-ok-btn').click();
+
+      expect(store.state.habitos.questoes).toHaveLength(0);
+      expect(store.state.syncTombstones).toContainEqual(
+        expect.objectContaining({ col: 'habitos.questoes', id: 'hab_1' })
+      );
+    });
   });
 
   describe('setHabitPage()', () => {

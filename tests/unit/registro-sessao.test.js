@@ -311,6 +311,47 @@ describe('registro-sessao.js', () => {
       expect(app.closeModal).toHaveBeenCalledWith('modal-registro-sessao');
     });
 
+    it('grava tombstones de sync para a sessão e os hábitos vinculados excluídos', () => {
+      // Sem tombstone, a sessão excluída ressuscita no próximo merge se outro
+      // dispositivo ainda tiver a cópia (mergeById é união por id).
+      const evento = createEvento({
+        id: 'ev_completed',
+        status: 'estudei',
+        discId: 'disc_1',
+        tempoAcumulado: 3600,
+        sessao: { tiposEstudo: ['leitura'] }
+      });
+      store.setState(createBaseState({
+        eventos: [evento],
+        habitos: {
+          leitura: [{ id: 'hab_1', data: '2026-04-20', eventoId: 'ev_completed', tempoMin: 60 }],
+          questoes: [{ id: 'hab_2', data: '2026-04-20', quantidade: 10 }],
+          revisao: [],
+          discursiva: [],
+          simulado: [],
+          informativo: [],
+          sumula: [],
+          videoaula: [],
+          paginas: []
+        }
+      }));
+
+      registroSessao.deleteCompletedSession('ev_completed');
+      const confirmCallback = app.showConfirm.mock.calls[0][1];
+      confirmCallback();
+
+      const tombstones = store.state.syncTombstones || [];
+      expect(tombstones).toContainEqual(
+        expect.objectContaining({ col: 'eventos', id: 'ev_completed' })
+      );
+      expect(tombstones).toContainEqual(
+        expect.objectContaining({ col: 'habitos.leitura', id: 'hab_1' })
+      );
+      // hábito não vinculado à sessão permanece e não ganha tombstone
+      expect(store.state.habitos.questoes).toHaveLength(1);
+      expect(tombstones.some((t) => t.id === 'hab_2')).toBe(false);
+    });
+
     it('asks before reopening the linked planning step when deleting the only completed session', () => {
       app.showConfirm.mockImplementation(() => {});
       const evento = createEvento({
