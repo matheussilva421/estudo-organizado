@@ -552,6 +552,10 @@ export function calcSimuladoPerc() {
     el.innerHTML = '';
     return;
   }
+  if (tot < 0 || ace < 0) {
+    el.innerHTML = '<span class="text-red">⚠️ Valores não podem ser negativos</span>';
+    return;
+  }
   const pct = Math.round((ace / tot) * 100);
   const colorClass = pct >= 70 ? 'text-accent' : pct >= 50 ? 'text-orange' : 'text-red';
   el.innerHTML = `<span class="${esc(colorClass)}">${esc(pct)}% de aproveitamento (${esc(ace)}/${esc(tot)})</span>`;

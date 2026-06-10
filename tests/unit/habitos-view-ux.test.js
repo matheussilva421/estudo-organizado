@@ -71,6 +71,18 @@ describe('habitos-view UX (modal title + simulado perc)', () => {
     expect(document.getElementById('habit-hist-footer').innerHTML).toContain('Página 2 de 2');
   });
 
+  it('calcSimuladoPerc acusa acertos negativos em vez de mostrar percentual absurdo', () => {
+    document.body.innerHTML = `
+      <input id="habit-total" value="10">
+      <input id="habit-acertos" value="-7">
+      <div id="sim-perc"></div>
+    `;
+    mod.calcSimuladoPerc();
+    const html = document.getElementById('sim-perc').innerHTML;
+    expect(html).not.toContain('-70%');
+    expect(html).toContain('negativos');
+  });
+
   it('calcSimuladoPerc still renders percentage for valid totals', () => {
     document.body.innerHTML = `
       <input id="habit-total" value="10">
