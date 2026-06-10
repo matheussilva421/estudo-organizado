@@ -3,7 +3,7 @@
 // =============================================
 
 import { state } from '../store.js?v=8.37';
-import { formatDate, formatTime, esc, normalizeSearch } from '../utils.js?v=8.37';
+import { formatDate, formatTime, esc, normalizeSearch, cutoffDateStr } from '../utils.js?v=8.37';
 import { getDisc } from '../logic.js?v=8.37';
 import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
 import {
@@ -24,9 +24,9 @@ function applyFilters(eventos, filters) {
   if (rangeDays && rangeDays !== 'all') {
     const days = Number(rangeDays);
     if (Number.isFinite(days) && days > 0) {
-      const d = new Date();
-      d.setDate(d.getDate() - days);
-      cutoff = d.toISOString().split('T')[0];
+      // cutoffDateStr usa a data LOCAL; toISOString (UTC) avançaria um dia à noite
+      // em fusos negativos e excluiria sessões do limite da janela.
+      cutoff = cutoffDateStr(days);
     }
   }
   return eventos.filter((ev) => {
@@ -50,7 +50,7 @@ function buildFilterToolbar(filters, disciplinas, totalAfter, totalBefore) {
     { value: '365', label: 'Último ano' },
     { value: 'all', label: 'Tudo' },
   ];
-  const rangeSel = String(filters.rangeDays ?? 30);
+  const rangeSel = String(filters.rangeDays ?? 'all');
   const discOptions = disciplinas
     .map(
       (entry) =>
@@ -78,7 +78,7 @@ function buildFilterToolbar(filters, disciplinas, totalAfter, totalBefore) {
       </label>
       <div style="display:flex;gap:6px;align-items:flex-end;">
         ${
-          rangeSel !== '30' || filters.disciplinaId || (filters.busca || '').trim()
+          rangeSel !== 'all' || filters.disciplinaId || (filters.busca || '').trim()
             ? '<button class="btn btn-ghost btn-sm" data-action="historico-clear-filters" title="Limpar todos os filtros"><i class="fa fa-times" aria-hidden="true"></i> Limpar filtros</button>'
             : ''
         }
@@ -108,6 +108,12 @@ export function renderHistoricoSessoes(el) {
   const allEventos = [...(state.eventos || []), ...(state.arquivo || [])].filter(
     (ev) => ev && ev.status === 'estudei'
   );
+  // Baseline do contador "Exibindo X de Y": a view é sempre escopada ao edital
+  // selecionado (allowAll:false), então Y precisa contar só o que está nesse escopo —
+  // senão "0 de 53" sugere que os filtros locais escondem sessões que eles nem veem.
+  const eventosNoEdital = allEventos.filter((ev) =>
+    eventBelongsToSelectedEdital(ev, { allowAll: false })
+  );
   const eventosFiltrados = applyFilters(allEventos, filters).sort((a, b) => {
     const dateA = String(a.dataEstudo || a.data || '');
     const dateB = String(b.dataEstudo || b.data || '');
@@ -130,15 +136,32 @@ export function renderHistoricoSessoes(el) {
   disciplinas.sort((a, b) =>
     String(a.disc.nome).localeCompare(String(b.disc.nome), 'pt-BR', { sensitivity: 'base' })
   );
-  const toolbar = buildFilterToolbar(filters, disciplinas, eventosFiltrados.length, allEventos.length);
+  const toolbar = buildFilterToolbar(
+    filters,
+    disciplinas,
+    eventosFiltrados.length,
+    eventosNoEdital.length
+  );
 
   if (eventosFiltrados.length === 0) {
+    const semSessoes = allEventos.length === 0;
+    const foraDoEdital = !semSessoes && eventosNoEdital.length === 0;
+    const titulo = semSessoes
+      ? 'Nenhuma sessão registrada ainda'
+      : foraDoEdital
+        ? 'Nenhuma sessão neste edital'
+        : 'Nenhuma sessão dentro do filtro';
+    const hint = semSessoes
+      ? 'Quando você finalizar uma sessão de estudo, ela aparecerá aqui.'
+      : foraDoEdital
+        ? 'As sessões registradas pertencem a outro edital — troque o edital no seletor da barra superior para vê-las.'
+        : 'Ajuste o período, disciplina ou busca para ver mais resultados.';
     el.innerHTML = `
       ${toolbar}
       <div class="card p-24 session-empty-state">
         <div class="session-empty-icon">🕘</div>
-        <div class="session-empty-title">${allEventos.length === 0 ? 'Nenhuma sessão registrada ainda' : 'Nenhuma sessão dentro do filtro'}</div>
-        <div class="session-empty-hint">${allEventos.length === 0 ? 'Quando você finalizar uma sessão de estudo, ela aparecerá aqui.' : 'Ajuste o período, disciplina ou busca para ver mais resultados.'}</div>
+        <div class="session-empty-title">${titulo}</div>
+        <div class="session-empty-hint">${hint}</div>
       </div>
     `;
     return;

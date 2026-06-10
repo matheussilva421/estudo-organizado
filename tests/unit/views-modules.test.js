@@ -904,6 +904,125 @@ describe('historico-sessoes view', () => {
     expect(container.innerHTML).toContain('01:00:00');
   });
 
+  it('escopa o contador "Exibindo X de Y" ao edital selecionado e explica no empty state', () => {
+    // Sem seleção explícita, o histórico usa allowAll:false → cai no PRIMEIRO edital (ed_a).
+    // As sessões pertencem ao ed_b: a lista fica vazia e o denominador não pode contar essas
+    // sessões como se estivessem "disponíveis" para os filtros locais.
+    const state = createBaseState({
+      editais: [
+        createEdital({
+          id: 'ed_a',
+          nome: 'Edital A',
+          disciplinas: [createDisciplina({ id: 'disc_a', nome: 'Disciplina A' })],
+        }),
+        createEdital({
+          id: 'ed_b',
+          nome: 'Edital B',
+          disciplinas: [createDisciplina({ id: 'disc_b', nome: 'Disciplina B' })],
+        }),
+      ],
+      eventos: [
+        createEvento({
+          id: 'ev_b1',
+          data: '2026-04-19',
+          dataEstudo: '2026-04-19',
+          status: 'estudei',
+          tempoAcumulado: 1800,
+          discId: 'disc_b',
+        }),
+      ],
+    });
+    store.setState(state);
+    logic.invalidateDiscCache();
+
+    const container = { innerHTML: '' };
+    views.renderHistoricoSessoes(container);
+
+    expect(container.innerHTML).toContain('Exibindo 0 de 0 sessões');
+    expect(container.innerHTML).not.toContain('Exibindo 0 de 1');
+    // A dica precisa apontar a causa real (edital), não os filtros locais.
+    expect(container.innerHTML.toLowerCase()).toContain('edital');
+  });
+
+  it('aplica o corte de período com data local, não UTC', async () => {
+    const utils = await import('../../src/js/utils.js?v=8.37');
+    const uiState = await import('../../src/js/ui-state.js?v=8.37');
+    // 23:30 em UTC-3 → o dia UTC já virou. Um cutoff via toISOString() avançaria
+    // um dia e excluiria a sessão estudada exatamente no limite da janela local.
+    vi.setSystemTime(new Date('2026-04-20T23:30:00-03:00'));
+    const limite = utils.cutoffDateStr(7); // dia mais antigo DENTRO da janela local
+    const foraDaJanela = utils.cutoffDateStr(8);
+
+    const state = createBaseState({
+      editais: [
+        createEdital({
+          disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Disciplina' })],
+        }),
+      ],
+      eventos: [
+        createEvento({
+          id: 'ev_limite',
+          data: limite,
+          dataEstudo: limite,
+          status: 'estudei',
+          tempoAcumulado: 1800,
+          discId: 'disc_1',
+        }),
+        createEvento({
+          id: 'ev_fora',
+          data: foraDaJanela,
+          dataEstudo: foraDaJanela,
+          status: 'estudei',
+          tempoAcumulado: 1800,
+          discId: 'disc_1',
+        }),
+      ],
+    });
+    store.setState(state);
+    logic.invalidateDiscCache();
+    uiState.setUiSection('historico', { rangeDays: '7', disciplinaId: '', busca: '' });
+
+    const container = { innerHTML: '' };
+    views.renderHistoricoSessoes(container);
+
+    uiState.setUiSection('historico', { rangeDays: 'all', disciplinaId: '', busca: '' });
+
+    expect(container.innerHTML).toContain('Exibindo 1 de 2 sessões');
+  });
+
+  it('não mostra "Limpar filtros" no estado padrão (Tudo) e mostra quando o período muda', async () => {
+    const uiState = await import('../../src/js/ui-state.js?v=8.37');
+    const state = createBaseState({
+      editais: [
+        createEdital({
+          disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Disciplina' })],
+        }),
+      ],
+      eventos: [
+        createEvento({
+          id: 'ev_1',
+          data: '2026-04-20',
+          dataEstudo: '2026-04-20',
+          status: 'estudei',
+          tempoAcumulado: 1800,
+          discId: 'disc_1',
+        }),
+      ],
+    });
+    store.setState(state);
+    logic.invalidateDiscCache();
+    uiState.setUiSection('historico', { rangeDays: 'all', disciplinaId: '', busca: '' });
+
+    const container = { innerHTML: '' };
+    views.renderHistoricoSessoes(container);
+    expect(container.innerHTML).not.toContain('historico-clear-filters');
+
+    uiState.setUiSection('historico', { rangeDays: '30', disciplinaId: '', busca: '' });
+    views.renderHistoricoSessoes(container);
+    uiState.setUiSection('historico', { rangeDays: 'all', disciplinaId: '', busca: '' });
+    expect(container.innerHTML).toContain('historico-clear-filters');
+  });
+
   it('estiliza os controles da toolbar de filtros com form-control', () => {
     const state = createBaseState({
       editais: [

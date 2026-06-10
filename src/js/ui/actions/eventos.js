@@ -190,7 +190,8 @@ registerAction('historico-clear-filters', () => {
     clearTimeout(_historicoSearchTimer);
     _historicoSearchTimer = null;
   }
-  setHistoricoFilter({ rangeDays: '30', disciplinaId: '', busca: '' });
+  // 'all' é o default real (DEFAULT_UI_STATE.historico) — limpar volta ao estado pristino.
+  setHistoricoFilter({ rangeDays: 'all', disciplinaId: '', busca: '' });
   renderCurrentView();
 });
 registerAction('historico-export-csv', () => {

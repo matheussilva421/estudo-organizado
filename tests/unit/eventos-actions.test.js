@@ -117,8 +117,9 @@ describe('ui/actions/eventos.js', () => {
     vi.advanceTimersByTime(300);
     // o debounce antigo não pode reaplicar a busca depois do clear
     expect(historicoView.setHistoricoFilter).toHaveBeenCalledTimes(1);
+    // 'all' é o default real do ui-state (DEFAULT_UI_STATE.historico.rangeDays)
     expect(historicoView.setHistoricoFilter).toHaveBeenCalledWith({
-      rangeDays: '30',
+      rangeDays: 'all',
       disciplinaId: '',
       busca: '',
     });
@@ -129,7 +130,7 @@ describe('ui/actions/eventos.js', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'historico-clear-filters')[1];
     handler();
     expect(historicoView.setHistoricoFilter).toHaveBeenCalledWith({
-      rangeDays: '30',
+      rangeDays: 'all',
       disciplinaId: '',
       busca: '',
     });
