@@ -58,6 +58,33 @@ describe('notifications.js', () => {
     });
   });
 
+  describe('modo silencioso com horários zero', () => {
+    it('silentModeStart=0 não cai no default 22h (23h local deve notificar)', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/js/store.js?v=8.37', () => ({
+        state: { config: { silentModeStart: 0, silentModeEnd: 8 } },
+      }));
+      const notif = await import('../../src/js/notifications.js?v=8.37');
+      // string sem Z = hora LOCAL, independente do fuso da máquina
+      vi.setSystemTime(new Date('2026-04-19T23:00:00'));
+      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+      notif.fireNotification('Test', 'Body', 'zero-start');
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:showToast' }));
+    });
+
+    it('silentModeStart=0 silencia de madrugada (02h local)', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/js/store.js?v=8.37', () => ({
+        state: { config: { silentModeStart: 0, silentModeEnd: 8 } },
+      }));
+      const notif = await import('../../src/js/notifications.js?v=8.37');
+      vi.setSystemTime(new Date('2026-04-19T02:00:00'));
+      const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+      notif.fireNotification('Test', 'Body', 'zero-start-night');
+      expect(dispatchSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('cleanupNotificationEngine()', () => {
     it('clears the interval after startNotificationEngine', async () => {
       vi.resetModules();

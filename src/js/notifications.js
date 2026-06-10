@@ -46,9 +46,9 @@ export async function initNotifications() {
 
 function isSilentHour() {
   const horaAtual = new Date().getHours();
-  // Default silent mode: 22h às 08h
-  const silenciosoInicio = state.config?.silentModeStart || 22;
-  const silenciosoFim = state.config?.silentModeEnd || 8;
+  // Default silent mode: 22h às 08h (?? preserva 0 = meia-noite, que || descartaria)
+  const silenciosoInicio = state.config?.silentModeStart ?? 22;
+  const silenciosoFim = state.config?.silentModeEnd ?? 8;
 
   if (silenciosoInicio > silenciosoFim) {
     return horaAtual >= silenciosoInicio || horaAtual < silenciosoFim;
