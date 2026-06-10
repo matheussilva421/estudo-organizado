@@ -241,7 +241,7 @@ function _renderAulasDisciplinaDashboard(edital, disc) {
 
           return `
         <div class="${itemClass}">
-          <div class="check-circle ${aul.estudada ? 'done' : ''}" data-action="toggle-aula-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-aula-id="${aul.id}" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
+          <div class="check-circle ${aul.estudada ? 'done' : ''}" data-action="toggle-aula-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-aula-id="${aul.id}" role="button" tabindex="0" aria-pressed="${!!aul.estudada}" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}" aria-label="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'} ${esc(aul.nome)}">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
           <div class="${titleClass}">
              ${esc(aul.nome)}
              ${aul.linkedAssuntoIds && aul.linkedAssuntoIds.length > 0 ? `<div class="aula-linked-count">🔗 ${aul.linkedAssuntoIds.length} tópico(s) do edital conectado(s)</div>` : ''}

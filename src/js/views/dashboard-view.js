@@ -223,7 +223,7 @@ function renderTopicosEditalDisciplina(edital, disc) {
 
                 return `
         <div class="list-row rounded-md" style="${ass.concluido ? 'background:var(--bg-secondary); ' : ''};">
-          <div class="check-circle ${ass.concluido ? 'done' : ''} flex-shrink-0" data-action="toggle-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
+          <div class="check-circle ${ass.concluido ? 'done' : ''} flex-shrink-0" data-action="toggle-assunto" data-disc-id="${disc.id}" data-assunto-id="${ass.id}" role="button" tabindex="0" aria-pressed="${!!ass.concluido}" aria-label="${ass.concluido ? 'Desmarcar' : 'Concluir'} assunto ${esc(ass.nome)}">${ass.concluido ? '<i class="fa fa-check"></i>' : ''}</div>
           <div class="flex-1 min-w-0 text-md" style="font-weight:${ass.concluido ? '400' : '600'}; color:${ass.concluido ? 'var(--text-muted)' : 'var(--text-primary)'}; ${ass.concluido ? 'text-decoration:line-through; ' : ''};">
              ${esc(ass.nome)} ${importanceBadge}
           </div>
@@ -259,7 +259,7 @@ function renderAulasDisciplinaDashboard(edital, disc) {
           .map(
             (aul) => `
         <div class="list-row rounded-md" style="${aul.estudada ? 'background:var(--bg-secondary); ' : ''};">
-          <div class="check-circle ${aul.estudada ? 'done' : ''} flex-shrink-0 cursor-pointer" data-action="toggle-aula-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-aula-id="${aul.id}" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
+          <div class="check-circle ${aul.estudada ? 'done' : ''} flex-shrink-0 cursor-pointer" data-action="toggle-aula-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" data-aula-id="${aul.id}" role="button" tabindex="0" aria-pressed="${!!aul.estudada}" title="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'}" aria-label="${aul.estudada ? 'Desmarcar aula' : 'Marcar aula como estudada'} ${esc(aul.nome)}">${aul.estudada ? '<i class="fa fa-check"></i>' : ''}</div>
           <div class="flex-1 min-w-0 text-md" style="font-weight:${aul.estudada ? '400' : '600'}; color:${aul.estudada ? 'var(--text-muted)' : 'var(--text-primary)'}; ${aul.estudada ? 'text-decoration:line-through; ' : ''};">
              ${esc(aul.nome)}
              ${aul.linkedAssuntoIds && aul.linkedAssuntoIds.length > 0 ? `<div class="text-xs text-muted mt-1">🔗 ${aul.linkedAssuntoIds.length} tópico(s) do edital conectado(s)</div>` : ''}

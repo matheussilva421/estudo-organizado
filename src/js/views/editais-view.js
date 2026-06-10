@@ -410,7 +410,7 @@ export function renderEditalTree(edital) {
               }
 
               return `
-              <div class="disc-card ${archivedClass}" style="--card-color: ${disc.cor || 'var(--accent)'};" data-action="open-disc-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}">
+              <div class="disc-card ${archivedClass}" style="--card-color: ${disc.cor || 'var(--accent)'};" data-action="open-disc-dashboard" data-edital-id="${edital.id}" data-disc-id="${disc.id}" role="button" tabindex="0" aria-label="Abrir dashboard de ${esc(disc.nome)}">
                 ${archivedBadge}
                 <div class="disc-card-title">${disc.icone || '📚'} ${esc(disc.nome)}</div>
                 <div class="disc-stats">

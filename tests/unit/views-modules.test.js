@@ -66,6 +66,21 @@ describe('editais-view.js', () => {
       expect(html).toContain('data-action="toggle-edital"');
       expect(html).toContain('data-edital-id="ed_1"');
     });
+
+    it('card de disciplina é acionável por teclado', () => {
+      const edital = createEdital({
+        id: 'ed_1',
+        nome: 'Concurso TRF',
+        disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Direito Constitucional' })],
+      });
+
+      const html = views.renderEditalTree(edital);
+      const cardTag = html.match(/<div class="disc-card[^>]*>/)[0];
+
+      expect(cardTag).toContain('role="button"');
+      expect(cardTag).toContain('tabindex="0"');
+      expect(cardTag).toContain('aria-label=');
+    });
   });
 
   describe('toggleEdital()', () => {
@@ -117,6 +132,26 @@ describe('dashboard-view.js', () => {
   });
 
   describe('renderDisciplinaDashboard()', () => {
+    it('check-circle de assunto é toggle acionável por teclado (aria-pressed)', () => {
+      const edital = createEdital({
+        disciplinas: [
+          createDisciplina({
+            id: 'disc_1',
+            nome: 'Direito',
+            assuntos: [{ id: 'ass_1', nome: 'Teste', concluido: true }],
+          }),
+        ],
+      });
+      const disc = edital.disciplinas[0];
+
+      const html = views.renderDisciplinaDashboard(edital, disc);
+      const checkTag = html.match(/<div class="check-circle[^>]*data-action="toggle-assunto"[^>]*>/)[0];
+
+      expect(checkTag).toContain('role="button"');
+      expect(checkTag).toContain('tabindex="0"');
+      expect(checkTag).toContain('aria-pressed="true"');
+    });
+
     it('renderiza dashboard de disciplina com shell', () => {
       const edital = createEdital({
         disciplinas: [
