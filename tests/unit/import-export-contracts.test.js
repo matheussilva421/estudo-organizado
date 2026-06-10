@@ -10,7 +10,7 @@ describe('import/export safety contracts', () => {
   });
 
   it('exports study data without Cloudflare credentials or transient sync conflict details', async () => {
-    const store = await import('../../src/js/store.js?v=8.30');
+    const store = await import('../../src/js/store.js?v=8.37');
     const source = createBaseState({
       eventos: [createEvento({ id: 'ev_export', titulo: 'Exportável' })],
       config: {
@@ -45,7 +45,7 @@ describe('import/export safety contracts', () => {
   });
 
   it('restores an exported backup into a normalized local state shape', async () => {
-    const store = await import('../../src/js/store.js?v=8.30');
+    const store = await import('../../src/js/store.js?v=8.37');
     const exported = store.createExportableState(createBaseState({
       eventos: [createEvento({ id: 'ev_restore', titulo: 'Restaurado' })],
       habitos: { questoes: [{ id: 'hab_restore', descricao: 'Questões restauradas' }] },

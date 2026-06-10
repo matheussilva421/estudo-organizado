@@ -57,7 +57,7 @@ function createIndexedDBMock() {
 async function importFreshStore(indexedDBMock = createIndexedDBMock()) {
   vi.resetModules();
   globalThis.indexedDB = indexedDBMock;
-  const store = await import('../../src/js/store.js?v=8.30');
+  const store = await import('../../src/js/store.js?v=8.37');
   await store.initDB();
   return store;
 }

@@ -60,7 +60,7 @@ function createIndexedDBMock({ putError = null } = {}) {
 async function importStoreWithDB(options) {
   vi.resetModules();
   globalThis.indexedDB = createIndexedDBMock(options);
-  const store = await import('../../src/js/store.js?v=8.28');
+  const store = await import('../../src/js/store.js?v=8.37');
   await store.initDB();
   return store;
 }
@@ -111,7 +111,7 @@ describe('save status indicator contract', () => {
       <div id="save-status"></div>
       <div id="config-save-status-detail"></div>
     `;
-    const app = await import('../../src/js/app.js?v=8.28');
+    const app = await import('../../src/js/app.js?v=8.37');
     app.initSaveStatusIndicator();
 
     document.dispatchEvent(
