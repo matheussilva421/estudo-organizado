@@ -290,6 +290,13 @@ export function parseBancaText() {
     });
   });
 
+  // Sem linhas reconhecíveis, não substitui a análise salva da disciplina
+  // (o replace abaixo apagaria os tópicos existentes e diria "sucesso").
+  if (parsedRows.length === 0) {
+    showToast('Nenhum tópico reconhecido no texto informado.', 'error');
+    return;
+  }
+
   let existingTopics =
     state.bancaRelevance && state.bancaRelevance.hotTopics ? state.bancaRelevance.hotTopics : [];
   existingTopics = existingTopics.filter((ht) => ht.disciplinaId !== discId);
