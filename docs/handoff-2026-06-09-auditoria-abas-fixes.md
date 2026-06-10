@@ -164,6 +164,23 @@ Suíte após rodada 6: **101 arquivos, 1671 testes, 0 falhas**. Push feito até 
 
 Suíte após rodada 7: **101 arquivos, 1680 testes, 0 falhas**. Push feito até `f02d109`.
 
+## Rodada 8 (mesma sessão 2026-06-10, encerramento)
+
+47. **A11y — foco devolvido ao fechar modais** (`app/modals.js`, commit `c412029`): `closeModal` deixava o foco cair no `body`; agora `openModal` registra o foco de origem por id e `closeModal` restaura se o elemento ainda existir (re-renders tolerados; suporta modais empilhados). Resolve parcialmente a "decisão pendente" do dialog.js — a migração completa para `ui/dialog.js` segue em aberto. Teste novo `modals-focus.test.js` (DOM real); E2E crud-operations 15/15.
+48. **Hábitos — página órfã clampada** (`habitos-view.js`, commit `d391b58`): excluir registros estando numa página alta mostrava "Nenhum hábito registrado" com registros existentes ("Página 3 de 2"). `renderHabitHistPage` clampa antes de fatiar. Varredura: nenhuma outra view usa paginação por índice (Histórico usa load-more).
+49. **Testes — specifiers `?v=` desatualizados alinhados** (commit `56ed9c1`): `dom`, `save-status`, `import-export-contracts`, `persistence-contracts` importavam `?v=8.28/8.30` (instância separada do módulo no vitest → doMock pode não aplicar). `credentials.test.js` e `sync.test.js` **mantidos** (restrição de sync).
+50. **Hábitos — guard NaN em `set-habit-page`** (commit `9b5255b`).
+51. **E2E direcionado verde**: calendar, revisoes-habitos, sessoes, timer-flow, dashboard-stats, editais — 20/20; smoke app.spec 25/25 (rodado no ciclo da meta diária); crud-operations 15/15.
+
+Suíte final da sessão: **102 arquivos, 1685 testes, 0 falhas**; test:css 31/31.
+
+## Pendências / próximos ciclos sugeridos (atualizado 2026-06-10)
+
+1. **Migração completa de modais para `ui/dialog.js`** (pilha + focus trap completos, hoje não importado) — médio risco, avaliar com calma; a restauração de foco já foi coberta no item 47.
+2. `sync.test.js` e `credentials.test.js` com specifiers `?v=8.28` — mesmo problema do item 49, mas são **arquivos de sync** (não tocados por restrição). Corrigir quando a restrição não se aplicar.
+3. Escape no `modal-confirm` fecha sem limpar `_confirmCallback` (search.js keydown) — sem repro de dano real (próximo `showConfirm` sobrescreve); registrado por completude.
+4. `import sem ?v` remanescente em `sync/firestore-sync-engine.js` (restrição de sync, já registrado na rodada 4).
+
 ## Próximos passos sugeridos
 
 1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+setas+Enter no grid do Calendário; conferência visual dos 5 temas com `--text-muted` clareado.
