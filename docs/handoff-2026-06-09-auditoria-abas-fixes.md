@@ -128,6 +128,18 @@ Nota: `Abrar_Estudo_Organizado_Mock.bat` (typo de `Abrir_`) existe na raiz mas *
 32. **E2E do Analisador de Banca**: nova `tests/e2e/banca-analyzer.spec.js` (3 specs) cobrindo os fluxos de select — foi ela que **revelou** o bug das instâncias duplas (a validação manual mascarava, pois trocar o edital "consertava" a tela). Release gate completo: **137/137** chromium.
 33. **Paridade do mock (test:e2e:mock equivalente, sem specs de sync)**: 29 falham / 32 passam nos 6 arquivos não-sync. Conclusão definitiva: o injetor do mock (`mock-inject.mjs`, modo `reset`) limpa localStorage/IndexedDB DEPOIS do `addInitScript` dos testes — toda spec que pré-semeia estado ou exige persistência pós-reload falha **por design**; as que passam constroem dados via UI sem reload. Não é bug do app. Recomendação registrada: se quiser paridade ampla um dia, rodar o servidor mock com `MOCK_MODE=preserve` para a suíte exploratória (não implementado — infra do mock toca o stub do Firebase, adjacente a sync).
 
+## Rodada 5 (sessão 2026-06-10, direto na main)
+
+34. **Histórico — "Limpar filtros" não cancelava o debounce da busca** (`ui/actions/eventos.js`): digitar e clicar em Limpar em <250ms deixava o timer antigo reaplicar a busca obsoleta e roubar o foco. Fix + 2 testes (fake timers) em `eventos-actions.test.js`. Commit `3ad0691`.
+35. **Dashboard — cópia duplicada de `toggleAulaDashboard` removida** (`dashboard-view.js`): divergia da canônica (`editais-crud.js`, a usada pelas actions via views.js) — não preservava scroll do painel nem interrompia o loop. Guard em `views-modules.test.js`; imports órfãos limpos. Commit `0fbf5d2`.
+36. **Views — cópia legada de `getFilteredVertItems` removida** (`views.js`): ignorava edital global, disciplinas arquivadas e busca normalizada; zero call sites (a real é a de `editais-view.js`). Removidos também `onVertSearch` e vars `vert*` mortas. **Guard-rail novo**: `tests/unit/duplicate-exports.test.js` — varredura estática que falha se uma função exportada ganhar segunda definição (allowlist comentada para wrappers legítimos: `esc`, `createExportableState`, `runMigrations`, `pwRenderWeightPreview`, `openModal`/`closeModal`, firebase-config local). Commit `435261a`.
+
+Achados verificados como **falsos** na rodada 5 (de varredura por agentes): `saveEvent` duração NaN (campo é `<select>` com valores controlados); `savePastEvent` duração negativa (validação `duracao <= 0` na linha 437 já cobre); `registro-sessao.js:420` deref de `eventToDelete` (early-return na linha 414 cobre); `add-minutes` NaN (data-minutes hardcoded no markup).
+
+**Observação registrada (decisão pendente, não corrigida)**: `ui/dialog.js` exporta `openModal`/`closeModal` com pilha de modais + restauração de foco, mas **ninguém os importa** — o app usa os de `app/modals.js` (sem restauração de foco). Migrar seria ganho de a11y, mas é mudança de comportamento em todos os modais (médio risco); só `initModals`/`announce` do dialog.js são usados hoje.
+
+Suíte após rodada 5: **101 arquivos, 1667 testes, 0 falhas**. Push feito (`291fbcf..435261a`).
+
 ## Próximos passos sugeridos
 
 1. Validação manual no navegador: aba Intelig. de Banca (trocar edital no select, filtrar disciplina, abrir análise salva — fluxos que estavam quebrados); Tab+setas+Enter no grid do Calendário; conferência visual dos 5 temas com `--text-muted` clareado.
