@@ -2,6 +2,9 @@
 // MODAL MANAGEMENT
 // =============================================
 
+// Foco de origem por modal: devolvido no closeModal (teclado/leitores de tela).
+const _lastFocusedByModal = new Map();
+
 /**
  * Abre modal pelo ID
  * @param {string} id - ID do elemento modal
@@ -9,6 +12,10 @@
 export function openModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
+  const active = document.activeElement;
+  if (active && active !== document.body && !el.contains(active)) {
+    _lastFocusedByModal.set(id, active);
+  }
   el.classList.add('open');
   el.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
@@ -26,6 +33,13 @@ export function closeModal(id) {
   el.setAttribute('aria-hidden', 'true');
   const hasOpenModal = document.querySelector('.modal-overlay.open');
   document.body.style.overflow = hasOpenModal ? 'hidden' : '';
+
+  const last = _lastFocusedByModal.get(id);
+  _lastFocusedByModal.delete(id);
+  // Re-renders podem ter removido o elemento de origem; só restaura se vivo.
+  if (last && typeof last.focus === 'function' && document.contains(last)) {
+    last.focus();
+  }
 }
 
 // Custom Confirm
