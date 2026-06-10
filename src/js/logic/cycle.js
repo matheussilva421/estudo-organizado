@@ -718,6 +718,7 @@ export function marcarEtapaConcluida(seqId) {
 export function editCicloSeqHours(idx) {
   if (!state.planejamento || !state.planejamento.sequencia) return;
   const seqItem = state.planejamento.sequencia[idx];
+  if (!seqItem) return; // índice obsoleto (DOM antigo após a sequência encolher)
   const currentHours = (seqItem.minutosAlvo / 60).toFixed(1).replace('.0', '');
 
   const titleEl = document.getElementById('modal-prompt-title');

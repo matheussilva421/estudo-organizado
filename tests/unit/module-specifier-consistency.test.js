@@ -29,7 +29,9 @@ describe('consistência de specifiers de módulo (?v=)', () => {
 
     for (const file of files) {
       const source = readFileSync(file, 'utf8');
-      for (const match of source.matchAll(/from\s+'(\.[^']+)'/g)) {
+      // Cobre imports estáticos (from '...') e dinâmicos (import('...')) — os
+      // dinâmicos sem ?v criaram instância dupla de ciclo-view em planejamento.js.
+      for (const match of source.matchAll(/(?:from\s+|import\()'(\.[^']+)'/g)) {
         const spec = match[1];
         const resolved = path.normalize(path.join(path.dirname(file), spec.split('?')[0]));
         if (!specs.has(resolved)) specs.set(resolved, { versioned: [], plain: [] });

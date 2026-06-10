@@ -78,13 +78,15 @@ registerAction('move-ciclo-seq', (el) => {
   const idx = parseInt(el.dataset.index, 10);
   const dir = parseInt(el.dataset.dir, 10);
   if (Number.isFinite(idx) && Number.isFinite(dir)) {
-    import('../../views/ciclo-view.js').then(({ moveCicloSeq }) => moveCicloSeq(idx, dir));
+    import('../../views/ciclo-view.js?v=8.37').then(({ moveCicloSeq }) => moveCicloSeq(idx, dir));
   }
 });
 registerAction('edit-ciclo-seq-hours', (el) => {
   const idx = parseInt(el.dataset.index, 10);
   if (Number.isFinite(idx)) {
-    import('../../views/ciclo-view.js').then(({ editCicloSeqHours }) => editCicloSeqHours(idx));
+    import('../../views/ciclo-view.js?v=8.37').then(({ editCicloSeqHours }) =>
+      editCicloSeqHours(idx)
+    );
   }
 });
 registerAction('desfazer-etapa', (el) => {
