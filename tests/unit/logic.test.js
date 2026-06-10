@@ -1397,6 +1397,55 @@ describe('logic.js', () => {
       });
     });
 
+    describe('getSubjectStats / getPredictiveStats', () => {
+      it('exclui disciplinas arquivadas das stats por disciplina e da recomendação preditiva', () => {
+        const edital = createEdital({
+          disciplinas: [
+            createDisciplina({ id: 'disc_arq', nome: 'Arquivada', arquivada: true }),
+            createDisciplina({ id: 'disc_a', nome: 'Pouco Estudada' }),
+            createDisciplina({ id: 'disc_b', nome: 'Muito Estudada' }),
+          ],
+        });
+        // Sistema em 2026-04-20 (segunda) — sessões na semana corrente.
+        store.setState(
+          createBaseState({
+            editais: [edital],
+            eventos: [
+              createEvento({
+                id: 'ev_a',
+                status: 'estudei',
+                data: '2026-04-20',
+                dataEstudo: '2026-04-20',
+                discId: 'disc_a',
+                tempoAcumulado: 600,
+              }),
+              createEvento({
+                id: 'ev_b',
+                status: 'estudei',
+                data: '2026-04-20',
+                dataEstudo: '2026-04-20',
+                discId: 'disc_b',
+                tempoAcumulado: 7200,
+              }),
+            ],
+          })
+        );
+        logic.invalidateDiscCache();
+        logic.invalidateDashCaches();
+
+        const subjStats = logic.getSubjectStats();
+        expect(subjStats.map((s) => s.id)).not.toContain('disc_arq');
+        expect(subjStats.map((s) => s.id)).toEqual(expect.arrayContaining(['disc_a', 'disc_b']));
+
+        // Meta alta força status vermelho → recomendação da disciplina menos estudada.
+        // A arquivada (0 min) venceria o sort por tempo se não fosse excluída.
+        const pred = logic.getPredictiveStats(100);
+        expect(pred.status).not.toBe('verde');
+        expect(pred.suggestion).toContain('Pouco Estudada');
+        expect(pred.suggestion).not.toContain('Arquivada');
+      });
+    });
+
     describe('calculateContentProgress', () => {
       it('splits progress by topics, lessons, and combined overall percentage', () => {
         const disc = createDisciplina({

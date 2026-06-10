@@ -115,7 +115,14 @@ export function getAggregatedStats() {
   (state.editais || []).forEach((ed) => {
     if (!ed.disciplinas) return;
     ed.disciplinas.forEach((d) => {
-      stats.subjectStats[d.id] = { id: d.id, nome: d.nome, tempo: 0, acertos: 0, erros: 0 };
+      stats.subjectStats[d.id] = {
+        id: d.id,
+        nome: d.nome,
+        tempo: 0,
+        acertos: 0,
+        erros: 0,
+        arquivada: !!d.arquivada,
+      };
       stats.subjectLast7Days[d.id] = [0, 0, 0, 0, 0, 0, 0];
     });
   });
@@ -324,7 +331,12 @@ export function getConsistencyStreak() {
 
 export function getSubjectStats() {
   const agg = getAggregatedStats();
-  return [...Object.values(agg.subjectStats)].sort((a, b) => a.nome.localeCompare(b.nome));
+  // Disciplinas arquivadas ficam fora: este resultado alimenta a recomendação
+  // preditiva ("foque mais em X"), e uma arquivada com pouco tempo venceria o
+  // sort por menor tempo — sugerindo exatamente o que o usuário engavetou.
+  return [...Object.values(agg.subjectStats)]
+    .filter((s) => !s.arquivada)
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 export function getCurrentWeekStats() {
