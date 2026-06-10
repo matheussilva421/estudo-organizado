@@ -123,9 +123,24 @@ Implementação dos tombstones conforme a proposta abaixo (TDD, 17 testes novos)
 
 ## Como retomar
 
-1. `git status -sb` (limpo; main = origin/main até `9effb30`).
-2. Validação manual recomendada: 2 dispositivos (ou 2 navegadores) com sync ativo —
-   excluir sessão/hábito no A, sincronizar o B, confirmar que a exclusão propaga e
-   nada ressuscita; pular uma etapa no A e confirmar que ela aparece pulada no B.
-3. Pendência menor restante: UX do badge "Etapa pulada" só visível no hover em
-   desktop (no mobile aparece sempre) — decidir com o usuário.
+1. `git status -sb` (limpo; main = origin/main até `8eddb48`).
+2. Encerrado em `8eddb48`:
+   - **Badge "Etapa pulada" visível sem hover**: movido do bloco de ações
+     colapsado para o header do card (`.seq-item-pulada-badge`); "Reabrir etapa"
+     segue nas ações (hover/focus em desktop, sempre visível no mobile). E2E em
+     calendar.spec.js afirma que o badge não vive em container colapsado.
+   - **BUG real pego pelo e2e novo**: `setState` (store.js) normaliza para uma
+     whitelist FIXA de chaves e descartava `syncTombstones` — e `setState` roda
+     no boot (`_setStateRef`) e nos pulls, então todo reload/pull apagaria os
+     tombstones. Campo adicionado à whitelist (replace e merge) + 2 testes em
+     store.test.js. Lição: campo novo de estado SEMPRE precisa entrar na
+     whitelist do setState.
+   - **`tests/e2e/sync-devices.spec.js`** (novo): simula 2 dispositivos no app
+     real — A exclui sessão manual + pula etapa via UI do calendário; payload de
+     A (`createExportableState`) mesclado em B via `mergeStudyStates` (mesmo
+     caminho do pull) + `syncCicloToEventos`; afirma exclusão propagada, etapa
+     pulada no plano de B, badge visível, e round-trip B→A sem ressuscitar nada.
+   - Validações: unit **1766/1766**; e2e chromium **138/138**; lint baseline.
+3. Validação manual opcional: repetir o cenário com 2 dispositivos reais e o
+   sync de produção (Cloudflare/Firestore) — o e2e cobre o merge, não o
+   transporte/credenciais.
