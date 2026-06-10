@@ -4,7 +4,13 @@
 // =============================================
 
 import { state, saveStateToDB } from '../store.js?v=8.37';
-import { getDisc, syncCicloToEventos } from '../logic.js?v=8.37';
+import {
+  getDisc,
+  syncCicloToEventos,
+  invalidateDashCaches,
+  invalidateStreakCache,
+  invalidatePendingRevCache,
+} from '../logic.js?v=8.37';
 import { showToast, closeModal, showConfirm } from '../app.js?v=8.37';
 import { todayStr, uid } from '../utils.js?v=8.37';
 import { updateBadges, renderCurrentView } from '../components.js?v=8.37';
@@ -362,6 +368,13 @@ export function performSave({
       updatePlanningSequenceProgress(seq);
     }
   }
+
+  // O flush direto via saveStateToDB() não passa por scheduleSave(), que é quem
+  // dispara app:invalidateCaches — sem isto o renderCurrentView abaixo (e o
+  // dashboard/home) leria estatísticas velhas dos caches de progress.js.
+  invalidateDashCaches();
+  invalidateStreakCache();
+  invalidatePendingRevCache();
 
   // FLUSH IMEDIATO para operações críticas - registro de sessão é dado importante
   saveStateToDB().then(() => {

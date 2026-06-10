@@ -12,6 +12,9 @@ import {
   timerIntervals,
   discardTimer,
   syncCicloToEventos,
+  invalidateDashCaches,
+  invalidateStreakCache,
+  invalidatePendingRevCache,
 } from './logic.js?v=8.37';
 import { openModal, closeModal, showToast, showConfirm, navigate } from './app.js?v=8.37';
 import { esc, trunc, uid } from './utils.js?v=8.37';
@@ -447,6 +450,12 @@ export function deleteCompletedSession(id) {
           state.habitos[tipo] = state.habitos[tipo].filter((h) => h.eventoId !== id);
         }
       });
+      // O renderCurrentView abaixo roda ANTES do app:invalidateCaches debounced
+      // do scheduleSave (100ms) — sem invalidação explícita, o dashboard/home
+      // re-renderizaria com a sessão excluída ainda contada nos caches.
+      invalidateDashCaches();
+      invalidateStreakCache();
+      invalidatePendingRevCache();
       scheduleSave();
       closeModal('modal-registro-sessao');
       renderCurrentView();

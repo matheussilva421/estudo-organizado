@@ -402,6 +402,35 @@ describe('registro-sessao.js', () => {
       });
     });
 
+    it('invalida os caches de estatísticas ao excluir uma sessão concluída', () => {
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Disc' });
+      const edital = createEdital({ disciplinas: [disc] });
+      const evento = createEvento({
+        id: 'ev_completed',
+        status: 'estudei',
+        discId: 'disc_1',
+        data: '2026-04-20',
+        dataEstudo: '2026-04-20',
+        tempoAcumulado: 3600,
+        sessao: { tiposEstudo: ['leitura'] }
+      });
+      store.setState(createBaseState({ eventos: [evento], editais: [edital] }));
+      logic.invalidateDiscCache();
+      logic.invalidateDashCaches();
+      logic.invalidateStreakCache();
+
+      // Caches populados ANTES da exclusão, como se o dashboard tivesse renderizado.
+      expect(logic.getAggregatedStats().subjectStats.disc_1.tempo).toBe(3600);
+      expect(logic.getConsistencyStreak().currentStreak).toBe(1);
+
+      registroSessao.deleteCompletedSession('ev_completed');
+      const confirmCallback = app.showConfirm.mock.calls[0][1];
+      confirmCallback();
+
+      expect(logic.getAggregatedStats().subjectStats.disc_1.tempo).toBe(0);
+      expect(logic.getConsistencyStreak().currentStreak).toBe(0);
+    });
+
     it('keeps seq.concluido when another completed session exists for same seqId', () => {
       const deletedEvent = createEvento({
         id: 'ev_completed_1',
@@ -947,6 +976,37 @@ describe('registro-sessao.js', () => {
       expect(result).toBe(true);
       expect(store.state.habitos.leitura).toHaveLength(1);
       expect(store.state.habitos.leitura[0].data).toBe('2026-04-10');
+    });
+
+    it('invalida os caches de estatísticas ao salvar (dashboard reflete a sessão imediatamente)', () => {
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Disc' });
+      const edital = createEdital({ disciplinas: [disc] });
+      const evento = createEvento({
+        id: 'ev_1',
+        discId: 'disc_1',
+        data: '2026-04-20',
+        tempoAcumulado: 1800,
+        sessao: {}
+      });
+      store.setState(createBaseState({ eventos: [evento], editais: [edital] }));
+      logic.invalidateDiscCache();
+      logic.invalidateDashCaches();
+      logic.invalidateStreakCache();
+
+      // Simula um dashboard já renderizado: caches populados ANTES do save.
+      const aggBefore = logic.getAggregatedStats();
+      const streakBefore = logic.getConsistencyStreak();
+      expect(aggBefore.subjectStats.disc_1.tempo).toBe(0);
+      expect(streakBefore.currentStreak).toBe(0);
+
+      registroSessao.openRegistroSessao('ev_1');
+      registroSessao.toggleStudyType('leitura');
+      const result = registroSessao.saveRegistroSessao();
+
+      expect(result).toBe(true);
+      const aggAfter = logic.getAggregatedStats();
+      expect(aggAfter.subjectStats.disc_1.tempo).toBe(1800);
+      expect(logic.getConsistencyStreak().currentStreak).toBe(1);
     });
 
     it('does not incrementally mutate legacy state.ciclo counters on save (progress is derived)', () => {
