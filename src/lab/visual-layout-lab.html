@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Visual Layout Lab — Estudo Organizado</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+      integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0"
+      crossorigin="anonymous"
+    />
+    <!-- CSS REAL do app (mesmas 5 entradas do index.html, sem cópias) -->
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/views.css" />
+    <link rel="stylesheet" href="../css/styles.css" />
+    <!-- Chrome do lab -->
+    <link rel="stylesheet" href="visual-layout-lab.css" />
+    <script src="../vendor/chart.umd.min.js" defer></script>
+  </head>
+  <body class="lab-body">
+    <header class="lab-toolbar" id="lab-toolbar">
+      <div class="lab-toolbar-group lab-toolbar-brand">
+        <span class="lab-logo">🧪</span>
+        <strong>Visual Layout Lab</strong>
+      </div>
+
+      <div class="lab-toolbar-group">
+        <label class="lab-field">
+          <span class="lab-field-label">Tela</span>
+          <select id="lab-screen-select" class="form-control lab-select" aria-label="Selecionar tela"></select>
+        </label>
+        <label class="lab-field">
+          <span class="lab-field-label">Viewport</span>
+          <select id="lab-viewport-select" class="form-control lab-select" aria-label="Selecionar viewport">
+            <option value="1380">Desktop (1380)</option>
+            <option value="1100">Notebook (1100)</option>
+            <option value="832">Tablet (832)</option>
+            <option value="432">Mobile (432)</option>
+          </select>
+        </label>
+        <label class="lab-field">
+          <span class="lab-field-label">Tema</span>
+          <select id="lab-theme-select" class="form-control lab-select" aria-label="Selecionar tema">
+            <option value="">Padrão</option>
+            <option value="grafite">Grafite</option>
+            <option value="ardosia">Ardósia</option>
+            <option value="platina">Platina</option>
+            <option value="terminal">Terminal</option>
+            <option value="neon">Neon</option>
+            <option value="arrakis">Arrakis</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="lab-toolbar-group">
+        <button id="lab-undo" class="btn btn-ghost btn-sm" title="Desfazer (Ctrl+Z)" aria-label="Desfazer" disabled>
+          <i class="fa fa-rotate-left"></i>
+        </button>
+        <button id="lab-redo" class="btn btn-ghost btn-sm" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" disabled>
+          <i class="fa fa-rotate-right"></i>
+        </button>
+      </div>
+
+      <div class="lab-toolbar-group">
+        <button id="lab-add-card" class="btn btn-ghost btn-sm"><i class="fa fa-plus"></i> Adicionar card</button>
+        <button id="lab-show-hidden" class="btn btn-ghost btn-sm">
+          <i class="fa fa-eye"></i> Ocultos <span id="lab-hidden-count" class="badge hidden"></span>
+        </button>
+      </div>
+
+      <div class="lab-toolbar-group lab-toolbar-end">
+        <button id="lab-export" class="btn btn-ghost btn-sm" title="Exportar layout em JSON">
+          <i class="fa fa-download"></i> Exportar
+        </button>
+        <button id="lab-import" class="btn btn-ghost btn-sm" title="Importar layout de JSON">
+          <i class="fa fa-upload"></i> Importar
+        </button>
+        <input
+          type="file"
+          id="lab-import-file"
+          accept="application/json"
+          class="lab-hidden-input"
+          aria-hidden="true"
+          tabindex="-1"
+        />
+        <button id="lab-print-mode" class="btn btn-ghost btn-sm" title="Modo screenshot (P)">
+          <i class="fa fa-camera"></i>
+        </button>
+        <button id="lab-reset-screen" class="btn btn-ghost btn-sm" title="Resetar layout da tela atual">
+          <i class="fa fa-eraser"></i> Reset tela
+        </button>
+        <button id="lab-reset-all" class="btn btn-ghost btn-sm lab-danger" title="Resetar todos os layouts">
+          <i class="fa fa-trash"></i> Reset geral
+        </button>
+      </div>
+    </header>
+
+    <main class="lab-stage-wrap" id="lab-stage-wrap">
+      <div class="lab-stage" id="lab-stage" data-viewport="1380">
+        <div class="lab-grid" id="lab-grid" aria-label="Cards da tela"></div>
+      </div>
+    </main>
+
+    <aside class="lab-panel" id="lab-panel" hidden>
+      <div class="lab-panel-header">
+        <strong id="lab-panel-title">Painel</strong>
+        <button class="icon-btn" id="lab-panel-close" aria-label="Fechar painel">✕</button>
+      </div>
+      <div class="lab-panel-body" id="lab-panel-body"></div>
+    </aside>
+
+    <div class="lab-toasts" id="lab-toasts" aria-hidden="true"></div>
+    <div class="lab-live" id="lab-live" aria-live="polite" role="status"></div>
+
+    <script type="module" src="visual-layout-lab.js"></script>
+  </body>
+</html>

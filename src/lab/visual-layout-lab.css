@@ -1,0 +1,457 @@
+/* Visual Layout Lab — APENAS o chrome da ferramenta.
+   O visual dos cards vem do CSS real do app (linkado no HTML). */
+
+.lab-body {
+  /* o CSS real do app define body como flex row (sidebar + main); o lab
+     precisa de coluna única */
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* ---------- Toolbar ---------- */
+
+.lab-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 10px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+.lab-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab-toolbar-brand {
+  font-size: 15px;
+}
+
+.lab-logo {
+  font-size: 18px;
+}
+
+.lab-toolbar-end {
+  margin-left: auto;
+}
+
+.lab-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lab-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.lab-select {
+  width: auto;
+  min-width: 110px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.lab-danger {
+  color: var(--red, #ef7777);
+}
+
+.lab-hidden-input {
+  display: none;
+}
+
+/* ---------- Stage ---------- */
+
+.lab-stage-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px 80px;
+  overflow-x: auto;
+}
+
+.lab-stage {
+  width: 1380px;
+  max-width: 100%;
+  transition: width 0.2s ease;
+}
+
+.lab-stage[data-viewport='1100'] {
+  width: 1100px;
+}
+.lab-stage[data-viewport='832'] {
+  width: 832px;
+}
+.lab-stage[data-viewport='432'] {
+  width: 432px;
+}
+
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/* ---------- Itens (wrappers dos cards) ---------- */
+
+.lab-item {
+  position: relative;
+  min-width: 0;
+}
+
+.lab-item[data-span='1'] {
+  grid-column: span 1;
+}
+.lab-item[data-span='2'] {
+  grid-column: span 2;
+}
+.lab-item[data-span='3'] {
+  grid-column: span 3;
+}
+.lab-item[data-span='4'] {
+  grid-column: span 4;
+}
+
+/* Tablet: spans viram metades */
+.lab-stage[data-viewport='832'] .lab-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.lab-stage[data-viewport='832'] .lab-item[data-span='1'],
+.lab-stage[data-viewport='832'] .lab-item[data-span='2'] {
+  grid-column: span 1;
+}
+.lab-stage[data-viewport='832'] .lab-item[data-span='3'],
+.lab-stage[data-viewport='832'] .lab-item[data-span='4'] {
+  grid-column: span 2;
+}
+
+/* Mobile: tudo full-width */
+.lab-stage[data-viewport='432'] .lab-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.lab-stage[data-viewport='432'] .lab-item {
+  grid-column: span 1 !important;
+}
+
+/* Alturas por step. sm = altura natural do conteúdo. */
+.lab-item[data-height='md'] {
+  height: 340px;
+}
+.lab-item[data-height='lg'] {
+  height: 500px;
+}
+.lab-item[data-height='xl'] {
+  height: 660px;
+}
+
+.lab-item[data-height='md'] .lab-card-content,
+.lab-item[data-height='lg'] .lab-card-content,
+.lab-item[data-height='xl'] .lab-card-content {
+  height: 100%;
+  overflow: auto;
+}
+
+/* O conteúdo real (card do app) ocupa o wrapper inteiro. */
+.lab-card-content > * {
+  height: 100%;
+  box-sizing: border-box;
+}
+.lab-item[data-height='sm'] .lab-card-content > * {
+  height: auto;
+}
+
+/* Collapse: esconde o conteúdo, mostra barra de título do lab. */
+.lab-item--collapsed .lab-card-content {
+  display: none;
+}
+.lab-item--collapsed {
+  height: auto !important;
+}
+.lab-collapsed-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.lab-item--collapsed .lab-collapsed-bar {
+  display: flex;
+}
+
+/* ---------- Chrome de edição por card ---------- */
+
+.lab-tools {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 20;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.lab-item:hover .lab-tools,
+.lab-item:focus-within .lab-tools {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lab-tool-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  width: 26px;
+  height: 24px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lab-tool-btn:hover {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+.lab-tool-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lab-tool-handle {
+  cursor: grab;
+}
+
+/* Alças de resize nas bordas direita/inferior */
+.lab-resize-e,
+.lab-resize-s {
+  position: absolute;
+  z-index: 15;
+  opacity: 0;
+}
+.lab-item:hover .lab-resize-e,
+.lab-item:hover .lab-resize-s {
+  opacity: 1;
+}
+.lab-resize-e {
+  top: 20%;
+  bottom: 20%;
+  right: -4px;
+  width: 8px;
+  cursor: ew-resize;
+  border-radius: 4px;
+}
+.lab-resize-s {
+  left: 20%;
+  right: 20%;
+  bottom: -4px;
+  height: 8px;
+  cursor: ns-resize;
+  border-radius: 4px;
+}
+.lab-resize-e:hover,
+.lab-resize-s:hover {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+/* ---------- Drag ---------- */
+
+.lab-item--dragging {
+  opacity: 0.25;
+}
+
+.lab-ghost {
+  position: fixed;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.85;
+  transform: rotate(1.2deg);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lab-placeholder {
+  border: 2px dashed var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  min-height: 80px;
+}
+
+.lab-flip {
+  transition: transform 0.18s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-flip,
+  .lab-stage {
+    transition: none !important;
+  }
+}
+
+/* ---------- Painel lateral (Add card / Ocultos) ---------- */
+
+.lab-panel[hidden] {
+  display: none;
+}
+
+.lab-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  width: 340px;
+  max-width: 92vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.4);
+}
+
+.lab-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lab-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lab-panel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.lab-panel-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.lab-panel-item-origin {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.lab-panel-section {
+  margin: 10px 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---------- Toasts + aria-live ---------- */
+
+.lab-toasts {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.lab-toast {
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  animation: lab-toast-in 0.18s ease;
+}
+
+.lab-toast--error {
+  border-color: var(--red, #ef7777);
+}
+
+.lab-toast--warning {
+  border-color: var(--yellow, #d8a657);
+}
+
+@keyframes lab-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.lab-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Print mode (screenshots limpos) ---------- */
+
+.lab-print .lab-toolbar,
+.lab-print .lab-tools,
+.lab-print .lab-resize-e,
+.lab-print .lab-resize-s,
+.lab-print .lab-panel,
+.lab-print .lab-toasts {
+  display: none !important;
+}
+
+.lab-print .lab-stage-wrap {
+  padding-top: 16px;
+}
