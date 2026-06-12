@@ -101,10 +101,16 @@
   width: 432px;
 }
 
+/* Grid de 12 colunas com "masonry" por row-span: grid-auto-rows pequeno e a
+   cola DOM mede a altura natural de cada card e define grid-row: span N.
+   Isso reproduz o fluxo real do app (card alto à esquerda com cards
+   empilhando ao lado, como no dash-grid-bottom e no ciclo-layout). */
 .lab-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: 8px;
+  column-gap: 16px;
+  row-gap: 0;
   align-items: start;
 }
 
@@ -127,10 +133,34 @@
 .lab-item[data-span='4'] {
   grid-column: span 4;
 }
+.lab-item[data-span='5'] {
+  grid-column: span 5;
+}
+.lab-item[data-span='6'] {
+  grid-column: span 6;
+}
+.lab-item[data-span='7'] {
+  grid-column: span 7;
+}
+.lab-item[data-span='8'] {
+  grid-column: span 8;
+}
+.lab-item[data-span='9'] {
+  grid-column: span 9;
+}
+.lab-item[data-span='10'] {
+  grid-column: span 10;
+}
+.lab-item[data-span='11'] {
+  grid-column: span 11;
+}
+.lab-item[data-span='12'] {
+  grid-column: span 12;
+}
 
-/* Tablet: spans viram metades */
+/* Tablet: 6 colunas, spans caem pela metade (arredondando para cima) */
 .lab-stage[data-viewport='832'] .lab-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 .lab-stage[data-viewport='832'] .lab-item[data-span='1'],
 .lab-stage[data-viewport='832'] .lab-item[data-span='2'] {
@@ -139,6 +169,22 @@
 .lab-stage[data-viewport='832'] .lab-item[data-span='3'],
 .lab-stage[data-viewport='832'] .lab-item[data-span='4'] {
   grid-column: span 2;
+}
+.lab-stage[data-viewport='832'] .lab-item[data-span='5'],
+.lab-stage[data-viewport='832'] .lab-item[data-span='6'] {
+  grid-column: span 3;
+}
+.lab-stage[data-viewport='832'] .lab-item[data-span='7'],
+.lab-stage[data-viewport='832'] .lab-item[data-span='8'] {
+  grid-column: span 4;
+}
+.lab-stage[data-viewport='832'] .lab-item[data-span='9'],
+.lab-stage[data-viewport='832'] .lab-item[data-span='10'] {
+  grid-column: span 5;
+}
+.lab-stage[data-viewport='832'] .lab-item[data-span='11'],
+.lab-stage[data-viewport='832'] .lab-item[data-span='12'] {
+  grid-column: span 6;
 }
 
 /* Mobile: tudo full-width */
@@ -167,10 +213,14 @@
   overflow: auto;
 }
 
-/* O conteúdo real (card do app) ocupa o wrapper inteiro. */
+/* O conteúdo real (card do app) ocupa o wrapper inteiro. As margens externas
+   dos containers das views (ex.: .habit-grid margin-bottom 20px) são zeradas:
+   no lab o espaçamento vertical vem do masonry, senão os gaps somam. */
 .lab-card-content > * {
   height: 100%;
   box-sizing: border-box;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 .lab-item[data-height='sm'] .lab-card-content > * {
   height: auto;

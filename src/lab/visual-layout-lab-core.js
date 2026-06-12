@@ -1,9 +1,11 @@
 // Visual Layout Lab — lógica pura de layout (sem DOM).
 // Todas as operações são imutáveis: recebem um layout e retornam um novo.
 
-export const DEFAULTS_VERSION = 1;
+// v2: grid de 12 colunas para reproduzir as proporções reais do app
+// (home bottom 1.1fr/1fr ≈ 6/6, ciclo 58fr/42fr = 7/5, med e habitos 3 col = 4/4/4).
+export const DEFAULTS_VERSION = 2;
 export const SPAN_MIN = 1;
-export const SPAN_MAX = 4;
+export const SPAN_MAX = 12;
 export const HEIGHTS = ['sm', 'md', 'lg', 'xl'];
 
 const APP_NAME = 'estudo-organizado';

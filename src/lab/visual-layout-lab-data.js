@@ -77,8 +77,23 @@ export const HOME = {
     edital: 'TRF 3ª Região — Analista Judiciário',
     cor: '#d8a657',
   },
-  // [nome, percent, tempoStr, sparkline 7d]
+  // [nome, percent, tempoStr, sparkline 7d] — 12 disciplinas como num edital
+  // real; o painel alto também garante o fluxo original do dash-grid-bottom.
   subjectProgress: [
+    {
+      nome: 'Direito Penal',
+      percent: 8,
+      tempo: '04:02',
+      sparkline: [0, 0, 1, 0, 0, 1, 0],
+      cor: '#c98b8b',
+    },
+    {
+      nome: 'Processo Penal',
+      percent: 12,
+      tempo: '05:48',
+      sparkline: [1, 0, 0, 1, 0, 0, 1],
+      cor: '#b78bc9',
+    },
     { nome: 'AFO', percent: 18, tempo: '08:14', sparkline: [0, 1, 0, 2, 1, 0, 1], cor: '#79b8ad' },
     {
       nome: 'Raciocínio Lógico',
@@ -107,6 +122,62 @@ export const HOME = {
       tempo: '88:51',
       sparkline: [2, 3, 2, 4, 3, 2, 1],
       cor: '#7dd3a8',
+    },
+    {
+      nome: 'Direito Civil',
+      percent: 22,
+      tempo: '11:20',
+      sparkline: [0, 1, 1, 0, 2, 0, 1],
+      cor: '#8bc9a3',
+    },
+    {
+      nome: 'Processo Civil',
+      percent: 27,
+      tempo: '13:05',
+      sparkline: [1, 0, 2, 1, 0, 1, 0],
+      cor: '#c9b08b',
+    },
+    {
+      nome: 'Legislação Especial',
+      percent: 39,
+      tempo: '15:44',
+      sparkline: [0, 2, 0, 1, 1, 0, 2],
+      cor: '#8b9fc9',
+    },
+    {
+      nome: 'Direito do Trabalho',
+      percent: 44,
+      tempo: '10:12',
+      sparkline: [0, 1, 0, 1, 2, 0, 1],
+      cor: '#9fc98b',
+    },
+    {
+      nome: 'Direito Previdenciário',
+      percent: 51,
+      tempo: '12:40',
+      sparkline: [1, 0, 1, 0, 1, 2, 0],
+      cor: '#c9a08b',
+    },
+    {
+      nome: 'Inglês',
+      percent: 55,
+      tempo: '06:18',
+      sparkline: [0, 0, 1, 1, 0, 1, 0],
+      cor: '#8bb4c9',
+    },
+    {
+      nome: 'Atualidades',
+      percent: 64,
+      tempo: '09:31',
+      sparkline: [1, 1, 0, 2, 0, 1, 1],
+      cor: '#c98bb4',
+    },
+    {
+      nome: 'Administração Pública',
+      percent: 69,
+      tempo: '14:02',
+      sparkline: [1, 2, 0, 1, 1, 0, 1],
+      cor: '#b4c98b',
     },
     {
       nome: 'Língua Portuguesa',

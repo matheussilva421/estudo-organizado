@@ -1,4 +1,45 @@
-# Handoff — Visual Layout Lab (Fase 1) — 2026-06-12
+# Handoff — Visual Layout Lab (Fase 1 + iteração pixel-perfect) — 2026-06-12
+
+## ATUALIZAÇÃO (mesma data): iteração pixel-perfect + UX
+
+Meta do usuário: lab IGUAL ao app original (pixel-perfect), defaults do primeiro
+boot espelhando a organização original, e melhor experiência de reorganização.
+
+O que mudou (commit 2):
+
+1. **Grid de 12 colunas** (era 4) — `SPAN_MAX=12`, `DEFAULTS_VERSION=2` (layouts
+   v1 salvos são descartados com toast no boot). Permite as proporções reais:
+   home bottom ~6/6, ciclo 7/5 (=58fr/42fr do app), med/habitos 3 colunas (4/4/4).
+2. **Masonry por row-span**: `grid-auto-rows: 8px` + a cola mede a altura
+   natural de cada card e seta `grid-row: span N`. Alturas default agora são
+   'sm' (= altura NATURAL, igual ao app); md/lg/xl viram opções de resize.
+   Reproduz o fluxo original (painel alto à esquerda, cards empilhando à
+   direita no dash-grid-bottom e no ciclo-layout).
+3. **Equalização por linha**: cards na mesma linha visual esticam até o maior
+   vizinho de altura SEMELHANTE (razão ≤ 1.8) — replica o stretch das linhas de
+   stats do app sem esticar card baixo até painel alto. Desconta margens do
+   container (BFC de grid item).
+4. **Margens residuais zeradas** no root de cada card (`.lab-card-content > *`)
+   — o espaçamento vertical vem do masonry (16px), senão os gaps somavam
+   (ex.: habit-grid margin-bottom 20px → gap de 36px).
+5. **Defaults do registry** reordenados/recalibrados para a ordem e proporções
+   exatas de cada view real; card novo `home-acoes` (Editar prova/metas);
+   mock com 16 disciplinas (edital de tribunal realista — também garante o
+   fluxo do dash-grid-bottom).
+6. **UX do drag**: placeholder ao vivo no slot de destino (mesma largura/altura
+   do card), card original sai do fluxo, vizinhos reposicionam com FLIP a cada
+   mudança de índice. Corrigido off-by-one do índice de drop.
+7. **Auditoria numérica lab × app real** (servidor mock): KPIs 134 vs 133,
+   stats do dashboard 108 = 108 (exato), charts 313 vs 314, subject panel
+   620 = 620; padding/border-radius/cores idênticos (mesmo CSS). Diferenças
+   de poucos px vêm do conteúdo mock, não de estrutura/estilo.
+   Compromissos conhecidos: gap vertical único de 16px (app varia 12–24 por
+   região); hero 146 vs 162 (texto mock).
+
+Validações: 1823 testes verdes (57 do lab); eslint/prettier do lab OK.
+Sync intocado; nenhum arquivo do app alterado nesta iteração.
+
+---
 
 ## Objetivo da sessão
 

@@ -128,7 +128,7 @@ describe('lab contrato — registry × renderers', () => {
     for (const screen of SCREENS) {
       for (const card of REGISTRY[screen.id]) {
         expect(card.span, `${card.id} span`).toBeGreaterThanOrEqual(1);
-        expect(card.span, `${card.id} span`).toBeLessThanOrEqual(4);
+        expect(card.span, `${card.id} span`).toBeLessThanOrEqual(12);
         expect(['sm', 'md', 'lg', 'xl'], `${card.id} height`).toContain(card.height);
       }
     }

@@ -23,7 +23,7 @@ import {
 const registry = [
   { id: 'resumo-hoje', title: 'Resumo de Hoje', span: 2, height: 'md' },
   { id: 'proximas-revisoes', title: 'Próximas Revisões', span: 2, height: 'md' },
-  { id: 'grafico-horas', title: 'Horas por Dia', span: 4, height: 'lg' },
+  { id: 'grafico-horas', title: 'Horas por Dia', span: 12, height: 'lg' },
 ];
 
 describe('visual-layout-lab-core — createLayout', () => {
@@ -94,9 +94,14 @@ describe('visual-layout-lab-core — resize por steps', () => {
     expect(resizeSpan(layout, id, -1).items[0].span).toBe(1);
   });
 
+  it('grid tem 12 colunas (proporções reais do app) e layouts antigos são descartados', () => {
+    expect(SPAN_MAX).toBe(12);
+    expect(DEFAULTS_VERSION).toBe(2);
+  });
+
   it('resizeSpan clampa em SPAN_MIN/SPAN_MAX', () => {
     const layout = createLayout(registry);
-    const wide = layout.items[2].instanceId; // span 4
+    const wide = layout.items[2].instanceId; // span 12
     expect(resizeSpan(layout, wide, +1).items[2].span).toBe(SPAN_MAX);
     let narrow = resizeSpan(layout, layout.items[0].instanceId, -1);
     narrow = resizeSpan(narrow, narrow.items[0].instanceId, -1);

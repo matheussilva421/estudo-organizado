@@ -253,7 +253,7 @@ const homeRenderers = {
     <div class="card p-16 home-card dash-subject-panel">
       <div class="flex-between mb-3">
         <div class="dash-label">PROGRESSO POR DISCIPLINA</div>
-        <span class="text-xs text-muted">1/${HOME.subjectProgress.length} concluídas</span>
+        <span class="text-xs text-muted">${HOME.subjectProgress.filter((r) => r.percent >= 100).length}/${HOME.subjectProgress.length} concluídas</span>
       </div>
       <div class="dash-subject-progress-list">
         ${rows}
@@ -313,6 +313,12 @@ const homeRenderers = {
       </div>
     </div>`;
   },
+
+  'home-acoes': () => `
+    <div class="dash-quick-actions">
+      <button class="btn btn-ghost btn-sm"><i class="fa fa-edit"></i> Editar prova</button>
+      <button class="btn btn-ghost btn-sm"><i class="fa fa-edit"></i> Editar metas</button>
+    </div>`,
 
   'home-constancia': () => `
     <div class="card p-16 home-card dash-streak-compact">

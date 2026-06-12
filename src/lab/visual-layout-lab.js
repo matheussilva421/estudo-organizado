@@ -4,6 +4,7 @@
 
 import {
   HEIGHTS,
+  SPAN_MAX,
   addCard,
   createLayout,
   duplicateItem,
@@ -25,6 +26,7 @@ import {
   computeDropIndex,
   computeFlipDeltas,
   exceedsThreshold,
+  groupIntoRows,
 } from './visual-layout-lab-dnd.js';
 import {
   canRedo,
@@ -228,11 +230,75 @@ function buildItem(item) {
   return wrap;
 }
 
+// Masonry: mede a altura natural de cada card e converte em grid-row span
+// (grid-auto-rows: 8px). Reproduz o fluxo do app: card alto à esquerda com
+// vizinhos empilhando ao lado, sem esticar linhas.
+const MASONRY_ROW = 8;
+const MASONRY_GAP = 16;
+
+function setRowSpans() {
+  for (const el of grid.querySelectorAll('.lab-item, .lab-placeholder')) {
+    const h = el.classList.contains('lab-placeholder')
+      ? Number(el.dataset.refHeight) || el.offsetHeight
+      : el.offsetHeight;
+    el.style.gridRowEnd = `span ${Math.max(1, Math.ceil((h + MASONRY_GAP) / MASONRY_ROW))}`;
+  }
+}
+
+// No app, cards da mesma linha visual esticam até o mais alto (stretch do
+// grid). O masonry usa altura natural, então replicamos o stretch igualando
+// o min-height do card real dentro de cada linha.
+function equalizeRows() {
+  const items = [...grid.querySelectorAll('.lab-item')].filter((el) => el.style.display !== 'none');
+  for (const el of items) {
+    const card = el.querySelector('.lab-card-content')?.firstElementChild;
+    if (card) card.style.minHeight = '';
+  }
+  const rects = items.map((el) => {
+    const r = el.getBoundingClientRect();
+    return { el, left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+  });
+  // Cada item estica até o maior vizinho de altura SEMELHANTE (razão ≤ 1.8).
+  // Isso reproduz o stretch das linhas de stats do app sem esticar um card
+  // baixo até um painel alto ao lado (ex.: Previsão × Progresso por
+  // Disciplina no dash-grid-bottom).
+  const SIMILAR = 1.8;
+  for (const row of groupIntoRows(rects)) {
+    if (row.length < 2) continue;
+    const heights = row.map((r) => r.bottom - r.top);
+    row.forEach((r, i) => {
+      const own = heights[i];
+      const target = Math.ceil(Math.max(...heights.filter((h) => h / own <= SIMILAR)));
+      const card = r.el.querySelector('.lab-card-content')?.firstElementChild;
+      if (card && r.el.dataset.height === 'sm' && own < target) {
+        // o wrapper pode incluir margens do card (BFC de grid item);
+        // desconta a diferença para o item final bater com o alvo
+        const delta = own - card.getBoundingClientRect().height;
+        card.style.minHeight = `${Math.max(0, target - delta)}px`;
+      }
+    });
+  }
+}
+
+function applyMasonry() {
+  setRowSpans();
+  equalizeRows();
+  setRowSpans();
+}
+
+let masonryTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(masonryTimer);
+  masonryTimer = setTimeout(applyMasonry, 120);
+});
+
 function render() {
   destroyCharts();
   grid.innerHTML = '';
   for (const item of currentLayout().items) grid.appendChild(buildItem(item));
+  applyMasonry();
   initCharts();
+  applyMasonry(); // os charts podem alterar a altura dos cards
   updateToolbarState();
   if (!$('lab-panel').hidden) refreshPanel();
 }
@@ -371,11 +437,34 @@ function startDrag(evt) {
   ghost.querySelector('.lab-tools')?.remove();
   document.body.appendChild(ghost);
   drag.ghost = ghost;
-  drag.itemEl.classList.add('lab-item--dragging');
+
+  // Placeholder ocupa o slot de destino ao vivo; o card original some do
+  // fluxo para os vizinhos mostrarem o resultado final do arraste.
+  const placeholder = document.createElement('div');
+  placeholder.className = 'lab-placeholder';
+  placeholder.dataset.refHeight = String(drag.itemEl.offsetHeight);
+  placeholder.style.gridColumn = getComputedStyle(drag.itemEl).gridColumnStart.startsWith('span')
+    ? getComputedStyle(drag.itemEl).gridColumnStart
+    : `span ${drag.itemEl.dataset.span}`;
+  grid.insertBefore(placeholder, drag.itemEl);
+  drag.placeholder = placeholder;
+  drag.itemEl.style.display = 'none';
+  applyMasonry();
+
   drag.started = true;
   document.body.style.userSelect = 'none';
   announce('Arrastando card. Solte para reposicionar, Esc cancela.');
   moveGhost(evt);
+}
+
+function updatePlaceholder(index) {
+  if (index === drag.placeholderIndex) return;
+  drag.placeholderIndex = index;
+  const before = rectMap();
+  const siblings = [...grid.children].filter((el) => el !== drag.itemEl && el !== drag.placeholder);
+  grid.insertBefore(drag.placeholder, siblings[index] || null);
+  applyMasonry();
+  playFlip(before);
 }
 
 function moveGhost(evt) {
@@ -393,6 +482,7 @@ function moveGhost(evt) {
   if (delta !== 0) window.scrollBy(0, delta);
 
   drag.dropIndex = computeDropIndex(itemRects(drag.instanceId), { x: evt.clientX, y: evt.clientY });
+  updatePlaceholder(drag.dropIndex);
 }
 
 document.addEventListener('pointermove', (evt) => {
@@ -406,24 +496,27 @@ document.addEventListener('pointermove', (evt) => {
 
 function endDrag(cancelled) {
   if (!drag) return;
-  const { started, ghost, itemEl, instanceId, dropIndex } = drag;
+  const { started, ghost, itemEl, instanceId, dropIndex, placeholder } = drag;
   drag = null;
   if (!started) return;
   ghost.remove();
-  itemEl.classList.remove('lab-item--dragging');
+  placeholder?.remove();
+  itemEl.style.display = '';
   document.body.style.userSelect = '';
   if (cancelled || dropIndex === null) {
+    applyMasonry();
     announce('Arraste cancelado.');
     return;
   }
   const layout = currentLayout();
   const fromIndex = layout.items.findIndex((i) => i.instanceId === instanceId);
-  let to = dropIndex;
-  if (fromIndex < to) to -= 1;
-  if (to === fromIndex) return;
-  const before = rectMap();
-  commit(moveItem(layout, instanceId, to), `Card movido para a posição ${to + 1}`);
-  playFlip(before);
+  // dropIndex já é o índice na lista SEM o card arrastado — é exatamente o
+  // destino que moveItem espera (remove e insere no índice).
+  if (dropIndex === fromIndex) {
+    applyMasonry();
+    return;
+  }
+  commit(moveItem(layout, instanceId, dropIndex), `Card movido para a posição ${dropIndex + 1}`);
 }
 
 document.addEventListener('pointerup', () => endDrag(false));
@@ -457,9 +550,15 @@ grid.addEventListener('pointerdown', (evt) => {
 document.addEventListener('pointermove', (evt) => {
   if (!resize) return;
   if (resize.axis === 'e') {
-    const colUnit = resize.gridRect.width / 4;
-    const span = Math.max(1, Math.min(4, Math.round((evt.clientX - resize.rect.left) / colUnit)));
-    resize.itemEl.dataset.span = String(span);
+    const colUnit = resize.gridRect.width / SPAN_MAX;
+    const span = Math.max(
+      1,
+      Math.min(SPAN_MAX, Math.round((evt.clientX - resize.rect.left) / colUnit))
+    );
+    if (resize.itemEl.dataset.span !== String(span)) {
+      resize.itemEl.dataset.span = String(span);
+      applyMasonry();
+    }
   } else {
     const px = evt.clientY - resize.rect.top;
     const steps = [
@@ -470,7 +569,10 @@ document.addEventListener('pointermove', (evt) => {
     ];
     let best = steps[0];
     for (const s of steps) if (Math.abs(s.px - px) < Math.abs(best.px - px)) best = s;
-    resize.itemEl.dataset.height = best.h;
+    if (resize.itemEl.dataset.height !== best.h) {
+      resize.itemEl.dataset.height = best.h;
+      applyMasonry();
+    }
   }
 });
 
@@ -502,6 +604,7 @@ document.addEventListener('keydown', (evt) => {
   if (resize) {
     resize.itemEl.dataset.span = String(resize.originalSpan);
     resize.itemEl.dataset.height = resize.originalHeight;
+    applyMasonry();
     resize = null;
     return;
   }
@@ -606,6 +709,7 @@ screenSelect.addEventListener('change', () => {
 $('lab-viewport-select').addEventListener('change', (evt) => {
   stage.dataset.viewport = evt.target.value;
   savePrefs();
+  applyMasonry(); // larguras mudam → alturas naturais mudam
 });
 
 $('lab-theme-select').addEventListener('change', (evt) => {
