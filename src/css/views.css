@@ -49,12 +49,11 @@
   justify-content: center;
 }
 
-/* MED sticky header */
+/* MED summary header — bloco normal (rola junto com o conteúdo).
+   Já foi sticky, mas a barra fixa sobrepunha os cards que rolavam por baixo
+   dentro do scroll com padding/gap do main-content-stack; por decisão de UX
+   passou a rolar com a lista. Sem fundo sólido para não destoar do gradiente. */
 .med-sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: var(--bg, #0b0b0d);
   padding: 8px 4px 12px;
   margin-bottom: 12px;
   border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06));
