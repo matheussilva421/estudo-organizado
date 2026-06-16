@@ -20,12 +20,18 @@ function filterRevisionItems(items) {
   return selectedEditalId ? items.filter((item) => item.edital?.id === selectedEditalId) : items;
 }
 
-export function getUpcomingRevisoes(days = 30) {
-  const today = todayStr();
+// Data local (YYYY-MM-DD) de hoje + N dias. Compartilhado entre a janela de
+// "próximas" e a limpeza em lote para que ambos usem exatamente o mesmo limite.
+function getDateStrInDays(days) {
   const future = new Date();
   future.setDate(future.getDate() + days);
-  const future2 = new Date(future.getTime() - future.getTimezoneOffset() * 60000);
-  const futureStr = future2.toISOString().split('T')[0];
+  const local = new Date(future.getTime() - future.getTimezoneOffset() * 60000);
+  return local.toISOString().split('T')[0];
+}
+
+export function getUpcomingRevisoes(days = 30) {
+  const today = todayStr();
+  const futureStr = getDateStrInDays(days);
   const upcoming = [];
   for (const edital of state.editais) {
     for (const disc of edital.disciplinas || []) {
@@ -242,6 +248,30 @@ function skipRevisionDate(assId, revisionDate) {
   return true;
 }
 
+// Pula (marca como feita) TODAS as ocorrências de revisão de um assunto que
+// caem dentro de `inScope`, drenando o backlog daquele assunto. `maxSteps` é só
+// um guarda-chuva contra loop — o avanço real vem de revisoesFetas crescer a
+// cada iteração, encurtando o slice de calcRevisionDates. Retorna true se pulou
+// ao menos uma ocorrência.
+function drainRevisions(assId, inScope, maxSteps) {
+  const ass = findAssuntoById(assId);
+  if (!ass) return false;
+  if (!ass.revisoesFetas) ass.revisoesFetas = [];
+  let drained = false;
+  for (let i = 0; i < maxSteps; i++) {
+    const dueDate = calcRevisionDates(
+      ass.dataConclusao,
+      ass.revisoesFetas,
+      ass.adiamentos || 0
+    ).find(inScope);
+    if (!dueDate || ass.revisoesFetas.includes(dueDate)) break;
+    ass.revisoesFetas.push(dueDate);
+    ass.revisoesFetas.sort();
+    drained = true;
+  }
+  return drained;
+}
+
 export function marcarRevisao(assId) {
   const ass = findAssuntoById(assId);
   if (ass) {
@@ -344,9 +374,21 @@ export function clearVisibleRevisions(scope = 'pending') {
   showConfirm(
     `Excluir ${items.length} ${label}? Isso apenas remove essas ocorrências da fila.`,
     () => {
+      const today = todayStr();
+      // Janela do escopo: "pending" = tudo vencido/hoje; "upcoming" = próximos 30 dias.
+      const windowEnd = scope === 'upcoming' ? getDateStrInDays(30) : null;
+      const inScope =
+        scope === 'upcoming'
+          ? (rd) => rd > today && rd <= windowEnd
+          : (rd) => rd <= today;
+      // Cada item já é um assunto distinto (getPendingRevisoes/getUpcomingRevisoes
+      // expõem só a 1ª ocorrência por assunto). Drenamos TODO o backlog daquele
+      // assunto dentro do escopo — senão o próximo nível ressurge e a lista nunca
+      // esvazia. Mesmo padrão (drain por while) já usado em deletarRevisao.
+      const maxSteps = (state.config.frequenciaRevisao || [1, 7, 30, 90]).length;
       let removed = 0;
       items.forEach((item) => {
-        if (skipRevisionDate(item.assunto.id, item.data)) removed++;
+        if (drainRevisions(item.assunto.id, inScope, maxSteps)) removed++;
       });
       invalidateRevCache();
       invalidatePendingRevCache();
