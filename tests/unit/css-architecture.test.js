@@ -667,4 +667,14 @@ describe('CSS architecture', () => {
     expect(styles).toContain('.modal-confirm-footer');
     expect(styles).toContain('.nav-item .badge.badge-crono');
   });
+
+  it('mantém o cabeçalho de resumo do Study Organizer rolando com o conteúdo (não-fixo)', () => {
+    // A barra de resumo já foi position:sticky e sobrepunha os cards que rolavam
+    // por baixo dentro do main-content-stack. Garante que continue como bloco normal.
+    const viewsCss = read('src/css/views.css');
+    const block = extractCssBlock(viewsCss, '.med-sticky-header');
+
+    expect(block).not.toContain('position: sticky');
+    expect(block).not.toContain('position: fixed');
+  });
 });
