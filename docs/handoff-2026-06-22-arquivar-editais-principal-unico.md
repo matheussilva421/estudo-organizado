@@ -107,15 +107,13 @@ sem tombstone. Remover o seletor mexe só em estado por-dispositivo (`localStora
 
 Sync (Cloudflare/Drive/Firestore), IndexedDB, export-state, backup/restore, autenticação.
 
+## Status do GitHub
+
+- Commit `683670e` (29 arquivos) na branch `feat/arquivar-editais-principal-unico`.
+- Push realizado: branch publicada em `origin` e rastreada.
+- Abrir PR: https://github.com/matheussilva421/estudo-organizado/pull/new/feat/arquivar-editais-principal-unico
+
 ## Próximos passos
 
-1. (Usuário) Rodar o smoke manual acima.
-2. Commit + push da branch e abrir PR.
-
-### Comandos git sugeridos
-
-```bash
-git add -A
-git commit -m "feat(editais): arquivar editais com modelo de principal unico + pagina Editais Anteriores"
-git push -u origin feat/arquivar-editais-principal-unico
-```
+1. (Usuário) Rodar o smoke manual acima (extensão Chrome não estava conectada nesta sessão).
+2. Abrir o PR e revisar o diff.
