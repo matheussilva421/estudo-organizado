@@ -330,7 +330,8 @@ function renderWeekKpis(ctx) {
 
 // --- FAIXA 4: ANÁLISE (esquerda: barras por disciplina | direita: gráficos) -
 function renderSubjectProgress(ctx) {
-  const editais = state.editais || [];
+  // Modelo de edital principal único: sem abas de troca de edital. O progresso
+  // é sempre do principal (groups já vem sem editais arquivados).
   const activeId = getActiveEditalId();
   const groups = ctx.disciplineProgress;
   const visibleGroups = activeId ? groups.filter((g) => g.edital.id === activeId) : groups;
@@ -338,22 +339,12 @@ function renderSubjectProgress(ctx) {
     group.disciplinas.map((row) => ({ ...row, edital: group.edital }))
   );
 
-  const tabsHtml = editais.length > 1
-    ? editais.map((e) => `
-        <button class="dash-edital-tab ${e.id === activeId ? 'dash-edital-tab--active' : ''}" data-action="set-active-edital" data-edital-id="${e.id}">
-          <span class="home-edital-dot" style="background:${e.cor || 'var(--accent)'};"></span>
-          ${esc(e.nome)}
-        </button>
-      `).join('')
-    : '';
-
   if (allRows.length === 0) {
     return `
       <div class="card p-16 home-card dash-subject-panel">
         <div class="flex-between mb-3">
           <div class="dash-label">PROGRESSO POR DISCIPLINA</div>
         </div>
-        ${tabsHtml ? `<div class="dash-edital-tabs">${tabsHtml}</div>` : ''}
         <div class="text-center text-muted" style="padding:24px;">Nenhuma disciplina cadastrada neste edital.</div>
       </div>`;
   }
@@ -391,7 +382,6 @@ function renderSubjectProgress(ctx) {
         <div class="dash-label">PROGRESSO POR DISCIPLINA</div>
         <span class="text-xs text-muted">${allRows.filter(d => d.percent >= 100).length}/${allRows.length} concluídas</span>
       </div>
-      ${tabsHtml ? `<div class="dash-edital-tabs">${tabsHtml}</div>` : ''}
       <div class="dash-subject-progress-list">
         ${rowsHtml}
       </div>

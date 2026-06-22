@@ -1,12 +1,12 @@
 // =============================================
-// SCHEMA MIGRATIONS (v1 → v10)
+// SCHEMA MIGRATIONS (v1 → v11)
 // =============================================
 import { uid } from '../utils.js?v=8.37';
 
-export const DEFAULT_SCHEMA_VERSION = 10;
+export const DEFAULT_SCHEMA_VERSION = 11;
 
 /**
- * Executa migrações de schema do estado (v1 → v10)
+ * Executa migrações de schema do estado (v1 → v11)
  * @param {Object} state - Estado global a ser migrado
  * @param {Function} onChanged - Callback chamado quando mudanças são aplicadas
  * @returns {void}
@@ -178,6 +178,18 @@ export function runMigrations(state, onChanged) {
     if (!state.config) state.config = {};
     state.config.globalSyncPaused = true;
     state.schemaVersion = 10;
+    changed = true;
+  }
+
+  // v10 → v11: Add archive flag to editais (single-principal model).
+  // Mirrors the discipline archive flags (v7 → v8). The principal edital is
+  // the one with arquivado=false; archived editais keep all their data.
+  if (state.schemaVersion < 11) {
+    (state.editais || []).forEach((ed) => {
+      if (ed.arquivado === undefined) ed.arquivado = false;
+      if (ed.arquivadoEm === undefined) ed.arquivadoEm = null;
+    });
+    state.schemaVersion = 11;
     changed = true;
   }
 

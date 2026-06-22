@@ -42,6 +42,7 @@ import { initFirestoreSync } from './sync/firestore-sync-engine.js?v=8.37';
 import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.37';
 import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.37';
 import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.37';
+import { reconcilePrincipalEdital } from './views/editais-crud.js';
 
 // ── Re-exports ────────────────────────────────────────────────────────
 export {
@@ -94,6 +95,11 @@ export function init() {
 
       // Render UI first — user can interact, sync only runs on manual click.
       navigate('home');
+
+      // Modelo de edital principal único: na 1ª abertura após a atualização, se
+      // houver mais de um edital ativo, pede ao usuário qual é o principal
+      // (uma vez por dispositivo). Não toca em sync — só flags em state.editais.
+      reconcilePrincipalEdital();
 
       // Drive: load Google APIs if a client ID was previously saved, but do
       // NOT trigger any sync. The user starts sync via the manual button.

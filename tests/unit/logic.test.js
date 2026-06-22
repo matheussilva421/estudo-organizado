@@ -595,6 +595,18 @@ describe('logic.js', () => {
 
         expect(result).toHaveLength(2);
       });
+
+      it('excludes disciplines of an archived edital', () => {
+        const disc1 = createDisciplina({ id: 'disc_1' });
+        const disc2 = createDisciplina({ id: 'disc_2' });
+        const edAtivo = createEdital({ id: 'ed_1', arquivado: false, disciplinas: [disc1] });
+        const edArquivado = createEdital({ id: 'ed_2', arquivado: true, disciplinas: [disc2] });
+        store.setState(createBaseState({ editais: [edAtivo, edArquivado] }));
+
+        const result = logic.getActiveDisciplinas();
+
+        expect(result.map(({ disc }) => disc.id)).toEqual(['disc_1']);
+      });
     });
   });
 
@@ -1515,6 +1527,21 @@ describe('logic.js', () => {
         expect(pending).toEqual([]);
       });
 
+      it('skips archived editais', () => {
+        const assunto = createAssunto({
+          id: 'ass_1',
+          concluido: true,
+          dataConclusao: '2026-04-19',
+          revisoesFetas: [],
+        });
+        const disc = createDisciplina({ id: 'disc_1', assuntos: [assunto], arquivada: false });
+        const edital = createEdital({ id: 'ed_1', disciplinas: [disc], arquivado: true });
+        store.setState(createBaseState({ editais: [edital] }));
+        logic.invalidatePendingRevCache();
+
+        expect(logic.getPendingRevisoes()).toEqual([]);
+      });
+
       it('skips non-concluded assuntos', () => {
         const assunto = createAssunto({
           id: 'ass_1',
@@ -1856,6 +1883,152 @@ describe('logic.js', () => {
         .filter((ev) => ev.type === 'app:eventosBulkDeleted');
       expect(bulkCalls).toHaveLength(1);
       expect([...bulkCalls[0].detail.ids].sort()).toEqual(['a', 'b']);
+    });
+  });
+
+  describe('Edital archive / single-principal helpers', () => {
+    it('getActiveEditais / getArchivedEditais split by the arquivado flag', () => {
+      store.setState(
+        createBaseState({
+          editais: [
+            createEdital({ id: 'ed_1', arquivado: false }),
+            createEdital({ id: 'ed_2', arquivado: true, arquivadoEm: '2026-01-01T00:00:00.000Z' }),
+          ],
+        })
+      );
+
+      expect(logic.getActiveEditais().map((e) => e.id)).toEqual(['ed_1']);
+      expect(logic.getArchivedEditais().map((e) => e.id)).toEqual(['ed_2']);
+    });
+
+    it('getPrincipalEdital returns null when there is no active edital', () => {
+      store.setState(createBaseState({ editais: [createEdital({ id: 'ed_1', arquivado: true })] }));
+      expect(logic.getPrincipalEdital()).toBeNull();
+      expect(logic.getPrincipalEditalId()).toBeNull();
+    });
+
+    it('getPrincipalEdital returns the only active edital', () => {
+      store.setState(
+        createBaseState({
+          editais: [
+            createEdital({ id: 'ed_1', arquivado: true }),
+            createEdital({ id: 'ed_2', arquivado: false }),
+          ],
+        })
+      );
+      expect(logic.getPrincipalEditalId()).toBe('ed_2');
+    });
+
+    it('getPrincipalEdital is deterministic (first by array order) when >1 active', () => {
+      store.setState(
+        createBaseState({
+          editais: [
+            createEdital({ id: 'ed_1', arquivado: false }),
+            createEdital({ id: 'ed_2', arquivado: false }),
+          ],
+        })
+      );
+      expect(logic.getPrincipalEditalId()).toBe('ed_1');
+    });
+
+    it('archiveEdital sets flag + timestamp and preserves the edital and its events', () => {
+      const disc = createDisciplina({ id: 'disc_1' });
+      store.setState(
+        createBaseState({
+          editais: [createEdital({ id: 'ed_1', arquivado: false, disciplinas: [disc] })],
+          eventos: [createEvento({ id: 'ev_1', discId: 'disc_1', tempoAcumulado: 600 })],
+        })
+      );
+
+      logic.archiveEdital('ed_1');
+
+      const ed = store.state.editais.find((e) => e.id === 'ed_1');
+      expect(ed.arquivado).toBe(true);
+      expect(ed.arquivadoEm).toBe('2026-04-20T10:00:00.000Z');
+      // Stats preserved: edital + disciplinas remain, events untouched
+      expect(ed.disciplinas.map((d) => d.id)).toEqual(['disc_1']);
+      expect(store.state.eventos).toHaveLength(1);
+      expect(store.state.eventos[0].discId).toBe('disc_1');
+    });
+
+    it('unarchiveEdital clears the flag', () => {
+      store.setState(
+        createBaseState({
+          editais: [
+            createEdital({ id: 'ed_1', arquivado: true, arquivadoEm: '2026-01-01T00:00:00.000Z' }),
+          ],
+        })
+      );
+      logic.unarchiveEdital('ed_1');
+      const ed = store.state.editais.find((e) => e.id === 'ed_1');
+      expect(ed.arquivado).toBe(false);
+      expect(ed.arquivadoEm).toBe(null);
+    });
+
+    it('makeEditalPrincipal promotes one and archives all others (exactly one active)', () => {
+      store.setState(
+        createBaseState({
+          editais: [
+            createEdital({ id: 'ed_1', arquivado: false }),
+            createEdital({ id: 'ed_2', arquivado: true, arquivadoEm: '2026-01-01T00:00:00.000Z' }),
+            createEdital({ id: 'ed_3', arquivado: true, arquivadoEm: '2026-01-01T00:00:00.000Z' }),
+          ],
+        })
+      );
+
+      logic.makeEditalPrincipal('ed_2');
+
+      const byId = Object.fromEntries(store.state.editais.map((e) => [e.id, e]));
+      expect(byId.ed_2.arquivado).toBe(false);
+      expect(byId.ed_2.arquivadoEm).toBe(null);
+      expect(byId.ed_1.arquivado).toBe(true);
+      expect(byId.ed_1.arquivadoEm).toBe('2026-04-20T10:00:00.000Z');
+      expect(byId.ed_3.arquivado).toBe(true);
+      expect(logic.getActiveEditais()).toHaveLength(1);
+      expect(logic.getPrincipalEditalId()).toBe('ed_2');
+    });
+
+    it('makeEditalPrincipal is a no-op for an unknown id (keeps current principal)', () => {
+      store.setState(
+        createBaseState({
+          editais: [
+            createEdital({ id: 'ed_1', arquivado: false }),
+            createEdital({ id: 'ed_2', arquivado: true }),
+          ],
+        })
+      );
+      logic.makeEditalPrincipal('ed_nope');
+      expect(logic.getActiveEditais().map((e) => e.id)).toEqual(['ed_1']);
+    });
+
+    it('getNextSuggestedLesson skips archived editais when no editalId is given', () => {
+      const aula = { id: 'aula_1', nome: 'Aula 1', estudada: false };
+      const disc = createDisciplina({ id: 'disc_1', aulas: [aula] });
+      const edArquivado = createEdital({ id: 'ed_1', arquivado: true, disciplinas: [disc] });
+      store.setState(createBaseState({ editais: [edArquivado] }));
+
+      expect(logic.getNextSuggestedLesson()).toBeNull();
+    });
+
+    it('getNextSuggestedLesson still returns a lesson from the active edital', () => {
+      const aula = { id: 'aula_1', nome: 'Aula 1', estudada: false };
+      const disc = createDisciplina({ id: 'disc_1', aulas: [aula] });
+      const edAtivo = createEdital({ id: 'ed_1', arquivado: false, disciplinas: [disc] });
+      store.setState(createBaseState({ editais: [edAtivo] }));
+
+      expect(logic.getNextSuggestedLesson()?.aula.id).toBe('aula_1');
+    });
+
+    it('getDisciplineProgressByEdital excludes archived editais', () => {
+      const discAtiva = createDisciplina({ id: 'disc_1' });
+      const discArq = createDisciplina({ id: 'disc_2' });
+      const edAtivo = createEdital({ id: 'ed_1', arquivado: false, disciplinas: [discAtiva] });
+      const edArquivado = createEdital({ id: 'ed_2', arquivado: true, disciplinas: [discArq] });
+      store.setState(createBaseState({ editais: [edAtivo, edArquivado] }));
+
+      const result = logic.getDisciplineProgressByEdital();
+
+      expect(result.map((g) => g.edital.id)).toEqual(['ed_1']);
     });
   });
 });

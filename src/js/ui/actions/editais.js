@@ -6,7 +6,7 @@
 import { registerAction } from './dispatcher.js';
 import { showConfirm, showToast } from '../../app.js?v=8.37';
 import { renderCurrentView } from '../../components.js?v=8.37';
-import { archiveDiscipline, unarchiveDiscipline } from '../../logic.js?v=8.37';
+import { archiveDiscipline, unarchiveDiscipline, makeEditalPrincipal } from '../../logic.js?v=8.37';
 import { scheduleSave } from '../../store.js?v=8.37';
 import {
   openEditaModal,
@@ -41,6 +41,8 @@ import {
   setVertFilterStatus,
   renderVerticalList,
   filtrarDropdownBanca,
+  setAnteriorTab,
+  openEditalSuccessorModal,
 } from '../../views.js?v=8.37';
 import {
   parseBancaText,
@@ -74,10 +76,32 @@ registerAction('save-edital', (el) => {
 registerAction('delete-edital', (el) => {
   const editalId = el.dataset.editalId;
   if (editalId) {
-    showConfirm('Tem certeza que deseja excluir este edital?', () => {
-      deleteEdital(editalId);
-    });
+    showConfirm(
+      'Excluir este edital PERMANENTEMENTE?\nIsto APAGA as estatísticas e o progresso deste edital (as sessões perdem o vínculo). Para manter os dados, prefira Arquivar.',
+      () => {
+        deleteEdital(editalId);
+      },
+      { label: 'Excluir definitivamente', danger: true }
+    );
   }
+});
+registerAction('archive-edital', () => {
+  // Arquivar o principal exige definir o sucessor (promover um arquivado ou
+  // criar um novo). O modal cuida de chamar makeEditalPrincipal.
+  openEditalSuccessorModal();
+});
+registerAction('make-edital-principal', (el) => {
+  const editalId = el.dataset.editalId;
+  if (!editalId) return;
+  showConfirm(
+    'Tornar este o edital principal?\nO edital principal atual será arquivado (dados e estatísticas preservados).',
+    () => {
+      makeEditalPrincipal(editalId);
+      renderCurrentView();
+      showToast('Novo edital principal definido.', 'success');
+    },
+    { label: 'Tornar principal' }
+  );
 });
 registerAction('move-edital', (el) => {
   const editalId = el.dataset.editalId;
@@ -131,6 +155,10 @@ registerAction('set-disc-filter', (el) => {
   const filter = el.dataset.filter || 'ativas';
   setDiscFilterStatus(filter);
   renderCurrentView();
+});
+registerAction('set-anterior-tab', (el) => {
+  const editalId = el.dataset.editalId;
+  if (editalId) setAnteriorTab(editalId);
 });
 
 registerAction('open-disc-dashboard', (el) => {

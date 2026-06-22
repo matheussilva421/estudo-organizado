@@ -37,6 +37,7 @@ export function getPendingRevisoes() {
   const today = todayStr();
   const pending = [];
   for (const edital of state.editais) {
+    if (edital.arquivado) continue;
     for (const disc of edital.disciplinas || []) {
       if (disc.arquivada) continue;
       for (const ass of disc.assuntos || []) {

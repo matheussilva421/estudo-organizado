@@ -62,7 +62,9 @@ describe('ui/actions/navegacao.js', () => {
     expect(calls).toContain('cal-navigate');
     expect(calls).toContain('cal-today');
     expect(calls).toContain('select-calendar-day');
-    expect(calls).toContain('set-edital-filter');
+    // Seletor de edital removido (modelo de edital principal único)
+    expect(calls).not.toContain('set-edital-filter');
+    expect(calls).not.toContain('set-active-edital');
     expect(calls).toContain('set-dash-period');
     expect(calls).toContain('close-sidebar');
     expect(calls).toContain('toggle-sidebar');
@@ -154,13 +156,6 @@ describe('ui/actions/navegacao.js', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'toggle-theme')[1];
     handler({});
     expect(appModule.applyTheme).toHaveBeenCalledWith(true);
-    expect(componentsModule.renderCurrentView).toHaveBeenCalled();
-  });
-
-  it('set-edital-filter stores selection and re-renders', () => {
-    const handler = registerAction.mock.calls.find(c => c[0] === 'set-edital-filter')[1];
-    handler({ value: 'ed_2' });
-    expect(editalFilter.setSelectedEditalId).toHaveBeenCalledWith('ed_2');
     expect(componentsModule.renderCurrentView).toHaveBeenCalled();
   });
 

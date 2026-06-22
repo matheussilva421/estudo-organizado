@@ -14,7 +14,12 @@ import {
   uid,
 } from '../utils.js?v=8.37';
 import { scheduleSave, state } from '../store.js?v=8.37';
-import { invalidatePendingRevCache } from '../logic.js?v=8.37';
+import {
+  invalidatePendingRevCache,
+  makeEditalPrincipal,
+  getActiveEditais,
+  getArchivedEditais,
+} from '../logic.js?v=8.37';
 import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 import {
@@ -366,17 +371,121 @@ export function saveEdital(editaId) {
       edital.cor = cor;
     }
   } else {
+    const novoId = uid();
     state.editais.push({
-      id: uid(),
+      id: novoId,
       nome,
       cor,
       disciplinas: [],
+      arquivado: false,
+      arquivadoEm: null,
     });
+    // Modelo de edital principal único: o edital recém-criado vira o principal
+    // e o anterior é arquivado (atômico, dados preservados).
+    makeEditalPrincipal(novoId);
   }
   scheduleSave();
   closeModal('modal-edital');
   renderCurrentView();
   showToast('Edital salvo!', 'success');
+}
+
+// ── Arquivar edital principal: escolher/criar o sucessor ──
+// Sempre existe exatamente 1 principal. Arquivar o principal exige definir o
+// próximo: promover um arquivado existente ou criar um novo. makeEditalPrincipal
+// arquiva o principal atual automaticamente ao promover o sucessor.
+export function openEditalSuccessorModal() {
+  const titleEl = document.getElementById('modal-prompt-title');
+  const bodyEl = document.getElementById('modal-prompt-body');
+  const saveBtn = document.getElementById('modal-prompt-save');
+  if (!titleEl || !bodyEl || !saveBtn) return;
+
+  titleEl.textContent = 'Arquivar edital';
+  const arquivados = getArchivedEditais();
+
+  if (arquivados.length === 0) {
+    bodyEl.innerHTML = `
+      <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">
+        Este é seu único edital. Para arquivá-lo, crie um novo edital — ele passará a ser o principal e este será arquivado com todas as estatísticas preservadas.
+      </div>`;
+    saveBtn.textContent = 'Criar novo edital';
+    saveBtn.onclick = () => {
+      closeModal('modal-prompt');
+      openEditaModal(null);
+    };
+    openModal('modal-prompt');
+    return;
+  }
+
+  bodyEl.innerHTML = `
+    <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">
+      Escolha qual edital passará a ser o principal. O edital atual será arquivado (dados e estatísticas preservados).
+    </div>
+    <select id="prompt-successor-select" class="form-control" aria-label="Novo edital principal">
+      ${arquivados.map((ed) => `<option value="${esc(ed.id)}">${esc(ed.nome || 'Edital')}</option>`).join('')}
+      <option value="__new__">+ Criar novo edital</option>
+    </select>`;
+  saveBtn.textContent = 'Confirmar';
+  saveBtn.onclick = () => {
+    const val = document.getElementById('prompt-successor-select')?.value;
+    closeModal('modal-prompt');
+    if (val === '__new__') {
+      openEditaModal(null);
+    } else if (val) {
+      makeEditalPrincipal(val);
+      renderCurrentView();
+      showToast('Edital arquivado. Novo principal definido.', 'success');
+    }
+  };
+  openModal('modal-prompt');
+}
+
+// ── Modal de 1ª vez: escolher o principal quando há vários editais ativos ──
+function openFirstRunPrincipalModal(ativos) {
+  const titleEl = document.getElementById('modal-prompt-title');
+  const bodyEl = document.getElementById('modal-prompt-body');
+  const saveBtn = document.getElementById('modal-prompt-save');
+  if (!titleEl || !bodyEl || !saveBtn) return;
+
+  titleEl.textContent = 'Qual é seu edital principal?';
+  bodyEl.innerHTML = `
+    <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">
+      Agora você acompanha um edital principal por vez. Escolha o principal — os demais serão arquivados (com estatísticas preservadas) e ficarão em "Editais Anteriores".
+    </div>
+    <select id="prompt-principal-select" class="form-control" aria-label="Edital principal">
+      ${ativos.map((ed) => `<option value="${esc(ed.id)}">${esc(ed.nome || 'Edital')}</option>`).join('')}
+    </select>`;
+  saveBtn.textContent = 'Confirmar';
+  saveBtn.onclick = () => {
+    const val = document.getElementById('prompt-principal-select')?.value;
+    if (val) makeEditalPrincipal(val);
+    closeModal('modal-prompt');
+    renderCurrentView();
+  };
+  openModal('modal-prompt');
+}
+
+// ── Reconciliação no 1º load após a atualização ──
+// A migração não mostra UI; aqui, se houver mais de um edital ativo, pedimos ao
+// usuário qual é o principal (uma única vez por dispositivo). Com 0 ou 1 ativo,
+// o invariante já vale e nada é perguntado.
+const PRINCIPAL_RECONCILED_FLAG = 'estudo_principal_reconciled';
+
+export function reconcilePrincipalEdital() {
+  try {
+    if (localStorage.getItem(PRINCIPAL_RECONCILED_FLAG) === 'true') return;
+  } catch {
+    /* ignore */
+  }
+  const ativos = getActiveEditais();
+  if (ativos.length > 1) {
+    openFirstRunPrincipalModal(ativos);
+  }
+  try {
+    localStorage.setItem(PRINCIPAL_RECONCILED_FLAG, 'true');
+  } catch {
+    /* ignore */
+  }
 }
 
 export function moveEdital(editaId, dir) {

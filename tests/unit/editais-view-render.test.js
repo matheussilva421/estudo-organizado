@@ -27,6 +27,7 @@ describe('views/editais-view.js - render functions', () => {
     vi.doMock('../../src/js/logic.js?v=8.37', () => ({
       getDisciplinaById: vi.fn(),
       invalidateDiscCache: vi.fn(),
+      getArchivedEditais: vi.fn(() => []),
       calculateContentProgress: vi.fn((discOrDiscs) => {
         const discs = Array.isArray(discOrDiscs) ? discOrDiscs : [discOrDiscs].filter(Boolean);
         const topics = discs.flatMap((disc) => disc.assuntos || []);
@@ -46,6 +47,7 @@ describe('views/editais-view.js - render functions', () => {
       todayStr: vi.fn(() => '2026-04-29'),
       addCleanupListener: vi.fn(),
       normalizeSearch: vi.fn((s) => String(s || '').toLowerCase()),
+      formatDate: vi.fn((d) => d || ''),
     }));
     vi.doMock('../../src/js/state/dashboard-context.js?v=8.37', () => ({
       getActiveDashboardDiscCtx: vi.fn(() => null),
@@ -67,16 +69,17 @@ describe('views/editais-view.js - render functions', () => {
       expect(el.innerHTML).toContain('vert-search');
     });
 
-    it('renders edital filter dropdown', () => {
+    it('does not render an edital selector dropdown (single-principal model)', () => {
       const el = { innerHTML: '' };
       storeModule.state.editais = [
         { id: 'ed_1', nome: 'Edital A', disciplinas: [] },
         { id: 'ed_2', nome: 'Edital B', disciplinas: [] },
       ];
       editaisView.renderVertical(el);
-      expect(el.innerHTML).toContain('Todos os editais');
-      expect(el.innerHTML).toContain('Edital A');
-      expect(el.innerHTML).toContain('Edital B');
+      expect(el.innerHTML).not.toContain('Todos os editais');
+      expect(el.innerHTML).not.toContain('set-vert-filter-edital');
+      // toolbar still renders the search box
+      expect(el.innerHTML).toContain('vert-search');
     });
 
     it('renders status filter chips', () => {
