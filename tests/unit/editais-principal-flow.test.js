@@ -139,4 +139,28 @@ describe('reconcilePrincipalEdital', () => {
     expect(() => views.reconcilePrincipalEdital()).not.toThrow();
     expect(store.state.editais.filter((e) => !e.arquivado)).toHaveLength(1);
   });
+
+  it('marks reconciled (sets the per-device flag) when the invariant already holds', () => {
+    store.setState(
+      createBaseState({ editais: [createEdital({ id: 'ed_1', arquivado: false })] })
+    );
+    views.reconcilePrincipalEdital();
+    expect(global.localStorage.setItem).toHaveBeenCalledWith('estudo_principal_reconciled', 'true');
+  });
+
+  it('does NOT mark reconciled when more than one edital is active (re-prompts next load)', () => {
+    store.setState(
+      createBaseState({
+        editais: [
+          createEdital({ id: 'ed_1', arquivado: false }),
+          createEdital({ id: 'ed_2', arquivado: false }),
+        ],
+      })
+    );
+    views.reconcilePrincipalEdital();
+    expect(global.localStorage.setItem).not.toHaveBeenCalledWith(
+      'estudo_principal_reconciled',
+      'true'
+    );
+  });
 });

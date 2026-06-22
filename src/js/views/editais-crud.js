@@ -459,6 +459,9 @@ function openFirstRunPrincipalModal(ativos) {
   saveBtn.onclick = () => {
     const val = document.getElementById('prompt-principal-select')?.value;
     if (val) makeEditalPrincipal(val);
+    // Só marca como reconciliado QUANDO o usuário escolhe — fechar o modal sem
+    // escolher mantém o estado pendente e o aviso reaparece no próximo load.
+    markPrincipalReconciled();
     closeModal('modal-prompt');
     renderCurrentView();
   };
@@ -467,9 +470,19 @@ function openFirstRunPrincipalModal(ativos) {
 
 // ── Reconciliação no 1º load após a atualização ──
 // A migração não mostra UI; aqui, se houver mais de um edital ativo, pedimos ao
-// usuário qual é o principal (uma única vez por dispositivo). Com 0 ou 1 ativo,
-// o invariante já vale e nada é perguntado.
+// usuário qual é o principal. Com 0 ou 1 ativo, o invariante já vale. A flag
+// (por-dispositivo) só é gravada quando o invariante está satisfeito (<=1 ativo)
+// OU quando o usuário confirma a escolha — assim, fechar o modal sem escolher
+// não silencia o aviso para sempre.
 const PRINCIPAL_RECONCILED_FLAG = 'estudo_principal_reconciled';
+
+function markPrincipalReconciled() {
+  try {
+    localStorage.setItem(PRINCIPAL_RECONCILED_FLAG, 'true');
+  } catch {
+    /* ignore */
+  }
+}
 
 export function reconcilePrincipalEdital() {
   try {
@@ -480,12 +493,9 @@ export function reconcilePrincipalEdital() {
   const ativos = getActiveEditais();
   if (ativos.length > 1) {
     openFirstRunPrincipalModal(ativos);
+    return; // a flag só é gravada quando o usuário confirma no modal
   }
-  try {
-    localStorage.setItem(PRINCIPAL_RECONCILED_FLAG, 'true');
-  } catch {
-    /* ignore */
-  }
+  markPrincipalReconciled();
 }
 
 export function moveEdital(editaId, dir) {

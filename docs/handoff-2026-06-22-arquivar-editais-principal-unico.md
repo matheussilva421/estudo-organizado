@@ -107,6 +107,30 @@ sem tombstone. Remover o seletor mexe só em estado por-dispositivo (`localStora
 
 Sync (Cloudflare/Drive/Firestore), IndexedDB, export-state, backup/restore, autenticação.
 
+## Revisão (self-review + revisor independente)
+
+Após a 1ª entrega, revisão crítica + agente revisor. Achados tratados:
+
+- **[Corrigido] 2º edital ativo invisível**: `renderEditais` usava `getFilteredEditais`
+  (só o principal); num estado transitório com >1 ativo (merge de sync ou modal de
+  reconciliação dispensado), o 2º ativo não aparecia em lugar nenhum. Agora usa
+  `getActiveEditais()` (renderiza todos os ativos) — nenhum edital fica oculto.
+  Teste de regressão em `editais-view-render.test.js`.
+- **[Corrigido] Flag do reconciler gravada cedo demais**: a flag `estudo_principal_reconciled`
+  era gravada ao abrir o modal; dispensá-lo deixava >1 ativo sem novo aviso. Agora a flag
+  só é gravada quando o invariante já vale (≤1 ativo) OU quando o usuário confirma a escolha.
+  Testes em `editais-principal-flow.test.js`.
+- **[Limpado] Código morto**: removidos `setActiveEdital`/`setActiveEditalId` (e imports
+  `setUiSection`/`setSelectedEditalId`) órfãos em `home-view.js`.
+- **[Verificado, sem ação] Home escopada no principal**: é o comportamento decidido
+  ("só o principal"); o streak/heatmap (`getConsistencyStreak`) segue global. `allowAll`
+  virou parâmetro vestigial (dívida cosmética, não bug).
+- **[Verificado, sem ação] `navigate` registrado em 2 arquivos**: pré-existente e permitido
+  pelo teste `action-contracts` (`allowedDuplicates = ['navigate']`).
+
+Validação pós-revisão: `vitest run` → **1857 testes, 0 falhas**; `eslint src/` → **0 erros**;
+sync intocado.
+
 ## Status do GitHub
 
 - Commit `683670e` (29 arquivos) na branch `feat/arquivar-editais-principal-unico`.

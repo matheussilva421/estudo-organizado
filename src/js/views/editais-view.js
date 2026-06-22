@@ -5,9 +5,9 @@
 
 import { state } from '../store.js?v=8.37';
 import { esc, normalizeSearch, formatDate } from '../utils.js?v=8.37';
-import { calculateContentProgress, getArchivedEditais } from '../logic.js?v=8.37';
+import { calculateContentProgress, getArchivedEditais, getActiveEditais } from '../logic.js?v=8.37';
 import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
-import { getFilteredEditais, getSelectedEditalId } from '../edital-filter.js?v=8.37';
+import { getSelectedEditalId } from '../edital-filter.js?v=8.37';
 
 // ── Vertical View State (persisted via ui-state) ──
 let discFilterStatus = 'ativas'; // não persiste — é filtro por sessão dentro do dashboard de disciplinas
@@ -313,7 +313,10 @@ export function toggleVertDisc(id) {
 
 // ── Editais View: Main Render ──
 export function renderEditais(el) {
-  const editais = getFilteredEditais({ allowAll: false }); // [principal] (ou [] se não houver)
+  // Normalmente há exatamente 1 ativo (o principal). Renderizamos TODOS os
+  // ativos para que, num estado transitório com mais de um ativo (ex.: merge de
+  // sync, ou modal de reconciliação dispensado), nenhum edital fique invisível.
+  const editais = getActiveEditais();
   const arquivados = getArchivedEditais();
 
   if (editais.length === 0 && arquivados.length === 0) {

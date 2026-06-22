@@ -9,7 +9,6 @@
 
 import { state } from '../store.js?v=8.37';
 import { esc, formatDate, formatTime } from '../utils.js?v=8.37';
-import { setUiSection } from '../ui-state.js?v=8.37';
 import {
   getAggregatedStats,
   getPerformanceStats,
@@ -27,17 +26,11 @@ import {
 import {
   filterEventsBySelectedEdital,
   getSelectedEditalId,
-  setSelectedEditalId,
 } from '../edital-filter.js?v=8.37';
 
-// Edital ativo selecionado nas tabs da Faixa 4 — persistido em ui-state (per-device).
+// Edital em foco = o principal (modelo de edital principal único).
 function getActiveEditalId() {
-  return getSelectedEditalId({ allowAll: true });
-}
-
-function setActiveEditalId(id) {
-  setUiSection('home', { activeEditalId: id });
-  setSelectedEditalId(id);
+  return getSelectedEditalId();
 }
 
 function fmtHM(totalSeconds) {
@@ -636,12 +629,4 @@ export function renderHome(el) {
       <button class="btn btn-ghost btn-sm" data-action="prompt-metas"><i class="fa fa-edit"></i> Editar metas</button>
     </div>
   `;
-}
-
-/**
- * Action handler exportado para tabs de edital (registrado em navegacao.js).
- */
-export function setActiveEdital(editalId) {
-  setActiveEditalId(editalId);
-  document.dispatchEvent(new Event('app:renderCurrentView'));
 }

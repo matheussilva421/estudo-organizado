@@ -27,7 +27,8 @@ describe('views/editais-view.js - render functions', () => {
     vi.doMock('../../src/js/logic.js?v=8.37', () => ({
       getDisciplinaById: vi.fn(),
       invalidateDiscCache: vi.fn(),
-      getArchivedEditais: vi.fn(() => []),
+      getArchivedEditais: vi.fn(() => (storeModule.state.editais || []).filter((e) => e.arquivado)),
+      getActiveEditais: vi.fn(() => (storeModule.state.editais || []).filter((e) => !e.arquivado)),
       calculateContentProgress: vi.fn((discOrDiscs) => {
         const discs = Array.isArray(discOrDiscs) ? discOrDiscs : [discOrDiscs].filter(Boolean);
         const topics = discs.flatMap((disc) => disc.assuntos || []);
@@ -283,6 +284,17 @@ describe('views/editais-view.js - render functions', () => {
       storeModule.state.editais = [];
       editaisView.renderEditais(el);
       expect(el.innerHTML).toContain('empty-state');
+    });
+
+    it('renders every active edital so none is hidden when more than one is active', () => {
+      const el = { innerHTML: '' };
+      storeModule.state.editais = [
+        { id: 'ed_1', nome: 'Edital Um', cor: '#111', disciplinas: [], arquivado: false },
+        { id: 'ed_2', nome: 'Edital Dois', cor: '#222', disciplinas: [], arquivado: false },
+      ];
+      editaisView.renderEditais(el);
+      expect(el.innerHTML).toContain('Edital Um');
+      expect(el.innerHTML).toContain('Edital Dois');
     });
   });
 });
