@@ -23,15 +23,37 @@ export function getEditalForDiscId(discId) {
   return null;
 }
 
-export function getSelectedEditalId({ allowAll = true } = {}) {
-  const filterState = getFilterState();
-  const selected = filterState.selectedEditalId || null;
-  if (isValidEditalId(selected)) return selected;
-  if (allowAll) return null;
+// Override de escopo (NÃO persistido): a página "Editais Anteriores" usa isto
+// para renderizar o dashboard de um edital arquivado reaproveitando as views,
+// sem reintroduzir um seletor global de edital.
+let _scopeOverrideEditalId = null;
 
-  const last = filterState.lastEditalId || null;
-  if (isValidEditalId(last)) return last;
-  return getEditais()[0]?.id || null;
+export function withEditalScope(editalId, fn) {
+  const prev = _scopeOverrideEditalId;
+  _scopeOverrideEditalId = editalId || null;
+  try {
+    return fn();
+  } finally {
+    _scopeOverrideEditalId = prev;
+  }
+}
+
+function getPrincipalEditalId() {
+  const list = getEditais();
+  const principal = list.find((edital) => !edital.arquivado);
+  // Fallback ao primeiro edital cobre o estado transitório/edge (todos
+  // arquivados após um merge de sync) para as views nunca ficarem sem escopo.
+  return principal?.id || list[0]?.id || null;
+}
+
+// Sem seletor de edital: o escopo é sempre o edital PRINCIPAL (único ativo),
+// salvo um override temporário de escopo. O parâmetro `allowAll` é mantido por
+// compatibilidade de assinatura nos chamadores, mas não altera mais o resultado.
+export function getSelectedEditalId() {
+  if (_scopeOverrideEditalId && isValidEditalId(_scopeOverrideEditalId)) {
+    return _scopeOverrideEditalId;
+  }
+  return getPrincipalEditalId();
 }
 
 export function setSelectedEditalId(id) {

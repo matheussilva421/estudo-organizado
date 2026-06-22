@@ -172,6 +172,7 @@ export function unarchiveDiscipline(editalId, disciplineId) {
 export function getActiveDisciplinas() {
   const result = [];
   for (const edital of state.editais) {
+    if (edital.arquivado) continue;
     if (!edital.disciplinas) continue;
     for (const disc of edital.disciplinas) {
       if (disc.arquivada) continue;
@@ -179,4 +180,80 @@ export function getActiveDisciplinas() {
     }
   }
   return result;
+}
+
+// =============================================
+// EDITAL ARCHIVE / SINGLE-PRINCIPAL UTILS
+// =============================================
+// Modelo de "edital principal único": exatamente um edital fica ativo
+// (arquivado=false) e é o principal; os demais ficam arquivados, com TODOS os
+// dados preservados (disciplinas, assuntos, sessões em state.eventos). Espelha o
+// arquivamento de disciplina (disc.arquivada). Nunca chamar deleteEdital aqui —
+// arquivar não apaga nada e, por isso, não precisa de tombstone de sync.
+
+export function getActiveEditais() {
+  return (state.editais || []).filter((e) => !e.arquivado);
+}
+
+export function getArchivedEditais() {
+  return (state.editais || []).filter((e) => e.arquivado);
+}
+
+/**
+ * Edital principal = o (primeiro) edital ativo. Função PURA — não muta.
+ * Casos de borda pós-merge de sync: 0 ativos → null; >1 ativos → o primeiro por
+ * ordem do array (estável; a reconciliação no init resolve para exatamente um).
+ */
+export function getPrincipalEdital() {
+  return getActiveEditais()[0] || null;
+}
+
+export function getPrincipalEditalId() {
+  return getPrincipalEdital()?.id || null;
+}
+
+export function archiveEdital(editalId) {
+  const edital = (state.editais || []).find((e) => e.id === editalId);
+  if (!edital) return;
+  edital.arquivado = true;
+  edital.arquivadoEm = new Date().toISOString();
+  invalidateDiscCache();
+  invalidateDashCaches();
+  invalidatePendingRevCache();
+  scheduleSave();
+}
+
+export function unarchiveEdital(editalId) {
+  const edital = (state.editais || []).find((e) => e.id === editalId);
+  if (!edital) return;
+  edital.arquivado = false;
+  edital.arquivadoEm = null;
+  invalidateDiscCache();
+  invalidateDashCaches();
+  invalidatePendingRevCache();
+  scheduleSave();
+}
+
+/**
+ * Promove um edital a principal de forma ATÔMICA: o alvo vira ativo e todos os
+ * outros editais ativos são arquivados. Garante o invariante "exatamente um
+ * principal". No-op se o id não existir (preserva o principal atual).
+ */
+export function makeEditalPrincipal(editalId) {
+  const target = (state.editais || []).find((e) => e.id === editalId);
+  if (!target) return;
+  const now = new Date().toISOString();
+  for (const edital of state.editais) {
+    if (edital.id === editalId) {
+      edital.arquivado = false;
+      edital.arquivadoEm = null;
+    } else if (!edital.arquivado) {
+      edital.arquivado = true;
+      edital.arquivadoEm = now;
+    }
+  }
+  invalidateDiscCache();
+  invalidateDashCaches();
+  invalidatePendingRevCache();
+  scheduleSave();
 }

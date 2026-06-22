@@ -11,6 +11,7 @@ import {
   renderConfig,
   renderDashboard,
   renderEditais,
+  renderEditaisAnteriores,
   renderHabitos,
   renderHistoricoSessoes,
   renderHome,
@@ -35,7 +36,6 @@ import { getActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.37';
 import {
   filterEventsBySelectedEdital,
   getFilteredActiveDisciplinas,
-  getSelectedEditalId,
 } from './edital-filter.js?v=8.37';
 import {
   getDiscChartInstance,
@@ -389,6 +389,7 @@ export function renderCurrentView() {
     revisoes: 'Revisões Pendentes',
     habitos: 'Hábitos de Estudo',
     editais: 'Editais',
+    'editais-anteriores': 'Editais Anteriores',
     vertical: 'Edital Verticalizado',
     config: 'Configurações',
     cronometro: 'Cronômetro',
@@ -411,48 +412,25 @@ export function renderCurrentView() {
   const actions = document.getElementById('topbar-actions');
   if (actions) {
     actions.innerHTML = '';
-    const renderEditalFilter = () => {
-      const editais = state.editais || [];
-      if (editais.length === 0 || currentView === 'cronometro' || currentView === 'config') return '';
-      const allowAll = currentView === 'home';
-      const selectedId = getSelectedEditalId({ allowAll });
-      const allOption = allowAll
-        ? `<option value="" ${selectedId ? '' : 'selected'}>Todos os editais</option>`
-        : '';
-      return `
-        <label class="topbar-edital-filter" title="Filtrar dados por edital">
-          <span class="sr-only">Edital</span>
-          <select class="edital-filter-select" data-action="set-edital-filter" aria-label="Filtrar por edital">
-            ${allOption}
-            ${editais
-              .map(
-                (edital) =>
-                  `<option value="${esc(edital.id)}" ${selectedId === edital.id ? 'selected' : ''}>${esc(edital.nome || 'Edital')}</option>`
-              )
-              .join('')}
-          </select>
-        </label>`;
-    };
-    const editalFilterHtml = renderEditalFilter();
+    // Sem seletor de edital: o app foca sempre no edital principal. As barras de
+    // ação só trazem os botões de cada tela.
     if (currentView === 'cronometro') {
       actions.innerHTML =
         '<button class="btn btn-ghost btn-sm" data-action="navigate" data-view="med"><i class="fa fa-arrow-left"></i> Voltar</button>';
     } else if (currentView === 'med' || currentView === 'calendar' || currentView === 'home') {
       actions.innerHTML =
-        `${editalFilterHtml}<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>`;
+        '<button class="btn btn-primary btn-sm" data-action="open-add-event"><i class="fa fa-plus"></i> Iniciar Estudo</button>';
     } else if (currentView === 'editais') {
       if (getActiveDashboardDiscCtx()) {
         actions.innerHTML =
-          `${editalFilterHtml}<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>`;
+          '<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>';
       } else {
         actions.innerHTML =
-          `${editalFilterHtml}<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>`;
+          '<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>';
       }
     } else if (currentView === 'ciclo') {
       actions.innerHTML =
-        `${editalFilterHtml}<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>`;
-    } else {
-      actions.innerHTML = editalFilterHtml;
+        '<button class="btn btn-primary btn-sm" data-action="open-planejamento-wizard"><i class="fa fa-cog"></i> Planejamento</button>';
     }
   }
 
@@ -487,6 +465,7 @@ export function renderCurrentView() {
     if (currentView === 'calendar') return renderCalendar(el);
     if (currentView === 'revisoes') return renderRevisoes(el);
     if (currentView === 'historico-sessoes') return renderHistoricoSessoes(el);
+    if (currentView === 'editais-anteriores') return renderEditaisAnteriores(el);
     if (currentView === 'habitos') return renderHabitos(el);
     if (currentView === 'config') return renderConfig(el);
     if (currentView === 'cronometro') return renderCronometro(el);

@@ -69,6 +69,10 @@ export {
   setDiscFilterStatus,
 } from './views/editais-view.js';
 export {
+  renderEditaisAnteriores,
+  setAnteriorTab,
+} from './views/editais-anteriores-view.js';
+export {
   renderDisciplinaDashboard,
   dashPeriod,
   _chartDaily,
@@ -171,6 +175,7 @@ export {
   openDiscDashboard, closeDiscDashboard, switchDashboardTab,
   deleteAssunto, deleteDisc, deleteEdital,
   openEditaModal, selectColor, saveEdital, moveEdital,
+  openEditalSuccessorModal, reconcilePrincipalEdital,
   openDiscModal, selectIcon, selectDiscColor, saveDisc,
   saveDiscManager, moveSubject, openDiscManager, switchManagerTab,
   editSubjectInline, editLessonInline, toggleAulaEstudada,

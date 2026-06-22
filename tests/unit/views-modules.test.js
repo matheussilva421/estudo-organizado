@@ -807,7 +807,7 @@ describe('home-view.js', () => {
       expect(container.innerHTML).toContain('home-weekly-study-chart');
       expect(container.innerHTML).toContain('Nenhuma sessão de estudo registrada esta semana');
     });
-    it('organiza o painel de disciplinas por edital', () => {
+    it('mostra no painel apenas as disciplinas do edital principal', () => {
       const editalA = createEdital({
         id: 'ed_1',
         nome: 'PGE-RN',
@@ -847,11 +847,10 @@ describe('home-view.js', () => {
       views.renderHome(container);
 
       expect(container.innerHTML).toContain('dash-subject-panel');
-      expect(container.innerHTML).toContain('PGE-RN');
-      expect(container.innerHTML).toContain('TRF 6');
-      expect(container.innerHTML.indexOf('PGE-RN')).toBeLessThan(
-        container.innerHTML.indexOf('Direito Administrativo')
-      );
+      // Modelo de edital principal único: o painel mostra o principal (ed_1) e
+      // não há mais abas de troca de edital.
+      expect(container.innerHTML).toContain('Direito Administrativo');
+      expect(container.innerHTML).not.toContain('data-action="set-active-edital"');
     });
   });
 });

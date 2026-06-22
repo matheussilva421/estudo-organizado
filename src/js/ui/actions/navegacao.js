@@ -24,8 +24,6 @@ import {
 } from '../../app.js?v=8.37';
 import { renderCurrentView } from '../../components.js?v=8.37';
 import { setActiveDashboardDiscCtx } from '../../state/dashboard-context.js?v=8.37';
-import { setActiveEdital } from '../../views/home-view.js?v=8.37';
-import { setSelectedEditalId } from '../../edital-filter.js?v=8.37';
 
 // Registrar ações
 registerAction('navigate', (el) => {
@@ -81,12 +79,4 @@ registerAction('toggle-theme', () => {
 registerAction('prompt-prova', promptDataProva);
 registerAction('prompt-metas', promptMetas);
 registerAction('close-disc-dashboard', closeDiscDashboard);
-registerAction('set-active-edital', (el) => {
-  const id = el.dataset.editalId;
-  if (id) setActiveEdital(id);
-});
-registerAction('set-edital-filter', (el) => {
-  setSelectedEditalId(el.value || null);
-  renderCurrentView();
-});
 registerAction('toggle-ciclo-fin', (el) => toggleCicloFin(el.checked));

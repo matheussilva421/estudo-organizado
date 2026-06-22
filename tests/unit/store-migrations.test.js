@@ -38,7 +38,7 @@ beforeEach(async () => {
 
 describe('store/migrations.js - Module integrity', () => {
   it('exports expected symbols', () => {
-    expect(migrations.DEFAULT_SCHEMA_VERSION).toBe(10);
+    expect(migrations.DEFAULT_SCHEMA_VERSION).toBe(11);
     expect(migrations.runMigrations).toBeTypeOf('function');
   });
 
@@ -58,7 +58,7 @@ describe('store/migrations.js - Module integrity', () => {
   });
 
   it('re-exported DEFAULT_SCHEMA_VERSION matches both modules', () => {
-    expect(store.DEFAULT_SCHEMA_VERSION).toBe(10);
+    expect(store.DEFAULT_SCHEMA_VERSION).toBe(11);
     expect(store.DEFAULT_SCHEMA_VERSION).toBe(migrations.DEFAULT_SCHEMA_VERSION);
   });
 
@@ -73,7 +73,7 @@ describe('store/migrations.js - Module integrity', () => {
 });
 
 describe('store/migrations.js - Migration logic works end-to-end', () => {
-  it('migrates v1 state to v10 via store.runMigrations', () => {
+  it('migrates v1 state to v11 via store.runMigrations', () => {
     store.setState({
       schemaVersion: 1,
       editais: [
@@ -100,9 +100,11 @@ describe('store/migrations.js - Migration logic works end-to-end', () => {
     store.runMigrations();
     vi.runOnlyPendingTimers();
 
-    expect(store.state.schemaVersion).toBe(10);
+    expect(store.state.schemaVersion).toBe(11);
     expect(store.state.config.globalSyncPaused).toBe(true);
     expect(store.state.editais[0].id).toMatch(/^ed_/);
+    expect(store.state.editais[0].arquivado).toBe(false);
+    expect(store.state.editais[0].arquivadoEm).toBe(null);
     expect(store.state.editais[0].disciplinas).toBeDefined();
     expect(store.state.editais[0].disciplinas[0].assuntos).toHaveLength(1);
     expect(store.state.editais[0].disciplinas[0].aulas).toHaveLength(1);
@@ -118,14 +120,54 @@ describe('store/migrations.js - Migration logic works end-to-end', () => {
     // If there were circular imports, the dynamic import would fail
     // or the module would have incomplete bindings
     const freshMigrations = await import('../../src/js/store/migrations.js');
-    expect(freshMigrations.DEFAULT_SCHEMA_VERSION).toBe(10);
+    expect(freshMigrations.DEFAULT_SCHEMA_VERSION).toBe(11);
     expect(freshMigrations.runMigrations).toBeTypeOf('function');
 
     // Execute migration directly with a plain state object
     const testState = { schemaVersion: 1, editais: [], config: {} };
     let changed = false;
     freshMigrations.runMigrations(testState, () => { changed = true; });
-    expect(testState.schemaVersion).toBe(10);
+    expect(testState.schemaVersion).toBe(11);
     expect(changed).toBe(true);
+  });
+});
+
+describe('store/migrations.js - v10 → v11: edital archive flags', () => {
+  it('adds arquivado=false / arquivadoEm=null to every edital', () => {
+    const testState = {
+      schemaVersion: 10,
+      editais: [
+        { id: 'ed_1', nome: 'A', disciplinas: [] },
+        { id: 'ed_2', nome: 'B', disciplinas: [] },
+      ],
+      config: {},
+    };
+    migrations.runMigrations(testState, () => {});
+
+    expect(testState.schemaVersion).toBe(11);
+    testState.editais.forEach((ed) => {
+      expect(ed.arquivado).toBe(false);
+      expect(ed.arquivadoEm).toBe(null);
+    });
+  });
+
+  it('does not crash when state.editais is undefined', () => {
+    const testState = { schemaVersion: 10, config: {} };
+    expect(() => migrations.runMigrations(testState, () => {})).not.toThrow();
+    expect(testState.schemaVersion).toBe(11);
+  });
+
+  it('is idempotent: preserves an already-archived edital on re-run', () => {
+    const testState = {
+      schemaVersion: 10,
+      editais: [{ id: 'ed_1', nome: 'A', disciplinas: [], arquivado: true, arquivadoEm: '2026-01-01T00:00:00.000Z' }],
+      config: {},
+    };
+    migrations.runMigrations(testState, () => {});
+    // Simulate a second pass (version already at 11)
+    migrations.runMigrations(testState, () => {});
+
+    expect(testState.editais[0].arquivado).toBe(true);
+    expect(testState.editais[0].arquivadoEm).toBe('2026-01-01T00:00:00.000Z');
   });
 });

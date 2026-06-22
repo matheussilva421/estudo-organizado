@@ -154,7 +154,7 @@ export function renderHistoricoSessoes(el) {
     const hint = semSessoes
       ? 'Quando você finalizar uma sessão de estudo, ela aparecerá aqui.'
       : foraDoEdital
-        ? 'As sessões registradas pertencem a outro edital — troque o edital no seletor da barra superior para vê-las.'
+        ? 'As sessões registradas pertencem a editais arquivados — veja-as em "Editais Anteriores".'
         : 'Ajuste o período, disciplina ou busca para ver mais resultados.';
     el.innerHTML = `
       ${toolbar}

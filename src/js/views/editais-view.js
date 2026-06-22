@@ -4,10 +4,10 @@
  */
 
 import { state } from '../store.js?v=8.37';
-import { esc, normalizeSearch } from '../utils.js?v=8.37';
-import { calculateContentProgress } from '../logic.js?v=8.37';
+import { esc, normalizeSearch, formatDate } from '../utils.js?v=8.37';
+import { calculateContentProgress, getArchivedEditais, getActiveEditais } from '../logic.js?v=8.37';
 import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
-import { getFilteredEditais, getSelectedEditalId } from '../edital-filter.js?v=8.37';
+import { getSelectedEditalId } from '../edital-filter.js?v=8.37';
 
 // ── Vertical View State (persisted via ui-state) ──
 let discFilterStatus = 'ativas'; // não persiste — é filtro por sessão dentro do dashboard de disciplinas
@@ -46,6 +46,7 @@ export function getFilteredVertItems() {
   const filtroStatus = ui.filtroStatus || 'todos';
   const buscaNorm = ui.busca ? normalizeSearch(ui.busca) : '';
   for (const edital of state.editais || []) {
+    if (edital.arquivado) continue;
     if (globalEditalId && edital.id !== globalEditalId) continue;
     if (filtroEdital && edital.id !== filtroEdital) continue;
     for (const disc of edital.disciplinas || []) {
@@ -71,7 +72,6 @@ export function getFilteredVertItems() {
 export function renderVertical(el) {
   const ui = getUiSection('verticalizado');
   const vertSearch = ui.busca || '';
-  const vertFilterEdital = getSelectedEditalId({ allowAll: false }) || ui.filtroEdital || '';
   const vertFilterStatus = ui.filtroStatus || 'todos';
   el.innerHTML = `
     <!-- Filters row — full re-render only when filter chips change -->
@@ -82,10 +82,6 @@ export function renderVertical(el) {
           placeholder="Buscar assunto ou disciplina..."
           data-action="vert-search">
       </div>
-      <select class="form-control vertical-toolbar-select" style="width:auto;" data-action="set-vert-filter-edital">
-        <option value="">Todos os editais</option>
-        ${state.editais.map((e) => `<option value="${e.id}" ${vertFilterEdital === e.id ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
-      </select>
       <div class="filter-row vertical-toolbar-filters gap-xs" style="margin:0;" role="group" aria-label="Filtro de status">
         ${['todos', 'pendentes', 'concluidos']
           .map(
@@ -317,25 +313,64 @@ export function toggleVertDisc(id) {
 
 // ── Editais View: Main Render ──
 export function renderEditais(el) {
-  const editais = getFilteredEditais({ allowAll: false });
-  el.innerHTML = `
-    ${
-      editais.length === 0
-        ? `
+  // Normalmente há exatamente 1 ativo (o principal). Renderizamos TODOS os
+  // ativos para que, num estado transitório com mais de um ativo (ex.: merge de
+  // sync, ou modal de reconciliação dispensado), nenhum edital fique invisível.
+  const editais = getActiveEditais();
+  const arquivados = getArchivedEditais();
+
+  if (editais.length === 0 && arquivados.length === 0) {
+    el.innerHTML = `
       <div class="empty-state" style="padding:80px 20px;">
         <div class="icon">📋</div>
         <h4>Nenhum edital cadastrado</h4>
         <p class="mb-4">Crie seu edital com disciplinas e assuntos para organizar seus estudos.</p>
         <button class="btn btn-primary" data-action="open-edital-modal"><i class="fa fa-plus"></i> Criar Edital</button>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="edital-tree">
+      ${
+        editais.length > 0
+          ? editais.map((edital) => renderEditalTree(edital)).join('')
+          : `
+        <div class="empty-state" style="padding:40px 20px;">
+          <div class="icon">📋</div>
+          <h4>Nenhum edital principal</h4>
+          <p class="mb-4">Torne um edital arquivado o principal (abaixo) ou crie um novo.</p>
+          <button class="btn btn-primary" data-action="open-edital-modal"><i class="fa fa-plus"></i> Criar Edital</button>
+        </div>`
+      }
+    </div>
+    ${arquivados.length > 0 ? renderArquivadosSection(arquivados) : ''}
+  `;
+}
+
+// ── Editais arquivados (modelo de principal único) ──
+function renderArquivadosSection(arquivados) {
+  return `
+    <div class="card editais-arquivados" style="margin-top:24px;">
+      <div class="card-header"><h3>🗄️ Editais arquivados</h3></div>
+      <div class="card-body">
+        <p class="text-sm text-muted mb-3">Dados e estatísticas preservados. Veja em "Editais Anteriores" ou torne um deles o principal novamente.</p>
+        ${arquivados
+          .map((ed) => {
+            const dataArq = ed.arquivadoEm ? formatDate(String(ed.arquivadoEm).slice(0, 10)) : '';
+            return `
+          <div class="edital-arquivado-row flex items-center gap-sm" style="padding:10px 0; border-bottom:1px solid var(--border);">
+            <span class="flex-shrink-0" style="width:10px; height:10px; border-radius:50%; background:${ed.cor || '#8aa4bf'}; display:inline-block;"></span>
+            <span class="flex-1 font-bold">${esc(ed.nome || 'Edital')}</span>
+            ${dataArq ? `<span class="text-sm text-muted">Arquivado em ${dataArq}</span>` : ''}
+            <button class="btn btn-ghost btn-sm" data-action="navigate" data-view="editais-anteriores" title="Ver estatísticas preservadas">📊 Estatísticas</button>
+            <button class="btn btn-primary btn-sm" data-action="make-edital-principal" data-edital-id="${esc(ed.id)}">Tornar principal</button>
+            <button class="icon-btn" title="Excluir definitivamente" aria-label="Excluir edital definitivamente" data-action="delete-edital" data-edital-id="${esc(ed.id)}">🗑️</button>
+          </div>`;
+          })
+          .join('')}
       </div>
-    `
-        : `
-      <div class="edital-tree">
-        ${editais.map((edital) => renderEditalTree(edital)).join('')}
-      </div>
-    `
-    }
-        `;
+    </div>`;
 }
 
 // ── Editais View: Tree Render ──
@@ -376,8 +411,9 @@ export function renderEditalTree(edital) {
         <button type="button" class="icon-btn" title="Mover edital para baixo" aria-label="Mover edital para baixo" data-action="move-edital" data-edital-id="${edital.id}" data-dir="1" ${isLastEdital ? 'disabled' : ''}><i class="fa fa-chevron-down" aria-hidden="true"></i></button>
         <button class="icon-btn" title="Adicionar Tópicos" aria-label="Adicionar tópicos" data-action="navigate-with-ctx" data-view="vertical" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">📝</button>
         <button class="icon-btn" title="Analisador de Bancas" aria-label="Analisador de bancas" data-action="navigate-with-ctx" data-view="banca-analyzer" data-ctx="${encodeURIComponent(JSON.stringify({ editaId: edital.id }))}">🧠</button>
+        <button class="btn btn-ghost btn-sm tree-edital-add-btn" title="Arquivar edital (preserva estatísticas)" aria-label="Arquivar edital" data-action="archive-edital" data-edital-id="${edital.id}">📦 Arquivar</button>
         <button class="icon-btn" title="Editar" aria-label="Editar edital" data-action="open-edital-modal" data-edital-id="${edital.id}">✏️</button>
-        <button class="icon-btn" title="Excluir" aria-label="Excluir edital" data-action="delete-edital" data-edital-id="${edital.id}">🗑️</button>
+        <button class="icon-btn" title="Excluir definitivamente" aria-label="Excluir edital definitivamente" data-action="delete-edital" data-edital-id="${edital.id}">🗑️</button>
         <i class="fa fa-chevron-down text-base" style="opacity:0.7;" aria-hidden="true"></i>
       </div>
       <div class="disc-filter-row flex gap-xs" style="padding:8px 16px; border-bottom:1px solid var(--border);" role="group" aria-label="Filtro de disciplinas">

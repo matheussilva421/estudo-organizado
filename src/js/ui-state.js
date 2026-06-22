@@ -14,6 +14,7 @@ const DEFAULT_UI_STATE = {
   historico: { rangeDays: 'all', disciplinaId: '', busca: '' },
   habitos: { showStreak: true },
   editais: { collapsed: {} },
+  editaisAnteriores: { activeTab: null },
 };
 
 let _cache = null;

@@ -416,6 +416,7 @@ export function getNextSuggestedLesson(editalId = null) {
   const editais = state.editais || [];
   const candidates = editalId ? editais.filter((e) => e.id === editalId) : editais;
   for (const edital of candidates) {
+    if (!editalId && edital.arquivado) continue;
     for (const disc of edital.disciplinas || []) {
       if (disc.arquivada) continue;
       const aula = (disc.aulas || []).find((a) => !a.estudada);
@@ -431,28 +432,30 @@ export function getNextSuggestedLesson(editalId = null) {
  */
 export function getDisciplineProgressByEdital() {
   const agg = getAggregatedStats();
-  return (state.editais || []).map((edital) => {
-    const disciplinas = (edital.disciplinas || [])
-      .filter((d) => !d.arquivada)
-      .map((disc) => {
-        const total = disc.aulas ? disc.aulas.length : 0;
-        const estudadas = disc.aulas ? disc.aulas.filter((a) => a.estudada).length : 0;
-        const percent = total > 0 ? Math.round((estudadas / total) * 100) : 0;
-        const subj = agg.subjectStats[disc.id] || { tempo: 0, acertos: 0, erros: 0 };
-        const sparkline = agg.subjectLast7Days[disc.id] || [0, 0, 0, 0, 0, 0, 0];
-        return {
-          disc,
-          total,
-          estudadas,
-          percent,
-          tempo: subj.tempo,
-          acertos: subj.acertos,
-          erros: subj.erros,
-          sparkline,
-        };
-      });
-    return { edital, disciplinas };
-  });
+  return (state.editais || [])
+    .filter((edital) => !edital.arquivado)
+    .map((edital) => {
+      const disciplinas = (edital.disciplinas || [])
+        .filter((d) => !d.arquivada)
+        .map((disc) => {
+          const total = disc.aulas ? disc.aulas.length : 0;
+          const estudadas = disc.aulas ? disc.aulas.filter((a) => a.estudada).length : 0;
+          const percent = total > 0 ? Math.round((estudadas / total) * 100) : 0;
+          const subj = agg.subjectStats[disc.id] || { tempo: 0, acertos: 0, erros: 0 };
+          const sparkline = agg.subjectLast7Days[disc.id] || [0, 0, 0, 0, 0, 0, 0];
+          return {
+            disc,
+            total,
+            estudadas,
+            percent,
+            tempo: subj.tempo,
+            acertos: subj.acertos,
+            erros: subj.erros,
+            sparkline,
+          };
+        });
+      return { edital, disciplinas };
+    });
 }
 
 /**

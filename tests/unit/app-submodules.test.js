@@ -132,6 +132,9 @@ describe('app/ sub-module imports', () => {
     vi.doMock('../../src/js/views/ciclo-view.js?v=8.37', () => ({
       setHideConcluidosCiclo: vi.fn(),
     }));
+    vi.doMock('../../src/js/views/editais-crud.js', () => ({
+      reconcilePrincipalEdital: vi.fn(),
+    }));
   });
 
   // ── Themes module ──────────────────────────────────────────────
@@ -392,6 +395,9 @@ describe('app.js re-exports', () => {
 
     vi.doMock('../../src/js/views/ciclo-view.js?v=8.37', () => ({
       setHideConcluidosCiclo: vi.fn(),
+    }));
+    vi.doMock('../../src/js/views/editais-crud.js', () => ({
+      reconcilePrincipalEdital: vi.fn(),
     }));
   });
 
