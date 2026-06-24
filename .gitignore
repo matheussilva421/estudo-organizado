@@ -27,6 +27,12 @@
 !/tests/
 !/tests/**
 
+# Impeccable design context (read by design tooling and agents).
+!/PRODUCT.md
+!/DESIGN.md
+!/.impeccable/
+!/.impeccable/**
+
 # Dependencies and generated artifacts. These are already ignored by the
 # allowlist above, but are listed explicitly for humans and agents.
 node_modules/
@@ -44,6 +50,7 @@ build/
 .playwright-mcp/
 _local_archive/
 output/
+.impeccable/live/sessions/
 
 # Local secrets, logs, and databases.
 *.log

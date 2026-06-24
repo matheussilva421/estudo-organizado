@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-24T12:00:00Z",
+  "title": "Design System: Estudo Organizado",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Azul-Aço",
+        "canonical": "#8aa4bf",
+        "tonalRamp": ["#10161d", "#1d2935", "#2f4255", "#475f74", "#627c93", "#8aa4bf", "#a7bdd3", "#cdd9e6"]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Quase-Preto",
+        "canonical": "#08090d",
+        "tonalRamp": ["#050608", "#08090d", "#0d1117", "#121821", "#151d27", "#17202b", "#1f2a37", "#2a3645"]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Painel",
+        "canonical": "#121821",
+        "tonalRamp": ["#0b0f15", "#0d1117", "#121821", "#151d27", "#17202b", "#1f2a37", "#2a3645", "#374556"]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Tinta Clara",
+        "canonical": "#f3f6fb",
+        "tonalRamp": ["#5a6473", "#6f7a89", "#7f8a99", "#9aa3b1", "#b8c0cc", "#d4dae2", "#e8edf3", "#f3f6fb"]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Verde Menta",
+        "canonical": "#7dd3a8",
+        "tonalRamp": ["#0f2419", "#163827", "#1f543a", "#2e7a55", "#479e73", "#62bd90", "#7dd3a8", "#a8e4c6"]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Âmbar",
+        "canonical": "#d8a657",
+        "tonalRamp": ["#2c2110", "#423015", "#5a4320", "#7c5f2e", "#9e7d40", "#bd9550", "#d8a657", "#e8c489"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Coral",
+        "canonical": "#ef7777",
+        "tonalRamp": ["#2c1010", "#421717", "#5a2020", "#7c2e2e", "#9e4040", "#cd5a5a", "#ef7777", "#f5a3a3"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Valor-herói dos cards de estatística (Plus Jakarta 800, 28px)." },
+      "body": { "displayName": "Body", "purpose": "Texto corrido e descrições (Plus Jakarta 400, 13.5px). Prosa ≤ 65–75ch." },
+      "mono": { "displayName": "Mono / Medida", "purpose": "DM Mono — exclusiva de valores quantitativos: tempo, %, contagem, horário." }
+    },
+    "shadows": [
+      { "name": "sm", "value": "0 1px 2px rgba(0,0,0,0.34)", "purpose": "Elevação mínima, elementos rasos." },
+      { "name": "panel", "value": "0 18px 44px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.025)", "purpose": "Padrão de cards/painéis em repouso. O inset é o rim-light de assinatura." },
+      { "name": "md", "value": "0 18px 42px rgba(0,0,0,0.34)", "purpose": "Hover de cards e eventos; resposta a estado." },
+      { "name": "lg", "value": "0 28px 68px rgba(0,0,0,0.44)", "purpose": "Modais e overlays no topo da pilha." }
+    ],
+    "motion": [
+      { "name": "transition-base", "value": "0.2s ease", "purpose": "Transição padrão de estado (hover, cor, sombra, transform)." },
+      { "name": "transition-fast", "value": "0.15s ease", "purpose": "Mudança de borda em inputs e micro-feedback." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: reduce", "purpose": "Toda animação tem alternativa de crossfade/instantânea. Não opcional." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "600px" },
+      { "name": "md", "value": "1024px" },
+      { "name": "lg", "value": "1160px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação primária. O único botão com fundo saturado; usa o accent.",
+      "html": "<button class=\"ds-btn-primary\">Iniciar etapa</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:none;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:var(--accent,#8aa4bf);color:var(--accent-text,#071018);box-shadow:0 10px 24px rgba(0,0,0,0.28);transition:transform .2s,background-color .2s,box-shadow .2s}.ds-btn-primary:hover{background:var(--accent-hover,#a7bdd3);box-shadow:0 14px 30px rgba(0,0,0,0.34);transform:translateY(-1px)}.ds-btn-primary:focus-visible{outline:2px solid var(--accent,#8aa4bf);outline-offset:2px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Ação secundária. Transparente com borda fina; preenche no hover.",
+      "html": "<button class=\"ds-btn-ghost\">Cancelar</button>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid var(--border,#94a3b824);border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-secondary,#b8c0cc);transition:background-color .2s,border-color .2s}.ds-btn-ghost:hover{background:var(--surface,#0d1117)}.ds-btn-ghost:focus-visible{outline:2px solid var(--accent,#8aa4bf);outline-offset:2px}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Contêiner padrão. Sombra difusa + rim-light; borda transparente.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card__header\">Constância</div><div class=\"ds-card__body\">Sequência de dias consecutivos estudados, com recorde pessoal.</div></div>",
+      "css": ".ds-card{background:var(--card,#121821);border-radius:14px;border:1px solid transparent;box-shadow:0 18px 44px rgba(0,0,0,0.24),inset 0 1px 0 rgba(255,255,255,0.025);overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif}.ds-card__header{padding:16px 20px;background:var(--card-header,#151d27);border-bottom:1px solid rgba(148,163,184,0.14);font-size:14px;font-weight:700;color:var(--text-primary,#f3f6fb)}.ds-card__body{padding:20px;color:var(--text-secondary,#b8c0cc);font-size:13.5px;line-height:1.5}"
+    },
+    {
+      "name": "Stat Card",
+      "kind": "card",
+      "refersTo": "stat-card",
+      "description": "Métrica de destaque com faixa de 3px no topo por categoria. Valor em Plus Jakarta 800.",
+      "html": "<div class=\"ds-stat-card\"><div class=\"ds-stat-card__label\">Tempo hoje</div><div class=\"ds-stat-card__value\">3h 42</div><div class=\"ds-stat-card__sub\">+18 min vs. ontem</div></div>",
+      "css": ".ds-stat-card{position:relative;overflow:hidden;background:var(--card,#121821);border-radius:14px;border:1px solid transparent;box-shadow:0 18px 44px rgba(0,0,0,0.24),inset 0 1px 0 rgba(255,255,255,0.025);padding:18px 20px;font-family:'Plus Jakarta Sans',sans-serif}.ds-stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent,#8aa4bf)}.ds-stat-card__label{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary,#b8c0cc);margin-bottom:8px}.ds-stat-card__value{font-size:28px;font-weight:800;line-height:1;color:var(--text-primary,#f3f6fb)}.ds-stat-card__sub{margin-top:4px;font-size:12px;color:var(--text-muted,#7f8a99)}"
+    },
+    {
+      "name": "Event Card",
+      "kind": "custom",
+      "refersTo": "event-card",
+      "description": "Componente assinatura. Faixa de status de 4px na frente (cor = estado), ícone da disciplina, info e ações.",
+      "html": "<div class=\"ds-event-card\"><span class=\"ds-event-card__stripe\"></span><div class=\"ds-event-card__info\"><div class=\"ds-event-card__title\">Direito Constitucional</div><div class=\"ds-event-card__sub\">Controle de constitucionalidade · 45 min</div></div></div>",
+      "css": ".ds-event-card{display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--border,#94a3b824);background:var(--card,#121821);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:box-shadow .2s,border-color .2s}.ds-event-card:hover{box-shadow:0 18px 42px rgba(0,0,0,0.34);border-color:#cbd5e1}.ds-event-card__stripe{width:4px;border-radius:4px;align-self:stretch;min-height:40px;flex-shrink:0;background:var(--status-estudei,#7dd3a8)}.ds-event-card__info{flex:1;min-width:0}.ds-event-card__title{font-size:13.5px;font-weight:600;color:var(--text-primary,#f3f6fb)}.ds-event-card__sub{font-size:12px;color:var(--text-secondary,#b8c0cc);margin-top:2px}"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de texto. Foco: outline accent + halo de 3px.",
+      "html": "<input class=\"ds-input\" placeholder=\"Buscar disciplina, assunto ou evento…\" />",
+      "css": ".ds-input{width:100%;padding:9px 12px;border:1px solid var(--border,#94a3b824);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text-primary,#f3f6fb);background:var(--card,#121821);transition:border-color .15s}.ds-input::placeholder{color:var(--text-muted,#7f8a99);opacity:1}.ds-input:focus{outline:2px solid var(--accent,#8aa4bf);outline-offset:2px;border-color:var(--accent,#8aa4bf);box-shadow:0 0 0 3px var(--accent-light,#8aa4bf29)}"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Item da sidebar. Ativo usa accent sobre fundo tingido.",
+      "html": "<a class=\"ds-nav-item is-active\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 10.5 12 3l9 7.5\"/><path d=\"M5 9.5V21h14V9.5\"/></svg><span>Página Inicial</span></a>",
+      "css": ".ds-nav-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:var(--sidebar-text,#aeb8c6);text-decoration:none;cursor:pointer;transition:background-color .2s,color .2s}.ds-nav-item:hover{background:var(--sidebar-hover,rgba(138,164,191,0.09));color:var(--text-primary,#f3f6fb)}.ds-nav-item.is-active{background:var(--accent-light,#8aa4bf29);color:var(--accent,#8aa4bf)}.ds-nav-item:focus-visible{outline:2px solid var(--accent,#8aa4bf);outline-offset:2px}"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Pílula de estado. Fundo semântico tingido + texto da mesma cor.",
+      "html": "<span class=\"ds-badge\">Estudei</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;background:var(--success-bg,rgba(125,211,168,0.14));color:var(--success,#7dd3a8)}"
+    },
+    {
+      "name": "Timer (Mono)",
+      "kind": "custom",
+      "refersTo": "timer",
+      "description": "Cronômetro em DM Mono — a regra Mono-para-Medida em ação.",
+      "html": "<span class=\"ds-timer\">00:45:12</span>",
+      "css": ".ds-timer{font-family:'DM Mono',monospace;font-size:32px;font-weight:500;letter-spacing:1px;color:var(--text-primary,#f3f6fb)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A Sala de Instrumentos",
+    "overview": "Estudo Organizado é um painel escuro de mostradores precisos. O estudante de concurso passa meses olhando para esta tela; ela tem que ser o lugar mais calmo da preparação. Cada número — tempo, % de acertos, streak, progresso no edital — tem seu lugar fixo, lê-se de relance, e nada pisca sem motivo. A confiança vem da precisão e da consistência, não do brilho. A atmosfera é serena e premium: fundo quase preto, superfícies que flutuam com sombra difusa e um filete de luz no topo, accent azul-aço raro. Números em DM Mono; texto em Plus Jakarta Sans. Rejeita o SaaS genérico (cards em gradiente, hero-metric) e o corporativo/estéril (Material padrão, cinza empresarial).",
+    "keyCharacteristics": [
+      "Painel escuro com profundidade real (sombra difusa + luz de borda interna), nunca preto chapado.",
+      "Accent raro e funcional: ação, seleção e estado — nunca decoração.",
+      "Números em DM Mono; texto em Plus Jakarta Sans. Medida e prosa nunca se confundem.",
+      "Escala tipográfica fixa em px (não fluida), do desktop ao celular.",
+      "Seis atmosferas (temas) sobre a mesma estrutura; todas mantêm contraste AA."
+    ],
+    "rules": [
+      { "name": "A Regra do Accent Raro", "body": "O accent carrega ≤ 10% de qualquer tela: ação primária, item ativo, foco, seleção. Em estado inativo, nada usa cor saturada. A raridade é o que dá poder ao azul-aço.", "section": "colors" },
+      { "name": "A Regra das Seis Atmosferas", "body": "Existem 6 temas (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis). O que muda é o accent e a temperatura da superfície, nunca a estrutura. Toda cor deve manter contraste AA nos seis, não só no Grafite.", "section": "colors" },
+      { "name": "A Regra do Mono-para-Medida", "body": "DM Mono é exclusiva de valores quantitativos — tempo, %, contagem, horário. Nunca em prosa, label ou botão.", "section": "typography" },
+      { "name": "A Regra da Escala Fixa", "body": "Tamanhos são fixos em px, não clamp() fluido. A mesma UI roda em desktop e celular sob DPI consistente.", "section": "typography" },
+      { "name": "A Regra da Luz de Borda", "body": "Todo painel elevado carrega o filete inset 0 1px 0 rgba(255,255,255,0.025) no topo. Sem ele, a superfície escura achata e parece um app de 2014.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar o accent em ≤ 10% da tela: ação primária, item ativo, foco, seleção. Inativo é neutro.",
+      "Do carregar todo painel elevado com o rim-light inset 0 1px 0 rgba(255,255,255,0.025).",
+      "Do usar DM Mono apenas para valores quantitativos; Plus Jakarta para todo o resto.",
+      "Do verificar contraste AA nos seis temas, não só no Grafite. Corpo ≥ 4.5:1; texto grande ≥ 3:1.",
+      "Do manter foco visível (outline 2px accent, offset 2px) em todo elemento interativo.",
+      "Do respeitar prefers-reduced-motion com crossfade/transição instantânea.",
+      "Do manter escala px fixa e vocabulário de componentes idêntico nas 13 telas."
+    ],
+    "donts": [
+      "Don't usar cards com gradiente nem o template hero-metric (número gigante + label minúsculo + stats + accent em degradê).",
+      "Don't cair no corporativo/estéril: Material Design padrão, cinza empresarial, planilha de RH.",
+      "Don't usar gradiente em texto (background-clip: text). Ênfase vem de peso e tamanho.",
+      "Don't usar glassmorphism decorativo como padrão. Profundidade é sombra + rim-light, não desfoque.",
+      "Don't usar border-left/right > 1px como faixa colorida decorativa. A faixa de 4px do event-card é exceção porque codifica status.",
+      "Don't repetir grades de cards idênticos sem hierarquia.",
+      "Don't pôr cor saturada em estado inativo, nem fonte de display em label, botão ou dado."
+    ]
+  }
+}
