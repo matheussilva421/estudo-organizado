@@ -34,7 +34,7 @@
   background: var(--accent-text);
   /* Cor contrastante com o fundo do toggle ativado */
   transition: left 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--bg), transparent 80%);
 }
 
 .toggle.on::after {

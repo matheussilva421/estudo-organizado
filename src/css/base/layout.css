@@ -464,7 +464,7 @@ body {
   border-radius: var(--radius-control);
   border: 1px solid var(--border);
   background: var(--card);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--bg), transparent 55%);
   animation: sync-popover-in 140ms ease;
 }
 

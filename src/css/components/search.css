@@ -124,7 +124,7 @@ button.search-item:focus-visible {
 }
 
 mark {
-  background: #fef08a;
+  background: var(--warning);
   border-radius: var(--radius-xxs);
   padding: 0 1px;
 }

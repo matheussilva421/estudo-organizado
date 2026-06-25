@@ -104,8 +104,8 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
-  background: var(--bg, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--bg);
+  border: 1px solid var(--border);
   padding: 2px 8px;
   border-radius: var(--radius-control);
   letter-spacing: 0.02em;
@@ -117,8 +117,8 @@
   background:
     linear-gradient(to right, var(--card) 30%, transparent),
     linear-gradient(to left, var(--card) 30%, transparent),
-    radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.35), transparent),
-    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.35), transparent);
+    radial-gradient(farthest-side at 0 50%, var(--surface-inverse-soft), transparent),
+    radial-gradient(farthest-side at 100% 50%, var(--surface-inverse-soft), transparent);
   background-position:
     left center,
     right center,

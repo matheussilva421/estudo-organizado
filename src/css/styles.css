@@ -934,12 +934,12 @@ button.cal-event-chip:focus-visible {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--neutral-strong);
   border-radius: var(--radius-compact);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-muted);
 }
 
 
@@ -964,7 +964,7 @@ button.cal-event-chip:focus-visible {
   border-radius: var(--radius-sm);
   padding: 20px;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px color-mix(in srgb, var(--bg), transparent 95%);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -975,7 +975,7 @@ button.cal-event-chip:focus-visible {
 
 .disc-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--bg), transparent 90%);
 }
 
 .disc-card::before {
@@ -1223,7 +1223,7 @@ button.cal-event-chip:focus-visible {
 }
 
 .reg-summary {
-  background: linear-gradient(135deg, var(--accent-light), rgba(125, 211, 168, 0.06));
+  background: linear-gradient(135deg, var(--accent-light), var(--success-bg));
 }
 
 .reg-summary-grid {
@@ -2108,7 +2108,7 @@ button.cal-event-chip:focus-visible {
   gap: 12px;
   padding-right: 12px;
   padding-bottom: 16px;
-  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  scrollbar-color: var(--neutral-strong) transparent;
   scrollbar-width: thin;
 }
 

@@ -96,9 +96,9 @@
 /* === Level grouping (Batch 2) === */
 .rev-level-section {
   margin-bottom: 12px;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--card, rgba(255, 255, 255, 0.02));
+  background: var(--card);
 }
 
 .rev-level-header {
@@ -146,8 +146,8 @@ details[open] > .rev-level-header::before {
 }
 
 .rev-badge--overdue {
-  background: rgba(239, 68, 68, 0.18);
-  color: var(--red, #ef4444);
+  background: var(--danger-bg);
+  color: var(--danger);
   font-weight: 600;
 }
 

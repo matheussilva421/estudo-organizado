@@ -88,6 +88,22 @@ const PHASE_1_VIEW_COLOR_CONTRACT_FILES = [
   'src/css/views/sessions.css'
 ];
 
+const PHASE_1_RESIDUAL_COLOR_CONTRACT_FILES = [
+  'src/css/base/layout.css',
+  'src/css/components/buttons.css',
+  'src/css/components/search.css',
+  'src/css/components/sidebar.css',
+  'src/css/components/toggle-drag.css',
+  'src/css/styles.css',
+  'src/css/views/dashboard.css',
+  'src/css/views/editais-tree.css',
+  'src/css/views/revisoes.css',
+  'src/js/sw-register.js',
+  'src/js/utils.js',
+  'src/js/views/banca-view.js',
+  'src/js/views/config/sync-center.js'
+];
+
 function collectFilesByExtension(dir, extensions, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const entryPath = join(dir, entry.name);
@@ -206,6 +222,22 @@ describe('CSS architecture', () => {
     const drifts = [];
 
     for (const relativePath of PHASE_1_VIEW_COLOR_CONTRACT_FILES) {
+      const content = readFileSync(join(rootDir, relativePath), 'utf8').replace(/\r\n/g, '\n');
+      content.split('\n').forEach((line, index) => {
+        if (!rawColorPattern.test(line)) return;
+        rawColorPattern.lastIndex = 0;
+        drifts.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+      });
+    }
+
+    expect(drifts).toEqual([]);
+  });
+
+  it('keeps phase-1 residual colors on semantic tokens', () => {
+    const rawColorPattern = /(?:#(?:[0-9a-fA-F]{3,8})\b|rgba?\([^)]*\))/g;
+    const drifts = [];
+
+    for (const relativePath of PHASE_1_RESIDUAL_COLOR_CONTRACT_FILES) {
       const content = readFileSync(join(rootDir, relativePath), 'utf8').replace(/\r\n/g, '\n');
       content.split('\n').forEach((line, index) => {
         if (!rawColorPattern.test(line)) return;

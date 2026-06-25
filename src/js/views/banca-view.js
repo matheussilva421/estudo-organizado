@@ -406,7 +406,7 @@ export function renderBancaMatches() {
   emptyView.style.display = 'none';
   const lowBadge =
     lowMatchCount > 0
-      ? `<span class="badge" style="background:rgba(148,163,184,0.18);color:var(--text-muted);font-weight:600;" title="Matches de baixa confiança não vêm marcados por padrão. Revise antes de gravar.">⚠ ${lowMatchCount} incerto(s)</span>`
+      ? `<span class="badge" style="background:var(--neutral-soft);color:var(--text-muted);font-weight:600;" title="Matches de baixa confiança não vêm marcados por padrão. Revise antes de gravar.">⚠ ${lowMatchCount} incerto(s)</span>`
       : '';
   container.innerHTML = `
       <div class="banca-match-toolbar" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:8px;">
@@ -507,7 +507,7 @@ export function openMatchCorrector(assuntoNome) {
   try {
     if (!localStorage.getItem('estudo_onboarding_match_corrector_seen')) {
       onboardingHtml = `
-        <div class="onboarding-hint" style="background:rgba(78,161,255,0.08);border:1px solid rgba(78,161,255,0.25);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
+        <div class="onboarding-hint" style="background:var(--info-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
           <strong style="color:var(--accent);">💡 Como funciona:</strong> O parser tentou cruzar este tópico do seu Edital com os "hot topics" colados da banca. Se o match foi errado, escolha aqui o tema correto — daqui pra frente esse assunto sempre vai casar com a sua escolha (HIGH 100%).
         </div>`;
       localStorage.setItem('estudo_onboarding_match_corrector_seen', '1');

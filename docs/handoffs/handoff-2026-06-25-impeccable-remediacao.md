@@ -9,7 +9,7 @@
 | Fase | Status |
 |------|--------|
 | 0 — Preparação, baseline e guardrails | ✅ concluída |
-| 1 — Fundação de cor semântica + tokens | ⏳ em andamento |
+| 1 — Fundação de cor semântica + tokens | ✅ concluída |
 | 2 — Unificar stat cards (cor semântica) | ⬜ |
 | 3 — Primeiro acesso & escopo | ⬜ |
 | 4 — Acessibilidade | ⬜ |
@@ -20,6 +20,34 @@
 - Detector (`detect.mjs --json src`): **258** achados (234 advisory, 24 warning, 0 erros).
 - Testes unit: **1857 passed / 113 files** (antes da Fase 0). Após Fase 0: **1888 / 114**.
 - Contraste WCAG: corpo AA OK nos 6 temas; única exceção `arrakis danger/card = 4.42` (corpo pequeno) — alvo da Fase 4.
+
+---
+
+## Fase 1 - Fechamento de cor semantica e tokens (2026-06-25 19:45 -03)
+
+**Resumo:** Fase 1 concluida. O ultimo slice fechou os 24 achados restantes de `design-system-color` fora de `themes.css`/`lab`/`vendor`, mantendo a escala de raio ja tokenizada e deixando o detector restrito aos escopos aceitos ou as fases futuras.
+
+**Arquivos alterados:**
+- `tests/unit/css-architecture.test.js` - novo contrato `PHASE_1_RESIDUAL_COLOR_CONTRACT_FILES`, cobrindo os arquivos residuais de CSS/JS para impedir hex/rgb/rgba crus.
+- `src/css/base/layout.css`, `src/css/components/buttons.css`, `src/css/components/sidebar.css`, `src/css/components/toggle-drag.css`, `src/css/styles.css`, `src/css/views/dashboard.css` - sombras mantidas com geometria original e cor via `color-mix()` tokenizado.
+- `src/css/components/search.css`, `src/css/views/editais-tree.css`, `src/css/views/revisoes.css` - highlights, superficies, bordas e estados danger usando tokens sem fallbacks crus.
+- `src/js/sw-register.js`, `src/js/views/banca-view.js`, `src/js/views/config/sync-center.js` - inline styles migrados para tokens.
+- `src/js/utils.js` - `HABIT_TYPES` agora usa tokens canonicos (`--info`, `--success`, `--warning`, `--danger`, `--question`) em vez de hexes.
+
+**TDD / validacao:**
+- Vermelho: `npm run test:css` falhou com 40 literais/fallbacks crus nos arquivos residuais.
+- Verde: `npm run test:css` -> 40/40.
+- Detector atual (`node .agents/skills/impeccable/scripts/detect.mjs --json src`): total **56** achados (**32 advisory**, **24 warning**). Por tipo: `design-system-color: 30`, `layout-transition: 11`, `side-tab: 7`, `overused-font: 4`, `single-font: 2`, `numbered-section-markers: 1`, `design-system-radius: 1`.
+- Excluindo `src/lab`, `src/vendor` e `src/css/base/themes.css`: **0** `design-system-color` e **0** `design-system-radius` pendentes; os achados restantes pertencem a temas/lab/vendor ou fases futuras.
+- `node scripts/contrast-audit.mjs --enforce` -> OK; excecao conhecida `arrakis danger/card = 4.42` permanece para Fase 4.
+- `npm run test:views` -> 254/254.
+- `npm run lint` -> 0 erros, 44 warnings preexistentes.
+- `npm run test:unit` -> 114 arquivos, 1894 testes verdes.
+- `git diff --check` -> sem erros; apenas avisos CRLF esperados do Git.
+
+**Status da Fase 1:** concluida. `tokens.css`/`DESIGN.md` ja cobrem os raios enviados; cor semantica fora de `themes.css`/`lab`/`vendor` esta limpa pelo detector. Nao foi feita validacao visual em browser neste slice porque a alteracao foi de tokenizacao/refactor CSS/JS coberta por contratos, contraste e testes de views.
+
+**Proximo passo recomendado:** iniciar Fase 2 - unificar stat cards com cor semantica. Primeiro teste esperado: remover classes genericas `.green/.blue/.orange/.red` dos stat cards e reservar `danger` para erro/atraso real, nao contagens pendentes.
 
 ---
 
