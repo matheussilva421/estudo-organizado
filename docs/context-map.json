@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-05-13T09:45:19.717Z",
+  "generatedAt": "2026-06-25T09:54:54.972Z",
   "summary": {
-    "totalFiles": 97,
-    "totalLines": 23715,
-    "totalExports": 554,
-    "totalImports": 377,
-    "totalSizeBytes": 853638
+    "totalFiles": 98,
+    "totalLines": 24843,
+    "totalExports": 564,
+    "totalImports": 385,
+    "totalSizeBytes": 912059
   },
   "files": [
     {
@@ -17,73 +17,87 @@
     },
     {
       "path": "src/js/views/dashboard-view.js",
-      "sizeBytes": 33691,
-      "lines": 839,
-      "exports": 12,
-      "imports": 8
+      "sizeBytes": 33731,
+      "lines": 813,
+      "exports": 11,
+      "imports": 7
+    },
+    {
+      "path": "src/js/logic/cycle.js",
+      "sizeBytes": 27756,
+      "lines": 755,
+      "exports": 17,
+      "imports": 6
     },
     {
       "path": "src/js/views/config/sync-center.js",
-      "sizeBytes": 31076,
-      "lines": 674,
+      "sizeBytes": 31514,
+      "lines": 683,
       "exports": 1,
       "imports": 5
     },
     {
       "path": "src/js/views/home-view.js",
-      "sizeBytes": 29719,
-      "lines": 658,
-      "exports": 2,
-      "imports": 5
+      "sizeBytes": 29179,
+      "lines": 633,
+      "exports": 1,
+      "imports": 4
+    },
+    {
+      "path": "src/js/ui/event-modals.js",
+      "sizeBytes": 22663,
+      "lines": 632,
+      "exports": 9,
+      "imports": 7
     },
     {
       "path": "src/js/views/ciclo-view.js",
-      "sizeBytes": 25320,
-      "lines": 615,
+      "sizeBytes": 26829,
+      "lines": 631,
       "exports": 6,
       "imports": 8
     },
     {
+      "path": "src/js/views/habitos-view.js",
+      "sizeBytes": 23038,
+      "lines": 590,
+      "exports": 10,
+      "imports": 6
+    },
+    {
       "path": "src/js/store/indexeddb.js",
-      "sizeBytes": 17685,
+      "sizeBytes": 17694,
       "lines": 568,
       "exports": 25,
       "imports": 4
     },
     {
-      "path": "src/js/components.js",
-      "sizeBytes": 24062,
-      "lines": 563,
-      "exports": 7,
-      "imports": 9
-    },
-    {
       "path": "src/js/views/banca-view.js",
-      "sizeBytes": 24812,
-      "lines": 558,
+      "sizeBytes": 25081,
+      "lines": 564,
       "exports": 17,
       "imports": 5
     },
     {
-      "path": "src/js/views/habitos-view.js",
-      "sizeBytes": 21093,
-      "lines": 550,
-      "exports": 10,
-      "imports": 5
-    },
-    {
       "path": "src/js/views.js",
-      "sizeBytes": 15784,
-      "lines": 550,
-      "exports": 40,
-      "imports": 9
+      "sizeBytes": 16267,
+      "lines": 551,
+      "exports": 35,
+      "imports": 8
     },
     {
-      "path": "src/js/ui/event-modals.js",
-      "sizeBytes": 19683,
-      "lines": 541,
-      "exports": 9,
-      "imports": 7
+      "path": "src/js/logic/progress.js",
+      "sizeBytes": 18466,
+      "lines": 545,
+      "exports": 18,
+      "imports": 2
+    },
+    {
+      "path": "src/js/components.js",
+      "sizeBytes": 23580,
+      "lines": 543,
+      "exports": 7,
+      "imports": 9
     },
     {
       "path": "src/js/cloud-sync.js",
@@ -93,25 +107,25 @@
       "imports": 4
     },
     {
-      "path": "src/js/logic/progress.js",
-      "sizeBytes": 17425,
-      "lines": 530,
-      "exports": 18,
-      "imports": 2
-    },
-    {
       "path": "src/js/sync/sync-status-ui.js",
-      "sizeBytes": 18195,
+      "sizeBytes": 18158,
       "lines": 526,
       "exports": 8,
       "imports": 3
     },
     {
-      "path": "src/js/logic/cycle.js",
-      "sizeBytes": 16570,
-      "lines": 501,
-      "exports": 13,
-      "imports": 6
+      "path": "src/js/views/editais-crud.js",
+      "sizeBytes": 20437,
+      "lines": 511,
+      "exports": 19,
+      "imports": 9
+    },
+    {
+      "path": "src/js/views/editais-view.js",
+      "sizeBytes": 27400,
+      "lines": 505,
+      "exports": 14,
+      "imports": 5
     },
     {
       "path": "src/js/drive-sync.js",
@@ -121,25 +135,39 @@
       "imports": 6
     },
     {
-      "path": "src/js/views/editais-view.js",
-      "sizeBytes": 24148,
-      "lines": 465,
-      "exports": 14,
-      "imports": 5
+      "path": "src/js/sync/sync-center.js",
+      "sizeBytes": 17847,
+      "lines": 499,
+      "exports": 9,
+      "imports": 2
     },
     {
       "path": "src/js/registro-sessao.js",
-      "sizeBytes": 14601,
-      "lines": 439,
+      "sizeBytes": 17055,
+      "lines": 498,
       "exports": 15,
-      "imports": 8
+      "imports": 9
     },
     {
-      "path": "src/js/sync/sync-center.js",
-      "sizeBytes": 14035,
-      "lines": 417,
+      "path": "src/js/views/revisao-view.js",
+      "sizeBytes": 17603,
+      "lines": 403,
       "exports": 8,
-      "imports": 2
+      "imports": 6
+    },
+    {
+      "path": "src/js/views/historico-view.js",
+      "sizeBytes": 17465,
+      "lines": 402,
+      "exports": 5,
+      "imports": 5
+    },
+    {
+      "path": "src/js/registro-sessao/session-save.js",
+      "sizeBytes": 14284,
+      "lines": 401,
+      "exports": 1,
+      "imports": 5
     },
     {
       "path": "src/js/relevance.js",
@@ -149,39 +177,25 @@
       "imports": 1
     },
     {
-      "path": "src/js/views/historico-view.js",
-      "sizeBytes": 16162,
-      "lines": 374,
-      "exports": 5,
-      "imports": 5
-    },
-    {
       "path": "src/js/registro-sessao/modal-renderer.js",
-      "sizeBytes": 15222,
-      "lines": 373,
+      "sizeBytes": 15780,
+      "lines": 389,
       "exports": 4,
       "imports": 3
     },
     {
-      "path": "src/js/views/editais-crud.js",
-      "sizeBytes": 14337,
-      "lines": 370,
-      "exports": 17,
-      "imports": 8
+      "path": "src/js/views/calendar-view.js",
+      "sizeBytes": 16299,
+      "lines": 381,
+      "exports": 11,
+      "imports": 6
     },
     {
       "path": "src/js/ui/actions/config.js",
-      "sizeBytes": 12940,
-      "lines": 358,
+      "sizeBytes": 13184,
+      "lines": 362,
       "exports": 0,
-      "imports": 13
-    },
-    {
-      "path": "src/js/views/calendar-view.js",
-      "sizeBytes": 14384,
-      "lines": 355,
-      "exports": 10,
-      "imports": 6
+      "imports": 14
     },
     {
       "path": "src/js/sync/sync-coordinator.js",
@@ -191,25 +205,25 @@
       "imports": 8
     },
     {
-      "path": "src/js/views/revisao-view.js",
-      "sizeBytes": 14554,
-      "lines": 338,
-      "exports": 8,
-      "imports": 6
+      "path": "src/js/store.js",
+      "sizeBytes": 10691,
+      "lines": 341,
+      "exports": 6,
+      "imports": 4
+    },
+    {
+      "path": "src/js/ui/actions/editais.js",
+      "sizeBytes": 11145,
+      "lines": 340,
+      "exports": 0,
+      "imports": 7
     },
     {
       "path": "src/js/planejamento/step-renderers.js",
-      "sizeBytes": 16132,
+      "sizeBytes": 16321,
       "lines": 332,
       "exports": 8,
       "imports": 2
-    },
-    {
-      "path": "src/js/store.js",
-      "sizeBytes": 10187,
-      "lines": 332,
-      "exports": 6,
-      "imports": 4
     },
     {
       "path": "src/js/planejamento-wizard.js",
@@ -219,25 +233,18 @@
       "imports": 5
     },
     {
-      "path": "src/js/registro-sessao/session-save.js",
-      "sizeBytes": 10597,
-      "lines": 318,
-      "exports": 1,
-      "imports": 5
-    },
-    {
-      "path": "src/js/ui/actions/editais.js",
-      "sizeBytes": 9914,
-      "lines": 308,
-      "exports": 0,
-      "imports": 7
-    },
-    {
       "path": "src/js/views/config/sync-dialogs.js",
       "sizeBytes": 11597,
       "lines": 300,
       "exports": 3,
       "imports": 8
+    },
+    {
+      "path": "src/js/logic/timer.js",
+      "sizeBytes": 9990,
+      "lines": 286,
+      "exports": 14,
+      "imports": 2
     },
     {
       "path": "src/js/utils.js",
@@ -247,11 +254,11 @@
       "imports": 0
     },
     {
-      "path": "src/js/logic/timer.js",
-      "sizeBytes": 9308,
-      "lines": 278,
-      "exports": 14,
-      "imports": 2
+      "path": "src/js/views/config-view.js",
+      "sizeBytes": 10761,
+      "lines": 277,
+      "exports": 6,
+      "imports": 10
     },
     {
       "path": "src/js/sync/manual-sync.js",
@@ -261,18 +268,18 @@
       "imports": 4
     },
     {
-      "path": "src/js/views/config-view.js",
-      "sizeBytes": 10253,
-      "lines": 270,
-      "exports": 6,
-      "imports": 10
-    },
-    {
       "path": "src/js/ui/search.js",
-      "sizeBytes": 8418,
-      "lines": 259,
+      "sizeBytes": 8587,
+      "lines": 264,
       "exports": 6,
       "imports": 4
+    },
+    {
+      "path": "src/js/logic.js",
+      "sizeBytes": 8191,
+      "lines": 260,
+      "exports": 19,
+      "imports": 8
     },
     {
       "path": "src/js/views/config/data-management.js",
@@ -282,11 +289,11 @@
       "imports": 10
     },
     {
-      "path": "src/js/ui/dialog.js",
-      "sizeBytes": 6426,
-      "lines": 236,
-      "exports": 4,
-      "imports": 1
+      "path": "src/js/ui/actions/eventos.js",
+      "sizeBytes": 8060,
+      "lines": 234,
+      "exports": 0,
+      "imports": 10
     },
     {
       "path": "src/js/sync/entity-migration.js",
@@ -296,18 +303,25 @@
       "imports": 4
     },
     {
-      "path": "src/js/ui/actions/eventos.js",
-      "sizeBytes": 7721,
-      "lines": 228,
-      "exports": 0,
-      "imports": 10
+      "path": "src/js/views/editais/disc-manager.js",
+      "sizeBytes": 9502,
+      "lines": 216,
+      "exports": 3,
+      "imports": 5
     },
     {
       "path": "src/js/ui/dom.js",
-      "sizeBytes": 6227,
-      "lines": 219,
-      "exports": 13,
-      "imports": 0
+      "sizeBytes": 5983,
+      "lines": 208,
+      "exports": 12,
+      "imports": 1
+    },
+    {
+      "path": "src/js/app.js",
+      "sizeBytes": 7613,
+      "lines": 206,
+      "exports": 5,
+      "imports": 15
     },
     {
       "path": "src/js/sync/sync-job-store.js",
@@ -317,18 +331,11 @@
       "imports": 0
     },
     {
-      "path": "src/js/views/editais/disc-manager.js",
-      "sizeBytes": 8865,
-      "lines": 203,
-      "exports": 2,
-      "imports": 5
-    },
-    {
-      "path": "src/js/logic.js",
-      "sizeBytes": 5522,
+      "path": "src/js/ui/dialog.js",
+      "sizeBytes": 6435,
       "lines": 202,
-      "exports": 13,
-      "imports": 7
+      "exports": 4,
+      "imports": 1
     },
     {
       "path": "src/js/sync/sync-diagnostic.js",
@@ -338,17 +345,17 @@
       "imports": 4
     },
     {
-      "path": "src/js/app.js",
-      "sizeBytes": 7254,
-      "lines": 200,
-      "exports": 5,
-      "imports": 14
-    },
-    {
       "path": "src/js/credentials.js",
       "sizeBytes": 6295,
       "lines": 199,
       "exports": 1,
+      "imports": 1
+    },
+    {
+      "path": "src/js/store/migrations.js",
+      "sizeBytes": 6585,
+      "lines": 198,
+      "exports": 2,
       "imports": 1
     },
     {
@@ -359,16 +366,9 @@
       "imports": 20
     },
     {
-      "path": "src/js/store/migrations.js",
-      "sizeBytes": 5893,
-      "lines": 186,
-      "exports": 2,
-      "imports": 1
-    },
-    {
       "path": "src/js/ui/actions/planejamento.js",
-      "sizeBytes": 5492,
-      "lines": 171,
+      "sizeBytes": 5658,
+      "lines": 176,
       "exports": 0,
       "imports": 8
     },
@@ -380,18 +380,25 @@
       "imports": 0
     },
     {
+      "path": "src/js/notifications.js",
+      "sizeBytes": 5704,
+      "lines": 161,
+      "exports": 5,
+      "imports": 2
+    },
+    {
       "path": "src/js/views/med-view.js",
-      "sizeBytes": 6959,
-      "lines": 165,
+      "sizeBytes": 6680,
+      "lines": 156,
       "exports": 2,
       "imports": 4
     },
     {
-      "path": "src/js/notifications.js",
-      "sizeBytes": 5019,
-      "lines": 148,
-      "exports": 4,
-      "imports": 2
+      "path": "src/js/sw-register.js",
+      "sizeBytes": 5890,
+      "lines": 144,
+      "exports": 0,
+      "imports": 0
     },
     {
       "path": "src/js/sync/firestore-schema.js",
@@ -401,15 +408,15 @@
       "imports": 1
     },
     {
-      "path": "src/js/sw-register.js",
-      "sizeBytes": 5604,
-      "lines": 138,
-      "exports": 0,
-      "imports": 0
+      "path": "src/js/views/editais/delete-operations.js",
+      "sizeBytes": 4342,
+      "lines": 135,
+      "exports": 3,
+      "imports": 6
     },
     {
       "path": "src/js/views/editais/disc-crud.js",
-      "sizeBytes": 5343,
+      "sizeBytes": 5569,
       "lines": 133,
       "exports": 6,
       "imports": 6
@@ -422,11 +429,11 @@
       "imports": 0
     },
     {
-      "path": "src/js/views/editais/delete-operations.js",
-      "sizeBytes": 4127,
-      "lines": 128,
+      "path": "src/js/ui/actions/dispatcher.js",
+      "sizeBytes": 3605,
+      "lines": 127,
       "exports": 3,
-      "imports": 6
+      "imports": 2
     },
     {
       "path": "src/js/sync/firestore-outbox.js",
@@ -436,18 +443,18 @@
       "imports": 1
     },
     {
+      "path": "src/js/views/editais/aula-operations.js",
+      "sizeBytes": 3890,
+      "lines": 126,
+      "exports": 5,
+      "imports": 7
+    },
+    {
       "path": "src/js/sync/sync-lock.js",
       "sizeBytes": 3171,
       "lines": 124,
       "exports": 5,
       "imports": 0
-    },
-    {
-      "path": "src/js/views/editais/aula-operations.js",
-      "sizeBytes": 3586,
-      "lines": 122,
-      "exports": 5,
-      "imports": 7
     },
     {
       "path": "src/js/app/save-status.js",
@@ -457,10 +464,10 @@
       "imports": 0
     },
     {
-      "path": "src/js/ui/actions/dispatcher.js",
-      "sizeBytes": 2827,
-      "lines": 108,
-      "exports": 3,
+      "path": "src/js/edital-filter.js",
+      "sizeBytes": 3595,
+      "lines": 105,
+      "exports": 10,
       "imports": 2
     },
     {
@@ -478,32 +485,18 @@
       "imports": 0
     },
     {
-      "path": "src/js/ui/actions/navegacao.js",
-      "sizeBytes": 3037,
-      "lines": 94,
-      "exports": 0,
-      "imports": 8
-    },
-    {
       "path": "src/js/views/editais/inline-editing.js",
-      "sizeBytes": 2569,
-      "lines": 91,
+      "sizeBytes": 2868,
+      "lines": 98,
       "exports": 2,
       "imports": 5
     },
     {
       "path": "src/js/views/config/theme-settings.js",
-      "sizeBytes": 3722,
-      "lines": 90,
+      "sizeBytes": 3892,
+      "lines": 92,
       "exports": 5,
       "imports": 4
-    },
-    {
-      "path": "src/js/app/modals.js",
-      "sizeBytes": 2490,
-      "lines": 87,
-      "exports": 6,
-      "imports": 0
     },
     {
       "path": "src/js/app/navigation.js",
@@ -513,18 +506,25 @@
       "imports": 3
     },
     {
-      "path": "src/js/edital-filter.js",
-      "sizeBytes": 2746,
-      "lines": 83,
-      "exports": 9,
-      "imports": 2
-    },
-    {
       "path": "src/js/ui-state.js",
-      "sizeBytes": 2271,
-      "lines": 83,
+      "sizeBytes": 2314,
+      "lines": 84,
       "exports": 3,
       "imports": 0
+    },
+    {
+      "path": "src/js/ui/actions/navegacao.js",
+      "sizeBytes": 2633,
+      "lines": 83,
+      "exports": 0,
+      "imports": 6
+    },
+    {
+      "path": "src/js/views/editais-anteriores-view.js",
+      "sizeBytes": 2756,
+      "lines": 73,
+      "exports": 2,
+      "imports": 5
     },
     {
       "path": "src/js/app/themes.js",
@@ -548,6 +548,13 @@
       "imports": 3
     },
     {
+      "path": "src/js/app/modals.js",
+      "sizeBytes": 2065,
+      "lines": 67,
+      "exports": 5,
+      "imports": 1
+    },
+    {
       "path": "src/js/app/toast.js",
       "sizeBytes": 1890,
       "lines": 63,
@@ -556,8 +563,8 @@
     },
     {
       "path": "src/js/logic/revisions.js",
-      "sizeBytes": 1917,
-      "lines": 61,
+      "sizeBytes": 1953,
+      "lines": 62,
       "exports": 6,
       "imports": 2
     },
@@ -604,13 +611,6 @@
       "imports": 1
     },
     {
-      "path": "src/js/ui/actions/habitos.js",
-      "sizeBytes": 1287,
-      "lines": 44,
-      "exports": 0,
-      "imports": 2
-    },
-    {
       "path": "src/js/views/calendar/calendar-day-panel.js",
       "sizeBytes": 1744,
       "lines": 42,
@@ -630,6 +630,13 @@
       "lines": 42,
       "exports": 6,
       "imports": 0
+    },
+    {
+      "path": "src/js/ui/actions/habitos.js",
+      "sizeBytes": 1044,
+      "lines": 36,
+      "exports": 0,
+      "imports": 2
     },
     {
       "path": "src/js/logic/disc.js",

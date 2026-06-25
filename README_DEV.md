@@ -2,7 +2,7 @@
 
 Guia curto para trabalhar no `estudo-organizado` com pouco contexto e validacao proporcional ao risco.
 
-Para continuar o plano de reducao de contexto com outra IA, leia tambem `docs/handoff-reducao-contexto-codex.md`.
+Para continuar o plano de reducao de contexto com outra IA, leia tambem `docs/handoffs/handoff-reducao-contexto-codex.md`.
 
 ## Regras de contexto
 
@@ -21,7 +21,7 @@ Nao leia, liste ou busque por padrao:
 - `_local_archive/`
 - `output/`
 - `src/vendor/`
-- `src/docs/superpowers/plans/`
+- `docs/plans/`
 - `package-lock.json`
 
 Busca segura:

@@ -9,7 +9,7 @@ test-results/
 _local_archive/
 output/
 src/vendor/
-src/docs/superpowers/plans/
+docs/plans/
 package-lock.json
 *.min.js
 *.map

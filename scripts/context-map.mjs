@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SRC_JS = join(ROOT, 'src', 'js');
 const EXCLUDED_DIRS = new Set(['node_modules', 'vendor', 'firebase']);
-const OUTPUT_PATH = join(ROOT, 'src', 'docs', 'context-map.json');
+const OUTPUT_PATH = join(ROOT, 'docs', 'context-map.json');
 
 // Patterns for counting
 const EXPORT_PATTERNS = [
