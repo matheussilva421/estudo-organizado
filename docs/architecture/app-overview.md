@@ -133,8 +133,8 @@ que e util para QA manual sem tocar dados reais do navegador principal.
 - `src/sw.js`: service worker.
 - `src/css/`: sistema visual.
 - `src/js/`: runtime da aplicacao.
-- `src/docs/`: documentacao tecnica, arquitetura, seguranca, sync e releases.
 - `src/vendor/`: bundles de terceiros; nao editar manualmente.
+- `docs/` (raiz): toda a documentacao tecnica, arquitetura, seguranca, sync e releases (ver `docs/README.md`).
 
 ### `tests/`
 
@@ -447,10 +447,10 @@ Firestore usa eventos como:
 
 Ao alterar sync, leia tambem:
 
-- `src/docs/api/sync-contract.md`
-- `src/docs/architecture/data-flow.md`
-- `src/docs/security/sync-threat-model.md`
-- `src/docs/security/sync-operational-checklist.md`
+- `docs/api/sync-contract.md`
+- `docs/architecture/data-flow.md`
+- `docs/security/sync-threat-model.md`
+- `docs/security/sync-operational-checklist.md`
 
 ## Sync coordinator
 
@@ -779,16 +779,16 @@ Leitura minima:
 
 1. `README.md`
 2. `README_DEV.md`
-3. `src/docs/architecture/app-overview.md`
-4. `src/docs/architecture/data-flow.md`
-5. `src/docs/api/sync-contract.md`
-6. `src/docs/security/sync-threat-model.md`
+3. `docs/architecture/app-overview.md`
+4. `docs/architecture/data-flow.md`
+5. `docs/api/sync-contract.md`
+6. `docs/security/sync-threat-model.md`
 
 Para sync:
 
-1. `src/docs/security/sync-operational-checklist.md`
-2. `src/docs/firebase-firestore-setup.md`
-3. `src/docs/sync-hardening/README.md`
+1. `docs/security/sync-operational-checklist.md`
+2. `docs/guides/firebase-firestore-setup.md`
+3. `docs/sync-hardening/README.md`
 
 Para qualidade:
 

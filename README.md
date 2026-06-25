@@ -191,7 +191,7 @@ O ambiente roda em `http://127.0.0.1:18765` — origem separada do launcher prin
 
 ## 🧪 Testes e qualidade
 
-Suíte com **Vitest** (106 arquivos de teste unitário, ~1.760 testes) e **Playwright** (24 specs E2E, incluindo simulação de sync entre 2 dispositivos).
+Suíte com **Vitest** (113 arquivos de teste unitário, ~1.857 testes) e **Playwright** (25 specs E2E, incluindo simulação de sync entre 2 dispositivos).
 
 ```bash
 npm install
@@ -268,7 +268,7 @@ O app foi projetado para **nunca perder dados**:
 - **Recovery automático** de saves emergenciais na inicialização
 - **Validação de importação** — rejeita JSON sem estrutura válida
 - **Dupla confirmação** em ações destrutivas (apagar dados, deletar edital)
-- **Migrações automáticas** — schema evolui sem perder dados (v1→v10)
+- **Migrações automáticas** — schema evolui sem perder dados (v1→v11)
 - **Arquivo de eventos** — concluídos antigos vão para arquivo, não são deletados
 
 ---
@@ -289,7 +289,7 @@ src/
 └── js/
     ├── main.js                 # Entry point — inicializa módulos e expõe EstudoApp
     ├── store.js                # Estado global + persistência
-    ├── store/                  # IndexedDB, migrações (v1→v10), export/normalize
+    ├── store/                  # IndexedDB, migrações (v1→v11), export/normalize
     ├── app.js + app/           # Navegação, modais, toasts, temas, save-status
     ├── logic.js + logic/       # Timer, ciclo, disciplinas, revisões, progresso
     ├── views/                  # Uma view por tela + submódulos (calendar/, editais/, config/)
