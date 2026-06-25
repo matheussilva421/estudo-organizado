@@ -30,9 +30,25 @@
   box-shadow: var(--shadow-md);
 }
 
+.habit-card--key {
+  background: var(--card-hover);
+}
+
+.habit-card--supporting {
+  opacity: 0.82;
+}
+
+.habit-card--supporting:hover {
+  opacity: 1;
+}
+
 .habit-card .hc-icon {
   font-size: 24px;
   margin-bottom: 8px;
+}
+
+.habit-card--supporting .hc-icon {
+  font-size: 20px;
 }
 
 .habit-card .hc-label {
@@ -46,6 +62,15 @@
   font-weight: 800;
   color: var(--text-primary);
   margin-top: 4px;
+}
+
+.habit-card--key .hc-count {
+  font-size: 26px;
+}
+
+.habit-card--supporting .hc-count {
+  font-size: 18px;
+  color: var(--text-secondary);
 }
 
 .habit-card .hc-sub {

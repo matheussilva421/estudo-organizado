@@ -10,7 +10,7 @@
 |------|--------|
 | 0 — Preparação, baseline e guardrails | ✅ concluída |
 | 1 — Fundação de cor semântica + tokens | ✅ concluída |
-| 2 — Unificar stat cards (cor semântica) | ⬜ |
+| 2 — Unificar stat cards (cor semântica) | ✅ concluída |
 | 3 — Primeiro acesso & escopo | ⬜ |
 | 4 — Acessibilidade | ⬜ |
 | 5 — Side-stripes + movimento/perf | ⬜ |
@@ -23,6 +23,40 @@
 
 ---
 
+## Fase 2 - Stat cards semanticos e vermelho-para-pendente (2026-06-25 20:05 -03)
+
+**Resumo:** Fase 2 concluida com TDD. Os stat cards do Dashboard deixaram de usar classes genericas/decorativas (`green/blue/orange/red`) e passaram a usar categorias semanticas (`stat-card--tempo`, `--sessoes`, `--questoes`, `--simulados`). A Home recebeu o mesmo vocabulario de categoria nos KPIs principais. "Aulas Pendentes" agora usa detalhe neutro, reservando `--danger`/`--negative` para erro real. Habitos ganhou hierarquia visual: 3 cards-chave (`questoes`, `paginas`, `videoaula`) e 6 cards de apoio.
+
+**Arquivos alterados:**
+- `src/js/views/dashboard-view.js` - classes dos 4 stat cards trocadas para categorias semanticas.
+- `src/css/components/cards.css` - mapeamento dos stat cards para tokens por categoria (`--info`, `--success`, `--question`, `--warning`, neutro).
+- `src/js/views/home-view.js` - KPIs lifetime com classes de categoria e "Aulas Pendentes" com `dashboard-stat-detail--neutral`.
+- `src/css/views/dashboard.css` - `positive/negative` agora apontam para `--success/--danger`; novo `--neutral`.
+- `src/js/views/habitos-view.js`, `src/css/views/habitos.css` - tiers `habit-card--key/supporting`, `data-habit-tier` e hierarquia visual.
+- `src/js/utils.js` - `HABIT_TYPES` alinhado a categoria: questoes/sumulas `--question`, simulado `--warning`, videoaula `--info`, paginas/leitura neutro.
+- `DESIGN.md` - regra "cor de stat = categoria de dado, nao decoracao".
+- `tests/unit/views-dashboard.test.js`, `tests/unit/home-view-stat-semantics.test.js`, `tests/unit/habitos-view-ux.test.js` - regressao TDD da fase.
+
+**TDD / validacao:**
+- Vermelho: `npx vitest run tests/unit/views-dashboard.test.js tests/unit/home-view-stat-semantics.test.js tests/unit/habitos-view-ux.test.js -t "semantic stat categories|pending lessons|habitos-chave"` falhou nos 3 contratos novos.
+- Verde focal: mesmo comando -> 3/3.
+- Views relevantes completas: `npx vitest run tests/unit/views-dashboard.test.js tests/unit/home-view-stat-semantics.test.js tests/unit/habitos-view-ux.test.js tests/unit/views-modules.test.js tests/unit/views.test.js` -> 111/111.
+- CSS: `npx vitest run tests/unit/css-architecture.test.js` -> 40/40.
+- Contraste: `node scripts/contrast-audit.mjs --enforce` -> OK para corpo AA; excecao conhecida `arrakis danger/card = 4.42` permanece para Fase 4.
+- Detector: `node C:\Users\slvma\.claude\skills\impeccable\scripts\detect.mjs src --json` -> 56 achados (32 advisory, 24 warning), mesma contagem pos-Fase 1. Por tipo: `design-system-color: 30`, `design-system-radius: 1`, `layout-transition: 11`, `numbered-section-markers: 1`, `overused-font: 4`, `side-tab: 7`, `single-font: 2`.
+- Varredura: 0 `stat-card green/blue/orange/red` em `src` fora de `src/lab`; 0 `dashboard-stat-detail--negative` para pendentes/restantes fora de `src/lab`.
+- Unit geral: `npm test` -> 115 arquivos, 1897 testes verdes. Logs de stderr simulados/preexistentes: Cloudflare 503/409, IndexedDB mock, notificacoes nao suportadas, sync-yield budget; todos com suite verde.
+
+**Validacao browser / Playwright:**
+- Tentado smoke headed: `npx playwright test tests/e2e/app.spec.js --project=chromium --headed --reporter=line -g "boots the app"` -> bloqueado por timeout de 180s antes de resultado util.
+- Tentado mesmo smoke headless: `npx playwright test tests/e2e/app.spec.js --project=chromium --reporter=line -g "boots the app"` -> mesmo timeout de 180s.
+- Nao ficou servidor temporario identificavel apos timeout; apenas `node.exe` antigo fora do ciclo Playwright. Proximo agente deve tratar este timeout como problema de ambiente/runner E2E a investigar, nao como falha comprovada da Fase 2.
+
+**Status da Fase 2:** concluida e coberta por testes unitarios/arquitetura/contraste/detector. Publicacao pendente deste slice deve commitar/pushar os arquivos listados.
+
+**Proximo passo recomendado:** iniciar Fase 3 - primeiro acesso & escopo do edital principal. Comecar pelo teste de bootstrap sem modal bloqueante e regra de escopo honesta na Home.
+
+---
 ## Fase 1 - Fechamento de cor semantica e tokens (2026-06-25 19:45 -03)
 
 **Resumo:** Fase 1 concluida. O ultimo slice fechou os 24 achados restantes de `design-system-color` fora de `themes.css`/`lab`/`vendor`, mantendo a escala de raio ja tokenizada e deixando o detector restrito aos escopos aceitos ou as fases futuras.

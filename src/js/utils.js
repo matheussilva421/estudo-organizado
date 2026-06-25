@@ -138,15 +138,15 @@ export function cutoffDateStr(days) {
 }
 
 export const HABIT_TYPES = [
-  { key: 'questoes', label: 'Questões', icon: '📝', color: 'var(--info)' },
+  { key: 'questoes', label: 'Questões', icon: '📝', color: 'var(--question)' },
   { key: 'revisao', label: 'Revisão', icon: '🔄', color: 'var(--success)' },
   { key: 'discursiva', label: 'Discursiva', icon: '✍️', color: 'var(--warning)' },
-  { key: 'simulado', label: 'Simulado', icon: '🎯', color: 'var(--danger)' },
-  { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: 'var(--question)' },
+  { key: 'simulado', label: 'Simulado', icon: '🎯', color: 'var(--warning)' },
+  { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: 'var(--text-secondary)' },
   { key: 'informativo', label: 'Informativos', icon: '📰', color: 'var(--info)' },
   { key: 'sumula', label: 'Súmulas', icon: '⚖️', color: 'var(--question)' },
-  { key: 'videoaula', label: 'Videoaula', icon: '📺', color: 'var(--danger)' },
-  { key: 'paginas', label: 'Páginas Lidas', icon: '🧾', color: 'var(--success)' },
+  { key: 'videoaula', label: 'Videoaula', icon: '📺', color: 'var(--info)' },
+  { key: 'paginas', label: 'Páginas Lidas', icon: '🧾', color: 'var(--text-secondary)' },
 ];
 
 /**

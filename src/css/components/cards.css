@@ -65,20 +65,27 @@
   height: 3px;
 }
 
-.stat-card.green::before {
-  background: var(--accent);
+.stat-card--tempo::before,
+.stat-card--videoaula::before {
+  background: var(--info);
 }
 
-.stat-card.blue::before {
-  background: var(--blue);
+.stat-card--sessoes::before,
+.stat-card--concluidas::before {
+  background: var(--success);
 }
 
-.stat-card.orange::before {
-  background: var(--orange);
+.stat-card--questoes::before {
+  background: var(--question);
 }
 
-.stat-card.red::before {
-  background: var(--red);
+.stat-card--simulados::before {
+  background: var(--warning);
+}
+
+.stat-card--paginas::before,
+.stat-card--pendentes::before {
+  background: var(--text-secondary);
 }
 
 .stat-label {

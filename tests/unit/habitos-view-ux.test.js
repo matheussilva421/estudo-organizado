@@ -105,6 +105,24 @@ describe('habitos-view UX (modal title + simulado perc)', () => {
     expect(document.getElementById('habit-hist-list').innerHTML).not.toContain('NaN');
   });
 
+  it('marca hÃ¡bitos-chave com hierarquia visual sem dar o mesmo peso aos 9 cards', async () => {
+    const store = await import('../../src/js/store.js?v=8.37');
+    store.state.habitos = {};
+    const el = { innerHTML: '' };
+
+    mod.renderHabitos(el);
+
+    const keyCards = el.innerHTML.match(/habit-card--key/g) || [];
+    const supportingCards = el.innerHTML.match(/habit-card--supporting/g) || [];
+
+    expect(keyCards).toHaveLength(3);
+    expect(supportingCards).toHaveLength(6);
+    expect(el.innerHTML).toContain('data-habit-tier="key"');
+    expect(el.innerHTML).toContain('data-habit-category="questoes"');
+    expect(el.innerHTML).toContain('data-habit-category="paginas"');
+    expect(el.innerHTML).toContain('data-habit-category="videoaula"');
+  });
+
   it('calcSimuladoPerc acusa acertos negativos em vez de mostrar percentual absurdo', () => {
     document.body.innerHTML = `
       <input id="habit-total" value="10">

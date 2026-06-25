@@ -111,7 +111,7 @@ function renderLifetimeKpis(ctx) {
 
   return `
     <div class="dash-grid-top">
-      <div class="card p-16 dashboard-stat-card home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
+      <div class="card p-16 dashboard-stat-card stat-card--tempo home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
         <div>
           <div class="dash-label">TEMPO DE ESTUDO</div>
           <div class="dashboard-stat-value dashboard-stat-value--mono">${totalTimeStr}</div>
@@ -120,7 +120,7 @@ function renderLifetimeKpis(ctx) {
         </div>
       </div>
 
-      <div class="card p-16 dashboard-stat-card home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
+      <div class="card p-16 dashboard-stat-card stat-card--questoes home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
         <div>
           <div class="dash-label">DESEMPENHO</div>
           <div class="dashboard-stat-detail-list">
@@ -133,18 +133,18 @@ function renderLifetimeKpis(ctx) {
         <div class="dashboard-stat-value">${perfPerc}%</div>
       </div>
 
-      <div class="card p-16 dashboard-stat-card home-card dash-stat-card--clickable" data-action="navigate" data-view="editais" role="button" tabindex="0" title="Abrir edital" aria-label="Abrir edital">
+      <div class="card p-16 dashboard-stat-card stat-card--concluidas home-card dash-stat-card--clickable" data-action="navigate" data-view="editais" role="button" tabindex="0" title="Abrir edital" aria-label="Abrir edital">
         <div>
           <div class="dash-label">PROGRESSO NO EDITAL</div>
           <div class="dashboard-stat-detail-list">
             <div class="dashboard-stat-detail dashboard-stat-detail--positive">${prog.totalConcluidos} Aulas concluídas</div>
-            <div class="dashboard-stat-detail dashboard-stat-detail--negative">${prog.totalAssuntos - prog.totalConcluidos} Aulas Pendentes</div>
+            <div class="dashboard-stat-detail dashboard-stat-detail--neutral">${prog.totalAssuntos - prog.totalConcluidos} Aulas Pendentes</div>
           </div>
         </div>
         <div class="dashboard-stat-value">${progPerc}%</div>
       </div>
 
-      <div class="card p-16 dashboard-stat-card home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
+      <div class="card p-16 dashboard-stat-card stat-card--paginas home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
         <div>
           <div class="dash-label">PÁGINAS LIDAS</div>
           <div class="dashboard-stat-value dashboard-stat-value--mono">${pagesReadTotal}</div>

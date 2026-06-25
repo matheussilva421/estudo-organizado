@@ -187,6 +187,8 @@ Paleta escura de instrumento: superfícies quase-pretas estratificadas por tom, 
 
 **A Regra dos Tokens Canônicos.** O vocabulário semântico é `--success`, `--warning`, `--danger`, `--info`, `--question` e seus fundos. Aliases históricos (`--green`, `--orange`, `--yellow`, `--red`, `--blue`, `--purple`) existem apenas para compatibilidade e devem apontar para os tokens canônicos do tema.
 
+**A Regra da Cor de Stat.** Stat cards usam cor por categoria de dado, não por decoração: tempo/vídeo -> `--info`, questões/súmulas -> `--question`, simulados/risco moderado -> `--warning`, aulas concluídas -> `--success`, páginas/pendentes/restantes -> neutro (`--text-secondary`). `--danger` fica reservado para erro, atraso ou ação destrutiva.
+
 ## 3. Typography
 
 **Display / Body / Label Font:** Plus Jakarta Sans (com fallback `sans-serif`)

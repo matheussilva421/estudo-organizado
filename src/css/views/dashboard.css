@@ -37,11 +37,15 @@
 }
 
 .dashboard-stat-detail--positive {
-  color: var(--green);
+  color: var(--success);
 }
 
 .dashboard-stat-detail--negative {
-  color: var(--red);
+  color: var(--danger);
+}
+
+.dashboard-stat-detail--neutral {
+  color: var(--text-secondary);
 }
 
 .home-weekly-study-card {

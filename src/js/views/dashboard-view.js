@@ -546,22 +546,22 @@ export function renderDashboard(el) {
     </div>
 
     <div class="stats-grid mb-6">
-      <div class="stat-card green">
+      <div class="stat-card stat-card--tempo">
         <div class="stat-label">Tempo Estudado</div>
         <div class="stat-value">${formatTime(totalSecs)}</div>
         <div class="stat-sub">${periodLabel}</div>
       </div>
-      <div class="stat-card blue">
+      <div class="stat-card stat-card--sessoes">
         <div class="stat-label">Sessões Realizadas</div>
         <div class="stat-value">${filteredEvts.length}</div>
         <div class="stat-sub">eventos concluidos</div>
       </div>
-      <div class="stat-card orange">
+      <div class="stat-card stat-card--questoes">
         <div class="stat-label">Questões</div>
         <div class="stat-value">${questTot}</div>
         <div class="stat-sub">${periodLabel}</div>
       </div>
-      <div class="stat-card red">
+      <div class="stat-card stat-card--simulados">
         <div class="stat-label">Simulados</div>
         <div class="stat-value">${simTot}</div>
         <div class="stat-sub">${periodLabel}</div>
