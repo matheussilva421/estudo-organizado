@@ -11,7 +11,7 @@
 | 0 — Preparação, baseline e guardrails | ✅ concluída |
 | 1 — Fundação de cor semântica + tokens | ✅ concluída |
 | 2 — Unificar stat cards (cor semântica) | ✅ concluída |
-| 3 — Primeiro acesso & escopo | ⬜ |
+| 3 — Primeiro acesso & escopo | codigo concluido; e2e/manual pendentes |
 | 4 — Acessibilidade | ⬜ |
 | 5 — Side-stripes + movimento/perf | ⬜ |
 | 6 — Minors + polish + re-critique | ⬜ |
@@ -20,6 +20,44 @@
 - Detector (`detect.mjs --json src`): **258** achados (234 advisory, 24 warning, 0 erros).
 - Testes unit: **1857 passed / 113 files** (antes da Fase 0). Após Fase 0: **1888 / 114**.
 - Contraste WCAG: corpo AA OK nos 6 temas; única exceção `arrakis danger/card = 4.42` (corpo pequeno) — alvo da Fase 4.
+
+---
+
+## Fase 3 - Primeiro acesso e escopo do edital principal (2026-06-25 20:25 -03)
+
+**Resumo:** Fase 3 implementada com TDD no codigo principal. O primeiro load com mais de um edital ativo nao abre mais o modal bloqueante "Qual e seu edital principal?". A Home fica imediatamente utilizavel e mostra uma escolha inline de edital principal no topo. Enquanto essa escolha estiver pendente, a Home usa todos os editais ativos como escopo, evitando o falso "0%" quando existem dados lifetime em outro edital.
+
+**Decisao de produto/escopo:**
+- Foi escolhida a opcao (a) do plano: Home default = todos os editais ativos enquanto a escolha do principal estiver pendente.
+- A acao inline usa o contrato existente `data-action="make-edital-principal"` / `data-edital-id`, reaproveitando `ui/actions/editais.js`.
+- A flag `estudo_principal_reconciled` continua pendente quando ha multiplos ativos; com 0 ou 1 ativo, `reconcilePrincipalEdital()` marca reconciliado normalmente.
+
+**Arquivos alterados:**
+- `src/js/views/editais-crud.js` - removeu o modal de primeira execucao e manteve a reconciliacao sem bloqueio quando existem varios editais ativos.
+- `src/js/views/home-view.js` - adicionou banner inline de escolha do principal; quando a escolha esta pendente, KPIs, tempo lifetime, questoes, progresso, semana, hero e disciplinas usam escopo agregado.
+- `src/css/views/dashboard.css` - estilos responsivos para `.home-principal-choice`.
+- `tests/unit/editais-principal-flow.test.js` - contrato de que a reconciliacao com multiplos editais nao abre modal bloqueante.
+- `tests/unit/views-modules.test.js` - contratos para CTA inline e para Home agregada enquanto o principal estiver pendente.
+- `docs/plans/2026-06-25-impeccable-critique-remediation-plan.md` - checkpoints unitarios da Fase 3 atualizados e decisao de escopo documentada.
+
+**TDD / validacao:**
+- Vermelho: `npx vitest run tests/unit/editais-principal-flow.test.js -t "does not open a blocking prompt"` falhou porque o modal ainda era aberto.
+- Verde: mesmo teste passou apos remover o modal bloqueante.
+- Vermelho: `npx vitest run tests/unit/views-modules.test.js -t "escolha inline"` falhou antes do banner da Home.
+- Verde: mesmo teste passou apos adicionar `.home-principal-choice`.
+- Vermelho: `npx vitest run tests/unit/views-modules.test.js -t "todos os editais ativos"` falhou porque a Home ainda pegava o primeiro edital ativo como escopo.
+- Verde: mesmo teste passou apos tratar `principalChoicePending` como escopo agregado.
+- Foco completo: `npx vitest run tests/unit/editais-principal-flow.test.js` -> 5/5.
+- Home foco: `npx vitest run tests/unit/views-modules.test.js -t "renderHome"` -> 7/7.
+- Views: `npm run test:views` -> 12 arquivos, 257 testes verdes.
+- Unit geral: `npm test` -> 115 arquivos, 1899 testes verdes. Stderr conhecido/simulado: Cloudflare 503/409, IndexedDB mock, modal ausente, notificacoes nao suportadas, sync-yield budget.
+- `git diff --check` -> sem erros; apenas avisos CRLF esperados no Windows.
+
+**Pendencias:**
+- E2E mock e validacao manual de primeiro load ainda nao foram executados nesta fatia. O slice anterior da Fase 2 ja tinha registrado timeout de 180s no Playwright smoke headed/headless; tratar E2E como problema de runner/ambiente a investigar antes de considerar regressao funcional.
+- Opcional: se quiser que o banner suma imediatamente para sempre apos clicar no principal, avaliar marcar `estudo_principal_reconciled` tambem no handler `make-edital-principal`; hoje ele some pelo arquivamento dos demais e a proxima reconciliacao com <=1 ativo marca a flag.
+
+**Proximo passo recomendado:** se houver orcamento, tentar E2E mock/headed pequeno para primeiro load sem modal. Se o timeout persistir, documentar como bloqueio de runner e seguir para Fase 4 (acessibilidade: contraste Arrakis danger, redundancia nao-cor e mobile).
 
 ---
 

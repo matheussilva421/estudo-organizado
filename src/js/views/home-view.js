@@ -33,6 +33,41 @@ function getActiveEditalId() {
   return getSelectedEditalId();
 }
 
+function shouldShowPrincipalChoice() {
+  const activeEditais = (state.editais || []).filter((edital) => !edital.arquivado);
+  if (activeEditais.length <= 1) return false;
+  try {
+    return localStorage.getItem('estudo_principal_reconciled') !== 'true';
+  } catch {
+    return true;
+  }
+}
+
+function renderPrincipalChoiceBanner() {
+  const activeEditais = (state.editais || []).filter((edital) => !edital.arquivado);
+  if (!shouldShowPrincipalChoice()) return '';
+
+  return `
+    <div class="home-principal-choice" role="region" aria-label="Escolha de edital principal">
+      <div class="home-principal-choice-copy">
+        <div class="dash-label">ESCOPO DO PAINEL</div>
+        <div class="home-principal-choice-title">Defina seu edital principal</div>
+        <div class="home-principal-choice-text">A Home continua disponivel. Escolha o foco para arquivar os demais editais sem perder historico.</div>
+      </div>
+      <div class="home-principal-choice-actions">
+        ${activeEditais
+          .map(
+            (edital) => `
+          <button class="btn btn-ghost btn-sm" data-action="make-edital-principal" data-edital-id="${esc(edital.id)}">
+            ${esc(edital.nome || 'Edital')}
+          </button>`
+          )
+          .join('')}
+      </div>
+    </div>
+  `;
+}
+
 function fmtHM(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
   const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
@@ -159,7 +194,7 @@ function renderLifetimeKpis(ctx) {
 // --- FAIXA 2: HERO (countdown + próxima ação + CTAs) -----------------------
 function renderHero(ctx) {
   const { dataProva, streak } = ctx;
-  const activeEditalId = getActiveEditalId();
+  const activeEditalId = ctx.activeEditalId;
   const next = getNextSuggestedLesson(activeEditalId);
 
   let countdownHtml;
@@ -323,9 +358,9 @@ function renderWeekKpis(ctx) {
 
 // --- FAIXA 4: ANÁLISE (esquerda: barras por disciplina | direita: gráficos) -
 function renderSubjectProgress(ctx) {
-  // Modelo de edital principal único: sem abas de troca de edital. O progresso
-  // é sempre do principal (groups já vem sem editais arquivados).
-  const activeId = getActiveEditalId();
+  // Modelo de edital principal unico: sem abas de troca de edital. Enquanto a
+  // escolha inicial esta pendente, mostra todos os editais ativos.
+  const activeId = ctx.activeEditalId;
   const groups = ctx.disciplineProgress;
   const visibleGroups = activeId ? groups.filter((g) => g.edital.id === activeId) : groups;
   const allRows = visibleGroups.flatMap((group) =>
@@ -537,8 +572,11 @@ export function renderHome(el) {
   // (cache interno de logic.js é preservado entre re-renders, mas aqui força preenchimento
   // antes das demais chamadas e dá contexto explícito de performance.)
   const agg = getAggregatedStats();
-  const activeEditalId = getActiveEditalId();
-  const scopedEvents = filterEventsBySelectedEdital(state.eventos || [], { allowAll: true });
+  const principalChoicePending = shouldShowPrincipalChoice();
+  const activeEditalId = principalChoicePending ? null : getActiveEditalId();
+  const scopedEvents = principalChoicePending
+    ? state.eventos || []
+    : filterEventsBySelectedEdital(state.eventos || [], { allowAll: true });
   const scopedCompletedEvents = scopedEvents.filter((event) => event.status === 'estudei');
 
   // Calcula tudo uma vez.
@@ -604,10 +642,13 @@ export function renderHome(el) {
     streak, weekStats, prevWeekStats, aulasWeek, disciplineProgress,
     metaHoras, metaQuest, percHoras, percQuest, pred,
     totalTimeStr,
+    activeEditalId,
     dataProva: state.config.dataProva,
   };
 
   el.innerHTML = `
+    ${renderPrincipalChoiceBanner()}
+
     <!-- FAIXA 1: KPIs LIFETIME -->
     ${renderLifetimeKpis(ctx)}
 

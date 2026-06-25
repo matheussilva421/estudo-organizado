@@ -852,6 +852,74 @@ describe('home-view.js', () => {
       expect(container.innerHTML).toContain('Direito Administrativo');
       expect(container.innerHTML).not.toContain('data-action="set-active-edital"');
     });
+
+    it('mostra escolha inline de edital principal quando ha varios ativos pendentes', () => {
+      const editalA = createEdital({
+        id: 'ed_1',
+        nome: 'PGE-RN',
+        arquivado: false,
+        disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' })],
+      });
+      const editalB = createEdital({
+        id: 'ed_2',
+        nome: 'TRF',
+        arquivado: false,
+        disciplinas: [createDisciplina({ id: 'disc_2', nome: 'Direito Constitucional' })],
+      });
+      store.setState(createBaseState({ editais: [editalA, editalB] }));
+      logic.invalidateDiscCache();
+      logic.invalidateDashCaches();
+
+      const container = { innerHTML: '' };
+      views.renderHome(container);
+
+      expect(container.innerHTML).toContain('home-principal-choice');
+      expect(container.innerHTML).toContain('Defina seu edital principal');
+      expect(container.innerHTML).toContain('data-action="make-edital-principal"');
+      expect(container.innerHTML).toContain('data-edital-id="ed_1"');
+      expect(container.innerHTML).toContain('data-edital-id="ed_2"');
+    });
+
+    it('usa todos os editais ativos na Home enquanto a escolha do principal esta pendente', () => {
+      const editalA = createEdital({
+        id: 'ed_1',
+        nome: 'PGE-RN',
+        arquivado: false,
+        disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' })],
+      });
+      const editalB = createEdital({
+        id: 'ed_2',
+        nome: 'TRF',
+        arquivado: false,
+        disciplinas: [createDisciplina({ id: 'disc_2', nome: 'Direito Constitucional' })],
+      });
+      store.setState(
+        createBaseState({
+          editais: [editalA, editalB],
+          eventos: [
+            createEvento({
+              id: 'ev_ed2',
+              status: 'estudei',
+              data: '2026-04-20',
+              dataEstudo: '2026-04-20',
+              discId: 'disc_2',
+              tempoAcumulado: 3600,
+              sessao: { questoes: { acertos: 8, erros: 2 } },
+            }),
+          ],
+        })
+      );
+      logic.invalidateDiscCache();
+      logic.invalidateDashCaches();
+
+      const container = { innerHTML: '' };
+      views.renderHome(container);
+
+      expect(container.innerHTML).toContain('01:00:00');
+      expect(container.innerHTML).toContain('8 Acertos');
+      expect(container.innerHTML).toContain('2 Erros');
+      expect(container.innerHTML).toContain('Direito Constitucional');
+    });
   });
 });
 

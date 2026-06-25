@@ -256,11 +256,12 @@ npm run test:unit
 4. e2e mock: cobrir 1º load (sem modal) + alternância de escopo.
 
 **Checkpoints**
-- [ ] 1º load **não** abre modal bloqueante; Home visível imediatamente
-- [ ] Seleção de edital principal disponível inline / via Editais, sem travar
-- [ ] Regra de escopo decidida e documentada (a ou b)
-- [ ] Home não comunica "0%/sem progresso" enganoso quando há dados lifetime
-- [ ] Testes unit + e2e mock verdes
+- [x] 1º load **não** abre modal bloqueante; Home visível imediatamente
+- [x] Seleção de edital principal disponível inline / via Editais, sem travar
+- [x] Regra de escopo decidida: opção (a), Home default = todos os editais ativos enquanto a escolha do principal estiver pendente
+- [x] Home não comunica "0%/sem progresso" enganoso quando há dados lifetime
+- [x] Testes unit verdes para bootstrap sem modal, CTA inline e escopo agregado pendente
+- [ ] e2e mock verde
 - [ ] Validação manual: abrir mock em modo `reset` e `clean` (app vazio) — ambos sem bloqueio
 
 **Critério de aceite:** Home utilizável e honesta no 1º acesso; "o que faço agora" claro em ≤5s.

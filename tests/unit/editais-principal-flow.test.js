@@ -148,7 +148,7 @@ describe('reconcilePrincipalEdital', () => {
     expect(global.localStorage.setItem).toHaveBeenCalledWith('estudo_principal_reconciled', 'true');
   });
 
-  it('does NOT mark reconciled when more than one edital is active (re-prompts next load)', () => {
+  it('does not open a blocking prompt when more than one edital is active', () => {
     store.setState(
       createBaseState({
         editais: [
@@ -158,6 +158,7 @@ describe('reconcilePrincipalEdital', () => {
       })
     );
     views.reconcilePrincipalEdital();
+    expect(global.document.getElementById('modal-prompt').classList.add).not.toHaveBeenCalled();
     expect(global.localStorage.setItem).not.toHaveBeenCalledWith(
       'estudo_principal_reconciled',
       'true'
