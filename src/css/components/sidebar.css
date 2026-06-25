@@ -43,7 +43,7 @@
   width: 42px;
   height: 42px;
   background: linear-gradient(135deg, var(--accent), var(--info));
-  border-radius: 12px;
+  border-radius: var(--radius-card-sm);
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
@@ -74,7 +74,7 @@
   color: var(--text-secondary);
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -227,7 +227,7 @@
   background: var(--card);
   color: var(--text-primary);
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
   font-size: 12px;
   white-space: nowrap;
   margin-left: 8px;
@@ -259,7 +259,7 @@
   padding: 10px 13px;
   border: 1px solid transparent;
   border-left: 3px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   color: var(--sidebar-text);
   font-size: 13.5px;
@@ -308,7 +308,7 @@
   font-size: 11px;
   font-weight: 700;
   padding: 1px 6px;
-  border-radius: 20px;
+  border-radius: var(--radius-loose);
   min-width: 18px;
   text-align: center;
 }
@@ -334,7 +334,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface-soft);
   cursor: pointer;
   transition: background 0.15s;

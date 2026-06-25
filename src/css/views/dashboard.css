@@ -61,7 +61,7 @@
   width: 100%;
   max-width: 30px;
   background: var(--accent);
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   min-height: 2px;
   transition: height 0.3s;
 }
@@ -84,7 +84,7 @@
   width: 8px;
   height: 8px;
   background: var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
 }
 
 .dash-progress-bar--questions {
@@ -273,7 +273,7 @@
   font-weight: 600;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-secondary);
   cursor: pointer;
   transition:
@@ -312,7 +312,7 @@
   gap: 12px;
   align-items: center;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -330,7 +330,7 @@
 .dash-subject-progress-bar-wrap {
   height: 10px;
   background: var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
   overflow: hidden;
 }
 
@@ -340,7 +340,7 @@
 
 .dash-subject-progress-bar {
   height: 100%;
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
   transition: width 0.3s;
 }
 
@@ -388,7 +388,7 @@
 .progress-mini-track {
   height: 6px;
   margin-top: 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--text-muted) 22%, transparent);
   overflow: hidden;
 }
@@ -411,7 +411,7 @@
   align-items: center;
   padding: 10px 12px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   text-align: left;
@@ -477,7 +477,7 @@
 
 .dash-progress-line-track {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--text-muted) 22%, transparent);
   overflow: hidden;
 }
@@ -512,7 +512,7 @@
   width: 100%;
   height: 14px;
   background: var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -522,7 +522,7 @@
 
 .dash-prediction-bar-fill {
   height: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   transition: width 0.3s;
 }
 
@@ -557,7 +557,7 @@
 .streak-dot--compact {
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: var(--radius-compact);
 }
 
 .streak-dot--compact i {
@@ -611,7 +611,7 @@
   font-size: 11px;
   font-weight: 600;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   letter-spacing: 0.2px;
   background: var(--surface, var(--bg));
   border: 1px solid var(--border);

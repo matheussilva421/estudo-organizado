@@ -293,7 +293,7 @@
 
 .session-detail-card {
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: var(--space-3);
   margin-bottom: var(--space-2);
   background: var(--card);
@@ -440,7 +440,7 @@
 /* Session detail card */
 .session-detail-card {
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: var(--space-3);
   margin-bottom: var(--space-2);
   background: var(--card);

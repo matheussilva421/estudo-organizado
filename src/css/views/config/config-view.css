@@ -88,7 +88,7 @@
   margin: 12px 0 14px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--card), transparent 10%);
   color: var(--text-secondary);
   font-size: 13px;
@@ -231,10 +231,10 @@
 }
 
 .entity-conflict-review-badge {
-  background: var(--warning-bg, #fff3cd);
-  color: var(--warning-text, #856404);
+  background: var(--warning-bg);
+  color: var(--warning);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: 11px;
   font-weight: 600;
 }
@@ -255,7 +255,7 @@
   align-items: center;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
 }
 
@@ -290,11 +290,11 @@
 }
 
 .entity-conflict-rev-local {
-  color: var(--success, #28a745);
+  color: var(--success);
 }
 
 .entity-conflict-rev-remote {
-  color: var(--info, #17a2b8);
+  color: var(--info);
 }
 
 .entity-conflict-review-actions {
@@ -324,7 +324,7 @@
   gap: 12px;
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 14px;
   margin: 14px 0;
 }
@@ -342,7 +342,7 @@
   justify-content: center;
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface-elevated);
   color: var(--accent);
 }
@@ -388,7 +388,7 @@
 .sync-advanced-panel {
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   margin-top: 12px;
 }
 
@@ -415,7 +415,7 @@
 .sync-source-card {
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .sync-center-summary > div {
@@ -556,7 +556,7 @@
 .backup-advanced-panel {
   margin-top: 18px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
 }
 
@@ -580,7 +580,7 @@
 
 .backup-advanced-source-card {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 14px;
   background: var(--surface-alt);
 }
@@ -602,7 +602,7 @@
 .restore-preview-summary {
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 12px;
 }
 
@@ -635,7 +635,7 @@
 .restore-preview-row strong,
 .restore-preview-row span {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
   padding: 8px;
   font-size: 0.82rem;
   overflow-wrap: anywhere;
@@ -685,8 +685,8 @@
   margin: var(--space-3) 0 var(--space-4);
   padding: var(--space-3);
   border-radius: var(--radius-md, 8px);
-  background: var(--surface-2, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
 }
 
 .sync-manual-primary .btn-lg {
@@ -695,7 +695,7 @@
 }
 
 .sync-manual-primary-meta {
-  color: var(--text-secondary, #aab);
+  color: var(--text-secondary);
   font-size: 0.9em;
 }
 
@@ -706,14 +706,14 @@
   padding: 10px 12px;
   margin-bottom: var(--space-3);
   border-radius: var(--radius-md, 8px);
-  background: rgba(255, 170, 0, 0.08);
-  border: 1px solid rgba(255, 170, 0, 0.35);
+  background: var(--warning-bg);
+  border: 1px solid color-mix(in srgb, var(--warning), transparent 65%);
   color: var(--text-primary, inherit);
   font-size: 0.92em;
 }
 
 .sync-conflict-callout i {
-  color: rgb(220, 165, 30);
+  color: var(--warning);
   margin-top: 2px;
 }
 
@@ -724,8 +724,8 @@
   margin-bottom: var(--space-4);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md, 8px);
-  background: var(--surface-2, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
 }
 
 .sync-summary-row {
@@ -739,24 +739,24 @@
 .sync-summary-dot {
   width: 10px;
   height: 10px;
-  border-radius: 999px;
-  background: var(--text-secondary, #888);
+  border-radius: var(--radius-pill);
+  background: var(--text-secondary);
 }
 
 .sync-summary-dot--ok {
-  background: var(--green, #2ec27e);
+  background: var(--success);
 }
 
 .sync-summary-dot--conflict {
-  background: rgb(220, 165, 30);
+  background: var(--warning);
 }
 
 .sync-summary-dot--error {
-  background: var(--red, #d64545);
+  background: var(--danger);
 }
 
 .sync-summary-dot--idle {
-  background: var(--text-secondary, #888);
+  background: var(--text-secondary);
   opacity: 0.55;
 }
 
@@ -767,7 +767,7 @@
 }
 
 .sync-summary-status {
-  color: var(--text-secondary, #aab);
+  color: var(--text-secondary);
   font-size: 0.88em;
 }
 
@@ -781,7 +781,7 @@
   cursor: pointer;
   padding: 6px 0;
   font-size: 0.88em;
-  color: var(--text-secondary, #aab);
+  color: var(--text-secondary);
   user-select: none;
 }
 
@@ -794,7 +794,7 @@
   cursor: pointer;
   padding: 6px 0;
   font-size: 0.92em;
-  color: var(--text-secondary, #aab);
+  color: var(--text-secondary);
   user-select: none;
 }
 
@@ -812,8 +812,8 @@
 .advanced-danger-row {
   padding: 12px;
   border-radius: var(--radius-md, 8px);
-  border: 1px solid rgba(214, 69, 69, 0.32);
-  background: rgba(214, 69, 69, 0.06);
+  border: 1px solid color-mix(in srgb, var(--danger), transparent 68%);
+  background: var(--danger-bg);
 }
 
 /* Sync direction radio modals (download/CF activation) */
@@ -829,20 +829,20 @@
   gap: 10px;
   padding: 10px 12px;
   border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-  background: var(--surface-2, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease;
 }
 
 .sync-direction-option:hover {
-  background: var(--surface-3, rgba(255, 255, 255, 0.06));
-  border-color: var(--accent, #3b82f6);
+  background: var(--surface-soft);
+  border-color: var(--accent);
 }
 
 .sync-direction-option:has(input:checked) {
-  border-color: var(--accent, #3b82f6);
-  background: rgba(59, 130, 246, 0.08);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .sync-direction-option:has(input:disabled) {
@@ -867,7 +867,7 @@
 
 .sync-direction-option-meta {
   font-size: 0.85em;
-  color: var(--text-secondary, #aab);
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 

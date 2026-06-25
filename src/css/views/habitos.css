@@ -11,7 +11,7 @@
 
 .habit-card {
   background: var(--card);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 16px;
   border: 1px solid var(--border);
   cursor: pointer;
@@ -78,7 +78,7 @@
   background: rgba(255, 107, 53, 0.12);
   color: #ff7a3d;
   padding: 2px 6px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   letter-spacing: 0.02em;
 }
 

@@ -58,11 +58,18 @@ typography:
     fontWeight: 500
     letterSpacing: "normal"
 rounded:
+  xxs: "2px"
+  compact: "3px"
   xs: "4px"
+  tight: "6px"
   sm: "8px"
   control: "10px"
+  card-sm: "12px"
   md: "14px"
+  modal: "16px"
   lg: "18px"
+  loose: "20px"
+  xl: "24px"
   pill: "999px"
 spacing:
   "1": "4px"
@@ -236,11 +243,18 @@ O sistema usa **sombra difusa + luz de borda interna** para criar profundidade r
 - **Stat-card:** variante de métrica com faixa de 3px no topo (cor = categoria), valor em Display 800/28px. **Não** é o template hero-metric: o número serve à leitura, sem gradiente nem stats decorativos de apoio.
 
 ### Radius Scale
+- **xxs** (`--radius-xxs: 2px`): preenchimentos minúsculos de gráfico/progresso.
+- **compact** (`--radius-compact: 3px`): trilhas e detalhes retangulares muito baixos.
 - **xs** (`--radius-xs: 4px`): foco especial, stripes e detalhes internos pequenos.
+- **tight** (`--radius-tight: 6px`): controles densos, handles e blocos internos compactos.
 - **sm** (`--radius-sm: 8px`): inputs e superfícies compactas.
 - **control** (`--radius-control: 10px`): botões, botões outline e cards interativos de evento/popover.
+- **card-sm** (`--radius-card-sm: 12px`): cards secundários e skeletons.
 - **md** (`--radius-md: 14px`): cards e painéis padrão.
+- **modal** (`--radius-modal: 16px`): modais e superfícies de foco.
 - **lg** (`--radius-lg: 18px`): superfícies maiores.
+- **loose** (`--radius-loose: 20px`): pills largas e painéis com composição mais aberta.
+- **xl** (`--radius-xl: 24px`): overlays/contêineres grandes já existentes; não usar em cards comuns.
 - **pill** (`--radius-pill: 999px`): chips, badges e indicadores circulares/pílula.
 
 ### Inputs / Fields

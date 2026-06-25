@@ -4,7 +4,7 @@
 
 .tree-edital {
   margin-bottom: 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--border);
   overflow: hidden;
 }
@@ -107,7 +107,7 @@
   background: var(--bg, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }

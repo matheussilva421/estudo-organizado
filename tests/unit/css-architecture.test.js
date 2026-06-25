@@ -80,13 +80,13 @@ const PHASE_1_RADIUS_CONTRACT_FILES = [
   'src/css/components/cards.css'
 ];
 
-function collectCssFiles(dir = cssDir, out = []) {
+function collectFilesByExtension(dir, extensions, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const entryPath = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'vendor') continue;
-      collectCssFiles(entryPath, out);
-    } else if (entry.name.endsWith('.css')) {
+      if (['lab', 'vendor'].includes(entry.name)) continue;
+      collectFilesByExtension(entryPath, extensions, out);
+    } else if (extensions.some((extension) => entry.name.endsWith(extension))) {
       out.push(normalize(entryPath).replace(/\\/g, '/'));
     }
   }
@@ -178,6 +178,21 @@ describe('CSS architecture', () => {
     expect(drifts).toEqual([]);
   });
 
+  it('keeps config view colors on semantic tokens', () => {
+    const rawColorPattern = /(?:#(?:[0-9a-fA-F]{3,8})\b|rgba?\([^)]*\))/g;
+    const relativePath = 'src/css/views/config/config-view.css';
+    const content = readFileSync(join(rootDir, relativePath), 'utf8').replace(/\r\n/g, '\n');
+    const drifts = [];
+
+    content.split('\n').forEach((line, index) => {
+      if (!rawColorPattern.test(line)) return;
+      rawColorPattern.lastIndex = 0;
+      drifts.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+    });
+
+    expect(drifts).toEqual([]);
+  });
+
   it('keeps phase-1 component radii on the documented radius token scale', () => {
     const literalRadiusPattern = /border-radius\s*:\s*([^;]+);/g;
     const allowedLiteralRadii = new Set(['0', '50%', 'inherit', 'var(--radius)', 'var(--radius-md, 8px)']);
@@ -185,6 +200,26 @@ describe('CSS architecture', () => {
 
     for (const relativePath of PHASE_1_RADIUS_CONTRACT_FILES) {
       const file = join(rootDir, relativePath);
+      const content = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+      for (const match of content.matchAll(literalRadiusPattern)) {
+        const value = match[1].trim();
+        if (value.includes('var(--radius-') || allowedLiteralRadii.has(value)) continue;
+
+        const lineNumber = content.slice(0, match.index).split('\n').length;
+        drifts.push(`${relativePath}:${lineNumber}: border-radius: ${value};`);
+      }
+    }
+
+    expect(drifts).toEqual([]);
+  });
+
+  it('keeps all shipped UI radii on the documented radius token scale', () => {
+    const literalRadiusPattern = /border-radius\s*:\s*([^;"'`]+)[;"'`]/g;
+    const allowedLiteralRadii = new Set(['0', '50%', 'inherit']);
+    const drifts = [];
+
+    for (const file of collectFilesByExtension(srcDir, ['.css', '.js', '.html'])) {
+      const relativePath = toRelativePath(file);
       const content = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
       for (const match of content.matchAll(literalRadiusPattern)) {
         const value = match[1].trim();

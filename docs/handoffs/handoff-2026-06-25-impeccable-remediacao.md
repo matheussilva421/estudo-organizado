@@ -23,6 +23,40 @@
 
 ---
 
+## Fase 1 - Tokens semanticos e raios, sub-slice 2 (2026-06-25 19:20 -03)
+
+**Resumo:** segundo slice da Fase 1 concluido com TDD. O objetivo foi eliminar o drift real de `design-system-radius` nos arquivos enviados (mantendo `src/lab/` fora do escopo) e reduzir o maior bloco de cor literal em `src/css/views/config/config-view.css` sem alterar a identidade visual dos temas.
+
+**Arquivos alterados:**
+- `tests/unit/css-architecture.test.js` - novo contrato para impedir `border-radius` literal em CSS/JS/HTML enviados e contrato especifico para manter `config-view.css` sem hex/rgb/rgba crus.
+- `src/css/tokens.css` - adicionados tokens de raio equivalentes (`xxs`, `compact`, `tight`, `card-sm`, `modal`, `loose`, `xl`) para preservar medidas existentes.
+- `DESIGN.md` - escala de raios ampliada para documentar os novos tokens.
+- CSS enviado em `src/css/**` - raios literais substituidos por tokens equivalentes.
+- JS com estilos inline em `src/js/**` - raios inline substituidos por tokens equivalentes.
+- `src/css/views/config/config-view.css` - fallbacks e literais de cor substituidos por tokens semanticos e `color-mix()` tokenizado.
+
+**TDD / validacao:**
+- Vermelho: `npm run test:css` falhou com 146 drifts de raio literal.
+- Verde parcial: `npm run test:css` passou apos tokenizar raios.
+- Vermelho: `npm run test:css` falhou com 29 cores cruas em `config-view.css`.
+- Verde final: `npm run test:css` -> 38/38.
+- `node scripts/contrast-audit.mjs --enforce` -> OK; excecao conhecida `arrakis danger/card = 4.42` permanece para a Fase 4.
+- `npm run lint` -> 0 erros, 44 warnings preexistentes.
+- `npm run test:views` -> 254/254.
+- `npm run test:unit` -> 114 arquivos, 1892 testes verdes.
+- `git diff --check` -> sem erros; apenas avisos CRLF esperados do Git.
+- Detector atual (`node .agents/skills/impeccable/scripts/detect.mjs --json src`): total **106** achados (**82 advisory**, **24 warning**). Por tipo: `design-system-color: 80`, `layout-transition: 11`, `side-tab: 7`, `overused-font: 4`, `single-font: 2`, `design-system-radius: 1`, `numbered-section-markers: 1`. O unico `design-system-radius` restante fica em `src/lab/visual-layout-lab.css` e segue fora do escopo da remediacao principal.
+- Excluindo `src/lab`, `src/vendor` e `src/css/base/themes.css`: **71** achados restantes; `design-system-color: 50`, `layout-transition: 10`, `side-tab: 7`, `overused-font: 2`, `numbered-section-markers: 1`, `single-font: 1`.
+
+**Pendencias da Fase 1:**
+- Continuar a reconciliacao dos **50** `design-system-color` restantes fora de `themes.css`/`lab`/`vendor`, por grupos pequenos e testados.
+- Candidatos provaveis para o proximo slice: arquivos de views com paletas/fallbacks restantes e JS utilitario com estilos inline.
+- Preservar a regra de identidade: nao substituir temas, fontes, rim-light nem `src/lab/`; apenas mover literais/fallbacks para tokens semanticos documentados.
+
+**Proximo passo recomendado:** fechar Fase 1 com um slice de cor restante, partindo dos maiores grupos do detector e adicionando contratos especificos antes de cada substituicao.
+
+---
+
 ## Fase 1 — Tokens semânticos e raios, sub-slice 1 (2026-06-25 18:59 -03)
 
 **Resumo:** primeiro slice da Fase 1 concluído com TDD. O objetivo foi remover os fallbacks genéricos mais arriscados (`var(--token, #hex)`) dos arquivos principais de layout/sync e transformar os raios nomeados da fase em tokens documentados. A Fase 1 **ainda não está completa** porque o detector ainda aponta drift de cor/raio fora de `themes.css`/`lab`.

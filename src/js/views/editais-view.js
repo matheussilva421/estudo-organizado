@@ -126,8 +126,8 @@ export function renderVerticalList(container) {
         </div>
         <div class="text-2xl font-extrabold text-primary leading-none">${pct}<span class="text-xl" style="opacity:0.7;">%</span></div>
       </div>
-      <div class="progress-track w-full" style="height:14px; border-radius:10px; overflow:hidden; padding:2px;">
-        <div class="progress-bar" style="width:${pct}%; transition:width 0.3s; border-radius:10px;"></div>
+      <div class="progress-track w-full" style="height:14px; border-radius:var(--radius-control); overflow:hidden; padding:2px;">
+        <div class="progress-bar" style="width:${pct}%; transition:width 0.3s; border-radius:var(--radius-control);"></div>
       </div>
     </div>
   `;
@@ -191,7 +191,7 @@ export function renderVerticalList(container) {
         <!-- HEADER DISCIPLINA -->
         <div class="vertical-disc-header flex-between" style="padding:12px 16px; background:var(--card); cursor:pointer;" data-action="toggle-vert-disc" data-disc-id="${discId}" role="button" tabindex="0" aria-expanded="false" aria-controls="vert-disc-body-${discId}" aria-label="Expandir ou recolher ${esc(dMap.disc.nome)}">
           <div class="vertical-disc-header-main flex font-semibold text-primary items-center gap-md" style="font-size:15px; min-width:0;">
-            <div style="width:5px;height:24px;background:${cor};border-radius:4px;"></div>
+            <div style="width:5px;height:24px;background:${cor};border-radius:var(--radius-xs);"></div>
             <span class="text-ellipsis" title="${esc(dMap.disc.nome)}">${esc(dMap.disc.nome)}</span>
           </div>
 
@@ -201,14 +201,14 @@ export function renderVerticalList(container) {
               <span class="text-green">${dCertas}</span>
               <span class="text-red">${dErradas}</span>
               <span class="text-secondary">${dTotalQ}</span>
-              <span style="color:var(--bg);background:${dPctQ >= 70 ? 'var(--green)' : dPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)'};padding:2px 6px;border-radius:8px;">${dPctQ}</span>
+              <span style="color:var(--bg);background:${dPctQ >= 70 ? 'var(--green)' : dPctQ >= 50 ? 'var(--orange)' : 'var(--text-muted)'};padding:2px 6px;border-radius:var(--radius-sm);">${dPctQ}</span>
             </div>
 
             <!-- Progress Bar Progresso -->
             <div class="vertical-disc-progress flex items-center gap-sm rounded-xl" style="background:var(--bg); padding:4px; width:120px;">
               <span class="text-xs font-extrabold text-primary" style="min-width:24px; text-align:right;">${dPctConcluido}%</span>
-              <div class="flex-1" style="height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
-                <div style="height:100%;width:${dPctConcluido}%;background:${cor};border-radius:3px;"></div>
+              <div class="flex-1" style="height:6px; background:var(--border); border-radius:var(--radius-compact); overflow:hidden;">
+                <div style="height:100%;width:${dPctConcluido}%;background:${cor};border-radius:var(--radius-compact);"></div>
               </div>
             </div>
 

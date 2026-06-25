@@ -18,7 +18,7 @@ if ('serviceWorker' in navigator) {
       'background:#1f2937',
       'color:#f9fafb',
       'padding:12px 16px',
-      'border-radius:8px',
+      'border-radius:var(--radius-sm)',
       'box-shadow:0 4px 14px rgba(0,0,0,0.3)',
       'border:1px solid rgba(255,255,255,0.08)',
       'font:14px system-ui,sans-serif',
@@ -29,7 +29,7 @@ if ('serviceWorker' in navigator) {
     ].join(';');
     banner.innerHTML = `
       <span>🔄 Nova versão disponível</span>
-      <button type="button" id="sw-update-now" style="background:#3b82f6;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;">Recarregar</button>
+      <button type="button" id="sw-update-now" style="background:#3b82f6;color:#fff;border:none;padding:6px 12px;border-radius:var(--radius-tight);cursor:pointer;font:inherit;">Recarregar</button>
       <button type="button" id="sw-update-later" aria-label="Dispensar" style="background:transparent;color:#9ca3af;border:none;cursor:pointer;font:18px system-ui;line-height:1;padding:0 4px;">×</button>
     `;
     document.body.appendChild(banner);

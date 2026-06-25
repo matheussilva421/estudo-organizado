@@ -249,7 +249,7 @@ export function renderCalendarWeek() {
           const isToday = ds === today;
           const dayEvents = eventsByDate[ds] || [];
           return `
-          <div style="min-height:200px;border-radius:8px;border:1px solid var(--border);overflow:hidden;">
+          <div style="min-height:200px;border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;">
             <div style="padding:8px;background:${isToday ? 'var(--accent-light)' : 'var(--bg)'};text-align:center;border-bottom:1px solid var(--border);">
               <div style="font-size:11px;font-weight:600;color:var(--text-secondary);">${dows[d.getDay()]}</div>
               <div style="font-size:16px;font-weight:700;${isToday ? 'color:var(--blue);' : ''}">${d.getDate()}</div>

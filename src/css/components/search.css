@@ -9,7 +9,7 @@
   width: 100%;
   padding: 7px 12px 7px 36px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 13px;
   background: var(--bg);
@@ -42,7 +42,7 @@
   right: 0;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   box-shadow: var(--shadow-lg);
   z-index: 200;
   max-height: 380px;
@@ -125,6 +125,6 @@ button.search-item:focus-visible {
 
 mark {
   background: #fef08a;
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
   padding: 0 1px;
 }

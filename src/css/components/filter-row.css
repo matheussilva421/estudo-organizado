@@ -8,7 +8,7 @@
 
 .filter-chip {
   padding: 5px 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-loose);
   border: 1px solid var(--border);
   background: var(--card);
   font-size: 12px;
@@ -31,7 +31,7 @@ button.filter-chip {
   font: inherit;
   cursor: pointer;
   padding: 5px 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-loose);
   color: var(--text-secondary);
 }
 
