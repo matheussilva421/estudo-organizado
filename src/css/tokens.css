@@ -13,10 +13,6 @@
   --accent-soft: rgba(138, 164, 191, 0.1);
   --accent-dark: #a7bdd3;
   --accent-text: #071018;
-  --blue: #8aa4bf;
-  --orange: #d8a657;
-  --red: #ef7777;
-  --purple: #a7a4d6;
   --text-primary: #f3f6fb;
   --text-secondary: #b8c0cc;
   --text-muted: #7f8a99;
@@ -27,14 +23,12 @@
   --card-header: #151d27;
   --card-hover: #17202b;
   --bg-secondary: #0d1117;
-  --yellow: #d8a657;
   --sidebar-text: #aeb8c6;
   --sidebar-text-active: #f3f6fb;
   --status-agendado: #8aa4bf;
   --status-estudei: #7dd3a8;
   --status-atrasado: #ef7777;
   --status-nao: #6f7a89;
-  --green: #7dd3a8;
   --success: #7dd3a8;
   --success-bg: rgba(125, 211, 168, 0.14);
   --warning: #d8a657;
@@ -57,6 +51,12 @@
   --question-bg: rgba(167, 164, 214, 0.16);
   --pomodoro: #a7a4d6;
   --pomodoro-bg: rgba(167, 164, 214, 0.16);
+  --blue: var(--info);
+  --orange: var(--warning);
+  --yellow: var(--warning);
+  --red: var(--danger);
+  --green: var(--success);
+  --purple: var(--question);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -66,7 +66,9 @@
   --space-6: 24px;
   --space-8: 32px;
 
+  --radius-xs: 4px;
   --radius-sm: 8px;
+  --radius-control: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
   --radius-pill: 999px;

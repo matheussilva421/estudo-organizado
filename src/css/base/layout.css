@@ -60,7 +60,7 @@ body {
   min-height: 30px;
   padding: 5px 10px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--card), transparent 16%);
   color: var(--text-secondary);
   font-size: 12px;
@@ -124,13 +124,13 @@ body {
 }
 
 .save-status--warning {
-  color: var(--warning, #f59e0b);
-  border-color: color-mix(in srgb, var(--warning, #f59e0b), transparent 48%);
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning), transparent 48%);
 }
 
 .save-status--warning::before {
-  background: var(--warning, #f59e0b);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning, #f59e0b), transparent 76%);
+  background: var(--warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning), transparent 76%);
 }
 
 @keyframes save-status-pulse {
@@ -153,27 +153,27 @@ body {
 }
 
 .sync-status--syncing {
-  color: var(--warning, #f59e0b);
+  color: var(--warning);
 }
 
 .sync-status--synced {
-  color: var(--success, #10b981);
+  color: var(--success);
 }
 
 .sync-status--error {
-  color: var(--danger, #ef4444);
+  color: var(--danger);
 }
 
 .sync-status--offline {
-  color: var(--text-muted, #6b7280);
+  color: var(--text-muted);
 }
 
 .sync-status--paused {
-  color: var(--warning, #f59e0b);
+  color: var(--warning);
 }
 
 .sync-status--degraded {
-  color: var(--warning, #f59e0b);
+  color: var(--warning);
 }
 
 #sync-now-btn {
@@ -197,11 +197,11 @@ body {
 }
 
 .sync-now-btn--error {
-  color: var(--danger, #ef4444);
+  color: var(--danger);
 }
 
 .sync-now-btn--offline {
-  color: var(--warning, #f59e0b);
+  color: var(--warning);
 }
 
 .sync-now-btn--no-channels {
@@ -347,9 +347,9 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--card, #1f2937), transparent 12%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--card), transparent 12%);
   color: var(--text-primary, inherit);
   font-size: 12px;
   font-weight: 600;
@@ -359,18 +359,18 @@ body {
 }
 
 .sync-pill:hover {
-  background: color-mix(in srgb, var(--card, #1f2937), transparent 4%);
-  border-color: color-mix(in srgb, var(--accent, #3b82f6), transparent 50%);
+  background: color-mix(in srgb, var(--card), transparent 4%);
+  border-color: color-mix(in srgb, var(--accent), transparent 50%);
 }
 
 .sync-pill:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 .sync-pill[aria-expanded='true'] {
-  border-color: var(--accent, #3b82f6);
-  background: color-mix(in srgb, var(--accent, #3b82f6), transparent 88%);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent), transparent 88%);
 }
 
 .sync-pill-icon {
@@ -394,61 +394,61 @@ body {
 
 /* State coloring */
 .sync-pill--ok .sync-pill-icon {
-  color: var(--status-estudei, #22c55e);
+  color: var(--status-estudei);
 }
 
 .sync-pill--syncing {
-  color: var(--accent, #3b82f6);
+  color: var(--accent);
 }
 
 .sync-pill--syncing .sync-pill-icon {
-  color: var(--accent, #3b82f6);
+  color: var(--accent);
 }
 
 .sync-pill--saving {
-  color: var(--accent, #3b82f6);
+  color: var(--accent);
 }
 
 .sync-pill--pending {
-  color: var(--warning, #f59e0b);
-  border-color: color-mix(in srgb, var(--warning, #f59e0b), transparent 60%);
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning), transparent 60%);
 }
 
 .sync-pill--pending .sync-pill-icon {
-  color: var(--warning, #f59e0b);
+  color: var(--warning);
 }
 
 .sync-pill--error,
 .sync-pill--save-error {
-  color: var(--danger, #d64545);
-  border-color: color-mix(in srgb, var(--danger, #d64545), transparent 50%);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger), transparent 50%);
 }
 
 .sync-pill--error .sync-pill-icon,
 .sync-pill--save-error .sync-pill-icon {
-  color: var(--danger, #d64545);
+  color: var(--danger);
 }
 
 .sync-pill--conflict {
-  color: var(--warning, #f59e0b);
-  border-color: color-mix(in srgb, var(--warning, #f59e0b), transparent 40%);
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning), transparent 40%);
 }
 
 .sync-pill--conflict .sync-pill-icon {
-  color: var(--warning, #f59e0b);
+  color: var(--warning);
 }
 
 .sync-pill--offline {
-  color: var(--text-secondary, #9ca3af);
-  border-color: color-mix(in srgb, var(--text-secondary, #9ca3af), transparent 60%);
+  color: var(--text-secondary);
+  border-color: color-mix(in srgb, var(--text-secondary), transparent 60%);
 }
 
 .sync-pill--paused {
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary);
 }
 
 .sync-pill--idle .sync-pill-icon {
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary);
 }
 
 /* ── Popover ── */
@@ -461,9 +461,9 @@ body {
   min-width: 280px;
   max-width: 320px;
   padding: 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
-  background: var(--card, #1f2937);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--card);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   animation: sync-popover-in 140ms ease;
 }
@@ -498,7 +498,7 @@ body {
 }
 
 .sync-popover-row-label {
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -509,25 +509,25 @@ body {
 }
 
 .sync-popover-row-value--ok {
-  color: var(--status-estudei, #22c55e);
+  color: var(--status-estudei);
 }
 
 .sync-popover-row-value--pending {
-  color: var(--accent, #3b82f6);
+  color: var(--accent);
 }
 
 .sync-popover-row-value--error {
-  color: var(--danger, #d64545);
+  color: var(--danger);
 }
 
 .sync-popover-row-value--offline {
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary);
 }
 
 .sync-popover-divider {
   margin: 12px 0;
   border: none;
-  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--border);
 }
 
 .sync-popover-actions {

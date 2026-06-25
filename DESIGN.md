@@ -58,7 +58,9 @@ typography:
     fontWeight: 500
     letterSpacing: "normal"
 rounded:
+  xs: "4px"
   sm: "8px"
+  control: "10px"
   md: "14px"
   lg: "18px"
   pill: "999px"
@@ -74,7 +76,7 @@ components:
   button-primary:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.accent-text}"
-    rounded: "10px"
+    rounded: "{rounded.control}"
     padding: "9px 16px"
   button-primary-hover:
     backgroundColor: "{colors.accent-hover}"
@@ -82,7 +84,7 @@ components:
   button-ghost:
     backgroundColor: "transparent"
     textColor: "{colors.text-secondary}"
-    rounded: "10px"
+    rounded: "{rounded.control}"
     padding: "9px 16px"
   button-ghost-hover:
     backgroundColor: "{colors.surface}"
@@ -90,7 +92,7 @@ components:
   button-danger:
     backgroundColor: "{colors.danger}"
     textColor: "{colors.danger-text}"
-    rounded: "10px"
+    rounded: "{rounded.control}"
     padding: "9px 16px"
   card:
     backgroundColor: "{colors.card}"
@@ -114,7 +116,7 @@ components:
   nav-item:
     backgroundColor: "transparent"
     textColor: "{colors.text-secondary}"
-    rounded: "10px"
+    rounded: "{rounded.control}"
     padding: "10px 14px"
   nav-item-active:
     backgroundColor: "{colors.accent-light}"
@@ -176,6 +178,8 @@ Paleta escura de instrumento: superfícies quase-pretas estratificadas por tom, 
 
 **A Regra das Seis Atmosferas.** Existem 6 temas (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis). O que muda é o accent e a temperatura da superfície — nunca a estrutura. Toda cor deve manter contraste AA nos seis, não só no Grafite (padrão).
 
+**A Regra dos Tokens Canônicos.** O vocabulário semântico é `--success`, `--warning`, `--danger`, `--info`, `--question` e seus fundos. Aliases históricos (`--green`, `--orange`, `--yellow`, `--red`, `--blue`, `--purple`) existem apenas para compatibilidade e devem apontar para os tokens canônicos do tema.
+
 ## 3. Typography
 
 **Display / Body / Label Font:** Plus Jakarta Sans (com fallback `sans-serif`)
@@ -230,6 +234,14 @@ O sistema usa **sombra difusa + luz de borda interna** para criar profundidade r
 - **Border:** transparente por padrão; a separação vem da sombra e do tom, não da linha. Divisor interno usa `--panel-divider`.
 - **Internal Padding:** 20px no corpo, 16px 20px no cabeçalho.
 - **Stat-card:** variante de métrica com faixa de 3px no topo (cor = categoria), valor em Display 800/28px. **Não** é o template hero-metric: o número serve à leitura, sem gradiente nem stats decorativos de apoio.
+
+### Radius Scale
+- **xs** (`--radius-xs: 4px`): foco especial, stripes e detalhes internos pequenos.
+- **sm** (`--radius-sm: 8px`): inputs e superfícies compactas.
+- **control** (`--radius-control: 10px`): botões, botões outline e cards interativos de evento/popover.
+- **md** (`--radius-md: 14px`): cards e painéis padrão.
+- **lg** (`--radius-lg: 18px`): superfícies maiores.
+- **pill** (`--radius-pill: 999px`): chips, badges e indicadores circulares/pílula.
 
 ### Inputs / Fields
 - **Style:** fundo `--card`, borda fina `--border`, raio 8px, texto primário; placeholder em `--text-muted` com `opacity: 1` (contraste AA, não cinza-fantasma).

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { dirname, join, normalize } from 'node:path';
+import { dirname, join, normalize, relative } from 'node:path';
 
 const rootDir = process.cwd();
 const srcDir = join(rootDir, 'src');
@@ -67,6 +67,36 @@ function getThemeVars(styles, selector) {
   return extractCssVars(extractCssBlock(styles, selector));
 }
 
+const PHASE_1_COLOR_CONTRACT_FILES = [
+  'src/css/base/layout.css',
+  'src/css/styles.css',
+  'src/css/views/dashboard.css'
+];
+
+const PHASE_1_RADIUS_CONTRACT_FILES = [
+  'src/css/base/accessibility.css',
+  'src/css/base/layout.css',
+  'src/css/components/buttons.css',
+  'src/css/components/cards.css'
+];
+
+function collectCssFiles(dir = cssDir, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === 'vendor') continue;
+      collectCssFiles(entryPath, out);
+    } else if (entry.name.endsWith('.css')) {
+      out.push(normalize(entryPath).replace(/\\/g, '/'));
+    }
+  }
+  return out;
+}
+
+function toRelativePath(file) {
+  return normalize(relative(rootDir, file)).replace(/\\/g, '/');
+}
+
 describe('CSS architecture', () => {
   it('loads design-system stylesheets before legacy styles', () => {
     const html = read('src/index.html');
@@ -129,6 +159,43 @@ describe('CSS architecture', () => {
     expect(tokens).toContain('--radius-sm:');
     expect(tokens).toContain('--shadow-sm:');
     expect(legacyStyles).not.toMatch(/^:root\s*{/m);
+  });
+
+  it('keeps phase-1 semantic color contracts free of generic var fallbacks', () => {
+    const genericFallbackPattern = /var\(--[a-z0-9-]+,\s*(?:#(?:[0-9a-fA-F]{3,8})\b|rgba?\([^)]*\))/g;
+    const drifts = [];
+
+    for (const relativePath of PHASE_1_COLOR_CONTRACT_FILES) {
+      const file = join(rootDir, relativePath);
+      const content = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+      content.split('\n').forEach((line, index) => {
+        if (!genericFallbackPattern.test(line)) return;
+        genericFallbackPattern.lastIndex = 0;
+        drifts.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+      });
+    }
+
+    expect(drifts).toEqual([]);
+  });
+
+  it('keeps phase-1 component radii on the documented radius token scale', () => {
+    const literalRadiusPattern = /border-radius\s*:\s*([^;]+);/g;
+    const allowedLiteralRadii = new Set(['0', '50%', 'inherit', 'var(--radius)', 'var(--radius-md, 8px)']);
+    const drifts = [];
+
+    for (const relativePath of PHASE_1_RADIUS_CONTRACT_FILES) {
+      const file = join(rootDir, relativePath);
+      const content = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+      for (const match of content.matchAll(literalRadiusPattern)) {
+        const value = match[1].trim();
+        if (value.includes('var(--radius-') || allowedLiteralRadii.has(value)) continue;
+
+        const lineNumber = content.slice(0, match.index).split('\n').length;
+        drifts.push(`${relativePath}:${lineNumber}: border-radius: ${value};`);
+      }
+    }
+
+    expect(drifts).toEqual([]);
   });
 
   it('keeps legacy stylesheet imports before style rules', () => {
