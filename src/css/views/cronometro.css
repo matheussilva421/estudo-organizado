@@ -151,20 +151,20 @@
 
 .crono-ring-track {
   fill: none;
-  stroke: var(--border, rgba(255, 255, 255, 0.06));
+  stroke: var(--border);
   stroke-width: 6;
 }
 
 .crono-ring-progress {
   fill: none;
-  stroke: var(--accent, #4ea1ff);
+  stroke: var(--accent);
   stroke-width: 6;
   stroke-linecap: round;
   transition: stroke-dashoffset 0.6s ease;
 }
 
 .crono-ring-progress--idle {
-  stroke: var(--border, rgba(255, 255, 255, 0.06));
+  stroke: var(--border);
 }
 
 .crono-ring-content {
@@ -195,8 +195,8 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
-  background: var(--card, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--card);
+  border: 1px solid var(--border);
   padding: 4px 10px;
   border-radius: var(--radius-control);
   letter-spacing: 0.02em;

@@ -126,7 +126,7 @@
 .ciclo-progress-bar {
   height: 100%;
   width: inherit;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--text-primary), transparent 30%);
   border-radius: var(--radius-tight);
 }
 
@@ -343,7 +343,7 @@
   max-height: 600px;
   overflow-y: auto;
   padding-right: 12px;
-  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  scrollbar-color: var(--neutral-strong) transparent;
   scrollbar-width: thin;
 }
 
@@ -592,10 +592,10 @@
   right: 0;
   z-index: 10;
   min-width: 220px;
-  background: var(--card, #1a1a1d);
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-sm);
   padding: 4px;
   display: flex;
   flex-direction: column;
@@ -620,15 +620,15 @@
 }
 
 .ciclo-kebab-item:hover {
-  background: var(--bg, rgba(255, 255, 255, 0.04));
+  background: var(--bg);
 }
 
 .ciclo-kebab-item--danger {
-  color: var(--red, #ef4444);
+  color: var(--danger);
 }
 
 .ciclo-kebab-item--danger:hover {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--danger-bg);
 }
 
 /* Sub-label for ciclos completos card */

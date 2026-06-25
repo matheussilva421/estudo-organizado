@@ -80,6 +80,14 @@ const PHASE_1_RADIUS_CONTRACT_FILES = [
   'src/css/components/cards.css'
 ];
 
+const PHASE_1_VIEW_COLOR_CONTRACT_FILES = [
+  'src/css/views.css',
+  'src/css/views/ciclo.css',
+  'src/css/views/cronometro.css',
+  'src/css/views/habitos.css',
+  'src/css/views/sessions.css'
+];
+
 function collectFilesByExtension(dir, extensions, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const entryPath = join(dir, entry.name);
@@ -189,6 +197,22 @@ describe('CSS architecture', () => {
       rawColorPattern.lastIndex = 0;
       drifts.push(`${relativePath}:${index + 1}: ${line.trim()}`);
     });
+
+    expect(drifts).toEqual([]);
+  });
+
+  it('keeps phase-1 view colors on semantic tokens', () => {
+    const rawColorPattern = /(?:#(?:[0-9a-fA-F]{3,8})\b|rgba?\([^)]*\))/g;
+    const drifts = [];
+
+    for (const relativePath of PHASE_1_VIEW_COLOR_CONTRACT_FILES) {
+      const content = readFileSync(join(rootDir, relativePath), 'utf8').replace(/\r\n/g, '\n');
+      content.split('\n').forEach((line, index) => {
+        if (!rawColorPattern.test(line)) return;
+        rawColorPattern.lastIndex = 0;
+        drifts.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+      });
+    }
 
     expect(drifts).toEqual([]);
   });

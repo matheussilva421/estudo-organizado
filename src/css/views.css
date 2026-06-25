@@ -56,7 +56,7 @@
 .med-sticky-header {
   padding: 8px 4px 12px;
   margin-bottom: 12px;
-  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid var(--border);
 }
 
 .med-sticky-row {
@@ -84,13 +84,13 @@
 .med-sticky-bar {
   height: 6px;
   border-radius: var(--radius-compact);
-  background: var(--border, rgba(255, 255, 255, 0.06));
+  background: var(--border);
   overflow: hidden;
 }
 
 .med-sticky-bar-fill {
   height: 100%;
-  background: var(--accent, #4ea1ff);
+  background: var(--accent);
   transition: width 0.4s ease;
 }
 
@@ -112,8 +112,8 @@
 }
 
 .med-badge--running {
-  background: rgba(78, 161, 255, 0.18);
-  color: var(--accent, #4ea1ff);
+  background: var(--info-bg);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -288,7 +288,7 @@
 /* Drive cloud icon */
 
 .drive-cloud-icon {
-  color: rgba(148, 163, 184, 0.5);
+  color: color-mix(in srgb, var(--text-muted), transparent 35%);
   font-size: 14px;
 }
 
@@ -894,7 +894,7 @@
 
 .seq-progress-bar {
   height: 14px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-soft);
   border-radius: var(--radius-sm);
   overflow: hidden;
   position: relative;
@@ -910,7 +910,7 @@
   font-weight: 700;
   color: var(--text-primary);
   line-height: 14px;
-  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.8);
+  text-shadow: 0px 1px 2px var(--bg);
 }
 
 .seq-edit-footer {

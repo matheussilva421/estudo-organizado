@@ -23,6 +23,38 @@
 
 ---
 
+## Fase 1 - Tokens semanticos e cores de views, sub-slice 3 (2026-06-25 19:35 -03)
+
+**Resumo:** terceiro slice da Fase 1 concluido com TDD. O objetivo foi reduzir o maior bloco restante de cores cruas nas views compartilhadas, sem tocar nos achados de fases futuras (`side-tab`, `layout-transition`) e sem mexer em `themes.css`, `lab` ou `vendor`.
+
+**Arquivos alterados:**
+- `tests/unit/css-architecture.test.js` - novo contrato `PHASE_1_VIEW_COLOR_CONTRACT_FILES` para impedir hex/rgb/rgba crus em `views.css`, `ciclo.css`, `cronometro.css`, `habitos.css` e `sessions.css`.
+- `src/css/views.css` - fallbacks e literais de acento/superficie/text-shadow substituidos por tokens e `color-mix()` tokenizado.
+- `src/css/views/ciclo.css` - menu, scrollbar, estado danger e superficies tokenizados.
+- `src/css/views/cronometro.css` - ring/progress/pill usando tokens sem fallbacks crus.
+- `src/css/views/habitos.css` - badge e deltas convertidos para `--warning`, `--success`, `--danger` e `--text-muted`.
+- `src/css/views/sessions.css` - botoes danger/success e bordas convertidos para tokens semanticos e `color-mix()`.
+
+**TDD / validacao:**
+- Vermelho: `npm run test:css` falhou com 35 literais/fallbacks crus nos cinco arquivos de view.
+- Verde: `npm run test:css` -> 39/39.
+- `node scripts/contrast-audit.mjs --enforce` -> OK; excecao conhecida `arrakis danger/card = 4.42` permanece para Fase 4.
+- `npm run test:views` -> 254/254.
+- `npm run lint` -> 0 erros, 44 warnings preexistentes.
+- `npm run test:unit` -> 114 arquivos, 1893 testes verdes.
+- `git diff --check` -> sem erros; apenas avisos CRLF esperados do Git.
+- Detector atual (`node .agents/skills/impeccable/scripts/detect.mjs --json src`): total **80** achados (**56 advisory**, **24 warning**). Por tipo: `design-system-color: 54`, `layout-transition: 11`, `side-tab: 7`, `overused-font: 4`, `single-font: 2`, `numbered-section-markers: 1`, `design-system-radius: 1`.
+- Excluindo `src/lab`, `src/vendor` e `src/css/base/themes.css`: **45** achados restantes; `design-system-color: 24` e os demais de fases futuras.
+
+**Pendencias da Fase 1:**
+- Fechar os **24** `design-system-color` restantes fora de `themes.css`/`lab`/`vendor`.
+- Maiores proximos grupos: `src/js/sw-register.js` (4), `src/js/utils.js` (4), `src/css/views/revisoes.css` (3), depois pares em `buttons.css`, `editais-tree.css`, `banca-view.js`.
+- Depois do fechamento de cor, confirmar se os achados restantes pertencem mesmo as Fases 2/4/5/6.
+
+**Proximo passo recomendado:** continuar com um slice pequeno nos literais restantes de JS/CSS utilitario, com contrato focado antes da troca.
+
+---
+
 ## Fase 1 - Tokens semanticos e raios, sub-slice 2 (2026-06-25 19:20 -03)
 
 **Resumo:** segundo slice da Fase 1 concluido com TDD. O objetivo foi eliminar o drift real de `design-system-radius` nos arquivos enviados (mantendo `src/lab/` fora do escopo) e reduzir o maior bloco de cor literal em `src/css/views/config/config-view.css` sem alterar a identidade visual dos temas.
