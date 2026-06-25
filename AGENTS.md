@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`src/` contains the app: `index.html`, `manifest.json`, `sw.js`, `css/styles.css`, and feature modules in `src/js/`. Keep new logic inside existing module split (`store.js` for persistence, `logic.js` for domain rules, `views.js` for rendering, `components.js` for reusable UI pieces). Prefer responsibility-based folders under `src/js/` such as `views/`, `ui/`, or `services/`. Use `scripts/` only for one-off maintenance. Keep documentation in `src/docs/`.
+`src/` contains the app: `index.html`, `manifest.json`, `sw.js`, `css/styles.css`, and feature modules in `src/js/`. Keep new logic inside existing module split (`store.js` for persistence, `logic.js` for domain rules, `views.js` for rendering, `components.js` for reusable UI pieces). Prefer responsibility-based folders under `src/js/` such as `views/`, `ui/`, or `services/`. Use `scripts/` only for one-off maintenance. Keep all documentation in `docs/` (root) — see `docs/README.md` for the layout. `src/` holds only shipped app code.
 
 ## Build, Test, and Development Commands
 Run locally:
@@ -53,7 +53,7 @@ Do not read, list, or search by default:
 - `_local_archive/`
 - `output/`
 - `src/vendor/`
-- `src/docs/superpowers/plans/`
+- `docs/plans/`
 - `package-lock.json`
 
 Scoped search:
@@ -87,7 +87,7 @@ When user asks to finish, publish, commit, push, release, or validate:
 Scoped conventional commits: `<type>(<scope>): <imperative summary>`. PRs need concise description, linked issue, manual test steps, and screenshots for UI changes.
 
 ## Security & Configuration Tips
-Do not commit tokens, OAuth credentials, or exported study data. Keep Cloudflare secrets in Wrangler/environment bindings. Document new config in `README.md` or `src/docs/`.
+Do not commit tokens, OAuth credentials, or exported study data. Keep Cloudflare secrets in Wrangler/environment bindings. Document new config in `README.md` or `docs/`.
 
 ## Frontend Boundary Rules
 Prefer delegated events and explicit `data-action` contracts over inline handlers. Prefer DOM helpers over growing HTML template strings. When touching large files like `views.js` or `styles.css`, make smallest useful extraction toward dedicated module.

@@ -15,10 +15,13 @@
 !/README.md
 !/README_DEV.md
 !/AGENTS.md
+!/CLAUDE.md
+!/CHANGELOG.md
 !/LICENSE
 !/wrangler.jsonc
 !/Abrir_Estudo_Organizado.bat
 !/Abrir_Estudo_Organizado_Mock.bat
+!/Abrir_Visual_Layout_Lab.bat
 !/package.json
 !/package-lock.json
 !/vitest.config.js

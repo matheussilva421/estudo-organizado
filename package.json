@@ -26,6 +26,7 @@
     "test:unit:quiet": "node scripts/test-summary.mjs -- npm run test:unit --",
     "test:e2e:focused": "node scripts/test-summary.mjs -- npm run test:e2e:release --",
     "build:firebase": "node scripts/build-firebase-bundle.mjs",
+    "context:map": "node scripts/context-map.mjs",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.{js,css,html,json}\"",

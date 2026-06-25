@@ -191,7 +191,7 @@ O ambiente roda em `http://127.0.0.1:18765` — origem separada do launcher prin
 
 ## 🧪 Testes e qualidade
 
-Suíte com **Vitest** (106 arquivos de teste unitário, ~1.760 testes) e **Playwright** (24 specs E2E, incluindo simulação de sync entre 2 dispositivos).
+Suíte com **Vitest** (113 arquivos de teste unitário, ~1.857 testes) e **Playwright** (25 specs E2E, incluindo simulação de sync entre 2 dispositivos).
 
 ```bash
 npm install
@@ -234,7 +234,7 @@ Caminho remoto principal quando configurado:
 - IndexedDB continua sendo a gravação local e camada de recuperação
 - Firestore usa snapshot versionado em `users/{uid}/snapshots/main`
 - Conflitos exigem export local, pull remoto ou force push explícito
-- Guia completo: `src/docs/firebase-firestore-setup.md`
+- Guia completo: `docs/guides/firebase-firestore-setup.md`
 
 ### Cloudflare Multi-Device Sync
 Espelhe seus dados entre celular e PC:
@@ -245,7 +245,7 @@ Espelhe seus dados entre celular e PC:
 
 - O sync é orientado a snapshot com merge por entidade no cliente
 - Trate URL e token como credenciais operacionais
-- Revise `src/docs/security/sync-threat-model.md` antes de publicar uma instância
+- Revise `docs/security/sync-threat-model.md` antes de publicar uma instância
 
 ### Merge entre dispositivos
 - **Tombstones de exclusão** — excluir um evento, sessão concluída ou hábito em um dispositivo propaga a exclusão para os demais sem ressuscitar o item no merge (retenção de 180 dias, cap de 2000)
@@ -268,7 +268,7 @@ O app foi projetado para **nunca perder dados**:
 - **Recovery automático** de saves emergenciais na inicialização
 - **Validação de importação** — rejeita JSON sem estrutura válida
 - **Dupla confirmação** em ações destrutivas (apagar dados, deletar edital)
-- **Migrações automáticas** — schema evolui sem perder dados (v1→v10)
+- **Migrações automáticas** — schema evolui sem perder dados (v1→v11)
 - **Arquivo de eventos** — concluídos antigos vão para arquivo, não são deletados
 
 ---
@@ -289,7 +289,7 @@ src/
 └── js/
     ├── main.js                 # Entry point — inicializa módulos e expõe EstudoApp
     ├── store.js                # Estado global + persistência
-    ├── store/                  # IndexedDB, migrações (v1→v10), export/normalize
+    ├── store/                  # IndexedDB, migrações (v1→v11), export/normalize
     ├── app.js + app/           # Navegação, modais, toasts, temas, save-status
     ├── logic.js + logic/       # Timer, ciclo, disciplinas, revisões, progresso
     ├── views/                  # Uma view por tela + submódulos (calendar/, editais/, config/)
@@ -319,15 +319,16 @@ src/
 
 ## 📖 Documentação técnica
 
-Documentos de arquitetura, planos e segurança ficam em `src/docs/`; handoffs de sessão ficam em `docs/`.
+Toda a documentação fica em `docs/` (a raiz `src/` contém apenas o código da app). Veja o índice em [`docs/README.md`](docs/README.md).
 
-- `src/docs/architecture/` — visão geral da arquitetura e fluxo de dados
-- `src/docs/security/sync-threat-model.md` — riscos e mitigação de persistência/sync
-- `src/docs/api/sync-contract.md` — contrato do sync
-- `src/docs/firebase-firestore-setup.md` — configuração Firebase/Auth/Firestore/App Check
-- `src/docs/qa/manual-regression-checklist.md` — checklist de regressão manual
-- `src/docs/releases/release-checklist.md` — checklist de release
-- `docs/handoff-*.md` — handoffs de sessões de desenvolvimento
+- `docs/architecture/` — visão geral da arquitetura e fluxo de dados
+- `docs/security/sync-threat-model.md` — riscos e mitigação de persistência/sync
+- `docs/api/sync-contract.md` — contrato do sync
+- `docs/guides/firebase-firestore-setup.md` — configuração Firebase/Auth/Firestore/App Check
+- `docs/qa/manual-regression-checklist.md` — checklist de regressão manual
+- `docs/releases/release-checklist.md` — checklist de release
+- `docs/handoffs/` — handoffs de sessões de desenvolvimento
+- `docs/plans/` · `docs/reports/` · `docs/guides/` — planos, relatórios e guias
 
 ---
 
