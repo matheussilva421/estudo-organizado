@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-06-24T12:00:00Z",
+  "generatedAt": "2026-06-25T12:00:00Z",
   "title": "Design System: Estudo Organizado",
   "extensions": {
     "colorMeta": {
@@ -146,15 +146,17 @@
   ],
   "narrative": {
     "northStar": "A Sala de Instrumentos",
-    "overview": "Estudo Organizado é um painel escuro de mostradores precisos. O estudante de concurso passa meses olhando para esta tela; ela tem que ser o lugar mais calmo da preparação. Cada número — tempo, % de acertos, streak, progresso no edital — tem seu lugar fixo, lê-se de relance, e nada pisca sem motivo. A confiança vem da precisão e da consistência, não do brilho. A atmosfera é serena e premium: fundo quase preto, superfícies que flutuam com sombra difusa e um filete de luz no topo, accent azul-aço raro. Números em DM Mono; texto em Plus Jakarta Sans. Rejeita o SaaS genérico (cards em gradiente, hero-metric) e o corporativo/estéril (Material padrão, cinza empresarial).",
+    "overview": "Estudo Organizado é um painel escuro de mostradores precisos — o instrumento de medição da própria preparação. O concurseiro passa meses olhando para esta tela; a beleza não vem de decoração, vem do rigor: cada número (tempo, % de acertos, streak, progresso no edital) tem peso tipográfico, posição fixa e alinhamento exato, e lê-se de relance. A densidade é um recurso declarado, não um defeito a esconder: quem prepara concurso quer ver o quadro inteiro de uma vez, então a tela mostra muito com alta razão sinal/ruído — cada elemento útil, ordenado por importância, separado por alinhamento e respiro proporcional. Denso é o oposto de poluído. A atmosfera é técnica e premium: fundo quase preto, superfícies que flutuam com sombra difusa e um filete de luz no topo, accent azul-aço raro e funcional. Números em DM Mono; texto em Plus Jakarta Sans. Rejeita o SaaS genérico (cards em gradiente, hero-metric) e o corporativo/estéril (Material padrão, cinza empresarial).",
     "keyCharacteristics": [
       "Painel escuro com profundidade real (sombra difusa + luz de borda interna), nunca preto chapado.",
+      "Densidade como virtude: muita informação útil, ordenada por hierarquia e alinhamento — nunca amontoada.",
       "Accent raro e funcional: ação, seleção e estado — nunca decoração.",
       "Números em DM Mono; texto em Plus Jakarta Sans. Medida e prosa nunca se confundem.",
       "Escala tipográfica fixa em px (não fluida), do desktop ao celular.",
       "Seis atmosferas (temas) sobre a mesma estrutura; todas mantêm contraste AA."
     ],
     "rules": [
+      { "name": "A Regra da Densidade com Sinal", "body": "Densidade é recurso, não defeito: muita informação útil, ordenada por hierarquia e alinhamento. Denso é o oposto de poluído — muito sinal, pouco ruído. Informação sem hierarquia, alinhamento ou respiro é tão ruim quanto um SaaS vazio.", "section": "colors" },
       { "name": "A Regra do Accent Raro", "body": "O accent carrega ≤ 10% de qualquer tela: ação primária, item ativo, foco, seleção. Em estado inativo, nada usa cor saturada. A raridade é o que dá poder ao azul-aço.", "section": "colors" },
       { "name": "A Regra das Seis Atmosferas", "body": "Existem 6 temas (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis). O que muda é o accent e a temperatura da superfície, nunca a estrutura. Toda cor deve manter contraste AA nos seis, não só no Grafite.", "section": "colors" },
       { "name": "A Regra do Mono-para-Medida", "body": "DM Mono é exclusiva de valores quantitativos — tempo, %, contagem, horário. Nunca em prosa, label ou botão.", "section": "typography" },
@@ -163,6 +165,7 @@
     ],
     "dos": [
       "Do usar o accent em ≤ 10% da tela: ação primária, item ativo, foco, seleção. Inativo é neutro.",
+      "Do tratar densidade como recurso: muita informação útil, ordenada por hierarquia e alinhamento. Denso, nunca poluído.",
       "Do carregar todo painel elevado com o rim-light inset 0 1px 0 rgba(255,255,255,0.025).",
       "Do usar DM Mono apenas para valores quantitativos; Plus Jakarta para todo o resto.",
       "Do verificar contraste AA nos seis temas, não só no Grafite. Corpo ≥ 4.5:1; texto grande ≥ 3:1.",
@@ -173,6 +176,7 @@
     "donts": [
       "Don't usar cards com gradiente nem o template hero-metric (número gigante + label minúsculo + stats + accent em degradê).",
       "Don't cair no corporativo/estéril: Material Design padrão, cinza empresarial, planilha de RH.",
+      "Don't confundir densidade com poluição: informação sem hierarquia, alinhamento ou respiro é tão ruim quanto um SaaS vazio.",
       "Don't usar gradiente em texto (background-clip: text). Ênfase vem de peso e tamanho.",
       "Don't usar glassmorphism decorativo como padrão. Profundidade é sombra + rim-light, não desfoque.",
       "Don't usar border-left/right > 1px como faixa colorida decorativa. A faixa de 4px do event-card é exceção porque codifica status.",

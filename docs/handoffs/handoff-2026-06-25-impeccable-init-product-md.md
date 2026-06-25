@@ -32,26 +32,38 @@ foi **reafirmada como a preservar** — agora reenquadrada em torno de precisão
 - Não alterados: `.impeccable/live/config.json` (live mode já configurado — Step 6 do init é no-op),
   `.impeccable/design.json` (intocado).
 
+## Atualização — DESIGN.md refeita (mesma sessão)
+
+`/impeccable document` rodado em seguida (scan mode). Decisões:
+- **North Star mantida:** "A Sala de Instrumentos" — passou a casar melhor com a nova personalidade.
+- **Densidade = recurso declarado** (não "o lugar mais calmo"): prosa reescrita; nova named rule
+  "A Regra da Densidade com Sinal".
+- Tokens reais extraídos de `src/css/tokens.css` (hex, Stitch-compliant); 6 seções Stitch.
+
+Arquivos:
+- **Criado:** `DESIGN.md` (raiz).
+- **Regenerado:** `.impeccable/design.json` (narrativa alinhada; tokens/componentes `ds-*` inalterados).
+- Memória `project_impeccable_design_context` atualizada.
+
 ## Pendências / próximos passos
 
-1. **DESIGN.md ainda está faltando** (também removida no `7764391`). Próximo passo recomendado:
-   `/impeccable document` para regenerá-la a partir dos tokens reais em `src/css/`.
-   Referência: a versão antiga (recuperável via `git show 7764391~1:DESIGN.md`) ainda bate com o
-   sistema visual escuro atual e serve de base.
-2. Validar a nova direção "densa/precisa" nas telas-painel: `/impeccable critique "Página Inicial"`
+1. Validar a nova direção "densa/precisa" nas telas-painel: `/impeccable critique "Página Inicial"`
    ou `/impeccable critique Dashboard` (projeto nunca teve critique registrado).
-3. Se quiser empurrar a precisão tipográfica/tabular dos números: `/impeccable typeset` ou `/impeccable layout`.
+2. Se quiser empurrar a precisão tipográfica/tabular dos números: `/impeccable typeset` ou `/impeccable layout`.
+3. Live mode já configurado; lembrar da pegadinha do CSP `meta-tag` (`http://localhost:8400` em
+   `script-src` e `connect-src` de `src/index.html`) antes de rodar `/impeccable live`.
 
 ## Testes
 
 Nenhum teste de código executado — tarefa de documentação/contexto, sem alteração de código-fonte.
+Validação: `JSON.parse` do sidecar OK; frontmatter da DESIGN.md presente.
 
 ## Status do GitHub
 
-Pendente. Branch atual: `main`. Comandos sugeridos (ver resposta final do agente):
+Pendente. Branch atual: `main`. Comandos sugeridos:
 
 ```bash
-git add PRODUCT.md docs/handoffs/handoff-2026-06-25-impeccable-init-product-md.md
-git commit -m "docs(product): refazer PRODUCT.md com personalidade 'preciso, tecnico, denso'"
+git add PRODUCT.md DESIGN.md .impeccable/design.json docs/handoffs/handoff-2026-06-25-impeccable-init-product-md.md
+git commit -m "docs(design): refazer PRODUCT.md e DESIGN.md (personalidade 'preciso, tecnico, denso')"
 git push
 ```
