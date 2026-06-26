@@ -14,12 +14,44 @@
 | 3 — Primeiro acesso & escopo | ✅ concluída (e2e mock 11/11; validação manual segue opcional) |
 | 4 — Acessibilidade | ✅ concluída |
 | 5 — Side-stripes + movimento/perf | ✅ concluída |
-| 6 — Minors + polish + re-critique | ✅ concluída (E2E mock da Fase 3 segue pendente) |
+| 6 — Minors + polish + re-critique | ✅ concluída |
+
+> **Revisão & teste de ponta a ponta (2026-06-26 08:10 -03): TUDO VERDE.** Veja a seção
+> "Revisão final" logo abaixo. Branch pronta para PR; nenhum achado bloqueante.
 
 **Baselines (início, 2026-06-25):**
 - Detector (`detect.mjs --json src`): **258** achados (234 advisory, 24 warning, 0 erros).
 - Testes unit: **1857 passed / 113 files** (antes da Fase 0). Após Fase 0: **1888 / 114**.
 - Contraste WCAG: corpo AA OK nos 6 temas; única exceção `arrakis danger/card = 4.42` (corpo pequeno) — alvo da Fase 4.
+
+---
+
+## Revisão final - verificação completa das Fases 0-6 (2026-06-26 08:10 -03)
+
+**Resumo:** Passada única de revisão + teste de toda a branch antes do PR. Resultado: **tudo verde, sem achados bloqueantes; pronto para PR.**
+
+**A. Testes automatizados:**
+- `npm run lint` -> 0 erros, 44 warnings preexistentes. Sem imports orfãos em `editais-crud.js` (`esc`/`makeEditalPrincipal` ainda usados; warning `DISC_ICONS` é preexistente).
+- `npm test` -> **115 arquivos / 1905 testes verdes** (503/409 são retries simulados conhecidos).
+- `npm run test:design` -> `test:css` 44/44 + contraste AA nos 6 temas (Arrakis danger/card = 4.64).
+- E2E: `mock-environment.spec.js` **11/11** (inclui Fase 3 sem modal); `smoke-critical.spec.js` (chromium) **4/4** (boot limpo + zero overflow mobile em todas as views). Nota: `test:e2e:mock:all` = 150 testes/24 arquivos porque o projeto `mock` nao tem `testIgnore` e roda specs do projeto chromium; fora do escopo desta branch.
+- Detector: total **42** (de 258). Fora de themes/lab/vendor: **7**, todos exceções documentadas (Plus Jakarta identidade; `single-font`/`numbered-section-markers` no index.html; 3 `side-tab` de status/categoria da Fase 5). `layout-transition` e `design-system-radius` só em `src/lab/`.
+- `contrast-audit.mjs --enforce` -> 0 falhas.
+
+**B. Review de código (read-only):**
+- Fase 3 `home-view.js`: lógica de escopo correta — `principalChoicePending` => `activeEditalId=null` => stats agregados globais e `totalSeconds` sobre todos os eventos; evita o "0%" enganoso. `editais-crud.js`: `reconcilePrincipalEdital()` retorna sem bloquear com >1 ativo, sem imports orfãos.
+- Fase 2 `dashboard-view.js`: 4 classes semânticas, zero genéricas.
+- Guardrails §3: `src/lab/` intocado; nenhum `clamp()` em font-size; rim-light preservado; nenhuma família de fonte nova; 6 temas íntegros (auditoria iterou os 6).
+
+**C. Browser (mock headed, dataset 3 editais ativos):**
+- Fase 3: `topbar="Página Inicial"`, `.modal-overlay.open`=0, `.home-principal-choice` com 3 botões.
+- Fase 2: classes `stat-card--tempo/--sessoes/--questoes/--simulados`, 0 genéricas.
+- Fase 6: backdrop `rgba(0,0,0,0.68)` com `backdrop-filter:none`; `.cal-cell` 72px / padding 5px.
+- Fase 4/5: cobertas pelos contratos automatizados (css-architecture Phase 4/5, calendar-view, smoke mobile).
+
+**D. Métricas §6:** Design Health 32/40 (>=32 ✓); cor/raio só em themes/lab; `layout-transition` 0 fora de allowlist; contraste 6/6 AA; sem cor decorativa em stat cards; sem modal bloqueante no 1º load. **Todas atingidas.**
+
+**Veredito:** branch `fix/impeccable-critique-remediation` pronta para PR. Pendência única e opcional: validação manual `reset`/`clean` (o E2E já cobre o comportamento).
 
 ---
 
