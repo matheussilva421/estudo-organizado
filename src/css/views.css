@@ -28,6 +28,22 @@
   align-items: stretch;
 }
 
+.med-stats-row--compact {
+  margin-bottom: 12px;
+}
+
+.med-stats-row--compact .med-stat-card {
+  min-height: 82px;
+  padding: 12px 14px;
+}
+
+.med-stats-row--compact .dashboard-stat-value,
+.med-stats-row--compact .text-3xl,
+.med-stats-row--compact .med-focus-title {
+  font-size: 20px;
+  line-height: 1.15;
+}
+
 .med-focus-title {
   display: -webkit-box;
   overflow: hidden;
@@ -47,6 +63,10 @@
   flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
+}
+
+.med-empty-primary-action {
+  min-width: min(100%, 220px);
 }
 
 /* MED summary header — bloco normal (rola junto com o conteúdo).

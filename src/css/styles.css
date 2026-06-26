@@ -130,14 +130,14 @@
 .cal-cell {
   background: var(--card);
   min-width: 0;
-  min-height: 90px;
-  padding: 6px;
+  min-height: 82px;
+  padding: 5px;
   cursor: pointer;
   transition: background 0.1s;
 }
 
 .cal-grid.rows-6 .cal-cell {
-  min-height: clamp(64px, calc((100vh - 310px) / 6), 82px);
+  min-height: clamp(58px, calc((100vh - 280px) / 6), 72px);
 }
 
 .cal-cell:hover {

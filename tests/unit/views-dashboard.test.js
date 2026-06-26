@@ -249,6 +249,17 @@ describe('views.js - dashboard, charts, history, MED', () => {
       expect(el.innerHTML).toContain('Nenhum evento nos próximos 7 dias');
     });
 
+    it('renders the empty Study Organizer with compact stats and a prominent next-week action', () => {
+      const el = { innerHTML: '' };
+      storeModule.state.eventos = [];
+      views.renderMED(el);
+
+      expect(el.innerHTML).toContain('med-stats-row--compact');
+      expect(el.innerHTML).toContain('med-empty-primary-action');
+      expect(el.innerHTML).toContain('data-view="calendar"');
+      expect(el.innerHTML).toContain('Próximos 7 dias');
+    });
+
     it('filters events by today date', () => {
       const el = { innerHTML: '' };
       storeModule.state.eventos = [

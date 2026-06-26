@@ -14,12 +14,48 @@
 | 3 — Primeiro acesso & escopo | codigo concluido; e2e/manual pendentes |
 | 4 — Acessibilidade | ✅ concluída |
 | 5 — Side-stripes + movimento/perf | ✅ concluída |
-| 6 — Minors + polish + re-critique | ⬜ |
+| 6 — Minors + polish + re-critique | em andamento |
 
 **Baselines (início, 2026-06-25):**
 - Detector (`detect.mjs --json src`): **258** achados (234 advisory, 24 warning, 0 erros).
 - Testes unit: **1857 passed / 113 files** (antes da Fase 0). Após Fase 0: **1888 / 114**.
 - Contraste WCAG: corpo AA OK nos 6 temas; única exceção `arrakis danger/card = 4.42` (corpo pequeno) — alvo da Fase 4.
+
+---
+
+## Fase 6 - Minors, polish e contrato visual: slice 1 (2026-06-26 07:16 -03)
+
+**Resumo:** Primeiro slice da Fase 6 concluido com TDD. Study Organizer vazio ficou menos top-heavy: linha de stats recebe modo compacto e a acao primaria aponta para "Proximos 7 dias". Backdrop de modal agora usa token `--modal-backdrop` mais dominante (`rgba(0, 0, 0, 0.68)`) sem blur/glassmorphism. Calendario desktop ficou mais denso: celulas padrao menores e mes de 6 linhas com altura maxima reduzida.
+
+**Arquivos alterados:**
+- `src/js/views/med-view.js` - empty state do MED usa `med-stats-row--compact` e acao primaria "Ver Proximos 7 dias".
+- `src/css/views.css` - compactacao visual dos cards do MED vazio e largura minima da acao primaria.
+- `src/css/components/modals-shared.css` - overlay usa `--modal-backdrop` e `backdrop-filter: none`.
+- `src/css/base/themes.css` - adiciona `--modal-backdrop` aos 6 temas.
+- `src/css/styles.css` - densifica `.cal-cell` e `.cal-grid.rows-6 .cal-cell`.
+- `tests/unit/views-dashboard.test.js` - contrato do MED vazio compacto.
+- `tests/unit/css-architecture.test.js` - contrato do backdrop e densidade do calendario desktop.
+- `docs/plans/2026-06-25-impeccable-critique-remediation-plan.md` - checkpoints dos 3 minors marcados.
+
+**TDD / validacao:**
+- Vermelho: `npx vitest run tests/unit/views-dashboard.test.js -t "compact stats"` falhou sem `med-stats-row--compact`.
+- Verde: mesmo teste passou apos markup/CSS do MED vazio.
+- Vermelho: `npx vitest run tests/unit/css-architecture.test.js -t "phase 6"` falhou sem backdrop forte/densidade desktop.
+- Verde: mesmo teste passou apos CSS; depois ajustado para ler `styles.css` bruto por causa de imports de tema.
+- Foco: `npx vitest run tests/unit/views-dashboard.test.js tests/unit/css-architecture.test.js` -> 61/61.
+- Views: `npm run test:views` -> 12 arquivos, 259 testes verdes.
+- Contraste: `node scripts/contrast-audit.mjs --enforce` -> corpo AA OK nos 6 temas.
+- CSS: `npm run test:css` -> 44/44.
+- Unit geral: `npm test` -> 115 arquivos, 1905 testes verdes. Stderr conhecido/simulado: Cloudflare 503/409, IndexedDB mock, modal ausente, notificacoes nao suportadas, sync-yield budget.
+- Detector Impeccable: ainda sai 1 por dividas conhecidas de fonte/cores/lab/vendor e side-tabs documentadas; a regressao nova de literal `rgba(0,0,0,0.68)` em componente foi removida ao trocar para token.
+- Browser/headed: documento estatico com CSS real confirmou `modalBackground: rgba(0, 0, 0, 0.68)`, `backdropFilter: none`, `calendarMinHeight: 72px`, `calendarPadding: 5px`, `compactMinHeight: 82px`.
+
+**Pendencias:**
+- Decisao sobre ligar `css-architecture.test.js`/detector no CI ainda precisa do usuario.
+- Re-critique completa e snapshot comparativo ainda pendentes.
+- Fase 3 continua com e2e mock/manual pendente.
+
+**Proximo passo recomendado:** perguntar/decidir se design lint entra no CI; depois rodar re-critique/snapshot e executar o polish final da Fase 6.
 
 ---
 

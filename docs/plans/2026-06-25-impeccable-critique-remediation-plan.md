@@ -362,9 +362,9 @@ npm run test:unit
 6. **`/impeccable polish`** como passada final de acabamento.
 
 **Checkpoints**
-- [ ] Study Organizer com estado compacto quando vazio
-- [ ] Backdrop do modal comanda foco
-- [ ] Calendário desktop mais denso/equilibrado
+- [x] Study Organizer com estado compacto quando vazio
+- [x] Backdrop do modal comanda foco
+- [x] Calendário desktop mais denso/equilibrado
 - [ ] Decisão sobre lint de design no CI registrada (e ligado, se aprovado)
 - [ ] Re-critique executada; score comparado (alvo: Consistência 2→3+, total ≥32)
 - [ ] Snapshot da critique atualizado

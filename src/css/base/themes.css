@@ -42,6 +42,7 @@
   --surface-soft: rgba(255, 255, 255, 0.05);
   --surface-strong: rgba(255, 255, 255, 0.08);
   --surface-inverse-soft: rgba(0, 0, 0, 0.5);
+  --modal-backdrop: rgba(0, 0, 0, 0.68);
   --neutral-soft: rgba(148, 163, 184, 0.1);
   --neutral-strong: rgba(148, 163, 184, 0.35);
   --question: #a7a4d6;
@@ -108,6 +109,7 @@
   --surface-soft: rgba(255, 255, 255, 0.07);
   --surface-strong: rgba(255, 255, 255, 0.1);
   --surface-inverse-soft: rgba(0, 0, 0, 0.48);
+  --modal-backdrop: rgba(0, 0, 0, 0.68);
   --neutral-soft: rgba(220, 225, 232, 0.1);
   --neutral-strong: rgba(220, 225, 232, 0.35);
   --question: #b8b3dc;
@@ -174,6 +176,7 @@
   --surface-soft: rgba(255, 255, 250, 0.07);
   --surface-strong: rgba(255, 255, 250, 0.1);
   --surface-inverse-soft: rgba(0, 0, 0, 0.48);
+  --modal-backdrop: rgba(0, 0, 0, 0.68);
   --neutral-soft: rgba(235, 238, 242, 0.1);
   --neutral-strong: rgba(235, 238, 242, 0.35);
   --question: #b8b3dc;
@@ -240,6 +243,7 @@
   --surface-soft: rgba(126, 220, 154, 0.07);
   --surface-strong: rgba(126, 220, 154, 0.1);
   --surface-inverse-soft: rgba(0, 0, 0, 0.5);
+  --modal-backdrop: rgba(0, 0, 0, 0.68);
   --neutral-soft: rgba(126, 220, 154, 0.1);
   --neutral-strong: rgba(126, 220, 154, 0.35);
   --question: #b88aff;
@@ -306,6 +310,7 @@
   --surface-soft: rgba(0, 229, 255, 0.07);
   --surface-strong: rgba(0, 229, 255, 0.1);
   --surface-inverse-soft: rgba(0, 0, 0, 0.5);
+  --modal-backdrop: rgba(0, 0, 0, 0.68);
   --neutral-soft: rgba(168, 184, 216, 0.1);
   --neutral-strong: rgba(168, 184, 216, 0.35);
   --question: #ff2bd6;
@@ -372,6 +377,7 @@
   --surface-soft: rgba(244, 234, 216, 0.07);
   --surface-strong: rgba(244, 234, 216, 0.1);
   --surface-inverse-soft: rgba(0, 0, 0, 0.48);
+  --modal-backdrop: rgba(0, 0, 0, 0.68);
   --neutral-soft: rgba(200, 184, 154, 0.1);
   --neutral-strong: rgba(200, 184, 154, 0.35);
   --question: #c89668;

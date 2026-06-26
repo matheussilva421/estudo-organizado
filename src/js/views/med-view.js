@@ -93,7 +93,7 @@ export function renderMED(el) {
   if (pendingFuture.length === 0 && emAndamento.length === 0 && estudados.length === 0) {
     el.innerHTML = `
       ${stickyHeader}
-      <div id="med-stats-row" class="med-stats-row">
+      <div id="med-stats-row" class="med-stats-row med-stats-row--compact">
         ${buildMEDStatsHTML([], [])}
       </div>
       <div class="empty-state med-empty-state">
@@ -101,9 +101,9 @@ export function renderMED(el) {
         <h4>Nenhum evento nos próximos 7 dias</h4>
         <p class="mb-4">Como você quer começar?</p>
         <div class="med-empty-actions">
+          <button class="btn btn-primary med-empty-primary-action" data-action="navigate" data-view="calendar"><i class="fa fa-calendar"></i> Ver Próximos 7 dias</button>
           <button class="btn btn-primary" data-action="open-add-event"><i class="fa fa-plus"></i> Adicionar Evento</button>
           <button class="btn btn-ghost" data-action="navigate" data-view="cronometro"><i class="fa fa-stopwatch"></i> Sessão Livre</button>
-          <button class="btn btn-ghost" data-action="navigate" data-view="calendar"><i class="fa fa-calendar"></i> Ver Calendário</button>
         </div>
       </div>
     `;

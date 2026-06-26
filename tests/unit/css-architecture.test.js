@@ -830,6 +830,23 @@ describe('CSS architecture', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('keeps phase 6 modal backdrop and desktop calendar density contracts', () => {
+    const modalCss = read('src/css/components/modals-shared.css');
+    const styles = readFileSync(join(rootDir, 'src/css/styles.css'), 'utf8').replace(/\r\n/g, '\n');
+    const themeCss = read('src/css/base/themes.css');
+    const modalOverlayBlock = extractCssBlock(modalCss, '.modal-overlay');
+    const calCellBlock = extractCssBlock(styles, '.cal-cell');
+    const rowsSixBlock = extractCssBlock(styles, '.cal-grid.rows-6 .cal-cell');
+
+    expect(themeCss).toContain('--modal-backdrop: rgba(0, 0, 0, 0.68)');
+    expect(modalOverlayBlock).toContain('background: var(--modal-backdrop)');
+    expect(modalOverlayBlock).toContain('backdrop-filter: none');
+    expect(calCellBlock).toContain('min-height: 82px');
+    expect(calCellBlock).toContain('padding: 5px');
+    expect(rowsSixBlock).toContain('calc((100vh - 280px) / 6)');
+    expect(rowsSixBlock).toContain('72px');
+  });
+
   it('documents phase 5 side-stripe exceptions and removes decorative accent stripes', () => {
     const design = read('DESIGN.md');
     const subjectManagerCss = read('src/css/views/subject-manager.css');
