@@ -15,12 +15,12 @@ if ('serviceWorker' in navigator) {
       'bottom:16px',
       'right:16px',
       'z-index:99999',
-      'background:#1f2937',
-      'color:#f9fafb',
+      'background:var(--card)',
+      'color:var(--text-primary)',
       'padding:12px 16px',
-      'border-radius:8px',
-      'box-shadow:0 4px 14px rgba(0,0,0,0.3)',
-      'border:1px solid rgba(255,255,255,0.08)',
+      'border-radius:var(--radius-sm)',
+      'box-shadow:var(--shadow)',
+      'border:1px solid var(--border)',
       'font:14px system-ui,sans-serif',
       'display:flex',
       'align-items:center',
@@ -29,8 +29,8 @@ if ('serviceWorker' in navigator) {
     ].join(';');
     banner.innerHTML = `
       <span>🔄 Nova versão disponível</span>
-      <button type="button" id="sw-update-now" style="background:#3b82f6;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;">Recarregar</button>
-      <button type="button" id="sw-update-later" aria-label="Dispensar" style="background:transparent;color:#9ca3af;border:none;cursor:pointer;font:18px system-ui;line-height:1;padding:0 4px;">×</button>
+      <button type="button" id="sw-update-now" style="background:var(--accent);color:var(--accent-text);border:none;padding:6px 12px;border-radius:var(--radius-tight);cursor:pointer;font:inherit;">Recarregar</button>
+      <button type="button" id="sw-update-later" aria-label="Dispensar" style="background:transparent;color:var(--text-muted);border:none;cursor:pointer;font:18px system-ui;line-height:1;padding:0 4px;">×</button>
     `;
     document.body.appendChild(banner);
     document.getElementById('sw-update-now').addEventListener('click', () => {

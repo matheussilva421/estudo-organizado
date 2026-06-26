@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { dirname, join, normalize } from 'node:path';
+import { dirname, join, normalize, relative } from 'node:path';
 
 const rootDir = process.cwd();
 const srcDir = join(rootDir, 'src');
@@ -67,6 +67,60 @@ function getThemeVars(styles, selector) {
   return extractCssVars(extractCssBlock(styles, selector));
 }
 
+const PHASE_1_COLOR_CONTRACT_FILES = [
+  'src/css/base/layout.css',
+  'src/css/styles.css',
+  'src/css/views/dashboard.css'
+];
+
+const PHASE_1_RADIUS_CONTRACT_FILES = [
+  'src/css/base/accessibility.css',
+  'src/css/base/layout.css',
+  'src/css/components/buttons.css',
+  'src/css/components/cards.css'
+];
+
+const PHASE_1_VIEW_COLOR_CONTRACT_FILES = [
+  'src/css/views.css',
+  'src/css/views/ciclo.css',
+  'src/css/views/cronometro.css',
+  'src/css/views/habitos.css',
+  'src/css/views/sessions.css'
+];
+
+const PHASE_1_RESIDUAL_COLOR_CONTRACT_FILES = [
+  'src/css/base/layout.css',
+  'src/css/components/buttons.css',
+  'src/css/components/search.css',
+  'src/css/components/sidebar.css',
+  'src/css/components/toggle-drag.css',
+  'src/css/styles.css',
+  'src/css/views/dashboard.css',
+  'src/css/views/editais-tree.css',
+  'src/css/views/revisoes.css',
+  'src/js/sw-register.js',
+  'src/js/utils.js',
+  'src/js/views/banca-view.js',
+  'src/js/views/config/sync-center.js'
+];
+
+function collectFilesByExtension(dir, extensions, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (['lab', 'vendor'].includes(entry.name)) continue;
+      collectFilesByExtension(entryPath, extensions, out);
+    } else if (extensions.some((extension) => entry.name.endsWith(extension))) {
+      out.push(normalize(entryPath).replace(/\\/g, '/'));
+    }
+  }
+  return out;
+}
+
+function toRelativePath(file) {
+  return normalize(relative(rootDir, file)).replace(/\\/g, '/');
+}
+
 describe('CSS architecture', () => {
   it('loads design-system stylesheets before legacy styles', () => {
     const html = read('src/index.html');
@@ -129,6 +183,110 @@ describe('CSS architecture', () => {
     expect(tokens).toContain('--radius-sm:');
     expect(tokens).toContain('--shadow-sm:');
     expect(legacyStyles).not.toMatch(/^:root\s*{/m);
+  });
+
+  it('keeps phase-1 semantic color contracts free of generic var fallbacks', () => {
+    const genericFallbackPattern = /var\(--[a-z0-9-]+,\s*(?:#(?:[0-9a-fA-F]{3,8})\b|rgba?\([^)]*\))/g;
+    const drifts = [];
+
+    for (const relativePath of PHASE_1_COLOR_CONTRACT_FILES) {
+      const file = join(rootDir, relativePath);
+      const content = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+      content.split('\n').forEach((line, index) => {
+        if (!genericFallbackPattern.test(line)) return;
+        genericFallbackPattern.lastIndex = 0;
+        drifts.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+      });
+    }
+
+    expect(drifts).toEqual([]);
+  });
+
+  it('keeps config view colors on semantic tokens', () => {
+    const rawColorPattern = /(?:#(?:[0-9a-fA-F]{3,8})\b|rgba?\([^)]*\))/g;
+    const relativePath = 'src/css/views/config/config-view.css';
+    const content = readFileSync(join(rootDir, relativePath), 'utf8').replace(/\r\n/g, '\n');
+    const drifts = [];
+
+    content.split('\n').forEach((line, index) => {
+      if (!rawColorPattern.test(line)) return;
+      rawColorPattern.lastIndex = 0;
+      drifts.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+    });
+
+    expect(drifts).toEqual([]);
+  });
+
+  it('keeps phase-1 view colors on semantic tokens', () => {
+    const rawColorPattern = /(?:#(?:[0-9a-fA-F]{3,8})\b|rgba?\([^)]*\))/g;
+    const drifts = [];
+
+    for (const relativePath of PHASE_1_VIEW_COLOR_CONTRACT_FILES) {
+      const content = readFileSync(join(rootDir, relativePath), 'utf8').replace(/\r\n/g, '\n');
+      content.split('\n').forEach((line, index) => {
+        if (!rawColorPattern.test(line)) return;
+        rawColorPattern.lastIndex = 0;
+        drifts.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+      });
+    }
+
+    expect(drifts).toEqual([]);
+  });
+
+  it('keeps phase-1 residual colors on semantic tokens', () => {
+    const rawColorPattern = /(?:#(?:[0-9a-fA-F]{3,8})\b|rgba?\([^)]*\))/g;
+    const drifts = [];
+
+    for (const relativePath of PHASE_1_RESIDUAL_COLOR_CONTRACT_FILES) {
+      const content = readFileSync(join(rootDir, relativePath), 'utf8').replace(/\r\n/g, '\n');
+      content.split('\n').forEach((line, index) => {
+        if (!rawColorPattern.test(line)) return;
+        rawColorPattern.lastIndex = 0;
+        drifts.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+      });
+    }
+
+    expect(drifts).toEqual([]);
+  });
+
+  it('keeps phase-1 component radii on the documented radius token scale', () => {
+    const literalRadiusPattern = /border-radius\s*:\s*([^;]+);/g;
+    const allowedLiteralRadii = new Set(['0', '50%', 'inherit', 'var(--radius)', 'var(--radius-md, 8px)']);
+    const drifts = [];
+
+    for (const relativePath of PHASE_1_RADIUS_CONTRACT_FILES) {
+      const file = join(rootDir, relativePath);
+      const content = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+      for (const match of content.matchAll(literalRadiusPattern)) {
+        const value = match[1].trim();
+        if (value.includes('var(--radius-') || allowedLiteralRadii.has(value)) continue;
+
+        const lineNumber = content.slice(0, match.index).split('\n').length;
+        drifts.push(`${relativePath}:${lineNumber}: border-radius: ${value};`);
+      }
+    }
+
+    expect(drifts).toEqual([]);
+  });
+
+  it('keeps all shipped UI radii on the documented radius token scale', () => {
+    const literalRadiusPattern = /border-radius\s*:\s*([^;"'`]+)[;"'`]/g;
+    const allowedLiteralRadii = new Set(['0', '50%', 'inherit']);
+    const drifts = [];
+
+    for (const file of collectFilesByExtension(srcDir, ['.css', '.js', '.html'])) {
+      const relativePath = toRelativePath(file);
+      const content = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+      for (const match of content.matchAll(literalRadiusPattern)) {
+        const value = match[1].trim();
+        if (value.includes('var(--radius-') || allowedLiteralRadii.has(value)) continue;
+
+        const lineNumber = content.slice(0, match.index).split('\n').length;
+        drifts.push(`${relativePath}:${lineNumber}: border-radius: ${value};`);
+      }
+    }
+
+    expect(drifts).toEqual([]);
   });
 
   it('keeps legacy stylesheet imports before style rules', () => {
@@ -429,7 +587,7 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.95');
+    expect(html).toContain('css/styles.css?v=8.96');
     expect(serviceWorker).toMatch(/APP_VERSION = '8\.\d{2}'/);
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
@@ -633,6 +791,76 @@ describe('CSS architecture', () => {
     expect(buttonChipBlock).not.toContain('font: inherit');
     expect(buttonChipBlock).toContain('font-size: 10.5px');
     expect(buttonChipBlock).toContain('line-height: 1.25');
+  });
+
+  it('keeps phase 4 mobile a11y layout contracts for topbar and calendar chips', () => {
+    const legacyStyles = read('src/css/styles.css');
+    const mobileTitleBlock = extractCssBlock(legacyStyles, '.cal-mobile-events .cal-event-title');
+
+    expect(legacyStyles).toContain('@media (max-width: 480px)');
+    expect(legacyStyles).toContain('.topbar-right');
+    expect(legacyStyles).toContain('.sync-pill-wrapper');
+    expect(legacyStyles).toContain('.topbar-theme-btn');
+    expect(mobileTitleBlock).toContain('white-space: normal');
+    expect(mobileTitleBlock).toContain('overflow: visible');
+  });
+
+  it('keeps phase 5 shipped UI progress motion off layout width and height', () => {
+    const files = [
+      'src/css/styles.css',
+      'src/css/views.css',
+      'src/css/views/dashboard.css',
+      'src/css/components/sidebar.css',
+      'src/css/components/status-feedback.css',
+      'src/js/views/dashboard-view.js',
+      'src/js/views/editais-view.js',
+      'src/js/views/home-view.js',
+      'src/js/views/med-view.js'
+    ];
+
+    const offenders = [];
+    for (const file of files) {
+      const content = readFileSync(join(rootDir, file), 'utf8').replace(/\r\n/g, '\n');
+      for (const match of content.matchAll(/transition\s*:\s*[^;"']*(?<![-\w])(?:width|height)\b[^;"']*/gi)) {
+        const line = content.slice(0, match.index).split('\n').length;
+        offenders.push(`${file}:${line}: ${match[0].trim()}`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('keeps phase 6 modal backdrop and desktop calendar density contracts', () => {
+    const modalCss = read('src/css/components/modals-shared.css');
+    const styles = readFileSync(join(rootDir, 'src/css/styles.css'), 'utf8').replace(/\r\n/g, '\n');
+    const themeCss = read('src/css/base/themes.css');
+    const modalOverlayBlock = extractCssBlock(modalCss, '.modal-overlay');
+    const calCellBlock = extractCssBlock(styles, '.cal-cell');
+    const rowsSixBlock = extractCssBlock(styles, '.cal-grid.rows-6 .cal-cell');
+
+    expect(themeCss).toContain('--modal-backdrop: rgba(0, 0, 0, 0.68)');
+    expect(modalOverlayBlock).toContain('background: var(--modal-backdrop)');
+    expect(modalOverlayBlock).toContain('backdrop-filter: none');
+    expect(calCellBlock).toContain('min-height: 82px');
+    expect(calCellBlock).toContain('padding: 5px');
+    expect(rowsSixBlock).toContain('calc((100vh - 280px) / 6)');
+    expect(rowsSixBlock).toContain('72px');
+  });
+
+  it('documents phase 5 side-stripe exceptions and removes decorative accent stripes', () => {
+    const design = read('DESIGN.md');
+    const subjectManagerCss = read('src/css/views/subject-manager.css');
+    const eventCss = read('src/css/styles.css');
+    const dashboardCss = read('src/css/views/dashboard.css');
+    const calendarView = read('src/js/views/calendar-view.js');
+
+    expect(design).toContain('status ou categoria');
+    expect(design).toContain('faixa lateral decorativa');
+    expect(design).toContain('proibida');
+    expect(subjectManagerCss).not.toContain('border-left: 4px solid var(--accent)');
+    expect(eventCss).toContain('--session-disc-color');
+    expect(dashboardCss).toContain('--predictive-status-color');
+    expect(calendarView).toContain('border-left:3px solid');
   });
 
   it('prevents broad transitions and hidden focus outlines from returning', () => {

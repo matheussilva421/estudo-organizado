@@ -15,7 +15,7 @@
   z-index: 10000;
   text-decoration: none;
   font-weight: 600;
-  border-radius: 0 0 4px 0;
+  border-radius: 0 0 var(--radius-xs) 0;
   transform: translateY(calc(-100% - 8px));
   pointer-events: none;
   transition: transform 0.2s;

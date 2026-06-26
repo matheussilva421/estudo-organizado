@@ -3,7 +3,7 @@
   align-items: center;
   gap: 6px;
   padding: 9px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -21,7 +21,7 @@
 .btn-primary {
   background: var(--accent) !important;
   color: var(--accent-text) !important;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--bg), transparent 72%);
 }
 
 .btn-primary * {
@@ -30,7 +30,7 @@
 
 .btn-primary:hover {
   background: var(--accent-hover);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.34);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--bg), transparent 66%);
   transform: translateY(-1px);
 }
 
@@ -87,7 +87,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;

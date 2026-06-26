@@ -45,6 +45,38 @@ function getDateStr(d) {
   return d2.toISOString().split('T')[0];
 }
 
+const EVENT_STATUS_META = {
+  agendado: { label: 'Agendado', mark: '○' },
+  estudei: { label: 'Estudado', mark: '✓' },
+  atrasado: { label: 'Atrasado', mark: '!' },
+  pendente: { label: 'Pendente', mark: '–' },
+  nao: { label: 'Nao estudado', mark: '–' },
+};
+
+function renderCalendarEventChip(event, { tag = 'button', extraStyle = '' } = {}) {
+  const status = getEventStatus(event);
+  const statusMeta = EVENT_STATUS_META[status] || EVENT_STATUS_META.pendente;
+  const color = getDiscColor(event.discId);
+  const borderStyle = color ? `border-left:3px solid ${esc(color)};` : '';
+  const styleAttr = `${extraStyle}${borderStyle}`;
+  const attrs = [
+    `class="cal-event-chip ${status}"`,
+    'data-action="open-event-detail"',
+    `data-event-id="${esc(event.id)}"`,
+    styleAttr ? `style="${styleAttr}"` : '',
+    `title="${esc(event.titulo)}"`,
+    `aria-label="Abrir evento ${esc(event.titulo)}, status ${statusMeta.label}"`,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const content = `<span class="cal-event-status-mark" aria-hidden="true">${statusMeta.mark}</span><span class="cal-event-title">${esc(event.titulo)}</span>`;
+
+  if (tag === 'div') {
+    return `<div ${attrs} role="button" tabindex="0">${content}</div>`;
+  }
+  return `<button type="button" ${attrs}>${content}</button>`;
+}
+
 // ── Navigation ──
 export function calNavigate(dir) {
   const calViewMode = getCalViewMode();
@@ -183,10 +215,7 @@ export function renderCalendarMonth() {
             <button type="button" class="cal-day-add-inline" data-action="open-event-modal-date" data-date="${ds}" aria-label="Adicionar sessao em ${ds}" title="Adicionar sessao">+</button>
             ${show
               .map((e) => {
-                const st = getEventStatus(e);
-                const cor = getDiscColor(e.discId);
-                const styleAttr = cor ? ` style="border-left:3px solid ${esc(cor)};"` : '';
-                return `<button type="button" class="cal-event-chip ${st}"${styleAttr} data-action="open-event-detail" data-event-id="${e.id}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
+                return renderCalendarEventChip(e);
               })
               .join('')}
             ${more > 0 ? `<button type="button" class="cal-more" data-action="select-calendar-day" data-date="${ds}" title="${moreTitle}">+${more} mais</button>` : ''}
@@ -249,7 +278,7 @@ export function renderCalendarWeek() {
           const isToday = ds === today;
           const dayEvents = eventsByDate[ds] || [];
           return `
-          <div style="min-height:200px;border-radius:8px;border:1px solid var(--border);overflow:hidden;">
+          <div style="min-height:200px;border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;">
             <div style="padding:8px;background:${isToday ? 'var(--accent-light)' : 'var(--bg)'};text-align:center;border-bottom:1px solid var(--border);">
               <div style="font-size:11px;font-weight:600;color:var(--text-secondary);">${dows[d.getDay()]}</div>
               <div style="font-size:16px;font-weight:700;${isToday ? 'color:var(--blue);' : ''}">${d.getDate()}</div>
@@ -257,10 +286,7 @@ export function renderCalendarWeek() {
             <div style="padding:6px;">
               ${dayEvents
                 .map((e) => {
-                  const st = getEventStatus(e);
-                  const cor = getDiscColor(e.discId);
-                  const borderStyle = cor ? `border-left:3px solid ${esc(cor)};` : '';
-                  return `<button type="button" class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" style="margin-bottom:3px;${borderStyle}" title="${esc(e.titulo)}">${esc(e.titulo)}</button>`;
+                  return renderCalendarEventChip(e, { extraStyle: 'margin-bottom:3px;' });
                 })
                 .join('')}
               <div style="text-align:center;margin-top:4px;">
@@ -307,10 +333,10 @@ export function renderCalendarMobileMonth() {
           <div class="cal-mobile-events">
             ${dayEvents
               .map((e) => {
-                const st = getEventStatus(e);
-                const cor = getDiscColor(e.discId);
-                const borderStyle = cor ? `border-left:3px solid ${esc(cor)};` : '';
-                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" role="button" tabindex="0" style="white-space:normal;${borderStyle}" title="${esc(e.titulo)}" aria-label="Abrir evento ${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+                return renderCalendarEventChip(e, {
+                  tag: 'div',
+                  extraStyle: 'white-space:normal;',
+                });
               })
               .join('')}
           </div>
@@ -362,10 +388,10 @@ export function renderCalendarMobileWeek() {
           <div class="cal-mobile-events">
             ${dayEvents
               .map((e) => {
-                const st = getEventStatus(e);
-                const cor = getDiscColor(e.discId);
-                const borderStyle = cor ? `border-left:3px solid ${esc(cor)};` : '';
-                return `<div class="cal-event-chip ${st}" data-action="open-event-detail" data-event-id="${e.id}" role="button" tabindex="0" style="white-space:normal;${borderStyle}" title="${esc(e.titulo)}" aria-label="Abrir evento ${esc(e.titulo)}">${esc(e.titulo)}</div>`;
+                return renderCalendarEventChip(e, {
+                  tag: 'div',
+                  extraStyle: 'white-space:normal;',
+                });
               })
               .join('')}
           </div>

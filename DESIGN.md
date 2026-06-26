@@ -58,9 +58,18 @@ typography:
     fontWeight: 500
     letterSpacing: "normal"
 rounded:
+  xxs: "2px"
+  compact: "3px"
+  xs: "4px"
+  tight: "6px"
   sm: "8px"
+  control: "10px"
+  card-sm: "12px"
   md: "14px"
+  modal: "16px"
   lg: "18px"
+  loose: "20px"
+  xl: "24px"
   pill: "999px"
 spacing:
   "1": "4px"
@@ -74,7 +83,7 @@ components:
   button-primary:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.accent-text}"
-    rounded: "10px"
+    rounded: "{rounded.control}"
     padding: "9px 16px"
   button-primary-hover:
     backgroundColor: "{colors.accent-hover}"
@@ -82,7 +91,7 @@ components:
   button-ghost:
     backgroundColor: "transparent"
     textColor: "{colors.text-secondary}"
-    rounded: "10px"
+    rounded: "{rounded.control}"
     padding: "9px 16px"
   button-ghost-hover:
     backgroundColor: "{colors.surface}"
@@ -90,7 +99,7 @@ components:
   button-danger:
     backgroundColor: "{colors.danger}"
     textColor: "{colors.danger-text}"
-    rounded: "10px"
+    rounded: "{rounded.control}"
     padding: "9px 16px"
   card:
     backgroundColor: "{colors.card}"
@@ -114,7 +123,7 @@ components:
   nav-item:
     backgroundColor: "transparent"
     textColor: "{colors.text-secondary}"
-    rounded: "10px"
+    rounded: "{rounded.control}"
     padding: "10px 14px"
   nav-item-active:
     backgroundColor: "{colors.accent-light}"
@@ -176,6 +185,10 @@ Paleta escura de instrumento: superfícies quase-pretas estratificadas por tom, 
 
 **A Regra das Seis Atmosferas.** Existem 6 temas (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis). O que muda é o accent e a temperatura da superfície — nunca a estrutura. Toda cor deve manter contraste AA nos seis, não só no Grafite (padrão).
 
+**A Regra dos Tokens Canônicos.** O vocabulário semântico é `--success`, `--warning`, `--danger`, `--info`, `--question` e seus fundos. Aliases históricos (`--green`, `--orange`, `--yellow`, `--red`, `--blue`, `--purple`) existem apenas para compatibilidade e devem apontar para os tokens canônicos do tema.
+
+**A Regra da Cor de Stat.** Stat cards usam cor por categoria de dado, não por decoração: tempo/vídeo -> `--info`, questões/súmulas -> `--question`, simulados/risco moderado -> `--warning`, aulas concluídas -> `--success`, páginas/pendentes/restantes -> neutro (`--text-secondary`). `--danger` fica reservado para erro, atraso ou ação destrutiva.
+
 ## 3. Typography
 
 **Display / Body / Label Font:** Plus Jakarta Sans (com fallback `sans-serif`)
@@ -231,6 +244,21 @@ O sistema usa **sombra difusa + luz de borda interna** para criar profundidade r
 - **Internal Padding:** 20px no corpo, 16px 20px no cabeçalho.
 - **Stat-card:** variante de métrica com faixa de 3px no topo (cor = categoria), valor em Display 800/28px. **Não** é o template hero-metric: o número serve à leitura, sem gradiente nem stats decorativos de apoio.
 
+### Radius Scale
+- **xxs** (`--radius-xxs: 2px`): preenchimentos minúsculos de gráfico/progresso.
+- **compact** (`--radius-compact: 3px`): trilhas e detalhes retangulares muito baixos.
+- **xs** (`--radius-xs: 4px`): foco especial, stripes e detalhes internos pequenos.
+- **tight** (`--radius-tight: 6px`): controles densos, handles e blocos internos compactos.
+- **sm** (`--radius-sm: 8px`): inputs e superfícies compactas.
+- **control** (`--radius-control: 10px`): botões, botões outline e cards interativos de evento/popover.
+- **card-sm** (`--radius-card-sm: 12px`): cards secundários e skeletons.
+- **md** (`--radius-md: 14px`): cards e painéis padrão.
+- **modal** (`--radius-modal: 16px`): modais e superfícies de foco.
+- **lg** (`--radius-lg: 18px`): superfícies maiores.
+- **loose** (`--radius-loose: 20px`): pills largas e painéis com composição mais aberta.
+- **xl** (`--radius-xl: 24px`): overlays/contêineres grandes já existentes; não usar em cards comuns.
+- **pill** (`--radius-pill: 999px`): chips, badges e indicadores circulares/pílula.
+
 ### Inputs / Fields
 - **Style:** fundo `--card`, borda fina `--border`, raio 8px, texto primário; placeholder em `--text-muted` com `opacity: 1` (contraste AA, não cinza-fantasma).
 - **Focus:** `outline: 2px solid var(--accent)` + halo de 3px (`box-shadow: 0 0 0 3px var(--accent-light)`) + borda accent.
@@ -241,7 +269,7 @@ O sistema usa **sombra difusa + luz de borda interna** para criar profundidade r
 - **Foco:** outline accent 2px. **Mobile:** colapsa (comportamento estrutural, não tipografia fluida).
 
 ### Event Card (componente assinatura)
-Cartão de sessão de estudo: faixa de status de **4px na frente** (cor = estado), ícone da disciplina, info (título + sub) e ações (44px, alvo de toque). A faixa de 4px é a **única** exceção à proibição de side-stripe — porque codifica status, não decora.
+Cartão de sessão de estudo: faixa de status de **4px na frente** (cor = estado), ícone da disciplina, info (título + sub) e ações (44px, alvo de toque). Faixa lateral de 3-4px só é permitida quando codifica **status ou categoria**: estado da sessão, previsão de risco ou cor da disciplina/calendário. Fora desses casos, faixa lateral decorativa é proibida porque o accent não é ornamento.
 
 ### Timer (Mono)
 Cronômetro em DM Mono, 32px/500, letter-spacing 1px — a Regra do Mono-para-Medida em sua forma mais pura.
@@ -264,5 +292,5 @@ Cronômetro em DM Mono, 32px/500, letter-spacing 1px — a Regra do Mono-para-Me
 - **Don't** confundir densidade com poluição: informação sem hierarquia, alinhamento ou respiro é tão ruim quanto um SaaS vazio.
 - **Don't** usar gradiente em texto (`background-clip: text`). Ênfase vem de peso e tamanho.
 - **Don't** usar glassmorphism decorativo como padrão. Profundidade é sombra + rim-light, não desfoque.
-- **Don't** usar `border-left`/`right` > 1px como faixa colorida decorativa. A faixa de 4px do event-card é exceção porque codifica status.
+- **Don't** usar `border-left`/`right` > 1px como faixa lateral decorativa. A exceção de 3-4px existe apenas quando a faixa codifica status ou categoria.
 - **Don't** pôr cor saturada em estado inativo, nem fonte de display em label, botão ou dado.

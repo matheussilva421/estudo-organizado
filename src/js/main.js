@@ -1,4 +1,4 @@
-﻿// ES Module Entry Point
+// ES Module Entry Point
 // Imports all modules and exposes functions via window.EstudoApp namespace
 
 import * as store from './store.js?v=8.37';

@@ -440,40 +440,10 @@ export function openEditalSuccessorModal() {
   openModal('modal-prompt');
 }
 
-// ── Modal de 1ª vez: escolher o principal quando há vários editais ativos ──
-function openFirstRunPrincipalModal(ativos) {
-  const titleEl = document.getElementById('modal-prompt-title');
-  const bodyEl = document.getElementById('modal-prompt-body');
-  const saveBtn = document.getElementById('modal-prompt-save');
-  if (!titleEl || !bodyEl || !saveBtn) return;
-
-  titleEl.textContent = 'Qual é seu edital principal?';
-  bodyEl.innerHTML = `
-    <div style="margin-bottom:12px;color:var(--text-secondary);font-size:14px;">
-      Agora você acompanha um edital principal por vez. Escolha o principal — os demais serão arquivados (com estatísticas preservadas) e ficarão em "Editais Anteriores".
-    </div>
-    <select id="prompt-principal-select" class="form-control" aria-label="Edital principal">
-      ${ativos.map((ed) => `<option value="${esc(ed.id)}">${esc(ed.nome || 'Edital')}</option>`).join('')}
-    </select>`;
-  saveBtn.textContent = 'Confirmar';
-  saveBtn.onclick = () => {
-    const val = document.getElementById('prompt-principal-select')?.value;
-    if (val) makeEditalPrincipal(val);
-    // Só marca como reconciliado QUANDO o usuário escolhe — fechar o modal sem
-    // escolher mantém o estado pendente e o aviso reaparece no próximo load.
-    markPrincipalReconciled();
-    closeModal('modal-prompt');
-    renderCurrentView();
-  };
-  openModal('modal-prompt');
-}
-
 // ── Reconciliação no 1º load após a atualização ──
-// A migração não mostra UI; aqui, se houver mais de um edital ativo, pedimos ao
-// usuário qual é o principal. Com 0 ou 1 ativo, o invariante já vale. A flag
-// (por-dispositivo) só é gravada quando o invariante está satisfeito (<=1 ativo)
-// OU quando o usuário confirma a escolha — assim, fechar o modal sem escolher
-// não silencia o aviso para sempre.
+// A migração não mostra UI. Com 0 ou 1 ativo, o invariante já vale. Com mais
+// de um ativo, a escolha aparece inline na Home/Editais para não bloquear o
+// primeiro acesso; a flag fica pendente até o usuário escolher um principal.
 const PRINCIPAL_RECONCILED_FLAG = 'estudo_principal_reconciled';
 
 function markPrincipalReconciled() {
@@ -492,8 +462,7 @@ export function reconcilePrincipalEdital() {
   }
   const ativos = getActiveEditais();
   if (ativos.length > 1) {
-    openFirstRunPrincipalModal(ativos);
-    return; // a flag só é gravada quando o usuário confirma no modal
+    return;
   }
   markPrincipalReconciled();
 }

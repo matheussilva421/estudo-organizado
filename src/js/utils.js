@@ -138,15 +138,15 @@ export function cutoffDateStr(days) {
 }
 
 export const HABIT_TYPES = [
-  { key: 'questoes', label: 'Questões', icon: '📝', color: '#8aa4bf' },
-  { key: 'revisao', label: 'Revisão', icon: '🔄', color: '#7dd3a8' },
-  { key: 'discursiva', label: 'Discursiva', icon: '✍️', color: '#d8a657' },
-  { key: 'simulado', label: 'Simulado', icon: '🎯', color: '#ef7777' },
-  { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: '#a7a4d6' },
-  { key: 'informativo', label: 'Informativos', icon: '📰', color: '#7fb7c7' },
-  { key: 'sumula', label: 'Súmulas', icon: '⚖️', color: '#8e9fd0' },
-  { key: 'videoaula', label: 'Videoaula', icon: '📺', color: '#d58c9d' },
-  { key: 'paginas', label: 'Páginas Lidas', icon: '🧾', color: '#79b8ad' },
+  { key: 'questoes', label: 'Questões', icon: '📝', color: 'var(--question)' },
+  { key: 'revisao', label: 'Revisão', icon: '🔄', color: 'var(--success)' },
+  { key: 'discursiva', label: 'Discursiva', icon: '✍️', color: 'var(--warning)' },
+  { key: 'simulado', label: 'Simulado', icon: '🎯', color: 'var(--warning)' },
+  { key: 'leitura', label: 'Leitura Seca', icon: '📖', color: 'var(--text-secondary)' },
+  { key: 'informativo', label: 'Informativos', icon: '📰', color: 'var(--info)' },
+  { key: 'sumula', label: 'Súmulas', icon: '⚖️', color: 'var(--question)' },
+  { key: 'videoaula', label: 'Videoaula', icon: '📺', color: 'var(--info)' },
+  { key: 'paginas', label: 'Páginas Lidas', icon: '🧾', color: 'var(--text-secondary)' },
 ];
 
 /**

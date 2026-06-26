@@ -414,7 +414,7 @@ function renderCloudflareConfigFields(source) {
   const cfg = state.config || {};
   const hasToken = !!cfg.cfToken;
   return `
-    <div class="sync-source-config" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color,#2a2a3e);">
+    <div class="sync-source-config" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
       <div class="form-group config-input-group" style="margin-bottom:8px;">
         <label class="form-label" style="font-size:0.85em;">URL do Cloudflare Worker (API)</label>
         <input type="url" id="config-cf-url" class="form-control form-control-sm" placeholder="https://seu-worker.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">

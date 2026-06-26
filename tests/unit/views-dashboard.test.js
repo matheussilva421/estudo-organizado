@@ -1,5 +1,65 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+describe('dashboard stat card semantics', () => {
+  it('renderDashboard uses semantic stat categories instead of generic color classes', async () => {
+    vi.resetModules();
+    const storeModule = {
+      state: {
+        eventos: [
+          {
+            id: 'ev_1',
+            status: 'estudei',
+            data: '2026-04-28',
+            dataEstudo: '2026-04-28',
+            tempoAcumulado: 3600,
+          },
+        ],
+        habitos: {
+          questoes: [{ id: 'q_1', data: '2026-04-28', total: 20 }],
+          simulado: [{ id: 's_1', data: '2026-04-28' }],
+        },
+        editais: [],
+      },
+    };
+
+    vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
+    vi.doMock('../../src/js/utils.js?v=8.37', () => ({
+      cutoffDateStr: vi.fn(() => '2026-04-20'),
+      esc: vi.fn((s) => s || ''),
+      formatDate: vi.fn((s) => s),
+      formatTime: vi.fn((s) => `${Math.floor(s / 3600)}h`),
+      HABIT_TYPES: [],
+    }));
+    vi.doMock('../../src/js/logic.js?v=8.37', () => ({
+      calculateContentProgress: vi.fn(() => ({ done: 0, total: 0, percent: 0 })),
+      getDisc: vi.fn(() => null),
+    }));
+    vi.doMock('../../src/js/state/dashboard-context.js?v=8.37', () => ({
+      getActiveDashboardTab: vi.fn(() => 'aulas'),
+    }));
+    vi.doMock('../../src/js/components.js?v=8.37', () => ({ renderCurrentView: vi.fn() }));
+    vi.doMock('../../src/js/state/chart-state.js?v=8.37', () => ({
+      setDiscChartInstance: vi.fn(),
+      getDiscChartInstance: vi.fn(() => null),
+    }));
+    vi.doMock('../../src/js/edital-filter.js?v=8.37', () => ({
+      filterEventsBySelectedEdital: vi.fn((events) => events),
+      getFilteredActiveDisciplinas: vi.fn(() => []),
+    }));
+
+    const dashboard = await import('../../src/js/views/dashboard-view.js');
+    const el = { innerHTML: '' };
+
+    dashboard.renderDashboard(el);
+
+    expect(el.innerHTML).toContain('stat-card--tempo');
+    expect(el.innerHTML).toContain('stat-card--sessoes');
+    expect(el.innerHTML).toContain('stat-card--questoes');
+    expect(el.innerHTML).toContain('stat-card--simulados');
+    expect(el.innerHTML).not.toMatch(/stat-card\s+(?:green|blue|orange|red)\b/);
+  });
+});
+
 describe('views.js - dashboard, charts, history, MED', () => {
   let views;
   let storeModule;
@@ -187,6 +247,17 @@ describe('views.js - dashboard, charts, history, MED', () => {
       storeModule.state.eventos = [];
       views.renderMED(el);
       expect(el.innerHTML).toContain('Nenhum evento nos próximos 7 dias');
+    });
+
+    it('renders the empty Study Organizer with compact stats and a prominent next-week action', () => {
+      const el = { innerHTML: '' };
+      storeModule.state.eventos = [];
+      views.renderMED(el);
+
+      expect(el.innerHTML).toContain('med-stats-row--compact');
+      expect(el.innerHTML).toContain('med-empty-primary-action');
+      expect(el.innerHTML).toContain('data-view="calendar"');
+      expect(el.innerHTML).toContain('Próximos 7 dias');
     });
 
     it('filters events by today date', () => {

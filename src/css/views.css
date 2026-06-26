@@ -28,6 +28,22 @@
   align-items: stretch;
 }
 
+.med-stats-row--compact {
+  margin-bottom: 12px;
+}
+
+.med-stats-row--compact .med-stat-card {
+  min-height: 82px;
+  padding: 12px 14px;
+}
+
+.med-stats-row--compact .dashboard-stat-value,
+.med-stats-row--compact .text-3xl,
+.med-stats-row--compact .med-focus-title {
+  font-size: 20px;
+  line-height: 1.15;
+}
+
 .med-focus-title {
   display: -webkit-box;
   overflow: hidden;
@@ -49,6 +65,10 @@
   justify-content: center;
 }
 
+.med-empty-primary-action {
+  min-width: min(100%, 220px);
+}
+
 /* MED summary header — bloco normal (rola junto com o conteúdo).
    Já foi sticky, mas a barra fixa sobrepunha os cards que rolavam por baixo
    dentro do scroll com padding/gap do main-content-stack; por decisão de UX
@@ -56,7 +76,7 @@
 .med-sticky-header {
   padding: 8px 4px 12px;
   margin-bottom: 12px;
-  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid var(--border);
 }
 
 .med-sticky-row {
@@ -83,15 +103,18 @@
 
 .med-sticky-bar {
   height: 6px;
-  border-radius: 3px;
-  background: var(--border, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-compact);
+  background: var(--border);
   overflow: hidden;
 }
 
 .med-sticky-bar-fill {
   height: 100%;
-  background: var(--accent, #4ea1ff);
-  transition: width 0.4s ease;
+  width: 100%;
+  background: var(--accent);
+  transform: scaleX(var(--bar-scale, 1));
+  transform-origin: left center;
+  transition: transform 0.4s ease;
 }
 
 .med-sticky-meta-label {
@@ -112,8 +135,8 @@
 }
 
 .med-badge--running {
-  background: rgba(78, 161, 255, 0.18);
-  color: var(--accent, #4ea1ff);
+  background: var(--info-bg);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -188,7 +211,7 @@
   font-size: 10px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius-loose);
   padding: 1px 8px;
   color: var(--text-secondary);
 }
@@ -253,7 +276,7 @@
   height: 34px;
   padding: 6px 34px 6px 11px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background-color: var(--card);
   color: var(--text-primary);
   font: inherit;
@@ -288,7 +311,7 @@
 /* Drive cloud icon */
 
 .drive-cloud-icon {
-  color: rgba(148, 163, 184, 0.5);
+  color: color-mix(in srgb, var(--text-muted), transparent 35%);
   font-size: 14px;
 }
 
@@ -357,7 +380,7 @@
   background: var(--danger-bg);
   color: var(--danger);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: 10px;
   font-weight: 800;
   margin-left: 8px;
@@ -367,7 +390,7 @@
   background: var(--warning-bg);
   color: var(--warning);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: 10px;
   font-weight: 800;
   margin-left: 8px;
@@ -395,7 +418,7 @@
 
 .aula-item-concluded {
   background: var(--bg-secondary);
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
 }
 
 .aula-title {
@@ -638,8 +661,11 @@
 
 /* Progress bar */
 .progress-bar {
+  width: 100%;
   border-radius: var(--radius-sm);
-  transition: width 0.3s ease;
+  transform: scaleX(var(--bar-scale, 1));
+  transform-origin: left center;
+  transition: transform 0.3s ease;
 }
 
 /* Habit count */
@@ -674,7 +700,7 @@
 .color-swatch {
   width: 24px;
   height: 24px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   border: 2px solid transparent;
   transition:
@@ -702,7 +728,7 @@
 .icon-grid-item {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 2px solid var(--border);
   display: flex;
   align-items: center;
@@ -774,7 +800,7 @@
 .seq-item-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-card-sm);
   overflow: hidden;
   margin-bottom: 0;
   display: flex;
@@ -894,8 +920,8 @@
 
 .seq-progress-bar {
   height: 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  background: var(--surface-soft);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   position: relative;
   margin-bottom: 12px;
@@ -910,7 +936,7 @@
   font-weight: 700;
   color: var(--text-primary);
   line-height: 14px;
-  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.8);
+  text-shadow: 0px 1px 2px var(--bg);
 }
 
 .seq-edit-footer {
@@ -962,7 +988,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   opacity: 0.6;
 }
 

@@ -1,4 +1,4 @@
-﻿// =============================================
+// =============================================
 // CREDENTIALS MANAGEMENT (IndexedDB)
 // =============================================
 // Armazena credenciais de sync separadamente do estado exportável.

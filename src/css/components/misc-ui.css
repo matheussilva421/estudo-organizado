@@ -60,7 +60,7 @@
 .color-swatch {
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
   cursor: pointer;
   border: 2px solid transparent;
   transition: border-color 0.15s;

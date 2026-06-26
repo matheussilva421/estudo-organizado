@@ -52,7 +52,7 @@
   height: 30px;
   padding: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
 }
 
@@ -116,14 +116,14 @@
 
 .sm-list-item {
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--card);
 }
 
 .sm-list-item--lesson {
-  border-left: 4px solid var(--accent);
-  padding-left: 8px;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
 }
 
 .sm-item-content {
@@ -199,7 +199,7 @@
 .sm-auto-link-card {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 12px;
   margin-bottom: 16px;
   display: flex;

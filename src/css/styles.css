@@ -38,7 +38,7 @@
 .cal-nav button {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--card);
   cursor: pointer;
@@ -70,13 +70,13 @@
   display: flex;
   gap: 2px;
   background: var(--bg);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 2px;
 }
 
 .cal-view-tab {
   padding: 5px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -102,7 +102,7 @@
   gap: 1px;
   background: var(--border);
   width: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--border);
 }
@@ -130,14 +130,14 @@
 .cal-cell {
   background: var(--card);
   min-width: 0;
-  min-height: 90px;
-  padding: 6px;
+  min-height: 82px;
+  padding: 5px;
   cursor: pointer;
   transition: background 0.1s;
 }
 
 .cal-grid.rows-6 .cal-cell {
-  min-height: clamp(64px, calc((100vh - 310px) / 6), 82px);
+  min-height: clamp(58px, calc((100vh - 280px) / 6), 72px);
 }
 
 .cal-cell:hover {
@@ -174,7 +174,7 @@
   font-size: 10.5px;
   line-height: 1.25;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -182,7 +182,9 @@
   font-weight: 500;
   width: 100%;
   max-width: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   box-sizing: border-box;
 }
 
@@ -195,13 +197,28 @@ button.cal-event-chip {
   line-height: 1.25;
   cursor: pointer;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
   color: inherit;
+}
+
+.cal-event-status-mark {
+  flex: 0 0 auto;
+  width: 1em;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.cal-event-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: inherit;
 }
 
 button.cal-event-chip:focus-visible {
@@ -367,7 +384,7 @@ button.cal-event-chip:focus-visible {
   background: var(--card);
   /* Base */
   background: linear-gradient(135deg, var(--card) 0%, var(--bg) 100%);
-  border-radius: 16px;
+  border-radius: var(--radius-modal);
   margin: -24px;
   padding: 0;
   display: flex;
@@ -390,7 +407,7 @@ button.cal-event-chip:focus-visible {
 .crono-pill {
   display: inline-block;
   padding: 8px 24px;
-  border-radius: 24px;
+  border-radius: var(--radius-xl);
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text-secondary);
@@ -486,7 +503,7 @@ button.cal-event-chip:focus-visible {
   background: var(--bg);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 8px;
   font-size: 16px;
   width: 100%;
@@ -510,7 +527,7 @@ button.cal-event-chip:focus-visible {
 
 .event-type-card {
   border: 2px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: 12px;
   cursor: pointer;
   transition:
@@ -934,12 +951,12 @@ button.cal-event-chip:focus-visible {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: var(--neutral-strong);
+  border-radius: var(--radius-compact);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-muted);
 }
 
 
@@ -961,10 +978,10 @@ button.cal-event-chip:focus-visible {
 .disc-card {
   position: relative;
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 20px;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px color-mix(in srgb, var(--bg), transparent 95%);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -975,7 +992,7 @@ button.cal-event-chip:focus-visible {
 
 .disc-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--bg), transparent 90%);
 }
 
 .disc-card::before {
@@ -1085,7 +1102,7 @@ button.cal-event-chip:focus-visible {
   font-size: 10px;
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   z-index: 2;
@@ -1144,7 +1161,7 @@ button.cal-event-chip:focus-visible {
 .sm-list {
   background: var(--surface);
   border: 1px solid var(--panel-divider);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   max-height: 400px;
   overflow-y: auto;
   display: flex;
@@ -1223,7 +1240,7 @@ button.cal-event-chip:focus-visible {
 }
 
 .reg-summary {
-  background: linear-gradient(135deg, var(--accent-light), rgba(125, 211, 168, 0.06));
+  background: linear-gradient(135deg, var(--accent-light), var(--success-bg));
 }
 
 .reg-summary-grid {
@@ -1236,7 +1253,7 @@ button.cal-event-chip:focus-visible {
   text-align: center;
   padding: 12px;
   background: var(--card-bg);
-  border-radius: 12px;
+  border-radius: var(--radius-card-sm);
   border: 1px solid var(--border);
 }
 
@@ -1281,7 +1298,7 @@ button.cal-event-chip:focus-visible {
 .reg-input {
   width: 100%;
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
@@ -1317,7 +1334,7 @@ button.cal-event-chip:focus-visible {
 .reg-textarea {
   width: 100%;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
@@ -1337,7 +1354,7 @@ button.cal-event-chip:focus-visible {
 
 .btn-inline {
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   border: 1px dashed var(--border);
   background: transparent;
   color: var(--green);
@@ -1371,7 +1388,7 @@ button.cal-event-chip:focus-visible {
   align-items: center;
   gap: 4px;
   padding: 8px 14px;
-  border-radius: 20px;
+  border-radius: var(--radius-loose);
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text-muted);
@@ -1403,7 +1420,7 @@ button.cal-event-chip:focus-visible {
 .reg-results-card {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-card-sm);
   padding: 16px;
   margin-bottom: 12px;
 }
@@ -1476,7 +1493,7 @@ button.cal-event-chip:focus-visible {
 .streak-dot {
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1501,7 +1518,7 @@ button.cal-event-chip:focus-visible {
   width: 100%;
   height: 14px;
   background: var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   position: relative;
 }
@@ -1512,8 +1529,11 @@ button.cal-event-chip:focus-visible {
 
 .dash-progress-bar {
   height: 100%;
-  border-radius: 8px;
-  transition: width 0.3s;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  transform: scaleX(var(--bar-scale, 1));
+  transform-origin: left center;
+  transition: transform 0.3s;
   position: relative;
 }
 
@@ -1586,7 +1606,7 @@ button.cal-event-chip:focus-visible {
   display: flex;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-card-sm);
   padding: 16px;
   gap: 16px;
   align-items: stretch;
@@ -1606,7 +1626,7 @@ button.cal-event-chip:focus-visible {
 
 .ciclo-item-cor {
   width: 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
   flex-shrink: 0;
 }
 
@@ -1719,7 +1739,7 @@ button.cal-event-chip:focus-visible {
 .wizard-box {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-card-sm);
   padding: 16px;
   cursor: pointer;
   transition:
@@ -1764,7 +1784,7 @@ button.cal-event-chip:focus-visible {
   margin-bottom: 12px;
   background: var(--bg);
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
 }
 
@@ -1804,7 +1824,7 @@ button.cal-event-chip:focus-visible {
     opacity: 1;
     pointer-events: auto;
     background: var(--card-color, var(--accent));
-    border-radius: 6px;
+    border-radius: var(--radius-tight);
     padding: 10px 8px;
     margin-top: auto;
   }
@@ -1936,12 +1956,46 @@ button.cal-event-chip:focus-visible {
   }
 }
 
+@media (max-width: 480px) {
+  .topbar {
+    align-content: flex-start;
+    gap: 8px;
+  }
+
+  .topbar > div:not(.topbar-right):not(.sync-pill-wrapper) {
+    flex: 1 1 calc(100% - 52px);
+    min-width: 0;
+  }
+
+  .topbar-title {
+    max-width: 100%;
+  }
+
+  .topbar-right {
+    order: 10;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .sync-pill-wrapper {
+    order: 11;
+    flex: 0 0 auto;
+  }
+
+  .topbar-theme-btn {
+    order: 12;
+    flex: 0 0 auto;
+  }
+}
+
 /* â”€â”€ Mobile Calendar: vertical scrollable list â”€â”€ */
 .cal-mobile-list {
   display: flex;
   flex-direction: column;
   gap: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow-y: auto;
   overflow-x: hidden;
   border: 1px solid var(--border);
@@ -2025,7 +2079,13 @@ button.cal-event-chip:focus-visible {
   padding: 6px 10px;
   white-space: normal;
   line-height: 1.3;
-  border-radius: 6px;
+  border-radius: var(--radius-tight);
+}
+
+.cal-mobile-events .cal-event-title {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* â”€â”€ Screen reader only utility â”€â”€ */
@@ -2077,7 +2137,7 @@ button.cal-event-chip:focus-visible {
 .ciclo-action-link:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 /* Dynamic cards that must grow after the final legacy card rule is applied.
@@ -2108,7 +2168,7 @@ button.cal-event-chip:focus-visible {
   gap: 12px;
   padding-right: 12px;
   padding-bottom: 16px;
-  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  scrollbar-color: var(--neutral-strong) transparent;
   scrollbar-width: thin;
 }
 
@@ -2202,7 +2262,7 @@ button.cal-event-chip:focus-visible {
 
 .seq-item-card--editing {
   min-height: auto;
-  border-radius: 12px;
+  border-radius: var(--radius-card-sm);
 }
 
 .seq-item-card--editing .seq-item-content {
@@ -2246,7 +2306,7 @@ button.cal-event-chip:focus-visible {
   width: 28px;
   height: 28px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--card);
   display: inline-flex;
   align-items: center;

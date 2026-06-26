@@ -100,6 +100,22 @@ describe('views/calendar-view.js', () => {
       const chipTag = html.match(/<div class="cal-event-chip[^>]*>/)[0];
       expect(chipTag).toContain('role="button"');
     });
+
+    it('chips de evento expoem status por texto acessivel e marcador visivel alem da cor', () => {
+      utilsModule.getEventStatus.mockReturnValue('atrasado');
+      storeModule.state.eventos = [
+        { id: 'e1', titulo: 'Direito Administrativo', data: '2026-04-29', status: 'agendado' },
+      ];
+
+      const desktopHtml = calendarView.renderCalendarMonth();
+      const mobileHtml = calendarView.renderCalendarMobileMonth();
+
+      expect(desktopHtml).toContain('aria-label="Abrir evento Direito Administrativo, status Atrasado"');
+      expect(desktopHtml).toContain('cal-event-status-mark');
+      expect(desktopHtml).toContain('>!<');
+      expect(mobileHtml).toContain('aria-label="Abrir evento Direito Administrativo, status Atrasado"');
+      expect(mobileHtml).toContain('cal-event-status-mark');
+    });
   });
 
   describe('calNavigate()', () => {

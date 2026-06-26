@@ -256,11 +256,12 @@ npm run test:unit
 4. e2e mock: cobrir 1º load (sem modal) + alternância de escopo.
 
 **Checkpoints**
-- [ ] 1º load **não** abre modal bloqueante; Home visível imediatamente
-- [ ] Seleção de edital principal disponível inline / via Editais, sem travar
-- [ ] Regra de escopo decidida e documentada (a ou b)
-- [ ] Home não comunica "0%/sem progresso" enganoso quando há dados lifetime
-- [ ] Testes unit + e2e mock verdes
+- [x] 1º load **não** abre modal bloqueante; Home visível imediatamente
+- [x] Seleção de edital principal disponível inline / via Editais, sem travar
+- [x] Regra de escopo decidida: opção (a), Home default = todos os editais ativos enquanto a escolha do principal estiver pendente
+- [x] Home não comunica "0%/sem progresso" enganoso quando há dados lifetime
+- [x] Testes unit verdes para bootstrap sem modal, CTA inline e escopo agregado pendente
+- [x] e2e mock verde (`tests/e2e/mock-environment.spec.js` — 11/11, inclui asserção explícita de "first load sem modal bloqueante"); o timeout relatado antes era ambiental (porta presa por `node.exe` orfão), não regressão
 - [ ] Validação manual: abrir mock em modo `reset` e `clean` (app vazio) — ambos sem bloqueio
 
 **Critério de aceite:** Home utilizável e honesta no 1º acesso; "o que faço agora" claro em ≤5s.
@@ -297,11 +298,11 @@ npm run test:unit
 5. Conferir alvos de toque ≥44px (já implementado para `pointer: coarse`).
 
 **Checkpoints**
-- [ ] Nenhum status depende exclusivamente de cor (texto/ícone/forma redundante)
-- [ ] Arrakis `danger`/card ≥4.5:1; demais temas sem regressão (Apêndice A verde)
-- [ ] Topbar mobile sem botão órfão (testar 360/390/414px)
-- [ ] Calendário legível em 390px (sem "Dir…")
-- [ ] Alvos de toque ≥44px confirmados
+- [x] Nenhum status depende exclusivamente de cor nos chips do calendário (marcador visível + `aria-label` textual)
+- [x] Arrakis `danger`/card ≥4.5:1; demais temas sem regressão (Apêndice A verde)
+- [x] Topbar mobile sem botão órfão (testado em 360/390/414px via Playwright headed)
+- [x] Calendário legível em 390px (chip mobile sem ellipsis; título pode quebrar linha)
+- [x] Alvos de toque ≥44px confirmados por regras existentes `pointer: coarse`/44px
 
 **Critério de aceite:** persona Sam (a11y) sem red flags de cor-only; AA total nos 6 temas; mobile sem quebras.
 **Riscos:** clarear Arrakis danger pode aproximar de warning. **Mitigação:** checar distância perceptual + contraste.
@@ -334,12 +335,12 @@ npm run test:unit
 4. Revalidar visualmente as barras de progresso (Home, Dashboard, Verticalizado, Revisões).
 
 **Checkpoints**
-- [ ] DESIGN.md documenta a regra de faixa lateral (status/categoria) e a proíbe como enfeite
-- [ ] `subject-manager` accent stripe removida/reescrita
-- [ ] Barras de progresso animam via `transform`, não `width`
-- [ ] `prefers-reduced-motion` cobre todas as animações tocadas
-- [ ] Detector: `layout-transition` → 0 (fora de allowlist); `side-tab` só nos casos documentados
-- [ ] Validação visual das barras
+- [x] DESIGN.md documenta a regra de faixa lateral (status/categoria) e a proíbe como enfeite
+- [x] `subject-manager` accent stripe removida/reescrita
+- [x] Barras de progresso animam via `transform`, não `width`
+- [x] `prefers-reduced-motion` cobre todas as animações tocadas
+- [x] Detector: `layout-transition` → 0 (fora de allowlist); `side-tab` só nos casos documentados
+- [x] Validação visual das barras
 
 **Critério de aceite:** faixas laterais consistentes com a regra documentada; sem animação de layout; reduced-motion respeitado.
 **Riscos:** `scaleX` distorce conteúdo interno da barra (labels). **Mitigação:** animar só o preenchimento, não o container com texto.
@@ -361,12 +362,12 @@ npm run test:unit
 6. **`/impeccable polish`** como passada final de acabamento.
 
 **Checkpoints**
-- [ ] Study Organizer com estado compacto quando vazio
-- [ ] Backdrop do modal comanda foco
-- [ ] Calendário desktop mais denso/equilibrado
-- [ ] Decisão sobre lint de design no CI registrada (e ligado, se aprovado)
-- [ ] Re-critique executada; score comparado (alvo: Consistência 2→3+, total ≥32)
-- [ ] Snapshot da critique atualizado
+- [x] Study Organizer com estado compacto quando vazio
+- [x] Backdrop do modal comanda foco
+- [x] Calendário desktop mais denso/equilibrado
+- [x] Decisão sobre lint de design no CI registrada: criado `npm run test:design` (test:css + `contrast-audit.mjs --enforce`) como guardrail explícito; **não** ligado ao `npm run ci` por ora (decisão do usuário 2026-06-26)
+- [x] Re-critique executada; score comparado (alvo: Consistência 2→3+, total ≥32)
+- [x] Snapshot da critique atualizado
 
 **Critério de aceite:** score sobe (especialmente Consistência); DESIGN.md reflete e/ou força o código.
 **Git:** `polish(ui): acabamento final pós-remediação + DESIGN.md como contrato`.
@@ -396,6 +397,7 @@ npm run mock:clean           # app vazio (testar empty states)
 npm run lint                 # eslint src/
 npm run test:unit            # vitest (unit)
 npm run test:views           # suíte de views
+npm run test:design          # guardrail de design: css-architecture + contraste AA (NÃO está no ci)
 npm run test:e2e:mock:all    # e2e no ambiente mock
 npm run format:check         # prettier (ver nota CRLF no Windows abaixo)
 node "C:/Users/slvma/.claude/skills/impeccable/scripts/detect.mjs" --json src   # detector

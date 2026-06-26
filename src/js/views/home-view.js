@@ -33,6 +33,41 @@ function getActiveEditalId() {
   return getSelectedEditalId();
 }
 
+function shouldShowPrincipalChoice() {
+  const activeEditais = (state.editais || []).filter((edital) => !edital.arquivado);
+  if (activeEditais.length <= 1) return false;
+  try {
+    return localStorage.getItem('estudo_principal_reconciled') !== 'true';
+  } catch {
+    return true;
+  }
+}
+
+function renderPrincipalChoiceBanner() {
+  const activeEditais = (state.editais || []).filter((edital) => !edital.arquivado);
+  if (!shouldShowPrincipalChoice()) return '';
+
+  return `
+    <div class="home-principal-choice" role="region" aria-label="Escolha de edital principal">
+      <div class="home-principal-choice-copy">
+        <div class="dash-label">ESCOPO DO PAINEL</div>
+        <div class="home-principal-choice-title">Defina seu edital principal</div>
+        <div class="home-principal-choice-text">A Home continua disponivel. Escolha o foco para arquivar os demais editais sem perder historico.</div>
+      </div>
+      <div class="home-principal-choice-actions">
+        ${activeEditais
+          .map(
+            (edital) => `
+          <button class="btn btn-ghost btn-sm" data-action="make-edital-principal" data-edital-id="${esc(edital.id)}">
+            ${esc(edital.nome || 'Edital')}
+          </button>`
+          )
+          .join('')}
+      </div>
+    </div>
+  `;
+}
+
 function fmtHM(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
   const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
@@ -111,7 +146,7 @@ function renderLifetimeKpis(ctx) {
 
   return `
     <div class="dash-grid-top">
-      <div class="card p-16 dashboard-stat-card home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
+      <div class="card p-16 dashboard-stat-card stat-card--tempo home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
         <div>
           <div class="dash-label">TEMPO DE ESTUDO</div>
           <div class="dashboard-stat-value dashboard-stat-value--mono">${totalTimeStr}</div>
@@ -120,7 +155,7 @@ function renderLifetimeKpis(ctx) {
         </div>
       </div>
 
-      <div class="card p-16 dashboard-stat-card home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
+      <div class="card p-16 dashboard-stat-card stat-card--questoes home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
         <div>
           <div class="dash-label">DESEMPENHO</div>
           <div class="dashboard-stat-detail-list">
@@ -133,18 +168,18 @@ function renderLifetimeKpis(ctx) {
         <div class="dashboard-stat-value">${perfPerc}%</div>
       </div>
 
-      <div class="card p-16 dashboard-stat-card home-card dash-stat-card--clickable" data-action="navigate" data-view="editais" role="button" tabindex="0" title="Abrir edital" aria-label="Abrir edital">
+      <div class="card p-16 dashboard-stat-card stat-card--concluidas home-card dash-stat-card--clickable" data-action="navigate" data-view="editais" role="button" tabindex="0" title="Abrir edital" aria-label="Abrir edital">
         <div>
           <div class="dash-label">PROGRESSO NO EDITAL</div>
           <div class="dashboard-stat-detail-list">
             <div class="dashboard-stat-detail dashboard-stat-detail--positive">${prog.totalConcluidos} Aulas concluídas</div>
-            <div class="dashboard-stat-detail dashboard-stat-detail--negative">${prog.totalAssuntos - prog.totalConcluidos} Aulas Pendentes</div>
+            <div class="dashboard-stat-detail dashboard-stat-detail--neutral">${prog.totalAssuntos - prog.totalConcluidos} Aulas Pendentes</div>
           </div>
         </div>
         <div class="dashboard-stat-value">${progPerc}%</div>
       </div>
 
-      <div class="card p-16 dashboard-stat-card home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
+      <div class="card p-16 dashboard-stat-card stat-card--paginas home-card dash-stat-card--clickable" data-action="navigate" data-view="dashboard" role="button" tabindex="0" title="Ver estatísticas detalhadas" aria-label="Ver estatísticas detalhadas">
         <div>
           <div class="dash-label">PÁGINAS LIDAS</div>
           <div class="dashboard-stat-value dashboard-stat-value--mono">${pagesReadTotal}</div>
@@ -159,7 +194,7 @@ function renderLifetimeKpis(ctx) {
 // --- FAIXA 2: HERO (countdown + próxima ação + CTAs) -----------------------
 function renderHero(ctx) {
   const { dataProva, streak } = ctx;
-  const activeEditalId = getActiveEditalId();
+  const activeEditalId = ctx.activeEditalId;
   const next = getNextSuggestedLesson(activeEditalId);
 
   let countdownHtml;
@@ -275,7 +310,7 @@ function renderWeekKpis(ctx) {
         <div class="dash-label">HORAS ESTA SEMANA</div>
         <div class="dash-week-value text-mono">${horasFmt} <span class="dash-week-target">/ ${metaHoras}h00</span></div>
         <div class="dash-progress-track" style="margin-top:8px;">
-          <div class="dash-progress-bar" style="width:${percHoras}%; background:var(--accent);">
+          <div class="dash-progress-bar" style="--bar-scale:${percHoras / 100}; background:var(--accent);">
             <span class="text-xs absolute dash-progress-bar-label">${percHoras}%</span>
           </div>
         </div>
@@ -290,7 +325,7 @@ function renderWeekKpis(ctx) {
         <div class="dash-label">QUESTÕES ESTA SEMANA</div>
         <div class="dash-week-value text-mono">${weekStats.totalQuestions} <span class="dash-week-target">/ ${metaQuest}</span></div>
         <div class="dash-progress-track" style="margin-top:8px;">
-          <div class="dash-progress-bar dash-progress-bar--questions" style="width:${percQuest}%;">
+          <div class="dash-progress-bar dash-progress-bar--questions" style="--bar-scale:${percQuest / 100};">
             <span class="text-xs absolute dash-progress-bar-label">${percQuest}%</span>
           </div>
         </div>
@@ -323,9 +358,9 @@ function renderWeekKpis(ctx) {
 
 // --- FAIXA 4: ANÁLISE (esquerda: barras por disciplina | direita: gráficos) -
 function renderSubjectProgress(ctx) {
-  // Modelo de edital principal único: sem abas de troca de edital. O progresso
-  // é sempre do principal (groups já vem sem editais arquivados).
-  const activeId = getActiveEditalId();
+  // Modelo de edital principal unico: sem abas de troca de edital. Enquanto a
+  // escolha inicial esta pendente, mostra todos os editais ativos.
+  const activeId = ctx.activeEditalId;
   const groups = ctx.disciplineProgress;
   const visibleGroups = activeId ? groups.filter((g) => g.edital.id === activeId) : groups;
   const allRows = visibleGroups.flatMap((group) =>
@@ -359,7 +394,7 @@ function renderSubjectProgress(ctx) {
       <div class="dash-subject-progress-row" data-action="navigate-with-ctx" data-view="dashboard" data-ctx="${encodeURIComponent(JSON.stringify({ discId: row.disc.id, editalId: row.edital.id }))}" role="button" tabindex="0" title="Abrir ${esc(row.disc.nome)}" aria-label="Abrir ${esc(row.disc.nome)}">
         <div class="dash-subject-progress-name text-ellipsis" title="${esc(row.disc.nome)}">${esc(row.disc.nome)}${activeId ? '' : ` · ${esc(row.edital.nome)}`}</div>
         <div class="dash-subject-progress-bar-wrap">
-          <div class="dash-subject-progress-bar" style="width:${fill}%; background:${color};"></div>
+          <div class="dash-subject-progress-bar" style="--bar-scale:${fill / 100}; background:${color};"></div>
         </div>
         <div class="dash-subject-sparkline" title="Tempo de estudo nos últimos 7 dias">${sparklineHtml}</div>
         <div class="dash-subject-progress-meta">
@@ -399,11 +434,11 @@ function renderAnalysisColumn(ctx) {
   const maxSec = Math.max(...weekStats.dailySeconds, 3600);
   const hasData = weekStats.totalSeconds > 0;
   const barsHtml = hasData
-    ? weekStats.dailySeconds.map((sec, i) => {
-        const h = (sec / maxSec) * 100;
+      ? weekStats.dailySeconds.map((sec, i) => {
+        const barScale = sec / maxSec;
         return `
           <div class="flex-col flex-center flex-1 h-full justify-end">
-            <div class="home-weekly-study-bar" style="height:${h}%;" title="${formatTime(sec)}" role="img" aria-label="${days[i]}: ${formatTime(sec)} estudados"></div>
+            <div class="home-weekly-study-bar" style="--bar-scale:${barScale};" title="${formatTime(sec)}" role="img" aria-label="${days[i]}: ${formatTime(sec)} estudados"></div>
             <div class="text-xs font-semibold text-muted mt-2">${days[i]}</div>
           </div>`;
       }).join('')
@@ -426,7 +461,7 @@ function renderAnalysisColumn(ctx) {
         </div>
         <div class="dash-prediction-bar">
           <div class="dash-prediction-bar-track">
-            <div class="dash-prediction-bar-fill" style="width:${projWidth}%; background:${statusColor};"></div>
+            <div class="dash-prediction-bar-fill" style="--bar-scale:${projWidth / 100}; background:${statusColor};"></div>
             <div class="dash-prediction-bar-mark" style="left:${targetMark}%;" title="Meta 100%"></div>
           </div>
           <div class="dash-prediction-bar-labels">
@@ -537,8 +572,11 @@ export function renderHome(el) {
   // (cache interno de logic.js é preservado entre re-renders, mas aqui força preenchimento
   // antes das demais chamadas e dá contexto explícito de performance.)
   const agg = getAggregatedStats();
-  const activeEditalId = getActiveEditalId();
-  const scopedEvents = filterEventsBySelectedEdital(state.eventos || [], { allowAll: true });
+  const principalChoicePending = shouldShowPrincipalChoice();
+  const activeEditalId = principalChoicePending ? null : getActiveEditalId();
+  const scopedEvents = principalChoicePending
+    ? state.eventos || []
+    : filterEventsBySelectedEdital(state.eventos || [], { allowAll: true });
   const scopedCompletedEvents = scopedEvents.filter((event) => event.status === 'estudei');
 
   // Calcula tudo uma vez.
@@ -604,10 +642,13 @@ export function renderHome(el) {
     streak, weekStats, prevWeekStats, aulasWeek, disciplineProgress,
     metaHoras, metaQuest, percHoras, percQuest, pred,
     totalTimeStr,
+    activeEditalId,
     dataProva: state.config.dataProva,
   };
 
   el.innerHTML = `
+    ${renderPrincipalChoiceBanner()}
+
     <!-- FAIXA 1: KPIs LIFETIME -->
     ${renderLifetimeKpis(ctx)}
 

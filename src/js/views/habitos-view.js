@@ -20,6 +20,7 @@ import { recordSyncTombstone } from '../sync/sync-center.js?v=8.37';
 export const HABIT_HIST_PAGE_SIZE = 20;
 export let habitHistPage = 1;
 let currentHabitType = null;
+const KEY_HABIT_KEYS = new Set(['questoes', 'paginas', 'videoaula']);
 
 function getQuestionTotal(record) {
   if (!record) return 0;
@@ -151,6 +152,7 @@ export function renderHabitos(el) {
       ${HABIT_TYPES.map((h) => {
         const all = state.habitos[h.key] || [];
         const _recentArr = all.filter((r) => r.data >= cutoffStr);
+        const tier = KEY_HABIT_KEYS.has(h.key) ? 'key' : 'supporting';
 
         let total, recentStr;
 
@@ -183,7 +185,7 @@ export function renderHabitos(el) {
             : '';
 
         return `
-          <div class="habit-card" data-action="open-habit-modal" data-habit-key="${h.key}" role="button" tabindex="0" aria-label="Registrar ${h.label}">
+          <div class="habit-card habit-card--${tier} habit-card--${h.key}" data-action="open-habit-modal" data-habit-key="${h.key}" data-habit-tier="${tier}" data-habit-category="${h.key}" role="button" tabindex="0" aria-label="Registrar ${h.label}">
             <div class="hc-icon">${h.icon}</div>
             <div class="hc-label">${h.label}</div>
             <div class="hc-count" data-habit-color="${h.color}">${total}</div>
