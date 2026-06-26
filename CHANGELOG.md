@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Dois novos temas: Codex e Plasma
+
+**Data**: 2026-06-26
+
+- **feat(temas)**: adicionados os temas **Codex** (void azul-aço, accent azul `#56a7ff`, sinal verde-menta, info ciano — baseado em CodexTerminal 2031) e **Plasma** (quase-preto, accent teal `#00d4b1`, violeta para questões/Pomodoro — baseado em Terminal 2031); total de 8 temas
+- **feat(temas)**: ambos herdam o contrato de tokens existente e participam dos seletores `:is(...)` compartilhados; só trocam cores/superfícies, preservando as fontes globais (Plus Jakarta Sans + DM Mono)
+- **a11y**: contraste WCAG AA verificado nos dois temas (`text-muted`/`text-secondary` ≥ 4.5:1 sobre `--card`)
+- **chore(cache)**: bump de cache-busting 8.96 → 8.97
+
 ### Reorganização do repositório e documentação
 
 **Data**: 2026-06-25

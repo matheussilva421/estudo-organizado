@@ -99,6 +99,8 @@ describe('app.js', () => {
       expect(app.normalizeTheme('terminal')).toBe('terminal');
       expect(app.normalizeTheme('neon')).toBe('neon');
       expect(app.normalizeTheme('arrakis')).toBe('arrakis');
+      expect(app.normalizeTheme('codex')).toBe('codex');
+      expect(app.normalizeTheme('plasma')).toBe('plasma');
     });
 
     it('converts legacy aliases to modern themes', () => {
@@ -125,6 +127,8 @@ describe('app.js', () => {
       expect(app.getThemeLabel('terminal')).toBe('Terminal');
       expect(app.getThemeLabel('neon')).toBe('Neon');
       expect(app.getThemeLabel('arrakis')).toBe('Arrakis');
+      expect(app.getThemeLabel('codex')).toBe('Codex');
+      expect(app.getThemeLabel('plasma')).toBe('Plasma');
     });
 
     it('normalizes theme before getting label', () => {
@@ -272,13 +276,15 @@ describe('app.js', () => {
 
   describe('THEME_OPTIONS', () => {
     it('exports theme options array', () => {
-      expect(app.THEME_OPTIONS).toHaveLength(6);
+      expect(app.THEME_OPTIONS).toHaveLength(8);
       expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('grafite');
       expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('ardosia');
       expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('platina');
       expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('terminal');
       expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('neon');
       expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('arrakis');
+      expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('codex');
+      expect(app.THEME_OPTIONS.map((t) => t.value)).toContain('plasma');
       expect(app.THEME_OPTIONS.map((t) => t.value)).not.toContain('pergaminho');
     });
   });

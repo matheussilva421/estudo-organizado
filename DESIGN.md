@@ -153,7 +153,7 @@ O sistema rejeita o **SaaS genérico** (cards em gradiente, template hero-metric
 - Accent raro e funcional: ação, seleção e estado — nunca decoração.
 - Números em DM Mono; texto em Plus Jakarta Sans. Medida e prosa têm fontes distintas.
 - Escala tipográfica fixa em px (não fluida), do desktop ao celular.
-- Seis atmosferas (temas) sobre a mesma estrutura; todas mantêm contraste AA.
+- Oito atmosferas (temas) sobre a mesma estrutura; todas mantêm contraste AA.
 
 ## 2. Colors
 
@@ -183,7 +183,7 @@ Paleta escura de instrumento: superfícies quase-pretas estratificadas por tom, 
 ### Named Rules
 **A Regra do Accent Raro.** O accent carrega ≤ 10% de qualquer tela: ação primária, item ativo, foco, seleção. Em estado inativo, nada usa cor saturada. A raridade é o que dá poder ao azul-aço.
 
-**A Regra das Seis Atmosferas.** Existem 6 temas (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis). O que muda é o accent e a temperatura da superfície — nunca a estrutura. Toda cor deve manter contraste AA nos seis, não só no Grafite (padrão).
+**A Regra das Oito Atmosferas.** Existem 8 temas (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis, Codex, Plasma). O que muda é o accent e a temperatura da superfície — nunca a estrutura. Toda cor deve manter contraste AA nos oito, não só no Grafite (padrão).
 
 **A Regra dos Tokens Canônicos.** O vocabulário semântico é `--success`, `--warning`, `--danger`, `--info`, `--question` e seus fundos. Aliases históricos (`--green`, `--orange`, `--yellow`, `--red`, `--blue`, `--purple`) existem apenas para compatibilidade e devem apontar para os tokens canônicos do tema.
 
@@ -281,7 +281,7 @@ Cronômetro em DM Mono, 32px/500, letter-spacing 1px — a Regra do Mono-para-Me
 - **Do** tratar densidade como recurso: muita informação útil, **ordenada por hierarquia e alinhamento**. Denso, nunca poluído.
 - **Do** carregar todo painel elevado com o rim-light `inset 0 1px 0 rgba(255,255,255,0.025)`.
 - **Do** usar DM Mono apenas para valores quantitativos; Plus Jakarta para todo o resto.
-- **Do** verificar contraste AA nos seis temas, não só no Grafite. Corpo ≥ 4.5:1; texto grande ≥ 3:1; placeholder ≥ 4.5:1.
+- **Do** verificar contraste AA nos oito temas, não só no Grafite. Corpo ≥ 4.5:1; texto grande ≥ 3:1; placeholder ≥ 4.5:1.
 - **Do** manter foco visível (outline 2px accent, offset 2px) em todo elemento interativo e alvos de toque ≥ 44px.
 - **Do** respeitar `prefers-reduced-motion` com crossfade/transição instantânea; transições de 150–250ms para estado.
 - **Do** manter escala px fixa e vocabulário de componentes idêntico nas 13 telas.

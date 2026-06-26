@@ -10,6 +10,8 @@ export const THEME_OPTIONS = [
   { value: 'terminal', label: 'Terminal' },
   { value: 'neon', label: 'Neon' },
   { value: 'arrakis', label: 'Arrakis' },
+  { value: 'codex', label: 'Codex' },
+  { value: 'plasma', label: 'Plasma' },
 ];
 
 const THEME_VALUES = THEME_OPTIONS.map((theme) => theme.value);

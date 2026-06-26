@@ -122,7 +122,7 @@ O app tem 13 telas acessíveis pela sidebar: Página Inicial, Study Organizer, C
 - **Auto-link aulas ↔ assuntos** com threshold de 70%
 
 ### ⚙️ Configurações
-- **6 temas visuais**: Grafite, Ardósia, Platina, Terminal, Neon, Arrakis
+- **8 temas visuais**: Grafite, Ardósia, Platina, Terminal, Neon, Arrakis, Codex, Plasma
 - **Meta semanal** de horas de estudo
 - **Frequência de revisão** personalizável (4 intervalos)
 - **Pomodoro**: tempos de foco e pausa configuráveis

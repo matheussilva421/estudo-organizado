@@ -140,12 +140,12 @@ describe('app/ sub-module imports', () => {
   // ── Themes module ──────────────────────────────────────────────
 
   describe('app/themes.js', () => {
-    it('exports THEME_OPTIONS with 6 themes', async () => {
+    it('exports THEME_OPTIONS with 8 themes', async () => {
       const mod = await import('../../src/js/app/themes.js');
       expect(mod.THEME_OPTIONS).toBeDefined();
-      expect(mod.THEME_OPTIONS).toHaveLength(6);
+      expect(mod.THEME_OPTIONS).toHaveLength(8);
       expect(mod.THEME_OPTIONS.map((t) => t.value)).toEqual([
-        'grafite', 'ardosia', 'platina', 'terminal', 'neon', 'arrakis',
+        'grafite', 'ardosia', 'platina', 'terminal', 'neon', 'arrakis', 'codex', 'plasma',
       ]);
     });
 
@@ -404,7 +404,7 @@ describe('app.js re-exports', () => {
   it('re-exports THEME_OPTIONS from themes sub-module', async () => {
     const app = await import('../../src/js/app.js?v=8.37');
     expect(app.THEME_OPTIONS).toBeDefined();
-    expect(app.THEME_OPTIONS).toHaveLength(6);
+    expect(app.THEME_OPTIONS).toHaveLength(8);
   });
 
   it('re-exports normalizeTheme from themes sub-module', async () => {
