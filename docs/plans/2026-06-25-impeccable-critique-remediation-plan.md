@@ -261,7 +261,7 @@ npm run test:unit
 - [x] Regra de escopo decidida: opção (a), Home default = todos os editais ativos enquanto a escolha do principal estiver pendente
 - [x] Home não comunica "0%/sem progresso" enganoso quando há dados lifetime
 - [x] Testes unit verdes para bootstrap sem modal, CTA inline e escopo agregado pendente
-- [ ] e2e mock verde
+- [x] e2e mock verde (`tests/e2e/mock-environment.spec.js` — 11/11, inclui asserção explícita de "first load sem modal bloqueante"); o timeout relatado antes era ambiental (porta presa por `node.exe` orfão), não regressão
 - [ ] Validação manual: abrir mock em modo `reset` e `clean` (app vazio) — ambos sem bloqueio
 
 **Critério de aceite:** Home utilizável e honesta no 1º acesso; "o que faço agora" claro em ≤5s.

@@ -11,7 +11,7 @@
 | 0 — Preparação, baseline e guardrails | ✅ concluída |
 | 1 — Fundação de cor semântica + tokens | ✅ concluída |
 | 2 — Unificar stat cards (cor semântica) | ✅ concluída |
-| 3 — Primeiro acesso & escopo | codigo concluido; e2e/manual pendentes |
+| 3 — Primeiro acesso & escopo | ✅ concluída (e2e mock 11/11; validação manual segue opcional) |
 | 4 — Acessibilidade | ✅ concluída |
 | 5 — Side-stripes + movimento/perf | ✅ concluída |
 | 6 — Minors + polish + re-critique | ✅ concluída (E2E mock da Fase 3 segue pendente) |
@@ -20,6 +20,24 @@
 - Detector (`detect.mjs --json src`): **258** achados (234 advisory, 24 warning, 0 erros).
 - Testes unit: **1857 passed / 113 files** (antes da Fase 0). Após Fase 0: **1888 / 114**.
 - Contraste WCAG: corpo AA OK nos 6 temas; única exceção `arrakis danger/card = 4.42` (corpo pequeno) — alvo da Fase 4.
+
+---
+
+## Fase 3 - E2E mock desbloqueado (2026-06-26 07:45 -03)
+
+**Resumo:** O "bloqueio" do E2E mock da Fase 3 era ambiental, nao regressao. Diagnostico com a skill `diagnose`: o mock server sobe saudavel (curl `/` -> 200, 98KB, marcadores mock presentes) e a suite `mock-environment.spec.js` roda verde de ponta a ponta. O timeout de 180s relatado em sessoes anteriores vinha de porta presa por `node.exe` orfao / runner, nao de falha de produto.
+
+**Evidencia (loop de feedback):**
+- `node scripts/local-mock-server.mjs` + curl: `/` retorna 200 com `__MOCK_MODE__` e `main-content`.
+- Dataset mock: 3 editais ativos e `principalEditalId` ausente -> exatamente o cenario que abria o modal bloqueante. Logo, o first-load do mock exercita o caminho da Fase 3.
+- `npx playwright test --project=mock mock-environment.spec.js` -> **11/11 verde em ~16s**.
+
+**Alteracoes:**
+- `tests/e2e/mock-environment.spec.js` - novo teste "first load is not blocked by a principal-edital modal (Fase 3)": assoia Home imediata (`Página Inicial` + `TEMPO DE ESTUDO`), `.modal-overlay.open` com count 0, e `.home-principal-choice` visivel. Trava o contrato da Fase 3 no E2E.
+- `docs/plans/...-remediation-plan.md` - checkbox "e2e mock verde" marcado com a nota de que o timeout era ambiental.
+- `docs/handoffs/...` - status da Fase 3 atualizado para concluida.
+
+**Pendencia remanescente:** validacao manual `reset`/`clean` continua opcional (o E2E ja cobre o comportamento sem bloqueio).
 
 ---
 

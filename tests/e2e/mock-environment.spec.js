@@ -128,6 +128,22 @@ test.describe('Mock Environment', () => {
     expect(mockMode).toBe(true);
   });
 
+  test('first load is not blocked by a principal-edital modal (Fase 3)', async ({ page }) => {
+    // Mock dataset has 3 active editais and no principalEditalId — exactly the
+    // scenario that used to open a blocking "Qual e seu edital principal?" modal.
+    await page.goto('/');
+
+    // Home must be usable immediately.
+    await expect(page.locator('#topbar-title')).toHaveText('Página Inicial');
+    await expect(page.locator('#main-content')).toContainText('TEMPO DE ESTUDO');
+
+    // No blocking modal overlay should be open on first load.
+    await expect(page.locator('.modal-overlay.open')).toHaveCount(0);
+
+    // The principal-edital choice is offered inline on the Home instead.
+    await expect(page.locator('.home-principal-choice')).toBeVisible();
+  });
+
   test('data persists after page reload', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('#topbar-title')).toHaveText('Página Inicial');
