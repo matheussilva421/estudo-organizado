@@ -365,9 +365,9 @@ npm run test:unit
 - [x] Study Organizer com estado compacto quando vazio
 - [x] Backdrop do modal comanda foco
 - [x] Calendário desktop mais denso/equilibrado
-- [ ] Decisão sobre lint de design no CI registrada (e ligado, se aprovado)
-- [ ] Re-critique executada; score comparado (alvo: Consistência 2→3+, total ≥32)
-- [ ] Snapshot da critique atualizado
+- [x] Decisão sobre lint de design no CI registrada: criado `npm run test:design` (test:css + `contrast-audit.mjs --enforce`) como guardrail explícito; **não** ligado ao `npm run ci` por ora (decisão do usuário 2026-06-26)
+- [x] Re-critique executada; score comparado (alvo: Consistência 2→3+, total ≥32)
+- [x] Snapshot da critique atualizado
 
 **Critério de aceite:** score sobe (especialmente Consistência); DESIGN.md reflete e/ou força o código.
 **Git:** `polish(ui): acabamento final pós-remediação + DESIGN.md como contrato`.
@@ -397,6 +397,7 @@ npm run mock:clean           # app vazio (testar empty states)
 npm run lint                 # eslint src/
 npm run test:unit            # vitest (unit)
 npm run test:views           # suíte de views
+npm run test:design          # guardrail de design: css-architecture + contraste AA (NÃO está no ci)
 npm run test:e2e:mock:all    # e2e no ambiente mock
 npm run format:check         # prettier (ver nota CRLF no Windows abaixo)
 node "C:/Users/slvma/.claude/skills/impeccable/scripts/detect.mjs" --json src   # detector

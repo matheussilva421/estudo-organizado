@@ -14,12 +14,36 @@
 | 3 — Primeiro acesso & escopo | codigo concluido; e2e/manual pendentes |
 | 4 — Acessibilidade | ✅ concluída |
 | 5 — Side-stripes + movimento/perf | ✅ concluída |
-| 6 — Minors + polish + re-critique | em andamento |
+| 6 — Minors + polish + re-critique | ✅ concluída (E2E mock da Fase 3 segue pendente) |
 
 **Baselines (início, 2026-06-25):**
 - Detector (`detect.mjs --json src`): **258** achados (234 advisory, 24 warning, 0 erros).
 - Testes unit: **1857 passed / 113 files** (antes da Fase 0). Após Fase 0: **1888 / 114**.
 - Contraste WCAG: corpo AA OK nos 6 temas; única exceção `arrakis danger/card = 4.42` (corpo pequeno) — alvo da Fase 4.
+
+---
+
+## Fase 6 - Decisao de design lint no CI e fechamento (2026-06-26 07:32 -03)
+
+**Resumo:** Fechado o ultimo checkpoint aberto da Fase 6. O usuario decidiu (2026-06-26) pela opcao "script `test:design` separado": os guardrails de design ficam reuniveis como um comando explicito, mas **nao** entram no `npm run ci` por ora. Tambem foram commitados o snapshot da re-critique e os ajustes de plano que ficaram pendentes apos a interrupcao por limite de uso da sessao anterior.
+
+**Arquivos alterados:**
+- `package.json` - novo script `test:design` = `npm run test:css && node scripts/contrast-audit.mjs --enforce`.
+- `docs/plans/2026-06-25-impeccable-critique-remediation-plan.md` - checkbox da decisao de CI marcado com a politica escolhida; re-critique/snapshot ja marcados; `test:design` adicionado a secao de comandos uteis.
+- `docs/handoffs/handoff-2026-06-25-impeccable-remediacao.md` - este registro + status geral da Fase 6.
+- `.impeccable/critique/2026-06-26T10-23-35Z__src-index-html.md` - snapshot da re-critique (28/40 -> 32/40), criado no slice anterior e agora versionado.
+
+**Validacao:**
+- `npm run test:design` -> `test:css` 44/44 verde; `contrast-audit.mjs --enforce` -> corpo AA OK nos 6 temas (arrakis danger/card = 4.64).
+- Mudancas sem impacto em fonte/comportamento (apenas script aditivo + docs); suite de fonte intacta desde o slice 1 (`npm test` -> 1905 verdes).
+
+**Decisao registrada:** design lint = comando `test:design` explicito, fora do `ci`. Rever no futuro se quiser bloquear merges automaticamente.
+
+**Pendencias remanescentes (fora do escopo de fechamento da Fase 6):**
+- Fase 3: E2E mock / validacao manual de primeiro load sem modal continua bloqueada por timeout de runner Playwright (tratar como problema de ambiente, nao regressao). Cobertura unitaria ja garante o comportamento.
+- Help contextual (heuristica mais fraca, P3 da re-critique) fica como possivel fase futura apos esta branch.
+
+**Proximo passo recomendado:** abrir PR da branch `fix/impeccable-critique-remediation`, ou investigar o timeout do Playwright mock em sessao dedicada se quiser fechar a lacuna E2E da Fase 3 antes do merge.
 
 ---
 
