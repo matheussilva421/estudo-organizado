@@ -31,7 +31,7 @@ Existe para transformar a maratona caótica de preparação para concurso em um 
 - **Voz:** clara, direta e factual. Fala como uma ferramenta de trabalho séria: informa, não vende; mostra o número, não comemora por você.
 - **Sensação alvo:** controle e domínio. O usuário deve sentir que tem *todos os dados à mão de uma vez*, organizados com precisão — a densidade é um recurso desejado por quem quer ver o quadro inteiro, não um defeito a esconder.
 - **Densidade com hierarquia, nunca poluição.** "Denso" significa alta razão sinal/ruído: muita informação útil, ordenada por importância, com alinhamento rigoroso e respiro proporcional. Não significa amontoado. Cada número tem seu peso tipográfico e seu lugar.
-- **Identidade visual já comprometida (preservar):** paleta escura própria com 6 temas nomeados (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis), accent steel-blue por padrão, tipografia Plus Jakarta Sans (texto) + DM Mono (números/status/dados). A personalidade técnica vem dessa identidade escura e do par tipográfico texto+mono — **essa identidade deve ser preservada, não substituída.**
+- **Identidade visual já comprometida (preservar):** paleta escura própria com 8 temas nomeados (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis, Codex, Plasma), accent steel-blue por padrão, tipografia Plus Jakarta Sans (texto) + DM Mono (números/status/dados). A personalidade técnica vem dessa identidade escura e do par tipográfico texto+mono — **essa identidade deve ser preservada, não substituída.**
 
 ## Anti-references
 
@@ -49,7 +49,7 @@ Existe para transformar a maratona caótica de preparação para concurso em um 
 
 ## Accessibility & Inclusion
 
-- **Alvo: WCAG AA — em todos os 6 temas.** Texto de corpo ≥ 4.5:1 contra o fundo; texto grande (≥18px ou bold ≥14px) ≥ 3:1. Cada variante escura (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis) precisa manter o contraste AA, não só o tema padrão. A densidade nunca pode custar legibilidade: números mono e labels pequenos exigem atenção extra ao contraste.
+- **Alvo: WCAG AA — em todos os 8 temas.** Texto de corpo ≥ 4.5:1 contra o fundo; texto grande (≥18px ou bold ≥14px) ≥ 3:1. Cada variante escura (Grafite, Ardósia, Platina, Terminal, Neon, Arrakis, Codex, Plasma) precisa manter o contraste AA, não só o tema padrão. A densidade nunca pode custar legibilidade: números mono e labels pequenos exigem atenção extra ao contraste.
 - **Teclado:** skip links e foco visível já presentes (`src/css/base/accessibility.css`); navegação completa por teclado deve ser mantida.
 - **Toque:** alvos mínimos de 44px (já implementados para `pointer: coarse`).
 - **Movimento:** `prefers-reduced-motion: reduce` obrigatório para toda animação — alternativa de crossfade ou transição instantânea.

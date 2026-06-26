@@ -404,7 +404,141 @@
   --panel-shadow: 0 20px 48px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(244, 234, 216, 0.035);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) {
+[data-theme='codex'] {
+  --color-scheme: dark;
+  --app-bg: linear-gradient(180deg, #060a12 0%, #0a0f1a 55%, #0e1525 100%);
+  --bg: #070b12;
+  --card: #111c2d;
+  --card-bg: #111c2d;
+  --card-header: #18263a;
+  --card-hover: #22324a;
+  --bg-secondary: #0d1421;
+  --surface: #0d1421;
+  --border: rgba(123, 156, 193, 0.2);
+  --text-primary: #e7f0ff;
+  --text-secondary: #a9b8cd;
+  --text-muted: #8194ad; /* >= 4.5:1 sobre --card (AA) */
+  --accent: #56a7ff;
+  --accent-hover: #7cbcff;
+  --accent-light: rgba(86, 167, 255, 0.16);
+  --accent-soft: rgba(86, 167, 255, 0.1);
+  --accent-dark: #7cbcff;
+  --accent-text: #04101f;
+  --blue: var(--info);
+  --orange: var(--warning);
+  --red: var(--danger);
+  --purple: var(--question);
+  --yellow: var(--warning);
+  --green: var(--success);
+  --success: #39ffb6;
+  --success-bg: rgba(57, 255, 182, 0.14);
+  --warning: #ffb24f;
+  --warning-bg: rgba(255, 178, 79, 0.15);
+  --danger: #ff5f78;
+  --danger-bg: rgba(255, 95, 120, 0.14);
+  --danger-text: #04101f;
+  --info: #7ce6ff;
+  --info-bg: rgba(124, 230, 255, 0.16);
+  --info-text: #04101f;
+  --surface-muted: rgba(123, 156, 193, 0.04);
+  --surface-soft: rgba(123, 156, 193, 0.07);
+  --surface-strong: rgba(123, 156, 193, 0.1);
+  --surface-inverse-soft: rgba(0, 0, 0, 0.5);
+  --modal-backdrop: rgba(0, 0, 0, 0.68);
+  --neutral-soft: rgba(123, 156, 193, 0.1);
+  --neutral-strong: rgba(123, 156, 193, 0.35);
+  --question: #b08cff;
+  --question-bg: rgba(176, 140, 255, 0.16);
+  --pomodoro: #b08cff;
+  --pomodoro-bg: rgba(176, 140, 255, 0.16);
+  --sidebar-bg: linear-gradient(180deg, #04070d 0%, #0a0f1a 100%);
+  --sidebar-hover: rgba(86, 167, 255, 0.09);
+  --sidebar-active: #56a7ff;
+  --sidebar-active-bg: rgba(86, 167, 255, 0.16);
+  --sidebar-active-border: #7cbcff;
+  --sidebar-border: rgba(123, 156, 193, 0.1);
+  --sidebar-text: #a9b8cd;
+  --sidebar-text-active: #e7f0ff;
+  --status-agendado: #7ce6ff;
+  --status-estudei: #39ffb6;
+  --status-atrasado: #ff5f78;
+  --status-nao: #6b7e98;
+  --shadow: 0 12px 28px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(86, 167, 255, 0.04), inset 0 1px 0 rgba(123, 156, 193, 0.04);
+  --shadow-md: 0 18px 42px rgba(0, 0, 0, 0.48);
+  --shadow-lg: 0 28px 68px rgba(0, 0, 0, 0.58);
+  --panel-border: transparent;
+  --panel-divider: rgba(123, 156, 193, 0.14);
+  --panel-shadow: 0 18px 44px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(123, 156, 193, 0.04);
+}
+
+[data-theme='plasma'] {
+  --color-scheme: dark;
+  --app-bg: linear-gradient(180deg, #07070d 0%, #0b0b15 55%, #10101c 100%);
+  --bg: #08080f;
+  --card: #181828;
+  --card-bg: #181828;
+  --card-header: #202034;
+  --card-hover: #26263c;
+  --bg-secondary: #10101c;
+  --surface: #10101c;
+  --border: rgba(0, 212, 177, 0.16);
+  --text-primary: #e0e0ef;
+  --text-secondary: #9d9dc0;
+  --text-muted: #82829e; /* >= 4.5:1 sobre --card (AA) */
+  --accent: #00d4b1;
+  --accent-hover: #3ee6c8;
+  --accent-light: rgba(0, 212, 177, 0.16);
+  --accent-soft: rgba(0, 212, 177, 0.1);
+  --accent-dark: #3ee6c8;
+  --accent-text: #05130f;
+  --blue: var(--info);
+  --orange: var(--warning);
+  --red: var(--danger);
+  --purple: var(--question);
+  --yellow: var(--warning);
+  --green: var(--success);
+  --success: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.14);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.15);
+  --danger: #f9586e;
+  --danger-bg: rgba(249, 88, 110, 0.14);
+  --danger-text: #05130f;
+  --info: #5a9fff;
+  --info-bg: rgba(90, 159, 255, 0.16);
+  --info-text: #05130f;
+  --surface-muted: rgba(0, 212, 177, 0.04);
+  --surface-soft: rgba(255, 255, 255, 0.05);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --surface-inverse-soft: rgba(0, 0, 0, 0.5);
+  --modal-backdrop: rgba(0, 0, 0, 0.68);
+  --neutral-soft: rgba(157, 157, 192, 0.1);
+  --neutral-strong: rgba(157, 157, 192, 0.35);
+  --question: #9b6dff;
+  --question-bg: rgba(155, 109, 255, 0.16);
+  --pomodoro: #9b6dff;
+  --pomodoro-bg: rgba(155, 109, 255, 0.16);
+  --sidebar-bg: linear-gradient(180deg, #050509 0%, #0b0b15 100%);
+  --sidebar-hover: rgba(0, 212, 177, 0.09);
+  --sidebar-active: #00d4b1;
+  --sidebar-active-bg: rgba(0, 212, 177, 0.16);
+  --sidebar-active-border: #3ee6c8;
+  --sidebar-border: rgba(157, 157, 192, 0.1);
+  --sidebar-text: #9d9dc0;
+  --sidebar-text-active: #e0e0ef;
+  --status-agendado: #5a9fff;
+  --status-estudei: #34d399;
+  --status-atrasado: #f9586e;
+  --status-nao: #6c6c88;
+  --shadow: 0 12px 28px rgba(0, 0, 0, 0.44), 0 0 0 1px rgba(0, 212, 177, 0.04), inset 0 1px 0 rgba(157, 157, 192, 0.04);
+  --shadow-md: 0 18px 42px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 28px 68px rgba(0, 0, 0, 0.6);
+  --panel-border: transparent;
+  --panel-divider: rgba(157, 157, 192, 0.14);
+  --panel-shadow: 0 18px 44px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(157, 157, 192, 0.04);
+}
+
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) {
   --sidebar-hover: color-mix(in srgb, var(--accent) 9%, transparent);
   --sidebar-active: var(--accent);
   --sidebar-active-bg: var(--accent-light);
@@ -412,145 +546,145 @@
   --panel-border: transparent;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .topbar {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .topbar {
   border-bottom-color: transparent;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .form-control {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .form-control {
   background: var(--bg-secondary);
   color: var(--text-primary);
   border-color: var(--border);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   .form-control::placeholder {
   color: var(--text-muted);
   opacity: 1;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   .form-control:focus {
   border-color: var(--accent);
   background: var(--surface);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .modal {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .modal {
   background: var(--card);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .modal-header {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .modal-header {
   border-bottom-color: var(--panel-divider);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .search-box {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .search-box {
   background: var(--surface);
   border-color: var(--border);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .search-results {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .search-results {
   background: var(--card);
   border-color: var(--border);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .search-item:hover {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .search-item:hover {
   background: var(--card-hover);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .cal-cell {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .cal-cell {
   background: var(--card);
   border-color: var(--border);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .cal-cell.today {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .cal-cell.today {
   background: var(--accent-light);
   opacity: 0.92;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   .cal-cell.other-month {
   background: var(--bg);
   opacity: 0.56;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .cal-cell:hover {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .cal-cell:hover {
   background: var(--card-hover);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   .cal-event-chip.agendado {
   background: var(--info-bg);
   color: var(--info);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   .cal-event-chip.estudei {
   background: var(--success-bg);
   color: var(--success);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   .cal-event-chip.atrasado {
   background: var(--danger-bg);
   color: var(--danger);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) select option {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) select option {
   background: var(--card);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .badge-green {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .badge-green {
   background: var(--success-bg);
   color: var(--success);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .badge-blue {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .badge-blue {
   background: var(--info-bg);
   color: var(--info);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) label.btn-primary {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) label.btn-primary {
   color: var(--accent-text) !important;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   label.btn-primary
   * {
   color: inherit !important;
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .badge-gray {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .badge-gray {
   background: var(--surface);
   color: var(--text-secondary);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .config-row {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .config-row {
   border-bottom-color: var(--panel-divider);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .event-card:hover {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .event-card:hover {
   background: var(--card-hover);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .tree-group-header {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .tree-group-header {
   background: var(--card);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .tree-disc:hover,
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .tree-disc:hover,
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   .tree-group-header:hover {
   background: var(--card-hover);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(0.86);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'])
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma'])
   .search-input:focus {
   background: var(--bg-secondary);
 }
 
-:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis']) .search-results {
+:is([data-theme='grafite'], [data-theme='ardosia'], [data-theme='platina'], [data-theme='terminal'], [data-theme='neon'], [data-theme='arrakis'], [data-theme='codex'], [data-theme='plasma']) .search-results {
   background: var(--card);
 }

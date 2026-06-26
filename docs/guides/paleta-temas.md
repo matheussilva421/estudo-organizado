@@ -21,13 +21,15 @@ Valores antigos como `light`, `dark`, `obsidiana`, `contraste`, `furtivo`, `abis
 
 ### 2.1) Temas tematicos (extras)
 
-Alem dos tres premium neutros, ficam disponiveis tres temas tematicos opt-in com identidade visual mais marcada. Eles compartilham o mesmo contrato de tokens (todas as variaveis `--bg`, `--card`, `--accent*`, `--surface-*`, `--status-*`, etc.) e participam dos mesmos seletores compartilhados `:is(...)` para overrides de componentes.
+Alem dos tres premium neutros, ficam disponiveis cinco temas tematicos opt-in com identidade visual mais marcada. Eles compartilham o mesmo contrato de tokens (todas as variaveis `--bg`, `--card`, `--accent*`, `--surface-*`, `--status-*`, etc.) e participam dos mesmos seletores compartilhados `:is(...)` para overrides de componentes.
 
 | Tema | Inspiracao | Base visual |
 |---|---|---|
 | Terminal | Matrix / CRT verde | Preto profundo com accent verde fosforo (#39ff8a) |
 | Neon | Cyberpunk / Tron | Azul-noite com ciano eletrico (#00e5ff) e magenta (#ff2bd6) em modulos especiais |
 | Arrakis | Dune / deserto | Marrom-areia escuro com accent laranja-especiaria (#e8a04f) - unico tema quente |
+| Codex | CodexTerminal 2031 | Void azul-aco com accent azul (#56a7ff), sinal verde-menta (#39ffb6) e info ciano (#7ce6ff) |
+| Plasma | Terminal 2031 | Quase-preto com accent teal (#00d4b1) e violeta (#9b6dff) para questoes/Pomodoro |
 
 Os tematicos nao substituem os tres neutros e nao mudam o default (`grafite`). Sao escolha consciente do usuario que prefere uma identidade mais distintiva sem abrir mao do contrato de tokens nem do contraste minimo de leitura.
 

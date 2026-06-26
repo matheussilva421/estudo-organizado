@@ -97,7 +97,9 @@ describe('app.js - Theme contracts', () => {
       { value: 'platina', label: 'Platina' },
       { value: 'terminal', label: 'Terminal' },
       { value: 'neon', label: 'Neon' },
-      { value: 'arrakis', label: 'Arrakis' }
+      { value: 'arrakis', label: 'Arrakis' },
+      { value: 'codex', label: 'Codex' },
+      { value: 'plasma', label: 'Plasma' }
     ]);
   });
 
