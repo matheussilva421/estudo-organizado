@@ -298,11 +298,11 @@ npm run test:unit
 5. Conferir alvos de toque ≥44px (já implementado para `pointer: coarse`).
 
 **Checkpoints**
-- [ ] Nenhum status depende exclusivamente de cor (texto/ícone/forma redundante)
-- [ ] Arrakis `danger`/card ≥4.5:1; demais temas sem regressão (Apêndice A verde)
-- [ ] Topbar mobile sem botão órfão (testar 360/390/414px)
-- [ ] Calendário legível em 390px (sem "Dir…")
-- [ ] Alvos de toque ≥44px confirmados
+- [x] Nenhum status depende exclusivamente de cor nos chips do calendário (marcador visível + `aria-label` textual)
+- [x] Arrakis `danger`/card ≥4.5:1; demais temas sem regressão (Apêndice A verde)
+- [x] Topbar mobile sem botão órfão (testado em 360/390/414px via Playwright headed)
+- [x] Calendário legível em 390px (chip mobile sem ellipsis; título pode quebrar linha)
+- [x] Alvos de toque ≥44px confirmados por regras existentes `pointer: coarse`/44px
 
 **Critério de aceite:** persona Sam (a11y) sem red flags de cor-only; AA total nos 6 temas; mobile sem quebras.
 **Riscos:** clarear Arrakis danger pode aproximar de warning. **Mitigação:** checar distância perceptual + contraste.

@@ -182,7 +182,9 @@
   font-weight: 500;
   width: 100%;
   max-width: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   box-sizing: border-box;
 }
 
@@ -202,6 +204,21 @@ button.cal-event-chip {
   text-overflow: ellipsis;
   font-weight: 500;
   color: inherit;
+}
+
+.cal-event-status-mark {
+  flex: 0 0 auto;
+  width: 1em;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.cal-event-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: inherit;
 }
 
 button.cal-event-chip:focus-visible {
@@ -1936,6 +1953,40 @@ button.cal-event-chip:focus-visible {
   }
 }
 
+@media (max-width: 480px) {
+  .topbar {
+    align-content: flex-start;
+    gap: 8px;
+  }
+
+  .topbar > div:not(.topbar-right):not(.sync-pill-wrapper) {
+    flex: 1 1 calc(100% - 52px);
+    min-width: 0;
+  }
+
+  .topbar-title {
+    max-width: 100%;
+  }
+
+  .topbar-right {
+    order: 10;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .sync-pill-wrapper {
+    order: 11;
+    flex: 0 0 auto;
+  }
+
+  .topbar-theme-btn {
+    order: 12;
+    flex: 0 0 auto;
+  }
+}
+
 /* â”€â”€ Mobile Calendar: vertical scrollable list â”€â”€ */
 .cal-mobile-list {
   display: flex;
@@ -2026,6 +2077,12 @@ button.cal-event-chip:focus-visible {
   white-space: normal;
   line-height: 1.3;
   border-radius: var(--radius-tight);
+}
+
+.cal-mobile-events .cal-event-title {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* â”€â”€ Screen reader only utility â”€â”€ */

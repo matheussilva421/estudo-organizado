@@ -1,10 +1,9 @@
 /**
- * Regressão de contraste WCAG nos 6 temas.
+ * Regressao de contraste WCAG nos 6 temas.
  *
- * Guardrail da remediação da critique (docs/plans/2026-06-25-impeccable-...).
+ * Guardrail da remediacao da critique (docs/plans/2026-06-25-impeccable-...).
  * O texto de corpo (primary/secondary/muted) DEVE ficar >= 4.5:1 sobre o card
- * em todos os temas. As cores semânticas (danger/success/warning) também — com
- * UMA exceção conhecida hoje: arrakis danger = 4.42 (corrigida na Fase 4).
+ * em todos os temas. As cores semanticas (danger/success/warning) tambem.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -37,20 +36,11 @@ describe('contraste WCAG por tema', () => {
     });
   }
 
-  // danger/card: AA em 5 temas; arrakis é a exceção conhecida (4.42).
-  // FASE 4: ao clarear o --danger do arrakis, trocar este bloco por um assert
-  // simples de >= 4.5 para TODOS os temas e remover a exceção.
   describe('danger/card', () => {
-    for (const theme of THEMES.filter((t) => t !== 'arrakis')) {
+    for (const theme of THEMES) {
       it(`${theme} >= ${AA_BODY}:1`, () => {
         expect(data[theme]['danger/card']).toBeGreaterThanOrEqual(AA_BODY);
       });
     }
-
-    it('arrakis é a única exceção sub-AA conhecida (a corrigir na Fase 4)', () => {
-      expect(data.arrakis['danger/card']).toBeLessThan(AA_BODY);
-      // baseline factual no momento da Fase 0:
-      expect(data.arrakis['danger/card']).toBeCloseTo(4.42, 1);
-    });
   });
 });

@@ -12,7 +12,7 @@
 | 1 — Fundação de cor semântica + tokens | ✅ concluída |
 | 2 — Unificar stat cards (cor semântica) | ✅ concluída |
 | 3 — Primeiro acesso & escopo | codigo concluido; e2e/manual pendentes |
-| 4 — Acessibilidade | ⬜ |
+| 4 — Acessibilidade | ✅ concluída |
 | 5 — Side-stripes + movimento/perf | ⬜ |
 | 6 — Minors + polish + re-critique | ⬜ |
 
@@ -20,6 +20,45 @@
 - Detector (`detect.mjs --json src`): **258** achados (234 advisory, 24 warning, 0 erros).
 - Testes unit: **1857 passed / 113 files** (antes da Fase 0). Após Fase 0: **1888 / 114**.
 - Contraste WCAG: corpo AA OK nos 6 temas; única exceção `arrakis danger/card = 4.42` (corpo pequeno) — alvo da Fase 4.
+
+---
+
+## Fase 4 - Acessibilidade: contraste, status e mobile (2026-06-26 06:47 -03)
+
+**Resumo:** Fase 4 concluida com TDD e validacao visual headed. O tema Arrakis nao tem mais excecao sub-AA em `danger/card`; chips do calendario nao dependem apenas de cor para comunicar status; topbar mobile recebeu composicao explicita em <=480px; chips do calendario mobile deixam o titulo quebrar linha em vez de truncar.
+
+**Arquivos alterados:**
+- `src/css/base/themes.css` - `--danger`, `--danger-bg` e `--status-atrasado` do Arrakis ajustados de `#d8674a` para `#dc6b4e`/rgba equivalente.
+- `tests/unit/contrast-themes.test.js` - removeu a excecao Arrakis e exige `danger/card >= 4.5` para todos os 6 temas.
+- `src/js/views/calendar-view.js` - novo helper unico de chip de calendario com marcador visivel por status (`○`, `✓`, `!`, `–`) e `aria-label` textual.
+- `src/css/styles.css` - chip de calendario com marcador/titulo, titulo mobile sem ellipsis e topbar <=480px com ordem explicita para actions/sync/theme.
+- `tests/unit/calendar-view.test.js` - contrato de status textual/acessivel e marcador visivel alem da cor.
+- `tests/unit/css-architecture.test.js` - contrato mobile da Fase 4 para topbar e chip de calendario.
+- `docs/plans/2026-06-25-impeccable-critique-remediation-plan.md` - checkpoints da Fase 4 marcados.
+
+**TDD / validacao:**
+- Vermelho: `npx vitest run tests/unit/contrast-themes.test.js` falhou em `arrakis danger/card` com 4.42.
+- Verde: `src/css/base/themes.css` ajustado; `npx vitest run tests/unit/contrast-themes.test.js` -> 31/31.
+- `node scripts/contrast-audit.mjs --enforce` -> corpo AA OK em todos os temas; Arrakis `danger/card = 4.64`.
+- Vermelho: `npx vitest run tests/unit/calendar-view.test.js -t "chips de evento"` falhou sem `aria-label` de status/marcador.
+- Verde: mesmo teste passou apos helper de chip.
+- Vermelho: `npx vitest run tests/unit/css-architecture.test.js -t "phase 4 mobile"` falhou sem regra de titulo mobile.
+- Verde: mesmo teste passou apos CSS mobile.
+- Foco completo: `npx vitest run tests/unit/contrast-themes.test.js tests/unit/calendar-view.test.js tests/unit/css-architecture.test.js` -> 104/104.
+- Views: `npm run test:views` -> 12 arquivos, 258 testes verdes.
+- Unit geral: `npm test` -> 115 arquivos, 1901 testes verdes. Stderr conhecido/simulado: Cloudflare 503/409, IndexedDB mock, modal ausente, notificacoes nao suportadas, sync-yield budget.
+- `git diff --check` -> sem erros; apenas avisos CRLF esperados no Windows.
+
+**Validacao browser/headed:**
+- Script Playwright headed com servidor estatico Node temporario nos viewports 360/390/414.
+- Topbar: `#theme-toggle-btn` ficou na mesma linha de pelo menos um controle irmao (`sameRowAsTheme = 1`) nos tres widths.
+- Calendario mobile: layout mobile renderizado; texto completo `Direito Administrativo Constitucional Extenso`; `aria-label` inclui `status Agendado`; marcador `○`; `white-space: normal`, `overflow: visible`, `text-overflow: clip`.
+
+**Pendencias:**
+- Fase 3 ainda tem e2e mock/manual pendente do primeiro load sem modal. Nao foi retomado nesta fase.
+- A Fase 5 segue como proximo passo: side-stripes documentadas + movimento/perf.
+
+**Proximo passo recomendado:** iniciar Fase 5 com TDD em `tests/unit/css-architecture.test.js`: bloquear `transition` em `width/height` fora de allowlist e documentar/remover side-stripe decorativa de `subject-manager`.
 
 ---
 

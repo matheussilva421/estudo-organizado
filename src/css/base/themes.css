@@ -362,8 +362,8 @@
   --success-bg: rgba(143, 185, 138, 0.14);
   --warning: #e8a04f;
   --warning-bg: rgba(232, 160, 79, 0.16);
-  --danger: #d8674a;
-  --danger-bg: rgba(216, 103, 74, 0.14);
+  --danger: #dc6b4e;
+  --danger-bg: rgba(220, 107, 78, 0.14);
   --danger-text: #1a1004;
   --info: #c8b89a;
   --info-bg: rgba(200, 184, 154, 0.16);
@@ -388,7 +388,7 @@
   --sidebar-text-active: #f4ead8;
   --status-agendado: #c8b89a;
   --status-estudei: #8fb98a;
-  --status-atrasado: #d8674a;
+  --status-atrasado: #dc6b4e;
   --status-nao: #8a7c66;
   --shadow: 0 14px 32px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(244, 234, 216, 0.035);
   --shadow-md: 0 22px 52px rgba(0, 0, 0, 0.42);

@@ -793,6 +793,18 @@ describe('CSS architecture', () => {
     expect(buttonChipBlock).toContain('line-height: 1.25');
   });
 
+  it('keeps phase 4 mobile a11y layout contracts for topbar and calendar chips', () => {
+    const legacyStyles = read('src/css/styles.css');
+    const mobileTitleBlock = extractCssBlock(legacyStyles, '.cal-mobile-events .cal-event-title');
+
+    expect(legacyStyles).toContain('@media (max-width: 480px)');
+    expect(legacyStyles).toContain('.topbar-right');
+    expect(legacyStyles).toContain('.sync-pill-wrapper');
+    expect(legacyStyles).toContain('.topbar-theme-btn');
+    expect(mobileTitleBlock).toContain('white-space: normal');
+    expect(mobileTitleBlock).toContain('overflow: visible');
+  });
+
   it('prevents broad transitions and hidden focus outlines from returning', () => {
     const files = [
       'src/css/styles.css',
