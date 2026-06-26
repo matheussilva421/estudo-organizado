@@ -805,6 +805,47 @@ describe('CSS architecture', () => {
     expect(mobileTitleBlock).toContain('overflow: visible');
   });
 
+  it('keeps phase 5 shipped UI progress motion off layout width and height', () => {
+    const files = [
+      'src/css/styles.css',
+      'src/css/views.css',
+      'src/css/views/dashboard.css',
+      'src/css/components/sidebar.css',
+      'src/css/components/status-feedback.css',
+      'src/js/views/dashboard-view.js',
+      'src/js/views/editais-view.js',
+      'src/js/views/home-view.js',
+      'src/js/views/med-view.js'
+    ];
+
+    const offenders = [];
+    for (const file of files) {
+      const content = readFileSync(join(rootDir, file), 'utf8').replace(/\r\n/g, '\n');
+      for (const match of content.matchAll(/transition\s*:\s*[^;"']*(?<![-\w])(?:width|height)\b[^;"']*/gi)) {
+        const line = content.slice(0, match.index).split('\n').length;
+        offenders.push(`${file}:${line}: ${match[0].trim()}`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('documents phase 5 side-stripe exceptions and removes decorative accent stripes', () => {
+    const design = read('DESIGN.md');
+    const subjectManagerCss = read('src/css/views/subject-manager.css');
+    const eventCss = read('src/css/styles.css');
+    const dashboardCss = read('src/css/views/dashboard.css');
+    const calendarView = read('src/js/views/calendar-view.js');
+
+    expect(design).toContain('status ou categoria');
+    expect(design).toContain('faixa lateral decorativa');
+    expect(design).toContain('proibida');
+    expect(subjectManagerCss).not.toContain('border-left: 4px solid var(--accent)');
+    expect(eventCss).toContain('--session-disc-color');
+    expect(dashboardCss).toContain('--predictive-status-color');
+    expect(calendarView).toContain('border-left:3px solid');
+  });
+
   it('prevents broad transitions and hidden focus outlines from returning', () => {
     const files = [
       'src/css/styles.css',

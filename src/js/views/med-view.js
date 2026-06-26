@@ -76,7 +76,7 @@ export function renderMED(el) {
         ${
           metaSeg > 0
             ? `<div class="med-sticky-meta">
-                <div class="med-sticky-bar"><div class="med-sticky-bar-fill" style="width:${metaPct}%"></div></div>
+                <div class="med-sticky-bar"><div class="med-sticky-bar-fill" style="--bar-scale:${metaPct / 100}"></div></div>
                 <span class="med-sticky-meta-label">${metaPct}% da meta diária</span>
               </div>`
             : '<div class="med-sticky-meta-empty">Sem meta diária definida</div>'

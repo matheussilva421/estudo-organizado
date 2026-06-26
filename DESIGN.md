@@ -269,7 +269,7 @@ O sistema usa **sombra difusa + luz de borda interna** para criar profundidade r
 - **Foco:** outline accent 2px. **Mobile:** colapsa (comportamento estrutural, não tipografia fluida).
 
 ### Event Card (componente assinatura)
-Cartão de sessão de estudo: faixa de status de **4px na frente** (cor = estado), ícone da disciplina, info (título + sub) e ações (44px, alvo de toque). A faixa de 4px é a **única** exceção à proibição de side-stripe — porque codifica status, não decora.
+Cartão de sessão de estudo: faixa de status de **4px na frente** (cor = estado), ícone da disciplina, info (título + sub) e ações (44px, alvo de toque). Faixa lateral de 3-4px só é permitida quando codifica **status ou categoria**: estado da sessão, previsão de risco ou cor da disciplina/calendário. Fora desses casos, faixa lateral decorativa é proibida porque o accent não é ornamento.
 
 ### Timer (Mono)
 Cronômetro em DM Mono, 32px/500, letter-spacing 1px — a Regra do Mono-para-Medida em sua forma mais pura.
@@ -292,5 +292,5 @@ Cronômetro em DM Mono, 32px/500, letter-spacing 1px — a Regra do Mono-para-Me
 - **Don't** confundir densidade com poluição: informação sem hierarquia, alinhamento ou respiro é tão ruim quanto um SaaS vazio.
 - **Don't** usar gradiente em texto (`background-clip: text`). Ênfase vem de peso e tamanho.
 - **Don't** usar glassmorphism decorativo como padrão. Profundidade é sombra + rim-light, não desfoque.
-- **Don't** usar `border-left`/`right` > 1px como faixa colorida decorativa. A faixa de 4px do event-card é exceção porque codifica status.
+- **Don't** usar `border-left`/`right` > 1px como faixa lateral decorativa. A exceção de 3-4px existe apenas quando a faixa codifica status ou categoria.
 - **Don't** pôr cor saturada em estado inativo, nem fonte de display em label, botão ou dado.

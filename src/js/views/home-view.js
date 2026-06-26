@@ -310,7 +310,7 @@ function renderWeekKpis(ctx) {
         <div class="dash-label">HORAS ESTA SEMANA</div>
         <div class="dash-week-value text-mono">${horasFmt} <span class="dash-week-target">/ ${metaHoras}h00</span></div>
         <div class="dash-progress-track" style="margin-top:8px;">
-          <div class="dash-progress-bar" style="width:${percHoras}%; background:var(--accent);">
+          <div class="dash-progress-bar" style="--bar-scale:${percHoras / 100}; background:var(--accent);">
             <span class="text-xs absolute dash-progress-bar-label">${percHoras}%</span>
           </div>
         </div>
@@ -325,7 +325,7 @@ function renderWeekKpis(ctx) {
         <div class="dash-label">QUESTÕES ESTA SEMANA</div>
         <div class="dash-week-value text-mono">${weekStats.totalQuestions} <span class="dash-week-target">/ ${metaQuest}</span></div>
         <div class="dash-progress-track" style="margin-top:8px;">
-          <div class="dash-progress-bar dash-progress-bar--questions" style="width:${percQuest}%;">
+          <div class="dash-progress-bar dash-progress-bar--questions" style="--bar-scale:${percQuest / 100};">
             <span class="text-xs absolute dash-progress-bar-label">${percQuest}%</span>
           </div>
         </div>
@@ -394,7 +394,7 @@ function renderSubjectProgress(ctx) {
       <div class="dash-subject-progress-row" data-action="navigate-with-ctx" data-view="dashboard" data-ctx="${encodeURIComponent(JSON.stringify({ discId: row.disc.id, editalId: row.edital.id }))}" role="button" tabindex="0" title="Abrir ${esc(row.disc.nome)}" aria-label="Abrir ${esc(row.disc.nome)}">
         <div class="dash-subject-progress-name text-ellipsis" title="${esc(row.disc.nome)}">${esc(row.disc.nome)}${activeId ? '' : ` · ${esc(row.edital.nome)}`}</div>
         <div class="dash-subject-progress-bar-wrap">
-          <div class="dash-subject-progress-bar" style="width:${fill}%; background:${color};"></div>
+          <div class="dash-subject-progress-bar" style="--bar-scale:${fill / 100}; background:${color};"></div>
         </div>
         <div class="dash-subject-sparkline" title="Tempo de estudo nos últimos 7 dias">${sparklineHtml}</div>
         <div class="dash-subject-progress-meta">
@@ -434,11 +434,11 @@ function renderAnalysisColumn(ctx) {
   const maxSec = Math.max(...weekStats.dailySeconds, 3600);
   const hasData = weekStats.totalSeconds > 0;
   const barsHtml = hasData
-    ? weekStats.dailySeconds.map((sec, i) => {
-        const h = (sec / maxSec) * 100;
+      ? weekStats.dailySeconds.map((sec, i) => {
+        const barScale = sec / maxSec;
         return `
           <div class="flex-col flex-center flex-1 h-full justify-end">
-            <div class="home-weekly-study-bar" style="height:${h}%;" title="${formatTime(sec)}" role="img" aria-label="${days[i]}: ${formatTime(sec)} estudados"></div>
+            <div class="home-weekly-study-bar" style="--bar-scale:${barScale};" title="${formatTime(sec)}" role="img" aria-label="${days[i]}: ${formatTime(sec)} estudados"></div>
             <div class="text-xs font-semibold text-muted mt-2">${days[i]}</div>
           </div>`;
       }).join('')
@@ -461,7 +461,7 @@ function renderAnalysisColumn(ctx) {
         </div>
         <div class="dash-prediction-bar">
           <div class="dash-prediction-bar-track">
-            <div class="dash-prediction-bar-fill" style="width:${projWidth}%; background:${statusColor};"></div>
+            <div class="dash-prediction-bar-fill" style="--bar-scale:${projWidth / 100}; background:${statusColor};"></div>
             <div class="dash-prediction-bar-mark" style="left:${targetMark}%;" title="Meta 100%"></div>
           </div>
           <div class="dash-prediction-bar-labels">

@@ -335,12 +335,12 @@ npm run test:unit
 4. Revalidar visualmente as barras de progresso (Home, Dashboard, Verticalizado, Revisões).
 
 **Checkpoints**
-- [ ] DESIGN.md documenta a regra de faixa lateral (status/categoria) e a proíbe como enfeite
-- [ ] `subject-manager` accent stripe removida/reescrita
-- [ ] Barras de progresso animam via `transform`, não `width`
-- [ ] `prefers-reduced-motion` cobre todas as animações tocadas
-- [ ] Detector: `layout-transition` → 0 (fora de allowlist); `side-tab` só nos casos documentados
-- [ ] Validação visual das barras
+- [x] DESIGN.md documenta a regra de faixa lateral (status/categoria) e a proíbe como enfeite
+- [x] `subject-manager` accent stripe removida/reescrita
+- [x] Barras de progresso animam via `transform`, não `width`
+- [x] `prefers-reduced-motion` cobre todas as animações tocadas
+- [x] Detector: `layout-transition` → 0 (fora de allowlist); `side-tab` só nos casos documentados
+- [x] Validação visual das barras
 
 **Critério de aceite:** faixas laterais consistentes com a regra documentada; sem animação de layout; reduced-motion respeitado.
 **Riscos:** `scaleX` distorce conteúdo interno da barra (labels). **Mitigação:** animar só o preenchimento, não o container com texto.

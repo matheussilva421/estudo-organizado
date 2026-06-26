@@ -122,8 +122,8 @@
 }
 
 .sm-list-item--lesson {
-  border-left: 4px solid var(--accent);
-  padding-left: 8px;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
 }
 
 .sm-item-content {

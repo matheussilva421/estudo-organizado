@@ -13,13 +13,43 @@
 | 2 — Unificar stat cards (cor semântica) | ✅ concluída |
 | 3 — Primeiro acesso & escopo | codigo concluido; e2e/manual pendentes |
 | 4 — Acessibilidade | ✅ concluída |
-| 5 — Side-stripes + movimento/perf | ⬜ |
+| 5 — Side-stripes + movimento/perf | ✅ concluída |
 | 6 — Minors + polish + re-critique | ⬜ |
 
 **Baselines (início, 2026-06-25):**
 - Detector (`detect.mjs --json src`): **258** achados (234 advisory, 24 warning, 0 erros).
 - Testes unit: **1857 passed / 113 files** (antes da Fase 0). Após Fase 0: **1888 / 114**.
 - Contraste WCAG: corpo AA OK nos 6 temas; única exceção `arrakis danger/card = 4.42` (corpo pequeno) — alvo da Fase 4.
+
+---
+
+## Fase 5 - Side-stripes e movimento/perf (2026-06-26 07:05 -03)
+
+**Resumo:** Fase 5 concluida com TDD. A regra de side-stripes agora esta documentada no `DESIGN.md`: faixas laterais de 3-4px so podem codificar status ou categoria; faixa lateral decorativa fica proibida. A stripe decorativa de aulas em `subject-manager` foi substituida por borda completa/fundo tingido. Barras de progresso e indicadores tocados deixam de animar `width`/`height` e passam a usar `transform: scaleX/scaleY` via `--bar-scale`, preservando `prefers-reduced-motion` global.
+
+**Arquivos alterados:**
+- `DESIGN.md` - excecao de faixa lateral ampliada e regra de proibicao como decoracao.
+- `src/css/views/subject-manager.css` - removeu `border-left: 4px solid var(--accent)` de `.sm-list-item--lesson`.
+- `src/css/styles.css`, `src/css/views.css`, `src/css/views/dashboard.css`, `src/css/components/status-feedback.css` - barras com dimensao estavel, `transform-origin` correto e `transition: transform`.
+- `src/css/components/sidebar.css` - sidebar deixa de declarar transicao em `width`.
+- `src/js/views/home-view.js`, `dashboard-view.js`, `editais-view.js`, `med-view.js` - valores de progresso migrados de `style="width/height"` para `--bar-scale`.
+- `tests/unit/css-architecture.test.js` - contratos da Fase 5 para bloquear transicoes de layout em UI shipped e garantir regra de side-stripes.
+- `docs/plans/2026-06-25-impeccable-critique-remediation-plan.md` - checkpoints da Fase 5 marcados.
+
+**TDD / validacao:**
+- Vermelho: `npx vitest run tests/unit/css-architecture.test.js -t "phase 5"` falhou com 17 ocorrencias de `transition: width/height` e falta da regra `status ou categoria` no DESIGN.md.
+- Verde focal: mesmo comando -> 2 testes verdes.
+- CSS completo: `npm run test:css` -> 43/43.
+- Views: `npm run test:views` -> 12 arquivos, 258 testes verdes.
+- Unit geral: `npm test` -> 115 arquivos, 1903 testes verdes. Stderr conhecido/simulado: Cloudflare 503/409, IndexedDB mock, modal ausente, notificacoes nao suportadas, sync-yield budget.
+- Detector Impeccable: ainda sai 1 por dividas conhecidas de fonte/cores/lab/vendor; para Fase 5, `layout-transition` ficou somente em `src/lab/visual-layout-lab.css`, e `side-tab` ficou apenas nos casos documentados (`event-card`, card preditivo, chip de calendario/categoria).
+- Validacao browser/headed: Chromium headed com servidor estatico local confirmou `transitionProperty: transform` e matrizes de escala para `dash-progress-bar`, `dash-subject-progress-bar`, `dash-progress-line-fill`, `dash-prediction-bar-fill`, `progress-bar`, `med-sticky-bar-fill` e `home-weekly-study-bar`. Tentativa de screenshot em `C:\tmp` falhou por `EPERM`, entao a validacao ficou via computed style.
+
+**Pendencias:**
+- Fase 3 ainda tem e2e mock/manual pendente do primeiro load sem modal.
+- Fase 6 segue como proximo passo: minors, DESIGN.md como contrato, polish e re-critique.
+
+**Proximo passo recomendado:** iniciar Fase 6 com TDD em `tests/unit/css-architecture.test.js`/tests de view conforme cada minor, priorizando o top-heavy do Study Organizer, backdrop de modal e densidade do calendario desktop.
 
 ---
 

@@ -127,7 +127,7 @@ export function renderVerticalList(container) {
         <div class="text-2xl font-extrabold text-primary leading-none">${pct}<span class="text-xl" style="opacity:0.7;">%</span></div>
       </div>
       <div class="progress-track w-full" style="height:14px; border-radius:var(--radius-control); overflow:hidden; padding:2px;">
-        <div class="progress-bar" style="width:${pct}%; transition:width 0.3s; border-radius:var(--radius-control);"></div>
+        <div class="progress-bar" style="--bar-scale:${pct / 100}; border-radius:var(--radius-control);"></div>
       </div>
     </div>
   `;

@@ -793,7 +793,7 @@ function renderProgressLine(label, axis) {
     <div class="dash-progress-line ${axis.total === 0 ? 'dash-progress-line--empty' : ''}">
       <span class="dash-progress-line-label">${label}</span>
       <div class="dash-progress-line-track">
-        <div class="dash-progress-line-fill" style="width:${axis.pct}%;"></div>
+        <div class="dash-progress-line-fill" style="--bar-scale:${axis.pct / 100};"></div>
       </div>
       <span class="dash-progress-line-meta">${axis.pct}% · ${axis.done}/${axis.total}</span>
     </div>

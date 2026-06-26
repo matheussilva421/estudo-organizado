@@ -1529,8 +1529,11 @@ button.cal-event-chip:focus-visible {
 
 .dash-progress-bar {
   height: 100%;
+  width: 100%;
   border-radius: var(--radius-sm);
-  transition: width 0.3s;
+  transform: scaleX(var(--bar-scale, 1));
+  transform-origin: left center;
+  transition: transform 0.3s;
   position: relative;
 }
 
