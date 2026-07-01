@@ -267,6 +267,7 @@ export function resetCicloAndWipeEvents() {
       seq.status = 'pendente';
       delete seq.finalizadoEm;
       delete seq.puladaEm;
+      delete seq.autoConcluida;
     });
   }
 
@@ -302,13 +303,6 @@ function getPendingPlanejamentoSequence(plan = state.planejamento) {
   return (plan?.sequencia || []).filter((seq) => isPlanejamentoSeqPending(seq));
 }
 
-function getStudiedMinutesForSeq(seqId) {
-  if (!seqId) return 0;
-  return (state.eventos || [])
-    .filter((event) => event?.seqId === seqId && event.status === 'estudei')
-    .reduce((total, event) => total + Math.round((Number(event.tempoAcumulado) || 0) / 60), 0);
-}
-
 /**
  * Soma (em minutos) das sessões concluídas por disciplina, derivada de state.eventos.
  * Fonte única para "minutos estudados por disciplina" — qualquer view deve usar este helper
@@ -335,13 +329,6 @@ export function getStudiedMinutesByDiscipline(opts = {}) {
     totals[ev.discId] = (totals[ev.discId] || 0) + minutos;
   }
   return discId ? totals[discId] || 0 : totals;
-}
-
-function getRemainingMinutesForSeq(seq) {
-  const target = Math.max(0, Math.round(Number(seq?.minutosAlvo) || 0));
-  if (target <= 0) return 0;
-  if (getSeqStatus(seq) === 'concluida') return 0;
-  return Math.max(target - getStudiedMinutesForSeq(seq.id), 0);
 }
 
 /**
@@ -488,6 +475,7 @@ export function skipPlanejamentoEventBeforeDelete(eventToDelete) {
   seq.concluido = false;
   seq.puladaEm = new Date().toISOString();
   delete seq.finalizadoEm;
+  delete seq.autoConcluida;
   touchPlanejamento();
 
   return true;
@@ -512,12 +500,9 @@ export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
   const skippedSlots = getSkippedSlotKeySet(state.planejamento);
   let simulatedIdx = 0;
 
-  // Desconta TODO o tempo estudado por disciplina (não só sessões vinculadas ao passo), usando a
-  // mesma distribuição das barras de progresso da Sequência. Assim a previsão reage a qualquer
-  // sessão (inclusive Sessão Livre). A janela "since" é o início do ciclo atual, igual à view.
-  const sinceCiclo = (state.planejamento.dataInicioCicloAtual || '').substring(0, 10) || undefined;
-  const minutosPorDisc = getStudiedMinutesByDiscipline({ since: sinceCiclo });
-  const remBySeq = distributeStudiedAcrossSeq(state.planejamento.sequencia, minutosPorDisc);
+  // Fonte única de progresso: mesma distribuição usada pela barra da Sequência
+  // e pelo agendador (todo estudo da disciplina conta, inclusive Sessão Livre).
+  const remBySeq = getCycleProgress(state.planejamento);
   const firstVisit = new Set();
 
   const projection = {};
@@ -567,8 +552,9 @@ export function iniciarEtapaPlanejamento(seqId) {
   const seq = state.planejamento.sequencia.find((s) => s.id === seqId);
   if (!seq) return;
   const targetMinutes = Math.max(0, Math.round(Number(seq.minutosAlvo) || 0));
-  const studiedMinutes = getStudiedMinutesForSeq(seq.id);
-  const remainingMinutes = getRemainingMinutesForSeq(seq) || targetMinutes;
+  const entry = getCycleProgress()[seq.id];
+  const studiedMinutes = entry ? entry.usedMins : 0;
+  const remainingMinutes = (entry ? entry.remaining : targetMinutes) || targetMinutes;
 
   if (studiedMinutes > 0 && remainingMinutes > 0 && remainingMinutes < targetMinutes) {
     openPartialPlanningStartPrompt(seq, remainingMinutes, studiedMinutes, targetMinutes);
@@ -653,6 +639,11 @@ export function syncCicloToEventos() {
   )
     return;
 
+  // Reconcilia status derivado antes de agendar: etapas cobertas por qualquer
+  // sessão da disciplina saem da fila; etapas órfãs de sessão reabrem.
+  reconcileCycleProgress();
+  const progressBySeq = getCycleProgress(state.planejamento);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -712,7 +703,9 @@ export function syncCicloToEventos() {
       }
       const seqItem = seq[currentSeqIdx];
       if (!seqItem) break; // guard: empty or exhausted sequence
-      const remainingMinutes = getRemainingMinutesForSeq(seqItem);
+      const remainingMinutes = progressBySeq[seqItem.id]
+        ? progressBySeq[seqItem.id].remaining
+        : Math.max(0, Math.round(Number(seqItem.minutosAlvo) || 0));
       if (remainingMinutes <= 0) {
         currentSeqIdx = (currentSeqIdx + 1) % seq.length;
         continue;
@@ -762,6 +755,7 @@ export function desfazerEtapa(seqId) {
     state.planejamento.sequencia[idx].status = 'pendente';
     delete state.planejamento.sequencia[idx].puladaEm;
     delete state.planejamento.sequencia[idx].finalizadoEm;
+    delete state.planejamento.sequencia[idx].autoConcluida;
     touchPlanejamento();
     syncCicloToEventos();
     scheduleSave();
@@ -778,6 +772,7 @@ export function marcarEtapaConcluida(seqId) {
   seq.status = 'concluida';
   seq.finalizadoEm = new Date().toISOString();
   delete seq.puladaEm;
+  delete seq.autoConcluida; // conclusão manual: nunca regride automaticamente
   touchPlanejamento();
   syncCicloToEventos();
   scheduleSave();
