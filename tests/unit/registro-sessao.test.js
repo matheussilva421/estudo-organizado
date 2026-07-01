@@ -855,6 +855,32 @@ describe('registro-sessao.js', () => {
       expect(app.showToast).toHaveBeenCalledWith('Páginas não podem ser negativas', 'error');
     });
 
+    it('modal não mostra checkbox de vínculo e informa que o tempo avança o ciclo', () => {
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
+      const edital = createEdital({ disciplinas: [disc] });
+      store.setState(createBaseState({
+        editais: [edital],
+        cronoLivre: { _timerStart: null, tempoAcumulado: 1800 },
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          relevancia: {},
+          horarios: {},
+          sequencia: [
+            { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: false, status: 'pendente' }
+          ]
+        }
+      }));
+      logic.invalidateDiscCache();
+
+      registroSessao.openRegistroSessao('crono_livre');
+
+      const bodyHtml = global.document.getElementById('modal-registro-body').innerHTML;
+      expect(bodyHtml).not.toContain('reg-vincular-planejamento');
+      expect(bodyHtml).toContain('avança automaticamente o seu ciclo');
+    });
+
     it('sessão livre parcial avança a etapa sem concluí-la nem mostrar prompt (todo estudo conta)', () => {
       const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
       const edital = createEdital({ disciplinas: [disc] });
