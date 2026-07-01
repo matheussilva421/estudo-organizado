@@ -9,7 +9,7 @@ import {
   computeStudiedMinutesByDiscipline,
   distributeStudiedAcrossSeq,
   reconcileSequenceWithEvents,
-} from './cycle-progress.js';
+} from './cycle-progress.js?v=8.37';
 
 // Re-export: consumidores (logic.js, views) continuam importando daqui.
 export { distributeStudiedAcrossSeq };

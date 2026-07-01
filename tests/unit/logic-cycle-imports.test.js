@@ -125,11 +125,14 @@ describe('No cross-imports (circular dependency prevention)', () => {
     expect(source).not.toContain('from "../logic.js"');
   });
 
-  it('cycle.js does not import from other logic/ sub-modules except timer, disc, revisions', () => {
+  it('cycle.js does not import from other logic/ sub-modules except timer, disc, revisions, cycle-progress', () => {
     const source = read('src/js/logic/cycle.js');
-    // Allowed: ./timer.js, ./disc.js, ./revisions.js
+    // Allowed: ./timer.js, ./disc.js, ./revisions.js e ./cycle-progress.js
+    // (núcleo puro sem dependências — não cria ciclo de imports)
     const logicImports = [
-      ...source.matchAll(/from\s+['"]\.\/((?!timer|disc|revisions)[a-z-]+)\.js['"]/g),
+      ...source.matchAll(
+        /from\s+['"]\.\/((?!timer|disc|revisions|cycle-progress)[a-z-]+)\.js(\?v=[\d.]+)?['"]/g
+      ),
     ];
     expect(logicImports).toHaveLength(0);
   });
@@ -324,8 +327,8 @@ describe('Functional: distributeStudiedAcrossSeq (shared by progress bars and fo
     ];
     // 90min studied: fills s1 fully (60), then 30 of s2.
     const out = logic.distributeStudiedAcrossSeq(sequence, { d1: 90 });
-    expect(out.s1).toEqual({ usedMins: 60, remaining: 0, pct: 100 });
-    expect(out.s2).toEqual({ usedMins: 30, remaining: 30, pct: 50 });
+    expect(out.s1).toEqual({ usedMins: 60, remaining: 0, pct: 100, shouldComplete: true });
+    expect(out.s2).toEqual({ usedMins: 30, remaining: 30, pct: 50, shouldComplete: false });
   });
 
   it('lets concluded steps consume their target first', () => {
@@ -336,13 +339,18 @@ describe('Functional: distributeStudiedAcrossSeq (shared by progress bars and fo
     // 70min studied: concluded s1 absorbs 60, leaving 10 for s2.
     const out = logic.distributeStudiedAcrossSeq(sequence, { d1: 70 });
     expect(out.s1.usedMins).toBe(60);
-    expect(out.s2).toEqual({ usedMins: 10, remaining: 50, pct: expect.closeTo(16.67, 1) });
+    expect(out.s2).toEqual({
+      usedMins: 10,
+      remaining: 50,
+      pct: expect.closeTo(16.67, 1),
+      shouldComplete: false,
+    });
   });
 
   it('returns zero usage when there is no studied time for the discipline', () => {
     const sequence = [{ id: 's1', discId: 'd1', minutosAlvo: 60, status: 'pendente' }];
     const out = logic.distributeStudiedAcrossSeq(sequence, {});
-    expect(out.s1).toEqual({ usedMins: 0, remaining: 60, pct: 0 });
+    expect(out.s1).toEqual({ usedMins: 0, remaining: 60, pct: 0, shouldComplete: false });
   });
 });
 
