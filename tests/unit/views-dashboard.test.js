@@ -297,6 +297,19 @@ describe('views.js - dashboard, charts, history, MED', () => {
       expect(el.innerHTML).not.toContain('data-obsolete');
     });
 
+    it('badge e card de pendentes deixam claro que contam apenas hoje', () => {
+      const el = { innerHTML: '' };
+      storeModule.state.eventos = [
+        { id: 'e1', status: 'agendado', data: '2026-04-29', titulo: 'Hoje' },
+        { id: 'e2', status: 'agendado', data: '2026-05-02', titulo: 'Futuro' },
+      ];
+      views.renderMED(el);
+      // A lista mostra hoje + 7 dias, mas o contador é só de hoje — o rótulo
+      // precisa dizer isso (achado A6 da auditoria).
+      expect(el.innerHTML).toContain('1 pendente(s) hoje');
+      expect(el.innerHTML).toContain('Pendentes hoje');
+    });
+
     it('groups scheduled events for today, tomorrow and next 7 days', () => {
       const el = { innerHTML: '' };
       storeModule.state.eventos = [

@@ -357,6 +357,27 @@ function renderCicloView(el, plan) {
   const totalSessoes = targetLoop.length;
   const ciclosFeitos = plan.ciclosCompletos || 0;
 
+  // Rodada fechada: todas as etapas não-puladas concluídas. O fechamento do
+  // ciclo é manual por decisão de sync (auto-rollover geraria conflito de
+  // ciclosCompletos entre dispositivos) — o banner é o CTA explícito.
+  const etapasRelevantes = (plan.sequencia || []).filter((seq) => getSeqStatus(seq) !== 'pulada');
+  const cicloCompleto =
+    !getIsEditingSequence() &&
+    etapasRelevantes.length > 0 &&
+    etapasRelevantes.every((seq) => getSeqStatus(seq) === 'concluida');
+  const cicloCompletoBanner = cicloCompleto
+    ? `
+      <div class="card ciclo-complete-banner">
+        <div class="ciclo-complete-banner-text">
+          🎉 <strong>Ciclo completo!</strong> Todas as etapas da rodada foram concluídas.
+        </div>
+        <button class="btn btn-primary btn-sm" data-action="recomecar-ciclo">
+          <i class="fa fa-sync"></i> Recomeçar Ciclo
+        </button>
+      </div>
+    `
+    : '';
+
   el.innerHTML = `
     <div class="ciclo-header-actions">
       <h2 class="ciclo-header-title">Planejamento</h2>
@@ -374,6 +395,7 @@ function renderCicloView(el, plan) {
 
     <div class="grid-2 ciclo-layout">
       <div class="ciclo-content-col">
+        ${cicloCompletoBanner}
         <div class="ciclo-summary-row">
           <div class="card ciclo-stat-card ciclo-stat-card--center">
             <div class="ciclo-stat-label">CICLOS COMPLETOS</div>

@@ -273,11 +273,23 @@ export function cancelEditSeq() {
   renderCurrentView();
 }
 
+function resetSeqItemStatus(item) {
+  item.status = 'pendente';
+  item.concluido = false;
+  delete item.finalizadoEm;
+  delete item.puladaEm;
+  delete item.autoConcluida;
+}
+
 export function updateSeqItem(i, field, val) {
   i = parseInt(i, 10);
   if (field === 'minutosAlvo') val = Math.max(1, parseInt(val) || 0);
   const ts = getTempSequencia();
+  const changedDisc = field === 'discId' && ts[i][field] !== val;
   ts[i][field] = val;
+  // Trocar a disciplina invalida conclusão/pulo herdados: o histórico da
+  // disciplina antiga não pode manter a etapa concluída na nova.
+  if (changedDisc) resetSeqItemStatus(ts[i]);
   setTempSequencia(ts);
 }
 
@@ -286,6 +298,8 @@ export function dupSeqItem(i) {
   const ts = getTempSequencia();
   const obj = JSON.parse(JSON.stringify(ts[i]));
   obj.id = 'seq_' + uid();
+  // Duplicata é uma etapa nova: nasce pendente, sem timestamps herdados.
+  resetSeqItemStatus(obj);
   ts.splice(i + 1, 0, obj);
   setTempSequencia(ts);
   renderCurrentView();

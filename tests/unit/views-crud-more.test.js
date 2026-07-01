@@ -405,5 +405,61 @@ describe('views.js - CRUD, inline editing, dashboard ops', () => {
       views.updateSeqItem(0, 'discId', 'disc_2');
       expect(views.getTempSequencia()[0].discId).toBe('disc_2');
     });
+
+    it('trocar a disciplina reseta status e timestamps da etapa', () => {
+      views.setTempSequencia([
+        {
+          id: 'seq_1',
+          discId: 'disc_1',
+          minutosAlvo: 60,
+          status: 'concluida',
+          concluido: true,
+          autoConcluida: true,
+          finalizadoEm: '2026-04-15T00:00:00.000Z',
+        },
+      ]);
+      views.updateSeqItem(0, 'discId', 'disc_2');
+      const item = views.getTempSequencia()[0];
+      expect(item).toMatchObject({ discId: 'disc_2', status: 'pendente', concluido: false });
+      expect(item.finalizadoEm).toBeUndefined();
+      expect(item.autoConcluida).toBeUndefined();
+      expect(item.puladaEm).toBeUndefined();
+    });
+
+    it('manter a mesma disciplina não reseta o status', () => {
+      views.setTempSequencia([
+        { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, status: 'concluida', concluido: true },
+      ]);
+      views.updateSeqItem(0, 'discId', 'disc_1');
+      expect(views.getTempSequencia()[0].status).toBe('concluida');
+    });
+  });
+
+  describe('dupSeqItem()', () => {
+    it('duplicata nasce pendente, sem timestamps nem flags de conclusão', () => {
+      views.setTempSequencia([
+        {
+          id: 'seq_1',
+          discId: 'disc_1',
+          minutosAlvo: 60,
+          status: 'concluida',
+          concluido: true,
+          autoConcluida: true,
+          finalizadoEm: '2026-04-15T00:00:00.000Z',
+          puladaEm: '2026-04-14T00:00:00.000Z',
+        },
+      ]);
+      views.dupSeqItem(0);
+      const ts = views.getTempSequencia();
+      expect(ts).toHaveLength(2);
+      // Original preservado
+      expect(ts[0].status).toBe('concluida');
+      // Cópia normalizada
+      expect(ts[1].id).not.toBe('seq_1');
+      expect(ts[1]).toMatchObject({ discId: 'disc_1', minutosAlvo: 60, status: 'pendente', concluido: false });
+      expect(ts[1].finalizadoEm).toBeUndefined();
+      expect(ts[1].puladaEm).toBeUndefined();
+      expect(ts[1].autoConcluida).toBeUndefined();
+    });
   });
 });

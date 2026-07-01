@@ -220,7 +220,7 @@ registerAction('clear-ciclo-events', () => {
   const msg =
     `Apagar ${count} evento(s) agendado(s) do Ciclo?` +
     (preservedSummary ? `\n\nPreservados: ${preservedSummary}.` : '') +
-    '\n\nApenas eventos auto-gerados pelo Ciclo, sem tempo registrado e que ainda não começaram são removidos. Esta ação não pode ser desfeita.';
+    '\n\nEsses eventos são projeções do seu planejamento: o Ciclo os recria automaticamente a partir do que ainda falta estudar. Eventos manuais, com progresso ou concluídos são preservados.';
   showConfirm(
     msg,
     () => {

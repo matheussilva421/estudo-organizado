@@ -25,6 +25,14 @@ describe('ui/actions/eventos.js', () => {
       deleteEvento: vi.fn(),
       removeEvento: vi.fn(),
       marcarEstudei: vi.fn(),
+      previewClearAutoCicloEvents: vi.fn(() => ({
+        toDelete: [],
+        preservedManual: [],
+        preservedWithProgress: [],
+        preservedConcluded: [],
+        preservedPast: [],
+      })),
+      clearAutoCicloEvents: vi.fn(() => ({ deleted: 0 })),
     };
     eventModals = {
       openAddEventModal: vi.fn(),
@@ -334,5 +342,25 @@ describe('ui/actions/eventos.js', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'delete-session-record')[1];
     handler({ dataset: { sessionId: 'sess_1' } });
     expect(registroSessao.deleteCompletedSession).toHaveBeenCalledWith('sess_1');
+  });
+
+  it('clear-ciclo-events explica que os eventos são projeções recriáveis', () => {
+    logicModule.previewClearAutoCicloEvents.mockReturnValue({
+      toDelete: [{ id: 'a' }, { id: 'b' }],
+      preservedManual: [],
+      preservedWithProgress: [],
+      preservedConcluded: [],
+      preservedPast: [],
+    });
+    const handler = registerAction.mock.calls.find(c => c[0] === 'clear-ciclo-events')[1];
+    handler();
+
+    expect(appModule.showConfirm).toHaveBeenCalled();
+    const msg = appModule.showConfirm.mock.calls[0][0];
+    // O texto antigo ("não pode ser desfeita") sugeria exclusão definitiva,
+    // mas as projeções são recriadas pelo Ciclo a qualquer regeneração.
+    expect(msg).toContain('projeções');
+    expect(msg).toContain('recria');
+    expect(msg).not.toContain('não pode ser desfeita');
   });
 });
