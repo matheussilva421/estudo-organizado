@@ -4,6 +4,7 @@
 import * as credentialsStore from '../credentials.js?v=8.37';
 import { appendSyncPerformanceMetric } from '../sync/sync-health.js?v=8.37';
 import { runMigrations as _runMigrations, DEFAULT_SCHEMA_VERSION } from './migrations.js';
+import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
 import {
   createLocalStateEnvelope,
   isLocalStateEnvelopeValid,
@@ -153,6 +154,11 @@ export function loadStateFromDB() {
 
         _setStateRef(loadedState);
         runMigrations();
+        // Boot: re-deriva o status auto das etapas do ciclo a partir dos
+        // eventos (cobre estados gravados por versões antigas do app).
+        if (_stateRef) {
+          reconcileSequenceWithEvents(_stateRef.planejamento, _stateRef.eventos);
+        }
       } else {
         loadLegacyState(); // Try migration from localStorage
       }
