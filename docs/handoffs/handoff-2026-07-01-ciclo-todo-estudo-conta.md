@@ -114,6 +114,21 @@ original do relatório (vínculo explícito por `seqId`).
    `substring(0,10)` de `dataInicioCicloAtual`). Comportamento herdado da
    barra visual antiga; documentado, não alterado.
 5. **`skippedSlots` legado** continua respeitado na leitura (sem mudança).
+6. **Auto-revisão (2026-07-01):** achado e corrigido — "Desfazer etapa
+   concluída"/"Reabrir etapa" viravam no-op silencioso quando o tempo da
+   disciplina ainda cobria o alvo (a reconciliação re-concluía na hora).
+   Agora `desfazerEtapa` detecta a re-conclusão e mostra toast explicando
+   que é preciso excluir/editar sessões no Histórico para reabrir. Também
+   adicionado o estilo `.reg-note` que faltava para a nota do modal.
+7. **Consequência de migração (documentar ao usuário):** planos antigos sem
+   `dataInicioCicloAtual` contam TODO o histórico de eventos — no primeiro
+   boot após o update, etapas cujas barras já estavam em 100% serão
+   auto-concluídas (e a agenda regenerada). É o comportamento pedido pelo
+   modelo, mas pode surpreender.
+8. **Nota de design:** `mergeStudyStates` agora muta o objeto de plano
+   vencedor do LWW (reconcilia in-place). Os consumidores atuais aplicam o
+   merged via setState logo em seguida, então é seguro — mas o merge deixou
+   de ser puro em relação às entradas.
 
 ## Próximos passos sugeridos
 

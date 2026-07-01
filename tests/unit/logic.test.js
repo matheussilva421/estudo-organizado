@@ -1476,6 +1476,60 @@ describe('logic.js', () => {
         expect(store.state.planejamento.sequencia[0].puladaEm).toBeUndefined();
       });
 
+      it('avisa quando a etapa é re-concluída pela reconciliação (todo estudo conta)', () => {
+        const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Constitucional' });
+        const edital = createEdital({ disciplinas: [disc] });
+        store.setState(
+          createBaseState({
+            editais: [edital],
+            eventos: [
+              createEvento({
+                id: 'ev_livre',
+                status: 'estudei',
+                discId: 'disc_1',
+                data: '2026-04-19',
+                dataEstudo: '2026-04-19',
+                tempoAcumulado: 60 * 60, // 60min cobrem o alvo
+              }),
+            ],
+            planejamento: {
+              ativo: true,
+              tipo: 'ciclo',
+              disciplinas: ['disc_1'],
+              relevancia: {},
+              horarios: {},
+              sequencia: [
+                {
+                  id: 'seq_1',
+                  discId: 'disc_1',
+                  minutosAlvo: 60,
+                  concluido: true,
+                  status: 'concluida',
+                  autoConcluida: true,
+                  finalizadoEm: '2026-04-19T12:00:00.000Z',
+                },
+              ],
+            },
+          })
+        );
+        logic.invalidateDiscCache();
+
+        logic.desfazerEtapa('seq_1');
+
+        // O tempo da disciplina ainda cobre o alvo: a etapa volta a concluída...
+        expect(store.state.planejamento.sequencia[0]).toMatchObject({
+          concluido: true,
+          status: 'concluida',
+          autoConcluida: true,
+        });
+        // ...e o usuário é informado do porquê (senão o botão parece quebrado).
+        const toastCall = global.document.dispatchEvent.mock.calls.find(
+          ([evt]) => evt?.type === 'app:showToast'
+        );
+        expect(toastCall).toBeDefined();
+        expect(toastCall[0].detail.msg).toContain('voltou a ficar concluída');
+      });
+
       it('does nothing when seqId not found', () => {
         store.setState(
           createBaseState({

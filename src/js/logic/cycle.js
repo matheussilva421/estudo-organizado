@@ -662,10 +662,24 @@ export function desfazerEtapa(seqId) {
     delete state.planejamento.sequencia[idx].finalizadoEm;
     delete state.planejamento.sequencia[idx].autoConcluida;
     touchPlanejamento();
+    // A reconciliação pode re-concluir a etapa na hora se o tempo estudado da
+    // disciplina ainda cobre o alvo ("todo estudo conta") — sem aviso, o botão
+    // pareceria quebrado.
+    const reconcile = reconcileCycleProgress();
     syncCicloToEventos();
     scheduleSave();
     document.dispatchEvent(new Event('app:renderCurrentView'));
     closeModal('modal-ciclo-history');
+    if (reconcile.completed.includes(seqId)) {
+      document.dispatchEvent(
+        new CustomEvent('app:showToast', {
+          detail: {
+            msg: 'A etapa voltou a ficar concluída: o tempo estudado da disciplina já cobre o alvo. Para reabri-la, exclua ou edite sessões no Histórico.',
+            type: 'info',
+          },
+        })
+      );
+    }
   }
 }
 

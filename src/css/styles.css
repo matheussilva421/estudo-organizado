@@ -1232,6 +1232,14 @@ button.cal-event-chip:focus-visible {
   border-bottom: none;
 }
 
+.reg-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
 .reg-block-title {
   font-size: 15px;
   font-weight: 600;
