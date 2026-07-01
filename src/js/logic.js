@@ -87,6 +87,8 @@ export {
   calculateCyclePredictionsModel,
   getStudiedMinutesByDiscipline,
   distributeStudiedAcrossSeq,
+  getCycleProgress,
+  reconcileCycleProgress,
   iniciarEtapaPlanejamento,
   syncCicloToEventos,
   moveCicloSeq,
