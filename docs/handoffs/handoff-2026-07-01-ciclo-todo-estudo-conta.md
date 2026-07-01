@@ -102,8 +102,13 @@ original do relatório (vínculo explícito por `seqId`).
    adicionar `.prettierrc` com `singleQuote: true` em tarefa própria.
 2. **`action-contracts.test.js` ("bundleable")** mostrou uma falha flaky em
    um run completo do baseline; passa isolado e nos runs seguintes.
-3. **E2E:** ver resultado na seção de validação final (abaixo/commits); specs
-   de ciclo podem precisar de ajuste se assumirem o modelo antigo.
+3. **E2E: 138/139 verdes** (`npm run test:e2e:release`, após
+   `npx playwright install chromium`). A única falha —
+   `tests/e2e/editais.spec.js` ("creates a new Edital...") — é
+   **pré-existente**: reproduzida identicamente num worktree no commit
+   `89e796f` (anterior a todas as mudanças desta sessão). O edital criado
+   não aparece em `#main-content` após salvar. Investigar em tarefa própria.
+   Nenhum spec e2e de ciclo/planejamento/sessões quebrou com o novo modelo.
 4. **Edge conhecido:** recomeçar o ciclo no mesmo dia de sessões estudadas
    faz essas sessões contarem para a nova rodada (o corte `since` é por dia,
    `substring(0,10)` de `dataInicioCicloAtual`). Comportamento herdado da
@@ -112,8 +117,7 @@ original do relatório (vínculo explícito por `seqId`).
 
 ## Próximos passos sugeridos
 
-1. Rodar `npm run test:e2e:release` num ambiente com browsers Playwright e
-   ajustar specs que dependam do fluxo antigo do checkbox.
+1. Investigar a falha pré-existente de `tests/e2e/editais.spec.js`.
 2. Adicionar `.prettierrc` (`singleQuote: true`) e normalizar o repo.
 3. Considerar migração visual: badge na Sequência distinguindo conclusão
    automática (`autoConcluida`) de manual.
