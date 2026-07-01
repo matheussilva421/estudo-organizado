@@ -509,6 +509,56 @@ describe('registro-sessao.js', () => {
       expect(store.state.eventos).toHaveLength(1);
       expect(store.state.eventos[0].id).toBe('ev_completed_2');
     });
+
+    it('reabre silenciosamente etapa autoConcluida ao excluir a sessão que a sustentava', () => {
+      app.showConfirm.mockImplementation(() => {});
+      const disc = createDisciplina({ id: 'disc_1', nome: 'Disc' });
+      const edital = createEdital({ disciplinas: [disc] });
+      const evento = createEvento({
+        id: 'ev_livre',
+        status: 'estudei',
+        discId: 'disc_1',
+        data: '2026-04-20',
+        dataEstudo: '2026-04-20',
+        tempoAcumulado: 3600, // 60min, sem seqId (sessão livre)
+        sessao: { tiposEstudo: ['leitura'] }
+      });
+      store.setState(createBaseState({
+        editais: [edital],
+        eventos: [evento],
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          relevancia: {},
+          horarios: {},
+          sequencia: [
+            {
+              id: 'seq_1',
+              discId: 'disc_1',
+              minutosAlvo: 60,
+              concluido: true,
+              status: 'concluida',
+              autoConcluida: true,
+              finalizadoEm: '2026-04-20T09:00:00.000Z'
+            }
+          ]
+        }
+      }));
+      logic.invalidateDiscCache();
+
+      registroSessao.deleteCompletedSession('ev_livre');
+      const confirmCallback = app.showConfirm.mock.calls[0][1];
+      confirmCallback();
+
+      // Reabertura é automática (estado derivado) — sem segundo confirm
+      expect(app.showConfirm).toHaveBeenCalledTimes(1);
+      expect(store.state.planejamento.sequencia[0]).toMatchObject({
+        concluido: false,
+        status: 'pendente'
+      });
+      expect(store.state.planejamento.sequencia[0].autoConcluida).toBeUndefined();
+    });
   });
 
   describe('toggleStudyType', () => {
@@ -805,7 +855,7 @@ describe('registro-sessao.js', () => {
       expect(app.showToast).toHaveBeenCalledWith('Páginas não podem ser negativas', 'error');
     });
 
-    it('does not link a free manual session to planejamento unless the option is checked', () => {
+    it('sessão livre parcial avança a etapa sem concluí-la nem mostrar prompt (todo estudo conta)', () => {
       const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
       const edital = createEdital({ disciplinas: [disc] });
       store.setState(createBaseState({
@@ -832,13 +882,19 @@ describe('registro-sessao.js', () => {
       expect(result).toBe(true);
       const savedEv = store.state.eventos.find(e => e.discId === 'disc_1');
       expect(savedEv.seqId).toBeUndefined();
+      // 30min de 60min: etapa segue pendente e sessão livre não mostra prompt de conclusão
       expect(store.state.planejamento.sequencia[0]).toMatchObject({
         concluido: false,
         status: 'pendente'
       });
+      expect(app.showConfirm).not.toHaveBeenCalledWith(
+        expect.stringContaining('Concluir mesmo assim'),
+        expect.any(Function),
+        expect.anything()
+      );
     });
 
-    it('links a free manual session to the next pending planning step when checked', () => {
+    it('sessão livre que cobre o alvo conclui a etapa automaticamente (todo estudo conta)', () => {
       const disc = createDisciplina({ id: 'disc_1', nome: 'Direito Administrativo' });
       const edital = createEdital({ disciplinas: [disc] });
       store.setState(createBaseState({
@@ -859,16 +915,17 @@ describe('registro-sessao.js', () => {
 
       registroSessao.openRegistroSessao('crono_livre');
       global.document.getElementById('reg-disciplina').value = 'disc_1';
-      global.document.getElementById('reg-vincular-planejamento').checked = true;
       registroSessao.toggleStudyType('leitura');
       const result = registroSessao.saveRegistroSessao();
 
       expect(result).toBe(true);
       const savedEv = store.state.eventos.find(e => e.discId === 'disc_1');
-      expect(savedEv.seqId).toBe('seq_1');
+      // O vínculo explícito não existe mais: o avanço é por reconciliação
+      expect(savedEv.seqId).toBeUndefined();
       expect(store.state.planejamento.sequencia[0]).toMatchObject({
         concluido: true,
-        status: 'concluida'
+        status: 'concluida',
+        autoConcluida: true
       });
       expect(store.state.planejamento.sequencia[0].finalizadoEm).toBeTruthy();
     });
