@@ -21,7 +21,7 @@ function buildMEDStatsHTML(estudados, agendados) {
       <div class="caption">${estudados.length} evento(s) concluido(s)</div>
     </div>
     <div class="card med-stat-card med-stat-card--wide">
-      <div class="section-label">Pendentes</div>
+      <div class="section-label">Pendentes hoje</div>
       <div class="text-3xl font-extrabold text-blue">${agendados.length}</div>
       <div class="caption">evento(s) para hoje</div>
     </div>
@@ -83,7 +83,7 @@ export function renderMED(el) {
         }
         <div class="med-sticky-counts">
           ${emAndamento.length > 0 ? `<span class="badge med-badge--running">⏱ ${emAndamento.length} ativo(s)</span>` : ''}
-          <span class="badge">${agendados.length} pendente(s)</span>
+          <span class="badge">${agendados.length} pendente(s) hoje</span>
           <span class="badge">${estudados.length} concluído(s)</span>
         </div>
       </div>

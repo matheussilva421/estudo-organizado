@@ -406,6 +406,59 @@ describe('ciclo-view.js', () => {
       expect(container.innerHTML).not.toContain('/ 24h');
     });
 
+    it('mostra banner de ciclo completo com CTA quando todas as etapas não-puladas estão concluídas', () => {
+      const state = createBaseState({
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          sequencia: [
+            { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: true, status: 'concluida' },
+            { id: 'seq_2', discId: 'disc_1', minutosAlvo: 60, concluido: false, status: 'pulada' },
+          ],
+          ciclosCompletos: 0,
+        },
+        editais: [
+          createEdital({
+            disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Teste' })],
+          }),
+        ],
+      });
+      store.setState(state);
+
+      const container = { innerHTML: '' };
+      views.renderCiclo(container);
+
+      expect(container.innerHTML).toContain('Ciclo completo');
+      expect(container.innerHTML).toContain('ciclo-complete-banner');
+    });
+
+    it('não mostra banner de ciclo completo com etapa pendente', () => {
+      const state = createBaseState({
+        planejamento: {
+          ativo: true,
+          tipo: 'ciclo',
+          disciplinas: ['disc_1'],
+          sequencia: [
+            { id: 'seq_1', discId: 'disc_1', minutosAlvo: 60, concluido: true, status: 'concluida' },
+            { id: 'seq_2', discId: 'disc_1', minutosAlvo: 60, concluido: false, status: 'pendente' },
+          ],
+          ciclosCompletos: 0,
+        },
+        editais: [
+          createEdital({
+            disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Teste' })],
+          }),
+        ],
+      });
+      store.setState(state);
+
+      const container = { innerHTML: '' };
+      views.renderCiclo(container);
+
+      expect(container.innerHTML).not.toContain('ciclo-complete-banner');
+    });
+
     it('renderiza resumo agregado da previsÃ£o de sessÃµes', () => {
       document.body.innerHTML = '<main id="test-root"></main>';
       const state = createBaseState({

@@ -102,19 +102,20 @@ export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessi
 
   const discId = ev.discId || '';
   const aulaId = ev.aulaId || '';
-  const canLinkToPlanning =
-    !ev.seqId &&
+  // Todo estudo da disciplina avança o ciclo automaticamente (reconciliação
+  // em session-save) — o antigo vínculo opt-in foi removido.
+  const hasPendingPlanning =
     state?.planejamento?.ativo &&
     Array.isArray(state.planejamento.sequencia) &&
     state.planejamento.sequencia.some(
       (seq) => (!seq.status && !seq.concluido) || seq.status === 'pendente'
     );
-  const planningLinkHtml = canLinkToPlanning
+  const planningLinkHtml = hasPendingPlanning
     ? `
-      <label class="reg-checkbox-row">
-        <input type="checkbox" id="reg-vincular-planejamento">
-        <span>Vincular à próxima etapa pendente desta disciplina no planejamento</span>
-      </label>
+      <div class="reg-note text-secondary">
+        <i class="fa fa-circle-info"></i>
+        Este tempo avança automaticamente o seu ciclo de estudos.
+      </div>
     `
     : '';
 

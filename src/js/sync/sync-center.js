@@ -1,5 +1,6 @@
 import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.37';
 import { getEnvelopeUpdatedAt, getLocalContentUpdatedAt } from './firestore-schema.js?v=8.37';
+import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
 
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
 
@@ -446,6 +447,13 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
 
   merged.config.localBackupAt = new Date().toISOString();
   delete merged.config.syncMergeConflicts;
+
+  // O status auto-derivado das etapas (autoConcluida) é uma view materializada
+  // dos eventos: após mesclar eventos e decidir o plano por LWW, re-deriva o
+  // status sobre o resultado. Isso converge entre dispositivos sem disputar
+  // autoria do plano (não altera planejamento.updatedAt).
+  reconcileSequenceWithEvents(merged.planejamento, merged.eventos);
+
   return merged;
 }
 

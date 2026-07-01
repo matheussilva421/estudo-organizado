@@ -425,6 +425,9 @@ function getLinkedPlanningSequenceForDeletedSession(eventToDelete) {
 
   const seq = state.planejamento.sequencia.find((s) => s.id === seqId);
   if (!seq) return null;
+  // Conclusão derivada (autoConcluida) reabre sozinha via reconciliação em
+  // syncCicloToEventos — o prompt fica só para conclusões manuais.
+  if (seq.autoConcluida) return null;
 
   const hasOtherCompletedSessionForSeq = state.eventos.some(
     (ev) => ev.id !== eventToDelete.id && ev.seqId === seqId && ev.status === 'estudei'
@@ -437,6 +440,7 @@ function reopenPlanningSequence(seq) {
   seq.status = 'pendente';
   delete seq.finalizadoEm;
   delete seq.puladaEm;
+  delete seq.autoConcluida;
   touchPlanejamento();
   syncCicloToEventos();
   scheduleSave();
@@ -467,6 +471,9 @@ export function deleteCompletedSession(id) {
       invalidateDashCaches();
       invalidateStreakCache();
       invalidatePendingRevCache();
+      // Reconcilia o planejamento após a exclusão: etapas autoConcluida sem
+      // sessões que as sustentem reabrem e a agenda é regenerada.
+      syncCicloToEventos();
       scheduleSave();
       closeModal('modal-registro-sessao');
       renderCurrentView();

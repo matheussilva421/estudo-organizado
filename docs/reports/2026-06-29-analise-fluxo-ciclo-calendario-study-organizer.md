@@ -1107,3 +1107,20 @@ Constitucional está completa para a barra, mas pendente para o agendador. A
 correção mais coerente com a interface atual é tornar o vínculo explícito a única
 fonte de progresso do planejamento, mantendo sessões livres apenas nas
 estatísticas gerais.
+
+## 23. Adendo — decisão de produto e correção aplicada (2026-07-01)
+
+O usuário decidiu pelo modelo alternativo da seção 20: **todo estudo da
+disciplina conta**, com reconciliação automática de status. A implementação
+está descrita em
+`docs/handoffs/handoff-2026-07-01-ciclo-todo-estudo-conta.md`. Em resumo:
+
+- núcleo puro `src/js/logic/cycle-progress.js` é a fonte única de progresso
+  (barra, Previsão, agendador, conclusão e merge de sync);
+- etapas concluem automaticamente com a flag `autoConcluida` e reabrem se a
+  sessão que as sustentava for excluída; conclusões manuais nunca regridem;
+- a reconciliação não altera `planejamento.updatedAt` (o merge re-deriva o
+  status sobre os eventos mesclados em cada dispositivo);
+- o checkbox opt-in de vínculo foi removido; `seqId` virou metadado;
+- achados A3 (banner manual de ciclo completo), A4, A5 e A6 corrigidos;
+- bug adicional corrigido: etapas `pulada` consumiam minutos na distribuição.

@@ -647,3 +647,120 @@ describe('merge do planejamento (LWW por updatedAt)', () => {
     expect(merged.planejamento.sequencia[0].id).toBe('a');
   });
 });
+
+// O status derivado (autoConcluida) é uma view materializada dos eventos: cada
+// dispositivo re-deriva o mesmo resultado após o merge, sem disputar autoria
+// do plano via updatedAt ("todo estudo da disciplina conta").
+describe('reconciliação do ciclo no merge (todo estudo conta)', () => {
+  const sessao = () => ({
+    id: 'ev_1',
+    status: 'estudei',
+    discId: 'disc_1',
+    data: '2026-06-10',
+    dataEstudo: '2026-06-10',
+    tempoAcumulado: 7200, // 120 min
+  });
+
+  const etapa = (overrides = {}) => ({
+    id: 'seq_1',
+    discId: 'disc_1',
+    minutosAlvo: 120,
+    concluido: false,
+    status: 'pendente',
+    ...overrides,
+  });
+
+  const plano = (sequencia, overrides = {}) => ({
+    ativo: true,
+    tipo: 'ciclo',
+    disciplinas: ['disc_1'],
+    dataInicioCicloAtual: '2026-06-01T00:00:00.000Z',
+    sequencia,
+    ...overrides,
+  });
+
+  it('plano remoto mais novo com status desatualizado converge com os eventos merged', () => {
+    const local = {
+      planejamento: plano(
+        [etapa({ status: 'concluida', concluido: true, autoConcluida: true })],
+        { updatedAt: '2026-06-09T10:00:00.000Z' }
+      ),
+      eventos: [sessao()],
+    };
+    const remote = {
+      planejamento: plano([etapa()], { updatedAt: '2026-06-10T10:00:00.000Z' }),
+      eventos: [],
+    };
+
+    const merged = mergeStudyStates(local, remote);
+
+    // O plano remoto vence o LWW, mas a reconciliação pós-merge re-deriva a
+    // conclusão a partir dos eventos preservados no merge.
+    expect(merged.planejamento.sequencia[0]).toMatchObject({
+      status: 'concluida',
+      concluido: true,
+      autoConcluida: true,
+    });
+    // Reconciliação não reivindica autoria do plano
+    expect(merged.planejamento.updatedAt).toBe('2026-06-10T10:00:00.000Z');
+  });
+
+  it('tombstone da sessão em um lado reabre a etapa autoConcluida no merge', () => {
+    const local = {
+      planejamento: plano([
+        etapa({
+          status: 'concluida',
+          concluido: true,
+          autoConcluida: true,
+          finalizadoEm: '2026-06-10T12:00:00.000Z',
+        }),
+      ]),
+      eventos: [sessao()],
+    };
+    const remote = { eventos: [] };
+    recordSyncTombstone(remote, 'eventos', 'ev_1');
+
+    const merged = mergeStudyStates(local, remote);
+
+    expect(merged.eventos).toEqual([]);
+    expect(merged.planejamento.sequencia[0]).toMatchObject({
+      status: 'pendente',
+      concluido: false,
+    });
+    expect(merged.planejamento.sequencia[0].autoConcluida).toBeUndefined();
+  });
+
+  it('merge é convergente: as duas ordens produzem o mesmo status de etapa', () => {
+    const deviceA = () => ({
+      planejamento: plano([etapa()], { updatedAt: '2026-06-08T10:00:00.000Z' }),
+      eventos: [sessao()],
+    });
+    const deviceB = () => ({
+      planejamento: plano([etapa()], { updatedAt: '2026-06-09T10:00:00.000Z' }),
+      eventos: [],
+    });
+
+    const mergedAB = mergeStudyStates(deviceA(), deviceB());
+    const mergedBA = mergeStudyStates(deviceB(), deviceA());
+
+    expect(mergedAB.planejamento.sequencia[0].status).toBe('concluida');
+    expect(mergedBA.planejamento.sequencia[0].status).toBe('concluida');
+  });
+
+  it('conclusão manual nunca é reaberta pelo merge', () => {
+    const local = {
+      planejamento: plano([
+        etapa({
+          status: 'concluida',
+          concluido: true,
+          finalizadoEm: '2026-06-10T12:00:00.000Z',
+        }),
+      ]),
+      eventos: [], // nada sustenta a conclusão — mas ela é manual
+    };
+
+    const merged = mergeStudyStates(local, {});
+
+    expect(merged.planejamento.sequencia[0].status).toBe('concluida');
+  });
+});
