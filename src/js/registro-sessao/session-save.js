@@ -15,7 +15,7 @@ import {
   invalidatePendingRevCache,
 } from '../logic.js?v=8.37';
 import { showToast, closeModal, openModal, showConfirm } from '../app.js?v=8.37';
-import { todayStr, uid } from '../utils.js?v=8.37';
+import { esc, todayStr, uid } from '../utils.js?v=8.37';
 import { updateBadges, renderCurrentView } from '../components.js?v=8.37';
 
 // =============================================
@@ -55,8 +55,12 @@ function getPendingPlanningSlotsForDate(dateStr) {
 
 function getSubstitutionCandidates({ ev, isLivre, discId, studyDate }) {
   if (!state.planejamento?.ativo || !discId) return [];
-  if (!isLivre && ev?.seqId && ev.discId && ev.discId !== discId) return [ev];
-  if (!isLivre) return [];
+  if (!isLivre) {
+    // Só um slot planejado ainda pendente pode ser substituído; editar uma
+    // sessão já estudada (ou manual do passado) não deve reabrir o prompt.
+    const isPendingSlot = ev?.seqId && ev.status !== 'estudei' && !ev._isPastSession;
+    return isPendingSlot && ev.discId && ev.discId !== discId ? [ev] : [];
+  }
   return getPendingPlanningSlotsForDate(studyDate).filter((slot) => slot.discId !== discId);
 }
 
@@ -68,12 +72,24 @@ function openSubstitutionPrompt(candidates, args) {
 
   titleEl.textContent = 'Substituir slot do dia';
   saveBtn.textContent = 'Registrar como extra';
+
+  // O modal-prompt é compartilhado: cancelar/fechar sem escolher precisa
+  // devolver o rótulo padrão do botão salvar.
+  const cancelButtons = Array.from(
+    document.querySelectorAll('#modal-prompt [data-action="close-modal"]')
+  );
+  const restoreSaveLabel = () => {
+    saveBtn.textContent = 'Salvar';
+    cancelButtons.forEach((btn) => btn.removeEventListener('click', restoreSaveLabel));
+  };
+  cancelButtons.forEach((btn) => btn.addEventListener('click', restoreSaveLabel));
+
   const items = candidates
     .map((slot) => {
       const disc = getDisc(slot.discId);
       return `
-        <button type="button" class="btn btn-ghost w-full text-left" data-substitute-slot-id="${slot.id}">
-          Substituir ${disc?.disc?.nome || slot.titulo || 'sessao planejada'}
+        <button type="button" class="btn btn-ghost w-full text-left" data-substitute-slot-id="${esc(slot.id)}">
+          Substituir ${esc(disc?.disc?.nome || slot.titulo || 'sessao planejada')}
         </button>
       `;
     })
@@ -88,7 +104,7 @@ function openSubstitutionPrompt(candidates, args) {
   bodyEl.querySelectorAll('[data-substitute-slot-id]').forEach((button) => {
     button.addEventListener('click', () => {
       closeModal('modal-prompt');
-      saveBtn.textContent = 'Salvar';
+      restoreSaveLabel();
       performSave({
         ...args,
         slotOverrideChoice: {
@@ -101,7 +117,7 @@ function openSubstitutionPrompt(candidates, args) {
 
   saveBtn.onclick = () => {
     closeModal('modal-prompt');
-    saveBtn.textContent = 'Salvar';
+    restoreSaveLabel();
     performSave({
       ...args,
       slotOverrideChoice: { mode: 'extra' },
@@ -109,7 +125,7 @@ function openSubstitutionPrompt(candidates, args) {
   };
 
   openModal('modal-prompt');
-  return false;
+  return true;
 }
 
 /**
@@ -209,7 +225,7 @@ export function performSave({
 
   const substitutionCandidates = getSubstitutionCandidates({ ev, isLivre, discId, studyDate });
   if (substitutionCandidates.length > 0 && !slotOverrideChoice) {
-    return openSubstitutionPrompt(substitutionCandidates, {
+    const prompted = openSubstitutionPrompt(substitutionCandidates, {
       currentEventId,
       selectedTipos,
       selectedMateriais,
@@ -217,6 +233,10 @@ export function performSave({
       sessionEndTime,
       sessionMode,
     });
+    if (prompted) return false;
+    // Sem o modal-prompt no DOM não dá para perguntar; a sessão não pode ser
+    // perdida em silêncio, então segue como estudo extra.
+    slotOverrideChoice = { mode: 'extra' };
   }
 
   // Se for Sessão Livre, cria um evento real permanente pro Histórico
@@ -447,6 +467,12 @@ export function performSave({
       substitutePlanejamentoSlot(slotSnapshot, ev);
       if (slotEvent.id !== ev.id) {
         state.eventos = state.eventos.filter((event) => event.id !== slotEvent.id);
+      } else {
+        // O evento virou a sessão substituta: mantê-lo vinculado à etapa
+        // original faria reconcilePlanningAfterSave oferecer a conclusão da
+        // etapa errada (a substituída, que segue pendente).
+        delete ev.seqId;
+        delete ev.slotIndex;
       }
     }
   }

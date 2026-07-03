@@ -427,12 +427,12 @@ export function skipPlanejamentoEventBeforeDelete(eventToDelete) {
   const seq = state.planejamento.sequencia.find((item) => item.id === eventToDelete.seqId);
   if (!seq || !isPlanejamentoSeqPending(seq)) return false;
 
-  // Excluir a sessão pula a ETAPA da sequência (reabrível via desfazer-etapa e
-  // restaurada ao recomeçar o ciclo). O skip posicional antigo (data#slotIndex
-  // em skippedSlots) só apagava uma ocorrência: o wrap-around da janela e a
-  // virada do dia re-agendavam a matéria, e eventos com timer parcial nem
-  // registravam skip — "a matéria sempre voltava". skippedSlots persistidos de
-  // versões antigas continuam sendo respeitados na leitura (syncCicloToEventos).
+  // Excluir a sessão registra a perda do SLOT (data#slotIndex) em
+  // slotOverrides: só aquela vaga deixa de ser reagendada; a etapa continua
+  // pendente e a matéria volta em slots futuros da rotação. Diferente do
+  // skippedSlots legado, o override persiste independente do ciclo de vida do
+  // evento (regen da janela, virada do dia, timer parcial). skippedSlots de
+  // versões antigas continuam respeitados na leitura (syncCicloToEventos).
   upsertSlotOverride({
     data: eventToDelete.data || todayStr(),
     slotIndex: Number(eventToDelete.slotIndex) || 0,
