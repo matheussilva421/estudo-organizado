@@ -576,6 +576,7 @@ describe('CSS architecture', () => {
   it('keeps browser cache busting aligned with the current app version', () => {
     const html = read('src/index.html');
     const serviceWorker = read('src/sw.js');
+    const syncDiagnostic = read('src/js/sync/sync-diagnostic.js');
     const appSources = [
       'src/index.html',
       'src/sw.js',
@@ -587,8 +588,9 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=8.97');
-    expect(serviceWorker).toMatch(/APP_VERSION = '8\.\d{2}'/);
+    expect(html).toContain('css/styles.css?v=8.98');
+    expect(serviceWorker).toContain("APP_VERSION = '8.98'");
+    expect(syncDiagnostic).toContain("DIAGNOSTIC_BUILD_VERSION = '8.98'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 
