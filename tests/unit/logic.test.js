@@ -921,15 +921,19 @@ describe('logic.js', () => {
         const projection = logic.calculateCyclePredictionsModel('2026-04-21', '2026-04-22');
 
         expect(store.state.planejamento.sequencia[0]).toMatchObject({
-          status: 'pulada',
+          status: 'pendente',
           concluido: false,
         });
-        expect(store.state.planejamento.sequencia[0].puladaEm).toBeDefined();
+        expect(store.state.planejamento.slotOverrides[0]).toMatchObject({
+          data: '2026-04-21',
+          slotIndex: 0,
+          seqId: 'seq_1',
+          status: 'perdido',
+        });
         // sem skip posicional novo — a etapa pulada é o registro canônico
         expect(store.state.planejamento.skippedSlots).toEqual([]);
         expect(store.state.eventos.some((ev) => ev.id === 'auto_2026-04-21_0_abc')).toBe(false);
-        expect(store.state.eventos.some((ev) => ev.discId === 'disc_1')).toBe(false);
-        expect(projection.disc_1).toBeUndefined();
+        expect(projection.disc_1).toEqual({ sessoes: 5, minutos: 300 });
       });
 
       it('does not shift a deleted slot discipline into the adjacent slot (multi-discipline cycle)', () => {
@@ -979,9 +983,10 @@ describe('logic.js', () => {
         const day = store.state.eventos.filter((ev) => ev.data === '2026-04-21');
         // A disciplina excluída não volta em nenhum slot (the reported bug)...
         expect(day.some((ev) => ev.discId === 'disc_1')).toBe(false);
-        // ...e as demais compactam mantendo a ordem da sequência.
-        expect(day.find((ev) => ev.slotIndex === 0)?.discId).toBe('disc_2');
-        expect(day.find((ev) => ev.slotIndex === 1)?.discId).toBe('disc_3');
+        // ...e as demais preservam os índices planejados, sem ocupar o slot perdido.
+        expect(day.find((ev) => ev.slotIndex === 0)).toBeUndefined();
+        expect(day.find((ev) => ev.slotIndex === 1)?.discId).toBe('disc_2');
+        expect(day.find((ev) => ev.slotIndex === 2)?.discId).toBe('disc_3');
       });
 
       it('reduces session predictions when a planned slot was skipped', () => {
@@ -1198,17 +1203,24 @@ describe('logic.js', () => {
         // janela de 14 dias com 2 matérias/dia repete a sequência de 3 itens
         expect(eventosDe('disc_1').length).toBeGreaterThan(1);
 
-        logic.removeEvento(eventosDe('disc_1')[0].id);
+        const removed = eventosDe('disc_1')[0];
+        logic.removeEvento(removed.id);
 
         expect(store.state.planejamento.sequencia[0]).toMatchObject({
-          status: 'pulada',
+          status: 'pendente',
           concluido: false,
         });
-        expect(store.state.planejamento.sequencia[0].puladaEm).toBeDefined();
+        expect(store.state.planejamento.slotOverrides[0]).toMatchObject({
+          data: removed.data,
+          slotIndex: removed.slotIndex,
+          seqId: removed.seqId,
+          status: 'perdido',
+          originalDiscId: 'disc_1',
+        });
         // não grava mais skip posicional
         expect(store.state.planejamento.skippedSlots).toEqual([]);
         // a matéria some da janela inteira, inclusive repetições do ciclo
-        expect(eventosDe('disc_1')).toEqual([]);
+        expect(eventosDe('disc_1').length).toBeGreaterThan(0);
         // as demais matérias continuam agendadas
         expect(eventosDe('disc_2').length).toBeGreaterThan(0);
         expect(eventosDe('disc_3').length).toBeGreaterThan(0);
@@ -1216,13 +1228,19 @@ describe('logic.js', () => {
 
       it('a matéria excluída não volta na virada do dia', () => {
         setupCiclo();
-        logic.removeEvento(eventosDe('disc_1')[0].id);
-        expect(eventosDe('disc_1')).toEqual([]);
+        const removed = eventosDe('disc_1')[0];
+        logic.removeEvento(removed.id);
+        expect(store.state.eventos.some((event) => event.id === removed.id)).toBe(false);
 
         vi.setSystemTime(new Date('2026-04-21T10:00:00Z'));
         logic.syncCicloToEventos();
 
-        expect(eventosDe('disc_1')).toEqual([]);
+        expect(store.state.eventos.some((event) => event.id === removed.id)).toBe(false);
+        expect(
+          store.state.eventos.some(
+            (event) => event.data === removed.data && event.slotIndex === removed.slotIndex
+          )
+        ).toBe(false);
       });
 
       it('excluir evento com timer parcial (tempoAcumulado>0) também pula a etapa', () => {
@@ -1232,10 +1250,19 @@ describe('logic.js', () => {
 
         logic.removeEvento(ev.id);
 
-        expect(store.state.planejamento.sequencia[0].status).toBe('pulada');
+        expect(store.state.planejamento.sequencia[0].status).toBe('pendente');
+        expect(store.state.planejamento.slotOverrides[0]).toMatchObject({
+          data: ev.data,
+          slotIndex: ev.slotIndex,
+          status: 'perdido',
+        });
         // próximo regen (qualquer ação) não pode trazer a matéria de volta
         logic.syncCicloToEventos();
-        expect(eventosDe('disc_1')).toEqual([]);
+        expect(
+          store.state.eventos.some(
+            (event) => event.data === ev.data && event.slotIndex === ev.slotIndex
+          )
+        ).toBe(false);
       });
 
       it('excluir um registro estudado não mexe na sequência', () => {
@@ -1271,15 +1298,20 @@ describe('logic.js', () => {
         expect(store.state.eventos.some((ev) => ev.id === 'ev_manual')).toBe(false);
       });
 
-      it('desfazerEtapa reabre a etapa pulada e a matéria volta à agenda', () => {
+      it('perder um slot mantém a etapa pendente e preserva as ocorrências futuras', () => {
         setupCiclo();
-        logic.removeEvento(eventosDe('disc_1')[0].id);
-        expect(eventosDe('disc_1')).toEqual([]);
-
-        logic.desfazerEtapa('seq_1');
+        const removed = eventosDe('disc_1')[0];
+        logic.removeEvento(removed.id);
 
         expect(store.state.planejamento.sequencia[0].status).toBe('pendente');
-        expect(store.state.planejamento.sequencia[0].puladaEm).toBeUndefined();
+        expect(store.state.eventos.some((event) => event.id === removed.id)).toBe(false);
+        expect(store.state.planejamento.slotOverrides).toContainEqual(
+          expect.objectContaining({
+            data: removed.data,
+            slotIndex: removed.slotIndex,
+            status: 'perdido',
+          })
+        );
         expect(eventosDe('disc_1').length).toBeGreaterThan(0);
       });
     });
@@ -1368,7 +1400,8 @@ describe('logic.js', () => {
 
         // excluir sessão do ciclo (etapa pulada) reclama autoria do plano
         logic.removeEvento('ev_auto');
-        expect(store.state.planejamento.sequencia[0].status).toBe('pulada');
+        expect(store.state.planejamento.sequencia[0].status).toBe('pendente');
+        expect(store.state.planejamento.slotOverrides[0]).toMatchObject({ status: 'perdido' });
         expect(store.state.planejamento.updatedAt).toBe(new Date().toISOString());
 
         // reabrir a etapa também

@@ -145,8 +145,10 @@ export function generatePlanejamento(draft) {
     disciplinas: draft.disciplinas,
     relevancia: calculateRelevanceWeights(draft.relevancia),
     horarios: draft.horarios,
+    materiasPorDia: parseInt(draft.materiasPorDia, 10) || state.config.materiasPorDia || 3,
     sequencia: [],
     skippedSlots: [],
+    slotOverrides: [],
     ciclosCompletos: 0,
     dataInicioCicloAtual: new Date().toISOString(),
   };
@@ -234,6 +236,7 @@ export function deletePlanejamento() {
             horarios: {},
             sequencia: [],
             skippedSlots: [],
+            slotOverrides: [],
           };
           resetCicloAndWipeEvents();
           document.dispatchEvent(new Event('app:renderCurrentView'));
@@ -259,6 +262,7 @@ export function touchPlanejamento() {
 export function resetCicloAndWipeEvents() {
   if (!state.planejamento) return;
   state.planejamento.skippedSlots = [];
+  state.planejamento.slotOverrides = [];
   touchPlanejamento();
 
   // 1. Wipe all planned cycle events that are not studied yet (including past ones).
@@ -363,6 +367,59 @@ function getSkippedSlotKeySet(plan = state.planejamento) {
   );
 }
 
+function getPlanMateriasPorDia(plan = state.planejamento) {
+  const planValue = parseInt(plan?.materiasPorDia, 10);
+  if (Number.isFinite(planValue) && planValue > 0) return planValue;
+  const configValue = parseInt(state.config?.materiasPorDia, 10);
+  return Number.isFinite(configValue) && configValue > 0 ? configValue : 3;
+}
+
+function getSlotOverrideKey(slot) {
+  return getSkippedSlotKey(slot?.data, slot?.slotIndex);
+}
+
+function getSlotOverrideMap(plan = state.planejamento) {
+  const map = new Map();
+  for (const slot of plan?.slotOverrides || []) {
+    if (!slot?.data || !Number.isInteger(Number(slot.slotIndex))) continue;
+    if (slot.status !== 'perdido' && slot.status !== 'substituido') continue;
+    map.set(getSlotOverrideKey(slot), slot);
+  }
+  return map;
+}
+
+function ensureSlotOverrides(plan = state.planejamento) {
+  if (!plan) return [];
+  if (!Array.isArray(plan.slotOverrides)) plan.slotOverrides = [];
+  return plan.slotOverrides;
+}
+
+function upsertSlotOverride(slot) {
+  const overrides = ensureSlotOverrides();
+  const key = getSlotOverrideKey(slot);
+  const existingIndex = overrides.findIndex((item) => getSlotOverrideKey(item) === key);
+  const now = new Date().toISOString();
+  const next = {
+    id: existingIndex >= 0 ? overrides[existingIndex].id : 'slot_' + uid(),
+    createdAt: existingIndex >= 0 ? overrides[existingIndex].createdAt : now,
+    updatedAt: now,
+    ...slot,
+    slotIndex: Number(slot.slotIndex) || 0,
+  };
+  if (existingIndex >= 0) overrides[existingIndex] = next;
+  else overrides.push(next);
+  touchPlanejamento();
+  return next;
+}
+
+export function getPlanejamentoSlotOverrides(plan = state.planejamento) {
+  return plan?.slotOverrides || [];
+}
+
+export function getPlanejamentoMateriasPorDia(plan = state.planejamento) {
+  return getPlanMateriasPorDia(plan);
+}
+
 export function skipPlanejamentoEventBeforeDelete(eventToDelete) {
   if (!eventToDelete?.seqId || !state.planejamento?.sequencia) return false;
   if (eventToDelete.status === 'estudei') return false;
@@ -376,14 +433,31 @@ export function skipPlanejamentoEventBeforeDelete(eventToDelete) {
   // virada do dia re-agendavam a matéria, e eventos com timer parcial nem
   // registravam skip — "a matéria sempre voltava". skippedSlots persistidos de
   // versões antigas continuam sendo respeitados na leitura (syncCicloToEventos).
-  seq.status = 'pulada';
-  seq.concluido = false;
-  seq.puladaEm = new Date().toISOString();
-  delete seq.finalizadoEm;
-  delete seq.autoConcluida;
-  touchPlanejamento();
+  upsertSlotOverride({
+    data: eventToDelete.data || todayStr(),
+    slotIndex: Number(eventToDelete.slotIndex) || 0,
+    seqId: eventToDelete.seqId,
+    status: 'perdido',
+    originalDiscId: eventToDelete.discId || seq.discId,
+    sourceEventId: eventToDelete.id,
+  });
 
   return true;
+}
+
+export function substitutePlanejamentoSlot(slotEvent, actualEvent) {
+  if (!slotEvent?.seqId || !actualEvent?.id || !state.planejamento?.sequencia) return null;
+  const seq = state.planejamento.sequencia.find((item) => item.id === slotEvent.seqId);
+  return upsertSlotOverride({
+    data: slotEvent.data || actualEvent.data || todayStr(),
+    slotIndex: Number(slotEvent.slotIndex) || 0,
+    seqId: slotEvent.seqId,
+    status: 'substituido',
+    originalDiscId: slotEvent.discId || seq?.discId || null,
+    actualDiscId: actualEvent.discId || null,
+    actualEventId: actualEvent.id,
+    sourceEventId: slotEvent.id,
+  });
 }
 
 export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
@@ -400,9 +474,10 @@ export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
 
   const seq = getPendingPlanejamentoSequence();
   if (seq.length === 0) return {};
-  const materiasPorDia = state.config.materiasPorDia || 3;
+  const materiasPorDia = getPlanMateriasPorDia(state.planejamento);
   const activeDaysFilter = getActiveStudyDaysFilter(state.planejamento);
   const skippedSlots = getSkippedSlotKeySet(state.planejamento);
+  const slotOverrides = getSlotOverrideMap(state.planejamento);
   let simulatedIdx = 0;
 
   // Fonte única de progresso: mesma distribuição usada pela barra da Sequência
@@ -417,7 +492,8 @@ export function calculateCyclePredictionsModel(startDateStr, endDateStr) {
     const dateStr = getLocalDateStr(d);
 
     for (let m = 0; m < materiasPorDia; m++) {
-      if (skippedSlots.has(getSkippedSlotKey(dateStr, m))) {
+      const slotKey = getSkippedSlotKey(dateStr, m);
+      if (skippedSlots.has(slotKey) || slotOverrides.has(slotKey)) {
         simulatedIdx = (simulatedIdx + 1) % seq.length;
         continue;
       }
@@ -563,9 +639,10 @@ export function syncCicloToEventos() {
 
   const seq = getPendingPlanejamentoSequence();
   if (seq.length === 0) return;
-  const materiasPorDia = state.config.materiasPorDia || 3;
+  const materiasPorDia = getPlanMateriasPorDia(state.planejamento);
   const activeDaysFilter = getActiveStudyDaysFilter(state.planejamento);
   const skippedSlots = getSkippedSlotKeySet(state.planejamento);
+  const slotOverrides = getSlotOverrideMap(state.planejamento);
   let currentSeqIdx = 0;
 
   // Pega o índice a partir do primeiro bloco "não concluído", caso preexistente no ciclo contínuo
@@ -602,7 +679,8 @@ export function syncCicloToEventos() {
     const dtStr = getLocalDateStr(d);
 
     for (let m = 0; m < materiasPorDia; m++) {
-      if (skippedSlots.has(getSkippedSlotKey(dtStr, m))) {
+      const slotKey = getSkippedSlotKey(dtStr, m);
+      if (skippedSlots.has(slotKey) || slotOverrides.has(slotKey)) {
         currentSeqIdx = (currentSeqIdx + 1) % seq.length;
         continue;
       }

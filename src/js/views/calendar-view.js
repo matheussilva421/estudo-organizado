@@ -49,6 +49,8 @@ const EVENT_STATUS_META = {
   agendado: { label: 'Agendado', mark: '○' },
   estudei: { label: 'Estudado', mark: '✓' },
   atrasado: { label: 'Atrasado', mark: '!' },
+  perdido: { label: 'Perdido', mark: 'x' },
+  substituido: { label: 'Substituido', mark: '~' },
   pendente: { label: 'Pendente', mark: '–' },
   nao: { label: 'Nao estudado', mark: '–' },
 };
@@ -59,13 +61,15 @@ function renderCalendarEventChip(event, { tag = 'button', extraStyle = '' } = {}
   const color = getDiscColor(event.discId);
   const borderStyle = color ? `border-left:3px solid ${esc(color)};` : '';
   const styleAttr = `${extraStyle}${borderStyle}`;
+  const actionAttrs = event.isSlotOverride
+    ? ['data-action="select-calendar-day"', `data-date="${esc(event.data || '')}"`]
+    : ['data-action="open-event-detail"', `data-event-id="${esc(event.id)}"`];
   const attrs = [
     `class="cal-event-chip ${status}"`,
-    'data-action="open-event-detail"',
-    `data-event-id="${esc(event.id)}"`,
+    ...actionAttrs,
     styleAttr ? `style="${styleAttr}"` : '',
     `title="${esc(event.titulo)}"`,
-    `aria-label="Abrir evento ${esc(event.titulo)}, status ${statusMeta.label}"`,
+    `aria-label="${event.isSlotOverride ? 'Ver dia' : 'Abrir evento'} ${esc(event.titulo)}, status ${statusMeta.label}"`,
   ]
     .filter(Boolean)
     .join(' ');

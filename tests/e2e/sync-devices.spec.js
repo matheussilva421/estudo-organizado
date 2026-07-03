@@ -5,7 +5,7 @@ import { createE2EState } from '../helpers/e2e-state.js';
 // o dispositivo A exclui uma sessão manual e pula uma etapa do ciclo (excluindo
 // a sessão auto-gerada); o payload exportado de A é mesclado no dispositivo B
 // (mergeStudyStates — o mesmo caminho dos pulls Cloudflare/Drive/Firestore).
-// A exclusão e a etapa pulada devem propagar para B, e o round-trip de volta
+// A exclusão e o slot perdido devem propagar para B, e o round-trip de volta
 // para A não pode ressuscitar nada.
 
 function serializeState(state) {
@@ -94,7 +94,7 @@ async function deleteEventoViaCalendario(page, eventId) {
 }
 
 test.describe('Sync entre dispositivos (merge)', () => {
-  test('exclusão e etapa pulada no dispositivo A propagam para o B sem ressuscitar nada', async ({
+  test('exclusão e slot perdido no dispositivo A propagam para o B sem ressuscitar nada', async ({
     browser,
   }) => {
     // ---------- Dispositivo A ----------
@@ -110,12 +110,14 @@ test.describe('Sync entre dispositivos (merge)', () => {
     const estadoA = await pageA.evaluate(() => ({
       tombstones: (window.state.syncTombstones || []).map((t) => `${t.col}:${t.id}`),
       seqStatus: window.state.planejamento.sequencia[0]?.status,
+      lost: window.state.planejamento.slotOverrides?.[0]?.status,
       planUpdatedAt: window.state.planejamento.updatedAt,
     }));
     expect(estadoA.tombstones).toContain('eventos:ev_manual');
-    // auto pendente sem tempo não gera tombstone — vira etapa pulada no plano
+    // Auto pendente sem tempo não gera tombstone: a perda fica registrada no slot.
     expect(estadoA.tombstones).not.toContain('eventos:auto_seed_1');
-    expect(estadoA.seqStatus).toBe('pulada');
+    expect(estadoA.seqStatus).toBe('pendente');
+    expect(estadoA.lost).toBe('perdido');
     expect(estadoA.planUpdatedAt).toBeTruthy();
 
     const payloadA = await pageA.evaluate(async () => {
@@ -142,23 +144,25 @@ test.describe('Sync entre dispositivos (merge)', () => {
       return {
         eventIds: window.state.eventos.map((e) => e.id),
         seqStatus: window.state.planejamento.sequencia[0]?.status,
+        lost: window.state.planejamento.slotOverrides?.[0]?.status,
         tombstones: (window.state.syncTombstones || []).map((t) => `${t.col}:${t.id}`),
       };
     }, payloadA);
 
-    // exclusão propagou e a etapa pulada chegou no plano de B
+    // A exclusão propagou e a perda do slot chegou no plano de B.
     expect(estadoB.eventIds).not.toContain('ev_manual');
-    expect(estadoB.seqStatus).toBe('pulada');
+    expect(estadoB.seqStatus).toBe('pendente');
+    expect(estadoB.lost).toBe('perdido');
     expect(estadoB.tombstones).toContain('eventos:ev_manual');
-    // o regen com a etapa pulada não recria sessões do ciclo
-    expect(estadoB.eventIds.filter((id) => id.startsWith('auto_'))).toEqual([]);
+    // O regen não recria o slot perdido.
+    expect(estadoB.eventIds).not.toContain('auto_seed_1');
 
-    // a UI de B reflete o plano mesclado: badge visível sem hover na tela Ciclo
+    // A UI de B não exibe o badge legado de etapa pulada.
     await pageB.click('[data-view="ciclo"]');
     await expect(pageB.locator('#topbar-title')).toHaveText('Ciclo de Estudos', {
       timeout: 10000,
     });
-    await expect(pageB.locator('.seq-item-pulada-badge')).toBeVisible();
+    await expect(pageB.locator('.seq-item-pulada-badge')).toHaveCount(0);
 
     // ---------- Round-trip B → A: nada ressuscita ----------
     const payloadB = await pageB.evaluate(async () => {
@@ -175,12 +179,14 @@ test.describe('Sync entre dispositivos (merge)', () => {
       return {
         eventIds: window.state.eventos.map((e) => e.id),
         seqStatus: window.state.planejamento.sequencia[0]?.status,
+        lost: window.state.planejamento.slotOverrides?.[0]?.status,
       };
     }, payloadB);
 
     expect(estadoAFinal.eventIds).not.toContain('ev_manual');
-    expect(estadoAFinal.eventIds.filter((id) => id.startsWith('auto_'))).toEqual([]);
-    expect(estadoAFinal.seqStatus).toBe('pulada');
+    expect(estadoAFinal.eventIds).not.toContain('auto_seed_1');
+    expect(estadoAFinal.seqStatus).toBe('pendente');
+    expect(estadoAFinal.lost).toBe('perdido');
 
     await ctxA.close();
     await ctxB.close();

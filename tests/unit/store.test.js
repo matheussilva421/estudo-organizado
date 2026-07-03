@@ -177,7 +177,7 @@ describe('store.js', () => {
     store.runMigrations();
     vi.runOnlyPendingTimers();
 
-    expect(store.state.schemaVersion).toBe(11);
+    expect(store.state.schemaVersion).toBe(12);
     expect(store.state.config.globalSyncPaused).toBe(true);
     expect(store.state.editais[0].id).toMatch(/^ed_/);
     expect(store.state.editais[0].arquivado).toBe(false);

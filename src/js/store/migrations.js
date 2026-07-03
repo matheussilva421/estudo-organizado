@@ -3,7 +3,7 @@
 // =============================================
 import { uid } from '../utils.js?v=8.37';
 
-export const DEFAULT_SCHEMA_VERSION = 11;
+export const DEFAULT_SCHEMA_VERSION = 12;
 
 /**
  * Executa migrações de schema do estado (v1 → v11)
@@ -190,6 +190,41 @@ export function runMigrations(state, onChanged) {
       if (ed.arquivadoEm === undefined) ed.arquivadoEm = null;
     });
     state.schemaVersion = 11;
+    changed = true;
+  }
+
+  // v11 -> v12: slots reais do Ciclo. Mantem etapas "pulada" legadas quando
+  // nao ha data/slot confiaveis; skippedSlots antigos viram perdas canonicas.
+  if (state.schemaVersion < 12) {
+    if (state.planejamento && typeof state.planejamento === 'object') {
+      const plan = state.planejamento;
+      if (!Array.isArray(plan.slotOverrides)) plan.slotOverrides = [];
+      if (!Number.isFinite(Number(plan.materiasPorDia)) || Number(plan.materiasPorDia) <= 0) {
+        plan.materiasPorDia = Number(state.config?.materiasPorDia) || 3;
+      }
+      const existing = new Set(
+        plan.slotOverrides
+          .filter((slot) => slot?.data)
+          .map((slot) => `${slot.data || ''}#${Number(slot.slotIndex) || 0}`)
+      );
+      for (const slot of plan.skippedSlots || []) {
+        if (!slot?.data) continue;
+        const key = `${slot.data || ''}#${Number(slot.slotIndex) || 0}`;
+        if (existing.has(key)) continue;
+        plan.slotOverrides.push({
+          id: 'slot_' + uid(),
+          data: slot.data,
+          slotIndex: Number(slot.slotIndex) || 0,
+          seqId: slot.seqId || null,
+          status: 'perdido',
+          originalDiscId: slot.discId || null,
+          createdAt: slot.skippedAt || new Date().toISOString(),
+          migratedFrom: 'skippedSlots',
+        });
+        existing.add(key);
+      }
+    }
+    state.schemaVersion = 12;
     changed = true;
   }
 

@@ -92,7 +92,7 @@ test.describe('Calendario', () => {
     })).toBe(false);
   });
 
-  test('deleting an auto-generated cycle event skips the etapa (pulada) and allows reopening', async ({ page }) => {
+  test('deleting an auto-generated cycle event records only that slot as lost', async ({ page }) => {
     const state = createE2EState();
     // Datas relativas a hoje: o chip do evento so aparece no mes exibido pelo calendario
     const today = new Date();
@@ -153,30 +153,23 @@ test.describe('Calendario', () => {
           ),
           status: window.state.planejamento.sequencia[0]?.status,
           skipped: window.state.planejamento.skippedSlots?.length,
+          lost: window.state.planejamento.slotOverrides?.[0]?.status,
         }))
       )
-      .toEqual({ removed: true, status: 'pulada', skipped: 0 });
+      .toEqual({ removed: true, status: 'pendente', skipped: 0, lost: 'perdido' });
 
     await page.click('[data-view="ciclo"]');
     await expect(page.locator('#topbar-title')).toHaveText('Ciclo de Estudos', { timeout: 10000 });
-    // A etapa pulada sai da agenda e da previsão, com badge e reabertura na tela Ciclo
-    await expect(page.locator('.grade-concluded-badge')).toContainText('Etapa pulada');
-    // O badge precisa estar visível SEM hover: não pode viver dentro do bloco
-    // de ações que fica colapsado (max-height:0/opacity:0) até o mouse entrar.
-    const escondidoSemHover = await page
-      .locator('.grade-concluded-badge')
-      .evaluate((el) => {
-        const actions = el.closest('.ciclo-sequence-actions');
-        if (!actions) return false;
-        const cs = getComputedStyle(actions);
-        return parseFloat(cs.maxHeight) === 0 || parseFloat(cs.opacity) === 0;
-      });
-    expect(escondidoSemHover).toBe(false);
-    await expect(page.locator('#predict-empty-state')).toContainText('não gera sessões');
+    // Perder um slot não pula a etapa inteira: ela continua disponível no ciclo
+    // e nas ocorrências futuras, sem o badge legado de etapa pulada.
+    await expect(page.locator('.grade-concluded-badge')).toHaveCount(0);
+    await expect(page.locator('#predict-results-container')).toContainText('sessões previstas');
 
     // As ações do card só expandem no hover (desktop) — replica a interação real
     await page.hover('.seq-item-card--static');
-    await page.click('[data-action="desfazer-etapa"][data-seq-id="seq_1"]');
+    await expect(
+      page.locator('[data-action="iniciar-etapa-planejamento"][data-seq-id="seq_1"]').first()
+    ).toBeVisible();
     await expect
       .poll(() => page.evaluate(() => window.state.planejamento.sequencia[0]?.status))
       .toBe('pendente');

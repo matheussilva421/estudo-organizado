@@ -216,6 +216,14 @@ export function htmlStep4(draft) {
 
         <div class="pw-date-row">
             <div class="flex-1">
+                <label class="form-label">Materias por dia</label>
+                <input type="number" class="form-control" min="1" max="15" value="${draft.materiasPorDia || 3}" data-action="pw-update-hours" data-field="materiasPorDia">
+                <div class="text-sm text-muted mt-1">Quantidade de vagas diarias que o Ciclo distribui no calendario.</div>
+            </div>
+        </div>
+
+        <div class="pw-date-row">
+            <div class="flex-1">
                 <label class="form-label">Data Inicial (Opcional - Previsões)</label>
                 <input type="date" class="form-control" value="${draft.horarios.dataInicial || ''}" data-action="pw-update-hours" data-field="dataInicial">
                 <div class="text-sm text-muted mt-1">Início do Período</div>

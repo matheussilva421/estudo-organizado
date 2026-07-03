@@ -120,6 +120,7 @@ export function trunc(value, max = 80) {
  */
 export function getEventStatus(evento) {
   const today = todayStr();
+  if (evento.status === 'perdido' || evento.status === 'substituido') return evento.status;
   if (evento.status === 'estudei') return 'estudei';
   if (!evento.data || evento.data > today) return 'agendado';
   if (evento.data < today) return 'atrasado';

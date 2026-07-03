@@ -16,6 +16,7 @@ let draft = {
   tipo: null, // 'ciclo' ou 'semanal'
   disciplinas: [], // ids
   relevancia: {}, // { id: { importancia, conhecimento } }
+  materiasPorDia: state.config?.materiasPorDia || 3,
   horarios: {
     horasSemanais: '',
     sessaoMin: 30,
@@ -32,6 +33,7 @@ function createDefaultDraft() {
     tipo: null,
     disciplinas: [],
     relevancia: {},
+    materiasPorDia: state.config?.materiasPorDia || 3,
     horarios: {
       horasSemanais: '',
       sessaoMin: 30,
@@ -51,6 +53,7 @@ function normalizeDraft(value = {}) {
     ...value,
     disciplinas: Array.isArray(value.disciplinas) ? value.disciplinas : [],
     relevancia: value.relevancia && typeof value.relevancia === 'object' ? value.relevancia : {},
+    materiasPorDia: parseInt(value.materiasPorDia, 10) || state.config?.materiasPorDia || 3,
     horarios: {
       ...base.horarios,
       ...(value.horarios && typeof value.horarios === 'object' ? value.horarios : {}),
@@ -79,6 +82,7 @@ export function openPlanejamentoWizard() {
           tipo: state.planejamento.tipo || null,
           disciplinas: state.planejamento.disciplinas || [],
           relevancia: state.planejamento.relevancia || {},
+          materiasPorDia: state.planejamento.materiasPorDia || state.config?.materiasPorDia || 3,
           horarios: state.planejamento.horarios || {
             horasSemanais: '',
             sessaoMin: 30,
@@ -257,6 +261,11 @@ export function pwToggleDay(dayIndex) {
 }
 
 export function pwUpdateHours(field, val) {
+  if (field === 'materiasPorDia') {
+    draft.materiasPorDia = parseInt(val, 10) || 1;
+    pwUpdateButtons();
+    return;
+  }
   draft.horarios[field] = val;
   pwUpdateButtons();
 }
