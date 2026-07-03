@@ -257,6 +257,28 @@ describe('planejamento-wizard.js', () => {
       expect(logic.generatePlanejamento).toHaveBeenCalled();
       expect(app.closeModal).toHaveBeenCalledWith('modal-planejamento');
     });
+
+    it('limita materiasPorDia ao intervalo 1-15 do campo', () => {
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      wizard.pwToggleDisc('disc_1');
+      document.getElementById('pw-btn-proximo').click();
+      document.getElementById('pw-btn-proximo').click();
+      document.getElementById('pw-btn-proximo').click();
+      wizard.pwUpdateHours('horasSemanais', '30');
+
+      wizard.pwUpdateHours('materiasPorDia', '200');
+      document.getElementById('pw-btn-concluir').click();
+      expect(logic.generatePlanejamento).toHaveBeenLastCalledWith(
+        expect.objectContaining({ materiasPorDia: 15 })
+      );
+
+      wizard.pwUpdateHours('materiasPorDia', '0');
+      document.getElementById('pw-btn-concluir').click();
+      expect(logic.generatePlanejamento).toHaveBeenLastCalledWith(
+        expect.objectContaining({ materiasPorDia: 1 })
+      );
+    });
   });
 
   describe('step 2 empty state', () => {

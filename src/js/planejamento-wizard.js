@@ -262,7 +262,8 @@ export function pwToggleDay(dayIndex) {
 
 export function pwUpdateHours(field, val) {
   if (field === 'materiasPorDia') {
-    draft.materiasPorDia = parseInt(val, 10) || 1;
+    // O min/max do input não impede digitação direta; clamp ao intervalo 1-15.
+    draft.materiasPorDia = Math.min(Math.max(parseInt(val, 10) || 1, 1), 15);
     pwUpdateButtons();
     return;
   }
