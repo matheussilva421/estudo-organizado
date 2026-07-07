@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Ciclo: slot estudado não é mais re-populado pelo agendador
+
+**Data**: 2026-07-07
+
+- **fix(ciclo)**: `syncCicloToEventos` passa a pular slots (`data#slotIndex`) já consumidos por eventos preservados (sessão `estudei` ou com tempo acumulado). Antes, após estudar/apagar, o regen criava um novo pendente no MESMO slot do dia — a "sessão apagada que volta" —, forçando o usuário a excluir de novo e gerando marcas "perdida" falsas no calendário
+- **fix(ciclo)**: `calculateCyclePredictionsModel` usa a mesma regra (paridade previsão ↔ agenda), sem projetar sessão em slot já estudado
+- **test(ciclo)**: `tests/unit/cycle-sync-occupied-slots.test.js` (6 testes, RED→GREEN) cobre slot estudado, timer parcial, dia cheio, combinação com `slotOverrides` e o fluxo completo estudar→apagar→regen; reproduzido antes com o backup real do usuário
+- **chore(cache)**: bump de cache-busting 8.99 → 9.00
+
 ### Dois novos temas: Codex e Plasma
 
 **Data**: 2026-06-26
