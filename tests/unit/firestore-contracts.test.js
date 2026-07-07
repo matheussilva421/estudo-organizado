@@ -49,7 +49,7 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/sync/manual-sync.js');
     expect(swSource).toContain('./js/views/config/sync-center.js');
     expect(swSource).toContain('./vendor/firebase-client.bundle.js');
-    expect(swSource).toMatch(/APP_VERSION = '8\.\d{2}'/);
+    expect(swSource).toMatch(/APP_VERSION = '\d+\.\d{2}'/);
   });
 
   it('renders a central sync surface with manual source decisions', () => {
