@@ -426,6 +426,9 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   const remotePlan = remoteState.planejamento;
   if (remotePlan && toTime(remotePlan.updatedAt) > toTime(localState.planejamento?.updatedAt)) {
     merged.planejamento = remotePlan;
+    // Arquivar/restaurar (Reta Final) é mutação atômica com o plano: o
+    // planejamentoArquivado segue o lado cujo plano venceu o LWW.
+    merged.planejamentoArquivado = remoteState.planejamentoArquivado ?? null;
   }
 
   for (const key of ['editais', 'eventos', 'arquivo', 'revisoes']) {

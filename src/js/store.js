@@ -159,6 +159,12 @@ export function setState(newState, options = {}) {
             dataInicioCicloAtual: null,
           }
         ),
+    // Plano arquivado pela ativação da Reta Final (restaurável após a prova).
+    // Precisa estar nesta whitelist: setState também roda no boot e nos pulls —
+    // sem isso, todo reload apagaria o plano arquivado.
+    planejamentoArquivado: merge
+      ? mergeValues(state.planejamentoArquivado, newState.planejamentoArquivado)
+      : deepClone(newState.planejamentoArquivado ?? null),
     editais: merge
       ? mergeValues(state.editais, Array.isArray(newState.editais) ? newState.editais : [])
       : deepClone(Array.isArray(newState.editais) ? newState.editais : []),
@@ -307,6 +313,7 @@ export const state = {
     ciclosCompletos: 0,
     dataInicioCicloAtual: null,
   },
+  planejamentoArquivado: null,
   editais: [],
   eventos: [],
   arquivo: [], // concluded events older than 90 days
