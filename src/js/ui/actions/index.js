@@ -17,3 +17,4 @@ import './config.js';
 import './navegacao.js';
 import './modais.js';
 import './planejamento.js';
+import './reta-final.js';

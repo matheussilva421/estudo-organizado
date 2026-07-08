@@ -13,6 +13,11 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['github'], ['html']] : 'line',
   use: {
+    // Ambientes com Chromium pré-instalado (ex.: Claude Code remoto) podem
+    // apontar PW_EXECUTABLE_PATH para o binário em vez de baixar browsers.
+    launchOptions: process.env.PW_EXECUTABLE_PATH
+      ? { executablePath: process.env.PW_EXECUTABLE_PATH }
+      : {},
     baseURL: BASE_URL,
     serviceWorkers: 'block',
     trace: 'on-first-retry',

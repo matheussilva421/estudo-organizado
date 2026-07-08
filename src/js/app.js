@@ -43,6 +43,7 @@ import { initSyncCoordinator } from './sync/sync-coordinator.js?v=8.37';
 import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.37';
 import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.37';
 import { reconcilePrincipalEdital } from './views/editais-crud.js';
+import { syncRetaFinalToEventos } from './logic/reta-final.js';
 
 // ── Re-exports ────────────────────────────────────────────────────────
 export {
@@ -91,6 +92,13 @@ export function init() {
         } else {
           sidebar.classList.remove('collapsed');
         }
+      }
+
+      // Reta Final: rolagem/reconcile no boot — bloco de ontem "empilha" em
+      // hoje antes do primeiro render (renderRetaFinal cobre a virada de dia
+      // com o app aberto).
+      if (state.planejamento?.ativo && state.planejamento.tipo === 'reta_final') {
+        syncRetaFinalToEventos();
       }
 
       // Render UI first — user can interact, sync only runs on manual click.

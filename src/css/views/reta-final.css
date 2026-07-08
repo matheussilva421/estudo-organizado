@@ -1,0 +1,175 @@
+/* ============================================
+   RETA FINAL — view do plano importado + preview
+   ============================================ */
+
+.rf-match-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.rf-match-badge--ok {
+  background: color-mix(in srgb, var(--green, #22c55e) 18%, transparent);
+  color: var(--green, #22c55e);
+}
+
+.rf-match-badge--new {
+  background: color-mix(in srgb, var(--orange, #f59e0b) 18%, transparent);
+  color: var(--orange, #f59e0b);
+}
+
+.rf-preview-disc {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rf-preview-disc:last-child {
+  border-bottom: none;
+}
+
+.rf-preview-topicos {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.rf-day-group {
+  margin-bottom: 14px;
+}
+
+.rf-day-header {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.rf-day-header--hoje {
+  color: var(--accent);
+}
+
+.rf-bloco-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  background: var(--card);
+}
+
+.rf-bloco-card--concluido {
+  opacity: 0.65;
+}
+
+.rf-bloco-color {
+  width: 4px;
+  align-self: stretch;
+  border-radius: var(--radius-xxs);
+  flex-shrink: 0;
+}
+
+.rf-bloco-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.rf-bloco-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rf-bloco-topicos {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.rf-bloco-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.rf-rolado-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--orange, #f59e0b) 18%, transparent);
+  color: var(--orange, #f59e0b);
+}
+
+.rf-status-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rf-status-badge--concluido {
+  background: color-mix(in srgb, var(--green, #22c55e) 18%, transparent);
+  color: var(--green, #22c55e);
+}
+
+.rf-status-badge--nao-coberto {
+  background: color-mix(in srgb, var(--danger, #ef4444) 18%, transparent);
+  color: var(--danger, #ef4444);
+}
+
+.rf-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.rf-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.rf-summary-row:last-child {
+  border-bottom: none;
+}
+
+.rf-summary-disc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-primary);
+}
+
+.rf-summary-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rf-summary-meta {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}

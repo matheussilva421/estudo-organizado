@@ -18,6 +18,7 @@ import { showConfirm } from '../app.js?v=8.37';
 import { getIsEditingSequence, getTempSequencia } from '../views.js?v=8.37';
 import { getPlanjChartInstance, setPlanjChartInstance } from '../state/chart-state.js?v=8.37';
 import { getUiSection, setUiSection } from '../ui-state.js?v=8.37';
+import { renderRetaFinal } from './reta-final-view.js?v=8.37';
 
 // Persisted (per-device) UI toggle — replaces previous module-level _hideConcluidosCiclo.
 export function getHideConcluidosCiclo() {
@@ -195,6 +196,7 @@ export function renderCiclo(el) {
         <h4>Nenhum Planejamento de Estudos</h4>
         <p class="mb-6">Configure uma estratégia escolhendo entre o "Ciclo Contínuo de Estudos" ou a "Grade Semanal Fixa" para organizar seu tempo otimizamente.</p>
         <button class="btn btn-primary" data-action="open-planejamento-wizard"><i class="fa fa-play"></i> Criar Meu Planejamento</button>
+        <button class="btn btn-ghost mt-2" data-action="open-reta-final-import"><i class="fa fa-file-import"></i> Importar Reta Final (JSON)</button>
       </div>
     `;
     return;
@@ -204,6 +206,8 @@ export function renderCiclo(el) {
     renderCicloView(el, plan);
   } else if (plan.tipo === 'semanal') {
     renderGradeView(el, plan);
+  } else if (plan.tipo === 'reta_final') {
+    renderRetaFinal(el, plan);
   }
 }
 
