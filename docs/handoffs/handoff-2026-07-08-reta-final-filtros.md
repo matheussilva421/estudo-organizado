@@ -3,6 +3,24 @@
 **Data:** 2026-07-08
 **Status:** ✅ Concluído (testes verdes, suíte completa passando)
 
+## Revisão pós-feedback (mesmo dia)
+
+A primeira versão usava três toggles independentes de esconder categoria; o
+usuário pediu um **seletor exclusivo** (uma visão por vez) na ordem
+**Todos · Atrasados · Próximos dias · Concluídos**. Refeito com TDD:
+
+- View: estado agora é `let filtroCronograma = 'todos'` + export
+  `setRetaFinalFiltro(nome)` (nomes desconhecidos ignorados). "Todos" mostra
+  tudo; os demais mostram SÓ a categoria (`atrasados`→'atrasado',
+  `proximos`→'futuro', `concluidos`→'concluido'). Blocos de hoje só aparecem
+  em "Todos".
+- Ação renomeada: `rf-set-filtro` (a antiga `rf-toggle-filtro` /
+  `toggleRetaFinalFiltro` não existem mais).
+- Testes reescritos em `tests/unit/reta-final-filtros.test.js` (10 testes).
+
+O texto abaixo descreve a primeira iteração — vale como histórico; a API
+final é a desta revisão.
+
 ## O que foi pedido
 
 O usuário quis botões abaixo do título "Cronograma dia a dia — até DD/MM/AAAA"

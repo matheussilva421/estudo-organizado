@@ -36,48 +36,45 @@ function formatMinutes(minutes) {
   return `${mins}min`;
 }
 
-// Filtros do cronograma dia a dia (estado de sessão — não persiste).
-const filtrosCronograma = {
-  concluidos: true,
-  atrasados: true,
-  proximos: true,
+// Filtro do cronograma dia a dia: seletor exclusivo, uma visão por vez
+// (estado de sessão — não persiste).
+const FILTROS_CRONOGRAMA = [
+  { nome: 'todos', icone: 'fa-list', label: 'Todos' },
+  { nome: 'atrasados', icone: 'fa-forward', label: 'Atrasados' },
+  { nome: 'proximos', icone: 'fa-calendar', label: 'Próximos dias' },
+  { nome: 'concluidos', icone: 'fa-check', label: 'Concluídos' },
+];
+
+const CATEGORIA_POR_FILTRO = {
+  atrasados: 'atrasado',
+  proximos: 'futuro',
+  concluidos: 'concluido',
 };
 
-const FILTRO_POR_CATEGORIA = {
-  concluido: 'concluidos',
-  atrasado: 'atrasados',
-  futuro: 'proximos',
-};
+let filtroCronograma = 'todos';
 
 /**
- * Alterna um filtro do cronograma ('concluidos' | 'atrasados' | 'proximos').
- * @returns {boolean} novo valor do filtro
+ * Seleciona a visão do cronograma ('todos' | 'atrasados' | 'proximos' |
+ * 'concluidos'). Nomes desconhecidos são ignorados.
+ * @returns {string} filtro ativo após a chamada
  */
-export function toggleRetaFinalFiltro(nome) {
-  if (!(nome in filtrosCronograma)) return false;
-  filtrosCronograma[nome] = !filtrosCronograma[nome];
-  return filtrosCronograma[nome];
+export function setRetaFinalFiltro(nome) {
+  if (FILTROS_CRONOGRAMA.some((f) => f.nome === nome)) filtroCronograma = nome;
+  return filtroCronograma;
 }
 
 function blocoVisivel(bloco, hoje) {
-  const filtro = FILTRO_POR_CATEGORIA[getRetaFinalBlocoFiltroCategoria(bloco, hoje)];
-  return !filtro || filtrosCronograma[filtro];
+  const categoria = CATEGORIA_POR_FILTRO[filtroCronograma];
+  return !categoria || getRetaFinalBlocoFiltroCategoria(bloco, hoje) === categoria;
 }
 
 function renderFiltrosHtml() {
-  const botoes = [
-    { nome: 'concluidos', icone: 'fa-check', label: 'Concluídos' },
-    { nome: 'atrasados', icone: 'fa-forward', label: 'Atrasados' },
-    { nome: 'proximos', icone: 'fa-calendar', label: 'Próximos dias' },
-  ];
   return `
     <div class="rf-filtros" role="group" aria-label="Filtrar cronograma">
-      ${botoes
-        .map(({ nome, icone, label }) => {
-          const ativo = filtrosCronograma[nome];
-          return `<button type="button" class="rf-filtro-btn ${ativo ? 'rf-filtro-btn--ativo' : ''}" data-action="rf-toggle-filtro" data-filtro="${nome}" aria-pressed="${ativo}" title="${ativo ? 'Esconder' : 'Mostrar'}: ${label}"><i class="fa ${icone}"></i> ${label}</button>`;
-        })
-        .join('')}
+      ${FILTROS_CRONOGRAMA.map(({ nome, icone, label }) => {
+        const ativo = filtroCronograma === nome;
+        return `<button type="button" class="rf-filtro-btn ${ativo ? 'rf-filtro-btn--ativo' : ''}" data-action="rf-set-filtro" data-filtro="${nome}" aria-pressed="${ativo}"><i class="fa ${icone}"></i> ${label}</button>`;
+      }).join('')}
     </div>
   `;
 }

@@ -8,9 +8,9 @@ import {
   createEdital,
 } from '../helpers/state-builders.js';
 
-// Filtros do cronograma dia a dia da Reta Final: botões-toggle "Concluídos",
-// "Atrasados" e "Próximos dias" abaixo do título mostram/escondem cada
-// categoria de bloco. Estado dos filtros vive no módulo da view (sessão).
+// Filtro do cronograma dia a dia da Reta Final: seletor EXCLUSIVO (uma visão
+// por vez) com "Todos", "Atrasados", "Próximos dias" e "Concluídos", nessa
+// ordem, abaixo do título. Estado do filtro vive no módulo da view (sessão).
 
 vi.mock('../../src/js/app.js?v=8.37', () => ({
   openModal: vi.fn(),
@@ -136,6 +136,12 @@ function cardIds(el) {
   );
 }
 
+function pressedFiltros(el) {
+  return [...el.querySelectorAll('[data-action="rf-set-filtro"]')]
+    .filter((b) => b.getAttribute('aria-pressed') === 'true')
+    .map((b) => b.dataset.filtro);
+}
+
 describe('getRetaFinalBlocoFiltroCategoria — categorização pura', () => {
   it('classifica concluído, atrasado (rolado ou data passada), hoje e futuro', async () => {
     const { getRetaFinalBlocoFiltroCategoria } = await import(
@@ -158,103 +164,107 @@ describe('getRetaFinalBlocoFiltroCategoria — categorização pura', () => {
   });
 });
 
-describe('renderRetaFinal — botões de filtro do cronograma', () => {
-  it('renderiza os três filtros ativos por padrão, abaixo do título', async () => {
+describe('renderRetaFinal — seletor de filtro do cronograma', () => {
+  it('renderiza Todos, Atrasados, Próximos dias e Concluídos, nessa ordem, com "Todos" ativo', async () => {
     const { el } = await renderInto(buildStateComCategorias());
 
-    const botoes = [...el.querySelectorAll('[data-action="rf-toggle-filtro"]')];
-    expect(botoes.map((b) => b.dataset.filtro)).toEqual(['concluidos', 'atrasados', 'proximos']);
+    const botoes = [...el.querySelectorAll('[data-action="rf-set-filtro"]')];
+    expect(botoes.map((b) => b.dataset.filtro)).toEqual([
+      'todos',
+      'atrasados',
+      'proximos',
+      'concluidos',
+    ]);
+    expect(botoes.map((b) => b.textContent.trim())).toEqual([
+      'Todos',
+      'Atrasados',
+      'Próximos dias',
+      'Concluídos',
+    ]);
     for (const botao of botoes) {
-      expect(botao.getAttribute('aria-pressed')).toBe('true');
       expect(botao.getAttribute('type')).toBe('button');
     }
+    expect(pressedFiltros(el)).toEqual(['todos']);
   });
 
-  it('por padrão todos os blocos aparecem', async () => {
+  it('"Todos" mostra todos os blocos do cronograma', async () => {
     const { el } = await renderInto(buildStateComCategorias());
     expect(cardIds(el)).toEqual(['rf_done', 'rf_rolado', 'rf_hoje', 'rf_fut']);
   });
 
-  it('desligar "Concluídos" esconde blocos concluídos', async () => {
+  it('"Atrasados" mostra só blocos rolados/atrasados pendentes', async () => {
     const { el, view } = await renderInto(buildStateComCategorias());
-    view.toggleRetaFinalFiltro('concluidos');
+    view.setRetaFinalFiltro('atrasados');
     view.renderRetaFinal(el, store.state.planejamento);
 
-    expect(cardIds(el)).toEqual(['rf_rolado', 'rf_hoje', 'rf_fut']);
-    const botao = el.querySelector('[data-filtro="concluidos"]');
-    expect(botao.getAttribute('aria-pressed')).toBe('false');
+    expect(cardIds(el)).toEqual(['rf_rolado']);
+    expect(pressedFiltros(el)).toEqual(['atrasados']);
   });
 
-  it('desligar "Atrasados" esconde blocos rolados/atrasados pendentes', async () => {
+  it('"Próximos dias" mostra só os blocos de dias futuros', async () => {
     const { el, view } = await renderInto(buildStateComCategorias());
-    view.toggleRetaFinalFiltro('atrasados');
+    view.setRetaFinalFiltro('proximos');
     view.renderRetaFinal(el, store.state.planejamento);
 
-    expect(cardIds(el)).toEqual(['rf_done', 'rf_hoje', 'rf_fut']);
+    expect(cardIds(el)).toEqual(['rf_fut']);
+    expect(el.querySelector('#rf-dias-lista').textContent).not.toContain('HOJE');
   });
 
-  it('desligar "Próximos dias" esconde os grupos de dias futuros', async () => {
+  it('"Concluídos" mostra só blocos concluídos (sem os de hoje)', async () => {
     const { el, view } = await renderInto(buildStateComCategorias());
-    view.toggleRetaFinalFiltro('proximos');
+    view.setRetaFinalFiltro('concluidos');
     view.renderRetaFinal(el, store.state.planejamento);
 
-    expect(cardIds(el)).toEqual(['rf_done', 'rf_rolado', 'rf_hoje']);
-    // O grupo do dia futuro some por inteiro (sem header órfão).
-    expect(el.querySelector('#rf-dias-lista').textContent).not.toContain('12/07/2026');
+    expect(cardIds(el)).toEqual(['rf_done']);
   });
 
-  it('religar um filtro volta a mostrar os blocos', async () => {
+  it('voltar para "Todos" mostra tudo de novo', async () => {
     const { el, view } = await renderInto(buildStateComCategorias());
-    view.toggleRetaFinalFiltro('concluidos');
-    view.toggleRetaFinalFiltro('concluidos');
+    view.setRetaFinalFiltro('concluidos');
+    view.setRetaFinalFiltro('todos');
     view.renderRetaFinal(el, store.state.planejamento);
 
     expect(cardIds(el)).toEqual(['rf_done', 'rf_rolado', 'rf_hoje', 'rf_fut']);
   });
 
-  it('tudo filtrado mostra mensagem de vazio dos filtros', async () => {
-    const state = buildState({
-      blocos: [
-        rfBloco({ id: 'rf_done', status: 'concluido' }),
-        rfBloco({ id: 'rf_fut', data: FUTURO, dataOriginal: FUTURO }),
-      ],
-      eventos: [
-        createEvento({
-          id: 'ev_done',
-          data: HOJE,
-          status: 'estudei',
-          tempoAcumulado: 3600,
-          discId: 'disc_1',
-          rfBlocoId: 'rf_done',
-          isAutoGenerated: true,
-        }),
-      ],
-    });
-    const { el, view } = await renderInto(state);
-    view.toggleRetaFinalFiltro('concluidos');
-    view.toggleRetaFinalFiltro('proximos');
+  it('filtro sem resultados mostra mensagem de vazio do filtro', async () => {
+    const { el, view } = await renderInto(
+      buildState({ blocos: [rfBloco({ id: 'rf_hoje' })] })
+    );
+    view.setRetaFinalFiltro('concluidos');
     view.renderRetaFinal(el, store.state.planejamento);
 
     expect(cardIds(el)).toEqual([]);
     expect(el.querySelector('#rf-dias-lista').textContent).toContain('filtro');
   });
+
+  it('filtro desconhecido é ignorado (mantém o atual)', async () => {
+    const { el, view } = await renderInto(buildStateComCategorias());
+    view.setRetaFinalFiltro('banana');
+    view.renderRetaFinal(el, store.state.planejamento);
+
+    expect(pressedFiltros(el)).toEqual(['todos']);
+    expect(cardIds(el)).toEqual(['rf_done', 'rf_rolado', 'rf_hoje', 'rf_fut']);
+  });
 });
 
-describe('ação rf-toggle-filtro', () => {
-  it('alterna o filtro e re-renderiza a view', async () => {
+describe('ação rf-set-filtro', () => {
+  it('seleciona o filtro e re-renderiza a view', async () => {
     await renderInto(buildStateComCategorias());
     const { actions } = await import('../../src/js/ui/actions/dispatcher.js');
     await import('../../src/js/ui/actions/reta-final.js?v=8.37');
     const components = await import('../../src/js/components.js?v=8.37');
 
-    const botao = document.querySelector('[data-action="rf-toggle-filtro"][data-filtro="atrasados"]');
-    await actions['rf-toggle-filtro'](botao);
+    const botao = document.querySelector(
+      '[data-action="rf-set-filtro"][data-filtro="atrasados"]'
+    );
+    await actions['rf-set-filtro'](botao);
 
     expect(components.renderCurrentView).toHaveBeenCalled();
 
     const view = await import('../../src/js/views/reta-final-view.js?v=8.37');
     const el = document.createElement('div');
     view.renderRetaFinal(el, store.state.planejamento);
-    expect(cardIds(el)).toEqual(['rf_done', 'rf_hoje', 'rf_fut']);
+    expect(cardIds(el)).toEqual(['rf_rolado']);
   });
 });
