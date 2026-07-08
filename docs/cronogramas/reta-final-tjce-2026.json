@@ -1,0 +1,624 @@
+{
+  "versao": 1,
+  "nome": "Reta Final TJCE 2026 — Analista Judiciário",
+  "dataFinal": "2026-08-09",
+  "minutosPadrao": 60,
+  "dias": [
+    {
+      "data": "2026-06-29",
+      "blocos": [
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "20 - Poder Judiciário - 45 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "2 - Introdução ao Direito Processual e Normas Processuais Civis - 20 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "7 - Jurisdição e Competência - 15 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-06-30",
+      "blocos": [
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "24 - Improbidade Administrativa - 26 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "12 - Responsabilidade Extracontratual do Estado - 17 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Civil",
+          "aula": "3 - Lei de Introdução às Normas do Direito Brasileiro - 18 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Civil",
+          "aula": "9 - Parte Geral – Parte II - 15 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-01",
+      "blocos": [
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "22 - Funções Essenciais à Justiça - 25 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "18 - Poder Executivo - 13 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Penal",
+          "aula": "2 - Conceitos de Crime - 47 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-02",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "31 - Tutelas Provisórias - 22 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "9 - Atos Administrativos - 25 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "5 - Poderes Administrativos - 20 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-03",
+      "blocos": [
+        {
+          "disciplina": "Direito Civil",
+          "aula": "15 - Parte Geral – Parte V - 17 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Civil",
+          "aula": "33 - Contratos – Parte I - 10 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Prova Discursiva",
+          "topicos": [
+            "Redação 1 (tema FCC)"
+          ],
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-06",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "48 - Liquidação de Sentença e Cumprimento de Sentença - 24 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "14 - Administração Pública - 35 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-07",
+      "blocos": [
+        {
+          "disciplina": "Direito Penal",
+          "aula": "12 - Concurso de Pessoas - 22 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Penal",
+          "aula": "4 - Princípios do Direito Penal - 11 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Civil",
+          "aula": "20 - Obrigações – Parte I - 22 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Civil",
+          "aula": "44 - Responsabilidade Civil – Parte I - 10 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-08",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "59 - Processo de Execução - 62 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "14 - Controle Administrativo - 11 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "7 - Organização Administrativa - 27 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-09",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "6 - Inquérito Policial - 38 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "26 - Ordem Social - 28 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "28 - Finanças Públicas e Orçamento Público na CF/1988 - 21 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-10",
+      "blocos": [
+        {
+          "disciplina": "Direito Penal",
+          "aula": "16 - Teoria Geral da Pena - 23 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Penal",
+          "aula": "22 - Prescrição - 12 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Prova Discursiva",
+          "topicos": [
+            "Redação 2 (tema FCC)"
+          ],
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-11",
+      "blocos": [
+        {
+          "disciplina": "Simulados",
+          "aula": "1 - TJ CE - 1° Simulado - Analista Judiciário – Área Judiciária (Pós-Edital) - 56 páginas",
+          "minutos": 210
+        }
+      ]
+    },
+    {
+      "data": "2026-07-13",
+      "blocos": [
+        {
+          "disciplina": "Simulados",
+          "topicos": [
+            "Revisão de erros — Simulado 1"
+          ],
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "60 - Recursos - Parte I - 97 páginas",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-14",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "8 - Ação Penal - 36 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Civil",
+          "aula": "53 - Coisas – Parte I - 18 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Civil",
+          "aula": "66 - Família - 13 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-15",
+      "blocos": [
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "6 - Controle de Constitucionalidade - 45 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Penal",
+          "aula": "44 - Crimes contra a Administração Pública - 34 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-16",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "20 - Disposições Gerais sobre Prisões - 28 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "24 - Prisão Temporária - 17 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "20 - Licitação - 28 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "30 - Serviços Públicos - 19 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-17",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "39 - Fase Postulatória do Procedimento Comum e da Fase Saneadora/Ordinatória - 26 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "42 - Da Audiência de Instrução e Julgamento (AIJ) e da Fase Instrutória - 18 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Prova Discursiva",
+          "topicos": [
+            "Redação 3 (tema FCC)"
+          ],
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-18",
+      "blocos": [
+        {
+          "disciplina": "Simulados",
+          "aula": "2 - TJ CE - 2° Simulado - Analista Judiciário – Área Judiciária (Pós-Edital) - páginas não informadas",
+          "minutos": 210
+        }
+      ]
+    },
+    {
+      "data": "2026-07-20",
+      "blocos": [
+        {
+          "disciplina": "Simulados",
+          "topicos": [
+            "Revisão de erros — Simulado 2"
+          ],
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "26 - Liberdade Provisória e Medidas Cautelares Não Prisionais - 53 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-21",
+      "blocos": [
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "10 - Direitos e Garantias Fundamentais - Parte II - 34 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Penal",
+          "aula": "48 - Crimes Contra as Finanças Públicas - 16 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Penal",
+          "aula": "18 - Ação Penal - 12 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-22",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "37 - Tribunal do Juri - Judicium Accusatione - 33 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "12 - Organização Político-Administrativa - 32 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-23",
+      "blocos": [
+        {
+          "disciplina": "Língua Portuguesa",
+          "aula": "16 - Emprego das Classes de Palavras - 30 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Língua Portuguesa",
+          "aula": "11 - Ortografia Oficial e Acentuação Gráfica - 12 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "48 - Habeas Corpus - 15 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "14 - Teoria Geral das Provas - 14 páginas - PDF sintético",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-24",
+      "blocos": [
+        {
+          "disciplina": "Língua Portuguesa",
+          "aula": "2 - Compreensão e Interpretação de Textos - 11 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Língua Portuguesa",
+          "aula": "9 - Reescrita - 10 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Prova Discursiva",
+          "topicos": [
+            "Redação 4 (tema FCC)"
+          ],
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-25",
+      "blocos": [
+        {
+          "disciplina": "Simulados",
+          "aula": "3 - TJ CE - 3° Simulado - Analista Judiciário – Área Judiciária (Pós-Edital) - páginas não informadas",
+          "minutos": 210
+        }
+      ]
+    },
+    {
+      "data": "2026-07-27",
+      "blocos": [
+        {
+          "disciplina": "Simulados",
+          "topicos": [
+            "Revisão de erros — Simulado 3"
+          ],
+          "minutos": 120
+        },
+        {
+          "disciplina": "Legislação",
+          "aula": "8 - Lei Estadual n. 9.826/1974 - Estatuto dos Funcionários Públicos Civis do Estado - 24 páginas",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-28",
+      "blocos": [
+        {
+          "disciplina": "Legislação",
+          "aula": "12 - Lei Estadual n. 16.397/2017 - Organização Judiciária do Estado do Ceará - 35 páginas",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Noções Sobre Direitos das Pessoas com Deficiência (RESOLUÇÃO CSJT Nº 386/2024 - ART. 6º)",
+          "aula": "3 - Lei n. 13.146/2015 - Estatuto da Pessoa com Deficiência - 137 páginas",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Noções Sobre Direitos das Pessoas com Deficiência (RESOLUÇÃO CSJT Nº 386/2024 - ART. 6º)",
+          "aula": "1 - Resolução CSJT n. 386/2024 - 32 páginas",
+          "minutos": 60
+        }
+      ]
+    },
+    {
+      "data": "2026-07-29",
+      "blocos": [
+        {
+          "disciplina": "Raciocínio Lógico-Matemático",
+          "aula": "3 - Operadores Lógicos Fundamentais - 13 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "16 - Poder Legislativo - 32 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-30",
+      "blocos": [
+        {
+          "disciplina": "Direito Civil",
+          "aula": "15 - Parte Geral – Parte V - 17 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Penal",
+          "aula": "2 - Conceitos de Crime - 47 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-07-31",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "59 - Processo de Execução - 62 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "20 - Disposições Gerais sobre Prisões - 28 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-08-01",
+      "blocos": [
+        {
+          "disciplina": "Simulados",
+          "aula": "4 - TJ CE - 4° Simulado - Analista Judiciário – Área Judiciária (Pós-Edital) - páginas não informadas",
+          "minutos": 210
+        }
+      ]
+    },
+    {
+      "data": "2026-08-03",
+      "blocos": [
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "20 - Poder Judiciário - 45 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "24 - Improbidade Administrativa - 26 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-08-04",
+      "blocos": [
+        {
+          "disciplina": "Direito Processual Civil",
+          "aula": "59 - Processo de Execução - 62 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Processual Penal",
+          "aula": "20 - Disposições Gerais sobre Prisões - 28 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-08-05",
+      "blocos": [
+        {
+          "disciplina": "Direito Civil",
+          "aula": "15 - Parte Geral – Parte V - 17 páginas - PDF sintético",
+          "minutos": 120
+        },
+        {
+          "disciplina": "Direito Penal",
+          "aula": "2 - Conceitos de Crime - 47 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-08-06",
+      "blocos": [
+        {
+          "disciplina": "Legislação",
+          "aula": "8 - Lei Estadual n. 9.826/1974 - Estatuto dos Funcionários Públicos Civis do Estado - 24 páginas",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Legislação",
+          "aula": "12 - Lei Estadual n. 16.397/2017 - Organização Judiciária do Estado do Ceará - 35 páginas",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Simulados",
+          "topicos": [
+            "Mapa de pegadinhas FCC + caderno de erros"
+          ],
+          "minutos": 120
+        }
+      ]
+    },
+    {
+      "data": "2026-08-07",
+      "blocos": [
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "20 - Poder Judiciário - 45 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Administrativo",
+          "aula": "24 - Improbidade Administrativa - 26 páginas - PDF sintético",
+          "minutos": 60
+        },
+        {
+          "disciplina": "Direito Constitucional",
+          "aula": "26 - Ordem Social - 28 páginas - PDF sintético",
+          "minutos": 120
+        }
+      ]
+    }
+  ]
+}
