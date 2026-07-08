@@ -11,6 +11,7 @@ import { state } from '../store.js?v=8.37';
 import { getDisc } from '../logic.js?v=8.37';
 import {
   computeRetaFinalSummary,
+  computeRetaFinalHeaderMetrics,
   getRetaFinalBlocoFiltroCategoria,
   getRetaFinalTopicoLabel,
 } from '../logic/reta-final-core.js';
@@ -34,6 +35,18 @@ function formatMinutes(minutes) {
   const mins = total % 60;
   if (hours > 0) return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
   return `${mins}min`;
+}
+
+/**
+ * Horas decimais em pt-BR para os KPIs do cabeçalho: inteiros sem casa
+ * ("108h"), frações com uma casa e vírgula ("3,4h"). Distinto de
+ * `formatMinutes` (usado nos blocos, "1h 30min").
+ */
+export function formatHours(minutes) {
+  const total = Math.max(0, Number(minutes) || 0);
+  const horas = total / 60;
+  if (Number.isInteger(horas)) return `${horas}h`;
+  return `${horas.toFixed(1).replace('.', ',')}h`;
 }
 
 // Filtro do cronograma dia a dia: seletor exclusivo, uma visão por vez
@@ -167,26 +180,90 @@ function renderResumoHtml(summary) {
       const discEntry = getDisc(discId);
       const nome = discEntry ? discEntry.disc.nome : 'Disciplina';
       const cor = discEntry ? discEntry.disc.cor || discEntry.edital.cor || '#8aa4bf' : '#7f8a99';
+      const pct = stats.minutos > 0 ? Math.round((stats.minutosConcluidos / stats.minutos) * 100) : 0;
       return `
-        <div class="rf-summary-row">
-          <div class="rf-summary-disc">
-            <span class="rf-summary-dot" style="background:${cor};"></span>
-            <span class="text-ellipsis">${esc(nome)}</span>
-          </div>
-          <div class="rf-summary-meta">
-            ${stats.blocosConcluidos}/${stats.blocos} blocos · ${formatMinutes(stats.minutosConcluidos)} de ${formatMinutes(stats.minutos)}
-          </div>
+        <div class="rf-dist-row">
+          <span class="rf-dist-label text-ellipsis" title="${esc(nome)}">
+            <span class="rf-dist-dot" style="background:${cor};"></span>${esc(nome)}
+          </span>
+          <span class="rf-dist-track">
+            <span class="rf-dist-fill" style="width:${pct}%; background:${cor};"></span>
+          </span>
+          <span class="rf-dist-meta">${formatHours(stats.minutosConcluidos)} de ${formatHours(stats.minutos)}</span>
         </div>
       `;
     })
     .join('');
 
   return `
-    <h4 class="ciclo-predict-title"><i class="fa fa-flag-checkered ciclo-predict-title-icon"></i> RESUMO ATÉ A DATA FINAL</h4>
+    <h4 class="ciclo-predict-title"><i class="fa fa-chart-simple ciclo-predict-title-icon"></i> DISTRIBUIÇÃO DE HORAS</h4>
     ${rows || '<div class="config-desc">Sem disciplinas no cronograma.</div>'}
-    <div class="rf-summary-row">
-      <div class="rf-summary-disc"><strong>Total restante</strong></div>
-      <div class="rf-summary-meta"><strong>${formatMinutes(summary.minutosRestantes)}</strong></div>
+    <div class="rf-dist-total">
+      <span>Total restante</span>
+      <span>${formatHours(summary.minutosRestantes)}</span>
+    </div>
+  `;
+}
+
+/**
+ * Painel "Foco de Hoje": blocos pendentes cuja categoria é `hoje` ou
+ * `atrasado` (o que precisa de atenção agora), reusando `renderBlocoCard`
+ * (que já traz as ações concluir/associar). Cabeçalho com a data, a contagem
+ * e o total de horas. Retorna string vazia quando não há nada para hoje.
+ */
+function renderFocoHoje(blocos, hoje) {
+  const doDia = blocos.filter((bloco) => {
+    const cat = getRetaFinalBlocoFiltroCategoria(bloco, hoje);
+    return cat === 'hoje' || cat === 'atrasado';
+  });
+  if (doDia.length === 0) return '';
+
+  const totalMin = doDia.reduce((soma, b) => soma + Math.max(0, Number(b.minutos) || 0), 0);
+  const plural = doDia.length === 1 ? 'bloco' : 'blocos';
+  return `
+    <div class="card rf-foco-card">
+      <div class="rf-foco-header">
+        <span class="rf-foco-title"><i class="fa fa-crosshairs"></i> FOCO DE HOJE · ${formatShortDate(hoje)}</span>
+        <span class="rf-foco-meta">${doDia.length} ${plural} · ${formatHours(totalMin)}</span>
+      </div>
+      ${doDia.map((bloco) => renderBlocoCard(bloco, hoje)).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Cabeçalho com os 4 KPIs da Reta Final: Concluído (% + donut), Faltam (dias
+ * para a prova), Horas (restante/total) e Ritmo necessário. Cor por categoria
+ * de dado (DESIGN.md): concluído→success, horas→info, faltam→neutro,
+ * ritmo→warning. O donut usa `--rf-donut-pct` (conic-gradient no CSS).
+ */
+function renderHeaderMetrics(metrics, retaFinal) {
+  const dataFinalBr = formatShortDate(retaFinal.dataFinal);
+  return `
+    <div class="rf-metrics-row">
+      <div class="card rf-metric rf-metric--concluido" data-kpi="concluido">
+        <div class="rf-metric-body">
+          <div class="rf-metric-label">CONCLUÍDO</div>
+          <div class="rf-metric-value">${metrics.percConcluido}%</div>
+          <div class="rf-metric-sub">${metrics.blocosConcluidos}/${metrics.totalBlocos} blocos</div>
+        </div>
+        <div class="rf-donut" style="--rf-donut-pct:${metrics.percConcluido};" role="img" aria-label="${metrics.percConcluido}% concluído"></div>
+      </div>
+      <div class="card rf-metric rf-metric--faltam" data-kpi="faltam">
+        <div class="rf-metric-label">FALTAM</div>
+        <div class="rf-metric-value">${metrics.diasParaProva}</div>
+        <div class="rf-metric-sub">dias para a prova</div>
+      </div>
+      <div class="card rf-metric rf-metric--horas" data-kpi="horas">
+        <div class="rf-metric-label">HORAS</div>
+        <div class="rf-metric-value">${formatHours(metrics.minutosRestantes)}</div>
+        <div class="rf-metric-sub">${formatHours(metrics.minutosConcluidos)} de ${formatHours(metrics.totalMinutos)}</div>
+      </div>
+      <div class="card rf-metric rf-metric--ritmo" data-kpi="ritmo">
+        <div class="rf-metric-label">RITMO NECESSÁRIO</div>
+        <div class="rf-metric-value">${formatHours(metrics.ritmoMinutosPorDia)}</div>
+        <div class="rf-metric-sub">por dia${dataFinalBr ? ` até ${dataFinalBr}` : ''}</div>
+      </div>
     </div>
   `;
 }
@@ -205,6 +282,10 @@ export function renderRetaFinal(el, plan = state.planejamento) {
   const blocos = retaFinal.blocos || [];
   const hoje = todayStr();
   const summary = computeRetaFinalSummary(retaFinal);
+  const metrics = computeRetaFinalHeaderMetrics(retaFinal, {
+    hoje,
+    dataProva: state.config?.dataProva || null,
+  });
   const aposDataFinal = Boolean(retaFinal.dataFinal) && hoje > retaFinal.dataFinal;
   const temArquivado = Boolean(state.planejamentoArquivado?.plan);
 
@@ -256,10 +337,13 @@ export function renderRetaFinal(el, plan = state.planejamento) {
       </div>
     </div>
 
+    ${renderHeaderMetrics(metrics, retaFinal)}
+
     ${bannerHtml}
 
     <div class="grid-2 ciclo-layout">
       <div class="ciclo-content-col">
+        ${renderFocoHoje(blocos, hoje)}
         <div class="card ciclo-sequence-card">
           <div class="ciclo-sequence-header">
             <div class="ciclo-sequence-title">Cronograma dia a dia — até ${esc(formatBrDate(retaFinal.dataFinal))}</div>
