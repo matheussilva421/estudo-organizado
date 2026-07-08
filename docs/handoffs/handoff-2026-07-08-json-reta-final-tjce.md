@@ -1,5 +1,40 @@
 # Handoff — 2026-07-08 — JSON de importação da Reta Final TJCE 2026
 
+## Rodada 2 — ajuste com o backup real do usuário + fix de matching
+
+Após a 1ª versão, o usuário enviou o print do preview (várias entradas "será criado")
+e o backup real do app (`estudoorganizadobackup20260708.json`). Dois problemas:
+
+1. **Nomes de disciplina divergentes do MD.** No app do usuário, as disciplinas do
+   edital TJ-CE se chamam **"Legislação Específica"** (que reúne as aulas de
+   "Legislação" E de "Noções Sobre Direitos das Pessoas com Deficiência" do catálogo,
+   sem conflito de nomes) e **"Raciocínio Lógico"** (não "Raciocínio Lógico-Matemático").
+   O JSON foi regerado com os nomes reais; nomes de aula já batiam verbatim.
+2. **Bug real no matching: editais arquivados casavam primeiro.**
+   `matchRetaFinalToEditais` (`src/js/logic/reta-final-core.js`) indexava TODOS os
+   `state.editais` com "primeiro nome ganha". O backup tem PGE-RN e TCE-RN
+   (`arquivado: true`) ANTES do TJ-CE — disciplinas homônimas (Direito Administrativo,
+   Civil, Constitucional, Proc. Civil, Penal, Língua Portuguesa, Legislação Específica)
+   casariam com os editais arquivados e as aulas novas seriam criadas no concurso errado.
+   **Fix (TDD):** 2 testes novos em `tests/unit/reta-final-core.test.js` (red) →
+   `matchRetaFinalToEditais` agora pula `edital.arquivado` (green). Disciplina que só
+   existe em edital arquivado passa a ser criada no edital ativo (comportamento correto
+   via `activateRetaFinal`, que já usava o primeiro edital não arquivado como alvo).
+   Suíte completa: 2064 testes passando.
+
+**Validação da rodada 2** (script no scratchpad, contra o backup real): payload válido;
+9 disciplinas casadas com o edital TJ-CE (todas com `editalId` do TJ-CE), 2 criadas por
+design (Prova Discursiva, Simulados); 4 aulas criadas (os 4 simulados, que não existem
+no edital); 8 tópicos novos (4 redações, 3 revisões de simulado, 1 pegadinhas).
+
+**Importante para o usuário:** o app dele precisa estar rodando o código com o fix
+(deploy/atualização do PWA — o bump de cache é automático no commit) ANTES de importar,
+senão o matching volta a casar com os editais arquivados.
+
+---
+
+## Rodada 1 (histórico)
+
 ## O que foi feito
 
 Convertido o cronograma HTML do usuário (`cronograma_tjce_2026_page_aware.html`, 34 dias:

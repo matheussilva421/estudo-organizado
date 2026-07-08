@@ -452,7 +452,7 @@
           "minutos": 120
         },
         {
-          "disciplina": "Legislação",
+          "disciplina": "Legislação Específica",
           "aula": "8 - Lei Estadual n. 9.826/1974 - Estatuto dos Funcionários Públicos Civis do Estado - 24 páginas",
           "minutos": 120
         }
@@ -462,17 +462,17 @@
       "data": "2026-07-28",
       "blocos": [
         {
-          "disciplina": "Legislação",
+          "disciplina": "Legislação Específica",
           "aula": "12 - Lei Estadual n. 16.397/2017 - Organização Judiciária do Estado do Ceará - 35 páginas",
           "minutos": 120
         },
         {
-          "disciplina": "Noções Sobre Direitos das Pessoas com Deficiência (RESOLUÇÃO CSJT Nº 386/2024 - ART. 6º)",
+          "disciplina": "Legislação Específica",
           "aula": "3 - Lei n. 13.146/2015 - Estatuto da Pessoa com Deficiência - 137 páginas",
           "minutos": 60
         },
         {
-          "disciplina": "Noções Sobre Direitos das Pessoas com Deficiência (RESOLUÇÃO CSJT Nº 386/2024 - ART. 6º)",
+          "disciplina": "Legislação Específica",
           "aula": "1 - Resolução CSJT n. 386/2024 - 32 páginas",
           "minutos": 60
         }
@@ -482,7 +482,7 @@
       "data": "2026-07-29",
       "blocos": [
         {
-          "disciplina": "Raciocínio Lógico-Matemático",
+          "disciplina": "Raciocínio Lógico",
           "aula": "3 - Operadores Lógicos Fundamentais - 13 páginas - PDF sintético",
           "minutos": 120
         },
@@ -582,12 +582,12 @@
       "data": "2026-08-06",
       "blocos": [
         {
-          "disciplina": "Legislação",
+          "disciplina": "Legislação Específica",
           "aula": "8 - Lei Estadual n. 9.826/1974 - Estatuto dos Funcionários Públicos Civis do Estado - 24 páginas",
           "minutos": 60
         },
         {
-          "disciplina": "Legislação",
+          "disciplina": "Legislação Específica",
           "aula": "12 - Lei Estadual n. 16.397/2017 - Organização Judiciária do Estado do Ceará - 35 páginas",
           "minutos": 60
         },

@@ -150,6 +150,40 @@ describe('matchRetaFinalToEditais', () => {
     expect(match.summary.aulasCriadas).toBe(0);
   });
 
+  it('ignora editais arquivados: disciplina homônima casa com o edital ativo', () => {
+    const arquivado = createEdital({
+      id: 'ed_old',
+      nome: 'Concurso antigo',
+      arquivado: true,
+      disciplinas: [
+        createDisciplina({
+          id: 'disc_penal_old',
+          nome: 'Direito Penal',
+          assuntos: [createAssunto({ id: 'ass_old', nome: 'Crimes contra a Vida' })],
+          aulas: [{ id: 'aula_old', nome: 'Aula antiga' }],
+        }),
+      ],
+    });
+    const match = matchRetaFinalToEditais(validPayload(), [arquivado, ...editais]);
+    const penal = match.disciplinas.find((d) => d.nome === 'Direito Penal');
+    expect(penal.discId).toBe('disc_penal');
+    expect(penal.editalId).toBe('ed_1');
+    expect(penal.aulas[0].aulaId).toBe('aula_05');
+  });
+
+  it('disciplina existente só em edital arquivado é tratada como criada', () => {
+    const arquivado = createEdital({
+      id: 'ed_old',
+      nome: 'Concurso antigo',
+      arquivado: true,
+      disciplinas: [createDisciplina({ id: 'disc_pt_old', nome: 'Português' })],
+    });
+    const match = matchRetaFinalToEditais(validPayload(), [arquivado, ...editais]);
+    const portugues = match.disciplinas.find((d) => d.nome === 'Português');
+    expect(portugues.discId).toBeNull();
+    expect(portugues.editalId).toBeNull();
+  });
+
   it('disciplinas repetidas em dias diferentes são agregadas', () => {
     const payload = validPayload({
       dias: [
