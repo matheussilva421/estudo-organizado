@@ -1,6 +1,10 @@
-#!/usr/bin/env node
 /**
  * Bump automático do cache do PWA (APP_VERSION).
+ *
+ * Sem shebang de propósito: todos os chamadores (hook pre-commit, GitHub
+ * Action, npm scripts) invocam via `node scripts/bump-cache.mjs`, e o teste
+ * unitário importa este módulo — o transform do Vitest não remove shebang e
+ * quebraria o parse.
  *
  * Atualiza em sincronia a versão de cache nos quatro arquivos acoplados:
  *   - src/sw.js                              (APP_VERSION = 'X.YY')
