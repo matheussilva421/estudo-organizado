@@ -99,6 +99,10 @@ export function validateRetaFinalPayload(payload) {
 export function matchRetaFinalToEditais(payload, editais) {
   const discIndex = new Map(); // key -> { discId, editalId, assuntos: Map, aulas: Map }
   for (const edital of editais || []) {
+    // Editais arquivados ficam fora do matching: uma disciplina homônima de um
+    // concurso antigo casaria primeiro e mandaria os blocos (e as aulas novas)
+    // para o edital errado.
+    if (edital?.arquivado) continue;
     for (const disc of edital?.disciplinas || []) {
       const key = normalizeNameKey(disc?.nome);
       if (!key || discIndex.has(key)) continue;
