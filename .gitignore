@@ -2,6 +2,8 @@
 /*
 
 !/.gitignore
+!/.githooks/
+!/.githooks/**
 !/.prettierignore
 !/.aiexclude
 !/.codexignore

@@ -1,0 +1,40 @@
+#!/bin/sh
+# Bump automático do cache do PWA.
+# Se o commit altera assets de src/ e a APP_VERSION staged ainda é a mesma do
+# HEAD, roda scripts/bump-cache.mjs e adiciona os arquivos sincronizados ao
+# commit. Escape hatch: SKIP_CACHE_BUMP=1 git commit ...
+
+if [ "$SKIP_CACHE_BUMP" = "1" ]; then
+  exit 0
+fi
+
+changed_assets=$(git diff --cached --name-only --diff-filter=ACMR |
+  grep -E '^src/.*\.(html|css|js|json|svg|png|webmanifest)$')
+if [ -z "$changed_assets" ]; then
+  exit 0
+fi
+
+# Primeiro commit do repo (sem HEAD): nada com que comparar.
+if ! git rev-parse --verify -q HEAD >/dev/null; then
+  exit 0
+fi
+
+staged_version=$(git show ":src/sw.js" 2>/dev/null |
+  sed -n "s/^const APP_VERSION = '\([0-9.]*\)';.*/\1/p")
+head_version=$(git show "HEAD:src/sw.js" 2>/dev/null |
+  sed -n "s/^const APP_VERSION = '\([0-9.]*\)';.*/\1/p")
+
+# Bump já feito neste commit (ou sw.js fora do padrão): não interferir.
+if [ -z "$staged_version" ] || [ -z "$head_version" ] ||
+  [ "$staged_version" != "$head_version" ]; then
+  exit 0
+fi
+
+echo "pre-commit: assets de src/ alterados sem bump de cache — rodando bump automático..."
+node scripts/bump-cache.mjs || {
+  echo "pre-commit: bump de cache falhou. Corrija ou use SKIP_CACHE_BUMP=1 para pular." >&2
+  exit 1
+}
+
+git add src/sw.js src/index.html src/js/sync/sync-diagnostic.js \
+  tests/unit/css-architecture.test.js

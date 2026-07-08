@@ -7,7 +7,7 @@
 - [ ] No inline event handlers in production code (`grep -E 'onclick|onchange|oninput|onkeyup' src/js/ src/index.html`)
 - [ ] CSP has no `unsafe-eval` in `script-src`
 - [ ] Service worker asset list is up to date
-- [ ] Version bumped in `sw.js` (`APP_VERSION`)
+- [x] Version bumped in `sw.js` (`APP_VERSION`) — AUTOMATICO via hook `pre-commit` (`.githooks/pre-commit`); manual com `npm run bump`, verificacao com `npm run bump:check`
 
 ## Visual & UX
 
