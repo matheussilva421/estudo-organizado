@@ -425,3 +425,54 @@ export function computeRetaFinalSummary(retaFinal) {
 
   return summary;
 }
+
+/**
+ * Dias entre `hojeStr` e `alvoStr` (YYYY-MM-DD), arredondando para cima e com
+ * piso em 0 (datas passadas → 0). Mesmo cálculo do countdown da Página Inicial
+ * (home-view). Datas inválidas → 0.
+ */
+function diasAte(hojeStr, alvoStr) {
+  if (!DATE_RE.test(String(hojeStr || '')) || !DATE_RE.test(String(alvoStr || ''))) return 0;
+  const hoje = new Date(hojeStr + 'T00:00:00');
+  const alvo = new Date(alvoStr + 'T00:00:00');
+  const diff = Math.ceil((alvo - hoje) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diff);
+}
+
+/**
+ * Métricas do cabeçalho da Reta Final (os 4 KPIs da view): reusa
+ * `computeRetaFinalSummary` e deriva percentual de conclusão, dias para a prova
+ * e ritmo necessário. Pura: recebe `hoje` e `dataProva` — não lê state.
+ *  - `diasParaProva`: dias até `dataProva` (cai em `dataFinal` se ausente).
+ *  - `ritmoMinutosPorDia`: minutos restantes / dias até `dataFinal` (mín. 1 dia,
+ *    para não dividir por zero no último dia).
+ * @param {object} retaFinal - state.planejamento.retaFinal
+ * @param {{ hoje: string, dataProva?: string|null }} opts
+ */
+export function computeRetaFinalHeaderMetrics(retaFinal, { hoje, dataProva } = {}) {
+  const summary = computeRetaFinalSummary(retaFinal);
+  const dataFinal = retaFinal?.dataFinal || null;
+
+  let blocosConcluidos = 0;
+  for (const stats of Object.values(summary.porDisciplina)) {
+    blocosConcluidos += stats.blocosConcluidos;
+  }
+  const totalBlocos = summary.totalBlocos;
+  const percConcluido = totalBlocos > 0 ? Math.round((blocosConcluidos / totalBlocos) * 100) : 0;
+
+  const diasParaProva = diasAte(hoje, dataProva || dataFinal);
+  const diasAteDataFinal = diasAte(hoje, dataFinal);
+  const ritmoMinutosPorDia = summary.minutosRestantes / Math.max(1, diasAteDataFinal);
+
+  return {
+    blocosConcluidos,
+    totalBlocos,
+    percConcluido,
+    diasParaProva,
+    minutosRestantes: summary.minutosRestantes,
+    minutosConcluidos: summary.minutosConcluidos,
+    totalMinutos: summary.totalMinutos,
+    diasAteDataFinal,
+    ritmoMinutosPorDia,
+  };
+}

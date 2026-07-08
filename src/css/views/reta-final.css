@@ -179,36 +179,187 @@
   margin-bottom: 14px;
 }
 
-.rf-summary-row {
+/* ============================================
+   Cabeçalho de KPIs (Concluído · Faltam · Horas · Ritmo)
+   ============================================ */
+
+.rf-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.rf-metric {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
+  gap: 12px;
+  padding: 16px 18px;
+  overflow: hidden;
 }
 
-.rf-summary-row:last-child {
-  border-bottom: none;
+/* Filete de 3px no topo, cor por categoria de dado (DESIGN.md) */
+.rf-metric::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--rf-metric-accent, var(--text-muted));
 }
 
-.rf-summary-disc {
+.rf-metric--concluido {
+  --rf-metric-accent: var(--success);
+}
+
+.rf-metric--horas {
+  --rf-metric-accent: var(--info);
+}
+
+.rf-metric--ritmo {
+  --rf-metric-accent: var(--warning);
+}
+
+.rf-metric-body {
+  min-width: 0;
+}
+
+.rf-metric-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rf-metric-value {
+  margin-top: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rf-metric-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Anel de progresso do card Concluído (conic-gradient, sem Chart.js) */
+.rf-donut {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-pill);
+  background: conic-gradient(
+    var(--success) calc(var(--rf-donut-pct, 0) * 1%),
+    color-mix(in srgb, var(--text-muted) 22%, transparent) 0
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent 62%, #000 63%);
+  mask: radial-gradient(farthest-side, transparent 62%, #000 63%);
+}
+
+/* ============================================
+   Painel Foco de Hoje
+   ============================================ */
+
+.rf-foco-card {
+  margin-bottom: 14px;
+  border-top: 3px solid var(--accent);
+}
+
+.rf-foco-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.rf-foco-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.rf-foco-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================
+   Distribuição de Horas (barras por disciplina)
+   ============================================ */
+
+.rf-dist-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(60px, 1.1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+
+.rf-dist-label {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  font-size: 13px;
   color: var(--text-primary);
 }
 
-.rf-summary-dot {
+.rf-dist-dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
 }
 
-.rf-summary-meta {
-  color: var(--text-muted);
-  flex-shrink: 0;
+.rf-dist-track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+  overflow: hidden;
+}
+
+.rf-dist-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  min-width: 2px;
+  transition: width 0.2s ease;
+}
+
+.rf-dist-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.rf-dist-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.rf-dist-total span:last-child {
+  font-family: 'DM Mono', monospace;
+  font-variant-numeric: tabular-nums;
 }
