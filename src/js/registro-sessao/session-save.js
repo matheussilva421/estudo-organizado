@@ -17,6 +17,11 @@ import {
 import { showToast, closeModal, openModal, showConfirm } from '../app.js?v=8.37';
 import { esc, todayStr, uid } from '../utils.js?v=8.37';
 import { updateBadges, renderCurrentView } from '../components.js?v=8.37';
+import {
+  applyTopicosToEvent,
+  sumTopicQuestoes,
+  sumTopicPaginas,
+} from './session-topics.js';
 
 // =============================================
 // PERFORM SAVE
@@ -25,6 +30,44 @@ import { updateBadges, renderCurrentView } from '../components.js?v=8.37';
 function getSeqStatus(seq) {
   if (seq?.status) return seq.status;
   return seq?.concluido ? 'concluida' : 'pendente';
+}
+
+/**
+ * Regras de validação de questões — extraídas do fluxo legado (campos
+ * globais) e reutilizadas item a item no registro multi-tópico.
+ * @returns {string|null} mensagem de erro ou null se válido
+ */
+function getQuestoesValidationError({ total, acertos, erros }) {
+  if (total <= 0) return 'Informe o total de questões';
+  if (acertos < 0 || erros < 0) return 'Acertos e erros não podem ser negativos';
+  if (acertos + erros > total) return 'Acertos + Erros não pode ser maior que o Total';
+  return null;
+}
+
+/**
+ * Valida a lista de tópicos da sessão (multi-tópico): todo item precisa de
+ * assunto e/ou aula; questões seguem as mesmas regras dos campos globais.
+ * @returns {string|null} mensagem de erro ou null se válido
+ */
+function getSessionTopicosValidationError(sessionTopicos) {
+  for (let i = 0; i < sessionTopicos.length; i++) {
+    const item = sessionTopicos[i];
+    const rotulo = `Tópico ${i + 1}`;
+    if (!item || (!item.assId && !item.aulaId)) {
+      return `${rotulo}: selecione um assunto ou uma aula`;
+    }
+    if (item.questoes) {
+      const total = parseInt(item.questoes.total, 10) || 0;
+      const acertos = parseInt(item.questoes.acertos, 10) || 0;
+      const erros = parseInt(item.questoes.erros, 10) || 0;
+      // Item sem questões preenchidas (total 0 e sem acertos/erros) é válido.
+      if (total > 0 || acertos > 0 || erros > 0) {
+        const error = getQuestoesValidationError({ total, acertos, erros });
+        if (error) return `${rotulo}: ${error.toLowerCase()}`;
+      }
+    }
+  }
+  return null;
 }
 
 function markPlanningSequenceCompleted(seq) {
@@ -174,7 +217,11 @@ export function performSave({
   sessionEndTime,
   sessionMode,
   slotOverrideChoice = null,
+  sessionTopicos = null,
 }) {
+  // Registro multi-tópico: lista de itens {assId|aulaId, questoes, paginas,
+  // statusTopico}. Lista vazia/ausente = caminho legado byte a byte.
+  const hasTopicos = Array.isArray(sessionTopicos) && sessionTopicos.length > 0;
   let ev = null;
   const isLivre = currentEventId === 'crono_livre';
 
@@ -207,8 +254,21 @@ export function performSave({
   }
 
   const discId = document.getElementById('reg-disciplina')?.value;
-  const assId = document.getElementById('reg-assunto')?.value || '';
-  const aulaId = document.getElementById('reg-aula')?.value || '';
+  if (hasTopicos) {
+    const topicosError = getSessionTopicosValidationError(sessionTopicos);
+    if (topicosError) {
+      showToast(topicosError, 'error');
+      return false;
+    }
+  }
+  // Multi-tópico: os escalares passam a ser o 1º item da lista (derivados —
+  // dashboard/histórico/ciclo continuam lendo os campos atuais sem migração).
+  const assId = hasTopicos
+    ? sessionTopicos[0].assId || ''
+    : document.getElementById('reg-assunto')?.value || '';
+  const aulaId = hasTopicos
+    ? sessionTopicos[0].aulaId || ''
+    : document.getElementById('reg-aula')?.value || '';
   const editedData = document.getElementById('reg-data-estudo')?.value;
   const studyDate = editedData || ev.data || todayStr();
 
@@ -271,20 +331,17 @@ export function performSave({
   // Validate questões if type selected
   const hasQuestoes = selectedTipos.includes('questoes') || selectedTipos.includes('simulado');
   let questoes = null;
-  if (hasQuestoes) {
+  if (hasTopicos) {
+    // Somatório dos itens (já validados por getSessionTopicosValidationError);
+    // os campos globais são apenas informativos neste modo.
+    questoes = sumTopicQuestoes(sessionTopicos);
+  } else if (hasQuestoes) {
     const total = parseInt(document.getElementById('reg-q-total')?.value, 10) || 0;
     const acertos = parseInt(document.getElementById('reg-q-acertos')?.value, 10) || 0;
     const erros = parseInt(document.getElementById('reg-q-erros')?.value, 10) || 0;
-    if (total <= 0) {
-      showToast('Informe o total de questões', 'error');
-      return false;
-    }
-    if (acertos < 0 || erros < 0) {
-      showToast('Acertos e erros não podem ser negativos', 'error');
-      return false;
-    }
-    if (acertos + erros > total) {
-      showToast('Acertos + Erros não pode ser maior que o Total', 'error');
+    const questoesError = getQuestoesValidationError({ total, acertos, erros });
+    if (questoesError) {
+      showToast(questoesError, 'error');
       return false;
     }
     questoes = { total, acertos, erros };
@@ -310,7 +367,9 @@ export function performSave({
     ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some((m) => selectedMateriais.includes(m));
 
   let paginas = null;
-  if (showPaginas) {
+  if (hasTopicos) {
+    paginas = sumTopicPaginas(sessionTopicos);
+  } else if (showPaginas) {
     const simplesVisible = document.getElementById('pag-simples')?.style.display !== 'none';
     if (simplesVisible) {
       const total = parseInt(document.getElementById('reg-pag-total')?.value || '0');
@@ -330,8 +389,12 @@ export function performSave({
     }
   }
 
-  // Topic status
-  const statusTopico = document.getElementById('reg-status-topico')?.value || 'em_andamento';
+  // Topic status — multi-tópico: 'finalizado' se algum item finalizado
+  const statusTopico = hasTopicos
+    ? sessionTopicos.some((item) => item?.statusTopico === 'finalizado')
+      ? 'finalizado'
+      : 'em_andamento'
+    : document.getElementById('reg-status-topico')?.value || 'em_andamento';
 
   // Handle Editing Flow
   const isEditingOld = ev.status === 'estudei' && !ev._isPastSession;
@@ -382,6 +445,9 @@ export function performSave({
         const ass = d.disc.assuntos?.find((a) => a.id === assId);
         if (ass) titulo += ' — ' + ass.nome;
       }
+      if (hasTopicos && sessionTopicos.length > 1) {
+        titulo += ` (+${sessionTopicos.length - 1} tópico${sessionTopicos.length > 2 ? 's' : ''})`;
+      }
       ev.titulo = titulo;
     }
   }
@@ -401,28 +467,44 @@ export function performSave({
     modo: sessionMode,
   };
 
-  // Progress: mark as concluded
-  if (statusTopico === 'finalizado' && discId) {
+  if (hasTopicos) {
+    // Grava a lista e re-deriva escalares/somas nos campos atuais (o legado
+    // acima já os preencheu com os mesmos valores; aqui fica a fonte única).
+    applyTopicosToEvent(ev, sessionTopicos, { questoes, paginas, statusTopico });
+  }
+
+  // Progress: mark as concluded — multi-tópico itera os itens finalizados;
+  // caminho legado promove o par escalar quando a sessão finalizou o tópico.
+  const promotionItems = hasTopicos
+    ? sessionTopicos.filter((item) => item?.statusTopico === 'finalizado')
+    : statusTopico === 'finalizado'
+      ? [{ assId, aulaId }]
+      : [];
+  if (promotionItems.length > 0 && discId) {
     const d = getDisc(discId);
     if (d) {
-      if (aulaId) {
-        const achadoAula = d.disc.aulas?.find((a) => a.id === aulaId);
-        if (achadoAula && !achadoAula.estudada) {
-          achadoAula.estudada = true;
-          // getAulasWeeklyStats só conta aulas com dataEstudo — o toggle manual
-          // (editais-crud/aula-operations) grava; o caminho da sessão também precisa.
-          achadoAula.dataEstudo = ev.dataEstudo || ev.data || todayStr();
+      for (const item of promotionItems) {
+        if (item.aulaId) {
+          const achadoAula = d.disc.aulas?.find((a) => a.id === item.aulaId);
+          if (achadoAula && !achadoAula.estudada) {
+            achadoAula.estudada = true;
+            // getAulasWeeklyStats só conta aulas com dataEstudo — o toggle manual
+            // (editais-crud/aula-operations) grava; o caminho da sessão também precisa.
+            achadoAula.dataEstudo = ev.dataEstudo || ev.data || todayStr();
+          }
         }
-      }
 
-      if (assId) {
-        const ass = d.disc.assuntos?.find((a) => a.id === assId);
-        if (ass && !ass.concluido) {
-          ass.concluido = true;
-          // Data REAL do estudo: numa sessão passada, as revisões (1/7/30/90)
-          // devem contar a partir da conclusão de fato, não de "hoje".
-          ass.dataConclusao = ev.dataEstudo || ev.data || todayStr();
-          ass.revisoesFetas = [];
+        if (item.assId) {
+          const ass = d.disc.assuntos?.find((a) => a.id === item.assId);
+          // Guarda: assunto já concluído NUNCA reseta revisoesFetas (reeditar a
+          // sessão não pode zerar o cronograma de revisões 1/7/30/90).
+          if (ass && !ass.concluido) {
+            ass.concluido = true;
+            // Data REAL do estudo: numa sessão passada, as revisões (1/7/30/90)
+            // devem contar a partir da conclusão de fato, não de "hoje".
+            ass.dataConclusao = ev.dataEstudo || ev.data || todayStr();
+            ass.revisoesFetas = [];
+          }
         }
       }
     }

@@ -14,6 +14,10 @@ describe('ui/actions/modais.js', () => {
     registroSessao = {
       onDisciplinaChange: vi.fn(),
       onAulaChange: vi.fn(),
+      onAssuntoChange: vi.fn(),
+      addTopicoSessao: vi.fn(),
+      removeTopicoSessao: vi.fn(),
+      updateTopicoField: vi.fn(),
       toggleStudyType: vi.fn(),
       toggleMaterial: vi.fn(),
       addNovoTopico: vi.fn(),

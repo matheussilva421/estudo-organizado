@@ -29,8 +29,10 @@ import {
   MATERIAIS,
   renderRegistroForm,
   renderConditionalFields,
+  renderTopicosList,
 } from './registro-sessao/modal-renderer.js?v=8.37';
 import { performSave } from './registro-sessao/session-save.js?v=8.37';
+import { normalizeSessionTopics } from './registro-sessao/session-topics.js';
 
 // Re-export domain constants
 export { TIPOS_ESTUDO, MATERIAIS };
@@ -48,6 +50,84 @@ let _sessionMode = 'cronometro';
 let _savedTimerStart = null;
 let _savedTempoAcumulado = 0;
 let _currentEv = null;
+// Registro multi-tópico: itens {assId|aulaId, questoes, paginas, statusTopico}.
+// Lista vazia = caminho legado (campos globais valem sozinhos).
+let _sessionTopicos = [];
+// Disciplina "dona" da lista atual (sessão multi-tópico = uma disciplina).
+let _sessionTopicosDiscId = '';
+
+export function getSessionTopicos() {
+  return _sessionTopicos;
+}
+
+function renderSessionTopicosList() {
+  const container = document.getElementById('reg-topicos-lista');
+  if (!container) return;
+  const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
+  container.innerHTML = renderTopicosList({ topicos: _sessionTopicos, discId });
+}
+
+export function addTopicoSessao() {
+  const discId = document.getElementById('reg-disciplina')?.value;
+  if (!discId) {
+    showToast('Selecione uma disciplina primeiro', 'error');
+    return;
+  }
+  const assId = document.getElementById('reg-assunto')?.value || null;
+  const aulaId = document.getElementById('reg-aula')?.value || null;
+  if (!assId && !aulaId) {
+    showToast('Selecione um tópico e/ou uma aula para adicionar à lista', 'error');
+    return;
+  }
+  const duplicado = _sessionTopicos.some(
+    (item) => (item.assId || null) === assId && (item.aulaId || null) === aulaId
+  );
+  if (duplicado) {
+    showToast('Este item já está na lista', 'info');
+    return;
+  }
+  _sessionTopicos.push({
+    assId,
+    aulaId,
+    questoes: null,
+    paginas: null,
+    statusTopico: 'em_andamento',
+  });
+  _sessionTopicosDiscId = discId;
+  renderSessionTopicosList();
+}
+
+export function removeTopicoSessao(idx) {
+  if (!Number.isInteger(idx) || idx < 0 || idx >= _sessionTopicos.length) return;
+  _sessionTopicos.splice(idx, 1);
+  renderSessionTopicosList();
+}
+
+/**
+ * Atualiza um campo de um item da lista (inputs com data-topico-idx). Não
+ * re-renderiza — o valor mora no input; a lista é a fonte no save.
+ */
+export function updateTopicoField(idx, field, value) {
+  const item = _sessionTopicos[idx];
+  if (!item) return;
+  if (field === 'status') {
+    item.statusTopico = value || 'em_andamento';
+    return;
+  }
+  if (field === 'pag-total') {
+    const total = parseInt(value, 10) || 0;
+    item.paginas = total > 0 ? { modo: 'simples', total } : null;
+    return;
+  }
+  const questoes = item.questoes || { total: 0, acertos: 0, erros: 0 };
+  const num = parseInt(value, 10) || 0;
+  if (field === 'q-total') questoes.total = num;
+  else if (field === 'q-acertos') questoes.acertos = num;
+  else if (field === 'q-erros') questoes.erros = num;
+  else return;
+  item.questoes =
+    questoes.total > 0 || questoes.acertos > 0 || questoes.erros > 0 ? questoes : null;
+}
 
 // =============================================
 // OPEN REGISTRO SESSÃO
@@ -90,6 +170,15 @@ export function openRegistroSessao(eventId) {
   _selectedTipos = ev.sessao?.tiposEstudo || [];
   _selectedMateriais = ev.sessao?.materiais || [];
   _sessionMode = _pomodoroMode ? 'pomodoro' : 'cronometro';
+  // Multi-tópico: reedição carrega topicos[] existentes; sessão antiga
+  // (estudei com escalares) converte em lista de 1 item. Sessão nova começa
+  // vazia (caminho legado até o usuário adicionar itens).
+  _sessionTopicos =
+    (Array.isArray(ev.sessao?.topicos) && ev.sessao.topicos.length > 0) ||
+    ev.status === 'estudei'
+      ? normalizeSessionTopics(ev)
+      : [];
+  _sessionTopicosDiscId = ev.discId || '';
 
   // Build and render the form via sub-module
   const body = document.getElementById('modal-registro-body');
@@ -101,6 +190,7 @@ export function openRegistroSessao(eventId) {
       sessionMode: _sessionMode,
       selectedTipos: _selectedTipos,
       selectedMateriais: _selectedMateriais,
+      sessionTopicos: _sessionTopicos,
     });
   }
 
@@ -183,11 +273,40 @@ export function toggleMaterial(matId) {
   }
 }
 
+function buildAulaOptions(aulas, linkedIds = new Set()) {
+  let html = '<option value="">Sem material/aula específico</option>';
+  if (aulas.length > 0) {
+    // Aulas vinculadas ao assunto selecionado (linkedAulaIds) vêm primeiro.
+    const ordered = [...aulas].sort(
+      (a, b) => Number(linkedIds.has(b.id)) - Number(linkedIds.has(a.id))
+    );
+    html += ordered
+      .map((a) => {
+        const nomeCompleto = esc(a.nome);
+        const nomeCurto = esc(trunc(a.nome, 96));
+        const prefixo = (a.estudada ? '✓ ' : '') + (linkedIds.has(a.id) ? '🔗 ' : '');
+        return `<option value="${a.id}" title="${nomeCompleto}">${prefixo}${nomeCurto}</option>`;
+      })
+      .join('');
+  }
+  return html;
+}
+
 export function onDisciplinaChange() {
   const discId = document.getElementById('reg-disciplina')?.value;
   const assSelect = document.getElementById('reg-assunto');
   const aulaSelect = document.getElementById('reg-aula');
   const aulaContainer = document.getElementById('reg-aula-container');
+
+  // Sessão multi-tópico é de UMA disciplina: trocar a disciplina com itens na
+  // lista esvazia a lista (os ids de assunto/aula pertencem à anterior).
+  if (_sessionTopicos.length > 0 && discId !== _sessionTopicosDiscId) {
+    _sessionTopicos = [];
+    renderSessionTopicosList();
+    showToast('Lista de tópicos esvaziada: a sessão é de uma única disciplina.', 'info');
+  }
+  _sessionTopicosDiscId = discId || '';
+
   if (!assSelect) return;
 
   if (!discId) {
@@ -219,20 +338,28 @@ export function onDisciplinaChange() {
 
   const aulas = d.disc.aulas || [];
   if (aulaSelect && aulaContainer) {
-    let ht = '<option value="">Sem material/aula específico</option>';
-    if (aulas.length > 0) {
-      ht += aulas
-        .map((a) => {
-          const nomeCompleto = esc(a.nome);
-          const nomeCurto = esc(trunc(a.nome, 96));
-          const prefixo = a.estudada ? '✓ ' : '';
-          return `<option value="${a.id}" title="${nomeCompleto}">${prefixo}${nomeCurto}</option>`;
-        })
-        .join('');
-    }
-    aulaSelect.innerHTML = ht;
+    aulaSelect.innerHTML = buildAulaOptions(aulas);
     aulaContainer.style.display = '';
   }
+}
+
+/**
+ * Assunto selecionado reordena o select de aulas: as vinculadas ao assunto
+ * (linkedAulaIds) vêm primeiro, marcadas com 🔗.
+ */
+export function onAssuntoChange() {
+  const discId = document.getElementById('reg-disciplina')?.value;
+  const assId = document.getElementById('reg-assunto')?.value;
+  const aulaSelect = document.getElementById('reg-aula');
+  if (!aulaSelect || !discId) return;
+
+  const d = getDisc(discId);
+  if (!d) return;
+  const ass = assId ? d.disc.assuntos?.find((a) => a.id === assId) : null;
+  const linkedIds = new Set(ass?.linkedAulaIds || []);
+  const selecionada = aulaSelect.value;
+  aulaSelect.innerHTML = buildAulaOptions(d.disc.aulas || [], linkedIds);
+  if (selecionada) aulaSelect.value = selecionada;
 }
 
 export function onAulaChange() {
@@ -355,6 +482,7 @@ export function saveRegistroSessao() {
     sessionStartTime: _sessionStartTime,
     sessionEndTime: _sessionEndTime,
     sessionMode: _sessionMode,
+    sessionTopicos: _sessionTopicos,
   });
 }
 
@@ -366,6 +494,8 @@ export function saveAndStartNew() {
     _currentEventId = null;
     _selectedTipos = [];
     _selectedMateriais = [];
+    _sessionTopicos = [];
+    _sessionTopicosDiscId = '';
     _savedTimerStart = null;
     _savedTempoAcumulado = 0;
     if (typeof navigate === 'function') navigate('med');
