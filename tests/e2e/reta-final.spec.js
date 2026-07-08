@@ -164,6 +164,145 @@ test.describe('Reta Final', () => {
     expect(blocos.map((b) => b.id)).toEqual(['rf_hoje', 'rf_ontem']);
   });
 
+  test('quick-mark conclui o bloco e registra sessão de hoje com título com tópico', async ({
+    page,
+  }) => {
+    const state = createE2EState();
+    state.planejamento = retaFinalPlan({
+      blocos: [
+        {
+          id: 'rf_hoje',
+          data: localDateStr(0),
+          dataOriginal: localDateStr(0),
+          discId: 'disc_1',
+          topicos: [{ assId: 'ass_1', aulaId: null }],
+          minutos: 90,
+          status: 'pendente',
+          rolagens: 0,
+        },
+      ],
+    });
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="ciclo"]');
+
+    await page.locator('[data-action="rf-quick-mark"]').dispatchEvent('click');
+
+    await expect(page.locator('#toast-container')).toContainText('marcado como estudado');
+    await expect(page.locator('#main-content')).toContainText('concluído');
+
+    const snapshot = await page.evaluate(() => {
+      const ev = window.EstudoApp.state.eventos.find((e) => e.rfBlocoId === 'rf_hoje');
+      return {
+        bloco: window.EstudoApp.state.planejamento.retaFinal.blocos[0].status,
+        status: ev?.status,
+        dataEstudo: ev?.dataEstudo,
+        titulo: ev?.titulo,
+        topicos: ev?.sessao?.topicos?.length,
+        eventosDoBloco: window.EstudoApp.state.eventos.filter((e) => e.rfBlocoId === 'rf_hoje')
+          .length,
+      };
+    });
+    expect(snapshot.bloco).toBe('concluido');
+    expect(snapshot.status).toBe('estudei');
+    expect(snapshot.dataEstudo).toBe(localDateStr(0));
+    expect(snapshot.titulo).toBe('Direito Constitucional — Controle de Constitucionalidade');
+    expect(snapshot.topicos).toBe(1);
+    expect(snapshot.eventosDoBloco).toBe(1);
+
+    // Resumo avança: 1/1 blocos da disciplina
+    await expect(page.locator('#main-content')).toContainText('1/1 blocos');
+  });
+
+  test('associar sessão do histórico conclui bloco preservando a data real', async ({ page }) => {
+    const state = createE2EState();
+    state.planejamento = retaFinalPlan({
+      blocos: [
+        {
+          id: 'rf_atrasado',
+          data: localDateStr(0),
+          dataOriginal: localDateStr(-2),
+          discId: 'disc_1',
+          topicos: [{ assId: 'ass_1', aulaId: null }],
+          minutos: 60,
+          status: 'pendente',
+          rolagens: 1,
+        },
+      ],
+    });
+    state.eventos = [
+      {
+        id: 'ev_fora',
+        titulo: 'Sessão por fora',
+        data: localDateStr(-2),
+        dataEstudo: localDateStr(-2),
+        status: 'estudei',
+        tempoAcumulado: 50 * 60,
+        discId: 'disc_1',
+        assId: 'ass_1',
+        criadoEm: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.click('[data-view="ciclo"]');
+
+    await page.locator('[data-action="rf-associar-historico"]').dispatchEvent('click');
+    const modal = page.locator('#modal-prompt');
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText('Sessão por fora');
+
+    await modal.locator('[data-associar-evento-id="ev_fora"]').dispatchEvent('click');
+
+    await expect(page.locator('#toast-container')).toContainText('Sessão associada');
+    await expect(page.locator('#main-content')).toContainText('concluído');
+
+    const snapshot = await page.evaluate(() => {
+      const ev = window.EstudoApp.state.eventos.find((e) => e.id === 'ev_fora');
+      return {
+        bloco: window.EstudoApp.state.planejamento.retaFinal.blocos[0].status,
+        rfBlocoId: ev?.rfBlocoId,
+        dataEstudo: ev?.dataEstudo,
+        agendadosDoBloco: window.EstudoApp.state.eventos.filter(
+          (e) => e.rfBlocoId === 'rf_atrasado' && e.status === 'agendado'
+        ).length,
+      };
+    });
+    expect(snapshot.bloco).toBe('concluido');
+    expect(snapshot.rfBlocoId).toBe('rf_atrasado');
+    expect(snapshot.dataEstudo).toBe(localDateStr(-2));
+    expect(snapshot.agendadosDoBloco).toBe(0);
+  });
+
+  test('hero da Página Inicial mostra o próximo bloco da Reta Final', async ({ page }) => {
+    const state = createE2EState();
+    state.planejamento = retaFinalPlan({
+      blocos: [
+        {
+          id: 'rf_hoje',
+          data: localDateStr(0),
+          dataOriginal: localDateStr(0),
+          discId: 'disc_1',
+          topicos: [{ assId: 'ass_1', aulaId: null }],
+          minutos: 90,
+          status: 'pendente',
+          rolagens: 0,
+        },
+      ],
+    });
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+
+    const hero = page.locator('.dash-hero-suggestion');
+    await expect(hero).toContainText('PRÓXIMA AÇÃO');
+    await expect(hero).toContainText('Direito Constitucional');
+    await expect(hero).toContainText('Controle de Constitucionalidade');
+    await expect(hero).toContainText('Reta Final');
+  });
+
   test('pós-dataFinal restaura o planejamento arquivado', async ({ page }) => {
     const state = createE2EState();
     state.planejamento = retaFinalPlan({

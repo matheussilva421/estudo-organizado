@@ -4,6 +4,10 @@ import {
   validateRetaFinalPayload,
   matchRetaFinalToEditais,
   computeRetaFinalSummary,
+  getRetaFinalTopicoLabel,
+  buildRetaFinalEventTitle,
+  listAssociableHistoryEvents,
+  getNextRetaFinalBloco,
 } from '../../src/js/logic/reta-final-core.js';
 import { createEdital, createDisciplina, createAssunto } from '../helpers/state-builders.js';
 
@@ -260,5 +264,213 @@ describe('computeRetaFinalSummary', () => {
     const summary = computeRetaFinalSummary(null);
     expect(summary.totalBlocos).toBe(0);
     expect(summary.porDisciplina).toEqual({});
+  });
+});
+
+describe('getRetaFinalTopicoLabel', () => {
+  const disc = createDisciplina({
+    id: 'disc_1',
+    nome: 'Direito Penal',
+    assuntos: [
+      createAssunto({ id: 'ass_1', nome: '59 - Processo de Execução - 62 páginas - PDF sintético' }),
+      createAssunto({ id: 'ass_2', nome: 'Crimes contra a vida' }),
+    ],
+    aulas: [{ id: 'aula_1', nome: 'Aula 05' }],
+  });
+
+  it('junta nomes de assuntos com separador', () => {
+    const bloco = {
+      topicos: [
+        { assId: 'ass_1', aulaId: null },
+        { assId: 'ass_2', aulaId: null },
+      ],
+    };
+    expect(getRetaFinalTopicoLabel(bloco, disc)).toBe(
+      '59 - Processo de Execução - 62 páginas - PDF sintético · Crimes contra a vida'
+    );
+  });
+
+  it('aula ganha prefixo 🎬', () => {
+    const bloco = { topicos: [{ assId: null, aulaId: 'aula_1' }] };
+    expect(getRetaFinalTopicoLabel(bloco, disc)).toBe('🎬 Aula 05');
+  });
+
+  it('misto assunto + aula preserva a ordem do bloco', () => {
+    const bloco = {
+      topicos: [
+        { assId: 'ass_2', aulaId: null },
+        { assId: null, aulaId: 'aula_1' },
+      ],
+    };
+    expect(getRetaFinalTopicoLabel(bloco, disc)).toBe('Crimes contra a vida · 🎬 Aula 05');
+  });
+
+  it('ids ausentes na disciplina são pulados', () => {
+    const bloco = {
+      topicos: [
+        { assId: 'ass_removido', aulaId: null },
+        { assId: 'ass_2', aulaId: null },
+      ],
+    };
+    expect(getRetaFinalTopicoLabel(bloco, disc)).toBe('Crimes contra a vida');
+  });
+
+  it('disc null ou bloco sem tópicos vira string vazia', () => {
+    expect(getRetaFinalTopicoLabel({ topicos: [{ assId: 'ass_1', aulaId: null }] }, null)).toBe('');
+    expect(getRetaFinalTopicoLabel({ topicos: [] }, disc)).toBe('');
+    expect(getRetaFinalTopicoLabel(null, disc)).toBe('');
+  });
+});
+
+describe('buildRetaFinalEventTitle', () => {
+  const disc = createDisciplina({
+    id: 'disc_1',
+    nome: 'Direito Penal',
+    assuntos: [
+      createAssunto({ id: 'ass_1', nome: '59 - Processo de Execução - 62 páginas - PDF sintético' }),
+    ],
+    aulas: [],
+  });
+
+  it('junta disciplina e tópico com travessão', () => {
+    const bloco = { topicos: [{ assId: 'ass_1', aulaId: null }] };
+    expect(buildRetaFinalEventTitle(bloco, disc)).toBe(
+      'Direito Penal — 59 - Processo de Execução - 62 páginas - PDF sintético'
+    );
+  });
+
+  it('trunca títulos muito longos em ~120 chars com reticências', () => {
+    const longa = createDisciplina({
+      id: 'disc_2',
+      nome: 'Direito Processual Civil',
+      assuntos: [createAssunto({ id: 'ass_x', nome: 'X'.repeat(200) })],
+    });
+    const bloco = { topicos: [{ assId: 'ass_x', aulaId: null }] };
+    const titulo = buildRetaFinalEventTitle(bloco, longa);
+    expect(titulo.length).toBeLessThanOrEqual(120);
+    expect(titulo.endsWith('…')).toBe(true);
+    expect(titulo.startsWith('Direito Processual Civil — ')).toBe(true);
+  });
+
+  it('sem tópicos resolvíveis usa fallback "Estudar {nome}"', () => {
+    expect(buildRetaFinalEventTitle({ topicos: [] }, disc)).toBe('Estudar Direito Penal');
+    expect(
+      buildRetaFinalEventTitle({ topicos: [{ assId: 'ass_removido', aulaId: null }] }, disc)
+    ).toBe('Estudar Direito Penal');
+  });
+
+  it('disc null usa fallback genérico', () => {
+    expect(buildRetaFinalEventTitle({ topicos: [] }, null)).toBe('Estudar Disciplina');
+  });
+});
+
+describe('listAssociableHistoryEvents', () => {
+  const bloco = { id: 'rf_1', discId: 'disc_1', topicos: [{ assId: 'ass_1', aulaId: null }] };
+  const estudada = (overrides = {}) => ({
+    id: 'ev_x',
+    status: 'estudei',
+    discId: 'disc_1',
+    dataEstudo: '2026-07-01',
+    ...overrides,
+  });
+
+  it('filtra: só sessões estudadas da mesma disciplina e sem rfBlocoId', () => {
+    const eventos = [
+      estudada({ id: 'ev_ok' }),
+      estudada({ id: 'ev_agendado', status: 'agendado' }),
+      estudada({ id: 'ev_outra_disc', discId: 'disc_2' }),
+      estudada({ id: 'ev_vinculado', rfBlocoId: 'rf_9' }),
+      null,
+    ];
+    expect(listAssociableHistoryEvents(eventos, bloco).map((e) => e.id)).toEqual(['ev_ok']);
+  });
+
+  it('exclui evento já vinculado ao PRÓPRIO bloco (evitaria reabrir outro)', () => {
+    const eventos = [estudada({ id: 'ev_meu', rfBlocoId: 'rf_1' })];
+    expect(listAssociableHistoryEvents(eventos, bloco)).toEqual([]);
+  });
+
+  it('ordena por dataEstudo desc, com fallback em data', () => {
+    const eventos = [
+      estudada({ id: 'ev_antiga', dataEstudo: '2026-06-01' }),
+      estudada({ id: 'ev_nova', dataEstudo: '2026-07-05' }),
+      estudada({ id: 'ev_sem_data_estudo', dataEstudo: undefined, data: '2026-06-20' }),
+    ];
+    expect(listAssociableHistoryEvents(eventos, bloco).map((e) => e.id)).toEqual([
+      'ev_nova',
+      'ev_sem_data_estudo',
+      'ev_antiga',
+    ]);
+  });
+
+  it('aplica cap de 30 itens', () => {
+    const eventos = Array.from({ length: 40 }, (_, i) =>
+      estudada({ id: `ev_${i}`, dataEstudo: `2026-06-${String((i % 28) + 1).padStart(2, '0')}` })
+    );
+    expect(listAssociableHistoryEvents(eventos, bloco)).toHaveLength(30);
+  });
+
+  it('bloco sem discId ou eventos vazios retorna lista vazia', () => {
+    expect(listAssociableHistoryEvents([estudada()], { id: 'rf_x', discId: null })).toEqual([]);
+    expect(listAssociableHistoryEvents([], bloco)).toEqual([]);
+    expect(listAssociableHistoryEvents(null, bloco)).toEqual([]);
+  });
+});
+
+describe('getNextRetaFinalBloco', () => {
+  const HOJE = '2026-07-10';
+  const blocoBase = (overrides = {}) => ({
+    id: 'rf_1',
+    data: HOJE,
+    dataOriginal: HOJE,
+    discId: 'disc_1',
+    topicos: [{ assId: 'ass_1', aulaId: null }],
+    minutos: 60,
+    status: 'pendente',
+    rolagens: 0,
+    ...overrides,
+  });
+  const plan = (blocos) => ({
+    ativo: true,
+    tipo: 'reta_final',
+    retaFinal: { nome: 'RF', dataFinal: '2026-08-15', blocos },
+  });
+
+  it('retorna o primeiro pendente de hoje na ordem do array', () => {
+    const blocos = [
+      blocoBase({ id: 'rf_a' }),
+      blocoBase({ id: 'rf_b' }),
+      blocoBase({ id: 'rf_fut', data: '2026-07-12' }),
+    ];
+    expect(getNextRetaFinalBloco(plan(blocos), HOJE).id).toBe('rf_a');
+  });
+
+  it('pula concluídos e não cobertos', () => {
+    const blocos = [
+      blocoBase({ id: 'rf_done', status: 'concluido' }),
+      blocoBase({ id: 'rf_nc', status: 'nao_coberto' }),
+      blocoBase({ id: 'rf_ok' }),
+    ];
+    expect(getNextRetaFinalBloco(plan(blocos), HOJE).id).toBe('rf_ok');
+  });
+
+  it('sem pendente hoje, retorna o pendente futuro de menor data', () => {
+    const blocos = [
+      blocoBase({ id: 'rf_done', status: 'concluido' }),
+      blocoBase({ id: 'rf_longe', data: '2026-07-20' }),
+      blocoBase({ id: 'rf_perto', data: '2026-07-12' }),
+    ];
+    expect(getNextRetaFinalBloco(plan(blocos), HOJE).id).toBe('rf_perto');
+  });
+
+  it('tudo concluído retorna null', () => {
+    const blocos = [blocoBase({ id: 'rf_done', status: 'concluido' })];
+    expect(getNextRetaFinalBloco(plan(blocos), HOJE)).toBeNull();
+  });
+
+  it('plano inativo ou de outro tipo retorna null', () => {
+    expect(getNextRetaFinalBloco(null, HOJE)).toBeNull();
+    expect(getNextRetaFinalBloco({ ativo: false, tipo: 'reta_final' }, HOJE)).toBeNull();
+    expect(getNextRetaFinalBloco({ ativo: true, tipo: 'ciclo' }, HOJE)).toBeNull();
   });
 });
