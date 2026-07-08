@@ -588,9 +588,9 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=9.05');
-    expect(serviceWorker).toContain("APP_VERSION = '9.05'");
-    expect(syncDiagnostic).toContain("DIAGNOSTIC_BUILD_VERSION = '9.05'");
+    expect(html).toContain('css/styles.css?v=9.06');
+    expect(serviceWorker).toContain("APP_VERSION = '9.06'");
+    expect(syncDiagnostic).toContain("DIAGNOSTIC_BUILD_VERSION = '9.06'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 
