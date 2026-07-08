@@ -32,7 +32,10 @@ import {
   renderTopicosList,
 } from './registro-sessao/modal-renderer.js?v=8.37';
 import { performSave } from './registro-sessao/session-save.js?v=8.37';
-import { normalizeSessionTopics } from './registro-sessao/session-topics.js';
+import {
+  normalizeSessionTopics,
+  buildTopicosFromRetaFinalBloco,
+} from './registro-sessao/session-topics.js';
 
 // Re-export domain constants
 export { TIPOS_ESTUDO, MATERIAIS };
@@ -178,6 +181,11 @@ export function openRegistroSessao(eventId) {
     ev.status === 'estudei'
       ? normalizeSessionTopics(ev)
       : [];
+  // Evento da Reta Final: pré-preenche a lista com os tópicos do bloco.
+  if (_sessionTopicos.length === 0 && ev.rfBlocoId) {
+    const bloco = state.planejamento?.retaFinal?.blocos?.find((b) => b.id === ev.rfBlocoId);
+    _sessionTopicos = buildTopicosFromRetaFinalBloco(bloco);
+  }
   _sessionTopicosDiscId = ev.discId || '';
 
   // Build and render the form via sub-module

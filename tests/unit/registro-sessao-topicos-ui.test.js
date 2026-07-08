@@ -225,6 +225,43 @@ describe('registro multi-tópico — estado e ações da UI', () => {
     expect(registro.getSessionTopicos()).toEqual([]);
   });
 
+  it('evento da reta final (rfBlocoId) pré-preenche a lista com os tópicos do bloco', () => {
+    setupState({ evento: { rfBlocoId: 'rf_1' } });
+    store.state.planejamento = {
+      ativo: true,
+      tipo: 'reta_final',
+      disciplinas: ['disc_a'],
+      sequencia: [],
+      retaFinal: {
+        nome: 'RF',
+        dataFinal: '2026-08-15',
+        minutosPadrao: 60,
+        blocos: [
+          {
+            id: 'rf_1',
+            data: '2026-04-20',
+            dataOriginal: '2026-04-20',
+            discId: 'disc_a',
+            topicos: [
+              { assId: 'ass_1', aulaId: null },
+              { assId: null, aulaId: 'aula_1' },
+            ],
+            minutos: 60,
+            status: 'pendente',
+            rolagens: 0,
+          },
+        ],
+      },
+    };
+
+    registro.openRegistroSessao('ev_ui');
+
+    expect(registro.getSessionTopicos()).toEqual([
+      { assId: 'ass_1', aulaId: null, questoes: null, paginas: null, statusTopico: 'nao_iniciado' },
+      { assId: null, aulaId: 'aula_1', questoes: null, paginas: null, statusTopico: 'nao_iniciado' },
+    ]);
+  });
+
   it('trocar de disciplina com itens na lista esvazia a lista', () => {
     setupState();
     registro.openRegistroSessao('ev_ui');

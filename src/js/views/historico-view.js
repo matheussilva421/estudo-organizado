@@ -269,12 +269,37 @@ export function renderHistoricoSessoes(el) {
                           ? discInfo.disc.assuntos.find((a) => a.id === ev.assId)?.nome
                           : '';
                       const eventId = esc(String(ev.id || ''));
+                      // Sessão multi-tópico: lista os itens de topicos[] com
+                      // questões próprias; sessões antigas caem no fallback
+                      // escalar (assunto) abaixo.
+                      const topicosList = Array.isArray(ev.sessao?.topicos)
+                        ? ev.sessao.topicos
+                        : [];
+                      const topicosHtml = topicosList
+                        .map((item) => {
+                          const nomeAss = item.assId
+                            ? discInfo?.disc?.assuntos?.find((a) => a.id === item.assId)?.nome
+                            : '';
+                          const nomeAula = item.aulaId
+                            ? discInfo?.disc?.aulas?.find((a) => a.id === item.aulaId)?.nome
+                            : '';
+                          const nome =
+                            [nomeAss, nomeAula ? `🎬 ${nomeAula}` : '']
+                              .filter(Boolean)
+                              .join(' · ') || 'Item';
+                          const q = item.questoes;
+                          const qBadge =
+                            q && Number(q.total) > 0 ? ` — ❓ ${q.acertos}/${q.total}` : '';
+                          const doneBadge = item.statusTopico === 'finalizado' ? ' ✅' : '';
+                          return `<div class="session-detail-subject">• ${esc(nome)}${esc(qBadge)}${doneBadge}</div>`;
+                        })
+                        .join('');
                       return `
                     <div class="session-detail-card">
                       <div class="session-detail-row">
                         <div class="session-detail-content">
                           <div class="session-detail-title">${esc(ev.titulo || 'Sessão de estudo')}</div>
-                          ${assunto ? `<div class="session-detail-subject">Tópico: ${esc(assunto)}</div>` : ''}
+                          ${topicosHtml || (assunto ? `<div class="session-detail-subject">Tópico: ${esc(assunto)}</div>` : '')}
                         </div>
                         <div class="session-detail-actions">
                           <button class="btn btn-ghost btn-sm session-item-btn" data-action="edit-session-record" data-session-id="${eventId}" aria-label="Editar sessão" title="Editar"><i class="fa fa-pen"></i></button>
