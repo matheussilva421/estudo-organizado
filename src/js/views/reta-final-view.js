@@ -9,7 +9,7 @@
 import { esc, todayStr } from '../utils.js?v=8.37';
 import { state } from '../store.js?v=8.37';
 import { getDisc } from '../logic.js?v=8.37';
-import { computeRetaFinalSummary } from '../logic/reta-final-core.js';
+import { computeRetaFinalSummary, getRetaFinalTopicoLabel } from '../logic/reta-final-core.js';
 import { syncRetaFinalToEventos } from '../logic/reta-final.js';
 
 function formatBrDate(dateStr) {
@@ -32,26 +32,11 @@ function formatMinutes(minutes) {
   return `${mins}min`;
 }
 
-function getTopicoLabel(bloco, discEntry) {
-  const nomes = [];
-  for (const topico of bloco.topicos || []) {
-    if (topico?.assId) {
-      const ass = (discEntry?.disc.assuntos || []).find((a) => a.id === topico.assId);
-      if (ass?.nome) nomes.push(ass.nome);
-    }
-    if (topico?.aulaId) {
-      const aula = (discEntry?.disc.aulas || []).find((a) => a.id === topico.aulaId);
-      if (aula?.nome) nomes.push('🎬 ' + aula.nome);
-    }
-  }
-  return nomes.join(' · ');
-}
-
 function renderBlocoCard(bloco, hoje) {
   const discEntry = getDisc(bloco.discId);
   const cor = discEntry ? discEntry.disc.cor || discEntry.edital.cor || '#8aa4bf' : '#7f8a99';
   const nome = discEntry ? discEntry.disc.nome : 'Disciplina';
-  const topicos = getTopicoLabel(bloco, discEntry);
+  const topicos = getRetaFinalTopicoLabel(bloco, discEntry?.disc);
   const roladoBadge =
     bloco.dataOriginal && bloco.data !== bloco.dataOriginal
       ? `<span class="rf-rolado-badge" title="${(Number(bloco.rolagens) || 0)} rolagem(ns)"><i class="fa fa-forward"></i> rolado de ${formatShortDate(bloco.dataOriginal)}</span>`
@@ -80,6 +65,16 @@ function renderBlocoCard(bloco, hoje) {
             : ''
         }
       </div>
+      ${
+        bloco.status === 'pendente'
+          ? `
+        <div class="rf-bloco-actions">
+          <button type="button" class="btn btn-ghost btn-sm" data-action="rf-quick-mark" data-bloco-id="${esc(bloco.id)}" title="Marcar como estudado" aria-label="Marcar como estudado"><i class="fa fa-check"></i></button>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="rf-associar-historico" data-bloco-id="${esc(bloco.id)}" title="Associar sessão do histórico" aria-label="Associar sessão do histórico"><i class="fa fa-link"></i></button>
+        </div>
+      `
+          : ''
+      }
     </div>
   `;
 }

@@ -8,8 +8,13 @@
  */
 
 import { state } from '../store.js?v=8.37';
-import { esc, formatDate, formatTime } from '../utils.js?v=8.37';
+import { esc, formatDate, formatTime, todayStr } from '../utils.js?v=8.37';
 import {
+  getNextRetaFinalBloco,
+  getRetaFinalTopicoLabel,
+} from '../logic/reta-final-core.js';
+import {
+  getDisc,
   getAggregatedStats,
   getPerformanceStats,
   getSyllabusProgressByEdital,
@@ -195,7 +200,13 @@ function renderLifetimeKpis(ctx) {
 function renderHero(ctx) {
   const { dataProva, streak } = ctx;
   const activeEditalId = ctx.activeEditalId;
-  const next = getNextSuggestedLesson(activeEditalId);
+  // Plano reta_final ativo: a próxima ação é o próximo bloco pendente do
+  // cronograma dia a dia (não a primeira aula não estudada do edital).
+  const rfNext =
+    state.planejamento?.ativo && state.planejamento.tipo === 'reta_final'
+      ? getNextRetaFinalBloco(state.planejamento, todayStr())
+      : null;
+  const next = rfNext ? null : getNextSuggestedLesson(activeEditalId);
 
   let countdownHtml;
   if (dataProva) {
@@ -231,7 +242,22 @@ function renderHero(ctx) {
   }
 
   let suggestionHtml;
-  if (next) {
+  if (rfNext) {
+    const discEntry = getDisc(rfNext.discId);
+    const discNome = discEntry?.disc?.nome || 'Disciplina';
+    const topicoLabel = getRetaFinalTopicoLabel(rfNext, discEntry?.disc);
+    const cor = discEntry?.disc?.cor || discEntry?.edital?.cor || 'var(--accent)';
+    suggestionHtml = `
+      <div class="dash-hero-suggestion">
+        <div class="dash-label">PRÓXIMA AÇÃO</div>
+        <div class="dash-hero-next-line">
+          <span class="dash-hero-edital-dot" style="background:${cor};"></span>
+          <strong class="text-primary">${esc(discNome)}</strong>
+          ${topicoLabel ? `<span class="text-secondary">·</span> <span class="text-secondary">${esc(topicoLabel)}</span>` : ''}
+        </div>
+        <div class="text-base text-muted mt-1">🏁 ${esc(state.planejamento.retaFinal?.nome || 'Reta Final')}</div>
+      </div>`;
+  } else if (next) {
     suggestionHtml = `
       <div class="dash-hero-suggestion">
         <div class="dash-label">PRÓXIMA AÇÃO</div>

@@ -138,6 +138,7 @@ const ASSET_PATHS = [
   './js/views/config/sync-dialogs.js',
   './js/views/habitos-view.js',
   './js/views/ciclo-view.js',
+  './js/views/reta-final-associar.js',
   './js/views/reta-final-import.js',
   './js/views/reta-final-view.js',
   './js/views/revisao-view.js',

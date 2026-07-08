@@ -143,12 +143,21 @@ describe('No cross-imports (circular dependency prevention)', () => {
     expect([...source.matchAll(/^import\s/gm)]).toHaveLength(0);
   });
 
-  it('reta-final.js only imports store/utils/core (no cycle.js — circular)', () => {
+  it('reta-final.js only imports store/utils/core/session-topics (no cycle.js — circular)', () => {
     const source = read('src/js/logic/reta-final.js');
     const imports = [...source.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
+    // session-topics.js é puro (zero imports — guardado abaixo): o quick-mark
+    // reusa applyTopicosToEvent/buildTopicosFromRetaFinalBloco sem criar ciclo.
     for (const spec of imports) {
-      expect(spec).toMatch(/(store\.js|utils\.js|reta-final-core\.js)(\?v=[\d.]+)?$/);
+      expect(spec).toMatch(
+        /(store\.js|utils\.js|reta-final-core\.js|registro-sessao\/session-topics\.js)(\?v=[\d.]+)?$/
+      );
     }
+  });
+
+  it('session-topics.js is pure (no imports at all)', () => {
+    const source = read('src/js/registro-sessao/session-topics.js');
+    expect([...source.matchAll(/^import\s/gm)]).toHaveLength(0);
   });
 
   it('disc.js does not import from other logic/ sub-modules', () => {

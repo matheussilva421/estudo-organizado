@@ -21,6 +21,31 @@ registerAction('open-reta-final-import', () => {
   );
 });
 
+registerAction('rf-quick-mark', (el) => {
+  const blocoId = el.dataset.blocoId;
+  import('../../logic/reta-final.js').then(({ quickCompleteRetaFinalBloco }) => {
+    if (!quickCompleteRetaFinalBloco(blocoId)) {
+      showToast('Não foi possível marcar este bloco como estudado.', 'error');
+      return;
+    }
+    invalidateDashCaches();
+    renderCurrentView();
+    showToast(
+      'Bloco marcado como estudado — edite a sessão no Histórico para adicionar tempo/questões.',
+      'success'
+    );
+  });
+});
+
+registerAction('rf-associar-historico', (el) => {
+  const blocoId = el.dataset.blocoId;
+  import('../../views/reta-final-associar.js?v=8.37').then(({ openAssociarHistorico }) => {
+    if (!openAssociarHistorico(blocoId)) {
+      showToast('Não foi possível abrir a associação para este bloco.', 'error');
+    }
+  });
+});
+
 registerAction('restaurar-planejamento-arquivado', () => {
   showConfirm(
     'Restaurar o planejamento anterior? O plano da Reta Final será substituído (sessões estudadas são preservadas).',

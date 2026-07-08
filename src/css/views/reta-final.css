@@ -102,6 +102,12 @@
   flex-shrink: 0;
 }
 
+.rf-bloco-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .rf-rolado-badge {
   display: inline-block;
   padding: 1px 8px;

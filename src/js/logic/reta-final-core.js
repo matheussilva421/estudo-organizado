@@ -195,6 +195,65 @@ export function matchRetaFinalToEditais(payload, editais) {
 }
 
 /**
+ * Rótulo dos tópicos de um bloco a partir da disciplina crua (core sem
+ * estado): nomes dos assuntos e aulas (🎬) na ordem do bloco, separados por
+ * " · ". Ids que não existem mais na disciplina são pulados.
+ */
+export function getRetaFinalTopicoLabel(bloco, disc) {
+  if (!bloco || !disc) return '';
+  const nomes = [];
+  for (const topico of bloco.topicos || []) {
+    if (topico?.assId) {
+      const ass = (disc.assuntos || []).find((a) => a?.id === topico.assId);
+      if (ass?.nome) nomes.push(ass.nome);
+    }
+    if (topico?.aulaId) {
+      const aula = (disc.aulas || []).find((a) => a?.id === topico.aulaId);
+      if (aula?.nome) nomes.push('🎬 ' + aula.nome);
+    }
+  }
+  return nomes.join(' · ');
+}
+
+const ASSOCIABLE_CAP = 30;
+
+/**
+ * Sessões do Histórico associáveis a um bloco: eventos `estudei` SEM
+ * `rfBlocoId` (evento já vinculado ficaria órfão no outro bloco, reabrindo-o)
+ * da mesma disciplina, ordenados por data de estudo desc, cap ~30. Recebe só
+ * `state.eventos` — o arquivo não passa pelo reconcile.
+ */
+export function listAssociableHistoryEvents(eventos, bloco, { cap = ASSOCIABLE_CAP } = {}) {
+  if (!bloco?.discId) return [];
+  return (eventos || [])
+    .filter(
+      (ev) => ev && ev.status === 'estudei' && !ev.rfBlocoId && ev.discId === bloco.discId
+    )
+    .sort((a, b) =>
+      String(b.dataEstudo || b.data || '').localeCompare(String(a.dataEstudo || a.data || ''))
+    )
+    .slice(0, cap);
+}
+
+const EVENT_TITLE_MAX = 120;
+
+/**
+ * Título do evento materializado de um bloco: "Disciplina — Tópico(s)",
+ * truncado em ~120 chars. Sem tópicos resolvíveis cai no título antigo
+ * "Estudar Disciplina". Determinístico: mesmo bloco+disciplina geram sempre o
+ * mesmo título (o retítulo no agendador depende disso para não carimbar
+ * updatedAt).
+ */
+export function buildRetaFinalEventTitle(bloco, disc) {
+  const nome = disc?.nome || 'Disciplina';
+  const label = getRetaFinalTopicoLabel(bloco, disc);
+  if (!label) return `Estudar ${nome}`;
+  const titulo = `${nome} — ${label}`;
+  if (titulo.length <= EVENT_TITLE_MAX) return titulo;
+  return titulo.slice(0, EVENT_TITLE_MAX - 1) + '…';
+}
+
+/**
  * Rolagem "empilha no dia seguinte": bloco pendente com data < hoje e sem
  * evento preservado move para HOJE (somando à carga do dia, sem deslocar o
  * resto; ordenação estável — entra depois dos blocos que já eram de hoje) e
@@ -280,6 +339,23 @@ export function reconcileRetaFinalWithEvents(plan, eventos) {
 
   result.changed = result.completed.length > 0 || result.reopened.length > 0;
   return result;
+}
+
+/**
+ * Próximo bloco pendente do cronograma para o hero "PRÓXIMA AÇÃO" da Página
+ * Inicial: primeiro pendente de hoje (ou atrasado ainda não rolado) na ordem
+ * do array; senão o pendente futuro de menor data; senão null (o chamador
+ * cai no fallback getNextSuggestedLesson do edital).
+ */
+export function getNextRetaFinalBloco(plan, today) {
+  if (!plan?.ativo || plan.tipo !== 'reta_final') return null;
+  let futuro = null;
+  for (const bloco of plan.retaFinal?.blocos || []) {
+    if (!bloco || bloco.status !== 'pendente' || !bloco.data) continue;
+    if (bloco.data <= today) return bloco;
+    if (!futuro || bloco.data < futuro.data) futuro = bloco;
+  }
+  return futuro;
 }
 
 /**
