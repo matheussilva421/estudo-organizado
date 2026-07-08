@@ -1,6 +1,7 @@
 @import './views/dashboard.css';
 @import './views/calendar.css';
 @import './views/ciclo.css';
+@import './views/reta-final.css';
 @import './views/config/config-view.css';
 @import './views/wizard.css';
 @import './views/sessions.css';

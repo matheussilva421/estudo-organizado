@@ -8,6 +8,10 @@ import { closeModal } from '../../app.js?v=8.37';
 import {
   onDisciplinaChange,
   onAulaChange,
+  onAssuntoChange,
+  addTopicoSessao,
+  removeTopicoSessao,
+  updateTopicoField,
   toggleStudyType,
   toggleMaterial,
   addNovoTopico,
@@ -36,6 +40,14 @@ registerAction('open-add-past-session', (el) => {
 });
 registerAction('on-disciplina-change', onDisciplinaChange);
 registerAction('on-aula-change', onAulaChange);
+registerAction('on-assunto-change', onAssuntoChange);
+registerAction('add-topico-sessao', addTopicoSessao);
+registerAction('remove-topico-sessao', (el) =>
+  removeTopicoSessao(parseInt(el.dataset.topicoIdx, 10))
+);
+registerAction('update-topico-field', (el) =>
+  updateTopicoField(parseInt(el.dataset.topicoIdx, 10), el.dataset.field, el.value)
+);
 registerAction('toggle-study-type', (el) => toggleStudyType(el.dataset.tipo));
 registerAction('toggle-material', (el) => toggleMaterial(el.dataset.mat));
 registerAction('add-novo-topico', addNovoTopico);

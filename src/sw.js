@@ -1,4 +1,4 @@
-const APP_VERSION = '9.01';
+const APP_VERSION = '9.02';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -35,6 +35,7 @@ const ASSET_PATHS = [
   './css/views/dashboard.css',
   './css/views/calendar.css',
   './css/views/ciclo.css',
+  './css/views/reta-final.css',
   './css/views/config/config-view.css',
   './css/views/wizard.css',
   './css/views/sessions.css',
@@ -61,6 +62,8 @@ const ASSET_PATHS = [
   './js/lesson-mapper.js',
   './js/logic.js',
   './js/logic/cycle.js',
+  './js/logic/reta-final-core.js',
+  './js/logic/reta-final.js',
   './js/logic/disc.js',
   './js/logic/revisions.js',
   './js/logic/timer.js',
@@ -73,6 +76,7 @@ const ASSET_PATHS = [
   './js/registro-sessao.js',
   './js/registro-sessao/modal-renderer.js',
   './js/registro-sessao/session-save.js',
+  './js/registro-sessao/session-topics.js',
   './js/relevance.js',
   './js/sw-register.js',
   './js/store.js',
@@ -102,6 +106,7 @@ const ASSET_PATHS = [
   './js/ui/actions/modais.js',
   './js/ui/actions/navegacao.js',
   './js/ui/actions/planejamento.js',
+  './js/ui/actions/reta-final.js',
   './js/ui/actions/revisoes.js',
   './js/ui/dialog.js',
   './js/ui/dom.js',
@@ -133,6 +138,8 @@ const ASSET_PATHS = [
   './js/views/config/sync-dialogs.js',
   './js/views/habitos-view.js',
   './js/views/ciclo-view.js',
+  './js/views/reta-final-import.js',
+  './js/views/reta-final-view.js',
   './js/views/revisao-view.js',
   './js/views/skeleton-view.js',
   './js/views/state/disc-manager-state.js',

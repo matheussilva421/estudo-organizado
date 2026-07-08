@@ -103,6 +103,16 @@ export function htmlStep1(draft) {
                         </div>
                     </div>
                 </div>
+
+                <div data-action="open-reta-final-import" class="selection-card" role="button" tabindex="0">
+                    <div class="cluster-lg mb-2">
+                        <div class="text-3xl">\uD83C\uDFC1</div>
+                        <div>
+                            <div class="text-xl font-semibold text-primary">Reta Final (importar)</div>
+                            <div class="text-md text-muted mt-1">Importe um cronograma dia a dia em JSON para as semanas finais antes da prova. Substitui o planejamento atual (que fica arquivado e pode ser restaurado depois).</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;

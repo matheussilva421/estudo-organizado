@@ -57,6 +57,7 @@ function collectActionRegistryEntries() {
     'navegacao.js',
     'modais.js',
     'planejamento.js',
+    'reta-final.js',
   ];
 
   for (const file of actionFiles) {

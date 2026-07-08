@@ -35,10 +35,83 @@ export const MATERIAIS = [
 ];
 
 // =============================================
+// TOPICS LIST (registro multi-tópico)
+// =============================================
+
+function getTopicoItemNome(item, discId) {
+  const d = discId ? getDisc(discId) : null;
+  const partes = [];
+  if (item.assId) {
+    const ass = d?.disc?.assuntos?.find((a) => a.id === item.assId);
+    partes.push(ass?.nome || 'Tópico');
+  }
+  if (item.aulaId) {
+    const aula = d?.disc?.aulas?.find((a) => a.id === item.aulaId);
+    partes.push('🎬 ' + (aula?.nome || 'Aula'));
+  }
+  return partes.join(' · ') || 'Item';
+}
+
+/**
+ * Lista editável dos tópicos da sessão. Campos por item usam data-topico-idx
+ * (os ids #reg-* globais ficam intactos — contrato do modal).
+ */
+export function renderTopicosList({ topicos, discId }) {
+  if (!Array.isArray(topicos) || topicos.length === 0) {
+    return '<div class="reg-note text-secondary reg-topicos-empty">Nenhum item na lista — o registro usa os campos globais abaixo (uma sessão, um tópico).</div>';
+  }
+
+  return topicos
+    .map((item, i) => {
+      const questoes = item.questoes || {};
+      const paginas = item.paginas || {};
+      return `
+        <div class="reg-topico-item" data-topico-idx="${i}">
+          <div class="reg-topico-header">
+            <span class="reg-topico-nome" title="${esc(getTopicoItemNome(item, discId))}">${esc(trunc(getTopicoItemNome(item, discId), 90))}</span>
+            <button type="button" class="btn-inline reg-topico-remove" data-action="remove-topico-sessao" data-topico-idx="${i}" title="Remover da lista">✕</button>
+          </div>
+          <div class="reg-topico-fields">
+            <div class="reg-field">
+              <label class="reg-label">Questões</label>
+              <input type="number" class="reg-input" min="0" placeholder="Total" value="${questoes.total || ''}"
+                data-action="update-topico-field" data-topico-idx="${i}" data-field="q-total">
+            </div>
+            <div class="reg-field">
+              <label class="reg-label reg-label-positive">Acertos</label>
+              <input type="number" class="reg-input" min="0" placeholder="0" value="${questoes.acertos || ''}"
+                data-action="update-topico-field" data-topico-idx="${i}" data-field="q-acertos">
+            </div>
+            <div class="reg-field">
+              <label class="reg-label reg-label-negative">Erros</label>
+              <input type="number" class="reg-input" min="0" placeholder="0" value="${questoes.erros || ''}"
+                data-action="update-topico-field" data-topico-idx="${i}" data-field="q-erros">
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Páginas</label>
+              <input type="number" class="reg-input" min="0" placeholder="0" value="${paginas.total || ''}"
+                data-action="update-topico-field" data-topico-idx="${i}" data-field="pag-total">
+            </div>
+            <div class="reg-field">
+              <label class="reg-label">Status</label>
+              <select class="reg-select" data-action="update-topico-field" data-topico-idx="${i}" data-field="status">
+                <option value="nao_iniciado" ${item.statusTopico === 'nao_iniciado' ? 'selected' : ''}>Não iniciado</option>
+                <option value="em_andamento" ${item.statusTopico === 'em_andamento' || !item.statusTopico ? 'selected' : ''}>Em andamento</option>
+                <option value="finalizado" ${item.statusTopico === 'finalizado' ? 'selected' : ''}>Finalizado ✅</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+// =============================================
 // RENDER FORM HTML
 // =============================================
 
-export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessionMode, selectedTipos, selectedMateriais }) {
+export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessionMode, selectedTipos, selectedMateriais, sessionTopicos = [] }) {
   const elapsed = ev.tempoAcumulado || 0;
   const fmtTime = (s) => {
     const h = Math.floor(s / 3600);
@@ -171,7 +244,7 @@ export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessi
         <div class="reg-field flex-1">
           <label class="reg-label">Tópico do Edital (opcional)</label>
           <div class="cluster-sm">
-            <select id="reg-assunto" class="reg-select flex-1">
+            <select id="reg-assunto" class="reg-select flex-1" data-action="on-assunto-change">
               <option value="">Selecione a disciplina primeiro</option>
             </select>
             <button type="button" class="btn-inline" data-action="add-novo-topico" title="Criar novo tópico">
@@ -185,6 +258,17 @@ export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessi
             <option value="">Selecione a disciplina primeiro</option>
           </select>
         </div>
+      </div>
+
+      <!-- Registro multi-tópico: os selects acima viram a "linha editora" -->
+      <div class="reg-topicos-toolbar">
+        <button type="button" class="btn-inline" data-action="add-topico-sessao">
+          + Adicionar à lista de tópicos
+        </button>
+        <span class="reg-note text-secondary">Estude vários tópicos/aulas na mesma sessão adicionando-os à lista.</span>
+      </div>
+      <div id="reg-topicos-lista">
+        ${renderTopicosList({ topicos: sessionTopicos, discId: ev.discId || '' })}
       </div>
     </div>
 
