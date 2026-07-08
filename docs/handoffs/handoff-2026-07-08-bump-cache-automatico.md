@@ -37,6 +37,18 @@ Automatizado o "bump de cache" do PWA que antes era 100% manual. Agora **nenhum 
 - Verificar sem alterar: `npm run bump:check` (sai com código 1 se `src/` mudou vs HEAD sem bump — útil para CI).
 - Pular o hook num commit específico: `SKIP_CACHE_BUMP=1 git commit ...`.
 
+## Segunda camada — GitHub Action (server-side)
+
+Adicionado `.github/workflows/auto-cache-bump.yml`: roda em todo push para `main`, e se o push alterou assets de `src/` sem bump, incrementa a versão e envia o commit de bump de volta para `main`. Como o deploy é **Cloudflare Pages conectado ao GitHub** (confirmado pelo usuário), o Pages deploya automaticamente a versão já bumpada.
+
+Por que isso importa: resolve o "não tem como ser direto no git?" do usuário. Git, por segurança, nunca ativa um hook local sozinho ao clonar — então o hook `pre-commit` sempre exigiria um `npm install`/`git config` por máquina. A Action tira essa exigência: **zero configuração local**, o bump vira responsabilidade do servidor.
+
+Detalhes de robustez:
+- **Sem loop:** o push do commit de bump é feito com o `GITHUB_TOKEN`, e pushes do `GITHUB_TOKEN` não disparam novos workflows. O Cloudflare Pages, por usar webhook próprio, deploya mesmo assim.
+- **Detecção:** compara `github.event.before` vs `github.sha`; bumpa só se algum asset `src/` mudou E a `APP_VERSION` continua igual à do commit anterior. Trata push de criação de branch / force push caindo para o commit pai.
+- **Ativação:** o workflow só passa a valer depois de estar em `main` (merge desta branch). O commit que apenas introduz o workflow não dispara bump (não mexe em asset de `src/`).
+- As duas camadas convivem: se o hook local já bumpou, a Action detecta e não faz nada.
+
 ## Próximos passos (opcional)
 
-- Se um dia houver CI no GitHub Actions, adicionar `npm run bump:check` como gate para pegar bumps esquecidos em quem clonou antes de rodar `npm install` (e portanto sem o hook ativo).
+- Se quiser, dá pra adicionar `npm run bump:check` num job de CI como gate extra, mas com a Action de bump automático isso deixa de ser necessário.

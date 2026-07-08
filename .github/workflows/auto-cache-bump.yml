@@ -1,0 +1,81 @@
+name: Auto cache bump
+
+# Rede de seguranca server-side para o bump de cache do PWA.
+# Roda quando algo e enviado para main. Se o push alterou assets de src/ sem
+# incrementar APP_VERSION, o workflow roda scripts/bump-cache.mjs e envia um
+# commit de bump de volta para main. O Cloudflare Pages entao deploya a versao
+# ja incrementada. Nao exige nenhuma configuracao na maquina de quem commita.
+#
+# Sem loop infinito: pushes feitos com o GITHUB_TOKEN nao disparam novos
+# workflows. O Cloudflare Pages, por usar o proprio webhook do GitHub, deploya
+# o commit de bump normalmente.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-cache-bump-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Bump cache version when src/ assets changed without a bump
+        run: |
+          set -euo pipefail
+
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+          ZERO="0000000000000000000000000000000000000000"
+
+          # Push de criacao de branch / force push sem base valida: cai para o pai.
+          if [ "$BEFORE" = "$ZERO" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            BEFORE="$(git rev-parse "${AFTER}^" 2>/dev/null || true)"
+          fi
+          if [ -z "$BEFORE" ]; then
+            echo "Sem commit-base para comparar; nada a fazer."
+            exit 0
+          fi
+
+          CHANGED="$(git diff --name-only "$BEFORE" "$AFTER" -- 'src/**' \
+            | grep -E '\.(html|css|js|json|svg|png|webmanifest)$' || true)"
+          if [ -z "$CHANGED" ]; then
+            echo "Nenhum asset de src/ alterado neste push; nada a fazer."
+            exit 0
+          fi
+
+          version_of() {
+            git show "$1:src/sw.js" \
+              | sed -n "s/^const APP_VERSION = '\([0-9.]*\)';.*/\1/p"
+          }
+          VB="$(version_of "$BEFORE")"
+          VA="$(version_of "$AFTER")"
+          if [ -n "$VB" ] && [ "$VB" != "$VA" ]; then
+            echo "Versao ja bumpada neste push ($VB -> $VA); nada a fazer."
+            exit 0
+          fi
+
+          echo "Assets de src/ alterados sem bump; incrementando APP_VERSION..."
+          node scripts/bump-cache.mjs
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/sw.js src/index.html src/js/sync/sync-diagnostic.js \
+            tests/unit/css-architecture.test.js
+          git commit -m "chore(cache): bump automatico de APP_VERSION"
+          git push origin HEAD:main
