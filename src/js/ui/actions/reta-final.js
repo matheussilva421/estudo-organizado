@@ -21,6 +21,13 @@ registerAction('open-reta-final-import', () => {
   );
 });
 
+registerAction('rf-toggle-filtro', (el) => {
+  return import('../../views/reta-final-view.js?v=8.37').then(({ toggleRetaFinalFiltro }) => {
+    toggleRetaFinalFiltro(el.dataset.filtro);
+    renderCurrentView();
+  });
+});
+
 registerAction('rf-quick-mark', (el) => {
   const blocoId = el.dataset.blocoId;
   import('../../logic/reta-final.js').then(({ quickCompleteRetaFinalBloco }) => {

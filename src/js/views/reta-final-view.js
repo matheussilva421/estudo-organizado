@@ -9,7 +9,11 @@
 import { esc, todayStr } from '../utils.js?v=8.37';
 import { state } from '../store.js?v=8.37';
 import { getDisc } from '../logic.js?v=8.37';
-import { computeRetaFinalSummary, getRetaFinalTopicoLabel } from '../logic/reta-final-core.js';
+import {
+  computeRetaFinalSummary,
+  getRetaFinalBlocoFiltroCategoria,
+  getRetaFinalTopicoLabel,
+} from '../logic/reta-final-core.js';
 import { syncRetaFinalToEventos } from '../logic/reta-final.js';
 
 function formatBrDate(dateStr) {
@@ -32,6 +36,52 @@ function formatMinutes(minutes) {
   return `${mins}min`;
 }
 
+// Filtros do cronograma dia a dia (estado de sessão — não persiste).
+const filtrosCronograma = {
+  concluidos: true,
+  atrasados: true,
+  proximos: true,
+};
+
+const FILTRO_POR_CATEGORIA = {
+  concluido: 'concluidos',
+  atrasado: 'atrasados',
+  futuro: 'proximos',
+};
+
+/**
+ * Alterna um filtro do cronograma ('concluidos' | 'atrasados' | 'proximos').
+ * @returns {boolean} novo valor do filtro
+ */
+export function toggleRetaFinalFiltro(nome) {
+  if (!(nome in filtrosCronograma)) return false;
+  filtrosCronograma[nome] = !filtrosCronograma[nome];
+  return filtrosCronograma[nome];
+}
+
+function blocoVisivel(bloco, hoje) {
+  const filtro = FILTRO_POR_CATEGORIA[getRetaFinalBlocoFiltroCategoria(bloco, hoje)];
+  return !filtro || filtrosCronograma[filtro];
+}
+
+function renderFiltrosHtml() {
+  const botoes = [
+    { nome: 'concluidos', icone: 'fa-check', label: 'Concluídos' },
+    { nome: 'atrasados', icone: 'fa-forward', label: 'Atrasados' },
+    { nome: 'proximos', icone: 'fa-calendar', label: 'Próximos dias' },
+  ];
+  return `
+    <div class="rf-filtros" role="group" aria-label="Filtrar cronograma">
+      ${botoes
+        .map(({ nome, icone, label }) => {
+          const ativo = filtrosCronograma[nome];
+          return `<button type="button" class="rf-filtro-btn ${ativo ? 'rf-filtro-btn--ativo' : ''}" data-action="rf-toggle-filtro" data-filtro="${nome}" aria-pressed="${ativo}" title="${ativo ? 'Esconder' : 'Mostrar'}: ${label}"><i class="fa ${icone}"></i> ${label}</button>`;
+        })
+        .join('')}
+    </div>
+  `;
+}
+
 function renderBlocoCard(bloco, hoje) {
   const discEntry = getDisc(bloco.discId);
   const cor = discEntry ? discEntry.disc.cor || discEntry.edital.cor || '#8aa4bf' : '#7f8a99';
@@ -49,7 +99,7 @@ function renderBlocoCard(bloco, hoje) {
   }
 
   return `
-    <div class="rf-bloco-card ${bloco.status === 'concluido' ? 'rf-bloco-card--concluido' : ''}">
+    <div class="rf-bloco-card ${bloco.status === 'concluido' ? 'rf-bloco-card--concluido' : ''}" data-bloco-id="${esc(bloco.id)}">
       <div class="rf-bloco-color" style="background:${cor};"></div>
       <div class="rf-bloco-body">
         <div class="rf-bloco-title">${discEntry?.disc.icone || '📚'} ${esc(nome)}</div>
@@ -81,15 +131,20 @@ function renderBlocoCard(bloco, hoje) {
 
 function renderDiasHtml(blocos, hoje) {
   const porData = new Map();
+  let totalCronograma = 0;
   for (const bloco of blocos) {
     if (bloco.status === 'nao_coberto') continue;
+    totalCronograma++;
+    if (!blocoVisivel(bloco, hoje)) continue;
     if (!porData.has(bloco.data)) porData.set(bloco.data, []);
     porData.get(bloco.data).push(bloco);
   }
 
   const datas = [...porData.keys()].sort();
   if (datas.length === 0) {
-    return '<div class="config-desc">Nenhum bloco no cronograma.</div>';
+    return totalCronograma > 0
+      ? '<div class="config-desc">Nenhum bloco visível com os filtros atuais.</div>'
+      : '<div class="config-desc">Nenhum bloco no cronograma.</div>';
   }
 
   return datas
@@ -212,6 +267,7 @@ export function renderRetaFinal(el, plan = state.planejamento) {
           <div class="ciclo-sequence-header">
             <div class="ciclo-sequence-title">Cronograma dia a dia — até ${esc(formatBrDate(retaFinal.dataFinal))}</div>
           </div>
+          ${renderFiltrosHtml()}
           <div class="custom-scrollbar scroll-area-md" id="rf-dias-lista">
             ${renderDiasHtml(blocos, hoje)}
           </div>

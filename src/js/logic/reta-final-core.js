@@ -215,6 +215,25 @@ export function getRetaFinalTopicoLabel(bloco, disc) {
   return nomes.join(' · ');
 }
 
+/**
+ * Categoria de um bloco para os filtros do cronograma dia a dia:
+ *  - 'concluido': status concluído;
+ *  - 'nao_coberto': status não coberto (fica fora do cronograma);
+ *  - 'futuro': pendente com data após hoje;
+ *  - 'atrasado': pendente com data passada ou rolado (data !== dataOriginal);
+ *  - 'hoje': pendente de hoje sem rolagem.
+ */
+export function getRetaFinalBlocoFiltroCategoria(bloco, hoje) {
+  if (!bloco) return 'hoje';
+  if (bloco.status === 'concluido') return 'concluido';
+  if (bloco.status === 'nao_coberto') return 'nao_coberto';
+  if (bloco.data > hoje) return 'futuro';
+  if (bloco.data < hoje || (bloco.dataOriginal && bloco.data !== bloco.dataOriginal)) {
+    return 'atrasado';
+  }
+  return 'hoje';
+}
+
 const ASSOCIABLE_CAP = 30;
 
 /**
