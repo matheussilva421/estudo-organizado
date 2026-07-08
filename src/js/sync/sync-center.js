@@ -1,6 +1,7 @@
 import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.37';
 import { getEnvelopeUpdatedAt, getLocalContentUpdatedAt } from './firestore-schema.js?v=8.37';
 import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
+import { reconcileRetaFinalWithEvents } from '../logic/reta-final-core.js';
 
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
 
@@ -456,6 +457,9 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
   // status sobre o resultado. Isso converge entre dispositivos sem disputar
   // autoria do plano (não altera planejamento.updatedAt).
   reconcileSequenceWithEvents(merged.planejamento, merged.eventos);
+  // Mesmo princípio para a Reta Final: status dos blocos (concluido) é
+  // re-derivado dos eventos mesclados, sem disputar autoria do plano.
+  reconcileRetaFinalWithEvents(merged.planejamento, merged.eventos);
 
   return merged;
 }

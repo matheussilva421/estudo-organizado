@@ -125,16 +125,30 @@ describe('No cross-imports (circular dependency prevention)', () => {
     expect(source).not.toContain('from "../logic.js"');
   });
 
-  it('cycle.js does not import from other logic/ sub-modules except timer, disc, revisions, cycle-progress', () => {
+  it('cycle.js does not import from other logic/ sub-modules except timer, disc, revisions, cycle-progress, reta-final', () => {
     const source = read('src/js/logic/cycle.js');
-    // Allowed: ./timer.js, ./disc.js, ./revisions.js e ./cycle-progress.js
-    // (núcleo puro sem dependências — não cria ciclo de imports)
+    // Allowed: ./timer.js, ./disc.js, ./revisions.js, ./cycle-progress.js e
+    // ./reta-final.js (roteamento do agendador; reta-final.js só importa
+    // store/utils/core — não cria ciclo de imports)
     const logicImports = [
       ...source.matchAll(
-        /from\s+['"]\.\/((?!timer|disc|revisions|cycle-progress)[a-z-]+)\.js(\?v=[\d.]+)?['"]/g
+        /from\s+['"]\.\/((?!timer|disc|revisions|cycle-progress|reta-final)[a-z-]+)\.js(\?v=[\d.]+)?['"]/g
       ),
     ];
     expect(logicImports).toHaveLength(0);
+  });
+
+  it('reta-final-core.js is pure (no imports at all)', () => {
+    const source = read('src/js/logic/reta-final-core.js');
+    expect([...source.matchAll(/^import\s/gm)]).toHaveLength(0);
+  });
+
+  it('reta-final.js only imports store/utils/core (no cycle.js — circular)', () => {
+    const source = read('src/js/logic/reta-final.js');
+    const imports = [...source.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
+    for (const spec of imports) {
+      expect(spec).toMatch(/(store\.js|utils\.js|reta-final-core\.js)(\?v=[\d.]+)?$/);
+    }
   });
 
   it('disc.js does not import from other logic/ sub-modules', () => {

@@ -10,6 +10,7 @@ import {
   distributeStudiedAcrossSeq,
   reconcileSequenceWithEvents,
 } from './cycle-progress.js?v=8.37';
+import { syncRetaFinalToEventos } from './reta-final.js';
 
 // Re-export: consumidores (logic.js, views) continuam importando daqui.
 export { distributeStudiedAcrossSeq };
@@ -630,6 +631,11 @@ function openPartialPlanningStartPrompt(seq, remainingMinutes, studiedMinutes, t
 }
 
 export function syncCicloToEventos() {
+  // Reta Final: mesmo ponto de entrada (todos os call sites intactos), outro
+  // agendador — blocos dia-a-dia em vez de sequência rotativa.
+  if (state.planejamento?.tipo === 'reta_final') {
+    return syncRetaFinalToEventos();
+  }
   if (
     !state.planejamento ||
     !state.planejamento.ativo ||
