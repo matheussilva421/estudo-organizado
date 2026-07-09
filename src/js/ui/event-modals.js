@@ -15,7 +15,7 @@ import { openRegistroSessao } from '../registro-sessao.js?v=8.37';
 // ADD EVENT MODAL
 // =============================================
 function allowAllEditaisInEventModal() {
-  return currentView === 'home';
+  return currentView === 'home' || currentView === 'pontos-fracos';
 }
 
 function getEventsInEventModalScope() {

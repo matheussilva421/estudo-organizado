@@ -350,6 +350,16 @@ export function addEventoParaAssunto(editaId, discId, assId) {
       setTimeout(() => {
         const assSel = document.getElementById('event-assunto');
         if (assSel) {
+          // loadAssuntos só popula assuntos pendentes; para assunto concluído a
+          // option precisa ser inserida (e o grupo exibido) para a pré-seleção valer
+          if (!assSel.querySelector(`option[value="${assId}"]`)) {
+            const opt = document.createElement('option');
+            opt.value = assId;
+            opt.textContent = `✅ ${ass.nome}`;
+            assSel.appendChild(opt);
+            const assGroup = document.getElementById('event-assunto-group');
+            if (assGroup) assGroup.style.display = '';
+          }
           assSel.value = assId;
           const ti = document.getElementById('event-titulo');
           if (ti) {
