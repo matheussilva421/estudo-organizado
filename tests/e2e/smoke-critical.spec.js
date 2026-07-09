@@ -32,6 +32,7 @@ test.describe('Smoke crítico', () => {
       'banca-analyzer',
       'ciclo',
       'historico-sessoes',
+      'pontos-fracos',
       'config'
     ];
 
@@ -85,6 +86,7 @@ test.describe('Smoke crítico', () => {
       'banca-analyzer',
       'ciclo',
       'historico-sessoes',
+      'pontos-fracos',
       'config'
     ];
 
@@ -154,6 +156,7 @@ test.describe('Smoke crítico', () => {
       'banca-analyzer',
       'ciclo',
       'historico-sessoes',
+      'pontos-fracos',
     ];
 
     const overflowing = [];
