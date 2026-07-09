@@ -353,7 +353,7 @@ export function renderRetaFinal(el, plan = state.planejamento) {
             <div class="rf-section-title"><i class="fa fa-calendar-day"></i> Cronograma dia a dia — até ${esc(formatBrDate(retaFinal.dataFinal))}</div>
           </div>
           ${renderFiltrosHtml()}
-          <div class="custom-scrollbar scroll-area-md" id="rf-dias-lista">
+          <div class="custom-scrollbar scroll-area-md rf-dias-lista" id="rf-dias-lista">
             ${renderDiasHtml(blocos, hoje)}
           </div>
         </div>

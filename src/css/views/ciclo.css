@@ -149,20 +149,33 @@
   padding-bottom: 0;
 }
 
-.ciclo-sequence-header {
+/* Receita compartilhada dos cabeçalhos e títulos de seção de card
+   (Ciclo comum e Reta Final — .rf-* definidos em reta-final.css) */
+.ciclo-sequence-header,
+.rf-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.ciclo-sequence-header {
   margin-bottom: 16px;
   padding: 16px;
 }
 
-.ciclo-sequence-title {
+.ciclo-sequence-title,
+.ciclo-predict-title,
+.rf-section-title {
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.5px;
   text-transform: uppercase;
+}
+
+.ciclo-predict-title-icon,
+.rf-section-title .fa {
+  color: var(--accent);
 }
 
 .ciclo-sequence-controls {
@@ -267,19 +280,12 @@
   width: 100%;
 }
 
+/* Fonte/cor do título vêm do grupo compartilhado (junto ao .ciclo-sequence-title) */
 .ciclo-predict-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: 0.5px;
   margin-bottom: 12px;
   flex-shrink: 0;
   width: 100%;
   max-width: 100%;
-}
-
-.ciclo-predict-title-icon {
-  color: var(--accent);
 }
 
 .ciclo-predict-dates {

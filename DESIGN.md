@@ -200,8 +200,9 @@ Paleta escura de instrumento: superfícies quase-pretas estratificadas por tom, 
 - **Display** (800, 28px, line-height 1): valor-herói dos stat-cards (tempo do dia, % de acertos). O número que o olho procura primeiro.
 - **Headline** (700, 18px, line-height 1.2): título da topbar, cabeçalhos de tela.
 - **Title** (700, 14px, line-height 1.3): cabeçalhos de card (`.card-header h3`).
+- **Section Title** (700, 12px, letter-spacing 0.5px, MAIÚSCULAS): cabeçalhos de seção interna de card (`.ciclo-sequence-title`, `.ciclo-predict-title`, `.rf-section-title`), com ícone opcional em accent.
 - **Body** (400, 13.5px, line-height 1.5): texto corrido, descrições, conteúdo de formulário. Prosa limitada a 65–75ch; tabelas e UI compacta podem correr mais densas.
-- **Label** (600, 11.5px, letter-spacing 0.5px, MAIÚSCULAS): rótulos de stat-card e seção. O único uso de caixa-alta com tracking — e é deliberado, não enfeite por seção.
+- **Label** (600, 11.5px, letter-spacing 0.5px, MAIÚSCULAS): rótulos de stat-card e de KPI. Caixa-alta com tracking é reservada a Label e Section Title — deliberada, não enfeite por seção.
 - **Mono** (DM Mono, 500, 13–32px conforme contexto): tempo, %, contagem, horário, cronômetro.
 
 ### Named Rules
