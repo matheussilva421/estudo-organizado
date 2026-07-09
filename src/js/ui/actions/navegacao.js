@@ -10,6 +10,9 @@ import {
   clearSearch,
   setDashPeriod,
   closeDiscDashboard,
+  setPfWindow,
+  setPfEditalFilter,
+  setPfDiscFilter,
 } from '../../views.js?v=8.37';
 import { setCalViewMode, calNavigate, setSelectedCalendarDay } from '../../views/calendar-view.js?v=8.37';
 import {
@@ -69,6 +72,12 @@ registerAction('set-dash-period', (el) => {
   const period = raw === 'null' ? null : parseInt(raw, 10);
   setDashPeriod(period);
 });
+registerAction('set-pf-window', (el) => {
+  const raw = el.dataset.days;
+  setPfWindow(raw === 'null' ? null : parseInt(raw, 10));
+});
+registerAction('set-pf-edital-filter', (el) => setPfEditalFilter(el.value || null));
+registerAction('set-pf-disc-filter', (el) => setPfDiscFilter(el.value || null));
 registerAction('close-sidebar', closeSidebar);
 registerAction('toggle-sidebar', toggleSidebar);
 registerAction('toggle-sidebar-collapse', toggleSidebarCollapse);

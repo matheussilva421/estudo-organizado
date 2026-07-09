@@ -20,6 +20,7 @@ import {
   renderVertical,
   renderCiclo,
   renderBancaAnalyzerModule,
+  renderPontosFracos,
   destroyDashboardCharts,
   renderSkeletonLoader,
 } from './views.js?v=8.37';
@@ -396,6 +397,7 @@ export function renderCurrentView() {
     ciclo: 'Ciclo de Estudos',
     'banca-analyzer': 'Inteligência de Banca',
     'historico-sessoes': 'Histórico de Sessões',
+    'pontos-fracos': 'Pontos Fracos',
   };
   const titleEl = document.getElementById('topbar-title');
   if (titleEl) titleEl.textContent = titles[currentView] || 'Estudo Organizado';
@@ -470,6 +472,7 @@ export function renderCurrentView() {
     if (currentView === 'config') return renderConfig(el);
     if (currentView === 'cronometro') return renderCronometro(el);
     if (currentView === 'banca-analyzer') return renderBancaAnalyzerModule(el);
+    if (currentView === 'pontos-fracos') return renderPontosFracos(el);
   }
 }
 

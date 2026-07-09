@@ -36,6 +36,12 @@ export {
 } from './views/state/disc-manager-state.js';
 export { renderHome } from './views/home-view.js?v=8.37';
 export {
+  renderPontosFracos,
+  setPfWindow,
+  setPfEditalFilter,
+  setPfDiscFilter,
+} from './views/pontos-fracos-view.js?v=8.37';
+export {
   renderCiclo,
   recomecarCiclo,
   zerarCiclosCounter,

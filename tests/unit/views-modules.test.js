@@ -1444,3 +1444,106 @@ describe('banca-view.js', () => {
     });
   });
 });
+
+describe('pontos-fracos view', () => {
+  function seedPontosFracos() {
+    store.setState(
+      createBaseState({
+        editais: [
+          createEdital({
+            id: 'ed_1',
+            nome: 'Edital TRF',
+            disciplinas: [
+              createDisciplina({
+                id: 'disc_1',
+                nome: 'Direito Administrativo',
+                assuntos: [
+                  { id: 'ass_fraco', nome: 'Licitações', concluido: false, revisoesFetas: [] },
+                  { id: 'ass_forte', nome: 'Atos Administrativos', concluido: false, revisoesFetas: [] },
+                  { id: 'ass_pouco', nome: 'Improbidade', concluido: false, revisoesFetas: [] },
+                  { id: 'ass_nunca', nome: 'Servidores', concluido: false, revisoesFetas: [] },
+                ],
+              }),
+            ],
+          }),
+        ],
+        eventos: [
+          createEvento({
+            id: 'ev_fraco',
+            status: 'estudei',
+            dataEstudo: '2026-04-18',
+            discId: 'disc_1',
+            assId: 'ass_fraco',
+            sessao: { questoes: { total: 20, acertos: 6, erros: 14 } },
+          }),
+          createEvento({
+            id: 'ev_forte',
+            status: 'estudei',
+            dataEstudo: '2026-04-18',
+            discId: 'disc_1',
+            assId: 'ass_forte',
+            sessao: { questoes: { total: 20, acertos: 18, erros: 2 } },
+          }),
+          createEvento({
+            id: 'ev_pouco',
+            status: 'estudei',
+            dataEstudo: '2026-04-18',
+            discId: 'disc_1',
+            assId: 'ass_pouco',
+            sessao: { questoes: { total: 4, acertos: 1, erros: 3 } },
+          }),
+        ],
+      })
+    );
+    logic.invalidateDiscCache();
+    logic.invalidateDashCaches();
+  }
+
+  it('renderiza ranking com o assunto mais fraco primeiro e taxas nas faixas', () => {
+    seedPontosFracos();
+    const container = { innerHTML: '' };
+    views.renderPontosFracos(container);
+
+    const html = container.innerHTML;
+    expect(html).toContain('Licitações');
+    expect(html).toContain('Atos Administrativos');
+    // pior (30%) vem antes do melhor (90%)
+    expect(html.indexOf('Licitações')).toBeLessThan(html.indexOf('Atos Administrativos'));
+    expect(html).toContain('30%');
+    expect(html).toContain('90%');
+  });
+
+  it('separa dados insuficientes e sem questões em seções próprias', () => {
+    seedPontosFracos();
+    const container = { innerHTML: '' };
+    views.renderPontosFracos(container);
+
+    const html = container.innerHTML;
+    expect(html).toContain('Dados insuficientes');
+    expect(html).toContain('Improbidade');
+    expect(html).toContain('Sem questões registradas');
+    expect(html).toContain('Servidores');
+  });
+
+  it('emite controles de janela, filtros e ação rápida com data-actions corretos', () => {
+    seedPontosFracos();
+    const container = { innerHTML: '' };
+    views.renderPontosFracos(container);
+
+    const html = container.innerHTML;
+    expect(html).toContain('data-action="set-pf-window"');
+    expect(html).toContain('data-action="set-pf-edital-filter"');
+    expect(html).toContain('data-action="set-pf-disc-filter"');
+    expect(html).toContain('data-action="add-evento-para-assunto"');
+    expect(html).toContain('data-edital-id="ed_1"');
+    expect(html).toContain('data-disc-id="disc_1"');
+    expect(html).toContain('data-assunto-id="ass_fraco"');
+  });
+
+  it('setters de janela e filtro re-renderizam a view', () => {
+    seedPontosFracos();
+    expect(typeof views.setPfWindow).toBe('function');
+    expect(typeof views.setPfEditalFilter).toBe('function');
+    expect(typeof views.setPfDiscFilter).toBe('function');
+  });
+});
