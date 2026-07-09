@@ -588,9 +588,9 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=9.08');
-    expect(serviceWorker).toContain("APP_VERSION = '9.08'");
-    expect(syncDiagnostic).toContain("DIAGNOSTIC_BUILD_VERSION = '9.08'");
+    expect(html).toContain('css/styles.css?v=9.09');
+    expect(serviceWorker).toContain("APP_VERSION = '9.09'");
+    expect(syncDiagnostic).toContain("DIAGNOSTIC_BUILD_VERSION = '9.09'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 
@@ -714,16 +714,25 @@ describe('CSS architecture', () => {
     // Anatomia compartilhada: header/corpo com o mesmo respiro nas 3 seções
     expect(extractCssBlock(retaFinal, '.rf-section-header')).toContain('padding: 16px 16px 12px');
     expect(extractCssBlock(retaFinal, '.rf-section-body')).toContain('padding: 0 16px 16px');
-    // Filtros alinhados ao título e às listas
-    expect(extractCssBlock(retaFinal, '.rf-filtros')).toContain('padding: 0 16px');
-    // Sem espaçamentos duplicados (gap do contêiner já espaça)
-    expect(extractCssBlock(retaFinal, '.rf-day-group')).not.toContain('margin-bottom');
+    // Filtros alinhados: 16px à esquerda (título) e 12px à direita (borda dos cards,
+    // que segue o padding-right/calha de scrollbar do scroll-area)
+    expect(extractCssBlock(retaFinal, '.rf-filtros')).toContain('padding: 0 12px 0 16px');
+    // Sem espaçamentos duplicados (gap do contêiner já espaça) e sem regra órfã
+    expect(retaFinal).not.toMatch(/\.rf-day-group\s*\{/);
     expect(extractCssBlock(retaFinal, '.rf-foco-card')).not.toContain('margin-bottom');
-    // Um único bloco canônico para o scroll-area do cronograma (styles.css)
+    // Um único bloco canônico para o scroll-area do cronograma (styles.css);
+    // o ajuste da reta final usa classe modificadora, não o id de JS
     expect(cicloView).not.toContain('.ciclo-sequence-card .scroll-area-md');
+    expect(retaFinal).not.toContain('#rf-dias-lista');
+    expect(retaFinal).toContain('.scroll-area-md.rf-dias-lista');
     const scrollBlock = extractCssBlock(legacyStyles, '.ciclo-sequence-card .scroll-area-md');
     expect(scrollBlock).toContain('padding: 16px');
     expect(scrollBlock).toContain('padding-right: 12px');
+    // Receita de título de seção definida uma única vez (grupo em ciclo.css)
+    expect(cicloView).toMatch(
+      /\.ciclo-sequence-title,\s*\.ciclo-predict-title,\s*\.rf-section-title\s*\{/
+    );
+    expect(retaFinal).not.toMatch(/\.rf-section-title\s*\{/);
   });
 
   it('keeps ciclo card actions quiet on desktop and reachable on touch layouts', () => {

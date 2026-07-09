@@ -42,24 +42,11 @@
    (Foco de Hoje · Cronograma dia a dia · Não cobertos)
    ============================================ */
 
+/* Layout flex do header e a receita de .rf-section-title vêm do grupo
+   compartilhado com o Ciclo comum (ciclo.css); aqui só o respiro próprio. */
 .rf-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 16px 16px 12px;
-}
-
-.rf-section-title {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--text-primary);
-}
-
-.rf-section-title .fa {
-  color: var(--accent);
 }
 
 .rf-section-body {
@@ -70,11 +57,13 @@
   margin-bottom: 0;
 }
 
+/* 16px à esquerda alinha ao título; 12px à direita alinha à borda dos cards
+   do cronograma (o scroll-area reserva 12px de calha para o scrollbar). */
 .rf-filtros {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 0 16px;
+  padding: 0 12px 0 16px;
   margin-bottom: 12px;
 }
 
@@ -105,8 +94,9 @@
 }
 
 /* Grupos de dia são espaçados pelo gap do scroll-area (styles.css);
-   o padding-top fica a cargo da margem dos filtros acima. */
-#rf-dias-lista {
+   o padding-top fica a cargo da margem dos filtros acima. As 3 classes
+   vencem o bloco compartilhado .ciclo-sequence-card .scroll-area-md. */
+.ciclo-sequence-card .scroll-area-md.rf-dias-lista {
   padding-top: 0;
 }
 
@@ -307,9 +297,9 @@
   border-top: 3px solid var(--accent);
 }
 
-/* Identidade accent do Foco (anatomia vem de .rf-section-*) */
-.rf-foco-title,
-.rf-foco-title .fa {
+/* Identidade accent do Foco (anatomia vem de .rf-section-*; o ícone já é
+   accent pela regra compartilhada de ícone de título) */
+.rf-foco-title {
   color: var(--accent);
 }
 

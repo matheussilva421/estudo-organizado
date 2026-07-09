@@ -188,8 +188,8 @@ test.describe('Reta Final', () => {
     await page.click('[data-view="ciclo"]');
 
     // O bloco pendente de hoje aparece no Foco de Hoje e no cronograma —
-    // o mesmo botão existe duas vezes por design.
-    await page.locator('[data-action="rf-quick-mark"]').first().dispatchEvent('click');
+    // o escopo pelo Foco declara qual instância do botão o teste exercita.
+    await page.locator('.rf-foco-card [data-action="rf-quick-mark"]').dispatchEvent('click');
 
     await expect(page.locator('#toast-container')).toContainText('marcado como estudado');
     await expect(page.locator('#main-content')).toContainText('concluído');
@@ -251,7 +251,9 @@ test.describe('Reta Final', () => {
     await page.goto('/');
     await page.click('[data-view="ciclo"]');
 
-    await page.locator('[data-action="rf-associar-historico"]').first().dispatchEvent('click');
+    await page
+      .locator('.rf-foco-card [data-action="rf-associar-historico"]')
+      .dispatchEvent('click');
     const modal = page.locator('#modal-prompt');
     await expect(modal).toBeVisible();
     await expect(modal).toContainText('Sessão por fora');
