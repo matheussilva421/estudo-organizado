@@ -187,7 +187,9 @@ test.describe('Reta Final', () => {
     await page.goto('/');
     await page.click('[data-view="ciclo"]');
 
-    await page.locator('[data-action="rf-quick-mark"]').dispatchEvent('click');
+    // O bloco pendente de hoje aparece no Foco de Hoje e no cronograma —
+    // o mesmo botão existe duas vezes por design.
+    await page.locator('[data-action="rf-quick-mark"]').first().dispatchEvent('click');
 
     await expect(page.locator('#toast-container')).toContainText('marcado como estudado');
     await expect(page.locator('#main-content')).toContainText('concluído');
@@ -249,7 +251,7 @@ test.describe('Reta Final', () => {
     await page.goto('/');
     await page.click('[data-view="ciclo"]');
 
-    await page.locator('[data-action="rf-associar-historico"]').dispatchEvent('click');
+    await page.locator('[data-action="rf-associar-historico"]').first().dispatchEvent('click');
     const modal = page.locator('#modal-prompt');
     await expect(modal).toBeVisible();
     await expect(modal).toContainText('Sessão por fora');

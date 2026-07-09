@@ -222,11 +222,13 @@ function renderFocoHoje(blocos, hoje) {
   const plural = doDia.length === 1 ? 'bloco' : 'blocos';
   return `
     <div class="card rf-foco-card">
-      <div class="rf-foco-header">
-        <span class="rf-foco-title"><i class="fa fa-crosshairs"></i> FOCO DE HOJE · ${formatShortDate(hoje)}</span>
+      <div class="rf-section-header rf-foco-header">
+        <span class="rf-section-title rf-foco-title"><i class="fa fa-crosshairs"></i> FOCO DE HOJE · ${formatShortDate(hoje)}</span>
         <span class="rf-foco-meta">${doDia.length} ${plural} · ${formatHours(totalMin)}</span>
       </div>
-      ${doDia.map((bloco) => renderBlocoCard(bloco, hoje)).join('')}
+      <div class="rf-section-body">
+        ${doDia.map((bloco) => renderBlocoCard(bloco, hoje)).join('')}
+      </div>
     </div>
   `;
 }
@@ -310,10 +312,12 @@ export function renderRetaFinal(el, plan = state.planejamento) {
     naoCobertos.length > 0
       ? `
         <div class="card ciclo-sequence-card">
-          <div class="ciclo-sequence-header">
-            <div class="ciclo-sequence-title">Não cobertos (${naoCobertos.length})</div>
+          <div class="rf-section-header">
+            <div class="rf-section-title"><i class="fa fa-circle-exclamation"></i> Não cobertos (${naoCobertos.length})</div>
           </div>
-          ${naoCobertos.map((bloco) => renderBlocoCard(bloco, hoje)).join('')}
+          <div class="rf-section-body">
+            ${naoCobertos.map((bloco) => renderBlocoCard(bloco, hoje)).join('')}
+          </div>
         </div>
       `
       : '';
@@ -345,8 +349,8 @@ export function renderRetaFinal(el, plan = state.planejamento) {
       <div class="ciclo-content-col">
         ${renderFocoHoje(blocos, hoje)}
         <div class="card ciclo-sequence-card">
-          <div class="ciclo-sequence-header">
-            <div class="ciclo-sequence-title">Cronograma dia a dia — até ${esc(formatBrDate(retaFinal.dataFinal))}</div>
+          <div class="rf-section-header">
+            <div class="rf-section-title"><i class="fa fa-calendar-day"></i> Cronograma dia a dia — até ${esc(formatBrDate(retaFinal.dataFinal))}</div>
           </div>
           ${renderFiltrosHtml()}
           <div class="custom-scrollbar scroll-area-md" id="rf-dias-lista">

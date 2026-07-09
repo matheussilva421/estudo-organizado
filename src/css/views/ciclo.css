@@ -360,14 +360,6 @@
   scrollbar-width: thin;
 }
 
-.ciclo-sequence-card .scroll-area-md {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  padding-right: 12px;
-}
-
 /* === Grade Semanal View === */
 
 .grade-header {
