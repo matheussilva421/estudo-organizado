@@ -270,6 +270,47 @@ describe('renderRetaFinal — painel Foco de Hoje', () => {
   });
 });
 
+describe('renderRetaFinal — anatomia padronizada das seções', () => {
+  function stateComTodasSecoes() {
+    return buildState({
+      blocos: [
+        rfBloco({ id: 'rf_hoje' }),
+        rfBloco({ id: 'rf_nc', status: 'nao_coberto' }),
+      ],
+    });
+  }
+
+  it('Foco de Hoje usa header/título padronizados e blocos dentro do corpo', async () => {
+    const { el } = await renderInto(stateComTodasSecoes());
+    const foco = el.querySelector('.rf-foco-card');
+    expect(foco).toBeTruthy();
+    expect(foco.querySelector('.rf-section-header.rf-foco-header')).toBeTruthy();
+    expect(foco.querySelector('.rf-section-title.rf-foco-title')).toBeTruthy();
+    expect(foco.querySelectorAll('.rf-section-body .rf-bloco-card').length).toBe(1);
+  });
+
+  it('Cronograma usa o mesmo header/título padronizados', async () => {
+    const { el } = await renderInto(stateComTodasSecoes());
+    const cronograma = [...el.querySelectorAll('.ciclo-sequence-card')].find((s) =>
+      s.textContent.includes('Cronograma dia a dia')
+    );
+    expect(cronograma).toBeTruthy();
+    expect(cronograma.querySelector('.rf-section-header')).toBeTruthy();
+    expect(cronograma.querySelector('.rf-section-title')).toBeTruthy();
+  });
+
+  it('Não cobertos usa header padronizado e blocos dentro do corpo', async () => {
+    const { el } = await renderInto(stateComTodasSecoes());
+    const nc = [...el.querySelectorAll('.ciclo-sequence-card')].find((s) =>
+      s.textContent.includes('Não cobertos')
+    );
+    expect(nc).toBeTruthy();
+    expect(nc.querySelector('.rf-section-header')).toBeTruthy();
+    expect(nc.querySelector('.rf-section-title')).toBeTruthy();
+    expect(nc.querySelectorAll('.rf-section-body .rf-bloco-card').length).toBe(1);
+  });
+});
+
 describe('renderRetaFinal — Distribuição de Horas (barras)', () => {
   function distState() {
     return buildState({

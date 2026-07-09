@@ -588,9 +588,9 @@ describe('CSS architecture', () => {
       ]
     ].map((file) => read(file)).join('\n');
 
-    expect(html).toContain('css/styles.css?v=9.07');
-    expect(serviceWorker).toContain("APP_VERSION = '9.07'");
-    expect(syncDiagnostic).toContain("DIAGNOSTIC_BUILD_VERSION = '9.07'");
+    expect(html).toContain('css/styles.css?v=9.08');
+    expect(serviceWorker).toContain("APP_VERSION = '9.08'");
+    expect(syncDiagnostic).toContain("DIAGNOSTIC_BUILD_VERSION = '9.08'");
     expect(appSources).not.toMatch(/v=8\.(?:[3-5](?!\d))|APP_VERSION = '8\.(?:[3-5](?!\d))'/);
   });
 
@@ -704,6 +704,26 @@ describe('CSS architecture', () => {
     expect(sequenceCardBlock).toContain('min-height:');
     expect(staticContentBlock).toContain('flex-direction: column');
     expect(actionBlock).toContain('flex-wrap: wrap');
+  });
+
+  it('keeps the reta final sections on one shared anatomy', () => {
+    const retaFinal = read('src/css/views/reta-final.css');
+    const cicloView = read('src/css/views/ciclo.css');
+    const legacyStyles = read('src/css/styles.css');
+
+    // Anatomia compartilhada: header/corpo com o mesmo respiro nas 3 seções
+    expect(extractCssBlock(retaFinal, '.rf-section-header')).toContain('padding: 16px 16px 12px');
+    expect(extractCssBlock(retaFinal, '.rf-section-body')).toContain('padding: 0 16px 16px');
+    // Filtros alinhados ao título e às listas
+    expect(extractCssBlock(retaFinal, '.rf-filtros')).toContain('padding: 0 16px');
+    // Sem espaçamentos duplicados (gap do contêiner já espaça)
+    expect(extractCssBlock(retaFinal, '.rf-day-group')).not.toContain('margin-bottom');
+    expect(extractCssBlock(retaFinal, '.rf-foco-card')).not.toContain('margin-bottom');
+    // Um único bloco canônico para o scroll-area do cronograma (styles.css)
+    expect(cicloView).not.toContain('.ciclo-sequence-card .scroll-area-md');
+    const scrollBlock = extractCssBlock(legacyStyles, '.ciclo-sequence-card .scroll-area-md');
+    expect(scrollBlock).toContain('padding: 16px');
+    expect(scrollBlock).toContain('padding-right: 12px');
   });
 
   it('keeps ciclo card actions quiet on desktop and reachable on touch layouts', () => {

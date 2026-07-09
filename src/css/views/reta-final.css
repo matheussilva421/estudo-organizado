@@ -37,10 +37,44 @@
   font-size: 13px;
 }
 
+/* ============================================
+   Anatomia compartilhada das seções da Reta Final
+   (Foco de Hoje · Cronograma dia a dia · Não cobertos)
+   ============================================ */
+
+.rf-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px;
+}
+
+.rf-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.rf-section-title .fa {
+  color: var(--accent);
+}
+
+.rf-section-body {
+  padding: 0 16px 16px;
+}
+
+.rf-section-body .rf-bloco-card:last-child {
+  margin-bottom: 0;
+}
+
 .rf-filtros {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  padding: 0 16px;
   margin-bottom: 12px;
 }
 
@@ -70,8 +104,10 @@
   color: var(--accent);
 }
 
-.rf-day-group {
-  margin-bottom: 14px;
+/* Grupos de dia são espaçados pelo gap do scroll-area (styles.css);
+   o padding-top fica a cargo da margem dos filtros acima. */
+#rf-dias-lista {
+  padding-top: 0;
 }
 
 .rf-day-header {
@@ -268,23 +304,12 @@
    ============================================ */
 
 .rf-foco-card {
-  margin-bottom: 14px;
   border-top: 3px solid var(--accent);
 }
 
-.rf-foco-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.rf-foco-title {
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+/* Identidade accent do Foco (anatomia vem de .rf-section-*) */
+.rf-foco-title,
+.rf-foco-title .fa {
   color: var(--accent);
 }
 
