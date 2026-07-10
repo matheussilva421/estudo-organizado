@@ -1,4 +1,4 @@
-# Handoff — Fix do e2e editais.spec.js + limpeza do ci.yml (2026-07-10)
+# Handoff — Fix do e2e editais.spec.js + limpeza do ci.yml + flake registro-sessão (2026-07-10)
 
 ## O que foi feito
 
@@ -39,11 +39,26 @@
 
 - Commit e push na `main` desta sessão (teste + handoff).
 
+## Parte 2 (mesma sessão) — flake do sessao-multi-topico RESOLVIDO
+
+O "flake" era na verdade uma **corrida no código do app**, não no teste:
+
+- **Causa raiz**: `openRegistroSessao` (`src/js/registro-sessao.js`) pré-preenchia a
+  disciplina dentro de `setTimeout(..., 100)`. O callback chamava `onDisciplinaChange()`,
+  que repopula `#reg-assunto` via `innerHTML` — **descartando a seleção** feita nesse
+  meio-tempo. Se as interações levavam >100ms (máquina sob carga), o clique em
+  "Adicionar à lista" via o select resetado → validação "Selecione um tópico" → 0 itens.
+- **Reprodução**: `--repeat-each=15` isolado → **12 falhas em 15** (não era flake raro).
+- **Fix (TDD)**: teste unitário alterado primeiro para exigir pré-preenchimento
+  **síncrono** (sem `advanceTimers`) → red confirmado → `setTimeout` removido (o form
+  é montado sincronamente logo acima, o adiamento era desnecessário) → green.
+- **Validação**: `--repeat-each=15` → **15/15 verdes**; suíte unit completa
+  **2180/2180**; gate e2e oficial (`npm run test:e2e`) **148/148**.
+- Arquivos: `src/js/registro-sessao.js` (pré-fill síncrono),
+  `tests/unit/registro-sessao.test.js` (teste "pre-fills discipline synchronously").
+
 ## Pendências / próximos passos
 
-- **Flake** em `tests/e2e/sessao-multi-topico.spec.js` quando roda em sequência
-  (passa isolado e passou na 2ª rodada completa). Investigar se houver reincidência:
-  provável timing/estado residual do spec anterior.
 - Backlog v2 da aba Pontos Fracos segue como estava (ver handoff 2026-07-09):
   integração com peso do Ciclo, média bayesiana, memoização de `computeWeakPoints`,
   sparkline por assunto.

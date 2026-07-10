@@ -204,29 +204,30 @@ export function openRegistroSessao(eventId) {
 
   openModal('modal-registro-sessao');
 
-  // Pre-fill discipline if event already has one
-  setTimeout(() => {
-    if (ev.discId) {
-      const discSelect = document.getElementById('reg-disciplina');
-      if (discSelect) {
-        discSelect.value = ev.discId;
-        onDisciplinaChange();
-        if (ev.assId) {
-          const assSelect = document.getElementById('reg-assunto');
-          if (assSelect) {
-            assSelect.value = ev.assId;
-          }
+  // Pre-fill discipline if event already has one. Síncrono de propósito: o
+  // form acabou de ser montado acima; adiar (setTimeout) abre janela de
+  // corrida em que onDisciplinaChange repopula #reg-assunto e descarta uma
+  // seleção que o usuário já tenha feito.
+  if (ev.discId) {
+    const discSelect = document.getElementById('reg-disciplina');
+    if (discSelect) {
+      discSelect.value = ev.discId;
+      onDisciplinaChange();
+      if (ev.assId) {
+        const assSelect = document.getElementById('reg-assunto');
+        if (assSelect) {
+          assSelect.value = ev.assId;
         }
-        if (ev.aulaId) {
-          const aulaSelect = document.getElementById('reg-aula');
-          if (aulaSelect) {
-            aulaSelect.value = ev.aulaId;
-            onAulaChange();
-          }
+      }
+      if (ev.aulaId) {
+        const aulaSelect = document.getElementById('reg-aula');
+        if (aulaSelect) {
+          aulaSelect.value = ev.aulaId;
+          onAulaChange();
         }
       }
     }
-  }, 100);
+  }
 }
 
 // =============================================

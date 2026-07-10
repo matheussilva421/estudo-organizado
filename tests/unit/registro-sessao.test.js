@@ -175,7 +175,7 @@ describe('registro-sessao.js', () => {
       expect(global.clearInterval).toHaveBeenCalled();
     });
 
-    it('pre-fills discipline when event has discId', async () => {
+    it('pre-fills discipline synchronously when event has discId', () => {
       const evento = createEvento({
         id: 'ev_1',
         discId: 'disc_1',
@@ -189,10 +189,13 @@ describe('registro-sessao.js', () => {
 
       registroSessao.openRegistroSessao('ev_1');
 
-      await vi.advanceTimersByTimeAsync(150);
-
+      // Sem avançar timers: um pré-preenchimento adiado (setTimeout) abre
+      // janela de corrida com interações do usuário logo após abrir o modal
+      // (onDisciplinaChange repopularia #reg-assunto e descartaria a seleção).
       const discSelect = global.document.getElementById('reg-disciplina');
       expect(discSelect.value).toBe('disc_1');
+      const assSelect = global.document.getElementById('reg-assunto');
+      expect(assSelect.value).toBe('ass_1');
     });
   });
 
