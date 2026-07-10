@@ -41,9 +41,11 @@ APP_VERSION: 9.13 → 9.17 (um bump por fase, via hook pre-commit).
 
 ## Pendências / observações
 
-- **Flake pré-existente** na suíte unit completa: ~1 falha intermitente em área de
-  sync (aparece em ~metade das rodadas completas, passa isolado e em re-runs;
-  não relacionado a este trabalho). Investigar se reincidir com nome capturado.
+- ~~**Flake pré-existente** na suíte unit completa~~ — **RESOLVIDO** (mesma data,
+  branch `fix/flake-suite-unit`): o culpado NÃO era sync; era
+  `action-contracts.test.js > keeps the browser module graph bundleable...`
+  (spawn de `npx esbuild` estourando o timeout de 5s sob carga). Ver
+  `handoff-2026-07-10-flake-bundleable-fix.md`.
 - Validação manual no browser das 4 features ainda não foi feita nesta sessão
   (cobertura via unit + e2e; recomenda-se um passeio visual na aba e no wizard:
   `npx http-server src -p 8087 -c-1`).

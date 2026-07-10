@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const rootDir = process.cwd();
@@ -468,28 +466,8 @@ describe('data-action contracts', () => {
     expect(mainSource).toContain('get: () => mod[key]');
   });
 
-  it('keeps the browser module graph bundleable without missing exports', () => {
-    const outfile = join(tmpdir(), 'estudo-organizado-main-esbuild-check.js');
-    const args = [
-      'esbuild',
-      'src/js/main.js',
-      '--bundle',
-      '--format=esm',
-      `--outfile=${outfile}`,
-      '--log-level=silent',
-    ];
-
-    expect(() => {
-      if (process.platform === 'win32') {
-        execFileSync('cmd.exe', ['/d', '/s', '/c', `npx ${args.join(' ')}`], {
-          cwd: rootDir,
-          stdio: 'pipe',
-        });
-      } else {
-        execFileSync('npx', args, { cwd: rootDir, stdio: 'pipe' });
-      }
-    }).not.toThrow();
-  });
+  // O contrato "grafo de módulos bundleável" vive em bundle-graph.test.js:
+  // precisa de ambiente node (a API do esbuild rejeita o TextEncoder do jsdom).
 
   it('refreshes stale config sync indicators through the dedicated sync status UI', () => {
     const mainSource = read('src/js/main.js');
