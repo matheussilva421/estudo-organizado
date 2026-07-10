@@ -1513,14 +1513,18 @@ describe('pontos-fracos view', () => {
     expect(html).toContain('90%');
   });
 
-  it('separa dados insuficientes e sem questões em seções próprias', () => {
+  it('assunto com poucas questões entra no ranking com selo; sem questões tem seção própria', () => {
     seedPontosFracos();
     const container = { innerHTML: '' };
     views.renderPontosFracos(container);
 
     const html = container.innerHTML;
-    expect(html).toContain('Dados insuficientes');
+    // Bayesiana: Improbidade (4 questões) agora está no ranking, com selo
+    expect(html).not.toContain('Dados insuficientes');
     expect(html).toContain('Improbidade');
+    expect(html).toContain('poucas questões');
+    // Ordenação pela taxa ajustada: fraco (30% em 20) segue pior que pouco (25% em 4)
+    expect(html.indexOf('Licitações')).toBeLessThan(html.indexOf('Improbidade'));
     expect(html).toContain('Sem questões registradas');
     expect(html).toContain('Servidores');
   });

@@ -66,7 +66,7 @@ function assuntoRow(a) {
           ${taxaBadge(a.taxa, a.faixa)}
         </div>
         ${taxaBar(a.taxa, a.faixa)}
-        <div class="text-sm text-muted">${a.acertos} acertos · ${a.erros} erros · ${a.total} questões</div>
+        <div class="text-sm text-muted">${a.acertos} acertos · ${a.erros} erros · ${a.total} questões${a.confiavel ? '' : ' · <span title="Menos de ' + MIN_QUESTOES_CONFIAVEL + ' questões: taxa pouco confiável, posição suavizada pela média geral">⚠ poucas questões</span>'}</div>
       </div>
       ${acaoBtn(a)}
     </div>`;
@@ -144,14 +144,19 @@ export function renderPontosFracos(el) {
     discFilterId: pfDiscId,
   });
 
-  // Ranking agrupado por disciplina (disciplinas já vêm da pior para a melhor)
+  // Ranking agrupado por disciplina (disciplinas já vêm da pior para a melhor).
+  // Ordena pela taxa ajustada (média bayesiana): amostras pequenas não dominam o topo.
   const grupos = result.disciplinas
     .map((disc) => ({
       disc,
       assuntos: disc.assuntos
-        .filter((a) => a.confiavel)
+        .filter((a) => a.total > 0)
         .slice()
-        .sort((a, b) => a.taxa - b.taxa || b.total - a.total),
+        .sort((a, b) => {
+          if (a.taxaAjustada === null || b.taxaAjustada === null)
+            return (a.taxaAjustada === null) - (b.taxaAjustada === null);
+          return a.taxaAjustada - b.taxaAjustada || b.total - a.total;
+        }),
     }))
     .filter((g) => g.assuntos.length > 0);
 
@@ -160,20 +165,9 @@ export function renderPontosFracos(el) {
   const rankingHtml = grupos.length
     ? grupos.map((g) => discGroup(g.disc, g.assuntos)).join('')
     : `<div class="card mb-4"><div class="card-body text-muted">
-         Nenhum assunto com pelo menos ${MIN_QUESTOES_CONFIAVEL} questões registradas em ${periodoLabel}.
+         Nenhuma questão registrada em ${periodoLabel}.
          Registre acertos e erros nas suas sessões de estudo para ver seus pontos fracos aqui.
        </div></div>`;
-
-  const insufHtml = result.insuficientes.length
-    ? `<details class="card mb-4">
-        <summary style="cursor:pointer; padding:12px 16px;">
-          📉 Dados insuficientes — menos de ${MIN_QUESTOES_CONFIAVEL} questões (${result.insuficientes.length})
-        </summary>
-        <div class="card-body">
-          ${result.insuficientes.map(assuntoRow).join('')}
-        </div>
-      </details>`
-    : '';
 
   const semHtml = result.semQuestoes.length
     ? `<details class="card mb-4">
@@ -215,7 +209,6 @@ export function renderPontosFracos(el) {
       </div>
     </div>
     ${rankingHtml}
-    ${insufHtml}
     ${semHtml}
     ${orfaosHtml}
   `;

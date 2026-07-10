@@ -63,11 +63,7 @@ function eventoEstudado(overrides = {}) {
 }
 
 function findAssunto(result, assId) {
-  return (
-    result.ranking.find((a) => a.assId === assId) ||
-    result.insuficientes.find((a) => a.assId === assId) ||
-    null
-  );
+  return result.ranking.find((a) => a.assId === assId) || null;
 }
 
 describe('classifyTaxa — faixas do Dashboard', () => {
@@ -153,7 +149,6 @@ describe('computeWeakPoints — agregação por assunto', () => {
     });
     const result = compute({ eventos: [ev] });
     expect(result.ranking).toHaveLength(0);
-    expect(result.insuficientes).toHaveLength(0);
   });
 
   it('assunto concluído entra no ranking normalmente', () => {
@@ -205,7 +200,7 @@ describe('computeWeakPoints — janela temporal', () => {
   });
 });
 
-describe('computeWeakPoints — partição por confiabilidade', () => {
+describe('computeWeakPoints — partição e selo de confiabilidade', () => {
   const evComTotal = (total, acertos) =>
     eventoEstudado({
       discId: 'disc_1',
@@ -213,13 +208,25 @@ describe('computeWeakPoints — partição por confiabilidade', () => {
       sessao: { questoes: { total, acertos, erros: total - acertos } },
     });
 
-  it('9 questões → insuficientes; 10 → ranking', () => {
+  it('9 questões entra no ranking com confiavel:false; 10 com confiavel:true', () => {
     const nove = compute({ eventos: [evComTotal(9, 3)] });
-    expect(nove.ranking.find((a) => a.assId === 'ass_1')).toBeUndefined();
-    expect(nove.insuficientes.find((a) => a.assId === 'ass_1')).toMatchObject({ total: 9 });
+    expect(nove.ranking.find((a) => a.assId === 'ass_1')).toMatchObject({
+      total: 9,
+      taxa: 33,
+      confiavel: false,
+    });
 
     const dez = compute({ eventos: [evComTotal(10, 3)] });
-    expect(dez.ranking.find((a) => a.assId === 'ass_1')).toMatchObject({ total: 10, taxa: 30 });
+    expect(dez.ranking.find((a) => a.assId === 'ass_1')).toMatchObject({
+      total: 10,
+      taxa: 30,
+      confiavel: true,
+    });
+  });
+
+  it('retorno não expõe mais a coleção insuficientes', () => {
+    const result = compute({ eventos: [evComTotal(9, 3)] });
+    expect(result).not.toHaveProperty('insuficientes');
   });
 
   it('assunto sem nenhuma questão na janela vai para semQuestoes', () => {
@@ -230,18 +237,69 @@ describe('computeWeakPoints — partição por confiabilidade', () => {
     expect(sem).not.toContain('ass_1');
   });
 
-  it('total registrado sem acertos/erros (respondidas 0) fica em insuficientes com taxa null', () => {
-    const ev = eventoEstudado({
+  it('total registrado sem acertos/erros (respondidas 0) fica no fim do ranking com taxa null', () => {
+    const eventos = [
+      eventoEstudado({
+        id: 'e_semresp',
+        discId: 'disc_1',
+        assId: 'ass_1',
+        sessao: { questoes: { total: 12 } },
+      }),
+      eventoEstudado({
+        id: 'e_normal',
+        discId: 'disc_1',
+        assId: 'ass_2',
+        sessao: { questoes: { total: 10, acertos: 9, erros: 1 } },
+      }),
+    ];
+    const result = compute({ eventos });
+    expect(result.ranking.map((a) => a.assId)).toEqual(['ass_2', 'ass_1']);
+    expect(result.ranking[1]).toMatchObject({ total: 12, taxa: null, taxaAjustada: null });
+  });
+});
+
+describe('computeWeakPoints — média bayesiana (taxaAjustada)', () => {
+  const ev = (assId, total, acertos, id) =>
+    eventoEstudado({
+      id,
       discId: 'disc_1',
-      assId: 'ass_1',
-      sessao: { questoes: { total: 12 } },
+      assId,
+      sessao: { questoes: { total, acertos, erros: total - acertos } },
     });
-    const result = compute({ eventos: [ev] });
-    expect(result.ranking.find((a) => a.assId === 'ass_1')).toBeUndefined();
-    expect(result.insuficientes.find((a) => a.assId === 'ass_1')).toMatchObject({
-      total: 12,
-      taxa: null,
+
+  it('encolhe taxas de amostras pequenas em direção ao prior global', () => {
+    // Universo: ass_1 = 45/90 (50%), ass_2 = 0/10 (0%).
+    // p = 45/100 = 0.45, m = 10.
+    // ass_2: (0 + 10*0.45) / (10 + 10) = 22.5% → 23. ass_1: (45+4.5)/100 = 49.5% → 50.
+    const result = compute({ eventos: [ev('ass_1', 90, 45, 'e1'), ev('ass_2', 10, 0, 'e2')] });
+    const ass1 = findAssunto(result, 'ass_1');
+    const ass2 = findAssunto(result, 'ass_2');
+    expect(ass2).toMatchObject({ taxa: 0, taxaAjustada: 23 });
+    expect(ass1).toMatchObject({ taxa: 50, taxaAjustada: 50 });
+  });
+
+  it('taxa bruta permanece intacta (exibição) e faixa segue a bruta', () => {
+    const result = compute({ eventos: [ev('ass_1', 90, 45, 'e1'), ev('ass_2', 10, 0, 'e2')] });
+    const ass2 = findAssunto(result, 'ass_2');
+    expect(ass2.taxa).toBe(0);
+    expect(ass2.faixa).toBe('vermelho');
+  });
+
+  it('ranking ordena pela taxa ajustada, podendo divergir da bruta', () => {
+    // ass_1 = 35/100 (35%), ass_2 = 0/1 (0%), ass_3 = 80/100 (80%).
+    // p = 115/201 ≈ 0.572. ass_2 adj = 5.72/11 ≈ 52; ass_1 adj = 40.72/110 ≈ 37.
+    // Bruta: ass_2 (0%) seria o pior; ajustada: ass_1 vem primeiro.
+    const result = compute({
+      eventos: [ev('ass_1', 100, 35, 'e1'), ev('ass_2', 1, 0, 'e2'), ev('ass_3', 100, 80, 'e3')],
     });
+    expect(result.ranking.map((a) => a.assId)).toEqual(['ass_1', 'ass_2', 'ass_3']);
+  });
+
+  it('amostra grande com taxa extrema quase não é ajustada', () => {
+    const result = compute({ eventos: [ev('ass_1', 200, 20, 'e1')] });
+    const ass1 = findAssunto(result, 'ass_1');
+    // Prior vem do próprio universo (só ele): adj = taxa bruta.
+    expect(ass1.taxaAjustada).toBe(ass1.taxa);
   });
 });
 

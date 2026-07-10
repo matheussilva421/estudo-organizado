@@ -90,9 +90,10 @@ test.describe('Aba Pontos Fracos', () => {
     const html = await main.innerHTML();
     expect(html.indexOf('Licitações')).toBeLessThan(html.indexOf('Atos Administrativos'));
 
-    // seções de baixa confiabilidade
-    await expect(main).toContainText('Dados insuficientes');
+    // bayesiana: poucas questões entram no ranking com selo, sem seção separada
+    await expect(main).not.toContainText('Dados insuficientes');
     await expect(main).toContainText('Improbidade');
+    await expect(main).toContainText('poucas questões');
     await expect(main).toContainText('Sem questões registradas');
     await expect(main).toContainText('Servidores Públicos');
 

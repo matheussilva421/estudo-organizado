@@ -54,7 +54,7 @@ function byWeakness(a, b) {
  * @param {string|null} [p.cutoffStr]  'YYYY-MM-DD'; null = sem janela (inclui arquivo)
  * @param {string|null} [p.editalFilterId]
  * @param {string|null} [p.discFilterId]
- * @returns {{ disciplinas: Array, ranking: Array, insuficientes: Array,
+ * @returns {{ disciplinas: Array, ranking: Array,
  *             semQuestoes: Array, orfaos: {total:number,acertos:number,erros:number} }}
  */
 export function computeWeakPoints({
@@ -104,6 +104,7 @@ export function computeWeakPoints({
           acertos: 0,
           erros: 0,
           taxa: null,
+          taxaAjustada: null,
           faixa: null,
           confiavel: false,
           discId: disc.id,
@@ -170,9 +171,22 @@ export function computeWeakPoints({
     }
   });
 
-  // 3) Derivação: taxa/faixa e partição por confiabilidade
+  // 3) Derivação: taxa/faixa, taxa ajustada (média bayesiana) e partição
+  // Prior p = taxa média global do universo filtrado; m = MIN_QUESTOES_CONFIAVEL.
+  // taxaAjustada = (acertos + m·p) / (respondidas + m) — amostras pequenas são
+  // puxadas para a média geral em vez de dominarem o topo/fundo do ranking.
+  let globalAcertos = 0;
+  let globalRespondidas = 0;
+  disciplinas.forEach((disc) => {
+    disc.assuntos.forEach((bucket) => {
+      globalAcertos += bucket.acertos;
+      globalRespondidas += bucket.acertos + bucket.erros;
+    });
+  });
+  const prior = globalRespondidas > 0 ? globalAcertos / globalRespondidas : 0.5;
+  const m = MIN_QUESTOES_CONFIAVEL;
+
   const ranking = [];
-  const insuficientes = [];
   const semQuestoes = [];
   disciplinas.forEach((disc) => {
     disc.assuntos.forEach((bucket) => {
@@ -187,25 +201,31 @@ export function computeWeakPoints({
           editalId: bucket.editalId,
           editalNome: bucket.editalNome,
         });
-      } else if (bucket.total < MIN_QUESTOES_CONFIAVEL || respondidas === 0) {
-        insuficientes.push(bucket);
-      } else {
-        bucket.confiavel = true;
-        ranking.push(bucket);
+        return;
       }
+      bucket.confiavel = bucket.total >= MIN_QUESTOES_CONFIAVEL;
+      bucket.taxaAjustada =
+        respondidas > 0
+          ? Math.round(((bucket.acertos + m * prior) / (respondidas + m)) * 100)
+          : null;
+      ranking.push(bucket);
     });
     finalizeTaxa(disc);
   });
 
-  ranking.sort(byWeakness);
-  insuficientes.sort((a, b) => {
-    if (a.taxa === null || b.taxa === null) return (a.taxa === null) - (b.taxa === null);
-    return byWeakness(a, b);
+  ranking.sort((a, b) => {
+    if (a.taxaAjustada === null || b.taxaAjustada === null)
+      return (a.taxaAjustada === null) - (b.taxaAjustada === null);
+    return (
+      a.taxaAjustada - b.taxaAjustada ||
+      b.total - a.total ||
+      String(a.nome).localeCompare(String(b.nome), 'pt-BR')
+    );
   });
   disciplinas.sort((a, b) => {
     if (a.taxa === null || b.taxa === null) return (a.taxa === null) - (b.taxa === null);
     return byWeakness(a, b);
   });
 
-  return { disciplinas, ranking, insuficientes, semQuestoes, orfaos };
+  return { disciplinas, ranking, semQuestoes, orfaos };
 }
