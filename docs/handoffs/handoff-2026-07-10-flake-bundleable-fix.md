@@ -54,8 +54,12 @@ falha). Estava registrado como pendência no
 
 ## Estado / próximos passos
 
-- Branch `fix/flake-suite-unit` commitada e enviada ao GitHub (ver git log).
-- Próximo passo sugerido: merge na `main` após revisão.
+- **Concluído (2026-07-10)**: diff revisado, suíte completa rodada na branch
+  (138 arquivos, 2209/2209 verdes; `bundle-graph.test.js` em ~1,9s sob carga),
+  merge fast-forward na `main` (commit `2640775`) e push feito. Branch local
+  `fix/flake-suite-unit` removida; a remota `origin/fix/flake-suite-unit`
+  ainda existe (exclusão não autorizada nesta sessão — remover manualmente com
+  `git push origin --delete fix/flake-suite-unit` se desejado).
 - Se o flake reincidir (não deveria): o protocolo que funcionou foi rodar a
   suíte em loop com saída capturada em arquivo por rodada + monitor no resumo
   `Tests .* failed` (cuidado: grep por "failed" solto dá falso positivo com os
