@@ -7,7 +7,8 @@
 import { state } from '../store.js?v=8.37';
 import { esc, cutoffDateStr } from '../utils.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
-import { computeWeakPoints, MIN_QUESTOES_CONFIAVEL } from '../logic/weak-points.js';
+import { MIN_QUESTOES_CONFIAVEL } from '../logic/weak-points.js';
+import { computeWeakPointsMemo } from '../logic/weak-points-memo.js';
 
 // Estado de UI da aba (module-level, mesmo padrão de dashPeriod)
 export let pfWindowDays = 90; // 30 | 90 | null (Tudo)
@@ -135,7 +136,7 @@ function filterSelects() {
 
 export function renderPontosFracos(el) {
   const cutoffStr = pfWindowDays ? cutoffDateStr(pfWindowDays) : null;
-  const result = computeWeakPoints({
+  const result = computeWeakPointsMemo({
     eventos: state.eventos || [],
     arquivo: state.arquivo || [],
     editais: state.editais || [],
