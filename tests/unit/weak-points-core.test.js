@@ -11,6 +11,7 @@ import {
   MIN_QUESTOES_CONFIAVEL,
   classifyTaxa,
   computeWeakPoints,
+  suggestConhecimento,
 } from '../../src/js/logic/weak-points.js';
 
 function buildEditais() {
@@ -486,6 +487,26 @@ describe('computeWeakPoints — série semanal (sparkline)', () => {
     const result = compute({ eventos: [evento], seriesWeeks: 2, todayStr: '2026-07-10' });
     expect(findAssunto(result, 'ass_1').serie[1]).toEqual({ taxa: 40 });
     expect(findAssunto(result, 'ass_2').serie[1]).toEqual({ taxa: 70 });
+  });
+});
+
+describe('suggestConhecimento — mapeia taxa em conhecimento 1-5', () => {
+  it('faixas nas bordas 39/40, 54/55, 69/70, 84/85', () => {
+    expect(suggestConhecimento(0)).toBe(1);
+    expect(suggestConhecimento(39)).toBe(1);
+    expect(suggestConhecimento(40)).toBe(2);
+    expect(suggestConhecimento(54)).toBe(2);
+    expect(suggestConhecimento(55)).toBe(3);
+    expect(suggestConhecimento(69)).toBe(3);
+    expect(suggestConhecimento(70)).toBe(4);
+    expect(suggestConhecimento(84)).toBe(4);
+    expect(suggestConhecimento(85)).toBe(5);
+    expect(suggestConhecimento(100)).toBe(5);
+  });
+
+  it('taxa null/indefinida não gera sugestão', () => {
+    expect(suggestConhecimento(null)).toBeNull();
+    expect(suggestConhecimento(undefined)).toBeNull();
   });
 });
 

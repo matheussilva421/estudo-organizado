@@ -25,6 +25,8 @@ describe('ui/actions/planejamento.js', () => {
       pwUpdateHours: vi.fn(),
       pwToggleDay: vi.fn(),
       pwUpdateDayHour: vi.fn(),
+      pwApplyConhecimento: vi.fn(),
+      pwApplyConhecimentoTodos: vi.fn(),
     };
     viewsModule = {
       recomecarCiclo: vi.fn(),
@@ -139,6 +141,22 @@ describe('ui/actions/planejamento.js', () => {
     const handler = registerAction.mock.calls.find(c => c[0] === 'pw-update-relevancia')[1];
     handler({ dataset: { discId: 'disc_1', type: 'peso' }, value: '5' });
     expect(wizard.pwUpdateRel).toHaveBeenCalledWith('disc_1', 'peso', '5');
+  });
+
+  it('pw-apply-conhecimento handler passes discId and valor', () => {
+    const calls = registerAction.mock.calls.map(c => c[0]);
+    expect(calls).toContain('pw-apply-conhecimento');
+    const handler = registerAction.mock.calls.find(c => c[0] === 'pw-apply-conhecimento')[1];
+    handler({ dataset: { discId: 'disc_1', valor: '2' } });
+    expect(wizard.pwApplyConhecimento).toHaveBeenCalledWith('disc_1', '2');
+  });
+
+  it('pw-apply-conhecimento-todos handler delegates to wizard', () => {
+    const calls = registerAction.mock.calls.map(c => c[0]);
+    expect(calls).toContain('pw-apply-conhecimento-todos');
+    const handler = registerAction.mock.calls.find(c => c[0] === 'pw-apply-conhecimento-todos')[1];
+    handler({});
+    expect(wizard.pwApplyConhecimentoTodos).toHaveBeenCalled();
   });
 
   it('pw-update-hours handler passes field and value', () => {

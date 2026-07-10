@@ -16,6 +16,8 @@ import {
   pwUpdateHours,
   pwToggleDay,
   pwUpdateDayHour,
+  pwApplyConhecimento,
+  pwApplyConhecimentoTodos,
 } from '../../planejamento-wizard.js?v=8.37';
 import {
   recomecarCiclo,
@@ -55,6 +57,10 @@ registerAction('pw-update-relevancia', (el) => {
   const val = el.value;
   pwUpdateRel(discId, type, val);
 });
+registerAction('pw-apply-conhecimento', (el) => {
+  pwApplyConhecimento(el.dataset.discId, el.dataset.valor);
+});
+registerAction('pw-apply-conhecimento-todos', pwApplyConhecimentoTodos);
 registerAction('pw-update-hours', (el) => {
   const field = el.dataset.field;
   const val = el.value;

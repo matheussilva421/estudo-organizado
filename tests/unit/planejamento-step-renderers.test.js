@@ -176,6 +176,32 @@ describe('planejamento/step-renderers.js', () => {
       const html = module.htmlStep3(createDraft());
       expect(html).toContain('pw-weight-preview');
     });
+
+    it('renders suggestion button per discipline and apply-all when sugestões exist', () => {
+      logic.getActiveDisciplinas.mockReturnValue([
+        { disc: { id: 'd1', nome: 'Matemática' }, edital: {} },
+        { disc: { id: 'd2', nome: 'Português' }, edital: {} },
+      ]);
+      const draft = createDraft({ disciplinas: ['d1', 'd2'] });
+      const sugestoes = { d1: { valor: 2, taxa: 45, questoes: 32 } };
+      const html = module.htmlStep3(draft, sugestoes);
+      expect(html).toContain('data-action="pw-apply-conhecimento"');
+      expect(html).toContain('data-disc-id="d1"');
+      expect(html).toContain('data-valor="2"');
+      expect(html).toContain('45% em 32 questões');
+      expect(html).toContain('data-action="pw-apply-conhecimento-todos"');
+      // d2 não tem sugestão → um único botão individual
+      expect((html.match(/data-action="pw-apply-conhecimento"/g) || []).length).toBe(1);
+    });
+
+    it('omits suggestion UI when there are no sugestões', () => {
+      logic.getActiveDisciplinas.mockReturnValue([
+        { disc: { id: 'd1', nome: 'Matemática' }, edital: {} },
+      ]);
+      const draft = createDraft({ disciplinas: ['d1'] });
+      const html = module.htmlStep3(draft);
+      expect(html).not.toContain('pw-apply-conhecimento');
+    });
   });
 
   describe('htmlStep4()', () => {

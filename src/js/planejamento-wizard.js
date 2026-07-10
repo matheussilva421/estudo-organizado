@@ -1,6 +1,9 @@
 import { state } from './store.js?v=8.37';
 import { generatePlanejamento, getActiveDisciplinas } from './logic.js?v=8.37';
 import { openModal, closeModal } from './app.js?v=8.37';
+import { cutoffDateStr } from './utils.js?v=8.37';
+import { MIN_QUESTOES_CONFIAVEL, suggestConhecimento } from './logic/weak-points.js';
+import { computeWeakPointsMemo } from './logic/weak-points-memo.js';
 import { validateStep as _validateStep } from './planejamento/validation.js';
 import {
   htmlStep1,
@@ -235,6 +238,49 @@ export function pwClearEditalDisc(editalId) {
   renderStep();
 }
 
+/**
+ * Sugestões de "conhecimento" por disciplina a partir da taxa de acerto real
+ * (últimos 90 dias). Só sugere com >= MIN_QUESTOES_CONFIAVEL respondidas.
+ */
+export function getConhecimentoSugestoes() {
+  const result = computeWeakPointsMemo({
+    eventos: state.eventos || [],
+    arquivo: state.arquivo || [],
+    editais: state.editais || [],
+    cutoffStr: cutoffDateStr(90),
+  });
+  const sugestoes = {};
+  (result.disciplinas || []).forEach((d) => {
+    const respondidas = d.acertos + d.erros;
+    if (respondidas >= MIN_QUESTOES_CONFIAVEL && d.taxa !== null) {
+      sugestoes[d.discId] = {
+        valor: suggestConhecimento(d.taxa),
+        taxa: d.taxa,
+        questoes: respondidas,
+      };
+    }
+  });
+  return sugestoes;
+}
+
+/** Aplica um valor sugerido de conhecimento: draft + label (via pwUpdateRel) + slider */
+export function pwApplyConhecimento(discId, valor) {
+  const v = parseInt(valor, 10);
+  if (!Number.isFinite(v)) return;
+  pwUpdateRel(discId, 'conhecimento', String(v));
+  const slider = document.querySelector(
+    `input[data-action="pw-update-relevancia"][data-disc-id="${discId}"][data-type="conhecimento"]`
+  );
+  if (slider) slider.value = String(v);
+}
+
+export function pwApplyConhecimentoTodos() {
+  const sugestoes = getConhecimentoSugestoes();
+  draft.disciplinas.forEach((id) => {
+    if (sugestoes[id]) pwApplyConhecimento(id, sugestoes[id].valor);
+  });
+}
+
 let _relDebounce = null;
 export function pwUpdateRel(id, field, val) {
   if (!draft.relevancia[id]) draft.relevancia[id] = { importancia: 3, conhecimento: 3 };
@@ -328,7 +374,7 @@ function renderStep() {
   if (currentStep === 1) body.innerHTML = htmlStep1(draft);
   if (currentStep === 2) body.innerHTML = htmlStep2(draft);
   if (currentStep === 3) {
-    body.innerHTML = htmlStep3(draft);
+    body.innerHTML = htmlStep3(draft, getConhecimentoSugestoes());
     _pwRenderWeightPreview(draft);
   }
   if (currentStep === 4) body.innerHTML = htmlStep4(draft);

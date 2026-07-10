@@ -153,16 +153,25 @@ export function htmlStep2(draft) {
     `;
 }
 
-export function htmlStep3(draft) {
+export function htmlStep3(draft, sugestoes = {}) {
   const selected = (getActiveDisciplinas() || []).filter((d) =>
     draft.disciplinas.includes(d.disc.id)
   );
+  const totalSugestoes = selected.filter((d) => sugestoes[d.disc.id]).length;
 
   return `
         <div class="pw-main-layout">
             <div class="pw-main-left">
                 <h3 class="text-18px mb-1">Relevância e Domínio</h3>
                 <p class="text-secondary text-md mb-6">Defina a importância da matéria para sua prova e o seu nível de conhecimento atual. O sistema priorizará matérias muito importantes que você ainda não domina.</p>
+                ${
+                  totalSugestoes > 0
+                    ? `<button type="button" class="btn btn-ghost btn-sm mb-4" data-action="pw-apply-conhecimento-todos"
+                        title="Preenche o conhecimento das disciplinas com base na sua taxa de acerto real (últimos 90 dias)">
+                        💡 Aplicar sugestões de conhecimento (${totalSugestoes})
+                      </button>`
+                    : ''
+                }
 
                 <div class="pw-slider-group">
                     ${selected
@@ -171,6 +180,7 @@ export function htmlStep3(draft) {
                           importancia: 3,
                           conhecimento: 3,
                         };
+                        const sug = sugestoes[d.disc.id];
                         return `
                         <div class="pw-slider-card">
                             <div class="font-semibold text-lg mb-3 text-primary">${d.disc.icone || '\uD83D\uDCDA'} ${esc(d.disc.nome)}</div>
@@ -199,6 +209,15 @@ export function htmlStep3(draft) {
                                     <div class="pw-range-bounds">
                                         <span>Iniciante</span><span>Mestre</span>
                                     </div>
+                                    ${
+                                      sug
+                                        ? `<button type="button" class="btn-inline text-sm" data-action="pw-apply-conhecimento"
+                                            data-disc-id="${d.disc.id}" data-valor="${sug.valor}"
+                                            title="Baseado na sua taxa de acerto real nos últimos 90 dias">
+                                            💡 Sugerido: ${sug.valor} (${sug.taxa}% em ${sug.questoes} questões) — aplicar
+                                          </button>`
+                                        : ''
+                                    }
                                 </div>
                             </div>
                         </div>`;

@@ -15,6 +15,20 @@ export function classifyTaxa(taxa) {
   return taxa < 50 ? 'vermelho' : taxa < 70 ? 'amarelo' : 'verde';
 }
 
+/**
+ * Sugere o valor 1-5 do slider "conhecimento" do Ciclo a partir da taxa de
+ * acerto medida (0-100). Nunca sugere 0: 0 significa "nunca estudou", o que é
+ * incompatível com ter questões registradas.
+ */
+export function suggestConhecimento(taxa) {
+  if (taxa === null || taxa === undefined) return null;
+  if (taxa < 40) return 1;
+  if (taxa < 55) return 2;
+  if (taxa < 70) return 3;
+  if (taxa < 85) return 4;
+  return 5;
+}
+
 function readQuestoes(qs) {
   if (!qs) return null;
   const acertos = Number(qs.acertos ?? qs.certas ?? 0) || 0;

@@ -185,6 +185,73 @@ describe('planejamento-wizard.js', () => {
     });
   });
 
+  describe('sugestão de conhecimento (taxa de acerto real)', () => {
+    async function seedQuestoes() {
+      const storeMod = await import('../../src/js/store.js?v=8.37');
+      storeMod.state.editais = [
+        {
+          id: 'ed_1',
+          nome: 'Edital 1',
+          disciplinas: [
+            { id: 'disc_1', nome: 'Matemática', assuntos: [{ id: 'ass_1', nome: 'Álgebra' }] },
+            { id: 'disc_2', nome: 'Português', assuntos: [{ id: 'ass_2', nome: 'Crase' }] },
+          ],
+        },
+      ];
+      storeMod.state.eventos = [
+        {
+          id: 'ev_1',
+          status: 'estudei',
+          dataEstudo: '2026-07-01',
+          discId: 'disc_1',
+          assId: 'ass_1',
+          sessao: { questoes: { total: 30, acertos: 24, erros: 6 } },
+        },
+        {
+          id: 'ev_2',
+          status: 'estudei',
+          dataEstudo: '2026-07-01',
+          discId: 'disc_2',
+          assId: 'ass_2',
+          sessao: { questoes: { total: 4, acertos: 1, erros: 3 } },
+        },
+      ];
+    }
+
+    it('getConhecimentoSugestoes exige >=10 questões respondidas na disciplina (90d)', async () => {
+      vi.setSystemTime(new Date('2026-07-10T12:00:00.000Z'));
+      await seedQuestoes();
+      const sugestoes = wizard.getConhecimentoSugestoes();
+      expect(sugestoes.disc_1).toEqual({ valor: 4, taxa: 80, questoes: 30 });
+      expect(sugestoes.disc_2).toBeUndefined();
+    });
+
+    it('pwApplyConhecimento atualiza label e slider da disciplina', () => {
+      document.body.innerHTML +=
+        '<div id="pw-lbl-conhecimento-disc_1">3</div>' +
+        '<input type="range" data-action="pw-update-relevancia" data-disc-id="disc_1" data-type="conhecimento" value="3">';
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      wizard.pwToggleDisc('disc_1');
+      wizard.pwApplyConhecimento('disc_1', 2);
+      expect(document.getElementById('pw-lbl-conhecimento-disc_1').textContent).toBe('2');
+      expect(
+        document.querySelector('input[data-disc-id="disc_1"][data-type="conhecimento"]').value
+      ).toBe('2');
+    });
+
+    it('pwApplyConhecimentoTodos aplica todas as sugestões disponíveis', async () => {
+      vi.setSystemTime(new Date('2026-07-10T12:00:00.000Z'));
+      await seedQuestoes();
+      wizard.openPlanejamentoWizard();
+      wizard.pwSelectTipo('ciclo');
+      wizard.pwToggleDisc('disc_1');
+      document.body.innerHTML += '<div id="pw-lbl-conhecimento-disc_1">3</div>';
+      wizard.pwApplyConhecimentoTodos();
+      expect(document.getElementById('pw-lbl-conhecimento-disc_1').textContent).toBe('4');
+    });
+  });
+
   describe('pwRenderWeightPreview()', () => {
     it('calcula peso baseado em importância e conhecimento', () => {
       // Ensure mock returns data
