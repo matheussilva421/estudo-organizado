@@ -1492,6 +1492,15 @@ describe('pontos-fracos view', () => {
             assId: 'ass_pouco',
             sessao: { questoes: { total: 4, acertos: 1, erros: 3 } },
           }),
+          // Segunda semana de dados do ass_fraco (mesma taxa 30%) p/ a sparkline
+          createEvento({
+            id: 'ev_fraco_sem2',
+            status: 'estudei',
+            dataEstudo: '2026-04-10',
+            discId: 'disc_1',
+            assId: 'ass_fraco',
+            sessao: { questoes: { total: 10, acertos: 3, erros: 7 } },
+          }),
         ],
       })
     );
@@ -1549,5 +1558,16 @@ describe('pontos-fracos view', () => {
     expect(typeof views.setPfWindow).toBe('function');
     expect(typeof views.setPfEditalFilter).toBe('function');
     expect(typeof views.setPfDiscFilter).toBe('function');
+  });
+
+  it('renderiza sparkline semanal para assunto com dados em mais de uma semana', () => {
+    seedPontosFracos();
+    const container = { innerHTML: '' };
+    views.renderPontosFracos(container);
+
+    const html = container.innerHTML;
+    // ass_fraco tem questões em 2 semanas → sparkline; ass_pouco só em 1 → sem
+    expect(html).toContain('<svg class="sparkline"');
+    expect(html).toContain('pf-sparkline');
   });
 });

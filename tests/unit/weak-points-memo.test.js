@@ -72,6 +72,14 @@ describe('computeWeakPointsMemo', () => {
     expect(r3).not.toBe(r2);
   });
 
+  it('params de série (seriesWeeks/todayStr) fazem parte da chave', () => {
+    const r1 = memo.computeWeakPointsMemo(buildArgs({ seriesWeeks: 4, todayStr: '2026-07-10' }));
+    const r2 = memo.computeWeakPointsMemo(buildArgs({ seriesWeeks: 4, todayStr: '2026-07-11' }));
+    expect(r2).not.toBe(r1);
+    const r3 = memo.computeWeakPointsMemo(buildArgs({ seriesWeeks: 8, todayStr: '2026-07-11' }));
+    expect(r3).not.toBe(r2);
+  });
+
   it('invalidateWeakPointsMemo força recomputo da mesma chave', () => {
     const r1 = memo.computeWeakPointsMemo(buildArgs());
     memo.invalidateWeakPointsMemo();

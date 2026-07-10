@@ -46,6 +46,13 @@ function byWeakness(a, b) {
   );
 }
 
+/** Dias inteiros entre duas datas 'YYYY-MM-DD' (to - from), via UTC — sem fuso/DST */
+function daysBetween(fromStr, toStr) {
+  const [fy, fm, fd] = fromStr.split('-').map(Number);
+  const [ty, tm, td] = toStr.split('-').map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86400000);
+}
+
 /**
  * @param {object} p
  * @param {Array}  p.eventos   state.eventos
@@ -54,6 +61,9 @@ function byWeakness(a, b) {
  * @param {string|null} [p.cutoffStr]  'YYYY-MM-DD'; null = sem janela (inclui arquivo)
  * @param {string|null} [p.editalFilterId]
  * @param {string|null} [p.discFilterId]
+ * @param {number} [p.seriesWeeks]  >0 gera `serie` por assunto: taxa em blocos
+ *                                  rolantes de 7 dias terminando em todayStr
+ * @param {string|null} [p.todayStr] 'YYYY-MM-DD' — obrigatório com seriesWeeks
  * @returns {{ disciplinas: Array, ranking: Array,
  *             semQuestoes: Array, orfaos: {total:number,acertos:number,erros:number} }}
  */
@@ -64,7 +74,10 @@ export function computeWeakPoints({
   cutoffStr = null,
   editalFilterId = null,
   discFilterId = null,
+  seriesWeeks = 0,
+  todayStr = null,
 }) {
+  const wantSeries = seriesWeeks > 0 && !!todayStr;
   // 1) Universo: disciplinas/assuntos ativos (filtros aplicados aqui)
   const assIndex = new Map(); // assId -> bucket de assunto
   const aulaIndex = new Map(); // aulaId (linkedAulaIds) -> bucket de assunto
@@ -125,13 +138,24 @@ export function computeWeakPoints({
 
   const orfaos = { total: 0, acertos: 0, erros: 0 };
 
-  function registra(assId, aulaId, qs, evDiscId) {
+  function registra(assId, aulaId, qs, evDiscId, studyDate) {
     if (!qs) return;
     let bucket = assId ? assIndex.get(assId) : null;
     if (!bucket && aulaId) bucket = aulaIndex.get(aulaId) || null;
     if (bucket) {
       addTo(bucket, qs);
       addTo(discIndex.get(bucket.discId), qs);
+      if (wantSeries && studyDate) {
+        const daysAgo = daysBetween(studyDate, todayStr);
+        const week = daysAgo >= 0 ? Math.floor(daysAgo / 7) : -1;
+        if (week >= 0 && week < seriesWeeks) {
+          const idx = seriesWeeks - 1 - week; // antiga → recente
+          if (!bucket._serieAcc) bucket._serieAcc = new Array(seriesWeeks).fill(null);
+          const acc = bucket._serieAcc[idx] || (bucket._serieAcc[idx] = { acertos: 0, erros: 0 });
+          acc.acertos += qs.acertos;
+          acc.erros += qs.erros;
+        }
+      }
       return;
     }
     // Sem assunto identificável: só conta se a disciplina do evento está no universo
@@ -158,7 +182,8 @@ export function computeWeakPoints({
           item.assId || null,
           item.aulaId || null,
           readQuestoes(item.questoes),
-          ev.discId || null
+          ev.discId || null,
+          studyDate
         );
       });
     } else {
@@ -166,7 +191,8 @@ export function computeWeakPoints({
         ev.assId || null,
         ev.aulaId || null,
         readQuestoes(ev.sessao?.questoes || ev.questoes),
-        ev.discId || null
+        ev.discId || null,
+        studyDate
       );
     }
   });
@@ -208,6 +234,15 @@ export function computeWeakPoints({
         respondidas > 0
           ? Math.round(((bucket.acertos + m * prior) / (respondidas + m)) * 100)
           : null;
+      if (wantSeries) {
+        const acc = bucket._serieAcc;
+        bucket.serie = Array.from({ length: seriesWeeks }, (_, i) => {
+          const semana = acc ? acc[i] : null;
+          const resp = semana ? semana.acertos + semana.erros : 0;
+          return { taxa: resp > 0 ? Math.round((semana.acertos / resp) * 100) : null };
+        });
+        delete bucket._serieAcc;
+      }
       ranking.push(bucket);
     });
     finalizeTaxa(disc);

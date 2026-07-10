@@ -222,24 +222,48 @@ export function normalizeSearch(str) {
  */
 export function renderSparkline(data, opts = {}) {
   const { width = 80, height = 24, stroke = 'currentColor', strokeWidth = 1.5, fill = false } = opts;
-  if (!Array.isArray(data) || data.length === 0) {
+  const values = Array.isArray(data) ? data : [];
+  // null/undefined = semana/dia sem dado → gap na linha (segmentos separados)
+  const isNum = (v) => typeof v === 'number' && !Number.isNaN(v);
+  const nums = values.filter(isNum);
+  if (nums.length === 0) {
     return `<svg class="sparkline sparkline-empty" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true"></svg>`;
   }
-  const max = Math.max(...data, 1);
-  const min = Math.min(...data, 0);
+  const max = Math.max(...nums, 1);
+  const min = Math.min(...nums, 0);
   const range = max - min || 1;
-  const stepX = data.length > 1 ? width / (data.length - 1) : 0;
-  const points = data
-    .map((v, i) => {
-      const x = i * stepX;
-      const y = height - ((v - min) / range) * (height - strokeWidth) - strokeWidth / 2;
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(' ');
-  const fillPath = fill
-    ? `<polygon points="0,${height} ${points} ${width},${height}" fill="${stroke}" opacity="0.18"/>`
-    : '';
-  return `<svg class="sparkline" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true">${fillPath}<polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const stepX = values.length > 1 ? width / (values.length - 1) : 0;
+  const toXY = (v, i) => {
+    const x = i * stepX;
+    const y = height - ((v - min) / range) * (height - strokeWidth) - strokeWidth / 2;
+    return [x.toFixed(2), y.toFixed(2)];
+  };
+
+  const segments = [];
+  let atual = [];
+  values.forEach((v, i) => {
+    if (isNum(v)) {
+      atual.push([v, i]);
+    } else if (atual.length) {
+      segments.push(atual);
+      atual = [];
+    }
+  });
+  if (atual.length) segments.push(atual);
+
+  const parts = segments.map((seg) => {
+    if (seg.length === 1) {
+      const [x, y] = toXY(seg[0][0], seg[0][1]);
+      return `<circle cx="${x}" cy="${y}" r="${strokeWidth}" fill="${stroke}"/>`;
+    }
+    const points = seg.map(([v, i]) => toXY(v, i).join(',')).join(' ');
+    const fillPath = fill
+      ? `<polygon points="${seg[0][1] * stepX},${height} ${points} ${seg[seg.length - 1][1] * stepX},${height}" fill="${stroke}" opacity="0.18"/>`
+      : '';
+    return `${fillPath}<polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  });
+
+  return `<svg class="sparkline" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true">${parts.join('')}</svg>`;
 }
 
 // =============================================

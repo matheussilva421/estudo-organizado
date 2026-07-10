@@ -222,4 +222,31 @@ describe('utils.js', () => {
       expect(utils.getHabitType('nonexistent')).toBeUndefined();
     });
   });
+
+  describe('renderSparkline()', () => {
+    it('array sem nulls gera uma única polyline com um ponto por valor (compat Hábitos)', () => {
+      const svg = utils.renderSparkline([1, 2, 3, 4]);
+      expect((svg.match(/<polyline/g) || []).length).toBe(1);
+      const points = svg.match(/points="([^"]+)"/)[1].trim().split(/\s+/);
+      expect(points).toHaveLength(4);
+    });
+
+    it('null no meio quebra a linha em dois segmentos', () => {
+      const svg = utils.renderSparkline([10, 20, null, 30, 40]);
+      expect((svg.match(/<polyline/g) || []).length).toBe(2);
+      expect(svg).not.toContain('NaN');
+    });
+
+    it('ponto isolado entre nulls vira um círculo', () => {
+      const svg = utils.renderSparkline([null, 50, null, 30, 40]);
+      expect((svg.match(/<circle/g) || []).length).toBe(1);
+      expect((svg.match(/<polyline/g) || []).length).toBe(1);
+    });
+
+    it('todos null rende o svg vazio', () => {
+      const svg = utils.renderSparkline([null, null, null]);
+      expect(svg).toContain('sparkline-empty');
+      expect(svg).not.toContain('<polyline');
+    });
+  });
 });

@@ -5,7 +5,7 @@
  */
 
 import { state } from '../store.js?v=8.37';
-import { esc, cutoffDateStr } from '../utils.js?v=8.37';
+import { esc, cutoffDateStr, renderSparkline } from '../utils.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
 import { MIN_QUESTOES_CONFIAVEL } from '../logic/weak-points.js';
 import { computeWeakPointsMemo } from '../logic/weak-points-memo.js';
@@ -58,6 +58,16 @@ function acaoBtn(a) {
   </button>`;
 }
 
+function sparklineSemanal(a) {
+  const taxas = (a.serie || []).map((s) => s.taxa);
+  if (taxas.filter((t) => t !== null).length < 2) return '';
+  const titulo = taxas.map((t) => (t === null ? '—' : `${t}%`)).join(' · ');
+  return `<span class="pf-sparkline" title="Evolução semanal (antiga → recente): ${titulo}">${renderSparkline(
+    taxas,
+    { width: 56, height: 16, stroke: FAIXA_COLORS[a.faixa] || 'var(--accent)' }
+  )}</span>`;
+}
+
 function assuntoRow(a) {
   return `
     <div class="flex-between" style="gap:12px; padding:8px 0; border-bottom:1px solid var(--border, rgba(128,128,128,.15));">
@@ -67,7 +77,10 @@ function assuntoRow(a) {
           ${taxaBadge(a.taxa, a.faixa)}
         </div>
         ${taxaBar(a.taxa, a.faixa)}
-        <div class="text-sm text-muted">${a.acertos} acertos · ${a.erros} erros · ${a.total} questões${a.confiavel ? '' : ' · <span title="Menos de ' + MIN_QUESTOES_CONFIAVEL + ' questões: taxa pouco confiável, posição suavizada pela média geral">⚠ poucas questões</span>'}</div>
+        <div class="flex-between" style="gap:8px;">
+          <div class="text-sm text-muted">${a.acertos} acertos · ${a.erros} erros · ${a.total} questões${a.confiavel ? '' : ' · <span title="Menos de ' + MIN_QUESTOES_CONFIAVEL + ' questões: taxa pouco confiável, posição suavizada pela média geral">⚠ poucas questões</span>'}</div>
+          ${sparklineSemanal(a)}
+        </div>
       </div>
       ${acaoBtn(a)}
     </div>`;
@@ -136,6 +149,8 @@ function filterSelects() {
 
 export function renderPontosFracos(el) {
   const cutoffStr = pfWindowDays ? cutoffDateStr(pfWindowDays) : null;
+  // Série semanal cabe dentro da janela principal: 30d→4, 90d→12, Tudo→12
+  const seriesWeeks = pfWindowDays ? Math.min(12, Math.floor(pfWindowDays / 7)) : 12;
   const result = computeWeakPointsMemo({
     eventos: state.eventos || [],
     arquivo: state.arquivo || [],
@@ -143,6 +158,8 @@ export function renderPontosFracos(el) {
     cutoffStr,
     editalFilterId: pfEditalId,
     discFilterId: pfDiscId,
+    seriesWeeks,
+    todayStr: cutoffDateStr(0),
   });
 
   // Ranking agrupado por disciplina (disciplinas já vêm da pior para a melhor).

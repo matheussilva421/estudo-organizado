@@ -422,6 +422,73 @@ describe('computeWeakPoints — filtros', () => {
   });
 });
 
+describe('computeWeakPoints — série semanal (sparkline)', () => {
+  const ev = (assId, dataEstudo, total, acertos, id) =>
+    eventoEstudado({
+      id,
+      discId: 'disc_1',
+      assId,
+      dataEstudo,
+      sessao: { questoes: { total, acertos, erros: total - acertos } },
+    });
+
+  it('sem seriesWeeks não gera série', () => {
+    const result = compute({ eventos: [ev('ass_1', '2026-07-08', 10, 5, 'e1')] });
+    expect(findAssunto(result, 'ass_1').serie).toBeUndefined();
+  });
+
+  it('agrupa taxas em blocos de 7 dias terminando em todayStr (antiga → recente)', () => {
+    const eventos = [
+      ev('ass_1', '2026-07-08', 10, 8, 'e1'), // 2 dias atrás → última semana (80%)
+      ev('ass_1', '2026-06-30', 10, 2, 'e2'), // 10 dias atrás → penúltima (20%)
+    ];
+    const result = compute({ eventos, seriesWeeks: 4, todayStr: '2026-07-10' });
+    const serie = findAssunto(result, 'ass_1').serie;
+    expect(serie).toHaveLength(4);
+    expect(serie[3]).toEqual({ taxa: 80 });
+    expect(serie[2]).toEqual({ taxa: 20 });
+    expect(serie[1]).toEqual({ taxa: null });
+    expect(serie[0]).toEqual({ taxa: null });
+  });
+
+  it('mesma semana agrega múltiplos eventos numa taxa única', () => {
+    const eventos = [
+      ev('ass_1', '2026-07-09', 10, 9, 'e1'),
+      ev('ass_1', '2026-07-07', 10, 3, 'e2'), // mesma semana: 12/20 = 60%
+    ];
+    const result = compute({ eventos, seriesWeeks: 2, todayStr: '2026-07-10' });
+    expect(findAssunto(result, 'ass_1').serie[1]).toEqual({ taxa: 60 });
+  });
+
+  it('evento fora da janela da série conta no agregado mas não na série', () => {
+    const result = compute({
+      eventos: [ev('ass_1', '2026-06-10', 10, 5, 'e1')], // 30 dias atrás
+      seriesWeeks: 2,
+      todayStr: '2026-07-10',
+    });
+    const a = findAssunto(result, 'ass_1');
+    expect(a.total).toBe(10);
+    expect(a.serie.every((s) => s.taxa === null)).toBe(true);
+  });
+
+  it('série via topicos[] multi-assunto atribui cada item à sua semana', () => {
+    const evento = eventoEstudado({
+      id: 'e1',
+      discId: 'disc_1',
+      dataEstudo: '2026-07-08',
+      sessao: {
+        topicos: [
+          { assId: 'ass_1', aulaId: null, questoes: { total: 10, acertos: 4, erros: 6 } },
+          { assId: 'ass_2', aulaId: null, questoes: { total: 10, acertos: 7, erros: 3 } },
+        ],
+      },
+    });
+    const result = compute({ eventos: [evento], seriesWeeks: 2, todayStr: '2026-07-10' });
+    expect(findAssunto(result, 'ass_1').serie[1]).toEqual({ taxa: 40 });
+    expect(findAssunto(result, 'ass_2').serie[1]).toEqual({ taxa: 70 });
+  });
+});
+
 describe('weak-points.js — núcleo puro (guard)', () => {
   it('não tem statements de import', () => {
     const source = readFileSync(join(process.cwd(), 'src/js/logic/weak-points.js'), 'utf8');

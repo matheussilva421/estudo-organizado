@@ -10,6 +10,18 @@
 @import './views/cronometro.css';
 @import './views/subject-manager.css';
 
+/* Pontos Fracos: sparkline semanal por assunto (oculta no mobile, como no Dashboard) */
+.pf-sparkline {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .pf-sparkline {
+    display: none;
+  }
+}
+
 /* MED stat card with wide center layout */
 .med-stat-card--wide {
   flex: 1;
