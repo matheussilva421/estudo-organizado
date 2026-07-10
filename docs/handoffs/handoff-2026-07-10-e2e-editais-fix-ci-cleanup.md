@@ -57,6 +57,19 @@ O "flake" era na verdade uma **corrida no código do app**, não no teste:
 - Arquivos: `src/js/registro-sessao.js` (pré-fill síncrono),
   `tests/unit/registro-sessao.test.js` (teste "pre-fills discipline synchronously").
 
+## Descoberta operacional — bump de cache tem DUAS camadas
+
+1. **Hook local** `.githooks/pre-commit` (bumpa APP_VERSION quando assets de `src/`
+   são commitados). Neste clone o `core.hooksPath` estava em `.git/hooks` (default)
+   e o hook **não rodava** — corrigido com `git config core.hooksPath .githooks`
+   (é o que o `npm run prepare` faz).
+2. **GitHub Action no remoto** (`github-actions[bot]`) que faz o mesmo bump após
+   push com mudanças em `src/` sem bump. Foi ele quem criou o `658bc5a` remoto.
+
+Consequência prática: após push que toque `src/`, rodar `git pull --rebase` para
+trazer o commit de bump do bot (ou garantir o hook local ativo, que evita o bot
+agir). Um bump local duplicado é descartado limpo pelo rebase (árvores idênticas).
+
 ## Pendências / próximos passos
 
 - Backlog v2 da aba Pontos Fracos segue como estava (ver handoff 2026-07-09):
