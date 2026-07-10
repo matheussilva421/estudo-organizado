@@ -52,4 +52,12 @@ APP_VERSION: 9.13 → 9.17 (um bump por fase, via hook pre-commit).
 
 ## Estado do GitHub
 
-`main` sincronizada com `origin/main` até `cab6902`. Working tree limpo.
+`main` sincronizada com `origin/main`. Working tree limpo.
+
+## Limpeza de branches (2026-07-10, decisão do usuário)
+
+Apagadas as 32 branches locais além da `main`: 31 já estavam integralmente
+mescladas; `codex/visual-layout-lab-fases-2-4` tinha 4 commits NÃO mesclados
+(fases 2-4 do Visual Layout Lab, ~1.400 linhas, 2026-06-12) e foi apagada DE VEZ
+por decisão explícita do usuário (recuperável só via reflog local por ~90 dias —
+último commit era `c45b1f9`). O remoto já continha apenas `origin/main`.
