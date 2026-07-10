@@ -62,10 +62,15 @@ test.describe('Editais e Disciplinas', () => {
     // Close manager
     await page.click('#modal-disc-manager .modal-close');
 
-    // Verify Vertical View reflects the changes
+    // Verify Vertical View reflects the changes.
+    // The view groups by discipline (the edital name is not shown) and topics
+    // live inside the collapsed discipline body, so expand it before asserting.
     await page.click('[data-view="vertical"]');
-    await expect(page.locator('#main-content')).toContainText('Concurso E2E 2026', { ignoreCase: true });
+    await expect(page.locator('#main-content')).toContainText('0 de 2 tópicos concluídos');
     await expect(page.locator('#main-content')).toContainText('Direito Cibernético', { ignoreCase: true });
+
+    await page.click('[data-action="toggle-vert-disc"]');
+    await expect(page.locator('#main-content')).toContainText('Introdução à IA', { ignoreCase: true });
     await expect(page.locator('#main-content')).toContainText('Segurança da Informação', { ignoreCase: true });
   });
 });
