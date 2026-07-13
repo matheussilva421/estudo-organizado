@@ -68,3 +68,16 @@ output/
 
 !src/js/firebase/firebase-config.js.example
 src/js/firebase/firebase-config.js
+
+# AI-HANDOFF:LOCAL-STATE:START
+!/.ai/
+!/.ai/README.md
+!/.ai/PLAN.md
+!/.ai/DECISIONS.md
+.ai/CURRENT.md
+.ai/RECOVERY.md
+.ai/LOG.md
+.ai-handoff-backups/
+.ai-project-state.lock
+.ai-transaction-*/
+# AI-HANDOFF:LOCAL-STATE:END
