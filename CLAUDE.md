@@ -30,3 +30,8 @@ Siga TDD (Test-Driven Development) de forma rigorosa:
 ### Saída de testes
 
 - **Resuma os logs de teste** em vez de despejar saídas gigantes na conversa.
+
+<!-- AI-HANDOFF:START -->
+Leia AGENTS.md e .ai/CURRENT.md antes de continuar.
+Valide .ai/RECOVERY.md e o estado real do Git.
+<!-- AI-HANDOFF:END -->

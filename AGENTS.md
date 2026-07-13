@@ -91,3 +91,9 @@ Do not commit tokens, OAuth credentials, or exported study data. Keep Cloudflare
 
 ## Frontend Boundary Rules
 Prefer delegated events and explicit `data-action` contracts over inline handlers. Prefer DOM helpers over growing HTML template strings. When touching large files like `views.js` or `styles.css`, make smallest useful extraction toward dedicated module.
+
+<!-- AI-HANDOFF:START -->
+Leia .ai/CURRENT.md antes de continuar.
+Valide .ai/RECOVERY.md e o estado real do Git.
+Atualize o checkpoint antes de trocar de agente.
+<!-- AI-HANDOFF:END -->
