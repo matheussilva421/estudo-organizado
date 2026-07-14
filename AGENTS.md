@@ -93,7 +93,10 @@ Do not commit tokens, OAuth credentials, or exported study data. Keep Cloudflare
 Prefer delegated events and explicit `data-action` contracts over inline handlers. Prefer DOM helpers over growing HTML template strings. When touching large files like `views.js` or `styles.css`, make smallest useful extraction toward dedicated module.
 
 <!-- AI-HANDOFF:START -->
-Leia .ai/CURRENT.md antes de continuar.
-Valide .ai/RECOVERY.md e o estado real do Git.
-Atualize o checkpoint antes de trocar de agente.
+Em uma nova sessao (startup/clear), leia .ai/CURRENT.md, o historico diario mais recente e, como fallback, .aicli/handoff-*.md.
+Valide .ai/RECOVERY.md e o estado real do Git; se branch/commit divergirem, avise e nao retome automaticamente.
+Mostre um resumo e pergunte ao usuario se deseja retomar. Sempre aguarde uma segunda mensagem antes de agir, mesmo se a primeira ja disser continuar.
+Nao repita a pergunta em resume/compact. Se o usuario recusar, execute a acao publica SuspendProjectResume para arquivar o estado anterior e substituir CURRENT.md atomicamente.
+Ao fim de cada turno util, grave o intent schema 2.0 no pending.json indicado pelo hook SessionStart; o hook Stop promove o checkpoint automaticamente.
+Turno util inclui mudanca de arquivo/estado, teste ou milestone concluido, decisao aceita ou mudanca da proxima acao. Nao registre explicacoes puras, prompts, transcricoes ou segredos.
 <!-- AI-HANDOFF:END -->

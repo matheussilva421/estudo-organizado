@@ -32,6 +32,8 @@ Siga TDD (Test-Driven Development) de forma rigorosa:
 - **Resuma os logs de teste** em vez de despejar saídas gigantes na conversa.
 
 <!-- AI-HANDOFF:START -->
-Leia AGENTS.md e .ai/CURRENT.md antes de continuar.
-Valide .ai/RECOVERY.md e o estado real do Git.
+Siga o bloco gerenciado de AGENTS.md e o contexto injetado pelo hook SessionStart.
+Em startup/clear, resuma o estado .ai, pergunte se o usuario quer retomar e aguarde obrigatoriamente uma segunda mensagem antes de agir.
+Ao fim de cada turno util, escreva o intent sanitizado no pending.json da sessao; Stop/SessionEnd fazem a promocao automatica sem commit ou push.
+Falha de hook nunca bloqueia a sessao: preserve o pending e informe o aviso para tentativa posterior.
 <!-- AI-HANDOFF:END -->

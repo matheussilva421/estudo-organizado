@@ -1,0 +1,31 @@
+﻿{
+    "hooks":  {
+                  "Stop":  [
+                               {
+                                   "hooks":  [
+                                                 {
+                                                     "type":  "command",
+                                                     "command":  "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\slvma\\AppData\\Local\\Programs\\AI CLI Manager\\Scripts\\ai-project-automation-hook-v10.ps1\" -ProjectPath \"C:\\Users\\slvma\\Downloads\\Github\\estudo-organizado\" -Cli Codex -Event Stop",
+                                                     "timeout":  10,
+                                                     "statusMessage":  "Atualizando contexto .ai (Codex)",
+                                                     "aiCliManager":  "project-state-v2"
+                                                 }
+                                             ]
+                               }
+                           ],
+                  "SessionStart":  [
+                                       {
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\slvma\\AppData\\Local\\Programs\\AI CLI Manager\\Scripts\\ai-project-automation-hook-v10.ps1\" -ProjectPath \"C:\\Users\\slvma\\Downloads\\Github\\estudo-organizado\" -Cli Codex -Event SessionStart",
+                                                             "timeout":  10,
+                                                             "statusMessage":  "Atualizando contexto .ai (Codex)",
+                                                             "aiCliManager":  "project-state-v2"
+                                                         }
+                                                     ],
+                                           "matcher":  "startup|clear"
+                                       }
+                                   ]
+              }
+}

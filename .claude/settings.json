@@ -1,0 +1,44 @@
+﻿{
+    "hooks":  {
+                  "SessionStart":  [
+                                       {
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\slvma\\AppData\\Local\\Programs\\AI CLI Manager\\Scripts\\ai-project-automation-hook-v10.ps1\" -ProjectPath \"C:\\Users\\slvma\\Downloads\\Github\\estudo-organizado\" -Cli Claude -Event SessionStart",
+                                                             "timeout":  10,
+                                                             "statusMessage":  "Atualizando contexto .ai (Claude)",
+                                                             "aiCliManager":  "project-state-v2"
+                                                         }
+                                                     ],
+                                           "matcher":  "startup|clear"
+                                       }
+                                   ],
+                  "SessionEnd":  [
+                                     {
+                                         "hooks":  [
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\slvma\\AppData\\Local\\Programs\\AI CLI Manager\\Scripts\\ai-project-automation-hook-v10.ps1\" -ProjectPath \"C:\\Users\\slvma\\Downloads\\Github\\estudo-organizado\" -Cli Claude -Event SessionEnd",
+                                                           "timeout":  10,
+                                                           "statusMessage":  "Atualizando contexto .ai (Claude)",
+                                                           "aiCliManager":  "project-state-v2"
+                                                       }
+                                                   ]
+                                     }
+                                 ],
+                  "Stop":  [
+                               {
+                                   "hooks":  [
+                                                 {
+                                                     "type":  "command",
+                                                     "command":  "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\slvma\\AppData\\Local\\Programs\\AI CLI Manager\\Scripts\\ai-project-automation-hook-v10.ps1\" -ProjectPath \"C:\\Users\\slvma\\Downloads\\Github\\estudo-organizado\" -Cli Claude -Event Stop",
+                                                     "timeout":  10,
+                                                     "statusMessage":  "Atualizando contexto .ai (Claude)",
+                                                     "aiCliManager":  "project-state-v2"
+                                                 }
+                                             ]
+                               }
+                           ]
+              }
+}
