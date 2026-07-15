@@ -196,14 +196,15 @@ export function quickCompleteRetaFinalBloco(blocoId) {
 }
 
 /**
- * Resolve o evento 'agendado' espelhado de um bloco pendente, para iniciar o
- * cronômetro a partir do Foco de Hoje / cronograma. Roda o sync antes: um
- * bloco atrasado é rolado para hoje e materializado na hora, então o retorno
- * é sempre um evento pronto para toggleTimer (ou null se o bloco não é
- * cronometrável — concluído, não coberto, inexistente ou plano não reta_final).
+ * Garante e devolve o evento 'agendado' espelhado de um bloco pendente, para
+ * iniciar o cronômetro a partir do Foco de Hoje / cronograma. "Ensure" porque
+ * MUTA estado: roda o sync antes — um bloco atrasado é rolado para hoje e
+ * materializado na hora —, então o retorno é sempre um evento pronto para
+ * toggleTimer (ou null se o bloco não é cronometrável — concluído, não
+ * coberto, inexistente ou plano não reta_final).
  * @returns {object|null} o evento espelhado
  */
-export function getRetaFinalBlocoEvento(blocoId) {
+export function ensureRetaFinalBlocoEvento(blocoId) {
   if (!isRetaFinalPlan()) return null;
   const bloco = (state.planejamento.retaFinal.blocos || []).find((b) => b?.id === blocoId);
   if (!bloco || bloco.status !== 'pendente') return null;

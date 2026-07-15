@@ -48,8 +48,8 @@ registerAction('rf-quick-mark', (el) => {
 
 registerAction('rf-start-timer', (el) => {
   const blocoId = el.dataset.blocoId;
-  return import('../../logic/reta-final.js').then(({ getRetaFinalBlocoEvento }) => {
-    const ev = getRetaFinalBlocoEvento(blocoId);
+  return import('../../logic/reta-final.js').then(({ ensureRetaFinalBlocoEvento }) => {
+    const ev = ensureRetaFinalBlocoEvento(blocoId);
     if (!ev) {
       showToast('Não foi possível iniciar o cronômetro deste bloco.', 'error');
       return;
@@ -57,7 +57,10 @@ registerAction('rf-start-timer', (el) => {
     const start = () => {
       navigate('cronometro');
       // Mesmo padrão de switch-to-event-timer: o toggle após o render da view.
-      setTimeout(() => toggleTimer(ev.id), 100);
+      // Guard: se o timer deste bloco já roda, só navega — toggle pausaria.
+      setTimeout(() => {
+        if (!ev._timerStart) toggleTimer(ev.id);
+      }, 100);
     };
     const ativos = getActiveTimerEventIds().filter((id) => id !== ev.id);
     if (ativos.length > 0) {

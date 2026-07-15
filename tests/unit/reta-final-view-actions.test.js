@@ -118,6 +118,19 @@ describe('renderRetaFinal — botões de ação nos cards', () => {
     expect(assoc.getAttribute('type')).toBe('button');
   });
 
+  it('card pendente de hoje/atrasado tem rf-start-timer; bloco futuro não', async () => {
+    const el = await renderInto(
+      buildState({
+        blocos: [rfBloco(), rfBloco({ id: 'rf_fut', data: '2026-07-20', dataOriginal: '2026-07-20' })],
+      })
+    );
+
+    const plays = [...el.querySelectorAll('[data-action="rf-start-timer"]')];
+    expect(plays.length).toBeGreaterThan(0);
+    expect(plays.every((b) => b.dataset.blocoId === 'rf_1')).toBe(true);
+    expect(plays.every((b) => b.getAttribute('type') === 'button')).toBe(true);
+  });
+
   it('cards concluído e não coberto NÃO ganham botões de ação', async () => {
     const el = await renderInto(
       buildState({
@@ -141,6 +154,7 @@ describe('renderRetaFinal — botões de ação nos cards', () => {
 
     expect(el.querySelector('[data-action="rf-quick-mark"]')).toBeNull();
     expect(el.querySelector('[data-action="rf-associar-historico"]')).toBeNull();
+    expect(el.querySelector('[data-action="rf-start-timer"]')).toBeNull();
   });
 });
 

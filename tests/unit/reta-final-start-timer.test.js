@@ -8,9 +8,23 @@ import {
   createEdital,
 } from '../helpers/state-builders.js';
 
+vi.mock('../../src/js/app.js?v=8.37', () => ({
+  openModal: vi.fn(),
+  closeModal: vi.fn(),
+  showToast: vi.fn(),
+  showConfirm: vi.fn(),
+  navigate: vi.fn(),
+  currentView: 'ciclo',
+}));
+
+vi.mock('../../src/js/components.js?v=8.37', () => ({
+  renderCurrentView: vi.fn(),
+  updateBadges: vi.fn(),
+}));
+
 // Iniciar o cronômetro de um bloco da Reta Final (Foco de Hoje / cronograma):
 // o bloco pendente resolve para o evento espelhado (rfBlocoId) via
-// getRetaFinalBlocoEvento, e getActiveTimerEventIds lista os timers ativos
+// ensureRetaFinalBlocoEvento, e getActiveTimerEventIds lista os timers ativos
 // para a confirmação "pausar sessão em andamento?".
 
 const HOJE = '2026-07-10';
@@ -103,12 +117,12 @@ beforeEach(async () => {
   timerMod = await import('../../src/js/logic/timer.js');
 });
 
-describe('getRetaFinalBlocoEvento', () => {
+describe('ensureRetaFinalBlocoEvento', () => {
   it('retorna o evento agendado espelhado do bloco pendente', () => {
     store.setState(buildState({ eventos: [autoEvento()] }));
     logic.invalidateDiscCache();
 
-    const ev = retaFinalMod.getRetaFinalBlocoEvento('rf_1');
+    const ev = retaFinalMod.ensureRetaFinalBlocoEvento('rf_1');
 
     expect(ev).not.toBeNull();
     expect(ev.id).toBe('autorf_existente');
@@ -119,7 +133,7 @@ describe('getRetaFinalBlocoEvento', () => {
     store.setState(buildState());
     logic.invalidateDiscCache();
 
-    const ev = retaFinalMod.getRetaFinalBlocoEvento('rf_1');
+    const ev = retaFinalMod.ensureRetaFinalBlocoEvento('rf_1');
 
     expect(ev).not.toBeNull();
     expect(ev.rfBlocoId).toBe('rf_1');
@@ -128,12 +142,10 @@ describe('getRetaFinalBlocoEvento', () => {
   });
 
   it('bloco atrasado é rolado para hoje e ganha evento', () => {
-    store.setState(
-      buildState({ blocos: [rfBloco({ data: ONTEM, dataOriginal: ONTEM })] })
-    );
+    store.setState(buildState({ blocos: [rfBloco({ data: ONTEM, dataOriginal: ONTEM })] }));
     logic.invalidateDiscCache();
 
-    const ev = retaFinalMod.getRetaFinalBlocoEvento('rf_1');
+    const ev = retaFinalMod.ensureRetaFinalBlocoEvento('rf_1');
 
     expect(ev).not.toBeNull();
     expect(ev.data).toBe(HOJE);
@@ -143,12 +155,119 @@ describe('getRetaFinalBlocoEvento', () => {
   it('retorna null para bloco concluído, inexistente ou plano não reta_final', () => {
     store.setState(buildState({ blocos: [rfBloco({ status: 'concluido' })] }));
     logic.invalidateDiscCache();
-    expect(retaFinalMod.getRetaFinalBlocoEvento('rf_1')).toBeNull();
-    expect(retaFinalMod.getRetaFinalBlocoEvento('rf_sumiu')).toBeNull();
+    expect(retaFinalMod.ensureRetaFinalBlocoEvento('rf_1')).toBeNull();
+    expect(retaFinalMod.ensureRetaFinalBlocoEvento('rf_sumiu')).toBeNull();
 
     store.setState(buildState({ planOverrides: { tipo: 'ciclo', retaFinal: undefined } }));
     logic.invalidateDiscCache();
-    expect(retaFinalMod.getRetaFinalBlocoEvento('rf_1')).toBeNull();
+    expect(retaFinalMod.ensureRetaFinalBlocoEvento('rf_1')).toBeNull();
+  });
+});
+
+describe('action rf-start-timer', () => {
+  let actions;
+  let app;
+
+  beforeEach(async () => {
+    const dispatcher = await import('../../src/js/ui/actions/dispatcher.js');
+    await import('../../src/js/ui/actions/reta-final.js');
+    actions = dispatcher.actions;
+    app = await import('../../src/js/app.js?v=8.37');
+  });
+
+  function dispatch(blocoId) {
+    return actions['rf-start-timer']({ dataset: { blocoId } });
+  }
+
+  it('sem timer ativo: inicia o timer do bloco e navega para o cronômetro', async () => {
+    store.setState(buildState({ eventos: [autoEvento()] }));
+    logic.invalidateDiscCache();
+
+    await dispatch('rf_1');
+    vi.advanceTimersByTime(200); // toggle pós-navegação (setTimeout)
+
+    const ev = store.state.eventos.find((e) => e.rfBlocoId === 'rf_1');
+    expect(app.navigate).toHaveBeenCalledWith('cronometro');
+    expect(ev._timerStart).toBeTruthy();
+    expect(app.showConfirm).not.toHaveBeenCalled();
+  });
+
+  it('timer do PRÓPRIO bloco já rodando: navega sem pausar (clique duplo não pausa)', async () => {
+    const inicio = Date.now() - 60_000;
+    store.setState(buildState({ eventos: [autoEvento({ _timerStart: inicio })] }));
+    logic.invalidateDiscCache();
+
+    await dispatch('rf_1');
+    vi.advanceTimersByTime(200);
+
+    const ev = store.state.eventos.find((e) => e.rfBlocoId === 'rf_1');
+    expect(app.navigate).toHaveBeenCalledWith('cronometro');
+    expect(ev._timerStart).toBeTruthy(); // continua rodando — não foi pausado pelo toggle
+    expect(app.showConfirm).not.toHaveBeenCalled();
+  });
+
+  it('outro timer ativo: pede confirmação; confirmar pausa o outro e inicia este', async () => {
+    store.setState(
+      buildState({
+        eventos: [
+          autoEvento(),
+          autoEvento({ id: 'ev_outro', rfBlocoId: null, _timerStart: Date.now() - 30_000 }),
+        ],
+      })
+    );
+    logic.invalidateDiscCache();
+
+    await dispatch('rf_1');
+    expect(app.showConfirm).toHaveBeenCalledTimes(1);
+    const ev = store.state.eventos.find((e) => e.rfBlocoId === 'rf_1');
+    expect(ev._timerStart).toBeFalsy(); // nada acontece antes do "sim"
+
+    const onYes = app.showConfirm.mock.calls[0][1];
+    onYes();
+    vi.advanceTimersByTime(200);
+
+    const outro = store.state.eventos.find((e) => e.id === 'ev_outro');
+    expect(outro._timerStart).toBeFalsy(); // pausado, tempo preservado
+    expect(outro.tempoAcumulado).toBeGreaterThan(0);
+    expect(ev._timerStart).toBeTruthy();
+    expect(app.navigate).toHaveBeenCalledWith('cronometro');
+  });
+
+  it('bloco não cronometrável: toast de erro, sem navegação', async () => {
+    store.setState(buildState({ blocos: [rfBloco({ status: 'concluido' })] }));
+    logic.invalidateDiscCache();
+
+    await dispatch('rf_1');
+
+    expect(app.showToast).toHaveBeenCalled();
+    expect(app.navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('conclusão automática do bloco (reconcile)', () => {
+  it('evento espelhado finalizado como estudei conclui o bloco no sync; os demais ficam intactos', () => {
+    store.setState(
+      buildState({
+        blocos: [
+          rfBloco(),
+          rfBloco({ id: 'rf_2', data: '2026-07-20', dataOriginal: '2026-07-20' }),
+        ],
+        eventos: [autoEvento({ tempoAcumulado: 45 * 60 })],
+      })
+    );
+    logic.invalidateDiscCache();
+
+    // Simula o fim da sessão cronometrada: o evento espelhado vira 'estudei'.
+    const ev = store.state.eventos.find((e) => e.rfBlocoId === 'rf_1');
+    ev.status = 'estudei';
+    ev.dataEstudo = HOJE;
+
+    retaFinalMod.syncRetaFinalToEventos();
+
+    const blocos = store.state.planejamento.retaFinal.blocos;
+    expect(blocos.find((b) => b.id === 'rf_1').status).toBe('concluido');
+    expect(blocos.find((b) => b.id === 'rf_2').status).toBe('pendente');
+    expect(ev.tempoAcumulado).toBe(45 * 60); // tempo registrado preservado
   });
 });
 
