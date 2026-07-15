@@ -9,6 +9,7 @@
 @import './views/banca.css';
 @import './views/cronometro.css';
 @import './views/subject-manager.css';
+@import './views/pontos-fracos.css';
 
 /* Pontos Fracos: sparkline semanal por assunto (oculta no mobile, como no Dashboard) */
 .pf-sparkline {

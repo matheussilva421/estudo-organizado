@@ -7,6 +7,7 @@ export {
   _pomodoroMode,
   _pomodoroAlarm,
   isTimerActive,
+  getActiveTimerEventIds,
   getElapsedSeconds,
   toggleTimerMode,
   setCronoLivreGoal,

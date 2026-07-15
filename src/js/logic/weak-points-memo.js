@@ -12,7 +12,7 @@ let _cacheKey = null;
 let _cacheResult = null;
 
 export function computeWeakPointsMemo(args) {
-  const key = `${args.cutoffStr ?? ''}|${args.editalFilterId ?? ''}|${args.discFilterId ?? ''}|${args.seriesWeeks ?? 0}|${args.todayStr ?? ''}`;
+  const key = `${args.cutoffStr ?? ''}|${args.editalFilterId ?? ''}|${args.includeArquivados ? 1 : 0}|${args.discFilterId ?? ''}|${args.seriesWeeks ?? 0}|${args.todayStr ?? ''}`;
   if (_cacheResult && _cacheKey === key) return _cacheResult;
   _cacheResult = computeWeakPoints(args);
   _cacheKey = key;

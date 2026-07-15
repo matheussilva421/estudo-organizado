@@ -1,0 +1,89 @@
+/* =============================================
+   PONTOS FRACOS — grade de cards compactos por edital+disciplina.
+   `.card` global tem height:100% + overflow:hidden; num flex column isso zera
+   o min-height e esmaga o card (mesma classe de bug da whitelist em
+   styles.css). Os pf-card são itens de grid e precisam crescer com o conteúdo.
+   ============================================= */
+
+.pf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.card.pf-card {
+  height: auto;
+  overflow: visible;
+}
+
+.pf-card--expanded {
+  grid-column: 1 / -1;
+}
+
+.pf-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px 4px;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pf-card-header:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-xs);
+}
+
+.pf-card-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.pf-card-chevron {
+  font-size: 0.75rem;
+  color: var(--text-muted, #7f8a99);
+}
+
+.pf-card-sub {
+  padding: 0 16px 8px;
+}
+
+.pf-card-body {
+  padding: 0 16px 12px;
+}
+
+.pf-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border, rgba(128, 128, 128, 0.15));
+}
+
+.pf-top-row:last-child {
+  border-bottom: 0;
+}
+
+.pf-top-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .pf-grid {
+    grid-template-columns: 1fr;
+  }
+}

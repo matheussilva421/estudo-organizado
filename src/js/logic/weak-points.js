@@ -73,7 +73,10 @@ function daysBetween(fromStr, toStr) {
  * @param {Array}  p.arquivo   state.arquivo — percorrido SÓ quando cutoffStr é null ("Tudo")
  * @param {Array}  p.editais   state.editais
  * @param {string|null} [p.cutoffStr]  'YYYY-MM-DD'; null = sem janela (inclui arquivo)
- * @param {string|null} [p.editalFilterId]
+ * @param {string|null} [p.editalFilterId]  Selecionar um edital arquivado
+ *                                  específico o inclui mesmo sem includeArquivados.
+ * @param {boolean} [p.includeArquivados]  true = editais arquivados entram no
+ *                                  universo (disciplinas arquivadas continuam fora)
  * @param {string|null} [p.discFilterId]
  * @param {number} [p.seriesWeeks]  >0 gera `serie` por assunto: taxa em blocos
  *                                  rolantes de 7 dias terminando em todayStr
@@ -87,6 +90,7 @@ export function computeWeakPoints({
   editais,
   cutoffStr = null,
   editalFilterId = null,
+  includeArquivados = false,
   discFilterId = null,
   seriesWeeks = 0,
   todayStr = null,
@@ -99,8 +103,9 @@ export function computeWeakPoints({
   const disciplinas = [];
 
   (editais || []).forEach((ed) => {
-    if (!ed || ed.arquivado) return;
+    if (!ed) return;
     if (editalFilterId && ed.id !== editalFilterId) return;
+    if (ed.arquivado && !includeArquivados && ed.id !== editalFilterId) return;
     (ed.disciplinas || []).forEach((disc) => {
       if (!disc || disc.arquivada) return;
       if (discFilterId && disc.id !== discFilterId) return;

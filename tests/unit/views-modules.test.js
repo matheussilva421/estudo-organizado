@@ -1524,6 +1524,8 @@ describe('pontos-fracos view', () => {
 
   it('assunto com poucas questões entra no ranking com selo; sem questões tem seção própria', () => {
     seedPontosFracos();
+    // Selo e lista completa de assuntos só aparecem com o card expandido
+    views.togglePfCard('ed_1|disc_1');
     const container = { innerHTML: '' };
     views.renderPontosFracos(container);
 
@@ -1540,11 +1542,14 @@ describe('pontos-fracos view', () => {
 
   it('emite controles de janela, filtros e ação rápida com data-actions corretos', () => {
     seedPontosFracos();
+    // O botão "Estudar / Agendar" por assunto vive no card expandido
+    views.togglePfCard('ed_1|disc_1');
     const container = { innerHTML: '' };
     views.renderPontosFracos(container);
 
     const html = container.innerHTML;
     expect(html).toContain('data-action="set-pf-window"');
+    expect(html).toContain('data-action="pf-toggle-card"');
     expect(html).toContain('data-action="set-pf-edital-filter"');
     expect(html).toContain('data-action="set-pf-disc-filter"');
     expect(html).toContain('data-action="add-evento-para-assunto"');
@@ -1562,6 +1567,8 @@ describe('pontos-fracos view', () => {
 
   it('renderiza sparkline semanal para assunto com dados em mais de uma semana', () => {
     seedPontosFracos();
+    // Sparkline por assunto vive na lista completa do card expandido
+    views.togglePfCard('ed_1|disc_1');
     const container = { innerHTML: '' };
     views.renderPontosFracos(container);
 

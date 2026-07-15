@@ -13,6 +13,7 @@ import {
   setPfWindow,
   setPfEditalFilter,
   setPfDiscFilter,
+  togglePfCard,
 } from '../../views.js?v=8.37';
 import { setCalViewMode, calNavigate, setSelectedCalendarDay } from '../../views/calendar-view.js?v=8.37';
 import {
@@ -78,6 +79,7 @@ registerAction('set-pf-window', (el) => {
 });
 registerAction('set-pf-edital-filter', (el) => setPfEditalFilter(el.value || null));
 registerAction('set-pf-disc-filter', (el) => setPfDiscFilter(el.value || null));
+registerAction('pf-toggle-card', (el) => togglePfCard(el.dataset.key));
 registerAction('close-sidebar', closeSidebar);
 registerAction('toggle-sidebar', toggleSidebar);
 registerAction('toggle-sidebar-collapse', toggleSidebarCollapse);

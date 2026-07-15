@@ -343,6 +343,48 @@ describe('computeWeakPoints — órfãos e arquivados', () => {
   });
 });
 
+describe('computeWeakPoints — includeArquivados', () => {
+  const evArq = () =>
+    eventoEstudado({
+      id: 'ev_arq',
+      discId: 'disc_3',
+      assId: 'ass_4',
+      sessao: { questoes: { total: 10, acertos: 4, erros: 6 } },
+    });
+
+  it('includeArquivados:true traz editais arquivados para o universo e conta seus eventos', () => {
+    const editais = buildEditais();
+    editais[1].arquivado = true; // ed_2
+    const result = compute({ eventos: [evArq()], editais, includeArquivados: true });
+    expect(result.disciplinas.map((d) => d.discId)).toContain('disc_3');
+    expect(findAssunto(result, 'ass_4')).toMatchObject({ total: 10, taxa: 40 });
+  });
+
+  it('default continua excluindo arquivados (sem includeArquivados)', () => {
+    const editais = buildEditais();
+    editais[1].arquivado = true;
+    const result = compute({ eventos: [evArq()], editais });
+    expect(result.disciplinas.map((d) => d.discId)).not.toContain('disc_3');
+    expect(findAssunto(result, 'ass_4')).toBeNull();
+  });
+
+  it('selecionar um edital arquivado específico o inclui mesmo sem includeArquivados', () => {
+    const editais = buildEditais();
+    editais[1].arquivado = true;
+    const result = compute({ eventos: [evArq()], editais, editalFilterId: 'ed_2' });
+    expect(result.disciplinas.map((d) => d.discId)).toEqual(['disc_3']);
+    expect(findAssunto(result, 'ass_4')).toMatchObject({ total: 10 });
+  });
+
+  it('disciplina arquivada continua fora mesmo com includeArquivados', () => {
+    const editais = buildEditais();
+    editais[1].arquivado = true;
+    editais[0].disciplinas[1].arquivada = true; // disc_2
+    const result = compute({ eventos: [], editais, includeArquivados: true });
+    expect(result.disciplinas.map((d) => d.discId)).toEqual(['disc_1', 'disc_3']);
+  });
+});
+
 describe('computeWeakPoints — ordenação e agregado por disciplina', () => {
   const ev = (assId, discId, total, acertos, id) =>
     eventoEstudado({

@@ -4,13 +4,15 @@
  */
 
 import { registerAction } from './dispatcher.js';
-import { closeModal, showConfirm, showToast } from '../../app.js?v=8.37';
+import { closeModal, navigate, showConfirm, showToast } from '../../app.js?v=8.37';
 import { renderCurrentView } from '../../components.js?v=8.37';
 import { scheduleSave } from '../../store.js?v=8.37';
 import {
   invalidateDiscCache,
   invalidateDashCaches,
   syncCicloToEventos,
+  getActiveTimerEventIds,
+  toggleTimer,
 } from '../../logic.js?v=8.37';
 
 registerAction('open-reta-final-import', () => {
@@ -41,6 +43,35 @@ registerAction('rf-quick-mark', (el) => {
       'Bloco marcado como estudado — edite a sessão no Histórico para adicionar tempo/questões.',
       'success'
     );
+  });
+});
+
+registerAction('rf-start-timer', (el) => {
+  const blocoId = el.dataset.blocoId;
+  return import('../../logic/reta-final.js').then(({ getRetaFinalBlocoEvento }) => {
+    const ev = getRetaFinalBlocoEvento(blocoId);
+    if (!ev) {
+      showToast('Não foi possível iniciar o cronômetro deste bloco.', 'error');
+      return;
+    }
+    const start = () => {
+      navigate('cronometro');
+      // Mesmo padrão de switch-to-event-timer: o toggle após o render da view.
+      setTimeout(() => toggleTimer(ev.id), 100);
+    };
+    const ativos = getActiveTimerEventIds().filter((id) => id !== ev.id);
+    if (ativos.length > 0) {
+      showConfirm(
+        'Já há uma sessão em andamento. Pausar a sessão atual e iniciar este bloco?',
+        () => {
+          ativos.forEach((id) => toggleTimer(id));
+          start();
+        },
+        { label: 'Pausar e iniciar', title: 'Sessão em andamento' }
+      );
+    } else {
+      start();
+    }
   });
 });
 

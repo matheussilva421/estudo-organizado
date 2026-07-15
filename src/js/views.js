@@ -40,6 +40,7 @@ export {
   setPfWindow,
   setPfEditalFilter,
   setPfDiscFilter,
+  togglePfCard,
 } from './views/pontos-fracos-view.js?v=8.37';
 export {
   renderCiclo,

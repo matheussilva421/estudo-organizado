@@ -80,6 +80,12 @@ describe('computeWeakPointsMemo', () => {
     expect(r3).not.toBe(r2);
   });
 
+  it('includeArquivados faz parte da chave', () => {
+    const r1 = memo.computeWeakPointsMemo(buildArgs());
+    const r2 = memo.computeWeakPointsMemo(buildArgs({ includeArquivados: true }));
+    expect(r2).not.toBe(r1);
+  });
+
   it('invalidateWeakPointsMemo força recomputo da mesma chave', () => {
     const r1 = memo.computeWeakPointsMemo(buildArgs());
     memo.invalidateWeakPointsMemo();

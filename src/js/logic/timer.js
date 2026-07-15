@@ -46,6 +46,21 @@ export function isTimerActive(eventId) {
 }
 
 /**
+ * IDs de todas as sessões com timer rodando agora ('crono_livre' primeiro).
+ * Usado para a confirmação "pausar a sessão em andamento?" ao iniciar um
+ * timer a partir de um bloco da Reta Final.
+ * @returns {string[]}
+ */
+export function getActiveTimerEventIds() {
+  const ids = [];
+  if (state.cronoLivre && state.cronoLivre._timerStart) ids.push('crono_livre');
+  (state.eventos || []).forEach((e) => {
+    if (e && e._timerStart) ids.push(e.id);
+  });
+  return ids;
+}
+
+/**
  * Calcula tempo decorrido em segundos
  * @param {Object} ev - Evento ou cronoLivre
  * @returns {number} Segundos decorridos

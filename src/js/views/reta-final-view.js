@@ -129,6 +129,11 @@ function renderBlocoCard(bloco, hoje) {
         bloco.status === 'pendente'
           ? `
         <div class="rf-bloco-actions">
+          ${
+            ['hoje', 'atrasado'].includes(getRetaFinalBlocoFiltroCategoria(bloco, hoje))
+              ? `<button type="button" class="btn btn-ghost btn-sm" data-action="rf-start-timer" data-bloco-id="${esc(bloco.id)}" title="Iniciar cronômetro" aria-label="Iniciar cronômetro"><i class="fa fa-play"></i></button>`
+              : ''
+          }
           <button type="button" class="btn btn-ghost btn-sm" data-action="rf-quick-mark" data-bloco-id="${esc(bloco.id)}" title="Marcar como estudado" aria-label="Marcar como estudado"><i class="fa fa-check"></i></button>
           <button type="button" class="btn btn-ghost btn-sm" data-action="rf-associar-historico" data-bloco-id="${esc(bloco.id)}" title="Associar sessão do histórico" aria-label="Associar sessão do histórico"><i class="fa fa-link"></i></button>
         </div>
