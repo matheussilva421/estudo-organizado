@@ -1458,10 +1458,40 @@ describe('pontos-fracos view', () => {
                 id: 'disc_1',
                 nome: 'Direito Administrativo',
                 assuntos: [
-                  { id: 'ass_fraco', nome: 'Licitações', concluido: false, revisoesFetas: [] },
-                  { id: 'ass_forte', nome: 'Atos Administrativos', concluido: false, revisoesFetas: [] },
-                  { id: 'ass_pouco', nome: 'Improbidade', concluido: false, revisoesFetas: [] },
-                  { id: 'ass_nunca', nome: 'Servidores', concluido: false, revisoesFetas: [] },
+                  {
+                    id: 'ass_fraco',
+                    nome: 'Licitações',
+                    concluido: false,
+                    revisoesFetas: [],
+                    linkedAulaIds: ['aula_fraca'],
+                  },
+                  {
+                    id: 'ass_forte',
+                    nome: 'Atos Administrativos',
+                    concluido: false,
+                    revisoesFetas: [],
+                    linkedAulaIds: ['aula_forte'],
+                  },
+                  {
+                    id: 'ass_pouco',
+                    nome: 'Improbidade',
+                    concluido: false,
+                    revisoesFetas: [],
+                    linkedAulaIds: ['aula_pouca'],
+                  },
+                  {
+                    id: 'ass_nunca',
+                    nome: 'Servidores',
+                    concluido: false,
+                    revisoesFetas: [],
+                    linkedAulaIds: ['aula_nunca'],
+                  },
+                ],
+                aulas: [
+                  { id: 'aula_fraca', nome: 'Licitações', estudada: true },
+                  { id: 'aula_forte', nome: 'Atos Administrativos', estudada: true },
+                  { id: 'aula_pouca', nome: 'Improbidade', estudada: false },
+                  { id: 'aula_nunca', nome: 'Servidores', estudada: false },
                 ],
               }),
             ],
@@ -1508,7 +1538,7 @@ describe('pontos-fracos view', () => {
     logic.invalidateDashCaches();
   }
 
-  it('renderiza ranking com o assunto mais fraco primeiro e taxas nas faixas', () => {
+  it('renderiza ranking com a aula mais fraca primeiro e taxas nas faixas', () => {
     seedPontosFracos();
     const container = { innerHTML: '' };
     views.renderPontosFracos(container);
@@ -1522,9 +1552,9 @@ describe('pontos-fracos view', () => {
     expect(html).toContain('90%');
   });
 
-  it('assunto com poucas questões entra no ranking com selo; sem questões tem seção própria', () => {
+  it('aula com poucas questões entra no ranking com selo; sem questões tem seção própria', () => {
     seedPontosFracos();
-    // Selo e lista completa de assuntos só aparecem com o card expandido
+    // Selo e lista completa de aulas só aparecem com o card expandido
     views.togglePfCard('ed_1|disc_1');
     const container = { innerHTML: '' };
     views.renderPontosFracos(container);
@@ -1542,7 +1572,7 @@ describe('pontos-fracos view', () => {
 
   it('emite controles de janela, filtros e ação rápida com data-actions corretos', () => {
     seedPontosFracos();
-    // O botão "Estudar / Agendar" por assunto vive no card expandido
+    // O botão "Estudar / Agendar" por aula vive no card expandido
     views.togglePfCard('ed_1|disc_1');
     const container = { innerHTML: '' };
     views.renderPontosFracos(container);
@@ -1555,7 +1585,7 @@ describe('pontos-fracos view', () => {
     expect(html).toContain('data-action="add-evento-para-assunto"');
     expect(html).toContain('data-edital-id="ed_1"');
     expect(html).toContain('data-disc-id="disc_1"');
-    expect(html).toContain('data-assunto-id="ass_fraco"');
+    expect(html).toContain('data-assunto-id="aul_aula_fraca"');
   });
 
   it('setters de janela e filtro re-renderizam a view', () => {
@@ -1565,9 +1595,9 @@ describe('pontos-fracos view', () => {
     expect(typeof views.setPfDiscFilter).toBe('function');
   });
 
-  it('renderiza sparkline semanal para assunto com dados em mais de uma semana', () => {
+  it('renderiza sparkline semanal para aula com dados em mais de uma semana', () => {
     seedPontosFracos();
-    // Sparkline por assunto vive na lista completa do card expandido
+    // Sparkline por aula vive na lista completa do card expandido
     views.togglePfCard('ed_1|disc_1');
     const container = { innerHTML: '' };
     views.renderPontosFracos(container);

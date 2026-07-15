@@ -344,9 +344,13 @@ export function addSeqItem() {
 
 export function addEventoParaAssunto(editaId, discId, assId) {
   const d = getDisc(discId);
-  const ass = d?.disc?.assuntos?.find((a) => a.id === assId);
-  if (!ass || !d) return;
-  // Pre-select discipline and subject then open modal
+  const isAula = assId.startsWith('aul_');
+  const itemId = isAula ? assId.slice(4) : assId;
+  const item = isAula
+    ? d?.disc?.aulas?.find((a) => a.id === itemId)
+    : d?.disc?.assuntos?.find((a) => a.id === itemId);
+  if (!item || !d) return;
+  // Pre-select discipline and lesson/subject then open modal
   openAddEventModal(todayStr());
   // After modal renders, pre-fill
   setTimeout(() => {
@@ -355,22 +359,41 @@ export function addEventoParaAssunto(editaId, discId, assId) {
       discSel.value = discId;
       loadAssuntos();
       setTimeout(() => {
+        if (isAula) {
+          const aulaSel = document.getElementById('event-aula');
+          if (!aulaSel) return;
+          if (!aulaSel.querySelector(`option[value="${itemId}"]`)) {
+            const opt = document.createElement('option');
+            opt.value = itemId;
+            opt.textContent = `✅ ${item.nome}`;
+            aulaSel.appendChild(opt);
+            const aulaGroup = document.getElementById('event-aula-group');
+            if (aulaGroup) aulaGroup.style.display = '';
+          }
+          aulaSel.value = itemId;
+          const ti = document.getElementById('event-titulo');
+          if (ti) {
+            ti.value = item.nome;
+            ti.dataset.autoFilled = 'true';
+          }
+          return;
+        }
         const assSel = document.getElementById('event-assunto');
         if (assSel) {
           // loadAssuntos só popula assuntos pendentes; para assunto concluído a
           // option precisa ser inserida (e o grupo exibido) para a pré-seleção valer
           if (!assSel.querySelector(`option[value="${assId}"]`)) {
             const opt = document.createElement('option');
-            opt.value = assId;
-            opt.textContent = `✅ ${ass.nome}`;
+            opt.value = itemId;
+            opt.textContent = `✅ ${item.nome}`;
             assSel.appendChild(opt);
             const assGroup = document.getElementById('event-assunto-group');
             if (assGroup) assGroup.style.display = '';
           }
-          assSel.value = assId;
+          assSel.value = itemId;
           const ti = document.getElementById('event-titulo');
           if (ti) {
-            ti.value = ass.nome;
+            ti.value = item.nome;
             ti.dataset.autoFilled = 'true';
           }
         }

@@ -17,7 +17,7 @@ function buildState() {
       dataConclusao: null,
       revisoesFetas: [],
       adiamentos: 0,
-      linkedAulaIds: [],
+      linkedAulaIds: ['aula_fraca'],
     },
     {
       id: 'ass_forte',
@@ -26,7 +26,7 @@ function buildState() {
       dataConclusao: null,
       revisoesFetas: [],
       adiamentos: 0,
-      linkedAulaIds: [],
+      linkedAulaIds: ['aula_forte'],
     },
     {
       id: 'ass_pouco',
@@ -35,7 +35,7 @@ function buildState() {
       dataConclusao: null,
       revisoesFetas: [],
       adiamentos: 0,
-      linkedAulaIds: [],
+      linkedAulaIds: ['aula_pouca'],
     },
     {
       id: 'ass_nunca',
@@ -44,8 +44,14 @@ function buildState() {
       dataConclusao: null,
       revisoesFetas: [],
       adiamentos: 0,
-      linkedAulaIds: [],
+      linkedAulaIds: ['aula_nunca'],
     },
+  ];
+  state.editais[0].disciplinas[0].aulas = [
+    { id: 'aula_fraca', nome: state.editais[0].disciplinas[0].assuntos[0].nome, estudada: true },
+    { id: 'aula_forte', nome: state.editais[0].disciplinas[0].assuntos[1].nome, estudada: true },
+    { id: 'aula_pouca', nome: state.editais[0].disciplinas[0].assuntos[2].nome, estudada: false },
+    { id: 'aula_nunca', nome: state.editais[0].disciplinas[0].assuntos[3].nome, estudada: false },
   ];
   const evento = (id, assId, questoes, daysAgo) => ({
     id,
@@ -69,7 +75,7 @@ function buildState() {
 }
 
 test.describe('Aba Pontos Fracos', () => {
-  test('ranqueia o pior assunto no topo, separa seções e abre o modal pré-selecionado', async ({
+  test('ranqueia a pior aula no topo, separa seções e abre o modal pré-selecionado', async ({
     page,
   }) => {
     const consoleErrors = collectConsoleErrors(page);
@@ -90,6 +96,8 @@ test.describe('Aba Pontos Fracos', () => {
     const html = await main.innerHTML();
     expect(html.indexOf('Licitações')).toBeLessThan(html.indexOf('Atos Administrativos'));
 
+    await main.locator('button[data-action="pf-toggle-card"]').click();
+
     // bayesiana: poucas questões entram no ranking com selo, sem seção separada
     await expect(main).not.toContainText('Dados insuficientes');
     await expect(main).toContainText('Improbidade');
@@ -97,14 +105,14 @@ test.describe('Aba Pontos Fracos', () => {
     await expect(main).toContainText('Sem questões registradas');
     await expect(main).toContainText('Servidores Públicos');
 
-    // ação rápida abre o modal com disciplina e assunto pré-selecionados
+    // ação rápida abre o modal com disciplina e aula pré-selecionados
     await page
-      .locator('button[data-action="add-evento-para-assunto"][data-assunto-id="ass_fraco"]')
+      .locator('button[data-action="add-evento-para-assunto"][data-assunto-id="aul_aula_fraca"]')
       .first()
       .click();
     await expect(page.locator('#modal-event-title')).toHaveText('Iniciar Estudo');
     await expect(page.locator('#event-disc')).toHaveValue('disc_1');
-    await expect(page.locator('#event-assunto')).toHaveValue('ass_fraco');
+    await expect(page.locator('#event-aula')).toHaveValue('aula_fraca');
 
     expect(consoleErrors).toEqual([]);
   });
@@ -123,9 +131,7 @@ test.describe('Aba Pontos Fracos', () => {
     await expect(main).toContainText('Licitações');
 
     // filtro por disciplina segue funcionando (única disciplina → nada some)
-    await page
-      .locator('select[data-action="set-pf-disc-filter"]')
-      .selectOption('disc_1');
+    await page.locator('select[data-action="set-pf-disc-filter"]').selectOption('disc_1');
     await expect(main).toContainText('Licitações');
   });
 });

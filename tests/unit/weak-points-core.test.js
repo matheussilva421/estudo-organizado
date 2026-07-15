@@ -15,7 +15,7 @@ import {
 } from '../../src/js/logic/weak-points.js';
 
 function buildEditais() {
-  return [
+  const editais = [
     createEdital({
       id: 'ed_1',
       nome: 'Edital 1',
@@ -47,6 +47,19 @@ function buildEditais() {
       ],
     }),
   ];
+  const [disc1, disc2] = editais[0].disciplinas;
+  const [disc3] = editais[1].disciplinas;
+  disc1.aulas = [
+    { id: 'aula_1', nome: 'Licitacoes', estudada: false },
+    { id: 'aula_2', nome: 'Atos Administrativos', estudada: false },
+  ];
+  disc2.aulas = [{ id: 'aula_3', nome: 'Crase', estudada: false }];
+  disc3.aulas = [{ id: 'aula_4', nome: 'Redes', estudada: false }];
+  disc1.assuntos[0].linkedAulaIds = ['aula_1'];
+  disc1.assuntos[1].linkedAulaIds = ['aula_2'];
+  disc2.assuntos[0].linkedAulaIds = ['aula_3'];
+  disc3.assuntos[0].linkedAulaIds = ['aula_4'];
+  return editais;
 }
 
 function compute(overrides = {}) {
@@ -64,7 +77,12 @@ function eventoEstudado(overrides = {}) {
 }
 
 function findAssunto(result, assId) {
-  return result.ranking.find((a) => a.assId === assId) || null;
+  const aulaId = assId.replace('ass_', 'aula_');
+  return result.ranking.find((a) => a.aulaId === aulaId) || null;
+}
+
+function findAula(result, aulaId) {
+  return result.ranking.find((a) => a.aulaId === aulaId) || null;
 }
 
 describe('classifyTaxa — faixas do Dashboard', () => {
@@ -104,6 +122,11 @@ describe('computeWeakPoints — agregação por assunto', () => {
 
   it('topico com apenas aulaId resolve o assunto via linkedAulaIds', () => {
     const editais = buildEditais();
+    editais[0].disciplinas[0].aulas.push({
+      id: 'aula_9',
+      nome: 'Licitações especiais',
+      estudada: false,
+    });
     editais[0].disciplinas[0].assuntos[0].linkedAulaIds = ['aula_9'];
     const ev = eventoEstudado({
       discId: 'disc_1',
@@ -112,7 +135,7 @@ describe('computeWeakPoints — agregação por assunto', () => {
       },
     });
     const result = compute({ eventos: [ev], editais });
-    expect(findAssunto(result, 'ass_1')).toMatchObject({ total: 10, taxa: 40 });
+    expect(findAula(result, 'aula_9')).toMatchObject({ total: 10, taxa: 40 });
   });
 
   it('legado: ev.sessao.questoes com certas/erradas e sem total', () => {
@@ -152,16 +175,88 @@ describe('computeWeakPoints — agregação por assunto', () => {
     expect(result.ranking).toHaveLength(0);
   });
 
-  it('assunto concluído entra no ranking normalmente', () => {
+  it('aula estudada entra no ranking normalmente', () => {
     const editais = buildEditais();
-    editais[0].disciplinas[0].assuntos[0].concluido = true;
+    editais[0].disciplinas[0].aulas[0].estudada = true;
     const ev = eventoEstudado({
       discId: 'disc_1',
       assId: 'ass_1',
       sessao: { questoes: { total: 12, acertos: 4, erros: 8 } },
     });
     const result = compute({ eventos: [ev], editais });
-    expect(findAssunto(result, 'ass_1')).toMatchObject({ taxa: 33, concluido: true });
+    expect(findAssunto(result, 'ass_1')).toMatchObject({ taxa: 33, estudada: true });
+  });
+});
+
+describe('computeWeakPoints — agregação por aula', () => {
+  it('evento com aulaId direto agrega questões na aula correspondente', () => {
+    const editais = buildEditais();
+    editais[0].disciplinas[0].aulas = [
+      { id: 'aula_1', nome: 'Princípios das licitações', estudada: true },
+    ];
+    const evento = eventoEstudado({
+      discId: 'disc_1',
+      aulaId: 'aula_1',
+      sessao: { questoes: { total: 10, acertos: 4, erros: 6 } },
+    });
+
+    const result = compute({ eventos: [evento], editais });
+
+    expect(findAula(result, 'aula_1')).toMatchObject({
+      nome: 'Princípios das licitações',
+      estudada: true,
+      total: 10,
+      acertos: 4,
+      erros: 6,
+      taxa: 40,
+    });
+  });
+
+  it('evento com apenas assId agrega na aula quando o tópico tem vínculo único', () => {
+    const editais = buildEditais();
+    const disciplina = editais[0].disciplinas[0];
+    disciplina.aulas = [{ id: 'aula_1', nome: 'Princípios das licitações', estudada: false }];
+    disciplina.assuntos[0].linkedAulaIds = ['aula_1'];
+    const evento = eventoEstudado({
+      discId: 'disc_1',
+      assId: 'ass_1',
+      sessao: { questoes: { total: 10, acertos: 3, erros: 7 } },
+    });
+
+    const result = compute({ eventos: [evento], editais });
+
+    expect(findAula(result, 'aula_1')).toMatchObject({ total: 10, taxa: 30 });
+  });
+
+  it('assId ambiguo conta apenas no total da disciplina', () => {
+    const editais = buildEditais();
+    const disciplina = editais[0].disciplinas[0];
+    disciplina.aulas = [
+      { id: 'aula_1', nome: 'Licitacoes I', estudada: false },
+      { id: 'aula_2', nome: 'Licitacoes II', estudada: false },
+    ];
+    disciplina.assuntos[0].linkedAulaIds = ['aula_1', 'aula_2'];
+    disciplina.assuntos[1].linkedAulaIds = [];
+    const eventos = [
+      eventoEstudado({
+        id: 'sem-vinculo',
+        discId: 'disc_1',
+        assId: 'ass_2',
+        sessao: { questoes: { total: 5, acertos: 4, erros: 1 } },
+      }),
+      eventoEstudado({
+        id: 'vinculo-ambiguo',
+        discId: 'disc_1',
+        assId: 'ass_1',
+        sessao: { questoes: { total: 5, acertos: 1, erros: 4 } },
+      }),
+    ];
+
+    const result = compute({ eventos, editais });
+    const disciplinaResult = result.disciplinas.find((d) => d.discId === 'disc_1');
+
+    expect(result.ranking).toHaveLength(0);
+    expect(disciplinaResult).toMatchObject({ total: 10, acertos: 5, erros: 5, naoAtribuidas: 10 });
   });
 });
 
@@ -211,14 +306,14 @@ describe('computeWeakPoints — partição e selo de confiabilidade', () => {
 
   it('9 questões entra no ranking com confiavel:false; 10 com confiavel:true', () => {
     const nove = compute({ eventos: [evComTotal(9, 3)] });
-    expect(nove.ranking.find((a) => a.assId === 'ass_1')).toMatchObject({
+    expect(nove.ranking.find((a) => a.aulaId === 'aula_1')).toMatchObject({
       total: 9,
       taxa: 33,
       confiavel: false,
     });
 
     const dez = compute({ eventos: [evComTotal(10, 3)] });
-    expect(dez.ranking.find((a) => a.assId === 'ass_1')).toMatchObject({
+    expect(dez.ranking.find((a) => a.aulaId === 'aula_1')).toMatchObject({
       total: 10,
       taxa: 30,
       confiavel: true,
@@ -232,10 +327,10 @@ describe('computeWeakPoints — partição e selo de confiabilidade', () => {
 
   it('assunto sem nenhuma questão na janela vai para semQuestoes', () => {
     const result = compute({ eventos: [evComTotal(10, 5)] });
-    const sem = result.semQuestoes.map((a) => a.assId);
-    expect(sem).toContain('ass_2');
-    expect(sem).toContain('ass_3');
-    expect(sem).not.toContain('ass_1');
+    const sem = result.semQuestoes.map((a) => a.aulaId);
+    expect(sem).toContain('aula_2');
+    expect(sem).toContain('aula_3');
+    expect(sem).not.toContain('aula_1');
   });
 
   it('total registrado sem acertos/erros (respondidas 0) fica no fim do ranking com taxa null', () => {
@@ -254,7 +349,7 @@ describe('computeWeakPoints — partição e selo de confiabilidade', () => {
       }),
     ];
     const result = compute({ eventos });
-    expect(result.ranking.map((a) => a.assId)).toEqual(['ass_2', 'ass_1']);
+    expect(result.ranking.map((a) => a.aulaId)).toEqual(['aula_2', 'aula_1']);
     expect(result.ranking[1]).toMatchObject({ total: 12, taxa: null, taxaAjustada: null });
   });
 });
@@ -293,7 +388,7 @@ describe('computeWeakPoints — média bayesiana (taxaAjustada)', () => {
     const result = compute({
       eventos: [ev('ass_1', 100, 35, 'e1'), ev('ass_2', 1, 0, 'e2'), ev('ass_3', 100, 80, 'e3')],
     });
-    expect(result.ranking.map((a) => a.assId)).toEqual(['ass_1', 'ass_2', 'ass_3']);
+    expect(result.ranking.map((a) => a.aulaId)).toEqual(['aula_1', 'aula_2', 'aula_3']);
   });
 
   it('amostra grande com taxa extrema quase não é ajustada', () => {
@@ -401,7 +496,7 @@ describe('computeWeakPoints — ordenação e agregado por disciplina', () => {
       ev('ass_3', 'disc_2', 40, 12, 'e3'), // 30%, total 40 → antes de ass_2
     ];
     const result = compute({ eventos });
-    expect(result.ranking.map((a) => a.assId)).toEqual(['ass_3', 'ass_2', 'ass_1']);
+    expect(result.ranking.map((a) => a.aulaId)).toEqual(['aula_3', 'aula_2', 'aula_1']);
   });
 
   it('disciplinas agregam assuntos + naoAtribuidas e vêm ordenadas da pior para a melhor', () => {
@@ -426,7 +521,7 @@ describe('computeWeakPoints — ordenação e agregado por disciplina', () => {
   it('ranking carrega contexto de disciplina e edital', () => {
     const result = compute({ eventos: [ev('ass_4', 'disc_3', 10, 1, 'e1')] });
     expect(result.ranking[0]).toMatchObject({
-      assId: 'ass_4',
+      aulaId: 'aula_4',
       nome: 'Redes',
       discId: 'disc_3',
       discNome: 'Informática',
@@ -454,13 +549,13 @@ describe('computeWeakPoints — filtros', () => {
 
   it('editalFilterId restringe ao edital', () => {
     const result = compute({ eventos: eventos(), editalFilterId: 'ed_2' });
-    expect(result.ranking.map((a) => a.assId)).toEqual(['ass_4']);
+    expect(result.ranking.map((a) => a.aulaId)).toEqual(['aula_4']);
     expect(result.disciplinas.map((d) => d.discId)).toEqual(['disc_3']);
   });
 
   it('discFilterId restringe à disciplina', () => {
     const result = compute({ eventos: eventos(), discFilterId: 'disc_1' });
-    expect(result.ranking.map((a) => a.assId)).toEqual(['ass_1']);
+    expect(result.ranking.map((a) => a.aulaId)).toEqual(['aula_1']);
     expect(result.disciplinas.map((d) => d.discId)).toEqual(['disc_1']);
   });
 });

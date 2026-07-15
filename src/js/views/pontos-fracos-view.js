@@ -1,6 +1,6 @@
 /**
  * Pontos Fracos View Module
- * Ranking de assuntos por taxa de acerto em questões (pior → melhor),
+ * Ranking de aulas por taxa de acerto em questões (pior → melhor),
  * agrupado por disciplina, com janela temporal e ação rápida de estudo.
  */
 
@@ -72,8 +72,8 @@ function taxaBar(taxa, faixa) {
 
 function acaoBtn(a) {
   return `<button type="button" class="btn btn-ghost btn-sm" data-action="add-evento-para-assunto"
-    data-edital-id="${a.editalId}" data-disc-id="${a.discId}" data-assunto-id="${a.assId}"
-    title="Abrir o modal de estudo com este assunto pré-selecionado">
+    data-edital-id="${a.editalId}" data-disc-id="${a.discId}" data-assunto-id="aul_${a.aulaId}"
+    title="Abrir o modal de estudo com esta aula pré-selecionada">
     <i class="fa fa-play"></i> Estudar / Agendar
   </button>`;
 }
@@ -88,12 +88,12 @@ function sparklineSemanal(a) {
   )}</span>`;
 }
 
-function assuntoRow(a) {
+function aulaRow(a) {
   return `
     <div class="flex-between" style="gap:12px; padding:8px 0; border-bottom:1px solid var(--border, rgba(128,128,128,.15));">
       <div style="flex:1; min-width:0;">
         <div class="flex-between" style="gap:8px;">
-          <span class="text-md" title="${esc(a.nome)}">${a.concluido ? '✅ ' : ''}${esc(a.nome)}</span>
+          <span class="text-md" title="${esc(a.nome)}">${a.estudada ? '✅ ' : ''}${esc(a.nome)}</span>
           ${taxaBadge(a.taxa, a.faixa)}
         </div>
         ${taxaBar(a.taxa, a.faixa)}
@@ -110,7 +110,7 @@ function discCardKey(disc) {
   return `${disc.editalId}|${disc.discId}`;
 }
 
-function topAssuntoRow(a) {
+function topAulaRow(a) {
   return `
     <div class="pf-top-row">
       <span class="pf-top-nome" title="${esc(a.nome)}">${esc(a.nome)}</span>
@@ -120,10 +120,10 @@ function topAssuntoRow(a) {
 
 /**
  * Card compacto por edital+disciplina na grade: taxa geral, nº de questões e
- * top 3 assuntos mais fracos (por taxa ajustada). Expandido, ocupa a largura
- * da grade e lista todos os assuntos com o botão "Estudar / Agendar".
+ * top 3 aulas mais fracas (por taxa ajustada). Expandido, ocupa a largura
+ * da grade e lista todas as aulas com o botão "Estudar / Agendar".
  */
-function discCard(disc, assuntos, editalArquivado) {
+function discCard(disc, aulas, editalArquivado) {
   const key = discCardKey(disc);
   const expanded = pfExpanded.has(key);
   const respondidas = disc.acertos + disc.erros;
@@ -131,16 +131,16 @@ function discCard(disc, assuntos, editalArquivado) {
   return `
     <div class="card pf-card ${expanded ? 'pf-card--expanded' : ''}">
       <button type="button" class="pf-card-header" data-action="pf-toggle-card" data-key="${esc(key)}"
-        aria-expanded="${expanded}" title="${expanded ? 'Recolher assuntos' : 'Ver todos os assuntos'}">
+        aria-expanded="${expanded}" title="${expanded ? 'Recolher aulas' : 'Ver todas as aulas'}">
         <span class="pf-card-title">${disc.icone || '📚'} ${esc(disc.discNome)}
           <span class="text-sm text-muted">${editalBadge}</span>
         </span>
         <span class="pf-card-taxa">${taxaBadge(disc.taxa, disc.faixa)}</span>
         <i class="fa fa-chevron-${expanded ? 'up' : 'down'} pf-card-chevron" aria-hidden="true"></i>
       </button>
-      <div class="pf-card-sub text-sm text-muted">${respondidas} questões respondidas · ${assuntos.length} assunto(s)</div>
+      <div class="pf-card-sub text-sm text-muted">${respondidas} questões respondidas · ${aulas.length} aula(s)</div>
       <div class="pf-card-body">
-        ${expanded ? assuntos.map(assuntoRow).join('') : assuntos.slice(0, 3).map(topAssuntoRow).join('')}
+        ${expanded ? aulas.map(aulaRow).join('') : aulas.slice(0, 3).map(topAulaRow).join('')}
       </div>
     </div>`;
 }
@@ -178,13 +178,12 @@ function filterSelects() {
   // Disciplinas do universo atualmente filtrado: edital específico (mesmo
   // arquivado), ou os ativos ("Todos"), ou tudo ("Todos + arquivados").
   const discs = editais
-    .filter((ed) =>
-      pfEditalId ? ed.id === pfEditalId : pfIncluirArquivados || !ed.arquivado
-    )
+    .filter((ed) => (pfEditalId ? ed.id === pfEditalId : pfIncluirArquivados || !ed.arquivado))
     .flatMap((ed) => (ed.disciplinas || []).filter((d) => d && !d.arquivada));
   const discOptions = discs
     .map(
-      (d) => `<option value="${d.id}" ${pfDiscId === d.id ? 'selected' : ''}>${esc(d.nome)}</option>`
+      (d) =>
+        `<option value="${d.id}" ${pfDiscId === d.id ? 'selected' : ''}>${esc(d.nome)}</option>`
     )
     .join('');
   return `
@@ -224,7 +223,7 @@ export function renderPontosFracos(el) {
   const grupos = result.disciplinas
     .map((disc) => ({
       disc,
-      assuntos: disc.assuntos
+      aulas: disc.aulas
         .filter((a) => a.total > 0)
         .slice()
         .sort((a, b) => {
@@ -233,7 +232,7 @@ export function renderPontosFracos(el) {
           return a.taxaAjustada - b.taxaAjustada || b.total - a.total;
         }),
     }))
-    .filter((g) => g.assuntos.length > 0);
+    .filter((g) => g.aulas.length > 0);
 
   const periodoLabel = pfWindowDays ? `últimos ${pfWindowDays} dias` : 'todo o histórico';
 
@@ -242,7 +241,7 @@ export function renderPontosFracos(el) {
   );
   const rankingHtml = grupos.length
     ? `<div class="pf-grid">${grupos
-        .map((g) => discCard(g.disc, g.assuntos, arquivadoPorEdital.get(g.disc.editalId)))
+        .map((g) => discCard(g.disc, g.aulas, arquivadoPorEdital.get(g.disc.editalId)))
         .join('')}</div>`
     : `<div class="card pf-card mb-4"><div class="card-body text-muted">
          Nenhuma questão registrada em ${periodoLabel}.
@@ -273,7 +272,7 @@ export function renderPontosFracos(el) {
   const orfaosHtml =
     result.orfaos.total > 0
       ? `<div class="text-sm text-muted mb-4">
-          ℹ️ ${result.orfaos.total} questões registradas em assuntos que não existem mais foram
+          ℹ️ ${result.orfaos.total} questões sem uma aula vinculada de forma única foram
           contabilizadas apenas no total da disciplina.
         </div>`
       : '';
@@ -281,7 +280,7 @@ export function renderPontosFracos(el) {
   el.innerHTML = `
     <div class="flex-between mb-4" style="flex-wrap:wrap; gap:12px;">
       <div class="text-md text-secondary">
-        Seus pontos fracos por taxa de acerto — <strong class="text-primary">${periodoLabel}</strong>
+        Seus pontos fracos por aula e taxa de acerto — <strong class="text-primary">${periodoLabel}</strong>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         ${filterSelects()}

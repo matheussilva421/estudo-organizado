@@ -1,6 +1,6 @@
 // =============================================
 // WEAK POINTS (puro, sem dependências — não pode importar state/app)
-// Agrega acertos/erros de questões por ASSUNTO a partir dos eventos
+// Agrega acertos/erros de questões por AULA a partir dos eventos
 // estudados, para a aba "Pontos Fracos". Recebe todos os dados por
 // parâmetro; o caller pré-calcula a data de corte (cutoffStr) para a
 // função permanecer determinística.
@@ -78,7 +78,7 @@ function daysBetween(fromStr, toStr) {
  * @param {boolean} [p.includeArquivados]  true = editais arquivados entram no
  *                                  universo (disciplinas arquivadas continuam fora)
  * @param {string|null} [p.discFilterId]
- * @param {number} [p.seriesWeeks]  >0 gera `serie` por assunto: taxa em blocos
+ * @param {number} [p.seriesWeeks]  >0 gera `serie` por aula: taxa em blocos
  *                                  rolantes de 7 dias terminando em todayStr
  * @param {string|null} [p.todayStr] 'YYYY-MM-DD' — obrigatório com seriesWeeks
  * @returns {{ disciplinas: Array, ranking: Array,
@@ -96,9 +96,9 @@ export function computeWeakPoints({
   todayStr = null,
 }) {
   const wantSeries = seriesWeeks > 0 && !!todayStr;
-  // 1) Universo: disciplinas/assuntos ativos (filtros aplicados aqui)
-  const assIndex = new Map(); // assId -> bucket de assunto
-  const aulaIndex = new Map(); // aulaId (linkedAulaIds) -> bucket de assunto
+  // 1) Universo: aulas de disciplinas ativas (filtros aplicados aqui)
+  const directAulaIndex = new Map(); // aulaId -> bucket da própria aula
+  const uniqueAulaIdByAss = new Map(); // assId -> aulaId quando o vínculo é inequívoco
   const discIndex = new Map(); // discId -> bucket de disciplina
   const disciplinas = [];
 
@@ -122,16 +122,22 @@ export function computeWeakPoints({
         taxa: null,
         faixa: null,
         naoAtribuidas: 0,
-        assuntos: [],
+        aulas: [],
       };
       discIndex.set(disc.id, discBucket);
       disciplinas.push(discBucket);
       (disc.assuntos || []).forEach((ass) => {
         if (!ass || !ass.id) return;
+        if ((ass.linkedAulaIds || []).filter(Boolean).length === 1) {
+          uniqueAulaIdByAss.set(ass.id, ass.linkedAulaIds.find(Boolean));
+        }
+      });
+      (disc.aulas || []).forEach((aula) => {
+        if (!aula || !aula.id) return;
         const bucket = {
-          assId: ass.id,
-          nome: ass.nome,
-          concluido: !!ass.concluido,
+          aulaId: aula.id,
+          nome: aula.nome,
+          estudada: !!aula.estudada,
           total: 0,
           acertos: 0,
           erros: 0,
@@ -146,11 +152,8 @@ export function computeWeakPoints({
           icone: disc.icone || '',
           cor: disc.cor || '',
         };
-        discBucket.assuntos.push(bucket);
-        assIndex.set(ass.id, bucket);
-        (ass.linkedAulaIds || []).forEach((aulaId) => {
-          if (aulaId && !aulaIndex.has(aulaId)) aulaIndex.set(aulaId, bucket);
-        });
+        discBucket.aulas.push(bucket);
+        directAulaIndex.set(aula.id, bucket);
       });
     });
   });
@@ -159,8 +162,11 @@ export function computeWeakPoints({
 
   function registra(assId, aulaId, qs, evDiscId, studyDate) {
     if (!qs) return;
-    let bucket = assId ? assIndex.get(assId) : null;
-    if (!bucket && aulaId) bucket = aulaIndex.get(aulaId) || null;
+    let bucket = aulaId ? directAulaIndex.get(aulaId) : null;
+    if (!bucket && assId) {
+      const linkedAulaId = uniqueAulaIdByAss.get(assId);
+      bucket = linkedAulaId ? directAulaIndex.get(linkedAulaId) || null : null;
+    }
     if (bucket) {
       addTo(bucket, qs);
       addTo(discIndex.get(bucket.discId), qs);
@@ -177,17 +183,16 @@ export function computeWeakPoints({
       }
       return;
     }
-    // Sem assunto identificável: só conta se a disciplina do evento está no universo
+    // Sem aula resolvida: só conta se a disciplina do evento está no universo
     const disc = evDiscId ? discIndex.get(evDiscId) : null;
     if (!disc) return;
-    if (assId || aulaId) addTo(orfaos, qs); // referência a assunto/aula que não existe mais
+    if (assId || aulaId) addTo(orfaos, qs); // referência inexistente ou vínculo ambíguo
     addTo(disc, qs);
     disc.naoAtribuidas += qs.total;
   }
 
   // 2) Passada única pelos eventos (arquivo só no modo "Tudo")
-  const fonte =
-    cutoffStr === null ? [...(eventos || []), ...(arquivo || [])] : eventos || [];
+  const fonte = cutoffStr === null ? [...(eventos || []), ...(arquivo || [])] : eventos || [];
   fonte.forEach((ev) => {
     if (!ev || ev.status !== 'estudei') return;
     const studyDate = ev.dataEstudo || ev.data;
@@ -223,7 +228,7 @@ export function computeWeakPoints({
   let globalAcertos = 0;
   let globalRespondidas = 0;
   disciplinas.forEach((disc) => {
-    disc.assuntos.forEach((bucket) => {
+    disc.aulas.forEach((bucket) => {
       globalAcertos += bucket.acertos;
       globalRespondidas += bucket.acertos + bucket.erros;
     });
@@ -234,13 +239,13 @@ export function computeWeakPoints({
   const ranking = [];
   const semQuestoes = [];
   disciplinas.forEach((disc) => {
-    disc.assuntos.forEach((bucket) => {
+    disc.aulas.forEach((bucket) => {
       const respondidas = finalizeTaxa(bucket);
       if (bucket.total === 0) {
         semQuestoes.push({
-          assId: bucket.assId,
+          aulaId: bucket.aulaId,
           nome: bucket.nome,
-          concluido: bucket.concluido,
+          estudada: bucket.estudada,
           discId: bucket.discId,
           discNome: bucket.discNome,
           editalId: bucket.editalId,

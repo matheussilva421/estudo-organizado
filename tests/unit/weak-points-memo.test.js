@@ -33,7 +33,14 @@ function buildArgs(overrides = {}) {
         disciplinas: [
           createDisciplina({
             id: 'disc_1',
-            assuntos: [createAssunto({ id: 'ass_1', nome: 'Licitações' })],
+            assuntos: [
+              createAssunto({
+                id: 'ass_1',
+                nome: 'Licitações',
+                linkedAulaIds: ['aula_1'],
+              }),
+            ],
+            aulas: [{ id: 'aula_1', nome: 'Licitações', estudada: false }],
           }),
         ],
       }),

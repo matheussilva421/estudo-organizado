@@ -13,6 +13,8 @@ describe('views.js - addEventoParaAssunto com assunto concluído', () => {
 
   const assuntoPendente = { id: 'ass_pend', nome: 'Assunto Pendente', concluido: false };
   const assuntoConcluido = { id: 'ass_done', nome: 'Assunto Concluído', concluido: true };
+  const aulaPendente = { id: 'aula_pend', nome: 'Aula Pendente', estudada: false };
+  const aulaEstudada = { id: 'aula_done', nome: 'Aula Estudada', estudada: true };
 
   beforeEach(async () => {
     vi.resetModules();
@@ -26,7 +28,7 @@ describe('views.js - addEventoParaAssunto com assunto concluído', () => {
           cor: '#ff0000',
           icone: '📚',
           assuntos: [assuntoPendente, assuntoConcluido],
-          aulas: [],
+          aulas: [aulaPendente, aulaEstudada],
         },
         edital: { id: 'ed_1', nome: 'Edital A', cor: '#00ff00' },
       })),
@@ -46,6 +48,11 @@ describe('views.js - addEventoParaAssunto com assunto concluído', () => {
           '<option value="">Sem tópico específico</option>' +
           `<option value="${assuntoPendente.id}">${assuntoPendente.nome}</option>`;
         document.getElementById('event-assunto-group').style.display = '';
+        const aulaSel = document.getElementById('event-aula');
+        aulaSel.innerHTML =
+          '<option value="">Sem aula específica</option>' +
+          `<option value="${aulaPendente.id}">${aulaPendente.nome}</option>`;
+        document.getElementById('event-aula-group').style.display = '';
       }),
     };
 
@@ -91,6 +98,9 @@ describe('views.js - addEventoParaAssunto com assunto concluído', () => {
       <div id="event-assunto-group" style="display:none">
         <select id="event-assunto"></select>
       </div>
+      <div id="event-aula-group" style="display:none">
+        <select id="event-aula"></select>
+      </div>
       <input id="event-titulo">
     `;
 
@@ -119,6 +129,17 @@ describe('views.js - addEventoParaAssunto com assunto concluído', () => {
     // grupo visível mesmo que loadAssuntos o tivesse escondido
     expect(document.getElementById('event-assunto-group').style.display).not.toBe('none');
     expect(document.getElementById('event-titulo').value).toBe('Assunto Concluído');
+  });
+
+  it('pré-seleciona aula estudada pela convenção aul_<id>', () => {
+    views.addEventoParaAssunto('ed_1', 'disc_1', 'aul_aula_done');
+    vi.advanceTimersByTime(200);
+
+    const aulaSel = document.getElementById('event-aula');
+    expect(aulaSel.value).toBe('aula_done');
+    expect(aulaSel.querySelector('option[value="aula_done"]')).not.toBeNull();
+    expect(document.getElementById('event-aula-group').style.display).not.toBe('none');
+    expect(document.getElementById('event-titulo').value).toBe('Aula Estudada');
   });
 });
 
