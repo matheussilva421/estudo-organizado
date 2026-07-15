@@ -44,5 +44,5 @@ Substituir o eixo de tópicos do edital por aulas na aba **Pontos Fracos**, pres
 ## Estado do Git
 
 - A alteração preexistente em `.ai/history/2026-07/2026-07-15/checkpoints.md` não pertence a esta implementação e deve permanecer fora do commit.
-- Próxima ação: revisar `git diff --check`, criar commit convencional apenas com os arquivos acima e este handoff, e enviar `main` para `origin`.
-
+- Implementação publicada em `origin/main` no commit `9b449f8` (`feat(pontos-fracos): agrupa desempenho por aulas`).
+- Nenhuma ação funcional pendente; a próxima sessão deve apenas reconciliar o Git remoto e preservar o checkpoint `.ai` local.
