@@ -29,6 +29,7 @@ import {
   MATERIAIS,
   renderRegistroForm,
   renderConditionalFields,
+  renderProgressoTopico,
   renderTopicosList,
 } from './registro-sessao/modal-renderer.js?v=8.37';
 import { performSave } from './registro-sessao/session-save.js?v=8.37';
@@ -70,6 +71,32 @@ function renderSessionTopicosList() {
   container.innerHTML = renderTopicosList({ topicos: _sessionTopicos, discId });
 }
 
+/**
+ * Re-renderiza as seções derivadas da lista de tópicos: #reg-resultados
+ * (resumo somado no modo multi-tópico, inputs globais no legado) e
+ * #reg-progresso (nota por item vs select global). Containers separados de
+ * #reg-topicos-lista — o input em foco na lista não é destruído.
+ */
+function refreshDerivedSections() {
+  const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
+  const resultados = document.getElementById('reg-resultados');
+  if (resultados) {
+    const aulaId = document.getElementById('reg-aula')?.value || _currentEv?.aulaId || '';
+    resultados.innerHTML = renderConditionalFields({
+      selectedTipos: _selectedTipos,
+      selectedMateriais: _selectedMateriais,
+      sessao: _currentEv?.sessao || {},
+      discId,
+      aulaId,
+      sessionTopicos: _sessionTopicos,
+    });
+  }
+  const progresso = document.getElementById('reg-progresso');
+  if (progresso) {
+    progresso.innerHTML = renderProgressoTopico({ sessionTopicos: _sessionTopicos, discId });
+  }
+}
+
 export function addTopicoSessao() {
   const discId = document.getElementById('reg-disciplina')?.value;
   if (!discId) {
@@ -98,38 +125,41 @@ export function addTopicoSessao() {
   });
   _sessionTopicosDiscId = discId;
   renderSessionTopicosList();
+  refreshDerivedSections();
 }
 
 export function removeTopicoSessao(idx) {
   if (!Number.isInteger(idx) || idx < 0 || idx >= _sessionTopicos.length) return;
   _sessionTopicos.splice(idx, 1);
   renderSessionTopicosList();
+  refreshDerivedSections();
 }
 
 /**
  * Atualiza um campo de um item da lista (inputs com data-topico-idx). Não
- * re-renderiza — o valor mora no input; a lista é a fonte no save.
+ * re-renderiza a lista (o valor mora no input), mas atualiza o resumo
+ * derivado em #reg-resultados/#reg-progresso.
  */
 export function updateTopicoField(idx, field, value) {
   const item = _sessionTopicos[idx];
   if (!item) return;
   if (field === 'status') {
     item.statusTopico = value || 'em_andamento';
-    return;
-  }
-  if (field === 'pag-total') {
+  } else if (field === 'pag-total') {
     const total = parseInt(value, 10) || 0;
     item.paginas = total > 0 ? { modo: 'simples', total } : null;
+  } else if (field === 'q-total' || field === 'q-acertos' || field === 'q-erros') {
+    const questoes = item.questoes || { total: 0, acertos: 0, erros: 0 };
+    const num = parseInt(value, 10) || 0;
+    if (field === 'q-total') questoes.total = num;
+    else if (field === 'q-acertos') questoes.acertos = num;
+    else questoes.erros = num;
+    item.questoes =
+      questoes.total > 0 || questoes.acertos > 0 || questoes.erros > 0 ? questoes : null;
+  } else {
     return;
   }
-  const questoes = item.questoes || { total: 0, acertos: 0, erros: 0 };
-  const num = parseInt(value, 10) || 0;
-  if (field === 'q-total') questoes.total = num;
-  else if (field === 'q-acertos') questoes.acertos = num;
-  else if (field === 'q-erros') questoes.erros = num;
-  else return;
-  item.questoes =
-    questoes.total > 0 || questoes.acertos > 0 || questoes.erros > 0 ? questoes : null;
+  refreshDerivedSections();
 }
 
 // =============================================
@@ -243,19 +273,7 @@ export function toggleStudyType(typeId) {
   const chip = document.querySelector(`[data-tipo="${typeId}"]`);
   if (chip) chip.classList.toggle('chip-active');
 
-  // Re-render conditional fields
-  const container = document.getElementById('reg-resultados');
-  if (container) {
-    const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
-    const aulaId = document.getElementById('reg-aula')?.value || _currentEv?.aulaId || '';
-    container.innerHTML = renderConditionalFields({
-      selectedTipos: _selectedTipos,
-      selectedMateriais: _selectedMateriais,
-      sessao: _currentEv.sessao || {},
-      discId,
-      aulaId,
-    });
-  }
+  refreshDerivedSections();
 }
 
 export function toggleMaterial(matId) {
@@ -267,19 +285,7 @@ export function toggleMaterial(matId) {
   const chip = document.querySelector(`[data-mat="${matId}"]`);
   if (chip) chip.classList.toggle('chip-active');
 
-  // Re-render conditional fields (materials affect page fields)
-  const container = document.getElementById('reg-resultados');
-  if (container) {
-    const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
-    const aulaId = document.getElementById('reg-aula')?.value || _currentEv?.aulaId || '';
-    container.innerHTML = renderConditionalFields({
-      selectedTipos: _selectedTipos,
-      selectedMateriais: _selectedMateriais,
-      sessao: _currentEv.sessao || {},
-      discId,
-      aulaId,
-    });
-  }
+  refreshDerivedSections();
 }
 
 function buildAulaOptions(aulas, linkedIds = new Set()) {
@@ -312,6 +318,7 @@ export function onDisciplinaChange() {
   if (_sessionTopicos.length > 0 && discId !== _sessionTopicosDiscId) {
     _sessionTopicos = [];
     renderSessionTopicosList();
+    refreshDerivedSections();
     showToast('Lista de tópicos esvaziada: a sessão é de uma única disciplina.', 'info');
   }
   _sessionTopicosDiscId = discId || '';

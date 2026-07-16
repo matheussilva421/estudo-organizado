@@ -79,6 +79,15 @@ test.describe('Registro de sessão multi-tópico', () => {
     await page.fill('[data-topico-idx="1"][data-field="q-total"]', '5');
     await page.fill('[data-topico-idx="1"][data-field="q-acertos"]', '5');
 
+    // Seções unificadas: resultados viram resumo somado (sem inputs globais)
+    // e o progresso vira nota por item (sem o select global).
+    await expect(page.locator('#reg-resultados')).toContainText('Somado automaticamente');
+    await expect(page.locator('#reg-resultados')).toContainText('87% de aproveitamento'); // 13/15
+    await expect(page.locator('#reg-q-total')).toHaveCount(0);
+    await expect(page.locator('#reg-status-topico')).toHaveCount(0);
+    await expect(page.locator('#reg-progresso')).toContainText('definido por item');
+    await expect(page.locator('.reg-progresso-pill-done')).toHaveCount(1);
+
     await page.click('[data-action="toggle-study-type"][data-tipo="questoes"]');
     await page.click('[data-action="save-registro-sessao"]');
     await expect(modal).not.toHaveClass(/open/);
