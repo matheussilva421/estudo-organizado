@@ -19,6 +19,15 @@ No modal "Registro da Sessão de Estudo", quando a lista multi-tópico tem itens
 - `tests/unit/registro-sessao-topicos-ui.test.js` — +6 testes (describe "unificação das seções duplicadas"): resumo sem inputs globais com somas corretas, legado intacto, vídeoaula editável, `renderProgressoTopico` nos dois modos, containers no form, re-render ao vivo em add/update/remove.
 - `tests/e2e/sessao-multi-topico.spec.js` — asserts do resumo (87% de aproveitamento, ausência de `#reg-q-total`/`#reg-status-topico`, pill de finalizado).
 
+## Revisão pós-implementação (mesma sessão)
+
+Code review com 5 finders + verificação encontrou e corrigiu 2 regressões introduzidas pelo `refreshDerivedSections`:
+
+1. **Status legado resetado por chips**: alternar chip de tipo/material re-renderizava `#reg-progresso` e voltava o select `#reg-status-topico` para "Em andamento". Fix: `renderProgressoTopico` aceita `statusAtual` e o helper captura/restaura o valor do select antes/depois do re-render.
+2. **Vídeoaula apagada ao editar itens**: os inputs `#reg-video-titulo/tempo` vivem dentro de `#reg-resultados` e eram destruídos a cada tecla nos campos da lista. Fix: captura/restauração dos valores no `refreshDerivedSections`.
+
+Achados menores registrados e **não corrigidos** (baixo valor/escopo): triplicação dos rótulos de status em `modal-renderer.js` (pré-existente em 2 dos 3 lugares), valores globais digitados não migram para o 1º item ao adicionar tópico, rebuild integral do resumo a cada tecla (aceitável para listas pequenas), divisão de modos via boolean `hasTopicos` dentro dos renderers.
+
 ## Estado atual
 
 - Suíte unit completa: **2237/2237 verdes** (139 arquivos).

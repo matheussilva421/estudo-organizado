@@ -89,6 +89,16 @@ test.describe('Registro de sessão multi-tópico', () => {
     await expect(page.locator('.reg-progresso-pill-done')).toHaveCount(1);
 
     await page.click('[data-action="toggle-study-type"][data-tipo="questoes"]');
+
+    // Vídeoaula é editável no modo multi-tópico e o que foi digitado sobrevive
+    // à edição de campos da lista (re-render do resumo não pode apagar).
+    await page.click('[data-action="toggle-study-type"][data-tipo="videoaula"]');
+    await page.fill('#reg-video-titulo', 'Aula 07 - Concurso de Pessoas');
+    await page.fill('#reg-video-tempo', '45');
+    await page.fill('[data-topico-idx="1"][data-field="q-erros"]', '0');
+    await expect(page.locator('#reg-video-titulo')).toHaveValue('Aula 07 - Concurso de Pessoas');
+    await expect(page.locator('#reg-video-tempo')).toHaveValue('45');
+
     await page.click('[data-action="save-registro-sessao"]');
     await expect(modal).not.toHaveClass(/open/);
 
@@ -130,5 +140,47 @@ test.describe('Registro de sessão multi-tópico', () => {
     });
     await expect(page.locator('.reg-topico-item')).toHaveCount(2);
     await expect(page.locator('[data-topico-idx="0"][data-field="q-total"]')).toHaveValue('10');
+  });
+
+  test('modo legado preserva o status do tópico ao alternar chips', async ({ page }) => {
+    const state = createE2EState();
+    state.eventos.push({
+      id: 'ev_legado',
+      titulo: 'Sessao legado',
+      data: new Date().toISOString().slice(0, 10),
+      dataEstudo: null,
+      duracao: 60,
+      status: 'agendado',
+      tempoAcumulado: 1800,
+      tipo: 'conteudo',
+      discId: 'disc_1',
+      assId: null,
+      habito: null,
+      criadoEm: '2026-04-20T10:00:00.000Z',
+    });
+
+    await seedLegacyState(page, state);
+    await page.goto('/');
+    await page.waitForFunction(
+      () =>
+        typeof window.openRegistroSessao === 'function' &&
+        window.EstudoApp?.state?.eventos?.some((e) => e.id === 'ev_legado')
+    );
+
+    await page.evaluate(() => {
+      window.openRegistroSessao('ev_legado');
+    });
+    await expect(page.locator('#modal-registro-sessao')).toBeVisible();
+
+    await page.selectOption('#reg-disciplina', 'disc_1');
+    await page.selectOption('#reg-assunto', 'ass_1');
+    await page.selectOption('#reg-status-topico', 'finalizado');
+
+    // Alternar chips re-renderiza as seções derivadas — a escolha do usuário
+    // no select global não pode ser resetada para 'em_andamento'.
+    await page.click('[data-action="toggle-study-type"][data-tipo="leitura"]');
+    await page.click('[data-action="toggle-material"][data-mat="pdf"]');
+
+    await expect(page.locator('#reg-status-topico')).toHaveValue('finalizado');
   });
 });

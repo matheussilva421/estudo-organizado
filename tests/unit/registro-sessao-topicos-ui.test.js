@@ -409,6 +409,19 @@ describe('unificação das seções duplicadas — resumo derivado no modo multi
     expect(legado).toContain('id="reg-status-topico"');
   });
 
+  it('renderProgressoTopico legado marca statusAtual como selecionado', () => {
+    const finalizado = renderer.renderProgressoTopico({
+      sessionTopicos: [],
+      discId: '',
+      statusAtual: 'finalizado',
+    });
+    expect(finalizado).toContain('value="finalizado" selected');
+    expect(finalizado).not.toContain('value="em_andamento" selected');
+
+    const padrao = renderer.renderProgressoTopico({ sessionTopicos: [], discId: '' });
+    expect(padrao).toContain('value="em_andamento" selected');
+  });
+
   it('renderRegistroForm envolve o progresso em container re-renderizável', () => {
     const baseArgs = {
       ev: { id: 'ev_ui', discId: 'disc_a', tempoAcumulado: 0, sessao: {} },

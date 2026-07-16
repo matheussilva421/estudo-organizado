@@ -299,7 +299,7 @@ export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessi
 
     <!-- 5) PROGRESSO DO TÓPICO -->
     <div id="reg-progresso">
-      ${renderProgressoTopico({ sessionTopicos, discId })}
+      ${renderProgressoTopico({ sessionTopicos, discId, statusAtual: ev.sessao?.statusTopico })}
     </div>
 
     <!-- 6) COMENTÁRIOS -->
@@ -522,23 +522,26 @@ const STATUS_TOPICO_LABEL = {
 
 /**
  * Bloco "Progresso do tópico". Legado (lista vazia): select global
- * #reg-status-topico, como sempre. Multi-tópico: o status vem de cada item
+ * #reg-status-topico com statusAtual selecionado — re-renders não podem
+ * resetar a escolha do usuário. Multi-tópico: o status vem de cada item
  * da lista (o select global seria ignorado no save), então vira uma nota
  * com o status por item.
  */
-export function renderProgressoTopico({ sessionTopicos = [], discId = '' }) {
+export function renderProgressoTopico({ sessionTopicos = [], discId = '', statusAtual = 'em_andamento' }) {
   const hasTopicos = Array.isArray(sessionTopicos) && sessionTopicos.length > 0;
 
   if (!hasTopicos) {
+    const atual = STATUS_TOPICO_LABEL[statusAtual] ? statusAtual : 'em_andamento';
+    const sel = (v) => (atual === v ? ' selected' : '');
     return `
       <div class="reg-block">
         <h3 class="reg-block-title">📈 Progresso do tópico</h3>
         <div class="reg-field">
           <label class="reg-label">Status do tópico/assunto</label>
           <select id="reg-status-topico" class="reg-select">
-            <option value="nao_iniciado">Não iniciado</option>
-            <option value="em_andamento" selected>Em andamento</option>
-            <option value="finalizado">Finalizado nesta sessão ✅</option>
+            <option value="nao_iniciado"${sel('nao_iniciado')}>Não iniciado</option>
+            <option value="em_andamento"${sel('em_andamento')}>Em andamento</option>
+            <option value="finalizado"${sel('finalizado')}>Finalizado nesta sessão ✅</option>
           </select>
         </div>
       </div>

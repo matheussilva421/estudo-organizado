@@ -74,10 +74,17 @@ function renderSessionTopicosList() {
 /**
  * Re-renderiza as seções derivadas da lista de tópicos: #reg-resultados
  * (resumo somado no modo multi-tópico, inputs globais no legado) e
- * #reg-progresso (nota por item vs select global). Containers separados de
- * #reg-topicos-lista — o input em foco na lista não é destruído.
+ * #reg-progresso (nota por item vs select global). Os inputs da lista em
+ * #reg-topicos-lista ficam fora dos containers re-renderizados, mas os
+ * campos editáveis que vivem DENTRO deles (vídeoaula e o select de status
+ * legado) guardam valor só no DOM — são capturados antes e restaurados
+ * depois para o re-render não apagar o que o usuário digitou/escolheu.
  */
 function refreshDerivedSections() {
+  const videoTitulo = document.getElementById('reg-video-titulo')?.value;
+  const videoTempo = document.getElementById('reg-video-tempo')?.value;
+  const statusAtual = document.getElementById('reg-status-topico')?.value;
+
   const discId = document.getElementById('reg-disciplina')?.value || _currentEv?.discId || '';
   const resultados = document.getElementById('reg-resultados');
   if (resultados) {
@@ -90,10 +97,18 @@ function refreshDerivedSections() {
       aulaId,
       sessionTopicos: _sessionTopicos,
     });
+    const tituloEl = document.getElementById('reg-video-titulo');
+    if (tituloEl && videoTitulo !== undefined) tituloEl.value = videoTitulo;
+    const tempoEl = document.getElementById('reg-video-tempo');
+    if (tempoEl && videoTempo !== undefined) tempoEl.value = videoTempo;
   }
   const progresso = document.getElementById('reg-progresso');
   if (progresso) {
-    progresso.innerHTML = renderProgressoTopico({ sessionTopicos: _sessionTopicos, discId });
+    progresso.innerHTML = renderProgressoTopico({
+      sessionTopicos: _sessionTopicos,
+      discId,
+      statusAtual: statusAtual || _currentEv?.sessao?.statusTopico,
+    });
   }
 }
 
