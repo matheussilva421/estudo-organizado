@@ -1440,6 +1440,47 @@ button.cal-event-chip:focus-visible {
   margin-bottom: 12px;
 }
 
+/* Resumo derivado (modo multi-tópico): somatório somente-leitura da lista */
+.reg-results-derived {
+  border-color: var(--green);
+}
+
+.reg-results-derived .reg-feedback-text {
+  color: var(--green);
+  margin-top: 10px;
+}
+
+.reg-results-derived .reg-note {
+  margin-top: 8px;
+}
+
+/* Progresso do tópico (modo multi-tópico): status por item da lista */
+.reg-progresso-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.reg-progresso-pill {
+  font-size: 12px;
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reg-progresso-pill-done {
+  border-color: var(--green);
+  background: var(--success-bg);
+  color: var(--green);
+}
+
 @media (max-width: 600px) {
   .reg-summary-grid {
     grid-template-columns: repeat(2, 1fr);

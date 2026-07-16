@@ -326,3 +326,145 @@ describe('registro multi-tópico — estado e ações da UI', () => {
     expect(form).toContain('id="reg-topicos-lista"');
   });
 });
+
+describe('unificação das seções duplicadas — resumo derivado no modo multi-tópico', () => {
+  const topicosDemo = [
+    {
+      assId: 'ass_1',
+      aulaId: null,
+      questoes: { total: 10, acertos: 8, erros: 2 },
+      paginas: { modo: 'simples', total: 12 },
+      statusTopico: 'finalizado',
+    },
+    {
+      assId: 'ass_2',
+      aulaId: null,
+      questoes: { total: 5, acertos: 3, erros: 2 },
+      paginas: null,
+      statusTopico: 'em_andamento',
+    },
+  ];
+
+  it('renderConditionalFields com lista vira resumo somente-leitura, sem inputs globais', () => {
+    const html = renderer.renderConditionalFields({
+      selectedTipos: ['questoes', 'leitura'],
+      selectedMateriais: [],
+      sessao: {},
+      discId: '',
+      aulaId: '',
+      sessionTopicos: topicosDemo,
+    });
+
+    expect(html).not.toContain('id="reg-q-total"');
+    expect(html).not.toContain('id="reg-q-acertos"');
+    expect(html).not.toContain('id="reg-q-erros"');
+    expect(html).not.toContain('id="reg-pag-total"');
+    expect(html).not.toContain('id="reg-pag-inicio"');
+    expect(html).toContain('Somado automaticamente');
+    expect(html).toContain('>15<'); // questões: 10 + 5
+    expect(html).toContain('>11<'); // acertos: 8 + 3
+    expect(html).toContain('>4<'); // erros: 2 + 2
+    expect(html).toContain('>12<'); // páginas: 12 + 0
+    expect(html).toContain('73%'); // aproveitamento 11/15
+  });
+
+  it('renderConditionalFields com lista vazia mantém os campos globais editáveis (legado)', () => {
+    const html = renderer.renderConditionalFields({
+      selectedTipos: ['questoes'],
+      selectedMateriais: [],
+      sessao: {},
+      discId: '',
+      aulaId: '',
+      sessionTopicos: [],
+    });
+    expect(html).toContain('id="reg-q-total"');
+    expect(html).toContain('id="reg-q-acertos"');
+  });
+
+  it('vídeoaula continua editável no modo multi-tópico (não tem equivalente por item)', () => {
+    const html = renderer.renderConditionalFields({
+      selectedTipos: ['videoaula'],
+      selectedMateriais: [],
+      sessao: {},
+      discId: '',
+      aulaId: '',
+      sessionTopicos: topicosDemo,
+    });
+    expect(html).toContain('id="reg-video-titulo"');
+    expect(html).toContain('id="reg-video-tempo"');
+  });
+
+  it('renderProgressoTopico: nota por item no multi-tópico, select no legado', () => {
+    setupState();
+    const multi = renderer.renderProgressoTopico({
+      sessionTopicos: topicosDemo,
+      discId: 'disc_a',
+    });
+    expect(multi).not.toContain('id="reg-status-topico"');
+    expect(multi).toContain('definido por item');
+    expect(multi).toContain('Topico 1');
+    expect(multi).toContain('Finalizado');
+
+    const legado = renderer.renderProgressoTopico({ sessionTopicos: [], discId: '' });
+    expect(legado).toContain('id="reg-status-topico"');
+  });
+
+  it('renderProgressoTopico legado marca statusAtual como selecionado', () => {
+    const finalizado = renderer.renderProgressoTopico({
+      sessionTopicos: [],
+      discId: '',
+      statusAtual: 'finalizado',
+    });
+    expect(finalizado).toContain('value="finalizado" selected');
+    expect(finalizado).not.toContain('value="em_andamento" selected');
+
+    const padrao = renderer.renderProgressoTopico({ sessionTopicos: [], discId: '' });
+    expect(padrao).toContain('value="em_andamento" selected');
+  });
+
+  it('renderRegistroForm envolve o progresso em container re-renderizável', () => {
+    const baseArgs = {
+      ev: { id: 'ev_ui', discId: 'disc_a', tempoAcumulado: 0, sessao: {} },
+      sessionStartTime: null,
+      sessionEndTime: null,
+      sessionMode: 'cronometro',
+      selectedTipos: ['questoes'],
+      selectedMateriais: [],
+    };
+
+    const formMulti = renderer.renderRegistroForm({ ...baseArgs, sessionTopicos: topicosDemo });
+    expect(formMulti).toContain('id="reg-progresso"');
+    expect(formMulti).not.toContain('id="reg-status-topico"');
+    expect(formMulti).toContain('Somado automaticamente');
+    expect(formMulti).not.toContain('id="reg-q-total"');
+
+    const formLegado = renderer.renderRegistroForm({ ...baseArgs, sessionTopicos: [] });
+    expect(formLegado).toContain('id="reg-progresso"');
+    expect(formLegado).toContain('id="reg-status-topico"');
+    expect(formLegado).toContain('id="reg-q-total"');
+  });
+
+  it('add/update/remove de itens re-renderizam resumo e progresso ao vivo', () => {
+    setupState({ evento: { sessao: { tiposEstudo: ['questoes'] } } });
+    registro.openRegistroSessao('ev_ui');
+    document.getElementById('reg-disciplina').value = 'disc_a';
+    document.getElementById('reg-assunto').value = 'ass_1';
+    document.getElementById('reg-aula').value = '';
+
+    registro.addTopicoSessao();
+    const resultados = document.getElementById('reg-resultados');
+    const progresso = document.getElementById('reg-progresso');
+    expect(resultados.innerHTML).toContain('Somado automaticamente');
+    expect(resultados.innerHTML).not.toContain('id="reg-q-total"');
+    expect(progresso.innerHTML).not.toContain('id="reg-status-topico"');
+    expect(progresso.innerHTML).toContain('definido por item');
+
+    registro.updateTopicoField(0, 'q-total', '10');
+    registro.updateTopicoField(0, 'q-acertos', '8');
+    expect(resultados.innerHTML).toContain('80%');
+
+    registro.removeTopicoSessao(0);
+    expect(resultados.innerHTML).toContain('id="reg-q-total"');
+    expect(progresso.innerHTML).toContain('id="reg-status-topico"');
+  });
+});

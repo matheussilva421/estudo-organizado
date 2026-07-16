@@ -6,6 +6,7 @@
 import { state } from '../store.js?v=8.37';
 import { getActiveDisciplinas, getDisc } from '../logic.js?v=8.37';
 import { todayStr, esc, trunc } from '../utils.js?v=8.37';
+import { sumTopicQuestoes, sumTopicPaginas } from './session-topics.js';
 
 // =============================================
 // STUDY TYPES & MATERIALS DEFINITIONS
@@ -293,20 +294,12 @@ export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessi
 
     <!-- 4) RESULTADOS DA SESSÃO -->
     <div id="reg-resultados">
-      ${renderConditionalFields({ selectedTipos, selectedMateriais, sessao: ev.sessao || {}, discId, aulaId })}
+      ${renderConditionalFields({ selectedTipos, selectedMateriais, sessao: ev.sessao || {}, discId, aulaId, sessionTopicos })}
     </div>
 
     <!-- 5) PROGRESSO DO TÓPICO -->
-    <div class="reg-block">
-      <h3 class="reg-block-title">📈 Progresso do tópico</h3>
-      <div class="reg-field">
-        <label class="reg-label">Status do tópico/assunto</label>
-        <select id="reg-status-topico" class="reg-select">
-          <option value="nao_iniciado">Não iniciado</option>
-          <option value="em_andamento" selected>Em andamento</option>
-          <option value="finalizado">Finalizado nesta sessão ✅</option>
-        </select>
-      </div>
+    <div id="reg-progresso">
+      ${renderProgressoTopico({ sessionTopicos, discId, statusAtual: ev.sessao?.statusTopico })}
     </div>
 
     <!-- 6) COMENTÁRIOS -->
@@ -361,18 +354,63 @@ export function renderRegistroForm({ ev, sessionStartTime, sessionEndTime, sessi
 // CONDITIONAL FIELDS (Resultados)
 // =============================================
 
-export function renderConditionalFields({ selectedTipos, selectedMateriais, sessao, discId, aulaId }) {
-  const showQuestoes = selectedTipos.includes('questoes') || selectedTipos.includes('simulado');
+/**
+ * Resumo somente-leitura dos resultados no modo multi-tópico: questões e
+ * páginas são somadas dos itens da lista (mesma derivação do save) — os
+ * inputs globais (#reg-q-… e #reg-pag-…) não existem neste modo.
+ */
+function renderResultadosDerivados({ sessionTopicos, showVideo }) {
+  const questoes = sumTopicQuestoes(sessionTopicos) || { total: 0, acertos: 0, erros: 0 };
+  const paginas = sumTopicPaginas(sessionTopicos);
+  const pct = questoes.total > 0 ? Math.round((questoes.acertos / questoes.total) * 100) : null;
+
+  return `
+    <div class="reg-results-card reg-results-derived">
+      <div class="reg-results-header">📋 Somatório da lista de tópicos</div>
+      <div class="reg-summary-grid">
+        <div class="reg-stat">
+          <div class="reg-stat-label">Questões</div>
+          <div class="reg-stat-value">${questoes.total}</div>
+        </div>
+        <div class="reg-stat">
+          <div class="reg-stat-label reg-label-positive">Acertos</div>
+          <div class="reg-stat-value">${questoes.acertos}</div>
+        </div>
+        <div class="reg-stat">
+          <div class="reg-stat-label reg-label-negative">Erros</div>
+          <div class="reg-stat-value">${questoes.erros}</div>
+        </div>
+        <div class="reg-stat">
+          <div class="reg-stat-label">Páginas</div>
+          <div class="reg-stat-value">${paginas?.total || 0}</div>
+        </div>
+      </div>
+      ${pct !== null ? `<div class="reg-feedback-text">${pct}% de aproveitamento</div>` : ''}
+      <div class="reg-note text-secondary">
+        Somado automaticamente dos itens da lista de tópicos${showVideo ? ' — só a vídeoaula é preenchida aqui' : ''}.
+      </div>
+    </div>
+  `;
+}
+
+export function renderConditionalFields({ selectedTipos, selectedMateriais, sessao, discId, aulaId, sessionTopicos = [] }) {
+  const hasTopicos = Array.isArray(sessionTopicos) && sessionTopicos.length > 0;
+  const showQuestoes = !hasTopicos && (selectedTipos.includes('questoes') || selectedTipos.includes('simulado'));
   const showPaginas =
-    ['leitura', 'informativo', 'sumula'].some((t) => selectedTipos.includes(t)) ||
-    ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some((m) => selectedMateriais.includes(m));
+    !hasTopicos &&
+    (['leitura', 'informativo', 'sumula'].some((t) => selectedTipos.includes(t)) ||
+      ['pdf', 'livro', 'lei_seca', 'informativo_mat'].some((m) => selectedMateriais.includes(m)));
   const showVideo = selectedTipos.includes('videoaula');
 
-  if (!showQuestoes && !showPaginas && !showVideo) {
+  if (!hasTopicos && !showQuestoes && !showPaginas && !showVideo) {
     return '<div class="reg-block reg-no-results"><em>Selecione tipos de estudo para preencher resultados</em></div>';
   }
 
   let html = '<div class="reg-block"><h3 class="reg-block-title">📊 Resultados da sessão</h3>';
+
+  if (hasTopicos) {
+    html += renderResultadosDerivados({ sessionTopicos, showVideo });
+  }
 
   if (showQuestoes) {
     const qs = sessao.questoes || {};
@@ -470,4 +508,60 @@ export function renderConditionalFields({ selectedTipos, selectedMateriais, sess
 
   html += '</div>';
   return html;
+}
+
+// =============================================
+// PROGRESSO DO TÓPICO
+// =============================================
+
+const STATUS_TOPICO_LABEL = {
+  nao_iniciado: 'Não iniciado',
+  em_andamento: 'Em andamento',
+  finalizado: 'Finalizado ✅',
+};
+
+/**
+ * Bloco "Progresso do tópico". Legado (lista vazia): select global
+ * #reg-status-topico com statusAtual selecionado — re-renders não podem
+ * resetar a escolha do usuário. Multi-tópico: o status vem de cada item
+ * da lista (o select global seria ignorado no save), então vira uma nota
+ * com o status por item.
+ */
+export function renderProgressoTopico({ sessionTopicos = [], discId = '', statusAtual = 'em_andamento' }) {
+  const hasTopicos = Array.isArray(sessionTopicos) && sessionTopicos.length > 0;
+
+  if (!hasTopicos) {
+    const atual = STATUS_TOPICO_LABEL[statusAtual] ? statusAtual : 'em_andamento';
+    const sel = (v) => (atual === v ? ' selected' : '');
+    return `
+      <div class="reg-block">
+        <h3 class="reg-block-title">📈 Progresso do tópico</h3>
+        <div class="reg-field">
+          <label class="reg-label">Status do tópico/assunto</label>
+          <select id="reg-status-topico" class="reg-select">
+            <option value="nao_iniciado"${sel('nao_iniciado')}>Não iniciado</option>
+            <option value="em_andamento"${sel('em_andamento')}>Em andamento</option>
+            <option value="finalizado"${sel('finalizado')}>Finalizado nesta sessão ✅</option>
+          </select>
+        </div>
+      </div>
+    `;
+  }
+
+  const pills = sessionTopicos
+    .map((item) => {
+      const nome = getTopicoItemNome(item, discId);
+      const status = STATUS_TOPICO_LABEL[item.statusTopico] || STATUS_TOPICO_LABEL.em_andamento;
+      const done = item.statusTopico === 'finalizado';
+      return `<span class="reg-progresso-pill ${done ? 'reg-progresso-pill-done' : ''}" title="${esc(nome)}">${esc(trunc(nome, 48))} · ${status}</span>`;
+    })
+    .join('');
+
+  return `
+    <div class="reg-block">
+      <h3 class="reg-block-title">📈 Progresso do tópico</h3>
+      <div class="reg-note text-secondary">O status é definido por item na lista de tópicos acima.</div>
+      <div class="reg-progresso-pills">${pills}</div>
+    </div>
+  `;
 }
