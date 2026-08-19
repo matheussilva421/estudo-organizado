@@ -23,6 +23,8 @@
 !/CHANGELOG.md
 !/LICENSE
 !/wrangler.jsonc
+!/worker/
+!/worker/**
 !/Abrir_Estudo_Organizado.bat
 !/Abrir_Estudo_Organizado_Mock.bat
 !/Abrir_Visual_Layout_Lab.bat
