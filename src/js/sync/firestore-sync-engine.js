@@ -441,6 +441,12 @@ export function initFirestoreSync() {
 
 export async function firestoreSignIn() {
   const credential = await signInWithGoogle();
+  if (credential?.cancelled) {
+    // Usuario fechou o popup: nenhuma navegacao aconteceu, entao a UI volta ao
+    // estado desconectado em vez de ficar presa em "redirecionando".
+    emitStatus('signed-out');
+    return null;
+  }
   if (!credential?.user) {
     emitStatus('redirecting');
     return null;

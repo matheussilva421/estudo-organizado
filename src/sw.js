@@ -1,4 +1,4 @@
-const APP_VERSION = '9.22';
+const APP_VERSION = '9.23';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -259,6 +259,11 @@ self.addEventListener('fetch', (evt) => {
 
   const url = new URL(evt.request.url);
   if (url.origin !== location.origin) return;
+
+  // Rotas reservadas do Firebase (/__/auth/*, /__/firebase/*) sao servidas pelo
+  // proxy do Worker e nunca podem passar pelo cache nem pelo fallback offline —
+  // caso contrario o retorno do login receberia o index.html. Ver issue #99.
+  if (url.pathname.startsWith('/__/')) return;
 
   const dest = evt.request.destination;
 

@@ -38,6 +38,30 @@ describe('Firestore integration contracts', () => {
     expect(clientSource).toContain('completeGoogleRedirectSignIn');
   });
 
+  it('never redirects the whole page when the user closes the popup', () => {
+    const clientSource = read('src/js/firebase/firebase-client.js');
+    const fallbackBlock = clientSource.slice(
+      clientSource.indexOf('POPUP_FALLBACK_CODES'),
+      clientSource.indexOf(']', clientSource.indexOf('POPUP_FALLBACK_CODES'))
+    );
+
+    expect(fallbackBlock).not.toContain('auth/popup-closed-by-user');
+    expect(clientSource).toContain('POPUP_CANCEL_CODES');
+  });
+
+  it('serves the Firebase auth handler from the app origin and keeps it out of the SW', () => {
+    const workerSource = read('worker/index.js');
+    const swSource = read('src/sw.js');
+    const runtimeConfigSource = read('src/js/firebase/firebase-runtime-config.js');
+
+    expect(workerSource).toContain('app-de-estudos-14564.firebaseapp.com');
+    expect(workerSource).toContain("RESERVED_PREFIX = '/__/'");
+    expect(workerSource).toContain('startsWith(RESERVED_PREFIX)');
+    expect(workerSource).toContain("redirect: 'manual'");
+    expect(swSource).toContain("startsWith('/__/')");
+    expect(runtimeConfigSource).toContain('PROXIED_AUTH_HOSTS');
+  });
+
   it('caches all runtime Firestore modules in the service worker shell', () => {
     const swSource = read('src/sw.js');
 

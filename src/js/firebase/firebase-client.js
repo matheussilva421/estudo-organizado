@@ -21,12 +21,17 @@ import {
 
 let services = null;
 
+// Erros em que vale a pena trocar o popup por um redirect de pagina inteira:
+// o popup nao chegou a abrir ou o ambiente nao o suporta.
 const POPUP_FALLBACK_CODES = new Set([
   'auth/cancelled-popup-request',
   'auth/operation-not-supported-in-this-environment',
   'auth/popup-blocked',
-  'auth/popup-closed-by-user',
 ]);
+
+// Erros que significam "o usuario desistiu". Aqui um redirect tiraria a pessoa
+// do app sem que ela tenha pedido — tratamos como cancelamento. Ver issue #99.
+const POPUP_CANCEL_CODES = new Set(['auth/popup-closed-by-user']);
 
 export function isFirebaseConfigured(config = getRuntimeFirebaseConfig()) {
   return Boolean(config.apiKey && config.authDomain && config.projectId && config.appId);
@@ -90,6 +95,7 @@ export async function signInWithGoogle() {
   try {
     return await signInWithPopup(auth, provider);
   } catch (err) {
+    if (POPUP_CANCEL_CODES.has(err?.code)) return { cancelled: true };
     if (!POPUP_FALLBACK_CODES.has(err?.code)) throw err;
     await signInWithRedirect(auth, provider);
     return null;
