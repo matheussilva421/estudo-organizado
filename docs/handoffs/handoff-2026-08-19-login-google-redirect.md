@@ -145,26 +145,74 @@ Resultado: 0 errors, 44 warnings (todos pré-existentes, de estilo)
 
 ---
 
+## Diagnóstico adicional (2026-08-19, com os dashboards em mãos)
+
+Duas consultas diretas ao projeto fecharam o quadro.
+
+### A restrição da API key bloqueava o `firebaseapp.com` — causa original do erro
+
+```txt
+POST identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=<browser key>
+
+Referer: https://estudo-organizado.matheussilva421.workers.dev/  -> 200 OK
+Referer: https://app-de-estudos-14564.firebaseapp.com/           -> 403 API_KEY_HTTP_REFERRER_BLOCKED
+```
+
+A lista "Restrições de sites" da Browser key contém **apenas** os dois `workers.dev`. O handler
+antigo rodava em `firebaseapp.com` e chamava o Identity Toolkit de lá — a própria restrição da
+chave derrubava a chamada, e o handler exibia "The requested action is invalid.".
+
+Isso também significa que **o dev local está quebrado** enquanto a chave não liberar
+`firebaseapp.com` e `localhost`, já que fora dos `PROXIED_AUTH_HOSTS` o `authDomain` continua
+sendo `firebaseapp.com`.
+
+### O `redirect_uri` enviado ao Google passa a ser o domínio do app
+
+```txt
+continueUri = https://estudo-organizado.matheussilva421.workers.dev/__/auth/handler
+-> redirect_uri = https://estudo-organizado.matheussilva421.workers.dev/__/auth/handler
+```
+
+O Identity Toolkit deriva o `redirect_uri` do origin onde o handler roda. Com o proxy, o Google
+recebe o domínio do Worker — que precisa estar registrado no OAuth Client, senão a resposta é
+`Erro 400: redirect_uri_mismatch`.
+
+---
+
 ## PENDENTE — ações manuais nos dashboards
 
-**Nada disso é acionável por código.** A ordem importa: os itens do Firebase precisam estar
-prontos **antes** de o código chegar em produção, senão o login quebra para todos.
+**Nada disso é acionável por código.** Precisa estar pronto **antes** de o código chegar em
+produção, senão o login quebra para todos.
 
 ### Firebase Console — projeto `app-de-estudos-14564`
 
-- [ ] Authentication → Sign-in method → provedor **Google** habilitado.
-- [ ] Authentication → Settings → **Authorized domains**: adicionar
-      `estudo-organizado.matheussilva421.workers.dev`. Manter
-      `app-de-estudos-14564.firebaseapp.com` e `app-de-estudos-14564.web.app`.
+- [x] Authentication → Sign-in method → provedor **Google** habilitado.
+- [x] Authentication → Settings → **Authorized domains**: `estudo-organizado.matheussilva421.workers.dev`
+      presente como Custom, junto com `localhost`, `app-de-estudos-14564.firebaseapp.com` e
+      `app-de-estudos-14564.web.app`. **Verificado 2026-08-19.**
 - [ ] Project settings → conferir se o `firebaseConfig` do Web App bate com
       `src/js/firebase/firebase-runtime-config.js` (apiKey, appId, messagingSenderId).
 
-### Google Cloud Console — mesmo projeto
+### Google Cloud → Credentials → OAuth 2.0 Client ID "Aplicativo da Web" (BLOQUEANTE)
 
-- [ ] APIs & Services → Credentials → API key do Web App: se houver restrição por
-      **HTTP referrers**, incluir `https://estudo-organizado.matheussilva421.workers.dev/*`.
-- [ ] Para isolar o erro, remover a restrição temporariamente e testar; **restaurar depois**.
-- [ ] Conferir que a **Identity Toolkit API** está ativa e não bloqueada pela allowlist da key.
+- [ ] **Origens JavaScript autorizadas**: adicionar
+      `https://estudo-organizado.matheussilva421.workers.dev`.
+      (Hoje só existem `http://localhost`, `http://localhost:5000` e
+      `https://app-de-estudos-14564.firebaseapp.com`.)
+- [ ] **URIs de redirecionamento autorizados**: adicionar
+      `https://estudo-organizado.matheussilva421.workers.dev/__/auth/handler`.
+      (Hoje só existe `https://app-de-estudos-14564.firebaseapp.com/__/auth/handler`.)
+- [ ] Manter as entradas existentes — o dev local ainda usa `firebaseapp.com`.
+
+### Google Cloud → Credentials → Browser key → Restrições de sites
+
+- [x] `https://estudo-organizado.matheussilva421.workers.dev` e `.../*` presentes.
+- [ ] Adicionar `https://app-de-estudos-14564.firebaseapp.com/*` — corrige o erro original e
+      destrava o dev local.
+- [ ] Adicionar `http://localhost/*` e `http://localhost:5000/*` — o app em dev chama o
+      Identity Toolkit direto do localhost.
+- [x] APIs da chave incluem **Identity Toolkit API** (além de Cloud Firestore, App Check,
+      Firebase Installations e Token Service). **Verificado 2026-08-19.**
 
 ### Cloudflare Dashboard — Worker `estudo-organizado`
 
