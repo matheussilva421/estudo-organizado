@@ -165,4 +165,4 @@ O ledger detalhado e os logs de teste ficam em `.superpowers/sdd/2026-10-05-edit
 - Checks/workflows GitHub: nenhum status check ou workflow run associado ao HEAD do PR ou ao merge commit. Gates locais completos passaram no código final.
 - Pós-merge em `main` no commit `bce953445897e8a11b0ddf83faf9d379f07e5af4`: core+view 82/82; `npm run bump:check` sem assets pendentes; `git diff --check` limpo. Full suite no HEAD do PR: `npm test` 145/145 arquivos, 2.344 testes; release E2E 158/158.
 - A issue #100 foi fechada automaticamente pelo `Closes #100` do PR; GitHub retorna `state=closed`, `state_reason=completed`.
-- A atualização documental deste fechamento será adicionada como commit docs-only na `main`; o comentário final da issue registrará o SHA de `main` após esse checkpoint.
+- A atualização documental deste fechamento foi publicada como commit docs-only na `main`; o comentário final da issue registra o SHA de `main` verificado após essa publicação.
