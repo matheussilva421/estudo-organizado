@@ -325,7 +325,10 @@ export function renderEditais(el) {
         <div class="icon">📋</div>
         <h4>Nenhum edital cadastrado</h4>
         <p class="mb-4">Crie seu edital com disciplinas e assuntos para organizar seus estudos.</p>
-        <button class="btn btn-primary" data-action="open-edital-modal"><i class="fa fa-plus"></i> Criar Edital</button>
+        <div class="flex items-center justify-center gap-sm flex-wrap">
+          <button class="btn btn-primary" data-action="open-edital-modal"><i class="fa fa-plus"></i> Criar Edital</button>
+          <button class="btn btn-ghost" data-action="open-edital-import"><i class="fa fa-file-import"></i> Importar Edital (JSON)</button>
+        </div>
       </div>`;
     return;
   }
@@ -340,7 +343,10 @@ export function renderEditais(el) {
           <div class="icon">📋</div>
           <h4>Nenhum edital principal</h4>
           <p class="mb-4">Torne um edital arquivado o principal (abaixo) ou crie um novo.</p>
-          <button class="btn btn-primary" data-action="open-edital-modal"><i class="fa fa-plus"></i> Criar Edital</button>
+          <div class="flex items-center justify-center gap-sm flex-wrap">
+            <button class="btn btn-primary" data-action="open-edital-modal"><i class="fa fa-plus"></i> Criar Edital</button>
+            <button class="btn btn-ghost" data-action="open-edital-import"><i class="fa fa-file-import"></i> Importar Edital (JSON)</button>
+          </div>
         </div>`
       }
     </div>

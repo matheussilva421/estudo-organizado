@@ -284,6 +284,21 @@ describe('views/editais-view.js - render functions', () => {
       storeModule.state.editais = [];
       editaisView.renderEditais(el);
       expect(el.innerHTML).toContain('empty-state');
+      expect(el.innerHTML).toContain('data-action="open-edital-modal"');
+      expect(el.innerHTML).toContain('data-action="open-edital-import"');
+      expect(el.innerHTML).toContain('Importar Edital (JSON)');
+    });
+
+    it('offers JSON import when only archived editais exist', () => {
+      const el = { innerHTML: '' };
+      storeModule.state.editais = [
+        { id: 'ed_old', nome: 'Edital anterior', disciplinas: [], arquivado: true },
+      ];
+
+      editaisView.renderEditais(el);
+
+      expect(el.innerHTML).toContain('Nenhum edital principal');
+      expect(el.innerHTML).toContain('data-action="open-edital-import"');
     });
 
     it('renders every active edital so none is hidden when more than one is active', () => {

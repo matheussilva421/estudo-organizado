@@ -69,6 +69,9 @@ registerAction('open-edital-modal', (el) => {
   const editalId = el.dataset.editalId;
   openEditaModal(editalId || null);
 });
+registerAction('open-edital-import', () =>
+  import('../../views/edital-import.js?v=8.37').then(({ openEditalImport }) => openEditalImport())
+);
 registerAction('save-edital', (el) => {
   const editalId = el.dataset.editalId;
   saveEdital(editalId);

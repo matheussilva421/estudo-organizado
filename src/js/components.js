@@ -427,8 +427,10 @@ export function renderCurrentView() {
         actions.innerHTML =
           '<button class="btn btn-ghost btn-sm" data-action="close-disc-dashboard"><i class="fa fa-arrow-left"></i> Voltar</button>';
       } else {
-        actions.innerHTML =
-          '<button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>';
+        actions.innerHTML = `
+          <button class="btn btn-ghost btn-sm" data-action="open-edital-import"><i class="fa fa-file-import"></i> Importar Edital</button>
+          <button class="btn btn-primary btn-sm" data-action="open-edital-modal"><i class="fa fa-plus"></i> Novo Edital</button>
+        `;
       }
     } else if (currentView === 'ciclo') {
       actions.innerHTML =

@@ -5,6 +5,7 @@ import { createBaseState, createEvento, createDisciplina, createEdital } from '.
 let store;
 let components;
 let logic;
+let app;
 
 /**
  * Setup de mock para elementos DOM
@@ -86,6 +87,7 @@ beforeEach(async () => {
   store = modules.store;
   components = modules.components;
   logic = modules.logic;
+  app = modules.app;
 
   store.setState(createBaseState());
   logic.invalidateDiscCache();
@@ -236,6 +238,23 @@ describe('components.js', () => {
         components.renderCurrentView();
         expect(actionsEl.innerHTML).toContain('open-add-event');
       }
+    });
+
+    it('mostra Importar Edital e Novo Edital no topbar sem dashboard de disciplina', () => {
+      const actionsEl = { innerHTML: '' };
+      document.getElementById = vi.fn((id) => {
+        if (id === 'topbar-title') return { textContent: '' };
+        if (id === 'topbar-date') return { innerHTML: '' };
+        if (id === 'topbar-actions') return actionsEl;
+        if (id === 'main-content') return { innerHTML: '', classList: { toggle: vi.fn() } };
+        return null;
+      });
+      app.navigate('editais');
+
+      expect(actionsEl.innerHTML).toContain('data-action="open-edital-import"');
+      expect(actionsEl.innerHTML).toContain('Importar Edital');
+      expect(actionsEl.innerHTML).toContain('data-action="open-edital-modal"');
+      expect(actionsEl.innerHTML).toContain('Novo Edital');
     });
 
     it('mostra botão de voltar no cronômetro', () => {
