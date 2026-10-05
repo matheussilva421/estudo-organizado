@@ -231,6 +231,35 @@ function buildImportedItemKey(sourceFingerprint, collection, parentName, name) {
   ]);
 }
 
+function compareNormalizedNames(left, right) {
+  const leftName = normalizeEditalImportName(left);
+  const rightName = normalizeEditalImportName(right);
+  if (leftName < rightName) return -1;
+  if (leftName > rightName) return 1;
+  return 0;
+}
+
+function buildNameFallbackImportFingerprint(payload) {
+  const disciplines = payload.disciplinas
+    .map((discipline) => ({
+      nome: normalizeEditalImportName(discipline.nome),
+      topicos: discipline.topicos.map(({ nome }) => normalizeEditalImportName(nome)).sort(),
+      aulas: discipline.aulas.map(({ nome }) => normalizeEditalImportName(nome)).sort(),
+    }))
+    .sort((left, right) => {
+      const byName = compareNormalizedNames(left.nome, right.nome);
+      if (byName !== 0) return byName;
+      const leftValue = JSON.stringify(left);
+      const rightValue = JSON.stringify(right);
+      return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0;
+    });
+
+  return `edital:v1|name-payload:${JSON.stringify({
+    nome: normalizeEditalImportName(payload.nome),
+    disciplinas: disciplines,
+  })}`;
+}
+
 function findPreviouslyImportedMatch(matches, sourceKey) {
   return matches.find((item) => item?._editalImportSourceKey === sourceKey) ?? null;
 }
@@ -268,21 +297,20 @@ function planNestedItems(
       nome: item.nome,
       action,
       existingId: action === 'reuse' ? matches[0].id : null,
-      ...(action !== 'reuse' ? { sourceKey } : {}),
+      ...(action === 'create_conflict' ? { sourceKey } : {}),
       ...(alreadyImported ? { alreadyImportedId: alreadyImported.id } : {}),
       ...(action === 'create_conflict' ? { conflictIds: matches.map(({ id }) => id) } : {}),
     };
   });
 }
 
-function planCreatedNestedItems(importedItems, collection, parentName, sourceFingerprint, summary) {
+function planCreatedNestedItems(importedItems, collection, summary) {
   return importedItems.map((item) => {
     recordMatch(summary, collection, 'create');
     return {
       nome: item.nome,
       action: 'create',
       existingId: null,
-      sourceKey: buildImportedItemKey(sourceFingerprint, collection, parentName, item.nome),
     };
   });
 }
@@ -403,6 +431,9 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
   const summary = createSummary();
   const conflicts = [];
   const sourceIdentity = buildEditalSourceIdentity(canonicalPayload);
+  const conflictSourceFingerprint = sourceIdentity.identityKind === 'name'
+    ? buildNameFallbackImportFingerprint(canonicalPayload)
+    : sourceIdentity.fingerprint;
   const plannedDisciplines = canonicalPayload.disciplinas.map((importedDiscipline) => {
     const matches =
       resolvedDestination.mode === 'merge'
@@ -410,7 +441,7 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
         : [];
     const action = matches.length === 0 ? 'create' : matches.length === 1 ? 'reuse' : 'create_conflict';
     const sourceKey = buildImportedItemKey(
-      sourceIdentity.fingerprint,
+      conflictSourceFingerprint,
       'disciplinas',
       null,
       importedDiscipline.nome
@@ -435,7 +466,7 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
       nome: importedDiscipline.nome,
       action,
       existingId: action === 'reuse' ? existing?.id ?? null : null,
-      ...(action !== 'reuse' ? { sourceKey } : {}),
+      ...(action === 'create_conflict' ? { sourceKey } : {}),
       ...(alreadyImported ? { alreadyImportedId: alreadyImported.id } : {}),
       ...(action === 'create_conflict' ? { conflictIds: matches.map(({ id }) => id) } : {}),
       topicos: canMatchChildren
@@ -446,15 +477,13 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
             'topico',
             parentId,
             importedDiscipline.nome,
-            sourceIdentity.fingerprint,
+            conflictSourceFingerprint,
             summary,
             conflicts
           )
         : planCreatedNestedItems(
             importedDiscipline.topicos,
             'topicos',
-            importedDiscipline.nome,
-            sourceIdentity.fingerprint,
             summary
           ),
       aulas: canMatchChildren
@@ -465,15 +494,13 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
             'aula',
             parentId,
             importedDiscipline.nome,
-            sourceIdentity.fingerprint,
+            conflictSourceFingerprint,
             summary,
             conflicts
           )
         : planCreatedNestedItems(
             importedDiscipline.aulas,
             'aulas',
-            importedDiscipline.nome,
-            sourceIdentity.fingerprint,
             summary
           ),
     };

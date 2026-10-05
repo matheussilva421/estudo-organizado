@@ -133,3 +133,12 @@ O ledger detalhado e os logs de teste ficam em `.superpowers/sdd/2026-10-05-edit
 - O apontamento de import do core sem query foi classificado como não funcional: o service worker precacheia o módulo e usa `ignoreSearch` para o fallback, e o código existente já tem imports internos sem query. Nenhuma query `?v=8.37` existente foi alterada.
 - `core.hooksPath` confirmado como `.githooks`; o pre-commit atualiza automaticamente `APP_VERSION`/cache quando assets `src/` entram no commit.
 - Estado neste checkpoint: PR #101 aberto, merge ainda não executado. O GitHub retornou `mergeable: true`, sem status checks e sem workflow runs para o HEAD consultado. Gates completos pós-correção, push do commit de correção, nova leitura dos checks, merge, verificação de `origin/main` e fechamento/comentário da issue #100 ainda pendentes.
+
+## Revisão adversarial do fallback de identidade — 2026-10-05
+
+- A revisão final detectou que `_editalImportSourceKey` usava o fingerprint derivado apenas do nome quando o JSON não informava `centralId` nem `sourceRef`. Dois payloads diferentes com o mesmo nome podiam ser confundidos como reimportação idempotente dentro de um conflito 2+.
+- TDD RED: `npx vitest run tests/unit/edital-import-core.test.js -t "não reconhece payload diferente apenas pelo nome"` falhou porque o payload diferente recebeu `alreadyImportedId` da importação anterior.
+- Correção focada: para reconhecer reimportações sem identidade estável, a chave usa uma representação canônica do conteúdo importável (nomes normalizados, listas ordenadas, sem revisão/proveniência variável). A identidade pública do edital e os metadados existentes permanecem inalterados. Marcadores privados são gravados somente em itens realmente criados como conflito; itens novos sem ambiguidade continuam idempotentes pelo matching 0/1 normal.
+- GREEN focado: `npx vitest run tests/unit/edital-import-core.test.js tests/unit/edital-import-view.test.js` — 2 arquivos, 82/82.
+- O pre-commit atualiza `APP_VERSION` e cache para os assets staged de `src/`; o commit desta correção e todos os gates finais precisam ocorrer depois desse bump.
+- O release E2E de 158/158 e os demais gates já haviam passado no commit `aaf1663`; devem ser repetidos depois desta nova alteração. Não houve merge. PR #101 segue aberto e a issue #100 permanece aberta.

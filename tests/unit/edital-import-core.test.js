@@ -1130,6 +1130,35 @@ describe('applyEditalImport', () => {
     expect(second.editais[0].disciplinas[2]).toEqual(importedDiscipline);
   });
 
+  it('não reconhece payload diferente apenas pelo nome quando não há proveniência estável', () => {
+    const seed = targetEdital([
+      { id: 'disc_known_1', nome: 'Constitucional', assuntos: [], aulas: [] },
+      { id: 'disc_known_2', nome: ' constitucional ', assuntos: [], aulas: [] },
+    ]);
+    const payload = validPayload({ disciplinas: [importDiscipline('Constitucional')] });
+    const firstPlan = buildImportPlan(payload, [seed]);
+    const first = applyWithIds([seed], firstPlan, ['disc_conflict_first']);
+    const samePayloadPlan = buildImportPlan(payload, first.editais);
+    const samePayload = applyEditalImport(first.editais, samePayloadPlan, {
+      uid: vi.fn(() => 'unexpected_same-payload-duplicate'),
+      now,
+    });
+
+    expect(samePayloadPlan.disciplinas[0].alreadyImportedId).toBe('disc_conflict_first');
+    expect(samePayload.editais[0].disciplinas).toHaveLength(3);
+
+    const changedPayload = validPayload({
+      disciplinas: [importDiscipline('Constitucional', [{ nome: 'Novo tópico' }])],
+    });
+    const changedPlan = buildImportPlan(changedPayload, samePayload.editais);
+    const changed = applyWithIds(samePayload.editais, changedPlan, ['disc_conflict_changed', 'ass_new']);
+
+    expect(changedPlan.disciplinas[0]).toMatchObject({ action: 'create_conflict' });
+    expect(changedPlan.disciplinas[0].alreadyImportedId).toBeUndefined();
+    expect(changed.editais[0].disciplinas).toHaveLength(4);
+    expect(changed.editais[0].disciplinas[3].assuntos[0].nome).toBe('Novo tópico');
+  });
+
   it('não duplica tópico conflitante e preserva seu progresso na reimportação', () => {
     const seed = targetEdital([
       {
