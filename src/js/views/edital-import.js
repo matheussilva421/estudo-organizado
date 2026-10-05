@@ -327,19 +327,15 @@ function discardEditalImportDraft() {
   resetPromptSaveButton();
 }
 
-function handlePreviewModalClick(event) {
-  if (!draft) return;
-  const closeControl = event.target.closest?.('[data-action="close-modal"], .modal-close');
-  if (closeControl && (closeControl.dataset.modal === 'modal-prompt' || previewModal?.contains(closeControl))) {
-    discardEditalImportDraft();
-  }
+function handlePreviewModalClosing() {
+  if (draft) discardEditalImportDraft();
 }
 
 function bindPreviewDismissEvents(modal) {
   if (previewModal === modal) return;
-  previewModal?.removeEventListener('click', handlePreviewModalClick);
+  previewModal?.removeEventListener('modal:beforeclose', handlePreviewModalClosing);
   previewModal = modal;
-  previewModal.addEventListener('click', handlePreviewModalClick);
+  previewModal.addEventListener('modal:beforeclose', handlePreviewModalClosing);
 }
 
 export function openEditalImportPreview(payload) {
@@ -446,8 +442,6 @@ export function confirmEditalImport() {
   invalidateDashCaches();
   scheduleSave();
   closeModal('modal-prompt');
-  draft = null;
-  resetPromptSaveButton();
   renderCurrentView();
   showToast(
     mode === 'merge'

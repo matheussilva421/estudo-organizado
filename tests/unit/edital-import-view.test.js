@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   state: { editais: [] },
-  app: { openModal: vi.fn(), closeModal: vi.fn(), showToast: vi.fn() },
+  app: {
+    openModal: vi.fn(),
+    closeModal: vi.fn((modalId) => {
+      document.getElementById(modalId)?.dispatchEvent(new Event('modal:beforeclose'));
+    }),
+    showToast: vi.fn(),
+  },
   components: { renderCurrentView: vi.fn() },
   logic: { invalidateDiscCache: vi.fn(), invalidateDashCaches: vi.fn() },
   scheduleSave: vi.fn(),
@@ -220,14 +226,49 @@ describe('importação de edital — arquivo e preview', () => {
     expect(document.getElementById('modal-prompt-body').textContent).toContain('Atual: rev-2026-10');
   });
 
-  it('descarta o draft quando o usuário cancela o preview', () => {
+  it('descarta o draft ao fechar o preview pelo controlador real do modal', async () => {
     view.openEditalImportPreview(payload());
     expect(view.getEditalImportDraft()).not.toBeNull();
 
-    document.querySelector('[data-action="close-modal"][data-modal="modal-prompt"]').click();
+    const { closeModal, openModal } = await import('../../src/js/ui/dialog.js');
+    openModal('modal-prompt');
+    closeModal('modal-prompt');
 
     expect(view.getEditalImportDraft()).toBeNull();
     expect(document.getElementById('modal-prompt-save').textContent).toBe('Salvar');
+  });
+
+  it('limpa o preview e restaura o botão quando o ciclo real do modal fecha', async () => {
+    view.openEditalImportPreview(payload());
+    expect(view.setEditalImportDestination({ mode: 'create' })).toBe(true);
+
+    const saveButton = document.getElementById('modal-prompt-save');
+    expect(saveButton.textContent).toBe('Confirmar importação');
+    expect(saveButton.disabled).toBe(false);
+    expect(saveButton.onclick).toBe(view.confirmEditalImport);
+
+    const { closeModal, openModal } = await import('../../src/js/ui/dialog.js');
+    openModal('modal-prompt');
+    closeModal('modal-prompt');
+
+    expect(view.getEditalImportDraft()).toBeNull();
+    expect(saveButton.textContent).toBe('Salvar');
+    expect(saveButton.className).toBe('btn btn-primary');
+    expect(saveButton.disabled).toBe(false);
+    expect(saveButton.onclick).toBeNull();
+
+    saveButton.textContent = 'Excluir dados';
+    saveButton.className = 'btn btn-danger';
+    saveButton.disabled = true;
+    const otherPromptAction = vi.fn();
+    saveButton.onclick = otherPromptAction;
+    openModal('modal-prompt');
+    closeModal('modal-prompt');
+
+    expect(saveButton.textContent).toBe('Excluir dados');
+    expect(saveButton.className).toBe('btn btn-danger');
+    expect(saveButton.disabled).toBe(true);
+    expect(saveButton.onclick).toBe(otherPromptAction);
   });
 });
 
