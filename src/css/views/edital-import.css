@@ -1,0 +1,246 @@
+/* Preview local de importação de edital JSON. */
+.edital-import-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-height: min(68vh, 620px);
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.edital-import-source,
+.edital-import-destination,
+.edital-import-archived,
+.edital-import-warning,
+.edital-import-summary,
+.edital-import-discipline {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.edital-import-source {
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+}
+
+.edital-import-revision,
+.edital-import-suggestion,
+.edital-import-list-label {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.edital-import-destination {
+  display: grid;
+  gap: 10px;
+}
+
+.edital-import-mode {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.edital-import-mode legend {
+  margin-bottom: 4px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.edital-import-mode > label,
+.edital-import-principal-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.edital-import-mode input[type='radio'],
+.edital-import-mode input[type='checkbox'] {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.edital-import-target-label {
+  display: grid !important;
+  gap: 5px !important;
+  padding-left: 25px;
+  color: var(--text-secondary) !important;
+  font-size: 12px;
+}
+
+.edital-import-target-label select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.edital-import-principal-option {
+  padding-left: 25px;
+  font-weight: 600;
+}
+
+.edital-import-archived {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.edital-import-archived ul {
+  display: grid;
+  gap: 5px;
+  margin: 6px 0 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}
+
+.edital-import-suggestion {
+  margin: 0;
+  font-style: italic;
+}
+
+.edital-import-empty-plan {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.edital-import-summary {
+  display: grid;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.edital-import-summary p {
+  margin: 0;
+}
+
+.edital-import-summary strong {
+  color: var(--text-primary);
+}
+
+.edital-import-tree,
+.edital-import-nested ul {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.edital-import-discipline {
+  overflow: hidden;
+}
+
+.edital-import-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.edital-import-item > :first-child {
+  min-width: 0;
+}
+
+.edital-import-nested {
+  margin: 8px 0 0 12px;
+}
+
+.edital-import-nested ul {
+  margin-top: 5px;
+}
+
+.edital-import-nested .edital-import-item {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.edital-import-badge {
+  flex: 0 0 auto;
+  max-width: 52%;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.edital-import-badge--reuse {
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green);
+}
+
+.edital-import-badge--create {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.edital-import-badge--conflict {
+  background: color-mix(in srgb, var(--orange) 18%, transparent);
+  color: var(--orange);
+}
+
+.edital-import-warning {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.edital-import-warning[data-import-principal-warning] {
+  border-color: color-mix(in srgb, var(--orange) 45%, var(--border));
+  color: var(--text-primary);
+}
+
+.edital-import-warning--preserve {
+  border-color: color-mix(in srgb, var(--green) 35%, var(--border));
+}
+
+@media (max-width: 600px) {
+  .edital-import-preview {
+    max-height: 62vh;
+    padding-right: 0;
+  }
+
+  .edital-import-source,
+  .edital-import-destination,
+  .edital-import-archived,
+  .edital-import-warning,
+  .edital-import-summary,
+  .edital-import-discipline {
+    padding: 9px;
+  }
+
+  .edital-import-item {
+    flex-wrap: wrap;
+  }
+
+  .edital-import-badge {
+    max-width: 100%;
+  }
+}

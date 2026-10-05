@@ -1,4 +1,4 @@
-const APP_VERSION = '9.26';
+const APP_VERSION = '9.27';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -36,6 +36,7 @@ const ASSET_PATHS = [
   './css/views/calendar.css',
   './css/views/ciclo.css',
   './css/views/reta-final.css',
+  './css/views/edital-import.css',
   './css/views/config/config-view.css',
   './css/views/wizard.css',
   './css/views/sessions.css',
@@ -64,6 +65,7 @@ const ASSET_PATHS = [
   './js/logic/cycle.js',
   './js/logic/reta-final-core.js',
   './js/logic/reta-final.js',
+  './js/logic/edital-import-core.js',
   './js/logic/disc.js',
   './js/logic/revisions.js',
   './js/logic/timer.js',
@@ -140,6 +142,7 @@ const ASSET_PATHS = [
   './js/views/ciclo-view.js',
   './js/views/reta-final-associar.js',
   './js/views/reta-final-import.js',
+  './js/views/edital-import.js',
   './js/views/reta-final-view.js',
   './js/views/revisao-view.js',
   './js/views/skeleton-view.js',
