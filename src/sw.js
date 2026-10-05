@@ -1,4 +1,4 @@
-const APP_VERSION = '9.29';
+const APP_VERSION = '9.30';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -227,17 +227,20 @@ function networkFirst(request) {
 }
 
 function staleWhileRevalidate(request) {
-  return caches.open(CACHE_NAME).then((cache) =>
-    cache.match(request).then((cached) => {
-      const fetchPromise = fetch(request)
-        .then((res) => {
-          if (res.ok) cache.put(request, res.clone());
-          return res;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
-  );
+  return caches.open(CACHE_NAME).then((cache) => {
+    // Frozen ES imports may request a path under an older query version than the PWA precache.
+    const cachedPromise = cache.match(request).then((cached) =>
+      cached || cache.match(request, { ignoreSearch: true })
+    );
+    const fetchPromise = fetch(request)
+      .then((res) => {
+        if (res.ok) cache.put(request, res.clone());
+        return res;
+      })
+      .catch(() => cachedPromise);
+
+    return cachedPromise.then((cached) => cached || fetchPromise);
+  });
 }
 
 function cacheFirst(request) {
