@@ -12,6 +12,7 @@ import {
 
 let draft = null;
 let previewBody = null;
+let previewModal = null;
 
 function getPromptElements() {
   return {
@@ -106,6 +107,31 @@ function renderSummary(plan) {
       <p><strong>Disciplinas:</strong> ${countLabel(summary.disciplinasReutilizadas, 'reutilizada', 'reutilizadas')} · ${countLabel(summary.disciplinasNovas, 'nova', 'novas')} · ${countLabel(summary.disciplinasConflitantes, 'conflito', 'conflitos')}</p>
       <p><strong>Tópicos:</strong> ${countLabel(summary.topicosReutilizados, 'reutilizado', 'reutilizados')} · ${countLabel(summary.topicosNovos, 'novo', 'novos')} · ${countLabel(summary.topicosConflitantes, 'conflito', 'conflitos')}</p>
       <p><strong>Aulas:</strong> ${countLabel(summary.aulasReutilizadas, 'reutilizada', 'reutilizadas')} · ${countLabel(summary.aulasNovas, 'nova', 'novas')} · ${countLabel(summary.aulasConflitantes, 'conflito', 'conflitos')}</p>
+    </div>
+  `;
+}
+
+function renderProvenanceHistory() {
+  const provenanceMatches = [...draft.candidates.active, ...draft.candidates.archived].filter(
+    (candidate) => candidate.reasons.includes('provenance')
+  );
+  if (provenanceMatches.length === 0) return '';
+
+  const currentRevision = draft.payload.sourceRevision || 'não informada';
+  const entries = provenanceMatches
+    .map(
+      (candidate) => `
+        <li>
+          ${esc(candidate.nome)} — Anterior: ${esc(candidate.previousRevision || 'não informada')} ·
+          Atual: ${esc(currentRevision)}
+        </li>
+      `
+    )
+    .join('');
+  return `
+    <div class="edital-import-provenance" data-import-provenance>
+      <p>Este arquivo parece ser uma nova versão de um edital já importado.</p>
+      <ul>${entries}</ul>
     </div>
   `;
 }
@@ -218,6 +244,7 @@ function renderPreviewHtml() {
         ${revision}
       </header>
       ${renderCandidates()}
+      ${renderProvenanceHistory()}
       ${planHint}
       ${renderSummary(importPlan)}
       ${renderDisciplineTree(importPlan)}
@@ -286,6 +313,35 @@ function bindPreviewEvents(body) {
   previewBody.addEventListener('change', handlePreviewChange);
 }
 
+function resetPromptSaveButton() {
+  const { saveButton } = getPromptElements();
+  if (!saveButton) return;
+  saveButton.textContent = 'Salvar';
+  saveButton.className = 'btn btn-primary';
+  saveButton.disabled = false;
+  saveButton.onclick = null;
+}
+
+function discardEditalImportDraft() {
+  draft = null;
+  resetPromptSaveButton();
+}
+
+function handlePreviewModalClick(event) {
+  if (!draft) return;
+  const closeControl = event.target.closest?.('[data-action="close-modal"], .modal-close');
+  if (closeControl && (closeControl.dataset.modal === 'modal-prompt' || previewModal?.contains(closeControl))) {
+    discardEditalImportDraft();
+  }
+}
+
+function bindPreviewDismissEvents(modal) {
+  if (previewModal === modal) return;
+  previewModal?.removeEventListener('click', handlePreviewModalClick);
+  previewModal = modal;
+  previewModal.addEventListener('click', handlePreviewModalClick);
+}
+
 export function openEditalImportPreview(payload) {
   draft = null;
   const validation = validateEditalImportPayload(payload);
@@ -324,6 +380,7 @@ export function openEditalImportPreview(payload) {
   };
   title.textContent = 'Importar Edital via JSON';
   bindPreviewEvents(body);
+  bindPreviewDismissEvents(modal);
   renderDraft();
   openModal('modal-prompt');
   return true;
@@ -390,13 +447,7 @@ export function confirmEditalImport() {
   scheduleSave();
   closeModal('modal-prompt');
   draft = null;
-  const { saveButton } = getPromptElements();
-  if (saveButton) {
-    saveButton.textContent = 'Salvar';
-    saveButton.className = 'btn btn-primary';
-    saveButton.disabled = false;
-    saveButton.onclick = null;
-  }
+  resetPromptSaveButton();
   renderCurrentView();
   showToast(
     mode === 'merge'

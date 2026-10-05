@@ -88,6 +88,7 @@ function mountPrompt() {
       <h2 id="modal-prompt-title"></h2>
       <div id="modal-prompt-body"></div>
       <button id="modal-prompt-save">Salvar</button>
+      <button data-action="close-modal" data-modal="modal-prompt">Cancelar</button>
     </div>
   `;
 }
@@ -200,6 +201,33 @@ describe('importação de edital — arquivo e preview', () => {
     expect(document.querySelector('[data-import-archived-candidate]')).not.toBeNull();
     expect(document.getElementById('modal-prompt-save').disabled).toBe(true);
     expect(mocks.state.editais).toEqual([active, archived]);
+  });
+
+  it('mostra revisões anterior e atual quando reconhece proveniência compatível', () => {
+    mocks.state.editais = [
+      activeEdital('ed_previous', {
+        importMetadata: {
+          tipo: 'edital',
+          centralId: 'central-100',
+          sourceRevision: 'rev-2026-09',
+        },
+      }),
+    ];
+
+    view.openEditalImportPreview(payload({ sourceRevision: 'rev-2026-10' }));
+
+    expect(document.getElementById('modal-prompt-body').textContent).toContain('Anterior: rev-2026-09');
+    expect(document.getElementById('modal-prompt-body').textContent).toContain('Atual: rev-2026-10');
+  });
+
+  it('descarta o draft quando o usuário cancela o preview', () => {
+    view.openEditalImportPreview(payload());
+    expect(view.getEditalImportDraft()).not.toBeNull();
+
+    document.querySelector('[data-action="close-modal"][data-modal="modal-prompt"]').click();
+
+    expect(view.getEditalImportDraft()).toBeNull();
+    expect(document.getElementById('modal-prompt-save').textContent).toBe('Salvar');
   });
 });
 
