@@ -804,6 +804,94 @@ describe('applyEditalImport', () => {
     });
   });
 
+  it.each(['centralId', 'sourceRef', 'sourceRevision', 'fingerprint'])(
+    'preserva o %s anterior quando a nova proveniência é null ou ausente',
+    (field) => {
+      const previousMetadata = {
+        tipo: 'edital',
+        centralId: 'central-previous',
+        sourceRef: 'source/previous',
+        sourceRevision: 'revision-previous',
+        fingerprint: 'fingerprint-previous',
+        customSourceField: 'preserve',
+      };
+      const target = targetEdital([], { importMetadata: previousMetadata });
+      const plan = buildImportPlan(
+        validPayload({ disciplinas: [importDiscipline('Direito Civil')] }),
+        [target]
+      );
+      const absentSource = { ...plan.source };
+      delete absentSource[field];
+      const planWithMissingField = { ...plan, source: { ...plan.source, [field]: null } };
+      const planWithAbsentField = { ...plan, source: absentSource };
+
+      const nullResult = applyWithIds([target], planWithMissingField, ['disc_null']);
+      const absentResult = applyWithIds([target], planWithAbsentField, ['disc_absent']);
+
+      expect(nullResult.editais[0].importMetadata[field]).toBe(previousMetadata[field]);
+      expect(absentResult.editais[0].importMetadata[field]).toBe(previousMetadata[field]);
+      expect(nullResult.editais[0].importMetadata.lastImportedAt).toBe(now);
+      expect(absentResult.editais[0].importMetadata.lastImportedAt).toBe(now);
+      expect(nullResult.editais[0].importMetadata.customSourceField).toBe('preserve');
+    }
+  );
+
+  it('atualiza os campos de proveniência válidos informados pelo novo payload', () => {
+    const target = targetEdital([], {
+      importMetadata: {
+        tipo: 'edital',
+        centralId: 'central-previous',
+        sourceRef: 'source/previous',
+        sourceRevision: 'revision-previous',
+        fingerprint: 'fingerprint-previous',
+      },
+    });
+    const plan = buildImportPlan(
+      validPayload({
+        centralId: ' central-current ',
+        sourceRef: ' source/current ',
+        sourceRevision: ' revision-current ',
+        disciplinas: [importDiscipline('Direito Civil')],
+      }),
+      [target]
+    );
+
+    const { editais } = applyWithIds([target], plan, ['disc_current']);
+
+    expect(editais[0].importMetadata).toMatchObject({
+      centralId: 'central-current',
+      sourceRef: 'source/current',
+      sourceRevision: 'revision-current',
+      fingerprint: 'edital:v1|centralId:central-current',
+      lastImportedAt: now,
+    });
+  });
+
+  it('preserva proveniência anterior ao mesclar payload real que omite esses campos', () => {
+    const previousMetadata = {
+      tipo: 'edital',
+      centralId: 'central-previous',
+      sourceRef: 'source/previous',
+      sourceRevision: 'revision-previous',
+      fingerprint: 'fingerprint-previous',
+    };
+    const target = targetEdital([], { importMetadata: previousMetadata });
+    const plan = buildImportPlan(
+      validPayload({ disciplinas: [importDiscipline('Direito Civil')] }),
+      [target]
+    );
+
+    const { editais } = applyWithIds([target], plan, ['disc_new']);
+
+    expect(editais[0].importMetadata).toMatchObject({
+      centralId: 'central-previous',
+      sourceRef: 'source/previous',
+      sourceRevision: 'revision-previous',
+      fingerprint: 'fingerprint-previous',
+      lastImportedAt: now,
+    });
+  });
+
   it('usa a cor padrão para disciplina nova quando o edital destino não tem cor', () => {
     const target = targetEdital([], { cor: '' });
     const payload = validPayload({ disciplinas: [importDiscipline('Português')] });

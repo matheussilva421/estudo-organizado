@@ -445,10 +445,10 @@ function buildImportMetadata(source, now, previousMetadata = null) {
   const metadata = copyOwnProperties(previousMetadata);
   metadata.tipo = 'edital';
   metadata.source = 'central-concursos';
-  metadata.centralId = source.centralId ?? null;
-  metadata.sourceRef = source.sourceRef ?? null;
-  metadata.sourceRevision = source.sourceRevision ?? null;
-  metadata.fingerprint = source.fingerprint ?? null;
+  for (const field of ['centralId', 'sourceRef', 'sourceRevision', 'fingerprint']) {
+    const incomingValue = optionalProvenanceString(source[field]);
+    metadata[field] = incomingValue ?? metadata[field] ?? null;
+  }
   metadata.lastImportedAt = now;
   return metadata;
 }
@@ -593,7 +593,10 @@ export function applyEditalImport(editais, plan, { uid, now } = {}) {
 
     const nextTarget = copyOwnProperties(target);
     if (disciplinesChanged) nextTarget.disciplinas = nextDisciplines;
-    nextTarget.importMetadata = buildImportMetadata(plan.source, now, target.importMetadata);
+    const hasStableSourceId = plan.source.centralId || plan.source.sourceRef;
+    // Name fallback helps matching, but is not new provenance to persist over a stable fingerprint.
+    const metadataSource = hasStableSourceId ? plan.source : { ...plan.source, fingerprint: null };
+    nextTarget.importMetadata = buildImportMetadata(metadataSource, now, target.importMetadata);
     nextEditais = [...sourceEditais];
     nextEditais[targetIndex] = nextTarget;
     editalId = target.id;
