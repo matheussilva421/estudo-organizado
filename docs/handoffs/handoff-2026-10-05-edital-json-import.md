@@ -18,7 +18,7 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 - Task 4: implementei seleção local de JSON, validação e preview, escolha explícita de destino, confirmação atômica de `state.editais`, avisos de preservação, CSS responsivo e precache offline.
 - Task 5: registrei a action `open-edital-import`, expus Importar Edital no topbar e nos empty states, mantendo Criar/Novo Edital.
 - Correção adicional da Task 4: o preview agora apresenta revisões anterior/atual para proveniência compatível e descarta o draft ao cancelar/fechar.
-- Task 6 (E2E completo) ainda está pendente.
+- Task 6: nove cenários E2E Playwright cobrem preview/choice, create arquivado e como principal, fallback sem principal, merge com preservação de progresso, conflito de disciplina, schema inválido, idempotência, create repetido e importação offline com persistência.
 
 ## Arquivos alterados nesta fase
 
@@ -28,7 +28,8 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 - Task 4 criou `src/js/views/edital-import.js`, `src/css/views/edital-import.css`, `tests/unit/edital-import-view.test.js` e modificou `src/css/views.css` e `src/sw.js`.
 - Task 5 modificou `src/js/ui/actions/editais.js`, `src/js/components.js`, `src/js/views/editais-view.js`, `tests/unit/editais-actions.test.js`, `tests/unit/editais-view-render.test.js` e `tests/unit/components.test.js`.
 - A correção adicional da Task 4 alterou `src/js/views/edital-import.js`, `src/css/views/edital-import.css` e `tests/unit/edital-import-view.test.js`.
-- O hook atualizou `src/sw.js`, `src/index.html`, `src/js/sync/sync-diagnostic.js` e `tests/unit/css-architecture.test.js` para os bumps `9.23 → 9.24 → 9.25 → 9.26 → 9.27 → 9.28 → 9.29`.
+- Task 6 criou `tests/e2e/edital-import.spec.js`; a correção offline modificou `src/sw.js` e `tests/unit/sw-fetch-routing.test.js`.
+- O hook atualizou `src/sw.js`, `src/index.html`, `src/js/sync/sync-diagnostic.js` e `tests/unit/css-architecture.test.js` para os bumps `9.23 → 9.24 → 9.25 → 9.26 → 9.27 → 9.28 → 9.29 → 9.30`.
 - Nenhum arquivo de `src/` fora do novo core foi alterado manualmente.
 
 ## Decisões técnicas
@@ -42,6 +43,7 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 - O seletor de merge lista todos os editais ativos; nomes/proveniência apenas marcam sugestões e editais arquivados são exibidos informativamente, sem opção de destino.
 - A UI deixa confirmação desabilitada até uma escolha explícita. A confirmação chama o apply sobre o estado atual, e somente depois substitui `state.editais`, invalida caches, agenda salvamento, fecha e renderiza.
 - Ao fechar/cancelar o preview sem confirmar, o draft é descartado e o botão de abrir importador é restaurado. Se um candidato ativo compartilha proveniência, o preview mostra as revisões anterior e atual.
+- O teste offline reproduziu que o service worker precacheava `edital-import.js` com query da versão PWA, enquanto o import ES mantém `?v=8.37`; o módulo não carregava offline. O SWR agora tenta primeiro o request exato e depois `cache.match(request, { ignoreSearch: true })`, mantendo a revalidação de rede e servindo o asset precacheado quando a conexão cai.
 - A action é um import dinâmico awaitable com o import specifier exigido `../../views/edital-import.js?v=8.37`; o topbar só mostra Importar Edital fora do dashboard de disciplina.
 - `core.hooksPath` é `.githooks`; o pre-commit incrementa cache automaticamente para assets staged de `src/`. `APP_VERSION` na base é `9.23`; o mecanismo troca apenas essa versão e não os imports congelados `?v=8.37`.
 - O helper SDD distribuído é Bash-only e falhou ao iniciar no sandbox Windows (`Win32 error 5` ao criar signal pipe); o workspace/brief/ledger foram preparados equivalentemente em PowerShell e cruzados com o plano.
@@ -62,6 +64,10 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 - Task 5: lint focado nos módulos/action/render e nos testes de action/render — aprovado. `tests/unit/components.test.js` retorna 19 erros pré-existentes `global is not defined`; `git show HEAD:tests/unit/components.test.js | npx eslint --stdin --stdin-filename tests/unit/components.test.js` confirmou os mesmos 19 erros na base, sem erro novo.
 - Correção Task 4 RED: dois testes falharam pelos comportamentos ausentes (revisões anterior/atual e descarte ao cancelar); GREEN: core+view `npx vitest run tests/unit/edital-import-view.test.js tests/unit/edital-import-core.test.js --reporter=dot` — 2 arquivos, 70 testes aprovados. `npm run test:css` — 45/45; ESLint focado — aprovado.
 - Correção Task 4: `npm run bump:check` antes do commit apontou corretamente os assets novos; o pre-commit fez `9.28 → 9.29`. Pós-commit, `npm run bump:check` passou sem assets pendentes.
+- Teste unitário de service worker: RED confirmou que um import `?v=8.37` recebia `undefined` quando só a versão atual estava no precache; após fallback `ignoreSearch`, `npx vitest run tests/unit/sw-fetch-routing.test.js --reporter=dot` — 1 arquivo, 6 testes aprovados, sem erro não tratado.
+- Task 6: `npx playwright test tests/e2e/edital-import.spec.js --project=chromium --reporter=line --workers=1` — 9/9 passaram após o commit que elevou APP_VERSION a 9.30. Inclui browser offline com módulo dinâmico carregado do precache, FileReader local, save IndexedDB e reload com dados persistidos.
+- E2E de merge comprovou que tópico concluído e aula estudada mantêm todos os campos/progresso após merge e reload; também comparou os demais domínios de estado protegidos, removendo apenas metadados técnicos do autosave (`localBackupAt` e `syncPerformance`).
+- ESLint focado em `src/sw.js`, `tests/unit/sw-fetch-routing.test.js` e `tests/e2e/edital-import.spec.js` — aprovado; `git diff --check` — aprovado; `npm run bump:check` pós-commit — aprovado em 9.30.
 - Baseline completo em `e2b90ef`: 143 arquivos e 2.258 testes aprovados, mas Vitest terminou com 1 erro não tratado (`TypeError: cache.match is not a function`, `src/sw.js:228`, atribuído a `tests/unit/sw-fetch-routing.test.js`). O mesmo teste isolado teve 5 testes aprovados e reproduziu o mesmo erro; portanto o problema antecede esta feature.
 - Execuções Vitest precisam de permissão para spawn do esbuild; sem isso o sandbox retorna `EPERM` antes de iniciar a suíte.
 - Validação manual no navegador ainda não realizada.
@@ -79,12 +85,14 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 - Commit da Task 5: `11e3299` (`feat(editais): expose JSON edital import`).
 - Commit handoff Task 5: `f63a90a` (`docs(handoff): record edital import task 5`).
 - Correção Task 4: `0362cbc` (`fix(edital-import): clear canceled previews and show revisions`), publicada em `origin`.
-- Branch `codex/issue-100-edital-json-import` publicada em `origin` até `0362cbc`.
+- Correção offline: `b3640cf` (`fix(pwa): serve frozen imports from versioned precache`), publicada em `origin`.
+- E2E Task 6: `a84b317` (`test(edital-import): cover end-to-end import flows`), publicada em `origin`.
+- Branch `codex/issue-100-edital-json-import` publicada em `origin` até `a84b317`.
 
 ## Pendências e retomada
 
-1. Executar Task 6: E2E completo de preview → confirmação → persistência, incluindo a verificação adversarial de preservação de progresso.
-2. Executar Task 7: lint, design, bump check, `npm test`, E2E de release, revisão adversarial e verificação final.
-3. Atualizar este handoff após cada fase; registrar commits, push e resultados finais.
+1. Executar Task 7: `npm run lint`, `npm run test:design`, `npm run bump:check`, `npm test`, `npm run test:e2e:release`; revisar adversarialmente a implementação contra a spec e executar `superpowers:verification-before-completion`.
+2. Corrigir somente regressões feature-local; provar contra o estado anterior qualquer falha que seja realmente pré-existente.
+3. Atualizar este handoff com HEAD, commits, push e resultados finais. Issue #100 continua aberta; nenhum PR foi criado e a issue não foi fechada.
 
 O ledger detalhado e os logs de teste ficam em `.superpowers/sdd/2026-10-05-edital-json-import/` (ignorado pelo Git). O `pending.json` do hook SessionStart não existe para o `CODEX_SESSION_ID` desta sessão; não reutilizei o arquivo de outra sessão.
