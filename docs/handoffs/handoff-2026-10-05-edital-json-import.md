@@ -22,7 +22,7 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 - Criados: `src/js/logic/edital-import-core.js`, `tests/unit/edital-import-core.test.js`.
 - Criado para continuidade: este handoff.
 - Tasks 2–3 também modificaram core e testes unitários.
-- O hook atualizou `src/sw.js`, `src/index.html`, `src/js/sync/sync-diagnostic.js` e `tests/unit/css-architecture.test.js` para os bumps `9.23 → 9.24 → 9.25`.
+- O hook atualizou `src/sw.js`, `src/index.html`, `src/js/sync/sync-diagnostic.js` e `tests/unit/css-architecture.test.js` para os bumps `9.23 → 9.24 → 9.25 → 9.26`.
 - Nenhum arquivo de `src/` fora do novo core foi alterado manualmente.
 
 ## Decisões técnicas
@@ -46,7 +46,7 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 - Pós-Task 2: `npx vitest run tests/unit/edital-import-core.test.js` — 1 arquivo, 42 testes aprovados; ESLint focado aprovado; `npm run bump:check` aprovado.
 - Task 3: RED inicial — 42 testes existentes passaram e 4 testes de apply/freeze falharam pela ausência de `applyEditalImport` e congelamento do plano; após implementação, `npx vitest run tests/unit/edital-import-core.test.js` — 1 arquivo, 54 testes aprovados.
 - Task 3: `npx eslint src/js/logic/edital-import-core.js tests/unit/edital-import-core.test.js` e `git diff --check` — aprovados. O caso adversarial confirmou que progresso atualizado depois do preview segue intacto, que stale não pede IDs, e que erro intermediário de `uid()` mantém o JSON de entrada byte-for-byte igual.
-- `npm run bump:check` antes do commit apontou corretamente que o novo asset de `src/` precisa do bump `9.25`; o pre-commit configurado para esta branch executa esse bump e o resultado será revalidado após o commit.
+- `npm run bump:check` antes do commit apontou corretamente que o novo asset de `src/` precisa do bump `9.25`; o pre-commit fez `9.25 → 9.26`. Pós-commit, `npm run bump:check` passou sem assets pendentes.
 - Baseline completo em `e2b90ef`: 143 arquivos e 2.258 testes aprovados, mas Vitest terminou com 1 erro não tratado (`TypeError: cache.match is not a function`, `src/sw.js:228`, atribuído a `tests/unit/sw-fetch-routing.test.js`). O mesmo teste isolado teve 5 testes aprovados e reproduziu o mesmo erro; portanto o problema antecede esta feature.
 - Execuções Vitest precisam de permissão para spawn do esbuild; sem isso o sandbox retorna `EPERM` antes de iniciar a suíte.
 - Validação manual no navegador ainda não realizada.
@@ -57,14 +57,13 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 - Commit da Task 1: `36191534c0ad86be33a879b6bbfd30fc4d89445e` (`feat(edital-import): add pure validation and source identity`).
 - Commit do handoff da Task 1: `c4fdbec` (`docs(handoff): record edital import task 1`).
 - Commit da Task 2: `24fbc53400be755a277bda95e8c00e192bda3384` (`feat(edital-import): build safe import plans`).
-- Commit da Task 3: pendente neste handoff, antes do commit.
-- Branch `codex/issue-100-edital-json-import` publicada em `origin` até `24fbc53`; Task 3 será enviada após o commit.
+- Commit da Task 3: `ecf95de` (`feat(edital-import): apply plans atomically`).
+- Branch `codex/issue-100-edital-json-import` publicada em `origin` até `ecf95de`.
 
 ## Pendências e retomada
 
-1. Registrar/push do commit Task 3; a versão/cache será atualizada pelo hook.
-2. Executar Tasks 4–6: UI/preview/actions, precache e E2E completo.
-3. Executar Task 7: lint, design, bump check, `npm test`, E2E de release, revisão adversarial e verificação final.
-4. Atualizar este handoff após cada fase; registrar commits, push e resultados finais.
+1. Executar Tasks 4–6: UI/preview/actions, precache e E2E completo.
+2. Executar Task 7: lint, design, bump check, `npm test`, E2E de release, revisão adversarial e verificação final.
+3. Atualizar este handoff após cada fase; registrar commits, push e resultados finais.
 
 O ledger detalhado e os logs de teste ficam em `.superpowers/sdd/2026-10-05-edital-json-import/` (ignorado pelo Git). O `pending.json` do hook SessionStart não existe para o `CODEX_SESSION_ID` desta sessão; não reutilizei o arquivo de outra sessão.
