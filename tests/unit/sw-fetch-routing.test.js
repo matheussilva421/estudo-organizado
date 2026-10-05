@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let handlers;
 let addEventListenerSpy;
+let shellCache;
 
 function fakeEvent(path, { method = 'GET', destination = '', mode = 'no-cors' } = {}) {
-  const url = new URL(path, self.location.origin).toString();
+  const url = new URL(path, globalThis.self.location.origin).toString();
   return {
     request: {
       url,
@@ -23,20 +24,25 @@ function fakeEvent(path, { method = 'GET', destination = '', mode = 'no-cors' } 
 async function loadServiceWorker() {
   handlers = {};
   addEventListenerSpy = vi
-    .spyOn(self, 'addEventListener')
+    .spyOn(globalThis.self, 'addEventListener')
     .mockImplementation((type, handler) => {
       handlers[type] = handler;
     });
 
-  self.skipWaiting = vi.fn();
-  self.clients = { claim: vi.fn(() => Promise.resolve()) };
-  global.caches = {
-    open: vi.fn(() => Promise.resolve({ addAll: vi.fn(() => Promise.resolve()) })),
+  globalThis.self.skipWaiting = vi.fn();
+  globalThis.self.clients = { claim: vi.fn(() => Promise.resolve()) };
+  shellCache = {
+    addAll: vi.fn(() => Promise.resolve()),
+    match: vi.fn(() => Promise.resolve(undefined)),
+    put: vi.fn(() => Promise.resolve()),
+  };
+  globalThis.caches = {
+    open: vi.fn(() => Promise.resolve(shellCache)),
     keys: vi.fn(() => Promise.resolve([])),
     delete: vi.fn(() => Promise.resolve()),
     match: vi.fn(() => Promise.resolve(undefined)),
   };
-  global.fetch = vi.fn(() => Promise.resolve({ ok: true, clone: () => ({}) }));
+  globalThis.fetch = vi.fn(() => Promise.resolve({ ok: true, clone: () => ({}) }));
 
   await import('../../src/sw.js?v=routing-test');
   return handlers.fetch;
@@ -98,5 +104,23 @@ describe('service worker fetch routing', () => {
     onFetch(evt);
 
     expect(evt.respondWith).toHaveBeenCalledTimes(1);
+  });
+
+  it('serves precached scripts when only the PWA cache version differs from the import version', async () => {
+    const onFetch = await loadServiceWorker();
+    const precachedScript = { body: 'cached edital importer' };
+    shellCache.match.mockImplementation((request, options) =>
+      Promise.resolve(options?.ignoreSearch ? precachedScript : undefined)
+    );
+    globalThis.fetch = vi.fn(() => Promise.reject(new Error('offline')));
+    const evt = fakeEvent('/js/views/edital-import.js?v=8.37', { destination: 'script' });
+
+    onFetch(evt);
+
+    await expect(evt.respondWith.mock.calls[0][0]).resolves.toBe(precachedScript);
+    expect(shellCache.match).toHaveBeenCalledTimes(2);
+    expect(shellCache.match.mock.calls[0][0].url).toBe(evt.request.url);
+    expect(shellCache.match.mock.calls[1][0].url).toBe(evt.request.url);
+    expect(shellCache.match.mock.calls[1][1]).toEqual({ ignoreSearch: true });
   });
 });

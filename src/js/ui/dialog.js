@@ -126,6 +126,8 @@ export function closeModal(modalId) {
   const modal = document.getElementById(modalId);
   if (!modal) return;
 
+  modal.dispatchEvent?.(new CustomEvent('modal:beforeclose'));
+
   const index = modalStack.indexOf(modalId);
   if (index > -1) modalStack.splice(index, 1);
 

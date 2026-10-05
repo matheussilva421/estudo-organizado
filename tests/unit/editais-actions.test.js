@@ -8,6 +8,7 @@ describe('ui/actions/editais.js', () => {
   let storeModule;
   let viewsModule;
   let bancaView;
+  let editalImportView;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -60,6 +61,7 @@ describe('ui/actions/editais.js', () => {
       openMatchCorrector: vi.fn(),
       saveMatchCorrection: vi.fn(),
     };
+    editalImportView = { openEditalImport: vi.fn() };
 
     vi.doMock('../../src/js/ui/actions/dispatcher.js', () => ({ registerAction }));
     vi.doMock('../../src/js/app.js?v=8.37', () => appModule);
@@ -68,6 +70,7 @@ describe('ui/actions/editais.js', () => {
     vi.doMock('../../src/js/store.js?v=8.37', () => storeModule);
     vi.doMock('../../src/js/views.js?v=8.37', () => viewsModule);
     vi.doMock('../../src/js/views/banca-view.js?v=8.37', () => bancaView);
+    vi.doMock('../../src/js/views/edital-import.js?v=8.37', () => editalImportView);
 
     await import('../../src/js/ui/actions/editais.js');
   });
@@ -75,6 +78,7 @@ describe('ui/actions/editais.js', () => {
   it('registers edital actions', () => {
     const calls = registerAction.mock.calls.map(c => c[0]);
     expect(calls).toContain('open-edital-modal');
+    expect(calls).toContain('open-edital-import');
     expect(calls).toContain('save-edital');
     expect(calls).toContain('delete-edital');
     expect(calls).toContain('open-disc-modal');
@@ -115,6 +119,14 @@ describe('ui/actions/editais.js', () => {
     expect(calls).toContain('excluir-analise-banca');
     expect(calls).toContain('open-match-corrector');
     expect(calls).toContain('save-match-correction');
+  });
+
+  it('open-edital-import handler awaits the import view and opens the file picker', async () => {
+    const handler = registerAction.mock.calls.find((call) => call[0] === 'open-edital-import')[1];
+
+    await handler();
+
+    expect(editalImportView.openEditalImport).toHaveBeenCalledOnce();
   });
 
   it('open-edital-modal handler passes editalId or null', () => {
