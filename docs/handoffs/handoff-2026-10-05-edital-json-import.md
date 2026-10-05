@@ -107,3 +107,17 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 Implementação e validação concluídas. A branch está publicada. A issue #100 permanece aberta aguardando revisão/integração; nenhum PR foi criado e a issue não foi fechada nesta tarefa. Próximo passo: abrir/revisar PR e integrar a branch.
 
 O ledger detalhado e os logs de teste ficam em `.superpowers/sdd/2026-10-05-edital-json-import/` (ignorado pelo Git). O `pending.json` do hook SessionStart não existe para o `CODEX_SESSION_ID` desta sessão; não reutilizei o arquivo de outra sessão.
+
+## Revisão focada dos achados pós-implementação
+
+**Data:** 2026-10-05
+**Base desta revisão:** `6fa372fecbe659fac8f1cbee96395c19146f838c`
+**Branch:** `codex/issue-100-edital-json-import`
+
+- Proveniência em merge: `buildImportMetadata()` atualiza cada campo apenas com uma string válida; `null`, ausência e valores inválidos preservam o valor anterior, usando `null` somente quando ainda não havia valor. `lastImportedAt` sempre recebe o horário atual. No merge sem `centralId`/`sourceRef`, o fingerprint de fallback por nome não substitui um fingerprint persistido estável; um identificador estável novo continua atualizando o fingerprint calculado.
+- Fechamento do preview: `closeModal()` emite `modal:beforeclose` quando o alvo suporta eventos DOM. O importador registra o cleanup nesse ciclo para `#modal-prompt`; com draft ativo limpa `draft` e restaura texto, classe, disabled e onclick. A confirmação usa o mesmo caminho. O handler global de Escape não foi alterado e continua fechando pelo `closeModal()` central.
+- Isolamento dos outros consumidores: depois que não há draft de importação, fechar `#modal-prompt` deixa intactos texto, classe, disabled e onclick que outro consumidor configurou. O evento não interfere em objetos de modal usados como mocks sem `dispatchEvent`.
+- TDD: RED inicial dos dois achados — 4 casos de proveniência e 1 de fechamento falharam; após a primeira correção, um RED com payload real sem proveniência revelou que o fingerprint derivado por nome ainda substituiria o anterior; a correção adicional fez esse caso passar. A primeira suíte completa também detectou 16 mocks de modal incompatíveis com uma chamada incondicional de `dispatchEvent`; a chamada agora é opcional e a suíte completa passou.
+- Gates no HEAD `92c861d` / `APP_VERSION 9.32`: focused unit 77/77; lint 0 erros e 44 avisos preexistentes; design 45/45 e contraste AA em todos os temas; bump check sem assets pendentes; `npm test` 145 arquivos / 2.339 testes; `npm run test:e2e:release` 158/158. Todos concluídos após o bump do hook.
+- Revisão adversarial: as mudanças de merge limitam-se a `importMetadata`; entidades reutilizadas, seus campos de progresso, matching, editais arquivados, stale guard e atomicidade não foram alterados. Nenhuma linha de import congelado `?v=8.37` foi alterada.
+- Commits desta revisão: `ee6db69 fix(edital-import): preserve provenance on merge`; `92c861d fix(edital-import): clear draft on modal close`. Nenhum PR foi criado e não houve merge para `main`. O push da branch com os dois commits e este handoff está pendente.
