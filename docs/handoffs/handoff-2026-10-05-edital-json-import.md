@@ -142,3 +142,18 @@ O ledger detalhado e os logs de teste ficam em `.superpowers/sdd/2026-10-05-edit
 - GREEN focado: `npx vitest run tests/unit/edital-import-core.test.js tests/unit/edital-import-view.test.js` — 2 arquivos, 82/82.
 - O pre-commit atualiza `APP_VERSION` e cache para os assets staged de `src/`; o commit desta correção e todos os gates finais precisam ocorrer depois desse bump.
 - O release E2E de 158/158 e os demais gates já haviam passado no commit `aaf1663`; devem ser repetidos depois desta nova alteração. Não houve merge. PR #101 segue aberto e a issue #100 permanece aberta.
+
+## Gates finais após correção de identidade — checkpoint de fechamento
+
+- HEAD local validado: `d603d3c42db0ad5103895c8b486026a84552a369` (`fix(edital-import): distinguish name-only conflict sources`), com `APP_VERSION 9.34`.
+- `npx vitest run tests/unit/edital-import-core.test.js tests/unit/edital-import-view.test.js`: 2 arquivos / 82 testes aprovados.
+- `npm run lint`: 0 erros; 44 avisos já existentes em arquivos fora da feature.
+- `npm run test:design`: 45/45 testes CSS; auditoria WCAG AA aprovada nos temas.
+- `npm run bump:check`: sem assets pendentes.
+- `npm test`: 145 arquivos / 2.344 testes aprovados.
+- `npx playwright test tests/e2e/edital-import.spec.js --project=chromium --reporter=line --workers=1`: 9/9 aprovados.
+- `npm run test:e2e:release`: 158/158 aprovados (4,3 min).
+- `npx eslint src/js/logic/edital-import-core.js tests/unit/edital-import-core.test.js` e `git diff --check`: aprovados antes do commit.
+- Re-review adversarial: o fallback por conteúdo distingue payloads name-only diferentes e é estável com revisão/proveniência ausente; somente itens com matching 2+ persistem marcador interno; o usuário ainda escolhe explicitamente o edital de destino. Merge não sobrescreve entidades `REUSE`, nem altera domínios alheios; import congelado `?v=8.37` continua intacto.
+- A primeira execução isolada da suíte E2E do importador, antes de `d603d3c`, teve uma falha intermitente de reload (estado vazio); o cenário isolado, a suíte repetida e os nove casos dentro do release E2E passaram. Não houve alteração de código para mascarar essa ocorrência.
+- Próximos passos: atualizar `origin/codex/issue-100-edital-json-import`, consultar PR #101 e checks do novo HEAD, mesclar por merge commit se mergeável/sem falhas, atualizar local `main` por fast-forward, verificar SHA remoto, fechar/comentar issue #100 e registrar o HEAD final.
