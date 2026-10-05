@@ -12,14 +12,15 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 ## Trabalho concluído
 
 - Sincronizei a `main` de `f44dc85` para `e2b90ef` por fast-forward e criei a branch dedicada.
-- Task 1: implementei o início do core puro com validação do schema `tipo: "edital"`, versão 1, normalização de nomes, canonicalização de duplicatas dentro do JSON, identidade/fingerprint de proveniência e candidatos separados por estado ativo/arquivado.
+- Task 1: implementei o core puro com validação do schema `tipo: "edital"`, versão 1, normalização de nomes, canonicalização de duplicatas dentro do JSON, identidade/fingerprint de proveniência e candidatos separados por estado ativo/arquivado.
 - O preview/matching/apply/UI ainda não foram implementados.
 
 ## Arquivos alterados nesta fase
 
 - Criados: `src/js/logic/edital-import-core.js`, `tests/unit/edital-import-core.test.js`.
 - Criado para continuidade: este handoff.
-- Nenhum arquivo de `src/` da aplicação fora do novo core foi alterado manualmente.
+- O hook também atualizou `src/sw.js`, `src/index.html`, `src/js/sync/sync-diagnostic.js` e `tests/unit/css-architecture.test.js` para o bump automático `9.23 → 9.24`.
+- Nenhum arquivo de `src/` fora do novo core foi alterado manualmente.
 
 ## Decisões técnicas
 
@@ -35,6 +36,7 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 - Canonicalização e proveniência: REDs nas funções ainda ausentes, seguidos de GREEN.
 - Atual: `npx vitest run tests/unit/edital-import-core.test.js` — 1 arquivo, 20 testes aprovados.
 - Lint focado `npx eslint src/js/logic/edital-import-core.js` — aprovado.
+- Pós-commit: os 20 testes do core passaram novamente; `npm run bump:check` confirmou consistência.
 - Baseline completo em `e2b90ef`: 143 arquivos e 2.258 testes aprovados, mas Vitest terminou com 1 erro não tratado (`TypeError: cache.match is not a function`, `src/sw.js:228`, atribuído a `tests/unit/sw-fetch-routing.test.js`). O mesmo teste isolado teve 5 testes aprovados e reproduziu o mesmo erro; portanto o problema antecede esta feature.
 - Execuções Vitest precisam de permissão para spawn do esbuild; sem isso o sandbox retorna `EPERM` antes de iniciar a suíte.
 - Validação manual no navegador ainda não realizada.
@@ -42,11 +44,12 @@ Implementar o importador especializado de edital JSON conforme a spec aprovada e
 ## GitHub e commits
 
 - Issue #100 permanece aberta.
-- Branch local criada; commits da Task 1 estão em preparação neste checkpoint. Push ainda não realizado.
+- Commit da Task 1: `36191534c0ad86be33a879b6bbfd30fc4d89445e` (`feat(edital-import): add pure validation and source identity`).
+- Branch local criada; push ainda não realizado neste checkpoint.
 
 ## Pendências e retomada
 
-1. Fechar Task 1 com commit scoped e registrar o SHA aqui.
+1. Publicar a branch dedicada no GitHub após o handoff atualizado.
 2. Executar Tasks 2–3: matching/import plan, stale signature, apply atômico, preservação, principal único e idempotência.
 3. Executar Tasks 4–6: UI/preview/actions, precache e E2E completo.
 4. Executar Task 7: lint, design, bump check, `npm test`, E2E de release, revisão adversarial e verificação final.
