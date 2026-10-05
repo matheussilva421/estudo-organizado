@@ -2,6 +2,19 @@ function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function copyOwnProperties(value) {
+  const copy = {};
+  if (!isObject(value)) return copy;
+  for (const key of Object.keys(value)) copy[key] = value[key];
+  return copy;
+}
+
+function deepFreeze(value) {
+  if (value === null || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  for (const child of Object.values(value)) deepFreeze(child);
+  return Object.freeze(value);
+}
+
 function hasNonEmptyName(value) {
   return isObject(value) && typeof value.nome === 'string' && value.nome.trim().length > 0;
 }
@@ -405,7 +418,7 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
   });
 
   const sourceIdentity = buildEditalSourceIdentity(canonicalPayload);
-  return {
+  const plan = {
     source: {
       centralId: sourceIdentity.centralId,
       sourceRef: sourceIdentity.sourceRef,
@@ -423,5 +436,189 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
     conflicts,
     summary,
     ...(principalForced ? { principalForced: true } : {}),
+  };
+
+  return deepFreeze(plan);
+}
+
+function buildImportMetadata(source, now, previousMetadata = null) {
+  const metadata = copyOwnProperties(previousMetadata);
+  metadata.tipo = 'edital';
+  metadata.source = 'central-concursos';
+  metadata.centralId = source.centralId ?? null;
+  metadata.sourceRef = source.sourceRef ?? null;
+  metadata.sourceRevision = source.sourceRevision ?? null;
+  metadata.fingerprint = source.fingerprint ?? null;
+  metadata.lastImportedAt = now;
+  return metadata;
+}
+
+function createImportedTopic(item, uid) {
+  return {
+    id: `ass_${uid()}`,
+    nome: item.nome,
+    concluido: false,
+    dataConclusao: null,
+    revisoesFetas: [],
+    adiamentos: 0,
+    linkedAulaIds: [],
+  };
+}
+
+function createImportedLesson(item, uid) {
+  return {
+    id: `aula_${uid()}`,
+    nome: item.nome,
+    descricao: '',
+    estudada: false,
+    dataEstudo: null,
+    progress: 0,
+    linkedAssuntoIds: [],
+  };
+}
+
+function findExistingById(items, id) {
+  return (Array.isArray(items) ? items : []).find((item) => item?.id === id) ?? null;
+}
+
+function applyNestedItems(plannedItems, existingItems, uid, createItem) {
+  const result = Array.isArray(existingItems) ? [...existingItems] : [];
+  let hasChanges = false;
+
+  for (const item of plannedItems) {
+    if (item.action === 'reuse') {
+      const existing = findExistingById(existingItems, item.existingId);
+      if (!existing) throw new Error(`Item reutilizado não encontrado: ${item.nome}.`);
+      continue;
+    }
+    if (item.action !== 'create' && item.action !== 'create_conflict') {
+      throw new Error(`Ação de importação inválida para ${item.nome}.`);
+    }
+    result.push(createItem(item, uid));
+    hasChanges = true;
+  }
+  return { items: result, hasChanges };
+}
+
+function createImportedDiscipline(planned, targetColor, uid) {
+  const id = uid();
+  const assuntos = planned.topicos.map((item) => createImportedTopic(item, uid));
+  const aulas = planned.aulas.map((item) => createImportedLesson(item, uid));
+  return {
+    id,
+    nome: planned.nome,
+    icone: '📚',
+    cor: targetColor || '#0f766e',
+    assuntos,
+    aulas,
+  };
+}
+
+function mergeDiscipline(planned, existing, targetColor, uid) {
+  if (planned.action === 'create' || planned.action === 'create_conflict') {
+    return { discipline: createImportedDiscipline(planned, targetColor, uid), changed: true };
+  }
+  if (planned.action !== 'reuse') throw new Error(`Ação de disciplina inválida: ${planned.nome}.`);
+
+  const topics = applyNestedItems(planned.topicos, existing.assuntos, uid, createImportedTopic);
+  const lessons = applyNestedItems(planned.aulas, existing.aulas, uid, createImportedLesson);
+  if (!topics.hasChanges && !lessons.hasChanges) return { discipline: existing, changed: false };
+
+  const discipline = copyOwnProperties(existing);
+  discipline.assuntos = topics.items;
+  discipline.aulas = lessons.items;
+  return { discipline, changed: true };
+}
+
+function createEditalFromPlan(plan, uid, now, archived) {
+  const editalId = uid();
+  const disciplinas = plan.disciplinas.map((discipline) =>
+    createImportedDiscipline(discipline, '#0f766e', uid)
+  );
+  return {
+    id: editalId,
+    nome: plan.edital.nome,
+    cor: '#0f766e',
+    disciplinas,
+    arquivado: archived,
+    arquivadoEm: archived ? now : null,
+    importMetadata: buildImportMetadata(plan.source, now),
+  };
+}
+
+function archiveExistingEdital(edital, now) {
+  const archived = copyOwnProperties(edital);
+  archived.arquivado = true;
+  archived.arquivadoEm = now;
+  return archived;
+}
+
+export function applyEditalImport(editais, plan, { uid, now } = {}) {
+  if (typeof uid !== 'function') throw new TypeError('A função uid é obrigatória.');
+  if (typeof now !== 'string') throw new TypeError('O horário now é obrigatório.');
+  if (!isEditalImportPlanCurrent(plan, editais)) {
+    throw new Error('O preview de importação está desatualizado. Gere um novo preview antes de confirmar.');
+  }
+
+  const sourceEditais = Array.isArray(editais) ? editais : [];
+  let nextEditais;
+  let editalId;
+
+  if (plan.destination.mode === 'merge') {
+    const targetIndex = sourceEditais.findIndex((edital) => edital?.id === plan.destination.editalId);
+    const target = sourceEditais[targetIndex];
+    if (!target || target.arquivado === true) throw new Error('O edital de destino não está disponível para merge.');
+
+    let disciplinesChanged = false;
+    const nextDisciplines = Array.isArray(target.disciplinas) ? [...target.disciplinas] : [];
+    for (const planned of plan.disciplinas) {
+      const existing = planned.action === 'reuse'
+        ? findExistingById(target.disciplinas, planned.existingId)
+        : null;
+      if (planned.action === 'reuse' && !existing) {
+        throw new Error(`Disciplina reutilizada não encontrada: ${planned.nome}.`);
+      }
+      const applied = mergeDiscipline(planned, existing, target.cor, uid);
+      if (planned.action === 'reuse') {
+        if (applied.changed) {
+          const index = nextDisciplines.findIndex((discipline) => discipline?.id === planned.existingId);
+          nextDisciplines[index] = applied.discipline;
+          disciplinesChanged = true;
+        }
+      } else {
+        nextDisciplines.push(applied.discipline);
+        disciplinesChanged = true;
+      }
+    }
+
+    const nextTarget = copyOwnProperties(target);
+    if (disciplinesChanged) nextTarget.disciplinas = nextDisciplines;
+    nextTarget.importMetadata = buildImportMetadata(plan.source, now, target.importMetadata);
+    nextEditais = [...sourceEditais];
+    nextEditais[targetIndex] = nextTarget;
+    editalId = target.id;
+  } else if (plan.destination.mode === 'create') {
+    const archived = !plan.destination.makePrincipal;
+    const imported = createEditalFromPlan(plan, uid, now, archived);
+    editalId = imported.id;
+
+    nextEditais = sourceEditais.map((edital) =>
+      plan.destination.makePrincipal && edital && edital.arquivado !== true
+        ? archiveExistingEdital(edital, now)
+        : edital
+    );
+    nextEditais.push(imported);
+  } else {
+    throw new Error('Modo de destino inválido no plano de importação.');
+  }
+
+  return {
+    editais: nextEditais,
+    result: {
+      mode: plan.destination.mode,
+      editalId,
+      summary: plan.summary,
+      conflicts: plan.conflicts,
+    },
   };
 }
