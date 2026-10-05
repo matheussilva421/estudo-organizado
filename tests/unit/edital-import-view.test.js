@@ -226,6 +226,29 @@ describe('importação de edital — arquivo e preview', () => {
     expect(document.getElementById('modal-prompt-body').textContent).toContain('Atual: rev-2026-10');
   });
 
+  it('preview sinaliza que um item de conflito já foi importado no mesmo destino', () => {
+    const seed = activeEdital('ed_main', {
+      disciplinas: [
+        { id: 'disc_known_1', nome: 'Direito Penal', assuntos: [], aulas: [] },
+        { id: 'disc_known_2', nome: ' direito penal ', assuntos: [], aulas: [] },
+      ],
+    });
+    const source = payload({ disciplinas: [{ nome: 'Direito Penal', topicos: [], aulas: [] }] });
+    mocks.state.editais = [seed];
+
+    view.openEditalImportPreview(source);
+    expect(view.setEditalImportDestination({ mode: 'merge', editalId: seed.id })).toBe(true);
+    expect(document.getElementById('modal-prompt-body').textContent).toContain('Conflito: criar novo');
+    expect(view.confirmEditalImport()).toBe(true);
+    expect(mocks.state.editais[0].disciplinas).toHaveLength(3);
+
+    view.openEditalImportPreview(source);
+    expect(view.setEditalImportDestination({ mode: 'merge', editalId: seed.id })).toBe(true);
+
+    expect(document.getElementById('modal-prompt-body').textContent).toContain('Conflito já importado');
+    expect(document.getElementById('modal-prompt-body').textContent).not.toContain('Conflito: criar novo');
+  });
+
   it('descarta o draft ao fechar o preview pelo controlador real do modal', async () => {
     view.openEditalImportPreview(payload());
     expect(view.getEditalImportDraft()).not.toBeNull();

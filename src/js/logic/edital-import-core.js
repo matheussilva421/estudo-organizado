@@ -222,10 +222,36 @@ function createSummary() {
   };
 }
 
-function planNestedItems(importedItems, existingItems, collection, type, parentId, summary, conflicts) {
+function buildImportedItemKey(sourceFingerprint, collection, parentName, name) {
+  return JSON.stringify([
+    sourceFingerprint,
+    collection,
+    parentName ? normalizeEditalImportName(parentName) : null,
+    normalizeEditalImportName(name),
+  ]);
+}
+
+function findPreviouslyImportedMatch(matches, sourceKey) {
+  return matches.find((item) => item?._editalImportSourceKey === sourceKey) ?? null;
+}
+
+function planNestedItems(
+  importedItems,
+  existingItems,
+  collection,
+  type,
+  parentId,
+  parentName,
+  sourceFingerprint,
+  summary,
+  conflicts
+) {
   return importedItems.map((item) => {
     const matches = findNameMatches(existingItems, item.nome);
     const action = matches.length === 0 ? 'create' : matches.length === 1 ? 'reuse' : 'create_conflict';
+    const sourceKey = buildImportedItemKey(sourceFingerprint, collection, parentName, item.nome);
+    const alreadyImported =
+      action === 'create_conflict' ? findPreviouslyImportedMatch(matches, sourceKey) : null;
     recordMatch(summary, collection, action);
 
     if (action === 'create_conflict') {
@@ -234,6 +260,7 @@ function planNestedItems(importedItems, existingItems, collection, type, parentI
         nome: item.nome,
         existingIds: matches.map(({ id }) => id),
         parentDisciplineId: parentId,
+        ...(alreadyImported ? { alreadyImportedId: alreadyImported.id } : {}),
       });
     }
 
@@ -241,15 +268,22 @@ function planNestedItems(importedItems, existingItems, collection, type, parentI
       nome: item.nome,
       action,
       existingId: action === 'reuse' ? matches[0].id : null,
+      ...(action !== 'reuse' ? { sourceKey } : {}),
+      ...(alreadyImported ? { alreadyImportedId: alreadyImported.id } : {}),
       ...(action === 'create_conflict' ? { conflictIds: matches.map(({ id }) => id) } : {}),
     };
   });
 }
 
-function planCreatedNestedItems(importedItems, collection, summary) {
+function planCreatedNestedItems(importedItems, collection, parentName, sourceFingerprint, summary) {
   return importedItems.map((item) => {
     recordMatch(summary, collection, 'create');
-    return { nome: item.nome, action: 'create', existingId: null };
+    return {
+      nome: item.nome,
+      action: 'create',
+      existingId: null,
+      sourceKey: buildImportedItemKey(sourceFingerprint, collection, parentName, item.nome),
+    };
   });
 }
 
@@ -368,13 +402,22 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
 
   const summary = createSummary();
   const conflicts = [];
+  const sourceIdentity = buildEditalSourceIdentity(canonicalPayload);
   const plannedDisciplines = canonicalPayload.disciplinas.map((importedDiscipline) => {
     const matches =
       resolvedDestination.mode === 'merge'
         ? findNameMatches(target.disciplinas, importedDiscipline.nome)
         : [];
     const action = matches.length === 0 ? 'create' : matches.length === 1 ? 'reuse' : 'create_conflict';
-    const existing = action === 'reuse' ? matches[0] : null;
+    const sourceKey = buildImportedItemKey(
+      sourceIdentity.fingerprint,
+      'disciplinas',
+      null,
+      importedDiscipline.nome
+    );
+    const alreadyImported =
+      action === 'create_conflict' ? findPreviouslyImportedMatch(matches, sourceKey) : null;
+    const existing = action === 'reuse' ? matches[0] : alreadyImported;
     recordMatch(summary, 'disciplinas', action);
 
     if (action === 'create_conflict') {
@@ -382,15 +425,18 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
         tipo: 'disciplina',
         nome: importedDiscipline.nome,
         existingIds: matches.map(({ id }) => id),
+        ...(alreadyImported ? { alreadyImportedId: alreadyImported.id } : {}),
       });
     }
 
     const parentId = existing?.id ?? null;
-    const canMatchChildren = action === 'reuse';
+    const canMatchChildren = action === 'reuse' || Boolean(alreadyImported);
     return {
       nome: importedDiscipline.nome,
       action,
-      existingId: existing?.id ?? null,
+      existingId: action === 'reuse' ? existing?.id ?? null : null,
+      ...(action !== 'reuse' ? { sourceKey } : {}),
+      ...(alreadyImported ? { alreadyImportedId: alreadyImported.id } : {}),
       ...(action === 'create_conflict' ? { conflictIds: matches.map(({ id }) => id) } : {}),
       topicos: canMatchChildren
         ? planNestedItems(
@@ -399,10 +445,18 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
             'topicos',
             'topico',
             parentId,
+            importedDiscipline.nome,
+            sourceIdentity.fingerprint,
             summary,
             conflicts
           )
-        : planCreatedNestedItems(importedDiscipline.topicos, 'topicos', summary),
+        : planCreatedNestedItems(
+            importedDiscipline.topicos,
+            'topicos',
+            importedDiscipline.nome,
+            sourceIdentity.fingerprint,
+            summary
+          ),
       aulas: canMatchChildren
         ? planNestedItems(
             importedDiscipline.aulas,
@@ -410,14 +464,21 @@ export function buildEditalImportPlan({ payload, editais, destination }) {
             'aulas',
             'aula',
             parentId,
+            importedDiscipline.nome,
+            sourceIdentity.fingerprint,
             summary,
             conflicts
           )
-        : planCreatedNestedItems(importedDiscipline.aulas, 'aulas', summary),
+        : planCreatedNestedItems(
+            importedDiscipline.aulas,
+            'aulas',
+            importedDiscipline.nome,
+            sourceIdentity.fingerprint,
+            summary
+          ),
     };
   });
 
-  const sourceIdentity = buildEditalSourceIdentity(canonicalPayload);
   const plan = {
     source: {
       centralId: sourceIdentity.centralId,
@@ -454,7 +515,7 @@ function buildImportMetadata(source, now, previousMetadata = null) {
 }
 
 function createImportedTopic(item, uid) {
-  return {
+  const topic = {
     id: `ass_${uid()}`,
     nome: item.nome,
     concluido: false,
@@ -463,10 +524,12 @@ function createImportedTopic(item, uid) {
     adiamentos: 0,
     linkedAulaIds: [],
   };
+  if (item.sourceKey) topic._editalImportSourceKey = item.sourceKey;
+  return topic;
 }
 
 function createImportedLesson(item, uid) {
-  return {
+  const lesson = {
     id: `aula_${uid()}`,
     nome: item.nome,
     descricao: '',
@@ -475,6 +538,8 @@ function createImportedLesson(item, uid) {
     progress: 0,
     linkedAssuntoIds: [],
   };
+  if (item.sourceKey) lesson._editalImportSourceKey = item.sourceKey;
+  return lesson;
 }
 
 function findExistingById(items, id) {
@@ -491,6 +556,13 @@ function applyNestedItems(plannedItems, existingItems, uid, createItem) {
       if (!existing) throw new Error(`Item reutilizado não encontrado: ${item.nome}.`);
       continue;
     }
+    if (item.action === 'create_conflict' && item.alreadyImportedId) {
+      const existing = findExistingById(existingItems, item.alreadyImportedId);
+      if (!existing || existing._editalImportSourceKey !== item.sourceKey) {
+        throw new Error(`Conflito importado não encontrado: ${item.nome}.`);
+      }
+      continue;
+    }
     if (item.action !== 'create' && item.action !== 'create_conflict') {
       throw new Error(`Ação de importação inválida para ${item.nome}.`);
     }
@@ -504,7 +576,7 @@ function createImportedDiscipline(planned, targetColor, uid) {
   const id = uid();
   const assuntos = planned.topicos.map((item) => createImportedTopic(item, uid));
   const aulas = planned.aulas.map((item) => createImportedLesson(item, uid));
-  return {
+  const discipline = {
     id,
     nome: planned.nome,
     icone: '📚',
@@ -512,13 +584,21 @@ function createImportedDiscipline(planned, targetColor, uid) {
     assuntos,
     aulas,
   };
+  if (planned.sourceKey) discipline._editalImportSourceKey = planned.sourceKey;
+  return discipline;
 }
 
 function mergeDiscipline(planned, existing, targetColor, uid) {
-  if (planned.action === 'create' || planned.action === 'create_conflict') {
+  const alreadyImportedConflict = planned.action === 'create_conflict' && planned.alreadyImportedId;
+  if (
+    planned.action === 'create' ||
+    (planned.action === 'create_conflict' && !alreadyImportedConflict)
+  ) {
     return { discipline: createImportedDiscipline(planned, targetColor, uid), changed: true };
   }
-  if (planned.action !== 'reuse') throw new Error(`Ação de disciplina inválida: ${planned.nome}.`);
+  if (planned.action !== 'reuse' && !alreadyImportedConflict) {
+    throw new Error(`Ação de disciplina inválida: ${planned.nome}.`);
+  }
 
   const topics = applyNestedItems(planned.topicos, existing.assuntos, uid, createImportedTopic);
   const lessons = applyNestedItems(planned.aulas, existing.aulas, uid, createImportedLesson);
@@ -572,16 +652,23 @@ export function applyEditalImport(editais, plan, { uid, now } = {}) {
     let disciplinesChanged = false;
     const nextDisciplines = Array.isArray(target.disciplinas) ? [...target.disciplinas] : [];
     for (const planned of plan.disciplinas) {
+      const alreadyImportedConflict = planned.action === 'create_conflict' && planned.alreadyImportedId;
       const existing = planned.action === 'reuse'
         ? findExistingById(target.disciplinas, planned.existingId)
         : null;
-      if (planned.action === 'reuse' && !existing) {
+      const resolvedExisting = alreadyImportedConflict
+        ? findExistingById(target.disciplinas, planned.alreadyImportedId)
+        : existing;
+      if (alreadyImportedConflict && resolvedExisting?._editalImportSourceKey !== planned.sourceKey) {
+        throw new Error(`Conflito importado não encontrado: ${planned.nome}.`);
+      }
+      if ((planned.action === 'reuse' || alreadyImportedConflict) && !resolvedExisting) {
         throw new Error(`Disciplina reutilizada não encontrada: ${planned.nome}.`);
       }
-      const applied = mergeDiscipline(planned, existing, target.cor, uid);
-      if (planned.action === 'reuse') {
+      const applied = mergeDiscipline(planned, resolvedExisting, target.cor, uid);
+      if (planned.action === 'reuse' || alreadyImportedConflict) {
         if (applied.changed) {
-          const index = nextDisciplines.findIndex((discipline) => discipline?.id === planned.existingId);
+          const index = nextDisciplines.findIndex((discipline) => discipline?.id === resolvedExisting.id);
           nextDisciplines[index] = applied.discipline;
           disciplinesChanged = true;
         }

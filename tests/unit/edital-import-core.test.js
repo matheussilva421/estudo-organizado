@@ -745,7 +745,7 @@ describe('applyEditalImport', () => {
     expect(discipline.aulas[0]).toBe(existingLesson);
     expect(discipline.assuntos[0]).toEqual(existingTopic);
     expect(discipline.aulas[0]).toEqual(existingLesson);
-    expect(discipline.assuntos[1]).toEqual({
+    expect(discipline.assuntos[1]).toMatchObject({
       id: 'ass_new_assunto',
       nome: 'Culpa',
       concluido: false,
@@ -754,7 +754,7 @@ describe('applyEditalImport', () => {
       adiamentos: 0,
       linkedAulaIds: [],
     });
-    expect(discipline.aulas[1]).toEqual({
+    expect(discipline.aulas[1]).toMatchObject({
       id: 'aula_new_aula',
       nome: 'Aula 02',
       descricao: '',
@@ -774,7 +774,7 @@ describe('applyEditalImport', () => {
 
     const { editais } = applyWithIds([target], plan, ['disc_new', 'topic_new', 'lesson_new']);
 
-    expect(editais[0].disciplinas[0]).toEqual({
+    expect(editais[0].disciplinas[0]).toMatchObject({
       id: 'disc_new',
       nome: 'Português',
       icone: '📚',
@@ -1101,6 +1101,128 @@ describe('applyEditalImport', () => {
     expect(second.editais[0].disciplinas[0]).toEqual(progressAfterFirst);
     expect(second.editais[0].disciplinas[0].assuntos[0]).toEqual(existingTopic);
     expect(second.editais[0].disciplinas[0].aulas[0]).toEqual(existingLesson);
+  });
+
+  it('não duplica disciplina em conflito ao repetir o mesmo merge no destino', () => {
+    const seed = targetEdital([
+      { id: 'disc_known_1', nome: 'Constitucional', assuntos: [], aulas: [] },
+      { id: 'disc_known_2', nome: ' constitucional ', assuntos: [], aulas: [] },
+    ]);
+    const payload = validPayload({
+      centralId: 'central-100',
+      disciplinas: [importDiscipline('Constitucional')],
+    });
+    const firstPlan = buildImportPlan(payload, [seed]);
+    const first = applyWithIds([seed], firstPlan, ['disc_conflict_imported']);
+    const afterFirst = first.editais;
+    const importedDiscipline = afterFirst[0].disciplinas[2];
+    const secondPlan = buildImportPlan(payload, afterFirst);
+    const secondUid = vi.fn(() => 'unexpected_duplicate');
+    const second = applyEditalImport(afterFirst, secondPlan, { uid: secondUid, now });
+
+    expect(firstPlan.disciplinas[0].action).toBe('create_conflict');
+    expect(secondPlan.disciplinas[0]).toMatchObject({
+      action: 'create_conflict',
+      alreadyImportedId: 'disc_conflict_imported',
+    });
+    expect(secondUid).not.toHaveBeenCalled();
+    expect(second.editais[0].disciplinas).toHaveLength(3);
+    expect(second.editais[0].disciplinas[2]).toEqual(importedDiscipline);
+  });
+
+  it('não duplica tópico conflitante e preserva seu progresso na reimportação', () => {
+    const seed = targetEdital([
+      {
+        id: 'disc_known',
+        nome: 'Constitucional',
+        assuntos: [
+          { id: 'ass_known_1', nome: 'Dolo' },
+          { id: 'ass_known_2', nome: ' dolo ' },
+        ],
+        aulas: [],
+      },
+    ]);
+    const payload = validPayload({
+      centralId: 'central-100',
+      disciplinas: [importDiscipline('Constitucional', [{ nome: 'Dolo' }])],
+    });
+    const firstPlan = buildImportPlan(payload, [seed]);
+    const first = applyWithIds([seed], firstPlan, ['conflict_imported']);
+    const firstTarget = first.editais[0];
+    const discipline = firstTarget.disciplinas[0];
+    const importedTopic = {
+      ...discipline.assuntos[2],
+      concluido: true,
+      dataConclusao: '2026-10-05',
+      revisoesFetas: ['2026-10-06'],
+      adiamentos: 2,
+    };
+    const targetWithProgress = [{
+      ...firstTarget,
+      disciplinas: [{
+        ...discipline,
+        assuntos: [...discipline.assuntos.slice(0, 2), importedTopic],
+      }],
+    }];
+    const secondPlan = buildImportPlan(payload, targetWithProgress);
+    const secondUid = vi.fn(() => 'unexpected_duplicate');
+    const second = applyEditalImport(targetWithProgress, secondPlan, { uid: secondUid, now });
+
+    expect(firstPlan.disciplinas[0].topicos[0].action).toBe('create_conflict');
+    expect(secondPlan.disciplinas[0].topicos[0]).toMatchObject({
+      action: 'create_conflict',
+      alreadyImportedId: 'ass_conflict_imported',
+    });
+    expect(secondUid).not.toHaveBeenCalled();
+    expect(second.editais[0].disciplinas[0].assuntos).toHaveLength(3);
+    expect(second.editais[0].disciplinas[0].assuntos[2]).toEqual(importedTopic);
+  });
+
+  it('não duplica aula conflitante e preserva seu progresso na reimportação', () => {
+    const seed = targetEdital([
+      {
+        id: 'disc_known',
+        nome: 'Constitucional',
+        assuntos: [],
+        aulas: [
+          { id: 'aula_known_1', nome: 'Aula 01' },
+          { id: 'aula_known_2', nome: ' aula 01 ' },
+        ],
+      },
+    ]);
+    const payload = validPayload({
+      centralId: 'central-100',
+      disciplinas: [importDiscipline('Constitucional', [], [{ nome: 'Aula 01' }])],
+    });
+    const firstPlan = buildImportPlan(payload, [seed]);
+    const first = applyWithIds([seed], firstPlan, ['conflict_imported']);
+    const firstTarget = first.editais[0];
+    const discipline = firstTarget.disciplinas[0];
+    const importedLesson = {
+      ...discipline.aulas[2],
+      estudada: true,
+      dataEstudo: '2026-10-05',
+      progress: 87,
+    };
+    const targetWithProgress = [{
+      ...firstTarget,
+      disciplinas: [{
+        ...discipline,
+        aulas: [...discipline.aulas.slice(0, 2), importedLesson],
+      }],
+    }];
+    const secondPlan = buildImportPlan(payload, targetWithProgress);
+    const secondUid = vi.fn(() => 'unexpected_duplicate');
+    const second = applyEditalImport(targetWithProgress, secondPlan, { uid: secondUid, now });
+
+    expect(firstPlan.disciplinas[0].aulas[0].action).toBe('create_conflict');
+    expect(secondPlan.disciplinas[0].aulas[0]).toMatchObject({
+      action: 'create_conflict',
+      alreadyImportedId: 'aula_conflict_imported',
+    });
+    expect(secondUid).not.toHaveBeenCalled();
+    expect(second.editais[0].disciplinas[0].aulas).toHaveLength(3);
+    expect(second.editais[0].disciplinas[0].aulas[2]).toEqual(importedLesson);
   });
 
   it('permite criar deliberadamente outro edital em cada operação create', () => {

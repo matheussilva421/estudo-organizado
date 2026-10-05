@@ -121,3 +121,15 @@ O ledger detalhado e os logs de teste ficam em `.superpowers/sdd/2026-10-05-edit
 - Gates no HEAD `92c861d` / `APP_VERSION 9.32`: focused unit 77/77; lint 0 erros e 44 avisos preexistentes; design 45/45 e contraste AA em todos os temas; bump check sem assets pendentes; `npm test` 145 arquivos / 2.339 testes; `npm run test:e2e:release` 158/158. Todos concluídos após o bump do hook.
 - Revisão adversarial: as mudanças de merge limitam-se a `importMetadata`; entidades reutilizadas, seus campos de progresso, matching, editais arquivados, stale guard e atomicidade não foram alterados. Nenhuma linha de import congelado `?v=8.37` foi alterada.
 - Commits desta revisão: `ee6db69 fix(edital-import): preserve provenance on merge`; `92c861d fix(edital-import): clear draft on modal close`. A branch foi publicada no GitHub após os gates finais; nenhum PR foi criado e não houve merge para `main`.
+
+## Revisão do PR #101 — idempotência em conflitos
+
+**Data:** 2026-10-05
+**PR:** [#101](https://github.com/matheussilva421/estudo-organizado/pull/101), aberto contra `main`; HEAD original `92f429058224621f6853beeb47aa6f378f60dedd`.
+
+- A revisão adversarial identificou que uma importação com 2+ homônimos criava `CREATE_CONFLICT`, mas o merge repetido criava outro homônimo de novo. Isso quebrava a idempotência no mesmo destino.
+- A correção conserva a classificação `create_conflict` e o aviso no preview. Itens criados recebem uma chave local de origem; ao reimportar e escolher explicitamente o mesmo destino, o plano reconhece o conflito já aplicado, preserva o item/progresso e não gera duplicata. O preview informa “Conflito já importado”.
+- TDD: três regressões de core falharam antes da implementação (disciplina, tópico e aula conflitantes); o teste de view também falhou sem o rótulo de reimportação. Após a correção: core+view — 81/81.
+- O apontamento de import do core sem query foi classificado como não funcional: o service worker precacheia o módulo e usa `ignoreSearch` para o fallback, e o código existente já tem imports internos sem query. Nenhuma query `?v=8.37` existente foi alterada.
+- `core.hooksPath` confirmado como `.githooks`; o pre-commit atualiza automaticamente `APP_VERSION`/cache quando assets `src/` entram no commit.
+- Estado neste checkpoint: PR #101 aberto, merge ainda não executado. O GitHub retornou `mergeable: true`, sem status checks e sem workflow runs para o HEAD consultado. Gates completos pós-correção, push do commit de correção, nova leitura dos checks, merge, verificação de `origin/main` e fechamento/comentário da issue #100 ainda pendentes.

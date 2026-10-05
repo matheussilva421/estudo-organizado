@@ -47,15 +47,17 @@ function buildPlanFor(payload, destination) {
   });
 }
 
-function getActionLabel(action) {
+function getActionLabel(action, alreadyImported = false) {
   if (action === 'reuse') return 'Reutilizar';
-  if (action === 'create_conflict') return 'Conflito: criar novo';
+  if (action === 'create_conflict') {
+    return alreadyImported ? 'Conflito já importado' : 'Conflito: criar novo';
+  }
   return 'Criar';
 }
 
-function renderActionBadge(action) {
+function renderActionBadge(action, alreadyImported = false) {
   const modifier = action === 'reuse' ? 'reuse' : action === 'create_conflict' ? 'conflict' : 'create';
-  return `<span class="edital-import-badge edital-import-badge--${modifier}">${getActionLabel(action)}</span>`;
+  return `<span class="edital-import-badge edital-import-badge--${modifier}">${getActionLabel(action, alreadyImported)}</span>`;
 }
 
 function renderNestedItems(items, label) {
@@ -64,7 +66,7 @@ function renderNestedItems(items, label) {
     .map(
       (item) => `
         <li class="edital-import-item edital-import-item--${item.action}">
-          <span>${esc(item.nome)}</span>${renderActionBadge(item.action)}
+          <span>${esc(item.nome)}</span>${renderActionBadge(item.action, Boolean(item.alreadyImportedId))}
         </li>
       `
     )
@@ -81,7 +83,7 @@ function renderDisciplineTree(plan) {
           (discipline) => `
             <li class="edital-import-discipline">
               <div class="edital-import-item edital-import-item--${discipline.action}">
-                <strong>${esc(discipline.nome)}</strong>${renderActionBadge(discipline.action)}
+                <strong>${esc(discipline.nome)}</strong>${renderActionBadge(discipline.action, Boolean(discipline.alreadyImportedId))}
               </div>
               ${renderNestedItems(discipline.topicos, 'Tópicos')}
               ${renderNestedItems(discipline.aulas, 'Aulas')}
