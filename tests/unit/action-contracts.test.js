@@ -401,6 +401,7 @@ describe('data-action contracts', () => {
     const swSource = read('src/sw.js');
     const requiredModules = [
       './js/credentials.js',
+      './js/logic/reta-final-schema.js',
       './js/views/habitos-view.js',
       './js/views/ciclo-view.js',
       './js/registro-sessao/modal-renderer.js',

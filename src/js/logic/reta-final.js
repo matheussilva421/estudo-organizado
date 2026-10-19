@@ -283,6 +283,7 @@ export function activateRetaFinal({ payload, matching } = {}) {
     throw new Error('JSON da Reta Final inválido: ' + validation.errors.join(' '));
   }
   const match = matching || matchRetaFinalToEditais(payload, state.editais);
+  const editaisBefore = deepClone(state.editais);
 
   // 1. Garante as entidades nos editais.
   if (!Array.isArray(state.editais)) state.editais = [];
@@ -400,11 +401,11 @@ export function activateRetaFinal({ payload, matching } = {}) {
   // é preservado — arquivar a reta antiga o perderia.
   const now = new Date().toISOString();
   const current = state.planejamento;
-  if (current?.ativo && current.tipo && current.tipo !== 'reta_final') {
-    state.planejamentoArquivado = { plan: deepClone(current), arquivadoEm: now };
-  }
+  const archived = current?.ativo && current.tipo && current.tipo !== 'reta_final'
+    ? { plan: deepClone(current), arquivadoEm: now }
+    : null;
 
-  state.planejamento = {
+  const candidatePlan = {
     ativo: true,
     tipo: 'reta_final',
     disciplinas: [...new Set(blocos.map((b) => b.discId))],
@@ -429,10 +430,24 @@ export function activateRetaFinal({ payload, matching } = {}) {
     },
   };
 
-  // Allocate lineage and retain imported intent before the first rollover.
-  state.planejamento = migrateRetaFinalV2(state.planejamento, {
+  // Allocate lineage and validate before replacing state or touching events.
+  const migration = migrateRetaFinalV2(candidatePlan, {
     makePlanId: () => 'rfplan_' + uid(),
-  }).plan;
+  });
+  if (
+    !migration.changed ||
+    migration.plan?.schemaVersionRetaFinal !== 2 ||
+    !migration.plan?.planId
+  ) {
+    state.editais = editaisBefore;
+    const detail = migration.diagnostics?.length
+      ? migration.diagnostics.join(' ')
+      : 'migração não produziu um plano v2 válido.';
+    throw new Error('Falha ao migrar a Reta Final para v2: ' + detail);
+  }
+
+  if (archived) state.planejamentoArquivado = archived;
+  state.planejamento = migration.plan;
 
   // 4. Troca de plano: limpa autos pendentes do plano anterior e materializa.
   wipeAutoPlanEvents();

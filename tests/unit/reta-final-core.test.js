@@ -74,6 +74,13 @@ describe('validateRetaFinalPayload', () => {
     expect(validateRetaFinalPayload(validPayload({ dataFinal: '15/08/2026' })).valid).toBe(false);
   });
 
+  it('rejeita datas civis inexistentes em dataFinal e dias', () => {
+    expect(validateRetaFinalPayload(validPayload({ dataFinal: '2026-12-32' })).valid).toBe(false);
+    const payload = validPayload();
+    payload.dias[0].data = '2026-02-30';
+    expect(validateRetaFinalPayload(payload).valid).toBe(false);
+  });
+
   it('rejeita dia com data acima da dataFinal', () => {
     const payload = validPayload();
     payload.dias[0].data = '2026-08-16';

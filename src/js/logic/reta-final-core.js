@@ -9,6 +9,14 @@
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+function isCivilDate(value) {
+  if (typeof value !== 'string' || !DATE_RE.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return year > 0 && month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1];
+}
+
 /**
  * Chave de nome para matching: minúsculas, sem acentos (NFD), espaços
  * colapsados. "Direito  Penal " e "direito penal" casam.
@@ -40,8 +48,8 @@ export function validateRetaFinalPayload(payload) {
   if (payload.versao !== 1) {
     errors.push('Campo "versao" deve ser 1.');
   }
-  if (!DATE_RE.test(String(payload.dataFinal || ''))) {
-    errors.push('Campo "dataFinal" deve estar no formato YYYY-MM-DD.');
+  if (!isCivilDate(payload.dataFinal)) {
+    errors.push('Campo "dataFinal" deve ser uma data civil válida no formato YYYY-MM-DD.');
   }
   if (payload.minutosPadrao !== undefined && !isPositiveInt(payload.minutosPadrao)) {
     errors.push('Campo "minutosPadrao" deve ser um inteiro maior que zero.');
@@ -57,9 +65,9 @@ export function validateRetaFinalPayload(payload) {
       errors.push(`${rotulo}: entrada inválida.`);
       return;
     }
-    if (!DATE_RE.test(String(dia.data || ''))) {
-      errors.push(`${rotulo}: "data" deve estar no formato YYYY-MM-DD.`);
-    } else if (DATE_RE.test(String(payload.dataFinal || '')) && dia.data > payload.dataFinal) {
+    if (!isCivilDate(dia.data)) {
+      errors.push(`${rotulo}: "data" deve ser uma data civil válida no formato YYYY-MM-DD.`);
+    } else if (isCivilDate(payload.dataFinal) && dia.data > payload.dataFinal) {
       errors.push(`${rotulo}: data ${dia.data} é posterior à dataFinal.`);
     }
     if (!Array.isArray(dia.blocos) || dia.blocos.length === 0) {

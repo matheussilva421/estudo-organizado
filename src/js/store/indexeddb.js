@@ -74,7 +74,10 @@ export function initDB() {
 
     request.onerror = (event) => {
       console.error('IndexedDB Error:', event.target.error);
-      Promise.resolve(loadLegacyState()).then(resolve); // Fallback
+      Promise.resolve(loadLegacyState()).then(resolve, (err) => {
+        console.error('Legacy fallback failed:', err);
+        resolve();
+      });
     };
 
     request.onupgradeneeded = (event) => {
@@ -149,7 +152,10 @@ async function migrateLoadedState(loadedState, { persistEvenIfUnchanged = false 
 export function loadStateFromDB() {
   return new Promise((resolve) => {
     if (!db) {
-      Promise.resolve(loadLegacyState()).then(resolve);
+      Promise.resolve(loadLegacyState()).then(resolve, (err) => {
+        console.error('Legacy fallback failed:', err);
+        resolve();
+      });
       return;
     }
     const transaction = db.transaction([STORE_NAME], 'readonly');
@@ -223,7 +229,10 @@ export function loadStateFromDB() {
 
     transaction.onerror = () => {
       console.error('loadStateFromDB transaction error:', transaction.error);
-      Promise.resolve(loadLegacyState()).then(resolve);
+      Promise.resolve(loadLegacyState()).then(resolve, (err) => {
+        console.error('Legacy fallback failed:', err);
+        resolve();
+      });
     };
   });
 }
@@ -244,8 +253,12 @@ export function loadLegacyState() {
       if (loadedState.planejamento?.tipo === 'reta_final') {
         return migrateLoadedState(loadedState, { persistEvenIfUnchanged: true }).then((saved) => {
           if (!saved) return;
-          localStorage.removeItem('estudo_state');
-          localStorage.removeItem('estudo_state_emergency');
+          try {
+            localStorage.removeItem('estudo_state');
+            localStorage.removeItem('estudo_state_emergency');
+          } catch (err) {
+            console.error('Reta Final: falha ao limpar fonte local já persistida.', err);
+          }
         });
       }
       _setStateRef(loadedState);
@@ -523,8 +536,8 @@ export function saveStateToDB(
 }
 
 /**
- * Executa migrações de schema do estado (v1 → v10)
- * @returns {void}
+ * Executa migrações de schema do estado (v1 → v12)
+ * @returns {{plan: object|undefined, changed: boolean, diagnostics: string[]}}
  */
 export function runMigrations() {
   const result = _runMigrations(_stateRef, scheduleSave);

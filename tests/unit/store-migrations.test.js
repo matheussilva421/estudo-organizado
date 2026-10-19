@@ -352,6 +352,36 @@ describe('Reta Final persisted migration', () => {
     expect(global.localStorage.removeItem).not.toHaveBeenCalled();
   });
 
+  it('removeItem com erro não deixa initDB pendurado', async () => {
+    const input = legacyState();
+    const savedRaw = JSON.stringify(input);
+    const records = new Map();
+    const database = memoryDB(records);
+    // The first read probes emergency state; the second reaches the legacy fallback.
+    let savedReads = 0;
+    global.localStorage.getItem = vi.fn((key) => {
+      if (key !== 'estudo_state') return null;
+      savedReads += 1;
+      return savedReads >= 2 ? savedRaw : null;
+    });
+    global.localStorage.removeItem = vi.fn(() => { throw new Error('storage blocked'); });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    global.indexedDB = { open: vi.fn(() => {
+      const req = {};
+      Promise.resolve().then(() => {
+        req.onsuccess({ target: { result: database } });
+      });
+      return req;
+    }) };
+
+    await expect(store.initDB()).resolves.toBeUndefined();
+
+    expect(store.state.planejamento).toMatchObject({ schemaVersionRetaFinal: 2 });
+    expect(records.get(store.LOCAL_STATE_CURRENT_KEY).payload.planejamento).toMatchObject({
+      schemaVersionRetaFinal: 2,
+    });
+  }, 1000);
+
   it('initDB só conclui após o commit durável da migração', async () => {
     const input = legacyState();
     const records = new Map([[store.LOCAL_STATE_CURRENT_KEY, store.createLocalStateEnvelope(input)]]);

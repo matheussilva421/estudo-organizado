@@ -1,5 +1,5 @@
 // =============================================
-// SCHEMA MIGRATIONS (v1 → v11)
+// SCHEMA MIGRATIONS (v1 → v12)
 // =============================================
 import { uid } from '../utils.js?v=8.37';
 import { migrateRetaFinalV2 } from '../logic/reta-final-schema.js';
@@ -7,10 +7,10 @@ import { migrateRetaFinalV2 } from '../logic/reta-final-schema.js';
 export const DEFAULT_SCHEMA_VERSION = 12;
 
 /**
- * Executa migrações de schema do estado (v1 → v11)
+ * Executa migrações de schema do estado (v1 → v12)
  * @param {Object} state - Estado global a ser migrado
  * @param {Function} onChanged - Callback chamado quando mudanças são aplicadas
- * @returns {void}
+ * @returns {{plan: object|undefined, changed: boolean, diagnostics: string[]}}
  */
 export function runMigrations(state, onChanged) {
   let changed = false;

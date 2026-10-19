@@ -245,6 +245,69 @@ describe('activateRetaFinal', () => {
     expect(store.state.planejamento.tipo).toBe('ciclo');
     expect(store.state.planejamentoArquivado).toBeNull();
   });
+
+  it('data civil inexistente falha antes de trocar plano, edital ou eventos', () => {
+    store.setState(
+      baseStateComEdital({
+        planejamento: planoCicloAtivo(),
+        eventos: [{ id: 'ev_estudado', status: 'estudei', dataEstudo: HOJE, tempoAcumulado: 1200 }],
+      })
+    );
+    const before = JSON.stringify({
+      planejamento: store.state.planejamento,
+      planejamentoArquivado: store.state.planejamentoArquivado,
+      editais: store.state.editais,
+      eventos: store.state.eventos,
+    });
+    const invalid = payload({
+      dias: [{ data: '2026-02-30', blocos: [{ disciplina: 'Português', topicos: ['Crase'] }] }],
+    });
+
+    expect(() => retaFinalMod.activateRetaFinal({ payload: invalid })).toThrow(/Reta Final/i);
+    expect(JSON.stringify({
+      planejamento: store.state.planejamento,
+      planejamentoArquivado: store.state.planejamentoArquivado,
+      editais: store.state.editais,
+      eventos: store.state.eventos,
+    })).toBe(before);
+  });
+
+  it('falha da migração restaura editais e mantém plano/eventos anteriores', () => {
+    store.setState(
+      baseStateComEdital({
+        planejamento: planoCicloAtivo(),
+        eventos: [{ id: 'ev_estudado', status: 'estudei', dataEstudo: HOJE, tempoAcumulado: 1200 }],
+      })
+    );
+    const before = JSON.stringify({
+      planejamento: store.state.planejamento,
+      planejamentoArquivado: store.state.planejamentoArquivado,
+      editais: store.state.editais,
+      eventos: store.state.eventos,
+    });
+    const matching = {
+      disciplinas: [{
+        key: 'direito penal',
+        nome: 'Direito Penal',
+        discId: 'disc_penal',
+        topicos: [
+          { key: 'novo tópico', nome: 'Novo tópico', assId: null },
+          { key: 'crimes contra a vida', nome: 'Crimes contra a vida', assId: 12 },
+        ],
+        aulas: [],
+      }],
+    };
+
+    expect(() => retaFinalMod.activateRetaFinal({ payload: payload(), matching })).toThrow(
+      /Falha ao migrar a Reta Final/i
+    );
+    expect(JSON.stringify({
+      planejamento: store.state.planejamento,
+      planejamentoArquivado: store.state.planejamentoArquivado,
+      editais: store.state.editais,
+      eventos: store.state.eventos,
+    })).toBe(before);
+  });
 });
 
 describe('restaurarPlanejamentoArquivado', () => {
@@ -287,7 +350,7 @@ describe('restaurarPlanejamentoArquivado', () => {
 });
 
 describe('Reta Final v1 activation with v2 domain', () => {
-  it('cria identidade/revisão/intenção uma vez; render e migração não geram nova identidade', () => {
+  it('cria identidade/revisão/intenção uma vez; sync e migração não geram nova identidade', () => {
     store.setState(baseStateComEdital());
     const plan = retaFinalMod.activateRetaFinal({ payload: payload() });
     expect(plan).toMatchObject({ schemaVersionRetaFinal: 2, revision: 0 });
