@@ -100,8 +100,8 @@ function statusForCategory(categoria) {
   return 'pendente';
 }
 
-function addUnallocatedAlert(alerts, blocoId, reason, message) {
-  alerts.push({ code: 'NAO_ALOCADO', blocoId, reason, message });
+function addBlockAlert(alerts, code, blocoId, reason, message) {
+  alerts.push({ code, blocoId, reason, message });
 }
 
 /**
@@ -114,9 +114,8 @@ function addUnallocatedAlert(alerts, blocoId, reason, message) {
  * - Após `dataFinal`, bloco pendente elegível vira `nao_coberto`.
  * - `naoAlocado` diferencia falta de alocação/capacidade de prazo vencido.
  * - `occupiedBlocoIds` contém eventos preservados (estudei ou tempo > 0).
- *   `completedBlocoIds`, quando informado, distingue conclusão real de timer
- *   parcial; sem ele, os ids ocupados são tratados como concluídos para
- *   compatibilidade com chamadas antigas.
+ *   `completedBlocoIds` é a única fonte de conclusão; sem ele nenhum bloco é
+ *   concluído. Ocupação serve apenas para impedir rolagem.
  *
  * @param {object} plan - plano `reta_final` v2 (ou legado compatível)
  * @param {{ today: string, occupiedBlocoIds?: Iterable<string>|Set<string>,
@@ -135,8 +134,24 @@ export function projectRetaFinalSchedule(plan, options = {}) {
   const hoje = isCivilDate(today) ? today : null;
   const dataFinal = isCivilDate(plan.retaFinal.dataFinal) ? plan.retaFinal.dataFinal : null;
   const occupied = toIdSet(occupiedBlocoIds);
-  const completedProvided = Object.prototype.hasOwnProperty.call(options, 'completedBlocoIds');
-  const completed = completedProvided ? toIdSet(completedBlocoIds) : occupied;
+  const completed = toIdSet(completedBlocoIds);
+
+  if (!dataFinal) {
+    alerts.push({
+      code: 'DATA_FINAL_INVALIDA',
+      blocoId: null,
+      dataFinal: plan.retaFinal.dataFinal ?? null,
+      message: 'A dataFinal da Reta Final está ausente ou inválida.',
+    });
+  }
+  if (!hoje) {
+    alerts.push({
+      code: 'DATA_REFERENCIA_INVALIDA',
+      blocoId: null,
+      today: today ?? null,
+      message: 'A data de referência (today) está ausente ou inválida.',
+    });
+  }
 
   for (const bloco of plan.retaFinal.blocos) {
     if (!bloco || typeof bloco !== 'object') continue;
@@ -151,16 +166,18 @@ export function projectRetaFinalSchedule(plan, options = {}) {
     let dataEfetiva = intent;
     let categoriaTemporal;
     let naoAlocado = false;
+    let motivoNaoAlocado = null;
     let rolado = false;
 
     if (isCompleted) {
       categoriaTemporal = 'concluido';
     } else if (!intent) {
       dataEfetiva = null;
-      categoriaTemporal = 'nao_alocado';
-      naoAlocado = true;
-      addUnallocatedAlert(
+      categoriaTemporal = 'sem_data';
+      motivoNaoAlocado = 'data_invalida';
+      addBlockAlert(
         alerts,
+        'DATA_PLANEJADA_INVALIDA',
         blocoId,
         'data_invalida',
         `Bloco ${blocoId || '(sem id)'} sem data planejada válida.`
@@ -169,15 +186,17 @@ export function projectRetaFinalSchedule(plan, options = {}) {
       dataEfetiva = null;
       categoriaTemporal = 'nao_alocado';
       naoAlocado = true;
-      addUnallocatedAlert(
+      motivoNaoAlocado = 'capacidade';
+      addBlockAlert(
         alerts,
+        'NAO_ALOCADO',
         blocoId,
         'capacidade',
         `Bloco ${blocoId || '(sem id)'} não alocado por capacidade.`
       );
     } else if (
       (dataFinal && intent > dataFinal) ||
-      (dataFinal && hoje && hoje > dataFinal && !isOccupied)
+      (dataFinal && hoje && hoje > dataFinal)
     ) {
       categoriaTemporal = 'nao_coberto';
       alerts.push({
@@ -207,6 +226,7 @@ export function projectRetaFinalSchedule(plan, options = {}) {
       dataEfetiva,
       categoriaTemporal,
       naoAlocado,
+      motivoNaoAlocado,
       rolado,
       status: statusForCategory(categoriaTemporal),
     });

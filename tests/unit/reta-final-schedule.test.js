@@ -208,6 +208,7 @@ describe('projectRetaFinalSchedule — intenção versus projeção', () => {
     const result = projectRetaFinalSchedule(plan, {
       today: HOJE,
       occupiedBlocoIds: new Set(['rf_done']),
+      completedBlocoIds: new Set(['rf_done']),
     });
 
     expect(result.blocos[0]).toMatchObject({
@@ -256,6 +257,48 @@ describe('projectRetaFinalSchedule — intenção versus projeção', () => {
     });
   });
 
+  it('occupiedBlocoIds sozinho não conclui um timer parcial', () => {
+    const plan = plano([bloco({ id: 'rf_partial_apenas_ocupado' })]);
+
+    const result = projectRetaFinalSchedule(plan, {
+      today: HOJE,
+      occupiedBlocoIds: new Set(['rf_partial_apenas_ocupado']),
+    });
+
+    expect(result.blocos[0]).toMatchObject({
+      dataEfetiva: '2026-10-18',
+      categoriaTemporal: 'atrasado',
+      rolado: false,
+      status: 'pendente',
+    });
+  });
+
+  it('timer parcial após dataFinal vira nao_coberto, sem perder a categoria de prazo', () => {
+    const plan = plano(
+      [
+        bloco({
+          id: 'rf_partial_atrasado',
+          dataPlanejada: '2026-10-17',
+          dataOriginal: '2026-10-17',
+          data: '2026-10-17',
+        }),
+      ],
+      { dataFinal: '2026-10-18' }
+    );
+
+    const result = projectRetaFinalSchedule(plan, {
+      today: HOJE,
+      occupiedBlocoIds: new Set(['rf_partial_atrasado']),
+    });
+
+    expect(result.blocos[0]).toMatchObject({
+      dataEfetiva: '2026-10-17',
+      categoriaTemporal: 'nao_coberto',
+      status: 'nao_coberto',
+      naoAlocado: false,
+    });
+  });
+
   it('distingue não alocado por capacidade de não coberto por prazo', () => {
     const plan = plano([
       bloco({
@@ -273,13 +316,14 @@ describe('projectRetaFinalSchedule — intenção versus projeção', () => {
       dataEfetiva: null,
       categoriaTemporal: 'nao_alocado',
       naoAlocado: true,
+      motivoNaoAlocado: 'capacidade',
     });
     expect(result.alerts).toContainEqual(
       expect.objectContaining({ code: 'NAO_ALOCADO', blocoId: 'rf_sem_capacidade' })
     );
   });
 
-  it('data planejada inválida gera não alocado e diagnóstico legível', () => {
+  it('data planejada inválida gera categoria sem_data e diagnóstico legível', () => {
     const plan = plano([
       bloco({
         id: 'rf_invalido',
@@ -293,12 +337,13 @@ describe('projectRetaFinalSchedule — intenção versus projeção', () => {
 
     expect(result.blocos[0]).toMatchObject({
       dataEfetiva: null,
-      categoriaTemporal: 'nao_alocado',
-      naoAlocado: true,
+      categoriaTemporal: 'sem_data',
+      naoAlocado: false,
+      motivoNaoAlocado: 'data_invalida',
     });
     expect(result.alerts).toContainEqual(
       expect.objectContaining({
-        code: 'NAO_ALOCADO',
+        code: 'DATA_PLANEJADA_INVALIDA',
         blocoId: 'rf_invalido',
         reason: 'data_invalida',
       })
@@ -319,16 +364,38 @@ describe('projectRetaFinalSchedule — intenção versus projeção', () => {
 
     expect(result.blocos[0]).toMatchObject({
       dataEfetiva: null,
-      categoriaTemporal: 'nao_alocado',
-      naoAlocado: true,
+      categoriaTemporal: 'sem_data',
+      naoAlocado: false,
+      motivoNaoAlocado: 'data_invalida',
     });
     expect(result.alerts).toContainEqual(
       expect.objectContaining({
-        code: 'NAO_ALOCADO',
+        code: 'DATA_PLANEJADA_INVALIDA',
         blocoId: 'rf_invalido_com_legado',
         reason: 'data_invalida',
       })
     );
+  });
+
+  it('emite alerta de plano para dataFinal inválida', () => {
+    const plan = plano([bloco({ id: 'rf_1' })], { dataFinal: '2026-13-01' });
+
+    const result = projectRetaFinalSchedule(plan, { today: HOJE });
+
+    expect(result.alerts).toContainEqual(
+      expect.objectContaining({ code: 'DATA_FINAL_INVALIDA', blocoId: null })
+    );
+  });
+
+  it('emite alerta de contexto para today inválido e não rola o bloco', () => {
+    const plan = plano([bloco({ id: 'rf_1' })]);
+
+    const result = projectRetaFinalSchedule(plan, { today: '2026-02-30' });
+
+    expect(result.alerts).toContainEqual(
+      expect.objectContaining({ code: 'DATA_REFERENCIA_INVALIDA', blocoId: null })
+    );
+    expect(result.blocos[0]).toMatchObject({ dataEfetiva: '2026-10-18', rolado: false });
   });
 
   it('plano ausente ou de outro tipo retorna projeção vazia', () => {
@@ -482,6 +549,50 @@ describe('syncRetaFinalToEventos — integração com a projeção v2', () => {
     expect(blocoFinal).toMatchObject({ status: 'nao_coberto', dataPlanejada: '2026-10-18' });
     expect(store.state.planejamento.retaFinal.blocos).toHaveLength(1);
     expect(eventosDoBloco('rf_late')).toHaveLength(0);
+    expect(store.state.planejamento.revision).toBe(7);
+  });
+
+  it('após dataFinal preserva timer parcial e marca o bloco nao_coberto', () => {
+    vi.setSystemTime(new Date('2026-10-20T10:00:00'));
+    store.setState(
+      buildState(
+        [
+          bloco({
+            id: 'rf_partial',
+            dataPlanejada: '2026-10-18',
+            dataOriginal: '2026-10-18',
+            data: '2026-10-18',
+          }),
+        ],
+        {
+          dataFinal: '2026-10-19',
+          eventos: [
+            createEvento({
+              id: 'ev_partial',
+              data: '2026-10-18',
+              status: 'agendado',
+              tempoAcumulado: 600,
+              rfBlocoId: 'rf_partial',
+              isAutoGenerated: true,
+            }),
+          ],
+        }
+      )
+    );
+    logic.invalidateDiscCache();
+
+    retaFinalMod.syncRetaFinalToEventos();
+
+    expect(store.state.planejamento.retaFinal.blocos[0]).toMatchObject({
+      status: 'nao_coberto',
+      dataPlanejada: '2026-10-18',
+    });
+    expect(eventosDoBloco('rf_partial')).toHaveLength(1);
+    expect(eventosDoBloco('rf_partial')[0]).toMatchObject({
+      id: 'ev_partial',
+      tempoAcumulado: 600,
+      rfBlocoId: 'rf_partial',
+    });
     expect(store.state.planejamento.revision).toBe(7);
   });
 });
