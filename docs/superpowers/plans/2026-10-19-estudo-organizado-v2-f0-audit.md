@@ -21,7 +21,7 @@
 - Nunca usar exportações privadas, tokens, cookies ou IndexedDB de produção como fixture. Somente dados sintéticos/ambiente mock isolado.
 - Impeccable obrigatório na avaliação de UX; examinar configuração já existente antes de instalar, executar init ou habilitar hooks. Com ferramenta indisponível, declarar BLOCKED.
 - TDD dos validadores (RED→GREEN) com testes focados; revisão independente por tarefa. Falhas da V1 são registradas, **não corrigidas** pela F0.
-- **G2 pendente** de aprovação deste plano e método de execução; **G3 não autorizado**. Instruções abaixo não estão sendo executadas agora.
+- **G2 aprovado pelo usuário em 2026-10-19**, com método de execução **Subagent-driven** adotado para o handoff. **G3 não executado nesta conversa**; o GOAL submetido explicitamente pelo usuário no Codex autorizará somente a F0, sem autorização para F1–F8, dados reais ou cutover.
 
 ## Review Focus
 
@@ -201,8 +201,8 @@
 
 ## Execution Handoff
 
-**Status:** PROPOSTO / G2 EM REVISÃO. A aprovação do G1 autorizou a **redação** deste plano, mas não sua execução. A sequência futura requer aceite explícito do plano, escolha de método e autorização independente de G3/F0.
+**Status:** G2 APROVADO PELO USUÁRIO EM 2026-10-19. Método de handoff: Subagent-driven. Nenhuma execução foi iniciada nesta conversa. A autorização de execução G3/F0 será dada pela submissão explícita do GOAL pelo usuário ao Codex; esse aceite não cobre F1–F8.
 
-**Método recomendado:** Subagent-driven, com um subagente por tarefa e revisor independente por tarefa, seguido de revisão final; evita que um erro de inventário contamine a arquitetura V2. O método Native permanece possível mediante escolha humana.
+**Método aprovado para o GOAL:** Subagent-driven, com um subagente por tarefa e revisor independente por tarefa, seguido de revisão final. Se o harness não suportar subagentes e revisores independentes, marcar BLOCKED e solicitar decisão humana antes de substituir o método.
 
 **Fim do escopo deste plano:** Gate humano da auditoria F0. Detalhar F1–F8 em specs e planos separados, a partir das evidências F0, sem presumir contratos não auditados.
