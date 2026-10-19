@@ -227,12 +227,17 @@ export function getRetaFinalTopicoLabel(bloco, disc) {
  * Categoria de um bloco para os filtros do cronograma dia a dia:
  *  - 'concluido': status concluído;
  *  - 'nao_coberto': status não coberto (fica fora do cronograma);
+ *  - 'nao_alocado': projeção sem data/capacidade;
  *  - 'futuro': pendente com data após hoje;
  *  - 'atrasado': pendente com data passada ou rolado (data !== dataOriginal);
  *  - 'hoje': pendente de hoje sem rolagem.
+ * Blocos já projetados podem trazer `categoriaTemporal`; nesse caso ela é a
+ * fonte imediata, sem reinterpretar a data de intenção.
  */
 export function getRetaFinalBlocoFiltroCategoria(bloco, hoje) {
   if (!bloco) return 'hoje';
+  if (bloco.categoriaTemporal) return bloco.categoriaTemporal;
+  if (bloco.naoAlocado === true) return 'nao_alocado';
   if (bloco.status === 'concluido') return 'concluido';
   if (bloco.status === 'nao_coberto') return 'nao_coberto';
   if (bloco.data > hoje) return 'futuro';

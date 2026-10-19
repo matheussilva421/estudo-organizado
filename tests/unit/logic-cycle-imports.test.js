@@ -149,7 +149,13 @@ describe('No cross-imports (circular dependency prevention)', () => {
     expect(source).not.toMatch(/\b(document|window|localStorage|indexedDB|fetch)\b/);
   });
 
-  it('reta-final.js only imports store/utils/core/schema/session-topics (no cycle.js — circular)', () => {
+  it('reta-final-schedule.js is pure (no imports or browser/storage globals)', () => {
+    const source = read('src/js/logic/reta-final-schedule.js');
+    expect([...source.matchAll(/^import\s/gm)]).toHaveLength(0);
+    expect(source).not.toMatch(/\b(document|window|localStorage|indexedDB|fetch)\b/);
+  });
+
+  it('reta-final.js only imports store/utils/core/schema/schedule/session-topics (no cycle.js — circular)', () => {
     const source = read('src/js/logic/reta-final.js');
     const imports = [...source.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
     // session-topics.js é puro (zero imports — guardado abaixo): o quick-mark
@@ -157,7 +163,7 @@ describe('No cross-imports (circular dependency prevention)', () => {
     // reta-final-schema.js também é puro (guardado acima).
     for (const spec of imports) {
       expect(spec).toMatch(
-        /(store\.js|utils\.js|reta-final-core\.js|reta-final-schema\.js|registro-sessao\/session-topics\.js)(\?v=[\d.]+)?$/
+        /(store\.js|utils\.js|reta-final-core\.js|reta-final-schema\.js|reta-final-schedule\.js|registro-sessao\/session-topics\.js)(\?v=[\d.]+)?$/
       );
     }
   });
