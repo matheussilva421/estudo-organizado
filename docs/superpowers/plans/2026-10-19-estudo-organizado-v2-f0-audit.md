@@ -175,14 +175,14 @@
 **Interfaces:**
 - Consumes: validadores e relatórios das Tasks 1–5.
 - Produces: `evaluateF0Gate({inventory, coverage, schemas, risks, baseline, decision_refs, human_approval_ref}): {status:"BLOCKED"|"READY_FOR_HUMAN_REVIEW"|"APPROVED", reasons: string[]}`.
-- APPPROVED somente se todas as verificações obrigatórias são reais e satisfatórias, D01–D27 + A-01 estão vinculadas, propostas de destino receberam aceite humano rastreável, achados críticos estão resolvidos ou possuem exceção humana válida, e `human_approval_ref` não é vazio. Sem referência humana: estado máximo READY_FOR_HUMAN_REVIEW.
+- APPROVED somente se todas as verificações obrigatórias são reais e satisfatórias, D01–D27 + A-01 estão vinculadas, propostas de destino receberam aceite humano rastreável, achados críticos estão resolvidos ou possuem exceção humana válida, e `human_approval_ref` não é vazio. Sem referência humana: estado máximo READY_FOR_HUMAN_REVIEW.
 
 - [ ] **Step 1: Write failing tests** `cannot_approve_without_human`, `blocks_missing_a01_or_decision`, `blocks_open_critical_risk` e `approves_synthetic_complete_case`; usar objetos sintéticos, nunca inventar aprovação para arquivos reais.
 - [ ] **Step 2: Verify RED:** `npx vitest run tests/unit/v2-audit-gate.test.js` — esperado FAIL.
 - [ ] **Step 3: Implement** `evaluateF0Gate` reutilizando os validadores anteriores.
 - [ ] **Step 4: Verify GREEN:** repetir comando — esperado PASS.
 - [ ] **Step 5: Redigir relatório** com cobertura, decisões propostas, status dos schemas, divergências, riscos, testes legados, QA Impeccable, matriz D01–D27/A-01 e critérios mensuráveis para uma futura spec F1; citar referências do repositório e artefatos sanitizados.
-- [ ] **Step 6: Verificar testes próprios** `npx vitest run tests/unit/v2-audit-*.test.js` — esperado PASS nos validadores, sem implicar que a auditoria real esteja aprovada.
+- [ ] **Step 6: Verificar testes próprios** `npx vitest run tests/unit/v2-audit` — esperado PASS nos validadores, sem implicar que a auditoria real esteja aprovada.
 - [ ] **Step 7: Solicitar revisão independente** de proveniência, identidade, falsos positivos, dados pessoais e riscos de migração; anotar status real PASS/FAIL/BLOCKED.
 - [ ] **Step 8: Commit:** `git add scripts/v2-audit/validate-gate.mjs tests/unit/v2-audit-gate.test.js docs/superpowers/audits/2026-10-19-f0-acceptance.md && git commit -m "docs(audit): prepare F0 human-acceptance evidence"`.
 - [ ] **Step 9: Entregar F0 e parar:** apresentar evidências e propor F1. Sem aceite humano explícito não declarar F0 concluída nem começar scaffold, migração ou sincronização de produção.
@@ -194,7 +194,7 @@
 ## Final Verification (após execução autorizada, não nesta conversa)
 
 1. Comparar diff do branch de execução; apenas `scripts/v2-audit/`, `tests/unit/v2-audit-*.test.js`, `docs/superpowers/audits/` e registros de aprovação cabíveis. Alteração em `src/`, regras Firebase, dados ou identidade visual exige STOP.
-2. Executar `npx vitest run tests/unit/v2-audit-*.test.js`; guardar stdout/stderr e ambiente.
+2. Executar `npx vitest run tests/unit/v2-audit`; guardar stdout/stderr e ambiente.
 3. Confirmar que testes legados, mock, QA visual e Impeccable têm status real e evidências, incluindo indisponibilidades.
 4. Conferir matriz de risco, diferenciação de inferências e observações e cobertura de superfícies declaradas.
 5. Revisão independente e gate humano da F0 antes de iniciar especificação/plano F1.
