@@ -285,3 +285,30 @@ describe('restaurarPlanejamentoArquivado', () => {
     expect(store.state.planejamento.tipo).toBe('ciclo');
   });
 });
+
+describe('Reta Final v1 activation with v2 domain', () => {
+  it('cria identidade/revisão/intenção uma vez; render e migração não geram nova identidade', () => {
+    store.setState(baseStateComEdital());
+    const plan = retaFinalMod.activateRetaFinal({ payload: payload() });
+    expect(plan).toMatchObject({ schemaVersionRetaFinal: 2, revision: 0 });
+    expect(plan.planId).toEqual(expect.any(String));
+    expect(plan.retaFinal.blocos.map((b) => b.dataPlanejada)).toEqual(['2026-07-10', '2026-07-10', '2026-07-11']);
+    expect(plan.retaFinal.blocos.map((b) => b.ordem)).toEqual([0, 1, 2]);
+    const before = JSON.stringify(plan);
+    retaFinalMod.syncRetaFinalToEventos();
+    store.runMigrations();
+    expect(JSON.stringify(store.state.planejamento)).toBe(before);
+    const oldPlanId = plan.planId;
+    const replacement = retaFinalMod.activateRetaFinal({ payload: payload() });
+    expect(replacement.planId).not.toBe(oldPlanId);
+  });
+
+  it('registra dataPlanejada importada antes da rolagem inicial sem alterar evento histórico', () => {
+    const event = { id: 'historico', rfBlocoId: 'rf_old', status: 'estudei', dataEstudo: '2026-07-01', tempoAcumulado: 1234, questoes: 20, revisoes: ['r1'] };
+    store.setState(baseStateComEdital({ eventos: [event] }));
+    const imported = payload({ dias: [{ data: '2026-07-09', blocos: [{ disciplina: 'Direito Penal', topicos: ['Crimes contra a vida'] }] }] });
+    const plan = retaFinalMod.activateRetaFinal({ payload: imported });
+    expect(plan.retaFinal.blocos[0]).toMatchObject({ dataPlanejada: '2026-07-09', dataOriginal: '2026-07-09', data: HOJE });
+    expect(store.state.eventos.find((e) => e.id === 'historico')).toEqual(event);
+  });
+});

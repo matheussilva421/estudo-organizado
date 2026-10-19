@@ -74,8 +74,7 @@ export function initDB() {
 
     request.onerror = (event) => {
       console.error('IndexedDB Error:', event.target.error);
-      loadLegacyState(); // Fallback
-      resolve();
+      Promise.resolve(loadLegacyState()).then(resolve); // Fallback
     };
 
     request.onupgradeneeded = (event) => {
@@ -109,6 +108,40 @@ export function initDB() {
   });
 }
 
+// Reuse the checksum envelopes and atomic previous/current/legacy save. Boot
+// migrations and RF sources recovered from localStorage must commit first.
+async function migrateLoadedState(loadedState, { persistEvenIfUnchanged = false } = {}) {
+  const backup = createLocalStateEnvelope(loadedState, { slot: 'previous' });
+  _setStateRef(loadedState);
+  const migration = runMigrations();
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  if (!migration.changed && !persistEvenIfUnchanged) return true;
+  if (!db) {
+    _setStateRef(backup.payload);
+    console.error('Reta Final: IndexedDB indisponível; migração não persistida e fonte local preservada.');
+    return false;
+  }
+  try {
+    await saveStateToDB({
+      migrationBackup: backup,
+      touchLocalBackup: false,
+      emitSaveStatus: false,
+      skipSyncEvent: true,
+      skipCloudSync: true,
+      skipFirestoreSync: true,
+      skipDriveSync: true,
+    });
+    return true;
+  } catch (err) {
+    _setStateRef(backup.payload);
+    console.error('Reta Final: migração não persistida; estado anterior restaurado.', err);
+    return false;
+  }
+}
+
 /**
  * Carrega estado do IndexedDB e aplica migrações se necessário
  * @returns {Promise<void>}
@@ -116,8 +149,7 @@ export function initDB() {
 export function loadStateFromDB() {
   return new Promise((resolve) => {
     if (!db) {
-      loadLegacyState();
-      resolve();
+      Promise.resolve(loadLegacyState()).then(resolve);
       return;
     }
     const transaction = db.transaction([STORE_NAME], 'readonly');
@@ -127,7 +159,7 @@ export function loadStateFromDB() {
     const legacyRequest = store.get(LOCAL_STATE_LEGACY_KEY);
     const loaded = {};
 
-    const finishLoad = () => {
+    const finishLoad = async () => {
       if (!('current' in loaded) || !('previous' in loaded) || !('legacy' in loaded)) return;
       const recovered = pickRecoverableLocalState({
         current: loaded.current,
@@ -152,15 +184,14 @@ export function loadStateFromDB() {
         }
         sessionStorage.setItem('estudo_session_active', '1');
 
-        _setStateRef(loadedState);
-        runMigrations();
+        await migrateLoadedState(loadedState);
         // Boot: re-deriva o status auto das etapas do ciclo a partir dos
         // eventos (cobre estados gravados por versões antigas do app).
         if (_stateRef) {
           reconcileSequenceWithEvents(_stateRef.planejamento, _stateRef.eventos);
         }
       } else {
-        loadLegacyState(); // Try migration from localStorage
+        await loadLegacyState(); // Try migration from localStorage
       }
       resolve();
     };
@@ -192,8 +223,7 @@ export function loadStateFromDB() {
 
     transaction.onerror = () => {
       console.error('loadStateFromDB transaction error:', transaction.error);
-      loadLegacyState();
-      resolve();
+      Promise.resolve(loadLegacyState()).then(resolve);
     };
   });
 }
@@ -208,7 +238,17 @@ export function loadLegacyState() {
     const saved = localStorage.getItem('estudo_state');
     const source = emergency || saved;
     if (source) {
-      _setStateRef(JSON.parse(source));
+      const loadedState = JSON.parse(source);
+      // Legacy callers retain synchronous loading; RF normalization waits for
+      // durability before deleting the last localStorage recovery source.
+      if (loadedState.planejamento?.tipo === 'reta_final') {
+        return migrateLoadedState(loadedState, { persistEvenIfUnchanged: true }).then((saved) => {
+          if (!saved) return;
+          localStorage.removeItem('estudo_state');
+          localStorage.removeItem('estudo_state_emergency');
+        });
+      }
+      _setStateRef(loadedState);
       runMigrations();
       scheduleSave(); // Save to IndexedDB immediately
       // Clean up both legacy keys
@@ -464,8 +504,9 @@ export function saveStateToDB(
 
         currentRequest.onsuccess = () => {
           const currentEnvelope = currentRequest.result;
-          if (isLocalStateEnvelopeValid(currentEnvelope)) {
-            store.put({ ...currentEnvelope, slot: 'previous' }, LOCAL_STATE_PREVIOUS_KEY);
+          const previousEnvelope = options.migrationBackup || currentEnvelope;
+          if (isLocalStateEnvelopeValid(previousEnvelope)) {
+            store.put({ ...previousEnvelope, slot: 'previous' }, LOCAL_STATE_PREVIOUS_KEY);
           }
           const envelope = createLocalStateEnvelope(_stateRef, { slot: 'current' });
           const currentWrite = store.put(envelope, LOCAL_STATE_CURRENT_KEY);
@@ -486,7 +527,9 @@ export function saveStateToDB(
  * @returns {void}
  */
 export function runMigrations() {
-  _runMigrations(_stateRef, scheduleSave);
+  const result = _runMigrations(_stateRef, scheduleSave);
+  if (result.diagnostics.length) console.warn('Reta Final: reparo humano necessário.', result.diagnostics);
+  return result;
 }
 
 // Clean up state (called by clearAllData in views.js which already double-confirms)

@@ -8,6 +8,7 @@
 // =============================================
 import { scheduleSave, state } from '../store.js?v=8.37';
 import { todayStr, uid } from '../utils.js?v=8.37';
+import { migrateRetaFinalV2 } from './reta-final-schema.js';
 import {
   applyTopicosToEvent,
   buildTopicosFromRetaFinalBloco,
@@ -427,6 +428,11 @@ export function activateRetaFinal({ payload, matching } = {}) {
       blocos,
     },
   };
+
+  // Allocate lineage and retain imported intent before the first rollover.
+  state.planejamento = migrateRetaFinalV2(state.planejamento, {
+    makePlanId: () => 'rfplan_' + uid(),
+  }).plan;
 
   // 4. Troca de plano: limpa autos pendentes do plano anterior e materializa.
   wipeAutoPlanEvents();
