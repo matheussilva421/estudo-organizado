@@ -116,10 +116,17 @@ export function initDB() {
 async function migrateLoadedState(loadedState, { persistEvenIfUnchanged = false } = {}) {
   const backup = createLocalStateEnvelope(loadedState, { slot: 'previous' });
   _setStateRef(loadedState);
-  const migration = runMigrations();
-  if (saveTimeout) {
-    clearTimeout(saveTimeout);
-    saveTimeout = null;
+  let migration;
+  try {
+    migration = runMigrations();
+  } catch (err) {
+    _setStateRef(backup.payload);
+    throw err;
+  } finally {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      saveTimeout = null;
+    }
   }
   if (!migration.changed && !persistEvenIfUnchanged) return true;
   if (!db) {
