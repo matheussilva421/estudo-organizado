@@ -227,7 +227,8 @@ export function getRetaFinalTopicoLabel(bloco, disc) {
  * Categoria de um bloco para os filtros do cronograma dia a dia:
  *  - 'concluido': status concluído;
  *  - 'nao_coberto': status não coberto (fica fora do cronograma);
- *  - 'nao_alocado': projeção sem data/capacidade;
+ *  - 'nao_alocado': projeção com capacidade explícita esgotada;
+ *  - 'sem_data': projeção com data planejada ausente ou inválida;
  *  - 'futuro': pendente com data após hoje;
  *  - 'atrasado': pendente com data passada ou rolado (data !== dataOriginal);
  *  - 'hoje': pendente de hoje sem rolagem.

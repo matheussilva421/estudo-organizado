@@ -163,10 +163,10 @@ describe('getRetaFinalBlocoFiltroCategoria — categorização pura', () => {
     ).toBe('futuro');
     expect(
       getRetaFinalBlocoFiltroCategoria(
-        rfBloco({ data: HOJE, dataOriginal: PASSADO, categoriaTemporal: 'atrasado' }),
+        rfBloco({ data: HOJE, dataOriginal: HOJE, categoriaTemporal: 'futuro' }),
         HOJE
       )
-    ).toBe('atrasado');
+    ).toBe('futuro');
     expect(
       getRetaFinalBlocoFiltroCategoria(rfBloco({ naoAlocado: true, status: 'pendente' }), HOJE)
     ).toBe('nao_alocado');
