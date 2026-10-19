@@ -1,12 +1,12 @@
 # Estudo Organizado V2 — Especificação arquitetural formal (Superpowers)
 
 **Data:** 2026-10-19
-**Status:** PROPOSTA PARA REVISÃO HUMANA — NÃO APROVADA COMO SPEC
+**Status:** APROVADA PELO USUÁRIO EM 2026-10-19 (G1) — IMPLEMENTAÇÃO NÃO AUTORIZADA
 **Projeto:** matheussilva421/estudo-organizado
 **Natureza:** desenho arquitetural e contratos de aceitação; nenhuma implementação autorizada
 **Origem:** brainstorming Superpowers, Decisões Arquiteturais 01–27 aprovadas em 2026-10-19; Emenda A-01 Impeccable aprovada em 2026-10-19
-**Gate atual:** G1 — revisão humana desta especificação
-**Próximo gate condicionado:** somente após aprovação explícita de G1, invocar writing-plans para elaborar planos de execução por fatia; plano e método exigirão aceite próprio
+**Gate atual:** G2 — elaboração e revisão humana dos planos de implementação
+**Próximo gate condicionado:** G1 aprovado em 2026-10-19; writing-plans autorizado exclusivamente para elaborar planos por fatia. G2 exige aprovação explícita do plano e do método de execução antes de qualquer implementação.
 
 ## 1. Objetivo, usuários, resultados e regras inegociáveis
 
@@ -244,8 +244,8 @@ Repositório único e monólito modular. Documentação em docs/; arquivos base 
 
 **Cadeia de gates:**
 - G0: aprovar a arquitetura consolidada em seções (27 decisões + emenda A-01). **APROVADO pelo usuário em 2026-10-19.**
-- G1: redigir e aprovar esta spec-mestra. **PENDENTE: este documento é proposta para revisão.**
-- G2: só depois do G1, invocar Superpowers writing-plans e obter aprovação do plano de implementação e do método de execução; dividir por fatia.
+- G1: redigir e aprovar esta spec-mestra. **APROVADO expressamente pelo usuário em 2026-10-19.**
+- G2: Superpowers writing-plans autorizado para documentar planos por fatia; **planos e método de execução pendentes de aprovação humana.**
 - G3: autorização explícita por fase/tarefa para implementação; TDD e revisões independentes conforme criticidade.
 - G4: homologação funcional, visual, integridade e recuperação por domínio e integrada.
 - G5: autorização exclusiva para cutover V1 -> V2 após piloto, backups verificáveis, reconciliação de dados e contingência aprovada.
