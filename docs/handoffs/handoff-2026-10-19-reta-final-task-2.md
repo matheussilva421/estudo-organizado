@@ -28,8 +28,8 @@ Status: **DONE**
 ## Decisions
 
 - `dataPlanejada` remains canonical intent. `data` is only a legacy compatibility projection for current views and must not be treated as authored intent.
-- `naoAlocado` is projected from an explicit block capacity marker or an invalid/missing planned date. The deterministic capacity allocator that creates the marker belongs to Task 9; this task owns the category and alert contract.
-- `completedBlocoIds` is optional. When omitted, occupied ids are treated as completed for compatibility; the scheduler supplies it explicitly to avoid misclassifying partial timers.
+- `naoAlocado: true` is reserved for an explicit block capacity marker (`motivoNaoAlocado: 'capacidade'`). Invalid/missing planned dates are `sem_data` with `motivoNaoAlocado: 'data_invalida'`. The deterministic capacity allocator belongs to Task 9; this task owns the category and alert contract.
+- `completedBlocoIds` is optional and defaults to empty. Completion requires explicit completion ids derived from `estudei` evidence; occupancy alone never concludes a block. The scheduler supplies the completed set explicitly.
 
 ## Limits / next step
 
@@ -67,3 +67,24 @@ Status: **DONE**
 
 - Worktree is clean at the fix commit.
 - Task 2 is complete with the review findings addressed; Task 3 remains unauthorized until explicitly requested.
+
+## Fix round 2
+
+Status: **DONE**
+
+- Commit: `9ef09e5` - `test(reta-final): make projection category coverage discriminating`
+- Cache: `9.40 -> 9.41` (pre-commit hook)
+
+### Reconciled evidence
+
+- The `categoriaTemporal` filter assertion now uses `categoriaTemporal: 'futuro'` with both dates equal to today. Temporarily removing the early return makes it fail with received `'hoje'`; restoring the branch makes it pass with `'futuro'`.
+- Updated the core comment: `nao_alocado` means explicit capacity exhaustion; invalid/missing planned dates are `sem_data`.
+- Reconciled the report and handoff with the final behavior: empty completion default, `estudei`/`completedBlocoIds` completion evidence, `sem_data` for invalid dates, and capacity-only `naoAlocado: true`.
+- Task 3 should document and reuse `completedBlocoIds` rather than re-deriving completion ad hoc. Plan-level alerts and `sem_data` rendering remain UI work.
+
+### Fix-round 2 evidence
+
+- Focused RED: 1 failed / 9 passed with the early return removed; log `task-2-fix-round-2-red.log`.
+- Focused GREEN: 10 tests passed; log `task-2-fix-round-2-green-focused.log`.
+- Full suite at `9ef09e5`: 148 files / 2,415 tests passed / 0 failed; log `task-2-fix-round-2-green-full.log`.
+- Worktree clean; no push.
