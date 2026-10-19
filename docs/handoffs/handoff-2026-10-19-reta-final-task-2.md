@@ -37,3 +37,33 @@ Status: **DONE**
 - Task 3 can consume the projection for command validation, but must preserve the same intent/projection boundary and never write `dataPlanejada` during derived calculations.
 - Full report: `.superpowers/sdd/2026-10-19-reta-final-editor-inteligente/task-2-report.md`.
 - No push was requested or performed. Resume only after explicit authorization for Task 3.
+
+## Fix round 1
+
+Status: **DONE**
+
+- Fix commit: `5083345` - `fix(reta-final): correct projection completion and diagnostics`
+- Cache: `9.39 -> 9.40` (pre-commit hook)
+- Preserved original commits: `3a9fbaa`, `c2852de`
+
+### Fixed findings
+
+- Critical: `completedBlocoIds` now defaults to an empty set. `occupiedBlocoIds` only blocks rollover; a partial timer no longer becomes `concluido` when completion ids are omitted.
+- Important: post-deadline partial timers now project as `nao_coberto`; the preserved event remains linked by `rfBlocoId`, and the block leaves Foco de Hoje.
+- Important: invalid/missing `dataPlanejada` now projects as `sem_data` with `naoAlocado: false` and `motivoNaoAlocado: 'data_invalida'`; only explicit capacity exhaustion sets `naoAlocado: true` with motive `capacidade`.
+- Minor: invalid/missing `dataFinal` emits `DATA_FINAL_INVALIDA`; invalid `today` emits `DATA_REFERENCIA_INVALIDA` and never rolls a block.
+- Minor: filter tests now cover `categoriaTemporal` precedence and the `naoAlocado` branch.
+- Ruling: the legacy rollover badge and v2 stacking order remain view work for Task 14/16. They are intentionally outside Task 2.
+
+### Fix-round evidence
+
+- RED: 8 failed / 23 passed; log `task-2-fix-round-1-red.log`.
+- Focused GREEN: 3 files / 43 tests passed; log `task-2-fix-round-1-green-focused.log`.
+- Affected regressions: 8 files / 155 tests passed; log `task-2-fix-round-1-green-affected.log`.
+- Full suite at `5083345`: 148 files / 2,415 tests passed / 0 failed; log `task-2-fix-round-1-green-full.log`.
+- ESLint on the changed projector: 0 errors.
+
+### Resume point
+
+- Worktree is clean at the fix commit.
+- Task 2 is complete with the review findings addressed; Task 3 remains unauthorized until explicitly requested.
