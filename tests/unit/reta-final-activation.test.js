@@ -11,6 +11,7 @@ const HOJE = '2026-07-10';
 
 let store;
 let retaFinalMod;
+let discMod;
 
 function payload(overrides = {}) {
   return {
@@ -78,6 +79,21 @@ function planoCicloAtivo() {
   };
 }
 
+function matchingComMigracaoInvalida() {
+  return {
+    disciplinas: [{
+      key: 'direito penal',
+      nome: 'Direito Penal',
+      discId: 'disc_penal',
+      topicos: [
+        { key: 'novo tópico', nome: 'Novo tópico', assId: null },
+        { key: 'crimes contra a vida', nome: 'Crimes contra a vida', assId: 12 },
+      ],
+      aulas: [],
+    }],
+  };
+}
+
 beforeEach(async () => {
   vi.resetModules();
   vi.useFakeTimers();
@@ -86,6 +102,7 @@ beforeEach(async () => {
   const modules = await loadAppModules();
   store = modules.store;
   retaFinalMod = await import('../../src/js/logic/reta-final.js');
+  discMod = await import('../../src/js/logic/disc.js');
 });
 
 describe('activateRetaFinal', () => {
@@ -285,28 +302,36 @@ describe('activateRetaFinal', () => {
       editais: store.state.editais,
       eventos: store.state.eventos,
     });
-    const matching = {
-      disciplinas: [{
-        key: 'direito penal',
-        nome: 'Direito Penal',
-        discId: 'disc_penal',
-        topicos: [
-          { key: 'novo tópico', nome: 'Novo tópico', assId: null },
-          { key: 'crimes contra a vida', nome: 'Crimes contra a vida', assId: 12 },
-        ],
-        aulas: [],
-      }],
-    };
-
-    expect(() => retaFinalMod.activateRetaFinal({ payload: payload(), matching })).toThrow(
-      /Falha ao migrar a Reta Final/i
-    );
+    expect(() => retaFinalMod.activateRetaFinal({
+      payload: payload(),
+      matching: matchingComMigracaoInvalida(),
+    })).toThrow(/Falha ao migrar a Reta Final/i);
     expect(JSON.stringify({
       planejamento: store.state.planejamento,
       planejamentoArquivado: store.state.planejamentoArquivado,
       editais: store.state.editais,
       eventos: store.state.eventos,
     })).toBe(before);
+  });
+
+  it('falha da migração preserva as identidades usadas pelo cache de disciplinas', () => {
+    store.setState(baseStateComEdital({ planejamento: planoCicloAtivo() }));
+    discMod.invalidateDiscCache();
+    const originalEdital = store.state.editais[0];
+    const originalDisc = originalEdital.disciplinas[0];
+    const cached = discMod.getDisc('disc_penal');
+    expect(cached).toEqual({ disc: originalDisc, edital: originalEdital });
+
+    expect(() => retaFinalMod.activateRetaFinal({
+      payload: payload(),
+      matching: matchingComMigracaoInvalida(),
+    })).toThrow(/Falha ao migrar a Reta Final/i);
+
+    expect(store.state.editais[0]).toBe(originalEdital);
+    expect(store.state.editais[0].disciplinas[0]).toBe(originalDisc);
+    expect(discMod.getDisc('disc_penal')).toBe(cached);
+    cached.disc.nome = 'Direito Penal editado';
+    expect(store.state.editais[0].disciplinas[0].nome).toBe('Direito Penal editado');
   });
 });
 

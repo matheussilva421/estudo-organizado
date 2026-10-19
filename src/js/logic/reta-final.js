@@ -253,8 +253,8 @@ function wipeAutoPlanEvents() {
   });
 }
 
-function findDisciplina(discId) {
-  for (const edital of state.editais || []) {
+function findDisciplina(discId, editais = state.editais) {
+  for (const edital of editais || []) {
     for (const disc of edital?.disciplinas || []) {
       if (disc.id === discId) return disc;
     }
@@ -283,11 +283,11 @@ export function activateRetaFinal({ payload, matching } = {}) {
     throw new Error('JSON da Reta Final inválido: ' + validation.errors.join(' '));
   }
   const match = matching || matchRetaFinalToEditais(payload, state.editais);
-  const editaisBefore = deepClone(state.editais);
 
-  // 1. Garante as entidades nos editais.
-  if (!Array.isArray(state.editais)) state.editais = [];
-  let targetEdital = state.editais.find((e) => e && !e.arquivado) || null;
+  // 1. Prepara um working set: o estado real só recebe os editais depois que
+  // a migração v2 for validada, preservando as identidades do cache.
+  const workingEditais = Array.isArray(state.editais) ? deepClone(state.editais) : [];
+  let targetEdital = workingEditais.find((e) => e && !e.arquivado) || null;
   const ensureTargetEdital = () => {
     if (!targetEdital) {
       targetEdital = {
@@ -298,14 +298,14 @@ export function activateRetaFinal({ payload, matching } = {}) {
         arquivado: false,
         arquivadoEm: null,
       };
-      state.editais.push(targetEdital);
+      workingEditais.push(targetEdital);
     }
     return targetEdital;
   };
 
   const resolvedByKey = new Map(); // key da disciplina -> { discId, assIdByKey, aulaIdByKey }
   for (const discMatch of match.disciplinas) {
-    let disc = discMatch.discId ? findDisciplina(discMatch.discId) : null;
+    let disc = discMatch.discId ? findDisciplina(discMatch.discId, workingEditais) : null;
     if (!disc) {
       const edital = ensureTargetEdital();
       disc = {
@@ -439,13 +439,13 @@ export function activateRetaFinal({ payload, matching } = {}) {
     migration.plan?.schemaVersionRetaFinal !== 2 ||
     !migration.plan?.planId
   ) {
-    state.editais = editaisBefore;
     const detail = migration.diagnostics?.length
       ? migration.diagnostics.join(' ')
       : 'migração não produziu um plano v2 válido.';
     throw new Error('Falha ao migrar a Reta Final para v2: ' + detail);
   }
 
+  state.editais = workingEditais;
   if (archived) state.planejamentoArquivado = archived;
   state.planejamento = migration.plan;
 

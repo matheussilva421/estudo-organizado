@@ -167,39 +167,44 @@ export function loadStateFromDB() {
 
     const finishLoad = async () => {
       if (!('current' in loaded) || !('previous' in loaded) || !('legacy' in loaded)) return;
-      const recovered = pickRecoverableLocalState({
-        current: loaded.current,
-        previous: loaded.previous,
-        legacy: loaded.legacy,
-        emergency: readEmergencyState(),
-      });
-      if (recovered.state) {
-        const loadedState = recovered.state;
+      try {
+        const recovered = pickRecoverableLocalState({
+          current: loaded.current,
+          previous: loaded.previous,
+          legacy: loaded.legacy,
+          emergency: readEmergencyState(),
+        });
+        if (recovered.state) {
+          const loadedState = recovered.state;
 
-        // BUG 3: Prevenir persistência inflada de timer ao fechar a aba
-        const isSameSession = sessionStorage.getItem('estudo_session_active');
-        if (!isSameSession && recovered.source !== 'emergency') {
-          if (loadedState.cronoLivre && loadedState.cronoLivre._timerStart) {
-            loadedState.cronoLivre._timerStart = null;
+          // BUG 3: Prevenir persistência inflada de timer ao fechar a aba
+          const isSameSession = sessionStorage.getItem('estudo_session_active');
+          if (!isSameSession && recovered.source !== 'emergency') {
+            if (loadedState.cronoLivre && loadedState.cronoLivre._timerStart) {
+              loadedState.cronoLivre._timerStart = null;
+            }
+            if (loadedState.eventos) {
+              loadedState.eventos.forEach((ev) => {
+                if (ev._timerStart) ev._timerStart = null;
+              });
+            }
           }
-          if (loadedState.eventos) {
-            loadedState.eventos.forEach((ev) => {
-              if (ev._timerStart) ev._timerStart = null;
-            });
-          }
-        }
-        sessionStorage.setItem('estudo_session_active', '1');
+          sessionStorage.setItem('estudo_session_active', '1');
 
-        await migrateLoadedState(loadedState);
-        // Boot: re-deriva o status auto das etapas do ciclo a partir dos
-        // eventos (cobre estados gravados por versões antigas do app).
-        if (_stateRef) {
-          reconcileSequenceWithEvents(_stateRef.planejamento, _stateRef.eventos);
+          await migrateLoadedState(loadedState);
+          // Boot: re-deriva o status auto das etapas do ciclo a partir dos
+          // eventos (cobre estados gravados por versões antigas do app).
+          if (_stateRef) {
+            reconcileSequenceWithEvents(_stateRef.planejamento, _stateRef.eventos);
+          }
+        } else {
+          await loadLegacyState(); // Try migration from localStorage
         }
-      } else {
-        await loadLegacyState(); // Try migration from localStorage
+      } catch (err) {
+        console.error('loadStateFromDB failed to finish loading:', err);
+      } finally {
+        resolve();
       }
-      resolve();
     };
 
     currentRequest.onsuccess = () => {
