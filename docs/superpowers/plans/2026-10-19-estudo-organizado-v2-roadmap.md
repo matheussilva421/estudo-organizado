@@ -3,7 +3,7 @@
 **Data:** 2026-10-19  
 **Status:** ROTEIRO DE DECOMPOSIÇÃO, NÃO É PLANO EXECUTÁVEL DE F1–F8  
 **Spec-mestra aprovada (G1):** ../specs/2026-10-19-estudo-organizado-v2-design.md  
-**Plano executável proposto para revisão (G2/F0):** 2026-10-19-estudo-organizado-v2-f0-audit.md  
+**Plano F0 aprovado (G2, 2026-10-19):** 2026-10-19-estudo-organizado-v2-f0-audit.md  
 **Emenda obrigatória:** A-01 — Impeccable (https://impeccable.style/)
 
 ## Por que não existe um único plano de implementação para toda a V2?
@@ -47,12 +47,12 @@ Cada plano tem o cabeçalho obrigatório da skill Superpowers writing-plans, Glo
 
 ## Regras de stop e rastreabilidade
 
-- **Não autorizado:** implementar qualquer tarefa agora, alterar base V1, acessar dados reais, ativar billing ou dar merge em PR sem decisão apropriada.
+- **Não autorizado nesta conversa:** implementar tarefas, alterar base V1, acessar dados reais ou ativar billing. O GOAL F0 somente é executável mediante submissão explícita pelo usuário ao Codex. Merges de implementação continuam dependentes de aceite humano; merges documentais G1/G2 foram autorizados.
 - Evidências PASS/FAIL/BLOCKED/INCONCLUSIVE/NOT_RUN são guardadas por tarefa; NOT_RUN nunca equivale a PASS.
 - Decisões D01–D27 e A-01 são a baseline; mudança exige ADR explícita e aprovação.
 - Não declarar versão de banco, compatibilidade, throughput ou métricas de UX não medidas.
-- G1 aprovado pelo usuário em 2026-10-19; G2 do plano F0 é a próxima decisão humana. Nenhum aceite de G1/G2 cria autorização implícita para G3, G4 ou G5.
+- G1 e G2/F0 aprovados pelo usuário em 2026-10-19, método Subagent-driven. O envio explícito do GOAL F0 ao Codex autoriza somente G3/F0; G4/G5 e F1–F8 continuam bloqueados.
 
 ## Handoff imediato
 
-Revisar o plano detalhado F0. Após aprovação específica, escolher o método de execução (preferência técnica: Subagent-driven, com revisão independente por tarefa) e autorizar G3/F0 explicitamente antes de qualquer mudança de código ou operação de auditoria na V1. Especificações e planos F1–F8 serão detalhados somente depois de conhecidos os resultados pertinentes da F0.
+Plano F0 revisado e aprovado no G2, com método Subagent-driven. Para iniciar G3/F0, o usuário deverá enviar explicitamente o GOAL em `docs/superpowers/goals/2026-10-19-estudo-organizado-v2-f0-codex.md` no Codex; nenhum trabalho começou nesta conversa. Especificações e planos F1–F8 serão detalhados somente depois de conhecidos e homologados os resultados pertinentes da F0.
