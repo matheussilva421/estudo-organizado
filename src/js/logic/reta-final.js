@@ -6,7 +6,12 @@
 // syncCicloToEventos) — por isso este módulo só importa store/utils/core,
 // nunca cycle.js (evita ciclo de imports).
 // =============================================
-import { scheduleSave, state } from '../store.js?v=8.37';
+import {
+  commitRetaFinalDraft as commitRetaFinalDraftToStore,
+  db as storeDb,
+  scheduleSave,
+  state,
+} from '../store.js?v=8.37';
 import { todayStr, uid } from '../utils.js?v=8.37';
 import { migrateRetaFinalV2 } from './reta-final-schema.js';
 import { projectRetaFinalSchedule } from './reta-final-schedule.js';
@@ -24,6 +29,21 @@ import {
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+/** Commit a validated editor draft, then publish memory and save notifications. */
+export function commitRetaFinalDraft(options = {}) {
+  const sourceContext = options.context || {};
+  return commitRetaFinalDraftToStore({
+    ...options,
+    db: options.db || storeDb,
+    context: {
+      today: todayStr(),
+      now: new Date().toISOString(),
+      makeId: () => uid(),
+      ...sourceContext,
+    },
+  });
 }
 
 function isRetaFinalPlan(plan = state.planejamento) {

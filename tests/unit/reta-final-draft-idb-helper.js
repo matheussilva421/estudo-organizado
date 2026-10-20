@@ -35,7 +35,10 @@ export function createTransactionalIdb({
   }
 
   let nextWriteFailure = null;
+  const writeFailuresByStore = new Map();
+  let nextCommitGate = null;
   let lastTransaction = null;
+  let readwriteTail = Promise.resolve();
 
   function connect() {
     let closed = false;
@@ -79,6 +82,19 @@ export function createTransactionalIdb({
         let finishScheduled = false;
         let aborted = false;
         let completed = false;
+        let releaseReadwrite;
+        let releasedReadwrite = false;
+        const previousReadwrite = mode === 'readwrite' ? readwriteTail : Promise.resolve();
+        if (mode === 'readwrite') {
+          readwriteTail = new Promise((resolve) => {
+            releaseReadwrite = resolve;
+          });
+        }
+        const releaseTurn = () => {
+          if (mode !== 'readwrite' || releasedReadwrite) return;
+          releasedReadwrite = true;
+          releaseReadwrite();
+        };
         const tx = {
           error: null,
           oncomplete: null,
@@ -96,7 +112,7 @@ export function createTransactionalIdb({
                       ? undefined
                       : backing.get(name).get(key);
                   request.result = copy(value);
-                });
+                }, false, name);
               },
               put(value, explicitKey) {
                 return enqueue((request) => {
@@ -108,13 +124,13 @@ export function createTransactionalIdb({
                   removed.get(name).delete(key);
                   staged.get(name).set(key, copy(value));
                   request.result = key;
-                }, true);
+                }, true, name);
               },
               delete(key) {
                 return enqueue(() => {
                   staged.get(name).delete(key);
                   removed.get(name).add(key);
-                }, true);
+                }, true, name);
               },
             };
           },
@@ -124,11 +140,12 @@ export function createTransactionalIdb({
             completed = true;
             tx.error ||= namedError('AbortError', 'Transaction interrupted');
             tx.onabort?.({ target: tx });
+            previousReadwrite.then(releaseTurn);
           },
         };
         lastTransaction = tx;
 
-        function enqueue(action, isWrite = false) {
+        function enqueue(action, isWrite = false, storeName) {
           const request = {
             onsuccess: null,
             onerror: null,
@@ -137,11 +154,13 @@ export function createTransactionalIdb({
           };
           issued = true;
           pending += 1;
-          queueMicrotask(() => {
+          previousReadwrite.then(() => queueMicrotask(() => {
             if (aborted) return;
-            if (isWrite && nextWriteFailure) {
-              const error = nextWriteFailure;
-              nextWriteFailure = null;
+            const storeFailure = writeFailuresByStore.get(storeName);
+            if (isWrite && (storeFailure || nextWriteFailure)) {
+              const error = storeFailure || nextWriteFailure;
+              if (storeFailure) writeFailuresByStore.delete(storeName);
+              else nextWriteFailure = null;
               request.error = error;
               tx.error = error;
               request.onerror?.({ target: request, preventDefault() {} });
@@ -161,7 +180,7 @@ export function createTransactionalIdb({
               tx.onerror?.({ target: tx, preventDefault() {} });
               tx.abort();
             }
-          });
+          }));
           return request;
         }
 
@@ -170,7 +189,11 @@ export function createTransactionalIdb({
           finishScheduled = true;
           queueMicrotask(async () => {
             if (aborted || completed) return;
-            if (mode === 'readwrite' && commitGate) await commitGate;
+            if (mode === 'readwrite') {
+              const gate = nextCommitGate || commitGate;
+              nextCommitGate = null;
+              if (gate) await gate;
+            }
             if (aborted || completed) return;
             if (mode === 'readwrite') {
               for (const name of names) {
@@ -182,6 +205,7 @@ export function createTransactionalIdb({
             }
             completed = true;
             tx.oncomplete?.({ target: tx });
+            releaseTurn();
           });
         }
 
@@ -250,6 +274,15 @@ export function createTransactionalIdb({
     ) {
       nextWriteFailure = error;
     },
+    failNextWriteInStore(
+      name,
+      error = namedError('QuotaExceededError', `Storage quota exceeded in ${name}`),
+    ) {
+      writeFailuresByStore.set(name, error);
+    },
+    holdNextCommit(gate) {
+      nextCommitGate = gate;
+    },
     get lastTransaction() {
       return lastTransaction;
     },
@@ -261,6 +294,9 @@ export function createTransactionalIdb({
     },
     keyPath(storeName) {
       return definitions.get(storeName)?.keyPath ?? null;
+    },
+    journalKeys() {
+      return [...(backing.get('reta_final_journal')?.keys() || [])];
     },
   };
 }

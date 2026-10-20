@@ -6,6 +6,7 @@ import { DEFAULT_SCHEMA_VERSION } from './store/migrations.js';
 import { deepClone } from './store/normalize-state.js';
 
 import { createExportableState as _createExportableState } from './store/export-state.js';
+import { commitRetaFinalDraft as commitRetaFinalDraftAtomically } from './store/reta-final-commit.js';
 
 // IndexedDB persistence layer
 import {
@@ -36,6 +37,7 @@ import {
   runMigrations,
   _bindState,
   _bindSetState,
+  _publishRetaFinalCommit,
 } from './store/indexeddb.js';
 
 export { DEFAULT_SCHEMA_VERSION };
@@ -79,6 +81,27 @@ export {
   saveRetaFinalDraft,
   discardRetaFinalDraft,
 } from './store/reta-final-draft-store.js';
+
+export function commitRetaFinalDraft(options = {}) {
+  const context = options.context || {};
+  const onCommitted = context.onCommitted;
+  return commitRetaFinalDraftAtomically({
+    ...options,
+    db: options.db || db,
+    context: {
+      ...context,
+      onCommitted: (nextState, result) => {
+        publishRetaFinalCommit(nextState, result);
+        onCommitted?.(nextState, result);
+      },
+    },
+  });
+}
+
+export function publishRetaFinalCommit(nextState, result) {
+  setState(nextState);
+  _publishRetaFinalCommit(result);
+}
 
 /**
  * Atualiza o estado global com deep clone para prevenir mutações

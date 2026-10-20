@@ -27,6 +27,37 @@ export function _bindSetState(ref) {
   }
 }
 
+/** Publish state and local-save notifications only after a durable commit. */
+export function _publishRetaFinalCommit(nextState, result) {
+  void nextState;
+  if (typeof document === 'undefined') return;
+  document.dispatchEvent(
+    new CustomEvent('app:saveStatus', {
+      detail: {
+        status: 'saved',
+        message: 'Salvo localmente',
+        detail: 'Alterações da Reta Final gravadas no dispositivo.',
+        timestamp: new Date().toISOString(),
+        localCommitted: true,
+        syncPending: true,
+      },
+    }),
+  );
+  document.dispatchEvent(
+    new CustomEvent('stateSaved', {
+      detail: {
+        source: 'reta-final-commit',
+        localCommitted: true,
+        syncPending: true,
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+        revision: result?.revision ?? null,
+      },
+    }),
+  );
+}
+
 export const DB_NAME = 'EstudoOrganizadoDB';
 export const DB_VERSION = 7;
 export const STORE_NAME = 'app_state';
