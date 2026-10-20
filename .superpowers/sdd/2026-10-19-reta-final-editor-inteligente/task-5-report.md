@@ -60,3 +60,27 @@ Também confirmado: o ID materializado conserva o contrato `autorf_`; os testes 
 ## Retomada
 
 O código da Task 5 está no commit `f203daf48a633f9d0665506e73b3a1dd5be5f976`. O checkout não foi enviado ao GitHub. Para continuar, confira `git status`, leia este relatório e mantenha o estado local; não é necessário repetir a suíte completa, salvo novas alterações.
+
+## Fix round 1 — retenção de eventos não pendentes
+
+Revisão: veredito Needs fixes. O rebuild removia qualquer evento auto sem evidência, inclusive quando o status não era `agendado`. A correção restringe a poda ao status canônico pendente; eventos com qualquer outro status são retidos sem alteração e continuam ocupando seu `rfBlocoId` via `retainedBlockIds`.
+
+RED:
+
+- Adicionado teste de evento auto `concluido`, sem tempo acumulado, ligado a bloco inexistente; ele deve ser preservado como o mesmo objeto, sem mutação, com `changed: false` e sem diagnóstico de remoção.
+- `npx vitest run tests/unit/reta-final-events.test.js` — 10 testes executados, 9 passaram, 1 falhou, exit 1. Falha esperada: `result.events` foi `[]`, pois o evento sem evidência foi removido indevidamente.
+
+GREEN:
+
+- Mesmo comando após a correção — 11/11 testes, incluindo a proteção contra criação de ligação duplicada para um bloco já ocupado por evento auto não pendente.
+- Regressões centrais (`reta-final-sync-eventos`, `reta-final-quick-mark`, `reta-final-associar`) — 3 arquivos, 35/35 testes.
+- Suítes relacionadas (`schema-v2`, `schedule`, `catalog`, `commands`, `core`, `rollover`, `logic-cycle-imports`) — 7 arquivos, 216/216 testes.
+- `npm test` — 151/151 arquivos e 2.514/2.514 testes, exit 0.
+- `npx eslint src/js/logic/reta-final-events.js tests/unit/reta-final-events.test.js` — exit 0; `git diff --check` sem erros.
+
+Arquivos:
+
+- `src/js/logic/reta-final-events.js`: poda limitada a `event.status === 'agendado'`; os demais eventos automáticos são retidos conservadoramente.
+- `tests/unit/reta-final-events.test.js`: RED de retenção e cobertura de não duplicação de `rfBlocoId`.
+
+Commit da correção: `8ce80f66e1439b5ca85ef02d7e696aeb9e2464df` (`fix(reta-final): prune only schedule-pending events`). Hook executado com `SKIP_CACHE_BUMP=1`; sem push.
