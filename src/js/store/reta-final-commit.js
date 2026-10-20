@@ -5,17 +5,18 @@ import {
   RETA_FINAL_DRAFT_STORE,
   RETA_FINAL_JOURNAL_STORE,
   STORE_NAME,
-} from './indexeddb.js';
+} from "./indexeddb.js";
 import {
   createLocalStateEnvelope,
   isLocalStateEnvelopeValid,
   pickRecoverableLocalState,
   stableStringify,
-} from './normalize-state.js';
-import { validateRetaFinalDraft } from '../logic/reta-final-drafts.js';
-import { projectRetaFinalSchedule } from '../logic/reta-final-schedule.js';
-import { rebuildRetaFinalAutoEvents } from '../logic/reta-final-events.js';
-import { buildRetaFinalEventTitle } from '../logic/reta-final-core.js';
+} from "./normalize-state.js";
+import { validateRetaFinalDraft } from "../logic/reta-final-drafts.js";
+import { projectRetaFinalSchedule } from "../logic/reta-final-schedule.js";
+import { rebuildRetaFinalAutoEvents } from "../logic/reta-final-events.js";
+import { buildRetaFinalEventTitle } from "../logic/reta-final-core.js";
+import { createRetaFinalCheckpoint } from "../logic/reta-final-history.js";
 
 const clone = (value) => structuredClone(value);
 
@@ -24,7 +25,9 @@ function codedError(code, message, extra = {}) {
 }
 
 function requestError(request) {
-  return request?.error || new Error('Falha ao ler estado local da Reta Final.');
+  return (
+    request?.error || new Error("Falha ao ler estado local da Reta Final.")
+  );
 }
 
 function uniqueOperationIds(operations) {
@@ -32,7 +35,7 @@ function uniqueOperationIds(operations) {
   const seen = new Set();
   for (const operation of Array.isArray(operations) ? operations : []) {
     const id = operation?.operationId;
-    if (typeof id === 'string' && id.trim() && !seen.has(id)) {
+    if (typeof id === "string" && id.trim() && !seen.has(id)) {
       seen.add(id);
       ids.push(id);
     }
@@ -43,18 +46,26 @@ function uniqueOperationIds(operations) {
 function assertOperationIdsAvailable(journalRecords, draftId, operationIds) {
   const committedBy = new Map();
   for (const record of Array.isArray(journalRecords) ? journalRecords : []) {
-    if (record?.type !== 'sync_intent' || !Array.isArray(record.operationIds)) continue;
+    if (record?.type !== "sync_intent" || !Array.isArray(record.operationIds))
+      continue;
     for (const operationId of record.operationIds) {
-      if (typeof operationId === 'string' && operationId && !committedBy.has(operationId)) {
+      if (
+        typeof operationId === "string" &&
+        operationId &&
+        !committedBy.has(operationId)
+      ) {
         committedBy.set(operationId, record.draftId ?? null);
       }
     }
   }
   for (const operationId of operationIds) {
-    if (committedBy.has(operationId) && committedBy.get(operationId) !== draftId) {
+    if (
+      committedBy.has(operationId) &&
+      committedBy.get(operationId) !== draftId
+    ) {
       throw codedError(
-        'RETA_FINAL_CONFLICT',
-        'operationId já foi utilizado por outro commit da Reta Final.',
+        "RETA_FINAL_CONFLICT",
+        "operationId já foi utilizado por outro commit da Reta Final.",
         { operationId },
       );
     }
@@ -68,7 +79,10 @@ function recoverStateFromReads(reads) {
     legacy: requestResult(reads.legacy),
   });
   if (!recovered.state) {
-    throw codedError('RETA_FINAL_CONFLICT', 'Estado local persistido indisponível para recuperação.');
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      "Estado local persistido indisponível para recuperação.",
+    );
   }
   return recovered.state;
 }
@@ -80,8 +94,10 @@ function recoverReplayStateFromReads(reads, planId, minimumRevision) {
   const candidates = [];
   if (isLocalStateEnvelopeValid(current)) candidates.push(current.payload);
   if (isLocalStateEnvelopeValid(previous)) candidates.push(previous.payload);
-  if (legacy && typeof legacy === 'object') {
-    candidates.push(isLocalStateEnvelopeValid(legacy) ? legacy.payload : legacy);
+  if (legacy && typeof legacy === "object") {
+    candidates.push(
+      isLocalStateEnvelopeValid(legacy) ? legacy.payload : legacy,
+    );
   }
 
   let selected = null;
@@ -100,8 +116,8 @@ function recoverReplayStateFromReads(reads, planId, minimumRevision) {
   }
   if (!selected) {
     throw codedError(
-      'RETA_FINAL_CONFLICT',
-      'Nenhum estado local alcança a revisão aplicada do rascunho.',
+      "RETA_FINAL_CONFLICT",
+      "Nenhum estado local alcança a revisão aplicada do rascunho.",
     );
   }
   return selected;
@@ -110,12 +126,16 @@ function recoverReplayStateFromReads(reads, planId, minimumRevision) {
 function listCatalogIds(editais) {
   const ids = new Set();
   for (const edital of Array.isArray(editais) ? editais : []) {
-    if (typeof edital?.id === 'string') ids.add(edital.id);
-    for (const discipline of Array.isArray(edital?.disciplinas) ? edital.disciplinas : []) {
-      if (typeof discipline?.id === 'string') ids.add(discipline.id);
-      for (const collection of ['assuntos', 'aulas']) {
-        for (const entity of Array.isArray(discipline?.[collection]) ? discipline[collection] : []) {
-          if (typeof entity?.id === 'string') ids.add(entity.id);
+    if (typeof edital?.id === "string") ids.add(edital.id);
+    for (const discipline of Array.isArray(edital?.disciplinas)
+      ? edital.disciplinas
+      : []) {
+      if (typeof discipline?.id === "string") ids.add(discipline.id);
+      for (const collection of ["assuntos", "aulas"]) {
+        for (const entity of Array.isArray(discipline?.[collection])
+          ? discipline[collection]
+          : []) {
+          if (typeof entity?.id === "string") ids.add(entity.id);
         }
       }
     }
@@ -127,34 +147,52 @@ function materializeCatalogIntents(editais, intents) {
   const catalog = clone(Array.isArray(editais) ? editais : []);
   const allIds = listCatalogIds(catalog);
   const seen = new Set();
-  const collectionByEntity = { assunto: 'assuntos', aula: 'aulas' };
+  const collectionByEntity = { assunto: "assuntos", aula: "aulas" };
   for (const intent of intents) {
     const collection = collectionByEntity[intent?.entity];
     if (
       !collection ||
-      typeof intent.id !== 'string' || !intent.id.trim() ||
-      typeof intent.discId !== 'string' || !intent.discId.trim() ||
-      typeof intent.nome !== 'string' || !intent.nome.trim() ||
+      typeof intent.id !== "string" ||
+      !intent.id.trim() ||
+      typeof intent.discId !== "string" ||
+      !intent.discId.trim() ||
+      typeof intent.nome !== "string" ||
+      !intent.nome.trim() ||
       seen.has(intent.id)
     ) {
-      throw codedError('RETA_FINAL_CONFLICT', 'Intenção de catálogo inválida ou ambígua.');
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        "Intenção de catálogo inválida ou ambígua.",
+      );
     }
     seen.add(intent.id);
     const matches = [];
     for (const edital of catalog) {
-      for (const discipline of Array.isArray(edital?.disciplinas) ? edital.disciplinas : []) {
+      for (const discipline of Array.isArray(edital?.disciplinas)
+        ? edital.disciplinas
+        : []) {
         if (discipline?.id === intent.discId) matches.push(discipline);
       }
     }
     if (matches.length !== 1) {
-      throw codedError('RETA_FINAL_CONFLICT', 'A disciplina da intenção de catálogo não é única.');
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        "A disciplina da intenção de catálogo não é única.",
+      );
     }
     if (allIds.has(intent.id)) {
-      const existing = (matches[0][collection] || []).filter((item) => item?.id === intent.id);
+      const existing = (matches[0][collection] || []).filter(
+        (item) => item?.id === intent.id,
+      );
       if (existing.length === 1 && existing[0].nome === intent.nome) continue;
-      throw codedError('RETA_FINAL_CONFLICT', 'O id da intenção de catálogo já está ocupado.');
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        "O id da intenção de catálogo já está ocupado.",
+      );
     }
-    matches[0][collection] = Array.isArray(matches[0][collection]) ? matches[0][collection] : [];
+    matches[0][collection] = Array.isArray(matches[0][collection])
+      ? matches[0][collection]
+      : [];
     matches[0][collection].push({ id: intent.id, nome: intent.nome });
     allIds.add(intent.id);
   }
@@ -164,20 +202,23 @@ function materializeCatalogIntents(editais, intents) {
 function eventTitle(block, editais) {
   let discipline = null;
   for (const edital of Array.isArray(editais) ? editais : []) {
-    discipline = (Array.isArray(edital?.disciplinas) ? edital.disciplinas : []).find(
-      (item) => item?.id === block.discId,
-    ) || discipline;
+    discipline =
+      (Array.isArray(edital?.disciplinas) ? edital.disciplinas : []).find(
+        (item) => item?.id === block.discId,
+      ) || discipline;
   }
   return buildRetaFinalEventTitle(block, discipline);
 }
 
 function createEventId(context, usedIds) {
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const value = typeof context.makeId === 'function'
-      ? context.makeId()
-      : globalThis.crypto?.randomUUID?.() || `rf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const id = 'autorf_' + value;
-    if (typeof value === 'string' && value.trim() && !usedIds.has(id)) {
+    const value =
+      typeof context.makeId === "function"
+        ? context.makeId()
+        : globalThis.crypto?.randomUUID?.() ||
+          `rf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const id = "autorf_" + value;
+    if (typeof value === "string" && value.trim() && !usedIds.has(id)) {
       usedIds.add(id);
       return value;
     }
@@ -189,9 +230,15 @@ function buildCommittedSnapshot(sourceState, draft, context) {
   const plan = sourceState.planejamento;
   const catalogIntents = draft.catalogIntents ?? context.catalogIntents ?? [];
   if (!Array.isArray(catalogIntents)) {
-    throw codedError('RETA_FINAL_CONFLICT', 'Intenções de catálogo devem ser uma lista.');
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      "Intenções de catálogo devem ser uma lista.",
+    );
   }
-  const editais = materializeCatalogIntents(sourceState.editais, catalogIntents);
+  const editais = materializeCatalogIntents(
+    sourceState.editais,
+    catalogIntents,
+  );
   const validation = validateRetaFinalDraft(draft, plan, {
     ...context,
     events: sourceState.eventos || [],
@@ -199,18 +246,20 @@ function buildCommittedSnapshot(sourceState, draft, context) {
     catalogIntents,
     activeTimerIds: context.activeTimerIds || [],
   });
-  if (validation.status !== 'ready') {
-    const stale = validation.status === 'stale';
+  if (validation.status !== "ready") {
+    const stale = validation.status === "stale";
     throw codedError(
-      stale ? 'RETA_FINAL_STALE' : 'RETA_FINAL_CONFLICT',
-      validation.errors?.[0]?.message || 'Rascunho não pode ser aplicado ao plano persistido.',
+      stale ? "RETA_FINAL_STALE" : "RETA_FINAL_CONFLICT",
+      validation.errors?.[0]?.message ||
+        "Rascunho não pode ser aplicado ao plano persistido.",
       { validation },
     );
   }
 
-  const now = typeof context.now === 'string' && context.now
-    ? context.now
-    : new Date().toISOString();
+  const now =
+    typeof context.now === "string" && context.now
+      ? context.now
+      : new Date().toISOString();
   const nextPlan = clone(draft.snapshot);
   nextPlan.planId = plan.planId;
   nextPlan.revision = plan.revision + 1;
@@ -220,15 +269,18 @@ function buildCommittedSnapshot(sourceState, draft, context) {
   const completed = new Set();
   for (const event of sourceState.eventos || []) {
     if (!event?.rfBlocoId) continue;
-    if (event.status === 'estudei' || Number(event.tempoAcumulado) > 0) occupied.add(event.rfBlocoId);
-    if (event.status === 'estudei') completed.add(event.rfBlocoId);
+    if (event.status === "estudei" || Number(event.tempoAcumulado) > 0)
+      occupied.add(event.rfBlocoId);
+    if (event.status === "estudei") completed.add(event.rfBlocoId);
   }
   const projection = projectRetaFinalSchedule(nextPlan, {
     today: context.today,
     occupiedBlocoIds: occupied,
     completedBlocoIds: completed,
   });
-  const byBlockId = new Map(projection.blocos.map((block) => [block.id, block]));
+  const byBlockId = new Map(
+    projection.blocos.map((block) => [block.id, block]),
+  );
   nextPlan.retaFinal.blocos = nextPlan.retaFinal.blocos.map((block) => {
     const projected = byBlockId.get(block.id);
     if (!projected || block.arquivado === true) return block;
@@ -242,12 +294,20 @@ function buildCommittedSnapshot(sourceState, draft, context) {
     ...nextPlan,
     retaFinal: { ...nextPlan.retaFinal, blocos: projection.blocos },
   };
-  const usedEventIds = new Set((sourceState.eventos || []).map((event) => event?.id).filter(Boolean));
-  const rebuilt = rebuildRetaFinalAutoEvents(projectedPlan, sourceState.eventos || [], {
-    today: context.today,
-    makeId: () => createEventId(context, usedEventIds),
-  });
-  const createdEventIds = new Set(rebuilt.diagnostics.created.map((item) => item.eventId));
+  const usedEventIds = new Set(
+    (sourceState.eventos || []).map((event) => event?.id).filter(Boolean),
+  );
+  const rebuilt = rebuildRetaFinalAutoEvents(
+    projectedPlan,
+    sourceState.eventos || [],
+    {
+      today: context.today,
+      makeId: () => createEventId(context, usedEventIds),
+    },
+  );
+  const createdEventIds = new Set(
+    rebuilt.diagnostics.created.map((item) => item.eventId),
+  );
   const events = rebuilt.events.map((event) => {
     if (!createdEventIds.has(event?.id)) return event;
     const block = byBlockId.get(event.rfBlocoId);
@@ -264,7 +324,13 @@ function buildCommittedSnapshot(sourceState, draft, context) {
 }
 
 function resultFor(plan, draftId) {
-  return { plan: clone(plan), revision: plan.revision, localCommitted: true, syncPending: true, commitId: draftId };
+  return {
+    plan: clone(plan),
+    revision: plan.revision,
+    localCommitted: true,
+    syncPending: true,
+    commitId: draftId,
+  };
 }
 
 /** Atomically commits the editor draft to the official local state and journal. */
@@ -275,14 +341,20 @@ export function commitRetaFinalDraft({
   expectedRevision,
   context = {},
 }) {
-  if (!db || typeof db.transaction !== 'function') {
-    return Promise.reject(new TypeError('Instância IndexedDB indisponível.'));
+  if (!db || typeof db.transaction !== "function") {
+    return Promise.reject(new TypeError("Instância IndexedDB indisponível."));
   }
-  if (typeof draftId !== 'string' || !draftId.trim()) {
-    return Promise.reject(new TypeError('draftId inválido.'));
+  if (typeof draftId !== "string" || !draftId.trim()) {
+    return Promise.reject(new TypeError("draftId inválido."));
   }
-  if (typeof expectedPlanId !== 'string' || !expectedPlanId.trim() || !Number.isSafeInteger(expectedRevision)) {
-    return Promise.reject(new TypeError('Identidade ou revisão esperada inválida.'));
+  if (
+    typeof expectedPlanId !== "string" ||
+    !expectedPlanId.trim() ||
+    !Number.isSafeInteger(expectedRevision)
+  ) {
+    return Promise.reject(
+      new TypeError("Identidade ou revisão esperada inválida."),
+    );
   }
 
   return new Promise((resolve, reject) => {
@@ -294,12 +366,12 @@ export function commitRetaFinalDraft({
     const settleError = (error) => {
       if (settled) return;
       settled = true;
-      reject(error || new Error('Transação local da Reta Final falhou.'));
+      reject(error || new Error("Transação local da Reta Final falhou."));
     };
     try {
       transaction = db.transaction(
         [STORE_NAME, RETA_FINAL_DRAFT_STORE, RETA_FINAL_JOURNAL_STORE],
-        'readwrite',
+        "readwrite",
       );
       transaction.oncomplete = () => {
         if (settled) return;
@@ -311,12 +383,16 @@ export function commitRetaFinalDraft({
         try {
           context.onCommitted?.(clone(nextState), clone(commitResult));
         } catch (error) {
-          console.error('Reta Final: commit durável; falha ao publicar estado em memória.', error);
+          console.error(
+            "Reta Final: commit durável; falha ao publicar estado em memória.",
+            error,
+          );
         }
         resolve(clone(commitResult));
       };
       transaction.onerror = (event) => {
-        if (!plannedError) plannedError = event?.target?.error || transaction.error;
+        if (!plannedError)
+          plannedError = event?.target?.error || transaction.error;
       };
       transaction.onabort = (event) => {
         settleError(plannedError || event?.target?.error || transaction.error);
@@ -335,21 +411,36 @@ export function commitRetaFinalDraft({
       const completedReads = new Set();
       const abortForError = (error) => {
         plannedError = error;
-        try { transaction.abort(); } catch { settleError(plannedError); }
+        try {
+          transaction.abort();
+        } catch {
+          settleError(plannedError);
+        }
       };
       const failForRequest = (request) => abortForError(requestError(request));
       for (const [key, request] of Object.entries(reads)) {
         request.onerror = () => failForRequest(request);
         request.onsuccess = () => {
           completedReads.add(key);
-          if (completedReads.size !== Object.keys(reads).length || plannedError) return;
+          if (completedReads.size !== Object.keys(reads).length || plannedError)
+            return;
           try {
             const draft = requestResult(reads.draft);
-            if (!draft) throw codedError('RETA_FINAL_CONFLICT', 'Rascunho não encontrado.');
-            if (draft.planId !== expectedPlanId || draft.baseRevision !== expectedRevision) {
-              throw codedError('RETA_FINAL_CONFLICT', 'Identidade ou revisão-base não corresponde ao rascunho.');
+            if (!draft)
+              throw codedError(
+                "RETA_FINAL_CONFLICT",
+                "Rascunho não encontrado.",
+              );
+            if (
+              draft.planId !== expectedPlanId ||
+              draft.baseRevision !== expectedRevision
+            ) {
+              throw codedError(
+                "RETA_FINAL_CONFLICT",
+                "Identidade ou revisão-base não corresponde ao rascunho.",
+              );
             }
-            if (draft.state === 'applied') {
+            if (draft.state === "applied") {
               const appliedRevision = draft.appliedResult?.revision;
               if (
                 draft.appliedCommitId !== draftId ||
@@ -358,49 +449,81 @@ export function commitRetaFinalDraft({
                 !draft.appliedResult?.plan ||
                 !Number.isSafeInteger(appliedRevision)
               ) {
-                throw codedError('RETA_FINAL_CONFLICT', 'Registro de commit aplicado está inconsistente.');
+                throw codedError(
+                  "RETA_FINAL_CONFLICT",
+                  "Registro de commit aplicado está inconsistente.",
+                );
               }
               nextState = clone(
-                recoverReplayStateFromReads(reads, expectedPlanId, appliedRevision),
+                recoverReplayStateFromReads(
+                  reads,
+                  expectedPlanId,
+                  appliedRevision,
+                ),
               );
               commitResult = clone(draft.appliedResult);
               return;
             }
-            if (draft.state !== 'editing') {
-              throw codedError('RETA_FINAL_CONFLICT', 'O rascunho não está em edição.');
+            if (draft.state !== "editing") {
+              throw codedError(
+                "RETA_FINAL_CONFLICT",
+                "O rascunho não está em edição.",
+              );
             }
 
             const state = recoverStateFromReads(reads);
             const currentPlan = state.planejamento;
             if (!currentPlan || currentPlan.planId !== expectedPlanId) {
-              throw codedError('RETA_FINAL_CONFLICT', 'A identidade do plano persistido mudou.');
+              throw codedError(
+                "RETA_FINAL_CONFLICT",
+                "A identidade do plano persistido mudou.",
+              );
             }
             if (currentPlan.revision !== expectedRevision) {
-              throw codedError('RETA_FINAL_STALE', 'A revisão do plano mudou desde a criação do rascunho.');
+              throw codedError(
+                "RETA_FINAL_STALE",
+                "A revisão do plano mudou desde a criação do rascunho.",
+              );
             }
-            if (context.expectedDigest && context.expectedDigest !== draft.baseDigest) {
-              throw codedError('RETA_FINAL_STALE', 'O digest esperado não corresponde à base do rascunho.');
+            if (
+              context.expectedDigest &&
+              context.expectedDigest !== draft.baseDigest
+            ) {
+              throw codedError(
+                "RETA_FINAL_STALE",
+                "O digest esperado não corresponde à base do rascunho.",
+              );
             }
-            if (stableStringify(currentPlan) !== stableStringify(draft.baseSnapshot)) {
-              throw codedError('RETA_FINAL_STALE', 'O conteúdo do plano mudou desde a criação do rascunho.');
+            if (
+              stableStringify(currentPlan) !==
+              stableStringify(draft.baseSnapshot)
+            ) {
+              throw codedError(
+                "RETA_FINAL_STALE",
+                "O conteúdo do plano mudou desde a criação do rascunho.",
+              );
             }
 
             const operationIds = uniqueOperationIds(draft.operations);
-            assertOperationIdsAvailable(requestResult(reads.journal), draftId, operationIds);
+            assertOperationIdsAvailable(
+              requestResult(reads.journal),
+              draftId,
+              operationIds,
+            );
             nextState = buildCommittedSnapshot(state, draft, context);
             const committedPlan = nextState.planejamento;
             commitResult = resultFor(committedPlan, draftId);
             const oldCurrent = requestResult(reads.current);
             const previousEnvelope = isLocalStateEnvelopeValid(oldCurrent)
-              ? { ...oldCurrent, slot: 'previous' }
-              : createLocalStateEnvelope(state, { slot: 'previous' });
+              ? { ...oldCurrent, slot: "previous" }
+              : createLocalStateEnvelope(state, { slot: "previous" });
             const currentEnvelope = createLocalStateEnvelope(nextState, {
-              slot: 'current',
+              slot: "current",
               savedAt: committedPlan.updatedAt,
             });
             const appliedDraft = {
               ...draft,
-              state: 'applied',
+              state: "applied",
               updatedAt: committedPlan.updatedAt,
               appliedAt: committedPlan.updatedAt,
               appliedPlanId: expectedPlanId,
@@ -408,23 +531,25 @@ export function commitRetaFinalDraft({
               appliedRevision: committedPlan.revision,
               appliedCommitId: draftId,
               appliedResult: commitResult,
+              operations: draft.operations.map((operation) => ({
+                ...operation,
+                committedRevision: committedPlan.revision,
+                committedPlanId: expectedPlanId,
+                committedAt: committedPlan.updatedAt,
+              })),
             };
-            const checkpoint = {
-              id: `rf-checkpoint:${draftId}`,
-              type: 'checkpoint',
-              planId: expectedPlanId,
-              revision: expectedRevision,
-              kind: 'automatic',
+            const checkpoint = createRetaFinalCheckpoint(currentPlan, {
+              checkpointId: `rf-checkpoint:${draftId}`,
               createdAt: committedPlan.updatedAt,
-              plan: clone(currentPlan),
+              kind: "automatic",
               draftId,
-            };
+            });
             const syncIntent = {
               id: `rf-sync-intent:${draftId}`,
-              type: 'sync_intent',
+              type: "sync_intent",
               planId: expectedPlanId,
               revision: committedPlan.revision,
-              status: 'pending',
+              status: "pending",
               operationIds,
               createdAt: committedPlan.updatedAt,
               draftId,

@@ -1,30 +1,54 @@
-import { applyRetaFinalCommand } from './reta-final-commands.js';
-import { validateRetaFinalV2 } from './reta-final-schema.js';
+import { applyRetaFinalCommand } from "./reta-final-commands.js";
+import { validateRetaFinalV2 } from "./reta-final-schema.js";
 
 const isObject = (value) =>
-  value !== null && typeof value === 'object' && !Array.isArray(value);
+  value !== null && typeof value === "object" && !Array.isArray(value);
 const clone = (value) =>
   value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 const stable = (value) => {
-  if (Array.isArray(value)) return '[' + value.map(stable).join(',') + ']';
+  if (Array.isArray(value)) return "[" + value.map(stable).join(",") + "]";
   if (isObject(value))
     return (
-      '{' +
+      "{" +
       Object.keys(value)
         .sort()
-        .map((key) => JSON.stringify(key) + ':' + stable(value[key]))
-        .join(',') +
-      '}'
+        .map((key) => JSON.stringify(key) + ":" + stable(value[key]))
+        .join(",") +
+      "}"
     );
   return JSON.stringify(value);
 };
-function digest(value) {
+export function retaFinalDigest(value) {
   let hash = 0xcbf29ce484222325n;
   for (const character of stable(value)) {
     hash ^= BigInt(character.charCodeAt(0));
     hash = BigInt.asUintN(64, hash * 0x100000001b3n);
   }
-  return 'fnv1a64:' + hash.toString(16).padStart(16, '0');
+  return "fnv1a64:" + hash.toString(16).padStart(16, "0");
+}
+function operationProvenancePayload(operation) {
+  return {
+    operationId: operation.operationId,
+    command: operation.command,
+    generatedIds: operation.generatedIds ?? [],
+    before: operation.before,
+    after: operation.after,
+    diff: operation.diff,
+    baseRevision: operation.baseRevision,
+    createdAt: operation.createdAt,
+    deviceId: operation.deviceId ?? null,
+    historyAction: operation.historyAction ?? null,
+    sourceOperationId: operation.sourceOperationId ?? null,
+  };
+}
+function hasOperationProvenance(operation) {
+  return (
+    operation?.before !== undefined ||
+    operation?.after !== undefined ||
+    operation?.diff !== undefined ||
+    operation?.baseRevision !== undefined ||
+    operation?.provenanceChecksum !== undefined
+  );
 }
 function changedFields(before, after) {
   const keys = new Set([
@@ -50,7 +74,7 @@ function diffPlans(before, after) {
       blockId: null,
       before: { dataFinal: before.retaFinal.dataFinal },
       after: { dataFinal: after.retaFinal.dataFinal },
-      fieldsChanged: ['retaFinal.dataFinal'],
+      fieldsChanged: ["retaFinal.dataFinal"],
     });
   }
   if (
@@ -60,7 +84,7 @@ function diffPlans(before, after) {
       blockId: null,
       before: { capacidade: clone(before.retaFinal.capacidade) },
       after: { capacidade: clone(after.retaFinal.capacidade) },
-      fieldsChanged: ['retaFinal.capacidade'],
+      fieldsChanged: ["retaFinal.capacidade"],
     });
   }
   const oldBlocks = new Map(
@@ -90,31 +114,30 @@ function hasOwnIndex(value, index) {
   return Object.prototype.hasOwnProperty.call(value, index);
 }
 function snapshotShapeError(snapshot, label) {
-  if (!isObject(snapshot.retaFinal) || !Array.isArray(snapshot.retaFinal.blocos)) {
+  if (
+    !isObject(snapshot.retaFinal) ||
+    !Array.isArray(snapshot.retaFinal.blocos)
+  ) {
     return error(
-      'DRAFT_INVALID',
-      label + ': retaFinal.blocos deve ser uma lista.',
+      "DRAFT_INVALID",
+      label + ": retaFinal.blocos deve ser uma lista.",
     );
   }
   const blocks = snapshot.retaFinal.blocos;
   for (let index = 0; index < blocks.length; index += 1) {
     if (!hasOwnIndex(blocks, index)) {
       return error(
-        'DRAFT_INVALID',
-        label + ': bloco ausente no índice ' + index + '.',
+        "DRAFT_INVALID",
+        label + ": bloco ausente no índice " + index + ".",
         null,
         index,
       );
     }
     const block = blocks[index];
-    if (
-      !isObject(block) ||
-      typeof block.id !== 'string' ||
-      !block.id.trim()
-    ) {
+    if (!isObject(block) || typeof block.id !== "string" || !block.id.trim()) {
       return error(
-        'DRAFT_INVALID',
-        label + ': cada bloco deve ter um id válido.',
+        "DRAFT_INVALID",
+        label + ": cada bloco deve ter um id válido.",
         null,
         index,
       );
@@ -123,8 +146,8 @@ function snapshotShapeError(snapshot, label) {
   const validation = validateRetaFinalV2(snapshot);
   if (!validation.valid) {
     return error(
-      'DRAFT_INVALID',
-      label + ': ' + (validation.errors[0] || 'snapshot inválido.'),
+      "DRAFT_INVALID",
+      label + ": " + (validation.errors[0] || "snapshot inválido."),
     );
   }
   return null;
@@ -135,8 +158,8 @@ function operationShapeErrors(operations) {
     if (!hasOwnIndex(operations, index)) {
       errors.push(
         error(
-          'DRAFT_OPERATION_INVALID',
-          'Registro de operação ausente no índice ' + index + '.',
+          "DRAFT_OPERATION_INVALID",
+          "Registro de operação ausente no índice " + index + ".",
           null,
           index,
         ),
@@ -145,24 +168,24 @@ function operationShapeErrors(operations) {
     }
     const operation = operations[index];
     const operationId =
-      isObject(operation) && typeof operation.operationId === 'string'
+      isObject(operation) && typeof operation.operationId === "string"
         ? operation.operationId
         : null;
     const generatedIds = operation?.generatedIds;
     const valid =
       isObject(operation) &&
-      typeof operationId === 'string' &&
+      typeof operationId === "string" &&
       operationId.trim() &&
       isObject(operation.command) &&
       operation.command.operationId === operationId &&
       (generatedIds === undefined ||
         (Array.isArray(generatedIds) &&
-          generatedIds.every((id) => typeof id === 'string' && id.trim())));
+          generatedIds.every((id) => typeof id === "string" && id.trim())));
     if (!valid) {
       errors.push(
         error(
-          'DRAFT_OPERATION_INVALID',
-          'Registro de operação inválido.',
+          "DRAFT_OPERATION_INVALID",
+          "Registro de operação inválido.",
           operationId,
           index,
         ),
@@ -177,22 +200,22 @@ function shapeErrors(draft) {
     !isObject(draft.baseSnapshot) ||
     !isObject(draft.snapshot) ||
     !Array.isArray(draft.operations) ||
-    typeof draft.draftId !== 'string' ||
+    typeof draft.draftId !== "string" ||
     !draft.draftId.trim() ||
-    typeof draft.planId !== 'string' ||
+    typeof draft.planId !== "string" ||
     !draft.planId.trim() ||
     !Number.isSafeInteger(draft.baseRevision) ||
     draft.baseRevision < 0 ||
-    typeof draft.baseDigest !== 'string' ||
+    typeof draft.baseDigest !== "string" ||
     !draft.baseDigest
   ) {
     return [
-      error('DRAFT_INVALID', 'Estrutura ou identidade do rascunho inválida.'),
+      error("DRAFT_INVALID", "Estrutura ou identidade do rascunho inválida."),
     ];
   }
   const nested = [
-    snapshotShapeError(draft.baseSnapshot, 'Snapshot-base'),
-    snapshotShapeError(draft.snapshot, 'Snapshot'),
+    snapshotShapeError(draft.baseSnapshot, "Snapshot-base"),
+    snapshotShapeError(draft.snapshot, "Snapshot"),
   ].filter(Boolean);
   if (nested.length) return nested;
   const operationErrors = operationShapeErrors(draft.operations);
@@ -203,11 +226,11 @@ function contextErrors(context) {
   if (context === undefined) return [];
   if (!isObject(context))
     return [
-      error('CONTEXT_INVALID', 'Contexto de comandos deve ser um objeto.'),
+      error("CONTEXT_INVALID", "Contexto de comandos deve ser um objeto."),
     ];
-  for (const key of ['events', 'catalog', 'catalogIntents', 'history']) {
+  for (const key of ["events", "catalog", "catalogIntents", "history"]) {
     if (context[key] !== undefined && !Array.isArray(context[key])) {
-      return [error('CONTEXT_INVALID', key + ' deve ser uma lista.')];
+      return [error("CONTEXT_INVALID", key + " deve ser uma lista.")];
     }
   }
   if (
@@ -215,19 +238,19 @@ function contextErrors(context) {
     !(
       context.activeTimerIds instanceof Set ||
       Array.isArray(context.activeTimerIds) ||
-      typeof context.activeTimerIds === 'string' ||
+      typeof context.activeTimerIds === "string" ||
       isObject(context.activeTimerIds)
     )
   ) {
-    return [error('CONTEXT_INVALID', 'activeTimerIds tem formato inválido.')];
+    return [error("CONTEXT_INVALID", "activeTimerIds tem formato inválido.")];
   }
   if (context.today !== undefined && context.today !== null) {
     const match =
-      typeof context.today === 'string' &&
+      typeof context.today === "string" &&
       /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(context.today);
     if (!match)
       return [
-        error('CONTEXT_INVALID', 'today deve ser uma data civil YYYY-MM-DD.'),
+        error("CONTEXT_INVALID", "today deve ser uma data civil YYYY-MM-DD."),
       ];
     const year = Number(match[1]);
     const month = Number(match[2]);
@@ -242,12 +265,12 @@ function contextErrors(context) {
       day > days[month - 1]
     ) {
       return [
-        error('CONTEXT_INVALID', 'today deve ser uma data civil YYYY-MM-DD.'),
+        error("CONTEXT_INVALID", "today deve ser uma data civil YYYY-MM-DD."),
       ];
     }
   }
-  if (context.makeId !== undefined && typeof context.makeId !== 'function') {
-    return [error('CONTEXT_INVALID', 'makeId deve ser uma função.')];
+  if (context.makeId !== undefined && typeof context.makeId !== "function") {
+    return [error("CONTEXT_INVALID", "makeId deve ser uma função.")];
   }
   return [];
 }
@@ -257,7 +280,7 @@ function run(plan, operation, context, generatedIds) {
   let generatedIndex = 0;
   const makeId = generatedIds
     ? () => generatedIds[generatedIndex++]
-    : typeof context?.makeId === 'function'
+    : typeof context?.makeId === "function"
       ? () => {
           const id = context.makeId();
           producedIds.push(id);
@@ -281,21 +304,21 @@ function run(plan, operation, context, generatedIds) {
 export function createRetaFinalDraft(plan, { draftId, now } = {}) {
   const validation = validateRetaFinalV2(plan);
   if (!validation.valid)
-    throw new TypeError('Plano-base inválido: ' + validation.errors.join(' '));
-  if (typeof draftId !== 'string' || !draftId.trim())
-    throw new TypeError('draftId inválido.');
-  if (typeof now !== 'string' || !now)
-    throw new TypeError('now deve ser uma data textual.');
+    throw new TypeError("Plano-base inválido: " + validation.errors.join(" "));
+  if (typeof draftId !== "string" || !draftId.trim())
+    throw new TypeError("draftId inválido.");
+  if (typeof now !== "string" || !now)
+    throw new TypeError("now deve ser uma data textual.");
   const baseSnapshot = clone(plan);
   return {
     draftId,
     planId: plan.planId,
     baseRevision: plan.revision,
-    baseDigest: digest(baseSnapshot),
+    baseDigest: retaFinalDigest(baseSnapshot),
     baseSnapshot,
     snapshot: clone(baseSnapshot),
     operations: [],
-    state: 'editing',
+    state: "editing",
     createdAt: now,
     updatedAt: now,
   };
@@ -309,23 +332,23 @@ export function appendRetaFinalDraftOperation(draft, command, context = {}) {
   const invalidContext = contextErrors(context);
   if (invalidContext.length)
     return { valid: false, draft, diff: currentDiff, errors: invalidContext };
-  if (draft.state !== 'editing')
+  if (draft.state !== "editing")
     return {
       valid: false,
       draft,
       diff: currentDiff,
-      errors: [error('DRAFT_NOT_EDITING', 'O rascunho não está em edição.')],
+      errors: [error("DRAFT_NOT_EDITING", "O rascunho não está em edição.")],
     };
   if (
     !isObject(command) ||
-    typeof command.operationId !== 'string' ||
+    typeof command.operationId !== "string" ||
     !command.operationId.trim()
   ) {
     return {
       valid: false,
       draft,
       diff: currentDiff,
-      errors: [error('OPERATION_ID_INVALIDO', 'operationId é obrigatório.')],
+      errors: [error("OPERATION_ID_INVALIDO", "operationId é obrigatório.")],
     };
   }
   const existing = draft.operations.find(
@@ -341,8 +364,8 @@ export function appendRetaFinalDraftOperation(draft, command, context = {}) {
       diff: currentDiff,
       errors: [
         error(
-          'OPERATION_ID_CONFLICT',
-          'operationId já pertence a outro comando.',
+          "OPERATION_ID_CONFLICT",
+          "operationId já pertence a outro comando.",
           command.operationId,
         ),
       ],
@@ -366,13 +389,33 @@ export function appendRetaFinalDraftOperation(draft, command, context = {}) {
     operationId: command.operationId,
     command: clone(command),
     generatedIds: producedIds,
+    before: clone(draft.snapshot),
+    after: clone(result.plan),
+    diff: clone(result.diff),
+    baseRevision: draft.baseRevision,
+    createdAt:
+      typeof context.now === "string" && context.now
+        ? context.now
+        : draft.updatedAt,
   };
+  if (typeof context.deviceId === "string" && context.deviceId.trim())
+    operation.deviceId = context.deviceId;
+  if (["undo", "redo"].includes(context.historyAction))
+    operation.historyAction = context.historyAction;
+  if (
+    typeof context.sourceOperationId === "string" &&
+    context.sourceOperationId.trim()
+  )
+    operation.sourceOperationId = context.sourceOperationId;
+  operation.provenanceChecksum = retaFinalDigest(
+    operationProvenancePayload(operation),
+  );
   const next = {
     ...draft,
     snapshot: clone(result.plan),
     operations: [...draft.operations, operation],
     updatedAt:
-      typeof context.now === 'string' && context.now
+      typeof context.now === "string" && context.now
         ? context.now
         : draft.updatedAt,
   };
@@ -391,72 +434,72 @@ export function appendRetaFinalDraftOperation(draft, command, context = {}) {
  */
 export function validateRetaFinalDraft(draft, currentPlan, context = {}) {
   const invalid = shapeErrors(draft);
-  if (invalid.length) return { status: 'blocked', diff: [], errors: invalid };
+  if (invalid.length) return { status: "blocked", diff: [], errors: invalid };
   if (!isObject(currentPlan))
     return {
-      status: 'conflict',
+      status: "conflict",
       diff: [],
-      errors: [error('CURRENT_PLAN_MISSING', 'Plano atual ausente.')],
+      errors: [error("CURRENT_PLAN_MISSING", "Plano atual ausente.")],
     };
   if (
     draft.planId !== currentPlan.planId ||
     draft.baseSnapshot.planId !== draft.planId
   ) {
     return {
-      status: 'conflict',
+      status: "conflict",
       diff: [],
       errors: [
         error(
-          'PLAN_IDENTITY_CONFLICT',
-          'A identidade do plano não corresponde ao rascunho.',
+          "PLAN_IDENTITY_CONFLICT",
+          "A identidade do plano não corresponde ao rascunho.",
         ),
       ],
     };
   }
-  if (draft.state !== 'editing')
+  if (draft.state !== "editing")
     return {
-      status: 'blocked',
+      status: "blocked",
       diff: [],
-      errors: [error('DRAFT_NOT_EDITING', 'O rascunho não está em edição.')],
+      errors: [error("DRAFT_NOT_EDITING", "O rascunho não está em edição.")],
     };
   const invalidContext = contextErrors(context);
   if (invalidContext.length)
-    return { status: 'blocked', diff: [], errors: invalidContext };
+    return { status: "blocked", diff: [], errors: invalidContext };
   const baseValidation = validateRetaFinalV2(draft.baseSnapshot);
   if (
     !baseValidation.valid ||
     draft.baseSnapshot.revision !== draft.baseRevision ||
-    digest(draft.baseSnapshot) !== draft.baseDigest
+    retaFinalDigest(draft.baseSnapshot) !== draft.baseDigest
   ) {
     return {
-      status: 'blocked',
+      status: "blocked",
       diff: [],
       errors: [
         error(
-          'DRAFT_BASE_INVALID',
-          'Snapshot ou digest-base do rascunho inválido.',
+          "DRAFT_BASE_INVALID",
+          "Snapshot ou digest-base do rascunho inválido.",
         ),
       ],
     };
   }
   if (!validateRetaFinalV2(currentPlan).valid)
     return {
-      status: 'conflict',
+      status: "conflict",
       diff: [],
       errors: [
-        error('CURRENT_PLAN_INVALID', 'Plano atual inválido para comparação.'),
+        error("CURRENT_PLAN_INVALID", "Plano atual inválido para comparação."),
       ],
     };
   if (
     currentPlan.revision !== draft.baseRevision ||
-    digest(currentPlan) !== draft.baseDigest ||
+    retaFinalDigest(currentPlan) !== draft.baseDigest ||
     stable(currentPlan) !== stable(draft.baseSnapshot)
   ) {
     return {
-      status: 'stale',
+      status: "stale",
       diff: [],
       errors: [
-        error('BASE_STALE', 'O plano mudou desde a criação do rascunho.'),
+        error("BASE_STALE", "O plano mudou desde a criação do rascunho."),
       ],
     };
   }
@@ -467,13 +510,13 @@ export function validateRetaFinalDraft(draft, currentPlan, context = {}) {
     const operation = draft.operations[index];
     if (
       !isObject(operation) ||
-      typeof operation.operationId !== 'string' ||
+      typeof operation.operationId !== "string" ||
       operation.operationId !== operation.command?.operationId
     ) {
       errors.push(
         error(
-          'DRAFT_OPERATION_INVALID',
-          'Registro de operação inválido.',
+          "DRAFT_OPERATION_INVALID",
+          "Registro de operação inválido.",
           null,
           index,
         ),
@@ -485,8 +528,8 @@ export function validateRetaFinalDraft(draft, currentPlan, context = {}) {
       if (seen.get(operation.operationId) !== commandText) {
         errors.push(
           error(
-            'OPERATION_ID_CONFLICT',
-            'operationId duplicado com outro comando.',
+            "OPERATION_ID_CONFLICT",
+            "operationId duplicado com outro comando.",
             operation.operationId,
             index,
           ),
@@ -495,6 +538,31 @@ export function validateRetaFinalDraft(draft, currentPlan, context = {}) {
       continue;
     }
     seen.set(operation.operationId, commandText);
+    if (hasOperationProvenance(operation)) {
+      const validProvenance =
+        isObject(operation.before) &&
+        isObject(operation.after) &&
+        Array.isArray(operation.diff) &&
+        operation.baseRevision === draft.baseRevision &&
+        typeof operation.createdAt === "string" &&
+        operation.createdAt &&
+        operation.before.revision === draft.baseRevision &&
+        operation.after.revision === draft.baseRevision &&
+        stable(operation.before) === stable(replay) &&
+        operation.provenanceChecksum ===
+          retaFinalDigest(operationProvenancePayload(operation));
+      if (!validProvenance) {
+        errors.push(
+          error(
+            "DRAFT_OPERATION_PROVENANCE_INVALID",
+            "A proveniência da operação não corresponde ao replay do rascunho.",
+            operation.operationId,
+            index,
+          ),
+        );
+        continue;
+      }
+    }
     const { result } = run(
       replay,
       operation,
@@ -509,22 +577,39 @@ export function validateRetaFinalDraft(draft, currentPlan, context = {}) {
             blockId: item.blockId,
           }),
         );
-    } else replay = result.plan;
+    } else {
+      if (
+        hasOperationProvenance(operation) &&
+        (stable(operation.after) !== stable(result.plan) ||
+          stable(operation.diff) !== stable(result.diff))
+      ) {
+        errors.push(
+          error(
+            "DRAFT_OPERATION_PROVENANCE_INVALID",
+            "A proveniência da operação diverge do comando reproduzido.",
+            operation.operationId,
+            index,
+          ),
+        );
+        continue;
+      }
+      replay = result.plan;
+    }
   }
-  if (errors.length) return { status: 'blocked', diff: [], errors };
+  if (errors.length) return { status: "blocked", diff: [], errors };
   if (stable(replay) !== stable(draft.snapshot))
     return {
-      status: 'blocked',
+      status: "blocked",
       diff: [],
       errors: [
         error(
-          'DRAFT_SNAPSHOT_MISMATCH',
-          'Snapshot não corresponde ao replay das operações.',
+          "DRAFT_SNAPSHOT_MISMATCH",
+          "Snapshot não corresponde ao replay das operações.",
         ),
       ],
     };
   return {
-    status: 'ready',
+    status: "ready",
     diff: diffPlans(draft.baseSnapshot, replay),
     errors: [],
   };
