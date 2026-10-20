@@ -118,6 +118,32 @@ describe('rebuildRetaFinalAutoEvents', () => {
     expect(result.events.filter((event) => event.rfBlocoId === 'rf_1')).toHaveLength(1);
   });
 
+  it('reserva o bloco de evento não pendente e remove o agendado duplicado', () => {
+    const completedEvent = autoEvento({
+      id: 'autorf_concluido',
+      status: 'concluido',
+      tempoAcumulado: 0
+    });
+    const scheduledDuplicate = autoEvento({ id: 'autorf_agendado' });
+    const events = [completedEvent, scheduledDuplicate];
+    const makeId = vi.fn(() => 'must-not-be-used');
+
+    const result = rebuild(plano([bloco()]), events, makeId);
+
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0]).toBe(completedEvent);
+    expect(result.changed).toBe(true);
+    expect(makeId).not.toHaveBeenCalled();
+    expect(result.events.filter((event) => event.rfBlocoId === 'rf_1')).toHaveLength(1);
+    expect(result.diagnostics.removed).toEqual([
+      {
+        eventId: 'autorf_agendado',
+        blocoId: 'rf_1',
+        reason: 'ligacao_duplicada'
+      }
+    ]);
+  });
+
   it('preserva evento que acumulou exatamente um minuto', () => {
     const partial = autoEvento({ tempoAcumulado: 60 });
     const events = [partial];
