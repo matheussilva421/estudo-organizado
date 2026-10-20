@@ -5,6 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createTransactionalIdb } from './reta-final-draft-idb-helper.js';
 
 const rootDir = process.cwd();
 
@@ -210,43 +211,43 @@ describe('store/indexeddb.js - Data pipeline functions work end-to-end', () => {
 });
 
 describe('store/indexeddb.js - Task 6 schema upgrade', () => {
-  it('opens version 7 and creates only the two isolated draft stores', async () => {
-    const existing = new Set([
-      'app_state',
-      'firestore_outbox',
-      'firestore_meta',
-      'firestore_conflicts',
-      'entity_meta',
-      'firestore_entity_outbox',
-    ]);
-    const created = [];
-    const database = {
-      objectStoreNames: { contains: (name) => existing.has(name) },
-      createObjectStore: vi.fn((name, options) => {
-        created.push({ name, keyPath: options?.keyPath ?? null });
-        existing.add(name);
-      }),
+  it('opens an existing v6 database, upgrades it to v7, and completes initDB', async () => {
+    const v6Stores = {
+      app_state: {},
+      firestore_outbox: {},
+      firestore_meta: {},
+      firestore_conflicts: {},
+      entity_meta: {},
+      firestore_entity_outbox: {},
     };
-    const request = {};
-    global.indexedDB.open = vi.fn(() => request);
-    const logError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const idb = createTransactionalIdb({
+      stores: v6Stores,
+      version: 6,
+      keyPaths: {
+        app_state: null,
+        firestore_outbox: 'id',
+        firestore_meta: 'id',
+        firestore_conflicts: 'id',
+        entity_meta: 'key',
+        firestore_entity_outbox: 'id',
+      },
+    });
+    global.indexedDB = idb.indexedDB;
 
-    try {
-      const opening = indexeddb.initDB();
-      const version = global.indexedDB.open.mock.calls[0][1];
-      request.onupgradeneeded({ target: { result: database, oldVersion: 6, newVersion: version } });
-      request.onerror({ target: { error: new DOMException('Test complete', 'UnknownError') } });
-      await opening;
+    expect(idb.version).toBe(6);
+    await expect(indexeddb.initDB()).resolves.toBeUndefined();
 
-      expect.soft(version).toBe(7);
-      expect.soft(created).toEqual([
-        { name: 'reta_final_drafts', keyPath: 'draftId' },
-        { name: 'reta_final_journal', keyPath: 'id' },
-      ]);
-      expect.soft(store.RETA_FINAL_DRAFT_STORE).toBe('reta_final_drafts');
-      expect.soft(store.RETA_FINAL_JOURNAL_STORE).toBe('reta_final_journal');
-    } finally {
-      logError.mockRestore();
-    }
+    expect(idb.openVersions).toEqual([7]);
+    expect(idb.version).toBe(7);
+    expect(idb.createdStores).toEqual([
+      { name: 'reta_final_drafts', keyPath: 'draftId' },
+      { name: 'reta_final_journal', keyPath: 'id' },
+    ]);
+    expect(idb.keyPath('reta_final_drafts')).toBe('draftId');
+    expect(idb.keyPath('reta_final_journal')).toBe('id');
+    expect(indexeddb.db.objectStoreNames.contains('reta_final_drafts')).toBe(true);
+    expect(indexeddb.db.objectStoreNames.contains('reta_final_journal')).toBe(true);
+    expect(store.RETA_FINAL_DRAFT_STORE).toBe('reta_final_drafts');
+    expect(store.RETA_FINAL_JOURNAL_STORE).toBe('reta_final_journal');
   });
 });

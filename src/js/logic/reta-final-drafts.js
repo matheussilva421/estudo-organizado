@@ -86,6 +86,65 @@ function diffPlans(before, after) {
 function error(code, message, operationId = null, index = null, extra = {}) {
   return { code, message, operationId, index, ...extra };
 }
+function snapshotShapeError(snapshot, label) {
+  if (!isObject(snapshot.retaFinal) || !Array.isArray(snapshot.retaFinal.blocos)) {
+    return error(
+      'DRAFT_INVALID',
+      label + ': retaFinal.blocos deve ser uma lista.',
+    );
+  }
+  if (
+    snapshot.retaFinal.blocos.some(
+      (block) =>
+        !isObject(block) ||
+        typeof block.id !== 'string' ||
+        !block.id.trim(),
+    )
+  ) {
+    return error(
+      'DRAFT_INVALID',
+      label + ': cada bloco deve ter um id válido.',
+    );
+  }
+  const validation = validateRetaFinalV2(snapshot);
+  if (!validation.valid) {
+    return error(
+      'DRAFT_INVALID',
+      label + ': ' + (validation.errors[0] || 'snapshot inválido.'),
+    );
+  }
+  return null;
+}
+function operationShapeErrors(operations) {
+  const errors = [];
+  operations.forEach((operation, index) => {
+    const operationId =
+      isObject(operation) && typeof operation.operationId === 'string'
+        ? operation.operationId
+        : null;
+    const generatedIds = operation?.generatedIds;
+    const valid =
+      isObject(operation) &&
+      typeof operationId === 'string' &&
+      operationId.trim() &&
+      isObject(operation.command) &&
+      operation.command.operationId === operationId &&
+      (generatedIds === undefined ||
+        (Array.isArray(generatedIds) &&
+          generatedIds.every((id) => typeof id === 'string' && id.trim())));
+    if (!valid) {
+      errors.push(
+        error(
+          'DRAFT_OPERATION_INVALID',
+          'Registro de operação inválido.',
+          operationId,
+          index,
+        ),
+      );
+    }
+  });
+  return errors;
+}
 function shapeErrors(draft) {
   if (
     !isObject(draft) ||
@@ -105,6 +164,13 @@ function shapeErrors(draft) {
       error('DRAFT_INVALID', 'Estrutura ou identidade do rascunho inválida.'),
     ];
   }
+  const nested = [
+    snapshotShapeError(draft.baseSnapshot, 'Snapshot-base'),
+    snapshotShapeError(draft.snapshot, 'Snapshot'),
+  ].filter(Boolean);
+  if (nested.length) return nested;
+  const operationErrors = operationShapeErrors(draft.operations);
+  if (operationErrors.length) return operationErrors;
   return [];
 }
 function contextErrors(context) {

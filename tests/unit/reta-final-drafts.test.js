@@ -303,3 +303,77 @@ describe('Reta Final draft context validation', () => {
     );
   });
 });
+
+describe('Reta Final malformed persisted draft', () => {
+  it('rejects a snapshot without nested blocos before computing a diff', () => {
+    const malformed = JSON.parse(
+      JSON.stringify(createRetaFinalDraft(plan(), { draftId: 'draft-1', now: 't' })),
+    );
+    delete malformed.snapshot.retaFinal.blocos;
+
+    let result;
+    expect(() => {
+      result = appendRetaFinalDraftOperation(malformed, patch(), context);
+    }).not.toThrow();
+    expect(result.valid).toBe(false);
+    expect(result.diff).toEqual([]);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'DRAFT_INVALID' })]),
+    );
+  });
+
+  it('rejects a null operation entry before duplicate lookup', () => {
+    const malformed = createRetaFinalDraft(plan(), {
+      draftId: 'draft-1',
+      now: 't',
+    });
+    malformed.operations = [null];
+
+    let result;
+    expect(() => {
+      result = appendRetaFinalDraftOperation(malformed, patch(), context);
+    }).not.toThrow();
+    expect(result.valid).toBe(false);
+    expect(result.diff).toEqual([]);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'DRAFT_OPERATION_INVALID', index: 0 }),
+      ]),
+    );
+  });
+
+  it('blocks validation when a saved snapshot loses its nested blocos', () => {
+    const malformed = JSON.parse(
+      JSON.stringify(createRetaFinalDraft(plan(), { draftId: 'draft-1', now: 't' })),
+    );
+    delete malformed.snapshot.retaFinal.blocos;
+
+    let result;
+    expect(() => {
+      result = validateRetaFinalDraft(malformed, plan(), context);
+    }).not.toThrow();
+    expect(result.status).toBe('blocked');
+    expect(result.diff).toEqual([]);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'DRAFT_INVALID' })]),
+    );
+  });
+
+  it('blocks validation for malformed operation entries', () => {
+    const malformed = createRetaFinalDraft(plan(), {
+      draftId: 'draft-1',
+      now: 't',
+    });
+    malformed.operations = [{ operationId: 'op-1', command: null }];
+
+    const result = validateRetaFinalDraft(malformed, plan(), context);
+
+    expect(result.status).toBe('blocked');
+    expect(result.diff).toEqual([]);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'DRAFT_OPERATION_INVALID', index: 0 }),
+      ]),
+    );
+  });
+});

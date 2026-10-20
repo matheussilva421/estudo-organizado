@@ -11,16 +11,22 @@ function namedError(name, message = name) {
 export function createTransactionalIdb({
   stores = {},
   commitGate = null,
+  version = 1,
+  keyPaths = {},
 } = {}) {
   const backing = new Map();
   const definitions = new Map();
+  const createdStores = [];
+  const openVersions = [];
+  let currentVersion = version;
   for (const [name, entries] of Object.entries(stores)) {
     backing.set(
       name,
       new Map(entries instanceof Map ? entries : Object.entries(entries)),
     );
-    const keyPath =
-      name === 'reta_final_drafts'
+    const keyPath = Object.hasOwn(keyPaths, name)
+      ? keyPaths[name]
+      : name === 'reta_final_drafts'
         ? 'draftId'
         : name === 'reta_final_journal'
           ? 'id'
@@ -51,6 +57,7 @@ export function createTransactionalIdb({
           throw namedError('ConstraintError', 'Store already exists');
         backing.set(name, new Map());
         definitions.set(name, { keyPath: options.keyPath ?? null });
+        createdStores.push({ name, keyPath: options.keyPath ?? null });
         return { name, keyPath: options.keyPath ?? null };
       },
       transaction(storeNames, mode = 'readonly') {
@@ -187,9 +194,57 @@ export function createTransactionalIdb({
   }
 
   const database = connect();
+
+  function open(_name, requestedVersion) {
+    const targetVersion = requestedVersion ?? currentVersion;
+    const request = {
+      error: null,
+      result: undefined,
+      onupgradeneeded: null,
+      onsuccess: null,
+      onerror: null,
+    };
+    openVersions.push(targetVersion);
+    queueMicrotask(() => {
+      if (targetVersion < currentVersion) {
+        request.error = namedError('VersionError', 'Requested version is older');
+        request.onerror?.({ target: request, preventDefault() {} });
+        return;
+      }
+      request.result = connect();
+      if (targetVersion > currentVersion) {
+        const oldVersion = currentVersion;
+        try {
+          request.onupgradeneeded?.({
+            target: request,
+            oldVersion,
+            newVersion: targetVersion,
+          });
+          currentVersion = targetVersion;
+        } catch (error) {
+          request.error = error;
+          request.onerror?.({ target: request, preventDefault() {} });
+          return;
+        }
+      }
+      request.onsuccess?.({ target: request });
+    });
+    return request;
+  }
+
   return {
     database,
     reopen: connect,
+    indexedDB: { open },
+    get version() {
+      return currentVersion;
+    },
+    get openVersions() {
+      return [...openVersions];
+    },
+    get createdStores() {
+      return createdStores.map(({ name, keyPath }) => ({ name, keyPath }));
+    },
     failNextWrite(
       error = namedError('QuotaExceededError', 'Storage quota exceeded'),
     ) {
