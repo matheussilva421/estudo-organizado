@@ -98,6 +98,15 @@ function isOrder(value) {
   return Number.isSafeInteger(value) && value >= 0;
 }
 
+function hasOrderRange(start, count) {
+  return (
+    isOrder(start) &&
+    Number.isSafeInteger(count) &&
+    count > 0 &&
+    start <= Number.MAX_SAFE_INTEGER - (count - 1)
+  );
+}
+
 function isPriority(value) {
   return value === null || (Number.isInteger(value) && value >= 1 && value <= 5);
 }
@@ -460,9 +469,16 @@ function runMove(plan, command, ctx) {
       diagnostic('DATA_INVALIDA', command, 'targetDate deve ser uma data civil YYYY-MM-DD.')
     );
   }
-  if (command.targetOrder != null && !isOrder(command.targetOrder)) {
+  if (
+    command.targetOrder != null &&
+    !hasOrderRange(command.targetOrder, command.blockIds.length)
+  ) {
     diagnostics.push(
-      diagnostic('ORDEM_INVALIDA', command, 'targetOrder deve ser um inteiro não negativo.')
+      diagnostic(
+        'ORDEM_INVALIDA',
+        command,
+        'targetOrder deve iniciar uma faixa de ordens inteiras e seguras para todos os blocos.'
+      )
     );
   }
   addMissingBlocks(diagnostics, command.blockIds, byId, command);
@@ -492,7 +508,7 @@ function nextOrder(blocos) {
   for (const block of blocos) {
     if (isOrder(block.ordem)) max = Math.max(max, block.ordem);
   }
-  return max + 1;
+  return max === Number.MAX_SAFE_INTEGER ? null : max + 1;
 }
 
 function duplicateBlock(source, id, ordem) {
@@ -526,6 +542,16 @@ function runDuplicate(plan, command, ctx) {
   const diagnostics = [];
   addMissingBlocks(diagnostics, command.blockIds, byId, command);
   if (diagnostics.length > 0) return invalidResult(plan, diagnostics);
+  const startOrder = nextOrder(plan.retaFinal.blocos);
+  if (!hasOrderRange(startOrder, command.blockIds.length)) {
+    return invalidResult(plan, [
+      diagnostic(
+        'ORDEM_INVALIDA',
+        command,
+        'As ordens geradas para a duplicação devem ser inteiras e seguras.'
+      ),
+    ]);
+  }
   if (!ctx.makeId) {
     return invalidResult(plan, [
       diagnostic('ID_INDISPONIVEL', command, 'Gerador de id não fornecido.'),
@@ -552,7 +578,7 @@ function runDuplicate(plan, command, ctx) {
     generated.set(sourceId, id);
   }
 
-  let ordem = nextOrder(plan.retaFinal.blocos);
+  let ordem = startOrder;
   const novos = command.blockIds.map((sourceId) => {
     const block = duplicateBlock(byId.get(sourceId), generated.get(sourceId), ordem);
     ordem++;
@@ -812,6 +838,16 @@ function runCreate(plan, command, ctx) {
   const input = command.input;
   const diagnostics = createInputDiagnostics(input, plan, ctx, command);
   if (diagnostics.length > 0) return invalidResult(plan, diagnostics);
+  const ordem = input.ordem === undefined ? nextOrder(plan.retaFinal.blocos) : input.ordem;
+  if (!isOrder(ordem)) {
+    return invalidResult(plan, [
+      diagnostic(
+        'ORDEM_INVALIDA',
+        command,
+        'A ordem gerada para o novo bloco deve ser um inteiro seguro.'
+      ),
+    ]);
+  }
   if (!ctx.makeId) {
     return invalidResult(plan, [
       diagnostic('ID_INDISPONIVEL', command, 'Gerador de id não fornecido.'),
@@ -840,7 +876,7 @@ function runCreate(plan, command, ctx) {
     topicos: normalizeTopicos(input.topicos),
     minutos,
     status: 'pendente',
-    ordem: input.ordem === undefined ? nextOrder(plan.retaFinal.blocos) : input.ordem,
+    ordem,
     dataOriginal: dataPlanejada,
     dataPlanejada,
     data: dataPlanejada,

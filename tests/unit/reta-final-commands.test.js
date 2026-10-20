@@ -404,6 +404,105 @@ describe('applyRetaFinalCommand - DUPLICATE', () => {
   });
 });
 
+describe('applyRetaFinalCommand - limites de ordem gerada', () => {
+  it('MOVE coletivo recusa a faixa que ultrapassa a ordem segura sem mutar ou aplicar prefixo', () => {
+    const plan = freezeDeep(
+      plano([
+        bloco({ id: 'rf_1', ordem: 0 }),
+        bloco({ id: 'rf_2', ordem: 1 }),
+      ])
+    );
+    const before = snapshot(plan);
+
+    const result = apply(
+      plan,
+      op('MOVE', {
+        blockIds: ['rf_1', 'rf_2'],
+        targetDate: '2026-10-22',
+        targetOrder: Number.MAX_SAFE_INTEGER,
+      })
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.plan).toBe(plan);
+    expect(result.diff).toEqual([]);
+    expect(plan).toEqual(before);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'ORDEM_INVALIDA' })])
+    );
+  });
+
+  it('CREATE recusa ordem gerada após o maior valor seguro sem consumir identidade', () => {
+    const plan = freezeDeep(plano([bloco({ id: 'rf_1', ordem: Number.MAX_SAFE_INTEGER })]));
+    const before = snapshot(plan);
+    let generated = 0;
+
+    const result = apply(plan, op('CREATE', { input: createInput() }), {
+      makeId: () => {
+        generated++;
+        return 'rf_new';
+      },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.plan).toBe(plan);
+    expect(result.diff).toEqual([]);
+    expect(plan).toEqual(before);
+    expect(generated).toBe(0);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'ORDEM_INVALIDA' })])
+    );
+  });
+
+  it('DUPLICATE recusa ordem gerada após o maior valor seguro sem consumir identidade', () => {
+    const plan = freezeDeep(plano([bloco({ id: 'rf_1', ordem: Number.MAX_SAFE_INTEGER })]));
+    const before = snapshot(plan);
+    let generated = 0;
+
+    const result = apply(plan, op('DUPLICATE', { blockIds: ['rf_1'] }), {
+      makeId: () => {
+        generated++;
+        return 'rf_novo';
+      },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.plan).toBe(plan);
+    expect(result.diff).toEqual([]);
+    expect(plan).toEqual(before);
+    expect(generated).toBe(0);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'ORDEM_INVALIDA' })])
+    );
+  });
+
+  it('DUPLICATE coletivo valida toda a faixa de ordens, não apenas a primeira', () => {
+    const plan = freezeDeep(
+      plano([
+        bloco({ id: 'rf_1', ordem: 0 }),
+        bloco({ id: 'rf_2', ordem: Number.MAX_SAFE_INTEGER - 1 }),
+      ])
+    );
+    const before = snapshot(plan);
+    const ids = ['rf_novo_1', 'rf_novo_2'];
+    let index = 0;
+
+    const result = apply(
+      plan,
+      op('DUPLICATE', { blockIds: ['rf_1', 'rf_2'] }),
+      { makeId: () => ids[index++] }
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.plan).toBe(plan);
+    expect(result.diff).toEqual([]);
+    expect(plan).toEqual(before);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'ORDEM_INVALIDA' })])
+    );
+  });
+});
+
 describe('applyRetaFinalCommand - ARCHIVE e historico', () => {
   it('arquiva bloco estudado preservando evento, tempo, questoes e revisoes', () => {
     const plan = freezeDeep(
@@ -692,7 +791,8 @@ describe('applyRetaFinalCommand - duracao e prioridade', () => {
     );
   });
 
-  it('SET_PRIORITY altera prioridade e aceita limpar', () => {
+  it('SET_PRIORITY aceita 1-5 quando presente e usa null para representar ausência', () => {
+    // Prioridade é opcional. null limpa o campo; null e ausente são neutros no Task 9.
     const plan = freezeDeep(plano([bloco({ id: 'rf_1' })]));
     const applied = apply(
       plan,
