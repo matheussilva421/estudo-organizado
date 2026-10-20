@@ -1,7 +1,7 @@
 # Handoff — Task 4: catálogo acadêmico e resolução ambígua
 
-Data: 2026-10-20  
-Branch: `codex/reta-final-editor-fase-a`  
+Data: 2026-10-20
+Branch: `codex/reta-final-editor-fase-a`
 Commit de implementação: `7a28ce1` (`feat(reta-final): resolve catalog references safely`)
 
 ## Feito
