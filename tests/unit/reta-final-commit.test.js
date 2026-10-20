@@ -2,6 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRetaFinalDraft, appendRetaFinalDraftOperation } from '../../src/js/logic/reta-final-drafts.js';
 import { createLocalStateEnvelope, isLocalStateEnvelopeValid } from '../../src/js/store/normalize-state.js';
 import { commitRetaFinalDraft } from '../../src/js/store/reta-final-commit.js';
+import {
+  commitRetaFinalDraft as commitRetaFinalDraftViaStore,
+  setState as setStoreState,
+  state as liveState,
+} from '../../src/js/store.js';
 import { createTransactionalIdb } from './reta-final-draft-idb-helper.js';
 
 const NOW = '2026-10-20T12:30:00.000Z';
@@ -88,16 +93,20 @@ function idbFor(state = appState(), options = {}) {
   });
 }
 
-function draftFor(sourcePlan = plan(), draftId = 'draft-1', { operations = true, catalogIntents } = {}) {
+function draftFor(
+  sourcePlan = plan(),
+  draftId = 'draft-1',
+  { operations = true, catalogIntents, operationId = `op-${draftId}`, patch = { minutos: 90 } } = {},
+) {
   let draft = createRetaFinalDraft(sourcePlan, { draftId, now: NOW });
   if (operations) {
     const appended = appendRetaFinalDraftOperation(
       draft,
       {
-        operationId: `op-${draftId}`,
+        operationId,
         type: 'PATCH',
         blockIds: ['rf-1'],
-        patch: { minutos: 90 },
+        patch,
       },
       { today: TODAY, events: [], catalog: catalog(), activeTimerIds: [] },
     );
@@ -248,6 +257,44 @@ describe('commitRetaFinalDraft', () => {
     expect(journalRecords(idb)).toHaveLength(2);
   });
 
+  it('publishes the recovered committed state through the public facade on replay', async () => {
+    const idb = idbFor();
+    const draft = draftFor();
+    await persistDraft(idb, draft);
+    const first = await commitRetaFinalDraftViaStore({
+      db: idb.database,
+      draftId: draft.draftId,
+      expectedPlanId: draft.planId,
+      expectedRevision: draft.baseRevision,
+      context: context(),
+    });
+    expect(liveState.planejamento.revision).toBe(5);
+
+    setStoreState(appState({ planejamento: plan({ revision: 3 }) }));
+    const saved = [];
+    const onSaved = (event) => saved.push(event.detail);
+    document.addEventListener('stateSaved', onSaved);
+    try {
+      const replay = await commitRetaFinalDraftViaStore({
+        db: idb.reopen(),
+        draftId: draft.draftId,
+        expectedPlanId: draft.planId,
+        expectedRevision: draft.baseRevision,
+        context: context(),
+      });
+
+      expect(replay).toEqual(first);
+      expect(liveState.planejamento).toEqual(first.plan);
+      expect(liveState.planejamento.revision).toBe(5);
+      expect(saved).toHaveLength(1);
+      expect(saved[0]).toMatchObject({ revision: 5, localCommitted: true, syncPending: true });
+      expect(readAppState(idb).planejamento.revision).toBe(5);
+      expect(journalRecords(idb)).toHaveLength(2);
+    } finally {
+      document.removeEventListener('stateSaved', onSaved);
+    }
+  });
+
   it('allows only one of two connections committing different drafts from the same base', async () => {
     const idb = idbFor();
     const firstDraft = draftFor(plan(), 'draft-a');
@@ -265,6 +312,43 @@ describe('commitRetaFinalDraft', () => {
     const rejected = outcomes.find((item) => item.status === 'rejected');
     expect(rejected.reason.code).toBe('RETA_FINAL_STALE');
     expect(readAppState(idb).planejamento.revision).toBe(5);
+    expect(journalRecords(idb)).toHaveLength(2);
+  });
+
+  it('deduplicates repeated operation ids when recording a local sync intent', async () => {
+    const idb = idbFor();
+    const baseDraft = draftFor(plan(), 'repeat-draft');
+    const draft = {
+      ...baseDraft,
+      operations: [...baseDraft.operations, ...baseDraft.operations],
+    };
+    await persistDraft(idb, draft);
+
+    await commit(idb.database, draft);
+
+    const intent = journalRecords(idb).find((record) => record.type === 'sync_intent');
+    expect(intent.operationIds).toEqual(['op-repeat-draft']);
+  });
+
+  it('rejects a different draft that reuses a committed operation id', async () => {
+    const idb = idbFor();
+    const firstDraft = draftFor(plan(), 'draft-a');
+    await persistDraft(idb, firstDraft);
+    const first = await commit(idb.database, firstDraft);
+    const secondDraft = draftFor(first.plan, 'draft-b', {
+      operationId: 'op-draft-a',
+      patch: { minutos: 120 },
+    });
+    await persistDraft(idb, secondDraft);
+    const before = readAppState(idb);
+
+    await expect(commit(idb.database, secondDraft)).rejects.toMatchObject({
+      code: 'RETA_FINAL_CONFLICT',
+    });
+
+    expect(readAppState(idb)).toEqual(before);
+    expect(readAppState(idb).planejamento.revision).toBe(5);
+    expect(idb.getRecord('reta_final_drafts', secondDraft.draftId).state).toBe('editing');
     expect(journalRecords(idb)).toHaveLength(2);
   });
 
@@ -299,6 +383,27 @@ describe('commitRetaFinalDraft', () => {
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
     expect(readAppState(idb)).toEqual(before);
     expect(idb.getRecord('reta_final_drafts', draft.draftId).state).toBe('editing');
+    expect(idb.journalKeys?.()).toEqual([]);
+  });
+
+  it('aborts every store when a later put throws synchronously after earlier writes were queued', async () => {
+    const idb = idbFor();
+    const draft = draftFor();
+    await persistDraft(idb, draft);
+    const before = readAppState(idb);
+    const beforeDraft = idb.getRecord('reta_final_drafts', draft.draftId);
+    const failure = Object.assign(new Error('synchronous journal put failure'), {
+      name: 'DataCloneError',
+    });
+    idb.throwNextWriteInStore('reta_final_journal', failure);
+
+    await expect(commit(idb.database, draft)).rejects.toMatchObject({
+      name: 'DataCloneError',
+      message: 'synchronous journal put failure',
+    });
+
+    expect(readAppState(idb)).toEqual(before);
+    expect(idb.getRecord('reta_final_drafts', draft.draftId)).toEqual(beforeDraft);
     expect(idb.journalKeys?.()).toEqual([]);
   });
 

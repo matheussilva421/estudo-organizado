@@ -36,6 +36,7 @@ export function createTransactionalIdb({
 
   let nextWriteFailure = null;
   const writeFailuresByStore = new Map();
+  const syncWriteFailuresByStore = new Map();
   let nextCommitGate = null;
   let lastTransaction = null;
   let readwriteTail = Promise.resolve();
@@ -114,7 +115,20 @@ export function createTransactionalIdb({
                   request.result = copy(value);
                 }, false, name);
               },
+              getAll() {
+                return enqueue((request) => {
+                  const records = new Map(backing.get(name));
+                  for (const key of removed.get(name)) records.delete(key);
+                  for (const [key, value] of staged.get(name)) records.set(key, value);
+                  request.result = copy([...records.values()]);
+                }, false, name);
+              },
               put(value, explicitKey) {
+                const syncFailure = syncWriteFailuresByStore.get(name);
+                if (syncFailure) {
+                  syncWriteFailuresByStore.delete(name);
+                  throw syncFailure;
+                }
                 return enqueue((request) => {
                   const keyPath = definitions.get(name)?.keyPath;
                   const key =
@@ -279,6 +293,9 @@ export function createTransactionalIdb({
       error = namedError('QuotaExceededError', `Storage quota exceeded in ${name}`),
     ) {
       writeFailuresByStore.set(name, error);
+    },
+    throwNextWriteInStore(name, error = namedError('DataCloneError', `Synchronous write failure in ${name}`)) {
+      syncWriteFailuresByStore.set(name, error);
     },
     holdNextCommit(gate) {
       nextCommitGate = gate;

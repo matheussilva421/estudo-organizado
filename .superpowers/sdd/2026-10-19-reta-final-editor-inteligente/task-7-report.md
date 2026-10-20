@@ -82,3 +82,56 @@ O trabalho está na branch local `codex/reta-final-editor-fase-a`, com base em `
 Não foi feito teste manual de navegador nem smoke com IndexedDB nativo; a validação desta tarefa usa o código real com o harness de transação controlada e a suíte unitária/regressiva descrita acima. Os logs stderr de `503`/`409`, notificações indisponíveis e budget de UI da suíte completa vêm de cenários simulados; o comando terminou com exit 0.
 
 Task 7 concluída; Task 8 não iniciada. Para retomar depois, confira branch/HEAD e leia `task-8-brief-extra.md` antes de qualquer novo escopo. O checkout não contém `.ai/CURRENT.md`, `.ai/RECOVERY.md` nem um caminho `pending.json` informado pelo hook SessionStart; a branch e o HEAD observados nesta retomada coincidiram com a autoridade fornecida pelo usuário.
+
+## Fix round 1 — partial abort, journal IDs e replay
+
+Status: **DONE**. Base desta correção: `c665231`.
+
+O parecer Needs fixes foi tratado em quatro pontos. O `catch` do handler transacional agora aborta a transação antes de rejeitar, inclusive quando um `put` síncrono falha depois de outros writes terem sido enfileirados. O `oncommitted`/resolve continua inalcançável nesse caminho.
+
+A sync intent agora deduplica `operationId` pela primeira ocorrência em ordem estável. A mesma transação lê o journal com `getAll()` e rejeita com `RETA_FINAL_CONFLICT` quando outro draft já registrou um desses IDs. A leitura e a checagem acontecem antes de qualquer escrita.
+
+No replay de um draft `applied`, o estado local recuperado é atribuído a `nextState`; a facade recebe esse estado e publica a revisão já persistida sem criar novo checkpoint ou revisão. A correção também passou `nextState` e `result` na posição correta para a notificação `stateSaved`, evitando `revision: null`.
+
+### RED
+
+```text
+npx vitest run tests/unit/reta-final-commit.test.js --reporter=default
+17 testes: 13 passaram, 4 falharam; exit 1.
+```
+
+Falhas reproduzidas antes da correção:
+
+- replay público deixou `liveState.planejamento` na revisão de teste 3 e registrou `Cannot read properties of null (reading 'schemaVersion')`;
+- rascunho com o mesmo ID duas vezes gravou `['op-repeat-draft', 'op-repeat-draft']`;
+- segundo draft reutilizando `op-draft-a` foi aceito e elevou a revisão de 5 para 6;
+- exceção síncrona no `put` da journal rejeitou, mas commitou parcialmente `app_state` na revisão 5 e marcou o draft como aplicado.
+
+### GREEN
+
+```text
+npx vitest run tests/unit/reta-final-commit.test.js --reporter=default
+17/17 testes passaram; exit 0.
+```
+
+```text
+npx vitest run tests/unit/reta-final-commit.test.js tests/unit/duplicate-exports.test.js tests/unit/store-indexeddb-imports.test.js tests/unit/store-migrations.test.js tests/unit/store-boot-failure.test.js tests/unit/store-reta-final-sync.test.js tests/unit/reta-final-events.test.js tests/unit/reta-final-rollover.test.js tests/unit/reta-final-quick-mark.test.js tests/unit/reta-final-associar.test.js --reporter=default
+10 arquivos passaram; 102/102 testes passaram; exit 0.
+```
+
+```text
+npm test -- --reporter=dot
+154 arquivos passaram; 2.563/2.563 testes passaram; exit 0.
+```
+
+`npx eslint src/js/store/reta-final-commit.js src/js/store.js src/js/store/indexeddb.js src/js/logic/reta-final.js` terminou com exit 0, sem erros ou avisos. `git diff --check` terminou sem erros.
+
+### Arquivos do round
+
+- `src/js/store/reta-final-commit.js` — abort no erro, leitura do journal, deduplicação/rejeição de `operationId`, estado recuperado no replay.
+- `src/js/store.js` — argumentos corretos da notificação de commit.
+- `tests/unit/reta-final-commit.test.js` — quatro regressões do parecer, incluindo replay pela facade pública.
+- `tests/unit/reta-final-draft-idb-helper.js` — `getAll()` e exceção síncrona de `put` por store.
+- `.superpowers/sdd/2026-10-19-reta-final-editor-inteligente/task-7-report.md` — este apêndice.
+
+Commit de correção e SHA serão registrados após a criação do commit local. Sem push.

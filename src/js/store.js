@@ -100,7 +100,7 @@ export function commitRetaFinalDraft(options = {}) {
 
 export function publishRetaFinalCommit(nextState, result) {
   setState(nextState);
-  _publishRetaFinalCommit(result);
+  _publishRetaFinalCommit(nextState, result);
 }
 
 /**

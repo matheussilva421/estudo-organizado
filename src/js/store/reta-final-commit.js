@@ -27,6 +27,52 @@ function requestError(request) {
   return request?.error || new Error('Falha ao ler estado local da Reta Final.');
 }
 
+function uniqueOperationIds(operations) {
+  const ids = [];
+  const seen = new Set();
+  for (const operation of Array.isArray(operations) ? operations : []) {
+    const id = operation?.operationId;
+    if (typeof id === 'string' && id.trim() && !seen.has(id)) {
+      seen.add(id);
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+function assertOperationIdsAvailable(journalRecords, draftId, operationIds) {
+  const committedBy = new Map();
+  for (const record of Array.isArray(journalRecords) ? journalRecords : []) {
+    if (record?.type !== 'sync_intent' || !Array.isArray(record.operationIds)) continue;
+    for (const operationId of record.operationIds) {
+      if (typeof operationId === 'string' && operationId && !committedBy.has(operationId)) {
+        committedBy.set(operationId, record.draftId ?? null);
+      }
+    }
+  }
+  for (const operationId of operationIds) {
+    if (committedBy.has(operationId) && committedBy.get(operationId) !== draftId) {
+      throw codedError(
+        'RETA_FINAL_CONFLICT',
+        'operationId já foi utilizado por outro commit da Reta Final.',
+        { operationId },
+      );
+    }
+  }
+}
+
+function recoverStateFromReads(reads) {
+  const recovered = pickRecoverableLocalState({
+    current: requestResult(reads.current),
+    previous: requestResult(reads.previous),
+    legacy: requestResult(reads.legacy),
+  });
+  if (!recovered.state) {
+    throw codedError('RETA_FINAL_CONFLICT', 'Estado local persistido indisponível para recuperação.');
+  }
+  return recovered.state;
+}
+
 function listCatalogIds(editais) {
   const ids = new Set();
   for (const edital of Array.isArray(editais) ? editais : []) {
@@ -250,12 +296,14 @@ export function commitRetaFinalDraft({
         previous: appStore.get(LOCAL_STATE_PREVIOUS_KEY),
         legacy: appStore.get(LOCAL_STATE_LEGACY_KEY),
         draft: draftStore.get(draftId),
+        journal: journalStore.getAll(),
       };
       const completedReads = new Set();
-      const failForRequest = (request) => {
-        plannedError = requestError(request);
+      const abortForError = (error) => {
+        plannedError = error;
         try { transaction.abort(); } catch { settleError(plannedError); }
       };
+      const failForRequest = (request) => abortForError(requestError(request));
       for (const [key, request] of Object.entries(reads)) {
         request.onerror = () => failForRequest(request);
         request.onsuccess = () => {
@@ -276,6 +324,11 @@ export function commitRetaFinalDraft({
               ) {
                 throw codedError('RETA_FINAL_CONFLICT', 'Registro de commit aplicado está inconsistente.');
               }
+              const replayState = recoverStateFromReads(reads);
+              if (replayState.planejamento?.planId !== expectedPlanId) {
+                throw codedError('RETA_FINAL_CONFLICT', 'O estado recuperado não pertence ao plano do commit.');
+              }
+              nextState = clone(replayState);
               commitResult = clone(draft.appliedResult);
               return;
             }
@@ -283,15 +336,7 @@ export function commitRetaFinalDraft({
               throw codedError('RETA_FINAL_CONFLICT', 'O rascunho não está em edição.');
             }
 
-            const recovered = pickRecoverableLocalState({
-              current: requestResult(reads.current),
-              previous: requestResult(reads.previous),
-              legacy: requestResult(reads.legacy),
-            });
-            if (!recovered.state) {
-              throw codedError('RETA_FINAL_CONFLICT', 'Estado local persistido indisponível para recuperação.');
-            }
-            const state = recovered.state;
+            const state = recoverStateFromReads(reads);
             const currentPlan = state.planejamento;
             if (!currentPlan || currentPlan.planId !== expectedPlanId) {
               throw codedError('RETA_FINAL_CONFLICT', 'A identidade do plano persistido mudou.');
@@ -306,6 +351,8 @@ export function commitRetaFinalDraft({
               throw codedError('RETA_FINAL_STALE', 'O conteúdo do plano mudou desde a criação do rascunho.');
             }
 
+            const operationIds = uniqueOperationIds(draft.operations);
+            assertOperationIdsAvailable(requestResult(reads.journal), draftId, operationIds);
             nextState = buildCommittedSnapshot(state, draft, context);
             const committedPlan = nextState.planejamento;
             commitResult = resultFor(committedPlan, draftId);
@@ -344,7 +391,7 @@ export function commitRetaFinalDraft({
               planId: expectedPlanId,
               revision: committedPlan.revision,
               status: 'pending',
-              operationIds: draft.operations.map((operation) => operation.operationId),
+              operationIds,
               createdAt: committedPlan.updatedAt,
               draftId,
               localCommitted: true,
@@ -357,7 +404,7 @@ export function commitRetaFinalDraft({
             journalStore.put(checkpoint);
             journalStore.put(syncIntent);
           } catch (error) {
-            plannedError = error;
+            abortForError(error);
           }
         };
       }
