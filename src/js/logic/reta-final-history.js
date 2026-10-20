@@ -143,6 +143,7 @@ export function verifyRetaFinalCheckpoint(checkpoint) {
 function operationProvenancePayload(operation) {
   return {
     operationId: operation.operationId,
+    planId: operation.planId ?? operation.before?.planId ?? null,
     command: operation.command,
     generatedIds: operation.generatedIds ?? [],
     before: operation.before,
@@ -187,6 +188,7 @@ export function verifyRetaFinalOperationProvenance(operation) {
     !beforeValidation.valid ||
     !afterValidation.valid ||
     operation.command?.operationId !== operation.operationId ||
+    operation.planId !== operation.before.planId ||
     operation.provenanceChecksum !==
       retaFinalDigest(operationProvenancePayload(operation))
   ) {
@@ -231,6 +233,17 @@ function diffPlans(before, after) {
       before: { capacidade: clone(before.retaFinal.capacidade) },
       after: { capacidade: clone(after.retaFinal.capacidade) },
       fieldsChanged: ["retaFinal.capacidade"],
+    });
+  }
+  if (
+    stable(before.retaFinal.minutosPadrao) !==
+    stable(after.retaFinal.minutosPadrao)
+  ) {
+    diff.push({
+      blockId: null,
+      before: { minutosPadrao: before.retaFinal.minutosPadrao },
+      after: { minutosPadrao: after.retaFinal.minutosPadrao },
+      fieldsChanged: ["retaFinal.minutosPadrao"],
     });
   }
   const oldBlocks = new Map(
@@ -388,42 +401,56 @@ export function proposeRetaFinalRestore(plan, checkpoint, options = {}) {
   };
 
   const targetPlan = checkpoint.plan;
-  if (
-    stable(working.retaFinal.dataFinal) !==
-    stable(targetPlan.retaFinal.dataFinal)
-  ) {
-    if (targetPlan.retaFinal.dataFinal < working.retaFinal.dataFinal) {
-      diagnostics.push(
-        diagnostic(
-          "RESTORE_DEADLINE_BLOCKED",
-          "Restaurar o prazo exigiria encurtar a data final; use edição explícita.",
-        ),
-      );
-    } else if (
-      !addCommand("EXTEND_DEADLINE", {
-        input: { dataFinal: targetPlan.retaFinal.dataFinal },
-      })
+  if (fullRestore) {
+    if (
+      stable(working.retaFinal.dataFinal) !==
+      stable(targetPlan.retaFinal.dataFinal)
     ) {
-      return restoreFailure(diagnostics);
+      if (targetPlan.retaFinal.dataFinal < working.retaFinal.dataFinal) {
+        diagnostics.push(
+          diagnostic(
+            "RESTORE_DEADLINE_BLOCKED",
+            "Restaurar o prazo exigiria encurtar a data final; use edição explícita.",
+          ),
+        );
+      } else if (
+        !addCommand("EXTEND_DEADLINE", {
+          input: { dataFinal: targetPlan.retaFinal.dataFinal },
+        })
+      ) {
+        return restoreFailure(diagnostics);
+      }
     }
-  }
-  if (
-    stable(working.retaFinal.capacidade) !==
-    stable(targetPlan.retaFinal.capacidade)
-  ) {
-    if (!isObject(targetPlan.retaFinal.capacidade)) {
-      diagnostics.push(
-        diagnostic(
-          "RESTORE_CAPACITY_BLOCKED",
-          "O checkpoint não possui capacidade restaurável.",
-        ),
-      );
-    } else if (
-      !addCommand("SET_CAPACITY", {
-        input: { capacidade: targetPlan.retaFinal.capacidade },
-      })
+    if (
+      stable(working.retaFinal.capacidade) !==
+      stable(targetPlan.retaFinal.capacidade)
     ) {
-      return restoreFailure(diagnostics);
+      if (!isObject(targetPlan.retaFinal.capacidade)) {
+        diagnostics.push(
+          diagnostic(
+            "RESTORE_CAPACITY_BLOCKED",
+            "O checkpoint não possui capacidade restaurável.",
+          ),
+        );
+      } else if (
+        !addCommand("SET_CAPACITY", {
+          input: { capacidade: targetPlan.retaFinal.capacidade },
+        })
+      ) {
+        return restoreFailure(diagnostics);
+      }
+    }
+    if (
+      stable(working.retaFinal.minutosPadrao) !==
+      stable(targetPlan.retaFinal.minutosPadrao)
+    ) {
+      if (
+        !addCommand("SET_MINUTOS_PADRAO", {
+          input: { minutosPadrao: targetPlan.retaFinal.minutosPadrao },
+        })
+      ) {
+        return restoreFailure(diagnostics);
+      }
     }
   }
 
@@ -676,6 +703,47 @@ export function invertRetaFinalOperation(operation) {
   );
 }
 
+function operationStillApplied(plan, operation) {
+  const command = operation?.command;
+  const blockIds = Array.isArray(command?.blockIds) ? command.blockIds : [];
+  const blockMatch = (id, field) => {
+    const current = plan?.retaFinal?.blocos?.find((block) => block.id === id);
+    const after = operation?.after?.retaFinal?.blocos?.find(
+      (block) => block.id === id,
+    );
+    return Boolean(
+      current && after && stable(current[field]) === stable(after[field]),
+    );
+  };
+  if (command?.type === "PATCH") {
+    return Object.keys(command.patch || {}).every((field) =>
+      blockIds.every((id) => blockMatch(id, field)),
+    );
+  }
+  if (command?.type === "SET_DURATION")
+    return blockIds.every((id) => blockMatch(id, "minutos"));
+  if (command?.type === "SET_PRIORITY")
+    return blockIds.every((id) => blockMatch(id, "prioridade"));
+  if (command?.type === "ARCHIVE" || command?.type === "UNARCHIVE")
+    return blockIds.every((id) => blockMatch(id, "arquivado"));
+  if (command?.type === "SET_CAPACITY")
+    return (
+      stable(plan?.retaFinal?.capacidade) ===
+      stable(operation?.after?.retaFinal?.capacidade)
+    );
+  if (command?.type === "SET_MINUTOS_PADRAO")
+    return (
+      stable(plan?.retaFinal?.minutosPadrao) ===
+      stable(operation?.after?.retaFinal?.minutosPadrao)
+    );
+  if (command?.type === "EXTEND_DEADLINE")
+    return (
+      stable(plan?.retaFinal?.dataFinal) ===
+      stable(operation?.after?.retaFinal?.dataFinal)
+    );
+  return true;
+}
+
 function historyDraftProposal(plan, operation, options, action) {
   const committedRevision = operation?.committedRevision ?? operation?.revision;
   if (!Number.isSafeInteger(committedRevision)) {
@@ -690,7 +758,12 @@ function historyDraftProposal(plan, operation, options, action) {
       ],
     };
   }
-  if (operation.planId && operation.planId !== plan?.planId) {
+  const sourcePlanId =
+    operation?.planId ??
+    operation?.committedPlanId ??
+    operation?.before?.planId ??
+    null;
+  if (sourcePlanId && sourcePlanId !== plan?.planId) {
     return {
       draft: null,
       diff: [],
@@ -710,6 +783,18 @@ function historyDraftProposal(plan, operation, options, action) {
         diagnostic(
           "HISTORY_REVISION_MISMATCH",
           "O plano avançou desde esta operação; use a operação mais recente ou um checkpoint.",
+        ),
+      ],
+    };
+  }
+  if (!operationStillApplied(plan, operation)) {
+    return {
+      draft: null,
+      diff: [],
+      diagnostics: [
+        diagnostic(
+          "HISTORY_LATER_OPERATION",
+          "O estado atual não corresponde ao after desta operação; há uma alteração posterior no mesmo alvo.",
         ),
       ],
     };

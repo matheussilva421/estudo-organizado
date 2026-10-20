@@ -1,35 +1,43 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRetaFinalDraft, appendRetaFinalDraftOperation } from '../../src/js/logic/reta-final-drafts.js';
-import { createLocalStateEnvelope, isLocalStateEnvelopeValid } from '../../src/js/store/normalize-state.js';
-import { commitRetaFinalDraft } from '../../src/js/store/reta-final-commit.js';
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  createRetaFinalDraft,
+  appendRetaFinalDraftOperation,
+} from "../../src/js/logic/reta-final-drafts.js";
+import {
+  createLocalStateEnvelope,
+  isLocalStateEnvelopeValid,
+} from "../../src/js/store/normalize-state.js";
+import { commitRetaFinalDraft } from "../../src/js/store/reta-final-commit.js";
+import { createRetaFinalCheckpoint } from "../../src/js/logic/reta-final-history.js";
+import { listRetaFinalCheckpoints } from "../../src/js/store/reta-final-history-store.js";
 import {
   commitRetaFinalDraft as commitRetaFinalDraftViaStore,
   setState as setStoreState,
   state as liveState,
-} from '../../src/js/store.js';
-import { createTransactionalIdb } from './reta-final-draft-idb-helper.js';
+} from "../../src/js/store.js";
+import { createTransactionalIdb } from "./reta-final-draft-idb-helper.js";
 
-const NOW = '2026-10-20T12:30:00.000Z';
-const TODAY = '2026-10-20';
+const NOW = "2026-10-20T12:30:00.000Z";
+const TODAY = "2026-10-20";
 
 function plan(overrides = {}) {
   return {
     ativo: true,
-    tipo: 'reta_final',
-    planId: overrides.planId || 'plan-1',
+    tipo: "reta_final",
+    planId: overrides.planId || "plan-1",
     schemaVersionRetaFinal: 2,
     revision: overrides.revision ?? 4,
-    updatedAt: '2026-10-19T10:00:00.000Z',
+    updatedAt: "2026-10-19T10:00:00.000Z",
     retaFinal: {
-      dataFinal: '2026-11-30',
+      dataFinal: "2026-11-30",
       minutosPadrao: 60,
       blocos: [
         {
-          id: 'rf-1',
-          discId: 'disc-1',
-          topicos: [{ assId: 'ass-1', aulaId: null }],
+          id: "rf-1",
+          discId: "disc-1",
+          topicos: [{ assId: "ass-1", aulaId: null }],
           minutos: 60,
-          status: 'pendente',
+          status: "pendente",
           ordem: 0,
           dataOriginal: TODAY,
           dataPlanejada: TODAY,
@@ -44,12 +52,12 @@ function plan(overrides = {}) {
 function catalog() {
   return [
     {
-      id: 'edital-1',
+      id: "edital-1",
       disciplinas: [
         {
-          id: 'disc-1',
-          nome: 'Direito Administrativo',
-          assuntos: [{ id: 'ass-1', nome: 'Atos administrativos' }],
+          id: "disc-1",
+          nome: "Direito Administrativo",
+          assuntos: [{ id: "ass-1", nome: "Atos administrativos" }],
           aulas: [],
         },
       ],
@@ -71,12 +79,12 @@ function appState(overrides = {}) {
 
 function idbFor(state = appState(), options = {}) {
   const current = createLocalStateEnvelope(state, {
-    slot: 'current',
-    savedAt: '2026-10-19T10:00:00.000Z',
+    slot: "current",
+    savedAt: "2026-10-19T10:00:00.000Z",
   });
   const previous = createLocalStateEnvelope(state, {
-    slot: 'previous',
-    savedAt: '2026-10-18T10:00:00.000Z',
+    slot: "previous",
+    savedAt: "2026-10-18T10:00:00.000Z",
   });
   return createTransactionalIdb({
     stores: {
@@ -88,15 +96,20 @@ function idbFor(state = appState(), options = {}) {
       reta_final_drafts: {},
       reta_final_journal: {},
     },
-    keyPaths: { reta_final_drafts: 'draftId', reta_final_journal: 'id' },
+    keyPaths: { reta_final_drafts: "draftId", reta_final_journal: "id" },
     ...options,
   });
 }
 
 function draftFor(
   sourcePlan = plan(),
-  draftId = 'draft-1',
-  { operations = true, catalogIntents, operationId = `op-${draftId}`, patch = { minutos: 90 } } = {},
+  draftId = "draft-1",
+  {
+    operations = true,
+    catalogIntents,
+    operationId = `op-${draftId}`,
+    patch = { minutos: 90 },
+  } = {},
 ) {
   let draft = createRetaFinalDraft(sourcePlan, { draftId, now: NOW });
   if (operations) {
@@ -104,8 +117,8 @@ function draftFor(
       draft,
       {
         operationId,
-        type: 'PATCH',
-        blockIds: ['rf-1'],
+        type: "PATCH",
+        blockIds: ["rf-1"],
         patch,
       },
       { today: TODAY, events: [], catalog: catalog(), activeTimerIds: [] },
@@ -137,8 +150,19 @@ function commit(database, draft, overrides = {}) {
 }
 
 async function persistDraft(idb, draft) {
-  const tx = idb.database.transaction(['reta_final_drafts'], 'readwrite');
-  tx.objectStore('reta_final_drafts').put(draft);
+  const tx = idb.database.transaction(["reta_final_drafts"], "readwrite");
+  tx.objectStore("reta_final_drafts").put(draft);
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onabort = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function persistJournal(idb, records) {
+  const tx = idb.database.transaction(["reta_final_journal"], "readwrite");
+  const store = tx.objectStore("reta_final_journal");
+  records.forEach((record) => store.put(record));
   await new Promise((resolve, reject) => {
     tx.oncomplete = resolve;
     tx.onabort = () => reject(tx.error);
@@ -147,23 +171,25 @@ async function persistDraft(idb, draft) {
 }
 
 function readAppState(idb) {
-  return idb.getRecord('app_state', 'main_state_current')?.payload;
+  return idb.getRecord("app_state", "main_state_current")?.payload;
 }
 
 function journalRecords(idb) {
   const records = [];
   for (const key of idb.journalKeys?.() || []) {
-    records.push(idb.getRecord('reta_final_journal', key));
+    records.push(idb.getRecord("reta_final_journal", key));
   }
   return records;
 }
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('commitRetaFinalDraft', () => {
-  it('writes one new revision and resolves only after all three stores commit', async () => {
+describe("commitRetaFinalDraft", () => {
+  it("writes one new revision and resolves only after all three stores commit", async () => {
     let release;
-    const commitGate = new Promise((resolve) => { release = resolve; });
+    const commitGate = new Promise((resolve) => {
+      release = resolve;
+    });
     const idb = idbFor();
     const draft = draftFor();
     await persistDraft(idb, draft);
@@ -176,7 +202,7 @@ describe('commitRetaFinalDraft', () => {
     const pending = commit(idb.database, draft, {
       onCommitted: (nextState) => {
         publishedState = nextState;
-        publishedEvents.push('stateSaved');
+        publishedEvents.push("stateSaved");
       },
     }).then((result) => {
       settled = true;
@@ -189,59 +215,82 @@ describe('commitRetaFinalDraft', () => {
     expect(publishedState).toBe(before);
     expect(publishedEvents).toEqual([]);
     expect(readAppState(idb)).toEqual(before);
-    expect(idb.getRecord('reta_final_drafts', draft.draftId).state).toBe('editing');
+    expect(idb.getRecord("reta_final_drafts", draft.draftId).state).toBe(
+      "editing",
+    );
     expect(idb.journalKeys?.()).toEqual([]);
 
     release();
     await expect(pending).resolves.toMatchObject({
-      plan: { planId: 'plan-1', revision: 5, retaFinal: { blocos: [{ minutos: 90 }] } },
+      plan: {
+        planId: "plan-1",
+        revision: 5,
+        retaFinal: { blocos: [{ minutos: 90 }] },
+      },
       revision: 5,
       localCommitted: true,
       syncPending: true,
     });
     expect(publishedState.planejamento.revision).toBe(5);
-    expect(publishedEvents).toEqual(['stateSaved']);
-    const current = idb.getRecord('app_state', 'main_state_current');
+    expect(publishedEvents).toEqual(["stateSaved"]);
+    const current = idb.getRecord("app_state", "main_state_current");
     expect(isLocalStateEnvelopeValid(current)).toBe(true);
     expect(current.payload.planejamento.revision).toBe(5);
-    expect(idb.getRecord('app_state', 'main_state_previous').payload.planejamento.revision).toBe(4);
-    expect(idb.getRecord('app_state', 'main_state').planejamento.revision).toBe(5);
-    expect(idb.getRecord('reta_final_drafts', draft.draftId)).toMatchObject({
-      state: 'applied',
+    expect(
+      idb.getRecord("app_state", "main_state_previous").payload.planejamento
+        .revision,
+    ).toBe(4);
+    expect(idb.getRecord("app_state", "main_state").planejamento.revision).toBe(
+      5,
+    );
+    expect(idb.getRecord("reta_final_drafts", draft.draftId)).toMatchObject({
+      state: "applied",
       appliedRevision: 5,
       appliedCommitId: draft.draftId,
     });
-    expect(journalRecords(idb).map((record) => record.type).sort()).toEqual(['checkpoint', 'sync_intent']);
+    expect(
+      journalRecords(idb)
+        .map((record) => record.type)
+        .sort(),
+    ).toEqual(["checkpoint", "sync_intent"]);
   });
 
-  it('rejects a changed persisted revision with a structured stale code and no writes', async () => {
+  it("rejects a changed persisted revision with a structured stale code and no writes", async () => {
     const sourceState = appState({ planejamento: plan({ revision: 5 }) });
     const idb = idbFor(sourceState);
     const draft = draftFor(plan());
     await persistDraft(idb, draft);
     const before = readAppState(idb);
 
-    await expect(commit(idb.database, draft)).rejects.toMatchObject({ code: 'RETA_FINAL_STALE' });
+    await expect(commit(idb.database, draft)).rejects.toMatchObject({
+      code: "RETA_FINAL_STALE",
+    });
 
     expect(readAppState(idb)).toEqual(before);
-    expect(idb.getRecord('reta_final_drafts', draft.draftId).state).toBe('editing');
+    expect(idb.getRecord("reta_final_drafts", draft.draftId).state).toBe(
+      "editing",
+    );
     expect(idb.journalKeys?.()).toEqual([]);
   });
 
-  it('rejects a plan identity mismatch without changing any participating store', async () => {
+  it("rejects a plan identity mismatch without changing any participating store", async () => {
     const idb = idbFor(appState());
-    const draft = draftFor(plan({ planId: 'another-plan' }));
+    const draft = draftFor(plan({ planId: "another-plan" }));
     await persistDraft(idb, draft);
     const before = readAppState(idb);
 
-    await expect(commit(idb.database, draft)).rejects.toMatchObject({ code: 'RETA_FINAL_CONFLICT' });
+    await expect(commit(idb.database, draft)).rejects.toMatchObject({
+      code: "RETA_FINAL_CONFLICT",
+    });
 
     expect(readAppState(idb)).toEqual(before);
-    expect(idb.getRecord('reta_final_drafts', draft.draftId).state).toBe('editing');
+    expect(idb.getRecord("reta_final_drafts", draft.draftId).state).toBe(
+      "editing",
+    );
     expect(idb.journalKeys?.()).toEqual([]);
   });
 
-  it('makes repeated clicks on an applied draft idempotent', async () => {
+  it("makes repeated clicks on an applied draft idempotent", async () => {
     const idb = idbFor();
     const draft = draftFor();
     await persistDraft(idb, draft);
@@ -257,7 +306,7 @@ describe('commitRetaFinalDraft', () => {
     expect(journalRecords(idb)).toHaveLength(2);
   });
 
-  it('publishes the recovered committed state through the public facade on replay', async () => {
+  it("publishes the recovered committed state through the public facade on replay", async () => {
     const idb = idbFor();
     const draft = draftFor();
     await persistDraft(idb, draft);
@@ -273,7 +322,7 @@ describe('commitRetaFinalDraft', () => {
     setStoreState(appState({ planejamento: plan({ revision: 3 }) }));
     const saved = [];
     const onSaved = (event) => saved.push(event.detail);
-    document.addEventListener('stateSaved', onSaved);
+    document.addEventListener("stateSaved", onSaved);
     try {
       const replay = await commitRetaFinalDraftViaStore({
         db: idb.reopen(),
@@ -287,23 +336,27 @@ describe('commitRetaFinalDraft', () => {
       expect(liveState.planejamento).toEqual(first.plan);
       expect(liveState.planejamento.revision).toBe(5);
       expect(saved).toHaveLength(1);
-      expect(saved[0]).toMatchObject({ revision: 5, localCommitted: true, syncPending: true });
+      expect(saved[0]).toMatchObject({
+        revision: 5,
+        localCommitted: true,
+        syncPending: true,
+      });
       expect(readAppState(idb).planejamento.revision).toBe(5);
       expect(journalRecords(idb)).toHaveLength(2);
     } finally {
-      document.removeEventListener('stateSaved', onSaved);
+      document.removeEventListener("stateSaved", onSaved);
     }
   });
 
-  it('replays the newest committed legacy state when the current envelope is invalid', async () => {
+  it("replays the newest committed legacy state when the current envelope is invalid", async () => {
     const idb = idbFor();
     const draft = draftFor();
     await persistDraft(idb, draft);
     const applied = await commit(idb.database, draft);
-    const invalidCurrent = idb.getRecord('app_state', 'main_state_current');
-    idb.setRecord('app_state', 'main_state_current', {
+    const invalidCurrent = idb.getRecord("app_state", "main_state_current");
+    idb.setRecord("app_state", "main_state_current", {
       ...invalidCurrent,
-      checksum: 'invalid-checksum',
+      checksum: "invalid-checksum",
     });
     let published = null;
 
@@ -315,15 +368,19 @@ describe('commitRetaFinalDraft', () => {
 
     expect(replay).toEqual(applied);
     expect(published.planejamento.revision).toBe(5);
-    expect(idb.getRecord('app_state', 'main_state').planejamento.revision).toBe(5);
+    expect(idb.getRecord("app_state", "main_state").planejamento.revision).toBe(
+      5,
+    );
   });
 
-  it('publishes a newer current state when replaying an older applied draft', async () => {
+  it("publishes a newer current state when replaying an older applied draft", async () => {
     const idb = idbFor();
-    const firstDraft = draftFor(plan(), 'draft-a');
+    const firstDraft = draftFor(plan(), "draft-a");
     await persistDraft(idb, firstDraft);
     const first = await commit(idb.database, firstDraft);
-    const secondDraft = draftFor(first.plan, 'draft-b', { patch: { minutos: 120 } });
+    const secondDraft = draftFor(first.plan, "draft-b", {
+      patch: { minutos: 120 },
+    });
     await persistDraft(idb, secondDraft);
     await commit(idb.database, secondDraft);
     let published = null;
@@ -340,34 +397,40 @@ describe('commitRetaFinalDraft', () => {
     expect(readAppState(idb).planejamento.revision).toBe(6);
   });
 
-  it('fails closed when no recoverable state reaches the applied revision', async () => {
+  it("fails closed when no recoverable state reaches the applied revision", async () => {
     const idb = idbFor();
     const draft = draftFor();
     await persistDraft(idb, draft);
     await commit(idb.database, draft);
-    const invalidCurrent = idb.getRecord('app_state', 'main_state_current');
-    idb.setRecord('app_state', 'main_state_current', {
+    const invalidCurrent = idb.getRecord("app_state", "main_state_current");
+    idb.setRecord("app_state", "main_state_current", {
       ...invalidCurrent,
-      checksum: 'invalid-checksum',
+      checksum: "invalid-checksum",
     });
     const olderState = appState({ planejamento: plan({ revision: 4 }) });
-    idb.setRecord('app_state', 'main_state_previous', createLocalStateEnvelope(olderState, {
-      slot: 'previous',
-      savedAt: '2026-10-18T10:00:00.000Z',
-    }));
-    idb.setRecord('app_state', 'main_state', olderState);
+    idb.setRecord(
+      "app_state",
+      "main_state_previous",
+      createLocalStateEnvelope(olderState, {
+        slot: "previous",
+        savedAt: "2026-10-18T10:00:00.000Z",
+      }),
+    );
+    idb.setRecord("app_state", "main_state", olderState);
     const published = [];
 
-    await expect(commit(idb.reopen(), draft, {
-      onCommitted: (nextState) => published.push(nextState),
-    })).rejects.toMatchObject({ code: 'RETA_FINAL_CONFLICT' });
+    await expect(
+      commit(idb.reopen(), draft, {
+        onCommitted: (nextState) => published.push(nextState),
+      }),
+    ).rejects.toMatchObject({ code: "RETA_FINAL_CONFLICT" });
     expect(published).toEqual([]);
   });
 
-  it('allows only one of two connections committing different drafts from the same base', async () => {
+  it("allows only one of two connections committing different drafts from the same base", async () => {
     const idb = idbFor();
-    const firstDraft = draftFor(plan(), 'draft-a');
-    const secondDraft = draftFor(plan(), 'draft-b');
+    const firstDraft = draftFor(plan(), "draft-a");
+    const secondDraft = draftFor(plan(), "draft-b");
     await persistDraft(idb, firstDraft);
     await persistDraft(idb, secondDraft);
 
@@ -376,17 +439,21 @@ describe('commitRetaFinalDraft', () => {
       commit(idb.reopen(), secondDraft),
     ]);
 
-    expect(outcomes.filter((item) => item.status === 'fulfilled')).toHaveLength(1);
-    expect(outcomes.filter((item) => item.status === 'rejected')).toHaveLength(1);
-    const rejected = outcomes.find((item) => item.status === 'rejected');
-    expect(rejected.reason.code).toBe('RETA_FINAL_STALE');
+    expect(outcomes.filter((item) => item.status === "fulfilled")).toHaveLength(
+      1,
+    );
+    expect(outcomes.filter((item) => item.status === "rejected")).toHaveLength(
+      1,
+    );
+    const rejected = outcomes.find((item) => item.status === "rejected");
+    expect(rejected.reason.code).toBe("RETA_FINAL_STALE");
     expect(readAppState(idb).planejamento.revision).toBe(5);
     expect(journalRecords(idb)).toHaveLength(2);
   });
 
-  it('deduplicates repeated operation ids when recording a local sync intent', async () => {
+  it("deduplicates repeated operation ids when recording a local sync intent", async () => {
     const idb = idbFor();
-    const baseDraft = draftFor(plan(), 'repeat-draft');
+    const baseDraft = draftFor(plan(), "repeat-draft");
     const draft = {
       ...baseDraft,
       operations: [...baseDraft.operations, ...baseDraft.operations],
@@ -395,34 +462,38 @@ describe('commitRetaFinalDraft', () => {
 
     await commit(idb.database, draft);
 
-    const intent = journalRecords(idb).find((record) => record.type === 'sync_intent');
-    expect(intent.operationIds).toEqual(['op-repeat-draft']);
+    const intent = journalRecords(idb).find(
+      (record) => record.type === "sync_intent",
+    );
+    expect(intent.operationIds).toEqual(["op-repeat-draft"]);
   });
 
-  it('rejects a different draft that reuses a committed operation id', async () => {
+  it("rejects a different draft that reuses a committed operation id", async () => {
     const idb = idbFor();
-    const firstDraft = draftFor(plan(), 'draft-a');
+    const firstDraft = draftFor(plan(), "draft-a");
     await persistDraft(idb, firstDraft);
     const first = await commit(idb.database, firstDraft);
-    const secondDraft = draftFor(first.plan, 'draft-b', {
-      operationId: 'op-draft-a',
+    const secondDraft = draftFor(first.plan, "draft-b", {
+      operationId: "op-draft-a",
       patch: { minutos: 120 },
     });
     await persistDraft(idb, secondDraft);
     const before = readAppState(idb);
 
     await expect(commit(idb.database, secondDraft)).rejects.toMatchObject({
-      code: 'RETA_FINAL_CONFLICT',
+      code: "RETA_FINAL_CONFLICT",
     });
 
     expect(readAppState(idb)).toEqual(before);
     expect(readAppState(idb).planejamento.revision).toBe(5);
-    expect(idb.getRecord('reta_final_drafts', secondDraft.draftId).state).toBe('editing');
+    expect(idb.getRecord("reta_final_drafts", secondDraft.draftId).state).toBe(
+      "editing",
+    );
     expect(journalRecords(idb)).toHaveLength(2);
   });
 
-  it.each(['app_state', 'reta_final_drafts', 'reta_final_journal'])(
-    'rolls back every store when quota fails in %s',
+  it.each(["app_state", "reta_final_drafts", "reta_final_journal"])(
+    "rolls back every store when quota fails in %s",
     async (storeName) => {
       const idb = idbFor();
       const draft = draftFor();
@@ -430,16 +501,20 @@ describe('commitRetaFinalDraft', () => {
       const before = readAppState(idb);
       idb.failNextWriteInStore?.(storeName);
 
-      await expect(commit(idb.database, draft)).rejects.toMatchObject({ name: 'QuotaExceededError' });
+      await expect(commit(idb.database, draft)).rejects.toMatchObject({
+        name: "QuotaExceededError",
+      });
 
       expect(readAppState(idb)).toEqual(before);
-      expect(idb.getRecord('reta_final_drafts', draft.draftId).state).toBe('editing');
+      expect(idb.getRecord("reta_final_drafts", draft.draftId).state).toBe(
+        "editing",
+      );
       expect(idb.journalKeys?.()).toEqual([]);
       expect(readAppState(idb).planejamento.revision).toBe(4);
     },
   );
 
-  it('keeps all records unchanged after an explicit transaction abort', async () => {
+  it("keeps all records unchanged after an explicit transaction abort", async () => {
     const idb = idbFor();
     const draft = draftFor();
     await persistDraft(idb, draft);
@@ -449,34 +524,41 @@ describe('commitRetaFinalDraft', () => {
     await Promise.resolve();
     idb.lastTransaction.abort();
 
-    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
     expect(readAppState(idb)).toEqual(before);
-    expect(idb.getRecord('reta_final_drafts', draft.draftId).state).toBe('editing');
+    expect(idb.getRecord("reta_final_drafts", draft.draftId).state).toBe(
+      "editing",
+    );
     expect(idb.journalKeys?.()).toEqual([]);
   });
 
-  it('aborts every store when a later put throws synchronously after earlier writes were queued', async () => {
+  it("aborts every store when a later put throws synchronously after earlier writes were queued", async () => {
     const idb = idbFor();
     const draft = draftFor();
     await persistDraft(idb, draft);
     const before = readAppState(idb);
-    const beforeDraft = idb.getRecord('reta_final_drafts', draft.draftId);
-    const failure = Object.assign(new Error('synchronous journal put failure'), {
-      name: 'DataCloneError',
-    });
-    idb.throwNextWriteInStore('reta_final_journal', failure);
+    const beforeDraft = idb.getRecord("reta_final_drafts", draft.draftId);
+    const failure = Object.assign(
+      new Error("synchronous journal put failure"),
+      {
+        name: "DataCloneError",
+      },
+    );
+    idb.throwNextWriteInStore("reta_final_journal", failure);
 
     await expect(commit(idb.database, draft)).rejects.toMatchObject({
-      name: 'DataCloneError',
-      message: 'synchronous journal put failure',
+      name: "DataCloneError",
+      message: "synchronous journal put failure",
     });
 
     expect(readAppState(idb)).toEqual(before);
-    expect(idb.getRecord('reta_final_drafts', draft.draftId)).toEqual(beforeDraft);
+    expect(idb.getRecord("reta_final_drafts", draft.draftId)).toEqual(
+      beforeDraft,
+    );
     expect(idb.journalKeys?.()).toEqual([]);
   });
 
-  it('recovers the committed snapshot and applied result from a reopened connection', async () => {
+  it("recovers the committed snapshot and applied result from a reopened connection", async () => {
     const idb = idbFor();
     const draft = draftFor();
     await persistDraft(idb, draft);
@@ -484,33 +566,39 @@ describe('commitRetaFinalDraft', () => {
     const result = await commit(idb.database, draft);
     const reopened = idb.reopen();
 
-    expect(isLocalStateEnvelopeValid(idb.getRecord('app_state', 'main_state_current'))).toBe(true);
+    expect(
+      isLocalStateEnvelopeValid(
+        idb.getRecord("app_state", "main_state_current"),
+      ),
+    ).toBe(true);
     expect(readAppState(idb).planejamento).toEqual(result.plan);
-    expect(idb.getRecord('reta_final_drafts', draft.draftId).appliedRevision).toBe(5);
+    expect(
+      idb.getRecord("reta_final_drafts", draft.draftId).appliedRevision,
+    ).toBe(5);
     expect(journalRecords(idb)).toHaveLength(2);
     await expect(commit(reopened, draft)).resolves.toEqual(result);
     expect(readAppState(idb).planejamento.revision).toBe(5);
     expect(journalRecords(idb)).toHaveLength(2);
   });
 
-  it('preserves studied and partial event history and titles newly materialized autos', async () => {
+  it("preserves studied and partial event history and titles newly materialized autos", async () => {
     const studied = {
-      id: 'event-studied',
-      rfBlocoId: 'rf-1',
-      status: 'estudei',
+      id: "event-studied",
+      rfBlocoId: "rf-1",
+      status: "estudei",
       tempoAcumulado: 42,
       questoes: 7,
-      revisoes: [{ id: 'review-1' }],
-      paginas: '10-12',
+      revisoes: [{ id: "review-1" }],
+      paginas: "10-12",
     };
     const partial = {
-      id: 'event-partial',
-      rfBlocoId: 'rf-partial',
-      status: 'agendado',
+      id: "event-partial",
+      rfBlocoId: "rf-partial",
+      status: "agendado",
       tempoAcumulado: 5,
       questoes: 2,
-      revisoes: [{ id: 'review-2' }],
-      paginas: '20',
+      revisoes: [{ id: "review-2" }],
+      paginas: "20",
     };
     const sourcePlan = {
       ...plan(),
@@ -520,60 +608,129 @@ describe('commitRetaFinalDraft', () => {
           ...plan().retaFinal.blocos,
           {
             ...plan().retaFinal.blocos[0],
-            id: 'rf-partial',
+            id: "rf-partial",
             ordem: 1,
           },
           {
             ...plan().retaFinal.blocos[0],
-            id: 'rf-unoccupied',
+            id: "rf-unoccupied",
             ordem: 2,
           },
         ],
       },
     };
-    const idb = idbFor(appState({ planejamento: sourcePlan, eventos: [studied, partial] }));
-    const draft = draftFor(sourcePlan, 'history-draft');
+    const idb = idbFor(
+      appState({ planejamento: sourcePlan, eventos: [studied, partial] }),
+    );
+    const draft = draftFor(sourcePlan, "history-draft");
     await persistDraft(idb, draft);
 
-    await commit(idb.database, draft, { makeId: () => 'new-auto' });
+    await commit(idb.database, draft, { makeId: () => "new-auto" });
 
     const events = readAppState(idb).eventos;
     expect(events).toContainEqual(studied);
     expect(events).toContainEqual(partial);
-    const generated = events.find((event) => event.rfBlocoId === 'rf-unoccupied' && event.isAutoGenerated);
-    expect(generated.titulo).toBe('Direito Administrativo — Atos administrativos');
-    expect(events.filter((event) => event.rfBlocoId === 'rf-1')).toEqual([studied]);
-    expect(events.filter((event) => event.rfBlocoId === 'rf-partial')).toEqual([partial]);
-    expect(events.filter((event) => event.rfBlocoId === 'rf-unoccupied')).toEqual([generated]);
+    const generated = events.find(
+      (event) => event.rfBlocoId === "rf-unoccupied" && event.isAutoGenerated,
+    );
+    expect(generated.titulo).toBe(
+      "Direito Administrativo — Atos administrativos",
+    );
+    expect(events.filter((event) => event.rfBlocoId === "rf-1")).toEqual([
+      studied,
+    ]);
+    expect(events.filter((event) => event.rfBlocoId === "rf-partial")).toEqual([
+      partial,
+    ]);
+    expect(
+      events.filter((event) => event.rfBlocoId === "rf-unoccupied"),
+    ).toEqual([generated]);
   });
 
-  it('materializes exact optional catalog intents only in the successful commit', async () => {
+  it("materializes exact optional catalog intents only in the successful commit", async () => {
     const idb = idbFor();
-    const draft = draftFor(plan(), 'catalog-draft', {
-      catalogIntents: [{ entity: 'assunto', id: 'ass-2', discId: 'disc-1', nome: 'Poderes' }],
+    const draft = draftFor(plan(), "catalog-draft", {
+      catalogIntents: [
+        { entity: "assunto", id: "ass-2", discId: "disc-1", nome: "Poderes" },
+      ],
     });
     await persistDraft(idb, draft);
 
     await commit(idb.database, draft);
 
     expect(readAppState(idb).editais[0].disciplinas[0].assuntos).toEqual([
-      { id: 'ass-1', nome: 'Atos administrativos' },
-      { id: 'ass-2', nome: 'Poderes' },
+      { id: "ass-1", nome: "Atos administrativos" },
+      { id: "ass-2", nome: "Poderes" },
     ]);
   });
 
-  it('rejects a catalog intent whose id already belongs to another entity', async () => {
+  it("rejects a catalog intent whose id already belongs to another entity", async () => {
     const idb = idbFor();
-    const draft = draftFor(plan(), 'bad-catalog-draft', {
-      catalogIntents: [{ entity: 'aula', id: 'ass-1', discId: 'disc-1', nome: 'Poderes' }],
+    const draft = draftFor(plan(), "bad-catalog-draft", {
+      catalogIntents: [
+        { entity: "aula", id: "ass-1", discId: "disc-1", nome: "Poderes" },
+      ],
     });
     await persistDraft(idb, draft);
     const before = readAppState(idb);
 
-    await expect(commit(idb.database, draft)).rejects.toMatchObject({ code: 'RETA_FINAL_CONFLICT' });
+    await expect(commit(idb.database, draft)).rejects.toMatchObject({
+      code: "RETA_FINAL_CONFLICT",
+    });
 
     expect(readAppState(idb)).toEqual(before);
-    expect(idb.getRecord('reta_final_drafts', draft.draftId).state).toBe('editing');
+    expect(idb.getRecord("reta_final_drafts", draft.draftId).state).toBe(
+      "editing",
+    );
     expect(idb.journalKeys?.()).toEqual([]);
+  });
+
+  it("prunes the oldest eligible automatic checkpoint after a durable commit", async () => {
+    const idb = idbFor();
+    const seed = Array.from({ length: 20 }, (_, index) => {
+      const source = plan();
+      source.revision = index + 1;
+      return createRetaFinalCheckpoint(source, {
+        checkpointId: `old-checkpoint-${index}`,
+        createdAt: `2026-10-${String(index + 1).padStart(2, "0")}T10:00:00.000Z`,
+        kind: "automatic",
+        draftId: `old-draft-${index}`,
+      });
+    });
+    const intents = seed.map((checkpoint) => ({
+      id: `old-sync-${checkpoint.draftId}`,
+      type: "sync_intent",
+      planId: checkpoint.planId,
+      revision: checkpoint.revision + 1,
+      status: "synced",
+      operationIds: [],
+      createdAt: checkpoint.createdAt,
+      draftId: checkpoint.draftId,
+    }));
+    await persistJournal(idb, [...seed, ...intents]);
+    const draft = draftFor();
+    await persistDraft(idb, draft);
+
+    await commit(idb.database, draft);
+    await vi.waitFor(
+      async () => {
+        const checkpoints = await listRetaFinalCheckpoints(
+          idb.database,
+          "plan-1",
+        );
+        expect(checkpoints).toHaveLength(20);
+      },
+      { timeout: 1000 },
+    );
+
+    const checkpoints = await listRetaFinalCheckpoints(idb.database, "plan-1");
+    expect(
+      checkpoints.some((checkpoint) => checkpoint.id === "old-checkpoint-0"),
+    ).toBe(false);
+    expect(
+      checkpoints.some(
+        (checkpoint) => checkpoint.id === "rf-checkpoint:draft-1",
+      ),
+    ).toBe(true);
   });
 });

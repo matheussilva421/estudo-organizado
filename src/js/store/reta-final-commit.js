@@ -17,6 +17,7 @@ import { projectRetaFinalSchedule } from "../logic/reta-final-schedule.js";
 import { rebuildRetaFinalAutoEvents } from "../logic/reta-final-events.js";
 import { buildRetaFinalEventTitle } from "../logic/reta-final-core.js";
 import { createRetaFinalCheckpoint } from "../logic/reta-final-history.js";
+import { pruneRetaFinalCheckpoints } from "./reta-final-history-store.js";
 
 const clone = (value) => structuredClone(value);
 
@@ -387,6 +388,21 @@ export function commitRetaFinalDraft({
             "Reta Final: commit durável; falha ao publicar estado em memória.",
             error,
           );
+        }
+        if (context.pruneAutomatic !== false) {
+          try {
+            pruneRetaFinalCheckpoints(db, expectedPlanId).catch((error) => {
+              console.warn(
+                "Reta Final: falha ao podar checkpoints automáticos.",
+                error,
+              );
+            });
+          } catch (error) {
+            console.warn(
+              "Reta Final: falha ao iniciar poda de checkpoints.",
+              error,
+            );
+          }
         }
         resolve(clone(commitResult));
       };

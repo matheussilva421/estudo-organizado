@@ -17,6 +17,7 @@ const COMMAND_TYPES = new Set([
   "SET_DURATION",
   "SET_PRIORITY",
   "SET_CAPACITY",
+  "SET_MINUTOS_PADRAO",
   "EXTEND_DEADLINE",
 ]);
 
@@ -954,6 +955,34 @@ function runSetCapacity(plan, command) {
   ]);
 }
 
+function runSetMinutosPadrao(plan, command) {
+  const minutosPadrao = command.input?.minutosPadrao;
+  if (!isPositiveMinutes(minutosPadrao)) {
+    return invalidResult(plan, [
+      diagnostic(
+        "MINUTOS_INVALIDOS",
+        command,
+        "minutosPadrao deve ser um inteiro maior que zero.",
+      ),
+    ]);
+  }
+  const before = { minutosPadrao: plan.retaFinal.minutosPadrao };
+  const after = { minutosPadrao };
+  return validResult(
+    { ...plan, retaFinal: { ...plan.retaFinal, minutosPadrao } },
+    [
+      {
+        blockId: null,
+        before: cloneValue(before),
+        after: cloneValue(after),
+        fieldsChanged: sameValue(before.minutosPadrao, after.minutosPadrao)
+          ? []
+          : ["retaFinal.minutosPadrao"],
+      },
+    ],
+  );
+}
+
 function runExtendDeadline(plan, command, ctx) {
   const dataFinal = command.input?.dataFinal;
   if (!isCivilDate(dataFinal)) {
@@ -1239,6 +1268,8 @@ export function applyRetaFinalCommand(plan, command, options) {
   if (command.type === "SET_PRIORITY")
     return runSetPriority(plan, command, ctx);
   if (command.type === "SET_CAPACITY") return runSetCapacity(plan, command);
+  if (command.type === "SET_MINUTOS_PADRAO")
+    return runSetMinutosPadrao(plan, command);
   if (command.type === "EXTEND_DEADLINE")
     return runExtendDeadline(plan, command, ctx);
   if (command.type === "CREATE") return runCreate(plan, command, ctx);

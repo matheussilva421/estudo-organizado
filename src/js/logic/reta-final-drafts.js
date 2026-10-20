@@ -29,6 +29,7 @@ export function retaFinalDigest(value) {
 function operationProvenancePayload(operation) {
   return {
     operationId: operation.operationId,
+    planId: operation.planId ?? operation.before?.planId ?? null,
     command: operation.command,
     generatedIds: operation.generatedIds ?? [],
     before: operation.before,
@@ -387,6 +388,7 @@ export function appendRetaFinalDraftOperation(draft, command, context = {}) {
   }
   const operation = {
     operationId: command.operationId,
+    planId: draft.planId,
     command: clone(command),
     generatedIds: producedIds,
     before: clone(draft.snapshot),

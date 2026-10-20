@@ -455,3 +455,162 @@ describe("Reta Final history checkpoints and inverses", () => {
     ).rejects.toMatchObject({ code: "RETA_FINAL_STALE" });
   });
 });
+
+describe("Reta Final history scope protections", () => {
+  it("keeps global deadline and capacity unchanged on selective restore", () => {
+    const saved = plan();
+    saved.retaFinal.dataFinal = "2026-12-31";
+    saved.retaFinal.capacidade = {
+      minutosPorDiaSemana: { 1: 90 },
+      folgas: [0],
+      maximoDiario: 120,
+    };
+    const checkpoint = createRetaFinalCheckpoint(saved, {
+      checkpointId: "selective-global-check",
+      createdAt: NOW,
+      kind: "manual",
+    });
+    const current = plan(6, [
+      makeBlock("rf_1", 0),
+      makeBlock("rf_2", 1, { minutos: 90 }),
+    ]);
+    current.retaFinal.dataFinal = "2026-12-20";
+    current.retaFinal.capacidade = {
+      minutosPorDiaSemana: { 1: 60 },
+      folgas: [0],
+      maximoDiario: 90,
+    };
+
+    const result = proposeRetaFinalRestore(current, checkpoint, {
+      blockIds: ["rf_2"],
+      events: [],
+    });
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.operations).toHaveLength(1);
+    expect(result.operations[0]).toMatchObject({
+      type: "PATCH",
+      blockIds: ["rf_2"],
+    });
+    expect(
+      result.operations.some((operation) =>
+        ["EXTEND_DEADLINE", "SET_CAPACITY", "SET_MINUTOS_PADRAO"].includes(
+          operation.type,
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("restores minutosPadrao on a full restore through a safe command", () => {
+    const saved = plan();
+    saved.retaFinal.minutosPadrao = 45;
+    const checkpoint = createRetaFinalCheckpoint(saved, {
+      checkpointId: "full-minutes-check",
+      createdAt: NOW,
+      kind: "manual",
+    });
+    const current = plan(6);
+
+    const result = proposeRetaFinalRestore(current, checkpoint, { events: [] });
+    expect(result.diagnostics).toEqual([]);
+    expect(result.operations).toEqual([
+      expect.objectContaining({
+        type: "SET_MINUTOS_PADRAO",
+        input: { minutosPadrao: 45 },
+      }),
+    ]);
+    let restored = current;
+    for (const operation of result.operations) {
+      const applied = applyRetaFinalCommand(restored, operation, {
+        events: [],
+      });
+      expect(applied.valid).toBe(true);
+      restored = applied.plan;
+    }
+    expect(restored.retaFinal.minutosPadrao).toBe(45);
+  });
+
+  it("rejects undo of an operation from another plan with the same revision", () => {
+    const operation = append(
+      createRetaFinalDraft(plan(), { draftId: "cross-plan", now: NOW }),
+      {
+        operationId: "cross-plan-op",
+        type: "PATCH",
+        blockIds: ["rf_2"],
+        patch: { minutos: 90 },
+      },
+    ).operations[0];
+    operation.committedRevision = 5;
+    const other = plan(5);
+    other.planId = "another-plan";
+
+    expect(
+      proposeRetaFinalUndo(other, operation, {
+        draftId: "cross-plan-undo",
+        now: NOW,
+        events: [],
+      }),
+    ).toMatchObject({
+      draft: null,
+      diagnostics: [expect.objectContaining({ code: "HISTORY_PLAN_MISMATCH" })],
+    });
+  });
+
+  it("rejects undo when a later operation changed the same field in the same commit", async () => {
+    const base = plan();
+    const idb = idbFor(base);
+    let draft = createRetaFinalDraft(base, {
+      draftId: "overlap-draft",
+      now: NOW,
+    });
+    draft = append(draft, {
+      operationId: "first-patch",
+      type: "PATCH",
+      blockIds: ["rf_2"],
+      patch: { minutos: 90 },
+    });
+    draft = append(draft, {
+      operationId: "later-patch",
+      type: "PATCH",
+      blockIds: ["rf_2"],
+      patch: { minutos: 120 },
+    });
+    await saveDraft(idb, draft);
+    await commitRetaFinalDraft({
+      db: idb.database,
+      draftId: draft.draftId,
+      expectedPlanId: draft.planId,
+      expectedRevision: draft.baseRevision,
+      context: { now: NOW, today: TODAY, makeId: () => "overlap-event" },
+    });
+    const applied = idb.getRecord("app_state", "main_state_current").payload
+      .planejamento;
+    const firstOperation = idb.getRecord("reta_final_drafts", draft.draftId)
+      .operations[0];
+
+    expect(
+      proposeRetaFinalUndo(applied, firstOperation, {
+        draftId: "overlap-undo",
+        now: NOW,
+        events: [],
+        catalog: [
+          {
+            id: "edital-1",
+            disciplinas: [
+              {
+                id: "disc-1",
+                assuntos: [{ id: "ass-1", nome: "Tema" }],
+                aulas: [],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toMatchObject({
+      draft: null,
+      diagnostics: [
+        expect.objectContaining({ code: "HISTORY_LATER_OPERATION" }),
+      ],
+    });
+  });
+});
