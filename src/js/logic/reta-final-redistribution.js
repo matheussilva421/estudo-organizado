@@ -364,6 +364,26 @@ export function proposeRetaFinalRedistribution(plan, options = {}) {
         ? 'fixed_in_past'
         : 'pinned';
     if (item.activeTimer) {
+      if (plannedDate > finalDate) {
+        const reason = 'active_timer_deadline';
+        unallocated.push({
+          blockId: block.id,
+          plannedDate,
+          minutes: block.minutos,
+          reason,
+        });
+        explanations.push({
+          blockId: block.id,
+          score: item.score.score,
+          reasons: item.score.reasons,
+          sourcesUsed: item.score.sourcesUsed,
+          from: plannedDate,
+          to: null,
+          status: 'unallocated',
+          reason,
+        });
+        continue;
+      }
       if (plannedDate >= today && plannedDate <= finalDate) {
         addToLoad(block, plannedDate);
       }

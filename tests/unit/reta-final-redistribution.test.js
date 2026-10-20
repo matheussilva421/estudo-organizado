@@ -209,6 +209,48 @@ describe('proposeRetaFinalRedistribution', () => {
     },
   );
 
+  it('reporta timer ativo após dataFinal sem MOVE nem carga diária', () => {
+    const input = deepFreeze(
+      plan([
+        block('rf_timer', {
+          minutos: 30,
+          dataPlanejada: '2026-10-25',
+          data: '2026-10-25',
+        }),
+      ]),
+    );
+    const before = JSON.stringify(input);
+    const result = proposeRetaFinalRedistribution(input, {
+      today: TODAY,
+      capacityByWeekday: { 1: 60 },
+      activeTimerIds: new Set(['rf_timer']),
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.operations).toEqual([]);
+    expect(result.dailyLoad['2026-10-25']).toBeUndefined();
+    expect(result.unallocated).toEqual([
+      {
+        blockId: 'rf_timer',
+        plannedDate: '2026-10-25',
+        minutes: 30,
+        reason: 'active_timer_deadline',
+      },
+    ]);
+    expect(result.explanations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          blockId: 'rf_timer',
+          from: '2026-10-25',
+          to: null,
+          status: 'unallocated',
+          reason: 'active_timer_deadline',
+        }),
+      ]),
+    );
+    expect(JSON.stringify(input)).toBe(before);
+  });
+
   it('reserva primeiro blocos fixados mesmo quando têm score inferior', () => {
     const input = plan([
       block('rf_high', { ordem: 0, dataPlanejada: TODAY, fixado: false }),
