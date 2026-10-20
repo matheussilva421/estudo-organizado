@@ -61,3 +61,34 @@ SHA-256 dos módulos novos:
 Não foi executado E2E nem teste manual em navegador com IndexedDB nativo. O gate desta tarefa verifica o upgrade por callback de `initDB` e as transações através do helper controlado; persistência em browser real permanece para a cobertura de integração posterior. Não houve alteração em sync remoto, semântica de `state.planejamento`, boot migrations ou contratos públicos da Phase A.
 
 Para retomar, confira `git status` e leia este relatório. O commit fica local na branch indicada; não houve push. Os próximos trabalhos devem reutilizar as duas stores existentes e não incrementar novamente `DB_VERSION`.
+
+## Fix round 1 — upgrade real e shape checks
+
+Revisão: veredito Needs fixes. O teste de upgrade chamava `onupgradeneeded` diretamente em um stub e encerrava com `onerror`, sem modelar uma abertura v6 nem a conclusão bem-sucedida do v7. A validação de forma também permitia que snapshots aninhados inválidos e operações nulas escapassem até `.find` ou `diffPlans`, causando exceções em vez de diagnósticos.
+
+RED:
+
+- `npx vitest run tests/unit/reta-final-drafts.test.js tests/unit/store-indexeddb-imports.test.js --reporter=dot` — 2 arquivos; 29 testes; 25 passaram e 4 falharam, exit 1.
+- O draft sem `retaFinal.blocos` lançou `TypeError` em `diffPlans`; a operação nula lançou `TypeError` no `.find`; a validação retornou `DRAFT_SNAPSHOT_MISMATCH` em vez de `DRAFT_INVALID`; o helper ainda não expunha versão/open factory.
+
+GREEN:
+
+- O helper transacional agora aceita `version` e `keyPaths`, expõe `indexedDB.open`, registra as versões solicitadas e as stores criadas. O teste semeia as seis stores de v6, chama o `initDB` real, aguarda sucesso, confirma a solicitação v7, a transição 6→7, as duas únicas criações e seus key paths `draftId`/`id`.
+- `npx vitest run tests/unit/reta-final-drafts.test.js tests/unit/store-indexeddb-imports.test.js --reporter=dot` — 2 arquivos; 29/29 testes passaram.
+- `npx vitest run tests/unit/reta-final-drafts.test.js tests/unit/reta-final-draft-store.test.js tests/unit/store-indexeddb-imports.test.js tests/unit/store-migrations.test.js tests/unit/store-boot-failure.test.js --reporter=dot` — 5 arquivos; 61/61 testes passaram.
+- `npx vitest run tests/unit/reta-final-events.test.js tests/unit/reta-final-sync-eventos.test.js tests/unit/reta-final-quick-mark.test.js tests/unit/reta-final-associar.test.js tests/unit/reta-final-schema-v2.test.js tests/unit/reta-final-schedule.test.js tests/unit/reta-final-catalog.test.js tests/unit/reta-final-commands.test.js tests/unit/reta-final-core.test.js tests/unit/reta-final-rollover.test.js tests/unit/logic-cycle-imports.test.js tests/unit/store-indexeddb-imports.test.js tests/unit/store-migrations.test.js tests/unit/store-boot-failure.test.js --reporter=dot` — 14 arquivos; 299/299 testes passaram.
+- `npm test -- --maxWorkers=2 --reporter=dot` — 153 arquivos; 2,542/2,542 testes passaram, exit 0.
+- `npx eslint src/js/logic/reta-final-drafts.js` — exit 0; `git diff --check` sem erros.
+
+Os novos shape checks validam os snapshots-base e editado com `validateRetaFinalV2`, confirmam `retaFinal.blocos` e ids de blocos e validam entradas do journal de operações antes de `.find`, replay ou diff. Entradas malformadas retornam `DRAFT_INVALID` ou `DRAFT_OPERATION_INVALID` com índice, sem mutar o rascunho e sem aplicar nada.
+
+Commit do fix: `4b90025bd4ea969035cdac8d5874d4c08900dbb8` (`fix(reta-final): harden draft store upgrade and shape checks`).
+
+Arquivos do fix:
+
+- `src/js/logic/reta-final-drafts.js` — shape checks aninhados e entradas de operação.
+- `tests/unit/reta-final-draft-idb-helper.js` — factory `open` versionada, transição de schema e registros de stores criadas.
+- `tests/unit/reta-final-drafts.test.js` — regressões de snapshot sem blocos, operação nula e entrada de comando nula.
+- `tests/unit/store-indexeddb-imports.test.js` — abertura v6→v7 real via `initDB`, sucesso, key paths e exports.
+
+Não houve push, alteração da versão do banco, mudança de API pública ou nova alteração de boot/migração de estado.
