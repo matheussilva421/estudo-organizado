@@ -614,3 +614,27 @@ describe("Reta Final history scope protections", () => {
     });
   });
 });
+
+describe("Reta Final history inverse availability", () => {
+  it("inverts SET_MINUTOS_PADRAO with the prior value", () => {
+    const changed = append(
+      createRetaFinalDraft(plan(), { draftId: "minutes-inverse", now: NOW }),
+      {
+        operationId: "set-minutes-default",
+        type: "SET_MINUTOS_PADRAO",
+        input: { minutosPadrao: 90 },
+      },
+    );
+    const inverse = invertRetaFinalOperation(changed.operations[0]);
+
+    expect(inverse).toMatchObject({
+      type: "SET_MINUTOS_PADRAO",
+      input: { minutosPadrao: 60 },
+    });
+    const restored = applyRetaFinalCommand(changed.snapshot, inverse, {
+      events: [],
+    });
+    expect(restored.valid).toBe(true);
+    expect(restored.plan.retaFinal.minutosPadrao).toBe(60);
+  });
+});

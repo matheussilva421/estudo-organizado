@@ -667,6 +667,22 @@ export function invertRetaFinalOperation(operation) {
       input: { capacidade: clone(beforeCapacity) },
     });
   }
+  if (command.type === "SET_MINUTOS_PADRAO") {
+    const beforeMinutes = operation.before?.retaFinal?.minutosPadrao;
+    if (
+      !Number.isInteger(beforeMinutes) ||
+      beforeMinutes <= 0 ||
+      operation.after?.retaFinal?.minutosPadrao !== command.input?.minutosPadrao
+    ) {
+      return blockedInverse(
+        "UNDO_UNSUPPORTED",
+        "A duração padrão anterior não pode ser restaurada com segurança.",
+      );
+    }
+    return makeInverseCommand(operation, "SET_MINUTOS_PADRAO", {
+      input: { minutosPadrao: beforeMinutes },
+    });
+  }
   if (command.type === "ARCHIVE" || command.type === "UNARCHIVE") {
     const inverseType = command.type === "ARCHIVE" ? "UNARCHIVE" : "ARCHIVE";
     const expectedBefore = command.type === "ARCHIVE" ? false : true;
