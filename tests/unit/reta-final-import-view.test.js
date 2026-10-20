@@ -170,4 +170,30 @@ describe("importação supervisionada da Reta Final ativa", () => {
       "error",
     );
   });
+
+  it("keeps the legacy v1 initial-import route reaching activation", () => {
+    mocks.state.planejamento = { ...plan(), ativo: false };
+    const legacy = {
+      versao: 1,
+      nome: "Reta Final legada",
+      dataFinal: "2026-11-30",
+      minutosPadrao: 60,
+      dias: [
+        {
+          data: "2026-10-21",
+          blocos: [{ disciplina: "Direito Penal", topicos: ["Crimes"] }],
+        },
+      ],
+    };
+
+    expect(view.openRetaFinalPreview(legacy)).toBe(true);
+    expect(document.getElementById("modal-prompt-save").textContent).toBe(
+      "Ativar Reta Final",
+    );
+    document.getElementById("modal-prompt-save").onclick();
+
+    expect(mocks.activate).toHaveBeenCalledOnce();
+    expect(mocks.activate).toHaveBeenCalledWith({ payload: legacy });
+    expect(mocks.saveDraft).not.toHaveBeenCalled();
+  });
 });

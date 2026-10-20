@@ -26,6 +26,15 @@ const BLOCK_FIELDS = new Set([
   "arquivado",
   "provenance",
 ]);
+const PROVENANCE_FIELDS = new Set([
+  "source",
+  "sourceRevision",
+  "sourcePlanId",
+  "exportedAt",
+  "importedAt",
+  "origin",
+  "importer",
+]);
 const PRIVATE_KEY =
   /event|sess|credential|credenc|token|secret|password|senha|histor/i;
 
@@ -132,6 +141,27 @@ function copyPortable(value) {
   return copy;
 }
 
+function validProvenance(value) {
+  if (!isRecord(value)) return false;
+  return Object.entries(value).every(
+    ([key, item]) =>
+      PROVENANCE_FIELDS.has(key) &&
+      (item === null ||
+        typeof item === "string" ||
+        typeof item === "boolean" ||
+        (typeof item === "number" && Number.isFinite(item))),
+  );
+}
+
+function copyProvenance(value) {
+  if (!isRecord(value)) return undefined;
+  const copy = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (PROVENANCE_FIELDS.has(key)) copy[key] = item;
+  }
+  return copy;
+}
+
 function addError(errors, message) {
   if (!errors.includes(message)) errors.push(message);
 }
@@ -161,7 +191,7 @@ function validateV2(payload) {
   }
   if (
     payload.provenance !== undefined &&
-    (!isRecord(payload.provenance) || !isPortableValue(payload.provenance))
+    !validProvenance(payload.provenance)
   ) {
     addError(errors, 'Campo "provenance" inválido ou contém dado privado.');
   }
@@ -191,6 +221,8 @@ function validateV2(payload) {
     if (!Array.isArray(block.topicos) || block.topicos.length === 0) {
       addError(errors, `${path}: topicos deve conter referências.`);
     } else {
+      const seenAssuntos = new Set();
+      const seenAulas = new Set();
       block.topicos.forEach((topic, topicIndex) => {
         const hasAssunto = isId(topic?.assId);
         const hasAula = isId(topic?.aulaId);
@@ -208,6 +240,20 @@ function validateV2(payload) {
             `${path}.topicos[${topicIndex}]: referência inválida.`,
           );
         }
+        if (hasAssunto && seenAssuntos.has(topic.assId)) {
+          addError(
+            errors,
+            `${path}.topicos[${topicIndex}]: referência de assunto repetida.`,
+          );
+        }
+        if (hasAula && seenAulas.has(topic.aulaId)) {
+          addError(
+            errors,
+            `${path}.topicos[${topicIndex}]: referência de aula repetida.`,
+          );
+        }
+        if (hasAssunto) seenAssuntos.add(topic.assId);
+        if (hasAula) seenAulas.add(topic.aulaId);
       });
     }
     if (!Number.isInteger(block.minutos) || block.minutos <= 0) {
@@ -239,10 +285,7 @@ function validateV2(payload) {
     if (block.arquivado !== undefined && typeof block.arquivado !== "boolean") {
       addError(errors, `${path}: arquivado inválido.`);
     }
-    if (
-      block.provenance !== undefined &&
-      (!isRecord(block.provenance) || !isPortableValue(block.provenance))
-    ) {
+    if (block.provenance !== undefined && !validProvenance(block.provenance)) {
       addError(errors, `${path}: provenance inválida ou contém dado privado.`);
     }
   });
@@ -310,7 +353,7 @@ export function exportRetaFinalPortable(plan) {
       ? { sourceRevision: plan.sourceRevision }
       : {}),
     ...(isRecord(plan.provenance)
-      ? { provenance: copyPortable(plan.provenance) }
+      ? { provenance: copyProvenance(plan.provenance) }
       : {}),
     dataFinal: retaFinal.dataFinal,
     minutosPadrao: retaFinal.minutosPadrao,
@@ -337,7 +380,7 @@ export function exportRetaFinalPortable(plan) {
         ...(block?.fixado !== undefined ? { fixado: block.fixado } : {}),
         arquivado: block?.arquivado === true,
         ...(isRecord(block?.provenance)
-          ? { provenance: copyPortable(block.provenance) }
+          ? { provenance: copyProvenance(block.provenance) }
           : {}),
       })),
   };

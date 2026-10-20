@@ -87,6 +87,13 @@ describe("validateRetaFinalPortable", () => {
     const broken = exportRetaFinalPortable(plan());
     broken.blocos[0].topicos = [{ assId: null, aulaId: null }];
     expect(validateRetaFinalPortable(broken).valid).toBe(false);
+
+    const repeated = exportRetaFinalPortable(plan());
+    repeated.blocos[0].topicos = [
+      { assId: "ass-1", aulaId: null },
+      { assId: "ass-1", aulaId: null },
+    ];
+    expect(validateRetaFinalPortable(repeated).valid).toBe(false);
   });
 
   it("rejects non-portable fields nested in capacity and topic references", () => {
@@ -99,16 +106,21 @@ describe("validateRetaFinalPortable", () => {
     expect(validateRetaFinalPortable(withTopicState).valid).toBe(false);
   });
 
-  it("strips and rejects Portuguese session, credential, and history provenance keys", () => {
+  it("strips and rejects session, credential, history, and academic provenance keys", () => {
     const source = plan();
     source.provenance = {
       source: "manual",
+      status: "estudei",
+      tempoAcumulado: 900,
+      snapshot: { id: "event-1" },
       sessão: "private-session-value",
       credencial: "private-credential-value",
       histórico: ["private-history-value"],
     };
     source.retaFinal.blocos[0].provenance = {
       source: "manual",
+      status: "concluido",
+      tempoAcumulado: 900,
       sessão: "private-block-session-value",
     };
 
@@ -118,8 +130,13 @@ describe("validateRetaFinalPortable", () => {
     expect(serialized).not.toContain("private-credential-value");
     expect(serialized).not.toContain("private-history-value");
     expect(serialized).not.toContain("private-block-session-value");
+    expect(serialized).not.toContain("estudei");
+    expect(serialized).not.toContain("tempoAcumulado");
+    expect(serialized).not.toContain("event-1");
 
     portable.provenance.sessão = "reintroduced-private-session";
+    expect(validateRetaFinalPortable(portable).valid).toBe(false);
+    portable.provenance = { source: "manual", status: "estudei" };
     expect(validateRetaFinalPortable(portable).valid).toBe(false);
   });
 });
