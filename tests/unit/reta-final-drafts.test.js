@@ -376,4 +376,78 @@ describe('Reta Final malformed persisted draft', () => {
       ]),
     );
   });
+
+  it('rejects a sparse operations array before duplicate lookup', () => {
+    const malformed = createRetaFinalDraft(plan(), {
+      draftId: 'draft-1',
+      now: 't',
+    });
+    malformed.operations = new Array(1);
+
+    let result;
+    expect(() => {
+      result = appendRetaFinalDraftOperation(malformed, patch(), context);
+    }).not.toThrow();
+    expect(result.valid).toBe(false);
+    expect(result.diff).toEqual([]);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'DRAFT_OPERATION_INVALID', index: 0 }),
+      ]),
+    );
+  });
+
+  it('blocks validation for a sparse operations array', () => {
+    const malformed = createRetaFinalDraft(plan(), {
+      draftId: 'draft-1',
+      now: 't',
+    });
+    malformed.operations = new Array(1);
+
+    const result = validateRetaFinalDraft(malformed, plan(), context);
+
+    expect(result.status).toBe('blocked');
+    expect(result.diff).toEqual([]);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'DRAFT_OPERATION_INVALID', index: 0 }),
+      ]),
+    );
+  });
+
+  it('rejects sparse retaFinal.blocos before diff construction', () => {
+    const malformed = createRetaFinalDraft(plan(), {
+      draftId: 'draft-1',
+      now: 't',
+    });
+    malformed.snapshot.retaFinal.blocos = new Array(1);
+
+    let result;
+    expect(() => {
+      result = appendRetaFinalDraftOperation(malformed, patch(), context);
+    }).not.toThrow();
+    expect(result.valid).toBe(false);
+    expect(result.diff).toEqual([]);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'DRAFT_INVALID' })]),
+    );
+  });
+
+  it('blocks validation for sparse retaFinal.blocos', () => {
+    const malformed = createRetaFinalDraft(plan(), {
+      draftId: 'draft-1',
+      now: 't',
+    });
+    malformed.snapshot.retaFinal.blocos = new Array(1);
+
+    let result;
+    expect(() => {
+      result = validateRetaFinalDraft(malformed, plan(), context);
+    }).not.toThrow();
+    expect(result.status).toBe('blocked');
+    expect(result.diff).toEqual([]);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'DRAFT_INVALID' })]),
+    );
+  });
 });

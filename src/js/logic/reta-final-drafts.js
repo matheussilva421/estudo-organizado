@@ -86,6 +86,9 @@ function diffPlans(before, after) {
 function error(code, message, operationId = null, index = null, extra = {}) {
   return { code, message, operationId, index, ...extra };
 }
+function hasOwnIndex(value, index) {
+  return Object.prototype.hasOwnProperty.call(value, index);
+}
 function snapshotShapeError(snapshot, label) {
   if (!isObject(snapshot.retaFinal) || !Array.isArray(snapshot.retaFinal.blocos)) {
     return error(
@@ -93,18 +96,29 @@ function snapshotShapeError(snapshot, label) {
       label + ': retaFinal.blocos deve ser uma lista.',
     );
   }
-  if (
-    snapshot.retaFinal.blocos.some(
-      (block) =>
-        !isObject(block) ||
-        typeof block.id !== 'string' ||
-        !block.id.trim(),
-    )
-  ) {
-    return error(
-      'DRAFT_INVALID',
-      label + ': cada bloco deve ter um id válido.',
-    );
+  const blocks = snapshot.retaFinal.blocos;
+  for (let index = 0; index < blocks.length; index += 1) {
+    if (!hasOwnIndex(blocks, index)) {
+      return error(
+        'DRAFT_INVALID',
+        label + ': bloco ausente no índice ' + index + '.',
+        null,
+        index,
+      );
+    }
+    const block = blocks[index];
+    if (
+      !isObject(block) ||
+      typeof block.id !== 'string' ||
+      !block.id.trim()
+    ) {
+      return error(
+        'DRAFT_INVALID',
+        label + ': cada bloco deve ter um id válido.',
+        null,
+        index,
+      );
+    }
   }
   const validation = validateRetaFinalV2(snapshot);
   if (!validation.valid) {
@@ -117,7 +131,19 @@ function snapshotShapeError(snapshot, label) {
 }
 function operationShapeErrors(operations) {
   const errors = [];
-  operations.forEach((operation, index) => {
+  for (let index = 0; index < operations.length; index += 1) {
+    if (!hasOwnIndex(operations, index)) {
+      errors.push(
+        error(
+          'DRAFT_OPERATION_INVALID',
+          'Registro de operação ausente no índice ' + index + '.',
+          null,
+          index,
+        ),
+      );
+      continue;
+    }
+    const operation = operations[index];
     const operationId =
       isObject(operation) && typeof operation.operationId === 'string'
         ? operation.operationId
@@ -142,7 +168,7 @@ function operationShapeErrors(operations) {
         ),
       );
     }
-  });
+  }
   return errors;
 }
 function shapeErrors(draft) {
