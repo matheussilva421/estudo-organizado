@@ -200,6 +200,24 @@ function readPinnedIds(value) {
   return { valid: true, ids: new Set(ids) };
 }
 
+function readActiveTimerIds(value) {
+  const ids = new Set();
+  if (value instanceof Set || Array.isArray(value)) {
+    for (const id of value) if (isId(id)) ids.add(id);
+    return ids;
+  }
+  if (typeof value === 'string') {
+    if (isId(value)) ids.add(value);
+    return ids;
+  }
+  if (isRecord(value)) {
+    for (const [id, active] of Object.entries(value)) {
+      if (active && isId(id)) ids.add(id);
+    }
+  }
+  return ids;
+}
+
 function resolveCapacity(
   date,
   persisted,
@@ -270,6 +288,7 @@ export function proposeRetaFinalRedistribution(plan, options = {}) {
   if (!pinned.valid) {
     return invalidResult(['pinnedBlockIds deve conter somente IDs válidos.']);
   }
+  const activeTimerIds = readActiveTimerIds(options.activeTimerIds);
 
   const finalDate = plan.retaFinal.dataFinal;
   const today = options.today;
@@ -308,16 +327,20 @@ export function proposeRetaFinalRedistribution(plan, options = {}) {
 
   const candidates = plan.retaFinal.blocos
     .filter((block) => block.status === 'pendente' && block.arquivado !== true)
-    .map((block) => ({
-      block,
-      pinned: isPinned(block, pinned.ids),
-      score: scoreRetaFinalBlock(
+    .map((block) => {
+      const activeTimer = activeTimerIds.has(block.id);
+      return {
         block,
-        isRecord(options.evidence?.[block.id])
-          ? options.evidence[block.id]
-          : {},
-      ),
-    }))
+        activeTimer,
+        pinned: activeTimer || isPinned(block, pinned.ids),
+        score: scoreRetaFinalBlock(
+          block,
+          isRecord(options.evidence?.[block.id])
+            ? options.evidence[block.id]
+            : {},
+        ),
+      };
+    })
     .sort(compareBlocks);
 
   const unallocated = [];
@@ -335,6 +358,27 @@ export function proposeRetaFinalRedistribution(plan, options = {}) {
   for (const item of candidates.filter((candidate) => candidate.pinned)) {
     const block = item.block;
     const plannedDate = block.dataPlanejada;
+    const fixedReason = item.activeTimer
+      ? 'active_timer'
+      : plannedDate < today
+        ? 'fixed_in_past'
+        : 'pinned';
+    if (item.activeTimer) {
+      if (plannedDate >= today && plannedDate <= finalDate) {
+        addToLoad(block, plannedDate);
+      }
+      explanations.push({
+        blockId: block.id,
+        score: item.score.score,
+        reasons: item.score.reasons,
+        sourcesUsed: item.score.sourcesUsed,
+        from: plannedDate,
+        to: plannedDate,
+        status: 'fixed',
+        reason: fixedReason,
+      });
+      continue;
+    }
     if (plannedDate > finalDate) {
       const reason = 'deadline';
       unallocated.push({
@@ -363,7 +407,7 @@ export function proposeRetaFinalRedistribution(plan, options = {}) {
         from: plannedDate,
         to: plannedDate,
         status: 'fixed',
-        reason: plannedDate < today ? 'fixed_in_past' : 'pinned',
+        reason: fixedReason,
       });
     }
   }

@@ -114,6 +114,101 @@ describe('proposeRetaFinalRedistribution', () => {
     ]);
   });
 
+  it('reserva bloco com timer ativo sem emitir MOVE ou mutar o plano', () => {
+    const input = deepFreeze(
+      plan([
+        block('rf_timer', {
+          ordem: 0,
+          minutos: 30,
+          dataPlanejada: '2026-10-18',
+          data: '2026-10-18',
+        }),
+        block('rf_movable', {
+          ordem: 1,
+          minutos: 30,
+          dataPlanejada: '2026-10-18',
+          data: '2026-10-18',
+        }),
+      ]),
+    );
+    const before = JSON.stringify(input);
+    const result = proposeRetaFinalRedistribution(input, {
+      today: TODAY,
+      capacityByWeekday: { 1: 60 },
+      activeTimerIds: new Set(['rf_timer']),
+    });
+    const repeated = proposeRetaFinalRedistribution(input, {
+      today: TODAY,
+      capacityByWeekday: { 1: 60 },
+      activeTimerIds: new Set(['rf_timer']),
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.operations.map((operation) => operation.blockIds)).toEqual([
+      ['rf_movable'],
+    ]);
+    expect(result.dailyLoad[TODAY]).toMatchObject({
+      usedMinutes: 30,
+      blockIds: ['rf_movable'],
+    });
+    expect(result.explanations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          blockId: 'rf_timer',
+          from: '2026-10-18',
+          to: '2026-10-18',
+          status: 'fixed',
+          reason: 'active_timer',
+        }),
+      ]),
+    );
+    expect(result.unallocated).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ blockId: 'rf_timer' }),
+      ]),
+    );
+    expect(repeated.dailyLoad).toEqual(result.dailyLoad);
+    expect(JSON.stringify(repeated)).toBe(JSON.stringify(result));
+    expect(JSON.stringify(input)).toBe(before);
+    expect(input.revision).toBe(12);
+  });
+
+  it.each([
+    ['Set', new Set(['rf_timer'])],
+    ['array', ['rf_timer']],
+    ['object', { rf_timer: true }],
+    ['string', 'rf_timer'],
+  ])(
+    'normaliza activeTimerIds como %s e contabiliza minutos no dia',
+    (_, activeTimerIds) => {
+      const input = deepFreeze(plan([block('rf_timer', { minutos: 30 })]));
+      const before = JSON.stringify(input);
+      const result = proposeRetaFinalRedistribution(input, {
+        today: TODAY,
+        capacityByWeekday: { 1: 60 },
+        activeTimerIds,
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.operations).toEqual([]);
+      expect(result.dailyLoad[TODAY]).toMatchObject({
+        usedMinutes: 30,
+        remainingMinutes: 30,
+        blockIds: ['rf_timer'],
+      });
+      expect(result.explanations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            blockId: 'rf_timer',
+            to: TODAY,
+            reason: 'active_timer',
+          }),
+        ]),
+      );
+      expect(JSON.stringify(input)).toBe(before);
+    },
+  );
+
   it('reserva primeiro blocos fixados mesmo quando têm score inferior', () => {
     const input = plan([
       block('rf_high', { ordem: 0, dataPlanejada: TODAY, fixado: false }),
