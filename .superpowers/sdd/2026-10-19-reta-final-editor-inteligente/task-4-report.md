@@ -100,7 +100,7 @@ Próximo passo: nenhum para Task 4. A branch permanece local; não fazer push se
 
 ## Fix round 1 — colisão de ID após resolução por nome
 
-Data: 2026-10-20  
+Data: 2026-10-20
 Commit de correção: `f9fb2a45e61ba4297b5b1e68525a207c20609edd` — `fix(reta-final): reject colliding catalog references`
 
 ### Correção
