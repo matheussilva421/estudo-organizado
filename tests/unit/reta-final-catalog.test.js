@@ -130,6 +130,43 @@ describe('resolveRetaFinalCatalog', () => {
     ]);
   });
 
+  it('não resolve um nome único cujo ID aparece em outra disciplina', () => {
+    const catalog = catalogo({
+      editais: [
+        {
+          id: 'edital_c',
+          disciplinas: [
+            {
+              id: 'disc_c',
+              nome: 'Administrativo',
+              assuntos: [{ id: 'ass_colide', nome: 'Outro rótulo' }],
+              aulas: [],
+            },
+          ],
+        },
+      ],
+    });
+    catalog[0].disciplinas[0].assuntos.push({ id: 'ass_colide', nome: 'Tema exclusivo' });
+
+    const result = resolveRetaFinalCatalog(catalog, {
+      discId: 'disc_a',
+      assuntos: ['Tema exclusivo'],
+      aulas: [],
+      makeId: () => 'must_not_be_used',
+    });
+
+    expect(result.refs).toEqual([]);
+    expect(result.createIntents).toEqual([]);
+    expect(result.conflicts).toEqual([
+      expect.objectContaining({
+        code: 'REFERENCIA_AMBIGUA',
+        entity: 'assunto',
+        discId: 'disc_a',
+        candidateIds: expect.arrayContaining(['ass_colide']),
+      }),
+    ]);
+  });
+
   it('propõe assunto e aula novos sem alterar o catálogo', () => {
     const catalog = congelarProfundo(catalogo());
     const before = JSON.parse(JSON.stringify(catalog));
@@ -225,6 +262,103 @@ describe('resolveRetaFinalCatalog', () => {
 });
 
 describe('integração com PATCH/CREATE da Task 3', () => {
+  function criarComIntents(catalog, intents, assId = 'ass_pendente') {
+    const plan = plano();
+    const result = applyRetaFinalCommand(
+      plan,
+      {
+        operationId: 'op_create_intent',
+        type: 'CREATE',
+        input: {
+          discId: 'disc_a',
+          topicos: [{ assId, aulaId: null }],
+          minutos: 45,
+          dataPlanejada: '2026-10-25',
+        },
+      },
+      {
+        catalog,
+        catalogIntents: intents,
+        today: '2026-10-19',
+        makeId: () => 'rf_new',
+      },
+    );
+    return { plan, result };
+  }
+
+  it('rejeita intenção pendente com entidade diferente da referência', () => {
+    const { plan, result } = criarComIntents(catalogo(), [
+      { entity: 'aula', id: 'ass_pendente', discId: 'disc_a', nome: 'Novo tema' },
+    ]);
+
+    expect(result.valid).toBe(false);
+    expect(result.plan).toBe(plan);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'REFERENCIA_INVALIDA' })]),
+    );
+  });
+
+  it('rejeita intenção pendente de outra disciplina', () => {
+    const { plan, result } = criarComIntents(catalogo(), [
+      { entity: 'assunto', id: 'ass_pendente', discId: 'disc_b', nome: 'Novo tema' },
+    ]);
+
+    expect(result.valid).toBe(false);
+    expect(result.plan).toBe(plan);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'REFERENCIA_INVALIDA' })]),
+    );
+  });
+
+  it('rejeita intenções pendentes duplicadas para o mesmo ID', () => {
+    const { plan, result } = criarComIntents(catalogo(), [
+      { entity: 'assunto', id: 'ass_pendente', discId: 'disc_a', nome: 'Novo tema' },
+      { entity: 'assunto', id: 'ass_pendente', discId: 'disc_a', nome: 'Outro tema' },
+    ]);
+
+    expect(result.valid).toBe(false);
+    expect(result.plan).toBe(plan);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'REFERENCIA_INVALIDA' })]),
+    );
+  });
+
+  it('rejeita intenção pendente cujo ID já existe no catálogo', () => {
+    const catalog = catalogo({
+      editais: [
+        {
+          id: 'edital_c',
+          disciplinas: [
+            {
+              id: 'disc_c',
+              nome: 'Administrativo',
+              assuntos: [{ id: 'ass_ja_existe', nome: 'Tema existente' }],
+              aulas: [],
+            },
+          ],
+        },
+      ],
+    });
+    const { plan, result } = criarComIntents(
+      catalog,
+      [
+        {
+          entity: 'assunto',
+          id: 'ass_ja_existe',
+          discId: 'disc_a',
+          nome: 'Tema pendente',
+        },
+      ],
+      'ass_ja_existe',
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.plan).toBe(plan);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'REFERENCIA_INVALIDA' })]),
+    );
+  });
+
   it('usa referências existentes em PATCH e intents explícitos em CREATE', () => {
     const catalog = catalogo();
     const existing = resolveRetaFinalCatalog(catalog, {

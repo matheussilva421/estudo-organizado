@@ -138,7 +138,7 @@ function resolveExplicitId(catalog, discipline, discId, entity, proposal) {
   return { ok: true, id: proposal.id };
 }
 
-function resolveByName(discipline, discId, entity, proposal) {
+function resolveByName(catalog, discipline, discId, entity, proposal) {
   const collection = ENTITY_COLLECTIONS[entity];
   const key = normalizeNameKey(proposal.nome);
   if (!key) {
@@ -162,13 +162,32 @@ function resolveByName(discipline, discId, entity, proposal) {
     };
   }
   if (matches.length === 1) {
-    if (!isId(matches[0]?.id)) {
+    const id = matches[0]?.id;
+    if (!isId(id)) {
       return {
         ok: false,
         conflict: conflict('REFERENCIA_INVALIDA', entity, discId, proposal.nome),
       };
     }
-    return { ok: true, id: matches[0].id };
+    const locations = listEntityLocations(catalog, entity).filter(({ item }) => item.id === id);
+    if (locations.length !== 1 || locations[0].discipline !== discipline) {
+      return {
+        ok: false,
+        conflict: conflict(
+          locations.length > 1 ? 'REFERENCIA_AMBIGUA' : 'REFERENCIA_INVALIDA',
+          entity,
+          discId,
+          proposal.nome,
+          {
+            candidateIds: locations
+              .map(({ item }) => item.id)
+              .filter(isId)
+              .sort(),
+          },
+        ),
+      };
+    }
+    return { ok: true, id };
   }
   return { ok: true, id: null, key };
 }
@@ -235,7 +254,7 @@ export function resolveRetaFinalCatalog(
 
       const resolved = proposal.hasId
         ? resolveExplicitId(catalog, discipline, discId, entity, proposal)
-        : resolveByName(discipline, discId, entity, proposal);
+        : resolveByName(catalog, discipline, discId, entity, proposal);
       if (!resolved.ok) {
         addConflict(conflicts, resolved.conflict);
         continue;
