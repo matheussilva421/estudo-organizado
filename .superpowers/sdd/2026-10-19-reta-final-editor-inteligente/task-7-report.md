@@ -181,4 +181,4 @@ npm test -- --reporter=dot
 - `tests/unit/reta-final-draft-idb-helper.js` — `setRecord()` para montar os cenários de envelope inválido e estados divergentes.
 - `.superpowers/sdd/2026-10-19-reta-final-editor-inteligente/task-7-report.md` — este apêndice.
 
-Commit de correção e SHA serão registrados após a criação do commit local. Sem push.
+Commit de correção: `f391398eeb913d0f1946e9c80083779ce935675f` — `fix(reta-final): publish newest committed replay state`. Sem push.
