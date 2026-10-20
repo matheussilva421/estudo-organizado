@@ -134,4 +134,4 @@ npm test -- --reporter=dot
 - `tests/unit/reta-final-draft-idb-helper.js` — `getAll()` e exceção síncrona de `put` por store.
 - `.superpowers/sdd/2026-10-19-reta-final-editor-inteligente/task-7-report.md` — este apêndice.
 
-Commit de correção e SHA serão registrados após a criação do commit local. Sem push.
+Commit de correção: `afb23f15568b54874d10fac9e360c7c5746909e5` — `fix(reta-final): abort partial commits and dedupe journal ops`. Sem push.
