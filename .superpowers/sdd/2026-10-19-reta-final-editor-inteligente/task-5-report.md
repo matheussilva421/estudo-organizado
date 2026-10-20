@@ -84,3 +84,27 @@ Arquivos:
 - `tests/unit/reta-final-events.test.js`: RED de retenção e cobertura de não duplicação de `rfBlocoId`.
 
 Commit da correção: `8ce80f66e1439b5ca85ef02d7e696aeb9e2464df` (`fix(reta-final): prune only schedule-pending events`). Hook executado com `SKIP_CACHE_BUMP=1`; sem push.
+
+## Fix round 2 — reserva de links retidos
+
+Revisão: o guard de status estava correto, mas um evento auto não pendente não entrava em `occupiedBlockIds` antes da varredura. Assim, um segundo auto `agendado` para o mesmo `rfBlocoId` também podia ser retido. A correção reserva antecipadamente links manuais, com evidência e autos em qualquer status diferente de `agendado`.
+
+RED:
+
+- Adicionado cenário com dois eventos auto para o mesmo bloco: `concluido` sem tempo e `agendado`. O primeiro deve ser preservado, o duplicado pendente removido como `ligacao_duplicada`, `changed` deve ser `true` e deve restar exatamente uma ligação ao `rfBlocoId`.
+- `npx vitest run tests/unit/reta-final-events.test.js` — 12 testes executados, 11 passaram, 1 falhou, exit 1. Falha esperada: dois eventos permaneceram para o bloco (`expected length 1, received 2`).
+
+GREEN:
+
+- Mesmo comando após a correção — 12/12 testes.
+- Regressões centrais (`reta-final-sync-eventos`, `reta-final-quick-mark`, `reta-final-associar`) — 3 arquivos, 35/35 testes.
+- Suítes relacionadas (`schema-v2`, `schedule`, `catalog`, `commands`, `core`, `rollover`, `logic-cycle-imports`) — 7 arquivos, 216/216 testes.
+- `npm test` — 151/151 arquivos e 2.515/2.515 testes, exit 0.
+- `npx eslint src/js/logic/reta-final-events.js tests/unit/reta-final-events.test.js` — exit 0; `git diff --check` sem erros.
+
+Arquivos:
+
+- `src/js/logic/reta-final-events.js`: a ocupação inicial inclui autos não pendentes, reservando o bloco antes da remoção dos duplicados.
+- `tests/unit/reta-final-events.test.js`: RED e regressão do par `concluido` + `agendado` no mesmo `rfBlocoId`.
+
+Commit da correção: `4d31e7f411f147e9bc32287196c01480e7c57fd5` (`fix(reta-final): reserve retained auto links`). Hook executado com `SKIP_CACHE_BUMP=1`; sem push.
