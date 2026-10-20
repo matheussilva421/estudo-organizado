@@ -97,3 +97,55 @@ Verificações complementares:
 Commit de código/testes: `7a28ce1f421de225337faecaee8f8d2de127100c` (`feat(reta-final): resolve catalog references safely`). O hook teria atualizado arquivos compartilhados de cache fora do escopo, então o commit foi executado com `SKIP_CACHE_BUMP=1`. O pedido foi não fazer push; nada foi enviado ao GitHub. O relatório e o handoff serão registrados em um commit documental separado para que este relatório possa conter o SHA real da implementação.
 
 Próximo passo: nenhum para Task 4. A branch permanece local; não fazer push sem nova instrução. O próximo implementador pode seguir para a próxima task do plano mantendo `createIntents` como rascunho até o fluxo de commit autorizado materializá-las.
+
+## Fix round 1 — colisão de ID após resolução por nome
+
+Data: 2026-10-20  
+Commit de correção: `f9fb2a45e61ba4297b5b1e68525a207c20609edd` — `fix(reta-final): reject colliding catalog references`
+
+### Correção
+
+A resolução por nome passava a devolver um ID encontrado na disciplina selecionada sem verificar se o mesmo ID existia também em outra disciplina. O `applyRetaFinalCommand` já rejeitava essa referência depois, mas o resolver violava o contrato fail-closed. `resolveByName` agora recebe o catálogo, localiza todas as ocorrências do ID na entidade e só devolve a referência quando existe exatamente uma ocorrência, na disciplina selecionada. Colisão produz `REFERENCIA_AMBIGUA` com `candidateIds`; ID malformado produz `REFERENCIA_INVALIDA`. Em ambos os casos não há `ref` nem `createIntent`.
+
+### RED e GREEN
+
+Os testes foram adicionados antes da alteração de produção. O RED focado foi:
+
+```powershell
+npx vitest run tests/unit/reta-final-catalog.test.js
+```
+
+Resultado: 1 falha e 14 aprovados. O caso novo devolveu `refs: [{ assId: 'ass_colide', aulaId: null }]` quando esperava `[]`, provando que o nome único era aceito apesar do ID duplicado em outra disciplina. Os quatro casos de intenção (entidade errada, `discId` errado, intenções duplicadas e ID já catalogado) já eram rejeitados pelo validador e ficaram como regressões de contrato, todos com `REFERENCIA_INVALIDA`.
+
+O GREEN focado foi o mesmo comando: 1 arquivo, 15/15 testes aprovados.
+
+### Validação
+
+```powershell
+npx vitest run tests/unit/reta-final-catalog.test.js tests/unit/reta-final-commands.test.js tests/unit/logic-cycle-imports.test.js
+```
+
+Resultado: 3 arquivos, 114/114 testes aprovados.
+
+```powershell
+npm test
+```
+
+Resultado: 150/150 arquivos e 2.499/2.499 testes aprovados.
+
+- Prettier nos dois arquivos alterados: aprovado.
+- ESLint no resolver: 0 erros e 0 avisos.
+- `git diff --cached --check`: aprovado antes do commit.
+
+### Arquivos
+
+- `src/js/logic/reta-final-catalog.js` — verificação global de unicidade do ID após match por nome.
+- `tests/unit/reta-final-catalog.test.js` — RED de colisão transversal e quatro regressões de intenções pendentes.
+
+### Auto-revisão
+
+- **Fail-closed:** uma única ocorrência global e pertencente à disciplina selecionada é condição necessária para devolver a referência.
+- **API:** assinatura pública, formato de retorno e `makeId` não mudaram.
+- **Pureza e imutabilidade:** o resolver continua sem estado, store, DOM, rede ou timers; os novos testes apenas congelam os dados de entrada e verificam o retorno.
+- **Legado:** nenhuma alteração no importador/ativação v1 ou no schema; a suíte completa passou.
+- **Validador:** entidade, disciplina, unicidade de intenção e ausência do ID no catálogo continuam exigidos antes de aceitar uma referência pendente.
