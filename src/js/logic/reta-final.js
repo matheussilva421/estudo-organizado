@@ -14,6 +14,7 @@ import {
   applyTopicosToEvent,
   buildTopicosFromRetaFinalBloco,
 } from '../registro-sessao/session-topics.js';
+export { resolveRetaFinalCatalog } from './reta-final-catalog.js';
 import {
   buildRetaFinalEventTitle,
   matchRetaFinalToEditais,

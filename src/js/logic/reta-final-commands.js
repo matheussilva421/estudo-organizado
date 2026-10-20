@@ -244,6 +244,7 @@ function readContext(options) {
   return {
     events,
     catalog: Array.isArray(source.catalog) ? source.catalog : [],
+    catalogIntents: Array.isArray(source.catalogIntents) ? source.catalogIntents : [],
     timerIds,
     today: isCivilDate(source.today) ? source.today : null,
     makeId: typeof source.makeId === 'function' ? source.makeId : null,
@@ -302,15 +303,63 @@ function addTimerConflicts(diagnostics, blockIds, ctx, command) {
 
 function findDiscipline(catalog, discId) {
   if (!isId(discId)) return null;
+  let found = null;
   for (const edital of catalog) {
     for (const disc of edital?.disciplinas || []) {
-      if (disc?.id === discId) return disc;
+      if (disc?.id !== discId) continue;
+      if (found) return null;
+      found = disc;
     }
   }
-  return null;
+  return found;
 }
 
-function validTopicos(topicos, disc) {
+function catalogHasId(catalog, id) {
+  for (const edital of catalog) {
+    if (edital?.id === id) return true;
+    for (const disc of edital?.disciplinas || []) {
+      if (disc?.id === id) return true;
+      for (const entity of ['assuntos', 'aulas']) {
+        if ((disc?.[entity] || []).some((item) => item?.id === id)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function hasCatalogReference(catalog, disc, discId, entity, id) {
+  const matches = [];
+  for (const edital of catalog) {
+    for (const candidate of edital?.disciplinas || []) {
+      for (const item of candidate?.[entity] || []) {
+        if (item?.id === id) matches.push(candidate);
+      }
+    }
+  }
+  return matches.length === 1 && matches[0] === disc && disc.id === discId;
+}
+
+function hasPendingCatalogIntent(ctx, entity, discId, id) {
+  if (!isId(id) || catalogHasId(ctx.catalog, id)) return false;
+  const matches = ctx.catalogIntents.filter((intent) => intent?.id === id);
+  if (matches.length !== 1) return false;
+  const intent = matches[0];
+  return (
+    intent.entity === entity &&
+    intent.discId === discId &&
+    isId(intent.nome)
+  );
+}
+
+function validCatalogReference(ctx, disc, entity, discId, id) {
+  if (!isId(id)) return false;
+  return (
+    hasCatalogReference(ctx.catalog, disc, discId, entity, id) ||
+    hasPendingCatalogIntent(ctx, entity === 'assuntos' ? 'assunto' : 'aula', discId, id)
+  );
+}
+
+function validTopicos(topicos, disc, discId, ctx) {
   if (!disc || !Array.isArray(topicos) || topicos.length === 0) return false;
   for (const topico of topicos) {
     if (!isPlainObject(topico)) return false;
@@ -319,13 +368,13 @@ function validTopicos(topicos, disc) {
     if (!hasAssunto && !hasAula) return false;
     if (
       hasAssunto &&
-      (!isId(topico.assId) || !(disc.assuntos || []).some((item) => item?.id === topico.assId))
+      !validCatalogReference(ctx, disc, 'assuntos', discId, topico.assId)
     ) {
       return false;
     }
     if (
       hasAula &&
-      (!isId(topico.aulaId) || !(disc.aulas || []).some((item) => item?.id === topico.aulaId))
+      !validCatalogReference(ctx, disc, 'aulas', discId, topico.aulaId)
     ) {
       return false;
     }
@@ -424,7 +473,7 @@ function validatePatchedReferences(diagnostics, candidates, patch, ctx, command)
   if (!touchesReferences) return;
   for (const [id, block] of candidates) {
     const disc = findDiscipline(ctx.catalog, block.discId);
-    if (!validTopicos(block.topicos, disc)) {
+    if (!validTopicos(block.topicos, disc, block.discId, ctx)) {
       diagnostics.push(
         diagnostic(
           'REFERENCIA_INVALIDA',
@@ -820,7 +869,7 @@ function createInputDiagnostics(input, plan, ctx, command) {
     } else if (
       Array.isArray(input.topicos) &&
       input.topicos.length > 0 &&
-      !validTopicos(input.topicos, disc)
+      !validTopicos(input.topicos, disc, input.discId, ctx)
     ) {
       diagnostics.push(
         diagnostic(
