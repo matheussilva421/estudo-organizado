@@ -92,3 +92,30 @@ Arquivos do fix:
 - `tests/unit/store-indexeddb-imports.test.js` — abertura v6→v7 real via `initDB`, sucesso, key paths e exports.
 
 Não houve push, alteração da versão do banco, mudança de API pública ou nova alteração de boot/migração de estado.
+
+## Fix round 2 — sparse arrays
+
+Revisão: veredito Needs fixes. A checagem de forma percorria operações com `forEach` e blocos com `some`; ambos pulam índices ausentes em arrays esparsos. Um buraco podia escapar até o `find`/`Map`, causando exceções em vez de diagnóstico.
+
+RED:
+
+- `npx vitest run tests/unit/reta-final-drafts.test.js --reporter=dot` — 1 arquivo; 21 testes; 18 passaram e 3 falharam, exit 1.
+- `append` lançou ao ler uma operação esparsa; blocos esparsos lançaram durante a construção do `Map`; a validação com blocos esparsos retornou `DRAFT_SNAPSHOT_MISMATCH` em vez de `DRAFT_INVALID`. O cenário de validação de operações esparsas já retornava bloqueado e foi mantido como regressão.
+
+GREEN:
+
+- `snapshotShapeError` e `operationShapeErrors` agora percorrem cada índice explicitamente e usam `Object.prototype.hasOwnProperty.call` antes de acessar o valor. Buracos retornam `DRAFT_INVALID` ou `DRAFT_OPERATION_INVALID` com o índice, antes de `.find`, replay, `Map` ou `diffPlans`.
+- `npx vitest run tests/unit/reta-final-drafts.test.js --reporter=dot` — 1 arquivo; 21/21 testes passaram.
+- `npx vitest run tests/unit/reta-final-drafts.test.js tests/unit/reta-final-draft-store.test.js tests/unit/store-indexeddb-imports.test.js tests/unit/store-migrations.test.js tests/unit/store-boot-failure.test.js --reporter=dot` — 5 arquivos; 65/65 testes passaram.
+- `npx vitest run tests/unit/reta-final-events.test.js tests/unit/reta-final-sync-eventos.test.js tests/unit/reta-final-quick-mark.test.js tests/unit/reta-final-associar.test.js tests/unit/reta-final-schema-v2.test.js tests/unit/reta-final-schedule.test.js tests/unit/reta-final-catalog.test.js tests/unit/reta-final-commands.test.js tests/unit/reta-final-core.test.js tests/unit/reta-final-rollover.test.js tests/unit/logic-cycle-imports.test.js tests/unit/store-indexeddb-imports.test.js tests/unit/store-migrations.test.js tests/unit/store-boot-failure.test.js --reporter=dot` — 14 arquivos; 299/299 testes passaram.
+- `npm test -- --maxWorkers=2 --reporter=dot` — 153 arquivos; 2,546/2,546 testes passaram, exit 0.
+- `npx eslint src/js/logic/reta-final-drafts.js` — exit 0; `git diff --check` sem erros.
+
+Commit do fix: `79bc09d79ace155f6f2a4679a0c1f32c41d3752d` (`fix(reta-final): reject sparse draft arrays`).
+
+Arquivos do fix:
+
+- `src/js/logic/reta-final-drafts.js` — loops e checagens de índice próprio para operações e blocos.
+- `tests/unit/reta-final-drafts.test.js` — regressões de operações e blocos esparsos em append/validate.
+
+Sem push, alteração de API pública, versão de banco ou comportamento de migração.
