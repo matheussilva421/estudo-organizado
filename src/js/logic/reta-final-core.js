@@ -105,7 +105,7 @@ export function validateRetaFinalPayload(payload) {
  * mostra casados × criados antes de confirmar. Função pura: não muta editais.
  */
 export function matchRetaFinalToEditais(payload, editais) {
-  const discIndex = new Map(); // key -> { discId, editalId, assuntos: Map, aulas: Map }
+  const discIndex = new Map(); // key -> [{ discId, editalId, assuntos, aulas }]
   for (const edital of editais || []) {
     // Editais arquivados ficam fora do matching: uma disciplina homônima de um
     // concurso antigo casaria primeiro e mandaria os blocos (e as aulas novas)
@@ -113,29 +113,44 @@ export function matchRetaFinalToEditais(payload, editais) {
     if (edital?.arquivado) continue;
     for (const disc of edital?.disciplinas || []) {
       const key = normalizeNameKey(disc?.nome);
-      if (!key || discIndex.has(key)) continue;
+      if (!key) continue;
       const assuntos = new Map();
       for (const ass of disc.assuntos || []) {
         const assKey = normalizeNameKey(ass?.nome);
-        if (assKey && !assuntos.has(assKey)) assuntos.set(assKey, ass.id);
+        if (assKey) {
+          if (!assuntos.has(assKey)) assuntos.set(assKey, []);
+          assuntos.get(assKey).push(ass.id);
+        }
       }
       const aulas = new Map();
       for (const aula of disc.aulas || []) {
         const aulaKey = normalizeNameKey(aula?.nome);
-        if (aulaKey && !aulas.has(aulaKey)) aulas.set(aulaKey, aula.id);
+        if (aulaKey) {
+          if (!aulas.has(aulaKey)) aulas.set(aulaKey, []);
+          aulas.get(aulaKey).push(aula.id);
+        }
       }
-      discIndex.set(key, { discId: disc.id, editalId: edital.id, assuntos, aulas });
+      if (!discIndex.has(key)) discIndex.set(key, []);
+      discIndex.get(key).push({ discId: disc.id, editalId: edital.id, assuntos, aulas, nome: disc.nome });
     }
   }
 
   const byKey = new Map();
+  const conflicts = [];
   for (const dia of payload?.dias || []) {
     for (const bloco of dia?.blocos || []) {
       const key = normalizeNameKey(bloco?.disciplina);
       if (!key) continue;
       let entry = byKey.get(key);
       if (!entry) {
-        const matched = discIndex.get(key) || null;
+        const candidates = discIndex.get(key) || [];
+        const matched = candidates.length === 1 ? candidates[0] : null;
+        if (candidates.length > 1) {
+          conflicts.push({
+            code: 'REFERENCIA_AMBIGUA', entity: 'disciplina', nome: String(bloco.disciplina).trim(),
+            candidateIds: candidates.map((item) => item.discId).filter(Boolean).sort(),
+          });
+        }
         entry = {
           nome: String(bloco.disciplina).trim(),
           key,
@@ -144,6 +159,7 @@ export function matchRetaFinalToEditais(payload, editais) {
           topicos: [],
           aulas: [],
           _matched: matched,
+          _conflicts: [],
           _topicoKeys: new Set(),
           _aulaKeys: new Set(),
         };
@@ -156,8 +172,18 @@ export function matchRetaFinalToEditais(payload, editais) {
         entry.topicos.push({
           nome: String(topico).trim(),
           key: topicoKey,
-          assId: entry._matched?.assuntos.get(topicoKey) || null,
+          assId: null,
         });
+        const candidates = entry._matched?.assuntos.get(topicoKey) || [];
+        if (candidates.length === 1) entry.topicos[entry.topicos.length - 1].assId = candidates[0] || null;
+        else if (candidates.length > 1) {
+          const conflict = {
+            code: 'REFERENCIA_AMBIGUA', entity: 'assunto', discId: entry.discId,
+            nome: String(topico).trim(), candidateIds: candidates.filter(Boolean).sort(),
+          };
+          entry._conflicts.push(conflict);
+          conflicts.push(conflict);
+        }
       }
       const aulaKey = normalizeNameKey(bloco.aula);
       if (aulaKey && !entry._aulaKeys.has(aulaKey)) {
@@ -165,8 +191,18 @@ export function matchRetaFinalToEditais(payload, editais) {
         entry.aulas.push({
           nome: String(bloco.aula).trim(),
           key: aulaKey,
-          aulaId: entry._matched?.aulas.get(aulaKey) || null,
+          aulaId: null,
         });
+        const candidates = entry._matched?.aulas.get(aulaKey) || [];
+        if (candidates.length === 1) entry.aulas[entry.aulas.length - 1].aulaId = candidates[0] || null;
+        else if (candidates.length > 1) {
+          const conflict = {
+            code: 'REFERENCIA_AMBIGUA', entity: 'aula', discId: entry.discId,
+            nome: String(bloco.aula).trim(), candidateIds: candidates.filter(Boolean).sort(),
+          };
+          entry._conflicts.push(conflict);
+          conflicts.push(conflict);
+        }
       }
     }
   }
@@ -178,6 +214,7 @@ export function matchRetaFinalToEditais(payload, editais) {
     editalId: entry.editalId,
     topicos: entry.topicos,
     aulas: entry.aulas,
+    conflicts: entry._conflicts,
   }));
 
   const summary = {
@@ -199,7 +236,7 @@ export function matchRetaFinalToEditais(payload, editais) {
     }
   }
 
-  return { disciplinas, summary };
+  return { disciplinas, summary, conflicts };
 }
 
 /**

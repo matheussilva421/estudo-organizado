@@ -1,4 +1,4 @@
-const APP_VERSION = '9.41';
+const APP_VERSION = '9.42';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -64,6 +64,8 @@ const ASSET_PATHS = [
   './js/logic.js',
   './js/logic/cycle.js',
   './js/logic/reta-final-core.js',
+  './js/logic/reta-final-portable.js',
+  './js/logic/reta-final-import-compare.js',
   './js/logic/reta-final-schedule.js',
   './js/logic/reta-final-schema.js',
   './js/logic/reta-final-drafts.js',
