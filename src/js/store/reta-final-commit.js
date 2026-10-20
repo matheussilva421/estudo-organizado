@@ -73,6 +73,40 @@ function recoverStateFromReads(reads) {
   return recovered.state;
 }
 
+function recoverReplayStateFromReads(reads, planId, minimumRevision) {
+  const current = requestResult(reads.current);
+  const previous = requestResult(reads.previous);
+  const legacy = requestResult(reads.legacy);
+  const candidates = [];
+  if (isLocalStateEnvelopeValid(current)) candidates.push(current.payload);
+  if (isLocalStateEnvelopeValid(previous)) candidates.push(previous.payload);
+  if (legacy && typeof legacy === 'object') {
+    candidates.push(isLocalStateEnvelopeValid(legacy) ? legacy.payload : legacy);
+  }
+
+  let selected = null;
+  for (const candidate of candidates) {
+    const plan = candidate?.planejamento;
+    if (
+      plan?.planId !== planId ||
+      !Number.isSafeInteger(plan.revision) ||
+      plan.revision < minimumRevision
+    ) {
+      continue;
+    }
+    if (!selected || plan.revision > selected.planejamento.revision) {
+      selected = candidate;
+    }
+  }
+  if (!selected) {
+    throw codedError(
+      'RETA_FINAL_CONFLICT',
+      'Nenhum estado local alcança a revisão aplicada do rascunho.',
+    );
+  }
+  return selected;
+}
+
 function listCatalogIds(editais) {
   const ids = new Set();
   for (const edital of Array.isArray(editais) ? editais : []) {
@@ -316,19 +350,19 @@ export function commitRetaFinalDraft({
               throw codedError('RETA_FINAL_CONFLICT', 'Identidade ou revisão-base não corresponde ao rascunho.');
             }
             if (draft.state === 'applied') {
+              const appliedRevision = draft.appliedResult?.revision;
               if (
                 draft.appliedCommitId !== draftId ||
                 draft.appliedBaseRevision !== expectedRevision ||
                 draft.appliedPlanId !== expectedPlanId ||
-                !draft.appliedResult?.plan
+                !draft.appliedResult?.plan ||
+                !Number.isSafeInteger(appliedRevision)
               ) {
                 throw codedError('RETA_FINAL_CONFLICT', 'Registro de commit aplicado está inconsistente.');
               }
-              const replayState = recoverStateFromReads(reads);
-              if (replayState.planejamento?.planId !== expectedPlanId) {
-                throw codedError('RETA_FINAL_CONFLICT', 'O estado recuperado não pertence ao plano do commit.');
-              }
-              nextState = clone(replayState);
+              nextState = clone(
+                recoverReplayStateFromReads(reads, expectedPlanId, appliedRevision),
+              );
               commitResult = clone(draft.appliedResult);
               return;
             }

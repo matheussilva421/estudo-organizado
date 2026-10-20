@@ -306,6 +306,9 @@ export function createTransactionalIdb({
     getRecord(storeName, key) {
       return copy(backing.get(storeName)?.get(key));
     },
+    setRecord(storeName, key, value) {
+      backing.get(storeName)?.set(key, copy(value));
+    },
     storeNames() {
       return [...backing.keys()];
     },

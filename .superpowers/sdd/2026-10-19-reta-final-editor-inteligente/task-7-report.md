@@ -135,3 +135,50 @@ npm test -- --reporter=dot
 - `.superpowers/sdd/2026-10-19-reta-final-editor-inteligente/task-7-report.md` — este apêndice.
 
 Commit de correção: `afb23f15568b54874d10fac9e360c7c5746909e5` — `fix(reta-final): abort partial commits and dedupe journal ops`. Sem push.
+
+## Fix round 2 — newest committed replay state
+
+Status: **DONE**. Base desta correção: `e909279`.
+
+O replay de um draft aplicado passou a selecionar candidatos entre current, previous e legacy em vez de usar a preferência de recuperação de boot. Um candidato só entra se for um envelope válido (current/previous) ou o estado legado recuperável, tiver o `planId` esperado e revisão maior ou igual a `appliedResult.revision`. A maior revisão vence; em empate, current é preferido, depois previous, depois legacy. Se nenhum candidato alcança a revisão aplicada, o commit falha fechado com `RETA_FINAL_CONFLICT` e não publica estado.
+
+Isso preserva o resultado aplicado retornado pela operação enquanto publica o estado local mais novo. Um current revisão 6, por exemplo, não é regredido para a revisão 5 de um draft aplicado antigo.
+
+### RED
+
+```text
+npx vitest run tests/unit/reta-final-commit.test.js --reporter=default
+20 testes: 18 passaram, 2 falharam; exit 1.
+```
+
+- current inválido, previous na revisão 4 e legacy na revisão 5: replay publicou a revisão 4;
+- sem nenhum candidato que alcançasse a revisão aplicada 5, o replay ainda resolveu em vez de falhar fechado;
+- o caso current revisão 6 mais novo que o resultado aplicado 5 já publicou corretamente e foi mantido como regressão de não regressão.
+
+### GREEN
+
+```text
+npx vitest run tests/unit/reta-final-commit.test.js --reporter=default
+20/20 testes passaram; exit 0.
+```
+
+```text
+npx vitest run tests/unit/reta-final-commit.test.js tests/unit/duplicate-exports.test.js tests/unit/store-indexeddb-imports.test.js tests/unit/store-migrations.test.js tests/unit/store-boot-failure.test.js tests/unit/store-reta-final-sync.test.js tests/unit/reta-final-events.test.js tests/unit/reta-final-rollover.test.js tests/unit/reta-final-quick-mark.test.js tests/unit/reta-final-associar.test.js --reporter=default
+10 arquivos passaram; 105/105 testes passaram; exit 0.
+```
+
+```text
+npm test -- --reporter=dot
+154 arquivos passaram; 2.566/2.566 testes passaram; exit 0.
+```
+
+`npx eslint src/js/store/reta-final-commit.js src/js/store.js src/js/store/indexeddb.js src/js/logic/reta-final.js` terminou com exit 0. `git diff --check` terminou sem erros.
+
+### Arquivos do round
+
+- `src/js/store/reta-final-commit.js` — seleção da maior revisão válida para replay, mantendo identidade e limite mínimo.
+- `tests/unit/reta-final-commit.test.js` — legacy contra previous, current mais novo e falha fechada sem candidato suficiente.
+- `tests/unit/reta-final-draft-idb-helper.js` — `setRecord()` para montar os cenários de envelope inválido e estados divergentes.
+- `.superpowers/sdd/2026-10-19-reta-final-editor-inteligente/task-7-report.md` — este apêndice.
+
+Commit de correção e SHA serão registrados após a criação do commit local. Sem push.

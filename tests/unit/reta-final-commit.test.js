@@ -295,6 +295,75 @@ describe('commitRetaFinalDraft', () => {
     }
   });
 
+  it('replays the newest committed legacy state when the current envelope is invalid', async () => {
+    const idb = idbFor();
+    const draft = draftFor();
+    await persistDraft(idb, draft);
+    const applied = await commit(idb.database, draft);
+    const invalidCurrent = idb.getRecord('app_state', 'main_state_current');
+    idb.setRecord('app_state', 'main_state_current', {
+      ...invalidCurrent,
+      checksum: 'invalid-checksum',
+    });
+    let published = null;
+
+    const replay = await commit(idb.reopen(), draft, {
+      onCommitted: (nextState) => {
+        published = nextState;
+      },
+    });
+
+    expect(replay).toEqual(applied);
+    expect(published.planejamento.revision).toBe(5);
+    expect(idb.getRecord('app_state', 'main_state').planejamento.revision).toBe(5);
+  });
+
+  it('publishes a newer current state when replaying an older applied draft', async () => {
+    const idb = idbFor();
+    const firstDraft = draftFor(plan(), 'draft-a');
+    await persistDraft(idb, firstDraft);
+    const first = await commit(idb.database, firstDraft);
+    const secondDraft = draftFor(first.plan, 'draft-b', { patch: { minutos: 120 } });
+    await persistDraft(idb, secondDraft);
+    await commit(idb.database, secondDraft);
+    let published = null;
+
+    const replay = await commit(idb.reopen(), firstDraft, {
+      onCommitted: (nextState) => {
+        published = nextState;
+      },
+    });
+
+    expect(replay).toEqual(first);
+    expect(replay.revision).toBe(5);
+    expect(published.planejamento.revision).toBe(6);
+    expect(readAppState(idb).planejamento.revision).toBe(6);
+  });
+
+  it('fails closed when no recoverable state reaches the applied revision', async () => {
+    const idb = idbFor();
+    const draft = draftFor();
+    await persistDraft(idb, draft);
+    await commit(idb.database, draft);
+    const invalidCurrent = idb.getRecord('app_state', 'main_state_current');
+    idb.setRecord('app_state', 'main_state_current', {
+      ...invalidCurrent,
+      checksum: 'invalid-checksum',
+    });
+    const olderState = appState({ planejamento: plan({ revision: 4 }) });
+    idb.setRecord('app_state', 'main_state_previous', createLocalStateEnvelope(olderState, {
+      slot: 'previous',
+      savedAt: '2026-10-18T10:00:00.000Z',
+    }));
+    idb.setRecord('app_state', 'main_state', olderState);
+    const published = [];
+
+    await expect(commit(idb.reopen(), draft, {
+      onCommitted: (nextState) => published.push(nextState),
+    })).rejects.toMatchObject({ code: 'RETA_FINAL_CONFLICT' });
+    expect(published).toEqual([]);
+  });
+
   it('allows only one of two connections committing different drafts from the same base', async () => {
     const idb = idbFor();
     const firstDraft = draftFor(plan(), 'draft-a');
