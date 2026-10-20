@@ -3,7 +3,7 @@
 Data: 2026-10-20
 Branch: `codex/reta-final-editor-fase-a`
 Base: `bccfcabd45fc8eb53bdc1524a87a9b6a643e906b`
-Commit de implementação: `7a28ce1` — `feat(reta-final): resolve catalog references safely`
+Commit de implementação: `7a28ce1f421de225337faecaee8f8d2de127100c` — `feat(reta-final): resolve catalog references safely`
 
 ## Resultado
 
@@ -94,6 +94,6 @@ Verificações complementares:
 
 ## Git e continuidade
 
-Commit de código/testes: `7a28ce1` (`feat(reta-final): resolve catalog references safely`). O hook teria atualizado arquivos compartilhados de cache fora do escopo, então o commit foi executado com `SKIP_CACHE_BUMP=1`. O pedido foi não fazer push; nada foi enviado ao GitHub. O relatório e o handoff serão registrados em um commit documental separado para que este relatório possa conter o SHA real da implementação.
+Commit de código/testes: `7a28ce1f421de225337faecaee8f8d2de127100c` (`feat(reta-final): resolve catalog references safely`). O hook teria atualizado arquivos compartilhados de cache fora do escopo, então o commit foi executado com `SKIP_CACHE_BUMP=1`. O pedido foi não fazer push; nada foi enviado ao GitHub. O relatório e o handoff serão registrados em um commit documental separado para que este relatório possa conter o SHA real da implementação.
 
 Próximo passo: nenhum para Task 4. A branch permanece local; não fazer push sem nova instrução. O próximo implementador pode seguir para a próxima task do plano mantendo `createIntents` como rascunho até o fluxo de commit autorizado materializá-las.

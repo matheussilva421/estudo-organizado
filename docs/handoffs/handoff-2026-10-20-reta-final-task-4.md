@@ -2,7 +2,7 @@
 
 Data: 2026-10-20
 Branch: `codex/reta-final-editor-fase-a`
-Commit de implementação: `7a28ce1` (`feat(reta-final): resolve catalog references safely`)
+Commit de implementação: `7a28ce1f421de225337faecaee8f8d2de127100c` (`feat(reta-final): resolve catalog references safely`)
 
 ## Feito
 
@@ -33,7 +33,7 @@ O relatório integral, com comandos, REDs, contagens e auto-revisão, está em `
 
 ## Git, riscos e retomada
 
-- Commit local `7a28ce1`; hook de cache ignorado com `SKIP_CACHE_BUMP=1` porque alteraria arquivos de cache fora do escopo.
+- Commit local `7a28ce1f421de225337faecaee8f8d2de127100c`; hook de cache ignorado com `SKIP_CACHE_BUMP=1` porque alteraria arquivos de cache fora do escopo.
 - Não houve push, conforme instrução explícita.
 - Nenhuma pendência de implementação da Task 4. Não materializar intenções no render; persistência delas deve ocorrer somente no fluxo de commit previsto pela próxima etapa.
 - Continuar na mesma branch após revisar o relatório e o estado Git. Os comandos `npm test` e o conjunto de regressões acima passaram no estado de código já commitado.
