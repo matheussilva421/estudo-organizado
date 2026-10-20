@@ -53,7 +53,7 @@ describe('store/indexeddb.js - Module integrity', () => {
   it('exports expected IndexedDB symbols', () => {
     // Constants
     expect(indexeddb.DB_NAME).toBe('EstudoOrganizadoDB');
-    expect(indexeddb.DB_VERSION).toBe(6);
+    expect(indexeddb.DB_VERSION).toBe(7);
     expect(indexeddb.STORE_NAME).toBe('app_state');
     expect(indexeddb.FIRESTORE_OUTBOX_STORE).toBe('firestore_outbox');
     expect(indexeddb.FIRESTORE_META_STORE).toBe('firestore_meta');
@@ -97,6 +97,8 @@ describe('store/indexeddb.js - Module integrity', () => {
       'LOCAL_STATE_CURRENT_KEY',
       'LOCAL_STATE_PREVIOUS_KEY',
       'LOCAL_STATE_LEGACY_KEY',
+      'RETA_FINAL_DRAFT_STORE',
+      'RETA_FINAL_JOURNAL_STORE',
       'DEFAULT_FIRESTORE_SYNC_CONFIG',
     ];
 
@@ -119,6 +121,14 @@ describe('store/indexeddb.js - Module integrity', () => {
     for (const sym of reExportedFunctions) {
       expect(store[sym]).toBe(indexeddb[sym]);
     }
+  });
+
+  it('store.js exposes the isolated draft persistence helpers', async () => {
+    const draftStore = await import('../../src/js/store/reta-final-draft-store.js');
+
+    expect(store.loadRetaFinalDraft).toBe(draftStore.loadRetaFinalDraft);
+    expect(store.saveRetaFinalDraft).toBe(draftStore.saveRetaFinalDraft);
+    expect(store.discardRetaFinalDraft).toBe(draftStore.discardRetaFinalDraft);
   });
 
   it('store.js re-exports "db" as live binding from indexeddb.js', () => {
@@ -196,5 +206,47 @@ describe('store/indexeddb.js - Data pipeline functions work end-to-end', () => {
 
     expect(order).toEqual([1, 2]);
     expect(indexeddb.SyncQueue.tasks).toHaveLength(0);
+  });
+});
+
+describe('store/indexeddb.js - Task 6 schema upgrade', () => {
+  it('opens version 7 and creates only the two isolated draft stores', async () => {
+    const existing = new Set([
+      'app_state',
+      'firestore_outbox',
+      'firestore_meta',
+      'firestore_conflicts',
+      'entity_meta',
+      'firestore_entity_outbox',
+    ]);
+    const created = [];
+    const database = {
+      objectStoreNames: { contains: (name) => existing.has(name) },
+      createObjectStore: vi.fn((name, options) => {
+        created.push({ name, keyPath: options?.keyPath ?? null });
+        existing.add(name);
+      }),
+    };
+    const request = {};
+    global.indexedDB.open = vi.fn(() => request);
+    const logError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const opening = indexeddb.initDB();
+      const version = global.indexedDB.open.mock.calls[0][1];
+      request.onupgradeneeded({ target: { result: database, oldVersion: 6, newVersion: version } });
+      request.onerror({ target: { error: new DOMException('Test complete', 'UnknownError') } });
+      await opening;
+
+      expect.soft(version).toBe(7);
+      expect.soft(created).toEqual([
+        { name: 'reta_final_drafts', keyPath: 'draftId' },
+        { name: 'reta_final_journal', keyPath: 'id' },
+      ]);
+      expect.soft(store.RETA_FINAL_DRAFT_STORE).toBe('reta_final_drafts');
+      expect.soft(store.RETA_FINAL_JOURNAL_STORE).toBe('reta_final_journal');
+    } finally {
+      logError.mockRestore();
+    }
   });
 });

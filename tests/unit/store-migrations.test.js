@@ -283,7 +283,7 @@ describe('Reta Final persisted migration', () => {
     const records = new Map([[sourceKey, source === 'legacy' ? input : store.createLocalStateEnvelope(input)]]);
     const database = memoryDB(records);
     await boot(database);
-    expect(store.DB_VERSION).toBe(6);
+    expect(store.DB_VERSION).toBe(7);
     const saved = records.get(store.LOCAL_STATE_CURRENT_KEY);
     const backup = records.get(store.LOCAL_STATE_PREVIOUS_KEY);
     expect(store.isLocalStateEnvelopeValid(saved)).toBe(true);

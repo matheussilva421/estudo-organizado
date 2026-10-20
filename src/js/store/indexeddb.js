@@ -28,13 +28,15 @@ export function _bindSetState(ref) {
 }
 
 export const DB_NAME = 'EstudoOrganizadoDB';
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
 export const STORE_NAME = 'app_state';
 export const FIRESTORE_OUTBOX_STORE = 'firestore_outbox';
 export const FIRESTORE_META_STORE = 'firestore_meta';
 export const FIRESTORE_CONFLICT_STORE = 'firestore_conflicts';
 export const ENTITY_META_STORE = 'entity_meta';
 export const FIRESTORE_ENTITY_OUTBOX_STORE = 'firestore_entity_outbox';
+export const RETA_FINAL_DRAFT_STORE = 'reta_final_drafts';
+export const RETA_FINAL_JOURNAL_STORE = 'reta_final_journal';
 export const LOCAL_STATE_CURRENT_KEY = 'main_state_current';
 export const LOCAL_STATE_PREVIOUS_KEY = 'main_state_previous';
 export const LOCAL_STATE_LEGACY_KEY = 'main_state';
@@ -99,6 +101,12 @@ export function initDB() {
       }
       if (!db.objectStoreNames.contains(FIRESTORE_ENTITY_OUTBOX_STORE)) {
         db.createObjectStore(FIRESTORE_ENTITY_OUTBOX_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(RETA_FINAL_DRAFT_STORE)) {
+        db.createObjectStore(RETA_FINAL_DRAFT_STORE, { keyPath: 'draftId' });
+      }
+      if (!db.objectStoreNames.contains(RETA_FINAL_JOURNAL_STORE)) {
+        db.createObjectStore(RETA_FINAL_JOURNAL_STORE, { keyPath: 'id' });
       }
     };
 

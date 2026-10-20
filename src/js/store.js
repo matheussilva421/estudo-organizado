@@ -17,6 +17,8 @@ import {
   FIRESTORE_CONFLICT_STORE,
   ENTITY_META_STORE,
   FIRESTORE_ENTITY_OUTBOX_STORE,
+  RETA_FINAL_DRAFT_STORE,
+  RETA_FINAL_JOURNAL_STORE,
   LOCAL_STATE_CURRENT_KEY,
   LOCAL_STATE_PREVIOUS_KEY,
   LOCAL_STATE_LEGACY_KEY,
@@ -47,6 +49,8 @@ export {
   FIRESTORE_CONFLICT_STORE,
   ENTITY_META_STORE,
   FIRESTORE_ENTITY_OUTBOX_STORE,
+  RETA_FINAL_DRAFT_STORE,
+  RETA_FINAL_JOURNAL_STORE,
   LOCAL_STATE_CURRENT_KEY,
   LOCAL_STATE_PREVIOUS_KEY,
   LOCAL_STATE_LEGACY_KEY,
@@ -69,6 +73,12 @@ export {
   isLocalStateEnvelopeValid,
   pickRecoverableLocalState,
 } from './store/normalize-state.js';
+
+export {
+  loadRetaFinalDraft,
+  saveRetaFinalDraft,
+  discardRetaFinalDraft,
+} from './store/reta-final-draft-store.js';
 
 /**
  * Atualiza o estado global com deep clone para prevenir mutações

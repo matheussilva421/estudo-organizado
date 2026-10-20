@@ -1,0 +1,63 @@
+# Task 6 — Rascunhos recuperáveis em IndexedDB
+
+Data: 2026-10-20
+Branch: `codex/reta-final-editor-fase-a`
+Base desta continuação: `36e38494617fb4c97d23d83eb69dc5096006cf72`
+Commit solicitado: `feat(reta-final): persist isolated drafts`
+Push: não realizado, conforme instrução.
+Status GitHub: alterações comprometidas localmente nesta branch; sem push.
+
+## Resultado
+
+O banco `EstudoOrganizadoDB` sobe de `DB_VERSION=6` para `DB_VERSION=7` em seu `onupgradeneeded` existente. O upgrade cria, quando ausentes, `reta_final_drafts` com `keyPath: 'draftId'` e `reta_final_journal` com `keyPath: 'id'`. O facade `store.js` expõe as constantes e as operações de carregar, salvar e descartar rascunhos. O service worker inclui os dois novos módulos no precache.
+
+Os rascunhos mantêm snapshot, operações e estado `editing` isolados de `state.planejamento`, `app_state`, eventos e sincronização remota. Salvar, carregar e descartar usam a instância IndexedDB fornecida e só resolvem depois de `tx.oncomplete`; erros de transação, abortos e quota rejeitam. O descarte atua somente sobre o rascunho. A store de journal foi criada, sem wiring de journal nesta tarefa.
+
+## RED → GREEN
+
+RED inicial da integração:
+
+- `npx vitest run tests/unit/reta-final-draft-store.test.js tests/unit/store-indexeddb-imports.test.js --reporter=dot` — 2 arquivos; 19 testes; 17 passaram e 2 falharam. Falha esperada: versão observada 6 em vez de 7 e ausência dos dois object stores e constantes públicas.
+
+RED expandido, incluindo exposição do facade e contrato observado no boot:
+
+- `npx vitest run tests/unit/reta-final-drafts.test.js tests/unit/reta-final-draft-store.test.js tests/unit/store-indexeddb-imports.test.js tests/unit/store-migrations.test.js --reporter=dot` — 4 arquivos; 55 testes; 49 passaram e 6 falharam pelas lacunas esperadas de versão, stores, exports e expectativa de migração.
+
+GREEN focado, depois da implementação e da padronização de aspas:
+
+- `npx vitest run tests/unit/reta-final-drafts.test.js tests/unit/reta-final-draft-store.test.js tests/unit/store-indexeddb-imports.test.js tests/unit/store-migrations.test.js tests/unit/store-boot-failure.test.js --reporter=dot` — 5 arquivos; 57/57 testes passaram.
+- `npx vitest run tests/unit/reta-final-events.test.js tests/unit/reta-final-sync-eventos.test.js tests/unit/reta-final-quick-mark.test.js tests/unit/reta-final-associar.test.js tests/unit/reta-final-schema-v2.test.js tests/unit/reta-final-schedule.test.js tests/unit/reta-final-catalog.test.js tests/unit/reta-final-commands.test.js tests/unit/reta-final-core.test.js tests/unit/reta-final-rollover.test.js tests/unit/logic-cycle-imports.test.js tests/unit/store-indexeddb-imports.test.js tests/unit/store-migrations.test.js tests/unit/store-boot-failure.test.js --reporter=dot` — 14 arquivos; 299/299 testes passaram.
+- `npm test -- --maxWorkers=2 --reporter=dot` — 153 arquivos; 2,538/2,538 testes passaram, exit 0. Repetido após a última alteração de estilo, com os mesmos resultados.
+- `npx eslint src/js/logic/reta-final-drafts.js src/js/store/reta-final-draft-store.js src/js/store/indexeddb.js src/js/store.js` — exit 0, sem avisos.
+- `git diff --check` — sem erros.
+
+Os testes do draft store simulam gravação visível apenas após completar a transação, quota (`QuotaExceededError`), abort/interrupção (`AbortError`), ausência de banco, reload por nova conexão, descarte isolado e persistência de operação. Os testes puros cobrem revisão/digest obsoletos, conflito de identidade e `operationId` duplicado idempotente ou conflitante. Esses cenários exercitam as funções reais do domínio e do draft store com callbacks transacionais controlados pelo helper de teste.
+
+Uma tentativa de lintar também os arquivos de teste terminou em erro por globais ausentes na configuração ESLint do projeto (`global`, `process`, `DOMException` e `queueMicrotask`); o auto-fix aplicado foi apenas de aspas. O lint de produção acima passou depois disso, e os testes foram reexecutados.
+
+## Arquivos
+
+- `src/js/logic/reta-final-drafts.js` — criação pura, comandos isolados, diff, digest e validação/stale.
+- `src/js/store/reta-final-draft-store.js` — transações de carregar/salvar/descartar.
+- `src/js/store/indexeddb.js` — versão 7, constantes e criação condicional das stores.
+- `src/js/store.js` — exposição das constantes e funções do facade.
+- `src/sw.js` — precache dos módulos de draft.
+- `tests/unit/reta-final-drafts.test.js` — contratos puros e idempotência.
+- `tests/unit/reta-final-draft-store.test.js` — persistência e falhas transacionais.
+- `tests/unit/reta-final-draft-idb-helper.js` — helper transacional para commit, reopen, quota e abort.
+- `tests/unit/store-indexeddb-imports.test.js` — upgrade v7 e exports.
+- `tests/unit/store-migrations.test.js` — expectativa de versão v7 no boot, sem alterar migração de estado.
+- `.superpowers/sdd/2026-10-19-reta-final-editor-inteligente/task-6-report.md` — este relatório.
+
+SHA-256 dos módulos novos:
+
+| Arquivo | SHA-256 |
+|---|---|
+| `src/js/logic/reta-final-drafts.js` | `8fa695f315ceed404da07ef1176e50f603a23386041c4be89c0aee9fa498e04e` |
+| `src/js/store/reta-final-draft-store.js` | `3bc06ebbffcd4e82f0b52fb97df51729014cb19b56edf07b5ac90addab72c47b` |
+
+## Limites e retomada
+
+Não foi executado E2E nem teste manual em navegador com IndexedDB nativo. O gate desta tarefa verifica o upgrade por callback de `initDB` e as transações através do helper controlado; persistência em browser real permanece para a cobertura de integração posterior. Não houve alteração em sync remoto, semântica de `state.planejamento`, boot migrations ou contratos públicos da Phase A.
+
+Para retomar, confira `git status` e leia este relatório. O commit fica local na branch indicada; não houve push. Os próximos trabalhos devem reutilizar as duas stores existentes e não incrementar novamente `DB_VERSION`.
