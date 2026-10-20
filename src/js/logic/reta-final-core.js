@@ -305,7 +305,7 @@ export function rolloverRetaFinalBlocks(retaFinal, { today, preservedBlocoIds } 
 
   const rolados = new Set();
   for (const bloco of retaFinal.blocos) {
-    if (!bloco || bloco.status !== 'pendente') continue;
+    if (!bloco || bloco.status !== 'pendente' || bloco.arquivado === true) continue;
     if (!bloco.data || bloco.data >= today) continue;
     if (preserved.has(bloco.id)) continue;
     if (aposDataFinal) {
@@ -358,7 +358,7 @@ export function reconcileRetaFinalWithEvents(plan, eventos) {
   }
 
   for (const bloco of blocos) {
-    if (!bloco?.id) continue;
+    if (!bloco?.id || bloco.arquivado === true) continue;
     if (estudados.has(bloco.id)) {
       if (bloco.status !== 'concluido') {
         bloco.status = 'concluido';

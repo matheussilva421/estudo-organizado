@@ -155,6 +155,15 @@ describe('No cross-imports (circular dependency prevention)', () => {
     expect(source).not.toMatch(/\b(document|window|localStorage|indexedDB|fetch)\b/);
   });
 
+  it('reta-final-events.js is pure (no imports or runtime side effects)', () => {
+    const source = read('src/js/logic/reta-final-events.js');
+    const executable = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+    expect([...executable.matchAll(/^import\s/gm)]).toHaveLength(0);
+    expect(executable).not.toMatch(
+      /\b(document|window|localStorage|indexedDB|fetch|setTimeout|setInterval|scheduleSave|state|store)\b/,
+    );
+  });
+
   it('reta-final-catalog.js imports only the pure reta-final-core.js module', () => {
     const source = read('src/js/logic/reta-final-catalog.js');
     const imports = [...source.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
@@ -168,10 +177,10 @@ describe('No cross-imports (circular dependency prevention)', () => {
     const imports = [...source.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
     // session-topics.js é puro (zero imports — guardado abaixo): o quick-mark
     // reusa applyTopicosToEvent/buildTopicosFromRetaFinalBloco sem criar ciclo.
-    // reta-final-schema.js e reta-final-catalog.js também são puros (guardados acima).
+    // Schema, schedule, eventos e catalog também são puros (guardados acima).
     for (const spec of imports) {
       expect(spec).toMatch(
-        /(store\.js|utils\.js|reta-final-core\.js|reta-final-schema\.js|reta-final-schedule\.js|reta-final-catalog\.js|registro-sessao\/session-topics\.js)(\?v=[\d.]+)?$/
+        /(store\.js|utils\.js|reta-final-core\.js|reta-final-schema\.js|reta-final-schedule\.js|reta-final-events\.js|reta-final-catalog\.js|registro-sessao\/session-topics\.js)(\?v=[\d.]+)?$/
       );
     }
   });
