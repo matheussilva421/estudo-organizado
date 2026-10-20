@@ -81,6 +81,43 @@ describe('rebuildRetaFinalAutoEvents', () => {
     expect(result.changed).toBe(true);
   });
 
+  it('preserva auto evento não pendente sem evidência quando o bloco não existe', () => {
+    const completedWithoutEvidence = autoEvento({
+      id: 'autorf_concluido',
+      rfBlocoId: 'rf_inexistente',
+      status: 'concluido',
+      tempoAcumulado: 0
+    });
+    const events = [completedWithoutEvidence];
+    const snapshot = structuredClone(completedWithoutEvidence);
+
+    const result = rebuild(plano([]), events);
+
+    expect(result.events).toBe(events);
+    expect(result.events[0]).toBe(completedWithoutEvidence);
+    expect(completedWithoutEvidence).toEqual(snapshot);
+    expect(result.changed).toBe(false);
+    expect(result.diagnostics.removed).toEqual([]);
+  });
+
+  it('evento auto retido com status não pendente impede uma ligação duplicada', () => {
+    const retainedEvent = autoEvento({
+      id: 'autorf_concluido',
+      status: 'concluido',
+      tempoAcumulado: 0,
+      data: '2026-10-18'
+    });
+    const events = [retainedEvent];
+    const makeId = vi.fn(() => 'must-not-be-used');
+
+    const result = rebuild(plano([bloco()]), events, makeId);
+
+    expect(result.events).toBe(events);
+    expect(result.changed).toBe(false);
+    expect(makeId).not.toHaveBeenCalled();
+    expect(result.events.filter((event) => event.rfBlocoId === 'rf_1')).toHaveLength(1);
+  });
+
   it('preserva evento que acumulou exatamente um minuto', () => {
     const partial = autoEvento({ tempoAcumulado: 60 });
     const events = [partial];
