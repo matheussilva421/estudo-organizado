@@ -1,6 +1,6 @@
 import {
+  invertRetaFinalOperation,
   verifyRetaFinalCheckpoint,
-  verifyRetaFinalOperationProvenance,
 } from "../logic/reta-final-history.js";
 import {
   RETA_FINAL_DRAFT_STORE,
@@ -175,8 +175,7 @@ export function listRetaFinalOperations(database, planId) {
                 };
                 return {
                   ...record,
-                  inverseAvailable:
-                    verifyRetaFinalOperationProvenance(record).valid,
+                  inverseAvailable: !invertRetaFinalOperation(record).blocking,
                 };
               },
             ),

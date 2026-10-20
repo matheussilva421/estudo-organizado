@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createRetaFinalCheckpoint } from "../../src/js/logic/reta-final-history.js";
 import {
+  appendRetaFinalDraftOperation,
+  createRetaFinalDraft,
+} from "../../src/js/logic/reta-final-drafts.js";
+import {
   listRetaFinalOperations,
   listRetaFinalCheckpoints,
   pruneRetaFinalCheckpoints,
@@ -249,5 +253,59 @@ describe("Reta Final checkpoint journal store", () => {
     expect(
       await listRetaFinalCheckpoints(database.reopen(), "plan-history-store"),
     ).toHaveLength(21);
+  });
+
+  it("reports inverse availability from the actual inverse result", async () => {
+    const base = plan();
+    let draft = createRetaFinalDraft(base, {
+      draftId: "operations-draft",
+      now: "2026-10-20T12:00:00.000Z",
+    });
+    draft = appendRetaFinalDraftOperation(
+      draft,
+      {
+        operationId: "patch-minutes",
+        type: "PATCH",
+        blockIds: ["rf_1"],
+        patch: { minutos: 90 },
+      },
+      { today: "2026-10-20", events: [], catalog: [] },
+    ).draft;
+    draft = appendRetaFinalDraftOperation(
+      draft,
+      {
+        operationId: "extend-deadline",
+        type: "EXTEND_DEADLINE",
+        input: { dataFinal: "2026-12-31" },
+      },
+      { today: "2026-10-20", events: [], catalog: [] },
+    ).draft;
+    const applied = {
+      ...draft,
+      state: "applied",
+      appliedRevision: 4,
+      appliedAt: "2026-10-20T12:00:00.000Z",
+      operations: draft.operations.map((operation) => ({
+        ...operation,
+        committedRevision: 4,
+      })),
+    };
+    const database = createTransactionalIdb({
+      stores: { reta_final_drafts: { "operations-draft": applied } },
+      keyPaths: { reta_final_drafts: "draftId" },
+    });
+
+    const operations = await listRetaFinalOperations(
+      database.database,
+      base.planId,
+    );
+    expect(
+      operations.find((operation) => operation.operationId === "patch-minutes"),
+    ).toMatchObject({ inverseAvailable: true });
+    expect(
+      operations.find(
+        (operation) => operation.operationId === "extend-deadline",
+      ),
+    ).toMatchObject({ inverseAvailable: false });
   });
 });
