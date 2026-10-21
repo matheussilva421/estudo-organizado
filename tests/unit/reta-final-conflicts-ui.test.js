@@ -146,7 +146,7 @@ function appState({
         basePlan: conflict?.basePlan || null,
         baseRevision: conflict?.basePlan?.revision ?? 3,
         baseDigest: conflict?.basePlan
-          ? retaFinalDigest(conflict.basePlan)
+          ? computeRetaFinalPlanDigest(conflict.basePlan)
           : null,
         baseRemoteUpdatedAt: "2026-10-21T10:00:00.000Z",
         removedBlocks: [{ id: "rf-old", revision: 2 }],
@@ -281,6 +281,22 @@ describe("Reta Final conflict review view", () => {
     expect(collectRetaFinalConflicts({ config: {} })).toEqual([]);
   });
 
+  it("shows complete long values and the main plan fields", () => {
+    const longValue = "x".repeat(220);
+    const conflict = firestoreConflict({
+      basePlan: plan({
+        revision: 3,
+        blocks: [block("rf-1", { observacao: longValue })],
+      }),
+    });
+    const html = renderRetaFinalConflictReview(appState({ conflict }));
+
+    expect(html).toContain("Ver completo");
+    expect(html).toContain(longValue);
+    expect(html).toContain("minutosPadrao");
+    expect(html).toContain("disciplinas");
+  });
+
   it("normalizes both conflict sources into stable unique ids and keeps duplicates", () => {
     const state = appState({
       conflict: null,
@@ -321,6 +337,34 @@ describe("Reta Final conflict review view", () => {
     expect(conflicts.map((item) => item.conflictId)).toEqual([
       ...new Set(conflicts.map((item) => item.conflictId)),
     ]);
+  });
+
+  it("normalizes a legacy merge-collision parent without syncMergeConflicts", () => {
+    const source = appState({
+      extraConfig: {
+        conflict: {
+          reason: "merge-collision",
+          detectedAt: NOW,
+          remoteUpdatedAt: NOW,
+          items: [
+            {
+              planId: "plan-1",
+              blockId: "rf-1",
+              fieldPath: "retaFinal.blocos.rf-1.minutos",
+              base: 45,
+              local: 60,
+              remote: 90,
+              reason: "colisao",
+            },
+          ],
+        },
+      },
+      topConfig: { syncMergeConflicts: undefined },
+    });
+
+    const items = collectRetaFinalConflicts(source);
+    expect(items.filter((item) => item.source === "merge")).toHaveLength(1);
+    expect(() => renderRetaFinalConflictReview(source)).not.toThrow();
   });
 
   it("removes only the requested conflict and preserves the other one", () => {
@@ -590,6 +634,66 @@ describe("resolveRetaFinalConflictAtomically", () => {
     expect(journal(idb)).toEqual([]);
   });
 
+  it("refuses prototype-pollution field paths and manual patches", async () => {
+    const source = appState({
+      topConfig: {
+        syncMergeConflicts: {
+          type: "reta-final-three-way",
+          detectedAt: NOW,
+          total: 1,
+          items: [
+            {
+              planId: "plan-1",
+              blockId: "rf-1",
+              fieldPath: "retaFinal.blocos.rf-1.__proto__.polluted",
+              base: null,
+              local: null,
+              remote: true,
+              reason: "inseguro",
+            },
+          ],
+        },
+      },
+    });
+    const item = collectRetaFinalConflicts(source).find((entry) =>
+      entry.fieldPath.includes("__proto__"),
+    );
+    expect(item).toMatchObject({ resolvable: false });
+    const idb = idbFor(source);
+    const before = readState(idb);
+
+    await expect(
+      resolveRetaFinalConflictAtomically({
+        db: idb.database,
+        conflictId: item.conflictId,
+        choice: "remote",
+        expectedPlanId: "plan-1",
+        expectedRevision: 4,
+        now: NOW,
+        deviceId: "device-a",
+      }),
+    ).rejects.toMatchObject({ code: "RETA_FINAL_CONFLICT" });
+    expect(readState(idb)).toEqual(before);
+    expect({}.polluted).toBeUndefined();
+
+    const manual = await resolveRetaFinalConflict(
+      "reta-final:merge-review:plan-1:plan",
+      {
+        choice: "manual",
+        patch: JSON.parse('{"__proto__":{"polluted":true}}'),
+      },
+      {
+        db: idb.database,
+        state: source,
+        confirmed: true,
+        now: NOW,
+        deviceId: "device-a",
+      },
+    );
+    expect(manual).toMatchObject({ applied: false });
+    expect({}.polluted).toBeUndefined();
+  });
+
   it("allows keeping local when the remote plan is absent without inventing a base", async () => {
     const conflict = firestoreConflict({
       remotePlan: null,
@@ -612,6 +716,98 @@ describe("resolveRetaFinalConflictAtomically", () => {
     const persisted = readState(idb);
     expect(persisted.config.firestoreSync.baseRevision).toBe(3);
     expect(persisted.config.firestoreSync.basePlan.planId).toBe("plan-1");
+  });
+
+  it("refuses manual resolution without a compatible remote", async () => {
+    const conflict = firestoreConflict({
+      remotePlan: null,
+      cause: "missing-remote-plan",
+    });
+    const source = appState({ conflict });
+    const idb = idbFor(source);
+    const before = readState(idb);
+
+    await expect(
+      resolveRetaFinalConflictAtomically({
+        db: idb.database,
+        conflictId: "reta-final:missing-remote-plan:plan-1:plan",
+        choice: "manual",
+        patch: { retaFinal: { minutosPadrao: 90 } },
+        expectedPlanId: "plan-1",
+        expectedRevision: 4,
+        now: NOW,
+        deviceId: "device-a",
+      }),
+    ).rejects.toMatchObject({ code: "RETA_FINAL_CONFLICT" });
+
+    expect(readState(idb)).toEqual(before);
+    const html = renderRetaFinalConflictReview(source);
+    expect(html).toMatch(/value="manual"[^>]*disabled/);
+  });
+
+  it("refuses adopting a remote plan older than the known base", async () => {
+    const conflict = firestoreConflict({
+      remotePlan: plan({ revision: 2 }),
+    });
+    const source = appState({ conflict });
+    const idb = idbFor(source);
+    const before = readState(idb);
+
+    await expect(
+      resolveRetaFinalConflictAtomically({
+        db: idb.database,
+        conflictId: "reta-final:merge-review:plan-1:plan",
+        choice: "remote",
+        expectedPlanId: "plan-1",
+        expectedRevision: 4,
+        now: NOW,
+        deviceId: "device-a",
+      }),
+    ).rejects.toMatchObject({ code: "RETA_FINAL_CONFLICT" });
+
+    expect(readState(idb)).toEqual(before);
+  });
+
+  it("refuses a merge-field resolution when the current value changed", async () => {
+    const source = appState({
+      topConfig: {
+        syncMergeConflicts: {
+          type: "reta-final-three-way",
+          detectedAt: NOW,
+          total: 1,
+          items: [
+            {
+              planId: "plan-1",
+              blockId: "rf-1",
+              fieldPath: "retaFinal.blocos.rf-1.minutos",
+              base: 45,
+              local: 60,
+              remote: 90,
+              reason: "colisao",
+            },
+          ],
+        },
+      },
+    });
+    source.planejamento.retaFinal.blocos[0].minutos = 70;
+    const item = collectRetaFinalConflicts(source).find(
+      (entry) => entry.source === "merge",
+    );
+    const idb = idbFor(source);
+    const before = readState(idb);
+
+    await expect(
+      resolveRetaFinalConflictAtomically({
+        db: idb.database,
+        conflictId: item.conflictId,
+        choice: "remote",
+        expectedPlanId: "plan-1",
+        expectedRevision: 4,
+        now: NOW,
+        deviceId: "device-a",
+      }),
+    ).rejects.toMatchObject({ code: "RETA_FINAL_STALE" });
+    expect(readState(idb)).toEqual(before);
   });
 
   it("adopts the remote plan with remote revision plus one and preserves local in a checkpoint", async () => {
@@ -857,5 +1053,73 @@ describe("sync center integration", () => {
 
     expect(html).toContain('data-testid="rf-conflict-review"');
     expect(html).not.toContain('data-testid="firestore-sync-conflict"');
+  });
+
+  it("normalizes a legacy merge-collision parent and clears it with the last item", async () => {
+    const mergeItem = {
+      planId: "plan-1",
+      blockId: "rf-1",
+      fieldPath: "retaFinal.blocos.rf-1.minutos",
+      base: 45,
+      local: 60,
+      remote: 90,
+      reason: "colisao",
+    };
+    const parent = {
+      reason: "merge-collision",
+      detectedAt: NOW,
+      remoteUpdatedAt: NOW,
+      total: 1,
+      items: [mergeItem],
+    };
+    const source = appState({
+      extraConfig: { conflict: parent, hasPendingWrites: true },
+      topConfig: {
+        syncMergeConflicts: {
+          type: "reta-final-three-way",
+          detectedAt: NOW,
+          total: 1,
+          items: [mergeItem],
+        },
+      },
+    });
+    vi.resetModules();
+    vi.doMock("../../src/js/sync/firestore-sync-engine.js?v=8.37", () => ({
+      getFirestoreSyncStatus: () => ({
+        configured: true,
+        signedIn: true,
+        enabled: true,
+        mode: "primary",
+        hasPendingWrites: true,
+        conflict: parent,
+        lastPushAt: null,
+        lastError: null,
+      }),
+    }));
+    const store = await import("../../src/js/store.js?v=8.37");
+    store.state.planejamento = source.planejamento;
+    store.state.config = source.config;
+    const view =
+      await import("../../src/js/views/config/sync-center.js?v=8.37");
+    const html = view._renderFirestoreCard();
+    expect(html).toContain('data-testid="rf-conflict-review"');
+    expect(html).not.toContain('data-testid="firestore-sync-conflict"');
+
+    const item = collectRetaFinalConflicts(source).find(
+      (entry) => entry.source === "merge",
+    );
+    const idb = idbFor(source);
+    await resolveRetaFinalConflictAtomically({
+      db: idb.database,
+      conflictId: item.conflictId,
+      choice: "local",
+      expectedPlanId: "plan-1",
+      expectedRevision: source.planejamento.revision,
+      now: NOW,
+      deviceId: "device-a",
+    });
+    const persisted = readState(idb);
+    expect(persisted.config.syncMergeConflicts).toBeUndefined();
+    expect(persisted.config.firestoreSync.conflict).toBeNull();
   });
 });

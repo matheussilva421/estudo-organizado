@@ -156,6 +156,8 @@ function renderFirestoreConflict(conflict) {
   if (!conflict) return "";
   // Reta Final conflicts have their own field-level review panel below.
   if (conflict.type === "reta-final-conflict") return "";
+  if (conflict.reason === "merge-collision" || Array.isArray(conflict.items))
+    return "";
 
   return `
     <div class="sync-conflict-panel" data-testid="firestore-sync-conflict" role="alert">

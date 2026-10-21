@@ -168,9 +168,14 @@ function mapStatus(source, rawStatus) {
  * writes and no conflict; a no-op pull or a local-only save never promotes
  * the UI to synced.
  */
-export function deriveSyncDisplayState({ firestoreSync = {}, online } = {}) {
+export function deriveSyncDisplayState({
+  firestoreSync = {},
+  online,
+  mergeConflict = false,
+} = {}) {
   const config = firestoreSync || {};
   if (config.conflict) return "conflict";
+  if (mergeConflict) return "conflict";
   const isOffline = online === false || config.syncHealth?.offline === true;
   if (isOffline) return "offline";
   const lastError = String(config.lastError || "");
@@ -377,6 +382,7 @@ function handleFirestoreSyncStatus(event) {
       ...detail,
     },
     online: typeof navigator === "undefined" ? true : navigator.onLine,
+    mergeConflict: Boolean(state.config?.syncMergeConflicts),
   });
   const status = derived === "synced" ? "ok" : derived;
   if (
@@ -467,6 +473,7 @@ function refreshConfigSyncSurface() {
         firebase?.conflict || state.config?.firestoreSync?.conflict || null,
     },
     online: typeof navigator === "undefined" ? true : navigator.onLine,
+    mergeConflict: Boolean(state.config?.syncMergeConflicts),
   });
   if (healthStatus === "synced" && derived !== "synced") {
     healthStatus = derived;

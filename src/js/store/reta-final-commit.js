@@ -33,6 +33,20 @@ import {
 } from "../views/reta-final-conflicts.js";
 
 const clone = (value) => structuredClone(value);
+const DANGEROUS_PATH_SEGMENTS = new Set([
+  "__proto__",
+  "prototype",
+  "constructor",
+]);
+
+function assertSafePathSegment(segment, path) {
+  if (DANGEROUS_PATH_SEGMENTS.has(segment)) {
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      `Caminho de conflito inseguro: ${path}.`,
+    );
+  }
+}
 
 function codedError(code, message, extra = {}) {
   return Object.assign(new Error(message), { code, ...extra });
@@ -615,6 +629,7 @@ function isRecord(value) {
 function mergePatchObject(target, patch) {
   const result = isRecord(target) ? clone(target) : {};
   for (const [key, value] of Object.entries(patch || {})) {
+    assertSafePathSegment(key, key);
     if (value === null) {
       delete result[key];
       continue;
@@ -635,6 +650,7 @@ function setAtPath(target, path, value) {
   if (parts.length === 0) {
     throw codedError("RETA_FINAL_CONFLICT", "Caminho de conflito vazio.");
   }
+  for (const part of parts) assertSafePathSegment(part, path);
   let cursor = target;
   for (let index = 0; index < parts.length - 1; index += 1) {
     const key = parts[index];
@@ -648,6 +664,12 @@ function setAtPath(target, path, value) {
       throw codedError(
         "RETA_FINAL_CONFLICT",
         `Caminho de conflito não suportado: ${path}.`,
+      );
+    }
+    if (!Object.hasOwn(cursor, key)) {
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        `Caminho de conflito inválido: ${path}.`,
       );
     }
     cursor = cursor[key];
@@ -687,6 +709,7 @@ function setConflictField(plan, conflict, value) {
       );
     }
     const field = path.slice(prefix.length);
+    assertSafePathSegment(field, path);
     if (value === undefined || value === null) delete block[field];
     else block[field] = clone(value);
     return plan;
@@ -754,6 +777,23 @@ function buildResolvedPlan({ conflict, choice, patch, state, now }) {
     remotePlan.planId === currentPlan.planId
       ? remotePlan
       : null;
+  const knownBaseRevision = Number.isSafeInteger(conflict.basePlan?.revision)
+    ? conflict.basePlan.revision
+    : Number.isSafeInteger(state.config?.firestoreSync?.baseRevision)
+      ? state.config.firestoreSync.baseRevision
+      : null;
+  if (
+    remoteBase &&
+    (choice === "remote" || choice === "manual") &&
+    knownBaseRevision !== null &&
+    remoteBase.revision < knownBaseRevision
+  ) {
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      "O plano remoto está atrasado em relação à base conhecida.",
+      { reason: "stale-remote" },
+    );
+  }
   let candidate;
 
   if (conflict.source === "merge") {
@@ -785,6 +825,13 @@ function buildResolvedPlan({ conflict, choice, patch, state, now }) {
   } else if (choice === "local") {
     candidate = clone(currentPlan);
   } else {
+    if (!remoteBase) {
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        "Não há plano remoto compatível para resolver manualmente.",
+        { reason: "remote-unavailable" },
+      );
+    }
     const proposed =
       isRecord(conflict.proposedPlan) &&
       conflict.proposedPlan.planId === currentPlan.planId &&
@@ -826,6 +873,27 @@ function buildResolvedPlan({ conflict, choice, patch, state, now }) {
   validated.revision = nextRevision;
   validated.updatedAt = now;
   return { plan: validated, remoteBase };
+}
+
+function readConflictField(plan, conflict) {
+  if (!isRecord(plan) || !isRecord(conflict)) return undefined;
+  const path = String(conflict.fieldPath || "");
+  if (conflict.blockId) {
+    const block = (plan.retaFinal?.blocos || []).find(
+      (entry) => entry?.id === conflict.blockId,
+    );
+    if (!block) return undefined;
+    const prefix = `retaFinal.blocos.${conflict.blockId}.`;
+    if (path.startsWith(prefix)) return block[path.slice(prefix.length)];
+  }
+  let cursor = plan;
+  for (const part of path.split(".").filter(Boolean)) {
+    if (DANGEROUS_PATH_SEGMENTS.has(part)) return undefined;
+    if (cursor == null || typeof cursor !== "object") return undefined;
+    if (!Object.hasOwn(cursor, part)) return undefined;
+    cursor = cursor[part];
+  }
+  return cursor;
 }
 
 function planChangeList(before, after) {
@@ -1006,6 +1074,18 @@ export function resolveRetaFinalConflictAtomically({
                 "RETA_FINAL_STALE",
                 "O conteúdo local mudou desde a detecção do conflito.",
               );
+            }
+            if (conflict.source === "merge") {
+              const currentValue = readConflictField(currentPlan, conflict);
+              if (
+                stableStringify(currentValue ?? null) !==
+                stableStringify(conflict.local ?? null)
+              ) {
+                throw codedError(
+                  "RETA_FINAL_STALE",
+                  "O campo do conflito mudou desde a detecção.",
+                );
+              }
             }
 
             const built = buildResolvedPlan({

@@ -19,29 +19,33 @@ O implementador DeepSeek foi interrompido pela sessão antes de fechar o relató
 
 ## RED
 
-O módulo de view foi temporariamente removido para capturar a falha real:
-
-```text
-npx vitest run tests/unit/reta-final-conflicts-ui.test.js --reporter=dot
-Test Files  1 failed (1)
-Tests       no tests
-Falha: Failed to resolve import "../../src/js/views/reta-final-conflicts.js"
-```
-
-O módulo foi restaurado imediatamente (`RESTORED=True`). A falha é a ausência do contrato, não um mock.
+1. RED de contrato: remover temporariamente `src/js/views/reta-final-conflicts.js` fez a suíte falhar na resolução do import (0 testes coletados); o módulo foi restaurado (`RESTORED=True`).
+2. RED comportamental capturado na revisão: desativar temporariamente a confirmação obrigatória em `resolveRetaFinalConflict` produziu exatamente `1 failed | 28 passed`, com a mensagem "refuses to write without explicit confirmation" e `applied: true` inesperado. A guarda foi restaurada e o teste voltou a passar.
 
 ## GREEN
 
-- Novo UI/transação: 23/23.
-- Estado de sincronização: 7/7.
-- Foco Task 13 (UI, status, sync-center, action-contracts): 56/56.
-- Suíte completa: 166 arquivos / **2.774/2.774** testes, exit 0 (77,78s).
+- Novo UI/transação: 30/30.
+- Estado de sincronização: 8/8.
+- Foco Task 13 após as correções (UI, status, sync-center, action-contracts, portable): 137/137.
+- Suíte completa: 166 arquivos / **2.774/2.774** testes, exit 0 (77,78s). Após a rodada de correções da revisão: 166 arquivos / **2.782/2.782** testes, exit 0 (89,08s).
 
 ## Correções do coordenador
 
 1. O painel não estava conectado ao Sync Center; a integração e o teste de renderização foram adicionados.
 2. O store gravava `baseDigest` com `retaFinalDigest` (fnv1a64) enquanto o engine compara com `computeRetaFinalPlanDigest`; isso bloquearia o push seguinte. Corrigido e coberto por asserção.
 3. A asserção de contrato de aspas em `action-contracts.test.js` foi ajustada para aceitar o formatador do projeto; o teste de calendário teve um timeout transitório e passou na reexecução.
+
+## Correções da revisão independente
+
+- Conflito real `merge-collision` (pai sem `type`) agora é normalizado no painel e é limpo quando o último item é resolvido; o painel genérico não expõe mais "Forçar envio" nesse caso.
+- Resolução manual exige plano remoto compatível; sem remoto ou com linhagem diferente, só "manter local" fica disponível.
+- Plano remoto atrasado em relação à base conhecida é recusado (`stale-remote`); não é adotado.
+- CAS de conteúdo para conflitos de campo: o valor atual é comparado com o `local` observado dentro da transação; divergência vira `RETA_FINAL_STALE`.
+- Caminhos `__proto__`/`prototype`/`constructor` são rejeitados no path e em patches manuais; teste verifica que `Object.prototype` não é poluído.
+- `deriveSyncDisplayState` considera `syncMergeConflicts`; não promove a sincronizado com conflito de merge pendente.
+- A comparação mostra `minutosPadrao`, quantidade de disciplinas e valores completos em `<details>`.
+- O RED comportamental acima substitui o RED apenas de import.
+- A inversão de camadas store→view permanece como residual Minor, sem ciclo funcional; refatoração para `logic/` fica registrada.
 
 ## Limitações
 

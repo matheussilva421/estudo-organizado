@@ -77,4 +77,17 @@ describe("Reta Final sync display state", () => {
       }),
     ).toBe("error");
   });
+
+  it("não promove a sincronizado com conflito de merge pendente", () => {
+    expect(
+      deriveSyncDisplayState({
+        firestoreSync: {
+          hasPendingWrites: false,
+          lastPushAt: "2026-10-21T10:00:00.000Z",
+        },
+        online: true,
+        mergeConflict: true,
+      }),
+    ).toBe("conflict");
+  });
 });

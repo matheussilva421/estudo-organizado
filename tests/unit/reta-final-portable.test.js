@@ -94,6 +94,13 @@ describe("validateRetaFinalPortable", () => {
       { assId: "ass-1", aulaId: null },
     ];
     expect(validateRetaFinalPortable(repeated).valid).toBe(false);
+
+    const repeatedAula = exportRetaFinalPortable(plan());
+    repeatedAula.blocos[0].topicos = [
+      { assId: null, aulaId: "aula-1" },
+      { assId: null, aulaId: "aula-1" },
+    ];
+    expect(validateRetaFinalPortable(repeatedAula).valid).toBe(false);
   });
 
   it("rejects non-portable fields nested in capacity and topic references", () => {

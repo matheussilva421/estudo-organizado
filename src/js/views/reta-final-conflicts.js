@@ -31,6 +31,13 @@ function shortValue(value) {
   return `${text.slice(0, MAX_VALUE_LENGTH - 1)}…`;
 }
 
+function renderCell(value) {
+  const full = valueText(value);
+  const short = shortValue(value);
+  if (full === short) return esc(short);
+  return `${esc(short)}<details class="rf-conflict-full-value"><summary>Ver completo</summary><pre>${esc(full)}</pre></details>`;
+}
+
 function statusText(plan) {
   if (!isRecord(plan)) return "—";
   return plan.ativo === true ? "Ativo" : "Aposentado";
@@ -107,6 +114,15 @@ function blockFieldRows(item) {
 function isResolvableField(fieldPath) {
   if (typeof fieldPath !== "string" || !fieldPath.trim()) return false;
   if (fieldPath.includes("$")) return false;
+  if (
+    fieldPath
+      .split(".")
+      .some((segment) =>
+        ["__proto__", "prototype", "constructor"].includes(segment),
+      )
+  ) {
+    return false;
+  }
   if (["schema", "planId", "revision", "updatedAt"].includes(fieldPath))
     return false;
   if (
@@ -191,6 +207,8 @@ export function collectRetaFinalConflicts(sourceState = {}) {
       localRevision: localPlan?.revision ?? null,
       resolvable: true,
       remoteAvailable: isRecord(conflict.remotePlan),
+      remoteCompatible:
+        isRecord(conflict.remotePlan) && conflict.remotePlan.planId === planId,
     });
   }
 
@@ -198,9 +216,17 @@ export function collectRetaFinalConflicts(sourceState = {}) {
     ? config.syncMergeConflicts
     : null;
   const mergeItems =
-    merge?.type === "reta-final-three-way" && Array.isArray(merge.items)
+    Array.isArray(merge?.items) && merge?.type === "reta-final-three-way"
       ? merge.items
-      : [];
+      : Array.isArray(conflict?.items)
+        ? conflict.items
+        : [];
+  /*
+   * Some legacy merge paths store the field conflicts under the parent
+   * Firestore conflict (`merge-collision`) instead of `syncMergeConflicts`.
+   * Normalize both shapes so the review does not fall back to the generic
+   * destructive panel.
+   */
   mergeItems.forEach((raw, index) => {
     if (!isRecord(raw)) return;
     const itemPlanId =
@@ -231,7 +257,7 @@ export function collectRetaFinalConflicts(sourceState = {}) {
       remotePlan: null,
       proposedPlan: null,
       mergeConflicts: [],
-      detectedAt: merge.detectedAt || null,
+      detectedAt: merge?.detectedAt || conflict?.detectedAt || null,
       remoteUpdatedAt: null,
       reason: raw.reason || "",
       localRevision: statePlan?.revision ?? null,
@@ -274,7 +300,16 @@ export function removeRetaFinalConflict(targetState, conflictId) {
     );
   }
   merge.total = merge.items.length;
-  if (merge.items.length === 0) delete targetState.config.syncMergeConflicts;
+  if (merge.items.length === 0) {
+    delete targetState.config.syncMergeConflicts;
+    const parent = targetState.config.firestoreSync?.conflict;
+    if (
+      isRecord(parent) &&
+      (parent.reason === "merge-collision" || Array.isArray(parent.items))
+    ) {
+      targetState.config.firestoreSync.conflict = null;
+    }
+  }
   return targetState;
 }
 
@@ -317,6 +352,24 @@ function compareRows(item) {
       remote: item.remotePlan?.retaFinal?.dataFinal,
     },
     {
+      field: "minutosPadrao",
+      base: item.basePlan?.retaFinal?.minutosPadrao,
+      local: item.localPlan?.retaFinal?.minutosPadrao,
+      remote: item.remotePlan?.retaFinal?.minutosPadrao,
+    },
+    {
+      field: "disciplinas",
+      base: Array.isArray(item.basePlan?.disciplinas)
+        ? item.basePlan.disciplinas.length
+        : "—",
+      local: Array.isArray(item.localPlan?.disciplinas)
+        ? item.localPlan.disciplinas.length
+        : "—",
+      remote: Array.isArray(item.remotePlan?.disciplinas)
+        ? item.remotePlan.disciplinas.length
+        : "—",
+    },
+    {
       field: "blocos",
       base: blockCount(item.basePlan),
       local: blockCount(item.localPlan),
@@ -350,10 +403,10 @@ function renderCompareTable(rows) {
             .map(
               (row) => `
             <tr>
-              <th scope="row">${esc(shortValue(row.field))}</th>
-              <td>${esc(shortValue(row.base))}</td>
-              <td>${esc(shortValue(row.local))}</td>
-              <td>${esc(shortValue(row.remote))}</td>
+              <th scope="row">${renderCell(row.field)}</th>
+              <td>${renderCell(row.base)}</td>
+              <td>${renderCell(row.local)}</td>
+              <td>${renderCell(row.remote)}</td>
             </tr>
             ${row.reason ? `<tr class="rf-conflict-reason"><td colspan="4">${esc(row.reason)}</td></tr>` : ""}
           `,
@@ -399,7 +452,8 @@ function renderConflictItem(item, index) {
   const remoteDisabled =
     !item.resolvable || (item.source === "firestore" && !item.remotePlan);
   const localDisabled = !item.resolvable;
-  const manualDisabled = !item.resolvable;
+  const manualDisabled =
+    !item.resolvable || (item.source === "firestore" && !item.remoteCompatible);
 
   return `
     <article class="rf-conflict-card" data-rf-conflict-card data-conflict-id="${esc(item.conflictId)}" aria-labelledby="${esc(titleId)}">
