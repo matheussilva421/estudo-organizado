@@ -186,7 +186,7 @@ describe('Firestore integration contracts', () => {
     const syncExport =
       firestoreSource.match(/export async function syncFirestoreNow[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
 
-    expect(queueBody).toContain('createFirestoreSnapshotEnvelope(sourceState, options)');
+    expect(queueBody).toContain('createFirestoreSnapshotEnvelope(envelopeState, envelopeOptions)');
     expect(syncExport).toContain('firestoreLock.withLock');
     expect(syncExport).toContain('syncFirestoreNowUnlocked()');
     expect(syncBody).toContain('const remote = await readFirestoreSnapshot(db, uid);');
@@ -276,6 +276,57 @@ describe('Firestore integration contracts', () => {
     expect(rules).toContain('match /users/{uid}/snapshots/{snapshotId}');
     expect(rules).toContain('allow delete: if false;');
     expect(rules).toContain('request.resource.data.version == 1');
+  });
+
+  it('validates the Reta Final v2 descriptor inside the snapshot allowlist', () => {
+    const rules = read('firestore.rules');
+
+    expect(rules).toContain('retaFinalSync');
+    expect(rules).toContain('function validRetaFinalSyncDescriptor');
+    expect(rules).toContain("'rules-v2'");
+    expect(rules).toContain('descriptor.schema == 2');
+    expect(rules).toContain('descriptor.planId is string');
+    expect(rules).toContain("descriptor.state in ['active', 'retired']");
+    expect(rules).toContain('descriptor.removedBlockIds.size() <= 200');
+  });
+
+  it('enforces revision CAS and rejects legacy writes over a v2 document', () => {
+    const rules = read('firestore.rules');
+
+    expect(rules).toContain('function validRetaFinalSnapshotUpdate');
+    expect(rules).toContain('resource.data.keys().hasAny([\'retaFinalSync\'])');
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision + 1'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.baseRevision == resource.data.retaFinalSync.revision'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.planId == resource.data.retaFinalSync.planId'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.lineageId == resource.data.retaFinalSync.lineageId'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.generation == resource.data.retaFinalSync.generation'
+    );
+    expect(rules).toContain('request.resource.data.retaFinalSync.digest == resource.data.retaFinalSync.digest');
+  });
+
+  it('requires the adoption base and denies physical deletion of the guard document', () => {
+    const rules = read('firestore.rules');
+
+    expect(rules).toContain('match /users/{uid}/syncMeta/{metaId}');
+    expect(rules).toContain("metaId == 'reta-final-guard'");
+    expect(rules).toContain('function validRetaFinalGuard');
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.baseRevision == 0'
+    );
+    expect(rules).toContain("request.resource.data.retaFinalSync.state == 'active'");
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.baseRemoteUpdatedAt == resource.data.payloadUpdatedAt'
+    );
+    expect(rules).toContain('allow delete: if false;');
   });
 
 });

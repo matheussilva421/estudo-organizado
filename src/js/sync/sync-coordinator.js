@@ -30,7 +30,7 @@ let failureCount = 0;
 let _listeners = [];
 
 function isBlockingConflict(conflict) {
-  return conflict?.type === 'entity-conflict';
+  return conflict?.type === 'entity-conflict' || conflict?.type === 'reta-final-conflict';
 }
 
 function addListener(target, event, handler) {
@@ -207,7 +207,7 @@ async function _executeFlush(options) {
 
   if (status.conflict) {
     const pending = await getPendingFirestoreSnapshot();
-    if (!pending && status.conflict.type !== 'entity-conflict') {
+    if (!pending && !isBlockingConflict(status.conflict)) {
       emitCoordinatorStatus('syncing', {
         reason,
         firestore: status,
@@ -220,7 +220,7 @@ async function _executeFlush(options) {
       if (!retryQueued) emitTerminalFlushStatus(ok, reason);
       return ok;
     }
-    if (status.conflict.type === 'entity-conflict') {
+    if (isBlockingConflict(status.conflict)) {
       emitCoordinatorStatus('conflict-paused', {
         reason,
         firestore: status,

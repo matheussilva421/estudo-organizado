@@ -94,6 +94,53 @@ describe('firestore-schema.js', () => {
     });
   });
 
+  describe('createFirestoreSnapshotEnvelope() reta final descriptor', () => {
+    const descriptor = {
+      schema: 2,
+      planId: 'plan-1',
+      lineageId: 'plan-1',
+      generation: 1,
+      revision: 4,
+      baseRevision: 3,
+      baseRemoteUpdatedAt: '2026-10-20T11:00:00.000Z',
+      digest: 'a'.repeat(32),
+      deviceId: 'web-device1',
+      capabilities: { schema: 2, granularMerge: true, guards: { envelope: 'rules-v2', probe: 1 } },
+    };
+
+    it('keeps version 1 and omits retaFinalSync when no descriptor is provided', async () => {
+      const { createFirestoreSnapshotEnvelope } = await import(
+        '../../src/js/sync/firestore-schema.js'
+      );
+      const envelope = createFirestoreSnapshotEnvelope({ config: {}, eventos: [] });
+      expect(envelope.version).toBe(1);
+      expect(envelope).not.toHaveProperty('retaFinalSync');
+    });
+
+    it('includes the supplied descriptor at the top level without changing the envelope version', async () => {
+      const { createFirestoreSnapshotEnvelope } = await import(
+        '../../src/js/sync/firestore-schema.js'
+      );
+      const envelope = createFirestoreSnapshotEnvelope(
+        { config: {}, eventos: [] },
+        { retaFinalSync: descriptor, deviceId: 'web-device1' }
+      );
+      expect(envelope.version).toBe(1);
+      expect(envelope.retaFinalSync).toEqual(descriptor);
+    });
+
+    it('keeps v1 envelopes readable when the descriptor is present', async () => {
+      const { createFirestoreSnapshotEnvelope, isFirestoreSnapshotEnvelope, applyEnvelopeToLocalState } =
+        await import('../../src/js/sync/firestore-schema.js');
+      const envelope = createFirestoreSnapshotEnvelope(
+        { config: {}, eventos: [{ id: 'e1' }] },
+        { retaFinalSync: descriptor }
+      );
+      expect(isFirestoreSnapshotEnvelope(envelope)).toBe(true);
+      expect(applyEnvelopeToLocalState(envelope).eventos).toEqual([{ id: 'e1' }]);
+    });
+  });
+
   describe('isFirestoreSnapshotEnvelope()', () => {
     it('returns false for null', async () => {
       const { isFirestoreSnapshotEnvelope } = await import('../../src/js/sync/firestore-schema.js');

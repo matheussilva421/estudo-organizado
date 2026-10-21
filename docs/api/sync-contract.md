@@ -55,6 +55,81 @@ Envelope:
 `entityManifest` is additive and backward-compatible. Older clients can keep reading
 `payload`; newer clients use the manifest to show more precise conflict context.
 
+## Reta Final v2 descriptor
+
+An active Reta Final v2 plan adds a top-level `retaFinalSync` descriptor to the
+same `version: 1` envelope. The payload stays readable by older clients; the
+descriptor is the barrier that prevents an older client from silently replacing
+newer planning revisions.
+
+```json
+{
+  "retaFinalSync": {
+    "schema": 2,
+    "planId": "plan-abc",
+    "lineageId": "plan-abc",
+    "generation": 1,
+    "revision": 7,
+    "baseRevision": 6,
+    "baseRemoteUpdatedAt": "2026-10-20T11:00:00.000Z",
+    "digest": "9f2c1d7a8b4e6f0a1c3d5e7f9a2b4c6d",
+    "deviceId": "web-abc123",
+    "state": "active",
+    "capabilities": {
+      "schema": 2,
+      "granularMerge": true,
+      "guards": { "envelope": "rules-v2", "probe": 1 }
+    },
+    "removedBlockIds": ["blk-1"]
+  }
+}
+```
+
+`digest` is a deterministic digest of human intent. It ignores derived fields
+(`data`, `dataEfetiva`, `categoriaTemporal`, `naoAlocado`, `concluido`,
+`atrasoDias`) and sorts object keys, so two devices that hold the same plan
+intent produce the same value.
+
+Remote write contract for `users/{uid}/snapshots/main`:
+
+- document with `retaFinalSync` rejects any write without the descriptor
+- `planId`, `lineageId` and `generation` are immutable for the lineage
+- an identical `revision` + `digest` + `state` is an idempotent replay
+- an advance requires `revision == remote.revision + 1` and
+  `baseRevision == remote.revision`
+- rollback, revision jumps, digest changes at the same revision, and lineage
+  changes are denied
+- adoption of a legacy document requires `baseRevision == 0`,
+  `state == 'active'` and `baseRemoteUpdatedAt == remote.payloadUpdatedAt`
+- a create requires `baseRevision == 0` and `state == 'active'`
+
+Retirement uses the same advance path with `state: 'retired'`. A retired
+lineage may advance only as retired; a new plan with a different `planId`
+cannot replace it without an explicit human decision. The client reports a
+`reta-final-conflict` with `cause: 'lineage-change'` instead of writing.
+
+The client also writes a deployment probe to
+`users/{uid}/syncMeta/reta-final-guard` (`schema`, `guardVersion`, `deviceId`,
+`checkedAt`). A legacy ruleset denies that path, so a successful write+read is
+positive evidence that the rules-v2 guard is installed. If the probe is denied
+or the device is offline, the outbox stays pending and the status is
+`blocked-guard`; it is never reported as `synced`.
+
+### Clearing local data with a v2 remote document
+
+If the local state is cleared or the plan is removed while
+`users/{uid}/snapshots/main` still has `retaFinalSync`, a write without the
+descriptor is **denied on purpose**. The recovery path is to pull the remote
+snapshot, or to perform an explicit reset outside this sync contract. There is
+no client-side bypass: `forceOverwrite` does not skip the v2 CAS. A known
+lineage that becomes inactive is retired with a `state: 'retired'` descriptor;
+an unknown lineage must be reconciled with the remote before writing.
+
+`forceOverwrite` remains available for legacy envelopes and explicit recovery,
+but for a descriptor-bearing document it still requires the exact remote
+revision as the base. A denied write becomes a `reta-final-conflict` with the
+local, remote and base plans preserved for human resolution.
+
 ## Entity Sync
 
 The app now supports entity metadata, shadow entity writes, shadow verification,

@@ -26,9 +26,29 @@ import {
   createFirestoreSnapshotEnvelope,
 } from './firestore-schema.js?v=8.37';
 import { mergeStudyStates } from './sync-center.js?v=8.37';
+import { getRetaFinalPlan } from './reta-final-protocol.js?v=8.37';
 
 function snapshotRef(db, uid) {
   return doc(db, 'users', uid, 'snapshots', FIRESTORE_SNAPSHOT_DOC_ID);
+}
+
+function containsRetaFinalV2(value) {
+  if (!value || typeof value !== 'object') return false;
+  if (Object.hasOwn(value, 'retaFinalSync')) return true;
+  return Boolean(getRetaFinalPlan(value) || getRetaFinalPlan(value.payload));
+}
+
+function blockRetaFinalMigration(report, side) {
+  report.blocked = true;
+  report.reason = `Entity migration refused: Reta Final v2 detected in ${side}.`;
+  report.steps.push({
+    step: 'retafinal-guard',
+    status: 'blocked',
+    reason: side,
+    note: 'A migracao nao pode sobrescrever um documento v2 sem CAS nem sonda.',
+  });
+  report.completedAt = new Date().toISOString();
+  return report;
 }
 
 /**
@@ -114,6 +134,10 @@ export async function migrateEntitiesToSnapshot(db, uid, options = {}) {
       status: currentSnapshot ? 'found' : 'not-found',
     });
 
+    if (containsRetaFinalV2(currentSnapshot)) {
+      return blockRetaFinalMigration(report, 'current-snapshot');
+    }
+
     // Step 2: Read entities via REST API
     onProgress?.('Reading entity collections...');
     let entities = {};
@@ -160,6 +184,10 @@ export async function migrateEntitiesToSnapshot(db, uid, options = {}) {
 
     const localState = currentSnapshot?.payload || {};
     const mergedState = mergeStudyStates(localState, entityState);
+
+    if (containsRetaFinalV2(mergedState)) {
+      return blockRetaFinalMigration(report, 'merged-state');
+    }
 
     // Step 4: Write merged snapshot
     if (!dryRun) {

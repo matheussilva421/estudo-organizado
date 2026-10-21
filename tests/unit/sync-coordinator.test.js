@@ -438,4 +438,68 @@ describe('sync/sync-coordinator.js', () => {
       expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
     });
   });
+
+  describe('Reta Final v2 conflicts', () => {
+    it('pauses automatic sync for a reta-final-conflict', () => {
+      firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+        configured: true,
+        signedIn: true,
+        enabled: true,
+        mode: 'primary',
+        conflict: { type: 'reta-final-conflict', planId: 'plan-1' },
+      });
+
+      const status = coordinator.getSyncCoordinatorStatus();
+
+      expect(status.autoSyncEnabled).toBe(false);
+      expect(coordinator.schedulePrimarySync('local-save')).toBe(false);
+    });
+
+    it('does not force-push a reta-final-conflict with pending data', async () => {
+      firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+        configured: true,
+        signedIn: true,
+        enabled: true,
+        mode: 'primary',
+        conflict: { type: 'reta-final-conflict', planId: 'plan-1' },
+      });
+      firestoreOutbox.getPendingFirestoreSnapshot.mockResolvedValue({
+        status: 'pending',
+        envelope: { retaFinalSync: { schema: 2 } },
+      });
+
+      const result = await coordinator.flushPrimarySyncNow({
+        manual: false,
+        reason: 'local-save',
+      });
+
+      expect(result).toBe(false);
+      expect(firestoreSync.queueFirestoreSnapshotFromState).not.toHaveBeenCalled();
+      expect(firestoreSync.flushFirestoreOutbox).not.toHaveBeenCalled();
+    });
+
+    it('never reports synced when the guard blocks the flush', async () => {
+      firestoreSync.flushFirestoreOutbox.mockResolvedValue(false);
+      firestoreSync.getFirestoreSyncStatus.mockReturnValue({
+        configured: true,
+        signedIn: true,
+        enabled: true,
+        mode: 'primary',
+        conflict: { type: 'reta-final-conflict', planId: 'plan-1' },
+        lastError: 'blocked-guard: permission-denied',
+      });
+      const statuses = [];
+      document.addEventListener('app:primarySyncStatus', (event) => {
+        statuses.push(event.detail.status);
+      });
+
+      const result = await coordinator.flushPrimarySyncNow({
+        manual: false,
+        reason: 'local-save',
+      });
+
+      expect(result).toBe(false);
+      expect(statuses).not.toContain('synced');
+    });
+  });
 });
