@@ -381,6 +381,54 @@ describe("Reta Final conflict review view", () => {
     expect(persisted.config.syncMergeConflicts).toBeUndefined();
   });
 
+  it("falls back to the parent when syncMergeConflicts has an empty item list", async () => {
+    const mergeItem = {
+      planId: "plan-1",
+      blockId: "rf-1",
+      fieldPath: "retaFinal.blocos.rf-1.minutos",
+      base: 45,
+      local: 60,
+      remote: 90,
+      reason: "colisao",
+    };
+    const parent = {
+      reason: "merge-collision",
+      detectedAt: NOW,
+      remoteUpdatedAt: NOW,
+      total: 1,
+      items: [mergeItem],
+    };
+    const source = appState({
+      extraConfig: { conflict: parent },
+      topConfig: {
+        syncMergeConflicts: {
+          type: "reta-final-three-way",
+          detectedAt: NOW,
+          total: 0,
+          items: [],
+        },
+      },
+    });
+    const mergeItems = collectRetaFinalConflicts(source).filter(
+      (entry) => entry.source === "merge",
+    );
+    expect(mergeItems).toHaveLength(1);
+
+    const idb = idbFor(source);
+    await resolveRetaFinalConflictAtomically({
+      db: idb.database,
+      conflictId: mergeItems[0].conflictId,
+      choice: "local",
+      expectedPlanId: "plan-1",
+      expectedRevision: source.planejamento.revision,
+      now: NOW,
+      deviceId: "device-a",
+    });
+    const persisted = readState(idb);
+    expect(persisted.config.firestoreSync.conflict).toBeNull();
+    expect(persisted.config.syncMergeConflicts).toBeUndefined();
+  });
+
   it("removes only the requested conflict and preserves the other one", () => {
     const state = appState({
       topConfig: {

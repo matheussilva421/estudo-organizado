@@ -27,7 +27,7 @@ O implementador DeepSeek foi interrompido pela sessão antes de fechar o relató
 - Novo UI/transação: 30/30.
 - Estado de sincronização: 8/8.
 - Foco Task 13 após as correções (UI, status, sync-center, action-contracts, portable): 137/137.
-- Suíte completa: 166 arquivos / **2.774/2.774** testes, exit 0 (77,78s). Após as rodadas de correções: 166 arquivos / **2.783/2.783** testes, exit 0 (93,14s).
+- Suíte completa: 166 arquivos / **2.774/2.774** testes, exit 0 (77,78s). Após as rodadas de correções: 166 arquivos / **2.784/2.784** testes, exit 0 (87,41s).
 
 ## Correções do coordenador
 
@@ -46,6 +46,7 @@ O implementador DeepSeek foi interrompido pela sessão antes de fechar o relató
 - A comparação mostra `minutosPadrao`, quantidade de disciplinas e valores completos em `<details>`.
 - O RED comportamental acima substitui o RED apenas de import.
 - Segunda verificação: o formato parent-only (`firestoreSync.conflict.items` sem `syncMergeConflicts`) agora também é removido do pai; teste resolve o item e confirma `conflict: null`. Linhagem remota incompatível (`planId` diferente) desabilita remoto/manual e é recusada no store.
+- Terceira verificação: quando `syncMergeConflicts` existe com `items: []`, a coleta recorre aos `items` do pai; o teste resolve o item e confirma a limpeza do pai e do objeto vazio.
 - A inversão de camadas store→view permanece como residual Minor, sem ciclo funcional; refatoração para `logic/` fica registrada.
 
 ## Limitações

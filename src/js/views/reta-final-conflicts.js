@@ -216,7 +216,9 @@ export function collectRetaFinalConflicts(sourceState = {}) {
     ? config.syncMergeConflicts
     : null;
   const mergeItems =
-    Array.isArray(merge?.items) && merge?.type === "reta-final-three-way"
+    merge?.type === "reta-final-three-way" &&
+    Array.isArray(merge.items) &&
+    merge.items.length > 0
       ? merge.items
       : Array.isArray(conflict?.items)
         ? conflict.items
@@ -318,6 +320,13 @@ export function removeRetaFinalConflict(targetState, conflictId) {
       targetState.config.firestoreSync.conflict = null;
     }
   } else {
+    if (
+      isRecord(merge) &&
+      Array.isArray(merge.items) &&
+      merge.items.length === 0
+    ) {
+      delete targetState.config.syncMergeConflicts;
+    }
     targetState.config.firestoreSync.conflict = null;
   }
   return targetState;
