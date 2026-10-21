@@ -211,6 +211,38 @@ RESULT PASS (5/5)
 - Aposentadoria usa descriptor `retired` com revision de linhagem, sem mutar a
   revision oficial do plano no payload.
 
+## Revisao integrada da Fase D — snapshotRevision
+
+A revisao integrada mostrou que o descritor inicial vinculava toda escrita do
+snapshot a uma revisao de plano. Isso impedia publicar alteracoes academicas
+(eventos, tempo, questoes, revisoes) quando o plano nao mudava. O protocolo foi
+corrigido com duas dimensoes explicitas:
+
+- `revision`/`baseRevision` continuam sendo a revisao humana do plano;
+- `snapshotRevision`/`baseSnapshotRevision` contam toda escrita aceita do
+  envelope e sao o CAS real do documento.
+
+Regras resultantes:
+
+- replay exige descriptor inteiro, payload e `payloadUpdatedAt` identicos;
+- escrita academica mantem `revision`, `digest` e `state`, avanca
+  `snapshotRevision` em 1 e exige `baseSnapshotRevision == remote.snapshotRevision`;
+- avanco de plano exige `revision == remote.revision + 1` e
+  `baseRevision == remote.revision`;
+- create/adocao exigem `snapshotRevision == 1`, `baseSnapshotRevision == 0` e
+  `baseRevision == 0`;
+- tombstones continuam append-only, com compactacao apenas no head anterior.
+
+O engine passou a enfileirar escritas academicas sem mexer na revisao do plano,
+aplicar dados academicos remotos quando o digest do plano coincide, comparar o
+estado nao-plano e recusar pull cujo plano local mudou durante o yield. A
+resolucao de conflito enfileira o estado resolvido no fluxo normal de sync.
+
+Evidencia: `scripts/verify-reta-final-rules.mjs` **38/38 PASS** com as regras
+novas; **5/5 PASS** com as regras antigas, reproduzindo o overwrite legado. A
+suite completa ficou em 166 arquivos / 2.789 testes; o foco integrado em 306
+testes.
+
 ## Limitacoes e residuos honestos
 
 - Regras provadas apenas no emulador; nada publicado no Firestore real.

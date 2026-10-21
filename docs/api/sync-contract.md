@@ -71,6 +71,8 @@ newer planning revisions.
     "generation": 1,
     "revision": 7,
     "baseRevision": 6,
+    "snapshotRevision": 8,
+    "baseSnapshotRevision": 7,
     "baseRemoteUpdatedAt": "2026-10-20T11:00:00.000Z",
     "digest": "9f2c1d7a8b4e6f0a1c3d5e7f9a2b4c6d",
     "deviceId": "web-abc123",
@@ -100,7 +102,13 @@ Remote write contract for `users/{uid}/snapshots/main`:
   omit `planejamento` or carry an inactive plan with the same `planId`
 - an idempotent replay requires the entire `retaFinalSync` descriptor to be
   identical, plus byte-for-byte identical `payload` and `payloadUpdatedAt`
-- an advance requires `revision == remote.revision + 1` and
+- every accepted write advances `snapshotRevision` by one and sets
+  `baseSnapshotRevision == remote.snapshotRevision`. This separates snapshot
+  writes from human plan revisions
+- an academic-only write keeps `revision`, `digest` and `state` unchanged and
+  carries the current tombstones; it may change events, time, questions,
+  reviews or other non-plan data
+- a plan advance requires `revision == remote.revision + 1` and
   `baseRevision == remote.revision`
 - an advance is tombstone append-only: `minRetainedRevision` cannot decrease and
   the new `removedBlockIds` must contain every old id. The one exception is
@@ -109,8 +117,10 @@ Remote write contract for `users/{uid}/snapshots/main`:
 - rollback, revision jumps, digest changes at the same revision, and lineage
   changes are denied
 - adoption of a legacy document requires `baseRevision == 0`,
-  `state == 'active'` and `baseRemoteUpdatedAt == remote.payloadUpdatedAt`
-- a create requires `baseRevision == 0` and `state == 'active'`
+  `state == 'active'`, `snapshotRevision == 1`, `baseSnapshotRevision == 0` and
+  `baseRemoteUpdatedAt == remote.payloadUpdatedAt`
+- a create requires `baseRevision == 0`, `snapshotRevision == 1`,
+  `baseSnapshotRevision == 0` and `state == 'active'`
 
 Every descriptor-bearing write also validates the payload shape: an `active`
 descriptor must carry `payload.planejamento` as a map with `ativo == true`; a

@@ -1,10 +1,16 @@
-import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.37';
-import { getEnvelopeUpdatedAt, getLocalContentUpdatedAt } from './firestore-schema.js?v=8.37';
-import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
-import { mergeRetaFinalPlans } from '../logic/reta-final-merge.js';
-import { reconcileRetaFinalWithEvents } from '../logic/reta-final-core.js';
+import {
+  deriveSyncHealthState,
+  summarizeSyncMetrics,
+} from "./sync-health.js?v=8.37";
+import {
+  getEnvelopeUpdatedAt,
+  getLocalContentUpdatedAt,
+} from "./firestore-schema.js?v=8.37";
+import { reconcileSequenceWithEvents } from "../logic/cycle-progress.js?v=8.37";
+import { mergeRetaFinalPlans } from "../logic/reta-final-merge.js";
+import { reconcileRetaFinalWithEvents } from "../logic/reta-final-core.js";
 
-const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
+const SOURCE_ORDER = ["local", "firebase", "cloudflare", "drive"];
 
 function toTime(value) {
   if (!value) return 0;
@@ -45,7 +51,9 @@ export function recordSyncTombstone(state, col, id) {
   if (!state || !col || !id) return;
   if (!Array.isArray(state.syncTombstones)) state.syncTombstones = [];
   const deletedAt = new Date().toISOString();
-  const existing = state.syncTombstones.find((t) => t?.col === col && t?.id === id);
+  const existing = state.syncTombstones.find(
+    (t) => t?.col === col && t?.id === id,
+  );
   if (existing) {
     existing.deletedAt = deletedAt;
     return;
@@ -106,7 +114,9 @@ function mergeById(localArr, remoteArr, tombstoneIndex) {
     const remoteTime = getItemUpdatedAt(existing);
     if (localTime >= remoteTime) map.set(item.id, item);
   }
-  return Array.from(map.values()).filter((item) => !isTombstoned(item, tombstoneIndex));
+  return Array.from(map.values()).filter(
+    (item) => !isTombstoned(item, tombstoneIndex),
+  );
 }
 
 export function isGlobalSyncPaused(config = {}) {
@@ -117,166 +127,185 @@ export function getManualSyncStatus(config = {}) {
   const enabled = isGlobalSyncPaused(config);
   return {
     enabled,
-    label: enabled ? 'Sincronização manual ativa' : 'Sincronização automática',
+    label: enabled ? "Sincronização manual ativa" : "Sincronização automática",
     lastSyncAt: config.lastManualSyncAt || null,
   };
 }
 
-function deriveQuietSyncView({ syncHealth, firestore, globalSyncPaused = false }) {
+function deriveQuietSyncView({
+  syncHealth,
+  firestore,
+  globalSyncPaused = false,
+}) {
   const signedIn = Boolean(firestore.signedIn || firestore.uid);
-  const isPrimary = firestore.mode === 'primary';
+  const isPrimary = firestore.mode === "primary";
 
   if (globalSyncPaused) {
     return {
-      title: 'Sincronização manual',
+      title: "Sincronização manual",
       detail:
-        'O app salva neste dispositivo e só sincroniza quando você iniciar manualmente. Os dados locais continuam preservados.',
-      tone: 'idle',
+        "O app salva neste dispositivo e só sincroniza quando você iniciar manualmente. Os dados locais continuam preservados.",
+      tone: "idle",
       primaryAction: null,
     };
   }
 
-  if (syncHealth.state === 'conflict') {
+  if (syncHealth.state === "conflict") {
     return {
-      title: 'Ação necessária',
+      title: "Ação necessária",
       detail:
-        'Existe um conflito real de sync. Seus dados locais continuam preservados; abra as opções avançadas para resolver.',
-      tone: 'danger',
-      primaryAction: 'advanced',
+        "Existe um conflito real de sync. Seus dados locais continuam preservados; abra as opções avançadas para resolver.",
+      tone: "danger",
+      primaryAction: "advanced",
     };
   }
 
-  if (/permission|denied|permiss/i.test(String(firestore.lastError || ''))) {
+  if (/permission|denied|permiss/i.test(String(firestore.lastError || ""))) {
     return {
-      title: 'Ação necessária',
+      title: "Ação necessária",
       detail:
-        'O Firestore negou permissão para sincronizar. Seus dados locais continuam preservados; revise login e regras nas opções avançadas.',
-      tone: 'danger',
-      primaryAction: 'advanced',
+        "O Firestore negou permissão para sincronizar. Seus dados locais continuam preservados; revise login e regras nas opções avançadas.",
+      tone: "danger",
+      primaryAction: "advanced",
     };
   }
 
-  if (syncHealth.state === 'degraded' || firestore.lastError) {
+  if (syncHealth.state === "degraded" || firestore.lastError) {
     return {
-      title: 'Sync aguardando recuperação',
+      title: "Sync aguardando recuperação",
       detail:
-        'O app continua salvando neste dispositivo e tentará sincronizar novamente. Use as opções avançadas se o erro persistir.',
-      tone: 'warning',
-      primaryAction: 'advanced',
+        "O app continua salvando neste dispositivo e tentará sincronizar novamente. Use as opções avançadas se o erro persistir.",
+      tone: "warning",
+      primaryAction: "advanced",
     };
   }
 
-  if (syncHealth.state === 'offline') {
+  if (syncHealth.state === "offline") {
     return {
-      title: 'Offline, sync automático pausado',
+      title: "Offline, sync automático pausado",
       detail:
-        'Suas alterações continuam salvas neste dispositivo e serão enviadas ao Firestore quando a conexão voltar.',
-      tone: 'pending',
+        "Suas alterações continuam salvas neste dispositivo e serão enviadas ao Firestore quando a conexão voltar.",
+      tone: "pending",
       primaryAction: null,
     };
   }
 
   if (!firestore.configured) {
     return {
-      title: 'Salvo neste dispositivo',
+      title: "Salvo neste dispositivo",
       detail:
-        'O salvamento local está ativo. Configure o Firebase para sincronização automática entre dispositivos.',
-      tone: 'idle',
+        "O salvamento local está ativo. Configure o Firebase para sincronização automática entre dispositivos.",
+      tone: "idle",
       primaryAction: null,
     };
   }
 
   if (!signedIn) {
     return {
-      title: 'Salvo neste dispositivo',
+      title: "Salvo neste dispositivo",
       detail:
-        'Entre com Google para ativar o sync automático. Enquanto isso, o app continua seguro localmente.',
-      tone: 'idle',
-      primaryAction: 'sign-in',
+        "Entre com Google para ativar o sync automático. Enquanto isso, o app continua seguro localmente.",
+      tone: "idle",
+      primaryAction: "sign-in",
     };
   }
 
   if (!firestore.enabled) {
     return {
-      title: 'Sync remoto pausado',
+      title: "Sync remoto pausado",
       detail:
-        'O salvamento local está funcionando. Ative o Firestore primary para sincronizar automaticamente.',
-      tone: 'idle',
-      primaryAction: 'advanced',
+        "O salvamento local está funcionando. Ative o Firestore primary para sincronizar automaticamente.",
+      tone: "idle",
+      primaryAction: "advanced",
     };
   }
 
-  if (syncHealth.state === 'syncing') {
+  if (syncHealth.state === "syncing") {
     return {
-      title: 'Sincronizando automaticamente',
-      detail: 'As alterações já foram salvas no dispositivo e estão sendo enviadas ao Firestore.',
-      tone: 'pending',
+      title: "Sincronizando automaticamente",
+      detail:
+        "As alterações já foram salvas no dispositivo e estão sendo enviadas ao Firestore.",
+      tone: "pending",
       primaryAction: null,
     };
   }
 
-  if (syncHealth.state === 'queued') {
+  if (syncHealth.state === "queued") {
     return {
-      title: 'Sync automático na fila',
+      title: "Sync automático na fila",
       detail:
-        'As alterações estão salvas localmente e serão enviadas pelo app assim que a tentativa atual puder rodar.',
-      tone: 'pending',
+        "As alterações estão salvas localmente e serão enviadas pelo app assim que a tentativa atual puder rodar.",
+      tone: "pending",
       primaryAction: null,
     };
   }
 
   if (isPrimary) {
     return {
-      title: 'Tudo salvo automaticamente',
+      title: "Tudo salvo automaticamente",
       detail:
-        'Suas alterações ficam salvas neste dispositivo e o Firestore sincroniza sozinho em segundo plano.',
-      tone: 'ok',
+        "Suas alterações ficam salvas neste dispositivo e o Firestore sincroniza sozinho em segundo plano.",
+      tone: "ok",
       primaryAction: null,
     };
   }
 
   return {
-    title: 'Sync em modo de verificação',
+    title: "Sync em modo de verificação",
     detail:
-      'O Firestore está ativo fora do modo primary. Use o modo primary para sync automático completo.',
-    tone: 'idle',
-    primaryAction: 'advanced',
+      "O Firestore está ativo fora do modo primary. Use o modo primary para sync automático completo.",
+    tone: "idle",
+    primaryAction: "advanced",
   };
 }
 
-export function canAutoSyncFirestore(config = {}, pending = null, now = Date.now()) {
+export function canAutoSyncFirestore(
+  config = {},
+  pending = null,
+  now = Date.now(),
+) {
   if (isGlobalSyncPaused(config)) return false;
   if (!config.enabled) return false;
-  if (config.mode !== 'primary') return false;
-  if (config.conflict?.type === 'entity-conflict') return false;
+  if (config.mode !== "primary") return false;
+  if (config.conflict?.type === "entity-conflict") return false;
   if (!pending) return true;
-  if (pending.status === 'conflict') return false;
-  if (pending.nextAttemptAt && toTime(pending.nextAttemptAt) > now) return false;
+  if (pending.status === "conflict") return false;
+  if (pending.nextAttemptAt && toTime(pending.nextAttemptAt) > now)
+    return false;
   return true;
 }
 
-export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestoreStatus = null }) {
+export function buildSyncCenterModel({
+  state,
+  firestoreStatus = {},
+  getFirestoreStatus = null,
+}) {
   const config = state?.config || {};
   const offline =
     config.syncHealth?.offline === true ||
-    (typeof navigator !== 'undefined' && navigator.onLine === false);
+    (typeof navigator !== "undefined" && navigator.onLine === false);
   const configuredFirestore = config.firestoreSync || {};
   const globalSyncPaused = isGlobalSyncPaused(config);
   const runtimeFirestore =
-    typeof getFirestoreStatus === 'function' ? getFirestoreStatus() || {} : {};
+    typeof getFirestoreStatus === "function" ? getFirestoreStatus() || {} : {};
   const firestore = {
     ...configuredFirestore,
     ...runtimeFirestore,
     ...firestoreStatus,
   };
   firestore.conflict =
-    firestoreStatus.conflict ?? runtimeFirestore.conflict ?? configuredFirestore.conflict ?? null;
+    firestoreStatus.conflict ??
+    runtimeFirestore.conflict ??
+    configuredFirestore.conflict ??
+    null;
   firestore.lastError =
     firestoreStatus.lastError ||
     runtimeFirestore.lastError ||
     configuredFirestore.lastError ||
     null;
-  const cloudflareConfigured = Boolean(config.cfUrl && hasCloudflareCredentials(config));
+  const cloudflareConfigured = Boolean(
+    config.cfUrl && hasCloudflareCredentials(config),
+  );
   const driveConfigured = Boolean(state?.driveFileId);
   const firestorePending = firestore.pending || null;
   const syncHealth = deriveSyncHealthState({
@@ -289,11 +318,11 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
     failureCount: config.syncHealth?.failureCount || 0,
     offline,
   });
-  const healthStatus = globalSyncPaused ? 'paused' : syncHealth.state;
+  const healthStatus = globalSyncPaused ? "paused" : syncHealth.state;
   const syncMetrics = summarizeSyncMetrics(syncHealth.metrics);
   const performanceMetrics = Array.isArray(config.syncPerformance?.metrics)
     ? config.syncPerformance.metrics
-        .filter((metric) => metric && typeof metric.name === 'string')
+        .filter((metric) => metric && typeof metric.name === "string")
         .map((metric) => ({
           name: metric.name,
           durationMs: Number(metric.durationMs || 0),
@@ -303,41 +332,41 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
 
   const sources = [
     {
-      id: 'local',
-      title: 'Local',
-      icon: 'fa-database',
-      label: 'IndexedDB neste dispositivo',
+      id: "local",
+      title: "Local",
+      icon: "fa-database",
+      label: "IndexedDB neste dispositivo",
       primary: false,
       enabled: true,
       configured: true,
-      health: 'ok',
+      health: "ok",
       pending: false,
       lastLocalAt: config.localBackupAt || null,
       lastSyncAt: config.localBackupAt || null,
       remoteAt: null,
-      detail: 'Fonte de recuperação imediata.',
+      detail: "Fonte de recuperação imediata.",
     },
     {
-      id: 'firebase',
-      title: 'Firebase',
-      icon: 'fa-fire',
-      label: 'Firestore primário',
+      id: "firebase",
+      title: "Firebase",
+      icon: "fa-fire",
+      label: "Firestore primário",
       primary: true,
       enabled: Boolean(firestore.enabled),
       configured: Boolean(firestore.configured),
       signedIn: Boolean(firestore.signedIn || firestore.uid),
-      mode: firestore.mode || 'shadow',
+      mode: firestore.mode || "shadow",
       health: firestore.conflict
-        ? 'conflict'
+        ? "conflict"
         : firestore.lastError
-          ? 'error'
+          ? "error"
           : globalSyncPaused
-            ? 'idle'
+            ? "idle"
             : firestore.hasPendingWrites
-              ? 'pending'
+              ? "pending"
               : firestore.enabled
-                ? 'ok'
-                : 'idle',
+                ? "ok"
+                : "idle",
       pending: Boolean(firestore.hasPendingWrites),
       healthState: syncHealth.state,
       metrics: syncMetrics,
@@ -349,47 +378,55 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
       lastError: firestore.lastError || null,
       entityShadowDiff: null,
       detail: firestore.enabled
-        ? firestore.mode === 'primary'
-          ? 'Sync automático principal.'
-          : 'Shadow: sem envio automático.'
-        : 'Ative depois de entrar com Google.',
+        ? firestore.mode === "primary"
+          ? "Sync automático principal."
+          : "Shadow: sem envio automático."
+        : "Ative depois de entrar com Google.",
     },
     {
-      id: 'cloudflare',
-      title: 'Cloudflare',
-      icon: 'fa-cloud',
-      label: 'Backup Worker/KV secundário',
+      id: "cloudflare",
+      title: "Cloudflare",
+      icon: "fa-cloud",
+      label: "Backup Worker/KV secundário",
       primary: false,
       enabled: Boolean(config.cfSyncEnabled),
       configured: cloudflareConfigured,
-      health: config.cfConflict ? 'conflict' : config.cfSyncEnabled ? 'ok' : 'idle',
+      health: config.cfConflict
+        ? "conflict"
+        : config.cfSyncEnabled
+          ? "ok"
+          : "idle",
       pending: false,
       lastSyncAt: config.cfLastSyncAt || null,
       remoteAt: config.cfRemoteUpdatedAt || null,
       conflict: config.cfConflict || null,
       detail: cloudflareConfigured
-        ? 'Backup manual configurado.'
-        : 'Informe URL e token para backup.',
+        ? "Backup manual configurado."
+        : "Informe URL e token para backup.",
     },
     {
-      id: 'drive',
-      title: 'Google Drive',
-      icon: 'fa-brands fa-google-drive',
-      label: 'Backup manual/secundário',
+      id: "drive",
+      title: "Google Drive",
+      icon: "fa-brands fa-google-drive",
+      label: "Backup manual/secundário",
       primary: false,
       enabled: driveConfigured,
       configured: driveConfigured,
-      health: driveConfigured ? 'ok' : 'idle',
+      health: driveConfigured ? "ok" : "idle",
       pending: false,
       lastSyncAt: state?.lastSync || null,
       remoteAt: state?.lastSync || null,
-      detail: driveConfigured ? 'Arquivo de backup conectado.' : 'Conecte para backup em arquivo.',
+      detail: driveConfigured
+        ? "Arquivo de backup conectado."
+        : "Conecte para backup em arquivo.",
     },
   ];
 
   return {
-    sources: SOURCE_ORDER.map((id) => sources.find((source) => source.id === id)),
-    primarySource: 'firebase',
+    sources: SOURCE_ORDER.map((id) =>
+      sources.find((source) => source.id === id),
+    ),
+    primarySource: "firebase",
     quiet: deriveQuietSyncView({ syncHealth, firestore, globalSyncPaused }),
     health: {
       status: healthStatus,
@@ -399,25 +436,40 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
     },
     performanceMetrics,
     needsAttention: sources.some(
-      (source) => source.health === 'conflict' || source.health === 'error'
+      (source) => source.health === "conflict" || source.health === "error",
     ),
-    newestRemoteAt: latestIso(firestore.remoteUpdatedAt, config.cfRemoteUpdatedAt, state?.lastSync),
+    newestRemoteAt: latestIso(
+      firestore.remoteUpdatedAt,
+      config.cfRemoteUpdatedAt,
+      state?.lastSync,
+    ),
     newestLocalAt: config.localBackupAt || null,
     manualSyncEnabled: globalSyncPaused,
   };
 }
 
-export function mergeStudyStates(localState = {}, remoteState = {}, options = {}) {
+export function mergeStudyStates(
+  localState = {},
+  remoteState = {},
+  options = {},
+) {
   const merged = {
     ...remoteState,
     ...localState,
     config: { ...(remoteState.config || {}), ...(localState.config || {}) },
   };
-  const tombstones = mergeTombstones(localState.syncTombstones, remoteState.syncTombstones);
+  const tombstones = mergeTombstones(
+    localState.syncTombstones,
+    remoteState.syncTombstones,
+  );
   merged.syncTombstones = tombstones;
 
-  for (const key of ['editais', 'eventos', 'arquivo', 'revisoes']) {
-    merged[key] = mergeById(localState[key], remoteState[key], buildTombstoneIndex(tombstones, key));
+  for (const key of ["editais", "eventos", "arquivo", "revisoes"]) {
+    merged[key] = mergeById(
+      localState[key],
+      remoteState[key],
+      buildTombstoneIndex(tombstones, key),
+    );
   }
   const habitTypes = new Set([
     ...Object.keys(remoteState.habitos || {}),
@@ -428,14 +480,16 @@ export function mergeStudyStates(localState = {}, remoteState = {}, options = {}
     merged.habitos[type] = mergeById(
       localState.habitos?.[type],
       remoteState.habitos?.[type],
-      buildTombstoneIndex(tombstones, 'habitos.' + type)
+      buildTombstoneIndex(tombstones, "habitos." + type),
     );
   }
 
   const localPlan = localState.planejamento;
   const remotePlan = remoteState.planejamento;
   const isActiveV2 = (plan) =>
-    plan?.ativo === true && plan.tipo === 'reta_final' && plan.schemaVersionRetaFinal === 2;
+    plan?.ativo === true &&
+    plan.tipo === "reta_final" &&
+    plan.schemaVersionRetaFinal === 2;
   const bothV2 = isActiveV2(localPlan) && isActiveV2(remotePlan);
   let mergeAttempted = false;
   let conflicts = [];
@@ -444,14 +498,21 @@ export function mergeStudyStates(localState = {}, remoteState = {}, options = {}
     mergeAttempted = true;
     const firestoreBase = (config) => {
       const sync = config?.firestoreSync || {};
+      if (!sync.baseDigest) return null;
       const candidate = sync.basePlan ?? sync.baseMetadata ?? sync.base ?? null;
       const plan = candidate?.planejamento ?? candidate?.plan ?? candidate;
-      return plan?.tipo === 'reta_final' ? plan : null;
+      return plan?.tipo === "reta_final" ? plan : null;
     };
-    const basePlan = options?.basePlan ?? firestoreBase(localState.config) ?? firestoreBase(remoteState.config);
+    const basePlan =
+      options?.basePlan ??
+      firestoreBase(localState.config) ??
+      firestoreBase(remoteState.config);
     // A missing editais list is passed explicitly as null so the merge records
     // an unresolved catalog conflict instead of treating references as valid.
-    const catalog = Array.isArray(merged.editais) && merged.editais.length ? merged.editais : null;
+    const catalog =
+      Array.isArray(merged.editais) && merged.editais.length
+        ? merged.editais
+        : null;
     const result = mergeRetaFinalPlans({
       basePlan,
       localPlan,
@@ -462,30 +523,41 @@ export function mergeStudyStates(localState = {}, remoteState = {}, options = {}
     merged.planejamento = result.plan;
     conflicts = result.conflicts;
     merged.planejamentoArquivado =
-      localState.planejamentoArquivado ?? remoteState.planejamentoArquivado ?? null;
+      localState.planejamentoArquivado ??
+      remoteState.planejamentoArquivado ??
+      null;
   } else if (bothV2) {
-    conflicts = [{
-      planId: localPlan.planId || remotePlan.planId || null,
-      blockId: null,
-      fieldPath: 'planId',
-      base: null,
-      local: localPlan.planId || null,
-      remote: remotePlan.planId || null,
-      reason: 'As versões v2 locais pertencem a identidades de plano diferentes.',
-    }];
+    conflicts = [
+      {
+        planId: localPlan.planId || remotePlan.planId || null,
+        blockId: null,
+        fieldPath: "planId",
+        base: null,
+        local: localPlan.planId || null,
+        remote: remotePlan.planId || null,
+        reason:
+          "As versões v2 locais pertencem a identidades de plano diferentes.",
+      },
+    ];
     merged.planejamento = localPlan;
     merged.planejamentoArquivado = localState.planejamentoArquivado ?? null;
-  } else if (remotePlan && toTime(remotePlan.updatedAt) > toTime(localPlan?.updatedAt)) {
+  } else if (
+    remotePlan &&
+    toTime(remotePlan.updatedAt) > toTime(localPlan?.updatedAt)
+  ) {
     merged.planejamento = remotePlan;
-    merged.planejamentoArquivado = Object.hasOwn(remoteState, 'planejamentoArquivado')
+    merged.planejamentoArquivado = Object.hasOwn(
+      remoteState,
+      "planejamentoArquivado",
+    )
       ? remoteState.planejamentoArquivado
-      : localState.planejamentoArquivado ?? null;
+      : (localState.planejamentoArquivado ?? null);
   }
 
   merged.config.localBackupAt = new Date().toISOString();
   if (conflicts.length) {
     merged.config.syncMergeConflicts = {
-      type: 'reta-final-three-way',
+      type: "reta-final-three-way",
       detectedAt: merged.config.localBackupAt,
       total: conflicts.length,
       items: conflicts,
@@ -504,8 +576,10 @@ export function mergeStudyStates(localState = {}, remoteState = {}, options = {}
 export function isEmptyState(state = {}) {
   const hasData = (arr) => Array.isArray(arr) && arr.length > 0;
   const hasHabits = (habitos) => {
-    if (!habitos || typeof habitos !== 'object') return false;
-    return Object.values(habitos).some((arr) => Array.isArray(arr) && arr.length > 0);
+    if (!habitos || typeof habitos !== "object") return false;
+    return Object.values(habitos).some(
+      (arr) => Array.isArray(arr) && arr.length > 0,
+    );
   };
   return (
     !hasData(state.editais) &&
@@ -519,9 +593,11 @@ export function isEmptyState(state = {}) {
 }
 
 export function isRemoteStateNewer(remoteEnvelope, localState) {
-  const remoteRaw = remoteEnvelope?.payloadUpdatedAt || remoteEnvelope?.updatedAt;
+  const remoteRaw =
+    remoteEnvelope?.payloadUpdatedAt || remoteEnvelope?.updatedAt;
   const remoteTime = remoteRaw ? new Date(remoteRaw).getTime() : 0;
-  const localRaw = localState?.config?.localBackupAt || localState?.config?._lastUpdated;
+  const localRaw =
+    localState?.config?.localBackupAt || localState?.config?._lastUpdated;
   const localTime = localRaw ? new Date(localRaw).getTime() : 0;
   if (remoteTime <= localTime) return false;
   // Empty-state guard: if remote is newer but appears empty, reject it
@@ -531,20 +607,27 @@ export function isRemoteStateNewer(remoteEnvelope, localState) {
 }
 
 export function resolveConflict(remoteEnvelope, localState) {
-  const remoteRaw = remoteEnvelope?.payloadUpdatedAt || remoteEnvelope?.updatedAt;
+  const remoteRaw =
+    remoteEnvelope?.payloadUpdatedAt || remoteEnvelope?.updatedAt;
   const remoteTime = remoteRaw ? new Date(remoteRaw).getTime() : 0;
-  const localRaw = localState?.config?.localBackupAt || localState?.config?._lastUpdated;
+  const localRaw =
+    localState?.config?.localBackupAt || localState?.config?._lastUpdated;
   const localTime = localRaw ? new Date(localRaw).getTime() : 0;
   const remoteNewer = isRemoteStateNewer(remoteEnvelope, localState);
 
-  if (remoteNewer) return { decision: 'remote', reason: 'remote is newer and has data' };
+  if (remoteNewer)
+    return { decision: "remote", reason: "remote is newer and has data" };
 
   // Remote is newer but empty (empty-state guard) - preserve local
   const payload = remoteEnvelope?.payload;
   if (remoteTime > localTime && payload && isEmptyState(payload)) {
-    return { decision: 'local', reason: 'remote is newer but empty - preserving local data' };
+    return {
+      decision: "local",
+      reason: "remote is newer but empty - preserving local data",
+    };
   }
 
-  if (localTime > remoteTime) return { decision: 'local', reason: 'local is newer' };
-  return { decision: 'noop', reason: 'timestamps equal' };
+  if (localTime > remoteTime)
+    return { decision: "local", reason: "local is newer" };
+  return { decision: "noop", reason: "timestamps equal" };
 }

@@ -90,4 +90,17 @@ describe("Reta Final sync display state", () => {
       }),
     ).toBe("conflict");
   });
+
+  it("não promove a sincronizado quando há alteração local posterior ao ACK", () => {
+    expect(
+      deriveSyncDisplayState({
+        firestoreSync: {
+          hasPendingWrites: false,
+          lastPushAt: "2026-10-21T10:00:00.000Z",
+        },
+        online: true,
+        localBackupAt: "2026-10-21T10:05:00.000Z",
+      }),
+    ).toBe("pending");
+  });
 });

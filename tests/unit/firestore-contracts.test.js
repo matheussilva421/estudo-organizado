@@ -158,7 +158,9 @@ describe('Firestore integration contracts', () => {
       firestoreSource.match(/export async function enableFirestoreSync[\s\S]*?\r?\n}\r?\n/)?.[0] ||
       '';
 
-    expect(enableBody).toContain("config.mode = mode === 'primary' ? 'primary' : 'shadow';");
+    expect(enableBody).toContain(
+      'config.mode = mode === "primary" ? "primary" : "shadow";',
+    );
     expect(enableBody).not.toContain('flushFirestoreOutbox');
     expect(enableBody).not.toContain('queueFirestoreSnapshotFromState');
   });
@@ -186,7 +188,9 @@ describe('Firestore integration contracts', () => {
     const syncExport =
       firestoreSource.match(/export async function syncFirestoreNow[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
 
-    expect(queueBody).toContain('createFirestoreSnapshotEnvelope(sourceState, envelopeOptions)');
+    expect(queueBody).toMatch(
+      /createFirestoreSnapshotEnvelope\(\s*sourceState,\s*envelopeOptions,?\s*\)/,
+    );
     expect(syncExport).toContain('firestoreLock.withLock');
     expect(syncExport).toContain('syncFirestoreNowUnlocked()');
     expect(syncBody).toContain('const remote = await readFirestoreSnapshot(db, uid);');
@@ -203,8 +207,8 @@ describe('Firestore integration contracts', () => {
 
     expect(indexedDbSource).toContain('touchLocalBackup');
     // All sync modules use object-form saveStateToDB (no positional args)
-    expect(firestoreSource).toContain(
-      'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'
+    expect(firestoreSource).toMatch(
+      /saveStateToDB\(\{\s*skipCloudSync:\s*true,\s*skipFirestoreSync:\s*true,\s*skipDriveSync:\s*true/,
     );
     expect(cloudflareSource).toContain(
       'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'
@@ -241,7 +245,7 @@ describe('Firestore integration contracts', () => {
     expect(flushExport).toContain('flushFirestoreOutboxUnlocked(options)');
     expect(flushBody).toContain('if (!pending)');
     expect(flushBody).toContain('config.hasPendingWrites = false');
-    expect(flushBody).toContain("emitStatus('synced'");
+    expect(flushBody).toContain('emitStatus("synced"');
   });
 
   it('repairs stale Firestore pending flags on startup and auth changes', () => {

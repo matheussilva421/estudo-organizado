@@ -49,6 +49,23 @@ O implementador DeepSeek foi interrompido pela sessão antes de fechar o relató
 - Terceira verificação: quando `syncMergeConflicts` existe com `items: []`, a coleta recorre aos `items` do pai; o teste resolve o item e confirma a limpeza do pai e do objeto vazio.
 - A inversão de camadas store→view permanece como residual Minor, sem ciclo funcional; refatoração para `logic/` fica registrada.
 
+## Correções da revisão integrada da Fase D
+
+- Pulls v2 não tratam mais plano de digest igual como no-op global: comparam o
+  estado não-plano e aplicam/mergeiam eventos, tempo, questões e revisões
+  remotos. O indicador só promove `synced` quando `lastPushAt` cobre o último
+  `localBackupAt`.
+- O engine enfileira escritas acadêmicas com `revision` do plano inalterada e
+  `snapshotRevision` avançando; a revisão de plano e a revisão do snapshot são
+  dimensões separadas.
+- `resolveRetaFinalConflict` enfileira o estado resolvido no fluxo normal de
+  sync após a transação local; a UI continua mostrando `pending` até o ACK.
+- Antes de aplicar um pull, o engine confere plano/revisão/digest e
+  `localBackupAt` capturados no início; uma edição concorrente durante o yield
+  gera `local-changed-during-pull` e preserva a versão local.
+- `verifiedRetaFinalBase` e o merge genérico exigem `baseDigest`; base sem
+  digest verificável não é usada.
+
 ## Limitações
 
 - E2E nativo com IndexedDB real, múltiplas abas e mobile continua **NOT_RUN**.

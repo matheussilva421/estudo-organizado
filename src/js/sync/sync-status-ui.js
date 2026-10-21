@@ -172,6 +172,7 @@ export function deriveSyncDisplayState({
   firestoreSync = {},
   online,
   mergeConflict = false,
+  localBackupAt = null,
 } = {}) {
   const config = firestoreSync || {};
   if (config.conflict) return "conflict";
@@ -185,7 +186,17 @@ export function deriveSyncDisplayState({
   }
   if (lastError) return "error";
   if (config.hasPendingWrites === true || config.pending) return "pending";
-  if (config.lastPushAt) return "synced";
+  if (config.lastPushAt) {
+    const pushedAt = Date.parse(config.lastPushAt);
+    const localAt = Date.parse(localBackupAt || 0);
+    if (
+      Number.isFinite(localAt) &&
+      (!Number.isFinite(pushedAt) || localAt > pushedAt)
+    ) {
+      return "pending";
+    }
+    return "synced";
+  }
   return "idle";
 }
 
@@ -383,6 +394,7 @@ function handleFirestoreSyncStatus(event) {
     },
     online: typeof navigator === "undefined" ? true : navigator.onLine,
     mergeConflict: Boolean(state.config?.syncMergeConflicts),
+    localBackupAt: state.config?.localBackupAt || null,
   });
   const status = derived === "synced" ? "ok" : derived;
   if (
@@ -474,6 +486,7 @@ function refreshConfigSyncSurface() {
     },
     online: typeof navigator === "undefined" ? true : navigator.onLine,
     mergeConflict: Boolean(state.config?.syncMergeConflicts),
+    localBackupAt: state.config?.localBackupAt || null,
   });
   if (healthStatus === "synced" && derived !== "synced") {
     healthStatus = derived;

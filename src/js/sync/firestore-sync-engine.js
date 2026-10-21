@@ -1,4 +1,4 @@
-import { debugLog } from '../debug.js';
+import { debugLog } from "../debug.js";
 import {
   completeGoogleRedirectSignIn,
   getFirebaseConfigStatus,
@@ -6,8 +6,9 @@ import {
   observeFirebaseAuth,
   signInWithGoogle,
   signOutFirebase,
-} from '../firebase/firebase-client.js?v=8.37';
-import { saveStateToDB, setState, state } from '../store.js?v=8.37';
+} from "../firebase/firebase-client.js?v=8.37";
+import { saveStateToDB, setState, state } from "../store.js?v=8.37";
+import { stableStringify } from "../store/normalize-state.js?v=8.37";
 import {
   applyEnvelopeToLocalState,
   createDefaultFirestoreSyncConfig,
@@ -15,7 +16,7 @@ import {
   getEnvelopeUpdatedAt,
   getFirestoreDeviceId,
   isRemoteNewer,
-} from './firestore-schema.js?v=8.37';
+} from "./firestore-schema.js?v=8.37";
 import {
   clearFirestoreConflict,
   enqueueFirestoreSnapshot,
@@ -24,12 +25,20 @@ import {
   markFirestoreSnapshotSynced,
   saveFirestoreConflict,
   saveFirestoreMeta,
-} from './firestore-outbox.js?v=8.37';
-import * as firestoreRepository from './firestore-repository.js?v=8.37';
-import { canAutoSyncFirestore, isGlobalSyncPaused, isRemoteStateNewer, mergeStudyStates } from './sync-center.js?v=8.37';
-import { checkEntityMigrationNeeded, migrateEntitiesToSnapshot } from './entity-migration.js?v=8.37';
-import { firestoreLock } from './sync-lock.js?v=8.37';
-import { yieldToUIWithBudget } from './sync-yield.js?v=8.37';
+} from "./firestore-outbox.js?v=8.37";
+import * as firestoreRepository from "./firestore-repository.js?v=8.37";
+import {
+  canAutoSyncFirestore,
+  isGlobalSyncPaused,
+  isRemoteStateNewer,
+  mergeStudyStates,
+} from "./sync-center.js?v=8.37";
+import {
+  checkEntityMigrationNeeded,
+  migrateEntitiesToSnapshot,
+} from "./entity-migration.js?v=8.37";
+import { firestoreLock } from "./sync-lock.js?v=8.37";
+import { yieldToUIWithBudget } from "./sync-yield.js?v=8.37";
 import {
   buildRetaFinalSyncDescriptor,
   classifyRetaFinalRemoteError,
@@ -38,11 +47,13 @@ import {
   getRetaFinalSyncCapabilities,
   readRetaFinalSyncDescriptor,
   validateRetaFinalEnvelopeWrite,
-} from './reta-final-protocol.js?v=8.37';
-import { mergeRetaFinalPlans } from '../logic/reta-final-merge.js?v=8.37';
+} from "./reta-final-protocol.js?v=8.37";
+import { mergeRetaFinalPlans } from "../logic/reta-final-merge.js?v=8.37";
 
-const readFirestoreSnapshot = (...args) => firestoreRepository.readFirestoreSnapshot(...args);
-const writeFirestoreSnapshot = (...args) => firestoreRepository.writeFirestoreSnapshot(...args);
+const readFirestoreSnapshot = (...args) =>
+  firestoreRepository.readFirestoreSnapshot(...args);
+const writeFirestoreSnapshot = (...args) =>
+  firestoreRepository.writeFirestoreSnapshot(...args);
 
 let currentUser = null;
 
@@ -51,13 +62,13 @@ export function __setCurrentUser(user) {
   currentUser = user;
 }
 let authUnsubscribe = null;
-let lastStatusSignature = '';
+let lastStatusSignature = "";
 
 function getConfig() {
   if (!state.config) state.config = {};
   const defaults = createDefaultFirestoreSyncConfig();
   const current = state.config.firestoreSync;
-  if (!current || typeof current !== 'object') {
+  if (!current || typeof current !== "object") {
     state.config.firestoreSync = defaults;
     return state.config.firestoreSync;
   }
@@ -69,14 +80,14 @@ function getConfig() {
   return current;
 }
 
-const RETA_FINAL_CONFLICT = 'reta-final-conflict';
+const RETA_FINAL_CONFLICT = "reta-final-conflict";
 
 function isRetaFinalConflict(conflict) {
   return conflict?.type === RETA_FINAL_CONFLICT;
 }
 
 function isBlockingFirestoreConflict(conflict) {
-  return conflict?.type === 'entity-conflict' || isRetaFinalConflict(conflict);
+  return conflict?.type === "entity-conflict" || isRetaFinalConflict(conflict);
 }
 
 function clonePlan(plan) {
@@ -84,7 +95,8 @@ function clonePlan(plan) {
 }
 
 function filterRemovedBlocks(plan, removedBlockIds) {
-  if (!plan || !Array.isArray(removedBlockIds) || removedBlockIds.length === 0) return plan;
+  if (!plan || !Array.isArray(removedBlockIds) || removedBlockIds.length === 0)
+    return plan;
   const removed = new Set(removedBlockIds);
   const blocks = Array.isArray(plan.retaFinal?.blocos)
     ? plan.retaFinal.blocos.filter((block) => !removed.has(block?.id))
@@ -98,7 +110,7 @@ function localTombstones(config) {
 
 function updateLocalTombstones(config, basePlan, plan, revision) {
   const currentIds = new Set(
-    (plan?.retaFinal?.blocos || []).map((block) => block?.id).filter(Boolean)
+    (plan?.retaFinal?.blocos || []).map((block) => block?.id).filter(Boolean),
   );
   const map = new Map(localTombstones(config).map((item) => [item.id, item]));
   for (const block of basePlan?.retaFinal?.blocos || []) {
@@ -108,13 +120,16 @@ function updateLocalTombstones(config, basePlan, plan, revision) {
   }
   // Append-only lineage: a block that reappears in the plan keeps its tombstone.
   const sorted = [...map.values()].sort(
-    (left, right) => right.revision - left.revision || left.id.localeCompare(right.id)
+    (left, right) =>
+      right.revision - left.revision || left.id.localeCompare(right.id),
   );
   if (sorted.length > 200) {
     config.minRetainedRevision = Math.max(
-      Number.isSafeInteger(config.minRetainedRevision) ? config.minRetainedRevision : 0,
+      Number.isSafeInteger(config.minRetainedRevision)
+        ? config.minRetainedRevision
+        : 0,
       Number.isSafeInteger(config.baseRevision) ? config.baseRevision : 0,
-      Number.isSafeInteger(basePlan?.revision) ? basePlan.revision : 0
+      Number.isSafeInteger(basePlan?.revision) ? basePlan.revision : 0,
     );
   }
   config.removedBlocks = sorted.slice(0, 200);
@@ -139,7 +154,10 @@ function rememberRemoteTombstones(config, descriptor) {
     map.set(id, { id, revision: descriptor.revision });
   }
   config.removedBlocks = [...map.values()]
-    .sort((left, right) => right.revision - left.revision || left.id.localeCompare(right.id))
+    .sort(
+      (left, right) =>
+        right.revision - left.revision || left.id.localeCompare(right.id),
+    )
     .slice(0, 200);
   if (descriptor.minRetainedRevision !== undefined) {
     config.minRetainedRevision = descriptor.minRetainedRevision;
@@ -159,8 +177,8 @@ function getRetaFinalPayloadPlan(sourceState) {
   const plan = sourceState?.planejamento;
   if (
     !plan ||
-    typeof plan !== 'object' ||
-    plan.tipo !== 'reta_final' ||
+    typeof plan !== "object" ||
+    plan.tipo !== "reta_final" ||
     plan.schemaVersionRetaFinal !== 2
   ) {
     return null;
@@ -170,9 +188,10 @@ function getRetaFinalPayloadPlan(sourceState) {
 
 function verifiedRetaFinalBase(config) {
   const base = config.basePlan;
-  if (!base || typeof base !== 'object' || Array.isArray(base)) return null;
+  if (!base || typeof base !== "object" || Array.isArray(base)) return null;
   if (!Number.isSafeInteger(base.revision) || base.revision < 0) return null;
-  if (config.baseDigest && computeRetaFinalPlanDigest(base) !== config.baseDigest) return null;
+  if (!config.baseDigest) return null;
+  if (computeRetaFinalPlanDigest(base) !== config.baseDigest) return null;
   return base;
 }
 
@@ -180,10 +199,12 @@ function setRetaFinalBaseFromRemote(config, remote, remotePlan) {
   const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
   rememberRemoteTombstones(config, readRetaFinalSyncDescriptor(remote));
   if (!remotePlan) {
+    const descriptor = readRetaFinalSyncDescriptor(remote);
     Object.assign(config, {
       basePlan: null,
       baseRevision: null,
       baseDigest: null,
+      snapshotRevision: descriptor?.snapshotRevision ?? 0,
       baseRemoteUpdatedAt: remoteUpdatedAt,
     });
     return;
@@ -193,6 +214,7 @@ function setRetaFinalBaseFromRemote(config, remote, remotePlan) {
     basePlan: clonePlan(remotePlan),
     baseRevision: descriptor?.revision ?? remotePlan.revision,
     baseDigest: descriptor?.digest ?? computeRetaFinalPlanDigest(remotePlan),
+    snapshotRevision: descriptor?.snapshotRevision ?? 0,
     baseRemoteUpdatedAt: remoteUpdatedAt,
     baseUpdatedAt: new Date().toISOString(),
     remoteUpdatedAt,
@@ -200,37 +222,50 @@ function setRetaFinalBaseFromRemote(config, remote, remotePlan) {
 }
 
 async function probeRetaFinalGuard(db, uid, descriptor) {
-  if (typeof firestoreRepository.verifyRetaFinalGuard !== 'function') {
-    return { verified: false, reason: 'guard-unavailable' };
+  if (typeof firestoreRepository.verifyRetaFinalGuard !== "function") {
+    return { verified: false, reason: "guard-unavailable" };
   }
   try {
     const result = await firestoreRepository.verifyRetaFinalGuard(
       db,
       uid,
-      descriptor.deviceId
+      descriptor.deviceId,
     );
-    if (result?.verified === true) return { verified: true, reason: 'accepted' };
-    return { verified: false, reason: result?.reason || 'guard-denied' };
+    if (result?.verified === true)
+      return { verified: true, reason: "accepted" };
+    return { verified: false, reason: result?.reason || "guard-denied" };
   } catch (err) {
-    return { verified: false, reason: err?.code || err?.message || 'guard-unavailable' };
+    return {
+      verified: false,
+      reason: err?.code || err?.message || "guard-unavailable",
+    };
   }
 }
 
-async function registerRetaFinalConflict(config, decision, pending, remote, error = null) {
+async function registerRetaFinalConflict(
+  config,
+  decision,
+  pending,
+  remote,
+  error = null,
+) {
   const incoming = decision?.conflict || {};
   const conflict = {
     ...incoming,
     type: RETA_FINAL_CONFLICT,
-    cause: incoming.cause || decision?.reason || 'unknown',
+    cause: incoming.cause || decision?.reason || "unknown",
     detectedAt: new Date().toISOString(),
     remoteUpdatedAt: getEnvelopeUpdatedAt(remote),
     basePlan: clonePlan(config.basePlan),
+    remoteSnapshotRevision:
+      readRetaFinalSyncDescriptor(remote)?.snapshotRevision ?? null,
     localPlan:
       incoming.localPlan ??
       pending?.envelope?.payload?.planejamento ??
       getRetaFinalPayloadPlan(state),
     remotePlan: incoming.remotePlan ?? remote?.payload?.planejamento ?? null,
-    reason: 'A Reta Final v2 remota exige reconciliacao humana antes de nova escrita.',
+    reason:
+      "A Reta Final v2 remota exige reconciliacao humana antes de nova escrita.",
   };
   if (error) conflict.error = error?.code || error?.message || String(error);
   config.conflict = conflict;
@@ -238,7 +273,7 @@ async function registerRetaFinalConflict(config, decision, pending, remote, erro
   config.lastError = `Conflito Reta Final: ${conflict.cause}.`;
   await saveFirestoreConflict(conflict);
   await persistSyncConfig(false);
-  emitStatus('conflict', { conflict });
+  emitStatus("conflict", { conflict });
   return false;
 }
 
@@ -246,40 +281,55 @@ function retaFinalQueueOptions(config, sourceState, options) {
   const activePlan = getRetaFinalPlan(sourceState);
   const payloadPlan = getRetaFinalPayloadPlan(sourceState);
   const base = verifiedRetaFinalBase(config);
+  const baseSnapshotRevision = Number.isSafeInteger(config.snapshotRevision)
+    ? config.snapshotRevision
+    : 0;
+  const snapshotRevision = baseSnapshotRevision + 1;
 
   if (activePlan) {
     if (config.basePlan && !base) {
-      throw new Error('Base local da Reta Final invalida; publique somente apos reconciliar.');
+      throw new Error(
+        "Base local da Reta Final invalida; publique somente apos reconciliar.",
+      );
     }
     if (base && base.planId !== activePlan.planId) {
-      const err = new Error('Linhagem da Reta Final mudou sem confirmacao humana.');
-      err.code = 'RETA_FINAL_LINEAGE_CHANGE';
+      const err = new Error(
+        "Linhagem da Reta Final mudou sem confirmacao humana.",
+      );
+      err.code = "RETA_FINAL_LINEAGE_CHANGE";
       throw err;
     }
     const baseRevision = base?.revision ?? 0;
     if (baseRevision > activePlan.revision) {
-      throw new Error('baseRevision local nao pode exceder a revision do plano.');
+      throw new Error(
+        "baseRevision local nao pode exceder a revision do plano.",
+      );
     }
     const tombstones = updateLocalTombstones(
       config,
       base,
       activePlan,
-      activePlan.revision
+      activePlan.revision,
     );
     const descriptor = buildRetaFinalSyncDescriptor({
       plan: activePlan,
       baseRevision,
       baseRemoteUpdatedAt:
-        config.baseRemoteUpdatedAt ?? (base ? null : config.remoteUpdatedAt ?? null),
+        config.baseRemoteUpdatedAt ??
+        (base ? null : (config.remoteUpdatedAt ?? null)),
       deviceId: getFirestoreDeviceId(),
       capabilities: getRetaFinalSyncCapabilities(sourceState),
-      state: 'active',
+      state: "active",
+      snapshotRevision,
+      baseSnapshotRevision,
       removedBlockIds: tombstones.map((item) => item.id),
       minRetainedRevision: retentionFloor(config, tombstones),
     });
     if (getRetaFinalPayloadPlan(sourceState)?.planId !== descriptor.planId) {
-      const err = new Error('Payload e descriptor pertencem a linhagens diferentes.');
-      err.code = 'RETA_FINAL_LINEAGE_PAYLOAD';
+      const err = new Error(
+        "Payload e descriptor pertencem a linhagens diferentes.",
+      );
+      err.code = "RETA_FINAL_LINEAGE_PAYLOAD";
       throw err;
     }
     return { ...options, retaFinalSync: descriptor };
@@ -287,16 +337,20 @@ function retaFinalQueueOptions(config, sourceState, options) {
 
   if (!base) {
     if (payloadPlan) {
-      const err = new Error('Linhagem remota desconhecida para o plano Reta Final inativo.');
-      err.code = 'RETA_FINAL_LINEAGE_UNKNOWN';
+      const err = new Error(
+        "Linhagem remota desconhecida para o plano Reta Final inativo.",
+      );
+      err.code = "RETA_FINAL_LINEAGE_UNKNOWN";
       throw err;
     }
     return options;
   }
 
   if (payloadPlan && payloadPlan.planId !== base.planId) {
-    const err = new Error('Linhagem da Reta Final mudou sem confirmacao humana.');
-    err.code = 'RETA_FINAL_LINEAGE_CHANGE';
+    const err = new Error(
+      "Linhagem da Reta Final mudou sem confirmacao humana.",
+    );
+    err.code = "RETA_FINAL_LINEAGE_CHANGE";
     throw err;
   }
 
@@ -318,53 +372,104 @@ function retaFinalQueueOptions(config, sourceState, options) {
     baseRemoteUpdatedAt: config.baseRemoteUpdatedAt ?? null,
     deviceId: getFirestoreDeviceId(),
     capabilities: getRetaFinalSyncCapabilities(sourceState),
-    state: 'retired',
+    state: "retired",
+    snapshotRevision,
+    baseSnapshotRevision,
     removedBlockIds: tombstones.map((item) => item.id),
     minRetainedRevision: retentionFloor(config, tombstones),
   });
   if (payloadPlan && payloadPlan.planId !== descriptor.planId) {
-    const err = new Error('Payload e descriptor pertencem a linhagens diferentes.');
-    err.code = 'RETA_FINAL_LINEAGE_PAYLOAD';
+    const err = new Error(
+      "Payload e descriptor pertencem a linhagens diferentes.",
+    );
+    err.code = "RETA_FINAL_LINEAGE_PAYLOAD";
     throw err;
   }
   return { ...options, retaFinalSync: descriptor };
 }
 
+function nonPlanStateDigest(sourceState) {
+  const snapshot = JSON.parse(JSON.stringify(sourceState || {}));
+  delete snapshot.planejamento;
+  delete snapshot.planejamentoArquivado;
+  delete snapshot.lastSync;
+  if (snapshot.config) {
+    delete snapshot.config.firestoreSync;
+    delete snapshot.config.syncMergeConflicts;
+    delete snapshot.config.localBackupAt;
+    delete snapshot.config._lastUpdated;
+  }
+  return stableStringify(snapshot);
+}
+
+function pullLocalIdentity(localPlan) {
+  return {
+    revision: localPlan?.revision ?? null,
+    digest: localPlan ? computeRetaFinalPlanDigest(localPlan) : null,
+    backupAt: state.config?.localBackupAt ?? null,
+  };
+}
+
 function applyRetaFinalPull(remote, config, { force = false } = {}) {
   const localPlan = getRetaFinalPayloadPlan(state);
-  const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
-  const remoteHasDescriptor = Boolean(remote && Object.hasOwn(remote, 'retaFinalSync'));
+  const remotePlan = getRetaFinalPayloadPlan({
+    planejamento: remote?.payload?.planejamento,
+  });
+  const remoteHasDescriptor = Boolean(
+    remote && Object.hasOwn(remote, "retaFinalSync"),
+  );
   const remoteDescriptor = readRetaFinalSyncDescriptor(remote);
   rememberRemoteTombstones(config, remoteDescriptor);
+  const localIdentity = pullLocalIdentity(localPlan);
+  const localNonPlan = nonPlanStateDigest(state);
+  const remoteNonPlan = nonPlanStateDigest(remote?.payload);
 
-  if (!remotePlan && !localPlan && !remoteHasDescriptor) return { handled: false };
+  if (!remotePlan && !localPlan && !remoteHasDescriptor)
+    return { handled: false };
   if (remoteHasDescriptor && !remoteDescriptor) {
-    return { handled: true, conflict: 'invalid-remote-descriptor' };
+    return { handled: true, conflict: "invalid-remote-descriptor" };
   }
-  if (remoteDescriptor && !remotePlan) return { handled: true, conflict: 'invalid-remote-plan' };
-  if (!remotePlan && localPlan) return { handled: true, conflict: 'missing-remote-plan' };
-  if (remotePlan && !localPlan) return { handled: true, conflict: 'missing-local-plan' };
-  if (remotePlan.planId !== localPlan.planId) return { handled: true, conflict: 'lineage' };
+  if (remoteDescriptor && !remotePlan)
+    return { handled: true, conflict: "invalid-remote-plan" };
+  if (!remotePlan && localPlan)
+    return { handled: true, conflict: "missing-remote-plan" };
+  if (remotePlan && !localPlan)
+    return { handled: true, conflict: "missing-local-plan" };
+  if (remotePlan.planId !== localPlan.planId)
+    return { handled: true, conflict: "lineage" };
 
   const localRetired = localPlan.ativo !== true;
   const remoteRetired = remotePlan.ativo !== true;
   if (localRetired !== remoteRetired) {
-    return { handled: true, conflict: 'retirement-mismatch' };
+    return { handled: true, conflict: "retirement-mismatch" };
   }
   if (localRetired && remoteRetired) {
-    if (remotePlan.revision < localPlan.revision) return { handled: true, applied: false };
+    if (remotePlan.revision < localPlan.revision)
+      return { handled: true, applied: false };
     if (
       remotePlan.revision === localPlan.revision &&
-      computeRetaFinalPlanDigest(remotePlan) !== computeRetaFinalPlanDigest(localPlan)
+      computeRetaFinalPlanDigest(remotePlan) !==
+        computeRetaFinalPlanDigest(localPlan)
     ) {
-      return { handled: true, conflict: 'retired-digest-mismatch' };
+      return { handled: true, conflict: "retired-digest-mismatch" };
     }
-    if (remotePlan.revision === localPlan.revision) return { handled: true, applied: false };
+    if (remotePlan.revision === localPlan.revision) {
+      if (localNonPlan === remoteNonPlan)
+        return { handled: true, applied: false };
+      return {
+        handled: true,
+        applied: true,
+        nextState: applyEnvelopeToLocalState(remote, config),
+        basePlan: remotePlan,
+        localIdentity,
+      };
+    }
     return {
       handled: true,
       applied: true,
       nextState: applyEnvelopeToLocalState(remote, config),
       basePlan: remotePlan,
+      localIdentity,
     };
   }
 
@@ -372,7 +477,10 @@ function applyRetaFinalPull(remote, config, { force = false } = {}) {
     const forcedLocalDigest = computeRetaFinalPlanDigest(localPlan);
     const forcedRemoteDigest =
       remoteDescriptor?.digest ?? computeRetaFinalPlanDigest(remotePlan);
-    if (forcedLocalDigest === forcedRemoteDigest) {
+    if (
+      forcedLocalDigest === forcedRemoteDigest &&
+      localNonPlan === remoteNonPlan
+    ) {
       return { handled: true, applied: false };
     }
     return {
@@ -380,19 +488,24 @@ function applyRetaFinalPull(remote, config, { force = false } = {}) {
       applied: true,
       nextState: applyEnvelopeToLocalState(remote, config),
       basePlan: remotePlan,
+      localIdentity,
     };
   }
 
   const base = verifiedRetaFinalBase(config);
-  if (!base) return { handled: true, conflict: 'missing-base' };
+  if (!base) return { handled: true, conflict: "missing-base" };
   if (base.planId !== localPlan.planId || base.planId !== remotePlan.planId) {
-    return { handled: true, conflict: 'base-lineage' };
+    return { handled: true, conflict: "base-lineage" };
   }
-  if (base.revision > localPlan.revision || base.revision > remotePlan.revision) {
-    return { handled: true, conflict: 'base-ahead' };
+  if (
+    base.revision > localPlan.revision ||
+    base.revision > remotePlan.revision
+  ) {
+    return { handled: true, conflict: "base-ahead" };
   }
 
-  const remoteDigest = remoteDescriptor?.digest ?? computeRetaFinalPlanDigest(remotePlan);
+  const remoteDigest =
+    remoteDescriptor?.digest ?? computeRetaFinalPlanDigest(remotePlan);
   const localDigest = computeRetaFinalPlanDigest(localPlan);
   const baseDigest = computeRetaFinalPlanDigest(base);
 
@@ -400,35 +513,61 @@ function applyRetaFinalPull(remote, config, { force = false } = {}) {
     remoteDescriptor?.minRetainedRevision !== undefined &&
     base.revision < remoteDescriptor.minRetainedRevision
   ) {
-    return { handled: true, conflict: 'stale-base', basePlan: base, localPlan, remotePlan };
+    return {
+      handled: true,
+      conflict: "stale-base",
+      basePlan: base,
+      localPlan,
+      remotePlan,
+    };
   }
 
   if (localDigest === baseDigest) {
-    if (remoteDigest === baseDigest) return { handled: true, applied: false };
+    if (remoteDigest === baseDigest && localNonPlan === remoteNonPlan) {
+      return { handled: true, applied: false };
+    }
     return {
       handled: true,
       applied: true,
       nextState: applyEnvelopeToLocalState(remote, config),
       basePlan: remotePlan,
+      localIdentity,
     };
   }
 
-  if (localDigest === remoteDigest) return { handled: true, applied: false };
+  if (localDigest === remoteDigest) {
+    if (localNonPlan === remoteNonPlan)
+      return { handled: true, applied: false };
+    const merged = mergeStudyStates(state, remote.payload || {}, {
+      basePlan: base,
+    });
+    return {
+      handled: true,
+      applied: true,
+      academicOnly: true,
+      nextState: merged,
+      basePlan: remotePlan,
+      localIdentity,
+    };
+  }
 
   const merge = mergeRetaFinalPlans({
     basePlan: base,
     localPlan,
     remotePlan,
     events: state.eventos || [],
-    catalog: Array.isArray(state.editais) && state.editais.length ? state.editais : null,
+    catalog:
+      Array.isArray(state.editais) && state.editais.length
+        ? state.editais
+        : null,
   });
   const proposedPlan = filterRemovedBlocks(
     merge.plan,
-    allRemovedIds(config, remoteDescriptor)
+    allRemovedIds(config, remoteDescriptor),
   );
   return {
     handled: true,
-    conflict: 'merge-review',
+    conflict: "merge-review",
     proposedPlan,
     mergeConflicts: merge.conflicts,
     mergeValid: merge.valid,
@@ -463,12 +602,19 @@ function emitNoopPullStatus(remote) {
   const same =
     localPlan &&
     remotePlan &&
-    computeRetaFinalPlanDigest(localPlan) === computeRetaFinalPlanDigest(remotePlan);
-  emitStatus(same ? 'synced' : 'idle', { reason: 'noop' });
+    computeRetaFinalPlanDigest(localPlan) ===
+      computeRetaFinalPlanDigest(remotePlan);
+  emitStatus(same ? "synced" : "idle", { reason: "noop" });
   return false;
 }
 
-async function applyPulledRetaFinalState(outcome, remote, uid, reason, options = {}) {
+async function applyPulledRetaFinalState(
+  outcome,
+  remote,
+  uid,
+  reason,
+  options = {},
+) {
   if (outcome?.applied !== true || !outcome.nextState) return false;
   const pending = await getPendingFirestoreSnapshot();
   if (pending && options.discardPending !== true) {
@@ -476,13 +622,42 @@ async function applyPulledRetaFinalState(outcome, remote, uid, reason, options =
       getConfig(),
       {
         allowed: false,
-        reason: 'pending-outbox',
-        conflict: { type: RETA_FINAL_CONFLICT, cause: 'pending-outbox' },
+        reason: "pending-outbox",
+        conflict: { type: RETA_FINAL_CONFLICT, cause: "pending-outbox" },
       },
       pending,
-      remote
+      remote,
     );
     return false;
+  }
+  if (outcome.localIdentity) {
+    const currentPlan = getRetaFinalPayloadPlan(state);
+    const currentDigest = currentPlan
+      ? computeRetaFinalPlanDigest(currentPlan)
+      : null;
+    const backupAt = state.config?.localBackupAt ?? null;
+    if (
+      currentPlan?.revision !== outcome.localIdentity.revision ||
+      currentDigest !== outcome.localIdentity.digest ||
+      backupAt !== outcome.localIdentity.backupAt
+    ) {
+      await registerRetaFinalConflict(
+        getConfig(),
+        {
+          allowed: false,
+          reason: "local-changed-during-pull",
+          conflict: {
+            type: RETA_FINAL_CONFLICT,
+            cause: "local-changed-during-pull",
+            localPlan: clonePlan(currentPlan),
+            remotePlan: remote?.payload?.planejamento ?? null,
+          },
+        },
+        pending,
+        remote,
+      );
+      return false;
+    }
   }
   const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
   setState(outcome.nextState, { merge: true });
@@ -495,13 +670,13 @@ async function applyPulledRetaFinalState(outcome, remote, uid, reason, options =
           queuedAt: pending.queuedAt ?? null,
           sentAt: pending.envelope?.sentAt ?? null,
         }
-      : { queuedAt: null, sentAt: null }
+      : { queuedAt: null, sentAt: null },
   );
   if (!cleared) {
     liveConfig.hasPendingWrites = true;
-    liveConfig.lastError = 'Outbox recebeu uma nova gravacao durante o pull.';
+    liveConfig.lastError = "Outbox recebeu uma nova gravacao durante o pull.";
     await persistSyncConfig(true);
-    emitStatus('pending');
+    emitStatus("pending");
     return false;
   }
   const pullAt = new Date().toISOString();
@@ -521,8 +696,8 @@ async function applyPulledRetaFinalState(outcome, remote, uid, reason, options =
     skipDriveSync: true,
     touchLocalBackup: false,
   });
-  emitPrimaryStatus('synced', { source: reason, remoteUpdatedAt });
-  emitStatus('synced');
+  emitPrimaryStatus("synced", { source: reason, remoteUpdatedAt });
+  emitStatus("synced");
   return true;
 }
 
@@ -558,17 +733,17 @@ function emitStatus(status, detail = {}) {
   if (signature === lastStatusSignature) return;
   lastStatusSignature = signature;
   document.dispatchEvent(
-    new CustomEvent('app:firestoreSyncStatus', {
+    new CustomEvent("app:firestoreSyncStatus", {
       detail: eventDetail,
-    })
+    }),
   );
 }
 
 function emitPrimaryStatus(status, detail = {}) {
   document.dispatchEvent(
-    new CustomEvent('app:primarySyncStatus', {
+    new CustomEvent("app:primarySyncStatus", {
       detail: { status, ...detail },
-    })
+    }),
   );
 }
 
@@ -580,7 +755,7 @@ async function persistSyncConfig(skipRender = true) {
     touchLocalBackup: false,
     skipSyncEvent: true,
   });
-  if (!skipRender) emitPrimaryStatus('config-updated');
+  if (!skipRender) emitPrimaryStatus("config-updated");
 }
 
 async function reconcileFirestorePendingState(skipRender = true) {
@@ -589,16 +764,24 @@ async function reconcileFirestorePendingState(skipRender = true) {
 
   // Clear stale conflicts when there is no pending snapshot to resolve.
   // Entity-level conflicts are already the conflict payload and must remain visible.
-  if (config.conflict && !isBlockingFirestoreConflict(config.conflict) && !pending) {
+  if (
+    config.conflict &&
+    !isBlockingFirestoreConflict(config.conflict) &&
+    !pending
+  ) {
     config.conflict = null;
     config.hasPendingWrites = false;
     config.lastError = null;
     await persistSyncConfig(skipRender);
-    emitStatus('synced');
+    emitStatus("synced");
   }
 
   // Entity-conflict with no pending snapshot: clear hasPendingWrites but keep conflict for UI resolution.
-  if (isBlockingFirestoreConflict(config.conflict) && !pending && config.hasPendingWrites) {
+  if (
+    isBlockingFirestoreConflict(config.conflict) &&
+    !pending &&
+    config.hasPendingWrites
+  ) {
     config.hasPendingWrites = false;
     await persistSyncConfig(skipRender);
   }
@@ -607,7 +790,7 @@ async function reconcileFirestorePendingState(skipRender = true) {
     config.hasPendingWrites = false;
     config.lastError = null;
     await persistSyncConfig(skipRender);
-    emitStatus('synced');
+    emitStatus("synced");
   }
 
   // Stale pending snapshot: enqueued >60s ago with zero attempts and no conflict.
@@ -616,7 +799,7 @@ async function reconcileFirestorePendingState(skipRender = true) {
     pending &&
     !config.conflict &&
     pending.attempts === 0 &&
-    !Object.hasOwn(pending.envelope || {}, 'retaFinalSync')
+    !Object.hasOwn(pending.envelope || {}, "retaFinalSync")
   ) {
     const queuedAge = Date.now() - new Date(pending.queuedAt).getTime();
     if (Number.isFinite(queuedAge) && queuedAge > 60000) {
@@ -624,7 +807,7 @@ async function reconcileFirestorePendingState(skipRender = true) {
       config.hasPendingWrites = false;
       config.lastError = null;
       await persistSyncConfig(skipRender);
-      emitStatus('synced');
+      emitStatus("synced");
       return null;
     }
   }
@@ -634,9 +817,9 @@ async function reconcileFirestorePendingState(skipRender = true) {
 
 function requestPrimarySync(reason) {
   document.dispatchEvent(
-    new CustomEvent('app:primarySyncRequested', {
+    new CustomEvent("app:primarySyncRequested", {
       detail: { reason },
-    })
+    }),
   );
 }
 
@@ -647,7 +830,8 @@ const DEFAULT_POLL_INTERVAL_MS = 30000;
 
 export async function pollFirestoreRemote() {
   const config = getConfig();
-  if (!config.enabled || config.mode !== 'primary' || !currentUser?.uid) return false;
+  if (!config.enabled || config.mode !== "primary" || !currentUser?.uid)
+    return false;
 
   if (config.conflict) {
     const pending = await getPendingFirestoreSnapshot();
@@ -656,7 +840,7 @@ export async function pollFirestoreRemote() {
       config.hasPendingWrites = false;
       config.lastError = null;
       await persistSyncConfig(true);
-      emitStatus('synced');
+      emitStatus("synced");
     } else if (pending || isBlockingFirestoreConflict(config.conflict)) {
       return false;
     }
@@ -668,21 +852,15 @@ export async function pollFirestoreRemote() {
     if (!remote) return false;
 
     const localPlan = getRetaFinalPayloadPlan(state);
-    const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
-    const remoteHasDescriptor = Object.hasOwn(remote, 'retaFinalSync');
+    const remotePlan = getRetaFinalPayloadPlan({
+      planejamento: remote?.payload?.planejamento,
+    });
+    const remoteHasDescriptor = Object.hasOwn(remote, "retaFinalSync");
     if (localPlan || remotePlan || remoteHasDescriptor) {
       const pending = await getPendingFirestoreSnapshot();
       if (pending) return false;
       if (localPlan && remotePlan && remotePlan.planId === localPlan.planId) {
-        const remoteDigest =
-          readRetaFinalSyncDescriptor(remote)?.digest ?? computeRetaFinalPlanDigest(remotePlan);
         if (remotePlan.revision < localPlan.revision) return false;
-        if (
-          remotePlan.revision === localPlan.revision &&
-          computeRetaFinalPlanDigest(localPlan) === remoteDigest
-        ) {
-          return false;
-        }
       }
       const outcome = applyRetaFinalPull(remote, config, { force: false });
       if (!outcome.handled || outcome.conflict) {
@@ -691,14 +869,14 @@ export async function pollFirestoreRemote() {
             config,
             pullConflictDecision(outcome),
             null,
-            remote
+            remote,
           );
         }
         return false;
       }
       if (outcome.applied !== true) return false;
       await yieldToUIWithBudget(50, performance.now());
-      return await applyPulledRetaFinalState(outcome, remote, uid, 'poll');
+      return await applyPulledRetaFinalState(outcome, remote, uid, "poll");
     }
 
     if (!isRemoteStateNewer(remote, state)) return false;
@@ -728,13 +906,13 @@ export async function pollFirestoreRemote() {
       skipDriveSync: true,
       touchLocalBackup: false,
     });
-    emitPrimaryStatus('synced', { source: 'poll', remoteUpdatedAt });
-    emitStatus('synced');
+    emitPrimaryStatus("synced", { source: "poll", remoteUpdatedAt });
+    emitStatus("synced");
     return true;
   } catch (err) {
     config.lastError = err.message || String(err);
     await persistSyncConfig(true);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
     return false;
   }
 }
@@ -762,16 +940,16 @@ export function getFirestoreSyncStatus() {
   try {
     services = initFirebaseServices();
   } catch (err) {
-    console.warn('getFirestoreSyncStatus: initFirebaseServices failed:', err);
+    console.warn("getFirestoreSyncStatus: initFirebaseServices failed:", err);
     return {
       configured: false,
-      projectId: '',
-      authDomain: '',
+      projectId: "",
+      authDomain: "",
       signedIn: false,
       uid: null,
       email: null,
       enabled: false,
-      mode: 'off',
+      mode: "off",
       conflict: null,
       hasPendingWrites: false,
       lastError: err.message || String(err),
@@ -792,7 +970,8 @@ export function getFirestoreSyncStatus() {
 
 export async function downloadSyncDiagnosticLog() {
   // Import Cloudflare sync functions dynamically to avoid circular deps
-  const { getSyncCreds, getSyncConfig } = await import('../cloud-sync.js?v=8.37');
+  const { getSyncCreds, getSyncConfig } =
+    await import("../cloud-sync.js?v=8.37");
 
   const log = {
     timestamp: new Date().toISOString(),
@@ -808,7 +987,8 @@ export async function downloadSyncDiagnosticLog() {
       schemaVersion: state.schemaVersion || null,
     },
     syncHistory: state.config?.syncHealth?.events?.slice(-10) || [],
-    performanceMetrics: state.config?.syncPerformance?.metrics?.slice(-10) || [],
+    performanceMetrics:
+      state.config?.syncPerformance?.metrics?.slice(-10) || [],
     // Cloudflare sync data
     cloudflare: {
       configured: !!(state.config?.cfUrl && state.config?.cfTokenSaved),
@@ -853,9 +1033,11 @@ export async function downloadSyncDiagnosticLog() {
     log.pendingError = err.message || String(err);
   }
 
-  const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(log, null, 2)], {
+    type: "application/json",
+  });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = `sync-diagnostic-${Date.now()}.json`;
   document.body.appendChild(a);
@@ -870,12 +1052,12 @@ export function initFirestoreSync() {
   const _config = getConfig();
 
   if (!services.configured) {
-    emitStatus('unconfigured', { config: { lastError: null } });
+    emitStatus("unconfigured", { config: { lastError: null } });
     return;
   }
 
   reconcileFirestorePendingState(false).catch((err) => {
-    console.warn('Firestore pending state repair failed:', err);
+    console.warn("Firestore pending state repair failed:", err);
   });
 
   completeGoogleRedirectSignIn()
@@ -886,30 +1068,44 @@ export function initFirestoreSync() {
       syncConfig.uid = credential.user.uid;
       syncConfig.lastError = null;
       await persistSyncConfig(false);
-      emitStatus('signed-in', { config: { uid: credential.user.uid, lastError: null } });
+      emitStatus("signed-in", {
+        config: { uid: credential.user.uid, lastError: null },
+      });
 
       // Check and run entity migration if needed (one-time)
       try {
         const { db, uid } = requireSignedInServices();
         const migrationCheck = await checkEntityMigrationNeeded(db, uid);
         if (migrationCheck.needed) {
-          debugLog('sync', `Entity migration needed: ${migrationCheck.entityCount} entities found.`);
-          emitPrimaryStatus('migrating', { entityCount: migrationCheck.entityCount });
-          const report = await migrateEntitiesToSnapshot(db, uid, {
-            onProgress: (msg) => debugLog('sync', `[Entity Migration] ${msg}`),
+          debugLog(
+            "sync",
+            `Entity migration needed: ${migrationCheck.entityCount} entities found.`,
+          );
+          emitPrimaryStatus("migrating", {
+            entityCount: migrationCheck.entityCount,
           });
-          debugLog('sync', 'Entity migration complete:', JSON.stringify(report));
-          emitPrimaryStatus('migrated', report);
+          const report = await migrateEntitiesToSnapshot(db, uid, {
+            onProgress: (msg) => debugLog("sync", `[Entity Migration] ${msg}`),
+          });
+          debugLog(
+            "sync",
+            "Entity migration complete:",
+            JSON.stringify(report),
+          );
+          emitPrimaryStatus("migrated", report);
         }
       } catch (err) {
-        console.warn('Entity migration check failed (non-critical):', err.message);
+        console.warn(
+          "Entity migration check failed (non-critical):",
+          err.message,
+        );
       }
     })
     .catch(async (err) => {
       const syncConfig = getConfig();
       syncConfig.lastError = err.message || String(err);
       await persistSyncConfig(false);
-      emitStatus('error', { error: syncConfig.lastError });
+      emitStatus("error", { error: syncConfig.lastError });
     });
 
   if (authUnsubscribe) return;
@@ -920,13 +1116,13 @@ export function initFirestoreSync() {
     if (!user) {
       stopPolling();
       syncConfig.hasPendingWrites = false;
-      emitStatus('signed-out');
-      emitPrimaryStatus('signed-out');
+      emitStatus("signed-out");
+      emitPrimaryStatus("signed-out");
       return;
     }
-    emitStatus('signed-in', { config: { uid: user.uid, lastError: null } });
+    emitStatus("signed-in", { config: { uid: user.uid, lastError: null } });
     reconcileFirestorePendingState(false).catch((err) => {
-      console.warn('Firestore pending state repair failed:', err);
+      console.warn("Firestore pending state repair failed:", err);
     });
 
     // Check and run entity migration if needed (one-time)
@@ -935,24 +1131,39 @@ export function initFirestoreSync() {
       checkEntityMigrationNeeded(db, uid)
         .then(async (migrationCheck) => {
           if (!migrationCheck.needed) return;
-          debugLog('sync', `Entity migration needed: ${migrationCheck.entityCount} entities found.`);
-          emitPrimaryStatus('migrating', { entityCount: migrationCheck.entityCount });
-          const report = await migrateEntitiesToSnapshot(db, uid, {
-            onProgress: (msg) => debugLog('sync', `[Entity Migration] ${msg}`),
+          debugLog(
+            "sync",
+            `Entity migration needed: ${migrationCheck.entityCount} entities found.`,
+          );
+          emitPrimaryStatus("migrating", {
+            entityCount: migrationCheck.entityCount,
           });
-          debugLog('sync', 'Entity migration complete:', JSON.stringify(report));
-          emitPrimaryStatus('migrated', report);
+          const report = await migrateEntitiesToSnapshot(db, uid, {
+            onProgress: (msg) => debugLog("sync", `[Entity Migration] ${msg}`),
+          });
+          debugLog(
+            "sync",
+            "Entity migration complete:",
+            JSON.stringify(report),
+          );
+          emitPrimaryStatus("migrated", report);
         })
         .catch((err) => {
-          console.warn('Entity migration check failed (non-critical):', err.message);
+          console.warn(
+            "Entity migration check failed (non-critical):",
+            err.message,
+          );
         });
     } catch (err) {
-      console.warn('Entity migration check failed (non-critical):', err.message);
+      console.warn(
+        "Entity migration check failed (non-critical):",
+        err.message,
+      );
     }
 
     // Manual-only mode: no automatic polling. Login still emits status so the UI
     // can show "Conectado como ...", but the user must press Sync to push/pull.
-    emitPrimaryStatus('signed-in', { uid: user.uid });
+    emitPrimaryStatus("signed-in", { uid: user.uid });
   });
 }
 
@@ -961,11 +1172,11 @@ export async function firestoreSignIn() {
   if (credential?.cancelled) {
     // Usuario fechou o popup: nenhuma navegacao aconteceu, entao a UI volta ao
     // estado desconectado em vez de ficar presa em "redirecionando".
-    emitStatus('signed-out');
+    emitStatus("signed-out");
     return null;
   }
   if (!credential?.user) {
-    emitStatus('redirecting');
+    emitStatus("redirecting");
     return null;
   }
   currentUser = credential.user;
@@ -977,16 +1188,21 @@ export async function firestoreSignIn() {
     const { db, uid } = requireSignedInServices();
     const migrationCheck = await checkEntityMigrationNeeded(db, uid);
     if (migrationCheck.needed) {
-      debugLog('sync', `Entity migration needed: ${migrationCheck.entityCount} entities found.`);
-      emitPrimaryStatus('migrating', { entityCount: migrationCheck.entityCount });
-      const report = await migrateEntitiesToSnapshot(db, uid, {
-        onProgress: (msg) => debugLog('sync', `[Entity Migration] ${msg}`),
+      debugLog(
+        "sync",
+        `Entity migration needed: ${migrationCheck.entityCount} entities found.`,
+      );
+      emitPrimaryStatus("migrating", {
+        entityCount: migrationCheck.entityCount,
       });
-      debugLog('sync', 'Entity migration complete:', JSON.stringify(report));
-      emitPrimaryStatus('migrated', report);
+      const report = await migrateEntitiesToSnapshot(db, uid, {
+        onProgress: (msg) => debugLog("sync", `[Entity Migration] ${msg}`),
+      });
+      debugLog("sync", "Entity migration complete:", JSON.stringify(report));
+      emitPrimaryStatus("migrated", report);
     }
   } catch (err) {
-    console.warn('Entity migration check failed (non-critical):', err.message);
+    console.warn("Entity migration check failed (non-critical):", err.message);
   }
 
   // Manual-only mode: no polling and no auto-push on sign-in. The user controls
@@ -1004,13 +1220,13 @@ export async function firestoreSignOut() {
   await persistSyncConfig(false);
 }
 
-export async function enableFirestoreSync(mode = 'shadow') {
+export async function enableFirestoreSync(mode = "shadow") {
   const config = getConfig();
   config.enabled = true;
-  config.mode = mode === 'primary' ? 'primary' : 'shadow';
+  config.mode = mode === "primary" ? "primary" : "shadow";
   config.lastError = null;
   await persistSyncConfig(false);
-  emitStatus('enabled');
+  emitStatus("enabled");
   // Manual-only mode: no automatic polling or auto-push when activating.
   return true;
 }
@@ -1024,16 +1240,19 @@ export async function disableFirestoreSync() {
   await persistSyncConfig(false);
 }
 
-export async function queueFirestoreSnapshotFromState(sourceState = state, options = {}) {
+export async function queueFirestoreSnapshotFromState(
+  sourceState = state,
+  options = {},
+) {
   const config = getConfig();
   if (!config.enabled) return false;
   const pending = await getPendingFirestoreSnapshot();
   if (isRetaFinalConflict(config.conflict)) {
-    emitStatus('conflict-paused');
+    emitStatus("conflict-paused");
     return false;
   }
   if (!options.manual && !canAutoSyncFirestore(config, pending)) {
-    emitStatus(config.conflict ? 'conflict-paused' : 'backoff');
+    emitStatus(config.conflict ? "conflict-paused" : "backoff");
     return false;
   }
   let envelopeOptions = options;
@@ -1047,21 +1266,24 @@ export async function queueFirestoreSnapshotFromState(sourceState = state, optio
     config.lastError = err.message || String(err);
     config.hasPendingWrites = Boolean(pending);
     if (
-      err.code === 'RETA_FINAL_LINEAGE_CHANGE' ||
-      err.code === 'RETA_FINAL_LINEAGE_UNKNOWN' ||
-      err.code === 'RETA_FINAL_LINEAGE_PAYLOAD'
+      err.code === "RETA_FINAL_LINEAGE_CHANGE" ||
+      err.code === "RETA_FINAL_LINEAGE_UNKNOWN" ||
+      err.code === "RETA_FINAL_LINEAGE_PAYLOAD"
     ) {
       const cause =
-        err.code === 'RETA_FINAL_LINEAGE_CHANGE'
-          ? 'lineage-change'
-          : err.code === 'RETA_FINAL_LINEAGE_PAYLOAD'
-            ? 'lineage-payload'
-            : 'lineage-unknown';
+        err.code === "RETA_FINAL_LINEAGE_CHANGE"
+          ? "lineage-change"
+          : err.code === "RETA_FINAL_LINEAGE_PAYLOAD"
+            ? "lineage-payload"
+            : "lineage-unknown";
       const conflict = {
         type: RETA_FINAL_CONFLICT,
         cause,
         detectedAt: new Date().toISOString(),
-        planId: getRetaFinalPayloadPlan(sourceState)?.planId ?? config.basePlan?.planId ?? null,
+        planId:
+          getRetaFinalPayloadPlan(sourceState)?.planId ??
+          config.basePlan?.planId ??
+          null,
         localPlan: getRetaFinalPayloadPlan(sourceState),
         remotePlan: null,
         basePlan: clonePlan(config.basePlan),
@@ -1070,33 +1292,37 @@ export async function queueFirestoreSnapshotFromState(sourceState = state, optio
       config.conflict = conflict;
       await saveFirestoreConflict(conflict);
       await persistSyncConfig(false);
-      emitStatus('conflict', { conflict });
+      emitStatus("conflict", { conflict });
       return false;
     }
     await persistSyncConfig(false);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
     return false;
   }
-  const envelope = createFirestoreSnapshotEnvelope(sourceState, envelopeOptions);
+  const envelope = createFirestoreSnapshotEnvelope(
+    sourceState,
+    envelopeOptions,
+  );
   const queued = await enqueueFirestoreSnapshot(envelope);
   if (queued) {
     config.hasPendingWrites = true;
     config.lastError = null;
-    emitStatus('pending');
+    emitStatus("pending");
   } else {
     config.hasPendingWrites = false;
     config.lastError =
-      'Armazenamento local do Firestore indisponível. Recarregue a página para migrar o banco local.';
+      "Armazenamento local do Firestore indisponível. Recarregue a página para migrar o banco local.";
     await persistSyncConfig(false);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
   }
   return queued;
 }
 
 function requireSignedInServices() {
   const services = initFirebaseServices();
-  if (!services.configured) throw new Error('Firebase nao configurado.');
-  if (!currentUser) throw new Error('Entre com Google antes de sincronizar com Firestore.');
+  if (!services.configured) throw new Error("Firebase nao configurado.");
+  if (!currentUser)
+    throw new Error("Entre com Google antes de sincronizar com Firestore.");
   return { db: services.db, uid: currentUser.uid };
 }
 
@@ -1106,14 +1332,14 @@ async function registerConflict(remoteEnvelope, localEnvelope) {
     detectedAt: new Date().toISOString(),
     remoteUpdatedAt: getEnvelopeUpdatedAt(remoteEnvelope),
   };
-  config.lastError = 'Conflito Firestore: remoto mudou antes do envio local.';
+  config.lastError = "Conflito Firestore: remoto mudou antes do envio local.";
   await persistSyncConfig(false);
-  emitStatus('conflict', { conflict: config.conflict });
+  emitStatus("conflict", { conflict: config.conflict });
 }
 
 export async function autoPullRemoteWhenNewer() {
   const config = getConfig();
-  if (!config.enabled || config.mode !== 'primary') return false;
+  if (!config.enabled || config.mode !== "primary") return false;
 
   // Auto-clear stale conflicts
   if (config.conflict) {
@@ -1123,7 +1349,7 @@ export async function autoPullRemoteWhenNewer() {
       config.hasPendingWrites = false;
       config.lastError = null;
       await persistSyncConfig(true);
-      emitStatus('synced');
+      emitStatus("synced");
     } else {
       return false;
     }
@@ -1139,19 +1365,13 @@ export async function autoPullRemoteWhenNewer() {
     if (!remote) return false;
 
     const localPlan = getRetaFinalPayloadPlan(state);
-    const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
-    const remoteHasDescriptor = Object.hasOwn(remote, 'retaFinalSync');
+    const remotePlan = getRetaFinalPayloadPlan({
+      planejamento: remote?.payload?.planejamento,
+    });
+    const remoteHasDescriptor = Object.hasOwn(remote, "retaFinalSync");
     if (localPlan || remotePlan || remoteHasDescriptor) {
       if (localPlan && remotePlan && remotePlan.planId === localPlan.planId) {
-        const remoteDigest =
-          readRetaFinalSyncDescriptor(remote)?.digest ?? computeRetaFinalPlanDigest(remotePlan);
         if (remotePlan.revision < localPlan.revision) return false;
-        if (
-          remotePlan.revision === localPlan.revision &&
-          computeRetaFinalPlanDigest(localPlan) === remoteDigest
-        ) {
-          return false;
-        }
       }
       const outcome = applyRetaFinalPull(remote, config, { force: false });
       if (!outcome.handled || outcome.conflict) {
@@ -1160,14 +1380,14 @@ export async function autoPullRemoteWhenNewer() {
             config,
             pullConflictDecision(outcome),
             null,
-            remote
+            remote,
           );
         }
         return false;
       }
       if (outcome.applied !== true) return false;
       await yieldToUIWithBudget(50, performance.now());
-      return await applyPulledRetaFinalState(outcome, remote, uid, 'auto-pull');
+      return await applyPulledRetaFinalState(outcome, remote, uid, "auto-pull");
     }
 
     if (!isRemoteStateNewer(remote, state)) return false;
@@ -1190,13 +1410,13 @@ export async function autoPullRemoteWhenNewer() {
       lastError: null,
     });
     await persistSyncConfig(true);
-    emitPrimaryStatus('synced', { source: 'auto-pull', remoteUpdatedAt });
-    emitStatus('synced');
+    emitPrimaryStatus("synced", { source: "auto-pull", remoteUpdatedAt });
+    emitStatus("synced");
     return true;
   } catch (err) {
     config.lastError = err.message || String(err);
     await persistSyncConfig(true);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
     return false;
   }
 }
@@ -1208,27 +1428,37 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
   const startTime = performance.now();
 
   const pending = await getPendingFirestoreSnapshot();
-  if (!options.manual && !options.forceOverwrite && !canAutoSyncFirestore(config, pending)) {
-    emitStatus(config.conflict ? 'conflict-paused' : 'backoff');
+  if (
+    !options.manual &&
+    !options.forceOverwrite &&
+    !canAutoSyncFirestore(config, pending)
+  ) {
+    emitStatus(config.conflict ? "conflict-paused" : "backoff");
     return false;
   }
 
-  emitStatus('syncing');
+  emitStatus("syncing");
   if (!pending) {
     config.hasPendingWrites = false;
     await persistSyncConfig(true);
-    emitStatus('synced');
+    emitStatus("synced");
     return true;
   }
 
-  const descriptorPresent = Object.hasOwn(pending.envelope || {}, 'retaFinalSync');
+  const descriptorPresent = Object.hasOwn(
+    pending.envelope || {},
+    "retaFinalSync",
+  );
   const descriptor = readRetaFinalSyncDescriptor(pending.envelope);
   if (descriptorPresent && !descriptor) {
-    config.lastError = 'Descriptor Reta Final invalido; envio bloqueado.';
+    config.lastError = "Descriptor Reta Final invalido; envio bloqueado.";
     config.hasPendingWrites = true;
     await markFirestoreSnapshotFailed(new Error(config.lastError));
     await persistSyncConfig(true);
-    emitStatus('blocked-guard', { reason: 'invalid-descriptor', error: config.lastError });
+    emitStatus("blocked-guard", {
+      reason: "invalid-descriptor",
+      error: config.lastError,
+    });
     return false;
   }
   if (descriptor) {
@@ -1240,13 +1470,13 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
         config,
         {
           allowed: false,
-          reason: 'lineage-payload',
-          conflict: { type: RETA_FINAL_CONFLICT, cause: 'lineage-payload' },
+          reason: "lineage-payload",
+          conflict: { type: RETA_FINAL_CONFLICT, cause: "lineage-payload" },
         },
         pending,
-        null
+        null,
       );
-      await markFirestoreSnapshotFailed(new Error('lineage-payload'));
+      await markFirestoreSnapshotFailed(new Error("lineage-payload"));
       return false;
     }
     const baseRevisionForFloor = Number.isSafeInteger(config.baseRevision)
@@ -1260,29 +1490,34 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
         config,
         {
           allowed: false,
-          reason: 'stale-base',
-          conflict: { type: RETA_FINAL_CONFLICT, cause: 'stale-base' },
+          reason: "stale-base",
+          conflict: { type: RETA_FINAL_CONFLICT, cause: "stale-base" },
         },
         pending,
-        null
+        null,
       );
-      await markFirestoreSnapshotFailed(new Error('stale-base'));
+      await markFirestoreSnapshotFailed(new Error("stale-base"));
       return false;
     }
     const invalid =
-      descriptor.state === 'active'
+      descriptor.state === "active"
         ? !sentPlan ||
           sentPlan.ativo !== true ||
           sentPlan.revision !== descriptor.revision ||
           computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest
         : (sentPlan && sentPlan.ativo === true) ||
-          (sentPlan && computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest);
+          (sentPlan &&
+            computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest);
     if (invalid) {
-      config.lastError = 'Envelope Reta Final nao corresponde ao plano local enviado.';
+      config.lastError =
+        "Envelope Reta Final nao corresponde ao plano local enviado.";
       config.hasPendingWrites = true;
       await markFirestoreSnapshotFailed(new Error(config.lastError));
       await persistSyncConfig(true);
-      emitStatus('blocked-guard', { reason: 'descriptor-mismatch', error: config.lastError });
+      emitStatus("blocked-guard", {
+        reason: "descriptor-mismatch",
+        error: config.lastError,
+      });
       return false;
     }
   }
@@ -1295,7 +1530,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     config.lastError = err.message || String(err);
     await markFirestoreSnapshotFailed(err);
     await persistSyncConfig(true);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
     return false;
   }
 
@@ -1306,7 +1541,10 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
       config.hasPendingWrites = true;
       await markFirestoreSnapshotFailed(new Error(config.lastError));
       await persistSyncConfig(true);
-      emitStatus('blocked-guard', { reason: guard.reason, error: config.lastError });
+      emitStatus("blocked-guard", {
+        reason: guard.reason,
+        error: config.lastError,
+      });
       return false;
     }
   }
@@ -1318,7 +1556,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     config.lastError = err.message || String(err);
     await markFirestoreSnapshotFailed(err);
     await persistSyncConfig(true);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
     return false;
   }
 
@@ -1332,18 +1570,18 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     }
   } else if (
     remote &&
-    (Object.hasOwn(remote, 'retaFinalSync') ||
+    (Object.hasOwn(remote, "retaFinalSync") ||
       getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento }))
   ) {
     return await registerRetaFinalConflict(
       config,
       {
         allowed: false,
-        reason: 'legacy-write',
-        conflict: { type: RETA_FINAL_CONFLICT, cause: 'legacy-write' },
+        reason: "legacy-write",
+        conflict: { type: RETA_FINAL_CONFLICT, cause: "legacy-write" },
       },
       pending,
-      remote
+      remote,
     );
   } else if (
     remote &&
@@ -1367,10 +1605,13 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
   try {
     result = await writeFirestoreSnapshot(db, uid, pending.envelope);
   } catch (err) {
-    console.error('[Sync] writeFirestoreSnapshot failed:', err.message);
+    console.error("[Sync] writeFirestoreSnapshot failed:", err.message);
     if (descriptor) {
       const classification = classifyRetaFinalRemoteError(err);
-      if (classification.type === 'permission-denied' || classification.type === 'conflict') {
+      if (
+        classification.type === "permission-denied" ||
+        classification.type === "conflict"
+      ) {
         await registerRetaFinalConflict(
           config,
           {
@@ -1380,7 +1621,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
           },
           pending,
           remote,
-          err
+          err,
         );
         await markFirestoreSnapshotFailed(err);
         return false;
@@ -1389,7 +1630,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     config.lastError = err.message || String(err);
     await markFirestoreSnapshotFailed(err);
     await persistSyncConfig(true);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
     return false;
   }
 
@@ -1397,11 +1638,10 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     const sentPlan = getRetaFinalPayloadPlan({
       planejamento: pending.envelope?.payload?.planejamento,
     });
-    const basePlan =
-      clonePlan(sentPlan) ||
+    const basePlan = clonePlan(sentPlan) ||
       clonePlan(config.basePlan) || {
         ativo: false,
-        tipo: 'reta_final',
+        tipo: "reta_final",
         schemaVersionRetaFinal: 2,
         planId: descriptor.planId,
         revision: descriptor.revision,
@@ -1410,6 +1650,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
       basePlan,
       baseRevision: descriptor.revision,
       baseDigest: descriptor.digest,
+      snapshotRevision: descriptor.snapshotRevision,
       baseRemoteUpdatedAt: result.updatedAt,
       baseUpdatedAt: new Date().toISOString(),
       remoteUpdatedAt: result.updatedAt,
@@ -1419,7 +1660,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     } catch (err) {
       config.lastError = err.message || String(err);
       await markFirestoreSnapshotFailed(err);
-      emitStatus('error', { error: config.lastError });
+      emitStatus("error", { error: config.lastError });
       return false;
     }
   }
@@ -1433,7 +1674,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     config.hasPendingWrites = Boolean(stillPending);
     config.lastError = null;
     await persistSyncConfig(true);
-    emitStatus(stillPending ? 'pending' : 'synced');
+    emitStatus(stillPending ? "pending" : "synced");
     return !stillPending;
   }
   await clearFirestoreConflict();
@@ -1452,7 +1693,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
   });
   await persistSyncConfig(false);
   // Manual-only mode: do not start polling after a successful push.
-  emitStatus('synced');
+  emitStatus("synced");
   return true;
 }
 
@@ -1463,14 +1704,16 @@ export async function flushFirestoreOutbox(options = {}) {
 export async function pullFromFirestore(forceOverwrite = false, options = {}) {
   const config = getConfig();
   if (!config.enabled && !forceOverwrite) return false;
-  emitStatus('syncing');
+  emitStatus("syncing");
 
   try {
     const { db, uid } = requireSignedInServices();
 
     const remote = await readFirestoreSnapshot(db, uid);
     if (!remote) {
-      const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+      const queued = await queueFirestoreSnapshotFromState(state, {
+        manual: true,
+      });
       if (!queued) return false;
       return await flushFirestoreOutbox({ manual: true });
     }
@@ -1481,27 +1724,31 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
         config,
         {
           allowed: false,
-          reason: 'pending-outbox',
-          conflict: { type: RETA_FINAL_CONFLICT, cause: 'pending-outbox' },
+          reason: "pending-outbox",
+          conflict: { type: RETA_FINAL_CONFLICT, cause: "pending-outbox" },
         },
         pending,
-        remote
+        remote,
       );
       return false;
     }
 
     const localPlan = getRetaFinalPayloadPlan(state);
-    const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
-    const remoteHasDescriptor = Object.hasOwn(remote, 'retaFinalSync');
+    const remotePlan = getRetaFinalPayloadPlan({
+      planejamento: remote?.payload?.planejamento,
+    });
+    const remoteHasDescriptor = Object.hasOwn(remote, "retaFinalSync");
     if (localPlan || remotePlan || remoteHasDescriptor) {
-      const outcome = applyRetaFinalPull(remote, config, { force: forceOverwrite });
+      const outcome = applyRetaFinalPull(remote, config, {
+        force: forceOverwrite,
+      });
       if (!outcome.handled || outcome.conflict) {
         if (outcome.conflict) {
           await registerRetaFinalConflict(
             config,
             pullConflictDecision(outcome),
             pending,
-            remote
+            remote,
           );
         }
         return false;
@@ -1513,7 +1760,7 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
             sentAt: pending.envelope?.sentAt ?? null,
           });
           if (!cleared) {
-            emitStatus('pending');
+            emitStatus("pending");
             return false;
           }
           await clearFirestoreConflict();
@@ -1537,7 +1784,7 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
       }
       await yieldToUIWithBudget(50, performance.now());
       if (!forceOverwrite) {
-        return await applyPulledRetaFinalState(outcome, remote, uid, 'pull', {
+        return await applyPulledRetaFinalState(outcome, remote, uid, "pull", {
           discardPending: options.discardPending === true,
         });
       }
@@ -1551,10 +1798,11 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
         if (preservedCfUrl) state.config.cfUrl = preservedCfUrl;
         if (preservedCfToken) state.config.cfToken = preservedCfToken;
         state.config.cfSyncEnabled = preservedCfSyncEnabled;
-        if (preservedFirestoreSync) state.config.firestoreSync = preservedFirestoreSync;
+        if (preservedFirestoreSync)
+          state.config.firestoreSync = preservedFirestoreSync;
       }
       const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
-      if (Object.hasOwn(remote, 'retaFinalSync')) {
+      if (Object.hasOwn(remote, "retaFinalSync")) {
         setRetaFinalBaseFromRemote(config, remote, remotePlan);
       } else {
         Object.assign(config, {
@@ -1571,17 +1819,21 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
               queuedAt: pending.queuedAt ?? null,
               sentAt: pending.envelope?.sentAt ?? null,
             }
-          : { queuedAt: null, sentAt: null }
+          : { queuedAt: null, sentAt: null },
       );
       if (!cleared) {
         const stillPending = await getPendingFirestoreSnapshot();
         config.hasPendingWrites = Boolean(stillPending);
         config.lastError = null;
         await persistSyncConfig(true);
-        emitStatus(stillPending ? 'pending' : 'synced');
+        emitStatus(stillPending ? "pending" : "synced");
         return !stillPending;
       }
-      await saveFirestoreMeta({ uid, remoteUpdatedAt, lastPullAt: new Date().toISOString() });
+      await saveFirestoreMeta({
+        uid,
+        remoteUpdatedAt,
+        lastPullAt: new Date().toISOString(),
+      });
       Object.assign(config, {
         uid,
         remoteUpdatedAt,
@@ -1597,8 +1849,8 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
         skipDriveSync: true,
         touchLocalBackup: false,
       });
-      emitPrimaryStatus('remote-applied', { remoteUpdatedAt });
-      emitStatus('synced');
+      emitPrimaryStatus("remote-applied", { remoteUpdatedAt });
+      emitStatus("synced");
       return true;
     }
 
@@ -1621,7 +1873,8 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
           if (preservedCfUrl) state.config.cfUrl = preservedCfUrl;
           if (preservedCfToken) state.config.cfToken = preservedCfToken;
           state.config.cfSyncEnabled = preservedCfSyncEnabled;
-          if (preservedFirestoreSync) state.config.firestoreSync = preservedFirestoreSync;
+          if (preservedFirestoreSync)
+            state.config.firestoreSync = preservedFirestoreSync;
         }
       } else {
         setState(nextState, { merge: true });
@@ -1633,14 +1886,14 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
               queuedAt: pending.queuedAt ?? null,
               sentAt: pending.envelope?.sentAt ?? null,
             }
-          : { queuedAt: null, sentAt: null }
+          : { queuedAt: null, sentAt: null },
       );
       if (!cleared) {
         const stillPending = await getPendingFirestoreSnapshot();
         config.hasPendingWrites = Boolean(stillPending);
         config.lastError = null;
         await persistSyncConfig(true);
-        emitStatus(stillPending ? 'pending' : 'synced');
+        emitStatus(stillPending ? "pending" : "synced");
         return !stillPending;
       }
       await saveFirestoreMeta({
@@ -1654,7 +1907,9 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
         skipDriveSync: true,
         touchLocalBackup: false,
       });
-      emitPrimaryStatus('remote-applied', { remoteUpdatedAt: getEnvelopeUpdatedAt(remote) });
+      emitPrimaryStatus("remote-applied", {
+        remoteUpdatedAt: getEnvelopeUpdatedAt(remote),
+      });
     }
 
     Object.assign(getConfig(), {
@@ -1666,12 +1921,12 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
       lastError: null,
     });
     await persistSyncConfig(true);
-    emitStatus('synced');
+    emitStatus("synced");
     return true;
   } catch (err) {
     config.lastError = err.message || String(err);
     await persistSyncConfig(false);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
     return false;
   }
 }
@@ -1698,7 +1953,7 @@ async function syncFirestoreNowUnlocked() {
   // Force-clear stale conflicts on manual sync (user-initiated resolution)
   if (config.conflict) {
     if (isRetaFinalConflict(config.conflict)) {
-      emitStatus('conflict-paused', { conflict: config.conflict });
+      emitStatus("conflict-paused", { conflict: config.conflict });
       return false;
     }
     config.conflict = null;
@@ -1713,8 +1968,13 @@ async function syncFirestoreNowUnlocked() {
   const pending = await getPendingFirestoreSnapshot();
 
   const localPlan = getRetaFinalPayloadPlan(state);
-  const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
-  const remoteHasDescriptor = Boolean(remote && Object.hasOwn(remote, 'retaFinalSync'));
+  const remotePlan = getRetaFinalPayloadPlan({
+    planejamento: remote?.payload?.planejamento,
+  });
+  const remoteHasDescriptor = Boolean(
+    remote && Object.hasOwn(remote, "retaFinalSync"),
+  );
+  let retaFinalPullHandled = false;
   if ((localPlan || remotePlan || remoteHasDescriptor) && !pending) {
     const outcome = applyRetaFinalPull(remote, config, { force: false });
     if (!outcome.handled || outcome.conflict) {
@@ -1723,34 +1983,51 @@ async function syncFirestoreNowUnlocked() {
           config,
           pullConflictDecision(outcome),
           null,
-          remote
+          remote,
         );
       }
       return false;
     }
     if (outcome.applied !== true) return emitNoopPullStatus(remote);
+    retaFinalPullHandled = true;
     await yieldToUIWithBudget(50, performance.now());
-    if (!(await applyPulledRetaFinalState(outcome, remote, uid, 'sync-now-pull'))) {
+    if (
+      !(await applyPulledRetaFinalState(outcome, remote, uid, "sync-now-pull"))
+    ) {
       return false;
     }
     const mergedPlan = getRetaFinalPayloadPlan(state);
     const remoteDigest =
       readRetaFinalSyncDescriptor(remote)?.digest ??
       (remotePlan ? computeRetaFinalPlanDigest(remotePlan) : null);
-    if (mergedPlan && remoteDigest && computeRetaFinalPlanDigest(mergedPlan) === remoteDigest) {
+    if (
+      mergedPlan &&
+      remoteDigest &&
+      computeRetaFinalPlanDigest(mergedPlan) === remoteDigest &&
+      nonPlanStateDigest(state) === nonPlanStateDigest(remote.payload)
+    ) {
       return true;
     }
   }
 
   // Skip conflict check for manual sync - force push instead
   // The user explicitly wants to sync, so we trust their intent
-  if (remote && !pending && isRemoteNewer(remote, state)) {
+  if (
+    !retaFinalPullHandled &&
+    remote &&
+    !pending &&
+    isRemoteNewer(remote, state)
+  ) {
     await yieldToUIWithBudget(50, performance.now());
     const nextState = applyEnvelopeToLocalState(remote, config);
     setState(nextState, { merge: true });
     await clearFirestoreConflict();
     await markFirestoreSnapshotSynced();
-    await saveFirestoreMeta({ uid, remoteUpdatedAt, lastPullAt: new Date().toISOString() });
+    await saveFirestoreMeta({
+      uid,
+      remoteUpdatedAt,
+      lastPullAt: new Date().toISOString(),
+    });
     await saveStateToDB({
       skipCloudSync: true,
       skipFirestoreSync: true,
@@ -1763,8 +2040,8 @@ async function syncFirestoreNowUnlocked() {
     config.conflict = null;
     config.lastError = null;
     await persistSyncConfig(true);
-    emitPrimaryStatus('synced', { source: 'sync-now-pull', remoteUpdatedAt });
-    emitStatus('synced');
+    emitPrimaryStatus("synced", { source: "sync-now-pull", remoteUpdatedAt });
+    emitStatus("synced");
     return true;
   }
 
@@ -1775,7 +2052,11 @@ async function syncFirestoreNowUnlocked() {
       lastPullAt: new Date().toISOString(),
       lastError: null,
     });
-    await saveFirestoreMeta({ uid, remoteUpdatedAt, lastPullAt: config.lastPullAt });
+    await saveFirestoreMeta({
+      uid,
+      remoteUpdatedAt,
+      lastPullAt: config.lastPullAt,
+    });
     await persistSyncConfig(true);
   }
 
@@ -1785,7 +2066,10 @@ async function syncFirestoreNowUnlocked() {
   });
   if (!queued) return false;
   // Force overwrite on manual sync to bypass stale conflict checks
-  return await flushFirestoreOutboxUnlocked({ manual: true, forceOverwrite: true });
+  return await flushFirestoreOutboxUnlocked({
+    manual: true,
+    forceOverwrite: true,
+  });
 }
 
 export async function syncFirestoreNow() {
@@ -1794,7 +2078,7 @@ export async function syncFirestoreNow() {
 
 export async function mergeFromFirestore() {
   const config = getConfig();
-  emitStatus('syncing');
+  emitStatus("syncing");
 
   try {
     const { db, uid } = requireSignedInServices();
@@ -1805,8 +2089,10 @@ export async function mergeFromFirestore() {
     }
 
     const localPlan = getRetaFinalPayloadPlan(state);
-    const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
-    const remoteHasDescriptor = Object.hasOwn(remote, 'retaFinalSync');
+    const remotePlan = getRetaFinalPayloadPlan({
+      planejamento: remote?.payload?.planejamento,
+    });
+    const remoteHasDescriptor = Object.hasOwn(remote, "retaFinalSync");
     if (localPlan || remotePlan || remoteHasDescriptor) {
       const pending = await getPendingFirestoreSnapshot();
       if (pending) {
@@ -1814,11 +2100,11 @@ export async function mergeFromFirestore() {
           config,
           {
             allowed: false,
-            reason: 'pending-outbox',
-            conflict: { type: RETA_FINAL_CONFLICT, cause: 'pending-outbox' },
+            reason: "pending-outbox",
+            conflict: { type: RETA_FINAL_CONFLICT, cause: "pending-outbox" },
           },
           pending,
-          remote
+          remote,
         );
         return false;
       }
@@ -1829,14 +2115,14 @@ export async function mergeFromFirestore() {
             config,
             pullConflictDecision(outcome),
             null,
-            remote
+            remote,
           );
         }
         return false;
       }
       if (outcome.applied !== true) return emitNoopPullStatus(remote);
       await yieldToUIWithBudget(50, performance.now());
-      if (!(await applyPulledRetaFinalState(outcome, remote, uid, 'merge'))) {
+      if (!(await applyPulledRetaFinalState(outcome, remote, uid, "merge"))) {
         return false;
       }
       const mergedPlan = getRetaFinalPayloadPlan(state);
@@ -1848,16 +2134,24 @@ export async function mergeFromFirestore() {
         remoteDigest &&
         computeRetaFinalPlanDigest(mergedPlan) !== remoteDigest
       ) {
-        const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+        const queued = await queueFirestoreSnapshotFromState(state, {
+          manual: true,
+        });
         if (!queued) return false;
-        const pushed = await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
+        const pushed = await flushFirestoreOutbox({
+          forceOverwrite: true,
+          manual: true,
+        });
         if (!pushed) return false;
       }
-      emitPrimaryStatus('merged', { source: 'snapshot' });
+      emitPrimaryStatus("merged", { source: "snapshot" });
       document.dispatchEvent(
-        new CustomEvent('app:showToast', {
-          detail: { msg: 'Firestore mesclado com os dados locais.', type: 'success' },
-        })
+        new CustomEvent("app:showToast", {
+          detail: {
+            msg: "Firestore mesclado com os dados locais.",
+            type: "success",
+          },
+        }),
       );
       return true;
     }
@@ -1872,10 +2166,10 @@ export async function mergeFromFirestore() {
       const conflict = {
         remoteUpdatedAt: getEnvelopeUpdatedAt(remote),
         localUpdatedAt: getEnvelopeUpdatedAt(
-          createFirestoreSnapshotEnvelope(state, { manual: true })
+          createFirestoreSnapshotEnvelope(state, { manual: true }),
         ),
         detectedAt: mergeConflict.detectedAt,
-        reason: 'merge-collision',
+        reason: "merge-collision",
         total: mergeConflict.total,
         items: mergeConflict.items,
       };
@@ -1886,7 +2180,8 @@ export async function mergeFromFirestore() {
         remoteUpdatedAt: getEnvelopeUpdatedAt(remote),
         lastPullAt: new Date().toISOString(),
         conflict,
-        lastError: 'Conflito Firestore: itens com o mesmo ID possuem conteudo diferente.',
+        lastError:
+          "Conflito Firestore: itens com o mesmo ID possuem conteudo diferente.",
         hasPendingWrites: true,
       });
       await saveFirestoreConflict(conflict);
@@ -1896,8 +2191,8 @@ export async function mergeFromFirestore() {
         skipDriveSync: true,
         touchLocalBackup: false,
       });
-      emitPrimaryStatus('conflict', { conflict });
-      emitStatus('conflict', { conflict });
+      emitPrimaryStatus("conflict", { conflict });
+      emitStatus("conflict", { conflict });
       return false;
     }
     Object.assign(getConfig(), {
@@ -1912,26 +2207,38 @@ export async function mergeFromFirestore() {
     });
 
     await clearFirestoreConflict();
-    await saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true });
-    const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+    await saveStateToDB({
+      skipCloudSync: true,
+      skipFirestoreSync: true,
+      skipDriveSync: true,
+    });
+    const queued = await queueFirestoreSnapshotFromState(state, {
+      manual: true,
+    });
     if (!queued) return false;
-    const ok = await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
-    emitPrimaryStatus('merged', { source: 'snapshot' });
+    const ok = await flushFirestoreOutbox({
+      forceOverwrite: true,
+      manual: true,
+    });
+    emitPrimaryStatus("merged", { source: "snapshot" });
     document.dispatchEvent(
-      new CustomEvent('app:showToast', {
-        detail: { msg: 'Firestore mesclado com os dados locais.', type: 'success' },
-      })
+      new CustomEvent("app:showToast", {
+        detail: {
+          msg: "Firestore mesclado com os dados locais.",
+          type: "success",
+        },
+      }),
     );
     return ok;
   } catch (err) {
     document.dispatchEvent(
-      new CustomEvent('app:showToast', {
-        detail: { msg: 'Erro ao mesclar dados do Firestore', type: 'error' },
-      })
+      new CustomEvent("app:showToast", {
+        detail: { msg: "Erro ao mesclar dados do Firestore", type: "error" },
+      }),
     );
     config.lastError = err.message || String(err);
     await persistSyncConfig(false);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
     return false;
   }
 }
@@ -1943,23 +2250,29 @@ export async function resolveEntityConflictKeepLocal() {
       const { db, uid } = requireSignedInServices();
       const remote = await readFirestoreSnapshot(db, uid);
       const localPlan = getRetaFinalPayloadPlan(state);
-      const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
+      const remotePlan = getRetaFinalPayloadPlan({
+        planejamento: remote?.payload?.planejamento,
+      });
       const base = verifiedRetaFinalBase(config);
-      const baseDigest = config.baseDigest || (base ? computeRetaFinalPlanDigest(base) : null);
-      const localDigest = localPlan ? computeRetaFinalPlanDigest(localPlan) : null;
+      const baseDigest =
+        config.baseDigest || (base ? computeRetaFinalPlanDigest(base) : null);
+      const localDigest = localPlan
+        ? computeRetaFinalPlanDigest(localPlan)
+        : null;
       const allowed =
         Boolean(localPlan && remotePlan && base) &&
         base.planId === localPlan.planId &&
         base.planId === remotePlan.planId &&
         base.revision === remotePlan.revision &&
-        (!config.baseDigest || computeRetaFinalPlanDigest(base) === config.baseDigest) &&
+        (!config.baseDigest ||
+          computeRetaFinalPlanDigest(base) === config.baseDigest) &&
         localPlan.revision >= base.revision &&
         (localPlan.revision > base.revision || localDigest === baseDigest);
       if (!allowed) {
         config.lastError =
-          'Conflito Reta Final: base e revisao locais nao conferem com o remoto.';
+          "Conflito Reta Final: base e revisao locais nao conferem com o remoto.";
         await persistSyncConfig(false);
-        emitStatus('conflict', { conflict: config.conflict });
+        emitStatus("conflict", { conflict: config.conflict });
         return false;
       }
       if (localPlan.revision === base.revision && localDigest === baseDigest) {
@@ -1968,7 +2281,7 @@ export async function resolveEntityConflictKeepLocal() {
         config.lastError = null;
         await clearFirestoreConflict();
         await persistSyncConfig(true);
-        emitStatus('synced');
+        emitStatus("synced");
         return true;
       }
       config.conflict = null;
@@ -1976,13 +2289,15 @@ export async function resolveEntityConflictKeepLocal() {
       config.lastError = null;
       await clearFirestoreConflict();
       await persistSyncConfig(true);
-      const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+      const queued = await queueFirestoreSnapshotFromState(state, {
+        manual: true,
+      });
       if (!queued) return false;
       return await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
     } catch (err) {
       config.lastError = err.message || String(err);
       await persistSyncConfig(false);
-      emitStatus('error', { error: config.lastError });
+      emitStatus("error", { error: config.lastError });
       return false;
     }
   }
@@ -2005,9 +2320,12 @@ export async function resolveEntityConflictKeepRemote(options = {}) {
     try {
       const { db, uid } = requireSignedInServices();
       const remote = await readFirestoreSnapshot(db, uid);
-      const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
+      const remotePlan = getRetaFinalPayloadPlan({
+        planejamento: remote?.payload?.planejamento,
+      });
       if (!remote || !remotePlan) {
-        config.lastError = 'Conflito Reta Final: o remoto nao contem um plano v2 aplicavel.';
+        config.lastError =
+          "Conflito Reta Final: o remoto nao contem um plano v2 aplicavel.";
         await persistSyncConfig(false);
         return false;
       }
@@ -2021,11 +2339,11 @@ export async function resolveEntityConflictKeepRemote(options = {}) {
           config,
           {
             allowed: false,
-            reason: 'pending-outbox',
-            conflict: { type: RETA_FINAL_CONFLICT, cause: 'pending-outbox' },
+            reason: "pending-outbox",
+            conflict: { type: RETA_FINAL_CONFLICT, cause: "pending-outbox" },
           },
           pending,
-          remote
+          remote,
         );
         return false;
       }
@@ -2035,9 +2353,10 @@ export async function resolveEntityConflictKeepRemote(options = {}) {
         if (preservedCfUrl) state.config.cfUrl = preservedCfUrl;
         if (preservedCfToken) state.config.cfToken = preservedCfToken;
         state.config.cfSyncEnabled = preservedCfSyncEnabled;
-        if (preservedFirestoreSync) state.config.firestoreSync = preservedFirestoreSync;
+        if (preservedFirestoreSync)
+          state.config.firestoreSync = preservedFirestoreSync;
       }
-      if (Object.hasOwn(remote, 'retaFinalSync')) {
+      if (Object.hasOwn(remote, "retaFinalSync")) {
         setRetaFinalBaseFromRemote(config, remote, remotePlan);
       } else {
         Object.assign(config, {
@@ -2057,13 +2376,14 @@ export async function resolveEntityConflictKeepRemote(options = {}) {
               queuedAt: pending.queuedAt ?? null,
               sentAt: pending.envelope?.sentAt ?? null,
             }
-          : { queuedAt: null, sentAt: null }
+          : { queuedAt: null, sentAt: null },
       );
       if (!cleared) {
         config.hasPendingWrites = true;
-        config.lastError = 'Outbox recebeu uma nova gravacao durante o keep-remote.';
+        config.lastError =
+          "Outbox recebeu uma nova gravacao durante o keep-remote.";
         await persistSyncConfig(true);
-        emitStatus('pending');
+        emitStatus("pending");
         return false;
       }
       await saveFirestoreMeta({
@@ -2078,12 +2398,12 @@ export async function resolveEntityConflictKeepRemote(options = {}) {
         skipDriveSync: true,
         touchLocalBackup: false,
       });
-      emitStatus('synced');
+      emitStatus("synced");
       return true;
     } catch (err) {
       config.lastError = err.message || String(err);
       await persistSyncConfig(false);
-      emitStatus('error', { error: config.lastError });
+      emitStatus("error", { error: config.lastError });
       return false;
     }
   }
@@ -2114,13 +2434,15 @@ export async function resolveEntityConflictKeepRemote(options = {}) {
       touchLocalBackup: false,
     });
 
-    const queued = await queueFirestoreSnapshotFromState(state, { manual: true });
+    const queued = await queueFirestoreSnapshotFromState(state, {
+      manual: true,
+    });
     if (!queued) return false;
     return await flushFirestoreOutbox({ forceOverwrite: true, manual: true });
   } catch (err) {
     config.lastError = err.message || String(err);
     await persistSyncConfig(false);
-    emitStatus('error', { error: config.lastError });
+    emitStatus("error", { error: config.lastError });
     return false;
   }
 }

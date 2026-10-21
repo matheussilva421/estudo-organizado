@@ -22,6 +22,7 @@ const runtime = {
   confirm: showConfirm,
   notify: showToast,
   refresh: renderCurrentView,
+  sync: null,
 };
 let registered = false;
 
@@ -249,6 +250,20 @@ export async function resolveRetaFinalConflict(
         );
       }
     }
+    let syncResult = { queued: false, flushed: false };
+    const shouldSync =
+      options.sync !== false && !(options.db && options.sync === undefined);
+    if (shouldSync) {
+      try {
+        const sync =
+          typeof options.sync === "function"
+            ? options.sync
+            : runtime.sync || (await defaultSyncResolvedState());
+        syncResult = (await sync()) || { queued: false, flushed: false };
+      } catch (error) {
+        console.error("Reta Final: resolução local; sync pendente.", error);
+      }
+    }
     return {
       applied: true,
       revision: result.revision,
@@ -256,6 +271,8 @@ export async function resolveRetaFinalConflict(
       checkpointId: result.checkpointId,
       localCommitted: true,
       syncStatus: "pending",
+      queued: syncResult.queued === true,
+      flushed: syncResult.flushed === true,
     };
   } catch (error) {
     return {
@@ -266,12 +283,25 @@ export async function resolveRetaFinalConflict(
   }
 }
 
+async function defaultSyncResolvedState() {
+  return async () => {
+    const engine = await import("../../sync/firestore-sync-engine.js?v=8.37");
+    const queued = await engine.queueFirestoreSnapshotFromState(liveState, {
+      manual: true,
+    });
+    if (!queued) return { queued: false, flushed: false };
+    const flushed = await engine.flushFirestoreOutbox({ manual: true });
+    return { queued: true, flushed: flushed === true };
+  };
+}
+
 /** Registers the delegated handlers once; repeated calls only refresh test seams. */
 export function registerRetaFinalConflictActions(options = {}) {
   if (options.resolve) runtime.resolve = options.resolve;
   if (options.confirm) runtime.confirm = options.confirm;
   if (options.notify) runtime.notify = options.notify;
   if (options.refresh) runtime.refresh = options.refresh;
+  if (options.sync) runtime.sync = options.sync;
   if (registered) return;
   registered = true;
   registerAction("rf-conflict-apply", applyConflict);

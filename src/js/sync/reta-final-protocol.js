@@ -5,40 +5,44 @@ export const RETA_FINAL_SYNC_SCHEMA = 2;
 const CAPABILITIES = Object.freeze({
   schema: RETA_FINAL_SYNC_SCHEMA,
   granularMerge: true,
-  guards: Object.freeze({ envelope: 'rules-v2', probe: 1 }),
+  guards: Object.freeze({ envelope: "rules-v2", probe: 1 }),
 });
 
 const DERIVED_FIELDS = new Set([
-  'data',
-  'dataEfetiva',
-  'categoriaTemporal',
-  'naoAlocado',
-  'concluido',
-  'atrasoDias',
+  "data",
+  "dataEfetiva",
+  "categoriaTemporal",
+  "naoAlocado",
+  "concluido",
+  "atrasoDias",
 ]);
 
 const DESCRIPTOR_KEYS = new Set([
-  'schema',
-  'planId',
-  'lineageId',
-  'generation',
-  'revision',
-  'baseRevision',
-  'baseRemoteUpdatedAt',
-  'digest',
-  'deviceId',
-  'capabilities',
-  'state',
-  'minRetainedRevision',
-  'removedBlockIds',
+  "schema",
+  "planId",
+  "lineageId",
+  "generation",
+  "revision",
+  "baseRevision",
+  "snapshotRevision",
+  "baseSnapshotRevision",
+  "baseRemoteUpdatedAt",
+  "digest",
+  "deviceId",
+  "capabilities",
+  "state",
+  "minRetainedRevision",
+  "removedBlockIds",
 ]);
 
 function record(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function isId(value) {
-  return typeof value === 'string' && value.trim().length > 0 && value.length <= 128;
+  return (
+    typeof value === "string" && value.trim().length > 0 && value.length <= 128
+  );
 }
 
 function isRevision(value) {
@@ -51,13 +55,13 @@ function validCapabilities(value) {
     value.schema === RETA_FINAL_SYNC_SCHEMA &&
     value.granularMerge === true &&
     record(value.guards) &&
-    value.guards.envelope === 'rules-v2' &&
+    value.guards.envelope === "rules-v2" &&
     value.guards.probe === 1
   );
 }
 
 function validDigest(value) {
-  return typeof value === 'string' && /^[a-z0-9]{16,128}$/.test(value);
+  return typeof value === "string" && /^[a-z0-9]{16,128}$/.test(value);
 }
 
 function canonical(value) {
@@ -78,12 +82,12 @@ function fnv1a(text, seed) {
     hash ^= text.charCodeAt(index);
     hash = Math.imul(hash, 16777619) >>> 0;
   }
-  return hash.toString(16).padStart(8, '0');
+  return hash.toString(16).padStart(8, "0");
 }
 
 function emptyConflict(reason, incoming, remote, envelope, remoteEnvelope) {
   return {
-    type: 'reta-final-conflict',
+    type: "reta-final-conflict",
     cause: reason,
     planId: incoming?.planId ?? null,
     lineageId: incoming?.lineageId ?? null,
@@ -121,7 +125,7 @@ export function getRetaFinalPlan(state) {
   if (
     !record(plan) ||
     plan.ativo !== true ||
-    plan.tipo !== 'reta_final' ||
+    plan.tipo !== "reta_final" ||
     plan.schemaVersionRetaFinal !== RETA_FINAL_SYNC_SCHEMA
   ) {
     return null;
@@ -137,7 +141,7 @@ export function computeRetaFinalPlanDigest(plan) {
     fnv1a(text, 0x01000193),
     fnv1a(text, 0x9e3779b9),
     fnv1a(text, 0x85ebca6b),
-  ].join('');
+  ].join("");
 }
 
 function descriptorError(message) {
@@ -145,42 +149,66 @@ function descriptorError(message) {
 }
 
 function assertDescriptor(value) {
-  if (!record(value)) throw descriptorError('objeto ausente.');
+  if (!record(value)) throw descriptorError("objeto ausente.");
   for (const key of Object.keys(value)) {
-    if (!DESCRIPTOR_KEYS.has(key)) throw descriptorError(`campo desconhecido ${key}.`);
+    if (!DESCRIPTOR_KEYS.has(key))
+      throw descriptorError(`campo desconhecido ${key}.`);
   }
-  if (value.schema !== RETA_FINAL_SYNC_SCHEMA) throw descriptorError('schema deve ser 2.');
-  if (!isId(value.planId)) throw descriptorError('planId invalido.');
-  if (!isId(value.lineageId)) throw descriptorError('lineageId invalido.');
+  if (value.schema !== RETA_FINAL_SYNC_SCHEMA)
+    throw descriptorError("schema deve ser 2.");
+  if (!isId(value.planId)) throw descriptorError("planId invalido.");
+  if (!isId(value.lineageId)) throw descriptorError("lineageId invalido.");
   if (!Number.isSafeInteger(value.generation) || value.generation < 1) {
-    throw descriptorError('generation deve ser inteiro >= 1.');
+    throw descriptorError("generation deve ser inteiro >= 1.");
   }
-  if (!isRevision(value.revision)) throw descriptorError('revision invalida.');
-  if (!isRevision(value.baseRevision)) throw descriptorError('baseRevision invalida.');
+  if (!isRevision(value.revision)) throw descriptorError("revision invalida.");
+  if (!isRevision(value.baseRevision))
+    throw descriptorError("baseRevision invalida.");
+  if (
+    !Number.isSafeInteger(value.snapshotRevision) ||
+    value.snapshotRevision < 1
+  ) {
+    throw descriptorError("snapshotRevision invalida.");
+  }
+  if (!isRevision(value.baseSnapshotRevision)) {
+    throw descriptorError("baseSnapshotRevision invalida.");
+  }
+  if (value.baseSnapshotRevision > value.snapshotRevision) {
+    throw descriptorError(
+      "baseSnapshotRevision nao pode exceder snapshotRevision.",
+    );
+  }
   if (
     value.baseRemoteUpdatedAt !== null &&
-    !(typeof value.baseRemoteUpdatedAt === 'string' && value.baseRemoteUpdatedAt.length <= 64)
+    !(
+      typeof value.baseRemoteUpdatedAt === "string" &&
+      value.baseRemoteUpdatedAt.length <= 64
+    )
   ) {
-    throw descriptorError('baseRemoteUpdatedAt invalido.');
+    throw descriptorError("baseRemoteUpdatedAt invalido.");
   }
-  if (!validDigest(value.digest)) throw descriptorError('digest invalido.');
-  if (!isId(value.deviceId)) throw descriptorError('deviceId invalido.');
-  if (!validCapabilities(value.capabilities)) throw descriptorError('capabilities invalidas.');
-  if (value.state !== 'active' && value.state !== 'retired') {
-    throw descriptorError('state deve ser active ou retired.');
+  if (!validDigest(value.digest)) throw descriptorError("digest invalido.");
+  if (!isId(value.deviceId)) throw descriptorError("deviceId invalido.");
+  if (!validCapabilities(value.capabilities))
+    throw descriptorError("capabilities invalidas.");
+  if (value.state !== "active" && value.state !== "retired") {
+    throw descriptorError("state deve ser active ou retired.");
   }
   if (
     value.minRetainedRevision !== undefined &&
     !isRevision(value.minRetainedRevision)
   ) {
-    throw descriptorError('minRetainedRevision invalida.');
+    throw descriptorError("minRetainedRevision invalida.");
   }
   if (value.removedBlockIds !== undefined) {
-    if (!Array.isArray(value.removedBlockIds) || value.removedBlockIds.length > 200) {
-      throw descriptorError('removedBlockIds invalido.');
+    if (
+      !Array.isArray(value.removedBlockIds) ||
+      value.removedBlockIds.length > 200
+    ) {
+      throw descriptorError("removedBlockIds invalido.");
     }
     if (value.removedBlockIds.some((id) => !isId(id))) {
-      throw descriptorError('removedBlockIds contem id invalido.');
+      throw descriptorError("removedBlockIds contem id invalido.");
     }
   }
   return value;
@@ -194,6 +222,8 @@ function normalizeDescriptor(value) {
     generation: value.generation,
     revision: value.revision,
     baseRevision: value.baseRevision,
+    snapshotRevision: value.snapshotRevision,
+    baseSnapshotRevision: value.baseSnapshotRevision,
     baseRemoteUpdatedAt: value.baseRemoteUpdatedAt,
     digest: value.digest,
     deviceId: value.deviceId,
@@ -207,7 +237,8 @@ function normalizeDescriptor(value) {
   if (value.minRetainedRevision !== undefined) {
     normalized.minRetainedRevision = value.minRetainedRevision;
   }
-  if (value.removedBlockIds) normalized.removedBlockIds = [...new Set(value.removedBlockIds)];
+  if (value.removedBlockIds)
+    normalized.removedBlockIds = [...new Set(value.removedBlockIds)];
   return normalized;
 }
 
@@ -218,31 +249,52 @@ export function buildRetaFinalSyncDescriptor({
   baseRemoteUpdatedAt = null,
   deviceId,
   capabilities,
-  state = 'active',
+  state = "active",
   revision = plan?.revision,
+  snapshotRevision = baseRevision > 0 ? 2 : 1,
+  baseSnapshotRevision = Math.max(0, snapshotRevision - 1),
   minRetainedRevision,
   removedBlockIds,
 } = {}) {
-  if (!record(plan)) throw descriptorError('plano ausente.');
-  if (!isId(plan.planId)) throw descriptorError('planId invalido.');
-  if (!isRevision(plan.revision)) throw descriptorError('revision invalida.');
-  if (!isRevision(revision)) throw descriptorError('revision invalida.');
-  if (!isRevision(baseRevision)) throw descriptorError('baseRevision invalida.');
-  if (baseRevision > revision) {
-    throw descriptorError('baseRevision nao pode exceder a revision local.');
+  if (!record(plan)) throw descriptorError("plano ausente.");
+  if (!isId(plan.planId)) throw descriptorError("planId invalido.");
+  if (!isRevision(plan.revision)) throw descriptorError("revision invalida.");
+  if (!isRevision(revision)) throw descriptorError("revision invalida.");
+  if (!isRevision(baseRevision))
+    throw descriptorError("baseRevision invalida.");
+  if (!Number.isSafeInteger(snapshotRevision) || snapshotRevision < 1) {
+    throw descriptorError("snapshotRevision invalida.");
   }
-  if (!isId(deviceId)) throw descriptorError('deviceId invalido.');
-  if (!validCapabilities(capabilities)) throw descriptorError('capabilities invalidas.');
-  if (state !== 'active' && state !== 'retired') throw descriptorError('state invalido.');
+  if (!isRevision(baseSnapshotRevision)) {
+    throw descriptorError("baseSnapshotRevision invalida.");
+  }
+  if (baseSnapshotRevision > snapshotRevision) {
+    throw descriptorError(
+      "baseSnapshotRevision nao pode exceder snapshotRevision.",
+    );
+  }
+  if (baseRevision > revision) {
+    throw descriptorError("baseRevision nao pode exceder a revision local.");
+  }
+  if (!isId(deviceId)) throw descriptorError("deviceId invalido.");
+  if (!validCapabilities(capabilities))
+    throw descriptorError("capabilities invalidas.");
+  if (state !== "active" && state !== "retired")
+    throw descriptorError("state invalido.");
 
   const source = removedBlockIds ?? plan.retaFinal?.removedBlockIds;
   const descriptor = {
     schema: RETA_FINAL_SYNC_SCHEMA,
     planId: plan.planId,
     lineageId: plan.planId,
-    generation: Number.isSafeInteger(plan.generation) && plan.generation >= 1 ? plan.generation : 1,
+    generation:
+      Number.isSafeInteger(plan.generation) && plan.generation >= 1
+        ? plan.generation
+        : 1,
     revision,
     baseRevision,
+    snapshotRevision,
+    baseSnapshotRevision,
     baseRemoteUpdatedAt,
     digest: computeRetaFinalPlanDigest(plan),
     deviceId,
@@ -254,9 +306,12 @@ export function buildRetaFinalSyncDescriptor({
     },
   };
   const retention =
-    minRetainedRevision ?? plan.minRetainedRevision ?? plan.retaFinal?.minRetainedRevision;
+    minRetainedRevision ??
+    plan.minRetainedRevision ??
+    plan.retaFinal?.minRetainedRevision;
   if (retention !== undefined) {
-    if (!isRevision(retention)) throw descriptorError('minRetainedRevision invalida.');
+    if (!isRevision(retention))
+      throw descriptorError("minRetainedRevision invalida.");
     descriptor.minRetainedRevision = retention;
   }
   if (Array.isArray(source)) {
@@ -284,56 +339,86 @@ export function validateRetaFinalRemoteWrite({
   localPlan,
   baseRevision,
 } = {}) {
-  if (!validCapabilities(clientCapabilities)) return { allowed: false, reason: 'capability' };
-  if (!isRevision(baseRevision)) return { allowed: false, reason: 'invalid-base' };
+  if (!validCapabilities(clientCapabilities))
+    return { allowed: false, reason: "capability" };
+  if (!isRevision(baseRevision))
+    return { allowed: false, reason: "invalid-base" };
   if (!record(remotePlan)) {
     return baseRevision === 0
-      ? { allowed: true, reason: 'create' }
-      : { allowed: false, reason: 'missing-remote' };
+      ? { allowed: true, reason: "create" }
+      : { allowed: false, reason: "missing-remote" };
   }
-  if (!record(localPlan)) return { allowed: false, reason: 'missing-local' };
-  if (remotePlan.planId !== localPlan.planId) return { allowed: false, reason: 'lineage' };
+  if (!record(localPlan)) return { allowed: false, reason: "missing-local" };
+  if (remotePlan.planId !== localPlan.planId)
+    return { allowed: false, reason: "lineage" };
   if (!isRevision(remotePlan.revision) || !isRevision(localPlan.revision)) {
-    return { allowed: false, reason: 'invalid-revision' };
+    return { allowed: false, reason: "invalid-revision" };
   }
-  if (localPlan.revision < baseRevision) return { allowed: false, reason: 'rollback' };
-  if (baseRevision > remotePlan.revision) return { allowed: false, reason: 'rollback' };
-  if (baseRevision < remotePlan.revision) return { allowed: false, reason: 'stale-base' };
-  return { allowed: true, reason: 'base-current' };
+  if (localPlan.revision < baseRevision)
+    return { allowed: false, reason: "rollback" };
+  if (baseRevision > remotePlan.revision)
+    return { allowed: false, reason: "rollback" };
+  if (baseRevision < remotePlan.revision)
+    return { allowed: false, reason: "stale-base" };
+  return { allowed: true, reason: "base-current" };
 }
 
 /** Mirror of the Firestore rule that protects a document that already has a v2 descriptor. */
-export function validateRetaFinalEnvelopeWrite({ envelope, remoteEnvelope } = {}) {
-  const incomingPresent = record(envelope) && Object.hasOwn(envelope, 'retaFinalSync');
-  const remotePresent = record(remoteEnvelope) && Object.hasOwn(remoteEnvelope, 'retaFinalSync');
-  const incoming = incomingPresent ? readRetaFinalSyncDescriptor(envelope) : null;
-  const remote = remotePresent ? readRetaFinalSyncDescriptor(remoteEnvelope) : null;
+export function validateRetaFinalEnvelopeWrite({
+  envelope,
+  remoteEnvelope,
+} = {}) {
+  const incomingPresent =
+    record(envelope) && Object.hasOwn(envelope, "retaFinalSync");
+  const remotePresent =
+    record(remoteEnvelope) && Object.hasOwn(remoteEnvelope, "retaFinalSync");
+  const incoming = incomingPresent
+    ? readRetaFinalSyncDescriptor(envelope)
+    : null;
+  const remote = remotePresent
+    ? readRetaFinalSyncDescriptor(remoteEnvelope)
+    : null;
 
   if (!incomingPresent) {
-    if (remotePresent) return denied('legacy-write', null, remote, envelope, remoteEnvelope);
-    return { allowed: true, reason: 'legacy', conflict: null };
+    if (remotePresent)
+      return denied("legacy-write", null, remote, envelope, remoteEnvelope);
+    return { allowed: true, reason: "legacy", conflict: null };
   }
-  if (!incoming) return denied('invalid-descriptor', null, remote, envelope, remoteEnvelope);
+  if (!incoming)
+    return denied("invalid-descriptor", null, remote, envelope, remoteEnvelope);
   if (remotePresent && !remote) {
-    return denied('invalid-remote-descriptor', incoming, null, envelope, remoteEnvelope);
+    return denied(
+      "invalid-remote-descriptor",
+      incoming,
+      null,
+      envelope,
+      remoteEnvelope,
+    );
   }
 
   if (!record(remoteEnvelope)) {
-    if (incoming.baseRevision !== 0 || incoming.state !== 'active') {
-      return denied('create-base', incoming, null, envelope, remoteEnvelope);
+    if (
+      incoming.baseRevision !== 0 ||
+      incoming.snapshotRevision !== 1 ||
+      incoming.baseSnapshotRevision !== 0 ||
+      incoming.state !== "active"
+    ) {
+      return denied("create-base", incoming, null, envelope, remoteEnvelope);
     }
-    return { allowed: true, reason: 'create', conflict: null };
+    return { allowed: true, reason: "create", conflict: null };
   }
 
   if (!remote) {
     const adoptionTimestampMatches =
       incoming.baseRevision === 0 &&
-      incoming.state === 'active' &&
+      incoming.snapshotRevision === 1 &&
+      incoming.baseSnapshotRevision === 0 &&
+      incoming.state === "active" &&
       incoming.baseRemoteUpdatedAt === remoteEnvelope.payloadUpdatedAt;
     if (!adoptionTimestampMatches) {
-      return denied('adoption-base', incoming, null, envelope, remoteEnvelope);
+      return denied("adoption-base", incoming, null, envelope, remoteEnvelope);
     }
-    return { allowed: true, reason: 'adopt', conflict: null };
+    return { allowed: true, reason: "adopt", conflict: null };
   }
 
   if (
@@ -341,86 +426,175 @@ export function validateRetaFinalEnvelopeWrite({ envelope, remoteEnvelope } = {}
     incoming.lineageId !== remote.lineageId ||
     incoming.generation !== remote.generation
   ) {
-    return denied('lineage', incoming, remote, envelope, remoteEnvelope);
+    return denied("lineage", incoming, remote, envelope, remoteEnvelope);
   }
 
-  if (remote.state === 'retired' && incoming.state !== 'retired') {
-    return denied('retired-lineage', incoming, remote, envelope, remoteEnvelope);
+  if (remote.state === "retired" && incoming.state !== "retired") {
+    return denied(
+      "retired-lineage",
+      incoming,
+      remote,
+      envelope,
+      remoteEnvelope,
+    );
   }
 
-  if (incoming.revision === remote.revision) {
+  if (incoming.snapshotRevision === remote.snapshotRevision) {
     if (
       envelope?.payloadUpdatedAt !== remoteEnvelope?.payloadUpdatedAt ||
       JSON.stringify(canonical(envelope?.payload)) !==
         JSON.stringify(canonical(remoteEnvelope?.payload))
     ) {
-      return denied('replay-payload-mismatch', incoming, remote, envelope, remoteEnvelope);
+      return denied(
+        "replay-payload-mismatch",
+        incoming,
+        remote,
+        envelope,
+        remoteEnvelope,
+      );
     }
     if (JSON.stringify(incoming) !== JSON.stringify(remote)) {
-      return denied('replay-descriptor-mismatch', incoming, remote, envelope, remoteEnvelope);
+      return denied(
+        "replay-descriptor-mismatch",
+        incoming,
+        remote,
+        envelope,
+        remoteEnvelope,
+      );
     }
-    return { allowed: true, reason: 'replay', conflict: null };
+    return { allowed: true, reason: "replay", conflict: null };
   }
-  if (incoming.revision < remote.revision) {
-    return denied('rollback', incoming, remote, envelope, remoteEnvelope);
+  if (incoming.snapshotRevision !== remote.snapshotRevision + 1) {
+    return denied("snapshot-jump", incoming, remote, envelope, remoteEnvelope);
   }
-  if (incoming.baseRevision !== remote.revision) {
-    return denied('stale-base', incoming, remote, envelope, remoteEnvelope);
+  if (incoming.baseSnapshotRevision !== remote.snapshotRevision) {
+    return denied("stale-snapshot", incoming, remote, envelope, remoteEnvelope);
   }
+
+  const planUnchanged =
+    incoming.revision === remote.revision && incoming.digest === remote.digest;
+  const planAdvanced =
+    incoming.revision === remote.revision + 1 &&
+    incoming.baseRevision === remote.revision;
+  if (!planUnchanged && !planAdvanced) {
+    if (incoming.revision < remote.revision) {
+      return denied("rollback", incoming, remote, envelope, remoteEnvelope);
+    }
+    if (incoming.revision === remote.revision) {
+      return denied(
+        "plan-digest-mismatch",
+        incoming,
+        remote,
+        envelope,
+        remoteEnvelope,
+      );
+    }
+    if (incoming.baseRevision !== remote.revision) {
+      return denied("stale-base", incoming, remote, envelope, remoteEnvelope);
+    }
+    return denied("revision-jump", incoming, remote, envelope, remoteEnvelope);
+  }
+
+  if (planUnchanged) {
+    if (incoming.state !== remote.state) {
+      return denied(
+        "retired-state-change",
+        incoming,
+        remote,
+        envelope,
+        remoteEnvelope,
+      );
+    }
+    const sameRemoved =
+      JSON.stringify(incoming.removedBlockIds ?? []) ===
+      JSON.stringify(remote.removedBlockIds ?? []);
+    const sameFloor =
+      (incoming.minRetainedRevision ?? 0) === (remote.minRetainedRevision ?? 0);
+    if (!sameRemoved || !sameFloor) {
+      return denied(
+        "tombstone-downgrade",
+        incoming,
+        remote,
+        envelope,
+        remoteEnvelope,
+      );
+    }
+    return { allowed: true, reason: "academic-write", conflict: null };
+  }
+
   const oldFloor = remote.minRetainedRevision ?? 0;
   const newFloor = incoming.minRetainedRevision ?? 0;
   if (newFloor < oldFloor) {
-    return denied('tombstone-downgrade', incoming, remote, envelope, remoteEnvelope);
+    return denied(
+      "tombstone-downgrade",
+      incoming,
+      remote,
+      envelope,
+      remoteEnvelope,
+    );
   }
   const oldRemoved = remote.removedBlockIds ?? [];
   const newRemoved = new Set(incoming.removedBlockIds ?? []);
   const lostTombstone = oldRemoved.some((id) => !newRemoved.has(id));
-  if (
-    lostTombstone &&
-    !(newFloor >= remote.revision && newFloor >= oldFloor)
-  ) {
-    return denied('tombstone-downgrade', incoming, remote, envelope, remoteEnvelope);
+  if (lostTombstone && !(newFloor >= remote.revision && newFloor >= oldFloor)) {
+    return denied(
+      "tombstone-downgrade",
+      incoming,
+      remote,
+      envelope,
+      remoteEnvelope,
+    );
   }
-  if (incoming.revision !== remote.revision + 1) {
-    return denied('revision-jump', incoming, remote, envelope, remoteEnvelope);
-  }
-  return { allowed: true, reason: 'advance', conflict: null };
+  return { allowed: true, reason: "advance", conflict: null };
 }
 
 function errorCode(error) {
-  const raw = error?.code ?? error?.status ?? error?.statusCode ?? error?.message ?? '';
+  const raw =
+    error?.code ?? error?.status ?? error?.statusCode ?? error?.message ?? "";
   return String(raw).toLowerCase();
 }
 
 /** Normalize remote failures so the engine never turns a barrier error into success. */
 export function classifyRetaFinalRemoteError(error) {
   const raw = errorCode(error);
-  if (raw.includes('permission-denied') || raw.includes('permission_denied') || raw.includes('403')) {
-    return { type: 'permission-denied', retryable: false, code: 'permission-denied' };
+  if (
+    raw.includes("permission-denied") ||
+    raw.includes("permission_denied") ||
+    raw.includes("403")
+  ) {
+    return {
+      type: "permission-denied",
+      retryable: false,
+      code: "permission-denied",
+    };
   }
   if (
-    raw.includes('failed-precondition') ||
-    raw.includes('aborted') ||
-    raw.includes('409') ||
-    raw.includes('already-exists') ||
-    raw.includes('conflict')
+    raw.includes("failed-precondition") ||
+    raw.includes("aborted") ||
+    raw.includes("409") ||
+    raw.includes("already-exists") ||
+    raw.includes("conflict")
   ) {
-    return { type: 'conflict', retryable: true, code: raw || 'conflict' };
+    return { type: "conflict", retryable: true, code: raw || "conflict" };
   }
   if (
-    raw.includes('unavailable') ||
-    raw.includes('offline') ||
-    raw.includes('network-request-failed') ||
-    raw.includes('failed to fetch') ||
-    raw.includes('network') ||
-    raw.includes('deadline-exceeded')
+    raw.includes("unavailable") ||
+    raw.includes("offline") ||
+    raw.includes("network-request-failed") ||
+    raw.includes("failed to fetch") ||
+    raw.includes("network") ||
+    raw.includes("deadline-exceeded")
   ) {
-    return { type: 'offline', retryable: true, code: raw || 'unavailable' };
+    return { type: "offline", retryable: true, code: raw || "unavailable" };
   }
-  if (raw.includes('resource-exhausted') || raw.includes('quota')) {
-    return { type: 'transient', retryable: true, code: raw || 'resource-exhausted' };
+  if (raw.includes("resource-exhausted") || raw.includes("quota")) {
+    return {
+      type: "transient",
+      retryable: true,
+      code: raw || "resource-exhausted",
+    };
   }
-  return { type: 'unknown', retryable: false, code: raw || 'unknown' };
+  return { type: "unknown", retryable: false, code: raw || "unknown" };
 }
 
 /** True when the stored base must be re-read before another v2 publish. */

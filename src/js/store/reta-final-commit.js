@@ -1105,8 +1105,15 @@ export function resolveRetaFinalConflictAtomically({
             syncConfig.hasPendingWrites = true;
             syncConfig.lastError = null;
             if (built.remoteBase) {
+              const remoteSnapshotRevision = Number.isSafeInteger(
+                conflict.remoteSnapshotRevision,
+              )
+                ? conflict.remoteSnapshotRevision
+                : 0;
               syncConfig.basePlan = clone(built.remoteBase);
               syncConfig.baseRevision = built.remoteBase.revision;
+              syncConfig.baseSnapshotRevision = remoteSnapshotRevision;
+              syncConfig.snapshotRevision = remoteSnapshotRevision;
               // The sync engine compares this digest with its canonical plan
               // digest; retaFinalDigest() uses a different algorithm.
               syncConfig.baseDigest = computeRetaFinalPlanDigest(

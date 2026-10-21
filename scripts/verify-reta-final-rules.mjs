@@ -16,27 +16,29 @@
  * 2 NOT_RUN (emulator or harness unavailable).
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import process from 'node:process';
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
 
 const CAPABILITIES = {
   schema: 2,
   granularMerge: true,
-  guards: { envelope: 'rules-v2', probe: 1 },
+  guards: { envelope: "rules-v2", probe: 1 },
 };
-const INSTALL_HINT = 'npm install --no-save @firebase/rules-unit-testing@5.0.0';
+const INSTALL_HINT = "npm install --no-save @firebase/rules-unit-testing@5.0.0";
 
 function parseArgs(argv) {
-  const args = { rules: 'firestore.rules', host: '127.0.0.1', port: 8090 };
+  const args = { rules: "firestore.rules", host: "127.0.0.1", port: 8090 };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (arg === '--rules') args.rules = argv[++index];
-    else if (arg.startsWith('--rules=')) args.rules = arg.slice('--rules='.length);
-    else if (arg === '--host') args.host = argv[++index];
-    else if (arg.startsWith('--host=')) args.host = arg.slice('--host='.length);
-    else if (arg === '--port') args.port = Number(argv[++index]);
-    else if (arg.startsWith('--port=')) args.port = Number(arg.slice('--port='.length));
+    if (arg === "--rules") args.rules = argv[++index];
+    else if (arg.startsWith("--rules="))
+      args.rules = arg.slice("--rules=".length);
+    else if (arg === "--host") args.host = argv[++index];
+    else if (arg.startsWith("--host=")) args.host = arg.slice("--host=".length);
+    else if (arg === "--port") args.port = Number(argv[++index]);
+    else if (arg.startsWith("--port="))
+      args.port = Number(arg.slice("--port=".length));
   }
   return args;
 }
@@ -46,14 +48,14 @@ function notRun(message) {
   process.exit(2);
 }
 
-function plan({ planId = 'plan-1', revision = 2, ativo = true } = {}) {
+function plan({ planId = "plan-1", revision = 2, ativo = true } = {}) {
   return {
     ativo,
-    tipo: 'reta_final',
+    tipo: "reta_final",
     schemaVersionRetaFinal: 2,
     planId,
     revision,
-    retaFinal: { dataFinal: '2026-12-20', blocos: [] },
+    retaFinal: { dataFinal: "2026-12-20", blocos: [] },
   };
 }
 
@@ -62,18 +64,21 @@ function repeated(char) {
 }
 
 function envelope({
-  planId = 'plan-1',
+  planId = "plan-1",
   lineageId = planId,
   generation = 1,
   revision = 3,
   baseRevision = 2,
-  digest = repeated('b'),
-  state = 'active',
-  payloadUpdatedAt = '2026-10-20T12:00:00.000Z',
-  deviceId = 'web-rules-test',
+  snapshotRevision = baseRevision === 0 ? 1 : 2,
+  baseSnapshotRevision = Math.max(0, snapshotRevision - 1),
+  digest = repeated("b"),
+  state = "active",
+  payloadUpdatedAt = "2026-10-20T12:00:00.000Z",
+  deviceId = "web-rules-test",
   withDescriptor = true,
   removedBlockIds,
   minRetainedRevision,
+  payload,
 } = {}) {
   const value = {
     version: 1,
@@ -82,9 +87,9 @@ function envelope({
     baseRemoteUpdatedAt: null,
     payloadUpdatedAt,
     sentAt: payloadUpdatedAt,
-    payload: {
+    payload: payload ?? {
       config: {},
-      planejamento: plan({ planId, revision, ativo: state !== 'retired' }),
+      planejamento: plan({ planId, revision, ativo: state !== "retired" }),
     },
   };
   if (withDescriptor) {
@@ -95,6 +100,8 @@ function envelope({
       generation,
       revision,
       baseRevision,
+      snapshotRevision,
+      baseSnapshotRevision,
       baseRemoteUpdatedAt: null,
       digest,
       deviceId,
@@ -109,11 +116,11 @@ function envelope({
   return value;
 }
 
-function legacyEnvelope(payloadUpdatedAt = '2026-10-20T12:30:00.000Z') {
+function legacyEnvelope(payloadUpdatedAt = "2026-10-20T12:30:00.000Z") {
   return {
     version: 1,
     schemaVersion: 6,
-    deviceId: 'legacy-device',
+    deviceId: "legacy-device",
     baseRemoteUpdatedAt: null,
     payloadUpdatedAt,
     sentAt: payloadUpdatedAt,
@@ -121,7 +128,7 @@ function legacyEnvelope(payloadUpdatedAt = '2026-10-20T12:30:00.000Z') {
   };
 }
 
-function guardDoc(deviceId = 'web-rules-test') {
+function guardDoc(deviceId = "web-rules-test") {
   return {
     schema: 2,
     guardVersion: 1,
@@ -138,18 +145,20 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const rulesPath = path.resolve(args.rules);
   if (!fs.existsSync(rulesPath)) notRun(`rules file not found: ${rulesPath}`);
-  const rulesText = fs.readFileSync(rulesPath, 'utf8');
-  const newRules = rulesText.includes('retaFinalSync');
-  const projectId = newRules ? 'demo-reta-final-new' : 'demo-reta-final-legacy';
+  const rulesText = fs.readFileSync(rulesPath, "utf8");
+  const newRules = rulesText.includes("retaFinalSync");
+  const projectId = newRules ? "demo-reta-final-new" : "demo-reta-final-legacy";
 
   let testing;
   try {
-    testing = await import('@firebase/rules-unit-testing');
+    testing = await import("@firebase/rules-unit-testing");
   } catch (error) {
-    notRun(`@firebase/rules-unit-testing is not installed locally. Run: ${INSTALL_HINT}`);
+    notRun(
+      `@firebase/rules-unit-testing is not installed locally. Run: ${INSTALL_HINT}`,
+    );
   }
   const { initializeTestEnvironment, assertSucceeds } = testing;
-  const { doc, setDoc, deleteDoc } = await import('firebase/firestore');
+  const { doc, setDoc, deleteDoc } = await import("firebase/firestore");
 
   let environment;
   try {
@@ -163,18 +172,18 @@ async function main() {
     });
   } catch (error) {
     notRun(
-      `emulator unavailable at ${args.host}:${args.port} or rules rejected: ${error.message}`
+      `emulator unavailable at ${args.host}:${args.port} or rules rejected: ${error.message}`,
     );
   }
 
-  const owner = 'uid-owner';
-  const intruder = 'uid-intruder';
+  const owner = "uid-owner";
+  const intruder = "uid-intruder";
   const ownerDb = environment.authenticatedContext(owner).firestore();
   const intruderDb = environment.authenticatedContext(intruder).firestore();
   const uidDb = (uid) => environment.authenticatedContext(uid).firestore();
 
   const results = [];
-  const ok = (label, detail = 'allowed') => ({ label, ok: true, detail });
+  const ok = (label, detail = "allowed") => ({ label, ok: true, detail });
   const failed = (label, detail) => ({ label, ok: false, detail });
 
   async function expectAllowed(label, operation) {
@@ -189,88 +198,122 @@ async function main() {
   async function expectDenied(label, operation) {
     try {
       await operation();
-      return failed(label, 'expected permission-denied, got allowed');
+      return failed(label, "expected permission-denied, got allowed");
     } catch (error) {
       const code = firestoreCode(error);
       return {
         label,
-        ok: code.includes('permission-denied') || code.includes('permission_denied'),
+        ok:
+          code.includes("permission-denied") ||
+          code.includes("permission_denied"),
         detail: code,
       };
     }
   }
 
   const seed = async (uid, value) => {
+    const seeded = value?.retaFinalSync
+      ? {
+          ...value,
+          retaFinalSync: {
+            ...value.retaFinalSync,
+            snapshotRevision: 1,
+            baseSnapshotRevision: 0,
+          },
+        }
+      : value;
     await environment.withSecurityRulesDisabled(async (context) => {
-      await setDoc(doc(context.firestore(), 'users', uid, 'snapshots', 'main'), value);
+      await setDoc(
+        doc(context.firestore(), "users", uid, "snapshots", "main"),
+        seeded,
+      );
     });
   };
 
   // Baseline: a valid legacy create must pass, including a plain snapshot.
   results.push(
-    await expectAllowed('minimal legacy snapshot', () =>
-      setDoc(doc(uidDb('uid-minimal'), 'users', 'uid-minimal', 'snapshots', 'main'), {
-        version: 1,
-        schemaVersion: 6,
-        deviceId: 'legacy-device',
-        baseRemoteUpdatedAt: null,
-        payloadUpdatedAt: '2026-10-20T10:00:00.000Z',
-        sentAt: '2026-10-20T10:00:00.000Z',
-        payload: { config: {} },
-      })
-    )
+    await expectAllowed("minimal legacy snapshot", () =>
+      setDoc(
+        doc(uidDb("uid-minimal"), "users", "uid-minimal", "snapshots", "main"),
+        {
+          version: 1,
+          schemaVersion: 6,
+          deviceId: "legacy-device",
+          baseRemoteUpdatedAt: null,
+          payloadUpdatedAt: "2026-10-20T10:00:00.000Z",
+          sentAt: "2026-10-20T10:00:00.000Z",
+          payload: { config: {} },
+        },
+      ),
+    ),
   );
   results.push(
-    await expectAllowed('baseline legacy create', () =>
+    await expectAllowed("baseline legacy create", () =>
       setDoc(
-        doc(ownerDb, 'users', owner, 'snapshots', 'main'),
-        legacyEnvelope('2026-10-20T10:00:00.000Z')
-      )
-    )
+        doc(ownerDb, "users", owner, "snapshots", "main"),
+        legacyEnvelope("2026-10-20T10:00:00.000Z"),
+      ),
+    ),
   );
 
   // 1. Legacy overwrite over a seeded v2 document.
-  await seed('uid-legacy-overwrite', envelope({ revision: 2, baseRevision: 1 }));
-  const legacyOverwrite = await expectAllowed('legacy overwrite over v2', () =>
+  await seed(
+    "uid-legacy-overwrite",
+    envelope({ revision: 2, baseRevision: 1 }),
+  );
+  const legacyOverwrite = await expectAllowed("legacy overwrite over v2", () =>
     setDoc(
-      doc(uidDb('uid-legacy-overwrite'), 'users', 'uid-legacy-overwrite', 'snapshots', 'main'),
-      legacyEnvelope('2026-10-20T13:00:00.000Z')
-    )
+      doc(
+        uidDb("uid-legacy-overwrite"),
+        "users",
+        "uid-legacy-overwrite",
+        "snapshots",
+        "main",
+      ),
+      legacyEnvelope("2026-10-20T13:00:00.000Z"),
+    ),
   );
   if (newRules) {
     const holds =
-      !legacyOverwrite.ok && legacyOverwrite.detail.includes('permission-denied');
+      !legacyOverwrite.ok &&
+      legacyOverwrite.detail.includes("permission-denied");
     results.push({
       label: legacyOverwrite.label,
       ok: holds,
-      detail: holds ? 'denied (barrier holds)' : legacyOverwrite.detail,
+      detail: holds ? "denied (barrier holds)" : legacyOverwrite.detail,
     });
   } else {
     results.push({
       label: legacyOverwrite.label,
       ok: legacyOverwrite.ok,
       detail: legacyOverwrite.ok
-        ? 'ALLOWED (vulnerability reproduced)'
+        ? "ALLOWED (vulnerability reproduced)"
         : legacyOverwrite.detail,
     });
   }
 
   if (!newRules) {
     results.push(
-      await expectDenied('guard probe denied by legacy rules', () =>
+      await expectDenied("guard probe denied by legacy rules", () =>
         setDoc(
-          doc(uidDb('uid-guard-legacy'), 'users', 'uid-guard-legacy', 'syncMeta', 'reta-final-guard'),
-          guardDoc()
-        )
-      )
+          doc(
+            uidDb("uid-guard-legacy"),
+            "users",
+            "uid-guard-legacy",
+            "syncMeta",
+            "reta-final-guard",
+          ),
+          guardDoc(),
+        ),
+      ),
     );
     results.push(
-      await expectDenied('intruder cannot write another uid snapshot', () =>
+      await expectDenied("intruder cannot write another uid snapshot", () =>
         setDoc(
-          doc(intruderDb, 'users', 'uid-legacy-overwrite', 'snapshots', 'main'),
-          legacyEnvelope('2026-10-20T14:00:00.000Z')
-        )
-      )
+          doc(intruderDb, "users", "uid-legacy-overwrite", "snapshots", "main"),
+          legacyEnvelope("2026-10-20T14:00:00.000Z"),
+        ),
+      ),
     );
     report(results, { newRules, host: args.host, port: args.port });
     await environment.clearFirestore();
@@ -280,55 +323,157 @@ async function main() {
 
   // 2. Create, advance and stale base.
   results.push(
-    await expectAllowed('v2 create with baseRevision 0', () =>
+    await expectAllowed("v2 create with baseRevision 0", () =>
       setDoc(
-        doc(uidDb('uid-create'), 'users', 'uid-create', 'snapshots', 'main'),
-        envelope({ revision: 1, baseRevision: 0 })
-      )
-    )
+        doc(uidDb("uid-create"), "users", "uid-create", "snapshots", "main"),
+        envelope({ revision: 1, baseRevision: 0 }),
+      ),
+    ),
   );
 
-  await seed('uid-advance', envelope({ revision: 2, baseRevision: 1 }));
+  await seed("uid-advance", envelope({ revision: 2, baseRevision: 1 }));
   results.push(
-    await expectAllowed('v2 advance with correct base', () =>
+    await expectAllowed("v2 advance with correct base", () =>
       setDoc(
-        doc(uidDb('uid-advance'), 'users', 'uid-advance', 'snapshots', 'main'),
-        envelope({ revision: 3, baseRevision: 2 })
-      )
-    )
+        doc(uidDb("uid-advance"), "users", "uid-advance", "snapshots", "main"),
+        envelope({ revision: 3, baseRevision: 2 }),
+      ),
+    ),
   );
 
-  await seed('uid-stale', envelope({ revision: 3, baseRevision: 2 }));
+  // Academic-only writes may advance the snapshot without changing the plan.
+  const academicPlan = plan({ revision: 2 });
+  await seed(
+    "uid-academic",
+    envelope({
+      revision: 2,
+      baseRevision: 1,
+      payload: { config: {}, planejamento: academicPlan, eventos: [] },
+    }),
+  );
+  const academicPayload = {
+    config: {},
+    planejamento: academicPlan,
+    eventos: [{ id: "ev-1", status: "estudei", tempoAcumulado: 60 }],
+  };
   results.push(
-    await expectDenied('v2 stale base after another write', () =>
+    await expectAllowed("academic write keeps the plan revision", () =>
       setDoc(
-        doc(uidDb('uid-stale'), 'users', 'uid-stale', 'snapshots', 'main'),
-        envelope({ revision: 4, baseRevision: 2, digest: repeated('c') })
-      )
-    )
+        doc(
+          uidDb("uid-academic"),
+          "users",
+          "uid-academic",
+          "snapshots",
+          "main",
+        ),
+        envelope({ revision: 2, baseRevision: 1, payload: academicPayload }),
+      ),
+    ),
+  );
+  results.push(
+    await expectDenied("academic write changing only the digest", () =>
+      setDoc(
+        doc(
+          uidDb("uid-academic"),
+          "users",
+          "uid-academic",
+          "snapshots",
+          "main",
+        ),
+        envelope({
+          revision: 2,
+          baseRevision: 1,
+          digest: repeated("c"),
+          payload: academicPayload,
+        }),
+      ),
+    ),
+  );
+  results.push(
+    await expectDenied("snapshot revision jump", () =>
+      setDoc(
+        doc(
+          uidDb("uid-academic"),
+          "users",
+          "uid-academic",
+          "snapshots",
+          "main",
+        ),
+        envelope({
+          revision: 2,
+          baseRevision: 1,
+          snapshotRevision: 4,
+          baseSnapshotRevision: 2,
+          payload: academicPayload,
+        }),
+      ),
+    ),
+  );
+  results.push(
+    await expectDenied("stale snapshot revision", () =>
+      setDoc(
+        doc(
+          uidDb("uid-academic"),
+          "users",
+          "uid-academic",
+          "snapshots",
+          "main",
+        ),
+        envelope({
+          revision: 2,
+          baseRevision: 1,
+          snapshotRevision: 2,
+          baseSnapshotRevision: 0,
+          payload: academicPayload,
+        }),
+      ),
+    ),
+  );
+
+  await seed("uid-stale", envelope({ revision: 3, baseRevision: 2 }));
+  results.push(
+    await expectDenied("v2 stale base after another write", () =>
+      setDoc(
+        doc(uidDb("uid-stale"), "users", "uid-stale", "snapshots", "main"),
+        envelope({ revision: 4, baseRevision: 2, digest: repeated("c") }),
+      ),
+    ),
   );
 
   // 3. Replay and digest collision.
-  await seed('uid-replay', envelope({ revision: 2, baseRevision: 1 }));
-  const replay = envelope({ revision: 3, baseRevision: 2, digest: repeated('d') });
+  await seed("uid-replay", envelope({ revision: 2, baseRevision: 1 }));
+  const replay = envelope({
+    revision: 3,
+    baseRevision: 2,
+    digest: repeated("d"),
+  });
   await assertSucceeds(
-    setDoc(doc(uidDb('uid-replay'), 'users', 'uid-replay', 'snapshots', 'main'), replay)
+    setDoc(
+      doc(uidDb("uid-replay"), "users", "uid-replay", "snapshots", "main"),
+      replay,
+    ),
   );
   results.push(
-    await expectAllowed('v2 identical replay', () =>
-      setDoc(doc(uidDb('uid-replay'), 'users', 'uid-replay', 'snapshots', 'main'), replay)
-    )
+    await expectAllowed("v2 identical replay", () =>
+      setDoc(
+        doc(uidDb("uid-replay"), "users", "uid-replay", "snapshots", "main"),
+        replay,
+      ),
+    ),
   );
   results.push(
-    await expectDenied('v2 same revision different digest', () =>
-      setDoc(doc(uidDb('uid-replay'), 'users', 'uid-replay', 'snapshots', 'main'), {
-        ...replay,
-        retaFinalSync: { ...replay.retaFinalSync, digest: repeated('e') },
-      })
-    )
+    await expectDenied("v2 same revision different digest", () =>
+      setDoc(
+        doc(uidDb("uid-replay"), "users", "uid-replay", "snapshots", "main"),
+        {
+          ...replay,
+          retaFinalSync: { ...replay.retaFinalSync, digest: repeated("e") },
+        },
+      ),
+    ),
   );
   results.push(
-    await expectDenied('v2 replay with changed payload', () => {
+    await expectDenied("v2 replay with changed payload", () => {
       const changed = {
         ...replay,
         payload: {
@@ -336,338 +481,485 @@ async function main() {
           planejamento: { ...replay.payload.planejamento, revision: 99 },
         },
       };
-      return setDoc(doc(uidDb('uid-replay'), 'users', 'uid-replay', 'snapshots', 'main'), changed);
-    })
+      return setDoc(
+        doc(uidDb("uid-replay"), "users", "uid-replay", "snapshots", "main"),
+        changed,
+      );
+    }),
   );
   await seed(
-    'uid-replay-tombstone',
+    "uid-replay-tombstone",
     envelope({
       revision: 3,
       baseRevision: 2,
-      removedBlockIds: ['b1', 'b2'],
+      removedBlockIds: ["b1", "b2"],
       minRetainedRevision: 2,
-    })
+    }),
   );
   results.push(
-    await expectDenied('replay with reduced removedBlockIds', () =>
+    await expectDenied("replay with reduced removedBlockIds", () =>
       setDoc(
-        doc(uidDb('uid-replay-tombstone'), 'users', 'uid-replay-tombstone', 'snapshots', 'main'),
+        doc(
+          uidDb("uid-replay-tombstone"),
+          "users",
+          "uid-replay-tombstone",
+          "snapshots",
+          "main",
+        ),
         envelope({
           revision: 3,
           baseRevision: 2,
-          removedBlockIds: ['b1'],
+          removedBlockIds: ["b1"],
           minRetainedRevision: 2,
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
 
   // 4. Rollback and identity changes.
-  await seed('uid-rollback', envelope({ revision: 3, baseRevision: 2 }));
+  await seed("uid-rollback", envelope({ revision: 3, baseRevision: 2 }));
   results.push(
-    await expectDenied('v2 rollback', () =>
+    await expectDenied("v2 rollback", () =>
       setDoc(
-        doc(uidDb('uid-rollback'), 'users', 'uid-rollback', 'snapshots', 'main'),
-        envelope({ revision: 2, baseRevision: 3, digest: repeated('9') })
-      )
-    )
+        doc(
+          uidDb("uid-rollback"),
+          "users",
+          "uid-rollback",
+          "snapshots",
+          "main",
+        ),
+        envelope({ revision: 2, baseRevision: 3, digest: repeated("9") }),
+      ),
+    ),
   );
   results.push(
-    await expectDenied('v2 planId change', () =>
+    await expectDenied("v2 planId change", () =>
       setDoc(
-        doc(uidDb('uid-rollback'), 'users', 'uid-rollback', 'snapshots', 'main'),
-        envelope({ planId: 'plan-2', revision: 4, baseRevision: 3 })
-      )
-    )
+        doc(
+          uidDb("uid-rollback"),
+          "users",
+          "uid-rollback",
+          "snapshots",
+          "main",
+        ),
+        envelope({ planId: "plan-2", revision: 4, baseRevision: 3 }),
+      ),
+    ),
   );
   results.push(
-    await expectDenied('v2 generation change', () =>
+    await expectDenied("v2 generation change", () =>
       setDoc(
-        doc(uidDb('uid-rollback'), 'users', 'uid-rollback', 'snapshots', 'main'),
-        envelope({ generation: 2, revision: 4, baseRevision: 3 })
-      )
-    )
+        doc(
+          uidDb("uid-rollback"),
+          "users",
+          "uid-rollback",
+          "snapshots",
+          "main",
+        ),
+        envelope({ generation: 2, revision: 4, baseRevision: 3 }),
+      ),
+    ),
   );
   await seed(
-    'uid-tombstone-floor',
+    "uid-tombstone-floor",
     envelope({
       revision: 2,
       baseRevision: 1,
-      removedBlockIds: ['b1'],
+      removedBlockIds: ["b1"],
       minRetainedRevision: 2,
-    })
+    }),
   );
   results.push(
-    await expectDenied('advance reducing minRetainedRevision', () =>
+    await expectDenied("advance reducing minRetainedRevision", () =>
       setDoc(
-        doc(uidDb('uid-tombstone-floor'), 'users', 'uid-tombstone-floor', 'snapshots', 'main'),
+        doc(
+          uidDb("uid-tombstone-floor"),
+          "users",
+          "uid-tombstone-floor",
+          "snapshots",
+          "main",
+        ),
         envelope({
           revision: 3,
           baseRevision: 2,
-          removedBlockIds: ['b1'],
+          removedBlockIds: ["b1"],
           minRetainedRevision: 1,
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
   await seed(
-    'uid-tombstone-list',
+    "uid-tombstone-list",
     envelope({
       revision: 2,
       baseRevision: 1,
-      removedBlockIds: ['b1', 'b2'],
+      removedBlockIds: ["b1", "b2"],
       minRetainedRevision: 1,
-    })
+    }),
   );
   results.push(
-    await expectDenied('advance reducing removedBlockIds', () =>
+    await expectDenied("advance reducing removedBlockIds", () =>
       setDoc(
-        doc(uidDb('uid-tombstone-list'), 'users', 'uid-tombstone-list', 'snapshots', 'main'),
+        doc(
+          uidDb("uid-tombstone-list"),
+          "users",
+          "uid-tombstone-list",
+          "snapshots",
+          "main",
+        ),
         envelope({
           revision: 3,
           baseRevision: 2,
-          removedBlockIds: ['b1'],
+          removedBlockIds: ["b1"],
           minRetainedRevision: 1,
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
   results.push(
-    await expectAllowed('advance adding a tombstone', () =>
+    await expectAllowed("advance adding a tombstone", () =>
       setDoc(
-        doc(uidDb('uid-tombstone-list'), 'users', 'uid-tombstone-list', 'snapshots', 'main'),
+        doc(
+          uidDb("uid-tombstone-list"),
+          "users",
+          "uid-tombstone-list",
+          "snapshots",
+          "main",
+        ),
         envelope({
           revision: 3,
           baseRevision: 2,
-          removedBlockIds: ['b1', 'b2', 'b3'],
+          removedBlockIds: ["b1", "b2", "b3"],
           minRetainedRevision: 1,
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
   const compactionIds = Array.from({ length: 200 }, (_, index) => `t${index}`);
   await seed(
-    'uid-compaction-ok',
+    "uid-compaction-ok",
     envelope({
       revision: 100,
       baseRevision: 99,
       removedBlockIds: compactionIds,
       minRetainedRevision: 99,
-    })
+    }),
   );
   results.push(
-    await expectAllowed('tombstone compaction raises floor to remote head', () =>
-      setDoc(
-        doc(uidDb('uid-compaction-ok'), 'users', 'uid-compaction-ok', 'snapshots', 'main'),
-        envelope({
-          revision: 101,
-          baseRevision: 100,
-          removedBlockIds: compactionIds.slice(0, 199),
-          minRetainedRevision: 100,
-        })
-      )
-    )
+    await expectAllowed(
+      "tombstone compaction raises floor to remote head",
+      () =>
+        setDoc(
+          doc(
+            uidDb("uid-compaction-ok"),
+            "users",
+            "uid-compaction-ok",
+            "snapshots",
+            "main",
+          ),
+          envelope({
+            revision: 101,
+            baseRevision: 100,
+            removedBlockIds: compactionIds.slice(0, 199),
+            minRetainedRevision: 100,
+          }),
+        ),
+    ),
   );
   await seed(
-    'uid-compaction-bad',
+    "uid-compaction-bad",
     envelope({
       revision: 100,
       baseRevision: 99,
       removedBlockIds: compactionIds,
       minRetainedRevision: 99,
-    })
+    }),
   );
   results.push(
-    await expectDenied('tombstone compaction with floor below remote head', () =>
-      setDoc(
-        doc(uidDb('uid-compaction-bad'), 'users', 'uid-compaction-bad', 'snapshots', 'main'),
-        envelope({
-          revision: 101,
-          baseRevision: 100,
-          removedBlockIds: compactionIds.slice(0, 199),
-          minRetainedRevision: 99,
-        })
-      )
-    )
+    await expectDenied(
+      "tombstone compaction with floor below remote head",
+      () =>
+        setDoc(
+          doc(
+            uidDb("uid-compaction-bad"),
+            "users",
+            "uid-compaction-bad",
+            "snapshots",
+            "main",
+          ),
+          envelope({
+            revision: 101,
+            baseRevision: 100,
+            removedBlockIds: compactionIds.slice(0, 199),
+            minRetainedRevision: 99,
+          }),
+        ),
+    ),
   );
   await seed(
-    'uid-replay-order',
+    "uid-replay-order",
     envelope({
       revision: 3,
       baseRevision: 2,
-      removedBlockIds: ['b1', 'b2'],
+      removedBlockIds: ["b1", "b2"],
       minRetainedRevision: 2,
-    })
+    }),
   );
   results.push(
-    await expectDenied('replay with reordered removedBlockIds', () =>
+    await expectDenied("replay with reordered removedBlockIds", () =>
       setDoc(
-        doc(uidDb('uid-replay-order'), 'users', 'uid-replay-order', 'snapshots', 'main'),
+        doc(
+          uidDb("uid-replay-order"),
+          "users",
+          "uid-replay-order",
+          "snapshots",
+          "main",
+        ),
         envelope({
           revision: 3,
           baseRevision: 2,
-          removedBlockIds: ['b2', 'b1'],
+          removedBlockIds: ["b2", "b1"],
           minRetainedRevision: 2,
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
-  await seed('uid-payload-lineage', envelope({ revision: 2, baseRevision: 1 }));
+  await seed("uid-payload-lineage", envelope({ revision: 2, baseRevision: 1 }));
   results.push(
-    await expectDenied('active payload with different planId', () => {
+    await expectDenied("active payload with different planId", () => {
       const value = envelope({ revision: 3, baseRevision: 2 });
-      value.payload.planejamento = plan({ planId: 'plan-2', revision: 3 });
-      return setDoc(
-        doc(uidDb('uid-payload-lineage'), 'users', 'uid-payload-lineage', 'snapshots', 'main'),
-        value
-      );
-    })
-  );
-  await seed('uid-payload-lineage-retired', envelope({ revision: 2, baseRevision: 1 }));
-  results.push(
-    await expectDenied('retired payload with different planId', () => {
-      const value = envelope({ revision: 3, baseRevision: 2, state: 'retired' });
-      value.payload.planejamento = plan({ planId: 'plan-2', revision: 3, ativo: false });
+      value.payload.planejamento = plan({ planId: "plan-2", revision: 3 });
       return setDoc(
         doc(
-          uidDb('uid-payload-lineage-retired'),
-          'users',
-          'uid-payload-lineage-retired',
-          'snapshots',
-          'main'
+          uidDb("uid-payload-lineage"),
+          "users",
+          "uid-payload-lineage",
+          "snapshots",
+          "main",
         ),
-        value
+        value,
       );
-    })
+    }),
+  );
+  await seed(
+    "uid-payload-lineage-retired",
+    envelope({ revision: 2, baseRevision: 1 }),
+  );
+  results.push(
+    await expectDenied("retired payload with different planId", () => {
+      const value = envelope({
+        revision: 3,
+        baseRevision: 2,
+        state: "retired",
+      });
+      value.payload.planejamento = plan({
+        planId: "plan-2",
+        revision: 3,
+        ativo: false,
+      });
+      return setDoc(
+        doc(
+          uidDb("uid-payload-lineage-retired"),
+          "users",
+          "uid-payload-lineage-retired",
+          "snapshots",
+          "main",
+        ),
+        value,
+      );
+    }),
   );
 
   // 5. Adoption over a legacy document.
-  await seed('uid-adopt', legacyEnvelope('2026-10-20T11:00:00.000Z'));
+  await seed("uid-adopt", legacyEnvelope("2026-10-20T11:00:00.000Z"));
   results.push(
-    await expectAllowed('v2 adoption with matching payloadUpdatedAt', () => {
+    await expectAllowed("v2 adoption with matching payloadUpdatedAt", () => {
       const value = envelope({ revision: 1, baseRevision: 0 });
-      value.retaFinalSync.baseRemoteUpdatedAt = '2026-10-20T11:00:00.000Z';
-      return setDoc(doc(uidDb('uid-adopt'), 'users', 'uid-adopt', 'snapshots', 'main'), value);
-    })
-  );
-  await seed('uid-adopt-bad', legacyEnvelope('2026-10-20T11:00:00.000Z'));
-  results.push(
-    await expectDenied('v2 adoption with divergent payloadUpdatedAt', () => {
-      const value = envelope({ revision: 1, baseRevision: 0 });
-      value.retaFinalSync.baseRemoteUpdatedAt = '2026-10-20T10:00:00.000Z';
+      value.retaFinalSync.baseRemoteUpdatedAt = "2026-10-20T11:00:00.000Z";
       return setDoc(
-        doc(uidDb('uid-adopt-bad'), 'users', 'uid-adopt-bad', 'snapshots', 'main'),
-        value
+        doc(uidDb("uid-adopt"), "users", "uid-adopt", "snapshots", "main"),
+        value,
       );
-    })
+    }),
+  );
+  await seed("uid-adopt-bad", legacyEnvelope("2026-10-20T11:00:00.000Z"));
+  results.push(
+    await expectDenied("v2 adoption with divergent payloadUpdatedAt", () => {
+      const value = envelope({ revision: 1, baseRevision: 0 });
+      value.retaFinalSync.baseRemoteUpdatedAt = "2026-10-20T10:00:00.000Z";
+      return setDoc(
+        doc(
+          uidDb("uid-adopt-bad"),
+          "users",
+          "uid-adopt-bad",
+          "snapshots",
+          "main",
+        ),
+        value,
+      );
+    }),
   );
 
   // 6. Retirement.
-  await seed('uid-retire', envelope({ revision: 2, baseRevision: 1 }));
+  await seed("uid-retire", envelope({ revision: 2, baseRevision: 1 }));
   results.push(
-    await expectAllowed('v2 retirement advance', () =>
+    await expectAllowed("v2 retirement advance", () =>
       setDoc(
-        doc(uidDb('uid-retire'), 'users', 'uid-retire', 'snapshots', 'main'),
-        envelope({ revision: 3, baseRevision: 2, state: 'retired' })
-      )
-    )
+        doc(uidDb("uid-retire"), "users", "uid-retire", "snapshots", "main"),
+        envelope({ revision: 3, baseRevision: 2, state: "retired" }),
+      ),
+    ),
   );
   results.push(
-    await expectDenied('v2 retired resurrection', () =>
+    await expectDenied("v2 retired resurrection", () =>
       setDoc(
-        doc(uidDb('uid-retire'), 'users', 'uid-retire', 'snapshots', 'main'),
-        envelope({ revision: 4, baseRevision: 3, state: 'active' })
-      )
-    )
+        doc(uidDb("uid-retire"), "users", "uid-retire", "snapshots", "main"),
+        envelope({
+          revision: 4,
+          baseRevision: 3,
+          snapshotRevision: 3,
+          state: "active",
+        }),
+      ),
+    ),
   );
   results.push(
-    await expectDenied('v2 retired create', () =>
+    await expectDenied("v2 retired create", () =>
       setDoc(
-        doc(uidDb('uid-retired-create'), 'users', 'uid-retired-create', 'snapshots', 'main'),
-        envelope({ revision: 1, baseRevision: 0, state: 'retired' })
-      )
-    )
+        doc(
+          uidDb("uid-retired-create"),
+          "users",
+          "uid-retired-create",
+          "snapshots",
+          "main",
+        ),
+        envelope({ revision: 1, baseRevision: 0, state: "retired" }),
+      ),
+    ),
   );
-  await seed('uid-retired-active', envelope({ revision: 2, baseRevision: 1 }));
+  await seed("uid-retired-active", envelope({ revision: 2, baseRevision: 1 }));
   results.push(
-    await expectDenied('retired payload with active plan', () => {
-      const value = envelope({ revision: 3, baseRevision: 2, state: 'retired' });
+    await expectDenied("retired payload with active plan", () => {
+      const value = envelope({
+        revision: 3,
+        baseRevision: 2,
+        state: "retired",
+      });
       value.payload.planejamento = plan({ revision: 3, ativo: true });
       return setDoc(
-        doc(uidDb('uid-retired-active'), 'users', 'uid-retired-active', 'snapshots', 'main'),
-        value
+        doc(
+          uidDb("uid-retired-active"),
+          "users",
+          "uid-retired-active",
+          "snapshots",
+          "main",
+        ),
+        value,
       );
-    })
+    }),
   );
-  await seed('uid-active-missing', envelope({ revision: 2, baseRevision: 1 }));
+  await seed("uid-active-missing", envelope({ revision: 2, baseRevision: 1 }));
   results.push(
-    await expectDenied('active descriptor without active plan', () => {
+    await expectDenied("active descriptor without active plan", () => {
       const value = envelope({ revision: 3, baseRevision: 2 });
       delete value.payload.planejamento;
       return setDoc(
-        doc(uidDb('uid-active-missing'), 'users', 'uid-active-missing', 'snapshots', 'main'),
-        value
+        doc(
+          uidDb("uid-active-missing"),
+          "users",
+          "uid-active-missing",
+          "snapshots",
+          "main",
+        ),
+        value,
       );
-    })
+    }),
   );
-  await seed('uid-active-retired-payload', envelope({ revision: 2, baseRevision: 1 }));
+  await seed(
+    "uid-active-retired-payload",
+    envelope({ revision: 2, baseRevision: 1 }),
+  );
   results.push(
-    await expectDenied('active descriptor with retired payload', () => {
+    await expectDenied("active descriptor with retired payload", () => {
       const value = envelope({ revision: 3, baseRevision: 2 });
       value.payload.planejamento = plan({ revision: 3, ativo: false });
       return setDoc(
         doc(
-          uidDb('uid-active-retired-payload'),
-          'users',
-          'uid-active-retired-payload',
-          'snapshots',
-          'main'
+          uidDb("uid-active-retired-payload"),
+          "users",
+          "uid-active-retired-payload",
+          "snapshots",
+          "main",
         ),
-        value
+        value,
       );
-    })
+    }),
   );
-  await seed('uid-retired-absent', envelope({ revision: 2, baseRevision: 1 }));
+  await seed("uid-retired-absent", envelope({ revision: 2, baseRevision: 1 }));
   results.push(
-    await expectAllowed('retired descriptor with absent plan', () => {
-      const value = envelope({ revision: 3, baseRevision: 2, state: 'retired' });
+    await expectAllowed("retired descriptor with absent plan", () => {
+      const value = envelope({
+        revision: 3,
+        baseRevision: 2,
+        state: "retired",
+      });
       delete value.payload.planejamento;
       return setDoc(
-        doc(uidDb('uid-retired-absent'), 'users', 'uid-retired-absent', 'snapshots', 'main'),
-        value
+        doc(
+          uidDb("uid-retired-absent"),
+          "users",
+          "uid-retired-absent",
+          "snapshots",
+          "main",
+        ),
+        value,
       );
-    })
+    }),
   );
 
   // 7. Guard and owner scope.
   results.push(
-    await expectAllowed('guard create by owner', () =>
+    await expectAllowed("guard create by owner", () =>
       setDoc(
-        doc(uidDb('uid-guard'), 'users', 'uid-guard', 'syncMeta', 'reta-final-guard'),
-        guardDoc()
-      )
-    )
+        doc(
+          uidDb("uid-guard"),
+          "users",
+          "uid-guard",
+          "syncMeta",
+          "reta-final-guard",
+        ),
+        guardDoc(),
+      ),
+    ),
   );
   results.push(
-    await expectDenied('guard denied to another uid', () =>
+    await expectDenied("guard denied to another uid", () =>
       setDoc(
-        doc(intruderDb, 'users', 'uid-guard', 'syncMeta', 'reta-final-guard'),
-        guardDoc('other-device')
-      )
-    )
+        doc(intruderDb, "users", "uid-guard", "syncMeta", "reta-final-guard"),
+        guardDoc("other-device"),
+      ),
+    ),
   );
   results.push(
-    await expectDenied('guard delete denied', () =>
-      deleteDoc(doc(uidDb('uid-guard'), 'users', 'uid-guard', 'syncMeta', 'reta-final-guard'))
-    )
+    await expectDenied("guard delete denied", () =>
+      deleteDoc(
+        doc(
+          uidDb("uid-guard"),
+          "users",
+          "uid-guard",
+          "syncMeta",
+          "reta-final-guard",
+        ),
+      ),
+    ),
   );
   results.push(
-    await expectDenied('intruder cannot overwrite snapshot', () =>
+    await expectDenied("intruder cannot overwrite snapshot", () =>
       setDoc(
-        doc(intruderDb, 'users', 'uid-advance', 'snapshots', 'main'),
-        envelope({ revision: 4, baseRevision: 3 })
-      )
-    )
+        doc(intruderDb, "users", "uid-advance", "snapshots", "main"),
+        envelope({ revision: 4, baseRevision: 3 }),
+      ),
+    ),
   );
 
   report(results, { newRules, host: args.host, port: args.port });
@@ -678,11 +970,15 @@ async function main() {
 function report(results, { newRules, host, port }) {
   const failures = results.filter((result) => !result.ok);
   for (const result of results) {
-    console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.label}: ${result.detail}`);
+    console.log(
+      `${result.ok ? "PASS" : "FAIL"} ${result.label}: ${result.detail}`,
+    );
   }
-  console.log(`\nRULES_MODE=${newRules ? 'new' : 'legacy'} TARGET=${host}:${port}`);
   console.log(
-    `RESULT ${failures.length === 0 ? 'PASS' : 'FAIL'} (${results.length - failures.length}/${results.length})`
+    `\nRULES_MODE=${newRules ? "new" : "legacy"} TARGET=${host}:${port}`,
+  );
+  console.log(
+    `RESULT ${failures.length === 0 ? "PASS" : "FAIL"} (${results.length - failures.length}/${results.length})`,
   );
   if (failures.length) process.exitCode = 1;
 }

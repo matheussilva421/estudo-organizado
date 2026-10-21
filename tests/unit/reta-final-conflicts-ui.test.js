@@ -1091,6 +1091,34 @@ describe("resolveRetaFinalConflict (confirmation gate)", () => {
     });
     expect(readState(idb).config.firestoreSync.lastPushAt).toBeNull();
   });
+
+  it("queues the resolved state for the normal sync flow", async () => {
+    const source = appState();
+    const idb = idbFor(source);
+    const sync = vi.fn(async () => ({ queued: true, flushed: false }));
+
+    const result = await resolveRetaFinalConflict(
+      "reta-final:merge-review:plan-1:plan",
+      { choice: "local" },
+      {
+        db: idb.database,
+        state: source,
+        confirmed: true,
+        now: NOW,
+        deviceId: "device-a",
+        sync,
+      },
+    );
+
+    expect(sync).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      applied: true,
+      queued: true,
+      flushed: false,
+      syncStatus: "pending",
+    });
+    expect(readState(idb).config.firestoreSync.lastPushAt).toBeNull();
+  });
 });
 
 describe("sync center integration", () => {
