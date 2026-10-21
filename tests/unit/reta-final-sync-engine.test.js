@@ -434,6 +434,10 @@ describe("reta-final sync engine integration", () => {
     const remotePlan = makePlan({ revision: 2, minutos: 50 });
     const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
     await boot({ plan: localPlan, basePlan, remote });
+    syncCenter.mergeStudyStates.mockImplementation((local, remotePayload) => ({
+      ...local,
+      planejamento: remotePayload.planejamento,
+    }));
 
     const result = await engine.pollFirestoreRemote();
 
@@ -461,6 +465,10 @@ describe("reta-final sync engine integration", () => {
     const remotePlan = makePlan({ revision: 2, minutos: 50 });
     const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
     await boot({ plan: localPlan, basePlan, remote });
+    syncCenter.mergeStudyStates.mockImplementation((local, remotePayload) => ({
+      ...local,
+      planejamento: remotePayload.planejamento,
+    }));
 
     const result = await engine.pollFirestoreRemote();
 
@@ -557,6 +565,55 @@ describe("reta-final sync engine integration", () => {
 
     expect(result).toBe(false);
     expect(storeModule.state.planejamento.revision).toBe(3);
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "local-changed-during-pull" }),
+    );
+  });
+
+  it("merges academic data when fast-forwarding the plan", async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 1 });
+    const remotePlan = makePlan({ revision: 2, minutos: 50 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    remote.payload.eventos = [{ id: "ev-remote", status: "estudei" }];
+    await boot({ plan: localPlan, basePlan, remote });
+    storeModule.state.eventos = [{ id: "ev-local", status: "estudei" }];
+    syncCenter.mergeStudyStates.mockImplementation((local, remotePayload) => {
+      return {
+        ...local,
+        planejamento: remotePayload.planejamento,
+        eventos: [
+          ...(local.eventos || []),
+          ...(remotePayload.eventos || []),
+        ],
+      };
+    });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(true);
+    expect(storeModule.state.planejamento.revision).toBe(2);
+    expect(storeModule.state.eventos).toEqual([
+      { id: "ev-local", status: "estudei" },
+      { id: "ev-remote", status: "estudei" },
+    ]);
+  });
+
+  it("aborts a pull when academic data changes during the yield", async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 1 });
+    const remotePlan = makePlan({ revision: 2, minutos: 50 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+    const yieldModule = await import("../../src/js/sync/sync-yield.js?v=8.37");
+    yieldModule.yieldToUIWithBudget.mockImplementationOnce(async () => {
+      storeModule.state.eventos = [{ id: "ev-during-yield" }];
+    });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    expect(storeModule.state.eventos).toEqual([{ id: "ev-during-yield" }]);
     expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
       expect.objectContaining({ cause: "local-changed-during-pull" }),
     );
@@ -921,6 +978,10 @@ describe("reta-final sync engine integration", () => {
       state: "retired",
     });
     await boot({ plan: localPlan, basePlan, remote });
+    syncCenter.mergeStudyStates.mockImplementation((local, remotePayload) => ({
+      ...local,
+      planejamento: remotePayload.planejamento,
+    }));
 
     const result = await engine.pollFirestoreRemote();
 

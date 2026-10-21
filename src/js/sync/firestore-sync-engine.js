@@ -407,6 +407,7 @@ function pullLocalIdentity(localPlan) {
     revision: localPlan?.revision ?? null,
     digest: localPlan ? computeRetaFinalPlanDigest(localPlan) : null,
     backupAt: state.config?.localBackupAt ?? null,
+    nonPlanDigest: nonPlanStateDigest(state),
   };
 }
 
@@ -459,7 +460,9 @@ function applyRetaFinalPull(remote, config, { force = false } = {}) {
       return {
         handled: true,
         applied: true,
-        nextState: applyEnvelopeToLocalState(remote, config),
+        nextState: mergeStudyStates(state, remote.payload || {}, {
+          basePlan: localPlan,
+        }),
         basePlan: remotePlan,
         localIdentity,
       };
@@ -467,7 +470,9 @@ function applyRetaFinalPull(remote, config, { force = false } = {}) {
     return {
       handled: true,
       applied: true,
-      nextState: applyEnvelopeToLocalState(remote, config),
+      nextState: mergeStudyStates(state, remote.payload || {}, {
+        basePlan: localPlan,
+      }),
       basePlan: remotePlan,
       localIdentity,
     };
@@ -529,7 +534,9 @@ function applyRetaFinalPull(remote, config, { force = false } = {}) {
     return {
       handled: true,
       applied: true,
-      nextState: applyEnvelopeToLocalState(remote, config),
+      nextState: mergeStudyStates(state, remote.payload || {}, {
+        basePlan: base,
+      }),
       basePlan: remotePlan,
       localIdentity,
     };
@@ -636,10 +643,12 @@ async function applyPulledRetaFinalState(
       ? computeRetaFinalPlanDigest(currentPlan)
       : null;
     const backupAt = state.config?.localBackupAt ?? null;
+    const currentNonPlan = nonPlanStateDigest(state);
     if (
       currentPlan?.revision !== outcome.localIdentity.revision ||
       currentDigest !== outcome.localIdentity.digest ||
-      backupAt !== outcome.localIdentity.backupAt
+      backupAt !== outcome.localIdentity.backupAt ||
+      currentNonPlan !== outcome.localIdentity.nonPlanDigest
     ) {
       await registerRetaFinalConflict(
         getConfig(),
@@ -2129,11 +2138,13 @@ export async function mergeFromFirestore() {
       const remoteDigest =
         readRetaFinalSyncDescriptor(remote)?.digest ??
         (remotePlan ? computeRetaFinalPlanDigest(remotePlan) : null);
-      if (
+      const planDiffers =
         mergedPlan &&
         remoteDigest &&
-        computeRetaFinalPlanDigest(mergedPlan) !== remoteDigest
-      ) {
+        computeRetaFinalPlanDigest(mergedPlan) !== remoteDigest;
+      const academicDiffers =
+        nonPlanStateDigest(state) !== nonPlanStateDigest(remote.payload);
+      if (planDiffers || academicDiffers) {
         const queued = await queueFirestoreSnapshotFromState(state, {
           manual: true,
         });
