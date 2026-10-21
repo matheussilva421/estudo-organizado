@@ -107,9 +107,17 @@ function updateLocalTombstones(config, basePlan, plan, revision) {
     }
   }
   // Append-only lineage: a block that reappears in the plan keeps its tombstone.
-  config.removedBlocks = [...map.values()]
-    .sort((left, right) => right.revision - left.revision || left.id.localeCompare(right.id))
-    .slice(0, 200);
+  const sorted = [...map.values()].sort(
+    (left, right) => right.revision - left.revision || left.id.localeCompare(right.id)
+  );
+  if (sorted.length > 200) {
+    config.minRetainedRevision = Math.max(
+      Number.isSafeInteger(config.minRetainedRevision) ? config.minRetainedRevision : 0,
+      Number.isSafeInteger(config.baseRevision) ? config.baseRevision : 0,
+      Number.isSafeInteger(basePlan?.revision) ? basePlan.revision : 0
+    );
+  }
+  config.removedBlocks = sorted.slice(0, 200);
   return config.removedBlocks;
 }
 

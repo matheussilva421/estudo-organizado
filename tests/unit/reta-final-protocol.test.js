@@ -479,6 +479,49 @@ describe('reta-final-protocol', () => {
       });
     });
 
+    it('allows tombstone compaction only when the floor reaches the remote head', () => {
+      const remotePlan = plan({ revision: 5 });
+      const remote = envelope({
+        payload: { planejamento: remotePlan },
+        retaFinalSync: descriptor({
+          revision: 5,
+          baseRevision: 4,
+          removedBlockIds: ['a', 'b'],
+          minRetainedRevision: 3,
+          digest: computeRetaFinalPlanDigest(remotePlan),
+        }),
+      });
+      const localPlan = plan({ revision: 6 });
+      const compacted = envelope({
+        payload: { planejamento: localPlan },
+        retaFinalSync: descriptor({
+          revision: 6,
+          baseRevision: 5,
+          removedBlockIds: ['a'],
+          minRetainedRevision: 5,
+          digest: computeRetaFinalPlanDigest(localPlan),
+        }),
+      });
+      expect(validateRetaFinalEnvelopeWrite({ envelope: compacted, remoteEnvelope: remote })).toMatchObject({
+        allowed: true,
+        reason: 'advance',
+      });
+
+      const badFloor = envelope({
+        payload: { planejamento: localPlan },
+        retaFinalSync: descriptor({
+          revision: 6,
+          baseRevision: 5,
+          removedBlockIds: ['a'],
+          minRetainedRevision: 4,
+          digest: computeRetaFinalPlanDigest(localPlan),
+        }),
+      });
+      expect(
+        validateRetaFinalEnvelopeWrite({ envelope: badFloor, remoteEnvelope: remote })
+      ).toMatchObject({ allowed: false, reason: 'tombstone-downgrade' });
+    });
+
     it('rejects a different planId, lineage or generation', () => {
       const remote = envelope({ retaFinalSync: descriptor({ revision: 3, baseRevision: 2 }) });
       for (const change of [

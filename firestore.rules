@@ -193,6 +193,10 @@ service cloud.firestore {
                     request.resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
                     && request.resource.data.retaFinalSync.removedBlockIds.hasAll(resource.data.retaFinalSync.removedBlockIds)
                   )
+                  || (
+                    request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                    && request.resource.data.retaFinalSync.minRetainedRevision >= resource.data.retaFinalSync.revision
+                  )
                 )
               )
             )

@@ -566,6 +566,27 @@ describe('reta-final sync engine integration', () => {
     ]);
   });
 
+  it('compacts 201 tombstones to 200 and raises the floor to the base head', async () => {
+    const basePlan = makePlan({ revision: 100 });
+    const template = basePlan.retaFinal.blocos[0];
+    basePlan.retaFinal.blocos = Array.from({ length: 201 }, (_, index) => ({
+      ...template,
+      id: `b${index}`,
+      ordem: index,
+    }));
+    const localPlan = makePlan({ revision: 101 });
+    localPlan.retaFinal.blocos = [];
+    await boot({ plan: localPlan, basePlan });
+
+    expect(await engine.queueFirestoreSnapshotFromState(storeModule.state, { manual: true })).toBe(true);
+    const pending = await outbox.getPendingFirestoreSnapshot();
+
+    expect(pending.envelope.retaFinalSync.removedBlockIds).toHaveLength(200);
+    expect(pending.envelope.retaFinalSync.minRetainedRevision).toBe(100);
+    expect(storeModule.state.config.firestoreSync.removedBlocks).toHaveLength(200);
+    expect(storeModule.state.config.firestoreSync.minRetainedRevision).toBe(100);
+  });
+
   it('incorporates remote tombstones and retention floor on pull', async () => {
     const basePlan = makePlan({ revision: 1 });
     const localPlan = makePlan({ revision: 2, minutos: 40 });

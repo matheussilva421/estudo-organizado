@@ -416,7 +416,7 @@ async function main() {
       revision: 2,
       baseRevision: 1,
       removedBlockIds: ['b1', 'b2'],
-      minRetainedRevision: 2,
+      minRetainedRevision: 1,
     })
   );
   results.push(
@@ -427,7 +427,7 @@ async function main() {
           revision: 3,
           baseRevision: 2,
           removedBlockIds: ['b1'],
-          minRetainedRevision: 2,
+          minRetainedRevision: 1,
         })
       )
     )
@@ -440,6 +440,73 @@ async function main() {
           revision: 3,
           baseRevision: 2,
           removedBlockIds: ['b1', 'b2', 'b3'],
+          minRetainedRevision: 1,
+        })
+      )
+    )
+  );
+  const compactionIds = Array.from({ length: 200 }, (_, index) => `t${index}`);
+  await seed(
+    'uid-compaction-ok',
+    envelope({
+      revision: 100,
+      baseRevision: 99,
+      removedBlockIds: compactionIds,
+      minRetainedRevision: 99,
+    })
+  );
+  results.push(
+    await expectAllowed('tombstone compaction raises floor to remote head', () =>
+      setDoc(
+        doc(uidDb('uid-compaction-ok'), 'users', 'uid-compaction-ok', 'snapshots', 'main'),
+        envelope({
+          revision: 101,
+          baseRevision: 100,
+          removedBlockIds: compactionIds.slice(0, 199),
+          minRetainedRevision: 100,
+        })
+      )
+    )
+  );
+  await seed(
+    'uid-compaction-bad',
+    envelope({
+      revision: 100,
+      baseRevision: 99,
+      removedBlockIds: compactionIds,
+      minRetainedRevision: 99,
+    })
+  );
+  results.push(
+    await expectDenied('tombstone compaction with floor below remote head', () =>
+      setDoc(
+        doc(uidDb('uid-compaction-bad'), 'users', 'uid-compaction-bad', 'snapshots', 'main'),
+        envelope({
+          revision: 101,
+          baseRevision: 100,
+          removedBlockIds: compactionIds.slice(0, 199),
+          minRetainedRevision: 99,
+        })
+      )
+    )
+  );
+  await seed(
+    'uid-replay-order',
+    envelope({
+      revision: 3,
+      baseRevision: 2,
+      removedBlockIds: ['b1', 'b2'],
+      minRetainedRevision: 2,
+    })
+  );
+  results.push(
+    await expectDenied('replay with reordered removedBlockIds', () =>
+      setDoc(
+        doc(uidDb('uid-replay-order'), 'users', 'uid-replay-order', 'snapshots', 'main'),
+        envelope({
+          revision: 3,
+          baseRevision: 2,
+          removedBlockIds: ['b2', 'b1'],
           minRetainedRevision: 2,
         })
       )

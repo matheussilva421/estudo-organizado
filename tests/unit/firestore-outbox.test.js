@@ -33,13 +33,14 @@ describe('firestore-outbox expected identity', () => {
     vi.resetModules();
   });
 
-  it('keeps a newer outbox entry when the expected identity does not match', async () => {
+  it('keeps a write enqueued between the pending read and the expected-identity mark', async () => {
     const records = new Map([
       [
         'latest_snapshot',
         { id: 'latest_snapshot', queuedAt: '2026-10-20T10:00:00.000Z', envelope: { sentAt: 's1' } },
       ],
     ]);
+    let transaction;
     const store = {
       get(key) {
         const request = {};
@@ -57,8 +58,17 @@ describe('firestore-outbox expected identity', () => {
         });
         return request;
       },
+      put(entry) {
+        const request = {};
+        queueMicrotask(() => {
+          records.set(entry.id, entry);
+          request.onsuccess?.();
+          transaction.oncomplete?.();
+        });
+        return request;
+      },
     };
-    const transaction = { objectStore: () => store };
+    transaction = { objectStore: () => store, oncomplete: null, onerror: null };
     const db = {
       objectStoreNames: { contains: () => true },
       transaction: () => transaction,
@@ -72,18 +82,30 @@ describe('firestore-outbox expected identity', () => {
     }));
     const outbox = await import('../../src/js/sync/firestore-outbox.js?v=8.37');
 
+    // Real sequence: read pending A, enqueue B, then mark with A's identity.
+    const pendingA = await outbox.getPendingFirestoreSnapshot();
+    await outbox.enqueueFirestoreSnapshot({
+      version: 1,
+      deviceId: 'web-device1',
+      sentAt: 's2',
+      payloadUpdatedAt: '2026-10-21T00:00:00.000Z',
+      payload: { eventos: [] },
+    });
+    const pendingB = await outbox.getPendingFirestoreSnapshot();
+
+    expect(pendingB.queuedAt).not.toBe(pendingA.queuedAt);
     expect(
       await outbox.markFirestoreSnapshotSynced({
-        queuedAt: '2026-10-20T09:00:00.000Z',
-        sentAt: 'old',
+        queuedAt: pendingA.queuedAt,
+        sentAt: pendingA.envelope.sentAt,
       })
     ).toBe(false);
-    expect(records.get('latest_snapshot').queuedAt).toBe('2026-10-20T10:00:00.000Z');
+    expect(records.get('latest_snapshot').envelope.sentAt).toBe('s2');
 
     expect(
       await outbox.markFirestoreSnapshotSynced({
-        queuedAt: '2026-10-20T10:00:00.000Z',
-        sentAt: 's1',
+        queuedAt: pendingB.queuedAt,
+        sentAt: pendingB.envelope.sentAt,
       })
     ).toBe(true);
     expect(records.has('latest_snapshot')).toBe(false);

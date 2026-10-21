@@ -66,6 +66,20 @@ O envelope continua `version: 1` e `FIRESTORE_SYNC_VERSION` nao foi alterado.
    (get/compare/delete) com uma nova gravacao intercalada. Nao e IndexedDB
    nativo multiaba; isso permanece como limitacao NOT_RUN para E2E real.
 
+## Quarta re-revisao
+
+1. Compactacao segura no limite de 200: ao entrar o 201o tombstone, os mais
+   antigos saem e `minRetainedRevision` sobe para
+   `max(atual, config.baseRevision, base.revision)`. O avanco e aceito pela
+   excecao de compactacao somente quando o novo piso alcanca a revision remota
+   anterior; dispositivos com base abaixo do piso viram `stale-base`.
+2. `validateRetaFinalEnvelopeWrite` aplica a mesma excecao no cliente: reduzir
+   `removedBlockIds` so e permitido se o novo piso for >= a revision remota e
+   >= piso anterior.
+3. O teste de corrida foi ajustado para a sequencia real: ler pending A,
+   enfileirar B, marcar com a identidade de A; B sobrevive. A transacao e o
+   helper em memoria, nao IndexedDB nativo multiaba.
+
 ## Arquivos alterados
 
 - `src/js/sync/reta-final-protocol.js` (novo): capabilities, digest canonico,
@@ -102,7 +116,7 @@ GREEN focado final:
 ```text
 npx vitest run tests/unit/reta-final-protocol.test.js tests/unit/reta-final-sync-engine.test.js tests/unit/firestore-schema.test.js tests/unit/firestore-contracts.test.js tests/unit/sync-coordinator.test.js tests/unit/firestore-outbox.test.js tests/unit/config-view.test.js --reporter=dot
 Test Files  7 passed (7)
-Tests       183 passed (183)
+Tests       185 passed (185)
 ```
 
 Regressões de sync:
@@ -118,8 +132,8 @@ Suíte completa:
 ```text
 npm test -- --reporter=dot
 Test Files  164 passed (164)
-Tests       2742 passed (2742)
-Duration    68.48s
+Tests       2744 passed (2744)
+Duration    68.07s
 exit        0
 ```
 
@@ -151,6 +165,9 @@ PASS v2 generation change: permission-denied
 PASS advance reducing minRetainedRevision: permission-denied
 PASS advance reducing removedBlockIds: permission-denied
 PASS advance adding a tombstone: allowed
+PASS tombstone compaction raises floor to remote head: allowed
+PASS tombstone compaction with floor below remote head: permission-denied
+PASS replay with reordered removedBlockIds: permission-denied
 PASS active payload with different planId: permission-denied
 PASS retired payload with different planId: permission-denied
 PASS v2 adoption with matching payloadUpdatedAt: allowed
@@ -167,7 +184,7 @@ PASS guard denied to another uid: permission-denied
 PASS guard delete denied: permission-denied
 PASS intruder cannot overwrite snapshot: permission-denied
 RULES_MODE=new TARGET=127.0.0.1:8090
-RESULT PASS (31/31)
+RESULT PASS (34/34)
 ```
 
 Regras antigas (`98b639e:firestore.rules`, arquivo temporario removido):

@@ -323,6 +323,9 @@ describe('Firestore integration contracts', () => {
     expect(rules).toContain(
       'request.resource.data.retaFinalSync.removedBlockIds.hasAll(resource.data.retaFinalSync.removedBlockIds)'
     );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.minRetainedRevision >= resource.data.retaFinalSync.revision'
+    );
     expect(rules).toContain('request.resource.data.payload == resource.data.payload');
     expect(rules).toContain(
       'request.resource.data.payloadUpdatedAt == resource.data.payloadUpdatedAt'

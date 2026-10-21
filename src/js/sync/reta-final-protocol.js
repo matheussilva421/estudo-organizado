@@ -374,7 +374,11 @@ export function validateRetaFinalEnvelopeWrite({ envelope, remoteEnvelope } = {}
   }
   const oldRemoved = remote.removedBlockIds ?? [];
   const newRemoved = new Set(incoming.removedBlockIds ?? []);
-  if (oldRemoved.some((id) => !newRemoved.has(id))) {
+  const lostTombstone = oldRemoved.some((id) => !newRemoved.has(id));
+  if (
+    lostTombstone &&
+    !(newFloor >= remote.revision && newFloor >= oldFloor)
+  ) {
     return denied('tombstone-downgrade', incoming, remote, envelope, remoteEnvelope);
   }
   if (incoming.revision !== remote.revision + 1) {

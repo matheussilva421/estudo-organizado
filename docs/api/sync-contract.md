@@ -103,7 +103,9 @@ Remote write contract for `users/{uid}/snapshots/main`:
 - an advance requires `revision == remote.revision + 1` and
   `baseRevision == remote.revision`
 - an advance is tombstone append-only: `minRetainedRevision` cannot decrease and
-  the new `removedBlockIds` must contain every old id
+  the new `removedBlockIds` must contain every old id. The one exception is
+  compaction: dropping old ids is allowed only when the new floor is at least
+  the previous remote revision (`resource.data.retaFinalSync.revision`)
 - rollback, revision jumps, digest changes at the same revision, and lineage
   changes are denied
 - adoption of a legacy document requires `baseRevision == 0`,
@@ -127,6 +129,10 @@ tombstones into the local list and store the remote floor. A push whose
 `baseRevision` is below that floor becomes `stale-base` and is not sent.
 Tombstones are append-only: a restored block can be in the plan while its
 tombstone remains in the lineage. Only the 200 newest tombstones are kept.
+When a 201st tombstone would exceed the cap, the oldest entries are dropped and
+`minRetainedRevision` rises to `max(current, config.baseRevision, base.revision)`,
+so the compaction is accepted only at the previous remote head. Devices whose
+base is below that floor become `stale-base` and must pull/reconcile first.
 
 Retirement uses the same advance path with `state: 'retired'`. A retired
 lineage may advance only as retired; a new plan with a different `planId`
