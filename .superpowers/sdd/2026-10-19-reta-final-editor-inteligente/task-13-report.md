@@ -1,0 +1,52 @@
+# Task 13 — Resolução de conflitos e estados de sincronização
+
+Base: `1bff8ed` (`codex/reta-final-editor-fase-a`). Sem push, merge ou deploy.
+
+## Contexto de execução
+
+O implementador DeepSeek foi interrompido pela sessão antes de fechar o relatório/commit. O worktree foi preservado integralmente; o coordenador revisou o código, corrigiu três integrações e concluiu o commit. Nenhum trabalho do implementador foi revertido.
+
+## Resultado
+
+- `src/js/views/reta-final-conflicts.js`: normalização determinística das duas fontes de conflito (Firestore e merge de três versões), comparação base/local/remoto por campo, HTML escapado, escolhas local/remoto/manual, cancelamento primeiro no fluxo e alvos de 44px.
+- `src/js/ui/actions/reta-final-conflicts.js`: ações delegadas, confirmação explícita, Escape cancela, JSON manual validado e resolução por transação única.
+- `src/js/store/reta-final-commit.js`: `resolveRetaFinalConflictAtomically` grava estado, checkpoint, operação auditável e sync intent na mesma transação IndexedDB; CAS contra a revisão local; revisão resultante = revisão remota + 1; preserva eventos, editais, revisões, hábitos, arquivo e `rfBlocoId`.
+- `src/js/views/config/sync-center.js`: painel de revisão renderizado no card Firestore; conflitos Reta Final não usam mais o painel genérico.
+- `src/js/sync/sync-status-ui.js`: `deriveSyncDisplayState` com ACK real; `synced` só com `lastPushAt`, sem pendência/conflito; `blocked-guard`, offline, pendente e erro mapeados.
+- `src/js/ui/actions/index.js`: registro único das ações.
+- `src/sw.js`: precache dos módulos novos e bump de cache.
+- `docs/api/sync-contract.md`: contrato de conflitos e estados.
+
+## RED
+
+O módulo de view foi temporariamente removido para capturar a falha real:
+
+```text
+npx vitest run tests/unit/reta-final-conflicts-ui.test.js --reporter=dot
+Test Files  1 failed (1)
+Tests       no tests
+Falha: Failed to resolve import "../../src/js/views/reta-final-conflicts.js"
+```
+
+O módulo foi restaurado imediatamente (`RESTORED=True`). A falha é a ausência do contrato, não um mock.
+
+## GREEN
+
+- Novo UI/transação: 23/23.
+- Estado de sincronização: 7/7.
+- Foco Task 13 (UI, status, sync-center, action-contracts): 56/56.
+- Suíte completa: 166 arquivos / **2.774/2.774** testes, exit 0 (77,78s).
+
+## Correções do coordenador
+
+1. O painel não estava conectado ao Sync Center; a integração e o teste de renderização foram adicionados.
+2. O store gravava `baseDigest` com `retaFinalDigest` (fnv1a64) enquanto o engine compara com `computeRetaFinalPlanDigest`; isso bloquearia o push seguinte. Corrigido e coberto por asserção.
+3. A asserção de contrato de aspas em `action-contracts.test.js` foi ajustada para aceitar o formatador do projeto; o teste de calendário teve um timeout transitório e passou na reexecução.
+
+## Limitações
+
+- E2E nativo com IndexedDB real, múltiplas abas e mobile continua **NOT_RUN**.
+- O store importa a normalização da view; é uma inversão de camadas residual, sem ciclo funcional (a view só usa helpers puros). Refatoração para `logic/` fica registrada.
+- Alvos de 44px usam estilo inline; não há CSS novo nesta tarefa.
+- As regras Firestore continuam não publicadas; a UI mostra pendência e nunca promete sincronização remota sem ACK.
+

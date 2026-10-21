@@ -18,3 +18,6 @@ import './navegacao.js';
 import './modais.js';
 import './planejamento.js';
 import './reta-final.js';
+import { registerRetaFinalConflictActions } from './reta-final-conflicts.js';
+
+registerRetaFinalConflictActions();

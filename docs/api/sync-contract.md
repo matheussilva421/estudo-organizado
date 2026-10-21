@@ -182,6 +182,42 @@ is identity-checked (`queuedAt` + envelope `sentAt`), so a write enqueued during
 the pull survives. A no-op pull/merge emits `synced` when local and remote
 digests match, otherwise `idle`; it never stays in `syncing`.
 
+### Human conflict resolution
+
+The Firestore block in the Sync Center renders both conflict sources:
+
+- `config.firestoreSync.conflict` with `type: 'reta-final-conflict'`; and
+- `config.syncMergeConflicts` with `type: 'reta-final-three-way'` and `items[]`.
+
+Each review item gets a deterministic id. Duplicate `planId`/`blockId`/
+`fieldPath` keys receive a numeric suffix instead of silently replacing the
+first occurrence. The UI compares base, local and remote values and asks for an
+explicit choice. Cancel only clears the form; it never writes state.
+
+Resolution is one local IndexedDB transaction over `app_state` and
+`reta_final_journal`. It writes, in the same transaction:
+
+- the official state with only the resolved conflict removed;
+- a manual checkpoint of the previous local plan;
+- a `conflict_resolution` journal record with `operationId`, `baseRevision`,
+  `before`, `after`, `deviceId` and `timestamp`;
+- a pending `sync_intent`.
+
+Success is reported only after `oncomplete`. An abort, quota failure or CAS
+failure leaves the state, the checkpoint set and the conflict untouched.
+The CAS uses the current local plan revision. When a compatible remote plan
+exists, the resulting plan revision is `remotePlan.revision + 1` and
+`basePlan`/`baseRevision` are rebased on that remote head. Without a compatible
+remote plan, only “keep local” is allowed, with a monotonic local revision and
+no invented remote base. A retired remote plan may be adopted explicitly;
+keeping an active local plan over a retired remote is refused as resurrection.
+
+`lastPushAt` is the only push ACK. The UI shows `synced` only when `lastPushAt`
+exists, `hasPendingWrites` is false and no conflict is pending. Offline or
+pending local commits remain `pending`; a failed guard probe remains
+`blocked-guard`. The Reta Final conflict panel disables the generic pull/push
+actions for the Firestore block.
+
 ## Entity Sync
 
 The app now supports entity metadata, shadow entity writes, shadow verification,

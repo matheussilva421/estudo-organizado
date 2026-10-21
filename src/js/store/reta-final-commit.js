@@ -12,12 +12,25 @@ import {
   pickRecoverableLocalState,
   stableStringify,
 } from "./normalize-state.js";
-import { validateRetaFinalDraft } from "../logic/reta-final-drafts.js";
+import {
+  retaFinalDigest,
+  validateRetaFinalDraft,
+} from "../logic/reta-final-drafts.js";
 import { projectRetaFinalSchedule } from "../logic/reta-final-schedule.js";
 import { rebuildRetaFinalAutoEvents } from "../logic/reta-final-events.js";
-import { buildRetaFinalEventTitle } from "../logic/reta-final-core.js";
+import {
+  buildRetaFinalEventTitle,
+  reconcileRetaFinalWithEvents,
+} from "../logic/reta-final-core.js";
 import { createRetaFinalCheckpoint } from "../logic/reta-final-history.js";
+import { validateRetaFinalV2 } from "../logic/reta-final-schema.js";
+import { mergeRetaFinalPlans } from "../logic/reta-final-merge.js";
+import { computeRetaFinalPlanDigest } from "../sync/reta-final-protocol.js";
 import { pruneRetaFinalCheckpoints } from "./reta-final-history-store.js";
+import {
+  collectRetaFinalConflicts,
+  removeRetaFinalConflict,
+} from "../views/reta-final-conflicts.js";
 
 const clone = (value) => structuredClone(value);
 
@@ -591,4 +604,540 @@ export function commitRetaFinalDraft({
 
 function requestResult(request) {
   return request?.result;
+}
+
+// ── Conflict resolution ──────────────────────────────────────────────
+
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function mergePatchObject(target, patch) {
+  const result = isRecord(target) ? clone(target) : {};
+  for (const [key, value] of Object.entries(patch || {})) {
+    if (value === null) {
+      delete result[key];
+      continue;
+    }
+    if (isRecord(value) && isRecord(result[key])) {
+      result[key] = mergePatchObject(result[key], value);
+      continue;
+    }
+    result[key] = clone(value);
+  }
+  return result;
+}
+
+function setAtPath(target, path, value) {
+  const parts = String(path || "")
+    .split(".")
+    .filter(Boolean);
+  if (parts.length === 0) {
+    throw codedError("RETA_FINAL_CONFLICT", "Caminho de conflito vazio.");
+  }
+  let cursor = target;
+  for (let index = 0; index < parts.length - 1; index += 1) {
+    const key = parts[index];
+    if (cursor == null || typeof cursor !== "object") {
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        `Caminho de conflito inválido: ${path}.`,
+      );
+    }
+    if (Array.isArray(cursor) && !/^\d+$/.test(key)) {
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        `Caminho de conflito não suportado: ${path}.`,
+      );
+    }
+    cursor = cursor[key];
+  }
+  const last = parts[parts.length - 1];
+  if (cursor == null || typeof cursor !== "object") {
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      `Caminho de conflito inválido: ${path}.`,
+    );
+  }
+  if (value === undefined || value === null) delete cursor[last];
+  else cursor[last] = clone(value);
+}
+
+function setConflictField(plan, conflict, value) {
+  const path = String(conflict.fieldPath || "");
+  if (!path || path.startsWith("$") || path === "schema") {
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      "Este conflito de metadados não pode ser resolvido por campo.",
+      { fieldPath: path },
+    );
+  }
+  const prefix = conflict.blockId
+    ? `retaFinal.blocos.${conflict.blockId}.`
+    : null;
+  if (prefix && path.startsWith(prefix)) {
+    const block = (plan.retaFinal?.blocos || []).find(
+      (item) => item?.id === conflict.blockId,
+    );
+    if (!block) {
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        "O bloco do conflito não existe mais no plano.",
+        { blockId: conflict.blockId },
+      );
+    }
+    const field = path.slice(prefix.length);
+    if (value === undefined || value === null) delete block[field];
+    else block[field] = clone(value);
+    return plan;
+  }
+  setAtPath(plan, path, value);
+  return plan;
+}
+
+function filterRemovedBlocks(plan, state) {
+  const removed = new Set(
+    (state.config?.firestoreSync?.removedBlocks || [])
+      .map((item) => item?.id)
+      .filter(Boolean),
+  );
+  if (removed.size === 0 || !Array.isArray(plan?.retaFinal?.blocos))
+    return plan;
+  plan.retaFinal.blocos = plan.retaFinal.blocos.filter(
+    (block) => !removed.has(block?.id),
+  );
+  return plan;
+}
+
+function validateResolvedPlan(candidate, state) {
+  filterRemovedBlocks(candidate, state);
+  const validation = validateRetaFinalV2(candidate);
+  if (!validation.valid) {
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      validation.errors[0] || "Plano resolvido inválido.",
+      { validation },
+    );
+  }
+  if (candidate.ativo !== true) return candidate;
+  const events = Array.isArray(state.eventos) ? state.eventos : [];
+  const catalog =
+    Array.isArray(state.editais) && state.editais.length ? state.editais : null;
+  const merged = mergeRetaFinalPlans({
+    basePlan: candidate,
+    localPlan: candidate,
+    remotePlan: candidate,
+    events,
+    catalog,
+  });
+  if (!merged.valid) {
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      merged.conflicts?.[0]?.reason ||
+        "O plano resolvido não passou na validação de referências.",
+      { conflicts: merged.conflicts },
+    );
+  }
+  reconcileRetaFinalWithEvents(candidate, events);
+  return candidate;
+}
+
+function buildResolvedPlan({ conflict, choice, patch, state, now }) {
+  const currentPlan = state.planejamento;
+  const remotePlan = isRecord(conflict.remotePlan) ? conflict.remotePlan : null;
+  const remoteValidation = remotePlan
+    ? validateRetaFinalV2(remotePlan)
+    : { valid: false };
+  const remoteBase =
+    remotePlan &&
+    remoteValidation.valid &&
+    remotePlan.planId === currentPlan.planId
+      ? remotePlan
+      : null;
+  let candidate;
+
+  if (conflict.source === "merge") {
+    if (!conflict.resolvable) {
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        "Este conflito de metadados exige revisar a base/linhagem do plano.",
+      );
+    }
+    candidate = clone(currentPlan);
+    if (choice === "manual") {
+      if (!isRecord(patch) || Object.keys(patch).length === 0) {
+        throw codedError("RETA_FINAL_CONFLICT", "JSON manual vazio.");
+      }
+      candidate = mergePatchObject(candidate, patch);
+    } else {
+      const value = choice === "remote" ? conflict.remote : conflict.local;
+      setConflictField(candidate, conflict, value);
+    }
+  } else if (choice === "remote") {
+    if (!remoteBase) {
+      throw codedError(
+        "RETA_FINAL_CONFLICT",
+        "Não há plano remoto verificável para adotar.",
+        { reason: "remote-unavailable" },
+      );
+    }
+    candidate = clone(remoteBase);
+  } else if (choice === "local") {
+    candidate = clone(currentPlan);
+  } else {
+    const proposed =
+      isRecord(conflict.proposedPlan) &&
+      conflict.proposedPlan.planId === currentPlan.planId &&
+      validateRetaFinalV2(conflict.proposedPlan).valid
+        ? conflict.proposedPlan
+        : currentPlan;
+    if (!isRecord(patch) || Object.keys(patch).length === 0) {
+      throw codedError("RETA_FINAL_CONFLICT", "JSON manual vazio.");
+    }
+    candidate = mergePatchObject(clone(proposed), patch);
+  }
+
+  if (candidate.planId !== currentPlan.planId) {
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      "A resolução não pode trocar a identidade do plano.",
+    );
+  }
+  if (
+    remoteBase &&
+    remoteBase.ativo !== true &&
+    currentPlan.ativo === true &&
+    candidate.ativo === true
+  ) {
+    throw codedError(
+      "RETA_FINAL_CONFLICT",
+      "O plano remoto foi aposentado; manter o plano ativo exigiria uma decisão de aposentadoria.",
+      { reason: "retired-resurrection" },
+    );
+  }
+
+  const nextRevision = remoteBase
+    ? remoteBase.revision + 1
+    : Math.max(currentPlan.revision, candidate.revision || 0) + 1;
+  candidate.revision = nextRevision;
+  candidate.updatedAt = now;
+  const validated = validateResolvedPlan(candidate, state);
+  validated.planId = currentPlan.planId;
+  validated.revision = nextRevision;
+  validated.updatedAt = now;
+  return { plan: validated, remoteBase };
+}
+
+function planChangeList(before, after) {
+  const changes = [];
+  if (before?.retaFinal?.dataFinal !== after?.retaFinal?.dataFinal) {
+    changes.push({
+      blockId: null,
+      fieldPath: "retaFinal.dataFinal",
+      before: before?.retaFinal?.dataFinal ?? null,
+      after: after?.retaFinal?.dataFinal ?? null,
+    });
+  }
+  const beforeBlocks = new Map(
+    (before?.retaFinal?.blocos || []).map((block) => [block?.id, block]),
+  );
+  const afterBlocks = new Map(
+    (after?.retaFinal?.blocos || []).map((block) => [block?.id, block]),
+  );
+  for (const id of [
+    ...new Set([...beforeBlocks.keys(), ...afterBlocks.keys()]),
+  ].sort()) {
+    const previous = beforeBlocks.get(id) || null;
+    const next = afterBlocks.get(id) || null;
+    if (stableStringify(previous) === stableStringify(next)) continue;
+    changes.push({
+      blockId: id,
+      fieldPath: "$block",
+      before: clone(previous),
+      after: clone(next),
+    });
+  }
+  return changes;
+}
+
+/**
+ * Resolves one conflict in a single local transaction: official state,
+ * checkpoint and audit operation are committed together or not at all.
+ */
+export function resolveRetaFinalConflictAtomically({
+  db,
+  conflictId,
+  choice,
+  patch,
+  expectedPlanId,
+  expectedRevision,
+  now,
+  deviceId,
+  operationId: requestedOperationId,
+  checkpointId: requestedCheckpointId,
+  onCommitted,
+} = {}) {
+  if (!db || typeof db.transaction !== "function") {
+    return Promise.reject(new TypeError("Instância IndexedDB indisponível."));
+  }
+  if (typeof conflictId !== "string" || !conflictId.trim()) {
+    return Promise.reject(new TypeError("conflictId inválido."));
+  }
+  if (!["local", "remote", "manual"].includes(choice)) {
+    return Promise.reject(new TypeError("Escolha de conflito inválida."));
+  }
+  const timestamp =
+    typeof now === "string" && now ? now : new Date().toISOString();
+  const device =
+    typeof deviceId === "string" && deviceId.trim() ? deviceId : "local-device";
+
+  return new Promise((resolve, reject) => {
+    let transaction;
+    let plannedError = null;
+    let nextState = null;
+    let result = null;
+    let settled = false;
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error || new Error("Transação de resolução de conflito falhou."));
+    };
+    try {
+      transaction = db.transaction(
+        [STORE_NAME, RETA_FINAL_JOURNAL_STORE],
+        "readwrite",
+      );
+      transaction.oncomplete = () => {
+        if (settled) return;
+        if (plannedError) {
+          fail(plannedError);
+          return;
+        }
+        settled = true;
+        try {
+          onCommitted?.(clone(nextState), clone(result));
+        } catch (error) {
+          console.error(
+            "Reta Final: resolução durável; falha ao publicar estado em memória.",
+            error,
+          );
+        }
+        resolve(clone(result));
+      };
+      transaction.onerror = (event) => {
+        if (!plannedError)
+          plannedError = event?.target?.error || transaction.error;
+      };
+      transaction.onabort = (event) => {
+        fail(plannedError || event?.target?.error || transaction.error);
+      };
+
+      const appStore = transaction.objectStore(STORE_NAME);
+      const journalStore = transaction.objectStore(RETA_FINAL_JOURNAL_STORE);
+      const reads = {
+        current: appStore.get(LOCAL_STATE_CURRENT_KEY),
+        previous: appStore.get(LOCAL_STATE_PREVIOUS_KEY),
+        legacy: appStore.get(LOCAL_STATE_LEGACY_KEY),
+        journal: journalStore.getAll(),
+      };
+      const completedReads = new Set();
+      const abortForError = (error) => {
+        plannedError = error;
+        try {
+          transaction.abort();
+        } catch {
+          fail(plannedError);
+        }
+      };
+      for (const [key, request] of Object.entries(reads)) {
+        request.onerror = () => abortForError(requestError(request));
+        request.onsuccess = () => {
+          completedReads.add(key);
+          if (
+            completedReads.size !== Object.keys(reads).length ||
+            plannedError
+          ) {
+            return;
+          }
+          try {
+            const state = recoverStateFromReads(reads);
+            const currentPlan = state.planejamento;
+            if (!isRecord(currentPlan)) {
+              throw codedError(
+                "RETA_FINAL_CONFLICT",
+                "A Reta Final local não está disponível.",
+              );
+            }
+            if (
+              typeof expectedPlanId === "string" &&
+              currentPlan.planId !== expectedPlanId
+            ) {
+              throw codedError(
+                "RETA_FINAL_STALE",
+                "A identidade do plano mudou desde o conflito.",
+              );
+            }
+            const revision = Number.isSafeInteger(expectedRevision)
+              ? expectedRevision
+              : currentPlan.revision;
+            if (currentPlan.revision !== revision) {
+              throw codedError(
+                "RETA_FINAL_STALE",
+                "A revisão do plano mudou desde o conflito.",
+              );
+            }
+            const conflict = collectRetaFinalConflicts(state).find(
+              (item) => item.conflictId === conflictId,
+            );
+            if (!conflict) {
+              throw codedError(
+                "RETA_FINAL_CONFLICT",
+                "O conflito não está mais pendente.",
+              );
+            }
+            if (
+              isRecord(conflict.localPlan) &&
+              conflict.localPlan.planId === currentPlan.planId &&
+              conflict.localPlan.revision === currentPlan.revision &&
+              stableStringify(conflict.localPlan) !==
+                stableStringify(currentPlan)
+            ) {
+              throw codedError(
+                "RETA_FINAL_STALE",
+                "O conteúdo local mudou desde a detecção do conflito.",
+              );
+            }
+
+            const built = buildResolvedPlan({
+              conflict,
+              choice,
+              patch,
+              state,
+              now: timestamp,
+            });
+            nextState = clone(state);
+            nextState.planejamento = built.plan;
+            if (!isRecord(nextState.config)) nextState.config = {};
+            if (!isRecord(nextState.config.firestoreSync)) {
+              nextState.config.firestoreSync = {};
+            }
+            const syncConfig = nextState.config.firestoreSync;
+            syncConfig.hasPendingWrites = true;
+            syncConfig.lastError = null;
+            if (built.remoteBase) {
+              syncConfig.basePlan = clone(built.remoteBase);
+              syncConfig.baseRevision = built.remoteBase.revision;
+              // The sync engine compares this digest with its canonical plan
+              // digest; retaFinalDigest() uses a different algorithm.
+              syncConfig.baseDigest = computeRetaFinalPlanDigest(
+                built.remoteBase,
+              );
+              syncConfig.baseRemoteUpdatedAt =
+                conflict.remoteUpdatedAt ||
+                syncConfig.remoteUpdatedAt ||
+                timestamp;
+            }
+            nextState.config.localBackupAt = timestamp;
+            removeRetaFinalConflict(nextState, conflictId);
+
+            const checkpointId =
+              typeof requestedCheckpointId === "string" &&
+              requestedCheckpointId.trim()
+                ? requestedCheckpointId
+                : `rf-checkpoint:conflict:${retaFinalDigest({
+                    conflictId,
+                    revision: currentPlan.revision,
+                    at: timestamp,
+                  }).replace("fnv1a64:", "")}`;
+            const checkpoint = createRetaFinalCheckpoint(currentPlan, {
+              checkpointId,
+              createdAt: timestamp,
+              kind: "manual",
+              label: "Antes de resolver conflito da Reta Final",
+              draftId: conflictId,
+            });
+            checkpoint.pending = true;
+            checkpoint.conflicted = true;
+
+            const operationId =
+              typeof requestedOperationId === "string" &&
+              requestedOperationId.trim()
+                ? requestedOperationId
+                : `rf-conflict-op:${retaFinalDigest({
+                    conflictId,
+                    choice,
+                    at: timestamp,
+                  }).replace("fnv1a64:", "")}`;
+            const baseRevision = built.remoteBase
+              ? built.remoteBase.revision
+              : currentPlan.revision;
+            const operation = {
+              id: operationId,
+              type: "conflict_resolution",
+              operationId,
+              planId: currentPlan.planId,
+              choice,
+              conflictId,
+              conflictSource: conflict.source,
+              baseRevision,
+              before: clone(currentPlan),
+              after: clone(built.plan),
+              diff: planChangeList(currentPlan, built.plan),
+              deviceId: device,
+              createdAt: timestamp,
+              timestamp,
+              reason:
+                conflict.reason ||
+                `Resolução ${choice} do conflito ${conflictId}.`,
+            };
+            const syncIntent = {
+              id: `rf-sync-intent:${operationId}`,
+              type: "sync_intent",
+              planId: currentPlan.planId,
+              revision: built.plan.revision,
+              status: "pending",
+              operationIds: [operationId],
+              createdAt: timestamp,
+              localCommitted: true,
+              syncPending: true,
+              conflictResolution: true,
+            };
+
+            const oldCurrent = requestResult(reads.current);
+            const previousEnvelope = isLocalStateEnvelopeValid(oldCurrent)
+              ? { ...oldCurrent, slot: "previous" }
+              : createLocalStateEnvelope(state, { slot: "previous" });
+            const currentEnvelope = createLocalStateEnvelope(nextState, {
+              slot: "current",
+              savedAt: timestamp,
+            });
+            appStore.put(previousEnvelope, LOCAL_STATE_PREVIOUS_KEY);
+            appStore.put(currentEnvelope, LOCAL_STATE_CURRENT_KEY);
+            appStore.put(nextState, LOCAL_STATE_LEGACY_KEY);
+            journalStore.put(checkpoint);
+            journalStore.put(operation);
+            journalStore.put(syncIntent);
+
+            result = {
+              applied: true,
+              plan: clone(built.plan),
+              state: clone(nextState),
+              revision: built.plan.revision,
+              operationId,
+              checkpointId,
+              conflictId,
+              choice,
+              localCommitted: true,
+              syncPending: true,
+              syncStatus: "pending",
+            };
+          } catch (error) {
+            abortForError(error);
+          }
+        };
+      }
+    } catch (error) {
+      fail(error);
+    }
+  });
 }
