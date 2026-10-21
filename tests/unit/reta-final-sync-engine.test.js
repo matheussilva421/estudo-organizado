@@ -426,14 +426,167 @@ describe('reta-final sync engine integration', () => {
     );
   });
 
+  it('refuses a forced pull with pending outbox unless discardPending is explicit', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 50 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+    const pendingEnvelope = {
+      version: 1,
+      deviceId: 'web-device1',
+      sentAt: 'pending-1',
+      payloadUpdatedAt: '2026-10-20T12:10:00.000Z',
+      payload: { planejamento: localPlan },
+    };
+    await outbox.enqueueFirestoreSnapshot(pendingEnvelope);
+
+    const refused = await engine.pullFromFirestore(true);
+
+    expect(refused).toBe(false);
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+    expect(outbox.markFirestoreSnapshotSynced).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: 'pending-outbox' })
+    );
+
+    const accepted = await engine.pullFromFirestore(true, { discardPending: true });
+
+    expect(accepted).toBe(true);
+    expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();
+    expect(outbox.markFirestoreSnapshotSynced).toHaveBeenCalled();
+  });
+
+  it('emits a terminal status for a manual pull no-op', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 40 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+
+    const result = await engine.pullFromFirestore(false);
+
+    expect(result).toBe(false);
+    expect(statuses().at(-1)).toBe('synced');
+    expect(outbox.markFirestoreSnapshotSynced).not.toHaveBeenCalled();
+    expect(storeModule.state.config.firestoreSync.basePlan).toMatchObject({ revision: 1 });
+  });
+
+  it('emits a terminal status for a manual merge no-op', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 40 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+
+    const result = await engine.mergeFromFirestore();
+
+    expect(result).toBe(false);
+    expect(statuses().at(-1)).toBe('synced');
+    expect(outbox.markFirestoreSnapshotSynced).not.toHaveBeenCalled();
+  });
+
+  it('derives local block tombstone ids and retention floor in the descriptor', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2 });
+    localPlan.retaFinal.blocos = [];
+    await boot({ plan: localPlan, basePlan });
+
+    expect(await engine.queueFirestoreSnapshotFromState(storeModule.state, { manual: true })).toBe(true);
+    const pending = await outbox.getPendingFirestoreSnapshot();
+
+    expect(pending.envelope.retaFinalSync.removedBlockIds).toEqual(['b1']);
+    expect(pending.envelope.retaFinalSync.minRetainedRevision).toBe(1);
+    expect(storeModule.state.config.firestoreSync.removedBlocks).toEqual([
+      { id: 'b1', revision: 2 },
+    ]);
+  });
+
+  it('incorporates remote tombstones and retention floor on pull', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 50 });
+    remotePlan.retaFinal.removedBlockIds = ['b9'];
+    const remote = envelopeFor(remotePlan, {
+      revision: 2,
+      baseRevision: 1,
+      minRetainedRevision: 4,
+    });
+    await boot({ plan: localPlan, basePlan, remote });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    expect(storeModule.state.config.firestoreSync.removedBlocks).toContainEqual({
+      id: 'b9',
+      revision: 2,
+    });
+    expect(storeModule.state.config.firestoreSync.minRetainedRevision).toBe(4);
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: 'stale-base' })
+    );
+  });
+
+  it('blocks a push when the base revision is below the retention floor', async () => {
+    await boot({
+      plan: makePlan({ revision: 2 }),
+      basePlan: makePlan({ revision: 1 }),
+    });
+    storeModule.state.config.firestoreSync.baseRevision = 1;
+    storeModule.state.config.firestoreSync.minRetainedRevision = 5;
+
+    await engine.queueFirestoreSnapshotFromState(storeModule.state, { manual: true });
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(false);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: 'stale-base' })
+    );
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+  });
+
+  it('fails closed when the descriptor and payload use different planIds', async () => {
+    const localPlan = makePlan({ revision: 1, planId: 'plan-2' });
+    await boot({ plan: localPlan, basePlan: null });
+    const descriptor = buildRetaFinalSyncDescriptor({
+      plan: makePlan({ revision: 1, planId: 'plan-1' }),
+      baseRevision: 0,
+      baseRemoteUpdatedAt: null,
+      deviceId: 'web-device1',
+      capabilities: CAPABILITIES,
+    });
+    await outbox.enqueueFirestoreSnapshot({
+      version: 1,
+      deviceId: 'web-device1',
+      sentAt: 'lineage-payload',
+      payloadUpdatedAt: '2026-10-20T12:00:00.000Z',
+      payload: { planejamento: localPlan },
+      retaFinalSync: descriptor,
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(false);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: 'lineage-payload' })
+    );
+  });
+
   it('filters remotely removed block ids from a merge proposal', async () => {
     const basePlan = makePlan({ revision: 1 });
     const localPlan = makePlan({ revision: 2, minutos: 40 });
+    localPlan.retaFinal.blocos.push({
+      ...localPlan.retaFinal.blocos[0],
+      id: 'b2',
+    });
     const remotePlan = makePlan({ revision: 2, minutos: 50 });
     remotePlan.retaFinal.blocos = [];
     remotePlan.retaFinal.removedBlockIds = ['b1'];
     const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
     await boot({ plan: localPlan, basePlan, remote });
+    storeModule.state.config.firestoreSync.removedBlocks = [{ id: 'b2', revision: 2 }];
 
     const result = await engine.pollFirestoreRemote();
 

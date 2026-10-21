@@ -31,6 +31,23 @@ O envelope continua `version: 1` e `FIRESTORE_SYNC_VERSION` nao foi alterado.
 6. Precache inclui o protocolo e os modulos de merge/comandos/catalogo/eventos/
    historico/prioridade/redistribuicao/commit/stores/sync e entity-migration.
 
+## Segunda re-revisao
+
+1. Regras exigem que o plano do payload pertenca ao descriptor: `active` exige
+   `planejamento.planId == descriptor.planId`; `retired` aceita ausencia/null ou
+   plano inativo com o mesmo `planId`. O engine recusa `lineage-payload` antes
+   de enfileirar/enviar.
+2. Force pull e keep-remote exigem `discardPending: true`; sem a flag devolvem
+   `pending-outbox` e preservam a fila. As acoes confirmadas de UI passam a flag.
+   `markFirestoreSnapshotSynced` e identidade-checked por `queuedAt`/`sentAt`, e
+   uma gravacao enfileirada durante o pull sobrevive.
+3. A fila deriva tombstones locais `{id, revision}` em
+   `config.firestoreSync.removedBlocks` (max 200), envia `removedBlockIds` e
+   `minRetainedRevision`, incorpora tombstones remotos no pull e bloqueia push
+   abaixo do piso com `stale-base`.
+4. No-op manual em pull/merge/syncNow emite `synced` quando os digests locais e
+   remotos coincidem, ou `idle` caso contrario; nao fica preso em `syncing`.
+
 ## Arquivos alterados
 
 - `src/js/sync/reta-final-protocol.js` (novo): capabilities, digest canonico,
@@ -49,8 +66,13 @@ O envelope continua `version: 1` e `FIRESTORE_SYNC_VERSION` nao foi alterado.
 - `tests/unit/firestore-schema.test.js`.
 - `tests/unit/firestore-contracts.test.js`.
 - `tests/unit/sync-coordinator.test.js`.
+- `tests/unit/firestore-outbox.test.js`.
+- `tests/unit/config-view.test.js`.
 - `scripts/verify-reta-final-rules.mjs` (novo).
 - `src/sw.js`: precache e bump de cache do hook.
+- `src/js/ui/actions/config.js`, `src/js/views/config/data-management.js` e
+  `src/js/views/config/sync-dialogs.js`: `discardPending: true` nos fluxos
+  confirmados de restauracao/keep-remote.
 
 ## TDD
 
@@ -60,9 +82,9 @@ novas falhavam por `reta-final-protocol.js` ausente.
 GREEN focado final:
 
 ```text
-npx vitest run tests/unit/reta-final-protocol.test.js tests/unit/reta-final-sync-engine.test.js tests/unit/firestore-schema.test.js tests/unit/firestore-contracts.test.js tests/unit/sync-coordinator.test.js --reporter=dot
-Test Files  5 passed (5)
-Tests       137 passed (137)
+npx vitest run tests/unit/reta-final-protocol.test.js tests/unit/reta-final-sync-engine.test.js tests/unit/firestore-schema.test.js tests/unit/firestore-contracts.test.js tests/unit/sync-coordinator.test.js tests/unit/firestore-outbox.test.js --reporter=dot
+Test Files  6 passed (6)
+Tests       147 passed (147)
 ```
 
 Regressões de sync:
@@ -70,7 +92,7 @@ Regressões de sync:
 ```text
 npm run test:sync -- --reporter=dot
 Test Files  21 passed (21)
-Tests       347 passed (347)
+Tests       348 passed (348)
 ```
 
 Suíte completa:
@@ -78,8 +100,8 @@ Suíte completa:
 ```text
 npm test -- --reporter=dot
 Test Files  164 passed (164)
-Tests       2732 passed (2732)
-Duration    67.31s
+Tests       2740 passed (2740)
+Duration    65.38s
 exit        0
 ```
 
@@ -107,6 +129,8 @@ PASS v2 replay with changed payload: permission-denied
 PASS v2 rollback: permission-denied
 PASS v2 planId change: permission-denied
 PASS v2 generation change: permission-denied
+PASS active payload with different planId: permission-denied
+PASS retired payload with different planId: permission-denied
 PASS v2 adoption with matching payloadUpdatedAt: allowed
 PASS v2 adoption with divergent payloadUpdatedAt: permission-denied
 PASS v2 retirement advance: allowed
@@ -114,15 +138,17 @@ PASS v2 retired resurrection: permission-denied
 PASS v2 retired create: permission-denied
 PASS retired payload with active plan: permission-denied
 PASS active descriptor without active plan: permission-denied
+PASS active descriptor with retired payload: permission-denied
+PASS retired descriptor with absent plan: allowed
 PASS guard create by owner: allowed
 PASS guard denied to another uid: permission-denied
 PASS guard delete denied: permission-denied
 PASS intruder cannot overwrite snapshot: permission-denied
 RULES_MODE=new TARGET=127.0.0.1:8090
-RESULT PASS (23/23)
+RESULT PASS (27/27)
 ```
 
-Regras antigas (`53fc70a^:firestore.rules`, arquivo temporario removido):
+Regras antigas (`98b639e:firestore.rules`, arquivo temporario removido):
 
 ```text
 PASS legacy overwrite over v2: ALLOWED (vulnerability reproduced)
@@ -160,7 +186,7 @@ RESULT PASS (5/5)
 ## Comandos executados
 
 ```text
-npx vitest run tests/unit/reta-final-protocol.test.js tests/unit/reta-final-sync-engine.test.js tests/unit/firestore-schema.test.js tests/unit/firestore-contracts.test.js tests/unit/sync-coordinator.test.js --reporter=dot
+npx vitest run tests/unit/reta-final-protocol.test.js tests/unit/reta-final-sync-engine.test.js tests/unit/firestore-schema.test.js tests/unit/firestore-contracts.test.js tests/unit/sync-coordinator.test.js tests/unit/firestore-outbox.test.js --reporter=dot
 npm run test:sync -- --reporter=dot
 npm test -- --reporter=dot
 node scripts/verify-reta-final-rules.mjs --rules firestore.rules --host 127.0.0.1 --port 8090

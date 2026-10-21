@@ -360,6 +360,34 @@ async function main() {
       )
     )
   );
+  await seed('uid-payload-lineage', envelope({ revision: 2, baseRevision: 1 }));
+  results.push(
+    await expectDenied('active payload with different planId', () => {
+      const value = envelope({ revision: 3, baseRevision: 2 });
+      value.payload.planejamento = plan({ planId: 'plan-2', revision: 3 });
+      return setDoc(
+        doc(uidDb('uid-payload-lineage'), 'users', 'uid-payload-lineage', 'snapshots', 'main'),
+        value
+      );
+    })
+  );
+  await seed('uid-payload-lineage-retired', envelope({ revision: 2, baseRevision: 1 }));
+  results.push(
+    await expectDenied('retired payload with different planId', () => {
+      const value = envelope({ revision: 3, baseRevision: 2, state: 'retired' });
+      value.payload.planejamento = plan({ planId: 'plan-2', revision: 3, ativo: false });
+      return setDoc(
+        doc(
+          uidDb('uid-payload-lineage-retired'),
+          'users',
+          'uid-payload-lineage-retired',
+          'snapshots',
+          'main'
+        ),
+        value
+      );
+    })
+  );
 
   // 5. Adoption over a legacy document.
   await seed('uid-adopt', legacyEnvelope('2026-10-20T11:00:00.000Z'));
@@ -426,6 +454,34 @@ async function main() {
       delete value.payload.planejamento;
       return setDoc(
         doc(uidDb('uid-active-missing'), 'users', 'uid-active-missing', 'snapshots', 'main'),
+        value
+      );
+    })
+  );
+  await seed('uid-active-retired-payload', envelope({ revision: 2, baseRevision: 1 }));
+  results.push(
+    await expectDenied('active descriptor with retired payload', () => {
+      const value = envelope({ revision: 3, baseRevision: 2 });
+      value.payload.planejamento = plan({ revision: 3, ativo: false });
+      return setDoc(
+        doc(
+          uidDb('uid-active-retired-payload'),
+          'users',
+          'uid-active-retired-payload',
+          'snapshots',
+          'main'
+        ),
+        value
+      );
+    })
+  );
+  await seed('uid-retired-absent', envelope({ revision: 2, baseRevision: 1 }));
+  results.push(
+    await expectAllowed('retired descriptor with absent plan', () => {
+      const value = envelope({ revision: 3, baseRevision: 2, state: 'retired' });
+      delete value.payload.planejamento;
+      return setDoc(
+        doc(uidDb('uid-retired-absent'), 'users', 'uid-retired-absent', 'snapshots', 'main'),
         value
       );
     })

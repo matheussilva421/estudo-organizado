@@ -95,6 +95,9 @@ Remote write contract for `users/{uid}/snapshots/main`:
 
 - document with `retaFinalSync` rejects any write without the descriptor
 - `planId`, `lineageId` and `generation` are immutable for the lineage
+- the payload plan must share the descriptor lineage: `active` payloads need
+  `payload.planejamento.planId == descriptor.planId`; `retired` payloads may
+  omit `planejamento` or carry an inactive plan with the same `planId`
 - an identical `revision` + `digest` + `state` is an idempotent replay only when
   `payload` and `payloadUpdatedAt` are byte-for-byte identical as well
 - an advance requires `revision == remote.revision + 1` and
@@ -113,6 +116,13 @@ replay from swapping the payload while keeping the descriptor intact.
 When the base is older than `minRetainedRevision`, the client refuses the merge
 with `stale-base`. When `removedBlockIds` names a block, that block is filtered
 out of any proposed merge so an old base cannot resurrect it.
+
+The client keeps local removal tombstones in `config.firestoreSync.removedBlocks`
+as `{ id, revision }`, capped at 200 entries with the newest first. The
+descriptor carries `removedBlockIds` and a `minRetainedRevision` floor equal to
+`max(local tombstone floor, remote minRetainedRevision)`. Pulls merge remote
+tombstones into the local list and store the remote floor. A push whose
+`baseRevision` is below that floor becomes `stale-base` and is not sent.
 
 Retirement uses the same advance path with `state: 'retired'`. A retired
 lineage may advance only as retired; a new plan with a different `planId`
@@ -154,6 +164,13 @@ The human resolution belongs to a draft/checkpoint/commit flow. If the outbox
 has any pending snapshot, pull and merge return `pending-outbox` without
 applying state, clearing the base, or marking the snapshot synced. The pending
 outbox is preserved.
+
+`pullFromFirestore(true, { discardPending: true })` is the explicit recovery
+path used by the confirmed "Baixar Firestore" action; `keep-remote` also passes
+the flag. Without it, a forced pull with pending data is refused. Outbox removal
+is identity-checked (`queuedAt` + envelope `sentAt`), so a write enqueued during
+the pull survives. A no-op pull/merge emits `synced` when local and remote
+digests match, otherwise `idle`; it never stays in `syncing`.
 
 ## Entity Sync
 

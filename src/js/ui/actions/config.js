@@ -148,7 +148,7 @@ registerAction('firestore-force-sync', async () => {
 registerAction('firestore-pull-remote', () => {
   showConfirm(
     'Baixar snapshot do Firestore? Isso pode substituir dados locais. Exporte um backup local antes de confirmar.',
-    () => pullFromFirestore(true),
+    () => pullFromFirestore(true, { discardPending: true }),
     { label: 'Baixar Firestore', title: 'Restaurar Firestore' }
   );
 });
@@ -178,7 +178,7 @@ registerAction('entity-conflict-keep-local', async () => {
   );
 });
 registerAction('entity-conflict-keep-remote', async () => {
-  const ok = await resolveEntityConflictKeepRemote();
+  const ok = await resolveEntityConflictKeepRemote({ discardPending: true });
   showToast(
     ok ? 'Conflito resolvido: dados da nuvem aplicados.' : 'Erro ao resolver conflito.',
     ok ? 'success' : 'error'

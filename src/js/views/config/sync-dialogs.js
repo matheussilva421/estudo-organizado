@@ -168,7 +168,7 @@ async function runPullFromSource(sourceKey) {
   showToast(`Baixando dados...`, 'info');
   switch (sourceKey) {
     case 'firestore':
-      await pullFromFirestore(true);
+      await pullFromFirestore(true, { discardPending: true });
       break;
     case 'cloudflare':
       await pullFromCloudflare(true);

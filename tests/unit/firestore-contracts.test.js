@@ -286,6 +286,9 @@ describe('Firestore integration contracts', () => {
     expect(rules).toContain('function validRetaFinalPayloadState');
     expect(rules).toContain('request.resource.data.payload.planejamento.ativo == true');
     expect(rules).toContain('request.resource.data.payload.planejamento.ativo != true');
+    expect(rules).toContain(
+      'request.resource.data.payload.planejamento.planId == request.resource.data.retaFinalSync.planId'
+    );
     expect(rules).toContain("'rules-v2'");
     expect(rules).toContain('descriptor.schema == 2');
     expect(rules).toContain('descriptor.planId is string');

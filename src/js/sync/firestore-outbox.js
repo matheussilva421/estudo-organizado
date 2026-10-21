@@ -81,9 +81,38 @@ export async function getPendingFirestoreSnapshot() {
   return readOp(FIRESTORE_OUTBOX_STORE, LATEST_SNAPSHOT_ID);
 }
 
-export async function markFirestoreSnapshotSynced() {
-  return writeOp(FIRESTORE_OUTBOX_STORE, (store) => {
-    store.delete(LATEST_SNAPSHOT_ID);
+function matchesExpectedSnapshot(entry, expected) {
+  if (expected === undefined || expected === null) return true;
+  if (!entry) return expected.queuedAt === null && expected.sentAt === null;
+  return (
+    entry.queuedAt === (expected.queuedAt ?? null) &&
+    (entry.envelope?.sentAt ?? null) === (expected.sentAt ?? null)
+  );
+}
+
+/**
+ * Removes the outbox entry only when it still matches the observed identity.
+ * Callers that observed no entry pass { queuedAt: null, sentAt: null } so a
+ * write enqueued during a pull survives.
+ */
+export async function markFirestoreSnapshotSynced(expected = null) {
+  return withTransaction(FIRESTORE_OUTBOX_STORE, 'readwrite', (store, _tx, resolve, reject) => {
+    const request = store.get(LATEST_SNAPSHOT_ID);
+    request.onsuccess = () => {
+      const existing = request.result ?? null;
+      if (!existing) {
+        resolve(true);
+        return;
+      }
+      if (!matchesExpectedSnapshot(existing, expected)) {
+        resolve(false);
+        return;
+      }
+      const deletion = store.delete(LATEST_SNAPSHOT_ID);
+      deletion.onsuccess = () => resolve(true);
+      deletion.onerror = () => reject(deletion.error);
+    };
+    request.onerror = () => reject(request.error);
   }).catch(() => false);
 }
 

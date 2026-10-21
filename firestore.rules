@@ -113,6 +113,7 @@ service cloud.firestore {
             && request.resource.data.payload.planejamento is map
             && request.resource.data.payload.planejamento.keys().hasAny(['ativo'])
             && request.resource.data.payload.planejamento.ativo == true
+            && request.resource.data.payload.planejamento.planId == request.resource.data.retaFinalSync.planId
           )
           || (
             request.resource.data.retaFinalSync.state == 'retired'
@@ -124,6 +125,10 @@ service cloud.firestore {
                 && (
                   !request.resource.data.payload.planejamento.keys().hasAny(['ativo'])
                   || request.resource.data.payload.planejamento.ativo != true
+                )
+                && (
+                  !request.resource.data.payload.planejamento.keys().hasAny(['planId'])
+                  || request.resource.data.payload.planejamento.planId == request.resource.data.retaFinalSync.planId
                 )
               )
             )

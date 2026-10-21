@@ -221,6 +221,7 @@ export function buildRetaFinalSyncDescriptor({
   state = 'active',
   revision = plan?.revision,
   minRetainedRevision,
+  removedBlockIds,
 } = {}) {
   if (!record(plan)) throw descriptorError('plano ausente.');
   if (!isId(plan.planId)) throw descriptorError('planId invalido.');
@@ -234,7 +235,7 @@ export function buildRetaFinalSyncDescriptor({
   if (!validCapabilities(capabilities)) throw descriptorError('capabilities invalidas.');
   if (state !== 'active' && state !== 'retired') throw descriptorError('state invalido.');
 
-  const source = plan.retaFinal?.removedBlockIds;
+  const source = removedBlockIds ?? plan.retaFinal?.removedBlockIds;
   const descriptor = {
     schema: RETA_FINAL_SYNC_SCHEMA,
     planId: plan.planId,
