@@ -98,10 +98,12 @@ Remote write contract for `users/{uid}/snapshots/main`:
 - the payload plan must share the descriptor lineage: `active` payloads need
   `payload.planejamento.planId == descriptor.planId`; `retired` payloads may
   omit `planejamento` or carry an inactive plan with the same `planId`
-- an identical `revision` + `digest` + `state` is an idempotent replay only when
-  `payload` and `payloadUpdatedAt` are byte-for-byte identical as well
+- an idempotent replay requires the entire `retaFinalSync` descriptor to be
+  identical, plus byte-for-byte identical `payload` and `payloadUpdatedAt`
 - an advance requires `revision == remote.revision + 1` and
   `baseRevision == remote.revision`
+- an advance is tombstone append-only: `minRetainedRevision` cannot decrease and
+  the new `removedBlockIds` must contain every old id
 - rollback, revision jumps, digest changes at the same revision, and lineage
   changes are denied
 - adoption of a legacy document requires `baseRevision == 0`,
@@ -123,6 +125,8 @@ descriptor carries `removedBlockIds` and a `minRetainedRevision` floor equal to
 `max(local tombstone floor, remote minRetainedRevision)`. Pulls merge remote
 tombstones into the local list and store the remote floor. A push whose
 `baseRevision` is below that floor becomes `stale-base` and is not sent.
+Tombstones are append-only: a restored block can be in the plan while its
+tombstone remains in the lineage. Only the 200 newest tombstones are kept.
 
 Retirement uses the same advance path with `state: 'retired'`. A retired
 lineage may advance only as retired; a new plan with a different `planId`

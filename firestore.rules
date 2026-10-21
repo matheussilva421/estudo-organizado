@@ -173,15 +173,27 @@ service cloud.firestore {
             )
             && (
               (
-                request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision
-                && request.resource.data.retaFinalSync.digest == resource.data.retaFinalSync.digest
-                && request.resource.data.retaFinalSync.state == resource.data.retaFinalSync.state
+                request.resource.data.retaFinalSync == resource.data.retaFinalSync
                 && request.resource.data.payload == resource.data.payload
                 && request.resource.data.payloadUpdatedAt == resource.data.payloadUpdatedAt
               )
               || (
                 request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision + 1
                 && request.resource.data.retaFinalSync.baseRevision == resource.data.retaFinalSync.revision
+                && (
+                  !resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                  || (
+                    request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                    && request.resource.data.retaFinalSync.minRetainedRevision >= resource.data.retaFinalSync.minRetainedRevision
+                  )
+                )
+                && (
+                  !resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                  || (
+                    request.resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                    && request.resource.data.retaFinalSync.removedBlockIds.hasAll(resource.data.retaFinalSync.removedBlockIds)
+                  )
+                )
               )
             )
           )

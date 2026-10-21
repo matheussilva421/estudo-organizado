@@ -106,7 +106,7 @@ function updateLocalTombstones(config, basePlan, plan, revision) {
       map.set(block.id, { id: block.id, revision });
     }
   }
-  for (const id of currentIds) map.delete(id);
+  // Append-only lineage: a block that reappears in the plan keeps its tombstone.
   config.removedBlocks = [...map.values()]
     .sort((left, right) => right.revision - left.revision || left.id.localeCompare(right.id))
     .slice(0, 200);
@@ -361,6 +361,12 @@ function applyRetaFinalPull(remote, config, { force = false } = {}) {
   }
 
   if (force) {
+    const forcedLocalDigest = computeRetaFinalPlanDigest(localPlan);
+    const forcedRemoteDigest =
+      remoteDescriptor?.digest ?? computeRetaFinalPlanDigest(remotePlan);
+    if (forcedLocalDigest === forcedRemoteDigest) {
+      return { handled: true, applied: false };
+    }
     return {
       handled: true,
       applied: true,
@@ -1461,24 +1467,25 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
       return await flushFirestoreOutbox({ manual: true });
     }
 
+    const pending = await getPendingFirestoreSnapshot();
+    if (pending && (!forceOverwrite || options.discardPending !== true)) {
+      await registerRetaFinalConflict(
+        config,
+        {
+          allowed: false,
+          reason: 'pending-outbox',
+          conflict: { type: RETA_FINAL_CONFLICT, cause: 'pending-outbox' },
+        },
+        pending,
+        remote
+      );
+      return false;
+    }
+
     const localPlan = getRetaFinalPayloadPlan(state);
     const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
     const remoteHasDescriptor = Object.hasOwn(remote, 'retaFinalSync');
     if (localPlan || remotePlan || remoteHasDescriptor) {
-      const pending = await getPendingFirestoreSnapshot();
-      if (pending && (!forceOverwrite || options.discardPending !== true)) {
-        await registerRetaFinalConflict(
-          config,
-          {
-            allowed: false,
-            reason: 'pending-outbox',
-            conflict: { type: RETA_FINAL_CONFLICT, cause: 'pending-outbox' },
-          },
-          pending,
-          remote
-        );
-        return false;
-      }
       const outcome = applyRetaFinalPull(remote, config, { force: forceOverwrite });
       if (!outcome.handled || outcome.conflict) {
         if (outcome.conflict) {
@@ -1491,7 +1498,35 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
         }
         return false;
       }
-      if (outcome.applied !== true) return emitNoopPullStatus(remote);
+      if (outcome.applied !== true) {
+        if (forceOverwrite && options.discardPending === true && pending) {
+          const cleared = await markFirestoreSnapshotSynced({
+            queuedAt: pending.queuedAt ?? null,
+            sentAt: pending.envelope?.sentAt ?? null,
+          });
+          if (!cleared) {
+            emitStatus('pending');
+            return false;
+          }
+          await clearFirestoreConflict();
+          config.conflict = null;
+          config.hasPendingWrites = false;
+          config.lastError = null;
+          await persistSyncConfig(true);
+          const localAfter = getRetaFinalPayloadPlan(state);
+          const remoteAfter = getRetaFinalPayloadPlan({
+            planejamento: remote?.payload?.planejamento,
+          });
+          const sameAfter =
+            localAfter &&
+            remoteAfter &&
+            computeRetaFinalPlanDigest(localAfter) ===
+              computeRetaFinalPlanDigest(remoteAfter);
+          emitNoopPullStatus(remote);
+          return Boolean(sameAfter);
+        }
+        return emitNoopPullStatus(remote);
+      }
       await yieldToUIWithBudget(50, performance.now());
       if (!forceOverwrite) {
         return await applyPulledRetaFinalState(outcome, remote, uid, 'pull', {
@@ -1559,12 +1594,6 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
       return true;
     }
 
-    const pending = await getPendingFirestoreSnapshot();
-    if (pending && !forceOverwrite) {
-      await registerConflict(remote, pending.envelope);
-      return false;
-    }
-
     if (forceOverwrite || isRemoteNewer(remote, state)) {
       await yieldToUIWithBudget(50, performance.now());
       const nextState = applyEnvelopeToLocalState(remote, config);
@@ -1590,7 +1619,22 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
         setState(nextState, { merge: true });
       }
       await clearFirestoreConflict();
-      await markFirestoreSnapshotSynced();
+      const cleared = await markFirestoreSnapshotSynced(
+        pending
+          ? {
+              queuedAt: pending.queuedAt ?? null,
+              sentAt: pending.envelope?.sentAt ?? null,
+            }
+          : { queuedAt: null, sentAt: null }
+      );
+      if (!cleared) {
+        const stillPending = await getPendingFirestoreSnapshot();
+        config.hasPendingWrites = Boolean(stillPending);
+        config.lastError = null;
+        await persistSyncConfig(true);
+        emitStatus(stillPending ? 'pending' : 'synced');
+        return !stillPending;
+      }
       await saveFirestoreMeta({
         uid,
         remoteUpdatedAt: getEnvelopeUpdatedAt(remote),

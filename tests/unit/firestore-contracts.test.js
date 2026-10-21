@@ -317,7 +317,12 @@ describe('Firestore integration contracts', () => {
     expect(rules).toContain(
       'request.resource.data.retaFinalSync.generation == resource.data.retaFinalSync.generation'
     );
-    expect(rules).toContain('request.resource.data.retaFinalSync.digest == resource.data.retaFinalSync.digest');
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync == resource.data.retaFinalSync'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.removedBlockIds.hasAll(resource.data.retaFinalSync.removedBlockIds)'
+    );
     expect(rules).toContain('request.resource.data.payload == resource.data.payload');
     expect(rules).toContain(
       'request.resource.data.payloadUpdatedAt == resource.data.payloadUpdatedAt'

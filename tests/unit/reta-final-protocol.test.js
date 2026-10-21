@@ -422,7 +422,7 @@ describe('reta-final-protocol', () => {
 
       replay.retaFinalSync = { ...replay.retaFinalSync, digest: 'f'.repeat(32) };
       const denied = validateRetaFinalEnvelopeWrite({ envelope: replay, remoteEnvelope: remote });
-      expect(denied).toMatchObject({ allowed: false, reason: 'replay-payload-mismatch' });
+      expect(denied).toMatchObject({ allowed: false, reason: 'replay-descriptor-mismatch' });
     });
 
     it('rejects an identical descriptor when the replay payload changed', () => {

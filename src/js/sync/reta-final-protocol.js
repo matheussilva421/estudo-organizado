@@ -350,21 +350,32 @@ export function validateRetaFinalEnvelopeWrite({ envelope, remoteEnvelope } = {}
 
   if (incoming.revision === remote.revision) {
     if (
-      incoming.digest === remote.digest &&
-      incoming.state === remote.state &&
-      envelope?.payloadUpdatedAt === remoteEnvelope?.payloadUpdatedAt &&
-      JSON.stringify(canonical(envelope?.payload)) ===
+      envelope?.payloadUpdatedAt !== remoteEnvelope?.payloadUpdatedAt ||
+      JSON.stringify(canonical(envelope?.payload)) !==
         JSON.stringify(canonical(remoteEnvelope?.payload))
     ) {
-      return { allowed: true, reason: 'replay', conflict: null };
+      return denied('replay-payload-mismatch', incoming, remote, envelope, remoteEnvelope);
     }
-    return denied('replay-payload-mismatch', incoming, remote, envelope, remoteEnvelope);
+    if (JSON.stringify(incoming) !== JSON.stringify(remote)) {
+      return denied('replay-descriptor-mismatch', incoming, remote, envelope, remoteEnvelope);
+    }
+    return { allowed: true, reason: 'replay', conflict: null };
   }
   if (incoming.revision < remote.revision) {
     return denied('rollback', incoming, remote, envelope, remoteEnvelope);
   }
   if (incoming.baseRevision !== remote.revision) {
     return denied('stale-base', incoming, remote, envelope, remoteEnvelope);
+  }
+  const oldFloor = remote.minRetainedRevision ?? 0;
+  const newFloor = incoming.minRetainedRevision ?? 0;
+  if (newFloor < oldFloor) {
+    return denied('tombstone-downgrade', incoming, remote, envelope, remoteEnvelope);
+  }
+  const oldRemoved = remote.removedBlockIds ?? [];
+  const newRemoved = new Set(incoming.removedBlockIds ?? []);
+  if (oldRemoved.some((id) => !newRemoved.has(id))) {
+    return denied('tombstone-downgrade', incoming, remote, envelope, remoteEnvelope);
   }
   if (incoming.revision !== remote.revision + 1) {
     return denied('revision-jump', incoming, remote, envelope, remoteEnvelope);

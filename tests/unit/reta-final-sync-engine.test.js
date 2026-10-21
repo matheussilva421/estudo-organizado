@@ -457,6 +457,70 @@ describe('reta-final sync engine integration', () => {
     expect(outbox.markFirestoreSnapshotSynced).toHaveBeenCalled();
   });
 
+  it('refuses a legacy force pull with pending and applies it with discardPending', async () => {
+    const legacyRemote = {
+      version: 1,
+      schemaVersion: 6,
+      deviceId: 'legacy-device',
+      payloadUpdatedAt: '2026-10-20T12:00:00.000Z',
+      sentAt: '2026-10-20T12:00:00.000Z',
+      payload: {
+        config: {},
+        planejamento: { ativo: true, tipo: 'sequencia', revision: 5 },
+        eventos: [],
+      },
+    };
+    await boot({ plan: null, basePlan: null, remote: legacyRemote });
+    await outbox.enqueueFirestoreSnapshot({
+      version: 1,
+      deviceId: 'web-device1',
+      sentAt: 'legacy-pending',
+      payloadUpdatedAt: '2026-10-20T12:10:00.000Z',
+      payload: { planejamento: null },
+    });
+
+    const refused = await engine.pullFromFirestore(true);
+
+    expect(refused).toBe(false);
+    expect(storeModule.state.planejamento).toBeNull();
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+    expect(outbox.markFirestoreSnapshotSynced).not.toHaveBeenCalled();
+
+    const accepted = await engine.pullFromFirestore(true, { discardPending: true });
+
+    expect(accepted).toBe(true);
+    expect(storeModule.state.planejamento).toMatchObject({ revision: 5 });
+    expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();
+    expect(outbox.markFirestoreSnapshotSynced).toHaveBeenCalled();
+  });
+
+  it('clears pending and reports synced on a forced v2 no-op with discardPending', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 40 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+    await outbox.enqueueFirestoreSnapshot({
+      version: 1,
+      deviceId: 'web-device1',
+      sentAt: 'noop-pending',
+      payloadUpdatedAt: '2026-10-20T12:10:00.000Z',
+      payload: { planejamento: localPlan },
+    });
+
+    const refused = await engine.pullFromFirestore(true);
+
+    expect(refused).toBe(false);
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+    expect(statuses()).not.toContain('synced');
+
+    const accepted = await engine.pullFromFirestore(true, { discardPending: true });
+
+    expect(accepted).toBe(true);
+    expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();
+    expect(statuses().at(-1)).toBe('synced');
+  });
+
   it('emits a terminal status for a manual pull no-op', async () => {
     const basePlan = makePlan({ revision: 1 });
     const localPlan = makePlan({ revision: 2, minutos: 40 });

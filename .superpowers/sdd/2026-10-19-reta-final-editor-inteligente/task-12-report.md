@@ -48,6 +48,24 @@ O envelope continua `version: 1` e `FIRESTORE_SYNC_VERSION` nao foi alterado.
 4. No-op manual em pull/merge/syncNow emite `synced` quando os digests locais e
    remotos coincidem, ou `idle` caso contrario; nao fica preso em `syncing`.
 
+## Terceira re-revisao
+
+1. Replay exige o descriptor inteiro identico (`retaFinalSync` map equality),
+   alem de payload e `payloadUpdatedAt` iguais. Reduzir `removedBlockIds` num
+   replay e negado.
+2. Avanco e tombstone append-only: `minRetainedRevision` nao pode diminuir e
+   `removedBlockIds` novo precisa conter todos os ids antigos. O cliente mantem
+   tombstones mesmo quando o bloco reaparece no plano (restauracao preserva a
+   linhagem), sem remover entradas antigas.
+3. `pullFromFirestore(forceOverwrite)` checa pending antes dos ramos v2/legado.
+   Sem `discardPending`, devolve `pending-outbox` e nao altera estado. Com a flag,
+   limpa a outbox pela identidade capturada, inclusive no caminho legado.
+4. Force pull v2 no-op com `discardPending` limpa a outbox pela identidade e so
+   entao emite `synced`; sem a flag, preserva e nao emite synced.
+5. O teste de corrida da outbox usa o helper de transacao em memoria
+   (get/compare/delete) com uma nova gravacao intercalada. Nao e IndexedDB
+   nativo multiaba; isso permanece como limitacao NOT_RUN para E2E real.
+
 ## Arquivos alterados
 
 - `src/js/sync/reta-final-protocol.js` (novo): capabilities, digest canonico,
@@ -82,9 +100,9 @@ novas falhavam por `reta-final-protocol.js` ausente.
 GREEN focado final:
 
 ```text
-npx vitest run tests/unit/reta-final-protocol.test.js tests/unit/reta-final-sync-engine.test.js tests/unit/firestore-schema.test.js tests/unit/firestore-contracts.test.js tests/unit/sync-coordinator.test.js tests/unit/firestore-outbox.test.js --reporter=dot
-Test Files  6 passed (6)
-Tests       147 passed (147)
+npx vitest run tests/unit/reta-final-protocol.test.js tests/unit/reta-final-sync-engine.test.js tests/unit/firestore-schema.test.js tests/unit/firestore-contracts.test.js tests/unit/sync-coordinator.test.js tests/unit/firestore-outbox.test.js tests/unit/config-view.test.js --reporter=dot
+Test Files  7 passed (7)
+Tests       183 passed (183)
 ```
 
 Regressões de sync:
@@ -100,8 +118,8 @@ Suíte completa:
 ```text
 npm test -- --reporter=dot
 Test Files  164 passed (164)
-Tests       2740 passed (2740)
-Duration    65.38s
+Tests       2742 passed (2742)
+Duration    68.48s
 exit        0
 ```
 
@@ -126,9 +144,13 @@ PASS v2 stale base after another write: permission-denied
 PASS v2 identical replay: allowed
 PASS v2 same revision different digest: permission-denied
 PASS v2 replay with changed payload: permission-denied
+PASS replay with reduced removedBlockIds: permission-denied
 PASS v2 rollback: permission-denied
 PASS v2 planId change: permission-denied
 PASS v2 generation change: permission-denied
+PASS advance reducing minRetainedRevision: permission-denied
+PASS advance reducing removedBlockIds: permission-denied
+PASS advance adding a tombstone: allowed
 PASS active payload with different planId: permission-denied
 PASS retired payload with different planId: permission-denied
 PASS v2 adoption with matching payloadUpdatedAt: allowed
@@ -145,7 +167,7 @@ PASS guard denied to another uid: permission-denied
 PASS guard delete denied: permission-denied
 PASS intruder cannot overwrite snapshot: permission-denied
 RULES_MODE=new TARGET=127.0.0.1:8090
-RESULT PASS (27/27)
+RESULT PASS (31/31)
 ```
 
 Regras antigas (`98b639e:firestore.rules`, arquivo temporario removido):
@@ -186,7 +208,7 @@ RESULT PASS (5/5)
 ## Comandos executados
 
 ```text
-npx vitest run tests/unit/reta-final-protocol.test.js tests/unit/reta-final-sync-engine.test.js tests/unit/firestore-schema.test.js tests/unit/firestore-contracts.test.js tests/unit/sync-coordinator.test.js tests/unit/firestore-outbox.test.js --reporter=dot
+npx vitest run tests/unit/reta-final-protocol.test.js tests/unit/reta-final-sync-engine.test.js tests/unit/firestore-schema.test.js tests/unit/firestore-contracts.test.js tests/unit/sync-coordinator.test.js tests/unit/firestore-outbox.test.js tests/unit/config-view.test.js --reporter=dot
 npm run test:sync -- --reporter=dot
 npm test -- --reporter=dot
 node scripts/verify-reta-final-rules.mjs --rules firestore.rules --host 127.0.0.1 --port 8090

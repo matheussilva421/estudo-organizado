@@ -72,6 +72,8 @@ function envelope({
   payloadUpdatedAt = '2026-10-20T12:00:00.000Z',
   deviceId = 'web-rules-test',
   withDescriptor = true,
+  removedBlockIds,
+  minRetainedRevision,
 } = {}) {
   const value = {
     version: 1,
@@ -99,6 +101,10 @@ function envelope({
       capabilities: CAPABILITIES,
       state,
     };
+    if (removedBlockIds) value.retaFinalSync.removedBlockIds = removedBlockIds;
+    if (minRetainedRevision !== undefined) {
+      value.retaFinalSync.minRetainedRevision = minRetainedRevision;
+    }
   }
   return value;
 }
@@ -333,6 +339,28 @@ async function main() {
       return setDoc(doc(uidDb('uid-replay'), 'users', 'uid-replay', 'snapshots', 'main'), changed);
     })
   );
+  await seed(
+    'uid-replay-tombstone',
+    envelope({
+      revision: 3,
+      baseRevision: 2,
+      removedBlockIds: ['b1', 'b2'],
+      minRetainedRevision: 2,
+    })
+  );
+  results.push(
+    await expectDenied('replay with reduced removedBlockIds', () =>
+      setDoc(
+        doc(uidDb('uid-replay-tombstone'), 'users', 'uid-replay-tombstone', 'snapshots', 'main'),
+        envelope({
+          revision: 3,
+          baseRevision: 2,
+          removedBlockIds: ['b1'],
+          minRetainedRevision: 2,
+        })
+      )
+    )
+  );
 
   // 4. Rollback and identity changes.
   await seed('uid-rollback', envelope({ revision: 3, baseRevision: 2 }));
@@ -357,6 +385,63 @@ async function main() {
       setDoc(
         doc(uidDb('uid-rollback'), 'users', 'uid-rollback', 'snapshots', 'main'),
         envelope({ generation: 2, revision: 4, baseRevision: 3 })
+      )
+    )
+  );
+  await seed(
+    'uid-tombstone-floor',
+    envelope({
+      revision: 2,
+      baseRevision: 1,
+      removedBlockIds: ['b1'],
+      minRetainedRevision: 2,
+    })
+  );
+  results.push(
+    await expectDenied('advance reducing minRetainedRevision', () =>
+      setDoc(
+        doc(uidDb('uid-tombstone-floor'), 'users', 'uid-tombstone-floor', 'snapshots', 'main'),
+        envelope({
+          revision: 3,
+          baseRevision: 2,
+          removedBlockIds: ['b1'],
+          minRetainedRevision: 1,
+        })
+      )
+    )
+  );
+  await seed(
+    'uid-tombstone-list',
+    envelope({
+      revision: 2,
+      baseRevision: 1,
+      removedBlockIds: ['b1', 'b2'],
+      minRetainedRevision: 2,
+    })
+  );
+  results.push(
+    await expectDenied('advance reducing removedBlockIds', () =>
+      setDoc(
+        doc(uidDb('uid-tombstone-list'), 'users', 'uid-tombstone-list', 'snapshots', 'main'),
+        envelope({
+          revision: 3,
+          baseRevision: 2,
+          removedBlockIds: ['b1'],
+          minRetainedRevision: 2,
+        })
+      )
+    )
+  );
+  results.push(
+    await expectAllowed('advance adding a tombstone', () =>
+      setDoc(
+        doc(uidDb('uid-tombstone-list'), 'users', 'uid-tombstone-list', 'snapshots', 'main'),
+        envelope({
+          revision: 3,
+          baseRevision: 2,
+          removedBlockIds: ['b1', 'b2', 'b3'],
+          minRetainedRevision: 2,
+        })
       )
     )
   );
