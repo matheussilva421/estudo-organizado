@@ -292,9 +292,10 @@ describe('reta-final sync engine integration', () => {
     expect(sent).toMatchObject({ state: 'retired', revision: 3, baseRevision: 2 });
     expect(storeModule.state.config.firestoreSync.basePlan).toMatchObject({
       planId: 'plan-1',
-      revision: 3,
+      revision: 2,
       ativo: false,
     });
+    expect(storeModule.state.planejamento.revision).toBe(2);
   });
 
   it('fails closed with lineage-change when a new planId replaces a known lineage', async () => {
@@ -346,7 +347,7 @@ describe('reta-final sync engine integration', () => {
     expect(storeModule.state.config.firestoreSync.lastError).toMatch(/network down/);
   });
 
-  it('merges a v2 pull with a verified base and advances the merged revision', async () => {
+  it('opens a merge-review conflict with a proposed plan instead of applying it', async () => {
     const basePlan = makePlan({ revision: 1 });
     const localPlan = makePlan({ revision: 2, minutos: 40 });
     const remotePlan = makePlan({ revision: 2, minutos: 50 });
@@ -355,16 +356,111 @@ describe('reta-final sync engine integration', () => {
 
     const result = await engine.pollFirestoreRemote();
 
-    expect(result).toBe(true);
-    expect(syncCenter.mergeStudyStates).toHaveBeenCalledWith(
-      storeModule.state,
-      remote.payload,
-      expect.objectContaining({ basePlan })
+    expect(result).toBe(false);
+    expect(outbox.markFirestoreSnapshotSynced).not.toHaveBeenCalled();
+    expect(storeModule.state.planejamento).toBe(localPlan);
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'reta-final-conflict',
+        cause: 'merge-review',
+        proposedPlan: expect.objectContaining({ planId: 'plan-1' }),
+        basePlan: expect.objectContaining({ revision: 1 }),
+        localPlan: expect.objectContaining({ revision: 2 }),
+        remotePlan: expect.objectContaining({ revision: 2 }),
+      })
     );
-    expect(storeModule.state.planejamento.revision).toBe(3);
-    expect(storeModule.state.planejamento.retaFinal.merged).toBe(true);
+    expect(storeModule.state.config.firestoreSync.basePlan).toMatchObject({ revision: 1 });
+  });
+
+  it('fast-forwards a v2 pull when the local digest equals the base', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 1 });
+    const remotePlan = makePlan({ revision: 2, minutos: 50 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(true);
+    expect(storeModule.state.planejamento.revision).toBe(2);
+    expect(storeModule.state.planejamento.retaFinal.blocos[0].minutos).toBe(50);
     expect(storeModule.state.config.firestoreSync.basePlan).toMatchObject({ revision: 2 });
-    expect(storeModule.state.config.firestoreSync.baseRevision).toBe(2);
+    expect(outbox.markFirestoreSnapshotSynced).toHaveBeenCalled();
+  });
+
+  it('does not apply, clear the base, or mark synced when local and remote digests match', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 40 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+
+    const result = await engine.mergeFromFirestore();
+
+    expect(result).toBe(false);
+    expect(storeModule.state.planejamento).toBe(localPlan);
+    expect(storeModule.state.config.firestoreSync.basePlan).toMatchObject({ revision: 1 });
+    expect(outbox.markFirestoreSnapshotSynced).not.toHaveBeenCalled();
+  });
+
+  it('preserves a pending outbox and refuses a v2 merge', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 50 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+    await outbox.enqueueFirestoreSnapshot({
+      version: 1,
+      deviceId: 'web-device1',
+      payloadUpdatedAt: '2026-10-20T12:10:00.000Z',
+      payload: { planejamento: localPlan },
+    });
+
+    const result = await engine.mergeFromFirestore();
+
+    expect(result).toBe(false);
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+    expect(outbox.markFirestoreSnapshotSynced).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'reta-final-conflict', cause: 'pending-outbox' })
+    );
+  });
+
+  it('filters remotely removed block ids from a merge proposal', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 50 });
+    remotePlan.retaFinal.blocos = [];
+    remotePlan.retaFinal.removedBlockIds = ['b1'];
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    const conflict = outbox.saveFirestoreConflict.mock.calls[0][0];
+    expect(conflict.cause).toBe('merge-review');
+    expect(conflict.proposedPlan.retaFinal.blocos).toEqual([]);
+  });
+
+  it('refuses a merge when the base is older than minRetainedRevision', async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 50 });
+    const remote = envelopeFor(remotePlan, {
+      revision: 2,
+      baseRevision: 1,
+      minRetainedRevision: 5,
+    });
+    await boot({ plan: localPlan, basePlan, remote });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'reta-final-conflict', cause: 'stale-base' })
+    );
+    expect(storeModule.state.planejamento).toBe(localPlan);
   });
 
   it('turns a v2 pull without a verified base into a conflict without applying remote', async () => {
@@ -417,8 +513,9 @@ describe('reta-final sync engine integration', () => {
     vi.resetModules();
     vi.doUnmock('../../src/js/sync/entity-migration.js?v=8.37');
     const setDoc = vi.fn();
-    const v2Plan = makePlan({ revision: 4 });
+    const v2Plan = makePlan({ revision: 4, ativo: false });
     const snapshot = envelopeFor(v2Plan, { revision: 4, baseRevision: 3 });
+    delete snapshot.retaFinalSync;
 
     vi.doMock('../../src/vendor/firebase-client.bundle.js?v=8.37', () => ({
       doc: vi.fn(() => ({})),

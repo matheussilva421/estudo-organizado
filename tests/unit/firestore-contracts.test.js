@@ -186,7 +186,7 @@ describe('Firestore integration contracts', () => {
     const syncExport =
       firestoreSource.match(/export async function syncFirestoreNow[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
 
-    expect(queueBody).toContain('createFirestoreSnapshotEnvelope(envelopeState, envelopeOptions)');
+    expect(queueBody).toContain('createFirestoreSnapshotEnvelope(sourceState, envelopeOptions)');
     expect(syncExport).toContain('firestoreLock.withLock');
     expect(syncExport).toContain('syncFirestoreNowUnlocked()');
     expect(syncBody).toContain('const remote = await readFirestoreSnapshot(db, uid);');
@@ -283,11 +283,15 @@ describe('Firestore integration contracts', () => {
 
     expect(rules).toContain('retaFinalSync');
     expect(rules).toContain('function validRetaFinalSyncDescriptor');
+    expect(rules).toContain('function validRetaFinalPayloadState');
+    expect(rules).toContain('request.resource.data.payload.planejamento.ativo == true');
+    expect(rules).toContain('request.resource.data.payload.planejamento.ativo != true');
     expect(rules).toContain("'rules-v2'");
     expect(rules).toContain('descriptor.schema == 2');
     expect(rules).toContain('descriptor.planId is string');
     expect(rules).toContain("descriptor.state in ['active', 'retired']");
     expect(rules).toContain('descriptor.removedBlockIds.size() <= 200');
+    expect(rules).toContain("descriptor.minRetainedRevision is int");
   });
 
   it('enforces revision CAS and rejects legacy writes over a v2 document', () => {
@@ -311,6 +315,10 @@ describe('Firestore integration contracts', () => {
       'request.resource.data.retaFinalSync.generation == resource.data.retaFinalSync.generation'
     );
     expect(rules).toContain('request.resource.data.retaFinalSync.digest == resource.data.retaFinalSync.digest');
+    expect(rules).toContain('request.resource.data.payload == resource.data.payload');
+    expect(rules).toContain(
+      'request.resource.data.payloadUpdatedAt == resource.data.payloadUpdatedAt'
+    );
   });
 
   it('requires the adoption base and denies physical deletion of the guard document', () => {

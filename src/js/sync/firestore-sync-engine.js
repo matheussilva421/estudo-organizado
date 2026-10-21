@@ -39,6 +39,7 @@ import {
   readRetaFinalSyncDescriptor,
   validateRetaFinalEnvelopeWrite,
 } from './reta-final-protocol.js?v=8.37';
+import { mergeRetaFinalPlans } from '../logic/reta-final-merge.js?v=8.37';
 
 const readFirestoreSnapshot = (...args) => firestoreRepository.readFirestoreSnapshot(...args);
 const writeFirestoreSnapshot = (...args) => firestoreRepository.writeFirestoreSnapshot(...args);
@@ -80,6 +81,15 @@ function isBlockingFirestoreConflict(conflict) {
 
 function clonePlan(plan) {
   return plan ? JSON.parse(JSON.stringify(plan)) : null;
+}
+
+function filterRemovedBlocks(plan, removedBlockIds) {
+  if (!plan || !Array.isArray(removedBlockIds) || removedBlockIds.length === 0) return plan;
+  const removed = new Set(removedBlockIds);
+  const blocks = Array.isArray(plan.retaFinal?.blocos)
+    ? plan.retaFinal.blocos.filter((block) => !removed.has(block?.id))
+    : [];
+  return { ...plan, retaFinal: { ...plan.retaFinal, blocos: blocks } };
 }
 
 function getRetaFinalPayloadPlan(sourceState) {
@@ -219,10 +229,13 @@ function retaFinalQueueOptions(config, sourceState, options) {
   const alreadyRetired =
     base.ativo !== true &&
     computeRetaFinalPlanDigest(payloadPlan || base) === config.baseDigest;
-  const revision = alreadyRetired ? base.revision : Math.max(base.revision, remoteRevision) + 1;
+  const revision = alreadyRetired
+    ? remoteRevision
+    : Math.max(base.revision, remoteRevision) + 1;
   const retiredPlan = payloadPlan || base;
   const descriptor = buildRetaFinalSyncDescriptor({
-    plan: { ...retiredPlan, revision },
+    plan: retiredPlan,
+    revision,
     baseRevision: remoteRevision,
     baseRemoteUpdatedAt: config.baseRemoteUpdatedAt ?? null,
     deviceId: getFirestoreDeviceId(),
@@ -287,25 +300,85 @@ function applyRetaFinalPull(remote, config, { force = false } = {}) {
     return { handled: true, conflict: 'base-ahead' };
   }
 
-  let merged = mergeStudyStates(state, remote.payload || {}, { basePlan: base });
-  if (merged.config?.syncMergeConflicts) {
-    return { handled: true, conflict: 'merge-conflict' };
-  }
-  let mergedPlan = getRetaFinalPayloadPlan(merged);
-  if (!mergedPlan) return { handled: true, conflict: 'merge-invalid' };
-
   const remoteDigest = remoteDescriptor?.digest ?? computeRetaFinalPlanDigest(remotePlan);
+  const localDigest = computeRetaFinalPlanDigest(localPlan);
+  const baseDigest = computeRetaFinalPlanDigest(base);
+
   if (
-    computeRetaFinalPlanDigest(mergedPlan) !== remoteDigest &&
-    mergedPlan.revision <= remotePlan.revision
+    remoteDescriptor?.minRetainedRevision !== undefined &&
+    base.revision < remoteDescriptor.minRetainedRevision
   ) {
-    mergedPlan = { ...mergedPlan, revision: remotePlan.revision + 1 };
-    merged = { ...merged, planejamento: mergedPlan };
+    return { handled: true, conflict: 'stale-base', basePlan: base, localPlan, remotePlan };
   }
-  return { handled: true, applied: true, nextState: merged, basePlan: remotePlan };
+
+  if (localDigest === baseDigest) {
+    if (remoteDigest === baseDigest) return { handled: true, applied: false };
+    return {
+      handled: true,
+      applied: true,
+      nextState: applyEnvelopeToLocalState(remote, config),
+      basePlan: remotePlan,
+    };
+  }
+
+  if (localDigest === remoteDigest) return { handled: true, applied: false };
+
+  const merge = mergeRetaFinalPlans({
+    basePlan: base,
+    localPlan,
+    remotePlan,
+    events: state.eventos || [],
+    catalog: Array.isArray(state.editais) && state.editais.length ? state.editais : null,
+  });
+  const proposedPlan = filterRemovedBlocks(
+    merge.plan,
+    remoteDescriptor?.removedBlockIds
+  );
+  return {
+    handled: true,
+    conflict: 'merge-review',
+    proposedPlan,
+    mergeConflicts: merge.conflicts,
+    mergeValid: merge.valid,
+    basePlan: base,
+    localPlan,
+    remotePlan,
+  };
+}
+
+function pullConflictDecision(outcome) {
+  return {
+    allowed: false,
+    reason: outcome.conflict,
+    conflict: {
+      type: RETA_FINAL_CONFLICT,
+      cause: outcome.conflict,
+      proposedPlan: outcome.proposedPlan ?? null,
+      basePlan: outcome.basePlan ?? null,
+      localPlan: outcome.localPlan ?? null,
+      remotePlan: outcome.remotePlan ?? null,
+      mergeConflicts: outcome.mergeConflicts ?? null,
+      mergeValid: outcome.mergeValid ?? null,
+    },
+  };
 }
 
 async function applyPulledRetaFinalState(outcome, remote, uid, reason) {
+  if (outcome?.applied !== true || !outcome.nextState) return false;
+  const pending = await getPendingFirestoreSnapshot();
+  if (pending) {
+    await registerRetaFinalConflict(
+      getConfig(),
+      {
+        allowed: false,
+        reason: 'pending-outbox',
+        conflict: { type: RETA_FINAL_CONFLICT, cause: 'pending-outbox' },
+      },
+      pending,
+      remote
+    );
+    return false;
+  }
   const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
   setState(outcome.nextState, { merge: true });
   const liveConfig = getConfig();
@@ -331,6 +404,7 @@ async function applyPulledRetaFinalState(outcome, remote, uid, reason) {
   });
   emitPrimaryStatus('synced', { source: reason, remoteUpdatedAt });
   emitStatus('synced');
+  return true;
 }
 
 function emitStatus(status, detail = {}) {
@@ -496,16 +570,16 @@ export async function pollFirestoreRemote() {
         if (outcome.conflict) {
           await registerRetaFinalConflict(
             config,
-            { allowed: false, reason: outcome.conflict },
+            pullConflictDecision(outcome),
             null,
             remote
           );
         }
         return false;
       }
+      if (outcome.applied !== true) return false;
       await yieldToUIWithBudget(50, performance.now());
-      await applyPulledRetaFinalState(outcome, remote, uid, 'poll');
-      return true;
+      return await applyPulledRetaFinalState(outcome, remote, uid, 'poll');
     }
 
     if (!isRemoteStateNewer(remote, state)) return false;
@@ -874,17 +948,7 @@ export async function queueFirestoreSnapshotFromState(sourceState = state, optio
     emitStatus('error', { error: config.lastError });
     return false;
   }
-  let envelopeState = sourceState;
-  const descriptor = envelopeOptions?.retaFinalSync;
-  const payloadPlan = getRetaFinalPayloadPlan(sourceState);
-  if (descriptor && payloadPlan && payloadPlan.revision !== descriptor.revision) {
-    const revisedPlan = { ...payloadPlan, revision: descriptor.revision };
-    envelopeState = { ...sourceState, planejamento: revisedPlan };
-    if (sourceState === state) {
-      setState({ planejamento: revisedPlan }, { merge: true });
-    }
-  }
-  const envelope = createFirestoreSnapshotEnvelope(envelopeState, envelopeOptions);
+  const envelope = createFirestoreSnapshotEnvelope(sourceState, envelopeOptions);
   const queued = await enqueueFirestoreSnapshot(envelope);
   if (queued) {
     config.hasPendingWrites = true;
@@ -965,16 +1029,16 @@ export async function autoPullRemoteWhenNewer() {
         if (outcome.conflict) {
           await registerRetaFinalConflict(
             config,
-            { allowed: false, reason: outcome.conflict },
+            pullConflictDecision(outcome),
             null,
             remote
           );
         }
         return false;
       }
+      if (outcome.applied !== true) return false;
       await yieldToUIWithBudget(50, performance.now());
-      await applyPulledRetaFinalState(outcome, remote, uid, 'auto-pull');
-      return true;
+      return await applyPulledRetaFinalState(outcome, remote, uid, 'auto-pull');
     }
 
     if (!isRemoteStateNewer(remote, state)) return false;
@@ -1042,11 +1106,15 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     const sentPlan = getRetaFinalPayloadPlan({
       planejamento: pending.envelope?.payload?.planejamento,
     });
-    if (
-      !sentPlan ||
-      sentPlan.revision !== descriptor.revision ||
-      computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest
-    ) {
+    const invalid =
+      descriptor.state === 'active'
+        ? !sentPlan ||
+          sentPlan.ativo !== true ||
+          sentPlan.revision !== descriptor.revision ||
+          computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest
+        : (sentPlan && sentPlan.ativo === true) ||
+          (sentPlan && computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest);
+    if (invalid) {
       config.lastError = 'Envelope Reta Final nao corresponde ao plano local enviado.';
       config.hasPendingWrites = true;
       await markFirestoreSnapshotFailed(new Error(config.lastError));
@@ -1166,8 +1234,17 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     const sentPlan = getRetaFinalPayloadPlan({
       planejamento: pending.envelope?.payload?.planejamento,
     });
+    const basePlan =
+      clonePlan(sentPlan) ||
+      clonePlan(config.basePlan) || {
+        ativo: false,
+        tipo: 'reta_final',
+        schemaVersionRetaFinal: 2,
+        planId: descriptor.planId,
+        revision: descriptor.revision,
+      };
     Object.assign(config, {
-      basePlan: clonePlan(sentPlan),
+      basePlan,
       baseRevision: descriptor.revision,
       baseDigest: descriptor.digest,
       baseRemoteUpdatedAt: result.updatedAt,
@@ -1243,17 +1320,17 @@ export async function pullFromFirestore(forceOverwrite = false) {
         if (outcome.conflict) {
           await registerRetaFinalConflict(
             config,
-            { allowed: false, reason: outcome.conflict },
+            pullConflictDecision(outcome),
             pending,
             remote
           );
         }
         return false;
       }
+      if (outcome.applied !== true) return false;
       await yieldToUIWithBudget(50, performance.now());
       if (!forceOverwrite) {
-        await applyPulledRetaFinalState(outcome, remote, uid, 'pull');
-        return true;
+        return await applyPulledRetaFinalState(outcome, remote, uid, 'pull');
       }
 
       const preservedCfUrl = state.config?.cfUrl || null;
@@ -1411,23 +1488,24 @@ async function syncFirestoreNowUnlocked() {
       if (outcome.conflict) {
         await registerRetaFinalConflict(
           config,
-          { allowed: false, reason: outcome.conflict },
+          pullConflictDecision(outcome),
           null,
           remote
         );
       }
       return false;
     }
-    if (outcome.applied) {
-      await yieldToUIWithBudget(50, performance.now());
-      await applyPulledRetaFinalState(outcome, remote, uid, 'sync-now-pull');
-      const mergedPlan = getRetaFinalPayloadPlan(state);
-      const remoteDigest =
-        readRetaFinalSyncDescriptor(remote)?.digest ??
-        (remotePlan ? computeRetaFinalPlanDigest(remotePlan) : null);
-      if (mergedPlan && remoteDigest && computeRetaFinalPlanDigest(mergedPlan) === remoteDigest) {
-        return true;
-      }
+    if (outcome.applied !== true) return false;
+    await yieldToUIWithBudget(50, performance.now());
+    if (!(await applyPulledRetaFinalState(outcome, remote, uid, 'sync-now-pull'))) {
+      return false;
+    }
+    const mergedPlan = getRetaFinalPayloadPlan(state);
+    const remoteDigest =
+      readRetaFinalSyncDescriptor(remote)?.digest ??
+      (remotePlan ? computeRetaFinalPlanDigest(remotePlan) : null);
+    if (mergedPlan && remoteDigest && computeRetaFinalPlanDigest(mergedPlan) === remoteDigest) {
+      return true;
     }
   }
 
@@ -1497,20 +1575,37 @@ export async function mergeFromFirestore() {
     const remotePlan = getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento });
     const remoteHasDescriptor = Object.hasOwn(remote, 'retaFinalSync');
     if (localPlan || remotePlan || remoteHasDescriptor) {
+      const pending = await getPendingFirestoreSnapshot();
+      if (pending) {
+        await registerRetaFinalConflict(
+          config,
+          {
+            allowed: false,
+            reason: 'pending-outbox',
+            conflict: { type: RETA_FINAL_CONFLICT, cause: 'pending-outbox' },
+          },
+          pending,
+          remote
+        );
+        return false;
+      }
       const outcome = applyRetaFinalPull(remote, config, { force: false });
       if (!outcome.handled || outcome.conflict) {
         if (outcome.conflict) {
           await registerRetaFinalConflict(
             config,
-            { allowed: false, reason: outcome.conflict },
+            pullConflictDecision(outcome),
             null,
             remote
           );
         }
         return false;
       }
+      if (outcome.applied !== true) return false;
       await yieldToUIWithBudget(50, performance.now());
-      await applyPulledRetaFinalState(outcome, remote, uid, 'merge');
+      if (!(await applyPulledRetaFinalState(outcome, remote, uid, 'merge'))) {
+        return false;
+      }
       const mergedPlan = getRetaFinalPayloadPlan(state);
       const remoteDigest =
         readRetaFinalSyncDescriptor(remote)?.digest ??

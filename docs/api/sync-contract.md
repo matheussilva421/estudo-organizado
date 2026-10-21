@@ -80,6 +80,7 @@ newer planning revisions.
       "granularMerge": true,
       "guards": { "envelope": "rules-v2", "probe": 1 }
     },
+    "minRetainedRevision": 2,
     "removedBlockIds": ["blk-1"]
   }
 }
@@ -94,7 +95,8 @@ Remote write contract for `users/{uid}/snapshots/main`:
 
 - document with `retaFinalSync` rejects any write without the descriptor
 - `planId`, `lineageId` and `generation` are immutable for the lineage
-- an identical `revision` + `digest` + `state` is an idempotent replay
+- an identical `revision` + `digest` + `state` is an idempotent replay only when
+  `payload` and `payloadUpdatedAt` are byte-for-byte identical as well
 - an advance requires `revision == remote.revision + 1` and
   `baseRevision == remote.revision`
 - rollback, revision jumps, digest changes at the same revision, and lineage
@@ -102,6 +104,15 @@ Remote write contract for `users/{uid}/snapshots/main`:
 - adoption of a legacy document requires `baseRevision == 0`,
   `state == 'active'` and `baseRemoteUpdatedAt == remote.payloadUpdatedAt`
 - a create requires `baseRevision == 0` and `state == 'active'`
+
+Every descriptor-bearing write also validates the payload shape: an `active`
+descriptor must carry `payload.planejamento` as a map with `ativo == true`; a
+`retired` descriptor must not carry an active `planejamento`. This prevents a
+replay from swapping the payload while keeping the descriptor intact.
+
+When the base is older than `minRetainedRevision`, the client refuses the merge
+with `stale-base`. When `removedBlockIds` names a block, that block is filtered
+out of any proposed merge so an old base cannot resurrect it.
 
 Retirement uses the same advance path with `state: 'retired'`. A retired
 lineage may advance only as retired; a new plan with a different `planId`
@@ -129,6 +140,20 @@ an unknown lineage must be reconciled with the remote before writing.
 but for a descriptor-bearing document it still requires the exact remote
 revision as the base. A denied write becomes a `reta-final-conflict` with the
 local, remote and base plans preserved for human resolution.
+
+### Merge review and pending outbox
+
+An automatic pull never installs a merged plan as official state. The rules are:
+
+- `digest(local) == digest(base)` → fast-forward the remote plan (no local edits)
+- `digest(local) == digest(remote)` → no-op; preserve state, base and outbox
+- otherwise → `reta-final-conflict` with `cause: 'merge-review'` and a
+  `proposedPlan` filtered by `removedBlockIds`; the plan is not applied
+
+The human resolution belongs to a draft/checkpoint/commit flow. If the outbox
+has any pending snapshot, pull and merge return `pending-outbox` without
+applying state, clearing the base, or marking the snapshot synced. The pending
+outbox is preserved.
 
 ## Entity Sync
 

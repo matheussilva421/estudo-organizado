@@ -26,7 +26,6 @@ import {
   createFirestoreSnapshotEnvelope,
 } from './firestore-schema.js?v=8.37';
 import { mergeStudyStates } from './sync-center.js?v=8.37';
-import { getRetaFinalPlan } from './reta-final-protocol.js?v=8.37';
 
 function snapshotRef(db, uid) {
   return doc(db, 'users', uid, 'snapshots', FIRESTORE_SNAPSHOT_DOC_ID);
@@ -35,7 +34,9 @@ function snapshotRef(db, uid) {
 function containsRetaFinalV2(value) {
   if (!value || typeof value !== 'object') return false;
   if (Object.hasOwn(value, 'retaFinalSync')) return true;
-  return Boolean(getRetaFinalPlan(value) || getRetaFinalPlan(value.payload));
+  return [value.planejamento, value.payload?.planejamento].some(
+    (plan) => plan?.tipo === 'reta_final' && plan?.schemaVersionRetaFinal === 2
+  );
 }
 
 function blockRetaFinalMigration(report, side) {

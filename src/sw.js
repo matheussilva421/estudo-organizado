@@ -1,4 +1,4 @@
-const APP_VERSION = '9.43';
+const APP_VERSION = '9.44';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -69,6 +69,14 @@ const ASSET_PATHS = [
   './js/logic/reta-final-schedule.js',
   './js/logic/reta-final-schema.js',
   './js/logic/reta-final-drafts.js',
+  './js/logic/reta-final-merge.js',
+  './js/logic/reta-final-commands.js',
+  './js/logic/reta-final-catalog.js',
+  './js/logic/reta-final-events.js',
+  './js/logic/reta-final-history.js',
+  './js/logic/reta-final-priority.js',
+  './js/logic/reta-final-redistribution.js',
+  './js/logic/cycle-progress.js',
   './js/logic/reta-final.js',
   './js/logic/edital-import-core.js',
   './js/logic/disc.js',
@@ -90,6 +98,8 @@ const ASSET_PATHS = [
   './js/store/migrations.js',
   './js/store/indexeddb.js',
   './js/store/reta-final-draft-store.js',
+  './js/store/reta-final-commit.js',
+  './js/store/reta-final-history-store.js',
   './js/store/export-state.js',
   './js/store/normalize-state.js',
   './js/state/chart-state.js',
@@ -100,6 +110,12 @@ const ASSET_PATHS = [
   './js/sync/firestore-schema.js',
   './js/sync/firestore-sync-engine.js',
   './js/sync/sync-health.js',
+  './js/sync/sync-lock.js',
+  './js/sync/sync-yield.js',
+  './js/sync/sync-status-ui.js',
+  './js/sync/sync-planner.js',
+  './js/sync/sync-job-store.js',
+  './js/sync/entity-migration.js',
   './js/sync/sync-coordinator.js',
   './js/sync/sync-center.js',
   './js/sync/manual-sync.js',

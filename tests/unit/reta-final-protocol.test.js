@@ -422,7 +422,38 @@ describe('reta-final-protocol', () => {
 
       replay.retaFinalSync = { ...replay.retaFinalSync, digest: 'f'.repeat(32) };
       const denied = validateRetaFinalEnvelopeWrite({ envelope: replay, remoteEnvelope: remote });
-      expect(denied).toMatchObject({ allowed: false, reason: 'digest-mismatch' });
+      expect(denied).toMatchObject({ allowed: false, reason: 'replay-payload-mismatch' });
+    });
+
+    it('rejects an identical descriptor when the replay payload changed', () => {
+      const remote = envelope({ retaFinalSync: descriptor({ revision: 3, baseRevision: 2 }) });
+      const replay = envelope({ retaFinalSync: { ...remote.retaFinalSync } });
+      replay.payload = {
+        ...replay.payload,
+        planejamento: { ...replay.payload.planejamento, revision: 99 },
+      };
+      expect(validateRetaFinalEnvelopeWrite({ envelope: replay, remoteEnvelope: remote })).toMatchObject({
+        allowed: false,
+        reason: 'replay-payload-mismatch',
+      });
+
+      const timestampChanged = envelope({ retaFinalSync: { ...remote.retaFinalSync } });
+      timestampChanged.payloadUpdatedAt = '2026-10-20T13:00:00.000Z';
+      expect(
+        validateRetaFinalEnvelopeWrite({ envelope: timestampChanged, remoteEnvelope: remote })
+      ).toMatchObject({ allowed: false, reason: 'replay-payload-mismatch' });
+    });
+
+    it('keeps minRetainedRevision optional in the descriptor', () => {
+      const value = buildRetaFinalSyncDescriptor({
+        plan: plan(),
+        baseRevision: 2,
+        baseRemoteUpdatedAt: null,
+        deviceId: 'web-device1',
+        capabilities: CAPABILITIES,
+        minRetainedRevision: 1,
+      });
+      expect(value.minRetainedRevision).toBe(1);
     });
 
     it('rejects rollback and revision jumps', () => {

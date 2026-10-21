@@ -321,6 +321,18 @@ async function main() {
       })
     )
   );
+  results.push(
+    await expectDenied('v2 replay with changed payload', () => {
+      const changed = {
+        ...replay,
+        payload: {
+          ...replay.payload,
+          planejamento: { ...replay.payload.planejamento, revision: 99 },
+        },
+      };
+      return setDoc(doc(uidDb('uid-replay'), 'users', 'uid-replay', 'snapshots', 'main'), changed);
+    })
+  );
 
   // 4. Rollback and identity changes.
   await seed('uid-rollback', envelope({ revision: 3, baseRevision: 2 }));
@@ -395,6 +407,28 @@ async function main() {
         envelope({ revision: 1, baseRevision: 0, state: 'retired' })
       )
     )
+  );
+  await seed('uid-retired-active', envelope({ revision: 2, baseRevision: 1 }));
+  results.push(
+    await expectDenied('retired payload with active plan', () => {
+      const value = envelope({ revision: 3, baseRevision: 2, state: 'retired' });
+      value.payload.planejamento = plan({ revision: 3, ativo: true });
+      return setDoc(
+        doc(uidDb('uid-retired-active'), 'users', 'uid-retired-active', 'snapshots', 'main'),
+        value
+      );
+    })
+  );
+  await seed('uid-active-missing', envelope({ revision: 2, baseRevision: 1 }));
+  results.push(
+    await expectDenied('active descriptor without active plan', () => {
+      const value = envelope({ revision: 3, baseRevision: 2 });
+      delete value.payload.planejamento;
+      return setDoc(
+        doc(uidDb('uid-active-missing'), 'users', 'uid-active-missing', 'snapshots', 'main'),
+        value
+      );
+    })
   );
 
   // 7. Guard and owner scope.

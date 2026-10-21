@@ -29,6 +29,7 @@ const DESCRIPTOR_KEYS = new Set([
   'deviceId',
   'capabilities',
   'state',
+  'minRetainedRevision',
   'removedBlockIds',
 ]);
 
@@ -168,6 +169,12 @@ function assertDescriptor(value) {
   if (value.state !== 'active' && value.state !== 'retired') {
     throw descriptorError('state deve ser active ou retired.');
   }
+  if (
+    value.minRetainedRevision !== undefined &&
+    !isRevision(value.minRetainedRevision)
+  ) {
+    throw descriptorError('minRetainedRevision invalida.');
+  }
   if (value.removedBlockIds !== undefined) {
     if (!Array.isArray(value.removedBlockIds) || value.removedBlockIds.length > 200) {
       throw descriptorError('removedBlockIds invalido.');
@@ -197,6 +204,9 @@ function normalizeDescriptor(value) {
       guards: { ...value.capabilities.guards },
     },
   };
+  if (value.minRetainedRevision !== undefined) {
+    normalized.minRetainedRevision = value.minRetainedRevision;
+  }
   if (value.removedBlockIds) normalized.removedBlockIds = [...new Set(value.removedBlockIds)];
   return normalized;
 }
@@ -209,12 +219,15 @@ export function buildRetaFinalSyncDescriptor({
   deviceId,
   capabilities,
   state = 'active',
+  revision = plan?.revision,
+  minRetainedRevision,
 } = {}) {
   if (!record(plan)) throw descriptorError('plano ausente.');
   if (!isId(plan.planId)) throw descriptorError('planId invalido.');
   if (!isRevision(plan.revision)) throw descriptorError('revision invalida.');
+  if (!isRevision(revision)) throw descriptorError('revision invalida.');
   if (!isRevision(baseRevision)) throw descriptorError('baseRevision invalida.');
-  if (baseRevision > plan.revision) {
+  if (baseRevision > revision) {
     throw descriptorError('baseRevision nao pode exceder a revision local.');
   }
   if (!isId(deviceId)) throw descriptorError('deviceId invalido.');
@@ -227,7 +240,7 @@ export function buildRetaFinalSyncDescriptor({
     planId: plan.planId,
     lineageId: plan.planId,
     generation: Number.isSafeInteger(plan.generation) && plan.generation >= 1 ? plan.generation : 1,
-    revision: plan.revision,
+    revision,
     baseRevision,
     baseRemoteUpdatedAt,
     digest: computeRetaFinalPlanDigest(plan),
@@ -239,6 +252,12 @@ export function buildRetaFinalSyncDescriptor({
       guards: { ...capabilities.guards },
     },
   };
+  const retention =
+    minRetainedRevision ?? plan.minRetainedRevision ?? plan.retaFinal?.minRetainedRevision;
+  if (retention !== undefined) {
+    if (!isRevision(retention)) throw descriptorError('minRetainedRevision invalida.');
+    descriptor.minRetainedRevision = retention;
+  }
   if (Array.isArray(source)) {
     const removed = [...new Set(source.filter((id) => isId(id)))].slice(0, 200);
     if (removed.length) descriptor.removedBlockIds = removed;
@@ -329,10 +348,16 @@ export function validateRetaFinalEnvelopeWrite({ envelope, remoteEnvelope } = {}
   }
 
   if (incoming.revision === remote.revision) {
-    if (incoming.digest === remote.digest && incoming.state === remote.state) {
+    if (
+      incoming.digest === remote.digest &&
+      incoming.state === remote.state &&
+      envelope?.payloadUpdatedAt === remoteEnvelope?.payloadUpdatedAt &&
+      JSON.stringify(canonical(envelope?.payload)) ===
+        JSON.stringify(canonical(remoteEnvelope?.payload))
+    ) {
       return { allowed: true, reason: 'replay', conflict: null };
     }
-    return denied('digest-mismatch', incoming, remote, envelope, remoteEnvelope);
+    return denied('replay-payload-mismatch', incoming, remote, envelope, remoteEnvelope);
   }
   if (incoming.revision < remote.revision) {
     return denied('rollback', incoming, remote, envelope, remoteEnvelope);

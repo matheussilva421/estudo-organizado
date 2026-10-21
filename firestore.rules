@@ -36,6 +36,7 @@ service cloud.firestore {
           'deviceId',
           'capabilities',
           'state',
+          'minRetainedRevision',
           'removedBlockIds'
         ])
         && descriptor.keys().hasAll([
@@ -75,6 +76,13 @@ service cloud.firestore {
         && validRetaFinalCapabilities(descriptor.capabilities)
         && descriptor.state in ['active', 'retired']
         && (
+          !descriptor.keys().hasAny(['minRetainedRevision'])
+          || (
+            descriptor.minRetainedRevision is int
+            && descriptor.minRetainedRevision >= 0
+          )
+        )
+        && (
           !descriptor.keys().hasAny(['removedBlockIds'])
           || (
             descriptor.removedBlockIds is list
@@ -94,6 +102,33 @@ service cloud.firestore {
         && request.resource.data.checkedAt is string
         && request.resource.data.checkedAt.size() > 0
         && request.resource.data.checkedAt.size() <= 64;
+    }
+
+    function validRetaFinalPayloadState() {
+      return request.resource.data.payload is map
+        && (
+          (
+            request.resource.data.retaFinalSync.state == 'active'
+            && request.resource.data.payload.keys().hasAny(['planejamento'])
+            && request.resource.data.payload.planejamento is map
+            && request.resource.data.payload.planejamento.keys().hasAny(['ativo'])
+            && request.resource.data.payload.planejamento.ativo == true
+          )
+          || (
+            request.resource.data.retaFinalSync.state == 'retired'
+            && (
+              !request.resource.data.payload.keys().hasAny(['planejamento'])
+              || request.resource.data.payload.planejamento == null
+              || (
+                request.resource.data.payload.planejamento is map
+                && (
+                  !request.resource.data.payload.planejamento.keys().hasAny(['ativo'])
+                  || request.resource.data.payload.planejamento.ativo != true
+                )
+              )
+            )
+          )
+        );
     }
 
     function hasRetaFinalSync() {
@@ -136,6 +171,8 @@ service cloud.firestore {
                 request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision
                 && request.resource.data.retaFinalSync.digest == resource.data.retaFinalSync.digest
                 && request.resource.data.retaFinalSync.state == resource.data.retaFinalSync.state
+                && request.resource.data.payload == resource.data.payload
+                && request.resource.data.payloadUpdatedAt == resource.data.payloadUpdatedAt
               )
               || (
                 request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision + 1
@@ -170,7 +207,10 @@ service cloud.firestore {
       )
       && (
         !hasRetaFinalSync()
-        || validRetaFinalSyncDescriptor(request.resource.data.retaFinalSync)
+        || (
+          validRetaFinalSyncDescriptor(request.resource.data.retaFinalSync)
+          && validRetaFinalPayloadState()
+        )
       );
     }
 
