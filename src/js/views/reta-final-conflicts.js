@@ -286,12 +286,19 @@ export function removeRetaFinalConflict(targetState, conflictId) {
   }
 
   const merge = targetState.config.syncMergeConflicts;
-  if (!isRecord(merge) || !Array.isArray(merge.items)) return targetState;
+  const parent = targetState.config.firestoreSync?.conflict;
+  const container =
+    isRecord(merge) && Array.isArray(merge.items) && merge.items.length > 0
+      ? merge
+      : isRecord(parent) && Array.isArray(parent.items)
+        ? parent
+        : null;
+  if (!container) return targetState;
   const index = conflict.mergeIndex;
-  if (Number.isInteger(index) && index >= 0 && index < merge.items.length) {
-    merge.items.splice(index, 1);
+  if (Number.isInteger(index) && index >= 0 && index < container.items.length) {
+    container.items.splice(index, 1);
   } else {
-    merge.items = merge.items.filter(
+    container.items = container.items.filter(
       (item) =>
         !isRecord(item) ||
         item.planId !== conflict.planId ||
@@ -299,16 +306,19 @@ export function removeRetaFinalConflict(targetState, conflictId) {
         item.fieldPath !== conflict.fieldPath,
     );
   }
-  merge.total = merge.items.length;
-  if (merge.items.length === 0) {
+  container.total = container.items.length;
+  if (container.items.length > 0) return targetState;
+
+  if (container === merge) {
     delete targetState.config.syncMergeConflicts;
-    const parent = targetState.config.firestoreSync?.conflict;
     if (
       isRecord(parent) &&
       (parent.reason === "merge-collision" || Array.isArray(parent.items))
     ) {
       targetState.config.firestoreSync.conflict = null;
     }
+  } else {
+    targetState.config.firestoreSync.conflict = null;
   }
   return targetState;
 }
@@ -450,7 +460,7 @@ function renderConflictItem(item, index) {
   const manualHint =
     "Edite o JSON abaixo. Um plano inválido ou com referência quebrada não é gravado.";
   const remoteDisabled =
-    !item.resolvable || (item.source === "firestore" && !item.remotePlan);
+    !item.resolvable || (item.source === "firestore" && !item.remoteCompatible);
   const localDisabled = !item.resolvable;
   const manualDisabled =
     !item.resolvable || (item.source === "firestore" && !item.remoteCompatible);

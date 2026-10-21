@@ -339,7 +339,7 @@ describe("Reta Final conflict review view", () => {
     ]);
   });
 
-  it("normalizes a legacy merge-collision parent without syncMergeConflicts", () => {
+  it("normalizes a legacy merge-collision parent without syncMergeConflicts", async () => {
     const source = appState({
       extraConfig: {
         conflict: {
@@ -359,12 +359,26 @@ describe("Reta Final conflict review view", () => {
           ],
         },
       },
-      topConfig: { syncMergeConflicts: undefined },
     });
 
     const items = collectRetaFinalConflicts(source);
-    expect(items.filter((item) => item.source === "merge")).toHaveLength(1);
+    const mergeItems = items.filter((item) => item.source === "merge");
+    expect(mergeItems).toHaveLength(1);
     expect(() => renderRetaFinalConflictReview(source)).not.toThrow();
+
+    const idb = idbFor(source);
+    await resolveRetaFinalConflictAtomically({
+      db: idb.database,
+      conflictId: mergeItems[0].conflictId,
+      choice: "local",
+      expectedPlanId: "plan-1",
+      expectedRevision: source.planejamento.revision,
+      now: NOW,
+      deviceId: "device-a",
+    });
+    const persisted = readState(idb);
+    expect(persisted.config.firestoreSync.conflict).toBeNull();
+    expect(persisted.config.syncMergeConflicts).toBeUndefined();
   });
 
   it("removes only the requested conflict and preserves the other one", () => {
@@ -766,6 +780,32 @@ describe("resolveRetaFinalConflictAtomically", () => {
     ).rejects.toMatchObject({ code: "RETA_FINAL_CONFLICT" });
 
     expect(readState(idb)).toEqual(before);
+  });
+
+  it("refuses and disables remote/manual for a different plan lineage", async () => {
+    const conflict = firestoreConflict({
+      remotePlan: plan({ planId: "plan-2" }),
+    });
+    const source = appState({ conflict });
+    const idb = idbFor(source);
+    const before = readState(idb);
+
+    await expect(
+      resolveRetaFinalConflictAtomically({
+        db: idb.database,
+        conflictId: "reta-final:merge-review:plan-1:plan",
+        choice: "remote",
+        expectedPlanId: "plan-1",
+        expectedRevision: 4,
+        now: NOW,
+        deviceId: "device-a",
+      }),
+    ).rejects.toMatchObject({ code: "RETA_FINAL_CONFLICT" });
+    expect(readState(idb)).toEqual(before);
+
+    const html = renderRetaFinalConflictReview(source);
+    expect(html).toMatch(/value="remote"[^>]*disabled/);
+    expect(html).toMatch(/value="manual"[^>]*disabled/);
   });
 
   it("refuses a merge-field resolution when the current value changed", async () => {
