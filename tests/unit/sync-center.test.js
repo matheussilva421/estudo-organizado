@@ -764,3 +764,57 @@ describe('reconciliação do ciclo no merge (todo estudo conta)', () => {
     expect(merged.planejamento.sequencia[0].status).toBe('concluida');
   });
 });
+
+
+describe('mergeStudyStates — Reta Final v2 conservative sync', () => {
+  const block = (id, patch = {}) => ({
+    id, discId: 'disc_1', topicos: [{ assId: 'ass_1', aulaId: null }],
+    minutos: 60, dataPlanejada: '2026-10-20', dataOriginal: '2026-10-20',
+    ordem: 0, status: 'pendente', ...patch,
+  });
+  const plan = (blocos, patch = {}) => ({
+    ativo: true, tipo: 'reta_final', planId: 'rf-sync-plan',
+    schemaVersionRetaFinal: 2, revision: 4,
+    updatedAt: '2026-10-19T10:00:00.000Z', disciplinas: ['disc_1'],
+    retaFinal: { dataFinal: '2026-12-31', minutosPadrao: 60, blocos },
+    ...patch,
+  });
+
+  it('merges same-plan v2 edits from config.firestoreSync.basePlan', () => {
+    const basePlan = plan([block('a')]);
+    const local = {
+      planejamento: plan([block('a', { dataPlanejada: '2026-10-22' })]),
+      config: { firestoreSync: { basePlan } },
+    };
+    const remote = { planejamento: plan([block('a'), block('b')]), eventos: [] };
+    const merged = mergeStudyStates(local, remote);
+    expect(merged.planejamento.retaFinal.blocos).toHaveLength(2);
+    expect(merged.planejamento.retaFinal.blocos[0].dataPlanejada).toBe('2026-10-22');
+    expect(merged.config.syncMergeConflicts).toBeUndefined();
+  });
+
+  it('keeps the local plan and reports missing-base and lineage conflicts', () => {
+    const localPlan = plan([block('a', { minutos: 90 })]);
+    const remotePlan = plan([block('a', { minutos: 120 })], { revision: 9 });
+    const missing = mergeStudyStates({ planejamento: localPlan }, { planejamento: remotePlan });
+    expect(missing.planejamento.retaFinal.blocos[0].minutos).toBe(90);
+    expect(missing.config.syncMergeConflicts.items).toContainEqual(
+      expect.objectContaining({ fieldPath: '$base', blockId: null })
+    );
+
+    const different = mergeStudyStates(
+      { planejamento: localPlan },
+      { planejamento: plan([block('a', { minutos: 120 })], { planId: 'other', revision: 9 }) }
+    );
+    expect(different.planejamento.planId).toBe('rf-sync-plan');
+    expect(different.config.syncMergeConflicts.items).toContainEqual(
+      expect.objectContaining({ fieldPath: 'planId', blockId: null })
+    );
+  });
+
+  it('keeps cycle plans on the existing updatedAt LWW path', () => {
+    const local = { planejamento: { ativo: true, tipo: 'ciclo', updatedAt: '2026-10-19', sequencia: [{ id: 's', status: 'pendente' }] } };
+    const remote = { planejamento: { ativo: true, tipo: 'ciclo', updatedAt: '2026-10-20', sequencia: [{ id: 's', status: 'pulada' }] } };
+    expect(mergeStudyStates(local, remote).planejamento.sequencia[0].status).toBe('pulada');
+  });
+});

@@ -1,6 +1,7 @@
 import { deriveSyncHealthState, summarizeSyncMetrics } from './sync-health.js?v=8.37';
 import { getEnvelopeUpdatedAt, getLocalContentUpdatedAt } from './firestore-schema.js?v=8.37';
 import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
+import { mergeRetaFinalPlans } from '../logic/reta-final-merge.js';
 import { reconcileRetaFinalWithEvents } from '../logic/reta-final-core.js';
 
 const SOURCE_ORDER = ['local', 'firebase', 'cloudflare', 'drive'];
@@ -406,36 +407,18 @@ export function buildSyncCenterModel({ state, firestoreStatus = {}, getFirestore
   };
 }
 
-export function mergeStudyStates(localState = {}, remoteState = {}) {
+export function mergeStudyStates(localState = {}, remoteState = {}, options = {}) {
   const merged = {
     ...remoteState,
     ...localState,
-    config: {
-      ...(remoteState.config || {}),
-      ...(localState.config || {}),
-    },
+    config: { ...(remoteState.config || {}), ...(localState.config || {}) },
   };
-
   const tombstones = mergeTombstones(localState.syncTombstones, remoteState.syncTombstones);
   merged.syncTombstones = tombstones;
-
-  // Planejamento é singleton: o spread acima deixa o LOCAL vencer sempre, então
-  // mudanças de plano (etapa pulada/concluída, sequência editada) nunca
-  // propagariam. LWW pelo planejamento.updatedAt (gravado em toda mutação real
-  // do plano); sem o campo nos dois lados, o local segue vencendo (clientes
-  // antigos, comportamento anterior).
-  const remotePlan = remoteState.planejamento;
-  if (remotePlan && toTime(remotePlan.updatedAt) > toTime(localState.planejamento?.updatedAt)) {
-    merged.planejamento = remotePlan;
-    // Arquivar/restaurar (Reta Final) é mutação atômica com o plano: o
-    // planejamentoArquivado segue o lado cujo plano venceu o LWW.
-    merged.planejamentoArquivado = remoteState.planejamentoArquivado ?? null;
-  }
 
   for (const key of ['editais', 'eventos', 'arquivo', 'revisoes']) {
     merged[key] = mergeById(localState[key], remoteState[key], buildTombstoneIndex(tombstones, key));
   }
-
   const habitTypes = new Set([
     ...Object.keys(remoteState.habitos || {}),
     ...Object.keys(localState.habitos || {}),
@@ -445,22 +428,73 @@ export function mergeStudyStates(localState = {}, remoteState = {}) {
     merged.habitos[type] = mergeById(
       localState.habitos?.[type],
       remoteState.habitos?.[type],
-      buildTombstoneIndex(tombstones, `habitos.${type}`)
+      buildTombstoneIndex(tombstones, 'habitos.' + type)
     );
   }
 
+  const localPlan = localState.planejamento;
+  const remotePlan = remoteState.planejamento;
+  const isActiveV2 = (plan) =>
+    plan?.ativo === true && plan.tipo === 'reta_final' && plan.schemaVersionRetaFinal === 2;
+  const bothV2 = isActiveV2(localPlan) && isActiveV2(remotePlan);
+  let mergeAttempted = false;
+  let conflicts = [];
+
+  if (bothV2 && localPlan.planId && localPlan.planId === remotePlan.planId) {
+    mergeAttempted = true;
+    const firestoreBase = (config) => {
+      const sync = config?.firestoreSync || {};
+      const candidate = sync.basePlan ?? sync.baseMetadata ?? sync.base ?? null;
+      const plan = candidate?.planejamento ?? candidate?.plan ?? candidate;
+      return plan?.tipo === 'reta_final' ? plan : null;
+    };
+    const basePlan = options?.basePlan ?? firestoreBase(localState.config) ?? firestoreBase(remoteState.config);
+    const result = mergeRetaFinalPlans({
+      basePlan,
+      localPlan,
+      remotePlan,
+      events: merged.eventos,
+      catalog: merged.editais?.length ? merged.editais : undefined,
+    });
+    merged.planejamento = result.plan;
+    conflicts = result.conflicts;
+    merged.planejamentoArquivado =
+      localState.planejamentoArquivado ?? remoteState.planejamentoArquivado ?? null;
+  } else if (bothV2) {
+    conflicts = [{
+      planId: localPlan.planId || remotePlan.planId || null,
+      blockId: null,
+      fieldPath: 'planId',
+      base: null,
+      local: localPlan.planId || null,
+      remote: remotePlan.planId || null,
+      reason: 'As versões v2 locais pertencem a identidades de plano diferentes.',
+    }];
+    merged.planejamento = localPlan;
+    merged.planejamentoArquivado = localState.planejamentoArquivado ?? null;
+  } else if (remotePlan && toTime(remotePlan.updatedAt) > toTime(localPlan?.updatedAt)) {
+    merged.planejamento = remotePlan;
+    merged.planejamentoArquivado = Object.hasOwn(remoteState, 'planejamentoArquivado')
+      ? remoteState.planejamentoArquivado
+      : localState.planejamentoArquivado ?? null;
+  }
+
   merged.config.localBackupAt = new Date().toISOString();
-  delete merged.config.syncMergeConflicts;
+  if (conflicts.length) {
+    merged.config.syncMergeConflicts = {
+      type: 'reta-final-three-way',
+      detectedAt: merged.config.localBackupAt,
+      total: conflicts.length,
+      items: conflicts,
+    };
+  } else {
+    delete merged.config.syncMergeConflicts;
+  }
 
-  // O status auto-derivado das etapas (autoConcluida) é uma view materializada
-  // dos eventos: após mesclar eventos e decidir o plano por LWW, re-deriva o
-  // status sobre o resultado. Isso converge entre dispositivos sem disputar
-  // autoria do plano (não altera planejamento.updatedAt).
-  reconcileSequenceWithEvents(merged.planejamento, merged.eventos);
-  // Mesmo princípio para a Reta Final: status dos blocos (concluido) é
-  // re-derivado dos eventos mesclados, sem disputar autoria do plano.
-  reconcileRetaFinalWithEvents(merged.planejamento, merged.eventos);
-
+  if (!mergeAttempted && conflicts.length === 0) {
+    reconcileSequenceWithEvents(merged.planejamento, merged.eventos);
+    reconcileRetaFinalWithEvents(merged.planejamento, merged.eventos);
+  }
   return merged;
 }
 
