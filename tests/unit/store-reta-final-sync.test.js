@@ -275,6 +275,7 @@ describe('mergeStudyStates — Reta Final v2 archive and history', () => {
     };
     const local = createBaseState({
       planejamento: makePlan({ dataPlanejada: '2026-10-22' }, 5),
+      editais: [{ id: 'ed-1', disciplinas: [{ id: 'disc_1', assuntos: [{ id: 'ass_1' }], aulas: [] }] }],
       eventos: [event], revisoes: [history],
       planejamentoArquivado: createArquivado(),
       config: { firestoreSync: { basePlan } },

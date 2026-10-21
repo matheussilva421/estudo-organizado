@@ -449,12 +449,15 @@ export function mergeStudyStates(localState = {}, remoteState = {}, options = {}
       return plan?.tipo === 'reta_final' ? plan : null;
     };
     const basePlan = options?.basePlan ?? firestoreBase(localState.config) ?? firestoreBase(remoteState.config);
+    // A missing editais list is passed explicitly as null so the merge records
+    // an unresolved catalog conflict instead of treating references as valid.
+    const catalog = Array.isArray(merged.editais) && merged.editais.length ? merged.editais : null;
     const result = mergeRetaFinalPlans({
       basePlan,
       localPlan,
       remotePlan,
       events: merged.eventos,
-      catalog: merged.editais?.length ? merged.editais : undefined,
+      catalog,
     });
     merged.planejamento = result.plan;
     conflicts = result.conflicts;

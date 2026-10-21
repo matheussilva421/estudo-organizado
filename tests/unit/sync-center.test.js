@@ -779,11 +779,16 @@ describe('mergeStudyStates — Reta Final v2 conservative sync', () => {
     retaFinal: { dataFinal: '2026-12-31', minutosPadrao: 60, blocos },
     ...patch,
   });
+  const catalog = () => [{
+    id: 'ed-1',
+    disciplinas: [{ id: 'disc_1', assuntos: [{ id: 'ass_1' }], aulas: [] }],
+  }];
 
   it('merges same-plan v2 edits from config.firestoreSync.basePlan', () => {
     const basePlan = plan([block('a')]);
     const local = {
       planejamento: plan([block('a', { dataPlanejada: '2026-10-22' })]),
+      editais: catalog(),
       config: { firestoreSync: { basePlan } },
     };
     const remote = { planejamento: plan([block('a'), block('b')]), eventos: [] };
@@ -791,6 +796,19 @@ describe('mergeStudyStates — Reta Final v2 conservative sync', () => {
     expect(merged.planejamento.retaFinal.blocos).toHaveLength(2);
     expect(merged.planejamento.retaFinal.blocos[0].dataPlanejada).toBe('2026-10-22');
     expect(merged.config.syncMergeConflicts).toBeUndefined();
+  });
+
+  it('reports unresolved catalog integrity when editais is absent', () => {
+    const basePlan = plan([block('a')]);
+    const local = {
+      planejamento: plan([block('a', { dataPlanejada: '2026-10-22' })]),
+      config: { firestoreSync: { basePlan } },
+    };
+    const remote = { planejamento: plan([block('a')]), eventos: [] };
+    const merged = mergeStudyStates(local, remote);
+    expect(merged.config.syncMergeConflicts.items).toContainEqual(
+      expect.objectContaining({ fieldPath: '$catalog', blockId: null })
+    );
   });
 
   it('keeps the local plan and reports missing-base and lineage conflicts', () => {

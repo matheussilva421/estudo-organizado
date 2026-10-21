@@ -28,12 +28,19 @@ function freezeDeep(value) {
   return Object.freeze(value);
 }
 
+const validCatalog = () => [{
+  id: 'ed-1',
+  disciplinas: [{ id: 'disc_1', assuntos: [{ id: 'ass_1' }], aulas: [] }],
+}];
+
 describe('mergeRetaFinalPlans', () => {
   it('combines a local move of block A with a remote creation of block B', () => {
     const basePlan = plan([block('a')]);
     const localPlan = plan([block('a', { dataPlanejada: '2026-10-22', status: 'nao_coberto' })], { revision: 5 });
     const remotePlan = plan([block('a'), block('b')], { revision: 5 });
-    const result = mergeRetaFinalPlans({ basePlan, localPlan, remotePlan, events: [] });
+    const result = mergeRetaFinalPlans({
+      basePlan, localPlan, remotePlan, events: [], catalog: validCatalog(),
+    });
     expect(result.valid).toBe(true);
     expect(result.conflicts).toEqual([]);
     expect(result.plan.retaFinal.blocos.map((item) => item.id)).toEqual(['a', 'b']);
@@ -46,6 +53,7 @@ describe('mergeRetaFinalPlans', () => {
       localPlan: plan([block('a', { minutos: 90 })]),
       remotePlan: plan([block('a', { minutos: 120 })]),
       events: [],
+      catalog: validCatalog(),
     });
     expect(result.valid).toBe(false);
     expect(result.plan.retaFinal.blocos[0].minutos).toBe(90);
@@ -61,6 +69,7 @@ describe('mergeRetaFinalPlans', () => {
       localPlan: plan([block('a', { arquivado: true })]),
       remotePlan: plan([block('a', { observacao: 'remote edit' })]),
       events: [],
+      catalog: validCatalog(),
     });
     expect(result.conflicts).toContainEqual(expect.objectContaining({
       blockId: 'a', fieldPath: 'arquivado', reason: expect.stringMatching(/arquiv/i),
@@ -75,12 +84,42 @@ describe('mergeRetaFinalPlans', () => {
       localPlan: plan([block('a', { minutos: 90 })], { operations: ops, pendingOperations: pending }),
       remotePlan: plan([block('a', { minutos: 90 })], { operations: ops, pendingOperations: pending }),
       events: [],
+      catalog: validCatalog(),
     });
     expect(result.appliedOperationIds).toEqual(['op-1', 'op-2']);
     expect(result.plan.operations).toHaveLength(1);
     expect(result.plan.pendingOperations).toHaveLength(1);
     expect(result.plan.retaFinal.blocos).toHaveLength(1);
     expect(result.plan.retaFinal.blocos[0].minutos).toBe(90);
+  });
+
+  it('retains an operationId in operations once when pendingOperations repeats it', () => {
+    const applied = { operationId: 'op-shared', type: 'PATCH', source: 'operations' };
+    const pending = { operationId: 'op-shared', type: 'PATCH', source: 'pending' };
+    const result = mergeRetaFinalPlans({
+      basePlan: plan([block('a')]),
+      localPlan: plan([block('a', { minutos: 90 })], { operations: [applied] }),
+      remotePlan: plan([block('a', { minutos: 90 })], { pendingOperations: [pending] }),
+      events: [],
+      catalog: validCatalog(),
+    });
+    expect(result.plan.operations).toEqual([applied]);
+    expect(result.plan.pendingOperations ?? []).toEqual([]);
+    expect(result.appliedOperationIds).toEqual(['op-shared']);
+  });
+
+  it('blocks merging when catalog integrity cannot be established', () => {
+    const result = mergeRetaFinalPlans({
+      basePlan: plan([block('a')]),
+      localPlan: plan([block('a')]),
+      remotePlan: plan([block('a')]),
+      events: [],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.conflicts).toContainEqual(expect.objectContaining({
+      fieldPath: '$catalog', blockId: null,
+      reason: expect.stringMatching(/cat[aá]logo/i),
+    }));
   });
 
   it('blocks a missing base, a different lineage, and delete versus edit', () => {
@@ -96,6 +135,7 @@ describe('mergeRetaFinalPlans', () => {
       localPlan: plan([]),
       remotePlan: plan([block('a', { observacao: 'edited' })]),
       events: [],
+      catalog: validCatalog(),
     });
     expect(missing.conflicts[0]).toMatchObject({ fieldPath: '$base', blockId: null });
     expect(missing.plan.retaFinal.blocos[0].minutos).toBe(90);
@@ -115,7 +155,9 @@ describe('mergeRetaFinalPlans', () => {
       data: '2026-10-20', tempoAcumulado: 5400, titulo: 'History',
     }]);
     const before = stable({ basePlan, localPlan, remotePlan, events });
-    const result = mergeRetaFinalPlans({ basePlan, localPlan, remotePlan, events });
+    const result = mergeRetaFinalPlans({
+      basePlan, localPlan, remotePlan, events, catalog: validCatalog(),
+    });
     expect(result.plan.retaFinal.blocos[0].status).toBe('concluido');
     expect(stable({ basePlan, localPlan, remotePlan, events })).toBe(before);
     expect(events[0].tempoAcumulado).toBe(5400);
@@ -128,6 +170,7 @@ describe('mergeRetaFinalPlans', () => {
       localPlan: plan([block('a')], opts),
       remotePlan: plan([block('a'), block('b')], opts),
       events: [],
+      catalog: validCatalog(),
     });
     expect(result.conflicts).toContainEqual(expect.objectContaining({
       fieldPath: 'retaFinal.capacidade', reason: expect.stringMatching(/capacidade/i),
@@ -138,8 +181,12 @@ describe('mergeRetaFinalPlans', () => {
     const basePlan = plan([block('a'), block('b')]);
     const localPlan = plan([block('a', { dataPlanejada: '2026-10-22', status: 'nao_coberto' }), block('b')]);
     const remotePlan = plan([block('a', { status: 'atrasado' }), block('b', { prioridade: 4, rolagens: 2 }), block('c')]);
-    const first = mergeRetaFinalPlans({ basePlan, localPlan, remotePlan, events: [] });
-    const second = mergeRetaFinalPlans({ basePlan, localPlan: remotePlan, remotePlan: localPlan, events: [] });
+    const first = mergeRetaFinalPlans({
+      basePlan, localPlan, remotePlan, events: [], catalog: validCatalog(),
+    });
+    const second = mergeRetaFinalPlans({
+      basePlan, localPlan: remotePlan, remotePlan: localPlan, events: [], catalog: validCatalog(),
+    });
     expect(first.conflicts).toEqual([]);
     expect(stable(first.plan)).toBe(stable(second.plan));
   });
@@ -177,5 +224,33 @@ describe('mergeRetaFinalPlans lineage identity', () => {
     const result = mergeRetaFinalPlans({ basePlan, localPlan, remotePlan, events: [] });
     expect(result.valid).toBe(false);
     expect(result.conflicts[0]).toMatchObject({ fieldPath: 'planId', blockId: null });
+  });
+
+  it('blocks a missing local plan instead of throwing', () => {
+    const basePlan = plan([block('a')]);
+    const remotePlan = plan([block('a')]);
+    const result = mergeRetaFinalPlans({
+      basePlan, localPlan: null, remotePlan, events: [], catalog: validCatalog(),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.conflicts[0]).toMatchObject({
+      fieldPath: '$plan', blockId: null, side: 'local',
+      local: null, remote: expect.any(Object),
+    });
+    expect(result.plan).toEqual(remotePlan);
+  });
+
+  it('blocks a missing remote plan instead of throwing', () => {
+    const basePlan = plan([block('a')]);
+    const localPlan = plan([block('a')]);
+    const result = mergeRetaFinalPlans({
+      basePlan, localPlan, remotePlan: null, events: [], catalog: validCatalog(),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.conflicts[0]).toMatchObject({
+      fieldPath: '$plan', blockId: null, side: 'remote',
+      local: expect.any(Object), remote: null,
+    });
+    expect(result.plan).toEqual(localPlan);
   });
 });

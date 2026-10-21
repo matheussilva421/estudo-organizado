@@ -44,11 +44,13 @@ function idsFrom(plans) {
   }
   return [...ids].sort();
 }
-function mergeCollection(key, plans, conflicts, planId) {
+function mergeCollection(key, plans, conflicts, planId, claimedIds) {
   const lists = plans.map((plan) => Array.isArray(plan?.[key]) ? plan[key] : []);
   const ids = new Set(lists.flat().map((item) => item?.operationId).filter((id) => typeof id === 'string' && id.trim()));
   const result = [];
   for (const id of [...ids].sort()) {
+    if (claimedIds.has(id)) continue;
+    claimedIds.add(id);
     const [base, local, remote] = lists.map((list) => list.find((item) => item?.operationId === id));
     if (local && remote && !equal(local, remote)) {
       conflicts.push(conflict(planId, null, key + '[' + id + ']', base, local, remote,
@@ -157,9 +159,18 @@ function validateCapacity(plan, sources, conflicts) {
   }
 }
 function validateCatalog(plan, catalog, sources, conflicts) {
-  if (!Array.isArray(catalog) || !catalog.length) return;
-  const disciplines = catalog.flatMap((notice) => Array.isArray(notice?.disciplinas) ? notice.disciplinas : []);
   const [base, local, remote] = sources;
+  if (!Array.isArray(catalog) || !catalog.length) {
+    conflicts.push(conflict(plan.planId, null, '$catalog', null, null, null,
+      'O catálogo é obrigatório para validar as referências da Reta Final.', { unresolved: true }));
+    return;
+  }
+  const disciplines = catalog.flatMap((notice) => Array.isArray(notice?.disciplinas) ? notice.disciplinas : []);
+  if (!disciplines.length) {
+    conflicts.push(conflict(plan.planId, null, '$catalog', null, null, null,
+      'O catálogo não contém disciplinas para validar as referências da Reta Final.', { unresolved: true }));
+    return;
+  }
   for (const block of plan.retaFinal.blocos) {
     const matches = disciplines.filter((item) => item?.id === block.discId);
     if (matches.length !== 1 || (plan.disciplinas?.length && !plan.disciplinas.includes(block.discId))) {
@@ -199,9 +210,17 @@ function blocked(localPlan, remotePlan, conflicts, plans = []) {
 export function mergeRetaFinalPlans({ basePlan, localPlan, remotePlan, events = [], catalog } = {}) {
   const planId = localPlan?.planId || remotePlan?.planId || basePlan?.planId || null;
   const sources = [basePlan, localPlan, remotePlan];
-  if (!basePlan) return blocked(localPlan, remotePlan, [
+  if (!record(basePlan)) return blocked(localPlan, remotePlan, [
     conflict(planId, null, '$base', null, localPlan, remotePlan, 'A base verificada é obrigatória para mesclar uma Reta Final v2.')
   ], sources);
+  if (!record(localPlan) || !record(remotePlan)) {
+    const missingSides = [!record(localPlan) ? 'local' : null, !record(remotePlan) ? 'remote' : null].filter(Boolean);
+    return blocked(localPlan, remotePlan, [
+      conflict(planId, null, '$plan', basePlan, localPlan, remotePlan,
+        'Os planos local e remoto precisam existir para mesclar uma Reta Final v2.',
+        { side: missingSides.length === 1 ? missingSides[0] : missingSides }),
+    ], sources);
+  }
   if ([basePlan.planId, localPlan.planId, remotePlan.planId].some((id) => typeof id !== 'string' || !id.trim()) || ![basePlan.planId, localPlan.planId, remotePlan.planId].every((id) => id === basePlan.planId)) {
     return blocked(localPlan, remotePlan, [
       conflict(planId, null, 'planId', basePlan.planId, localPlan.planId, remotePlan.planId,
@@ -247,7 +266,12 @@ export function mergeRetaFinalPlans({ basePlan, localPlan, remotePlan, events = 
   merged.revision = Math.max(basePlan.revision, localPlan.revision, remotePlan.revision);
   merged.updatedAt = [localPlan.updatedAt, remotePlan.updatedAt].filter((value) => typeof value === 'string')
     .sort((a, b) => (Date.parse(a) || 0) - (Date.parse(b) || 0) || a.localeCompare(b)).at(-1) || null;
-  for (const key of COLLECTIONS) merged[key] = mergeCollection(key, sources, conflicts, planId);
+  // "operations" is authoritative when the same operationId also appears in
+  // "pendingOperations"; the duplicate is retained only once across both.
+  const claimedOperationIds = new Set();
+  for (const key of COLLECTIONS) {
+    merged[key] = mergeCollection(key, sources, conflicts, planId, claimedOperationIds);
+  }
   const operationIds = idsFrom(sources);
   if (operationIds.length) merged.operationIds = operationIds;
   else delete merged.operationIds;
