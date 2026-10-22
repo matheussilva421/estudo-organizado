@@ -9,6 +9,7 @@ Atualizado em 2026-10-22.
 - Base documental: 101b1fc (plano) e b54b650 (spec)
 - main de referência: eb8cc6c
 - HEAD após Fase E: 258fa5c
+ - HEAD documental: bae42e7
 - Worktree atual: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
 
 ## Regras preservadas

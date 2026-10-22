@@ -4,6 +4,7 @@
 
 - Branch: codex/reta-final-editor-fase-a
 - HEAD: 258fa5c
+ - HEAD documental: bae42e7
 - Base: 69278ee (fim da Fase D)
 - main: eb8cc6c (não alterada)
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado

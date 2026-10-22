@@ -6,6 +6,8 @@ Data da execução: 2026-10-22
 
 - Branch: codex/reta-final-editor-fase-a
 - HEAD: 258fa5c (Fase E + correções da revisão)
+ - Código: 258fa5c (Fase E + correções da revisão)
+ - Documentação: bae42e7
 - main de referência: eb8cc6c
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
 - Spec: b54b650 · Plano: 101b1fc
