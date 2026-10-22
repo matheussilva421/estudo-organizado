@@ -147,6 +147,21 @@ async function bootEditor(page) {
   await expect(page.locator('[data-action="rf-open-detail"]').first()).toBeVisible();
 }
 
+async function bootEditorMobile(page) {
+  await page.addInitScript((state) => {
+    window.Chart = class {
+      destroy() {}
+    };
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('estudo_state', JSON.stringify(state));
+  }, editorState());
+  await page.goto('/');
+  await page.locator('[data-action="toggle-sidebar"]').tap();
+  await page.locator('[data-view="ciclo"]').tap();
+  await expect(page.locator('[data-action="rf-open-detail"]').first()).toBeVisible();
+}
+
 test.describe('Reta Final — editor inteligente', () => {
   test('abre o assunto completo, escapa HTML e fecha com Escape', async ({ page }) => {
     await bootEditor(page);
@@ -185,5 +200,25 @@ test.describe('Reta Final — editor inteligente', () => {
     await expect(page.locator('[data-rf-plan-count]')).toHaveText('2 selecionado(s)');
     await page.locator('[data-action="rf-plan-select-all"]').click();
     await expect(page.locator('[data-rf-plan-count]')).toHaveText('3 selecionado(s)');
+  });
+});
+
+test.describe('Reta Final — mobile e toque', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test('detalhe e planejamento abrem com alvos de toque de 44px', async ({ page }) => {
+    await bootEditorMobile(page);
+    await page.locator('[data-action="rf-open-detail"]').first().tap();
+    const panel = page.locator('[data-rf-detail-panel]');
+    await expect(panel).toBeVisible();
+    const closeBox = await panel
+      .locator('[data-action="rf-close-detail"]')
+      .first()
+      .boundingBox();
+    expect(closeBox?.height || 0).toBeGreaterThanOrEqual(44);
+    await page.keyboard.press('Escape');
+    await page.locator('[data-action="rf-open-planner"]').tap();
+    await expect(page.locator('[data-rf-planner]')).toBeVisible();
+    await expect(page.locator('[data-action="rf-plan-preview"]')).toBeVisible();
   });
 });

@@ -5,6 +5,7 @@
 - Branch: codex/reta-final-editor-fase-a
 - Código: 258fa5c
 - Correção de rolagem: 5cffee4
+- Checkpoints/importação: 66e9adc · Capacidade: d3b744e
 - Documentação: bae42e7
 - Base: 69278ee (fim da Fase D)
 - main: eb8cc6c (não alterada)
@@ -53,14 +54,12 @@
 
 ## Testes
 
-- npm test: 172 arquivos, 2844 testes, PASS.
- - npm test: 174 arquivos, 2858 testes, PASS.
+- npm test: 174 arquivos, 2858 testes, PASS.
 - npm run test:design: 45 testes + contraste AA, PASS.
 - npm run lint: 0 erros.
-- E2E release: 160/161; falha preexistente em reta-final.spec.js:120.
- - E2E release: 161/161 PASS.
-- E2E editor: 3/3 PASS.
-- bump:check: 9.58, PASS.
+- E2E release: 162/162 PASS.
+- E2E editor: 4/4 PASS (inclui mobile/touch).
+- bump:check: PASS.
 - format:check: falha preexistente em 193 arquivos.
 - Regras Firestore no emulador: 38/38 PASS; sem deploy real.
 
@@ -71,9 +70,6 @@
 
 ## Pendências
 
-1. Falha E2E de rolagens legadas: data muda, rolagens fica 0. Reproduzida em
-   69278ee; decidir se o contador deve ser derivado no v2 ou se o teste legado
-   deve mudar.
 1. Revisão visual manual dos oito temas em desktop, tablet e mobile.
 2. Publicar firestore.rules em ambiente controlado e provar a barreira remota.
 3. UI de exceções/folgas (capacidade semanal e fixação já cobertas).
