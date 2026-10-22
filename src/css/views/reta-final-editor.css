@@ -304,3 +304,31 @@
 .rf-checkpoint-actions .btn {
   min-height: 44px;
 }
+
+/* Capacidade semanal (Task 16) */
+.rf-capacity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rf-capacity-grid label,
+.rf-capacity-max {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rf-capacity-grid input,
+.rf-capacity-max input {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+}

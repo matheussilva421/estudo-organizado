@@ -215,6 +215,7 @@ export function renderRetaFinalPlanner(draft, options = {}) {
     '<button type="button" class="btn btn-ghost btn-sm" data-action="rf-plan-duplicate">Duplicar</button>' +
     '<button type="button" class="btn btn-ghost btn-sm" data-action="rf-plan-archive">Arquivar</button>' +
     '<button type="button" class="btn btn-ghost btn-sm" data-action="rf-plan-redistribute">Redistribuir</button>' +
+    '<button type="button" class="btn btn-ghost btn-sm" data-action="rf-plan-capacity">Capacidade</button>' +
     '<button type="button" class="btn btn-primary btn-sm" data-action="rf-plan-preview">Prévia e aplicar</button>' +
     "</div>" +
     (days.length
@@ -224,4 +225,79 @@ export function renderRetaFinalPlanner(draft, options = {}) {
       : '<div class="config-desc">Nenhum bloco visível com o filtro atual.</div>') +
     "</section>"
   );
+}
+
+const WEEKDAYS = [
+  ["0", "Domingo"],
+  ["1", "Segunda"],
+  ["2", "Terça"],
+  ["3", "Quarta"],
+  ["4", "Quinta"],
+  ["5", "Sexta"],
+  ["6", "Sábado"],
+];
+
+/** Formulário mínimo de capacidade semanal usado pela redistribuição. */
+export function renderRetaFinalCapacityForm(draft) {
+  const retaFinal = draft?.snapshot?.retaFinal || {};
+  const capacity = retaFinal.capacidade || {};
+  const byWeekday = capacity.minutosPorDiaSemana || {};
+  const padrao = Number(retaFinal.minutosPadrao) || 0;
+  return (
+    '<section class="rf-capacity-form" data-rf-capacity-form>' +
+    '<header class="rf-planner-header"><div><div class="rf-detail-eyebrow">Capacidade</div>' +
+    '<h3 class="rf-detail-title" id="rf-detail-title">Minutos por dia</h3></div></header>' +
+    '<p class="config-desc">A redistribuição usa estes limites. Zero significa dia livre. Nenhum dia é presumido quando falta fonte.</p>' +
+    '<div class="rf-capacity-grid">' +
+    WEEKDAYS.map(
+      ([value, label]) =>
+        '<label>' +
+        esc(label) +
+        '<input type="number" min="0" step="1" name="cap-' +
+        value +
+        '" value="' +
+        esc(String(byWeekday[value] ?? padrao)) +
+        '"></label>',
+    ).join("") +
+    "</div>" +
+    '<label class="rf-capacity-max">Máximo diário (opcional)<input type="number" min="0" step="1" name="cap-max" value="' +
+    esc(
+      capacity.maximoDiario === undefined
+        ? ""
+        : String(capacity.maximoDiario),
+    ) +
+    '"></label>' +
+    '<footer class="rf-detail-actions">' +
+    '<button type="button" class="btn btn-ghost" data-action="rf-plan-capacity-back">Voltar</button>' +
+    '<button type="button" class="btn btn-primary" data-action="rf-plan-capacity-save">Salvar capacidade no rascunho</button>' +
+    "</footer>" +
+    "</section>"
+  );
+}
+
+/** Constrói a capacidade validada a partir dos valores do formulário. */
+export function buildRetaFinalCapacity(values = {}, maximoDiario) {
+  const minutosPorDiaSemana = {};
+  for (const [day] of WEEKDAYS) {
+    const minutes = Number(values[day]);
+    if (!Number.isSafeInteger(minutes) || minutes < 0) {
+      return {
+        valid: false,
+        errors: ["Minutos do dia " + day + " devem ser inteiros não negativos."],
+      };
+    }
+    minutosPorDiaSemana[day] = minutes;
+  }
+  const capacity = { minutosPorDiaSemana };
+  if (maximoDiario !== "" && maximoDiario != null) {
+    const max = Number(maximoDiario);
+    if (!Number.isSafeInteger(max) || max < 0) {
+      return {
+        valid: false,
+        errors: ["Máximo diário deve ser inteiro não negativo."],
+      };
+    }
+    capacity.maximoDiario = max;
+  }
+  return { valid: true, capacity, errors: [] };
 }

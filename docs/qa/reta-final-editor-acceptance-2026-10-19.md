@@ -24,7 +24,7 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 
 | Comando | Resultado |
 | --- | --- |
-| npm test -- --reporter=dot | PASS — 174 arquivos, 2855 testes |
+| npm test -- --reporter=dot | PASS — 174 arquivos, 2858 testes |
 | npm run test:design | PASS — 45 testes CSS + contraste AA nos oito temas |
 | npm run lint | PASS — 0 erros (avisos de estilo preexistentes) |
 | npm run test:e2e:release | PASS — 161/161 |
@@ -43,7 +43,7 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 | 13 | DONE | 428191d e correções até 69278ee; task-13-report |
 | 14 | DONE | 258fa5c; reta-final-detail-view (12) + E2E |
 | 15 | DONE | 258fa5c; reta-final-editor-form (15) + E2E reload |
-| 16 | DONE com residual | 258fa5c + restauração de checkpoint; residual: UI de capacidade/fixação |
+| 16 | DONE com residual | 258fa5c + restauração de checkpoint; residual: exceções/folgas sem UI; capacidade semanal e fixação cobertas |
 | 17 | DONE | 258fa5c + seleção por entrada e archive opt-in; apply-preview (11) |
 | 18 | DONE local / BLOCKED remoto | gates locais verdes; deploy remoto e revisão visual manual pendentes |
 
@@ -77,5 +77,5 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 ## Limitações registradas
 
 - Firestore real, multi-dispositivo e offline físico não foram executados.
-- Capacidade/fixação ainda não têm UI dedicada; o motor segue coberto por testes.
+- Capacidade semanal, máximo diário e fixação já têm UI; exceções por data e folgas seguem sem tela dedicada.
 - format:check falha no baseline; não foi introduzido por esta entrega.

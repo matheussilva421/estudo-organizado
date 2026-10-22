@@ -3,7 +3,12 @@ import {
   computeRetaFinalSelection,
   createBulkRetaFinalCommand,
 } from "../../src/js/views/reta-final-bulk-actions.js";
-import { renderRetaFinalPlanner } from "../../src/js/views/reta-final-planner.js";
+import {
+  buildRetaFinalCapacity,
+  renderRetaFinalCapacityForm,
+  renderRetaFinalPlanner,
+} from "../../src/js/views/reta-final-planner.js";
+import { proposeRetaFinalRedistribution } from "../../src/js/logic/reta-final-redistribution.js";
 import { createRetaFinalDraft, appendRetaFinalDraftOperation } from "../../src/js/logic/reta-final-drafts.js";
 
 const HOJE = "2026-10-22";
@@ -95,6 +100,62 @@ describe("computeRetaFinalSelection", () => {
     });
     expect(selection.ids).toEqual(["rf-1", "rf-2", "rf-3"]);
     expect(selection.mode).toBe("all");
+  });
+});
+
+describe("capacidade semanal", () => {
+  it("renderiza os valores persistidos", () => {
+    const draft = createRetaFinalDraft(plan(blocks()), {
+      draftId: "draft-1",
+      now: AGORA,
+    });
+    draft.snapshot.retaFinal.capacidade = {
+      minutosPorDiaSemana: { 0: 30, 1: 60, 2: 90, 3: 120, 4: 150, 5: 180, 6: 210 },
+      maximoDiario: 240,
+    };
+    const html = renderRetaFinalCapacityForm(draft);
+    expect(html).toContain('name="cap-0" value="30"');
+    expect(html).toContain('name="cap-6" value="210"');
+    expect(html).toContain('name="cap-max" value="240"');
+    expect(html).toContain('data-action="rf-plan-capacity-save"');
+  });
+
+  it("valida minutos inteiros e máximo diário", () => {
+    const values = { 0: "0", 1: "60", 2: "60", 3: "60", 4: "60", 5: "60", 6: "60" };
+    expect(buildRetaFinalCapacity(values, "120")).toEqual({
+      valid: true,
+      capacity: {
+        minutosPorDiaSemana: { 0: 0, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 },
+        maximoDiario: 120,
+      },
+      errors: [],
+    });
+    expect(buildRetaFinalCapacity({ ...values, 3: "-1" }, "").valid).toBe(false);
+    expect(buildRetaFinalCapacity(values, "-5").valid).toBe(false);
+  });
+
+  it("capacidade no draft habilita a redistribuição", () => {
+    const draft = createRetaFinalDraft(plan(blocks()), {
+      draftId: "draft-1",
+      now: AGORA,
+    });
+    const capacity = {
+      minutosPorDiaSemana: { 0: 120, 1: 120, 2: 120, 3: 120, 4: 120, 5: 120, 6: 120 },
+    };
+    const result = appendRetaFinalDraftOperation(
+      draft,
+      {
+        operationId: "cap-1",
+        type: "SET_CAPACITY",
+        input: { capacidade: capacity },
+      },
+      { today: HOJE, events: [], catalog: catalog() },
+    );
+    expect(result.valid).toBe(true);
+    const proposal = proposeRetaFinalRedistribution(result.draft.snapshot, {
+      today: HOJE,
+    });
+    expect(proposal.valid).toBe(true);
   });
 });
 

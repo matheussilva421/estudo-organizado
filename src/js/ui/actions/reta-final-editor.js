@@ -28,7 +28,11 @@ import {
   computeRetaFinalSelection,
   createBulkRetaFinalCommand,
 } from "../../views/reta-final-bulk-actions.js";
-import { renderRetaFinalPlanner } from "../../views/reta-final-planner.js";
+import {
+  buildRetaFinalCapacity,
+  renderRetaFinalCapacityForm,
+  renderRetaFinalPlanner,
+} from "../../views/reta-final-planner.js";
 import { proposeRetaFinalRedistribution } from "../../logic/reta-final-redistribution.js";
 import {
   beginRetaFinalDialog,
@@ -676,6 +680,48 @@ export function registerRetaFinalEditorActions() {
 
   registerAction("rf-plan-duplicate", (el) => runBulk(el, "DUPLICATE", {}));
   registerAction("rf-plan-archive", (el) => runBulk(el, "ARCHIVE", {}));
+  registerAction("rf-plan-capacity", (el) => {
+    const session = plannerFrom(el);
+    if (!session) return;
+    session.capacityForm = true;
+    mountPlannerPanel(session);
+  });
+
+  registerAction("rf-plan-capacity-back", (el) => {
+    const session = plannerFrom(el);
+    if (!session) return;
+    session.capacityForm = false;
+    mountPlannerPanel(session);
+  });
+
+  registerAction("rf-plan-capacity-save", async (el) => {
+    const session = plannerFrom(el);
+    if (!session) return;
+    const panel = el.closest("[data-rf-detail-panel]");
+    const values = {};
+    for (const day of ["0", "1", "2", "3", "4", "5", "6"]) {
+      values[day] = panel?.querySelector('input[name="cap-' + day + '"]')?.value;
+    }
+    const maximo = panel?.querySelector('input[name="cap-max"]')?.value;
+    const built = buildRetaFinalCapacity(values, maximo);
+    if (!built.valid) {
+      showToast(built.errors[0], "error");
+      return;
+    }
+    const result = await applyCommand(session, {
+      operationId: "rf-capacity-" + uid(),
+      type: "SET_CAPACITY",
+      input: { capacidade: built.capacity },
+    });
+    if (!result.valid) {
+      showToast(result.errors[0]?.message || "Capacidade recusada.", "error");
+      return;
+    }
+    session.capacityForm = false;
+    mountPlannerPanel(session);
+    showToast("Capacidade salva no rascunho.", "success");
+  });
+
   registerAction("rf-plan-redistribute", async (el) => {
     const session = plannerFrom(el);
     if (!session) return;
@@ -758,12 +804,14 @@ function mountPlannerPanel(session) {
     (session.stale
       ? '<div class="restore-preview-warning" role="alert">Rascunho criado para outra revisão do plano. <button type="button" class="btn btn-ghost btn-sm" data-action="rf-editor-restart">Recomeçar rascunho</button></div>'
       : "") +
-    renderRetaFinalPlanner(session.draft, {
-      today: session.today,
-      catalog: session.editais,
-      filter: session.filter,
-      selection,
-    });
+    (session.capacityForm
+      ? renderRetaFinalCapacityForm(session.draft)
+      : renderRetaFinalPlanner(session.draft, {
+          today: session.today,
+          catalog: session.editais,
+          filter: session.filter,
+          selection,
+        }));
   const root = panel.querySelector("[data-rf-planner]");
   if (root) {
     root.dataset.planId = session.plan.planId;
