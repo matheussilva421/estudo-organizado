@@ -6,7 +6,7 @@ Data da execução: 2026-10-22
 
 - Branch: codex/reta-final-editor-fase-a
 - Código: 258fa5c (Fase E + correções da revisão)
-- Correção final de rolagem e empilhamento: incluída no commit desta rodada
+- Correção final de rolagem e empilhamento: 5cffee4
 - Documentação anterior: bae42e7
 - main de referência: eb8cc6c
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
