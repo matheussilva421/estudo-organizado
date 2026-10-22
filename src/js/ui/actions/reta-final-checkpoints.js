@@ -78,7 +78,12 @@ export function restoreRetaFinalCheckpoint(checkpoint, options = {}) {
     return {
       valid: false,
       draft,
-      errors: [{ code: "RESTORE_CONTEXT_MISSING", message: "Plano ou rascunho ausente." }],
+      errors: [
+        {
+          code: "RESTORE_CONTEXT_MISSING",
+          message: "Plano ou rascunho ausente.",
+        },
+      ],
     };
   }
   const checkpointBlocks = checkpoint?.plan?.retaFinal?.blocos || [];
@@ -97,11 +102,12 @@ export function restoreRetaFinalCheckpoint(checkpoint, options = {}) {
   if (proposal.diagnostics.length) {
     return { valid: false, draft, proposal, errors: proposal.diagnostics };
   }
-  const appended = appendRestoreOperationsToDraft(
-    draft,
-    proposal.operations,
-    { events, catalog, activeTimerIds, today },
-  );
+  const appended = appendRestoreOperationsToDraft(draft, proposal.operations, {
+    events,
+    catalog,
+    activeTimerIds,
+    today,
+  });
   if (!appended.valid) return { ...appended, proposal };
   return { valid: true, draft: appended.draft, proposal, errors: [] };
 }
@@ -145,7 +151,11 @@ function mountPanel(session) {
 /** Abre a lista de checkpoints do plano atual. */
 export async function openRetaFinalCheckpoints(options = {}) {
   const plan = options.plan || state.planejamento;
-  if (!plan?.ativo || plan.tipo !== "reta_final" || plan.schemaVersionRetaFinal !== 2) {
+  if (
+    !plan?.ativo ||
+    plan.tipo !== "reta_final" ||
+    plan.schemaVersionRetaFinal !== 2
+  ) {
     throw new Error("Os checkpoints exigem uma Reta Final v2 ativa.");
   }
   const db = options.db || storeDb;
@@ -179,7 +189,10 @@ export function registerRetaFinalCheckpointActions() {
     return openRetaFinalCheckpoints()
       .then(() => true)
       .catch((error) => {
-        showToast(error.message || "Não foi possível abrir os checkpoints.", "error");
+        showToast(
+          error.message || "Não foi possível abrir os checkpoints.",
+          "error",
+        );
         return false;
       });
   });
@@ -206,13 +219,17 @@ export function registerRetaFinalCheckpointActions() {
     const { session, panel } = checkpointFrom(el);
     if (!session?.current) return;
     const checked = [
-      ...(panel?.querySelectorAll('input[name="rf-restore-block"]:checked') || []),
+      ...(panel?.querySelectorAll('input[name="rf-restore-block"]:checked') ||
+        []),
     ].map((input) => input.value);
     if (!checked.length) {
       showToast("Selecione ao menos um bloco para restaurar.", "error");
       return;
     }
-    let draft = await loadRetaFinalDraft(session.db, editorDraftId(session.plan));
+    let draft = await loadRetaFinalDraft(
+      session.db,
+      editorDraftId(session.plan),
+    );
     if (!draft || draft.state !== "editing") {
       draft = createRetaFinalDraft(session.plan, {
         draftId: editorDraftId(session.plan),

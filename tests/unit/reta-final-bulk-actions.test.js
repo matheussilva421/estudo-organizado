@@ -9,7 +9,10 @@ import {
   renderRetaFinalPlanner,
 } from "../../src/js/views/reta-final-planner.js";
 import { proposeRetaFinalRedistribution } from "../../src/js/logic/reta-final-redistribution.js";
-import { createRetaFinalDraft, appendRetaFinalDraftOperation } from "../../src/js/logic/reta-final-drafts.js";
+import {
+  createRetaFinalDraft,
+  appendRetaFinalDraftOperation,
+} from "../../src/js/logic/reta-final-drafts.js";
 
 const HOJE = "2026-10-22";
 const AGORA = "2026-10-22T12:00:00.000Z";
@@ -73,7 +76,11 @@ function catalog() {
 function blocks() {
   return [
     block("rf-1", { ordem: 0 }),
-    block("rf-2", { ordem: 1, dataPlanejada: "2026-10-23", data: "2026-10-23" }),
+    block("rf-2", {
+      ordem: 1,
+      dataPlanejada: "2026-10-23",
+      data: "2026-10-23",
+    }),
     block("rf-3", {
       discId: "disc-2",
       topicos: [{ assId: "ass-2", aulaId: null }],
@@ -110,18 +117,39 @@ describe("capacidade semanal", () => {
       now: AGORA,
     });
     draft.snapshot.retaFinal.capacidade = {
-      minutosPorDiaSemana: { 0: 30, 1: 60, 2: 90, 3: 120, 4: 150, 5: 180, 6: 210 },
+      minutosPorDiaSemana: {
+        0: 30,
+        1: 60,
+        2: 90,
+        3: 120,
+        4: 150,
+        5: 180,
+        6: 210,
+      },
       maximoDiario: 240,
+      folgas: [0, 6],
+      excecoesPorData: { "2026-10-30": 0 },
     };
     const html = renderRetaFinalCapacityForm(draft);
     expect(html).toContain('name="cap-0" value="30"');
     expect(html).toContain('name="cap-6" value="210"');
     expect(html).toContain('name="cap-max" value="240"');
+    expect(html).toContain('name="folga" value="0" checked');
+    expect(html).toContain("data-exception-row");
+    expect(html).toContain('value="2026-10-30"');
     expect(html).toContain('data-action="rf-plan-capacity-save"');
   });
 
   it("valida minutos inteiros e máximo diário", () => {
-    const values = { 0: "0", 1: "60", 2: "60", 3: "60", 4: "60", 5: "60", 6: "60" };
+    const values = {
+      0: "0",
+      1: "60",
+      2: "60",
+      3: "60",
+      4: "60",
+      5: "60",
+      6: "60",
+    };
     expect(buildRetaFinalCapacity(values, "120")).toEqual({
       valid: true,
       capacity: {
@@ -130,8 +158,50 @@ describe("capacidade semanal", () => {
       },
       errors: [],
     });
-    expect(buildRetaFinalCapacity({ ...values, 3: "-1" }, "").valid).toBe(false);
+    expect(buildRetaFinalCapacity({ ...values, 3: "-1" }, "").valid).toBe(
+      false,
+    );
     expect(buildRetaFinalCapacity(values, "-5").valid).toBe(false);
+  });
+
+  it("valida folgas e exceções por data", () => {
+    const values = {
+      0: "0",
+      1: "60",
+      2: "60",
+      3: "60",
+      4: "60",
+      5: "60",
+      6: "0",
+    };
+    const result = buildRetaFinalCapacity(values, "", {
+      folgas: [0, 6],
+      excecoes: { "2026-10-30": "30" },
+    });
+    expect(result.valid).toBe(true);
+    expect(result.capacity.folgas).toEqual([0, 6]);
+    expect(result.capacity.excecoesPorData).toEqual({ "2026-10-30": 30 });
+    expect(
+      buildRetaFinalCapacity(values, "", {
+        excecoes: { "2026-02-31": "30" },
+      }).valid,
+    ).toBe(false);
+    expect(buildRetaFinalCapacity(values, "", { folgas: [7] }).valid).toBe(
+      false,
+    );
+    expect(
+      buildRetaFinalCapacity(values, "", {
+        excecoes: [{ date: "2026-10-30", minutes: "" }],
+      }).valid,
+    ).toBe(false);
+    expect(
+      buildRetaFinalCapacity(values, "", {
+        excecoes: [
+          { date: "2026-10-30", minutes: "30" },
+          { date: "2026-10-30", minutes: "45" },
+        ],
+      }).valid,
+    ).toBe(false);
   });
 
   it("capacidade no draft habilita a redistribuição", () => {
@@ -140,7 +210,15 @@ describe("capacidade semanal", () => {
       now: AGORA,
     });
     const capacity = {
-      minutosPorDiaSemana: { 0: 120, 1: 120, 2: 120, 3: 120, 4: 120, 5: 120, 6: 120 },
+      minutosPorDiaSemana: {
+        0: 120,
+        1: 120,
+        2: 120,
+        3: 120,
+        4: 120,
+        5: 120,
+        6: 120,
+      },
     };
     const result = appendRetaFinalDraftOperation(
       draft,
@@ -166,13 +244,13 @@ describe("createBulkRetaFinalCommand", () => {
       selection,
       "MOVE",
       { targetDate: "2026-10-30" },
-      { operationId: "op-1" }
+      { operationId: "op-1" },
     );
     const keyboard = createBulkRetaFinalCommand(
       selection,
       "MOVE",
       { targetDate: "2026-10-30" },
-      { operationId: "op-1" }
+      { operationId: "op-1" },
     );
     expect(drag).toEqual(keyboard);
     expect(drag.command).toEqual({
@@ -184,22 +262,40 @@ describe("createBulkRetaFinalCommand", () => {
   });
 
   it("rejects empty selections and invalid inputs", () => {
-    expect(createBulkRetaFinalCommand({ ids: [] }, "MOVE", { targetDate: HOJE }).valid).toBe(false);
-    expect(createBulkRetaFinalCommand({ ids: ["rf-1"] }, "MOVE", { targetDate: "2026-02-31" }).valid).toBe(false);
-    expect(createBulkRetaFinalCommand({ ids: ["rf-1"] }, "SET_DURATION", { minutos: 0 }).valid).toBe(false);
-    expect(createBulkRetaFinalCommand({ ids: ["rf-1"] }, "SET_PRIORITY", { prioridade: 9 }).valid).toBe(false);
+    expect(
+      createBulkRetaFinalCommand({ ids: [] }, "MOVE", { targetDate: HOJE })
+        .valid,
+    ).toBe(false);
+    expect(
+      createBulkRetaFinalCommand({ ids: ["rf-1"] }, "MOVE", {
+        targetDate: "2026-02-31",
+      }).valid,
+    ).toBe(false);
+    expect(
+      createBulkRetaFinalCommand({ ids: ["rf-1"] }, "SET_DURATION", {
+        minutos: 0,
+      }).valid,
+    ).toBe(false);
+    expect(
+      createBulkRetaFinalCommand({ ids: ["rf-1"] }, "SET_PRIORITY", {
+        prioridade: 9,
+      }).valid,
+    ).toBe(false);
   });
 });
 
 describe("atomic bulk application in the draft", () => {
   it("rejects the whole batch when one target has an active timer", () => {
-    const draft = createRetaFinalDraft(plan(blocks()), { draftId: "draft-1", now: AGORA });
+    const draft = createRetaFinalDraft(plan(blocks()), {
+      draftId: "draft-1",
+      now: AGORA,
+    });
     const snapshot = JSON.stringify(draft.snapshot);
     const command = createBulkRetaFinalCommand(
       { ids: ["rf-1", "rf-2"] },
       "MOVE",
       { targetDate: "2026-10-30" },
-      { operationId: "op-1" }
+      { operationId: "op-1" },
     ).command;
     const result = appendRetaFinalDraftOperation(draft, command, {
       catalog: catalog(),
@@ -213,13 +309,18 @@ describe("atomic bulk application in the draft", () => {
   });
 
   it("duplicates many blocks without cloning study events", () => {
-    const draft = createRetaFinalDraft(plan(blocks()), { draftId: "draft-1", now: AGORA });
-    const events = [{ id: "ev-1", rfBlocoId: "rf-1", status: "estudei", tempoAcumulado: 900 }];
+    const draft = createRetaFinalDraft(plan(blocks()), {
+      draftId: "draft-1",
+      now: AGORA,
+    });
+    const events = [
+      { id: "ev-1", rfBlocoId: "rf-1", status: "estudei", tempoAcumulado: 900 },
+    ];
     const command = createBulkRetaFinalCommand(
       { ids: ["rf-1", "rf-2"] },
       "DUPLICATE",
       {},
-      { operationId: "op-dup" }
+      { operationId: "op-dup" },
     ).command;
     let generated = 0;
     const result = appendRetaFinalDraftOperation(draft, command, {
@@ -230,7 +331,7 @@ describe("atomic bulk application in the draft", () => {
     });
     expect(result.valid).toBe(true);
     const copies = result.draft.snapshot.retaFinal.blocos.filter((item) =>
-      item.id.startsWith("copy-")
+      item.id.startsWith("copy-"),
     );
     expect(copies).toHaveLength(2);
     expect(copies.every((item) => item.status === "pendente")).toBe(true);
@@ -241,14 +342,23 @@ describe("atomic bulk application in the draft", () => {
 
 describe("renderRetaFinalPlanner", () => {
   it("renders day groups, selection state and bulk actions", () => {
-    const draft = createRetaFinalDraft(plan(blocks()), { draftId: "draft-1", now: AGORA });
+    const draft = createRetaFinalDraft(plan(blocks()), {
+      draftId: "draft-1",
+      now: AGORA,
+    });
     const html = renderRetaFinalPlanner(draft, {
       today: HOJE,
       catalog: catalog(),
       filter: { discId: "disc-1" },
-      selection: { ids: ["rf-1"], visibleBlockIds: ["rf-1", "rf-2"], allBlockIds: ["rf-1", "rf-2", "rf-3"], count: 1, mode: "visible" },
+      selection: {
+        ids: ["rf-1"],
+        visibleBlockIds: ["rf-1", "rf-2"],
+        allBlockIds: ["rf-1", "rf-2", "rf-3"],
+        count: 1,
+        mode: "visible",
+      },
     });
-    expect(html).toContain('data-rf-planner');
+    expect(html).toContain("data-rf-planner");
     expect(html).toContain('data-rf-plan-day="2026-10-22"');
     expect(html).toContain('data-rf-plan-day="2026-10-23"');
     expect(html).toContain("Selecionar visíveis (2)");

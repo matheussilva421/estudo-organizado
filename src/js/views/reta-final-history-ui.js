@@ -26,7 +26,8 @@ export function renderRetaFinalOperations(operations = []) {
     '<ul class="rf-operation-list">' +
     operations
       .map((operation, index) => {
-        const label = TYPE_LABEL[operation?.type] || operation?.type || "Operação";
+        const label =
+          TYPE_LABEL[operation?.type] || operation?.type || "Operação";
         const blocks = Array.isArray(operation?.blockIds)
           ? operation.blockIds.join(", ")
           : "";
@@ -38,7 +39,7 @@ export function renderRetaFinalOperations(operations = []) {
           '<li class="rf-operation-item" data-operation-index="' +
           index +
           '">' +
-          '<div><strong>' +
+          "<div><strong>" +
           esc(label) +
           "</strong>" +
           '<span class="rf-operation-meta">revisão ' +

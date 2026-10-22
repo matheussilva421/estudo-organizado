@@ -237,12 +237,30 @@ const WEEKDAYS = [
   ["6", "Sábado"],
 ];
 
+export function renderCapacityExceptionRow(date = "", minutes = "") {
+  return (
+    '<div class="rf-capacity-exception" data-exception-row>' +
+    '<label>Data<input type="date" name="exc-date" value="' +
+    esc(date) +
+    '"></label>' +
+    '<label>Minutos<input type="number" min="0" step="1" name="exc-minutos" value="' +
+    esc(String(minutes)) +
+    '"></label>' +
+    '<button type="button" class="btn btn-ghost btn-sm" data-action="rf-plan-capacity-remove-exception" aria-label="Remover exceção ' +
+    esc(date || "sem data") +
+    '">✕</button>' +
+    "</div>"
+  );
+}
+
 /** Formulário mínimo de capacidade semanal usado pela redistribuição. */
 export function renderRetaFinalCapacityForm(draft) {
   const retaFinal = draft?.snapshot?.retaFinal || {};
   const capacity = retaFinal.capacidade || {};
   const byWeekday = capacity.minutosPorDiaSemana || {};
   const padrao = Number(retaFinal.minutosPadrao) || 0;
+  const folgas = Array.isArray(capacity.folgas) ? capacity.folgas : [];
+  const excecoes = capacity.excecoesPorData || {};
   return (
     '<section class="rf-capacity-form" data-rf-capacity-form>' +
     '<header class="rf-planner-header"><div><div class="rf-detail-eyebrow">Capacidade</div>' +
@@ -251,7 +269,7 @@ export function renderRetaFinalCapacityForm(draft) {
     '<div class="rf-capacity-grid">' +
     WEEKDAYS.map(
       ([value, label]) =>
-        '<label>' +
+        "<label>" +
         esc(label) +
         '<input type="number" min="0" step="1" name="cap-' +
         value +
@@ -262,11 +280,30 @@ export function renderRetaFinalCapacityForm(draft) {
     "</div>" +
     '<label class="rf-capacity-max">Máximo diário (opcional)<input type="number" min="0" step="1" name="cap-max" value="' +
     esc(
-      capacity.maximoDiario === undefined
-        ? ""
-        : String(capacity.maximoDiario),
+      capacity.maximoDiario === undefined ? "" : String(capacity.maximoDiario),
     ) +
     '"></label>' +
+    '<fieldset class="rf-capacity-holidays"><legend>Folgas (dias sem estudo)</legend>' +
+    WEEKDAYS.map(
+      ([value, label]) =>
+        '<label><input type="checkbox" name="folga" value="' +
+        value +
+        '"' +
+        (folgas.includes(Number(value)) ? " checked" : "") +
+        "> " +
+        esc(label) +
+        "</label>",
+    ).join("") +
+    "</fieldset>" +
+    '<fieldset class="rf-capacity-exceptions"><legend>Exceções por data</legend>' +
+    "<div data-exception-list>" +
+    Object.entries(excecoes)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([date, minutes]) => renderCapacityExceptionRow(date, minutes))
+      .join("") +
+    "</div>" +
+    '<button type="button" class="btn btn-ghost btn-sm" data-action="rf-plan-capacity-add-exception">Adicionar exceção</button>' +
+    "</fieldset>" +
     '<footer class="rf-detail-actions">' +
     '<button type="button" class="btn btn-ghost" data-action="rf-plan-capacity-back">Voltar</button>' +
     '<button type="button" class="btn btn-primary" data-action="rf-plan-capacity-save">Salvar capacidade no rascunho</button>' +
@@ -276,14 +313,16 @@ export function renderRetaFinalCapacityForm(draft) {
 }
 
 /** Constrói a capacidade validada a partir dos valores do formulário. */
-export function buildRetaFinalCapacity(values = {}, maximoDiario) {
+export function buildRetaFinalCapacity(values = {}, maximoDiario, extra = {}) {
   const minutosPorDiaSemana = {};
   for (const [day] of WEEKDAYS) {
     const minutes = Number(values[day]);
     if (!Number.isSafeInteger(minutes) || minutes < 0) {
       return {
         valid: false,
-        errors: ["Minutos do dia " + day + " devem ser inteiros não negativos."],
+        errors: [
+          "Minutos do dia " + day + " devem ser inteiros não negativos.",
+        ],
       };
     }
     minutosPorDiaSemana[day] = minutes;
@@ -299,5 +338,66 @@ export function buildRetaFinalCapacity(values = {}, maximoDiario) {
     }
     capacity.maximoDiario = max;
   }
+  const folgas = Array.isArray(extra.folgas) ? [...new Set(extra.folgas)] : [];
+  if (folgas.some((day) => !Number.isInteger(day) || day < 0 || day > 6)) {
+    return { valid: false, errors: ["Folgas devem usar dias 0-6."] };
+  }
+  if (folgas.length) capacity.folgas = folgas;
+  const excecoes = Array.isArray(extra.excecoes)
+    ? extra.excecoes.map((item) => [
+        String(item?.date || "").trim(),
+        item?.minutes,
+      ])
+    : Object.entries(extra.excecoes || {}).map(([date, minutes]) => [
+        String(date).trim(),
+        minutes,
+      ]);
+  const normalizedExcecoes = {};
+  const seenDates = new Set();
+  for (const [date, rawMinutes] of excecoes) {
+    if (!date && (rawMinutes === "" || rawMinutes == null)) continue;
+    if (!date) {
+      return { valid: false, errors: ["Informe a data da exceção."] };
+    }
+    if (seenDates.has(date)) {
+      return { valid: false, errors: ["Data de exceção duplicada: " + date + "."] };
+    }
+    seenDates.add(date);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return {
+        valid: false,
+        errors: ["Data de exceção inválida: " + date + "."],
+      };
+    }
+    const [year, month, day] = date.split("-").map(Number);
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (month < 1 || month > 12 || day < 1 || day > days[month - 1]) {
+      return {
+        valid: false,
+        errors: ["Data de exceção inválida: " + date + "."],
+      };
+    }
+    if (String(rawMinutes).trim() === "") {
+      return {
+        valid: false,
+        errors: [
+          "Informe os minutos da exceção " +
+            date +
+            " (use 0 para folga).",
+        ],
+      };
+    }
+    const minutes = Number(rawMinutes);
+    if (!Number.isSafeInteger(minutes) || minutes < 0) {
+      return {
+        valid: false,
+        errors: ["Minutos da exceção " + date + " inválidos."],
+      };
+    }
+    normalizedExcecoes[date] = minutes;
+  }
+  if (Object.keys(normalizedExcecoes).length)
+    capacity.excecoesPorData = normalizedExcecoes;
   return { valid: true, capacity, errors: [] };
 }

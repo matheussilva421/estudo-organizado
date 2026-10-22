@@ -48,10 +48,10 @@ export function renderRetaFinalCheckpointList(checkpoints = []) {
           '"' +
           (invalid ? ' disabled aria-disabled="true"' : "") +
           ">" +
-          '<strong>' +
+          "<strong>" +
           esc(checkpointLabel(checkpoint)) +
           "</strong>" +
-          '<span>' +
+          "<span>" +
           esc(
             "revisão " +
               (checkpoint?.revision ?? "?") +

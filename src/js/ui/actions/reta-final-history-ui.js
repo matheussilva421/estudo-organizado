@@ -104,7 +104,11 @@ function mountPanel(session) {
 
 export async function openRetaFinalHistory(options = {}) {
   const plan = options.plan || state.planejamento;
-  if (!plan?.ativo || plan.tipo !== "reta_final" || plan.schemaVersionRetaFinal !== 2) {
+  if (
+    !plan?.ativo ||
+    plan.tipo !== "reta_final" ||
+    plan.schemaVersionRetaFinal !== 2
+  ) {
     throw new Error("O histórico exige uma Reta Final v2 ativa.");
   }
   const db = options.db || storeDb;
@@ -157,7 +161,10 @@ async function applyHistoryAction(el, action) {
   try {
     await saveRetaFinalDraft(session.db, result.draft);
   } catch (error) {
-    showToast(error?.message || "Falha ao salvar o rascunho de histórico.", "error");
+    showToast(
+      error?.message || "Falha ao salvar o rascunho de histórico.",
+      "error",
+    );
     return;
   }
   closeRetaFinalBlockDetail(session.doc || document);
@@ -178,7 +185,10 @@ export function registerRetaFinalHistoryActions() {
     return openRetaFinalHistory()
       .then(() => true)
       .catch((error) => {
-        showToast(error.message || "Não foi possível abrir o histórico.", "error");
+        showToast(
+          error.message || "Não foi possível abrir o histórico.",
+          "error",
+        );
         return false;
       });
   });

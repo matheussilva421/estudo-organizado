@@ -45,6 +45,7 @@ export default defineConfig({
     },
     {
       name: 'mock',
+      testIgnore: ['manual/**', 'mock-environment.spec.js', 'reta-final-visual.spec.js'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:18765',

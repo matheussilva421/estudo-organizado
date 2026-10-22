@@ -30,6 +30,7 @@ import {
 } from "../../views/reta-final-bulk-actions.js";
 import {
   buildRetaFinalCapacity,
+  renderCapacityExceptionRow,
   renderRetaFinalCapacityForm,
   renderRetaFinalPlanner,
 } from "../../views/reta-final-planner.js";
@@ -694,16 +695,59 @@ export function registerRetaFinalEditorActions() {
     mountPlannerPanel(session);
   });
 
+  registerAction("rf-plan-capacity-add-exception", (el) => {
+    const panel = el.closest("[data-rf-detail-panel]");
+    const list = panel?.querySelector("[data-exception-list]");
+    if (!list) return;
+    list.insertAdjacentHTML("beforeend", renderCapacityExceptionRow());
+    list.lastElementChild?.querySelector('input[name="exc-date"]')?.focus();
+  });
+
+  registerAction("rf-plan-capacity-remove-exception", (el) => {
+    const row = el.closest("[data-exception-row]");
+    const list = row?.parentElement;
+    if (!row || !list) return;
+    const buttons = [...list.querySelectorAll("[data-exception-row] .btn")];
+    const index = buttons.indexOf(el);
+    row.remove();
+    const next = buttons[index + 1] || buttons[index - 1];
+    next?.focus();
+    if (!next)
+      list.parentElement
+        ?.querySelector('[data-action="rf-plan-capacity-add-exception"]')
+        ?.focus();
+  });
+
   registerAction("rf-plan-capacity-save", async (el) => {
     const session = plannerFrom(el);
     if (!session) return;
     const panel = el.closest("[data-rf-detail-panel]");
     const values = {};
     for (const day of ["0", "1", "2", "3", "4", "5", "6"]) {
-      values[day] = panel?.querySelector('input[name="cap-' + day + '"]')?.value;
+      values[day] = panel?.querySelector(
+        'input[name="cap-' + day + '"]',
+      )?.value;
     }
     const maximo = panel?.querySelector('input[name="cap-max"]')?.value;
-    const built = buildRetaFinalCapacity(values, maximo);
+    const folgas = [
+      ...(panel?.querySelectorAll('input[name="folga"]:checked') || []),
+    ].map((input) => Number(input.value));
+    const exceptionEntries = [];
+    for (const row of panel?.querySelectorAll("[data-exception-row]") || []) {
+      const date = row.querySelector('input[name="exc-date"]')?.value || "";
+      const minutes =
+        row.querySelector('input[name="exc-minutos"]')?.value || "";
+      if (!date && minutes === "") continue;
+      if (!date) {
+        showToast("Informe a data da exceção.", "error");
+        return;
+      }
+      exceptionEntries.push({ date, minutes });
+    }
+    const built = buildRetaFinalCapacity(values, maximo, {
+      folgas,
+      excecoes: exceptionEntries,
+    });
     if (!built.valid) {
       showToast(built.errors[0], "error");
       return;
@@ -763,7 +807,7 @@ export function registerRetaFinalEditorActions() {
 function plannerFrom(el) {
   const panel = el.closest("[data-rf-detail-panel]");
   const root = panel?.querySelector("[data-rf-planner]");
-  const planId = root?.dataset.planId;
+  const planId = root?.dataset.planId || panel?.dataset.planId;
   return plannerSessions.get(planId) || null;
 }
 
@@ -817,6 +861,7 @@ function mountPlannerPanel(session) {
     root.dataset.planId = session.plan.planId;
     root.dataset.draftId = session.draft.draftId;
   }
+  panel.dataset.planId = session.plan.planId;
   panel.onkeydown = (event) => {
     if (event.key === "Escape") {
       event.preventDefault();

@@ -1,7 +1,7 @@
 /**
  * Contrast Audit — Estudo Organizado
  *
- * Lê src/css/base/themes.css, extrai os tokens de cor de cada um dos 6 temas
+ * Lê src/css/base/themes.css, extrai os tokens de cor de cada um dos 8 temas
  * e calcula os ratios de contraste WCAG dos pares críticos (texto sobre card,
  * cores semânticas sobre card, texto do accent sobre o accent).
  *
@@ -24,7 +24,16 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const THEMES_CSS = join(__dirname, '..', 'src', 'css', 'base', 'themes.css');
 
-export const THEMES = ['grafite', 'ardosia', 'platina', 'terminal', 'neon', 'arrakis'];
+export const THEMES = [
+  'grafite',
+  'ardosia',
+  'platina',
+  'terminal',
+  'neon',
+  'arrakis',
+  'codex',
+  'plasma',
+];
 
 // Pares avaliados: [nome, tokenFg, tokenBg]. AA corpo = 4.5; texto grande = 3.
 const PAIRS = [
