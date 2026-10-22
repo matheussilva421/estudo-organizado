@@ -332,3 +332,46 @@
   color: var(--text-primary);
   font: inherit;
 }
+
+/* Histórico de operações (Task 8/17) */
+.rf-operation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rf-operation-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.rf-operation-item strong,
+.rf-operation-meta {
+  display: block;
+}
+
+.rf-operation-meta,
+.rf-operation-blocked {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rf-operation-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.rf-operation-actions .btn {
+  min-height: 44px;
+}

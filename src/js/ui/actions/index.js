@@ -21,9 +21,11 @@ import './reta-final.js';
 import { registerRetaFinalEditorActions } from './reta-final-editor.js';
 import { registerRetaFinalApplyActions } from './reta-final-apply.js';
 import { registerRetaFinalCheckpointActions } from './reta-final-checkpoints.js';
+import { registerRetaFinalHistoryActions } from './reta-final-history-ui.js';
 import { registerRetaFinalConflictActions } from './reta-final-conflicts.js';
 
 registerRetaFinalEditorActions();
 registerRetaFinalApplyActions();
 registerRetaFinalCheckpointActions();
+registerRetaFinalHistoryActions();
 registerRetaFinalConflictActions();

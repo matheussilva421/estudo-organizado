@@ -201,6 +201,17 @@ test.describe('Reta Final — editor inteligente', () => {
     await page.locator('[data-action="rf-plan-select-all"]').click();
     await expect(page.locator('[data-rf-plan-count]')).toHaveText('3 selecionado(s)');
   });
+
+  test('abre o histórico de operações sem alterar o plano', async ({ page }) => {
+    await bootEditor(page);
+    await page.locator('[data-action="rf-open-history"]').click();
+    const panel = page.locator('[data-rf-detail-panel]');
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText('Desfazer e refazer');
+    await expect(panel).toContainText('Nenhuma operação aplicada');
+    await page.keyboard.press('Escape');
+    await expect(panel).toHaveCount(0);
+  });
 });
 
 test.describe('Reta Final — mobile e toque', () => {

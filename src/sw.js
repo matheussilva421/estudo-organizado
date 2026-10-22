@@ -1,4 +1,4 @@
-const APP_VERSION = '9.63';
+const APP_VERSION = '9.64';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -139,6 +139,7 @@ const ASSET_PATHS = [
   './js/ui/actions/reta-final-editor.js',
   './js/ui/actions/reta-final-apply.js',
   './js/ui/actions/reta-final-checkpoints.js',
+  './js/ui/actions/reta-final-history-ui.js',
   './js/ui/actions/revisoes.js',
   './js/ui/dialog.js',
   './js/ui/dom.js',
@@ -179,6 +180,7 @@ const ASSET_PATHS = [
   './js/views/reta-final-bulk-actions.js',
   './js/views/reta-final-apply-preview.js',
   './js/views/reta-final-checkpoints.js',
+  './js/views/reta-final-history-ui.js',
   './js/views/edital-import.js',
   './js/views/reta-final-view.js',
   './js/views/revisao-view.js',
