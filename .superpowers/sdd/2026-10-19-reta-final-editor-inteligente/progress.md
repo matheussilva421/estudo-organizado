@@ -5,61 +5,63 @@ Atualizado em 2026-10-22.
 ## Identidade
 
 - Repositório: matheussilva421/estudo-organizado
-- Branch de trabalho: codex/reta-final-editor-fase-a
+- Branch: codex/reta-final-editor-fase-a
 - Base documental: 101b1fc (plano) e b54b650 (spec)
-- main de referência: eb8cc6c
-- HEAD após Fase E: 258fa5c
-- Correção de rolagem: 5cffee4
-- Checkpoints/importação: 66e9adc · Capacidade: d3b744e
-- Documentação: bae42e7
-- Worktree atual: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
+- main local: eb8cc6c
+- origin/main: 5428513 (documentação V2; main é ancestral da branch)
+- Código base: 258fa5c; rolagem 5cffee4; checkpoints 66e9adc; capacidade d3b744e; histórico 0ce40ed; offline 330fe86
+- Consolidação final: commit imediatamente anterior a este ledger
+- Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
 
 ## Regras preservadas
 
-- Nenhum reset --hard, force push ou merge na main.
-- Nenhum deploy, PR novo ou GitHub Action.
-- Firestore real não foi publicado; a barreira da Task 12 foi provada apenas no emulador.
+- Nenhum reset --hard, force push, merge, push ou deploy.
+- Nenhum PR novo ou GitHub Action.
+- Firestore real bloqueado por decisão do usuário em 2026-10-22.
+- Projeto de teste eorg-rf-homolog-1022 existe, mas sem API Firestore, banco ou regras publicadas.
+- Produção app-de-estudos-14564 intacta.
 - Alterações da Issue #106 no checkout principal permanecem intocadas.
 
 ## Tasks
 
-| Task | Status | Evidência principal |
+| Task | Status | Evidência |
 | --- | --- | --- |
-| 1 — Schema v2 e migração | DONE | commits db513cf, 02681ca, 1b6dd42, 4b104d2; testes reta-final-schema-v2, store-migrations, reta-final-activation |
-| 2 — Projeção temporal | DONE | 3a9fbaa, 5083345, 9ef09e5; reta-final-schedule e rollover |
-| 3 — Comandos puros | DONE | 674b76f, bccfcab; reta-final-commands |
-| 4 — Catálogo e ambiguidade | DONE | 7a28ce1, f9fb2a4; reta-final-catalog |
-| 5 — Eventos puros | DONE | f203daf, 8ce80f6, 4d31e7f; reta-final-events e regressões |
-| 6 — Drafts IndexedDB | DONE | 831e633, 4b90025, 797d2eb, 79bc09d; reta-final-drafts e draft-store |
-| 7 — Commit durável | DONE | c665231, afb23f1, f391398; reta-final-commit |
-| 8 — Histórico e checkpoints | DONE | c3ab52e; reta-final-history e history-store |
-| 9 — Motor de prioridade | DONE | 9e7c134, 713ac18, 60507f8; priority e redistribution |
-| 10 — JSON v2 e importação | DONE | 63bf075, 5fc1966; portable/import-compare; teste explícito de aulaId duplicado adicionado em 258fa5c |
-| 11 — Merge de três versões | DONE | f94359e, 98b639e; task-12/13 reports citam integração; reta-final-merge e sync-center |
-| 12 — Protocolo remoto fail-closed | DONE (emulador) | 53fc70a, e49b563, 4bbf727, 22f0f5d, 1bff8ed; regras 38/38 PASS no emulador, 5/5 PASS reproduzindo a falha nas regras antigas. Firestore real BLOCKED por ausência de deploy autorizado |
-| 13 — UX de conflitos e ACK | DONE | 428191d, 9464b09, 817a95e, caae513, 6501c64, 69278ee; task-13-report; conflitos/status em 30 testes + suíte |
-| 14 — Consulta integral | DONE | 258fa5c; reta-final-detail e reta-final-detail-view (12 testes); E2E editor |
-| 15 — Formulário no draft | DONE | 258fa5c; reta-final-editor-form e reta-final-editor (15 testes); E2E reload |
-| 16 — Planejamento visual e massa | DONE com residual | 258fa5c; reta-final-planner/bulk-actions (7 testes); filtro visível × todo o cronograma; drag e botão usam o mesmo MOVE; redistribuição ligada ao motor. Residual: UI dedicada de capacidade/fixação não foi construída; restauração de checkpoint ligada ao draft |
-| 17 — Prévia e aplicação | DONE | 258fa5c; reta-final-apply-preview/apply (11 testes); oficial × simulado; aplicação atômica; nenhum estado "sincronizado" sem ACK. Seleção por entrada e archive opt-in implementados |
-| 18 — Homologação | DONE local / BLOCKED remoto | Unit 175 arquivos / 2861 testes PASS; design 45 PASS + contraste AA; lint 0 erros; E2E 164/164 PASS; format:check falha em 193 arquivos preexistentes; sync real e multi-dispositivo não executados |
+| 1–10 | DONE | relatórios e commits anteriores; suíte completa |
+| 11–13 | DONE | merge, protocolo fail-closed em emulador e UX de conflitos |
+| 14 | DONE | detalhe integral + E2E |
+| 15 | DONE | editor em draft + E2E reload |
+| 16 | DONE | planejamento, folgas, exceções por data, capacidade máxima, fixação e redistribuição |
+| 17 | DONE | prévia, aplicação, checkpoints, importação seletiva e undo/redo |
+| 18 | DONE local / BLOCKED remoto | unit 176/2875; E2E 174/174; design 45 + AA 8 temas; lint 0; Firestore real bloqueado por decisão; físico NOT_RUN |
 
-## Gate da Fase D
+## Gates finais
 
-- Capacidade, protocolo e conflitos revisados nos relatórios task-12/task-13.
-- Barreira contra cliente v1 provada no emulador, não em produção.
-- Nenhum merge foi feito entre dispositivos reais.
+- Unit: 176 arquivos / 2875 testes PASS.
+- E2E: 174/174 PASS.
+- Visual: 8 temas x desktop/tablet/mobile/320, painel de capacidade, overflow e alvos de 44px.
+- Design: 45 testes e contraste AA nos 8 temas.
+- Lint: 0 erros.
+- bump:check: 9.66.
+- format:check: 185 falhas preexistentes; arquivos novos/relacionados passam.
+- Emulador Firestore: 38/38 novas; 5/5 antigas reproduzem a falha.
 
-## Gate da Fase E
+## Revisão independente
 
-- TDD por tarefa com RED confirmado antes da implementação.
- - Rolagem v2 agora incrementa rolagens uma vez por dia rolado e empilha o bloco depois dos que já eram do dia; E2E 164/164.
-- Revisão independente (subagente Galileo) encontrou 10 achados Major e 3 Minor; correções aplicadas em 258fa5c:
-  drafts só são publicados em memória após gravação confirmada; intents de catálogo entram na validação da prévia; troca de disciplina re-vincula tópicos; timer ativo é derivado dos eventos; prévia projeta dias e não alocados; datas que ficaram passadas bloqueiam; rascunho aplicado/obsoleto é recriado ou rebaseado; foco é preso e restaurado; ícone de catálogo é escapado.
-- Residuais registrados: UI de exceções/folgas; capacidade semanal, máximo diário e fixação foram implementados.
+- Primeira revisão (Galileo): 10 Major + 3 Minor, corrigidos.
+- Revisão final (Herschel): P1 visual, P2 foco/toque/validação/persistência, P3 documentação; corrigidos com capacity E2E, 320px, overflow interno, 44px, duplicatas/vazio e matriz rebaixada quando a evidência é indireta.
+- ACs PARTIAL: AC04, AC11, AC12, AC16, AC20. AC18 BLOCKED.
 
-## Próximo passo
+## Integração
 
-1. Homologar visualmente os oito temas em desktop/tablet/mobile.
-2. Publicar firestore.rules em ambiente controlado e provar a barreira fora do emulador.
-3. Integrar a branch à main somente com autorização expressa.
+- origin/main 5428513 é descendente de eb8cc6c e adiciona 4 docs V2.
+- Branch contém main e tem 76 commits exclusivos.
+- git merge-tree --write-tree origin/main branch: árvore limpa f239d684, sem conflitos.
+- PRs #102/#103 são Draft/MERGEABLE; commits b54b650/101b1fc são ancestrais da branch.
+- Estratégia preparada, não executada: atualizar main, integrar PRs (ou mesclar a branch, que contém ambos), merge commit, push após autorização. Sem rebase/force push.
+
+## Pendências
+
+1. Firestore real: BLOCKED por decisão.
+2. Aparelho físico/multi-instalação: NOT_RUN.
+3. AC04/AC11/AC12/AC16/AC20: PARTIAL pelos gaps de falha real, físico, E2E de restore e aprovação visual/reduced-motion.
+4. format:check global: dívida preexistente.

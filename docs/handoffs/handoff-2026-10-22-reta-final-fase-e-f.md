@@ -3,78 +3,75 @@
 ## Estado
 
 - Branch: codex/reta-final-editor-fase-a
-- Código: 258fa5c
-- Correção de rolagem: 5cffee4
-- Checkpoints/importação: 66e9adc · Capacidade: d3b744e
+- Código base: 258fa5c
+- Rolagem: 5cffee4
+- Checkpoints/importação: 66e9adc
+- Capacidade semanal: d3b744e
 - Histórico/undo: 0ce40ed
-- Documentação: bae42e7
-- Base: 69278ee (fim da Fase D)
-- main: eb8cc6c (não alterada)
+- Offline/reload: 330fe86
+- Consolidação final: commit imediatamente anterior a este documento
+- Base da Fase D: 69278ee
+- main local: eb8cc6c
+- origin/main verificado: 5428513
+- Relação: main é ancestral da branch; 76 commits exclusivos; merge dry-run sem conflitos
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
+- Árvore de trabalho: limpa após o commit de consolidação
 
 ## Concluído
 
-- Task 14: detalhe integral com HTML inerte, botão nativo, drawer/sheet, Escape,
-  foco preso e restaurado.
-- Task 15: formulário individual sobre rascunho persistido, chips de assunto e
-  aula removíveis por campo, troca de disciplina re-vincula o primeiro assunto,
-  restrição de timer derivada dos eventos.
-- Task 16: Modo Planejamento com filtros, seleção visível × todo o cronograma,
-  drag e botão gerando o mesmo MOVE, lote atômico, duplicação sem sessões e
-  redistribuição ligada ao motor.
-- Task 17: prévia oficial × simulada, projeção de dias e não alocados, bloqueio
-  de diff vazio e de data que ficou passada, aplicação local atômica.
-- Correções da revisão independente: 10 achados Major tratados; os residuais
-  estão listados abaixo.
-- Falha de migração no boot agora grava um marcador e reconcilia o Ciclo uma
-  única vez no próximo boot bem-sucedido.
-- Teste explícito de aulaId duplicado adicionado (pendência da Fase C).
+- Tasks 14–17: detalhe integral, editor em draft, planejamento visual,
+  prévia/aplicação, checkpoints, importação seletiva e undo/redo.
+- Capacidade: minutos por dia, máximo diário, folgas e exceções por data,
+  persistidos via SET_CAPACITY no rascunho e usados pela redistribuição.
+- Visual: 8 temas x desktop/tablet/mobile/320px, painel de capacidade, overflow
+  interno, alvos de 44px e paletas computadas distintas.
+- Offline: aplicação local, syncPending e reload real com persistência.
+- Revisão independente final: achados P1/P2/P3 tratados; ACs rebaixados quando a
+  evidência é indireta.
+- Boot: reconciliação única após falha de migração e teste de aulaId duplicado.
 
-## Arquivos principais
+## Testes finais
 
-- src/js/views/reta-final-detail.js
-- src/js/views/reta-final-editor-form.js
-- src/js/views/reta-final-planner.js
-- src/js/views/reta-final-bulk-actions.js
-- src/js/views/reta-final-apply-preview.js
-- src/js/ui/actions/reta-final-editor.js
-- src/js/ui/actions/reta-final-apply.js
-- src/js/app/boot-reconciliation.js
-- src/js/store/boot-recovery.js
-- src/css/views/reta-final-editor.css
-- tests/e2e/reta-final-editor.spec.js
+- npm test: 176 arquivos, 2875 testes, PASS.
+- npm run test:e2e:release: 174/174, PASS.
+- E2E editor: 7/7.
+- E2E visual: 9/9.
+- test:design: 45 testes + contraste AA nos 8 temas.
+- lint: 0 erros.
+- bump:check: APP_VERSION 9.66.
+- format:check: 185 falhas preexistentes; todos os arquivos novos/relacionados passam.
+- Regras Firestore no emulador: 38/38 novas; 5/5 antigas reproduzem a falha.
 
-## Decisões
+## Firebase
 
-- Nenhum campo é publicado no estado oficial antes de a transação do rascunho
-  completar; falha de quota mantém o draft anterior.
-- A prévia usa o plano atual quando a linhagem é a mesma, evitando ready seguido
-  de BASE_STALE após rolagem derivada.
-- Rascunho aplicado é recriado; rascunho obsoleto mostra "Recomeçar rascunho".
-- "Sincronizado" nunca aparece antes de ACK remoto.
+- Projeto de teste: eorg-rf-homolog-1022 (Spark, isolado).
+- Firestore API: não habilitada; nenhum banco criado; nenhuma regra publicada.
+- Produção app-de-estudos-14564: intacta.
+- Gate remoto: BLOCKED por decisão explícita do usuário em 2026-10-22.
+- Não repetir tentativas no Firebase sem nova autorização.
 
-## Testes
+## GitHub e integração
 
-- npm test: 175 arquivos, 2861 testes, PASS.
-- npm run test:design: 45 testes + contraste AA, PASS.
-- npm run lint: 0 erros.
-- E2E release: 164/164 PASS.
-- E2E editor: 6/6 PASS (inclui mobile/touch, histórico e offline).
-- bump:check: PASS.
-- format:check: falha preexistente em 193 arquivos.
-- Regras Firestore no emulador: 38/38 PASS; sem deploy real.
+- Nenhum push, merge, deploy ou PR novo nesta sessão.
+- origin/main 5428513 adiciona apenas 4 documentos V2 sobre eb8cc6c.
+- A branch contém a main e tem 76 commits exclusivos.
+- git merge-tree --write-tree origin/main branch retornou árvore limpa
+  f239d684, sem conflitos.
+- PRs #102 (b54b650) e #103 (101b1fc) são Draft/MERGEABLE e seus commits são
+  ancestrais da branch; a branch já contém os dois documentos.
+- Estratégia preparada, sem executar: atualizar main para origin/main; integrar
+  #102/#103 (ou mesclar a branch, que contém ambos); mesclar a branch com merge
+  commit; push somente após autorização. Sem rebase/force push.
 
-## GitHub
+## Pendências e riscos
 
-- Nenhum push, PR, merge ou deploy nesta sessão.
-- PRs #102 e #103 continuam abertos e documentais.
-
-## Pendências
-
-1. Revisão visual manual dos oito temas em desktop, tablet e mobile.
-2. Publicar firestore.rules em ambiente controlado e provar a barreira remota.
-3. UI de exceções/folgas (capacidade semanal e fixação já cobertas).
-4. format:check do repositório (baseline de 193 arquivos).
+1. Firestore real: BLOCKED por decisão; fail-closed preservado.
+2. Aparelho físico/multi-instalação: NOT_RUN.
+3. AC04: falha real de quota/transação no navegador não injetada.
+4. AC11/AC12: merge unitário; evidência física pendente.
+5. AC16: UI e testes; E2E de restauração pela UI pendente.
+6. AC20: aprovação visual humana e prefers-reduced-motion manual pendentes.
+7. format:check global permanece vermelho por baseline.
 
 ## Retomada
 
@@ -82,4 +79,4 @@
     git -C 'C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado' log -3 --oneline
 
 Ler docs/qa/reta-final-editor-acceptance-2026-10-19.md e este arquivo antes de
-continuar. Não iniciar merge na main sem autorização.
+continuar. Não iniciar merge/push sem autorização final.
