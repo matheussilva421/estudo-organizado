@@ -24,7 +24,7 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 
 | Comando | Resultado |
 | --- | --- |
-| npm test -- --reporter=dot | PASS — 172 arquivos, 2845 testes |
+| npm test -- --reporter=dot | PASS — 174 arquivos, 2855 testes |
 | npm run test:design | PASS — 45 testes CSS + contraste AA nos oito temas |
 | npm run lint | PASS — 0 erros (avisos de estilo preexistentes) |
 | npm run test:e2e:release | PASS — 161/161 |
@@ -43,8 +43,8 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 | 13 | DONE | 428191d e correções até 69278ee; task-13-report |
 | 14 | DONE | 258fa5c; reta-final-detail-view (12) + E2E |
 | 15 | DONE | 258fa5c; reta-final-editor-form (15) + E2E reload |
-| 16 | DONE com residual | 258fa5c; planner/bulk (7); capacidade/checkpoint sem UI |
-| 17 | DONE com residual | 258fa5c; apply-preview (11); importação sem seleção por entrada |
+| 16 | DONE com residual | 258fa5c + restauração de checkpoint; residual: UI de capacidade/fixação |
+| 17 | DONE | 258fa5c + seleção por entrada e archive opt-in; apply-preview (11) |
 | 18 | DONE local / BLOCKED remoto | gates locais verdes; deploy remoto e revisão visual manual pendentes |
 
 ## Critérios de aceite
@@ -66,7 +66,7 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 | AC13 | PASS | operationId idempotente no draft e no merge |
 | AC14 | PASS | reta-final-schema-v2 e store-migrations preservam IDs e eventos |
 | AC15 | PASS | reta-final-portable; novo teste rejeita aulaId repetido |
-| AC16 | PARTIAL | lógica e store de checkpoint testados; UI de restauração não conectada |
+| AC16 | PASS | UI de checkpoints restaura blocos selecionados no draft; eventos posteriores preservados |
 | AC17 | PASS local | commit local + syncPending; multi-dispositivo offline real NOT_RUN |
 | AC18 | BLOCKED | emulador 38/38; Firestore real não publicado |
 | AC19 | PASS | E2E 161/161; Timer, Calendário, Histórico e quick-mark sem regressão |
@@ -77,6 +77,5 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 ## Limitações registradas
 
 - Firestore real, multi-dispositivo e offline físico não foram executados.
-- Seleção por entrada e decisão de archive candidates na importação continuam NOT_RUN.
-- Capacidade/fixação e restauração de checkpoint não têm UI dedicada.
+- Capacidade/fixação ainda não têm UI dedicada; o motor segue coberto por testes.
 - format:check falha no baseline; não foi introduzido por esta entrega.

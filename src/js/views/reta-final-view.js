@@ -333,6 +333,7 @@ export function renderRetaFinal(el, plan = state.planejamento) {
       <div class="ciclo-header-buttons">
         <button class="btn btn-primary btn-sm" data-action="open-reta-final-import"><i class="fa fa-file-import"></i> Importar Reta Final</button>
         <button class="btn btn-ghost btn-sm" data-action="rf-open-planner"><i class="fa fa-calendar-days"></i> Planejamento</button>
+        <button class="btn btn-ghost btn-sm" data-action="rf-open-checkpoints"><i class="fa fa-clock-rotate-left"></i> Checkpoints</button>
         <div class="ciclo-kebab-wrap">
           <button class="btn btn-ghost btn-sm ciclo-kebab-btn" data-action="ciclo-toggle-kebab" aria-haspopup="true" aria-expanded="false" title="Mais ações"><i class="fa fa-ellipsis-v"></i></button>
           <div class="ciclo-kebab-menu" role="menu" hidden>

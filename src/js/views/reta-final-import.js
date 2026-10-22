@@ -176,7 +176,7 @@ function renderComparisonHtml(payload, comparison) {
       </div>
       <ul class="custom-scrollbar scroll-area-md">${entries}</ul>
       ${summary.archiveCandidates
-        ? '<div class="restore-preview-warning">Sugestões de arquivamento serão guardadas no rascunho para decisão humana e não aplicadas automaticamente.</div>'
+        ? '<div class="restore-preview-warning">Marque explicitamente as sugestões de arquivamento que deseja incluir no rascunho.</div>'
         : ''}
       ${summary.conflicts
         ? '<div class="restore-preview-warning">Conflitos bloqueiam a criação do rascunho. Resolva as referências e importe novamente.</div>'
@@ -190,15 +190,20 @@ async function createComparisonDraft(plan, payload, comparison) {
     showToast('Resolva os conflitos antes de criar o rascunho.', 'error');
     return false;
   }
-  const actionable = comparison.entries.filter((entry) =>
-    entry.command && entry.kind !== 'ARCHIVE_CANDIDATE');
-  const archiveCandidates = comparison.entries.filter((entry) =>
-    entry.kind === 'ARCHIVE_CANDIDATE' && entry.command);
-  if (!actionable.length) {
+  const selectedIndexes = [
+    ...document.querySelectorAll('input[name="rf-import-entry"]:checked'),
+  ].map((input) => Number(input.value));
+  const archiveIndexes = [
+    ...document.querySelectorAll('input[name="rf-import-archive"]:checked'),
+  ].map((input) => Number(input.value));
+  const { actionable, archives } = selectRetaFinalImportEntries(
+    comparison,
+    selectedIndexes,
+    archiveIndexes,
+  );
+  if (!actionable.length && !archives.length) {
     showToast(
-      archiveCandidates.length
-        ? 'Sugestões de arquivamento exigem revisão individual e não foram aplicadas.'
-        : 'A importação não contém alterações para rascunhar.',
+      'Selecione ao menos uma alteração para criar o rascunho.',
       'info',
     );
     return false;
@@ -213,9 +218,12 @@ async function createComparisonDraft(plan, payload, comparison) {
       version: payload.versao,
       sourceRevision: payload.exportRevision ?? null,
       entries: comparison.entries,
-      pendingImportCommands: archiveCandidates.map((entry) => entry.command),
+      pendingImportCommands: comparison.entries
+        .filter((entry) => entry.kind === 'ARCHIVE_CANDIDATE' && entry.command)
+        .map((entry) => entry.command),
+      archiveCandidates: archives.map(({ entry }) => entry),
     };
-    for (const entry of actionable) {
+    for (const { entry } of actionable) {
       const result = appendRetaFinalDraftOperation(draft, entry.command, {
         events: state.eventos,
         catalog: state.editais,
@@ -227,6 +235,24 @@ async function createComparisonDraft(plan, payload, comparison) {
       }
       draft = result.draft;
     }
+    for (const { entry } of archives) {
+      const result = appendRetaFinalDraftOperation(
+        draft,
+        { ...entry.command, operationId: 'rf-import-archive-' + uid() },
+        {
+          events: state.eventos,
+          catalog: state.editais,
+          today: todayStr(),
+        },
+      );
+      if (!result.valid) {
+        throw new Error(
+          result.errors[0]?.message ||
+            'Arquivamento não pôde ser incluído no rascunho.',
+        );
+      }
+      draft = result.draft;
+    }
     await saveRetaFinalDraft(db, draft);
   } catch (error) {
     showToast(error.message || 'Não foi possível salvar o rascunho da importação.', 'error');
@@ -234,7 +260,7 @@ async function createComparisonDraft(plan, payload, comparison) {
   }
   closeModal('modal-prompt');
   showToast(
-    `Rascunho salvo para revisão.${archiveCandidates.length ? ` ${archiveCandidates.length} candidato(s) a arquivamento aguardam decisão.` : ''}`,
+    'Rascunho salvo para revisão. Nada foi aplicado ao plano oficial.',
     'success',
   );
   import('../ui/actions/reta-final-apply.js')
@@ -277,10 +303,27 @@ export function openRetaFinalComparison(payload) {
   const comparison = compareRetaFinalImport(plan, payload, { catalog: state.editais });
   title.textContent = 'Comparar Reta Final';
   body.innerHTML = renderComparisonHtml(payload, comparison);
+  const items = [...body.querySelectorAll('.rf-import-preview li')];
+  comparison.entries.forEach((entry, index) => {
+    const item = items[index];
+    if (!item || !entry.command || entry.kind === 'CONFLICT') return;
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = String(index);
+    input.className = 'rf-import-choice';
+    if (entry.kind === 'ARCHIVE_CANDIDATE') {
+      input.name = 'rf-import-archive';
+      input.setAttribute('aria-label', 'Arquivar bloco ' + (entry.blockId || ''));
+    } else {
+      input.name = 'rf-import-entry';
+      input.checked = true;
+      input.setAttribute('aria-label', 'Incluir alteração no rascunho');
+    }
+    item.prepend(input);
+  });
   saveBtn.textContent = 'Criar rascunho';
   saveBtn.className = 'btn btn-primary';
-  const hasDraftableChange = comparison.entries.some((entry) =>
-    entry.command && entry.kind !== 'ARCHIVE_CANDIDATE');
+  const hasDraftableChange = comparison.entries.some((entry) => entry.command);
   saveBtn.disabled = comparison.conflicts.length > 0 || !hasDraftableChange;
   saveBtn.onclick = () => createComparisonDraft(plan, payload, comparison);
   openModal('modal-prompt');
@@ -327,4 +370,29 @@ export function openRetaFinalImport() {
   };
   document.body.appendChild(input);
   input.click();
+}
+
+/**
+ * Filtra as entradas escolhidas pelo usuário. Arquivamentos são opt-in e
+ * nunca entram no rascunho sem marcação explícita.
+ * @returns {{actionable: Array, archives: Array}}
+ */
+export function selectRetaFinalImportEntries(
+  comparison,
+  selectedIndexes = [],
+  archiveIndexes = [],
+) {
+  const selected = new Set(selectedIndexes);
+  const archives = new Set(archiveIndexes);
+  const actionable = [];
+  const archiveEntries = [];
+  (comparison?.entries || []).forEach((entry, index) => {
+    if (!entry?.command || entry.kind === 'CONFLICT') return;
+    if (entry.kind === 'ARCHIVE_CANDIDATE') {
+      if (archives.has(index)) archiveEntries.push({ entry, index });
+      return;
+    }
+    if (selected.has(index)) actionable.push({ entry, index });
+  });
+  return { actionable, archives: archiveEntries };
 }

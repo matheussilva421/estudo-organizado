@@ -235,3 +235,72 @@
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
 }
+
+/* Checkpoints (Task 8/17) */
+.rf-checkpoint-list,
+.rf-checkpoint-block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rf-checkpoint-open {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rf-checkpoint-open:hover,
+.rf-checkpoint-open:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.rf-checkpoint-item--invalid .rf-checkpoint-open {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.rf-checkpoint-invalid {
+  color: var(--danger, #c0392b);
+  font-size: 12px;
+}
+
+.rf-checkpoint-block-list li,
+.rf-checkpoint-block-list label {
+  min-height: 44px;
+}
+
+.rf-checkpoint-block-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rf-checkpoint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rf-checkpoint-actions .btn {
+  min-height: 44px;
+}

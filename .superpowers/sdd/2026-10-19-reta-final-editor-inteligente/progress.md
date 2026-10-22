@@ -39,10 +39,9 @@ Atualizado em 2026-10-22.
 | 13 — UX de conflitos e ACK | DONE | 428191d, 9464b09, 817a95e, caae513, 6501c64, 69278ee; task-13-report; conflitos/status em 30 testes + suíte |
 | 14 — Consulta integral | DONE | 258fa5c; reta-final-detail e reta-final-detail-view (12 testes); E2E editor |
 | 15 — Formulário no draft | DONE | 258fa5c; reta-final-editor-form e reta-final-editor (15 testes); E2E reload |
-| 16 — Planejamento visual e massa | DONE com residual | 258fa5c; reta-final-planner/bulk-actions (7 testes); filtro visível × todo o cronograma; drag e botão usam o mesmo MOVE; redistribuição ligada ao motor. Residual: UI dedicada de capacidade/fixação e restauração de checkpoint não foram construídas |
-| 17 — Prévia e aplicação | DONE com residual | 258fa5c; reta-final-apply-preview/apply (11 testes); oficial × simulado; aplicação atômica; nenhum estado "sincronizado" sem ACK. Residual: seleção por entrada na importação e decisão de archive candidates continuam NOT_RUN |
-| 18 — Homologação | BLOCKED | Unit 172 arquivos / 2844 testes PASS; design 45 PASS + contraste AA; lint 0 erros; E2E 160/161 (falha pré-existente de rolagens, reproduzida em 69278ee); format:check falha em 193 arquivos preexistentes; sync real e multi-dispositivo não executados |
-| 18 — Homologação | DONE local / BLOCKED remoto | Unit 172 arquivos / 2845 testes PASS; design 45 PASS + contraste AA; lint 0 erros; E2E 161/161 PASS; format:check falha em 193 arquivos preexistentes; sync real e multi-dispositivo não executados |
+| 16 — Planejamento visual e massa | DONE com residual | 258fa5c; reta-final-planner/bulk-actions (7 testes); filtro visível × todo o cronograma; drag e botão usam o mesmo MOVE; redistribuição ligada ao motor. Residual: UI dedicada de capacidade/fixação não foi construída; restauração de checkpoint ligada ao draft |
+| 17 — Prévia e aplicação | DONE | 258fa5c; reta-final-apply-preview/apply (11 testes); oficial × simulado; aplicação atômica; nenhum estado "sincronizado" sem ACK. Seleção por entrada e archive opt-in implementados |
+| 18 — Homologação | DONE local / BLOCKED remoto | Unit 174 arquivos / 2855 testes PASS; design 45 PASS + contraste AA; lint 0 erros; E2E 161/161 PASS; format:check falha em 193 arquivos preexistentes; sync real e multi-dispositivo não executados |
 
 ## Gate da Fase D
 
@@ -56,7 +55,7 @@ Atualizado em 2026-10-22.
  - Rolagem v2 agora incrementa rolagens uma vez por dia rolado e empilha o bloco depois dos que já eram do dia; E2E 161/161.
 - Revisão independente (subagente Galileo) encontrou 10 achados Major e 3 Minor; correções aplicadas em 258fa5c:
   drafts só são publicados em memória após gravação confirmada; intents de catálogo entram na validação da prévia; troca de disciplina re-vincula tópicos; timer ativo é derivado dos eventos; prévia projeta dias e não alocados; datas que ficaram passadas bloqueiam; rascunho aplicado/obsoleto é recriado ou rebaseado; foco é preso e restaurado; ícone de catálogo é escapado.
-- Residuais registrados: seleção por entrada na importação, decisão de archive candidates, UI de capacidade/fixação e restauração de checkpoint.
+- Residuais registrados: UI de capacidade/fixação dedicada; os demais achados da revisão foram corrigidos.
 
 ## Próximo passo
 

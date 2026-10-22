@@ -54,7 +54,7 @@
 ## Testes
 
 - npm test: 172 arquivos, 2844 testes, PASS.
- - npm test: 172 arquivos, 2845 testes, PASS.
+ - npm test: 174 arquivos, 2855 testes, PASS.
 - npm run test:design: 45 testes + contraste AA, PASS.
 - npm run lint: 0 erros.
 - E2E release: 160/161; falha preexistente em reta-final.spec.js:120.
@@ -76,9 +76,8 @@
    deve mudar.
 1. Revisão visual manual dos oito temas em desktop, tablet e mobile.
 2. Publicar firestore.rules em ambiente controlado e provar a barreira remota.
-3. Seleção por entrada e archive candidates na importação.
-4. UI de capacidade/fixação e restauração de checkpoint.
-5. format:check do repositório (baseline de 193 arquivos).
+3. UI de capacidade/fixação dedicada.
+4. format:check do repositório (baseline de 193 arquivos).
 
 ## Retomada
 

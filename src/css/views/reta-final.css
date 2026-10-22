@@ -535,6 +535,19 @@ body.rf-detail-open {
   overflow-wrap: anywhere;
 }
 
+.rf-import-preview li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.rf-import-choice {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
 .rf-detail-events {
   margin: 0;
   padding: 0;
