@@ -112,19 +112,39 @@ export function syncRetaFinalToEventos() {
       completedBlocoIds: getRetaFinalCompletedBlocoIds(state.eventos)
     });
     blocksForEvents = projection.blocos;
+    const rolledIds = new Set();
     for (const projected of projection.blocos) {
       if (!projected?.id) continue;
       const bloco = blocoById.get(projected.id);
       if (!bloco || bloco.arquivado === true) continue;
       const compatData = projected.dataEfetiva || bloco.data;
-      if (bloco.data !== compatData) {
+      const dataRolou = bloco.data !== compatData;
+      if (dataRolou) {
         bloco.data = compatData;
         derivedChanged = true;
+      }
+      if (dataRolou && projected.rolado === true) {
+        bloco.rolagens = (Number(bloco.rolagens) || 0) + 1;
+        rolledIds.add(bloco.id);
       }
       if (bloco.status !== projected.status) {
         bloco.status = projected.status;
         derivedChanged = true;
       }
+    }
+    if (rolledIds.size > 0) {
+      const fixos = retaFinal.blocos.filter((bloco) => !rolledIds.has(bloco?.id));
+      let insertAt = 0;
+      for (let index = 0; index < fixos.length; index += 1) {
+        if (fixos[index]?.data && fixos[index].data <= today) insertAt = index + 1;
+      }
+      const movidos = retaFinal.blocos.filter((bloco) => rolledIds.has(bloco?.id));
+      retaFinal.blocos = [
+        ...fixos.slice(0, insertAt),
+        ...movidos,
+        ...fixos.slice(insertAt),
+      ];
+      derivedChanged = true;
     }
   } else {
     const reconcile = reconcileRetaFinalWithEvents(plan, state.eventos);

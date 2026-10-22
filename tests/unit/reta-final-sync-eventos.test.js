@@ -88,6 +88,44 @@ beforeEach(async () => {
 });
 
 describe('syncRetaFinalToEventos — materialização e rolagem', () => {
+  it('v2 incrementa rolagens e empilha o bloco rolado depois dos de hoje', () => {
+    store.setState(
+      buildState({
+        blocos: [
+          rfBloco({
+            id: 'rf_ontem',
+            data: '2026-07-09',
+            dataPlanejada: '2026-07-09',
+            dataOriginal: '2026-07-09',
+            ordem: 0
+          }),
+          rfBloco({
+            id: 'rf_hoje',
+            data: HOJE,
+            dataPlanejada: HOJE,
+            dataOriginal: HOJE,
+            ordem: 1
+          })
+        ],
+        planOverrides: {
+          schemaVersionRetaFinal: 2,
+          planId: 'plan-1',
+          revision: 1
+        }
+      })
+    );
+    logic.invalidateDiscCache();
+
+    retaFinalMod.syncRetaFinalToEventos();
+
+    const blocos = store.state.planejamento.retaFinal.blocos;
+    expect(blocos.map((bloco) => bloco.id)).toEqual(['rf_hoje', 'rf_ontem']);
+    expect(blocos.find((bloco) => bloco.id === 'rf_ontem')).toMatchObject({
+      data: HOJE,
+      rolagens: 1
+    });
+  });
+
   it.each([
     ['v1', undefined],
     ['v2', 2]

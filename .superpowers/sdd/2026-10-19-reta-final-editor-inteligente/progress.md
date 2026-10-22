@@ -41,6 +41,7 @@ Atualizado em 2026-10-22.
 | 16 — Planejamento visual e massa | DONE com residual | 258fa5c; reta-final-planner/bulk-actions (7 testes); filtro visível × todo o cronograma; drag e botão usam o mesmo MOVE; redistribuição ligada ao motor. Residual: UI dedicada de capacidade/fixação e restauração de checkpoint não foram construídas |
 | 17 — Prévia e aplicação | DONE com residual | 258fa5c; reta-final-apply-preview/apply (11 testes); oficial × simulado; aplicação atômica; nenhum estado "sincronizado" sem ACK. Residual: seleção por entrada na importação e decisão de archive candidates continuam NOT_RUN |
 | 18 — Homologação | BLOCKED | Unit 172 arquivos / 2844 testes PASS; design 45 PASS + contraste AA; lint 0 erros; E2E 160/161 (falha pré-existente de rolagens, reproduzida em 69278ee); format:check falha em 193 arquivos preexistentes; sync real e multi-dispositivo não executados |
+| 18 — Homologação | DONE local / BLOCKED remoto | Unit 172 arquivos / 2845 testes PASS; design 45 PASS + contraste AA; lint 0 erros; E2E 161/161 PASS; format:check falha em 193 arquivos preexistentes; sync real e multi-dispositivo não executados |
 
 ## Gate da Fase D
 
@@ -51,6 +52,7 @@ Atualizado em 2026-10-22.
 ## Gate da Fase E
 
 - TDD por tarefa com RED confirmado antes da implementação.
+ - Rolagem v2 agora incrementa rolagens uma vez por dia rolado e empilha o bloco depois dos que já eram do dia; E2E 161/161.
 - Revisão independente (subagente Galileo) encontrou 10 achados Major e 3 Minor; correções aplicadas em 258fa5c:
   drafts só são publicados em memória após gravação confirmada; intents de catálogo entram na validação da prévia; troca de disciplina re-vincula tópicos; timer ativo é derivado dos eventos; prévia projeta dias e não alocados; datas que ficaram passadas bloqueiam; rascunho aplicado/obsoleto é recriado ou rebaseado; foco é preso e restaurado; ícone de catálogo é escapado.
 - Residuais registrados: seleção por entrada na importação, decisão de archive candidates, UI de capacidade/fixação e restauração de checkpoint.
@@ -59,5 +61,4 @@ Atualizado em 2026-10-22.
 
 1. Homologar visualmente os oito temas em desktop/tablet/mobile.
 2. Publicar firestore.rules em ambiente controlado e provar a barreira fora do emulador.
-3. Decidir sobre a contagem de rolagens após migração v2 (falha E2E pré-existente).
-4. Integrar a branch à main somente com autorização expressa.
+3. Integrar a branch à main somente com autorização expressa.

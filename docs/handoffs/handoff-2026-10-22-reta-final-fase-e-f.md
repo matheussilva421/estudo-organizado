@@ -53,9 +53,11 @@
 ## Testes
 
 - npm test: 172 arquivos, 2844 testes, PASS.
+ - npm test: 172 arquivos, 2845 testes, PASS.
 - npm run test:design: 45 testes + contraste AA, PASS.
 - npm run lint: 0 erros.
 - E2E release: 160/161; falha preexistente em reta-final.spec.js:120.
+ - E2E release: 161/161 PASS.
 - E2E editor: 3/3 PASS.
 - bump:check: 9.58, PASS.
 - format:check: falha preexistente em 193 arquivos.
@@ -71,11 +73,11 @@
 1. Falha E2E de rolagens legadas: data muda, rolagens fica 0. Reproduzida em
    69278ee; decidir se o contador deve ser derivado no v2 ou se o teste legado
    deve mudar.
-2. Revisão visual manual dos oito temas em desktop, tablet e mobile.
-3. Publicar firestore.rules em ambiente controlado e provar a barreira remota.
-4. Seleção por entrada e archive candidates na importação.
-5. UI de capacidade/fixação e restauração de checkpoint.
-6. format:check do repositório (baseline de 193 arquivos).
+1. Revisão visual manual dos oito temas em desktop, tablet e mobile.
+2. Publicar firestore.rules em ambiente controlado e provar a barreira remota.
+3. Seleção por entrada e archive candidates na importação.
+4. UI de capacidade/fixação e restauração de checkpoint.
+5. format:check do repositório (baseline de 193 arquivos).
 
 ## Retomada
 
