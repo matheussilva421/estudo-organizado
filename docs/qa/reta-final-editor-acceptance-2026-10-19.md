@@ -11,10 +11,10 @@ Data da execução: 2026-10-22
 - Capacidade semanal: d3b744e
 - Histórico/undo: 0ce40ed
 - Offline/reload: 330fe86
-- Consolidação local desta rodada: commit imediatamente anterior a este documento
+- Integração local: 099d0ba (merge de origin/main) · push AUTORIZADO em 2026-10-22
 - main local: eb8cc6c
 - origin/main verificado: 5428513 (apenas documentação V2)
-- Relação: a main é ancestral da branch; 76 commits exclusivos, merge dry-run sem conflitos
+- Relação: origin/main agora é ancestral da branch; fast-forward pronto
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
 - Spec: b54b650 · Plano: 101b1fc
 
@@ -26,12 +26,14 @@ seletiva, aplicação offline e auditoria visual dos oito temas.
 
 A Task 18 permanece BLOCKED apenas no gate remoto e físico:
 
+- Push à main: AUTORIZADO em 2026-10-22; deploy de produção autorizado pelo usuário.
+
 - Firestore real: BLOCKED por decisão explícita do usuário em 2026-10-22.
 - Teste em aparelho físico/multi-instalação: NOT_RUN.
 - Revisão visual humana final: as capturas foram geradas e inspecionadas, mas a
   aprovação estética final continua humana.
 
-Não houve push, merge, deploy, publicação de regras ou alteração na main.
+Push e deploy foram autorizados em 2026-10-22; a publicação de regras Firestore continua bloqueada.
 
 ## Resultados dos gates
 
@@ -112,18 +114,22 @@ Não foi aplicado Prettier indiscriminadamente no repositório.
 - Produção app-de-estudos-14564: não alterada.
 - Estado: BLOCKED por decisão do usuário; nenhuma ação adicional será tentada.
 
-## Integração preparada
+## Integração
 
-- origin/main 5428513 é descendente da main local eb8cc6c e adiciona apenas
-  quatro documentos V2.
-- A branch contém a main (0 commits em main..branch), com 76 commits exclusivos.
-- git merge-tree --write-tree origin/main branch retornou árvore limpa
-  f239d684, sem conflitos.
-- Os commits de #102 (b54b650) e #103 (101b1fc) são ancestrais da branch.
-- Estratégia recomendada, somente após autorização: atualizar a main para
-  origin/main, integrar #102/#103 (ou mesclar a branch, que contém ambos) e
-  então mesclar a branch com merge commit. Não fazer rebase nem force push.
-- Nenhum push, merge ou limpeza foi executado.
+origin/main 5428513 é descendente da main local eb8cc6c e adiciona apenas
+quatro documentos V2. A branch foi reconciliada localmente no merge 099d0ba e
+agora contém origin/main; o push seria um fast-forward.
+
+Os commits de #102 (b54b650) e #103 (101b1fc) são ancestrais da branch.
+
+O push fast-forward foi autorizado em 2026-10-22, incluindo o deploy de
+produção do Workers Builds. A main remota passa a apontar para o SHA deste
+commit; a verificação pós-push e o estado dos PRs são registrados no relatório
+final.
+
+Histórico: uma tentativa anterior com [skip ci] foi recusada por falta de
+garantia; o usuário então autorizou explicitamente o deploy.
+
 
 ## Limitações e riscos
 

@@ -8,6 +8,7 @@ Atualizado em 2026-10-22.
 - Branch: codex/reta-final-editor-fase-a
 - Base documental: 101b1fc (plano) e b54b650 (spec)
 - main local: eb8cc6c
+- Integração local: 099d0ba; push/deploy AUTORIZADOS em 2026-10-22
 - origin/main: 5428513 (documentação V2; main é ancestral da branch)
 - Código base: 258fa5c; rolagem 5cffee4; checkpoints 66e9adc; capacidade d3b744e; histórico 0ce40ed; offline 330fe86
 - Consolidação final: commit imediatamente anterior a este ledger
@@ -15,7 +16,7 @@ Atualizado em 2026-10-22.
 
 ## Regras preservadas
 
-- Nenhum reset --hard, force push, merge, push ou deploy.
+- Nenhum reset --hard ou force push; push/deploy autorizados em 2026-10-22; merge local 099d0ba permitido.
 - Nenhum PR novo ou GitHub Action.
 - Firestore real bloqueado por decisão do usuário em 2026-10-22.
 - Projeto de teste eorg-rf-homolog-1022 existe, mas sem API Firestore, banco ou regras publicadas.
@@ -53,11 +54,12 @@ Atualizado em 2026-10-22.
 
 ## Integração
 
-- origin/main 5428513 é descendente de eb8cc6c e adiciona 4 docs V2.
-- Branch contém main e tem 76 commits exclusivos.
-- git merge-tree --write-tree origin/main branch: árvore limpa f239d684, sem conflitos.
-- PRs #102/#103 são Draft/MERGEABLE; commits b54b650/101b1fc são ancestrais da branch.
-- Estratégia preparada, não executada: atualizar main, integrar PRs (ou mesclar a branch, que contém ambos), merge commit, push após autorização. Sem rebase/force push.
+- Integração local: 099d0ba (merge de origin/main); fast-forward pronto.
+- Push fast-forward e deploy de produção AUTORIZADOS em 2026-10-22.
+- origin/main anterior: 5428513; a branch contém a main.
+- A main remota passa a apontar para o SHA deste commit; verificação no relatório final.
+- PRs #102/#103 são Draft/MERGEABLE e commits ancestrais da branch.
+- Histórico: tentativa com [skip ci] recusada; autorização posterior do usuário.
 
 ## Pendências
 

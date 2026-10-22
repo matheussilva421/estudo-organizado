@@ -12,8 +12,9 @@
 - Consolidação final: commit imediatamente anterior a este documento
 - Base da Fase D: 69278ee
 - main local: eb8cc6c
+- Integração local: 099d0ba (merge origin/main); push AUTORIZADO em 2026-10-22
 - origin/main verificado: 5428513
-- Relação: main é ancestral da branch; 76 commits exclusivos; merge dry-run sem conflitos
+- Relação: origin/main agora é ancestral da branch; fast-forward pronto
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
 - Árvore de trabalho: limpa após o commit de consolidação
 
@@ -51,17 +52,13 @@
 - Não repetir tentativas no Firebase sem nova autorização.
 
 ## GitHub e integração
-
-- Nenhum push, merge, deploy ou PR novo nesta sessão.
-- origin/main 5428513 adiciona apenas 4 documentos V2 sobre eb8cc6c.
-- A branch contém a main e tem 76 commits exclusivos.
-- git merge-tree --write-tree origin/main branch retornou árvore limpa
-  f239d684, sem conflitos.
-- PRs #102 (b54b650) e #103 (101b1fc) são Draft/MERGEABLE e seus commits são
-  ancestrais da branch; a branch já contém os dois documentos.
-- Estratégia preparada, sem executar: atualizar main para origin/main; integrar
-  #102/#103 (ou mesclar a branch, que contém ambos); mesclar a branch com merge
-  commit; push somente após autorização. Sem rebase/force push.
+- Integração local: 099d0ba; push fast-forward AUTORIZADO em 2026-10-22.
+- Deploy de produção do Workers Builds autorizado pelo usuário.
+- A main remota passa a apontar para o SHA deste commit; a verificação
+  pós-push e os PRs são registrados no relatório final.
+- origin/main anterior: 5428513; a branch contém a main e está pronta.
+- PRs #102/#103 serão resolvidos após confirmar o conteúdo na main.
+- Histórico: tentativa com [skip ci] recusada; autorização posterior.
 
 ## Pendências e riscos
 
