@@ -42,7 +42,7 @@ Atualizado em 2026-10-22.
 | 15 — Formulário no draft | DONE | 258fa5c; reta-final-editor-form e reta-final-editor (15 testes); E2E reload |
 | 16 — Planejamento visual e massa | DONE com residual | 258fa5c; reta-final-planner/bulk-actions (7 testes); filtro visível × todo o cronograma; drag e botão usam o mesmo MOVE; redistribuição ligada ao motor. Residual: UI dedicada de capacidade/fixação não foi construída; restauração de checkpoint ligada ao draft |
 | 17 — Prévia e aplicação | DONE | 258fa5c; reta-final-apply-preview/apply (11 testes); oficial × simulado; aplicação atômica; nenhum estado "sincronizado" sem ACK. Seleção por entrada e archive opt-in implementados |
-| 18 — Homologação | DONE local / BLOCKED remoto | Unit 175 arquivos / 2861 testes PASS; design 45 PASS + contraste AA; lint 0 erros; E2E 163/163 PASS; format:check falha em 193 arquivos preexistentes; sync real e multi-dispositivo não executados |
+| 18 — Homologação | DONE local / BLOCKED remoto | Unit 175 arquivos / 2861 testes PASS; design 45 PASS + contraste AA; lint 0 erros; E2E 164/164 PASS; format:check falha em 193 arquivos preexistentes; sync real e multi-dispositivo não executados |
 
 ## Gate da Fase D
 
@@ -53,7 +53,7 @@ Atualizado em 2026-10-22.
 ## Gate da Fase E
 
 - TDD por tarefa com RED confirmado antes da implementação.
- - Rolagem v2 agora incrementa rolagens uma vez por dia rolado e empilha o bloco depois dos que já eram do dia; E2E 163/163.
+ - Rolagem v2 agora incrementa rolagens uma vez por dia rolado e empilha o bloco depois dos que já eram do dia; E2E 164/164.
 - Revisão independente (subagente Galileo) encontrou 10 achados Major e 3 Minor; correções aplicadas em 258fa5c:
   drafts só são publicados em memória após gravação confirmada; intents de catálogo entram na validação da prévia; troca de disciplina re-vincula tópicos; timer ativo é derivado dos eventos; prévia projeta dias e não alocados; datas que ficaram passadas bloqueiam; rascunho aplicado/obsoleto é recriado ou rebaseado; foco é preso e restaurado; ícone de catálogo é escapado.
 - Residuais registrados: UI de exceções/folgas; capacidade semanal, máximo diário e fixação foram implementados.

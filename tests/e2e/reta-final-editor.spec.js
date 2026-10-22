@@ -212,6 +212,27 @@ test.describe('Reta Final — editor inteligente', () => {
     await page.keyboard.press('Escape');
     await expect(panel).toHaveCount(0);
   });
+
+  test('aplica localmente offline e mantém a sincronização pendente', async ({
+    page,
+    context,
+  }) => {
+    await bootEditor(page);
+    await page.locator('[data-action="rf-open-planner"]').click();
+    await page.fill('[data-rf-plan-duration]', '30');
+    await page.locator('[data-action="rf-plan-duration"]').click();
+    await page.locator('[data-action="rf-plan-preview"]').click();
+    await expect(page.locator('[data-rf-detail-panel]')).toContainText('Oficial × simulado');
+    await context.setOffline(true);
+    await page.locator('[data-action="rf-apply-draft"]').click();
+    await expect(page.locator('#toast-container')).toContainText('Aplicado localmente');
+    await expect(page.locator('#toast-container')).toContainText('pendente');
+    const minutos = await page.evaluate(() =>
+      window.EstudoApp.state.planejamento.retaFinal.blocos.map((block) => block.minutos)
+    );
+    expect(minutos).toEqual([30, 30, 30]);
+    await context.setOffline(false);
+  });
 });
 
 test.describe('Reta Final — mobile e toque', () => {

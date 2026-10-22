@@ -58,8 +58,8 @@
 - npm test: 175 arquivos, 2861 testes, PASS.
 - npm run test:design: 45 testes + contraste AA, PASS.
 - npm run lint: 0 erros.
-- E2E release: 163/163 PASS.
-- E2E editor: 5/5 PASS (inclui mobile/touch e histórico).
+- E2E release: 164/164 PASS.
+- E2E editor: 6/6 PASS (inclui mobile/touch, histórico e offline).
 - bump:check: PASS.
 - format:check: falha preexistente em 193 arquivos.
 - Regras Firestore no emulador: 38/38 PASS; sem deploy real.
