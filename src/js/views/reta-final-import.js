@@ -194,8 +194,13 @@ async function createComparisonDraft(plan, payload, comparison) {
     entry.command && entry.kind !== 'ARCHIVE_CANDIDATE');
   const archiveCandidates = comparison.entries.filter((entry) =>
     entry.kind === 'ARCHIVE_CANDIDATE' && entry.command);
-  if (!actionable.length && !archiveCandidates.length) {
-    showToast('A importação não contém alterações para rascunhar.', 'info');
+  if (!actionable.length) {
+    showToast(
+      archiveCandidates.length
+        ? 'Sugestões de arquivamento exigem revisão individual e não foram aplicadas.'
+        : 'A importação não contém alterações para rascunhar.',
+      'info',
+    );
     return false;
   }
   let draft;
@@ -232,6 +237,21 @@ async function createComparisonDraft(plan, payload, comparison) {
     `Rascunho salvo para revisão.${archiveCandidates.length ? ` ${archiveCandidates.length} candidato(s) a arquivamento aguardam decisão.` : ''}`,
     'success',
   );
+  import('../ui/actions/reta-final-apply.js')
+    .then(({ openRetaFinalApplyPreview }) => {
+      if (!document.body) return;
+      openRetaFinalApplyPreview({
+        draft,
+        plan,
+        editais: state.editais,
+        eventos: state.eventos,
+        today: todayStr(),
+        db,
+      });
+    })
+    .catch(() => {
+      // O rascunho já está salvo; a prévia pode ser reaberta no Planejamento.
+    });
   return true;
 }
 
@@ -261,8 +281,7 @@ export function openRetaFinalComparison(payload) {
   saveBtn.className = 'btn btn-primary';
   const hasDraftableChange = comparison.entries.some((entry) =>
     entry.command && entry.kind !== 'ARCHIVE_CANDIDATE');
-  saveBtn.disabled = comparison.conflicts.length > 0 ||
-    (!hasDraftableChange && comparison.summary.archiveCandidates === 0);
+  saveBtn.disabled = comparison.conflicts.length > 0 || !hasDraftableChange;
   saveBtn.onclick = () => createComparisonDraft(plan, payload, comparison);
   openModal('modal-prompt');
   return true;

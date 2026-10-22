@@ -5,6 +5,7 @@ import * as credentialsStore from '../credentials.js?v=8.37';
 import { appendSyncPerformanceMetric } from '../sync/sync-health.js?v=8.37';
 import { runMigrations as _runMigrations, DEFAULT_SCHEMA_VERSION } from './migrations.js';
 import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
+import { markDerivedRecoveryPending } from './boot-recovery.js';
 import {
   createLocalStateEnvelope,
   isLocalStateEnvelopeValid,
@@ -160,6 +161,7 @@ async function migrateLoadedState(loadedState, { persistEvenIfUnchanged = false 
     migration = runMigrations();
   } catch (err) {
     _setStateRef(backup.payload);
+    markDerivedRecoveryPending();
     throw err;
   } finally {
     if (saveTimeout) {
@@ -186,6 +188,7 @@ async function migrateLoadedState(loadedState, { persistEvenIfUnchanged = false 
     return true;
   } catch (err) {
     _setStateRef(backup.payload);
+    markDerivedRecoveryPending();
     console.error('Reta Final: migração não persistida; estado anterior restaurado.', err);
     return false;
   }

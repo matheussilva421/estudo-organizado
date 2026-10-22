@@ -87,6 +87,23 @@ registerAction('rf-associar-historico', (el) => {
   });
 });
 
+registerAction('rf-open-detail', (el) => {
+  const blocoId = el.dataset.blocoId;
+  return import('../../views/reta-final-detail.js').then(
+    ({ openRetaFinalBlockDetail }) => {
+      if (!openRetaFinalBlockDetail(blocoId)) {
+        showToast('Bloco não encontrado no cronograma atual.', 'error');
+      }
+    }
+  );
+});
+
+registerAction('rf-close-detail', () => {
+  return import('../../views/reta-final-detail.js').then(
+    ({ closeRetaFinalBlockDetail }) => closeRetaFinalBlockDetail()
+  );
+});
+
 registerAction('restaurar-planejamento-arquivado', () => {
   showConfirm(
     'Restaurar o planejamento anterior? O plano da Reta Final será substituído (sessões estudadas são preservadas).',

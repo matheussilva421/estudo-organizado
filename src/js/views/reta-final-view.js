@@ -92,8 +92,8 @@ function renderFiltrosHtml() {
   `;
 }
 
-function renderBlocoCard(bloco, hoje) {
-  const discEntry = getDisc(bloco.discId);
+export function renderRetaFinalBlocoCard(bloco, hoje, { discEntry: entry } = {}) {
+  const discEntry = entry ?? getDisc(bloco.discId);
   const cor = discEntry ? discEntry.disc.cor || discEntry.edital.cor || '#8aa4bf' : '#7f8a99';
   const nome = discEntry ? discEntry.disc.nome : 'Disciplina';
   const topicos = getRetaFinalTopicoLabel(bloco, discEntry?.disc);
@@ -111,10 +111,10 @@ function renderBlocoCard(bloco, hoje) {
   return `
     <div class="rf-bloco-card ${bloco.status === 'concluido' ? 'rf-bloco-card--concluido' : ''}" data-bloco-id="${esc(bloco.id)}">
       <div class="rf-bloco-color" style="background:${cor};"></div>
-      <div class="rf-bloco-body">
-        <div class="rf-bloco-title">${discEntry?.disc.icone || '📚'} ${esc(nome)}</div>
-        ${topicos ? `<div class="rf-bloco-topicos">${esc(topicos)}</div>` : ''}
-      </div>
+      <button type="button" class="rf-bloco-body rf-bloco-open" data-action="rf-open-detail" data-bloco-id="${esc(bloco.id)}" title="Ver assunto completo" aria-label="Ver assunto completo — ${esc(nome)}">
+        <span class="rf-bloco-title">${esc(discEntry?.disc.icone || '📚')} ${esc(nome)}</span>
+        ${topicos ? `<span class="rf-bloco-topicos">${esc(topicos)}</span>` : ''}
+      </button>
       <div class="rf-bloco-meta">
         <span><i class="fa fa-clock"></i> ${formatMinutes(bloco.minutos)}</span>
         ${roladoBadge}
@@ -171,7 +171,7 @@ function renderDiasHtml(blocos, hoje) {
           <div class="rf-day-header ${isHoje ? 'rf-day-header--hoje' : ''}">${label}</div>
           ${porData
             .get(data)
-            .map((bloco) => renderBlocoCard(bloco, hoje))
+            .map((bloco) => renderRetaFinalBlocoCard(bloco, hoje))
             .join('')}
         </div>
       `;
@@ -232,7 +232,7 @@ function renderFocoHoje(blocos, hoje) {
         <span class="rf-foco-meta">${doDia.length} ${plural} · ${formatHours(totalMin)}</span>
       </div>
       <div class="rf-section-body">
-        ${doDia.map((bloco) => renderBlocoCard(bloco, hoje)).join('')}
+        ${doDia.map((bloco) => renderRetaFinalBlocoCard(bloco, hoje)).join('')}
       </div>
     </div>
   `;
@@ -321,7 +321,7 @@ export function renderRetaFinal(el, plan = state.planejamento) {
             <div class="rf-section-title"><i class="fa fa-circle-exclamation"></i> Não cobertos (${naoCobertos.length})</div>
           </div>
           <div class="rf-section-body">
-            ${naoCobertos.map((bloco) => renderBlocoCard(bloco, hoje)).join('')}
+            ${naoCobertos.map((bloco) => renderRetaFinalBlocoCard(bloco, hoje)).join('')}
           </div>
         </div>
       `
@@ -332,6 +332,7 @@ export function renderRetaFinal(el, plan = state.planejamento) {
       <h2 class="ciclo-header-title">🏁 ${esc(retaFinal.nome || 'Reta Final')}</h2>
       <div class="ciclo-header-buttons">
         <button class="btn btn-primary btn-sm" data-action="open-reta-final-import"><i class="fa fa-file-import"></i> Importar Reta Final</button>
+        <button class="btn btn-ghost btn-sm" data-action="rf-open-planner"><i class="fa fa-calendar-days"></i> Planejamento</button>
         <div class="ciclo-kebab-wrap">
           <button class="btn btn-ghost btn-sm ciclo-kebab-btn" data-action="ciclo-toggle-kebab" aria-haspopup="true" aria-expanded="false" title="Mais ações"><i class="fa fa-ellipsis-v"></i></button>
           <div class="ciclo-kebab-menu" role="menu" hidden>

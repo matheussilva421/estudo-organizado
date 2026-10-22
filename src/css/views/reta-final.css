@@ -378,3 +378,361 @@
   font-family: 'DM Mono', monospace;
   font-variant-numeric: tabular-nums;
 }
+
+/* =============================================
+   CONSULTA INTEGRAL (Task 14)
+   O título vira um botão nativo: clique, Enter e espaço abrem o detalhe
+   completo. Alvo de toque >= 44px e foco visível nos oito temas.
+   ============================================= */
+.rf-bloco-open {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rf-bloco-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.rf-bloco-open .rf-bloco-title,
+.rf-bloco-open .rf-bloco-topicos {
+  display: block;
+}
+
+body.rf-detail-open {
+  overflow: hidden;
+}
+
+.rf-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(0 0 0 / 45%);
+}
+
+.rf-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.rf-detail-panel {
+  position: relative;
+  width: min(560px, 100%);
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  background: var(--card);
+  color: var(--text-primary);
+  box-shadow: -12px 0 32px rgb(0 0 0 / 28%);
+  animation: rf-detail-slide-in 0.18s ease-out;
+}
+
+.rf-detail-panel:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.rf-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.rf-detail-eyebrow {
+  flex-basis: 100%;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rf-detail-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.rf-detail-section {
+  margin-bottom: 18px;
+}
+
+.rf-detail-section-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.rf-detail-topics {
+  margin: 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}
+
+.rf-detail-topic {
+  margin-bottom: 6px;
+  white-space: pre-wrap;
+}
+
+.rf-detail-topic--aula {
+  color: var(--text-secondary);
+}
+
+.rf-detail-topic--missing {
+  color: var(--danger, #c0392b);
+}
+
+.rf-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.rf-detail-meta-row {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle, var(--bg));
+}
+
+.rf-detail-meta-row dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.rf-detail-meta-row dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.rf-detail-observation {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rf-detail-events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rf-detail-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rf-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 0;
+  background: var(--card);
+}
+
+.rf-detail-actions .btn {
+  min-height: 44px;
+}
+
+@keyframes rf-detail-slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .rf-detail-overlay {
+    align-items: flex-end;
+  }
+
+  .rf-detail-panel {
+    width: 100%;
+    height: min(88vh, 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 16px;
+    box-shadow: 0 -12px 32px rgb(0 0 0 / 28%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rf-detail-panel {
+    animation: none;
+  }
+}
+
+/* =============================================
+   EDITOR INDIVIDUAL (Task 15)
+   Campos com alvo >= 44px, labels explícitos e chips removíveis.
+   ============================================= */
+.rf-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rf-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.rf-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.rf-editor-field--full {
+  grid-column: 1 / -1;
+}
+
+.rf-editor-field input,
+.rf-editor-field select,
+.rf-editor-field textarea {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 400;
+}
+
+.rf-editor-field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.rf-editor-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 13px;
+}
+
+.rf-editor-check input {
+  width: 20px;
+  height: 20px;
+}
+
+.rf-editor-fieldset {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.rf-editor-fieldset legend {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.rf-editor-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.rf-editor-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--bg-subtle, var(--bg));
+  font-size: 13px;
+}
+
+.rf-editor-chip .btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.rf-editor-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rf-editor-add-row label {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rf-editor-add-row input,
+.rf-editor-add-row select {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.rf-editor-add-row .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 720px) {
+  .rf-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rf-detail-actions {
+    flex-wrap: wrap;
+  }
+}

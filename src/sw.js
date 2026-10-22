@@ -1,4 +1,4 @@
-const APP_VERSION = '9.53';
+const APP_VERSION = '9.60';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -36,6 +36,7 @@ const ASSET_PATHS = [
   './css/views/calendar.css',
   './css/views/ciclo.css',
   './css/views/reta-final.css',
+  './css/views/reta-final-editor.css',
   './css/views/edital-import.css',
   './css/views/config/config-view.css',
   './css/views/wizard.css',
@@ -47,6 +48,7 @@ const ASSET_PATHS = [
   './js/app.js',
   './js/app/themes.js',
   './js/app/modals.js',
+  './js/app/boot-reconciliation.js',
   './js/app/navigation.js',
   './js/app/toast.js',
   './js/app/save-status.js',
@@ -100,6 +102,7 @@ const ASSET_PATHS = [
   './js/store/reta-final-draft-store.js',
   './js/store/reta-final-commit.js',
   './js/store/reta-final-history-store.js',
+  './js/store/boot-recovery.js',
   './js/store/export-state.js',
   './js/store/normalize-state.js',
   './js/state/chart-state.js',
@@ -133,6 +136,8 @@ const ASSET_PATHS = [
   './js/ui/actions/planejamento.js',
   './js/ui/actions/reta-final.js',
   './js/ui/actions/reta-final-conflicts.js',
+  './js/ui/actions/reta-final-editor.js',
+  './js/ui/actions/reta-final-apply.js',
   './js/ui/actions/revisoes.js',
   './js/ui/dialog.js',
   './js/ui/dom.js',
@@ -167,6 +172,11 @@ const ASSET_PATHS = [
   './js/views/reta-final-associar.js',
   './js/views/reta-final-conflicts.js',
   './js/views/reta-final-import.js',
+  './js/views/reta-final-detail.js',
+  './js/views/reta-final-editor-form.js',
+  './js/views/reta-final-planner.js',
+  './js/views/reta-final-bulk-actions.js',
+  './js/views/reta-final-apply-preview.js',
   './js/views/edital-import.js',
   './js/views/reta-final-view.js',
   './js/views/revisao-view.js',

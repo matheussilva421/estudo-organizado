@@ -149,6 +149,17 @@ describe("validateRetaFinalPortable", () => {
 });
 
 describe("exportRetaFinalPortable", () => {
+  it("rejects a duplicated aulaId reference inside one block", () => {
+    const portable = exportRetaFinalPortable(plan());
+    portable.blocos[0].topicos = [
+      { assId: null, aulaId: "aula-1" },
+      { assId: "ass-1", aulaId: "aula-1" },
+    ];
+    const result = validateRetaFinalPortable(portable);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(" ")).toMatch(/referência de aula repetida/i);
+  });
+
   it("preserves plan and block identity, revision, provenance, and intent", () => {
     const source = plan();
     const portable = exportRetaFinalPortable(source);
