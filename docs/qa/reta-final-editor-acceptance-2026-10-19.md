@@ -8,6 +8,7 @@ Data da execução: 2026-10-22
 - Código: 258fa5c (Fase E + correções da revisão)
 - Correção final de rolagem e empilhamento: 5cffee4
 - Checkpoints/importação: 66e9adc · Capacidade: d3b744e
+- Histórico/undo: 0ce40ed
 - Documentação anterior: bae42e7
 - main de referência: eb8cc6c
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
@@ -25,10 +26,10 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 
 | Comando | Resultado |
 | --- | --- |
-| npm test -- --reporter=dot | PASS — 174 arquivos, 2858 testes |
+| npm test -- --reporter=dot | PASS — 175 arquivos, 2861 testes |
 | npm run test:design | PASS — 45 testes CSS + contraste AA nos oito temas |
 | npm run lint | PASS — 0 erros (avisos de estilo preexistentes) |
-| npm run test:e2e:release | PASS — 162/162 |
+| npm run test:e2e:release | PASS — 163/163 |
 | npx playwright test tests/e2e/reta-final-editor.spec.js | PASS — 3/3 |
 | npm run bump:check | PASS — APP_VERSION atualizado |
 | npm run format:check | FAIL preexistente — 193 arquivos fora do Prettier |
@@ -61,7 +62,7 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 | AC07 | PASS | teste atômico: um timer ativo rejeita o lote inteiro |
 | AC08 | PASS | reta-final-redistribution (Task 9); folga, capacidade, fixação e dataFinal |
 | AC09 | PASS | não alocados aparecem na prévia e no motor, sem estudo fictício |
-| AC10 | PASS | v2 incrementa rolagens uma vez por dia rolado e empilha depois dos blocos de hoje; E2E 162/162 |
+| AC10 | PASS | v2 incrementa rolagens uma vez por dia rolado e empilha depois dos blocos de hoje; E2E 163/163 |
 | AC11 | PASS | merge de campos independentes (Task 11) |
 | AC12 | PASS | conflito do mesmo campo abre merge-review |
 | AC13 | PASS | operationId idempotente no draft e no merge |
@@ -70,10 +71,10 @@ arquivos preexistentes. Não houve deploy, merge ou push.
 | AC16 | PASS | UI de checkpoints restaura blocos selecionados no draft; eventos posteriores preservados |
 | AC17 | PASS local | commit local + syncPending; multi-dispositivo offline real NOT_RUN |
 | AC18 | BLOCKED | emulador 38/38; Firestore real não publicado |
-| AC19 | PASS | E2E 162/162; Timer, Calendário, Histórico e quick-mark sem regressão |
+| AC19 | PASS | E2E 163/163; Timer, Calendário, Histórico e quick-mark sem regressão |
 | AC20 | PARTIAL | contraste AA e E2E mobile/touch com alvo de 44px; revisão visual manual dos oito temas NOT_RUN |
 | AC21 | PASS | diagnósticos de data, minutos, prioridade e referência |
-| AC22 | PARTIAL | undo/redo puro testado; UI dedicada não foi conectada |
+| AC22 | PASS | painel Histórico com desfazer/refazer, revisão e conflitos; E2E 5/5 |
 
 ## Limitações registradas
 

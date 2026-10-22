@@ -6,6 +6,7 @@
 - Código: 258fa5c
 - Correção de rolagem: 5cffee4
 - Checkpoints/importação: 66e9adc · Capacidade: d3b744e
+- Histórico/undo: 0ce40ed
 - Documentação: bae42e7
 - Base: 69278ee (fim da Fase D)
 - main: eb8cc6c (não alterada)
@@ -54,11 +55,11 @@
 
 ## Testes
 
-- npm test: 174 arquivos, 2858 testes, PASS.
+- npm test: 175 arquivos, 2861 testes, PASS.
 - npm run test:design: 45 testes + contraste AA, PASS.
 - npm run lint: 0 erros.
-- E2E release: 162/162 PASS.
-- E2E editor: 4/4 PASS (inclui mobile/touch).
+- E2E release: 163/163 PASS.
+- E2E editor: 5/5 PASS (inclui mobile/touch e histórico).
 - bump:check: PASS.
 - format:check: falha preexistente em 193 arquivos.
 - Regras Firestore no emulador: 38/38 PASS; sem deploy real.
