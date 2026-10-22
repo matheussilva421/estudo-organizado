@@ -216,6 +216,14 @@ queda de aba, IndexedDB instavel ou migracao antiga.
 `logic.js` ainda contem algumas mutacoes diretas importantes, como marcar evento
 como estudado, remover evento e arquivar/desarquivar disciplinas.
 
+O editor da Reta Final vive em modulos proprios: `reta-final-schema`
+normaliza o v2, `reta-final-schedule` projeta datas sem alterar autoria,
+`reta-final-commands` aplica operacoes puras, `reta-final-drafts` e
+`reta-final-commit` mantem o rascunho isolado e o commit atomico, e
+`reta-final-merge`/`reta-final-protocol` tratam a convergencia e a barreira
+remota. As views de detalhe, formulario, planejamento e previa apenas renderizam
+o snapshot do draft; nenhuma delas escreve no planejamento oficial.
+
 ### Renderizacao e componentes
 
 `src/js/components.js` coordena renderizacao de views, cards, badges,
