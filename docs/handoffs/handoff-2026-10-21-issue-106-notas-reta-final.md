@@ -80,20 +80,20 @@ a main já possui a versão integrada.
 
 ## Git/GitHub
 
-- origin/main: 3b03e52 (sem push desta Issue).
-- main local: d2aca63 (fast-forward concluído; 4 commits à frente de origin/main)
+- origin/main: b3d9f9d (push fast-forward de 3b03e52 executado em 2026-10-23).
+- main local: b3d9f9d (sincronizada com origin/main).
 - PRs #102/#103: resolvidos (MERGED/CLOSED) na integração anterior.
 - Branches docs/superpowers-reta-final-editor-* removidas após 0 commits exclusivos e ancestralidade comprovada.
 - Worktree reta-final-fase-d/estudo-organizado removido (limpo e integrado); branch e backups preservados.
 - Nenhum Firebase alterado; sync v2 permanece fail-closed.
-- Push da Issue #106 não executado: main tem Workers Builds de produção e este
-  GOAL não autorizou publicação.
+- Push da Issue #106 executado com autorização específica e deploy de produção
+  verificado (detalhes na seção Publicação).
 
 ## Próxima ação
 
-Após autorização específica de publicação: revisar o diff final, atualizar a
-main remota e executar npm test/test:e2e/test:design/lint/bump no resultado.
-Sem essa autorização, o código permanece validado na main local.
+A única pendência material é a comparação das regras Firestore publicadas com
+o `firestore.rules` da main. Sem leitura autenticada do Console, o veredito é
+INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir.
 
 ## Checklist pós-autorização (push)
 
@@ -109,6 +109,41 @@ Sem essa autorização, o código permanece validado na main local.
 6. Comentar na Issue #106 com commits, SHA remoto e resultados dos gates;
    fechar apenas após a confirmação de integração.
 7. Só então avaliar a limpeza das branches locais/remotas já contidas na main.
+
+## Publicação (2026-10-23)
+
+- Push `3b03e52..b3d9f9d` na main; SHA remoto confirmado por
+  `git ls-remote` e pela API do GitHub.
+- Workflow "Auto cache bump" do commit b3d9f9d: concluído com sucesso.
+- Produção https://estudo-organizado.matheussilva421.workers.dev/ passou de
+  9.66 para 9.68 logo após o push.
+- `sw.js`, `index.html`, `reta-final-import-compare.js` e
+  `reta-final-events.js` servidos em produção são byte-idênticos aos blobs do
+  commit b3d9f9d (SHA-256 conferido).
+- Smoke test em produção com dados sintéticos: preview 1 de 3 blocos, 3 blocos,
+  3 eventos, nota visível em Editar Estudo, persistência após reload no
+  IndexedDB, HTML literal inerte, zero chamadas a Firestore/Identity Toolkit,
+  zero erros de console e zero respostas 4xx/5xx.
+- Issue #106 comentada com as evidências e encerrada como concluída.
+- Branches locais codex/issue-106-notas e codex/reta-final-editor-fase-a
+  removidas após 0 commits exclusivos; branches V2 remotas preservadas.
+- Sem token Cloudflare no ambiente, o status nominal do Workers Builds não foi
+  consultado no painel; a publicação é comprovada pelos artefatos e pela versão
+  servidos em produção.
+
+## Auditoria Firestore (somente leitura)
+
+- `firestore.rules` da main: último commit 6501c64 (2026-10-21), 14.629 bytes.
+- Análise estática: `payload` é mapa livre nos snapshots e nas entidades, então
+  `notas` em eventos é compatível; a coleção `eventos` é aceita em
+  `validEntityCollection`; o descritor v2, snapshots, entity-primary e o guard
+  `syncMeta/reta-final-guard` estão implementados; escritas com revisão
+  desatualizada são rejeitadas depois que o descritor v2 existe; há deny-all
+  final.
+- Comparação com as regras efetivamente publicadas: INCONCLUSIVO. Não há
+  Firebase CLI, gcloud, token ou credencial de leitura nesta máquina.
+- Para concluir: copiar do Console (projeto app-de-estudos-14564 → Firestore →
+  Rules) o texto publicado e a data/versão exibidos.
 
 ## Revisão visual (2026-10-23)
 
