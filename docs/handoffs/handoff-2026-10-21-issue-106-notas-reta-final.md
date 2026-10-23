@@ -81,8 +81,10 @@ a main já possui a versão integrada.
 ## Git/GitHub
 
 - origin/main: 3b03e52 (sem push desta Issue).
-- main local: será fast-forward para a branch após o commit deste handoff.
+- main local: d2aca63 (fast-forward concluído; 4 commits à frente de origin/main)
 - PRs #102/#103: resolvidos (MERGED/CLOSED) na integração anterior.
+- Branches docs/superpowers-reta-final-editor-* removidas após 0 commits exclusivos e ancestralidade comprovada.
+- Worktree reta-final-fase-d/estudo-organizado removido (limpo e integrado); branch e backups preservados.
 - Nenhum Firebase alterado; sync v2 permanece fail-closed.
 - Push da Issue #106 não executado: main tem Workers Builds de produção e este
   GOAL não autorizou publicação.
