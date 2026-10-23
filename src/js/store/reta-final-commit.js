@@ -17,7 +17,10 @@ import {
   validateRetaFinalDraft,
 } from "../logic/reta-final-drafts.js";
 import { projectRetaFinalSchedule } from "../logic/reta-final-schedule.js";
-import { rebuildRetaFinalAutoEvents } from "../logic/reta-final-events.js";
+import {
+  carryRemovedAutoNotesToBlocks,
+  rebuildRetaFinalAutoEvents,
+} from "../logic/reta-final-events.js";
 import {
   buildRetaFinalEventTitle,
   reconcileRetaFinalWithEvents,
@@ -333,6 +336,10 @@ function buildCommittedSnapshot(sourceState, draft, context) {
       makeId: () => createEventId(context, usedEventIds),
       now: context.now,
     },
+  );
+  carryRemovedAutoNotesToBlocks(
+    nextPlan.retaFinal.blocos,
+    rebuilt.diagnostics.removed,
   );
   const createdEventIds = new Set(
     rebuilt.diagnostics.created.map((item) => item.eventId),

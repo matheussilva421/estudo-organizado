@@ -1,7 +1,7 @@
 import { reconcileRetaFinalWithEvents } from './reta-final-core.js';
 import { validateRetaFinalV2 } from './reta-final-schema.js';
 
-const FIELDS = ['discId', 'topicos', 'minutos', 'dataPlanejada', 'dataOriginal', 'prioridade', 'observacao', 'fixado', 'arquivado'];
+const FIELDS = ['discId', 'topicos', 'minutos', 'dataPlanejada', 'dataOriginal', 'prioridade', 'observacao', 'notas', 'fixado', 'arquivado'];
 const COLLECTIONS = ['operations', 'pendingOperations'];
 
 function record(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }

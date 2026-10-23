@@ -83,6 +83,19 @@ function conflictEntry(reason, proposed, blockId) {
   };
 }
 
+function portableFieldDiffers(current, proposed, field) {
+  // notas é opcional: ausência no arquivo significa "sem opinião", não
+  // "apagar". Vale para PATCH, arquivamento e restauração.
+  if (
+    field === "notas" &&
+    !Object.prototype.hasOwnProperty.call(proposed, "notas")
+  ) {
+    return false;
+  }
+  const fallback = field === "arquivado" ? false : undefined;
+  return !same(current?.[field] ?? fallback, proposed?.[field] ?? fallback);
+}
+
 function catalogDisciplines(catalog) {
   const result = [];
   for (const edital of Array.isArray(catalog) ? catalog : []) {
@@ -143,7 +156,7 @@ function comparePortableBlock(
       PORTABLE_BLOCK_FIELDS.some(
         (field) =>
           field !== "arquivado" &&
-          !same(current[field] ?? undefined, proposed[field] ?? undefined),
+          portableFieldDiffers(current, proposed, field),
       ) || order !== currentOrder;
     return changedArchivedContent
       ? conflictEntry(
@@ -163,10 +176,7 @@ function comparePortableBlock(
       PORTABLE_BLOCK_FIELDS.some(
         (field) =>
           field !== "arquivado" &&
-          !same(
-            current[field] ?? (field === "arquivado" ? false : undefined),
-            proposed[field] ?? (field === "arquivado" ? false : undefined),
-          ),
+          portableFieldDiffers(current, proposed, field),
       ) || order !== currentOrder;
     if (changedWhileRestoring) {
       return conflictEntry(
@@ -181,10 +191,7 @@ function comparePortableBlock(
       PORTABLE_BLOCK_FIELDS.some(
         (field) =>
           field !== "arquivado" &&
-          !same(
-            current[field] ?? (field === "arquivado" ? false : undefined),
-            proposed[field] ?? (field === "arquivado" ? false : undefined),
-          ),
+          portableFieldDiffers(current, proposed, field),
       ) || order !== currentOrder;
     if (changedWhileArchiving) {
       return conflictEntry(
@@ -282,12 +289,7 @@ function comparePortableBlock(
   const target = { ...proposed, ordem: order };
   const patch = {};
   for (const field of PORTABLE_BLOCK_FIELDS) {
-    if (
-      !same(
-        current[field] ?? (field === "arquivado" ? false : undefined),
-        target[field] ?? (field === "arquivado" ? false : undefined),
-      )
-    ) {
+    if (portableFieldDiffers(current, target, field)) {
       if (
         field !== "dataPlanejada" ||
         proposed.dataPlanejada !== current.dataPlanejada
@@ -582,6 +584,7 @@ function compareV1(plan, payload, catalog) {
           payload.minutosPadrao ??
           plan.retaFinal.minutosPadrao,
         dataPlanejada: day.data,
+        ...(typeof legacy.notas === "string" ? { notas: legacy.notas } : {}),
       };
       const matching = currentBlocks.filter(
         (block) =>

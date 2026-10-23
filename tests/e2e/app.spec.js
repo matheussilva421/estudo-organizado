@@ -132,14 +132,16 @@ test.describe('Estudo Organizado', () => {
     await seedLegacyState(page, state);
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/');
+    await expect(page.locator('#topbar-title')).toHaveText('Página Inicial');
 
     for (const view of [
-      { name: 'med', emptySelector: '.med-empty-state' },
-      { name: 'ciclo', emptySelector: '#main-content > .empty-state' }
+      { name: 'med', title: 'Study Organizer', emptySelector: '.med-empty-state' },
+      { name: 'ciclo', title: 'Ciclo de Estudos', emptySelector: '#main-content > .empty-state' }
     ]) {
       await page.evaluate((viewName) => {
         window.navigate(viewName);
       }, view.name);
+      await expect(page.locator('#topbar-title')).toHaveText(view.title);
       const emptyState = page.locator(view.emptySelector);
       await expect(emptyState).toBeVisible();
 

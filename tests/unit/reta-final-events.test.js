@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { rebuildRetaFinalAutoEvents } from '../../src/js/logic/reta-final-events.js';
+import {
+  carryRemovedAutoNotesToBlocks,
+  rebuildRetaFinalAutoEvents,
+} from '../../src/js/logic/reta-final-events.js';
 
 const HOJE = '2026-10-20';
 
@@ -305,5 +308,43 @@ describe('notas em eventos retidos', () => {
     expect(result.events[0].notas).toBe('Minha nota');
     expect(result.events[0]).not.toHaveProperty('rfNotasAutomaticas');
     expect(result.changed).toBe(false);
+  });
+});
+
+describe('preservação de nota ao remover evento automático', () => {
+  it('devolve a nota manual ao bloco arquivado antes de removê-lo', () => {
+    const blocoArquivado = bloco({ arquivado: true });
+    const planValue = plano([blocoArquivado]);
+
+    const result = rebuild(planValue, [autoEvento({ notas: 'MINHA NOTA' })]);
+
+    expect(result.events).toEqual([]);
+    expect(result.diagnostics.removed).toEqual([
+      expect.objectContaining({
+        blocoId: 'rf_1',
+        reason: 'bloco_arquivado',
+        notas: 'MINHA NOTA',
+      }),
+    ]);
+    const carried = carryRemovedAutoNotesToBlocks(
+      planValue.retaFinal.blocos,
+      result.diagnostics.removed,
+    );
+    expect(carried).toBe(1);
+    expect(blocoArquivado.notas).toBe('MINHA NOTA');
+  });
+
+  it('não sobrescreve nota manual já existente no bloco', () => {
+    const blocoArquivado = bloco({ arquivado: true, notas: 'NOTA DO BLOCO' });
+    const planValue = plano([blocoArquivado]);
+
+    const result = rebuild(planValue, [autoEvento({ notas: 'NOTA DO EVENTO' })]);
+    const carried = carryRemovedAutoNotesToBlocks(
+      planValue.retaFinal.blocos,
+      result.diagnostics.removed,
+    );
+
+    expect(carried).toBe(0);
+    expect(blocoArquivado.notas).toBe('NOTA DO BLOCO');
   });
 });

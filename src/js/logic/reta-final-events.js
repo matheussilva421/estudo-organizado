@@ -89,6 +89,17 @@ function obsoleteReason(event, block, today, occupiedBlockIds) {
   return null;
 }
 
+function manualEventNotes(event) {
+  if (typeof event?.notas !== 'string') return undefined;
+  if (
+    typeof event.rfNotasAutomaticas === 'string' &&
+    event.notas === event.rfNotasAutomaticas
+  ) {
+    return undefined;
+  }
+  return event.notas;
+}
+
 /**
  * Reconstrói eventos automáticos para blocos pendentes na agenda efetiva.
  * `plan.retaFinal.blocos` deve conter projeções quando a versão do plano as
@@ -167,10 +178,20 @@ export function rebuildRetaFinalAutoEvents(plan, events, { today, makeId, now } 
       continue;
     }
     if (reason) {
+      const manualNotes = manualEventNotes(event);
       diagnostics.removed.push({
         eventId: event.id ?? null,
         blocoId: event.rfBlocoId,
-        reason
+        reason,
+        ...(manualNotes === undefined
+          ? {}
+          : {
+              notas: manualNotes,
+              rfNotasAutomaticas:
+                typeof event.rfNotasAutomaticas === 'string'
+                  ? event.rfNotasAutomaticas
+                  : null
+            })
       });
       continue;
     }
@@ -230,4 +251,32 @@ export function rebuildRetaFinalAutoEvents(plan, events, { today, makeId, now } 
     changed,
     diagnostics
   };
+}
+
+/**
+ * Antes de um evento automático ser removido (bloco arquivado ou fora da
+ * agenda), devolve ao bloco a nota manual escrita no evento. Nunca sobrescreve
+ * uma nota manual já existente no bloco; só substitui texto que ainda é o
+ * espelho automático da importação.
+ */
+export function carryRemovedAutoNotesToBlocks(blocks, removed) {
+  let changed = 0;
+  if (!Array.isArray(blocks) || !Array.isArray(removed)) return changed;
+  const byId = new Map();
+  for (const block of blocks) {
+    if (block?.id) byId.set(block.id, block);
+  }
+  for (const item of removed) {
+    if (!item?.blocoId || typeof item.notas !== 'string') continue;
+    const block = byId.get(item.blocoId);
+    if (!block || block.notas === item.notas) continue;
+    const canReplace =
+      typeof block.notas !== 'string' ||
+      (typeof item.rfNotasAutomaticas === 'string' &&
+        block.notas === item.rfNotasAutomaticas);
+    if (!canReplace) continue;
+    block.notas = item.notas;
+    changed += 1;
+  }
+  return changed;
 }

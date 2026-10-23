@@ -254,3 +254,27 @@ describe('mergeRetaFinalPlans lineage identity', () => {
     expect(result.plan).toEqual(localPlan);
   });
 });
+
+describe('mergeRetaFinalPlans com notas', () => {
+  it('conflita notas divergentes em vez de escolher um lado', () => {
+    const result = mergeRetaFinalPlans({
+      basePlan: plan([block('a', { notas: 'BASE' })]),
+      localPlan: plan([block('a', { notas: 'LOCAL' })]),
+      remotePlan: plan([block('a', { notas: 'REMOTE' })]),
+      events: [],
+      catalog: validCatalog(),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.conflicts).toContainEqual(
+      expect.objectContaining({
+        planId: 'rf-plan-1',
+        blockId: 'a',
+        fieldPath: 'notas',
+        base: 'BASE',
+        local: 'LOCAL',
+        remote: 'REMOTE',
+      }),
+    );
+  });
+});

@@ -15,7 +15,7 @@ import {
 import { todayStr, uid } from '../utils.js?v=8.37';
 import { migrateRetaFinalV2 } from './reta-final-schema.js';
 import { projectRetaFinalSchedule } from './reta-final-schedule.js';
-import { rebuildRetaFinalAutoEvents } from './reta-final-events.js';
+import { carryRemovedAutoNotesToBlocks, rebuildRetaFinalAutoEvents } from './reta-final-events.js';
 import { applyTopicosToEvent, buildTopicosFromRetaFinalBloco } from '../registro-sessao/session-topics.js';
 export { resolveRetaFinalCatalog } from './reta-final-catalog.js';
 import {
@@ -196,6 +196,17 @@ export function syncRetaFinalToEventos() {
     state.eventos,
     { today, makeId: () => uid(), now: new Date().toISOString() }
   );
+  const carriedNotes = carryRemovedAutoNotesToBlocks(
+    retaFinal.blocos,
+    rebuild.diagnostics.removed
+  );
+  if (carriedNotes > 0) {
+    // Conteúdo humano movido do evento para o bloco é mutação real: precisa de
+    // nova revisão para o descritor de sync não rejeitar digest diferente.
+    plan.revision = (Number(plan.revision) || 0) + 1;
+    plan.updatedAt = new Date().toISOString();
+    derivedChanged = true;
+  }
   state.eventos = rebuild.events;
   const createdEventIds = new Set(rebuild.diagnostics.created.map((item) => item.eventId));
 
@@ -234,7 +245,7 @@ export function syncRetaFinalToEventos() {
     }
   }
 
-  if (derivedChanged || rebuild.changed || retitled > 0 || notesUpdated > 0) {
+  if (derivedChanged || rebuild.changed || retitled > 0 || notesUpdated > 0 || carriedNotes > 0) {
 
     scheduleSave();
   }

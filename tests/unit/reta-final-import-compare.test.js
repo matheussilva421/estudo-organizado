@@ -317,3 +317,72 @@ describe("compareRetaFinalImport", () => {
     expect(result.commands).toEqual([]);
   });
 });
+
+describe("compareRetaFinalImport com notas", () => {
+  it("não envia PATCH de notas quando o arquivo v2 omite o campo opcional", () => {
+    const current = plan([block("rf-noted", { notas: "NOTA ATUAL" })]);
+    const payload = exportRetaFinalPortable(current);
+    delete payload.blocos[0].notas;
+
+    const result = compareRetaFinalImport(current, payload, { catalog });
+
+    expect(result.entries.map((entry) => entry.kind)).toEqual(["UNCHANGED"]);
+    expect(result.entries[0].command).toBeUndefined();
+    expect(result.commands).toEqual([]);
+  });
+
+  it("leva notas do JSON v1 para o bloco criado na comparação", () => {
+    const current = plan([]);
+    const payload = {
+      versao: 1,
+      nome: "Reta v1",
+      dataFinal: "2026-11-30",
+      minutosPadrao: 60,
+      dias: [
+        {
+          data: "2026-10-22",
+          blocos: [
+            {
+              disciplina: "Direito Penal",
+              topicos: ["Crimes"],
+              minutos: 60,
+              notas: "NOTA V1",
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = compareRetaFinalImport(current, payload, { catalog });
+
+    const entry = result.entries.find((item) => item.kind === "CREATE");
+    expect(entry).toBeTruthy();
+    expect(entry.command).toMatchObject({
+      type: "CREATE",
+      input: { notas: "NOTA V1" },
+    });
+  });
+
+  it("arquiva bloco com nota quando o arquivo omite o campo opcional", () => {
+    const current = plan([block("rf-noted", { notas: "NOTA ATUAL" })]);
+    const payload = exportRetaFinalPortable(current);
+    payload.blocos[0].arquivado = true;
+    delete payload.blocos[0].notas;
+
+    const result = compareRetaFinalImport(current, payload, { catalog });
+
+    expect(result.entries.map((entry) => entry.kind)).toEqual([
+      "ARCHIVE_CANDIDATE",
+    ]);
+  });
+
+  it("mantém bloco arquivado estável quando o arquivo omite notas", () => {
+    const current = plan([block("rf-arch", { arquivado: true, notas: "N" })]);
+    const payload = exportRetaFinalPortable(current);
+    delete payload.blocos[0].notas;
+
+    const result = compareRetaFinalImport(current, payload, { catalog });
+
+    expect(result.entries.map((entry) => entry.kind)).toEqual(["UNCHANGED"]);
+  });
+});
