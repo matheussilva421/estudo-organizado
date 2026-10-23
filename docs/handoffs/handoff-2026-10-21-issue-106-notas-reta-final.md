@@ -1,55 +1,94 @@
 # Handoff — Issue #106: notas da Reta Final
 
-Data: 2026-10-21  
-Issue: [#106 — importar notas do JSON para as Anotações dos eventos sem perder progresso](https://github.com/matheussilva421/estudo-organizado/issues/106)
+Data: 2026-10-23  
+Issue: [#106](https://github.com/matheussilva421/estudo-organizado/issues/106)
 
-## Objetivo e estado
+## Estado
 
-Implementação local concluída. Notas opcionais do JSON da Reta Final chegam ao bloco e ao evento, aparecem no fluxo padrão de Anotações e permanecem protegidas durante sincronização e reimportação.
+- Branch de isolamento: codex/issue-106-notas
+- Base remota reconciliada: origin/main 3b03e52
+- Merge de main na branch: 65699e2
+- Implementação inicial preservada: bddbdfb
+- Notas em JSON v1/v2: c742814
+- Documentação final: commit imediatamente posterior a este arquivo
 
-## O que mudou
+## Implementado
 
-- `src/js/logic/reta-final-core.js`: valida `notas` como texto de até 10.000 caracteres, preservando quebras de linha, acentos e marcadores.
-- `src/js/logic/reta-final.js`: materializa notas em eventos novos e no quick-complete; hidrata eventos automáticos legados de forma idempotente; acompanha notas automáticas por `rfNotasAutomaticas` e preserva edição manual ou limpeza deliberada. Hidratação carimba `updatedAt` para que o LWW de eventos propague a anotação.
-- `src/js/logic/reta-final.js`: reimportação associa blocos por data original, disciplina e tópicos; preserva IDs, estado, rolagens, sessões, tempo e timers; cancela antes de mutar se progresso, notas ou histórico ficariam sem associação inequívoca. Evento pendente com anotação mantém seu ID se a duração/data derivada mudar, atualizando os campos agendados.
-- `src/js/views/reta-final-import.js`: preview informa quantos blocos contêm anotações, sem despejar o texto.
-- Testes unitários cobrem schema, conteúdo Unicode, ativação, sincronização repetida, edição/apagamento manual, quick-complete, reimportação e casos ambíguos.
-- `tests/e2e/reta-final.spec.js`: fluxo Chromium desktop e viewport mobile valida preview, persistência IndexedDB antes do reload, abertura da anotação após reload e escape de conteúdo HTML literal.
+Fluxo completo:
+JSON -> bloco da Reta Final -> evento -> Anotações -> IndexedDB.
 
-## Arquivos deste escopo
+- JSON v1 aceita notas string opcional, sem quebrar legado; limite 10.000
+  caracteres, com erro explícito para tipo/excesso.
+- Ativação persiste notas no bloco e em eventos automáticos.
+- Quick-complete propaga notas com ou sem evento prévio.
+- Hidratação de auto legado é idempotente e carimba updatedAt uma vez.
+- Nota manual e texto intencionalmente apagado nunca são sobrescritos.
+- Eventos com notas sobrevivem a mudança de data/duração; duplicatas
+  anotadas são preservadas em vez de perder texto.
+- Reimportação associa por data original, disciplina e tópicos, preserva
+  rfBlocoId, status, sessões, tempo, revisões e timer, e aborta diante de
+  identidade ambígua.
+- JSON v2 portátil exporta/valida notas; compare gera PATCH de notas quando o
+  bloco atual não tem nota e conflito humano quando há nota divergente.
+- Comandos CREATE/PATCH aceitam notas; preview v1 mostra contagem de blocos
+  com anotações.
+- Conteúdo permanece texto inerte; nenhum HTML é interpretado.
 
-- `src/js/logic/reta-final-core.js`
-- `src/js/logic/reta-final.js`
-- `src/js/views/reta-final-import.js`
-- `tests/unit/reta-final-core.test.js`
-- `tests/unit/reta-final-activation.test.js`
-- `tests/unit/reta-final-sync-eventos.test.js`
-- `tests/unit/reta-final-quick-mark.test.js`
-- `tests/e2e/reta-final.spec.js`
+## Arquivos
 
-## Validação
+- src/js/logic/reta-final-core.js
+- src/js/logic/reta-final.js
+- src/js/logic/reta-final-events.js
+- src/js/logic/reta-final-commands.js
+- src/js/logic/reta-final-portable.js
+- src/js/logic/reta-final-import-compare.js
+- src/js/store/reta-final-commit.js
+- src/js/views/reta-final-import.js
+- tests/unit/reta-final-core.test.js
+- tests/unit/reta-final-activation.test.js
+- tests/unit/reta-final-sync-eventos.test.js
+- tests/unit/reta-final-quick-mark.test.js
+- tests/unit/reta-final-events.test.js
+- tests/unit/reta-final-portable.test.js
+- tests/unit/reta-final-commands.test.js
+- tests/e2e/reta-final.spec.js
+- bump de cache em src/index.html, src/sw.js, src/js/sync/sync-diagnostic.js e tests/unit/css-architecture.test.js
 
-- `npx vitest run tests/unit/reta-final-core.test.js tests/unit/reta-final-activation.test.js tests/unit/reta-final-sync-eventos.test.js tests/unit/reta-final-quick-mark.test.js tests/unit/reta-final-start-timer.test.js` — 5 arquivos, 109 testes aprovados, 0 falhas.
-- `npm run test:e2e:release -- tests/e2e/reta-final.spec.js` — 7/7 aprovados; inclui desktop, mobile (390×844), IndexedDB, reload e conteúdo HTML escapado.
-- `npm test -- --reporter=dot` — 146 arquivos: 143 passaram, 3 falharam; 2.368 testes: 2.364 passaram e 4 falharam. Falhas fora deste escopo: `tests/unit/reta-final-merge.test.js` importa o módulo ausente `src/js/logic/reta-final-merge.js`; `tests/unit/store-reta-final-sync.test.js` espera revisão 6 e recebe 5; três expectativas de merge three-way em `tests/unit/sync-center.test.js` falham.
-- TDD da proteção para anotação manual com duração alterada: novo teste falhou primeiro porque o evento recebia outro ID; passou após a correção. O conjunto focado e o E2E foram repetidos depois da correção.
-- `git diff --check` não encontrou erro de whitespace; Git mostrou avisos CRLF/LF em arquivos existentes.
-- `npx prettier --check` falha nos arquivos alterados; a mesma checagem nos blobs de `HEAD` também falhou, então o baseline do repositório já não é formatado por essa configuração do Prettier.
+## Testes
 
-## Verificação manual e dados
+- npm test: 176 arquivos / 2.901 testes PASS.
+- npm run test:e2e:release: 175/175 PASS.
+- E2E focado reta-final: 7/7 PASS, incluindo mobile e IndexedDB/reload.
+- Foco notas: 121/121 e 133/133 nas rodadas específicas.
+- test:design: PASS (45 testes + contraste AA 8 temas).
+- lint: 0 erros.
+- bump:check: 9.67.
+- format:check: dívida preexistente; todos os arquivos alterados já falhavam
+  em origin/main, nenhum novo débito introduzido.
+- Fixture autocontida 93 dias / 186 blocos / 186 notas: PASS.
+- Arquivo real de 186 notas: NOT_RUN; não acessado.
 
-Não foi aberto nem alterado dado pessoal real. A verificação de fluxo foi automatizada com estado de teste e payload sintético; a persistência foi lida diretamente do IndexedDB de teste antes do reload. Não houve login nem alteração externa no GitHub.
+## Preservação
 
-## GitHub e checkout
+Backup integral do checkout antigo:
+C:/Users/slvma/.codex/worktrees/reta-final-fase-d/backups/2026-10-23-issue-106
 
-- Branch: `main`.
-- `HEAD` e `origin/main`: `eb8cc6cfcc443bbd8bf8272f736447929272d183`.
-- Nenhum commit, push ou PR foi criado; a Issue #106 não foi alterada.
-- O checkout também contém alterações fora deste escopo em `tests/unit/store-reta-final-sync.test.js`, `tests/unit/sync-center.test.js` e o arquivo não rastreado `tests/unit/reta-final-merge.test.js`. Preserve esses arquivos; eles correspondem às falhas de merge three-way citadas acima. O patch deste handoff deve ser tratado separadamente.
+As alterações antigas de store-reta-final-sync.test.js e sync-center.test.js
+eram fora do escopo e foram substituídas pela implementação atual da main
+(backup preservado). O reta-final-merge.test.js antigo também está no backup;
+a main já possui a versão integrada.
 
-## Pendências e retomada
+## Git/GitHub
 
-1. Não resetar, limpar ou incluir em commit as três alterações de teste fora do escopo sem identificar o trabalho que as criou.
-2. Se a meta seguinte for suíte completa verde, investigar separadamente a ausência de `reta-final-merge.js` e as expectativas de merge three-way/revision.
-3. Para revisar Issue #106, começar pelo diff de `src/js/logic/reta-final-core.js`, `src/js/logic/reta-final.js`, `src/js/views/reta-final-import.js` e pelos quatro testes focados listados acima. O estado atual está no `main` com alterações locais não commitadas.
-4. Não retomar a publicação automaticamente: nenhuma PR ou push foi solicitado nesta etapa.
+- origin/main: 3b03e52 (sem push desta Issue).
+- main local: será fast-forward para a branch após o commit deste handoff.
+- PRs #102/#103: resolvidos (MERGED/CLOSED) na integração anterior.
+- Nenhum Firebase alterado; sync v2 permanece fail-closed.
+- Push da Issue #106 não executado: main tem Workers Builds de produção e este
+  GOAL não autorizou publicação.
+
+## Próxima ação
+
+Após autorização específica de publicação: revisar o diff final, atualizar a
+main remota e executar npm test/test:e2e/test:design/lint/bump no resultado.
+Sem essa autorização, o código permanece validado na main local.
