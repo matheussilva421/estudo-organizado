@@ -279,6 +279,43 @@ describe('applyRetaFinalCommand - identidade, MOVE e atomicidade', () => {
   });
 });
 
+describe('notas do bloco', () => {
+  it('PATCH grava notas e CREATE transporta notas', () => {
+    const current = plano();
+    const patch = applyRetaFinalCommand(
+      current,
+      op('PATCH', { blockIds: ['rf_1'], patch: { notas: 'Linha 1\n• Linha 2' } }),
+      { today: HOJE, catalog: catalogo(), events: [] },
+    );
+    expect(patch.valid).toBe(true);
+    expect(patch.plan.retaFinal.blocos[0].notas).toBe('Linha 1\n• Linha 2');
+
+    const created = applyRetaFinalCommand(
+      current,
+      op('CREATE', { input: { ...createInput(), notas: 'Nova nota' } }),
+      { today: HOJE, catalog: catalogo(), events: [], makeId: () => 'rf_new' },
+    );
+    expect(created.valid).toBe(true);
+    expect(created.plan.retaFinal.blocos.find((b) => b.id === 'rf_new').notas).toBe('Nova nota');
+  });
+
+  it('rejeita tipo inválido e excesso sem truncar', () => {
+    const current = plano();
+    const invalid = applyRetaFinalCommand(
+      current,
+      op('PATCH', { blockIds: ['rf_1'], patch: { notas: 42 } }),
+      { today: HOJE, catalog: catalogo(), events: [] },
+    );
+    expect(invalid.valid).toBe(false);
+    const tooLong = applyRetaFinalCommand(
+      current,
+      op('PATCH', { blockIds: ['rf_1'], patch: { notas: 'x'.repeat(10001) } }),
+      { today: HOJE, catalog: catalogo(), events: [] },
+    );
+    expect(tooLong.valid).toBe(false);
+  });
+});
+
 describe('applyRetaFinalCommand - DUPLICATE', () => {
   it('cria id novo sem clonar sessao, timer, questoes, revisoes ou historico', () => {
     const source = bloco({

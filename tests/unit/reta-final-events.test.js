@@ -278,3 +278,32 @@ describe('rebuildRetaFinalAutoEvents', () => {
     expect(result.events[0].data).toBe(HOJE);
   });
 });
+
+describe('notas em eventos retidos', () => {
+  it('atualiza somente notas automáticas quando o bloco muda', () => {
+    const event = autoEvento({
+      notas: 'Versão antiga',
+      rfNotasAutomaticas: 'Versão antiga',
+    });
+    const result = rebuildRetaFinalAutoEvents(
+      plano([bloco({ notas: 'Versão nova' })]),
+      [event],
+      { today: HOJE, makeId: () => 'never' },
+    );
+    expect(result.events[0].notas).toBe('Versão nova');
+    expect(result.events[0].rfNotasAutomaticas).toBe('Versão nova');
+    expect(result.changed).toBe(true);
+  });
+
+  it('preserva nota manual em evento retido', () => {
+    const event = autoEvento({ notas: 'Minha nota' });
+    const result = rebuildRetaFinalAutoEvents(
+      plano([bloco({ notas: 'Versão nova' })]),
+      [event],
+      { today: HOJE, makeId: () => 'never' },
+    );
+    expect(result.events[0].notas).toBe('Minha nota');
+    expect(result.events[0]).not.toHaveProperty('rfNotasAutomaticas');
+    expect(result.changed).toBe(false);
+  });
+});

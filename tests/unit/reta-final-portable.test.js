@@ -160,6 +160,45 @@ describe("exportRetaFinalPortable", () => {
     expect(result.errors.join(" ")).toMatch(/referência de aula repetida/i);
   });
 
+  it("transports notas in v2 exports and reimports without losing them", () => {
+    const source = plan();
+    source.retaFinal.blocos[0].notas = "Roteiro importado\n• Habeas corpus";
+    const portable = exportRetaFinalPortable(source);
+    expect(portable.blocos[0].notas).toBe("Roteiro importado\n• Habeas corpus");
+    expect(validateRetaFinalPortable(portable).valid).toBe(true);
+
+    const current = plan();
+    delete current.retaFinal.blocos[0].notas;
+    const comparison = compareRetaFinalImport(current, portable, {
+      catalog,
+    });
+    const update = comparison.entries.find(
+      (entry) => entry.blockId === "rf-1" && entry.kind === "UPDATE",
+    );
+    expect(update.command.patch.notas).toBe("Roteiro importado\n• Habeas corpus");
+  });
+
+  it("rejects invalid v2 notas types and excessive length", () => {
+    const portable = exportRetaFinalPortable(plan());
+    portable.blocos[0].notas = 42;
+    expect(validateRetaFinalPortable(portable).valid).toBe(false);
+    portable.blocos[0].notas = "x".repeat(10_001);
+    expect(validateRetaFinalPortable(portable).valid).toBe(false);
+  });
+
+  it("treats divergent v2 notes as a human conflict", () => {
+    const current = plan();
+    current.retaFinal.blocos[0].notas = "Nota pessoal";
+    const portable = exportRetaFinalPortable(plan());
+    portable.blocos[0].notas = "Nota do arquivo";
+    const comparison = compareRetaFinalImport(current, portable, {
+      catalog,
+    });
+    expect(comparison.entries.some((entry) => entry.kind === "CONFLICT")).toBe(
+      true,
+    );
+  });
+
   it("preserves plan and block identity, revision, provenance, and intent", () => {
     const source = plan();
     const portable = exportRetaFinalPortable(source);

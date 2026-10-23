@@ -331,6 +331,7 @@ function buildCommittedSnapshot(sourceState, draft, context) {
     {
       today: context.today,
       makeId: () => createEventId(context, usedEventIds),
+      now: context.now,
     },
   );
   const createdEventIds = new Set(

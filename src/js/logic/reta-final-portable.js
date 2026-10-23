@@ -22,6 +22,7 @@ const BLOCK_FIELDS = new Set([
   "dataOriginal",
   "prioridade",
   "observacao",
+  "notas",
   "fixado",
   "arquivado",
   "provenance",
@@ -279,6 +280,13 @@ function validateV2(payload) {
       typeof block.observacao !== "string"
     )
       addError(errors, `${path}: observacao inválida.`);
+    if (block.notas !== undefined) {
+      if (typeof block.notas !== "string") {
+        addError(errors, `${path}: notas deve ser um texto.`);
+      } else if (block.notas.length > 10_000) {
+        addError(errors, `${path}: notas deve ter no máximo 10000 caracteres.`);
+      }
+    }
     if (block.fixado !== undefined && typeof block.fixado !== "boolean") {
       addError(errors, `${path}: fixado inválido.`);
     }
@@ -377,6 +385,7 @@ export function exportRetaFinalPortable(plan) {
         ...(block?.observacao !== undefined
           ? { observacao: block.observacao }
           : {}),
+        ...(typeof block?.notas === "string" ? { notas: block.notas } : {}),
         ...(block?.fixado !== undefined ? { fixado: block.fixado } : {}),
         arquivado: block?.arquivado === true,
         ...(isRecord(block?.provenance)

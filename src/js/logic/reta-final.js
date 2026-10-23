@@ -194,7 +194,7 @@ export function syncRetaFinalToEventos() {
   const rebuild = rebuildRetaFinalAutoEvents(
     { ...plan, retaFinal: { ...retaFinal, blocos: blocksForEvents } },
     state.eventos,
-    { today, makeId: () => uid() }
+    { today, makeId: () => uid(), now: new Date().toISOString() }
   );
   state.eventos = rebuild.events;
   const createdEventIds = new Set(rebuild.diagnostics.created.map((item) => item.eventId));

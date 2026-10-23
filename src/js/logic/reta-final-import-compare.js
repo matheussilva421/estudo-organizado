@@ -11,6 +11,7 @@ const PORTABLE_BLOCK_FIELDS = [
   "dataPlanejada",
   "prioridade",
   "observacao",
+  "notas",
   "fixado",
   "arquivado",
 ];
@@ -237,6 +238,7 @@ function comparePortableBlock(
       ...(proposed.observacao !== undefined
         ? { observacao: proposed.observacao }
         : {}),
+      ...(typeof proposed.notas === "string" ? { notas: proposed.notas } : {}),
       ...(proposed.fixado !== undefined ? { fixado: proposed.fixado } : {}),
     };
     return {
@@ -266,6 +268,17 @@ function comparePortableBlock(
     };
   }
 
+  if (
+    Object.prototype.hasOwnProperty.call(proposed, "notas") &&
+    typeof current.notas === "string" &&
+    current.notas !== proposed.notas
+  ) {
+    return conflictEntry(
+      "As notas do arquivo diferem das notas atuais; preservação exige decisão humana.",
+      proposed,
+      current.id,
+    );
+  }
   const target = { ...proposed, ordem: order };
   const patch = {};
   for (const field of PORTABLE_BLOCK_FIELDS) {

@@ -56,6 +56,7 @@ const EDITABLE_PATCH_FIELDS = new Set([
   "minutos",
   "prioridade",
   "observacao",
+  "notas",
   "dataPlanejada",
   "ordem",
   "fixado",
@@ -67,12 +68,18 @@ const CREATE_FIELDS = new Set([
   "minutos",
   "prioridade",
   "observacao",
+  "notas",
   "dataPlanejada",
   "ordem",
   "fixado",
 ]);
 
-const ANNOTATION_FIELDS = new Set(["prioridade", "observacao"]);
+const ANNOTATION_FIELDS = new Set(["prioridade", "observacao", "notas"]);
+const MAX_NOTAS_LENGTH = 10_000;
+
+function isValidNotas(value) {
+  return typeof value === "string" && value.length <= MAX_NOTAS_LENGTH;
+}
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -469,6 +476,14 @@ function validatePatch(patch, command) {
           "PRIORIDADE_INVALIDA",
           command,
           "prioridade deve ser nula ou estar entre 1 e 5.",
+        ),
+      );
+    } else if (field === "notas" && !isValidNotas(value)) {
+      diagnostics.push(
+        diagnostic(
+          "NOTAS_INVALIDAS",
+          command,
+          "notas deve ser um texto de até " + MAX_NOTAS_LENGTH + " caracteres.",
         ),
       );
     } else if (field === "ordem" && !isOrder(value)) {
@@ -1056,6 +1071,15 @@ function createInputDiagnostics(input, plan, ctx, command) {
       );
     }
   }
+  if (input.notas !== undefined && !isValidNotas(input.notas)) {
+    diagnostics.push(
+      diagnostic(
+        "NOTAS_INVALIDAS",
+        command,
+        "notas deve ser um texto de até " + MAX_NOTAS_LENGTH + " caracteres.",
+      ),
+    );
+  }
 
   const minutos =
     input.minutos === undefined ? plan.retaFinal.minutosPadrao : input.minutos;
@@ -1219,6 +1243,7 @@ function runCreate(plan, command, ctx) {
     block.prioridade = cloneValue(input.prioridade);
   if (input.observacao !== undefined)
     block.observacao = cloneValue(input.observacao);
+  if (input.notas !== undefined) block.notas = cloneValue(input.notas);
   if (input.fixado !== undefined) block.fixado = cloneValue(input.fixado);
   const blocos = [...plan.retaFinal.blocos, block];
   return validResult({ ...plan, retaFinal: { ...plan.retaFinal, blocos } }, [
