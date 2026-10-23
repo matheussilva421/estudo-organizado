@@ -223,6 +223,15 @@ Use `npm run test:coverage` apenas para auditoria de cobertura.
 - `src/js/views/config/data-management.js`: import/export/restore/limpeza de dados.
 - `src/js/views/state/disc-manager-state.js`: getters/setters do gerenciador de disciplinas.
 - `src/js/views/dashboard-view.js`: dashboard principal (home) e dashboard de disciplina.
+ - `src/css/views/reta-final.css`: cards, KPIs e detalhe da Reta Final.
+ - `src/css/views/reta-final-editor.css`: editor individual, planejamento e previa de aplicacao.
+ - `src/js/views/reta-final-detail.js`: consulta integral e foco do dialogo.
+ - `src/js/views/reta-final-editor-form.js`: formulario individual sobre o draft.
+ - `src/js/views/reta-final-planner.js`: calendario do Modo Planejamento.
+ - `src/js/views/reta-final-bulk-actions.js`: selecao visivel x cronograma e comandos coletivos.
+ - `src/js/views/reta-final-apply-preview.js`: KPIs oficial x simulado e bloqueios.
+ - `src/js/ui/actions/reta-final-editor.js`: comandos e persistencia do draft.
+ - `src/js/ui/actions/reta-final-apply.js`: previa e commit local.
 
 ## Armadilhas conhecidas
 

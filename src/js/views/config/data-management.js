@@ -204,7 +204,7 @@ export function restoreBackupFromSelectedSource() {
     return openRemoteRestorePreview(
       'Firestore',
       previewFirestoreRestore(),
-      () => pullFromFirestore(true),
+      () => pullFromFirestore(true, { discardPending: true }),
       'Restaurar Firestore'
     );
   }

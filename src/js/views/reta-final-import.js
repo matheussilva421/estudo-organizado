@@ -6,12 +6,15 @@
  */
 
 import { closeModal, openModal, showToast } from '../app.js?v=8.37';
-import { esc } from '../utils.js?v=8.37';
-import { state } from '../store.js?v=8.37';
+import { esc, todayStr, uid } from '../utils.js?v=8.37';
+import { db, saveRetaFinalDraft, state } from '../store.js?v=8.37';
+import { matchRetaFinalToEditais } from '../logic/reta-final-core.js';
+import { compareRetaFinalImport } from '../logic/reta-final-import-compare.js';
+import { validateRetaFinalPortable } from '../logic/reta-final-portable.js';
 import {
-  matchRetaFinalToEditais,
-  validateRetaFinalPayload,
-} from '../logic/reta-final-core.js';
+  appendRetaFinalDraftOperation,
+  createRetaFinalDraft,
+} from '../logic/reta-final-drafts.js';
 import { activateRetaFinal } from '../logic/reta-final.js';
 import { invalidateDiscCache, invalidateDashCaches } from '../logic.js?v=8.37';
 import { renderCurrentView } from '../components.js?v=8.37';
@@ -64,7 +67,11 @@ function renderPreviewHtml(payload, match) {
       `;
     })
     .join('');
-
+  const conflictsHtml = (match.conflicts || []).length
+    ? `<div class="restore-preview-warning">Importação bloqueada por ambiguidade: ${(match.conflicts || [])
+      .map((conflict) => esc(`${conflict.entity}: ${conflict.nome || conflict.code}`))
+      .join(' · ')}</div>`
+    : '';
   return `
     <div class="rf-import-preview">
       <div class="config-desc">
@@ -78,6 +85,7 @@ function renderPreviewHtml(payload, match) {
         Aulas: ${summary.aulasCasadas} casada(s), ${summary.aulasCriadas} a criar.
       </div>
       <div class="custom-scrollbar scroll-area-md">${disciplinasHtml}</div>
+      ${conflictsHtml}
       <div class="restore-preview-warning">
         Confirmar substitui o planejamento atual pela Reta Final. O plano anterior
         fica arquivado e pode ser restaurado após ${esc(formatBrDate(payload.dataFinal))}.
@@ -87,6 +95,15 @@ function renderPreviewHtml(payload, match) {
 }
 
 export function openRetaFinalPreview(payload) {
+  const activeV2 = state.planejamento?.ativo && state.planejamento?.tipo === 'reta_final' &&
+    state.planejamento?.schemaVersionRetaFinal === 2;
+  if (payload?.versao === 2 && !activeV2) {
+    showToast('JSON v2 só pode ser comparado com uma Reta Final v2 ativa.', 'error');
+    return false;
+  }
+  if (activeV2) {
+    return openRetaFinalComparison(payload);
+  }
   const modal = document.getElementById('modal-prompt');
   const title = document.getElementById('modal-prompt-title');
   const body = document.getElementById('modal-prompt-body');
@@ -101,12 +118,27 @@ export function openRetaFinalPreview(payload) {
   body.innerHTML = renderPreviewHtml(payload, match);
   saveBtn.textContent = 'Ativar Reta Final';
   saveBtn.className = 'btn btn-primary';
+  saveBtn.disabled = (match.conflicts || []).length > 0;
   saveBtn.onclick = () => confirmRetaFinalImport(payload);
   openModal('modal-prompt');
   return true;
 }
 
 export function confirmRetaFinalImport(payload) {
+  const activeV2 = state.planejamento?.ativo && state.planejamento?.tipo === 'reta_final' &&
+    state.planejamento?.schemaVersionRetaFinal === 2;
+  if (payload?.versao === 2 && !activeV2) {
+    showToast('JSON v2 só pode ser comparado com uma Reta Final v2 ativa.', 'error');
+    return false;
+  }
+  if (activeV2) {
+    return openRetaFinalComparison(payload);
+  }
+  const match = matchRetaFinalToEditais(payload, state.editais);
+  if ((match.conflicts || []).length) {
+    showToast('Importação bloqueada: existem referências ambíguas no arquivo.', 'error');
+    return;
+  }
   try {
     activateRetaFinal({ payload });
   } catch (err) {
@@ -118,6 +150,190 @@ export function confirmRetaFinalImport(payload) {
   closeModal('modal-prompt');
   renderCurrentView();
   showToast('Reta Final ativada! O plano anterior foi arquivado.', 'success');
+}
+
+function renderComparisonHtml(payload, comparison) {
+  const labels = {
+    CREATE: 'Criar',
+    UNCHANGED: 'Sem alteração',
+    UPDATE: 'Atualizar',
+    MOVE: 'Mover',
+    ARCHIVE_CANDIDATE: 'Candidato a arquivamento',
+    CONFLICT: 'Conflito',
+  };
+  const entries = comparison.entries.map((entry) => `
+    <li>
+      <strong>${esc(labels[entry.kind] || entry.kind)}</strong>
+      ${entry.blockId ? `<code>${esc(entry.blockId)}</code>` : ''}
+      <span>${esc(entry.reason)}</span>
+    </li>
+  `).join('');
+  const { summary } = comparison;
+  return `
+    <div class="rf-import-preview">
+      <div class="config-desc">
+        <strong>${esc(payload.nome || 'Reta Final')}</strong> · versão ${payload.versao} ·
+        revisão ${esc(payload.exportRevision ?? 'legada')}.
+      </div>
+      <div class="config-desc">
+        ${summary.creates} criar · ${summary.updates} atualizar · ${summary.moves} mover ·
+        ${summary.unchanged} sem alteração · ${summary.archiveCandidates} candidato(s) a arquivamento ·
+        ${summary.conflicts} conflito(s).
+      </div>
+      <ul class="custom-scrollbar scroll-area-md">${entries}</ul>
+      ${summary.archiveCandidates
+        ? '<div class="restore-preview-warning">Marque explicitamente as sugestões de arquivamento que deseja incluir no rascunho.</div>'
+        : ''}
+      ${summary.conflicts
+        ? '<div class="restore-preview-warning">Conflitos bloqueiam a criação do rascunho. Resolva as referências e importe novamente.</div>'
+        : '<div class="config-desc">A confirmação salva apenas um rascunho local para revisão; o plano oficial permanece intacto.</div>'}
+    </div>
+  `;
+}
+
+async function createComparisonDraft(plan, payload, comparison) {
+  if (comparison.conflicts.length) {
+    showToast('Resolva os conflitos antes de criar o rascunho.', 'error');
+    return false;
+  }
+  const selectedIndexes = [
+    ...document.querySelectorAll('input[name="rf-import-entry"]:checked'),
+  ].map((input) => Number(input.value));
+  const archiveIndexes = [
+    ...document.querySelectorAll('input[name="rf-import-archive"]:checked'),
+  ].map((input) => Number(input.value));
+  const { actionable, archives } = selectRetaFinalImportEntries(
+    comparison,
+    selectedIndexes,
+    archiveIndexes,
+  );
+  if (!actionable.length && !archives.length) {
+    showToast(
+      'Selecione ao menos uma alteração para criar o rascunho.',
+      'info',
+    );
+    return false;
+  }
+  let draft;
+  try {
+    draft = createRetaFinalDraft(plan, {
+      draftId: `reta-final-import-${uid()}`,
+      now: new Date().toISOString(),
+    });
+    draft.importComparison = {
+      version: payload.versao,
+      sourceRevision: payload.exportRevision ?? null,
+      entries: comparison.entries,
+      pendingImportCommands: comparison.entries
+        .filter((entry) => entry.kind === 'ARCHIVE_CANDIDATE' && entry.command)
+        .map((entry) => entry.command),
+      archiveCandidates: archives.map(({ entry }) => entry),
+    };
+    for (const { entry } of actionable) {
+      const result = appendRetaFinalDraftOperation(draft, entry.command, {
+        events: state.eventos,
+        catalog: state.editais,
+        today: todayStr(),
+        makeId: () => entry.kind === 'CREATE' ? entry.blockId : uid(),
+      });
+      if (!result.valid) {
+        throw new Error(result.errors[0]?.message || 'Comando não pôde ser incluído no rascunho.');
+      }
+      draft = result.draft;
+    }
+    for (const { entry } of archives) {
+      const result = appendRetaFinalDraftOperation(
+        draft,
+        { ...entry.command, operationId: 'rf-import-archive-' + uid() },
+        {
+          events: state.eventos,
+          catalog: state.editais,
+          today: todayStr(),
+        },
+      );
+      if (!result.valid) {
+        throw new Error(
+          result.errors[0]?.message ||
+            'Arquivamento não pôde ser incluído no rascunho.',
+        );
+      }
+      draft = result.draft;
+    }
+    await saveRetaFinalDraft(db, draft);
+  } catch (error) {
+    showToast(error.message || 'Não foi possível salvar o rascunho da importação.', 'error');
+    return false;
+  }
+  closeModal('modal-prompt');
+  showToast(
+    'Rascunho salvo para revisão. Nada foi aplicado ao plano oficial.',
+    'success',
+  );
+  import('../ui/actions/reta-final-apply.js')
+    .then(({ openRetaFinalApplyPreview }) => {
+      if (!document.body) return;
+      openRetaFinalApplyPreview({
+        draft,
+        plan,
+        editais: state.editais,
+        eventos: state.eventos,
+        today: todayStr(),
+        db,
+      });
+    })
+    .catch(() => {
+      // O rascunho já está salvo; a prévia pode ser reaberta no Planejamento.
+    });
+  return true;
+}
+
+export function openRetaFinalComparison(payload) {
+  const plan = state.planejamento;
+  if (!plan?.ativo || plan.tipo !== 'reta_final' || plan.schemaVersionRetaFinal !== 2) {
+    showToast('A comparação exige uma Reta Final v2 ativa.', 'error');
+    return false;
+  }
+  const modal = document.getElementById('modal-prompt');
+  const title = document.getElementById('modal-prompt-title');
+  const body = document.getElementById('modal-prompt-body');
+  const saveBtn = document.getElementById('modal-prompt-save');
+  if (!modal || !title || !body || !saveBtn) {
+    showToast('Modal de importação indisponível.', 'error');
+    return false;
+  }
+  const validation = validateRetaFinalPortable(payload);
+  if (!validation.valid) {
+    showToast('JSON de Reta Final inválido: ' + validation.errors[0], 'error');
+    return false;
+  }
+  const comparison = compareRetaFinalImport(plan, payload, { catalog: state.editais });
+  title.textContent = 'Comparar Reta Final';
+  body.innerHTML = renderComparisonHtml(payload, comparison);
+  const items = [...body.querySelectorAll('.rf-import-preview li')];
+  comparison.entries.forEach((entry, index) => {
+    const item = items[index];
+    if (!item || !entry.command || entry.kind === 'CONFLICT') return;
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = String(index);
+    input.className = 'rf-import-choice';
+    if (entry.kind === 'ARCHIVE_CANDIDATE') {
+      input.name = 'rf-import-archive';
+      input.setAttribute('aria-label', 'Arquivar bloco ' + (entry.blockId || ''));
+    } else {
+      input.name = 'rf-import-entry';
+      input.checked = true;
+      input.setAttribute('aria-label', 'Incluir alteração no rascunho');
+    }
+    item.prepend(input);
+  });
+  saveBtn.textContent = 'Criar rascunho';
+  saveBtn.className = 'btn btn-primary';
+  const hasDraftableChange = comparison.entries.some((entry) => entry.command);
+  saveBtn.disabled = comparison.conflicts.length > 0 || !hasDraftableChange;
+  saveBtn.onclick = () => createComparisonDraft(plan, payload, comparison);
+  openModal('modal-prompt');
+  return true;
 }
 
 export function openRetaFinalImport() {
@@ -140,9 +356,15 @@ export function openRetaFinalImport() {
         showToast('Arquivo inválido! Verifique se é um JSON de Reta Final.', 'error');
         return;
       }
-      const validation = validateRetaFinalPayload(payload);
+      const validation = validateRetaFinalPortable(payload);
       if (!validation.valid) {
         showToast('JSON de Reta Final inválido: ' + validation.errors[0], 'error');
+        return;
+      }
+      if (payload.versao === 2 && !(state.planejamento?.ativo &&
+        state.planejamento?.tipo === 'reta_final' &&
+        state.planejamento?.schemaVersionRetaFinal === 2)) {
+        showToast('JSON v2 só pode ser comparado com uma Reta Final v2 ativa.', 'error');
         return;
       }
       openRetaFinalPreview(payload);
@@ -154,4 +376,29 @@ export function openRetaFinalImport() {
   };
   document.body.appendChild(input);
   input.click();
+}
+
+/**
+ * Filtra as entradas escolhidas pelo usuário. Arquivamentos são opt-in e
+ * nunca entram no rascunho sem marcação explícita.
+ * @returns {{actionable: Array, archives: Array}}
+ */
+export function selectRetaFinalImportEntries(
+  comparison,
+  selectedIndexes = [],
+  archiveIndexes = [],
+) {
+  const selected = new Set(selectedIndexes);
+  const archives = new Set(archiveIndexes);
+  const actionable = [];
+  const archiveEntries = [];
+  (comparison?.entries || []).forEach((entry, index) => {
+    if (!entry?.command || entry.kind === 'CONFLICT') return;
+    if (entry.kind === 'ARCHIVE_CANDIDATE') {
+      if (archives.has(index)) archiveEntries.push({ entry, index });
+      return;
+    }
+    if (selected.has(index)) actionable.push({ entry, index });
+  });
+  return { actionable, archives: archiveEntries };
 }

@@ -1,0 +1,456 @@
+/* =============================================
+   RETA FINAL — MODO PLANEJAMENTO (Task 16)
+   Grade por dia, seleção explícita e ações em massa. Tokens dos oito temas.
+   ============================================= */
+
+.rf-detail-panel--planner {
+  width: min(900px, 100%);
+}
+
+.rf-planner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rf-planner-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rf-planner-summary {
+  font-family: "DM Mono", monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.rf-planner-toolbar,
+.rf-planner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle, var(--bg));
+}
+
+.rf-planner-toolbar label,
+.rf-planner-actions label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rf-planner-toolbar select,
+.rf-planner-actions input,
+.rf-planner-actions select {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.rf-planner-toolbar .btn,
+.rf-planner-actions .btn {
+  min-height: 44px;
+}
+
+.rf-planner-count {
+  align-self: center;
+  min-width: 120px;
+  font-weight: 700;
+}
+
+.rf-planner-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.rf-planner-day {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.rf-planner-day-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.rf-planner-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 44px;
+}
+
+.rf-planner-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  cursor: grab;
+}
+
+.rf-planner-block:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.rf-planner-block--selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+
+.rf-planner-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.rf-planner-check input {
+  width: 20px;
+  height: 20px;
+}
+
+.rf-planner-block-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rf-planner-disc {
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.rf-planner-topicos,
+.rf-planner-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.rf-planner-drop {
+  min-height: 44px;
+  border-style: dashed;
+}
+
+@media (max-width: 720px) {
+  .rf-detail-panel--planner {
+    width: 100%;
+    height: min(94vh, 100%);
+  }
+
+  .rf-planner-days {
+    grid-template-columns: 1fr;
+    max-height: none;
+  }
+}
+
+/* =============================================
+   PRÉVIA E APLICAÇÃO (Task 17)
+   ============================================= */
+.rf-apply-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.rf-apply-table th,
+.rf-apply-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rf-apply-table thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.rf-apply-diff {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.rf-apply-diff li {
+  margin-bottom: 4px;
+}
+
+.rf-apply-days {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.rf-apply-days li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Checkpoints (Task 8/17) */
+.rf-checkpoint-list,
+.rf-checkpoint-block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rf-checkpoint-open {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rf-checkpoint-open:hover,
+.rf-checkpoint-open:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.rf-checkpoint-item--invalid .rf-checkpoint-open {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.rf-checkpoint-invalid {
+  color: var(--danger, #c0392b);
+  font-size: 12px;
+}
+
+.rf-checkpoint-block-list li,
+.rf-checkpoint-block-list label {
+  min-height: 44px;
+}
+
+.rf-checkpoint-block-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rf-checkpoint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rf-checkpoint-actions .btn {
+  min-height: 44px;
+}
+
+/* Capacidade semanal (Task 16) */
+.rf-capacity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rf-capacity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 76px;
+}
+
+.rf-capacity-grid label,
+.rf-capacity-max {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rf-capacity-grid input,
+.rf-capacity-max input {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.rf-capacity-holidays,
+.rf-capacity-exceptions {
+  margin: 0 0 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.rf-capacity-holidays legend,
+.rf-capacity-exceptions legend {
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.rf-capacity-holidays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.rf-capacity-holidays label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 13px;
+}
+
+.rf-capacity-exception {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(90px, 0.6fr) auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+
+.rf-capacity-exception label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rf-capacity-exception input {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.rf-capacity-exception .btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.rf-capacity-exceptions .btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (max-width: 360px) {
+  .rf-capacity-exception {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Histórico de operações (Task 8/17) */
+.rf-operation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rf-operation-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.rf-operation-item strong,
+.rf-operation-meta {
+  display: block;
+}
+
+.rf-operation-meta,
+.rf-operation-blocked {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rf-operation-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.rf-operation-actions .btn {
+  min-height: 44px;
+}

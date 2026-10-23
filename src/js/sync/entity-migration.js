@@ -31,6 +31,27 @@ function snapshotRef(db, uid) {
   return doc(db, 'users', uid, 'snapshots', FIRESTORE_SNAPSHOT_DOC_ID);
 }
 
+function containsRetaFinalV2(value) {
+  if (!value || typeof value !== 'object') return false;
+  if (Object.hasOwn(value, 'retaFinalSync')) return true;
+  return [value.planejamento, value.payload?.planejamento].some(
+    (plan) => plan?.tipo === 'reta_final' && plan?.schemaVersionRetaFinal === 2
+  );
+}
+
+function blockRetaFinalMigration(report, side) {
+  report.blocked = true;
+  report.reason = `Entity migration refused: Reta Final v2 detected in ${side}.`;
+  report.steps.push({
+    step: 'retafinal-guard',
+    status: 'blocked',
+    reason: side,
+    note: 'A migracao nao pode sobrescrever um documento v2 sem CAS nem sonda.',
+  });
+  report.completedAt = new Date().toISOString();
+  return report;
+}
+
 /**
  * Reads entity collections using the Firestore REST API.
  * This avoids bundle size issues since the REST API doesn't need SDK imports.
@@ -114,6 +135,10 @@ export async function migrateEntitiesToSnapshot(db, uid, options = {}) {
       status: currentSnapshot ? 'found' : 'not-found',
     });
 
+    if (containsRetaFinalV2(currentSnapshot)) {
+      return blockRetaFinalMigration(report, 'current-snapshot');
+    }
+
     // Step 2: Read entities via REST API
     onProgress?.('Reading entity collections...');
     let entities = {};
@@ -160,6 +185,10 @@ export async function migrateEntitiesToSnapshot(db, uid, options = {}) {
 
     const localState = currentSnapshot?.payload || {};
     const mergedState = mergeStudyStates(localState, entityState);
+
+    if (containsRetaFinalV2(mergedState)) {
+      return blockRetaFinalMigration(report, 'merged-state');
+    }
 
     // Step 4: Write merged snapshot
     if (!dryRun) {

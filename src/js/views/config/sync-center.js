@@ -3,11 +3,12 @@
  * Sync-related rendering functions extracted from config-view.js
  */
 
-import { state } from '../../store.js?v=8.37';
-import { esc } from '../../utils.js?v=8.37';
-import { buildSyncCenterModel } from '../../sync/sync-center.js?v=8.37';
-import { getFirestoreSyncStatus } from '../../sync/firestore-sync-engine.js?v=8.37';
-import { formatBackupDateTime } from './backup-settings.js?v=8.37';
+import { state } from "../../store.js?v=8.37";
+import { esc } from "../../utils.js?v=8.37";
+import { buildSyncCenterModel } from "../../sync/sync-center.js?v=8.37";
+import { getFirestoreSyncStatus } from "../../sync/firestore-sync-engine.js?v=8.37";
+import { formatBackupDateTime } from "./backup-settings.js?v=8.37";
+import { renderRetaFinalConflictReview } from "../reta-final-conflicts.js?v=8.37";
 
 function renderBackupRestoreCard() {
   const fs = state.config?.firestoreSync || {};
@@ -18,32 +19,34 @@ function renderBackupRestoreCard() {
 
   const sources = [
     {
-      id: 'local',
-      title: 'Backup local',
-      status: 'Pronto para exportar',
+      id: "local",
+      title: "Backup local",
+      status: "Pronto para exportar",
       at: state.config?.localBackupAt,
-      detail: 'JSON validado com dry-run antes de substituir dados.',
+      detail: "JSON validado com dry-run antes de substituir dados.",
     },
     {
-      id: 'firestore',
-      title: 'Firestore',
-      status: fs.enabled ? 'Canal remoto ativo' : 'Aguardando login/ativação',
+      id: "firestore",
+      title: "Firestore",
+      status: fs.enabled ? "Canal remoto ativo" : "Aguardando login/ativação",
       at: fs.remoteUpdatedAt || fs.lastPushAt || fs.lastPullAt,
-      detail: 'Fonte remota principal.',
+      detail: "Fonte remota principal.",
     },
     {
-      id: 'cloudflare',
-      title: 'Cloudflare',
-      status: state.config?.cfSyncEnabled ? 'Backup configurado' : 'Não configurado',
+      id: "cloudflare",
+      title: "Cloudflare",
+      status: state.config?.cfSyncEnabled
+        ? "Backup configurado"
+        : "Não configurado",
       at: state.config?.cfLastSyncAt,
-      detail: 'Backup secundário.',
+      detail: "Backup secundário.",
     },
     {
-      id: 'drive',
-      title: 'Google Drive',
-      status: state.driveFileId ? 'Backup conectado' : 'Não conectado',
+      id: "drive",
+      title: "Google Drive",
+      status: state.driveFileId ? "Backup conectado" : "Não conectado",
       at: state.lastSync,
-      detail: 'Importação e exportação manual.',
+      detail: "Importação e exportação manual.",
     },
   ];
 
@@ -52,7 +55,7 @@ function renderBackupRestoreCard() {
       <div class="card-header"><h3><i class="fa fa-shield-heart"></i> Backup &amp; Restauração</h3></div>
       <div class="card-body">
         <div class="config-sub">
-          ${eventCount} evento(s) ativos${archivedCount > 0 ? ` &bull; ${archivedCount} arquivado(s)` : ''}
+          ${eventCount} evento(s) ativos${archivedCount > 0 ? ` &bull; ${archivedCount} arquivado(s)` : ""}
         </div>
         <div class="config-desc">
           Exporte como JSON para backup seguro. A importação valida o arquivo e mostra prévia de impacto antes de substituir.
@@ -92,9 +95,9 @@ function renderBackupRestoreCard() {
               <div class="backup-source-date">${formatBackupDateTime(source.at)}</div>
               <div class="backup-source-detail">${source.detail}</div>
             </div>
-          `
+          `,
             )
-            .join('')}
+            .join("")}
         </div>
       </div>
     </div>
@@ -150,7 +153,11 @@ function renderAdvancedCard() {
 }
 
 function renderFirestoreConflict(conflict) {
-  if (!conflict) return '';
+  if (!conflict) return "";
+  // Reta Final conflicts have their own field-level review panel below.
+  if (conflict.type === "reta-final-conflict") return "";
+  if (conflict.reason === "merge-collision" || Array.isArray(conflict.items))
+    return "";
 
   return `
     <div class="sync-conflict-panel" data-testid="firestore-sync-conflict" role="alert">
@@ -186,22 +193,22 @@ function _renderFirestoreCard() {
     configured: false,
     signedIn: false,
     enabled: false,
-    mode: 'shadow',
+    mode: "shadow",
     hasPendingWrites: false,
     conflict: null,
   };
   const configuredText = status.configured
-    ? `Projeto: ${esc(status.projectId || status.uid || 'configurado')}`
-    : 'Configure o Firebase antes de ativar.';
+    ? `Projeto: ${esc(status.projectId || status.uid || "configurado")}`
+    : "Configure o Firebase antes de ativar.";
   const statusText = !status.configured
-    ? 'Não configurado'
+    ? "Não configurado"
     : status.signedIn
       ? status.conflict
-        ? 'Conflito precisa de revisão'
+        ? "Conflito precisa de revisão"
         : status.hasPendingWrites
-          ? 'Alterações pendentes'
-          : 'Pronto'
-      : 'Aguardando login Google';
+          ? "Alterações pendentes"
+          : "Pronto"
+      : "Aguardando login Google";
   const statusDetail = status.lastError
     ? `Erro: ${esc(status.lastError)}`
     : status.signedIn
@@ -215,13 +222,14 @@ function _renderFirestoreCard() {
         <div class="config-desc">Sincronização local-first automática com login Google. IndexedDB salva primeiro; Firestore sincroniza entre dispositivos; Cloudflare e Drive ficam como backups manuais.</div>
 
         ${renderFirestoreConflict(status.conflict)}
+        ${renderRetaFinalConflictReview(state)}
 
         <div class="config-row">
           <div>
             <div class="config-label">${statusText}</div>
             <div class="config-sub">${statusDetail}</div>
           </div>
-          <span class="badge ${status.enabled ? 'badge-success' : 'badge-muted'}">${status.enabled ? 'Ativo' : 'Inativo'}</span>
+          <span class="badge ${status.enabled ? "badge-success" : "badge-muted"}">${status.enabled ? "Ativo" : "Inativo"}</span>
         </div>
 
         <div class="grid config-backup-grid">
@@ -237,7 +245,7 @@ function _renderFirestoreCard() {
             <button class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>
           `
               : `
-            <button class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar com Google</button>
+            <button class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? "" : "disabled"}><i class="fa fa-user"></i> Entrar com Google</button>
           `
           }
           ${
@@ -247,8 +255,8 @@ function _renderFirestoreCard() {
             <button class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Desativar</button>
           `
               : `
-            <button class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? '' : 'disabled'}>Ativar primário</button>
-            <button class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Shadow</button>
+            <button class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? "" : "disabled"}>Ativar primário</button>
+            <button class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? "" : "disabled"}>Shadow</button>
           `
           }
         </div>
@@ -259,32 +267,32 @@ function _renderFirestoreCard() {
 
 function getSyncHealthLabel(health) {
   const labels = {
-    ok: 'OK',
-    idle: 'Inativo',
-    pending: 'Pendente',
-    conflict: 'Conflito',
-    error: 'Erro',
-    offline: 'Offline',
-    paused: 'Pausado',
+    ok: "OK",
+    idle: "Inativo",
+    pending: "Pendente",
+    conflict: "Conflito",
+    error: "Erro",
+    offline: "Offline",
+    paused: "Pausado",
   };
-  return labels[health] || 'Status';
+  return labels[health] || "Status";
 }
 
 function getSyncHealthIcon(health) {
   const icons = {
-    ok: 'fa-circle-check',
-    idle: 'fa-circle',
-    pending: 'fa-clock',
-    conflict: 'fa-triangle-exclamation',
-    error: 'fa-circle-xmark',
-    offline: 'fa-wifi',
-    paused: 'fa-pause-circle',
+    ok: "fa-circle-check",
+    idle: "fa-circle",
+    pending: "fa-clock",
+    conflict: "fa-triangle-exclamation",
+    error: "fa-circle-xmark",
+    offline: "fa-wifi",
+    paused: "fa-pause-circle",
   };
-  return icons[health] || 'fa-circle-info';
+  return icons[health] || "fa-circle-info";
 }
 
 function renderCloudflareConflict(source) {
-  if (!source?.conflict) return '';
+  if (!source?.conflict) return "";
   return `
     <div class="sync-conflict-panel" data-testid="cf-sync-conflict" role="alert">
       <div class="sync-conflict-header">
@@ -316,7 +324,7 @@ function renderCloudflareConflict(source) {
 function renderEntityConflictPanel(source) {
   const conflict = source?.conflict;
   const items = Array.isArray(conflict?.items) ? conflict.items : [];
-  if (conflict?.type !== 'entity-conflict' || items.length === 0) return '';
+  if (conflict?.type !== "entity-conflict" || items.length === 0) return "";
 
   return `
     <div class="sync-conflict-panel" data-testid="sync-source-conflict-entities" role="alert">
@@ -334,14 +342,14 @@ function renderEntityConflictPanel(source) {
             (item) => `
           <div class="entity-conflict-review-row">
             <div class="entity-conflict-review-info">
-              <strong>${esc(item.collection || 'item')}</strong>
-              <code>${esc(item.id || item.key || '')}</code>
-              <span class="entity-conflict-review-hint">${esc(item.hint || 'revisar')}</span>
+              <strong>${esc(item.collection || "item")}</strong>
+              <code>${esc(item.id || item.key || "")}</code>
+              <span class="entity-conflict-review-hint">${esc(item.hint || "revisar")}</span>
             </div>
           </div>
-        `
+        `,
           )
-          .join('')}
+          .join("")}
       </div>
       <div class="sync-conflict-actions">
         <button type="button" class="btn btn-outline btn-sm" data-action="firestore-open-conflict-review">
@@ -363,38 +371,39 @@ function renderSyncSourceExtras(source) {
 }
 
 function renderSyncSourceActions(source) {
-  if (source.id === 'local') {
+  if (source.id === "local") {
     return `
       <button type="button" class="btn btn-ghost btn-sm" data-action="sync-center-export-local"><i class="fa fa-download"></i> Exportar local</button>
       <button type="button" class="btn btn-outline btn-sm" data-action="sync-center-import-local"><i class="fa fa-file-import"></i> Importar JSON</button>
     `;
   }
 
-  if (source.id === 'firebase') {
+  if (source.id === "firebase") {
     const status = getFirestoreSyncStatus() || {};
-    const needsForceSync = status.hasPendingWrites || status.conflict || status.lastError;
+    const needsForceSync =
+      status.hasPendingWrites || status.conflict || status.lastError;
     return `
-      ${status.signedIn ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? '' : 'disabled'}><i class="fa fa-user"></i> Entrar</button>`}
-      ${status.enabled ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? '' : 'disabled'}>Ativar primário</button><button type="button" class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? '' : 'disabled'}>Shadow</button>`}
-      ${needsForceSync ? '<button type="button" class="btn btn-outline btn-sm" data-action="firestore-force-sync"><i class="fa fa-bolt"></i> Forçar sincronização</button>' : ''}
-      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-merge-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
-      <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-pull-remote" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
-      <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push" ${status.signedIn ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
+      ${status.signedIn ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-sign-out"><i class="fa fa-right-from-bracket"></i> Sair</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sign-in" ${status.configured ? "" : "disabled"}><i class="fa fa-user"></i> Entrar</button>`}
+      ${status.enabled ? '<button type="button" class="btn btn-primary btn-sm" data-action="firestore-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>' : `<button type="button" class="btn btn-primary btn-sm" data-action="firestore-enable-primary" ${status.signedIn ? "" : "disabled"}>Ativar primário</button><button type="button" class="btn btn-outline btn-sm" data-action="firestore-enable-shadow" ${status.signedIn ? "" : "disabled"}>Shadow</button>`}
+      ${needsForceSync ? '<button type="button" class="btn btn-outline btn-sm" data-action="firestore-force-sync"><i class="fa fa-bolt"></i> Forçar sincronização</button>' : ""}
+      <button type="button" class="btn btn-outline btn-sm" data-action="firestore-merge-remote" ${status.signedIn ? "" : "disabled"}><i class="fa fa-code-merge"></i> Mesclar</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-pull-remote" ${status.signedIn ? "" : "disabled"}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
+      <button type="button" class="btn btn-danger btn-sm" data-action="firestore-force-push" ${status.signedIn ? "" : "disabled"}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
       <button type="button" class="btn btn-ghost btn-sm" data-action="firestore-download-log"><i class="fa fa-file-lines"></i> Baixar log</button>
-      ${status.enabled ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Pausar</button>' : ''}
+      ${status.enabled ? '<button type="button" class="btn btn-ghost btn-sm" data-action="firestore-disable-sync">Pausar</button>' : ""}
     `;
   }
 
-  if (source.id === 'cloudflare') {
+  if (source.id === "cloudflare") {
     return `
-      <button type="button" class="btn btn-primary btn-sm" data-action="force-cloudflare-sync" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-sync"></i> Sincronizar</button>
-      <button type="button" class="btn btn-outline btn-sm" data-action="cloud-merge-remote" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-code-merge"></i> Mesclar</button>
-      <button type="button" class="btn btn-ghost btn-sm" data-action="cloud-conflict-pull-remote" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
-      <button type="button" class="btn btn-danger btn-sm" data-action="cloud-conflict-force-push" ${source.configured && source.enabled ? '' : 'disabled'}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
+      <button type="button" class="btn btn-primary btn-sm" data-action="force-cloudflare-sync" ${source.configured && source.enabled ? "" : "disabled"}><i class="fa fa-sync"></i> Sincronizar</button>
+      <button type="button" class="btn btn-outline btn-sm" data-action="cloud-merge-remote" ${source.configured && source.enabled ? "" : "disabled"}><i class="fa fa-code-merge"></i> Mesclar</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="cloud-conflict-pull-remote" ${source.configured && source.enabled ? "" : "disabled"}><i class="fa fa-cloud-download-alt"></i> Baixar</button>
+      <button type="button" class="btn btn-danger btn-sm" data-action="cloud-conflict-force-push" ${source.configured && source.enabled ? "" : "disabled"}><i class="fa fa-cloud-upload-alt"></i> Enviar local</button>
     `;
   }
 
-  if (source.id === 'drive') {
+  if (source.id === "drive") {
     return source.configured
       ? `
       <button type="button" class="btn btn-primary btn-sm" data-action="drive-sync-now"><i class="fa fa-sync"></i> Sincronizar</button>
@@ -407,7 +416,7 @@ function renderSyncSourceActions(source) {
     `;
   }
 
-  return '';
+  return "";
 }
 
 function renderCloudflareConfigFields(source) {
@@ -417,18 +426,18 @@ function renderCloudflareConfigFields(source) {
     <div class="sync-source-config" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
       <div class="form-group config-input-group" style="margin-bottom:8px;">
         <label class="form-label" style="font-size:0.85em;">URL do Cloudflare Worker (API)</label>
-        <input type="url" id="config-cf-url" class="form-control form-control-sm" placeholder="https://seu-worker.workers.dev" value="${esc(cfg.cfUrl || '')}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
+        <input type="url" id="config-cf-url" class="form-control form-control-sm" placeholder="https://seu-worker.workers.dev" value="${esc(cfg.cfUrl || "")}" data-action="update-config" data-config-key="cfUrl" data-value-transform="trim-url">
       </div>
       <div class="form-group config-input-group" style="margin-bottom:8px;">
         <label class="form-label" style="font-size:0.85em;">Token de Acesso (Auth Token)</label>
         <div style="display:flex;gap:8px;">
-          <input type="password" id="config-cf-token" class="form-control form-control-sm" placeholder="${hasToken ? 'Token salvo' : 'Sua senha secreta do Worker'}" value="${esc(cfg.cfToken || '')}" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
+          <input type="password" id="config-cf-token" class="form-control form-control-sm" placeholder="${hasToken ? "Token salvo" : "Sua senha secreta do Worker"}" value="${esc(cfg.cfToken || "")}" data-action="update-config" data-config-key="cfToken" data-value-transform="trim">
           <button type="button" class="btn btn-ghost btn-sm" data-action="toggle-password-visibility" data-target-id="config-cf-token" title="Mostrar/ocultar token"><i class="fa fa-eye"></i></button>
         </div>
       </div>
       <div class="form-group config-toggle-row" style="margin-bottom:0;">
         <label style="display:flex;align-items:center;gap:8px;font-size:0.85em;cursor:pointer;">
-          <input type="checkbox" id="config-cf-enabled" ${cfg.cfSyncEnabled ? 'checked' : ''} data-action="toggle-cf-sync">
+          <input type="checkbox" id="config-cf-enabled" ${cfg.cfSyncEnabled ? "checked" : ""} data-action="toggle-cf-sync">
           Ativar Sincronização
         </label>
       </div>
@@ -441,7 +450,7 @@ function buildCurrentSyncCenterModel() {
     state,
     getFirestoreStatus: () => getFirestoreSyncStatus() || {},
     getCloudflareCreds: () => ({
-      url: state.config?.cfUrl || '',
+      url: state.config?.cfUrl || "",
       enabled: state.config?.cfSyncEnabled || false,
       hasToken: !!state.config?.cfToken,
     }),
@@ -454,14 +463,14 @@ function _renderSyncCenterCard() {
     state,
     getFirestoreStatus: () => getFirestoreSyncStatus() || {},
     getCloudflareCreds: () => ({
-      url: state.config?.cfUrl || '',
+      url: state.config?.cfUrl || "",
       enabled: state.config?.cfSyncEnabled || false,
       hasToken: !!state.config?.cfToken,
     }),
     getDriveStatus: () => ({ configured: !!state.driveFileId }),
   });
 
-  const health = model.health || { status: 'idle' };
+  const health = model.health || { status: "idle" };
   const statusLabel = getSyncHealthLabel(health.status);
   const statusIcon = getSyncHealthIcon(health.status);
   const metrics = health.metrics || {};
@@ -477,10 +486,10 @@ function _renderSyncCenterCard() {
           <span>${statusLabel}</span>
         </div>
         <div class="sync-source-meta">
-          <span>Fila: ${esc(metrics.pendingAgeLabel || '0 min')}</span>
+          <span>Fila: ${esc(metrics.pendingAgeLabel || "0 min")}</span>
           <span>Retries: ${esc(metrics.retryAttempts ?? 0)}</span>
-          ${metrics.nextRetryAt ? `<span>Próxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ''}
-          ${metrics.remoteAckAt ? `<span>Ack remoto: ${formatBackupDateTime(metrics.remoteAckAt)}</span>` : ''}
+          ${metrics.nextRetryAt ? `<span>Próxima tentativa: ${formatBackupDateTime(metrics.nextRetryAt)}</span>` : ""}
+          ${metrics.remoteAckAt ? `<span>Ack remoto: ${formatBackupDateTime(metrics.remoteAckAt)}</span>` : ""}
         </div>
 
         <div class="sync-sources-list">
@@ -489,27 +498,27 @@ function _renderSyncCenterCard() {
               (source) => `
             <div class="sync-source-card" data-sync-source="${source.id}">
               <div class="sync-source-header">
-                <div class="sync-source-icon"><i class="fa ${source.icon || 'fa-database'}"></i></div>
+                <div class="sync-source-icon"><i class="fa ${source.icon || "fa-database"}"></i></div>
                 <div class="sync-source-info">
                   <div class="sync-source-name">${source.title}</div>
-                  <div class="sync-source-sub">${source.detail || ''}</div>
+                  <div class="sync-source-sub">${source.detail || ""}</div>
                 </div>
-                <span class="badge ${source.enabled ? 'badge-success' : 'badge-muted'}">${source.enabled ? 'Ativo' : 'Inativo'}</span>
+                <span class="badge ${source.enabled ? "badge-success" : "badge-muted"}">${source.enabled ? "Ativo" : "Inativo"}</span>
               </div>
               <div class="sync-source-meta">
                 <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
-                ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
-                ${source.metrics?.retryAttempts ? `<span>Retries: ${esc(source.metrics.retryAttempts)}</span>` : ''}
+                ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ""}
+                ${source.metrics?.retryAttempts ? `<span>Retries: ${esc(source.metrics.retryAttempts)}</span>` : ""}
               </div>
               <div class="sync-source-actions">
                 ${renderSyncSourceActions(source)}
               </div>
-              ${source.id === 'cloudflare' ? '<div id="cf-sync-status" class="config-save-status"></div>' : ''}
+              ${source.id === "cloudflare" ? '<div id="cf-sync-status" class="config-save-status"></div>' : ""}
               ${renderSyncSourceExtras(source)}
             </div>
-          `
+          `,
             )
-            .join('')}
+            .join("")}
         </div>
       </div>
     </div>
@@ -520,7 +529,7 @@ function getChannelManualResult(sourceId) {
   const results = state.config?.lastManualSyncResults;
   if (!results) return null;
   // Map UI source id to result key (firebase → firestore in results)
-  const key = sourceId === 'firebase' ? 'firestore' : sourceId;
+  const key = sourceId === "firebase" ? "firestore" : sourceId;
   const status = results[key];
   if (!status) return null;
   return { status, at: results.at };
@@ -529,36 +538,36 @@ function getChannelManualResult(sourceId) {
 function renderChannelSummaryRow(source) {
   const enabled = source.enabled === true;
   const manual = getChannelManualResult(source.id);
-  const hasConflict = !!source.conflict || manual?.status === 'conflict';
-  const lastFailed = manual?.status === 'error';
+  const hasConflict = !!source.conflict || manual?.status === "conflict";
+  const lastFailed = manual?.status === "error";
 
   let dotClass;
   let label;
 
   if (hasConflict) {
-    dotClass = 'sync-summary-dot--conflict';
-    label = 'Conflito — abra Avançado';
+    dotClass = "sync-summary-dot--conflict";
+    label = "Conflito — abra Avançado";
   } else if (lastFailed) {
-    dotClass = 'sync-summary-dot--error';
+    dotClass = "sync-summary-dot--error";
     label = `falhou em ${formatBackupDateTime(manual.at)}`;
-  } else if (manual?.status === 'ok') {
-    dotClass = 'sync-summary-dot--ok';
+  } else if (manual?.status === "ok") {
+    dotClass = "sync-summary-dot--ok";
     label = `sincronizado em ${formatBackupDateTime(manual.at)}`;
   } else if (enabled) {
     // Configured but never manually synced in this session — fall back to engine timestamp
-    dotClass = 'sync-summary-dot--ok';
+    dotClass = "sync-summary-dot--ok";
     label = source.lastSyncAt
       ? `último sync ${formatBackupDateTime(source.lastSyncAt)}`
-      : 'aguardando primeiro sync';
+      : "aguardando primeiro sync";
   } else {
-    dotClass = 'sync-summary-dot--idle';
-    label = 'não configurado';
+    dotClass = "sync-summary-dot--idle";
+    label = "não configurado";
   }
 
   return `
     <div class="sync-summary-row" data-summary-source="${source.id}">
       <span class="sync-summary-dot ${dotClass}" aria-hidden="true"></span>
-      <span class="sync-summary-name"><i class="fa ${source.icon || 'fa-database'}"></i> ${esc(source.title)}</span>
+      <span class="sync-summary-name"><i class="fa ${source.icon || "fa-database"}"></i> ${esc(source.title)}</span>
       <span class="sync-summary-status">${esc(label)}</span>
     </div>
   `;
@@ -567,43 +576,44 @@ function renderChannelSummaryRow(source) {
 function renderSourceAdvancedBlock(source) {
   const hasConflict = !!source.conflict;
   const manual = getChannelManualResult(source.id);
-  const lastFailed = manual?.status === 'error' || manual?.status === 'conflict';
-  const open = hasConflict || lastFailed ? ' open' : '';
+  const lastFailed =
+    manual?.status === "error" || manual?.status === "conflict";
+  const open = hasConflict || lastFailed ? " open" : "";
   const manualLine = manual
     ? `<span>Última manual: ${formatBackupDateTime(manual.at)} — ${esc(manual.status)}</span>`
-    : '';
+    : "";
   const retryLine =
     source.metrics?.retryAttempts || source.metrics?.nextRetryAt
-      ? `<span>Retries: ${esc(source.metrics?.retryAttempts ?? 0)}${source.metrics?.nextRetryAt ? ` · próxima tentativa ${formatBackupDateTime(source.metrics.nextRetryAt)}` : ''}</span>`
-      : '';
+      ? `<span>Retries: ${esc(source.metrics?.retryAttempts ?? 0)}${source.metrics?.nextRetryAt ? ` · próxima tentativa ${formatBackupDateTime(source.metrics.nextRetryAt)}` : ""}</span>`
+      : "";
   const errorLine = source.lastError
     ? `<span class="sync-source-error">Erro: ${esc(source.lastError)}</span>`
-    : '';
+    : "";
   return `
     <div class="sync-source-card" data-sync-source="${source.id}">
       <div class="sync-source-header">
-        <div class="sync-source-icon"><i class="fa ${source.icon || 'fa-database'}"></i></div>
+        <div class="sync-source-icon"><i class="fa ${source.icon || "fa-database"}"></i></div>
         <div class="sync-source-info">
           <div class="sync-source-name">${esc(source.title)}</div>
-          <div class="sync-source-sub">${source.detail || ''}</div>
+          <div class="sync-source-sub">${source.detail || ""}</div>
         </div>
-        <span class="badge ${source.enabled ? 'badge-success' : 'badge-muted'}">${source.enabled ? 'Ativo' : 'Inativo'}</span>
+        <span class="badge ${source.enabled ? "badge-success" : "badge-muted"}">${source.enabled ? "Ativo" : "Inativo"}</span>
       </div>
       <div class="sync-source-meta">
         <span>Último sync: ${formatBackupDateTime(source.lastSyncAt)}</span>
-        ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ''}
+        ${source.remoteAt ? `<span>Remoto: ${formatBackupDateTime(source.remoteAt)}</span>` : ""}
         ${manualLine}
         ${retryLine}
         ${errorLine}
       </div>
-      ${source.id === 'cloudflare' ? renderCloudflareConfigFields(source) : ''}
-      ${source.id === 'drive' && !source.configured ? '' : ''}
+      ${source.id === "cloudflare" ? renderCloudflareConfigFields(source) : ""}
+      ${source.id === "drive" && !source.configured ? "" : ""}
       <details class="sync-source-advanced"${open}>
-        <summary>Avançado${hasConflict ? ' — resolver conflito' : ''}</summary>
+        <summary>Avançado${hasConflict ? " — resolver conflito" : ""}</summary>
         <div class="sync-source-actions">
           ${renderSyncSourceActions(source)}
         </div>
-        ${source.id === 'cloudflare' ? '<div id="cf-sync-status" class="config-save-status"></div>' : ''}
+        ${source.id === "cloudflare" ? '<div id="cf-sync-status" class="config-save-status"></div>' : ""}
         ${renderSyncSourceExtras(source)}
       </details>
     </div>
@@ -612,11 +622,13 @@ function renderSourceAdvancedBlock(source) {
 
 function renderQuietSyncCenterCard() {
   const model = buildCurrentSyncCenterModel();
-  const sources = (model.sources || []).filter((source) => source && source.id !== 'local');
+  const sources = (model.sources || []).filter(
+    (source) => source && source.id !== "local",
+  );
   const lastManualSyncAt = state.config?.lastManualSyncAt || null;
   const lastSummaryLine = lastManualSyncAt
     ? `Último envio manual: ${formatBackupDateTime(lastManualSyncAt)}`
-    : 'Nenhuma sincronização manual ainda neste dispositivo.';
+    : "Nenhuma sincronização manual ainda neste dispositivo.";
   const anyConflict = sources.some((source) => !!source.conflict);
 
   return `
@@ -645,15 +657,15 @@ function renderQuietSyncCenterCard() {
           <i class="fa fa-triangle-exclamation"></i>
           <span>Conflito detectado em pelo menos um canal. Expanda o bloco correspondente abaixo e use Mesclar (recomendado), Baixar ou Forçar envio para resolver.</span>
         </div>`
-            : ''
+            : ""
         }
 
         <div class="sync-summary-list">
-          ${sources.map(renderChannelSummaryRow).join('')}
+          ${sources.map(renderChannelSummaryRow).join("")}
         </div>
 
         <div class="sync-source-advanced-list">
-          ${sources.map(renderSourceAdvancedBlock).join('')}
+          ${sources.map(renderSourceAdvancedBlock).join("")}
         </div>
       </div>
     </div>

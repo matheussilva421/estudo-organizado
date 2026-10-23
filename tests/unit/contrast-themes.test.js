@@ -1,5 +1,5 @@
 /**
- * Regressao de contraste WCAG nos 6 temas.
+ * Regressao de contraste WCAG nos 8 temas.
  *
  * Guardrail da remediacao da critique (docs/plans/2026-06-25-impeccable-...).
  * O texto de corpo (primary/secondary/muted) DEVE ficar >= 4.5:1 sobre o card
@@ -17,7 +17,7 @@ const data = auditContrast();
 const AA_BODY = 4.5;
 
 describe('contraste WCAG por tema', () => {
-  it('reconhece os 6 temas', () => {
+  it('reconhece os 8 temas', () => {
     expect(Object.keys(data).sort()).toEqual([...THEMES].sort());
   });
 

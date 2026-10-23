@@ -6,6 +6,7 @@ import { DEFAULT_SCHEMA_VERSION } from './store/migrations.js';
 import { deepClone } from './store/normalize-state.js';
 
 import { createExportableState as _createExportableState } from './store/export-state.js';
+import { commitRetaFinalDraft as commitRetaFinalDraftAtomically } from './store/reta-final-commit.js';
 
 // IndexedDB persistence layer
 import {
@@ -17,6 +18,8 @@ import {
   FIRESTORE_CONFLICT_STORE,
   ENTITY_META_STORE,
   FIRESTORE_ENTITY_OUTBOX_STORE,
+  RETA_FINAL_DRAFT_STORE,
+  RETA_FINAL_JOURNAL_STORE,
   LOCAL_STATE_CURRENT_KEY,
   LOCAL_STATE_PREVIOUS_KEY,
   LOCAL_STATE_LEGACY_KEY,
@@ -34,6 +37,7 @@ import {
   runMigrations,
   _bindState,
   _bindSetState,
+  _publishRetaFinalCommit,
 } from './store/indexeddb.js';
 
 export { DEFAULT_SCHEMA_VERSION };
@@ -47,6 +51,8 @@ export {
   FIRESTORE_CONFLICT_STORE,
   ENTITY_META_STORE,
   FIRESTORE_ENTITY_OUTBOX_STORE,
+  RETA_FINAL_DRAFT_STORE,
+  RETA_FINAL_JOURNAL_STORE,
   LOCAL_STATE_CURRENT_KEY,
   LOCAL_STATE_PREVIOUS_KEY,
   LOCAL_STATE_LEGACY_KEY,
@@ -69,6 +75,33 @@ export {
   isLocalStateEnvelopeValid,
   pickRecoverableLocalState,
 } from './store/normalize-state.js';
+
+export {
+  loadRetaFinalDraft,
+  saveRetaFinalDraft,
+  discardRetaFinalDraft,
+} from './store/reta-final-draft-store.js';
+
+export function commitRetaFinalDraft(options = {}) {
+  const context = options.context || {};
+  const onCommitted = context.onCommitted;
+  return commitRetaFinalDraftAtomically({
+    ...options,
+    db: options.db || db,
+    context: {
+      ...context,
+      onCommitted: (nextState, result) => {
+        publishRetaFinalCommit(nextState, result);
+        onCommitted?.(nextState, result);
+      },
+    },
+  });
+}
+
+export function publishRetaFinalCommit(nextState, result) {
+  setState(nextState);
+  _publishRetaFinalCommit(nextState, result);
+}
 
 /**
  * Atualiza o estado global com deep clone para prevenir mutações

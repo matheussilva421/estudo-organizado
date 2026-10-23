@@ -5,6 +5,7 @@ import * as credentialsStore from '../credentials.js?v=8.37';
 import { appendSyncPerformanceMetric } from '../sync/sync-health.js?v=8.37';
 import { runMigrations as _runMigrations, DEFAULT_SCHEMA_VERSION } from './migrations.js';
 import { reconcileSequenceWithEvents } from '../logic/cycle-progress.js?v=8.37';
+import { markDerivedRecoveryPending } from './boot-recovery.js';
 import {
   createLocalStateEnvelope,
   isLocalStateEnvelopeValid,
@@ -27,14 +28,47 @@ export function _bindSetState(ref) {
   }
 }
 
+/** Publish state and local-save notifications only after a durable commit. */
+export function _publishRetaFinalCommit(nextState, result) {
+  void nextState;
+  if (typeof document === 'undefined') return;
+  document.dispatchEvent(
+    new CustomEvent('app:saveStatus', {
+      detail: {
+        status: 'saved',
+        message: 'Salvo localmente',
+        detail: 'Alterações da Reta Final gravadas no dispositivo.',
+        timestamp: new Date().toISOString(),
+        localCommitted: true,
+        syncPending: true,
+      },
+    }),
+  );
+  document.dispatchEvent(
+    new CustomEvent('stateSaved', {
+      detail: {
+        source: 'reta-final-commit',
+        localCommitted: true,
+        syncPending: true,
+        skipCloudSync: true,
+        skipFirestoreSync: true,
+        skipDriveSync: true,
+        revision: result?.revision ?? null,
+      },
+    }),
+  );
+}
+
 export const DB_NAME = 'EstudoOrganizadoDB';
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
 export const STORE_NAME = 'app_state';
 export const FIRESTORE_OUTBOX_STORE = 'firestore_outbox';
 export const FIRESTORE_META_STORE = 'firestore_meta';
 export const FIRESTORE_CONFLICT_STORE = 'firestore_conflicts';
 export const ENTITY_META_STORE = 'entity_meta';
 export const FIRESTORE_ENTITY_OUTBOX_STORE = 'firestore_entity_outbox';
+export const RETA_FINAL_DRAFT_STORE = 'reta_final_drafts';
+export const RETA_FINAL_JOURNAL_STORE = 'reta_final_journal';
 export const LOCAL_STATE_CURRENT_KEY = 'main_state_current';
 export const LOCAL_STATE_PREVIOUS_KEY = 'main_state_previous';
 export const LOCAL_STATE_LEGACY_KEY = 'main_state';
@@ -74,8 +108,10 @@ export function initDB() {
 
     request.onerror = (event) => {
       console.error('IndexedDB Error:', event.target.error);
-      loadLegacyState(); // Fallback
-      resolve();
+      Promise.resolve(loadLegacyState()).then(resolve, (err) => {
+        console.error('Legacy fallback failed:', err);
+        resolve();
+      });
     };
 
     request.onupgradeneeded = (event) => {
@@ -98,6 +134,12 @@ export function initDB() {
       if (!db.objectStoreNames.contains(FIRESTORE_ENTITY_OUTBOX_STORE)) {
         db.createObjectStore(FIRESTORE_ENTITY_OUTBOX_STORE, { keyPath: 'id' });
       }
+      if (!db.objectStoreNames.contains(RETA_FINAL_DRAFT_STORE)) {
+        db.createObjectStore(RETA_FINAL_DRAFT_STORE, { keyPath: 'draftId' });
+      }
+      if (!db.objectStoreNames.contains(RETA_FINAL_JOURNAL_STORE)) {
+        db.createObjectStore(RETA_FINAL_JOURNAL_STORE, { keyPath: 'id' });
+      }
     };
 
     request.onsuccess = (event) => {
@@ -109,6 +151,49 @@ export function initDB() {
   });
 }
 
+// Reuse the checksum envelopes and atomic previous/current/legacy save. Boot
+// migrations and RF sources recovered from localStorage must commit first.
+async function migrateLoadedState(loadedState, { persistEvenIfUnchanged = false } = {}) {
+  const backup = createLocalStateEnvelope(loadedState, { slot: 'previous' });
+  _setStateRef(loadedState);
+  let migration;
+  try {
+    migration = runMigrations();
+  } catch (err) {
+    _setStateRef(backup.payload);
+    markDerivedRecoveryPending();
+    throw err;
+  } finally {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      saveTimeout = null;
+    }
+  }
+  if (!migration.changed && !persistEvenIfUnchanged) return true;
+  if (!db) {
+    _setStateRef(backup.payload);
+    console.error('Reta Final: IndexedDB indisponível; migração não persistida e fonte local preservada.');
+    return false;
+  }
+  try {
+    await saveStateToDB({
+      migrationBackup: backup,
+      touchLocalBackup: false,
+      emitSaveStatus: false,
+      skipSyncEvent: true,
+      skipCloudSync: true,
+      skipFirestoreSync: true,
+      skipDriveSync: true,
+    });
+    return true;
+  } catch (err) {
+    _setStateRef(backup.payload);
+    markDerivedRecoveryPending();
+    console.error('Reta Final: migração não persistida; estado anterior restaurado.', err);
+    return false;
+  }
+}
+
 /**
  * Carrega estado do IndexedDB e aplica migrações se necessário
  * @returns {Promise<void>}
@@ -116,8 +201,10 @@ export function initDB() {
 export function loadStateFromDB() {
   return new Promise((resolve) => {
     if (!db) {
-      loadLegacyState();
-      resolve();
+      Promise.resolve(loadLegacyState()).then(resolve, (err) => {
+        console.error('Legacy fallback failed:', err);
+        resolve();
+      });
       return;
     }
     const transaction = db.transaction([STORE_NAME], 'readonly');
@@ -127,42 +214,46 @@ export function loadStateFromDB() {
     const legacyRequest = store.get(LOCAL_STATE_LEGACY_KEY);
     const loaded = {};
 
-    const finishLoad = () => {
+    const finishLoad = async () => {
       if (!('current' in loaded) || !('previous' in loaded) || !('legacy' in loaded)) return;
-      const recovered = pickRecoverableLocalState({
-        current: loaded.current,
-        previous: loaded.previous,
-        legacy: loaded.legacy,
-        emergency: readEmergencyState(),
-      });
-      if (recovered.state) {
-        const loadedState = recovered.state;
+      try {
+        const recovered = pickRecoverableLocalState({
+          current: loaded.current,
+          previous: loaded.previous,
+          legacy: loaded.legacy,
+          emergency: readEmergencyState(),
+        });
+        if (recovered.state) {
+          const loadedState = recovered.state;
 
-        // BUG 3: Prevenir persistência inflada de timer ao fechar a aba
-        const isSameSession = sessionStorage.getItem('estudo_session_active');
-        if (!isSameSession && recovered.source !== 'emergency') {
-          if (loadedState.cronoLivre && loadedState.cronoLivre._timerStart) {
-            loadedState.cronoLivre._timerStart = null;
+          // BUG 3: Prevenir persistência inflada de timer ao fechar a aba
+          const isSameSession = sessionStorage.getItem('estudo_session_active');
+          if (!isSameSession && recovered.source !== 'emergency') {
+            if (loadedState.cronoLivre && loadedState.cronoLivre._timerStart) {
+              loadedState.cronoLivre._timerStart = null;
+            }
+            if (loadedState.eventos) {
+              loadedState.eventos.forEach((ev) => {
+                if (ev._timerStart) ev._timerStart = null;
+              });
+            }
           }
-          if (loadedState.eventos) {
-            loadedState.eventos.forEach((ev) => {
-              if (ev._timerStart) ev._timerStart = null;
-            });
-          }
-        }
-        sessionStorage.setItem('estudo_session_active', '1');
+          sessionStorage.setItem('estudo_session_active', '1');
 
-        _setStateRef(loadedState);
-        runMigrations();
-        // Boot: re-deriva o status auto das etapas do ciclo a partir dos
-        // eventos (cobre estados gravados por versões antigas do app).
-        if (_stateRef) {
-          reconcileSequenceWithEvents(_stateRef.planejamento, _stateRef.eventos);
+          await migrateLoadedState(loadedState);
+          // Boot: re-deriva o status auto das etapas do ciclo a partir dos
+          // eventos (cobre estados gravados por versões antigas do app).
+          if (_stateRef) {
+            reconcileSequenceWithEvents(_stateRef.planejamento, _stateRef.eventos);
+          }
+        } else {
+          await loadLegacyState(); // Try migration from localStorage
         }
-      } else {
-        loadLegacyState(); // Try migration from localStorage
+      } catch (err) {
+        console.error('loadStateFromDB failed to finish loading:', err);
+      } finally {
+        resolve();
       }
-      resolve();
     };
 
     currentRequest.onsuccess = () => {
@@ -192,8 +283,10 @@ export function loadStateFromDB() {
 
     transaction.onerror = () => {
       console.error('loadStateFromDB transaction error:', transaction.error);
-      loadLegacyState();
-      resolve();
+      Promise.resolve(loadLegacyState()).then(resolve, (err) => {
+        console.error('Legacy fallback failed:', err);
+        resolve();
+      });
     };
   });
 }
@@ -208,7 +301,21 @@ export function loadLegacyState() {
     const saved = localStorage.getItem('estudo_state');
     const source = emergency || saved;
     if (source) {
-      _setStateRef(JSON.parse(source));
+      const loadedState = JSON.parse(source);
+      // Legacy callers retain synchronous loading; RF normalization waits for
+      // durability before deleting the last localStorage recovery source.
+      if (loadedState.planejamento?.tipo === 'reta_final') {
+        return migrateLoadedState(loadedState, { persistEvenIfUnchanged: true }).then((saved) => {
+          if (!saved) return;
+          try {
+            localStorage.removeItem('estudo_state');
+            localStorage.removeItem('estudo_state_emergency');
+          } catch (err) {
+            console.error('Reta Final: falha ao limpar fonte local já persistida.', err);
+          }
+        });
+      }
+      _setStateRef(loadedState);
       runMigrations();
       scheduleSave(); // Save to IndexedDB immediately
       // Clean up both legacy keys
@@ -464,8 +571,9 @@ export function saveStateToDB(
 
         currentRequest.onsuccess = () => {
           const currentEnvelope = currentRequest.result;
-          if (isLocalStateEnvelopeValid(currentEnvelope)) {
-            store.put({ ...currentEnvelope, slot: 'previous' }, LOCAL_STATE_PREVIOUS_KEY);
+          const previousEnvelope = options.migrationBackup || currentEnvelope;
+          if (isLocalStateEnvelopeValid(previousEnvelope)) {
+            store.put({ ...previousEnvelope, slot: 'previous' }, LOCAL_STATE_PREVIOUS_KEY);
           }
           const envelope = createLocalStateEnvelope(_stateRef, { slot: 'current' });
           const currentWrite = store.put(envelope, LOCAL_STATE_CURRENT_KEY);
@@ -482,11 +590,13 @@ export function saveStateToDB(
 }
 
 /**
- * Executa migrações de schema do estado (v1 → v10)
- * @returns {void}
+ * Executa migrações de schema do estado (v1 → v12)
+ * @returns {{plan: object|undefined, changed: boolean, diagnostics: string[]}}
  */
 export function runMigrations() {
-  _runMigrations(_stateRef, scheduleSave);
+  const result = _runMigrations(_stateRef, scheduleSave);
+  if (result.diagnostics.length) console.warn('Reta Final: reparo humano necessário.', result.diagnostics);
+  return result;
 }
 
 // Clean up state (called by clearAllData in views.js which already double-confirms)

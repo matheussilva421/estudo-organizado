@@ -123,4 +123,22 @@ describe('service worker fetch routing', () => {
     expect(shellCache.match.mock.calls[1][0].url).toBe(evt.request.url);
     expect(shellCache.match.mock.calls[1][1]).toEqual({ ignoreSearch: true });
   });
+
+  it('serves the Reta Final schema from the new offline shell after a cache update', async () => {
+    const onFetch = await loadServiceWorker();
+    const cachedSchema = { body: 'export function migrateRetaFinalV2() {}' };
+    shellCache.match.mockImplementation((_request, options) =>
+      Promise.resolve(options?.ignoreSearch ? cachedSchema : undefined)
+    );
+    globalThis.fetch = vi.fn(() => Promise.reject(new Error('offline')));
+    const evt = fakeEvent('/js/logic/reta-final-schema.js?v=9.36', { destination: 'script' });
+
+    onFetch(evt);
+
+    await expect(evt.respondWith.mock.calls[0][0]).resolves.toBe(cachedSchema);
+    expect(shellCache.match.mock.calls[1]).toEqual([
+      expect.objectContaining({ url: evt.request.url }),
+      { ignoreSearch: true },
+    ]);
+  });
 });

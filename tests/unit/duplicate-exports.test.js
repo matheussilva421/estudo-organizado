@@ -15,6 +15,7 @@ const ALLOWED_DUPLICATES = new Set([
   'pwRenderWeightPreview', // planejamento-wizard.js delega para planejamento/step-renderers.js
   'getRuntimeFirebaseConfig', // firebase-config.js local (gitignored) sobrepõe o default — intencional
   'getRuntimeAppCheckSiteKey', // idem firebase-config
+  'commitRetaFinalDraft', // core atomic writer, store durability facade, and logic context facade
 ]);
 
 function collectFiles(dir, out = []) {

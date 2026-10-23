@@ -9,6 +9,241 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function validRetaFinalCapabilities(capabilities) {
+      return capabilities is map
+        && capabilities.keys().hasOnly(['schema', 'granularMerge', 'guards'])
+        && capabilities.keys().hasAll(['schema', 'granularMerge', 'guards'])
+        && capabilities.schema == 2
+        && capabilities.granularMerge == true
+        && capabilities.guards is map
+        && capabilities.guards.keys().hasOnly(['envelope', 'probe'])
+        && capabilities.guards.keys().hasAll(['envelope', 'probe'])
+        && capabilities.guards.envelope == 'rules-v2'
+        && capabilities.guards.probe == 1;
+    }
+
+    function validRetaFinalSyncDescriptor(descriptor) {
+      return descriptor is map
+        && descriptor.keys().hasOnly([
+          'schema',
+          'planId',
+          'lineageId',
+          'generation',
+          'revision',
+          'baseRevision',
+          'snapshotRevision',
+          'baseSnapshotRevision',
+          'baseRemoteUpdatedAt',
+          'digest',
+          'deviceId',
+          'capabilities',
+          'state',
+          'minRetainedRevision',
+          'removedBlockIds'
+        ])
+        && descriptor.keys().hasAll([
+          'schema',
+          'planId',
+          'lineageId',
+          'generation',
+          'revision',
+          'baseRevision',
+          'snapshotRevision',
+          'baseSnapshotRevision',
+          'baseRemoteUpdatedAt',
+          'digest',
+          'deviceId',
+          'capabilities',
+          'state'
+        ])
+        && descriptor.schema == 2
+        && descriptor.planId is string
+        && descriptor.planId.size() > 0
+        && descriptor.planId.size() <= 128
+        && descriptor.lineageId is string
+        && descriptor.lineageId.size() > 0
+        && descriptor.lineageId.size() <= 128
+        && descriptor.generation is int
+        && descriptor.generation >= 1
+        && descriptor.revision is int
+        && descriptor.revision >= 0
+        && descriptor.baseRevision is int
+        && descriptor.baseRevision >= 0
+        && descriptor.snapshotRevision is int
+        && descriptor.snapshotRevision >= 1
+        && descriptor.baseSnapshotRevision is int
+        && descriptor.baseSnapshotRevision >= 0
+        && descriptor.baseSnapshotRevision <= descriptor.snapshotRevision
+        && (descriptor.baseRemoteUpdatedAt == null || descriptor.baseRemoteUpdatedAt is string)
+        && descriptor.digest is string
+        && descriptor.digest.size() >= 16
+        && descriptor.digest.size() <= 128
+        && descriptor.digest.matches('[a-z0-9]+')
+        && descriptor.deviceId is string
+        && descriptor.deviceId.size() > 0
+        && descriptor.deviceId.size() <= 128
+        && validRetaFinalCapabilities(descriptor.capabilities)
+        && descriptor.state in ['active', 'retired']
+        && (
+          !descriptor.keys().hasAny(['minRetainedRevision'])
+          || (
+            descriptor.minRetainedRevision is int
+            && descriptor.minRetainedRevision >= 0
+          )
+        )
+        && (
+          !descriptor.keys().hasAny(['removedBlockIds'])
+          || (
+            descriptor.removedBlockIds is list
+            && descriptor.removedBlockIds.size() <= 200
+          )
+        );
+    }
+
+    function validRetaFinalGuard() {
+      return request.resource.data.keys().hasOnly(['schema', 'guardVersion', 'deviceId', 'checkedAt'])
+        && request.resource.data.keys().hasAll(['schema', 'guardVersion', 'deviceId', 'checkedAt'])
+        && request.resource.data.schema == 2
+        && request.resource.data.guardVersion == 1
+        && request.resource.data.deviceId is string
+        && request.resource.data.deviceId.size() > 0
+        && request.resource.data.deviceId.size() <= 128
+        && request.resource.data.checkedAt is string
+        && request.resource.data.checkedAt.size() > 0
+        && request.resource.data.checkedAt.size() <= 64;
+    }
+
+    function validRetaFinalPayloadState() {
+      return request.resource.data.payload is map
+        && (
+          (
+            request.resource.data.retaFinalSync.state == 'active'
+            && request.resource.data.payload.keys().hasAny(['planejamento'])
+            && request.resource.data.payload.planejamento is map
+            && request.resource.data.payload.planejamento.keys().hasAny(['ativo'])
+            && request.resource.data.payload.planejamento.ativo == true
+            && request.resource.data.payload.planejamento.planId == request.resource.data.retaFinalSync.planId
+          )
+          || (
+            request.resource.data.retaFinalSync.state == 'retired'
+            && (
+              !request.resource.data.payload.keys().hasAny(['planejamento'])
+              || request.resource.data.payload.planejamento == null
+              || (
+                request.resource.data.payload.planejamento is map
+                && (
+                  !request.resource.data.payload.planejamento.keys().hasAny(['ativo'])
+                  || request.resource.data.payload.planejamento.ativo != true
+                )
+                && (
+                  !request.resource.data.payload.planejamento.keys().hasAny(['planId'])
+                  || request.resource.data.payload.planejamento.planId == request.resource.data.retaFinalSync.planId
+                )
+              )
+            )
+          )
+        );
+    }
+
+    function hasRetaFinalSync() {
+      return request.resource.data.keys().hasAny(['retaFinalSync']);
+    }
+
+    function validRetaFinalSnapshotCreate() {
+      return !hasRetaFinalSync()
+        || (
+          request.resource.data.retaFinalSync.baseRevision == 0
+          && request.resource.data.retaFinalSync.snapshotRevision == 1
+          && request.resource.data.retaFinalSync.baseSnapshotRevision == 0
+          && request.resource.data.retaFinalSync.state == 'active'
+        );
+    }
+
+    function validRetaFinalSnapshotUpdate() {
+      return request.method == 'update'
+        && resource != null
+        && resource.data != null
+        && (
+          !resource.data.keys().hasAny(['retaFinalSync'])
+          ? (
+            !hasRetaFinalSync()
+            || (
+              request.resource.data.retaFinalSync.baseRevision == 0
+              && request.resource.data.retaFinalSync.snapshotRevision == 1
+              && request.resource.data.retaFinalSync.baseSnapshotRevision == 0
+              && request.resource.data.retaFinalSync.state == 'active'
+              && request.resource.data.retaFinalSync.baseRemoteUpdatedAt == resource.data.payloadUpdatedAt
+            )
+          )
+          : (
+            hasRetaFinalSync()
+            && request.resource.data.retaFinalSync.planId == resource.data.retaFinalSync.planId
+            && request.resource.data.retaFinalSync.lineageId == resource.data.retaFinalSync.lineageId
+            && request.resource.data.retaFinalSync.generation == resource.data.retaFinalSync.generation
+            && (
+              (
+                request.resource.data.retaFinalSync == resource.data.retaFinalSync
+                && request.resource.data.payload == resource.data.payload
+                && request.resource.data.payloadUpdatedAt == resource.data.payloadUpdatedAt
+              )
+              || (
+                request.resource.data.retaFinalSync.snapshotRevision == resource.data.retaFinalSync.snapshotRevision + 1
+                && request.resource.data.retaFinalSync.baseSnapshotRevision == resource.data.retaFinalSync.snapshotRevision
+                && (
+                  (
+                    request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision
+                    && request.resource.data.retaFinalSync.digest == resource.data.retaFinalSync.digest
+                    && request.resource.data.retaFinalSync.state == resource.data.retaFinalSync.state
+                    && (
+                      !resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                      ? !request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                      : (
+                        request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                        && request.resource.data.retaFinalSync.minRetainedRevision == resource.data.retaFinalSync.minRetainedRevision
+                      )
+                    )
+                    && (
+                      !resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                      ? !request.resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                      : (
+                        request.resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                        && request.resource.data.retaFinalSync.removedBlockIds == resource.data.retaFinalSync.removedBlockIds
+                      )
+                    )
+                  )
+                  || (
+                    request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision + 1
+                    && request.resource.data.retaFinalSync.baseRevision == resource.data.retaFinalSync.revision
+                    && (
+                      resource.data.retaFinalSync.state == 'active'
+                      || request.resource.data.retaFinalSync.state == 'retired'
+                    )
+                    && (
+                      !resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                      || (
+                        request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                        && request.resource.data.retaFinalSync.minRetainedRevision >= resource.data.retaFinalSync.minRetainedRevision
+                      )
+                    )
+                    && (
+                      !resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                      || (
+                        request.resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                        && request.resource.data.retaFinalSync.removedBlockIds.hasAll(resource.data.retaFinalSync.removedBlockIds)
+                      )
+                      || (
+                        request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                        && request.resource.data.retaFinalSync.minRetainedRevision >= resource.data.retaFinalSync.revision
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+    }
+
     function validSnapshot() {
       return request.resource.data.keys().hasOnly([
         'version',
@@ -18,6 +253,7 @@ service cloud.firestore {
         'payloadUpdatedAt',
         'sentAt',
         'entityManifest',
+        'retaFinalSync',
         'payload',
         'updatedAt',
         'serverUpdatedAt'
@@ -29,6 +265,13 @@ service cloud.firestore {
       && (
         !request.resource.data.keys().hasAny(['entityManifest'])
         || request.resource.data.entityManifest is list
+      )
+      && (
+        !hasRetaFinalSync()
+        || (
+          validRetaFinalSyncDescriptor(request.resource.data.retaFinalSync)
+          && validRetaFinalPayloadState()
+        )
       );
     }
 
@@ -91,7 +334,16 @@ service cloud.firestore {
 
     match /users/{uid}/snapshots/{snapshotId} {
       allow read: if owns(uid);
-      allow create, update: if owns(uid) && snapshotId == 'main' && validSnapshot();
+      allow create: if owns(uid) && snapshotId == 'main'
+        && validSnapshot() && validRetaFinalSnapshotCreate();
+      allow update: if owns(uid) && snapshotId == 'main'
+        && validSnapshot() && validRetaFinalSnapshotUpdate();
+      allow delete: if false;
+    }
+
+    match /users/{uid}/syncMeta/{metaId} {
+      allow read: if owns(uid) && metaId == 'reta-final-guard';
+      allow create, update: if owns(uid) && metaId == 'reta-final-guard' && validRetaFinalGuard();
       allow delete: if false;
     }
 

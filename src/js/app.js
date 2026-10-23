@@ -44,6 +44,8 @@ import { clearActiveDashboardDiscCtx } from './state/dashboard-context.js?v=8.37
 import { setHideConcluidosCiclo } from './views/ciclo-view.js?v=8.37';
 import { reconcilePrincipalEdital } from './views/editais-crud.js';
 import { syncRetaFinalToEventos } from './logic/reta-final.js';
+import { reconcileDerivedStateOnBoot } from './app/boot-reconciliation.js';
+import { consumeDerivedRecoveryPending } from './store/boot-recovery.js';
 
 // ── Re-exports ────────────────────────────────────────────────────────
 export {
@@ -97,7 +99,13 @@ export function init() {
       // Reta Final: rolagem/reconcile no boot — bloco de ontem "empilha" em
       // hoje antes do primeiro render (renderRetaFinal cobre a virada de dia
       // com o app aberto).
-      if (state.planejamento?.ativo && state.planejamento.tipo === 'reta_final') {
+      if (consumeDerivedRecoveryPending()) {
+        const { syncCicloToEventos } = await import('./logic/cycle.js');
+        reconcileDerivedStateOnBoot(state.planejamento, {
+          syncCiclo: syncCicloToEventos,
+          recoveryPending: true,
+        });
+      } else if (state.planejamento?.ativo && state.planejamento.tipo === 'reta_final') {
         syncRetaFinalToEventos();
       }
 

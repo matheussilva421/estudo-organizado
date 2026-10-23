@@ -74,6 +74,13 @@ describe('validateRetaFinalPayload', () => {
     expect(validateRetaFinalPayload(validPayload({ dataFinal: '15/08/2026' })).valid).toBe(false);
   });
 
+  it('rejeita datas civis inexistentes em dataFinal e dias', () => {
+    expect(validateRetaFinalPayload(validPayload({ dataFinal: '2026-12-32' })).valid).toBe(false);
+    const payload = validPayload();
+    payload.dias[0].data = '2026-02-30';
+    expect(validateRetaFinalPayload(payload).valid).toBe(false);
+  });
+
   it('rejeita dia com data acima da dataFinal', () => {
     const payload = validPayload();
     payload.dias[0].data = '2026-08-16';
@@ -198,6 +205,36 @@ describe('matchRetaFinalToEditais', () => {
     const match = matchRetaFinalToEditais(payload, editais);
     expect(match.disciplinas).toHaveLength(1);
     expect(match.disciplinas[0].topicos.map((t) => t.nome)).toEqual(['A', 'B']);
+  });
+
+  it('não escolhe a primeira aula quando o título v1 é ambíguo', () => {
+    const duplicated = [createEdital({
+      id: 'ed_amb', nome: 'Ambíguo', disciplinas: [createDisciplina({
+        id: 'disc_penal', nome: 'Direito Penal',
+        aulas: [{ id: 'aula_1', nome: 'Aula 05' }, { id: 'aula_2', nome: 'Aula 05' }],
+      })],
+    })];
+    const match = matchRetaFinalToEditais(validPayload(), duplicated);
+    const penal = match.disciplinas.find((item) => item.nome === 'Direito Penal');
+
+    expect(penal.aulas[0].aulaId).toBeNull();
+    expect(match.conflicts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ entity: 'aula', candidateIds: ['aula_1', 'aula_2'] }),
+    ]));
+  });
+
+  it('marca disciplina homônima em editais ativos como ambígua', () => {
+    const duplicated = [
+      createEdital({ id: 'ed_1', disciplinas: [createDisciplina({ id: 'disc_1', nome: 'Direito Penal' })] }),
+      createEdital({ id: 'ed_2', disciplinas: [createDisciplina({ id: 'disc_2', nome: 'Direito Penal' })] }),
+    ];
+    const match = matchRetaFinalToEditais(validPayload(), duplicated);
+    const penal = match.disciplinas.find((item) => item.nome === 'Direito Penal');
+
+    expect(penal.discId).toBeNull();
+    expect(match.conflicts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ entity: 'disciplina', candidateIds: ['disc_1', 'disc_2'] }),
+    ]));
   });
 });
 

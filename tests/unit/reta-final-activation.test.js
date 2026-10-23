@@ -11,6 +11,7 @@ const HOJE = '2026-07-10';
 
 let store;
 let retaFinalMod;
+let discMod;
 
 function payload(overrides = {}) {
   return {
@@ -78,6 +79,21 @@ function planoCicloAtivo() {
   };
 }
 
+function matchingComMigracaoInvalida() {
+  return {
+    disciplinas: [{
+      key: 'direito penal',
+      nome: 'Direito Penal',
+      discId: 'disc_penal',
+      topicos: [
+        { key: 'novo tópico', nome: 'Novo tópico', assId: null },
+        { key: 'crimes contra a vida', nome: 'Crimes contra a vida', assId: 12 },
+      ],
+      aulas: [],
+    }],
+  };
+}
+
 beforeEach(async () => {
   vi.resetModules();
   vi.useFakeTimers();
@@ -86,6 +102,7 @@ beforeEach(async () => {
   const modules = await loadAppModules();
   store = modules.store;
   retaFinalMod = await import('../../src/js/logic/reta-final.js');
+  discMod = await import('../../src/js/logic/disc.js');
 });
 
 describe('activateRetaFinal', () => {
@@ -245,6 +262,77 @@ describe('activateRetaFinal', () => {
     expect(store.state.planejamento.tipo).toBe('ciclo');
     expect(store.state.planejamentoArquivado).toBeNull();
   });
+
+  it('data civil inexistente falha antes de trocar plano, edital ou eventos', () => {
+    store.setState(
+      baseStateComEdital({
+        planejamento: planoCicloAtivo(),
+        eventos: [{ id: 'ev_estudado', status: 'estudei', dataEstudo: HOJE, tempoAcumulado: 1200 }],
+      })
+    );
+    const before = JSON.stringify({
+      planejamento: store.state.planejamento,
+      planejamentoArquivado: store.state.planejamentoArquivado,
+      editais: store.state.editais,
+      eventos: store.state.eventos,
+    });
+    const invalid = payload({
+      dias: [{ data: '2026-02-30', blocos: [{ disciplina: 'Português', topicos: ['Crase'] }] }],
+    });
+
+    expect(() => retaFinalMod.activateRetaFinal({ payload: invalid })).toThrow(/Reta Final/i);
+    expect(JSON.stringify({
+      planejamento: store.state.planejamento,
+      planejamentoArquivado: store.state.planejamentoArquivado,
+      editais: store.state.editais,
+      eventos: store.state.eventos,
+    })).toBe(before);
+  });
+
+  it('falha da migração restaura editais e mantém plano/eventos anteriores', () => {
+    store.setState(
+      baseStateComEdital({
+        planejamento: planoCicloAtivo(),
+        eventos: [{ id: 'ev_estudado', status: 'estudei', dataEstudo: HOJE, tempoAcumulado: 1200 }],
+      })
+    );
+    const before = JSON.stringify({
+      planejamento: store.state.planejamento,
+      planejamentoArquivado: store.state.planejamentoArquivado,
+      editais: store.state.editais,
+      eventos: store.state.eventos,
+    });
+    expect(() => retaFinalMod.activateRetaFinal({
+      payload: payload(),
+      matching: matchingComMigracaoInvalida(),
+    })).toThrow(/Falha ao migrar a Reta Final/i);
+    expect(JSON.stringify({
+      planejamento: store.state.planejamento,
+      planejamentoArquivado: store.state.planejamentoArquivado,
+      editais: store.state.editais,
+      eventos: store.state.eventos,
+    })).toBe(before);
+  });
+
+  it('falha da migração preserva as identidades usadas pelo cache de disciplinas', () => {
+    store.setState(baseStateComEdital({ planejamento: planoCicloAtivo() }));
+    discMod.invalidateDiscCache();
+    const originalEdital = store.state.editais[0];
+    const originalDisc = originalEdital.disciplinas[0];
+    const cached = discMod.getDisc('disc_penal');
+    expect(cached).toEqual({ disc: originalDisc, edital: originalEdital });
+
+    expect(() => retaFinalMod.activateRetaFinal({
+      payload: payload(),
+      matching: matchingComMigracaoInvalida(),
+    })).toThrow(/Falha ao migrar a Reta Final/i);
+
+    expect(store.state.editais[0]).toBe(originalEdital);
+    expect(store.state.editais[0].disciplinas[0]).toBe(originalDisc);
+    expect(discMod.getDisc('disc_penal')).toBe(cached);
+    cached.disc.nome = 'Direito Penal editado';
+    expect(store.state.editais[0].disciplinas[0].nome).toBe('Direito Penal editado');
+  });
 });
 
 describe('restaurarPlanejamentoArquivado', () => {
@@ -286,6 +374,33 @@ describe('restaurarPlanejamentoArquivado', () => {
   });
 });
 
+describe('Reta Final v1 activation with v2 domain', () => {
+  it('cria identidade/revisão/intenção uma vez; sync e migração não geram nova identidade', () => {
+    store.setState(baseStateComEdital());
+    const plan = retaFinalMod.activateRetaFinal({ payload: payload() });
+    expect(plan).toMatchObject({ schemaVersionRetaFinal: 2, revision: 0 });
+    expect(plan.planId).toEqual(expect.any(String));
+    expect(plan.retaFinal.blocos.map((b) => b.dataPlanejada)).toEqual(['2026-07-10', '2026-07-10', '2026-07-11']);
+    expect(plan.retaFinal.blocos.map((b) => b.ordem)).toEqual([0, 1, 2]);
+    const before = JSON.stringify(plan);
+    retaFinalMod.syncRetaFinalToEventos();
+    store.runMigrations();
+    expect(JSON.stringify(store.state.planejamento)).toBe(before);
+    const oldPlanId = plan.planId;
+    const replacement = retaFinalMod.activateRetaFinal({ payload: payload() });
+    expect(replacement.planId).not.toBe(oldPlanId);
+  });
+
+  it('registra dataPlanejada importada antes da rolagem inicial sem alterar evento histórico', () => {
+    const event = { id: 'historico', rfBlocoId: 'rf_old', status: 'estudei', dataEstudo: '2026-07-01', tempoAcumulado: 1234, questoes: 20, revisoes: ['r1'] };
+    store.setState(baseStateComEdital({ eventos: [event] }));
+    const imported = payload({ dias: [{ data: '2026-07-09', blocos: [{ disciplina: 'Direito Penal', topicos: ['Crimes contra a vida'] }] }] });
+    const plan = retaFinalMod.activateRetaFinal({ payload: imported });
+    expect(plan.retaFinal.blocos[0]).toMatchObject({ dataPlanejada: '2026-07-09', dataOriginal: '2026-07-09', data: HOJE });
+    expect(store.state.eventos.find((e) => e.id === 'historico')).toEqual(event);
+
+  });
+});
 
 describe('notas da Reta Final', () => {
   const notasAntigas = 'ASSUNTO PRINCIPAL: Direitos fundamentais\n• Habeas corpus';

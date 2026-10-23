@@ -90,6 +90,7 @@ export function createFirestoreSnapshotEnvelope(sourceState, options = {}) {
     baseRemoteUpdatedAt: options.baseRemoteUpdatedAt ?? syncConfig.remoteUpdatedAt ?? null,
     payloadUpdatedAt,
     sentAt: toIsoTimestamp(options.sentAt || Date.now()),
+    ...(options.retaFinalSync ? { retaFinalSync: options.retaFinalSync } : {}),
     payload,
   };
 }

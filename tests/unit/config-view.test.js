@@ -331,7 +331,9 @@ describe('views/config-view.js', () => {
       expect(appModule.openModal).toHaveBeenCalledWith('modal-prompt');
 
       document.getElementById('modal-prompt-save').onclick();
-      expect(firestoreSync.pullFromFirestore).toHaveBeenCalledWith(true);
+      expect(firestoreSync.pullFromFirestore).toHaveBeenCalledWith(true, {
+        discardPending: true,
+      });
     });
 
     it('previews Cloudflare remote data before pulling it', async () => {

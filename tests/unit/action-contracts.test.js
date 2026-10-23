@@ -46,17 +46,7 @@ function collectActionRegistryEntries() {
   const entries = new Map();
   const actionKeyPattern = /registerAction\s*\(\s*['"]([a-z0-9-]+)['"]/gm;
 
-  const actionFiles = [
-    'eventos.js',
-    'editais.js',
-    'revisoes.js',
-    'habitos.js',
-    'config.js',
-    'navegacao.js',
-    'modais.js',
-    'planejamento.js',
-    'reta-final.js',
-  ];
+  const actionFiles = readdirSync(actionsDir).filter((file) => file.endsWith('.js'));
 
   for (const file of actionFiles) {
     const filePath = join(actionsDir, file);
@@ -401,6 +391,9 @@ describe('data-action contracts', () => {
     const swSource = read('src/sw.js');
     const requiredModules = [
       './js/credentials.js',
+      './js/logic/reta-final-portable.js',
+      './js/logic/reta-final-import-compare.js',
+      './js/logic/reta-final-schema.js',
       './js/views/habitos-view.js',
       './js/views/ciclo-view.js',
       './js/registro-sessao/modal-renderer.js',
@@ -477,10 +470,18 @@ describe('data-action contracts', () => {
     expect(mainSource).not.toContain('CONFIG_SYNC_RENDER_THROTTLE_MS');
     expect(mainSource).not.toContain('scheduleConfigSyncRender');
     expect(indexSource).toContain('data-action="sync-now"');
-    expect(syncStatusSource).toContain("document.addEventListener('app:firestoreSyncStatus'");
-    expect(syncStatusSource).toContain("document.addEventListener('app:primarySyncStatus'");
-    expect(syncStatusSource).toContain("document.addEventListener('app:globalSyncPauseChanged'");
-    expect(syncStatusSource).toContain("document.addEventListener('app:cloudSyncStatus'");
+    expect(syncStatusSource).toMatch(
+      /document\.addEventListener\(["']app:firestoreSyncStatus["']/,
+    );
+    expect(syncStatusSource).toMatch(
+      /document\.addEventListener\(["']app:primarySyncStatus["']/,
+    );
+    expect(syncStatusSource).toMatch(
+      /document\.addEventListener\(["']app:globalSyncPauseChanged["']/,
+    );
+    expect(syncStatusSource).toMatch(
+      /document\.addEventListener\(["']app:cloudSyncStatus["']/,
+    );
     expect(syncStatusSource).toContain('refreshConfigSyncSurface');
     expect(syncStatusSource).toContain('cf-sync-conflict');
     expect(syncStatusSource).not.toContain('renderCurrentView');

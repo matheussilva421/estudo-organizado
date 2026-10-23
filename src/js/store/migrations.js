@@ -1,15 +1,16 @@
 // =============================================
-// SCHEMA MIGRATIONS (v1 → v11)
+// SCHEMA MIGRATIONS (v1 → v12)
 // =============================================
 import { uid } from '../utils.js?v=8.37';
+import { migrateRetaFinalV2 } from '../logic/reta-final-schema.js';
 
 export const DEFAULT_SCHEMA_VERSION = 12;
 
 /**
- * Executa migrações de schema do estado (v1 → v11)
+ * Executa migrações de schema do estado (v1 → v12)
  * @param {Object} state - Estado global a ser migrado
  * @param {Function} onChanged - Callback chamado quando mudanças são aplicadas
- * @returns {void}
+ * @returns {{plan: object|undefined, changed: boolean, diagnostics: string[]}}
  */
 export function runMigrations(state, onChanged) {
   let changed = false;
@@ -228,5 +229,15 @@ export function runMigrations(state, onChanged) {
     changed = true;
   }
 
+  // Domain version is independent of the global state and IndexedDB versions.
+  // Also covers legacy plans imported into an already-current state.
+  const retaFinalMigration = migrateRetaFinalV2(state.planejamento, {
+    makePlanId: () => 'rfplan_' + uid(),
+  });
+  if (retaFinalMigration.changed) {
+    state.planejamento = retaFinalMigration.plan;
+    changed = true;
+  }
   if (changed) onChanged();
+  return { ...retaFinalMigration, changed };
 }

@@ -5,6 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createTransactionalIdb } from './reta-final-draft-idb-helper.js';
 
 const rootDir = process.cwd();
 
@@ -53,7 +54,7 @@ describe('store/indexeddb.js - Module integrity', () => {
   it('exports expected IndexedDB symbols', () => {
     // Constants
     expect(indexeddb.DB_NAME).toBe('EstudoOrganizadoDB');
-    expect(indexeddb.DB_VERSION).toBe(6);
+    expect(indexeddb.DB_VERSION).toBe(7);
     expect(indexeddb.STORE_NAME).toBe('app_state');
     expect(indexeddb.FIRESTORE_OUTBOX_STORE).toBe('firestore_outbox');
     expect(indexeddb.FIRESTORE_META_STORE).toBe('firestore_meta');
@@ -97,6 +98,8 @@ describe('store/indexeddb.js - Module integrity', () => {
       'LOCAL_STATE_CURRENT_KEY',
       'LOCAL_STATE_PREVIOUS_KEY',
       'LOCAL_STATE_LEGACY_KEY',
+      'RETA_FINAL_DRAFT_STORE',
+      'RETA_FINAL_JOURNAL_STORE',
       'DEFAULT_FIRESTORE_SYNC_CONFIG',
     ];
 
@@ -119,6 +122,14 @@ describe('store/indexeddb.js - Module integrity', () => {
     for (const sym of reExportedFunctions) {
       expect(store[sym]).toBe(indexeddb[sym]);
     }
+  });
+
+  it('store.js exposes the isolated draft persistence helpers', async () => {
+    const draftStore = await import('../../src/js/store/reta-final-draft-store.js');
+
+    expect(store.loadRetaFinalDraft).toBe(draftStore.loadRetaFinalDraft);
+    expect(store.saveRetaFinalDraft).toBe(draftStore.saveRetaFinalDraft);
+    expect(store.discardRetaFinalDraft).toBe(draftStore.discardRetaFinalDraft);
   });
 
   it('store.js re-exports "db" as live binding from indexeddb.js', () => {
@@ -196,5 +207,47 @@ describe('store/indexeddb.js - Data pipeline functions work end-to-end', () => {
 
     expect(order).toEqual([1, 2]);
     expect(indexeddb.SyncQueue.tasks).toHaveLength(0);
+  });
+});
+
+describe('store/indexeddb.js - Task 6 schema upgrade', () => {
+  it('opens an existing v6 database, upgrades it to v7, and completes initDB', async () => {
+    const v6Stores = {
+      app_state: {},
+      firestore_outbox: {},
+      firestore_meta: {},
+      firestore_conflicts: {},
+      entity_meta: {},
+      firestore_entity_outbox: {},
+    };
+    const idb = createTransactionalIdb({
+      stores: v6Stores,
+      version: 6,
+      keyPaths: {
+        app_state: null,
+        firestore_outbox: 'id',
+        firestore_meta: 'id',
+        firestore_conflicts: 'id',
+        entity_meta: 'key',
+        firestore_entity_outbox: 'id',
+      },
+    });
+    global.indexedDB = idb.indexedDB;
+
+    expect(idb.version).toBe(6);
+    await expect(indexeddb.initDB()).resolves.toBeUndefined();
+
+    expect(idb.openVersions).toEqual([7]);
+    expect(idb.version).toBe(7);
+    expect(idb.createdStores).toEqual([
+      { name: 'reta_final_drafts', keyPath: 'draftId' },
+      { name: 'reta_final_journal', keyPath: 'id' },
+    ]);
+    expect(idb.keyPath('reta_final_drafts')).toBe('draftId');
+    expect(idb.keyPath('reta_final_journal')).toBe('id');
+    expect(indexeddb.db.objectStoreNames.contains('reta_final_drafts')).toBe(true);
+    expect(indexeddb.db.objectStoreNames.contains('reta_final_journal')).toBe(true);
+    expect(store.RETA_FINAL_DRAFT_STORE).toBe('reta_final_drafts');
+    expect(store.RETA_FINAL_JOURNAL_STORE).toBe('reta_final_journal');
   });
 });

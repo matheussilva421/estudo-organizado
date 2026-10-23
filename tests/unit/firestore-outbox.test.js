@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('firestore-outbox.js', () => {
   it('exports all queue and meta functions', async () => {
@@ -25,5 +25,99 @@ describe('firestore-outbox.js', () => {
     expect(await outbox.getFirestoreMeta()).toBeNull();
     expect(await outbox.saveFirestoreConflict({})).toBe(false);
     expect(await outbox.clearFirestoreConflict()).toBe(false);
+  });
+});
+
+describe('firestore-outbox expected identity', () => {
+  afterEach(() => {
+    vi.resetModules();
+  });
+
+  it('keeps a write enqueued between the pending read and the expected-identity mark', async () => {
+    const records = new Map([
+      [
+        'latest_snapshot',
+        { id: 'latest_snapshot', queuedAt: '2026-10-20T10:00:00.000Z', envelope: { sentAt: 's1' } },
+      ],
+    ]);
+    let transaction;
+    const store = {
+      get(key) {
+        const request = {};
+        queueMicrotask(() => {
+          request.result = records.get(key) ?? null;
+          request.onsuccess?.();
+        });
+        return request;
+      },
+      delete(key) {
+        const request = {};
+        queueMicrotask(() => {
+          records.delete(key);
+          request.onsuccess?.();
+        });
+        return request;
+      },
+      put(entry) {
+        const request = {};
+        queueMicrotask(() => {
+          records.set(entry.id, entry);
+          request.onsuccess?.();
+          transaction.oncomplete?.();
+        });
+        return request;
+      },
+    };
+    transaction = { objectStore: () => store, oncomplete: null, onerror: null };
+    const db = {
+      objectStoreNames: { contains: () => true },
+      transaction: () => transaction,
+    };
+    vi.resetModules();
+    vi.doMock('../../src/js/store.js?v=8.37', () => ({
+      db,
+      FIRESTORE_CONFLICT_STORE: 'conflicts',
+      FIRESTORE_META_STORE: 'meta',
+      FIRESTORE_OUTBOX_STORE: 'outbox',
+    }));
+    const outbox = await import('../../src/js/sync/firestore-outbox.js?v=8.37');
+
+    // Real sequence: read pending A, enqueue B, then mark with A's identity.
+    const pendingA = await outbox.getPendingFirestoreSnapshot();
+    await outbox.enqueueFirestoreSnapshot({
+      version: 1,
+      deviceId: 'web-device1',
+      sentAt: 's2',
+      payloadUpdatedAt: '2026-10-21T00:00:00.000Z',
+      payload: { eventos: [] },
+    });
+    const pendingB = await outbox.getPendingFirestoreSnapshot();
+
+    expect(pendingB.queuedAt).not.toBe(pendingA.queuedAt);
+    expect(
+      await outbox.markFirestoreSnapshotSynced({
+        queuedAt: pendingA.queuedAt,
+        sentAt: pendingA.envelope.sentAt,
+      })
+    ).toBe(false);
+    expect(records.get('latest_snapshot').envelope.sentAt).toBe('s2');
+
+    expect(
+      await outbox.markFirestoreSnapshotSynced({
+        queuedAt: pendingB.queuedAt,
+        sentAt: pendingB.envelope.sentAt,
+      })
+    ).toBe(true);
+    expect(records.has('latest_snapshot')).toBe(false);
+
+    records.set('latest_snapshot', {
+      id: 'latest_snapshot',
+      queuedAt: '2026-10-20T11:00:00.000Z',
+      envelope: { sentAt: 's2' },
+    });
+    expect(
+      await outbox.markFirestoreSnapshotSynced({ queuedAt: null, sentAt: null })
+    ).toBe(false);
+    expect(records.get('latest_snapshot').queuedAt).toBe('2026-10-20T11:00:00.000Z');
   });
 });

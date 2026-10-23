@@ -161,6 +161,15 @@ describe('getRetaFinalBlocoFiltroCategoria — categorização pura', () => {
     expect(
       getRetaFinalBlocoFiltroCategoria(rfBloco({ data: FUTURO, dataOriginal: FUTURO }), HOJE)
     ).toBe('futuro');
+    expect(
+      getRetaFinalBlocoFiltroCategoria(
+        rfBloco({ data: HOJE, dataOriginal: HOJE, categoriaTemporal: 'futuro' }),
+        HOJE
+      )
+    ).toBe('futuro');
+    expect(
+      getRetaFinalBlocoFiltroCategoria(rfBloco({ naoAlocado: true, status: 'pendente' }), HOJE)
+    ).toBe('nao_alocado');
   });
 });
 

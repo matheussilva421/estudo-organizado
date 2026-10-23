@@ -11,6 +11,14 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // Texto importado é preservado integralmente até 10.000 caracteres por bloco.
 const MAX_RETA_FINAL_NOTAS_LENGTH = 10_000;
 
+function isCivilDate(value) {
+  if (typeof value !== 'string' || !DATE_RE.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return year > 0 && month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1];
+}
+
 /**
  * Chave de nome para matching: minúsculas, sem acentos (NFD), espaços
  * colapsados. "Direito  Penal " e "direito penal" casam.
@@ -42,8 +50,8 @@ export function validateRetaFinalPayload(payload) {
   if (payload.versao !== 1) {
     errors.push('Campo "versao" deve ser 1.');
   }
-  if (!DATE_RE.test(String(payload.dataFinal || ''))) {
-    errors.push('Campo "dataFinal" deve estar no formato YYYY-MM-DD.');
+  if (!isCivilDate(payload.dataFinal)) {
+    errors.push('Campo "dataFinal" deve ser uma data civil válida no formato YYYY-MM-DD.');
   }
   if (payload.minutosPadrao !== undefined && !isPositiveInt(payload.minutosPadrao)) {
     errors.push('Campo "minutosPadrao" deve ser um inteiro maior que zero.');
@@ -59,9 +67,9 @@ export function validateRetaFinalPayload(payload) {
       errors.push(`${rotulo}: entrada inválida.`);
       return;
     }
-    if (!DATE_RE.test(String(dia.data || ''))) {
-      errors.push(`${rotulo}: "data" deve estar no formato YYYY-MM-DD.`);
-    } else if (DATE_RE.test(String(payload.dataFinal || '')) && dia.data > payload.dataFinal) {
+    if (!isCivilDate(dia.data)) {
+      errors.push(`${rotulo}: "data" deve ser uma data civil válida no formato YYYY-MM-DD.`);
+    } else if (isCivilDate(payload.dataFinal) && dia.data > payload.dataFinal) {
       errors.push(`${rotulo}: data ${dia.data} é posterior à dataFinal.`);
     }
     if (!Array.isArray(dia.blocos) || dia.blocos.length === 0) {
@@ -108,7 +116,7 @@ export function validateRetaFinalPayload(payload) {
  * mostra casados × criados antes de confirmar. Função pura: não muta editais.
  */
 export function matchRetaFinalToEditais(payload, editais) {
-  const discIndex = new Map(); // key -> { discId, editalId, assuntos: Map, aulas: Map }
+  const discIndex = new Map(); // key -> [{ discId, editalId, assuntos, aulas }]
   for (const edital of editais || []) {
     // Editais arquivados ficam fora do matching: uma disciplina homônima de um
     // concurso antigo casaria primeiro e mandaria os blocos (e as aulas novas)
@@ -116,29 +124,44 @@ export function matchRetaFinalToEditais(payload, editais) {
     if (edital?.arquivado) continue;
     for (const disc of edital?.disciplinas || []) {
       const key = normalizeNameKey(disc?.nome);
-      if (!key || discIndex.has(key)) continue;
+      if (!key) continue;
       const assuntos = new Map();
       for (const ass of disc.assuntos || []) {
         const assKey = normalizeNameKey(ass?.nome);
-        if (assKey && !assuntos.has(assKey)) assuntos.set(assKey, ass.id);
+        if (assKey) {
+          if (!assuntos.has(assKey)) assuntos.set(assKey, []);
+          assuntos.get(assKey).push(ass.id);
+        }
       }
       const aulas = new Map();
       for (const aula of disc.aulas || []) {
         const aulaKey = normalizeNameKey(aula?.nome);
-        if (aulaKey && !aulas.has(aulaKey)) aulas.set(aulaKey, aula.id);
+        if (aulaKey) {
+          if (!aulas.has(aulaKey)) aulas.set(aulaKey, []);
+          aulas.get(aulaKey).push(aula.id);
+        }
       }
-      discIndex.set(key, { discId: disc.id, editalId: edital.id, assuntos, aulas });
+      if (!discIndex.has(key)) discIndex.set(key, []);
+      discIndex.get(key).push({ discId: disc.id, editalId: edital.id, assuntos, aulas, nome: disc.nome });
     }
   }
 
   const byKey = new Map();
+  const conflicts = [];
   for (const dia of payload?.dias || []) {
     for (const bloco of dia?.blocos || []) {
       const key = normalizeNameKey(bloco?.disciplina);
       if (!key) continue;
       let entry = byKey.get(key);
       if (!entry) {
-        const matched = discIndex.get(key) || null;
+        const candidates = discIndex.get(key) || [];
+        const matched = candidates.length === 1 ? candidates[0] : null;
+        if (candidates.length > 1) {
+          conflicts.push({
+            code: 'REFERENCIA_AMBIGUA', entity: 'disciplina', nome: String(bloco.disciplina).trim(),
+            candidateIds: candidates.map((item) => item.discId).filter(Boolean).sort(),
+          });
+        }
         entry = {
           nome: String(bloco.disciplina).trim(),
           key,
@@ -147,6 +170,7 @@ export function matchRetaFinalToEditais(payload, editais) {
           topicos: [],
           aulas: [],
           _matched: matched,
+          _conflicts: [],
           _topicoKeys: new Set(),
           _aulaKeys: new Set(),
         };
@@ -159,8 +183,18 @@ export function matchRetaFinalToEditais(payload, editais) {
         entry.topicos.push({
           nome: String(topico).trim(),
           key: topicoKey,
-          assId: entry._matched?.assuntos.get(topicoKey) || null,
+          assId: null,
         });
+        const candidates = entry._matched?.assuntos.get(topicoKey) || [];
+        if (candidates.length === 1) entry.topicos[entry.topicos.length - 1].assId = candidates[0] || null;
+        else if (candidates.length > 1) {
+          const conflict = {
+            code: 'REFERENCIA_AMBIGUA', entity: 'assunto', discId: entry.discId,
+            nome: String(topico).trim(), candidateIds: candidates.filter(Boolean).sort(),
+          };
+          entry._conflicts.push(conflict);
+          conflicts.push(conflict);
+        }
       }
       const aulaKey = normalizeNameKey(bloco.aula);
       if (aulaKey && !entry._aulaKeys.has(aulaKey)) {
@@ -168,8 +202,18 @@ export function matchRetaFinalToEditais(payload, editais) {
         entry.aulas.push({
           nome: String(bloco.aula).trim(),
           key: aulaKey,
-          aulaId: entry._matched?.aulas.get(aulaKey) || null,
+          aulaId: null,
         });
+        const candidates = entry._matched?.aulas.get(aulaKey) || [];
+        if (candidates.length === 1) entry.aulas[entry.aulas.length - 1].aulaId = candidates[0] || null;
+        else if (candidates.length > 1) {
+          const conflict = {
+            code: 'REFERENCIA_AMBIGUA', entity: 'aula', discId: entry.discId,
+            nome: String(bloco.aula).trim(), candidateIds: candidates.filter(Boolean).sort(),
+          };
+          entry._conflicts.push(conflict);
+          conflicts.push(conflict);
+        }
       }
     }
   }
@@ -181,6 +225,7 @@ export function matchRetaFinalToEditais(payload, editais) {
     editalId: entry.editalId,
     topicos: entry.topicos,
     aulas: entry.aulas,
+    conflicts: entry._conflicts,
   }));
 
   const summary = {
@@ -202,7 +247,7 @@ export function matchRetaFinalToEditais(payload, editais) {
     }
   }
 
-  return { disciplinas, summary };
+  return { disciplinas, summary, conflicts };
 }
 
 /**
@@ -230,12 +275,18 @@ export function getRetaFinalTopicoLabel(bloco, disc) {
  * Categoria de um bloco para os filtros do cronograma dia a dia:
  *  - 'concluido': status concluído;
  *  - 'nao_coberto': status não coberto (fica fora do cronograma);
+ *  - 'nao_alocado': projeção com capacidade explícita esgotada;
+ *  - 'sem_data': projeção com data planejada ausente ou inválida;
  *  - 'futuro': pendente com data após hoje;
  *  - 'atrasado': pendente com data passada ou rolado (data !== dataOriginal);
  *  - 'hoje': pendente de hoje sem rolagem.
+ * Blocos já projetados podem trazer `categoriaTemporal`; nesse caso ela é a
+ * fonte imediata, sem reinterpretar a data de intenção.
  */
 export function getRetaFinalBlocoFiltroCategoria(bloco, hoje) {
   if (!bloco) return 'hoje';
+  if (bloco.categoriaTemporal) return bloco.categoriaTemporal;
+  if (bloco.naoAlocado === true) return 'nao_alocado';
   if (bloco.status === 'concluido') return 'concluido';
   if (bloco.status === 'nao_coberto') return 'nao_coberto';
   if (bloco.data > hoje) return 'futuro';
@@ -302,7 +353,7 @@ export function rolloverRetaFinalBlocks(retaFinal, { today, preservedBlocoIds } 
 
   const rolados = new Set();
   for (const bloco of retaFinal.blocos) {
-    if (!bloco || bloco.status !== 'pendente') continue;
+    if (!bloco || bloco.status !== 'pendente' || bloco.arquivado === true) continue;
     if (!bloco.data || bloco.data >= today) continue;
     if (preserved.has(bloco.id)) continue;
     if (aposDataFinal) {
@@ -355,7 +406,7 @@ export function reconcileRetaFinalWithEvents(plan, eventos) {
   }
 
   for (const bloco of blocos) {
-    if (!bloco?.id) continue;
+    if (!bloco?.id || bloco.arquivado === true) continue;
     if (estudados.has(bloco.id)) {
       if (bloco.status !== 'concluido') {
         bloco.status = 'concluido';

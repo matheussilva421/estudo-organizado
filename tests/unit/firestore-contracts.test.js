@@ -158,7 +158,9 @@ describe('Firestore integration contracts', () => {
       firestoreSource.match(/export async function enableFirestoreSync[\s\S]*?\r?\n}\r?\n/)?.[0] ||
       '';
 
-    expect(enableBody).toContain("config.mode = mode === 'primary' ? 'primary' : 'shadow';");
+    expect(enableBody).toContain(
+      'config.mode = mode === "primary" ? "primary" : "shadow";',
+    );
     expect(enableBody).not.toContain('flushFirestoreOutbox');
     expect(enableBody).not.toContain('queueFirestoreSnapshotFromState');
   });
@@ -186,7 +188,9 @@ describe('Firestore integration contracts', () => {
     const syncExport =
       firestoreSource.match(/export async function syncFirestoreNow[\s\S]*?\r?\n}\r?\n/)?.[0] || '';
 
-    expect(queueBody).toContain('createFirestoreSnapshotEnvelope(sourceState, options)');
+    expect(queueBody).toMatch(
+      /createFirestoreSnapshotEnvelope\(\s*sourceState,\s*envelopeOptions,?\s*\)/,
+    );
     expect(syncExport).toContain('firestoreLock.withLock');
     expect(syncExport).toContain('syncFirestoreNowUnlocked()');
     expect(syncBody).toContain('const remote = await readFirestoreSnapshot(db, uid);');
@@ -203,8 +207,8 @@ describe('Firestore integration contracts', () => {
 
     expect(indexedDbSource).toContain('touchLocalBackup');
     // All sync modules use object-form saveStateToDB (no positional args)
-    expect(firestoreSource).toContain(
-      'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'
+    expect(firestoreSource).toMatch(
+      /saveStateToDB\(\{\s*skipCloudSync:\s*true,\s*skipFirestoreSync:\s*true,\s*skipDriveSync:\s*true/,
     );
     expect(cloudflareSource).toContain(
       'saveStateToDB({ skipCloudSync: true, skipFirestoreSync: true, skipDriveSync: true'
@@ -241,7 +245,7 @@ describe('Firestore integration contracts', () => {
     expect(flushExport).toContain('flushFirestoreOutboxUnlocked(options)');
     expect(flushBody).toContain('if (!pending)');
     expect(flushBody).toContain('config.hasPendingWrites = false');
-    expect(flushBody).toContain("emitStatus('synced'");
+    expect(flushBody).toContain('emitStatus("synced"');
   });
 
   it('repairs stale Firestore pending flags on startup and auth changes', () => {
@@ -276,6 +280,76 @@ describe('Firestore integration contracts', () => {
     expect(rules).toContain('match /users/{uid}/snapshots/{snapshotId}');
     expect(rules).toContain('allow delete: if false;');
     expect(rules).toContain('request.resource.data.version == 1');
+  });
+
+  it('validates the Reta Final v2 descriptor inside the snapshot allowlist', () => {
+    const rules = read('firestore.rules');
+
+    expect(rules).toContain('retaFinalSync');
+    expect(rules).toContain('function validRetaFinalSyncDescriptor');
+    expect(rules).toContain('function validRetaFinalPayloadState');
+    expect(rules).toContain('request.resource.data.payload.planejamento.ativo == true');
+    expect(rules).toContain('request.resource.data.payload.planejamento.ativo != true');
+    expect(rules).toContain(
+      'request.resource.data.payload.planejamento.planId == request.resource.data.retaFinalSync.planId'
+    );
+    expect(rules).toContain("'rules-v2'");
+    expect(rules).toContain('descriptor.schema == 2');
+    expect(rules).toContain('descriptor.planId is string');
+    expect(rules).toContain("descriptor.state in ['active', 'retired']");
+    expect(rules).toContain('descriptor.removedBlockIds.size() <= 200');
+    expect(rules).toContain("descriptor.minRetainedRevision is int");
+  });
+
+  it('enforces revision CAS and rejects legacy writes over a v2 document', () => {
+    const rules = read('firestore.rules');
+
+    expect(rules).toContain('function validRetaFinalSnapshotUpdate');
+    expect(rules).toContain('resource.data.keys().hasAny([\'retaFinalSync\'])');
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision + 1'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.baseRevision == resource.data.retaFinalSync.revision'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.planId == resource.data.retaFinalSync.planId'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.lineageId == resource.data.retaFinalSync.lineageId'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.generation == resource.data.retaFinalSync.generation'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync == resource.data.retaFinalSync'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.removedBlockIds.hasAll(resource.data.retaFinalSync.removedBlockIds)'
+    );
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.minRetainedRevision >= resource.data.retaFinalSync.revision'
+    );
+    expect(rules).toContain('request.resource.data.payload == resource.data.payload');
+    expect(rules).toContain(
+      'request.resource.data.payloadUpdatedAt == resource.data.payloadUpdatedAt'
+    );
+  });
+
+  it('requires the adoption base and denies physical deletion of the guard document', () => {
+    const rules = read('firestore.rules');
+
+    expect(rules).toContain('match /users/{uid}/syncMeta/{metaId}');
+    expect(rules).toContain("metaId == 'reta-final-guard'");
+    expect(rules).toContain('function validRetaFinalGuard');
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.baseRevision == 0'
+    );
+    expect(rules).toContain("request.resource.data.retaFinalSync.state == 'active'");
+    expect(rules).toContain(
+      'request.resource.data.retaFinalSync.baseRemoteUpdatedAt == resource.data.payloadUpdatedAt'
+    );
+    expect(rules).toContain('allow delete: if false;');
   });
 
 });
