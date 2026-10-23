@@ -95,6 +95,21 @@ Após autorização específica de publicação: revisar o diff final, atualizar
 main remota e executar npm test/test:e2e/test:design/lint/bump no resultado.
 Sem essa autorização, o código permanece validado na main local.
 
+## Checklist pós-autorização (push)
+
+1. Confirmar que origin/main continua em 3b03e52 e que o push será
+   fast-forward (3b03e52 -> d3a9c69 ou HEAD posterior).
+2. Executar `git push origin main`; não usar force push.
+3. Conferir o SHA remoto com `git ls-remote origin refs/heads/main`.
+4. Acompanhar o workflow "Auto cache bump" e o build de produção do Cloudflare.
+   Se o workflow criar um commit de bump, atualizar o checkout local e repetir
+   `npm run bump:check`.
+5. Se o build alterar arquivos, reexecutar `npm test`, `npm run test:e2e`,
+   `npm run test:design` e `npm run lint` no SHA remoto.
+6. Comentar na Issue #106 com commits, SHA remoto e resultados dos gates;
+   fechar apenas após a confirmação de integração.
+7. Só então avaliar a limpeza das branches locais/remotas já contidas na main.
+
 ## Revisão visual (2026-10-23)
 
 - Capturas dos 8 temas regeneradas pelo E2E visual em 1366, 820, 390 e 320 px.
