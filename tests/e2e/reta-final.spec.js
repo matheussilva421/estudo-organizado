@@ -1,8 +1,37 @@
 import { expect, test } from '@playwright/test';
 import { createE2EState } from '../helpers/e2e-state.js';
 
+const notasImportadas =
+  'ASSUNTO PRINCIPAL: Controle de Constitucionalidade\n\n• ADI, ADC e ADPF\nQUESTÕES: 14 FGV\nTexto literal: <img src=x onerror=window.__rfNotesExecuted=true>';
+
 function serializeState(state) {
   return JSON.stringify(state);
+}
+
+async function readPersistedRetaFinalEvent(page, eventId) {
+  return page.evaluate(
+    (id) =>
+      new Promise((resolve) => {
+        const request = indexedDB.open('EstudoOrganizadoDB');
+        request.onerror = () => resolve(null);
+        request.onsuccess = () => {
+          const db = request.result;
+          const read = db
+            .transaction(['app_state'], 'readonly')
+            .objectStore('app_state')
+            .get('main_state_current');
+          read.onerror = () => {
+            db.close();
+            resolve(null);
+          };
+          read.onsuccess = () => {
+            db.close();
+            resolve(read.result?.payload?.eventos?.find((event) => event.id === id) || null);
+          };
+        };
+      }),
+    eventId
+  );
 }
 
 async function seedLegacyState(page, state) {
@@ -38,6 +67,7 @@ function retaFinalPayload() {
             disciplina: 'Direito Constitucional',
             topicos: ['Controle de Constitucionalidade'],
             minutos: 90,
+            notas: notasImportadas,
           },
           { disciplina: 'Português', topicos: ['Crase'] },
         ],
@@ -94,6 +124,7 @@ test.describe('Reta Final', () => {
     await expect(modal).toContainText('Direito Constitucional');
     await expect(modal).toContainText('casado');
     await expect(modal).toContainText('será criado');
+    await expect(modal).toContainText('Anotações: 1 de 3 blocos');
 
     await page.click('#modal-prompt-save');
     await expect(page.locator('#toast-container')).toContainText('Reta Final ativada');
@@ -107,6 +138,8 @@ test.describe('Reta Final', () => {
       tipo: window.EstudoApp.state.planejamento.tipo,
       blocos: window.EstudoApp.state.planejamento.retaFinal.blocos.length,
       rfEventos: window.EstudoApp.state.eventos.filter((e) => e.rfBlocoId).length,
+      anotacoes: window.EstudoApp.state.eventos.find((e) => e.rfBlocoId)?.notas,
+      eventoId: window.EstudoApp.state.eventos.find((e) => e.rfBlocoId)?.id,
       portugues: window.EstudoApp.state.editais.some((ed) =>
         (ed.disciplinas || []).some((d) => d.nome === 'Português')
       ),
@@ -114,7 +147,74 @@ test.describe('Reta Final', () => {
     expect(snapshot.tipo).toBe('reta_final');
     expect(snapshot.blocos).toBe(3);
     expect(snapshot.rfEventos).toBe(3);
+    expect(snapshot.anotacoes).toBe(notasImportadas);
     expect(snapshot.portugues).toBe(true);
+    await expect
+      .poll(async () => readPersistedRetaFinalEvent(page, snapshot.eventoId))
+      .toMatchObject({ notas: snapshot.anotacoes });
+
+    const eventChip = `.cal-event-chip[data-action="open-event-detail"][data-event-id="${snapshot.eventoId}"]`;
+    await page.click('[data-view="calendar"]');
+    await page.locator(eventChip).click();
+    await expect(page.locator('#modal-event-detail-body')).toContainText(
+      'Texto literal: <img src=x onerror=window.__rfNotesExecuted=true>'
+    );
+    await expect(page.locator('#modal-event-detail-body img')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__rfNotesExecuted)).toBeUndefined();
+    await page.click('#modal-event-detail-edit');
+    await expect(page.locator('#modal-event.open #event-notas')).toHaveValue(snapshot.anotacoes);
+
+    await page.reload();
+    await page.click('[data-view="calendar"]');
+    await page.locator(eventChip).click();
+    await expect(page.locator('#modal-event-detail-body img')).toHaveCount(0);
+    await page.click('#modal-event-detail-edit');
+    await expect(page.locator('#modal-event.open #event-notas')).toHaveValue(snapshot.anotacoes);
+  });
+
+  test('importa e abre a anotação da Reta Final no mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedLegacyState(page, createE2EState());
+    await page.goto('/');
+    await page.locator('.hamburger').click();
+    await page.locator('#sidebar [data-view="ciclo"]').click();
+
+    await page.locator('[data-action="open-reta-final-import"]').dispatchEvent('click');
+    const fileInput = page.locator('input[type="file"][accept=".json"]').last();
+    await fileInput.setInputFiles({
+      name: 'reta-final-mobile.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(retaFinalPayload()), 'utf8'),
+    });
+
+    const modal = page.locator('#modal-prompt');
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText('Anotações: 1 de 3 blocos');
+    await page.click('#modal-prompt-save');
+    await expect(page.locator('#toast-container')).toContainText('Reta Final ativada');
+
+    const snapshot = await page.evaluate(() => {
+      const event = window.EstudoApp.state.eventos.find((item) => item.rfBlocoId);
+      return { eventId: event?.id, notas: event?.notas };
+    });
+    expect(snapshot.notas).toBe(notasImportadas);
+    await expect
+      .poll(async () => readPersistedRetaFinalEvent(page, snapshot.eventId))
+      .toMatchObject({ notas: snapshot.notas });
+
+    const eventButton = `[data-testid="calendar-day-panel-event"][data-event-id="${snapshot.eventId}"]`;
+    await page.locator('.hamburger').click();
+    await page.locator('#sidebar [data-view="calendar"]').click();
+    await page.locator(eventButton).click();
+    await page.click('#modal-event-detail-edit');
+    await expect(page.locator('#modal-event.open #event-notas')).toHaveValue(snapshot.notas);
+
+    await page.reload();
+    await page.locator('.hamburger').click();
+    await page.locator('#sidebar [data-view="calendar"]').click();
+    await page.locator(eventButton).click();
+    await page.click('#modal-event-detail-edit');
+    await expect(page.locator('#modal-event.open #event-notas')).toHaveValue(snapshot.notas);
   });
 
   test('bloco de ontem rola para hoje no boot (empilha no dia seguinte)', async ({ page }) => {

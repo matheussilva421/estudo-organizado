@@ -229,3 +229,28 @@ describe('quickCompleteRetaFinalBloco', () => {
     expect(eventos[0].status).toBe('agendado');
   });
 });
+
+
+describe('notas no quick-complete da Reta Final', () => {
+  const notas = 'QUESTÕES: meta de 14 da banca FGV\n• Corrigir erros';
+
+  it('mantém notas no evento auto já existente', () => {
+    store.setState(buildState({ blocos: [rfBloco({ notas })], eventos: [autoEvento()] }));
+    logic.invalidateDiscCache();
+
+    retaFinalMod.quickCompleteRetaFinalBloco('rf_1');
+
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === 'rf_1');
+    expect(evento.notas).toBe(notas);
+  });
+
+  it('inclui notas ao criar o evento durante quick-complete', () => {
+    store.setState(buildState({ blocos: [rfBloco({ notas })] }));
+    logic.invalidateDiscCache();
+
+    retaFinalMod.quickCompleteRetaFinalBloco('rf_1');
+
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === 'rf_1');
+    expect(evento.notas).toBe(notas);
+  });
+});

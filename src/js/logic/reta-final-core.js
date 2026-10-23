@@ -8,6 +8,8 @@
 // =============================================
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+// Texto importado é preservado integralmente até 10.000 caracteres por bloco.
+const MAX_RETA_FINAL_NOTAS_LENGTH = 10_000;
 
 /**
  * Chave de nome para matching: minúsculas, sem acentos (NFD), espaços
@@ -83,6 +85,15 @@ export function validateRetaFinalPayload(payload) {
       }
       if (bloco.minutos !== undefined && !isPositiveInt(bloco.minutos)) {
         errors.push(`${rotuloBloco}: "minutos" deve ser um inteiro maior que zero.`);
+      }
+      if (bloco.notas !== undefined) {
+        if (typeof bloco.notas !== 'string') {
+          errors.push(`${rotuloBloco}: "notas" deve ser um texto.`);
+        } else if (bloco.notas.length > MAX_RETA_FINAL_NOTAS_LENGTH) {
+          errors.push(
+            `${rotuloBloco}: "notas" deve ter no máximo ${MAX_RETA_FINAL_NOTAS_LENGTH} caracteres.`
+          );
+        }
       }
     });
   });

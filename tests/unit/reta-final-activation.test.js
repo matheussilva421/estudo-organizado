@@ -285,3 +285,231 @@ describe('restaurarPlanejamentoArquivado', () => {
     expect(store.state.planejamento.tipo).toBe('ciclo');
   });
 });
+
+
+describe('notas da Reta Final', () => {
+  const notasAntigas = 'ASSUNTO PRINCIPAL: Direitos fundamentais\n• Habeas corpus';
+  const notasNovas = 'ASSUNTO PRINCIPAL: Direitos fundamentais\n• Habeas data e mandado de segurança';
+
+  function payloadComNotas(notas, data = HOJE, minutos = 90) {
+    return payload({
+      dias: [
+        {
+          data,
+          blocos: [
+            {
+              disciplina: 'Direito Penal',
+              topicos: ['Crimes contra a vida'],
+              minutos,
+              ...(notas === undefined ? {} : { notas }),
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  it('leva notas do JSON ao bloco e ao evento materializado', () => {
+    store.setState(baseStateComEdital());
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasAntigas) });
+
+    const bloco = store.state.planejamento.retaFinal.blocos[0];
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === bloco.id);
+    expect(bloco.notas).toBe(notasAntigas);
+    expect(evento.notas).toBe(notasAntigas);
+  });
+
+  it('transporta 186 notas em 93 dias úteis sem alterar a grade de 4 horas por dia', () => {
+    const dias = [];
+    const cursor = new Date('2026-10-21T12:00:00Z');
+    const dataFinal = '2027-02-26';
+    while (cursor.toISOString().slice(0, 10) <= dataFinal) {
+      if (cursor.getUTCDay() !== 0 && cursor.getUTCDay() !== 6) {
+        const data = cursor.toISOString().slice(0, 10);
+        const numero = dias.length + 1;
+        dias.push({
+          data,
+          blocos: [
+            {
+              disciplina: 'Direito Penal',
+              topicos: [`P1 · FGV · Tema ${numero}`],
+              minutos: 120,
+              notas: `ASSUNTO PRINCIPAL: Tema ${numero} FGV\n• Roteiro orientativo`,
+            },
+            {
+              disciplina: 'Português',
+              topicos: [`P1 · FCC · Tema ${numero}`],
+              minutos: 120,
+              notas: `ASSUNTO PRINCIPAL: Tema ${numero} FCC\n• Roteiro orientativo`,
+            },
+          ],
+        });
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    const fixture = {
+      versao: 1,
+      nome: 'Reta Final TJPB + DPE-PB',
+      dataFinal,
+      minutosPadrao: 120,
+      dias,
+    };
+    store.setState(baseStateComEdital());
+
+    retaFinalMod.activateRetaFinal({ payload: fixture });
+
+    const blocos = store.state.planejamento.retaFinal.blocos;
+    const eventos = store.state.eventos.filter((evento) => evento.rfBlocoId);
+    expect(dias).toHaveLength(93);
+    expect(dias[0].data).toBe('2026-10-21');
+    expect(dias.at(-1).data).toBe(dataFinal);
+    expect(dias.every((dia) => dia.blocos.length === 2)).toBe(true);
+    expect(blocos).toHaveLength(186);
+    expect(blocos.every((bloco) => bloco.minutos === 120 && bloco.notas.length > 0)).toBe(true);
+    expect(eventos).toHaveLength(186);
+    expect(eventos.every((evento) => evento.notas === blocos.find((bloco) => bloco.id === evento.rfBlocoId).notas)).toBe(true);
+  });
+
+  it('reimporta notas sem trocar a identidade do bloco nem perder sessão e tempo', () => {
+    store.setState(baseStateComEdital());
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasAntigas) });
+    const blocoId = store.state.planejamento.retaFinal.blocos[0].id;
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === blocoId);
+    const eventoId = evento.id;
+    evento.status = 'estudei';
+    evento.tempoAcumulado = 3_600;
+    evento.sessao = { questoes: 14, topicos: [{ assId: 'ass_vida', questoes: 14 }] };
+
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasNovas) });
+
+    const eventosDoBloco = store.state.eventos.filter((item) => item.rfBlocoId === blocoId);
+    expect(store.state.planejamento.retaFinal.blocos[0].id).toBe(blocoId);
+    expect(store.state.planejamento.retaFinal.blocos[0].status).toBe('concluido');
+    expect(eventosDoBloco).toHaveLength(1);
+    expect(eventosDoBloco[0].id).toBe(eventoId);
+    expect(eventosDoBloco[0].status).toBe('estudei');
+    expect(eventosDoBloco[0].tempoAcumulado).toBe(3_600);
+    expect(eventosDoBloco[0].sessao.questoes).toBe(14);
+    expect(eventosDoBloco[0].notas).toBe(notasNovas);
+  });
+
+  it('preserva timer ativo e identidade do evento durante reimportação', () => {
+    store.setState(baseStateComEdital());
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasAntigas) });
+    const blocoId = store.state.planejamento.retaFinal.blocos[0].id;
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === blocoId);
+    const eventoId = evento.id;
+    evento._timerStart = Date.now() - 60_000;
+
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasNovas) });
+
+    const eventosDoBloco = store.state.eventos.filter((item) => item.rfBlocoId === blocoId);
+    expect(eventosDoBloco).toHaveLength(1);
+    expect(eventosDoBloco[0].id).toBe(eventoId);
+    expect(eventosDoBloco[0]._timerStart).toBe(Date.now() - 60_000);
+    expect(eventosDoBloco[0].tempoAcumulado).toBe(0);
+    expect(eventosDoBloco[0].notas).toBe(notasNovas);
+    expect(store.state.planejamento.retaFinal.blocos[0].id).toBe(blocoId);
+  });
+
+  it('preserva anotação pessoal quando o JSON é reimportado', () => {
+    store.setState(baseStateComEdital());
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasAntigas) });
+    const blocoId = store.state.planejamento.retaFinal.blocos[0].id;
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === blocoId);
+    const eventoId = evento.id;
+    evento.notas = 'Anotação escrita pela pessoa usuária';
+
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasNovas) });
+
+    const eventosDoBloco = store.state.eventos.filter((item) => item.rfBlocoId === blocoId);
+    expect(eventosDoBloco).toHaveLength(1);
+    expect(eventosDoBloco[0].id).toBe(eventoId);
+    expect(eventosDoBloco[0].notas).toBe('Anotação escrita pela pessoa usuária');
+  });
+
+  it('preserva anotação pessoal e identidade se a duração do bloco mudar na reimportação', () => {
+    store.setState(baseStateComEdital());
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasAntigas) });
+    const blocoId = store.state.planejamento.retaFinal.blocos[0].id;
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === blocoId);
+    const eventoId = evento.id;
+    evento.notas = 'Anotação escrita pela pessoa usuária';
+
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasNovas, HOJE, 120) });
+
+    const eventoReimportado = store.state.eventos.find((item) => item.rfBlocoId === blocoId);
+    expect(eventoReimportado.id).toBe(eventoId);
+    expect(eventoReimportado.duracao).toBe(120);
+    expect(eventoReimportado.notas).toBe('Anotação escrita pela pessoa usuária');
+  });
+
+  it('aborta reimportação que não consegue associar um bloco com progresso', () => {
+    store.setState(baseStateComEdital());
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasAntigas) });
+    const blocoId = store.state.planejamento.retaFinal.blocos[0].id;
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === blocoId);
+    evento.status = 'estudei';
+    evento.tempoAcumulado = 1_200;
+    const antes = JSON.stringify(store.state);
+
+    expect(() => retaFinalMod.activateRetaFinal({ payload: payloadComNotas(notasNovas, '2026-07-11') })).toThrow(/progresso|associar|correspondência/i);
+    expect(JSON.stringify(store.state)).toBe(antes);
+  });
+
+  it('aborta reimportação que deixaria uma sessão arquivada sem associação ao bloco', () => {
+    store.setState(baseStateComEdital());
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(undefined) });
+    const blocoId = store.state.planejamento.retaFinal.blocos[0].id;
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === blocoId);
+    evento.status = 'estudei';
+    evento.tempoAcumulado = 3_600;
+    store.state.arquivo.push(evento);
+    store.state.eventos = [];
+    const antes = JSON.stringify(store.state);
+
+    expect(() =>
+      retaFinalMod.activateRetaFinal({
+        payload: payloadComNotas(notasNovas, '2026-07-11'),
+      })
+    ).toThrow(/progresso|associar|correspondência/i);
+    expect(JSON.stringify(store.state)).toBe(antes);
+  });
+
+  it('aborta reimportação quando blocos duplicados com dados não têm identidade inequívoca', () => {
+    const payloadDuplicado = (duracoes) =>
+      payload({
+        dias: [
+          {
+            data: HOJE,
+            blocos: duracoes.map((minutos) => ({
+              disciplina: 'Direito Penal',
+              topicos: ['Crimes contra a vida'],
+              minutos,
+              notas: notasAntigas,
+            })),
+          },
+        ],
+      });
+    store.setState(baseStateComEdital());
+    retaFinalMod.activateRetaFinal({ payload: payloadDuplicado([90, 120]) });
+    const blocos = store.state.planejamento.retaFinal.blocos;
+    store.state.eventos.find((item) => item.rfBlocoId === blocos[1].id).tempoAcumulado = 600;
+    const antes = JSON.stringify(store.state);
+
+    expect(() =>
+      retaFinalMod.activateRetaFinal({ payload: payloadDuplicado([120, 90]) })
+    ).toThrow(/ambígu|identidade|preservar/i);
+    expect(JSON.stringify(store.state)).toBe(antes);
+  });
+
+  it('aceita JSON legado sem notas sem criar valor textual inválido', () => {
+    store.setState(baseStateComEdital());
+    retaFinalMod.activateRetaFinal({ payload: payloadComNotas(undefined) });
+
+    const bloco = store.state.planejamento.retaFinal.blocos[0];
+    const evento = store.state.eventos.find((item) => item.rfBlocoId === bloco.id);
+    expect(bloco).not.toHaveProperty('notas');
+    expect(evento).not.toHaveProperty('notas');
+  });
+});

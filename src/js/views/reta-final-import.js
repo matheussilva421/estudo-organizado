@@ -33,6 +33,11 @@ function renderPreviewHtml(payload, match) {
     (acc, dia) => acc + (dia.blocos || []).length,
     0
   );
+  const blocosComAnotacoes = (payload.dias || []).reduce(
+    (acc, dia) =>
+      acc + (dia.blocos || []).filter((bloco) => typeof bloco?.notas === 'string' && bloco.notas.trim()).length,
+    0
+  );
   const { summary } = match;
 
   const disciplinasHtml = match.disciplinas
@@ -66,6 +71,7 @@ function renderPreviewHtml(payload, match) {
         <strong>${esc(payload.nome || 'Reta Final')}</strong> — ${payload.dias.length} dia(s),
         ${totalBlocos} bloco(s), até <strong>${esc(formatBrDate(payload.dataFinal))}</strong>.
       </div>
+      <div class="config-desc">Anotações: ${blocosComAnotacoes} de ${totalBlocos} blocos.</div>
       <div class="config-desc">
         Disciplinas: ${summary.disciplinasCasadas} casada(s), ${summary.disciplinasCriadas} a criar ·
         Tópicos: ${summary.topicosCasados} casado(s), ${summary.topicosCriados} a criar ·

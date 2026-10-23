@@ -474,3 +474,28 @@ describe('getNextRetaFinalBloco', () => {
     expect(getNextRetaFinalBloco({ ativo: true, tipo: 'ciclo' }, HOJE)).toBeNull();
   });
 });
+
+
+describe('validateRetaFinalPayload - notas opcionais', () => {
+  it('preserva notas multiline com acentos e marcadores Unicode', () => {
+    const notas = 'ASSUNTO PRINCIPAL: Direitos fundamentais\n\n• Habeas corpus\nQUESTÕES: 14 FGV';
+    const fixture = validPayload();
+    fixture.dias[0].blocos[0].notas = notas;
+
+    expect(validateRetaFinalPayload(fixture).valid).toBe(true);
+    expect(fixture.dias[0].blocos[0].notas).toBe(notas);
+  });
+
+  it('rejeita notas que não são string e textos acima do limite documentado', () => {
+    const fixture = validPayload();
+    fixture.dias[0].blocos[0].notas = { texto: 'não é string' };
+    const tipoInvalido = validateRetaFinalPayload(fixture);
+    expect(tipoInvalido.valid).toBe(false);
+    expect(tipoInvalido.errors.join(' ')).toMatch(/notas/i);
+
+    fixture.dias[0].blocos[0].notas = 'x'.repeat(10_001);
+    const longoDemais = validateRetaFinalPayload(fixture);
+    expect(longoDemais.valid).toBe(false);
+    expect(longoDemais.errors.join(' ')).toMatch(/notas/i);
+  });
+});
