@@ -181,8 +181,8 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
 
 ## Revisão final das regras — 2026-10-23
 
-- SHA-256 final do `firestore.rules`:
-  `6EE3CDCBA34D604E931CAEC9368FE6F6A3216EB409306D5D56E46A731DB51309`.
+- SHA-256 final do blob commitado de `firestore.rules` (LF):
+  `B60C98E789FA8507194ECC934C839F170F8BDBAB38E095F114D121DBCAB05F5E`.
 - Emulador: **62/62 PASS**; antes das correções, **57/59** (mutação de entidade
   na mesma revisão e alteração de plano em academic-only eram aceitas).
 - Entidades: update com a mesma revisão só passa quando payload, schemaVersion,
