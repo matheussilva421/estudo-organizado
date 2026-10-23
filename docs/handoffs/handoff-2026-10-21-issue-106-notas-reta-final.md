@@ -149,8 +149,7 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
 
 - Baseline real do Console preservado em
   `tests/firestore-rules/legacy-console.rules`.
-- Candidato: `firestore.rules`, SHA-256
-  `C49AEBB2CB817FBB11142F80FACFFAD077202D406583CD730A486D1831E42296`.
+- Candidato: `firestore.rules` (hash final na seção Revisão final das regras).
 - Coleções legadas restauradas: `disciplinas`, `assuntos`, `aulas` e
   `planejamento.sequencia`, todas previstas no contrato de entity sync.
 - Entidades aceitam `revision >= 0` (compatibilidade legada) e update com
@@ -177,7 +176,28 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
 2. Colar o conteúdo de `firestore.rules` e publicar.
 3. Homologar com usuário autenticado e dados sintéticos: guard por escrita e
    leitura, snapshot v2, rejeição de cliente legado e de revisão desatualizada.
-4. Rollback: colar o backup e publicar novamente; não há migração de dados.
+4. Rollback: usar o hotfix v2-safe descrito na seção Revisão final; o backup
+   legado não deve ser restaurado depois que existir snapshot v2.
+
+## Revisão final das regras — 2026-10-23
+
+- SHA-256 final do `firestore.rules`:
+  `6EE3CDCBA34D604E931CAEC9368FE6F6A3216EB409306D5D56E46A731DB51309`.
+- Emulador: **62/62 PASS**; antes das correções, **57/59** (mutação de entidade
+  na mesma revisão e alteração de plano em academic-only eram aceitas).
+- Entidades: update com a mesma revisão só passa quando payload, schemaVersion,
+  checksum, updatedAt, deletedAt e updatedBy são idênticos. Saltos de revisão
+  continuam aceitos para lotes offline; revisão menor é rejeitada.
+- Snapshot v2: o ramo academic-only foi removido (fail-closed). Qualquer mudança
+  de conteúdo exige revision+1 e baseRevision correta; só replay idêntico mantém
+  a revisão.
+- Veredito: **BLOCKED para publicação manual**. O cliente atual
+  (`firestore-sync-engine.js`) ainda monta academic-only com a mesma revisão;
+  publicar agora bloquearia sync legítimo até cliente e contrato avançarem a
+  revisão (ou proverem prova de intenção verificável no servidor).
+- Rollback seguro: hotfix derivado deste arquivo, preservando descritor, guard,
+  CAS e deny-all. Não restaurar o baseline legado nem `c54fb9b` sem pausar a
+  sincronização v2 e o entity-primary.
 
 ## Revisão visual (2026-10-23)
 

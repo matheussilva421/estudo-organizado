@@ -425,6 +425,82 @@ async function main() {
       ),
     ),
   );
+  await seedEntity(
+    "uid-entity-cas-mut",
+    "eventos-cas-mut",
+    entityDoc({
+      key: "eventos/ev_cas_mut",
+      id: "ev_cas_mut",
+      revision: 3,
+      payload: { id: "ev_cas_mut", titulo: "original" },
+    }),
+  );
+  results.push(
+    await expectDenied("entity same revision content mutation denied", () =>
+      setDoc(
+        entityPath("uid-entity-cas-mut", "eventos-cas-mut"),
+        entityDoc({
+          key: "eventos/ev_cas_mut",
+          id: "ev_cas_mut",
+          revision: 3,
+          payload: { id: "ev_cas_mut", titulo: "mutated" },
+        }),
+      ),
+    ),
+  );
+  await seedEntity(
+    "uid-entity-jump",
+    "eventos-jump",
+    entityDoc({ key: "eventos/ev_jump", id: "ev_jump", revision: 3 }),
+  );
+  results.push(
+    await expectAllowed("entity revision jump allowed for offline batches", () =>
+      setDoc(
+        entityPath("uid-entity-jump", "eventos-jump"),
+        entityDoc({
+          key: "eventos/ev_jump",
+          id: "ev_jump",
+          revision: 5,
+          payload: { id: "ev_jump", titulo: "batch" },
+        }),
+      ),
+    ),
+  );
+  await seedEntity(
+    "uid-entity-merge",
+    "eventos-merge",
+    entityDoc({
+      key: "eventos/ev_merge",
+      id: "ev_merge",
+      revision: 3,
+      payload: { id: "ev_merge", titulo: "original" },
+    }),
+  );
+  results.push(
+    await expectDenied("entity same revision merge mutation denied", () =>
+      setDoc(
+        entityPath("uid-entity-merge", "eventos-merge"),
+        { payload: { id: "ev_merge", titulo: "merged" } },
+        { merge: true },
+      ),
+    ),
+  );
+  const tombstoneReplay = entityDoc({
+    key: "eventos/ev_tomb_replay",
+    id: "ev_tomb_replay",
+    revision: 2,
+    payload: null,
+    deletedAt: "2026-10-20T10:00:00.000Z",
+  });
+  await seedEntity("uid-entity-tomb-replay", "eventos-tomb-replay", tombstoneReplay);
+  results.push(
+    await expectAllowed("entity tombstone identical replay allowed", () =>
+      setDoc(
+        entityPath("uid-entity-tomb-replay", "eventos-tomb-replay"),
+        tombstoneReplay,
+      ),
+    ),
+  );
 
   await seed("uid-legacy-update", legacyEnvelope("2026-10-20T10:00:00.000Z"));
   results.push(
@@ -557,7 +633,8 @@ async function main() {
     ),
   );
 
-  // Academic-only writes may advance the snapshot without changing the plan.
+  // Academic-only pushes are fail-closed: any content change must advance the
+  // plan revision until the client provides a server-verifiable intent proof.
   const academicPlan = plan({ revision: 2 });
   await seed(
     "uid-academic",
@@ -573,7 +650,7 @@ async function main() {
     eventos: [{ id: "ev-1", status: "estudei", tempoAcumulado: 60 }],
   };
   results.push(
-    await expectAllowed("academic write keeps the plan revision", () =>
+    await expectDenied("academic-only write blocked (fail-closed)", () =>
       setDoc(
         doc(
           uidDb("uid-academic"),
@@ -583,6 +660,123 @@ async function main() {
           "main",
         ),
         envelope({ revision: 2, baseRevision: 1, payload: academicPayload }),
+      ),
+    ),
+  );
+  await seed(
+    "uid-academic-retired",
+    envelope({
+      revision: 2,
+      baseRevision: 1,
+      state: "retired",
+      payload: { config: {}, eventos: [] },
+    }),
+  );
+  results.push(
+    await expectDenied("academic-only retired write blocked (fail-closed)", () =>
+      setDoc(
+        doc(
+          uidDb("uid-academic-retired"),
+          "users",
+          "uid-academic-retired",
+          "snapshots",
+          "main",
+        ),
+        envelope({
+          revision: 2,
+          baseRevision: 1,
+          state: "retired",
+          payload: { config: {}, eventos: [{ id: "ev-retired" }] },
+        }),
+      ),
+    ),
+  );
+  const intentPlan = {
+    ...plan({ revision: 2 }),
+    retaFinal: {
+      dataFinal: "2026-12-20",
+      minutosPadrao: 60,
+      blocos: [
+        {
+          id: "b1",
+          discId: "disc-1",
+          topicos: [],
+          minutos: 60,
+          dataOriginal: "2026-10-20",
+          data: "2026-10-20",
+        },
+      ],
+    },
+  };
+  await seed(
+    "uid-academic-intent",
+    envelope({
+      revision: 2,
+      baseRevision: 1,
+      payload: { config: {}, planejamento: intentPlan, eventos: [] },
+    }),
+  );
+  results.push(
+    await expectDenied("academic write changing plan intent denied", () =>
+      setDoc(
+        doc(
+          uidDb("uid-academic-intent"),
+          "users",
+          "uid-academic-intent",
+          "snapshots",
+          "main",
+        ),
+        envelope({
+          revision: 2,
+          baseRevision: 1,
+          payload: {
+            config: {},
+            planejamento: {
+              ...intentPlan,
+              retaFinal: {
+                ...intentPlan.retaFinal,
+                blocos: [{ ...intentPlan.retaFinal.blocos[0], minutos: 120 }],
+              },
+            },
+            eventos: [],
+          },
+        }),
+      ),
+    ),
+  );
+  await seed(
+    "uid-academic-derived",
+    envelope({
+      revision: 2,
+      baseRevision: 1,
+      payload: { config: {}, planejamento: intentPlan, eventos: [] },
+    }),
+  );
+  results.push(
+    await expectDenied("academic write changing derived plan field denied", () =>
+      setDoc(
+        doc(
+          uidDb("uid-academic-derived"),
+          "users",
+          "uid-academic-derived",
+          "snapshots",
+          "main",
+        ),
+        envelope({
+          revision: 2,
+          baseRevision: 1,
+          payload: {
+            config: {},
+            planejamento: {
+              ...intentPlan,
+              retaFinal: {
+                ...intentPlan.retaFinal,
+                blocos: [{ ...intentPlan.retaFinal.blocos[0], data: "2026-10-21" }],
+              },
+            },
+            eventos: [],
+          },
+        }),
       ),
     ),
   );

@@ -191,27 +191,6 @@ service cloud.firestore {
                 && request.resource.data.retaFinalSync.baseSnapshotRevision == resource.data.retaFinalSync.snapshotRevision
                 && (
                   (
-                    request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision
-                    && request.resource.data.retaFinalSync.digest == resource.data.retaFinalSync.digest
-                    && request.resource.data.retaFinalSync.state == resource.data.retaFinalSync.state
-                    && (
-                      !resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
-                      ? !request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
-                      : (
-                        request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
-                        && request.resource.data.retaFinalSync.minRetainedRevision == resource.data.retaFinalSync.minRetainedRevision
-                      )
-                    )
-                    && (
-                      !resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
-                      ? !request.resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
-                      : (
-                        request.resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
-                        && request.resource.data.retaFinalSync.removedBlockIds == resource.data.retaFinalSync.removedBlockIds
-                      )
-                    )
-                  )
-                  || (
                     request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision + 1
                     && request.resource.data.retaFinalSync.baseRevision == resource.data.retaFinalSync.revision
                     && (
@@ -388,6 +367,55 @@ service cloud.firestore {
         && resource.data.id == request.resource.data.id;
     }
 
+    function sameEntityContent() {
+      return request.resource.data.payload == resource.data.payload
+        && (
+          request.resource.data.keys().hasAny(['schemaVersion'])
+            ? request.resource.data.schemaVersion
+            : null
+        ) == (
+          resource.data.keys().hasAny(['schemaVersion'])
+            ? resource.data.schemaVersion
+            : null
+        )
+        && (
+          request.resource.data.keys().hasAny(['checksum'])
+            ? request.resource.data.checksum
+            : null
+        ) == (
+          resource.data.keys().hasAny(['checksum'])
+            ? resource.data.checksum
+            : null
+        )
+        && (
+          request.resource.data.keys().hasAny(['updatedAt'])
+            ? request.resource.data.updatedAt
+            : null
+        ) == (
+          resource.data.keys().hasAny(['updatedAt'])
+            ? resource.data.updatedAt
+            : null
+        )
+        && (
+          request.resource.data.keys().hasAny(['deletedAt'])
+            ? request.resource.data.deletedAt
+            : null
+        ) == (
+          resource.data.keys().hasAny(['deletedAt'])
+            ? resource.data.deletedAt
+            : null
+        )
+        && (
+          request.resource.data.keys().hasAny(['updatedBy'])
+            ? request.resource.data.updatedBy
+            : null
+        ) == (
+          resource.data.keys().hasAny(['updatedBy'])
+            ? resource.data.updatedBy
+            : null
+        );
+    }
+
     function validEntityTombstone() {
       return (
         (
@@ -428,7 +456,13 @@ service cloud.firestore {
       allow read: if owns(uid);
       allow create: if owns(uid) && validEntityDoc();
       allow update: if owns(uid) && validEntityDoc() && immutableEntityIdentity()
-        && request.resource.data.revision >= resource.data.revision;
+        && (
+          request.resource.data.revision > resource.data.revision
+          || (
+            request.resource.data.revision == resource.data.revision
+            && sameEntityContent()
+          )
+        );
       allow delete: if false;
     }
 
