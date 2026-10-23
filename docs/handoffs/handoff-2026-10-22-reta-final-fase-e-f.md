@@ -12,8 +12,8 @@
 - Consolidação final: commit imediatamente anterior a este documento
 - Base da Fase D: 69278ee
 - main local: eb8cc6c
-- Integração local: 099d0ba (merge origin/main); push AUTORIZADO em 2026-10-22
-- origin/main verificado: 5428513
+- Código integrado: 8d0d03d (main remota) em 2026-10-22
+- origin/main final: 8d0d03d
 - Relação: origin/main agora é ancestral da branch; fast-forward pronto
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
 - Árvore de trabalho: limpa após o commit de consolidação
@@ -52,13 +52,13 @@
 - Não repetir tentativas no Firebase sem nova autorização.
 
 ## GitHub e integração
-- Integração local: 099d0ba; push fast-forward AUTORIZADO em 2026-10-22.
-- Deploy de produção do Workers Builds autorizado pelo usuário.
-- A main remota passa a apontar para o SHA deste commit; a verificação
-  pós-push e os PRs são registrados no relatório final.
-- origin/main anterior: 5428513; a branch contém a main e está pronta.
-- PRs #102/#103 serão resolvidos após confirmar o conteúdo na main.
-- Histórico: tentativa com [skip ci] recusada; autorização posterior.
+- Código integrado: 8d0d03d (main remota).
+- Push fast-forward: 5428513 -> 8d0d03d.
+- Workers Builds: estudo-organizado concluído com sucesso em produção.
+- Branch local: 0 commits à frente de origin/main.
+- PR #102: MERGED. PR #103: CLOSED após confirmar o conteúdo na main.
+- Nenhum PR aberto restante.
+- Documentação final neste commit; não altera src/.
 
 ## Pendências e riscos
 

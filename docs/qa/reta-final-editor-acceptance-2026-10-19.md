@@ -11,10 +11,10 @@ Data da execução: 2026-10-22
 - Capacidade semanal: d3b744e
 - Histórico/undo: 0ce40ed
 - Offline/reload: 330fe86
-- Integração local: 099d0ba (merge de origin/main) · push AUTORIZADO em 2026-10-22
+- Código integrado: 8d0d03d (main remota) · documentação final neste commit
 - main local: eb8cc6c
-- origin/main verificado: 5428513 (apenas documentação V2)
-- Relação: origin/main agora é ancestral da branch; fast-forward pronto
+- origin/main final: 8d0d03d
+- Relação: branch e origin/main no mesmo commit 8d0d03d
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
 - Spec: b54b650 · Plano: 101b1fc
 
@@ -33,7 +33,7 @@ A Task 18 permanece BLOCKED apenas no gate remoto e físico:
 - Revisão visual humana final: as capturas foram geradas e inspecionadas, mas a
   aprovação estética final continua humana.
 
-Push e deploy foram autorizados em 2026-10-22; a publicação de regras Firestore continua bloqueada.
+Push e deploy foram executados em 2026-10-22; a publicação de regras Firestore continua bloqueada.
 
 ## Resultados dos gates
 
@@ -116,20 +116,16 @@ Não foi aplicado Prettier indiscriminadamente no repositório.
 
 ## Integração
 
-origin/main 5428513 é descendente da main local eb8cc6c e adiciona apenas
-quatro documentos V2. A branch foi reconciliada localmente no merge 099d0ba e
-agora contém origin/main; o push seria um fast-forward.
+O push fast-forward foi executado em 2026-10-22: 5428513 -> 8d0d03d.
+O Workers Builds: estudo-organizado concluiu com sucesso em produção.
+A branch local ficou 0 commits à frente de origin/main.
 
-Os commits de #102 (b54b650) e #103 (101b1fc) são ancestrais da branch.
+PR #102: MERGED (conteúdo já presente na main).
+PR #103: CLOSED após confirmação do arquivo na main.
+Nenhum PR aberto permanece.
 
-O push fast-forward foi autorizado em 2026-10-22, incluindo o deploy de
-produção do Workers Builds. A main remota passa a apontar para o SHA deste
-commit; a verificação pós-push e o estado dos PRs são registrados no relatório
-final.
-
-Histórico: uma tentativa anterior com [skip ci] foi recusada por falta de
-garantia; o usuário então autorizou explicitamente o deploy.
-
+Este documento é atualizado no commit imediatamente posterior ao código
+integrado (8d0d03d) e não altera src/.
 
 ## Limitações e riscos
 

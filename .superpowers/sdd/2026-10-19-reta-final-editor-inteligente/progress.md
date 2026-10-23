@@ -8,8 +8,8 @@ Atualizado em 2026-10-22.
 - Branch: codex/reta-final-editor-fase-a
 - Base documental: 101b1fc (plano) e b54b650 (spec)
 - main local: eb8cc6c
-- Integração local: 099d0ba; push/deploy AUTORIZADOS em 2026-10-22
-- origin/main: 5428513 (documentação V2; main é ancestral da branch)
+- Código integrado: 8d0d03d; main remota atualizada em 2026-10-22
+- origin/main final: 8d0d03d
 - Código base: 258fa5c; rolagem 5cffee4; checkpoints 66e9adc; capacidade d3b744e; histórico 0ce40ed; offline 330fe86
 - Consolidação final: commit imediatamente anterior a este ledger
 - Worktree: C:/Users/slvma/.codex/worktrees/reta-final-fase-d/estudo-organizado
@@ -54,12 +54,12 @@ Atualizado em 2026-10-22.
 
 ## Integração
 
-- Integração local: 099d0ba (merge de origin/main); fast-forward pronto.
-- Push fast-forward e deploy de produção AUTORIZADOS em 2026-10-22.
-- origin/main anterior: 5428513; a branch contém a main.
-- A main remota passa a apontar para o SHA deste commit; verificação no relatório final.
-- PRs #102/#103 são Draft/MERGEABLE e commits ancestrais da branch.
-- Histórico: tentativa com [skip ci] recusada; autorização posterior do usuário.
+- Código integrado: 8d0d03d (main remota).
+- Push fast-forward 5428513 -> 8d0d03d.
+- Workers Builds: estudo-organizado concluído com sucesso em produção.
+- Branch local 0 commits à frente de origin/main.
+- PR #102 MERGED; PR #103 CLOSED; nenhum PR aberto.
+- Documentação final neste commit, sem alteração de src/.
 
 ## Pendências
 
