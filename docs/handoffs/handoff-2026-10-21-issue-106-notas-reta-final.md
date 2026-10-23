@@ -94,3 +94,21 @@ a main já possui a versão integrada.
 Após autorização específica de publicação: revisar o diff final, atualizar a
 main remota e executar npm test/test:e2e/test:design/lint/bump no resultado.
 Sem essa autorização, o código permanece validado na main local.
+
+## Revisão visual (2026-10-23)
+
+- Capturas dos 8 temas regeneradas pelo E2E visual em 1366, 820, 390 e 320 px.
+- Inspeção das telas de capacidade em todos os 8 temas, conferindo folgas,
+  exceções por data, contraste, alinhamento e overflow.
+- Rodapé fixo medido no mobile: na rolagem máxima o botão "Adicionar exceção"
+  termina em 661 px, acima do rodapé em 696 px; não há oclusão permanente.
+- Aprovação estética humana segue pendente (AC20 PARTIAL).
+
+## Formatação
+
+- Prettier continua falhando nos 11 arquivos de src tocados, como já falhava
+  em origin/main.
+- Reformata-los adicionaria cerca de 2.200 linhas de ruído (826 adicionadas,
+  1.393 removidas), por exemplo 250/519 em reta-final-commands.js e 212/389 em
+  reta-final-commit.js; a decisão é preservar o estilo atual e registrar a
+  dívida preexistente.
