@@ -56,7 +56,7 @@ JSON -> bloco da Reta Final -> evento -> Anotações -> IndexedDB.
 
 ## Testes
 
-- npm test: 176 arquivos / 2.901 testes PASS.
+- npm test: 176 arquivos / 2.909 testes PASS (após as correções da revisão).
 - npm run test:e2e:release: 175/175 PASS.
 - E2E focado reta-final: 7/7 PASS, incluindo mobile e IndexedDB/reload.
 - Foco notas: 121/121 e 133/133 nas rodadas específicas.
@@ -112,3 +112,34 @@ Sem essa autorização, o código permanece validado na main local.
   1.393 removidas), por exemplo 250/519 em reta-final-commands.js e 212/389 em
   reta-final-commit.js; a decisão é preservar o estilo atual e registrar a
   dívida preexistente.
+
+## Revisão independente (2026-10-23)
+
+O revisor independente emitiu NÃO PRONTO para a reimportação. Os achados
+materiais foram confirmados no código e corrigidos:
+
+- P0: arquivo v2 sem `notas` gerava PATCH com `notas: undefined` e o comando
+  era rejeitado com NOTAS_INVALIDAS. O compare agora ignora a ausência do campo
+  opcional e a reimportação idempotente volta a ser UNCHANGED.
+- P1: o compare v1 descartava `legacy.notas`; o campo agora é transportado
+  para o CREATE/PATCH e divergência continua exigindo decisão humana.
+- P2: `notas` entrou em FIELDS do merge de planos v2; valores divergentes
+  viram conflito explícito em vez de escolha silenciosa.
+- P2: nota manual escrita no evento automático é devolvida ao bloco por
+  `carryRemovedAutoNotesToBlocks` antes da remoção por arquivamento/bloco fora
+  da agenda, no sync e no commit do rascunho. Nota manual já existente no bloco
+  não é sobrescrita.
+- P3 conhecido: desfazer um PATCH que apenas adiciona notas continua
+  UNDO_UNSUPPORTED (fail-closed), e checkpoints não restauram `notas`.
+
+Segunda revisão independente confirmou as quatro correções e apontou dois
+complementos, também aplicados:
+
+- a ausência de `notas` passou a ser neutra também no arquivamento e na
+  restauração, não só no PATCH;
+- quando o sync devolve a nota ao bloco, a revisão do plano é incrementada,
+  para o descritor de sincronização não rejeitar digest divergente.
+
+Testes adicionados: compare v2 sem notas, compare v1 com notas, conflito de
+notas no merge, devolução de nota ao bloco arquivado, arquivamento sem notas e
+incremento de revisão no sync.
