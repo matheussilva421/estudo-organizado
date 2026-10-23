@@ -145,6 +145,40 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
 - Para concluir: copiar do Console (projeto app-de-estudos-14564 → Firestore →
   Rules) o texto publicado e a data/versão exibidos.
 
+## Consolidação das regras Firestore (2026-10-23)
+
+- Baseline real do Console preservado em
+  `tests/firestore-rules/legacy-console.rules`.
+- Candidato: `firestore.rules`, SHA-256
+  `C49AEBB2CB817FBB11142F80FACFFAD077202D406583CD730A486D1831E42296`.
+- Coleções legadas restauradas: `disciplinas`, `assuntos`, `aulas` e
+  `planejamento.sequencia`, todas previstas no contrato de entity sync.
+- Entidades aceitam `revision >= 0` (compatibilidade legada) e update com
+  revisão monotônica; clientes com revisão menor são rejeitados.
+- Campos opcionais de snapshot e de entidade passaram a ser validados por tipo,
+  como no baseline do Console, sem afrouxar os validadores v2.
+- Tombstones aceitam `payload: null` + `deletedAt` textual e payload com
+  `deletedAt` nulo; a forma atual com marcador dentro do payload continua
+  válida.
+- Proteções v2 preservadas: descritor, capabilities, lineage, CAS de revisão,
+  snapshots, guard `syncMeta/reta-final-guard`, deletes negados e deny-all.
+- Testes no emulador: candidato **55/55 PASS**; versão anterior **45/51**
+  (seis lacunas legadas reproduzidas em RED); baseline do Console **20/22**,
+  com a sobrescrita v2 reproduzida e as duas diferenças esperadas.
+- Resíduo P2 pré-existente: o ramo academic-only confia no digest enviado pelo
+  cliente e não revalida o conteúdo de `payload.planejamento`. Não foi alterado
+  para não bloquear sync legítimo sem homologação autenticada.
+- Entity-primary deve permanecer desabilitado até a homologação autenticada,
+  apesar do novo CAS monotônico de entidade.
+
+### Publicação manual das regras
+
+1. Backup: Console → Firestore → Rules → copiar o texto publicado atual.
+2. Colar o conteúdo de `firestore.rules` e publicar.
+3. Homologar com usuário autenticado e dados sintéticos: guard por escrita e
+   leitura, snapshot v2, rejeição de cliente legado e de revisão desatualizada.
+4. Rollback: colar o backup e publicar novamente; não há migração de dados.
+
 ## Revisão visual (2026-10-23)
 
 - Capturas dos 8 temas regeneradas pelo E2E visual em 1366, 820, 390 e 320 px.

@@ -158,7 +158,7 @@ async function main() {
     );
   }
   const { initializeTestEnvironment, assertSucceeds } = testing;
-  const { doc, setDoc, deleteDoc } = await import("firebase/firestore");
+  const { doc, getDoc, setDoc, deleteDoc } = await import("firebase/firestore");
 
   let environment;
   try {
@@ -229,6 +229,14 @@ async function main() {
       );
     });
   };
+  const seedEntity = async (uid, entityId, value) => {
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), "users", uid, "entities", entityId),
+        value,
+      );
+    });
+  };
 
   // Baseline: a valid legacy create must pass, including a plain snapshot.
   results.push(
@@ -252,6 +260,214 @@ async function main() {
       setDoc(
         doc(ownerDb, "users", owner, "snapshots", "main"),
         legacyEnvelope("2026-10-20T10:00:00.000Z"),
+      ),
+    ),
+  );
+
+  // Legacy compatibility matrix: entity-primary collections and documents.
+  const entityDoc = (overrides = {}) => ({
+    version: 1,
+    key: "eventos/ev_1",
+    collection: "eventos",
+    id: "ev_1",
+    revision: 1,
+    payload: { id: "ev_1", titulo: "Evento" },
+    ...overrides,
+  });
+  const entityPath = (uid, entityId) =>
+    doc(uidDb(uid), "users", uid, "entities", entityId);
+
+  for (const collection of [
+    "disciplinas",
+    "assuntos",
+    "aulas",
+    "planejamento.sequencia",
+  ]) {
+    const uid = "uid-entity-" + collection.replace(".", "-");
+    results.push(
+      await expectAllowed(
+        "legacy entity " + collection + " revision 0",
+        () =>
+          setDoc(
+            entityPath(uid, collection + "-x1"),
+            entityDoc({
+              key: collection + "/x1",
+              collection,
+              id: "x1",
+              revision: 0,
+            }),
+          ),
+      ),
+    );
+  }
+
+  results.push(
+    await expectAllowed("legacy entity optional fields absent", () =>
+      setDoc(
+        entityPath("uid-entity-min", "eventos-min"),
+        entityDoc({ key: "eventos/ev_min", id: "ev_min", revision: 1 }),
+      ),
+    ),
+  );
+  results.push(
+    await expectAllowed("legacy entity optional fields null", () =>
+      setDoc(
+        entityPath("uid-entity-null", "eventos-null"),
+        entityDoc({
+          key: "eventos/ev_null",
+          id: "ev_null",
+          schemaVersion: 6,
+          checksum: null,
+          updatedAt: null,
+          deletedAt: null,
+          updatedBy: null,
+          sentAt: "2026-10-20T10:00:00.000Z",
+        }),
+      ),
+    ),
+  );
+  results.push(
+    await expectAllowed("legacy entity tombstone payload null", () =>
+      setDoc(
+        entityPath("uid-entity-tomb", "eventos-tomb"),
+        entityDoc({
+          key: "eventos/ev_tomb",
+          id: "ev_tomb",
+          revision: 2,
+          payload: null,
+          deletedAt: "2026-10-20T10:00:00.000Z",
+        }),
+      ),
+    ),
+  );
+  results.push(
+    await expectAllowed("entity tombstone with payload marker", () =>
+      setDoc(
+        entityPath("uid-entity-soft", "eventos-soft"),
+        entityDoc({
+          key: "eventos/ev_soft",
+          id: "ev_soft",
+          revision: 2,
+          deletedAt: "2026-10-20T10:00:00.000Z",
+          payload: {
+            id: "ev_soft",
+            titulo: "soft delete",
+            deletedAt: "2026-10-20T10:00:00.000Z",
+          },
+        }),
+      ),
+    ),
+  );
+  results.push(
+    await expectDenied("entity tombstone payload without marker denied", () =>
+      setDoc(
+        entityPath("uid-entity-soft-deny", "eventos-soft-deny"),
+        entityDoc({
+          key: "eventos/ev_soft_deny",
+          id: "ev_soft_deny",
+          revision: 2,
+          deletedAt: "2026-10-20T10:00:00.000Z",
+          payload: { id: "ev_soft_deny" },
+        }),
+      ),
+    ),
+  );
+  results.push(
+    await expectAllowed("event notes in entity payload", () =>
+      setDoc(
+        entityPath("uid-entity-notes", "eventos-notes"),
+        entityDoc({
+          key: "eventos/ev_notes",
+          id: "ev_notes",
+          revision: 1,
+          payload: {
+            id: "ev_notes",
+            notas: "acentuação ç • marcador " + "x".repeat(856),
+          },
+        }),
+      ),
+    ),
+  );
+  results.push(
+    await expectDenied("unknown entity collection denied", () =>
+      setDoc(
+        entityPath("uid-entity-unknown", "x"),
+        entityDoc({ key: "x/y", collection: "x", id: "y" }),
+      ),
+    ),
+  );
+  await seedEntity(
+    "uid-entity-cas",
+    "eventos-cas",
+    entityDoc({ key: "eventos/ev_cas", id: "ev_cas", revision: 3 }),
+  );
+  results.push(
+    await expectDenied("entity stale revision denied", () =>
+      setDoc(
+        entityPath("uid-entity-cas", "eventos-cas"),
+        entityDoc({ key: "eventos/ev_cas", id: "ev_cas", revision: 2 }),
+      ),
+    ),
+  );
+  results.push(
+    await expectAllowed("entity same revision idempotent", () =>
+      setDoc(
+        entityPath("uid-entity-cas", "eventos-cas"),
+        entityDoc({ key: "eventos/ev_cas", id: "ev_cas", revision: 3 }),
+      ),
+    ),
+  );
+  results.push(
+    await expectAllowed("entity revision advance", () =>
+      setDoc(
+        entityPath("uid-entity-cas", "eventos-cas"),
+        entityDoc({ key: "eventos/ev_cas", id: "ev_cas", revision: 4 }),
+      ),
+    ),
+  );
+
+  await seed("uid-legacy-update", legacyEnvelope("2026-10-20T10:00:00.000Z"));
+  results.push(
+    await expectAllowed("legacy snapshot update", () =>
+      setDoc(
+        doc(
+          uidDb("uid-legacy-update"),
+          "users",
+          "uid-legacy-update",
+          "snapshots",
+          "main",
+        ),
+        legacyEnvelope("2026-10-20T11:00:00.000Z"),
+      ),
+    ),
+  );
+  await seed("uid-owner-read", legacyEnvelope());
+  results.push(
+    await expectAllowed("owner reads own snapshot", () =>
+      getDoc(
+        doc(
+          uidDb("uid-owner-read"),
+          "users",
+          "uid-owner-read",
+          "snapshots",
+          "main",
+        ),
+      ),
+    ),
+  );
+  await seed("uid-partial-v2", envelope({ revision: 2, baseRevision: 1 }));
+  results.push(
+    await expectDenied("partial v2 payload update denied", () =>
+      setDoc(
+        doc(
+          uidDb("uid-partial-v2"),
+          "users",
+          "uid-partial-v2",
+          "snapshots",
+          "main",
+        ),
+        { payload: { hacked: true } },
+        { merge: true },
       ),
     ),
   );

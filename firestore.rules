@@ -263,6 +263,27 @@ service cloud.firestore {
       && request.resource.data.deviceId is string
       && request.resource.data.payloadUpdatedAt is string
       && (
+        !request.resource.data.keys().hasAny(['schemaVersion'])
+        || request.resource.data.schemaVersion is number
+      )
+      && (
+        !request.resource.data.keys().hasAny(['baseRemoteUpdatedAt'])
+        || request.resource.data.baseRemoteUpdatedAt == null
+        || request.resource.data.baseRemoteUpdatedAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['sentAt'])
+        || request.resource.data.sentAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['updatedAt'])
+        || request.resource.data.updatedAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['serverUpdatedAt'])
+        || request.resource.data.serverUpdatedAt is timestamp
+      )
+      && (
         !request.resource.data.keys().hasAny(['entityManifest'])
         || request.resource.data.entityManifest is list
       )
@@ -297,16 +318,57 @@ service cloud.firestore {
       && validEntityCollection()
       && request.resource.data.id is string
       && request.resource.data.revision is number
-      && request.resource.data.revision > 0
+      && request.resource.data.revision >= 0
       && (
         request.resource.data.payload == null
         || request.resource.data.payload is map
+      )
+      && (
+        !request.resource.data.keys().hasAny(['schemaVersion'])
+        || request.resource.data.schemaVersion is number
+      )
+      && (
+        !request.resource.data.keys().hasAny(['checksum'])
+        || request.resource.data.checksum == null
+        || request.resource.data.checksum is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['updatedAt'])
+        || request.resource.data.updatedAt == null
+        || request.resource.data.updatedAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['deletedAt'])
+        || request.resource.data.deletedAt == null
+        || request.resource.data.deletedAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['updatedBy'])
+        || request.resource.data.updatedBy == null
+        || request.resource.data.updatedBy is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['sentAt'])
+        || request.resource.data.sentAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['serverUpdatedAt'])
+        || request.resource.data.serverUpdatedAt is timestamp
       )
       && validEntityTombstone();
     }
 
     function validEntityCollection() {
-      return request.resource.data.collection in ['editais', 'eventos', 'arquivo', 'revisoes']
+      return request.resource.data.collection in [
+        'editais',
+        'disciplinas',
+        'assuntos',
+        'aulas',
+        'eventos',
+        'arquivo',
+        'revisoes',
+        'planejamento.sequencia'
+      ]
         || request.resource.data.collection in [
           'habitos.questoes',
           'habitos.revisao',
@@ -327,9 +389,24 @@ service cloud.firestore {
     }
 
     function validEntityTombstone() {
-      return !request.resource.data.keys().hasAny(['deletedAt'])
-        || request.resource.data.payload == null
-        || request.resource.data.payload.deletedAt is string;
+      return (
+        (
+          !request.resource.data.keys().hasAny(['deletedAt'])
+          || request.resource.data.deletedAt == null
+        )
+        && request.resource.data.payload is map
+      )
+      || (
+        request.resource.data.deletedAt is string
+        && (
+          request.resource.data.payload == null
+          || (
+            request.resource.data.payload is map
+            && request.resource.data.payload.keys().hasAny(['deletedAt'])
+            && request.resource.data.payload.deletedAt is string
+          )
+        )
+      );
     }
 
     match /users/{uid}/snapshots/{snapshotId} {
@@ -350,7 +427,8 @@ service cloud.firestore {
     match /users/{uid}/entities/{entityId} {
       allow read: if owns(uid);
       allow create: if owns(uid) && validEntityDoc();
-      allow update: if owns(uid) && validEntityDoc() && immutableEntityIdentity();
+      allow update: if owns(uid) && validEntityDoc() && immutableEntityIdentity()
+        && request.resource.data.revision >= resource.data.revision;
       allow delete: if false;
     }
 

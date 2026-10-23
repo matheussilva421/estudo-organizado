@@ -1,0 +1,169 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validEntityCollection() {
+      return request.resource.data.collection in [
+        'editais',
+        'disciplinas',
+        'assuntos',
+        'aulas',
+        'eventos',
+        'arquivo',
+        'revisoes',
+        'planejamento.sequencia',
+        'habitos.questoes',
+        'habitos.revisao',
+        'habitos.discursiva',
+        'habitos.simulado',
+        'habitos.leitura',
+        'habitos.informativo',
+        'habitos.sumula',
+        'habitos.videoaula',
+        'habitos.paginas'
+      ];
+    }
+
+    function validSnapshot() {
+      return request.resource.data.keys().hasOnly([
+        'version',
+        'schemaVersion',
+        'deviceId',
+        'baseRemoteUpdatedAt',
+        'payloadUpdatedAt',
+        'sentAt',
+        'entityManifest',
+        'payload',
+        'updatedAt',
+        'serverUpdatedAt'
+      ])
+      && request.resource.data.version == 1
+      && request.resource.data.payload is map
+      && request.resource.data.deviceId is string
+      && request.resource.data.payloadUpdatedAt is string
+      && (
+        !request.resource.data.keys().hasAny(['schemaVersion'])
+        || request.resource.data.schemaVersion is number
+      )
+      && (
+        !request.resource.data.keys().hasAny(['baseRemoteUpdatedAt'])
+        || request.resource.data.baseRemoteUpdatedAt == null
+        || request.resource.data.baseRemoteUpdatedAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['sentAt'])
+        || request.resource.data.sentAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['updatedAt'])
+        || request.resource.data.updatedAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['serverUpdatedAt'])
+        || request.resource.data.serverUpdatedAt is timestamp
+      )
+      && (
+        !request.resource.data.keys().hasAny(['entityManifest'])
+        || request.resource.data.entityManifest is list
+      );
+    }
+
+    function validEntityDoc() {
+      return request.resource.data.keys().hasOnly([
+        'version',
+        'schemaVersion',
+        'key',
+        'collection',
+        'id',
+        'checksum',
+        'updatedAt',
+        'deletedAt',
+        'revision',
+        'updatedBy',
+        'payload',
+        'sentAt',
+        'serverUpdatedAt'
+      ])
+      && request.resource.data.version == 1
+      && request.resource.data.key is string
+      && request.resource.data.collection is string
+      && validEntityCollection()
+      && request.resource.data.id is string
+      && request.resource.data.revision is number
+      && request.resource.data.revision >= 0
+      && (
+        !request.resource.data.keys().hasAny(['schemaVersion'])
+        || request.resource.data.schemaVersion is number
+      )
+      && (
+        !request.resource.data.keys().hasAny(['checksum'])
+        || request.resource.data.checksum == null
+        || request.resource.data.checksum is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['updatedAt'])
+        || request.resource.data.updatedAt == null
+        || request.resource.data.updatedAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['deletedAt'])
+        || request.resource.data.deletedAt == null
+        || request.resource.data.deletedAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['updatedBy'])
+        || request.resource.data.updatedBy == null
+        || request.resource.data.updatedBy is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['sentAt'])
+        || request.resource.data.sentAt is string
+      )
+      && (
+        !request.resource.data.keys().hasAny(['serverUpdatedAt'])
+        || request.resource.data.serverUpdatedAt is timestamp
+      )
+      && (
+        (
+          request.resource.data.payload is map
+          && (
+            !request.resource.data.keys().hasAny(['deletedAt'])
+            || request.resource.data.deletedAt == null
+          )
+        )
+        ||
+        (
+          request.resource.data.payload == null
+          && request.resource.data.deletedAt is string
+        )
+      );
+    }
+
+    match /users/{uid}/snapshots/{snapshotId} {
+      allow read: if owns(uid);
+      allow create, update: if owns(uid)
+        && snapshotId == 'main'
+        && validSnapshot();
+      allow delete: if false;
+    }
+
+    match /users/{uid}/entities/{entityId} {
+      allow read: if owns(uid);
+      allow create, update: if owns(uid)
+        && validEntityDoc();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
