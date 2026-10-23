@@ -56,7 +56,7 @@ JSON -> bloco da Reta Final -> evento -> Anotações -> IndexedDB.
 
 ## Testes
 
-- npm test: 176 arquivos / 2.909 testes PASS (após as correções da revisão).
+- npm test: 176 arquivos / 2.910 testes PASS (após as correções da revisão).
 - npm run test:e2e:release: 175/175 PASS.
 - E2E focado reta-final: 7/7 PASS, incluindo mobile e IndexedDB/reload.
 - Foco notas: 121/121 e 133/133 nas rodadas específicas.

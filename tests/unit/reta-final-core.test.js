@@ -535,4 +535,15 @@ describe('validateRetaFinalPayload - notas opcionais', () => {
     expect(longoDemais.valid).toBe(false);
     expect(longoDemais.errors.join(' ')).toMatch(/notas/i);
   });
+
+  it('aceita nota extensa no limite sem truncar acentos, bullets e quebras', () => {
+    const linha = 'QUESTÕES: 14 FGV — anotação com acentuação\n• marcador Unicode\n';
+    const notas = linha.repeat(200).slice(0, 10_000);
+    const fixture = validPayload();
+    fixture.dias[0].blocos[0].notas = notas;
+
+    expect(validateRetaFinalPayload(fixture).valid).toBe(true);
+    expect(fixture.dias[0].blocos[0].notas).toBe(notas);
+    expect(fixture.dias[0].blocos[0].notas.length).toBe(10_000);
+  });
 });
