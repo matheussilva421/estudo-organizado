@@ -224,6 +224,32 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
 - Clientes 9.68 remanescentes após a publicação das regras: academic-only com
   drift derivado local pode ser negado até atualizarem para 9.71.
 
+## Homologação Firestore v2 (2026-10-24)
+
+- Gate A PASS: Console no projeto app-de-estudos-14564, banco (default), versão
+  publicada "Hoje • 7:52 AM" (2026-10-24, America/Fortaleza); texto integral
+  normalizado com SHA-256
+  `ADF70A93052856505BB1E419DEC65A9DF349600B5E4542BFE10F3F61F70BA6C9`,
+  idêntico ao candidato.
+- Gate B PASS: 64/64 no emulador usando o texto exato retirado do Console.
+- Gate C PASS: identidades QA por e-mail/senha, documentos exclusivamente em
+  `users/{qaUid}`. Guard create/read 200; snapshot v2 create/read 200;
+  academic-only 200 com plano preservado, evento/tempo/notas e
+  snapshotRevision 2; adulteração, revisão stale, cliente legado, acesso
+  cruzado e anônimo 403; replay idempotente 200 sem alterar dados.
+- Gate D PARTIAL: produção 9.71, SW e IndexedDB verificados em leitura. O fluxo
+  autenticado do app não foi executado porque o login do app é exclusivamente
+  Google e não há identidade Google de QA; a identidade e-mail/senha não serve
+  na UI.
+- Resíduos sintéticos: QA1 `CNAzqRdOFLZKsOxndqW7wYB717F3`
+  (`qa.estudo.mvmasx9svtatm9.one@example.com`) com guard e snapshot/main
+  (snapshotRevision 2, 1 evento); QA2
+  `wkdauUdsAFZyNh6NUZKZvFdiQuZ2`
+  (`qa.estudo.mvmasx9svtatm9.two@example.com`). As regras negam delete;
+  limpeza exige autorização privilegiada separada.
+- Veredito: PARTIAL — FIRESTORE_V2_REMOTE_VALIDATION_PENDING, restrito ao fluxo
+  autenticado do app; regras e API de produção passaram.
+
 ## Revisão visual (2026-10-23)
 
 - Capturas dos 8 temas regeneradas pelo E2E visual em 1366, 820, 390 e 320 px.
