@@ -336,7 +336,11 @@ function retaFinalQueueOptions(config, sourceState, options) {
       err.code = "RETA_FINAL_LINEAGE_PAYLOAD";
       throw err;
     }
-    return { ...options, retaFinalSync: descriptor, academicOnly };
+    return {
+      ...options,
+      retaFinalSync: descriptor,
+      planOverride: academicOnly ? base : undefined,
+    };
   }
 
   if (!base) {
@@ -1316,9 +1320,7 @@ export async function queueFirestoreSnapshotFromState(
     sourceState,
     envelopeOptions,
   );
-  const queued = await enqueueFirestoreSnapshot(envelope, {
-    academicOnly: envelopeOptions.academicOnly === true,
-  });
+  const queued = await enqueueFirestoreSnapshot(envelope);
   if (queued) {
     config.hasPendingWrites = true;
     config.lastError = null;
@@ -1618,9 +1620,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
 
   let result;
   try {
-    result = await writeFirestoreSnapshot(db, uid, pending.envelope, {
-      merge: pending.academicOnly === true,
-    });
+    result = await writeFirestoreSnapshot(db, uid, pending.envelope);
   } catch (err) {
     console.error("[Sync] writeFirestoreSnapshot failed:", err.message);
     if (descriptor) {

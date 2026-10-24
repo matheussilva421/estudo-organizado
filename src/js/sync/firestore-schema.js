@@ -78,6 +78,11 @@ export function createFirestoreSnapshotEnvelope(sourceState, options = {}) {
 
   // CRITICAL: Strip undefined values — Firestore setDoc() rejects them
   const payload = stripUndefined(rawPayload);
+  if (options.planOverride && typeof options.planOverride === 'object') {
+    // Academic-only pushes carry the verified remote plan verbatim so the
+    // server can compare it without trusting a client digest.
+    payload.planejamento = options.planOverride;
+  }
 
   const payloadUpdatedAt = toIsoTimestamp(
     options.payloadUpdatedAt || getLocalContentUpdatedAt(sourceState) || Date.now()

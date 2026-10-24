@@ -356,9 +356,6 @@ describe("reta-final sync engine integration", () => {
       revision: 3,
       baseRevision: 2,
     });
-    expect(repository.writeFirestoreSnapshot.mock.calls[0][3]).toEqual({
-      merge: false,
-    });
     expect(storeModule.state.config.firestoreSync.basePlan).toMatchObject({
       planId: "plan-1",
       revision: 2,
@@ -545,9 +542,6 @@ describe("reta-final sync engine integration", () => {
 
     expect(result).toBe(true);
     const envelope = outbox.enqueueFirestoreSnapshot.mock.calls.at(-1)[0];
-    expect(outbox.enqueueFirestoreSnapshot.mock.calls.at(-1)[1]).toEqual({
-      academicOnly: true,
-    });
     expect(envelope.retaFinalSync).toMatchObject({
       revision: 2,
       baseRevision: 2,
@@ -558,9 +552,29 @@ describe("reta-final sync engine integration", () => {
       { id: "ev-local", status: "estudei" },
     ]);
     expect(envelope.payload.planejamento.revision).toBe(2);
-    expect(
-      repository.writeFirestoreSnapshot.mock.calls.at(-1)[3],
-    ).toEqual({ merge: true });
+    expect(envelope.payload.planejamento).toEqual(remotePlan);
+  });
+
+  it("sends the verified remote plan when only derived fields drifted", async () => {
+    const basePlan = makePlan({ revision: 1 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    localPlan.retaFinal.blocos[0].data = "2026-10-23";
+    const remotePlan = makePlan({ revision: 2, minutos: 40 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan: remotePlan, remote });
+    storeModule.state.eventos = [{ id: "ev-derived", status: "estudei" }];
+
+    const result = await engine.queueFirestoreSnapshotFromState(
+      storeModule.state,
+      { manual: true },
+    );
+
+    expect(result).toBe(true);
+    const envelope = outbox.enqueueFirestoreSnapshot.mock.calls.at(-1)[0];
+    expect(envelope.payload.planejamento).toEqual(remotePlan);
+    expect(envelope.payload.planejamento.retaFinal.blocos[0].data).toBe(
+      "2026-10-22",
+    );
   });
 
   it("aborts a pull when the local plan changes during the yield", async () => {
