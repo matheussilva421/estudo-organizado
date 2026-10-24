@@ -56,7 +56,7 @@ JSON -> bloco da Reta Final -> evento -> Anotações -> IndexedDB.
 
 ## Testes
 
-- npm test: 176 arquivos / 2.910 testes PASS (após as correções da revisão).
+- npm test: 176 arquivos / 2.911 testes PASS (após as correções da revisão).
 - npm run test:e2e:release: 175/175 PASS.
 - E2E focado reta-final: 7/7 PASS, incluindo mobile e IndexedDB/reload.
 - Foco notas: 121/121 e 133/133 nas rodadas específicas.
@@ -172,7 +172,7 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
 
 ### Publicação manual das regras
 
-1. Publicar o cliente 9.69 e confirmar a versão em produção antes das regras.
+1. Publicar o cliente 9.70 e confirmar a versão em produção antes das regras.
 2. Backup: Console → Firestore → Rules → copiar o texto publicado atual.
 3. Colar o conteúdo de `firestore.rules` e publicar.
 4. Homologar com usuário autenticado e dados sintéticos: guard por escrita e
@@ -190,14 +190,14 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
   checksum, updatedAt, deletedAt e updatedBy são idênticos. Saltos de revisão
   continuam aceitos para lotes offline; revisão menor é rejeitada.
 - Snapshot v2: academic-only restaurado com `snapshotRevision + 1` e igualdade
-  integral de `payload.planejamento`. O cliente 9.69 envia academic-only como
-  merge parcial sem `planejamento` e injeta o plano remoto lido na hora; se o
-  remoto não existir, falha fechado.
-- Suíte do app: **2.910 PASS**.
+  integral de `payload.planejamento`. O cliente 9.70 envia o plano remoto
+  verificado verbatim no envelope academic-only; a escrita é full `setDoc`, sem
+  merge. Drift derivado permanece local e é re-derivado no pull.
+- Suíte do app: **2.911 PASS**.
 - Veredito: **BLOCKED para publicação imediata**. A produção ainda serve o
   cliente 9.68, que envia academic-only com o plano completo e campos derivados;
-  as regras negariam esse push. Ordem segura: publicar o cliente 9.69,
-  confirmar produção em 9.69 e só então publicar as regras. Após o 9.69,
+  as regras negariam esse push. Ordem segura: publicar o cliente 9.70,
+  confirmar produção em 9.70 e só então publicar as regras. Após o 9.70,
   READY_FOR_MANUAL_PUBLICATION.
 - Rollback seguro: hotfix derivado deste arquivo, preservando descritor, guard,
   CAS e deny-all. Não restaurar o baseline legado nem `c54fb9b` sem pausar a
