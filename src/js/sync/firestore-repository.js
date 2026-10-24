@@ -41,14 +41,37 @@ export async function readFirestoreRemoteManifest(db, uid) {
   }
 }
 
-export async function writeFirestoreSnapshot(db, uid, envelope) {
+export async function writeFirestoreSnapshot(db, uid, envelope, options = {}) {
   try {
     const updatedAt = getEnvelopeUpdatedAt(envelope) || new Date().toISOString();
-    await setDoc(snapshotRef(db, uid), {
+    const document = {
       ...envelope,
       updatedAt,
       serverUpdatedAt: serverTimestamp(),
-    });
+    };
+    if (options?.merge === true) {
+      // Academic-only pushes must preserve the remote human plan. Read it and
+      // inject it explicitly so the merge can never erase it; if the remote
+      // document is unavailable, fail closed instead of guessing.
+      const ref = snapshotRef(db, uid);
+      const snapshot = await getDoc(ref);
+      if (!snapshot.exists()) {
+        throw new Error('Snapshot remoto ausente para escrita academic-only.');
+      }
+      const remotePayload = snapshot.data()?.payload;
+      if (!remotePayload || typeof remotePayload !== 'object') {
+        throw new Error('Payload remoto ausente para escrita academic-only.');
+      }
+      if (remotePayload.planejamento !== undefined) {
+        document.payload = {
+          ...(document.payload || {}),
+          planejamento: remotePayload.planejamento,
+        };
+      }
+      await setDoc(ref, document, { merge: true });
+      return { updatedAt };
+    }
+    await setDoc(snapshotRef(db, uid), document);
     return { updatedAt };
   } catch (err) {
     console.error('Firestore write snapshot failed:', err);

@@ -325,6 +325,10 @@ function retaFinalQueueOptions(config, sourceState, options) {
       removedBlockIds: tombstones.map((item) => item.id),
       minRetainedRevision: retentionFloor(config, tombstones),
     });
+    const academicOnly =
+      Boolean(base) &&
+      activePlan.revision === base.revision &&
+      computeRetaFinalPlanDigest(activePlan) === computeRetaFinalPlanDigest(base);
     if (getRetaFinalPayloadPlan(sourceState)?.planId !== descriptor.planId) {
       const err = new Error(
         "Payload e descriptor pertencem a linhagens diferentes.",
@@ -332,7 +336,7 @@ function retaFinalQueueOptions(config, sourceState, options) {
       err.code = "RETA_FINAL_LINEAGE_PAYLOAD";
       throw err;
     }
-    return { ...options, retaFinalSync: descriptor };
+    return { ...options, retaFinalSync: descriptor, academicOnly };
   }
 
   if (!base) {
@@ -1312,7 +1316,9 @@ export async function queueFirestoreSnapshotFromState(
     sourceState,
     envelopeOptions,
   );
-  const queued = await enqueueFirestoreSnapshot(envelope);
+  const queued = await enqueueFirestoreSnapshot(envelope, {
+    academicOnly: envelopeOptions.academicOnly === true,
+  });
   if (queued) {
     config.hasPendingWrites = true;
     config.lastError = null;
@@ -1612,7 +1618,9 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
 
   let result;
   try {
-    result = await writeFirestoreSnapshot(db, uid, pending.envelope);
+    result = await writeFirestoreSnapshot(db, uid, pending.envelope, {
+      merge: pending.academicOnly === true,
+    });
   } catch (err) {
     console.error("[Sync] writeFirestoreSnapshot failed:", err.message);
     if (descriptor) {

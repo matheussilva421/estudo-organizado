@@ -83,6 +83,7 @@ describe("reta-final sync engine integration", () => {
   } = {}) {
     order = [];
     let pendingEnvelope = null;
+    let pendingAcademicOnly = false;
     const state = {
       config: {
         firestoreSync: {
@@ -119,8 +120,9 @@ describe("reta-final sync engine integration", () => {
     };
 
     outbox = {
-      enqueueFirestoreSnapshot: vi.fn(async (envelope) => {
+      enqueueFirestoreSnapshot: vi.fn(async (envelope, options = {}) => {
         pendingEnvelope = envelope;
+        pendingAcademicOnly = options.academicOnly === true;
         return true;
       }),
       getPendingFirestoreSnapshot: vi.fn(async () =>
@@ -129,6 +131,7 @@ describe("reta-final sync engine integration", () => {
               id: "latest_snapshot",
               status: "pending",
               attempts: 0,
+              academicOnly: pendingAcademicOnly,
               envelope: pendingEnvelope,
             }
           : null,
@@ -136,6 +139,7 @@ describe("reta-final sync engine integration", () => {
       markFirestoreSnapshotSynced: vi.fn(async () => {
         order.push("mark-synced");
         pendingEnvelope = null;
+        pendingAcademicOnly = false;
         return true;
       }),
       markFirestoreSnapshotFailed: vi.fn(async () => true),
@@ -352,6 +356,9 @@ describe("reta-final sync engine integration", () => {
       revision: 3,
       baseRevision: 2,
     });
+    expect(repository.writeFirestoreSnapshot.mock.calls[0][3]).toEqual({
+      merge: false,
+    });
     expect(storeModule.state.config.firestoreSync.basePlan).toMatchObject({
       planId: "plan-1",
       revision: 2,
@@ -538,6 +545,9 @@ describe("reta-final sync engine integration", () => {
 
     expect(result).toBe(true);
     const envelope = outbox.enqueueFirestoreSnapshot.mock.calls.at(-1)[0];
+    expect(outbox.enqueueFirestoreSnapshot.mock.calls.at(-1)[1]).toEqual({
+      academicOnly: true,
+    });
     expect(envelope.retaFinalSync).toMatchObject({
       revision: 2,
       baseRevision: 2,
@@ -548,6 +558,9 @@ describe("reta-final sync engine integration", () => {
       { id: "ev-local", status: "estudei" },
     ]);
     expect(envelope.payload.planejamento.revision).toBe(2);
+    expect(
+      repository.writeFirestoreSnapshot.mock.calls.at(-1)[3],
+    ).toEqual({ merge: true });
   });
 
   it("aborts a pull when the local plan changes during the yield", async () => {

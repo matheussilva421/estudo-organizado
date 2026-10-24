@@ -191,6 +191,35 @@ service cloud.firestore {
                 && request.resource.data.retaFinalSync.baseSnapshotRevision == resource.data.retaFinalSync.snapshotRevision
                 && (
                   (
+                    request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision
+                    && request.resource.data.retaFinalSync.digest == resource.data.retaFinalSync.digest
+                    && request.resource.data.retaFinalSync.state == resource.data.retaFinalSync.state
+                    && (
+                      request.resource.data.payload.keys().hasAny(['planejamento'])
+                      == resource.data.payload.keys().hasAny(['planejamento'])
+                    )
+                    && (
+                      !request.resource.data.payload.keys().hasAny(['planejamento'])
+                      || request.resource.data.payload.planejamento == resource.data.payload.planejamento
+                    )
+                    && (
+                      !resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                      ? !request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                      : (
+                        request.resource.data.retaFinalSync.keys().hasAny(['minRetainedRevision'])
+                        && request.resource.data.retaFinalSync.minRetainedRevision == resource.data.retaFinalSync.minRetainedRevision
+                      )
+                    )
+                    && (
+                      !resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                      ? !request.resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                      : (
+                        request.resource.data.retaFinalSync.keys().hasAny(['removedBlockIds'])
+                        && request.resource.data.retaFinalSync.removedBlockIds == resource.data.retaFinalSync.removedBlockIds
+                      )
+                    )
+                  )
+                  || (
                     request.resource.data.retaFinalSync.revision == resource.data.retaFinalSync.revision + 1
                     && request.resource.data.retaFinalSync.baseRevision == resource.data.retaFinalSync.revision
                     && (

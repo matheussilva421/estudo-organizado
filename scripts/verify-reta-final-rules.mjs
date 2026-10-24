@@ -650,7 +650,7 @@ async function main() {
     eventos: [{ id: "ev-1", status: "estudei", tempoAcumulado: 60 }],
   };
   results.push(
-    await expectDenied("academic-only write blocked (fail-closed)", () =>
+    await expectAllowed("academic-only write keeps the plan revision", () =>
       setDoc(
         doc(
           uidDb("uid-academic"),
@@ -664,6 +664,80 @@ async function main() {
     ),
   );
   await seed(
+    "uid-academic-merge",
+    envelope({
+      revision: 2,
+      baseRevision: 1,
+      payload: { config: {}, planejamento: academicPlan, eventos: [] },
+    }),
+  );
+  const mergeEnvelope = envelope({
+    revision: 2,
+    baseRevision: 1,
+    payload: {
+      config: {},
+      planejamento: academicPlan,
+      eventos: [{ id: "ev-merge" }],
+    },
+  });
+  results.push(
+    await expectAllowed("academic merge omitting planejamento allowed", () =>
+      setDoc(
+        doc(
+          uidDb("uid-academic-merge"),
+          "users",
+          "uid-academic-merge",
+          "snapshots",
+          "main",
+        ),
+        {
+          payload: { eventos: [{ id: "ev-merge" }] },
+          retaFinalSync: mergeEnvelope.retaFinalSync,
+          payloadUpdatedAt: mergeEnvelope.payloadUpdatedAt,
+          sentAt: mergeEnvelope.sentAt,
+        },
+        { merge: true },
+      ),
+    ),
+  );
+  await seed(
+    "uid-academic-merge-bad",
+    envelope({
+      revision: 2,
+      baseRevision: 1,
+      payload: { config: {}, planejamento: academicPlan, eventos: [] },
+    }),
+  );
+  const tamperedPlan = {
+    ...academicPlan,
+    retaFinal: { ...academicPlan.retaFinal, minutosPadrao: 90 },
+  };
+  const tamperedEnvelope = envelope({
+    revision: 2,
+    baseRevision: 1,
+    payload: { config: {}, planejamento: tamperedPlan, eventos: [] },
+  });
+  results.push(
+    await expectDenied("academic merge tampering plan denied", () =>
+      setDoc(
+        doc(
+          uidDb("uid-academic-merge-bad"),
+          "users",
+          "uid-academic-merge-bad",
+          "snapshots",
+          "main",
+        ),
+        {
+          payload: { planejamento: tamperedPlan },
+          retaFinalSync: tamperedEnvelope.retaFinalSync,
+          payloadUpdatedAt: tamperedEnvelope.payloadUpdatedAt,
+          sentAt: tamperedEnvelope.sentAt,
+        },
+        { merge: true },
+      ),
+    ),
+  );
+  await seed(
     "uid-academic-retired",
     envelope({
       revision: 2,
@@ -673,7 +747,7 @@ async function main() {
     }),
   );
   results.push(
-    await expectDenied("academic-only retired write blocked (fail-closed)", () =>
+    await expectAllowed("academic-only retired write without planejamento", () =>
       setDoc(
         doc(
           uidDb("uid-academic-retired"),

@@ -105,9 +105,12 @@ Remote write contract for `users/{uid}/snapshots/main`:
 - every accepted write advances `snapshotRevision` by one and sets
   `baseSnapshotRevision == remote.snapshotRevision`. This separates snapshot
   writes from human plan revisions
-- an academic-only write keeps `revision`, `digest` and `state` unchanged and
-  carries the current tombstones; it may change events, time, questions,
-  reviews or other non-plan data
+- an academic-only write keeps `revision`, `digest` and `state` unchanged,
+  carries the current tombstones and requires `payload.planejamento` to be
+  identical to the remote plan. The client sends it as a partial merge that
+  omits `planejamento`, so the remote plan is preserved; it may change events,
+  time, questions, reviews or other non-plan data. Any plan change requires
+  `revision + 1`
 - a plan advance requires `revision == remote.revision + 1` and
   `baseRevision == remote.revision`
 - an advance is tombstone append-only: `minRetainedRevision` cannot decrease and

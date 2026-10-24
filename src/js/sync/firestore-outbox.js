@@ -62,12 +62,13 @@ function readModifyWrite(storeName, key, modifier) {
   });
 }
 
-export async function enqueueFirestoreSnapshot(envelope) {
+export async function enqueueFirestoreSnapshot(envelope, options = {}) {
   return writeOp(FIRESTORE_OUTBOX_STORE, (store) => {
     store.put({
       id: LATEST_SNAPSHOT_ID,
       type: 'snapshot',
       status: 'pending',
+      academicOnly: options?.academicOnly === true,
       attempts: 0,
       queuedAt: new Date().toISOString(),
       nextAttemptAt: null,
