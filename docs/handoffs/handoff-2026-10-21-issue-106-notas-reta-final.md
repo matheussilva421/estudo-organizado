@@ -237,18 +237,39 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
   academic-only 200 com plano preservado, evento/tempo/notas e
   snapshotRevision 2; adulteração, revisão stale, cliente legado, acesso
   cruzado e anônimo 403; replay idempotente 200 sem alterar dados.
-- Gate D PARTIAL: produção 9.71, SW e IndexedDB verificados em leitura. O fluxo
-  autenticado do app não foi executado porque o login do app é exclusivamente
-  Google e não há identidade Google de QA; a identidade e-mail/senha não serve
-  na UI.
-- Resíduos sintéticos: QA1 `CNAzqRdOFLZKsOxndqW7wYB717F3`
+- Gate D PARTIAL, encerrado com lacunas aceitas: produção 9.71, SW e IndexedDB
+  verificados em leitura. A identidade QA4
+  `8O1SMOTfMfXUPzMdppJGA4Y4sn62`
+  (`qa.gated.mvmbhx0zt1vs0@example.com`) autenticou pelo Firebase Auth SDK
+  oficial e o próprio app reconheceu o UID após reload
+  (`state.config.firestoreSync.uid` e `getFirestoreSyncStatus().uid`). O
+  primeiro sync criou guard e snapshot, preencheu `lastPushAt` e não gerou
+  conflito; o envio academic-only persistiu evento, 1.800 s, nota, questão e
+  revisão, manteve `revision` em 1 e avançou `snapshotRevision` para 2 com o
+  plano semanticamente inalterado.
+- Gate D — lacunas não homologadas: outbox offline, reconexão, retry
+  idempotente, conflito de revisão remota e persistência do outbox após reload
+  não foram concluídos. O teste de outbox chamou `flushFirestoreOutbox` com a
+  rede desligada e travou sem timeout; a interrupção do processo perdeu a
+  sessão do perfil persistente e deixou o IndexedDB sem resposta. O harness
+  correto deve apenas enfileirar offline, nunca executar flush offline, e usar
+  watchdog por operação. A senha efêmera da QA4 não é conhecida; nova
+  autenticação exigiria credencial nova, que não foi autorizada.
+- Perfis preservados: `test-results/qa-profile` e a cópia parcial em
+  quarentena `C:\Users\slvma\.codex\worktrees\reta-final-fase-d\backups\qa4-profile-quarantine-20261024`;
+  nenhuma exclusão foi executada.
+- Resíduos sintéticos: QA4 `8O1SMOTfMfXUPzMdppJGA4Y4sn62`
+  (`qa.gated.mvmbhx0zt1vs0@example.com`) com guard e `snapshots/main`; QA1
+  `CNAzqRdOFLZKsOxndqW7wYB717F3`
   (`qa.estudo.mvmasx9svtatm9.one@example.com`) com guard e snapshot/main
   (snapshotRevision 2, 1 evento); QA2
   `wkdauUdsAFZyNh6NUZKZvFdiQuZ2`
   (`qa.estudo.mvmasx9svtatm9.two@example.com`). As regras negam delete;
   limpeza exige autorização privilegiada separada.
-- Veredito: PARTIAL — FIRESTORE_V2_REMOTE_VALIDATION_PENDING, restrito ao fluxo
-  autenticado do app; regras e API de produção passaram.
+- Veredito final: CLOSED_WITH_ACCEPTED_VALIDATION_GAPS. Gates A, B e C
+  permanecem PASS; o Gate D não foi integralmente concluído e a homologação
+  Firestore v2 não pode ser declarada. Nesta fase não houve alteração de
+  código de produção, regras Firestore, Cloudflare ou GitHub.
 
 ## Revisão visual (2026-10-23)
 
