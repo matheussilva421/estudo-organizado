@@ -161,7 +161,7 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
   válida.
 - Proteções v2 preservadas: descritor, capabilities, lineage, CAS de revisão,
   snapshots, guard `syncMeta/reta-final-guard`, deletes negados e deny-all.
-- Testes no emulador: candidato **55/55 PASS**; versão anterior **45/51**
+- Testes no emulador (consolidação inicial): **55/55 PASS**; versão anterior **45/51**
   (seis lacunas legadas reproduzidas em RED); baseline do Console **20/22**,
   com a sobrescrita v2 reproduzida e as duas diferenças esperadas.
 - Resíduo P2 pré-existente: o ramo academic-only confia no digest enviado pelo
@@ -172,29 +172,33 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
 
 ### Publicação manual das regras
 
-1. Backup: Console → Firestore → Rules → copiar o texto publicado atual.
-2. Colar o conteúdo de `firestore.rules` e publicar.
-3. Homologar com usuário autenticado e dados sintéticos: guard por escrita e
+1. Publicar o cliente 9.69 e confirmar a versão em produção antes das regras.
+2. Backup: Console → Firestore → Rules → copiar o texto publicado atual.
+3. Colar o conteúdo de `firestore.rules` e publicar.
+4. Homologar com usuário autenticado e dados sintéticos: guard por escrita e
    leitura, snapshot v2, rejeição de cliente legado e de revisão desatualizada.
-4. Rollback: usar o hotfix v2-safe descrito na seção Revisão final; o backup
+5. Rollback: usar o hotfix v2-safe descrito na seção Revisão final; o backup
    legado não deve ser restaurado depois que existir snapshot v2.
 
 ## Revisão final das regras — 2026-10-23
 
 - SHA-256 final do blob commitado de `firestore.rules` (LF):
-  `B60C98E789FA8507194ECC934C839F170F8BDBAB38E095F114D121DBCAB05F5E`.
-- Emulador: **62/62 PASS**; antes das correções, **57/59** (mutação de entidade
-  na mesma revisão e alteração de plano em academic-only eram aceitas).
+  `ADF70A93052856505BB1E419DEC65A9DF349600B5E4542BFE10F3F61F70BA6C9`.
+- Emulador: **64/64 PASS**, incluindo academic-only completo, merge parcial sem
+  `planejamento` e tentativa de adulterar o plano negada.
 - Entidades: update com a mesma revisão só passa quando payload, schemaVersion,
   checksum, updatedAt, deletedAt e updatedBy são idênticos. Saltos de revisão
   continuam aceitos para lotes offline; revisão menor é rejeitada.
-- Snapshot v2: o ramo academic-only foi removido (fail-closed). Qualquer mudança
-  de conteúdo exige revision+1 e baseRevision correta; só replay idêntico mantém
-  a revisão.
-- Veredito: **BLOCKED para publicação manual**. O cliente atual
-  (`firestore-sync-engine.js`) ainda monta academic-only com a mesma revisão;
-  publicar agora bloquearia sync legítimo até cliente e contrato avançarem a
-  revisão (ou proverem prova de intenção verificável no servidor).
+- Snapshot v2: academic-only restaurado com `snapshotRevision + 1` e igualdade
+  integral de `payload.planejamento`. O cliente 9.69 envia academic-only como
+  merge parcial sem `planejamento` e injeta o plano remoto lido na hora; se o
+  remoto não existir, falha fechado.
+- Suíte do app: **2.910 PASS**.
+- Veredito: **BLOCKED para publicação imediata**. A produção ainda serve o
+  cliente 9.68, que envia academic-only com o plano completo e campos derivados;
+  as regras negariam esse push. Ordem segura: publicar o cliente 9.69,
+  confirmar produção em 9.69 e só então publicar as regras. Após o 9.69,
+  READY_FOR_MANUAL_PUBLICATION.
 - Rollback seguro: hotfix derivado deste arquivo, preservando descritor, guard,
   CAS e deny-all. Não restaurar o baseline legado nem `c54fb9b` sem pausar a
   sincronização v2 e o entity-primary.
