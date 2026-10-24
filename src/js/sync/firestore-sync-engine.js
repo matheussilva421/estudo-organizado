@@ -393,7 +393,11 @@ function retaFinalQueueOptions(config, sourceState, options) {
     err.code = "RETA_FINAL_LINEAGE_PAYLOAD";
     throw err;
   }
-  return { ...options, retaFinalSync: descriptor };
+  return {
+    ...options,
+    retaFinalSync: descriptor,
+    planOverride: alreadyRetired ? base : undefined,
+  };
 }
 
 function nonPlanStateDigest(sourceState) {
