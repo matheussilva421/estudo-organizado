@@ -207,6 +207,23 @@ INCONCLUSIVO; basta copiar o texto publicado (Firestore → Rules) para concluir
   ser negada pelo ramo academic-only; nesse caso, avance a revision com uma
   edição real do plano antes de republicar.
 
+## Release 9.71 — preparação (2026-10-23)
+
+- Transição PWA testada no mesmo origin: 9.68 carregado e controlado, reload
+  offline servido pelo cache, atualização do SW para 9.71, recarga e IndexedDB
+  preservados (schema 12), evento com 3600s e outbox pendente intactos; sem
+  erros de página.
+- Aba controlada atualiza sozinha para 9.71 em controllerchange; aba sem SW
+  permanece 9.68 e funcional. Instalações offline ficam na versão em cache até
+  reconectar/recarregar.
+- Gates: 64/64 regras; 2.911 unitários; 175/175 E2E; design 45 + AA; lint 0;
+  bump 9.71.
+- Push fast-forward c54fb9b..a672002 (ou HEAD posterior) aciona o Workers
+  Builds; as regras Firebase permanecem as antigas. O push não foi executado e
+  aguarda autorização específica.
+- Clientes 9.68 remanescentes após a publicação das regras: academic-only com
+  drift derivado local pode ser negado até atualizarem para 9.71.
+
 ## Revisão visual (2026-10-23)
 
 - Capturas dos 8 temas regeneradas pelo E2E visual em 1366, 820, 390 e 320 px.
