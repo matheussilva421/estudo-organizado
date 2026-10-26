@@ -3,6 +3,24 @@ import { createExportableState, DEFAULT_SCHEMA_VERSION } from '../store.js?v=8.3
 export const FIRESTORE_SYNC_VERSION = 1;
 export const FIRESTORE_SNAPSHOT_DOC_ID = 'main';
 export const FIRESTORE_DEVICE_ID_KEY = 'estudo_firestore_device_id';
+export const FIRESTORE_ENVELOPE_MAX_BYTES = 1_048_576;
+
+export function getFirestoreEnvelopeSizeBytes(envelope) {
+  if (!envelope) return 0;
+  const text = JSON.stringify(envelope);
+  if (typeof Blob !== 'undefined') {
+    return new Blob([text]).size;
+  }
+  return text.length;
+}
+
+function stripFirestoreOperationalMetadata(payload) {
+  if (payload?.config) {
+    delete payload.config.manualSyncHistory;
+    delete payload.config.lastManualSyncResults;
+  }
+  return payload;
+}
 
 /**
  * Recursively strip undefined values from an object.
@@ -73,6 +91,8 @@ export function createDefaultFirestoreSyncConfig(overrides = {}) {
 export function createFirestoreSnapshotEnvelope(sourceState, options = {}) {
   const syncConfig = getFirestoreSyncConfig(sourceState);
   const rawPayload = createExportableState(sourceState);
+  // Operational telemetry stays local; it must never bloat the Firestore doc.
+  stripFirestoreOperationalMetadata(rawPayload);
   if (!rawPayload.config) rawPayload.config = {};
   rawPayload.config.firestoreSync = createDefaultFirestoreSyncConfig();
 

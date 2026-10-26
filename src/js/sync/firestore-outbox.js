@@ -131,6 +131,38 @@ export async function markFirestoreSnapshotFailed(error) {
   }).catch(() => false);
 }
 
+/**
+ * Replace the pending envelope only when the observed outbox identity still
+ * matches. queuedAt, attempts, nextAttemptAt and status are preserved; the
+ * caller must pass the new envelope explicitly after revalidating plan/CAS.
+ */
+export async function replacePendingFirestoreSnapshotEnvelope(
+  envelope,
+  expected = {},
+) {
+  return readModifyWrite(FIRESTORE_OUTBOX_STORE, LATEST_SNAPSHOT_ID, (existing) => {
+    if (!existing?.envelope) return false;
+    if (
+      expected.queuedAt !== undefined &&
+      existing.queuedAt !== expected.queuedAt
+    ) {
+      return false;
+    }
+    if (
+      expected.sentAt !== undefined &&
+      (existing.envelope?.sentAt ?? null) !== expected.sentAt
+    ) {
+      return false;
+    }
+    return {
+      ...existing,
+      envelope,
+      lastError: null,
+      recomposedAt: new Date().toISOString(),
+    };
+  }).catch(() => false);
+}
+
 export async function saveFirestoreMeta(meta) {
   return writeOp(FIRESTORE_META_STORE, (store) => {
     store.put({ id: META_ID, ...meta });

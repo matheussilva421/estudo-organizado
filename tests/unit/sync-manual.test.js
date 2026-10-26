@@ -109,6 +109,72 @@ describe('manual-sync orchestrator', () => {
     expect(result.summary.overall).toBe('conflict');
   });
 
+  it('stores only a bounded conflict summary in manual history', async () => {
+    const mod = await loadOrchestrator();
+    const plan = {
+      ativo: true,
+      tipo: 'reta_final',
+      schemaVersionRetaFinal: 2,
+      planId: 'rfplan_local',
+      revision: 0,
+      retaFinal: {
+        dataFinal: '2027-02-28',
+        blocos: Array.from({ length: 180 }, (_, index) => ({
+          id: 'rf_' + index,
+          discId: 'd1',
+          topicos: [{ assId: 'a1' }],
+          minutos: 60,
+          notas: 'n'.repeat(100),
+        })),
+      },
+    };
+    const conflict = {
+      type: 'reta-final-conflict',
+      cause: 'merge-review',
+      planId: 'rfplan_local',
+      baseRevision: 1,
+      localRevision: 2,
+      remoteRevision: 2,
+      localPlan: plan,
+      remotePlan: plan,
+      basePlan: plan,
+      proposedPlan: plan,
+      mergeConflicts: Array.from({ length: 50 }, () => ({ local: plan, remote: plan })),
+      reason: 'r'.repeat(5000),
+    };
+    let calls = 0;
+    firestoreSync.getFirestoreSyncStatus.mockImplementation(() => {
+      calls += 1;
+      return {
+        configured: true,
+        signedIn: true,
+        enabled: true,
+        mode: 'primary',
+        conflict: calls === 1 ? null : conflict,
+        lastError: null,
+      };
+    });
+    firestoreSync.syncFirestoreNow.mockImplementation(async () => false);
+
+    const result = await mod.syncAllChannels({ trigger: 'test' });
+
+    expect(result.firestore.status).toBe('conflict');
+    const record = storeModule.state.config.manualSyncHistory.at(-1);
+    expect(record.conflicts.firestore).toMatchObject({
+      type: 'reta-final-conflict',
+      cause: 'merge-review',
+      planId: 'rfplan_local',
+      baseRevision: 1,
+      localRevision: 2,
+      remoteRevision: 2,
+    });
+    expect(record.conflicts.firestore).not.toHaveProperty('localPlan');
+    expect(record.conflicts.firestore).not.toHaveProperty('remotePlan');
+    expect(record.conflicts.firestore).not.toHaveProperty('mergeConflicts');
+    expect(JSON.stringify(record).length).toBeLessThan(4000);
+    expect(storeModule.state.config.lastManualSyncResults).toEqual(record);
+  });
+
   it('runs Cloudflare with overwriteRemote=false (safe push)', async () => {
     const mod = await loadOrchestrator();
     storeModule.state.config = {

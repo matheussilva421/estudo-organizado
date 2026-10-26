@@ -179,6 +179,57 @@ function legacyRetaFinalEnvelope(
   };
 }
 
+function largeSanitizedPayload(planId = "rfplan_local") {
+  const blocos = Array.from({ length: 180 }, (_, index) => ({
+    id: `rf_${String(index).padStart(3, "0")}`,
+    discId: `d${index % 3}`,
+    topicos: [{ assId: `a${index % 5}`, aulaId: null }],
+    minutos: 60,
+    dataPlanejada: "2026-10-26",
+    ordem: index,
+    notas: "n".repeat(120),
+  }));
+  const eventos = Array.from({ length: 389 }, (_, index) => ({
+    id: `ev_${index}`,
+    discId: `d${index % 3}`,
+    status: "estudei",
+    tempo: 30,
+    notas: "e".repeat(480),
+  }));
+  const editais = Array.from({ length: 4 }, (_, index) => ({
+    id: `ed_${index}`,
+    nome: `Edital ${index}`,
+    conteudo: "x".repeat(150000),
+    disciplinas: [
+      {
+        id: `d${index % 3}`,
+        nome: `Disciplina ${index}`,
+        assuntos: [{ id: `a${index % 5}`, nome: "Assunto sintetico" }],
+      },
+    ],
+  }));
+  return {
+    config: {},
+    planejamento: {
+      ativo: true,
+      tipo: "reta_final",
+      schemaVersionRetaFinal: 2,
+      planId,
+      revision: 0,
+      retaFinal: { dataFinal: "2027-02-28", blocos },
+    },
+    eventos,
+    editais,
+    habitos: {
+      questoes: Array.from({ length: 82 }, (_, index) => ({
+        id: `q_${index}`,
+        total: 20,
+        notas: "q".repeat(300),
+      })),
+    },
+  };
+}
+
 function guardDoc(deviceId = "web-rules-test") {
   return {
     schema: 2,
@@ -1500,6 +1551,54 @@ async function main() {
         data?.payload?.habitos?.questoes?.[0]?.total === 10 &&
         data?.payload?.editais?.[0]?.id === "ed-adopt";
       if (!preserved) throw new Error("academic payload was not preserved");
+    }),
+  );
+
+  // 5d. A sanitized Reta Final snapshot with the real data shape fits 1 MiB.
+  const largePayload = largeSanitizedPayload("rfplan_local");
+  const largeEnvelope = envelope({
+    planId: "rfplan_local",
+    revision: 0,
+    baseRevision: 0,
+    payload: largePayload,
+    payloadUpdatedAt: "2026-10-26T20:00:00.000Z",
+  });
+  console.log(
+    `LARGE_SANITIZED_JSON_BYTES=${Buffer.byteLength(JSON.stringify(largeEnvelope), "utf8")}`,
+  );
+  results.push(
+    await expectAllowed("large sanitized snapshot fits Firestore 1 MiB", () =>
+      setDoc(
+        doc(
+          uidDb("uid-large-sanitized"),
+          "users",
+          "uid-large-sanitized",
+          "snapshots",
+          "main",
+        ),
+        largeEnvelope,
+      ),
+    ),
+  );
+  results.push(
+    await expectAllowed("large sanitized snapshot readback intact", async () => {
+      const snap = await getDoc(
+        doc(
+          uidDb("uid-large-sanitized"),
+          "users",
+          "uid-large-sanitized",
+          "snapshots",
+          "main",
+        ),
+      );
+      const data = snap.data();
+      const intact =
+        data?.payload?.planejamento?.retaFinal?.blocos?.length === 180 &&
+        data?.payload?.eventos?.length === 389 &&
+        data?.payload?.editais?.length === 4 &&
+        data?.payload?.habitos?.questoes?.length === 82 &&
+        data?.retaFinalSync?.planId === "rfplan_local";
+      if (!intact) throw new Error("large sanitized payload was not preserved");
     }),
   );
 

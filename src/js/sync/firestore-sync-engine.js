@@ -16,6 +16,8 @@ import {
   getEnvelopeUpdatedAt,
   getFirestoreDeviceId,
   isRemoteNewer,
+  FIRESTORE_ENVELOPE_MAX_BYTES,
+  getFirestoreEnvelopeSizeBytes,
 } from "./firestore-schema.js?v=8.37";
 import {
   clearFirestoreConflict,
@@ -23,6 +25,7 @@ import {
   getPendingFirestoreSnapshot,
   markFirestoreSnapshotFailed,
   markFirestoreSnapshotSynced,
+  replacePendingFirestoreSnapshotEnvelope,
   saveFirestoreConflict,
   saveFirestoreMeta,
 } from "./firestore-outbox.js?v=8.37";
@@ -465,6 +468,73 @@ function mergeLegacyAdoptionState(remote) {
   );
 }
 
+function pendingEnvelopeHasOperationalHistory(pending) {
+  const payloadConfig = pending?.envelope?.payload?.config;
+  return Boolean(
+    payloadConfig &&
+      (Object.hasOwn(payloadConfig, "manualSyncHistory") ||
+        Object.hasOwn(payloadConfig, "lastManualSyncResults")),
+  );
+}
+
+function envelopeTooLargeMessage(size) {
+  return (
+    `Envelope Firestore com ${size} bytes excede ${FIRESTORE_ENVELOPE_MAX_BYTES}; ` +
+    "dados academicos preservados, segmentacao necessaria."
+  );
+}
+
+async function repairPendingFirestoreSnapshot(pending, config) {
+  if (!pending?.envelope) return pending;
+  const size = getFirestoreEnvelopeSizeBytes(pending.envelope);
+  const hasHistory = pendingEnvelopeHasOperationalHistory(pending);
+  if (!hasHistory && size <= FIRESTORE_ENVELOPE_MAX_BYTES) return pending;
+
+  const removedBefore = JSON.stringify(config.removedBlocks || []);
+  let envelope;
+  try {
+    const options = retaFinalQueueOptions(config, state, {
+      manual: true,
+      baseRemoteUpdatedAt:
+        pending.envelope.baseRemoteUpdatedAt ??
+        config.baseRemoteUpdatedAt ??
+        null,
+    });
+    envelope = createFirestoreSnapshotEnvelope(state, options);
+  } catch (err) {
+    config.lastError =
+      "Nao foi possivel reconstruir a outbox pendente: " +
+      (err.message || String(err));
+    config.hasPendingWrites = true;
+    await persistSyncConfig(true);
+    emitStatus("error", { error: config.lastError });
+    return pending;
+  }
+  if (JSON.stringify(config.removedBlocks || []) !== removedBefore) {
+    await persistSyncConfig(true);
+  }
+  const nextSize = getFirestoreEnvelopeSizeBytes(envelope);
+  config.lastEnvelopeBytes = nextSize;
+  if (nextSize > FIRESTORE_ENVELOPE_MAX_BYTES) {
+    config.lastError = envelopeTooLargeMessage(nextSize);
+    config.hasPendingWrites = true;
+    await persistSyncConfig(true);
+    emitStatus("error", { error: config.lastError });
+    return pending;
+  }
+  const replaced = await replacePendingFirestoreSnapshotEnvelope(envelope, {
+    queuedAt: pending.queuedAt ?? null,
+    sentAt: pending.envelope?.sentAt ?? null,
+  });
+  if (!replaced) return await getPendingFirestoreSnapshot();
+  const repaired = await getPendingFirestoreSnapshot();
+  emitStatus("pending", {
+    reason: "outbox-recomposed",
+    sizeBytes: nextSize,
+  });
+  return repaired;
+}
+
 function legacyAdoptionNextState(remote, force) {
   if (!force) return mergeLegacyAdoptionState(remote);
   // "Baixar dados" keeps replace semantics: the remote academic payload wins,
@@ -874,7 +944,10 @@ async function persistSyncConfig(skipRender = true) {
 
 async function reconcileFirestorePendingState(skipRender = true) {
   const config = getConfig();
-  const pending = await getPendingFirestoreSnapshot();
+  let pending = await getPendingFirestoreSnapshot();
+  if (pending) {
+    pending = await repairPendingFirestoreSnapshot(pending, config);
+  }
 
   // Clear stale conflicts when there is no pending snapshot to resolve.
   // Entity-level conflicts are already the conflict payload and must remain visible.
@@ -911,6 +984,7 @@ async function reconcileFirestorePendingState(skipRender = true) {
   // Clear it to prevent hasPendingWrites from being stuck forever.
   if (
     pending &&
+    !pending.recomposedAt &&
     !config.conflict &&
     pending.attempts === 0 &&
     !Object.hasOwn(pending.envelope || {}, "retaFinalSync")
@@ -1418,6 +1492,15 @@ export async function queueFirestoreSnapshotFromState(
     sourceState,
     envelopeOptions,
   );
+  const envelopeSize = getFirestoreEnvelopeSizeBytes(envelope);
+  config.lastEnvelopeBytes = envelopeSize;
+  if (envelopeSize > FIRESTORE_ENVELOPE_MAX_BYTES) {
+    config.hasPendingWrites = Boolean(pending);
+    config.lastError = envelopeTooLargeMessage(envelopeSize);
+    await persistSyncConfig(false);
+    emitStatus("error", { error: config.lastError });
+    return false;
+  }
   const queued = await enqueueFirestoreSnapshot(envelope);
   if (queued) {
     config.hasPendingWrites = true;
@@ -1543,7 +1626,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
 
   const startTime = performance.now();
 
-  const pending = await getPendingFirestoreSnapshot();
+  let pending = await getPendingFirestoreSnapshot();
   if (
     !options.manual &&
     !options.forceOverwrite &&
@@ -1554,11 +1637,28 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
   }
 
   emitStatus("syncing");
+  if (pending) {
+    pending = await repairPendingFirestoreSnapshot(pending, config);
+  }
   if (!pending) {
     config.hasPendingWrites = false;
     await persistSyncConfig(true);
     emitStatus("synced");
     return true;
+  }
+
+  const envelopeSize = getFirestoreEnvelopeSizeBytes(pending.envelope);
+  config.lastEnvelopeBytes = envelopeSize;
+  if (
+    pendingEnvelopeHasOperationalHistory(pending) ||
+    envelopeSize > FIRESTORE_ENVELOPE_MAX_BYTES
+  ) {
+    config.lastError = envelopeTooLargeMessage(envelopeSize);
+    config.hasPendingWrites = true;
+    await markFirestoreSnapshotFailed(new Error(config.lastError));
+    await persistSyncConfig(true);
+    emitStatus("error", { error: config.lastError });
+    return false;
   }
 
   const descriptorPresent = Object.hasOwn(
@@ -1941,6 +2041,10 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
       const preservedCfToken = state.config?.cfToken || null;
       const preservedCfSyncEnabled = state.config?.cfSyncEnabled === true;
       const preservedFirestoreSync = state.config?.firestoreSync || null;
+      const preservedManualSyncHistory =
+        state.config?.manualSyncHistory ?? null;
+      const preservedLastManualSyncResults =
+        state.config?.lastManualSyncResults ?? null;
       setState(outcome.nextState);
       if (state.config) {
         if (preservedCfUrl) state.config.cfUrl = preservedCfUrl;
@@ -1948,6 +2052,10 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
         state.config.cfSyncEnabled = preservedCfSyncEnabled;
         if (preservedFirestoreSync)
           state.config.firestoreSync = preservedFirestoreSync;
+        if (preservedManualSyncHistory !== null)
+          state.config.manualSyncHistory = preservedManualSyncHistory;
+        if (preservedLastManualSyncResults !== null)
+          state.config.lastManualSyncResults = preservedLastManualSyncResults;
       }
       const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
       if (Object.hasOwn(remote, "retaFinalSync") || outcome.basePlan) {
@@ -2020,6 +2128,10 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
         const preservedCfToken = state.config?.cfToken || null;
         const preservedCfSyncEnabled = state.config?.cfSyncEnabled === true;
         const preservedFirestoreSync = state.config?.firestoreSync || null;
+        const preservedManualSyncHistory =
+          state.config?.manualSyncHistory ?? null;
+        const preservedLastManualSyncResults =
+          state.config?.lastManualSyncResults ?? null;
         setState(nextState);
         if (state.config) {
           if (preservedCfUrl) state.config.cfUrl = preservedCfUrl;
@@ -2027,6 +2139,10 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
           state.config.cfSyncEnabled = preservedCfSyncEnabled;
           if (preservedFirestoreSync)
             state.config.firestoreSync = preservedFirestoreSync;
+          if (preservedManualSyncHistory !== null)
+            state.config.manualSyncHistory = preservedManualSyncHistory;
+          if (preservedLastManualSyncResults !== null)
+            state.config.lastManualSyncResults = preservedLastManualSyncResults;
         }
       } else {
         setState(nextState, { merge: true });
@@ -2492,6 +2608,10 @@ export async function resolveEntityConflictKeepRemote(options = {}) {
       const preservedCfToken = state.config?.cfToken || null;
       const preservedCfSyncEnabled = state.config?.cfSyncEnabled === true;
       const preservedFirestoreSync = state.config?.firestoreSync || null;
+      const preservedManualSyncHistory =
+        state.config?.manualSyncHistory ?? null;
+      const preservedLastManualSyncResults =
+        state.config?.lastManualSyncResults ?? null;
       const pending = await getPendingFirestoreSnapshot();
       if (pending && options.discardPending !== true) {
         await registerRetaFinalConflict(
@@ -2514,6 +2634,10 @@ export async function resolveEntityConflictKeepRemote(options = {}) {
         state.config.cfSyncEnabled = preservedCfSyncEnabled;
         if (preservedFirestoreSync)
           state.config.firestoreSync = preservedFirestoreSync;
+        if (preservedManualSyncHistory !== null)
+          state.config.manualSyncHistory = preservedManualSyncHistory;
+        if (preservedLastManualSyncResults !== null)
+          state.config.lastManualSyncResults = preservedLastManualSyncResults;
       }
       if (Object.hasOwn(remote, "retaFinalSync")) {
         setRetaFinalBaseFromRemote(config, remote, remotePlan);

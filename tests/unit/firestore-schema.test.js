@@ -232,3 +232,112 @@ describe('firestore-schema.js', () => {
     });
   });
 });
+
+describe('firestore-schema.js operational payload budget', () => {
+  function largePlan() {
+    return {
+      ativo: true,
+      tipo: 'reta_final',
+      schemaVersionRetaFinal: 2,
+      planId: 'rfplan_local',
+      revision: 0,
+      retaFinal: {
+        dataFinal: '2027-02-28',
+        blocos: Array.from({ length: 180 }, (_, index) => ({
+          id: 'rf_' + String(index).padStart(3, '0'),
+          discId: 'd' + (index % 3),
+          topicos: [{ assId: 'a' + (index % 5), aulaId: null }],
+          minutos: 60,
+          dataPlanejada: '2026-10-26',
+          ordem: index,
+          notas: 'n'.repeat(120),
+        })),
+      },
+    };
+  }
+
+  function largeConflict(plan) {
+    return {
+      type: 'reta-final-conflict',
+      cause: 'merge-review',
+      detectedAt: '2026-10-26T20:00:00.000Z',
+      planId: plan.planId,
+      localPlan: JSON.parse(JSON.stringify(plan)),
+      remotePlan: JSON.parse(JSON.stringify(plan)),
+      mergeConflicts: Array.from({ length: 30 }, () => ({ local: plan, remote: plan })),
+      reason: 'conflict summary source',
+    };
+  }
+
+  function largeState() {
+    const plan = largePlan();
+    const history = Array.from({ length: 20 }, (_, index) => ({
+      at: '2026-10-26T20:' + String(index).padStart(2, '0') + ':00.000Z',
+      trigger: 'test',
+      firestore: 'conflict',
+      conflicts: {
+        firestore: index < 6 ? largeConflict(plan) : { type: 'reta-final-conflict', cause: 'small' },
+      },
+    }));
+    return {
+      schemaVersion: 12,
+      planejamento: plan,
+      eventos: Array.from({ length: 389 }, (_, index) => ({
+        id: 'ev_' + index,
+        discId: 'd' + (index % 3),
+        status: 'estudei',
+        tempo: 30,
+        notas: 'e'.repeat(420),
+      })),
+      editais: Array.from({ length: 4 }, (_, index) => ({
+        id: 'ed_' + index,
+        nome: 'Edital ' + index,
+        conteudo: 'x'.repeat(130000),
+      })),
+      habitos: {
+        questoes: Array.from({ length: 82 }, (_, index) => ({
+          id: 'q_' + index,
+          total: 20,
+          notas: 'q'.repeat(300),
+        })),
+      },
+      config: {
+        manualSyncHistory: history,
+        lastManualSyncResults: history[history.length - 1],
+        localBackupAt: '2026-10-26T20:00:00.000Z',
+      },
+    };
+  }
+
+  it('keeps operational history local and keeps the academic snapshot under the Firestore budget', async () => {
+    const {
+      createFirestoreSnapshotEnvelope,
+      getFirestoreEnvelopeSizeBytes,
+      FIRESTORE_ENVELOPE_MAX_BYTES,
+    } = await import('../../src/js/sync/firestore-schema.js');
+    const state = largeState();
+    const historyReference = state.config.manualSyncHistory;
+    const envelope = createFirestoreSnapshotEnvelope(state, {
+      deviceId: 'web-test',
+      sentAt: '2026-10-26T20:00:00.000Z',
+    });
+
+    expect(envelope.payload.config).not.toHaveProperty('manualSyncHistory');
+    expect(envelope.payload.config).not.toHaveProperty('lastManualSyncResults');
+    expect(envelope.payload.planejamento.retaFinal.blocos).toHaveLength(180);
+    expect(envelope.payload.eventos).toHaveLength(389);
+    expect(envelope.payload.editais).toHaveLength(4);
+    expect(state.config.manualSyncHistory).toBe(historyReference);
+    expect(getFirestoreEnvelopeSizeBytes(envelope)).toBeLessThan(
+      FIRESTORE_ENVELOPE_MAX_BYTES,
+    );
+
+    const withHistory = JSON.parse(JSON.stringify(envelope));
+    withHistory.payload.config.manualSyncHistory = state.config.manualSyncHistory;
+    withHistory.payload.config.lastManualSyncResults =
+      state.config.lastManualSyncResults;
+    expect(getFirestoreEnvelopeSizeBytes(withHistory)).toBeGreaterThan(
+      FIRESTORE_ENVELOPE_MAX_BYTES,
+    );
+  });
+});

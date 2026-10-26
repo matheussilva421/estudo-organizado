@@ -5,6 +5,11 @@ import {
   getRetaFinalSyncCapabilities,
 } from "../../src/js/sync/reta-final-protocol.js";
 import { migrateRetaFinalV2 } from "../../src/js/logic/reta-final-schema.js";
+import {
+  createFirestoreSnapshotEnvelope,
+  getFirestoreEnvelopeSizeBytes,
+  FIRESTORE_ENVELOPE_MAX_BYTES,
+} from "../../src/js/sync/firestore-schema.js";
 
 const CAPABILITIES = getRetaFinalSyncCapabilities({});
 
@@ -133,6 +138,67 @@ function legacyRfEnvelope(plan, payloadUpdatedAt = "2026-10-22T17:45:50.000Z") {
   };
 }
 
+function hugeConflictAudit(plan, legacy) {
+  return {
+    type: "reta-final-conflict",
+    cause: "merge-review",
+    detectedAt: "2026-10-26T20:00:00.000Z",
+    planId: plan.planId,
+    baseRevision: 1,
+    localRevision: 2,
+    remoteRevision: 2,
+    localPlan: plan,
+    remotePlan: legacy,
+    basePlan: plan,
+    proposedPlan: plan,
+    mergeConflicts: Array.from({ length: 30 }, () => ({
+      local: plan,
+      remote: legacy,
+    })),
+    items: Array.from({ length: 10 }, () => ({ localPlan: plan, remotePlan: legacy })),
+    reason: "r".repeat(2000),
+  };
+}
+
+function hugeHistoryFor(plan, legacy) {
+  return Array.from({ length: 20 }, (_, index) => ({
+    at: "2026-10-26T20:" + String(index).padStart(2, "0") + ":00.000Z",
+    firestore: "conflict",
+    conflicts: {
+      firestore:
+        index < 6
+          ? hugeConflictAudit(plan, legacy)
+          : { type: "reta-final-conflict", cause: "small" },
+    },
+  }));
+}
+
+function pendingEnvelopeFor(state, plan, remote, sentAt, withHistory = false) {
+  const descriptor = buildRetaFinalSyncDescriptor({
+    plan,
+    baseRevision: 0,
+    baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+    deviceId: "web-device1",
+    capabilities: CAPABILITIES,
+    state: "active",
+    snapshotRevision: 1,
+    baseSnapshotRevision: 0,
+  });
+  const envelope = createFirestoreSnapshotEnvelope(state, {
+    retaFinalSync: descriptor,
+    deviceId: "web-device1",
+    baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+    sentAt,
+  });
+  if (withHistory) {
+    envelope.payload.config.manualSyncHistory = hugeHistoryFor(
+      plan,
+      remote.payload.planejamento,
+    );
+  }
+  return envelope;
+}
+
 describe("reta-final sync engine integration", () => {
   let storeModule;
   let outbox;
@@ -148,10 +214,12 @@ describe("reta-final sync engine integration", () => {
     guard = { verified: true },
     write = async () => ({ updatedAt: "2026-10-20T12:30:00.000Z" }),
     conflict = null,
+    pendingRecord = null,
   } = {}) {
     order = [];
     let pendingEnvelope = null;
     let pendingAcademicOnly = false;
+    let currentPendingRecord = pendingRecord;
     const state = {
       config: {
         firestoreSync: {
@@ -192,10 +260,12 @@ describe("reta-final sync engine integration", () => {
       enqueueFirestoreSnapshot: vi.fn(async (envelope, options = {}) => {
         pendingEnvelope = envelope;
         pendingAcademicOnly = options.academicOnly === true;
+        currentPendingRecord = null;
         return true;
       }),
       getPendingFirestoreSnapshot: vi.fn(async () =>
-        pendingEnvelope
+        currentPendingRecord ??
+        (pendingEnvelope
           ? {
               id: "latest_snapshot",
               status: "pending",
@@ -203,12 +273,39 @@ describe("reta-final sync engine integration", () => {
               academicOnly: pendingAcademicOnly,
               envelope: pendingEnvelope,
             }
-          : null,
+          : null),
       ),
+      setPendingRecord: (record) => {
+        currentPendingRecord = record;
+        pendingEnvelope = record?.envelope ?? null;
+      },
+      replacePendingFirestoreSnapshotEnvelope: vi.fn(async (envelope, expected = {}) => {
+        if (!currentPendingRecord) return false;
+        if (
+          expected.queuedAt !== undefined &&
+          currentPendingRecord.queuedAt !== expected.queuedAt
+        ) {
+          return false;
+        }
+        if (
+          expected.sentAt !== undefined &&
+          (currentPendingRecord.envelope?.sentAt ?? null) !== expected.sentAt
+        ) {
+          return false;
+        }
+        currentPendingRecord = {
+          ...currentPendingRecord,
+          envelope,
+          lastError: null,
+        };
+        pendingEnvelope = envelope;
+        return true;
+      }),
       markFirestoreSnapshotSynced: vi.fn(async () => {
         order.push("mark-synced");
         pendingEnvelope = null;
         pendingAcademicOnly = false;
+        currentPendingRecord = null;
         return true;
       }),
       markFirestoreSnapshotFailed: vi.fn(async () => true),
@@ -1694,5 +1791,210 @@ describe("reta-final sync engine integration", () => {
     expect(storeModule.state.planejamento.planId).toBe("rfplan_local");
     expect(storeModule.state.planejamento.retaFinal.blocos).toHaveLength(180);
     expect(storeModule.state.config.firestoreSync.baseRevision).toBe(0);
+  });
+
+  it("repairs an oversized pending envelope and preserves later academic data", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, basePlan: localPlan, remote });
+    const sync = storeModule.state.config.firestoreSync;
+    sync.baseRemoteUpdatedAt = remote.payloadUpdatedAt;
+    sync.remoteUpdatedAt = remote.payloadUpdatedAt;
+    storeModule.state.eventos = [
+      { id: "ev_a", status: "estudei", tempo: 10 },
+    ];
+    storeModule.state.editais = [{ id: "ed_1", nome: "TJPB" }];
+    const pending = pendingEnvelopeFor(
+      storeModule.state,
+      localPlan,
+      remote,
+      "2026-10-26T20:00:00.000Z",
+      true,
+    );
+    expect(getFirestoreEnvelopeSizeBytes(pending)).toBeGreaterThan(
+      FIRESTORE_ENVELOPE_MAX_BYTES,
+    );
+    outbox.setPendingRecord({
+      id: "latest_snapshot",
+      status: "pending",
+      attempts: 1,
+      queuedAt: "2026-10-26T20:00:01.000Z",
+      envelope: pending,
+    });
+    storeModule.state.eventos.push({
+      id: "ev_b",
+      status: "estudei",
+      tempo: 20,
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(true);
+    expect(
+      outbox.replacePendingFirestoreSnapshotEnvelope,
+    ).toHaveBeenCalledWith(expect.any(Object), {
+      queuedAt: "2026-10-26T20:00:01.000Z",
+      sentAt: "2026-10-26T20:00:00.000Z",
+    });
+    expect(repository.verifyRetaFinalGuard).toHaveBeenCalled();
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    const written = repository.writeFirestoreSnapshot.mock.calls[0][2];
+    expect(written.payload.config.manualSyncHistory).toBeUndefined();
+    expect(getFirestoreEnvelopeSizeBytes(written)).toBeLessThan(
+      FIRESTORE_ENVELOPE_MAX_BYTES,
+    );
+    expect(written.payload.planejamento.retaFinal.blocos).toHaveLength(180);
+    expect(written.payload.eventos.map((item) => item.id)).toEqual(
+      expect.arrayContaining(["ev_a", "ev_b"]),
+    );
+    expect(written.payload.editais.map((item) => item.id)).toContain("ed_1");
+    expect(written.retaFinalSync).toMatchObject({
+      planId: "rfplan_local",
+      baseRevision: 0,
+      snapshotRevision: 1,
+      baseSnapshotRevision: 0,
+      state: "active",
+      baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+    });
+    expect(computeRetaFinalPlanDigest(written.payload.planejamento)).toBe(
+      computeRetaFinalPlanDigest(localPlan),
+    );
+    expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();
+    expect(storeModule.state.config.firestoreSync.conflict).toBeNull();
+
+    expect(await engine.flushFirestoreOutbox({ manual: true })).toBe(true);
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a repaired pending snapshot blocked when the legacy plan diverges", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    localPlan.retaFinal.blocos[3] = {
+      ...localPlan.retaFinal.blocos[3],
+      minutos: 120,
+    };
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, basePlan: localPlan, remote });
+    storeModule.state.config.firestoreSync.baseRemoteUpdatedAt =
+      remote.payloadUpdatedAt;
+    const pending = pendingEnvelopeFor(
+      storeModule.state,
+      localPlan,
+      remote,
+      "2026-10-26T20:00:00.000Z",
+      true,
+    );
+    outbox.setPendingRecord({
+      id: "latest_snapshot",
+      status: "pending",
+      attempts: 1,
+      queuedAt: "2026-10-26T20:00:01.000Z",
+      envelope: pending,
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(false);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "legacy-plan-mismatch" }),
+    );
+    const remaining = await outbox.getPendingFirestoreSnapshot();
+    expect(remaining).not.toBeNull();
+    expect(remaining.envelope.payload.config.manualSyncHistory).toBeUndefined();
+    expect(getFirestoreEnvelopeSizeBytes(remaining.envelope)).toBeLessThan(
+      FIRESTORE_ENVELOPE_MAX_BYTES,
+    );
+  });
+
+  it("uses a newer pending snapshot instead of overwriting it during repair", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, basePlan: localPlan, remote });
+    storeModule.state.config.firestoreSync.baseRemoteUpdatedAt =
+      remote.payloadUpdatedAt;
+    const oldPending = pendingEnvelopeFor(
+      storeModule.state,
+      localPlan,
+      remote,
+      "2026-10-26T20:00:00.000Z",
+      true,
+    );
+    const newer = pendingEnvelopeFor(
+      storeModule.state,
+      localPlan,
+      remote,
+      "2026-10-26T20:10:00.000Z",
+      false,
+    );
+    outbox.setPendingRecord({
+      id: "latest_snapshot",
+      status: "pending",
+      attempts: 1,
+      queuedAt: "2026-10-26T20:00:01.000Z",
+      envelope: oldPending,
+    });
+    outbox.replacePendingFirestoreSnapshotEnvelope.mockImplementation(async () => {
+      outbox.setPendingRecord({
+        id: "latest_snapshot",
+        status: "pending",
+        attempts: 0,
+        queuedAt: "2026-10-26T20:10:01.000Z",
+        envelope: newer,
+      });
+      return false;
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(true);
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    const written = repository.writeFirestoreSnapshot.mock.calls[0][2];
+    expect(written.sentAt).toBe("2026-10-26T20:10:00.000Z");
+    expect(written.payload.config.manualSyncHistory).toBeUndefined();
+    expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();
+  });
+
+  it("preserves local manual sync history on a forced adoption pull", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+    storeModule.state.config.manualSyncHistory = [{ at: "local-history" }];
+    storeModule.state.config.lastManualSyncResults = { at: "local-last" };
+
+    const result = await engine.pullFromFirestore(true, {
+      discardPending: true,
+    });
+
+    expect(result).toBe(true);
+    expect(storeModule.state.config.manualSyncHistory).toEqual([
+      { at: "local-history" },
+    ]);
+    expect(storeModule.state.config.lastManualSyncResults).toEqual({
+      at: "local-last",
+    });
+  });
+
+  it("blocks an academic envelope still above 1 MiB without trimming data", async () => {
+    const localPlan = localV2FromLegacy(legacyRfPlan());
+    await boot({ plan: localPlan, remote: legacyRfEnvelope(legacyRfPlan()) });
+    storeModule.state.editais = [
+      { id: "ed_huge", nome: "Huge", conteudo: "x".repeat(1100000) },
+    ];
+
+    const result = await engine.queueFirestoreSnapshotFromState(
+      storeModule.state,
+      { manual: true },
+    );
+
+    expect(result).toBe(false);
+    expect(outbox.enqueueFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(storeModule.state.config.firestoreSync.lastError).toContain(
+      "segmentacao necessaria",
+    );
+    expect(storeModule.state.editais[0].conteudo).toHaveLength(1100000);
   });
 });

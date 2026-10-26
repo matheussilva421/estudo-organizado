@@ -24,6 +24,7 @@ import {
 } from './firestore-sync-engine.js?v=8.37';
 import { forceCloudflareSync } from '../cloud-sync.js?v=8.37';
 import { syncWithDrive } from '../drive-sync.js?v=8.37';
+import { summarizeSyncConflict } from './sync-history.js?v=8.37';
 
 export const SYNC_CHANNELS = ['firestore', 'cloudflare', 'drive'];
 
@@ -205,8 +206,8 @@ async function _runAll(trigger) {
       drive: result.drive.error || null,
     },
     conflicts: {
-      firestore: result.firestore.conflict || null,
-      cloudflare: result.cloudflare.conflict || null,
+      firestore: summarizeSyncConflict(result.firestore.conflict),
+      cloudflare: summarizeSyncConflict(result.cloudflare.conflict),
     },
   };
   state.config.lastManualSyncResults = runRecord;

@@ -6,7 +6,7 @@
 - Branch: `main` (sem branch/PR novo)
 - HEAD no início: `34f40431b0d7d1169eb64680703a810d1a55f16d` (igual a `origin/main`)
 - Estado: hotfix commitado localmente na `main`, **sem push ou deploy**
-- Versão de cache: `9.73` (bumps 9.71→9.72→9.73; `bump:check` ok)
+- Versão de cache: `9.74` (bumps 9.71→9.72→9.73→9.74; `bump:check` ok)
 - Issue: `matheussilva421/estudo-organizado#107`
 
 ## Objetivo
@@ -40,7 +40,7 @@ Nenhuma regra Firestore foi alterada. A regra publicada em 9.71 já contém o ra
 - E2E Playwright (`sync-dados`, `sync-devices`, `sync-simulation-expanded`): **18/18**.
 - `npm run lint`: 0 erros (warnings pré-existentes).
 - `npm run format:check`: falha pré-existente em 166 arquivos, inclusive o engine antes desta mudança; os dois arquivos novos estão formatados.
-- Gates finais pós-bump: `bump:check` ok (9.73); testes de SW/versão **105/105**; gate de conflito persistido **4/4** (poll, auto-pull, sync-now e divergência) e arquivos focados **64/64**.
+- Gates finais pós-bump: `bump:check` ok (9.74); testes de SW/versão **105/105**; gate de conflito persistido **4/4**; hotfix de tamanho **115/115** focados; emulador com fixture sanitizado de **889.117 bytes**: **73/73** e readback intacto.
 
 ## Revisão independente
 
@@ -87,6 +87,32 @@ Metadados locais do backup, sem conteúdo: plano v2 válido e ativo, `revision=0
 180 blocos/180 IDs, `dataFinal=2027-02-28`, 389 eventos, 4 editais, 82 questões,
 51 leituras, 26 videoaulas, 51 páginas e 1 revisão.
 
+## Hotfix de tamanho Firestore (pós-9.73)
+
+A tentativa real de adoção falhou com **1.210.602 bytes** contra o limite de
+**1.048.576**; `payload.config.manualSyncHistory` ocupava **508.364 bytes**
+(20 registros, 6 conflitos completos repetidos).
+
+- `src/js/sync/sync-history.js`: resumos operacionais bounded; planos completos
+  deixam de entrar em `manualSyncHistory`/`lastManualSyncResults`.
+- `src/js/sync/firestore-schema.js`: o payload Firestore remove apenas
+  `manualSyncHistory` e `lastManualSyncResults`; os logs continuam no estado
+  local/backup. `getFirestoreEnvelopeSizeBytes` mede o JSON UTF-8.
+- `src/js/sync/firestore-outbox.js`: troca atômica da envelope pendente,
+  exigindo o mesmo `queuedAt`/`sentAt`; preserva `attempts`, `nextAttemptAt`,
+  status e a identidade da outbox.
+- `src/js/sync/firestore-sync-engine.js`: em boot/reconciliação e antes do flush,
+  uma envelope legada com histórico ou acima do limite é reconstruída a partir do
+  estado atual (inclui alterações acadêmicas posteriores), preservando
+  `baseRevision=0`, `snapshotRevision=1`, plano/digest e `baseRemoteUpdatedAt`.
+  Guard de 1 MiB falha de modo fechado; nunca corta `editais`, `eventos` ou
+  `planejamento`. O pull forçado preserva o histórico local.
+
+Validação: **115 testes focados**; emulador **73/73** com fixture sanitizado de
+**889.117 bytes JSON**, abaixo do limite, e readback intacto de 180 blocos, 389
+eventos, 4 editais e 82 questões; `bump:check` ok em 9.74; testes de SW/versão
+**105/105**.
+
 ## Risco residual
 
 - Cada dispositivo que migrou localmente gerou seu próprio `planId`. A adoção em um dispositivo cria a linhagem remota; outro dispositivo com `planId` diferente verá conflito de `lineage` e exigirá reconciliação explícita. O hotfix não une linhagens automaticamente.
@@ -99,11 +125,12 @@ Metadados locais do backup, sem conteúdo: plano v2 válido e ativo, `revision=0
 2. Antes de sincronizar, exportar um novo backup local pela interface e guardá-lo fora do repositório.
 3. Confirmar que a versão publicada contém o hotfix (recarregar a página uma vez, sem limpar dados) e entrar com a conta do proprietário.
 4. Abrir a Central de Sincronização. O `missing-remote-plan` não deve reaparecer. Com planos equivalentes, o app registra a base legada sem publicar o plano; o descritor v2 é enviado na primeira sincronização manual/automática.
+   No boot/reconciliação, a envelope pendente de ~1,4 MB é reconstruída automaticamente: histórico operacional removido, plano/dados atuais preservados, `queuedAt`/`attempts` mantidos. Não limpar a outbox.
 5. Conferir no diagnóstico (sem publicar conteúdo pessoal) `baseRevision = 0`, `snapshotRevision` avançando de 0 para 1, `baseRemoteUpdatedAt` igual ao `payloadUpdatedAt` legado e `conflict = null`.
 6. Validar a leitura de volta: 180 blocos, eventos, notas, tempo, questões, revisões e editais preservados; recarregar e confirmar persistência.
 7. Se aparecer `legacy-plan-mismatch`: parar. Exportar o diagnóstico, comparar os caminhos em `differences` e reconciliar pelo editor/checkpoints. Não usar `Forçar sincronização`, `Baixar` ou `Enviar local` como contorno.
 8. Se houver segundo dispositivo: ele pode apresentar `lineage` (planId próprio). Não force; trate como reconciliação separada.
-9. Push e deploy com autorização específica (o commit local do hotfix já está feito).
+9. Push e deploy com autorização específica (os commits locais dos hotfixes já estão feitos).
 
 ## Pendências
 
@@ -113,6 +140,9 @@ Metadados locais do backup, sem conteúdo: plano v2 válido e ativo, `revision=0
   planejamento, não o estado acadêmico nem o snapshot do instante da migração.
 - Se houver segundo dispositivo com `planId` próprio, tratar o conflito de
   `lineage` como reconciliação separada; não forçar.
-- O deploy deve publicar o cache `9.73`; a primeira carga pode ainda executar o
-  SW antigo até a ativação. Confirmar `DIAGNOSTIC_BUILD_VERSION = 9.73` antes de
+- O deploy deve publicar o cache `9.74`; a primeira carga pode ainda executar o
+  SW antigo até a ativação. Confirmar `DIAGNOSTIC_BUILD_VERSION = 9.74` antes de
   sincronizar.
+- Se o envelope reconstruído ainda exceder 1 MiB, o motor falha fechado e
+  preserva `editais`, `eventos` e `planejamento`; exportar o diagnóstico e
+  segmentar conforme a arquitetura, sem corte silencioso.

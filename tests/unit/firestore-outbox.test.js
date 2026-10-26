@@ -121,3 +121,98 @@ describe('firestore-outbox expected identity', () => {
     expect(records.get('latest_snapshot').queuedAt).toBe('2026-10-20T11:00:00.000Z');
   });
 });
+
+describe('firestore-outbox pending envelope replacement', () => {
+  afterEach(() => {
+    vi.resetModules();
+  });
+
+  it('replaces only the matching queuedAt/sentAt and preserves attempts and queue identity', async () => {
+    const records = new Map([
+      [
+        'latest_snapshot',
+        {
+          id: 'latest_snapshot',
+          status: 'pending',
+          attempts: 1,
+          queuedAt: 'q1',
+          nextAttemptAt: 'n1',
+          lastError: 'too large',
+          envelope: { sentAt: 's1', payload: { config: { manualSyncHistory: [1] } } },
+        },
+      ],
+    ]);
+    let transaction;
+    const store = {
+      get(key) {
+        const request = {};
+        queueMicrotask(() => {
+          request.result = records.get(key) ?? null;
+          request.onsuccess?.();
+        });
+        return request;
+      },
+      put(entry) {
+        const request = {};
+        queueMicrotask(() => {
+          records.set(entry.id, entry);
+          request.onsuccess?.();
+        });
+        return request;
+      },
+      delete(key) {
+        const request = {};
+        queueMicrotask(() => {
+          records.delete(key);
+          request.onsuccess?.();
+        });
+        return request;
+      },
+    };
+    transaction = { objectStore: () => store, oncomplete: null, onerror: null };
+    const db = {
+      objectStoreNames: { contains: () => true },
+      transaction: () => transaction,
+    };
+    vi.doMock('../../src/js/store.js?v=8.37', () => ({
+      db,
+      FIRESTORE_CONFLICT_STORE: 'conflicts',
+      FIRESTORE_META_STORE: 'meta',
+      FIRESTORE_OUTBOX_STORE: 'outbox',
+    }));
+    const outbox = await import('../../src/js/sync/firestore-outbox.js?v=8.37');
+
+    const compact = { sentAt: 's2', payload: { config: {} } };
+    expect(
+      await outbox.replacePendingFirestoreSnapshotEnvelope(compact, {
+        queuedAt: 'q1',
+        sentAt: 's1',
+      }),
+    ).toBe(true);
+    const updated = records.get('latest_snapshot');
+    expect(updated).toMatchObject({
+      queuedAt: 'q1',
+      attempts: 1,
+      nextAttemptAt: 'n1',
+      status: 'pending',
+    });
+    expect(updated.envelope).toBe(compact);
+    expect(updated.lastError).toBeNull();
+
+    expect(
+      await outbox.replacePendingFirestoreSnapshotEnvelope(
+        { sentAt: 's3' },
+        { queuedAt: 'q1', sentAt: 's1' },
+      ),
+    ).toBe(false);
+    expect(records.get('latest_snapshot').envelope).toBe(compact);
+
+    records.delete('latest_snapshot');
+    expect(
+      await outbox.replacePendingFirestoreSnapshotEnvelope(
+        { sentAt: 's4' },
+        { queuedAt: 'q1', sentAt: 's2' },
+      ),
+    ).toBe(false);
+  });
+});
