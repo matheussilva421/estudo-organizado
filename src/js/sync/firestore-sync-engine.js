@@ -48,6 +48,11 @@ import {
   readRetaFinalSyncDescriptor,
   validateRetaFinalEnvelopeWrite,
 } from "./reta-final-protocol.js?v=8.37";
+import {
+  assessLegacyRetaFinalWrite,
+  buildLegacyRetaFinalAdoption,
+  isRetaFinalPlanShape,
+} from "./reta-final-legacy.js?v=8.37";
 import { mergeRetaFinalPlans } from "../logic/reta-final-merge.js?v=8.37";
 
 const readFirestoreSnapshot = (...args) =>
@@ -81,6 +86,8 @@ function getConfig() {
 }
 
 const RETA_FINAL_CONFLICT = "reta-final-conflict";
+const LEGACY_PLAN_MISMATCH_REASON =
+  "O planejamento Reta Final do Firestore e anterior ao schema v2 e diverge do plano local; compare as diferencas antes de publicar qualquer alteracao.";
 
 function isRetaFinalConflict(conflict) {
   return conflict?.type === RETA_FINAL_CONFLICT;
@@ -265,6 +272,7 @@ async function registerRetaFinalConflict(
       getRetaFinalPayloadPlan(state),
     remotePlan: incoming.remotePlan ?? remote?.payload?.planejamento ?? null,
     reason:
+      incoming.reason ||
       "A Reta Final v2 remota exige reconciliacao humana antes de nova escrita.",
   };
   if (error) conflict.error = error?.code || error?.message || String(error);
@@ -423,6 +431,37 @@ function pullLocalIdentity(localPlan) {
   };
 }
 
+function legacyAdoptionAlreadyRecorded(config, remote, plan) {
+  const base = verifiedRetaFinalBase(config);
+  if (!base) return false;
+  if (config.baseRevision !== 0 || config.snapshotRevision !== 0) return false;
+  if (config.baseRemoteUpdatedAt !== getEnvelopeUpdatedAt(remote)) return false;
+  return (
+    computeRetaFinalPlanDigest(base) === computeRetaFinalPlanDigest(plan)
+  );
+}
+
+function mergeLegacyAdoptionState(remote) {
+  // Academic-only merge: the plan was proven equivalent, so the local v2
+  // identity and revision stay authoritative while remote academic data is
+  // pulled in without touching the planning.
+  const payload = { ...(remote?.payload || {}) };
+  delete payload.planejamento;
+  return mergeStudyStates(
+    { ...state, planejamento: clonePlan(state.planejamento) },
+    payload,
+  );
+}
+
+function legacyAdoptionNextState(remote, force) {
+  if (!force) return mergeLegacyAdoptionState(remote);
+  // "Baixar dados" keeps replace semantics: the remote academic payload wins,
+  // but the proven local v2 identity/revision stays on top of it.
+  const replaced = applyEnvelopeToLocalState(remote, getConfig());
+  replaced.planejamento = clonePlan(state.planejamento);
+  return replaced;
+}
+
 function applyRetaFinalPull(remote, config, { force = false } = {}) {
   const localPlan = getRetaFinalPayloadPlan(state);
   const remotePlan = getRetaFinalPayloadPlan({
@@ -444,6 +483,43 @@ function applyRetaFinalPull(remote, config, { force = false } = {}) {
   }
   if (remoteDescriptor && !remotePlan)
     return { handled: true, conflict: "invalid-remote-plan" };
+  const rawRemotePlan = remote?.payload?.planejamento;
+  if (
+    !remotePlan &&
+    localPlan &&
+    localPlan.ativo === true &&
+    !remoteHasDescriptor &&
+    rawRemotePlan?.tipo === "reta_final"
+  ) {
+    const adoption = buildLegacyRetaFinalAdoption({
+      legacyPlan: rawRemotePlan,
+      localPlan,
+    });
+    if (adoption.status !== "equivalent") {
+      return {
+        handled: true,
+        conflict:
+          adoption.status === "mismatch"
+            ? "legacy-plan-mismatch"
+            : "invalid-remote-plan",
+        legacyAdoptionStatus: adoption.status,
+        differences: adoption.differences ?? adoption.reasons ?? [],
+        localPlan,
+        remotePlan: null,
+      };
+    }
+    if (legacyAdoptionAlreadyRecorded(config, remote, adoption.plan)) {
+      return { handled: true, applied: false };
+    }
+    return {
+      handled: true,
+      applied: true,
+      legacyAdoption: true,
+      basePlan: adoption.plan,
+      localIdentity,
+      nextState: legacyAdoptionNextState(remote, force),
+    };
+  }
   if (!remotePlan && localPlan)
     return { handled: true, conflict: "missing-remote-plan" };
   if (remotePlan && !localPlan)
@@ -609,6 +685,11 @@ function pullConflictDecision(outcome) {
       remotePlan: outcome.remotePlan ?? null,
       mergeConflicts: outcome.mergeConflicts ?? null,
       mergeValid: outcome.mergeValid ?? null,
+      legacyAdoptionStatus: outcome.legacyAdoptionStatus ?? null,
+      differences: outcome.differences ?? null,
+      ...(outcome.conflict === "legacy-plan-mismatch"
+        ? { reason: LEGACY_PLAN_MISMATCH_REASON }
+        : {}),
     },
   };
 }
@@ -1589,10 +1670,42 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     if (!decision.allowed) {
       return await registerRetaFinalConflict(config, decision, pending, remote);
     }
+    const legacyWrite = assessLegacyRetaFinalWrite({
+      plan: getRetaFinalPayloadPlan({
+        planejamento: pending.envelope?.payload?.planejamento,
+      }),
+      remoteEnvelope: remote,
+    });
+    if (!legacyWrite.allowed) {
+      const cause =
+        legacyWrite.reason === "ambiguous-v2-remote"
+          ? "invalid-remote-plan"
+          : "legacy-plan-mismatch";
+      await registerRetaFinalConflict(
+        config,
+        {
+          allowed: false,
+          reason: legacyWrite.reason,
+          conflict: {
+            type: RETA_FINAL_CONFLICT,
+            cause,
+            differences: legacyWrite.differences ?? null,
+            ...(cause === "legacy-plan-mismatch"
+              ? { reason: LEGACY_PLAN_MISMATCH_REASON }
+              : {}),
+          },
+        },
+        pending,
+        remote,
+      );
+      await markFirestoreSnapshotFailed(new Error(cause));
+      return false;
+    }
   } else if (
     remote &&
     (Object.hasOwn(remote, "retaFinalSync") ||
-      getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento }))
+      getRetaFinalPayloadPlan({ planejamento: remote?.payload?.planejamento }) ||
+      isRetaFinalPlanShape(remote?.payload?.planejamento))
   ) {
     return await registerRetaFinalConflict(
       config,
@@ -1823,8 +1936,12 @@ export async function pullFromFirestore(forceOverwrite = false, options = {}) {
           state.config.firestoreSync = preservedFirestoreSync;
       }
       const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
-      if (Object.hasOwn(remote, "retaFinalSync")) {
-        setRetaFinalBaseFromRemote(config, remote, remotePlan);
+      if (Object.hasOwn(remote, "retaFinalSync") || outcome.basePlan) {
+        setRetaFinalBaseFromRemote(
+          config,
+          remote,
+          outcome.basePlan ?? remotePlan,
+        );
       } else {
         Object.assign(config, {
           basePlan: null,

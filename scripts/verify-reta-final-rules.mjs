@@ -128,6 +128,57 @@ function legacyEnvelope(payloadUpdatedAt = "2026-10-20T12:30:00.000Z") {
   };
 }
 
+// Real pre-v2 shape: the planning has no planId, revision or
+// schemaVersionRetaFinal, exactly like the snapshot written by 9.70.
+function legacyRetaFinalPlan() {
+  return {
+    ativo: true,
+    tipo: "reta_final",
+    disciplinas: ["d1"],
+    relevancia: {},
+    horarios: { dataFinal: "2026-12-20" },
+    materiasPorDia: 3,
+    sequencia: [],
+    skippedSlots: [],
+    slotOverrides: [],
+    ciclosCompletos: 0,
+    dataInicioCicloAtual: "2026-09-01T12:00:00.000Z",
+    updatedAt: "2026-10-22T17:45:50.000Z",
+    retaFinal: {
+      nome: "Reta Final legada",
+      dataFinal: "2026-12-20",
+      minutosPadrao: 60,
+      importadoEm: "2026-09-01T12:00:00.000Z",
+      blocos: [
+        {
+          id: "rf_001",
+          discId: "d1",
+          topicos: [{ assId: "a1", aulaId: null }],
+          minutos: 60,
+          data: "2026-10-10",
+          dataOriginal: "2026-10-10",
+          status: "pendente",
+          rolagens: 0,
+        },
+      ],
+    },
+  };
+}
+
+function legacyRetaFinalEnvelope(
+  payloadUpdatedAt = "2026-10-22T17:45:50.000Z",
+) {
+  return {
+    version: 1,
+    schemaVersion: 6,
+    deviceId: "legacy-device",
+    baseRemoteUpdatedAt: null,
+    payloadUpdatedAt,
+    sentAt: payloadUpdatedAt,
+    payload: { config: {}, planejamento: legacyRetaFinalPlan() },
+  };
+}
+
 function guardDoc(deviceId = "web-rules-test") {
   return {
     schema: 2,
@@ -1281,6 +1332,174 @@ async function main() {
         ),
         value,
       );
+    }),
+  );
+
+  // 5b. Adoption over a real pre-v2 planning and its CAS boundaries.
+  await seed(
+    "uid-adopt-legacy",
+    legacyRetaFinalEnvelope("2026-10-22T17:45:50.000Z"),
+  );
+  results.push(
+    await expectAllowed("v2 adoption over a real pre-v2 plan", () => {
+      const value = envelope({
+        planId: "rfplan_local",
+        revision: 0,
+        baseRevision: 0,
+      });
+      value.retaFinalSync.baseRemoteUpdatedAt = "2026-10-22T17:45:50.000Z";
+      return setDoc(
+        doc(
+          uidDb("uid-adopt-legacy"),
+          "users",
+          "uid-adopt-legacy",
+          "snapshots",
+          "main",
+        ),
+        value,
+      );
+    }),
+  );
+  results.push(
+    await expectAllowed("plan advance after a legacy adoption", () => {
+      const value = envelope({
+        planId: "rfplan_local",
+        revision: 1,
+        baseRevision: 0,
+        snapshotRevision: 2,
+        baseSnapshotRevision: 1,
+      });
+      return setDoc(
+        doc(
+          uidDb("uid-adopt-legacy"),
+          "users",
+          "uid-adopt-legacy",
+          "snapshots",
+          "main",
+        ),
+        value,
+      );
+    }),
+  );
+  results.push(
+    await expectDenied("second lineage cannot reuse an adopted document", () => {
+      const value = envelope({
+        planId: "rfplan_other",
+        revision: 0,
+        baseRevision: 0,
+      });
+      value.retaFinalSync.baseRemoteUpdatedAt = "2026-10-22T17:45:50.000Z";
+      return setDoc(
+        doc(
+          uidDb("uid-adopt-legacy"),
+          "users",
+          "uid-adopt-legacy",
+          "snapshots",
+          "main",
+        ),
+        value,
+      );
+    }),
+  );
+
+  await seed(
+    "uid-adopt-race",
+    legacyRetaFinalEnvelope("2026-10-22T17:45:50.000Z"),
+  );
+  results.push(
+    await expectAllowed(
+      "legacy writer updates the document during migration",
+      () =>
+        setDoc(
+          doc(
+            uidDb("uid-adopt-race"),
+            "users",
+            "uid-adopt-race",
+            "snapshots",
+            "main",
+          ),
+          legacyRetaFinalEnvelope("2026-10-22T18:10:00.000Z"),
+        ),
+    ),
+  );
+  results.push(
+    await expectDenied(
+      "v2 adoption blocked after a concurrent legacy write",
+      () => {
+        const value = envelope({
+          planId: "rfplan_local",
+          revision: 0,
+          baseRevision: 0,
+        });
+        value.retaFinalSync.baseRemoteUpdatedAt =
+          "2026-10-22T17:45:50.000Z";
+        return setDoc(
+          doc(
+            uidDb("uid-adopt-race"),
+            "users",
+            "uid-adopt-race",
+            "snapshots",
+            "main",
+          ),
+          value,
+        );
+      },
+    ),
+  );
+
+  // 5c. Academic payload survives the adoption write and the readback.
+  await seed(
+    "uid-adopt-academic",
+    legacyRetaFinalEnvelope("2026-10-22T17:45:50.000Z"),
+  );
+  results.push(
+    await expectAllowed("v2 adoption keeps academic payload", () => {
+      const value = envelope({
+        planId: "rfplan_local",
+        revision: 0,
+        baseRevision: 0,
+      });
+      value.retaFinalSync.baseRemoteUpdatedAt = "2026-10-22T17:45:50.000Z";
+      value.payload.eventos = [
+        {
+          id: "ev-adopt",
+          status: "estudei",
+          tempo: 30,
+          notas: "nota-sintetica",
+        },
+      ];
+      value.payload.habitos = { questoes: [{ id: "q-adopt", total: 10 }] };
+      value.payload.editais = [{ id: "ed-adopt", nome: "Sintetico" }];
+      return setDoc(
+        doc(
+          uidDb("uid-adopt-academic"),
+          "users",
+          "uid-adopt-academic",
+          "snapshots",
+          "main",
+        ),
+        value,
+      );
+    }),
+  );
+  results.push(
+    await expectAllowed("academic payload readback after adoption", async () => {
+      const snap = await getDoc(
+        doc(
+          uidDb("uid-adopt-academic"),
+          "users",
+          "uid-adopt-academic",
+          "snapshots",
+          "main",
+        ),
+      );
+      const data = snap.data();
+      const preserved =
+        data?.payload?.eventos?.[0]?.notas === "nota-sintetica" &&
+        data?.payload?.eventos?.[0]?.tempo === 30 &&
+        data?.payload?.habitos?.questoes?.[0]?.total === 10 &&
+        data?.payload?.editais?.[0]?.id === "ed-adopt";
+      if (!preserved) throw new Error("academic payload was not preserved");
     }),
   );
 

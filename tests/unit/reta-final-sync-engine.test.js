@@ -4,6 +4,7 @@ import {
   computeRetaFinalPlanDigest,
   getRetaFinalSyncCapabilities,
 } from "../../src/js/sync/reta-final-protocol.js";
+import { migrateRetaFinalV2 } from "../../src/js/logic/reta-final-schema.js";
 
 const CAPABILITIES = getRetaFinalSyncCapabilities({});
 
@@ -63,6 +64,72 @@ function envelopeFor(plan, descriptorOverrides = {}) {
       disciplinas: [],
     },
     retaFinalSync: descriptor,
+  };
+}
+
+function legacyRfPlan({ blocks = 180, ativo = true } = {}) {
+  const blocos = [];
+  for (let index = 0; index < blocks; index += 1) {
+    const data = new Date(Date.UTC(2026, 8, 1 + (index % 100)))
+      .toISOString()
+      .slice(0, 10);
+    blocos.push({
+      id: `rf_${String(index).padStart(3, "0")}`,
+      data,
+      dataOriginal: data,
+      discId: `d${index % 3}`,
+      topicos: [{ assId: `a${index % 5}`, aulaId: null }],
+      minutos: 45 + (index % 3) * 15,
+      status: index % 9 === 0 ? "concluido" : "pendente",
+      rolagens: 0,
+    });
+  }
+  return {
+    ativo,
+    tipo: "reta_final",
+    disciplinas: ["d0", "d1", "d2"],
+    relevancia: {},
+    horarios: { dataFinal: "2026-12-20" },
+    materiasPorDia: 3,
+    sequencia: [],
+    skippedSlots: [],
+    slotOverrides: [],
+    ciclosCompletos: 1,
+    dataInicioCicloAtual: "2026-09-01T12:00:00.000Z",
+    updatedAt: "2026-10-22T17:45:50.000Z",
+    retaFinal: {
+      nome: "Reta Final legada",
+      dataFinal: "2026-12-20",
+      minutosPadrao: 60,
+      importadoEm: "2026-09-01T12:00:00.000Z",
+      blocos,
+    },
+  };
+}
+
+function localV2FromLegacy(legacy, planId = "rfplan_local") {
+  const migration = migrateRetaFinalV2(JSON.parse(JSON.stringify(legacy)), {
+    makePlanId: () => planId,
+  });
+  if (!migration.changed) throw new Error("fixture nao migrou");
+  return migration.plan;
+}
+
+function legacyRfEnvelope(plan, payloadUpdatedAt = "2026-10-22T17:45:50.000Z") {
+  return {
+    version: 1,
+    schemaVersion: 6,
+    deviceId: "legacy-device",
+    baseRemoteUpdatedAt: null,
+    payloadUpdatedAt,
+    sentAt: payloadUpdatedAt,
+    payload: {
+      planejamento: plan,
+      config: {},
+      eventos: [],
+      editais: [],
+      disciplinas: [],
+    },
   };
 }
 
@@ -220,6 +287,7 @@ describe("reta-final sync engine integration", () => {
   });
 
   async function boot(options) {
+    vi.doUnmock("../../src/js/sync/firestore-schema.js?v=8.37");
     setup(options);
     engine = await import("../../src/js/sync/firestore-sync-engine.js?v=8.37");
     engine.__setCurrentUser({ uid: "uid-1" });
@@ -1075,5 +1143,418 @@ describe("reta-final sync engine integration", () => {
       expect.objectContaining({ step: "retafinal-guard", status: "blocked" }),
     );
     expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it("adopts an equivalent 180-block legacy snapshot instead of missing-remote-plan", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    remote.payload.eventos = [
+      { id: "ev-legacy", status: "estudei", tempo: 25, notas: "remota" },
+    ];
+    await boot({ plan: localPlan, remote });
+    syncCenter.mergeStudyStates.mockImplementation((local, remotePayload) => ({
+      ...local,
+      eventos: [...(local.eventos || []), ...(remotePayload.eventos || [])],
+      config: { ...local.config },
+    }));
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(true);
+    expect(storeModule.state.eventos).toEqual([
+      { id: "ev-legacy", status: "estudei", tempo: 25, notas: "remota" },
+    ]);
+    expect(storeModule.state.planejamento.planId).toBe("rfplan_local");
+    expect(storeModule.state.planejamento.retaFinal.blocos).toHaveLength(180);
+    expect(
+      syncCenter.mergeStudyStates.mock.calls[0][1].planejamento,
+    ).toBeUndefined();
+    const sync = storeModule.state.config.firestoreSync;
+    expect(sync.basePlan).toMatchObject({ planId: "rfplan_local", revision: 0 });
+    expect(sync.baseRevision).toBe(0);
+    expect(sync.snapshotRevision).toBe(0);
+    expect(sync.baseRemoteUpdatedAt).toBe(remote.payloadUpdatedAt);
+    expect(sync.conflict).toBeNull();
+    expect(outbox.saveFirestoreConflict).not.toHaveBeenCalled();
+    expect(statuses()).toContain("synced");
+  });
+
+  it("does not re-apply an adoption already recorded in the local base", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+    syncCenter.mergeStudyStates.mockImplementation((local) => ({
+      ...local,
+      config: { ...local.config },
+    }));
+
+    expect(await engine.pollFirestoreRemote()).toBe(true);
+    const calls = syncCenter.mergeStudyStates.mock.calls.length;
+
+    expect(await engine.pollFirestoreRemote()).toBe(false);
+    expect(syncCenter.mergeStudyStates.mock.calls.length).toBe(calls);
+    expect(outbox.saveFirestoreConflict).not.toHaveBeenCalled();
+    expect(outbox.markFirestoreSnapshotSynced).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not clear the outbox when a write lands during a legacy adoption", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+    syncCenter.mergeStudyStates.mockImplementation((local) => ({
+      ...local,
+      config: { ...local.config },
+    }));
+    const pendingEnvelope = {
+      version: 1,
+      deviceId: "web-device1",
+      sentAt: "race-write",
+      payloadUpdatedAt: "2026-10-23T00:00:00.000Z",
+      payload: { planejamento: localPlan },
+    };
+    outbox.getPendingFirestoreSnapshot
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue({
+        id: "latest_snapshot",
+        status: "pending",
+        attempts: 0,
+        envelope: pendingEnvelope,
+      });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "pending-outbox" }),
+    );
+    expect(outbox.markFirestoreSnapshotSynced).not.toHaveBeenCalled();
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+  });
+
+  it("blocks the adoption when the legacy planning diverges materially", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    localPlan.retaFinal.blocos[10] = {
+      ...localPlan.retaFinal.blocos[10],
+      minutos: 120,
+    };
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    expect(syncCenter.mergeStudyStates).not.toHaveBeenCalled();
+    expect(outbox.markFirestoreSnapshotSynced).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "reta-final-conflict",
+        cause: "legacy-plan-mismatch",
+      }),
+    );
+    const saved = outbox.saveFirestoreConflict.mock.calls[0][0];
+    expect(saved.reason).toContain("anterior ao schema v2");
+    expect(saved.differences).toContain(
+      "retaFinal.blocos.rf_010.minutos",
+    );
+    expect(storeModule.state.planejamento).toBe(localPlan);
+    expect(storeModule.state.config.firestoreSync.basePlan).toBeNull();
+    expect(statuses()).toContain("conflict");
+  });
+
+  it("keeps missing-remote-plan when the legacy document has no planning", async () => {
+    const localPlan = localV2FromLegacy(legacyRfPlan());
+    const remote = legacyRfEnvelope(legacyRfPlan());
+    delete remote.payload.planejamento;
+    await boot({ plan: localPlan, remote });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "missing-remote-plan" }),
+    );
+    expect(storeModule.state.planejamento).toBe(localPlan);
+  });
+
+  it("distinguishes a malformed legacy planning from an absent one", async () => {
+    const localPlan = localV2FromLegacy(legacyRfPlan());
+    const remote = legacyRfEnvelope(legacyRfPlan());
+    remote.payload.planejamento = { ativo: true, tipo: "reta_final" };
+    await boot({ plan: localPlan, remote });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "invalid-remote-plan" }),
+    );
+    expect(storeModule.state.planejamento).toBe(localPlan);
+  });
+
+  it("refuses an adoption push over a divergent legacy planning", async () => {
+    const remoteLegacy = legacyRfPlan();
+    const localLegacy = legacyRfPlan();
+    localLegacy.retaFinal.blocos[4].minutos = 120;
+    const localPlan = localV2FromLegacy(localLegacy);
+    const remote = legacyRfEnvelope(remoteLegacy);
+    await boot({ plan: localPlan, remote });
+    storeModule.state.config.firestoreSync.remoteUpdatedAt =
+      remote.payloadUpdatedAt;
+
+    expect(
+      await engine.queueFirestoreSnapshotFromState(storeModule.state, {
+        manual: true,
+      }),
+    ).toBe(true);
+    const queued = await outbox.getPendingFirestoreSnapshot();
+    expect(queued.envelope.retaFinalSync).toMatchObject({
+      baseRevision: 0,
+      snapshotRevision: 1,
+      baseSnapshotRevision: 0,
+      state: "active",
+      baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(false);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "legacy-plan-mismatch" }),
+    );
+    expect(outbox.saveFirestoreConflict.mock.calls[0][0].reason).toContain(
+      "anterior ao schema v2",
+    );
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+    expect(storeModule.state.config.firestoreSync.hasPendingWrites).toBe(true);
+  });
+
+  it("publishes the v2 adoption over an equivalent legacy planning", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+    storeModule.state.config.firestoreSync.remoteUpdatedAt =
+      remote.payloadUpdatedAt;
+
+    expect(
+      await engine.queueFirestoreSnapshotFromState(storeModule.state, {
+        manual: true,
+      }),
+    ).toBe(true);
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(true);
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    const written = repository.writeFirestoreSnapshot.mock.calls[0][2];
+    expect(written.retaFinalSync).toMatchObject({
+      planId: "rfplan_local",
+      revision: 0,
+      baseRevision: 0,
+      snapshotRevision: 1,
+      baseSnapshotRevision: 0,
+      state: "active",
+      baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+    });
+    expect(outbox.markFirestoreSnapshotSynced).toHaveBeenCalled();
+    expect(storeModule.state.config.firestoreSync).toMatchObject({
+      baseRevision: 0,
+      snapshotRevision: 1,
+      conflict: null,
+    });
+  });
+
+  it("blocks the adoption when the legacy document changed after the read", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+    storeModule.state.config.firestoreSync.remoteUpdatedAt =
+      remote.payloadUpdatedAt;
+
+    await engine.queueFirestoreSnapshotFromState(storeModule.state, {
+      manual: true,
+    });
+    remote.payloadUpdatedAt = "2026-10-23T09:00:00.000Z";
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(false);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "adoption-base" }),
+    );
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+  });
+
+  it("syncs the real missing-remote-plan case end-to-end", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+    syncCenter.mergeStudyStates.mockImplementation((local) => ({
+      ...local,
+      config: { ...local.config },
+    }));
+
+    const result = await engine.syncFirestoreNow();
+
+    expect(result).toBe(true);
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    const written = repository.writeFirestoreSnapshot.mock.calls[0][2];
+    expect(written.retaFinalSync).toMatchObject({
+      planId: "rfplan_local",
+      revision: 0,
+      baseRevision: 0,
+      snapshotRevision: 1,
+      baseSnapshotRevision: 0,
+      state: "active",
+      baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+    });
+    expect(storeModule.state.planejamento.retaFinal.blocos).toHaveLength(180);
+    expect(outbox.saveFirestoreConflict).not.toHaveBeenCalled();
+    expect(statuses()).toContain("synced");
+  });
+
+  it("keeps the verified legacy base on a forced pull", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+    syncCenter.mergeStudyStates.mockImplementation((local) => ({
+      ...local,
+      config: { ...local.config },
+    }));
+
+    const result = await engine.pullFromFirestore(true, {
+      discardPending: true,
+    });
+
+    expect(result).toBe(true);
+    expect(storeModule.state.config.firestoreSync).toMatchObject({
+      baseRevision: 0,
+      snapshotRevision: 0,
+      baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+      conflict: null,
+    });
+    expect(
+      storeModule.state.config.firestoreSync.basePlan.planId,
+    ).toBe("rfplan_local");
+  });
+
+  it("does not let a forced pull bypass a divergent legacy planning", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    localPlan.retaFinal.blocos[8] = {
+      ...localPlan.retaFinal.blocos[8],
+      notas: "Editado localmente",
+    };
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+
+    const result = await engine.pullFromFirestore(true, {
+      discardPending: true,
+    });
+
+    expect(result).toBe(false);
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "legacy-plan-mismatch" }),
+    );
+    expect(storeModule.state.planejamento).toBe(localPlan);
+  });
+
+  it("refuses a descriptor-less push over a legacy Reta Final plan", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+    await outbox.enqueueFirestoreSnapshot({
+      version: 1,
+      schemaVersion: 6,
+      deviceId: "web-device1",
+      payloadUpdatedAt: "2026-10-23T00:00:00.000Z",
+      sentAt: "2026-10-23T00:00:00.000Z",
+      payload: { planejamento: legacy, eventos: [] },
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(false);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "legacy-write" }),
+    );
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+  });
+
+  it("refuses adopting over a v2 remote planning without a descriptor", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remotePlan = JSON.parse(JSON.stringify(localPlan));
+    remotePlan.revision = 5;
+    remotePlan.retaFinal.blocos[0].minutos = 30;
+    const remote = {
+      ...legacyRfEnvelope(legacy),
+      payload: { planejamento: remotePlan, config: {}, eventos: [] },
+    };
+    await boot({ plan: localPlan, remote });
+    storeModule.state.config.firestoreSync.remoteUpdatedAt =
+      remote.payloadUpdatedAt;
+
+    await engine.queueFirestoreSnapshotFromState(storeModule.state, {
+      manual: true,
+    });
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(false);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "invalid-remote-plan" }),
+    );
+  });
+
+  it("does not adopt a legacy plan for a retired local planning", async () => {
+    const legacy = legacyRfPlan({ ativo: false });
+    const localPlan = localV2FromLegacy(legacy);
+    expect(localPlan.ativo).toBe(false);
+    const remote = legacyRfEnvelope(legacy);
+    await boot({ plan: localPlan, remote });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "missing-remote-plan" }),
+    );
+    expect(storeModule.state.config.firestoreSync.basePlan).toBeNull();
+  });
+
+  it("keeps replace semantics on a forced legacy adoption", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    remote.payload.eventos = [
+      { id: "ev_remote", status: "estudei", tempo: 10 },
+    ];
+    await boot({ plan: localPlan, remote });
+    storeModule.state.eventos = [
+      { id: "ev_local", status: "estudei", tempo: 20 },
+    ];
+
+    const result = await engine.pullFromFirestore(true, {
+      discardPending: true,
+    });
+
+    expect(result).toBe(true);
+    expect(storeModule.state.eventos.map((item) => item.id)).toEqual([
+      "ev_remote",
+    ]);
+    expect(storeModule.state.planejamento.planId).toBe("rfplan_local");
+    expect(storeModule.state.planejamento.retaFinal.blocos).toHaveLength(180);
+    expect(storeModule.state.config.firestoreSync.baseRevision).toBe(0);
   });
 });

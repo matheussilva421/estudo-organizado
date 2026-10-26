@@ -68,6 +68,7 @@ describe('Firestore integration contracts', () => {
     expect(swSource).toContain('./js/firebase/firebase-client.js');
     expect(swSource).toContain('./js/firebase/firebase-config-default.js');
     expect(swSource).toContain('./js/sync/firestore-sync-engine.js');
+    expect(swSource).toContain('./js/sync/reta-final-legacy.js');
     expect(swSource).toContain('./js/sync/sync-coordinator.js');
     expect(swSource).toContain('./js/sync/sync-center.js');
     expect(swSource).toContain('./js/sync/manual-sync.js');

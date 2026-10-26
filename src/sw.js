@@ -1,4 +1,4 @@
-const APP_VERSION = '9.71';
+const APP_VERSION = '9.72';
 const CACHE_NAME = `estudo-organizado-v${APP_VERSION}`;
 
 const ASSET_PATHS = [
@@ -110,6 +110,7 @@ const ASSET_PATHS = [
   './js/sync/firestore-outbox.js',
   './js/sync/firestore-repository.js',
   './js/sync/reta-final-protocol.js',
+  './js/sync/reta-final-legacy.js',
   './js/sync/firestore-schema.js',
   './js/sync/firestore-sync-engine.js',
   './js/sync/sync-health.js',
