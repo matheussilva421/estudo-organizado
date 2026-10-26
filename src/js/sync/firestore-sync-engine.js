@@ -433,7 +433,19 @@ function nonPlanStateDigest(sourceState) {
     delete snapshot.config.syncMergeConflicts;
     delete snapshot.config.localBackupAt;
     delete snapshot.config._lastUpdated;
+    // Mirror createExportableState: these local-only operational fields never
+    // travel in the Firestore payload and must not create false academic diffs.
+    delete snapshot.config.cfUrl;
+    delete snapshot.config.cfToken;
+    delete snapshot.config.cfTokenSaved;
+    delete snapshot.config.cfConflict;
+    delete snapshot.config.cfRemoteUpdatedAt;
+    delete snapshot.config.cfLastSyncAt;
+    delete snapshot.config.cfSyncEnabled;
+    delete snapshot.config.manualSyncHistory;
+    delete snapshot.config.lastManualSyncResults;
   }
+  delete snapshot.driveFileId;
   return stableStringify(snapshot);
 }
 

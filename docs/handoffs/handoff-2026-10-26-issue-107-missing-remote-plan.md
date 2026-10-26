@@ -6,7 +6,7 @@
 - Branch: `main` (sem branch/PR novo)
 - HEAD no início: `34f40431b0d7d1169eb64680703a810d1a55f16d` (igual a `origin/main`)
 - Estado: hotfix commitado localmente na `main`, **sem push ou deploy**
-- Versão de cache: `9.74` (bumps 9.71→9.72→9.73→9.74; `bump:check` ok)
+- Versão de cache: `9.75` (bumps 9.71→9.72→9.73→9.74→9.75; `bump:check` ok)
 - Issue: `matheussilva421/estudo-organizado#107`
 
 ## Objetivo
@@ -40,7 +40,7 @@ Nenhuma regra Firestore foi alterada. A regra publicada em 9.71 já contém o ra
 - E2E Playwright (`sync-dados`, `sync-devices`, `sync-simulation-expanded`): **18/18**.
 - `npm run lint`: 0 erros (warnings pré-existentes).
 - `npm run format:check`: falha pré-existente em 166 arquivos, inclusive o engine antes desta mudança; os dois arquivos novos estão formatados.
-- Gates finais pós-bump: `bump:check` ok (9.74); testes de SW/versão **105/105**; gate de conflito persistido **4/4**; hotfix de tamanho **115/115** focados; emulador com fixture sanitizado de **889.117 bytes**: **73/73** e readback intacto.
+- Gates finais pós-bump: `bump:check` ok (9.75); testes de SW/versão **105/105**; gate de conflito persistido **4/4**; hotfix de tamanho **117/117** focados; emulador com fixture sanitizado de **889.117 bytes**: **73/73** e readback intacto.
 
 ## Revisão independente
 
@@ -107,10 +107,14 @@ A tentativa real de adoção falhou com **1.210.602 bytes** contra o limite de
   `baseRevision=0`, `snapshotRevision=1`, plano/digest e `baseRemoteUpdatedAt`.
   Guard de 1 MiB falha de modo fechado; nunca corta `editais`, `eventos` ou
   `planejamento`. O pull forçado preserva o histórico local.
+- `nonPlanStateDigest` agora espelha `createExportableState`: ignora
+  `manualSyncHistory`, `lastManualSyncResults`, credenciais/config Cloudflare,
+  `driveFileId` e `lastSync`. Histórico local diferente não gera mescla nem
+  envio repetitivo quando o conteúdo acadêmico é idêntico.
 
 Validação: **115 testes focados**; emulador **73/73** com fixture sanitizado de
 **889.117 bytes JSON**, abaixo do limite, e readback intacto de 180 blocos, 389
-eventos, 4 editais e 82 questões; `bump:check` ok em 9.74; testes de SW/versão
+eventos, 4 editais e 82 questões; `bump:check` ok em 9.75; testes de SW/versão
 **105/105**.
 
 ## Risco residual
@@ -140,8 +144,8 @@ eventos, 4 editais e 82 questões; `bump:check` ok em 9.74; testes de SW/versão
   planejamento, não o estado acadêmico nem o snapshot do instante da migração.
 - Se houver segundo dispositivo com `planId` próprio, tratar o conflito de
   `lineage` como reconciliação separada; não forçar.
-- O deploy deve publicar o cache `9.74`; a primeira carga pode ainda executar o
-  SW antigo até a ativação. Confirmar `DIAGNOSTIC_BUILD_VERSION = 9.74` antes de
+- O deploy deve publicar o cache `9.75`; a primeira carga pode ainda executar o
+  SW antigo até a ativação. Confirmar `DIAGNOSTIC_BUILD_VERSION = 9.75` antes de
   sincronizar.
 - Se o envelope reconstruído ainda exceder 1 MiB, o motor falha fechado e
   preserva `editais`, `eventos` e `planejamento`; exportar o diagnóstico e

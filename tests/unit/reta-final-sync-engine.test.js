@@ -1997,4 +1997,63 @@ describe("reta-final sync engine integration", () => {
     );
     expect(storeModule.state.editais[0].conteudo).toHaveLength(1100000);
   });
+
+  function addLocalOperationalMetadata() {
+    Object.assign(storeModule.state.config, {
+      manualSyncHistory: [{ at: "local-history", conflicts: { firestore: { cause: "x" } } }],
+      lastManualSyncResults: { at: "local-last" },
+      cfUrl: "https://local.example",
+      cfToken: "local-token",
+      cfTokenSaved: true,
+      cfConflict: { cause: "local" },
+      cfRemoteUpdatedAt: "2026-10-26T20:00:00.000Z",
+      cfLastSyncAt: "2026-10-26T20:00:00.000Z",
+      cfSyncEnabled: true,
+    });
+    storeModule.state.driveFileId = "drive-local";
+    storeModule.state.lastSync = "2026-10-26T20:00:00.000Z";
+  }
+
+  it("does not re-merge when only local operational metadata differs", async () => {
+    const basePlan = makePlan({ revision: 1, minutos: 40 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 40 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+    addLocalOperationalMetadata();
+    syncCenter.mergeStudyStates.mockImplementation((local) => ({
+      ...local,
+      config: { ...local.config },
+    }));
+
+    const result = await engine.mergeFromFirestore();
+
+    expect(result).toBe(false);
+    expect(outbox.enqueueFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(storeModule.state.config.manualSyncHistory).toEqual([
+      { at: "local-history", conflicts: { firestore: { cause: "x" } } },
+    ]);
+  });
+
+  it("does not re-send when only local operational metadata differs", async () => {
+    const basePlan = makePlan({ revision: 1, minutos: 40 });
+    const localPlan = makePlan({ revision: 2, minutos: 40 });
+    const remotePlan = makePlan({ revision: 2, minutos: 40 });
+    const remote = envelopeFor(remotePlan, { revision: 2, baseRevision: 1 });
+    await boot({ plan: localPlan, basePlan, remote });
+    addLocalOperationalMetadata();
+    syncCenter.mergeStudyStates.mockImplementation((local) => ({
+      ...local,
+      config: { ...local.config },
+    }));
+
+    await engine.syncFirestoreNow();
+
+    expect(outbox.enqueueFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(storeModule.state.config.manualSyncHistory).toEqual([
+      { at: "local-history", conflicts: { firestore: { cause: "x" } } },
+    ]);
+  });
 });
