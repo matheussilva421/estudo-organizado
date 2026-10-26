@@ -6,7 +6,7 @@
 - Branch: `main` (sem branch/PR novo)
 - HEAD no início: `34f40431b0d7d1169eb64680703a810d1a55f16d` (igual a `origin/main`)
 - Estado: hotfix commitado localmente na `main`, **sem push ou deploy**
-- Versão de cache: `9.72` (bump aplicado; `bump:check` ok)
+- Versão de cache: `9.73` (bumps 9.71→9.72→9.73; `bump:check` ok)
 - Issue: `matheussilva421/estudo-organizado#107`
 
 ## Objetivo
@@ -25,6 +25,7 @@ Havia um segundo risco no caminho de escrita: o ramo de adoção das regras v2 a
 - `src/js/sync/firestore-sync-engine.js`: `applyRetaFinalPull()` adota o legado equivalente como base (`baseRevision 0`, `baseRemoteUpdatedAt = payloadUpdatedAt`) e mescla apenas dados acadêmicos; a adoção já registrada é idempotente; `flushFirestoreOutboxUnlocked()` verifica a equivalência antes de qualquer escrita de adoção (inclusive `forceOverwrite`); o pull forçado preserva a base adotada. Conflitos usam `legacy-plan-mismatch` com mensagem e `differences`.
 - `scripts/verify-reta-final-rules.mjs`: casos de emulador para adoção sobre plano pré-v2 real, avanço pós-adoção, segunda linhagem e escrita legada concorrente.
 - Um `planejamento` com `tipo: reta_final` mas forma inválida agora retorna `invalid-remote-plan`, em vez de ser confundido com ausência de plano.
+- Um conflito `missing-remote-plan` persistido pelo cliente 9.71 não bloqueia mais os caminhos normais (`poll`, auto-pull e sync-now) quando a outbox está vazia: o remoto é relido, a equivalência estrita decide, e o conflito só é removido no sucesso; divergência vira `legacy-plan-mismatch`.
 - `src/sw.js` + `tests/unit/firestore-contracts.test.js`: o novo módulo entra no precache offline e há asserção de contrato para não regredir.
 
 Nenhuma regra Firestore foi alterada. A regra publicada em 9.71 já contém o ramo de adoção e foi validada no emulador.
@@ -39,7 +40,7 @@ Nenhuma regra Firestore foi alterada. A regra publicada em 9.71 já contém o ra
 - E2E Playwright (`sync-dados`, `sync-devices`, `sync-simulation-expanded`): **18/18**.
 - `npm run lint`: 0 erros (warnings pré-existentes).
 - `npm run format:check`: falha pré-existente em 166 arquivos, inclusive o engine antes desta mudança; os dois arquivos novos estão formatados.
-- Gates finais pós-bump: `bump:check` ok (9.72); testes de SW/versão **105/105**.
+- Gates finais pós-bump: `bump:check` ok (9.73); testes de SW/versão **105/105**; gate de conflito persistido **4/4** (poll, auto-pull, sync-now e divergência) e arquivos focados **64/64**.
 
 ## Revisão independente
 
@@ -112,6 +113,6 @@ Metadados locais do backup, sem conteúdo: plano v2 válido e ativo, `revision=0
   planejamento, não o estado acadêmico nem o snapshot do instante da migração.
 - Se houver segundo dispositivo com `planId` próprio, tratar o conflito de
   `lineage` como reconciliação separada; não forçar.
-- O deploy deve publicar o cache `9.72`; a primeira carga pode ainda executar o
-  SW antigo até a ativação. Confirmar `DIAGNOSTIC_BUILD_VERSION = 9.72` antes de
+- O deploy deve publicar o cache `9.73`; a primeira carga pode ainda executar o
+  SW antigo até a ativação. Confirmar `DIAGNOSTIC_BUILD_VERSION = 9.73` antes de
   sincronizar.

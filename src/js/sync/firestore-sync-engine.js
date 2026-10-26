@@ -97,6 +97,18 @@ function isBlockingFirestoreConflict(conflict) {
   return conflict?.type === "entity-conflict" || isRetaFinalConflict(conflict);
 }
 
+// A 9.71 client could persist `missing-remote-plan` before the legacy adoption
+// existed. It is safe to re-read the remote on the normal path: the strict
+// comparison either adopts an equivalent legacy plan or replaces the conflict
+// with a material one. Any pending outbox still blocks this recovery.
+const RECOVERABLE_RETA_FINAL_CAUSES = new Set(["missing-remote-plan"]);
+function isRecoverableRetaFinalConflict(conflict) {
+  return (
+    isRetaFinalConflict(conflict) &&
+    RECOVERABLE_RETA_FINAL_CAUSES.has(conflict.cause)
+  );
+}
+
 function clonePlan(plan) {
   return plan ? JSON.parse(JSON.stringify(plan)) : null;
 }
@@ -937,13 +949,14 @@ export async function pollFirestoreRemote() {
 
   if (config.conflict) {
     const pending = await getPendingFirestoreSnapshot();
-    if (!pending && !isBlockingFirestoreConflict(config.conflict)) {
+    if (pending) return false;
+    if (!isBlockingFirestoreConflict(config.conflict)) {
       config.conflict = null;
       config.hasPendingWrites = false;
       config.lastError = null;
       await persistSyncConfig(true);
       emitStatus("synced");
-    } else if (pending || isBlockingFirestoreConflict(config.conflict)) {
+    } else if (!isRecoverableRetaFinalConflict(config.conflict)) {
       return false;
     }
   }
@@ -1446,13 +1459,14 @@ export async function autoPullRemoteWhenNewer() {
   // Auto-clear stale conflicts
   if (config.conflict) {
     const pending = await getPendingFirestoreSnapshot();
-    if (!pending && !isBlockingFirestoreConflict(config.conflict)) {
+    if (pending) return false;
+    if (!isBlockingFirestoreConflict(config.conflict)) {
       config.conflict = null;
       config.hasPendingWrites = false;
       config.lastError = null;
       await persistSyncConfig(true);
       emitStatus("synced");
-    } else {
+    } else if (!isRecoverableRetaFinalConflict(config.conflict)) {
       return false;
     }
   }
@@ -2090,14 +2104,19 @@ async function syncFirestoreNowUnlocked() {
 
   // Force-clear stale conflicts on manual sync (user-initiated resolution)
   if (config.conflict) {
-    if (isRetaFinalConflict(config.conflict)) {
+    if (
+      isRetaFinalConflict(config.conflict) &&
+      !isRecoverableRetaFinalConflict(config.conflict)
+    ) {
       emitStatus("conflict-paused", { conflict: config.conflict });
       return false;
     }
-    config.conflict = null;
-    config.hasPendingWrites = false;
-    config.lastError = null;
-    await persistSyncConfig(true);
+    if (!isRetaFinalConflict(config.conflict)) {
+      config.conflict = null;
+      config.hasPendingWrites = false;
+      config.lastError = null;
+      await persistSyncConfig(true);
+    }
   }
 
   const { db, uid } = requireSignedInServices();

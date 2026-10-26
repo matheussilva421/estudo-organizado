@@ -147,6 +147,7 @@ describe("reta-final sync engine integration", () => {
     remote = null,
     guard = { verified: true },
     write = async () => ({ updatedAt: "2026-10-20T12:30:00.000Z" }),
+    conflict = null,
   } = {}) {
     order = [];
     let pendingEnvelope = null;
@@ -161,6 +162,7 @@ describe("reta-final sync engine integration", () => {
           baseDigest: basePlan ? computeRetaFinalPlanDigest(basePlan) : null,
           baseRevision: basePlan?.revision ?? null,
           snapshotRevision: remote?.retaFinalSync?.snapshotRevision ?? 0,
+          conflict,
         },
       },
       planejamento: plan,
@@ -1263,6 +1265,142 @@ describe("reta-final sync engine integration", () => {
     expect(storeModule.state.planejamento).toBe(localPlan);
     expect(storeModule.state.config.firestoreSync.basePlan).toBeNull();
     expect(statuses()).toContain("conflict");
+  });
+
+  it("clears a persisted 9.71 missing-remote-plan conflict on the normal poll", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    remote.payload.eventos = [
+      { id: "ev_legacy", status: "estudei", tempo: 25 },
+    ];
+    const persisted = {
+      type: "reta-final-conflict",
+      cause: "missing-remote-plan",
+      detectedAt: "2026-10-26T18:00:00.000Z",
+      planId: localPlan.planId,
+      localPlan,
+      remotePlan: legacy,
+    };
+    await boot({ plan: localPlan, remote, conflict: persisted });
+    syncCenter.mergeStudyStates.mockImplementation((local, remotePayload) => ({
+      ...local,
+      eventos: [...(local.eventos || []), ...(remotePayload.eventos || [])],
+      config: { ...local.config },
+    }));
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(true);
+    const sync = storeModule.state.config.firestoreSync;
+    expect(sync.conflict).toBeNull();
+    expect(sync.basePlan).toMatchObject({ planId: "rfplan_local", revision: 0 });
+    expect(sync.baseRevision).toBe(0);
+    expect(sync.snapshotRevision).toBe(0);
+    expect(sync.baseRemoteUpdatedAt).toBe(remote.payloadUpdatedAt);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.clearFirestoreConflict).toHaveBeenCalled();
+    expect(outbox.markFirestoreSnapshotSynced).toHaveBeenCalled();
+    expect(storeModule.state.eventos).toContainEqual({
+      id: "ev_legacy",
+      status: "estudei",
+      tempo: 25,
+    });
+    expect(storeModule.state.planejamento.planId).toBe("rfplan_local");
+    expect(storeModule.state.planejamento.retaFinal.blocos).toHaveLength(180);
+    expect(storeModule.saveStateToDB).toHaveBeenCalled();
+  });
+
+  it("keeps a persisted missing-remote-plan conflict blocked when the legacy plan diverges", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    localPlan.retaFinal.blocos[9] = {
+      ...localPlan.retaFinal.blocos[9],
+      minutos: 120,
+    };
+    const remote = legacyRfEnvelope(legacy);
+    const persisted = {
+      type: "reta-final-conflict",
+      cause: "missing-remote-plan",
+      detectedAt: "2026-10-26T18:00:00.000Z",
+      planId: localPlan.planId,
+      localPlan,
+      remotePlan: legacy,
+    };
+    await boot({ plan: localPlan, remote, conflict: persisted });
+
+    const result = await engine.pollFirestoreRemote();
+
+    expect(result).toBe(false);
+    const sync = storeModule.state.config.firestoreSync;
+    expect(sync.conflict).toMatchObject({ cause: "legacy-plan-mismatch" });
+    expect(sync.basePlan).toBeNull();
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(storeModule.state.planejamento).toBe(localPlan);
+  });
+
+  it("clears a persisted missing-remote-plan conflict on the normal auto pull", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    const persisted = {
+      type: "reta-final-conflict",
+      cause: "missing-remote-plan",
+      detectedAt: "2026-10-26T18:00:00.000Z",
+      planId: localPlan.planId,
+      localPlan,
+      remotePlan: legacy,
+    };
+    await boot({ plan: localPlan, remote, conflict: persisted });
+    syncCenter.mergeStudyStates.mockImplementation((local) => ({
+      ...local,
+      config: { ...local.config },
+    }));
+
+    const result = await engine.autoPullRemoteWhenNewer();
+
+    expect(result).toBe(true);
+    expect(storeModule.state.config.firestoreSync.conflict).toBeNull();
+    expect(storeModule.state.config.firestoreSync.baseRevision).toBe(0);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("recovers a persisted missing-remote-plan conflict through normal sync now", async () => {
+    const legacy = legacyRfPlan();
+    const localPlan = localV2FromLegacy(legacy);
+    const remote = legacyRfEnvelope(legacy);
+    const persisted = {
+      type: "reta-final-conflict",
+      cause: "missing-remote-plan",
+      detectedAt: "2026-10-26T18:00:00.000Z",
+      planId: localPlan.planId,
+      localPlan,
+      remotePlan: legacy,
+    };
+    await boot({ plan: localPlan, remote, conflict: persisted });
+    syncCenter.mergeStudyStates.mockImplementation((local) => ({
+      ...local,
+      config: { ...local.config },
+    }));
+
+    const result = await engine.syncFirestoreNow();
+
+    expect(result).toBe(true);
+    expect(repository.verifyRetaFinalGuard).toHaveBeenCalled();
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    const written = repository.writeFirestoreSnapshot.mock.calls[0][2];
+    expect(written.retaFinalSync).toMatchObject({
+      planId: "rfplan_local",
+      baseRevision: 0,
+      snapshotRevision: 1,
+      baseSnapshotRevision: 0,
+      state: "active",
+      baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+    });
+    expect(storeModule.state.config.firestoreSync.conflict).toBeNull();
+    expect(storeModule.state.config.firestoreSync.snapshotRevision).toBe(1);
+    expect(storeModule.state.planejamento.retaFinal.blocos).toHaveLength(180);
+    expect(outbox.saveFirestoreConflict).not.toHaveBeenCalled();
   });
 
   it("keeps missing-remote-plan when the legacy document has no planning", async () => {
