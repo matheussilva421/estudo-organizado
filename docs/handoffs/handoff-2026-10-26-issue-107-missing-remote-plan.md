@@ -183,7 +183,7 @@ SW/versão **105/105**; lint 0 erros.
   preserva `editais`, `eventos` e `planejamento`; exportar o diagnóstico e
   segmentar conforme a arquitetura, sem corte silencioso.
 
-## Hotfix 9.77 — `outbox-rebase-unsafe` (27/10)
+## Hotfix 9.78 — `outbox-rebase-unsafe` (27/10)
 
 ### Causa raiz
 
@@ -227,17 +227,26 @@ Defeitos estruturais confirmados no mesmo caminho:
   compare-and-set e preserva `queuedAt`/`attempts`/`nextAttemptAt`.
 - UI: subcausa e caminhos divergentes no card de conflito e no status.
 - `sync-history.js` entrou no precache do Service Worker (pendência da 9.76).
-- Versão de cache 9.77.
+- Versão de cache 9.78 (9.77 no commit da correção; o hook de pre-commit
+  incrementou ao commitar os testes).
 
 ### Testes
 
-- `npx vitest run`: 178 arquivos, 2981 testes PASS.
-- E2E chromium: `sync-e2e` + `sync-dados` 21/21 PASS.
+- `npx vitest run`: 179 arquivos, 2982 testes PASS.
+- E2E chromium: `sync-e2e` + `sync-dados` 21/21 PASS; `sync-devices` +
+  `sync-simulation-expanded` 5/5 PASS.
 - Casos novos de replay/rebase, subcausa, CAS de outbox, reload persistido,
   remoto alterado durante a recuperação, cronômetro e divergência real.
-- Emulador Firestore: NOT_RUN — o ambiente não tem JRE (`java` ausente) e não
-  há emulador ativo em 127.0.0.1:8085/8090. Casos 5f adicionados a
-  `scripts/verify-reta-final-rules.mjs` para rodar em ambiente com Java.
+- Emulador Firestore: **PASS 78/78** com `firestore.rules` (JRE 21 local em
+  `C:\Users\slvma\AppData\Local\JDownloader 2\jre`, emulador na porta 8085).
+  As regras do repositório são as mesmas da versão publicada: o último commit
+  que tocou `firestore.rules` foi `1c2257d` (v9.69) e não houve diff até a 9.78.
+  Inclui os casos novos: rebase com digest remoto aceito; digest diferente e
+  mapa de plano diferente negados.
+- Novo teste de integração `tests/unit/firestore-sync-outbox-integration.test.js`:
+  usa a outbox real sobre um IndexedDB em memória, persiste uma operação
+  conflitante, simula reload (novo registro de módulos), rebaseia uma vez e
+  prova que a segunda sincronização não grava de novo.
 
 ### Revisão independente (achados materiais corrigidos)
 
@@ -261,9 +270,13 @@ Defeitos estruturais confirmados no mesmo caminho:
   remota para não bloquear o próximo push academic-only.
 - Limitações aceitas nesta rodada: `plan-digest-mismatch` continua fail-closed
   (é violação do contrato de revisão, não deriva de projeção); `adoption-base`
-  em documento legado cujo `payloadUpdatedAt` mudou ainda exige reconciliação
-  explícita; `enqueue/replace/markSynced` continuam resolvendo no onsuccess do
-  IndexedDB (o replay idempotente cobre a janela de aborto).
+  em documento legado cujo `payloadUpdatedAt` mudou continua fail-closed — a
+  recuperação automática chegou a ser proposta, mas a revisão automática de
+  aprovação a rejeitou por risco de republicar sobre um documento legado
+  alterado; o conflito agora traz um procedimento explícito (reler, confirmar
+  equivalência e só então publicar a adoção); `enqueue/replace/markSynced`
+  continuam resolvendo no onsuccess do IndexedDB (o replay idempotente cobre a
+  janela de aborto).
 
 ### Pendências (gates)
 

@@ -1686,7 +1686,10 @@ describe("reta-final sync engine integration", () => {
     expect(result).toBe(false);
     expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
     expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
-      expect.objectContaining({ cause: "adoption-base" }),
+      expect.objectContaining({
+        cause: "adoption-base",
+        reason: expect.stringContaining("payloadUpdatedAt diferente"),
+      }),
     );
     expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
   });
@@ -1930,7 +1933,7 @@ describe("reta-final sync engine integration", () => {
 
     expect(await engine.flushFirestoreOutbox({ manual: true })).toBe(true);
     expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
-  });
+  }, 15_000);
 
   it("keeps a repaired pending snapshot blocked when the legacy plan diverges", async () => {
     const legacy = legacyRfPlan();

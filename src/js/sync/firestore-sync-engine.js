@@ -94,6 +94,17 @@ const RETA_FINAL_CONFLICT = "reta-final-conflict";
 const LEGACY_PLAN_MISMATCH_REASON =
   "O planejamento Reta Final do Firestore e anterior ao schema v2 e diverge do plano local; compare as diferencas antes de publicar qualquer alteracao.";
 
+// Specific procedures for causes that fail closed. They explain what changed
+// and what the operator must do; the write path itself is unchanged.
+const RETA_FINAL_CONFLICT_GUIDANCE = {
+  "adoption-base":
+    "O documento legado do Firestore mudou depois da leitura (payloadUpdatedAt diferente). Nada foi gravado. Sincronize para reler o documento, confirme que o planejamento continua equivalente e so entao publique a adocao.",
+  "plan-digest-mismatch":
+    "O plano local mudou de conteudo sem incrementar a revision. Nada foi gravado; revise o plano e crie uma nova revisao antes de sincronizar.",
+  "local-changed-during-pull":
+    "Os dados locais mudaram durante a leitura remota. Nada do remoto foi aplicado nem sobrescrito; repita a sincronizacao com o estado atual.",
+};
+
 function isRetaFinalConflict(conflict) {
   return conflict?.type === RETA_FINAL_CONFLICT;
 }
@@ -361,10 +372,11 @@ async function registerRetaFinalConflict(
   const incoming = decision?.conflict || {};
   const subcause = incoming.subcause || null;
   const remoteDescriptor = readRetaFinalSyncDescriptor(remote);
+  const cause = incoming.cause || decision?.reason || "unknown";
   const conflict = {
     ...incoming,
     type: RETA_FINAL_CONFLICT,
-    cause: incoming.cause || decision?.reason || "unknown",
+    cause,
     ...(subcause ? { subcause } : {}),
     detectedAt: new Date().toISOString(),
     remoteUpdatedAt: getEnvelopeUpdatedAt(remote),
@@ -382,6 +394,7 @@ async function registerRetaFinalConflict(
     remotePlan: incoming.remotePlan ?? remote?.payload?.planejamento ?? null,
     reason:
       incoming.reason ||
+      RETA_FINAL_CONFLICT_GUIDANCE[cause] ||
       "A Reta Final v2 remota exige reconciliacao humana antes de nova escrita.",
   };
   if (error) conflict.error = error?.code || error?.message || String(error);
