@@ -4,7 +4,7 @@
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
 **Situação:** PLANEJAMENTO ORGANIZADO / F0 NÃO COMPROVADA COMO EXECUTADA.
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
-**Issue mãe:** será vinculada na própria issue rastreadora da V2; único acompanhamento central, sem criar uma issue por ajuste.
+**Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
 
 ## 0. Centro de referência (fonte única por responsabilidade)
