@@ -1,5 +1,7 @@
 # Estudo Organizado V2 — Roteiro de specs e planos por fatias
 
+> **Registro histórico da decomposição aprovada em 2026-10-19.** O roadmap detalhado e vivo da V2 está em [docs/superpowers/v2/ROADMAP.md](../v2/ROADMAP.md), na branch `v2`. Não atualizar dois roadmaps em paralelo; preservar este arquivo como histórico de decisões.
+
 **Data:** 2026-10-19  
 **Status:** ROTEIRO DE DECOMPOSIÇÃO, NÃO É PLANO EXECUTÁVEL DE F1–F8  
 **Spec-mestra aprovada (G1):** ../specs/2026-10-19-estudo-organizado-v2-design.md  
