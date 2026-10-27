@@ -423,10 +423,8 @@ function retaFinalQueueOptions(config, sourceState, options) {
   };
 }
 
-function nonPlanStateDigest(sourceState) {
+function stripOperationalMetadata(sourceState) {
   const snapshot = JSON.parse(JSON.stringify(sourceState || {}));
-  delete snapshot.planejamento;
-  delete snapshot.planejamentoArquivado;
   delete snapshot.lastSync;
   if (snapshot.config) {
     delete snapshot.config.firestoreSync;
@@ -446,7 +444,173 @@ function nonPlanStateDigest(sourceState) {
     delete snapshot.config.lastManualSyncResults;
   }
   delete snapshot.driveFileId;
+  return snapshot;
+}
+
+function nonPlanStateDigest(sourceState) {
+  const snapshot = stripOperationalMetadata(sourceState);
+  delete snapshot.planejamento;
+  delete snapshot.planejamentoArquivado;
   return stableStringify(snapshot);
+}
+
+function firestorePayloadFingerprint(sourceState) {
+  return stableStringify(stripOperationalMetadata(sourceState));
+}
+
+function sameJson(left, right) {
+  return stableStringify(left) === stableStringify(right);
+}
+
+function academicItemContent(item) {
+  if (!item || typeof item !== "object") return stableStringify(item);
+  const copy = { ...item };
+  delete copy.updatedAt;
+  return stableStringify(copy);
+}
+
+function academicDivergences(baseState, localState, remoteState) {
+  const divergences = [];
+  const tombstones = new Set(
+    [
+      ...(Array.isArray(baseState?.syncTombstones)
+        ? baseState.syncTombstones
+        : []),
+      ...(Array.isArray(localState?.syncTombstones)
+        ? localState.syncTombstones
+        : []),
+      ...(Array.isArray(remoteState?.syncTombstones)
+        ? remoteState.syncTombstones
+        : []),
+    ].map((item) => `${item?.col}:${item?.id}`),
+  );
+  const compare = (collection, baseList, localList, remoteList) => {
+    const byId = (list) =>
+      new Map(
+        (Array.isArray(list) ? list : [])
+          .filter((item) => item?.id)
+          .map((item) => [item.id, item]),
+      );
+    const baseMap = byId(baseList);
+    const localMap = byId(localList);
+    const remoteMap = byId(remoteList);
+    for (const id of new Set([...localMap.keys(), ...remoteMap.keys()])) {
+      if (tombstones.has(`${collection}:${id}`)) continue;
+      const baseItem = baseMap.get(id);
+      const localItem = localMap.get(id);
+      const remoteItem = remoteMap.get(id);
+      const baseContent = baseItem ? academicItemContent(baseItem) : null;
+      const localContent = localItem ? academicItemContent(localItem) : null;
+      const remoteContent = remoteItem ? academicItemContent(remoteItem) : null;
+      let diverged = false;
+      if (localItem && remoteItem) {
+        if (localContent === remoteContent) continue;
+        if (!baseItem) {
+          diverged = true;
+        } else {
+          const localChanged = localContent !== baseContent;
+          const remoteChanged = remoteContent !== baseContent;
+          diverged = localChanged && remoteChanged;
+        }
+      } else if (!localItem && remoteItem) {
+        if (baseItem) {
+          // Local absence without a tombstone cannot be proven to be a
+          // legitimate deletion; a changed remote would be overwritten.
+          diverged = true;
+        }
+      }
+      if (diverged) {
+        divergences.push(`${collection}:${id}`);
+        if (divergences.length >= 20) return;
+      }
+    }
+  };
+  for (const collection of ["eventos", "editais", "arquivo", "revisoes"]) {
+    compare(
+      collection,
+      baseState?.[collection],
+      localState?.[collection],
+      remoteState?.[collection],
+    );
+  }
+  const habitKeys = new Set([
+    ...Object.keys(baseState?.habitos || {}),
+    ...Object.keys(localState?.habitos || {}),
+    ...Object.keys(remoteState?.habitos || {}),
+  ]);
+  for (const key of habitKeys) {
+    compare(
+      `habitos.${key}`,
+      baseState?.habitos?.[key],
+      localState?.habitos?.[key],
+      remoteState?.habitos?.[key],
+    );
+  }
+  return divergences;
+}
+
+function isStaleAdoptionReplay(pending, remote) {
+  const pendingDescriptor = readRetaFinalSyncDescriptor(pending?.envelope);
+  const remoteDescriptor = readRetaFinalSyncDescriptor(remote);
+  if (!pendingDescriptor || !remoteDescriptor) {
+    return { ok: false, reason: "missing-descriptor" };
+  }
+  if (
+    pendingDescriptor.snapshotRevision !== 1 ||
+    remoteDescriptor.snapshotRevision !== 1 ||
+    pendingDescriptor.baseSnapshotRevision !== 0 ||
+    remoteDescriptor.baseSnapshotRevision !== 0 ||
+    pendingDescriptor.baseRevision !== 0 ||
+    remoteDescriptor.baseRevision !== 0 ||
+    pendingDescriptor.state !== "active" ||
+    remoteDescriptor.state !== "active"
+  ) {
+    return { ok: false, reason: "not-adoption" };
+  }
+  if (
+    pendingDescriptor.planId !== remoteDescriptor.planId ||
+    pendingDescriptor.lineageId !== remoteDescriptor.lineageId ||
+    pendingDescriptor.generation !== remoteDescriptor.generation ||
+    pendingDescriptor.revision !== remoteDescriptor.revision ||
+    pendingDescriptor.digest !== remoteDescriptor.digest
+  ) {
+    return { ok: false, reason: "lineage" };
+  }
+  return { ok: true, pendingDescriptor, remoteDescriptor };
+}
+
+function exactTombstoneFields(remoteDescriptor, localConfig) {
+  const localRemoved = localTombstones(localConfig).map((item) => item.id);
+  const remoteRemoved = remoteDescriptor.removedBlockIds ?? [];
+  const extraLocal = localRemoved.filter((id) => !remoteRemoved.includes(id));
+  if (extraLocal.length) {
+    return { ok: false, reason: "local-tombstones-not-remote" };
+  }
+  const localFloor = Number.isSafeInteger(localConfig.minRetainedRevision)
+    ? localConfig.minRetainedRevision
+    : 0;
+  const remoteFloor = Number.isSafeInteger(remoteDescriptor.minRetainedRevision)
+    ? remoteDescriptor.minRetainedRevision
+    : 0;
+  if (localFloor > remoteFloor) {
+    return { ok: false, reason: "local-retention-ahead" };
+  }
+  return {
+    ok: true,
+    removedBlockIds: remoteRemoved,
+    minRetainedRevision: remoteDescriptor.minRetainedRevision,
+  };
+}
+
+function mergeAcademicStateForRebase(currentState, pendingPayload, remotePayload) {
+  const pendingAcademic = { ...(pendingPayload || {}) };
+  delete pendingAcademic.planejamento;
+  const remoteAcademic = { ...(remotePayload || {}) };
+  delete remoteAcademic.planejamento;
+  let merged = mergeStudyStates(currentState, pendingAcademic);
+  merged = mergeStudyStates(merged, remoteAcademic);
+  merged.planejamento = clonePlan(remotePayload?.planejamento);
+  return merged;
 }
 
 function pullLocalIdentity(localPlan) {
@@ -545,6 +709,174 @@ async function repairPendingFirestoreSnapshot(pending, config) {
     sizeBytes: nextSize,
   });
   return repaired;
+}
+
+function descriptorPayloadMismatch(pending, descriptor) {
+  if (!descriptor) return true;
+  const sentPlan = getRetaFinalPayloadPlan({
+    planejamento: pending?.envelope?.payload?.planejamento,
+  });
+  if (descriptor.state === "active") {
+    return (
+      !sentPlan ||
+      sentPlan.ativo !== true ||
+      sentPlan.revision !== descriptor.revision ||
+      computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest
+    );
+  }
+  return Boolean(
+    (sentPlan && sentPlan.ativo === true) ||
+      (sentPlan &&
+        computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest),
+  );
+}
+
+async function acknowledgeAlreadyAppliedOutbox(pending, remote, uid, config) {
+  const remotePlan = getRetaFinalPayloadPlan({
+    planejamento: remote?.payload?.planejamento,
+  });
+  const cleared = await markFirestoreSnapshotSynced({
+    queuedAt: pending.queuedAt ?? null,
+    sentAt: pending.envelope?.sentAt ?? null,
+  });
+  if (!cleared) {
+    config.hasPendingWrites = true;
+    config.lastError = "Outbox mudou durante a recuperacao do replay.";
+    await persistSyncConfig(true);
+    emitStatus("pending", { reason: "outbox-changed" });
+    return false;
+  }
+  setRetaFinalBaseFromRemote(config, remote, remotePlan);
+  const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
+  const pullAt = new Date().toISOString();
+  await clearFirestoreConflict();
+  Object.assign(config, {
+    uid,
+    remoteUpdatedAt,
+    lastPullAt: pullAt,
+    hasPendingWrites: false,
+    conflict: null,
+    lastError: null,
+  });
+  await saveFirestoreMeta({ uid, remoteUpdatedAt, lastPullAt: pullAt });
+  await persistSyncConfig(true);
+  emitPrimaryStatus("synced", {
+    source: "outbox-already-applied",
+    remoteUpdatedAt,
+  });
+  emitStatus("synced");
+  return true;
+}
+
+async function recoverStaleAdoptionOutbox(pending, remote, config) {
+  const stale = isStaleAdoptionReplay(pending, remote);
+  if (!stale.ok) return { status: "not-applicable", reason: stale.reason };
+
+  const localPlan = getRetaFinalPayloadPlan(state);
+  const remotePlan = getRetaFinalPayloadPlan({
+    planejamento: remote?.payload?.planejamento,
+  });
+  const pendingPlan = getRetaFinalPayloadPlan({
+    planejamento: pending?.envelope?.payload?.planejamento,
+  });
+  if (!localPlan || !remotePlan || !pendingPlan) {
+    return { status: "unsafe", reason: "missing-plan" };
+  }
+  if (
+    localPlan.planId !== remotePlan.planId ||
+    localPlan.revision !== remotePlan.revision ||
+    pendingPlan.planId !== remotePlan.planId ||
+    pendingPlan.revision !== remotePlan.revision
+  ) {
+    return { status: "unsafe", reason: "lineage" };
+  }
+  if (!sameJson(localPlan, remotePlan)) {
+    return { status: "unsafe", reason: "local-plan-not-exact" };
+  }
+  if (computeRetaFinalPlanDigest(localPlan) !== stale.remoteDescriptor.digest) {
+    return { status: "unsafe", reason: "digest" };
+  }
+  const tombstoneFields = exactTombstoneFields(stale.remoteDescriptor, config);
+  if (!tombstoneFields.ok) {
+    return { status: "unsafe", reason: tombstoneFields.reason };
+  }
+
+  const pendingPayload = pending.envelope.payload || {};
+  const remotePayload = remote.payload || {};
+  const divergences = academicDivergences(
+    pendingPayload,
+    state,
+    remotePayload,
+  );
+  if (divergences.length) {
+    return { status: "unsafe", reason: "academic-divergence", divergences };
+  }
+
+  const pendingAcademic = { ...pendingPayload };
+  delete pendingAcademic.planejamento;
+  const combined = mergeStudyStates(state, pendingAcademic);
+  const remoteFingerprint = firestorePayloadFingerprint(remotePayload);
+  if (
+    firestorePayloadFingerprint(combined) === remoteFingerprint &&
+    firestorePayloadFingerprint(state) === remoteFingerprint
+  ) {
+    return { status: "already-applied" };
+  }
+
+  const merged = mergeAcademicStateForRebase(
+    state,
+    pendingPayload,
+    remotePayload,
+  );
+  merged.planejamento = clonePlan(remotePlan);
+  const remoteUpdatedAt = getEnvelopeUpdatedAt(remote);
+  const descriptor = buildRetaFinalSyncDescriptor({
+    plan: remotePlan,
+    baseRevision: stale.remoteDescriptor.revision,
+    baseRemoteUpdatedAt: remoteUpdatedAt,
+    deviceId: getFirestoreDeviceId(),
+    capabilities: getRetaFinalSyncCapabilities(state),
+    state: "active",
+    revision: stale.remoteDescriptor.revision,
+    snapshotRevision: stale.remoteDescriptor.snapshotRevision + 1,
+    baseSnapshotRevision: stale.remoteDescriptor.snapshotRevision,
+    removedBlockIds: tombstoneFields.removedBlockIds,
+    minRetainedRevision: tombstoneFields.minRetainedRevision ?? 0,
+  });
+  if (tombstoneFields.minRetainedRevision === undefined) {
+    delete descriptor.minRetainedRevision;
+  }
+  const envelope = createFirestoreSnapshotEnvelope(merged, {
+    retaFinalSync: descriptor,
+    deviceId: getFirestoreDeviceId(),
+    baseRemoteUpdatedAt: remoteUpdatedAt,
+    payloadUpdatedAt: new Date().toISOString(),
+    sentAt: new Date().toISOString(),
+  });
+  const envelopePlan = getRetaFinalPayloadPlan({
+    planejamento: envelope.payload?.planejamento,
+  });
+  if (!envelopePlan || !sameJson(envelopePlan, remotePlan)) {
+    return { status: "unsafe", reason: "plan-rebase-mismatch" };
+  }
+  const size = getFirestoreEnvelopeSizeBytes(envelope);
+  if (size > FIRESTORE_ENVELOPE_MAX_BYTES) {
+    return { status: "unsafe", reason: "rebase-too-large", sizeBytes: size };
+  }
+  const replaced = await replacePendingFirestoreSnapshotEnvelope(envelope, {
+    queuedAt: pending.queuedAt ?? null,
+    sentAt: pending.envelope?.sentAt ?? null,
+  });
+  if (!replaced) {
+    return {
+      status: "pending-changed",
+      pending: await getPendingFirestoreSnapshot(),
+    };
+  }
+  return {
+    status: "rebased",
+    pending: await getPendingFirestoreSnapshot(),
+  };
 }
 
 function legacyAdoptionNextState(remote, force) {
@@ -1677,7 +2009,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
     pending.envelope || {},
     "retaFinalSync",
   );
-  const descriptor = readRetaFinalSyncDescriptor(pending.envelope);
+  let descriptor = readRetaFinalSyncDescriptor(pending.envelope);
   if (descriptorPresent && !descriptor) {
     config.lastError = "Descriptor Reta Final invalido; envio bloqueado.";
     config.hasPendingWrites = true;
@@ -1727,16 +2059,7 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
       await markFirestoreSnapshotFailed(new Error("stale-base"));
       return false;
     }
-    const invalid =
-      descriptor.state === "active"
-        ? !sentPlan ||
-          sentPlan.ativo !== true ||
-          sentPlan.revision !== descriptor.revision ||
-          computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest
-        : (sentPlan && sentPlan.ativo === true) ||
-          (sentPlan &&
-            computeRetaFinalPlanDigest(sentPlan) !== descriptor.digest);
-    if (invalid) {
+    if (descriptorPayloadMismatch(pending, descriptor)) {
       config.lastError =
         "Envelope Reta Final nao corresponde ao plano local enviado.";
       config.hasPendingWrites = true;
@@ -1789,10 +2112,102 @@ async function flushFirestoreOutboxUnlocked(options = {}) {
   }
 
   if (descriptor) {
-    const decision = validateRetaFinalEnvelopeWrite({
+    let decision = validateRetaFinalEnvelopeWrite({
       envelope: pending.envelope,
       remoteEnvelope: remote,
     });
+    if (!decision.allowed && decision.reason === "replay-payload-mismatch") {
+      const recovery = await recoverStaleAdoptionOutbox(
+        pending,
+        remote,
+        config,
+      );
+      if (recovery.status === "already-applied") {
+        return await acknowledgeAlreadyAppliedOutbox(
+          pending,
+          remote,
+          uid,
+          config,
+        );
+      }
+      if (
+        recovery.status === "rebased" ||
+        recovery.status === "pending-changed"
+      ) {
+        pending = recovery.pending;
+        if (!pending) {
+          config.hasPendingWrites = false;
+          await persistSyncConfig(true);
+          emitStatus("synced");
+          return true;
+        }
+        descriptor = readRetaFinalSyncDescriptor(pending.envelope);
+        if (!descriptor) {
+          config.lastError = "Descriptor Reta Final invalido; envio bloqueado.";
+          config.hasPendingWrites = true;
+          await markFirestoreSnapshotFailed(new Error(config.lastError));
+          await persistSyncConfig(true);
+          emitStatus("blocked-guard", {
+            reason: "invalid-descriptor",
+            error: config.lastError,
+          });
+          return false;
+        }
+        const rebasedPlan = getRetaFinalPayloadPlan({
+          planejamento: pending.envelope?.payload?.planejamento,
+        });
+        if (rebasedPlan && rebasedPlan.planId !== descriptor.planId) {
+          await registerRetaFinalConflict(
+            config,
+            {
+              allowed: false,
+              reason: "lineage-payload",
+              conflict: { type: RETA_FINAL_CONFLICT, cause: "lineage-payload" },
+            },
+            pending,
+            remote,
+          );
+          await markFirestoreSnapshotFailed(new Error("lineage-payload"));
+          return false;
+        }
+        if (descriptorPayloadMismatch(pending, descriptor)) {
+          config.lastError =
+            "Envelope Reta Final nao corresponde ao plano local enviado.";
+          config.hasPendingWrites = true;
+          await markFirestoreSnapshotFailed(new Error(config.lastError));
+          await persistSyncConfig(true);
+          emitStatus("blocked-guard", {
+            reason: "descriptor-mismatch",
+            error: config.lastError,
+          });
+          return false;
+        }
+        decision = validateRetaFinalEnvelopeWrite({
+          envelope: pending.envelope,
+          remoteEnvelope: remote,
+        });
+      } else if (recovery.status === "unsafe") {
+        await registerRetaFinalConflict(
+          config,
+          {
+            allowed: false,
+            reason: recovery.reason,
+            conflict: {
+              type: RETA_FINAL_CONFLICT,
+              cause: "outbox-rebase-unsafe",
+              reason:
+                "A outbox pendente nao pode ser rebaseada com seguranca; " +
+                "reconciliacao humana necessaria.",
+              differences: recovery.divergences ?? null,
+            },
+          },
+          pending,
+          remote,
+        );
+        await markFirestoreSnapshotFailed(new Error("outbox-rebase-unsafe"));
+        return false;
+      }
+    }
     if (!decision.allowed) {
       return await registerRetaFinalConflict(config, decision, pending, remote);
     }
@@ -2229,6 +2644,22 @@ async function syncFirestoreNowUnlocked() {
   const config = getConfig();
 
   await reconcileFirestorePendingState(true);
+
+  // A stale adoption outbox can leave this exact persisted conflict. The
+  // normal sync path must repair it; force buttons are not required.
+  if (
+    isRetaFinalConflict(config.conflict) &&
+    config.conflict.cause === "replay-payload-mismatch"
+  ) {
+    const pending = await getPendingFirestoreSnapshot();
+    if (pending) {
+      return await flushFirestoreOutboxUnlocked({ manual: true });
+    }
+    config.conflict = null;
+    config.hasPendingWrites = false;
+    config.lastError = null;
+    await persistSyncConfig(true);
+  }
 
   // Force-clear stale conflicts on manual sync (user-initiated resolution)
   if (config.conflict) {

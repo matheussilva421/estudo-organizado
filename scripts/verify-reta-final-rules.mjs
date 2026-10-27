@@ -1602,6 +1602,79 @@ async function main() {
     }),
   );
 
+  // 5e. Stale adoption outbox can rebase to snapshotRevision 2 when the plan
+  // is unchanged and the academic payload is the only difference.
+  const rebasePlan = plan({ planId: "rfplan_local", revision: 0, ativo: true });
+  const rebaseSeedPayload = {
+    config: {},
+    planejamento: rebasePlan,
+    eventos: [{ id: "ev_seed" }],
+    editais: [],
+    disciplinas: [],
+  };
+  await seed(
+    "uid-rebase-snapshot",
+    envelope({
+      planId: "rfplan_local",
+      revision: 0,
+      baseRevision: 0,
+      payload: rebaseSeedPayload,
+      payloadUpdatedAt: "2026-10-27T17:08:44.079Z",
+      deviceId: "remote-device",
+    }),
+  );
+  results.push(
+    await expectAllowed("stale adoption rebase to snapshotRevision 2", () => {
+      const value = envelope({
+        planId: "rfplan_local",
+        revision: 0,
+        baseRevision: 0,
+        snapshotRevision: 2,
+        baseSnapshotRevision: 1,
+        payload: {
+          config: {},
+          planejamento: rebasePlan,
+          eventos: [{ id: "ev_seed" }, { id: "ev_rebase" }],
+          editais: [],
+          disciplinas: [],
+        },
+        payloadUpdatedAt: "2026-10-27T17:20:00.000Z",
+        deviceId: "web-rebase",
+      });
+      value.retaFinalSync.baseRemoteUpdatedAt =
+        "2026-10-27T17:08:44.079Z";
+      return setDoc(
+        doc(
+          uidDb("uid-rebase-snapshot"),
+          "users",
+          "uid-rebase-snapshot",
+          "snapshots",
+          "main",
+        ),
+        value,
+      );
+    }),
+  );
+  results.push(
+    await expectAllowed("stale adoption rebase readback", async () => {
+      const snap = await getDoc(
+        doc(
+          uidDb("uid-rebase-snapshot"),
+          "users",
+          "uid-rebase-snapshot",
+          "snapshots",
+          "main",
+        ),
+      );
+      const data = snap.data();
+      const intact =
+        data?.retaFinalSync?.snapshotRevision === 2 &&
+        data?.retaFinalSync?.baseSnapshotRevision === 1 &&
+        data?.payload?.eventos?.length === 2;
+      if (!intact) throw new Error("rebased snapshot readback mismatch");
+    }),
+  );
+
   // 6. Retirement.
   await seed("uid-retire", envelope({ revision: 2, baseRevision: 1 }));
   results.push(

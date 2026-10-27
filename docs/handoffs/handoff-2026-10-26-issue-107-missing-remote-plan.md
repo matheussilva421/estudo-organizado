@@ -6,7 +6,7 @@
 - Branch: `main` (sem branch/PR novo)
 - HEAD no início: `34f40431b0d7d1169eb64680703a810d1a55f16d` (igual a `origin/main`)
 - Estado: hotfix commitado localmente na `main`, **sem push ou deploy**
-- Versão de cache: `9.75` (bumps 9.71→9.72→9.73→9.74→9.75; `bump:check` ok)
+- Versão de cache: `9.76` (bumps 9.71→...→9.76; `bump:check` ok)
 - Issue: `matheussilva421/estudo-organizado#107`
 
 ## Objetivo
@@ -40,7 +40,7 @@ Nenhuma regra Firestore foi alterada. A regra publicada em 9.71 já contém o ra
 - E2E Playwright (`sync-dados`, `sync-devices`, `sync-simulation-expanded`): **18/18**.
 - `npm run lint`: 0 erros (warnings pré-existentes).
 - `npm run format:check`: falha pré-existente em 166 arquivos, inclusive o engine antes desta mudança; os dois arquivos novos estão formatados.
-- Gates finais pós-bump: `bump:check` ok (9.75); testes de SW/versão **105/105**; gate de conflito persistido **4/4**; hotfix de tamanho **117/117** focados; emulador com fixture sanitizado de **889.117 bytes**: **73/73** e readback intacto.
+- Gates finais pós-bump: `bump:check` ok (9.76); testes de SW/versão **105/105**; focados do replay/digest **123/123**; emulador com rebase **75/75**; fixture sanitizado de **889.117 bytes** com readback intacto.
 
 ## Revisão independente
 
@@ -117,7 +117,38 @@ Validação: **115 testes focados**; emulador **73/73** com fixture sanitizado d
 eventos, 4 editais e 82 questões; `bump:check` ok em 9.75; testes de SW/versão
 **105/105**.
 
+## Hotfix replay stale de adoção (27/10)
+
+O 9.75 recuperou `missing-remote-plan`, mas deixou uma outbox de adoção com
+`snapshotRevision=1/baseSnapshotRevision=0/baseRemoteUpdatedAt` legado enquanto
+o remoto já estava em `snapshotRevision=1` com `payloadUpdatedAt` novo. O
+`validateRetaFinalEnvelopeWrite` rejeitava corretamente como
+`replay-payload-mismatch`; o conflito persistido ainda bloqueava o sync normal.
+
+- A recuperação só atua no replay stale de adoção (snapshot 1/base 0), mesma
+  linhagem/digest e plano local exatamente igual ao remoto. O validador de
+  replay permanece estrito.
+- Se o payload atual + pendente já é igual ao remoto, a outbox é reconhecida como
+  já aplicada: `markFirestoreSnapshotSynced` com a identidade observada, sem
+  escrita remota e sem atualizar `lastPushAt`.
+- Se há alterações acadêmicas legítimas, a outbox é rebaseada para
+  `snapshotRevision=2/baseSnapshotRevision=1`, `baseRemoteUpdatedAt` remoto,
+  plano `revision=0/digest` inalterado, com união de dados locais/pendentes/remotos
+  e tombstones exatos do remoto. `queuedAt/attempts` são preservados.
+- A comparação de divergência é three-way (pendente como base, local e remoto):
+  mudanças só locais ou só remotas são preservadas; mudanças conflitantes viram
+  `outbox-rebase-unsafe` e exigem reconciliação humana.
+- O `syncFirestoreNow` reconhece o conflito persistido de replay e executa o
+  flush normal; não exige botão de força.
+
+Validação: **123 testes focados**; engine **67/67**; emulador **75/75** (rebase
+1→2 aceito; replay com payload diferente continua negado); `bump:check` 9.76;
+SW/versão **105/105**; lint 0 erros.
+
 ## Risco residual
+- `src/js/sync/sync-history.js` ainda não está no `ASSET_PATHS` do Service
+  Worker; é servido/cacheado em runtime, mas não no precache de instalação.
+  Requer follow-up próprio.
 
 - Cada dispositivo que migrou localmente gerou seu próprio `planId`. A adoção em um dispositivo cria a linhagem remota; outro dispositivo com `planId` diferente verá conflito de `lineage` e exigirá reconciliação explícita. O hotfix não une linhagens automaticamente.
 - Um plano local já editado (intenção diferente do legado) não é adotado; o conflito permanece até reconciliação humana.
@@ -130,6 +161,7 @@ eventos, 4 editais e 82 questões; `bump:check` ok em 9.75; testes de SW/versão
 3. Confirmar que a versão publicada contém o hotfix (recarregar a página uma vez, sem limpar dados) e entrar com a conta do proprietário.
 4. Abrir a Central de Sincronização. O `missing-remote-plan` não deve reaparecer. Com planos equivalentes, o app registra a base legada sem publicar o plano; o descritor v2 é enviado na primeira sincronização manual/automática.
    No boot/reconciliação, a envelope pendente de ~1,4 MB é reconstruída automaticamente: histórico operacional removido, plano/dados atuais preservados, `queuedAt`/`attempts` mantidos. Não limpar a outbox.
+   Se houver `replay-payload-mismatch` persistido, a sincronização normal reconhece a adoção stale e rebaseia para `snapshotRevision=2/baseSnapshotRevision=1`; se a operação já estiver no remoto, apenas reconhece a outbox sem escrita. `outbox-rebase-unsafe` exige reconciliação humana.
 5. Conferir no diagnóstico (sem publicar conteúdo pessoal) `baseRevision = 0`, `snapshotRevision` avançando de 0 para 1, `baseRemoteUpdatedAt` igual ao `payloadUpdatedAt` legado e `conflict = null`.
 6. Validar a leitura de volta: 180 blocos, eventos, notas, tempo, questões, revisões e editais preservados; recarregar e confirmar persistência.
 7. Se aparecer `legacy-plan-mismatch`: parar. Exportar o diagnóstico, comparar os caminhos em `differences` e reconciliar pelo editor/checkpoints. Não usar `Forçar sincronização`, `Baixar` ou `Enviar local` como contorno.
@@ -144,8 +176,8 @@ eventos, 4 editais e 82 questões; `bump:check` ok em 9.75; testes de SW/versão
   planejamento, não o estado acadêmico nem o snapshot do instante da migração.
 - Se houver segundo dispositivo com `planId` próprio, tratar o conflito de
   `lineage` como reconciliação separada; não forçar.
-- O deploy deve publicar o cache `9.75`; a primeira carga pode ainda executar o
-  SW antigo até a ativação. Confirmar `DIAGNOSTIC_BUILD_VERSION = 9.75` antes de
+- O deploy deve publicar o cache `9.76`; a primeira carga pode ainda executar o
+  SW antigo até a ativação. Confirmar `DIAGNOSTIC_BUILD_VERSION = 9.76` antes de
   sincronizar.
 - Se o envelope reconstruído ainda exceder 1 MiB, o motor falha fechado e
   preserva `editais`, `eventos` e `planejamento`; exportar o diagnóstico e

@@ -138,6 +138,71 @@ function legacyRfEnvelope(plan, payloadUpdatedAt = "2026-10-22T17:45:50.000Z") {
   };
 }
 
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function adoptionDescriptor(
+  plan,
+  { deviceId = "web-device1", baseRemoteUpdatedAt = null } = {},
+) {
+  return buildRetaFinalSyncDescriptor({
+    plan,
+    baseRevision: 0,
+    baseRemoteUpdatedAt,
+    deviceId,
+    capabilities: CAPABILITIES,
+    state: "active",
+    revision: 0,
+    snapshotRevision: 1,
+    baseSnapshotRevision: 0,
+  });
+}
+
+function adoptionEnvelope({
+  plan,
+  payloadUpdatedAt,
+  sentAt = payloadUpdatedAt,
+  events = [],
+  editais = [],
+  deviceId = "web-device1",
+  baseRemoteUpdatedAt = null,
+}) {
+  return {
+    version: 1,
+    schemaVersion: 6,
+    deviceId,
+    baseRemoteUpdatedAt,
+    payloadUpdatedAt,
+    sentAt,
+    retaFinalSync: adoptionDescriptor(plan, { deviceId, baseRemoteUpdatedAt }),
+    payload: {
+      planejamento: cloneJson(plan),
+      config: {},
+      eventos: cloneJson(events),
+      editais: cloneJson(editais),
+      arquivo: [],
+      revisoes: [],
+      disciplinas: [],
+    },
+  };
+}
+
+function mergeAcademicCollections(local, remote) {
+  const merged = {
+    ...local,
+    ...remote,
+    config: { ...(remote.config || {}), ...(local.config || {}) },
+  };
+  for (const key of ["eventos", "editais", "revisoes", "arquivo"]) {
+    const map = new Map((remote[key] || []).map((item) => [item.id, item]));
+    for (const item of local[key] || []) map.set(item.id, item);
+    merged[key] = [...map.values()];
+  }
+  merged.planejamento = local.planejamento;
+  return merged;
+}
+
 function hugeConflictAudit(plan, legacy) {
   return {
     type: "reta-final-conflict",
@@ -2055,5 +2120,271 @@ describe("reta-final sync engine integration", () => {
     expect(storeModule.state.config.manualSyncHistory).toEqual([
       { at: "local-history", conflicts: { firestore: { cause: "x" } } },
     ]);
+  });
+
+  async function bootStaleAdoption({
+    localEvents = [],
+    remoteEvents = [],
+    pendingEvents = [],
+    localEditais = [],
+    remoteEditais = [],
+    pendingEditais = [],
+    mutateLocalPlan = null,
+  } = {}) {
+    const basePlan = localV2FromLegacy(legacyRfPlan());
+    const remotePlan = cloneJson(basePlan);
+    const pendingPlan = cloneJson(basePlan);
+    const localPlan = cloneJson(basePlan);
+    if (mutateLocalPlan) mutateLocalPlan(localPlan);
+    const remote = adoptionEnvelope({
+      plan: remotePlan,
+      payloadUpdatedAt: "2026-10-27T17:08:44.079Z",
+      events: remoteEvents,
+      editais: remoteEditais,
+      deviceId: "remote-device",
+    });
+    const pending = adoptionEnvelope({
+      plan: pendingPlan,
+      payloadUpdatedAt: "2026-10-27T17:09:00.748Z",
+      events: pendingEvents,
+      editais: pendingEditais,
+      deviceId: "web-device1",
+      baseRemoteUpdatedAt: "2026-10-22T17:45:50.000Z",
+    });
+    await boot({ plan: localPlan, basePlan: localPlan, remote });
+    const sync = storeModule.state.config.firestoreSync;
+    sync.snapshotRevision = 1;
+    sync.baseRevision = 0;
+    sync.baseRemoteUpdatedAt = remote.payloadUpdatedAt;
+    sync.remoteUpdatedAt = remote.payloadUpdatedAt;
+    storeModule.state.eventos = cloneJson(localEvents);
+    storeModule.state.editais = cloneJson(localEditais);
+    storeModule.state.arquivo = [];
+    storeModule.state.revisoes = [];
+    outbox.setPendingRecord({
+      id: "latest_snapshot",
+      status: "pending",
+      attempts: 0,
+      queuedAt: "2026-10-27T17:09:10.561Z",
+      envelope: pending,
+    });
+    syncCenter.mergeStudyStates.mockImplementation(mergeAcademicCollections);
+    return { basePlan, remotePlan, pendingPlan, localPlan, remote, pending };
+  }
+
+  it("rebases a stale adoption outbox onto the current remote snapshot", async () => {
+    const { remote, localPlan } = await bootStaleAdoption({
+      localEvents: [
+        { id: "ev_pending", notas: "pending", updatedAt: "2026-10-27T17:08:00.000Z" },
+        { id: "ev_local", notas: "local", updatedAt: "2026-10-27T17:10:00.000Z" },
+        { id: "ev_edit", notas: "local-edit", updatedAt: "2026-10-27T17:10:00.000Z" },
+      ],
+      pendingEvents: [
+        { id: "ev_pending", notas: "pending", updatedAt: "2026-10-27T17:08:00.000Z" },
+        { id: "ev_edit", notas: "base", updatedAt: "2026-10-27T17:05:00.000Z" },
+      ],
+      remoteEvents: [
+        { id: "ev_remote", notas: "remote", updatedAt: "2026-10-27T17:07:00.000Z" },
+        { id: "ev_edit", notas: "base", updatedAt: "2026-10-27T17:05:00.000Z" },
+      ],
+      localEditais: [{ id: "ed_pending" }, { id: "ed_local" }],
+      pendingEditais: [{ id: "ed_pending" }],
+      remoteEditais: [{ id: "ed_remote" }],
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(true);
+    expect(outbox.replacePendingFirestoreSnapshotEnvelope).toHaveBeenCalledWith(
+      expect.any(Object),
+      {
+        queuedAt: "2026-10-27T17:09:10.561Z",
+        sentAt: "2026-10-27T17:09:00.748Z",
+      },
+    );
+    expect(repository.verifyRetaFinalGuard).toHaveBeenCalled();
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    const written = repository.writeFirestoreSnapshot.mock.calls[0][2];
+    expect(written.retaFinalSync).toMatchObject({
+      planId: localPlan.planId,
+      revision: 0,
+      baseRevision: 0,
+      snapshotRevision: 2,
+      baseSnapshotRevision: 1,
+      state: "active",
+      baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+    });
+    expect(written.payload.planejamento).toEqual(remote.payload.planejamento);
+    expect(written.payload.eventos.map((item) => item.id).sort()).toEqual([
+      "ev_edit",
+      "ev_local",
+      "ev_pending",
+      "ev_remote",
+    ]);
+    expect(
+      written.payload.eventos.find((item) => item.id === "ev_edit").notas,
+    ).toBe("local-edit");
+    expect(written.payload.editais.map((item) => item.id).sort()).toEqual([
+      "ed_local",
+      "ed_pending",
+      "ed_remote",
+    ]);
+    expect(storeModule.state.config.firestoreSync.conflict).toBeNull();
+    expect(storeModule.state.config.firestoreSync.snapshotRevision).toBe(2);
+    expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();
+
+    expect(await engine.flushFirestoreOutbox({ manual: true })).toBe(true);
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("acknowledges a stale adoption outbox when the current payload is already remote", async () => {
+    const events = [
+      { id: "ev_remote", notas: "remote", updatedAt: "2026-10-27T17:07:00.000Z" },
+    ];
+    await bootStaleAdoption({
+      localEvents: events,
+      pendingEvents: events,
+      remoteEvents: events,
+      localEditais: [{ id: "ed_remote" }],
+      pendingEditais: [{ id: "ed_remote" }],
+      remoteEditais: [{ id: "ed_remote" }],
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(true);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.replacePendingFirestoreSnapshotEnvelope).not.toHaveBeenCalled();
+    expect(outbox.markFirestoreSnapshotSynced).toHaveBeenCalled();
+    expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();
+    expect(storeModule.state.config.firestoreSync.conflict).toBeNull();
+    expect(storeModule.state.config.firestoreSync.lastPushAt).toBeNull();
+  });
+
+  it("fails closed when the stale outbox contains a real academic divergence", async () => {
+    await bootStaleAdoption({
+      localEvents: [{ id: "ev_shared", notas: "local" }],
+      pendingEvents: [{ id: "ev_shared", notas: "base" }],
+      remoteEvents: [{ id: "ev_shared", notas: "remote" }],
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(false);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.replacePendingFirestoreSnapshotEnvelope).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "outbox-rebase-unsafe" }),
+    );
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+  });
+
+  it("fails closed when only the plan digest matches but the exact plan differs", async () => {
+    await bootStaleAdoption({
+      mutateLocalPlan: (plan) => {
+        plan.retaFinal.blocos[0].data = "2026-12-31";
+      },
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(false);
+    expect(repository.writeFirestoreSnapshot).not.toHaveBeenCalled();
+    expect(outbox.saveFirestoreConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ cause: "outbox-rebase-unsafe" }),
+    );
+    expect(await outbox.getPendingFirestoreSnapshot()).not.toBeNull();
+  });
+
+  it("does not overwrite an outbox changed during the stale replay repair", async () => {
+    const { remotePlan, remote } = await bootStaleAdoption({
+      localEvents: [{ id: "ev_local" }],
+      pendingEvents: [{ id: "ev_pending" }],
+      remoteEvents: [{ id: "ev_remote" }],
+    });
+    const newerDescriptor = buildRetaFinalSyncDescriptor({
+      plan: remotePlan,
+      baseRevision: 0,
+      baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+      deviceId: "web-device1",
+      capabilities: CAPABILITIES,
+      state: "active",
+      revision: 0,
+      snapshotRevision: 2,
+      baseSnapshotRevision: 1,
+    });
+    const newer = {
+      version: 1,
+      schemaVersion: 6,
+      deviceId: "web-device1",
+      baseRemoteUpdatedAt: remote.payloadUpdatedAt,
+      payloadUpdatedAt: "2026-10-27T17:20:00.000Z",
+      sentAt: "2026-10-27T17:20:00.000Z",
+      retaFinalSync: newerDescriptor,
+      payload: {
+        planejamento: cloneJson(remotePlan),
+        config: {},
+        eventos: [{ id: "ev_newer" }],
+        editais: [],
+        arquivo: [],
+        revisoes: [],
+        disciplinas: [],
+      },
+    };
+    outbox.replacePendingFirestoreSnapshotEnvelope.mockImplementation(async () => {
+      outbox.setPendingRecord({
+        id: "latest_snapshot",
+        status: "pending",
+        attempts: 0,
+        queuedAt: "2026-10-27T17:20:01.000Z",
+        envelope: newer,
+      });
+      return false;
+    });
+
+    const result = await engine.flushFirestoreOutbox({ manual: true });
+
+    expect(result).toBe(true);
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    const written = repository.writeFirestoreSnapshot.mock.calls[0][2];
+    expect(written.sentAt).toBe("2026-10-27T17:20:00.000Z");
+    expect(written.payload.eventos.map((item) => item.id)).toEqual([
+      "ev_newer",
+    ]);
+    expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();
+  });
+
+  it("recovers a persisted replay-payload-mismatch through normal sync now", async () => {
+    await bootStaleAdoption({
+      localEvents: [{ id: "ev_local" }],
+      pendingEvents: [{ id: "ev_pending" }],
+      remoteEvents: [{ id: "ev_remote" }],
+    });
+    storeModule.state.config.firestoreSync.conflict = {
+      type: "reta-final-conflict",
+      cause: "replay-payload-mismatch",
+      detectedAt: "2026-10-27T17:09:30.000Z",
+    };
+    storeModule.state.config.firestoreSync.hasPendingWrites = true;
+
+    const result = await engine.syncFirestoreNow();
+
+    expect(result).toBe(true);
+    expect(repository.writeFirestoreSnapshot).toHaveBeenCalledTimes(1);
+    const written = repository.writeFirestoreSnapshot.mock.calls[0][2];
+    expect(written.retaFinalSync).toMatchObject({
+      revision: 0,
+      baseRevision: 0,
+      snapshotRevision: 2,
+      baseSnapshotRevision: 1,
+      state: "active",
+    });
+    expect(written.payload.eventos.map((item) => item.id).sort()).toEqual([
+      "ev_local",
+      "ev_pending",
+      "ev_remote",
+    ]);
+    expect(storeModule.state.config.firestoreSync.conflict).toBeNull();
+    expect(await outbox.getPendingFirestoreSnapshot()).toBeNull();
   });
 });
