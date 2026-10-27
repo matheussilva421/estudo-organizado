@@ -5,7 +5,7 @@
 **Projeto:** matheussilva421/estudo-organizado
 **Natureza:** desenho arquitetural e contratos de aceitação; nenhuma implementação autorizada
 **Origem:** brainstorming Superpowers, Decisões Arquiteturais 01–27 aprovadas em 2026-10-19; Emenda A-01 Impeccable aprovada em 2026-10-19
-**Gate atual:** G2 — elaboração e revisão humana dos planos de implementação
+**Gate atual:** G2/F0 aprovado em 2026-10-19; execução F0 ainda não comprovada (2026-10-27). Próximo gate humano: homologação da auditoria F0. Consultar [roadmap V2](../v2/ROADMAP.md).
 **Próximo gate condicionado:** G1 aprovado em 2026-10-19; writing-plans autorizado exclusivamente para elaborar planos por fatia. G2 exige aprovação explícita do plano e do método de execução antes de qualquer implementação.
 
 ## 1. Objetivo, usuários, resultados e regras inegociáveis
