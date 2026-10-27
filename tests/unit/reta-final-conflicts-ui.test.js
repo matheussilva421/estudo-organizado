@@ -275,6 +275,27 @@ describe("Reta Final conflict review view", () => {
     expect(html).not.toMatch(/<button[^>]*autofocus/);
   });
 
+  it("shows the recovery subcause and the divergent paths", () => {
+    const state = appState({
+      conflict: firestoreConflict({
+        cause: "outbox-rebase-unsafe",
+        subcause: "plan-intent-divergence",
+        differences: ["retaFinal.blocos.rf-1.minutos", "<b>path</b>"],
+        reason:
+          "A outbox pendente nao pode ser rebaseada com seguranca (plan-intent-divergence).",
+      }),
+    });
+
+    const html = renderRetaFinalConflictReview(collectRetaFinalConflicts(state));
+
+    expect(html).toContain("subcausa");
+    expect(html).toContain("plan-intent-divergence");
+    expect(html).toContain("retaFinal.blocos.rf-1.minutos");
+    expect(html).toContain("2 diferenca(s) de conteudo");
+    expect(html).toContain("&lt;b&gt;path&lt;/b&gt;");
+    expect(html).not.toContain("<b>path</b>");
+  });
+
   it("returns an empty string when there is no conflict", () => {
     expect(renderRetaFinalConflictReview([])).toBe("");
     expect(renderRetaFinalConflictReview({ config: {} })).toBe("");

@@ -182,3 +182,93 @@ SW/versão **105/105**; lint 0 erros.
 - Se o envelope reconstruído ainda exceder 1 MiB, o motor falha fechado e
   preserva `editais`, `eventos` e `planejamento`; exportar o diagnóstico e
   segmentar conforme a arquitetura, sem corte silencioso.
+
+## Hotfix 9.77 — `outbox-rebase-unsafe` (27/10)
+
+### Causa raiz
+
+O 9.76 recuperava o replay de adoção comparando o plano local com o remoto por
+JSON bruto (`sameJson`). `syncRetaFinalToEventos` materializa a projeção do
+cronograma em `data`, `status`, `rolagens` e `dataEfetiva` dentro do plano, sem
+incrementar `revision`. Dois dispositivos podem ter a mesma intenção com
+representações diferentes; a recuperação classificava isso como
+`local-plan-not-exact` e registrava `outbox-rebase-unsafe` com
+`differences: null`, bloqueando poll/auto-pull/sync-now.
+
+Defeitos estruturais confirmados no mesmo caminho:
+
+- o descritor era calculado a partir do plano local, mas o payload acadêmico
+  enviava o plano remoto verificado (`planOverride`); qualquer deriva de
+  projeção em campo coberto pelo digest fazia `descriptorPayloadMismatch`
+  bloquear o envio com mensagem genérica;
+- `enqueueFirestoreSnapshot` fazia `put` cego: um `Sincronizar agora` podia
+  substituir a outbox pendente (e `queuedAt`/`attempts`) por outra operação;
+- `retaFinalQueueOptions` ignorava o `baseRemoteUpdatedAt` observado pelo
+  sync-now, mantendo a base antiga no descritor;
+- conflitos `outbox-rebase-unsafe` não eram reavaliados pelo caminho normal.
+
+### Correção
+
+- `reta-final-protocol.js`: identidade por intenção
+  (`compareRetaFinalPlanIntent`), ignorando projeção, metadados por dispositivo
+  (`updatedAt`, journal) e ordem dos blocos; divergência real devolve caminhos
+  estáveis (`retaFinal.blocos.<id>.<campo>`). `wireDigest` permite carregar o
+  digest remoto quando o plano não muda (as regras comparam digest e mapa
+  literalmente).
+- `firestore-sync-engine.js`: rebase seguro por intenção; `ALREADY_APPLIED`
+  compara o estado acadêmico sem plano; `UNSAFE` ganha `subcause`,
+  `differences` e `details` (contagens/ids, sem plano completo); as causas
+  `outbox-rebase-unsafe`, `replay-payload-mismatch` e
+  `remote-changed-during-recovery` são reavaliadas pelo caminho normal; CAS
+  local no enfileiramento; re-leitura do remoto e revalidação antes da escrita;
+  `_timerStart` preservado no merge; `Forçar sincronização`/`Enviar local`
+  passam a drenar a outbox existente em vez de substituí-la.
+- `firestore-outbox.js`: `enqueueFirestoreSnapshot(envelope, { expected })` é
+  compare-and-set e preserva `queuedAt`/`attempts`/`nextAttemptAt`.
+- UI: subcausa e caminhos divergentes no card de conflito e no status.
+- `sync-history.js` entrou no precache do Service Worker (pendência da 9.76).
+- Versão de cache 9.77.
+
+### Testes
+
+- `npx vitest run`: 178 arquivos, 2981 testes PASS.
+- E2E chromium: `sync-e2e` + `sync-dados` 21/21 PASS.
+- Casos novos de replay/rebase, subcausa, CAS de outbox, reload persistido,
+  remoto alterado durante a recuperação, cronômetro e divergência real.
+- Emulador Firestore: NOT_RUN — o ambiente não tem JRE (`java` ausente) e não
+  há emulador ativo em 127.0.0.1:8085/8090. Casos 5f adicionados a
+  `scripts/verify-reta-final-rules.mjs` para rodar em ambiente com Java.
+
+### Revisão independente (achados materiais corrigidos)
+
+- O rebase gravava o estado mesclado no envelope, mas não o aplicava ao estado
+  local; o próximo push academic-only poderia apagar do remoto justamente os
+  itens mesclados. Agora o estado local é atualizado após o ACK (preservando a
+  projeção e o objeto de config vivos), com fallback LWW se o usuário editar
+  durante a escrita.
+- O validador de replay usava `canonical(payload)`, que removia `data` e outros
+  campos em qualquer profundidade, enquanto as regras comparam o payload
+  inteiro. O replay agora compara o mapa completo; o ramo de plano inalterado
+  compara também `payload.planejamento` (novo `plan-payload-mismatch`, que entra
+  na recuperação).
+- O descritor academic-only recalculava tombstones/floor; as regras exigem
+  presença, valor e ordem exatos. Agora copia os campos do descritor remoto, e
+  `retentionFloor` omite o campo quando não há floor e nunca produz valor
+  negativo.
+- A identidade de pull e o status de no-op passaram a usar o digest de
+  intenção; o par `_timerStart`/`tempoAcumulado` é preservado junto.
+- A resolução de conflito grava `baseRemoteDigest`, tombstones e floor da base
+  remota para não bloquear o próximo push academic-only.
+- Limitações aceitas nesta rodada: `plan-digest-mismatch` continua fail-closed
+  (é violação do contrato de revisão, não deriva de projeção); `adoption-base`
+  em documento legado cujo `payloadUpdatedAt` mudou ainda exige reconciliação
+  explícita; `enqueue/replace/markSynced` continuam resolvendo no onsuccess do
+  IndexedDB (o replay idempotente cobre a janela de aborto).
+
+### Pendências (gates)
+
+- Push e deploy: aguardando autorização explícita.
+- Recuperação real da conta: aguardando autorização de escrita remota; nenhum
+  IndexedDB/outbox foi limpo e nenhum documento real foi escrito.
+- Confirmar em runtime o snapshot remoto e executar readback/segunda
+  sincronização idempotente após o deploy.

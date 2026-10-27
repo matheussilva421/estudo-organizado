@@ -216,3 +216,125 @@ describe('firestore-outbox pending envelope replacement', () => {
     ).toBe(false);
   });
 });
+
+describe('firestore-outbox enqueue compare-and-set', () => {
+  afterEach(() => {
+    vi.resetModules();
+  });
+
+  async function boot(records) {
+    const store = {
+      get(key) {
+        const request = {};
+        queueMicrotask(() => {
+          request.result = records.get(key) ?? null;
+          request.onsuccess?.();
+        });
+        return request;
+      },
+      put(entry) {
+        const request = {};
+        queueMicrotask(() => {
+          records.set(entry.id, entry);
+          request.onsuccess?.();
+        });
+        return request;
+      },
+      delete(key) {
+        const request = {};
+        queueMicrotask(() => {
+          records.delete(key);
+          request.onsuccess?.();
+        });
+        return request;
+      },
+    };
+    const transaction = { objectStore: () => store, oncomplete: null, onerror: null };
+    const db = {
+      objectStoreNames: { contains: () => true },
+      transaction: () => transaction,
+    };
+    vi.doMock('../../src/js/store.js?v=8.37', () => ({
+      db,
+      FIRESTORE_CONFLICT_STORE: 'conflicts',
+      FIRESTORE_META_STORE: 'meta',
+      FIRESTORE_OUTBOX_STORE: 'outbox',
+    }));
+    const outbox = await import('../../src/js/sync/firestore-outbox.js?v=8.37');
+    return { outbox, records };
+  }
+
+  it('coalesces into the observed operation and preserves its identity', async () => {
+    const records = new Map([
+      [
+        'latest_snapshot',
+        {
+          id: 'latest_snapshot',
+          status: 'pending',
+          attempts: 2,
+          queuedAt: 'q1',
+          nextAttemptAt: 'n1',
+          lastError: 'previous',
+          envelope: { sentAt: 's1' },
+        },
+      ],
+    ]);
+    const { outbox } = await boot(records);
+
+    expect(
+      await outbox.enqueueFirestoreSnapshot(
+        { sentAt: 's2' },
+        { expected: { queuedAt: 'q1', sentAt: 's1' } },
+      ),
+    ).toBe(true);
+    expect(records.get('latest_snapshot')).toMatchObject({
+      queuedAt: 'q1',
+      attempts: 2,
+      nextAttemptAt: 'n1',
+      status: 'pending',
+      lastError: null,
+    });
+    expect(records.get('latest_snapshot').envelope.sentAt).toBe('s2');
+  });
+
+  it('refuses to replace an operation that changed since the read', async () => {
+    const records = new Map([
+      [
+        'latest_snapshot',
+        {
+          id: 'latest_snapshot',
+          status: 'pending',
+          attempts: 0,
+          queuedAt: 'q1',
+          envelope: { sentAt: 's1' },
+        },
+      ],
+    ]);
+    const { outbox } = await boot(records);
+
+    expect(
+      await outbox.enqueueFirestoreSnapshot(
+        { sentAt: 's2' },
+        { expected: { queuedAt: 'q0', sentAt: 's0' } },
+      ),
+    ).toBe(false);
+    expect(records.get('latest_snapshot').envelope.sentAt).toBe('s1');
+  });
+
+  it('creates the operation only when none was observed', async () => {
+    const records = new Map();
+    const { outbox } = await boot(records);
+
+    expect(
+      await outbox.enqueueFirestoreSnapshot(
+        { sentAt: 's1' },
+        { expected: { queuedAt: null, sentAt: null } },
+      ),
+    ).toBe(true);
+    expect(records.get('latest_snapshot')).toMatchObject({
+      status: 'pending',
+      attempts: 0,
+      envelope: { sentAt: 's1' },
+    });
+  });
+});

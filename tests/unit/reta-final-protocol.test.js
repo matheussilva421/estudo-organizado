@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildRetaFinalSyncDescriptor,
   classifyRetaFinalRemoteError,
+  compareRetaFinalPlanIntent,
   computeRetaFinalPlanDigest,
   getRetaFinalPlan,
   getRetaFinalSyncCapabilities,
@@ -586,6 +587,50 @@ describe("reta-final-protocol", () => {
       ).toMatchObject({ allowed: false, reason: "replay-payload-mismatch" });
     });
 
+    it("compares the replay payload literally, including nested derived fields", () => {
+      const remote = envelope({
+        retaFinalSync: remoteDescriptor({ revision: 3, baseRevision: 2 }),
+      });
+      remote.payload.eventos = [
+        { id: "ev1", data: "2026-10-20", status: "agendado" },
+      ];
+      const replay = envelope({ retaFinalSync: { ...remote.retaFinalSync } });
+      replay.payload.eventos = [
+        { id: "ev1", data: "2026-10-21", status: "agendado" },
+      ];
+
+      expect(
+        validateRetaFinalEnvelopeWrite({
+          envelope: replay,
+          remoteEnvelope: remote,
+        }),
+      ).toMatchObject({ allowed: false, reason: "replay-payload-mismatch" });
+    });
+
+    it("rejects an unchanged-plan advance whose plan map differs from the remote", () => {
+      const remote = envelope({
+        retaFinalSync: remoteDescriptor({ revision: 3, baseRevision: 2 }),
+      });
+      const advance = envelope({
+        retaFinalSync: {
+          ...remoteDescriptor({ revision: 3, baseRevision: 2 }),
+          snapshotRevision: remote.retaFinalSync.snapshotRevision + 1,
+          baseSnapshotRevision: remote.retaFinalSync.snapshotRevision,
+        },
+      });
+      advance.payload.planejamento = {
+        ...advance.payload.planejamento,
+        updatedAt: "2026-10-21T00:00:00.000Z",
+      };
+
+      expect(
+        validateRetaFinalEnvelopeWrite({
+          envelope: advance,
+          remoteEnvelope: remote,
+        }),
+      ).toMatchObject({ allowed: false, reason: "plan-payload-mismatch" });
+    });
+
     it("keeps minRetainedRevision optional in the descriptor", () => {
       const value = buildRetaFinalSyncDescriptor({
         plan: plan(),
@@ -824,5 +869,110 @@ describe("reta-final-protocol", () => {
         }),
       ).toBe(true);
     });
+  });
+});
+
+describe("compareRetaFinalPlanIntent()", () => {
+  function basePlan() {
+    return {
+      ativo: true,
+      tipo: "reta_final",
+      schemaVersionRetaFinal: 2,
+      planId: "plan-1",
+      generation: 1,
+      revision: 0,
+      updatedAt: "2026-10-20T12:00:00.000Z",
+      operations: [{ operationId: "op-1" }],
+      retaFinal: {
+        dataFinal: "2026-12-20",
+        blocos: [
+          {
+            id: "b1",
+            discId: "d1",
+            topicos: [{ assId: "a1" }],
+            minutos: 30,
+            ordem: 0,
+            dataPlanejada: "2026-10-22",
+            data: "2026-10-22",
+            status: "pendente",
+            rolagens: 0,
+          },
+          {
+            id: "b2",
+            discId: "d1",
+            topicos: [{ assId: "a2" }],
+            minutos: 45,
+            ordem: 1,
+            dataPlanejada: "2026-10-23",
+            data: "2026-10-23",
+            status: "pendente",
+            rolagens: 0,
+          },
+        ],
+      },
+    };
+  }
+
+  it("ignores projection drift, per-device metadata and block order", () => {
+    const left = basePlan();
+    const right = JSON.parse(JSON.stringify(left));
+    right.updatedAt = "2026-10-27T17:09:00.000Z";
+    right.operations = [];
+    right.retaFinal.blocos.reverse();
+    right.retaFinal.blocos[0].data = "2026-10-27";
+    right.retaFinal.blocos[0].status = "atrasado";
+    right.retaFinal.blocos[0].rolagens = 3;
+    right.retaFinal.blocos[0].dataEfetiva = "2026-10-27";
+
+    expect(compareRetaFinalPlanIntent(left, right)).toMatchObject({
+      equivalent: true,
+      differences: [],
+      blockCount: 2,
+    });
+  });
+
+  it("reports real intent divergence by stable block path", () => {
+    const left = basePlan();
+    const right = JSON.parse(JSON.stringify(left));
+    right.retaFinal.blocos[1].dataPlanejada = "2026-11-01";
+    right.retaFinal.blocos[1].minutos = 90;
+
+    const result = compareRetaFinalPlanIntent(left, right);
+
+    expect(result.equivalent).toBe(false);
+    expect(result.differences).toEqual(
+      expect.arrayContaining([
+        "retaFinal.blocos.b2.dataPlanejada",
+        "retaFinal.blocos.b2.minutos",
+      ]),
+    );
+    expect(result.changedBlockIds).toEqual(["b2"]);
+  });
+
+  it("reports a removed block as a divergence", () => {
+    const left = basePlan();
+    const right = JSON.parse(JSON.stringify(left));
+    right.retaFinal.blocos.pop();
+
+    expect(compareRetaFinalPlanIntent(left, right).differences).toContain(
+      "retaFinal.blocos.b2",
+    );
+  });
+
+  it("carries the remote wire digest for an unchanged plan", () => {
+    const descriptor = buildRetaFinalSyncDescriptor({
+      plan: basePlan(),
+      baseRevision: 0,
+      baseRemoteUpdatedAt: "2026-10-27T17:08:44.079Z",
+      deviceId: "web-device1",
+      capabilities: CAPABILITIES,
+      state: "active",
+      revision: 0,
+      snapshotRevision: 2,
+      baseSnapshotRevision: 1,
+      wireDigest: "abcdefabcdef1234",
+    });
+
+    expect(descriptor.digest).toBe("abcdefabcdef1234");
   });
 });

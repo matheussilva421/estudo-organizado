@@ -1675,6 +1675,115 @@ async function main() {
     }),
   );
 
+  // 5f. A rebase that keeps the plan unchanged must carry the remote wire
+  // digest and the exact remote plan map. Projection drift stays client-side;
+  // a different digest or a changed plan map is denied by the rules.
+  const carriedPlan = plan({ planId: "rfplan_carried", revision: 0, ativo: true });
+  const carriedDigest = repeated("c");
+  const carriedPayload = {
+    config: {},
+    planejamento: carriedPlan,
+    eventos: [{ id: "ev_carried_seed" }],
+    editais: [],
+    disciplinas: [],
+  };
+  await seed(
+    "uid-rebase-carried",
+    envelope({
+      planId: "rfplan_carried",
+      revision: 0,
+      baseRevision: 0,
+      digest: carriedDigest,
+      payload: carriedPayload,
+      payloadUpdatedAt: "2026-10-27T17:08:44.079Z",
+      deviceId: "remote-device",
+    }),
+  );
+  results.push(
+    await expectAllowed(
+      "rebase carries the remote digest with the unchanged plan",
+      () =>
+        setDoc(
+          doc(
+            uidDb("uid-rebase-carried"),
+            "users",
+            "uid-rebase-carried",
+            "snapshots",
+            "main",
+          ),
+          envelope({
+            planId: "rfplan_carried",
+            revision: 0,
+            baseRevision: 0,
+            snapshotRevision: 2,
+            baseSnapshotRevision: 1,
+            digest: carriedDigest,
+            payload: {
+              ...carriedPayload,
+              eventos: [{ id: "ev_carried_seed" }, { id: "ev_carried_new" }],
+            },
+            payloadUpdatedAt: "2026-10-27T17:20:00.000Z",
+            deviceId: "web-rebase",
+          }),
+        ),
+    ),
+  );
+  results.push(
+    await expectDenied("rebase with a different digest is denied", () =>
+      setDoc(
+        doc(
+          uidDb("uid-rebase-carried"),
+          "users",
+          "uid-rebase-carried",
+          "snapshots",
+          "main",
+        ),
+        envelope({
+          planId: "rfplan_carried",
+          revision: 0,
+          baseRevision: 0,
+          snapshotRevision: 3,
+          baseSnapshotRevision: 2,
+          digest: repeated("d"),
+          payload: carriedPayload,
+          payloadUpdatedAt: "2026-10-27T17:30:00.000Z",
+          deviceId: "web-rebase",
+        }),
+      ),
+    ),
+  );
+  results.push(
+    await expectDenied("rebase with a changed plan map is denied", () =>
+      setDoc(
+        doc(
+          uidDb("uid-rebase-carried"),
+          "users",
+          "uid-rebase-carried",
+          "snapshots",
+          "main",
+        ),
+        envelope({
+          planId: "rfplan_carried",
+          revision: 0,
+          baseRevision: 0,
+          snapshotRevision: 3,
+          baseSnapshotRevision: 2,
+          digest: carriedDigest,
+          payload: {
+            ...carriedPayload,
+            planejamento: plan({
+              planId: "rfplan_carried",
+              revision: 1,
+              ativo: true,
+            }),
+          },
+          payloadUpdatedAt: "2026-10-27T17:30:00.000Z",
+          deviceId: "web-rebase",
+        }),
+      ),
+    ),
+  );
+
   // 6. Retirement.
   await seed("uid-retire", envelope({ revision: 2, baseRevision: 1 }));
   results.push(
