@@ -285,3 +285,51 @@ Defeitos estruturais confirmados no mesmo caminho:
   IndexedDB/outbox foi limpo e nenhum documento real foi escrito.
 - Confirmar em runtime o snapshot remoto e executar readback/segunda
   sincronização idempotente após o deploy.
+
+### Pré-publicação (pronto para o gate)
+
+- `origin/main` é ancestral de `HEAD`; push fast-forward de 2 commits
+  (`e9489c5..24b3d9a`). Árvore limpa, versão 9.78, `bump:check` ok.
+- O push existente é `git push origin main` (sem force). O workflow
+  `.github/workflows/auto-cache-bump.yml` compara `src/sw.js` antes/depois:
+  9.76 → 9.78 já bumpado, então ele não cria commit extra.
+- `wrangler.jsonc` publica `src/` como assets e `worker/index.js` pelo build
+  do Cloudflare (integração Git). Não executar `npx wrangler deploy` se o build
+  automático publicar o commit.
+
+### Pós-deploy — ordem exata da recuperação real
+
+1. Abrir a URL de produção no perfil original; não limpar IndexedDB, cache ou
+   outbox. Confirmar `DIAGNOSTIC_BUILD_VERSION = 9.78` e o cache
+   `estudo-organizado-v9.78` ativo.
+2. Exportar um backup local novo pela interface, fora do repositório, e guardar
+   os backups/diagnósticos anteriores.
+3. Antes de qualquer escrita, ler o snapshot remoto e conferir
+   `payloadUpdatedAt`, `retaFinalSync.snapshotRevision`, `revision` e que o
+   planejamento tem 180 blocos. Comparar a intenção local/remota e registrar a
+   contagem de eventos, editais, questões e revisões.
+4. Abrir a Central de Sincronização e executar a sincronização normal (sem
+   Forçar/Enviar local). Esperado: rebase para `snapshotRevision 2`,
+   `baseSnapshotRevision 1`, digest remoto preservado, uma única escrita.
+5. Reler o documento remoto: `conflict = null`, `hasPendingWrites = false`,
+   outbox vazia ou reconhecida, 180 blocos e os mesmos totais acadêmicos.
+6. Recarregar sem limpar dados e confirmar a persistência; executar uma segunda
+   sincronização normal e provar que não há nova escrita.
+7. Se aparecer `plan-intent-divergence` ou `academic-divergence`, parar a
+   operação insegura, preservar a outbox e comparar os caminhos em
+   `differences`; não usar força.
+
+### Inventário GitHub (27/10, somente leitura)
+
+- `main` remota em `e9489c5`; `main` local em `baff1a0`, 3 commits à frente,
+  fast-forward confirmado. Nenhuma PR aberta.
+- `v2`: 5 commits exclusivos (docs V2/F0 e link para a issue #108), divergida
+  (1 atrás). Preservar.
+- `docs/superpowers-estudo-organizado-v2-design`: 2 commits exclusivos
+  (`c3e33e5`, `2a2736c`). Preservar.
+- `docs/superpowers-estudo-organizado-v2-f0-plan`: 8 commits exclusivos
+  (plano F0 aprovado). Preservar.
+- Issue #107 aberta, ainda com o título original de `missing-remote-plan`.
+  O comentário de status não foi publicado: a revisão automática de aprovação
+  rejeitou o payload por detalhes internos em repositório externo sem
+  autorização específica.
