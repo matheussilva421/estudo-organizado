@@ -4,7 +4,7 @@
 **Status:** PROPOSTA TÉCNICA PARA A SPEC F1 — **NÃO É A SPEC F1 APROVADA**  
 **Decisão autorizadora:** Emenda arquitetural A-02 aprovada pelo usuário em 2026-10-28  
 **Rastreabilidade:** D04, D05, D06 (com política operacional atualizada por A-02), D07, D08, D17, D18, D19, D22, D24, D26, A-02; auditoria F0 em `docs/superpowers/audits/2026-10-19-f0-acceptance.md`.  
-**Gate:** F0 aceita com ressalvas em 2026-10-28 (validador recalculado `APPROVED`); 35 `PRESERVE` e 10 `REFORMULATE` aprovados, laboratório visual permanece `UNDECIDED` com adiamento aprovado e fora da F1. Quatro riscos HIGH `UNVERIFIED`. [Spec F1](2026-10-28-estudo-organizado-v2-f1-foundation-design.md) e [ADRs](2026-10-28-v2-f1-architecture-decisions.md) em revisão; **writing-plans e implementação F1 NÃO AUTORIZADOS**.  
+**Gate:** F0 aceita com ressalvas em 2026-10-28 (validador recalculado `APPROVED`); 35 `PRESERVE` e 10 `REFORMULATE` aprovados, laboratório visual permanece `UNDECIDED` com adiamento aprovado e fora da F1. Quatro riscos HIGH `UNVERIFIED`. [Spec F1](2026-10-28-estudo-organizado-v2-f1-foundation-design.md) e [ADRs](2026-10-28-v2-f1-architecture-decisions.md) **APROVADAS em 2026-10-28** ([aceite](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550)); [writing-plans F1](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md) publicado **para revisão, ainda NÃO APROVADO**; implementação F1 **NÃO AUTORIZADA**.  
 **Escopo:** contratos esperados, testes de aceite e decisões que faltam detalhar. Sem instalação, código, acesso à produção, billing ou deploy.
 
 ## 1. Intenção de produto e semântica de sucesso
