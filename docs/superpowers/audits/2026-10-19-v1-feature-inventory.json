@@ -32,8 +32,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "REFORMULATE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-LEGACY-FACADES",
@@ -56,8 +56,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "REFORMULATE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-PERSISTENCE-INDEXEDDB",
@@ -89,8 +89,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-SAVE-STATUS",
@@ -109,8 +109,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "LOW",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-BOOT-RECOVERY",
@@ -132,8 +132,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-HOME-DASHBOARD",
@@ -157,8 +157,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "LOW",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-STUDY-ORGANIZER",
@@ -184,8 +184,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-CALENDAR",
@@ -211,8 +211,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-TIMER-POMODORO",
@@ -234,8 +234,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-SESSION-REGISTRATION",
@@ -262,8 +262,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-SESSION-HISTORY",
@@ -285,8 +285,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-REVISIONS",
@@ -309,8 +309,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-HABITS",
@@ -331,8 +331,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-CYCLE",
@@ -357,8 +357,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-PLANNING-WIZARD",
@@ -382,8 +382,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "REFORMULATE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-EDITALS-CRUD",
@@ -417,8 +417,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-PRINCIPAL-EDITAL",
@@ -442,8 +442,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-ARCHIVED-EDITALS",
@@ -464,8 +464,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-VERTICAL-EDITAL",
@@ -486,8 +486,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-EDITAL-IMPORT",
@@ -509,8 +509,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-LESSON-MAPPER",
@@ -531,8 +531,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-ANALYTICS-DASHBOARD",
@@ -559,8 +559,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-WEAK-POINTS",
@@ -583,8 +583,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-BANCA-ANALYZER",
@@ -605,8 +605,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-GLOBAL-SEARCH",
@@ -625,8 +625,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "LOW",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-NOTIFICATIONS",
@@ -645,8 +645,8 @@
     "evidence_level": "UNCERTAIN",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-CONFIG-PREFERENCES",
@@ -669,8 +669,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-THEMES",
@@ -694,8 +694,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-BACKUP-EXPORT-IMPORT",
@@ -722,8 +722,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-DATA-MANAGEMENT",
@@ -744,8 +744,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-FIRESTORE-SYNC",
@@ -794,8 +794,8 @@
     "evidence_level": "UNCERTAIN",
     "proposed_disposition": "REFORMULATE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-CLOUDFLARE-SYNC",
@@ -820,8 +820,8 @@
     "evidence_level": "UNCERTAIN",
     "proposed_disposition": "REFORMULATE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-DRIVE-SYNC",
@@ -844,8 +844,8 @@
     "evidence_level": "UNCERTAIN",
     "proposed_disposition": "REFORMULATE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-SYNC-CENTER",
@@ -874,8 +874,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "REFORMULATE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-SYNC-DIAGNOSTICS",
@@ -893,8 +893,8 @@
     "evidence_level": "CODE_ONLY",
     "proposed_disposition": "REFORMULATE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-PWA-OFFLINE",
@@ -919,8 +919,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-ACCESSIBILITY",
@@ -947,8 +947,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "MEDIUM",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-SKELETON-LOADING",
@@ -969,8 +969,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "LOW",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-RF-OVERVIEW",
@@ -1009,8 +1009,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-RF-IMPORT",
@@ -1040,8 +1040,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-RF-EDITOR-PLANNER",
@@ -1074,8 +1074,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "REFORMULATE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-RF-HISTORY",
@@ -1102,8 +1102,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-RF-CONFLICTS",
@@ -1131,8 +1131,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "REFORMULATE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-RF-PORTABILITY",
@@ -1155,8 +1155,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-RF-REDISTRIBUTION",
@@ -1181,8 +1181,8 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "PRESERVE",
     "risk": "HIGH",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279"
   },
   {
     "id": "F-V1-VISUAL-LAYOUT-LAB",
@@ -1210,7 +1210,9 @@
     "evidence_level": "CODE_AND_TEST",
     "proposed_disposition": "UNDECIDED",
     "risk": "LOW",
-    "decision_status": "PROPOSED",
-    "approval_reference": null
+    "decision_status": "APPROVED",
+    "approval_reference": "https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279",
+    "decision_note": "APROVADO APENAS O ADIAMENTO: destino final permanece UNDECIDED; explicitamente excluído da F1. Não equivale a decisão de preservar, reformular ou descontinuar.",
+    "disposition_finalized": false
   }
 ]
