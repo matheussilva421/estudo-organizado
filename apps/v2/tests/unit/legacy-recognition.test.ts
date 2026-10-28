@@ -22,6 +22,7 @@ describe('legacy recognition', () => {
     });
 
     expect(result.kind).toBe('V1_SUPPORTED');
+    if (result.kind !== 'V1_SUPPORTED') throw new Error('expected supported legacy plan');
     expect(result.schemaVersion).toBeUndefined();
   });
 
