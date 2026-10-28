@@ -38,7 +38,7 @@ O root `package.json`, o lockfile da V1, `src/`, `PRODUCT.md`, `DESIGN.md`, `AGE
 | --- | --- | --- |
 | Typecheck | `npm --prefix apps/v2 run typecheck` | **PASS** |
 | Lint | `npm --prefix apps/v2 run lint` | **PASS** (0 erros) |
-| Unit | `npm --prefix apps/v2 run test:unit` | **PASS** — 15 arquivos, 76 testes |
+| Unit | `npm --prefix apps/v2 run test:unit` | **PASS** — 15 arquivos, 77 testes |
 | E2E | `npm --prefix apps/v2 run test:e2e` | **PASS** — 16 testes em Chromium |
 | Build | `npm --prefix apps/v2 run build` | **PASS** — bundle 231,14 kB / 72,53 kB gzip |
 | Firebase/Google real | — | **NOT_RUN** |
@@ -146,8 +146,8 @@ A primeira revisão final encontrou cinco P1. Todos foram corrigidos com testes 
 
 Também foram endurecidos: `markConfirmed` exige `PENDING`, `markConflict` recusa `CONFIRMED`, operação local reutilizada com outro comando falha, listener de evento não transforma commit em erro, fake aplica o orçamento de documento, o SW só cacheia respostas OK e o teste de toast verifica o elemento no ponto central do botão.
 
-Após as correções: typecheck/lint/build PASS, 76 testes unitários e 16 E2E PASS.
+Após as correções: typecheck/lint/build PASS, 77 testes unitários e 16 E2E PASS.
 
 ## 12. Gate
 
-**`F1_READY_FOR_HUMAN_REVIEW`**. A F1 não está aprovada e a F2 não está autorizada. O aceite humano deve considerar: 76 testes unitários, 16 E2E, typecheck/lint/build, 4 riscos HIGH ainda UNVERIFIED, ausência de Firebase real e os limites de fake/quota/multi-dispositivo.
+**`F1_READY_FOR_HUMAN_REVIEW`**. A F1 não está aprovada e a F2 não está autorizada. O aceite humano deve considerar: 77 testes unitários, 16 E2E, typecheck/lint/build, 4 riscos HIGH ainda UNVERIFIED, ausência de Firebase real e os limites de fake/quota/multi-dispositivo.
