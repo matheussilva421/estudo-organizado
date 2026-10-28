@@ -1,6 +1,6 @@
 # Estudo Organizado V2 — F3: Planejamento, calendário, ciclo e Reta Final
 
-**Status:** **SPEC PROPOSTA / NÃO APROVADA** — arquitetura derivada da spec-mestra D01–D27 + A-01/A-02, F0 aprovada com ressalvas e F1 aprovada documentalmente. **Nenhum writing-plans, código ou serviço autorizado.**  
+**Status:** **SPEC PROPOSTA / NÃO APROVADA** — arquitetura derivada da spec-mestra D01–D27 + A-01/A-02, F0 e F1 **aceitas com ressalvas**; F2 está com design revisado, porém não aprovado. **Nenhum writing-plans, código ou serviço autorizado.**  
 **Pré-requisito:** F1 e F2 com entregas verificadas e gates humanos; modelos canônicos de edital/assunto/aula, operações versionadas, clock, IndexedDB local e status de sync disponíveis.  
 **Objetivo:** transformar conteúdo em plano de estudos executável, com calendários confiáveis, cronograma de Reta Final completo, editor, prioridades e histórico não destrutivo.
 
