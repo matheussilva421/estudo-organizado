@@ -113,7 +113,7 @@ A configuração da V1 continua apontando `test:e2e:mock` para uma spec ignorada
 
 - `main`: `9046cfa`, não alterada.
 - `v2` inicial: `b15226d`; os commits F1 desta execução estão em `git log b15226d..HEAD` e este relatório é o commit documental final.
-- Todo o código está integrado à `v2`; `origin/v2` estava em `abd04d3` antes desta rodada corretiva e o HEAD final é informado no comentário da issue #108.
+- Todo o código está integrado à `v2`; `origin/v2` foi atualizado para `c93adbd` com esta rodada corretiva.
 - O push foi concluído após aprovação humana explícita, sem force push e sem workaround do bloqueio automático anterior.
 - Nenhum PR, Action, deploy, publicação ou migração real.
 - Branches documentais antigas preservadas; nenhum worktree temporário criado além do já existente da V2.
