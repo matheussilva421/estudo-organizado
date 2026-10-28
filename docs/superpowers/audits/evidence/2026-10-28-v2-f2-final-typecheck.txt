@@ -1,0 +1,4 @@
+npm --prefix apps/v2 run typecheck
+$ tsc --noEmit
+exit=0
+

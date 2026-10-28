@@ -3,7 +3,7 @@
 **Data:** 2026-10-28 (America/Fortaleza)
 **Branch:** `v2`
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f0-audit\estudo-organizado`
-**Gate atual:** F1 `F1_ACCEPTED_WITH_RESERVATIONS`; F2 `F2_SPEC_APPROVED` e `F2_PLAN_APPROVED_FOR_EXECUTION`; GOAL publicado em `v2`, **execução F2 ainda não comprovada**. Código V1 e `main` preservados.
+**Gate atual:** F1 `F1_ACCEPTED_WITH_RESERVATIONS`; F2 **implementada e integrada em `v2`** com gate `F2_READY_FOR_HUMAN_REVIEW` (2026-10-28). Evidências em `docs/superpowers/audits/2026-10-28-v2-f2-acceptance.md`. Código V1 e `main` preservados; F2 não aprovada nem homologada.
 
 ## Estado do Git
 
@@ -26,12 +26,12 @@
 - Impeccable 3.9.1: detector final 0 achados; 24 capturas sintéticas.
 - Relatório: `docs/superpowers/audits/2026-10-28-v2-f1-acceptance.md`.
 - F1 aceita com ressalvas; quatro HIGH continuam `UNVERIFIED`, Firebase/multi-dispositivo não homologados.
-- Spec F2 revisada pelo ChatGPT com Superpowers e **aprovada pelo proprietário** (D-F2-01..06, E-F2-01..08); writing-plans F2 com 16 tarefas e matriz T01..T40 **aprovado e publicado** em `docs/superpowers/plans/2026-10-28-estudo-organizado-v2-f2-editais-conteudo.md`. GOAL executável publicado em `docs/superpowers/goals/2026-10-28-estudo-organizado-v2-f2-codex.md`. Não há código F2 entregue ainda.
+- Spec e writing-plans F2 aprovados pelo proprietário; o GOAL foi executado integralmente: domínio de editais/conteúdo, upgrade IDB v2, commit único, principal por perfil, tombstones, conflitos, identidade de entrega, retry, importação atômica, backup F1→F2, UI e orçamento sintético. Relatório único em `docs/superpowers/audits/2026-10-28-v2-f2-acceptance.md` com a matriz F2-T01..T40.
 - Relatório de prontidão F2: `docs/superpowers/audits/2026-10-28-v2-f2-design-readiness.md`.
 
 ## Pendente
 
-1. Codex executar o GOAL F2 publicado na própria `v2`, confirmando localmente os gates e testes antes de integrar código.
+1. Revisar o relatório F2 e decidir o aceite humano; correções apontadas pelo ChatGPT continuam a cargo do Codex.
 2. Ensaio Firebase Emulator: autorização **específica de instalação/execução**, independente da redação do writing-plans F2.
 3. Após execução: apresentar relatório, matriz T01..T40, revisão independente e estado Git para auditoria do ChatGPT. F2 só será aceita após gate humano.
 4. Homologação real de Firebase/Rules/quota/multi-dispositivo na fase apropriada (F7).

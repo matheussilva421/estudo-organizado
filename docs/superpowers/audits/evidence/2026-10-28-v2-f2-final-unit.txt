@@ -1,0 +1,6 @@
+npm --prefix apps/v2 run test:unit
+Test Files  29 passed (29)
+Tests  162 passed (162)
+Duration  6.94s
+exit=0
+

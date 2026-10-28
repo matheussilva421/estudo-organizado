@@ -1,0 +1,4 @@
+npm --prefix apps/v2 run lint
+$ eslint src tests
+exit=0 (sem achados)
+

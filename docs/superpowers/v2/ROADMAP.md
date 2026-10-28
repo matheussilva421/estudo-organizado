@@ -57,7 +57,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | **ACEITA COM RESSALVAS — 2026-10-28, commit `85ce1e3`** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6475527680) e [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
-| **F2 — Editais e conteúdo** | **SPEC/PLAN APPROVED; GOAL PUBLISHED — IMPLEMENTATION PENDING** | Base canônica de organização | [Spec aprovada](../specs/2026-10-28-estudo-organizado-v2-f2-content-design.md), [plano](../plans/2026-10-28-estudo-organizado-v2-f2-editais-conteudo.md) e [GOAL](../goals/2026-10-28-estudo-organizado-v2-f2-codex.md); aguarda execução e evidências do Codex |
+| **F2 — Editais e conteúdo** | **IMPLEMENTED — `F2_READY_FOR_HUMAN_REVIEW`** (2026-10-28) | Base canônica de organização | [Relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md); 162 unit e 44 E2E PASS; F2-T22 `NOT_RUN`; aceite humano pendente |
 | **F3 — Planejamento** | **SPEC PROPOSTA; não iniciada** | Planejamento executável | F2 e regras temporais |
 | **F4 — Execução/sessões** | **SPEC PROPOSTA; não iniciada** | Tempo/histórico confiáveis | Persistência e domínio |
 | **F5 — Revisões/inteligência** | **SPEC PROPOSTA; não iniciada** | Revisar e priorizar | F2–F4 |
@@ -258,7 +258,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 - **Gate G2/F1:** [plano aprovado](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md), Subagent-driven adotado para o handoff, [aceite humano](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847).
 - **Fase operacional seguinte:** F2 spec e writing-plans aprovados; GOAL F2 publicado. Codex pode executar conforme autorização prévia, após preflight local; nenhuma implementação F2 comprovada ainda.
 - **Estado F1:** implementada em `apps/v2/`, testada localmente (84 unit/20 E2E), publicada em `origin/v2` e aceita com ressalvas em `85ce1e3`; quatro HIGH `UNVERIFIED` e Firebase/multi-dispositivo não homologados.
-- **F2:** `F2_SPEC_APPROVED` / `F2_PLAN_APPROVED_FOR_EXECUTION`; ChatGPT publicou [writing-plans](../plans/2026-10-28-estudo-organizado-v2-f2-editais-conteudo.md) e [GOAL](../goals/2026-10-28-estudo-organizado-v2-f2-codex.md), 16 tarefas e T01..T40. Código/emulador ainda não executados.
+- **F2:** implementada em `v2` conforme o [writing-plans](../plans/2026-10-28-estudo-organizado-v2-f2-editais-conteudo.md) e o [GOAL](../goals/2026-10-28-estudo-organizado-v2-f2-codex.md); gate `F2_READY_FOR_HUMAN_REVIEW` com [relatório único](../audits/2026-10-28-v2-f2-acceptance.md). Emulador permanece `NOT_RUN`; F2 não aprovada nem homologada.
 - **Testes executados:** F0 — 66 validadores PASS, 189/3048 unitários PASS, lint 0 erros; F1 — typecheck/lint/build PASS, 84 testes unitários e 20 E2E PASS. `test:e2e:mock` e `test:e2e:mock:all` da V1 mantêm FAIL; runtime Firebase/Cloudflare/Drive, migração real, emulador e multi-dispositivo permanecem NOT_RUN/UNVERIFIED.
 
 ## 15. Definição de conclusão de fase
@@ -344,7 +344,7 @@ Uma fase só estará **CONCLUÍDA** após verificar: escopo aceito, evidências 
 
 ## 18. Caminho crítico, riscos e encerramento real
 
-1. **Agora:** **F2 spec e writing-plans aprovados**. Codex executar [GOAL F2](../goals/2026-10-28-estudo-organizado-v2-f2-codex.md), consultando integralmente [plano F2](../plans/2026-10-28-estudo-organizado-v2-f2-editais-conteudo.md), após preflight Git. Codex não planeja, nem executa Firebase Emulator sem autorização específica.
+1. **Agora:** revisar o [relatório F2](../audits/2026-10-28-v2-f2-acceptance.md) e decidir o aceite humano. A F2 foi implementada e testada localmente em `v2`; aceite, homologação e F3 permanecem gates humanos. Firebase Emulator continua exigindo autorização específica.
 2. **F2–F6:** ratificar specs já propostas na ordem, ajustar apenas decisões afetadas pela fase anterior, redigir writing-plans por fase e executar TDD/local/Impeccable. Evitar PR por tarefa e não criar Actions.
 3. **Sync antecipado (opcional pendente):** decidir após F1 se autoriza um ensaio emulado/Spark isolado pequeno em F2 ou se posterga todo uso remoto real a F7. Exigir orçamento e isolamento; nada de dados reais.
 4. **F7:** provar Auth Google + Firestore Spark multi-dispositivo, Rules, backup/restore, quotas, conflitos e migração isolada; quatro HIGH só mudam status mediante evidências.
