@@ -1,0 +1,1214 @@
+[
+  {
+    "id": "F-V1-APP-SHELL",
+    "name": "Shell, navegação e despacho de ações",
+    "domain": "platform",
+    "observed_behavior": "Inicializa o aplicativo, registra ações delegadas por data-action, alterna views, controla sidebar, modais e toasts, e mantém o roteamento de renderização e badges do shell.",
+    "source_paths": [
+      "src/js/main.js",
+      "src/js/app.js",
+      "src/js/app/navigation.js",
+      "src/js/app/modals.js",
+      "src/js/app/toast.js",
+      "src/js/components.js",
+      "src/js/views.js",
+      "src/js/ui/actions/index.js",
+      "src/js/ui/actions/dispatcher.js",
+      "src/js/ui/actions/navegacao.js",
+      "src/js/ui/actions/modais.js",
+      "src/js/ui/dialog.js",
+      "src/js/ui/dom.js",
+      "src/js/ui-state.js"
+    ],
+    "tests": [
+      "tests/unit/app.test.js",
+      "tests/unit/app-submodules.test.js",
+      "tests/unit/actions-dispatcher.test.js",
+      "tests/unit/navegacao-actions.test.js",
+      "tests/unit/components.test.js",
+      "tests/unit/action-contracts.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-LEGACY-FACADES",
+    "name": "Facades legadas e namespace global",
+    "domain": "platform",
+    "observed_behavior": "As facades reexportam store, domínio, views e componentes e publicam seus exports em window.EstudoApp; bridges globais mantêm compatibilidade com chamadas legadas.",
+    "source_paths": [
+      "src/js/main.js",
+      "src/js/store.js",
+      "src/js/logic.js",
+      "src/js/views.js",
+      "src/js/components.js"
+    ],
+    "tests": [
+      "tests/unit/app-submodules.test.js",
+      "tests/unit/bundle-graph.test.js",
+      "tests/unit/module-specifier-consistency.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-PERSISTENCE-INDEXEDDB",
+    "name": "Persistência local em IndexedDB",
+    "domain": "data",
+    "observed_behavior": "Carrega e salva o estado versionado em IndexedDB, executa migrações v1 a v12, mantém envelopes current/previous, outbox e metadados de sync, e grava rascunhos e histórico da Reta Final.",
+    "source_paths": [
+      "src/js/store.js",
+      "src/js/store/indexeddb.js",
+      "src/js/store/migrations.js",
+      "src/js/store/normalize-state.js",
+      "src/js/store/export-state.js",
+      "src/js/store/reta-final-draft-store.js",
+      "src/js/store/reta-final-history-store.js",
+      "src/js/store/reta-final-commit.js",
+      "src/js/store/boot-recovery.js"
+    ],
+    "tests": [
+      "tests/unit/store.test.js",
+      "tests/unit/store-indexeddb-imports.test.js",
+      "tests/unit/store-migrations.test.js",
+      "tests/unit/persistence-contracts.test.js",
+      "tests/unit/store-boot-failure.test.js",
+      "tests/unit/reta-final-draft-store.test.js",
+      "tests/unit/reta-final-history-store.test.js",
+      "tests/unit/reta-final-commit.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-SAVE-STATUS",
+    "name": "Indicador de salvamento local",
+    "domain": "data",
+    "observed_behavior": "Exibe salvando, salvo localmente ou erro de salvamento no topbar e nas configurações, com detalhe de falha independente do estado de sync remoto.",
+    "source_paths": [
+      "src/js/app/save-status.js",
+      "src/js/store/indexeddb.js",
+      "src/js/views/config-view.js"
+    ],
+    "tests": [
+      "tests/unit/save-status.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "LOW",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-BOOT-RECOVERY",
+    "name": "Recuperação e reconciliação no boot",
+    "domain": "data",
+    "observed_behavior": "Após falha de migração, agenda uma reconciliação derivada única no próximo boot e roteia a reconciliação para o Ciclo ou para a Reta Final conforme o plano ativo.",
+    "source_paths": [
+      "src/js/app/boot-reconciliation.js",
+      "src/js/store/boot-recovery.js",
+      "src/js/app.js",
+      "src/js/store/indexeddb.js"
+    ],
+    "tests": [
+      "tests/unit/boot-reconciliation.test.js",
+      "tests/unit/boot-recovery.test.js",
+      "tests/unit/store-boot-failure.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-HOME-DASHBOARD",
+    "name": "Home e visão geral de desempenho",
+    "domain": "analytics",
+    "observed_behavior": "Renderiza quatro faixas de dashboard com KPIs lifetime, countdown da prova, próxima ação, metas semanais, barras por disciplina, heatmap e gráfico semanal; também oferece a escolha do edital principal.",
+    "source_paths": [
+      "src/js/views/home-view.js",
+      "src/js/logic/progress.js",
+      "src/js/edital-filter.js",
+      "src/js/app.js"
+    ],
+    "tests": [
+      "tests/unit/home-view-hero.test.js",
+      "tests/unit/home-view-stat-semantics.test.js",
+      "tests/unit/views-dashboard.test.js",
+      "tests/unit/dashboard-period.test.js",
+      "tests/e2e/dashboard-fluxos.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "LOW",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-STUDY-ORGANIZER",
+    "name": "Study Organizer e agenda de eventos",
+    "domain": "study-organizer",
+    "observed_behavior": "Agrupa eventos de hoje, amanhã e próximos sete dias, mostra meta diária e cards com status, oferece timer e CRUD de eventos, detalhe do evento e registro de sessão passada.",
+    "source_paths": [
+      "src/js/views/med-view.js",
+      "src/js/ui/event-modals.js",
+      "src/js/ui/actions/eventos.js",
+      "src/js/components.js",
+      "src/js/edital-filter.js"
+    ],
+    "tests": [
+      "tests/unit/views-dashboard.test.js",
+      "tests/unit/views.test.js",
+      "tests/unit/event-modals-edit.test.js",
+      "tests/unit/eventos-actions.test.js",
+      "tests/e2e/sessoes.spec.js",
+      "tests/e2e/full-study-flow.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-CALENDAR",
+    "name": "Calendário mensal, semanal e painel do dia",
+    "domain": "calendar",
+    "observed_behavior": "Navega entre mês e semana, alterna grade desktop/mobile, indexa eventos por data e status, aplica cor de disciplina e mostra o painel do dia selecionado com suporte a teclado.",
+    "source_paths": [
+      "src/js/views/calendar-view.js",
+      "src/js/views/calendar/calendar-state.js",
+      "src/js/views/calendar/calendar-events.js",
+      "src/js/views/calendar/calendar-day-panel.js",
+      "src/js/ui/actions/navegacao.js"
+    ],
+    "tests": [
+      "tests/unit/calendar-view.test.js",
+      "tests/unit/calendar-view-state.test.js",
+      "tests/unit/calendar-state.test.js",
+      "tests/unit/calendar-events.test.js",
+      "tests/unit/calendar-day-panel.test.js",
+      "tests/e2e/calendar.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-TIMER-POMODORO",
+    "name": "Cronômetro livre, timers por evento e Pomodoro",
+    "domain": "timer",
+    "observed_behavior": "Inicia, pausa e retoma cronômetros por evento, mantém cronômetro livre com meta em minutos, adiciona tempo, descarta sessão, alterna modo Pomodoro e reata timers após recarregar.",
+    "source_paths": [
+      "src/js/logic/timer.js",
+      "src/js/components.js",
+      "src/js/ui/actions/eventos.js"
+    ],
+    "tests": [
+      "tests/unit/logic-timer.test.js",
+      "tests/unit/components.test.js",
+      "tests/unit/reta-final-start-timer.test.js",
+      "tests/e2e/timer-flow.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-SESSION-REGISTRATION",
+    "name": "Registro de sessão multi-tópico",
+    "domain": "sessions",
+    "observed_behavior": "Abre o formulário de registro, coleta tipos de estudo, materiais, múltiplos tópicos, questões, páginas e notas, valida os campos e salva a sessão ou inicia outra.",
+    "source_paths": [
+      "src/js/registro-sessao.js",
+      "src/js/registro-sessao/modal-renderer.js",
+      "src/js/registro-sessao/session-save.js",
+      "src/js/registro-sessao/session-topics.js",
+      "src/js/ui/actions/modais.js",
+      "src/js/ui/actions/eventos.js"
+    ],
+    "tests": [
+      "tests/unit/registro-sessao.test.js",
+      "tests/unit/registro-sessao-topicos-ui.test.js",
+      "tests/unit/session-save-slots.test.js",
+      "tests/unit/session-save-topics.test.js",
+      "tests/unit/session-topics.test.js",
+      "tests/e2e/sessao-multi-topico.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-SESSION-HISTORY",
+    "name": "Histórico de sessões e exportação",
+    "domain": "sessions",
+    "observed_behavior": "Lista sessões em grupos diários com filtros de período, disciplina e busca, paginação incremental e exportação dos registros visíveis em CSV ou JSON.",
+    "source_paths": [
+      "src/js/views/historico-view.js",
+      "src/js/ui/actions/eventos.js"
+    ],
+    "tests": [
+      "tests/unit/views-dashboard.test.js",
+      "tests/unit/views-modules.test.js",
+      "tests/unit/eventos-actions.test.js",
+      "tests/e2e/sessoes.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-REVISIONS",
+    "name": "Revisões espaçadas",
+    "domain": "revisions",
+    "observed_behavior": "Calcula datas de revisão em 1, 7, 30 e 90 dias, lista pendentes e próximas, permite marcar, adiar ou excluir revisões, ajustar a frequência e limpar as visíveis.",
+    "source_paths": [
+      "src/js/logic/revisions.js",
+      "src/js/views/revisao-view.js",
+      "src/js/ui/actions/revisoes.js"
+    ],
+    "tests": [
+      "tests/unit/logic-revisions-imports.test.js",
+      "tests/unit/clear-visible-revisions.test.js",
+      "tests/unit/revisao-view-tabs.test.js",
+      "tests/unit/revisoes-actions.test.js",
+      "tests/e2e/revision-flow.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-HABITS",
+    "name": "Hábitos de estudo",
+    "domain": "habits",
+    "observed_behavior": "Registra hábitos por tipo, incluindo questões, revisão, discursiva, simulado, leitura, informativo, súmula, videoaula e páginas, com histórico paginado, cálculo de percentual de simulado e exclusão.",
+    "source_paths": [
+      "src/js/views/habitos-view.js",
+      "src/js/ui/actions/habitos.js"
+    ],
+    "tests": [
+      "tests/unit/habitos-view-save.test.js",
+      "tests/unit/habitos-view-ux.test.js",
+      "tests/unit/habitos-actions.test.js",
+      "tests/e2e/revisoes-habitos.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-CYCLE",
+    "name": "Ciclo de estudos e progresso",
+    "domain": "planning",
+    "observed_behavior": "Gera plano semanal, distribui minutos por disciplina, materializa eventos, inicia e conclui etapas, desfaz, reordena sequências, reinicia o ciclo, calcula previsões e alterna a ocultação de concluídos.",
+    "source_paths": [
+      "src/js/logic/cycle.js",
+      "src/js/logic/cycle-progress.js",
+      "src/js/views/ciclo-view.js",
+      "src/js/ui/actions/planejamento.js"
+    ],
+    "tests": [
+      "tests/unit/cycle-progress.test.js",
+      "tests/unit/cycle-sync-occupied-slots.test.js",
+      "tests/unit/logic-cycle-imports.test.js",
+      "tests/unit/logic.test.js",
+      "tests/e2e/ciclo-grade.spec.js",
+      "tests/e2e/ciclo-step-flow.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-PLANNING-WIZARD",
+    "name": "Wizard de planejamento",
+    "domain": "planning",
+    "observed_behavior": "Conduz planejamento por etapas, com escolha de tipo, seleção de disciplinas por edital, relevância, dias e horas, validação de cada passo e geração do planejamento; também oferece importação de Reta Final.",
+    "source_paths": [
+      "src/js/planejamento-wizard.js",
+      "src/js/planejamento/step-renderers.js",
+      "src/js/planejamento/validation.js",
+      "src/js/ui/actions/planejamento.js"
+    ],
+    "tests": [
+      "tests/unit/planejamento-wizard.test.js",
+      "tests/unit/planejamento-step-renderers.test.js",
+      "tests/unit/planejamento-validation.test.js",
+      "tests/unit/planejamento-actions.test.js",
+      "tests/e2e/planejamento.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-EDITALS-CRUD",
+    "name": "Editais, disciplinas, assuntos e aulas",
+    "domain": "editais",
+    "observed_behavior": "Mantém a árvore de editais, disciplinas, assuntos e aulas com criação, edição, exclusão, cores e ícones, reordenação, edição inline, aulas em lote e gerenciador de disciplina por abas.",
+    "source_paths": [
+      "src/js/views/editais-view.js",
+      "src/js/views/editais-crud.js",
+      "src/js/views/editais/aula-operations.js",
+      "src/js/views/editais/delete-operations.js",
+      "src/js/views/editais/disc-crud.js",
+      "src/js/views/editais/disc-manager.js",
+      "src/js/views/editais/inline-editing.js",
+      "src/js/logic/disc.js",
+      "src/js/ui/actions/editais.js"
+    ],
+    "tests": [
+      "tests/unit/editais-view.test.js",
+      "tests/unit/editais-view-render.test.js",
+      "tests/unit/views-crud-more.test.js",
+      "tests/unit/editais-actions.test.js",
+      "tests/unit/editais-submodules.test.js",
+      "tests/unit/disc-manager-tabs.test.js",
+      "tests/unit/aula-operations-delete.test.js",
+      "tests/unit/inline-editing-guards.test.js",
+      "tests/unit/inline-handlers.test.js",
+      "tests/e2e/editais.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-PRINCIPAL-EDITAL",
+    "name": "Edital principal e escopo de dados",
+    "domain": "editais",
+    "observed_behavior": "Um edital ativo principal define o escopo de Home, Study Organizer e eventos; arquivar ou trocar o principal preserva o histórico, e a primeira abertura com múltiplos ativos oferece a escolha.",
+    "source_paths": [
+      "src/js/logic.js",
+      "src/js/edital-filter.js",
+      "src/js/views/editais-crud.js",
+      "src/js/views/home-view.js",
+      "src/js/app.js"
+    ],
+    "tests": [
+      "tests/unit/logic.test.js",
+      "tests/unit/editais-principal-flow.test.js",
+      "tests/unit/edital-filter.test.js",
+      "tests/unit/home-view-hero.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-ARCHIVED-EDITALS",
+    "name": "Editais anteriores",
+    "domain": "editais",
+    "observed_behavior": "Apresenta uma aba por edital arquivado e reaproveita o dashboard completo em modo somente leitura, preservando as estatísticas do edital fora de uso.",
+    "source_paths": [
+      "src/js/views/editais-anteriores-view.js",
+      "src/js/views/dashboard-view.js",
+      "src/js/edital-filter.js",
+      "src/js/logic.js"
+    ],
+    "tests": [
+      "tests/unit/editais-anteriores.test.js",
+      "tests/unit/dashboard-period.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-VERTICAL-EDITAL",
+    "name": "Edital verticalizado",
+    "domain": "editais",
+    "observed_behavior": "Lista assuntos por edital e disciplina com busca normalizada, filtro por status e por edital, agrupamento por disciplina e expansão ou recolhimento de grupos.",
+    "source_paths": [
+      "src/js/views/editais-view.js",
+      "src/js/ui/actions/editais.js",
+      "src/js/ui-state.js"
+    ],
+    "tests": [
+      "tests/unit/editais-view.test.js",
+      "tests/unit/editais-view-render.test.js",
+      "tests/e2e/editais.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-EDITAL-IMPORT",
+    "name": "Importação de edital",
+    "domain": "editais",
+    "observed_behavior": "Lê payload JSON, valida e canonicaliza, identifica editais candidatos por identidade de fonte, planeja ações de criar, reutilizar ou resolver conflito e aplica no destino escolhido.",
+    "source_paths": [
+      "src/js/logic/edital-import-core.js",
+      "src/js/views/edital-import.js",
+      "src/js/ui/actions/editais.js",
+      "src/js/ui/actions/modais.js"
+    ],
+    "tests": [
+      "tests/unit/edital-import-core.test.js",
+      "tests/unit/edital-import-view.test.js",
+      "tests/e2e/edital-import.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-LESSON-MAPPER",
+    "name": "Mapeamento de aulas para assuntos",
+    "domain": "editais",
+    "observed_behavior": "Associa aulas de uma disciplina aos assuntos do edital por correspondência de nomes e expõe o mapeamento no gerenciador de disciplina.",
+    "source_paths": [
+      "src/js/lesson-mapper.js",
+      "src/js/views/editais/aula-operations.js",
+      "src/js/ui/actions/editais.js"
+    ],
+    "tests": [
+      "tests/unit/lesson-mapper.test.js",
+      "tests/unit/editais-submodules.test.js",
+      "tests/unit/aula-operations-delete.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-ANALYTICS-DASHBOARD",
+    "name": "Dashboards analíticos e por disciplina",
+    "domain": "analytics",
+    "observed_behavior": "Calcula KPIs de tempo, questões, páginas, progresso de conteúdo, streak e comparação semanal; renderiza gráficos diário e por disciplina, resumo de hábitos e abas de tópicos, aulas e banca.",
+    "source_paths": [
+      "src/js/views/dashboard-view.js",
+      "src/js/logic/progress.js",
+      "src/js/state/chart-state.js",
+      "src/js/state/dashboard-context.js",
+      "src/js/views/editais-crud.js"
+    ],
+    "tests": [
+      "tests/unit/dashboard-period.test.js",
+      "tests/unit/dashboard-context.test.js",
+      "tests/unit/chart-state.test.js",
+      "tests/unit/logic-progress-imports.test.js",
+      "tests/unit/views-dashboard.test.js",
+      "tests/e2e/dashboard-stats.spec.js",
+      "tests/e2e/dashboard-fluxos.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-WEAK-POINTS",
+    "name": "Pontos fracos por desempenho",
+    "domain": "analytics",
+    "observed_behavior": "Produz ranking de aulas pela taxa de acerto, com janela de 30, 90 ou todo o período, filtros por edital e disciplina, mínimo de questões para confiança e ação para estudar o ponto fraco.",
+    "source_paths": [
+      "src/js/logic/weak-points.js",
+      "src/js/logic/weak-points-memo.js",
+      "src/js/views/pontos-fracos-view.js",
+      "src/js/ui/actions/navegacao.js"
+    ],
+    "tests": [
+      "tests/unit/weak-points-core.test.js",
+      "tests/unit/weak-points-memo.test.js",
+      "tests/unit/pontos-fracos-modal-prereqs.test.js",
+      "tests/e2e/pontos-fracos.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-BANCA-ANALYZER",
+    "name": "Inteligência de banca e ranking de tópicos",
+    "domain": "banca",
+    "observed_behavior": "Importa texto de hot topics, faz matching fuzzy contra assuntos do edital, permite revisar correspondências e aplicar um ranking que reordena o edital, com possibilidade de reverter a ordem.",
+    "source_paths": [
+      "src/js/views/banca-view.js",
+      "src/js/relevance.js",
+      "src/js/ui/actions/editais.js"
+    ],
+    "tests": [
+      "tests/unit/banca-parse.test.js",
+      "tests/unit/relevance.test.js",
+      "tests/e2e/banca-analyzer.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-GLOBAL-SEARCH",
+    "name": "Busca global",
+    "domain": "search",
+    "observed_behavior": "Busca editais, disciplinas, assuntos e eventos, apresenta resultados em dropdown, permite navegação contextual, controla foco e fecha ou limpa a busca por blur, Escape ou ação explícita.",
+    "source_paths": [
+      "src/js/ui/search.js",
+      "src/js/ui/actions/navegacao.js"
+    ],
+    "tests": [
+      "tests/unit/search.test.js",
+      "tests/unit/navegacao-actions.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "LOW",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-NOTIFICATIONS",
+    "name": "Notificações nativas de estudo",
+    "domain": "notifications",
+    "observed_behavior": "Adota a permissão já concedida sem solicitá-la no boot, oferece pedido explícito em Configurações, agenda lembretes de revisões e metas e evita repetir a mesma notificação no mesmo dia.",
+    "source_paths": [
+      "src/js/notifications.js",
+      "src/js/ui/actions/config.js",
+      "src/js/views/config/theme-settings.js"
+    ],
+    "tests": [
+      "tests/unit/notifications-simple.test.js"
+    ],
+    "test_gap": "A cobertura unitária usa Notification e temporizadores mockados; entrega real pelo navegador, comportamento em segundo plano e interação com o service worker não foram exercitados nesta auditoria.",
+    "evidence_level": "UNCERTAIN",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-CONFIG-PREFERENCES",
+    "name": "Configurações de estudo e preferências",
+    "domain": "settings",
+    "observed_behavior": "Ajusta data da prova, metas semanais, meta diária, frequência de revisão, Pomodoro, notificações e preferências visuais, além de hospedar os cards de backup e sincronização.",
+    "source_paths": [
+      "src/js/views/config-view.js",
+      "src/js/views/config/theme-settings.js",
+      "src/js/ui/actions/config.js",
+      "src/js/app/themes.js",
+      "src/js/app.js"
+    ],
+    "tests": [
+      "tests/unit/config-view.test.js",
+      "tests/unit/config-actions.test.js",
+      "tests/unit/action-contracts.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-THEMES",
+    "name": "Oito temas visuais e contraste",
+    "domain": "themes",
+    "observed_behavior": "Oferece Grafite, Ardósia, Platina, Terminal, Neon, Arrakis, Codex e Plasma, normaliza aliases legados, aplica o tema no documento e persiste a escolha.",
+    "source_paths": [
+      "src/js/app/themes.js",
+      "src/js/views/config/theme-settings.js",
+      "src/js/views/config-view.js",
+      "src/css/base/themes.css",
+      "src/css/tokens.css"
+    ],
+    "tests": [
+      "tests/unit/theme-contrast.test.js",
+      "tests/unit/contrast-themes.test.js",
+      "tests/unit/css-architecture.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-BACKUP-EXPORT-IMPORT",
+    "name": "Backup local, exportação e importação",
+    "domain": "backup",
+    "observed_behavior": "Exporta o estado como JSON, valida o payload, calcula prévia de impacto por coleção, restaura ou substitui dados e preserva a cópia anterior; a exportação remove credenciais, URL e metadados operacionais de sync.",
+    "source_paths": [
+      "src/js/backup-restore.js",
+      "src/js/views/config/data-management.js",
+      "src/js/views/config/backup-settings.js",
+      "src/js/store/export-state.js",
+      "src/js/ui/actions/config.js",
+      "src/js/views/config-view.js"
+    ],
+    "tests": [
+      "tests/unit/backup-restore.test.js",
+      "tests/unit/import-export-contracts.test.js",
+      "tests/unit/duplicate-exports.test.js",
+      "tests/unit/store-export-normalize-imports.test.js",
+      "tests/unit/config-view.test.js",
+      "tests/unit/config-actions.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-DATA-MANAGEMENT",
+    "name": "Gestão de dados e arquivamento",
+    "domain": "data",
+    "observed_behavior": "Arquiva eventos antigos por janela escolhida, seleciona o backup local, inicia restauração e permite limpar todos os dados após confirmação.",
+    "source_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/views/config-view.js",
+      "src/js/ui/actions/config.js",
+      "src/js/store/indexeddb.js"
+    ],
+    "tests": [
+      "tests/unit/config-view.test.js",
+      "tests/unit/config-actions.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-FIRESTORE-SYNC",
+    "name": "Sincronização Firestore",
+    "domain": "sync",
+    "observed_behavior": "Autentica com Google, mantém um snapshot único por usuário, versiona o envelope, enfileira alterações em outbox, detecta conflitos, faz merge por carimbo/tombstones e executa sync manual ou coordenado com status e saúde.",
+    "source_paths": [
+      "src/js/sync/firestore-sync-engine.js",
+      "src/js/sync/firestore-outbox.js",
+      "src/js/sync/firestore-repository.js",
+      "src/js/sync/firestore-schema.js",
+      "src/js/sync/sync-coordinator.js",
+      "src/js/sync/sync-planner.js",
+      "src/js/sync/sync-health.js",
+      "src/js/sync/sync-lock.js",
+      "src/js/sync/sync-job-store.js",
+      "src/js/sync/entity-migration.js",
+      "src/js/sync/reta-final-protocol.js",
+      "src/js/sync/reta-final-legacy.js",
+      "src/js/sync/sync-status-ui.js",
+      "src/js/sync/manual-sync.js",
+      "src/js/firebase/firebase-client.js",
+      "src/js/firebase/firebase-config-default.js",
+      "src/js/firebase/firebase-runtime-config.js",
+      "src/js/views/config/sync-center.js",
+      "src/js/ui/actions/config.js",
+      "src/js/store/indexeddb.js"
+    ],
+    "tests": [
+      "tests/unit/firestore-contracts.test.js",
+      "tests/unit/firestore-outbox.test.js",
+      "tests/unit/firestore-schema.test.js",
+      "tests/unit/firestore-sync-engine-new.test.js",
+      "tests/unit/firestore-sync-engine-simple.test.js",
+      "tests/unit/firestore-sync-outbox-integration.test.js",
+      "tests/unit/sync-coordinator.test.js",
+      "tests/unit/sync-planner.test.js",
+      "tests/unit/sync-lock.test.js",
+      "tests/unit/sync-job-store.test.js",
+      "tests/unit/sync-health.test.js",
+      "tests/unit/sync-manual.test.js",
+      "tests/unit/sync-now-button.test.js",
+      "tests/e2e/sync-e2e.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-CLOUDFLARE-SYNC",
+    "name": "Sincronização Cloudflare",
+    "domain": "sync",
+    "observed_behavior": "Configura URL e token, executa pull, push, merge e sincronização forçada com retry, timeout e lock, mantém status e conflito próprios e trata o backup Cloudflare como canal secundário.",
+    "source_paths": [
+      "src/js/cloud-sync.js",
+      "src/js/views/config/sync-center.js",
+      "src/js/views/config/sync-dialogs.js",
+      "src/js/ui/actions/config.js",
+      "src/js/sync/manual-sync.js",
+      "worker/index.js"
+    ],
+    "tests": [
+      "tests/unit/cloud-sync.test.js",
+      "tests/unit/config-actions.test.js",
+      "tests/unit/worker-auth-proxy.test.js",
+      "tests/e2e/sync-simulation-expanded.spec.js"
+    ],
+    "test_gap": "Os testes unitários usam fetch mockado; o worker Cloudflare/KV real, credenciais reais e concorrência entre dispositivos não foram exercitados nesta auditoria.",
+    "evidence_level": "UNCERTAIN",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-DRIVE-SYNC",
+    "name": "Sincronização Google Drive",
+    "domain": "sync",
+    "observed_behavior": "Inicializa gapi e GIS a partir de client ID salvo, mantém token separado do estado exportável, exporta, pré-visualiza, baixa e faz merge do arquivo no Drive e desconecta a integração.",
+    "source_paths": [
+      "src/js/drive-sync.js",
+      "src/js/credentials.js",
+      "src/js/views/config-view.js",
+      "src/js/views/config/sync-center.js",
+      "src/js/ui/actions/config.js"
+    ],
+    "tests": [
+      "tests/unit/drive-sync.test.js",
+      "tests/unit/credentials.test.js",
+      "tests/unit/config-view.test.js"
+    ],
+    "test_gap": "Os testes mockam gapi/google e credenciais; OAuth real, escopos do Drive, arquivos remotos reais e merge entre dispositivos não foram exercitados.",
+    "evidence_level": "UNCERTAIN",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-SYNC-CENTER",
+    "name": "Central de sync, saúde e conflitos",
+    "domain": "sync",
+    "observed_behavior": "Monta um modelo unificado para local, Firestore, Cloudflare e Drive, resume pendências e saúde, apresenta conflitos de entidade e da Reta Final, oferece pull, push, merge e resolução manual e atualiza o pill de status.",
+    "source_paths": [
+      "src/js/views/config/sync-center.js",
+      "src/js/views/config/sync-dialogs.js",
+      "src/js/sync/sync-center.js",
+      "src/js/sync/sync-history.js",
+      "src/js/sync/sync-status-ui.js",
+      "src/js/sync/manual-sync.js",
+      "src/js/ui/actions/config.js"
+    ],
+    "tests": [
+      "tests/unit/sync-center.test.js",
+      "tests/unit/sync-now-button.test.js",
+      "tests/unit/sync-conflict-fix.test.js",
+      "tests/unit/timestamp-wins-merge.test.js",
+      "tests/unit/merge-study-states-simplified.test.js",
+      "tests/unit/sync-history.test.js",
+      "tests/e2e/sync-devices.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-SYNC-DIAGNOSTICS",
+    "name": "Diagnóstico de sync e log",
+    "domain": "diagnostics",
+    "observed_behavior": "Monta um documento JSON com status de Firestore, Cloudflare e Drive, informações do service worker, métricas de saúde e histórico manual recente, sem incluir o conteúdo dos estudos, e oferece download do log.",
+    "source_paths": [
+      "src/js/sync/sync-diagnostic.js",
+      "src/js/debug.js",
+      "src/js/views/config/sync-center.js",
+      "src/js/ui/actions/config.js"
+    ],
+    "tests": [],
+    "test_gap": "Não há teste funcional de buildSyncDiagnostic ou downloadSyncLog; as referências existentes em testes são apenas checagens estáticas de versão/arquitetura.",
+    "evidence_level": "CODE_ONLY",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-PWA-OFFLINE",
+    "name": "PWA, service worker e uso offline",
+    "domain": "pwa",
+    "observed_behavior": "Registra o service worker, verifica atualizações periódicas, mostra banner de nova versão, limpa caches antigos e roteia requisições de navegação e assets para permitir uso offline.",
+    "source_paths": [
+      "src/sw.js",
+      "src/js/sw-register.js",
+      "src/index.html",
+      "src/manifest.json",
+      "src/js/main.js"
+    ],
+    "tests": [
+      "tests/unit/sw-fetch-routing.test.js",
+      "tests/unit/sw-register.test.js",
+      "tests/unit/bundle-graph.test.js",
+      "tests/e2e/offline-import.spec.js",
+      "tests/e2e/persistence-regression.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-ACCESSIBILITY",
+    "name": "Acessibilidade, foco e teclado",
+    "domain": "accessibility",
+    "observed_behavior": "Implementa pilha de modais, focus trap, restauração de foco, ARIA e anúncios, ativação por Enter e Espaço em role=button, navegação de calendário por teclado, fechamento de busca e contraste nos temas.",
+    "source_paths": [
+      "src/js/ui/dialog.js",
+      "src/js/ui/dom.js",
+      "src/js/app/modals.js",
+      "src/js/ui/search.js",
+      "src/js/views/calendar-view.js",
+      "src/js/ui/actions/dispatcher.js",
+      "src/css/base.css"
+    ],
+    "tests": [
+      "tests/unit/clickable-divs-a11y.test.js",
+      "tests/unit/modals-focus.test.js",
+      "tests/unit/dialog-controller.test.js",
+      "tests/unit/contrast-themes.test.js",
+      "tests/unit/css-architecture.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "MEDIUM",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-SKELETON-LOADING",
+    "name": "Skeletons de carregamento",
+    "domain": "ux",
+    "observed_behavior": "Exibe placeholders de carregamento para as views pesadas Home, Dashboard, Editais, Verticalizado e Ciclo, além de listas e tabelas reutilizáveis.",
+    "source_paths": [
+      "src/js/views/skeleton-view.js",
+      "src/js/components.js"
+    ],
+    "tests": [
+      "tests/unit/views-skeletons.test.js",
+      "tests/unit/views-state.test.js",
+      "tests/unit/views.test.js",
+      "tests/unit/components.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "LOW",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-RF-OVERVIEW",
+    "name": "Reta Final — visão do cronograma",
+    "domain": "reta-final",
+    "observed_behavior": "Valida o payload importado, casa disciplinas, projeta datas com rolagem, materializa eventos, agrupa blocos por data, calcula KPIs e resumo por disciplina, filtra categorias e mostra detalhe e associação de sessão sem alterar o plano.",
+    "source_paths": [
+      "src/js/logic/reta-final.js",
+      "src/js/logic/reta-final-core.js",
+      "src/js/logic/reta-final-events.js",
+      "src/js/logic/reta-final-schedule.js",
+      "src/js/logic/reta-final-priority.js",
+      "src/js/logic/reta-final-catalog.js",
+      "src/js/views/reta-final-view.js",
+      "src/js/views/reta-final-detail.js",
+      "src/js/views/reta-final-associar.js",
+      "src/js/ui/actions/reta-final.js",
+      "src/js/components.js"
+    ],
+    "tests": [
+      "tests/unit/reta-final-core.test.js",
+      "tests/unit/reta-final-events.test.js",
+      "tests/unit/reta-final-schedule.test.js",
+      "tests/unit/reta-final-activation.test.js",
+      "tests/unit/reta-final-rollover.test.js",
+      "tests/unit/reta-final-view-dashboard.test.js",
+      "tests/unit/reta-final-header-metrics.test.js",
+      "tests/unit/reta-final-filtros.test.js",
+      "tests/unit/reta-final-detail-view.test.js",
+      "tests/unit/reta-final-view-actions.test.js",
+      "tests/unit/reta-final-quick-mark.test.js",
+      "tests/unit/reta-final-start-timer.test.js",
+      "tests/e2e/reta-final.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-RF-IMPORT",
+    "name": "Reta Final — importação e ativação",
+    "domain": "reta-final",
+    "observed_behavior": "Importa JSON ou payload portátil, valida e compara com o plano atual, mostra preview de casados, novos e conflitos, permite selecionar entradas e ativa o plano; também suporta adoção conservadora de plano legado.",
+    "source_paths": [
+      "src/js/views/reta-final-import.js",
+      "src/js/logic/reta-final-import-compare.js",
+      "src/js/logic/reta-final-portable.js",
+      "src/js/logic/reta-final-core.js",
+      "src/js/logic/reta-final.js",
+      "src/js/ui/actions/reta-final.js",
+      "src/js/ui/actions/planejamento.js"
+    ],
+    "tests": [
+      "tests/unit/reta-final-import-compare.test.js",
+      "tests/unit/reta-final-import-selection.test.js",
+      "tests/unit/reta-final-import-view.test.js",
+      "tests/unit/reta-final-portable.test.js",
+      "tests/unit/reta-final-activation.test.js",
+      "tests/unit/reta-final-legacy-adoption.test.js",
+      "tests/unit/reta-final-protocol.test.js",
+      "tests/e2e/reta-final.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-RF-EDITOR-PLANNER",
+    "name": "Reta Final — editor, planejamento e rascunho",
+    "domain": "reta-final",
+    "observed_behavior": "Oferece editor de bloco e capacidade, planejamento em calendário por dia com filtros, seleção e ações em massa, comandos puros de criação, edição, movimento, duplicação e arquivamento, rascunho persistido e prévia de impacto antes da aplicação.",
+    "source_paths": [
+      "src/js/views/reta-final-editor-form.js",
+      "src/js/views/reta-final-planner.js",
+      "src/js/views/reta-final-bulk-actions.js",
+      "src/js/views/reta-final-apply-preview.js",
+      "src/js/logic/reta-final-commands.js",
+      "src/js/logic/reta-final-drafts.js",
+      "src/js/logic/reta-final-catalog.js",
+      "src/js/ui/actions/reta-final-editor.js",
+      "src/js/ui/actions/reta-final-apply.js",
+      "src/js/store/reta-final-draft-store.js"
+    ],
+    "tests": [
+      "tests/unit/reta-final-editor-form.test.js",
+      "tests/unit/reta-final-commands.test.js",
+      "tests/unit/reta-final-drafts.test.js",
+      "tests/unit/reta-final-draft-store.test.js",
+      "tests/unit/reta-final-capacity-ui.test.js",
+      "tests/unit/reta-final-bulk-actions.test.js",
+      "tests/unit/reta-final-apply-preview.test.js",
+      "tests/e2e/reta-final-editor.spec.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-RF-HISTORY",
+    "name": "Reta Final — checkpoints, histórico e undo/redo",
+    "domain": "reta-final",
+    "observed_behavior": "Cria e verifica checkpoints com integridade e proveniência, propõe restauração como novo rascunho, lista operações aplicadas e oferece desfazer e refazer sem reescrever sessões ou eventos posteriores.",
+    "source_paths": [
+      "src/js/logic/reta-final-history.js",
+      "src/js/views/reta-final-checkpoints.js",
+      "src/js/views/reta-final-history-ui.js",
+      "src/js/ui/actions/reta-final-checkpoints.js",
+      "src/js/ui/actions/reta-final-history-ui.js",
+      "src/js/store/reta-final-history-store.js",
+      "src/js/store/reta-final-commit.js"
+    ],
+    "tests": [
+      "tests/unit/reta-final-history.test.js",
+      "tests/unit/reta-final-history-store.test.js",
+      "tests/unit/reta-final-history-ui.test.js",
+      "tests/unit/reta-final-checkpoints-ui.test.js",
+      "tests/unit/reta-final-commit.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-RF-CONFLICTS",
+    "name": "Reta Final — conflitos e merge",
+    "domain": "reta-final",
+    "observed_behavior": "Normaliza conflitos de campos, blocos e planos, exibe revisão lado a lado, permite manter local ou remoto e faz merge granular preservando proveniência, operações e limites de revisão.",
+    "source_paths": [
+      "src/js/logic/reta-final-merge.js",
+      "src/js/views/reta-final-conflicts.js",
+      "src/js/ui/actions/reta-final-conflicts.js",
+      "src/js/sync/reta-final-protocol.js",
+      "src/js/sync/reta-final-legacy.js",
+      "src/js/sync/sync-center.js"
+    ],
+    "tests": [
+      "tests/unit/reta-final-merge.test.js",
+      "tests/unit/reta-final-conflicts-ui.test.js",
+      "tests/unit/reta-final-protocol.test.js",
+      "tests/unit/reta-final-legacy-adoption.test.js",
+      "tests/unit/reta-final-sync-engine.test.js",
+      "tests/unit/reta-final-sync-eventos.test.js",
+      "tests/unit/reta-final-sync-status.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "REFORMULATE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-RF-PORTABILITY",
+    "name": "Reta Final — portabilidade e schema v2",
+    "domain": "reta-final",
+    "observed_behavior": "Valida o schema v2 do plano, migra planos legados, exporta payload portátil com proveniência e bloqueia campos privados de eventos, sessões, credenciais ou histórico.",
+    "source_paths": [
+      "src/js/logic/reta-final-portable.js",
+      "src/js/logic/reta-final-schema.js",
+      "src/js/views/reta-final-import.js",
+      "src/js/logic/reta-final-import-compare.js"
+    ],
+    "tests": [
+      "tests/unit/reta-final-portable.test.js",
+      "tests/unit/reta-final-schema-v2.test.js",
+      "tests/unit/reta-final-import-compare.test.js",
+      "tests/unit/reta-final-import-view.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-RF-REDISTRIBUTION",
+    "name": "Reta Final — prioridade e redistribuição de capacidade",
+    "domain": "reta-final",
+    "observed_behavior": "Calcula prioridade determinística a partir de evidências explícitas, propõe redistribuição considerando capacidade diária, exceções e folgas, projeta o cronograma e sinaliza blocos não alocados.",
+    "source_paths": [
+      "src/js/logic/reta-final-priority.js",
+      "src/js/logic/reta-final-redistribution.js",
+      "src/js/logic/reta-final-schedule.js",
+      "src/js/views/reta-final-planner.js",
+      "src/js/logic/reta-final-catalog.js"
+    ],
+    "tests": [
+      "tests/unit/reta-final-priority.test.js",
+      "tests/unit/reta-final-redistribution.test.js",
+      "tests/unit/reta-final-capacity-ui.test.js",
+      "tests/unit/reta-final-schedule.test.js",
+      "tests/unit/reta-final-header-metrics.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "PRESERVE",
+    "risk": "HIGH",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  },
+  {
+    "id": "F-V1-VISUAL-LAYOUT-LAB",
+    "name": "Laboratório visual de layout",
+    "domain": "design-tooling",
+    "observed_behavior": "Ferramenta local separada do app PWA para comparar variantes de layout, arrastar componentes e manter histórico de alterações, com registro de componentes e guardas de edição.",
+    "source_paths": [
+      "src/lab/visual-layout-lab-core.js",
+      "src/lab/visual-layout-lab-history.js",
+      "src/lab/visual-layout-lab-dnd.js",
+      "src/lab/visual-layout-lab-data.js",
+      "src/lab/visual-layout-lab-registry.js",
+      "src/lab/visual-layout-lab-render.js",
+      "src/lab/visual-layout-lab.js",
+      "src/lab/visual-layout-lab.html",
+      "src/lab/visual-layout-lab.css"
+    ],
+    "tests": [
+      "tests/unit/visual-layout-lab-core.test.js",
+      "tests/unit/visual-layout-lab-dnd.test.js",
+      "tests/unit/visual-layout-lab-guards.test.js",
+      "tests/unit/visual-layout-lab-history.test.js"
+    ],
+    "test_gap": null,
+    "evidence_level": "CODE_AND_TEST",
+    "proposed_disposition": "UNDECIDED",
+    "risk": "LOW",
+    "decision_status": "PROPOSED",
+    "approval_reference": null
+  }
+]

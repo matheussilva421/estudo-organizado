@@ -1,0 +1,34 @@
+{
+  "inventory": "docs/superpowers/audits/2026-10-19-v1-feature-inventory.json",
+  "scope": {
+    "directories": [
+      "src/js/views",
+      "src/js/logic",
+      "src/js/ui/actions"
+    ],
+    "facades": [
+      "src/js/main.js",
+      "src/js/store.js",
+      "src/js/logic.js",
+      "src/js/views.js",
+      "src/js/components.js"
+    ]
+  },
+  "exclusions": [
+    {
+      "path": "src/js/views/editais/shared-state.js",
+      "reason": "Contém apenas constantes visuais e contexto transitório de edição compartilhado pelo CRUD de editais; não constitui superfície funcional própria. O comportamento é inventariado em F-V1-EDITALS-CRUD."
+    },
+    {
+      "path": "src/js/views/state/disc-manager-state.js",
+      "reason": "Armazena somente aba ativa, sequência temporária e flag de edição do gerenciador de disciplina; é estado de UI sem fluxo funcional independente e é exercitado indiretamente pelas ações de edital."
+    }
+  ],
+  "verification": {
+    "surface_count": 86,
+    "mapped_count": 84,
+    "excluded_count": 2,
+    "unmapped": [],
+    "invalid_exclusions": []
+  }
+}
