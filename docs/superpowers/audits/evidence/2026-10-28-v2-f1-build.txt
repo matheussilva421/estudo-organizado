@@ -11,4 +11,4 @@ dist/index.html                   0.53 kB │ gzip:  0.33 kB
 dist/assets/index-TGV5R_d0.css    5.50 kB │ gzip:  1.84 kB
 dist/assets/index-CGvEbwxN.js   231.55 kB │ gzip: 72.62 kB
 
-✓ built in 126ms
+✓ built in 209ms
