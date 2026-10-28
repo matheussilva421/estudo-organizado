@@ -9,6 +9,7 @@ import {
   toLocalPersistenceError,
   transactionDone,
 } from './indexeddb';
+import { notifyLocalChange } from './local-events';
 
 type RepositoryOptions = {
   fault?: 'abort' | 'quota' | null;
@@ -76,6 +77,7 @@ export class LocalSubjectRepository implements SubjectRepository {
       transaction.objectStore(STORES.outbox).put(operation);
 
       await transactionDone(transaction);
+      notifyLocalChange(command.profileId, subject.id);
       return subject;
     } catch (error) {
       try {
