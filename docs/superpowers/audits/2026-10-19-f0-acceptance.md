@@ -144,6 +144,7 @@ O caso real está documentado em `docs/handoffs/handoff-2026-10-26-issue-107-mis
 - `v2` recebeu o merge de referência `689a9f4` e os commits de auditoria; `origin/v2` foi atualizado com esses commits (HEAD final registrado no comentário da issue #108).
 - Worktree isolado: `C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado`.
 - PRs abertos: nenhum. Nenhum PR novo foi criado.
+- Comentário de evidências publicado na [issue #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6469616597).
 - Branches documentais antigas continuam existindo e não foram removidas.
 - Nenhum GitHub Action, pipeline, deploy, Firebase, Cloudflare, Drive ou dado real foi acessado.
 - Pendências: E2E mock (107 falhas), verificação real de Firestore/Drive/Cloudflare, migração real, emulador de rules, testes de fuso, leitor de tela e zoom 200%.
