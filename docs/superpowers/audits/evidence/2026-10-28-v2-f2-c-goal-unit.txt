@@ -1,0 +1,17 @@
+
+> estudo-organizado-v2@0.1.0 test:unit
+> vitest run
+
+
+ RUN  v5.0.5 C:/Users/slvma/.codex/worktrees/v2-f0-audit/estudo-organizado/apps/v2
+
+
+ Test Files  29 passed (29)
+      Tests  181 passed (181)
+   Start at  19:55:04
+   Duration  8.29s (environment 92%, setup 3%, transform 2%, tests 1%, import 1%, worker 1%)
+
+Environment  jsdom was created 29 times · 94.83s total, 92% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

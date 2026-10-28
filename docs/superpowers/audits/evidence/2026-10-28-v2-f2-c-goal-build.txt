@@ -1,0 +1,14 @@
+
+> estudo-organizado-v2@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 45 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.53 kB │ gzip:  0.33 kB
+dist/assets/index-pUw4OP7k.css    7.77 kB │ gzip:  2.40 kB
+dist/assets/index-Clqag120.js   296.10 kB │ gzip: 88.11 kB
+
+✓ built in 253ms

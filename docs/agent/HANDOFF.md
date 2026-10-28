@@ -3,7 +3,7 @@
 **Data:** 2026-10-28 (America/Fortaleza)
 **Branch:** `v2`
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f0-audit\estudo-organizado`
-**Gate atual:** F1 `F1_ACCEPTED_WITH_RESERVATIONS`; F2 **implementada e integrada em `v2`** com gate `F2_READY_FOR_HUMAN_REVIEW` (2026-10-28). Evidências em `docs/superpowers/audits/2026-10-28-v2-f2-acceptance.md`. Código V1 e `main` preservados; F2 não aprovada nem homologada.
+**Gate atual:** F1 `F1_ACCEPTED_WITH_RESERVATIONS`; F2 **implementada, revisada e integrada em `v2`** com gate `F2_READY_FOR_HUMAN_REVIEW` (2026-10-28), incluindo o GOAL corretivo C1–C7 (CAS real na UI, integridade de formulários, recibos/tombstones na importação, backup seguro, ordem causal e entrega gateada, acessibilidade medida). Evidências em `docs/superpowers/audits/2026-10-28-v2-f2-acceptance.md`. Código V1 e `main` preservados; F2 não aprovada nem homologada.
 
 ## Estado do Git
 

@@ -57,7 +57,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | **ACEITA COM RESSALVAS — 2026-10-28, commit `85ce1e3`** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6475527680) e [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
-| **F2 — Editais e conteúdo** | **IMPLEMENTED — `F2_READY_FOR_HUMAN_REVIEW`** (2026-10-28) | Base canônica de organização | [Relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md); 168 unit e 45 E2E PASS; F2-T22 `NOT_RUN`; 5 P1 da revisão holística corrigidos; aceite humano pendente |
+| **F2 — Editais e conteúdo** | **IMPLEMENTED — `F2_READY_FOR_HUMAN_REVIEW`** (2026-10-28) | Base canônica de organização | [Relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md); 181 unit e 50 E2E PASS; GOAL corretivo C1–C7 aplicado; F2-T22 `NOT_RUN`; aceite humano pendente |
 | **F3 — Planejamento** | **SPEC PROPOSTA; não iniciada** | Planejamento executável | F2 e regras temporais |
 | **F4 — Execução/sessões** | **SPEC PROPOSTA; não iniciada** | Tempo/histórico confiáveis | Persistência e domínio |
 | **F5 — Revisões/inteligência** | **SPEC PROPOSTA; não iniciada** | Revisar e priorizar | F2–F4 |
