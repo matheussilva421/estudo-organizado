@@ -192,6 +192,25 @@ describe('F2 delivery identity', () => {
     ).toEqual({ kind: 'INVALID', code: 'PROFILE_MISMATCH' });
   });
 
+  it('consent_for_one_uid_cannot_bind_another_uid', async () => {
+    const subjects = new LocalSubjectRepository();
+    await subjects.execute({
+      operationId: 'op-subject',
+      profileId,
+      subjectId: 'subject-1',
+      type: 'create',
+      title: 'Direito Constitucional',
+    });
+    const profiles = new LocalProfileRepository();
+    const proofForA = await consent('uid-a', 'library-x');
+
+    expect(
+      await profiles.adoptLocalOperations(profileId, 'uid-b', 'library-x', proofForA),
+    ).toEqual({ kind: 'INVALID', code: 'PROFILE_MISMATCH' });
+    expect((await profiles.getProfile(profileId)).uid).toBeNull();
+    expect((await getPendingOutbox(profileId))[0]?.deliveryUid ?? null).toBeNull();
+  });
+
   it('content_operations_also_carry_delivery_metadata_after_adoption', async () => {
     const content = new LocalContentRepository();
     await content.execute({

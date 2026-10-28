@@ -1,5 +1,5 @@
 npm --prefix apps/v2 run test:e2e
-44 passed (13.7s)
+45 passed (15.8s)
 exit=0
-(20 E2E herdados da F1 + 24 E2E novos da F2; chromium em 127.0.0.1:18431)
+(20 E2E herdados da F1 + 25 E2E novos da F2; chromium em 127.0.0.1:18431)
 

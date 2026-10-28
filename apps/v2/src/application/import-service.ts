@@ -49,12 +49,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function hasUnsafeKey(value: unknown): boolean {
-  if (Array.isArray(value)) return value.some(hasUnsafeKey);
-  if (!isRecord(value)) return false;
-  for (const [key, child] of Object.entries(value)) {
-    if (UNSAFE_KEYS.has(key)) return true;
-    if (hasUnsafeKey(child)) return true;
+/** Iterative on purpose: a deeply nested hostile JSON must not blow the stack. */
+function hasUnsafeKey(root: unknown): boolean {
+  const pending: unknown[] = [root];
+  let visited = 0;
+  while (pending.length > 0) {
+    const value = pending.pop();
+    visited += 1;
+    if (visited > 200_000) return true;
+    if (Array.isArray(value)) {
+      for (const child of value) pending.push(child);
+      continue;
+    }
+    if (!isRecord(value)) continue;
+    for (const [key, child] of Object.entries(value)) {
+      if (UNSAFE_KEYS.has(key)) return true;
+      pending.push(child);
+    }
   }
   return false;
 }
@@ -287,12 +298,16 @@ function stableEntityId(fingerprint: string, path: string): string {
 }
 
 export function targetSignatureOf(existing: ExistingContent): string {
+  // Sorting by id makes the signature independent from the order a caller (or
+  // IndexedDB) happened to return, so preview and commit always agree.
+  const byId = <T extends { id: string }>(items: T[]): T[] =>
+    [...items].sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
   return fingerprintOf({
-    subjects: existing.subjects.map((item) => [item.id, item.localRevision]),
-    editais: existing.editais.map((item) => [item.id, item.localRevision]),
-    links: existing.links.map((item) => [item.id, item.localRevision]),
-    assuntos: existing.assuntos.map((item) => [item.id, item.localRevision]),
-    aulas: existing.aulas.map((item) => [item.id, item.localRevision]),
+    subjects: byId(existing.subjects).map((item) => [item.id, item.localRevision]),
+    editais: byId(existing.editais).map((item) => [item.id, item.localRevision]),
+    links: byId(existing.links).map((item) => [item.id, item.localRevision]),
+    assuntos: byId(existing.assuntos).map((item) => [item.id, item.localRevision]),
+    aulas: byId(existing.aulas).map((item) => [item.id, item.localRevision]),
   });
 }
 
@@ -321,7 +336,18 @@ export function previewEditalImport(
 
   let editalId: string;
   if (existingEdital) {
-    if (existingEdital.sourceRevision && existingEdital.sourceRevision !== parsed.sourceRevision) {
+    if (existingEdital.status !== 'ACTIVE') {
+      conflicts.push({
+        targetId: existingEdital.id,
+        name: existingEdital.title,
+        reason: 'EDITAL_ARCHIVED',
+        incomingRevision: parsed.sourceRevision,
+        existingRevision: existingEdital.sourceRevision ?? 'unknown',
+      });
+    } else if (
+      existingEdital.sourceRevision &&
+      existingEdital.sourceRevision !== parsed.sourceRevision
+    ) {
       conflicts.push({
         targetId: existingEdital.id,
         name: existingEdital.title,
@@ -354,8 +380,10 @@ export function previewEditalImport(
     creates.push({ entityType: 'edital', id: editalId, name: parsed.name, parentId: null });
   }
 
-  for (const discipline of parsed.disciplines) {
-    const disciplinePath = `disciplina:${discipline.nameKey}`;
+  for (const [disciplineIndex, discipline] of parsed.disciplines.entries()) {
+    // The occurrence index keeps two homonymous siblings from collapsing into
+    // one deterministic id.
+    const disciplinePath = `disciplina:${disciplineIndex}:${discipline.nameKey}`;
     const subject = existing.subjects.find((item) => nameKeyOf(item.title) === discipline.nameKey);
     if (subject) {
       ambiguous.push({
@@ -365,15 +393,15 @@ export function previewEditalImport(
         reason: 'NAME_ONLY_MATCH',
       });
     }
-    const subjectId = subject ? subject.id : stableEntityId(parsed.fingerprint, `subject:${disciplinePath}`);
-    if (!subject) {
-      creates.push({
-        entityType: 'subject',
-        id: subjectId,
-        name: discipline.name,
-        parentId: null,
-      });
-    }
+    // A shared name never authorizes a merge: the import always creates its
+    // own canonical subject and leaves the candidate as a visible choice.
+    const subjectId = stableEntityId(parsed.fingerprint, `subject:${disciplinePath}`);
+    creates.push({
+      entityType: 'subject',
+      id: subjectId,
+      name: discipline.name,
+      parentId: null,
+    });
     const linkId = stableEntityId(parsed.fingerprint, `link:${disciplinePath}`);
     creates.push({
       entityType: 'edital-discipline',
@@ -384,8 +412,8 @@ export function previewEditalImport(
     });
 
     const walk = (topics: ParsedTopic[], parentId: string | null, path: string): void => {
-      for (const topic of topics) {
-        const topicPath = `${path}/${topic.nameKey}`;
+      for (const [topicIndex, topic] of topics.entries()) {
+        const topicPath = `${path}/${topicIndex}:${topic.nameKey}`;
         const id = stableEntityId(parsed.fingerprint, `assunto:${topicPath}`);
         creates.push({
           entityType: 'assunto',
@@ -398,14 +426,42 @@ export function previewEditalImport(
     };
     walk(discipline.topics, null, disciplinePath);
 
-    for (const lesson of discipline.lessons) {
+    for (const [lessonIndex, lesson] of discipline.lessons.entries()) {
       creates.push({
         entityType: 'aula',
-        id: stableEntityId(parsed.fingerprint, `aula:${disciplinePath}/${lesson.nameKey}`),
+        id: stableEntityId(
+          parsed.fingerprint,
+          `aula:${disciplinePath}/${lessonIndex}:${lesson.nameKey}`,
+        ),
         name: lesson.name,
         parentId: linkId,
       });
     }
+  }
+
+  // The announced cap is about what gets written, not just what was parsed.
+  if (creates.length > IMPORT_MAX_ENTITIES) {
+    return {
+      importId: `imp_${parsed.fingerprint.slice(0, 24)}`,
+      sourceIdentity: parsed.sourceIdentity,
+      fingerprint: parsed.fingerprint,
+      sourceRevision: parsed.sourceRevision,
+      targetSignature: targetSignatureOf(existing),
+      creates: [],
+      matches: [],
+      ambiguous: [],
+      conflicts: [
+        {
+          targetId: '',
+          name: parsed.name,
+          reason: 'TOO_MANY_ENTITIES',
+          incomingRevision: String(creates.length),
+          existingRevision: String(IMPORT_MAX_ENTITIES),
+        },
+      ],
+      quarantined: parsed.quarantined,
+      entityCount: parsed.entityCount,
+    };
   }
 
   return {

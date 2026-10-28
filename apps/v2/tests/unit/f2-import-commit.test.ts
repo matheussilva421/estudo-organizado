@@ -183,4 +183,37 @@ describe('F2 import commit', () => {
     ).toEqual({ kind: 'INVALID', code: 'IMPORT_STALE_PREVIEW' });
     expect((await counts()).receipts).toBe(0);
   });
+
+  it('second_import_in_a_populated_profile_is_not_stale', async () => {
+    const first = await buildPreview();
+    const committer = new ImportCommitter();
+    expect(
+      await committer.apply(profileId, first, {
+        confirmed: true,
+        targetSignature: first.targetSignature,
+      }),
+    ).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+
+    const secondParsed = parseEditalImport(
+      {
+        versao: 1,
+        tipo: 'edital',
+        nome: 'TJRO 2026',
+        centralId: 'tjro-2026',
+        disciplinas: [{ nome: 'Direito Penal', topicos: [{ nome: 'Parte geral' }] }],
+      },
+      { namespace: 'tjpb' },
+    );
+    expect(secondParsed.ok).toBe(true);
+    if (!secondParsed.ok) return;
+    const second = previewEditalImport(secondParsed.parsed, await currentContent());
+
+    const result = await committer.apply(profileId, second, {
+      confirmed: true,
+      targetSignature: second.targetSignature,
+    });
+    expect(result).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+    expect((await counts()).editais).toBe(2);
+    expect((await counts()).receipts).toBe(2);
+  });
 });

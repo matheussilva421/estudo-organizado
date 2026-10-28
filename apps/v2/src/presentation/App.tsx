@@ -324,6 +324,11 @@ export function App() {
 
       <section className="panel" aria-labelledby="tree-title">
         <h2 id="tree-title">Verticalização {selected ? `— ${selected.title}` : ''}</h2>
+        {selected?.status === 'ARCHIVED' ? (
+          <p className="inline-notice" role="status">
+            Edital arquivado: consulta liberada, edição bloqueada até a reativação.
+          </p>
+        ) : null}
         {selected ? (
           <ContentTree
             links={selectedLinks}

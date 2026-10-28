@@ -27,11 +27,11 @@ Exclusões deliberadas: nenhum Firebase SDK/CLI/Emulator, nenhum dado real, nenh
 | --- | --- | --- | --- |
 | typecheck | `npm --prefix apps/v2 run typecheck` | PASS (exit 0) | `evidence/2026-10-28-v2-f2-final-typecheck.txt` |
 | lint | `npm --prefix apps/v2 run lint` | PASS (exit 0) | `evidence/2026-10-28-v2-f2-final-lint.txt` |
-| unit | `npm --prefix apps/v2 run test:unit` | PASS 162/162 em 29 arquivos | `evidence/2026-10-28-v2-f2-final-unit.txt` |
-| E2E | `npm --prefix apps/v2 run test:e2e` | PASS 44/44 (20 F1 + 24 F2) | `evidence/2026-10-28-v2-f2-final-e2e.txt` |
-| build | `npm --prefix apps/v2 run build` | PASS 291,12 kB / 87,00 kB gzip | `evidence/2026-10-28-v2-f2-final-build.txt` |
+| unit | `npm --prefix apps/v2 run test:unit` | PASS 168/168 em 29 arquivos | `evidence/2026-10-28-v2-f2-final-unit.txt` |
+| E2E | `npm --prefix apps/v2 run test:e2e` | PASS 45/45 (20 F1 + 25 F2) | `evidence/2026-10-28-v2-f2-final-e2e.txt` |
+| build | `npm --prefix apps/v2 run build` | PASS 292,30 kB / 87,22 kB gzip | `evidence/2026-10-28-v2-f2-final-build.txt` |
 
-Baseline registrada antes de qualquer código F2: 84 unit + 20 E2E + typecheck/lint/build PASS (`evidence/2026-10-28-v2-f2-baseline-*`). A F1 continua verde; a suíte cresceu para 162 unit e 44 E2E.
+Baseline registrada antes de qualquer código F2: 84 unit + 20 E2E + typecheck/lint/build PASS (`evidence/2026-10-28-v2-f2-baseline-*`). A F1 continua verde; a suíte cresceu para 168 unit e 45 E2E.
 
 ## 3. Matriz F2-T01..T40
 
@@ -40,8 +40,8 @@ Comando comum: `npm --prefix apps/v2 run test:unit -- <arquivo>` ou `... test:e2
 | ID | Teste | Camada | Resultado |
 | --- | --- | --- | --- |
 | F2-T01 | `create_rename_edital_preserves_ids` + `browser_create_rename_reload_full_content_tree` | unit + E2E | PASS |
-| F2-T02 | `subject_can_link_to_two_editais_without_clone` | unit | PASS |
-| F2-T03 | `homonymous_subjects_are_distinct` | unit | PASS |
+| F2-T02 | `subject_can_link_to_two_editais_without_clone` | unit | **PASS parcial** — prova o domínio (um subject, dois vínculos); não persiste os dois links |
+| F2-T03 | `homonymous_subjects_are_distinct` | unit | **PASS parcial** — homônimos nunca se fundem no domínio; sem teste de índice/commit |
 | F2-T04 | `invalid_parent_or_cycle_is_rejected` (+ `parent_from_another_edital_discipline_is_rejected`) | unit | PASS |
 | F2-T05 | `lesson_can_have_many_topics_but_no_cross_edital_link` | unit | PASS |
 | F2-T06 | `concurrent_sibling_reorder_conflicts` | unit | PASS |
@@ -50,16 +50,16 @@ Comando comum: `npm --prefix apps/v2 run test:unit -- <arquivo>` ou `... test:e2
 | F2-T09 | `delete_parent_with_dependents_is_blocked_or_quarantined` | unit | PASS |
 | F2-T10 | `same_trusted_file_twice_has_one_logical_import` | unit | PASS |
 | F2-T11 | `same_name_different_source_is_not_merged` | unit | PASS |
-| F2-T12 | `same_source_different_revision_requires_conflict_preview` | unit | PASS |
+| F2-T12 | `same_source_different_revision_requires_conflict_preview` | unit | **PASS parcial** — a prévia sinaliza; o commit agora **bloqueia** qualquer prévia com conflito |
 | F2-T13 | `import_abort_has_no_partial_visibility` + `browser_import_is_atomic_and_idempotent_after_reload` | unit + E2E | PASS |
 | F2-T14 | `same_operation_id_same_payload_is_noop_divergent_rejected` | unit | PASS |
-| F2-T15 | `two_tabs_edit_same_entity_without_lost_update` | E2E (2 abas) | PASS |
+| F2-T15 | `two_tabs_edit_same_entity_without_lost_update` | E2E (2 abas) | **PASS parcial** — CAS do repositório via harness; a UI ainda não envia `baseRevision` |
 | F2-T16 | `independent_entities_converge_with_fake_port` + `fake_multiclient_contract_does_not_claim_spark_quota` | unit | **SIMULATED** (fake, sem Firestore) |
 | F2-T17 | `aborted_content_commit_writes_neither_entity_nor_outbox` + `browser_abort_never_reports_saved_content` | unit + E2E | PASS |
 | F2-T18 | `old_backup_with_tombstones_requires_safe_rebaseline` | unit | PASS |
 | F2-T19 | `wrong_uid_denied_same_uid_different_local_profile_allowed` | unit | PASS |
-| F2-T20 | `eight_themes_three_viewports_and_accessible_controls` + `coarse_pointer_targets_are_at_least_44px` | E2E | PASS (24 capturas 8×3, sem overflow, foco visível, alvo ≥44 px) |
-| F2-T21 | regressão F1 completa | unit + E2E | PASS (162 unit, 44 E2E) |
+| F2-T20 | `eight_themes_three_viewports_and_accessible_controls` + `coarse_pointer_targets_are_at_least_44px` | E2E | **PASS parcial** — 24 capturas 8×3, sem overflow, foco visível, alvo ≥44 px; contraste AA e toast **NOT_RUN** |
+| F2-T21 | regressão F1 completa | unit + E2E | PASS (168 unit, 45 E2E) |
 | F2-T22 | emulador CAS/ACK/Rules | — | **NOT_RUN** — `F2_EMULATOR_NOT_AUTHORIZED` |
 | F2-T23 | `f1_subject_adoption_keeps_identity_and_never_auto_links` + `f1_subjects_stay_unassigned_until_an_explicit_decision` | unit + E2E | PASS |
 | F2-T24 | `v1_edital_fixture_preserves_counts_or_quarantines_unknown` | unit (fixture V1) | PASS |
@@ -69,7 +69,7 @@ Comando comum: `npm --prefix apps/v2 run test:unit -- <arquivo>` ou `... test:e2
 | F2-T28 | `invalid_title_returns_invalid_not_unavailable` | unit | PASS |
 | F2-T29 | `upgrade_f1_preserves_subject_operations_outbox` + `upgrade_preserves_exact_operation_and_outbox_records` | unit + E2E | PASS |
 | F2-T30 | `concurrent_primary_switch_never_creates_two_primaries` | unit + E2E (2 abas) | PASS |
-| F2-T31 | `f1_backup_readback_and_subject_tombstone_collision_rejected` | unit | PASS |
+| F2-T31 | `f1_backup_readback_and_subject_tombstone_collision_rejected` | unit | **PASS parcial** — colisão coberta só em `subjects`; assunto/aula/link com tombstone não é testado |
 | F2-T32 | `canonical_rename_keeps_explicit_contextual_alias` | unit | PASS |
 | F2-T33 | `same_central_id_different_namespace_is_not_same_entity` | unit | PASS |
 | F2-T34 | `max_accepted_import_quota_abort_rolls_back_every_store` | unit | PASS com lote de ~360 entidades (não os 5.000 máximos) |
@@ -122,7 +122,19 @@ Comando comum: `npm --prefix apps/v2 run test:unit -- <arquivo>` ou `... test:e2
 | R2 | Tasks 2–5 | P1 archive do principal pelo caminho de conteúdo, mudança de escopo em upsert, `baseRevision` ignorado, repontamento de vínculo; P2 vários | **corrigidos** em `c8fb544` |
 | R3 | Task 7 (tombstones) | P1 restore sem integridade referencial, `baseRevision` opcional no delete, revisão do outbox do restore; P2/P3 | **corrigidos** em `5639611` |
 | R4 | Tasks 9–10 (UID/retry) | **P0** `canDeliver` não ligado ao envio; P1 biblioteca não vinculada à prova, perfil pausado ressuscitado, falhas não-transientes sem pausa, ACK cruzado; P2/P3 | **corrigidos** em `c646084` |
-| R5 | Task 12/13 + holística final | revisão final solicitada; ver §9 | em andamento / pendente |
+| R5 | Holística final (integração, importação, backup, UI, matriz) | **5 P1** (ordem do `targetSignature`; reuso de subject por nome; ids colidindo em homônimos; edital arquivado não consultável; prova de consentimento sem vínculo com o `uid`) e 18 P2, incluindo limite de entidades contado a menos e `RangeError` em JSON profundo | **corrigidos** em `f39bba4` + commit de correções P1 desta rodada; P2/P3 restantes listados em §7 |
+| R6 | Tasks 12–13 (dedicada) | não retornou a tempo; importação e backup foram cobertos por R5, que gerou os achados acima | limitação registrada |
+
+Correções desta última rodada (R5), com teste focal novo:
+
+- `targetSignatureOf` ordena cada coleção por `id` → segunda importação em perfil populado deixou de ser recusada como “stale” (teste `second_import_in_a_populated_profile_is_not_stale`).
+- Importação **não** reutiliza subject por nome; cria sempre um subject próprio e mantém o candidato apenas como ambiguidade visível.
+- IDs determinísticos incluem o índice de ocorrência → dois irmãos homônimos não colapsam (teste `homonymous_siblings_get_distinct_deterministic_ids`).
+- Edital arquivado fica selecionável e consultável na UI, com aviso de somente leitura (E2E `archived_edital_stays_consultable_after_reload`).
+- `assertDeliveryConsent` exige `proof.uid === uid` e `proof.remoteLibraryId === remoteLibraryId` (teste `consent_for_one_uid_cannot_bind_another_uid`).
+- Commit recusa prévia com qualquer conflito (`SOURCE_REVISION_DIVERGED`, `EDITAL_ARCHIVED`, `TOO_MANY_ENTITIES`); o teto passa a contar `creates` reais.
+- `hasUnsafeKey` virou iterativo com limite de nós (JSON hostil profundo não derruba mais a prévia).
+- `recordCount` do backup F2 é conferido; `--muted` inexistente corrigido para `--text-muted`.
 
 Cada correção foi seguida de reexecução do teste focal e da suíte completa.
 
@@ -139,11 +151,28 @@ Cada correção foi seguida de reexecução do teste focal e da suíte completa.
 - Vínculos aula↔assunto desfeitos usam exclusão física (com operação `delete` na outbox), sem tombstone; backups antigos podem reintroduzir o vínculo. Registrado como decisão de F2, a revisar na F7.
 - Três motores de commit coexistem (subject F1 congelado, conteúdo F2, perfil); o de arquivamento já foi unificado no de conteúdo. Unificação completa fica para revisão arquitetural posterior.
 
+**P2/P3 da revisão holística que permanecem abertos (deliberadamente não corrigidos nesta execução):**
+
+- Reimportar a mesma origem com revisão divergente agora **bloqueia** em vez de reconciliar; não existe fluxo de “criar nova versão” nem reconciliação por caminho.
+- Replay por recibo devolve sucesso mesmo se o usuário apagou entidades depois do primeiro import; o recibo não guarda IDs para detectar divergência.
+- Importação não consulta `tombstones` nem persiste `quarantine`; após restauração de backup (F7) um ID tombstoned poderia ser recriado.
+- A UI não envia `baseRevision` nas mutações (CAS existe no repositório e no harness, não no produto); duas abas com edição real podem sobrescrever.
+- Escritas de conteúdo/importação/perfil não publicam no `BroadcastChannel`; a segunda aba fica com estado velho até reload.
+- Com `BLOCKED_UPGRADE`, só o formulário de disciplina fica travado; os demais botões de escrita seguem ativos.
+- Formulários F2 não têm estado de “enviando” (duplo clique cria dois registros) e o select de substituto de arquivamento vaza entre editais.
+- Nomes acessíveis repetem quando há títulos homônimos; foco cai no `body` ao abrir/fechar formulário.
+- Bordas de controle têm contraste ~1,2–1,4:1 nos oito temas (texto está acima de 7:1); contraste AA dos controles segue `NOT_RUN`.
+- Outbox sem `sequence` causal preenchida; entrega depende da ordem do índice.
+- `flushPending` não exige consentimento por si; a proteção está em `getEligibleOutbox`.
+- `ACCEPT_REMOTE` grava/apaga direto no store, sem tombstone nem validação de dependentes.
+- Backup F2 não inclui `import_receipts`, `quarantine`, `operations` ou `outbox`, e `deletionHistoryComplete` assume `true` quando omitido.
+- Namespace de importação é a constante `local`; dois arquivos de fontes distintas com o mesmo `centralId` colidem.
+
 ## 8. Higiene Git
 
 - `main`/`origin/main`: `9046cfa` antes e depois; nenhuma alteração.
 - `v2`: partiu de `f5b114a`; commits desta execução listados em `git log --oneline f5b114a..HEAD`.
-- Read-back remoto após o push: `origin/v2 = cca624b`, `origin/main = 9046cfa`.
+- Read-back remoto após o push final: `origin/v2` = HEAD local desta rodada, `origin/main = 9046cfa` (ver comentário mais recente na issue #108).
 - Worktrees: apenas os dois já existentes (`estudo-organizado` em `main`, `v2-f0-audit/estudo-organizado` em `v2`).
 - Nenhum PR aberto, nenhum stash, nenhuma branch nova, nenhum Actions novo.
 - Push previsto apenas para `origin/v2`; `.github/workflows/auto-cache-bump.yml` dispara somente em `main`.

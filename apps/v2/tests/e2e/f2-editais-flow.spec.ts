@@ -85,3 +85,34 @@ test('browser_archive_primary_with_explicit_choice', async ({ page }) => {
   await page.getByRole('button', { name: 'Reativar Edital A' }).click();
   await expect(page.getByRole('button', { name: 'Edital A', exact: true })).toBeVisible();
 });
+
+test('archived_edital_stays_consultable_after_reload', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+
+  await page.getByLabel('Nova disciplina').fill('Direito Constitucional');
+  await page.getByRole('button', { name: 'Adicionar disciplina' }).click();
+  await page.getByLabel('Novo edital').fill('Edital Antigo');
+  await page.getByRole('button', { name: 'Criar edital' }).click();
+  await page.getByLabel('Vincular disciplina existente a Edital Antigo').selectOption({
+    label: 'Direito Constitucional',
+  });
+  await page.getByRole('button', { name: 'Vincular' }).click();
+  await page
+    .getByLabel('Novo assunto em Direito Constitucional', { exact: true })
+    .fill('Assunto do arquivado');
+  await page.getByRole('button', { name: 'Adicionar assunto' }).click();
+  await expect(page.locator('.tree-title', { hasText: 'Assunto do arquivado' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Arquivar' }).first().click();
+  await page.getByRole('button', { name: 'Arquivar edital' }).click();
+  await expect(page.getByText('Editais arquivados (1)')).toBeVisible();
+
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.getByText('Editais arquivados (1)').click();
+  await page.getByRole('button', { name: 'Edital Antigo', exact: true }).click();
+
+  await expect(page.getByText('Edital arquivado: consulta liberada')).toBeVisible();
+  await expect(page.locator('.tree-title', { hasText: 'Assunto do arquivado' })).toBeVisible();
+});

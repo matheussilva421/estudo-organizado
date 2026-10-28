@@ -42,6 +42,11 @@ export class ImportCommitter {
     if (approval.targetSignature !== preview.targetSignature) {
       return { kind: 'INVALID', code: 'IMPORT_STALE_PREVIEW' };
     }
+    // A conflicted preview (diverged revision, archived target, oversized
+    // batch) is never committed: the user must replan before writing.
+    if (preview.conflicts.length > 0) {
+      return { kind: 'INVALID', code: 'IMPORT_INVALID' };
+    }
 
     let database: IDBDatabase;
     try {

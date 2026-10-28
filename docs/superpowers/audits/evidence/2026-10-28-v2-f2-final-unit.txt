@@ -1,6 +1,7 @@
 npm --prefix apps/v2 run test:unit
 Test Files  29 passed (29)
-Tests  162 passed (162)
-Duration  6.94s
+Tests  168 passed (168)
+Duration  6.74s
 exit=0
+(após as correções P0/P1 das revisões R1-R5)
 

@@ -210,7 +210,7 @@ export class LocalProfileRepository implements ProfileRepository {
         createDefaultProfile(profileId);
 
       try {
-        assertDeliveryConsent(current, proof, remoteLibraryId);
+        assertDeliveryConsent(current, proof, { uid, library: remoteLibraryId });
       } catch (error) {
         transaction.abort();
         return { kind: 'INVALID', code: (error as { code?: string }).code ?? 'INVALID_COMMAND' };

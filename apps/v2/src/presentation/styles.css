@@ -233,7 +233,7 @@ select {
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .edital-list,
@@ -314,7 +314,7 @@ select {
 
 .tree-meta,
 .hint {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -330,14 +330,14 @@ select {
 .file-field {
   flex-basis: 100%;
   font-size: 0.85rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .execution-state {
   border: 1px dashed var(--border);
   border-radius: 0.75rem;
   padding: 0.6rem 0.9rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .import-preview {
@@ -356,7 +356,7 @@ select {
 
 .preview-counts dt {
   font-size: 0.75rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .preview-counts dd {

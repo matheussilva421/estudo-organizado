@@ -57,7 +57,7 @@ export function canDeliver(
 export function assertDeliveryConsent(
   profile: ProfileRecord,
   proof: DeliveryConsentProof,
-  expectedLibrary?: string,
+  expected: { uid: string; library: string },
   now = Date.now(),
 ): void {
   if (!proof || proof.consent !== true) {
@@ -68,6 +68,9 @@ export function assertDeliveryConsent(
   }
   const uid = typeof proof.uid === 'string' ? proof.uid.trim() : '';
   if (!uid) throw new ContentValidationError('IDENTIFIER_REQUIRED', 'uid is required');
+  if (uid !== expected.uid.trim()) {
+    throw new ContentValidationError('PROFILE_MISMATCH', 'consent belongs to another uid');
+  }
   if (profile.uid && profile.uid !== uid) {
     throw new ContentValidationError('PROFILE_MISMATCH', 'profile is bound to another uid');
   }
@@ -75,7 +78,7 @@ export function assertDeliveryConsent(
   if (!library) {
     throw new ContentValidationError('IDENTIFIER_REQUIRED', 'remoteLibraryId is required');
   }
-  if (expectedLibrary !== undefined && library !== expectedLibrary.trim()) {
+  if (library !== expected.library.trim()) {
     throw new ContentValidationError('PROFILE_MISMATCH', 'consent belongs to another library');
   }
   if (profile.remoteLibraryId && profile.remoteLibraryId !== library) {

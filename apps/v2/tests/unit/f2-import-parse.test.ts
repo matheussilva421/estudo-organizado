@@ -8,6 +8,7 @@ import {
   parseEditalImport,
   previewEditalImport,
   qualifiedIdentity,
+  targetSignatureOf,
 } from '../../src/application/import-service';
 import { IMPORT_MAX_ENTITIES } from '../../src/application/import-types';
 
@@ -249,5 +250,63 @@ describe('F2 import parser and preview', () => {
     // Stored as plain text; nothing is evaluated or converted to HTML.
     expect(parsed.parsed.disciplines[0]?.name).toBe('<script>alert(1)</script>');
     expect(typeof parsed.parsed.disciplines[0]?.name).toBe('string');
+  });
+
+  it('target_signature_is_order_independent', () => {
+    const subjectA = { id: 'a', profileId: 'p', title: 'A', localRevision: 1 };
+    const subjectB = { id: 'b', profileId: 'p', title: 'B', localRevision: 1 };
+    const forward = targetSignatureOf({
+      ...emptyContent,
+      subjects: [subjectA, subjectB],
+    });
+    const backward = targetSignatureOf({
+      ...emptyContent,
+      subjects: [subjectB, subjectA],
+    });
+    expect(forward).toBe(backward);
+  });
+
+  it('homonymous_siblings_get_distinct_deterministic_ids', () => {
+    const parsed = parseEditalImport(
+      {
+        versao: 1,
+        tipo: 'edital',
+        nome: 'Com homonimos',
+        centralId: 'homonimos',
+        disciplinas: [
+          {
+            nome: 'Direito Penal',
+            topicos: [{ nome: 'Revisao' }, { nome: 'Revisao' }],
+            aulas: [{ nome: 'Aula 1' }, { nome: 'Aula 1' }],
+          },
+          { nome: 'Direito Penal', topicos: [], aulas: [] },
+        ],
+      },
+      { namespace: 'tjpb' },
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const preview = previewEditalImport(parsed.parsed, emptyContent);
+    const ids = preview.creates.map((item) => item.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(preview.creates.filter((item) => item.entityType === 'assunto')).toHaveLength(2);
+    expect(preview.creates.filter((item) => item.entityType === 'aula')).toHaveLength(2);
+    expect(preview.creates.filter((item) => item.entityType === 'subject')).toHaveLength(2);
+  });
+
+  it('import_into_an_archived_edital_is_blocked', () => {
+    const parsed = parseFixture();
+    const sourceRef = qualifiedIdentity('tjpb', 'tjpb-2026', null);
+    const archived: Edital = {
+      id: 'edital-arquivado',
+      profileId: 'profile-local',
+      title: 'TJPB 2026',
+      status: 'ARCHIVED',
+      localRevision: 4,
+      ...(sourceRef ? { sourceRef } : {}),
+      sourceRevision: 'r1',
+    };
+    const preview = previewEditalImport(parsed, { ...emptyContent, editais: [archived] });
+    expect(preview.conflicts.map((item) => item.reason)).toContain('EDITAL_ARCHIVED');
   });
 });

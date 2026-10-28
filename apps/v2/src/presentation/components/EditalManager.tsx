@@ -196,8 +196,15 @@ export function EditalManager({
           <summary>Editais arquivados ({archived.length})</summary>
           <ul aria-label="Editais arquivados">
             {archived.map((edital) => (
-              <li key={edital.id}>
-                <span>{edital.title}</span>{' '}
+              <li key={edital.id} className="edital-row">
+                <button
+                  type="button"
+                  className="link-button"
+                  aria-pressed={selectedId === edital.id}
+                  onClick={() => onSelect(edital.id)}
+                >
+                  {edital.title}
+                </button>
                 <button
                   type="button"
                   className="button-ghost"

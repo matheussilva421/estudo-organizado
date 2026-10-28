@@ -101,7 +101,7 @@ export type PreviewAmbiguity = {
 export type ImportConflict = {
   targetId: Id;
   name: string;
-  reason: 'SOURCE_REVISION_DIVERGED' | 'NAME_COLLISION';
+  reason: 'SOURCE_REVISION_DIVERGED' | 'NAME_COLLISION' | 'EDITAL_ARCHIVED' | 'TOO_MANY_ENTITIES';
   incomingRevision: string;
   existingRevision: string;
 };
