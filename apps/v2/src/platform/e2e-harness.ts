@@ -11,14 +11,9 @@ import {
   type ConfirmedProof,
 } from './indexeddb';
 import { browserLockPort, withSafeFlushLock } from './sync/coordination';
+import { setE2EFault, type E2EFault } from './e2e-fault';
 
-type Fault = 'abort' | 'quota' | null;
-
-let activeFault: Fault = null;
-
-export function getE2EFault(): Fault {
-  return activeFault;
-}
+type Fault = E2EFault;
 
 export type V2E2EHarness = {
   resetDb: () => Promise<void>;
@@ -59,10 +54,8 @@ export function installE2EHarness(): void {
 
   const harness: V2E2EHarness = {
     resetDb: () => deleteV2DatabaseForTests(),
-    setFault: (fault) => {
-      activeFault = fault;
-    },
-    execute: (command) => new LocalSubjectRepository({ fault: activeFault }).execute(command),
+    setFault: (fault) => setE2EFault(fault),
+    execute: (command) => new LocalSubjectRepository({ fault: null }).execute(command),
     executeWithFault: (command, fault) =>
       new LocalSubjectRepository({ fault }).execute(command),
     list: (profileId) => new LocalSubjectRepository().list(profileId),

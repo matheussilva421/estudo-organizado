@@ -5,7 +5,7 @@ import { assessSyncHealth } from '../application/sync-policy';
 import { getPendingOutbox, LocalPersistenceError } from '../platform/indexeddb';
 import { LocalSubjectRepository } from '../platform/local-subject-repository';
 import { subscribeLocalChanges } from '../platform/local-events';
-import { getE2EFault } from '../platform/e2e-harness';
+import { getE2EFault } from '../platform/e2e-fault';
 import { SubjectForm } from './components/SubjectForm';
 import { SubjectList } from './components/SubjectList';
 import { SyncStatus } from './components/SyncStatus';
