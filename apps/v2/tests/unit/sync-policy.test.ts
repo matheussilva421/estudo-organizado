@@ -65,7 +65,7 @@ describe('sync policy', () => {
       uid: 'uid-a',
       consent: true,
       preview: { ...preview, previewId: '   ' },
-    });
+    }, NOW);
 
     expect(attempted.state).toBe('LINKING');
     expect(attempted.uid).toBeNull();
