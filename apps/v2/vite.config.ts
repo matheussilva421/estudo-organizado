@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  define: {
+    __V2_E2E__: JSON.stringify(mode === 'e2e'),
+  },
   plugins: [react()],
   server: {
     host: '127.0.0.1',
@@ -20,4 +23,4 @@ export default defineConfig({
   build: {
     target: 'es2022',
   },
-});
+}));

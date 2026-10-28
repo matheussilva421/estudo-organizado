@@ -12,7 +12,7 @@ export default defineConfig({
     serviceWorkers: 'allow',
   },
   webServer: {
-    command: 'npm run build && npm run preview',
+    command: 'npm run build:e2e && npm run preview',
     url: 'http://127.0.0.1:18431',
     reuseExistingServer: false,
     timeout: 180_000,

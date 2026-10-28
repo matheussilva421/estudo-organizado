@@ -5,6 +5,7 @@ import { assessSyncHealth } from '../application/sync-policy';
 import { getPendingOutbox, LocalPersistenceError } from '../platform/indexeddb';
 import { LocalSubjectRepository } from '../platform/local-subject-repository';
 import { subscribeLocalChanges } from '../platform/local-events';
+import { getE2EFault } from '../platform/e2e-harness';
 import { SubjectForm } from './components/SubjectForm';
 import { SubjectList } from './components/SubjectList';
 import { SyncStatus } from './components/SyncStatus';
@@ -17,7 +18,10 @@ import {
 } from './ui-state';
 
 const PROFILE_ID = 'local-default';
-const repository = new LocalSubjectRepository();
+
+function repository(): LocalSubjectRepository {
+  return new LocalSubjectRepository({ fault: getE2EFault() });
+}
 
 function newId(): string {
   return crypto.randomUUID();
@@ -47,7 +51,7 @@ export function App() {
 
   const refresh = useCallback(async () => {
     const [list, pending] = await Promise.all([
-      repository.list(PROFILE_ID),
+      repository().list(PROFILE_ID),
       getPendingOutbox(PROFILE_ID),
     ]);
     setSubjects(list);
@@ -85,7 +89,7 @@ export function App() {
     setForm({ ...form, submitting: true, error: null });
     setNotice(null);
     try {
-      await repository.execute({
+      await repository().execute({
         operationId: newId(),
         profileId: PROFILE_ID,
         subjectId: newId(),
@@ -102,7 +106,7 @@ export function App() {
   async function renameSubject(subject: StudySubject, title: string): Promise<void> {
     setNotice(null);
     try {
-      await repository.execute({
+      await repository().execute({
         operationId: newId(),
         profileId: PROFILE_ID,
         subjectId: subject.id,
