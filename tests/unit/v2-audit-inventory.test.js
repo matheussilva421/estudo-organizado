@@ -126,6 +126,40 @@ describe('validateInventory', () => {
     ]);
   });
 
+  it('rejects_code_and_test_without_tests', () => {
+    const result = validateInventory([
+      makeRow({
+        tests: [],
+        test_gap: 'Comportamento não coberto por teste.',
+        evidence_level: 'CODE_AND_TEST',
+      }),
+    ]);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain('TEST_LEVEL_MISMATCH');
+  });
+
+  it('rejects_weak_approval_reference', () => {
+    const result = validateInventory([
+      makeRow({ decision_status: 'APPROVED', approval_reference: 'x' }),
+    ]);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain('INVALID_APPROVAL_REFERENCE');
+  });
+
+  it('rejects_duplicate_ids_with_whitespace_variant', () => {
+    const result = validateInventory([
+      makeRow({ id: 'F-V1-SAMPLE-3' }),
+      makeRow({ id: 'F-V1-SAMPLE-3 ' }),
+    ]);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining(['DUPLICATE_ID', 'INVALID_ID_FORMAT']),
+    );
+  });
+
   it('rejects_non_array_input_and_non_object_rows', () => {
     const nonArray = validateInventory({ rows: [] });
     const nonObjectRow = validateInventory([null]);
