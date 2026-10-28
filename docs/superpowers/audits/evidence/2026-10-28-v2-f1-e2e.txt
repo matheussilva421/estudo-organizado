@@ -1,0 +1,53 @@
+
+> estudo-organizado-v2@0.1.0 test:e2e
+> playwright test
+
+
+[WebServer] (node:35296) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:43264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 15 tests using 6 workers
+
+
+(node:36308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:37908) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:43088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+
+(node:14392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:42200) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:38120) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/15] [chromium] › tests\e2e\idb-atomicity.spec.ts:3:1 › creates the isolated V2 IndexedDB stores on boot
+[2/15] [chromium] › tests\e2e\v2-end-to-end.spec.ts:3:1 › e2e_create_rename_reload
+[3/15] [chromium] › tests\e2e\isolation.spec.ts:3:1 › serves V2 on its own origin with its own storage names
+[4/15] [chromium] › tests\e2e\visual-a11y.spec.ts:5:1 › eight_themes_sampled_AA
+[5/15] [chromium] › tests\e2e\pwa-offline.spec.ts:8:1 › v2_sw_scope_does_not_intersect_v1
+[6/15] [chromium] › tests\e2e\subject-flow.spec.ts:8:1 › creates, renames and restores a local subject
+[7/15] [chromium] › tests\e2e\pwa-offline.spec.ts:21:1 › offline_reload_preserves_committed_subject
+[8/15] [chromium] › tests\e2e\visual-a11y.spec.ts:34:1 › keyboard_and_focus_accessible
+[9/15] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_desktop
+[10/15] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_tablet
+[11/15] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_mobile
+[12/15] [chromium] › tests\e2e\pwa-offline.spec.ts:40:1 › unsaved_form_not_discarded_during_update
+[13/15] [chromium] › tests\e2e\subject-flow.spec.ts:24:1 › local only never says cloud synced and toasts do not cover the action
+[14/15] [chromium] › tests\e2e\subject-flow.spec.ts:31:1 › toast_does_not_cover_primary_button
+[15/15] [chromium] › tests\e2e\subject-flow.spec.ts:36:1 › blank title is blocked
+  15 passed (8.5s)

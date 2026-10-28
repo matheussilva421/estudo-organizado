@@ -2,7 +2,7 @@
 
 **Atualizado em:** 2026-10-28
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
-**Situação:** **F0 ACEITA COM RESSALVAS** (gate recalc `APPROVED`); **spec F1 e ADRs F1-01..05 APROVADAS em 2026-10-28**; writing-plans F1 **APROVADO (G2/F1)**, com [aceite humano](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847). [GOAL F1](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) preparado; **G3/F1 não autorizado nesta conversa**.
+**Situação:** **F0 ACEITA COM RESSALVAS**; **F1 IMPLEMENTADA E TESTADA LOCALMENTE — `F1_READY_FOR_HUMAN_REVIEW` (2026-10-28)**. G1/F1 e G2/F1 aprovados; execução G3/F1 realizada no escopo do GOAL. F2 não autorizada.
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
 **Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
@@ -56,7 +56,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **G0/G1** | APROVADOS | Arquitetura e spec-mestra + emendas | D01–D27 + A-01 + A-02 |
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
-| **F1 — Fundação técnica** | **G1/F1 e G2/F1 APROVADOS**; GOAL preparado, sem código | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | Envio explícito do [GOAL F1](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) ao Codex para iniciar G3/F1, após preflight seguro |
+| **F1 — Fundação técnica** | **IMPLEMENTADA — F1_READY_FOR_HUMAN_REVIEW (2026-10-28)** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | Aceite humano do [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
 | **F2 — Editais e conteúdo** | NÃO INICIADA | Base canônica de organização | F1 homologada |
 | **F3 — Planejamento** | NÃO INICIADA | Planejamento executável | F2 e regras temporais |
 | **F4 — Execução/sessões** | NÃO INICIADA | Tempo/histórico confiáveis | Persistência e domínio |
@@ -113,6 +113,16 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 - Orçamento inicial de performance/capacidade a partir das medições F0; risco de quota e erro de gravação tratado.
 
 **Gate F1:** uma operação real de negócio sintética sobrevive a refresh/offline; gravação duplicada/fracassada não cria confirmação falsa; fronteiras de domínio comprovadas; PWA não interfere na V1; revisão Impeccable e aceite humano.
+
+### Resultado da execução F1 (2026-10-28)
+
+- **Relatório:** [2026-10-28-v2-f1-acceptance.md](../audits/2026-10-28-v2-f1-acceptance.md).
+- **Aplicação isolada:** `apps/v2/` em `127.0.0.1:18431`, IndexedDB `estudo-organizado-v2`, SW próprio.
+- **Jornada:** criar/listar/renomear/recuperar disciplina com commit atômico e outbox durável.
+- **PASS local:** typecheck, lint, 69 testes unitários, 15 E2E, build; Impeccable 0 achados após ajuste do ramp; 8 temas AA na amostra.
+- **Contratos A-02:** CAS/idempotência/read-back/conflito/Web Locks/fake UID e backup com tombstones demonstrados por fake e fixtures sintéticas.
+- **UNVERIFIED:** os quatro riscos HIGH da F0 continuam abertos; Firebase, emulador, quota física, multi-dispositivo real e leitor de tela não foram executados.
+- **Gate:** `F1_READY_FOR_HUMAN_REVIEW`; F2 bloqueada.
 
 ## 5. F2 — Domínio de editais e conteúdo
 
@@ -238,7 +248,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 
 **Fonte da verdade para progresso:** este roadmap, atualizado a cada gate material. A issue mãe é o quadro executivo, não um segundo relatório gigante; seções/checklists da issue referenciam este documento.
 
-- **Baseline confirmado:** `main` permanece em `9046cfa2283cd293b38df9d52fabfcd5de9ac67c` (2026-10-28), intocada pela F0. `v2` foi atualizada com `main` no merge `689a9f4` e recebeu os commits de auditoria.
+- **Baseline confirmado:** `main` permanece em `9046cfa2283cd293b38df9d52fabfcd5de9ac67c` (2026-10-28), intocada por F0/F1. `v2` recebeu o merge `689a9f4`, os commits F0 e os commits F1 em `apps/v2/`.
 - **Branches antigas:** `docs/superpowers-estudo-organizado-v2-design` e `docs/superpowers-estudo-organizado-v2-f0-plan` são branches históricas de PRs #104/#105 já mesclados por squash. **Não excluir** sem inventário dos commits exclusivos e nova autorização; não utilizá-las para desenvolvimento novo.
 - **PRs abertos no preflight:** nenhum. Não criar PR novo apenas para acrescentar roadmap/issue à branch `v2`.
 - **Arquivos de auditoria F0 encontrados?** Sim: inventário, cobertura de fontes, matriz de schemas, matriz de riscos, baseline de QA, relatório Impeccable e relatório de aceitação em `docs/superpowers/audits/`.
@@ -246,8 +256,9 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 - **Aceite F0:** [aprovado com ressalvas em #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279); gate recalc `APPROVED`, não representa homologação V1. O laboratório visual mantém destino `UNDECIDED`/fora F1; 4 HIGH `UNVERIFIED` e 107 E2E FAIL continuam.
 - **Gate G1/F1:** [spec F1](../specs/2026-10-28-estudo-organizado-v2-f1-foundation-design.md) e [ADRs F1-01..05](../specs/2026-10-28-v2-f1-architecture-decisions.md) ratificadas em [#108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550).
 - **Gate G2/F1:** [plano aprovado](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md), Subagent-driven adotado para o handoff, [aceite humano](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847).
-- **Fase operacional seguinte:** usuário enviar explicitamente [GOAL F1 ao Codex](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) para autorizar **somente G3/F1**. Nenhum código, instalação ou deploy iniciado por esta atualização documental.
-- **Testes executados:** 66 testes dos validadores F0 PASS; 189 arquivos/3048 testes unitários PASS; lint 0 erros. `test:e2e:mock` e `test:e2e:mock:all` têm FAIL registrados; runtime Firestore/Drive/Cloudflare, migração real e emulador de rules permanecem NOT_RUN/INCONCLUSIVE.
+- **Fase operacional seguinte:** aceite humano do [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md). Depois, nova spec/plano F2 e autorização específica. Nenhum código F2, deploy ou publicação foi iniciado.
+- **Estado F1:** implementada em `apps/v2/`, testada localmente (69 unit/15 E2E), integrada à `v2` por commits locais; não publicada e não homologada em serviços reais.
+- **Testes executados:** F0 — 66 validadores PASS, 189/3048 unitários PASS, lint 0 erros; F1 — typecheck/lint/build PASS, 69 testes unitários e 15 E2E PASS. `test:e2e:mock` e `test:e2e:mock:all` da V1 mantêm FAIL; runtime Firebase/Cloudflare/Drive, migração real, emulador e multi-dispositivo permanecem NOT_RUN/UNVERIFIED.
 
 ## 15. Definição de conclusão de fase
 
