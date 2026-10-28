@@ -401,6 +401,7 @@ export function App() {
                     operationId: newId(),
                     profileId: PROFILE_ID,
                     linkId: topic.id,
+                    baseRevision: topic.localRevision,
                   }),
                 'Tente novamente.',
               ).then(() => undefined)

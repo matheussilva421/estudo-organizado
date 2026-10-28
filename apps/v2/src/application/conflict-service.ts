@@ -188,6 +188,26 @@ export class LocalConflictService implements ConflictService {
     const storeName = storeForEntityType(conflict.entityType);
     if (!storeName) return { kind: 'INVALID', code: 'INVALID_COMMAND' };
 
+    // A remote tombstone must go through the causal delete path: it validates
+    // dependencies, writes the tombstone/epoch and refuses orphaned children.
+    if (conflict.deleted) {
+      const current = await this.currentEntity(profileId, conflict);
+      if (!current) {
+        return {
+          kind: 'INVALID',
+          code: 'ENTITY_NOT_FOUND',
+        };
+      }
+      return this.content.execute({
+        type: 'SOFT_DELETE',
+        operationId,
+        profileId,
+        entityType: conflict.entityType as never,
+        entityId: conflict.entityId,
+        baseRevision: (current as { localRevision?: number }).localRevision ?? null,
+      });
+    }
+
     const database = await openV2Database(profileId);
     const transaction = database.transaction([storeName, STORES.operations], 'readwrite');
     try {
@@ -203,30 +223,26 @@ export class LocalConflictService implements ConflictService {
         store.get([profileId, conflict.entityId]),
       )) as { localRevision?: number } | undefined;
 
-      if (conflict.deleted) {
-        store.delete([profileId, conflict.entityId]);
-      } else {
-        if (!conflict.remotePayload) {
-          transaction.abort();
-          return { kind: 'INVALID', code: 'ENTITY_NOT_FOUND' };
-        }
-        const adopted = {
-          ...(conflict.remotePayload as Record<string, unknown>),
-          profileId,
-          id: conflict.entityId,
-          localRevision: (current?.localRevision ?? 0) + 1,
-        };
-        store.put(adopted);
-        operations.put({
-          operationId,
-          profileId,
-          entityType: conflict.entityType,
-          entityId: conflict.entityId,
-          command: { type: 'ACCEPT_REMOTE', conflictId: conflict.conflictId },
-          entity: adopted,
-          committedAt: new Date().toISOString(),
-        });
+      if (!conflict.remotePayload) {
+        transaction.abort();
+        return { kind: 'INVALID', code: 'ENTITY_NOT_FOUND' };
       }
+      const adopted = {
+        ...(conflict.remotePayload as Record<string, unknown>),
+        profileId,
+        id: conflict.entityId,
+        localRevision: (current?.localRevision ?? 0) + 1,
+      };
+      store.put(adopted);
+      operations.put({
+        operationId,
+        profileId,
+        entityType: conflict.entityType,
+        entityId: conflict.entityId,
+        command: { type: 'ACCEPT_REMOTE', conflictId: conflict.conflictId },
+        entity: adopted,
+        committedAt: new Date().toISOString(),
+      });
 
       await transactionDone(transaction);
       return { kind: 'LOCAL_COMMITTED', value: { adopted: true } };
@@ -238,5 +254,19 @@ export class LocalConflictService implements ConflictService {
       }
       return { kind: 'FAILED', reason: 'UNAVAILABLE' };
     }
+  }
+
+  private async currentEntity(
+    profileId: string,
+    conflict: PersistedConflict,
+  ): Promise<Record<string, unknown> | null> {
+    const storeName = storeForEntityType(conflict.entityType);
+    if (!storeName) return null;
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(storeName, 'readonly');
+    const record = await requestResult(
+      transaction.objectStore(storeName).get([profileId, conflict.entityId]),
+    );
+    return (record as Record<string, unknown> | undefined) ?? null;
   }
 }

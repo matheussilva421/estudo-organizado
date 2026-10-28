@@ -255,6 +255,7 @@ describe('F2 content hierarchy', () => {
         operationId: 'op-topic-unlink',
         profileId,
         linkId: 'topic-2',
+        baseRevision: 1,
       }),
     ).toMatchObject({ kind: 'LOCAL_COMMITTED' });
 

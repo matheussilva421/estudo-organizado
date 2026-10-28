@@ -366,4 +366,51 @@ describe('F2 archive, soft delete and tombstones', () => {
     expect(orphanRestore).toEqual({ kind: 'INVALID', code: 'ENTITY_NOT_FOUND' });
     expect((await content.loadContent(profileId)).aulas).toEqual([]);
   });
+
+  it('unlink_keeps_a_causal_tombstone_instead_of_physical_delete', async () => {
+    const content = await seed();
+    await content.execute({
+      type: 'UPSERT_ASSUNTO',
+      operationId: 'op-assunto',
+      profileId,
+      value: assunto('assunto-1', { orderKey: '000010' }),
+    });
+    await content.execute({
+      type: 'UPSERT_AULA',
+      operationId: 'op-aula',
+      profileId,
+      value: aula('aula-1', { orderKey: '000010' }),
+    });
+    await content.execute({
+      type: 'LINK_LESSON_TOPIC',
+      operationId: 'op-topic',
+      profileId,
+      link: { id: 'topic-1', profileId, aulaId: 'aula-1', assuntoId: 'assunto-1', localRevision: 0 },
+    });
+
+    const removed = await content.execute({
+      type: 'UNLINK_LESSON_TOPIC',
+      operationId: 'op-unlink',
+      profileId,
+      linkId: 'topic-1',
+      baseRevision: 1,
+    });
+    expect(removed).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+
+    const tombstone = await readTombstone('lesson-topic-link', 'topic-1');
+    expect(tombstone).toMatchObject({ entityId: 'topic-1', baseRevision: 1, epoch: 1, deleted: true });
+    expect((await content.loadContent(profileId)).lessonTopics).toEqual([]);
+
+    const restored = await content.execute({
+      type: 'RESTORE_ENTITY',
+      operationId: 'op-restore-topic',
+      profileId,
+      entityType: 'lesson-topic-link',
+      entityId: 'topic-1',
+    });
+    expect(restored).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+    expect((await content.loadContent(profileId)).lessonTopics.map((item) => item.id)).toEqual([
+      'topic-1',
+    ]);
+  });
 });

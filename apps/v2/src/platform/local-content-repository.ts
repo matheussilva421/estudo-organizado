@@ -134,7 +134,7 @@ function planOf(command: ContentCommand): Plan {
       return {
         entityType: 'lesson-topic-link',
         entityId: command.linkId,
-        stores: [STORES.lessonTopicLinks, STORES.tombstones],
+        stores: [STORES.lessonTopicLinks, STORES.tombstones, STORES.meta],
       };
     case 'REORDER_SIBLING':
       return {
@@ -783,11 +783,39 @@ export class LocalContentRepository implements ContentRepository {
       }
 
       case 'UNLINK_LESSON_TOPIC': {
+        // A removed link keeps a causal tombstone so an old backup cannot
+        // silently reintroduce it.
+        if (command.baseRevision === undefined || command.baseRevision === null) {
+          return { status: 'INVALID', code: 'BASE_REVISION_STALE' };
+        }
         const store = transaction.objectStore(STORES.lessonTopicLinks);
         const current = (await requestResult(
           store.get([command.profileId, command.linkId]),
         )) as LessonTopicLink | undefined;
         if (!current) return { status: 'INVALID', code: 'ENTITY_NOT_FOUND' };
+
+        const meta = transaction.objectStore(STORES.meta);
+        const epochRecord = (await requestResult(meta.get(epochKey(command.profileId)))) as
+          | { epoch?: number }
+          | undefined;
+        const epoch = nextEpoch(
+          Math.max(
+            epochRecord?.epoch ?? 0,
+            await this.maxTombstoneEpoch(command.profileId, transaction),
+          ),
+        );
+        meta.put({ key: epochKey(command.profileId), epoch });
+        transaction.objectStore(STORES.tombstones).put({
+          profileId: command.profileId,
+          entityType: 'lesson-topic-link',
+          entityId: command.linkId,
+          operationId: command.operationId,
+          baseRevision: current.localRevision,
+          epoch,
+          deleted: true,
+          deletedAt: this.now(),
+          snapshot: current as unknown as Record<string, unknown>,
+        } satisfies LogicalTombstone);
         return {
           status: 'OK',
           entity: current,
