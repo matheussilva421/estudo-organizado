@@ -1,8 +1,8 @@
 # Estudo Organizado V2 — Roadmap mestre, índice documental e gates
 
-**Atualizado em:** 2026-10-27
+**Atualizado em:** 2026-10-28
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
-**Situação:** PLANEJAMENTO ORGANIZADO / F0 NÃO COMPROVADA COMO EXECUTADA.
+**Situação:** F0 EXECUTADA / AGUARDANDO ACEITE HUMANO (READY_FOR_HUMAN_REVIEW).
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
 **Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
@@ -50,7 +50,7 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 | --- | --- | --- | --- |
 | **G0/G1** | APROVADOS | Arquitetura e spec-mestra | D01–D27 + A-01 |
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
-| **F0 — Auditoria V1** | **PENDENTE DE EVIDÊNCIA/EXECUÇÃO** | Inventário, contratos e baseline | GOAL F0 submetido ao Codex |
+| **F0 — Auditoria V1** | **EXECUTADA EM 2026-10-28 — READY_FOR_HUMAN_REVIEW** | Inventário, contratos e baseline entregues | Aceite humano do [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | NÃO ESPECIFICADA EM DETALHE | PWA V2 mínima e contratos | Aceite humano F0 |
 | **F2 — Editais e conteúdo** | NÃO INICIADA | Base canônica de organização | F1 homologada |
 | **F3 — Planejamento** | NÃO INICIADA | Planejamento executável | F2 e regras temporais |
@@ -79,6 +79,17 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 **Gate F0→F1:** auditoria validada, revisão independente e destinos funcionais de alto impacto aprovados; nenhuma discrepância crítica oculta. Em caso de Impeccable indisponível, não declarar gate de UX aprovado.
 
 **Operação:** usar o GOAL existente e o método Subagent-driven quando o usuário efetivamente o enviar ao Codex. Não iniciar F0 pelo simples fato de o roadmap estar publicado.
+
+### Resultado da execução F0 (2026-10-28)
+
+- **Relatório:** [2026-10-19-f0-acceptance.md](../audits/2026-10-19-f0-acceptance.md).
+- **Inventário:** 46 funcionalidades em 24 domínios; 86 superfícies descobertas, 84 mapeadas e 2 exclusões justificadas.
+- **Dados:** 37 registros de schema, com conflitos explícitos entre schema 12/11/9/7, IndexedDB 7/6 e backup sem versão própria.
+- **Riscos:** 13 (4 HIGH, 7 MEDIUM, 2 LOW); issue #107 registrada como risco UNVERIFIED; nenhum CRITICAL.
+- **Baseline:** 11 verificações — 4 PASS, 2 FAIL, 2 INCONCLUSIVE, 3 NOT_RUN.
+- **PASS:** 66 testes dos validadores; 184 arquivos/3024 testes unitários; lint 0 erros; design/contraste 45 testes; Impeccable 3.9.1 executado.
+- **FAIL:** `test:e2e:mock` não encontra testes; `test:e2e:mock:all` tem 59 PASS e 107 FAIL, registrados sem correção da V1.
+- **Gate:** `READY_FOR_HUMAN_REVIEW`; os 46 destinos continuam `PROPOSED`; F1 permanece bloqueada.
 
 ## 4. F1 — Fundação mínima e vertical técnica comprovável
 
@@ -220,12 +231,12 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 
 **Fonte da verdade para progresso:** este roadmap, atualizado a cada gate material. A issue mãe é o quadro executivo, não um segundo relatório gigante; seções/checklists da issue referenciam este documento.
 
-- **Baseline confirmado:** `main` em `83010dce2c5fd64700759a642bb9e414221ea84d` em 2026-10-27. `v2` nasceu nesse commit e contém documentação G0/G1/G2 já aprovada.
+- **Baseline confirmado:** `main` permanece em `9046cfa2283cd293b38df9d52fabfcd5de9ac67c` (2026-10-28), intocada pela F0. `v2` foi atualizada com `main` no merge `689a9f4` e recebeu os commits de auditoria.
 - **Branches antigas:** `docs/superpowers-estudo-organizado-v2-design` e `docs/superpowers-estudo-organizado-v2-f0-plan` são branches históricas de PRs #104/#105 já mesclados por squash. **Não excluir** sem inventário dos commits exclusivos e nova autorização; não utilizá-las para desenvolvimento novo.
 - **PRs abertos no preflight:** nenhum. Não criar PR novo apenas para acrescentar roadmap/issue à branch `v2`.
-- **Arquivos de auditoria F0 encontrados?** Não há evidência apresentada nesta rodada de execução real de F0. Seu estado é **não comprovado**, não FAIL e nem concluído.
-- **Fase operacional seguinte:** executar somente o GOAL F0 autorizado quando o usuário o submeter ao Codex; entregar relatórios e gate humano antes de F1.
-- **Testes desta organização documental:** não exigem execução do aplicativo V1; verificação por readback dos arquivos e comparação de commits na branch `v2`. Não declarar testes funcionais aprovados.
+- **Arquivos de auditoria F0 encontrados?** Sim: inventário, cobertura de fontes, matriz de schemas, matriz de riscos, baseline de QA, relatório Impeccable e relatório de aceitação em `docs/superpowers/audits/`.
+- **Fase operacional seguinte:** aceite humano do [relatório F0](../audits/2026-10-19-f0-acceptance.md), decisão sobre os 46 destinos e sobre os riscos HIGH/ADRs. Sem isso, F1 continua não autorizada.
+- **Testes executados:** 66 testes dos validadores F0 PASS; 184 arquivos/3024 testes unitários PASS; lint 0 erros. `test:e2e:mock` e `test:e2e:mock:all` têm FAIL registrados; runtime Firestore/Drive/Cloudflare, migração real e emulador de rules permanecem NOT_RUN/INCONCLUSIVE.
 
 ## 15. Definição de conclusão de fase
 
