@@ -76,6 +76,9 @@ describe('F2 commit service', () => {
       subjects: [],
       editais: [],
       links: [],
+      assuntos: [],
+      aulas: [],
+      lessonTopics: [],
     });
     expect(await getPendingOutbox(profileId)).toEqual([]);
     expect(await countStores()).toEqual({ editais: 0, operations: 0, outbox: 0 });
@@ -90,6 +93,9 @@ describe('F2 commit service', () => {
       subjects: [],
       editais: [],
       links: [],
+      assuntos: [],
+      aulas: [],
+      lessonTopics: [],
     });
     expect(await countStores()).toEqual({ editais: 0, operations: 0, outbox: 0 });
   });

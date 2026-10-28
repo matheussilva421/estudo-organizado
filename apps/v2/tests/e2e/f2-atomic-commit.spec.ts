@@ -6,7 +6,9 @@ type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 
 const profileId = 'local-default';
 
-function createCommand(overrides: Partial<ContentCommand> = {}): ContentCommand {
+type CreateEdital = Extract<ContentCommand, { type: 'CREATE_EDITAL' }>;
+
+function createCommand(overrides: Partial<CreateEdital> = {}): CreateEdital {
   return {
     type: 'CREATE_EDITAL',
     operationId: 'op-e2e-edital-1',

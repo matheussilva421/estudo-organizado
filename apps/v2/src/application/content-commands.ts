@@ -6,6 +6,7 @@ import type {
   EditalDiscipline,
   Id,
 } from '../domain/edital';
+import type { Assunto, Aula, LessonTopicLink } from '../domain/content';
 
 export type { CommandScope, EditalCommand, Id } from '../domain/edital';
 
@@ -28,9 +29,58 @@ export type ContentEntityType =
   | 'lesson-topic-link';
 
 /** Entities that may travel in the single F1 outbox. */
-export type ContentEntity = StudySubject | Edital | EditalDiscipline;
+export type ContentEntity =
+  | StudySubject
+  | Edital
+  | EditalDiscipline
+  | Assunto
+  | Aula
+  | LessonTopicLink;
 
-/** F2 grows this union monotonically; Task 5 adds the content commands. */
-export type ContentCommand = EditalCommand;
+export type LinkSubjectCommand = CommandScope & {
+  type: 'LINK_SUBJECT';
+  editalId: Id;
+  subjectId: Id;
+  linkId: Id;
+  displayAlias?: string;
+  orderKey?: string;
+};
+
+export type UpsertAssuntoCommand = CommandScope & {
+  type: 'UPSERT_ASSUNTO';
+  value: Assunto;
+};
+
+export type UpsertAulaCommand = CommandScope & {
+  type: 'UPSERT_AULA';
+  value: Aula;
+};
+
+export type LinkLessonTopicCommand = CommandScope & {
+  type: 'LINK_LESSON_TOPIC';
+  link: LessonTopicLink;
+};
+
+export type UnlinkLessonTopicCommand = CommandScope & {
+  type: 'UNLINK_LESSON_TOPIC';
+  linkId: Id;
+};
+
+export type ReorderSiblingCommand = CommandScope & {
+  type: 'REORDER_SIBLING';
+  entityType: 'assunto' | 'aula';
+  entityId: Id;
+  orderKey: string;
+};
+
+/** F2 grows this union monotonically. */
+export type ContentCommand =
+  | EditalCommand
+  | LinkSubjectCommand
+  | UpsertAssuntoCommand
+  | UpsertAulaCommand
+  | LinkLessonTopicCommand
+  | UnlinkLessonTopicCommand
+  | ReorderSiblingCommand;
 
 export type ContentScope = CommandScope & { profileId: Id };
