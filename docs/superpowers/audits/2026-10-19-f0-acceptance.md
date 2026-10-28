@@ -141,7 +141,7 @@ O caso real está documentado em `docs/handoffs/handoff-2026-10-26-issue-107-mis
 ## 11. Git, isolamento e pendências
 
 - `main` permaneceu em `9046cfa`; nenhum commit, merge ou push foi feito nela.
-- `v2` recebeu o merge de referência `689a9f4` e os commits de auditoria; `origin/v2` só será atualizado se o push for autorizado.
+- `v2` recebeu o merge de referência `689a9f4` e os commits de auditoria; `origin/v2` foi atualizado com esses commits (HEAD final registrado no comentário da issue #108).
 - Worktree isolado: `C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado`.
 - PRs abertos: nenhum. Nenhum PR novo foi criado.
 - Branches documentais antigas continuam existindo e não foram removidas.
