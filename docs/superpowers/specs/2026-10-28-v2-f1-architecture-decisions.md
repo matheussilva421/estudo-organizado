@@ -13,11 +13,11 @@
 
 **Alternativas:** (A) evoluir os stores/Service Worker da V1 no mesmo origin (descartar: risco de interferência); (B) aplicação V2 com origem, SW e IndexedDB separados, contrato de importação legada read-only (recomendado); (C) outro repositório/backend inteiro (rejeitado por burocracia desnecessária).
 
-**Decisão recomendada:** desenvolver em \`v2\` e checkout/worktree isolado; servir V2 em **origem diferente** (host/porta em dev; origem explícita em homologação). Nomes e versões **independentes** para \`appVersion\`, \`localSchemaVersion\`, \`backupFormatVersion\`, \`syncProtocolVersion\`, \`domainSchemaVersion\`. Nunca reutilizar número 12 ou 7 por hábito: novas versões partem de contrato próprio; o importador lê formatos antigos de forma explicitamente versionada e validada.
+**Decisão recomendada:** desenvolver em `v2` e checkout/worktree isolado; servir V2 em **origem diferente** (host/porta em dev; origem explícita em homologação). Nomes e versões **independentes** para `appVersion`, `localSchemaVersion`, `backupFormatVersion`, `syncProtocolVersion`, `domainSchemaVersion`. Nunca reutilizar número 12 ou 7 por hábito: novas versões partem de contrato próprio; o importador lê formatos antigos de forma explicitamente versionada e validada.
 
 **Consequências:** proteção da V1 e capacidade de ensaiar migração em cópia sintética; custo de manter compatibilidade de origens e versões; não há downgrade automático do IndexedDB. Referências V1 não são importações diretas de módulos da V2.
 
-**Aceite em F1:** teste V1/V2 em origens distintas; nenhum SW ou IDB compartilhado; reinicialização/upgrade com versão incompatível falha de modo seguro; nenhuma modificação em \`src/\` e dados de produção V1.
+**Aceite em F1:** teste V1/V2 em origens distintas; nenhum SW ou IDB compartilhado; reinicialização/upgrade com versão incompatível falha de modo seguro; nenhuma modificação em `src/` e dados de produção V1.
 
 ## ADR-F1-02 — Firestore incremental, identidade Google e orçamento gratuito
 
@@ -35,13 +35,13 @@
 
 ## ADR-F1-03 — Outbox idempotente e concorrência entre abas/dispositivos
 
-**Situação:** proposta alinhada à A-02, D08 e risco HIGH \`R-V1-MULTITAB-OUTBOX-RACE\`.
+**Situação:** proposta alinhada à A-02, D08 e risco HIGH `R-V1-MULTITAB-OUTBOX-RACE`.
 
 **Problema e evidência:** V1 usa SyncLock em memória; duas abas podem enviar a mesma intenção. A conexão pode cair após commit remoto, antes de o cliente receber confirmação.
 
 **Alternativas:** (A) lock de módulo/BroadcastChannel somente (rejeitado: não garante exclusão); (B) Web Locks para coordenação local + identidade imutável de operação, deduplicação e CAS remoto (recomendado); (C) arquitetura de servidor/workers pagos (desnecessária e fora do Spark).
 
-**Decisão recomendada:** na gravação local, persistir entidade + intenção de outbox atomicamente. Coordenador único por perfil, Web Locks onde suportado; fallback **comprovável** com lease/fencing e revisão no IndexedDB ou suspensão de flush concorrente, nunca fingir lock. No remoto, IDs de operação/revisões condicionadas tornam replays sem efeito adicional. A garantia é **entrega pelo menos uma vez e efeito idempotente**, não transporte exatamente uma vez. ACK só após commit ou read-back que confirme a operação. \`BroadcastChannel\` apenas notifica abas. Múltiplos dispositivos convergem por alterações independentes; conflitos materiais preservam as duas versões.
+**Decisão recomendada:** na gravação local, persistir entidade + intenção de outbox atomicamente. Coordenador único por perfil, Web Locks onde suportado; fallback **comprovável** com lease/fencing e revisão no IndexedDB ou suspensão de flush concorrente, nunca fingir lock. No remoto, IDs de operação/revisões condicionadas tornam replays sem efeito adicional. A garantia é **entrega pelo menos uma vez e efeito idempotente**, não transporte exatamente uma vez. ACK só após commit ou read-back que confirme a operação. `BroadcastChannel` apenas notifica abas. Múltiplos dispositivos convergem por alterações independentes; conflitos materiais preservam as duas versões.
 
 **Consequências:** estados de sync mais explícitos e testes adversariais, sem necessidade de infraestrutura paga. Exige lidar com aba fechada, timeout, owner antigo, revisão remota ultrapassada e ausência de Web Locks.
 
@@ -49,9 +49,9 @@
 
 ## ADR-F1-04 — Backup versionado, tombstones e restauração supervisionada
 
-**Situação:** proposta alinhada à D18/D26/A-02 e ao risco HIGH \`R-V1-BACKUP-TOMBSTONE-LOSS\`.
+**Situação:** proposta alinhada à D18/D26/A-02 e ao risco HIGH `R-V1-BACKUP-TOMBSTONE-LOSS`.
 
-**Problema:** export V1 perde \`removedBlocks\` / \`minRetainedRevision\`, possibilitando ressurreição de exclusões após restauração e merge. Backups antigos também podem carregar metadados de sync incompatíveis ou credenciais.
+**Problema:** export V1 perde `removedBlocks` / `minRetainedRevision`, possibilitando ressurreição de exclusões após restauração e merge. Backups antigos também podem carregar metadados de sync incompatíveis ou credenciais.
 
 **Alternativas:** (A) backup do snapshot acadêmico ignorando exclusões (rejeitado); (B) backup canônico versionado com manifesto, dados acadêmicos, tombstones causais mínimos e restauração com preview + rebaseline (recomendado); (C) exportação bruta de todos os dados operacionais/tokens (rejeitada por risco e acoplamento).
 
@@ -65,7 +65,7 @@
 
 **Situação:** proposta, condicionada à auditoria das variantes V1; não é correção da V1.
 
-**Problema:** ausência de \`schemaVersionRetaFinal\`/\`planId\`/\`revision\` no plano remoto legado pode ser confundida com ausência do plano; schema 12/11/9/7 e IndexedDB 7/6 não têm um contrato único de migração.
+**Problema:** ausência de `schemaVersionRetaFinal`/`planId`/`revision` no plano remoto legado pode ser confundida com ausência do plano; schema 12/11/9/7 e IndexedDB 7/6 não têm um contrato único de migração.
 
 **Alternativas:** (A) adotar remoto como vencedor ou criar estado vazio (rejeitado, perda silenciosa); (B) importador isolado read-only com proveniência, validação de versão e comparação semântica conservadora (recomendado); (C) alterar banco V1 em produção previamente (rejeitado sem gate separado).
 
@@ -77,8 +77,8 @@
 
 ## Limitações, bloqueios e aprovação
 
-**Riscos HIGH ainda \`UNVERIFIED\`:** \`R-V1-LEGACY-REMOTE-PLAN\`, \`R-V1-FIRESTORE-DOCUMENT-1MIB\`, \`R-V1-MULTITAB-OUTBOX-RACE\`, \`R-V1-BACKUP-TOMBSTONE-LOSS\`. Aprovar ADR **não** mitiga nenhum desses riscos sem testes.
+**Riscos HIGH ainda `UNVERIFIED`:** `R-V1-LEGACY-REMOTE-PLAN`, `R-V1-FIRESTORE-DOCUMENT-1MIB`, `R-V1-MULTITAB-OUTBOX-RACE`, `R-V1-BACKUP-TOMBSTONE-LOSS`. Aprovar ADR **não** mitiga nenhum desses riscos sem testes.
 
-**F0 aceita com ressalvas:** 35 \`PRESERVE\`, 10 \`REFORMULATE\`; laboratório \`F-V1-VISUAL-LAYOUT-LAB\` permanece \`UNDECIDED\` e excluído da F1, com aprovação do **adiamento**, não do destino. Baseline V1 E2E segue 59 PASS / 107 FAIL e necessita triagem; Impeccable A-01 e 8 temas permanecem obrigatórios.
+**F0 aceita com ressalvas:** 35 `PRESERVE`, 10 `REFORMULATE`; laboratório `F-V1-VISUAL-LAYOUT-LAB` permanece `UNDECIDED` e excluído da F1, com aprovação do **adiamento**, não do destino. Baseline V1 E2E segue 59 PASS / 107 FAIL e necessita triagem; Impeccable A-01 e 8 temas permanecem obrigatórios.
 
 **Gate seguinte:** revisar este conjunto de ADRs e [spec F1](2026-10-28-estudo-organizado-v2-f1-foundation-design.md). **Aprovação da spec/ADRs autorizará apenas a elaboração do writing-plans F1**, não a implementação.
