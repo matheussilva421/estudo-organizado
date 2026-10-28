@@ -34,10 +34,14 @@ function clone<T>(value: T): T {
 async function makeSnapshot(options: {
   subjects?: unknown[];
   tombstones?: LogicalTombstone[];
+  deletionHistoryComplete?: boolean;
 } = {}): Promise<BackupSnapshot> {
   return createBackupSnapshot({
     subjects: options.subjects ?? [subject()],
     tombstones: options.tombstones ?? [TOMBSTONE],
+    ...(options.deletionHistoryComplete === undefined
+      ? {}
+      : { deletionHistoryComplete: options.deletionHistoryComplete }),
     versions: {
       formatVersion: BACKUP_FORMAT_VERSION,
       domainSchemaVersion: DOMAIN_SCHEMA_VERSION,
@@ -212,5 +216,25 @@ describe('restore preview', () => {
       db.close();
       await deleteDatabase(name);
     }
+  });
+
+  it('valid_backup_without_deletions_is_safe_with_complete_history', async () => {
+    const snapshot = await makeSnapshot({ tombstones: [], deletionHistoryComplete: true });
+
+    expect(await previewRestore(snapshot, 0)).toEqual({ kind: 'SAFE' });
+  });
+
+  it('incomplete_history_requires_rebaseline', async () => {
+    const snapshot = await makeSnapshot({ tombstones: [], deletionHistoryComplete: false });
+
+    expect(await previewRestore(snapshot, 0)).toMatchObject({ kind: 'REBASELINE_REQUIRED' });
+  });
+
+  it('old_backup_without_history_declaration_requires_rebaseline', async () => {
+    const snapshot = await makeSnapshot({ tombstones: [], deletionHistoryComplete: true });
+    const legacy = clone(snapshot) as Record<string, unknown>;
+    delete (legacy.manifest as Record<string, unknown>).deletionHistoryComplete;
+
+    expect(await previewRestore(legacy, 0)).toMatchObject({ kind: 'REBASELINE_REQUIRED' });
   });
 });

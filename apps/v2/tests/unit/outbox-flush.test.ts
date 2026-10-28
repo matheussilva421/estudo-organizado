@@ -9,6 +9,7 @@ import {
   markConflict,
   markConfirmed,
   openV2Database,
+  requestResult,
   STORES,
 } from '../../src/platform/indexeddb';
 
@@ -38,6 +39,14 @@ async function seedOutbox(item: OutboxOperation): Promise<void> {
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
   });
+}
+
+async function readOutbox(operationId: string): Promise<OutboxOperation | undefined> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.outbox, 'readonly');
+  return requestResult(transaction.objectStore(STORES.outbox).get(operationId)) as Promise<
+    OutboxOperation | undefined
+  >;
 }
 
 beforeEach(async () => {
@@ -123,5 +132,18 @@ describe('outbox flush', () => {
     expect(conflicts).toHaveLength(1);
     expect(conflicts[0]?.localPayload).toMatchObject({ title: 'Direito Civil' });
     expect(conflicts[0]?.remoteRevision).toBe(1);
+  });
+
+  it('confirmed_operation_cannot_regress_to_conflict_with_stale_object', async () => {
+    const confirmed = operation({ operationId: 'op-confirmed' });
+    await seedOutbox(confirmed);
+    await markConfirmed(profileId, ['op-confirmed'], { 'op-confirmed': 1 });
+
+    await expect(
+      markConflict(profileId, { ...confirmed, status: 'PENDING' }, 2),
+    ).rejects.toMatchObject({ kind: 'UNAVAILABLE' });
+
+    expect(await getConflicts(profileId)).toEqual([]);
+    expect((await readOutbox('op-confirmed'))?.status).toBe('CONFIRMED');
   });
 });

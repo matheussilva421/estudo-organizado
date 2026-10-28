@@ -4,7 +4,7 @@ export type { ProfileBinding } from './sync-types';
 
 export type SyncEvent =
   | { type: 'START_LINK' }
-  | { type: 'CONSENT_LINK'; uid: string; consent: boolean; previewId: string }
+  | { type: 'CONSENT_LINK'; uid: string; consent: boolean; preview: LinkPreview }
   | { type: 'ENABLE_AUTO' }
   | { type: 'DISABLE_AUTO' }
   | { type: 'AUTH_EXPIRED' }
@@ -14,27 +14,60 @@ export type SyncEvent =
 
 export type LinkPreview = {
   profileId: string;
+  uid: string;
   remoteCount: number;
   previewId: string;
+  issuedAt: number;
+  expiresAt: number;
   requiresConsent: true;
   destructiveMerge: false;
 };
+
+function previewToken(preview: Omit<LinkPreview, 'previewId'>): string {
+  return `link:${preview.profileId}:${preview.uid}:${preview.remoteCount}:${preview.issuedAt}`;
+}
+
+function isValidPreview(preview: LinkPreview, profileId: string, uid: string, now: number): boolean {
+  if (
+    preview.profileId !== profileId ||
+    preview.uid !== uid ||
+    preview.requiresConsent !== true ||
+    preview.destructiveMerge !== false
+  ) {
+    return false;
+  }
+  if (
+    !Number.isInteger(preview.issuedAt) ||
+    !Number.isInteger(preview.expiresAt) ||
+    preview.issuedAt > now ||
+    preview.expiresAt < now
+  ) {
+    return false;
+  }
+  return preview.previewId === previewToken(preview);
+}
 
 function withState(binding: ProfileBinding, state: SyncState): ProfileBinding {
   return { ...binding, state, syncEnabled: false };
 }
 
-export function transitionSync(binding: ProfileBinding, event: SyncEvent): ProfileBinding {
+export function transitionSync(
+  binding: ProfileBinding,
+  event: SyncEvent,
+  now = Date.now(),
+): ProfileBinding {
   switch (event.type) {
     case 'START_LINK':
       if (binding.state === 'READY' || binding.state === 'SYNCING') return binding;
       return withState(binding, 'LINKING');
-    case 'CONSENT_LINK':
+    case 'CONSENT_LINK': {
       if (binding.state !== 'LINKING' || !event.consent) return binding;
-      if (!event.previewId.trim()) return binding;
-      if (!event.uid.trim()) return binding;
-      if (binding.uid && binding.uid !== event.uid.trim()) return binding;
-      return { ...binding, uid: event.uid.trim(), state: 'READY', syncEnabled: true };
+      const uid = event.uid.trim();
+      if (!uid) return binding;
+      if (!isValidPreview(event.preview, binding.profileId, uid, now)) return binding;
+      if (binding.uid && binding.uid !== uid) return binding;
+      return { ...binding, uid, state: 'READY', syncEnabled: true };
+    }
     case 'ENABLE_AUTO':
       if (binding.state !== 'READY' || !binding.uid) return binding;
       return { ...binding, syncEnabled: true };
@@ -54,16 +87,26 @@ export function transitionSync(binding: ProfileBinding, event: SyncEvent): Profi
 
 export function previewLink(
   profileId: string,
+  uid: string,
   remoteSummary: { remoteCount: number },
+  now = Date.now(),
+  ttlMs = 5 * 60_000,
 ): LinkPreview {
   if (!profileId.trim()) throw new Error('PROFILE_REQUIRED');
-  return {
+  if (!uid.trim()) throw new Error('UID_REQUIRED');
+  if (!Number.isInteger(now) || !Number.isInteger(ttlMs) || ttlMs <= 0) {
+    throw new Error('INVALID_PREVIEW_CLOCK');
+  }
+  const base = {
     profileId,
+    uid: uid.trim(),
     remoteCount: Math.max(0, remoteSummary.remoteCount),
-    previewId: `link:${profileId}:${Math.max(0, remoteSummary.remoteCount)}`,
-    requiresConsent: true,
-    destructiveMerge: false,
+    issuedAt: now,
+    expiresAt: now + ttlMs,
+    requiresConsent: true as const,
+    destructiveMerge: false as const,
   };
+  return { ...base, previewId: previewToken(base) };
 }
 
 export function assertProfileMatches(
@@ -88,7 +131,8 @@ export function assessSyncHealth(input: SyncHealthInput): SyncHealth {
   return {
     localCommitted: input.localCommitted,
     remoteCommitted: input.remoteCommitted,
-    converged: input.localCommitted && input.remoteCommitted && verified,
+    converged:
+      input.localCommitted && input.remoteCommitted && verified && Math.max(0, input.pendingCount) === 0,
     pendingCount: Math.max(0, input.pendingCount),
     mode: input.mode,
     ...(verified ? { lastVerifiedCursor: input.verifiedCursor ?? undefined } : {}),

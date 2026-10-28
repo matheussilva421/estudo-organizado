@@ -15,6 +15,8 @@ function ready(uid: string): ProfileBinding {
   };
 }
 
+const NOW = 1_700_000_000_000;
+
 describe('profile isolation', () => {
   it('logout_and_new_uid_do_not_mix_profiles', () => {
     const loggedOut = transitionSync(ready('uid-a'), { type: 'LOGOUT' });
@@ -22,7 +24,13 @@ describe('profile isolation', () => {
 
     const relinked = transitionSync(
       transitionSync(loggedOut, { type: 'START_LINK' }),
-      { type: 'CONSENT_LINK', uid: 'uid-b', consent: true, previewId: 'link:profile-a:0' },
+      {
+        type: 'CONSENT_LINK',
+        uid: 'uid-b',
+        consent: true,
+        preview: previewLink('profile-a', 'uid-b', { remoteCount: 0 }, NOW),
+      },
+      NOW,
     );
 
     expect(relinked.uid).toBe('uid-b');
@@ -47,7 +55,7 @@ describe('profile isolation', () => {
       type: 'CONSENT_LINK',
       uid: 'uid-b',
       consent: true,
-      previewId: 'link:profile-a:0',
+      preview: previewLink('profile-a', 'uid-b', { remoteCount: 0 }, NOW),
     });
 
     expect(attempted.uid).toBe('uid-a');
@@ -55,10 +63,13 @@ describe('profile isolation', () => {
   });
 
   it('preview_never_merges_implicitly', () => {
-    expect(previewLink('profile-a', { remoteCount: 3 })).toEqual({
+    expect(previewLink('profile-a', 'uid-a', { remoteCount: 3 }, NOW)).toEqual({
       profileId: 'profile-a',
+      uid: 'uid-a',
       remoteCount: 3,
-      previewId: 'link:profile-a:3',
+      previewId: `link:profile-a:uid-a:3:${NOW}`,
+      issuedAt: NOW,
+      expiresAt: NOW + 300_000,
       requiresConsent: true,
       destructiveMerge: false,
     });

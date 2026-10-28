@@ -179,12 +179,28 @@ export async function markConflict(
   const conflicts = transaction.objectStore(STORES.conflicts);
 
   try {
-    outbox.put({ ...operation, status: 'CONFLICT' });
+    const persisted = (await requestResult(outbox.get(operation.operationId))) as
+      | OutboxOperation
+      | undefined;
+    if (
+      !persisted ||
+      persisted.profileId !== profileId ||
+      persisted.entityId !== operation.entityId ||
+      persisted.status !== 'PENDING'
+    ) {
+      transaction.abort();
+      throw new LocalPersistenceError(
+        'UNAVAILABLE',
+        'conflict requires a persisted pending operation',
+        false,
+      );
+    }
+    outbox.put({ ...persisted, status: 'CONFLICT' });
     conflicts.put({
       conflictId: operation.operationId,
       profileId,
       operationId: operation.operationId,
-      localPayload: operation.payload,
+      localPayload: persisted.payload,
       remoteRevision,
       createdAt: new Date().toISOString(),
     });

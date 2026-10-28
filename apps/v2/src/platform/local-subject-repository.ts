@@ -1,6 +1,11 @@
 import type { SubjectRepository } from '../application/subject-service';
 import type { OutboxOperation } from '../application/sync-types';
-import { applySubjectCommand, type StudySubject, type SubjectCommand } from '../domain/subject';
+import {
+  applySubjectCommand,
+  normalizeSubjectTitle,
+  type StudySubject,
+  type SubjectCommand,
+} from '../domain/subject';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
 import {
   LocalPersistenceError,
@@ -36,14 +41,27 @@ export class LocalSubjectRepository implements SubjectRepository {
     try {
       const operations = transaction.objectStore(STORES.operations);
       const existing = (await requestResult(operations.get(command.operationId))) as
-        | { subject: StudySubject; profileId: string; entityId: string; type: string }
+        | {
+            subject: StudySubject;
+            profileId: string;
+            entityId: string;
+            type: string;
+            command?: SubjectCommand;
+          }
         | undefined;
 
       if (existing) {
+        const expectedTitle = normalizeSubjectTitle(command.title);
         if (
           existing.profileId !== command.profileId ||
           existing.entityId !== command.subjectId ||
-          existing.type !== command.type
+          existing.type !== command.type ||
+          (existing.command !== undefined &&
+            (existing.command.operationId !== command.operationId ||
+              existing.command.profileId !== command.profileId ||
+              existing.command.subjectId !== command.subjectId ||
+              existing.command.type !== command.type ||
+              existing.command.title !== expectedTitle))
         ) {
           transaction.abort();
           throw new LocalPersistenceError(
@@ -73,6 +91,13 @@ export class LocalSubjectRepository implements SubjectRepository {
         entityId: subject.id,
         type: command.type,
         subject,
+        command: {
+          operationId: command.operationId,
+          profileId: command.profileId,
+          subjectId: command.subjectId,
+          type: command.type,
+          title: subject.title,
+        },
         committedAt: this.now(),
       });
 

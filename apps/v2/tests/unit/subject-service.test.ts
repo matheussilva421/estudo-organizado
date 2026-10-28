@@ -55,6 +55,20 @@ describe('LocalSubjectRepository', () => {
     expect(await repository.list(profileId)).toHaveLength(1);
   });
 
+  it('same_operation_id_with_divergent_title_is_rejected_but_exact_replay_is_idempotent', async () => {
+    const repository = new LocalSubjectRepository();
+    const original = createCommand({ operationId: 'op-title-1', title: 'Direito' });
+    const first = await repository.execute(original);
+
+    await expect(
+      repository.execute({ ...original, title: 'Direito Civil' }),
+    ).rejects.toMatchObject({ kind: 'UNAVAILABLE' });
+
+    const replay = await repository.execute(original);
+    expect(replay).toEqual(first);
+    expect(await repository.list(profileId)).toHaveLength(1);
+  });
+
   it('entity_and_outbox_commit_atomically', async () => {
     const repository = new LocalSubjectRepository();
     const subject = await repository.execute(createCommand());

@@ -18,6 +18,7 @@ export type BackupManifest = {
   recordCount: number;
   checksum: string;
   hasDeletionHistory: boolean;
+  deletionHistoryComplete: boolean;
 };
 
 export type BackupPayload = {
@@ -39,6 +40,7 @@ export type BackupVersions = {
 export type BackupSnapshotInput = {
   subjects: readonly unknown[];
   tombstones: readonly LogicalTombstone[];
+  deletionHistoryComplete?: boolean;
   versions?: BackupVersions;
 };
 
@@ -67,6 +69,7 @@ export type BackupInvalidReason =
   | 'INVALID_MANIFEST'
   | 'INVALID_PAYLOAD'
   | 'INVALID_TOMBSTONE'
+  | 'DELETION_HISTORY_UNDECLARED'
   | 'SENSITIVE_DATA_PRESENT'
   | 'CHECKSUM_MISMATCH'
   | 'RECORD_COUNT_MISMATCH';
@@ -427,6 +430,8 @@ export async function createBackupSnapshot(
       recordCount: subjects.length + tombstones.length,
       checksum: await computeChecksum(payload),
       hasDeletionHistory: tombstones.length > 0,
+      deletionHistoryComplete:
+        input.deletionHistoryComplete ?? tombstones.length > 0,
     },
     payload,
   };
@@ -515,6 +520,12 @@ export async function inspectBackup(input: unknown): Promise<BackupInspection> {
     return { ok: false, reason: 'UNSUPPORTED_DOMAIN_SCHEMA_VERSION' };
   }
   if (typeof manifest.hasDeletionHistory !== 'boolean') {
+    return { ok: false, reason: 'INVALID_MANIFEST' };
+  }
+  if (manifest.deletionHistoryComplete === undefined) {
+    return { ok: false, reason: 'DELETION_HISTORY_UNDECLARED' };
+  }
+  if (typeof manifest.deletionHistoryComplete !== 'boolean') {
     return { ok: false, reason: 'INVALID_MANIFEST' };
   }
   if (

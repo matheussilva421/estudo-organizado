@@ -23,6 +23,9 @@ export async function previewRestore(
     return { kind: 'INVALID', reason: 'INVALID_PAYLOAD' };
   }
   if (!inspected.ok) {
+    if (inspected.reason === 'DELETION_HISTORY_UNDECLARED') {
+      return { kind: 'REBASELINE_REQUIRED', reason: 'DELETION_HISTORY_UNDECLARED' };
+    }
     return { kind: 'INVALID', reason: inspected.reason };
   }
 
@@ -33,11 +36,17 @@ export async function previewRestore(
   if (manifest.hasDeletionHistory !== hasDeletionHistory) {
     return { kind: 'INVALID', reason: 'DELETION_HISTORY_INCONSISTENT' };
   }
-  if (!manifest.hasDeletionHistory || tombstones.length === 0) {
+  if (!manifest.deletionHistoryComplete) {
     return { kind: 'REBASELINE_REQUIRED', reason: 'DELETION_HISTORY_MISSING' };
   }
   if (typeof currentEpoch !== 'number' || !Number.isInteger(currentEpoch) || currentEpoch < 0) {
     return { kind: 'INVALID', reason: 'CURRENT_EPOCH_INVALID' };
+  }
+
+  if (!manifest.hasDeletionHistory) {
+    return currentEpoch === 0
+      ? { kind: 'SAFE' }
+      : { kind: 'REBASELINE_REQUIRED', reason: 'NO_DELETION_HISTORY_EPOCH' };
   }
 
   const backupEpoch = tombstones.reduce(
