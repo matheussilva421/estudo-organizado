@@ -2,7 +2,7 @@
 
 **Atualizado em:** 2026-10-28
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
-**Situação:** **F0 ACEITA COM RESSALVAS** (gate recalc `APPROVED`); **spec F1 e ADRs F1-01..05 APROVADAS em 2026-10-28**; writing-plans F1 **REDIGIDO E PENDENTE DE REVISÃO (G2/F1)**. Implementação G3/F1 não autorizada.
+**Situação:** **F0 ACEITA COM RESSALVAS** (gate recalc `APPROVED`); **spec F1 e ADRs F1-01..05 APROVADAS em 2026-10-28**; writing-plans F1 **APROVADO (G2/F1)**, com [aceite humano](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847). [GOAL F1](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) preparado; **G3/F1 não autorizado nesta conversa**.
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
 **Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
@@ -17,7 +17,8 @@ Este roadmap é o **índice e acompanhamento canônico** da V2. Os documentos ex
 | [Pré-contratos F1 — sync multi-dispositivo A-02](../specs/2026-10-28-v2-multidevice-sync-f1-contracts.md) | **PROPOSTA PARA F1** — sem código ou execução autorizada |
 | [ADRs F1-01..05](../specs/2026-10-28-v2-f1-architecture-decisions.md) | **RATIFICADAS** em 2026-10-28; validação de implementação futura ainda pendente |
 | [Especificação formal F1](../specs/2026-10-28-estudo-organizado-v2-f1-foundation-design.md) | **APROVADA** em 2026-10-28 ([aceite](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550)) |
-| [Plano writing-plans F1](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md) | **PROPOSTO para revisão G2/F1** — 14 tarefas com TDD; não implementar |
+| [Plano writing-plans F1](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md) | **APROVADO G2/F1** — 14 tarefas, 75 etapas TDD; execução não iniciada |
+| [GOAL único F1 para Codex](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) | **PREPARADO** — somente envio explícito ao Codex autoriza G3/F1 |
 | Plano executável F0 (6 tarefas, TDD) | [Plano F0](../plans/2026-10-19-estudo-organizado-v2-f0-audit.md) | **G2/F0 APROVADO** — método Subagent-driven |
 | Roteiro de decomposição original | [Roteiro histórico F0–F8](../plans/2026-10-19-estudo-organizado-v2-roadmap.md) | Histórico aprovado; este documento é o roadmap vivo detalhado |
 | GOAL de execução F0 | [GOAL Codex F0](../goals/2026-10-19-estudo-organizado-v2-f0-codex.md) | **Executado**, com evidências verificadas no [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
@@ -55,7 +56,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **G0/G1** | APROVADOS | Arquitetura e spec-mestra + emendas | D01–D27 + A-01 + A-02 |
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
-| **F1 — Fundação técnica** | **G1/F1 APROVADO; G2/F1 PLANO EM REVISÃO**; sem código | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | Aprovar [Plano writing-plans F1](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md) e método; depois autorização G3/F1 específica |
+| **F1 — Fundação técnica** | **G1/F1 e G2/F1 APROVADOS**; GOAL preparado, sem código | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | Envio explícito do [GOAL F1](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) ao Codex para iniciar G3/F1, após preflight seguro |
 | **F2 — Editais e conteúdo** | NÃO INICIADA | Base canônica de organização | F1 homologada |
 | **F3 — Planejamento** | NÃO INICIADA | Planejamento executável | F2 e regras temporais |
 | **F4 — Execução/sessões** | NÃO INICIADA | Tempo/histórico confiáveis | Persistência e domínio |
@@ -80,7 +81,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 
 **Entrega esperada:** inventário canônico com 100% das superfícies descobertas mapeadas ou exclusões justificadas, matriz V1→V2 com propostas e evidência por funcionalidade, tabela de schemas e migração, riscos priorizados, testes documentados, baseline visual, proposta de ordem de F1–F8 e aceite humano pendente. A ausência de evidência **não** é cobertura.
 
-**Gate da auditoria F0:** `APPROVED` após o [aceite humano com ressalvas](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279); isso **não** homologa os E2E, migração, sync remoto ou UX. O laboratório de layout mantém destino `UNDECIDED` com adiamento aprovado; 4 HIGH continuam `UNVERIFIED`. Para escrever writing-plans F1 falta aprovação da spec F1 e ADRs.
+**Gate da auditoria F0:** `APPROVED` após o [aceite humano com ressalvas](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279); isso **não** homologa os E2E, migração, sync remoto ou UX. O laboratório de layout mantém destino `UNDECIDED` com adiamento aprovado; 4 HIGH continuam `UNVERIFIED`. Spec F1, cinco ADRs e writing-plans F1 já aprovados; resta **autorização explícita de execução G3/F1**.
 
 **Operação:** GOAL F0 já executado pelo Codex no método Subagent-driven. Histórico e evidências permanecem no [relatório F0](../audits/2026-10-19-f0-acceptance.md). Não repetir a auditoria sem novo motivo.
 
@@ -244,7 +245,8 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 - **Decisão A-02:** aprovada pelo usuário em 2026-10-28; spec-mestra atualizada e [pré-contratos de sync F1](../specs/2026-10-28-v2-multidevice-sync-f1-contracts.md) preparados **sem execução**. Não equivale a aprovação de arquitetura física de sync, solução dos riscos ou gate F0.
 - **Aceite F0:** [aprovado com ressalvas em #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279); gate recalc `APPROVED`, não representa homologação V1. O laboratório visual mantém destino `UNDECIDED`/fora F1; 4 HIGH `UNVERIFIED` e 107 E2E FAIL continuam.
 - **Gate G1/F1:** [spec F1](../specs/2026-10-28-estudo-organizado-v2-f1-foundation-design.md) e [ADRs F1-01..05](../specs/2026-10-28-v2-f1-architecture-decisions.md) ratificadas em [#108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550).
-- **Fase operacional seguinte:** revisar e aprovar [Plano writing-plans F1](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md) com escolha explícita de método; **nenhuma implementação/instalação/code F1 até G3 autorizado em etapa separada.**
+- **Gate G2/F1:** [plano aprovado](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md), Subagent-driven adotado para o handoff, [aceite humano](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847).
+- **Fase operacional seguinte:** usuário enviar explicitamente [GOAL F1 ao Codex](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) para autorizar **somente G3/F1**. Nenhum código, instalação ou deploy iniciado por esta atualização documental.
 - **Testes executados:** 66 testes dos validadores F0 PASS; 189 arquivos/3048 testes unitários PASS; lint 0 erros. `test:e2e:mock` e `test:e2e:mock:all` têm FAIL registrados; runtime Firestore/Drive/Cloudflare, migração real e emulador de rules permanecem NOT_RUN/INCONCLUSIVE.
 
 ## 15. Definição de conclusão de fase
