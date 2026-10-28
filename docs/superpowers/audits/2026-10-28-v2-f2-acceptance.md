@@ -4,6 +4,7 @@
 **Branch:** `v2` (somente local; `main` intocada)
 **Gate proposto:** `F2_READY_FOR_HUMAN_REVIEW`
 **Escopo executado:** 16 tarefas do writing-plans F2, matriz F2-T01..T40.
+**Evidência publicada:** [comentário na issue #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6480464454).
 
 Este relatório é o único pacote de evidências da F2. Ele descreve o que foi implementado, testado e observado; **não** declara F2 aprovada, homologada ou publicada.
 
@@ -132,6 +133,7 @@ Cada correção foi seguida de reexecução do teste focal e da suíte completa.
 
 - `main`/`origin/main`: `9046cfa` antes e depois; nenhuma alteração.
 - `v2`: partiu de `f5b114a`; commits desta execução listados em `git log --oneline f5b114a..HEAD`.
+- Read-back remoto após o push: `origin/v2 = cca624b`, `origin/main = 9046cfa`.
 - Worktrees: apenas os dois já existentes (`estudo-organizado` em `main`, `v2-f0-audit/estudo-organizado` em `v2`).
 - Nenhum PR aberto, nenhum stash, nenhuma branch nova, nenhum Actions novo.
 - Push previsto apenas para `origin/v2`; `.github/workflows/auto-cache-bump.yml` dispara somente em `main`.
