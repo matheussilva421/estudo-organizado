@@ -26,14 +26,14 @@
 - Impeccable 3.9.1: detector final 0 achados; 24 capturas sintéticas.
 - Relatório: `docs/superpowers/audits/2026-10-28-v2-f1-acceptance.md`.
 - F1 aceita com ressalvas; quatro HIGH continuam `UNVERIFIED`, Firebase/multi-dispositivo não homologados.
-- Spec F2 em `F2_SPEC_READY_FOR_HUMAN_REVIEW`, com decisões D-F2-01..06 propostas, matriz T01..T31, custos, contratos F1 e protocolo de emulador; **não aprovada**, sem implementação.
+- Spec F2 revisada **pelo ChatGPT com Superpowers**, status `F2_SPEC_REVISED — PENDING_HUMAN_APPROVAL`; D-F2-01..06 e emendas E-F2-01..08 **propostas**, matriz T01..T40, sem implementação/writing-plans. O Codex não escreve specs nem planos; executa GOAL após gates humanos.
 - Relatório de prontidão F2: `docs/superpowers/audits/2026-10-28-v2-f2-design-readiness.md`.
 
 ## Pendente
 
 1. Aprovação humana da spec F2 revisada.
-2. Autorização separada do ensaio com Firebase Emulator, se aprovado.
-3. Writing-plans F2 somente após aprovação da spec.
+2. Ensaio Firebase Emulator: autorização **específica de instalação/execução**, independente da redação do writing-plans F2.
+3. Após aprovação da spec, **ChatGPT usa Superpowers writing-plans** para escrever o plano F2 e pedir aceite humano; só depois redige GOAL para execução pelo Codex, que devolve testes/relatórios para revisão do ChatGPT.
 4. Homologação real de Firebase/Rules/quota/multi-dispositivo na fase apropriada (F7).
 
 **Não iniciar código F2, writing-plans, emulador, migração real, sync remoto real, deploy ou cutover sem novo aceite.**
