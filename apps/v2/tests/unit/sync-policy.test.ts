@@ -52,6 +52,19 @@ describe('sync policy', () => {
     });
   });
 
+  it('empty_preview_id_does_not_link', () => {
+    const linking = transitionSync(local, { type: 'START_LINK' });
+    const attempted = transitionSync(linking, {
+      type: 'CONSENT_LINK',
+      uid: 'uid-a',
+      consent: true,
+      previewId: '   ',
+    });
+
+    expect(attempted.state).toBe('LINKING');
+    expect(attempted.uid).toBeNull();
+  });
+
   it('sync_auto_only_after_optin', () => {
     const ready = transitionSync(
       transitionSync(local, { type: 'START_LINK' }),

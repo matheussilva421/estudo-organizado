@@ -31,6 +31,8 @@ describe('legacy recognition', () => {
     const right = fixture('reta-final-legacy-equivalent-derived.json');
     const before = JSON.stringify(left);
 
+    const legacyBlocks = (left as { retaFinal: { blocos: unknown[] } }).retaFinal.blocos;
+    expect(legacyBlocks).toHaveLength(180);
     expect(recognizeLegacyFormat(left)).toEqual({ kind: 'V1_SUPPORTED' });
     expect(compareLegacyPlan(left, right)).toBe('EQUIVALENT');
     expect(JSON.stringify(left)).toBe(before);

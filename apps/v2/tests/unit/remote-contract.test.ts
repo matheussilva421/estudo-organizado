@@ -139,6 +139,7 @@ describe('FakeRemotePort CAS contract', () => {
     port.signInAs('uid-intruder');
     await expect(port.apply(operation)).rejects.toBeInstanceOf(RemoteScopeError);
     await expect(port.lookup('op-uid')).rejects.toBeInstanceOf(RemoteScopeError);
+    await expect(port.lookupRevision('op-uid')).rejects.toBeInstanceOf(RemoteScopeError);
 
     port.signInAs(uid);
     expect(await port.apply(operation)).toEqual({ kind: 'APPLIED', remoteRevision: 1 });
