@@ -1,4 +1,4 @@
-import type { StudySubject } from '../domain/subject';
+import type { ContentEntity, ContentEntityType } from './content-commands';
 
 export type SyncState =
   | 'LOCAL_ONLY'
@@ -16,13 +16,20 @@ export type OutboxStatus = 'PENDING' | 'CONFIRMED' | 'CONFLICT';
 export type OutboxOperation = {
   operationId: string;
   profileId: string;
-  entityType: 'subject';
+  entityType: ContentEntityType;
   entityId: string;
   kind: 'upsert' | 'delete';
   baseRevision: number | null;
-  payload: StudySubject;
+  payload: ContentEntity;
   schemaVersion: number;
   status: OutboxStatus;
+  /** Causal order inside one entity; the outbox key stays the operationId. */
+  sequence?: number;
+  attempts?: number;
+  nextRetryAt?: number | null;
+  /** Delivery metadata, assigned only after explicit consent. */
+  deliveryUid?: string | null;
+  remoteLibraryId?: string | null;
 };
 
 export type ProfileBinding = {

@@ -1,4 +1,11 @@
-import type { CommandScope, EditalCommand, Id } from '../domain/edital';
+import type { StudySubject } from '../domain/subject';
+import type {
+  CommandScope,
+  Edital,
+  EditalCommand,
+  EditalDiscipline,
+  Id,
+} from '../domain/edital';
 
 export type { CommandScope, EditalCommand, Id } from '../domain/edital';
 
@@ -19,6 +26,9 @@ export type ContentEntityType =
   | 'assunto'
   | 'aula'
   | 'lesson-topic-link';
+
+/** Entities that may travel in the single F1 outbox. */
+export type ContentEntity = StudySubject | Edital | EditalDiscipline;
 
 /** F2 grows this union monotonically; Task 5 adds the content commands. */
 export type ContentCommand = EditalCommand;

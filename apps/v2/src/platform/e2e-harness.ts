@@ -1,6 +1,9 @@
 import type { SubjectCommand, StudySubject } from '../domain/subject';
 import type { OutboxOperation } from '../application/sync-types';
+import type { CommitResult, ContentCommand } from '../application/content-commands';
+import type { ContentSnapshot } from '../application/content-service';
 import { LocalSubjectRepository } from './local-subject-repository';
+import { LocalContentRepository } from './local-content-repository';
 import {
   deleteV2DatabaseForTests,
   getDatabaseUpgradeState,
@@ -31,6 +34,17 @@ export type V2E2EHarness = {
   openDb: () => Promise<{ version: number; stores: string[] }>;
   upgradeState: () => DatabaseUpgradeState;
   countStore: (store: string) => Promise<number>;
+  executeContent: (
+    command: ContentCommand,
+    fault?: Exclude<Fault, null>,
+  ) => Promise<CommitResult<unknown>>;
+  loadContent: (profileId: string) => Promise<ContentSnapshot>;
+  contentCounts: (profileId: string) => Promise<{
+    editais: number;
+    links: number;
+    operations: number;
+    outbox: number;
+  }>;
   setFault: (fault: Fault) => void;
   execute: (command: SubjectCommand) => Promise<StudySubject>;
   executeWithFault: (command: SubjectCommand, fault: Exclude<Fault, null>) => Promise<StudySubject>;
@@ -161,6 +175,24 @@ export function installE2EHarness(): void {
       const database = await openV2Database('local-default');
       const transaction = database.transaction(store, 'readonly');
       return requestResult(transaction.objectStore(store).count());
+    },
+    executeContent: (command, fault) =>
+      new LocalContentRepository({ fault: fault ?? null }).execute(command),
+    loadContent: (profileId) => new LocalContentRepository().loadContent(profileId),
+    contentCounts: async (profileId) => {
+      const database = await openV2Database(profileId);
+      const transaction = database.transaction(
+        [STORES.editais, STORES.editalDisciplines, STORES.operations, STORES.outbox],
+        'readonly',
+      );
+      return {
+        editais: await requestResult(transaction.objectStore(STORES.editais).count()),
+        links: await requestResult(
+          transaction.objectStore(STORES.editalDisciplines).count(),
+        ),
+        operations: await requestResult(transaction.objectStore(STORES.operations).count()),
+        outbox: await requestResult(transaction.objectStore(STORES.outbox).count()),
+      };
     },
     setFault: (fault) => setE2EFault(fault),
     execute: (command) => new LocalSubjectRepository({ fault: null }).execute(command),
