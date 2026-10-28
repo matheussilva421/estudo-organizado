@@ -2,7 +2,7 @@
 
 **Atualizado em:** 2026-10-28
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
-**Situação:** **F0 ACEITA COM RESSALVAS**; **F1 ACEITA COM RESSALVAS em 2026-10-28 no commit `85ce1e3`**; **spec F2 revisada, aguardando aprovação específica**; demais specs F3–F8 propostas e não executadas. Nenhum código F2 ou writing-plans F2 foi autorizado.
+**Situação:** **F0 ACEITA COM RESSALVAS**; **F1 ACEITA COM RESSALVAS em 2026-10-28 no commit `85ce1e3`**; **spec F2 `F2_SPEC_READY_FOR_HUMAN_REVIEW` aguardando aprovação específica**; demais specs F3–F8 propostas e não executadas. Nenhum código F2 ou writing-plans F2 foi autorizado.
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
 **Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
@@ -57,7 +57,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | **ACEITA COM RESSALVAS — 2026-10-28, commit `85ce1e3`** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6475527680) e [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
-| **F2 — Editais e conteúdo** | **SPEC REVISADA EM REVISÃO — NÃO APROVADA** | Base canônica de organização | Aprovação específica da [spec F2](../specs/2026-10-28-estudo-organizado-v2-f2-content-design.md); sem código/writing-plans |
+| **F2 — Editais e conteúdo** | **F2_SPEC_READY_FOR_HUMAN_REVIEW — PENDING_HUMAN_APPROVAL** | Base canônica de organização | Aprovação específica da [spec F2](../specs/2026-10-28-estudo-organizado-v2-f2-content-design.md) e do [relatório de prontidão](../audits/2026-10-28-v2-f2-design-readiness.md); sem código/writing-plans |
 | **F3 — Planejamento** | **SPEC PROPOSTA; não iniciada** | Planejamento executável | F2 e regras temporais |
 | **F4 — Execução/sessões** | **SPEC PROPOSTA; não iniciada** | Tempo/histórico confiáveis | Persistência e domínio |
 | **F5 — Revisões/inteligência** | **SPEC PROPOSTA; não iniciada** | Revisar e priorizar | F2–F4 |
@@ -258,7 +258,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 - **Gate G2/F1:** [plano aprovado](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md), Subagent-driven adotado para o handoff, [aceite humano](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847).
 - **Fase operacional seguinte:** F1 aceita com ressalvas; a [spec F2](../specs/2026-10-28-estudo-organizado-v2-f2-content-design.md) está em revisão e aguarda aprovação humana. Nenhum writing-plans/código F2 foi iniciado.
 - **Estado F1:** implementada em `apps/v2/`, testada localmente (84 unit/20 E2E), publicada em `origin/v2` e aceita com ressalvas em `85ce1e3`; quatro HIGH `UNVERIFIED` e Firebase/multi-dispositivo não homologados.
-- **F2 spec:** revisada em 2026-10-28 com os contratos efetivamente entregues pela F1 e a proposta de ensaio com Firebase Emulator; continua **NÃO APROVADA** e sem autorização de código/writing-plans.
+- **F2 spec:** `F2_SPEC_READY_FOR_HUMAN_REVIEW` em 2026-10-28; contratos F1, decisões D-F2-01..06 propostas, matriz T01..T31, riscos, custos e protocolo de emulador documentados no [relatório de prontidão](../audits/2026-10-28-v2-f2-design-readiness.md). Continua **NÃO APROVADA**, sem código/writing-plans/emulador.
 - **Testes executados:** F0 — 66 validadores PASS, 189/3048 unitários PASS, lint 0 erros; F1 — typecheck/lint/build PASS, 84 testes unitários e 20 E2E PASS. `test:e2e:mock` e `test:e2e:mock:all` da V1 mantêm FAIL; runtime Firebase/Cloudflare/Drive, migração real, emulador e multi-dispositivo permanecem NOT_RUN/UNVERIFIED.
 
 ## 15. Definição de conclusão de fase

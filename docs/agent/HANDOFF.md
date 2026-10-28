@@ -26,7 +26,8 @@
 - Impeccable 3.9.1: detector final 0 achados; 24 capturas sintéticas.
 - Relatório: `docs/superpowers/audits/2026-10-28-v2-f1-acceptance.md`.
 - F1 aceita com ressalvas; quatro HIGH continuam `UNVERIFIED`, Firebase/multi-dispositivo não homologados.
-- Spec F2 revisada com os contratos F1 e proposta de ensaio com Firebase Emulator; **não aprovada** e sem implementação.
+- Spec F2 em `F2_SPEC_READY_FOR_HUMAN_REVIEW`, com decisões D-F2-01..06 propostas, matriz T01..T31, custos, contratos F1 e protocolo de emulador; **não aprovada**, sem implementação.
+- Relatório de prontidão F2: `docs/superpowers/audits/2026-10-28-v2-f2-design-readiness.md`.
 
 ## Pendente
 
