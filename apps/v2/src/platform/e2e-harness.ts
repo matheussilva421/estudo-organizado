@@ -2,8 +2,15 @@ import type { SubjectCommand, StudySubject } from '../domain/subject';
 import type { OutboxOperation } from '../application/sync-types';
 import type { CommitResult, ContentCommand } from '../application/content-commands';
 import type { ContentSnapshot } from '../application/content-service';
+import type {
+  ArchiveEditalInput,
+  ArchiveEditalResult,
+  ProfileRecord,
+  SetPrimaryInput,
+} from '../application/profile-service';
 import { LocalSubjectRepository } from './local-subject-repository';
 import { LocalContentRepository } from './local-content-repository';
+import { LocalProfileRepository } from './local-profile-repository';
 import {
   deleteV2DatabaseForTests,
   getDatabaseUpgradeState,
@@ -45,6 +52,11 @@ export type V2E2EHarness = {
     operations: number;
     outbox: number;
   }>;
+  getProfile: (profileId: string) => Promise<ProfileRecord>;
+  setPrimary: (input: SetPrimaryInput) => Promise<CommitResult<ProfileRecord>>;
+  archiveEdital: (
+    input: ArchiveEditalInput,
+  ) => Promise<CommitResult<ArchiveEditalResult>>;
   setFault: (fault: Fault) => void;
   execute: (command: SubjectCommand) => Promise<StudySubject>;
   executeWithFault: (command: SubjectCommand, fault: Exclude<Fault, null>) => Promise<StudySubject>;
@@ -194,6 +206,9 @@ export function installE2EHarness(): void {
         outbox: await requestResult(transaction.objectStore(STORES.outbox).count()),
       };
     },
+    getProfile: (profileId) => new LocalProfileRepository().getProfile(profileId),
+    setPrimary: (input) => new LocalProfileRepository().setPrimaryEdital(input),
+    archiveEdital: (input) => new LocalProfileRepository().archiveEdital(input),
     setFault: (fault) => setE2EFault(fault),
     execute: (command) => new LocalSubjectRepository({ fault: null }).execute(command),
     executeWithFault: (command, fault) =>

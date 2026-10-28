@@ -1,0 +1,48 @@
+import type { SyncState } from './sync-types';
+import type { CommitResult, Id } from './content-commands';
+import type { Edital } from '../domain/edital';
+
+/**
+ * One row per local device profile. `profileId` is local: it is neither a
+ * Google `uid` nor a global library key. `localRevision` guards concurrent
+ * preference changes between tabs.
+ */
+export type ProfileRecord = {
+  profileId: Id;
+  uid: string | null;
+  remoteLibraryId: string | null;
+  syncEnabled: boolean;
+  state: SyncState;
+  primaryEditalId: Id | null;
+  localRevision: number;
+};
+
+export type SetPrimaryInput = {
+  profileId: Id;
+  editalId: Id | null;
+  operationId: Id;
+  baseRevision?: number | null;
+};
+
+export type ArchiveEditalInput = {
+  profileId: Id;
+  editalId: Id;
+  operationId: Id;
+  /**
+   * Required only when the archived edital is the primary one. `null` means
+   * "keep no primary"; `undefined` means the decision was never made.
+   */
+  replacementPrimaryId?: Id | null;
+  baseRevision?: number | null;
+};
+
+export type ArchiveEditalResult = {
+  edital: Edital;
+  profile: ProfileRecord;
+};
+
+export interface ProfileRepository {
+  getProfile(profileId: Id): Promise<ProfileRecord>;
+  setPrimaryEdital(input: SetPrimaryInput): Promise<CommitResult<ProfileRecord>>;
+  archiveEdital(input: ArchiveEditalInput): Promise<CommitResult<ArchiveEditalResult>>;
+}
