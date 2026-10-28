@@ -1,13 +1,13 @@
 # Estudo Organizado V2 — F1 Fundação Técnica e Primeira Fatia Vertical
 
 **Data:** 2026-10-28  
-**Status:** **ESPECIFICAÇÃO FORMAL PROPOSTA PARA REVISÃO HUMANA — NÃO APROVADA**  
+**Status:** **ESPECIFICAÇÃO FORMAL F1 APROVADA PELO USUÁRIO EM 2026-10-28** — [referência humana](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550). **G2/F1 writing-plans em elaboração; implementação F1 NÃO autorizada.**  
 **Branch alvo futura:** `v2`; **`main` = V1 em produção, intocada.**  
 **Predecessora:** F0 — auditoria aceita com ressalvas em [registro humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279).  
 **Arquitetura aprovada:** [spec mestra D01–D27 + A-01 + A-02](2026-10-19-estudo-organizado-v2-design.md).  
-**Decisões técnicas propostas para ratificação junto com esta spec:** [ADR-F1-01 a 05](2026-10-28-v2-f1-architecture-decisions.md).  
+**Decisões técnicas ratificadas junto com esta spec:** [ADR-F1-01 a 05](2026-10-28-v2-f1-architecture-decisions.md), com implementação de detalhes físicos dependente de avaliações e testes futuros.  
 **Contrato base de integração:** [A-02 — pré-contratos de sincronização](2026-10-28-v2-multidevice-sync-f1-contracts.md).  
-**Próximo gate:** **aprovação explícita da spec F1 e de suas ADRs**; somente depois poderá começar `writing-plans` F1. **Nenhum código, instalação, teste, merge ou deploy autorizado por este documento.**
+**Próximo gate:** produzir e revisar **writing-plans F1** (G2) somente como documentação. **Nenhum código, instalação, teste, merge para main ou deploy autorizado por esta aprovação.**
 
 ## 1. Problema, intenção e resultado observável
 
@@ -174,9 +174,9 @@ A F1 deve manter essas falhas registradas e **triar de forma limitada o harness 
 
 **F0:** auditoria **aceita com ressalvas** em 2026-10-28; 35 `PRESERVE`, 10 `REFORMULATE` ratificados como diretrizes; laboratório visual `UNDECIDED` com postergação aprovada e excluído da F1. Quatro HIGH `UNVERIFIED`; E2E V1 107 FAIL mantidos.
 
-**F1/G1 local:** este documento e [ADR-F1-01..05](2026-10-28-v2-f1-architecture-decisions.md) estão **EM REVISÃO**. Confrontar com [spec-mestra](2026-10-19-estudo-organizado-v2-design.md) e [A-02](2026-10-28-v2-multidevice-sync-f1-contracts.md), aceitar ou corrigir; **sem escrita de código**.
+**F1/G1 local:** este documento e [ADR-F1-01..05](2026-10-28-v2-f1-architecture-decisions.md) foram **APROVADOS EM 2026-10-28** ([aceite](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550)). Essa aprovação autoriza somente writing-plans F1; **sem escrita de código**.
 
-**F1/G2:** somente **depois de aprovar esta spec**, invocar Superpowers writing-plans para decompor as mudanças em tarefas pequenas com arquivos, portas, TDD, revisões independentes e gates. A redação do plano não implica autorização de sua execução.
+**F1/G2:** **autorizada a elaboração e publicação** do Superpowers writing-plans para revisão humana. O plano publicado é **PROPOSTO**, não aprovado; sua redação não autoriza execução.
 
 **F1/G3:** aprovação específica do plano, método e autorização de execução antes de qualquer instalação, scaffold, alterações em repo/code ou uso de emuladores. Respeitar isolamento, worktrees e regras de `AGENTS.md`.
 
@@ -193,4 +193,4 @@ A F1 deve manter essas falhas registradas e **triar de forma limitada o harness 
 - **UI redesenhada integralmente na F1 vs base de design system:** tokens e fluxo mínimo com Impeccable agora; UX completa é F6 e exige gate próprio.
 - **Resolver 107 falhas da V1 vs harness V2 determinístico e triagem focada:** F1 usa testes próprios e preserva as falhas legadas para estudo sem mexer no produto em funcionamento.
 
-**Proposta para aprovação humana:** ratificar o desenho da fundação F1 com as ADR-F1-01..05. Isso **autoriza apenas writing-plans**, não início de implementação.
+**Registro de aprovação humana:** desenho da fundação F1 e ADR-F1-01..05 **ratificados** em 2026-10-28 ([comentário #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550)); próximo passo é revisar o writing-plans F1. **Ainda não há autorização de execução.**
