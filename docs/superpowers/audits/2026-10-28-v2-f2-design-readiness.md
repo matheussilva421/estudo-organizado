@@ -187,3 +187,35 @@ A matriz completa está na spec F2 §6.1 (F2-T01..T31), cobrindo CRUD, hierarqui
 2. Aprovar ou rejeitar a spec revisada.
 3. Se aprovada, autorizar writing-plans F2 separadamente.
 4. Autorizar `F2_EMULATOR_REHEARSAL` somente em etapa própria, sem confundir com homologação real.
+
+## 13. Revisão arquitetural complementar pelo ChatGPT + Superpowers (2026-10-28)
+
+**Finalidade:** revisar as escolhas, contratos e gates de F2 após a rodada documental do Codex. **Não é mais uma execução de testes e não é aceite humano da spec.** O relatório original acima preserva evidências históricas e seu veredito da rodada anterior; a [spec F2 atualizada](../specs/2026-10-28-estudo-organizado-v2-f2-content-design.md) é a fonte canônica do desenho proposto.
+
+### 13.1 Responsabilidades corrigidas
+
+**ChatGPT + Superpowers:** analisar/revisar alternativas, elaborar decisões e spec, aguardar aceite da spec, produzir e revisar `writing-plans`, aguardar aceite do plano e escrever GOAL completo. **Codex:** executar exclusivamente GOAL/plano aprovado, testar localmente, usar revisão independente e produzir evidências; **ChatGPT:** auditar implementação e escrever GOAL corretivo se necessário; **proprietário:** ratificar gates e exceções. O Codex pode levantar problemas técnicos, mas não substituir aprovação humana ou redesenhar a arquitetura.
+
+### 13.2 Achados materiais da revisão
+
+| Prioridade | Problema detectado na versão documental anterior | Correção proposta na spec |
+| --- | --- | --- |
+| P1 | `nameKey` figurava na precedência de identidade; podia ser confundido com autorização de merge | E-F2-05: somente sugestão; `centralId`/`sourceRef` precisam de namespace e proveniência confiáveis; fingerprint sem campos voláteis |
+| P1 | `profileId` local e UID remoto sem definição cross-device; risco de dois aparelhos com IDs locais distintos | E-F2-06: `remoteLibraryId` sob UID após consentimento, operação imutável, escopo remoto verificado por UID |
+| P1 | Retry limitado a cinco podia exigir intervenção manual após falha transitória | E-F2-07: cooldown e retomada automática quando app ativo, preservando outbox até sucesso/erro determinístico |
+| P1 | Staging/import_jobs para lote grande era prematuro e sem protocolo de publicação atômica comprovado | E-F2-05: transação única medida, limite rebaixável em mobile, rejeição acima dos limites; staging só com nova decisão |
+| P2 | `displayAlias` não tinha semântica explícita de rename | E-F2-01: alias contextual, não altera `StudySubject` canônico |
+| P2 | `orderKey` base62 estava quase obrigatório sem comparação | E-F2-02: chaves determinísticas e reindexação simples; sofisticar só com evidência |
+| P2 | UI de backup F2 versus fase principal F7 confundia escopo | E-F2-04/08: somente compatibilidade e preview sintético na F2; UX completa na F7 |
+| P2 | Matriz T01..T31 não cobria alias, identidade cross-device, limite real e retries | Complemento proposto T32..T40; testes ainda não executados |
+| P2 | Texto antigo do roadmap/issue mencionava G3/F1 como pendente apesar do aceite F1 | Corrigir acompanhamento canônico sem alterar o histórico do GOAL F1 |
+
+**Riscos de arquitetura ainda existentes:** não há schema remoto/Rules reais comprovados; F2-T36 é apenas teste de contrato simulado, e o `F2_EMULATOR_REHEARSAL` exige autorização própria. Quatro HIGH F0 permanecem `UNVERIFIED`. A estimativa de 23.520 escritas do cenário de três importadores é alerta conservador, não conta real medida nem autorização para ultrapassar Spark.
+
+### 13.3 Parecer e gates
+
+**Veredito da revisão ChatGPT:** `F2_SPEC_REVISED — READY_FOR_HUMAN_DECISION`; proposta arquitetural suficientemente definida **para o proprietário aprovar ou solicitar correções**, não para implementar. Recomendo D-F2-01=alternativa B e D-F2-02..06 conforme a spec **com E-F2-01..08**. Sem aceite explícito não marcar `APPROVED`, criar writing-plans ou iniciar F2.
+
+**Na próxima etapa autorizada:** ChatGPT invoca Superpowers `writing-plans` e publica plano detalhado, tarefas/arquivos/assinaturas/TDD/revisão/DoD referenciando T01..T40. **O Codex não será solicitado a criar plano.** Depois de aprovado pelo usuário, ChatGPT escreve GOAL único para executar pela própria `v2`. Não tocar `main`/V1, não criar Actions, PRs nem instalar Firebase nesta revisão.
+
+**Limite da evidência:** a revisão confrontou documentos atuais e interfaces F1 no GitHub; os números 84 unitários/20 E2E são **evidência anterior** e não foram reexecutados pelo ChatGPT nesta rodada.
