@@ -107,6 +107,15 @@ Comando comum: `npm --prefix apps/v2 run test:unit -- <arquivo>` ou `... test:e2
 
 ## 6. Revisões independentes
 
+**Registro da aprovação (auditoria de preflight).** No HEAD de partida (`f5b114a`) a spec já abria com `F2_SPEC_APPROVED` e o writing-plans com `F2_PLAN_APPROVED_FOR_EXECUTION`; roadmap e handoff já registravam o aceite em conversa. Esses três documentos foram conferidos contra os anexos do GOAL e **não** foram reescritos. Desvio honesto: o comentário consolidador na issue #108 foi publicado **ao final** da execução (`#issuecomment-6480464454`), não antes dela; o registro prévio existia apenas na própria `v2`.
+
+**Lacunas de evidência TDD (registradas, não maquiadas).**
+
+- Tasks 1–8 e 12–14 têm RED capturado antes da implementação (falha por contrato ausente ou asserção).
+- Task 9 e Task 15 tiveram o RED provado por **mutação controlada** (o teste falha quando a regra é desativada), não por uma execução pré-implementação.
+- Task 11 (parser) foi escrita e implementada em sequência; o teste passou na primeira execução, sem RED anterior. A matriz marca o cenário como PASS porque o comportamento é exercitado (limites, `__proto__`, quarentena, namespace, fingerprint), mas a cronologia TDD dessa tarefa não é a ideal e fica declarada.
+- Task 16 não cria RED artificial: a condição é a suíte completa regredir ou não, conforme o próprio GOAL permite.
+
 | Revisão | Escopo | Achados materiais | Situação |
 | --- | --- | --- | --- |
 | R1 | Task 1 (upgrade IDB) | P1 `by_parent_order` com `parentId: null`; P2/P3 de cobertura, versionchange, UI bloqueada, `onclose` | **corrigidos** em `64d0514` |
@@ -125,6 +134,7 @@ Cada correção foi seguida de reexecução do teste focal e da suíte completa.
 - **Retomada automática** é uma API com relógio injetado (`getEligibleOutbox`); não existe timer/background garantido nesta fase (pertence à F4/F7).
 - **F2-T34** foi exercitado com ~360 entidades, não com o teto de 5.000; o limite máximo aceito ainda precisa de medição em dispositivo modesto antes de produção.
 - **Impeccable 3.9.1** não foi executado como ferramenta; a evidência visual é composta por 24 capturas Chromium (8 temas × 3 viewports), verificação de overflow, foco visível e alvo de 44 px em coarse pointer. Detector automático de contraste/a11y: `NOT_RUN`.
+- As 24 capturas ficam em `apps/v2/test-results/impeccable/` (diretório ignorado pelo Git) e estão inventariadas com hash em `evidence/2026-10-28-v2-f2-visual-manifest.md`; uma delas (`neon-mobile.png`) foi inspecionada visualmente nesta execução.
 - **107 FAIL E2E da V1** permanecem baseline histórico, sem alteração.
 - Vínculos aula↔assunto desfeitos usam exclusão física (com operação `delete` na outbox), sem tombstone; backups antigos podem reintroduzir o vínculo. Registrado como decisão de F2, a revisar na F7.
 - Três motores de commit coexistem (subject F1 congelado, conteúdo F2, perfil); o de arquivamento já foi unificado no de conteúdo. Unificação completa fica para revisão arquitetural posterior.
