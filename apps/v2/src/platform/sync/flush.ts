@@ -13,6 +13,8 @@ export type FlushResult = {
   pending: string[];
   proof: Record<string, number>;
   failures: FlushFailure[];
+  /** Operations the delivery gate refused to send at all. */
+  blocked: string[];
 };
 
 export type FlushFailure = {
@@ -26,6 +28,8 @@ export type FlushOptions = {
   now?: number;
   jitter?: () => number;
   attemptOf?: (operation: OutboxOperation) => number;
+  /** Last line of defence: an adapter must never send an ungated operation. */
+  canSend?: (operation: OutboxOperation) => boolean;
 };
 
 export async function flushPending(
@@ -39,9 +43,14 @@ export async function flushPending(
   const pending: string[] = [];
   const proof: Record<string, number> = {};
   const failures: FlushFailure[] = [];
+  const blocked: string[] = [];
   const now = options.now ?? Date.now();
 
   for (const operation of operations) {
+    if (options.canSend && !options.canSend(operation)) {
+      blocked.push(operation.operationId);
+      continue;
+    }
     try {
       const result = await remote.apply(operation);
       if (result.kind === 'CONFLICT') {
@@ -92,5 +101,5 @@ export async function flushPending(
     }
   }
 
-  return { confirmedIds, conflicts, conflictRevisions, pending, proof, failures };
+  return { confirmedIds, conflicts, conflictRevisions, pending, proof, failures, blocked };
 }

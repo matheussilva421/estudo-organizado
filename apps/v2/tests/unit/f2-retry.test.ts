@@ -97,6 +97,44 @@ beforeEach(async () => {
 });
 
 describe('F2 retry policy', () => {
+  it('flush_refuses_operations_outside_the_delivery_gate', async () => {
+    await seedPendingOperation();
+    const pending = await getEligibleOutbox(profileId, 10_000_000);
+    expect(pending).toHaveLength(1);
+    const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+
+    const denied = await flushPending(pending, remote, { canSend: () => false });
+    expect(denied.blocked).toEqual(['op-edital']);
+    expect(denied.confirmedIds).toEqual([]);
+    expect(remote.appliedCount()).toBe(0);
+
+    const allowed = await flushPending(pending, remote, { canSend: () => true });
+    expect(allowed.confirmedIds).toEqual(['op-edital']);
+  });
+
+  it('outbox_keeps_causal_sequence', async () => {
+    await seedPendingOperation();
+    const content = new LocalContentRepository();
+    await content.execute({
+      type: 'CREATE_EDITAL',
+      operationId: 'op-edital-2',
+      profileId,
+      editalId: 'edital-2',
+      title: 'TJRO 2026',
+    });
+    await new LocalProfileRepository().adoptLocalOperations(profileId, 'uid-a', 'library-x', {
+      profileId,
+      uid: 'uid-a',
+      remoteLibraryId: 'library-x',
+      consent: true,
+      preview: previewLink(profileId, 'uid-a', { remoteCount: 0 }, Date.now()),
+    });
+
+    const eligible = await getEligibleOutbox(profileId, 10_000_000);
+    expect(eligible.map((item) => item.operationId)).toEqual(['op-edital', 'op-edital-2']);
+    expect(eligible.map((item) => item.sequence)).toEqual([1, 2]);
+  });
+
   it('nothing_is_eligible_before_consent', async () => {
     const content = new LocalContentRepository();
     await content.execute({

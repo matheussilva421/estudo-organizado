@@ -228,7 +228,8 @@ export async function getEligibleOutbox(
   const pending = (await requestResult(
     transaction.objectStore(STORES.outbox).index('by_profile_status').getAll([profileId, 'PENDING']),
   )) as OutboxOperation[];
-  return pending.filter((operation) => {
+  return pending
+    .filter((operation) => {
     const next = operation.nextRetryAt;
     const due = next === null || next === undefined || (Number.isFinite(next) && next <= now);
     if (!due) return false;
@@ -244,7 +245,27 @@ export async function getEligibleOutbox(
       },
       profile,
     );
-  });
+    })
+    .sort((left, right) => {
+      // Causal order first (sequence), then a stable tiebreaker.
+      const leftSequence = left.sequence ?? 0;
+      const rightSequence = right.sequence ?? 0;
+      if (leftSequence !== rightSequence) return leftSequence - rightSequence;
+      return left.operationId < right.operationId ? -1 : left.operationId > right.operationId ? 1 : 0;
+    });
+}
+
+/** Monotonic per-profile sequence used for causal delivery order. */
+export async function nextSequence(
+  profileId: string,
+  transaction: IDBTransaction,
+): Promise<number> {
+  const key = `sequence:${profileId}`;
+  const store = transaction.objectStore(STORES.meta);
+  const record = (await requestResult(store.get(key))) as { value?: number } | undefined;
+  const next = (record?.value ?? 0) + 1;
+  store.put({ key, value: next });
+  return next;
 }
 
 export async function applyRetryPlan(

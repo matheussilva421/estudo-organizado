@@ -50,6 +50,7 @@ import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
 import { notifyLocalChange } from './local-events';
 import {
   openV2Database,
+  nextSequence,
   requestResult,
   STORES,
   toLocalPersistenceError,
@@ -361,7 +362,7 @@ export class LocalContentRepository implements ContentRepository {
       return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
     }
     const transaction = database.transaction(
-      [...new Set([...plan.stores, STORES.operations, STORES.outbox])],
+      [...new Set([...plan.stores, STORES.operations, STORES.outbox, STORES.meta])],
       'readwrite',
     );
 
@@ -439,6 +440,7 @@ export class LocalContentRepository implements ContentRepository {
       } satisfies OperationRecord);
 
       if (result.changed) {
+        const sequence = await nextSequence(command.profileId, transaction);
         transaction.objectStore(STORES.outbox).put({
           operationId: command.operationId,
           profileId: command.profileId,
@@ -449,6 +451,7 @@ export class LocalContentRepository implements ContentRepository {
           payload: result.entity,
           schemaVersion: DOMAIN_SCHEMA_VERSION,
           status: 'PENDING',
+          sequence,
           ...(result.remoteBaseRevision !== undefined
             ? { remoteBaseRevision: result.remoteBaseRevision }
             : {}),

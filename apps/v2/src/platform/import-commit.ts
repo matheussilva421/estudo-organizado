@@ -12,6 +12,7 @@ import {
 import type { ImportPreview, ImportReceipt } from '../application/import-types';
 import {
   openV2Database,
+  nextSequence,
   requestResult,
   STORES,
   toLocalPersistenceError,
@@ -69,6 +70,7 @@ export class ImportCommitter {
         STORES.importReceipts,
         STORES.tombstones,
         STORES.quarantine,
+        STORES.meta,
       ],
       'readwrite',
     );
@@ -161,6 +163,8 @@ export class ImportCommitter {
       const outbox = transaction.objectStore(STORES.outbox);
       const operationIds: string[] = [];
       const createdIds: string[] = [];
+      const startSequence = await nextSequence(profileId, transaction);
+      let lastSequence = startSequence - 1;
       const entityCounts: Record<string, number> = {};
       const orderCounters = new Map<string, number>();
       const written = new Map<string, Record<string, unknown>>();
@@ -189,6 +193,7 @@ export class ImportCommitter {
         // profileId keeps two profiles importing the same file from sharing
         // the same outbox/operation keys.
         const operationId = profileId + '~' + preview.importId + '~' + entityId;
+        lastSequence = startSequence + createdIds.length;
         operations.put({
           operationId,
           profileId,
@@ -208,6 +213,7 @@ export class ImportCommitter {
           payload: entity,
           schemaVersion: DOMAIN_SCHEMA_VERSION,
           status: 'PENDING',
+          sequence: lastSequence,
         });
         operationIds.push(operationId);
         createdIds.push(entityId);
@@ -310,6 +316,10 @@ export class ImportCommitter {
 
       if (this.fault === 'abort') throw new DOMException('forced abort', 'AbortError');
       if (this.fault === 'quota') throw new DOMException('forced quota', 'QuotaExceededError');
+
+      transaction
+        .objectStore(STORES.meta)
+        .put({ key: 'sequence:' + profileId, value: Math.max(lastSequence, startSequence - 1) });
 
       if (preview.quarantined.length > 0) {
         const quarantineStore = transaction.objectStore(STORES.quarantine);
