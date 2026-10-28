@@ -12,6 +12,11 @@ import { LocalSubjectRepository } from './local-subject-repository';
 import { LocalContentRepository } from './local-content-repository';
 import { LocalProfileRepository } from './local-profile-repository';
 import {
+  LocalSubjectAdoptionService,
+  type AdoptionDecision,
+  type AdoptionReport,
+} from './content-migration';
+import {
   deleteV2DatabaseForTests,
   getDatabaseUpgradeState,
   getPendingOutbox,
@@ -57,6 +62,12 @@ export type V2E2EHarness = {
   archiveEdital: (
     input: ArchiveEditalInput,
   ) => Promise<CommitResult<ArchiveEditalResult>>;
+  listUnassigned: (profileId: string) => Promise<StudySubject[]>;
+  adoptSubjects: (
+    profileId: string,
+    operationId: string,
+    decisions: readonly AdoptionDecision[],
+  ) => Promise<CommitResult<AdoptionReport>>;
   setFault: (fault: Fault) => void;
   execute: (command: SubjectCommand) => Promise<StudySubject>;
   executeWithFault: (command: SubjectCommand, fault: Exclude<Fault, null>) => Promise<StudySubject>;
@@ -209,6 +220,14 @@ export function installE2EHarness(): void {
     getProfile: (profileId) => new LocalProfileRepository().getProfile(profileId),
     setPrimary: (input) => new LocalProfileRepository().setPrimaryEdital(input),
     archiveEdital: (input) => new LocalProfileRepository().archiveEdital(input),
+    listUnassigned: (profileId) =>
+      new LocalSubjectAdoptionService().listUnassignedSubjects(profileId),
+    adoptSubjects: (profileId, operationId, decisions) =>
+      new LocalSubjectAdoptionService().applySubjectAdoption(
+        profileId,
+        operationId,
+        decisions,
+      ),
     setFault: (fault) => setE2EFault(fault),
     execute: (command) => new LocalSubjectRepository({ fault: null }).execute(command),
     executeWithFault: (command, fault) =>
