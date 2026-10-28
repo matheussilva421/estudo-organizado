@@ -108,13 +108,20 @@ export class ImportCommitter {
 
       const creates = preview.creates;
       const byId = new Map(creates.map((item) => [item.id, item]));
-      const existingIds = new Set<string>([
-        ...current.subjects.map((item) => item.id),
-        ...current.editais.map((item) => item.id),
-        ...current.links.map((item) => item.id),
-        ...current.assuntos.map((item) => item.id),
-        ...current.aulas.map((item) => item.id),
-      ]);
+      // Existing ids are skipped, but their records still feed `scopeOf` so a
+      // child never inherits the wrong scope from a skipped ancestor.
+      const existingById = new Map<string, Record<string, unknown>>();
+      for (const list of [
+        current.subjects,
+        current.editais,
+        current.links,
+        current.assuntos,
+        current.aulas,
+      ]) {
+        for (const item of list as unknown as Record<string, unknown>[]) {
+          existingById.set(String(item.id), item);
+        }
+      }
 
       const operations = transaction.objectStore(STORES.operations);
       const outbox = transaction.objectStore(STORES.outbox);
@@ -176,7 +183,11 @@ export class ImportCommitter {
       );
 
       for (const item of creates) {
-        if (existingIds.has(item.id)) continue;
+        const alreadyThere = existingById.get(item.id);
+        if (alreadyThere) {
+          written.set(item.id, alreadyThere);
+          continue;
+        }
 
         if (item.entityType === 'edital') {
           const edital: Edital = {

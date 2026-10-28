@@ -167,6 +167,13 @@ export async function previewF1OrF2Backup(
   if (!Number.isInteger(manifest.epoch) || (manifest.epoch as number) < 0) {
     return { kind: 'INVALID', format: 2, reason: 'INVALID_MANIFEST' };
   }
+  if (
+    typeof manifest.recordCount !== 'number' ||
+    !Number.isInteger(manifest.recordCount) ||
+    manifest.recordCount < 0
+  ) {
+    return { kind: 'INVALID', format: 2, reason: 'INVALID_MANIFEST' };
+  }
   if (!isRecord(value.payload)) return { kind: 'INVALID', format: 2, reason: 'MISSING_PAYLOAD' };
 
   let computed: string;
@@ -182,6 +189,21 @@ export async function previewF1OrF2Backup(
   const payload = value.payload as Record<string, unknown>;
   const subjects = Array.isArray(payload.subjects) ? payload.subjects : [];
   const tombstones = Array.isArray(payload.tombstones) ? payload.tombstones : [];
+  const counted = [
+    'subjects',
+    'editais',
+    'links',
+    'assuntos',
+    'aulas',
+    'lessonTopics',
+    'tombstones',
+  ].reduce((total, key) => {
+    const list = payload[key];
+    return total + (Array.isArray(list) ? list.length : 0);
+  }, 0);
+  if (counted !== (manifest.recordCount as number)) {
+    return { kind: 'INVALID', format: 2, reason: 'RECORD_COUNT_MISMATCH' };
+  }
   const tombstonedIds = new Set(
     tombstones
       .filter((item): item is Record<string, unknown> => isRecord(item))

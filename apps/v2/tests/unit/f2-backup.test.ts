@@ -113,4 +113,19 @@ describe('F2 backup format', () => {
       reason: 'UNSUPPORTED_DOMAIN_SCHEMA_VERSION',
     });
   });
+
+  it('manifest_record_count_must_match_the_payload', async () => {
+    const snapshot = await exportF2Snapshot({
+      editais: [{ id: 'edital-1', profileId, title: 'TJPB', localRevision: 1 }],
+      epoch: 0,
+    });
+    expect(await previewF1OrF2Backup(snapshot, 0)).toMatchObject({ kind: 'SAFE' });
+
+    const forged = structuredClone(snapshot);
+    forged.manifest.recordCount = 7;
+    expect(await previewF1OrF2Backup(forged, 0)).toMatchObject({
+      kind: 'INVALID',
+      reason: 'RECORD_COUNT_MISMATCH',
+    });
+  });
 });
