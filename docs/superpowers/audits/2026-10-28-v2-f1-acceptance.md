@@ -3,7 +3,7 @@
 **Data:** 2026-10-28 (America/Fortaleza)
 **Branch:** `v2`
 **Base inicial:** `b15226d` (após G2/F1)
-**Gate:** `F1_READY_FOR_HUMAN_REVIEW` — não aprovado automaticamente
+**Gate:** `F1_ACCEPTED_WITH_RESERVATIONS` — aceite humano em 2026-10-28 no commit `85ce1e3`
 **Escopo:** fundação React/TS/Vite e primeira fatia vertical de disciplinas, apenas em `apps/v2/`.
 
 ## 1. Preflight e autorização
@@ -14,6 +14,12 @@
 - G1/F1 confirmado no comentário `6470639550`; G2/F1 confirmado em `6470870847`; ambos do proprietário.
 - Nenhum login, escrita ou leitura em Firebase, Cloudflare ou Google Drive reais.
 - Servidor da V2: `127.0.0.1:18431`; IndexedDB `estudo-organizado-v2`; Service Worker com escopo `/` nessa origem.
+
+### 1.1 Aceite humano
+
+- **Decisão:** F1 aprovada em 2026-10-28 no commit `85ce1e3`, com as ressalvas documentadas ([registro na issue #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6475527680)).
+- **Ressalvas mantidas:** os quatro riscos HIGH da F0 continuam `UNVERIFIED`; Firebase Auth/Firestore/Rules, quotas reais e multi-dispositivo não estão homologados; F7/G5 permanecem bloqueados.
+- **Autorização F2:** somente revisão/consolidação da spec F2 existente e proposta de ensaio com Firebase Emulator; sem código F2, writing-plans, emulador executado, Firebase real ou deploy.
 
 ## 2. O que foi implementado
 
@@ -133,7 +139,7 @@ A configuração da V1 continua apontando `test:e2e:mock` para uma spec ignorada
 | 7 | Impeccable, 8 temas, responsivo e AA | PASS na amostra |
 | 8 | Testes V2 e triagem V1 | PASS local; 107 FAIL preservados |
 | 9 | Commits na v2, sem PR/Action/deploy | PASS |
-| 10 | Aprovação humana específica | **PENDENTE** |
+| 10 | Aprovação humana específica | **PASS** — aceite com ressalvas em `85ce1e3` |
 
 ## 11. Correções após a revisão independente
 
@@ -170,4 +176,4 @@ Impeccable não foi reexecutado nesta rodada porque não houve alteração visua
 
 ## 12. Gate
 
-**`F1_READY_FOR_HUMAN_REVIEW`**. A F1 não está aprovada e a F2 não está autorizada. O aceite humano deve considerar: 84 testes unitários, 20 E2E, typecheck/lint/build, 4 riscos HIGH ainda UNVERIFIED, ausência de Firebase real e os limites de fake/quota/multi-dispositivo.
+**`F1_ACCEPTED_WITH_RESERVATIONS`**. A fundação F1 está concluída no escopo aprovado, sem mitigar os quatro riscos HIGH e sem homologar Firebase ou multi-dispositivo real. A F2 permanece sem implementação; está autorizada apenas a revisão da spec existente e a proposta de ensaio com Firebase Emulator, sujeita a aprovação específica.

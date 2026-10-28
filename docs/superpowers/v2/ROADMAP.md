@@ -2,7 +2,7 @@
 
 **Atualizado em:** 2026-10-28
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
-**Situação:** **F0 ACEITA COM RESSALVAS**; **F1 IMPLEMENTADA E TESTADA LOCALMENTE — `F1_READY_FOR_HUMAN_REVIEW` (2026-10-28)**; **specs F2–F8 propostas para revisão, não aprovadas nem executadas**. G1/F1 e G2/F1 aprovados; G3/F1 executado no escopo do GOAL; F2 não autorizada.
+**Situação:** **F0 ACEITA COM RESSALVAS**; **F1 ACEITA COM RESSALVAS em 2026-10-28 no commit `85ce1e3`**; **spec F2 revisada, aguardando aprovação específica**; demais specs F3–F8 propostas e não executadas. Nenhum código F2 ou writing-plans F2 foi autorizado.
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
 **Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
@@ -56,8 +56,8 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **G0/G1** | APROVADOS | Arquitetura e spec-mestra + emendas | D01–D27 + A-01 + A-02 |
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
-| **F1 — Fundação técnica** | **IMPLEMENTADA — F1_READY_FOR_HUMAN_REVIEW (2026-10-28)** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | Aceite humano do [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
-| **F2 — Editais e conteúdo** | **SPEC PROPOSTA; F1 não homologada** | Base canônica de organização | F1 homologada |
+| **F1 — Fundação técnica** | **ACEITA COM RESSALVAS — 2026-10-28, commit `85ce1e3`** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6475527680) e [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
+| **F2 — Editais e conteúdo** | **SPEC REVISADA EM REVISÃO — NÃO APROVADA** | Base canônica de organização | Aprovação específica da [spec F2](../specs/2026-10-28-estudo-organizado-v2-f2-content-design.md); sem código/writing-plans |
 | **F3 — Planejamento** | **SPEC PROPOSTA; não iniciada** | Planejamento executável | F2 e regras temporais |
 | **F4 — Execução/sessões** | **SPEC PROPOSTA; não iniciada** | Tempo/histórico confiáveis | Persistência e domínio |
 | **F5 — Revisões/inteligência** | **SPEC PROPOSTA; não iniciada** | Revisar e priorizar | F2–F4 |
@@ -122,7 +122,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 - **PASS local:** typecheck, lint, 84 testes unitários, 20 E2E, build; Impeccable 0 achados após ajuste do ramp; 8 temas AA na amostra. Inclui duas abas reais, rollback IDB, quota de formulário e retry confirmado.
 - **Contratos A-02:** CAS/idempotência/read-back/conflito/Web Locks/fake UID e backup com tombstones demonstrados por fake e fixtures sintéticas.
 - **UNVERIFIED:** os quatro riscos HIGH da F0 continuam abertos; Firebase, emulador, quota física, multi-dispositivo real e leitor de tela não foram executados.
-- **Gate:** `F1_READY_FOR_HUMAN_REVIEW`; F2 bloqueada.
+- **Gate:** `F1_ACCEPTED_WITH_RESERVATIONS` em 2026-10-28, commit `85ce1e3` ([registro](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6475527680)); 4 HIGH permanecem `UNVERIFIED`; F2 sem implementação.
 
 ## 5. F2 — Domínio de editais e conteúdo
 
@@ -256,8 +256,9 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 - **Aceite F0:** [aprovado com ressalvas em #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279); gate recalc `APPROVED`, não representa homologação V1. O laboratório visual mantém destino `UNDECIDED`/fora F1; 4 HIGH `UNVERIFIED` e 107 E2E FAIL continuam.
 - **Gate G1/F1:** [spec F1](../specs/2026-10-28-estudo-organizado-v2-f1-foundation-design.md) e [ADRs F1-01..05](../specs/2026-10-28-v2-f1-architecture-decisions.md) ratificadas em [#108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550).
 - **Gate G2/F1:** [plano aprovado](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md), Subagent-driven adotado para o handoff, [aceite humano](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847).
-- **Fase operacional seguinte:** aceite humano do [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md). Depois, nova spec/plano F2 e autorização específica. Nenhum código F2, deploy ou publicação foi iniciado.
-- **Estado F1:** implementada em `apps/v2/`, testada localmente (84 unit/20 E2E), publicada em `origin/v2`; não homologada em serviços reais.
+- **Fase operacional seguinte:** F1 aceita com ressalvas; a [spec F2](../specs/2026-10-28-estudo-organizado-v2-f2-content-design.md) está em revisão e aguarda aprovação humana. Nenhum writing-plans/código F2 foi iniciado.
+- **Estado F1:** implementada em `apps/v2/`, testada localmente (84 unit/20 E2E), publicada em `origin/v2` e aceita com ressalvas em `85ce1e3`; quatro HIGH `UNVERIFIED` e Firebase/multi-dispositivo não homologados.
+- **F2 spec:** revisada em 2026-10-28 com os contratos efetivamente entregues pela F1 e a proposta de ensaio com Firebase Emulator; continua **NÃO APROVADA** e sem autorização de código/writing-plans.
 - **Testes executados:** F0 — 66 validadores PASS, 189/3048 unitários PASS, lint 0 erros; F1 — typecheck/lint/build PASS, 84 testes unitários e 20 E2E PASS. `test:e2e:mock` e `test:e2e:mock:all` da V1 mantêm FAIL; runtime Firebase/Cloudflare/Drive, migração real, emulador e multi-dispositivo permanecem NOT_RUN/UNVERIFIED.
 
 ## 15. Definição de conclusão de fase

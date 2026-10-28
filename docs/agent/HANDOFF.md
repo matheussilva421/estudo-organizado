@@ -3,7 +3,7 @@
 **Data:** 2026-10-28 (America/Fortaleza)
 **Branch:** `v2`
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f0-audit\estudo-organizado`
-**Gate atual:** `F1_READY_FOR_HUMAN_REVIEW` — F1 não aprovada; F2 bloqueada.
+**Gate atual:** `F1_ACCEPTED_WITH_RESERVATIONS` — aceite humano em 2026-10-28 no commit `85ce1e3`; F2 em revisão de spec, sem código/writing-plans.
 
 ## Estado do Git
 
@@ -25,12 +25,15 @@
 - Verificação local: typecheck, lint, build, **84 testes unitários** e **20 E2E** PASS, incluindo duas abas reais, rollback IDB, quota com formulário e retry confirmado.
 - Impeccable 3.9.1: detector final 0 achados; 24 capturas sintéticas.
 - Relatório: `docs/superpowers/audits/2026-10-28-v2-f1-acceptance.md`.
+- F1 aceita com ressalvas; quatro HIGH continuam `UNVERIFIED`, Firebase/multi-dispositivo não homologados.
+- Spec F2 revisada com os contratos F1 e proposta de ensaio com Firebase Emulator; **não aprovada** e sem implementação.
 
 ## Pendente
 
-1. Aceite humano do relatório F1.
-2. Testes reais/emulador de Firebase Auth, Firestore Rules, quota e multi-dispositivo (F7).
-3. Spec/plano F2 com autorização específica.
+1. Aprovação humana da spec F2 revisada.
+2. Autorização separada do ensaio com Firebase Emulator, se aprovado.
+3. Writing-plans F2 somente após aprovação da spec.
+4. Homologação real de Firebase/Rules/quota/multi-dispositivo na fase apropriada (F7).
 
-**Não iniciar F2, migração real, sync remoto real, deploy ou cutover sem novo aceite.**
+**Não iniciar código F2, writing-plans, emulador, migração real, sync remoto real, deploy ou cutover sem novo aceite.**
 
