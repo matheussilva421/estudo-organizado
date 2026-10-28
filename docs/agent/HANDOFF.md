@@ -8,7 +8,7 @@
 ## Estado do Git
 
 - `main`: `9046cfa2283cd293b38df9d52fabfcd5de9ac67c`, intocada.
-- `v2`: F0 + F1 publicadas, incluindo a rodada corretiva final; `origin/v2` em `c93adbd`.
+- `v2`: F0 + F1 publicadas, incluindo a rodada corretiva final; o HEAD final de `origin/v2` consta no comentário da issue #108.
 - Nenhum PR, Action, deploy, publicação ou integração na `main`.
 
 ## Concluído
