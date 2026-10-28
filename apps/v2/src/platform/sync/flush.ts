@@ -1,4 +1,5 @@
 import type { OutboxOperation, RemoteMutationPort } from '../../application/sync-types';
+import { classifyFailure, planRetry, type FailureClass } from './retry-policy';
 
 export type FlushResult = {
   confirmedIds: string[];
@@ -6,17 +7,34 @@ export type FlushResult = {
   conflictRevisions: Record<string, number>;
   pending: string[];
   proof: Record<string, number>;
+  failures: FlushFailure[];
+};
+
+export type FlushFailure = {
+  operationId: string;
+  reason: FailureClass;
+  attempts: number;
+  nextRetryAt: number | null;
+};
+
+export type FlushOptions = {
+  now?: number;
+  jitter?: () => number;
+  attemptOf?: (operation: OutboxOperation) => number;
 };
 
 export async function flushPending(
   operations: OutboxOperation[],
   remote: RemoteMutationPort,
+  options: FlushOptions = {},
 ): Promise<FlushResult> {
   const confirmedIds: string[] = [];
   const conflicts: string[] = [];
   const conflictRevisions: Record<string, number> = {};
   const pending: string[] = [];
   const proof: Record<string, number> = {};
+  const failures: FlushFailure[] = [];
+  const now = options.now ?? Date.now();
 
   for (const operation of operations) {
     try {
@@ -28,10 +46,29 @@ export async function flushPending(
       }
       confirmedIds.push(operation.operationId);
       proof[operation.operationId] = result.remoteRevision;
-    } catch {
+    } catch (error) {
       const lookup = await remote.lookup(operation.operationId).catch(() => 'UNKNOWN' as const);
       if (lookup !== 'APPLIED') {
         pending.push(operation.operationId);
+        const reason = classifyFailure(error);
+        const attempts = (options.attemptOf?.(operation) ?? operation.attempts ?? 0) + 1;
+        if (reason === 'TRANSIENT') {
+          const plan = planRetry(attempts, now, options.jitter?.() ?? 0);
+          failures.push({
+            operationId: operation.operationId,
+            reason,
+            attempts,
+            nextRetryAt: plan.nextRetryAt,
+          });
+        } else {
+          // Deterministic/auth/quota keep the intent but stop the retry loop.
+          failures.push({
+            operationId: operation.operationId,
+            reason,
+            attempts,
+            nextRetryAt: null,
+          });
+        }
         continue;
       }
 
@@ -47,5 +84,5 @@ export async function flushPending(
     }
   }
 
-  return { confirmedIds, conflicts, conflictRevisions, pending, proof };
+  return { confirmedIds, conflicts, conflictRevisions, pending, proof, failures };
 }

@@ -17,8 +17,10 @@ import {
   type AdoptionReport,
 } from './content-migration';
 import {
+  applyRetryPlan,
   deleteV2DatabaseForTests,
   getDatabaseUpgradeState,
+  getEligibleOutbox,
   getPendingOutbox,
   markConfirmed,
   openV2Database,
@@ -29,6 +31,8 @@ import {
   type DatabaseUpgradeState,
 } from './indexeddb';
 import { browserLockPort, withSafeFlushLock } from './sync/coordination';
+import { flushPending } from './sync/flush';
+import { FakeRemotePort } from './sync/fake-remote';
 import { setE2EFault, type E2EFault } from './e2e-fault';
 
 type Fault = E2EFault;
@@ -68,6 +72,16 @@ export type V2E2EHarness = {
     operationId: string,
     decisions: readonly AdoptionDecision[],
   ) => Promise<CommitResult<AdoptionReport>>;
+  outboxRecord: (profileId: string, operationId: string) => Promise<OutboxOperation | null>;
+  runFailures: (
+    profileId: string,
+    failures: number,
+    baseNow: number,
+  ) => Promise<{ attempts: number; status: string; pending: number; eligibleNow: number }>;
+  reconnect: (
+    profileId: string,
+    now: number,
+  ) => Promise<{ confirmed: string[]; status: string }>;
   setFault: (fault: Fault) => void;
   execute: (command: SubjectCommand) => Promise<StudySubject>;
   executeWithFault: (command: SubjectCommand, fault: Exclude<Fault, null>) => Promise<StudySubject>;
@@ -228,6 +242,56 @@ export function installE2EHarness(): void {
         operationId,
         decisions,
       ),
+    outboxRecord: async (profileId, operationId) => {
+      const database = await openV2Database(profileId);
+      const transaction = database.transaction(STORES.outbox, 'readonly');
+      const record = await requestResult(
+        transaction.objectStore(STORES.outbox).get(operationId),
+      );
+      return (record as OutboxOperation | undefined) ?? null;
+    },
+    runFailures: async (profileId, failures, baseNow) => {
+      const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+      let remaining = failures;
+      const scripted = {
+        apply: async (operation: OutboxOperation) => {
+          if (remaining > 0) {
+            remaining -= 1;
+            throw new Error('transient network failure');
+          }
+          return remote.apply(operation);
+        },
+        lookup: (operationId: string) => remote.lookup(operationId),
+        lookupRevision: (operationId: string) => remote.lookupRevision(operationId),
+      };
+
+      let clock = Number.isFinite(baseNow) ? baseNow : Date.now();
+      for (let attempt = 0; attempt < failures; attempt += 1) {
+        const pending = await getEligibleOutbox(profileId, clock);
+        if (pending.length === 0) break;
+        const flush = await flushPending(pending, scripted, { now: clock, jitter: () => 0 });
+        await applyRetryPlan(profileId, flush.failures);
+        clock = flush.failures[0]?.nextRetryAt ?? clock + 1;
+      }
+      return {
+        attempts: (await harness.outboxRecord(profileId, 'op-edital'))?.attempts ?? 0,
+        status: (await harness.outboxRecord(profileId, 'op-edital'))?.status ?? 'NONE',
+        pending: (await getPendingOutbox(profileId)).length,
+        eligibleNow: (await getEligibleOutbox(profileId, clock - 1)).length,
+      };
+    },
+    reconnect: async (profileId, now) => {
+      const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+      const eligible = await getEligibleOutbox(profileId, now);
+      const recovered = await flushPending(eligible, remote, { now });
+      await markConfirmed(profileId, recovered.confirmedIds, recovered.proof);
+      const first =
+        eligible[0]?.operationId ?? (await getPendingOutbox(profileId))[0]?.operationId;
+      return {
+        confirmed: recovered.confirmedIds,
+        status: first ? ((await harness.outboxRecord(profileId, first))?.status ?? 'NONE') : 'NONE',
+      };
+    },
     setFault: (fault) => setE2EFault(fault),
     execute: (command) => new LocalSubjectRepository({ fault: null }).execute(command),
     executeWithFault: (command, fault) =>

@@ -204,6 +204,64 @@ export async function getPendingOutbox(profileId: string): Promise<OutboxOperati
   return requestResult(index.getAll([profileId, 'PENDING'])) as Promise<OutboxOperation[]>;
 }
 
+const UNDELIVERABLE_STATES = new Set(['LOCAL_ONLY', 'PAUSED_AUTH', 'PAUSED_QUOTA', 'RECOVERY_REQUIRED']);
+
+/**
+ * Pending operations whose backoff window elapsed. A paused profile returns an
+ * empty list so the UI never spins on auth/quota failures.
+ */
+export async function getEligibleOutbox(
+  profileId: string,
+  now: number,
+): Promise<OutboxOperation[]> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction([STORES.outbox, STORES.profiles], 'readonly');
+  const profile = (await requestResult(
+    transaction.objectStore(STORES.profiles).get(profileId),
+  )) as { state?: string } | undefined;
+  if (profile?.state && UNDELIVERABLE_STATES.has(profile.state)) return [];
+
+  const pending = (await requestResult(
+    transaction.objectStore(STORES.outbox).index('by_profile_status').getAll([profileId, 'PENDING']),
+  )) as OutboxOperation[];
+  return pending.filter((operation) => {
+    const next = operation.nextRetryAt;
+    return next === null || next === undefined || (Number.isFinite(next) && next <= now);
+  });
+}
+
+export async function applyRetryPlan(
+  profileId: string,
+  failures: readonly { operationId: string; attempts: number; nextRetryAt: number | null }[],
+): Promise<void> {
+  if (failures.length === 0) return;
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.outbox, 'readwrite');
+  const store = transaction.objectStore(STORES.outbox);
+  try {
+    for (const failure of failures) {
+      const operation = (await requestResult(store.get(failure.operationId))) as
+        | OutboxOperation
+        | undefined;
+      if (!operation || operation.profileId !== profileId) continue;
+      if (operation.status !== 'PENDING') continue;
+      store.put({
+        ...operation,
+        attempts: failure.attempts,
+        nextRetryAt: failure.nextRetryAt,
+      });
+    }
+    await transactionDone(transaction);
+  } catch (error) {
+    try {
+      transaction.abort();
+    } catch {
+      // already aborted
+    }
+    throw toLocalPersistenceError(error);
+  }
+}
+
 export type ConfirmedProof = Record<string, number>;
 
 export async function markConfirmed(
