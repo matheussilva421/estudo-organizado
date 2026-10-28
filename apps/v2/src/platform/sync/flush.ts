@@ -1,5 +1,10 @@
 import type { OutboxOperation, RemoteMutationPort } from '../../application/sync-types';
-import { classifyFailure, planRetry, type FailureClass } from './retry-policy';
+import {
+  classifyFailure,
+  planRetry,
+  RETRY_MAX_MS,
+  type FailureClass,
+} from './retry-policy';
 
 export type FlushResult = {
   confirmedIds: string[];
@@ -47,7 +52,9 @@ export async function flushPending(
       confirmedIds.push(operation.operationId);
       proof[operation.operationId] = result.remoteRevision;
     } catch (error) {
-      const lookup = await remote.lookup(operation.operationId).catch(() => 'UNKNOWN' as const);
+      const lookup = await remote
+        .lookup(operation.operationId, operation.entityId)
+        .catch(() => 'UNKNOWN' as const);
       if (lookup !== 'APPLIED') {
         pending.push(operation.operationId);
         const reason = classifyFailure(error);
@@ -61,12 +68,13 @@ export async function flushPending(
             nextRetryAt: plan.nextRetryAt,
           });
         } else {
-          // Deterministic/auth/quota keep the intent but stop the retry loop.
+          // Deterministic/auth/quota keep the intent but leave the retry loop
+          // for a later human decision; a cooldown avoids hot spinning.
           failures.push({
             operationId: operation.operationId,
             reason,
             attempts,
-            nextRetryAt: null,
+            nextRetryAt: now + RETRY_MAX_MS,
           });
         }
         continue;

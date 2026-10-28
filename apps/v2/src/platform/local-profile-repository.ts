@@ -210,7 +210,7 @@ export class LocalProfileRepository implements ProfileRepository {
         createDefaultProfile(profileId);
 
       try {
-        assertDeliveryConsent(current, proof);
+        assertDeliveryConsent(current, proof, remoteLibraryId);
       } catch (error) {
         transaction.abort();
         return { kind: 'INVALID', code: (error as { code?: string }).code ?? 'INVALID_COMMAND' };
@@ -226,6 +226,10 @@ export class LocalProfileRepository implements ProfileRepository {
         if (operation.deliveryUid === uid && operation.remoteLibraryId === remoteLibraryId) {
           continue;
         }
+        // Never move an already-delivered binding to another library.
+        if (operation.deliveryUid === uid && operation.remoteLibraryId !== remoteLibraryId) {
+          continue;
+        }
         if (operation.deliveryUid && operation.deliveryUid !== uid) continue;
         outbox.put({ ...operation, deliveryUid: uid, remoteLibraryId });
         adopted += 1;
@@ -237,12 +241,13 @@ export class LocalProfileRepository implements ProfileRepository {
         current.remoteLibraryId === remoteLibraryId &&
         current.syncEnabled;
       if (!alreadyBound) {
+        const canUnpause = current.state === 'LOCAL_ONLY' || current.state === 'LINKING';
         profileStore.put({
           ...current,
           uid,
           remoteLibraryId,
-          syncEnabled: true,
-          state: 'READY',
+          syncEnabled: canUnpause ? true : current.syncEnabled,
+          state: canUnpause ? 'READY' : current.state,
           localRevision: current.localRevision + 1,
         });
       }

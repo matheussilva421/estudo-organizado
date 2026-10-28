@@ -57,6 +57,7 @@ export function canDeliver(
 export function assertDeliveryConsent(
   profile: ProfileRecord,
   proof: DeliveryConsentProof,
+  expectedLibrary?: string,
   now = Date.now(),
 ): void {
   if (!proof || proof.consent !== true) {
@@ -73,6 +74,12 @@ export function assertDeliveryConsent(
   const library = typeof proof.remoteLibraryId === 'string' ? proof.remoteLibraryId.trim() : '';
   if (!library) {
     throw new ContentValidationError('IDENTIFIER_REQUIRED', 'remoteLibraryId is required');
+  }
+  if (expectedLibrary !== undefined && library !== expectedLibrary.trim()) {
+    throw new ContentValidationError('PROFILE_MISMATCH', 'consent belongs to another library');
+  }
+  if (profile.remoteLibraryId && profile.remoteLibraryId !== library) {
+    throw new ContentValidationError('PROFILE_MISMATCH', 'profile is bound to another library');
   }
   if (!isValidPreview(proof.preview as LinkPreview, profile.profileId, uid, now)) {
     throw new ContentValidationError('INVALID_COMMAND', 'link preview is expired or forged');

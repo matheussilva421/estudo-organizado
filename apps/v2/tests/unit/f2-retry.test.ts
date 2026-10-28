@@ -18,6 +18,8 @@ import {
 import { LocalContentRepository } from '../../src/platform/local-content-repository';
 import { FakeRemotePort } from '../../src/platform/sync/fake-remote';
 import { flushPending } from '../../src/platform/sync/flush';
+import { LocalProfileRepository } from '../../src/platform/local-profile-repository';
+import { previewLink } from '../../src/application/sync-policy';
 import {
   classifyFailure,
   planRetry,
@@ -65,6 +67,14 @@ async function seedPendingOperation(): Promise<void> {
     editalId: 'edital-1',
     title: 'TJPB 2026',
   });
+  // Consent first: without it nothing is eligible (fail closed).
+  await new LocalProfileRepository().adoptLocalOperations(profileId, 'uid-a', 'library-x', {
+    profileId,
+    uid: 'uid-a',
+    remoteLibraryId: 'library-x',
+    consent: true,
+    preview: previewLink(profileId, 'uid-a', { remoteCount: 0 }, Date.now()),
+  });
 }
 
 async function setProfileState(state: string, uid: string | null): Promise<void> {
@@ -87,6 +97,34 @@ beforeEach(async () => {
 });
 
 describe('F2 retry policy', () => {
+  it('nothing_is_eligible_before_consent', async () => {
+    const content = new LocalContentRepository();
+    await content.execute({
+      type: 'CREATE_EDITAL',
+      operationId: 'op-edital',
+      profileId,
+      editalId: 'edital-1',
+      title: 'TJPB 2026',
+    });
+    // No profile record yet: the delivery gate fails closed.
+    expect(await getEligibleOutbox(profileId, 10_000_000)).toEqual([]);
+
+    await setProfileState('READY', null);
+    expect(await getEligibleOutbox(profileId, 10_000_000)).toEqual([]);
+
+    await setProfileState('READY', 'uid-a');
+    expect(await getEligibleOutbox(profileId, 10_000_000)).toEqual([]);
+
+    await new LocalProfileRepository().adoptLocalOperations(profileId, 'uid-a', 'library-x', {
+      profileId,
+      uid: 'uid-a',
+      remoteLibraryId: 'library-x',
+      consent: true,
+      preview: previewLink(profileId, 'uid-a', { remoteCount: 0 }, Date.now()),
+    });
+    expect((await getEligibleOutbox(profileId, 10_000_000)).length).toBe(1);
+  });
+
   it('backoff_is_exponential_bounded_and_jittered', () => {
     expect(planRetry(1, 0, 0).delayMs).toBe(1_000);
     expect(planRetry(2, 0, 0).delayMs).toBe(2_000);
@@ -161,7 +199,7 @@ describe('F2 retry policy', () => {
       { now: 0 },
     );
     expect(authFlush.failures[0]?.reason).toBe('AUTH');
-    expect(authFlush.failures[0]?.nextRetryAt).toBeNull();
+    expect(authFlush.failures[0]?.nextRetryAt).toBe(RETRY_MAX_MS);
     await applyRetryPlan(profileId, authFlush.failures);
     await setProfileState('PAUSED_AUTH', 'uid-a');
     expect(await getEligibleOutbox(profileId, 10_000_000)).toEqual([]);
@@ -179,9 +217,11 @@ describe('F2 retry policy', () => {
       new FlakyPort(remote, 1, 'REMOTE_SCOPE'),
       { now: 0 },
     );
-    expect(flush.failures[0]).toMatchObject({ reason: 'DETERMINISTIC', nextRetryAt: null });
+    expect(flush.failures[0]).toMatchObject({ reason: 'DETERMINISTIC' });
     await applyRetryPlan(profileId, flush.failures);
     expect((await getPendingOutbox(profileId))[0]?.status).toBe('PENDING');
+    // A deterministic failure does not spin: it is inside the cooldown window.
+    expect(await getEligibleOutbox(profileId, 1)).toEqual([]);
   });
 
   it('timeout_after_apply_is_confirmed_and_never_acked_blindly', async () => {

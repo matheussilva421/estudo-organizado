@@ -168,11 +168,17 @@ export class FakeRemotePort implements RemoteMutationPort {
     return this.result(operationId, remoteRevision);
   }
 
-  async lookup(operationId: string): Promise<'APPLIED' | 'MISSING' | 'UNKNOWN'> {
+  async lookup(
+    operationId: string,
+    entityId?: string,
+  ): Promise<'APPLIED' | 'MISSING' | 'UNKNOWN' | 'MISMATCH'> {
     this.assertActiveUid();
     const normalized = typeof operationId === 'string' ? operationId.trim() : '';
     if (!normalized) return 'MISSING';
-    return this.appliedOperations.has(normalized) ? 'APPLIED' : 'MISSING';
+    const applied = this.appliedOperations.get(normalized);
+    if (!applied) return 'MISSING';
+    if (entityId !== undefined && applied.entityId !== entityId) return 'MISMATCH';
+    return 'APPLIED';
   }
 
   async lookupRevision(operationId: string): Promise<number | null> {

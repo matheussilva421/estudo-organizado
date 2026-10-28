@@ -368,10 +368,10 @@ export function previewEditalImport(
     const subjectId = subject ? subject.id : stableEntityId(parsed.fingerprint, `subject:${disciplinePath}`);
     if (!subject) {
       creates.push({
-        entityType: 'edital-discipline',
+        entityType: 'subject',
         id: subjectId,
         name: discipline.name,
-        parentId: editalId,
+        parentId: null,
       });
     }
     const linkId = stableEntityId(parsed.fingerprint, `link:${disciplinePath}`);
@@ -380,6 +380,7 @@ export function previewEditalImport(
       id: linkId,
       name: discipline.name,
       parentId: editalId,
+      subjectId,
     });
 
     const walk = (topics: ParsedTopic[], parentId: string | null, path: string): void => {

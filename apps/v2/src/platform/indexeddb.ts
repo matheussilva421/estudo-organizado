@@ -1,6 +1,8 @@
 import type { OutboxOperation } from '../application/sync-types';
+import type { ProfileRecord } from '../application/profile-service';
 import { LOCAL_DB_VERSION } from '../domain/versions';
 import { UPGRADE_BLOCKED_MESSAGE, upgradeV2Schema } from './content-migration';
+import { canDeliver } from './sync/delivery-policy';
 
 export const DB_NAME = 'estudo-organizado-v2';
 
@@ -218,15 +220,30 @@ export async function getEligibleOutbox(
   const transaction = database.transaction([STORES.outbox, STORES.profiles], 'readonly');
   const profile = (await requestResult(
     transaction.objectStore(STORES.profiles).get(profileId),
-  )) as { state?: string } | undefined;
-  if (profile?.state && UNDELIVERABLE_STATES.has(profile.state)) return [];
+  )) as ProfileRecord | undefined;
+  // Fail closed: without a consented profile nothing may leave the device.
+  if (!profile) return [];
+  if (UNDELIVERABLE_STATES.has(profile.state)) return [];
 
   const pending = (await requestResult(
     transaction.objectStore(STORES.outbox).index('by_profile_status').getAll([profileId, 'PENDING']),
   )) as OutboxOperation[];
   return pending.filter((operation) => {
     const next = operation.nextRetryAt;
-    return next === null || next === undefined || (Number.isFinite(next) && next <= now);
+    const due = next === null || next === undefined || (Number.isFinite(next) && next <= now);
+    if (!due) return false;
+    return canDeliver(
+      operation,
+      {
+        operationId: operation.operationId,
+        profileId: operation.profileId,
+        deliveryUid: operation.deliveryUid ?? null,
+        remoteLibraryId: operation.remoteLibraryId ?? null,
+        attempts: operation.attempts ?? 0,
+        nextRetryAt: operation.nextRetryAt ?? null,
+      },
+      profile,
+    );
   });
 }
 
@@ -240,6 +257,13 @@ export async function applyRetryPlan(
   const store = transaction.objectStore(STORES.outbox);
   try {
     for (const failure of failures) {
+      if (
+        !Number.isInteger(failure.attempts) ||
+        failure.attempts < 1 ||
+        (failure.nextRetryAt !== null && !Number.isFinite(failure.nextRetryAt))
+      ) {
+        continue;
+      }
       const operation = (await requestResult(store.get(failure.operationId))) as
         | OutboxOperation
         | undefined;
@@ -247,7 +271,7 @@ export async function applyRetryPlan(
       if (operation.status !== 'PENDING') continue;
       store.put({
         ...operation,
-        attempts: failure.attempts,
+        attempts: Math.max(operation.attempts ?? 0, failure.attempts),
         nextRetryAt: failure.nextRetryAt,
       });
     }

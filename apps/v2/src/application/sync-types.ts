@@ -52,7 +52,11 @@ export type RemoteMutationResult =
 
 export type RemoteMutationPort = {
   apply(operation: OutboxOperation): Promise<RemoteMutationResult>;
-  lookup(operationId: string): Promise<'APPLIED' | 'MISSING' | 'UNKNOWN'>;
+  /** `entityId` guards against an ACK from another entity reusing the id. */
+  lookup(
+    operationId: string,
+    entityId?: string,
+  ): Promise<'APPLIED' | 'MISSING' | 'UNKNOWN' | 'MISMATCH'>;
   lookupRevision?(operationId: string): Promise<number | null>;
 };
 

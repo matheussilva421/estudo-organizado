@@ -11,6 +11,9 @@ import type {
 import { LocalSubjectRepository } from './local-subject-repository';
 import { LocalContentRepository } from './local-content-repository';
 import { LocalProfileRepository } from './local-profile-repository';
+import { ImportCommitter } from './import-commit';
+import { parseEditalImport, previewEditalImport } from '../application/import-service';
+import type { ImportPreview, ImportReceipt } from '../application/import-types';
 import {
   LocalSubjectAdoptionService,
   type AdoptionDecision,
@@ -33,6 +36,7 @@ import {
 import { browserLockPort, withSafeFlushLock } from './sync/coordination';
 import { flushPending } from './sync/flush';
 import { FakeRemotePort } from './sync/fake-remote';
+import { previewLink } from '../application/sync-policy';
 import { setE2EFault, type E2EFault } from './e2e-fault';
 
 type Fault = E2EFault;
@@ -82,6 +86,21 @@ export type V2E2EHarness = {
     profileId: string,
     now: number,
   ) => Promise<{ confirmed: string[]; status: string }>;
+  previewImport: (
+    profileId: string,
+    namespace: string,
+    text: string,
+  ) => Promise<{ ok: true; preview: ImportPreview } | { ok: false; reason: string }>;
+  applyImport: (
+    profileId: string,
+    preview: ImportPreview,
+    fault?: Exclude<Fault, null>,
+  ) => Promise<CommitResult<ImportReceipt>>;
+  adoptAll: (
+    profileId: string,
+    uid: string,
+    remoteLibraryId: string,
+  ) => Promise<CommitResult<{ adopted: number }>>;
   setFault: (fault: Fault) => void;
   execute: (command: SubjectCommand) => Promise<StudySubject>;
   executeWithFault: (command: SubjectCommand, fault: Exclude<Fault, null>) => Promise<StudySubject>;
@@ -292,6 +311,25 @@ export function installE2EHarness(): void {
         status: first ? ((await harness.outboxRecord(profileId, first))?.status ?? 'NONE') : 'NONE',
       };
     },
+    previewImport: async (profileId, namespace, text) => {
+      const parsed = parseEditalImport(text, { namespace });
+      if (!parsed.ok) return { ok: false, reason: parsed.reason };
+      const content = await new LocalContentRepository().loadContent(profileId);
+      return { ok: true, preview: previewEditalImport(parsed.parsed, content) };
+    },
+    applyImport: (profileId, preview, fault) =>
+      new ImportCommitter({ fault: fault ?? null }).apply(profileId, preview, {
+        confirmed: true,
+        targetSignature: preview.targetSignature,
+      }),
+    adoptAll: (profileId, uid, remoteLibraryId) =>
+      new LocalProfileRepository().adoptLocalOperations(profileId, uid, remoteLibraryId, {
+        profileId,
+        uid,
+        remoteLibraryId,
+        consent: true,
+        preview: previewLink(profileId, uid, { remoteCount: 0 }, Date.now()),
+      }),
     setFault: (fault) => setE2EFault(fault),
     execute: (command) => new LocalSubjectRepository({ fault: null }).execute(command),
     executeWithFault: (command, fault) =>

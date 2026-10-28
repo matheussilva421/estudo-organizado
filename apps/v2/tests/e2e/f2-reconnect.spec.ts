@@ -6,15 +6,17 @@ type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 const profileId = 'local-default';
 
 async function seedPendingEdital(page: import('@playwright/test').Page): Promise<void> {
-  await page.evaluate((profile) =>
-    (window as unknown as HarnessWindow).__v2E2E.executeContent({
+  await page.evaluate(async (profile) => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.executeContent({
       type: 'CREATE_EDITAL',
       operationId: 'op-edital',
       profileId: profile,
       editalId: 'edital-1',
       title: 'TJPB 2026',
-    }),
-  profileId);
+    });
+    await harness.adoptAll(profile, 'uid-a', 'library-x');
+  }, profileId);
 }
 
 test('sixth_failure_survives_reload_and_recovers_automatically', async ({ page }) => {

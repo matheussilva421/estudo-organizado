@@ -76,10 +76,12 @@ export type ParseResult =
   | { ok: false; reason: ImportInvalidReason; detail?: string };
 
 export type PreviewCreate = {
-  entityType: 'edital' | 'edital-discipline' | 'assunto' | 'aula';
+  entityType: 'subject' | 'edital' | 'edital-discipline' | 'assunto' | 'aula';
   id: Id;
   name: string;
   parentId: Id | null;
+  subjectId?: Id;
+  orderKey?: string;
 };
 
 export type PreviewMatch = {

@@ -34,7 +34,11 @@ export function planRetry(attempts: number, now: number, jitter = 0): RetryPlan 
   const boundedJitter = Math.min(Math.max(Number.isFinite(jitter) ? jitter : 0, 0), 1);
   const exponential = RETRY_BASE_MS * 2 ** Math.min(safeAttempts - 1, 20);
   const base = Math.min(RETRY_MAX_MS, exponential);
-  const delayMs = Math.round(base * (1 + boundedJitter * RETRY_JITTER_RATIO));
+  // Clamp after jitter so the 5 minute ceiling is never exceeded.
+  const delayMs = Math.min(
+    RETRY_MAX_MS,
+    Math.round(base * (1 + boundedJitter * RETRY_JITTER_RATIO)),
+  );
   return {
     nextRetryAt: safeNow + delayMs,
     terminal: false,
