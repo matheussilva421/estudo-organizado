@@ -1,12 +1,16 @@
 import type {
   ArchiveEditalInput,
   ArchiveEditalResult,
+  AdoptionDeliveryReport,
+  DeliveryConsentProof,
   ProfileRecord,
   ProfileRepository,
   SetPrimaryInput,
 } from '../application/profile-service';
 import { createDefaultProfile } from '../application/profile-service';
 import type { CommitResult } from '../application/content-commands';
+import type { OutboxOperation } from '../application/sync-types';
+import { assertDeliveryConsent } from './sync/delivery-policy';
 import type { Edital } from '../domain/edital';
 import {
   openV2Database,
@@ -170,5 +174,148 @@ export class LocalProfileRepository implements ProfileRepository {
       kind: 'LOCAL_COMMITTED',
       value: { edital: result.value as Edital, profile },
     };
+  }
+
+  /**
+   * Binds pending LOCAL_ONLY operations to the consented account. The command
+   * and `operationId` stay byte-identical; only delivery metadata is added, and
+   * operations already bound to another uid are never transferred.
+   */
+  async adoptLocalOperations(
+    profileId: string,
+    uid: string,
+    remoteLibraryId: string,
+    proof: DeliveryConsentProof,
+  ): Promise<CommitResult<AdoptionDeliveryReport>> {
+    if (!uid.trim() || !remoteLibraryId.trim()) {
+      return { kind: 'INVALID', code: 'IDENTIFIER_REQUIRED' };
+    }
+
+    let database: IDBDatabase;
+    try {
+      database = await openV2Database(profileId);
+    } catch (error) {
+      return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
+    }
+
+    const transaction = database.transaction(
+      [STORES.profiles, STORES.outbox, STORES.operations],
+      'readwrite',
+    );
+
+    try {
+      const profileStore = transaction.objectStore(STORES.profiles);
+      const current =
+        ((await requestResult(profileStore.get(profileId))) as ProfileRecord | undefined) ??
+        createDefaultProfile(profileId);
+
+      try {
+        assertDeliveryConsent(current, proof);
+      } catch (error) {
+        transaction.abort();
+        return { kind: 'INVALID', code: (error as { code?: string }).code ?? 'INVALID_COMMAND' };
+      }
+
+      const outbox = transaction.objectStore(STORES.outbox);
+      const pending = (await requestResult(
+        outbox.index('by_profile_status').getAll([profileId, 'PENDING']),
+      )) as OutboxOperation[];
+
+      let adopted = 0;
+      for (const operation of pending) {
+        if (operation.deliveryUid === uid && operation.remoteLibraryId === remoteLibraryId) {
+          continue;
+        }
+        if (operation.deliveryUid && operation.deliveryUid !== uid) continue;
+        outbox.put({ ...operation, deliveryUid: uid, remoteLibraryId });
+        adopted += 1;
+      }
+
+      const alreadyBound =
+        adopted === 0 &&
+        current.uid === uid &&
+        current.remoteLibraryId === remoteLibraryId &&
+        current.syncEnabled;
+      if (!alreadyBound) {
+        profileStore.put({
+          ...current,
+          uid,
+          remoteLibraryId,
+          syncEnabled: true,
+          state: 'READY',
+          localRevision: current.localRevision + 1,
+        });
+      }
+
+      await transactionDone(transaction);
+      return { kind: 'LOCAL_COMMITTED', value: { adopted } };
+    } catch (error) {
+      try {
+        transaction.abort();
+      } catch {
+        // already aborted
+      }
+      return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
+    }
+  }
+
+  async logoutRemote(profileId: string, operationId: string): Promise<CommitResult<ProfileRecord>> {
+    if (!operationId.trim()) return { kind: 'INVALID', code: 'IDENTIFIER_REQUIRED' };
+
+    let database: IDBDatabase;
+    try {
+      database = await openV2Database(profileId);
+    } catch (error) {
+      return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
+    }
+
+    const transaction = database.transaction([STORES.profiles, STORES.operations], 'readwrite');
+    try {
+      const operations = transaction.objectStore(STORES.operations);
+      const persisted = (await requestResult(operations.get(operationId))) as
+        | OperationRecord
+        | undefined;
+      if (persisted) {
+        if (persisted.profileId !== profileId || persisted.entityType !== 'profile') {
+          transaction.abort();
+          return { kind: 'INVALID', code: 'OPERATION_ID_REUSED' };
+        }
+        await transactionDone(transaction);
+        return { kind: 'LOCAL_COMMITTED', value: persisted.entity as ProfileRecord };
+      }
+
+      const profileStore = transaction.objectStore(STORES.profiles);
+      const current =
+        ((await requestResult(profileStore.get(profileId))) as ProfileRecord | undefined) ??
+        createDefaultProfile(profileId);
+      const next: ProfileRecord = {
+        ...current,
+        uid: null,
+        remoteLibraryId: null,
+        syncEnabled: false,
+        state: 'LOCAL_ONLY',
+        localRevision: current.localRevision + 1,
+      };
+      profileStore.put(next);
+      operations.put({
+        operationId,
+        profileId,
+        entityType: 'profile',
+        entityId: profileId,
+        command: { type: 'LOGOUT', operationId, profileId },
+        entity: next,
+        committedAt: this.now(),
+      } satisfies OperationRecord);
+
+      await transactionDone(transaction);
+      return { kind: 'LOCAL_COMMITTED', value: next };
+    } catch (error) {
+      try {
+        transaction.abort();
+      } catch {
+        // already aborted
+      }
+      return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
+    }
   }
 }

@@ -27,7 +27,12 @@ function previewToken(preview: Omit<LinkPreview, 'previewId'>): string {
   return `link:${preview.profileId}:${preview.uid}:${preview.remoteCount}:${preview.issuedAt}:${preview.expiresAt}`;
 }
 
-function isValidPreview(preview: LinkPreview, profileId: string, uid: string, now: number): boolean {
+export function isValidPreview(
+  preview: LinkPreview,
+  profileId: string,
+  uid: string,
+  now: number,
+): boolean {
   if (
     preview.profileId !== profileId ||
     preview.uid !== uid ||

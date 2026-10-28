@@ -1,6 +1,7 @@
 import type { SyncState } from './sync-types';
 import type { CommitResult, Id } from './content-commands';
 import type { Edital } from '../domain/edital';
+import type { LinkPreview } from './sync-policy';
 
 /**
  * One row per local device profile. `profileId` is local: it is neither a
@@ -53,8 +54,25 @@ export type ArchiveEditalResult = {
   profile: ProfileRecord;
 };
 
+export type DeliveryConsentProof = {
+  profileId: Id;
+  uid: string;
+  remoteLibraryId: string;
+  consent: true;
+  preview: LinkPreview;
+};
+
+export type AdoptionDeliveryReport = { adopted: number };
+
 export interface ProfileRepository {
   getProfile(profileId: Id): Promise<ProfileRecord>;
   setPrimaryEdital(input: SetPrimaryInput): Promise<CommitResult<ProfileRecord>>;
   archiveEdital(input: ArchiveEditalInput): Promise<CommitResult<ArchiveEditalResult>>;
+  adoptLocalOperations(
+    profileId: Id,
+    uid: string,
+    remoteLibraryId: string,
+    proof: DeliveryConsentProof,
+  ): Promise<CommitResult<AdoptionDeliveryReport>>;
+  logoutRemote(profileId: Id, operationId: Id): Promise<CommitResult<ProfileRecord>>;
 }
