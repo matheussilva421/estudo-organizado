@@ -7,6 +7,7 @@ import type {
   Id,
 } from '../domain/edital';
 import type { Assunto, Aula, LessonTopicLink } from '../domain/content';
+import type { DeletableEntityType } from '../domain/delete';
 
 export type { CommandScope, EditalCommand, Id } from '../domain/edital';
 
@@ -73,6 +74,18 @@ export type ReorderSiblingCommand = CommandScope & {
   orderKey: string;
 };
 
+export type SoftDeleteCommand = CommandScope & {
+  type: 'SOFT_DELETE';
+  entityType: DeletableEntityType;
+  entityId: Id;
+};
+
+export type RestoreEntityCommand = CommandScope & {
+  type: 'RESTORE_ENTITY';
+  entityType: DeletableEntityType;
+  entityId: Id;
+};
+
 /** F2 grows this union monotonically. */
 export type ContentCommand =
   | EditalCommand
@@ -81,6 +94,8 @@ export type ContentCommand =
   | UpsertAulaCommand
   | LinkLessonTopicCommand
   | UnlinkLessonTopicCommand
-  | ReorderSiblingCommand;
+  | ReorderSiblingCommand
+  | SoftDeleteCommand
+  | RestoreEntityCommand;
 
 export type ContentScope = CommandScope & { profileId: Id };

@@ -32,6 +32,15 @@ import {
   type LessonTopicLink,
 } from '../domain/content';
 import { normalizeSubjectTitle, type StudySubject } from '../domain/subject';
+import {
+  assertTombstoneScope,
+  epochKey,
+  isDeletableEntityType,
+  nextEpoch,
+  type DependencyEntry,
+  type DependencyReport,
+  type LogicalTombstone,
+} from '../domain/delete';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
 import {
   openV2Database,
@@ -80,42 +89,67 @@ function planOf(command: ContentCommand): Plan {
     case 'CREATE_EDITAL':
     case 'RENAME_EDITAL':
     case 'ARCHIVE_EDITAL':
-      return { entityType: 'edital', entityId: command.editalId, stores: [STORES.editais] };
+      return {
+        entityType: 'edital',
+        entityId: command.editalId,
+        stores: [STORES.editais, STORES.tombstones],
+      };
     case 'LINK_SUBJECT':
       return {
         entityType: 'edital-discipline',
         entityId: command.linkId,
-        stores: [STORES.editalDisciplines, STORES.editais, STORES.subjects],
+        stores: [STORES.editalDisciplines, STORES.editais, STORES.subjects, STORES.tombstones],
       };
     case 'UPSERT_ASSUNTO':
       return {
         entityType: 'assunto',
         entityId: command.value.id,
-        stores: [STORES.assuntos, STORES.editalDisciplines],
+        stores: [STORES.assuntos, STORES.editalDisciplines, STORES.tombstones],
       };
     case 'UPSERT_AULA':
       return {
         entityType: 'aula',
         entityId: command.value.id,
-        stores: [STORES.aulas, STORES.editalDisciplines],
+        stores: [STORES.aulas, STORES.editalDisciplines, STORES.tombstones],
       };
     case 'LINK_LESSON_TOPIC':
       return {
         entityType: 'lesson-topic-link',
         entityId: command.link.id,
-        stores: [STORES.lessonTopicLinks, STORES.aulas, STORES.assuntos],
+        stores: [STORES.lessonTopicLinks, STORES.aulas, STORES.assuntos, STORES.tombstones],
       };
     case 'UNLINK_LESSON_TOPIC':
       return {
         entityType: 'lesson-topic-link',
         entityId: command.linkId,
-        stores: [STORES.lessonTopicLinks],
+        stores: [STORES.lessonTopicLinks, STORES.tombstones],
       };
     case 'REORDER_SIBLING':
       return {
         entityType: command.entityType,
         entityId: command.entityId,
-        stores: [command.entityType === 'assunto' ? STORES.assuntos : STORES.aulas],
+        stores: [
+          command.entityType === 'assunto' ? STORES.assuntos : STORES.aulas,
+          STORES.tombstones,
+        ],
+      };
+    case 'SOFT_DELETE':
+    case 'RESTORE_ENTITY':
+      if (!isDeletableEntityType(command.entityType)) {
+        throw new ContentValidationError('INVALID_COMMAND', 'entity type is not deletable');
+      }
+      return {
+        entityType: command.entityType,
+        entityId: command.entityId,
+        stores: [
+          storeFor(command.entityType),
+          STORES.tombstones,
+          STORES.meta,
+          STORES.editalDisciplines,
+          STORES.assuntos,
+          STORES.aulas,
+          STORES.lessonTopicLinks,
+        ],
       };
     default:
       throw new ContentValidationError('INVALID_COMMAND', 'command has no plan');
@@ -229,6 +263,10 @@ function normalizeCommand(command: ContentCommand): Record<string, unknown> {
         entityId: command.entityId,
         orderKey: command.orderKey.trim(),
       };
+    case 'SOFT_DELETE':
+      return { ...base, entityType: command.entityType, entityId: command.entityId };
+    case 'RESTORE_ENTITY':
+      return { ...base, entityType: command.entityType, entityId: command.entityId };
     default:
       return { type: (command as { type?: string }).type ?? 'UNKNOWN' };
   }
@@ -393,6 +431,13 @@ export class LocalContentRepository implements ContentRepository {
       case 'CREATE_EDITAL':
       case 'RENAME_EDITAL':
       case 'ARCHIVE_EDITAL': {
+        const deleted = await this.deletedMarker(
+          command.profileId,
+          'edital',
+          command.editalId,
+          transaction,
+        );
+        if (deleted) return { status: 'INVALID', code: 'DELETED_ENTITY' };
         const store = transaction.objectStore(STORES.editais);
         const current = (await requestResult(
           store.get([command.profileId, command.editalId]),
@@ -408,6 +453,13 @@ export class LocalContentRepository implements ContentRepository {
       }
 
       case 'LINK_SUBJECT': {
+        const deleted = await this.deletedMarker(
+          command.profileId,
+          'edital-discipline',
+          command.linkId,
+          transaction,
+        );
+        if (deleted) return { status: 'INVALID', code: 'DELETED_ENTITY' };
         const edital = (await requestResult(
           transaction.objectStore(STORES.editais).get([command.profileId, command.editalId]),
         )) as Edital | undefined;
@@ -461,6 +513,11 @@ export class LocalContentRepository implements ContentRepository {
       }
 
       case 'UPSERT_ASSUNTO': {
+        if (
+          await this.deletedMarker(command.profileId, 'assunto', command.value.id, transaction)
+        ) {
+          return { status: 'INVALID', code: 'DELETED_ENTITY' };
+        }
         const link = requireLink(
           (await requestResult(
             transaction.objectStore(STORES.editalDisciplines).get([
@@ -509,6 +566,9 @@ export class LocalContentRepository implements ContentRepository {
       }
 
       case 'UPSERT_AULA': {
+        if (await this.deletedMarker(command.profileId, 'aula', command.value.id, transaction)) {
+          return { status: 'INVALID', code: 'DELETED_ENTITY' };
+        }
         const link = requireLink(
           (await requestResult(
             transaction.objectStore(STORES.editalDisciplines).get([
@@ -548,6 +608,16 @@ export class LocalContentRepository implements ContentRepository {
       }
 
       case 'LINK_LESSON_TOPIC': {
+        if (
+          await this.deletedMarker(
+            command.profileId,
+            'lesson-topic-link',
+            command.link.id,
+            transaction,
+          )
+        ) {
+          return { status: 'INVALID', code: 'DELETED_ENTITY' };
+        }
         const aula = (await requestResult(
           transaction.objectStore(STORES.aulas).get([command.profileId, command.link.aulaId]),
         )) as Aula | undefined;
@@ -628,9 +698,185 @@ export class LocalContentRepository implements ContentRepository {
         };
       }
 
+      case 'SOFT_DELETE': {
+        const store = transaction.objectStore(storeFor(command.entityType));
+        const current = (await requestResult(
+          store.get([command.profileId, command.entityId]),
+        )) as ContentEntity | undefined;
+        if (!current) return { status: 'INVALID', code: 'ENTITY_NOT_FOUND' };
+
+        const dependents = await this.dependenciesOf(
+          command.profileId,
+          command.entityType,
+          command.entityId,
+          current,
+          transaction,
+        );
+        if (dependents.length > 0) {
+          const report: DependencyReport = {
+            code: 'DEPENDENT_CONTENT',
+            entityType: command.entityType,
+            entityId: command.entityId,
+            dependents,
+          };
+          return { status: 'CONFLICT', current: report };
+        }
+
+        const meta = transaction.objectStore(STORES.meta);
+        const epochRecord = (await requestResult(meta.get(epochKey(command.profileId)))) as
+          | { epoch?: number }
+          | undefined;
+        const epoch = nextEpoch(epochRecord?.epoch);
+        meta.put({ key: epochKey(command.profileId), epoch });
+
+        const tombstone: LogicalTombstone = {
+          profileId: command.profileId,
+          entityType: command.entityType,
+          entityId: command.entityId,
+          operationId: command.operationId,
+          baseRevision: current.localRevision ?? null,
+          epoch,
+          deleted: true,
+          deletedAt: this.now(),
+          snapshot: current as unknown as Record<string, unknown>,
+        };
+        transaction.objectStore(STORES.tombstones).put(tombstone);
+
+        return {
+          status: 'OK',
+          entity: current,
+          changed: true,
+          baseRevision: current.localRevision ?? null,
+          kind: 'delete',
+        };
+      }
+
+      case 'RESTORE_ENTITY': {
+        const liveStore = transaction.objectStore(storeFor(command.entityType));
+        const live = (await requestResult(
+          liveStore.get([command.profileId, command.entityId]),
+        )) as ContentEntity | undefined;
+        if (live) {
+          if ((live as unknown as { status?: string }).status !== 'ARCHIVED') {
+            return { status: 'INVALID', code: 'ENTITY_EXISTS' };
+          }
+          const reactivated = {
+            ...(live as unknown as Record<string, unknown>),
+            status: 'ACTIVE',
+            localRevision: (live.localRevision ?? 0) + 1,
+          } as unknown as ContentEntity;
+          liveStore.put(reactivated);
+          return {
+            status: 'OK',
+            entity: reactivated,
+            changed: true,
+            baseRevision: live.localRevision ?? null,
+            kind: 'upsert',
+          };
+        }
+
+        const tombstones = transaction.objectStore(STORES.tombstones);
+        const tombstone = (await requestResult(
+          tombstones.get([command.profileId, command.entityType, command.entityId]),
+        )) as LogicalTombstone | undefined;
+        if (!tombstone) return { status: 'INVALID', code: 'ENTITY_NOT_FOUND' };
+        try {
+          assertTombstoneScope(tombstone, command.profileId);
+        } catch (error) {
+          if (error instanceof ContentValidationError) {
+            return { status: 'INVALID', code: error.code };
+          }
+          return { status: 'INVALID', code: 'TOMBSTONE_CONFLICT' };
+        }
+
+        const snapshot = tombstone.snapshot as unknown as ContentEntity;
+        const restored: ContentEntity = {
+          ...(snapshot as unknown as Record<string, unknown>),
+          localRevision: (snapshot.localRevision ?? 0) + 1,
+        } as unknown as ContentEntity;
+        if (command.entityType === 'edital' || command.entityType === 'edital-discipline') {
+          (restored as unknown as { status: string }).status = 'ACTIVE';
+        }
+
+        transaction.objectStore(storeFor(command.entityType)).put(restored);
+        tombstones.delete([command.profileId, command.entityType, command.entityId]);
+
+        const meta = transaction.objectStore(STORES.meta);
+        const epochRecord = (await requestResult(meta.get(epochKey(command.profileId)))) as
+          | { epoch?: number }
+          | undefined;
+        meta.put({ key: epochKey(command.profileId), epoch: nextEpoch(epochRecord?.epoch) });
+
+        return {
+          status: 'OK',
+          entity: restored,
+          changed: true,
+          baseRevision: tombstone.baseRevision,
+          kind: 'upsert',
+        };
+      }
+
       default:
         return { status: 'INVALID', code: 'INVALID_COMMAND' };
     }
+  }
+
+  private async deletedMarker(
+    profileId: string,
+    entityType: ContentEntityType,
+    entityId: string,
+    transaction: IDBTransaction,
+  ): Promise<boolean> {
+    const tombstone = await requestResult(
+      transaction.objectStore(STORES.tombstones).get([profileId, entityType, entityId]),
+    );
+    return Boolean(tombstone);
+  }
+
+  /** Reads dependents without ever writing outside the current transaction. */
+  private async dependenciesOf(
+    profileId: string,
+    entityType: ContentEntityType,
+    entityId: string,
+    current: ContentEntity,
+    transaction: IDBTransaction,
+  ): Promise<DependencyEntry[]> {
+    const count = (store: string, index: string, key: IDBValidKey) =>
+      requestResult(transaction.objectStore(store).index(index).count(key));
+    const dependents: DependencyEntry[] = [];
+
+    if (entityType === 'edital') {
+      const links = await count(STORES.editalDisciplines, 'by_edital', [profileId, entityId]);
+      if (links > 0) dependents.push({ entityType: 'edital-discipline', count: links });
+      return dependents;
+    }
+
+    if (entityType === 'edital-discipline') {
+      const assuntos = await count(STORES.assuntos, 'by_scope', [profileId, entityId]);
+      if (assuntos > 0) dependents.push({ entityType: 'assunto', count: assuntos });
+      const aulas = await count(STORES.aulas, 'by_scope', [profileId, entityId]);
+      if (aulas > 0) dependents.push({ entityType: 'aula', count: aulas });
+      return dependents;
+    }
+
+    if (entityType === 'assunto') {
+      const scopeId = (current as Assunto).editalDisciplineId;
+      const scoped = (await requestResult(
+        transaction.objectStore(STORES.assuntos).index('by_scope').getAll([profileId, scopeId]),
+      )) as Assunto[];
+      const children = scoped.filter((item) => item.parentId === entityId).length;
+      if (children > 0) dependents.push({ entityType: 'assunto', count: children });
+      const links = await count(STORES.lessonTopicLinks, 'by_assunto', [profileId, entityId]);
+      if (links > 0) dependents.push({ entityType: 'lesson-topic-link', count: links });
+      return dependents;
+    }
+
+    if (entityType === 'aula') {
+      const links = await count(STORES.lessonTopicLinks, 'by_aula', [profileId, entityId]);
+      if (links > 0) dependents.push({ entityType: 'lesson-topic-link', count: links });
+    }
+
+    return dependents;
   }
 
   async loadContent(profileId: string): Promise<ContentSnapshot> {
