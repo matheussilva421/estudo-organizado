@@ -17,6 +17,18 @@ export type ProfileRecord = {
   localRevision: number;
 };
 
+export function createDefaultProfile(profileId: Id): ProfileRecord {
+  return {
+    profileId,
+    uid: null,
+    remoteLibraryId: null,
+    syncEnabled: false,
+    state: 'LOCAL_ONLY',
+    primaryEditalId: null,
+    localRevision: 0,
+  };
+}
+
 export type SetPrimaryInput = {
   profileId: Id;
   editalId: Id | null;

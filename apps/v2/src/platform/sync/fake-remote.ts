@@ -88,6 +88,26 @@ export class FakeRemotePort implements RemoteMutationPort {
     this.activeUid = requireIdentifier(uid, 'uid');
   }
 
+  /** Simulated state of another device; never a real Firestore read. */
+  seed(entityId: string, payload: OutboxOperation['payload'], revision: number): void {
+    const id = requireIdentifier(entityId, 'entityId');
+    this.entities.set(entityKey(this.profileId, id), {
+      payload: structuredClone(payload),
+      revision,
+    });
+    this.tombstones.delete(entityKey(this.profileId, id));
+  }
+
+  readEntity(entityId: string): OutboxOperation['payload'] | null {
+    const id = requireIdentifier(entityId, 'entityId');
+    const current = this.entities.get(entityKey(this.profileId, id));
+    return current ? structuredClone(current.payload) : null;
+  }
+
+  appliedCount(): number {
+    return this.appliedOperations.size;
+  }
+
   async apply(operation: OutboxOperation): Promise<RemoteMutationResult> {
     const operationProfileId = requireIdentifier(operation.profileId, 'profileId');
     this.assertScope(operationProfileId);
@@ -117,7 +137,10 @@ export class FakeRemotePort implements RemoteMutationPort {
     const key = entityKey(this.profileId, entityId);
     const current = this.entities.get(key);
     const currentRevision = current?.revision ?? this.tombstones.get(key) ?? 0;
-    const baseRevision = operation.baseRevision ?? 0;
+    const baseRevision =
+      operation.remoteBaseRevision !== undefined && operation.remoteBaseRevision !== null
+        ? operation.remoteBaseRevision
+        : operation.baseRevision ?? 0;
 
     if (baseRevision !== currentRevision) {
       return { kind: 'CONFLICT', remoteRevision: currentRevision };

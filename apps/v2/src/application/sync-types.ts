@@ -23,6 +23,12 @@ export type OutboxOperation = {
   payload: ContentEntity;
   schemaVersion: number;
   status: OutboxStatus;
+  /**
+   * Revision expected at the remote side. Local CAS keeps using
+   * `baseRevision`; the adapter compares this value instead, so a conflict
+   * resolution can target the remote revision without rewriting history.
+   */
+  remoteBaseRevision?: number | null;
   /** Causal order inside one entity; the outbox key stays the operationId. */
   sequence?: number;
   attempts?: number;

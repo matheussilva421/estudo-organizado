@@ -244,6 +244,7 @@ export async function markConflict(
   profileId: string,
   operation: OutboxOperation,
   remoteRevision: number,
+  remote?: { payload: unknown | null; deleted: boolean },
 ): Promise<void> {
   if (
     operation.profileId !== profileId ||
@@ -280,8 +281,14 @@ export async function markConflict(
       conflictId: operation.operationId,
       profileId,
       operationId: operation.operationId,
+      entityType: persisted.entityType,
+      entityId: persisted.entityId,
       localPayload: persisted.payload,
+      remotePayload: remote?.payload ?? null,
+      baseRevision: persisted.baseRevision,
       remoteRevision,
+      deleted: remote?.deleted === true,
+      status: 'OPEN',
       createdAt: new Date().toISOString(),
     });
     await transactionDone(transaction);
@@ -294,10 +301,72 @@ export type PersistedConflict = {
   conflictId: string;
   profileId: string;
   operationId: string;
+  entityType: string;
+  entityId: string;
   localPayload: unknown;
+  remotePayload: unknown | null;
+  baseRevision: number | null;
   remoteRevision: number;
+  deleted: boolean;
+  status: 'OPEN' | 'RESOLVED';
+  resolution?: 'LOCAL' | 'REMOTE';
+  resolvedByOperationId?: string;
   createdAt: string;
 };
+
+export async function resolveConflictRecord(
+  profileId: string,
+  conflictId: string,
+  patch: Partial<Pick<PersistedConflict, 'status' | 'resolution' | 'resolvedByOperationId'>>,
+): Promise<PersistedConflict | null> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.conflicts, 'readwrite');
+  const store = transaction.objectStore(STORES.conflicts);
+  try {
+    const current = (await requestResult(store.get(conflictId))) as PersistedConflict | undefined;
+    if (!current || current.profileId !== profileId) {
+      transaction.abort();
+      return null;
+    }
+    const next = { ...current, ...patch };
+    store.put(next);
+    await transactionDone(transaction);
+    return next;
+  } catch (error) {
+    try {
+      transaction.abort();
+    } catch {
+      // already aborted
+    }
+    throw toLocalPersistenceError(error);
+  }
+}
+
+export async function annotateRemoteBaseRevision(
+  profileId: string,
+  operationId: string,
+  remoteBaseRevision: number,
+): Promise<void> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.outbox, 'readwrite');
+  const store = transaction.objectStore(STORES.outbox);
+  try {
+    const operation = (await requestResult(store.get(operationId))) as OutboxOperation | undefined;
+    if (!operation || operation.profileId !== profileId) {
+      transaction.abort();
+      throw new LocalPersistenceError('UNAVAILABLE', 'operation is not in this profile', false);
+    }
+    store.put({ ...operation, remoteBaseRevision });
+    await transactionDone(transaction);
+  } catch (error) {
+    try {
+      transaction.abort();
+    } catch {
+      // already aborted
+    }
+    throw toLocalPersistenceError(error);
+  }
+}
 
 export async function getConflicts(profileId: string): Promise<PersistedConflict[]> {
   const database = await openV2Database(profileId);

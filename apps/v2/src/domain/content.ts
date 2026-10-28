@@ -66,10 +66,15 @@ export function normalizeProvenance(value: string | undefined): string | undefin
 export function normalizeOrderKey(value: string | undefined): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
   if (!normalized) return null;
-  if (!/^[0-9A-Za-z._-]{1,32}$/.test(normalized)) {
+  // One canonical numeric space keeps lexicographic order equal to numeric
+  // order; otherwise `'0500'` would sort after `'000510'`.
+  if (!/^\d{1,9}$/.test(normalized)) {
     throw new ContentValidationError('ORDER_KEY_REQUIRED', 'orderKey is invalid');
   }
-  return normalized;
+  return String(Math.min(Number.parseInt(normalized, 10), 999_990)).padStart(
+    ORDER_KEY_WIDTH,
+    '0',
+  );
 }
 
 /** Deterministic order: `orderKey` first, then the opaque id. */
@@ -135,7 +140,9 @@ export function assertAssuntoParent(
     if (cursor === candidateId) {
       throw new ContentValidationError('CYCLE_DETECTED', 'assunto tree would contain a cycle');
     }
-    if (seen.has(cursor)) return;
+    if (seen.has(cursor)) {
+      throw new ContentValidationError('CYCLE_DETECTED', 'assunto tree already contains a cycle');
+    }
     seen.add(cursor);
     cursor = byId.get(cursor)?.parentId ?? null;
   }

@@ -110,7 +110,12 @@ export function normalizeDisplayAlias(alias: string | undefined): string | undef
 export type EditalMutation =
   | { type: 'CREATE_EDITAL'; editalId: Id; title: string; sourceRef?: string }
   | { type: 'RENAME_EDITAL'; editalId: Id; title: string }
-  | { type: 'ARCHIVE_EDITAL'; editalId: Id };
+  | {
+      type: 'ARCHIVE_EDITAL';
+      editalId: Id;
+      /** Required when the archived edital is the profile primary. */
+      replacementPrimaryId?: Id | null;
+    };
 
 export type EditalCommand = CommandScope & EditalMutation;
 

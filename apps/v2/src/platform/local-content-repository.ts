@@ -10,10 +10,15 @@ import type {
   ReorderSiblingInput,
 } from '../application/content-service';
 import {
+  createDefaultProfile,
+  type ProfileRecord,
+} from '../application/profile-service';
+import {
   applyEditalCommand,
   ContentValidationError,
   nextOrderKey,
   normalizeDisplayAlias,
+  validateEditalLink,
   type Edital,
   type EditalDiscipline,
 } from '../domain/edital';
@@ -80,6 +85,7 @@ type ApplyResult =
       changed: boolean;
       baseRevision: number | null;
       kind: 'upsert' | 'delete';
+      sideEffects?: { store: string; value: unknown }[];
     }
   | { status: 'INVALID'; code: string }
   | { status: 'CONFLICT'; current?: unknown };
@@ -88,11 +94,16 @@ function planOf(command: ContentCommand): Plan {
   switch (command.type) {
     case 'CREATE_EDITAL':
     case 'RENAME_EDITAL':
-    case 'ARCHIVE_EDITAL':
       return {
         entityType: 'edital',
         entityId: command.editalId,
         stores: [STORES.editais, STORES.tombstones],
+      };
+    case 'ARCHIVE_EDITAL':
+      return {
+        entityType: 'edital',
+        entityId: command.editalId,
+        stores: [STORES.editais, STORES.profiles, STORES.tombstones],
       };
     case 'LINK_SUBJECT':
       return {
@@ -104,13 +115,13 @@ function planOf(command: ContentCommand): Plan {
       return {
         entityType: 'assunto',
         entityId: command.value.id,
-        stores: [STORES.assuntos, STORES.editalDisciplines, STORES.tombstones],
+        stores: [STORES.assuntos, STORES.editalDisciplines, STORES.editais, STORES.tombstones],
       };
     case 'UPSERT_AULA':
       return {
         entityType: 'aula',
         entityId: command.value.id,
-        stores: [STORES.aulas, STORES.editalDisciplines, STORES.tombstones],
+        stores: [STORES.aulas, STORES.editalDisciplines, STORES.editais, STORES.tombstones],
       };
     case 'LINK_LESSON_TOPIC':
       return {
@@ -230,7 +241,12 @@ function normalizeCommand(command: ContentCommand): Record<string, unknown> {
     case 'RENAME_EDITAL':
       return { ...base, editalId: command.editalId, title: safeTitle(command.title) };
     case 'ARCHIVE_EDITAL':
-      return { ...base, editalId: command.editalId };
+      return {
+        ...base,
+        editalId: command.editalId,
+        replacementDecided: command.replacementPrimaryId !== undefined,
+        replacementPrimaryId: command.replacementPrimaryId ?? null,
+      };
     case 'LINK_SUBJECT':
       return {
         ...base,
@@ -291,6 +307,21 @@ function requireLink(link: EditalDiscipline | undefined): EditalDiscipline {
   return link;
 }
 
+async function requireActiveEdital(
+  transaction: IDBTransaction,
+  profileId: string,
+  editalId: string,
+): Promise<Edital> {
+  const edital = (await requestResult(
+    transaction.objectStore(STORES.editais).get([profileId, editalId]),
+  )) as Edital | undefined;
+  if (!edital) throw new ContentValidationError('ENTITY_NOT_FOUND', 'edital not found');
+  if (edital.status !== 'ACTIVE') {
+    throw new ContentValidationError('EDITAL_ARCHIVED', 'edital is archived');
+  }
+  return edital;
+}
+
 export class LocalContentRepository implements ContentRepository {
   private readonly fault: Fault;
   private readonly now: () => string;
@@ -321,7 +352,12 @@ export class LocalContentRepository implements ContentRepository {
       return { kind: 'FAILED', reason: 'UNKNOWN' };
     }
 
-    const database = await openV2Database(command.profileId);
+    let database: IDBDatabase;
+    try {
+      database = await openV2Database(command.profileId);
+    } catch (error) {
+      return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
+    }
     const transaction = database.transaction(
       [...new Set([...plan.stores, STORES.operations, STORES.outbox])],
       'readwrite',
@@ -353,7 +389,7 @@ export class LocalContentRepository implements ContentRepository {
       } catch (error) {
         transaction.abort();
         if (error instanceof ContentValidationError) return { kind: 'INVALID', code: error.code };
-        if (error instanceof DOMException) {
+        if (error instanceof DOMException && error.name === 'ConstraintError') {
           return { kind: 'INVALID', code: 'LINK_DUPLICATE' };
         }
         return { kind: 'FAILED', reason: 'UNKNOWN' };
@@ -382,6 +418,9 @@ export class LocalContentRepository implements ContentRepository {
         store.delete([command.profileId, plan.entityId]);
       } else {
         store.put(result.entity);
+      }
+      for (const effect of result.sideEffects ?? []) {
+        transaction.objectStore(effect.store).put(effect.value);
       }
 
       if (this.fault === 'abort') throw new DOMException('forced abort', 'AbortError');
@@ -429,8 +468,7 @@ export class LocalContentRepository implements ContentRepository {
   ): Promise<ApplyResult> {
     switch (command.type) {
       case 'CREATE_EDITAL':
-      case 'RENAME_EDITAL':
-      case 'ARCHIVE_EDITAL': {
+      case 'RENAME_EDITAL': {
         const deleted = await this.deletedMarker(
           command.profileId,
           'edital',
@@ -449,6 +487,64 @@ export class LocalContentRepository implements ContentRepository {
           changed: JSON.stringify(current ?? null) !== JSON.stringify(next),
           baseRevision: current?.localRevision ?? null,
           kind: 'upsert',
+        };
+      }
+
+      case 'ARCHIVE_EDITAL': {
+        const deleted = await this.deletedMarker(
+          command.profileId,
+          'edital',
+          command.editalId,
+          transaction,
+        );
+        if (deleted) return { status: 'INVALID', code: 'DELETED_ENTITY' };
+        const store = transaction.objectStore(STORES.editais);
+        const current = (await requestResult(
+          store.get([command.profileId, command.editalId]),
+        )) as Edital | undefined;
+        const next = applyEditalCommand(current ?? null, command);
+
+        const sideEffects: { store: string; value: unknown }[] = [];
+        if (current) {
+          const profileStore = transaction.objectStore(STORES.profiles);
+          const profile =
+            ((await requestResult(profileStore.get(command.profileId))) as
+              | ProfileRecord
+              | undefined) ?? createDefaultProfile(command.profileId);
+          if (profile.primaryEditalId === current.id) {
+            if (command.replacementPrimaryId === undefined) {
+              return { status: 'INVALID', code: 'PRIMARY_REQUIRED' };
+            }
+            if (command.replacementPrimaryId !== null) {
+              if (command.replacementPrimaryId === current.id) {
+                return { status: 'INVALID', code: 'PRIMARY_ARCHIVED' };
+              }
+              const replacement = (await requestResult(
+                store.get([command.profileId, command.replacementPrimaryId]),
+              )) as Edital | undefined;
+              if (!replacement) return { status: 'INVALID', code: 'ENTITY_NOT_FOUND' };
+              if (replacement.status !== 'ACTIVE') {
+                return { status: 'INVALID', code: 'PRIMARY_ARCHIVED' };
+              }
+            }
+            sideEffects.push({
+              store: STORES.profiles,
+              value: {
+                ...profile,
+                primaryEditalId: command.replacementPrimaryId,
+                localRevision: profile.localRevision + 1,
+              },
+            });
+          }
+        }
+
+        return {
+          status: 'OK',
+          entity: next,
+          changed: JSON.stringify(current ?? null) !== JSON.stringify(next),
+          baseRevision: current?.localRevision ?? null,
+          kind: 'upsert',
+          sideEffects,
         };
       }
 
@@ -473,6 +569,13 @@ export class LocalContentRepository implements ContentRepository {
         const current = (await requestResult(
           linkStore.get([command.profileId, command.linkId]),
         )) as EditalDiscipline | undefined;
+        if (
+          current &&
+          (current.editalId !== command.editalId || current.subjectId !== command.subjectId)
+        ) {
+          // Re-pointing an existing link would move the whole discipline tree.
+          return { status: 'INVALID', code: 'LINK_EDITAL_MISMATCH' };
+        }
         const samePair = (await requestResult(
           linkStore.index('by_edital_subject').getAll([
             command.profileId,
@@ -492,7 +595,10 @@ export class LocalContentRepository implements ContentRepository {
           current?.orderKey ??
           nextOrderKey(siblings.filter((item) => item.id !== command.linkId));
 
-        const displayAlias = normalizeDisplayAlias(command.displayAlias) ?? current?.displayAlias;
+        const displayAlias =
+          command.displayAlias === undefined
+            ? current?.displayAlias
+            : normalizeDisplayAlias(command.displayAlias);
         const next: EditalDiscipline = {
           id: command.linkId,
           profileId: command.profileId,
@@ -503,6 +609,7 @@ export class LocalContentRepository implements ContentRepository {
           status: 'ACTIVE',
           ...(displayAlias ? { displayAlias } : {}),
         };
+        validateEditalLink(edital, subject, next);
         return {
           status: 'OK',
           entity: next,
@@ -526,10 +633,14 @@ export class LocalContentRepository implements ContentRepository {
             ]),
           )) as EditalDiscipline | undefined,
         );
+        await requireActiveEdital(transaction, command.profileId, link.editalId);
         const store = transaction.objectStore(STORES.assuntos);
         const current = (await requestResult(
           store.get([command.profileId, command.value.id]),
         )) as Assunto | undefined;
+        if (current && current.editalDisciplineId !== link.id) {
+          return { status: 'INVALID', code: 'CROSS_SCOPE_LINK' };
+        }
         const scoped = (await requestResult(
           store.index('by_scope').getAll([command.profileId, link.id]),
         )) as Assunto[];
@@ -577,10 +688,14 @@ export class LocalContentRepository implements ContentRepository {
             ]),
           )) as EditalDiscipline | undefined,
         );
+        await requireActiveEdital(transaction, command.profileId, link.editalId);
         const store = transaction.objectStore(STORES.aulas);
         const current = (await requestResult(
           store.get([command.profileId, command.value.id]),
         )) as Aula | undefined;
+        if (current && current.editalDisciplineId !== link.id) {
+          return { status: 'INVALID', code: 'CROSS_SCOPE_LINK' };
+        }
         const scoped = (await requestResult(
           store.index('by_scope').getAll([command.profileId, link.id]),
         )) as Aula[];
@@ -688,6 +803,16 @@ export class LocalContentRepository implements ContentRepository {
         if (!current) return { status: 'INVALID', code: 'ENTITY_NOT_FOUND' };
         const orderKey = normalizeOrderKey(command.orderKey);
         if (!orderKey) return { status: 'INVALID', code: 'ORDER_KEY_REQUIRED' };
+        if (orderKey === current.orderKey) {
+          // No real change: never bump a revision without an outbox intent.
+          return {
+            status: 'OK',
+            entity: current,
+            changed: false,
+            baseRevision: current.localRevision,
+            kind: 'upsert',
+          };
+        }
         const next = { ...current, orderKey, localRevision: current.localRevision + 1 };
         return {
           status: 'OK',
