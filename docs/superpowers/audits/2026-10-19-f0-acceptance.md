@@ -3,7 +3,7 @@
 **Data da execução:** 2026-10-28 (America/Fortaleza)
 **Branch:** `v2` (worktree isolado `C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado`)
 **Base:** `origin/v2` em `2ffcc63` + merge de `origin/main` em `689a9f4`
-**Gate calculado:** `READY_FOR_HUMAN_REVIEW` (não aprovado)
+**Gate na entrega original:** `READY_FOR_HUMAN_REVIEW` (sem aceite na época). **Gate recalculado em 2026-10-28 após o aceite:** `APPROVED` **somente para a auditoria F0, com ressalvas**; ver Seção 13.
 **Escopo:** F0 somente. Nenhuma implementação V2, nenhuma alteração funcional na V1, nenhum deploy, nenhum dado real.
 
 ## 1. Resumo executivo
@@ -157,4 +157,34 @@ O gate F0 está **READY_FOR_HUMAN_REVIEW**. As condições automáticas de inven
 2. decisão sobre os 46 destinos propostos;
 3. decisão sobre os quatro riscos HIGH e as ADRs de schema.
 
-**Não declare F0 aprovada e não inicie F1 sem esse aceite.**
+**Nota histórica:** este era o bloqueio no momento da entrega. O aceite posterior, registrado na seção 13, encerrou o gate da auditoria com ressalvas. **Não iniciar implementação F1 apenas por esse aceite.**
+
+
+## 13. Aceite humano posterior e recálculo do gate (2026-10-28)
+
+**Decisão humana rastreável:** [issue #108 — comentário de aceite F0 com ressalvas](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279). Essa autorização é específica para **aceitação da entrega da auditoria**, não para homologação da V1, início de F1, implementação, merges à main ou deploy.
+
+**Aprovação funcional, conforme inventário atualizado:** 35 `PRESERVE` e 10 `REFORMULATE` aprovados como **diretrizes de escopo da V2**. O item `F-V1-VISUAL-LAYOUT-LAB` conserva `proposed_disposition=UNDECIDED`, `disposition_finalized=false` e está **fora da F1**; `decision_status=APPROVED` registra *apenas a aprovação expressa do adiamento*, não um destino final. Todos os 46 registros possuem `approval_reference` apontando para o comentário acima. Nenhuma classe foi alterada para simular concordância.
+
+**Recálculo executado:** os validadores **inalterados** do commit `v2` (`validateInventory`, `validateSchemaMatrix`, `validateRiskMatrix`, `validateBaseline`, `computeBaselineGate`, `evaluateF0Gate`) foram avaliados em sessão JavaScript isolada com o conteúdo dos arquivos JSON lidos novamente da branch GitHub e `human_approval_ref` apontando para o comentário. A matriz de referências de gate usa exatamente D01–D27 + A-01 (escopo original F0); **A-02 é emenda posterior** documentada na spec-mestra e nos contratos F1, não foi adicionada artificialmente ao conjunto exato do validador F0.
+
+| Verificação | Resultado do recálculo |
+| --- | --- |
+| `validateInventory` | `ok=true`; `errors=[]`; 46 decisões aprovadas, sendo 1 **adiamento** de destino UNDECIDED |
+| `validateSchemaMatrix` | `ok=true`; `errors=[]` — coerência documental, não migração real |
+| `validateRiskMatrix` | `ok=true`; `errors=[]` — rastreabilidade, não mitigação |
+| `validateBaseline` | `ok=true`; `errors=[]` — contém FAIL/NOT_RUN corretos |
+| `computeBaselineGate` | `PASS` para presença/execução Impeccable, não homologação de UX |
+| `evaluateF0Gate` | **`APPROVED`**, `reasons=[]` |
+
+**Natureza da verificação:** invocação dos métodos dos módulos JavaScript obtidos do GitHub em ambiente de avaliação isolado; **não** equivale a executar `npm test` ou Playwright no worktree Windows, tampouco a novo teste de produto. Os 66 testes F0 e 3048 unitários reportados permanecem evidência da execução anterior, sem repetição nesta etapa documental.
+
+**Ressalvas que continuam abertas e bloqueiam alegações de segurança/homologação remota:**
+- Quatro riscos `HIGH / UNVERIFIED`: `R-V1-LEGACY-REMOTE-PLAN`, `R-V1-FIRESTORE-DOCUMENT-1MIB`, `R-V1-MULTITAB-OUTBOX-RACE` e `R-V1-BACKUP-TOMBSTONE-LOSS`. Aprovar o tratamento como pendência não valida a mitigação.
+- E2E V1: `npm run test:e2e:mock` FAIL (No tests found); `test:e2e:mock:all` 59 PASS e **107 FAIL**. Não corrigidos nem reclassificados.
+- Migração real, Rules/Emulator, Google/Firestore remoto, acessibilidade integral e cenários com dados reais: `NOT_RUN/INCONCLUSIVE` no escopo da F0.
+- Laboratório visual: destino futuro não decidido; nenhum escopo de implementação F1 autorizado.
+
+**Veredito formal da F0:** `APPROVED_WITH_RESERVATIONS` como **aceite humano da auditoria**; valor mecânico do gate existente: `APPROVED`. A distinção evita confundir entrega auditada com funcionamento do produto homologado.
+
+**Próximo gate:** [ADRs F1 propostas](../specs/2026-10-28-v2-f1-architecture-decisions.md) + [spec F1 proposta](../specs/2026-10-28-estudo-organizado-v2-f1-foundation-design.md) em revisão. Apenas após sua aprovação poderão ser produzidos writing-plans F1; a implementação permanece proibida.
