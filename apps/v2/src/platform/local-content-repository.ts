@@ -47,6 +47,7 @@ import {
   type LogicalTombstone,
 } from '../domain/delete';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
+import { notifyLocalChange } from './local-events';
 import {
   openV2Database,
   requestResult,
@@ -455,6 +456,11 @@ export class LocalContentRepository implements ContentRepository {
       }
 
       await transactionDone(transaction);
+      try {
+        notifyLocalChange(command.profileId, plan.entityId);
+      } catch {
+        // A listener must not turn a durable commit into a reported failure.
+      }
       return { kind: 'LOCAL_COMMITTED', value: result.entity };
     } catch (error) {
       try {

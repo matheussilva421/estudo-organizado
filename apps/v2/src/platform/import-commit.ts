@@ -17,6 +17,7 @@ import {
   toLocalPersistenceError,
   transactionDone,
 } from './indexeddb';
+import { notifyLocalChange } from './local-events';
 
 export type ImportApproval = { confirmed: true; targetSignature: string };
 
@@ -337,6 +338,11 @@ export class ImportCommitter {
       receiptStore.put(receipt);
 
       await transactionDone(transaction);
+      try {
+        notifyLocalChange(profileId, preview.importId);
+      } catch {
+        // A listener must not turn a durable commit into a reported failure.
+      }
       return { kind: 'LOCAL_COMMITTED', value: receipt };
     } catch (error) {
       try {

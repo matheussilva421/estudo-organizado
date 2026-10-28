@@ -20,6 +20,7 @@ import {
   transactionDone,
 } from './indexeddb';
 import { LocalContentRepository } from './local-content-repository';
+import { notifyLocalChange } from './local-events';
 
 type OperationRecord = {
   operationId: string;
@@ -139,6 +140,11 @@ export class LocalProfileRepository implements ProfileRepository {
       } satisfies OperationRecord);
 
       await transactionDone(transaction);
+      try {
+        notifyLocalChange(input.profileId, input.profileId);
+      } catch {
+        // A listener must not turn a durable commit into a reported failure.
+      }
       return { kind: 'LOCAL_COMMITTED', value: next };
     } catch (error) {
       try {
@@ -253,6 +259,11 @@ export class LocalProfileRepository implements ProfileRepository {
       }
 
       await transactionDone(transaction);
+      try {
+        notifyLocalChange(profileId, profileId);
+      } catch {
+        // A listener must not turn a durable commit into a reported failure.
+      }
       return { kind: 'LOCAL_COMMITTED', value: { adopted } };
     } catch (error) {
       try {
