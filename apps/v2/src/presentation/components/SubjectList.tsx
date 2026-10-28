@@ -25,7 +25,9 @@ export function SubjectList({ subjects, onRename }: SubjectListProps) {
                 event.preventDefault();
                 const title = draft.trim();
                 if (!title) return;
-                void onRename(subject, title).then(() => setEditingId(null));
+                void onRename(subject, title)
+                  .then(() => setEditingId(null))
+                  .catch(() => undefined);
               }}
             >
               <label htmlFor={`rename-${subject.id}`}>Novo nome para {subject.title}</label>

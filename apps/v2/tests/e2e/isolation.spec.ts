@@ -14,3 +14,11 @@ test('serves V2 on its own origin with its own storage names', async ({ page }) 
 
   expect(databases).not.toContain('EstudoOrganizadoDB');
 });
+
+test('serves_a_restrictive_content_security_policy', async ({ page }) => {
+  const response = await page.goto('/');
+  const policy = response?.headers()['content-security-policy'] ?? '';
+
+  expect(policy).toContain("default-src 'self'");
+  expect(policy).toContain("object-src 'none'");
+});

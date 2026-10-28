@@ -53,6 +53,7 @@ describe('outbox flush', () => {
     expect(result.confirmedIds).toEqual(['op-1']);
     expect(result.pending).toEqual([]);
     expect(await remote.lookup('op-1')).toBe('APPLIED');
+    expect(await remote.lookupRevision('op-1')).toBe(1);
 
     const replay = await remote.apply(first);
     expect(replay).toEqual({ kind: 'ALREADY_APPLIED', remoteRevision: 1 });

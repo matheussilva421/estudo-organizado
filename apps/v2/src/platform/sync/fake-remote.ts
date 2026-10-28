@@ -130,6 +130,10 @@ export class FakeRemotePort implements RemoteMutationPort {
     return this.appliedOperations.has(normalized) ? 'APPLIED' : 'MISSING';
   }
 
+  async lookupRevision(operationId: string): Promise<number | null> {
+    return this.appliedOperations.get(operationId)?.remoteRevision ?? null;
+  }
+
   private assertScope(profileId: string): void {
     if (profileId !== this.profileId) {
       throw new RemoteScopeError('operation profile does not match the simulated profile');

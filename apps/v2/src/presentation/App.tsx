@@ -112,6 +112,7 @@ export function App() {
       await refresh();
     } catch (error) {
       setNotice(persistenceMessage(error));
+      throw error;
     }
   }
 
