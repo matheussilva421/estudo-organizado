@@ -2,7 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import type { StudySubject } from '../domain/subject';
 import type { SyncHealth } from '../application/sync-types';
 import { assessSyncHealth } from '../application/sync-policy';
-import { getPendingOutbox, LocalPersistenceError } from '../platform/indexeddb';
+import {
+  getDatabaseUpgradeState,
+  getPendingOutbox,
+  LocalPersistenceError,
+  subscribeDatabaseUpgrade,
+  type DatabaseUpgradeState,
+} from '../platform/indexeddb';
 import { LocalSubjectRepository } from '../platform/local-subject-repository';
 import { subscribeLocalChanges } from '../platform/local-events';
 import { getE2EFault } from '../platform/e2e-fault';
@@ -41,6 +47,7 @@ export function App() {
   const [notice, setNotice] = useState<string | null>(null);
   const [theme, setTheme] = useState('grafite');
   const [ready, setReady] = useState(false);
+  const [upgrade, setUpgrade] = useState<DatabaseUpgradeState>(getDatabaseUpgradeState());
   const [health, setHealth] = useState<SyncHealth>({
     localCommitted: false,
     remoteCommitted: false,
@@ -80,6 +87,8 @@ export function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => subscribeDatabaseUpgrade(setUpgrade), []);
 
   async function createSubject(): Promise<void> {
     if (!canSubmitTitle(form.title)) {
@@ -121,7 +130,11 @@ export function App() {
   }
 
   return (
-    <main className="app-shell" data-db-ready={ready ? 'true' : 'false'}>
+    <main
+      className="app-shell"
+      data-db-ready={ready ? 'true' : 'false'}
+      data-db-upgrade={upgrade.kind}
+    >
       <header className="app-header">
         <div>
           <h1>Estudo Organizado V2</h1>
@@ -140,6 +153,13 @@ export function App() {
       </header>
 
       <SyncStatus health={health} />
+
+      {upgrade.blocked ? (
+        <p className="inline-notice upgrade-blocked" role="alert">
+          Atualização do banco bloqueada por outra aba do V2. Feche ou recarregue a outra aba para
+          concluir. Nada foi apagado.
+        </p>
+      ) : null}
 
       <section className="panel" aria-labelledby="subjects-title">
         <h2 id="subjects-title">Disciplinas</h2>

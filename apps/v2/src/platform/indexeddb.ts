@@ -1,5 +1,6 @@
 import type { OutboxOperation } from '../application/sync-types';
 import { LOCAL_DB_VERSION } from '../domain/versions';
+import { upgradeV2Schema } from './content-migration';
 
 export const DB_NAME = 'estudo-organizado-v2';
 
@@ -10,9 +11,17 @@ export const STORES = {
   profiles: 'profiles',
   meta: 'meta',
   conflicts: 'conflicts',
+  editais: 'editais',
+  editalDisciplines: 'edital_disciplines',
+  assuntos: 'assuntos',
+  aulas: 'aulas',
+  lessonTopicLinks: 'lesson_topic_links',
+  tombstones: 'tombstones',
+  quarantine: 'quarantine',
+  importReceipts: 'import_receipts',
 } as const;
 
-export type LocalPersistenceKind = 'QUOTA' | 'ABORT' | 'UNAVAILABLE';
+export type LocalPersistenceKind = 'QUOTA' | 'ABORT' | 'UNAVAILABLE' | 'BLOCKED_UPGRADE';
 
 export class LocalPersistenceError extends Error {
   readonly kind: LocalPersistenceKind;
@@ -29,6 +38,9 @@ export class LocalPersistenceError extends Error {
 export function toLocalPersistenceError(error: unknown): LocalPersistenceError {
   if (error instanceof LocalPersistenceError) return error;
   const name = error instanceof DOMException ? error.name : '';
+  if (name === 'VersionError') {
+    return new LocalPersistenceError('BLOCKED_UPGRADE', 'indexeddb schema version is ahead', false);
+  }
   if (name === 'QuotaExceededError') {
     return new LocalPersistenceError('QUOTA', 'storage quota exceeded', true);
   }
@@ -39,6 +51,46 @@ export function toLocalPersistenceError(error: unknown): LocalPersistenceError {
 }
 
 let cachedDatabase: Promise<IDBDatabase> | null = null;
+
+export type DatabaseUpgradeKind = 'IDLE' | 'READY' | 'BLOCKED_UPGRADE' | 'FAILED';
+
+export type DatabaseUpgradeState = {
+  kind: DatabaseUpgradeKind;
+  blocked: boolean;
+  version: number;
+};
+
+let upgradeState: DatabaseUpgradeState = {
+  kind: 'IDLE',
+  blocked: false,
+  version: LOCAL_DB_VERSION,
+};
+
+const upgradeListeners = new Set<(state: DatabaseUpgradeState) => void>();
+
+function publishUpgradeState(next: DatabaseUpgradeState): void {
+  upgradeState = next;
+  for (const listener of [...upgradeListeners]) {
+    try {
+      listener(next);
+    } catch {
+      // A rendering listener must not break the database lifecycle.
+    }
+  }
+}
+
+export function getDatabaseUpgradeState(): DatabaseUpgradeState {
+  return upgradeState;
+}
+
+export function subscribeDatabaseUpgrade(
+  listener: (state: DatabaseUpgradeState) => void,
+): () => void {
+  upgradeListeners.add(listener);
+  return () => {
+    upgradeListeners.delete(listener);
+  };
+}
 
 export function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -55,52 +107,48 @@ export function transactionDone(transaction: IDBTransaction): Promise<void> {
   });
 }
 
-function upgrade(database: IDBDatabase): void {
-  if (!database.objectStoreNames.contains(STORES.subjects)) {
-    const subjects = database.createObjectStore(STORES.subjects, { keyPath: ['profileId', 'id'] });
-    subjects.createIndex('by_profile', 'profileId', { unique: false });
-  }
-  if (!database.objectStoreNames.contains(STORES.outbox)) {
-    const outbox = database.createObjectStore(STORES.outbox, { keyPath: 'operationId' });
-    outbox.createIndex('by_profile_status', ['profileId', 'status'], { unique: false });
-  }
-  if (!database.objectStoreNames.contains(STORES.operations)) {
-    const operations = database.createObjectStore(STORES.operations, { keyPath: 'operationId' });
-    operations.createIndex('by_profile', 'profileId', { unique: false });
-  }
-  if (!database.objectStoreNames.contains(STORES.profiles)) {
-    database.createObjectStore(STORES.profiles, { keyPath: 'profileId' });
-  }
-  if (!database.objectStoreNames.contains(STORES.meta)) {
-    database.createObjectStore(STORES.meta, { keyPath: 'key' });
-  }
-  if (!database.objectStoreNames.contains(STORES.conflicts)) {
-    const conflicts = database.createObjectStore(STORES.conflicts, { keyPath: 'conflictId' });
-    conflicts.createIndex('by_profile', 'profileId', { unique: false });
-  }
-}
-
 export function openV2Database(profileId: string): Promise<IDBDatabase> {
   if (typeof profileId !== 'string' || !profileId.trim()) {
     return Promise.reject(new LocalPersistenceError('UNAVAILABLE', 'profileId is required', false));
   }
   if (cachedDatabase) return cachedDatabase;
 
-  cachedDatabase = new Promise((resolve, reject) => {
+  const pending: Promise<IDBDatabase> = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, LOCAL_DB_VERSION);
-    request.onupgradeneeded = () => upgrade(request.result);
-    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const transaction = request.transaction;
+      if (!transaction) {
+        throw new LocalPersistenceError('UNAVAILABLE', 'indexeddb upgrade has no transaction', false);
+      }
+      upgradeV2Schema(request.result, event.oldVersion, transaction);
+    };
+    request.onsuccess = () => {
+      const database = request.result;
+      // An older tab must release the database when a newer schema is opened in
+      // another tab; otherwise the upgrade stays blocked forever.
+      database.onversionchange = () => {
+        database.close();
+        if (cachedDatabase === pending) cachedDatabase = null;
+        publishUpgradeState({ kind: 'IDLE', blocked: false, version: database.version });
+      };
+      publishUpgradeState({ kind: 'READY', blocked: false, version: database.version });
+      resolve(database);
+    };
     request.onerror = () => {
       cachedDatabase = null;
+      publishUpgradeState({ kind: 'FAILED', blocked: false, version: LOCAL_DB_VERSION });
       reject(toLocalPersistenceError(request.error));
     };
+    // Keep the request alive: the browser completes it as soon as the tab that
+    // holds the previous version closes or releases the connection. The state
+    // is published so the UI can explain the block without destroying data.
     request.onblocked = () => {
-      cachedDatabase = null;
-      reject(new LocalPersistenceError('UNAVAILABLE', 'indexeddb upgrade blocked', false));
+      publishUpgradeState({ kind: 'BLOCKED_UPGRADE', blocked: true, version: LOCAL_DB_VERSION });
     };
   });
 
-  return cachedDatabase;
+  cachedDatabase = pending;
+  return pending;
 }
 
 export async function deleteV2DatabaseForTests(): Promise<void> {
@@ -115,6 +163,7 @@ export async function deleteV2DatabaseForTests(): Promise<void> {
     request.onerror = () => resolve();
     request.onblocked = () => resolve();
   });
+  publishUpgradeState({ kind: 'IDLE', blocked: false, version: LOCAL_DB_VERSION });
 }
 
 export async function getPendingOutbox(profileId: string): Promise<OutboxOperation[]> {

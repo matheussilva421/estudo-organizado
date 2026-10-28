@@ -3,12 +3,15 @@ import type { OutboxOperation } from '../application/sync-types';
 import { LocalSubjectRepository } from './local-subject-repository';
 import {
   deleteV2DatabaseForTests,
+  getDatabaseUpgradeState,
   getPendingOutbox,
   markConfirmed,
   openV2Database,
   requestResult,
   STORES,
+  transactionDone,
   type ConfirmedProof,
+  type DatabaseUpgradeState,
 } from './indexeddb';
 import { browserLockPort, withSafeFlushLock } from './sync/coordination';
 import { setE2EFault, type E2EFault } from './e2e-fault';
@@ -17,6 +20,17 @@ type Fault = E2EFault;
 
 export type V2E2EHarness = {
   resetDb: () => Promise<void>;
+  seedLegacyV1: () => Promise<void>;
+  releaseLegacyV1: () => void;
+  legacySnapshot: () => Promise<{
+    stores: string[];
+    subjects: number;
+    operations: number;
+    outbox: number;
+  }>;
+  openDb: () => Promise<{ version: number; stores: string[] }>;
+  upgradeState: () => DatabaseUpgradeState;
+  countStore: (store: string) => Promise<number>;
   setFault: (fault: Fault) => void;
   execute: (command: SubjectCommand) => Promise<StudySubject>;
   executeWithFault: (command: SubjectCommand, fault: Exclude<Fault, null>) => Promise<StudySubject>;
@@ -52,8 +66,102 @@ function readSharedRemote(profileId: string): SharedRemoteState {
 export function installE2EHarness(): void {
   if (!__V2_E2E__) return;
 
+  let legacyConnection: IDBDatabase | null = null;
+
   const harness: V2E2EHarness = {
     resetDb: () => deleteV2DatabaseForTests(),
+    seedLegacyV1: async () => {
+      legacyConnection?.close();
+      legacyConnection = null;
+      await deleteV2DatabaseForTests();
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('estudo-organizado-v2', 1);
+        request.onupgradeneeded = () => {
+          const current = request.result;
+          const subjects = current.createObjectStore('subjects', {
+            keyPath: ['profileId', 'id'],
+          });
+          subjects.createIndex('by_profile', 'profileId', { unique: false });
+          const outbox = current.createObjectStore('outbox', { keyPath: 'operationId' });
+          outbox.createIndex('by_profile_status', ['profileId', 'status'], { unique: false });
+          current.createObjectStore('operations', { keyPath: 'operationId' });
+          current.createObjectStore('profiles', { keyPath: 'profileId' });
+          current.createObjectStore('meta', { keyPath: 'key' });
+          const conflicts = current.createObjectStore('conflicts', { keyPath: 'conflictId' });
+          conflicts.createIndex('by_profile', 'profileId', { unique: false });
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const transaction = database.transaction(
+        ['subjects', 'operations', 'outbox'],
+        'readwrite',
+      );
+      transaction.objectStore('subjects').put({
+        id: 'subject-legacy',
+        profileId: 'local-default',
+        title: 'Legado preservado',
+        localRevision: 4,
+      });
+      transaction.objectStore('operations').put({
+        operationId: 'op-legacy',
+        profileId: 'local-default',
+        entityId: 'subject-legacy',
+        type: 'create',
+        subject: {
+          id: 'subject-legacy',
+          profileId: 'local-default',
+          title: 'Legado preservado',
+          localRevision: 4,
+        },
+        committedAt: '2026-10-28T00:00:00.000Z',
+      });
+      transaction.objectStore('outbox').put({
+        operationId: 'op-legacy',
+        profileId: 'local-default',
+        entityType: 'subject',
+        entityId: 'subject-legacy',
+        kind: 'upsert',
+        baseRevision: 3,
+        payload: {
+          id: 'subject-legacy',
+          profileId: 'local-default',
+          title: 'Legado preservado',
+          localRevision: 4,
+        },
+        schemaVersion: 1,
+        status: 'PENDING',
+      });
+      await transactionDone(transaction);
+      legacyConnection = database;
+    },
+    releaseLegacyV1: () => {
+      legacyConnection?.close();
+      legacyConnection = null;
+    },
+    legacySnapshot: async () => {
+      if (!legacyConnection) throw new Error('legacy connection is not open');
+      const transaction = legacyConnection.transaction(
+        ['subjects', 'operations', 'outbox'],
+        'readonly',
+      );
+      return {
+        stores: [...legacyConnection.objectStoreNames].sort(),
+        subjects: await requestResult(transaction.objectStore('subjects').count()),
+        operations: await requestResult(transaction.objectStore('operations').count()),
+        outbox: await requestResult(transaction.objectStore('outbox').count()),
+      };
+    },
+    openDb: async () => {
+      const database = await openV2Database('local-default');
+      return { version: database.version, stores: [...database.objectStoreNames].sort() };
+    },
+    upgradeState: () => getDatabaseUpgradeState(),
+    countStore: async (store: string) => {
+      const database = await openV2Database('local-default');
+      const transaction = database.transaction(store, 'readonly');
+      return requestResult(transaction.objectStore(store).count());
+    },
     setFault: (fault) => setE2EFault(fault),
     execute: (command) => new LocalSubjectRepository({ fault: null }).execute(command),
     executeWithFault: (command, fault) =>
