@@ -4,9 +4,9 @@
 **Status:** APROVADA PELO USUÁRIO EM 2026-10-19 (G1) — IMPLEMENTAÇÃO NÃO AUTORIZADA
 **Projeto:** matheussilva421/estudo-organizado
 **Natureza:** desenho arquitetural e contratos de aceitação; nenhuma implementação autorizada
-**Origem:** brainstorming Superpowers, Decisões Arquiteturais 01–27 aprovadas em 2026-10-19; Emenda A-01 Impeccable aprovada em 2026-10-19
-**Gate atual:** G2/F0 aprovado em 2026-10-19; execução F0 ainda não comprovada (2026-10-27). Próximo gate humano: homologação da auditoria F0. Consultar [roadmap V2](../v2/ROADMAP.md).
-**Próximo gate condicionado:** G1 aprovado em 2026-10-19; writing-plans autorizado exclusivamente para elaborar planos por fatia. G2 exige aprovação explícita do plano e do método de execução antes de qualquer implementação.
+**Origem:** brainstorming Superpowers, Decisões Arquiteturais 01–27 aprovadas em 2026-10-19; Emenda A-01 Impeccable aprovada em 2026-10-19; **Emenda A-02 (sync multi-dispositivo/Google/Firestore Spark) aprovada em 2026-10-28**.
+**Gate atual:** F0 executada em 2026-10-28, com relatório em `READY_FOR_HUMAN_REVIEW`; a aceitação humana das 46 destinações funcionais e dos riscos/ADRs permanece pendente. **F1 não autorizada.** Consultar [roadmap V2](../v2/ROADMAP.md).
+**Próximo gate condicionado:** aprovação humana específica da F0; em seguida elaborar e aprovar spec F1 e writing-plans F1, com autorização de execução própria. G1 e G2/F0 foram aprovados, mas **não** liberam implementação F1.
 
 ## 1. Objetivo, usuários, resultados e regras inegociáveis
 
@@ -116,11 +116,12 @@ IndexedDB mantém registros canônicos, metadados de versão, índices de consul
 
 Usar paginação/consultas indexadas e agregações derivadas para desempenho; orçamentos de capacidade e latência serão medidos na F0/F1 e estabelecidos nos contratos de cada módulo. Quota excedida significa falha de commit e feedback explícito, não sucesso presumido. Armazenamento persistente do navegador poderá ser solicitado quando disponível, mas não é garantia de proteção contra limpeza, perda de perfil ou dispositivo.
 
-### 6.2 Sync manual por padrão, automático opcional
+### 6.2 Sync automático após ativação explícita com Google — Emenda A-02 (substitui a regra operacional D06)
 
 - Operações locais sempre podem ser confirmadas independentemente da nuvem quando o IndexedDB está íntegro.
-- Sync remoto somente após configuração/autenticação válida; automático demanda opt-in, só atua quando as condições do navegador permitem e aplica lotes, limites de frequência e backoff.
-- Outbox mantém ID idempotente, entidade/escopo, revisão-base, mutação e estado de tentativa; retries não duplicam operação.
+- Modo local sem login permanece válido. Sync remoto depende de Google Sign-In no Firebase Auth, vinculação explícita do acervo local à conta e ativação consentida uma vez. **Após ativado, automático é o padrão enquanto habilitado**, sem obrigar o usuário a apertar sincronizar, com opção de pausa/desativação e diagnóstico manual.
+- O coordenador automático é oportunista enquanto o aplicativo pode executar (boot, commit local, reconnect, retorno do foco/autenticação); não presume tarefas em segundo plano com PWA fechada. Opera com lotes, limites, backoff, budget Spark e fila local durável.
+- Outbox mantém ID idempotente, entidade/escopo, revisão-base, mutação e estado de tentativa; retries não duplicam efeito remoto. O ACK remoto requer commit confirmado ou read-back que comprove aplicação; timeout não equivale a ACK. É vedada uma segunda fila de writes offline do SDK para as mesmas mutações.
 - Envio remoto usa precondições transacionais/comparação de revisão para evitar overwrite cego. Confirmação remota é separada da confirmação local.
 - Recebimento remoto valida esquema, identidade e invariantes antes da aplicação transacional local.
 - Cloudflare KV e Google Drive da V1 não participarão como peers do sync canônico V2. Importação/exportação e backup remoto opcional são decisões separadas.
@@ -132,11 +133,21 @@ Alterações com IDs diferentes e sem violar invariantes podem convergir. Altera
 
 Tombstones precisam sobreviver ao tempo necessário para evitar ressurreição por dispositivo antigo; a compactação exige regra de convergência/epoch e recuperação para clientes excessivamente desatualizados. Nunca definir TTL arbitrário como única proteção. Resolução humana é ato auditado, idempotente e, se aplicável, gera nova mutação condicionada.
 
-Falha remota/cota esgotada -> fila pendente + estado visível + tentativas limitadas; não apagar nem forçar merge. Estados exibidos na interface: salvo local, sincronização pendente, sincronizando, sincronizado, conflito, erro remoto e recuperação necessária.
+Falha remota/cota esgotada -> fila pendente + estado visível + tentativas limitadas; não apagar nem forçar merge. Estados exibidos na interface: salvo local, sincronização pendente, sincronizando, sincronizado, conflito, erro remoto e recuperação necessária. Diferenciar de forma verificável commit local, commit remoto e convergência observada; não prometer que outro dispositivo offline está atualizado.
+
+### 6.4 Contrato de multi-dispositivo e critérios de não regressão (A-02)
+
+**Referência técnica para a futura F1:** [Pré-contratos de sincronização multi-dispositivo](2026-10-28-v2-multidevice-sync-f1-contracts.md) — PROPOSTA PARA REVISÃO, não plano ou código aprovado.
+
+- **Transporte remoto de alterações incrementais por entidade/agregado delimitado**, com IDs estáveis, versionamento, estratégia de leitura incremental e orçamento de leituras/escritas; não repetir um documento único com todo o estado da V1. O formato físico exato exige spec, benchmarks sintéticos e gate de custo.
+- **Concorrência**: idempotência de operações, precondições remotas, coordenação cross-tab comprovada (Web Locks e fallback seguro) e resolução conservadora de conflitos. BroadcastChannel não substitui lock.
+- **Backup/tombstones**: exclusões semanticamente duráveis; backup versionado, preview e reconciliação segura de snapshots antigos e dispositivos desatualizados.
+- **Legado Reta Final (#107)**: ausência de campos v2 não equivale a plano inexistente; migração/comparação de intenção antes de qualquer escrita remota.
+- **Riscos HIGH da F0**: `R-V1-LEGACY-REMOTE-PLAN`, `R-V1-FIRESTORE-DOCUMENT-1MIB`, `R-V1-MULTITAB-OUTBOX-RACE` e `R-V1-BACKUP-TOMBSTONE-LOSS` permanecem **UNVERIFIED**, mesmo com A-02 aprovada. Contratos/testes negativos na F1 e provas com Firebase Emulator/ambiente isolado na F7; não afirmar riscos mitigados antecipadamente.
 
 ## 7. Identidade, segurança e privacidade
 
-Modo local não exige login. Firebase Auth é obrigatório ao sincronizar, e os documentos remotos são isolados por UID autenticado em Firestore Security Rules. Vinculação de acervo local a conta exige procedimento explícito: preview das origens/contagens, riscos de mesclagem, conflitos e autorização humana. Trocar conta/logout não apaga acervo local silenciosamente e não mistura identidades.
+Modo local não exige login. **Google Sign-In pelo Firebase Authentication** é o método de entrada remoto aprovado (A-02); o Firestore Spark é o backend único de sync remoto, e os documentos são isolados por UID autenticado em Firestore Security Rules. Vinculação de acervo local a conta exige procedimento explícito: preview das origens/contagens, riscos de mesclagem, conflitos e autorização humana. Trocar conta/logout não apaga acervo local silenciosamente e não mistura identidades.
 
 Requisitos: CSP restritiva, DOM seguro/escape apropriado e proteção contra XSS, validação de todos os dados importados/remotos, isolamento de credenciais fora de exportações, acesso mínimo às integrações, controle de ações destrutivas, audibilidade e revisão de regras de autenticação/autorização no emulador e em homologação isolada. A chave pública de configuração Firebase não é segredo privado, mas sua exposição não substitui Rules corretas. Não prometer proteção criptográfica do IndexedDB por padrão, nem E2EE não aprovada.
 
@@ -240,12 +251,12 @@ Metas numéricas de latência, tamanho, RPO/RTO e testes de capacidade devem der
 
 ## 14. Governança e fluxo de aprovação
 
-Repositório único e monólito modular. Documentação em docs/; arquivos base já existentes na V1 permanecem como fonte histórica. Decisões arquiteturais em ADRs versionadas; mudança material exige ADR substitutiva, impacto em contratos, autorização humana e testes. CI examina dependências circulares, importações proibidas, tipo/contrato, testes pertinentes e verificações de segurança/UX por risco.
+Repositório único e monólito modular. Documentação em docs/; arquivos base já existentes na V1 permanecem como fonte histórica. Decisões arquiteturais em ADRs versionadas; mudança material exige ADR substitutiva, impacto em contratos, autorização humana e testes. **Verificações locais pelo Codex** examinam dependências circulares, importações proibidas, tipos/contratos, testes e requisitos de segurança/UX conforme risco; **nenhuma GitHub Action ou CI/CD nova por padrão**.
 
 **Cadeia de gates:**
 - G0: aprovar a arquitetura consolidada em seções (27 decisões + emenda A-01). **APROVADO pelo usuário em 2026-10-19.**
 - G1: redigir e aprovar esta spec-mestra. **APROVADO expressamente pelo usuário em 2026-10-19.**
-- G2: Superpowers writing-plans autorizado para documentar planos por fatia; **planos e método de execução pendentes de aprovação humana.**
+- G2: plano da auditoria F0 e método Subagent-driven **aprovados em 2026-10-19**; F0 executada em 2026-10-28 e aguarda aceite humano. **Spec, writing-plans e execução F1 permanecem pendentes de seus próprios gates.**
 - G3: autorização explícita por fase/tarefa para implementação; TDD e revisões independentes conforme criticidade.
 - G4: homologação funcional, visual, integridade e recuperação por domínio e integrada.
 - G5: autorização exclusiva para cutover V1 -> V2 após piloto, backups verificáveis, reconciliação de dados e contingência aprovada.
@@ -296,7 +307,7 @@ Sem decisão antecipada sobre: router, bibliotecas de formulários, componentes 
 | D03 A | Web/PWA | 3, 9 |
 | D04 B | Local-first e remote sync canônico único | 6 |
 | D05 B | Modelo canônico orientado a domínios | 3, 4 |
-| D06 B | Sincronização híbrida/manual padrão | 6 |
+| D06 B | Sync híbrido; a regra operacional de padrão manual foi **substituída por A-02** após o opt-in Google | 6 |
 | D07 A | Firebase Auth/Firestore via adaptadores | 3, 6, 7 |
 | D08 B | Mesclagem conservadora e revisão humana | 6 |
 | D09 B | Migração progressiva, verificável e reversível | 8 |
@@ -319,6 +330,7 @@ Sem decisão antecipada sobre: router, bibliotecas de formulários, componentes 
 | D26 B | Armazenamento por criticidade e degradação segura | 6 |
 | D27 B | Modelo temporal canônico | 4 |
 | A-01 | Uso obrigatório do Impeccable no design, auditoria de UI e homologação | 10, 13, 15 |
+| A-02 | Multi-dispositivo com Google Sign-In + Firebase Auth/Firestore Spark; automático após ativação, outbox causal e proteção contra perda silenciosa | 6, 7, 12, 13, 17 |
 
 ## 19. Fontes e referências de escopo
 
