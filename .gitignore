@@ -12,6 +12,9 @@
 !/.cursorignore
 !/src/
 !/src/**
+!/apps/
+!/apps/v2/
+!/apps/v2/**
 !/scripts/
 !/scripts/**
 !/docs/
