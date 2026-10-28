@@ -156,8 +156,8 @@ export function App() {
 
       {upgrade.blocked ? (
         <p className="inline-notice upgrade-blocked" role="alert">
-          Atualização do banco bloqueada por outra aba do V2. Feche ou recarregue a outra aba para
-          concluir. Nada foi apagado.
+          Atualização do banco bloqueada por outra aba do V2. Feche ou recarregue a outra aba (ou esta)
+          para concluir. Nada foi apagado e as edições ficam bloqueadas até a liberação.
         </p>
       ) : null}
 
@@ -167,13 +167,14 @@ export function App() {
           form={form}
           onTitleChange={(title) => setForm({ ...form, title, error: null })}
           onSubmit={createSubject}
+          locked={upgrade.blocked}
         />
         {notice ? (
           <p className="inline-notice" role="alert">
             {notice}
           </p>
         ) : null}
-        <SubjectList subjects={subjects} onRename={renameSubject} />
+        <SubjectList subjects={subjects} onRename={renameSubject} ready={ready} />
       </section>
 
       <p className="app-footnote">

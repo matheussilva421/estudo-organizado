@@ -1,6 +1,6 @@
 import type { OutboxOperation } from '../application/sync-types';
 import { LOCAL_DB_VERSION } from '../domain/versions';
-import { upgradeV2Schema } from './content-migration';
+import { UPGRADE_BLOCKED_MESSAGE, upgradeV2Schema } from './content-migration';
 
 export const DB_NAME = 'estudo-organizado-v2';
 
@@ -39,7 +39,11 @@ export function toLocalPersistenceError(error: unknown): LocalPersistenceError {
   if (error instanceof LocalPersistenceError) return error;
   const name = error instanceof DOMException ? error.name : '';
   if (name === 'VersionError') {
-    return new LocalPersistenceError('BLOCKED_UPGRADE', 'indexeddb schema version is ahead', false);
+    return new LocalPersistenceError(
+      'BLOCKED_UPGRADE',
+      `${UPGRADE_BLOCKED_MESSAGE}: indexeddb schema version is ahead`,
+      false,
+    );
   }
   if (name === 'QuotaExceededError') {
     return new LocalPersistenceError('QUOTA', 'storage quota exceeded', true);
@@ -114,7 +118,13 @@ export function openV2Database(profileId: string): Promise<IDBDatabase> {
   if (cachedDatabase) return cachedDatabase;
 
   const pending: Promise<IDBDatabase> = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, LOCAL_DB_VERSION);
+    let request: IDBOpenDBRequest;
+    try {
+      request = indexedDB.open(DB_NAME, LOCAL_DB_VERSION);
+    } catch (error) {
+      reject(toLocalPersistenceError(error));
+      return;
+    }
     request.onupgradeneeded = (event) => {
       const transaction = request.transaction;
       if (!transaction) {
@@ -128,6 +138,11 @@ export function openV2Database(profileId: string): Promise<IDBDatabase> {
       // another tab; otherwise the upgrade stays blocked forever.
       database.onversionchange = () => {
         database.close();
+        if (cachedDatabase === pending) cachedDatabase = null;
+        publishUpgradeState({ kind: 'IDLE', blocked: false, version: database.version });
+      };
+      // A browser-forced close must not leave a dead connection in the cache.
+      database.onclose = () => {
         if (cachedDatabase === pending) cachedDatabase = null;
         publishUpgradeState({ kind: 'IDLE', blocked: false, version: database.version });
       };
@@ -148,15 +163,31 @@ export function openV2Database(profileId: string): Promise<IDBDatabase> {
   });
 
   cachedDatabase = pending;
+  // A synchronous throw or an early rejection must not poison the cache.
+  void pending.catch(() => {
+    if (cachedDatabase === pending) cachedDatabase = null;
+  });
   return pending;
 }
 
-export async function deleteV2DatabaseForTests(): Promise<void> {
-  if (cachedDatabase) {
-    const database = await cachedDatabase.catch(() => null);
-    database?.close();
-    cachedDatabase = null;
+const CACHED_CLOSE_TIMEOUT_MS = 2_000;
+
+async function releaseCachedDatabase(): Promise<void> {
+  const pending = cachedDatabase;
+  cachedDatabase = null;
+  if (!pending) return;
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), CACHED_CLOSE_TIMEOUT_MS));
+  const database = await Promise.race([pending.catch(() => null), timeout]);
+  if (database) {
+    database.close();
+    return;
   }
+  // A blocked open settles only when the other tab releases it; close late.
+  void pending.then((late) => late.close()).catch(() => undefined);
+}
+
+export async function deleteV2DatabaseForTests(): Promise<void> {
+  await releaseCachedDatabase();
   await new Promise<void>((resolve) => {
     const request = indexedDB.deleteDatabase(DB_NAME);
     request.onsuccess = () => resolve();

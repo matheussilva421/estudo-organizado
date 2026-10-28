@@ -4,10 +4,11 @@ type SubjectFormProps = {
   form: FormState;
   onTitleChange: (title: string) => void;
   onSubmit: () => void;
+  locked?: boolean;
 };
 
-export function SubjectForm({ form, onTitleChange, onSubmit }: SubjectFormProps) {
-  const disabled = form.submitting || !canSubmitTitle(form.title);
+export function SubjectForm({ form, onTitleChange, onSubmit, locked = false }: SubjectFormProps) {
+  const disabled = locked || form.submitting || !canSubmitTitle(form.title);
 
   return (
     <form
@@ -27,6 +28,7 @@ export function SubjectForm({ form, onTitleChange, onSubmit }: SubjectFormProps)
           autoComplete="off"
           aria-invalid={form.error ? 'true' : 'false'}
           aria-describedby={form.error ? 'subject-error' : undefined}
+          readOnly={locked}
           placeholder="Ex.: Direito Constitucional"
           onChange={(event) => onTitleChange(event.target.value)}
         />

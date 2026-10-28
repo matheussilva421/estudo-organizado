@@ -4,14 +4,21 @@ import type { StudySubject } from '../../domain/subject';
 type SubjectListProps = {
   subjects: StudySubject[];
   onRename: (subject: StudySubject, title: string) => Promise<void>;
+  ready?: boolean;
 };
 
-export function SubjectList({ subjects, onRename }: SubjectListProps) {
+export function SubjectList({ subjects, onRename, ready = true }: SubjectListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
 
   if (subjects.length === 0) {
-    return <p className="empty-state">Nenhuma disciplina local ainda. Crie a primeira acima.</p>;
+    return ready ? (
+      <p className="empty-state">Nenhuma disciplina local ainda. Crie a primeira acima.</p>
+    ) : (
+      <p className="empty-state" data-subjects="pending">
+        Lendo as disciplinas deste dispositivo…
+      </p>
+    );
   }
 
   return (

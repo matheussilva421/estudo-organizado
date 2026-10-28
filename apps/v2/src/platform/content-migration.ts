@@ -83,8 +83,10 @@ function definitions(): StoreDefinition[] {
         { name: 'by_scope', keyPath: ['profileId', 'editalDisciplineId'] },
         { name: 'by_scope_order', keyPath: ['profileId', 'editalDisciplineId', 'orderKey'] },
         {
+          // `parentId` is nullable and IndexedDB does not index compound keys
+          // containing null, so writers persist `parentKey = parentId ?? ''`.
           name: 'by_parent_order',
-          keyPath: ['profileId', 'editalDisciplineId', 'parentId', 'orderKey'],
+          keyPath: ['profileId', 'editalDisciplineId', 'parentKey', 'orderKey'],
         },
       ],
     },
