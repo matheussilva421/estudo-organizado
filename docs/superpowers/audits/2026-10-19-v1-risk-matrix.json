@@ -1,0 +1,252 @@
+[
+  {
+    "id": "R-V1-LEGACY-REMOTE-PLAN",
+    "area": "sync e reconciliação remota",
+    "severity": "HIGH",
+    "trigger": "Snapshot Firestore gravado antes do schema v2, com payload.planejamento sem schemaVersionRetaFinal, planId ou revision, e dispositivo local já migrado para v2.",
+    "consequence": "O cliente interpreta o remoto como plano ausente (missing-remote-plan), bloqueia a adoção e pode induzir uma escrita local forçada que reescreve ou perde a linhagem remota.",
+    "evidence_paths": [
+      "docs/handoffs/handoff-2026-10-26-issue-107-missing-remote-plan.md",
+      "src/js/sync/reta-final-legacy.js",
+      "src/js/sync/firestore-sync-engine.js",
+      "tests/unit/reta-final-legacy-adoption.test.js"
+    ],
+    "evidence_level": "CODE_AND_TEST",
+    "v2_invariant": "Plano legado só vira base v2 após prova de equivalência de intenção; divergência exige reconciliação humana e nunca escrita destrutiva.",
+    "proposed_test": "Fixture sintética de 180 blocos sem metadados v2: adotar quando equivalente ao plano local e rejeitar com mismatch quando um bloco ou nota divergir; no emulador, confirmar que o caso equivalente não publica plano e que o divergente permanece sem write.",
+    "suggested_phase": "F1 (contrato de sync) / F7-A (homologação)",
+    "mitigation": "buildLegacyRetaFinalAdoption e assessLegacyRetaFinalWrite já existem localmente e exigem equivalência; a correção não foi publicada nem exercitada no snapshot real.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-FIRESTORE-DOCUMENT-1MIB",
+    "area": "sync e limite de documento Firestore",
+    "severity": "HIGH",
+    "trigger": "Envelope Firestore acima de 1.048.576 bytes; caso observado de 1.210.602 bytes, com payload.config.manualSyncHistory ocupando 508.364 bytes.",
+    "consequence": "O setDoc é rejeitado, o sync e a recuperação ficam bloqueados até reconstruir a outbox, e um corte cego poderia remover dados acadêmicos.",
+    "evidence_paths": [
+      "docs/handoffs/handoff-2026-10-26-issue-107-missing-remote-plan.md",
+      "src/js/sync/firestore-schema.js",
+      "src/js/sync/firestore-sync-engine.js",
+      "tests/unit/firestore-schema.test.js"
+    ],
+    "evidence_level": "CODE_AND_TEST",
+    "v2_invariant": "O envelope remoto mede o JSON UTF-8, exclui apenas telemetria operacional e falha fechado sem truncar editais, eventos ou planejamento.",
+    "proposed_test": "Estado sintético com histórico de 508.364 bytes e fixture acadêmica de 889.117 bytes: gerar envelope, medir até 1.048.576 e gravar/ler no emulador; depois exceder o limite apenas com dados acadêmicos e provar erro fechado sem corte.",
+    "suggested_phase": "F1 (orçamento de payload) / F7-A",
+    "mitigation": "getFirestoreEnvelopeSizeBytes, remoção de manualSyncHistory/lastManualSyncResults e guard de 1 MiB; o hotfix é local e não foi publicado.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-MULTITAB-OUTBOX-RACE",
+    "area": "sync e concorrência entre abas",
+    "severity": "HIGH",
+    "trigger": "Duas abas da mesma origem inicializam módulos separados e chamam flushFirestoreOutbox ao mesmo tempo.",
+    "consequence": "Cada aba tem seu próprio SyncLock em memória; ambas leem a mesma outbox e podem disputar a mesma revisão remota, gerando erro repetido, duplicação de tentativa ou perda de atualização local.",
+    "evidence_paths": [
+      "src/js/sync/sync-lock.js",
+      "src/js/sync/firestore-sync-engine.js",
+      "src/js/sync/sync-coordinator.js",
+      "tests/unit/sync-lock.test.js"
+    ],
+    "evidence_level": "CODE_ONLY",
+    "v2_invariant": "Um lock cross-tab (BroadcastChannel ou Web Locks) ou idempotência por outbox impede dois flushes simultâneos.",
+    "proposed_test": "Abrir duas páginas Playwright na mesma origem e IndexedDB, enfileirar a mesma outbox e disparar flush simultâneo; verificar uma única transição de snapshotRevision e nenhuma perda ou duplicação.",
+    "suggested_phase": "F1 (contrato) / F7-A",
+    "mitigation": "O CAS por snapshotRevision e a troca atômica da envelope reduzem o dano; proposta V2: BroadcastChannel, Web Locks ou idempotência por outbox para serializar abas.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-CLEARDATA-DRAFT-RESIDUE",
+    "area": "privacidade e armazenamento local",
+    "severity": "MEDIUM",
+    "trigger": "O usuário confirma limpar todos os dados enquanto existem rascunhos ou journal da Reta Final.",
+    "consequence": "clearData recria app_state e limpa stores de sync, mas preserva reta_final_drafts e reta_final_journal; conteúdo pessoal e operações antigas continuam legíveis e podem reaparecer em fluxos de retomada.",
+    "evidence_paths": [
+      "src/js/store/indexeddb.js",
+      "src/js/store/reta-final-draft-store.js",
+      "src/js/store/reta-final-history-store.js",
+      "src/js/store/reta-final-commit.js"
+    ],
+    "evidence_level": "CODE_ONLY",
+    "v2_invariant": "Limpeza total remove todos os stores locais ou declara explicitamente o que preserva e por quê.",
+    "proposed_test": "Semear app_state, outbox, drafts e journal; chamar clearData com IndexedDB sintético; verificar que drafts e journal ficam vazios ou que a UI mostra preservação explícita.",
+    "suggested_phase": "F1",
+    "mitigation": "Nenhuma na V1; proposta V2: incluir reta_final_drafts e reta_final_journal na limpeza total ou exigir confirmação separada para preservá-los.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-BACKUP-TOMBSTONE-LOSS",
+    "area": "backup e restauração",
+    "severity": "HIGH",
+    "trigger": "Exportar ou restaurar backup de estado que contém blocos removidos e minRetainedRevision em config.firestoreSync.",
+    "consequence": "createExportableState troca config.firestoreSync pelo default, que não possui removedBlocks nem minRetainedRevision; o restore perde tombstones e pode ressuscitar blocos removidos ou reabrir linhagem antiga no próximo merge.",
+    "evidence_paths": [
+      "src/js/store/export-state.js",
+      "src/js/store/indexeddb.js",
+      "src/js/sync/firestore-sync-engine.js",
+      "src/js/store/reta-final-commit.js"
+    ],
+    "evidence_level": "CODE_ONLY",
+    "v2_invariant": "Backup preserva tombstones e piso de retenção, ou a restauração força reconciliação segura sem ressurreição.",
+    "proposed_test": "Estado com removedBlocks/minRetainedRevision: createExportableState, serializar, restaurar e executar merge three-way; verificar que tombstones e floor sobrevivem ou que o fluxo exige reconciliação e não readiciona bloco removido.",
+    "suggested_phase": "F1 (contrato) / F7-C",
+    "mitigation": "Nenhuma na V1; proposta V2: preservar removedBlocks/minRetainedRevision no export e reinjetar tombstones do descritor remoto antes do merge, bloqueando restore sem piso comprovado.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-INNERHTML-ESCAPE-SURFACE",
+    "area": "segurança de renderização",
+    "severity": "MEDIUM",
+    "trigger": "Conteúdo importado, sincronizado ou editado pelo usuário chega a um dos 43 arquivos de src/js que usam innerHTML sem esc() sistemático.",
+    "consequence": "Inserção de HTML ou atributos no DOM; a CSP com script-src 'self' bloqueia execução inline, mas a superfície permite regressão, adulteração de UI e exfiltração se surgir um sink permitido.",
+    "evidence_paths": [
+      "src/js/utils.js",
+      "src/index.html",
+      "docs/security/sync-threat-model.md",
+      "src/js/views/edital-import.js",
+      "src/js/views/reta-final-import.js",
+      "src/js/views/config/data-management.js"
+    ],
+    "evidence_level": "CODE_ONLY",
+    "v2_invariant": "Todo dado não confiável é inserido por textContent, atributo ou esc() com teste de sink; CSP estrito permanece.",
+    "proposed_test": "Importar payload sintético com <img onerror>, <script> e aspas em nome/notas; renderizar previews de edital, Reta Final e backup; verificar ausência de nós executáveis ou handlers e texto literal.",
+    "suggested_phase": "F2 / F6",
+    "mitigation": "esc() cobre &, <, >, aspas e apóstrofo, e a CSP não permite script inline; a cobertura é manual, sem lint ou teste de sinks.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-IMPORT-UNBOUNDED-JSON",
+    "area": "importação de JSON",
+    "severity": "MEDIUM",
+    "trigger": "O usuário seleciona arquivo JSON grande ou profundamente aninhado em backup, edital ou Reta Final.",
+    "consequence": "FileReader.readAsText e JSON.parse rodam sem limite de tamanho, profundidade ou cardinalidade; a aba pode travar, consumir memória ou gravar estado parcial após validação apenas estrutural.",
+    "evidence_paths": [
+      "src/js/backup-restore.js",
+      "src/js/views/config/data-management.js",
+      "src/js/views/edital-import.js",
+      "src/js/views/reta-final-import.js",
+      "src/js/logic/edital-import-core.js"
+    ],
+    "evidence_level": "CODE_ONLY",
+    "v2_invariant": "Importação aplica limite de bytes, profundidade e cardinalidade antes do parse pesado e rejeita com erro claro sem alterar o estado.",
+    "proposed_test": "Fixtures sintéticas acima do limite de bytes e profundidade, mais uma válida: confirmar rejeição antes do parse pesado, mensagem clara, estado intacto e aba responsiva.",
+    "suggested_phase": "F2",
+    "mitigation": "Validação estrutural e try/catch existem nos três fluxos; proposta V2: impor limite de bytes, profundidade e cardinalidade antes do parse pesado.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-SW-STALE-SHELL",
+    "area": "PWA e cache",
+    "severity": "MEDIUM",
+    "trigger": "Deploy de nova versão enquanto uma aba permanece aberta, ou primeira carga após publicação ainda controlada pelo service worker anterior.",
+    "consequence": "Módulos antigos podem executar contra estado ou schema novos; o hotfix de sync pode não estar ativo, e a primeira carga pode mascarar a versão publicada.",
+    "evidence_paths": [
+      "src/sw.js",
+      "src/js/sw-register.js",
+      "tests/unit/sw-register.test.js",
+      "tests/unit/sw-fetch-routing.test.js",
+      "docs/handoffs/handoff-2026-10-26-issue-107-missing-remote-plan.md"
+    ],
+    "evidence_level": "CODE_AND_TEST",
+    "v2_invariant": "Versão do shell, precache e módulos importados coincidem antes de qualquer escrita remota; atualização é visível e aplicada.",
+    "proposed_test": "Playwright com service worker A controlando a página, publicar B e manter a aba aberta; verificar banner, skipWaiting, controllerchange e reload, e que nenhum módulo antigo serve após a atualização; repetir primeira carga sem controller.",
+    "suggested_phase": "F1 (PWA) / F7-D",
+    "mitigation": "Cache versionado, updateViaCache none, checagem a cada 15 minutos, banner, auto-promoção em 5s e reload em controllerchange; a primeira carga ainda pode usar o SW antigo.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-QUOTA-SAVE-LOSS",
+    "area": "persistência e quota",
+    "severity": "MEDIUM",
+    "trigger": "IndexedDB rejeita a gravação com QuotaExceededError durante uma edição.",
+    "consequence": "A alteração fica só em memória; o usuário vê erro, mas se fechar a aba antes da cópia de emergência o dado é perdido.",
+    "evidence_paths": [
+      "src/js/store/indexeddb.js",
+      "src/js/app/save-status.js",
+      "tests/unit/save-status.test.js",
+      "tests/unit/store-indexeddb-imports.test.js"
+    ],
+    "evidence_level": "CODE_AND_TEST",
+    "v2_invariant": "Falha de quota é visível, mensurável e preserva cópia recuperável; nenhuma gravação é declarada sucesso sem confirmação.",
+    "proposed_test": "Fake IndexedDB que lança QuotaExceededError no put; verificar app:saveStatus de erro com mensagem de quota, estado em memória preservado, cópia de emergência e recuperação após reload.",
+    "suggested_phase": "F1",
+    "mitigation": "describeSaveFailure traduz quota, emitSaveStatus publica o erro e pagehide tenta localStorage de emergência; não há reserva nem limpeza automática.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-TIMER-REFRESH-LOSS",
+    "area": "timer e cronômetro",
+    "severity": "MEDIUM",
+    "trigger": "Refresh, fechamento ou suspensão durante sessão ativa, com novo carregamento sem a flag de mesma sessão.",
+    "consequence": "O carregamento zera _timerStart e não soma o tempo decorrido a tempoAcumulado; a sessão em andamento pode desaparecer silenciosamente.",
+    "evidence_paths": [
+      "src/js/store/indexeddb.js",
+      "src/js/logic/timer.js",
+      "src/js/components.js"
+    ],
+    "evidence_level": "CODE_ONLY",
+    "v2_invariant": "Sessão ativa é restaurada ou finalizada com o tempo decorrido; refresh nunca descarta tempo sem aviso.",
+    "proposed_test": "Semear cronoLivre e evento com _timerStart e tempoAcumulado; simular reload em nova sessão; verificar consolidação do decorrido ou aviso explícito de descarte.",
+    "suggested_phase": "F4",
+    "mitigation": "A flag estudo_session_active preserva o timer em reload da mesma sessão; proposta V2: consolidar o decorrido no unload ou restaurar a sessão em nova sessão.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-RULES-DEPLOY-DRIFT",
+    "area": "segurança Firestore",
+    "severity": "MEDIUM",
+    "trigger": "Regras publicadas no projeto Firebase divergem de firestore.rules, ou App Check e restrição de API key não estão no estado previsto.",
+    "consequence": "Leitura ou escrita por UID incorreto e delete não intencional; as regras locais corretas não provam o estado remoto.",
+    "evidence_paths": [
+      "firestore.rules",
+      "docs/security/sync-threat-model.md"
+    ],
+    "evidence_level": "CODE_ONLY",
+    "v2_invariant": "Regras por request.auth.uid == uid, delete:false e App Check são verificados no projeto publicado antes de sync.",
+    "proposed_test": "Suíte de regras no emulador: dono lê e escreve; outro UID nega; delete nega em snapshots, syncMeta e entities; comparar hash ou versão das regras publicadas com o arquivo local.",
+    "suggested_phase": "F7-E",
+    "mitigation": "firestore.rules local usa owns(uid) e allow delete:false em snapshots, syncMeta e entities; o wildcard final nega tudo. Falta prova do deploy.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-ENTITY-TOMBSTONE-CONTRACT-DRIFT",
+    "area": "documentação e schema de sync",
+    "severity": "LOW",
+    "trigger": "Migração ou implementação V2 segue docs/api/sync-contract.md e docs/architecture/data-flow.md, que citam config.entityTombstones, enquanto o código usa state.syncTombstones.",
+    "consequence": "Tombstones podem ser gravados ou lidos no lugar errado; entity_meta e firestore_entity_outbox existem e são limpos, mas não têm leitor ativo, sugerindo contrato morto ou incompleto.",
+    "evidence_paths": [
+      "docs/api/sync-contract.md",
+      "docs/architecture/data-flow.md",
+      "src/js/store.js",
+      "src/js/store/indexeddb.js",
+      "src/js/sync/sync-center.js"
+    ],
+    "evidence_level": "CODE_ONLY",
+    "v2_invariant": "Um único contrato de tombstones e um único caminho de leitura/escrita, documentado e testado.",
+    "proposed_test": "Teste de contrato que compara os campos documentados com os usados no merge/sync e falha se entityTombstones e syncTombstones divergirem; verificar leitor ativo para entity_meta e firestore_entity_outbox.",
+    "suggested_phase": "F1",
+    "mitigation": "Nenhuma; proposta V2: unificar o contrato em state.syncTombstones e remover ou implementar entity_meta e firestore_entity_outbox com leitor explícito.",
+    "status": "UNVERIFIED"
+  },
+  {
+    "id": "R-V1-BACKUP-CREDENTIAL-LEAK",
+    "area": "backup e credenciais",
+    "severity": "LOW",
+    "trigger": "Exportar estado com cfToken, cfUrl, uid Firestore, driveFileId ou timestamps remotos, ou importar backup adulterado com esses campos.",
+    "consequence": "Credenciais ou identificadores remotos poderiam viajar no JSON e ser restaurados em outro ambiente.",
+    "evidence_paths": [
+      "src/js/store/export-state.js",
+      "src/js/backup-restore.js",
+      "tests/unit/backup-restore.test.js",
+      "tests/unit/store-export-normalize-imports.test.js"
+    ],
+    "evidence_level": "CODE_AND_TEST",
+    "v2_invariant": "Backup e export nunca contêm segredos ou identidade remota; restore rejeita payload com esses campos.",
+    "proposed_test": "Exportar estado sintético com cfToken, uid e timestamps; verificar ausência no JSON; validateBackupPayload deve rejeitar backup adulterado com esses campos.",
+    "suggested_phase": "F2",
+    "mitigation": "createExportableState remove cfToken, cfUrl, uid e driveFileId e reseta firestoreSync; validateBackupPayload rejeita credenciais e metadados remotos.",
+    "status": "MITIGATED",
+    "evidence_note": "Em 2026-10-28, npx vitest run tests/unit/backup-restore.test.js tests/unit/store-export-normalize-imports.test.js passou 25/25, cobrindo rejeição de credenciais e strip no export."
+  }
+]
