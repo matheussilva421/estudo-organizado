@@ -2,7 +2,7 @@
 
 **Atualizado em:** 2026-10-28
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
-**Situação:** **F0 ACEITA COM RESSALVAS**; **F1 IMPLEMENTADA E TESTADA LOCALMENTE — `F1_READY_FOR_HUMAN_REVIEW` (2026-10-28)**. G1/F1 e G2/F1 aprovados; execução G3/F1 realizada no escopo do GOAL. F2 não autorizada.
+**Situação:** **F0 ACEITA COM RESSALVAS**; **F1 IMPLEMENTADA E TESTADA LOCALMENTE — `F1_READY_FOR_HUMAN_REVIEW` (2026-10-28)**; **specs F2–F8 propostas para revisão, não aprovadas nem executadas**. G1/F1 e G2/F1 aprovados; G3/F1 executado no escopo do GOAL; F2 não autorizada.
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
 **Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
@@ -57,13 +57,13 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | **IMPLEMENTADA — F1_READY_FOR_HUMAN_REVIEW (2026-10-28)** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | Aceite humano do [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
-| **F2 — Editais e conteúdo** | NÃO INICIADA | Base canônica de organização | F1 homologada |
-| **F3 — Planejamento** | NÃO INICIADA | Planejamento executável | F2 e regras temporais |
-| **F4 — Execução/sessões** | NÃO INICIADA | Tempo/histórico confiáveis | Persistência e domínio |
-| **F5 — Revisões/inteligência** | NÃO INICIADA | Revisar e priorizar | F2–F4 |
-| **F6 — Indicadores/UX** | NÃO INICIADA | Métricas e experiência integradas | Dados canônicos por domínio |
-| **F7 — Homologação integrada** | NÃO INICIADA | Migração, sync, segurança, restore, piloto | F1–F6 |
-| **F8 — Cutover** | **BLOQUEADO** | Adoção da V2 como app principal | G5 humano e contingência |
+| **F2 — Editais e conteúdo** | **SPEC PROPOSTA; F1 não homologada** | Base canônica de organização | F1 homologada |
+| **F3 — Planejamento** | **SPEC PROPOSTA; não iniciada** | Planejamento executável | F2 e regras temporais |
+| **F4 — Execução/sessões** | **SPEC PROPOSTA; não iniciada** | Tempo/histórico confiáveis | Persistência e domínio |
+| **F5 — Revisões/inteligência** | **SPEC PROPOSTA; não iniciada** | Revisar e priorizar | F2–F4 |
+| **F6 — Indicadores/UX** | **SPEC PROPOSTA; não iniciada** | Métricas e experiência integradas | Dados canônicos por domínio |
+| **F7 — Homologação integrada** | **SPEC PROPOSTA; não iniciada** | Migração, sync, segurança, restore, piloto | F1–F6 |
+| **F8 — Cutover** | **SPEC PROPOSTA; G5 bloqueado** | Adoção da V2 como app principal | G5 humano e contingência |
 
 **Importante:** sincronização, backup, segurança, migração e Impeccable **não** começam apenas em F7; cada fatia vertical deve exercitar seus contratos desde F1.
 
@@ -267,3 +267,88 @@ Uma fase só estará **CONCLUÍDA** após verificar: escopo aceito, evidências 
 ---
 
 **Proposta de atualização:** cada gate aprovado altera somente a linha da fase relevante, os bloqueios e o próximo passo deste arquivo e a checklist da issue. Specs e planos técnicos detalhados ficam nos caminhos existentes de `docs/superpowers/specs/` e `docs/superpowers/plans/`; não copiar o texto integral para este roadmap ou para a issue.
+
+## 16. Especificações propostas para o restante do projeto (2026-10-28)
+
+**Estado:** apenas *design*, publicado para revisão; **nenhuma spec F2–F8 foi aprovada**, e nenhuma fase foi implementada nesta atualização. Não confundir com o plano F1 já aprovado. Cada spec exige gate humano próprio antes de writing-plans e GOAL, com adaptações à evidência da fase anterior. Evitar gerar planos executáveis F2–F8 antecipadamente quando F1 ainda não demonstrou seus contratos.
+
+| Fase | Spec formal proposta | Condição de entrada / gate |
+| --- | --- | --- |
+| **F2** | [Editais, disciplinas, aulas e importação](../specs/2026-10-28-estudo-organizado-v2-f2-content-design.md) | Fase anterior aceite + revisão humana desta spec → writing-plans → GOAL |
+| **F3** | [Calendário, ciclo, planejamento e Reta Final](../specs/2026-10-28-estudo-organizado-v2-f3-planning-design.md) | Fase anterior aceite + revisão humana desta spec → writing-plans → GOAL |
+| **F4** | [Sessões, timer, histórico e hábitos](../specs/2026-10-28-estudo-organizado-v2-f4-execution-design.md) | Fase anterior aceite + revisão humana desta spec → writing-plans → GOAL |
+| **F5** | [Revisões, pontos fracos e banca](../specs/2026-10-28-estudo-organizado-v2-f5-reviews-design.md) | Fase anterior aceite + revisão humana desta spec → writing-plans → GOAL |
+| **F6** | [Navegação, dashboards, busca e Impeccable](../specs/2026-10-28-estudo-organizado-v2-f6-experience-design.md) | Fase anterior aceite + revisão humana desta spec → writing-plans → GOAL |
+| **F7** | [Auth/Firestore Spark, sync real, migração, backup e QA](../specs/2026-10-28-estudo-organizado-v2-f7-integration-design.md) | Fase anterior aceite + revisão humana desta spec → writing-plans → GOAL |
+| **F8** | [Cutover, migração final, contingência e encerramento](../specs/2026-10-28-estudo-organizado-v2-f8-cutover-design.md) | Fase anterior aceite + revisão humana desta spec → writing-plans → GOAL |
+
+**Ressalva sobre F2/A-02:** o [desenho F2](../specs/2026-10-28-estudo-organizado-v2-f2-content-design.md) propõe **antecipar um ensaio mínimo de Google Auth/Firestore em ambiente isolado** para detectar incompatibilidades antes de F7; é uma **proposta de ajuste de sequenciamento**, não mudança aprovada da A-02, nem autorização para criar projeto Firebase ou acessar serviços reais. Sem essa aprovação específica, F7 retém a homologação de sync real, com risco de integração tardia explicitamente rastreado.
+
+**Ressalva sobre F8/G5:** não há autorização para freeze V1, dados reais, publicar V2, migrar banco, alterar GitHub Actions/Cloudflare ou integrar `v2` à `main`. G5 depende da F7 homologada e checklist de cutover aprovado.
+
+## 17. Matriz de rastreabilidade das 46 funcionalidades F0 → responsáveis
+
+**Regra de contagem:** esta matriz indica a fase de **aceite principal** de cada capacidade. Os contratos técnicos transversais podem começar antes e ser homologados depois. Um mesmo módulo pode ser testado em várias fases sem contabilizar a funcionalidade duas vezes. `PRESERVE` significa preservar a capacidade e seus dados, não copiar o código da V1; `REFORMULATE` permite reestruturação com equivalência funcional aprovada.
+
+| Fase principal | ID F0 | Capacidade | Destino aprovado / situação |
+| --- | --- | --- | --- |
+| F1 | `F-V1-PERSISTENCE-INDEXEDDB` | Persistência local em IndexedDB | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F1 | `F-V1-SAVE-STATUS` | Indicador de salvamento local | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F1 | `F-V1-BOOT-RECOVERY` | Recuperação e reconciliação no boot | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F1 | `F-V1-PWA-OFFLINE` | PWA, service worker e uso offline | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F2 | `F-V1-EDITALS-CRUD` | Editais, disciplinas, assuntos e aulas | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F2 | `F-V1-PRINCIPAL-EDITAL` | Edital principal e escopo de dados | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F2 | `F-V1-ARCHIVED-EDITALS` | Editais anteriores | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F2 | `F-V1-VERTICAL-EDITAL` | Edital verticalizado | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F2 | `F-V1-EDITAL-IMPORT` | Importação de edital | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F2 | `F-V1-LESSON-MAPPER` | Mapeamento de aulas para assuntos | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-STUDY-ORGANIZER` | Study Organizer e agenda de eventos | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-CALENDAR` | Calendário mensal, semanal e painel do dia | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-CYCLE` | Ciclo de estudos e progresso | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-PLANNING-WIZARD` | Wizard de planejamento | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-RF-OVERVIEW` | Reta Final — visão do cronograma | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-RF-IMPORT` | Reta Final — importação e ativação | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-RF-EDITOR-PLANNER` | Reta Final — editor, planejamento e rascunho | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-RF-HISTORY` | Reta Final — checkpoints, histórico e undo/redo | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-RF-CONFLICTS` | Reta Final — conflitos e merge | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-RF-PORTABILITY` | Reta Final — portabilidade e schema v2 | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F3 | `F-V1-RF-REDISTRIBUTION` | Reta Final — prioridade e redistribuição de capacidade | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F4 | `F-V1-TIMER-POMODORO` | Cronômetro livre, timers por evento e Pomodoro | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F4 | `F-V1-SESSION-REGISTRATION` | Registro de sessão multi-tópico | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F4 | `F-V1-SESSION-HISTORY` | Histórico de sessões e exportação | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F4 | `F-V1-HABITS` | Hábitos de estudo | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F5 | `F-V1-REVISIONS` | Revisões espaçadas | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F5 | `F-V1-WEAK-POINTS` | Pontos fracos por desempenho | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F5 | `F-V1-BANCA-ANALYZER` | Inteligência de banca e ranking de tópicos | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-APP-SHELL` | Shell, navegação e despacho de ações | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-LEGACY-FACADES` | Facades legadas e namespace global | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-HOME-DASHBOARD` | Home e visão geral de desempenho | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-ANALYTICS-DASHBOARD` | Dashboards analíticos e por disciplina | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-GLOBAL-SEARCH` | Busca global | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-NOTIFICATIONS` | Notificações nativas de estudo | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-CONFIG-PREFERENCES` | Configurações de estudo e preferências | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-THEMES` | Oito temas visuais e contraste | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-ACCESSIBILITY` | Acessibilidade, foco e teclado | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F6 | `F-V1-SKELETON-LOADING` | Skeletons de carregamento | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F7 | `F-V1-FIRESTORE-SYNC` | Sincronização Firestore | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F7 | `F-V1-CLOUDFLARE-SYNC` | Sincronização Cloudflare | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F7 | `F-V1-DRIVE-SYNC` | Sincronização Google Drive | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F7 | `F-V1-SYNC-CENTER` | Central de sync, saúde e conflitos | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F7 | `F-V1-SYNC-DIAGNOSTICS` | Diagnóstico de sync e log | `REFORMULATE` — diretriz aprovada, implementação pendente |
+| F7 | `F-V1-BACKUP-EXPORT-IMPORT` | Backup local, exportação e importação | `PRESERVE` — diretriz aprovada, implementação pendente |
+| F7 | `F-V1-DATA-MANAGEMENT` | Gestão de dados e arquivamento | `PRESERVE` — diretriz aprovada, implementação pendente |
+| Adiado | `F-V1-VISUAL-LAYOUT-LAB` | Laboratório visual de layout | Decisão do adiamento aprovada; destino **UNDECIDED**, fora F1–F8 inicial |
+
+**Reconciliação:** 46/46 funcionalidades identificadas e mapeadas uma única vez: **4 F1 + 6 F2 + 11 F3 + 4 F4 + 3 F5 + 10 F6 + 7 F7 + 1 adiada = 46**. Das 45 com destino definido, **35 PRESERVE + 10 REFORMULATE**. F8 é fase de migração/cutover, não adiciona uma nova funcionalidade da V1. A matriz não é alegação de código implementado.
+
+## 18. Caminho crítico, riscos e encerramento real
+
+1. **Agora:** enviar [GOAL F1](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) ao Codex **somente quando o usuário decidir autorizar G3/F1**. Confirmar status Git/ramificações/worktrees e gatilhos de publicação. F1 termina em revisão humana, não em F2 automática.
+2. **F2–F6:** ratificar specs já propostas na ordem, ajustar apenas decisões afetadas pela fase anterior, redigir writing-plans por fase e executar TDD/local/Impeccable. Evitar PR por tarefa e não criar Actions.
+3. **Sync antecipado (opcional pendente):** decidir após F1 se autoriza um ensaio emulado/Spark isolado pequeno em F2 ou se posterga todo uso remoto real a F7. Exigir orçamento e isolamento; nada de dados reais.
+4. **F7:** provar Auth Google + Firestore Spark multi-dispositivo, Rules, backup/restore, quotas, conflitos e migração isolada; quatro HIGH só mudam status mediante evidências.
+5. **F8:** aprovar explicitamente G5 depois de F7, congelar V1 com garantia de ausência de duplo escritor, backup restaurável, migração e reconciliação real, liberar V2, acompanhar e preservar contingência. **Não** presumir rollback simples de dados.
+6. **Conclusão:** somente após verificação de funcionalidades, dados, QA, custo zero, versão publicada, `main` integrada e saneamento Git sem perda de commits; encerramento humano da issue #108.
+
+**Fonte de custos:** verificar documentação oficial do [Firestore](https://firebase.google.com/docs/firestore/quotas) e [Firebase Spark](https://firebase.google.com/pricing) novamente antes do piloto: cotas gratuitas, **um banco gratuito por projeto**, limites de documento e funções de backup gerenciado pagas. Não projetar com pagamentos implícitos. A-02 requer sync automático **após opt-in e enquanto o app está ativo**; não prometer trabalho com PWA fechada.
+
