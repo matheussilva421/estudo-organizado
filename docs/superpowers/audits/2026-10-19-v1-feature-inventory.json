@@ -278,6 +278,7 @@
       "tests/unit/views-dashboard.test.js",
       "tests/unit/views-modules.test.js",
       "tests/unit/eventos-actions.test.js",
+      "tests/unit/registro-sessao.test.js",
       "tests/e2e/sessoes.spec.js"
     ],
     "test_gap": null,
@@ -684,6 +685,7 @@
       "src/css/tokens.css"
     ],
     "tests": [
+      "tests/unit/app.test.js",
       "tests/unit/theme-contrast.test.js",
       "tests/unit/contrast-themes.test.js",
       "tests/unit/css-architecture.test.js"
@@ -788,8 +790,8 @@
       "tests/unit/sync-now-button.test.js",
       "tests/e2e/sync-e2e.spec.js"
     ],
-    "test_gap": null,
-    "evidence_level": "CODE_AND_TEST",
+    "test_gap": "Testes usam mocks de Firebase Auth/Firestore; OAuth real, emulador com as rules publicadas e persistência remota não foram executados nesta F0.",
+    "evidence_level": "UNCERTAIN",
     "proposed_disposition": "REFORMULATE",
     "risk": "HIGH",
     "decision_status": "PROPOSED",

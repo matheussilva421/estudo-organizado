@@ -1,5 +1,6 @@
 {
   "inventory": "docs/superpowers/audits/2026-10-19-v1-feature-inventory.json",
+  "scope_note": "A descoberta cobre o escopo declarado no plano F0 (views, logic, ui/actions e cinco facades). unmapped=[] prova cobertura desse conjunto, não de todos os arquivos JavaScript da V1.",
   "scope": {
     "directories": [
       "src/js/views",
