@@ -113,7 +113,8 @@ A configuração da V1 continua apontando `test:e2e:mock` para uma spec ignorada
 
 - `main`: `9046cfa`, não alterada.
 - `v2` inicial: `b15226d`; os commits F1 desta execução estão em `git log b15226d..HEAD` e este relatório é o commit documental final.
-- Todo o código está integrado à `v2` local; o push para `origin/v2` ocorre somente após revalidar que o workflow de deploy é restrito à `main`.
+- Todo o código está integrado à `v2`; `origin/v2` foi atualizado para `a478bd3`, incluindo o merge dos documentos F2–F8 que chegaram ao remoto durante a execução.
+- O push foi concluído após aprovação humana explícita, sem force push e sem workaround do bloqueio automático anterior.
 - Nenhum PR, Action, deploy, publicação ou migração real.
 - Branches documentais antigas preservadas; nenhum worktree temporário criado além do já existente da V2.
 

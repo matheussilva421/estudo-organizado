@@ -8,7 +8,7 @@
 ## Estado do Git
 
 - `main`: `9046cfa2283cd293b38df9d52fabfcd5de9ac67c`, intocada.
-- `v2`: F0 + F1 commitadas; HEAD final registrado no comentário da issue #108.
+- `v2`: F0 + F1 commitadas e publicadas; `origin/v2` em `a478bd3` (merge dos docs F2–F8 + commits F1).
 - Nenhum PR, Action, deploy, publicação ou integração na `main`.
 
 ## Concluído
