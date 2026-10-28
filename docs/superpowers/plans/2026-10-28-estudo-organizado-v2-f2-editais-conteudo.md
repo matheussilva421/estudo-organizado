@@ -1,5 +1,7 @@
 # Estudo Organizado V2 — F2 Editais e Conteúdo Implementation Plan
 
+**Gate vigente:** `F2_PLAN_APPROVED_FOR_EXECUTION` — aprovação do proprietário registrada em conversa de 2026-10-28, após aprovação da spec F2 com D-F2-01..06 e E-F2-01..08. **Execução apenas na branch `v2`, conforme [GOAL F2](../goals/2026-10-28-estudo-organizado-v2-f2-codex.md), sem Firebase Emulator, deploy ou alteração da V1.** Referências de autorização ao final deste documento refletem o momento anterior ao aceite do plano.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Entregar as seis funcionalidades F2 do inventário F0 — editais, principal, arquivamento, verticalização, importação e mapeamento de aulas — sobre a F1 existente, sem alterar a V1, introduzir sync paralelo ou perder dados offline.
