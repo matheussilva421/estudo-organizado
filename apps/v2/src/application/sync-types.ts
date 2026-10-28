@@ -40,6 +40,7 @@ export type RemoteMutationResult =
 export type RemoteMutationPort = {
   apply(operation: OutboxOperation): Promise<RemoteMutationResult>;
   lookup(operationId: string): Promise<'APPLIED' | 'MISSING' | 'UNKNOWN'>;
+  lookupRevision?(operationId: string): Promise<number | null>;
 };
 
 export type SyncHealth = {

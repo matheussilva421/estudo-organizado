@@ -178,3 +178,19 @@ export async function markConflict(
     throw toLocalPersistenceError(error);
   }
 }
+
+export type PersistedConflict = {
+  conflictId: string;
+  profileId: string;
+  operationId: string;
+  localPayload: unknown;
+  remoteRevision: number;
+  createdAt: string;
+};
+
+export async function getConflicts(profileId: string): Promise<PersistedConflict[]> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.conflicts, 'readonly');
+  const index = transaction.objectStore(STORES.conflicts).index('by_profile');
+  return requestResult(index.getAll(profileId)) as Promise<PersistedConflict[]>;
+}
