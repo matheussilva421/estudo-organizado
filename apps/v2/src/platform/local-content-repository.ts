@@ -86,6 +86,7 @@ type ApplyResult =
       baseRevision: number | null;
       kind: 'upsert' | 'delete';
       sideEffects?: { store: string; value: unknown }[];
+      remoteBaseRevision?: number | null;
     }
   | { status: 'INVALID'; code: string }
   | { status: 'CONFLICT'; current?: unknown };
@@ -447,6 +448,9 @@ export class LocalContentRepository implements ContentRepository {
           payload: result.entity,
           schemaVersion: DOMAIN_SCHEMA_VERSION,
           status: 'PENDING',
+          ...(result.remoteBaseRevision !== undefined
+            ? { remoteBaseRevision: result.remoteBaseRevision }
+            : {}),
         });
       }
 
@@ -475,7 +479,7 @@ export class LocalContentRepository implements ContentRepository {
           command.editalId,
           transaction,
         );
-        if (deleted) return { status: 'INVALID', code: 'DELETED_ENTITY' };
+        if (deleted) return { status: 'CONFLICT', current: { code: 'DELETED_ENTITY' } };
         const store = transaction.objectStore(STORES.editais);
         const current = (await requestResult(
           store.get([command.profileId, command.editalId]),
@@ -497,7 +501,7 @@ export class LocalContentRepository implements ContentRepository {
           command.editalId,
           transaction,
         );
-        if (deleted) return { status: 'INVALID', code: 'DELETED_ENTITY' };
+        if (deleted) return { status: 'CONFLICT', current: { code: 'DELETED_ENTITY' } };
         const store = transaction.objectStore(STORES.editais);
         const current = (await requestResult(
           store.get([command.profileId, command.editalId]),
@@ -555,7 +559,7 @@ export class LocalContentRepository implements ContentRepository {
           command.linkId,
           transaction,
         );
-        if (deleted) return { status: 'INVALID', code: 'DELETED_ENTITY' };
+        if (deleted) return { status: 'CONFLICT', current: { code: 'DELETED_ENTITY' } };
         const edital = (await requestResult(
           transaction.objectStore(STORES.editais).get([command.profileId, command.editalId]),
         )) as Edital | undefined;
@@ -623,7 +627,7 @@ export class LocalContentRepository implements ContentRepository {
         if (
           await this.deletedMarker(command.profileId, 'assunto', command.value.id, transaction)
         ) {
-          return { status: 'INVALID', code: 'DELETED_ENTITY' };
+          return { status: 'CONFLICT', current: { code: 'DELETED_ENTITY' } };
         }
         const link = requireLink(
           (await requestResult(
@@ -678,7 +682,7 @@ export class LocalContentRepository implements ContentRepository {
 
       case 'UPSERT_AULA': {
         if (await this.deletedMarker(command.profileId, 'aula', command.value.id, transaction)) {
-          return { status: 'INVALID', code: 'DELETED_ENTITY' };
+          return { status: 'CONFLICT', current: { code: 'DELETED_ENTITY' } };
         }
         const link = requireLink(
           (await requestResult(
@@ -731,7 +735,7 @@ export class LocalContentRepository implements ContentRepository {
             transaction,
           )
         ) {
-          return { status: 'INVALID', code: 'DELETED_ENTITY' };
+          return { status: 'CONFLICT', current: { code: 'DELETED_ENTITY' } };
         }
         const aula = (await requestResult(
           transaction.objectStore(STORES.aulas).get([command.profileId, command.link.aulaId]),
@@ -824,6 +828,10 @@ export class LocalContentRepository implements ContentRepository {
       }
 
       case 'SOFT_DELETE': {
+        // Deleting without a known base could discard a concurrent edit.
+        if (command.baseRevision === undefined || command.baseRevision === null) {
+          return { status: 'INVALID', code: 'BASE_REVISION_STALE' };
+        }
         const store = transaction.objectStore(storeFor(command.entityType));
         const current = (await requestResult(
           store.get([command.profileId, command.entityId]),
@@ -851,7 +859,9 @@ export class LocalContentRepository implements ContentRepository {
         const epochRecord = (await requestResult(meta.get(epochKey(command.profileId)))) as
           | { epoch?: number }
           | undefined;
-        const epoch = nextEpoch(epochRecord?.epoch);
+        const epoch = nextEpoch(
+          Math.max(epochRecord?.epoch ?? 0, await this.maxTombstoneEpoch(command.profileId, transaction)),
+        );
         meta.put({ key: epochKey(command.profileId), epoch });
 
         const tombstone: LogicalTombstone = {
@@ -891,6 +901,10 @@ export class LocalContentRepository implements ContentRepository {
             localRevision: (live.localRevision ?? 0) + 1,
           } as unknown as ContentEntity;
           liveStore.put(reactivated);
+          // A reactivated record must not keep a stale deletion marker.
+          transaction
+            .objectStore(STORES.tombstones)
+            .delete([command.profileId, command.entityType, command.entityId]);
           return {
             status: 'OK',
             entity: reactivated,
@@ -915,6 +929,21 @@ export class LocalContentRepository implements ContentRepository {
         }
 
         const snapshot = tombstone.snapshot as unknown as ContentEntity;
+        if (
+          (snapshot as { profileId?: string }).profileId !== command.profileId ||
+          (snapshot as { id?: string }).id !== command.entityId
+        ) {
+          return { status: 'INVALID', code: 'TOMBSTONE_CONFLICT' };
+        }
+
+        const blocked = await this.restoreDependencyError(
+          command.profileId,
+          command.entityType,
+          snapshot,
+          transaction,
+        );
+        if (blocked) return { status: 'INVALID', code: blocked };
+
         const restored: ContentEntity = {
           ...(snapshot as unknown as Record<string, unknown>),
           localRevision: (snapshot.localRevision ?? 0) + 1,
@@ -930,7 +959,15 @@ export class LocalContentRepository implements ContentRepository {
         const epochRecord = (await requestResult(meta.get(epochKey(command.profileId)))) as
           | { epoch?: number }
           | undefined;
-        meta.put({ key: epochKey(command.profileId), epoch: nextEpoch(epochRecord?.epoch) });
+        meta.put({
+          key: epochKey(command.profileId),
+          epoch: nextEpoch(
+            Math.max(
+              epochRecord?.epoch ?? 0,
+              await this.maxTombstoneEpoch(command.profileId, transaction),
+            ),
+          ),
+        });
 
         return {
           status: 'OK',
@@ -938,6 +975,8 @@ export class LocalContentRepository implements ContentRepository {
           changed: true,
           baseRevision: tombstone.baseRevision,
           kind: 'upsert',
+          remoteBaseRevision:
+            tombstone.baseRevision === null ? null : tombstone.baseRevision + 1,
         };
       }
 
@@ -958,7 +997,86 @@ export class LocalContentRepository implements ContentRepository {
     return Boolean(tombstone);
   }
 
+  /** Monotonic even if `meta` was lost: tombstones are the other witness. */
+  private async maxTombstoneEpoch(
+    profileId: string,
+    transaction: IDBTransaction,
+  ): Promise<number> {
+    const range = IDBKeyRange.bound([profileId, 0], [profileId, Number.MAX_SAFE_INTEGER]);
+    const tombstones = (await requestResult(
+      transaction.objectStore(STORES.tombstones).index('by_profile_epoch').getAll(range),
+    )) as LogicalTombstone[];
+    return tombstones.reduce((latest, item) => Math.max(latest, item.epoch ?? 0), 0);
+  }
+
   /** Reads dependents without ever writing outside the current transaction. */
+  /** Refuses to resurrect a record whose ancestors/links are gone. */
+  private async restoreDependencyError(
+    profileId: string,
+    entityType: ContentEntityType,
+    snapshot: ContentEntity,
+    transaction: IDBTransaction,
+  ): Promise<string | null> {
+    const get = async (store: string, key: IDBValidKey) =>
+      (await requestResult(transaction.objectStore(store).get(key))) as
+        | Record<string, unknown>
+        | undefined;
+
+    if (entityType === 'edital-discipline') {
+      const link = snapshot as unknown as EditalDiscipline;
+      const edital = await get(STORES.editais, [profileId, link.editalId]);
+      if (!edital) return 'ENTITY_NOT_FOUND';
+      if (edital.status !== 'ACTIVE') return 'EDITAL_ARCHIVED';
+      if (!(await get(STORES.subjects, [profileId, link.subjectId]))) return 'ENTITY_NOT_FOUND';
+      const duplicates = (await requestResult(
+        transaction
+          .objectStore(STORES.editalDisciplines)
+          .index('by_edital_subject')
+          .getAll([profileId, link.editalId, link.subjectId]),
+      )) as EditalDiscipline[];
+      if (duplicates.some((item) => item.id !== link.id)) return 'LINK_DUPLICATE';
+      return null;
+    }
+
+    if (entityType === 'assunto') {
+      const assunto = snapshot as unknown as Assunto;
+      const link = await get(STORES.editalDisciplines, [profileId, assunto.editalDisciplineId]);
+      if (!link) return 'ENTITY_NOT_FOUND';
+      if (link.status !== 'ACTIVE') return 'EDITAL_ARCHIVED';
+      if (assunto.parentId) {
+        const parent = await get(STORES.assuntos, [profileId, assunto.parentId]);
+        if (!parent) return 'INVALID_PARENT';
+        if (parent.editalDisciplineId !== assunto.editalDisciplineId) return 'INVALID_PARENT';
+      }
+      return null;
+    }
+
+    if (entityType === 'aula') {
+      const aula = snapshot as unknown as Aula;
+      const link = await get(STORES.editalDisciplines, [profileId, aula.editalDisciplineId]);
+      if (!link) return 'ENTITY_NOT_FOUND';
+      if (link.status !== 'ACTIVE') return 'EDITAL_ARCHIVED';
+      return null;
+    }
+
+    if (entityType === 'lesson-topic-link') {
+      const topicLink = snapshot as unknown as LessonTopicLink;
+      const aula = await get(STORES.aulas, [profileId, topicLink.aulaId]);
+      const assunto = await get(STORES.assuntos, [profileId, topicLink.assuntoId]);
+      if (!aula || !assunto) return 'ENTITY_NOT_FOUND';
+      if (aula.editalDisciplineId !== assunto.editalDisciplineId) return 'CROSS_SCOPE_LINK';
+      const duplicates = (await requestResult(
+        transaction
+          .objectStore(STORES.lessonTopicLinks)
+          .index('by_aula_assunto')
+          .getAll([profileId, topicLink.aulaId, topicLink.assuntoId]),
+      )) as LessonTopicLink[];
+      if (duplicates.some((item) => item.id !== topicLink.id)) return 'LINK_DUPLICATE';
+    }
+
+    return null;
+  }
+
   private async dependenciesOf(
     profileId: string,
     entityType: ContentEntityType,

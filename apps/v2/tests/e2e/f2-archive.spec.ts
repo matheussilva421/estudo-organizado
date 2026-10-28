@@ -119,6 +119,7 @@ test('browser_soft_delete_blocks_resurrection_until_explicit_restore', async ({ 
       profileId: profile,
       entityType: 'aula',
       entityId: 'aula-1',
+      baseRevision: 1,
     });
     const resurrect = await harness.executeContent({
       type: 'UPSERT_AULA',
@@ -145,7 +146,7 @@ test('browser_soft_delete_blocks_resurrection_until_explicit_restore', async ({ 
 
   expect(outcome.created).toMatchObject({ kind: 'LOCAL_COMMITTED' });
   expect(outcome.deleted).toMatchObject({ kind: 'LOCAL_COMMITTED' });
-  expect(outcome.resurrect).toEqual({ kind: 'INVALID', code: 'DELETED_ENTITY' });
+  expect(outcome.resurrect).toEqual({ kind: 'CONFLICT', current: { code: 'DELETED_ENTITY' } });
   expect(outcome.restored).toMatchObject({ kind: 'LOCAL_COMMITTED' });
 
   await page.reload();

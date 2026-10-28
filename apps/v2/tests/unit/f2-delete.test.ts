@@ -149,6 +149,7 @@ describe('F2 archive, soft delete and tombstones', () => {
       profileId,
       entityType: 'assunto',
       entityId: 'assunto-root',
+      baseRevision: 1,
     });
     expect(blocked.kind).toBe('CONFLICT');
     expect((blocked as { current: { code: string } }).current.code).toBe('DEPENDENT_CONTENT');
@@ -164,6 +165,7 @@ describe('F2 archive, soft delete and tombstones', () => {
       profileId,
       entityType: 'edital',
       entityId: 'edital-1',
+      baseRevision: 1,
     });
     expect(editalBlocked.kind).toBe('CONFLICT');
     expect(await readEpoch()).toBe(0);
@@ -184,6 +186,7 @@ describe('F2 archive, soft delete and tombstones', () => {
       profileId,
       entityType: 'aula',
       entityId: 'aula-1',
+      baseRevision: 1,
     });
     expect(deleted).toMatchObject({ kind: 'LOCAL_COMMITTED' });
 
@@ -210,7 +213,7 @@ describe('F2 archive, soft delete and tombstones', () => {
       profileId,
       value: aula('aula-1', { orderKey: '000010' }),
     });
-    expect(resurrect).toEqual({ kind: 'INVALID', code: 'DELETED_ENTITY' });
+    expect(resurrect).toEqual({ kind: 'CONFLICT', current: { code: 'DELETED_ENTITY' } });
     expect((await content.loadContent(profileId)).aulas).toEqual([]);
 
     const restored = await content.execute({
@@ -241,6 +244,7 @@ describe('F2 archive, soft delete and tombstones', () => {
       profileId,
       entityType: 'aula',
       entityId: 'aula-1',
+      baseRevision: 1,
     });
 
     const otherProfile = await content.execute({
@@ -299,5 +303,67 @@ describe('F2 archive, soft delete and tombstones', () => {
     }
     expect(snapshot).not.toHaveProperty('progress');
     expect(snapshot).not.toHaveProperty('sessions');
+  });
+
+  it('restore_refuses_orphans_and_delete_requires_a_base_revision', async () => {
+    const content = await seed();
+    await content.execute({
+      type: 'UPSERT_AULA',
+      operationId: 'op-aula',
+      profileId,
+      value: aula('aula-1', { orderKey: '000010' }),
+    });
+
+    // Deleting without a known base could discard a concurrent edit.
+    const noBase = await content.execute({
+      type: 'SOFT_DELETE',
+      operationId: 'op-delete-no-base',
+      profileId,
+      entityType: 'aula',
+      entityId: 'aula-1',
+    });
+    expect(noBase).toEqual({ kind: 'INVALID', code: 'BASE_REVISION_STALE' });
+
+    const stale = await content.execute({
+      type: 'SOFT_DELETE',
+      operationId: 'op-delete-stale',
+      profileId,
+      entityType: 'aula',
+      entityId: 'aula-1',
+      baseRevision: 0,
+    });
+    expect(stale.kind).toBe('CONFLICT');
+    expect((await content.loadContent(profileId)).aulas).toHaveLength(1);
+
+    const deleted = await content.execute({
+      type: 'SOFT_DELETE',
+      operationId: 'op-delete-aula',
+      profileId,
+      entityType: 'aula',
+      entityId: 'aula-1',
+      baseRevision: 1,
+    });
+    expect(deleted).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+
+    // Removing the parent link leaves the tombstoned lesson orphaned.
+    const unlinked = await content.execute({
+      type: 'SOFT_DELETE',
+      operationId: 'op-delete-link',
+      profileId,
+      entityType: 'edital-discipline',
+      entityId: 'link-1',
+      baseRevision: 1,
+    });
+    expect(unlinked).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+
+    const orphanRestore = await content.execute({
+      type: 'RESTORE_ENTITY',
+      operationId: 'op-restore-orphan',
+      profileId,
+      entityType: 'aula',
+      entityId: 'aula-1',
+    });
+    expect(orphanRestore).toEqual({ kind: 'INVALID', code: 'ENTITY_NOT_FOUND' });
+    expect((await content.loadContent(profileId)).aulas).toEqual([]);
   });
 });
