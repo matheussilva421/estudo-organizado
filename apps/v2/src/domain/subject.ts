@@ -11,6 +11,8 @@ export type SubjectCommand = {
   subjectId: string;
   type: 'create' | 'rename';
   title: string;
+  /** Optional optimistic check; F1 callers keep working without it. */
+  baseRevision?: number | null;
 };
 
 export type SubjectErrorCode =
@@ -20,7 +22,8 @@ export type SubjectErrorCode =
   | 'TITLE_TOO_LONG'
   | 'SUBJECT_EXISTS'
   | 'SUBJECT_NOT_FOUND'
-  | 'PROFILE_MISMATCH';
+  | 'PROFILE_MISMATCH'
+  | 'CONFLICT';
 
 export class SubjectValidationError extends Error {
   readonly code: SubjectErrorCode;

@@ -156,9 +156,18 @@ export function App() {
         subjectId: subject.id,
         type: 'rename',
         title,
+        baseRevision: subject.localRevision,
       });
       await refresh();
     } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        (error as { code?: string }).code === 'CONFLICT'
+      ) {
+        setNotice('Conflito: outra aba alterou esta disciplina. Revise o texto antes de repetir.');
+        throw error;
+      }
       setNotice(persistenceMessage(error));
       throw error;
     }
@@ -254,9 +263,9 @@ export function App() {
                 title,
               }),
             'Tente novamente.',
-          ).then(() => undefined)
+          ).then((result) => result.kind === 'LOCAL_COMMITTED')
         }
-        onRename={(edital, title) =>
+        onRename={(edital, title, baseRevision) =>
           apply(
             () =>
               contentRepository().execute({
@@ -265,9 +274,10 @@ export function App() {
                 profileId: PROFILE_ID,
                 editalId: edital.id,
                 title,
+                baseRevision,
               }),
             'Tente novamente.',
-          ).then(() => undefined)
+          ).then((result) => result.kind === 'LOCAL_COMMITTED')
         }
         onArchive={(edital, replacement) =>
           apply(
@@ -277,9 +287,10 @@ export function App() {
                 editalId: edital.id,
                 operationId: newId(),
                 replacementPrimaryId: replacement,
+                baseRevision: edital.localRevision,
               }),
             'Tente novamente.',
-          ).then(() => undefined)
+          ).then((result) => result.kind === 'LOCAL_COMMITTED')
         }
         onReactivate={(editalId) =>
           apply(
@@ -292,7 +303,7 @@ export function App() {
                 entityId: editalId,
               }),
             'Tente novamente.',
-          ).then(() => undefined)
+          ).then((result) => result.kind === 'LOCAL_COMMITTED')
         }
         onSetPrimary={(editalId) =>
           apply(
@@ -301,9 +312,10 @@ export function App() {
                 profileId: PROFILE_ID,
                 editalId,
                 operationId: newId(),
+                baseRevision: profile?.localRevision ?? null,
               }),
             'Tente novamente.',
-          ).then(() => undefined)
+          ).then((result) => result.kind === 'LOCAL_COMMITTED')
         }
         onLinkSubject={(editalId, subjectId) =>
           apply(
@@ -317,8 +329,9 @@ export function App() {
                 linkId: newId(),
               }),
             'Tente novamente.',
-          ).then(() => undefined)
+          ).then((result) => result.kind === 'LOCAL_COMMITTED')
         }
+        locked={upgrade.blocked || selected?.status === 'ARCHIVED'}
       />
 
       <section className="panel" aria-labelledby="tree-title">
@@ -354,7 +367,7 @@ export function App() {
                     },
                   }),
                 'Tente novamente.',
-              ).then(() => undefined)
+              ).then((result) => result.kind === 'LOCAL_COMMITTED')
             }
             onCreateAula={(link: EditalDiscipline, title) =>
               apply(
@@ -373,7 +386,7 @@ export function App() {
                     },
                   }),
                 'Tente novamente.',
-              ).then(() => undefined)
+              ).then((result) => result.kind === 'LOCAL_COMMITTED')
             }
             onLinkTopic={(aula: Aula, assunto: Assunto) =>
               apply(
@@ -391,7 +404,7 @@ export function App() {
                     },
                   }),
                 'Tente novamente.',
-              ).then(() => undefined)
+              ).then((result) => result.kind === 'LOCAL_COMMITTED')
             }
             onUnlinkTopic={(topic: LessonTopicLink) =>
               apply(
@@ -404,8 +417,9 @@ export function App() {
                     baseRevision: topic.localRevision,
                   }),
                 'Tente novamente.',
-              ).then(() => undefined)
+              ).then((result) => result.kind === 'LOCAL_COMMITTED')
             }
+            locked={upgrade.blocked || selected?.status === 'ARCHIVED'}
           />
         ) : (
           <p className="empty-state">Selecione ou crie um edital para verticalizar o conteúdo.</p>
@@ -413,6 +427,7 @@ export function App() {
       </section>
 
       <ImportPreview
+        locked={upgrade.blocked}
         onPreview={async (text, namespace) => {
           const parsed = parseEditalImport(text, { namespace });
           if (!parsed.ok) return { error: parsed.reason };

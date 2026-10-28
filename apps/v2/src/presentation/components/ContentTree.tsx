@@ -10,10 +10,15 @@ type ContentTreeProps = {
   aulas: Aula[];
   lessonTopics: LessonTopicLink[];
   subjects: StudySubject[];
-  onCreateAssunto: (link: EditalDiscipline, title: string, parentId: string | null) => Promise<void>;
-  onCreateAula: (link: EditalDiscipline, title: string) => Promise<void>;
-  onLinkTopic: (aula: Aula, assunto: Assunto) => Promise<void>;
-  onUnlinkTopic: (link: LessonTopicLink) => Promise<void>;
+  onCreateAssunto: (
+    link: EditalDiscipline,
+    title: string,
+    parentId: string | null,
+  ) => Promise<boolean>;
+  onCreateAula: (link: EditalDiscipline, title: string) => Promise<boolean>;
+  onLinkTopic: (aula: Aula, assunto: Assunto) => Promise<boolean>;
+  onUnlinkTopic: (link: LessonTopicLink) => Promise<boolean>;
+  locked?: boolean;
 };
 
 export function ContentTree({
@@ -26,10 +31,12 @@ export function ContentTree({
   onCreateAula,
   onLinkTopic,
   onUnlinkTopic,
+  locked = false,
 }: ContentTreeProps) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [parentChoices, setParentChoices] = useState<Record<string, string>>({});
   const [topicSelection, setTopicSelection] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
 
   const subjectById = new Map(subjects.map((subject) => [subject.id, subject]));
 
@@ -86,9 +93,12 @@ export function ContentTree({
                 event.preventDefault();
                 const value = (drafts[draftKey] ?? '').trim();
                 if (!value) return;
-                void onCreateAssunto(link, value, selectedParent || null).then(() =>
-                  setDrafts((current) => ({ ...current, [draftKey]: '' })),
-                );
+                setBusy(true);
+                void onCreateAssunto(link, value, selectedParent || null)
+                  .then((ok) => {
+                    if (ok) setDrafts((current) => ({ ...current, [draftKey]: '' }));
+                  })
+                  .finally(() => setBusy(false));
               }}
             >
               <label htmlFor={`assunto-${link.id}`}>Novo assunto em {label}</label>
@@ -116,7 +126,7 @@ export function ContentTree({
                     </option>
                   ))}
               </select>
-              <button type="submit" className="button-primary">
+              <button type="submit" className="button-primary" disabled={busy || locked}>
                 Adicionar assunto
               </button>
             </form>
@@ -136,9 +146,12 @@ export function ContentTree({
                 const key = `${link.id}:aula`;
                 const value = (drafts[key] ?? '').trim();
                 if (!value) return;
-                void onCreateAula(link, value).then(() =>
-                  setDrafts((current) => ({ ...current, [key]: '' })),
-                );
+                setBusy(true);
+                void onCreateAula(link, value)
+                  .then((ok) => {
+                    if (ok) setDrafts((current) => ({ ...current, [key]: '' }));
+                  })
+                  .finally(() => setBusy(false));
               }}
             >
               <label htmlFor={`aula-${link.id}`}>Nova aula em {label}</label>
@@ -150,7 +163,7 @@ export function ContentTree({
                   setDrafts((current) => ({ ...current, [`${link.id}:aula`]: event.target.value }))
                 }
               />
-              <button type="submit" className="button-primary">
+              <button type="submit" className="button-primary" disabled={busy || locked}>
                 Adicionar aula
               </button>
             </form>
@@ -191,12 +204,20 @@ export function ContentTree({
                         <button
                           type="button"
                           className="button-ghost"
-                          disabled={!topicSelection[aula.id]}
+                          disabled={!topicSelection[aula.id] || busy || locked}
                           onClick={() => {
                             const target = available.find(
                               (item) => item.id === topicSelection[aula.id],
                             );
-                            if (target) void onLinkTopic(aula, target);
+                            if (!target) return;
+                            setBusy(true);
+                            void onLinkTopic(aula, target)
+                              .then((ok) => {
+                                if (ok) {
+                                  setTopicSelection((current) => ({ ...current, [aula.id]: '' }));
+                                }
+                              })
+                              .finally(() => setBusy(false));
                           }}
                         >
                           Mapear aula → assunto
@@ -212,7 +233,11 @@ export function ContentTree({
                                 <button
                                   type="button"
                                   className="button-ghost"
-                                  onClick={() => void onUnlinkTopic(topic)}
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setBusy(true);
+                                    void onUnlinkTopic(topic).finally(() => setBusy(false));
+                                  }}
                                 >
                                   Desfazer vínculo
                                 </button>

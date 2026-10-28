@@ -5,9 +5,10 @@ import { IMPORT_MAX_BYTES } from '../../application/import-types';
 type ImportPreviewProps = {
   onPreview: (text: string, namespace: string) => Promise<Preview | { error: string }>;
   onConfirm: (preview: Preview) => Promise<boolean>;
+  locked?: boolean;
 };
 
-export function ImportPreview({ onPreview, onConfirm }: ImportPreviewProps) {
+export function ImportPreview({ onPreview, onConfirm, locked = false }: ImportPreviewProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -119,6 +120,7 @@ export function ImportPreview({ onPreview, onConfirm }: ImportPreviewProps) {
           <button
             type="button"
             className="button-primary"
+            disabled={locked || preview.conflicts.length > 0}
             onClick={() => {
               setBusy(true);
               void onConfirm(preview)
@@ -126,7 +128,7 @@ export function ImportPreview({ onPreview, onConfirm }: ImportPreviewProps) {
                   setMessage(
                     ok
                       ? 'Importação concluída e registrada no recibo.'
-                      : 'Importação recusada: gere uma nova prévia antes de confirmar.',
+                      : 'Importação recusada: o estado do destino mudou. Gere uma nova prévia.',
                   );
                   if (ok) setPreview(null);
                 })

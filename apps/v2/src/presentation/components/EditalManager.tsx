@@ -8,12 +8,13 @@ type EditalManagerProps = {
   subjects: StudySubject[];
   selectedId: string | null;
   onSelect: (editalId: string) => void;
-  onCreate: (title: string) => Promise<void>;
-  onRename: (edital: Edital, title: string) => Promise<void>;
-  onArchive: (edital: Edital, replacementPrimaryId: string | null | undefined) => Promise<void>;
-  onReactivate: (editalId: string) => Promise<void>;
-  onSetPrimary: (editalId: string | null) => Promise<void>;
-  onLinkSubject: (editalId: string, subjectId: string) => Promise<void>;
+  onCreate: (title: string) => Promise<boolean>;
+  onRename: (edital: Edital, title: string, baseRevision: number) => Promise<boolean>;
+  onArchive: (edital: Edital, replacementPrimaryId: string | null | undefined) => Promise<boolean>;
+  onReactivate: (editalId: string) => Promise<boolean>;
+  onSetPrimary: (editalId: string | null) => Promise<boolean>;
+  onLinkSubject: (editalId: string, subjectId: string) => Promise<boolean>;
+  locked?: boolean;
 };
 
 export function EditalManager({
@@ -28,13 +29,16 @@ export function EditalManager({
   onReactivate,
   onSetPrimary,
   onLinkSubject,
+  locked = false,
 }: EditalManagerProps) {
   const [title, setTitle] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
+  const [renameBase, setRenameBase] = useState<number | null>(null);
   const [archiving, setArchiving] = useState<string | null>(null);
   const [replacement, setReplacement] = useState<string>('none');
   const [subjectToLink, setSubjectToLink] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const active = editais.filter((edital) => edital.status === 'ACTIVE');
   const archived = editais.filter((edital) => edital.status === 'ARCHIVED');
@@ -43,9 +47,14 @@ export function EditalManager({
 
   async function create(): Promise<void> {
     const normalized = title.trim();
-    if (!normalized) return;
-    await onCreate(normalized);
-    setTitle('');
+    if (!normalized || busy) return;
+    setBusy(true);
+    try {
+      // Only a real commit clears the draft.
+      if (await onCreate(normalized)) setTitle('');
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -68,7 +77,11 @@ export function EditalManager({
             placeholder="Ex.: TJPB 2026"
             onChange={(event) => setTitle(event.target.value)}
           />
-          <button type="submit" className="button-primary" disabled={!title.trim()}>
+          <button
+            type="submit"
+            className="button-primary"
+            disabled={!title.trim() || busy || locked}
+          >
             Criar edital
           </button>
         </div>
@@ -100,7 +113,11 @@ export function EditalManager({
                       event.preventDefault();
                       const next = renameDraft.trim();
                       if (!next) return;
-                      void onRename(edital, next).then(() => setRenaming(null));
+                      // The base revision is the one the user saw when opening
+                      // the editor, not whatever a background refresh brought.
+                      void onRename(edital, next, renameBase ?? edital.localRevision).then((ok) => {
+                        if (ok) setRenaming(null);
+                      });
                     }}
                   >
                     <label htmlFor={`rename-edital-${edital.id}`}>Novo nome</label>
@@ -110,7 +127,9 @@ export function EditalManager({
                       maxLength={120}
                       onChange={(event) => setRenameDraft(event.target.value)}
                     />
-                    <button type="submit" className="button-primary">Salvar</button>
+                    <button type="submit" className="button-primary" disabled={busy}>
+                      Salvar
+                    </button>
                     <button type="button" className="button-ghost" onClick={() => setRenaming(null)}>
                       Cancelar
                     </button>
@@ -123,6 +142,7 @@ export function EditalManager({
                       onClick={() => {
                         setRenaming(edital.id);
                         setRenameDraft(edital.title);
+                        setRenameBase(edital.localRevision);
                       }}
                     >
                       Renomear {edital.title}
@@ -130,14 +150,24 @@ export function EditalManager({
                     <button
                       type="button"
                       className="button-ghost"
-                      onClick={() => void onSetPrimary(isPrimary(edital.id) ? null : edital.id)}
+                      disabled={busy}
+                      onClick={() => {
+                        setBusy(true);
+                        void onSetPrimary(isPrimary(edital.id) ? null : edital.id).finally(() =>
+                          setBusy(false),
+                        );
+                      }}
                     >
                       {isPrimary(edital.id) ? 'Remover principal' : 'Tornar principal'}
                     </button>
                     <button
                       type="button"
                       className="button-ghost"
-                      onClick={() => setArchiving(edital.id)}
+                      disabled={busy}
+                      onClick={() => {
+                        setArchiving(edital.id);
+                        setReplacement('none');
+                      }}
                     >
                       Arquivar
                     </button>
@@ -154,7 +184,12 @@ export function EditalManager({
                         ? null
                         : replacement
                       : undefined;
-                    void onArchive(edital, choice).then(() => setArchiving(null));
+                    setBusy(true);
+                    void onArchive(edital, choice)
+                      .then((ok) => {
+                        if (ok) setArchiving(null);
+                      })
+                      .finally(() => setBusy(false));
                   }}
                 >
                   <label htmlFor={`archive-${edital.id}`}>
@@ -178,7 +213,7 @@ export function EditalManager({
                         ))}
                     </select>
                   ) : null}
-                  <button type="submit" className="button-primary">
+                  <button type="submit" className="button-primary" disabled={busy}>
                     Arquivar edital
                   </button>
                   <button type="button" className="button-ghost" onClick={() => setArchiving(null)}>
@@ -208,7 +243,11 @@ export function EditalManager({
                 <button
                   type="button"
                   className="button-ghost"
-                  onClick={() => void onReactivate(edital.id)}
+                  disabled={busy}
+                  onClick={() => {
+                    setBusy(true);
+                    void onReactivate(edital.id).finally(() => setBusy(false));
+                  }}
                 >
                   Reativar {edital.title}
                 </button>
@@ -242,7 +281,11 @@ export function EditalManager({
                 </option>
               ))}
             </select>
-            <button type="submit" className="button-primary" disabled={!subjectToLink}>
+            <button
+              type="submit"
+              className="button-primary"
+              disabled={!subjectToLink || locked}
+            >
               Vincular
             </button>
           </div>

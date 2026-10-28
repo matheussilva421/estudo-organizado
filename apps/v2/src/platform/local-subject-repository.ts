@@ -3,6 +3,7 @@ import type { OutboxOperation } from '../application/sync-types';
 import {
   applySubjectCommand,
   normalizeSubjectTitle,
+  SubjectValidationError,
   type StudySubject,
   type SubjectCommand,
 } from '../domain/subject';
@@ -79,6 +80,18 @@ export class LocalSubjectRepository implements SubjectRepository {
         subjects.get([command.profileId, command.subjectId]),
       )) as StudySubject | undefined;
       const subject = applySubjectCommand(current ?? null, command);
+
+      if (
+        command.baseRevision !== undefined &&
+        command.baseRevision !== null &&
+        command.baseRevision !== (current?.localRevision ?? 0)
+      ) {
+        transaction.abort();
+        throw new SubjectValidationError(
+          'CONFLICT',
+          'subject was changed by another tab',
+        );
+      }
 
       subjects.put(subject);
 
