@@ -70,14 +70,14 @@ test('browser_archive_primary_with_explicit_choice', async ({ page }) => {
   await page.getByRole('button', { name: 'Tornar principal' }).first().click();
   await expect(page.locator('.badge', { hasText: 'principal' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Arquivar' }).first().click();
+  await page.getByRole('button', { name: 'Abrir arquivamento' }).first().click();
   await expect(
     page.getByText('Este edital é o principal: escolha o substituto'),
   ).toBeVisible();
   await page.getByLabel('Este edital é o principal: escolha o substituto').selectOption({
     label: 'Ficar sem principal',
   });
-  await page.getByRole('button', { name: 'Arquivar edital' }).click();
+  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click();
   await expect(page.getByText('Editais arquivados (1)')).toBeVisible();
 
   // The archived record stays consultable and can be reactivated.
@@ -104,8 +104,8 @@ test('archived_edital_stays_consultable_after_reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Adicionar assunto' }).click();
   await expect(page.locator('.tree-title', { hasText: 'Assunto do arquivado' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Arquivar' }).first().click();
-  await page.getByRole('button', { name: 'Arquivar edital' }).click();
+  await page.getByRole('button', { name: 'Abrir arquivamento' }).first().click();
+  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click();
   await expect(page.getByText('Editais arquivados (1)')).toBeVisible();
 
   await page.reload();

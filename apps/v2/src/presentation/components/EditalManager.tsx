@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Edital } from '../../domain/edital';
 import type { StudySubject } from '../../domain/subject';
 
@@ -39,6 +39,18 @@ export function EditalManager({
   const [replacement, setReplacement] = useState<string>('none');
   const [subjectToLink, setSubjectToLink] = useState('');
   const [busy, setBusy] = useState(false);
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  function openForm(trigger: HTMLElement, open: () => void): void {
+    triggerRef.current = trigger;
+    open();
+  }
+
+  function closeForm(close: () => void): void {
+    close();
+    // Keyboard users must land back on the control that opened the editor.
+    triggerRef.current?.focus();
+  }
 
   const active = editais.filter((edital) => edital.status === 'ACTIVE');
   const archived = editais.filter((edital) => edital.status === 'ARCHIVED');
@@ -92,7 +104,7 @@ export function EditalManager({
         <p className="empty-state">Nenhum edital ativo. Crie o primeiro acima.</p>
       ) : (
         <ul className="edital-list" aria-label="Editais ativos">
-          {active.map((edital) => (
+          {active.map((edital, index) => (
             <li key={edital.id} className="edital-item" data-active={selectedId === edital.id}>
               <div className="edital-row">
                 <button
@@ -116,7 +128,7 @@ export function EditalManager({
                       // The base revision is the one the user saw when opening
                       // the editor, not whatever a background refresh brought.
                       void onRename(edital, next, renameBase ?? edital.localRevision).then((ok) => {
-                        if (ok) setRenaming(null);
+                        if (ok) closeForm(() => setRenaming(null));
                       });
                     }}
                   >
@@ -125,12 +137,17 @@ export function EditalManager({
                       id={`rename-edital-${edital.id}`}
                       value={renameDraft}
                       maxLength={120}
+                      autoFocus
                       onChange={(event) => setRenameDraft(event.target.value)}
                     />
                     <button type="submit" className="button-primary" disabled={busy}>
                       Salvar
                     </button>
-                    <button type="button" className="button-ghost" onClick={() => setRenaming(null)}>
+                    <button
+                      type="button"
+                      className="button-ghost"
+                      onClick={() => closeForm(() => setRenaming(null))}
+                    >
                       Cancelar
                     </button>
                   </form>
@@ -139,8 +156,9 @@ export function EditalManager({
                     <button
                       type="button"
                       className="button-ghost"
-                      onClick={() => {
-                        setRenaming(edital.id);
+                      aria-label={`Renomear ${edital.title} (${index + 1})`}
+                      onClick={(event) => {
+                        openForm(event.currentTarget, () => setRenaming(edital.id));
                         setRenameDraft(edital.title);
                         setRenameBase(edital.localRevision);
                       }}
@@ -150,6 +168,7 @@ export function EditalManager({
                     <button
                       type="button"
                       className="button-ghost"
+                      aria-label={`Tornar principal ${edital.title} (${index + 1})`}
                       disabled={busy}
                       onClick={() => {
                         setBusy(true);
@@ -163,9 +182,10 @@ export function EditalManager({
                     <button
                       type="button"
                       className="button-ghost"
+                      aria-label={`Abrir arquivamento de ${edital.title} (${index + 1})`}
                       disabled={busy}
-                      onClick={() => {
-                        setArchiving(edital.id);
+                      onClick={(event) => {
+                        openForm(event.currentTarget, () => setArchiving(edital.id));
                         setReplacement('none');
                       }}
                     >
@@ -187,7 +207,7 @@ export function EditalManager({
                     setBusy(true);
                     void onArchive(edital, choice)
                       .then((ok) => {
-                        if (ok) setArchiving(null);
+                        if (ok) closeForm(() => setArchiving(null));
                       })
                       .finally(() => setBusy(false));
                   }}
@@ -214,9 +234,13 @@ export function EditalManager({
                     </select>
                   ) : null}
                   <button type="submit" className="button-primary" disabled={busy}>
-                    Arquivar edital
+                    Confirmar arquivamento
                   </button>
-                  <button type="button" className="button-ghost" onClick={() => setArchiving(null)}>
+                  <button
+                    type="button"
+                    className="button-ghost"
+                    onClick={() => closeForm(() => setArchiving(null))}
+                  >
                     Cancelar
                   </button>
                 </form>

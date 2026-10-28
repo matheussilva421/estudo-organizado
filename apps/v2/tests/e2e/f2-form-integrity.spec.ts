@@ -44,8 +44,8 @@ test('archived_edital_is_read_only_in_the_ui', async ({ page }) => {
   });
   await page.getByRole('button', { name: 'Vincular' }).click();
 
-  await page.getByRole('button', { name: 'Arquivar' }).first().click();
-  await page.getByRole('button', { name: 'Arquivar edital' }).click();
+  await page.getByRole('button', { name: 'Abrir arquivamento' }).first().click();
+  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click();
   await page.getByText('Editais arquivados (1)').click();
   await page.getByRole('button', { name: 'Edital Antigo', exact: true }).click();
 
