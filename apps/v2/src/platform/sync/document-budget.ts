@@ -67,3 +67,43 @@ export function estimateWorkload(
     ],
   };
 }
+
+export const SPARK_DAILY_WRITE_PREMISE = 20_000;
+
+export type F2BudgetScenario = {
+  devices: 1 | 2 | 3;
+  entities: number;
+  writesPerEntity: number;
+  writesPerDay: number;
+  sparkPremise: number;
+  exceedsSparkPremise: boolean;
+  recommendation: string;
+  isBillingMeasurement: false;
+};
+
+/**
+ * Synthetic Firestore budget for F2. It is an estimate built from the accepted
+ * document ceiling, never a quota measurement or a billing figure.
+ */
+export function estimateF2Budget(
+  entities: number,
+  devices: 1 | 2 | 3,
+  writesPerEntity: number,
+): F2BudgetScenario {
+  const safeEntities = Math.max(0, Math.floor(entities));
+  const safeWrites = Math.max(1, Math.floor(writesPerEntity));
+  const writesPerDay = safeEntities * devices * safeWrites;
+  const exceeds = writesPerDay > SPARK_DAILY_WRITE_PREMISE;
+  return {
+    devices,
+    entities: safeEntities,
+    writesPerEntity: safeWrites,
+    writesPerDay,
+    sparkPremise: SPARK_DAILY_WRITE_PREMISE,
+    exceedsSparkPremise: exceeds,
+    recommendation: exceeds
+      ? 'seed único por importação e leituras incrementais; não repetir a importação por dispositivo'
+      : 'carga dentro da premissa analisada',
+    isBillingMeasurement: false,
+  };
+}
