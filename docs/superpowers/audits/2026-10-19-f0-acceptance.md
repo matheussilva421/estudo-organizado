@@ -25,7 +25,7 @@ O resultado não é “F0 aprovada”. O gate máximo é **READY_FOR_HUMAN_REVIE
 | `2026-10-19-v1-qa-baseline.json` | 11 verificações: 4 PASS, 2 FAIL, 2 INCONCLUSIVE, 3 NOT_RUN | `validateBaseline` OK; gate visual PASS |
 | `2026-10-19-v1-design-baseline.md` | Impeccable, 8 temas, 3 viewports, achados P1–P3 | 24 capturas; 4 preservadas com SHA-256 |
 | `evidence/` | Logs reais de unit/lint/design/E2E, detector, métricas e capturas | 8 arquivos textuais + 4 PNG |
-| `scripts/v2-audit/*.mjs` | 6 validadores puros de auditoria | 60 testes F0 PASS |
+| `scripts/v2-audit/*.mjs` | 6 validadores puros de auditoria | 66 testes F0 PASS |
 | `tests/unit/v2-audit-*.test.js` | Contratos, casos negativos e artefatos reais | 10 arquivos, 66 testes |
 
 ## 3. Cobertura funcional e lacunas
