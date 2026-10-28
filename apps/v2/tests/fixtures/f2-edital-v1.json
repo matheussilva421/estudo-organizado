@@ -1,0 +1,25 @@
+{
+  "versao": 1,
+  "tipo": "edital",
+  "nome": "TJPB 2026",
+  "centralId": "tjpb-2026",
+  "revisao": "r1",
+  "geradoEm": "2026-10-01T00:00:00.000Z",
+  "disciplinas": [
+    {
+      "nome": "Direito Constitucional",
+      "topicos": [
+        {
+          "nome": "Controle de constitucionalidade",
+          "filhos": [{ "nome": "ADPF" }]
+        }
+      ],
+      "aulas": [{ "nome": "Aula 01 - Teoria geral" }]
+    },
+    {
+      "nome": "Direito Administrativo",
+      "topicos": [],
+      "aulas": []
+    }
+  ]
+}

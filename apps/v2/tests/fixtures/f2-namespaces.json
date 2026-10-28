@@ -1,0 +1,8 @@
+{
+  "versao": 1,
+  "tipo": "edital",
+  "nome": "Edital Compartilhado",
+  "centralId": "edital-1",
+  "revisao": "r1",
+  "disciplinas": [{ "nome": "Portugues", "topicos": [], "aulas": [] }]
+}

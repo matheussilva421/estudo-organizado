@@ -20,7 +20,10 @@ export type Edital = {
   title: string;
   status: EditalStatus;
   localRevision: number;
+  /** Qualified source identity when the edital came from an import. */
   sourceRef?: string;
+  sourceRevision?: string;
+  fingerprint?: string;
 };
 
 export type EditalDiscipline = {
