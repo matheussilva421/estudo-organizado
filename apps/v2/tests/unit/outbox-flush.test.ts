@@ -63,6 +63,10 @@ describe('outbox flush', () => {
     await expect(markConfirmed(profileId, ['missing'], { missing: 1 })).rejects.toMatchObject({
       kind: 'UNAVAILABLE',
     });
+    await seedOutbox(operation());
+    await expect(markConfirmed(profileId, ['op-1'], { 'op-1': 0 })).rejects.toMatchObject({
+      kind: 'UNAVAILABLE',
+    });
   });
 
   it('network_failure_keeps_outbox', async () => {

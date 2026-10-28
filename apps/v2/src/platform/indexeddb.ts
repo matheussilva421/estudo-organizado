@@ -141,7 +141,13 @@ export async function markConfirmed(
         | OutboxOperation
         | undefined;
       const remoteRevision = proof[operationId];
-      if (!operation || operation.profileId !== profileId || typeof remoteRevision !== 'number') {
+      if (
+        !operation ||
+        operation.profileId !== profileId ||
+        typeof remoteRevision !== 'number' ||
+        !Number.isInteger(remoteRevision) ||
+        remoteRevision < 1
+      ) {
         transaction.abort();
         throw new LocalPersistenceError('UNAVAILABLE', 'ACK without a known operation', false);
       }
@@ -158,6 +164,9 @@ export async function markConflict(
   operation: OutboxOperation,
   remoteRevision: number,
 ): Promise<void> {
+  if (operation.profileId !== profileId || !Number.isInteger(remoteRevision) || remoteRevision < 1) {
+    throw new LocalPersistenceError('UNAVAILABLE', 'conflict outside the profile scope', false);
+  }
   const database = await openV2Database(profileId);
   const transaction = database.transaction([STORES.outbox, STORES.conflicts], 'readwrite');
   const outbox = transaction.objectStore(STORES.outbox);
