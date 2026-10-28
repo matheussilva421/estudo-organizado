@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-28-estudo-organizado-v2-f1-foundation-design.md`, **aprovada em 2026-10-28** com `docs/superpowers/specs/2026-10-28-v2-f1-architecture-decisions.md` (ADRs F1-01 a 05) e `docs/superpowers/specs/2026-10-28-v2-multidevice-sync-f1-contracts.md` (A-02).
 
-**Status:** **G2/F1: PLANO PROPOSTO PARA REVISÃO HUMANA. NENHUMA IMPLEMENTAÇÃO AUTORIZADA.** A aprovação de spec/ADRs autoriza apenas escrever este plano.
+**Status:** **G2/F1: PLANO APROVADO PELO USUÁRIO EM 2026-10-28** ([registro do aceite](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847)). **G3/F1: IMPLEMENTAÇÃO NÃO AUTORIZADA NESTA CONVERSA.** O plano pode ser usado para preparar o GOAL; somente o envio explícito do GOAL pelo usuário ao Codex autorizará sua execução no escopo delimitado.
 
 ## Global Constraints
 
@@ -24,7 +24,7 @@
 - **A-01 Impeccable:** preservar oito temas Grafite, Ardósia, Platina, Terminal, Neon, Arrakis, Codex e Plasma, steel-blue, Plus Jakarta Sans + DM Mono; WCAG AA, teclado, touch, reduced-motion e correção da sobreposição de toasts **na V2**, não na V1. Instalação/hook mutante só com autorização.
 - **Testes executados localmente pelo Codex**, TDD RED→GREEN e revisão independente proporcional ao risco. Nunca apresentar contrato fake como prova de sync Firestore real.
 - **Higiene:** arquivos só de `apps/v2/` e do relatório/roadmap F1; não alterar root lock/config. Evitar relatórios paralelos, PRs proliferados e exclusão de branches/worktrees com commits únicos.
-- **Gates:** F1 escrita/testada/integrada à `v2`/publicada são estados distintos. G2/F1 pendente de aprovação deste plano; G3/F1 precisa de autorização separada. Nenhuma fase F2 ou cutover é autorizada aqui.
+- **Gates:** F1 escrita/testada/integrada à `v2`/publicada são estados distintos. **G2/F1 aprovado** neste aceite; **G3/F1 ainda exige envio/autorização explícitos do GOAL**. Nenhuma fase F2 ou cutover é autorizada aqui.
 
 ## Review Focus
 
@@ -293,10 +293,10 @@ Ordem das tarefas: `1→2→3→4`, `3→5→6→7→8`, `6→9`, `3/5→10`, `2
 ## Execution Handoff — SEM IMPLEMENTAÇÃO NESTA ENTREGA
 
 **G1/F1:** spec formal e cinco ADRs **aprovadas em 2026-10-28** ([referência humana](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550)).  
-**G2/F1:** este plano **PROPOSTO**, publicado para revisão humana.  
+**G2/F1:** **APROVADO em 2026-10-28** ([aceite](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847)).  
 **G3/F1:** **NÃO AUTORIZADO**; não instalar dependências, criar scaffold, configurar Firebase, executar testes F1 ou escrever código.  
 **F7/G5:** homologação multi-dispositivo e cutover bloqueados.
 
-**Método recomendado:** Superpowers Subagent-driven (revisão por tarefa e holística), pela criticidade da persistência, do sync e do backup. Sua utilização em F0 não implica escolha automática para F1.
+**Método adotado para preparar o GOAL:** Superpowers Subagent-driven (revisão por tarefa e holística), conforme recomendação apresentada no aceite; mudança de método exige registrar a escolha antes de iniciar. A aprovação do plano não executa nenhum subagente.
 
-**Ação humana seguinte:** revisar este plano, aprová-lo e escolher o método de execução. Somente em etapa posterior preparar GOAL e autorizar G3/F1. Nada começa automaticamente.
+**Ação humana seguinte:** revisar o [GOAL F1](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md), produzido como handoff documental. **Somente seu envio explícito ao Codex autoriza G3/F1**; nenhum trabalho começa automaticamente.
