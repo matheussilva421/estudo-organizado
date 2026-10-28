@@ -60,6 +60,17 @@ describe('validateSchemaMatrix', () => {
     expect(explained).toEqual({ ok: true, errors: [] });
   });
 
+  it('rejects_too_short_conflict_explanation', () => {
+    const result = validateSchemaMatrix([
+      makeRow({
+        versions: { declared: ['12'], observed: ['11'], conflicts: ['x'] },
+      }),
+    ]);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain('CONFLICT_EXPLANATION_TOO_SHORT');
+  });
+
   it('rejects_missing_source_evidence', () => {
     const result = validateSchemaMatrix([makeRow({ source_paths: [] })]);
 

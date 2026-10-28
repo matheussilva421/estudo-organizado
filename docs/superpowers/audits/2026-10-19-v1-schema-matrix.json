@@ -38,7 +38,8 @@
     ],
     "relations": [
       "O payload contém editais, eventos, arquivo, habitos, revisoes, config, cronoLivre, planejamento, bancaRelevance e syncTombstones.",
-      "Os envelopes current/previous carregam slot, schemaVersion, savedAt e checksum do payload; main_state legado não tem checksum."
+      "Os envelopes current/previous carregam slot, schemaVersion, savedAt e checksum do payload; main_state legado não tem checksum.",
+      "O payload raiz também carrega planejamentoArquivado, driveFileId, lastSync e syncTombstones; planejamentoArquivado é campo de topo próprio (ver S-V1-PLANEJAMENTO-ARQUIVADO)."
     ],
     "migration_risks": [
       "A migração roda sobre o objeto em memória e persiste depois; falha no meio pode deixar current/previous em versões diferentes.",
@@ -711,7 +712,7 @@
   {
     "id": "S-V1-ENTITY-TOMBSTONES",
     "entity": "Tombstones de entidades para merge",
-    "storage": "app_state.syncTombstones[] (código); docs apontam config.entityTombstones",
+    "storage": "app_state.syncTombstones[] (código); docs de contrato/arquitetura apontam config.entityTombstones",
     "source_paths": [
       "src/js/sync/sync-center.js",
       "src/js/store.js",
@@ -739,7 +740,7 @@
       "store.js preserva syncTombstones no setState."
     ],
     "migration_risks": [
-      "Docs dizem config.entityTombstones; o código lê e grava state.syncTombstones.",
+      "Docs de contrato/arquitetura dizem config.entityTombstones; o código lê e grava state.syncTombstones.",
       "Docs prometem cap de 500 e expiração em 180 dias; sync-center não implementa poda.",
       "mergeById remove o item quando o tombstone é mais novo.",
       "Tombstone sem col/id válido não casa com a coleção."
@@ -886,7 +887,7 @@
         "test-fixture.schemaVersion=9"
       ],
       "conflicts": [
-        "O export grava o schemaVersion corrente (12), mas validateBackupPayload só exige um inteiro positivo e tests/unit/backup-restore.test.js:9 usa 9. Não há versão de backup separada nem gate de atualidade."
+        "O export grava o schemaVersion corrente (12), mas validateBackupPayload aceita qualquer número truthy (inclusive negativo, fracionário ou Infinity) e tests/unit/backup-restore.test.js:9 usa 9. Não há versão de backup separada nem gate de atualidade."
       ]
     },
     "export_paths": [
@@ -957,7 +958,8 @@
       "O pull aplica o payload sem migração de schema baseada em envelope.version.",
       "schemaVersion é apenas um número; não há upgrade por faixa.",
       "O limite de 1 MiB pode estourar com estado completo.",
-      "entityManifest é documentado, mas não há gerador localizado em src/js."
+      "entityManifest é documentado, mas não há gerador localizado em src/js.",
+      "createExportableState substitui config.firestoreSync pelo default e perde removedBlocks/minRetainedRevision; o snapshot envia payload sem tombstones de Reta Final (ver S-V1-ENTITY-TOMBSTONES e R-V1-BACKUP-TOMBSTONE-LOSS)."
     ],
     "evidence_gaps": [
       "Não foi executado emulador Firestore nem leitura remota real.",
@@ -1399,6 +1401,132 @@
       "EXPORT_ABSENT: descriptor não é exportável como arquivo.",
       "IMPORT_ABSENT: descriptor não é importável como arquivo.",
       "Não foi executada sonda real contra regras deployadas."
+    ]
+  },
+  {
+    "id": "S-V1-CLOUDFLARE-SNAPSHOT",
+    "entity": "Snapshot Cloudflare KV (canal secundário)",
+    "storage": "Endpoint Cloudflare configurável; envelope version=2",
+    "source_paths": [
+      "src/js/cloud-sync.js",
+      "src/js/store/export-state.js",
+      "docs/api/sync-contract.md",
+      "tests/unit/cloud-sync.test.js"
+    ],
+    "versions": {
+      "declared": [
+        "envelope.version=2"
+      ],
+      "observed": [
+        "docs.cloudflare.version=2",
+        "docs.cloudflare.schemaVersion=7"
+      ],
+      "conflicts": [
+        "cloud-sync.js:15 define SYNC_VERSION=2 e :109 grava version=2, coerente com docs/api/sync-contract.md:327. O schemaVersion do exemplo Cloudflare é 7, enquanto o estado corrente é 12; o exemplo é histórico e não existe gate de atualidade no envio."
+      ]
+    },
+    "export_paths": [
+      "src/js/cloud-sync.js"
+    ],
+    "import_paths": [
+      "src/js/cloud-sync.js"
+    ],
+    "sync_paths": [
+      "src/js/cloud-sync.js"
+    ],
+    "relations": [
+      "Envia createExportableState(state) como snapshot completo, sem histórico de sync.",
+      "É canal explícito de backup/restauração, separado do Firestore principal.",
+      "Conflito 409 preserva o remoto e exige decisão do usuário."
+    ],
+    "migration_risks": [
+      "O payload não tem manifesto/checksum próprio além de schemaVersion.",
+      "createExportableState remove credenciais e tombstones.",
+      "O endpoint e o token são configuração local e não entram na exportação."
+    ],
+    "evidence_gaps": [
+      "Worker/KV real, token e concorrência entre dispositivos não foram exercitados.",
+      "Somente fetch mockado nos testes unitários."
+    ]
+  },
+  {
+    "id": "S-V1-DRIVE-BACKUP",
+    "entity": "Backup Google Drive",
+    "storage": "Arquivo JSON no Drive identificado por app_state.driveFileId",
+    "source_paths": [
+      "src/js/drive-sync.js",
+      "src/js/store/export-state.js",
+      "tests/unit/drive-sync.test.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/drive-sync.js"
+    ],
+    "import_paths": [
+      "src/js/drive-sync.js"
+    ],
+    "sync_paths": [
+      "src/js/drive-sync.js"
+    ],
+    "relations": [
+      "Envia createExportableState(state) como arquivo JSON.",
+      "Restaura por importação após confirmação; não participa do coordenador Firestore.",
+      "driveFileId e metadados OAuth ficam no estado local, não no payload exportado."
+    ],
+    "migration_risks": [
+      "O arquivo não tem envelope/manifesto próprio.",
+      "createExportableState remove credenciais e tombstones.",
+      "OAuth expirado ou fileId órfão não têm recuperação automática documentada."
+    ],
+    "evidence_gaps": [
+      "OAuth, escopos e arquivo remoto reais não foram executados.",
+      "Testes usam gapi/google mockados."
+    ]
+  },
+  {
+    "id": "S-V1-PLANEJAMENTO-ARQUIVADO",
+    "entity": "Planejamento arquivado da Reta Final",
+    "storage": "app_state.planejamentoArquivado",
+    "source_paths": [
+      "src/js/store.js",
+      "src/js/logic/reta-final.js",
+      "src/js/sync/sync-center.js",
+      "src/js/sync/firestore-sync-engine.js",
+      "src/js/views/config/data-management.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/sync-center.js",
+      "src/js/sync/firestore-sync-engine.js"
+    ],
+    "relations": [
+      "Guarda o planejamento anterior quando a Reta Final é ativada (reta-final.js:679).",
+      "restaurarPlanejamentoArquivado() devolve o plano após dataFinal (reta-final.js:699).",
+      "sync-center faz merge explícito do campo; o digest Firestore o exclui junto de planejamento."
+    ],
+    "migration_risks": [
+      "Campo de topo sem versão própria.",
+      "Pode carregar um planejamento de schema antigo sem upgrade dedicado.",
+      "Precisa entrar na reconciliação de merge/sync, não apenas no backup."
+    ],
+    "evidence_gaps": [
+      "Não foi localizado teste de round-trip de backup com planejamentoArquivado.",
+      "Migração real de IndexedDB não executada."
     ]
   }
 ]

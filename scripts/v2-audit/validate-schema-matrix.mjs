@@ -1,4 +1,5 @@
 const ID_PATTERN = /^S-V1-[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
+const MIN_CONFLICT_EXPLANATION = 20;
 const PATH_FIELDS = ['source_paths', 'export_paths', 'import_paths', 'sync_paths'];
 const TEXT_LIST_FIELDS = ['relations', 'migration_risks', 'evidence_gaps'];
 const ABSENCE_MARKERS = {
@@ -123,6 +124,13 @@ export function validateSchemaMatrix(rows) {
       } else if (!conflicts.every(isNonEmptyString)) {
         add('INVALID_SCHEMA_CONFLICTS');
       } else {
+        if (
+          !conflicts.every(
+            (conflict) => conflict.trim().length >= MIN_CONFLICT_EXPLANATION,
+          )
+        ) {
+          add('CONFLICT_EXPLANATION_TOO_SHORT');
+        }
         hasConflictExplanation = conflicts.length > 0;
       }
 
