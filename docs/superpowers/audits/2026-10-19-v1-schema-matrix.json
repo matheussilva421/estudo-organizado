@@ -1,0 +1,1404 @@
+[
+  {
+    "id": "S-V1-LOCAL-STATE",
+    "entity": "Estado raiz e envelopes locais",
+    "storage": "IndexedDB EstudoOrganizadoDB/app_state (main_state_current, main_state_previous, main_state) e localStorage (estudo_state, estudo_state_emergency)",
+    "source_paths": [
+      "src/js/store/indexeddb.js",
+      "src/js/store/normalize-state.js",
+      "src/js/store/migrations.js",
+      "src/js/store.js",
+      "README.md",
+      "docs/api/sync-contract.md"
+    ],
+    "versions": {
+      "declared": [
+        "envelope.version=1",
+        "state.schemaVersion=12"
+      ],
+      "observed": [
+        "envelope.version=1",
+        "state.schemaVersion=11",
+        "state.schemaVersion=9",
+        "state.schemaVersion=7"
+      ],
+      "conflicts": [
+        "src/js/store/migrations.js:7 declara DEFAULT_SCHEMA_VERSION=12. README.md:271 e README.md:292 ainda dizem v1→v11; docs/api/sync-contract.md:30 e :47 exemplificam schemaVersion=9, e :333 usa schemaVersion=7 no exemplo Cloudflare. O envelope local version=1 coincide entre código e teste, mas o schemaVersion corrente não."
+      ]
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "O payload contém editais, eventos, arquivo, habitos, revisoes, config, cronoLivre, planejamento, bancaRelevance e syncTombstones.",
+      "Os envelopes current/previous carregam slot, schemaVersion, savedAt e checksum do payload; main_state legado não tem checksum."
+    ],
+    "migration_risks": [
+      "A migração roda sobre o objeto em memória e persiste depois; falha no meio pode deixar current/previous em versões diferentes.",
+      "O envelope só é válido quando envelope.schemaVersion coincide com payload.schemaVersion.",
+      "O fallback legado/main_state não passa pela validação de checksum do envelope.",
+      "O schemaVersion é persistido no payload e no envelope, mas a origem do default é um único módulo."
+    ],
+    "evidence_gaps": [
+      "Não foi executada migração sobre IndexedDB real nesta auditoria.",
+      "O envelope local version=1 é validado apenas no código; não há documento de compatibilidade dedicado."
+    ]
+  },
+  {
+    "id": "S-V1-SCHEMA-MIGRATIONS",
+    "entity": "Pipeline de migrações do schema local",
+    "storage": "Estado em memória e app_state após save; sem tabela de histórico de migrações",
+    "source_paths": [
+      "src/js/store/migrations.js",
+      "src/js/store/indexeddb.js",
+      "tests/unit/store-migrations.test.js"
+    ],
+    "versions": {
+      "declared": [
+        "DEFAULT_SCHEMA_VERSION=12"
+      ],
+      "observed": [
+        "DEFAULT_SCHEMA_VERSION=12"
+      ],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [],
+    "relations": [
+      "v2 cria a base de editais/disciplinas/assuntos e achata grupos.",
+      "v7 separa aulas de assuntos; v8 adiciona flags de disciplina; v10 força pausa global; v11 adiciona flags de edital; v12 cria slotOverrides.",
+      "migrateRetaFinalV2 roda independentemente do schemaVersion global."
+    ],
+    "migration_risks": [
+      "Não há bloco v8→v9 explícito: schemaVersion 8 entra no teste <10 e salta para 10.",
+      "v5 e v6 apenas marcam changed e dependem do bloco <7 para concluir a separação.",
+      "O caminho v1 assume ed.grupos[].disciplinas existente ao achatar grupos.",
+      "As migrações mutam o objeto recebido; a recuperação depende do envelope previous.",
+      "migrateRetaFinalV2 pode recusar um plano ambíguo e devolver diagnostics sem alterar o estado."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: o pipeline não gera artefato exportável próprio.",
+      "IMPORT_ABSENT: não há importador de schema externo.",
+      "Os testes cobrem marcos, não todos os saltos intermediários com dados legados reais."
+    ]
+  },
+  {
+    "id": "S-V1-INDEXEDDB",
+    "entity": "Banco IndexedDB e object stores",
+    "storage": "EstudoOrganizadoDB v7: app_state, firestore_outbox, firestore_meta, firestore_conflicts, entity_meta, firestore_entity_outbox, reta_final_drafts, reta_final_journal",
+    "source_paths": [
+      "src/js/store/indexeddb.js",
+      "docs/architecture/app-overview.md",
+      "tests/unit/store-indexeddb-imports.test.js"
+    ],
+    "versions": {
+      "declared": [
+        "DB_VERSION=7"
+      ],
+      "observed": [
+        "DB_VERSION=6"
+      ],
+      "conflicts": [
+        "src/js/store/indexeddb.js:63 declara DB_VERSION=7; docs/architecture/app-overview.md:185 ainda diz que EstudoOrganizadoDB está na versão 6 e omite reta_final_drafts/reta_final_journal."
+      ]
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [],
+    "relations": [
+      "app_state é a fonte do estado; os demais stores são auxiliares locais ou de sync.",
+      "As keyPaths observadas são draftId (reta_final_drafts), id (journal e outboxes), key (entity_meta) e id (firestore_meta/conflicts)."
+    ],
+    "migration_risks": [
+      "onupgradeneeded apenas cria stores ausentes; não altera nem remove keyPath existente.",
+      "DB_VERSION 7 não está refletido na documentação, que descreve a versão 6.",
+      "clearData limpa firestore_outbox, firestore_meta, firestore_conflicts, entity_meta e firestore_entity_outbox, mas não reta_final_drafts nem reta_final_journal.",
+      "entity_meta e firestore_entity_outbox são criados mesmo sem implementação ativa localizada."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: o banco não tem exportador de estrutura/upgrade.",
+      "IMPORT_ABSENT: não há importador de banco.",
+      "Não há teste de upgrade real de v6 para v7 com dados."
+    ]
+  },
+  {
+    "id": "S-V1-EDITAL",
+    "entity": "Edital",
+    "storage": "app_state.editais[]",
+    "source_paths": [
+      "src/js/store/migrations.js",
+      "src/js/logic/edital-import-core.js",
+      "src/js/views/editais-view.js",
+      "tests/helpers/state-builders.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/logic/edital-import-core.js",
+      "src/js/views/config/data-management.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "edital.id é a raiz; disciplinas são aninhadas em edital.disciplinas, sem campo editalId de retorno.",
+      "evento.discId e bloco.discId apontam para uma disciplina aninhada; não há FK global.",
+      "importMetadata carrega tipo, centralId, sourceRef, fingerprint, sourceRevision e importedAt."
+    ],
+    "migration_risks": [
+      "v1→v2 achata ed.grupos[].disciplinas em ed.disciplinas e remove grupos.",
+      "IDs ausentes recebem prefixos ed_/disc_/ass_ durante a migração; duplicidade não é checada.",
+      "A importação mescla por nome normalizado e pode reutilizar uma disciplina homônima.",
+      "Edital arquivado continua no estado e é excluído do matching da Reta Final."
+    ],
+    "evidence_gaps": [
+      "Não há exportador dedicado de edital; a única saída é o backup integral ou a Reta Final portátil.",
+      "Não há teste de unicidade global de edital.id/disciplina.id após merge ou importação."
+    ]
+  },
+  {
+    "id": "S-V1-DISCIPLINA",
+    "entity": "Disciplina",
+    "storage": "app_state.editais[].disciplinas[]",
+    "source_paths": [
+      "src/js/store/migrations.js",
+      "src/js/logic/edital-import-core.js",
+      "src/js/views/editais/aula-operations.js",
+      "tests/helpers/state-builders.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/logic/edital-import-core.js",
+      "src/js/views/config/data-management.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "disciplina.id é referenciado por evento.discId, bloco.discId e planejamento.disciplinas[].",
+      "assuntos e aulas são coleções filhas de disciplina.",
+      "arquivada/arquivadaEm controlam visibilidade em importação e matching."
+    ],
+    "migration_risks": [
+      "v8 adiciona arquivada/arquivadaEm; estados anteriores podem não ter as flags.",
+      "Lookups por ID percorrem editais; não existe índice global.",
+      "A importação normaliza nome e pode fundir disciplinas homônimas.",
+      "Remover edital ou disciplina pode deixar eventos, blocos e planejamento órfãos."
+    ],
+    "evidence_gaps": [
+      "Não há validação referencial ao remover disciplina.",
+      "icone, cor e flags de arquivamento não têm schema formal."
+    ]
+  },
+  {
+    "id": "S-V1-ASSUNTO",
+    "entity": "Assunto",
+    "storage": "app_state.editais[].disciplinas[].assuntos[]",
+    "source_paths": [
+      "src/js/store/migrations.js",
+      "src/js/logic/edital-import-core.js",
+      "src/js/registro-sessao/session-save.js",
+      "src/js/logic/reta-final-schema.js",
+      "tests/helpers/state-builders.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/logic/edital-import-core.js",
+      "src/js/views/config/data-management.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "assunto.id é referenciado por evento.assId, bloco.topicos[].assId e linkedAulaIds.",
+      "concluido/dataConclusao/revisoesFetas/adiamentos alimentam as revisões espaçadas.",
+      "linkedAulaIds liga assuntos a aulas da mesma disciplina."
+    ],
+    "migration_risks": [
+      "v7 move assuntos cujo nome começa com 'aula N' ou 'modulo N' para aulas e os remove de assuntos.",
+      "linkedAulaIds e revisoesFetas são inicializados sem validar os IDs referenciados.",
+      "A importação usa nome normalizado; variações de título podem criar duplicatas.",
+      "session-save evita resetar revisoesFetas de assunto já concluído; outros fluxos de edição não compartilham a mesma guarda."
+    ],
+    "evidence_gaps": [
+      "Não há migração dedicada para linkedAulaIds quando aulas são removidas.",
+      "O pareamento assunto↔aula é por nome/heurística e pode deixar IDs obsoletos."
+    ]
+  },
+  {
+    "id": "S-V1-AULA",
+    "entity": "Aula",
+    "storage": "app_state.editais[].disciplinas[].aulas[]",
+    "source_paths": [
+      "src/js/store/migrations.js",
+      "src/js/logic/edital-import-core.js",
+      "src/js/registro-sessao/session-save.js",
+      "src/js/logic/reta-final-schema.js",
+      "tests/helpers/state-builders.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/logic/edital-import-core.js",
+      "src/js/views/config/data-management.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "aula.id é referenciado por evento.aulaId, bloco.topicos[].aulaId e assunto.linkedAulaIds.",
+      "legacyAssid preserva o ID do assunto convertido na migração v7.",
+      "dataEstudo alimenta estatísticas de aulas estudadas."
+    ],
+    "migration_risks": [
+      "v7 cria aulas com progress=0, linkedAssuntoIds=[] e _migratedFromV6; consumidores antigos podem ignorar esses campos.",
+      "Aula pode ficar órfã se a disciplina for removida.",
+      "createImportedLesson cria IDs novos e pode duplicar título já existente.",
+      "Campos variam entre aula migrada e aula importada."
+    ],
+    "evidence_gaps": [
+      "Não há schema único de aula.",
+      "Não foi localizada validação de progress/estudada/dataEstudo."
+    ]
+  },
+  {
+    "id": "S-V1-EVENTO",
+    "entity": "Evento e sessão de estudo",
+    "storage": "app_state.eventos[]",
+    "source_paths": [
+      "src/js/ui/event-modals.js",
+      "src/js/registro-sessao/session-save.js",
+      "src/js/logic/reta-final-events.js",
+      "src/js/store/migrations.js",
+      "tests/helpers/state-builders.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "evento.discId/assId/aulaId apontam para o catálogo de editais.",
+      "evento.sessao.topicos[] liga vários assuntos/aulas; assId/aulaId escalares espelham o primeiro item.",
+      "habitos.*.eventoId aponta para evento.id.",
+      "evento.rfBlocoId aponta para retaFinal.blocos[].id."
+    ],
+    "migration_risks": [
+      "Status observados incluem 'agendado' e 'estudei'; não há enum central.",
+      "Eventos antigos usam escalares; eventos novos usam sessao.topicos[] sem migração formal.",
+      "Eventos automáticos autorf_/rfBlocoId são reconstruídos e dependem do carry de notas para não perder conteúdo.",
+      "evento pode apontar para discId/assId/aulaId removidos."
+    ],
+    "evidence_gaps": [
+      "Não há versionamento de evento nem validação referencial.",
+      "Campos opcionais variam entre criação manual, timer e Reta Final."
+    ]
+  },
+  {
+    "id": "S-V1-ARQUIVO-EVENTOS",
+    "entity": "Arquivo de eventos concluídos",
+    "storage": "app_state.arquivo[]",
+    "source_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/store/migrations.js",
+      "src/js/store.js",
+      "src/js/sync/sync-center.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "archiveOldEvents move eventos concluídos antigos de eventos para arquivo.",
+      "arquivo usa o mesmo shape de evento e mantém discId/assId/aulaId."
+    ],
+    "migration_risks": [
+      "Arquivar move objetos entre coleções; IDs duplicados entre eventos e arquivo não são detectados.",
+      "archiveOldEvents seleciona por status/data e não consulta revisões pendentes.",
+      "O merge de sync trata arquivo separadamente de eventos.",
+      "Não há migração específica para arquivo."
+    ],
+    "evidence_gaps": [
+      "Não há schema/version próprio; arquivo é uma cópia de eventos.",
+      "Não foi executado fluxo real de arquivamento/restauração nesta auditoria."
+    ]
+  },
+  {
+    "id": "S-V1-SESSAO-HABITO",
+    "entity": "Sessão multi-tópico e registros de hábito",
+    "storage": "app_state.eventos[].sessao e app_state.habitos.{questoes,revisao,discursiva,simulado,leitura,informativo,sumula,videoaula,paginas}[]",
+    "source_paths": [
+      "src/js/registro-sessao/session-save.js",
+      "src/js/registro-sessao/session-topics.js",
+      "src/js/views/habitos-view.js",
+      "src/js/store/migrations.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "evento.sessao.topicos[] itens contêm assId/aulaId, questoes, paginas e statusTopico.",
+      "habitos.*.eventoId liga o registro ao evento; tempoMin deriva de tempoAcumulado.",
+      "sessao.questoes e sessao.paginas são somas dos tópicos e também espelham campos legados."
+    ],
+    "migration_risks": [
+      "Sessão multi-tópico deriva escalares do primeiro tópico; leitores antigos dependem dos dois formatos.",
+      "Edição remove hábitos por eventoId e reinsere; registros sem eventoId não são alcançados.",
+      "habitos-view aceita tempoMin/tempo/minutos/duracaoMin como aliases.",
+      "statusTopico usa nao_iniciado/em_andamento/finalizado sem enum central."
+    ],
+    "evidence_gaps": [
+      "Não há schema de hábito por tipo.",
+      "Não foi executado fluxo real de IndexedDB para edição de sessão."
+    ]
+  },
+  {
+    "id": "S-V1-REVISAO",
+    "entity": "Revisão espaçada e coleção legada revisoes",
+    "storage": "app_state.editais[].disciplinas[].assuntos[].revisoesFetas/adiamentos; app_state.config.frequenciaRevisao; app_state.revisoes[]",
+    "source_paths": [
+      "src/js/logic/revisions.js",
+      "src/js/views/revisao-view.js",
+      "src/js/store/migrations.js",
+      "src/js/store.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "assunto.revisoesFetas[] e adiamentos alimentam calcRevisionDates.",
+      "config.frequenciaRevisao define os offsets; o default é [1,7,30,90].",
+      "app_state.revisoes é inicializado, mesclado e limpo, mas getPendingRevisoes lê revisoesFetas."
+    ],
+    "migration_risks": [
+      "Há duas representações: ass.revisoesFetas e state.revisoes; apenas a primeira tem produtor ativo localizado.",
+      "Datas são strings YYYY-MM-DD e caches dependem da data local.",
+      "getPendingRevisoes ignora editais e disciplinas arquivadas.",
+      "A guarda contra reset de revisoesFetas existe em session-save, não em todos os fluxos de edição."
+    ],
+    "evidence_gaps": [
+      "Nenhum produtor ativo para state.revisoes foi localizado em src/js.",
+      "Não há migração que reconcilie state.revisoes com ass.revisoesFetas."
+    ]
+  },
+  {
+    "id": "S-V1-PLANEJAMENTO-CICLO",
+    "entity": "Planejamento, ciclo e slots",
+    "storage": "app_state.planejamento e app_state.ciclo",
+    "source_paths": [
+      "src/js/logic/cycle.js",
+      "src/js/store/migrations.js",
+      "src/js/planejamento-wizard.js",
+      "src/js/store.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "planejamento.disciplinas[] e sequencia[].discId referenciam disciplina.id.",
+      "slotOverrides/skippedSlots usam a chave data#slotIndex.",
+      "evento.seqId referencia sequencia[].id.",
+      "planejamento.tipo 'reta_final' usa retaFinal; 'ciclo' usa horarios/sequencia."
+    ],
+    "migration_risks": [
+      "v12 converte skippedSlots em slotOverrides com status 'perdido' e ignora slots sem data.",
+      "materiasPorDia cai para config ou 3; horarios mistura strings HH:MM e arrays.",
+      "planejamento e ciclo são objetos separados; ciclo.ativo não deriva de planejamento.",
+      "IDs de disciplina órfãos não são validados ao gerar slots."
+    ],
+    "evidence_gaps": [
+      "Não há schema formal para horarios/relevancia; os campos foram inferidos dos consumidores.",
+      "Não foi testada migração de plano real com skippedSlots."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-PLAN",
+    "entity": "Plano da Reta Final v2",
+    "storage": "app_state.planejamento quando tipo='reta_final'",
+    "source_paths": [
+      "src/js/logic/reta-final-schema.js",
+      "src/js/logic/reta-final.js",
+      "src/js/store/migrations.js",
+      "src/js/logic/reta-final-portable.js",
+      "src/js/sync/reta-final-protocol.js"
+    ],
+    "versions": {
+      "declared": [
+        "schemaVersionRetaFinal=2",
+        "RETA_FINAL_SYNC_SCHEMA=2"
+      ],
+      "observed": [
+        "schemaVersionRetaFinal=2",
+        "RETA_FINAL_SYNC_SCHEMA=2"
+      ],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/logic/reta-final-portable.js",
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/logic/reta-final.js",
+      "src/js/views/reta-final-import.js",
+      "src/js/views/config/data-management.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/reta-final-protocol.js",
+      "src/js/sync/firestore-sync-engine.js"
+    ],
+    "relations": [
+      "planId identifica a linhagem; revision é o contador de intenção.",
+      "retaFinal.blocos[] e retaFinal.capacidade compõem o plano.",
+      "migrateRetaFinalV2 roda em toda carga e pode alocar planId.",
+      "O descriptor retaFinalSync carrega planId/revision/digest no snapshot."
+    ],
+    "migration_risks": [
+      "Planos pré-v2 sem planId/revision só migram quando a forma é inequívoca; caso contrário ficam intactos com diagnostics.",
+      "schemaVersionRetaFinal é independente de state.schemaVersion.",
+      "Cópia/importação de estado pode reiniciar revision.",
+      "operations/pendingOperations/operationIds são metadados de dispositivo e não intenção."
+    ],
+    "evidence_gaps": [
+      "Plano ambíguo não tem migração automática; exige reparo humano.",
+      "Não há teste de todos os formatos legados de plano."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-BLOCOS",
+    "entity": "Blocos da Reta Final",
+    "storage": "app_state.planejamento.retaFinal.blocos[]",
+    "source_paths": [
+      "src/js/logic/reta-final-schema.js",
+      "src/js/logic/reta-final-schedule.js",
+      "src/js/logic/reta-final-core.js",
+      "src/js/logic/reta-final-portable.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/logic/reta-final-portable.js"
+    ],
+    "import_paths": [
+      "src/js/views/reta-final-import.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/reta-final-protocol.js",
+      "src/js/sync/firestore-sync-engine.js"
+    ],
+    "relations": [
+      "bloco.id é referenciado por evento.rfBlocoId e removedBlocks[].id.",
+      "bloco.discId e bloco.topicos[].assId/aulaId referenciam o catálogo.",
+      "dataPlanejada é intenção; dataOriginal e data são projeções."
+    ],
+    "migration_risks": [
+      "dataPlanejada/dataOriginal/data/rolagens podem divergir após rollover; só a intenção conta no digest.",
+      "status pendente/concluido/nao_coberto e categoriaTemporal são derivados.",
+      "ordem/dataPlanejada ausentes são preenchidas por migrateRetaFinalV2.",
+      "validateRetaFinalV2 valida IDs e campos, mas não confirma existência no catálogo."
+    ],
+    "evidence_gaps": [
+      "Bloco não tem versão própria; só a revisão do plano.",
+      "Não há validação referencial de discId/topicos contra editais em validateRetaFinalV2."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-EVENTOS",
+    "entity": "Eventos automáticos da Reta Final",
+    "storage": "app_state.eventos[] com rfBlocoId/isAutoGenerated",
+    "source_paths": [
+      "src/js/logic/reta-final-events.js",
+      "src/js/logic/reta-final-core.js",
+      "src/js/ui/event-modals.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "evento.rfBlocoId aponta para bloco.id.",
+      "isAutoGenerated/rfNotasAutomaticas distinguem autos de sessões reais.",
+      "evento.status 'estudei' conclui o bloco; auto 'agendado' é removido/regerado."
+    ],
+    "migration_risks": [
+      "Autos são apagados e recriados no rebuild; notas manuais dependem de carryRemovedAutoNotesToBlocks.",
+      "O ID autorf_ vive no mesmo espaço de eventos comuns.",
+      "Mudança de data/rolagem pode duplicar auto se a deduplicação falhar.",
+      "Bloco arquivado remove auto; evento com anotação é preservado."
+    ],
+    "evidence_gaps": [
+      "Eventos da Reta Final não têm schema separado; são eventos comuns com campos extras.",
+      "Não foi executada regeneração real de eventos."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-CHECKPOINTS",
+    "entity": "Checkpoints da Reta Final",
+    "storage": "reta_final_journal, registros type='checkpoint'",
+    "source_paths": [
+      "src/js/logic/reta-final-history.js",
+      "src/js/store/reta-final-history-store.js",
+      "src/js/store/reta-final-commit.js",
+      "src/js/store/indexeddb.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [],
+    "relations": [
+      "checkpoint.planId/revision referenciam o plano.",
+      "checkpoint.draftId referencia reta_final_drafts.draftId.",
+      "O mesmo journal guarda sync_intent além de checkpoint."
+    ],
+    "migration_risks": [
+      "O checksum é fnv1a64, não criptográfico.",
+      "journal mistura checkpoint e sync_intent no mesmo store e keyPath id.",
+      "prune preserva checkpoints protegidos, mas corrupção impede verificação.",
+      "Checkpoint não contém eventos/hábitos; restauração é só do plano."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: checkpoints não têm exportador próprio.",
+      "IMPORT_ABSENT: não há importador de checkpoint.",
+      "SYNC_ABSENT: checkpoints ficam locais; só sync_intent é enfileirado."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-TOMBSTONES",
+    "entity": "Tombstones de blocos da Reta Final",
+    "storage": "app_state.config.firestoreSync.removedBlocks[].{id,revision} e minRetainedRevision; descriptor retaFinalSync.removedBlockIds",
+    "source_paths": [
+      "src/js/sync/firestore-sync-engine.js",
+      "src/js/sync/reta-final-protocol.js",
+      "src/js/store/reta-final-commit.js",
+      "docs/api/sync-contract.md"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [
+      "src/js/sync/firestore-sync-engine.js",
+      "src/js/sync/reta-final-protocol.js"
+    ],
+    "relations": [
+      "removedBlocks[].id referencia bloco.id.",
+      "minRetainedRevision funciona como piso de retenção.",
+      "O descriptor carrega removedBlockIds e o piso para o merge remoto."
+    ],
+    "migration_risks": [
+      "A lista é limitada a 200 entradas; a mais antiga é descartada e o piso sobe.",
+      "removedBlocks vive em config.firestoreSync, que createExportableState substitui pelo default.",
+      "O descriptor exige tombstones append-only; base abaixo do piso vira stale-base.",
+      "Restaurar backup perde tombstones; um merge posterior pode tratar um bloco removido como ausente."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: createExportableState zera firestoreSync e não preserva removedBlocks.",
+      "IMPORT_ABSENT: restore não tem caminho para reconstruir removedBlocks.",
+      "Não foi testado restore de backup após perda de tombstones."
+    ]
+  },
+  {
+    "id": "S-V1-ENTITY-TOMBSTONES",
+    "entity": "Tombstones de entidades para merge",
+    "storage": "app_state.syncTombstones[] (código); docs apontam config.entityTombstones",
+    "source_paths": [
+      "src/js/sync/sync-center.js",
+      "src/js/store.js",
+      "docs/api/sync-contract.md",
+      "docs/architecture/data-flow.md"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "Tombstone tem shape {col,id,deletedAt}.",
+      "mergeById usa col para casar editais/eventos/arquivo/revisoes/habitos.*.",
+      "store.js preserva syncTombstones no setState."
+    ],
+    "migration_risks": [
+      "Docs dizem config.entityTombstones; o código lê e grava state.syncTombstones.",
+      "Docs prometem cap de 500 e expiração em 180 dias; sync-center não implementa poda.",
+      "mergeById remove o item quando o tombstone é mais novo.",
+      "Tombstone sem col/id válido não casa com a coleção."
+    ],
+    "evidence_gaps": [
+      "A divergência config.entityTombstones versus state.syncTombstones não tem migração.",
+      "Nenhum teste real de exclusão multi-dispositivo foi executado."
+    ]
+  },
+  {
+    "id": "S-V1-BANCA-RELEVANCE",
+    "entity": "Inteligência de banca e mapeamentos",
+    "storage": "app_state.bancaRelevance.{hotTopics,userMappings,lessonMappings}",
+    "source_paths": [
+      "src/js/views/banca-view.js",
+      "src/js/relevance.js",
+      "src/js/lesson-mapper.js",
+      "src/js/store/migrations.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "hotTopics[].disciplinaId referencia disciplina.id.",
+      "userMappings é chaveado pelo nome do assunto de origem.",
+      "lessonMappings associa aulas e assuntos por nome/heurística."
+    ],
+    "migration_risks": [
+      "Renomear disciplina/assunto quebra mapping por nome.",
+      "hotTopics pode conter nomes duplicados; a UI filtra por nome.",
+      "Não há validação de IDs ao remover disciplina.",
+      "O objeto é inicializado na migração v7 sem reconciliação posterior."
+    ],
+    "evidence_gaps": [
+      "Não há schema/version; a estrutura foi inferida dos consumidores.",
+      "Não foi executado import real de banca."
+    ]
+  },
+  {
+    "id": "S-V1-CONFIG",
+    "entity": "Configuração e preferências",
+    "storage": "app_state.config",
+    "source_paths": [
+      "src/js/store.js",
+      "src/js/store/migrations.js",
+      "src/js/store/export-state.js",
+      "src/js/sync/firestore-schema.js",
+      "src/js/sync/sync-center.js",
+      "src/js/views/config/theme-settings.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "relations": [
+      "config alimenta revisão (frequenciaRevisao), slots (materiasPorDia), tema, cronômetro e sync.",
+      "config.firestoreSync contém runtime e conflito ativo.",
+      "config.entityTombstones é citado em docs, mas não é criado por setState/store."
+    ],
+    "migration_risks": [
+      "config mistura preferências, credenciais Cloudflare, flags de sync e histórico operacional.",
+      "globalSyncPaused default é true em store/clearData, mas o builder de teste usa false.",
+      "createExportableState remove cfToken/cfUrl/localBackupAt e zera firestoreSync, mas não audita todas as chaves.",
+      "config.entityTombstones citado em docs não existe no default do código."
+    ],
+    "evidence_gaps": [
+      "Sem schema/version de config; merge e defaults são ad hoc.",
+      "Não foi feita auditoria de todas as chaves possíveis de config."
+    ]
+  },
+  {
+    "id": "S-V1-CACHES-PROJECOES",
+    "entity": "Caches e projeções derivadas",
+    "storage": "Memória de módulo; não persistido",
+    "source_paths": [
+      "src/js/logic/disc.js",
+      "src/js/logic/progress.js",
+      "src/js/logic/revisions.js",
+      "src/js/logic.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [],
+    "relations": [
+      "Caches derivam de editais, eventos, revisões e configuração.",
+      "invalidat* é chamado por ações de store e views."
+    ],
+    "migration_risks": [
+      "Caches não são persistidos; reload recalcula.",
+      "Não há dependência declarativa entre cache e entidade.",
+      "Pull remoto precisa invalidar caches; o merge não invalida diretamente.",
+      "Caches de revisão usam data local."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: caches não entram no backup.",
+      "IMPORT_ABSENT: caches não são importados.",
+      "Não foi medido comportamento após pull remoto real."
+    ]
+  },
+  {
+    "id": "S-V1-BACKUP-JSON",
+    "entity": "Backup/restauração JSON do estado",
+    "storage": "Arquivo estudo-organizado-backup-YYYY-MM-DD.json",
+    "source_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js",
+      "src/js/store/export-state.js",
+      "src/js/store.js",
+      "tests/unit/backup-restore.test.js"
+    ],
+    "versions": {
+      "declared": [
+        "export.schemaVersion=12"
+      ],
+      "observed": [
+        "test-fixture.schemaVersion=9"
+      ],
+      "conflicts": [
+        "O export grava o schemaVersion corrente (12), mas validateBackupPayload só exige um inteiro positivo e tests/unit/backup-restore.test.js:9 usa 9. Não há versão de backup separada nem gate de atualidade."
+      ]
+    },
+    "export_paths": [
+      "src/js/views/config/data-management.js"
+    ],
+    "import_paths": [
+      "src/js/views/config/data-management.js",
+      "src/js/backup-restore.js"
+    ],
+    "sync_paths": [],
+    "relations": [
+      "O backup é o payload de createExportableState sem envelope externo.",
+      "previewRestoreImpact compara editais, eventos, arquivo, revisoes e habitos.*.",
+      "A restauração faz setState(imported), runMigrations() e scheduleSave()."
+    ],
+    "migration_risks": [
+      "Backup é payload solto, sem envelope/checksum.",
+      "Qualquer schemaVersion positivo passa; não há limite superior.",
+      "Tipos aninhados não são validados antes de setState.",
+      "createExportableState remove credenciais e removedBlocks; o descriptor retaFinalSync não entra no backup."
+    ],
+    "evidence_gaps": [
+      "Não há versão de backup separada do schemaVersion do estado.",
+      "SYNC_ABSENT: backup JSON não é canal de sync.",
+      "Não foi executado backup/restore real de IndexedDB nesta auditoria."
+    ]
+  },
+  {
+    "id": "S-V1-FIRESTORE-SNAPSHOT",
+    "entity": "Snapshot Firestore",
+    "storage": "users/{uid}/snapshots/main",
+    "source_paths": [
+      "src/js/sync/firestore-schema.js",
+      "src/js/sync/firestore-repository.js",
+      "src/js/sync/firestore-sync-engine.js",
+      "firestore.rules",
+      "docs/api/sync-contract.md"
+    ],
+    "versions": {
+      "declared": [
+        "envelope.version=1",
+        "payload.schemaVersion=12"
+      ],
+      "observed": [
+        "envelope.version=1",
+        "payload.schemaVersion=9"
+      ],
+      "conflicts": [
+        "FIRESTORE_SYNC_VERSION=1 e firestore.rules exigem version==1; docs/api/sync-contract.md:29 também usa version=1, mas :30 e :47 usam schemaVersion=9, enquanto o código grava schemaVersion=12 por padrão. O envelope v1 é consistente; a divergência está no schemaVersion do payload. O exemplo version=2 em docs/api/sync-contract.md:327 pertence ao envelope Cloudflare, não ao Firestore; não há evidência de Firestore v2 no código atual."
+      ]
+    },
+    "export_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "import_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/firestore-repository.js",
+      "src/js/sync/firestore-sync-engine.js"
+    ],
+    "relations": [
+      "O payload é createExportableState(sourceState) com telemetria removida e undefined stripado.",
+      "retaFinalSync é opcional e adiciona CAS/linhagem para a Reta Final v2.",
+      "updatedAt/serverUpdatedAt são acrescentados na escrita."
+    ],
+    "migration_risks": [
+      "O pull aplica o payload sem migração de schema baseada em envelope.version.",
+      "schemaVersion é apenas um número; não há upgrade por faixa.",
+      "O limite de 1 MiB pode estourar com estado completo.",
+      "entityManifest é documentado, mas não há gerador localizado em src/js."
+    ],
+    "evidence_gaps": [
+      "Não foi executado emulador Firestore nem leitura remota real.",
+      "Não há teste de rules contra version/schema divergentes.",
+      "entityManifest/entidades remotas permanecem sem implementação ativa localizada."
+    ]
+  },
+  {
+    "id": "S-V1-FIRESTORE-OUTBOX",
+    "entity": "Outbox de snapshot Firestore",
+    "storage": "firestore_outbox/latest_snapshot",
+    "source_paths": [
+      "src/js/sync/firestore-outbox.js",
+      "src/js/store/indexeddb.js",
+      "src/js/sync/firestore-sync-engine.js"
+    ],
+    "versions": {
+      "declared": [
+        "envelope.version=1"
+      ],
+      "observed": [
+        "envelope.version=1"
+      ],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [
+      "src/js/sync/firestore-outbox.js",
+      "src/js/sync/firestore-sync-engine.js"
+    ],
+    "relations": [
+      "O registro aponta para um envelope de snapshot.",
+      "queuedAt/sentAt identificam a operação para CAS.",
+      "attempts/nextAttemptAt controlam backoff."
+    ],
+    "migration_risks": [
+      "Um único latest_snapshot coalesce escritas; nova linhagem preserva queuedAt.",
+      "Retry usa backoff até 300 s.",
+      "markFirestoreSnapshotSynced só remove quando queuedAt/sentAt conferem.",
+      "O registro do outbox não tem versão própria."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: outbox não é exportável.",
+      "IMPORT_ABSENT: outbox não é importável.",
+      "Não há teste de crash entre put e commit em IndexedDB real."
+    ]
+  },
+  {
+    "id": "S-V1-FIRESTORE-META-CONFLICTS",
+    "entity": "Metadados e conflito ativo do Firestore",
+    "storage": "firestore_meta/firestore_sync e firestore_conflicts/active_conflict",
+    "source_paths": [
+      "src/js/sync/firestore-outbox.js",
+      "src/js/sync/firestore-sync-engine.js",
+      "src/js/store/indexeddb.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [
+      "src/js/sync/firestore-outbox.js",
+      "src/js/sync/firestore-sync-engine.js"
+    ],
+    "relations": [
+      "firestore_sync guarda uid/remoteUpdatedAt/lastPullAt/lastPushAt conforme a chamada.",
+      "active_conflict espelha config.firestoreSync.conflict.",
+      "clearFirestoreConflict limpa o store, não o config."
+    ],
+    "migration_risks": [
+      "Meta é um único registro; campos variam por chamada.",
+      "Conflito ativo é um único slot e sobrescreve o anterior.",
+      "config.firestoreSync.conflict duplica o conflito persistido.",
+      "Não há histórico de conflitos no store."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: meta/conflict não são exportados.",
+      "IMPORT_ABSENT: meta/conflict não são importados.",
+      "Não há reconciliação formal entre store e config."
+    ]
+  },
+  {
+    "id": "S-V1-ENTITY-META",
+    "entity": "Índice local de entidades (entity_meta)",
+    "storage": "entity_meta (keyPath key)",
+    "source_paths": [
+      "src/js/store/indexeddb.js",
+      "docs/api/sync-contract.md",
+      "docs/architecture/data-flow.md",
+      "tests/unit/store-indexeddb-imports.test.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [],
+    "relations": [
+      "Docs descrevem key=collection/id, collection, id, checksum, updatedAt e revision.",
+      "O store é criado no upgrade para DB_VERSION 7."
+    ],
+    "migration_risks": [
+      "O store é criado, mas nenhum writer/reader foi localizado em src/js.",
+      "A documentação descreve índice ativo; o código só define/cria/limpa.",
+      "A chave é key (collection/id), não id.",
+      "clearData limpa o store."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: entity_meta não é exportado.",
+      "IMPORT_ABSENT: entity_meta não é importado.",
+      "SYNC_ABSENT: não há sync de entidades implementado apesar da documentação."
+    ]
+  },
+  {
+    "id": "S-V1-ENTITY-OUTBOX",
+    "entity": "Outbox de entidades (firestore_entity_outbox)",
+    "storage": "firestore_entity_outbox (keyPath id)",
+    "source_paths": [
+      "src/js/store/indexeddb.js",
+      "docs/architecture/data-flow.md",
+      "docs/architecture/app-overview.md",
+      "tests/unit/store-indexeddb-imports.test.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [],
+    "relations": [
+      "Docs dizem que o store recebe lotes quando entitySync está em shadow/primary.",
+      "O store é criado no upgrade para DB_VERSION 7."
+    ],
+    "migration_risks": [
+      "Nenhum reader/writer foi localizado em src/js.",
+      "Não existe src/js/sync/entity-sync.js no recorte auditado.",
+      "Lotes antigos podem permanecer sem flush.",
+      "clearData limpa o store."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: entity outbox não é exportável.",
+      "IMPORT_ABSENT: entity outbox não é importável.",
+      "SYNC_ABSENT: não há implementação ativa de entity sync localizada."
+    ]
+  },
+  {
+    "id": "S-V1-ENTITY-LEGACY-MIGRATION",
+    "entity": "Migração de entidades remotas para snapshot",
+    "storage": "users/{uid}/entities/{collection}/{docId} (legado) para users/{uid}/snapshots/main",
+    "source_paths": [
+      "src/js/sync/entity-migration.js",
+      "src/js/sync/sync-center.js",
+      "src/js/sync/firestore-schema.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/sync/firestore-schema.js"
+    ],
+    "import_paths": [
+      "src/js/sync/entity-migration.js"
+    ],
+    "sync_paths": [
+      "src/js/sync/entity-migration.js",
+      "src/js/sync/firestore-sync-engine.js"
+    ],
+    "relations": [
+      "Coleções antigas lidas: editais, eventos, arquivo, revisoes e habitos.",
+      "O resultado passa por mergeStudyStates antes do snapshot.",
+      "O snapshot usa createFirestoreSnapshotEnvelope."
+    ],
+    "migration_risks": [
+      "É um script one-time e não é chamado no boot.",
+      "Exige db, uid, apiKey e projectId para ler via REST.",
+      "Se qualquer lado contiver Reta Final v2, bloqueia.",
+      "mergeStudyStates pode remover itens por tombstones.",
+      "Entidades antigas ficam órfãs; limpeza é manual."
+    ],
+    "evidence_gaps": [
+      "Nenhum teste unitário específico foi localizado para entity-migration.js.",
+      "Não foi executado contra Firestore real."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-DRAFTS",
+    "entity": "Rascunhos de edição da Reta Final",
+    "storage": "reta_final_drafts (keyPath draftId)",
+    "source_paths": [
+      "src/js/store/reta-final-commit.js",
+      "src/js/store/reta-final-history-store.js",
+      "src/js/store/indexeddb.js",
+      "tests/unit/reta-final-draft-store.test.js"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [],
+    "relations": [
+      "draftId liga draft, checkpoint e sync_intent.",
+      "appliedResult/operations preservam o commit.",
+      "O commit transaciona app_state, drafts e journal."
+    ],
+    "migration_risks": [
+      "Draft não tem schemaVersion nem migração.",
+      "operationId duplicado bloqueia commit.",
+      "Drafts aplicados dependem do journal para auditoria.",
+      "Drafts órfãos podem permanecer após poda do journal."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: drafts não são exportáveis.",
+      "IMPORT_ABSENT: drafts não são importáveis.",
+      "SYNC_ABSENT: drafts ficam locais."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-JOURNAL",
+    "entity": "Journal local da Reta Final",
+    "storage": "reta_final_journal (keyPath id)",
+    "source_paths": [
+      "src/js/store/reta-final-history-store.js",
+      "src/js/store/reta-final-commit.js",
+      "src/js/logic/reta-final-history.js",
+      "src/js/store/indexeddb.js",
+      "docs/api/sync-contract.md"
+    ],
+    "versions": {
+      "declared": [],
+      "observed": [],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [
+      "src/js/store/reta-final-commit.js",
+      "src/js/sync/reta-final-protocol.js"
+    ],
+    "relations": [
+      "O store guarda checkpoint e sync_intent.",
+      "sync_intent referencia planId/revision/operationIds.",
+      "prune considera draftId e status de sync."
+    ],
+    "migration_risks": [
+      "O mesmo keyPath id guarda tipos diferentes.",
+      "Não há schemaVersion de journal.",
+      "Checkpoint corrompido é exposto com integrity invalid, não reparado.",
+      "prune preserva registros pendentes/conflitados, mas depende de status textual."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: journal não é exportável.",
+      "IMPORT_ABSENT: journal não é importável.",
+      "Não há migração de journal de versões antigas."
+    ]
+  },
+  {
+    "id": "S-V1-EDITAL-IMPORT-JSON",
+    "entity": "Contrato de importação de edital em JSON",
+    "storage": "Arquivo JSON externo para app_state.editais",
+    "source_paths": [
+      "src/js/logic/edital-import-core.js",
+      "src/js/views/edital-import.js",
+      "tests/unit/edital-import-core.test.js",
+      "tests/helpers/state-builders.js"
+    ],
+    "versions": {
+      "declared": [
+        "payload.versao=1"
+      ],
+      "observed": [
+        "payload.versao=1"
+      ],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [
+      "src/js/logic/edital-import-core.js",
+      "src/js/views/edital-import.js"
+    ],
+    "sync_paths": [],
+    "relations": [
+      "payload.disciplinas[].topicos viram assuntos.",
+      "payload.disciplinas[].aulas viram aulas.",
+      "source/importMetadata preservam centralId/sourceRef/fingerprint/sourceRevision."
+    ],
+    "migration_risks": [
+      "O payload usa topicos/aulas; o estado usa assuntos/aulas.",
+      "canonicaliza por nome e funde duplicatas.",
+      "IDs são criados por uid; reimportação deduplica por provenance/fingerprint, não por ID.",
+      "Plano de importação desatualizado é rejeitado."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: não há exportador de edital no formato de importação.",
+      "SYNC_ABSENT: importação é local; o arquivo não sincroniza.",
+      "Não há teste de round-trip export→import."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-PORTABLE-V2",
+    "entity": "JSON portátil da Reta Final v2",
+    "storage": "Arquivo JSON externo versao=2",
+    "source_paths": [
+      "src/js/logic/reta-final-portable.js",
+      "src/js/views/reta-final-import.js",
+      "src/js/logic/reta-final-import-compare.js",
+      "src/js/logic/reta-final-core.js",
+      "tests/unit/reta-final-portable.test.js"
+    ],
+    "versions": {
+      "declared": [
+        "payload.versao=2"
+      ],
+      "observed": [
+        "payload.versao=2"
+      ],
+      "conflicts": []
+    },
+    "export_paths": [
+      "src/js/logic/reta-final-portable.js"
+    ],
+    "import_paths": [
+      "src/js/views/reta-final-import.js",
+      "src/js/logic/reta-final-portable.js"
+    ],
+    "sync_paths": [],
+    "relations": [
+      "O payload contém planId, exportRevision, dataFinal, minutosPadrao, capacidade opcional e blocos.",
+      "Blocos preservam id/discId/topicos/minutos/dataPlanejada e campos opcionais.",
+      "A importação compara com a Reta Final ativa."
+    ],
+    "migration_risks": [
+      "Export remove histórico, eventos, checkpoints e tombstones.",
+      "Só campos do whitelist são exportados.",
+      "PRIVATE_KEY remove chaves com event/sess/credential/token/secret/password/senha/histor.",
+      "IDs de bloco/disciplina/tópicos são preservados; catálogo ausente bloqueia preview."
+    ],
+    "evidence_gaps": [
+      "SYNC_ABSENT: arquivo portátil é manual.",
+      "Não há export de checkpoints/tombstones."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-PORTABLE-V1",
+    "entity": "JSON legado da Reta Final v1",
+    "storage": "Arquivo JSON externo versao=1 (dias[].blocos[])",
+    "source_paths": [
+      "src/js/logic/reta-final-portable.js",
+      "src/js/logic/reta-final-core.js",
+      "src/js/views/reta-final-import.js",
+      "tests/unit/reta-final-portable.test.js"
+    ],
+    "versions": {
+      "declared": [
+        "payload.versao=1"
+      ],
+      "observed": [
+        "payload.versao=1"
+      ],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [
+      "src/js/views/reta-final-import.js",
+      "src/js/logic/reta-final-portable.js"
+    ],
+    "sync_paths": [],
+    "relations": [
+      "dias[].blocos[] contém disciplina, aula, topicos e minutos.",
+      "O matching com editais é por nome normalizado.",
+      "A ativação pode criar disciplinas/tópicos/aulas ausentes."
+    ],
+    "migration_risks": [
+      "v1 não tem IDs; match é por nome.",
+      "Nomes duplicados geram REFERENCIA_AMBIGUA.",
+      "Ativação cria itens ausentes sem IDs estáveis de origem.",
+      "Não há exportador v1; round-trip só via v2."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: só o exportador v2 existe.",
+      "SYNC_ABSENT: importação é local.",
+      "Não foi executada ativação real de payload v1."
+    ]
+  },
+  {
+    "id": "S-V1-RETA-FINAL-SYNC-DESCRIPTOR",
+    "entity": "Descriptor de sync da Reta Final v2",
+    "storage": "retaFinalSync no snapshot Firestore; users/{uid}/syncMeta/reta-final-guard",
+    "source_paths": [
+      "src/js/sync/reta-final-protocol.js",
+      "docs/api/sync-contract.md",
+      "firestore.rules",
+      "src/js/sync/firestore-sync-engine.js",
+      "src/js/sync/firestore-repository.js"
+    ],
+    "versions": {
+      "declared": [
+        "schema=2",
+        "guardVersion=1"
+      ],
+      "observed": [
+        "schema=2",
+        "guardVersion=1"
+      ],
+      "conflicts": []
+    },
+    "export_paths": [],
+    "import_paths": [],
+    "sync_paths": [
+      "src/js/sync/reta-final-protocol.js",
+      "src/js/sync/firestore-sync-engine.js",
+      "src/js/sync/firestore-repository.js",
+      "firestore.rules"
+    ],
+    "relations": [
+      "Descriptor carrega planId/lineageId/generation/revision/digest/state/capabilities.",
+      "removedBlockIds/minRetainedRevision conectam tombstones ao plano.",
+      "A sonda reta-final-guard valida schema=2 e guardVersion=1."
+    ],
+    "migration_risks": [
+      "Descriptor só existe para Reta Final v2; write sem descriptor é negado se o remoto o tem.",
+      "CAS exige revision remota+1 e baseRevision.",
+      "Tombstones são append-only; base abaixo do piso vira stale-base.",
+      "Estado retired não pode ser substituído por novo planId sem decisão humana."
+    ],
+    "evidence_gaps": [
+      "EXPORT_ABSENT: descriptor não é exportável como arquivo.",
+      "IMPORT_ABSENT: descriptor não é importável como arquivo.",
+      "Não foi executada sonda real contra regras deployadas."
+    ]
+  }
+]
