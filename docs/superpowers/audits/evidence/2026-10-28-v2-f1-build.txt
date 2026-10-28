@@ -9,6 +9,6 @@ rendering chunks...
 computing gzip size...
 dist/index.html                   0.53 kB │ gzip:  0.33 kB
 dist/assets/index-TGV5R_d0.css    5.50 kB │ gzip:  1.84 kB
-dist/assets/index-D7ayzTjG.js   230.97 kB │ gzip: 72.47 kB
+dist/assets/index-DJZpFtQi.js   231.14 kB │ gzip: 72.53 kB
 
-✓ built in 239ms
+✓ built in 123ms

@@ -30,7 +30,7 @@ Aplicação isolada em `apps/v2/` com React, TypeScript strict, Vite, Vitest, Pl
 | UI | `presentation/App.tsx`, `components/*`, `tokens.css`, `styles.css` | criar/listar/renomear, estados e 8 temas |
 | PWA | `public/manifest.webmanifest`, `public/sw.js`, `sw-update.ts` | cache isolado e atualização sem reload automático |
 
-O root `package.json`, o lockfile da V1, `src/`, `PRODUCT.md`, `DESIGN.md`, `AGENTS.md`, `.impeccable/`, `firestore.rules` e `.github/workflows/` não foram alterados. A única mudança fora de `apps/v2/` e do relatório foi a exceção `!/apps/v2/**` no `.gitignore` raiz, necessária porque o repositório usa allowlist e ignorava todo `apps/`; ela não afeta runtime, build ou deploy da V1.
+O root `package.json`, o lockfile da V1, `src/`, `PRODUCT.md`, `DESIGN.md`, `AGENTS.md`, `.impeccable/`, `firestore.rules` e `.github/workflows/` não foram alterados. Fora de `apps/v2/`, mudaram apenas a exceção `!/apps/v2/**` no `.gitignore` raiz (o repositório usa allowlist e ignorava todo `apps/`), este relatório, o roadmap e o handoff; nenhuma dessas mudanças afeta runtime, build ou deploy da V1.
 
 ## 3. Status reais
 
@@ -38,9 +38,9 @@ O root `package.json`, o lockfile da V1, `src/`, `PRODUCT.md`, `DESIGN.md`, `AGE
 | --- | --- | --- |
 | Typecheck | `npm --prefix apps/v2 run typecheck` | **PASS** |
 | Lint | `npm --prefix apps/v2 run lint` | **PASS** (0 erros) |
-| Unit | `npm --prefix apps/v2 run test:unit` | **PASS** — 15 arquivos, 69 testes |
+| Unit | `npm --prefix apps/v2 run test:unit` | **PASS** — 15 arquivos, 76 testes |
 | E2E | `npm --prefix apps/v2 run test:e2e` | **PASS** — 16 testes em Chromium |
-| Build | `npm --prefix apps/v2 run build` | **PASS** — bundle 230,94 kB / 72,46 kB gzip |
+| Build | `npm --prefix apps/v2 run build` | **PASS** — bundle 231,14 kB / 72,53 kB gzip |
 | Firebase/Google real | — | **NOT_RUN** |
 | Firestore Emulator/Rules | — | **NOT_RUN** |
 | Quota física real | — | **NOT_RUN**; quota é simulada |
@@ -134,6 +134,20 @@ A configuração da V1 continua apontando `test:e2e:mock` para uma spec ignorada
 | 9 | Commits na v2, sem PR/Action/deploy | PASS |
 | 10 | Aprovação humana específica | **PENDENTE** |
 
-## 11. Gate
+## 11. Correções após a revisão independente
 
-**`F1_READY_FOR_HUMAN_REVIEW`**. A F1 não está aprovada e a F2 não está autorizada. O aceite humano deve considerar: 69 testes unitários, 16 E2E, typecheck/lint/build, 4 riscos HIGH ainda UNVERIFIED, ausência de Firebase real e os limites de fake/quota/multi-dispositivo.
+A primeira revisão final encontrou cinco P1. Todos foram corrigidos com testes novos:
+
+1. `recognizeLegacyFormat` agora reconhece `retaFinal` de topo e rejeita `planejamento` vazio.
+2. `lookup`/`lookupRevision` do fake validam UID ativo; payload com perfil estrangeiro é rejeitado.
+3. ACK sem revisão comprovada permanece pendente; não há mais revisão inferida por `baseRevision + 1`.
+4. `FlushResult.conflictRevisions` preserva a revisão remota real usada por `markConflict`.
+5. `CONSENT_LINK` exige `previewId` e não troca UID existente sem logout; `assertProfileMatches` também compara UID.
+
+Também foram endurecidos: `markConfirmed` exige `PENDING`, `markConflict` recusa `CONFIRMED`, operação local reutilizada com outro comando falha, listener de evento não transforma commit em erro, fake aplica o orçamento de documento, o SW só cacheia respostas OK e o teste de toast verifica o elemento no ponto central do botão.
+
+Após as correções: typecheck/lint/build PASS, 76 testes unitários e 16 E2E PASS.
+
+## 12. Gate
+
+**`F1_READY_FOR_HUMAN_REVIEW`**. A F1 não está aprovada e a F2 não está autorizada. O aceite humano deve considerar: 76 testes unitários, 16 E2E, typecheck/lint/build, 4 riscos HIGH ainda UNVERIFIED, ausência de Firebase real e os limites de fake/quota/multi-dispositivo.
