@@ -16,6 +16,7 @@ import {
   STORES,
 } from '../../src/platform/indexeddb';
 import { LocalContentRepository } from '../../src/platform/local-content-repository';
+import { transactionDone } from '../../src/platform/indexeddb';
 
 const profileId = 'profile-local';
 const fixtures = join(process.cwd(), 'tests', 'fixtures');
@@ -54,6 +55,19 @@ async function counts() {
     aulas: await requestResult(transaction.objectStore(STORES.aulas).count()),
     receipts: await requestResult(transaction.objectStore(STORES.importReceipts).count()),
   };
+}
+
+async function quarantineCount(): Promise<number> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.quarantine, 'readonly');
+  return requestResult(transaction.objectStore(STORES.quarantine).count());
+}
+
+async function dropReceipt(importId: string): Promise<void> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.importReceipts, 'readwrite');
+  transaction.objectStore(STORES.importReceipts).delete([profileId, importId]);
+  await transactionDone(transaction);
 }
 
 beforeEach(async () => {
@@ -215,5 +229,109 @@ describe('F2 import commit', () => {
     expect(result).toMatchObject({ kind: 'LOCAL_COMMITTED' });
     expect((await counts()).editais).toBe(2);
     expect((await counts()).receipts).toBe(2);
+  });
+
+  it('replay_after_a_deletion_reports_divergence_instead_of_success', async () => {
+    const preview = await buildPreview();
+    const committer = new ImportCommitter();
+    const approval = { confirmed: true as const, targetSignature: preview.targetSignature };
+    expect(await committer.apply(profileId, preview, approval)).toMatchObject({
+      kind: 'LOCAL_COMMITTED',
+    });
+
+    const content = new LocalContentRepository();
+    // The leaf has no dependents, so the delete is accepted.
+    const assunto = (await content.loadContent(profileId)).assuntos.find(
+      (item) => item.parentId !== null,
+    );
+    expect(assunto).toBeDefined();
+    const deleted = await content.execute({
+      type: 'SOFT_DELETE',
+      operationId: 'op-delete-imported',
+      profileId,
+      entityType: 'assunto',
+      entityId: assunto!.id,
+      baseRevision: assunto!.localRevision,
+    });
+    expect(deleted).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+
+    const replay = await committer.apply(profileId, preview, approval);
+    expect(replay).toMatchObject({ kind: 'CONFLICT' });
+    expect((replay as { current: { code: string } }).current.code).toBe(
+      'IMPORT_ALREADY_APPLIED_BUT_DIVERGED',
+    );
+  });
+
+  it('import_never_resurrects_a_tombstoned_id', async () => {
+    const preview = await buildPreview();
+    const committer = new ImportCommitter();
+    expect(
+      await committer.apply(profileId, preview, {
+        confirmed: true,
+        targetSignature: preview.targetSignature,
+      }),
+    ).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+
+    const content = new LocalContentRepository();
+    const assunto = (await content.loadContent(profileId)).assuntos.find(
+      (item) => item.parentId !== null,
+    );
+    await content.execute({
+      type: 'SOFT_DELETE',
+      operationId: 'op-delete-imported',
+      profileId,
+      entityType: 'assunto',
+      entityId: assunto!.id,
+      baseRevision: assunto!.localRevision,
+    });
+
+    // Simulates a restore without receipts: the receipt can no longer protect us.
+    await dropReceipt(preview.importId);
+    const detached = previewEditalImport(
+      (
+        parseEditalImport(
+          new Uint8Array(readFileSync(join(fixtures, 'f2-edital-v1.json'))),
+          { namespace: 'tjpb' },
+        ) as { ok: true; parsed: Parameters<typeof previewEditalImport>[0] }
+      ).parsed,
+      await currentContent(),
+    );
+
+    const blocked = await committer.apply(profileId, detached, {
+      confirmed: true,
+      targetSignature: detached.targetSignature,
+    });
+    expect(blocked).toMatchObject({ kind: 'CONFLICT' });
+    expect((blocked as { current: { code: string } }).current.code).toBe('DELETED_ENTITY');
+    expect((await content.loadContent(profileId)).assuntos.map((item) => item.id)).not.toContain(
+      assunto!.id,
+    );
+  });
+
+  it('quarantined_entries_are_persisted_with_the_import', async () => {
+    const parsed = parseEditalImport(
+      {
+        versao: 1,
+        tipo: 'edital',
+        nome: 'Com quarentena',
+        centralId: 'quarentena-1',
+        disciplinas: [
+          { nome: 'Portugues', topicos: [{ semNome: true }, { nome: 'Crase' }], aulas: [] },
+        ],
+      },
+      { namespace: 'tjpb' },
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const preview = previewEditalImport(parsed.parsed, await currentContent());
+    expect(preview.quarantined).toHaveLength(1);
+
+    expect(
+      await new ImportCommitter().apply(profileId, preview, {
+        confirmed: true,
+        targetSignature: preview.targetSignature,
+      }),
+    ).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+    expect(await quarantineCount()).toBe(1);
   });
 });

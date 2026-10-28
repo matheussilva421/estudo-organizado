@@ -3,7 +3,7 @@ import type { ImportPreview as Preview } from '../../application/import-types';
 import { IMPORT_MAX_BYTES } from '../../application/import-types';
 
 type ImportPreviewProps = {
-  onPreview: (text: string) => Promise<Preview | { error: string }>;
+  onPreview: (text: string, namespace: string) => Promise<Preview | { error: string }>;
   onConfirm: (preview: Preview) => Promise<boolean>;
 };
 
@@ -12,6 +12,7 @@ export function ImportPreview({ onPreview, onConfirm }: ImportPreviewProps) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [namespace, setNamespace] = useState('local');
 
   async function handleFile(file: File | undefined): Promise<void> {
     setMessage(null);
@@ -24,7 +25,7 @@ export function ImportPreview({ onPreview, onConfirm }: ImportPreviewProps) {
     const text = await file.text();
     setBusy(true);
     try {
-      const result = await onPreview(text);
+      const result = await onPreview(text, namespace.trim() || 'local');
       if ('error' in result) {
         setMessage(`Importação recusada: ${result.error}`);
         return;
@@ -41,6 +42,15 @@ export function ImportPreview({ onPreview, onConfirm }: ImportPreviewProps) {
       <p className="hint">
         JSON versionado da V1, tratado como texto. Nada é gravado antes da confirmação.
       </p>
+      <label className="file-field" htmlFor="import-namespace">
+        Fonte do arquivo (namespace confiável)
+      </label>
+      <input
+        id="import-namespace"
+        value={namespace}
+        maxLength={60}
+        onChange={(event) => setNamespace(event.target.value)}
+      />
       <label className="file-field" htmlFor="import-file">
         Arquivo de edital
       </label>
@@ -88,6 +98,13 @@ export function ImportPreview({ onPreview, onConfirm }: ImportPreviewProps) {
           {preview.conflicts.length > 0 ? (
             <p className="inline-notice" role="alert">
               Divergência de revisão na origem: revise antes de confirmar.
+            </p>
+          ) : null}
+
+          {preview.ambiguous.length > 0 ? (
+            <p className="hint" role="note">
+              Nomes parecidos não são mesclados: a importação cria uma disciplina separada com o
+              mesmo nome e mantém a existente intacta.
             </p>
           ) : null}
 

@@ -127,4 +127,6 @@ export type ImportReceipt = {
   sourceRevision: string;
   entityCounts: Record<string, number>;
   operationIds: Id[];
+  /** Entities this import actually created; used to detect later divergence. */
+  entityIds: Id[];
 };

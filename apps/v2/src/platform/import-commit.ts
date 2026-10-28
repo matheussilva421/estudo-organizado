@@ -66,39 +66,33 @@ export class ImportCommitter {
         STORES.operations,
         STORES.outbox,
         STORES.importReceipts,
+        STORES.tombstones,
+        STORES.quarantine,
       ],
       'readwrite',
     );
 
     try {
-      const receiptStore = transaction.objectStore(STORES.importReceipts);
-      const previous = (await requestResult(
-        receiptStore.get([profileId, preview.importId]),
-      )) as ImportReceipt | undefined;
-      if (previous) {
-        if (previous.fingerprint !== preview.fingerprint) {
-          transaction.abort();
-          return { kind: 'INVALID', code: 'IMPORT_INVALID' };
-        }
-        // Replay of the same trusted file is a no-op even though the target
-        // signature moved because of the first import.
-        await transactionDone(transaction);
-        return { kind: 'LOCAL_COMMITTED', value: previous };
-      }
-
       const readAll = async (storeName: string) =>
         requestResult(
           transaction.objectStore(storeName).index('by_profile').getAll(profileId),
         ) as Promise<Record<string, unknown>[]>;
 
       // Everything below runs inside one transaction: no external awaits.
-      const [subjects, editais, links, assuntos, aulas] = await Promise.all([
+      const [subjects, editais, links, assuntos, aulas, tombstones] = await Promise.all([
         readAll(STORES.subjects),
         readAll(STORES.editais),
         readAll(STORES.editalDisciplines),
         readAll(STORES.assuntos),
         readAll(STORES.aulas),
+        readAll(STORES.tombstones),
       ]);
+      const tombstonedKeys = new Set(
+        tombstones.map(
+          (item) =>
+            String(item.profileId) + '|' + String(item.entityType) + '|' + String(item.entityId),
+        ),
+      );
       const current: ExistingContent = {
         subjects: subjects as unknown as StudySubject[],
         editais: editais as unknown as Edital[],
@@ -106,11 +100,6 @@ export class ImportCommitter {
         assuntos: assuntos as unknown as Assunto[],
         aulas: aulas as unknown as Aula[],
       };
-      if (targetSignatureOf(current) !== preview.targetSignature) {
-        transaction.abort();
-        return { kind: 'INVALID', code: 'IMPORT_STALE_PREVIEW' };
-      }
-
       const creates = preview.creates;
       const byId = new Map(creates.map((item) => [item.id, item]));
       // Existing ids are skipped, but their records still feed `scopeOf` so a
@@ -128,9 +117,49 @@ export class ImportCommitter {
         }
       }
 
+      // Replay first: a receipt is only a no-op while its entities still exist.
+      const receiptStore = transaction.objectStore(STORES.importReceipts);
+      const previous = (await requestResult(
+        receiptStore.get([profileId, preview.importId]),
+      )) as ImportReceipt | undefined;
+      if (previous) {
+        if (previous.fingerprint !== preview.fingerprint) {
+          transaction.abort();
+          return { kind: 'INVALID', code: 'IMPORT_INVALID' };
+        }
+        const missing = (previous.entityIds ?? []).filter((id) => !existingById.has(id));
+        if (missing.length === 0) {
+          await transactionDone(transaction);
+          return { kind: 'LOCAL_COMMITTED', value: previous };
+        }
+        transaction.abort();
+        return {
+          kind: 'CONFLICT',
+          current: { code: 'IMPORT_ALREADY_APPLIED_BUT_DIVERGED', missing },
+        };
+      }
+
+      if (targetSignatureOf(current) !== preview.targetSignature) {
+        transaction.abort();
+        return { kind: 'INVALID', code: 'IMPORT_STALE_PREVIEW' };
+      }
+
+      // An imported id that carries a tombstone requires an explicit restore.
+      for (const item of creates) {
+        const key = profileId + '|' + item.entityType + '|' + item.id;
+        if (tombstonedKeys.has(key)) {
+          transaction.abort();
+          return {
+            kind: 'CONFLICT',
+            current: { code: 'DELETED_ENTITY', entityId: item.id },
+          };
+        }
+      }
+
       const operations = transaction.objectStore(STORES.operations);
       const outbox = transaction.objectStore(STORES.outbox);
       const operationIds: string[] = [];
+      const createdIds: string[] = [];
       const entityCounts: Record<string, number> = {};
       const orderCounters = new Map<string, number>();
       const written = new Map<string, Record<string, unknown>>();
@@ -156,7 +185,9 @@ export class ImportCommitter {
         entityId: string,
         entity: Record<string, unknown>,
       ): void => {
-        const operationId = `${preview.importId}~${entityId}`;
+        // profileId keeps two profiles importing the same file from sharing
+        // the same outbox/operation keys.
+        const operationId = profileId + '~' + preview.importId + '~' + entityId;
         operations.put({
           operationId,
           profileId,
@@ -178,6 +209,7 @@ export class ImportCommitter {
           status: 'PENDING',
         });
         operationIds.push(operationId);
+        createdIds.push(entityId);
         entityCounts[entityType] = (entityCounts[entityType] ?? 0) + 1;
       };
 
@@ -278,6 +310,21 @@ export class ImportCommitter {
       if (this.fault === 'abort') throw new DOMException('forced abort', 'AbortError');
       if (this.fault === 'quota') throw new DOMException('forced quota', 'QuotaExceededError');
 
+      if (preview.quarantined.length > 0) {
+        const quarantineStore = transaction.objectStore(STORES.quarantine);
+        preview.quarantined.forEach((entry, index) => {
+          quarantineStore.put({
+            profileId,
+            quarantineId: profileId + '~' + preview.importId + '~q' + index,
+            importId: preview.importId,
+            path: entry.path,
+            reason: entry.reason,
+            ...(entry.name ? { name: entry.name } : {}),
+            createdAt: this.now(),
+          });
+        });
+      }
+
       const receipt: ImportReceipt = {
         profileId,
         importId: preview.importId,
@@ -285,6 +332,7 @@ export class ImportCommitter {
         sourceRevision: preview.sourceRevision,
         entityCounts,
         operationIds,
+        entityIds: createdIds,
       };
       receiptStore.put(receipt);
 

@@ -31,7 +31,6 @@ import { SyncStatus } from './components/SyncStatus';
 import { canSubmitTitle, initialFormState, markSubmitFailure, THEMES, type FormState } from './ui-state';
 
 const PROFILE_ID = 'local-default';
-const IMPORT_NAMESPACE = 'local';
 
 function newId(): string {
   return crypto.randomUUID();
@@ -413,8 +412,8 @@ export function App() {
       </section>
 
       <ImportPreview
-        onPreview={async (text) => {
-          const parsed = parseEditalImport(text, { namespace: IMPORT_NAMESPACE });
+        onPreview={async (text, namespace) => {
+          const parsed = parseEditalImport(text, { namespace });
           if (!parsed.ok) return { error: parsed.reason };
           return previewEditalImport(parsed.parsed, content);
         }}
