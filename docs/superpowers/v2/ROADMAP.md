@@ -57,13 +57,13 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | **G1/F1 e G2/F1 APROVADOS**; GOAL preparado, sem código | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | Envio explícito do [GOAL F1](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) ao Codex para iniciar G3/F1, após preflight seguro |
-| **F2 — Editais e conteúdo** | NÃO INICIADA | Base canônica de organização | F1 homologada |
-| **F3 — Planejamento** | NÃO INICIADA | Planejamento executável | F2 e regras temporais |
-| **F4 — Execução/sessões** | NÃO INICIADA | Tempo/histórico confiáveis | Persistência e domínio |
-| **F5 — Revisões/inteligência** | NÃO INICIADA | Revisar e priorizar | F2–F4 |
-| **F6 — Indicadores/UX** | NÃO INICIADA | Métricas e experiência integradas | Dados canônicos por domínio |
-| **F7 — Homologação integrada** | NÃO INICIADA | Migração, sync, segurança, restore, piloto | F1–F6 |
-| **F8 — Cutover** | **BLOQUEADO** | Adoção da V2 como app principal | G5 humano e contingência |
+| **F2 — Editais e conteúdo** | **SPEC PROPOSTA; não iniciada** | Base canônica de organização | F1 homologada |
+| **F3 — Planejamento** | **SPEC PROPOSTA; não iniciada** | Planejamento executável | F2 e regras temporais |
+| **F4 — Execução/sessões** | **SPEC PROPOSTA; não iniciada** | Tempo/histórico confiáveis | Persistência e domínio |
+| **F5 — Revisões/inteligência** | **SPEC PROPOSTA; não iniciada** | Revisar e priorizar | F2–F4 |
+| **F6 — Indicadores/UX** | **SPEC PROPOSTA; não iniciada** | Métricas e experiência integradas | Dados canônicos por domínio |
+| **F7 — Homologação integrada** | **SPEC PROPOSTA; não iniciada** | Migração, sync, segurança, restore, piloto | F1–F6 |
+| **F8 — Cutover** | **SPEC PROPOSTA; G5 bloqueado** | Adoção da V2 como app principal | G5 humano e contingência |
 
 **Importante:** sincronização, backup, segurança, migração e Impeccable **não** começam apenas em F7; cada fatia vertical deve exercitar seus contratos desde F1.
 
