@@ -1,0 +1,13 @@
+
+> estudo-organizado-v2@0.1.0 test:unit
+> vitest run
+
+
+ RUN  v5.0.5 C:/Users/slvma/.codex/worktrees/v2-f0-audit/estudo-organizado/apps/v2
+
+
+ Test Files  15 passed (15)
+      Tests  84 passed (84)
+   Start at  16:09:13
+   Duration  26.01s (environment 96%, setup 3%)
+

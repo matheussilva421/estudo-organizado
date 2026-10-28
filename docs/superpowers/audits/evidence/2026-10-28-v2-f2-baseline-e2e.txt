@@ -1,0 +1,66 @@
+
+> estudo-organizado-v2@0.1.0 test:e2e
+> playwright test
+
+
+[WebServer] (node:42664) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:38848) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 20 tests using 8 workers
+
+
+(node:19220) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:15792) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:46692) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:36152) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:42720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:27540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:37300) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:25924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/20] [chromium] › tests\e2e\pwa-offline.spec.ts:8:1 › v2_sw_scope_does_not_intersect_v1
+[2/20] [chromium] › tests\e2e\retry-confirmed.spec.ts:4:1 › reload_and_retry_after_confirmed_operation_do_not_duplicate
+[3/20] [chromium] › tests\e2e\two-tabs.spec.ts:4:1 › two_real_tabs_share_one_flush_lock
+[4/20] [chromium] › tests\e2e\subject-flow.spec.ts:8:1 › creates, renames and restores a local subject
+[5/20] [chromium] › tests\e2e\form-failure.spec.ts:4:1 › quota_failure_keeps_form_open_and_preserves_text
+[6/20] [chromium] › tests\e2e\idb-atomicity.spec.ts:3:1 › creates the isolated V2 IndexedDB stores on boot
+[7/20] [chromium] › tests\e2e\isolation.spec.ts:3:1 › serves V2 on its own origin with its own storage names
+[8/20] [chromium] › tests\e2e\transaction-failure.spec.ts:4:1 › real_indexeddb_abort_rolls_back_entity_and_outbox
+[9/20] [chromium] › tests\e2e\v2-end-to-end.spec.ts:3:1 › e2e_create_rename_reload
+[10/20] [chromium] › tests\e2e\visual-a11y.spec.ts:5:1 › eight_themes_sampled_AA
+[11/20] [chromium] › tests\e2e\pwa-offline.spec.ts:21:1 › offline_reload_preserves_committed_subject
+[12/20] [chromium] › tests\e2e\isolation.spec.ts:18:1 › serves_a_restrictive_content_security_policy
+[13/20] [chromium] › tests\e2e\visual-a11y.spec.ts:34:1 › keyboard_and_focus_accessible
+[14/20] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_desktop
+[15/20] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_tablet
+[16/20] [chromium] › tests\e2e\pwa-offline.spec.ts:40:1 › unsaved_form_not_discarded_during_update
+[17/20] [chromium] › tests\e2e\subject-flow.spec.ts:24:1 › local only never says cloud synced and toasts do not cover the action
+[18/20] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_mobile
+[19/20] [chromium] › tests\e2e\subject-flow.spec.ts:31:1 › toast_does_not_cover_primary_button
+[20/20] [chromium] › tests\e2e\subject-flow.spec.ts:44:1 › blank title is blocked
+  20 passed (14.2s)
