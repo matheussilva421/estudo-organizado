@@ -337,7 +337,7 @@ Uma fase só estará **CONCLUÍDA** após verificar: escopo aceito, evidências 
 3. **Sync antecipado (opcional pendente):** decidir após F1 se autoriza um ensaio emulado/Spark isolado pequeno em F2 ou se posterga todo uso remoto real a F7. Exigir orçamento e isolamento; nada de dados reais.
 4. **F7:** provar Auth Google + Firestore Spark multi-dispositivo, Rules, backup/restore, quotas, conflitos e migração isolada; quatro HIGH só mudam status mediante evidências.
 5. **F8:** aprovar explicitamente G5 depois de F7, congelar V1 com garantia de ausência de duplo escritor, backup restaurável, migração e reconciliação real, liberar V2, acompanhar e preservar contingência. **Não** presumir rollback simples de dados.
-6. **Conclusão:** somente após verificação de funcionalidades, dados, QA, custo zero, versão publicada, §main§ integrada e saneamento Git sem perda de commits; encerramento humano da issue #108.
+6. **Conclusão:** somente após verificação de funcionalidades, dados, QA, custo zero, versão publicada, `main` integrada e saneamento Git sem perda de commits; encerramento humano da issue #108.
 
 **Fonte de custos:** verificar documentação oficial do [Firestore](https://firebase.google.com/docs/firestore/quotas) e [Firebase Spark](https://firebase.google.com/pricing) novamente antes do piloto: cotas gratuitas, **um banco gratuito por projeto**, limites de documento e funções de backup gerenciado pagas. Não projetar com pagamentos implícitos. A-02 requer sync automático **após opt-in e enquanto o app está ativo**; não prometer trabalho com PWA fechada.
 
