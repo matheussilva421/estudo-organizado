@@ -1,0 +1,32 @@
+
+> estudo-organizado@1.0.0 test:design
+> npm run test:css && node scripts/contrast-audit.mjs --enforce
+
+
+> estudo-organizado@1.0.0 test:css
+> vitest run tests/unit/css-architecture.test.js
+
+
+ RUN  v3.2.4 C:/Users/slvma/.codex/worktrees/v2-f0-audit/estudo-organizado
+
+ ✓ tests/unit/css-architecture.test.js (45 tests) 655ms
+
+ Test Files  1 passed (1)
+      Tests  45 passed (45)
+   Start at  09:30:13
+   Duration  1.82s (transform 34ms, setup 16ms, collect 30ms, tests 655ms, environment 695ms, prepare 164ms)
+
+
+WCAG contrast por tema (fg/bg). AA corpo >= 4.5, texto grande >= 3.
+
+theme     text-primary/card   text-secondary/card text-muted/card     danger/card         success/card        warning/card        accent/card         accent-text/accent  
+grafite   16.45               9.72                5.09                6.43                9.98                8.07                6.91                7.43                
+ardosia   14.54               7.31                4.57                5.88                9.26                7.38                9.4                 11.21               
+platina   14.48               7.11                4.6                 6.08                8.85                7.22                11.04               13.07               
+terminal  15.28               9.07                4.57                6.96                13.52               10.16               13.52               14.37               
+neon      14.83               8.36                4.56                5.31                9.58                10.01               10.86               12.48               
+arrakis   13.05               7.99                4.61                4.64                7.02                7.1                 7.1                 8.55                
+codex     14.91               8.49                5.52                5.83                13.16               9.56                6.81                7.61                
+plasma    13.4                6.68                4.7                 5.54                9.1                 10.48               9.21                9.99                
+
+Texto de corpo: AA OK em todos os temas.

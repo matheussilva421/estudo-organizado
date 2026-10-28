@@ -1,0 +1,35 @@
+[
+  {
+    "viewport": "desktop",
+    "width": 1440,
+    "height": 900,
+    "domContentLoadedMs": 398,
+    "loadEventMs": 652,
+    "transferSizeBytes": 99247,
+    "nodes": 634,
+    "horizontalOverflow": false,
+    "consoleErrors": []
+  },
+  {
+    "viewport": "tablet",
+    "width": 834,
+    "height": 1112,
+    "domContentLoadedMs": 544,
+    "loadEventMs": 612,
+    "transferSizeBytes": 99247,
+    "nodes": 634,
+    "horizontalOverflow": false,
+    "consoleErrors": []
+  },
+  {
+    "viewport": "mobile",
+    "width": 390,
+    "height": 844,
+    "domContentLoadedMs": 483,
+    "loadEventMs": 648,
+    "transferSizeBytes": 99247,
+    "nodes": 634,
+    "horizontalOverflow": false,
+    "consoleErrors": []
+  }
+]

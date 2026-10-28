@@ -1,0 +1,1889 @@
+[
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\layout.css",
+    "line": 8,
+    "snippet": "font-family: 'Plus Jakarta Sans",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\layout.css",
+    "line": 382,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\layout.css",
+    "line": 390,
+    "snippet": "font-size: 9px is off the DESIGN.md type ramp",
+    "ignoreValue": "9px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 141,
+    "snippet": "Undocumented color #171819 is outside DESIGN.md colors",
+    "ignoreValue": "#171819",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 141,
+    "snippet": "Undocumented color #1e2022 is outside DESIGN.md colors",
+    "ignoreValue": "#1e2022",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 186,
+    "snippet": "Undocumented color #171819 is outside DESIGN.md colors",
+    "ignoreValue": "#171819",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 208,
+    "snippet": "Undocumented color #07100b is outside DESIGN.md colors",
+    "ignoreValue": "#07100b",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 208,
+    "snippet": "Undocumented color #0a160e is outside DESIGN.md colors",
+    "ignoreValue": "#0a160e",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 275,
+    "snippet": "Undocumented color #0a0e1f is outside DESIGN.md colors",
+    "ignoreValue": "#0a0e1f",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 275,
+    "snippet": "Undocumented color #0e1230 is outside DESIGN.md colors",
+    "ignoreValue": "#0e1230",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 275,
+    "snippet": "Undocumented color #141a35 is outside DESIGN.md colors",
+    "ignoreValue": "#141a35",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 320,
+    "snippet": "Undocumented color #0c1028 is outside DESIGN.md colors",
+    "ignoreValue": "#0c1028",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 342,
+    "snippet": "Undocumented color #1a1410 is outside DESIGN.md colors",
+    "ignoreValue": "#1a1410",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 342,
+    "snippet": "Undocumented color #1f1813 is outside DESIGN.md colors",
+    "ignoreValue": "#1f1813",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 342,
+    "snippet": "Undocumented color #241a13 is outside DESIGN.md colors",
+    "ignoreValue": "#241a13",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 387,
+    "snippet": "Undocumented color #110c08 is outside DESIGN.md colors",
+    "ignoreValue": "#110c08",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\base\\themes.css",
+    "line": 387,
+    "snippet": "Undocumented color #1c1510 is outside DESIGN.md colors",
+    "ignoreValue": "#1c1510",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\cards.css",
+    "line": 166,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\cards.css",
+    "line": 198,
+    "snippet": "font-size: 10.5px is off the DESIGN.md type ramp",
+    "ignoreValue": "10.5px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\misc-ui.css",
+    "line": 19,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\modals-shared.css",
+    "line": 58,
+    "snippet": "font-size: 17px is off the DESIGN.md type ramp",
+    "ignoreValue": "17px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\search.css",
+    "line": 105,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\sidebar.css",
+    "line": 56,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\sidebar.css",
+    "line": 121,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\sidebar.css",
+    "line": 196,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\sidebar.css",
+    "line": 216,
+    "snippet": "font-size: 20px !important is off the DESIGN.md type ramp",
+    "ignoreValue": "20px !important",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components\\timer.css",
+    "line": 7,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components.css",
+    "line": 84,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components.css",
+    "line": 99,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components.css",
+    "line": 102,
+    "snippet": "font-size: 24px is off the DESIGN.md type ramp",
+    "ignoreValue": "24px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components.css",
+    "line": 105,
+    "snippet": "font-size: 32px is off the DESIGN.md type ramp",
+    "ignoreValue": "32px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components.css",
+    "line": 279,
+    "snippet": "font-size: 24px is off the DESIGN.md type ramp",
+    "ignoreValue": "24px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components.css",
+    "line": 433,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components.css",
+    "line": 550,
+    "snippet": "font-size: 40px is off the DESIGN.md type ramp",
+    "ignoreValue": "40px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\components.css",
+    "line": 555,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "Thick colored border on one side of a card — the most recognizable tell of AI-generated UIs. Use a subtler accent or remove it entirely.",
+    "severity": "warning",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 2390,
+    "snippet": "border-left: 4px solid var(--session-disc-color, var(--accent))"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 64,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 174,
+    "snippet": "font-size: 10.5px is off the DESIGN.md type ramp",
+    "ignoreValue": "10.5px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 196,
+    "snippet": "font-size: 10.5px is off the DESIGN.md type ramp",
+    "ignoreValue": "10.5px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 368,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 447,
+    "snippet": "font-size: 24px is off the DESIGN.md type ramp",
+    "ignoreValue": "24px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 478,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 508,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 553,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 707,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 894,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 925,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1009,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1080,
+    "snippet": "font-size: 24px is off the DESIGN.md type ramp",
+    "ignoreValue": "24px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1102,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1139,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1244,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1277,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1549,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1640,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1695,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1815,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1882,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1982,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\styles.css",
+    "line": 1992,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\banca.css",
+    "line": 14,
+    "snippet": "font-size: 48px is off the DESIGN.md type ramp",
+    "ignoreValue": "48px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\banca.css",
+    "line": 119,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\calendar.css",
+    "line": 3,
+    "snippet": "font-size: 9px is off the DESIGN.md type ramp",
+    "ignoreValue": "9px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\ciclo.css",
+    "line": 13,
+    "snippet": "font-size: 22px is off the DESIGN.md type ramp",
+    "ignoreValue": "22px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\ciclo.css",
+    "line": 93,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\ciclo.css",
+    "line": 100,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\ciclo.css",
+    "line": 255,
+    "snippet": "font-size: 24px is off the DESIGN.md type ramp",
+    "ignoreValue": "24px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\ciclo.css",
+    "line": 305,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\ciclo.css",
+    "line": 437,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\ciclo.css",
+    "line": 500,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\ciclo.css",
+    "line": 542,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\config\\config-view.css",
+    "line": 23,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\config\\config-view.css",
+    "line": 110,
+    "snippet": "font-size: 32px is off the DESIGN.md type ramp",
+    "ignoreValue": "32px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\config\\config-view.css",
+    "line": 352,
+    "snippet": "font-size: 0.78rem is off the DESIGN.md type ramp",
+    "ignoreValue": "0.78rem",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\config\\config-view.css",
+    "line": 360,
+    "snippet": "font-size: 1rem is off the DESIGN.md type ramp",
+    "ignoreValue": "1rem",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\config\\config-view.css",
+    "line": 429,
+    "snippet": "font-size: 0.78rem is off the DESIGN.md type ramp",
+    "ignoreValue": "0.78rem",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\config\\config-view.css",
+    "line": 435,
+    "snippet": "font-size: 0.92rem is off the DESIGN.md type ramp",
+    "ignoreValue": "0.92rem",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\config\\config-view.css",
+    "line": 508,
+    "snippet": "font-size: 0.78rem is off the DESIGN.md type ramp",
+    "ignoreValue": "0.78rem",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\config\\config-view.css",
+    "line": 597,
+    "snippet": "font-size: 0.95rem is off the DESIGN.md type ramp",
+    "ignoreValue": "0.95rem",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\config\\config-view.css",
+    "line": 693,
+    "snippet": "font-size: 1rem is off the DESIGN.md type ramp",
+    "ignoreValue": "1rem",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\cronometro.css",
+    "line": 20,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\cronometro.css",
+    "line": 27,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "Thick colored border on one side of a card — the most recognizable tell of AI-generated UIs. Use a subtler accent or remove it entirely.",
+    "severity": "warning",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\dashboard.css",
+    "line": 112,
+    "snippet": "border-left: 4px solid var(--predictive-status-color, var(--accent))",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\dashboard.css",
+    "line": 15,
+    "snippet": "font-size: 24px is off the DESIGN.md type ramp",
+    "ignoreValue": "24px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\dashboard.css",
+    "line": 117,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\dashboard.css",
+    "line": 145,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\dashboard.css",
+    "line": 212,
+    "snippet": "font-size: 48px is off the DESIGN.md type ramp",
+    "ignoreValue": "48px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\dashboard.css",
+    "line": 247,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\dashboard.css",
+    "line": 295,
+    "snippet": "font-size: 26px is off the DESIGN.md type ramp",
+    "ignoreValue": "26px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\dashboard.css",
+    "line": 607,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\edital-import.css",
+    "line": 208,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\habitos.css",
+    "line": 46,
+    "snippet": "font-size: 24px is off the DESIGN.md type ramp",
+    "ignoreValue": "24px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\habitos.css",
+    "line": 51,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\habitos.css",
+    "line": 61,
+    "snippet": "font-size: 22px is off the DESIGN.md type ramp",
+    "ignoreValue": "22px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\habitos.css",
+    "line": 68,
+    "snippet": "font-size: 26px is off the DESIGN.md type ramp",
+    "ignoreValue": "26px",
+    "importedBy": [
+      "styles.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\modals.css",
+    "line": 26,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\pontos-fracos.css",
+    "line": 70,
+    "snippet": "Undocumented color rgba(128, 128, 128, 0.15) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(128, 128, 128, 0.15)",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\reta-final-editor.css",
+    "line": 279,
+    "snippet": "Undocumented color #c0392b is outside DESIGN.md colors",
+    "ignoreValue": "#c0392b",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "layout-transition",
+    "name": "Layout property animation",
+    "description": "Animating width, height, padding, or margin causes layout thrash and janky performance. Use transform and opacity instead, or grid-template-rows for height animations.",
+    "severity": "warning",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\reta-final.css",
+    "line": 353,
+    "snippet": "transition: width",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\reta-final.css",
+    "line": 15,
+    "snippet": "Undocumented color #22c55e is outside DESIGN.md colors",
+    "ignoreValue": "#22c55e",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\reta-final.css",
+    "line": 20,
+    "snippet": "Undocumented color #f59e0b is outside DESIGN.md colors",
+    "ignoreValue": "#f59e0b",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\reta-final.css",
+    "line": 176,
+    "snippet": "Undocumented color #f59e0b is outside DESIGN.md colors",
+    "ignoreValue": "#f59e0b",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\reta-final.css",
+    "line": 189,
+    "snippet": "Undocumented color #22c55e is outside DESIGN.md colors",
+    "ignoreValue": "#22c55e",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\reta-final.css",
+    "line": 194,
+    "snippet": "Undocumented color #ef4444 is outside DESIGN.md colors",
+    "ignoreValue": "#ef4444",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\reta-final.css",
+    "line": 288,
+    "snippet": "Undocumented color #000 is outside DESIGN.md colors",
+    "ignoreValue": "#000",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\reta-final.css",
+    "line": 503,
+    "snippet": "Undocumented color #c0392b is outside DESIGN.md colors",
+    "ignoreValue": "#c0392b",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\sessions.css",
+    "line": 6,
+    "snippet": "font-size: 24px is off the DESIGN.md type ramp",
+    "ignoreValue": "24px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\sessions.css",
+    "line": 12,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\sessions.css",
+    "line": 214,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\sessions.css",
+    "line": 326,
+    "snippet": "font-size: 42px is off the DESIGN.md type ramp",
+    "ignoreValue": "42px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\sessions.css",
+    "line": 388,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\sessions.css",
+    "line": 504,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\subject-manager.css",
+    "line": 153,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\wizard.css",
+    "line": 56,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\wizard.css",
+    "line": 189,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views\\wizard.css",
+    "line": 282,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px",
+    "importedBy": [
+      "views.css"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 59,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 227,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 323,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 400,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 410,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 455,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 473,
+    "snippet": "font-size: 32px is off the DESIGN.md type ramp",
+    "ignoreValue": "32px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 693,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 846,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 907,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 923,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\css\\views.css",
+    "line": 951,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\index.html",
+    "line": 31,
+    "snippet": "Google Fonts: plus jakarta sans"
+  },
+  {
+    "antipattern": "numbered-section-markers",
+    "name": "Numbered section markers (01 / 02 / 03)",
+    "description": "Numbered display markers as section labels (01, 02, 03) are the AI editorial scaffold one tier deeper than tracked eyebrow chips. If you find yourself reaching for them, choose a different section cadence.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\index.html",
+    "line": 0,
+    "snippet": "Sequence: 01, 02, 03, 04"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\components.js",
+    "line": 172,
+    "snippet": "font-size: 20px is off the DESIGN.md type ramp",
+    "ignoreValue": "20px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\components.js",
+    "line": 176,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\views\\banca-view.js",
+    "line": 34,
+    "snippet": "font-size: 32px is off the DESIGN.md type ramp",
+    "ignoreValue": "32px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\views\\banca-view.js",
+    "line": 133,
+    "snippet": "font-size: 48px is off the DESIGN.md type ramp",
+    "ignoreValue": "48px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\views\\banca-view.js",
+    "line": 394,
+    "snippet": "font-size: 10px is off the DESIGN.md type ramp",
+    "ignoreValue": "10px"
+  },
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "Thick colored border on one side of a card — the most recognizable tell of AI-generated UIs. Use a subtler accent or remove it entirely.",
+    "severity": "warning",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\views\\calendar-view.js",
+    "line": 62,
+    "snippet": "border-left:3px solid ${esc(color)}"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\views\\calendar-view.js",
+    "line": 288,
+    "snippet": "font-size: 16px is off the DESIGN.md type ramp",
+    "ignoreValue": "16px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\views\\dashboard-view.js",
+    "line": 293,
+    "snippet": "font-size: 48px is off the DESIGN.md type ramp",
+    "ignoreValue": "48px",
+    "importedBy": [
+      "editais-anteriores-view.js",
+      "editais-crud.js"
+    ]
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\views\\editais-view.js",
+    "line": 193,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\views\\pontos-fracos-view.js",
+    "line": 68,
+    "snippet": "Undocumented color rgba(128,128,128,.15) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(128,128,128,.15)"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\js\\views\\pontos-fracos-view.js",
+    "line": 93,
+    "snippet": "Undocumented color rgba(128,128,128,.15) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(128,128,128,.15)"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab-data.js",
+    "line": 439,
+    "snippet": "Undocumented color #7fb7c7 is outside DESIGN.md colors",
+    "ignoreValue": "#7fb7c7",
+    "importedBy": [
+      "visual-layout-lab-render.js"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab-data.js",
+    "line": 440,
+    "snippet": "Undocumented color #8e9fd0 is outside DESIGN.md colors",
+    "ignoreValue": "#8e9fd0",
+    "importedBy": [
+      "visual-layout-lab-render.js"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab-data.js",
+    "line": 441,
+    "snippet": "Undocumented color #d58c9d is outside DESIGN.md colors",
+    "ignoreValue": "#d58c9d",
+    "importedBy": [
+      "visual-layout-lab-render.js"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab-data.js",
+    "line": 442,
+    "snippet": "Undocumented color #79b8ad is outside DESIGN.md colors",
+    "ignoreValue": "#79b8ad",
+    "importedBy": [
+      "visual-layout-lab-render.js"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab-data.js",
+    "line": 552,
+    "snippet": "Undocumented color #7fb7c7 is outside DESIGN.md colors",
+    "ignoreValue": "#7fb7c7",
+    "importedBy": [
+      "visual-layout-lab-render.js"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab-data.js",
+    "line": 562,
+    "snippet": "Undocumented color #8e9fd0 is outside DESIGN.md colors",
+    "ignoreValue": "#8e9fd0",
+    "importedBy": [
+      "visual-layout-lab-render.js"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab-data.js",
+    "line": 572,
+    "snippet": "Undocumented color #d58c9d is outside DESIGN.md colors",
+    "ignoreValue": "#d58c9d",
+    "importedBy": [
+      "visual-layout-lab-render.js"
+    ]
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab-data.js",
+    "line": 582,
+    "snippet": "Undocumented color #79b8ad is outside DESIGN.md colors",
+    "ignoreValue": "#79b8ad",
+    "importedBy": [
+      "visual-layout-lab-render.js"
+    ]
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.css",
+    "line": 13,
+    "snippet": "font-family: 'Plus Jakarta Sans"
+  },
+  {
+    "antipattern": "layout-transition",
+    "name": "Layout property animation",
+    "description": "Animating width, height, padding, or margin causes layout thrash and janky performance. Use transform and opacity instead, or grid-template-rows for height animations.",
+    "severity": "warning",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.css",
+    "line": 91,
+    "snippet": "transition: width"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.css",
+    "line": 29,
+    "snippet": "Undocumented color rgba(0, 0, 0, 0.25) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(0, 0, 0, 0.25)"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.css",
+    "line": 39,
+    "snippet": "font-size: 15px is off the DESIGN.md type ramp",
+    "ignoreValue": "15px"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.css",
+    "line": 265,
+    "snippet": "Undocumented color rgba(0, 0, 0, 0.35) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(0, 0, 0, 0.35)"
+  },
+  {
+    "antipattern": "design-system-radius",
+    "name": "Radius outside DESIGN.md",
+    "description": "A border-radius value is outside the DESIGN.md rounded scale. Use a documented radius token or update the design system if the new shape is intentional.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.css",
+    "line": 284,
+    "snippet": "border-radius: 5px is outside the DESIGN.md rounded scale",
+    "ignoreValue": "5px"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.css",
+    "line": 350,
+    "snippet": "Undocumented color rgba(0, 0, 0, 0.45) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(0, 0, 0, 0.45)"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.css",
+    "line": 391,
+    "snippet": "Undocumented color rgba(0, 0, 0, 0.4) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(0, 0, 0, 0.4)"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.css",
+    "line": 466,
+    "snippet": "Undocumented color rgba(0, 0, 0, 0.4) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(0, 0, 0, 0.4)"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\lab\\visual-layout-lab.html",
+    "line": 12,
+    "snippet": "Google Fonts: plus jakarta sans"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\vendor\\chart.umd.min.js",
+    "line": 1,
+    "snippet": "Undocumented color rgba(255, 255, 255, 0.75) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(255, 255, 255, 0.75)"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\vendor\\chart.umd.min.js",
+    "line": 1,
+    "snippet": "Undocumented color #fff is outside DESIGN.md colors",
+    "ignoreValue": "#fff"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "file": "C:\\Users\\slvma\\.codex\\worktrees\\v2-f0-audit\\estudo-organizado\\src\\vendor\\chart.umd.min.js",
+    "line": 1,
+    "snippet": "Undocumented color rgba(0,0,0,0.8) is outside DESIGN.md colors",
+    "ignoreValue": "rgba(0,0,0,0.8)"
+  }
+]

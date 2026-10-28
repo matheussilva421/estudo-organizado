@@ -1,0 +1,112 @@
+[
+  {
+    "id": "B-V1-UNIT",
+    "area": "UNIT",
+    "command_or_check": "npm test",
+    "status": "PASS",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": "docs/superpowers/audits/evidence/2026-10-28-unit-test.txt",
+    "executed_at": "2026-10-28T09:28:06-03:00",
+    "notes": "184 arquivos, 3024 testes, 100% PASS; duração 96,01s. Inclui os 5 arquivos/42 testes da própria F0; a suíte V1 antes da auditoria era 179 arquivos/2982 testes, também 100% PASS."
+  },
+  {
+    "id": "B-V1-LINT",
+    "area": "LINT",
+    "command_or_check": "npm run lint",
+    "status": "PASS",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": "docs/superpowers/audits/evidence/2026-10-28-lint.txt",
+    "executed_at": "2026-10-28T08:53:00-03:00",
+    "notes": "0 erros, 3075 warnings preexistentes."
+  },
+  {
+    "id": "B-V1-DESIGN",
+    "area": "DESIGN",
+    "command_or_check": "npm run test:design",
+    "status": "PASS",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": "docs/superpowers/audits/evidence/2026-10-28-design.txt",
+    "executed_at": "2026-10-28T08:54:03-03:00",
+    "notes": "45 testes CSS PASS; contraste AA de corpo nos 8 temas; pior text-muted 4.56:1."
+  },
+  {
+    "id": "B-V1-E2E-MOCK-SCRIPT",
+    "area": "E2E",
+    "command_or_check": "npm run test:e2e:mock",
+    "status": "FAIL",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": "docs/superpowers/audits/evidence/2026-10-28-e2e-mock-script.txt",
+    "executed_at": "2026-10-28T08:55:00-03:00",
+    "notes": "No tests found: o projeto mock ignora mock-environment.spec.js no playwright.config.js; script aponta para arquivo ignorado."
+  },
+  {
+    "id": "B-V1-E2E-MOCK-ALL",
+    "area": "E2E",
+    "command_or_check": "npm run test:e2e:mock:all",
+    "status": "FAIL",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": "docs/superpowers/audits/evidence/2026-10-28-e2e-mock-all-summary.md",
+    "executed_at": "2026-10-28T09:15:00-03:00",
+    "notes": "166 testes: 59 PASS, 107 FAIL, 5.0m. Falhas dominantes em seeds/expectativas (ex.: esperado 01:30:00, recebido 61:02:00) e offline/SW; não corrigidas na F0."
+  },
+  {
+    "id": "B-V1-IMPECCABLE",
+    "area": "IMPECCABLE",
+    "command_or_check": "Impeccable 3.9.1: detect.mjs --json src; audit manual; 24 capturas mock",
+    "status": "PASS",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": "docs/superpowers/audits/2026-10-19-v1-design-baseline.md",
+    "executed_at": "2026-10-28T09:30:00-03:00",
+    "notes": "Executado com dados sintéticos; 162 achados (9 warning, 153 advisory); 8 temas x desktop/tablet/mobile; achados visuais abertos."
+  },
+  {
+    "id": "B-V1-ACCESSIBILITY",
+    "area": "ACCESSIBILITY",
+    "command_or_check": "contraste AA + amostra de teclado/foco + overflow 3 viewports",
+    "status": "INCONCLUSIVE",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": "docs/superpowers/audits/2026-10-19-v1-design-baseline.md",
+    "executed_at": "2026-10-28T09:30:00-03:00",
+    "notes": "Contraste e foco amostrados PASS; leitor de tela, zoom 200% e todos os fluxos não auditados."
+  },
+  {
+    "id": "B-V1-PERF",
+    "area": "PERFORMANCE",
+    "command_or_check": "Navigation Timing no mock local, 3 viewports",
+    "status": "INCONCLUSIVE",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": "docs/superpowers/audits/evidence/2026-10-28-visual-metrics.json",
+    "executed_at": "2026-10-28T09:30:00-03:00",
+    "notes": "DCL 398-544ms, load 612-652ms, 634 nós, sem overflow; somente mock local."
+  },
+  {
+    "id": "B-V1-MIGRATION",
+    "area": "MIGRATION",
+    "command_or_check": "migração real de IndexedDB",
+    "status": "NOT_RUN",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": null,
+    "executed_at": null,
+    "notes": "Não executada; F0 não toca dados reais."
+  },
+  {
+    "id": "B-V1-SYNC-EMULATOR",
+    "area": "SYNC",
+    "command_or_check": "Firestore Emulator + rules",
+    "status": "NOT_RUN",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": null,
+    "executed_at": null,
+    "notes": "Não executado nesta F0."
+  },
+  {
+    "id": "B-V1-RULES",
+    "area": "SECURITY",
+    "command_or_check": "rules published vs firestore.rules",
+    "status": "NOT_RUN",
+    "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
+    "evidence_ref": null,
+    "executed_at": null,
+    "notes": "Aderência das rules publicadas não verificada."
+  }
+]
