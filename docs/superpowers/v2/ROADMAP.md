@@ -13,7 +13,8 @@ Este roadmap é o **índice e acompanhamento canônico** da V2. Os documentos ex
 
 | Artefato | Fonte canônica nesta branch | Aprovação e papel |
 | --- | --- | --- |
-| Especificação arquitetural mestra | [Spec V2](../specs/2026-10-19-estudo-organizado-v2-design.md) | **G1 APROVADO** — D01–D27 + A-01 |
+| Especificação arquitetural mestra | [Spec V2](../specs/2026-10-19-estudo-organizado-v2-design.md) | **G1 APROVADO** — D01–D27 + A-01 + A-02 |
+| [Pré-contratos F1 — sync multi-dispositivo A-02](../specs/2026-10-28-v2-multidevice-sync-f1-contracts.md) | **PROPOSTA PARA F1** — sem código ou execução autorizada |
 | Plano executável F0 (6 tarefas, TDD) | [Plano F0](../plans/2026-10-19-estudo-organizado-v2-f0-audit.md) | **G2/F0 APROVADO** — método Subagent-driven |
 | Roteiro de decomposição original | [Roteiro histórico F0–F8](../plans/2026-10-19-estudo-organizado-v2-roadmap.md) | Histórico aprovado; este documento é o roadmap vivo detalhado |
 | GOAL de execução F0 | [GOAL Codex F0](../goals/2026-10-19-estudo-organizado-v2-f0-codex.md) | Prompt de handoff; **não comprova execução** |
@@ -36,9 +37,9 @@ Os PRs documentais históricos [#104](https://github.com/matheussilva421/estudo-
 
 ## 1. Meta e fronteiras inegociáveis
 
-Recriar a experiência Estudo Organizado em V2 **web/PWA local-first, React + TypeScript + Vite, IndexedDB canônico, Firebase Auth/Firestore como sync opcional, custo recorrente obrigatório R$ 0**, monólito modular por domínios, UX redesenhada e identidade V1 preservada.
+Recriar a experiência Estudo Organizado em V2 **web/PWA local-first, React + TypeScript + Vite, IndexedDB canônico, login Google via Firebase Authentication e Cloud Firestore Spark como único sync remoto opcional, automático por padrão após ativação, custo recorrente obrigatório R$ 0**, monólito modular por domínios, UX redesenhada e identidade V1 preservada.
 
-Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1 precisa de destino rastreável (PRESERVAR/REFORMULAR/UNIFICAR/ADICIONAR/DESCONTINUAR), submetido à aprovação. Não existe autorização automática de migrar dados reais, mudar serviços em produção, criar Actions, conceder billing, integrar com Plataforma Unificada ou substituir a V1.
+Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronização multi-dispositivo confiável, aprovada em 2026-10-28)**. D06 continua híbrida, mas o padrão manual após ativação foi substituído pela A-02. Cada funcionalidade V1 precisa de destino rastreável (PRESERVAR/REFORMULAR/UNIFICAR/ADICIONAR/DESCONTINUAR), submetido à aprovação. Não existe autorização automática de migrar dados reais, mudar serviços em produção, criar Actions, conceder billing, integrar com Plataforma Unificada ou substituir a V1.
 
 **Regra de integridade:** zero perda silenciosa de dados. Falha local, sync, migração, importação, conflito, exclusão e restauração são estados diagnosticáveis, não situações que permitem presumir sucesso.
 
@@ -48,7 +49,7 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 
 | Fase | Situação verificável em 2026-10-27 | Objetivo | Dependência principal |
 | --- | --- | --- | --- |
-| **G0/G1** | APROVADOS | Arquitetura e spec-mestra | D01–D27 + A-01 |
+| **G0/G1** | APROVADOS | Arquitetura e spec-mestra + emendas | D01–D27 + A-01 + A-02 |
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **EXECUTADA EM 2026-10-28 — READY_FOR_HUMAN_REVIEW** | Inventário, contratos e baseline entregues | Aceite humano do [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | NÃO ESPECIFICADA EM DETALHE | PWA V2 mínima e contratos | Aceite humano F0 |
@@ -99,8 +100,10 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 - Definir árvore física V2 isolada da V1 na mesma branch/repositório, critérios de build e isolamento de publicação, sem alterar o pipeline V1.
 - Configurar React/TypeScript/Vite, navegação mínima, PWA e assets offline com versionamento seguro.
 - Implementar contratos públicos por domínio e boundaries automatizados (imports proibidos/ciclos), sem dependência do React no domínio.
-- IndexedDB mínimo, transações locais, versionamento, migrações de teste em sandbox; outbox atômica acoplada ao commit local.
-- Portas/adaptadores de relógio, IDs, armazenamento, backup e sync; sem ativação de Firebase de produção.
+- IndexedDB mínimo e exclusivo V2, transações locais, versionamento próprio, migrações de teste em sandbox; outbox atômica acoplada ao commit local. **Fronteira explícita entre LOCAL_COMMITTED, REMOTE_COMMITTED e CONVERGED**, sem dupla fila de writes offline para a mesma mutação.
+- Portas/adaptadores de relógio, IDs, armazenamento, backup e sync; sem ativação de Firebase de produção. **Definir pré-contratos A-02**: Google Auth e vínculo explícito, automático após opt-in, idempotência/ACK, coordenação de abas, CAS, deltas remotos, cursor/rebaseline, tombstones, recuperação segura e orçamento Spark.
+- Especificar alternativas de documentos por entidade/agregado **delimitado** e medir estimativas de leituras/escritas e limites do Firestore; proibir snapshot monolítico como arquitetura central. **Quatro riscos HIGH continuam abertos até testes.**
+- Documentar ADRs sobre estado/esquema V2 independente de V1 12/11/9/7, IndexedDB 7/6, backup versionado e tombstones, sem presumir implementação de migração real.
 - Testes RED→GREEN de entidade→caso de uso→commit local→consulta reativa; vitest/integração/e2e offline.
 - Tokens do design system derivados de DESIGN.md, primeiros componentes e análise Impeccable com evidência.
 - Orçamento inicial de performance/capacidade a partir das medições F0; risco de quota e erro de gravação tratado.
@@ -164,7 +167,7 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 **Objetivo:** qualificar em conjunto os mecanismos já desenvolvidos nas fases anteriores.
 
 **Pacotes de homologação:**
-- **F7-A Sync:** Firebase Auth/Rules, isolamento por UID, outbox, tombstones, merge conservador, versionamento, backlog, quota Spark, múltiplas abas/dispositivos.
+- **F7-A Sync:** Google Sign-In + Firebase Authentication, Firestore Spark, Rules/UID, login e vínculo seguro em múltiplos dispositivos, outbox idempotente, CAS, tombstones, merge conservador, cursor/rebaseline, limites e orçamento Spark; emulador e ambiente isolado com fixtures sintéticas. Verificar PC→celular→tablet, duas abas e dois dispositivos offline, timeout/retry e convergência verificada, conforme [A-02](../specs/2026-10-28-v2-multidevice-sync-f1-contracts.md).
 - **F7-B Migração:** snapshots V1 sintéticos e conjuntos controlados autorizados; versões observadas, reconciliação de contagens, relacionamentos e estatísticas, quarentena de incompatíveis.
 - **F7-C Backup/restore:** exportação externa versionada, manifesto/checksum, preview, restauração isolada, falhas, recuperação e reimportação idempotente.
 - **F7-D PWA:** Service Worker atualizado com sessão ativa, compatibilidade entre versões e client antigo, armazenamento baixo, offline prolongado e reinicialização.
@@ -219,7 +222,7 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 | --- | --- |
 | Histórico V1 perdido ou inconsistência de versões | F0 descobre esquemas reais; F7 valida transformação isolada; G5 controla produção |
 | Drift da `v2` frente à V1 em produção | Registrar base e selecionar correções essenciais da main somente após revisão; sem merge automático e sem contaminar V2 com mudanças não desejadas |
-| Problemas de sync da V1 (incluindo #107) | Anotar evidências em F0 e cobrir regressões de proteção na V2, sem alterar issue V1 |
+| Quatro riscos HIGH da F0: plano legado #107, documento >1 MiB, corrida da outbox, tombstones perdidos | **HIGH/UNVERIFIED** até prova de contrato na F1 e testes adversariais com emulador em F7; não alterar a V1. Matriz: [riscos F0](../audits/2026-10-19-v1-risk-matrix.json) e [A-02](../specs/2026-10-28-v2-multidevice-sync-f1-contracts.md). |
 | Acesso a dados de usuário nos ensaios | Somente fixtures sintéticas até autorização específica de teste controlado |
 | Quota Spark ou mudança de requisitos de billing | Limitar operações, backoff, manter offline local e rever disponibilidade antes de publicação |
 | Acoplamento de domínios e crescimento de arquivos | Contratos públicos tipados, verificação de dependências e revisão independente |
@@ -235,6 +238,7 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 - **Branches antigas:** `docs/superpowers-estudo-organizado-v2-design` e `docs/superpowers-estudo-organizado-v2-f0-plan` são branches históricas de PRs #104/#105 já mesclados por squash. **Não excluir** sem inventário dos commits exclusivos e nova autorização; não utilizá-las para desenvolvimento novo.
 - **PRs abertos no preflight:** nenhum. Não criar PR novo apenas para acrescentar roadmap/issue à branch `v2`.
 - **Arquivos de auditoria F0 encontrados?** Sim: inventário, cobertura de fontes, matriz de schemas, matriz de riscos, baseline de QA, relatório Impeccable e relatório de aceitação em `docs/superpowers/audits/`.
+- **Decisão A-02:** aprovada pelo usuário em 2026-10-28; spec-mestra atualizada e [pré-contratos de sync F1](../specs/2026-10-28-v2-multidevice-sync-f1-contracts.md) preparados **sem execução**. Não equivale a aprovação de arquitetura física de sync, solução dos riscos ou gate F0.
 - **Fase operacional seguinte:** aceite humano do [relatório F0](../audits/2026-10-19-f0-acceptance.md), decisão sobre os 46 destinos e sobre os riscos HIGH/ADRs. Sem isso, F1 continua não autorizada.
 - **Testes executados:** 66 testes dos validadores F0 PASS; 189 arquivos/3048 testes unitários PASS; lint 0 erros. `test:e2e:mock` e `test:e2e:mock:all` têm FAIL registrados; runtime Firestore/Drive/Cloudflare, migração real e emulador de rules permanecem NOT_RUN/INCONCLUSIVE.
 
