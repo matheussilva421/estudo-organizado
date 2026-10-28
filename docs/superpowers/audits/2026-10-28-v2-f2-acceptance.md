@@ -195,4 +195,28 @@ Revisar este pacote e decidir o aceite da F2. A F2 **não** está aprovada, publ
 
 **Limitações que permanecem e sua fase de destino:** reconciliação de revisão importada (F7), recibo fora do backup F2 (F7), `ACCEPT_REMOTE` de payload não deletado fora do repositório (revisão arquitetural), três motores de commit (F3/F7), staging de importação (não autorizado), Firebase/Rules/quota reais e multi-dispositivo físico (**NOT_RUN**, F7), quatro riscos HIGH da F0 (**UNVERIFIED**), detector Impeccable (**NOT_RUN**), e a medição de 414 ms refere-se a desktop, não a aparelho modesto.
 
+## 11. Revisão do GOAL corretivo — limitação e auto-revisão estruturada
+
+A revisão independente do diff corretivo (`774ddc3..8ca8b60`) **não pôde ser executada**: o ambiente recusou a criação de novo subagente por limite de threads (`agent thread limit reached`). Conforme o GOAL, isso fica registrado como limitação; **não há atestado de revisão independente** desta rodada. As rodadas R1–R5 valem apenas para os commits que revisaram.
+
+Em substituição, foi feita auto-revisão estruturada do diff corretivo:
+
+| Verificação | Resultado |
+| --- | --- |
+| `baseRevision` capturada ao abrir pode prender o usuário? | Não: o conflito mantém o formulário aberto com o texto; cancelar e reabrir recarrega a base atual. |
+| Conflito no rename de `StudySubject` preserva o texto? | Sim: a exceção sobe ao App, que avisa e não fecha o editor. |
+| Chamador de `UNLINK_LESSON_TOPIC` sem `baseRevision`? | Nenhum: `rg` mostra só `App.tsx` (corrigido) e testes. |
+| `sequence` duplica sob concorrência? | Não: leitura e escrita do contador no mesmo `readwrite` de `meta`; import grava o valor final. |
+| Operações F1 sem `sequence` (0) invertem create/delete? | Não na prática: são as mais antigas e o desempate é por `operationId`. |
+| Caminho real envia sem gate? | Não: `getEligibleOutbox` filtra por `canDeliver`; `flushPending.canSend` é segunda barreira, não obrigatória (residual). |
+| Backup F1 continua legível e nunca `SAFE`? | Sim, com teste dedicado. |
+| Snapshot legítimo vira `INVALID` pela regra de epoch? | Backup pós-restore passa a exigir rebaseline: conservador por escolha. |
+| Import grava quarentena e recibo na mesma transação? | Sim; `receipt.entityIds` só lista o que foi criado. |
+| Dois perfis com o mesmo arquivo colidem? | Não: `operationId` inclui `profileId`. |
+| `ACCEPT_REMOTE` marca `RESOLVED` sem escrever? | Não; falha posterior deixa `OPEN`. A marcação não é atômica com a escrita (residual). |
+| `aria-label` novos quebraram nomes? | Não: E2E verde após renomear gatilho e submit de arquivamento. |
+| Algum teste enfraquecido? | Asserções ajustadas ao novo contrato; nenhuma removida para obter verde. |
+
+**Residual de maior risco:** a marcação de conflito resolvido não é transacional com a escrita de `ACCEPT_REMOTE` — falha no meio deixa `OPEN`, nunca `RESOLVED` falso.
+
 
