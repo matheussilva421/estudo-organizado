@@ -39,7 +39,7 @@ O root `package.json`, o lockfile da V1, `src/`, `PRODUCT.md`, `DESIGN.md`, `AGE
 | Typecheck | `npm --prefix apps/v2 run typecheck` | **PASS** |
 | Lint | `npm --prefix apps/v2 run lint` | **PASS** (0 erros) |
 | Unit | `npm --prefix apps/v2 run test:unit` | **PASS** — 15 arquivos, 69 testes |
-| E2E | `npm --prefix apps/v2 run test:e2e` | **PASS** — 15 testes em Chromium |
+| E2E | `npm --prefix apps/v2 run test:e2e` | **PASS** — 16 testes em Chromium |
 | Build | `npm --prefix apps/v2 run build` | **PASS** — bundle 230,94 kB / 72,46 kB gzip |
 | Firebase/Google real | — | **NOT_RUN** |
 | Firestore Emulator/Rules | — | **NOT_RUN** |
@@ -105,13 +105,14 @@ A configuração da V1 continua apontando `test:e2e:mock` para uma spec ignorada
 - Backup tem contrato e testes, mas não uma UI completa de restauração.
 - Web Locks foram testados por contrato e E2E de disponibilidade, não com dois dispositivos reais.
 - O Service Worker é mínimo; atualização/rollback de versão incompatível exige F7.
+- A CSP restritiva é aplicada no servidor de preview; o header de produção depende da hospedagem futura.
 - O `.gitignore` raiz ganhou a exceção de allowlist para `apps/v2`.
 - Um `eslint-disable` pontual documenta a hidratação inicial do IndexedDB; não silencia outras regras.
 
 ## 9. Git, integração e publicação
 
 - `main`: `9046cfa`, não alterada.
-- `v2` inicial: `b15226d`; commits F1 nesta execução: 15 commits de código/testes e este relatório.
+- `v2` inicial: `b15226d`; os commits F1 desta execução estão em `git log b15226d..HEAD` e este relatório é o commit documental final.
 - Todo o código está integrado à `v2` local; o push para `origin/v2` ocorre somente após revalidar que o workflow de deploy é restrito à `main`.
 - Nenhum PR, Action, deploy, publicação ou migração real.
 - Branches documentais antigas preservadas; nenhum worktree temporário criado além do já existente da V2.
@@ -135,4 +136,4 @@ A configuração da V1 continua apontando `test:e2e:mock` para uma spec ignorada
 
 ## 11. Gate
 
-**`F1_READY_FOR_HUMAN_REVIEW`**. A F1 não está aprovada e a F2 não está autorizada. O aceite humano deve considerar: 69 testes unitários, 15 E2E, typecheck/lint/build, 4 riscos HIGH ainda UNVERIFIED, ausência de Firebase real e os limites de fake/quota/multi-dispositivo.
+**`F1_READY_FOR_HUMAN_REVIEW`**. A F1 não está aprovada e a F2 não está autorizada. O aceite humano deve considerar: 69 testes unitários, 16 E2E, typecheck/lint/build, 4 riscos HIGH ainda UNVERIFIED, ausência de Firebase real e os limites de fake/quota/multi-dispositivo.
