@@ -8,9 +8,9 @@ A F2 foi executada na branch `v2` conforme o [writing-plans](https://github.com/
 | --- | --- |
 | typecheck | PASS |
 | lint | PASS |
-| unit | PASS 162/162 (29 arquivos) |
-| E2E | PASS 44/44 (20 da F1 + 24 novos da F2) |
-| build | PASS (291,12 kB / 87,00 kB gzip) |
+| unit | PASS 168/168 (29 arquivos) |
+| E2E | PASS 45/45 (20 da F1 + 25 novos da F2) |
+| build | PASS (292,30 kB / 87,22 kB gzip) |
 
 ### Matriz F2-T01..T40
 
@@ -35,7 +35,7 @@ A F2 foi executada na branch `v2` conforme o [writing-plans](https://github.com/
 
 ### Revisões independentes
 
-Quatro rodadas read-only (Tasks 1; 2–5; 7; 9–10) apontaram 1 P0 (`canDeliver` não ligado ao envio), 8 P1 e vários P2/P3. Todos os P0/P1 e os P2 materiais foram corrigidos antes do push, com teste focal reexecutado a cada correção.
+Cinco rodadas read-only (Tasks 1; 2–5; 7; 9–10; holística final) apontaram 1 P0 (`canDeliver` não ligado ao envio), 13 P1 e dezenas de P2/P3. Todos os P0/P1 e os P2 materiais foram corrigidos, com teste focal reexecutado a cada correção. A revisão holística final encontrou, entre outros: `targetSignature` sensível à ordem dos arrays (segunda importação era recusada), reuso de disciplina por nome, IDs colidindo em irmãos homônimos, edital arquivado não consultável e prova de consentimento sem vínculo com o `uid`. Todos corrigidos com teste novo.
 
 ### Limitações que permanecem
 

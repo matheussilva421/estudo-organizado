@@ -4,7 +4,7 @@
 **Branch:** `v2` (somente local; `main` intocada)
 **Gate proposto:** `F2_READY_FOR_HUMAN_REVIEW`
 **Escopo executado:** 16 tarefas do writing-plans F2, matriz F2-T01..T40.
-**Evidência publicada:** [comentário na issue #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6480464454).
+**Evidência publicada:** [comentário inicial](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6480464454) e [atualização após a revisão holística](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6481351665).
 
 Este relatório é o único pacote de evidências da F2. Ele descreve o que foi implementado, testado e observado; **não** declara F2 aprovada, homologada ou publicada.
 
