@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Estudo Organizado V2">
+  <rect width="512" height="512" rx="96" fill="#08090d"/>
+  <rect x="112" y="112" width="288" height="288" rx="48" fill="#8aa4bf"/>
+  <path d="M176 256h160M256 176v160" stroke="#071018" stroke-width="32" stroke-linecap="round"/>
+</svg>
