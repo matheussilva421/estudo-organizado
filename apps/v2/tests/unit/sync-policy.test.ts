@@ -49,7 +49,7 @@ describe('sync policy', () => {
       profileId: 'profile-a',
       uid: 'uid-a',
       remoteCount: 0,
-      previewId: `link:profile-a:uid-a:0:${NOW}`,
+      previewId: `link:profile-a:uid-a:0:${NOW}:${NOW + 300_000}`,
       issuedAt: NOW,
       expiresAt: NOW + 300_000,
       requiresConsent: true,
@@ -94,13 +94,13 @@ describe('sync policy', () => {
         uid: 'uid-a',
         consent: true,
         preview: { ...valid, profileId: 'profile-b' },
-      }),
+      }, NOW),
       transitionSync(linking, {
         type: 'CONSENT_LINK',
         uid: 'uid-a',
         consent: true,
         preview: { ...valid, uid: 'uid-b' },
-      }),
+      }, NOW),
       transitionSync(
         linking,
         { type: 'CONSENT_LINK', uid: 'uid-a', consent: true, preview: valid },
@@ -111,7 +111,13 @@ describe('sync policy', () => {
         uid: 'uid-a',
         consent: true,
         preview: { ...valid, previewId: 'arbitrary' },
-      }),
+      }, NOW),
+      transitionSync(linking, {
+        type: 'CONSENT_LINK',
+        uid: 'uid-a',
+        consent: true,
+        preview: { ...valid, expiresAt: valid.expiresAt + 60_000 },
+      }, NOW),
     ];
 
     for (const attempt of attempts) {

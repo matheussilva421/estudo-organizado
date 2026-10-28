@@ -51,12 +51,16 @@ describe('profile isolation', () => {
   it('cannot_replace_uid_without_logout_and_preview', () => {
     const paused = transitionSync(ready('uid-a'), { type: 'AUTH_EXPIRED' });
     const linking = transitionSync(paused, { type: 'START_LINK' });
-    const attempted = transitionSync(linking, {
-      type: 'CONSENT_LINK',
-      uid: 'uid-b',
-      consent: true,
-      preview: previewLink('profile-a', 'uid-b', { remoteCount: 0 }, NOW),
-    });
+    const attempted = transitionSync(
+      linking,
+      {
+        type: 'CONSENT_LINK',
+        uid: 'uid-b',
+        consent: true,
+        preview: previewLink('profile-a', 'uid-b', { remoteCount: 0 }, NOW),
+      },
+      NOW,
+    );
 
     expect(attempted.uid).toBe('uid-a');
     expect(attempted.state).toBe('LINKING');
@@ -67,7 +71,7 @@ describe('profile isolation', () => {
       profileId: 'profile-a',
       uid: 'uid-a',
       remoteCount: 3,
-      previewId: `link:profile-a:uid-a:3:${NOW}`,
+      previewId: `link:profile-a:uid-a:3:${NOW}:${NOW + 300_000}`,
       issuedAt: NOW,
       expiresAt: NOW + 300_000,
       requiresConsent: true,
