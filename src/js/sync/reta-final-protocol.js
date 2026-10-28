@@ -17,6 +17,33 @@ const DERIVED_FIELDS = new Set([
   "atrasoDias",
 ]);
 
+// Fields the scheduling projection rewrites in place (syncRetaFinalToEventos,
+// rollover) without bumping `revision`. They describe how this device renders
+// the plan, never what the user asked for, so intent comparisons ignore them.
+const PROJECTION_BLOCK_FIELDS = new Set([
+  ...DERIVED_FIELDS,
+  "status",
+  "rolagens",
+  "rolado",
+  "motivoNaoAlocado",
+]);
+
+// Plan-level bookkeeping rebuilt per device, per migration or by the sync
+// journal. Two devices with the same intent may carry different values.
+const PLAN_METADATA_FIELDS = new Set([
+  "updatedAt",
+  "operations",
+  "pendingOperations",
+  "operationIds",
+]);
+
+const PLAN_RETA_FINAL_METADATA_FIELDS = new Set([
+  "removedBlockIds",
+  "minRetainedRevision",
+]);
+
+const INTENT_DIFFERENCE_LIMIT = 40;
+
 const DESCRIPTOR_KEYS = new Set([
   "schema",
   "planId",
@@ -74,6 +101,169 @@ function canonical(value) {
     result[key] = canonical(value[key]);
   }
   return result;
+}
+
+function stableIntent(value) {
+  if (Array.isArray(value)) return value.map(stableIntent);
+  if (!record(value)) return value;
+  const result = {};
+  for (const key of Object.keys(value).sort()) {
+    if (value[key] === undefined) continue;
+    result[key] = stableIntent(value[key]);
+  }
+  return result;
+}
+
+// Stable key order without removing any field: the rules compare the whole
+// payload map, so the client mirror must not ignore nested projection fields.
+function stablePayload(value) {
+  if (Array.isArray(value)) return value.map(stablePayload);
+  if (!record(value)) return value;
+  const result = {};
+  for (const key of Object.keys(value).sort()) {
+    if (value[key] === undefined) continue;
+    result[key] = stablePayload(value[key]);
+  }
+  return result;
+}
+
+function samePayload(left, right) {
+  return JSON.stringify(stablePayload(left)) === JSON.stringify(stablePayload(right));
+}
+
+/**
+ * Strip everything that is projection or per-device bookkeeping from a plan.
+ * Blocks are matched by identity and sorted by id, so array order (which the
+ * rollover rewrites) never changes the intent.
+ */
+export function retaFinalPlanIntent(plan) {
+  if (!record(plan)) return null;
+  const copy = JSON.parse(JSON.stringify(plan));
+  for (const key of PLAN_METADATA_FIELDS) delete copy[key];
+  if (record(copy.retaFinal)) {
+    for (const key of PLAN_RETA_FINAL_METADATA_FIELDS)
+      delete copy.retaFinal[key];
+    if (!Array.isArray(copy.retaFinal.blocos)) copy.retaFinal.blocos = [];
+    copy.retaFinal.blocos = copy.retaFinal.blocos
+      .map((block) => {
+        if (!record(block)) return block;
+        const clean = {};
+        for (const key of Object.keys(block)) {
+          if (PROJECTION_BLOCK_FIELDS.has(key)) continue;
+          if (block[key] === undefined) continue;
+          clean[key] = block[key];
+        }
+        return clean;
+      })
+      .sort((left, right) =>
+        String(left?.id ?? "").localeCompare(String(right?.id ?? "")),
+      );
+  }
+  return copy;
+}
+
+/** Deterministic digest of the human intent only; instrumentation, not wire. */
+export function computeRetaFinalIntentDigest(plan) {
+  const text = JSON.stringify(stableIntent(retaFinalPlanIntent(plan)));
+  return [
+    fnv1a(text, 0x811c9dc5),
+    fnv1a(text, 0x01000193),
+    fnv1a(text, 0x9e3779b9),
+    fnv1a(text, 0x85ebca6b),
+  ].join("");
+}
+
+function intentBlocks(plan) {
+  const map = new Map();
+  const list = Array.isArray(plan?.retaFinal?.blocos)
+    ? plan.retaFinal.blocos
+    : [];
+  for (const block of list) {
+    if (record(block) && isId(block.id)) map.set(block.id, block);
+  }
+  return map;
+}
+
+/**
+ * Compare two Reta Final plans by human intent.
+ *
+ * Equivalent means: same lineage/activation, same block identities and the
+ * same non-projection fields. Projection drift (`data`, `status`, `rolagens`),
+ * per-device metadata (`updatedAt`, journal) and array order are ignored.
+ * Anything else is reported as a stable path so a real divergence can be
+ * reviewed without guessing.
+ */
+export function compareRetaFinalPlanIntent(left, right) {
+  if (!record(left) || !record(right)) {
+    return {
+      equivalent: false,
+      differences: ["plano ausente"],
+      blockCount: 0,
+      changedBlockIds: [],
+    };
+  }
+  const leftIntent = retaFinalPlanIntent(left);
+  const rightIntent = retaFinalPlanIntent(right);
+  const differences = [];
+  const push = (path) => {
+    if (differences.length < INTENT_DIFFERENCE_LIMIT) differences.push(path);
+  };
+  const keys = new Set([...Object.keys(leftIntent), ...Object.keys(rightIntent)]);
+  for (const key of [...keys].sort()) {
+    if (key === "retaFinal") continue;
+    if (
+      JSON.stringify(stableIntent(leftIntent[key])) !==
+      JSON.stringify(stableIntent(rightIntent[key]))
+    ) {
+      push(key);
+    }
+  }
+  const leftPlan = record(leftIntent.retaFinal) ? leftIntent.retaFinal : {};
+  const rightPlan = record(rightIntent.retaFinal) ? rightIntent.retaFinal : {};
+  const planKeys = new Set([...Object.keys(leftPlan), ...Object.keys(rightPlan)]);
+  for (const key of [...planKeys].sort()) {
+    if (key === "blocos") continue;
+    if (
+      JSON.stringify(stableIntent(leftPlan[key])) !==
+      JSON.stringify(stableIntent(rightPlan[key]))
+    ) {
+      push(`retaFinal.${key}`);
+    }
+  }
+  const leftBlocks = intentBlocks(leftIntent);
+  const rightBlocks = intentBlocks(rightIntent);
+  const changedBlockIds = [];
+  for (const id of [
+    ...new Set([...leftBlocks.keys(), ...rightBlocks.keys()]),
+  ].sort()) {
+    const leftBlock = leftBlocks.get(id);
+    const rightBlock = rightBlocks.get(id);
+    if (!leftBlock || !rightBlock) {
+      changedBlockIds.push(id);
+      push(`retaFinal.blocos.${id}`);
+      continue;
+    }
+    const fieldKeys = new Set([
+      ...Object.keys(leftBlock),
+      ...Object.keys(rightBlock),
+    ]);
+    for (const field of [...fieldKeys].sort()) {
+      if (field === "id") continue;
+      if (
+        JSON.stringify(stableIntent(leftBlock[field])) !==
+        JSON.stringify(stableIntent(rightBlock[field]))
+      ) {
+        if (!changedBlockIds.includes(id)) changedBlockIds.push(id);
+        push(`retaFinal.blocos.${id}.${field}`);
+      }
+    }
+  }
+  return {
+    equivalent: differences.length === 0,
+    differences,
+    blockCount: leftBlocks.size,
+    changedBlockIds,
+  };
 }
 
 function fnv1a(text, seed) {
@@ -255,6 +445,7 @@ export function buildRetaFinalSyncDescriptor({
   baseSnapshotRevision = Math.max(0, snapshotRevision - 1),
   minRetainedRevision,
   removedBlockIds,
+  wireDigest = null,
 } = {}) {
   if (!record(plan)) throw descriptorError("plano ausente.");
   if (!isId(plan.planId)) throw descriptorError("planId invalido.");
@@ -296,7 +487,12 @@ export function buildRetaFinalSyncDescriptor({
     snapshotRevision,
     baseSnapshotRevision,
     baseRemoteUpdatedAt,
-    digest: computeRetaFinalPlanDigest(plan),
+    // A descriptor that describes an unchanged plan carries the digest the
+    // remote already published: the rules compare it verbatim, while the plan
+    // content is compared by intent (projection drift is not a new revision).
+    digest: validDigest(wireDigest)
+      ? wireDigest
+      : computeRetaFinalPlanDigest(plan),
     deviceId,
     state,
     capabilities: {
@@ -442,8 +638,7 @@ export function validateRetaFinalEnvelopeWrite({
   if (incoming.snapshotRevision === remote.snapshotRevision) {
     if (
       envelope?.payloadUpdatedAt !== remoteEnvelope?.payloadUpdatedAt ||
-      JSON.stringify(canonical(envelope?.payload)) !==
-        JSON.stringify(canonical(remoteEnvelope?.payload))
+      !samePayload(envelope?.payload, remoteEnvelope?.payload)
     ) {
       return denied(
         "replay-payload-mismatch",
@@ -496,6 +691,17 @@ export function validateRetaFinalEnvelopeWrite({
   }
 
   if (planUnchanged) {
+    // The rules compare the plan map literally in this branch; a projection
+    // difference would pass a digest-only check and be denied server-side.
+    if (!samePayload(envelope?.payload?.planejamento, remoteEnvelope?.payload?.planejamento)) {
+      return denied(
+        "plan-payload-mismatch",
+        incoming,
+        remote,
+        envelope,
+        remoteEnvelope,
+      );
+    }
     if (incoming.state !== remote.state) {
       return denied(
         "retired-state-change",

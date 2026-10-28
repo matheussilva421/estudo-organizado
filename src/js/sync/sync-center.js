@@ -151,10 +151,13 @@ function deriveQuietSyncView({
   }
 
   if (syncHealth.state === "conflict") {
+    const subcause =
+      firestore.conflict?.subcause || firestore.conflict?.cause || null;
     return {
       title: "Ação necessária",
-      detail:
-        "Existe um conflito real de sync. Seus dados locais continuam preservados; abra as opções avançadas para resolver.",
+      detail: subcause
+        ? `Existe um conflito real de sync (${subcause}). Seus dados locais continuam preservados; abra as opções avançadas para revisar a causa e resolver.`
+        : "Existe um conflito real de sync. Seus dados locais continuam preservados; abra as opções avançadas para resolver.",
       tone: "danger",
       primaryAction: "advanced",
     };

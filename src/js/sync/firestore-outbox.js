@@ -62,18 +62,54 @@ function readModifyWrite(storeName, key, modifier) {
   });
 }
 
-export async function enqueueFirestoreSnapshot(envelope) {
-  return writeOp(FIRESTORE_OUTBOX_STORE, (store) => {
-    store.put({
-      id: LATEST_SNAPSHOT_ID,
-      type: 'snapshot',
+/**
+ * Queue the latest snapshot.
+ *
+ * Passing `options.expected` turns the write into a compare-and-set against
+ * the operation the caller observed. Coalescing a newer payload into the same
+ * pending operation preserves `queuedAt`, `attempts` and `nextAttemptAt`; it
+ * never silently replaces an operation from another snapshot lineage.
+ */
+export async function enqueueFirestoreSnapshot(envelope, options = {}) {
+  const expected = options.expected;
+  if (expected === undefined) {
+    return writeOp(FIRESTORE_OUTBOX_STORE, (store) => {
+      store.put({
+        id: LATEST_SNAPSHOT_ID,
+        type: 'snapshot',
+        status: 'pending',
+        attempts: 0,
+        queuedAt: new Date().toISOString(),
+        nextAttemptAt: null,
+        lastError: null,
+        academicOnly: options.academicOnly === true,
+        envelope,
+      });
+    }).catch(() => false);
+  }
+  return readModifyWrite(FIRESTORE_OUTBOX_STORE, LATEST_SNAPSHOT_ID, (existing) => {
+    if (!matchesExpectedSnapshot(existing, expected)) return false;
+    if (!existing) {
+      return {
+        id: LATEST_SNAPSHOT_ID,
+        type: 'snapshot',
+        status: 'pending',
+        attempts: 0,
+        queuedAt: new Date().toISOString(),
+        nextAttemptAt: null,
+        lastError: null,
+        academicOnly: options.academicOnly === true,
+        envelope,
+      };
+    }
+    return {
+      ...existing,
       status: 'pending',
-      attempts: 0,
-      queuedAt: new Date().toISOString(),
-      nextAttemptAt: null,
+      academicOnly: options.academicOnly === true,
       lastError: null,
       envelope,
-    });
+      recomposedAt: new Date().toISOString(),
+    };
   }).catch(() => false);
 }
 

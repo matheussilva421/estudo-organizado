@@ -398,6 +398,7 @@ describe('data-action contracts', () => {
       './js/views/ciclo-view.js',
       './js/registro-sessao/modal-renderer.js',
       './js/registro-sessao/session-save.js',
+      './js/sync/sync-history.js',
     ];
 
     for (const mod of requiredModules) {

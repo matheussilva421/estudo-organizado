@@ -1127,6 +1127,19 @@ export function resolveRetaFinalConflictAtomically({
               syncConfig.baseDigest = computeRetaFinalPlanDigest(
                 built.remoteBase,
               );
+              syncConfig.baseRemoteDigest =
+                conflict.remoteDigest ||
+                computeRetaFinalPlanDigest(built.remoteBase);
+              syncConfig.baseRemovedBlockIds = Array.isArray(
+                conflict.remoteRemovedBlockIds,
+              )
+                ? [...conflict.remoteRemovedBlockIds]
+                : null;
+              syncConfig.baseMinRetainedRevision = Number.isSafeInteger(
+                conflict.remoteMinRetainedRevision,
+              )
+                ? conflict.remoteMinRetainedRevision
+                : null;
               syncConfig.baseRemoteUpdatedAt =
                 conflict.remoteUpdatedAt ||
                 syncConfig.remoteUpdatedAt ||

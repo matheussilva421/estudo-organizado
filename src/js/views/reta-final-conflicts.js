@@ -179,6 +179,13 @@ export function collectRetaFinalConflicts(sourceState = {}) {
       typeof conflict.cause === "string" && conflict.cause.trim()
         ? conflict.cause
         : "unknown";
+    const subcause =
+      typeof conflict.subcause === "string" && conflict.subcause.trim()
+        ? conflict.subcause
+        : null;
+    const differences = Array.isArray(conflict.differences)
+      ? conflict.differences.filter((item) => typeof item === "string")
+      : [];
     const baseId = `reta-final:${cause}:${planId}:plan`;
     items.push({
       conflictId: nextId(baseId),
@@ -186,6 +193,8 @@ export function collectRetaFinalConflicts(sourceState = {}) {
       sourceIndex: null,
       mergeIndex: null,
       cause,
+      subcause,
+      differences,
       planId,
       blockId: null,
       fieldPath: "$plan",
@@ -484,8 +493,17 @@ function renderConflictItem(item, index) {
           Plano <code>${esc(item.planId)}</code>
           ${item.blockId ? ` · bloco <code>${esc(item.blockId)}</code>` : ""}
           · causa <code>${esc(item.cause)}</code>
+          ${item.subcause ? ` · subcausa <code>${esc(item.subcause)}</code>` : ""}
         </p>
         ${item.reason ? `<p class="rf-conflict-reason-text">${esc(item.reason)}</p>` : ""}
+        ${
+          Array.isArray(item.differences) && item.differences.length
+            ? `<details class="rf-conflict-differences"><summary>${item.differences.length} diferenca(s) de conteudo</summary><ul>${item.differences
+                .slice(0, 12)
+                .map((path) => `<li><code>${esc(path)}</code></li>`)
+                .join("")}</ul></details>`
+            : ""
+        }
       </header>
 
       ${renderCompareTable(compareRows(item))}
