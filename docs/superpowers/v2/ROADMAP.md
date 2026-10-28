@@ -87,7 +87,7 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 - **Dados:** 37 registros de schema, com conflitos explícitos entre schema 12/11/9/7, IndexedDB 7/6 e backup sem versão própria.
 - **Riscos:** 13 (4 HIGH, 7 MEDIUM, 2 LOW); issue #107 registrada como risco UNVERIFIED; nenhum CRITICAL.
 - **Baseline:** 11 verificações — 4 PASS, 2 FAIL, 2 INCONCLUSIVE, 3 NOT_RUN.
-- **PASS:** 66 testes dos validadores; 184 arquivos/3024 testes unitários; lint 0 erros; design/contraste 45 testes; Impeccable 3.9.1 executado.
+- **PASS:** 66 testes dos validadores; 189 arquivos/3048 testes unitários; lint 0 erros; design/contraste 45 testes; Impeccable 3.9.1 executado.
 - **FAIL:** `test:e2e:mock` não encontra testes; `test:e2e:mock:all` tem 59 PASS e 107 FAIL, registrados sem correção da V1.
 - **Gate:** `READY_FOR_HUMAN_REVIEW`; os 46 destinos continuam `PROPOSED`; F1 permanece bloqueada.
 
@@ -236,7 +236,7 @@ Manter as 27 decisões arquiteturais e A-01 (Impeccable). Cada funcionalidade V1
 - **PRs abertos no preflight:** nenhum. Não criar PR novo apenas para acrescentar roadmap/issue à branch `v2`.
 - **Arquivos de auditoria F0 encontrados?** Sim: inventário, cobertura de fontes, matriz de schemas, matriz de riscos, baseline de QA, relatório Impeccable e relatório de aceitação em `docs/superpowers/audits/`.
 - **Fase operacional seguinte:** aceite humano do [relatório F0](../audits/2026-10-19-f0-acceptance.md), decisão sobre os 46 destinos e sobre os riscos HIGH/ADRs. Sem isso, F1 continua não autorizada.
-- **Testes executados:** 66 testes dos validadores F0 PASS; 184 arquivos/3024 testes unitários PASS; lint 0 erros. `test:e2e:mock` e `test:e2e:mock:all` têm FAIL registrados; runtime Firestore/Drive/Cloudflare, migração real e emulador de rules permanecem NOT_RUN/INCONCLUSIVE.
+- **Testes executados:** 66 testes dos validadores F0 PASS; 189 arquivos/3048 testes unitários PASS; lint 0 erros. `test:e2e:mock` e `test:e2e:mock:all` têm FAIL registrados; runtime Firestore/Drive/Cloudflare, migração real e emulador de rules permanecem NOT_RUN/INCONCLUSIVE.
 
 ## 15. Definição de conclusão de fase
 

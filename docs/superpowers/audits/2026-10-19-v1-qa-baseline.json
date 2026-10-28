@@ -6,8 +6,8 @@
     "status": "PASS",
     "environment": "Windows 11, Node 24.15.0, Vitest 3.2.4",
     "evidence_ref": "docs/superpowers/audits/evidence/2026-10-28-unit-test.txt",
-    "executed_at": "2026-10-28T09:28:06-03:00",
-    "notes": "184 arquivos, 3024 testes, 100% PASS; duração 96,01s. Inclui os 5 arquivos/42 testes da própria F0; a suíte V1 antes da auditoria era 179 arquivos/2982 testes, também 100% PASS."
+    "executed_at": "2026-10-28T09:45:12-03:00",
+    "notes": "189 arquivos, 3048 testes, 100% PASS; duração 88,37s. Inclui os 10 arquivos/66 testes da própria F0; a suíte V1 antes da auditoria era 179 arquivos/2982 testes, também 100% PASS."
   },
   {
     "id": "B-V1-LINT",

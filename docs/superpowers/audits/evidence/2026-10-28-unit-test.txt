@@ -8,272 +8,265 @@
 stderr | tests/unit/reta-final-sync-engine.test.js > reta-final sync engine integration > keeps the snapshot pending when the remote ACK fails after the local commit
 [Sync] writeFirestoreSnapshot failed: network down
 
- ✓ tests/unit/views-render.test.js (20 tests) 19208ms
-   ✓ views.js - CRUD, modals, sequence ops > deleteAssunto() > shows confirmation and deletes assunto  1837ms
-   ✓ views.js - CRUD, modals, sequence ops > deleteAssunto() > unlinks events from deleted assunto  522ms
-   ✓ views.js - CRUD, modals, sequence ops > deleteDisc() > shows confirmation and deletes discipline  554ms
-   ✓ views.js - CRUD, modals, sequence ops > deleteDisc() > cleans up events and planning references  687ms
-   ✓ views.js - CRUD, modals, sequence ops > deleteEdital() > shows confirmation with edital name and deletes  1254ms
-   ✓ views.js - CRUD, modals, sequence ops > deleteEdital() > removes edital and cleans up references  1010ms
-   ✓ views.js - CRUD, modals, sequence ops > deleteEdital() > handles edital not found gracefully  873ms
-   ✓ views.js - CRUD, modals, sequence ops > openEditaModal() > opens modal for new edital  1583ms
-   ✓ views.js - CRUD, modals, sequence ops > openEditaModal() > opens modal for existing edital  1239ms
-   ✓ views.js - CRUD, modals, sequence ops > openDiscModal() > opens modal for new discipline  838ms
-   ✓ views.js - CRUD, modals, sequence ops > openDiscModal() > opens modal for existing discipline  733ms
-   ✓ views.js - CRUD, modals, sequence ops > openDiscManager() > returns early when discipline not found  649ms
-   ✓ views.js - CRUD, modals, sequence ops > saveEditSeq() > shows error when sequence is empty  2361ms
-   ✓ views.js - CRUD, modals, sequence ops > saveEditSeq() > shows error when step has no discipline  582ms
-   ✓ views.js - CRUD, modals, sequence ops > saveEditSeq() > saves valid sequence  655ms
-   ✓ views.js - CRUD, modals, sequence ops > addEventoParaAssunto() > opens event modal and pre-fills fields  732ms
-   ✓ views.js - CRUD, modals, sequence ops > toggleEditSeq() > enables editing and clones sequence  642ms
-   ✓ views.js - CRUD, modals, sequence ops > toggleEditSeq() > disables editing and clears temp  842ms
-   ✓ views.js - CRUD, modals, sequence ops > cancelEditSeq() > resets editing state  675ms
-   ✓ views.js - CRUD, modals, sequence ops > destroyDashboardCharts() > is exported and callable  929ms
+ ✓ tests/unit/views-render.test.js (20 tests) 12326ms
+   ✓ views.js - CRUD, modals, sequence ops > deleteAssunto() > shows confirmation and deletes assunto  1970ms
+   ✓ views.js - CRUD, modals, sequence ops > deleteAssunto() > unlinks events from deleted assunto  334ms
+   ✓ views.js - CRUD, modals, sequence ops > deleteDisc() > shows confirmation and deletes discipline  517ms
+   ✓ views.js - CRUD, modals, sequence ops > deleteDisc() > cleans up events and planning references  458ms
+   ✓ views.js - CRUD, modals, sequence ops > deleteEdital() > shows confirmation with edital name and deletes  489ms
+   ✓ views.js - CRUD, modals, sequence ops > deleteEdital() > removes edital and cleans up references  615ms
+   ✓ views.js - CRUD, modals, sequence ops > deleteEdital() > handles edital not found gracefully  561ms
+   ✓ views.js - CRUD, modals, sequence ops > openEditaModal() > opens modal for new edital  562ms
+   ✓ views.js - CRUD, modals, sequence ops > openEditaModal() > opens modal for existing edital  675ms
+   ✓ views.js - CRUD, modals, sequence ops > openDiscModal() > opens modal for new discipline  597ms
+   ✓ views.js - CRUD, modals, sequence ops > openDiscModal() > opens modal for existing discipline  547ms
+   ✓ views.js - CRUD, modals, sequence ops > openDiscManager() > returns early when discipline not found  458ms
+   ✓ views.js - CRUD, modals, sequence ops > saveEditSeq() > shows error when sequence is empty  527ms
+   ✓ views.js - CRUD, modals, sequence ops > saveEditSeq() > shows error when step has no discipline  573ms
+   ✓ views.js - CRUD, modals, sequence ops > saveEditSeq() > saves valid sequence  647ms
+   ✓ views.js - CRUD, modals, sequence ops > addEventoParaAssunto() > opens event modal and pre-fills fields  616ms
+   ✓ views.js - CRUD, modals, sequence ops > toggleEditSeq() > enables editing and clones sequence  583ms
+   ✓ views.js - CRUD, modals, sequence ops > toggleEditSeq() > disables editing and clears temp  596ms
+   ✓ views.js - CRUD, modals, sequence ops > cancelEditSeq() > resets editing state  516ms
+   ✓ views.js - CRUD, modals, sequence ops > destroyDashboardCharts() > is exported and callable  481ms
 stderr | tests/unit/app.test.js > app.js > showConfirm > does nothing when elements are missing
 showConfirm: elementos do modal não encontrados
 
- ✓ tests/unit/registro-sessao-topicos-ui.test.js (16 tests) 20122ms
-   ✓ registro multi-tópico — estado e ações da UI > addTopicoSessao adiciona item dos selects e bloqueia duplicado  1944ms
-   ✓ registro multi-tópico — estado e ações da UI > addTopicoSessao exige disciplina e assunto/aula  774ms
-   ✓ registro multi-tópico — estado e ações da UI > removeTopicoSessao e updateTopicoField manipulam a lista  809ms
-   ✓ registro multi-tópico — estado e ações da UI > reeditar sessão antiga converte escalares em topicos[] de 1 item  1467ms
-   ✓ registro multi-tópico — estado e ações da UI > sessão nova (agendada) começa com lista vazia (caminho legado)  1226ms
-   ✓ registro multi-tópico — estado e ações da UI > evento da reta final (rfBlocoId) pré-preenche a lista com os tópicos do bloco  1656ms
-   ✓ registro multi-tópico — estado e ações da UI > trocar de disciplina com itens na lista esvazia a lista  2243ms
-   ✓ registro multi-tópico — estado e ações da UI > onAssuntoChange coloca aulas vinculadas (linkedAulaIds) primeiro  979ms
-   ✓ registro multi-tópico — estado e ações da UI > renderTopicosList emite campos por item com data-topico-idx e não mexe nos ids #reg-*  928ms
-   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderConditionalFields com lista vira resumo somente-leitura, sem inputs globais  2286ms
-   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderConditionalFields com lista vazia mantém os campos globais editáveis (legado)  900ms
-   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > vídeoaula continua editável no modo multi-tópico (não tem equivalente por item)  925ms
-   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderProgressoTopico: nota por item no multi-tópico, select no legado  951ms
-   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderProgressoTopico legado marca statusAtual como selecionado  918ms
-   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderRegistroForm envolve o progresso em container re-renderizável  1139ms
-   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > add/update/remove de itens re-renderizam resumo e progresso ao vivo  972ms
- ✓ tests/unit/reta-final-sync-engine.test.js (78 tests) 22117ms
-   ✓ reta-final sync engine integration > keeps a v2 snapshot pending when the guard probe is denied  430ms
-   ✓ reta-final sync engine integration > refuses a merge when the base is older than minRetainedRevision  715ms
-   ✓ reta-final sync engine integration > clears a persisted missing-remote-plan conflict on the normal auto pull  527ms
-   ✓ reta-final sync engine integration > recovers a persisted missing-remote-plan conflict through normal sync now  352ms
-   ✓ reta-final sync engine integration > keeps missing-remote-plan when the legacy document has no planning  443ms
-   ✓ reta-final sync engine integration > distinguishes a malformed legacy planning from an absent one  407ms
-   ✓ reta-final sync engine integration > refuses an adoption push over a divergent legacy planning  415ms
-   ✓ reta-final sync engine integration > repairs an oversized pending envelope and preserves later academic data  4356ms
-   ✓ reta-final sync engine integration > keeps a repaired pending snapshot blocked when the legacy plan diverges  2492ms
-   ✓ reta-final sync engine integration > uses a newer pending snapshot instead of overwriting it during repair  1839ms
- ✓ tests/unit/logic-progress-imports.test.js (20 tests) 24365ms
-   ✓ logic/progress.js - Module integrity > exports expected symbols  1990ms
-   ✓ logic/progress.js - Module integrity > makeProgressAxis is NOT exported (internal)  873ms
-   ✓ logic.js → re-exports from progress.js (same binding) > re-exports match progress.js functions  1032ms
-   ✓ No cross-imports (circular dependency prevention) > progress.js does not import from logic.js  1687ms
-   ✓ No cross-imports (circular dependency prevention) > progress.js does not import from other logic/ sub-modules  1275ms
-   ✓ No cross-imports (circular dependency prevention) > progress.js only imports from store.js and utils.js  2624ms
-   ✓ Functional: totalStudySeconds > sums tempoAcumulado for estudados  1188ms
-   ✓ Functional: totalStudySeconds > filters by days cutoff  994ms
-   ✓ Functional: calculateContentProgress > computes topics and lessons progress  2640ms
-   ✓ Functional: calculateContentProgress > handles single disc (non-array)  1143ms
-   ✓ Functional: calculateContentProgress > handles empty input  1006ms
-   ✓ Functional: getAggregatedStats > returns cached result on second call  1168ms
-   ✓ Functional: getAggregatedStats > invalidates cache via invalidateDashCaches  962ms
-   ✓ Functional: getPredictiveStats via logic.js re-export > returns verde status when on track  1310ms
-   ✓ Functional: getPredictiveStats via logic.js re-export > calculates projection correctly  894ms
-   ✓ Functional: getNextSuggestedLesson > finds first non-studied lesson  737ms
-   ✓ Functional: getNextSuggestedLesson > skips archived disciplines  737ms
-   ✓ Functional: getNextSuggestedLesson > returns null when no pending lessons  769ms
-   ✓ Functional: getConsistencyStreak via logic.js re-export > computes streak from study dates  668ms
-   ✓ Functional: getDisciplineProgressByEdital > groups progress by edital  667ms
- ✓ tests/unit/views-crud-more.test.js (30 tests) 24917ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAssunto() > marks assunto as completed  2205ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAssunto() > unmarks assunto when already completed  509ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAssunto() > clears revisoesFetas when completing  551ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAssunto() > does nothing when assunto not found  690ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaDashboard() > marks aula as studied  1245ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaDashboard() > unmarks aula when already studied  1007ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaDashboard() > does nothing when aula not found  881ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaEstudada() > does nothing when disc not found  1577ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaEstudada() > does nothing when aula not found  1189ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > addBulkAulas() > shows error when textarea is empty  858ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > addBulkAulas() > returns early when textarea not found  755ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > addAssunto() > shows error when input is empty  623ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > addAssunto() > returns early when disc not found  2414ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > deleteAula() > exists and is callable  545ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > editSubjectInline() > creates input element and replaces content  634ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > editSubjectInline() > prefills the input from the stored subject name instead of rendered text  711ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > editLessonInline() > creates input for lesson editing  633ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > editLessonInline() > returns early when aula not found  919ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > switchManagerTab() > updates active tab  645ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > saveDiscManager() > returns early when edital not found  908ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > saveDiscManager() > returns early when discipline not found  823ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > moveSubject() > exists and is callable  598ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > closeDiscDashboard() > clears context and re-renders  562ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > switchDashboardTab() > updates tab and re-renders when context is invalid  496ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > updates minutosAlvo with a valid value  535ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > clamps minutosAlvo to at least 1 (zero, negative, invalid input)  494ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > updates non-numeric fields without clamping  527ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > trocar a disciplina reseta status e timestamps da etapa  451ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > manter a mesma disciplina não reseta o status  470ms
-   ✓ views.js - CRUD, inline editing, dashboard ops > dupSeqItem() > duplicata nasce pendente, sem timestamps nem flags de conclusão  458ms
- ✓ tests/unit/components.test.js (23 tests) 26120ms
-   ✓ components.js > renderCronometro() > renderiza cronômetro livre quando nenhum timer está ativo  2002ms
-   ✓ components.js > renderCronometro() > renderiza cronômetro com evento ativo  840ms
-   ✓ components.js > renderCronometro() > renderiza seletores de disciplina/tópico para sessão livre  1035ms
-   ✓ components.js > renderCronometro() > configura botão de modo Pomodoro quando habilitado  1660ms
-   ✓ components.js > renderCronometro() > mostra botão de descartar apenas quando há tempo acumulado  1298ms
-   ✓ components.js > renderCurrentView() > limpa intervalo do cronômetro ao sair da view cronometro  2679ms
-   ✓ components.js > renderCurrentView() > destroi gráfico ao sair da view dashboard  1243ms
-   ✓ components.js > renderCurrentView() > atualiza título do topbar  952ms
-   ✓ components.js > renderCurrentView() > mostra botão "Iniciar Estudo" nas views home, med e calendar  2610ms
-   ✓ components.js > renderCurrentView() > mostra Importar Edital e Novo Edital no topbar sem dashboard de disciplina  1116ms
-   ✓ components.js > renderCurrentView() > mostra botão de voltar no cronômetro  1004ms
-   ✓ components.js > renderCurrentView() > renderiza skeleton loader para views pesadas  1162ms
-   ✓ components.js > updateBadges() > atualiza badge do cronômetro com timers ativos  1036ms
-   ✓ components.js > updateBadges() > oculta badge do cronômetro quando sem timers ativos  1285ms
-   ✓ components.js > updateBadges() > atualiza badge MED com eventos de hoje  887ms
-   ✓ components.js > updateBadges() > atualiza badge REV com revisões pendentes  745ms
-   ✓ components.js > renderEventCard() > renderiza card com status agendado  744ms
-   ✓ components.js > renderEventCard() > card é acionável por teclado (role=button, tabindex e aria-label)  758ms
-   ✓ components.js > renderEventCard() > renderiza card com status estudei  653ms
-   ✓ components.js > renderEventCard() > renderiza card com timer ativo  684ms
-   ✓ components.js > renderEventCard() > renderiza ícone e cor da disciplina  578ms
-   ✓ components.js > renderEventCard() > renderiza card de hábito sem disciplina  535ms
-   ✓ components.js > renderEventCard() > mostra tempo acumulado quando > 0  612ms
- ✓ tests/unit/sync.test.js (24 tests) 26581ms
-   ✓ SyncQueue > existe e tem método add  2036ms
-   ✓ SyncQueue > tem propriedade isProcessing inicializada como false  839ms
-   ✓ SyncQueue > tem tasks array vazio inicialmente  1104ms
-   ✓ SyncQueue > adiciona tarefa à fila e processa  1668ms
-   ✓ SyncQueue > processa múltiplas tarefas em sequência  1386ms
-   ✓ credentials.js > setCredential() > salva credencial no IndexedDB  2422ms
-   ✓ credentials.js > setCredential() > salva múltiplas credenciais  1203ms
-   ✓ credentials.js > getCredential() > recupera credencial do IndexedDB  990ms
-   ✓ credentials.js > getCredential() > retorna null quando credencial não existe  2632ms
-   ✓ credentials.js > getCredential() > retorna undefined quando erro no IndexedDB  1120ms
-   ✓ credentials.js > deleteCredential() > remove credencial do IndexedDB  999ms
-   ✓ credentials.js > deleteCredential() > remove múltiplas credenciais  1138ms
-   ✓ store.js - Sync helpers > scheduleSave() > é uma função exportada  934ms
-   ✓ store.js - Sync helpers > saveStateToDB() > salva estado no IndexedDB  1310ms
-   ✓ store.js - Sync helpers > saveStateToDB() > atualiza o estado após salvar  910ms
-   ✓ store.js - Sync helpers > state > tem schemaVersion definido  747ms
-   ✓ store.js - Sync helpers > state > tem estrutura de editais  730ms
-   ✓ store.js - Sync helpers > state > tem estrutura de eventos  752ms
-   ✓ store.js - Sync helpers > state > tem estrutura de habitos  661ms
-   ✓ Infrastructure - Utils > uid() > gera IDs únicos  671ms
-   ✓ Infrastructure - Utils > uid() > gera IDs com prefixo  574ms
-   ✓ Infrastructure - Utils > todayStr() > retorna data atual em formato YYYY-MM-DD  542ms
-   ✓ Infrastructure - Utils > esc() > escape caracteres HTML  580ms
-   ✓ Infrastructure - Utils > esc() > preserva texto normal  629ms
- ✓ tests/unit/app.test.js (25 tests) 27512ms
-   ✓ app.js > normalizeTheme > returns valid theme as-is  2019ms
-   ✓ app.js > normalizeTheme > converts legacy aliases to modern themes  872ms
-   ✓ app.js > normalizeTheme > defaults to grafite for unknown themes  1103ms
-   ✓ app.js > getThemeLabel > returns label for valid theme  1681ms
-   ✓ app.js > getThemeLabel > normalizes theme before getting label  1421ms
-   ✓ app.js > getLastSaveStatus > returns a copy of the current save status  2463ms
-   ✓ app.js > getLastSaveStatus > returns a new object each time  1197ms
-   ✓ app.js > renderSaveStatus > updates save-status element with correct class  969ms
-   ✓ app.js > renderSaveStatus > handles error status  2618ms
-   ✓ app.js > openModal / closeModal > openModal adds open class  1122ms
-   ✓ app.js > openModal / closeModal > closeModal removes open class  1011ms
-   ✓ app.js > openModal / closeModal > does nothing when element not found  1222ms
-   ✓ app.js > showConfirm > populates confirm modal elements  1035ms
-   ✓ app.js > showConfirm > does nothing when elements are missing  1227ms
-   ✓ app.js > navigate > updates currentView  924ms
-   ✓ app.js > navigate > clears dashboard disc context when navigating to editais  732ms
-   ✓ app.js > toggleSidebar / closeSidebar > toggleSidebar toggles open class  753ms
-   ✓ app.js > toggleSidebar / closeSidebar > closeSidebar removes open class  746ms
-   ✓ app.js > toggleSidebar / closeSidebar > does nothing when elements are missing  662ms
-   ✓ app.js > promptDataProva > opens modal prompt  665ms
-   ✓ app.js > promptDataProva > saves valid date to state.config.dataProva  578ms
-   ✓ app.js > promptDataProva > clears date when input is empty  527ms
-   ✓ app.js > promptMetas > opens modal prompt  613ms
-   ✓ app.js > promptMetas > saves valid metas  677ms
-   ✓ app.js > THEME_OPTIONS > exports theme options array  674ms
- ✓ tests/unit/reta-final-sync-eventos.test.js (27 tests) 27939ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > v2 incrementa rolagens e empilha o bloco rolado depois dos de hoje  1499ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > devolve nota manual ao bloco arquivado e incrementa a revisão  867ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > bloco arquivado pendente não é rolado, materializado nem salvo no wrapper v1  1128ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > bloco arquivado pendente não é rolado, materializado nem salvo no wrapper v2  1694ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > reconcile v1 não reabre bloco arquivado concluído sem evento estudado  1368ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > materializa evento autorf_ para bloco pendente de hoje/futuro  2409ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > syncCicloToEventos roteia plano reta_final para o agendador da reta final  1179ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > é idempotente: segunda passada mantém os mesmos eventos  974ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > bloco com sessão estudada vira concluido e não ganha novo evento  2686ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > evento com timer parcial ocupa o bloco (nada novo por cima)  1110ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > rolagem: bloco pendente de ontem sem evento preservado vai para hoje  1003ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > rolagem NÃO altera planejamento.updatedAt (anti ping-pong LWW)  1125ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > bloco atrasado com timer parcial NÃO rola (evento preservado)  940ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > pós-dataFinal: bloco atrasado vira nao_coberto e evento auto some  1347ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > wipe: auto órfão (bloco em outra data) é removido; manual sobrevive  863ms
-   ✓ syncRetaFinalToEventos — materialização e rolagem > plano de outro tipo é no-op  727ms
-   ✓ syncRetaFinalToEventos — títulos com tópico > evento novo nasce com título "Disciplina — Tópico"  741ms
-   ✓ syncRetaFinalToEventos — títulos com tópico > auto sustentado com título obsoleto é reescrito e agenda save  738ms
-   ✓ syncRetaFinalToEventos — títulos com tópico > retítulo NÃO carimba ev.updatedAt nem planejamento.updatedAt  652ms
-   ✓ syncRetaFinalToEventos — títulos com tópico > evento preservado (estudei/tempo acumulado) nunca é retitulado  665ms
-   ✓ syncRetaFinalToEventos — títulos com tópico > segunda passada não reescreve título já correto (idempotente, sem save extra)  569ms
-   ✓ getRetaFinalOccupiedBlocoIds > retorna blocos com evento estudado ou com tempo acumulado  541ms
-   ✓ notas importadas da Reta Final > materializa notas no evento e hidrata auto legado sem sobrescrever texto pessoal  505ms
-   ✓ notas importadas da Reta Final > carimba a hidratação uma vez e propaga a nota no merge por evento  669ms
-   ✓ notas importadas da Reta Final > não insere notas importadas em sessão histórica vinculada manualmente  656ms
-   ✓ notas importadas da Reta Final > preserva nota manual e texto intencionalmente apagado em sincronizações  629ms
-   ✓ notas importadas da Reta Final > atualiza somente notas geradas que ainda não foram editadas pela pessoa usuária  652ms
- ✓ tests/unit/reta-final-activation.test.js (27 tests) 28597ms
-   ✓ activateRetaFinal > arquiva o plano ativo em planejamentoArquivado  2008ms
-   ✓ activateRetaFinal > sem plano ativo não cria arquivado  867ms
-   ✓ activateRetaFinal > re-import sobre reta_final ativa preserva o arquivado original  1073ms
-   ✓ activateRetaFinal > monta o plano reta_final com blocos, defaults de minutos e updatedAt  1635ms
-   ✓ activateRetaFinal > cria disciplina/assunto faltantes no edital principal ativo  1288ms
-   ✓ activateRetaFinal > sem edital ativo cria um edital "Reta Final"  2598ms
-   ✓ activateRetaFinal > cria aula faltante na disciplina  1180ms
-   ✓ activateRetaFinal > materializa eventos da reta final e limpa autos antigos do ciclo  960ms
-   ✓ activateRetaFinal > payload inválido lança erro e não muda o estado  2720ms
-   ✓ activateRetaFinal > data civil inexistente falha antes de trocar plano, edital ou eventos  1063ms
-   ✓ activateRetaFinal > falha da migração restaura editais e mantém plano/eventos anteriores  995ms
-   ✓ activateRetaFinal > falha da migração preserva as identidades usadas pelo cache de disciplinas  1177ms
-   ✓ restaurarPlanejamentoArquivado > restaura o plano arquivado, limpa o arquivado e os eventos da reta final  973ms
-   ✓ restaurarPlanejamentoArquivado > eventos estudados da reta final sobrevivem à restauração  1309ms
-   ✓ restaurarPlanejamentoArquivado > sem arquivado retorna false e não muda nada  874ms
-   ✓ Reta Final v1 activation with v2 domain > cria identidade/revisão/intenção uma vez; sync e migração não geram nova identidade  745ms
-   ✓ Reta Final v1 activation with v2 domain > registra dataPlanejada importada antes da rolagem inicial sem alterar evento histórico  742ms
-   ✓ notas da Reta Final > leva notas do JSON ao bloco e ao evento materializado  744ms
-   ✓ notas da Reta Final > transporta 186 notas em 93 dias úteis sem alterar a grade de 4 horas por dia  672ms
-   ✓ notas da Reta Final > reimporta notas sem trocar a identidade do bloco nem perder sessão e tempo  679ms
-   ✓ notas da Reta Final > preserva timer ativo e identidade do evento durante reimportação  560ms
-   ✓ notas da Reta Final > preserva anotação pessoal quando o JSON é reimportado  528ms
-   ✓ notas da Reta Final > preserva anotação pessoal e identidade se a duração do bloco mudar na reimportação  580ms
-   ✓ notas da Reta Final > aborta reimportação que não consegue associar um bloco com progresso  638ms
-   ✓ notas da Reta Final > aborta reimportação que deixaria uma sessão arquivada sem associação ao bloco  675ms
-   ✓ notas da Reta Final > aborta reimportação quando blocos duplicados com dados não têm identidade inequívoca  635ms
-   ✓ notas da Reta Final > aceita JSON legado sem notas sem criar valor textual inválido  675ms
- ✓ tests/unit/views.test.js (30 tests) 31019ms
-   ✓ app.js - Theme contracts > exposes the premium dark themes plus thematic extras  2030ms
-   ✓ app.js - Theme contracts > maps legacy theme values to premium dark themes  876ms
-   ✓ views.js - Skeleton Renderers > renderSkeletonLoader() > retorna HTML com grid de skeleton stats  1109ms
-   ✓ views.js - Skeleton Renderers > renderSkeletonLoader() > inclui skeleton de gráfico  1679ms
-   ✓ views.js - Skeleton Renderers > renderSkeletonList() > rende riza lista com 5 itens por padrão  1387ms
-   ✓ views.js - Skeleton Renderers > renderSkeletonList() > renderiza lista com número customizado de itens  2418ms
-   ✓ views.js - Skeleton Renderers > renderSkeletonList() > renderiza lista com 10 itens quando especificado  1203ms
-   ✓ views.js - Skeleton Renderers > renderSkeletonTable() > renderiza tabela com 5 linhas e 4 colunas por padrão  972ms
-   ✓ views.js - Skeleton Renderers > renderSkeletonTable() > renderiza tabela com número customizado de linhas  2675ms
-   ✓ views.js - MED View > renderMED() > renderiza container de eventos com estatísticas  1124ms
-   ✓ views.js - MED View > renderMED() > mostra estado vazio quando sem eventos  1011ms
-   ✓ views.js - MED View > refreshEventCard() > chama renderCurrentView para atualizar cards  1186ms
-   ✓ views.js - MED View > removeDOMCard() > remove card do DOM pelo ID  989ms
-   ✓ views.js - Dashboard > renderDashboard() > existe e é uma função  1246ms
-   ✓ views.js - Dashboard > destroyDashboardCharts() > existe e é uma função  897ms
-   ✓ views.js - Dashboard > destroyDashboardCharts() > pode ser chamada sem lançar erro quando não há gráficos  750ms
-   ✓ views.js - Editais > renderEditais() > renderiza lista de editais  746ms
-   ✓ views.js - Editais > renderEditais() > renderiza estado vazio sem editais  752ms
-   ✓ views.js - Editais > toggleEdital() > alterna visibilidade do edital  682ms
-   ✓ views.js - Revisões > renderRevisoes() > escapa nomes de assunto, disciplina e edital nas revisoes  683ms
-   ✓ views.js - Revisões > renderRevisoes() > renderiza lista de revisões pendentes  563ms
-   ✓ views.js - Revisões > renderRevisoes() > renderiza estado vazio sem revisões pendentes  533ms
-   ✓ views.js - Revisões > getUpcomingRevisoes() > retorna revisões dos próximos dias  592ms
-   ✓ views.js - Revisões > getUpcomingRevisoes() > ignora revisões de disciplinas arquivadas  637ms
-   ✓ views.js - Revisões > getUpcomingRevisoes() > numera a próxima revisão pela posição na fila restante, não por feitas+1  671ms
-   ✓ views.js - Ciclo de Estudos > toggleEditSeq() > alterna modo de edição da sequência  627ms
-   ✓ views.js - Ciclo de Estudos > toggleEditSeq() > cria cópia temporária da sequência ao entrar em edição  731ms
-   ✓ views.js - Ciclo de Estudos > cancelEditSeq() > cancela edição e limpa sequência temporária  720ms
-   ✓ views.js - Ciclo de Estudos > addSeqItem() > adiciona novo item na sequência em edição  719ms
-   ✓ views.js - Event Modal > openAddEventModalDate() > abre modal de evento para data específica  808ms
+ ✓ tests/unit/registro-sessao-topicos-ui.test.js (16 tests) 12733ms
+   ✓ registro multi-tópico — estado e ações da UI > addTopicoSessao adiciona item dos selects e bloqueia duplicado  2006ms
+   ✓ registro multi-tópico — estado e ações da UI > addTopicoSessao exige disciplina e assunto/aula  588ms
+   ✓ registro multi-tópico — estado e ações da UI > removeTopicoSessao e updateTopicoField manipulam a lista  613ms
+   ✓ registro multi-tópico — estado e ações da UI > reeditar sessão antiga converte escalares em topicos[] de 1 item  676ms
+   ✓ registro multi-tópico — estado e ações da UI > sessão nova (agendada) começa com lista vazia (caminho legado)  792ms
+   ✓ registro multi-tópico — estado e ações da UI > evento da reta final (rfBlocoId) pré-preenche a lista com os tópicos do bloco  716ms
+   ✓ registro multi-tópico — estado e ações da UI > trocar de disciplina com itens na lista esvazia a lista  863ms
+   ✓ registro multi-tópico — estado e ações da UI > onAssuntoChange coloca aulas vinculadas (linkedAulaIds) primeiro  811ms
+   ✓ registro multi-tópico — estado e ações da UI > renderTopicosList emite campos por item com data-topico-idx e não mexe nos ids #reg-*  582ms
+   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderConditionalFields com lista vira resumo somente-leitura, sem inputs globais  722ms
+   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderConditionalFields com lista vazia mantém os campos globais editáveis (legado)  793ms
+   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > vídeoaula continua editável no modo multi-tópico (não tem equivalente por item)  785ms
+   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderProgressoTopico: nota por item no multi-tópico, select no legado  774ms
+   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderProgressoTopico legado marca statusAtual como selecionado  724ms
+   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > renderRegistroForm envolve o progresso em container re-renderizável  629ms
+   ✓ unificação das seções duplicadas — resumo derivado no modo multi-tópico > add/update/remove de itens re-renderizam resumo e progresso ao vivo  658ms
+ ✓ tests/unit/reta-final-sync-engine.test.js (78 tests) 13909ms
+   ✓ reta-final sync engine integration > repairs an oversized pending envelope and preserves later academic data  3302ms
+   ✓ reta-final sync engine integration > keeps a repaired pending snapshot blocked when the legacy plan diverges  1833ms
+   ✓ reta-final sync engine integration > uses a newer pending snapshot instead of overwriting it during repair  1286ms
+ ✓ tests/unit/logic-progress-imports.test.js (20 tests) 16267ms
+   ✓ logic/progress.js - Module integrity > exports expected symbols  2197ms
+   ✓ logic/progress.js - Module integrity > makeProgressAxis is NOT exported (internal)  715ms
+   ✓ logic.js → re-exports from progress.js (same binding) > re-exports match progress.js functions  677ms
+   ✓ No cross-imports (circular dependency prevention) > progress.js does not import from logic.js  839ms
+   ✓ No cross-imports (circular dependency prevention) > progress.js does not import from other logic/ sub-modules  795ms
+   ✓ No cross-imports (circular dependency prevention) > progress.js only imports from store.js and utils.js  922ms
+   ✓ Functional: totalStudySeconds > sums tempoAcumulado for estudados  864ms
+   ✓ Functional: totalStudySeconds > filters by days cutoff  659ms
+   ✓ Functional: calculateContentProgress > computes topics and lessons progress  763ms
+   ✓ Functional: calculateContentProgress > handles single disc (non-array)  879ms
+   ✓ Functional: calculateContentProgress > handles empty input  815ms
+   ✓ Functional: getAggregatedStats > returns cached result on second call  852ms
+   ✓ Functional: getAggregatedStats > invalidates cache via invalidateDashCaches  718ms
+   ✓ Functional: getPredictiveStats via logic.js re-export > returns verde status when on track  696ms
+   ✓ Functional: getPredictiveStats via logic.js re-export > calculates projection correctly  752ms
+   ✓ Functional: getNextSuggestedLesson > finds first non-studied lesson  726ms
+   ✓ Functional: getNextSuggestedLesson > skips archived disciplines  641ms
+   ✓ Functional: getNextSuggestedLesson > returns null when no pending lessons  587ms
+   ✓ Functional: getConsistencyStreak via logic.js re-export > computes streak from study dates  582ms
+   ✓ Functional: getDisciplineProgressByEdital > groups progress by edital  585ms
+ ✓ tests/unit/views-crud-more.test.js (30 tests) 16911ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAssunto() > marks assunto as completed  1969ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAssunto() > unmarks assunto when already completed  338ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAssunto() > clears revisoesFetas when completing  511ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAssunto() > does nothing when assunto not found  457ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaDashboard() > marks aula as studied  494ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaDashboard() > unmarks aula when already studied  617ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaDashboard() > does nothing when aula not found  561ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaEstudada() > does nothing when disc not found  563ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > toggleAulaEstudada() > does nothing when aula not found  696ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > addBulkAulas() > shows error when textarea is empty  593ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > addBulkAulas() > returns early when textarea not found  512ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > addAssunto() > shows error when input is empty  436ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > addAssunto() > returns early when disc not found  520ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > deleteAula() > exists and is callable  585ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > editSubjectInline() > creates input element and replaces content  636ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > editSubjectInline() > prefills the input from the stored subject name instead of rendered text  618ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > editLessonInline() > creates input for lesson editing  590ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > editLessonInline() > returns early when aula not found  622ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > switchManagerTab() > updates active tab  494ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > saveDiscManager() > returns early when edital not found  476ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > saveDiscManager() > returns early when discipline not found  504ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > moveSubject() > exists and is callable  511ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > closeDiscDashboard() > clears context and re-renders  507ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > switchDashboardTab() > updates tab and re-renders when context is invalid  471ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > updates minutosAlvo with a valid value  450ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > clamps minutosAlvo to at least 1 (zero, negative, invalid input)  410ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > updates non-numeric fields without clamping  404ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > trocar a disciplina reseta status e timestamps da etapa  403ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > updateSeqItem() > manter a mesma disciplina não reseta o status  443ms
+   ✓ views.js - CRUD, inline editing, dashboard ops > dupSeqItem() > duplicata nasce pendente, sem timestamps nem flags de conclusão  519ms
+ ✓ tests/unit/components.test.js (23 tests) 18579ms
+   ✓ components.js > renderCronometro() > renderiza cronômetro livre quando nenhum timer está ativo  2203ms
+   ✓ components.js > renderCronometro() > renderiza cronômetro com evento ativo  730ms
+   ✓ components.js > renderCronometro() > renderiza seletores de disciplina/tópico para sessão livre  695ms
+   ✓ components.js > renderCronometro() > configura botão de modo Pomodoro quando habilitado  866ms
+   ✓ components.js > renderCronometro() > mostra botão de descartar apenas quando há tempo acumulado  807ms
+   ✓ components.js > renderCurrentView() > limpa intervalo do cronômetro ao sair da view cronometro  930ms
+   ✓ components.js > renderCurrentView() > destroi gráfico ao sair da view dashboard  874ms
+   ✓ components.js > renderCurrentView() > atualiza título do topbar  657ms
+   ✓ components.js > renderCurrentView() > mostra botão "Iniciar Estudo" nas views home, med e calendar  763ms
+   ✓ components.js > renderCurrentView() > mostra Importar Edital e Novo Edital no topbar sem dashboard de disciplina  893ms
+   ✓ components.js > renderCurrentView() > mostra botão de voltar no cronômetro  836ms
+   ✓ components.js > renderCurrentView() > renderiza skeleton loader para views pesadas  855ms
+   ✓ components.js > updateBadges() > atualiza badge do cronômetro com timers ativos  716ms
+   ✓ components.js > updateBadges() > oculta badge do cronômetro quando sem timers ativos  702ms
+   ✓ components.js > updateBadges() > atualiza badge MED com eventos de hoje  762ms
+   ✓ components.js > updateBadges() > atualiza badge REV com revisões pendentes  715ms
+   ✓ components.js > renderEventCard() > renderiza card com status agendado  650ms
+   ✓ components.js > renderEventCard() > card é acionável por teclado (role=button, tabindex e aria-label)  571ms
+   ✓ components.js > renderEventCard() > renderiza card com status estudei  572ms
+   ✓ components.js > renderEventCard() > renderiza card com timer ativo  649ms
+   ✓ components.js > renderEventCard() > renderiza ícone e cor da disciplina  736ms
+   ✓ components.js > renderEventCard() > renderiza card de hábito sem disciplina  737ms
+   ✓ components.js > renderEventCard() > mostra tempo acumulado quando > 0  658ms
+ ✓ tests/unit/sync.test.js (24 tests) 19565ms
+   ✓ SyncQueue > existe e tem método add  2310ms
+   ✓ SyncQueue > tem propriedade isProcessing inicializada como false  715ms
+   ✓ SyncQueue > tem tasks array vazio inicialmente  697ms
+   ✓ SyncQueue > adiciona tarefa à fila e processa  853ms
+   ✓ SyncQueue > processa múltiplas tarefas em sequência  798ms
+   ✓ credentials.js > setCredential() > salva credencial no IndexedDB  882ms
+   ✓ credentials.js > setCredential() > salva múltiplas credenciais  922ms
+   ✓ credentials.js > getCredential() > recupera credencial do IndexedDB  653ms
+   ✓ credentials.js > getCredential() > retorna null quando credencial não existe  803ms
+   ✓ credentials.js > getCredential() > retorna undefined quando erro no IndexedDB  909ms
+   ✓ credentials.js > deleteCredential() > remove credencial do IndexedDB  872ms
+   ✓ credentials.js > deleteCredential() > remove múltiplas credenciais  879ms
+   ✓ store.js - Sync helpers > scheduleSave() > é uma função exportada  706ms
+   ✓ store.js - Sync helpers > saveStateToDB() > salva estado no IndexedDB  712ms
+   ✓ store.js - Sync helpers > saveStateToDB() > atualiza o estado após salvar  788ms
+   ✓ store.js - Sync helpers > state > tem schemaVersion definido  705ms
+   ✓ store.js - Sync helpers > state > tem estrutura de editais  647ms
+   ✓ store.js - Sync helpers > state > tem estrutura de eventos  584ms
+   ✓ store.js - Sync helpers > state > tem estrutura de habitos  592ms
+   ✓ Infrastructure - Utils > uid() > gera IDs únicos  719ms
+   ✓ Infrastructure - Utils > uid() > gera IDs com prefixo  738ms
+   ✓ Infrastructure - Utils > todayStr() > retorna data atual em formato YYYY-MM-DD  721ms
+   ✓ Infrastructure - Utils > esc() > escape caracteres HTML  686ms
+   ✓ Infrastructure - Utils > esc() > preserva texto normal  670ms
+ ✓ tests/unit/app.test.js (25 tests) 20170ms
+   ✓ app.js > normalizeTheme > returns valid theme as-is  2189ms
+   ✓ app.js > normalizeTheme > converts legacy aliases to modern themes  722ms
+   ✓ app.js > normalizeTheme > defaults to grafite for unknown themes  680ms
+   ✓ app.js > getThemeLabel > returns label for valid theme  863ms
+   ✓ app.js > getThemeLabel > normalizes theme before getting label  782ms
+   ✓ app.js > getLastSaveStatus > returns a copy of the current save status  903ms
+   ✓ app.js > getLastSaveStatus > returns a new object each time  967ms
+   ✓ app.js > renderSaveStatus > updates save-status element with correct class  666ms
+   ✓ app.js > renderSaveStatus > handles error status  801ms
+   ✓ app.js > openModal / closeModal > openModal adds open class  899ms
+   ✓ app.js > openModal / closeModal > closeModal removes open class  863ms
+   ✓ app.js > openModal / closeModal > does nothing when element not found  897ms
+   ✓ app.js > showConfirm > populates confirm modal elements  707ms
+   ✓ app.js > showConfirm > does nothing when elements are missing  737ms
+   ✓ app.js > navigate > updates currentView  765ms
+   ✓ app.js > navigate > clears dashboard disc context when navigating to editais  699ms
+   ✓ app.js > toggleSidebar / closeSidebar > toggleSidebar toggles open class  654ms
+   ✓ app.js > toggleSidebar / closeSidebar > closeSidebar removes open class  590ms
+   ✓ app.js > toggleSidebar / closeSidebar > does nothing when elements are missing  588ms
+   ✓ app.js > promptDataProva > opens modal prompt  700ms
+   ✓ app.js > promptDataProva > saves valid date to state.config.dataProva  755ms
+   ✓ app.js > promptDataProva > clears date when input is empty  721ms
+   ✓ app.js > promptMetas > opens modal prompt  686ms
+   ✓ app.js > promptMetas > saves valid metas  674ms
+   ✓ app.js > THEME_OPTIONS > exports theme options array  659ms
+ ✓ tests/unit/reta-final-activation.test.js (27 tests) 21266ms
+   ✓ activateRetaFinal > arquiva o plano ativo em planejamentoArquivado  2220ms
+   ✓ activateRetaFinal > sem plano ativo não cria arquivado  742ms
+   ✓ activateRetaFinal > re-import sobre reta_final ativa preserva o arquivado original  700ms
+   ✓ activateRetaFinal > monta o plano reta_final com blocos, defaults de minutos e updatedAt  868ms
+   ✓ activateRetaFinal > cria disciplina/assunto faltantes no edital principal ativo  803ms
+   ✓ activateRetaFinal > sem edital ativo cria um edital "Reta Final"  885ms
+   ✓ activateRetaFinal > cria aula faltante na disciplina  914ms
+   ✓ activateRetaFinal > materializa eventos da reta final e limpa autos antigos do ciclo  658ms
+   ✓ activateRetaFinal > payload inválido lança erro e não muda o estado  786ms
+   ✓ activateRetaFinal > data civil inexistente falha antes de trocar plano, edital ou eventos  883ms
+   ✓ activateRetaFinal > falha da migração restaura editais e mantém plano/eventos anteriores  852ms
+   ✓ activateRetaFinal > falha da migração preserva as identidades usadas pelo cache de disciplinas  838ms
+   ✓ restaurarPlanejamentoArquivado > restaura o plano arquivado, limpa o arquivado e os eventos da reta final  735ms
+   ✓ restaurarPlanejamentoArquivado > eventos estudados da reta final sobrevivem à restauração  705ms
+   ✓ restaurarPlanejamentoArquivado > sem arquivado retorna false e não muda nada  744ms
+   ✓ Reta Final v1 activation with v2 domain > cria identidade/revisão/intenção uma vez; sync e migração não geram nova identidade  718ms
+   ✓ Reta Final v1 activation with v2 domain > registra dataPlanejada importada antes da rolagem inicial sem alterar evento histórico  651ms
+   ✓ notas da Reta Final > leva notas do JSON ao bloco e ao evento materializado  587ms
+   ✓ notas da Reta Final > transporta 186 notas em 93 dias úteis sem alterar a grade de 4 horas por dia  591ms
+   ✓ notas da Reta Final > reimporta notas sem trocar a identidade do bloco nem perder sessão e tempo  691ms
+   ✓ notas da Reta Final > preserva timer ativo e identidade do evento durante reimportação  698ms
+   ✓ notas da Reta Final > preserva anotação pessoal quando o JSON é reimportado  733ms
+   ✓ notas da Reta Final > preserva anotação pessoal e identidade se a duração do bloco mudar na reimportação  661ms
+   ✓ notas da Reta Final > aborta reimportação que não consegue associar um bloco com progresso  663ms
+   ✓ notas da Reta Final > aborta reimportação que deixaria uma sessão arquivada sem associação ao bloco  628ms
+   ✓ notas da Reta Final > aborta reimportação quando blocos duplicados com dados não têm identidade inequívoca  634ms
+   ✓ notas da Reta Final > aceita JSON legado sem notas sem criar valor textual inválido  676ms
+ ✓ tests/unit/reta-final-sync-eventos.test.js (27 tests) 20741ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > v2 incrementa rolagens e empilha o bloco rolado depois dos de hoje  1667ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > devolve nota manual ao bloco arquivado e incrementa a revisão  724ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > bloco arquivado pendente não é rolado, materializado nem salvo no wrapper v1  689ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > bloco arquivado pendente não é rolado, materializado nem salvo no wrapper v2  856ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > reconcile v1 não reabre bloco arquivado concluído sem evento estudado  815ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > materializa evento autorf_ para bloco pendente de hoje/futuro  926ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > syncCicloToEventos roteia plano reta_final para o agendador da reta final  885ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > é idempotente: segunda passada mantém os mesmos eventos  675ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > bloco com sessão estudada vira concluido e não ganha novo evento  814ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > evento com timer parcial ocupa o bloco (nada novo por cima)  885ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > rolagem: bloco pendente de ontem sem evento preservado vai para hoje  866ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > rolagem NÃO altera planejamento.updatedAt (anti ping-pong LWW)  885ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > bloco atrasado com timer parcial NÃO rola (evento preservado)  691ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > pós-dataFinal: bloco atrasado vira nao_coberto e evento auto some  716ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > wipe: auto órfão (bloco em outra data) é removido; manual sobrevive  744ms
+   ✓ syncRetaFinalToEventos — materialização e rolagem > plano de outro tipo é no-op  701ms
+   ✓ syncRetaFinalToEventos — títulos com tópico > evento novo nasce com título "Disciplina — Tópico"  665ms
+   ✓ syncRetaFinalToEventos — títulos com tópico > auto sustentado com título obsoleto é reescrito e agenda save  568ms
+   ✓ syncRetaFinalToEventos — títulos com tópico > retítulo NÃO carimba ev.updatedAt nem planejamento.updatedAt  572ms
+   ✓ syncRetaFinalToEventos — títulos com tópico > evento preservado (estudei/tempo acumulado) nunca é retitulado  686ms
+   ✓ syncRetaFinalToEventos — títulos com tópico > segunda passada não reescreve título já correto (idempotente, sem save extra)  715ms
+   ✓ getRetaFinalOccupiedBlocoIds > retorna blocos com evento estudado ou com tempo acumulado  724ms
+   ✓ notas importadas da Reta Final > materializa notas no evento e hidrata auto legado sem sobrescrever texto pessoal  670ms
+   ✓ notas importadas da Reta Final > carimba a hidratação uma vez e propaga a nota no merge por evento  670ms
+   ✓ notas importadas da Reta Final > não insere notas importadas em sessão histórica vinculada manualmente  621ms
+   ✓ notas importadas da Reta Final > preserva nota manual e texto intencionalmente apagado em sincronizações  634ms
+   ✓ notas importadas da Reta Final > atualiza somente notas geradas que ainda não foram editadas pela pessoa usuária  674ms
+ ✓ tests/unit/views.test.js (30 tests) 23219ms
+   ✓ app.js - Theme contracts > exposes the premium dark themes plus thematic extras  2200ms
+   ✓ app.js - Theme contracts > maps legacy theme values to premium dark themes  738ms
+   ✓ views.js - Skeleton Renderers > renderSkeletonLoader() > retorna HTML com grid de skeleton stats  702ms
+   ✓ views.js - Skeleton Renderers > renderSkeletonLoader() > inclui skeleton de gráfico  859ms
+   ✓ views.js - Skeleton Renderers > renderSkeletonList() > rende riza lista com 5 itens por padrão  789ms
+   ✓ views.js - Skeleton Renderers > renderSkeletonList() > renderiza lista com número customizado de itens  912ms
+   ✓ views.js - Skeleton Renderers > renderSkeletonList() > renderiza lista com 10 itens quando especificado  902ms
+   ✓ views.js - Skeleton Renderers > renderSkeletonTable() > renderiza tabela com 5 linhas e 4 colunas por padrão  641ms
+   ✓ views.js - Skeleton Renderers > renderSkeletonTable() > renderiza tabela com número customizado de linhas  790ms
+   ✓ views.js - MED View > renderMED() > renderiza container de eventos com estatísticas  930ms
+   ✓ views.js - MED View > renderMED() > mostra estado vazio quando sem eventos  858ms
+   ✓ views.js - MED View > refreshEventCard() > chama renderCurrentView para atualizar cards  909ms
+   ✓ views.js - MED View > removeDOMCard() > remove card do DOM pelo ID  720ms
+   ✓ views.js - Dashboard > renderDashboard() > existe e é uma função  719ms
+   ✓ views.js - Dashboard > destroyDashboardCharts() > existe e é uma função  762ms
+   ✓ views.js - Dashboard > destroyDashboardCharts() > pode ser chamada sem lançar erro quando não há gráficos  697ms
+   ✓ views.js - Editais > renderEditais() > renderiza lista de editais  669ms
+   ✓ views.js - Editais > renderEditais() > renderiza estado vazio sem editais  579ms
+   ✓ views.js - Editais > toggleEdital() > alterna visibilidade do edital  579ms
+   ✓ views.js - Revisões > renderRevisoes() > escapa nomes de assunto, disciplina e edital nas revisoes  709ms
+   ✓ views.js - Revisões > renderRevisoes() > renderiza lista de revisões pendentes  723ms
+   ✓ views.js - Revisões > renderRevisoes() > renderiza estado vazio sem revisões pendentes  703ms
+   ✓ views.js - Revisões > getUpcomingRevisoes() > retorna revisões dos próximos dias  648ms
+   ✓ views.js - Revisões > getUpcomingRevisoes() > ignora revisões de disciplinas arquivadas  661ms
+   ✓ views.js - Revisões > getUpcomingRevisoes() > numera a próxima revisão pela posição na fila restante, não por feitas+1  611ms
+   ✓ views.js - Ciclo de Estudos > toggleEditSeq() > alterna modo de edição da sequência  637ms
+   ✓ views.js - Ciclo de Estudos > toggleEditSeq() > cria cópia temporária da sequência ao entrar em edição  663ms
+   ✓ views.js - Ciclo de Estudos > cancelEditSeq() > cancela edição e limpa sequência temporária  654ms
+   ✓ views.js - Ciclo de Estudos > addSeqItem() > adiciona novo item na sequência em edição  622ms
+   ✓ views.js - Event Modal > openAddEventModalDate() > abre modal de evento para data específica  630ms
 stderr | tests/unit/sync-simulation-contracts.test.js > sync simulation contracts > surfaces Cloudflare pull network failures in the config status element
 Attempt 1 failed, retrying in 1000ms: Erro 503: service unavailable
 
@@ -297,48 +290,170 @@ stderr | tests/unit/sync-simulation-contracts.test.js > sync simulation contract
 stderr | tests/unit/sync-simulation-contracts.test.js > sync simulation contracts > records remote conflict metadata when Cloudflare rejects stale push
 Attempt 1 failed, retrying in 1000ms: Erro 409: stale write
 
- ✓ tests/unit/search.test.js (8 tests) 6127ms
-   ✓ search.js > onSearch > closes results when query is too short  926ms
-   ✓ search.js > onSearch > closes results when query is empty  686ms
-   ✓ search.js > onSearch > shows empty message when no results  653ms
-   ✓ search.js > onSearch > escapa nome e ícone da disciplina nos resultados (sem HTML cru)  736ms
-   ✓ search.js > onSearch > does not throw for long queries with regex metacharacters  749ms
-   ✓ search.js > clearSearch > clears input value  747ms
-   ✓ search.js > clearSearch > descarta o markup de resultados antigos  819ms
-   ✓ search.js > Escape sobre modal-confirm > cancela a confirmação (limpa o callback) em vez de só fechar  808ms
- ✓ tests/unit/logic-cycle-imports.test.js (32 tests) 32475ms
-   ✓ logic/cycle.js - Module integrity > exports expected symbols  1958ms
-   ✓ logic/cycle.js - Module integrity > getActiveStudyDaysFilter is NOT exported (internal)  843ms
-   ✓ logic/disc.js - Module integrity > exports expected symbols  997ms
-   ✓ logic.js → re-exports from cycle.js (same binding) > re-exports match cycle.js functions  1623ms
-   ✓ logic.js → re-exports from cycle.js (same binding) > re-exports match disc.js symbols  1303ms
-   ✓ No cross-imports (circular dependency prevention) > cycle.js does not import from logic.js  2356ms
-   ✓ No cross-imports (circular dependency prevention) > disc.js does not import from logic.js  1612ms
-   ✓ No cross-imports (circular dependency prevention) > cycle.js does not import from other logic/ sub-modules except timer, disc, revisions, cycle-progress, reta-final  983ms
-   ✓ No cross-imports (circular dependency prevention) > reta-final-core.js is pure (no imports at all)  2605ms
-   ✓ No cross-imports (circular dependency prevention) > reta-final-schema.js is pure (no imports or browser/storage globals)  1158ms
-   ✓ No cross-imports (circular dependency prevention) > reta-final-schedule.js is pure (no imports or browser/storage globals)  1014ms
-   ✓ No cross-imports (circular dependency prevention) > reta-final-events.js is pure (no imports or runtime side effects)  1208ms
-   ✓ No cross-imports (circular dependency prevention) > reta-final-catalog.js imports only the pure reta-final-core.js module  972ms
-   ✓ No cross-imports (circular dependency prevention) > reta-final.js imports only permitted modules (no cycle.js — circular)  1275ms
-   ✓ No cross-imports (circular dependency prevention) > session-topics.js is pure (no imports at all)  883ms
-   ✓ No cross-imports (circular dependency prevention) > disc.js does not import from other logic/ sub-modules  749ms
-   ✓ Functional: clearAutoCicloEvents via logic.js re-export > categorizes auto-generated eventos correctly  741ms
-   ✓ Functional: clearAutoCicloEvents via logic.js re-export > clearAutoCicloEvents removes toDelete events and returns summary  743ms
-   ✓ Functional: calculateRelevanceWeights via logic.js re-export > computes weights from importancia and conhecimento scores  670ms
-   ✓ Functional: calculateRelevanceWeights via logic.js re-export > falls back to default 3 when importancia/conhecimento is missing or zero  678ms
-   ✓ Functional: calculateRelevanceWeights via logic.js re-export > handles empty input  574ms
-   ✓ Functional: calculateCyclePredictionsModel via logic.js re-export > projects sessions within date range  548ms
-   ✓ Functional: calculateCyclePredictionsModel via logic.js re-export > returns empty object when no planejamento  578ms
-   ✓ Functional: calculateCyclePredictionsModel via logic.js re-export > deducts studied time from a discipline even when the session has no seqId link  642ms
-   ✓ Functional: calculateCyclePredictionsModel via logic.js re-export > uses the full target for repeated visits (future cycles are not yet studied)  698ms
-   ✓ Functional: distributeStudiedAcrossSeq (shared by progress bars and forecast) > distributes a discipline's studied minutes across its steps in order  635ms
-   ✓ Functional: distributeStudiedAcrossSeq (shared by progress bars and forecast) > lets concluded steps consume their target first  701ms
-   ✓ Functional: distributeStudiedAcrossSeq (shared by progress bars and forecast) > returns zero usage when there is no studied time for the discipline  680ms
-   ✓ Functional: getStudiedMinutesByDiscipline (derived from state.eventos) > returns empty map when there are no events  721ms
-   ✓ Functional: getStudiedMinutesByDiscipline (derived from state.eventos) > sums minutes per discipline only for completed sessions with time  774ms
-   ✓ Functional: getStudiedMinutesByDiscipline (derived from state.eventos) > applies the "since" cutoff using dataEstudo when present, falling back to data  832ms
-   ✓ Functional: getStudiedMinutesByDiscipline (derived from state.eventos) > returns a single number when discId is provided  717ms
+ ✓ tests/unit/logic-cycle-imports.test.js (32 tests) 24674ms
+   ✓ logic/cycle.js - Module integrity > exports expected symbols  2395ms
+   ✓ logic/cycle.js - Module integrity > getActiveStudyDaysFilter is NOT exported (internal)  716ms
+   ✓ logic/disc.js - Module integrity > exports expected symbols  656ms
+   ✓ logic.js → re-exports from cycle.js (same binding) > re-exports match cycle.js functions  854ms
+   ✓ logic.js → re-exports from cycle.js (same binding) > re-exports match disc.js symbols  784ms
+   ✓ No cross-imports (circular dependency prevention) > cycle.js does not import from logic.js  934ms
+   ✓ No cross-imports (circular dependency prevention) > disc.js does not import from logic.js  904ms
+   ✓ No cross-imports (circular dependency prevention) > cycle.js does not import from other logic/ sub-modules except timer, disc, revisions, cycle-progress, reta-final  659ms
+   ✓ No cross-imports (circular dependency prevention) > reta-final-core.js is pure (no imports at all)  803ms
+   ✓ No cross-imports (circular dependency prevention) > reta-final-schema.js is pure (no imports or browser/storage globals)  891ms
+   ✓ No cross-imports (circular dependency prevention) > reta-final-schedule.js is pure (no imports or browser/storage globals)  849ms
+   ✓ No cross-imports (circular dependency prevention) > reta-final-events.js is pure (no imports or runtime side effects)  835ms
+   ✓ No cross-imports (circular dependency prevention) > reta-final-catalog.js imports only the pure reta-final-core.js module  707ms
+   ✓ No cross-imports (circular dependency prevention) > reta-final.js imports only permitted modules (no cycle.js — circular)  725ms
+   ✓ No cross-imports (circular dependency prevention) > session-topics.js is pure (no imports at all)  762ms
+   ✓ No cross-imports (circular dependency prevention) > disc.js does not import from other logic/ sub-modules  722ms
+   ✓ Functional: clearAutoCicloEvents via logic.js re-export > categorizes auto-generated eventos correctly  656ms
+   ✓ Functional: clearAutoCicloEvents via logic.js re-export > clearAutoCicloEvents removes toDelete events and returns summary  581ms
+   ✓ Functional: calculateRelevanceWeights via logic.js re-export > computes weights from importancia and conhecimento scores  589ms
+   ✓ Functional: calculateRelevanceWeights via logic.js re-export > falls back to default 3 when importancia/conhecimento is missing or zero  611ms
+   ✓ Functional: calculateRelevanceWeights via logic.js re-export > handles empty input  755ms
+   ✓ Functional: calculateCyclePredictionsModel via logic.js re-export > projects sessions within date range  757ms
+   ✓ Functional: calculateCyclePredictionsModel via logic.js re-export > returns empty object when no planejamento  654ms
+   ✓ Functional: calculateCyclePredictionsModel via logic.js re-export > deducts studied time from a discipline even when the session has no seqId link  651ms
+   ✓ Functional: calculateCyclePredictionsModel via logic.js re-export > uses the full target for repeated visits (future cycles are not yet studied)  643ms
+   ✓ Functional: distributeStudiedAcrossSeq (shared by progress bars and forecast) > distributes a discipline's studied minutes across its steps in order  639ms
+   ✓ Functional: distributeStudiedAcrossSeq (shared by progress bars and forecast) > lets concluded steps consume their target first  645ms
+   ✓ Functional: distributeStudiedAcrossSeq (shared by progress bars and forecast) > returns zero usage when there is no studied time for the discipline  674ms
+   ✓ Functional: getStudiedMinutesByDiscipline (derived from state.eventos) > returns empty map when there are no events  626ms
+   ✓ Functional: getStudiedMinutesByDiscipline (derived from state.eventos) > sums minutes per discipline only for completed sessions with time  629ms
+   ✓ Functional: getStudiedMinutesByDiscipline (derived from state.eventos) > applies the "since" cutoff using dataEstudo when present, falling back to data  690ms
+   ✓ Functional: getStudiedMinutesByDiscipline (derived from state.eventos) > returns a single number when discId is provided  671ms
+stderr | tests/unit/sync-simulation-contracts.test.js > sync simulation contracts > records remote conflict metadata when Cloudflare rejects stale push
+Attempt 2 failed, retrying in 2000ms: Erro 409: stale write
+
+ ✓ tests/unit/logic-edge-cases.test.js (15 tests) 10301ms
+   ✓ logic.js - edge cases > Timer edge cases > handles timer crossing midnight  965ms
+   ✓ logic.js - edge cases > Timer edge cases > handles negative tempoAcumulado  710ms
+   ✓ logic.js - edge cases > Timer edge cases > handles very large tempoAcumulado  677ms
+   ✓ logic.js - edge cases > Revision edge cases > handles assunto with no revisoesFetas array  698ms
+   ✓ logic.js - edge cases > Revision edge cases > throws RangeError for invalid dataConclusao format  633ms
+   ✓ logic.js - edge cases > Revision edge cases > handles revision dates far in the past  657ms
+   ✓ logic.js - edge cases > Ciclo edge cases > handles empty sequencia with active planejamento  702ms
+   ✓ logic.js - edge cases > Ciclo edge cases > handles sequencia item with missing discId  649ms
+   ✓ logic.js - edge cases > Ciclo edge cases > handles moveCicloSeq with invalid indices  660ms
+   ✓ logic.js - edge cases > Discipline cache edge cases > handles edital with null disciplinas  677ms
+   ✓ logic.js - edge cases > Discipline cache edge cases > handles disciplina with null assuntos  717ms
+   ✓ logic.js - edge cases > Discipline cache edge cases > handles duplicate discipline ids across editais  659ms
+   ✓ logic.js - edge cases > Streak and dashboard caches > invalidateStreakCache works with empty state  621ms
+   ✓ logic.js - edge cases > Streak and dashboard caches > invalidateDashCaches works with empty state  622ms
+   ✓ logic.js - edge cases > Streak and dashboard caches > invalidateTodayCache is exported from utils  651ms
+stderr | tests/unit/sync-simulation-contracts.test.js > sync simulation contracts > records remote conflict metadata when Cloudflare rejects stale push
+Attempt 3 failed, retrying in 4000ms: Erro 409: stale write
+
+ ✓ tests/unit/calendar-view-state.test.js (12 tests) 8083ms
+   ✓ calendar-view.js > calendar state getters/setters > getCalDate returns current calendar date  814ms
+   ✓ calendar-view.js > calendar state getters/setters > getCalViewMode returns default "mes"  674ms
+   ✓ calendar-view.js > calendar state getters/setters > setCalDate updates calendar date  668ms
+   ✓ calendar-view.js > calendar state getters/setters > setCalViewMode updates view mode  703ms
+   ✓ calendar-view.js > calNavigate() > navigates forward by positive offset  612ms
+   ✓ calendar-view.js > calNavigate() > navigates backward by negative offset  635ms
+   ✓ calendar-view.js > calNavigate() > navigates to current month when offset is 0  713ms
+   ✓ calendar-view.js > renderCalendarMobileMonth() > returns HTML string with days  675ms
+   ✓ calendar-view.js > renderCalendarMobileMonth() > includes day headers with date numbers  658ms
+   ✓ calendar-view.js > renderCalendarMobileMonth() > includes day of week names  602ms
+   ✓ calendar-view.js > renderCalendarMobileWeek() > returns HTML string with 7 days  648ms
+   ✓ calendar-view.js > renderCalendarMobileWeek() > includes day headers  677ms
+ ✓ tests/unit/cycle-progress.test.js (16 tests) 10983ms
+   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > etapa pulada não consome minutos do pool  982ms
+   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > excedente atravessa para a próxima etapa pendente da mesma disciplina  707ms
+   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > shouldComplete no limite exato (usedMins === alvo)  689ms
+   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > etapa com alvo 0 nunca tem shouldComplete  681ms
+   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > etapa concluída manualmente com tempo menor consome o alvo cheio e não marca shouldComplete  646ms
+   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > disciplinas repetidas consomem em ordem da sequência  665ms
+   ✓ getCycleProgress > deriva a distribuição dos eventos concluídos desde dataInicioCicloAtual  669ms
+   ✓ getCycleProgress > conta sessões SEM seqId (sessão livre) para o progresso  646ms
+   ✓ reconcileCycleProgress > conclui etapa quando a distribuição atinge o alvo, marcando autoConcluida  649ms
+   ✓ reconcileCycleProgress > é idempotente: segunda chamada não muda nada  694ms
+   ✓ reconcileCycleProgress > NUNCA altera planejamento.updatedAt (anti ping-pong de sync)  703ms
+   ✓ reconcileCycleProgress > reabre etapa autoConcluida quando a sessão que a sustentava é removida  673ms
+   ✓ reconcileCycleProgress > nunca reabre etapa concluída manualmente (sem flag autoConcluida)  627ms
+   ✓ reconcileCycleProgress > uma sessão grande conclui múltiplas etapas da disciplina de uma vez  612ms
+   ✓ reconcileCycleProgress > não conclui etapa pulada mesmo com pool disponível  677ms
+   ✓ reconcileCycleProgress > retorna changed:false sem planejamento ativo  661ms
+ ✓ tests/unit/reta-final-view-dashboard.test.js (15 tests) 9202ms
+   ✓ formatHours > formata horas inteiras e decimais (pt-BR)  766ms
+   ✓ renderRetaFinal — cabeçalho de KPIs > renderiza os 4 cards de KPI  650ms
+   ✓ renderRetaFinal — cabeçalho de KPIs > Concluído mostra percentual e blocos  613ms
+   ✓ renderRetaFinal — cabeçalho de KPIs > Faltam mostra dias para a prova  617ms
+   ✓ renderRetaFinal — cabeçalho de KPIs > Horas mostra restante e "Xh de Yh"  636ms
+   ✓ renderRetaFinal — cabeçalho de KPIs > Ritmo usa formatHours(ritmoMinutosPorDia)  594ms
+   ✓ renderRetaFinal — painel Foco de Hoje > lista só os blocos pendentes de hoje e atrasados  582ms
+   ✓ renderRetaFinal — painel Foco de Hoje > cabeçalho mostra contagem e total de horas do dia  624ms
+   ✓ renderRetaFinal — painel Foco de Hoje > some quando não há bloco pendente de hoje/atrasado  644ms
+   ✓ renderRetaFinal — anatomia padronizada das seções > Foco de Hoje usa header/título padronizados e blocos dentro do corpo  584ms
+   ✓ renderRetaFinal — anatomia padronizada das seções > Cronograma usa o mesmo header/título padronizados  561ms
+   ✓ renderRetaFinal — anatomia padronizada das seções > Não cobertos usa header padronizado e blocos dentro do corpo  573ms
+   ✓ renderRetaFinal — Distribuição de Horas (barras) > renderiza uma barra por disciplina com o título da seção  585ms
+   ✓ renderRetaFinal — Distribuição de Horas (barras) > a barra mostra "Xh de Yh" e largura proporcional ao concluído  612ms
+   ✓ renderRetaFinal — Distribuição de Horas (barras) > mostra o Total restante  558ms
+ ✓ tests/unit/logic-helpers.test.js (17 tests) 11443ms
+   ✓ logic.js - Timer utilities > isTimerActive() > retorna false para evento sem timer  956ms
+   ✓ logic.js - Timer utilities > isTimerActive() > retorna true para evento com timer ativo  725ms
+   ✓ logic.js - Timer utilities > getElapsedSeconds() > retorna tempo acumulado quando timer parado  680ms
+   ✓ logic.js - Timer utilities > getElapsedSeconds() > retorna 0 para evento vazio  685ms
+   ✓ logic.js - Discipline helpers > getAllDisciplinas() > retorna lista de disciplinas com edital  637ms
+   ✓ logic.js - Discipline helpers > getDisc() > encontra disciplina por ID  656ms
+   ✓ logic.js - Discipline helpers > getDisc() > retorna null para ID inexistente  672ms
+   ✓ logic.js - Event mutations > deleteEvento() > marca evento para exclusão  641ms
+   ✓ logic.js - Planning > deletePlanejamento() > chama função de deletar planejamento  643ms
+   ✓ logic.js - Cache invalidation > invalidateDiscCache() > invalida cache de disciplinas  671ms
+   ✓ logic.js - Cache invalidation > invalidateRevCache() > limpa cache de revisões  724ms
+   ✓ logic.js - Cache invalidation > invalidatePendingRevCache() > limpa cache de revisões pendentes  641ms
+   ✓ logic.js - Cache invalidation > invalidateStreakCache() > limpa cache de streak  587ms
+   ✓ logic.js - Cache invalidation > invalidateDashCaches() > limpa caches do dashboard  599ms
+   ✓ logic.js - Subject Stats > getSyllabusProgress() > calcula porcentagem de conclusão  646ms
+   ✓ logic.js - Performance stats > getPerformanceStats() > agrega questões certas e erradas  659ms
+   ✓ logic.js - Performance stats > totalStudySeconds() > soma tempo de eventos estudados  619ms
+ ✓ tests/unit/views-dashboard.test.js (18 tests) 7790ms
+   ✓ views.js - dashboard, charts, history, MED > renderHistoricoSessoes() > renders empty state when no sessions  603ms
+   ✓ views.js - dashboard, charts, history, MED > renderHistoricoSessoes() > renders sessions grouped by date  480ms
+   ✓ views.js - dashboard, charts, history, MED > renderHistoricoSessoes() > includes archive events  437ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > renders MED view with today events  450ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > renders scheduled events section  429ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > renders empty state when no events  464ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > renders the empty Study Organizer with compact stats and a prominent next-week action  498ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > filters events by today date  468ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > mostra progresso da meta diária quando metaDiariaMin está definida  456ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > mostra "Sem meta diária definida" quando não há meta  454ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > não emite o template legado obsoleto no markup  391ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > badge e card de pendentes deixam claro que contam apenas hoje  443ms
+   ✓ views.js - dashboard, charts, history, MED > renderMED() > groups scheduled events for today, tomorrow and next 7 days  459ms
+   ✓ views.js - dashboard, charts, history, MED > refreshMEDSections() > re-renders MED when main-content exists  446ms
+   ✓ views.js - dashboard, charts, history, MED > refreshMEDSections() > returns early when main-content not found  453ms
+   ✓ views.js - dashboard, charts, history, MED > setDashPeriod() > updates dashboard period  408ms
+   ✓ views.js - dashboard, charts, history, MED > setDashPeriod() > handles null for all-time view  407ms
+ ✓ tests/unit/store.test.js (12 tests) 7658ms
+   ✓ store.js > setState preserva syncTombstones > mantém syncTombstones no replace (pull/boot)  849ms
+   ✓ store.js > setState preserva syncTombstones > estado sem o campo (cliente antigo) vira lista vazia, sem crash  625ms
+   ✓ store.js > wraps local state in a checksum envelope for double-buffer recovery  692ms
+   ✓ store.js > rejects corrupted local state envelopes  718ms
+   ✓ store.js > chooses current, then previous, then emergency state during recovery  658ms
+   ✓ store.js > createExportableState strips sync secrets without mutating local state  593ms
+   ✓ store.js > declares Firestore local-first IndexedDB stores  623ms
+   ✓ store.js > clearData also clears isolated credentials  689ms
+   ✓ store.js > setState normalizes missing collections and config defaults  671ms
+   ✓ store.js > runMigrations upgrades legacy state to schema version 7 and separates lesson-like topics  579ms
+   ✓ store.js > saveStateToDB skipSyncEvent > dispatches stateSaved event by default  493ms
+   ✓ store.js > saveStateToDB skipSyncEvent > accepts skipSyncEvent option in object mode  465ms
+ ✓ tests/unit/config-actions.test.js (31 tests) 7102ms
+   ✓ ui/actions/config.js > request-notification-permission sincroniza o engine após conceder  606ms
+ ✓ tests/unit/reta-final-quick-mark.test.js (11 tests) 6612ms
+   ✓ quickCompleteRetaFinalBloco > reusa o evento auto agendado do bloco (id estável, tempoAcumulado preservado)  909ms
+   ✓ quickCompleteRetaFinalBloco > cria evento quando o bloco não tem nenhum  670ms
+   ✓ quickCompleteRetaFinalBloco > preenche dataEstudo de hoje, título com tópico e sessao.topicos do bloco  620ms
+   ✓ quickCompleteRetaFinalBloco > carimba ev.updatedAt (mutação real) mas NÃO toca planejamento.updatedAt  647ms
+   ✓ quickCompleteRetaFinalBloco > bloco vira concluido via reconcile e sync não re-materializa auto por cima  662ms
+   ✓ quickCompleteRetaFinalBloco > não mexe em hábitos, revisões nem aula.estudada  674ms
+   ✓ quickCompleteRetaFinalBloco > retorna false para bloco concluido, nao_coberto ou inexistente  582ms
+   ✓ quickCompleteRetaFinalBloco > retorna false quando o plano ativo não é reta_final  491ms
+   ✓ quickCompleteRetaFinalBloco > undo: excluir a sessão e re-sincronizar reabre o bloco  487ms
+   ✓ notas no quick-complete da Reta Final > mantém notas no evento auto já existente  445ms
+   ✓ notas no quick-complete da Reta Final > inclui notas ao criar o evento durante quick-complete  423ms
 stderr | tests/unit/store-edge-cases.test.js > store.js - edge cases > clearData edge cases > clears all state data
 Erro ao limpar credenciais: Error: indexedDB.open mock not configured for this test
     at Object.open (C:\Users\slvma\.codex\worktrees\v2-f0-audit\estudo-organizado\tests\helpers\test-env.js:59:13)
@@ -352,97 +467,17 @@ Erro ao limpar credenciais: Error: indexedDB.open mock not configured for this t
     at file:///C:/Users/slvma/.codex/worktrees/v2-f0-audit/estudo-organizado/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
     at file:///C:/Users/slvma/.codex/worktrees/v2-f0-audit/estudo-organizado/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
 
-stderr | tests/unit/sync-simulation-contracts.test.js > sync simulation contracts > records remote conflict metadata when Cloudflare rejects stale push
-Attempt 2 failed, retrying in 2000ms: Erro 409: stale write
-
- ✓ tests/unit/store-edge-cases.test.js (10 tests) 7596ms
-   ✓ store.js - edge cases > setState with extreme values > handles very large state object  891ms
-   ✓ store.js - edge cases > setState with extreme values > handles deeply nested config  661ms
-   ✓ store.js - edge cases > setState with extreme values > handles null values in state  649ms
-   ✓ store.js - edge cases > setState with extreme values > handles undefined values in state  727ms
-   ✓ store.js - edge cases > scheduleSave edge cases > debounces multiple rapid saves  736ms
-   ✓ store.js - edge cases > scheduleSave edge cases > handles save with empty state  750ms
-   ✓ store.js - edge cases > createExportableState edge cases > handles state with circular references gracefully  830ms
-   ✓ store.js - edge cases > createExportableState edge cases > strips all sync-related fields  806ms
-   ✓ store.js - edge cases > clearData edge cases > clears all state data  717ms
-   ✓ store.js - edge cases > state mutations > replaces state when setState is called  826ms
-stderr | tests/unit/sync-simulation-contracts.test.js > sync simulation contracts > records remote conflict metadata when Cloudflare rejects stale push
-Attempt 3 failed, retrying in 4000ms: Erro 409: stale write
-
- ✓ tests/unit/views-modules-new.test.js (10 tests) 6457ms
-   ✓ view modules load without errors > home-view.js loads  890ms
-   ✓ view modules load without errors > calendar-view.js loads  747ms
-   ✓ view modules load without errors > calendar/calendar-state.js loads and re-exports  818ms
-   ✓ view modules load without errors > calendar-view.js re-exports from sub-modules  785ms
-   ✓ view modules load without errors > ciclo-view.js loads  712ms
-   ✓ view modules load without errors > config-view.js loads  762ms
-   ✓ view modules load without errors > editais-view.js loads  728ms
-   ✓ view modules load without errors > habitos-view.js loads  627ms
- ✓ tests/unit/calendar-view-state.test.js (12 tests) 8883ms
-   ✓ calendar-view.js > calendar state getters/setters > getCalDate returns current calendar date  859ms
-   ✓ calendar-view.js > calendar state getters/setters > getCalViewMode returns default "mes"  651ms
-   ✓ calendar-view.js > calendar state getters/setters > setCalDate updates calendar date  719ms
-   ✓ calendar-view.js > calendar state getters/setters > setCalViewMode updates view mode  755ms
-   ✓ calendar-view.js > calNavigate() > navigates forward by positive offset  728ms
-   ✓ calendar-view.js > calNavigate() > navigates backward by negative offset  829ms
-   ✓ calendar-view.js > calNavigate() > navigates to current month when offset is 0  839ms
-   ✓ calendar-view.js > renderCalendarMobileMonth() > returns HTML string with days  708ms
-   ✓ calendar-view.js > renderCalendarMobileMonth() > includes day headers with date numbers  843ms
-   ✓ calendar-view.js > renderCalendarMobileMonth() > includes day of week names  695ms
-   ✓ calendar-view.js > renderCalendarMobileWeek() > returns HTML string with 7 days  619ms
-   ✓ calendar-view.js > renderCalendarMobileWeek() > includes day headers  635ms
- ✓ tests/unit/reta-final-view-dashboard.test.js (15 tests) 10036ms
-   ✓ formatHours > formata horas inteiras e decimais (pt-BR)  781ms
-   ✓ renderRetaFinal — cabeçalho de KPIs > renderiza os 4 cards de KPI  676ms
-   ✓ renderRetaFinal — cabeçalho de KPIs > Concluído mostra percentual e blocos  664ms
-   ✓ renderRetaFinal — cabeçalho de KPIs > Faltam mostra dias para a prova  704ms
-   ✓ renderRetaFinal — cabeçalho de KPIs > Horas mostra restante e "Xh de Yh"  680ms
-   ✓ renderRetaFinal — cabeçalho de KPIs > Ritmo usa formatHours(ritmoMinutosPorDia)  731ms
-   ✓ renderRetaFinal — painel Foco de Hoje > lista só os blocos pendentes de hoje e atrasados  767ms
-   ✓ renderRetaFinal — painel Foco de Hoje > cabeçalho mostra contagem e total de horas do dia  655ms
-   ✓ renderRetaFinal — painel Foco de Hoje > some quando não há bloco pendente de hoje/atrasado  714ms
-   ✓ renderRetaFinal — anatomia padronizada das seções > Foco de Hoje usa header/título padronizados e blocos dentro do corpo  676ms
-   ✓ renderRetaFinal — anatomia padronizada das seções > Cronograma usa o mesmo header/título padronizados  605ms
-   ✓ renderRetaFinal — anatomia padronizada das seções > Não cobertos usa header padronizado e blocos dentro do corpo  604ms
-   ✓ renderRetaFinal — Distribuição de Horas (barras) > renderiza uma barra por disciplina com o título da seção  585ms
-   ✓ renderRetaFinal — Distribuição de Horas (barras) > a barra mostra "Xh de Yh" e largura proporcional ao concluído  602ms
-   ✓ renderRetaFinal — Distribuição de Horas (barras) > mostra o Total restante  589ms
- ✓ tests/unit/views-dashboard.test.js (18 tests) 8762ms
-   ✓ views.js - dashboard, charts, history, MED > renderHistoricoSessoes() > renders empty state when no sessions  655ms
-   ✓ views.js - dashboard, charts, history, MED > renderHistoricoSessoes() > renders sessions grouped by date  524ms
-   ✓ views.js - dashboard, charts, history, MED > renderHistoricoSessoes() > includes archive events  506ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > renders MED view with today events  542ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > renders scheduled events section  595ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > renders empty state when no events  592ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > renders the empty Study Organizer with compact stats and a prominent next-week action  526ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > filters events by today date  462ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > mostra progresso da meta diária quando metaDiariaMin está definida  549ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > mostra "Sem meta diária definida" quando não há meta  533ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > não emite o template legado obsoleto no markup  499ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > badge e card de pendentes deixam claro que contam apenas hoje  449ms
-   ✓ views.js - dashboard, charts, history, MED > renderMED() > groups scheduled events for today, tomorrow and next 7 days  444ms
-   ✓ views.js - dashboard, charts, history, MED > refreshMEDSections() > re-renders MED when main-content exists  416ms
-   ✓ views.js - dashboard, charts, history, MED > refreshMEDSections() > returns early when main-content not found  518ms
-   ✓ views.js - dashboard, charts, history, MED > setDashPeriod() > updates dashboard period  433ms
-   ✓ views.js - dashboard, charts, history, MED > setDashPeriod() > handles null for all-time view  473ms
- ✓ tests/unit/logic-helpers.test.js (17 tests) 12249ms
-   ✓ logic.js - Timer utilities > isTimerActive() > retorna false para evento sem timer  830ms
-   ✓ logic.js - Timer utilities > isTimerActive() > retorna true para evento com timer ativo  690ms
-   ✓ logic.js - Timer utilities > getElapsedSeconds() > retorna tempo acumulado quando timer parado  652ms
-   ✓ logic.js - Timer utilities > getElapsedSeconds() > retorna 0 para evento vazio  718ms
-   ✓ logic.js - Discipline helpers > getAllDisciplinas() > retorna lista de disciplinas com edital  710ms
-   ✓ logic.js - Discipline helpers > getDisc() > encontra disciplina por ID  754ms
-   ✓ logic.js - Discipline helpers > getDisc() > retorna null para ID inexistente  843ms
-   ✓ logic.js - Event mutations > deleteEvento() > marca evento para exclusão  807ms
-   ✓ logic.js - Planning > deletePlanejamento() > chama função de deletar planejamento  717ms
-   ✓ logic.js - Cache invalidation > invalidateDiscCache() > invalida cache de disciplinas  849ms
-   ✓ logic.js - Cache invalidation > invalidateRevCache() > limpa cache de revisões  701ms
-   ✓ logic.js - Cache invalidation > invalidatePendingRevCache() > limpa cache de revisões pendentes  659ms
-   ✓ logic.js - Cache invalidation > invalidateStreakCache() > limpa cache de streak  621ms
-   ✓ logic.js - Cache invalidation > invalidateDashCaches() > limpa caches do dashboard  692ms
-   ✓ logic.js - Subject Stats > getSyllabusProgress() > calcula porcentagem de conclusão  630ms
-   ✓ logic.js - Performance stats > getPerformanceStats() > agrega questões certas e erradas  656ms
-   ✓ logic.js - Performance stats > totalStudySeconds() > soma tempo de eventos estudados  718ms
+ ✓ tests/unit/store-edge-cases.test.js (10 tests) 5504ms
+   ✓ store.js - edge cases > setState with extreme values > handles very large state object  783ms
+   ✓ store.js - edge cases > setState with extreme values > handles deeply nested config  647ms
+   ✓ store.js - edge cases > setState with extreme values > handles null values in state  670ms
+   ✓ store.js - edge cases > setState with extreme values > handles undefined values in state  640ms
+   ✓ store.js - edge cases > scheduleSave edge cases > debounces multiple rapid saves  518ms
+   ✓ store.js - edge cases > scheduleSave edge cases > handles save with empty state  449ms
+   ✓ store.js - edge cases > createExportableState edge cases > handles state with circular references gracefully  473ms
+   ✓ store.js - edge cases > createExportableState edge cases > strips all sync-related fields  429ms
+   ✓ store.js - edge cases > clearData edge cases > clears all state data  455ms
+   ✓ store.js - edge cases > state mutations > replaces state when setState is called  438ms
 stderr | tests/unit/sync-simulation-contracts.test.js > sync simulation contracts > records remote conflict metadata when Cloudflare rejects stale push
 [Cloudflare] Erro no Cloudflare Push: Error: Erro 409: stale write
     at C:\Users\slvma\.codex\worktrees\v2-f0-audit\estudo-organizado\src\js\cloud-sync.js:458:15
@@ -452,603 +487,570 @@ stderr | tests/unit/sync-simulation-contracts.test.js > sync simulation contract
     at C:\Users\slvma\.codex\worktrees\v2-f0-audit\estudo-organizado\tests\unit\sync-simulation-contracts.test.js:121:5
     at file:///C:/Users/slvma/.codex/worktrees/v2-f0-audit/estudo-organizado/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20
 
- ✓ tests/unit/sync-simulation-contracts.test.js (3 tests) 7672ms
-   ✓ sync simulation contracts > records remote conflict metadata when Cloudflare rejects stale push  7215ms
- ✓ tests/unit/views-state.test.js (9 tests) 4671ms
-   ✓ views.js - state and utilities > manager tab state > getActiveDiscManagerTab returns default  639ms
-   ✓ views.js - state and utilities > manager tab state > setActiveDiscManagerTab updates tab  457ms
-   ✓ views.js - state and utilities > sequence editing state > getTempSequencia returns default null  462ms
-   ✓ views.js - state and utilities > sequence editing state > setTempSequencia updates sequence  461ms
-   ✓ views.js - state and utilities > sequence editing state > getIsEditingSequence returns default false  490ms
-   ✓ views.js - state and utilities > sequence editing state > setIsEditingSequence updates state  529ms
-   ✓ views.js - state and utilities > skeleton loaders > renderSkeletonLoader returns HTML  552ms
-   ✓ views.js - state and utilities > skeleton loaders > renderSkeletonList returns HTML with correct count  576ms
-   ✓ views.js - state and utilities > skeleton loaders > renderSkeletonTable returns HTML with table structure  502ms
- ✓ tests/unit/logic-edge-cases.test.js (15 tests) 10915ms
-   ✓ logic.js - edge cases > Timer edge cases > handles timer crossing midnight  967ms
-   ✓ logic.js - edge cases > Timer edge cases > handles negative tempoAcumulado  843ms
-   ✓ logic.js - edge cases > Timer edge cases > handles very large tempoAcumulado  709ms
-   ✓ logic.js - edge cases > Revision edge cases > handles assunto with no revisoesFetas array  779ms
-   ✓ logic.js - edge cases > Revision edge cases > throws RangeError for invalid dataConclusao format  731ms
-   ✓ logic.js - edge cases > Revision edge cases > handles revision dates far in the past  681ms
-   ✓ logic.js - edge cases > Ciclo edge cases > handles empty sequencia with active planejamento  670ms
-   ✓ logic.js - edge cases > Ciclo edge cases > handles sequencia item with missing discId  660ms
-   ✓ logic.js - edge cases > Ciclo edge cases > handles moveCicloSeq with invalid indices  636ms
-   ✓ logic.js - edge cases > Discipline cache edge cases > handles edital with null disciplinas  641ms
-   ✓ logic.js - edge cases > Discipline cache edge cases > handles disciplina with null assuntos  659ms
-   ✓ logic.js - edge cases > Discipline cache edge cases > handles duplicate discipline ids across editais  745ms
-   ✓ logic.js - edge cases > Streak and dashboard caches > invalidateStreakCache works with empty state  819ms
-   ✓ logic.js - edge cases > Streak and dashboard caches > invalidateDashCaches works with empty state  682ms
-   ✓ logic.js - edge cases > Streak and dashboard caches > invalidateTodayCache is exported from utils  691ms
- ✓ tests/unit/registro-sessao.test.js (49 tests) 41308ms
-   ✓ registro-sessao.js > openRegistroSessao > opens modal for a regular event  1938ms
-   ✓ registro-sessao.js > openRegistroSessao > opens modal for crono_livre  767ms
-   ✓ registro-sessao.js > openRegistroSessao > shows error toast when event not found  812ms
-   ✓ registro-sessao.js > openRegistroSessao > stops running timer and captures start time  1764ms
-   ✓ registro-sessao.js > openRegistroSessao > pre-fills discipline synchronously when event has discId  1197ms
-   ✓ registro-sessao.js > cancelRegistro > closes modal  1942ms
-   ✓ registro-sessao.js > cancelRegistro > removes past session event when cancelled  1555ms
-   ✓ registro-sessao.js > discardTimerUI > closes modal and calls discardTimer after delay  1022ms
-   ✓ registro-sessao.js > deleteCompletedSession > shows confirmation and deletes session  841ms
-   ✓ registro-sessao.js > deleteCompletedSession > removes event and habit entries when confirmed  2472ms
-   ✓ registro-sessao.js > deleteCompletedSession > grava tombstones de sync para a sessão e os hábitos vinculados excluídos  903ms
-   ✓ registro-sessao.js > deleteCompletedSession > asks before reopening the linked planning step when deleting the only completed session  938ms
-   ✓ registro-sessao.js > deleteCompletedSession > keeps the planning step advanced when deletion is confirmed but reopening is cancelled  967ms
-   ✓ registro-sessao.js > deleteCompletedSession > invalida os caches de estatísticas ao excluir uma sessão concluída  923ms
-   ✓ registro-sessao.js > deleteCompletedSession > keeps seq.concluido when another completed session exists for same seqId  1141ms
-   ✓ registro-sessao.js > deleteCompletedSession > reabre silenciosamente etapa autoConcluida ao excluir a sessão que a sustentava  1005ms
-   ✓ registro-sessao.js > toggleStudyType > toggles study type selection  755ms
+ ✓ tests/unit/sync-simulation-contracts.test.js (3 tests) 7560ms
+   ✓ sync simulation contracts > records remote conflict metadata when Cloudflare rejects stale push  7191ms
+ ✓ tests/unit/registro-sessao.test.js (49 tests) 31290ms
+   ✓ registro-sessao.js > openRegistroSessao > opens modal for a regular event  2010ms
+   ✓ registro-sessao.js > openRegistroSessao > opens modal for crono_livre  534ms
+   ✓ registro-sessao.js > openRegistroSessao > shows error toast when event not found  640ms
+   ✓ registro-sessao.js > openRegistroSessao > stops running timer and captures start time  658ms
+   ✓ registro-sessao.js > openRegistroSessao > pre-fills discipline synchronously when event has discId  789ms
+   ✓ registro-sessao.js > cancelRegistro > closes modal  727ms
+   ✓ registro-sessao.js > cancelRegistro > removes past session event when cancelled  824ms
+   ✓ registro-sessao.js > discardTimerUI > closes modal and calls discardTimer after delay  800ms
+   ✓ registro-sessao.js > deleteCompletedSession > shows confirmation and deletes session  598ms
+   ✓ registro-sessao.js > deleteCompletedSession > removes event and habit entries when confirmed  705ms
+   ✓ registro-sessao.js > deleteCompletedSession > grava tombstones de sync para a sessão e os hábitos vinculados excluídos  807ms
+   ✓ registro-sessao.js > deleteCompletedSession > asks before reopening the linked planning step when deleting the only completed session  800ms
+   ✓ registro-sessao.js > deleteCompletedSession > keeps the planning step advanced when deletion is confirmed but reopening is cancelled  744ms
+   ✓ registro-sessao.js > deleteCompletedSession > invalida os caches de estatísticas ao excluir uma sessão concluída  753ms
+   ✓ registro-sessao.js > deleteCompletedSession > keeps seq.concluido when another completed session exists for same seqId  630ms
+   ✓ registro-sessao.js > deleteCompletedSession > reabre silenciosamente etapa autoConcluida ao excluir a sessão que a sustentava  663ms
+   ✓ registro-sessao.js > toggleStudyType > toggles study type selection  712ms
    ✓ registro-sessao.js > toggleStudyType > re-renders conditional results fields  643ms
-   ✓ registro-sessao.js > toggleMaterial > toggles material selection  666ms
-   ✓ registro-sessao.js > toggleMaterial > re-renders conditional results fields  696ms
-   ✓ registro-sessao.js > onDisciplinaChange > populates assunto select when discipline has topics  591ms
-   ✓ registro-sessao.js > onDisciplinaChange > shows aula select when discipline has aulas  622ms
-   ✓ registro-sessao.js > onDisciplinaChange > clears selects when no discipline selected  556ms
-   ✓ registro-sessao.js > validateQuestoes > shows feedback when acertos + erros > total  480ms
-   ✓ registro-sessao.js > validateQuestoes > shows percentage when valid  494ms
-   ✓ registro-sessao.js > validateQuestoes > shows feedback when acertos or erros are negative  597ms
-   ✓ registro-sessao.js > validateQuestoes > clears feedback when total is zero  585ms
-   ✓ registro-sessao.js > setPaginaMode > switches to simple mode  609ms
-   ✓ registro-sessao.js > setPaginaMode > switches to detailed mode  588ms
-   ✓ registro-sessao.js > saveRegistroSessao > returns false when no study type selected  690ms
-   ✓ registro-sessao.js > saveRegistroSessao > validates questões when questoes type selected  648ms
-   ✓ registro-sessao.js > saveRegistroSessao > sets event status to estudei on save  646ms
-   ✓ registro-sessao.js > saveRegistroSessao > rejeita acertos/erros negativos em questões  704ms
-   ✓ registro-sessao.js > saveRegistroSessao > rejeita páginas negativas no modo detalhado  777ms
-   ✓ registro-sessao.js > saveRegistroSessao > modal não mostra checkbox de vínculo e informa que o tempo avança o ciclo  706ms
-   ✓ registro-sessao.js > saveRegistroSessao > sessão livre parcial avança a etapa sem concluí-la nem mostrar prompt (todo estudo conta)  605ms
-   ✓ registro-sessao.js > saveRegistroSessao > sessão livre que cobre o alvo conclui a etapa automaticamente (todo estudo conta)  752ms
-   ✓ registro-sessao.js > saveRegistroSessao > keeps a linked planning step pending when saved below target and asks for manual conclusion  666ms
-   ✓ registro-sessao.js > saveRegistroSessao > allows manually concluding a linked planning step even when saved below target  587ms
-   ✓ registro-sessao.js > saveRegistroSessao > registers habit entries for selected types  591ms
-   ✓ registro-sessao.js > saveRegistroSessao > registers habit entries for selected types  629ms
-   ✓ registro-sessao.js > saveRegistroSessao > records habit entries on the session study date, not "today"  573ms
-   ✓ registro-sessao.js > saveRegistroSessao > grava dataEstudo na aula concluída via sessão (conta nas aulas da semana)  612ms
-   ✓ registro-sessao.js > saveRegistroSessao > usa a data real do estudo como dataConclusao do assunto em sessão passada  616ms
-   ✓ registro-sessao.js > saveRegistroSessao > invalida os caches de estatísticas ao salvar (dashboard reflete a sessão imediatamente)  699ms
-   ✓ registro-sessao.js > saveRegistroSessao > does not incrementally mutate legacy state.ciclo counters on save (progress is derived)  691ms
-   ✓ registro-sessao.js > saveAndStartNew > saves and navigates to MED view  700ms
-   ✓ registro-sessao.js > voltarPastSessionUI > removes past session and closes modal  676ms
-   ✓ registro-sessao.js > voltarPastSessionUI > grava tombstone de sync para o evento removido  665ms
- ✓ tests/unit/config-actions.test.js (31 tests) 8137ms
-   ✓ ui/actions/config.js > request-notification-permission sincroniza o engine após conceder  582ms
-   ✓ ui/actions/config.js > firestore-merge-remote shows confirmation  308ms
-   ✓ ui/actions/config.js > drive-sync-now shows error toast on failure  305ms
- ✓ tests/unit/views-skeletons.test.js (9 tests) 6564ms
-   ✓ views.js - skeleton loaders > renderSkeletonLoader() > returns HTML string with skeleton structure  827ms
-   ✓ views.js - skeleton loaders > renderSkeletonList() > returns HTML string with specified count  669ms
-   ✓ views.js - skeleton loaders > renderSkeletonList() > uses default count of 5  683ms
-   ✓ views.js - module state getters/setters > active disc manager tab > getActiveDiscManagerTab returns default  796ms
-   ✓ views.js - module state getters/setters > active disc manager tab > setActiveDiscManagerTab updates value  782ms
-   ✓ views.js - module state getters/setters > temp sequencia > getTempSequencia returns null initially  714ms
-   ✓ views.js - module state getters/setters > temp sequencia > setTempSequencia updates value  745ms
-   ✓ views.js - module state getters/setters > editing sequence flag > getIsEditingSequence returns false initially  668ms
-   ✓ views.js - module state getters/setters > editing sequence flag > setIsEditingSequence updates value  678ms
- ✓ tests/unit/cycle-progress.test.js (16 tests) 11510ms
-   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > etapa pulada não consome minutos do pool  982ms
-   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > excedente atravessa para a próxima etapa pendente da mesma disciplina  717ms
-   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > shouldComplete no limite exato (usedMins === alvo)  835ms
-   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > etapa com alvo 0 nunca tem shouldComplete  717ms
-   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > etapa concluída manualmente com tempo menor consome o alvo cheio e não marca shouldComplete  636ms
-   ✓ distributeStudiedAcrossSeq (fonte única de progresso) > disciplinas repetidas consomem em ordem da sequência  635ms
-   ✓ getCycleProgress > deriva a distribuição dos eventos concluídos desde dataInicioCicloAtual  711ms
-   ✓ getCycleProgress > conta sessões SEM seqId (sessão livre) para o progresso  618ms
-   ✓ reconcileCycleProgress > conclui etapa quando a distribuição atinge o alvo, marcando autoConcluida  676ms
-   ✓ reconcileCycleProgress > é idempotente: segunda chamada não muda nada  697ms
-   ✓ reconcileCycleProgress > NUNCA altera planejamento.updatedAt (anti ping-pong de sync)  793ms
-   ✓ reconcileCycleProgress > reabre etapa autoConcluida quando a sessão que a sustentava é removida  738ms
-   ✓ reconcileCycleProgress > nunca reabre etapa concluída manualmente (sem flag autoConcluida)  708ms
-   ✓ reconcileCycleProgress > uma sessão grande conclui múltiplas etapas da disciplina de uma vez  729ms
-   ✓ reconcileCycleProgress > não conclui etapa pulada mesmo com pool disponível  645ms
-   ✓ reconcileCycleProgress > retorna changed:false sem planejamento ativo  671ms
- ✓ tests/unit/store.test.js (12 tests) 8434ms
-   ✓ store.js > setState preserva syncTombstones > mantém syncTombstones no replace (pull/boot)  846ms
-   ✓ store.js > setState preserva syncTombstones > estado sem o campo (cliente antigo) vira lista vazia, sem crash  679ms
-   ✓ store.js > wraps local state in a checksum envelope for double-buffer recovery  653ms
-   ✓ store.js > rejects corrupted local state envelopes  675ms
-   ✓ store.js > chooses current, then previous, then emergency state during recovery  725ms
-   ✓ store.js > createExportableState strips sync secrets without mutating local state  758ms
-   ✓ store.js > declares Firestore local-first IndexedDB stores  747ms
-   ✓ store.js > clearData also clears isolated credentials  731ms
-   ✓ store.js > setState normalizes missing collections and config defaults  724ms
-   ✓ store.js > runMigrations upgrades legacy state to schema version 7 and separates lesson-like topics  642ms
-   ✓ store.js > saveStateToDB skipSyncEvent > dispatches stateSaved event by default  667ms
-   ✓ store.js > saveStateToDB skipSyncEvent > accepts skipSyncEvent option in object mode  584ms
- ✓ tests/unit/reta-final-quick-mark.test.js (11 tests) 7650ms
-   ✓ quickCompleteRetaFinalBloco > reusa o evento auto agendado do bloco (id estável, tempoAcumulado preservado)  962ms
-   ✓ quickCompleteRetaFinalBloco > cria evento quando o bloco não tem nenhum  799ms
-   ✓ quickCompleteRetaFinalBloco > preenche dataEstudo de hoje, título com tópico e sessao.topicos do bloco  756ms
-   ✓ quickCompleteRetaFinalBloco > carimba ev.updatedAt (mutação real) mas NÃO toca planejamento.updatedAt  741ms
-   ✓ quickCompleteRetaFinalBloco > bloco vira concluido via reconcile e sync não re-materializa auto por cima  723ms
-   ✓ quickCompleteRetaFinalBloco > não mexe em hábitos, revisões nem aula.estudada  633ms
-   ✓ quickCompleteRetaFinalBloco > retorna false para bloco concluido, nao_coberto ou inexistente  704ms
-   ✓ quickCompleteRetaFinalBloco > retorna false quando o plano ativo não é reta_final  545ms
-   ✓ quickCompleteRetaFinalBloco > undo: excluir a sessão e re-sincronizar reabre o bloco  606ms
-   ✓ notas no quick-complete da Reta Final > mantém notas no evento auto já existente  540ms
-   ✓ notas no quick-complete da Reta Final > inclui notas ao criar o evento durante quick-complete  638ms
- ✓ tests/unit/firestore-schema.test.js (29 tests) 5081ms
-   ✓ firestore-schema.js operational payload budget > keeps operational history local and keeps the academic snapshot under the Firestore budget  1551ms
- ✓ tests/unit/reta-final-start-timer.test.js (12 tests) 7477ms
-   ✓ ensureRetaFinalBlocoEvento > retorna o evento agendado espelhado do bloco pendente  867ms
-   ✓ ensureRetaFinalBlocoEvento > materializa o evento quando o bloco ainda não tem nenhum  728ms
-   ✓ ensureRetaFinalBlocoEvento > bloco atrasado é rolado para hoje e ganha evento  634ms
-   ✓ ensureRetaFinalBlocoEvento > retorna null para bloco concluído, inexistente ou plano não reta_final  648ms
-   ✓ action rf-start-timer > sem timer ativo: inicia o timer do bloco e navega para o cronômetro  718ms
-   ✓ action rf-start-timer > timer do PRÓPRIO bloco já rodando: navega sem pausar (clique duplo não pausa)  586ms
-   ✓ action rf-start-timer > outro timer ativo: pede confirmação; confirmar pausa o outro e inicia este  648ms
-   ✓ action rf-start-timer > bloco não cronometrável: toast de erro, sem navegação  508ms
-   ✓ conclusão automática do bloco (reconcile) > evento espelhado finalizado como estudei conclui o bloco no sync; os demais ficam intactos  547ms
-   ✓ getActiveTimerEventIds > vazio quando nenhum timer está rodando  465ms
-   ✓ getActiveTimerEventIds > lista eventos com _timerStart e o crono_livre ativo  594ms
-   ✓ getActiveTimerEventIds > crono_livre pausado (sem _timerStart) não conta  532ms
- ✓ tests/unit/reta-final-filtros.test.js (10 tests) 5975ms
-   ✓ getRetaFinalBlocoFiltroCategoria — categorização pura > classifica concluído, atrasado (rolado ou data passada), hoje e futuro  821ms
-   ✓ renderRetaFinal — seletor de filtro do cronograma > renderiza Todos, Atrasados, Próximos dias e Concluídos, nessa ordem, com "Todos" ativo  722ms
-   ✓ renderRetaFinal — seletor de filtro do cronograma > "Todos" mostra todos os blocos do cronograma  605ms
-   ✓ renderRetaFinal — seletor de filtro do cronograma > "Atrasados" mostra só blocos rolados/atrasados pendentes  638ms
-   ✓ renderRetaFinal — seletor de filtro do cronograma > "Próximos dias" mostra só os blocos de dias futuros  567ms
-   ✓ renderRetaFinal — seletor de filtro do cronograma > "Concluídos" mostra só blocos concluídos (sem os de hoje)  486ms
-   ✓ renderRetaFinal — seletor de filtro do cronograma > voltar para "Todos" mostra tudo de novo  558ms
-   ✓ renderRetaFinal — seletor de filtro do cronograma > filtro sem resultados mostra mensagem de vazio do filtro  562ms
-   ✓ renderRetaFinal — seletor de filtro do cronograma > filtro desconhecido é ignorado (mantém o atual)  514ms
-   ✓ ação rf-set-filtro > seleciona o filtro e re-renderiza a view  500ms
- ✓ tests/unit/dashboard-period.test.js (3 tests) 2036ms
-   ✓ dashboard period (data real do estudo) > inclui no período a sessão estudada dentro da janela, mesmo agendada fora dela  838ms
-   ✓ dashboard period (data real do estudo) > gráfico de tempo por disciplina usa a data real do estudo no corte do período  637ms
-   ✓ dashboard period (data real do estudo) > gráfico diário acumula os minutos no dia real do estudo  559ms
+   ✓ registro-sessao.js > toggleMaterial > toggles material selection  586ms
+   ✓ registro-sessao.js > toggleMaterial > re-renders conditional results fields  554ms
+   ✓ registro-sessao.js > onDisciplinaChange > populates assunto select when discipline has topics  523ms
+   ✓ registro-sessao.js > onDisciplinaChange > shows aula select when discipline has aulas  539ms
+   ✓ registro-sessao.js > onDisciplinaChange > clears selects when no discipline selected  664ms
+   ✓ registro-sessao.js > validateQuestoes > shows feedback when acertos + erros > total  683ms
+   ✓ registro-sessao.js > validateQuestoes > shows percentage when valid  640ms
+   ✓ registro-sessao.js > validateQuestoes > shows feedback when acertos or erros are negative  629ms
+   ✓ registro-sessao.js > validateQuestoes > clears feedback when total is zero  624ms
+   ✓ registro-sessao.js > setPaginaMode > switches to simple mode  574ms
+   ✓ registro-sessao.js > setPaginaMode > switches to detailed mode  584ms
+   ✓ registro-sessao.js > saveRegistroSessao > returns false when no study type selected  621ms
+   ✓ registro-sessao.js > saveRegistroSessao > validates questões when questoes type selected  620ms
+   ✓ registro-sessao.js > saveRegistroSessao > sets event status to estudei on save  593ms
+   ✓ registro-sessao.js > saveRegistroSessao > rejeita acertos/erros negativos em questões  563ms
+   ✓ registro-sessao.js > saveRegistroSessao > rejeita páginas negativas no modo detalhado  634ms
+   ✓ registro-sessao.js > saveRegistroSessao > modal não mostra checkbox de vínculo e informa que o tempo avança o ciclo  628ms
+   ✓ registro-sessao.js > saveRegistroSessao > sessão livre parcial avança a etapa sem concluí-la nem mostrar prompt (todo estudo conta)  626ms
+   ✓ registro-sessao.js > saveRegistroSessao > sessão livre que cobre o alvo conclui a etapa automaticamente (todo estudo conta)  550ms
+   ✓ registro-sessao.js > saveRegistroSessao > keeps a linked planning step pending when saved below target and asks for manual conclusion  580ms
+   ✓ registro-sessao.js > saveRegistroSessao > allows manually concluding a linked planning step even when saved below target  575ms
+   ✓ registro-sessao.js > saveRegistroSessao > registers habit entries for selected types  649ms
+   ✓ registro-sessao.js > saveRegistroSessao > registers habit entries for selected types  547ms
+   ✓ registro-sessao.js > saveRegistroSessao > records habit entries on the session study date, not "today"  507ms
+   ✓ registro-sessao.js > saveRegistroSessao > grava dataEstudo na aula concluída via sessão (conta nas aulas da semana)  426ms
+   ✓ registro-sessao.js > saveRegistroSessao > usa a data real do estudo como dataConclusao do assunto em sessão passada  417ms
+   ✓ registro-sessao.js > saveRegistroSessao > invalida os caches de estatísticas ao salvar (dashboard reflete a sessão imediatamente)  402ms
+   ✓ registro-sessao.js > saveRegistroSessao > does not incrementally mutate legacy state.ciclo counters on save (progress is derived)  400ms
+   ✓ registro-sessao.js > saveAndStartNew > saves and navigates to MED view  428ms
+   ✓ registro-sessao.js > voltarPastSessionUI > removes past session and closes modal  433ms
+   ✓ registro-sessao.js > voltarPastSessionUI > grava tombstone de sync para o evento removido  448ms
+ ✓ tests/unit/reta-final-start-timer.test.js (12 tests) 5770ms
+   ✓ ensureRetaFinalBlocoEvento > retorna o evento agendado espelhado do bloco pendente  769ms
+   ✓ ensureRetaFinalBlocoEvento > materializa o evento quando o bloco ainda não tem nenhum  590ms
+   ✓ ensureRetaFinalBlocoEvento > bloco atrasado é rolado para hoje e ganha evento  522ms
+   ✓ ensureRetaFinalBlocoEvento > retorna null para bloco concluído, inexistente ou plano não reta_final  462ms
+   ✓ action rf-start-timer > sem timer ativo: inicia o timer do bloco e navega para o cronômetro  496ms
+   ✓ action rf-start-timer > timer do PRÓPRIO bloco já rodando: navega sem pausar (clique duplo não pausa)  414ms
+   ✓ action rf-start-timer > outro timer ativo: pede confirmação; confirmar pausa o outro e inicia este  414ms
+   ✓ action rf-start-timer > bloco não cronometrável: toast de erro, sem navegação  396ms
+   ✓ conclusão automática do bloco (reconcile) > evento espelhado finalizado como estudei conclui o bloco no sync; os demais ficam intactos  408ms
+   ✓ getActiveTimerEventIds > vazio quando nenhum timer está rodando  417ms
+   ✓ getActiveTimerEventIds > lista eventos com _timerStart e o crono_livre ativo  449ms
+   ✓ getActiveTimerEventIds > crono_livre pausado (sem _timerStart) não conta  431ms
+ ✓ tests/unit/views-skeletons.test.js (9 tests) 4796ms
+   ✓ views.js - skeleton loaders > renderSkeletonLoader() > returns HTML string with skeleton structure  664ms
+   ✓ views.js - skeleton loaders > renderSkeletonList() > returns HTML string with specified count  438ms
+   ✓ views.js - skeleton loaders > renderSkeletonList() > uses default count of 5  441ms
+   ✓ views.js - module state getters/setters > active disc manager tab > getActiveDiscManagerTab returns default  483ms
+   ✓ views.js - module state getters/setters > active disc manager tab > setActiveDiscManagerTab updates value  511ms
+   ✓ views.js - module state getters/setters > temp sequencia > getTempSequencia returns null initially  468ms
+   ✓ views.js - module state getters/setters > temp sequencia > setTempSequencia updates value  534ms
+   ✓ views.js - module state getters/setters > editing sequence flag > getIsEditingSequence returns false initially  589ms
+   ✓ views.js - module state getters/setters > editing sequence flag > setIsEditingSequence updates value  666ms
+ ✓ tests/unit/views-modules-new.test.js (10 tests) 4682ms
+   ✓ view modules load without errors > home-view.js loads  640ms
+   ✓ view modules load without errors > calendar-view.js loads  450ms
+   ✓ view modules load without errors > calendar/calendar-state.js loads and re-exports  497ms
+   ✓ view modules load without errors > calendar-view.js re-exports from sub-modules  499ms
+   ✓ view modules load without errors > ciclo-view.js loads  501ms
+   ✓ view modules load without errors > config-view.js loads  574ms
+   ✓ view modules load without errors > editais-view.js loads  683ms
+   ✓ view modules load without errors > habitos-view.js loads  642ms
+ ✓ tests/unit/search.test.js (8 tests) 4720ms
+   ✓ search.js > onSearch > closes results when query is too short  691ms
+   ✓ search.js > onSearch > closes results when query is empty  514ms
+   ✓ search.js > onSearch > shows empty message when no results  484ms
+   ✓ search.js > onSearch > escapa nome e ícone da disciplina nos resultados (sem HTML cru)  525ms
+   ✓ search.js > onSearch > does not throw for long queries with regex metacharacters  564ms
+   ✓ search.js > clearSearch > clears input value  633ms
+   ✓ search.js > clearSearch > descarta o markup de resultados antigos  643ms
+   ✓ search.js > Escape sobre modal-confirm > cancela a confirmação (limpa o callback) em vez de só fechar  663ms
+ ✓ tests/unit/firestore-schema.test.js (29 tests) 4578ms
+   ✓ firestore-schema.js operational payload budget > keeps operational history local and keeps the academic snapshot under the Firestore budget  1087ms
+ ✓ tests/unit/reta-final-filtros.test.js (10 tests) 6052ms
+   ✓ getRetaFinalBlocoFiltroCategoria — categorização pura > classifica concluído, atrasado (rolado ou data passada), hoje e futuro  643ms
+   ✓ renderRetaFinal — seletor de filtro do cronograma > renderiza Todos, Atrasados, Próximos dias e Concluídos, nessa ordem, com "Todos" ativo  513ms
+   ✓ renderRetaFinal — seletor de filtro do cronograma > "Todos" mostra todos os blocos do cronograma  512ms
+   ✓ renderRetaFinal — seletor de filtro do cronograma > "Atrasados" mostra só blocos rolados/atrasados pendentes  577ms
+   ✓ renderRetaFinal — seletor de filtro do cronograma > "Próximos dias" mostra só os blocos de dias futuros  646ms
+   ✓ renderRetaFinal — seletor de filtro do cronograma > "Concluídos" mostra só blocos concluídos (sem os de hoje)  611ms
+   ✓ renderRetaFinal — seletor de filtro do cronograma > voltar para "Todos" mostra tudo de novo  657ms
+   ✓ renderRetaFinal — seletor de filtro do cronograma > filtro sem resultados mostra mensagem de vazio do filtro  618ms
+   ✓ renderRetaFinal — seletor de filtro do cronograma > filtro desconhecido é ignorado (mantém o atual)  602ms
+   ✓ ação rf-set-filtro > seleciona o filtro e re-renderiza a view  671ms
+ ✓ tests/unit/views-state.test.js (9 tests) 4442ms
+   ✓ views.js - state and utilities > manager tab state > getActiveDiscManagerTab returns default  583ms
+   ✓ views.js - state and utilities > manager tab state > setActiveDiscManagerTab updates tab  473ms
+   ✓ views.js - state and utilities > sequence editing state > getTempSequencia returns default null  476ms
+   ✓ views.js - state and utilities > sequence editing state > setTempSequencia updates sequence  476ms
+   ✓ views.js - state and utilities > sequence editing state > getIsEditingSequence returns default false  522ms
+   ✓ views.js - state and utilities > sequence editing state > setIsEditingSequence updates state  469ms
+   ✓ views.js - state and utilities > skeleton loaders > renderSkeletonLoader returns HTML  468ms
+   ✓ views.js - state and utilities > skeleton loaders > renderSkeletonList returns HTML with correct count  453ms
+   ✓ views.js - state and utilities > skeleton loaders > renderSkeletonTable returns HTML with table structure  519ms
+ ✓ tests/unit/store-reta-final-sync.test.js (10 tests) 6276ms
+   ✓ store — reta final e planejamentoArquivado > setState preserva planejamentoArquivado > mantém planejamentoArquivado no replace (pull/boot)  676ms
+   ✓ store — reta final e planejamentoArquivado > setState preserva planejamentoArquivado > estado sem o campo (cliente antigo) vira null, sem crash  475ms
+   ✓ store — reta final e planejamentoArquivado > setState preserva planejamentoArquivado > replace com null limpa o plano arquivado (restauração)  504ms
+   ✓ store — reta final e planejamentoArquivado > setState preserva planejamento.retaFinal > mantém retaFinal e tipo reta_final no replace  578ms
+   ✓ store — reta final e planejamentoArquivado > setState preserva planejamento.retaFinal > merge:true mescla retaFinal.blocos por id  633ms
+   ✓ store — reta final e planejamentoArquivado > mergeStudyStates (LWW do planejamento) > plano reta_final remoto mais novo vence inteiro e leva planejamentoArquivado  664ms
+   ✓ store — reta final e planejamentoArquivado > mergeStudyStates (LWW do planejamento) > plano local mais novo mantém plano e arquivado locais  705ms
+   ✓ store — reta final e planejamentoArquivado > mergeStudyStates (LWW do planejamento) > restauração propaga: remoto mais novo com plano ciclo e arquivado null  688ms
+   ✓ store — reta final e planejamentoArquivado > createExportableState > inclui planejamentoArquivado e retaFinal no export  657ms
+   ✓ mergeStudyStates — Reta Final v2 archive and history > preserves the archived plan, events, and history on a same-plan merge  693ms
 stderr | tests/unit/notifications-simple.test.js > notifications.js > cleanupNotificationEngine() > cancels the pending init timeout from initNotifications
 Este browser não suporta notificações nativas.
 
- ✓ tests/unit/notifications-simple.test.js (14 tests) 5524ms
-   ✓ notifications.js > hasNotificationPermission > exports initial permission state as false  866ms
-   ✓ notifications.js > fireNotification() > dispatches toast fallback when no permission  539ms
-   ✓ notifications.js > fireNotification() > prevents duplicate notifications for same key on same day  555ms
-   ✓ notifications.js > fireNotification() > allows same key on different day  488ms
-   ✓ notifications.js > initNotifications() > não solicita permissão no boot quando ela está em default (sem gesto do usuário)  577ms
-   ✓ notifications.js > initNotifications() > adota permissão já concedida no boot  535ms
-   ✓ notifications.js > adoptNotificationPermission() > sincroniza o engine quando a permissão foi concedida depois do boot  491ms
-   ✓ notifications.js > modo silencioso com config corrompida > NaN persistido cai no default 22h (silencia às 23h local)  447ms
-   ✓ notifications.js > modo silencioso com horários zero > silentModeStart=0 não cai no default 22h (23h local deve notificar)  513ms
-   ✓ notifications.js > modo silencioso com horários zero > silentModeStart=0 silencia de madrugada (02h local)  460ms
- ✓ tests/unit/session-save-topics.test.js (9 tests) 4989ms
-   ✓ performSave — sessão multi-tópico > grava topicos[] com escalares e somas derivadas (compat sem migração)  792ms
-   ✓ performSave — sessão multi-tópico > valida questões por item (acertos+erros > total rejeita)  579ms
-   ✓ performSave — sessão multi-tópico > promoção itera itens finalizados: assunto concluído e aula estudada  468ms
-   ✓ performSave — sessão multi-tópico > NÃO reseta revisoesFetas de assunto já concluído (guarda de re-edição)  605ms
-   ✓ performSave — sessão multi-tópico > hábitos usam as somas de questões dos itens  554ms
-   ✓ performSave — sessão multi-tópico > hábito de páginas usa a soma das páginas dos itens  494ms
-   ✓ performSave — sessão multi-tópico > sem sessionTopicos o fluxo legado segue intacto (sem topicos[] no evento)  458ms
-   ✓ performSave — sessão multi-tópico > item sem assunto nem aula rejeita o save  539ms
-   ✓ performSave — sessão multi-tópico > reedição de sessão multi-tópico não duplica hábitos  499ms
- ✓ tests/unit/store-reta-final-sync.test.js (10 tests) 6011ms
-   ✓ store — reta final e planejamentoArquivado > setState preserva planejamentoArquivado > mantém planejamentoArquivado no replace (pull/boot)  807ms
-   ✓ store — reta final e planejamentoArquivado > setState preserva planejamentoArquivado > estado sem o campo (cliente antigo) vira null, sem crash  690ms
-   ✓ store — reta final e planejamentoArquivado > setState preserva planejamentoArquivado > replace com null limpa o plano arquivado (restauração)  584ms
-   ✓ store — reta final e planejamentoArquivado > setState preserva planejamento.retaFinal > mantém retaFinal e tipo reta_final no replace  563ms
-   ✓ store — reta final e planejamentoArquivado > setState preserva planejamento.retaFinal > merge:true mescla retaFinal.blocos por id  568ms
-   ✓ store — reta final e planejamentoArquivado > mergeStudyStates (LWW do planejamento) > plano reta_final remoto mais novo vence inteiro e leva planejamentoArquivado  646ms
-   ✓ store — reta final e planejamentoArquivado > mergeStudyStates (LWW do planejamento) > plano local mais novo mantém plano e arquivado locais  552ms
-   ✓ store — reta final e planejamentoArquivado > mergeStudyStates (LWW do planejamento) > restauração propaga: remoto mais novo com plano ciclo e arquivado null  487ms
-   ✓ store — reta final e planejamentoArquivado > createExportableState > inclui planejamentoArquivado e retaFinal no export  587ms
-   ✓ mergeStudyStates — Reta Final v2 archive and history > preserves the archived plan, events, and history on a same-plan merge  525ms
- ✓ tests/unit/reta-final-view-actions.test.js (8 tests) 4358ms
-   ✓ renderRetaFinal — botões de ação nos cards > card pendente tem rf-quick-mark e rf-associar-historico com data-bloco-id  762ms
-   ✓ renderRetaFinal — botões de ação nos cards > card pendente de hoje/atrasado tem rf-start-timer; bloco futuro não  665ms
-   ✓ renderRetaFinal — botões de ação nos cards > cards concluído e não coberto NÃO ganham botões de ação  533ms
-   ✓ openAssociarHistorico — picker no #modal-prompt > lista candidatos da disciplina em ordem desc e abre o modal  532ms
-   ✓ openAssociarHistorico — picker no #modal-prompt > clicar num candidato associa a sessão e fecha o modal  531ms
-   ✓ openAssociarHistorico — picker no #modal-prompt > sem candidatos mostra empty-state  471ms
-   ✓ openAssociarHistorico — picker no #modal-prompt > restaura o rótulo do botão salvar ao fechar sem escolher  464ms
-   ✓ openAssociarHistorico — picker no #modal-prompt > bloco inexistente retorna false sem abrir modal  396ms
- ✓ tests/unit/cycle-sync-occupied-slots.test.js (6 tests) 2937ms
-   ✓ syncCicloToEventos — slots ocupados por eventos preservados > não re-preenche o slot de hoje ocupado por sessão estudada  791ms
-   ✓ syncCicloToEventos — slots ocupados por eventos preservados > dia com todos os slots consumidos por sessões estudadas não recebe pendentes  470ms
-   ✓ syncCicloToEventos — slots ocupados por eventos preservados > evento com tempo acumulado (timer parcial) também ocupa o slot  465ms
-   ✓ syncCicloToEventos — slots ocupados por eventos preservados > slot ocupado + override no outro slot: dia fica sem novos pendentes  424ms
-   ✓ syncCicloToEventos — slots ocupados por eventos preservados > previsão do ciclo também não conta slots já ocupados (paridade com o agendador)  393ms
-   ✓ syncCicloToEventos — slots ocupados por eventos preservados > fluxo do bug: estudar → regen → apagar o pendente re-criado → nada volta no dia  392ms
- ✓ tests/unit/reta-final-associar.test.js (6 tests) 2955ms
-   ✓ associateHistoryEventToBloco > vincula a sessão, carimba updatedAt e conclui o bloco via reconcile  822ms
-   ✓ associateHistoryEventToBloco > preserva a data real: não altera dataEstudo nem data da sessão  470ms
-   ✓ associateHistoryEventToBloco > NÃO toca planejamento.updatedAt  455ms
-   ✓ associateHistoryEventToBloco > auto agendado órfão do bloco some no sync SEM ganhar tombstone  411ms
-   ✓ associateHistoryEventToBloco > retorna false para bloco inexistente/não-pendente e evento inexistente  396ms
-   ✓ associateHistoryEventToBloco > retorna false para evento já vinculado ou não estudado  399ms
- ✓ tests/unit/logic-revisions-imports.test.js (8 tests) 3858ms
-   ✓ logic/revisions.js - Module integrity > exports expected symbols  742ms
-   ✓ logic/revisions.js - Module integrity > re-exports from logic.js match revisions.js (same binding)  560ms
-   ✓ logic/revisions.js - Module integrity > does not import from other logic/ sub-modules  510ms
-   ✓ logic/revisions.js - Module integrity > does not import getDisc or any domain function from logic.js  450ms
-   ✓ logic.js → re-exports from revisions.js > invalidates cache via re-exported invalidatePendingRevCache  422ms
-   ✓ logic.js → re-exports from revisions.js > calcRevisionDates computes expected dates  389ms
-   ✓ logic.js → re-exports from revisions.js > calcRevisionDates uses cache on second call  393ms
-   ✓ logic.js → re-exports from revisions.js > invalidateRevCache clears the date cache  391ms
- ✓ tests/unit/logic-timer.test.js (35 tests) 2697ms
- ✓ tests/unit/views-modules.test.js (65 tests) 51456ms
-   ✓ editais-view.js > renderEditalTree() > renderiza árvore de edital com disciplinas  2027ms
-   ✓ editais-view.js > renderEditalTree() > inclui cor do edital no header  869ms
-   ✓ editais-view.js > renderEditalTree() > inclui atributos data-action  1084ms
-   ✓ editais-view.js > renderEditalTree() > card de disciplina é acionável por teclado  1655ms
-   ✓ editais-view.js > toggleEdital() > existe e é função  1321ms
-   ✓ editais-view.js > toggleEdital() > header é acionável por teclado e expõe aria-expanded  2564ms
-   ✓ editais-view.js > toggleEdital() > sincroniza aria-expanded ao recolher/expandir  1261ms
-   ✓ editais-view.js > toggleAssunto() > existe e é função  945ms
-   ✓ dashboard-view.js > toggleAulaDashboard() > é exportado apenas por editais-crud (sem cópia duplicada no dashboard-view)  2631ms
-   ✓ dashboard-view.js > renderDisciplinaDashboard() > check-circle de assunto é toggle acionável por teclado (aria-pressed)  1100ms
-   ✓ dashboard-view.js > renderDisciplinaDashboard() > renderiza dashboard de disciplina com shell  986ms
-   ✓ dashboard-view.js > renderDisciplinaDashboard() > renderiza lista de assuntos  1118ms
-   ✓ dashboard-view.js > renderDisciplinaDashboard() > inclui data-actions para interação  920ms
-   ✓ dashboard-view.js > toggleAssunto() > marca assunto como concluído  1368ms
-   ✓ dashboard-view.js > toggleAssunto() > preserva a rolagem da lista ao marcar assunto no dashboard  1009ms
-   ✓ dashboard-view.js > toggleAssunto() > preserva a rolagem da lista ao marcar aula no dashboard  762ms
-   ✓ dashboard-view.js > toggleAssunto() > preserva a rolagem do gerenciador ao marcar aula como estudada  817ms
-   ✓ ciclo-view.js > renderCiclo() > renderiza container vazio quando sem ciclo ativo  731ms
-   ✓ ciclo-view.js > renderCiclo() > renderiza ciclo com sequência  653ms
-   ✓ ciclo-view.js > renderCiclo() > renderiza progresso do ciclo em formato humano e sem casas decimais  631ms
-   ✓ ciclo-view.js > renderCiclo() > mostra banner de ciclo completo com CTA quando todas as etapas não-puladas estão concluídas  561ms
-   ✓ ciclo-view.js > renderCiclo() > não mostra banner de ciclo completo com etapa pendente  514ms
-   ✓ ciclo-view.js > renderCiclo() > renderiza resumo agregado da previsÃ£o de sessÃµes  617ms
-   ✓ ciclo-view.js > renderCiclo() > persiste a janela de datas da previsão no estado ao recalcular  695ms
-   ✓ ciclo-view.js > renderCiclo() > reduz a previsão ao registrar uma sessão livre (sem seqId) na disciplina  662ms
-   ✓ ciclo-view.js > renderCiclo() > mostra etapa concluida manualmente como 100% mesmo com tempo parcial  650ms
-   ✓ ciclo-view.js > recomecarCiclo() > existe e é função  691ms
-   ✓ ciclo-view.js > zerarCiclosCounter() > existe e é função  707ms
-   ✓ ciclo history modal > mostra progresso, tempo restante e status da etapa parcial  760ms
-   ✓ habitos-view.js > renderHabitos() > renderiza grid de hábitos  813ms
-   ✓ habitos-view.js > renderHabitos() > renderiza cards de hábitos  815ms
-   ✓ habitos-view.js > renderHabitos() > renderiza histórico de hábitos  713ms
-   ✓ habitos-view.js > renderHabitos() > renderiza detalhes completos no histórico de hábitos  811ms
-   ✓ habitos-view.js > renderHabitos() > usa volume real nos cards de hábitos, incluindo campos legados e sessões  728ms
-   ✓ habitos-view.js > calcSimuladoPerc() > existe e é função  613ms
-   ✓ habitos-view.js > deleteHabito() > existe e é função  635ms
-   ✓ habitos-view.js > deleteHabito() > grava tombstone de sync ao excluir um registro de hábito  683ms
-   ✓ habitos-view.js > setHabitPage() > existe e é função  614ms
-   ✓ home-view.js > renderHome() > renderiza home com estatísticas  675ms
-   ✓ home-view.js > renderHome() > renderiza home vazia sem eventos  676ms
-   ✓ home-view.js > renderHome() > renderiza stats de sessões  773ms
-   ✓ home-view.js > renderHome() > mantém a área de estudo semanal renderizável mesmo sem dados  777ms
-   ✓ home-view.js > renderHome() > mostra no painel apenas as disciplinas do edital principal  698ms
-   ✓ home-view.js > renderHome() > mostra escolha inline de edital principal quando ha varios ativos pendentes  728ms
-   ✓ home-view.js > renderHome() > usa todos os editais ativos na Home enquanto a escolha do principal esta pendente  675ms
-   ✓ historico-sessoes view > renderiza detalhes e usa a data real de estudo no histórico global  650ms
-   ✓ historico-sessoes view > inclui sessões arquivadas com os mesmos detalhes do histórico ativo  603ms
-   ✓ historico-sessoes view > escopa o contador "Exibindo X de Y" ao edital selecionado e explica no empty state  587ms
-   ✓ historico-sessoes view > aplica o corte de período com data local, não UTC  533ms
-   ✓ historico-sessoes view > não mostra "Limpar filtros" no estado padrão (Tudo) e mostra quando o período muda  618ms
-   ✓ historico-sessoes view > estiliza os controles da toolbar de filtros com form-control  590ms
-   ✓ revisoes view actions > confirma e remove da fila todas as revisões vencidas do assunto  513ms
-   ✓ revisoes view actions > adiar revisão atrasada move a pendência para amanhã e não conta como feita  597ms
-   ✓ revisoes view actions > remove revisão inicial atrasada mesmo quando ainda não há revisões feitas  503ms
-   ✓ revisoes view actions > permite remover uma revisão futura específica sem apagar o assunto concluído  506ms
-   ✓ banca-view.js > renderBancaAnalyzerModule() > renderiza módulo de análise de banca  414ms
-   ✓ banca-view.js > renderBancaAnalyzerContent() > renderiza conteúdo do analisador  414ms
-   ✓ banca-view.js > mudarEditalAnalisador() > existe e é função  395ms
-   ✓ banca-view.js > filtrarViewPorDisciplina() > existe e é função  381ms
-   ✓ banca-view.js > carregarAnaliseBanca() > existe e é função  408ms
-   ✓ pontos-fracos view > renderiza ranking com a aula mais fraca primeiro e taxas nas faixas  373ms
-   ✓ pontos-fracos view > aula com poucas questões entra no ranking com selo; sem questões tem seção própria  384ms
-   ✓ pontos-fracos view > emite controles de janela, filtros e ação rápida com data-actions corretos  409ms
-   ✓ pontos-fracos view > setters de janela e filtro re-renderizam a view  414ms
-   ✓ pontos-fracos view > renderiza sparkline semanal para aula com dados em mais de uma semana  421ms
- ✓ tests/unit/config-view.test.js (34 tests) 1793ms
- ✓ tests/unit/reta-final-schedule.test.js (21 tests) 2164ms
-   ✓ syncRetaFinalToEventos — integração com a projeção v2 > rola a projeção v2, materializa rfBlocoId e preserva intenção/revisão  618ms
-   ✓ syncRetaFinalToEventos — integração com a projeção v2 > bloco fixado no passado permanece na data humana e não ganha evento  437ms
-   ✓ syncRetaFinalToEventos — integração com a projeção v2 > após dataFinal mantém o bloco, marca nao_coberto e remove auto pendente  470ms
-   ✓ syncRetaFinalToEventos — integração com a projeção v2 > após dataFinal preserva timer parcial e marca o bloco nao_coberto  626ms
- ✓ tests/unit/firestore-sync-engine-new.test.js (21 tests) 3243ms
- ✓ tests/unit/session-save-slots.test.js (5 tests) 2638ms
-   ✓ registro-sessao/session-save.js — slots reais > substituição de slot (mode: substituir) > desvincula o evento da etapa original para não concluí-la indevidamente  598ms
-   ✓ registro-sessao/session-save.js — slots reais > prompt de substituição > não dispara ao editar sessão já estudada com disciplina trocada  519ms
-   ✓ registro-sessao/session-save.js — slots reais > prompt de substituição > escapa HTML no nome da disciplina exibido no prompt  595ms
-   ✓ registro-sessao/session-save.js — slots reais > prompt de substituição > salva como estudo extra se o modal-prompt não existir no DOM  480ms
-   ✓ registro-sessao/session-save.js — slots reais > prompt de substituição > restaura o rótulo do botão salvar quando o prompt é cancelado  444ms
- ✓ tests/unit/editais-principal-flow.test.js (5 tests) 2884ms
-   ✓ saveEdital — create makes the new edital the principal > a new edital becomes the only active, archiving the previous principal  723ms
-   ✓ saveEdital — create makes the new edital the principal > editing an existing edital does not change archive flags  535ms
-   ✓ reconcilePrincipalEdital > does not prompt and keeps a single active when there is at most one active  643ms
-   ✓ reconcilePrincipalEdital > marks reconciled (sets the per-device flag) when the invariant already holds  516ms
-   ✓ reconcilePrincipalEdital > does not open a blocking prompt when more than one edital is active  466ms
- ✓ tests/unit/sync-manual.test.js (20 tests) 1547ms
- ✓ tests/unit/editais-order-and-colors.test.js (5 tests) 2006ms
-   ✓ editais colors and ordering > renders visible color swatches when opening the edital modal  586ms
-   ✓ editais colors and ordering > renders edital ordering controls on edital cards  421ms
-   ✓ editais colors and ordering > moves editais up and down while preserving bounds  324ms
-   ✓ editais colors and ordering > closes the discipline manager after saving global discipline changes  340ms
-   ✓ editais colors and ordering > saves the color selected from the discipline manager color picker  333ms
- ✓ tests/unit/app-submodules.test.js (38 tests) 2032ms
- ✓ tests/unit/store-migrations.test.js (22 tests) 2204ms
- ✓ tests/unit/save-status.test.js (3 tests) 821ms
-   ✓ save status indicator contract > shows the save failure reason inside settings when config status exists  615ms
- ✓ tests/unit/calendar-view.test.js (32 tests) 826ms
- ✓ tests/unit/sync-coordinator.test.js (31 tests) 1179ms
- ✓ tests/unit/poll-firestore-remote.test.js (14 tests) 919ms
- ✓ tests/unit/eventos-actions.test.js (37 tests) 541ms
- ✓ tests/unit/action-contracts.test.js (26 tests) 831ms
-   ✓ data-action contracts > uses the extracted calendar view as the runtime calendar owner  528ms
- ✓ tests/unit/editais-actions.test.js (35 tests) 492ms
- ✓ tests/unit/disc-manager-tabs.test.js (1 test) 442ms
-   ✓ discipline manager tabs > marks the active topics tab as visible when editing a discipline  441ms
- ✓ tests/unit/sync-coordinator-simple.test.js (3 tests) 658ms
-   ✓ sync-coordinator.js > getSyncCoordinatorStatus() > returns status with primary source and timer state  304ms
- ✓ tests/unit/planejamento-actions.test.js (34 tests) 615ms
- ✓ tests/unit/store-export-normalize-imports.test.js (21 tests) 1627ms
- ✓ tests/unit/planejamento-wizard.test.js (22 tests) 750ms
- ✓ tests/unit/planejamento-step-renderers.test.js (44 tests) 373ms
- ✓ tests/unit/store-indexeddb-imports.test.js (12 tests) 978ms
- ✓ tests/unit/bump-cache.test.js (12 tests) 170ms
- ✓ tests/unit/pontos-fracos-modal-prereqs.test.js (6 tests) 1215ms
-   ✓ views.js - addEventoParaAssunto com assunto concluído > pré-seleciona assunto pendente (comportamento existente)  515ms
-   ✓ views.js - addEventoParaAssunto com assunto concluído > insere a option e pré-seleciona assunto concluído  344ms
- ✓ tests/unit/sync-lock.test.js (14 tests) 744ms
-   ✓ sync/sync-lock.js > SyncLock class > rejects after timeout if lock cannot be acquired  509ms
- ✓ tests/unit/reta-final-import-view.test.js (3 tests) 167ms
- ✓ tests/unit/integration/sync-integration.test.js (24 tests) 1248ms
- ✓ tests/unit/no-feedback-loop.test.js (6 tests) 475ms
- ✓ tests/unit/merge-study-states-simplified.test.js (13 tests) 248ms
- ✓ tests/unit/navegacao-actions.test.js (15 tests) 197ms
- ✓ tests/unit/edital-import-view.test.js (18 tests) 390ms
- ✓ tests/unit/reta-final-conflicts-ui.test.js (34 tests) 424ms
- ✓ tests/unit/persistence-contracts.test.js (4 tests) 466ms
- ✓ tests/unit/css-architecture.test.js (45 tests) 1262ms
- ✓ tests/unit/sync-now-button.test.js (15 tests) 613ms
- ✓ tests/unit/drive-sync.test.js (21 tests) 396ms
- ✓ tests/unit/modais-actions.test.js (9 tests) 206ms
- ✓ tests/unit/editais-view.test.js (19 tests) 655ms
- ✓ tests/unit/firestore-sync-engine-simple.test.js (2 tests) 537ms
-   ✓ firestore-sync-engine.js > getFirestoreSyncStatus() > returns status with configured=false when Firebase not configured  350ms
- ✓ tests/unit/habitos-view-ux.test.js (8 tests) 464ms
- ✓ tests/unit/editais-submodules.test.js (23 tests) 735ms
- ✓ tests/unit/event-modals-edit.test.js (6 tests) 131ms
- ✓ tests/unit/firestore-sign-in-cancel.test.js (2 tests) 312ms
- ✓ tests/unit/timestamp-wins-merge.test.js (18 tests) 288ms
- ✓ tests/unit/import-export-contracts.test.js (3 tests) 99ms
- ✓ tests/unit/editais-view-render.test.js (17 tests) 266ms
- ✓ tests/unit/firestore-sync-outbox-integration.test.js (1 test) 138ms
- ✓ tests/unit/habitos-view-save.test.js (7 tests) 274ms
- ✓ tests/unit/store-boot-failure.test.js (2 tests) 200ms
- ✓ tests/unit/calendar-state.test.js (12 tests) 138ms
- ✓ tests/unit/reta-final-detail-view.test.js (12 tests) 181ms
- ✓ tests/unit/firestore-contracts.test.js (24 tests) 170ms
- ✓ tests/unit/dialog-controller.test.js (7 tests) 186ms
- ✓ tests/unit/actions-dispatcher.test.js (21 tests) 237ms
- ✓ tests/unit/calendar-day-panel.test.js (5 tests) 79ms
- ✓ tests/unit/editais-anteriores.test.js (5 tests) 67ms
- ✓ tests/unit/reta-final-editor-form.test.js (15 tests) 118ms
- ✓ tests/unit/edital-filter.test.js (9 tests) 46ms
- ✓ tests/unit/home-view-hero.test.js (3 tests) 57ms
+ ✓ tests/unit/notifications-simple.test.js (14 tests) 6001ms
+   ✓ notifications.js > hasNotificationPermission > exports initial permission state as false  677ms
+   ✓ notifications.js > fireNotification() > dispatches toast fallback when no permission  477ms
+   ✓ notifications.js > fireNotification() > prevents duplicate notifications for same key on same day  520ms
+   ✓ notifications.js > fireNotification() > allows same key on different day  566ms
+   ✓ notifications.js > initNotifications() > não solicita permissão no boot quando ela está em default (sem gesto do usuário)  616ms
+   ✓ notifications.js > initNotifications() > adota permissão já concedida no boot  609ms
+   ✓ notifications.js > adoptNotificationPermission() > sincroniza o engine quando a permissão foi concedida depois do boot  677ms
+   ✓ notifications.js > modo silencioso com config corrompida > NaN persistido cai no default 22h (silencia às 23h local)  583ms
+   ✓ notifications.js > modo silencioso com horários zero > silentModeStart=0 não cai no default 22h (23h local deve notificar)  597ms
+   ✓ notifications.js > modo silencioso com horários zero > silentModeStart=0 silencia de madrugada (02h local)  630ms
+ ✓ tests/unit/session-save-topics.test.js (9 tests) 5559ms
+   ✓ performSave — sessão multi-tópico > grava topicos[] com escalares e somas derivadas (compat sem migração)  695ms
+   ✓ performSave — sessão multi-tópico > valida questões por item (acertos+erros > total rejeita)  583ms
+   ✓ performSave — sessão multi-tópico > promoção itera itens finalizados: assunto concluído e aula estudada  596ms
+   ✓ performSave — sessão multi-tópico > NÃO reseta revisoesFetas de assunto já concluído (guarda de re-edição)  622ms
+   ✓ performSave — sessão multi-tópico > hábitos usam as somas de questões dos itens  656ms
+   ✓ performSave — sessão multi-tópico > hábito de páginas usa a soma das páginas dos itens  599ms
+   ✓ performSave — sessão multi-tópico > sem sessionTopicos o fluxo legado segue intacto (sem topicos[] no evento)  617ms
+   ✓ performSave — sessão multi-tópico > item sem assunto nem aula rejeita o save  649ms
+   ✓ performSave — sessão multi-tópico > reedição de sessão multi-tópico não duplica hábitos  541ms
+ ✓ tests/unit/firestore-sync-engine-new.test.js (21 tests) 4540ms
+   ✓ firestore-sync-engine.js > getFirestoreSyncStatus > returns status object with expected fields  329ms
+ ✓ tests/unit/reta-final-associar.test.js (6 tests) 4070ms
+   ✓ associateHistoryEventToBloco > vincula a sessão, carimba updatedAt e conclui o bloco via reconcile  875ms
+   ✓ associateHistoryEventToBloco > preserva a data real: não altera dataEstudo nem data da sessão  699ms
+   ✓ associateHistoryEventToBloco > NÃO toca planejamento.updatedAt  662ms
+   ✓ associateHistoryEventToBloco > auto agendado órfão do bloco some no sync SEM ganhar tombstone  681ms
+   ✓ associateHistoryEventToBloco > retorna false para bloco inexistente/não-pendente e evento inexistente  620ms
+   ✓ associateHistoryEventToBloco > retorna false para evento já vinculado ou não estudado  532ms
+ ✓ tests/unit/reta-final-view-actions.test.js (8 tests) 5023ms
+   ✓ renderRetaFinal — botões de ação nos cards > card pendente tem rf-quick-mark e rf-associar-historico com data-bloco-id  837ms
+   ✓ renderRetaFinal — botões de ação nos cards > card pendente de hoje/atrasado tem rf-start-timer; bloco futuro não  642ms
+   ✓ renderRetaFinal — botões de ação nos cards > cards concluído e não coberto NÃO ganham botões de ação  668ms
+   ✓ openAssociarHistorico — picker no #modal-prompt > lista candidatos da disciplina em ordem desc e abre o modal  676ms
+   ✓ openAssociarHistorico — picker no #modal-prompt > clicar num candidato associa a sessão e fecha o modal  611ms
+   ✓ openAssociarHistorico — picker no #modal-prompt > sem candidatos mostra empty-state  608ms
+   ✓ openAssociarHistorico — picker no #modal-prompt > restaura o rótulo do botão salvar ao fechar sem escolher  523ms
+   ✓ openAssociarHistorico — picker no #modal-prompt > bloco inexistente retorna false sem abrir modal  455ms
+ ✓ tests/unit/logic-revisions-imports.test.js (8 tests) 5170ms
+   ✓ logic/revisions.js - Module integrity > exports expected symbols  836ms
+   ✓ logic/revisions.js - Module integrity > re-exports from logic.js match revisions.js (same binding)  672ms
+   ✓ logic/revisions.js - Module integrity > does not import from other logic/ sub-modules  714ms
+   ✓ logic/revisions.js - Module integrity > does not import getDisc or any domain function from logic.js  684ms
+   ✓ logic.js → re-exports from revisions.js > invalidates cache via re-exported invalidatePendingRevCache  642ms
+   ✓ logic.js → re-exports from revisions.js > calcRevisionDates computes expected dates  630ms
+   ✓ logic.js → re-exports from revisions.js > calcRevisionDates uses cache on second call  544ms
+   ✓ logic.js → re-exports from revisions.js > invalidateRevCache clears the date cache  445ms
+ ✓ tests/unit/cycle-sync-occupied-slots.test.js (6 tests) 3374ms
+   ✓ syncCicloToEventos — slots ocupados por eventos preservados > não re-preenche o slot de hoje ocupado por sessão estudada  866ms
+   ✓ syncCicloToEventos — slots ocupados por eventos preservados > dia com todos os slots consumidos por sessões estudadas não recebe pendentes  678ms
+   ✓ syncCicloToEventos — slots ocupados por eventos preservados > evento com tempo acumulado (timer parcial) também ocupa o slot  548ms
+   ✓ syncCicloToEventos — slots ocupados por eventos preservados > slot ocupado + override no outro slot: dia fica sem novos pendentes  469ms
+   ✓ syncCicloToEventos — slots ocupados por eventos preservados > previsão do ciclo também não conta slots já ocupados (paridade com o agendador)  413ms
+   ✓ syncCicloToEventos — slots ocupados por eventos preservados > fluxo do bug: estudar → regen → apagar o pendente re-criado → nada volta no dia  398ms
+ ✓ tests/unit/editais-principal-flow.test.js (5 tests) 2712ms
+   ✓ saveEdital — create makes the new edital the principal > a new edital becomes the only active, archiving the previous principal  862ms
+   ✓ saveEdital — create makes the new edital the principal > editing an existing edital does not change archive flags  551ms
+   ✓ reconcilePrincipalEdital > does not prompt and keeps a single active when there is at most one active  465ms
+   ✓ reconcilePrincipalEdital > marks reconciled (sets the per-device flag) when the invariant already holds  435ms
+   ✓ reconcilePrincipalEdital > does not open a blocking prompt when more than one edital is active  397ms
+ ✓ tests/unit/logic-timer.test.js (35 tests) 3017ms
+ ✓ tests/unit/views-modules.test.js (65 tests) 42151ms
+   ✓ editais-view.js > renderEditalTree() > renderiza árvore de edital com disciplinas  2208ms
+   ✓ editais-view.js > renderEditalTree() > inclui cor do edital no header  740ms
+   ✓ editais-view.js > renderEditalTree() > inclui atributos data-action  696ms
+   ✓ editais-view.js > renderEditalTree() > card de disciplina é acionável por teclado  871ms
+   ✓ editais-view.js > toggleEdital() > existe e é função  783ms
+   ✓ editais-view.js > toggleEdital() > header é acionável por teclado e expõe aria-expanded  886ms
+   ✓ editais-view.js > toggleEdital() > sincroniza aria-expanded ao recolher/expandir  949ms
+   ✓ editais-view.js > toggleAssunto() > existe e é função  651ms
+   ✓ dashboard-view.js > toggleAulaDashboard() > é exportado apenas por editais-crud (sem cópia duplicada no dashboard-view)  808ms
+   ✓ dashboard-view.js > renderDisciplinaDashboard() > check-circle de assunto é toggle acionável por teclado (aria-pressed)  884ms
+   ✓ dashboard-view.js > renderDisciplinaDashboard() > renderiza dashboard de disciplina com shell  857ms
+   ✓ dashboard-view.js > renderDisciplinaDashboard() > renderiza lista de assuntos  903ms
+   ✓ dashboard-view.js > renderDisciplinaDashboard() > inclui data-actions para interação  709ms
+   ✓ dashboard-view.js > toggleAssunto() > marca assunto como concluído  729ms
+   ✓ dashboard-view.js > toggleAssunto() > preserva a rolagem da lista ao marcar assunto no dashboard  851ms
+   ✓ dashboard-view.js > toggleAssunto() > preserva a rolagem da lista ao marcar aula no dashboard  717ms
+   ✓ dashboard-view.js > toggleAssunto() > preserva a rolagem do gerenciador ao marcar aula como estudada  689ms
+   ✓ ciclo-view.js > renderCiclo() > renderiza container vazio quando sem ciclo ativo  562ms
+   ✓ ciclo-view.js > renderCiclo() > renderiza ciclo com sequência  591ms
+   ✓ ciclo-view.js > renderCiclo() > renderiza progresso do ciclo em formato humano e sem casas decimais  697ms
+   ✓ ciclo-view.js > renderCiclo() > mostra banner de ciclo completo com CTA quando todas as etapas não-puladas estão concluídas  747ms
+   ✓ ciclo-view.js > renderCiclo() > não mostra banner de ciclo completo com etapa pendente  688ms
+   ✓ ciclo-view.js > renderCiclo() > renderiza resumo agregado da previsÃ£o de sessÃµes  688ms
+   ✓ ciclo-view.js > renderCiclo() > persiste a janela de datas da previsão no estado ao recalcular  658ms
+   ✓ ciclo-view.js > renderCiclo() > reduz a previsão ao registrar uma sessão livre (sem seqId) na disciplina  639ms
+   ✓ ciclo-view.js > renderCiclo() > mostra etapa concluida manualmente como 100% mesmo com tempo parcial  675ms
+   ✓ ciclo-view.js > recomecarCiclo() > existe e é função  658ms
+   ✓ ciclo-view.js > zerarCiclosCounter() > existe e é função  631ms
+   ✓ ciclo history modal > mostra progresso, tempo restante e status da etapa parcial  655ms
+   ✓ habitos-view.js > renderHabitos() > renderiza grid de hábitos  687ms
+   ✓ habitos-view.js > renderHabitos() > renderiza cards de hábitos  713ms
+   ✓ habitos-view.js > renderHabitos() > renderiza histórico de hábitos  650ms
+   ✓ habitos-view.js > renderHabitos() > renderiza detalhes completos no histórico de hábitos  625ms
+   ✓ habitos-view.js > renderHabitos() > usa volume real nos cards de hábitos, incluindo campos legados e sessões  628ms
+   ✓ habitos-view.js > calcSimuladoPerc() > existe e é função  642ms
+   ✓ habitos-view.js > deleteHabito() > existe e é função  659ms
+   ✓ habitos-view.js > deleteHabito() > grava tombstone de sync ao excluir um registro de hábito  611ms
+   ✓ habitos-view.js > setHabitPage() > existe e é função  489ms
+   ✓ home-view.js > renderHome() > renderiza home com estatísticas  444ms
+   ✓ home-view.js > renderHome() > renderiza home vazia sem eventos  451ms
+   ✓ home-view.js > renderHome() > renderiza stats de sessões  424ms
+   ✓ home-view.js > renderHome() > mantém a área de estudo semanal renderizável mesmo sem dados  417ms
+   ✓ home-view.js > renderHome() > mostra no painel apenas as disciplinas do edital principal  434ms
+   ✓ home-view.js > renderHome() > mostra escolha inline de edital principal quando ha varios ativos pendentes  480ms
+   ✓ home-view.js > renderHome() > usa todos os editais ativos na Home enquanto a escolha do principal esta pendente  500ms
+   ✓ historico-sessoes view > renderiza detalhes e usa a data real de estudo no histórico global  462ms
+   ✓ historico-sessoes view > inclui sessões arquivadas com os mesmos detalhes do histórico ativo  517ms
+   ✓ historico-sessoes view > escopa o contador "Exibindo X de Y" ao edital selecionado e explica no empty state  594ms
+   ✓ historico-sessoes view > aplica o corte de período com data local, não UTC  650ms
+   ✓ historico-sessoes view > não mostra "Limpar filtros" no estado padrão (Tudo) e mostra quando o período muda  652ms
+   ✓ historico-sessoes view > estiliza os controles da toolbar de filtros com form-control  716ms
+   ✓ revisoes view actions > confirma e remove da fila todas as revisões vencidas do assunto  678ms
+   ✓ revisoes view actions > adiar revisão atrasada move a pendência para amanhã e não conta como feita  624ms
+   ✓ revisoes view actions > remove revisão inicial atrasada mesmo quando ainda não há revisões feitas  730ms
+   ✓ revisoes view actions > permite remover uma revisão futura específica sem apagar o assunto concluído  570ms
+   ✓ banca-view.js > renderBancaAnalyzerModule() > renderiza módulo de análise de banca  499ms
+   ✓ banca-view.js > renderBancaAnalyzerContent() > renderiza conteúdo do analisador  421ms
+   ✓ banca-view.js > mudarEditalAnalisador() > existe e é função  399ms
+   ✓ banca-view.js > filtrarViewPorDisciplina() > existe e é função  391ms
+   ✓ banca-view.js > carregarAnaliseBanca() > existe e é função  380ms
+   ✓ pontos-fracos view > renderiza ranking com a aula mais fraca primeiro e taxas nas faixas  380ms
+   ✓ pontos-fracos view > aula com poucas questões entra no ranking com selo; sem questões tem seção própria  392ms
+   ✓ pontos-fracos view > emite controles de janela, filtros e ação rápida com data-actions corretos  425ms
+   ✓ pontos-fracos view > setters de janela e filtro re-renderizam a view  474ms
+   ✓ pontos-fracos view > renderiza sparkline semanal para aula com dados em mais de uma semana  517ms
+ ✓ tests/unit/session-save-slots.test.js (5 tests) 2314ms
+   ✓ registro-sessao/session-save.js — slots reais > substituição de slot (mode: substituir) > desvincula o evento da etapa original para não concluí-la indevidamente  537ms
+   ✓ registro-sessao/session-save.js — slots reais > prompt de substituição > não dispara ao editar sessão já estudada com disciplina trocada  387ms
+   ✓ registro-sessao/session-save.js — slots reais > prompt de substituição > escapa HTML no nome da disciplina exibido no prompt  425ms
+   ✓ registro-sessao/session-save.js — slots reais > prompt de substituição > salva como estudo extra se o modal-prompt não existir no DOM  463ms
+   ✓ registro-sessao/session-save.js — slots reais > prompt de substituição > restaura o rótulo do botão salvar quando o prompt é cancelado  500ms
+ ✓ tests/unit/store-migrations.test.js (22 tests) 2199ms
+ ✓ tests/unit/dashboard-period.test.js (3 tests) 2103ms
+   ✓ dashboard period (data real do estudo) > inclui no período a sessão estudada dentro da janela, mesmo agendada fora dela  685ms
+   ✓ dashboard period (data real do estudo) > gráfico de tempo por disciplina usa a data real do estudo no corte do período  612ms
+   ✓ dashboard period (data real do estudo) > gráfico diário acumula os minutos no dia real do estudo  805ms
+ ✓ tests/unit/reta-final-schedule.test.js (21 tests) 2645ms
+   ✓ syncRetaFinalToEventos — integração com a projeção v2 > rola a projeção v2, materializa rfBlocoId e preserva intenção/revisão  659ms
+   ✓ syncRetaFinalToEventos — integração com a projeção v2 > bloco fixado no passado permanece na data humana e não ganha evento  470ms
+   ✓ syncRetaFinalToEventos — integração com a projeção v2 > após dataFinal mantém o bloco, marca nao_coberto e remove auto pendente  676ms
+   ✓ syncRetaFinalToEventos — integração com a projeção v2 > após dataFinal preserva timer parcial e marca o bloco nao_coberto  828ms
+ ✓ tests/unit/app-submodules.test.js (38 tests) 2496ms
+ ✓ tests/unit/editais-order-and-colors.test.js (5 tests) 2524ms
+   ✓ editais colors and ordering > renders visible color swatches when opening the edital modal  480ms
+   ✓ editais colors and ordering > renders edital ordering controls on edital cards  427ms
+   ✓ editais colors and ordering > moves editais up and down while preserving bounds  539ms
+   ✓ editais colors and ordering > closes the discipline manager after saving global discipline changes  622ms
+   ✓ editais colors and ordering > saves the color selected from the discipline manager color picker  454ms
+ ✓ tests/unit/integration/sync-integration.test.js (24 tests) 1240ms
+ ✓ tests/unit/sync-manual.test.js (20 tests) 2121ms
+   ✓ runManualSync action handler > registers both sync-now and manual-sync-all actions  327ms
+   ✓ runManualSync action handler > shows offline toast when offline  340ms
+ ✓ tests/unit/pontos-fracos-modal-prereqs.test.js (6 tests) 1746ms
+   ✓ views.js - addEventoParaAssunto com assunto concluído > pré-seleciona assunto pendente (comportamento existente)  870ms
+   ✓ views.js - addEventoParaAssunto com assunto concluído > insere a option e pré-seleciona assunto concluído  427ms
+   ✓ views.js - addEventoParaAssunto com assunto concluído > pré-seleciona aula estudada pela convenção aul_<id>  355ms
+ ✓ tests/unit/store-export-normalize-imports.test.js (21 tests) 2579ms
+ ✓ tests/unit/sync-coordinator.test.js (31 tests) 1892ms
+ ✓ tests/unit/store-indexeddb-imports.test.js (12 tests) 1151ms
+ ✓ tests/unit/config-view.test.js (34 tests) 2761ms
+ ✓ tests/unit/poll-firestore-remote.test.js (14 tests) 901ms
+ ✓ tests/unit/calendar-view.test.js (32 tests) 817ms
+ ✓ tests/unit/action-contracts.test.js (26 tests) 1787ms
+   ✓ data-action contracts > does not dispatch the same used action from main.js and ui/actions.js  710ms
+   ✓ data-action contracts > uses the extracted calendar view as the runtime calendar owner  631ms
+ ✓ tests/unit/save-status.test.js (3 tests) 777ms
+   ✓ save status indicator contract > shows the save failure reason inside settings when config status exists  591ms
+ ✓ tests/unit/planejamento-wizard.test.js (22 tests) 779ms
+ ✓ tests/unit/sync-lock.test.js (14 tests) 787ms
+   ✓ sync/sync-lock.js > SyncLock class > rejects after timeout if lock cannot be acquired  513ms
+ ✓ tests/unit/editais-submodules.test.js (23 tests) 520ms
+ ✓ tests/unit/sync-coordinator-simple.test.js (3 tests) 612ms
+ ✓ tests/unit/editais-view.test.js (19 tests) 504ms
+ ✓ tests/unit/planejamento-actions.test.js (34 tests) 810ms
+ ✓ tests/unit/firestore-sync-engine-simple.test.js (2 tests) 536ms
+   ✓ firestore-sync-engine.js > getFirestoreSyncStatus() > returns status with configured=false when Firebase not configured  338ms
+ ✓ tests/unit/sync-now-button.test.js (15 tests) 638ms
+ ✓ tests/unit/eventos-actions.test.js (37 tests) 850ms
+ ✓ tests/unit/css-architecture.test.js (45 tests) 1430ms
+ ✓ tests/unit/editais-actions.test.js (35 tests) 464ms
+ ✓ tests/unit/persistence-contracts.test.js (4 tests) 343ms
+ ✓ tests/unit/habitos-view-ux.test.js (8 tests) 354ms
+ ✓ tests/unit/no-feedback-loop.test.js (6 tests) 547ms
+ ✓ tests/unit/disc-manager-tabs.test.js (1 test) 424ms
+   ✓ discipline manager tabs > marks the active topics tab as visible when editing a discipline  423ms
+ ✓ tests/unit/drive-sync.test.js (21 tests) 330ms
+ ✓ tests/unit/edital-import-view.test.js (18 tests) 447ms
+ ✓ tests/unit/planejamento-step-renderers.test.js (44 tests) 345ms
+ ✓ tests/unit/reta-final-conflicts-ui.test.js (34 tests) 488ms
+ ✓ tests/unit/firestore-sign-in-cancel.test.js (2 tests) 397ms
+ ✓ tests/unit/habitos-view-save.test.js (7 tests) 294ms
+ ✓ tests/unit/timestamp-wins-merge.test.js (18 tests) 389ms
+ ✓ tests/unit/editais-view-render.test.js (17 tests) 320ms
+ ✓ tests/unit/merge-study-states-simplified.test.js (13 tests) 250ms
+ ✓ tests/unit/actions-dispatcher.test.js (21 tests) 188ms
+ ✓ tests/unit/modais-actions.test.js (9 tests) 123ms
+ ✓ tests/unit/store-boot-failure.test.js (2 tests) 185ms
+ ✓ tests/unit/navegacao-actions.test.js (15 tests) 203ms
 stderr | tests/unit/sync-yield.test.js > sync/sync-yield.js > yieldToUIWithBudget detects budget exceeded
 [sync-yield] Operation exceeded 50ms budget (230ms elapsed)
 
- ✓ tests/unit/sync-yield.test.js (6 tests) 188ms
- ✓ tests/unit/cloud-sync.test.js (9 tests) 124ms
- ✓ tests/unit/calendar-events.test.js (8 tests) 40ms
- ✓ tests/unit/reta-final-commit.test.js (21 tests) 144ms
- ✓ tests/unit/banca-parse.test.js (2 tests) 59ms
- ✓ tests/unit/firebase-auth-fallback.test.js (6 tests) 60ms
- ✓ tests/unit/revisoes-actions.test.js (7 tests) 72ms
- ✓ tests/unit/weak-points-memo.test.js (6 tests) 49ms
- ✓ tests/unit/firestore-outbox.test.js (7 tests) 162ms
- ✓ tests/unit/dialog-simple.test.js (13 tests) 117ms
- ✓ tests/unit/visual-layout-lab-guards.test.js (11 tests) 33ms
- ✓ tests/unit/duplicate-exports.test.js (1 test) 33ms
- ✓ tests/unit/habitos-actions.test.js (6 tests) 46ms
- ✓ tests/unit/utils.test.js (46 tests) 69ms
- ✓ tests/unit/mock-data-integrity.test.js (43 tests) 84ms
- ✓ tests/unit/clear-visible-revisions.test.js (3 tests) 76ms
- ✓ tests/unit/sw-register.test.js (6 tests) 39ms
- ✓ tests/unit/logic.test.js (124 tests) 74222ms
-   ✓ logic.js > Timer engine > toggleTimer > starts timer for an event  1995ms
-   ✓ logic.js > Timer engine > toggleTimer > pauses a running timer  851ms
-   ✓ logic.js > Timer engine > toggleTimer > starts crono_livre timer  1102ms
-   ✓ logic.js > Timer engine > toggleTimer > pauses crono_livre timer  1665ms
-   ✓ logic.js > Timer engine > toggleTimer > does nothing for non-existent event  1372ms
-   ✓ logic.js > Timer engine > isTimerActive > returns true when event has _timerStart  2278ms
-   ✓ logic.js > Timer engine > isTimerActive > returns false when event has no _timerStart  1356ms
-   ✓ logic.js > Timer engine > isTimerActive > returns true for crono_livre with _timerStart  962ms
-   ✓ logic.js > Timer engine > isTimerActive > returns false for crono_livre without _timerStart  2733ms
-   ✓ logic.js > Timer engine > isTimerActive > returns false for non-existent event  1124ms
-   ✓ logic.js > Timer engine > getElapsedSeconds > returns tempoAcumulado when timer is not running  1010ms
-   ✓ logic.js > Timer engine > getElapsedSeconds > calculates elapsed time from _timerStart  1234ms
-   ✓ logic.js > Timer engine > getElapsedSeconds > returns 0 when no accumulated time and no timer  1114ms
-   ✓ logic.js > Timer engine > getElapsedSeconds > handles missing tempoAcumulado  1158ms
-   ✓ logic.js > Timer engine > addTimerMinutes > adds minutes to event duracao  862ms
-   ✓ logic.js > Timer engine > addTimerMinutes > adds minutes to crono_livre duracaoMinutos  717ms
-   ✓ logic.js > Timer engine > addTimerMinutes > does not go below 0  739ms
-   ✓ logic.js > Timer engine > addTimerMinutes > creates duracao field if missing  757ms
-   ✓ logic.js > Timer engine > addTimerMinutes > does nothing for non-existent event  664ms
-   ✓ logic.js > Discard timer > dispatches confirmation dialog for event  682ms
-   ✓ logic.js > Discard timer > clears timer state when confirmation is accepted  570ms
-   ✓ logic.js > Discard timer > handles crono_livre discard  547ms
-   ✓ logic.js > Discard timer > does nothing for non-existent event  621ms
-   ✓ logic.js > Crono livre > setCronoLivreGoal > sets duracaoMinutos on cronoLivre  649ms
-   ✓ logic.js > Crono livre > setCronoLivreGoal > creates cronoLivre if not exists  668ms
-   ✓ logic.js > Crono livre > setCronoLivreGoal > parses string input  647ms
-   ✓ logic.js > Crono livre > setCronoLivreGoal > sets 0 for invalid input  717ms
-   ✓ logic.js > Crono livre > setCronoLivreDisc > sets discId and resets assId  708ms
-   ✓ logic.js > Crono livre > setCronoLivreDisc > creates cronoLivre if not exists  753ms
-   ✓ logic.js > Crono livre > setCronoLivreAss > sets assId  799ms
-   ✓ logic.js > Crono livre > setCronoLivreAss > creates cronoLivre if not exists  833ms
-   ✓ logic.js > Study actions > marcarEstudei abre o modal de registro de sessão (sem marcar direto)  771ms
-   ✓ logic.js > Delete event > dispatches confirmation dialog  823ms
-   ✓ logic.js > Delete event > removes event from state when confirmed  697ms
-   ✓ logic.js > Delete event > clears timer interval when deleting event  627ms
-   ✓ logic.js > Delete event > invalidates pending revision cache  635ms
-   ✓ logic.js > Discipline helpers > getDisc > returns discipline entry by id  709ms
-   ✓ logic.js > Discipline helpers > getDisc > returns null for non-existent discipline  592ms
-   ✓ logic.js > Discipline helpers > getDisc > builds cache on first call  645ms
-   ✓ logic.js > Discipline helpers > getActiveDisciplinas > returns only non-archived disciplines  675ms
-   ✓ logic.js > Discipline helpers > getActiveDisciplinas > returns empty array when no disciplines  760ms
-   ✓ logic.js > Discipline helpers > getActiveDisciplinas > handles edital without disciplinas  756ms
-   ✓ logic.js > Discipline helpers > getActiveDisciplinas > aggregates from multiple editais  717ms
-   ✓ logic.js > Discipline helpers > getActiveDisciplinas > excludes disciplines of an archived edital  697ms
-   ✓ logic.js > Cache invalidators > invalidateDiscCache clears _discCache and _discIndex  684ms
-   ✓ logic.js > Cache invalidators > invalidateRevCache clears _revDateCache  644ms
-   ✓ logic.js > Cache invalidators > invalidatePendingRevCache clears _pendingRevCache  624ms
-   ✓ logic.js > Cache invalidators > invalidateTodayCache is exported  602ms
-   ✓ logic.js > Cache invalidators > invalidateStreakCache does not throw  502ms
-   ✓ logic.js > Cache invalidators > invalidateDashCaches does not throw  616ms
-   ✓ logic.js > Pomodoro mode > toggleTimerMode > toggles pomodoro mode and updates config  621ms
-   ✓ logic.js > Pomodoro mode > toggleTimerMode > dispatches toast notification  506ms
-   ✓ logic.js > Pomodoro mode > _pomodoroMode flag is exported  591ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > does nothing when planejamento is not active  516ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > does nothing when sequencia is empty  509ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > creates auto-generated events from sequencia  427ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > respeita a data inicial das previsoes ao gerar sessoes automaticas  411ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > removes future auto-generated events that are not studied  406ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > removes pending cycle-linked sessions when wiping the planning cycle  379ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > pula a etapa ao excluir o evento planejado e remove a matéria da projeção  414ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > does not shift a deleted slot discipline into the adjacent slot (multi-discipline cycle)  371ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > reduces session predictions when a planned slot was skipped  384ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > uses remaining duration for partially studied planning steps in predictions and calendar events  411ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > sessão concluída SEM seqId reduz a duração do evento gerado (todo estudo conta)  417ms
-   ✓ logic.js > Ciclo > syncCicloToEventos > etapa completada por sessão livre é concluída e não é reagendada  415ms
-   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > marca a etapa como pulada e remove todas as ocorrências da janela (wrap)  487ms
-   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > a matéria excluída não volta na virada do dia  626ms
-   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > excluir evento com timer parcial (tempoAcumulado>0) também pula a etapa  577ms
-   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > excluir um registro estudado não mexe na sequência  459ms
-   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > excluir evento manual (sem seqId) não mexe no planejamento  463ms
-   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > perder um slot mantém a etapa pendente e preserva as ocorrências futuras  389ms
-   ✓ logic.js > Ciclo > removeEvento → tombstones de sync > grava tombstone ao excluir evento manual  407ms
-   ✓ logic.js > Ciclo > removeEvento → tombstones de sync > não grava tombstone para evento auto-gerado pendente sem tempo  408ms
-   ✓ logic.js > Ciclo > removeEvento → tombstones de sync > grava tombstone ao excluir evento auto-gerado com progresso real  354ms
-   ✓ logic.js > Ciclo > removeEvento → tombstones de sync > mutações do plano gravam planejamento.updatedAt (LWW do merge de sync)  387ms
-   ✓ logic.js > Ciclo > moveCicloSeq > swaps sequence items in the specified direction  382ms
-   ✓ logic.js > Ciclo > moveCicloSeq > does nothing when move would go out of bounds  342ms
-   ✓ logic.js > Ciclo > moveCicloSeq > does nothing when planejamento is null  399ms
-   ✓ logic.js > Ciclo > desfazerEtapa > marks sequence item as not concluido  377ms
-   ✓ logic.js > Ciclo > desfazerEtapa > reopens a skipped sequence item as pending  389ms
-   ✓ logic.js > Ciclo > desfazerEtapa > avisa quando a etapa é re-concluída pela reconciliação (todo estudo conta)  426ms
-   ✓ logic.js > Ciclo > desfazerEtapa > does nothing when seqId not found  428ms
-   ✓ logic.js > Ciclo > desfazerEtapa > does nothing when planejamento is null  431ms
-   ✓ logic.js > Ciclo > iniciarEtapaPlanejamento > creates event from sequence item and starts timer  406ms
+ ✓ tests/unit/sync-yield.test.js (6 tests) 189ms
+ ✓ tests/unit/dialog-controller.test.js (7 tests) 139ms
+ ✓ tests/unit/bump-cache.test.js (12 tests) 152ms
+ ✓ tests/unit/reta-final-detail-view.test.js (12 tests) 89ms
+ ✓ tests/unit/firestore-contracts.test.js (24 tests) 127ms
+ ✓ tests/unit/reta-final-import-view.test.js (3 tests) 166ms
+ ✓ tests/unit/firestore-outbox.test.js (7 tests) 163ms
+ ✓ tests/unit/firestore-sync-outbox-integration.test.js (1 test) 146ms
+ ✓ tests/unit/reta-final-commit.test.js (21 tests) 179ms
+ ✓ tests/unit/calendar-state.test.js (12 tests) 118ms
+ ✓ tests/unit/event-modals-edit.test.js (6 tests) 155ms
+ ✓ tests/unit/cloud-sync.test.js (9 tests) 143ms
+ ✓ tests/unit/dialog-simple.test.js (13 tests) 112ms
+ ✓ tests/unit/import-export-contracts.test.js (3 tests) 102ms
+ ✓ tests/unit/v2-audit-artifacts.test.js (4 tests) 106ms
+ ✓ tests/unit/reta-final-editor-form.test.js (15 tests) 129ms
+ ✓ tests/unit/mock-data-integrity.test.js (43 tests) 92ms
+ ✓ tests/unit/calendar-day-panel.test.js (5 tests) 68ms
+ ✓ tests/unit/clear-visible-revisions.test.js (3 tests) 77ms
+ ✓ tests/unit/revisoes-actions.test.js (7 tests) 47ms
+ ✓ tests/unit/utils.test.js (46 tests) 64ms
+ ✓ tests/unit/editais-anteriores.test.js (5 tests) 64ms
+ ✓ tests/unit/reta-final-history.test.js (13 tests) 105ms
+ ✓ tests/unit/reta-final-legacy-adoption.test.js (10 tests) 73ms
+ ✓ tests/unit/reta-final-history-store.test.js (9 tests) 62ms
+ ✓ tests/unit/firebase-auth-fallback.test.js (6 tests) 39ms
+ ✓ tests/unit/banca-parse.test.js (2 tests) 53ms
+ ✓ tests/unit/home-view-hero.test.js (3 tests) 61ms
+ ✓ tests/unit/sw-fetch-routing.test.js (7 tests) 52ms
+ ✓ tests/unit/planejamento-validation.test.js (19 tests) 64ms
+ ✓ tests/unit/weak-points-memo.test.js (6 tests) 50ms
+ ✓ tests/unit/sync-center.test.js (66 tests) 47ms
+ ✓ tests/unit/habitos-actions.test.js (6 tests) 48ms
+ ✓ tests/unit/edital-filter.test.js (9 tests) 60ms
+ ✓ tests/unit/inline-editing-guards.test.js (2 tests) 43ms
+ ✓ tests/unit/calendar-events.test.js (8 tests) 56ms
+ ✓ tests/unit/sw-register.test.js (6 tests) 63ms
+ ✓ tests/unit/reta-final-commands.test.js (70 tests) 41ms
+ ✓ tests/unit/logic.test.js (124 tests) 65931ms
+   ✓ logic.js > Timer engine > toggleTimer > starts timer for an event  2195ms
+   ✓ logic.js > Timer engine > toggleTimer > pauses a running timer  738ms
+   ✓ logic.js > Timer engine > toggleTimer > starts crono_livre timer  700ms
+   ✓ logic.js > Timer engine > toggleTimer > pauses crono_livre timer  853ms
+   ✓ logic.js > Timer engine > toggleTimer > does nothing for non-existent event  782ms
+   ✓ logic.js > Timer engine > isTimerActive > returns true when event has _timerStart  888ms
+   ✓ logic.js > Timer engine > isTimerActive > returns false when event has no _timerStart  896ms
+   ✓ logic.js > Timer engine > isTimerActive > returns true for crono_livre with _timerStart  642ms
+   ✓ logic.js > Timer engine > isTimerActive > returns false for crono_livre without _timerStart  756ms
+   ✓ logic.js > Timer engine > isTimerActive > returns false for non-existent event  883ms
+   ✓ logic.js > Timer engine > getElapsedSeconds > returns tempoAcumulado when timer is not running  865ms
+   ✓ logic.js > Timer engine > getElapsedSeconds > calculates elapsed time from _timerStart  826ms
+   ✓ logic.js > Timer engine > getElapsedSeconds > returns 0 when no accumulated time and no timer  735ms
+   ✓ logic.js > Timer engine > getElapsedSeconds > handles missing tempoAcumulado  702ms
+   ✓ logic.js > Timer engine > addTimerMinutes > adds minutes to event duracao  760ms
+   ✓ logic.js > Timer engine > addTimerMinutes > adds minutes to crono_livre duracaoMinutos  719ms
+   ✓ logic.js > Timer engine > addTimerMinutes > does not go below 0  646ms
+   ✓ logic.js > Timer engine > addTimerMinutes > creates duracao field if missing  587ms
+   ✓ logic.js > Timer engine > addTimerMinutes > does nothing for non-existent event  569ms
+   ✓ logic.js > Discard timer > dispatches confirmation dialog for event  642ms
+   ✓ logic.js > Discard timer > clears timer state when confirmation is accepted  740ms
+   ✓ logic.js > Discard timer > handles crono_livre discard  763ms
+   ✓ logic.js > Discard timer > does nothing for non-existent event  670ms
+   ✓ logic.js > Crono livre > setCronoLivreGoal > sets duracaoMinutos on cronoLivre  660ms
+   ✓ logic.js > Crono livre > setCronoLivreGoal > creates cronoLivre if not exists  644ms
+   ✓ logic.js > Crono livre > setCronoLivreGoal > parses string input  635ms
+   ✓ logic.js > Crono livre > setCronoLivreGoal > sets 0 for invalid input  638ms
+   ✓ logic.js > Crono livre > setCronoLivreDisc > sets discId and resets assId  680ms
+   ✓ logic.js > Crono livre > setCronoLivreDisc > creates cronoLivre if not exists  634ms
+   ✓ logic.js > Crono livre > setCronoLivreAss > sets assId  632ms
+   ✓ logic.js > Crono livre > setCronoLivreAss > creates cronoLivre if not exists  692ms
+   ✓ logic.js > Study actions > marcarEstudei abre o modal de registro de sessão (sem marcar direto)  675ms
+   ✓ logic.js > Delete event > dispatches confirmation dialog  648ms
+   ✓ logic.js > Delete event > removes event from state when confirmed  590ms
+   ✓ logic.js > Delete event > clears timer interval when deleting event  589ms
+   ✓ logic.js > Delete event > invalidates pending revision cache  666ms
+   ✓ logic.js > Discipline helpers > getDisc > returns discipline entry by id  633ms
+   ✓ logic.js > Discipline helpers > getDisc > returns null for non-existent discipline  576ms
+   ✓ logic.js > Discipline helpers > getDisc > builds cache on first call  472ms
+   ✓ logic.js > Discipline helpers > getActiveDisciplinas > returns only non-archived disciplines  454ms
+   ✓ logic.js > Discipline helpers > getActiveDisciplinas > returns empty array when no disciplines  435ms
+   ✓ logic.js > Discipline helpers > getActiveDisciplinas > handles edital without disciplinas  417ms
+   ✓ logic.js > Discipline helpers > getActiveDisciplinas > aggregates from multiple editais  435ms
+   ✓ logic.js > Discipline helpers > getActiveDisciplinas > excludes disciplines of an archived edital  431ms
+   ✓ logic.js > Cache invalidators > invalidateDiscCache clears _discCache and _discIndex  467ms
+   ✓ logic.js > Cache invalidators > invalidateRevCache clears _revDateCache  475ms
+   ✓ logic.js > Cache invalidators > invalidatePendingRevCache clears _pendingRevCache  449ms
+   ✓ logic.js > Cache invalidators > invalidateTodayCache is exported  564ms
+   ✓ logic.js > Cache invalidators > invalidateStreakCache does not throw  600ms
+   ✓ logic.js > Cache invalidators > invalidateDashCaches does not throw  648ms
+   ✓ logic.js > Pomodoro mode > toggleTimerMode > toggles pomodoro mode and updates config  686ms
+   ✓ logic.js > Pomodoro mode > toggleTimerMode > dispatches toast notification  710ms
+   ✓ logic.js > Pomodoro mode > _pomodoroMode flag is exported  651ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > does nothing when planejamento is not active  657ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > does nothing when sequencia is empty  654ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > creates auto-generated events from sequencia  574ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > respeita a data inicial das previsoes ao gerar sessoes automaticas  483ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > removes future auto-generated events that are not studied  410ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > removes pending cycle-linked sessions when wiping the planning cycle  402ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > pula a etapa ao excluir o evento planejado e remove a matéria da projeção  377ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > does not shift a deleted slot discipline into the adjacent slot (multi-discipline cycle)  395ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > reduces session predictions when a planned slot was skipped  381ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > uses remaining duration for partially studied planning steps in predictions and calendar events  395ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > sessão concluída SEM seqId reduz a duração do evento gerado (todo estudo conta)  440ms
+   ✓ logic.js > Ciclo > syncCicloToEventos > etapa completada por sessão livre é concluída e não é reagendada  471ms
+   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > marca a etapa como pulada e remove todas as ocorrências da janela (wrap)  543ms
+   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > a matéria excluída não volta na virada do dia  759ms
+   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > excluir evento com timer parcial (tempoAcumulado>0) também pula a etapa  775ms
+   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > excluir um registro estudado não mexe na sequência  508ms
+   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > excluir evento manual (sem seqId) não mexe no planejamento  434ms
+   ✓ logic.js > Ciclo > removeEvento → pular etapa do ciclo > perder um slot mantém a etapa pendente e preserva as ocorrências futuras  423ms
+   ✓ logic.js > Ciclo > removeEvento → tombstones de sync > grava tombstone ao excluir evento manual  370ms
+   ✓ logic.js > Ciclo > removeEvento → tombstones de sync > não grava tombstone para evento auto-gerado pendente sem tempo  371ms
+   ✓ logic.js > Ciclo > removeEvento → tombstones de sync > grava tombstone ao excluir evento auto-gerado com progresso real  382ms
+   ✓ logic.js > Ciclo > removeEvento → tombstones de sync > mutações do plano gravam planejamento.updatedAt (LWW do merge de sync)  366ms
+   ✓ logic.js > Ciclo > moveCicloSeq > swaps sequence items in the specified direction  402ms
+   ✓ logic.js > Ciclo > moveCicloSeq > does nothing when move would go out of bounds  386ms
+   ✓ logic.js > Ciclo > moveCicloSeq > does nothing when planejamento is null  407ms
+   ✓ logic.js > Ciclo > desfazerEtapa > marks sequence item as not concluido  441ms
+   ✓ logic.js > Ciclo > desfazerEtapa > reopens a skipped sequence item as pending  427ms
+   ✓ logic.js > Ciclo > desfazerEtapa > avisa quando a etapa é re-concluída pela reconciliação (todo estudo conta)  554ms
+   ✓ logic.js > Ciclo > desfazerEtapa > does nothing when seqId not found  478ms
+   ✓ logic.js > Ciclo > desfazerEtapa > does nothing when planejamento is null  369ms
+   ✓ logic.js > Ciclo > iniciarEtapaPlanejamento > creates event from sequence item and starts timer  373ms
    ✓ logic.js > Ciclo > iniciarEtapaPlanejamento > asks before starting a partially studied planning step and uses the remaining duration  390ms
-   ✓ logic.js > Ciclo > iniciarEtapaPlanejamento > does nothing when seqId not found  346ms
-   ✓ logic.js > Ciclo > iniciarEtapaPlanejamento > does nothing when planejamento is null  356ms
-   ✓ logic.js > Revisions > getPendingRevisoes > returns pending revisions due today or before  368ms
-   ✓ logic.js > Revisions > getPendingRevisoes > skips archived disciplines  361ms
-   ✓ logic.js > Revisions > getPendingRevisoes > skips archived editais  366ms
-   ✓ logic.js > Revisions > getPendingRevisoes > skips non-concluded assuntos  415ms
-   ✓ logic.js > Revisions > getPendingRevisoes > caches results  366ms
-   ✓ logic.js > Revisions > getPendingRevisoes > archiveDiscipline invalida o cache (revisões da disciplina somem na hora)  513ms
-   ✓ logic.js > Revisions > getPendingRevisoes > unarchiveDiscipline invalida o cache (revisões voltam na hora)  531ms
-   ✓ logic.js > Revisions > calcRevisionDates > calculates revision dates based on completion date  368ms
-   ✓ logic.js > Revisions > calcRevisionDates > skips already completed revisions  357ms
-   ✓ logic.js > Revisions > calcRevisionDates > applies adiamentos shift  312ms
-   ✓ logic.js > Revisions > calcRevisionDates > caches results  326ms
-   ✓ logic.js > Revisions > getSubjectStats / getPredictiveStats > exclui disciplinas arquivadas das stats por disciplina e da recomendação preditiva  309ms
-   ✓ logic.js > Revisions > calculateContentProgress > splits progress by topics, lessons, and combined overall percentage  337ms
-   ✓ logic.js > Revisions > calculateContentProgress > uses the only available axis for overall progress when lessons are absent  384ms
-   ✓ logic.js > timerIntervals > is exported as an object  348ms
-   ✓ logic.js > timerIntervals > allows adding and removing intervals  355ms
-   ✓ logic.js > previewClearAutoCicloEvents > marks future auto-generated agendados without progress as toDelete  413ms
-   ✓ logic.js > previewClearAutoCicloEvents > preserves manual events (no isAutoGenerated flag)  408ms
-   ✓ logic.js > previewClearAutoCicloEvents > preserves events with tempoAcumulado > 0  418ms
-   ✓ logic.js > previewClearAutoCicloEvents > preserves concluded events (status estudei)  336ms
-   ✓ logic.js > previewClearAutoCicloEvents > preserves past events (data < today)  324ms
-   ✓ logic.js > previewClearAutoCicloEvents > does not mutate the input array  334ms
-   ✓ logic.js > previewClearAutoCicloEvents > handles empty/missing input gracefully  321ms
-   ✓ logic.js > clearAutoCicloEvents > removes only events that match the toDelete criteria  356ms
-   ✓ logic.js > clearAutoCicloEvents > returns zero counts and does not save when nothing matches  351ms
-   ✓ logic.js > clearAutoCicloEvents > dispatches app:eventosBulkDeleted with the removed ids  342ms
+   ✓ logic.js > Ciclo > iniciarEtapaPlanejamento > does nothing when seqId not found  390ms
+   ✓ logic.js > Ciclo > iniciarEtapaPlanejamento > does nothing when planejamento is null  373ms
+   ✓ logic.js > Revisions > getPendingRevisoes > returns pending revisions due today or before  400ms
+   ✓ logic.js > Revisions > getPendingRevisoes > skips archived disciplines  410ms
+   ✓ logic.js > Revisions > getPendingRevisoes > skips archived editais  462ms
+   ✓ logic.js > Revisions > getPendingRevisoes > skips non-concluded assuntos  449ms
+   ✓ logic.js > Revisions > getPendingRevisoes > caches results  390ms
+   ✓ logic.js > Revisions > getPendingRevisoes > archiveDiscipline invalida o cache (revisões da disciplina somem na hora)  405ms
+   ✓ logic.js > Revisions > getPendingRevisoes > unarchiveDiscipline invalida o cache (revisões voltam na hora)  393ms
+   ✓ logic.js > Revisions > calcRevisionDates > calculates revision dates based on completion date  367ms
+   ✓ logic.js > Revisions > calcRevisionDates > skips already completed revisions  371ms
+   ✓ logic.js > Revisions > calcRevisionDates > applies adiamentos shift  367ms
+   ✓ logic.js > Revisions > calcRevisionDates > caches results  381ms
+   ✓ logic.js > Revisions > getSubjectStats / getPredictiveStats > exclui disciplinas arquivadas das stats por disciplina e da recomendação preditiva  389ms
+   ✓ logic.js > Revisions > calculateContentProgress > splits progress by topics, lessons, and combined overall percentage  367ms
+   ✓ logic.js > Revisions > calculateContentProgress > uses the only available axis for overall progress when lessons are absent  368ms
+   ✓ logic.js > timerIntervals > is exported as an object  373ms
+   ✓ logic.js > timerIntervals > allows adding and removing intervals  440ms
+   ✓ logic.js > previewClearAutoCicloEvents > marks future auto-generated agendados without progress as toDelete  402ms
+   ✓ logic.js > previewClearAutoCicloEvents > preserves manual events (no isAutoGenerated flag)  394ms
+   ✓ logic.js > previewClearAutoCicloEvents > preserves events with tempoAcumulado > 0  361ms
+   ✓ logic.js > previewClearAutoCicloEvents > preserves concluded events (status estudei)  379ms
+   ✓ logic.js > previewClearAutoCicloEvents > preserves past events (data < today)  374ms
+   ✓ logic.js > previewClearAutoCicloEvents > does not mutate the input array  396ms
+   ✓ logic.js > previewClearAutoCicloEvents > handles empty/missing input gracefully  397ms
+   ✓ logic.js > clearAutoCicloEvents > removes only events that match the toDelete criteria  389ms
+   ✓ logic.js > clearAutoCicloEvents > returns zero counts and does not save when nothing matches  371ms
+   ✓ logic.js > clearAutoCicloEvents > dispatches app:eventosBulkDeleted with the removed ids  374ms
+   ✓ logic.js > Edital archive / single-principal helpers > getActiveEditais / getArchivedEditais split by the arquivado flag  407ms
    ✓ logic.js > Edital archive / single-principal helpers > getPrincipalEdital returns null when there is no active edital  383ms
-   ✓ logic.js > Edital archive / single-principal helpers > getPrincipalEdital returns the only active edital  461ms
-   ✓ logic.js > Edital archive / single-principal helpers > getPrincipalEdital is deterministic (first by array order) when >1 active  366ms
-   ✓ logic.js > Edital archive / single-principal helpers > archiveEdital sets flag + timestamp and preserves the edital and its events  357ms
-   ✓ logic.js > Edital archive / single-principal helpers > unarchiveEdital clears the flag  346ms
-   ✓ logic.js > Edital archive / single-principal helpers > makeEditalPrincipal promotes one and archives all others (exactly one active)  368ms
-   ✓ logic.js > Edital archive / single-principal helpers > makeEditalPrincipal is a no-op for an unknown id (keeps current principal)  360ms
-   ✓ logic.js > Edital archive / single-principal helpers > getNextSuggestedLesson skips archived editais when no editalId is given  368ms
-   ✓ logic.js > Edital archive / single-principal helpers > getNextSuggestedLesson still returns a lesson from the active edital  347ms
- ✓ tests/unit/module-specifier-consistency.test.js (1 test) 24ms
- ✓ tests/unit/planejamento-validation.test.js (19 tests) 55ms
- ✓ tests/unit/reta-final-history-store.test.js (9 tests) 61ms
- ✓ tests/unit/reta-final-legacy-adoption.test.js (10 tests) 69ms
- ✓ tests/unit/worker-auth-proxy.test.js (5 tests) 32ms
- ✓ tests/unit/reta-final-history.test.js (13 tests) 66ms
- ✓ tests/unit/home-view-stat-semantics.test.js (1 test) 25ms
- ✓ tests/unit/reta-final-checkpoints-ui.test.js (7 tests) 17ms
- ✓ tests/unit/v2-audit-artifacts.test.js (4 tests) 130ms
- ✓ tests/unit/reta-final-capacity-ui.test.js (3 tests) 32ms
- ✓ tests/unit/sw-fetch-routing.test.js (7 tests) 50ms
- ✓ tests/unit/revisao-view-tabs.test.js (1 test) 35ms
- ✓ tests/unit/dashboard-context.test.js (10 tests) 31ms
- ✓ tests/unit/edital-import-core.test.js (64 tests) 35ms
- ✓ tests/unit/sync-center.test.js (66 tests) 48ms
- ✓ tests/unit/reta-final-apply-preview.test.js (11 tests) 38ms
- ✓ tests/unit/reta-final-commands.test.js (70 tests) 37ms
- ✓ tests/unit/modals-focus.test.js (3 tests) 27ms
- ✓ tests/unit/reta-final-bulk-actions.test.js (11 tests) 31ms
- ✓ tests/unit/aula-operations-delete.test.js (2 tests) 24ms
- ✓ tests/unit/reta-final-protocol.test.js (43 tests) 31ms
- ✓ tests/unit/relevance.test.js (44 tests) 26ms
- ✓ tests/unit/chart-state.test.js (11 tests) 34ms
- ✓ tests/unit/inline-editing-guards.test.js (2 tests) 45ms
- ✓ tests/unit/reta-final-draft-store.test.js (8 tests) 19ms
- ✓ tests/unit/reta-final-merge.test.js (15 tests) 27ms
- ✓ tests/unit/reta-final-redistribution.test.js (24 tests) 15ms
- ✓ tests/unit/reta-final-core.test.js (46 tests) 26ms
- ✓ tests/unit/reta-final-drafts.test.js (21 tests) 27ms
+   ✓ logic.js > Edital archive / single-principal helpers > getPrincipalEdital returns the only active edital  317ms
+   ✓ logic.js > Edital archive / single-principal helpers > getPrincipalEdital is deterministic (first by array order) when >1 active  337ms
+   ✓ logic.js > Edital archive / single-principal helpers > archiveEdital sets flag + timestamp and preserves the edital and its events  363ms
+   ✓ logic.js > Edital archive / single-principal helpers > unarchiveEdital clears the flag  394ms
+   ✓ logic.js > Edital archive / single-principal helpers > makeEditalPrincipal promotes one and archives all others (exactly one active)  378ms
+   ✓ logic.js > Edital archive / single-principal helpers > makeEditalPrincipal is a no-op for an unknown id (keeps current principal)  394ms
+   ✓ logic.js > Edital archive / single-principal helpers > getNextSuggestedLesson skips archived editais when no editalId is given  387ms
+   ✓ logic.js > Edital archive / single-principal helpers > getNextSuggestedLesson still returns a lesson from the active edital  389ms
+   ✓ logic.js > Edital archive / single-principal helpers > getDisciplineProgressByEdital excludes archived editais  406ms
+ ✓ tests/unit/reta-final-apply-preview.test.js (11 tests) 48ms
  ✓ tests/unit/clickable-divs-a11y.test.js (1 test) 35ms
- ✓ tests/unit/reta-final-priority.test.js (15 tests) 9ms
- ✓ tests/unit/visual-layout-lab-dnd.test.js (14 tests) 8ms
- ✓ tests/unit/reta-final-catalog.test.js (15 tests) 14ms
- ✓ tests/unit/reta-final-schema-v2.test.js (27 tests) 11ms
+ ✓ tests/unit/edital-import-core.test.js (64 tests) 38ms
+ ✓ tests/unit/revisao-view-tabs.test.js (1 test) 36ms
+ ✓ tests/unit/chart-state.test.js (11 tests) 37ms
+ ✓ tests/unit/duplicate-exports.test.js (1 test) 35ms
+ ✓ tests/unit/visual-layout-lab-guards.test.js (11 tests) 110ms
+ ✓ tests/unit/worker-auth-proxy.test.js (5 tests) 36ms
+ ✓ tests/unit/reta-final-bulk-actions.test.js (11 tests) 34ms
+ ✓ tests/unit/dashboard-context.test.js (10 tests) 33ms
+ ✓ tests/unit/reta-final-protocol.test.js (43 tests) 33ms
+ ✓ tests/unit/reta-final-capacity-ui.test.js (3 tests) 34ms
+ ✓ tests/unit/modals-focus.test.js (3 tests) 33ms
+ ✓ tests/unit/reta-final-merge.test.js (15 tests) 28ms
+ ✓ tests/unit/reta-final-drafts.test.js (21 tests) 25ms
+ ✓ tests/unit/relevance.test.js (44 tests) 22ms
+ ✓ tests/unit/reta-final-core.test.js (46 tests) 23ms
+ ✓ tests/unit/home-view-stat-semantics.test.js (1 test) 19ms
+ ✓ tests/unit/module-specifier-consistency.test.js (1 test) 35ms
+ ✓ tests/unit/aula-operations-delete.test.js (2 tests) 25ms
+ ✓ tests/unit/v2-audit-schema-artifacts.test.js (3 tests) 20ms
+ ✓ tests/unit/weak-points-core.test.js (41 tests) 19ms
+ ✓ tests/unit/v2-audit-coverage.test.js (4 tests) 28ms
  ✓ tests/unit/reta-final-import-compare.test.js (14 tests) 17ms
- ✓ tests/unit/v2-audit-coverage.test.js (4 tests) 35ms
- ✓ tests/unit/weak-points-core.test.js (41 tests) 21ms
- ✓ tests/unit/visual-layout-lab-core.test.js (25 tests) 15ms
- ✓ tests/unit/reta-final-events.test.js (16 tests) 14ms
- ✓ tests/unit/dom.test.js (1 test) 16ms
- ✓ tests/unit/reta-final-portable.test.js (11 tests) 13ms
+ ✓ tests/unit/reta-final-draft-store.test.js (8 tests) 15ms
+ ✓ tests/unit/dom.test.js (1 test) 12ms
+ ✓ tests/unit/reta-final-redistribution.test.js (24 tests) 21ms
+ ✓ tests/unit/reta-final-checkpoints-ui.test.js (7 tests) 15ms
+ ✓ tests/unit/visual-layout-lab-core.test.js (25 tests) 13ms
+ ✓ tests/unit/reta-final-events.test.js (16 tests) 13ms
+ ✓ tests/unit/reta-final-catalog.test.js (15 tests) 14ms
+ ✓ tests/unit/credentials.test.js (1 test) 20ms
+ ✓ tests/unit/reta-final-portable.test.js (11 tests) 14ms
  ✓ tests/unit/inline-handlers.test.js (2 tests) 11ms
- ✓ tests/unit/credentials.test.js (1 test) 12ms
- ✓ tests/unit/sync-history.test.js (3 tests) 7ms
- ✓ tests/unit/reta-final-rollover.test.js (12 tests) 7ms
- ✓ tests/unit/lesson-mapper.test.js (15 tests) 8ms
+ ✓ tests/unit/reta-final-schema-v2.test.js (27 tests) 14ms
  ✓ tests/unit/reta-final-history-ui.test.js (3 tests) 12ms
- ✓ tests/unit/session-topics.test.js (13 tests) 8ms
- ✓ tests/unit/sync-job-store.test.js (9 tests) 9ms
- ✓ tests/unit/boot-reconciliation.test.js (5 tests) 6ms
- ✓ tests/unit/sync-health.test.js (7 tests) 7ms
+ ✓ tests/unit/sync-job-store.test.js (9 tests) 8ms
+ ✓ tests/unit/v2-audit-baseline-artifacts.test.js (4 tests) 7ms
+ ✓ tests/unit/reta-final-priority.test.js (15 tests) 9ms
+ ✓ tests/unit/v2-audit-schema.test.js (13 tests) 9ms
+ ✓ tests/unit/lesson-mapper.test.js (15 tests) 10ms
+ ✓ tests/unit/visual-layout-lab-dnd.test.js (14 tests) 9ms
+ ✓ tests/unit/v2-audit-baseline.test.js (10 tests) 9ms
+ ✓ tests/unit/session-topics.test.js (13 tests) 11ms
  ✓ tests/unit/v2-audit-inventory.test.js (13 tests) 9ms
- ✓ tests/unit/theme-contrast.test.js (17 tests) 6ms
+ ✓ tests/unit/v2-audit-risks.test.js (9 tests) 8ms
+ ✓ tests/unit/v2-audit-gate-artifacts.test.js (2 tests) 9ms
+ ✓ tests/unit/v2-audit-gate.test.js (4 tests) 7ms
+ ✓ tests/unit/sync-history.test.js (3 tests) 7ms
  ✓ tests/unit/sync-planner.test.js (20 tests) 7ms
+ ✓ tests/unit/sync-health.test.js (7 tests) 6ms
+ ✓ tests/unit/reta-final-rollover.test.js (12 tests) 7ms
+ ✓ tests/unit/backup-restore.test.js (4 tests) 7ms
  ✓ tests/unit/reta-final-header-metrics.test.js (9 tests) 6ms
+ ✓ tests/unit/theme-contrast.test.js (17 tests) 7ms
+ ✓ tests/unit/boot-reconciliation.test.js (5 tests) 5ms
  ✓ tests/unit/visual-layout-lab-history.test.js (7 tests) 5ms
- ✓ tests/unit/v2-audit-schema.test.js (12 tests) 9ms
- ✓ tests/unit/bundle-graph.test.js (1 test) 480ms
-   ✓ bundle graph contract > keeps the browser module graph bundleable without missing exports  479ms
- ✓ tests/unit/reta-final-sync-status.test.js (9 tests) 3ms
- ✓ tests/unit/v2-audit-risks.test.js (9 tests) 4ms
- ✓ tests/unit/sync-conflict-fix.test.js (9 tests) 3ms
- ✓ tests/unit/backup-restore.test.js (4 tests) 6ms
- ✓ tests/unit/contrast-themes.test.js (41 tests) 5ms
- ✓ tests/unit/boot-recovery.test.js (2 tests) 3ms
- ✓ tests/unit/reta-final-import-selection.test.js (3 tests) 2ms
+ ✓ tests/unit/contrast-themes.test.js (41 tests) 7ms
+ ✓ tests/unit/boot-recovery.test.js (2 tests) 4ms
+ ✓ tests/unit/bundle-graph.test.js (1 test) 2048ms
+   ✓ bundle graph contract > keeps the browser module graph bundleable without missing exports  2046ms
+ ✓ tests/unit/sync-conflict-fix.test.js (9 tests) 4ms
+ ✓ tests/unit/reta-final-sync-status.test.js (9 tests) 4ms
+ ✓ tests/unit/reta-final-import-selection.test.js (3 tests) 4ms
 
- Test Files  184 passed (184)
-      Tests  3024 passed (3024)
-   Start at  09:28:06
-   Duration  96.01s (transform 6.96s, setup 5.38s, collect 16.77s, tests 706.04s, environment 530.99s, prepare 52.57s)
+ Test Files  189 passed (189)
+      Tests  3048 passed (3048)
+   Start at  09:45:12
+   Duration  88.37s (transform 7.47s, setup 4.98s, collect 16.35s, tests 585.12s, environment 554.97s, prepare 52.42s)
 

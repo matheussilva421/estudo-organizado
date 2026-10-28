@@ -40,7 +40,7 @@ Quatro linhas permanecem sem prova de runtime: notificações nativas, Cloudflar
 
 | Status | Itens | Evidência |
 | --- | --- | --- |
-| **PASS** | Validadores e testes F0 (66/66); suíte unitária (184 arquivos/3024 testes, incluindo 5 arquivos da F0); lint (0 erros); design/contraste (45 testes); Impeccable executado; contraste AA nos 8 temas | `evidence/2026-10-28-*.txt`, suíte `v2-audit` |
+| **PASS** | Validadores e testes F0 (66/66); suíte unitária (189 arquivos/3048 testes, incluindo 10 arquivos/66 testes da F0); lint (0 erros); design/contraste (45 testes); Impeccable executado; contraste AA nos 8 temas | `evidence/2026-10-28-*.txt`, suíte `v2-audit` |
 | **FAIL** | `npm run test:e2e:mock` não encontra testes; `npm run test:e2e:mock:all` tem 107 falhas em 166 | `evidence/2026-10-28-e2e-mock-*.txt/.md` |
 | **BLOCKED** | Nenhum item da F0 ficou bloqueado por ferramenta ausente | Impeccable e Playwright disponíveis |
 | **INCONCLUSIVE** | Acessibilidade completa (leitor de tela, zoom 200%, todos os fluxos); performance real fora do mock; Firestore real; Drive/Cloudflare reais | Baseline + matriz de riscos |
@@ -50,7 +50,7 @@ Os 107 FAIL de E2E não foram corrigidos, por proibição explícita de alterar 
 
 ## 5. Baseline e Impeccable
 
-- **Suíte unitária:** 184 arquivos e 3024 testes PASS em 96,01 s; antes dos testes da própria F0, a V1 tinha 179 arquivos/2982 testes PASS.
+- **Suíte unitária:** 189 arquivos e 3048 testes PASS em 88,37 s; antes dos testes da própria F0, a V1 tinha 179 arquivos/2982 testes PASS.
 - **Lint:** 0 erros e 3075 warnings preexistentes.
 - **Contraste:** AA de corpo nos oito temas; pior `text-muted` 4,56:1 (Neon).
 - **Responsivo:** sem overflow horizontal em 1440, 834 e 390; 634 nós; DCL 398–544 ms e load 612–652 ms no mock local.
