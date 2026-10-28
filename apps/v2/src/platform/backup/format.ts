@@ -489,7 +489,7 @@ export function parseBackup(input: unknown): ParsedBackup {
   };
 }
 
-function containsSensitiveData(value: unknown, seen: Set<object>): boolean {
+export function containsSensitiveData(value: unknown, seen: Set<object>): boolean {
   if (value === null || typeof value !== 'object') return false;
   if (seen.has(value)) return false;
   seen.add(value);
