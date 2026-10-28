@@ -78,7 +78,7 @@ Estas lacunas são requisitos de extensão F2, não funcionalidades já entregue
 ### 2.4 Persistência e invariantes operacionais F2
 
 - Stores F2 propostos, além dos F1: `editais`, `edital_disciplines`, `assuntos`, `aulas`, `lesson_topic_links`, `tombstones`, `quarantine` e `import_jobs`, todos com chave `[profileId,id]` e índices por pai/ordem; `profiles` guarda binding e `primaryEditalId`; `meta` guarda `currentEpoch` e versões. Não criar segundo banco nem outra outbox.
-- `orderKey` é uma chave lexicográfica estável por pai (ex.: fractional index base62), com desempate por ID; não usar posição de array nem timestamp como autoridade.
+- `orderKey` é determinístico por pai e tem desempate por ID, com revisão-base para concorrência. Preferir solução simples com reindexação local quando necessário; fractional indexing/base62 é alternativa, não pré-requisito de F2.
 - `primaryEditalId` é único por perfil, armazenado em `profiles`/`meta`; `Edital.primaryChoice` não é fonte concorrente. Arquivar o principal exige escolha explícita ou estado “sem principal”.
 - `upgrade(db, oldVersion, newVersion)` deve criar stores/índices em passos idempotentes, adicionar índices a stores existentes e tratar `versionchange`/`onblocked` entre abas; nenhuma migração destrutiva.
 - `quarantine` guarda registros não reconciliáveis/ambíguos com proveniência e motivo; não é lixeira e não é apagada automaticamente.
@@ -225,13 +225,13 @@ F2 usa o **IndexedDB V2** e a única outbox da F1, sem introduzir fila paralela.
 | F2-T10 | unit/E2E | Importar JSON idêntico duas vezes | Mesmo resultado, sem nova árvore | Duplicação |
 | F2-T11 | unit/E2E | Importar nome igual com proveniência diferente | Prévia e conflito, sem auto-merge | Merge por nome |
 | F2-T12 | integration | Importar mesma proveniência com revisão divergente | Conflito/quarentena, dados preservados | Overwrite |
-| F2-T13 | integration/E2E | Interromper importação no meio | Nenhum estado parcial visível; resume/rollback | Commit parcial |
+| F2-T13 | integration/E2E | Interromper importação dentro do limite seguro | Antes do commit não há efeitos; abort IDB desfaz entidades+outbox; não exigir staging/resume não aprovado | Commit parcial ou confirmação falsa |
 | F2-T14 | unit/integration | Reutilizar `operationId` com payload igual/divergente | Igual idempotente; divergente falha | Segundo efeito |
 | F2-T15 | browser E2E | Duas abas editam a mesma entidade | Um commit/conflito explícito | Lost update |
 | F2-T16 | integration/emulator | Dois dispositivos simulados editam entidade independente | Convergência por IDs/revisões | Sobrescrita ou bloqueio global |
 | F2-T17 | integration/E2E | Quota/abort no meio de conteúdo | Sem commit parcial; UI sincera | Falso “salvo” |
 | F2-T18 | unit/integration | Backup sintético com tombstones e restore antigo | Preview/`REBASELINE`; sem ressurreição | Restore destrutivo |
-| F2-T19 | unit/integration | Perfil/UID errado tenta ler/escrever | Negado sem mistura de dados | Vazamento entre perfis |
+| F2-T19 | unit/integration | UID errado tenta ler/escrever; dois profileIds locais distintos usam UID/biblioteca corretamente vinculados | Negar usuário diferente; reconhecer dispositivos consentidos da mesma conta | Vazamento entre UIDs ou isolamento incorreto entre dispositivos |
 | F2-T20 | E2E visual | Oito temas, mobile/tablet/desktop, teclado, contraste e medição de alvo coarse | AA/foco na amostra; toque medido; sem toast bloqueante | Regressão A-01 |
 | F2-T21 | unit/E2E | Regressões F1 (subject, outbox, backup, PWA, IDB) | baseline 84/20 adaptado e verde | Regressão da fundação |
 | F2-T22 | emulator futuro | CAS/ACK/replay/read-back e Rules por UID | Um efeito lógico; UID errado negado; conflito preservado | Falso PASS de sync real |
@@ -239,7 +239,7 @@ F2 usa o **IndexedDB V2** e a única outbox da F1, sem introduzir fila paralela.
 | F2-T24 | integration | Fixtures V1 editais → F2 | Contagens/relacionamentos reconciliados; desconhecidos em quarentena | Perda de árvore ou merge por nome |
 | F2-T25 | integration/E2E | Conflito remoto → `ResolveConflict` | Nova operação explícita; ambos os lados preservados; converge | Conflito terminal ou overwrite |
 | F2-T26 | integration | Delete de inédito → tombstone rev1; upsert posterior | `CONFLICT/DELETED`, `RestoreEntity` exigido | Delete sem ACK/ressurreição |
-| F2-T27 | unit/E2E | LOGOUT com outbox do UID anterior e rebind uid-b | Outbox suspensa/quarentenada; flush bloqueado | Acervo antigo enviado à conta nova |
+| F2-T27 | unit/E2E | LOGOUT de uid-a, vínculo uid-b e alterações locais anteriores | Outbox uid-a suspensa; nenhuma operação local/antiga transferida sem consentimento; IDs/payloads preservados | Transferência silenciosa ao novo UID |
 | F2-T28 | unit/integration | CommitService com título inválido/121 chars e create duplicado | `INVALID` explícito, sem `UNAVAILABLE` falso | Erro de domínio mascarado |
 | F2-T29 | integration | Upgrade IDB F1→F2 com stores/índices existentes e duas abas | Migração idempotente; bloqueio/retomada segura | Índice ausente ou DB bloqueado |
 | F2-T30 | integration | Trocar principal/arquivar principal em duas abas | Um `primaryEditalId` ou estado sem principal explícito | Dois principais |
@@ -253,7 +253,7 @@ F3 assume planejamento e Reta Final; F4 assume sessões; F5 inteligência; F6 da
 
 **Decisões a confirmar na aprovação F2:** relação exata entre `StudySubject` F1 e disciplina por edital; migração/mapeamento dos dados F1; se aulas podem pertencer a mais de um edital; política de arquivamento/exclusão e tombstones; matches de importação; limites concretos do parser; uso do store `profiles`; e autorização do ensaio com emulador. A spec revisada não substitui aprovação humana dessas escolhas.
 
-**Gate:** `F2_SPEC_REVISED` (esta revisão) → aprovação humana específica → autorização separada do ensaio com emulador → writing-plans F2 → aprovação do plano/método → GOAL F2 → TDD/revisão/evidências → aceite humano F2. **Nenhuma dessas transições ocorre pela publicação deste documento.**
+**Gate:** revisão humana das D-F2-01..06 e emendas E-F2-01..08 → **aprovação da spec F2** → **writing-plans escrito pelo ChatGPT com Superpowers** → aprovação humana do plano → GOAL escrito pelo ChatGPT → **Codex executa** TDD/revisão/integração em `v2` → ChatGPT audita/corrige por GOAL → aceite humano F2. O `F2_EMULATOR_REHEARSAL` tem autorização separada para instalação/execução, que **não bloqueia a redação do writing-plans**. Esta atualização não autoriza nenhuma execução.
 
 ## 8. Registro desta revisão
 
@@ -261,3 +261,57 @@ F3 assume planejamento e Reta Final; F4 assume sessões; F5 inteligência; F6 da
 - Contratos efetivamente entregues pela F1 foram incorporados em §2.1–2.2; lacunas de `StudySubject`/`Disciplina`, perfil e outbox ficam explícitas.
 - A proposta de ensaio antecipado com Firebase Emulator foi consolidada em §5.1, sem execução e sujeita a autorização separada.
 - Nenhum código F2, writing-plans, instalação de emulador, Firebase real ou deploy foi iniciado por esta revisão.
+
+## 9. Revisão arquitetural Superpowers — emendas para aprovação humana
+
+**Natureza:** revisão de design por ChatGPT utilizando Superpowers `brainstorming`; decisões desta seção permanecem **PROPOSTAS**, não aprovadas. Superpowers exige aceite da spec antes de elaborar o `writing-plans`. **Codex executa somente o plano e o GOAL que o ChatGPT produzir após os respectivos gates.**
+
+### Alternativas confrontadas
+
+| Problema | Alternativa simples recomendada | Alternativa adiada |
+| --- | --- | --- |
+| Disciplina por edital | `StudySubject` + associação `EditalDiscipline` | Duplicar disciplina por edital e fazer merge por nome |
+| Ordenação | `orderKey` determinístico e reindexação limitada | CRDT/fractional indexing complexo sem necessidade demonstrada |
+| Importação | Validação prévia + **uma transação IDB** + recibo idempotente, com limite medido | Staging persistente, resumable jobs e publish multitransação |
+| Identidade remota | `profileId` local vinculado a biblioteca remota do UID após consentimento | Tratar `profileId` como identificador global nos aparelhos |
+| Falha de rede | Outbox durável, retry automático com backoff/cooldown | Perder operação ou exigir botão manual após 5 tentativas |
+| Excluir conteúdo | Arquivar/soft-delete causal, sem purge F2 | Cascata destrutiva ou TTL arbitrário |
+| Provar sync | Fake local + ensaio emulator independente, sujeito a autorização | Acessar Firebase produtivo durante F2 |
+
+### Oito emendas propostas — E-F2-01 a E-F2-08
+
+**E-F2-01 — Identidade e alias.** Manter `StudySubject` como unidade canônica por perfil; `EditalDiscipline` vincula edital e subject. `displayAlias?` é título **apenas visual** do vínculo, não uma segunda disciplina. Renomear o canônico atualiza apresentação de vínculos sem alias e preserva aliases explícitos. Renomear vínculo não altera todos os editais.
+
+**E-F2-02 — Hierarquia e vínculos.** `Assunto`/`Aula` pertencem à associação `EditalDiscipline`; `LessonTopicLink` N:N apenas dentro da mesma associação, sob o mesmo perfil. `parentId` inválido, ciclos, link entre editais e reuso implícito entre perfis falham fechado. Reuso entre editais exige ação/cópia com proveniência.
+
+**E-F2-03 — Migração F1.** Atualização de IndexedDB versionada, preservando `subjects`, `operations`, `outbox`, `conflicts`, IDs e revisões. Subjects existentes começam **sem vínculo automático**. Upgrade bloqueado por aba antiga deve indicar bloqueio e nunca destruir/recriar DB. Vínculo é comando novo e explícito.
+
+**E-F2-04 — Arquivo, tombstones e backup.** Arquivamento reversível; soft-delete causal com epoch por biblioteca/perfil, validação de dependências e read-back. Sem purge físico F2, sem TTL arbitrário e sem restauração de backup antigo que ressuscite dados. F2 pode evoluir o formato/preview de backup **sintético**; interface completa de backup/restauração pertence à F7.
+
+**E-F2-05 — Identidade e atomicidade da importação.** `centralId`/`sourceRef` só são autoritativos com origem/namespace confiáveis. `nameKey` é apenas **candidato de correspondência**; nunca autoriza merge. Fingerprint SHA-256 canônico inclui conteúdo + proveniência estável, não timestamps voláteis. Prévia inclui revisão/assinatura do destino e é revalidada antes da gravação. Limites **propostos, a medir**: 2 MiB, profundidade 20, 5.000 entidades, título 120 e matching key 200. Acima dos limites: **rejeitar**, não iniciar staging implícito. Dentro dos limites comprovadamente seguros: pré-validar e gravar entidades + operações + outbox + recibo de importação em **uma transação IDB**. Se 5.000 excederem orçamento seguro em mobile, reduzir limite; introduzir staging persistente só mediante nova decisão arquitetural/medição.
+
+**E-F2-06 — Identidade local e remoto.** `profileId` identifica o perfil naquele dispositivo, **não é UID Google nem chave global Firestore**. Um `remoteLibraryId` sob o UID agrupa perfis locais consentidos, com escopo verificado por `request.auth.uid`. `deliveryUid` e vínculo da entrega são atribuídos **após** consentimento, sem mutar o comando, `operationId` ou seu payload original. Operação LOCAL_ONLY não pode ser enviada; logout/rebind jamais transfere operações antigas automaticamente para outra conta.
+
+**E-F2-07 — Retentativas.** Base 1s, teto 5min, jitter 0–20% são parâmetros iniciais sujeitos a ajuste por testes. Após a quinta falha **transitória**, preservar operação pendente, aplicar cooldown e retomar automaticamente com app ativo/rede disponível; não exigir clique de sync nem retry infinito. Erro determinístico, quota e auth vencida entram em estado de pausa/recovery específico, sem ACK fictício.
+
+**E-F2-08 — Escopo, testes e responsabilidades.** Seis capacidades F2: CRUD de editais, principal, arquivados, verticalização, importação e aula↔assunto. F2 entrega árvore/estado `SEM_DADOS_DE_EXECUCAO`, **não inventa progresso de sessões F4**. Dashboard integral, UI completa de backup e homologação remota são F6/F7. O ensaio local `F2_EMULATOR_REHEARSAL` continua sujeito a autorização específica; a aprovação da spec, isoladamente, não autoriza instalá-lo. **ChatGPT faz spec, writing-plans e GOAL; Codex executa e reporta; ChatGPT revisa e especifica correções; proprietário aprova gates.**
+
+### Reforço da matriz TDD para o futuro writing-plans
+
+| Novo ID | Cenário adversarial que exige teste |
+| --- | --- |
+| F2-T32 | Rename canônico altera vínculos sem alias, não altera `displayAlias` explícito |
+| F2-T33 | Mesmo `centralId` em fontes distintas, ou só `nameKey` igual, não causa merge |
+| F2-T34 | Abort/quota em importação de carga máxima aceita não publica entidade, recibo ou outbox parcial |
+| F2-T35 | Prévia expirada por edição em outra aba é rejeitada no commit |
+| F2-T36 | Dois dispositivos com `profileId` local diferente acessam biblioteca remota simulada apenas com vínculo/UID válido |
+| F2-T37 | Comando LOCAL_ONLY não é enviado e vínculo posterior não reescreve identidade/evento histórico |
+| F2-T38 | Quinta/sexta falhas transitórias preservam pendência e retomada automática após reconexão |
+| F2-T39 | Upgrade IndexedDB bloqueado por aba antiga preserva banco e comunica recovery |
+| F2-T40 | Arquivar/excluir conteúdo não apaga vínculos históricos nem apresenta progresso F4 fictício |
+
+**Matriz final proposta para o plano:** F2-T01..T40. Os testes adicionais ainda **não foram executados**.
+
+### Gate do Superpowers
+
+**Design atual:** `F2_SPEC_REVISED — PENDING_HUMAN_APPROVAL`. Próximo ato: o proprietário ratifica/corrige D-F2-01..06, E-F2-01..08, limites e política de purge. **Somente após o aceite ChatGPT invoca `superpowers:writing-plans` e publica o plano F2** em `docs/superpowers/plans/`; depois há novo gate humano sobre plano/método. Codex não inventa outra arquitetura nem redige o writing-plans. Nenhum código, emulador, Firebase real, merge para `main` ou deploy é permitido por esta revisão.
