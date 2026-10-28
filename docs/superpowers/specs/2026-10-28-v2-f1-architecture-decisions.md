@@ -1,9 +1,9 @@
 # Estudo Organizado V2 — Registro de ADRs propostas para F1
 
 **Data:** 2026-10-28  
-**Status:** **PROPOSTO PARA REVISÃO HUMANA DA SPEC F1**. Nenhuma ADR-F1 deste documento foi individualmente ratificada, exceto os princípios já cobertos por D01–D27, A-01 e A-02.  
+**Status:** **ADR-F1-01 a ADR-F1-05 RATIFICADAS PELO USUÁRIO EM 2026-10-28**, em conjunto com a spec F1 ([referência humana](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550)). Detalhes físicos e avaliações descritas nas ADRs continuam **pendentes de execução/validação**; riscos HIGH permanecem UNVERIFIED.  
 **Origem:** [F0 com aceite humano e ressalvas](../audits/2026-10-19-f0-acceptance.md); [A-02 — pré-contratos](2026-10-28-v2-multidevice-sync-f1-contracts.md); [issue #108 / aceite](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279).  
-**Proibição:** este documento não autoriza instalar dependências, escrever código, mudar a V1, executar writing-plans, integrar à main, publicar ou acessar projetos/dados reais.
+**Limite da autorização:** permite **redigir writing-plans F1**. Não autoriza instalar dependências, escrever código, mudar a V1, executar o plano, integrar à main, publicar ou acessar projetos/dados reais.
 
 ## ADR-F1-01 — Isolamento da aplicação e versionamento independente
 
@@ -81,4 +81,4 @@
 
 **F0 aceita com ressalvas:** 35 `PRESERVE`, 10 `REFORMULATE`; laboratório `F-V1-VISUAL-LAYOUT-LAB` permanece `UNDECIDED` e excluído da F1, com aprovação do **adiamento**, não do destino. Baseline V1 E2E segue 59 PASS / 107 FAIL e necessita triagem; Impeccable A-01 e 8 temas permanecem obrigatórios.
 
-**Gate seguinte:** revisar este conjunto de ADRs e [spec F1](2026-10-28-estudo-organizado-v2-f1-foundation-design.md). **Aprovação da spec/ADRs autorizará apenas a elaboração do writing-plans F1**, não a implementação.
+**Gate seguinte:** as ADRs e a [spec F1](2026-10-28-estudo-organizado-v2-f1-foundation-design.md) **foram aprovadas** ([registro](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550)); o writing-plans F1 será apresentado para **revisão específica**, sem execução.
