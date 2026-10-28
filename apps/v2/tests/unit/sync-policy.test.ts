@@ -22,6 +22,7 @@ describe('sync policy', () => {
       type: 'CONSENT_LINK',
       uid: 'uid-a',
       consent: false,
+      previewId: 'link:profile-a:0',
     });
     expect(refused.state).toBe('LINKING');
     expect(refused.uid).toBeNull();
@@ -30,6 +31,7 @@ describe('sync policy', () => {
       type: 'CONSENT_LINK',
       uid: 'uid-a',
       consent: true,
+      previewId: 'link:profile-a:0',
     });
     expect(accepted).toMatchObject({
       state: 'READY',
@@ -40,9 +42,11 @@ describe('sync policy', () => {
 
   it('local_without_google_is_available', () => {
     expect(local).toMatchObject({ state: 'LOCAL_ONLY', uid: null, syncEnabled: false });
-    expect(previewLink('profile-a', { remoteCount: 0 })).toEqual({
+    const preview = previewLink('profile-a', { remoteCount: 0 });
+    expect(preview).toEqual({
       profileId: 'profile-a',
       remoteCount: 0,
+      previewId: 'link:profile-a:0',
       requiresConsent: true,
       destructiveMerge: false,
     });
@@ -51,7 +55,7 @@ describe('sync policy', () => {
   it('sync_auto_only_after_optin', () => {
     const ready = transitionSync(
       transitionSync(local, { type: 'START_LINK' }),
-      { type: 'CONSENT_LINK', uid: 'uid-a', consent: true },
+      { type: 'CONSENT_LINK', uid: 'uid-a', consent: true, previewId: 'link:profile-a:0' },
     );
     const disabled = transitionSync(ready, { type: 'DISABLE_AUTO' });
     const enabled = transitionSync(disabled, { type: 'ENABLE_AUTO' });

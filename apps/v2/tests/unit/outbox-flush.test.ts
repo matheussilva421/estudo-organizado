@@ -80,6 +80,29 @@ describe('outbox flush', () => {
     expect(result.pending).toEqual(['op-1']);
   });
 
+  it('no_revision_readback_does_not_ack', async () => {
+    const remote: RemoteMutationPort = {
+      apply: () => Promise.reject(new Error('timeout')),
+      lookup: () => Promise.resolve('APPLIED'),
+    };
+    const result = await flushPending([operation({ baseRevision: 2 })], remote);
+
+    expect(result.confirmedIds).toEqual([]);
+    expect(result.pending).toEqual(['op-1']);
+  });
+
+  it('wrong_uid_cannot_ack_via_readback', async () => {
+    const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+    const first = await flushPending([operation()], remote);
+    expect(first.confirmedIds).toEqual(['op-1']);
+
+    remote.signInAs('uid-intruder');
+    const replay = await flushPending([operation()], remote);
+
+    expect(replay.confirmedIds).toEqual([]);
+    expect(replay.pending).toEqual(['op-1']);
+  });
+
   it('concurrent_conflicting_edit_preserves_both_versions', async () => {
     const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
     await flushPending([operation()], remote);
@@ -92,8 +115,9 @@ describe('outbox flush', () => {
     const result = await flushPending([stale], remote);
 
     expect(result.conflicts).toEqual(['op-2']);
+    expect(result.conflictRevisions['op-2']).toBe(1);
     await seedOutbox(stale);
-    await markConflict(profileId, stale, 1);
+    await markConflict(profileId, stale, result.conflictRevisions['op-2'] ?? 0);
     const conflicts = await getConflicts(profileId);
 
     expect(conflicts).toHaveLength(1);

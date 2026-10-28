@@ -146,7 +146,8 @@ export async function markConfirmed(
         operation.profileId !== profileId ||
         typeof remoteRevision !== 'number' ||
         !Number.isInteger(remoteRevision) ||
-        remoteRevision < 1
+        remoteRevision < 1 ||
+        operation.status !== 'PENDING'
       ) {
         transaction.abort();
         throw new LocalPersistenceError('UNAVAILABLE', 'ACK without a known operation', false);
@@ -164,7 +165,12 @@ export async function markConflict(
   operation: OutboxOperation,
   remoteRevision: number,
 ): Promise<void> {
-  if (operation.profileId !== profileId || !Number.isInteger(remoteRevision) || remoteRevision < 1) {
+  if (
+    operation.profileId !== profileId ||
+    operation.status === 'CONFIRMED' ||
+    !Number.isInteger(remoteRevision) ||
+    remoteRevision < 1
+  ) {
     throw new LocalPersistenceError('UNAVAILABLE', 'conflict outside the profile scope', false);
   }
   const database = await openV2Database(profileId);

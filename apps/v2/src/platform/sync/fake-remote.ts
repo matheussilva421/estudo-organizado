@@ -3,6 +3,7 @@ import type {
   RemoteMutationPort,
   RemoteMutationResult,
 } from '../../application/sync-types';
+import { validateRemoteDocument } from './document-budget';
 
 export type FakeRemotePortOptions = {
   uid: string;
@@ -25,6 +26,15 @@ export class TimeoutError extends Error {
   constructor(operationId: string) {
     super(`remote commit timed out after applying ${operationId}`);
     this.name = 'TimeoutError';
+  }
+}
+
+export class RemoteDocumentError extends Error {
+  readonly code = 'DOCUMENT_BUDGET';
+
+  constructor() {
+    super('remote document exceeds the conservative F1 budget');
+    this.name = 'RemoteDocumentError';
   }
 }
 
@@ -85,6 +95,17 @@ export class FakeRemotePort implements RemoteMutationPort {
     const operationId = requireIdentifier(operation.operationId, 'operationId');
     const entityId = requireIdentifier(operation.entityId, 'entityId');
 
+    if (
+      !operation.payload ||
+      operation.payload.profileId !== this.profileId ||
+      operation.payload.id !== entityId
+    ) {
+      throw new RemoteScopeError('payload profile or entity does not match the operation scope');
+    }
+    if (!validateRemoteDocument(operation.payload).ok) {
+      throw new RemoteDocumentError();
+    }
+
     const previous = this.appliedOperations.get(operationId);
     if (previous) {
       if (previous.profileId !== this.profileId || previous.entityId !== entityId) {
@@ -125,12 +146,14 @@ export class FakeRemotePort implements RemoteMutationPort {
   }
 
   async lookup(operationId: string): Promise<'APPLIED' | 'MISSING' | 'UNKNOWN'> {
+    this.assertActiveUid();
     const normalized = typeof operationId === 'string' ? operationId.trim() : '';
     if (!normalized) return 'MISSING';
     return this.appliedOperations.has(normalized) ? 'APPLIED' : 'MISSING';
   }
 
   async lookupRevision(operationId: string): Promise<number | null> {
+    this.assertActiveUid();
     return this.appliedOperations.get(operationId)?.remoteRevision ?? null;
   }
 
@@ -138,6 +161,10 @@ export class FakeRemotePort implements RemoteMutationPort {
     if (profileId !== this.profileId) {
       throw new RemoteScopeError('operation profile does not match the simulated profile');
     }
+    this.assertActiveUid();
+  }
+
+  private assertActiveUid(): void {
     if (this.activeUid !== this.ownerUid) {
       throw new RemoteScopeError('active uid does not own the simulated profile');
     }

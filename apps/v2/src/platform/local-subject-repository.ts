@@ -3,6 +3,7 @@ import type { OutboxOperation } from '../application/sync-types';
 import { applySubjectCommand, type StudySubject, type SubjectCommand } from '../domain/subject';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
 import {
+  LocalPersistenceError,
   openV2Database,
   requestResult,
   STORES,
@@ -35,10 +36,22 @@ export class LocalSubjectRepository implements SubjectRepository {
     try {
       const operations = transaction.objectStore(STORES.operations);
       const existing = (await requestResult(operations.get(command.operationId))) as
-        | { subject: StudySubject }
+        | { subject: StudySubject; profileId: string; entityId: string; type: string }
         | undefined;
 
       if (existing) {
+        if (
+          existing.profileId !== command.profileId ||
+          existing.entityId !== command.subjectId ||
+          existing.type !== command.type
+        ) {
+          transaction.abort();
+          throw new LocalPersistenceError(
+            'UNAVAILABLE',
+            'operationId was reused with a different command',
+            false,
+          );
+        }
         await transactionDone(transaction);
         return existing.subject;
       }
@@ -77,7 +90,11 @@ export class LocalSubjectRepository implements SubjectRepository {
       transaction.objectStore(STORES.outbox).put(operation);
 
       await transactionDone(transaction);
-      notifyLocalChange(command.profileId, subject.id);
+      try {
+        notifyLocalChange(command.profileId, subject.id);
+      } catch {
+        // A listener must not turn a durable commit into a reported failure.
+      }
       return subject;
     } catch (error) {
       try {

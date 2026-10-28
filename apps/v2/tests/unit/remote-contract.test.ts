@@ -4,6 +4,7 @@ import type { StudySubject } from '../../src/domain/subject';
 import { DOMAIN_SCHEMA_VERSION } from '../../src/domain/versions';
 import {
   FakeRemotePort,
+  RemoteDocumentError,
   RemoteScopeError,
   TimeoutError,
 } from '../../src/platform/sync/fake-remote';
@@ -137,10 +138,34 @@ describe('FakeRemotePort CAS contract', () => {
 
     port.signInAs('uid-intruder');
     await expect(port.apply(operation)).rejects.toBeInstanceOf(RemoteScopeError);
-    expect(await port.lookup('op-uid')).toBe('MISSING');
+    await expect(port.lookup('op-uid')).rejects.toBeInstanceOf(RemoteScopeError);
 
     port.signInAs(uid);
     expect(await port.apply(operation)).toEqual({ kind: 'APPLIED', remoteRevision: 1 });
+  });
+
+  it('payload_outside_profile_rejected', async () => {
+    const port = makePort();
+    const foreignPayload = makeOperation({
+      operationId: 'op-payload-profile',
+      payload: { ...makeSubject('subject-1', 'Direito'), profileId: 'profile-b' },
+    });
+
+    await expect(port.apply(foreignPayload)).rejects.toBeInstanceOf(RemoteScopeError);
+    expect(await port.lookup('op-payload-profile')).toBe('MISSING');
+  });
+
+  it('oversize_payload_rejected_without_write', async () => {
+    const port = makePort();
+    const hugeId = 'x'.repeat(900_100);
+    const oversize = makeOperation({
+      operationId: 'op-oversize',
+      entityId: hugeId,
+      payload: makeSubject(hugeId, 'Direito'),
+    });
+
+    await expect(port.apply(oversize)).rejects.toBeInstanceOf(RemoteDocumentError);
+    expect(await port.lookup('op-oversize')).toBe('MISSING');
   });
 
   it('wrong_profile_rejected', async () => {

@@ -30,7 +30,15 @@ test('local only never says cloud synced and toasts do not cover the action', as
 
 test('toast_does_not_cover_primary_button', async ({ page }) => {
   await expect(page.locator('.toast')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Adicionar disciplina' })).toBeInViewport();
+  const button = page.getByRole('button', { name: 'Adicionar disciplina' });
+  await expect(button).toBeInViewport();
+  const box = await button.boundingBox();
+  if (!box) throw new Error('primary button has no box');
+  const topElement = await page.evaluate(
+    ({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.textContent?.trim() ?? '',
+    { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+  );
+  expect(topElement).toContain('Adicionar disciplina');
 });
 
 test('blank title is blocked', async ({ page }) => {

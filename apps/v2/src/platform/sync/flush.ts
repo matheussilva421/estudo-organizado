@@ -3,6 +3,7 @@ import type { OutboxOperation, RemoteMutationPort } from '../../application/sync
 export type FlushResult = {
   confirmedIds: string[];
   conflicts: string[];
+  conflictRevisions: Record<string, number>;
   pending: string[];
   proof: Record<string, number>;
 };
@@ -13,6 +14,7 @@ export async function flushPending(
 ): Promise<FlushResult> {
   const confirmedIds: string[] = [];
   const conflicts: string[] = [];
+  const conflictRevisions: Record<string, number> = {};
   const pending: string[] = [];
   const proof: Record<string, number> = {};
 
@@ -21,6 +23,7 @@ export async function flushPending(
       const result = await remote.apply(operation);
       if (result.kind === 'CONFLICT') {
         conflicts.push(operation.operationId);
+        conflictRevisions[operation.operationId] = result.remoteRevision;
         continue;
       }
       confirmedIds.push(operation.operationId);
@@ -35,10 +38,14 @@ export async function flushPending(
       const remoteRevision = remote.lookupRevision
         ? await remote.lookupRevision(operation.operationId).catch(() => null)
         : null;
+      if (typeof remoteRevision !== 'number') {
+        pending.push(operation.operationId);
+        continue;
+      }
       confirmedIds.push(operation.operationId);
-      proof[operation.operationId] = remoteRevision ?? (operation.baseRevision ?? 0) + 1;
+      proof[operation.operationId] = remoteRevision;
     }
   }
 
-  return { confirmedIds, conflicts, pending, proof };
+  return { confirmedIds, conflicts, conflictRevisions, pending, proof };
 }

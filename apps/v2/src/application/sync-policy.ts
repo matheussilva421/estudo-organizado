@@ -4,7 +4,7 @@ export type { ProfileBinding } from './sync-types';
 
 export type SyncEvent =
   | { type: 'START_LINK' }
-  | { type: 'CONSENT_LINK'; uid: string; consent: boolean }
+  | { type: 'CONSENT_LINK'; uid: string; consent: boolean; previewId: string }
   | { type: 'ENABLE_AUTO' }
   | { type: 'DISABLE_AUTO' }
   | { type: 'AUTH_EXPIRED' }
@@ -15,6 +15,7 @@ export type SyncEvent =
 export type LinkPreview = {
   profileId: string;
   remoteCount: number;
+  previewId: string;
   requiresConsent: true;
   destructiveMerge: false;
 };
@@ -30,7 +31,9 @@ export function transitionSync(binding: ProfileBinding, event: SyncEvent): Profi
       return withState(binding, 'LINKING');
     case 'CONSENT_LINK':
       if (binding.state !== 'LINKING' || !event.consent) return binding;
+      if (!event.previewId.trim()) return binding;
       if (!event.uid.trim()) return binding;
+      if (binding.uid && binding.uid !== event.uid.trim()) return binding;
       return { ...binding, uid: event.uid.trim(), state: 'READY', syncEnabled: true };
     case 'ENABLE_AUTO':
       if (binding.state !== 'READY' || !binding.uid) return binding;
@@ -57,13 +60,19 @@ export function previewLink(
   return {
     profileId,
     remoteCount: Math.max(0, remoteSummary.remoteCount),
+    previewId: `link:${profileId}:${Math.max(0, remoteSummary.remoteCount)}`,
     requiresConsent: true,
     destructiveMerge: false,
   };
 }
 
-export function assertProfileMatches(binding: ProfileBinding, profileId: string): void {
+export function assertProfileMatches(
+  binding: ProfileBinding,
+  profileId: string,
+  uid?: string,
+): void {
   if (binding.profileId !== profileId) throw new Error('PROFILE_MISMATCH');
+  if (uid !== undefined && binding.uid !== uid) throw new Error('PROFILE_MISMATCH');
 }
 
 export type SyncHealthInput = {

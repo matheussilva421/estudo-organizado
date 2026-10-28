@@ -31,8 +31,13 @@ describe('legacy recognition', () => {
     const right = fixture('reta-final-legacy-equivalent-derived.json');
     const before = JSON.stringify(left);
 
+    expect(recognizeLegacyFormat(left)).toEqual({ kind: 'V1_SUPPORTED' });
     expect(compareLegacyPlan(left, right)).toBe('EQUIVALENT');
     expect(JSON.stringify(left)).toBe(before);
+  });
+
+  it('empty_planning_object_is_not_a_legacy_plan', () => {
+    expect(recognizeLegacyFormat({ planejamento: {} })).toEqual({ kind: 'UNSUPPORTED' });
   });
 
   it('divergent_legacy_blocks_do_not_overwrite', () => {

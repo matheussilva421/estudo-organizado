@@ -30,8 +30,11 @@ export function recognizeLegacyFormat(input: unknown): LegacyRecognition {
   const hasAcademicShape =
     Array.isArray(input.editais) ||
     Array.isArray(input.eventos) ||
-    isRecord(input.habitos) ||
-    isRecord(input.planejamento) ||
+    (isRecord(input.habitos) && Object.keys(input.habitos).length > 0) ||
+    (isRecord(input.retaFinal) && Array.isArray(input.retaFinal.blocos)) ||
+    (isRecord(input.planejamento) &&
+      isRecord(input.planejamento.retaFinal) &&
+      Array.isArray(input.planejamento.retaFinal.blocos)) ||
     Array.isArray(input.blocos);
 
   return hasAcademicShape ? { kind: 'V1_SUPPORTED' } : { kind: 'UNSUPPORTED' };

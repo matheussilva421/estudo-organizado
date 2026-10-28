@@ -43,6 +43,18 @@ describe('LocalSubjectRepository', () => {
     expect(await repository.list('other-profile')).toEqual([]);
   });
 
+  it('reused_operation_id_with_different_command_is_rejected', async () => {
+    const repository = new LocalSubjectRepository();
+    await repository.execute(createCommand());
+
+    await expect(
+      repository.execute(
+        createCommand({ subjectId: 'subject-2', title: 'Outra disciplina', type: 'create' }),
+      ),
+    ).rejects.toMatchObject({ kind: 'UNAVAILABLE' });
+    expect(await repository.list(profileId)).toHaveLength(1);
+  });
+
   it('entity_and_outbox_commit_atomically', async () => {
     const repository = new LocalSubjectRepository();
     const subject = await repository.execute(createCommand());

@@ -40,6 +40,6 @@ describe('V2 architecture boundary', () => {
       .filter(Boolean);
 
     expect(files.length).toBeGreaterThan(0);
-    expect(databaseNames.length).toBeGreaterThanOrEqual(0);
+    expect(databaseNames.length).toBeGreaterThan(0);
   });
 });
