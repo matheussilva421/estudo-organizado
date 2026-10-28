@@ -228,6 +228,175 @@ select {
   color: var(--text-secondary);
 }
 
+.group-title {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.edital-list,
+.tree,
+.tree-children,
+.aula-list,
+.topic-links,
+.preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.edital-item,
+.discipline,
+.tree-node {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: var(--surface);
+}
+
+.edital-item[data-active='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.edital-row,
+.tree-row,
+.aula-row,
+.discipline-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.edital-actions,
+.aula-map {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.link-button[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--surface-alt, rgba(127, 127, 127, 0.15));
+  font-size: 0.75rem;
+  text-transform: lowercase;
+}
+
+.tree-children {
+  margin-left: 1rem;
+  margin-top: 0.5rem;
+  border-left: 1px dashed var(--border);
+  padding-left: 0.75rem;
+}
+
+.tree-meta,
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.inline-form label,
+.file-field {
+  flex-basis: 100%;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.execution-state {
+  border: 1px dashed var(--border);
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  color: var(--muted);
+}
+
+.import-preview {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.9rem;
+}
+
+.preview-counts {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 1rem;
+}
+
+.preview-counts dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.preview-counts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.archived-editais {
+  margin-top: 1rem;
+}
+
+.archived-editais ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+@media (pointer: coarse) {
+  .button-primary,
+  .button-ghost,
+  .link-button,
+  select,
+  input {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .app-footnote {
   margin-top: 24px;
   font-size: 0.82rem;
