@@ -5,8 +5,8 @@
 **Projeto:** matheussilva421/estudo-organizado
 **Natureza:** desenho arquitetural e contratos de aceitação; nenhuma implementação autorizada
 **Origem:** brainstorming Superpowers, Decisões Arquiteturais 01–27 aprovadas em 2026-10-19; Emenda A-01 Impeccable aprovada em 2026-10-19; **Emenda A-02 (sync multi-dispositivo/Google/Firestore Spark) aprovada em 2026-10-28**.
-**Gate atual:** F0 executada em 2026-10-28, com relatório em `READY_FOR_HUMAN_REVIEW`; a aceitação humana das 46 destinações funcionais e dos riscos/ADRs permanece pendente. **F1 não autorizada.** Consultar [roadmap V2](../v2/ROADMAP.md).
-**Próximo gate condicionado:** aprovação humana específica da F0; em seguida elaborar e aprovar spec F1 e writing-plans F1, com autorização de execução própria. G1 e G2/F0 foram aprovados, mas **não** liberam implementação F1.
+**Gate atual:** **F0 aceita com ressalvas** em 2026-10-28 ([aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279)); gate F0 recalculado `APPROVED`, sem homologar V1. Quatro riscos HIGH `UNVERIFIED`, 107 E2E FAIL, laboratório de layout `UNDECIDED` e fora da F1. **Spec e ADRs F1 em revisão, implementação não autorizada.** Consultar [roadmap V2](../v2/ROADMAP.md).
+**Próximo gate condicionado:** revisão humana da [spec F1 proposta](2026-10-28-estudo-organizado-v2-f1-foundation-design.md) e das [cinco ADRs propostas](2026-10-28-v2-f1-architecture-decisions.md). Só depois da aprovação dessa spec produzir writing-plans; implementação exigirá aprovação adicional do plano e autorização específica.
 
 ## 1. Objetivo, usuários, resultados e regras inegociáveis
 
@@ -256,7 +256,7 @@ Repositório único e monólito modular. Documentação em docs/; arquivos base 
 **Cadeia de gates:**
 - G0: aprovar a arquitetura consolidada em seções (27 decisões + emenda A-01). **APROVADO pelo usuário em 2026-10-19.**
 - G1: redigir e aprovar esta spec-mestra. **APROVADO expressamente pelo usuário em 2026-10-19.**
-- G2: plano da auditoria F0 e método Subagent-driven **aprovados em 2026-10-19**; F0 executada em 2026-10-28 e aguarda aceite humano. **Spec, writing-plans e execução F1 permanecem pendentes de seus próprios gates.**
+- G2: plano da auditoria F0 e método Subagent-driven **aprovados em 2026-10-19**; F0 executada e **aceita com ressalvas em 2026-10-28**, conforme relatório e issue #108. **Spec F1/ADRs em revisão, writing-plans e execução F1 não autorizados.**
 - G3: autorização explícita por fase/tarefa para implementação; TDD e revisões independentes conforme criticidade.
 - G4: homologação funcional, visual, integridade e recuperação por domínio e integrada.
 - G5: autorização exclusiva para cutover V1 -> V2 após piloto, backups verificáveis, reconciliação de dados e contingência aprovada.
