@@ -64,6 +64,9 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    // Initial hydration from the external IndexedDB source; subsequent updates
+    // arrive through subscribeLocalChanges rather than cascading renders.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh().catch((error) => setNotice(persistenceMessage(error)));
     return subscribeLocalChanges(PROFILE_ID, () => {
       refresh().catch(() => undefined);
