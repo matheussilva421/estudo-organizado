@@ -8,7 +8,7 @@
 ## Estado do Git
 
 - `main`: `9046cfa2283cd293b38df9d52fabfcd5de9ac67c`, intocada.
-- `v2`: F0 + F1 commitadas e publicadas; `origin/v2` em `a478bd3` (merge dos docs F2–F8 + commits F1).
+- `v2`: F0 + F1 publicadas; a rodada corretiva final está commitada localmente sobre `abd04d3`. O HEAD final de `origin/v2` consta no relatório/issue #108.
 - Nenhum PR, Action, deploy, publicação ou integração na `main`.
 
 ## Concluído
@@ -21,7 +21,8 @@
   - consentimento Google, CAS/idempotência, read-back, conflitos e Web Locks via contratos/fakes;
   - orçamento de documento, backup com tombstones e reconhecimento legado #107;
   - PWA, 8 temas, AA, teclado e toasts não bloqueantes.
-- Verificação local: typecheck, lint, build, 69 testes unitários e 15 E2E PASS.
+- Correções C1–C5: convergência com pendências, conflito sem regressão de ACK, prévia de consentimento vinculada a perfil/UID/tempo, idempotência de payload e backup sem exclusões.
+- Verificação local: typecheck, lint, build, **84 testes unitários** e **20 E2E** PASS, incluindo duas abas reais, rollback IDB, quota com formulário e retry confirmado.
 - Impeccable 3.9.1: detector final 0 achados; 24 capturas sintéticas.
 - Relatório: `docs/superpowers/audits/2026-10-28-v2-f1-acceptance.md`.
 

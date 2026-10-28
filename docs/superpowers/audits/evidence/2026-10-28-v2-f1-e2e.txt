@@ -3,52 +3,64 @@
 > playwright test
 
 
-[WebServer] (node:6540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (node:10236) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 [WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
 
-[WebServer] (node:27660) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (node:10268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 [WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
 
-Running 16 tests using 6 workers
+Running 20 tests using 8 workers
 
-(node:42040) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
-(Use `node --trace-warnings ...` to show where the warning was created)
-
-
-
-(node:6408) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
-(Use `node --trace-warnings ...` to show where the warning was created)
-
-(node:32256) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(node:34084) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 
 (Use `node --trace-warnings ...` to show where the warning was created)
 
 
-(node:4904) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(node:20276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 (Use `node --trace-warnings ...` to show where the warning was created)
 
 
-(node:29544) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(node:5720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/20] [chromium] › tests\e2e\idb-atomicity.spec.ts:3:1 › creates the isolated V2 IndexedDB stores on boot
+
+(node:35180) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 (Use `node --trace-warnings ...` to show where the warning was created)
 
 
-(node:27716) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(node:4860) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 (Use `node --trace-warnings ...` to show where the warning was created)
 
-[1/16] [chromium] › tests\e2e\idb-atomicity.spec.ts:3:1 › creates the isolated V2 IndexedDB stores on boot
-[2/16] [chromium] › tests\e2e\v2-end-to-end.spec.ts:3:1 › e2e_create_rename_reload
-[3/16] [chromium] › tests\e2e\visual-a11y.spec.ts:5:1 › eight_themes_sampled_AA
-[4/16] [chromium] › tests\e2e\isolation.spec.ts:3:1 › serves V2 on its own origin with its own storage names
-[5/16] [chromium] › tests\e2e\subject-flow.spec.ts:8:1 › creates, renames and restores a local subject
-[6/16] [chromium] › tests\e2e\pwa-offline.spec.ts:8:1 › v2_sw_scope_does_not_intersect_v1
-[7/16] [chromium] › tests\e2e\isolation.spec.ts:18:1 › serves_a_restrictive_content_security_policy
-[8/16] [chromium] › tests\e2e\pwa-offline.spec.ts:21:1 › offline_reload_preserves_committed_subject
-[9/16] [chromium] › tests\e2e\visual-a11y.spec.ts:34:1 › keyboard_and_focus_accessible
-[10/16] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_desktop
-[11/16] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_tablet
-[12/16] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_mobile
-[13/16] [chromium] › tests\e2e\pwa-offline.spec.ts:40:1 › unsaved_form_not_discarded_during_update
-[14/16] [chromium] › tests\e2e\subject-flow.spec.ts:24:1 › local only never says cloud synced and toasts do not cover the action
-[15/16] [chromium] › tests\e2e\subject-flow.spec.ts:31:1 › toast_does_not_cover_primary_button
-[16/16] [chromium] › tests\e2e\subject-flow.spec.ts:44:1 › blank title is blocked
-  16 passed (8.4s)
+[2/20] [chromium] › tests\e2e\retry-confirmed.spec.ts:4:1 › reload_and_retry_after_confirmed_operation_do_not_duplicate
+
+(node:15300) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:29480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:26600) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[3/20] [chromium] › tests\e2e\form-failure.spec.ts:4:1 › quota_failure_keeps_form_open_and_preserves_text
+[4/20] [chromium] › tests\e2e\subject-flow.spec.ts:8:1 › creates, renames and restores a local subject
+[5/20] [chromium] › tests\e2e\transaction-failure.spec.ts:4:1 › real_indexeddb_abort_rolls_back_entity_and_outbox
+[6/20] [chromium] › tests\e2e\isolation.spec.ts:3:1 › serves V2 on its own origin with its own storage names
+[7/20] [chromium] › tests\e2e\pwa-offline.spec.ts:8:1 › v2_sw_scope_does_not_intersect_v1
+[8/20] [chromium] › tests\e2e\two-tabs.spec.ts:4:1 › two_real_tabs_share_one_flush_lock
+[9/20] [chromium] › tests\e2e\v2-end-to-end.spec.ts:3:1 › e2e_create_rename_reload
+[10/20] [chromium] › tests\e2e\visual-a11y.spec.ts:5:1 › eight_themes_sampled_AA
+[11/20] [chromium] › tests\e2e\pwa-offline.spec.ts:21:1 › offline_reload_preserves_committed_subject
+[12/20] [chromium] › tests\e2e\isolation.spec.ts:18:1 › serves_a_restrictive_content_security_policy
+[13/20] [chromium] › tests\e2e\visual-a11y.spec.ts:34:1 › keyboard_and_focus_accessible
+[14/20] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_desktop
+[15/20] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_tablet
+[16/20] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_mobile
+[17/20] [chromium] › tests\e2e\pwa-offline.spec.ts:40:1 › unsaved_form_not_discarded_during_update
+[18/20] [chromium] › tests\e2e\subject-flow.spec.ts:24:1 › local only never says cloud synced and toasts do not cover the action
+[19/20] [chromium] › tests\e2e\subject-flow.spec.ts:31:1 › toast_does_not_cover_primary_button
+[20/20] [chromium] › tests\e2e\subject-flow.spec.ts:44:1 › blank title is blocked
+  20 passed (9.1s)

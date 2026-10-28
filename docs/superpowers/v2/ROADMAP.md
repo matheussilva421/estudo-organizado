@@ -119,7 +119,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 - **Relatório:** [2026-10-28-v2-f1-acceptance.md](../audits/2026-10-28-v2-f1-acceptance.md).
 - **Aplicação isolada:** `apps/v2/` em `127.0.0.1:18431`, IndexedDB `estudo-organizado-v2`, SW próprio.
 - **Jornada:** criar/listar/renomear/recuperar disciplina com commit atômico e outbox durável.
-- **PASS local:** typecheck, lint, 77 testes unitários, 16 E2E, build; Impeccable 0 achados após ajuste do ramp; 8 temas AA na amostra.
+- **PASS local:** typecheck, lint, 84 testes unitários, 20 E2E, build; Impeccable 0 achados após ajuste do ramp; 8 temas AA na amostra. Inclui duas abas reais, rollback IDB, quota de formulário e retry confirmado.
 - **Contratos A-02:** CAS/idempotência/read-back/conflito/Web Locks/fake UID e backup com tombstones demonstrados por fake e fixtures sintéticas.
 - **UNVERIFIED:** os quatro riscos HIGH da F0 continuam abertos; Firebase, emulador, quota física, multi-dispositivo real e leitor de tela não foram executados.
 - **Gate:** `F1_READY_FOR_HUMAN_REVIEW`; F2 bloqueada.
@@ -257,8 +257,8 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 - **Gate G1/F1:** [spec F1](../specs/2026-10-28-estudo-organizado-v2-f1-foundation-design.md) e [ADRs F1-01..05](../specs/2026-10-28-v2-f1-architecture-decisions.md) ratificadas em [#108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550).
 - **Gate G2/F1:** [plano aprovado](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md), Subagent-driven adotado para o handoff, [aceite humano](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470870847).
 - **Fase operacional seguinte:** aceite humano do [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md). Depois, nova spec/plano F2 e autorização específica. Nenhum código F2, deploy ou publicação foi iniciado.
-- **Estado F1:** implementada em `apps/v2/`, testada localmente (77 unit/16 E2E), integrada à `v2` por commits locais; não publicada e não homologada em serviços reais.
-- **Testes executados:** F0 — 66 validadores PASS, 189/3048 unitários PASS, lint 0 erros; F1 — typecheck/lint/build PASS, 77 testes unitários e 16 E2E PASS. `test:e2e:mock` e `test:e2e:mock:all` da V1 mantêm FAIL; runtime Firebase/Cloudflare/Drive, migração real, emulador e multi-dispositivo permanecem NOT_RUN/UNVERIFIED.
+- **Estado F1:** implementada em `apps/v2/`, testada localmente (84 unit/20 E2E), publicada em `origin/v2`; não homologada em serviços reais.
+- **Testes executados:** F0 — 66 validadores PASS, 189/3048 unitários PASS, lint 0 erros; F1 — typecheck/lint/build PASS, 84 testes unitários e 20 E2E PASS. `test:e2e:mock` e `test:e2e:mock:all` da V1 mantêm FAIL; runtime Firebase/Cloudflare/Drive, migração real, emulador e multi-dispositivo permanecem NOT_RUN/UNVERIFIED.
 
 ## 15. Definição de conclusão de fase
 

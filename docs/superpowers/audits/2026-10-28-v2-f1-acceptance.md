@@ -9,7 +9,7 @@
 ## 1. Preflight e autorização
 
 - `main` e `origin/main`: `9046cfa`, intocadas durante toda a execução.
-- `v2` local e `origin/v2` no início: `b15226d`, árvore limpa, sem stashes.
+- `v2` local e `origin/v2` no início da rodada corretiva: `abd04d3`, árvore limpa, sem stashes.
 - Único worktree adicional: o da V2; nenhum PR aberto.
 - G1/F1 confirmado no comentário `6470639550`; G2/F1 confirmado em `6470870847`; ambos do proprietário.
 - Nenhum login, escrita ou leitura em Firebase, Cloudflare ou Google Drive reais.
@@ -38,9 +38,9 @@ O root `package.json`, o lockfile da V1, `src/`, `PRODUCT.md`, `DESIGN.md`, `AGE
 | --- | --- | --- |
 | Typecheck | `npm --prefix apps/v2 run typecheck` | **PASS** |
 | Lint | `npm --prefix apps/v2 run lint` | **PASS** (0 erros) |
-| Unit | `npm --prefix apps/v2 run test:unit` | **PASS** — 15 arquivos, 77 testes |
-| E2E | `npm --prefix apps/v2 run test:e2e` | **PASS** — 16 testes em Chromium |
-| Build | `npm --prefix apps/v2 run build` | **PASS** — bundle 231,14 kB / 72,53 kB gzip |
+| Unit | `npm --prefix apps/v2 run test:unit` | **PASS** — 15 arquivos, 84 testes |
+| E2E | `npm --prefix apps/v2 run test:e2e` | **PASS** — 20 testes em Chromium |
+| Build | `npm --prefix apps/v2 run build` | **PASS** — bundle 231,55 kB / 72,62 kB gzip |
 | Firebase/Google real | — | **NOT_RUN** |
 | Firestore Emulator/Rules | — | **NOT_RUN** |
 | Quota física real | — | **NOT_RUN**; quota é simulada |
@@ -58,7 +58,7 @@ Logs preservados em `docs/superpowers/audits/evidence/2026-10-28-v2-f1-*.txt`.
 | Timeout pós-commit | `TimeoutError` + `lookup APPLIED` + ACK idempotente | sem SDK real |
 | ACK condicionado | `markConfirmed` rejeita operação ausente/futura | transação IDB real no navegador/fake-indexeddb |
 | Conflito preservado | `markConflict` mantém payload local e revisão remota | UI completa de resolução fica para fase posterior |
-| Duas abas | `withSafeFlushLock` com Web Locks e teste de exclusão mútua | E2E de duas abas reais de sync não executado |
+| Duas abas | `withSafeFlushLock` com Web Locks; E2E real de duas abas processando uma operação | remoto compartilhado é fake em localStorage |
 | Sem Web Locks | retorno `BLOCKED`, sem flush; BroadcastChannel não concede lock | fallback de lease/fencing não implementado |
 | Perfil/UID | `RemoteScopeError` e `assertProfileMatches` | login Google real não executado |
 | Orçamento | `validateRemoteDocument` rejeita >900 KB sem truncar | 1 MiB real/emulador não testado |
@@ -103,7 +103,7 @@ A configuração da V1 continua apontando `test:e2e:mock` para uma spec ignorada
 - Fake remoto não prova Firestore, Rules, autenticação Google, índice ou custo real.
 - Quota é simulada; não houve disco cheio real.
 - Backup tem contrato e testes, mas não uma UI completa de restauração.
-- Web Locks foram testados por contrato e E2E de disponibilidade, não com dois dispositivos reais.
+- Web Locks foram testados em duas abas reais do Chromium; dois dispositivos reais continuam fora da F1.
 - O Service Worker é mínimo; atualização/rollback de versão incompatível exige F7.
 - A CSP restritiva é aplicada no servidor de preview; o header de produção depende da hospedagem futura.
 - O `.gitignore` raiz ganhou a exceção de allowlist para `apps/v2`.
@@ -113,7 +113,7 @@ A configuração da V1 continua apontando `test:e2e:mock` para uma spec ignorada
 
 - `main`: `9046cfa`, não alterada.
 - `v2` inicial: `b15226d`; os commits F1 desta execução estão em `git log b15226d..HEAD` e este relatório é o commit documental final.
-- Todo o código está integrado à `v2`; `origin/v2` foi atualizado para `a478bd3`, incluindo o merge dos documentos F2–F8 que chegaram ao remoto durante a execução.
+- Todo o código está integrado à `v2`; `origin/v2` estava em `abd04d3` antes desta rodada corretiva e o HEAD final é informado no comentário da issue #108.
 - O push foi concluído após aprovação humana explícita, sem force push e sem workaround do bloqueio automático anterior.
 - Nenhum PR, Action, deploy, publicação ou migração real.
 - Branches documentais antigas preservadas; nenhum worktree temporário criado além do já existente da V2.
@@ -149,6 +149,25 @@ Também foram endurecidos: `markConfirmed` exige `PENDING`, `markConflict` recus
 
 Após as correções: typecheck/lint/build PASS, 77 testes unitários e 16 E2E PASS.
 
+### Rodada corretiva final (C1–C5)
+
+| Correção | Resultado verificável |
+| --- | --- |
+| C1 convergência | operação pendente impede `CONVERGED` mesmo com cursor verificado |
+| C2 conflito/ACK | `markConflict` lê o registro persistido na transação; objeto defasado não rebaixa `CONFIRMED` |
+| C3 consentimento | prévia vinculada a perfil, UID, contagem, emissão e expiração; ID arbitrário ou de outra identidade é rejeitado |
+| C4 idempotência | mesmo `operationId` com título divergente falha; replay exato devolve a mesma entidade/revisão |
+| C5 backup | histórico completo sem tombstones é `SAFE`; histórico incompleto/antigo exige `REBASELINE_REQUIRED` |
+
+Os quatro cenários browser obrigatórios também passaram:
+
+- `two_real_tabs_share_one_flush_lock`: duas abas Chromium disputam a mesma operação; apenas um efeito lógico, com Web Locks.
+- `real_indexeddb_abort_rolls_back_entity_and_outbox`: abort real no IndexedDB deixa `subjects=0`, `outbox=0`, `operations=0`.
+- `quota_failure_keeps_form_open_and_preserves_text`: falha de quota mostra erro correto, mantém o formulário e o texto.
+- `reload_and_retry_after_confirmed_operation_do_not_duplicate`: reload e replay de operação confirmada mantêm uma única disciplina/revisão.
+
+Impeccable não foi reexecutado nesta rodada porque não houve alteração visual; a última evidência visual continua válida. Verificação final: typecheck/lint/build PASS, **84 testes unitários** e **20 E2E** PASS.
+
 ## 12. Gate
 
-**`F1_READY_FOR_HUMAN_REVIEW`**. A F1 não está aprovada e a F2 não está autorizada. O aceite humano deve considerar: 77 testes unitários, 16 E2E, typecheck/lint/build, 4 riscos HIGH ainda UNVERIFIED, ausência de Firebase real e os limites de fake/quota/multi-dispositivo.
+**`F1_READY_FOR_HUMAN_REVIEW`**. A F1 não está aprovada e a F2 não está autorizada. O aceite humano deve considerar: 84 testes unitários, 20 E2E, typecheck/lint/build, 4 riscos HIGH ainda UNVERIFIED, ausência de Firebase real e os limites de fake/quota/multi-dispositivo.
