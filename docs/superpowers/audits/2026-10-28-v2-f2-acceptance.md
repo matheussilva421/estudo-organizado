@@ -236,5 +236,7 @@ Gates desta rodada (logs completos em `evidence/2026-10-29-v2-f2-final-goal-*.tx
 
 Revisão independente desta rodada: **não executada** (limite de threads do ambiente, registrado em §11); os quatro P1/P2 acima foram cobertos por testes focados e auto-revisão.
 
+**Documentação corrigida:** a seção de riscos passou a separar itens **(histórico)** (F0/V1) das pendências atuais; o corpo da issue #108 foi atualizado de “F2 ainda não comprovada” para o estado real (`publicada na branch v2 (53e15fb)`, gate `F2_READY_FOR_HUMAN_REVIEW`); o texto publicado está preservado em `evidence/issue-108-body.md`.
+
 
 
