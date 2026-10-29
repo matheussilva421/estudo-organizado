@@ -15,7 +15,7 @@ Preflight executado neste worktree em 2026-10-29. O comando `git fetch origin --
 | --- | --- |
 | Worktree | `C:\Users\slvma\.codex\worktrees\v2-f3-planning\estudo-organizado` |
 | Branch | `v2` |
-| HEAD de código/teste | `c08da7c` (antes deste relatório) |
+| HEAD de código/teste | `6183b5d` (antes deste relatório) |
 | HEAD documental | commit que contém este arquivo — consultar `git log -1 -- docs/superpowers/audits/2026-10-29-v2-f3-acceptance.md` |
 | `origin/v2` | `5eba778` |
 | `main` local/remota | `9046cfa` — inalterada |
@@ -25,9 +25,9 @@ Preflight executado neste worktree em 2026-10-29. O comando `git fetch origin --
 | PRs abertos | 0 |
 | Worktrees | principal (`main`) e este worktree (`v2`); sem órfãos |
 | Caminhos V1 | `git diff --name-status origin/main...HEAD -- src firestore.rules .github wrangler.jsonc worker package.json` vazio |
-| Commits exclusivos | 23 de código/teste + este commit documental |
+| Commits exclusivos | 25 antes deste relatório (23 de código/teste + 2 documentais); 26 com o commit final deste relatório |
 
-O HEAD é citado por função para evitar SHA circular: o código revisado termina em `c08da7c`; o relatório é o commit seguinte, verificável pelo comando acima.
+O HEAD é citado por função para evitar SHA circular: o código revisado termina em `6183b5d`; o relatório é o commit seguinte, verificável pelo comando acima.
 
 ## 2. Entregas e cobertura das 11 funcionalidades F0
 
@@ -125,7 +125,7 @@ O HEAD é citado por função para evitar SHA circular: o código revisado termi
 
 ## 5. Testes e evidências
 
-### 5.1 Gates finais (HEAD de código `c08da7c`)
+### 5.1 Gates finais (HEAD de código `6183b5d`)
 
 | Gate | Comando | Resultado |
 | --- | --- | --- |
@@ -146,9 +146,10 @@ Baseline anterior à F3: 188 unit e 50 E2E verdes após a correção de tipos (`
 | Mobile 390×844 | idem, mesmo fluxo; overflow horizontal ≤1 px | PASS |
 | Oito temas | `f3-a11y` + `f3-a11y-states` (grafite, ardósia, platina, terminal, neon, arrakis, codex, plasma) | PASS |
 | Contraste texto comum | ≥4,5:1 medido por cor computada + luminância WCAG; pior caso `heading` 15,24:1 (ardósia) | PASS |
-| Contraste botão habilitado | 15,64:1 a 16,45:1, variando por tema (botão temado, não o padrão do navegador) | PASS |
+| Contraste botão habilitado | 15,39:1 a 16,45:1, variando por tema (botão temado, não o padrão do navegador) | PASS |
+| Contraste da borda do controle | 3,29:1 a 3,44:1 (token `--control-border` composto sobre o fundo) | PASS |
 | Contraste mensagem de erro/status | pior caso 15,24:1 | PASS |
-| Disabled (isento pelo WCAG 1.4.3, meta de produto ≥3:1) | 6,65:1 a 7,45:1 após corrigir o fundo nativo do Chromium | PASS |
+| Disabled (isento pelo WCAG 1.4.3, meta de produto ≥3:1) | 6,50:1 a 7,48:1 após corrigir o fundo nativo do Chromium | PASS |
 | Foco visível | anel sólido de 3 px em `var(--accent)`, contraste medido 6,91:1 a 7,34:1 | PASS |
 | Teclado/ordem/labels | 40 tabs cobrem wizard e calendário; sem prisão de foco; `aria-pressed` nas visões | PASS |
 | Alvos touch ≥44 px | `f3-a11y` mede `calendar-day`, `preview-generation`, `preview-redistribution` com `hasTouch` | PASS |
@@ -202,8 +203,14 @@ Revisor novo (contexto limpo, somente leitura), focado nos testes F3-T40 e nos c
 | P2: falha de ativação no wizard era ignorada | `createFromWizard` verifica `activateScenario` e informa o estado real | E2E de ativação |
 | P2: evidência não hermética | gerador de capturas sob `F3_T40_CAPTURE=1` (skip padrão) | suíte normal 77 PASS + 1 skip |
 | P2: relatório defasado | este arquivo, reescrito com matrizes e HEAD corretos | §1, §3–§5 |
+| P2: teste do P1 usava janela de 120 min e blocos sobrepostos | teste refeito com 180 min e blocos 08–10 + 10–11; sem `capacityBlocks` sobraria 60 min e 1 unidade seria projetada | `f3-final-stretch`: 0 PROJECTED / 3 UNALLOCATED |
+| P2: borda de controle com 1,26–1,39:1 | botão usa `--control-border`; teste mede a borda composta sobre o fundo | 3,29–3,44:1 nos 8 temas |
 
 Também corrigido: a data de início da transição/redistribuição passou a usar `America/Fortaleza` (`todayInZone`) em vez do dia UTC do dispositivo.
+
+### 6.5 Verificação final dos ajustes
+
+O mesmo revisor verificou `c08da7c..6183b5d` (teste do P1 e borda de controle) e respondeu **`APPROVE_FOR_INTEGRATION_REVIEW`**, sem bloqueio remanescente.
 
 ## 7. Integridade e segurança
 
@@ -241,10 +248,10 @@ Também corrigido: a data de início da transição/redistribuição passou a us
 
 | Item | Valor |
 | --- | --- |
-| Candidato local | `c08da7c` (código/teste) + commit documental deste relatório |
+| Candidato local | `6183b5d` (código/teste) + commit documental deste relatório |
 | Remoto | `origin/v2` = `5eba778` |
 | Ancestralidade | `git merge-base --is-ancestor origin/v2 HEAD` → exit 0 |
-| Commits a enviar | 24 (23 de código/teste + 1 documental) |
+| Commits a enviar | 26 (23 de código/teste + 3 documentais) |
 | Arquivos afetados | `apps/v2/**`, `docs/superpowers/**` |
 | Testes finais | 297 unit, 77 E2E + 1 skip, typecheck/lint/build PASS |
 | Revisor | parecer final em §6 |
