@@ -14,7 +14,7 @@
 | HEAD final | ver `git rev-parse HEAD` no commit deste relatório |
 | `main` local | `9046cfa` — inalterada |
 | `origin/v2` | `5eba778` — sem push nesta execução |
-| Commits locais | 19 (`5eba778..HEAD`), todos `feat/fix/test(v2-f3)` |
+| Commits locais | 20 (`5eba778..HEAD`, incluindo este relatório), todos `feat/fix/test(v2-f3)` |
 | Árvore | limpa após o commit documental |
 
 ### Correção de baseline (fora do escopo funcional, registrada)
@@ -114,3 +114,19 @@ O revisor confirmou os dois P1 fechados no caminho de produto e **não encontrou
 - a transição Ciclo→Reta Final passou a receber as reservas oficiais dos demais cenários (`capacityBlocks`);
 - um novo cenário para o mesmo edital não é cobrado contra o plano ativo que ele substitui;
 - `relinkBlock` só anuncia o vínculo quando o rascunho foi realmente salvo.
+
+## 9. Higiene Git/GitHub (inventário final, 2026-10-29)
+
+| Item | Estado |
+| --- | --- |
+| `main` local/remota | `9046cfa` — inalterada |
+| `v2` local | `a98ed56` (após este relatório, +1 commit documental) |
+| `origin/v2` | `5eba778` — fast-forward viável (`merge-base --is-ancestor` exit 0) |
+| Worktrees | principal em `main` e o worktree isolado da `v2`; nenhum órfão |
+| Stashes | nenhum |
+| PRs abertos | 0 |
+| Branches documentais | `docs/superpowers-estudo-organizado-v2-design` (`2a2736c`) e `...-f0-plan` (`cfe4a25`) preservadas, sem exclusão |
+| Workflows | apenas `auto-cache-bump.yml`, com `on: push branches: [main]` — um push em `v2` não aciona CI |
+| Caminhos V1 | `git diff main..HEAD -- src firestore.rules .github wrangler.jsonc worker package.json` vazio |
+
+Nenhuma limpeza destrutiva foi executada: as duas branches documentais antigas permanecem, assim como os commits exclusivos. A única operação remota pendente é o push fast-forward de `v2`, que depende de autorização humana explícita.
