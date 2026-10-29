@@ -20,6 +20,7 @@ export function PlanningPortability({ onExport, onImport, editais, locked }: Pro
       <label>
         Edital de destino
         <select
+          aria-label="Edital de destino da importação"
           value={activeTarget}
           onChange={(event) => setTargetEditalId(event.target.value)}
         >

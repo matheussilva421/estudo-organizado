@@ -132,7 +132,11 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
         ) : null}
         <label>
           Edital
-          <select value={activeEditalId} onChange={(event) => setEditalId(event.target.value)}>
+          <select
+            aria-label="Edital do planejamento"
+            value={activeEditalId}
+            onChange={(event) => setEditalId(event.target.value)}
+          >
             {editais.map((edital) => (
               <option key={edital.id} value={edital.id}>{edital.title}</option>
             ))}

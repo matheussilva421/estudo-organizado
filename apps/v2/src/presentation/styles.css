@@ -514,3 +514,15 @@ select {
   font-size: 0.85rem;
   opacity: 0.85;
 }
+
+/* Disabled controls stay readable instead of relying on the browser fade. */
+.planning-workspace button:disabled,
+.planning-workspace input:disabled,
+.planning-workspace select:disabled,
+.planning-workspace textarea:disabled {
+  color: var(--text-muted, #9aa3b1);
+  background: var(--card-hover, #151d27);
+  border-color: var(--border, #94a3b824);
+  opacity: 1;
+  cursor: not-allowed;
+}
