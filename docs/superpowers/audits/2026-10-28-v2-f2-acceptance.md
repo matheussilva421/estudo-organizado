@@ -238,5 +238,19 @@ Revisão independente desta rodada: **não executada** (limite de threads do amb
 
 **Documentação corrigida:** a seção de riscos passou a separar itens **(histórico)** (F0/V1) das pendências atuais; o corpo da issue #108 foi atualizado de “F2 ainda não comprovada” para o estado real (`publicada na branch v2 (53e15fb)`, gate `F2_READY_FOR_HUMAN_REVIEW`); o texto publicado está preservado em `evidence/issue-108-body.md`.
 
+## 13. Inventário das branches documentais antigas (preservadas)
+
+Levantamento somente leitura, sem exclusão de branches ou commits.
+
+| Branch | Tip | Commits à frente de `main` | Não ancestrais da `v2` | Situação | Ação |
+| --- | --- | --- | --- | --- | --- |
+| `docs/superpowers-estudo-organizado-v2-design` | `2a2736c` | 2 | 2 | Histórica: propõe a spec mestra e registra o G1; superada pelas revisões da spec na `v2` | Preservar — nenhuma exclusão |
+| `docs/superpowers-estudo-organizado-v2-f0-plan` | `cfe4a25` | 8 (inclui os 2 acima) | 8 | Histórica: planeja a F0 e registra G2; a `v2` traz revisões posteriores do GOAL F0 e o `ROADMAP.md`, que a branch não possui | Preservar — nenhuma exclusão |
+
+Verificação executada: `git rev-list --count origin/v2..<branch>` retorna 2 e 8; `git rev-list --count <branch>..origin/v2` retorna 254 nas duas. O conteúdo documental desses commits não é fonte corrente — a `v2` tem versões revisadas (o GOAL F0 difere em 28 linhas; o `ROADMAP.md` tem 363 linhas a mais). Nenhum arquivo exclusivo ficou órfão.
+
+A `main` permaneceu em `9046cfa` e nenhum PR foi aberto durante o levantamento.
+
+
 
 
