@@ -7,6 +7,7 @@ import {
   STORES,
   transactionDone,
 } from '../../src/platform/indexeddb';
+import { LOCAL_DB_VERSION } from '../../src/domain/versions';
 
 const profileId = 'profile-local';
 
@@ -129,7 +130,7 @@ describe('F2 IndexedDB schema upgrade', () => {
     expect(await requestResult(transaction.objectStore('outbox').count())).toBe(1);
 
     // Reopening the same upgraded database must not duplicate or reset stores.
-    const reopened = await openRequest(2);
+    const reopened = await openRequest(LOCAL_DB_VERSION);
     expect([...reopened.objectStoreNames]).toEqual(expect.arrayContaining(F2_STORE_NAMES));
     const replay = reopened.transaction(['subjects'], 'readonly');
     expect(await requestResult(replay.objectStore('subjects').count())).toBe(1);

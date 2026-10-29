@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { V2E2EHarness } from '../../src/platform/e2e-harness';
+import { LOCAL_DB_VERSION } from '../../src/domain/versions';
 
 type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 
@@ -24,7 +25,7 @@ test('upgrade_f1_preserves_subject_operations_outbox', async ({ page }) => {
   const opened = await page.evaluate(() =>
     (window as unknown as HarnessWindow).__v2E2E.openDb(),
   );
-  expect(opened.version).toBe(2);
+  expect(opened.version).toBe(LOCAL_DB_VERSION);
   expect(opened.stores).toEqual(expect.arrayContaining(F2_STORES));
   expect(opened.stores).toEqual(
     expect.arrayContaining(['subjects', 'operations', 'outbox', 'profiles', 'meta', 'conflicts']),
@@ -95,7 +96,7 @@ test('blocked_upgrade_never_deletes_existing_database', async ({ page }) => {
 
   await page.evaluate(() => (window as unknown as HarnessWindow).__v2E2E.releaseLegacyV1());
   const upgraded = await opening;
-  expect(upgraded.version).toBe(2);
+  expect(upgraded.version).toBe(LOCAL_DB_VERSION);
   expect(upgraded.stores).toEqual(expect.arrayContaining(F2_STORES));
   expect(
     await page.evaluate(() => (window as unknown as HarnessWindow).__v2E2E.countStore('subjects')),

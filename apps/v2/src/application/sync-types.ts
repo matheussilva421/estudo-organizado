@@ -1,4 +1,5 @@
 import type { ContentEntity, ContentEntityType } from './content-commands';
+import type { PlanBlock, PlanningScenario } from '../domain/planning';
 
 export type SyncState =
   | 'LOCAL_ONLY'
@@ -13,16 +14,28 @@ export type SyncState =
 
 export type OutboxStatus = 'PENDING' | 'CONFIRMED' | 'CONFLICT';
 
+/** F3 planning entities travel in the same outbox, discriminated by type. */
+export type PlanningEntityType = 'planning-scenario' | 'plan-block';
+
+export type OutboxEntityType = ContentEntityType | PlanningEntityType;
+
+export type OutboxPayload = ContentEntity | PlanningScenario | PlanBlock;
+
 export type OutboxOperation = {
   operationId: string;
   profileId: string;
-  entityType: ContentEntityType;
+  entityType: OutboxEntityType;
   entityId: string;
   kind: 'upsert' | 'delete';
   baseRevision: number | null;
-  payload: ContentEntity;
+  payload: OutboxPayload;
   schemaVersion: number;
   status: OutboxStatus;
+  /**
+   * F3 planning intents stay local: real delivery is an F7 concern and must
+   * never be inferred from the presence of a row in this outbox.
+   */
+  deliveryMode?: 'BLOCKED';
   /**
    * Revision expected at the remote side. Local CAS keeps using
    * `baseRevision`; the adapter compares this value instead, so a conflict

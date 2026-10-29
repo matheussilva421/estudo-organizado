@@ -23,6 +23,8 @@ export { type DeliveryConsentProof };
 
 const DELIVERABLE_STATES = new Set(['READY', 'SYNCING', 'PENDING_OFFLINE']);
 
+const PLANNING_ENTITY_TYPES = new Set(['planning-scenario', 'plan-block']);
+
 /**
  * A local operation is deliverable only when profile, binding and operation
  * agree on the same account/library. Anything else stays local and visible.
@@ -35,6 +37,11 @@ export function canDeliver(
   if (operation.profileId !== profile.profileId) return false;
   if (binding.profileId !== profile.profileId) return false;
   if (operation.status !== 'PENDING') return false;
+
+  // Fail closed: F3 planning envelopes are local intents until F7 homologates
+  // a real remote contract. Their presence never enables delivery.
+  if (operation.deliveryMode === 'BLOCKED') return false;
+  if (PLANNING_ENTITY_TYPES.has(operation.entityType)) return false;
 
   const uid = profile.uid;
   if (!uid || !uid.trim()) return false;

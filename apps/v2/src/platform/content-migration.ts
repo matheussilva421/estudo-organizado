@@ -177,6 +177,61 @@ function definitions(): StoreDefinition[] {
       keyPath: ['profileId', 'importId'],
       indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
     },
+    // ---------------------------------------------------------------- F3 --
+    // Planning stores are additive: F1/F2 records, indexes and the single
+    // outbox are never re-keyed or rewritten by this upgrade.
+    {
+      name: STORES.planningScenarios,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_profile_edital', keyPath: ['profileId', 'editalId'] },
+        { name: 'by_profile_status', keyPath: ['profileId', 'status'] },
+        { name: 'by_edital_status', keyPath: ['profileId', 'editalId', 'status'] },
+      ],
+    },
+    {
+      name: STORES.planningBlocks,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_scenario', keyPath: ['profileId', 'scenarioId'] },
+        { name: 'by_edital', keyPath: ['profileId', 'editalId'] },
+        { name: 'by_date', keyPath: ['profileId', 'civilDate'] },
+        { name: 'by_allocation', keyPath: ['profileId', 'allocation'] },
+      ],
+    },
+    {
+      name: STORES.planningDrafts,
+      keyPath: ['profileId', 'scenarioId'],
+      indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
+    },
+    {
+      name: STORES.planningCheckpoints,
+      keyPath: ['profileId', 'checkpointId'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_scenario', keyPath: ['profileId', 'scenarioId'] },
+      ],
+    },
+    {
+      name: STORES.planningPriorityProfiles,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_profile_key', keyPath: ['profileId', 'priorityProfileId'] },
+      ],
+    },
+    {
+      name: STORES.planningAvailability,
+      keyPath: ['profileId', 'id'],
+      indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
+    },
+    {
+      name: STORES.planningImports,
+      keyPath: ['profileId', 'importId'],
+      indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
+    },
   ];
 }
 

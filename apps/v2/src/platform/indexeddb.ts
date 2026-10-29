@@ -21,6 +21,13 @@ export const STORES = {
   tombstones: 'tombstones',
   quarantine: 'quarantine',
   importReceipts: 'import_receipts',
+  planningScenarios: 'planning_scenarios',
+  planningBlocks: 'planning_blocks',
+  planningDrafts: 'planning_drafts',
+  planningCheckpoints: 'planning_checkpoints',
+  planningPriorityProfiles: 'planning_priority_profiles',
+  planningAvailability: 'planning_availability',
+  planningImports: 'planning_imports',
 } as const;
 
 export type LocalPersistenceKind = 'QUOTA' | 'ABORT' | 'UNAVAILABLE' | 'BLOCKED_UPGRADE';

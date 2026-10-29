@@ -47,3 +47,48 @@ export function subscribeLocalChanges(
 export function notifyLocalChange(profileId: string, subjectId: string): void {
   deliver({ profileId, subjectId }, true);
 }
+
+type PlanningChange = { profileId: string; scenarioId: string };
+
+type PlanningListener = (change: PlanningChange) => void;
+
+const planningListeners = new Map<string, Set<PlanningListener>>();
+let planningChannel: BroadcastChannel | null = null;
+
+function ensurePlanningChannel(): BroadcastChannel | null {
+  if (planningChannel) return planningChannel;
+  if (typeof BroadcastChannel !== 'function') return null;
+  planningChannel = new BroadcastChannel('estudo-organizado-v2-planning');
+  planningChannel.onmessage = (event: MessageEvent<PlanningChange>) => {
+    const change = event.data;
+    if (change && typeof change.profileId === 'string' && typeof change.scenarioId === 'string') {
+      deliverPlanning(change, false);
+    }
+  };
+  return planningChannel;
+}
+
+function deliverPlanning(change: PlanningChange, broadcast: boolean): void {
+  for (const listener of planningListeners.get(change.profileId) ?? []) {
+    listener(change);
+  }
+  if (broadcast) ensurePlanningChannel()?.postMessage(change);
+}
+
+export function subscribePlanningChanges(
+  profileId: string,
+  onChange: PlanningListener,
+): () => void {
+  ensurePlanningChannel();
+  const listeners = planningListeners.get(profileId) ?? new Set<PlanningListener>();
+  listeners.add(onChange);
+  planningListeners.set(profileId, listeners);
+  return () => {
+    listeners.delete(onChange);
+    if (listeners.size === 0) planningListeners.delete(profileId);
+  };
+}
+
+export function notifyPlanningChange(profileId: string, scenarioId: string): void {
+  deliverPlanning({ profileId, scenarioId }, true);
+}
