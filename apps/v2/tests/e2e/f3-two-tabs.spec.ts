@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { V2E2EHarness } from '../../src/platform/e2e-harness';
-import type { PlanBlock, PlanningScenario } from '../../src/domain/planning';
+import type { PlanningScenario } from '../../src/domain/planning';
 
 type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 
@@ -20,23 +20,6 @@ const scenario: PlanningScenario = {
   examDate: '2027-01-24',
   referenceZone: 'America/Fortaleza',
 };
-
-function block(id: string, extra: Partial<PlanBlock> = {}): PlanBlock {
-  return {
-    id,
-    profileId,
-    editalId: 'edital-tjpb',
-    scenarioId: scenario.id,
-    editalDisciplineId: 'link-1',
-    plannedMinutes: 60,
-    allocation: 'PROJECTED',
-    civilDate: '2027-01-05',
-    priority: 1,
-    localRevision: 1,
-    sourceOperationId: 'op-1',
-    ...extra,
-  };
-}
 
 test('two_tabs_apply_drafts_with_cas_inside_the_transaction', async ({ context }) => {
   const pageA = await context.newPage();

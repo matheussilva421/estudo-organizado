@@ -109,6 +109,18 @@ export class LocalPlanningRepository implements PlanningRepository {
     return (record as PlanningDraft | undefined) ?? null;
   }
 
+  async listBlocks(profileId: string, scenarioId?: string): Promise<PlanBlock[]> {
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(STORES.planningBlocks, 'readonly');
+    const store = transaction.objectStore(STORES.planningBlocks);
+    const records = (
+      scenarioId
+        ? await requestResult(store.index('by_scenario').getAll([profileId, scenarioId]))
+        : await requestResult(store.index('by_profile').getAll(profileId))
+    ) as PlanBlock[];
+    return records.sort(byId);
+  }
+
   async saveDraft(draft: PlanningDraft): Promise<PlanningOutcome<PlanningDraft>> {
     if (
       !draft ||

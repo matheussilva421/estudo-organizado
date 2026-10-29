@@ -28,6 +28,7 @@ import { ImportPreview } from './components/ImportPreview';
 import { SubjectForm } from './components/SubjectForm';
 import { SubjectList } from './components/SubjectList';
 import { SyncStatus } from './components/SyncStatus';
+import { PlanningWorkspace } from './PlanningWorkspace';
 import { canSubmitTitle, initialFormState, markSubmitFailure, THEMES, type FormState } from './ui-state';
 
 const PROFILE_ID = 'local-default';
@@ -425,6 +426,13 @@ export function App() {
           <p className="empty-state">Selecione ou crie um edital para verticalizar o conteúdo.</p>
         )}
       </section>
+
+      <PlanningWorkspace
+        profileId={PROFILE_ID}
+        content={content}
+        locked={upgrade.blocked}
+        onNotice={setNotice}
+      />
 
       <ImportPreview
         locked={upgrade.blocked}

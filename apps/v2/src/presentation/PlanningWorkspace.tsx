@@ -1,0 +1,481 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ContentSnapshot } from '../application/content-service';
+import type { PlanningDraft } from '../application/planning-service';
+import { applyPlanningDraft, previewDraftCommit } from '../application/planning-service';
+import {
+  exportPlanningScenarios,
+  parsePlanningImport,
+  previewPlanningImport,
+} from '../application/planning-portability';
+import { queryCalendar, type CalendarDay } from '../application/planning-queries';
+import { advanceCycle, createCycleState, type CycleDecision } from '../domain/planning-cycle';
+import { generatePlanPreview } from '../domain/planning-generator';
+import {
+  previewExamDateChange,
+  type ExamDateChange,
+} from '../domain/planning-final-stretch';
+import type { MergeConflict } from '../domain/planning-merge';
+import type { PlanningCheckpointRecord } from '../domain/planning-history';
+import type { PlanBlock, PlanningScenario } from '../domain/planning';
+import type { WeeklyAvailability } from '../domain/planning-capacity';
+import { LocalPlanningRepository } from '../platform/local-planning-repository';
+import { LocalPlanningImportCommitter } from '../platform/planning-import-commit';
+import { PlanningDashboard } from './components/PlanningDashboard';
+import { PlanningWizard, type WizardInput } from './components/PlanningWizard';
+import { PlanningCalendar, type CalendarView } from './components/PlanningCalendar';
+import { StudyCycle } from './components/StudyCycle';
+import { FinalStretch } from './components/FinalStretch';
+import { PlanningEditor } from './components/PlanningEditor';
+import { PlanningHistory } from './components/PlanningHistory';
+import { PlanningConflicts } from './components/PlanningConflicts';
+import { PlanningPortability } from './components/PlanningPortability';
+
+const ZONE = 'America/Fortaleza';
+
+const weekly: WeeklyAvailability = {
+  timeZone: ZONE,
+  days: {
+    MON: [{ start: '08:00', end: '11:00' }],
+    TUE: [{ start: '08:00', end: '11:00' }],
+    WED: [{ start: '08:00', end: '11:00' }],
+    THU: [{ start: '08:00', end: '11:00' }],
+    FRI: [{ start: '08:00', end: '11:00' }],
+    SAT: [{ start: '08:00', end: '10:00' }],
+  },
+};
+
+function newId(): string {
+  return crypto.randomUUID();
+}
+
+type Props = {
+  profileId: string;
+  content: ContentSnapshot;
+  locked: boolean;
+  onNotice: (message: string | null) => void;
+};
+
+export function PlanningWorkspace({ profileId, content, locked, onNotice }: Props) {
+  const [scenarios, setScenarios] = useState<PlanningScenario[]>([]);
+  const [blocks, setBlocks] = useState<PlanBlock[]>([]);
+  const [checkpoints, setCheckpoints] = useState<PlanningCheckpointRecord[]>([]);
+  const [draft, setDraft] = useState<PlanningDraft | null>(null);
+  const [conflicts, setConflicts] = useState<MergeConflict[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<CalendarView>('week');
+
+  const repository = useCallback(() => new LocalPlanningRepository(), []);
+
+  const refresh = useCallback(async () => {
+    const list = await repository().listScenarios(profileId);
+    const allBlocks = await repository().listBlocks(profileId);
+    setScenarios(list);
+    setBlocks(allBlocks);
+    setSelectedId((current) => {
+      if (current && list.some((item) => item.id === current)) return current;
+      return list[0]?.id ?? null;
+    });
+  }, [profileId, repository]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refresh().catch(() => undefined);
+  }, [refresh]);
+
+  const selected = scenarios.find((item) => item.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (!selected) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCheckpoints([]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDraft(null);
+      return;
+    }
+    void (async () => {
+      const [loadedCheckpoints, loadedDraft] = await Promise.all([
+        repository().listCheckpoints(profileId, selected.id),
+        repository().loadDraft(profileId, selected.id),
+      ]);
+      setCheckpoints(loadedCheckpoints);
+      setDraft(loadedDraft);
+    })();
+  }, [profileId, repository, selected?.id, selected?.localRevision]);
+
+  const selectedBlocks = useMemo(
+    () => blocks.filter((block) => block.scenarioId === selectedId),
+    [blocks, selectedId],
+  );
+
+  const calendarDays: CalendarDay[] = useMemo(() => {
+    if (!selected) return [];
+    const start = selected.examDate ?? '2027-01-04';
+    const end = selected.examDate ?? start;
+    const startDate = selected.kind === 'FINAL_STRETCH' ? start : start;
+    const endDate = selected.kind === 'FINAL_STRETCH' ? end : '2027-01-17';
+    return queryCalendar({
+      profileId,
+      rangeStart: startDate,
+      rangeEnd: endDate,
+      activeOnly: false,
+      blocks,
+      scenarios,
+      availability: { zone: ZONE, weekly, exceptions: [] },
+    });
+  }, [blocks, profileId, scenarios, selected]);
+
+  function wizardPreview(input: WizardInput) {
+    try {
+      return generatePlanPreview({
+        scenario: {
+          id: 'preview',
+          profileId,
+          editalId: input.editalId,
+          kind: input.kind,
+          name: input.name,
+          status: 'DRAFT',
+          localRevision: 1,
+          schemaVersion: 1,
+          priorityProfileId: 'priority-default',
+          priorityProfileRevision: 1,
+          examDate: input.kind === 'FINAL_STRETCH' ? input.examDate : null,
+          referenceZone: ZONE,
+        },
+        profile: {
+          id: 'priority-default',
+          revision: 1,
+          name: 'Padrão',
+          weights: { urgency: 1, depth: 1, volume: 0.5, pending: 2 },
+        },
+        items: input.selectedLinks.map((item) => ({
+          contentKey: item.editalDisciplineId,
+          editalDisciplineId: item.editalDisciplineId,
+          assuntoId: item.assuntoId,
+          label: item.label,
+          plannedMinutes: item.plannedMinutes,
+          depth: 0,
+        })),
+        startDate: input.startDate,
+        horizonDays: input.horizonDays,
+        zone: ZONE,
+        weekly,
+        exceptions: [],
+        fixedBlocks: [],
+        operationId: 'preview',
+      });
+    } catch {
+      return { error: 'Não foi possível gerar a prévia com estes dados.' };
+    }
+  }
+
+  async function createFromWizard(input: WizardInput, preview: ReturnType<typeof generatePlanPreview>): Promise<boolean> {
+    const scenarioId = newId();
+    const hasExam = input.kind === 'FINAL_STRETCH' && input.examDate;
+    const cycle =
+      input.kind === 'CYCLE'
+        ? createCycleState({
+            profileId,
+            scenarioId,
+            content: input.selectedLinks.map((item) => ({
+              editalDisciplineId: item.editalDisciplineId,
+              assuntoId: item.assuntoId,
+              label: item.label,
+              plannedMinutes: item.plannedMinutes,
+            })),
+          })
+        : null;
+    const created = await repository().commit({
+      scope: { profileId, operationId: `create-${scenarioId}` },
+      scenarioId,
+      baseRevision: null,
+      changes: {
+        scenario: {
+          id: scenarioId,
+          profileId,
+          editalId: input.editalId,
+          kind: input.kind,
+          name: input.name,
+          status: 'DRAFT',
+          localRevision: 1,
+          schemaVersion: 1,
+          priorityProfileId: 'priority-default',
+          priorityProfileRevision: 1,
+          examDate: hasExam ? input.examDate : null,
+          referenceZone: ZONE,
+          cycle,
+        },
+      },
+    });
+    if (created.kind !== 'LOCAL_COMMITTED') {
+      onNotice('Cenário recusado.');
+      return false;
+    }
+    const anyBlock = preview.blocks.length > 0 || preview.unallocated.length > 0;
+    if (anyBlock) {
+      await repository().commit({
+        scope: { profileId, operationId: `blocks-${scenarioId}` },
+        scenarioId,
+        baseRevision: 1,
+        changes: {
+          upsertBlocks: [...preview.blocks, ...preview.unallocated].map((block) => ({
+            ...block,
+            scenarioId,
+            editalId: input.editalId,
+            sourceOperationId: `blocks-${scenarioId}`,
+          })),
+        },
+      });
+    }
+    const checkpointId = `checkpoint-${scenarioId}`;
+    await repository().createCheckpoint({
+      profileId,
+      scenarioId,
+      checkpointId,
+      kind: 'MANUAL',
+      operationId: `checkpoint-${scenarioId}`,
+    });
+    await repository().activateScenario({
+      profileId,
+      operationId: `activate-${scenarioId}`,
+      editalId: input.editalId,
+      scenarioId,
+      checkpointId,
+    });
+    await refresh();
+    setSelectedId(scenarioId);
+    onNotice('Cenário criado e ativado localmente.');
+    return true;
+  }
+
+  async function activate(scenarioId: string): Promise<void> {
+    const scenario = scenarios.find((item) => item.id === scenarioId);
+    if (!scenario) return;
+    const checkpointId = `checkpoint-activate-${scenarioId}`;
+    await repository().createCheckpoint({
+      profileId,
+      scenarioId,
+      checkpointId,
+      kind: 'MANUAL',
+      operationId: `checkpoint-activate-${scenarioId}`,
+    });
+    const result = await repository().activateScenario({
+      profileId,
+      operationId: `activate-now-${scenarioId}`,
+      editalId: scenario.editalId,
+      scenarioId,
+      checkpointId,
+    });
+    onNotice(result.kind === 'LOCAL_COMMITTED' ? 'Cenário ativado.' : 'Ativação bloqueada ou recusada.');
+    await refresh();
+  }
+
+  async function applyCycleDecision(decision: CycleDecision): Promise<void> {
+    if (!selected?.cycle) return;
+    const next = advanceCycle(
+      {
+        ...selected.cycle,
+        profileId,
+        scenarioId: selected.id,
+        localRevision: selected.localRevision,
+      },
+      decision,
+    );
+    await repository().commit({
+      scope: { profileId, operationId: `cycle-${selected.id}-${next.localRevision}` },
+      scenarioId: selected.id,
+      baseRevision: selected.localRevision,
+      changes: {
+        scenario: {
+          ...selected,
+          cycle: {
+            content: next.content,
+            cursorIndex: next.cursorIndex,
+            round: next.round,
+            pendings: next.pendings,
+            history: next.history,
+          },
+        },
+      },
+    });
+    await refresh();
+  }
+
+  async function changeExamDate(change: ExamDateChange): Promise<void> {
+    if (!selected) return;
+    const preview = previewExamDateChange({
+      scenario: selected,
+      blocks: selectedBlocks,
+      change,
+      referenceDate: selected.examDate ?? '2027-01-04',
+      operationId: 'exam-change',
+    });
+    await repository().commit({
+      scope: { profileId, operationId: `exam-${selected.id}-${selected.localRevision}` },
+      scenarioId: selected.id,
+      baseRevision: selected.localRevision,
+      changes: {
+        scenario: preview.newScenario,
+        deleteBlockIds: preview.affectedBlockIds.filter((id) =>
+          selectedBlocks.some((block) => block.id === id && block.allocation === 'PROJECTED'),
+        ),
+      },
+    });
+    onNotice(`Prova atualizada. ${preview.affectedBlockIds.length} bloco(s) precisam de replanejamento.`);
+    await refresh();
+  }
+
+  async function saveDraft(change: { blockId: string; field: 'plannedMinutes' | 'civilDate'; value: string | number; baseValue: string | number }): Promise<void> {
+    if (!selected) return;
+    const next: PlanningDraft = {
+      id: draft?.id ?? `draft-${selected.id}`,
+      profileId,
+      scenarioId: selected.id,
+      baseRevision: selected.localRevision,
+      changes: [
+        ...(draft?.changes ?? []).filter(
+          (item) => !(item.blockId === change.blockId && item.field === change.field),
+        ),
+        { ...change, field: change.field },
+      ],
+      lastSavedAt: new Date().toISOString(),
+    };
+    const result = await repository().saveDraft(next);
+    if (result.kind === 'LOCAL_COMMITTED') {
+      setDraft(result.value);
+      onNotice('Rascunho salvo neste dispositivo.');
+    } else {
+      onNotice('Não foi possível salvar o rascunho.');
+    }
+  }
+
+  async function applyDraft(): Promise<void> {
+    if (!selected || !draft) return;
+    const current = await repository().loadScenario(profileId, selected.id);
+    if (!current) return;
+    const preview = previewDraftCommit({ current, draft });
+    setConflicts(preview.conflicts);
+    const result = await applyPlanningDraft(repository(), {
+      profileId,
+      scenarioId: selected.id,
+      draft,
+      approval: { confirmed: true, previewToken: preview.previewToken },
+    });
+    onNotice(
+      result.kind === 'LOCAL_COMMITTED'
+        ? 'Rascunho aplicado localmente.'
+        : result.kind === 'CONFLICT'
+          ? 'Conflito: revise o rascunho antes de aplicar.'
+          : 'Não foi possível aplicar o rascunho.',
+    );
+    await refresh();
+  }
+
+  async function restoreCheckpoint(checkpointId: string): Promise<void> {
+    if (!selected) return;
+    const target = checkpoints.find((item) => item.checkpointId === checkpointId);
+    if (!target?.snapshot) return;
+    const current = await repository().loadScenario(profileId, selected.id);
+    if (!current) return;
+    const preview = previewDraftCommit({
+      current,
+      draft: {
+        id: `restore-${checkpointId}`,
+        profileId,
+        scenarioId: selected.id,
+        baseRevision: current.scenario.localRevision,
+        changes: [],
+        lastSavedAt: new Date().toISOString(),
+      },
+    });
+    // Restore is a compensating commit: it never rewrites an old state.
+    await repository().commit({
+      scope: { profileId, operationId: `restore-${checkpointId}-${current.scenario.localRevision}` },
+      scenarioId: selected.id,
+      baseRevision: current.scenario.localRevision,
+      changes: {
+        upsertBlocks: target.snapshot.blocks,
+      },
+      summary: `restore ${checkpointId}`,
+    });
+    onNotice(preview.canApply ? 'Checkpoint restaurado como nova operação.' : 'Checkpoint restaurado com pendências.');
+    await refresh();
+  }
+
+  function exportSelected(): string {
+    if (!selected) return '';
+    return exportPlanningScenarios({
+      scenarioIds: [selected.id],
+      profileId,
+      snapshots: [{ scenario: selected, blocks: selectedBlocks }],
+      exportedAt: new Date().toISOString(),
+    });
+  }
+
+  async function importPlanning(text: string): Promise<string> {
+    const parsed = parsePlanningImport(text, { namespace: `v2:${profileId}` });
+    if (!parsed.ok) return `Importação recusada: ${parsed.reason}`;
+    const preview = previewPlanningImport(
+      parsed,
+      scenarios.map((item) => ({ scenario: item, blocks: blocks.filter((block) => block.scenarioId === item.id) })),
+    );
+    const result = await new LocalPlanningImportCommitter().apply(profileId, preview, {
+      confirmed: true,
+      targetSignature: preview.targetSignature,
+    });
+    await refresh();
+    if (result.kind === 'LOCAL_COMMITTED') {
+      return `Importado: ${result.value.applied} novo(s), ${result.value.skipped} equivalente(s).`;
+    }
+    if (result.kind === 'BLOCKED') return `Importação exige decisão humana (${result.reason}).`;
+    return 'Falha na importação.';
+  }
+
+  const editais = content.editais.filter((edital) => edital.status === 'ACTIVE');
+  const links = content.links.filter((link) => link.status === 'ACTIVE');
+
+  return (
+    <section className="planning-workspace" aria-labelledby="planning-title" data-testid="planning-workspace">
+      <h2 id="planning-title">Planejamento, calendário e Reta Final</h2>
+      <PlanningDashboard
+        scenarios={scenarios}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+        onActivate={(id) => void activate(id)}
+        locked={locked}
+      />
+      <PlanningWizard
+        editais={editais}
+        links={links}
+        assuntos={content.assuntos}
+        onPreview={wizardPreview}
+        onConfirm={async (input) => {
+          const preview = wizardPreview(input);
+          if ('error' in preview) return false;
+          return createFromWizard(input, preview);
+        }}
+        locked={locked}
+      />
+      <PlanningCalendar days={calendarDays} view={view} onView={setView} />
+      <StudyCycle scenario={selected} onDecision={(decision) => void applyCycleDecision(decision)} locked={locked} />
+      <FinalStretch scenario={selected} onChangeExamDate={(change) => void changeExamDate(change)} locked={locked} />
+      <PlanningEditor
+        blocks={selectedBlocks}
+        draft={draft}
+        onSaveDraft={(change) => void saveDraft(change)}
+        onApplyDraft={() => void applyDraft()}
+        locked={locked}
+      />
+      <PlanningHistory
+        checkpoints={checkpoints}
+        onRestore={(checkpointId) => void restoreCheckpoint(checkpointId)}
+        locked={locked}
+      />
+      <PlanningConflicts conflicts={conflicts} />
+      <PlanningPortability
+        onExport={exportSelected}
+        onImport={importPlanning}
+        locked={locked}
+      />
+    </section>
+  );
+}

@@ -47,6 +47,7 @@ import type {
 } from '../application/planning-service';
 import { applyPlanningDraft, previewDraftCommit } from '../application/planning-service';
 import type {
+  PlanBlock,
   PlanningOutcome,
   PlanningScenario,
   PlanningScenarioSnapshot,
@@ -145,6 +146,7 @@ export type V2E2EHarness = {
   ) => Promise<PlanningScenarioSnapshot | null>;
   planningSaveDraft: (draft: PlanningDraft) => Promise<PlanningOutcome<PlanningDraft>>;
   planningLoadDraft: (profileId: string, scenarioId: string) => Promise<PlanningDraft | null>;
+  planningListBlocks: (profileId: string, scenarioId?: string) => Promise<PlanBlock[]>;
   planningApplyDraft: (
     profileId: string,
     scenarioId: string,
@@ -452,6 +454,8 @@ export function installE2EHarness(): void {
     planningSaveDraft: (draft) => new LocalPlanningRepository().saveDraft(draft),
     planningLoadDraft: (profileId, scenarioId) =>
       new LocalPlanningRepository().loadDraft(profileId, scenarioId),
+    planningListBlocks: (profileId, scenarioId) =>
+      new LocalPlanningRepository().listBlocks(profileId, scenarioId),
     planningApplyDraft: async (profileId, scenarioId, draft) => {
       const repository = new LocalPlanningRepository();
       const current = await repository.loadScenario(profileId, scenarioId);

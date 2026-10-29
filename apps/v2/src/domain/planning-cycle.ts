@@ -1,4 +1,10 @@
-import type { CivilDate, PlanBlock, PlanningScenario } from './planning';
+import type {
+  CivilDate,
+  CycleContentRef,
+  CycleSnapshot,
+  PlanBlock,
+  PlanningScenario,
+} from './planning';
 import {
   evaluateDailyCapacity,
   type AvailabilityException,
@@ -15,13 +21,7 @@ import { addCivilDays, compareCivilDate, enumerateCivilDates, isCivilDate } from
  * projection is never study time actually performed.
  */
 
-export type CycleContent = {
-  editalDisciplineId: string;
-  assuntoId?: string | null;
-  aulaId?: string | null;
-  label?: string;
-  plannedMinutes?: number;
-};
+export type CycleContent = CycleContentRef;
 
 export type CycleDecision =
   | { type: 'CONTINUE' }
@@ -33,7 +33,7 @@ export type CycleDecision =
 
 export type CycleHistoryEntry = {
   round: number;
-  decision: CycleDecision['type'];
+  decision: string;
   fromIndex: number;
   toIndex: number;
   reason?: string;
@@ -47,15 +47,10 @@ export type CyclePendingItem = {
   reason: string;
 };
 
-export type CycleState = {
+export type CycleState = CycleSnapshot & {
   profileId: string;
   scenarioId: string;
-  content: CycleContent[];
-  cursorIndex: number;
-  round: number;
   localRevision: number;
-  pendings: CyclePendingItem[];
-  history: CycleHistoryEntry[];
 };
 
 export class CycleValidationError extends Error {

@@ -63,6 +63,36 @@ export type PlanningScenario = {
   cycleHorizonDays?: number;
   createdAt?: string;
   updatedAt?: string;
+  /** Persisted cycle cursor; only meaningful for kind CYCLE. */
+  cycle?: CycleSnapshot | null;
+};
+
+export type CycleContentRef = {
+  editalDisciplineId: string;
+  assuntoId?: string | null;
+  aulaId?: string | null;
+  label?: string;
+  plannedMinutes?: number;
+};
+
+export type CycleSnapshot = {
+  content: CycleContentRef[];
+  cursorIndex: number;
+  round: number;
+  pendings: {
+    contentIndex: number;
+    editalDisciplineId: string;
+    assuntoId?: string | null;
+    aulaId?: string | null;
+    reason: string;
+  }[];
+  history: {
+    round: number;
+    decision: string;
+    fromIndex: number;
+    toIndex: number;
+    reason?: string;
+  }[];
 };
 
 export type PlanBlock = {
