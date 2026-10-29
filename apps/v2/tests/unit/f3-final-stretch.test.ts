@@ -256,4 +256,40 @@ describe('F3 final stretch', () => {
       closeFinalStretch({ scenario: cycle, outcome: 'OCCURRED', closedAt: 'x' }),
     ).toThrow(/NOT_A_FINAL_STRETCH_SCENARIO/);
   });
+
+  it('transition_honours_capacity_reserved_by_other_editais', () => {
+    const capacityBlocks: PlanBlock[] = ['2027-01-04', '2027-01-05', '2027-01-06', '2027-01-07', '2027-01-08'].map(
+      (date, index) => ({
+        id: `dpe-transition-${index}`,
+        profileId: 'profile-local',
+        editalId: 'edital-dpe',
+        scenarioId: 'scenario-dpe',
+        editalDisciplineId: 'link-dpe',
+        plannedMinutes: 120,
+        allocation: 'CONFIRMED_TIME' as const,
+        civilDate: date,
+        localStart: '08:00',
+        localEnd: '10:00',
+        timeZone: zone,
+        priority: 1,
+        localRevision: 1,
+        sourceOperationId: 'op-dpe',
+      }),
+    );
+    const preview = previewFinalStretchTransition({
+      cycle,
+      cycleState,
+      nextScenarioId: 'scenario-rf2',
+      examDate: '2027-01-08',
+      startDate: '2027-01-04',
+      zone,
+      weekly,
+      exceptions: [],
+      fixedBlocks: [],
+      capacityBlocks,
+      operationId: 'op-rf2',
+    });
+    expect(preview.blocks.length).toBeGreaterThan(0);
+    expect(preview.blocks.every((block) => block.allocation === 'UNALLOCATED')).toBe(true);
+  });
 });

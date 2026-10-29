@@ -230,6 +230,8 @@ export type CycleProjectionInput = {
   weekly: WeeklyAvailability;
   exceptions: AvailabilityException[];
   fixedBlocks: PlanBlock[];
+  /** Other scenarios' reservations, so official capacity stays global. */
+  capacityReservations?: PlanBlock[];
   fixedCommitments?: FixedCommitment[];
   defaultMinutes?: number;
   operationId: string;
@@ -266,7 +268,7 @@ export function projectCycle(input: CycleProjectionInput): CycleProjection {
       zone: input.zone,
       weekly: input.weekly,
       exceptions: input.exceptions,
-      reservations: blocks.filter((block) => block.civilDate === date),
+      reservations: input.capacityReservations ?? blocks,
       fixedCommitments: input.fixedCommitments,
     });
     remainingByDate.set(date, capacity.remainingMinutes);

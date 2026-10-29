@@ -2,7 +2,7 @@
 
 **Data:** 2026-10-29
 **Branch:** `v2` (worktree isolado; `main` da V1 intocada)
-**Gate proposto:** `F3_BLOCKED` — implementação e testes locais concluídos e revisão independente aplicada; restam revalidação final e autorização de integração (ver §6 e §8).
+**Gate proposto:** `F3_READY_FOR_HUMAN_REVIEW` — implementação, testes locais e revisão independente concluídos; a integração em `origin/v2` depende de autorização humana explícita (ver §6 e §8).
 
 > Este é o registro singular da F3. Nenhum status `ACCEPTED`, `PUBLISHED` ou `CONVERGED` é afirmado: não houve push, merge, deploy, Firebase ou emulador.
 
@@ -14,7 +14,7 @@
 | HEAD final | ver `git rev-parse HEAD` no commit deste relatório |
 | `main` local | `9046cfa` — inalterada |
 | `origin/v2` | `5eba778` — sem push nesta execução |
-| Commits locais | 16 (`5eba778..HEAD`), todos `feat/fix/test(v2-f3)` |
+| Commits locais | 19 (`5eba778..HEAD`), todos `feat/fix/test(v2-f3)` |
 | Árvore | limpa após o commit documental |
 
 ### Correção de baseline (fora do escopo funcional, registrada)
@@ -39,9 +39,9 @@ Comportamento novo: cenários múltiplos por edital com um único ACTIVE e troca
 | --- | --- | --- |
 | typecheck | `npm --prefix apps/v2 run typecheck` | PASS (exit 0) |
 | lint | `npm --prefix apps/v2 run lint` | PASS (0 erros, 2 warnings de hooks) |
-| unit | `npm --prefix apps/v2 run test:unit` | PASS 292 testes / 50 arquivos |
-| E2E | `npm --prefix apps/v2 run test:e2e` | PASS 67/67 (50 F1/F2 + 17 F3) |
-| build | `npm --prefix apps/v2 run build` | PASS (360 kB JS, 8.6 kB CSS) |
+| unit | `npm --prefix apps/v2 run test:unit` | PASS 296 testes / 50 arquivos |
+| E2E | `npm --prefix apps/v2 run test:e2e` | PASS 70/70 (50 F1/F2 + 20 F3) |
+| build | `npm --prefix apps/v2 run build` | PASS (~364 kB JS, ~9 kB CSS) |
 
 Baseline antes da F3: 188 unit, 50 E2E, typecheck/lint/build PASS após a correção de tipos.
 
@@ -66,11 +66,11 @@ Migração IDB v2→v3 aditiva, com F1/F2 preservados (`f3-schema`); outbox úni
 
 1. **Integração** — sem `git push origin v2`; a `v2` local permanece à frente de `origin/v2` até autorização específica.
 2. **Limites em aparelho modesto** — 180/360 blocos medidos localmente (< 3 s de geração, < 10 s de commit no teste), sem medição em hardware modesto.
-3. **F3-T27** — o encerramento após a data existe como ação explícita; a confirmação de "prova ocorrida/remarcada/indefinida" é binária na UI, não um fluxo completo de três vias.
+3. **Fora do escopo declarado** — sync real F7, emulador/Firebase, backup produtivo e cutover permanecem `NOT_RUN` por especificação.
 
 ## 7. Próximo passo
 
-Revalidar o delta com o revisor independente e, com o parecer final, pedir autorização explícita para `git push origin v2`.
+O revisor independente emitiu `APPROVE_FOR_HUMAN_REVIEW`. O próximo passo é a decisão humana: autorizar `git push origin v2` (fast-forward) e o aceite da fase.
 
 ## 8. Revisão independente e correções
 
@@ -96,4 +96,21 @@ Correções aplicadas em `bd6508e` (todas com teste):
 | P2-15 transição/encerramento só no domínio | botões de transição Ciclo→Reta Final e encerramento ligados; IDs dos blocos carregados recebem prefixo |
 | P2-16 wizard não persistia e só aceitava uma disciplina | estado em `localStorage` e múltiplas disciplinas por edital |
 
-**P2 remanescente aceito:** a confirmação de prova vencida é binária (ocorrida/indefinida) em vez de três vias completas; registrado no §6.
+### Segunda rodada de revisão (após `bd6508e`)
+
+O revisor confirmou 12 de 14 correções e apontou 2 P1 remanescentes, corrigidos em `674ca48`:
+
+| Achado | Correção | Prova |
+| --- | --- | --- |
+| P1 capacidade global não chegava ao wizard/redistribuição | `PlanningWorkspace` calcula `officialReservations` (cenários ACTIVE) e as injeta em `fixedBlocks` e `reservationBlocks` | `f3-generator`: 10 itens ficam `UNALLOCATED` quando outro edital ocupa 100% da janela |
+| P1 ativação aceitava Reta Final suspensa sem data | `activateScenario` valida o estado ACTIVE, recusa CLOSED/ARCHIVED e Reta Final sem data (`EXAM_DATE_REQUIRED`); botão desabilitado | `f3-scenarios`: ativação suspensa retorna `BLOCKED` e mantém o status |
+
+P2 também corrigidos: calendário passa o conjunto oficial completo (recorte por dia no motor); dia com `OVERLAP` expõe `remainingMinutes = 0`; seletor de edital de destino na importação e vínculo de bloco não mapeado via rascunho; `importId` inclui hash dos nomes (dois arquivos de blocos iguais com nomes distintos geram dois cenários); falha ao gravar blocos da transição impede sucesso falso; encerramento exige desfecho (ocorrida/remarcada/indefinida) e persiste `closing`; `dayBounds` cai para 01:00 quando 00:00 não existe; `EQUIVALENT` testado via roundtrip real de export; navegação do calendário e persistência do wizard com E2E; carga de 180 blocos verifica 30 dias no mês.
+
+### Terceira rodada (veredito final)
+
+O revisor confirmou os dois P1 fechados no caminho de produto e **não encontrou bloqueio material**: `APPROVE_FOR_HUMAN_REVIEW` (typecheck/unit/E2E reexecutados por ele). Três observações não bloqueantes foram tratadas em seguida:
+
+- a transição Ciclo→Reta Final passou a receber as reservas oficiais dos demais cenários (`capacityBlocks`);
+- um novo cenário para o mesmo edital não é cobrado contra o plano ativo que ele substitui;
+- `relinkBlock` só anuncia o vínculo quando o rascunho foi realmente salvo.

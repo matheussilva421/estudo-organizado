@@ -26,6 +26,8 @@ export type TransitionInput = {
   weekly: WeeklyAvailability;
   exceptions: AvailabilityException[];
   fixedBlocks: PlanBlock[];
+  /** Reservations of other active scenarios. */
+  capacityBlocks?: PlanBlock[];
   fixedCommitments?: FixedCommitment[];
   defaultMinutes?: number;
   operationId: string;
@@ -109,6 +111,7 @@ export function previewFinalStretchTransition(input: TransitionInput): Transitio
     weekly: input.weekly,
     exceptions: input.exceptions,
     fixedBlocks: carried,
+    capacityReservations: input.capacityBlocks,
     fixedCommitments: input.fixedCommitments,
     defaultMinutes: input.defaultMinutes,
     operationId: input.operationId,

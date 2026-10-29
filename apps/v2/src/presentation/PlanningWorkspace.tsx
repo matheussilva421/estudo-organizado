@@ -185,7 +185,13 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
         zone: ZONE,
         weekly,
         exceptions: [],
-        fixedBlocks: officialReservations,
+        // A new scenario for this edital replaces the one currently active,
+        // so that plan's reservation is not counted against its successor.
+        fixedBlocks: selectOfficialReservations(
+          scenarios.filter((item) => item.editalId !== input.editalId),
+          blocks,
+          profileId,
+        ),
         operationId: 'preview',
       });
     } catch {
@@ -379,6 +385,11 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
       weekly,
       exceptions: [],
       fixedBlocks: selectedBlocks,
+      capacityBlocks: selectOfficialReservations(
+        scenarios.filter((item) => item.id !== selected.id),
+        blocks,
+        profileId,
+      ),
       operationId: `transition-${nextScenarioId}`,
     });
     const created = await repository().commit({
@@ -442,8 +453,8 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     field: DraftBlockField;
     value: string | number;
     baseValue: string | number;
-  }): Promise<void> {
-    if (!selected) return;
+  }): Promise<boolean> {
+    if (!selected) return false;
     const next: PlanningDraft = {
       id: draft?.id ?? `draft-${selected.id}`,
       profileId,
@@ -461,8 +472,10 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     if (result.kind === 'LOCAL_COMMITTED') {
       setDraft(result.value);
       onNotice('Rascunho salvo neste dispositivo.');
+      return true;
     } else {
       onNotice('Não foi possível salvar o rascunho.');
+      return false;
     }
   }
 
@@ -491,13 +504,15 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
   async function relinkBlock(blockId: string, editalDisciplineId: string): Promise<void> {
     const block = selectedBlocks.find((item) => item.id === blockId);
     if (!block) return;
-    await saveDraft({
+    const saved = await saveDraft({
       blockId,
       field: 'editalDisciplineId',
       value: editalDisciplineId,
       baseValue: block.editalDisciplineId,
     });
-    onNotice('Vínculo proposto no rascunho; aplique o rascunho para efetivar.');
+    if (saved) {
+      onNotice('Vínculo proposto no rascunho; aplique o rascunho para efetivar.');
+    }
   }
 
   async function restoreCheckpoint(checkpointId: string): Promise<void> {
