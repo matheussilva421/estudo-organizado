@@ -61,6 +61,7 @@ test('one_hundred_and_eighty_blocks_stay_navigable', async ({ page }) => {
   expect(measurement.stored).toBe(180);
   // Measured locally: 180 blocks must not degrade into a timeout.
   expect(measurement.commitMs).toBeLessThan(10_000);
+  console.log('F3_LOAD_MEASUREMENT', JSON.stringify(measurement));
 
   await page.reload();
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();

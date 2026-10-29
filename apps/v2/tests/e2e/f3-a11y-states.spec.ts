@@ -124,6 +124,13 @@ const contrastOf = (selector: string) => {
 
 test('text_error_and_disabled_states_meet_contrast_in_eight_themes', async ({ page }) => {
   await seed(page);
+  const samples: {
+    theme: string;
+    heading: number;
+    button: number;
+    disabled: number;
+    status: number;
+  }[] = [];
   for (const theme of THEMES) {
     await page.getByLabel('Tema').selectOption(theme);
     await expect(page.locator('[data-testid="planning-dashboard"]')).toBeVisible();
@@ -147,7 +154,9 @@ test('text_error_and_disabled_states_meet_contrast_in_eight_themes', async ({ pa
     await expect(page.locator('[data-testid="portability-status"]')).toContainText('recusada');
     const status = await page.evaluate(contrastOf, '[data-testid="portability-status"]');
     expect(status, `status contrast in ${theme}`).toBeGreaterThanOrEqual(4.5);
+    samples.push({ theme, heading, button, disabled, status });
   }
+  console.log('F3_CONTRAST_SAMPLES', JSON.stringify(samples));
 });
 
 test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
@@ -155,6 +164,7 @@ test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
   await page.locator('[data-testid="planning-wizard"]').scrollIntoViewIfNeeded();
 
   const names: string[] = [];
+  let visibleRings = 0;
   for (let step = 0; step < 40; step += 1) {
     await page.keyboard.press('Tab');
     const current = await page.evaluate(() => {
@@ -167,9 +177,17 @@ test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
           active?.textContent?.trim().slice(0, 40) ??
           '',
         outline: active ? getComputedStyle(active).outlineColor : '',
+        outlineStyle: active ? getComputedStyle(active).outlineStyle : '',
+        outlineWidth: active ? getComputedStyle(active).outlineWidth : '',
       };
     });
     names.push(`${current.tag}:${current.label}`);
+    if (
+      current.outlineStyle === 'solid' &&
+      Number.parseFloat(current.outlineWidth || '0') >= 3
+    ) {
+      visibleRings += 1;
+    }
   }
   // The wizard fields and the calendar controls are reachable by keyboard.
   expect(names.some((name) => name.startsWith('INPUT'))).toBe(true);
@@ -177,6 +195,8 @@ test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
   // Focus never disappears into the body for more than one step.
   const bodySteps = names.filter((name) => name.startsWith('BODY')).length;
   expect(bodySteps).toBeLessThanOrEqual(1);
+  // Keyboard focus is always visibly indicated (3px solid ring).
+  expect(visibleRings).toBeGreaterThan(0);
 });
 
 test('reduced_motion_and_zoom_keep_the_planning_usable', async ({ page }) => {
