@@ -64,6 +64,14 @@ export type ContentRepositoryOptions = {
   now?: () => string;
 };
 
+/** Optional side effect committed in the same transaction as the command. */
+export type CommitOptions = {
+  markConflict?: {
+    conflictId: string;
+    resolution: 'LOCAL' | 'REMOTE';
+  };
+};
+
 type OperationRecord = {
   operationId: string;
   profileId: string;
@@ -346,7 +354,10 @@ export class LocalContentRepository implements ContentRepository {
     });
   }
 
-  async execute(command: ContentCommand): Promise<CommitResult<unknown>> {
+  async execute(
+    command: ContentCommand,
+    options: CommitOptions = {},
+  ): Promise<CommitResult<unknown>> {
     let plan: Plan;
     try {
       plan = planOf(command);
@@ -362,7 +373,15 @@ export class LocalContentRepository implements ContentRepository {
       return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
     }
     const transaction = database.transaction(
-      [...new Set([...plan.stores, STORES.operations, STORES.outbox, STORES.meta])],
+      [
+        ...new Set([
+          ...plan.stores,
+          STORES.operations,
+          STORES.outbox,
+          STORES.meta,
+          ...(options.markConflict ? [STORES.conflicts] : []),
+        ]),
+      ],
       'readwrite',
     );
 
@@ -455,6 +474,27 @@ export class LocalContentRepository implements ContentRepository {
           ...(result.remoteBaseRevision !== undefined
             ? { remoteBaseRevision: result.remoteBaseRevision }
             : {}),
+        });
+      }
+
+      if (options.markConflict) {
+        const conflictStore = transaction.objectStore(STORES.conflicts);
+        const record = (await requestResult(
+          conflictStore.get(options.markConflict.conflictId),
+        )) as { profileId?: string; status?: string } | undefined;
+        if (
+          !record ||
+          record.profileId !== command.profileId ||
+          record.status !== 'OPEN'
+        ) {
+          transaction.abort();
+          return { kind: 'INVALID', code: 'ENTITY_EXISTS' };
+        }
+        conflictStore.put({
+          ...record,
+          status: 'RESOLVED',
+          resolution: options.markConflict.resolution,
+          resolvedByOperationId: command.operationId,
         });
       }
 

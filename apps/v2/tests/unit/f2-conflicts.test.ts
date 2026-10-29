@@ -213,4 +213,224 @@ describe('F2 conflict handling', () => {
       await service.resolveConflict(profileId, 'conflict-ghost', 'KEEP_LOCAL', 'op-x'),
     ).toEqual({ kind: 'INVALID', code: 'ENTITY_NOT_FOUND' });
   });
+
+  it('stale_decision_is_refused_and_both_payloads_stay_intact', async () => {
+    const content = await seedEdital();
+    await content.execute({
+      type: 'UPSERT_ASSUNTO',
+      operationId: 'op-assunto-local',
+      profileId,
+      value: assunto('assunto-1', 'Versao local'),
+    });
+    const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+    remote.seed('assunto-1', assunto('assunto-1', 'Versao remota'), 1);
+    const pending = (await getPendingOutbox(profileId)).filter(
+      (operation) => operation.entityId === 'assunto-1',
+    );
+    const flush = await flushPending(pending, remote);
+    await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
+      payload: remote.readEntity('assunto-1'),
+      deleted: false,
+    });
+
+    // Another tab edits the same entity after the conflict was recorded.
+    await content.execute({
+      type: 'UPSERT_ASSUNTO',
+      operationId: 'op-assunto-outra-aba',
+      profileId,
+      value: assunto('assunto-1', 'Editado depois'),
+    });
+
+    const service = new LocalConflictService();
+    const stale = await service.resolveConflict(
+      profileId,
+      'op-assunto-local',
+      'KEEP_LOCAL',
+      'op-resolve-stale',
+    );
+    expect(stale.kind).toBe('CONFLICT');
+    expect((stale as { current: { code: string } }).current.code).toBe('RESOLUTION_STALE');
+
+    const stored = await service.listConflicts(profileId);
+    expect(stored[0]).toMatchObject({ status: 'OPEN' });
+    expect(stored[0]?.localPayload).toMatchObject({ title: 'Versao local' });
+    expect(stored[0]?.remotePayload).toMatchObject({ title: 'Versao remota' });
+    expect(
+      (await getPendingOutbox(profileId)).some(
+        (operation) => operation.operationId === 'op-resolve-stale',
+      ),
+    ).toBe(false);
+  });
+
+  it('resolution_replay_is_idempotent_and_divergent_decision_fails', async () => {
+    const content = await seedEdital();
+    await content.execute({
+      type: 'UPSERT_ASSUNTO',
+      operationId: 'op-assunto-local',
+      profileId,
+      value: assunto('assunto-1', 'Versao local'),
+    });
+    const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+    remote.seed('assunto-1', assunto('assunto-1', 'Versao remota'), 1);
+    const pending = (await getPendingOutbox(profileId)).filter(
+      (operation) => operation.entityId === 'assunto-1',
+    );
+    const flush = await flushPending(pending, remote);
+    await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
+      payload: remote.readEntity('assunto-1'),
+      deleted: false,
+    });
+
+    const service = new LocalConflictService();
+    const first = await service.resolveConflict(
+      profileId,
+      'op-assunto-local',
+      'KEEP_LOCAL',
+      'op-resolve-once',
+    );
+    expect(first).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+    const replay = await service.resolveConflict(
+      profileId,
+      'op-assunto-local',
+      'KEEP_LOCAL',
+      'op-resolve-once',
+    );
+    // Already resolved: the second call is refused, and no second effect exists.
+    expect(replay).toEqual({ kind: 'INVALID', code: 'ENTITY_EXISTS' });
+    expect((await service.listConflicts(profileId))[0]).toMatchObject({ status: 'RESOLVED' });
+  });
+
+  it('remote_deletion_resolves_without_an_outbound_upsert', async () => {
+    const content = await seedEdital();
+    await content.execute({
+      type: 'UPSERT_AULA',
+      operationId: 'op-aula-local',
+      profileId,
+      value: {
+        id: 'aula-1',
+        profileId,
+        editalDisciplineId: 'link-1',
+        title: 'Aula local',
+        orderKey: '000010',
+        localRevision: 0,
+      },
+    });
+    const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+    remote.seed(
+      'aula-1',
+      {
+        id: 'aula-1',
+        profileId,
+        editalDisciplineId: 'link-1',
+        title: 'Aula local',
+        orderKey: '000010',
+        localRevision: 1,
+      },
+      2,
+    );
+    const pending = (await getPendingOutbox(profileId)).filter(
+      (operation) => operation.entityId === 'aula-1',
+    );
+    const flush = await flushPending(pending, remote);
+    await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-aula-local'] ?? 2, {
+      payload: null,
+      deleted: true,
+    });
+
+    const service = new LocalConflictService();
+    const resolved = await service.resolveConflict(
+      profileId,
+      'op-aula-local',
+      'ACCEPT_REMOTE',
+      'op-accept-delete',
+    );
+    expect(resolved).toMatchObject({ kind: 'LOCAL_COMMITTED' });
+
+    const operation = (await getPendingOutbox(profileId)).find(
+      (item) => item.operationId === 'op-accept-delete',
+    );
+    expect(operation).toMatchObject({ kind: 'delete', entityType: 'aula' });
+    expect(
+      (await getPendingOutbox(profileId)).some(
+        (item) => item.operationId === 'op-accept-delete' && item.kind === 'upsert',
+      ),
+    ).toBe(false);
+    expect((await content.loadContent(profileId)).aulas).toEqual([]);
+    expect((await service.listConflicts(profileId))[0]).toMatchObject({
+      status: 'RESOLVED',
+      resolution: 'REMOTE',
+    });
+  });
+
+  it('failed_write_keeps_the_conflict_open', async () => {
+    const content = await seedEdital();
+    await content.execute({
+      type: 'UPSERT_ASSUNTO',
+      operationId: 'op-assunto-local',
+      profileId,
+      value: assunto('assunto-1', 'Versao local'),
+    });
+    const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+    remote.seed('assunto-1', assunto('assunto-1', 'Versao remota'), 1);
+    const pending = (await getPendingOutbox(profileId)).filter(
+      (operation) => operation.entityId === 'assunto-1',
+    );
+    const flush = await flushPending(pending, remote);
+    await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
+      payload: remote.readEntity('assunto-1'),
+      deleted: false,
+    });
+
+    const failing = new LocalConflictService({
+      content: new LocalContentRepository({ fault: 'abort' }),
+    });
+    const failed = await failing.resolveConflict(
+      profileId,
+      'op-assunto-local',
+      'KEEP_LOCAL',
+      'op-resolve-abort',
+    );
+    expect(failed).toEqual({ kind: 'FAILED', reason: 'ABORT' });
+
+    const stillOpen = (await new LocalConflictService().listConflicts(profileId))[0];
+    expect(stillOpen).toMatchObject({ status: 'OPEN' });
+    expect(
+      (await getPendingOutbox(profileId)).some(
+        (operation) => operation.operationId === 'op-resolve-abort',
+      ),
+    ).toBe(false);
+  });
+
+  it('accept_remote_refuses_orphan_references', async () => {
+    const content = await seedEdital();
+    await content.execute({
+      type: 'UPSERT_ASSUNTO',
+      operationId: 'op-assunto-local',
+      profileId,
+      value: assunto('assunto-1', 'Versao local'),
+    });
+    const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+    remote.seed(
+      'assunto-1',
+      assunto('assunto-1', 'Versao remota', { editalDisciplineId: 'link-fantasma' }),
+      1,
+    );
+    const pending = (await getPendingOutbox(profileId)).filter(
+      (operation) => operation.entityId === 'assunto-1',
+    );
+    const flush = await flushPending(pending, remote);
+    await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
+      payload: remote.readEntity('assunto-1'),
+      deleted: false,
+    });
+
+    const result = await new LocalConflictService().resolveConflict(
+      profileId,
+      'op-assunto-local',
+      'ACCEPT_REMOTE',
+      'op-accept-orphan',
+    );
+    expect(result).toEqual({ kind: 'CONFLICT', current: { code: 'ENTITY_NOT_FOUND' } });
+    expect((await content.loadContent(profileId)).assuntos[0]?.title).toBe('Versao local');
+  });
 });
