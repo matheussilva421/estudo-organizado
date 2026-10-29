@@ -251,6 +251,17 @@ Verificação executada: `git rev-list --count origin/v2..<branch>` retorna 2 e 
 
 A `main` permaneceu em `9046cfa` e nenhum PR foi aberto durante o levantamento.
 
+## 14. Lacunas a fechar antes da sincronização real (F7)
+
+Itens técnicos conhecidos, independentes de qualquer decisão de aceite, que precisam de correção e teste antes de ligar sincronização real entre dispositivos.
+
+1. **Revalidação transacional de conflitos.** A resolução usa CAS da revisão atual e grava conteúdo + marcação na mesma transação de IndexedDB, mas a leitura que decide a resolução ocorre antes de abrir a transação de escrita. Um cenário multi-aba que altere a entidade nessa janela não tem teste dedicado, e um adaptador remoto real precisará revalidar também o lado remoto.
+2. **Ciclos em conteúdo remoto.** `validateAssuntoTree`/`assertAssuntoParent` protegem a escrita local; o caminho de adoção remota (`ACCEPT_REMOTE`) valida existência e escopo do pai imediato, não a árvore inteira nem ciclos vindos de um payload remoto.
+3. **Eco de operações recebidas.** Conteúdo adotado do remoto é gravado sem outbox no caminho de atualização, mas operações já pendentes para a mesma entidade podem ser reenviadas depois do `ACCEPT_REMOTE`; falta teste que prove supressão/coalescência desse reenvio.
+
+Estado atual: sem emulador autorizado e sem Firebase real, esses três itens não podem ser provados nesta fase — permanecem abertos para F7.
+
+
 
 
 
