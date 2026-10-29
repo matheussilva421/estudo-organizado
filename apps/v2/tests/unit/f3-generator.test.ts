@@ -110,4 +110,31 @@ describe('F3 plan generator', () => {
       GenerationLimitError,
     );
   });
+
+  it('capacity_reserved_by_another_active_scenario_is_honoured', () => {
+    const otherBlocks = ['2027-01-04', '2027-01-05', '2027-01-06', '2027-01-07', '2027-01-08'].map(
+      (date, index) => ({
+        id: `dpe-${index}`,
+        profileId: 'profile-local',
+        editalId: 'edital-dpe',
+        scenarioId: 'scenario-dpe',
+        editalDisciplineId: 'link-dpe',
+        plannedMinutes: 120,
+        allocation: 'CONFIRMED_TIME' as const,
+        civilDate: date,
+        localStart: '08:00',
+        localEnd: '10:00',
+        timeZone: zone,
+        priority: 1,
+        localRevision: 1,
+        sourceOperationId: 'op-dpe',
+      }),
+    );
+    const preview = generatePlanPreview(
+      build(10, { horizonDays: 5, fixedBlocks: otherBlocks }),
+    );
+    expect(preview.blocks.length + preview.unallocated.length).toBe(10);
+    expect(preview.unallocated).toHaveLength(10);
+    expect(preview.blocks.some((block) => block.scenarioId === 'scenario-dpe')).toBe(false);
+  });
 });

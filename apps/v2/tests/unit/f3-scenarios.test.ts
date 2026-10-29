@@ -248,4 +248,32 @@ describe('F3 scenario isolation and activation', () => {
     });
     expect((await repository.loadScenario(profileId, 'scenario-a'))?.scenario.status).toBe('DRAFT');
   });
+
+  it('a_suspended_final_stretch_cannot_be_activated_without_a_date', async () => {
+    const repository = new LocalPlanningRepository();
+    await create(repository, scenario('scenario-rf', 'edital-tjpb', 'RF'), 'op-rf');
+    await repository.commit({
+      scope: { profileId, operationId: 'op-suspend' },
+      scenarioId: 'scenario-rf',
+      baseRevision: 1,
+      changes: {
+        scenario: {
+          ...scenario('scenario-rf', 'edital-tjpb', 'RF'),
+          status: 'SUSPENDED',
+          examDate: null,
+        },
+      },
+    });
+    const blocked = await repository.activateScenario({
+      profileId,
+      operationId: 'op-activate-suspended',
+      editalId: 'edital-tjpb',
+      scenarioId: 'scenario-rf',
+      checkpointId: 'checkpoint-rf',
+    });
+    expect(blocked).toEqual({ kind: 'BLOCKED', reason: 'EXAM_DATE_REQUIRED' });
+    expect((await repository.loadScenario(profileId, 'scenario-rf'))?.scenario.status).toBe(
+      'SUSPENDED',
+    );
+  });
 });

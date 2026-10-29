@@ -105,7 +105,9 @@ export function queryCalendar(input: CalendarQuery): CalendarDay[] {
           zone: availability.zone,
           weekly: availability.weekly ?? EMPTY_WEEKLY,
           exceptions: availability.exceptions,
-          reservations: official.filter((block) => block.civilDate === civilDate),
+          // Passing the whole official set lets the capacity engine clip
+          // intervals that cross midnight into this day.
+          reservations: official,
           fixedCommitments: availability.fixedCommitments,
         })
       : null;

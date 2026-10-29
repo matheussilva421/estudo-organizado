@@ -244,10 +244,17 @@ function blockRange(block: PlanBlock, fallbackZone: string): InstantRange | null
 
 /** Real day boundaries of one civil date in a zone. */
 export function dayBounds(date: CivilDate, zone: string): InstantRange | null {
-  const start = resolveWindow({ start: '00:00', end: '00:01' }, date, zone);
-  const next = resolveWindow({ start: '00:00', end: '00:01' }, addCivilDays(date, 1), zone);
+  const start = resolveDayStart(date, zone);
+  const next = resolveDayStart(addCivilDays(date, 1), zone);
   if (!start.ok || !next.ok) return null;
   return { start: start.range.start, end: next.range.start };
+}
+
+/** Some zones skip 00:00 on a transition day; 01:00 is the safe fallback. */
+function resolveDayStart(date: CivilDate, zone: string): WindowResolution {
+  const midnight = resolveWindow({ start: '00:00', end: '00:01' }, date, zone);
+  if (midnight.ok) return midnight;
+  return resolveWindow({ start: '01:00', end: '01:01' }, date, zone);
 }
 
 function clipRange(range: InstantRange, bounds: InstantRange): InstantRange | null {
@@ -362,10 +369,14 @@ export function evaluateDailyCapacity(input: CapacityInput): DailyCapacity {
 
   if (reservedMinutes > availableMinutes) diagnostics.push('OVERBOOKED');
 
+  // An overlapping plan is not a valid basis for more generation: until the
+  // conflict is resolved the day offers no remaining capacity.
+  const hasOverlap = diagnostics.includes('OVERLAP');
+
   return {
     availableMinutes,
     reservedMinutes,
-    remainingMinutes: Math.max(0, availableMinutes - reservedMinutes),
+    remainingMinutes: hasOverlap ? 0 : Math.max(0, availableMinutes - reservedMinutes),
     conflictBlockIds: [...new Set(conflictBlockIds)],
     unallocatedBlockIds: [...new Set(unallocatedBlockIds)],
     diagnostics,

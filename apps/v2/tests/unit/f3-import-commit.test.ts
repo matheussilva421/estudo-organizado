@@ -153,4 +153,44 @@ describe('F3 planning import commit', () => {
     expect(loaded?.blocks[0]?.allocation).toBe('UNALLOCATED');
     expect(loaded?.blocks[0]?.reason).toBe('UNMAPPED_CONTENT');
   });
+
+  it('same_blocks_with_different_names_are_two_distinct_imports', async () => {
+    const first = JSON.stringify({
+      nome: 'Reta A',
+      blocos: [{ conteudo: 'Constitucional', duracao: 60, data: '2027-01-05' }],
+    });
+    const second = JSON.stringify({
+      nome: 'Reta B',
+      blocos: [{ conteudo: 'Constitucional', duracao: 60, data: '2027-01-05' }],
+    });
+    const repository = new LocalPlanningRepository();
+    const committer = new LocalPlanningImportCommitter();
+
+    const parsedFirst = parsePlanningImport(first, { namespace: 'legacy:v1' });
+    if (!parsedFirst.ok) throw new Error('parse failed');
+    const previewFirst = previewPlanningImport(parsedFirst, []);
+    const appliedFirst = await committer.apply(profileId, previewFirst, {
+      confirmed: true,
+      targetSignature: previewFirst.targetSignature,
+      targetEditalId: 'edital-tjpb',
+    });
+    expect(appliedFirst.kind).toBe('LOCAL_COMMITTED');
+
+    const existing = [];
+    for (const scenario of await repository.listScenarios(profileId)) {
+      const snapshot = await repository.loadScenario(profileId, scenario.id);
+      if (snapshot) existing.push(snapshot);
+    }
+    const parsedSecond = parsePlanningImport(second, { namespace: 'legacy:v1' });
+    if (!parsedSecond.ok) throw new Error('parse failed');
+    const previewSecond = previewPlanningImport(parsedSecond, existing);
+    expect(previewSecond.entries[0]?.kind).toBe('NEW');
+    const appliedSecond = await committer.apply(profileId, previewSecond, {
+      confirmed: true,
+      targetSignature: previewSecond.targetSignature,
+      targetEditalId: 'edital-tjpb',
+    });
+    expect(appliedSecond.kind).toBe('LOCAL_COMMITTED');
+    expect((await repository.listScenarios(profileId)).length).toBe(2);
+  });
 });

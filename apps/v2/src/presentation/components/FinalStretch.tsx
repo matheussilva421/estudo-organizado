@@ -6,13 +6,14 @@ type Props = {
   scenario: PlanningScenario | null;
   onChangeExamDate: (change: ExamDateChange) => void;
   onTransition: (examDate: string) => void;
-  onClose: () => void;
+  onClose: (outcome: 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED') => void;
   locked: boolean;
 };
 
 export function FinalStretch({ scenario, onChangeExamDate, onTransition, onClose, locked }: Props) {
   const [nextDate, setNextDate] = useState('');
   const [transitionDate, setTransitionDate] = useState('');
+  const [closeOutcome, setCloseOutcome] = useState<'' | 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED'>('');
   const isFinalStretch = scenario?.kind === 'FINAL_STRETCH';
   const isCycle = scenario?.kind === 'CYCLE';
 
@@ -72,11 +73,25 @@ export function FinalStretch({ scenario, onChangeExamDate, onTransition, onClose
             <button
               type="button"
               data-action="close-final-stretch"
-              disabled={locked}
-              onClick={onClose}
+              disabled={locked || closeOutcome === ''}
+              onClick={() => closeOutcome && onClose(closeOutcome)}
             >
               Encerrar Reta Final
             </button>
+            <label>
+              Desfecho
+              <select
+                value={closeOutcome}
+                onChange={(event) =>
+                  setCloseOutcome(event.target.value as '' | 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED')
+                }
+              >
+                <option value="">Escolha o desfecho</option>
+                <option value="OCCURRED">Prova ocorreu</option>
+                <option value="RESCHEDULED">Prova remarcada</option>
+                <option value="UNDEFINED">Indefinida</option>
+              </select>
+            </label>
           </div>
         </div>
       )}

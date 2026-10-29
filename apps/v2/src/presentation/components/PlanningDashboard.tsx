@@ -38,7 +38,13 @@ export function PlanningDashboard({
               <button
                 type="button"
                 data-action="activate-scenario"
-                disabled={locked || scenario.status === 'ACTIVE'}
+                disabled={
+                  locked ||
+                  scenario.status === 'ACTIVE' ||
+                  scenario.status === 'CLOSED' ||
+                  scenario.status === 'ARCHIVED' ||
+                  (scenario.kind === 'FINAL_STRETCH' && !scenario.examDate)
+                }
                 onClick={() => onActivate(scenario.id)}
               >
                 Ativar com checkpoint

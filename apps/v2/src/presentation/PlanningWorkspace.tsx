@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ContentSnapshot } from '../application/content-service';
-import type { PlanningDraft } from '../application/planning-service';
+import type { DraftBlockField, PlanningDraft } from '../application/planning-service';
 import { applyPlanningDraft, previewDraftCommit } from '../application/planning-service';
 import {
   exportPlanningScenarios,
@@ -19,7 +19,7 @@ import {
 import type { MergeConflict } from '../domain/planning-merge';
 import { previewCompensation, type PlanningCheckpointRecord } from '../domain/planning-history';
 import type { PlanBlock, PlanningScenario } from '../domain/planning';
-import type { WeeklyAvailability } from '../domain/planning-capacity';
+import { selectOfficialReservations, type WeeklyAvailability } from '../domain/planning-capacity';
 import { LocalPlanningRepository } from '../platform/local-planning-repository';
 import { LocalPlanningImportCommitter } from '../platform/planning-import-commit';
 import { PlanningDashboard } from './components/PlanningDashboard';
@@ -114,6 +114,13 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     [blocks, selectedId],
   );
 
+  // Capacity is global: every active scenario reserves time, not only the one
+  // being edited.
+  const officialReservations = useMemo(
+    () => selectOfficialReservations(scenarios, blocks, profileId),
+    [blocks, profileId, scenarios],
+  );
+
   const calendarDays: CalendarDay[] = useMemo(() => {
     if (!selected) return [];
     const dated = selectedBlocks
@@ -178,7 +185,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
         zone: ZONE,
         weekly,
         exceptions: [],
-        fixedBlocks: [],
+        fixedBlocks: officialReservations,
         operationId: 'preview',
       });
     } catch {
@@ -385,12 +392,17 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
       return;
     }
     if (preview.blocks.length > 0) {
-      await repository().commit({
+      const blocksResult = await repository().commit({
         scope: { profileId, operationId: `transition-blocks-${nextScenarioId}` },
         scenarioId: nextScenarioId,
         baseRevision: 1,
         changes: { upsertBlocks: preview.blocks },
       });
+      if (blocksResult.kind !== 'LOCAL_COMMITTED') {
+        onNotice('Falha ao gravar os blocos da Reta Final; o cenário ficou em rascunho.');
+        await refresh();
+        return;
+      }
     }
     await refresh();
     setSelectedId(nextScenarioId);
@@ -399,18 +411,23 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     );
   }
 
-  async function closeStretch(): Promise<void> {
+  async function closeStretch(outcome: 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED'): Promise<void> {
     if (!selected) return;
     const closed = closeFinalStretch({
       scenario: selected,
-      outcome: 'OCCURRED',
+      outcome,
       closedAt: new Date().toISOString(),
     });
     const result = await repository().commit({
       scope: { profileId, operationId: `close-${selected.id}-${selected.localRevision}` },
       scenarioId: selected.id,
       baseRevision: selected.localRevision,
-      changes: { scenario: closed.scenario },
+      changes: {
+        scenario: {
+          ...closed.scenario,
+          closing: closed.closing,
+        },
+      },
     });
     onNotice(
       result.kind === 'LOCAL_COMMITTED'
@@ -420,7 +437,12 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     await refresh();
   }
 
-  async function saveDraft(change: { blockId: string; field: 'plannedMinutes' | 'civilDate'; value: string | number; baseValue: string | number }): Promise<void> {
+  async function saveDraft(change: {
+    blockId: string;
+    field: DraftBlockField;
+    value: string | number;
+    baseValue: string | number;
+  }): Promise<void> {
     if (!selected) return;
     const next: PlanningDraft = {
       id: draft?.id ?? `draft-${selected.id}`,
@@ -464,6 +486,18 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
           : 'Não foi possível aplicar o rascunho.',
     );
     await refresh();
+  }
+
+  async function relinkBlock(blockId: string, editalDisciplineId: string): Promise<void> {
+    const block = selectedBlocks.find((item) => item.id === blockId);
+    if (!block) return;
+    await saveDraft({
+      blockId,
+      field: 'editalDisciplineId',
+      value: editalDisciplineId,
+      baseValue: block.editalDisciplineId,
+    });
+    onNotice('Vínculo proposto no rascunho; aplique o rascunho para efetivar.');
   }
 
   async function restoreCheckpoint(checkpointId: string): Promise<void> {
@@ -514,6 +548,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     if (!selected) return;
     const preview = previewRedistribution({
       blocks: selectedBlocks,
+      reservationBlocks: officialReservations,
       startDate: new Date().toISOString().slice(0, 10),
       horizonDays: 45,
       zone: ZONE,
@@ -593,7 +628,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     });
   }
 
-  async function importPlanning(text: string): Promise<string> {
+  async function importPlanning(text: string, targetEditalId: string): Promise<string> {
     const parsed = parsePlanningImport(text, { namespace: `v2:${profileId}` });
     if (!parsed.ok) return `Importação recusada: ${parsed.reason}`;
     const preview = previewPlanningImport(
@@ -603,7 +638,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     const result = await new LocalPlanningImportCommitter().apply(profileId, preview, {
       confirmed: true,
       targetSignature: preview.targetSignature,
-      targetEditalId: selected?.editalId ?? editais[0]?.id,
+      targetEditalId,
     });
     await refresh();
     if (result.kind === 'LOCAL_COMMITTED') {
@@ -644,7 +679,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
         scenario={selected}
         onChangeExamDate={(change) => void changeExamDate(change)}
         onTransition={(examDate) => void transitionToFinalStretch(examDate)}
-        onClose={() => void closeStretch()}
+        onClose={(outcome) => void closeStretch(outcome)}
         locked={locked}
       />
       <PlanningEditor
@@ -662,6 +697,16 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
         }
         onPreviewRedistribution={previewRedistributionForScenario}
         onApplyRedistribution={() => void applyRedistribution()}
+        links={links
+          .filter((link) => !selected || link.editalId === selected.editalId)
+          .map((link) => ({
+            id: link.id,
+            title:
+              content.subjects.find((subject) => subject.id === link.subjectId)?.title ??
+              link.displayAlias ??
+              link.id,
+          }))}
+        onRelink={(blockId, editalDisciplineId) => void relinkBlock(blockId, editalDisciplineId)}
         locked={locked}
       />
       <PlanningHistory
@@ -676,6 +721,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
       <PlanningPortability
         onExport={exportSelected}
         onImport={importPlanning}
+        editais={editais}
         locked={locked}
       />
     </section>

@@ -1,7 +1,7 @@
 import type { PlanBlock, PlanningOutcome, PlanningScenario } from '../domain/planning';
 import { validatePlanBlock, validateScenario } from '../domain/planning';
 import type { PlanningImportPreview } from '../application/planning-portability';
-import { toScenarioFromParsed } from '../application/planning-portability';
+import { hashText, toScenarioFromParsed } from '../application/planning-portability';
 import { PLANNING_ENTITY_SCHEMA_VERSION } from '../application/planning-service';
 import {
   openV2Database,
@@ -70,7 +70,11 @@ export class LocalPlanningImportCommitter {
       return { kind: 'INVALID', code: 'TARGET_EDITAL_REQUIRED' };
     }
 
-    const importId = `import~${preview.fingerprint}~${preview.targetSignature.length}`;
+    // Two files may carry identical blocks with different names; the name hash
+    // keeps both imports distinct instead of replaying the first receipt.
+    const importId = `import~${preview.fingerprint}~${hashText(
+      preview.entries.map((entry) => entry.name).join('|'),
+    )}`;
     const database = await openV2Database(profileId);
     const transaction = database.transaction(
       [

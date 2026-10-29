@@ -55,6 +55,8 @@ export class GenerationLimitError extends Error {
 
 export type RedistributionInput = {
   blocks: PlanBlock[];
+  /** Reservations of other scenarios, so capacity stays global. */
+  reservationBlocks?: PlanBlock[];
   startDate: string;
   horizonDays: number;
   zone: string;
@@ -81,19 +83,19 @@ export function previewRedistribution(
   if (!isCivilDate(input.startDate)) throw new GenerationLimitError('INVALID_DATE');
   const horizonEnd = addCivilDays(input.startDate, Math.max(1, input.horizonDays) - 1);
   const dates = enumerateCivilDates(input.startDate, horizonEnd);
-  const fixed = input.blocks.filter((block) => block.allocation !== 'UNALLOCATED');
   const pending = input.blocks
     .filter((block) => block.allocation === 'UNALLOCATED')
     .sort((left, right) => left.priority - right.priority || (left.id < right.id ? -1 : 1));
 
   const remaining = new Map<string, number>();
+  const reservationSource = input.reservationBlocks ?? input.blocks;
   for (const date of dates) {
     const capacity = evaluateDailyCapacity({
       date,
       zone: input.zone,
       weekly: input.weekly,
       exceptions: input.exceptions,
-      reservations: fixed.filter((block) => block.civilDate === date),
+      reservations: reservationSource,
       fixedCommitments: input.fixedCommitments,
     });
     remaining.set(date, capacity.remainingMinutes);

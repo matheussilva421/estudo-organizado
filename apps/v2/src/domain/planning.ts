@@ -65,6 +65,11 @@ export type PlanningScenario = {
   updatedAt?: string;
   /** Persisted cycle cursor; only meaningful for kind CYCLE. */
   cycle?: CycleSnapshot | null;
+  /** How a final stretch was closed; never inferred from the exam date. */
+  closing?: {
+    outcome: 'OCCURRED' | 'RESCHEDULED' | 'UNDEFINED';
+    closedAt: string;
+  } | null;
 };
 
 export type CycleContentRef = {

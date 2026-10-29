@@ -216,5 +216,10 @@ describe('F3 selective export', () => {
       civilDate: '2027-01-05',
       assuntoId: 'assunto-1',
     });
+
+    // The exported plan re-imported against its own snapshot is EQUIVALENT.
+    const preview = previewPlanningImport(parsed, snapshots);
+    expect(preview.entries[0]?.kind).toBe('EQUIVALENT');
+    expect(preview.automaticMerges).toBe(0);
   });
 });

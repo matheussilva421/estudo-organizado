@@ -82,6 +82,10 @@ function hash(value: string): string {
   return (result >>> 0).toString(16);
 }
 
+export function hashText(value: string): string {
+  return hash(value);
+}
+
 type FingerprintableBlock = {
   editalDisciplineId?: string;
   assuntoId?: string;

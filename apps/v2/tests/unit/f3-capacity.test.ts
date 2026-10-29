@@ -262,6 +262,8 @@ describe('F3 availability and capacity', () => {
     expect(capacity.diagnostics).toContain('OVERLAP');
     // Physical occupancy stays 90 minutes; the overlap is not counted twice.
     expect(capacity.reservedMinutes).toBe(90);
+    // While the conflict exists the day cannot take more work.
+    expect(capacity.remainingMinutes).toBe(0);
   });
 
   it('intervals_crossing_midnight_occupy_both_civil_days', () => {

@@ -10,6 +10,8 @@ type Props = {
   redistribution: { moved: number; stillUnallocated: number } | null;
   onPreviewRedistribution: () => void;
   onApplyRedistribution: () => void;
+  links: { id: string; title: string }[];
+  onRelink: (blockId: string, editalDisciplineId: string) => void;
   locked: boolean;
 };
 
@@ -21,10 +23,13 @@ export function PlanningEditor({
   redistribution,
   onPreviewRedistribution,
   onApplyRedistribution,
+  links,
+  onRelink,
   locked,
 }: Props) {
   const [selectedId, setSelectedId] = useState(blocks[0]?.id ?? '');
   const [minutes, setMinutes] = useState(60);
+  const [relinkId, setRelinkId] = useState('');
   const selected = blocks.find((block) => block.id === selectedId) ?? blocks[0] ?? null;
 
   return (
@@ -81,6 +86,29 @@ export function PlanningEditor({
           >
             Aplicar rascunho
           </button>
+          {selected?.reason === 'UNMAPPED_CONTENT' ? (
+            <div data-testid="relink-unmapped">
+              <p className="planning-warning">
+                Este bloco veio de um arquivo sem vínculo F2. Escolha a disciplina de destino.
+              </p>
+              <select value={relinkId} onChange={(event) => setRelinkId(event.target.value)}>
+                <option value="">Escolha a disciplina</option>
+                {links.map((link) => (
+                  <option key={link.id} value={link.id}>
+                    {link.title}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                data-action="relink-block"
+                disabled={locked || !relinkId}
+                onClick={() => onRelink(selected.id, relinkId)}
+              >
+                Vincular conteúdo
+              </button>
+            </div>
+          ) : null}
           <hr />
           <p className="planning-hint">
             Redistribuição assistida: blocos não alocados só mudam após a prévia e a confirmação.

@@ -167,3 +167,66 @@ test('planning_flow_is_usable_on_tablet_and_mobile', async ({ page }) => {
     await expect(page.locator('[data-testid="draft-state"]')).toHaveAttribute('data-changes', '1');
   }
 });
+
+test('calendar_navigation_moves_the_window_and_wizard_state_persists', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.evaluate(async () => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.resetDb();
+    const seed = {
+      id: 'scenario-nav',
+      profileId: 'local-default',
+      editalId: 'edital-tjpb',
+      kind: 'FINAL_STRETCH' as const,
+      name: 'Navegação',
+      status: 'DRAFT' as const,
+      localRevision: 1,
+      schemaVersion: 1,
+      priorityProfileId: 'priority-default',
+      priorityProfileRevision: 1,
+      examDate: '2027-03-01',
+      referenceZone: 'America/Fortaleza',
+    };
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'op-nav' },
+      scenarioId: seed.id,
+      baseRevision: null,
+      changes: { scenario: seed },
+    });
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'op-nav-blocks' },
+      scenarioId: seed.id,
+      baseRevision: 1,
+      changes: {
+        upsertBlocks: Array.from({ length: 40 }, (_, index) => ({
+          id: `nav-${index}`,
+          profileId: 'local-default',
+          editalId: 'edital-tjpb',
+          scenarioId: seed.id,
+          editalDisciplineId: 'link-1',
+          plannedMinutes: 30,
+          allocation: 'PROJECTED' as const,
+          civilDate: new Date(Date.UTC(2027, 0, 4 + index)).toISOString().slice(0, 10),
+          priority: 1,
+          localRevision: 1,
+          sourceOperationId: 'op-nav-blocks',
+          label: `Conteúdo ${index}`,
+        })),
+      },
+    });
+  });
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+
+  await page.locator('[data-action="calendar-month"]').click();
+  const firstWindow = await page.locator('[data-testid="calendar-window"]').textContent();
+  await page.locator('[data-action="calendar-next"]').click();
+  const secondWindow = await page.locator('[data-testid="calendar-window"]').textContent();
+  expect(secondWindow).not.toBe(firstWindow);
+
+  await page.getByLabel('Nome', { exact: true }).fill('Rascunho persistente');
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await expect(page.getByLabel('Nome', { exact: true })).toHaveValue('Rascunho persistente');
+});

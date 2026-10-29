@@ -345,6 +345,26 @@ export class LocalPlanningRepository implements PlanningRepository {
         transaction.abort();
         return { kind: 'INVALID', code: 'EDITAL_MISMATCH' };
       }
+      if (next.status === 'CLOSED' || next.status === 'ARCHIVED') {
+        transaction.abort();
+        return { kind: 'BLOCKED', reason: 'SCENARIO_NOT_ACTIVATABLE' };
+      }
+      try {
+        // Activation reuses the same invariants: a final stretch without a
+        // confirmed date can never become ACTIVE.
+        validateScenario({
+          ...next,
+          status: 'ACTIVE',
+          localRevision: next.localRevision + 1,
+        });
+      } catch (error) {
+        transaction.abort();
+        return {
+          kind: 'BLOCKED',
+          reason:
+            error instanceof PlanningValidationError ? error.code : 'SCENARIO_NOT_ACTIVATABLE',
+        };
+      }
       if (
         input.baseRevision !== null &&
         input.baseRevision !== undefined &&
