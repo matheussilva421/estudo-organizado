@@ -2,7 +2,7 @@
 
 **Atualizado em:** 2026-10-29
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
-**Situação:** **F0, F1 e F2 ACEITAS COM RESSALVAS**; F1 aceita em `85ce1e3`; **F2 aceita pelo proprietário em 2026-10-29 sob `F2_ACCEPTED_WITH_RESERVATIONS`**, com implementação em `8e4dc71` (188 unit e 50 E2E PASS) e [relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md). O aceite cobre implementação local/simulada; não homologa Firebase, sincronização real, recuperação produtiva de backups ou publicação. **F3_SPEC_APPROVED em 2026-10-29** (D-F3-01–26); writing-plans e implementação F3 pendentes. F4–F8 permanecem propostas.
+**Situação:** **F0, F1 e F2 ACEITAS COM RESSALVAS**; F1 aceita em `85ce1e3`; **F2 aceita pelo proprietário em 2026-10-29 sob `F2_ACCEPTED_WITH_RESERVATIONS`**, com implementação em `8e4dc71` (188 unit e 50 E2E PASS) e [relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md). O aceite cobre implementação local/simulada; não homologa Firebase, sincronização real, recuperação produtiva de backups ou publicação. **F3_SPEC_APPROVED** e **F3_PLAN_APPROVED_FOR_GOAL** em 2026-10-29 (D-F3-01–26; 20 tarefas; F3-T01–T42); GOAL e implementação F3 pendentes. F4–F8 permanecem propostas.
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
 **Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
@@ -17,7 +17,8 @@ Este roadmap é o **índice e acompanhamento canônico** da V2. Os documentos ex
 | [Pré-contratos F1 — sync multi-dispositivo A-02](../specs/2026-10-28-v2-multidevice-sync-f1-contracts.md) | **PROPOSTA PARA F1** — sem código ou execução autorizada |
 | [ADRs F1-01..05](../specs/2026-10-28-v2-f1-architecture-decisions.md) | **RATIFICADAS** em 2026-10-28; validação de implementação futura ainda pendente |
 | [Especificação formal F1](../specs/2026-10-28-estudo-organizado-v2-f1-foundation-design.md) | **APROVADA** em 2026-10-28 ([aceite](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470639550)) |
-| [Especificação formal F3](../specs/2026-10-28-estudo-organizado-v2-f3-planning-design.md) | **APROVADA em 2026-10-29**, decisões D-F3-01–26; writing-plans/GOAL/código pendentes |
+| [Especificação formal F3](../specs/2026-10-28-estudo-organizado-v2-f3-planning-design.md) | **APROVADA em 2026-10-29**, D-F3-01–26; plano aprovado, GOAL/código pendentes |
+| [Writing-plans Superpowers F3](../plans/2026-10-29-estudo-organizado-v2-f3-planning.md) | **APROVADO em 2026-10-29** — 20 tarefas, F3-T01–T42; GOAL ainda pendente e execução não autorizada |
 | [Plano writing-plans F1](../plans/2026-10-28-estudo-organizado-v2-f1-foundation.md) | **APROVADO G2/F1** — 14 tarefas, 75 etapas TDD; execução não iniciada |
 | [GOAL único F1 para Codex](../goals/2026-10-28-estudo-organizado-v2-f1-codex.md) | **PREPARADO** — somente envio explícito ao Codex autoriza G3/F1 |
 | Plano executável F0 (6 tarefas, TDD) | [Plano F0](../plans/2026-10-19-estudo-organizado-v2-f0-audit.md) | **G2/F0 APROVADO** — método Subagent-driven |
@@ -59,7 +60,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | **ACEITA COM RESSALVAS — 2026-10-28, commit `85ce1e3`** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6475527680) e [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
 | **F2 — Editais e conteúdo** | **ACEITA COM RESSALVAS — `F2_ACCEPTED_WITH_RESERVATIONS`** (2026-10-29) | Base canônica de organização | [Relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md); `8e4dc71`, 188 unit e 50 E2E PASS; três lacunas obrigatórias antes do sync real na F7; quatro HIGH `UNVERIFIED`; F2-T22 `NOT_RUN`; Firebase/emulador sem autorização |
-| **F3 — Planejamento** | **F3_SPEC_APPROVED em 2026-10-29; não implementada** | Planejamento executável; writing-plans pendente | F2 com ressalvas e contratos temporais |
+| **F3 — Planejamento** | **F3_PLAN_APPROVED_FOR_GOAL em 2026-10-29; não implementada** | Plano Superpowers aprovado (20 tarefas; 42 cenários); GOAL pendente | F2 com ressalvas e contratos temporais |
 | **F4 — Execução/sessões** | **SPEC PROPOSTA; não iniciada** | Tempo/histórico confiáveis | Persistência e domínio |
 | **F5 — Revisões/inteligência** | **SPEC PROPOSTA; não iniciada** | Revisar e priorizar | F2–F4 |
 | **F6 — Indicadores/UX** | **SPEC PROPOSTA; não iniciada** | Métricas e experiência integradas | Dados canônicos por domínio |
@@ -137,7 +138,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 
 ## 6. F3 — Planejamento, calendário, ciclo e reta final
 
-**Gate vigente (2026-10-29):** `F3_SPEC_APPROVED` — [especificação F3](../specs/2026-10-28-estudo-organizado-v2-f3-planning-design.md) aprovada (D-F3-01–26; matriz F3-T01..42). Writing-plans, GOAL, implementação e integração continuam pendentes; V1/`main` preservadas.
+**Gate vigente (2026-10-29):** `F3_PLAN_APPROVED_FOR_GOAL` — [spec F3](../specs/2026-10-28-estudo-organizado-v2-f3-planning-design.md) D-F3-01–26 aprovada e [writing-plans F3](../plans/2026-10-29-estudo-organizado-v2-f3-planning.md) com **20 tarefas** e **F3-T01–T42** aprovado integralmente pelo proprietário. **GOAL ainda a preparar, sem autorização de execução**; F3 não implementada, V1/`main` preservadas.
 
 **Objetivo:** gerar e editar planos consistentes, compreensíveis e auditáveis para concursos com diferentes calendários.
 
@@ -347,7 +348,7 @@ Uma fase só estará **CONCLUÍDA** após verificar: escopo aceito, evidências 
 
 ## 18. Caminho crítico, riscos e encerramento real
 
-1. **Agora:** F2 aceita com ressalvas. A próxima etapa é a **arquitetura e o planejamento F3 pelo ChatGPT com Superpowers**, com aprovação humana da spec/plano antes de qualquer GOAL de execução pelo Codex. Correções de sync real, emulador e homologação Firebase permanecem gates próprios (F7), sem autorização vigente.
+1. **Agora (2026-10-29):** F2 aceita com ressalvas; **spec F3 e writing-plans F3 aprovados**. Próxima etapa é ChatGPT preparar **GOAL único do Codex Desktop** para revisão; **nenhuma implementação F3 autorizada automaticamente**. Correções de sync real, emulador e homologação Firebase permanecem gates próprios (F7), sem autorização vigente.
 2. **F2–F6:** ratificar specs já propostas na ordem, ajustar apenas decisões afetadas pela fase anterior, redigir writing-plans por fase e executar TDD/local/Impeccable. Evitar PR por tarefa e não criar Actions.
 3. **Sync antecipado (opcional pendente):** decidir após F1 se autoriza um ensaio emulado/Spark isolado pequeno em F2 ou se posterga todo uso remoto real a F7. Exigir orçamento e isolamento; nada de dados reais.
 4. **F7:** provar Auth Google + Firestore Spark multi-dispositivo, Rules, backup/restore, quotas, conflitos e migração isolada; quatro HIGH só mudam status mediante evidências.
@@ -361,6 +362,6 @@ Uma fase só estará **CONCLUÍDA** após verificar: escopo aceito, evidências 
 
 **Fluxo canônico e obrigatório para F2–F8:** **ChatGPT + Superpowers brainstorming** → alternativas e decisões apresentadas ao proprietário → **spec escrita e revisada pelo ChatGPT** → aprovação humana da spec → **ChatGPT + Superpowers writing-plans** (arquivos, interfaces, TDD, passos verificáveis, revisão independente e QA) → aprovação humana do plano/método → **GOAL de execução escrito pelo ChatGPT** → **Codex implementa e testa localmente** na branch `v2` → **ChatGPT revisa evidências/código e define correções** → Codex corrige → proprietário decide aceite da fase. Não delegar ao Codex a criação da spec ou do writing-plans.
 
-**Estado documental (2026-10-29):** F0/F1/F2 aceitas com ressalvas; F2 implementada e testada localmente (188 unit/50 E2E), sem homologação remota; **F3_SPEC_APPROVED**, com writing-plans pendente e implementação não iniciada; F4–F8 ainda propostas. Emulator/Firebase requerem autorização separada. Aceite da spec F3 não autoriza código, integração ou deploy.
+**Estado documental (2026-10-29):** F0/F1/F2 aceitas com ressalvas; F2 implementada/testada localmente (188 unit/50 E2E), sem homologação remota; **F3_SPEC_APPROVED + F3_PLAN_APPROVED_FOR_GOAL** (20 tarefas, F3-T01–T42), **GOAL/execução ainda não autorizados**, implementação não iniciada; F4–F8 propostas. Emulador/Firebase exigem autorização separada; planos não autorizam código, integração ou deploy.
 
 **Princípios de encerramento:** V1 continua intocada em `main`; F1–F7 somente `v2`; nenhum Action novo, PR desnecessário, billing, dados reais ou deploy. Quatro HIGH permanecem `UNVERIFIED`, 107 FAIL E2E V1 são baseline. Uma fase só fecha após teste comprovado, código integrado, higiene Git e aceite humano; F8/G5 exige autorização própria de cutover e backup restaurável.
