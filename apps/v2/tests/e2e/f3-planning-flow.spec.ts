@@ -97,3 +97,73 @@ test('sequential_generation_produces_unallocated_items_when_capacity_is_short', 
   await page.locator('[data-action="preview-generation"]').click();
   await expect(page.locator('[data-testid="wizard-preview"]')).toContainText('não alocados');
 });
+
+test('planning_flow_is_usable_on_tablet_and_mobile', async ({ page }) => {
+  for (const viewport of [
+    { width: 834, height: 1112 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+    await page.evaluate(async (seed) => {
+      const harness = (window as unknown as HarnessWindow).__v2E2E;
+      await harness.resetDb();
+      await harness.planningCommit({
+        scope: { profileId: 'local-default', operationId: 'op-responsive' },
+        scenarioId: seed.id,
+        baseRevision: null,
+        changes: { scenario: seed },
+      });
+      await harness.planningCommit({
+        scope: { profileId: 'local-default', operationId: 'op-responsive-blocks' },
+        scenarioId: seed.id,
+        baseRevision: 1,
+        changes: {
+          upsertBlocks: [
+            {
+              id: 'block-responsive',
+              profileId: 'local-default',
+              editalId: 'edital-tjpb',
+              scenarioId: seed.id,
+              editalDisciplineId: 'link-1',
+              plannedMinutes: 60,
+              allocation: 'PROJECTED',
+              civilDate: '2027-01-05',
+              priority: 1,
+              localRevision: 1,
+              sourceOperationId: 'op-responsive-blocks',
+              label: 'Constitucional',
+            },
+          ],
+        },
+      });
+    }, {
+      id: 'scenario-responsive',
+      profileId: 'local-default',
+      editalId: 'edital-tjpb',
+      kind: 'FINAL_STRETCH' as const,
+      name: 'Responsivo',
+      status: 'DRAFT' as const,
+      localRevision: 1,
+      schemaVersion: 1,
+      priorityProfileId: 'priority-default',
+      priorityProfileRevision: 1,
+      examDate: '2027-06-30',
+      referenceZone: 'America/Fortaleza',
+    });
+    await page.reload();
+    await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+    await expect(page.locator('[data-testid="planning-dashboard"]')).toContainText('Responsivo');
+    await expect(page.locator('[data-testid="planning-calendar"]')).toBeVisible();
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+
+    await page.getByLabel('Minutos').fill('75');
+    await page.locator('[data-action="save-draft"]').click();
+    await expect(page.locator('[data-testid="draft-state"]')).toHaveAttribute('data-changes', '1');
+  }
+});
