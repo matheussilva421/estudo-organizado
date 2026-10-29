@@ -53,6 +53,97 @@ export class GenerationLimitError extends Error {
   readonly code = 'GENERATION_LIMIT_EXCEEDED';
 }
 
+export type RedistributionInput = {
+  blocks: PlanBlock[];
+  startDate: string;
+  horizonDays: number;
+  zone: string;
+  weekly: WeeklyAvailability;
+  exceptions: AvailabilityException[];
+  fixedCommitments?: FixedCommitment[];
+  operationId: string;
+};
+
+export type RedistributionPreview = {
+  blocks: PlanBlock[];
+  moved: { blockId: string; from: string | null; to: string }[];
+  unchanged: string[];
+  stillUnallocatedIds: string[];
+};
+
+/**
+ * Assisted redistribution: only UNALLOCATED blocks are proposed into days that
+ * still have capacity. Confirmed blocks never move and nothing is persisted.
+ */
+export function previewRedistribution(
+  input: RedistributionInput,
+): RedistributionPreview {
+  if (!isCivilDate(input.startDate)) throw new GenerationLimitError('INVALID_DATE');
+  const horizonEnd = addCivilDays(input.startDate, Math.max(1, input.horizonDays) - 1);
+  const dates = enumerateCivilDates(input.startDate, horizonEnd);
+  const fixed = input.blocks.filter((block) => block.allocation !== 'UNALLOCATED');
+  const pending = input.blocks
+    .filter((block) => block.allocation === 'UNALLOCATED')
+    .sort((left, right) => left.priority - right.priority || (left.id < right.id ? -1 : 1));
+
+  const remaining = new Map<string, number>();
+  for (const date of dates) {
+    const capacity = evaluateDailyCapacity({
+      date,
+      zone: input.zone,
+      weekly: input.weekly,
+      exceptions: input.exceptions,
+      reservations: fixed.filter((block) => block.civilDate === date),
+      fixedCommitments: input.fixedCommitments,
+    });
+    remaining.set(date, capacity.remainingMinutes);
+  }
+
+  const blocks = input.blocks.map((block) => ({ ...block }));
+  const moved: RedistributionPreview['moved'] = [];
+  const stillUnallocatedIds: string[] = [];
+  let dateIndex = 0;
+
+  for (const block of pending) {
+    let placed = false;
+    while (dateIndex < dates.length) {
+      const date = dates[dateIndex] as string;
+      const free = remaining.get(date) ?? 0;
+      if (free >= block.plannedMinutes) {
+        const index = blocks.findIndex((item) => item.id === block.id);
+        if (index >= 0) {
+          blocks[index] = {
+            ...(blocks[index] as PlanBlock),
+            allocation: 'PROJECTED',
+            civilDate: date,
+            reason: undefined,
+            sourceOperationId: input.operationId,
+          };
+        }
+        remaining.set(date, free - block.plannedMinutes);
+        moved.push({ blockId: block.id, from: block.civilDate ?? null, to: date });
+        placed = true;
+        break;
+      }
+      dateIndex += 1;
+    }
+    if (!placed) stillUnallocatedIds.push(block.id);
+  }
+
+  return {
+    blocks: blocks.sort((left, right) => {
+      const leftDate = left.civilDate ?? '9999-12-31';
+      const rightDate = right.civilDate ?? '9999-12-31';
+      return compareCivilDate(leftDate, rightDate) || (left.id < right.id ? -1 : 1);
+    }),
+    moved,
+    unchanged: input.blocks
+      .filter((block) => block.allocation !== 'UNALLOCATED')
+      .map((block) => block.id),
+    stillUnallocatedIds,
+  };
+}
+
 function signatureOf(input: PlanGenerationInput): string {
   // A stable digest of everything that can change the proposal.
   const material = [
