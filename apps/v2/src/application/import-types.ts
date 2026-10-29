@@ -129,4 +129,6 @@ export type ImportReceipt = {
   operationIds: Id[];
   /** Entities this import actually created; used to detect later divergence. */
   entityIds: Id[];
+  /** Revision each created entity had right after the import. */
+  entityRevisions?: Record<Id, number>;
 };

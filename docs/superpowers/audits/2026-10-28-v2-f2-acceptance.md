@@ -63,7 +63,7 @@ Comando comum: `npm --prefix apps/v2 run test:unit -- <arquivo>` ou `... test:e2
 | F2-T22 | emulador CAS/ACK/Rules | — | **NOT_RUN** — `F2_EMULATOR_NOT_AUTHORIZED` |
 | F2-T23 | `f1_subject_adoption_keeps_identity_and_never_auto_links` + `f1_subjects_stay_unassigned_until_an_explicit_decision` | unit + E2E | PASS |
 | F2-T24 | `v1_edital_fixture_preserves_counts_or_quarantines_unknown` | unit (fixture V1) | PASS |
-| F2-T25 | `resolve_remote_conflict_preserves_both_versions_until_choice` | unit | PASS |
+| F2-T25 | `resolve_remote_conflict_preserves_both_versions_until_choice` + stale/atômico | unit | PASS (payloads preservados; decisão obsoleta recusada; escrita e marcação na mesma transação) |
 | F2-T26 | `delete_never_synced_creates_tombstone_and_requires_restore` | unit | PASS |
 | F2-T27 | `logout_rebind_does_not_transfer_old_operations` | unit | PASS |
 | F2-T28 | `invalid_title_returns_invalid_not_unavailable` | unit | PASS |
@@ -72,7 +72,7 @@ Comando comum: `npm --prefix apps/v2 run test:unit -- <arquivo>` ou `... test:e2
 | F2-T31 | `f1_backup_readback_and_subject_tombstone_collision_rejected` + colisão por tipo | unit | PASS (F1 nunca `SAFE`; colisão subject/edital/vínculo/assunto/aula/tópico) |
 | F2-T32 | `canonical_rename_keeps_explicit_contextual_alias` | unit | PASS |
 | F2-T33 | `same_central_id_different_namespace_is_not_same_entity` | unit | PASS |
-| F2-T34 | `max_accepted_import_quota_abort_rolls_back_every_store` + `max_accepted_import_runs_in_the_browser_within_budget` | unit + E2E | PASS — rollback por quota e carga máxima aceita (1.000 disciplinas, ~4.001 criações) medida no Chromium: **414 ms**; acima do teto é recusado antes de escrever |
+| F2-T34 | `max_accepted_import_quota_abort_rolls_back_every_store` + `max_accepted_import_runs_in_the_browser_within_budget` | unit + E2E | PASS — rollback por quota e carga próxima do teto (1.249 disciplinas, **4.997 criações**) medida no Chromium: **529 ms**; acima do teto é recusado antes de escrever |
 | F2-T35 | `stale_preview_after_tab_edit_is_rejected` + `browser_stale_preview_is_rejected_after_another_tab_edit` | unit + E2E | PASS |
 | F2-T36 | `wrong_uid_denied_same_uid_different_local_profile_allowed` (dois profileId, mesma biblioteca) | unit | **SIMULATED** |
 | F2-T37 | `local_only_command_is_immutable_and_not_sent` | unit | PASS |
@@ -140,14 +140,16 @@ Cada correção foi seguida de reexecução do teste focal e da suíte completa.
 
 ## 7. Limitações e riscos residuais
 
-- **Quatro riscos HIGH da F0 continuam `UNVERIFIED`.** Nenhum teste desta fase os mitiga.
+> **Como ler esta seção:** itens marcados **(histórico)** vêm da F0/V1 e continuam rastreados, mas **não** são pendências abertas da F2. Os demais são limites atuais desta fase, com a fase de destino indicada.
+
+- **(histórico)** Quatro riscos HIGH da F0 continuam `UNVERIFIED`. Nenhum teste desta fase os mitiga.
 - **F2-T22 NOT_RUN:** nenhum Firebase Emulator/SDK/Rules foi instalado ou executado. `F1`/Firestore/Google Auth reais não foram homologados.
 - **F2-T16 e F2-T36 são SIMULATED:** provam o contrato do fake, não convergência entre dispositivos reais.
 - **Retomada automática** é uma API com relógio injetado (`getEligibleOutbox`); não existe timer/background garantido nesta fase (pertence à F4/F7).
 - **F2-T34** foi exercitado com ~360 entidades, não com o teto de 5.000; o limite máximo aceito ainda precisa de medição em dispositivo modesto antes de produção.
 - **Impeccable 3.9.1** não foi executado como ferramenta; a evidência visual é composta por 24 capturas Chromium (8 temas × 3 viewports), verificação de overflow, foco visível e alvo de 44 px em coarse pointer. Detector automático de contraste/a11y: `NOT_RUN`.
 - As 24 capturas ficam em `apps/v2/test-results/impeccable/` (diretório ignorado pelo Git) e estão inventariadas com hash em `evidence/2026-10-28-v2-f2-visual-manifest.md`; uma delas (`neon-mobile.png`) foi inspecionada visualmente nesta execução.
-- **107 FAIL E2E da V1** permanecem baseline histórico, sem alteração.
+- **(histórico)** 107 FAIL E2E da V1 permanecem baseline, sem alteração.
 - Vínculos aula↔assunto desfeitos usam exclusão física (com operação `delete` na outbox), sem tombstone; backups antigos podem reintroduzir o vínculo. Registrado como decisão de F2, a revisar na F7.
 - Três motores de commit coexistem (subject F1 congelado, conteúdo F2, perfil); o de arquivamento já foi unificado no de conteúdo. Unificação completa fica para revisão arquitetural posterior.
 
@@ -217,6 +219,22 @@ Em substituição, foi feita auto-revisão estruturada do diff corretivo:
 | `aria-label` novos quebraram nomes? | Não: E2E verde após renomear gatilho e submit de arquivamento. |
 | Algum teste enfraquecido? | Asserções ajustadas ao novo contrato; nenhuma removida para obter verde. |
 
-**Residual de maior risco:** a marcação de conflito resolvido não é transacional com a escrita de `ACCEPT_REMOTE` — falha no meio deixa `OPEN`, nunca `RESOLVED` falso.
+**Residual de maior risco (corrigido depois, ver §12):** naquele momento a marcação de conflito resolvido não era transacional com a escrita de `ACCEPT_REMOTE`.
+
+## 12. GOAL final de fechamento (2026-10-29)
+
+Correções sobre o HEAD `0793b16`, sem reabrir C1–C7.
+
+| Item | Correção | Prova |
+| --- | --- | --- |
+| P1 conflitos | `resolveConflict` compara a revisão local atual com a do `localPayload` e recusa decisão obsoleta (`RESOLUTION_STALE`), mantendo os dois payloads e o conflito `OPEN`. `KEEP_LOCAL` grava conteúdo + `RESOLVED` na **mesma** transação (`CommitOptions.markConflict`). `ACCEPT_REMOTE` de tombstone delega ao `SOFT_DELETE` (nunca cria upsert outbound) e `ACCEPT_REMOTE` de payload valida tombstones, escopo, pais e vínculos antes do `put`, também atômico com a marcação. Replay da mesma decisão é idempotente; decisão divergente falha. | `f2-conflicts.test.ts` — 11 testes: stale, replay idempotente, decisão divergente, exclusão remota sem upsert, falha no meio mantendo `OPEN`, referência órfã recusada |
+| P1 gate de envio | `FlushOptions.canSend` é obrigatório e `flushPending` falha fechado: sem autorização explícita nada alcança `remote.apply` (vai para `blocked`). `getEligibleOutbox` permanece como filtro anterior; o harness monta a autorização real com `canDeliver` + perfil. | `f2-retry`/`f2-conflicts` com chamada sem gate + 50 E2E verdes |
+| P2 recibos | O recibo guarda `entityRevisions`; o replay só é no-op se nenhuma entidade importada foi apagada **ou editada** depois. Divergência devolve `IMPORT_ALREADY_APPLIED_BUT_DIVERGED` com `missing`/`changed` e preserva a edição do usuário. | `f2-import-commit.test.ts` — 10 testes (edição local, exclusão, replay idêntico, duas importações) |
+| Desempenho | Carga sintética de **1.249 disciplinas (~4.997 criações)**, próxima do teto, medida no Chromium: **529 ms**, recibo único; acima do teto segue recusado antes de escrever. | `f2-import-max.spec.ts` |
+
+Gates desta rodada (logs completos em `evidence/2026-10-29-v2-f2-final-goal-*.txt`): typecheck PASS · lint PASS · unit **188/188** · E2E **50/50** · build PASS.
+
+Revisão independente desta rodada: **não executada** (limite de threads do ambiente, registrado em §11); os quatro P1/P2 acima foram cobertos por testes focados e auto-revisão.
+
 
 

@@ -5,9 +5,9 @@ type HarnessWindow = Window & { __v2E2E: V2E2EHarness };
 
 const profileId = 'local-default';
 
-/** 1.000 disciplinas x (1 topico + 1 aula) => ~4.001 creates reais. */
+/** 1.249 disciplinas x (1 topico + 1 aula) => ~4.997 creates reais. */
 function buildLargeImport(): string {
-  const disciplinas = Array.from({ length: 1_000 }, (_, index) => ({
+  const disciplinas = Array.from({ length: 1_249 }, (_, index) => ({
     nome: `Disciplina ${index}`,
     topicos: [{ nome: `Topico ${index}` }],
     aulas: [{ nome: `Aula ${index}` }],
@@ -51,11 +51,14 @@ test('max_accepted_import_runs_in_the_browser_within_budget', async ({ page }) =
   expect(result.ok).toBe(true);
   if (!result.ok) return;
   expect(result.kind).toBe('LOCAL_COMMITTED');
-  expect(result.creates).toBeGreaterThan(3_900);
+  expect(result.creates).toBeGreaterThan(4_900);
   expect(result.counts.editais).toBe(1);
-  expect(result.counts.links).toBe(1_000);
+  expect(result.counts.links).toBe(1_249);
   // Generous ceiling: this is the reference desktop, not a modest phone.
   expect(result.elapsed).toBeLessThan(30_000);
+  process.stdout.write(
+    `max import: creates=${result.creates} elapsed=${Math.round(result.elapsed)}ms\n`,
+  );
 });
 
 test('over_the_entity_ceiling_is_rejected_before_writing', async ({ page }) => {

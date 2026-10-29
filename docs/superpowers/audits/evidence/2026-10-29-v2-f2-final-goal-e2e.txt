@@ -1,0 +1,99 @@
+
+> estudo-organizado-v2@0.1.0 test:e2e
+> playwright test
+
+
+[WebServer] (node:19776) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:30744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 50 tests using 8 workers
+
+(node:19576) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:2704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:57748) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:16276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:11312) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/50] [chromium] › tests\e2e\f2-atomic-commit.spec.ts:22:1 › browser_abort_never_reports_saved_content
+(node:44840) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+
+(node:40888) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[2/50] [chromium] › tests\e2e\f2-import-atomic.spec.ts:23:1 › browser_import_is_atomic_and_idempotent_after_reload
+(node:55060) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[3/50] [chromium] › tests\e2e\f2-editais-flow.spec.ts:3:1 › browser_create_rename_reload_full_content_tree
+[4/50] [chromium] › tests\e2e\f2-a11y.spec.ts:70:1 › eight_themes_three_viewports_and_accessible_controls
+[5/50] [chromium] › tests\e2e\f2-archive.spec.ts:8:1 › browser_archive_keeps_tree_and_never_reports_progress
+[6/50] [chromium] › tests\e2e\f2-idb-migration.spec.ts:17:1 › upgrade_f1_preserves_subject_operations_outbox
+[7/50] [chromium] › tests\e2e\f2-import-max.spec.ts:25:1 › max_accepted_import_runs_in_the_browser_within_budget
+[8/50] [chromium] › tests\e2e\f2-form-integrity.spec.ts:6:1 › failed_write_keeps_the_draft_and_never_claims_success
+[9/50] [chromium] › tests\e2e\f2-import-atomic.spec.ts:71:1 › browser_stale_preview_is_rejected_after_another_tab_edit
+[10/50] [chromium] › tests\e2e\f2-atomic-commit.spec.ts:53:1 › browser_commit_persists_after_reload_and_invalid_title_is_explicit
+[11/50] [chromium] › tests\e2e\f2-idb-migration.spec.ts:61:1 › blocked_upgrade_never_deletes_existing_database
+[12/50] [chromium] › tests\e2e\f2-import-ui.spec.ts:18:1 › browser_upload_preview_confirm_creates_the_tree
+[13/50] [chromium] › tests\e2e\f2-archive.spec.ts:74:1 › browser_soft_delete_blocks_resurrection_until_explicit_restore
+[14/50] [chromium] › tests\e2e\f2-form-integrity.spec.ts:34:1 › archived_edital_is_read_only_in_the_ui
+[15/50] [chromium] › tests\e2e\f2-editais-flow.spec.ts:60:1 › browser_archive_primary_with_explicit_choice
+[16/50] [chromium] › tests\e2e\f2-links.spec.ts:8:1 › browser_vertical_tree_and_lesson_links_survive_reload
+[17/50] [chromium] › tests\e2e\f2-primary-two-tabs.spec.ts:24:1 › concurrent_primary_switch_never_creates_two_primaries
+[18/50] [chromium] › tests\e2e\f2-import-ui.spec.ts:46:1 › browser_hostile_and_oversized_files_are_refused
+[19/50] [chromium] › tests\e2e\f2-reconnect.spec.ts:22:1 › sixth_failure_survives_reload_and_recovers_automatically
+[20/50] [chromium] › tests\e2e\f2-links.spec.ts:153:1 › browser_cross_edital_lesson_link_is_refused
+[21/50] [chromium] › tests\e2e\f2-editais-flow.spec.ts:89:1 › archived_edital_stays_consultable_after_reload
+[22/50] [chromium] › tests\e2e\f2-two-tabs-ui.spec.ts:3:1 › real_ui_two_tabs_editing_the_same_edital_never_lose_an_update
+[23/50] [chromium] › tests\e2e\f2-reconnect.spec.ts:57:1 › paused_auth_never_spins_without_a_new_decision
+[24/50] [chromium] › tests\e2e\f2-two-tabs.spec.ts:13:1 › two_tabs_edit_same_entity_without_lost_update
+[25/50] [chromium] › tests\e2e\f2-primary-two-tabs.spec.ts:78:1 › archiving_primary_without_a_decision_is_refused_in_the_browser
+[26/50] [chromium] › tests\e2e\f2-unassigned.spec.ts:8:1 › f1_subjects_stay_unassigned_until_an_explicit_decision
+[27/50] [chromium] › tests\e2e\form-failure.spec.ts:4:1 › quota_failure_keeps_form_open_and_preserves_text
+[chromium] › tests\e2e\f2-import-max.spec.ts:25:1 › max_accepted_import_runs_in_the_browser_within_budget
+max import: creates=4997 elapsed=1615ms
+
+[28/50] [chromium] › tests\e2e\f2-import-max.spec.ts:64:1 › over_the_entity_ceiling_is_rejected_before_writing
+[29/50] [chromium] › tests\e2e\f2-two-tabs.spec.ts:102:1 › independent_entities_from_two_tabs_both_commit
+[30/50] [chromium] › tests\e2e\idb-atomicity.spec.ts:3:1 › creates the isolated V2 IndexedDB stores on boot
+[31/50] [chromium] › tests\e2e\isolation.spec.ts:3:1 › serves V2 on its own origin with its own storage names
+[32/50] [chromium] › tests\e2e\f2-a11y.spec.ts:113:1 › coarse_pointer_targets_are_at_least_44px
+[33/50] [chromium] › tests\e2e\pwa-offline.spec.ts:8:1 › v2_sw_scope_does_not_intersect_v1
+[34/50] [chromium] › tests\e2e\retry-confirmed.spec.ts:4:1 › reload_and_retry_after_confirmed_operation_do_not_duplicate
+[35/50] [chromium] › tests\e2e\f2-unassigned.spec.ts:71:1 › browser_adoption_rolls_back_when_a_decision_is_invalid
+[36/50] [chromium] › tests\e2e\subject-flow.spec.ts:8:1 › creates, renames and restores a local subject
+[37/50] [chromium] › tests\e2e\isolation.spec.ts:18:1 › serves_a_restrictive_content_security_policy
+[38/50] [chromium] › tests\e2e\transaction-failure.spec.ts:4:1 › real_indexeddb_abort_rolls_back_entity_and_outbox
+[39/50] [chromium] › tests\e2e\pwa-offline.spec.ts:21:1 › offline_reload_preserves_committed_subject
+[40/50] [chromium] › tests\e2e\two-tabs.spec.ts:4:1 › two_real_tabs_share_one_flush_lock
+[41/50] [chromium] › tests\e2e\v2-end-to-end.spec.ts:3:1 › e2e_create_rename_reload
+[42/50] [chromium] › tests\e2e\visual-a11y.spec.ts:5:1 › eight_themes_sampled_AA
+[43/50] [chromium] › tests\e2e\subject-flow.spec.ts:24:1 › local only never says cloud synced and toasts do not cover the action
+[44/50] [chromium] › tests\e2e\pwa-offline.spec.ts:40:1 › unsaved_form_not_discarded_during_update
+[45/50] [chromium] › tests\e2e\visual-a11y.spec.ts:34:1 › keyboard_and_focus_accessible
+[46/50] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_desktop
+[47/50] [chromium] › tests\e2e\subject-flow.spec.ts:31:1 › toast_does_not_cover_primary_button
+[48/50] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_tablet
+[49/50] [chromium] › tests\e2e\subject-flow.spec.ts:44:1 › blank title is blocked
+[50/50] [chromium] › tests\e2e\visual-a11y.spec.ts:54:3 › no_horizontal_overflow_mobile
+  50 passed (18.6s)

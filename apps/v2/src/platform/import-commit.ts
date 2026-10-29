@@ -130,15 +130,24 @@ export class ImportCommitter {
           transaction.abort();
           return { kind: 'INVALID', code: 'IMPORT_INVALID' };
         }
+        // The replay is only a no-op while the imported content is untouched:
+        // deleted ids and locally edited revisions both count as divergence.
         const missing = (previous.entityIds ?? []).filter((id) => !existingById.has(id));
-        if (missing.length === 0) {
+        const changed = (previous.entityIds ?? []).filter((id) => {
+          const current = existingById.get(id);
+          if (!current) return false;
+          const expectedRevision = previous.entityRevisions?.[id];
+          if (expectedRevision === undefined) return false;
+          return (current.localRevision as number) !== expectedRevision;
+        });
+        if (missing.length === 0 && changed.length === 0) {
           await transactionDone(transaction);
           return { kind: 'LOCAL_COMMITTED', value: previous };
         }
         transaction.abort();
         return {
           kind: 'CONFLICT',
-          current: { code: 'IMPORT_ALREADY_APPLIED_BUT_DIVERGED', missing },
+          current: { code: 'IMPORT_ALREADY_APPLIED_BUT_DIVERGED', missing, changed },
         };
       }
 
@@ -166,6 +175,7 @@ export class ImportCommitter {
       const startSequence = await nextSequence(profileId, transaction);
       let lastSequence = startSequence - 1;
       const entityCounts: Record<string, number> = {};
+      const entityRevisions: Record<string, number> = {};
       const orderCounters = new Map<string, number>();
       const written = new Map<string, Record<string, unknown>>();
 
@@ -217,6 +227,7 @@ export class ImportCommitter {
         });
         operationIds.push(operationId);
         createdIds.push(entityId);
+        entityRevisions[entityId] = 1;
         entityCounts[entityType] = (entityCounts[entityType] ?? 0) + 1;
       };
 
@@ -344,6 +355,7 @@ export class ImportCommitter {
         entityCounts,
         operationIds,
         entityIds: createdIds,
+        entityRevisions,
       };
       receiptStore.put(receipt);
 

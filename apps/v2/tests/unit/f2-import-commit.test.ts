@@ -262,6 +262,34 @@ describe('F2 import commit', () => {
     );
   });
 
+  it('replay_after_a_local_edit_reports_divergence', async () => {
+    const preview = await buildPreview();
+    const committer = new ImportCommitter();
+    const approval = { confirmed: true as const, targetSignature: preview.targetSignature };
+    expect(await committer.apply(profileId, preview, approval)).toMatchObject({
+      kind: 'LOCAL_COMMITTED',
+    });
+
+    const content = new LocalContentRepository();
+    const edital = (await content.loadContent(profileId)).editais[0];
+    expect(edital).toBeDefined();
+    await content.execute({
+      type: 'RENAME_EDITAL',
+      operationId: 'op-rename-after-import',
+      profileId,
+      editalId: edital!.id,
+      title: 'Renomeado depois',
+    });
+
+    const replay = await committer.apply(profileId, preview, approval);
+    expect(replay).toMatchObject({ kind: 'CONFLICT' });
+    const current = (replay as { current: { code: string; changed: string[] } }).current;
+    expect(current.code).toBe('IMPORT_ALREADY_APPLIED_BUT_DIVERGED');
+    expect(current.changed).toContain(edital!.id);
+    // The user edit is preserved instead of being overwritten by the replay.
+    expect((await content.loadContent(profileId)).editais[0]?.title).toBe('Renomeado depois');
+  });
+
   it('import_never_resurrects_a_tombstoned_id', async () => {
     const preview = await buildPreview();
     const committer = new ImportCommitter();
