@@ -45,6 +45,7 @@ import type {
   PlanningCommit,
   PlanningDraft,
 } from '../application/planning-service';
+import { applyPlanningDraft, previewDraftCommit } from '../application/planning-service';
 import type {
   PlanningOutcome,
   PlanningScenario,
@@ -144,6 +145,11 @@ export type V2E2EHarness = {
   ) => Promise<PlanningScenarioSnapshot | null>;
   planningSaveDraft: (draft: PlanningDraft) => Promise<PlanningOutcome<PlanningDraft>>;
   planningLoadDraft: (profileId: string, scenarioId: string) => Promise<PlanningDraft | null>;
+  planningApplyDraft: (
+    profileId: string,
+    scenarioId: string,
+    draft: PlanningDraft,
+  ) => Promise<PlanningOutcome<PlanningScenarioSnapshot>>;
   planningCounts: (profileId: string) => Promise<{
     scenarios: number;
     blocks: number;
@@ -446,6 +452,18 @@ export function installE2EHarness(): void {
     planningSaveDraft: (draft) => new LocalPlanningRepository().saveDraft(draft),
     planningLoadDraft: (profileId, scenarioId) =>
       new LocalPlanningRepository().loadDraft(profileId, scenarioId),
+    planningApplyDraft: async (profileId, scenarioId, draft) => {
+      const repository = new LocalPlanningRepository();
+      const current = await repository.loadScenario(profileId, scenarioId);
+      if (!current) return { kind: 'INVALID', code: 'SCENARIO_NOT_FOUND' };
+      const preview = previewDraftCommit({ current, draft });
+      return applyPlanningDraft(repository, {
+        profileId,
+        scenarioId,
+        draft,
+        approval: { confirmed: true, previewToken: preview.previewToken },
+      });
+    },
     planningCounts: async (profileId) => {
       const database = await openV2Database(profileId);
       const transaction = database.transaction(

@@ -5,6 +5,12 @@ import type {
   PlanningScenarioSnapshot,
   PlanningScope,
 } from '../domain/planning';
+import {
+  baseSnapshotForDraft,
+  draftSignature,
+  mergePlanningDraft,
+  type MergeConflict,
+} from '../domain/planning-merge';
 
 export type {
   PlanBlock,
@@ -32,6 +38,8 @@ export type PlanningDraftChange = {
   blockId: string;
   field: DraftBlockField;
   value: string | number | null;
+  /** Value the draft was written against; used by the three-way merge. */
+  baseValue?: string | number | null;
 };
 
 /**
@@ -107,3 +115,91 @@ export type PlanningActivationInput = {
   checkpointId?: string | null;
   baseRevision?: number | null;
 };
+
+export type DraftCommitPreview = {
+  scenarioId: string;
+  baseRevision: number;
+  currentRevision: number;
+  conflicts: MergeConflict[];
+  blocks: PlanBlock[];
+  changedBlockIds: string[];
+  deletedBlockIds: string[];
+  canApply: boolean;
+  previewToken: string;
+};
+
+export function previewDraftCommit(input: {
+  current: PlanningScenarioSnapshot;
+  draft: PlanningDraft;
+}): DraftCommitPreview {
+  const base = baseSnapshotForDraft(input.current, input.draft);
+  const merged = mergePlanningDraft({ base, current: input.current, draft: input.draft });
+  const mergedIds = new Set(merged.blocks.map((block) => block.id));
+  const deletedBlockIds = input.current.blocks
+    .filter((block) => !mergedIds.has(block.id))
+    .map((block) => block.id);
+  const previewToken = `${input.draft.scenarioId}:${input.current.scenario.localRevision}:${
+    draftSignature(input.draft.changes)
+  }`;
+  return {
+    scenarioId: input.draft.scenarioId,
+    baseRevision: input.draft.baseRevision,
+    currentRevision: input.current.scenario.localRevision,
+    conflicts: merged.conflicts,
+    blocks: merged.blocks,
+    changedBlockIds: merged.changes.map((block) => block.id),
+    deletedBlockIds,
+    canApply:
+      merged.conflicts.length === 0 &&
+      input.draft.baseRevision === input.current.scenario.localRevision,
+    previewToken,
+  };
+}
+
+export async function applyPlanningDraft(
+  repository: PlanningRepository,
+  input: {
+    profileId: string;
+    scenarioId: string;
+    draft: PlanningDraft;
+    approval: { confirmed: boolean; previewToken: string };
+  },
+): Promise<PlanningOutcome<PlanningScenarioSnapshot>> {
+  if (!input.approval.confirmed) {
+    return { kind: 'BLOCKED', reason: 'CONFIRMATION_REQUIRED' };
+  }
+  const current = await repository.loadScenario(input.profileId, input.scenarioId);
+  if (!current) return { kind: 'INVALID', code: 'SCENARIO_NOT_FOUND' };
+  if (input.draft.profileId !== input.profileId) {
+    return { kind: 'INVALID', code: 'PROFILE_MISMATCH' };
+  }
+  if (input.draft.scenarioId !== input.scenarioId) {
+    return { kind: 'INVALID', code: 'SCENARIO_MISMATCH' };
+  }
+  if (input.draft.baseRevision !== current.scenario.localRevision) {
+    return { kind: 'CONFLICT', current: current.scenario };
+  }
+
+  const preview = previewDraftCommit({ current, draft: input.draft });
+  if (!preview.canApply) {
+    return { kind: 'CONFLICT', current: preview.conflicts };
+  }
+  if (preview.previewToken !== input.approval.previewToken) {
+    return { kind: 'INVALID', code: 'PREVIEW_TOKEN_MISMATCH' };
+  }
+
+  const upsertBlocks = preview.blocks.filter((block) =>
+    preview.changedBlockIds.includes(block.id),
+  );
+  return repository.commit({
+    scope: { profileId: input.profileId, operationId: `apply-${input.draft.id}` },
+    scenarioId: input.scenarioId,
+    baseRevision: current.scenario.localRevision,
+    changes: {
+      upsertBlocks: upsertBlocks.length > 0 ? upsertBlocks : undefined,
+      deleteBlockIds:
+        preview.deletedBlockIds.length > 0 ? preview.deletedBlockIds : undefined,
+    },
+    approvedPreviewToken: preview.previewToken,
+  });
+}
