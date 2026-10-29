@@ -294,6 +294,13 @@ describe('F3 final stretch', () => {
   });
 
   it('transition_adds_own_fixed_blocks_to_other_editais_reservations', () => {
+    const weekly180 = {
+      ...weekly,
+      days: {
+        ...weekly.days,
+        MON: [{ start: '08:00', end: '11:00' }],
+      },
+    };
     const ownFixed: PlanBlock = {
       ...fixed,
       id: 'own-confirmed',
@@ -312,8 +319,8 @@ describe('F3 final stretch', () => {
       plannedMinutes: 60,
       allocation: 'CONFIRMED_TIME',
       civilDate: '2027-01-04',
-      localStart: '08:00',
-      localEnd: '09:00',
+      localStart: '10:00',
+      localEnd: '11:00',
     };
     const threeUnits = createCycleState({
       profileId: 'profile-local',
@@ -331,7 +338,7 @@ describe('F3 final stretch', () => {
       examDate: '2027-01-04',
       startDate: '2027-01-04',
       zone,
-      weekly,
+      weekly: weekly180,
       exceptions: [],
       fixedBlocks: [ownFixed],
       capacityBlocks: [otherEdital],
@@ -340,7 +347,9 @@ describe('F3 final stretch', () => {
 
     const projected = preview.blocks.filter((block) => block.allocation === 'PROJECTED');
     const unallocated = preview.blocks.filter((block) => block.allocation === 'UNALLOCATED');
-    // 180 min available; own 120 + other 60 fill the day, so nothing new fits.
+    // 180 min available; own 120 (08–10) + other 60 (10–11) fill the day.
+    // Ignoring capacityBlocks would leave 60 min and place one unit, so the
+    // 0/3 result proves both sets are summed.
     expect(projected).toHaveLength(0);
     expect(unallocated).toHaveLength(3);
     const minutesOnDay = preview.blocks

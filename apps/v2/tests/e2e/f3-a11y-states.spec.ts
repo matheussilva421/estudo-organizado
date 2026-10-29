@@ -122,12 +122,49 @@ const contrastOf = (selector: string) => {
   return (light + 0.05) / (dark + 0.05);
 };
 
+/** Contrast of the control border composited over its own surface. */
+const borderContrastOf = (selector: string) => {
+  const element = document.querySelector(selector);
+  if (!element) return -1;
+  const style = getComputedStyle(element);
+  const parse = (value: string) => {
+    const match = value.match(/rgba?\(([^)]+)\)/);
+    if (!match) return null;
+    const parts = match[1]!.split(',').map((item) => Number.parseFloat(item.trim()));
+    return { r: parts[0]!, g: parts[1]!, b: parts[2]!, a: parts[3] ?? 1 };
+  };
+  let node: HTMLElement | null = element as HTMLElement;
+  let background = style.backgroundColor;
+  while (node && (background === 'rgba(0, 0, 0, 0)' || background === 'transparent')) {
+    node = node.parentElement;
+    background = node ? getComputedStyle(node).backgroundColor : 'rgb(255,255,255)';
+  }
+  const border = parse(style.borderTopColor);
+  const surface = parse(background);
+  if (!border || !surface) return -1;
+  const blend = {
+    r: border.a * border.r + (1 - border.a) * surface.r,
+    g: border.a * border.g + (1 - border.a) * surface.g,
+    b: border.a * border.b + (1 - border.a) * surface.b,
+  };
+  const channel = (value: number) => {
+    const n = value / 255;
+    return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
+  };
+  const lum = (c: { r: number; g: number; b: number }) =>
+    0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
+  const light = Math.max(lum(blend), lum(surface));
+  const dark = Math.min(lum(blend), lum(surface));
+  return (light + 0.05) / (dark + 0.05);
+};
+
 test('text_error_and_disabled_states_meet_contrast_in_eight_themes', async ({ page }) => {
   await seed(page);
   const samples: {
     theme: string;
     heading: number;
     button: number;
+    border: number;
     disabled: number;
     status: number;
   }[] = [];
@@ -144,6 +181,11 @@ test('text_error_and_disabled_states_meet_contrast_in_eight_themes', async ({ pa
       '[data-action="preview-generation"]',
     );
     expect(button, `button contrast in ${theme}`).toBeGreaterThanOrEqual(4.5);
+    const border = await page.evaluate(
+      borderContrastOf,
+      '[data-action="preview-generation"]',
+    );
+    expect(border, `button border contrast in ${theme}`).toBeGreaterThanOrEqual(3);
     const buttonBackground = await page.evaluate(
       () =>
         getComputedStyle(
@@ -162,7 +204,7 @@ test('text_error_and_disabled_states_meet_contrast_in_eight_themes', async ({ pa
     await expect(page.locator('[data-testid="portability-status"]')).toContainText('recusada');
     const status = await page.evaluate(contrastOf, '[data-testid="portability-status"]');
     expect(status, `status contrast in ${theme}`).toBeGreaterThanOrEqual(4.5);
-    samples.push({ theme, heading, button, disabled, status });
+    samples.push({ theme, heading, button, border, disabled, status });
   }
   // The enabled button is themed, not the browser default.
   expect(buttonBackgrounds.size).toBeGreaterThanOrEqual(2);

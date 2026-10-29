@@ -505,7 +505,7 @@ select {
 .planning-workspace button {
   background: var(--card, #121821);
   color: var(--text, #f3f6fb);
-  border: 1px solid var(--border, #94a3b824);
+  border: 1px solid var(--control-border, rgba(148, 163, 184, 0.6));
   border-radius: 8px;
   padding: 0.45rem 0.9rem;
   transition: background-color 120ms ease;
