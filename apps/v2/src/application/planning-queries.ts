@@ -1,5 +1,6 @@
 import type { CivilDate, PlanBlock, PlanningScenario } from '../domain/planning';
 import {
+  blockDayMinutes,
   evaluateDailyCapacity,
   selectOfficialReservations,
   type AvailabilityException,
@@ -53,14 +54,30 @@ export function queryCalendar(input: CalendarQuery): CalendarDay[] {
     scenarios.filter((scenario) => scenario.status === 'ACTIVE').map((scenario) => scenario.id),
   );
 
+  const zone = input.availability?.zone ?? 'UTC';
+  const withinRange = (block: PlanBlock): boolean => {
+    if (typeof block.civilDate === 'string' && isCivilDate(block.civilDate)) {
+      if (
+        compareCivilDate(block.civilDate, input.rangeStart) >= 0 &&
+        compareCivilDate(block.civilDate, input.rangeEnd) <= 0
+      ) {
+        return true;
+      }
+    }
+    if (!input.availability) return false;
+    // A block that starts on the previous day and crosses midnight still
+    // belongs to the first day of the range.
+    return (
+      blockDayMinutes(block, input.rangeStart, zone) > 0 ||
+      blockDayMinutes(block, input.rangeEnd, zone) > 0
+    );
+  };
+
   const visible = input.blocks.filter(
     (block) =>
       block.profileId === input.profileId &&
       (input.activeOnly ? activeIds.has(block.scenarioId) : true) &&
-      typeof block.civilDate === 'string' &&
-      isCivilDate(block.civilDate) &&
-      compareCivilDate(block.civilDate, input.rangeStart) >= 0 &&
-      compareCivilDate(block.civilDate, input.rangeEnd) <= 0,
+      withinRange(block),
   );
 
   // Capacity is always derived from ACTIVE scenarios only, even when the user
@@ -70,7 +87,11 @@ export function queryCalendar(input: CalendarQuery): CalendarDay[] {
 
   return enumerateCivilDates(input.rangeStart, input.rangeEnd).map((civilDate) => {
     const dayBlocks = visible
-      .filter((block) => block.civilDate === civilDate)
+      .filter(
+        (block) =>
+          block.civilDate === civilDate ||
+          (availability ? blockDayMinutes(block, civilDate, zone) > 0 : false),
+      )
       .sort((left, right) => {
         const leftStart = left.localStart ?? '';
         const rightStart = right.localStart ?? '';

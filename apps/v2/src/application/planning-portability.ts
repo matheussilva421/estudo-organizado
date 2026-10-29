@@ -82,6 +82,37 @@ function hash(value: string): string {
   return (result >>> 0).toString(16);
 }
 
+type FingerprintableBlock = {
+  editalDisciplineId?: string;
+  assuntoId?: string;
+  aulaId?: string;
+  plannedMinutes: number;
+  civilDate?: string;
+  localStart?: string;
+  localEnd?: string;
+  allocation: string;
+  label?: string;
+};
+
+function blockShape(block: FingerprintableBlock): string {
+  return [
+    block.editalDisciplineId ?? '',
+    block.assuntoId ?? '',
+    block.aulaId ?? '',
+    String(block.plannedMinutes),
+    block.civilDate ?? '',
+    block.localStart ?? '',
+    block.localEnd ?? '',
+    block.allocation,
+    block.label ?? '',
+  ].join('~');
+}
+
+/** Semantic fingerprint of a block set, independent of persistence shape. */
+export function fingerprintBlocks(blocks: FingerprintableBlock[]): string {
+  return hash(blocks.map(blockShape).sort().join('|'));
+}
+
 function depthOf(value: unknown, depth = 0): number {
   if (depth > MAX_DEPTH) return depth;
   if (Array.isArray(value)) {
@@ -198,15 +229,16 @@ export function parsePlanningImport(
     if (!root.schemaVersionRetaFinal) warnings.push('LEGACY_WITHOUT_SCHEMA_VERSION');
     if (!root.planId) warnings.push('LEGACY_WITHOUT_PLAN_ID');
     if (!root.revision) warnings.push('LEGACY_WITHOUT_REVISION');
+    const blocksFingerprint = fingerprintBlocks(blocks);
     return {
       ok: true,
       format: 'V1_RETA_FINAL',
-      fingerprint: hash(`${options.namespace}|${scenario.name}|${blocks.length}`),
+      fingerprint: blocksFingerprint,
       scenarios: [
         {
           format: 'V1_RETA_FINAL',
           namespace: options.namespace,
-          fingerprint: hash(JSON.stringify(blocks)),
+          fingerprint: blocksFingerprint,
           scenario,
           blocks,
           warnings,
@@ -253,12 +285,12 @@ function buildLegacy(
   return {
     ok: true,
     format,
-    fingerprint: hash(JSON.stringify(blocks)),
+    fingerprint: fingerprintBlocks(blocks),
     scenarios: [
       {
         format,
         namespace,
-        fingerprint: hash(JSON.stringify(blocks)),
+          fingerprint: fingerprintBlocks(blocks),
         scenario: {
           name: 'Reta Final importada',
           examDate: null,
@@ -294,7 +326,7 @@ function buildPortable(
     scenarios.push({
       format: 'V2_PLANNING',
       namespace,
-      fingerprint: hash(JSON.stringify(blocks)),
+      fingerprint: fingerprintBlocks(blocks),
       scenario: {
         name: typeof meta.name === 'string' ? meta.name : 'Plano importado',
         editalId: typeof meta.editalId === 'string' ? meta.editalId : undefined,
@@ -331,7 +363,7 @@ export function previewPlanningImport(
       return { index, kind: 'NEW', name: item.scenario.name, reason: 'NO_MATCHING_SCENARIO' };
     }
     const equivalent = sameName.find(
-      (candidate) => hash(JSON.stringify(candidate.blocks)) === item.fingerprint,
+      (candidate) => fingerprintBlocks(candidate.blocks) === fingerprintBlocks(item.blocks),
     );
     if (equivalent) {
       return {

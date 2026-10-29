@@ -190,8 +190,15 @@ export function validateScenario(value: PlanningScenario): PlanningScenario {
   assertPositiveInteger(value.priorityProfileRevision, 'INVALID_PRIORITY_REVISION');
 
   if (value.kind === 'FINAL_STRETCH') {
-    if (value.examDate === null || value.examDate === undefined) fail('EXAM_DATE_REQUIRED');
-    assertCivilDate(value.examDate);
+    if (value.examDate === null || value.examDate === undefined) {
+      // A suspended or closed final stretch has no date any more; only a plan
+      // that is still being used requires a confirmed exam date.
+      const datelessAllowed =
+        value.status === 'SUSPENDED' || value.status === 'CLOSED' || value.status === 'ARCHIVED';
+      if (!datelessAllowed) fail('EXAM_DATE_REQUIRED');
+    } else {
+      assertCivilDate(value.examDate);
+    }
   } else if (value.examDate !== null && value.examDate !== undefined) {
     // A cycle never receives an invented exam date; confirming a date is an
     // assisted transition to FINAL_STRETCH instead.

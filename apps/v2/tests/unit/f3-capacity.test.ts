@@ -244,4 +244,51 @@ describe('F3 availability and capacity', () => {
     expect(windowInGap.availableMinutes).toBe(0);
     expect(windowInGap.diagnostics).toContain('INVALID_WINDOW:NONEXISTENT_TIME');
   });
+
+  it('overlapping_reservations_are_reported_instead_of_merged_away', () => {
+    const capacity = evaluateDailyCapacity({
+      date: '2027-01-04',
+      zone,
+      weekly,
+      exceptions: [],
+      reservations: [
+        block({ id: 'overlap-a', editalId: 'edital-tjpb', localStart: '08:00', localEnd: '09:00', timeZone: zone }),
+        block({ id: 'overlap-b', editalId: 'edital-dpe', scenarioId: 'scenario-dpe', localStart: '08:30', localEnd: '09:30', timeZone: zone }),
+      ],
+    });
+    expect(capacity.conflictBlockIds).toEqual(
+      expect.arrayContaining(['overlap-a', 'overlap-b']),
+    );
+    expect(capacity.diagnostics).toContain('OVERLAP');
+    // Physical occupancy stays 90 minutes; the overlap is not counted twice.
+    expect(capacity.reservedMinutes).toBe(90);
+  });
+
+  it('intervals_crossing_midnight_occupy_both_civil_days', () => {
+    const night = block({
+      id: 'night',
+      civilDate: '2027-01-04',
+      localStart: '22:00',
+      localEnd: '02:00',
+      timeZone: zone,
+    });
+    const first = evaluateDailyCapacity({
+      date: '2027-01-04',
+      zone,
+      weekly,
+      exceptions: [],
+      reservations: [night],
+    });
+    expect(first.reservedMinutes).toBe(120);
+
+    // The next day has its own window; the tail of the same block still occupies it.
+    const second = evaluateDailyCapacity({
+      date: '2027-01-05',
+      zone,
+      weekly,
+      exceptions: [],
+      reservations: [night],
+    });
+    expect(second.reservedMinutes).toBe(120);
+  });
 });

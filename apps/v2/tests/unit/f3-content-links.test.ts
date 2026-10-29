@@ -70,4 +70,19 @@ describe('F3 content link reconciliation', () => {
       reconcileContentLinks([block()], { ...context, archivedIds: ['assunto-1'] })[0],
     ).toMatchObject({ status: 'ARCHIVED', detail: 'assunto' });
   });
+
+  it('a_link_from_another_edital_is_never_valid', () => {
+    const checks = reconcileContentLinks(
+      [block()],
+      {
+        ...context,
+        links: [{ id: 'link-1', editalId: 'edital-dpe', status: 'ACTIVE' }],
+        editais: [
+          { id: 'edital-tjpb', status: 'ACTIVE' },
+          { id: 'edital-dpe', status: 'ACTIVE' },
+        ],
+      },
+    );
+    expect(checks[0]).toMatchObject({ status: 'INVALID_SCOPE', detail: 'edital' });
+  });
 });

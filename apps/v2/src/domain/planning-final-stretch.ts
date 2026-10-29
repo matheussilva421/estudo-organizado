@@ -92,7 +92,13 @@ export function previewFinalStretchTransition(input: TransitionInput): Transitio
   );
   const carried: PlanBlock[] = cycleFixed
     .filter((block) => block.allocation === 'CONFIRMED_DAY' || block.allocation === 'CONFIRMED_TIME')
-    .map((block) => ({ ...block, scenarioId: newScenario.id }));
+    .map((block) => ({
+      ...block,
+      // Block ids are globally keyed by [profileId, id]; the new scenario must
+      // never collide with the cycle blocks it was derived from.
+      id: `${newScenario.id}~${block.id}`,
+      scenarioId: newScenario.id,
+    }));
 
   const projection = projectCycle({
     scenario: newScenario,
@@ -260,7 +266,9 @@ export function previewExamDateChange(input: ExamDateChangeInput): ExamDateChang
     newScenario: {
       ...base,
       examDate: nextExamDate,
-      status: 'ACTIVE',
+      // Changing the date never activates a scenario: activation keeps its own
+      // checkpointed command.
+      status: input.scenario.status,
     },
     blocks: [...kept, ...keptProjected],
     preservedBlockIds: [...kept, ...keptProjected].map((block) => block.id),

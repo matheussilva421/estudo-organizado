@@ -137,6 +137,42 @@ describe('F3 planning import parsing', () => {
     ]);
     expect(preview.entries[0]?.kind).toBe('DIVERGENT');
   });
+
+  it('an_equivalent_import_is_recognised_and_never_duplicated', () => {
+    const parsed = parsePlanningImport(legacy, { namespace: 'legacy:v1' });
+    if (!parsed.ok) throw new Error('parse failed');
+    const parsedScenario = parsed.scenarios[0]!;
+    const blocks: PlanBlock[] = parsedScenario.blocks.map((item, index) => ({
+      id: `block-${index}`,
+      profileId: 'profile-local',
+      editalId: 'edital-tjpb',
+      scenarioId: 'scenario-tjpb',
+      // Matches the parsed shape exactly: the legacy file has no F2 reference.
+      editalDisciplineId: item.editalDisciplineId ?? '',
+      assuntoId: item.assuntoId,
+      aulaId: item.aulaId,
+      plannedMinutes: item.plannedMinutes,
+      allocation: item.allocation,
+      civilDate: item.civilDate,
+      localStart: item.localStart,
+      localEnd: item.localEnd,
+      priority: 1,
+      localRevision: 1,
+      sourceOperationId: 'op-1',
+      label: item.label,
+    }));
+    const preview = previewPlanningImport(parsed, [
+      {
+        scenario: {
+          ...scenario(),
+          provenance: parsedScenario.scenario.provenance,
+        },
+        blocks,
+      },
+    ]);
+    expect(preview.entries[0]?.kind).toBe('EQUIVALENT');
+    expect(preview.automaticMerges).toBe(0);
+  });
 });
 
 describe('F3 selective export', () => {

@@ -186,13 +186,17 @@ export function generatePlanPreview(input: PlanGenerationInput): PlanGenerationP
   const fixed = input.fixedBlocks.filter(
     (block) => block.scenarioId === input.scenario.id,
   );
+  // Official capacity is shared: blocks of every other active scenario also
+  // reserve time, even though only this scenario's blocks are part of the
+  // generated proposal.
+  const capacityReservations = input.fixedBlocks;
   for (const date of dates) {
     const capacity = evaluateDailyCapacity({
       date,
       zone: input.zone,
       weekly: input.weekly,
       exceptions: input.exceptions,
-      reservations: fixed.filter((block) => block.civilDate === date),
+      reservations: capacityReservations,
       fixedCommitments: input.fixedCommitments,
     });
     remainingByDate.set(date, capacity.remainingMinutes);

@@ -5,7 +5,12 @@ import {
   previewFinalStretchTransition,
 } from '../../src/domain/planning-final-stretch';
 import { createCycleState } from '../../src/domain/planning-cycle';
-import { PlanningValidationError, type PlanBlock, type PlanningScenario } from '../../src/domain/planning';
+import {
+  PlanningValidationError,
+  validateScenario,
+  type PlanBlock,
+  type PlanningScenario,
+} from '../../src/domain/planning';
 import type { WeeklyAvailability } from '../../src/domain/planning-capacity';
 
 const zone = 'America/Fortaleza';
@@ -103,8 +108,10 @@ describe('F3 final stretch', () => {
     });
     expect(JSON.stringify(cycle)).toBe(frozen);
     // The confirmed block keeps its identity and is carried into the new scenario.
-    expect(preview.preservedBlockIds).toContain('fixed-1');
-    expect(preview.blocks.find((block) => block.id === 'fixed-1')?.scenarioId).toBe('scenario-rf');
+    expect(preview.preservedBlockIds).toContain('scenario-rf~fixed-1');
+    expect(
+      preview.blocks.find((block) => block.id === 'scenario-rf~fixed-1')?.scenarioId,
+    ).toBe('scenario-rf');
     // F2 references survive; nothing is duplicated.
     const ids = preview.blocks.map((block) => block.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -185,6 +192,28 @@ describe('F3 final stretch', () => {
     expect(preview.affectedBlockIds).toEqual(['projected']);
     expect(preview.blocks.map((block) => block.id)).toEqual(['confirmed']);
     expect(preview.warnings).toContain('PROJECTIONS_SUSPENDED');
+    // The suspended scenario is valid without a date and is never activated.
+    expect(preview.newScenario.status).toBe('SUSPENDED');
+    expect(preview.newScenario.examDate).toBeNull();
+    expect(() => validateScenario(preview.newScenario)).not.toThrow();
+  });
+
+  it('changing_the_date_never_activates_the_scenario', () => {
+    const draftScenario: PlanningScenario = {
+      ...cycle,
+      id: 'scenario-rf',
+      kind: 'FINAL_STRETCH',
+      status: 'DRAFT',
+      examDate: '2027-01-24',
+    };
+    const preview = previewExamDateChange({
+      scenario: draftScenario,
+      blocks: [],
+      change: { kind: 'ADVANCE', nextExamDate: '2027-01-10' },
+      referenceDate: '2027-01-04',
+      operationId: 'op-advance',
+    });
+    expect(preview.newScenario.status).toBe('DRAFT');
   });
 
   it('an_expired_exam_date_is_not_presumed_realized', () => {

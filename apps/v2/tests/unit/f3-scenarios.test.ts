@@ -209,4 +209,43 @@ describe('F3 scenario isolation and activation', () => {
     expect(preview.requiresCheckpoint).toBe(true);
     expect(preview.warnings).toContain('CAPACITY_RELEASED_FROM_PREVIOUS_SCENARIO');
   });
+
+  it('activation_is_blocked_while_content_is_unmapped', async () => {
+    const repository = new LocalPlanningRepository();
+    await create(repository, scenario('scenario-a', 'edital-tjpb', 'A'), 'op-a');
+    await repository.commit({
+      scope: { profileId, operationId: 'op-unmapped' },
+      scenarioId: 'scenario-a',
+      baseRevision: 1,
+      changes: {
+        upsertBlocks: [
+          {
+            id: 'block-unmapped',
+            profileId,
+            editalId: 'edital-tjpb',
+            scenarioId: 'scenario-a',
+            editalDisciplineId: 'unmapped',
+            plannedMinutes: 60,
+            allocation: 'UNALLOCATED',
+            priority: 1,
+            localRevision: 1,
+            sourceOperationId: 'op-unmapped',
+            reason: 'UNMAPPED_CONTENT',
+          },
+        ],
+      },
+    });
+    const blocked = await repository.activateScenario({
+      profileId,
+      operationId: 'op-activate-unmapped',
+      editalId: 'edital-tjpb',
+      scenarioId: 'scenario-a',
+      checkpointId: 'checkpoint-unmapped',
+    });
+    expect(blocked).toEqual({
+      kind: 'BLOCKED',
+      reason: 'CONTENT_RECONCILIATION_REQUIRED',
+    });
+    expect((await repository.loadScenario(profileId, 'scenario-a'))?.scenario.status).toBe('DRAFT');
+  });
 });

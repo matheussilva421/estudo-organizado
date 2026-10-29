@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { deleteV2DatabaseForTests } from '../../src/platform/indexeddb';
+import { openV2Database, transactionDone } from '../../src/platform/indexeddb';
 import { LocalPlanningRepository } from '../../src/platform/local-planning-repository';
 import {
   planRetention,
@@ -43,6 +44,18 @@ function block(id: string, extra: Partial<PlanBlock> = {}): PlanBlock {
 }
 
 async function seed(repository: LocalPlanningRepository): Promise<void> {
+  const database = await openV2Database(profileId);
+  const linkTransaction = database.transaction('edital_disciplines', 'readwrite');
+  linkTransaction.objectStore('edital_disciplines').put({
+    id: 'link-1',
+    profileId,
+    editalId: 'edital-tjpb',
+    subjectId: 'subject-1',
+    orderKey: '000010',
+    localRevision: 1,
+    status: 'ACTIVE',
+  });
+  await transactionDone(linkTransaction);
   await repository.commit({
     scope: { profileId, operationId: 'op-scenario' },
     scenarioId: scenario.id,

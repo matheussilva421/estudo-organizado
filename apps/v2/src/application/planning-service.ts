@@ -203,7 +203,13 @@ export async function applyPlanningDraft(
     preview.changedBlockIds.includes(block.id),
   );
   return repository.commit({
-    scope: { profileId: input.profileId, operationId: `apply-${input.draft.id}` },
+    // The token includes the scenario revision and the change signature, so a
+    // replay of the same apply is idempotent while an edited draft is a new
+    // operation instead of a reused id.
+    scope: {
+      profileId: input.profileId,
+      operationId: `apply-${input.draft.id}-${preview.previewToken}`,
+    },
     scenarioId: input.scenarioId,
     baseRevision: current.scenario.localRevision,
     changes: {

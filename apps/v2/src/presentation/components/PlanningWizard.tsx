@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PlanGenerationPreview } from '../../domain/planning-generator';
 import type { EditalDiscipline } from '../../domain/edital';
 import type { Assunto } from '../../domain/content';
@@ -31,16 +31,62 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
   const [horizonDays, setHorizonDays] = useState(14);
   const [minutes, setMinutes] = useState(60);
   const [linkId, setLinkId] = useState(links[0]?.id ?? '');
+  const [selectedLinkIds, setSelectedLinkIds] = useState<string[]>([]);
   const [preview, setPreview] = useState<PlanGenerationPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const storageKey = 'v2:f3:wizard';
 
   // Content arrives after mount (F2 snapshot), so the effective selection must
   // fall back to the first available option instead of a stale empty string.
   const activeEditalId = editalId || editais[0]?.id || '';
-  const activeLinkId = linkId || links[0]?.id || '';
+  // Disciplines are always scoped to the selected edital.
+  const editalLinks = links.filter((item) => item.editalId === activeEditalId);
+  const activeLinkId = linkId || editalLinks[0]?.id || '';
+  const effectiveSelection = (
+    selectedLinkIds.length > 0 ? selectedLinkIds : activeLinkId ? [activeLinkId] : []
+  ).filter((id) => editalLinks.some((item) => item.id === id));
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Record<string, unknown>;
+      // Restoring the persisted wizard is the whole point of this effect.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setName(typeof saved.name === 'string' ? saved.name : '');
+      setKind(saved.kind === 'FINAL_STRETCH' ? 'FINAL_STRETCH' : 'CYCLE');
+      setExamDate(typeof saved.examDate === 'string' ? saved.examDate : '');
+      setEditalId(typeof saved.editalId === 'string' ? saved.editalId : '');
+      setStartDate(typeof saved.startDate === 'string' ? saved.startDate : '2027-01-04');
+      setHorizonDays(typeof saved.horizonDays === 'number' ? saved.horizonDays : 14);
+      setMinutes(typeof saved.minutes === 'number' ? saved.minutes : 60);
+      setSelectedLinkIds(Array.isArray(saved.selectedLinkIds) ? (saved.selectedLinkIds as string[]) : []);
+    } catch {
+      // A corrupted local draft is ignored; the wizard starts clean.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          name,
+          kind,
+          examDate,
+          editalId,
+          startDate,
+          horizonDays,
+          minutes,
+          selectedLinkIds,
+        }),
+      );
+    } catch {
+      // Storage may be unavailable; the wizard keeps working in memory.
+    }
+  }, [name, kind, examDate, editalId, startDate, horizonDays, minutes, selectedLinkIds]);
 
   function buildInput(): WizardInput {
-    const assunto = assuntos.find((item) => item.editalDisciplineId === activeLinkId);
     return {
       name: name.trim() || 'Plano',
       kind,
@@ -48,14 +94,15 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
       editalId: activeEditalId,
       startDate,
       horizonDays,
-      selectedLinks: [
-        {
-          editalDisciplineId: activeLinkId,
+      selectedLinks: effectiveSelection.map((id) => {
+        const assunto = assuntos.find((item) => item.editalDisciplineId === id);
+        return {
+          editalDisciplineId: id,
           assuntoId: assunto?.id,
           label: assunto?.title ?? 'Conteúdo',
           plannedMinutes: minutes,
-        },
-      ],
+        };
+      }),
     };
   }
 
@@ -91,14 +138,32 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
             ))}
           </select>
         </label>
-        <label>
-          Disciplina
-          <select value={activeLinkId} onChange={(event) => setLinkId(event.target.value)}>
-            {links.map((link) => (
-              <option key={link.id} value={link.id}>{link.displayAlias ?? link.subjectId}</option>
-            ))}
-          </select>
-        </label>
+        <fieldset className="planning-disciplines">
+          <legend>Disciplinas deste edital</legend>
+          {editalLinks.length === 0 ? (
+            <p className="empty-state">Vincule uma disciplina a este edital primeiro.</p>
+          ) : (
+            editalLinks.map((link) => (
+              <label key={link.id}>
+                <input
+                  type="checkbox"
+                  value={link.id}
+                  checked={effectiveSelection.includes(link.id)}
+                  onChange={(event) => {
+                    setLinkId(link.id);
+                    setSelectedLinkIds((current) => {
+                      const base = current.length > 0 ? current : [link.id];
+                      return event.target.checked
+                        ? [...new Set([...base, link.id])]
+                        : base.filter((id) => id !== link.id);
+                    });
+                  }}
+                />
+                {link.displayAlias ?? link.subjectId}
+              </label>
+            ))
+          )}
+        </fieldset>
         <label>
           Início
           <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
@@ -140,7 +205,7 @@ export function PlanningWizard({ editais, links, assuntos, onPreview, onConfirm,
         <button
           type="button"
           data-action="preview-generation"
-          disabled={locked || !activeLinkId || !activeEditalId}
+          disabled={locked || effectiveSelection.length === 0 || !activeEditalId}
           onClick={() => {
             const result = onPreview(buildInput());
             if ('error' in result) {

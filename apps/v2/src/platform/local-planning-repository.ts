@@ -309,6 +309,7 @@ export class LocalPlanningRepository implements PlanningRepository {
         STORES.operations,
         STORES.outbox,
         STORES.planningCheckpoints,
+        STORES.editalDisciplines,
       ],
       'readwrite',
     );
@@ -356,6 +357,22 @@ export class LocalPlanningRepository implements PlanningRepository {
       const siblings = (await requestResult(
         scenarioStore.index('by_profile_edital').getAll([input.profileId, input.editalId]),
       )) as PlanningScenario[];
+
+      const registeredBlocks = (await requestResult(
+        blockStore.index('by_scenario').getAll([input.profileId, input.scenarioId]),
+      )) as PlanBlock[];
+      // Activation is refused while any block still points to unmapped or
+      // foreign F2 content; the user must reconcile the import first.
+      const linkStore = transaction.objectStore(STORES.editalDisciplines);
+      for (const block of registeredBlocks) {
+        const link = (await requestResult(
+          linkStore.get([input.profileId, block.editalDisciplineId]),
+        )) as { editalId?: string } | undefined;
+        if (!link || link.editalId !== input.editalId) {
+          transaction.abort();
+          return { kind: 'BLOCKED', reason: 'CONTENT_RECONCILIATION_REQUIRED' };
+        }
+      }
 
       if (this.fault === 'abort') throw new DOMException('forced abort', 'AbortError');
       if (this.fault === 'quota') throw new DOMException('forced quota', 'QuotaExceededError');
@@ -405,9 +422,6 @@ export class LocalPlanningRepository implements PlanningRepository {
         deliveryMode: 'BLOCKED',
       });
 
-      const registeredBlocks = (await requestResult(
-        blockStore.index('by_scenario').getAll([input.profileId, input.scenarioId]),
-      )) as PlanBlock[];
       transaction.objectStore(STORES.planningCheckpoints).put({
         checkpointId: input.checkpointId,
         profileId: input.profileId,

@@ -25,6 +25,13 @@ test('export_is_selective_and_import_requires_a_safe_preview', async ({ page }) 
   await page.evaluate(async (seed) => {
     const harness = (window as unknown as HarnessWindow).__v2E2E;
     await harness.resetDb();
+    await harness.executeContent({
+      type: 'CREATE_EDITAL',
+      operationId: 'op-edital',
+      profileId: 'local-default',
+      editalId: 'edital-tjpb',
+      title: 'TJPB',
+    });
     await harness.planningCommit({
       scope: { profileId: 'local-default', operationId: 'op-scenario' },
       scenarioId: seed.id,

@@ -1,5 +1,11 @@
 import type { CivilDate, PlanBlock, PlanningScenario } from './planning';
-import { compareCivilDate, isCivilDate, resolveZonedInterval, weekdayIndex } from './planning-time';
+import {
+  addCivilDays,
+  compareCivilDate,
+  isCivilDate,
+  resolveZonedInterval,
+  weekdayIndex,
+} from './planning-time';
 
 /**
  * Shared availability and official capacity.
@@ -236,6 +242,24 @@ function blockRange(block: PlanBlock, fallbackZone: string): InstantRange | null
   return resolved.ok ? resolved.range : null;
 }
 
+/** Real day boundaries of one civil date in a zone. */
+export function dayBounds(date: CivilDate, zone: string): InstantRange | null {
+  const start = resolveWindow({ start: '00:00', end: '00:01' }, date, zone);
+  const next = resolveWindow({ start: '00:00', end: '00:01' }, addCivilDays(date, 1), zone);
+  if (!start.ok || !next.ok) return null;
+  return { start: start.range.start, end: next.range.start };
+}
+
+function clipRange(range: InstantRange, bounds: InstantRange): InstantRange | null {
+  const start = Math.max(range.start, bounds.start);
+  const end = Math.min(range.end, bounds.end);
+  return end > start ? { start, end } : null;
+}
+
+function rangesOverlap(left: InstantRange, right: InstantRange): boolean {
+  return left.start < right.end && right.start < left.end;
+}
+
 function coveredBy(windows: InstantRange[], range: InstantRange): number {
   let covered = 0;
   for (const window of windows) {
@@ -256,16 +280,16 @@ export function evaluateDailyCapacity(input: CapacityInput): DailyCapacity {
   const diagnostics = [...resolution.diagnostics];
   const availableMinutes = resolution.availableMinutes;
   const zone = input.weekly.timeZone || input.zone;
-
-  const sameDay = input.reservations.filter((block) => block.civilDate === input.date);
+  const bounds = dayBounds(input.date, zone);
   const commitments = (input.fixedCommitments ?? []).filter(
     (commitment) => commitment.civilDate === input.date,
   );
 
-  const occupied: InstantRange[] = [];
+  const commitmentRanges: InstantRange[] = [];
   const conflictBlockIds: string[] = [];
   const unallocatedBlockIds: string[] = [];
   const flexible: PlanBlock[] = [];
+  const timed: { block: PlanBlock; range: InstantRange }[] = [];
 
   for (const commitment of commitments) {
     const resolved = resolveWindow(
@@ -273,27 +297,49 @@ export function evaluateDailyCapacity(input: CapacityInput): DailyCapacity {
       commitment.civilDate,
       commitment.timeZone,
     );
-    if (resolved.ok) occupied.push(resolved.range);
+    if (resolved.ok) {
+      const clipped = bounds ? clipRange(resolved.range, bounds) : resolved.range;
+      if (clipped) commitmentRanges.push(clipped);
+    }
   }
 
-  for (const block of sameDay) {
+  for (const block of input.reservations) {
     if (block.allocation === 'UNALLOCATED') {
-      unallocatedBlockIds.push(block.id);
+      if (block.civilDate === input.date) unallocatedBlockIds.push(block.id);
       continue;
     }
     const range = blockRange(block, zone);
     if (!range) {
-      flexible.push(block);
+      if (block.civilDate === input.date) flexible.push(block);
       continue;
     }
-    occupied.push(range);
-    const span = Math.round((range.end - range.start) / 60_000);
-    if (span - coveredBy(resolution.windows, range) > 0) {
-      conflictBlockIds.push(block.id);
-    }
+    // A block that crosses midnight also occupies the following civil date.
+    const clipped = bounds ? clipRange(range, bounds) : range;
+    if (!clipped) continue;
+    timed.push({ block, range: clipped });
   }
 
-  if (conflictBlockIds.length > 0) diagnostics.push('OUTSIDE_AVAILABILITY');
+  const occupied: InstantRange[] = [
+    ...commitmentRanges,
+    ...timed.map((item) => item.range),
+  ];
+
+  for (const item of timed) {
+    const span = totalMinutes([item.range]);
+    if (span - coveredBy(resolution.windows, item.range) > 0) {
+      conflictBlockIds.push(item.block.id);
+      diagnostics.push('OUTSIDE_AVAILABILITY');
+    }
+    // Overlapping reservations are an explicit conflict, never a silent merge
+    // that would free capacity for a second plan.
+    const overlapsOther = occupied.some(
+      (other) => other !== item.range && rangesOverlap(item.range, other),
+    );
+    if (overlapsOther) {
+      conflictBlockIds.push(item.block.id);
+      diagnostics.push('OVERLAP');
+    }
+  }
 
   const merged = mergeRanges(occupied);
   let reservedMinutes = totalMinutes(merged);
@@ -328,8 +374,11 @@ export function evaluateDailyCapacity(input: CapacityInput): DailyCapacity {
 
 /** Minutes of one block attributable to a civil date, used by the calendar. */
 export function blockDayMinutes(block: PlanBlock, date: CivilDate, zone?: string): number {
-  if (block.civilDate !== date) return 0;
-  const range = blockRange(block, zone ?? block.timeZone ?? 'UTC');
-  if (!range) return block.plannedMinutes;
-  return Math.round((range.end - range.start) / 60_000);
+  const effectiveZone = zone ?? block.timeZone ?? 'UTC';
+  const range = blockRange(block, effectiveZone);
+  if (!range) return block.civilDate === date ? block.plannedMinutes : 0;
+  const bounds = dayBounds(date, effectiveZone);
+  if (!bounds) return 0;
+  const clipped = clipRange(range, bounds);
+  return clipped ? Math.round((clipped.end - clipped.start) / 60_000) : 0;
 }

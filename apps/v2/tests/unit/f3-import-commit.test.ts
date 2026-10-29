@@ -3,6 +3,7 @@ import {
   deleteV2DatabaseForTests,
   openV2Database,
   requestResult,
+  transactionDone,
 } from '../../src/platform/indexeddb';
 import { LocalPlanningImportCommitter } from '../../src/platform/planning-import-commit';
 import { parsePlanningImport, previewPlanningImport } from '../../src/application/planning-portability';
@@ -39,8 +40,22 @@ async function counts(): Promise<{ scenarios: number; blocks: number; receipts: 
   };
 }
 
+async function seedEdital(): Promise<void> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction('editais', 'readwrite');
+  transaction.objectStore('editais').put({
+    id: 'edital-tjpb',
+    profileId,
+    title: 'TJPB',
+    status: 'ACTIVE',
+    localRevision: 1,
+  });
+  await transactionDone(transaction);
+}
+
 beforeEach(async () => {
   await deleteV2DatabaseForTests();
+  await seedEdital();
 });
 
 describe('F3 planning import commit', () => {
@@ -50,6 +65,7 @@ describe('F3 planning import commit', () => {
     const first = await committer.apply(profileId, preview, {
       confirmed: true,
       targetSignature: preview.targetSignature,
+      targetEditalId: 'edital-tjpb',
     });
     expect(first.kind).toBe('LOCAL_COMMITTED');
     const after = await counts();
@@ -61,6 +77,7 @@ describe('F3 planning import commit', () => {
     const replay = await committer.apply(profileId, preview, {
       confirmed: true,
       targetSignature: preview.targetSignature,
+      targetEditalId: 'edital-tjpb',
     });
     expect(replay.kind).toBe('LOCAL_COMMITTED');
     expect(await counts()).toEqual(after);
@@ -115,6 +132,7 @@ describe('F3 planning import commit', () => {
     const result = await failing.apply(profileId, preview, {
       confirmed: true,
       targetSignature: preview.targetSignature,
+      targetEditalId: 'edital-tjpb',
     });
     expect(result).toEqual({ kind: 'FAILED', reason: 'QUOTA' });
     expect(await counts()).toEqual({ scenarios: 0, blocks: 0, receipts: 0, outbox: 0 });
@@ -125,12 +143,14 @@ describe('F3 planning import commit', () => {
     await new LocalPlanningImportCommitter().apply(profileId, preview, {
       confirmed: true,
       targetSignature: preview.targetSignature,
+      targetEditalId: 'edital-tjpb',
     });
     const repository = new LocalPlanningRepository();
     const scenarios = await repository.listScenarios(profileId);
     expect(scenarios).toHaveLength(1);
     const loaded = await repository.loadScenario(profileId, scenarios[0]!.id);
     expect(loaded?.blocks).toHaveLength(2);
-    expect(loaded?.blocks[0]?.allocation).toBe('PROJECTED');
+    expect(loaded?.blocks[0]?.allocation).toBe('UNALLOCATED');
+    expect(loaded?.blocks[0]?.reason).toBe('UNMAPPED_CONTENT');
   });
 });

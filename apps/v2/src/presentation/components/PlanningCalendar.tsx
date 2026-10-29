@@ -1,4 +1,5 @@
 import type { CalendarDay } from '../../application/planning-queries';
+import { useState } from 'react';
 
 export type CalendarView = 'day' | 'week' | 'month';
 
@@ -9,7 +10,11 @@ type Props = {
 };
 
 export function PlanningCalendar({ days, view, onView }: Props) {
-  const visible = view === 'day' ? days.slice(0, 1) : view === 'week' ? days.slice(0, 7) : days;
+  const [offset, setOffset] = useState(0);
+  const size = view === 'day' ? 1 : view === 'week' ? 7 : 30;
+  const maxOffset = Math.max(0, days.length - size);
+  const start = Math.min(offset, maxOffset);
+  const visible = days.slice(start, start + size);
   return (
     <section className="panel" aria-labelledby="calendar-title" data-testid="planning-calendar">
       <h2 id="calendar-title">Calendário</h2>
@@ -25,6 +30,27 @@ export function PlanningCalendar({ days, view, onView }: Props) {
             {option === 'day' ? 'Dia' : option === 'week' ? 'Semana' : 'Mês'}
           </button>
         ))}
+      </div>
+      <div className="planning-actions">
+        <button
+          type="button"
+          data-action="calendar-previous"
+          disabled={start === 0}
+          onClick={() => setOffset(Math.max(0, start - size))}
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          data-action="calendar-next"
+          disabled={start + size >= days.length}
+          onClick={() => setOffset(Math.min(maxOffset, start + size))}
+        >
+          Próximo
+        </button>
+        <span data-testid="calendar-window">
+          {visible[0]?.civilDate} → {visible[visible.length - 1]?.civilDate}
+        </span>
       </div>
       {visible.length === 0 ? (
         <p className="empty-state">Nenhum dia no intervalo selecionado.</p>

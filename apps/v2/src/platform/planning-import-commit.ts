@@ -11,6 +11,7 @@ import {
   transactionDone,
 } from './indexeddb';
 import { notifyPlanningChange } from './local-events';
+import type { Edital, EditalDiscipline } from '../domain/edital';
 
 type Fault = 'abort' | 'quota' | null;
 
@@ -50,7 +51,7 @@ export class LocalPlanningImportCommitter {
   async apply(
     profileId: string,
     preview: PlanningImportPreview,
-    approval: { confirmed: boolean; targetSignature: string },
+    approval: { confirmed: boolean; targetSignature: string; targetEditalId?: string },
   ): Promise<PlanningOutcome<PlanningImportResult>> {
     if (!approval?.confirmed) {
       return { kind: 'BLOCKED', reason: 'CONFIRMATION_REQUIRED' };
@@ -64,6 +65,10 @@ export class LocalPlanningImportCommitter {
     if (blocking.length > 0) {
       return { kind: 'BLOCKED', reason: 'RECONCILIATION_REQUIRED' };
     }
+    const targetEditalId = approval.targetEditalId?.trim();
+    if (!targetEditalId) {
+      return { kind: 'INVALID', code: 'TARGET_EDITAL_REQUIRED' };
+    }
 
     const importId = `import~${preview.fingerprint}~${preview.targetSignature.length}`;
     const database = await openV2Database(profileId);
@@ -74,6 +79,8 @@ export class LocalPlanningImportCommitter {
         STORES.operations,
         STORES.outbox,
         STORES.planningImports,
+        STORES.editais,
+        STORES.editalDisciplines,
       ],
       'readwrite',
     );
@@ -99,6 +106,15 @@ export class LocalPlanningImportCommitter {
       if (this.fault === 'abort') throw new DOMException('forced abort', 'AbortError');
       if (this.fault === 'quota') throw new DOMException('forced quota', 'QuotaExceededError');
 
+      const edital = (await requestResult(
+        transaction.objectStore(STORES.editais).get([profileId, targetEditalId]),
+      )) as Edital | undefined;
+      if (!edital || edital.status !== 'ACTIVE') {
+        transaction.abort();
+        return { kind: 'INVALID', code: 'TARGET_EDITAL_NOT_FOUND' };
+      }
+      const linkStore = transaction.objectStore(STORES.editalDisciplines);
+
       const scenarios = transaction.objectStore(STORES.planningScenarios);
       const blocks = transaction.objectStore(STORES.planningBlocks);
       const outbox = transaction.objectStore(STORES.outbox);
@@ -117,7 +133,7 @@ export class LocalPlanningImportCommitter {
         const built = toScenarioFromParsed(parsed, {
           profileId,
           scenarioId: `${importId}~${entry.index}`,
-          editalId: parsed.scenario.editalId ?? 'unassigned',
+          editalId: targetEditalId,
           operationId,
         });
         const scenario: PlanningScenario = validateScenario({
@@ -132,7 +148,19 @@ export class LocalPlanningImportCommitter {
         }
         scenarios.put(scenario);
         for (const block of built.blocks) {
-          const persisted: PlanBlock = validatePlanBlock({ ...block, scenarioId: scenario.id });
+          const link = block.editalDisciplineId
+            ? ((await requestResult(
+                linkStore.get([profileId, block.editalDisciplineId]),
+              )) as EditalDiscipline | undefined)
+            : undefined;
+          const mapped = link !== undefined && link.editalId === targetEditalId;
+          const persisted: PlanBlock = validatePlanBlock({
+            ...block,
+            scenarioId: scenario.id,
+            editalDisciplineId: mapped ? block.editalDisciplineId : 'unmapped',
+            allocation: mapped ? block.allocation : 'UNALLOCATED',
+            reason: mapped ? block.reason : 'UNMAPPED_CONTENT',
+          });
           blocks.put(persisted);
           outbox.put({
             operationId: `${operationId}~block~${persisted.id}`,

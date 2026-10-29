@@ -5,18 +5,44 @@ import type { ExamDateChange } from '../../domain/planning-final-stretch';
 type Props = {
   scenario: PlanningScenario | null;
   onChangeExamDate: (change: ExamDateChange) => void;
+  onTransition: (examDate: string) => void;
+  onClose: () => void;
   locked: boolean;
 };
 
-export function FinalStretch({ scenario, onChangeExamDate, locked }: Props) {
+export function FinalStretch({ scenario, onChangeExamDate, onTransition, onClose, locked }: Props) {
   const [nextDate, setNextDate] = useState('');
+  const [transitionDate, setTransitionDate] = useState('');
   const isFinalStretch = scenario?.kind === 'FINAL_STRETCH';
+  const isCycle = scenario?.kind === 'CYCLE';
 
   return (
     <section className="panel" aria-labelledby="final-stretch-title" data-testid="final-stretch">
       <h2 id="final-stretch-title">Reta Final</h2>
-      {!isFinalStretch ? (
-        <p className="empty-state">Selecione um cenário de Reta Final (com data de prova).</p>
+      {isCycle ? (
+        <div data-testid="cycle-transition">
+          <p>
+            Transição assistida: confirmar a data cria uma Reta Final preservando o Ciclo atual.
+          </p>
+          <label>
+            Data da prova
+            <input
+              type="date"
+              value={transitionDate}
+              onChange={(event) => setTransitionDate(event.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            data-action="preview-transition"
+            disabled={locked || !transitionDate}
+            onClick={() => onTransition(transitionDate)}
+          >
+            Propor Reta Final
+          </button>
+        </div>
+      ) : !isFinalStretch ? (
+        <p className="empty-state">Selecione um cenário do Ciclo ou de Reta Final.</p>
       ) : (
         <div data-exam-date={scenario.examDate ?? ''} data-status={scenario.status}>
           <p>
@@ -42,6 +68,14 @@ export function FinalStretch({ scenario, onChangeExamDate, locked }: Props) {
               onClick={() => onChangeExamDate({ kind: 'SUSPEND' })}
             >
               Suspender
+            </button>
+            <button
+              type="button"
+              data-action="close-final-stretch"
+              disabled={locked}
+              onClick={onClose}
+            >
+              Encerrar Reta Final
             </button>
           </div>
         </div>

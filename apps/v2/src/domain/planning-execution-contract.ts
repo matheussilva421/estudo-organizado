@@ -102,6 +102,11 @@ export function reconcileContentLinks(
     if (link.status !== 'ACTIVE' || archived.has(link.id)) {
       return { blockId: block.id, status: 'ARCHIVED', detail: 'edital-discipline' };
     }
+    if (link.editalId !== block.editalId) {
+      // A link from another edital is never a valid reference, even when the
+      // subject/title happens to be the same.
+      return { blockId: block.id, status: 'INVALID_SCOPE', detail: 'edital' };
+    }
     const edital = editais.get(link.editalId);
     if (!edital || edital.status !== 'ACTIVE' || archived.has(edital.id)) {
       return { blockId: block.id, status: 'ARCHIVED', detail: 'edital' };
