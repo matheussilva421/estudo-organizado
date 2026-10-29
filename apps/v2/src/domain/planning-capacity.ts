@@ -1,0 +1,335 @@
+import type { CivilDate, PlanBlock, PlanningScenario } from './planning';
+import { compareCivilDate, isCivilDate, resolveZonedInterval, weekdayIndex } from './planning-time';
+
+/**
+ * Shared availability and official capacity.
+ *
+ * Precedence is fixed by the spec: a date exception beats a special period,
+ * which beats the weekly routine. Capacity is global per profile and only
+ * ACTIVE scenarios reserve it. Windows are resolved against their IANA zone,
+ * so a DST transition changes the real minutes without inventing wall time.
+ */
+
+export type Weekday = 'SUN' | 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT';
+
+export type TimeWindow = { start: string; end: string };
+
+export type WeeklyAvailability = {
+  timeZone: string;
+  days: Partial<Record<Weekday, TimeWindow[]>>;
+};
+
+export type AvailabilityException = {
+  exceptionId: string;
+  kind: 'DATE' | 'PERIOD';
+  startDate: CivilDate;
+  endDate?: CivilDate;
+  /** A declared day without study. */
+  closed?: boolean;
+  windows?: TimeWindow[] | null;
+  /** Capacity in minutes when the exception does not describe windows. */
+  minutesOverride?: number | null;
+  note?: string;
+};
+
+export type FixedCommitment = {
+  commitmentId: string;
+  civilDate: CivilDate;
+  start: string;
+  end: string;
+  timeZone: string;
+  academic?: boolean;
+};
+
+export type CapacityInput = {
+  date: CivilDate;
+  zone: string;
+  weekly: WeeklyAvailability;
+  exceptions: AvailabilityException[];
+  reservations: PlanBlock[];
+  fixedCommitments?: FixedCommitment[];
+};
+
+export type DailyCapacity = {
+  availableMinutes: number;
+  reservedMinutes: number;
+  remainingMinutes: number;
+  conflictBlockIds: string[];
+  /** Blocks explicitly left without a slot, never dropped. */
+  unallocatedBlockIds: string[];
+  diagnostics: string[];
+};
+
+export type InstantRange = { start: number; end: number };
+
+export type AvailabilityResolution = {
+  availableMinutes: number;
+  windows: InstantRange[];
+  source: 'DATE_EXCEPTION' | 'PERIOD_EXCEPTION' | 'WEEKLY' | 'CLOSED' | 'AMBIGUOUS';
+  diagnostics: string[];
+};
+
+const WEEKDAYS: Weekday[] = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+function mergeRanges(ranges: InstantRange[]): InstantRange[] {
+  const sorted = ranges
+    .filter((range) => range.end > range.start)
+    .sort((left, right) => left.start - right.start || left.end - right.end);
+  const merged: InstantRange[] = [];
+  for (const range of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && range.start <= last.end) {
+      last.end = Math.max(last.end, range.end);
+    } else {
+      merged.push({ ...range });
+    }
+  }
+  return merged;
+}
+
+function totalMinutes(ranges: InstantRange[]): number {
+  return Math.round(ranges.reduce((sum, range) => sum + (range.end - range.start), 0) / 60_000);
+}
+
+function weekdayOf(date: CivilDate): Weekday {
+  return WEEKDAYS[weekdayIndex(date)] as Weekday;
+}
+
+function coversDate(exception: AvailabilityException, date: CivilDate): boolean {
+  if (!isCivilDate(exception.startDate)) return false;
+  if (exception.kind === 'DATE') return exception.startDate === date;
+  const end =
+    exception.endDate && isCivilDate(exception.endDate)
+      ? exception.endDate
+      : exception.startDate;
+  if (compareCivilDate(exception.startDate, end) > 0) return false;
+  return compareCivilDate(exception.startDate, date) <= 0 && compareCivilDate(date, end) <= 0;
+}
+
+type WindowResolution = { ok: true; range: InstantRange } | { ok: false; code: string };
+
+function resolveWindow(
+  window: TimeWindow,
+  date: CivilDate,
+  zone: string,
+): WindowResolution {
+  const resolved = resolveZonedInterval({
+    date,
+    start: window.start,
+    end: window.end,
+    zone,
+  });
+  if (!resolved.ok) return { ok: false, code: resolved.code };
+  return {
+    ok: true,
+    range: {
+      start: Date.parse(resolved.startInstant),
+      end: Date.parse(resolved.endInstant),
+    },
+  };
+}
+
+/**
+ * Resolves how many minutes a civil date really offers. Collisions at the same
+ * precedence are reported instead of being decided arbitrarily.
+ */
+export function resolveDailyAvailability(
+  input: Pick<CapacityInput, 'date' | 'weekly' | 'exceptions' | 'zone'>,
+): AvailabilityResolution {
+  const diagnostics: string[] = [];
+  const dateMatches = input.exceptions.filter(
+    (exception) => exception.kind === 'DATE' && coversDate(exception, input.date),
+  );
+  const periodMatches = input.exceptions.filter(
+    (exception) => exception.kind === 'PERIOD' && coversDate(exception, input.date),
+  );
+  const source: AvailabilityResolution['source'] =
+    dateMatches.length > 0
+      ? 'DATE_EXCEPTION'
+      : periodMatches.length > 0
+        ? 'PERIOD_EXCEPTION'
+        : 'WEEKLY';
+  const chosen = dateMatches.length > 0 ? dateMatches : periodMatches;
+
+  if (chosen.length > 1) {
+    diagnostics.push('AMBIGUOUS_EXCEPTION');
+    return { availableMinutes: 0, windows: [], source: 'AMBIGUOUS', diagnostics };
+  }
+
+  const zone = input.weekly.timeZone || input.zone;
+  const exception = chosen[0];
+  if (exception) {
+    if (exception.closed === true) {
+      return { availableMinutes: 0, windows: [], source: 'CLOSED', diagnostics };
+    }
+    if (exception.windows && exception.windows.length > 0) {
+      const ranges: InstantRange[] = [];
+      for (const window of exception.windows) {
+        const resolved = resolveWindow(window, input.date, zone);
+        if (!resolved.ok) {
+          diagnostics.push(`INVALID_WINDOW:${resolved.code}`);
+          continue;
+        }
+        ranges.push(resolved.range);
+      }
+      const merged = mergeRanges(ranges);
+      const minutes = totalMinutes(merged);
+      const capped =
+        typeof exception.minutesOverride === 'number'
+          ? Math.min(minutes, Math.max(0, exception.minutesOverride))
+          : minutes;
+      return { availableMinutes: capped, windows: merged, source, diagnostics };
+    }
+    if (typeof exception.minutesOverride === 'number') {
+      const minutes = Math.max(0, exception.minutesOverride);
+      const start = Date.parse(`${input.date}T00:00:00.000Z`);
+      return {
+        availableMinutes: minutes,
+        windows: [{ start, end: start + minutes * 60_000 }],
+        source,
+        diagnostics,
+      };
+    }
+    return { availableMinutes: 0, windows: [], source: 'CLOSED', diagnostics };
+  }
+
+  const weekday = weekdayOf(input.date);
+  const ranges: InstantRange[] = [];
+  for (const window of input.weekly.days[weekday] ?? []) {
+    const resolved = resolveWindow(window, input.date, zone);
+    if (!resolved.ok) {
+      diagnostics.push(`INVALID_WINDOW:${resolved.code}`);
+      continue;
+    }
+    ranges.push(resolved.range);
+  }
+  const merged = mergeRanges(ranges);
+  return { availableMinutes: totalMinutes(merged), windows: merged, source, diagnostics };
+}
+
+/** Official capacity is reserved only by blocks of ACTIVE scenarios. */
+export function selectOfficialReservations(
+  scenarios: PlanningScenario[],
+  blocks: PlanBlock[],
+  profileId?: string,
+): PlanBlock[] {
+  const active = new Set(
+    scenarios
+      .filter((scenario) => scenario.status === 'ACTIVE')
+      .filter((scenario) => profileId === undefined || scenario.profileId === profileId)
+      .map((scenario) => `${scenario.profileId}::${scenario.id}`),
+  );
+  return blocks.filter(
+    (block) =>
+      (profileId === undefined || block.profileId === profileId) &&
+      active.has(`${block.profileId}::${block.scenarioId}`),
+  );
+}
+
+function blockRange(block: PlanBlock, fallbackZone: string): InstantRange | null {
+  if (!block.localStart || !block.localEnd || !block.civilDate) return null;
+  const resolved = resolveWindow(
+    { start: block.localStart, end: block.localEnd },
+    block.civilDate,
+    block.timeZone ?? fallbackZone,
+  );
+  return resolved.ok ? resolved.range : null;
+}
+
+function coveredBy(windows: InstantRange[], range: InstantRange): number {
+  let covered = 0;
+  for (const window of windows) {
+    const start = Math.max(window.start, range.start);
+    const end = Math.min(window.end, range.end);
+    if (end > start) covered += end - start;
+  }
+  return Math.round(covered / 60_000);
+}
+
+/**
+ * Evaluates one civil date. Overlapping commitments are merged, so the same
+ * minute is never deducted twice, and blocks that cannot be placed are
+ * reported instead of disappearing.
+ */
+export function evaluateDailyCapacity(input: CapacityInput): DailyCapacity {
+  const resolution = resolveDailyAvailability(input);
+  const diagnostics = [...resolution.diagnostics];
+  const availableMinutes = resolution.availableMinutes;
+  const zone = input.weekly.timeZone || input.zone;
+
+  const sameDay = input.reservations.filter((block) => block.civilDate === input.date);
+  const commitments = (input.fixedCommitments ?? []).filter(
+    (commitment) => commitment.civilDate === input.date,
+  );
+
+  const occupied: InstantRange[] = [];
+  const conflictBlockIds: string[] = [];
+  const unallocatedBlockIds: string[] = [];
+  const flexible: PlanBlock[] = [];
+
+  for (const commitment of commitments) {
+    const resolved = resolveWindow(
+      { start: commitment.start, end: commitment.end },
+      commitment.civilDate,
+      commitment.timeZone,
+    );
+    if (resolved.ok) occupied.push(resolved.range);
+  }
+
+  for (const block of sameDay) {
+    if (block.allocation === 'UNALLOCATED') {
+      unallocatedBlockIds.push(block.id);
+      continue;
+    }
+    const range = blockRange(block, zone);
+    if (!range) {
+      flexible.push(block);
+      continue;
+    }
+    occupied.push(range);
+    const span = Math.round((range.end - range.start) / 60_000);
+    if (span - coveredBy(resolution.windows, range) > 0) {
+      conflictBlockIds.push(block.id);
+    }
+  }
+
+  if (conflictBlockIds.length > 0) diagnostics.push('OUTSIDE_AVAILABILITY');
+
+  const merged = mergeRanges(occupied);
+  let reservedMinutes = totalMinutes(merged);
+  let remaining = availableMinutes - reservedMinutes;
+
+  const ordered = [...flexible].sort(
+    (left, right) => left.priority - right.priority || (left.id < right.id ? -1 : 1),
+  );
+  for (const block of ordered) {
+    if (block.plannedMinutes <= remaining) {
+      remaining -= block.plannedMinutes;
+      reservedMinutes += block.plannedMinutes;
+    } else {
+      // The window cannot hold the whole block: it stays visible, never split
+      // silently into an unconfirmed partial commitment.
+      conflictBlockIds.push(block.id);
+      if (remaining <= 0) unallocatedBlockIds.push(block.id);
+    }
+  }
+
+  if (reservedMinutes > availableMinutes) diagnostics.push('OVERBOOKED');
+
+  return {
+    availableMinutes,
+    reservedMinutes,
+    remainingMinutes: Math.max(0, availableMinutes - reservedMinutes),
+    conflictBlockIds: [...new Set(conflictBlockIds)],
+    unallocatedBlockIds: [...new Set(unallocatedBlockIds)],
+    diagnostics,
+  };
+}
+
+/** Minutes of one block attributable to a civil date, used by the calendar. */
+export function blockDayMinutes(block: PlanBlock, date: CivilDate, zone?: string): number {
+  if (block.civilDate !== date) return 0;
+  const range = blockRange(block, zone ?? block.timeZone ?? 'UTC');
+  if (!range) return block.plannedMinutes;
+  return Math.round((range.end - range.start) / 60_000);
+}
