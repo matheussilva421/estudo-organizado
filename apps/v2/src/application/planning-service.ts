@@ -64,6 +64,15 @@ export type PlanningCheckpointRequest = {
   manifest?: Record<string, unknown>;
 };
 
+export type PlanningCheckpointInput = {
+  profileId: string;
+  scenarioId: string;
+  checkpointId: string;
+  kind: 'MANUAL' | 'AUTO';
+  operationId: string;
+  manifest?: Record<string, unknown>;
+};
+
 export type PlanningCommitChanges = {
   scenario?: PlanningScenario;
   upsertBlocks?: PlanBlock[];
@@ -102,6 +111,10 @@ export interface PlanningRepository {
   saveDraft(draft: PlanningDraft): Promise<PlanningOutcome<PlanningDraft>>;
   loadDraft(profileId: string, scenarioId: string): Promise<PlanningDraft | null>;
   activateScenario?(input: PlanningActivationInput): Promise<PlanningOutcome<PlanningScenarioSnapshot>>;
+  createCheckpoint?(
+    input: PlanningCheckpointInput,
+  ): Promise<PlanningOutcome<PlanningScenarioSnapshot>>;
+  listCheckpoints?(profileId: string, scenarioId: string): Promise<unknown[]>;
 }
 
 export const PLANNING_ENTITY_SCHEMA_VERSION = 1;
