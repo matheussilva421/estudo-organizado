@@ -502,11 +502,24 @@ select {
   min-height: 44px;
 }
 
+.planning-workspace button {
+  background: var(--card, #121821);
+  color: var(--text, #f3f6fb);
+  border: 1px solid var(--border, #94a3b824);
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  transition: background-color 120ms ease;
+}
+
+.planning-workspace button:hover:not(:disabled) {
+  background: var(--card-hover, #151d27);
+}
+
 .planning-workspace button:focus-visible,
 .planning-workspace input:focus-visible,
 .planning-workspace select:focus-visible,
 .planning-workspace textarea:focus-visible {
-  outline: 3px solid currentColor;
+  outline: 3px solid var(--accent, currentColor);
   outline-offset: 2px;
 }
 
@@ -525,4 +538,14 @@ select {
   border-color: var(--border, #94a3b824);
   opacity: 1;
   cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planning-workspace *,
+  .planning-workspace *::before,
+  .planning-workspace *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

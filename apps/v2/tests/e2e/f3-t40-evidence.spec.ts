@@ -86,6 +86,10 @@ async function seed(page: import('@playwright/test').Page): Promise<void> {
 }
 
 test('capture_f3_t40_evidence', async ({ page }) => {
+  test.skip(
+    process.env.F3_T40_CAPTURE !== '1',
+    'set F3_T40_CAPTURE=1 to regenerate the evidence screenshots',
+  );
   mkdirSync(OUT, { recursive: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await seed(page);

@@ -34,6 +34,16 @@ import { PlanningPortability } from './components/PlanningPortability';
 
 const ZONE = 'America/Fortaleza';
 
+/** Civil date in the plan's zone, never the device UTC date. */
+function todayInZone(zone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: zone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
 const weekly: WeeklyAvailability = {
   timeZone: ZONE,
   days: {
@@ -270,7 +280,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
       kind: 'MANUAL',
       operationId: `checkpoint-${scenarioId}`,
     });
-    await repository().activateScenario({
+    const activated = await repository().activateScenario({
       profileId,
       operationId: `activate-${scenarioId}`,
       editalId: input.editalId,
@@ -279,7 +289,11 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     });
     await refresh();
     setSelectedId(scenarioId);
-    onNotice('Cenário criado e ativado localmente.');
+    onNotice(
+      activated.kind === 'LOCAL_COMMITTED'
+        ? 'Cenário criado e ativado localmente.'
+        : 'Cenário criado em rascunho; a ativação não foi concluída.',
+    );
     return true;
   }
 
@@ -380,7 +394,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
       },
       nextScenarioId,
       examDate,
-      startDate: new Date().toISOString().slice(0, 10),
+      startDate: todayInZone(ZONE),
       zone: ZONE,
       weekly,
       exceptions: [],
@@ -564,7 +578,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     const preview = previewRedistribution({
       blocks: selectedBlocks,
       reservationBlocks: officialReservations,
-      startDate: new Date().toISOString().slice(0, 10),
+      startDate: todayInZone(ZONE),
       horizonDays: 45,
       zone: ZONE,
       weekly,

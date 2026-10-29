@@ -292,4 +292,60 @@ describe('F3 final stretch', () => {
     expect(preview.blocks.length).toBeGreaterThan(0);
     expect(preview.blocks.every((block) => block.allocation === 'UNALLOCATED')).toBe(true);
   });
+
+  it('transition_adds_own_fixed_blocks_to_other_editais_reservations', () => {
+    const ownFixed: PlanBlock = {
+      ...fixed,
+      id: 'own-confirmed',
+      plannedMinutes: 120,
+      allocation: 'CONFIRMED_TIME',
+      civilDate: '2027-01-04',
+      localStart: '08:00',
+      localEnd: '10:00',
+    };
+    const otherEdital: PlanBlock = {
+      ...fixed,
+      id: 'dpe-confirmed',
+      editalId: 'edital-dpe',
+      scenarioId: 'scenario-dpe',
+      editalDisciplineId: 'link-dpe',
+      plannedMinutes: 60,
+      allocation: 'CONFIRMED_TIME',
+      civilDate: '2027-01-04',
+      localStart: '08:00',
+      localEnd: '09:00',
+    };
+    const threeUnits = createCycleState({
+      profileId: 'profile-local',
+      scenarioId: cycle.id,
+      content: [
+        { editalDisciplineId: 'link-constitucional', assuntoId: 'a1', plannedMinutes: 60 },
+        { editalDisciplineId: 'link-constitucional', assuntoId: 'a2', plannedMinutes: 60 },
+        { editalDisciplineId: 'link-administrativo', assuntoId: 'a3', plannedMinutes: 60 },
+      ],
+    });
+    const preview = previewFinalStretchTransition({
+      cycle,
+      cycleState: threeUnits,
+      nextScenarioId: 'scenario-rf3',
+      examDate: '2027-01-04',
+      startDate: '2027-01-04',
+      zone,
+      weekly,
+      exceptions: [],
+      fixedBlocks: [ownFixed],
+      capacityBlocks: [otherEdital],
+      operationId: 'op-rf3',
+    });
+
+    const projected = preview.blocks.filter((block) => block.allocation === 'PROJECTED');
+    const unallocated = preview.blocks.filter((block) => block.allocation === 'UNALLOCATED');
+    // 180 min available; own 120 + other 60 fill the day, so nothing new fits.
+    expect(projected).toHaveLength(0);
+    expect(unallocated).toHaveLength(3);
+    const minutesOnDay = preview.blocks
+      .filter((block) => block.civilDate === '2027-01-04')
+      .reduce((sum, block) => sum + block.plannedMinutes, 0);
+    expect(minutesOnDay).toBeLessThanOrEqual(180);
+  });
 });

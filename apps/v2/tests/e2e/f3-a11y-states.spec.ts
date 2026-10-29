@@ -131,6 +131,7 @@ test('text_error_and_disabled_states_meet_contrast_in_eight_themes', async ({ pa
     disabled: number;
     status: number;
   }[] = [];
+  const buttonBackgrounds = new Set<string>();
   for (const theme of THEMES) {
     await page.getByLabel('Tema').selectOption(theme);
     await expect(page.locator('[data-testid="planning-dashboard"]')).toBeVisible();
@@ -143,6 +144,13 @@ test('text_error_and_disabled_states_meet_contrast_in_eight_themes', async ({ pa
       '[data-action="preview-generation"]',
     );
     expect(button, `button contrast in ${theme}`).toBeGreaterThanOrEqual(4.5);
+    const buttonBackground = await page.evaluate(
+      () =>
+        getComputedStyle(
+          document.querySelector('[data-action="preview-generation"]') as Element,
+        ).backgroundColor,
+    );
+    buttonBackgrounds.add(buttonBackground);
 
     // Disabled text is exempt from WCAG AA, but must stay readable.
     const disabled = await page.evaluate(contrastOf, '[data-action="apply-draft"]');
@@ -156,6 +164,8 @@ test('text_error_and_disabled_states_meet_contrast_in_eight_themes', async ({ pa
     expect(status, `status contrast in ${theme}`).toBeGreaterThanOrEqual(4.5);
     samples.push({ theme, heading, button, disabled, status });
   }
+  // The enabled button is themed, not the browser default.
+  expect(buttonBackgrounds.size).toBeGreaterThanOrEqual(2);
   console.log('F3_CONTRAST_SAMPLES', JSON.stringify(samples));
 });
 
@@ -164,7 +174,7 @@ test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
   await page.locator('[data-testid="planning-wizard"]').scrollIntoViewIfNeeded();
 
   const names: string[] = [];
-  let visibleRings = 0;
+  const ringSamples: number[] = [];
   for (let step = 0; step < 40; step += 1) {
     await page.keyboard.press('Tab');
     const current = await page.evaluate(() => {
@@ -182,11 +192,37 @@ test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
       };
     });
     names.push(`${current.tag}:${current.label}`);
-    if (
-      current.outlineStyle === 'solid' &&
-      Number.parseFloat(current.outlineWidth || '0') >= 3
-    ) {
-      visibleRings += 1;
+    if (current.outlineStyle === 'solid' && Number.parseFloat(current.outlineWidth || '0') >= 3) {
+      const ring = await page.evaluate(() => {
+        const active = document.activeElement as HTMLElement | null;
+        if (!active) return 0;
+        const style = getComputedStyle(active);
+        let node: HTMLElement | null = active;
+        let background = style.backgroundColor;
+        while (node && (background === 'rgba(0, 0, 0, 0)' || background === 'transparent')) {
+          node = node.parentElement;
+          background = node ? getComputedStyle(node).backgroundColor : 'rgb(255,255,255)';
+        }
+        const parse = (value: string) => {
+          const match = value.match(/rgba?\(([^)]+)\)/);
+          if (!match) return null;
+          const parts = match[1]!.split(',').map((item) => Number.parseFloat(item.trim()));
+          return { r: parts[0]!, g: parts[1]!, b: parts[2]!, a: parts[3] ?? 1 };
+        };
+        const channel = (value: number) => {
+          const n = value / 255;
+          return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
+        };
+        const lum = (c: { r: number; g: number; b: number }) =>
+          0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
+        const fg = parse(style.outlineColor);
+        const bg = parse(background);
+        if (!fg || !bg) return 0;
+        const light = Math.max(lum(fg), lum(bg));
+        const dark = Math.min(lum(fg), lum(bg));
+        return (light + 0.05) / (dark + 0.05);
+      });
+      ringSamples.push(ring);
     }
   }
   // The wizard fields and the calendar controls are reachable by keyboard.
@@ -195,24 +231,41 @@ test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
   // Focus never disappears into the body for more than one step.
   const bodySteps = names.filter((name) => name.startsWith('BODY')).length;
   expect(bodySteps).toBeLessThanOrEqual(1);
-  // Keyboard focus is always visibly indicated (3px solid ring).
-  expect(visibleRings).toBeGreaterThan(0);
+  // Keyboard focus is visibly indicated with a themed 3px ring.
+  console.log('F3_FOCUS_RING', JSON.stringify(ringSamples));
+  expect(ringSamples.length).toBeGreaterThan(0);
+  expect(Math.min(...ringSamples)).toBeGreaterThanOrEqual(3);
 });
 
 test('reduced_motion_and_zoom_keep_the_planning_usable', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
   await seed(page);
 
-  const transition = await page.evaluate(() => {
+  const normalTransition = await page.evaluate(() => {
     const button = document.querySelector('[data-action="preview-generation"]');
     return button ? getComputedStyle(button).transitionDuration : '';
   });
-  expect(Number.parseFloat(transition || '0')).toBeLessThanOrEqual(0.001);
+  expect(Number.parseFloat(normalTransition || '0')).toBeGreaterThan(0);
 
-  await page.setViewportSize({ width: 640, height: 480 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reducedTransition = await page.evaluate(() => {
+    const button = document.querySelector('[data-action="preview-generation"]');
+    return button ? getComputedStyle(button).transitionDuration : '';
+  });
+  expect(Number.parseFloat(reducedTransition || '0')).toBeLessThanOrEqual(0.001);
+
+  await page.evaluate(() => {
+    document.body.style.zoom = '200%';
+  });
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(1);
+  const clipped = await page.evaluate(
+    () =>
+      [...document.querySelectorAll('[data-testid="planning-workspace"] *')].filter(
+        (element) => element.scrollWidth > element.clientWidth + 1,
+      ).length,
+  );
+  expect(clipped).toBe(0);
   await expect(page.locator('[data-testid="planning-dashboard"]')).toBeVisible();
 });

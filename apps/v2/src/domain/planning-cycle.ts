@@ -89,6 +89,16 @@ function withHistory(state: CycleState, entry: CycleHistoryEntry): CycleHistoryE
   return history.slice(-200);
 }
 
+function dedupeReservations(blocks: PlanBlock[]): PlanBlock[] {
+  const seen = new Set<string>();
+  return blocks.filter((block) => {
+    const key = `${block.profileId}::${block.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function currentCycleContent(state: CycleState): CycleContent | null {
   return state.content[state.cursorIndex] ?? null;
 }
@@ -263,12 +273,17 @@ export function projectCycle(input: CycleProjectionInput): CycleProjection {
 
   const remainingByDate = new Map<CivilDate, number>();
   for (const date of dates) {
+    // Own fixed blocks and other scenarios' reservations are additive, never
+    // a replacement; the same block is only counted once.
+    const reservations = input.capacityReservations
+      ? dedupeReservations([...blocks, ...input.capacityReservations])
+      : blocks;
     const capacity = evaluateDailyCapacity({
       date,
       zone: input.zone,
       weekly: input.weekly,
       exceptions: input.exceptions,
-      reservations: input.capacityReservations ?? blocks,
+      reservations,
       fixedCommitments: input.fixedCommitments,
     });
     remainingByDate.set(date, capacity.remainingMinutes);

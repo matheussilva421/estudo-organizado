@@ -70,14 +70,23 @@ async function runJourney(page: Page): Promise<void> {
   await expect(page.locator('[data-testid="wizard-preview"]')).toBeVisible();
   await page.locator('[data-action="confirm-generation"]').click();
   await expect(page.locator('[data-testid="planning-dashboard"]')).toContainText('Jornada F3');
+  await expect(
+    page.locator('[data-testid="planning-dashboard"] li[data-status="ACTIVE"]'),
+  ).toContainText('Jornada F3');
 
   // Calendar navigation.
   await page.locator('[data-action="calendar-month"]').click();
+  await expect(page.locator('[data-testid="planning-calendar"] [data-days]')).toHaveAttribute(
+    'data-days',
+    '30',
+  );
+  await expect(page.locator('[data-testid="planning-calendar"]')).toContainText('Conteúdo');
   const windowBefore = await page.locator('[data-testid="calendar-window"]').textContent();
   await page.locator('[data-action="calendar-next"]').click();
   await expect(page.locator('[data-testid="calendar-window"]')).not.toHaveText(
     windowBefore ?? '',
   );
+  await expect(page.locator('[data-testid="calendar-window"]')).toContainText('→');
 
   // Draft editor.
   await page.getByLabel('Minutos').fill('90');
@@ -103,6 +112,14 @@ async function runJourney(page: Page): Promise<void> {
   await page.locator('[data-action="use-incoming"]').first().click();
   await page.locator('[data-action="apply-draft"]').click();
   await expect(page.locator('.inline-notice')).toContainText('Rascunho aplicado');
+  const appliedMinutes = await page.evaluate(async () => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    const scenarios = await harness.planningList('local-default');
+    const scenario = scenarios.find((item) => item.name === 'Jornada F3')!;
+    const snapshot = await harness.planningLoad('local-default', scenario.id);
+    return snapshot?.blocks.map((block) => block.plannedMinutes) ?? [];
+  });
+  expect(appliedMinutes).toContain(90);
 
   // Final stretch: postpone the exam date.
   await page.getByLabel('Nova data').fill('2027-04-01');
@@ -127,6 +144,11 @@ async function runJourney(page: Page): Promise<void> {
     .selectOption({ label: 'TJPB Jornada' });
   await page.locator('[data-action="import-planning"]').click();
   await expect(page.locator('[data-testid="portability-status"]')).toContainText('Importado');
+  const imported = await page.evaluate(async () => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    return (await harness.planningList('local-default')).map((item) => item.name);
+  });
+  expect(imported).toContain('Reta importada jornada');
 
   const finalState = await currentScenario(page);
   expect(finalState?.scenario.examDate).toBe('2027-04-01');
