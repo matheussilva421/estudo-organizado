@@ -1,132 +1,255 @@
-# Estudo Organizado V2 — F3: relatório de implementação e gate
+# Estudo Organizado V2 — F3: saneamento final e candidato à integração
 
 **Data:** 2026-10-29
 **Branch:** `v2` (worktree isolado; `main` da V1 intocada)
-**Gate proposto:** `F3_READY_FOR_HUMAN_REVIEW` — implementação, testes locais e revisão independente concluídos; a integração em `origin/v2` depende de autorização humana explícita (ver §6 e §8).
+**Gate proposto:** `F3_READY_FOR_INTEGRATION_REVIEW`
+**Estados:** IMPLEMENTED · TESTED · REVIEWED · **NOT_INTEGRATED_TO_ORIGIN_V2** · **NOT_ACCEPTED** · **NOT_PUBLISHED**
 
-> Este é o registro singular da F3. Nenhum status `ACCEPTED`, `PUBLISHED` ou `CONVERGED` é afirmado: não houve push, merge, deploy, Firebase ou emulador.
+> Este é o registro singular da F3. Não houve push, merge em `main`, deploy, Firebase, emulador ou sync real nesta fase.
 
-## 1. Estado e commits
+## 1. Baseline e HEADs
+
+Preflight executado neste worktree em 2026-10-29. O comando `git fetch origin --prune=false` do GOAL foi rejeitado por esta versão do Git (`option 'prune' takes no value`); a substituição segura foi `git fetch origin`, sem prune, com exit 0.
 
 | Item | Valor |
 | --- | --- |
-| HEAD inicial | `5eba778` (`origin/v2`, referência do GOAL) |
-| HEAD final | ver `git rev-parse HEAD` no commit deste relatório |
-| `main` local | `9046cfa` — inalterada |
-| `origin/v2` | `5eba778` — sem push nesta execução |
-| Commits locais | 20 (`5eba778..HEAD`, incluindo este relatório), todos `feat/fix/test(v2-f3)` |
-| Árvore | limpa após o commit documental |
+| Worktree | `C:\Users\slvma\.codex\worktrees\v2-f3-planning\estudo-organizado` |
+| Branch | `v2` |
+| HEAD de código/teste | `c08da7c` (antes deste relatório) |
+| HEAD documental | commit que contém este arquivo — consultar `git log -1 -- docs/superpowers/audits/2026-10-29-v2-f3-acceptance.md` |
+| `origin/v2` | `5eba778` |
+| `main` local/remota | `9046cfa` — inalterada |
+| Ancestralidade | `git merge-base --is-ancestor origin/v2 HEAD` → exit 0 |
+| Árvore | limpa antes deste commit documental |
+| Stashes | nenhum |
+| PRs abertos | 0 |
+| Worktrees | principal (`main`) e este worktree (`v2`); sem órfãos |
+| Caminhos V1 | `git diff --name-status origin/main...HEAD -- src firestore.rules .github wrangler.jsonc worker package.json` vazio |
+| Commits exclusivos | 23 de código/teste + este commit documental |
 
-### Correção de baseline (fora do escopo funcional, registrada)
+O HEAD é citado por função para evitar SHA circular: o código revisado termina em `c08da7c`; o relatório é o commit seguinte, verificável pelo comando acima.
 
-Uma instalação limpa (`npm ci`) não conseguia rodar `typecheck`, `build` nem `test:e2e`: `apps/v2` usa `node:fs`, `process` e `Buffer` nos testes, mas `@types/node` não estava declarado nem no `package.json` nem no `tsconfig`. Corrigido no commit `1c758a1` com `@types/node@24.19.2` (devDependency) e `"types": ["vite/client", "node"]`. Sem isso os gates exigidos pelo GOAL eram inexecutáveis; a suíte e os 50 E2E da F2 passaram novamente após a correção.
+## 2. Entregas e cobertura das 11 funcionalidades F0
 
-## 2. Entregas
+| F0 | Estado | Implementação e prova |
+| --- | --- | --- |
+| `F-V1-STUDY-ORGANIZER` | IMPLEMENTED/TESTED | cenários, blocos e agenda derivada (`planning.ts`, `planning-queries.ts`, `PlanningWorkspace`); `f3-scenarios`, `f3-calendar` |
+| `F-V1-CALENDAR` | IMPLEMENTED/TESTED | dia/semana/mês com janela móvel e capacidade; `f3-calendar`, `f3-planning-flow`, `f3-journey` |
+| `F-V1-CYCLE` | IMPLEMENTED/TESTED | cursor explícito, decisões e projeção; `f3-cycle`, `f3-cycle-projections`, `f3-planning-flow` |
+| `F-V1-PLANNING-WIZARD` | IMPLEMENTED/TESTED | wizard determinístico com prévia, múltiplas disciplinas e persistência local; `f3-generator`, `f3-planning-flow`, `f3-journey` |
+| `F-V1-RF-OVERVIEW` | IMPLEMENTED/TESTED | Reta Final com data civil, capacidade e não alocados; `f3-final-stretch`, `f3-journey` |
+| `F-V1-RF-IMPORT` | IMPLEMENTED/TESTED | importação V1/V2 conservadora com prévia, recibo e reconciliação; `f3-import`, `f3-import-commit` |
+| `F-V1-RF-EDITOR-PLANNER` | IMPLEMENTED/TESTED | editor por bloco/lote, rascunho durável e commit transacional; `f3-drafts`, `f3-editor-ui` |
+| `F-V1-RF-HISTORY` | IMPLEMENTED/TESTED | checkpoints, journal, compensação e retenção; `f3-history` |
+| `F-V1-RF-CONFLICTS` | IMPLEMENTED/TESTED | CAS transacional, merge três-vias e resolução explícita; `f3-merge`, `f3-two-tabs`, `f3-editor-ui` |
+| `F-V1-RF-PORTABILITY` | IMPLEMENTED/TESTED | exportação seletiva e roundtrip sem vazamento; `f3-import`, `f3-portability-ui` |
+| `F-V1-RF-REDISTRIBUTION` | IMPLEMENTED/TESTED | redistribuição assistida com prévia e confirmação; `f3-redistribution`, `f3-redistribution-ui` |
 
-| Área | Arquivos |
+## 3. Matriz F3-T01..T42
+
+| ID | Status | Prova |
+| --- | --- | --- |
+| T01 múltiplos cenários | PASS | `f3-scenarios.test.ts` |
+| T02 um ACTIVE + troca atômica | PASS | `f3-scenarios.test.ts` (swap + guardas), `f3-scenarios.spec.ts` |
+| T03 múltiplos editais/capacidade global | PASS | `f3-capacity.test.ts`, `f3-generator.test.ts` |
+| T04 inativo não consome | PASS | `selectOfficialReservations` + `f3-capacity` |
+| T05 CivilDate estável | PASS | `f3-time.test.ts` |
+| T06 DST gap/fold | PASS | `f3-time.test.ts` |
+| T07 recorrência/meia-noite | PASS | `f3-time` + `f3-capacity` (22:00–02:00 em dois dias) |
+| T08 prioridade determinística | PASS | `f3-priority.test.ts` |
+| T09 revisão do perfil fixada | PASS | `f3-priority.test.ts` |
+| T10 draft sobrevive a reload | PASS | `f3-drafts.test.ts`, `f3-editor-ui.spec.ts` |
+| T11 apply atômico/idempotente | PASS | `f3-drafts`, `f3-commit` |
+| T12 quota sem perda | PASS | `f3-commit`, `f3-drafts`, `f3-failure.spec.ts` |
+| T13 merge 3-way | PASS | `f3-merge.test.ts` |
+| T14 delete vs edit | PASS | `f3-merge.test.ts` |
+| T15 CAS duas abas | PASS | `f3-two-tabs.spec.ts` |
+| T16 import V1 sem versões | PASS | `f3-import.test.ts` |
+| T17 import repetido sem duplicar | PASS | `f3-import-commit` (recibo idempotente), `f3-import` (EQUIVALENT) |
+| T18 divergente preservado | PASS | `f3-import` (DIVERGENT) + bloqueio de reconciliação |
+| T19 homônimo sem auto-merge | PASS | `f3-import` (AMBIGUOUS), `f3-content-links` |
+| T20 Ciclo sem prova | PASS | `f3-cycle.test.ts` |
+| T21 continuar/adiar/pular/avançar | PASS | `f3-cycle.test.ts` |
+| T22 projeção no horizonte | PASS | `f3-cycle-projections.test.ts` |
+| T23 fixação preservada | PASS | `f3-cycle-projections.test.ts` |
+| T24 Reta Final exige data | PASS | `f3-final-stretch`, `f3-scenarios` (ativação bloqueada sem data) |
+| T25 transição preserva histórico | PASS | `f3-final-stretch` + `f3-final-stretch-ui.spec.ts` (Ciclo preservado) |
+| T26 adiar/antecipar/suspender | PASS | `f3-final-stretch`, `f3-final-stretch-ui.spec.ts` |
+| T27 prova vencida não presumida | PASS (com nota) | `EXPIRE_CHECK` e encerramento exigem desfecho explícito; não há encerramento automático. A UI não exibe banner de vencimento. |
+| T28 exceções/dias zero | PASS | `f3-capacity.test.ts` |
+| T29 sobreposição sem desconto duplo | PASS | `f3-capacity` (OVERLAP, ocupação única, `remaining=0`) |
+| T30 `UNALLOCATED` sem perda | PASS | `f3-capacity`, `f3-generator`, `f3-redistribution` |
+| T31 F2 arquivado/órfão | PASS | `f3-content-links.test.ts` |
+| T32 undo/restore não altera F4 | PASS | `f3-history` (`executionFacts`) |
+| T33 checkpoints/journal/dependências | PASS | `f3-history` + retenção |
+| T34 roundtrip semântico | PASS | `f3-import` (export→parse→EQUIVALENT) |
+| T35 sem vazamento | PASS | `f3-import` (regex de tokens/outbox) |
+| T36 sessão parcial/avulsa | PASS | `f3-f4-contract.test.ts` |
+| T37 sessão multi-edital única | PASS | `f3-f4-contract.test.ts` (60 min) |
+| T38 180 blocos íntegros | PASS | `f3-limits`, `f3-load` (180 persistidos, 30 dias no mês) |
+| T39 ≥360 + falha segura | PASS | `f3-limits` (360 sem truncar, teto falha fechado) |
+| T40 desktop/tablet/mobile, 8 temas, offline, a11y | PASS | `f3-journey` (3 viewports), `f3-a11y`, `f3-a11y-states`, `f3-offline`, capturas §5.4 (gerador sob flag) |
+| T41 V1/main preservadas | PASS | diff de caminhos protegidos vazio + `architecture-boundary` |
+| T42 fake ≠ sync real | PASS | outbox F3 `deliveryMode: BLOCKED`, `delivery-policy`, `f3-commit` |
+
+## 4. Matriz D-F3-01..26
+
+| Decisão | Prova |
 | --- | --- |
-| Domínio | `domain/planning.ts`, `planning-time.ts`, `planning-capacity.ts`, `planning-cycle.ts`, `planning-priority.ts`, `planning-generator.ts`, `planning-final-stretch.ts`, `planning-merge.ts`, `planning-history.ts`, `planning-execution-contract.ts` |
-| Aplicação | `application/planning-service.ts`, `planning-queries.ts`, `planning-portability.ts` |
-| Plataforma | `platform/local-planning-repository.ts`, `planning-import-commit.ts`, `indexeddb.ts`, `content-migration.ts`, `sync-types.ts`, `local-events.ts`, `e2e-harness.ts` |
-| UI | `presentation/PlanningWorkspace.tsx` + `components/{PlanningDashboard,PlanningWizard,PlanningCalendar,StudyCycle,FinalStretch,PlanningEditor,PlanningHistory,PlanningConflicts,PlanningPortability}.tsx` |
-| Testes | 10 arquivos unit `f3-*` e 8 E2E `f3-*` |
+| D01 múltiplos cenários | `f3-scenarios` |
+| D02 um ACTIVE com checkpoint | `f3-scenarios` (swap + guardas), `f3-history` |
+| D03 capacidade global | `f3-capacity`, `f3-generator` (reservas de outros editais) |
+| D04 CivilDate/IANA/Instant | `f3-time` |
+| D05 histórico compensatório | `f3-history` (`previewCompensation`) |
+| D06 prioridades explicáveis | `f3-priority` (explicação por critério) |
+| D07 perfis versionados | `f3-priority` (`nextPriorityRevision`) |
+| D08 draft separado | `f3-drafts` |
+| D09 import com identidade/proveniência | `f3-import`, `f3-import-commit` |
+| D10 merge granular/CAS | `f3-merge`, `f3-two-tabs` |
+| D11 Ciclo vs Reta Final | `f3-cycle`, `f3-final-stretch` |
+| D12 replanejamento de prova | `f3-final-stretch` + E2E |
+| D13 cursor explícito | `f3-cycle` |
+| D14 projeção com fixações | `f3-cycle-projections` |
+| D15 continuidade por assunto/aula | `f3-cycle` |
+| D16 identidades F2 | `f3-content-links` |
+| D17 disponibilidade/exceções | `f3-capacity` |
+| D18 blocos com data/duração | `planning.ts` + `f3-planning-domain` |
+| D19 contrato F4 parcial/avulso | `f3-f4-contract` |
+| D20 contagem única entre editais | `f3-f4-contract` |
+| D21 encerramento assistido | `closeFinalStretch` + UI (desfecho obrigatório) |
+| D22 exportação seletiva | `f3-import` (export) |
+| D23 wizard determinístico | `f3-generator`, `f3-journey` |
+| D24 horizonte/limites medidos | `f3-limits` + §5.3 |
+| D25 retenção seletiva | `planRetention` + `f3-history` |
+| D26 aceite por riscos/evidências | este relatório + revisão §6 |
 
-Comportamento novo: cenários múltiplos por edital com um único ACTIVE e troca atômica com checkpoint; disponibilidade semanal/exceções com precedência data>período>semanal e capacidade global só de cenários ativos; calendário dia/semana/mês derivado; Ciclo com cursor explícito e projeção em horizonte; Reta Final com data civil, transição e replanejamento; wizard determinístico com prévia e explicação; drafts persistentes com CAS dentro da transação; merge três-vias granular; checkpoints/journal com compensação; importação conservadora e exportação seletiva; redistribuição assistida (domínio).
+## 5. Testes e evidências
 
-## 3. Testes executados (evidência real)
+### 5.1 Gates finais (HEAD de código `c08da7c`)
 
 | Gate | Comando | Resultado |
 | --- | --- | --- |
 | typecheck | `npm --prefix apps/v2 run typecheck` | PASS (exit 0) |
-| lint | `npm --prefix apps/v2 run lint` | PASS (0 erros, 2 warnings de hooks) |
-| unit | `npm --prefix apps/v2 run test:unit` | PASS 296 testes / 50 arquivos |
-| E2E | `npm --prefix apps/v2 run test:e2e` | PASS 70/70 (50 F1/F2 + 20 F3) |
-| build | `npm --prefix apps/v2 run build` | PASS (~364 kB JS, ~9 kB CSS) |
+| lint | `npm --prefix apps/v2 run lint` | PASS (exit 0, 0 problemas) |
+| unit | `npm --prefix apps/v2 run test:unit` | PASS 297/297 em 50 arquivos |
+| E2E | `npm --prefix apps/v2 run test:e2e` | PASS 77 + 1 skip (78 specs: 50 F1/F2 + 28 F3; o skip é o gerador de capturas) |
+| build | `npm --prefix apps/v2 run build` | PASS (376,84 kB JS / 109,32 kB gzip) |
 
-Baseline antes da F3: 188 unit, 50 E2E, typecheck/lint/build PASS após a correção de tipos.
+Baseline anterior à F3: 188 unit e 50 E2E verdes após a correção de tipos (`1c758a1`). O histórico de lint passou de 2 warnings (revisão inicial) a 0 problemas na execução final; o valor anterior fica registrado como histórico, não como estado atual.
 
-### Matriz F3-T01..T42
+### 5.2 F3-T40 — jornada, temas, acessibilidade e offline
 
-T01–T04 PASS (`f3-scenarios`, `f3-capacity`) · T05–T07 PASS (`f3-time`, `f3-capacity`) · T08–T09 PASS (`f3-priority`) · T10–T12 PASS (`f3-drafts`, `f3-commit`) · T13–T15 PASS (`f3-merge`, `f3-two-tabs`) · T16–T19 PASS (`f3-import`, `f3-import-commit`, `f3-content-links`) · T20–T23 PASS (`f3-cycle`, `f3-cycle-projections`) · T24–T27 PASS (`f3-final-stretch`) · T28–T30 PASS (`f3-capacity`, `f3-generator`) · T31–T33 PASS (`f3-content-links`, `f3-history`) · T34–T35 PASS (`f3-import`, `f3-import-commit`) · T36–T37 PASS (`f3-f4-contract`) · T38–T39 PASS (`f3-generator`, `f3-limits`) · **T40 BLOCKED parcial** · T41 PASS (main intocada, teste de fronteira) · T42 PASS (outbox F3 `deliveryMode: BLOCKED`).
+| Critério | Evidência | Resultado |
+| --- | --- | --- |
+| Desktop 1280×900 | `f3-journey.spec.ts` — wizard→calendário→rascunho→conflito→Reta Final→export/import | PASS |
+| Tablet 834×1112 | idem, mesmo fluxo | PASS |
+| Mobile 390×844 | idem, mesmo fluxo; overflow horizontal ≤1 px | PASS |
+| Oito temas | `f3-a11y` + `f3-a11y-states` (grafite, ardósia, platina, terminal, neon, arrakis, codex, plasma) | PASS |
+| Contraste texto comum | ≥4,5:1 medido por cor computada + luminância WCAG; pior caso `heading` 15,24:1 (ardósia) | PASS |
+| Contraste botão habilitado | 15,64:1 a 16,45:1, variando por tema (botão temado, não o padrão do navegador) | PASS |
+| Contraste mensagem de erro/status | pior caso 15,24:1 | PASS |
+| Disabled (isento pelo WCAG 1.4.3, meta de produto ≥3:1) | 6,65:1 a 7,45:1 após corrigir o fundo nativo do Chromium | PASS |
+| Foco visível | anel sólido de 3 px em `var(--accent)`, contraste medido 6,91:1 a 7,34:1 | PASS |
+| Teclado/ordem/labels | 40 tabs cobrem wizard e calendário; sem prisão de foco; `aria-pressed` nas visões | PASS |
+| Alvos touch ≥44 px | `f3-a11y` mede `calendar-day`, `preview-generation`, `preview-redistribution` com `hasTouch` | PASS |
+| Reduced motion | transição real de 120 ms vira ≤0,01 ms sob `prefers-reduced-motion: reduce` (teste mede os dois modos) | PASS |
+| Zoom/overflow | zoom 200% (1280→640 px) sem overflow e sem clipping interno | PASS |
+| Offline/PWA | `f3-offline.spec.ts`: reload offline mantém cenário e rascunho; edição offline responde “salvo neste dispositivo” | PASS |
 
-### Matriz D-F3-01..26
+Método: Playwright 1.64.1 (Chromium headless shell 1248), build `build:e2e` + `vite preview` em `127.0.0.1:18431`, dados sintéticos. As amostras de contraste são calculadas no próprio navegador (cor computada + composição alfa + luminância relativa WCAG) e impressas no log do teste (`F3_CONTRAST_SAMPLES`, `F3_FOCUS_RING`).
 
-D01–D03 cenários/capacidade (T1,T4,T5) · D04 tempo civil/IANA (T2) · D05 histórico compensatório (T13) · D06–D07 prioridade versionada (T9) · D08 draft separado (T11) · D09 import supervisionado (T15) · D10 merge/CAS (T12) · D11–D12 Ciclo/Reta Final e replanejamento (T7,T10) · D13 cursor explícito (T7) · D14 projeção com fixações (T8) · D15–D16 continuidade e refs F2 (T7,T14) · D17–D18 disponibilidade e blocos (T2,T5) · D19–D20 contrato F4 e contagem única (T14) · D21 encerramento assistido (T10) · D22 exportação seletiva (T16) · D23 wizard determinístico (T9,T17) · D24 horizonte/limites medidos (T8,T9,T19) · D25 retenção seletiva (T13) · D26 aceite por riscos (T19,T20).
+### 5.3 Desempenho medido
 
-## 4. Revisão
+Ambiente: Windows 11 Pro 10.0.26300, Intel Core i5-13450HX (10 núcleos/16 threads), 15,7 GiB de RAM, Chromium headless do Playwright.
 
-- **Auto-revisão estruturada:** executada durante as tasks (casos adversariais de quota, CAS, DST, escopo de perfil, vazamento de exportação).
-- **Revisão independente:** **NOT_RUN**. Não houve revisor fresco nesta execução; nenhum parecer independente é reivindicado.
-
-## 5. Integridade
-
-Migração IDB v2→v3 aditiva, com F1/F2 preservados (`f3-schema`); outbox única com envelopes F3 discriminados e entrega `BLOCKED` (`f3-commit`); quota/abort sem efeito parcial; CAS dentro da transação (duas abas reais); importação e exportação atômicas/idempotentes; nenhuma sessão F4 persistida (apenas fixtures de contrato); `main`, `firestore.rules`, `.github/**` e V1 intocados.
-
-## 6. Pendências que bloqueiam o aceite
-
-1. **Integração** — sem `git push origin v2`; a `v2` local permanece à frente de `origin/v2` até autorização específica.
-2. **Limites em aparelho modesto** — 180/360 blocos medidos localmente (< 3 s de geração, < 10 s de commit no teste), sem medição em hardware modesto.
-3. **Fora do escopo declarado** — sync real F7, emulador/Firebase, backup produtivo e cutover permanecem `NOT_RUN` por especificação.
-
-## 7. Próximo passo
-
-O revisor independente emitiu `APPROVE_FOR_HUMAN_REVIEW`. O próximo passo é a decisão humana: autorizar `git push origin v2` (fast-forward) e o aceite da fase.
-
-## 8. Revisão independente e correções
-
-**Revisor:** subagente independente (fresh context), somente leitura, sobre `5eba778..6e06f62`. **Veredito inicial:** `CHANGES_REQUIRED` — 0 P0, 8 P1, 9 P2; confirmou como sólidos o CAS dentro da transação, a atomicidade, o bloqueio de entrega do outbox, a migração aditiva e os contratos de data/fuso.
-
-Correções aplicadas em `bd6508e` (todas com teste):
-
-| Achado | Correção |
+| Medida | Resultado |
 | --- | --- |
-| P1-1 calendário com um único dia / jan-2027 fixo | faixa derivada dos blocos do cenário, Reta Final do primeiro bloco até a prova, navegação dia/semana/mês com janela móvel |
-| P1-2 suspender Reta Final falhava e a UI dizia sucesso | cenário `SUSPENDED` sem data agora é válido; UI só anuncia sucesso após `LOCAL_COMMITTED` |
-| P1-3 alterar prova ativava sem checkpoint | `previewExamDateChange` preserva o status; ativação continua exclusiva de `activateScenario` com checkpoint |
-| P1-4 geração ignorava outros editais | gerador/redistribuição recebem reservas de todos os cenários ativos |
-| P1-5 sobreposição fundida escondia overbooking | `OVERLAP` + `conflictBlockIds`; ocupação física continua 90 min no teste |
-| P1-6 disciplina de outro edital aceita | `link.editalId !== block.editalId` → `INVALID_SCOPE`; wizard filtra disciplinas pelo edital |
-| P1-7 falha ao gravar blocos do wizard ativava parcial | commit de blocos verificado; falha mantém o cenário em rascunho e não ativa |
-| P1-8 import criava identidades inexistentes | edital-alvo ativo obrigatório; blocos sem vínculo viram `UNALLOCATED/UNMAPPED_CONTENT` e a ativação fica `BLOCKED` até reconciliação |
-| P2-9 `EQUIVALENT` inalcançável | fingerprint semântico comum a arquivo e persistência, com teste real |
-| P2-10 colisão de `importId` | fingerprint de conteúdo no id da importação |
-| P2-11 restaurar checkpoint incompleto | restaura cenário/ciclo, remove blocos posteriores e usa `previewCompensation` |
-| P2-12 segunda aplicação do rascunho impossível | `operationId` inclui o token (revisão + assinatura) |
-| P2-14 meia-noite não distribuía capacidade | `dayBounds` + recorte por dia; teste de 22:00–02:00 em dois dias |
-| P2-15 transição/encerramento só no domínio | botões de transição Ciclo→Reta Final e encerramento ligados; IDs dos blocos carregados recebem prefixo |
-| P2-16 wizard não persistia e só aceitava uma disciplina | estado em `localStorage` e múltiplas disciplinas por edital |
+| Commit de 180 blocos no IndexedDB | 31,2 ms (`f3-load`) |
+| Geração de 180 blocos | < 3 s (asserção `f3-limits`) |
+| Geração de 360 blocos | sem truncamento (360 contabilizados) |
+| Teto medido excedido | falha fechada (`GenerationLimitError`), sem truncar |
+| Hardware modesto real | **NOT_RUN** — nenhum aparelho modesto disponível; ressalva explícita |
 
-### Segunda rodada de revisão (após `bd6508e`)
+### 5.4 Capturas representativas
 
-O revisor confirmou 12 de 14 correções e apontou 2 P1 remanescentes, corrigidos em `674ca48`:
+10 PNGs em `docs/superpowers/audits/evidence/2026-10-29-f3-t40/` (~953 kB): `desktop-<tema>.png` para os oito temas, `tablet-834.png` e `mobile-390.png`, regenerados após o ajuste de tema dos botões. O spec `f3-t40-evidence.spec.ts` fica **skip por padrão** e só grava com `F3_T40_CAPTURE=1`, para não sujar o worktree em execuções normais.
+
+## 6. Revisão independente
+
+### 6.1 Rodada 1 — `5eba778..6e06f62`
+
+Revisor independente (contexto novo, somente leitura): `CHANGES_REQUIRED`, 0 P0 / 8 P1 / 9 P2. Confirmou sólidos o CAS dentro da transação, a atomicidade, o bloqueio de entrega do outbox, a migração aditiva e os contratos de data/fuso. Correções em `bd6508e` (calendário, suspensão, ativação, capacidade global, sobreposição, escopo F2, falha parcial do wizard, import sem identidade e 6 P2).
+
+### 6.2 Rodada 2 — `6e06f62..bd6508e`
+
+Confirmou 12 de 14 correções e apontou 2 P1 (capacidade global não chegava ao wizard/redistribuição; ativação aceitava Reta Final suspensa sem data). Corrigidos em `674ca48`, com testes dedicados.
+
+### 6.3 Rodada 3 — parecer
+
+Sobre `bd6508e..674ca48`: **APPROVE_FOR_HUMAN_REVIEW**, sem bloqueio material; reexecutou typecheck, 295 unit e 70 E2E. Três observações não bloqueantes (capacidade na transição, substituição do plano vigente, aviso falso no relink) foram corrigidas em `a98ed56`.
+
+### 6.4 Rodada 4 — commits posteriores ao parecer (`674ca48..c08da7c`)
+
+Revisor novo (contexto limpo, somente leitura), focado nos testes F3-T40 e nos caminhos críticos alterados depois do APPROVE. **Veredito: `CHANGES_REQUIRED`** — 0 P0, 1 P1 e 7 P2. Confirmou sem regressão: CAS transacional, drafts/merge, wizard/redistribuição, ativação, import/export, outbox `BLOCKED`, DST/CivilDate, alvos 44 px e ARIA labels.
 
 | Achado | Correção | Prova |
 | --- | --- | --- |
-| P1 capacidade global não chegava ao wizard/redistribuição | `PlanningWorkspace` calcula `officialReservations` (cenários ACTIVE) e as injeta em `fixedBlocks` e `reservationBlocks` | `f3-generator`: 10 itens ficam `UNALLOCATED` quando outro edital ocupa 100% da janela |
-| P1 ativação aceitava Reta Final suspensa sem data | `activateScenario` valida o estado ACTIVE, recusa CLOSED/ARCHIVED e Reta Final sem data (`EXAM_DATE_REQUIRED`); botão desabilitado | `f3-scenarios`: ativação suspensa retorna `BLOCKED` e mantém o status |
+| P1: transição tratava `capacityReservations` como substituição e superalocava o dia (300 min em 180) | `projectCycle` soma os blocos fixos próprios às reservas dos demais cenários, deduplicando por `profileId::id` | `f3-final-stretch`: dono 120 min + outro edital 60 min → 0 projetados novos, 3 `UNALLOCATED`, dia ≤180 |
+| P2: botões habilitados usavam o estilo claro padrão do navegador | tema base `var(--card)/var(--text)/var(--border)` e hover por token | contraste por tema 15,64–16,45 e fundo variando nos 8 temas |
+| P2: anel de foco preto com 1,18:1 nos botões | `outline: 3px solid var(--accent)` | contraste do anel 6,91–7,34 em todos os focos medidos |
+| P2: reduced motion/zoom passavam de forma vazia | transição real de 120 ms + media query `reduce` (0,01 ms); zoom 200% com checagem de clipping | teste mede os dois modos e varre `scrollWidth > clientWidth` |
+| P2: jornada com asserções fracas | passou a exigir cenário `ACTIVE`, 30 dias no mês com conteúdo, conflito resolvido em 90 min e cenário importado pelo nome | `f3-journey` |
+| P2: falha de ativação no wizard era ignorada | `createFromWizard` verifica `activateScenario` e informa o estado real | E2E de ativação |
+| P2: evidência não hermética | gerador de capturas sob `F3_T40_CAPTURE=1` (skip padrão) | suíte normal 77 PASS + 1 skip |
+| P2: relatório defasado | este arquivo, reescrito com matrizes e HEAD corretos | §1, §3–§5 |
 
-P2 também corrigidos: calendário passa o conjunto oficial completo (recorte por dia no motor); dia com `OVERLAP` expõe `remainingMinutes = 0`; seletor de edital de destino na importação e vínculo de bloco não mapeado via rascunho; `importId` inclui hash dos nomes (dois arquivos de blocos iguais com nomes distintos geram dois cenários); falha ao gravar blocos da transição impede sucesso falso; encerramento exige desfecho (ocorrida/remarcada/indefinida) e persiste `closing`; `dayBounds` cai para 01:00 quando 00:00 não existe; `EQUIVALENT` testado via roundtrip real de export; navegação do calendário e persistência do wizard com E2E; carga de 180 blocos verifica 30 dias no mês.
+Também corrigido: a data de início da transição/redistribuição passou a usar `America/Fortaleza` (`todayInZone`) em vez do dia UTC do dispositivo.
 
-### Terceira rodada (veredito final)
+## 7. Integridade e segurança
 
-O revisor confirmou os dois P1 fechados no caminho de produto e **não encontrou bloqueio material**: `APPROVE_FOR_HUMAN_REVIEW` (typecheck/unit/E2E reexecutados por ele). Três observações não bloqueantes foram tratadas em seguida:
+- Migração IndexedDB v2→v3 aditiva; F1/F2 preservados (`f3-schema`).
+- Outbox única com envelopes F3 discriminados e `deliveryMode: 'BLOCKED'`; `canDeliver` recusa tipos de planejamento.
+- CAS lido **dentro** da transação em `commit`, `activateScenario` e checkpoints; quota/abort sem efeito parcial.
+- Draft é staging separado; falha não apaga plano nem rascunho.
+- Nenhuma sessão F4 persistida; apenas fixtures de contrato.
+- Exportação com whitelist de campos; teste rejeita tokens/UID/outbox/sessões.
+- `main`, `src/` da V1, `firestore.rules`, `.github/**`, `wrangler.jsonc`, `worker/` e `package.json` raiz sem diff.
 
-- a transição Ciclo→Reta Final passou a receber as reservas oficiais dos demais cenários (`capacityBlocks`);
-- um novo cenário para o mesmo edital não é cobrado contra o plano ativo que ele substitui;
-- `relinkBlock` só anuncia o vínculo quando o rascunho foi realmente salvo.
-
-## 9. Higiene Git/GitHub (inventário final, 2026-10-29)
+## 8. Higiene Git/GitHub
 
 | Item | Estado |
 | --- | --- |
-| `main` local/remota | `9046cfa` — inalterada |
-| `v2` local | `a98ed56` (após este relatório, +1 commit documental) |
-| `origin/v2` | `5eba778` — fast-forward viável (`merge-base --is-ancestor` exit 0) |
-| Worktrees | principal em `main` e o worktree isolado da `v2`; nenhum órfão |
+| `main` | `9046cfa` — inalterada local e remotamente |
+| `origin/v2` | `5eba778` — sem push |
+| Commits exclusivos | 22 de código/teste + este relatório |
+| Worktrees | principal + este; sem órfãos |
 | Stashes | nenhum |
-| PRs abertos | 0 |
-| Branches documentais | `docs/superpowers-estudo-organizado-v2-design` (`2a2736c`) e `...-f0-plan` (`cfe4a25`) preservadas, sem exclusão |
-| Workflows | apenas `auto-cache-bump.yml`, com `on: push branches: [main]` — um push em `v2` não aciona CI |
-| Caminhos V1 | `git diff main..HEAD -- src firestore.rules .github wrangler.jsonc worker package.json` vazio |
+| PRs | 0 abertos |
+| Branches documentais | `2a2736c` e `cfe4a25` preservadas |
+| Workflows | somente `auto-cache-bump.yml`, gatilho `push` em `main`; push em `v2` não aciona CI |
+| Destruição | nenhuma |
 
-Nenhuma limpeza destrutiva foi executada: as duas branches documentais antigas permanecem, assim como os commits exclusivos. A única operação remota pendente é o push fast-forward de `v2`, que depende de autorização humana explícita.
+## 9. Limitações e ressalvas
+
+1. **Hardware modesto:** desempenho medido apenas neste desktop; `NOT_RUN` em aparelho modesto.
+2. **F7/F8 fora de escopo:** sync real, Firebase/emulador, backup produtivo e cutover permanecem `NOT_RUN`; nenhuma homologação remota é afirmada.
+3. **F2 com ressalvas:** as três lacunas F2→F7 e `F2-T22 NOT_RUN` continuam abertas.
+4. **T27:** o encerramento exige desfecho explícito, mas a UI não exibe banner automático de prova vencida.
+5. **Aceite:** qualquer veredito de aceite é humano e separado da integração.
+
+## 10. Gate humano de integração
+
+| Item | Valor |
+| --- | --- |
+| Candidato local | `c08da7c` (código/teste) + commit documental deste relatório |
+| Remoto | `origin/v2` = `5eba778` |
+| Ancestralidade | `git merge-base --is-ancestor origin/v2 HEAD` → exit 0 |
+| Commits a enviar | 24 (23 de código/teste + 1 documental) |
+| Arquivos afetados | `apps/v2/**`, `docs/superpowers/**` |
+| Testes finais | 297 unit, 77 E2E + 1 skip, typecheck/lint/build PASS |
+| Revisor | parecer final em §6 |
+| Actions/deploy | nenhum gatilho para `v2`; sem deploy |
+| `main`/V1 | intactas |
+| Itens não integrados | a própria `v2` (20+ commits), branches documentais antigas preservadas, 0 PRs |
+
+**Decisão solicitada:** autorização expressa para `git push origin v2` do candidato acima (fast-forward, sem `--force`, sem merge em `main`). Este relatório **não** autoriza push, aceite, deploy ou exclusões.

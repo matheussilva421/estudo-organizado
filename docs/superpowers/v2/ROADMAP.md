@@ -2,7 +2,7 @@
 
 **Atualizado em:** 2026-10-29
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
-**Situação:** **F0, F1 e F2 ACEITAS COM RESSALVAS**; F1 aceita em `85ce1e3`; **F2 aceita pelo proprietário em 2026-10-29 sob `F2_ACCEPTED_WITH_RESERVATIONS`**, com implementação em `8e4dc71` (188 unit e 50 E2E PASS) e [relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md). O aceite cobre implementação local/simulada; não homologa Firebase, sincronização real, recuperação produtiva de backups ou publicação. **F3_SPEC_APPROVED** e **F3_PLAN_APPROVED_FOR_GOAL** em 2026-10-29 (D-F3-01–26; 20 tarefas; F3-T01–T42); GOAL executado localmente; F3 implementada e testada (292 unit, 67 E2E), aguardando revalidação independente e autorização de integração. F4–F8 permanecem propostas.
+**Situação:** **F0, F1 e F2 ACEITAS COM RESSALVAS**; F1 aceita em `85ce1e3`; **F2 aceita pelo proprietário em 2026-10-29 sob `F2_ACCEPTED_WITH_RESERVATIONS`**, com implementação em `8e4dc71` (188 unit e 50 E2E PASS) e [relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md). O aceite cobre implementação local/simulada; não homologa Firebase, sincronização real, recuperação produtiva de backups ou publicação. **F3_SPEC_APPROVED** e **F3_PLAN_APPROVED_FOR_GOAL** em 2026-10-29 (D-F3-01–26; 20 tarefas; F3-T01–T42); GOAL executado localmente; F3 implementada e testada (297 unit, 77 E2E + 1 skip) e revisada em quatro rodadas — **F3_READY_FOR_INTEGRATION_REVIEW**, sem push. F4–F8 permanecem propostas.
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
 **Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
@@ -60,7 +60,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | **ACEITA COM RESSALVAS — 2026-10-28, commit `85ce1e3`** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6475527680) e [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
 | **F2 — Editais e conteúdo** | **ACEITA COM RESSALVAS — `F2_ACCEPTED_WITH_RESERVATIONS`** (2026-10-29) | Base canônica de organização | [Relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md); `8e4dc71`, 188 unit e 50 E2E PASS; três lacunas obrigatórias antes do sync real na F7; quatro HIGH `UNVERIFIED`; F2-T22 `NOT_RUN`; Firebase/emulador sem autorização |
-| **F3 — Planejamento** | **Implementada e testada localmente em 2026-10-29 (sem push)** | 20 tarefas executadas; 292 unit e 67 E2E PASS; gate em [relatório](../audits/2026-10-29-v2-f3-acceptance.md) | F2 com ressalvas e contratos temporais |
+| **F3 — Planejamento** | **F3_READY_FOR_INTEGRATION_REVIEW — 2026-10-29, sem push** | 20 tarefas executadas; 297 unit e 77 E2E PASS (+1 skip do gerador de capturas); gate em [relatório](../audits/2026-10-29-v2-f3-acceptance.md) | F2 com ressalvas e contratos temporais |
 | **F4 — Execução/sessões** | **SPEC PROPOSTA; não iniciada** | Tempo/histórico confiáveis | Persistência e domínio |
 | **F5 — Revisões/inteligência** | **SPEC PROPOSTA; não iniciada** | Revisar e priorizar | F2–F4 |
 | **F6 — Indicadores/UX** | **SPEC PROPOSTA; não iniciada** | Métricas e experiência integradas | Dados canônicos por domínio |
@@ -138,7 +138,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 
 ## 6. F3 — Planejamento, calendário, ciclo e reta final
 
-**Gate vigente (2026-10-29):** `F3_PLAN_APPROVED_FOR_GOAL` — [spec F3](../specs/2026-10-28-estudo-organizado-v2-f3-planning-design.md) D-F3-01–26 aprovada e [writing-plans F3](../plans/2026-10-29-estudo-organizado-v2-f3-planning.md) com **20 tarefas** e **F3-T01–T42** aprovado integralmente pelo proprietário. **GOAL executado localmente**; F3 implementada, testada e revisada por revisor independente, sem push; V1/`main` preservadas.
+**Gate vigente (2026-10-29):** `F3_READY_FOR_INTEGRATION_REVIEW` — [spec F3](../specs/2026-10-28-estudo-organizado-v2-f3-planning-design.md) D-F3-01–26 e [writing-plans F3](../plans/2026-10-29-estudo-organizado-v2-f3-planning.md) com **20 tarefas** e **F3-T01–T42** implementados, testados (297 unit, 77 E2E + 1 skip) e revisados em quatro rodadas. GOAL executado localmente, sem push; V1/`main` preservadas.
 
 **Objetivo:** gerar e editar planos consistentes, compreensíveis e auditáveis para concursos com diferentes calendários.
 
@@ -348,7 +348,7 @@ Uma fase só estará **CONCLUÍDA** após verificar: escopo aceito, evidências 
 
 ## 18. Caminho crítico, riscos e encerramento real
 
-1. **Agora (2026-10-29):** F2 aceita com ressalvas; **F3 implementada e testada localmente na `v2`** (292 unit, 67 E2E), com revisão independente e correções aplicadas. Próxima etapa é a autorização humana para `git push origin v2` e o aceite da fase. Sync real, emulador e homologação Firebase permanecem gates próprios (F7), sem autorização vigente.
+1. **Agora (2026-10-29):** F2 aceita com ressalvas; **F3 implementada, testada e revisada na `v2`** (297 unit, 77 E2E + 1 skip), pronta para revisão de integração. Próxima etapa é a autorização humana para `git push origin v2` e o aceite da fase. Sync real, emulador e homologação Firebase permanecem gates próprios (F7), sem autorização vigente.
 2. **F2–F6:** ratificar specs já propostas na ordem, ajustar apenas decisões afetadas pela fase anterior, redigir writing-plans por fase e executar TDD/local/Impeccable. Evitar PR por tarefa e não criar Actions.
 3. **Sync antecipado (opcional pendente):** decidir após F1 se autoriza um ensaio emulado/Spark isolado pequeno em F2 ou se posterga todo uso remoto real a F7. Exigir orçamento e isolamento; nada de dados reais.
 4. **F7:** provar Auth Google + Firestore Spark multi-dispositivo, Rules, backup/restore, quotas, conflitos e migração isolada; quatro HIGH só mudam status mediante evidências.
@@ -362,6 +362,6 @@ Uma fase só estará **CONCLUÍDA** após verificar: escopo aceito, evidências 
 
 **Fluxo canônico e obrigatório para F2–F8:** **ChatGPT + Superpowers brainstorming** → alternativas e decisões apresentadas ao proprietário → **spec escrita e revisada pelo ChatGPT** → aprovação humana da spec → **ChatGPT + Superpowers writing-plans** (arquivos, interfaces, TDD, passos verificáveis, revisão independente e QA) → aprovação humana do plano/método → **GOAL de execução escrito pelo ChatGPT** → **Codex implementa e testa localmente** na branch `v2` → **ChatGPT revisa evidências/código e define correções** → Codex corrige → proprietário decide aceite da fase. Não delegar ao Codex a criação da spec ou do writing-plans.
 
-**Estado documental (2026-10-29):** F0/F1/F2 aceitas com ressalvas; F2 implementada/testada localmente (188 unit/50 E2E), sem homologação remota; **F3_SPEC_APPROVED + F3_PLAN_APPROVED_FOR_GOAL** (20 tarefas, F3-T01–T42), **GOAL executado localmente**, implementação e testes concluídos sem push; F4–F8 propostas. Emulador/Firebase exigem autorização separada; planos não autorizam código, integração ou deploy.
+**Estado documental (2026-10-29):** F0/F1/F2 aceitas com ressalvas; F2 implementada/testada localmente (188 unit/50 E2E), sem homologação remota; **F3_SPEC_APPROVED + F3_PLAN_APPROVED_FOR_GOAL** (20 tarefas, F3-T01–T42), **GOAL executado localmente**, F3 em `F3_READY_FOR_INTEGRATION_REVIEW` (297 unit, 77 E2E + 1 skip), sem push; F4–F8 propostas. Emulador/Firebase exigem autorização separada; planos não autorizam código, integração ou deploy.
 
 **Princípios de encerramento:** V1 continua intocada em `main`; F1–F7 somente `v2`; nenhum Action novo, PR desnecessário, billing, dados reais ou deploy. Quatro HIGH permanecem `UNVERIFIED`, 107 FAIL E2E V1 são baseline. Uma fase só fecha após teste comprovado, código integrado, higiene Git e aceite humano; F8/G5 exige autorização própria de cutover e backup restaurável.
