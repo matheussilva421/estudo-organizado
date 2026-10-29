@@ -85,6 +85,8 @@ export type PlanBlock = {
   sourceOperationId: Id;
   /** Display snapshot resolved from F2 content; never an identity. */
   label?: string;
+  /** Why a block is UNALLOCATED; never a silent removal. */
+  reason?: string;
 };
 
 export type PlanningScope = {
