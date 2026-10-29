@@ -93,6 +93,17 @@ export interface PlanningRepository {
   listScenarios(profileId: string, editalId?: string): Promise<PlanningScenario[]>;
   saveDraft(draft: PlanningDraft): Promise<PlanningOutcome<PlanningDraft>>;
   loadDraft(profileId: string, scenarioId: string): Promise<PlanningDraft | null>;
+  activateScenario?(input: PlanningActivationInput): Promise<PlanningOutcome<PlanningScenarioSnapshot>>;
 }
 
 export const PLANNING_ENTITY_SCHEMA_VERSION = 1;
+
+export type PlanningActivationInput = {
+  profileId: string;
+  operationId: string;
+  editalId: string;
+  scenarioId: string;
+  /** Activation is refused outright when no checkpoint is proven. */
+  checkpointId?: string | null;
+  baseRevision?: number | null;
+};

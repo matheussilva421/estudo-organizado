@@ -39,6 +39,17 @@ import { FakeRemotePort } from './sync/fake-remote';
 import { previewLink } from '../application/sync-policy';
 import { canDeliver } from './sync/delivery-policy';
 import { setE2EFault, type E2EFault } from './e2e-fault';
+import { LocalPlanningRepository } from './local-planning-repository';
+import type {
+  PlanningActivationInput,
+  PlanningCommit,
+  PlanningDraft,
+} from '../application/planning-service';
+import type {
+  PlanningOutcome,
+  PlanningScenario,
+  PlanningScenarioSnapshot,
+} from '../domain/planning';
 
 type Fault = E2EFault;
 
@@ -119,6 +130,28 @@ export type V2E2EHarness = {
   ) => Promise<{ kind: 'EXECUTED' | 'BLOCKED' }>;
   clearRemote: (profileId: string) => void;
   readRemote: (profileId: string) => { applied: string[]; effects: number };
+  planningCommit: (
+    input: PlanningCommit,
+    fault?: Exclude<Fault, null>,
+  ) => Promise<PlanningOutcome<PlanningScenarioSnapshot>>;
+  planningActivate: (
+    input: PlanningActivationInput,
+  ) => Promise<PlanningOutcome<PlanningScenarioSnapshot>>;
+  planningList: (profileId: string, editalId?: string) => Promise<PlanningScenario[]>;
+  planningLoad: (
+    profileId: string,
+    scenarioId: string,
+  ) => Promise<PlanningScenarioSnapshot | null>;
+  planningSaveDraft: (draft: PlanningDraft) => Promise<PlanningOutcome<PlanningDraft>>;
+  planningLoadDraft: (profileId: string, scenarioId: string) => Promise<PlanningDraft | null>;
+  planningCounts: (profileId: string) => Promise<{
+    scenarios: number;
+    blocks: number;
+    drafts: number;
+    checkpoints: number;
+    operations: number;
+    outbox: number;
+  }>;
 };
 
 type SharedRemoteState = { applied: string[]; effects: number };
@@ -403,6 +436,42 @@ export function installE2EHarness(): void {
     },
     clearRemote: (profileId) => localStorage.removeItem(remoteKey(profileId)),
     readRemote: (profileId) => readSharedRemote(profileId),
+    planningCommit: (input, fault) =>
+      new LocalPlanningRepository({ fault: fault ?? null }).commit(input),
+    planningActivate: (input) => new LocalPlanningRepository().activateScenario(input),
+    planningList: (profileId, editalId) =>
+      new LocalPlanningRepository().listScenarios(profileId, editalId),
+    planningLoad: (profileId, scenarioId) =>
+      new LocalPlanningRepository().loadScenario(profileId, scenarioId),
+    planningSaveDraft: (draft) => new LocalPlanningRepository().saveDraft(draft),
+    planningLoadDraft: (profileId, scenarioId) =>
+      new LocalPlanningRepository().loadDraft(profileId, scenarioId),
+    planningCounts: async (profileId) => {
+      const database = await openV2Database(profileId);
+      const transaction = database.transaction(
+        [
+          STORES.planningScenarios,
+          STORES.planningBlocks,
+          STORES.planningDrafts,
+          STORES.planningCheckpoints,
+          STORES.operations,
+          STORES.outbox,
+        ],
+        'readonly',
+      );
+      return {
+        scenarios: await requestResult(
+          transaction.objectStore(STORES.planningScenarios).count(),
+        ),
+        blocks: await requestResult(transaction.objectStore(STORES.planningBlocks).count()),
+        drafts: await requestResult(transaction.objectStore(STORES.planningDrafts).count()),
+        checkpoints: await requestResult(
+          transaction.objectStore(STORES.planningCheckpoints).count(),
+        ),
+        operations: await requestResult(transaction.objectStore(STORES.operations).count()),
+        outbox: await requestResult(transaction.objectStore(STORES.outbox).count()),
+      };
+    },
   };
 
   (window as Window & { __v2E2E?: V2E2EHarness }).__v2E2E = harness;

@@ -6,6 +6,7 @@ import type {
 } from '../domain/planning';
 import { validatePlanBlock, validateScenario, PlanningValidationError } from '../domain/planning';
 import type {
+  PlanningActivationInput,
   PlanningCommit,
   PlanningDraft,
   PlanningOperationRecord,
@@ -129,6 +130,185 @@ export class LocalPlanningRepository implements PlanningRepository {
       notifyPlanningChange(draft.profileId, draft.scenarioId);
       return { kind: 'LOCAL_COMMITTED', value: persisted };
     } catch (error) {
+      return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
+    }
+  }
+
+  async activateScenario(
+    input: PlanningActivationInput,
+  ): Promise<PlanningOutcome<PlanningScenarioSnapshot>> {
+    if (!input || !input.checkpointId) {
+      return { kind: 'BLOCKED', reason: 'CHECKPOINT_REQUIRED' };
+    }
+    if (
+      typeof input.profileId !== 'string' ||
+      !input.profileId.trim() ||
+      typeof input.operationId !== 'string' ||
+      !input.operationId.trim() ||
+      typeof input.scenarioId !== 'string' ||
+      !input.scenarioId.trim()
+    ) {
+      return { kind: 'INVALID', code: 'INVALID_COMMAND' };
+    }
+
+    const command = {
+      type: 'PLANNING_ACTIVATE',
+      profileId: input.profileId,
+      operationId: input.operationId,
+      editalId: input.editalId,
+      scenarioId: input.scenarioId,
+      checkpointId: input.checkpointId,
+    };
+    const commandJson = stableStringify(command);
+    const database = await openV2Database(input.profileId);
+    const transaction = database.transaction(
+      [
+        STORES.planningScenarios,
+        STORES.planningBlocks,
+        STORES.operations,
+        STORES.outbox,
+        STORES.planningCheckpoints,
+      ],
+      'readwrite',
+    );
+
+    try {
+      const operations = transaction.objectStore(STORES.operations);
+      const replay = (await requestResult(operations.get(input.operationId))) as
+        | PlanningOperationRecord
+        | undefined;
+      if (replay) {
+        if (
+          replay.profileId !== input.profileId ||
+          stableStringify(replay.command) !== commandJson
+        ) {
+          transaction.abort();
+          return { kind: 'INVALID', code: 'OPERATION_ID_REUSED' };
+        }
+        await transactionDone(transaction);
+        return replay.outcome;
+      }
+
+      const scenarioStore = transaction.objectStore(STORES.planningScenarios);
+      const blockStore = transaction.objectStore(STORES.planningBlocks);
+      const outbox = transaction.objectStore(STORES.outbox);
+      const next = (await requestResult(
+        scenarioStore.get([input.profileId, input.scenarioId]),
+      )) as PlanningScenario | undefined;
+      if (!next) {
+        transaction.abort();
+        return { kind: 'INVALID', code: 'SCENARIO_NOT_FOUND' };
+      }
+      if (next.editalId !== input.editalId) {
+        transaction.abort();
+        return { kind: 'INVALID', code: 'EDITAL_MISMATCH' };
+      }
+      if (
+        input.baseRevision !== null &&
+        input.baseRevision !== undefined &&
+        next.localRevision !== input.baseRevision
+      ) {
+        transaction.abort();
+        return { kind: 'CONFLICT', current: next };
+      }
+
+      const siblings = (await requestResult(
+        scenarioStore.index('by_profile_edital').getAll([input.profileId, input.editalId]),
+      )) as PlanningScenario[];
+
+      if (this.fault === 'abort') throw new DOMException('forced abort', 'AbortError');
+      if (this.fault === 'quota') throw new DOMException('forced quota', 'QuotaExceededError');
+
+      const deactivated: PlanningScenario[] = [];
+      for (const sibling of siblings) {
+        if (sibling.id === next.id || sibling.status !== 'ACTIVE') continue;
+        const updated: PlanningScenario = {
+          ...sibling,
+          status: 'INACTIVE',
+          localRevision: sibling.localRevision + 1,
+          updatedAt: this.now(),
+        };
+        scenarioStore.put(updated);
+        deactivated.push(updated);
+        outbox.put({
+          operationId: `${input.operationId}~deactivate~${updated.id}`,
+          profileId: input.profileId,
+          entityType: 'planning-scenario',
+          entityId: updated.id,
+          kind: 'upsert',
+          baseRevision: sibling.localRevision,
+          payload: updated,
+          schemaVersion: PLANNING_ENTITY_SCHEMA_VERSION,
+          status: 'PENDING',
+          deliveryMode: 'BLOCKED',
+        });
+      }
+
+      const activated: PlanningScenario = {
+        ...next,
+        status: 'ACTIVE',
+        localRevision: next.localRevision + 1,
+        updatedAt: this.now(),
+      };
+      scenarioStore.put(activated);
+      outbox.put({
+        operationId: `${input.operationId}~activate~${activated.id}`,
+        profileId: input.profileId,
+        entityType: 'planning-scenario',
+        entityId: activated.id,
+        kind: 'upsert',
+        baseRevision: next.localRevision,
+        payload: activated,
+        schemaVersion: PLANNING_ENTITY_SCHEMA_VERSION,
+        status: 'PENDING',
+        deliveryMode: 'BLOCKED',
+      });
+
+      const registeredBlocks = (await requestResult(
+        blockStore.index('by_scenario').getAll([input.profileId, input.scenarioId]),
+      )) as PlanBlock[];
+      transaction.objectStore(STORES.planningCheckpoints).put({
+        checkpointId: input.checkpointId,
+        profileId: input.profileId,
+        scenarioId: input.scenarioId,
+        kind: 'AUTO',
+        manifest: {
+          activationOf: input.scenarioId,
+          deactivated: deactivated.map((item) => item.id),
+          blockIds: registeredBlocks.map((item) => item.id),
+          blockCount: registeredBlocks.length,
+        },
+        operationId: input.operationId,
+        createdAt: this.now(),
+      });
+
+      const snapshot: PlanningScenarioSnapshot = {
+        scenario: activated,
+        blocks: registeredBlocks.sort(byId),
+      };
+      const outcome: PlanningOutcome<PlanningScenarioSnapshot> = {
+        kind: 'LOCAL_COMMITTED',
+        value: snapshot,
+      };
+      operations.put({
+        operationId: input.operationId,
+        profileId: input.profileId,
+        entityType: 'planning-commit',
+        entityId: input.scenarioId,
+        command,
+        outcome,
+        committedAt: this.now(),
+      } satisfies PlanningOperationRecord);
+
+      await transactionDone(transaction);
+      notifyPlanningChange(input.profileId, input.scenarioId);
+      return outcome;
+    } catch (error) {
+      try {
+        transaction.abort();
+      } catch {
+        // already aborted
+      }
       return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
     }
   }

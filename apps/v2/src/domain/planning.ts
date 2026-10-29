@@ -241,3 +241,83 @@ export function isActiveScenario(scenario: PlanningScenario): boolean {
 export function scenarioKey(profileId: Id, scenarioId: Id): string {
   return `${profileId}::${scenarioId}`;
 }
+
+export type ScenarioActivationInput = {
+  profileId: Id;
+  editalId: Id;
+  nextScenarioId: Id;
+  scenarios: PlanningScenario[];
+  blocks: PlanBlock[];
+};
+
+export type ScenarioActivationPreview = {
+  profileId: Id;
+  editalId: Id;
+  nextScenarioId: Id;
+  /** Scenarios of this edital that stop being official. */
+  deactivatedScenarioIds: Id[];
+  /** Every scenario touched by the swap, including the next one. */
+  affectedScenarioIds: Id[];
+  /** Blocks whose official capacity reservation changes. */
+  affectedBlockIds: Id[];
+  /** The swap is never allowed without a proven checkpoint. */
+  requiresCheckpoint: true;
+  warnings: string[];
+};
+
+/**
+ * Pure preview of an activation. Scenarios from other editais and other
+ * profiles are never touched, and an INACTIVE scenario never reserves
+ * capacity, so it is not part of the swap.
+ */
+export function previewScenarioActivation(
+  input: ScenarioActivationInput,
+): ScenarioActivationPreview {
+  const siblings = input.scenarios.filter(
+    (scenario) =>
+      scenario.profileId === input.profileId && scenario.editalId === input.editalId,
+  );
+  const next = siblings.find((scenario) => scenario.id === input.nextScenarioId);
+  if (!next) {
+    throw new PlanningValidationError('SCENARIO_NOT_FOUND');
+  }
+  if (next.status === 'ARCHIVED' || next.status === 'CLOSED') {
+    throw new PlanningValidationError('SCENARIO_NOT_ACTIVATABLE');
+  }
+
+  const deactivated = siblings
+    .filter(
+      (scenario) =>
+        scenario.id !== input.nextScenarioId &&
+        scenario.status === 'ACTIVE',
+    )
+    .map((scenario) => scenario.id);
+
+  const deactivatedSet = new Set(deactivated);
+  const affectedBlockIds = input.blocks
+    .filter(
+      (block) =>
+        block.profileId === input.profileId &&
+        deactivatedSet.has(block.scenarioId),
+    )
+    .map((block) => block.id);
+
+  const warnings: string[] = [];
+  if (deactivated.length > 0) {
+    warnings.push('CAPACITY_RELEASED_FROM_PREVIOUS_SCENARIO');
+  }
+  if (next.status !== 'ACTIVE') {
+    warnings.push('ACTIVATION_REQUIRES_CONFIRMATION');
+  }
+
+  return {
+    profileId: input.profileId,
+    editalId: input.editalId,
+    nextScenarioId: input.nextScenarioId,
+    deactivatedScenarioIds: deactivated,
+    affectedScenarioIds: [...deactivated, input.nextScenarioId],
+    affectedBlockIds,
+    requiresCheckpoint: true,
+    warnings,
+  };
+}
