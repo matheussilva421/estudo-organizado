@@ -2,7 +2,7 @@
 
 **Data:** 2026-10-29
 **Branch:** `v2` (worktree isolado; `main` da V1 intocada)
-**Gate proposto:** `F3_BLOCKED` — implementação e testes locais avançados, mas com gates de aceite pendentes (ver §6).
+**Gate proposto:** `F3_BLOCKED` — implementação e testes locais concluídos e revisão independente aplicada; restam revalidação final e autorização de integração (ver §6 e §8).
 
 > Este é o registro singular da F3. Nenhum status `ACCEPTED`, `PUBLISHED` ou `CONVERGED` é afirmado: não houve push, merge, deploy, Firebase ou emulador.
 
@@ -14,7 +14,7 @@
 | HEAD final | ver `git rev-parse HEAD` no commit deste relatório |
 | `main` local | `9046cfa` — inalterada |
 | `origin/v2` | `5eba778` — sem push nesta execução |
-| Commits locais | 13 (`5eba778..HEAD`), todos `feat/fix(v2-f3)` |
+| Commits locais | 16 (`5eba778..HEAD`), todos `feat/fix/test(v2-f3)` |
 | Árvore | limpa após o commit documental |
 
 ### Correção de baseline (fora do escopo funcional, registrada)
@@ -39,8 +39,8 @@ Comportamento novo: cenários múltiplos por edital com um único ACTIVE e troca
 | --- | --- | --- |
 | typecheck | `npm --prefix apps/v2 run typecheck` | PASS (exit 0) |
 | lint | `npm --prefix apps/v2 run lint` | PASS (0 erros, 2 warnings de hooks) |
-| unit | `npm --prefix apps/v2 run test:unit` | PASS 284 testes / 49 arquivos |
-| E2E | `npm --prefix apps/v2 run test:e2e` | PASS 63/63 (50 F1/F2 + 13 F3) |
+| unit | `npm --prefix apps/v2 run test:unit` | PASS 292 testes / 50 arquivos |
+| E2E | `npm --prefix apps/v2 run test:e2e` | PASS 67/67 (50 F1/F2 + 17 F3) |
 | build | `npm --prefix apps/v2 run build` | PASS (360 kB JS, 8.6 kB CSS) |
 
 Baseline antes da F3: 188 unit, 50 E2E, typecheck/lint/build PASS após a correção de tipos.
@@ -64,13 +64,36 @@ Migração IDB v2→v3 aditiva, com F1/F2 preservados (`f3-schema`); outbox úni
 
 ## 6. Pendências que bloqueiam o aceite
 
-1. **Revisão independente NOT_RUN** — exigida pela D-F3-26 e pelo §6 do GOAL.
-2. **F3-T40 parcial** — só há prova de 8 temas/foco nas visões F3 e de ausência de overflow em 375 px; falta contraste medido dos componentes novos, alvos de toque ≥44 px e fluxo completo em tablet/desktop.
-3. **Redistribuição** — o motor existe e é testado (`previewRedistribution`), mas não está ligado ao editor/UI.
-4. **Conflitos** — a UI lista conflitos; a resolução explícita (escolher base/atual/rascunho) ainda não é oferecida.
-5. **Integração** — sem `git push origin v2`; a `v2` local permanece à frente de `origin/v2` até autorização específica.
-6. Limites de volume são medidos localmente (180/360 blocos < 3 s de geração); não foram medidos em aparelho modesto.
+1. **Integração** — sem `git push origin v2`; a `v2` local permanece à frente de `origin/v2` até autorização específica.
+2. **Limites em aparelho modesto** — 180/360 blocos medidos localmente (< 3 s de geração, < 10 s de commit no teste), sem medição em hardware modesto.
+3. **F3-T27** — o encerramento após a data existe como ação explícita; a confirmação de "prova ocorrida/remarcada/indefinida" é binária na UI, não um fluxo completo de três vias.
 
 ## 7. Próximo passo
 
-Corrigir os itens 2–4 (UI de redistribuição e resolução de conflitos, a11y medida), solicitar revisão independente do diff `5eba778..HEAD` e, só então, pedir autorização para `git push origin v2`.
+Revalidar o delta com o revisor independente e, com o parecer final, pedir autorização explícita para `git push origin v2`.
+
+## 8. Revisão independente e correções
+
+**Revisor:** subagente independente (fresh context), somente leitura, sobre `5eba778..6e06f62`. **Veredito inicial:** `CHANGES_REQUIRED` — 0 P0, 8 P1, 9 P2; confirmou como sólidos o CAS dentro da transação, a atomicidade, o bloqueio de entrega do outbox, a migração aditiva e os contratos de data/fuso.
+
+Correções aplicadas em `bd6508e` (todas com teste):
+
+| Achado | Correção |
+| --- | --- |
+| P1-1 calendário com um único dia / jan-2027 fixo | faixa derivada dos blocos do cenário, Reta Final do primeiro bloco até a prova, navegação dia/semana/mês com janela móvel |
+| P1-2 suspender Reta Final falhava e a UI dizia sucesso | cenário `SUSPENDED` sem data agora é válido; UI só anuncia sucesso após `LOCAL_COMMITTED` |
+| P1-3 alterar prova ativava sem checkpoint | `previewExamDateChange` preserva o status; ativação continua exclusiva de `activateScenario` com checkpoint |
+| P1-4 geração ignorava outros editais | gerador/redistribuição recebem reservas de todos os cenários ativos |
+| P1-5 sobreposição fundida escondia overbooking | `OVERLAP` + `conflictBlockIds`; ocupação física continua 90 min no teste |
+| P1-6 disciplina de outro edital aceita | `link.editalId !== block.editalId` → `INVALID_SCOPE`; wizard filtra disciplinas pelo edital |
+| P1-7 falha ao gravar blocos do wizard ativava parcial | commit de blocos verificado; falha mantém o cenário em rascunho e não ativa |
+| P1-8 import criava identidades inexistentes | edital-alvo ativo obrigatório; blocos sem vínculo viram `UNALLOCATED/UNMAPPED_CONTENT` e a ativação fica `BLOCKED` até reconciliação |
+| P2-9 `EQUIVALENT` inalcançável | fingerprint semântico comum a arquivo e persistência, com teste real |
+| P2-10 colisão de `importId` | fingerprint de conteúdo no id da importação |
+| P2-11 restaurar checkpoint incompleto | restaura cenário/ciclo, remove blocos posteriores e usa `previewCompensation` |
+| P2-12 segunda aplicação do rascunho impossível | `operationId` inclui o token (revisão + assinatura) |
+| P2-14 meia-noite não distribuía capacidade | `dayBounds` + recorte por dia; teste de 22:00–02:00 em dois dias |
+| P2-15 transição/encerramento só no domínio | botões de transição Ciclo→Reta Final e encerramento ligados; IDs dos blocos carregados recebem prefixo |
+| P2-16 wizard não persistia e só aceitava uma disciplina | estado em `localStorage` e múltiplas disciplinas por edital |
+
+**P2 remanescente aceito:** a confirmação de prova vencida é binária (ocorrida/indefinida) em vez de três vias completas; registrado no §6.
