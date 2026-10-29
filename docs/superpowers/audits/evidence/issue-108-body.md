@@ -76,21 +76,7 @@ As **sete especificações de F2 a F8** foram publicadas na branch `v2` exclusiv
 
 ## Próximo passo
 
-**Próxima ação:** executar o [GOAL F2 aprovado](https://github.com/matheussilva421/estudo-organizado/blob/v2/docs/superpowers/goals/2026-10-28-estudo-organizado-v2-f2-codex.md) com o [writing-plans F2 aprovado](https://github.com/matheussilva421/estudo-organizado/blob/v2/docs/superpowers/plans/2026-10-28-estudo-organizado-v2-f2-editais-conteudo.md) na `v2`. O ChatGPT elaborou ambos com Superpowers; Codex executa, testa, revisa e entrega evidências para auditoria do ChatGPT. A spec F2 D-F2-01..06/E-F2-01..08 e o plano foram aprovados pelo proprietário em conversa. **Atualizado em 2026-10-29:** F2 implementada, testada e publicada na branch v2 (53e15fb), com relatório de aceite e logs completos; gate F2_READY_FOR_HUMAN_REVIEW, dependente de aceite humano; Firebase Emulator exige autorização separada. `main` V1 intacta e quatro HIGH `UNVERIFIED`.
+**Próxima ação:** executar o [GOAL F2 aprovado](https://github.com/matheussilva421/estudo-organizado/blob/v2/docs/superpowers/goals/2026-10-28-estudo-organizado-v2-f2-codex.md) com o [writing-plans F2 aprovado](https://github.com/matheussilva421/estudo-organizado/blob/v2/docs/superpowers/plans/2026-10-28-estudo-organizado-v2-f2-editais-conteudo.md) na `v2`. O ChatGPT elaborou ambos com Superpowers; Codex executa, testa, revisa e entrega evidências para auditoria do ChatGPT. A spec F2 D-F2-01..06/E-F2-01..08 e o plano foram aprovados pelo proprietário em conversa. **Atualizado em 2026-10-29:** F2 implementada, testada e publicada na branch v2 (8e4dc71), com relatorio de aceite e logs completos; **aceite do proprietario registrado como F2_ACCEPTED_WITH_RESERVATIONS**, com ressalvas, tres lacunas obrigatorias antes do sync real na F7 e quatro HIGH UNVERIFIED; sem `main`, Firebase Emulator, Firebase real, deploy, Actions, purge, custos, dados de usuário ou F3. Quatro riscos HIGH continuam `UNVERIFIED`.
 
-Não criar issues individuais ou PRs adicionais por padrão. Abrir subtarefas somente quando um bloqueio autônomo e verificável justificar rastreamento separado.
-
-
-## F2 — aprovação e publicação documental (2026-10-28)
-
-O proprietário **aprovou em conversa** a spec F2 (D-F2-01..06 e E-F2-01..08), aprovou o writing-plans Superpowers e solicitou sua publicação no GitHub. **Não se afirma que o proprietário publicou diretamente este registro.**
-
-- [x] [Spec F2 aprovada](https://github.com/matheussilva421/estudo-organizado/blob/v2/docs/superpowers/specs/2026-10-28-estudo-organizado-v2-f2-content-design.md)
-- [x] [Writing-plans F2 aprovado, 16 tarefas e matriz T01..T40](https://github.com/matheussilva421/estudo-organizado/blob/v2/docs/superpowers/plans/2026-10-28-estudo-organizado-v2-f2-editais-conteudo.md)
-- [x] [GOAL único F2 publicado para Codex](https://github.com/matheussilva421/estudo-organizado/blob/v2/docs/superpowers/goals/2026-10-28-estudo-organizado-v2-f2-codex.md)
-- [ ] Execução, testes, revisão independente e integração de código F2 a `v2`
-- [ ] Gate humano de aceite F2 após auditoria do ChatGPT
-
-**Limites:** somente `v2`; sem `main`, Firebase Emulator, Firebase real, deploy, Actions, purge, custos, dados de usuário ou F3. Quatro riscos HIGH continuam `UNVERIFIED`.
 
 

@@ -3,6 +3,27 @@
 **Data:** 2026-10-28
 **Branch:** `v2` (somente local; `main` intocada)
 **Gate proposto:** `F2_READY_FOR_HUMAN_REVIEW` (após o GOAL corretivo C1–C7; ver §10)
+
+> **Estado atual:** `F2_ACCEPTED_WITH_RESERVATIONS` — aceite do proprietário registrado em 2026-10-29 (§15). O gate abaixo descreve a recomendação técnica que precedeu a decisão.
+
+## 15. Aceite do proprietário — `F2_ACCEPTED_WITH_RESERVATIONS` (2026-10-29)
+
+**Decisão registrada:** o proprietário aprovou expressamente a F2 com ressalvas, sob o veredito `F2_ACCEPTED_WITH_RESERVATIONS`, em mensagem direta de 2026-10-29, autorizando exclusivamente a consolidação documental desta decisão.
+
+**Referência de implementação:** `v2` em `8e4dc71` — 188 testes unitários e 50 E2E aprovados, typecheck, lint e build PASS (logs em `evidence/2026-10-29-v2-f2-final-goal-*.txt`).
+
+**Escopo do aceite:** as seis capacidades funcionais F2, implementadas e validadas localmente, com `main` e V1 preservadas.
+
+**Fora do escopo do aceite:** homologação de Firebase, sincronização real, recuperação produtiva de backups, desempenho mobile e publicação da V2. O aceite cobre implementação local e simulada.
+
+**Requisitos obrigatórios antes de habilitar a sincronização real na F7** (registrados na §14): revalidação transacional de conflitos, ciclos em conteúdo remoto e eco de operações recebidas.
+
+**Estado dos riscos:** os quatro riscos HIGH da F0 permanecem `UNVERIFIED`. Firebase Emulator e serviços reais seguem **sem autorização de execução**; `F2-T22` permanece `NOT_RUN`.
+
+**Próxima etapa:** arquitetura e planejamento F3 conduzidos pelo ChatGPT com Superpowers, com aprovação humana antes de qualquer GOAL de execução pelo Codex. Nenhuma implementação F3 foi iniciada.
+
+**Histórico preservado:** as duas branches documentais antigas (`2a2736c`, `cfe4a25`) e todos os commits exclusivos foram mantidos; nenhum arquivo de evidência foi removido.
+
 **Escopo executado:** 16 tarefas do writing-plans F2, matriz F2-T01..T40.
 **Evidência publicada:** [comentário inicial](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6480464454), [atualização após a revisão holística](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6481351665) e [fechamento do GOAL corretivo C1–C7](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6482855514).
 

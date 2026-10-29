@@ -2,7 +2,7 @@
 
 **Atualizado em:** 2026-10-28
 **Branch canônica de desenvolvimento da V2:** `v2` — derivada da `main` em `83010dce2c5fd64700759a642bb9e414221ea84d`.
-**Situação:** **F0 e F1 ACEITAS COM RESSALVAS**; F1 implementada e validada na `v2` (`85ce1e3` aceite; remoto avançou depois apenas por documentação); **spec F2 e writing-plans aprovados pelo proprietário em 2026-10-28** (D-F2-01..06 + E-F2-01..08), [plano publicado](../plans/2026-10-28-estudo-organizado-v2-f2-editais-conteudo.md) e [GOAL de execução publicado](../goals/2026-10-28-estudo-organizado-v2-f2-codex.md); **código F2 ainda não implementado**. Specs F3–F8 permanecem propostas.
+**Situação:** **F0, F1 e F2 ACEITAS COM RESSALVAS**; F1 aceita em `85ce1e3`; **F2 aceita pelo proprietário em 2026-10-29 sob `F2_ACCEPTED_WITH_RESERVATIONS`**, com implementação em `8e4dc71` (188 unit e 50 E2E PASS) e [relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md). O aceite cobre implementação local/simulada; não homologa Firebase, sincronização real, recuperação produtiva de backups ou publicação. Specs F3–F8 permanecem propostas e **F3 não foi iniciada**.
 **Tipo:** roteiro por fases, dependências, critérios de aceite e acompanhamento. **NÃO É AUTORIZAÇÃO DE IMPLEMENTAÇÃO.**
 **Issue mãe:** [#108 — Reconstrução V2 F0–F8](https://github.com/matheussilva421/estudo-organizado/issues/108), único acompanhamento central, sem criar uma issue por ajuste.
 **Produto V1:** permanece na `main` para manutenção/publicação; **a branch `v2` não é ambiente de produção**.
@@ -57,7 +57,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **G2/F0** | APROVADO (plano e método) | Escrita do plano F0 | G1 |
 | **F0 — Auditoria V1** | **ACEITA COM RESSALVAS — recálculo `APPROVED`** | Entregue, integrada à `v2`; 45 destinos funcionais definidos + 1 adiamento aprovado | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6470404279) e [relatório F0](../audits/2026-10-19-f0-acceptance.md) |
 | **F1 — Fundação técnica** | **ACEITA COM RESSALVAS — 2026-10-28, commit `85ce1e3`** | Fundação isolada, disciplina local, persistência confiável e contratos A-01/A-02 | [Aceite humano #108](https://github.com/matheussilva421/estudo-organizado/issues/108#issuecomment-6475527680) e [relatório F1](../audits/2026-10-28-v2-f1-acceptance.md) |
-| **F2 — Editais e conteúdo** | **IMPLEMENTED — `F2_READY_FOR_HUMAN_REVIEW`** (2026-10-29) | Base canônica de organização | [Relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md); 188 unit e 50 E2E PASS; GOAL corretivo C1–C7 e fechamento P1/P2 aplicados; F2-T22 `NOT_RUN`; aceite humano pendente |
+| **F2 — Editais e conteúdo** | **ACEITA COM RESSALVAS — `F2_ACCEPTED_WITH_RESERVATIONS`** (2026-10-29) | Base canônica de organização | [Relatório de aceite](../audits/2026-10-28-v2-f2-acceptance.md); `8e4dc71`, 188 unit e 50 E2E PASS; três lacunas obrigatórias antes do sync real na F7; quatro HIGH `UNVERIFIED`; F2-T22 `NOT_RUN`; Firebase/emulador sem autorização |
 | **F3 — Planejamento** | **SPEC PROPOSTA; não iniciada** | Planejamento executável | F2 e regras temporais |
 | **F4 — Execução/sessões** | **SPEC PROPOSTA; não iniciada** | Tempo/histórico confiáveis | Persistência e domínio |
 | **F5 — Revisões/inteligência** | **SPEC PROPOSTA; não iniciada** | Revisar e priorizar | F2–F4 |
@@ -344,7 +344,7 @@ Uma fase só estará **CONCLUÍDA** após verificar: escopo aceito, evidências 
 
 ## 18. Caminho crítico, riscos e encerramento real
 
-1. **Agora:** revisar o [relatório F2](../audits/2026-10-28-v2-f2-acceptance.md) e decidir o aceite humano. A F2 foi implementada e testada localmente em `v2`; aceite, homologação e F3 permanecem gates humanos. Firebase Emulator continua exigindo autorização específica.
+1. **Agora:** F2 aceita com ressalvas. A próxima etapa é a **arquitetura e o planejamento F3 pelo ChatGPT com Superpowers**, com aprovação humana da spec/plano antes de qualquer GOAL de execução pelo Codex. Correções de sync real, emulador e homologação Firebase permanecem gates próprios (F7), sem autorização vigente.
 2. **F2–F6:** ratificar specs já propostas na ordem, ajustar apenas decisões afetadas pela fase anterior, redigir writing-plans por fase e executar TDD/local/Impeccable. Evitar PR por tarefa e não criar Actions.
 3. **Sync antecipado (opcional pendente):** decidir após F1 se autoriza um ensaio emulado/Spark isolado pequeno em F2 ou se posterga todo uso remoto real a F7. Exigir orçamento e isolamento; nada de dados reais.
 4. **F7:** provar Auth Google + Firestore Spark multi-dispositivo, Rules, backup/restore, quotas, conflitos e migração isolada; quatro HIGH só mudam status mediante evidências.
