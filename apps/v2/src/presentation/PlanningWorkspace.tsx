@@ -9,7 +9,7 @@ import {
 } from '../application/planning-portability';
 import { queryCalendar, type CalendarDay } from '../application/planning-queries';
 import { advanceCycle, createCycleState, type CycleDecision } from '../domain/planning-cycle';
-import { generatePlanPreview } from '../domain/planning-generator';
+import { generatePlanPreview, previewRedistribution } from '../domain/planning-generator';
 import {
   previewExamDateChange,
   type ExamDateChange,
@@ -61,6 +61,11 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
   const [checkpoints, setCheckpoints] = useState<PlanningCheckpointRecord[]>([]);
   const [draft, setDraft] = useState<PlanningDraft | null>(null);
   const [conflicts, setConflicts] = useState<MergeConflict[]>([]);
+  const [redistribution, setRedistribution] = useState<{
+    moved: { blockId: string; from: string | null; to: string }[];
+    stillUnallocatedIds: string[];
+    blocks: PlanBlock[];
+  } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<CalendarView>('week');
 
@@ -401,6 +406,79 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
     await refresh();
   }
 
+  function previewRedistributionForScenario(): void {
+    if (!selected) return;
+    const preview = previewRedistribution({
+      blocks: selectedBlocks,
+      startDate: new Date().toISOString().slice(0, 10),
+      horizonDays: 45,
+      zone: ZONE,
+      weekly,
+      exceptions: [],
+      operationId: `redistribute-${selected.id}`,
+    });
+    setRedistribution({
+      moved: preview.moved,
+      stillUnallocatedIds: preview.stillUnallocatedIds,
+      blocks: preview.blocks,
+    });
+  }
+
+  async function applyRedistribution(): Promise<void> {
+    if (!selected || !redistribution || redistribution.moved.length === 0) return;
+    const movedIds = new Set(redistribution.moved.map((item) => item.blockId));
+    const upsert = redistribution.blocks.filter((block) => movedIds.has(block.id));
+    const result = await repository().commit({
+      scope: { profileId, operationId: `redistribute-apply-${selected.id}-${selected.localRevision}` },
+      scenarioId: selected.id,
+      baseRevision: selected.localRevision,
+      changes: { upsertBlocks: upsert },
+    });
+    onNotice(
+      result.kind === 'LOCAL_COMMITTED'
+        ? `Redistribuição aplicada localmente (${upsert.length} bloco(s)).`
+        : 'Redistribuição recusada.',
+    );
+    setRedistribution(null);
+    await refresh();
+  }
+
+  async function resolveConflict(
+    conflict: MergeConflict,
+    choice: 'CURRENT' | 'INCOMING',
+  ): Promise<void> {
+    if (!draft) return;
+    const matched = (change: { blockId: string; field: string }) =>
+      change.blockId === conflict.blockId && change.field === conflict.field;
+    let next: PlanningDraft;
+    if (choice === 'CURRENT') {
+      next = { ...draft, changes: draft.changes.filter((change) => !matched(change)) };
+    } else {
+      const block = selectedBlocks.find((item) => item.id === conflict.blockId);
+      const currentValue = (block as unknown as Record<string, unknown> | undefined)?.[
+        conflict.field as string
+      ];
+      next = {
+        ...draft,
+        changes: draft.changes.map((change) =>
+          matched(change)
+            ? { ...change, baseValue: (currentValue ?? null) as string | number | null }
+            : change,
+        ),
+      };
+    }
+    const saved = await repository().saveDraft(next);
+    if (saved.kind === 'LOCAL_COMMITTED') {
+      setDraft(saved.value);
+      setConflicts((items) => items.filter((item) => !matched(item)));
+      onNotice(
+        choice === 'CURRENT'
+          ? 'Alteração do rascunho descartada; versão atual mantida.'
+          : 'Rascunho rebaseado sobre a versão atual; aplique novamente.',
+      );
+    }
+  }
+
   function exportSelected(): string {
     if (!selected) return '';
     return exportPlanningScenarios({
@@ -463,6 +541,16 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
         draft={draft}
         onSaveDraft={(change) => void saveDraft(change)}
         onApplyDraft={() => void applyDraft()}
+        redistribution={
+          redistribution
+            ? {
+                moved: redistribution.moved.length,
+                stillUnallocated: redistribution.stillUnallocatedIds.length,
+              }
+            : null
+        }
+        onPreviewRedistribution={previewRedistributionForScenario}
+        onApplyRedistribution={() => void applyRedistribution()}
         locked={locked}
       />
       <PlanningHistory
@@ -470,7 +558,10 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
         onRestore={(checkpointId) => void restoreCheckpoint(checkpointId)}
         locked={locked}
       />
-      <PlanningConflicts conflicts={conflicts} />
+      <PlanningConflicts
+        conflicts={conflicts}
+        onResolve={(conflict, choice) => void resolveConflict(conflict, choice)}
+      />
       <PlanningPortability
         onExport={exportSelected}
         onImport={importPlanning}

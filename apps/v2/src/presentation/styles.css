@@ -494,3 +494,23 @@ select {
 .planning-workspace button[aria-pressed='true'] {
   outline: 2px solid currentColor;
 }
+
+.planning-workspace button,
+.planning-workspace input,
+.planning-workspace select,
+.planning-workspace textarea {
+  min-height: 44px;
+}
+
+.planning-workspace button:focus-visible,
+.planning-workspace input:focus-visible,
+.planning-workspace select:focus-visible,
+.planning-workspace textarea:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+
+.planning-hint {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}

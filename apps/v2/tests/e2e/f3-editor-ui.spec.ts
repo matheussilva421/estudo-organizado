@@ -72,3 +72,56 @@ test('draft_survives_reload_and_applies_with_confirmation', async ({ page }) => 
   );
   expect(stored?.blocks[0]?.plannedMinutes).toBe(90);
 });
+
+test('a_stale_draft_conflicts_and_can_be_rebased_explicitly', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.evaluate(async ({ seed, item }) => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    await harness.resetDb();
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'op-scenario' },
+      scenarioId: seed.id,
+      baseRevision: null,
+      changes: { scenario: seed },
+    });
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'op-blocks' },
+      scenarioId: seed.id,
+      baseRevision: 1,
+      changes: { upsertBlocks: [item] },
+    });
+    await harness.planningSaveDraft({
+      id: 'draft-conflict',
+      profileId: 'local-default',
+      scenarioId: seed.id,
+      baseRevision: 2,
+      changes: [{ blockId: 'block-1', field: 'plannedMinutes', value: 120, baseValue: 60 }],
+      lastSavedAt: '2026-10-29T00:00:00.000Z',
+    });
+    // Another tab moves the same field forward before the draft is applied.
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'op-other-tab' },
+      scenarioId: seed.id,
+      baseRevision: 2,
+      changes: { upsertBlocks: [{ ...item, plannedMinutes: 90 }] },
+    });
+  }, { seed: scenario, item: block });
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+
+  await page.locator('[data-action="apply-draft"]').click();
+  await expect(page.locator('[data-testid="planning-conflicts"]')).toContainText('plannedMinutes');
+
+  await page.locator('[data-action="use-incoming"]').first().click();
+  await expect(page.locator('[data-testid="planning-conflicts"]')).toContainText(
+    'Nenhum conflito pendente',
+  );
+  await page.locator('[data-action="apply-draft"]').click();
+  await expect(page.locator('.inline-notice')).toContainText('Rascunho aplicado');
+
+  const stored = await page.evaluate(() =>
+    (window as unknown as HarnessWindow).__v2E2E.planningLoad('local-default', 'scenario-rf'),
+  );
+  expect(stored?.blocks[0]?.plannedMinutes).toBe(120);
+});

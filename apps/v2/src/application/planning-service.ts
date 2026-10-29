@@ -138,6 +138,8 @@ export type DraftCommitPreview = {
   changedBlockIds: string[];
   deletedBlockIds: string[];
   canApply: boolean;
+  /** True when the draft was written against an older revision. */
+  rebased: boolean;
   previewToken: string;
 };
 
@@ -162,9 +164,9 @@ export function previewDraftCommit(input: {
     blocks: merged.blocks,
     changedBlockIds: merged.changes.map((block) => block.id),
     deletedBlockIds,
-    canApply:
-      merged.conflicts.length === 0 &&
-      input.draft.baseRevision === input.current.scenario.localRevision,
+    // A stale draft is merged three-way; only real field conflicts block it.
+    canApply: merged.conflicts.length === 0,
+    rebased: input.draft.baseRevision !== input.current.scenario.localRevision,
     previewToken,
   };
 }
@@ -189,10 +191,6 @@ export async function applyPlanningDraft(
   if (input.draft.scenarioId !== input.scenarioId) {
     return { kind: 'INVALID', code: 'SCENARIO_MISMATCH' };
   }
-  if (input.draft.baseRevision !== current.scenario.localRevision) {
-    return { kind: 'CONFLICT', current: current.scenario };
-  }
-
   const preview = previewDraftCommit({ current, draft: input.draft });
   if (!preview.canApply) {
     return { kind: 'CONFLICT', current: preview.conflicts };

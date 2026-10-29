@@ -7,10 +7,22 @@ type Props = {
   draft: PlanningDraft | null;
   onSaveDraft: (changes: { blockId: string; field: 'plannedMinutes' | 'civilDate'; value: string | number; baseValue: string | number }) => void;
   onApplyDraft: () => void;
+  redistribution: { moved: number; stillUnallocated: number } | null;
+  onPreviewRedistribution: () => void;
+  onApplyRedistribution: () => void;
   locked: boolean;
 };
 
-export function PlanningEditor({ blocks, draft, onSaveDraft, onApplyDraft, locked }: Props) {
+export function PlanningEditor({
+  blocks,
+  draft,
+  onSaveDraft,
+  onApplyDraft,
+  redistribution,
+  onPreviewRedistribution,
+  onApplyRedistribution,
+  locked,
+}: Props) {
   const [selectedId, setSelectedId] = useState(blocks[0]?.id ?? '');
   const [minutes, setMinutes] = useState(60);
   const selected = blocks.find((block) => block.id === selectedId) ?? blocks[0] ?? null;
@@ -69,6 +81,34 @@ export function PlanningEditor({ blocks, draft, onSaveDraft, onApplyDraft, locke
           >
             Aplicar rascunho
           </button>
+          <hr />
+          <p className="planning-hint">
+            Redistribuição assistida: blocos não alocados só mudam após a prévia e a confirmação.
+          </p>
+          <button
+            type="button"
+            data-action="preview-redistribution"
+            disabled={locked}
+            onClick={onPreviewRedistribution}
+          >
+            Prévia de redistribuição
+          </button>
+          {redistribution ? (
+            <div data-testid="redistribution-preview">
+              <p>
+                {redistribution.moved} bloco(s) podem ser alocados ·{' '}
+                {redistribution.stillUnallocated} continuam sem vaga.
+              </p>
+              <button
+                type="button"
+                data-action="apply-redistribution"
+                disabled={locked || redistribution.moved === 0}
+                onClick={onApplyRedistribution}
+              >
+                Confirmar redistribuição
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
     </section>
