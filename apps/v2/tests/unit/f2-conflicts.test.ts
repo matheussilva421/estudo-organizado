@@ -4,7 +4,14 @@ import { deleteV2DatabaseForTests, getPendingOutbox } from '../../src/platform/i
 import { LocalContentRepository } from '../../src/platform/local-content-repository';
 import { LocalSubjectRepository } from '../../src/platform/local-subject-repository';
 import { FakeRemotePort } from '../../src/platform/sync/fake-remote';
-import { flushPending } from '../../src/platform/sync/flush';
+import { flushPending, type FlushOptions } from '../../src/platform/sync/flush';
+
+/** Test-only wrapper: the delivery gate is explicit at every flush call. */
+const runFlush = (
+  operations: Parameters<typeof flushPending>[0],
+  remote: Parameters<typeof flushPending>[1],
+  options: Partial<FlushOptions> = {},
+) => flushPending(operations, remote, { canSend: () => true, ...options });
 import { markConflict } from '../../src/platform/indexeddb';
 import { LocalConflictService } from '../../src/application/conflict-service';
 
@@ -74,13 +81,31 @@ describe('F2 conflict handling', () => {
 
     const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
     const pending = await getPendingOutbox(profileId);
-    const flush = await flushPending(pending, remote);
+    const flush = await runFlush(pending, remote);
 
     expect(flush.conflicts).toEqual([]);
     expect(flush.pending).toEqual([]);
     expect(flush.confirmedIds).toHaveLength(pending.length);
     // Simulated only: the fake proves contract shape, not Firestore.
     expect(remote.appliedCount()).toBe(pending.length);
+  });
+
+  it('flush_without_explicit_authorization_never_reaches_the_remote', async () => {
+    await seedEdital();
+    const pending = await getPendingOutbox(profileId);
+    const target = pending[0];
+    expect(target).toBeDefined();
+    const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
+    const unguarded = flushPending as unknown as (
+      operations: unknown[],
+      port: unknown,
+      options: Record<string, unknown>,
+    ) => Promise<{ blocked: string[]; confirmedIds: string[] }>;
+
+    const result = await unguarded([target], remote, {});
+    expect(result.blocked).toEqual([target!.operationId]);
+    expect(result.confirmedIds).toEqual([]);
+    expect(remote.appliedCount()).toBe(0);
   });
 
   it('resolve_remote_conflict_preserves_both_versions_until_choice', async () => {
@@ -99,7 +124,7 @@ describe('F2 conflict handling', () => {
     const pending = (await getPendingOutbox(profileId)).filter(
       (operation) => operation.entityId === 'assunto-1',
     );
-    const flush = await flushPending(pending, remote);
+    const flush = await runFlush(pending, remote);
     expect(flush.conflicts).toEqual(['op-assunto-local']);
 
     const conflicted = pending[0];
@@ -136,7 +161,7 @@ describe('F2 conflict handling', () => {
     const pending = (await getPendingOutbox(profileId)).filter(
       (operation) => operation.entityId === 'assunto-1',
     );
-    const flush = await flushPending(pending, remote);
+    const flush = await runFlush(pending, remote);
     await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
       payload: remote.readEntity('assunto-1'),
       deleted: false,
@@ -184,7 +209,7 @@ describe('F2 conflict handling', () => {
     const pending = (await getPendingOutbox(profileId)).filter(
       (operation) => operation.entityId === 'assunto-1',
     );
-    const flush = await flushPending(pending, remote);
+    const flush = await runFlush(pending, remote);
     await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
       payload: remote.readEntity('assunto-1'),
       deleted: false,
@@ -227,7 +252,7 @@ describe('F2 conflict handling', () => {
     const pending = (await getPendingOutbox(profileId)).filter(
       (operation) => operation.entityId === 'assunto-1',
     );
-    const flush = await flushPending(pending, remote);
+    const flush = await runFlush(pending, remote);
     await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
       payload: remote.readEntity('assunto-1'),
       deleted: false,
@@ -275,7 +300,7 @@ describe('F2 conflict handling', () => {
     const pending = (await getPendingOutbox(profileId)).filter(
       (operation) => operation.entityId === 'assunto-1',
     );
-    const flush = await flushPending(pending, remote);
+    const flush = await runFlush(pending, remote);
     await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
       payload: remote.readEntity('assunto-1'),
       deleted: false,
@@ -295,8 +320,16 @@ describe('F2 conflict handling', () => {
       'KEEP_LOCAL',
       'op-resolve-once',
     );
-    // Already resolved: the second call is refused, and no second effect exists.
-    expect(replay).toEqual({ kind: 'INVALID', code: 'ENTITY_EXISTS' });
+    // Same decision + same operationId is a true idempotent replay.
+    expect(replay).toEqual(first);
+    // A different decision cannot reuse the resolved conflict.
+    const divergent = await service.resolveConflict(
+      profileId,
+      'op-assunto-local',
+      'ACCEPT_REMOTE',
+      'op-resolve-once',
+    );
+    expect(divergent).toEqual({ kind: 'INVALID', code: 'ENTITY_EXISTS' });
     expect((await service.listConflicts(profileId))[0]).toMatchObject({ status: 'RESOLVED' });
   });
 
@@ -331,7 +364,7 @@ describe('F2 conflict handling', () => {
     const pending = (await getPendingOutbox(profileId)).filter(
       (operation) => operation.entityId === 'aula-1',
     );
-    const flush = await flushPending(pending, remote);
+    const flush = await runFlush(pending, remote);
     await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-aula-local'] ?? 2, {
       payload: null,
       deleted: true,
@@ -375,7 +408,7 @@ describe('F2 conflict handling', () => {
     const pending = (await getPendingOutbox(profileId)).filter(
       (operation) => operation.entityId === 'assunto-1',
     );
-    const flush = await flushPending(pending, remote);
+    const flush = await runFlush(pending, remote);
     await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
       payload: remote.readEntity('assunto-1'),
       deleted: false,
@@ -418,7 +451,7 @@ describe('F2 conflict handling', () => {
     const pending = (await getPendingOutbox(profileId)).filter(
       (operation) => operation.entityId === 'assunto-1',
     );
-    const flush = await flushPending(pending, remote);
+    const flush = await runFlush(pending, remote);
     await markConflict(profileId, pending[0]!, flush.conflictRevisions['op-assunto-local']!, {
       payload: remote.readEntity('assunto-1'),
       deleted: false,

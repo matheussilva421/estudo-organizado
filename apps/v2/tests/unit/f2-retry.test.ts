@@ -17,7 +17,14 @@ import {
 } from '../../src/platform/indexeddb';
 import { LocalContentRepository } from '../../src/platform/local-content-repository';
 import { FakeRemotePort } from '../../src/platform/sync/fake-remote';
-import { flushPending } from '../../src/platform/sync/flush';
+import { flushPending, type FlushOptions } from '../../src/platform/sync/flush';
+
+/** Test-only wrapper: the delivery gate is explicit at every flush call. */
+const runFlush = (
+  operations: Parameters<typeof flushPending>[0],
+  remote: Parameters<typeof flushPending>[1],
+  options: Partial<FlushOptions> = {},
+) => flushPending(operations, remote, { canSend: () => true, ...options });
 import { LocalProfileRepository } from '../../src/platform/local-profile-repository';
 import { previewLink } from '../../src/application/sync-policy';
 import {
@@ -103,12 +110,12 @@ describe('F2 retry policy', () => {
     expect(pending).toHaveLength(1);
     const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
 
-    const denied = await flushPending(pending, remote, { canSend: () => false });
+    const denied = await runFlush(pending, remote, { canSend: () => false });
     expect(denied.blocked).toEqual(['op-edital']);
     expect(denied.confirmedIds).toEqual([]);
     expect(remote.appliedCount()).toBe(0);
 
-    const allowed = await flushPending(pending, remote, { canSend: () => true });
+    const allowed = await runFlush(pending, remote, { canSend: () => true });
     expect(allowed.confirmedIds).toEqual(['op-edital']);
   });
 
@@ -196,7 +203,7 @@ describe('F2 retry policy', () => {
     for (let attempt = 0; attempt < 6; attempt += 1) {
       const pending = await getEligibleOutbox(profileId, clock);
       expect(pending.length).toBe(1);
-      const flush = await flushPending(pending, flaky, { now: clock, jitter: () => 0 });
+      const flush = await runFlush(pending, flaky, { now: clock, jitter: () => 0 });
       expect(flush.pending).toEqual(['op-edital']);
       expect(flush.confirmedIds).toEqual([]);
       await applyRetryPlan(profileId, flush.failures);
@@ -213,7 +220,7 @@ describe('F2 retry policy', () => {
 
     const eligible = await getEligibleOutbox(profileId, clock + 1);
     expect(eligible.map((item) => item.operationId)).toEqual(['op-edital']);
-    const recovered = await flushPending(eligible, remote, { now: clock + 1 });
+    const recovered = await runFlush(eligible, remote, { now: clock + 1 });
     expect(recovered.confirmedIds).toEqual(['op-edital']);
     expect(recovered.proof['op-edital']).toBe(1);
     await markConfirmed(profileId, recovered.confirmedIds, recovered.proof);
@@ -231,7 +238,7 @@ describe('F2 retry policy', () => {
     await seedPendingOperation();
     const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
 
-    const authFlush = await flushPending(
+    const authFlush = await runFlush(
       await getEligibleOutbox(profileId, 0),
       new FlakyPort(remote, 1, 'AUTH'),
       { now: 0 },
@@ -250,7 +257,7 @@ describe('F2 retry policy', () => {
   it('deterministic_scope_failure_is_not_retried', async () => {
     await seedPendingOperation();
     const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
-    const flush = await flushPending(
+    const flush = await runFlush(
       await getEligibleOutbox(profileId, 0),
       new FlakyPort(remote, 1, 'REMOTE_SCOPE'),
       { now: 0 },
@@ -269,7 +276,7 @@ describe('F2 retry policy', () => {
       profileId,
       simulateTimeoutAfterApply: true,
     });
-    const flush = await flushPending(await getEligibleOutbox(profileId, 0), remote, {
+    const flush = await runFlush(await getEligibleOutbox(profileId, 0), remote, {
       now: 0,
     });
     expect(flush.pending).toEqual([]);

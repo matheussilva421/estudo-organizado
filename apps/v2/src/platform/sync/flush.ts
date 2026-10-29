@@ -28,14 +28,17 @@ export type FlushOptions = {
   now?: number;
   jitter?: () => number;
   attemptOf?: (operation: OutboxOperation) => number;
-  /** Last line of defence: an adapter must never send an ungated operation. */
-  canSend?: (operation: OutboxOperation) => boolean;
+  /**
+   * Mandatory delivery authorization. Without it nothing is sent, so a caller
+   * that forgets the gate cannot push unconsented content to an adapter.
+   */
+  canSend: (operation: OutboxOperation) => boolean;
 };
 
 export async function flushPending(
   operations: OutboxOperation[],
   remote: RemoteMutationPort,
-  options: FlushOptions = {},
+  options: FlushOptions,
 ): Promise<FlushResult> {
   const confirmedIds: string[] = [];
   const conflicts: string[] = [];
@@ -47,7 +50,8 @@ export async function flushPending(
   const now = options.now ?? Date.now();
 
   for (const operation of operations) {
-    if (options.canSend && !options.canSend(operation)) {
+    // Fail closed: no explicit authorization means no send.
+    if (typeof options.canSend !== 'function' || !options.canSend(operation)) {
       blocked.push(operation.operationId);
       continue;
     }

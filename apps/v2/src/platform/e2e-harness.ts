@@ -37,6 +37,7 @@ import { browserLockPort, withSafeFlushLock } from './sync/coordination';
 import { flushPending } from './sync/flush';
 import { FakeRemotePort } from './sync/fake-remote';
 import { previewLink } from '../application/sync-policy';
+import { canDeliver } from './sync/delivery-policy';
 import { setE2EFault, type E2EFault } from './e2e-fault';
 
 type Fault = E2EFault;
@@ -285,10 +286,28 @@ export function installE2EHarness(): void {
       };
 
       let clock = Number.isFinite(baseNow) ? baseNow : Date.now();
+      const profile = await new LocalProfileRepository().getProfile(profileId);
+      const authorize = (operation: OutboxOperation) =>
+        canDeliver(
+          operation,
+          {
+            operationId: operation.operationId,
+            profileId: operation.profileId,
+            deliveryUid: operation.deliveryUid ?? null,
+            remoteLibraryId: operation.remoteLibraryId ?? null,
+            attempts: operation.attempts ?? 0,
+            nextRetryAt: operation.nextRetryAt ?? null,
+          },
+          profile,
+        );
       for (let attempt = 0; attempt < failures; attempt += 1) {
         const pending = await getEligibleOutbox(profileId, clock);
         if (pending.length === 0) break;
-        const flush = await flushPending(pending, scripted, { now: clock, jitter: () => 0 });
+        const flush = await flushPending(pending, scripted, {
+          now: clock,
+          jitter: () => 0,
+          canSend: authorize,
+        });
         await applyRetryPlan(profileId, flush.failures);
         clock = flush.failures[0]?.nextRetryAt ?? clock + 1;
       }
@@ -302,7 +321,23 @@ export function installE2EHarness(): void {
     reconnect: async (profileId, now) => {
       const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
       const eligible = await getEligibleOutbox(profileId, now);
-      const recovered = await flushPending(eligible, remote, { now });
+      const profile = await new LocalProfileRepository().getProfile(profileId);
+      const recovered = await flushPending(eligible, remote, {
+        now,
+        canSend: (operation) =>
+          canDeliver(
+            operation,
+            {
+              operationId: operation.operationId,
+              profileId: operation.profileId,
+              deliveryUid: operation.deliveryUid ?? null,
+              remoteLibraryId: operation.remoteLibraryId ?? null,
+              attempts: operation.attempts ?? 0,
+              nextRetryAt: operation.nextRetryAt ?? null,
+            },
+            profile,
+          ),
+      });
       await markConfirmed(profileId, recovered.confirmedIds, recovered.proof);
       const first =
         eligible[0]?.operationId ?? (await getPendingOutbox(profileId))[0]?.operationId;

@@ -89,8 +89,6 @@ export class LocalConflictService implements ConflictService {
     if (!operationId.trim()) return { kind: 'INVALID', code: 'IDENTIFIER_REQUIRED' };
     const conflict = await this.getConflict(profileId, conflictId);
     if (!conflict) return { kind: 'INVALID', code: 'ENTITY_NOT_FOUND' };
-    if (conflict.status !== 'OPEN') return { kind: 'INVALID', code: 'ENTITY_EXISTS' };
-
     const resolution: ConflictResolution = {
       conflictId,
       choice,
@@ -98,6 +96,15 @@ export class LocalConflictService implements ConflictService {
       entityType: conflict.entityType,
       entityId: conflict.entityId,
     };
+
+    if (conflict.status !== 'OPEN') {
+      // Replaying the same decision is idempotent; a different one is refused.
+      const recorded = conflict.resolution === 'REMOTE' ? 'ACCEPT_REMOTE' : 'KEEP_LOCAL';
+      if (conflict.resolvedByOperationId === operationId && recorded === choice) {
+        return { kind: 'LOCAL_COMMITTED', value: resolution };
+      }
+      return { kind: 'INVALID', code: 'ENTITY_EXISTS' };
+    }
 
     // A decision made against an older local revision must not overwrite a
     // newer edit; both payloads stay intact in the conflict record.

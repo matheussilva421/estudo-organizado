@@ -2,7 +2,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { OutboxOperation, RemoteMutationPort } from '../../src/application/sync-types';
 import { DOMAIN_SCHEMA_VERSION } from '../../src/domain/versions';
 import { FakeRemotePort } from '../../src/platform/sync/fake-remote';
-import { flushPending } from '../../src/platform/sync/flush';
+import { flushPending, type FlushOptions } from '../../src/platform/sync/flush';
+
+/** Test-only wrapper: the delivery gate is explicit at every flush call. */
+const runFlush = (
+  operations: Parameters<typeof flushPending>[0],
+  remote: Parameters<typeof flushPending>[1],
+  options: Partial<FlushOptions> = {},
+) => flushPending(operations, remote, { canSend: () => true, ...options });
 import {
   deleteV2DatabaseForTests,
   getConflicts,
@@ -57,7 +64,7 @@ describe('outbox flush', () => {
   it('timeout_after_commit_requires_readback_and_is_idempotent', async () => {
     const remote = new FakeRemotePort({ uid: 'uid-a', profileId, simulateTimeoutAfterApply: true });
     const first = operation();
-    const result = await flushPending([first], remote);
+    const result = await runFlush([first], remote);
 
     expect(result.confirmedIds).toEqual(['op-1']);
     expect(result.pending).toEqual([]);
@@ -83,7 +90,7 @@ describe('outbox flush', () => {
       apply: () => Promise.reject(new Error('offline')),
       lookup: () => Promise.resolve('UNKNOWN'),
     };
-    const result = await flushPending([operation()], remote);
+    const result = await runFlush([operation()], remote);
 
     expect(result.confirmedIds).toEqual([]);
     expect(result.pending).toEqual(['op-1']);
@@ -94,7 +101,7 @@ describe('outbox flush', () => {
       apply: () => Promise.reject(new Error('timeout')),
       lookup: () => Promise.resolve('APPLIED'),
     };
-    const result = await flushPending([operation({ baseRevision: 2 })], remote);
+    const result = await runFlush([operation({ baseRevision: 2 })], remote);
 
     expect(result.confirmedIds).toEqual([]);
     expect(result.pending).toEqual(['op-1']);
@@ -102,11 +109,11 @@ describe('outbox flush', () => {
 
   it('wrong_uid_cannot_ack_via_readback', async () => {
     const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
-    const first = await flushPending([operation()], remote);
+    const first = await runFlush([operation()], remote);
     expect(first.confirmedIds).toEqual(['op-1']);
 
     remote.signInAs('uid-intruder');
-    const replay = await flushPending([operation()], remote);
+    const replay = await runFlush([operation()], remote);
 
     expect(replay.confirmedIds).toEqual([]);
     expect(replay.pending).toEqual(['op-1']);
@@ -114,14 +121,14 @@ describe('outbox flush', () => {
 
   it('concurrent_conflicting_edit_preserves_both_versions', async () => {
     const remote = new FakeRemotePort({ uid: 'uid-a', profileId });
-    await flushPending([operation()], remote);
+    await runFlush([operation()], remote);
 
     const stale = operation({
       operationId: 'op-2',
       baseRevision: 0,
       payload: { id: 'subject-1', profileId, title: 'Direito Civil', localRevision: 2 },
     });
-    const result = await flushPending([stale], remote);
+    const result = await runFlush([stale], remote);
 
     expect(result.conflicts).toEqual(['op-2']);
     expect(result.conflictRevisions['op-2']).toBe(1);
