@@ -7,8 +7,12 @@ test('f4 timer start pause resume complete', async ({ page }) => {
 
   await page.locator('[data-testid="session-start"]').click();
   await expect(page.locator('[data-testid="session-pause"]')).toBeVisible();
+  await page.waitForTimeout(1_500);
   await page.locator('[data-testid="session-pause"]').click();
   await expect(page.locator('[data-testid="session-resume"]')).toBeVisible();
+  await expect(page.locator('[data-testid="session-history"]')).toContainText(
+    /00:00:0[1-9]/,
+  );
   await page.locator('[data-testid="session-resume"]').click();
   await page.locator('[data-testid="session-complete"]').click();
   await expect(page.locator('[data-testid="session-start"]')).toBeVisible();

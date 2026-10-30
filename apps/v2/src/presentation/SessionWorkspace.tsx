@@ -219,9 +219,34 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         authorityValid: true,
       });
       if (step.kind === 'BEGIN_BREAK') {
+        let baseSession = session;
+        if (pomodoroStage === 'FOCUS') {
+          const focus = [...session.intervals]
+            .reverse()
+            .find((interval) => interval.kind === 'FOCUS');
+          if (focus) {
+            const checkpoint = await service.checkpointSession({
+              scope: {
+                profileId,
+                operationId: newId(),
+                baseRevision: session.localRevision,
+              },
+              sessionId: session.id,
+              authority,
+              intervalId: focus.id,
+              verifiedMs: config.focusMs,
+              checkpoint: clock.observe(),
+            });
+            if (checkpoint.kind !== 'LOCAL_COMMITTED') {
+              onNotice('Não foi possível confirmar o foco do Pomodoro.');
+              return;
+            }
+            baseSession = checkpoint.value;
+          }
+        }
         const now = clock.observe();
         const intervals = [
-          ...session.intervals,
+          ...baseSession.intervals,
           {
             id: newId(),
             kind: 'BREAK' as const,
@@ -236,7 +261,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
           scope: {
             profileId,
             operationId: newId(),
-            baseRevision: session.localRevision,
+            baseRevision: baseSession.localRevision,
           },
           sessionId: session.id,
           authority,
@@ -301,6 +326,33 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     setBusy(true);
     onNotice(null);
     try {
+      if (action === 'pause' || action === 'complete') {
+        const focus = [...session.intervals]
+          .reverse()
+          .find((interval) => interval.kind === 'FOCUS');
+        if (focus) {
+          const base = session.intervals
+            .filter((interval) => interval.kind === 'FOCUS')
+            .reduce((sum, interval) => sum + interval.verifiedMs, 0);
+          const verifiedMs = focus.verifiedMs + Math.max(0, elapsedMs - base);
+          const checkpoint = await service.checkpointSession({
+            scope: {
+              profileId,
+              operationId: newId(),
+              baseRevision: session.localRevision,
+            },
+            sessionId: session.id,
+            authority,
+            intervalId: focus.id,
+            verifiedMs,
+            checkpoint: clock.observe(),
+          });
+          if (checkpoint.kind !== 'LOCAL_COMMITTED') {
+            onNotice('Não foi possível confirmar o tempo medido; a transição foi cancelada.');
+            return;
+          }
+        }
+      }
       const input = {
         scope: {
           profileId,
@@ -678,7 +730,13 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
           {history.map((item) => (
             <li key={item.id}>
               {item.recordedAtCivilDate ?? 'sem data'} · {item.origin} ·{' '}
-              {item.state} · {formatMs(item.manualDeclaredMs ?? 0)}
+              {item.state} ·{' '}
+              {formatMs(
+                item.manualDeclaredMs ??
+                  item.intervals
+                    .filter((interval) => interval.kind === 'FOCUS')
+                    .reduce((sum, interval) => sum + interval.verifiedMs, 0),
+              )}
             </li>
           ))}
         </ul>
