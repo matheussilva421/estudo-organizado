@@ -1,11 +1,11 @@
 # Estudo Organizado V2 — F3: saneamento final e candidato à integração
 
-**Data:** 2026-10-29
+**Data:** 2026-10-30 (integração); implementação e revisão em 2026-10-29
 **Branch:** `v2` (worktree isolado; `main` da V1 intocada)
-**Gate proposto:** `F3_READY_FOR_INTEGRATION_REVIEW`
-**Estados:** IMPLEMENTED · TESTED · REVIEWED · **NOT_INTEGRATED_TO_ORIGIN_V2** · **NOT_ACCEPTED** · **NOT_PUBLISHED**
+**Gate:** `F3_INTEGRATED_TO_ORIGIN_V2_PENDING_HUMAN_ACCEPTANCE`
+**Estados:** IMPLEMENTED · TESTED · REVIEWED · INTEGRATED_TO_ORIGIN_V2 · **NOT_ACCEPTED** · **NOT_PUBLISHED**
 
-> Este é o registro singular da F3. Não houve push, merge em `main`, deploy, Firebase, emulador ou sync real nesta fase.
+> Este é o registro singular da F3. O push fast-forward de `v2` foi autorizado pelo proprietário e executado em 2026-10-30; não houve merge em `main`, deploy, Firebase, emulador ou sync real.
 
 ## 1. Baseline e HEADs
 
@@ -16,18 +16,18 @@ Preflight executado neste worktree em 2026-10-29. O comando `git fetch origin --
 | Worktree | `C:\Users\slvma\.codex\worktrees\v2-f3-planning\estudo-organizado` |
 | Branch | `v2` |
 | HEAD de código/teste | `6183b5d` (antes deste relatório) |
-| HEAD documental | commit que contém este arquivo — consultar `git log -1 -- docs/superpowers/audits/2026-10-29-v2-f3-acceptance.md` |
-| `origin/v2` | `5eba778` |
+| HEAD documental publicado | `3f6d4be` |
+| `origin/v2` | `3f6d4be` (publicado em 2026-10-30) |
 | `main` local/remota | `9046cfa` — inalterada |
-| Ancestralidade | `git merge-base --is-ancestor origin/v2 HEAD` → exit 0 |
+| Ancestralidade | pré-push exit 0; pós-push `v2...origin/v2` = 0/0 |
 | Árvore | limpa antes deste commit documental |
 | Stashes | nenhum |
 | PRs abertos | 0 |
 | Worktrees | principal (`main`) e este worktree (`v2`); sem órfãos |
 | Caminhos V1 | `git diff --name-status origin/main...HEAD -- src firestore.rules .github wrangler.jsonc worker package.json` vazio |
-| Commits exclusivos | 25 antes deste relatório (23 de código/teste + 2 documentais); 26 com o commit final deste relatório |
+| Commits exclusivos | 26 publicados (23 de código/teste + 3 documentais) + este commit de registro da integração |
 
-O HEAD é citado por função para evitar SHA circular: o código revisado termina em `6183b5d`; o relatório é o commit seguinte, verificável pelo comando acima.
+O HEAD é citado por função para evitar SHA circular: o código revisado termina em `6183b5d`; o candidato publicado é `3f6d4be`; este commit de integração é o seguinte, verificável por `git log -1 -- docs/superpowers/audits/2026-10-29-v2-f3-acceptance.md`.
 
 ## 2. Entregas e cobertura das 11 funcionalidades F0
 
@@ -244,19 +244,20 @@ O mesmo revisor verificou `c08da7c..6183b5d` (teste do P1 e borda de controle) e
 4. **T27:** o encerramento exige desfecho explícito, mas a UI não exibe banner automático de prova vencida.
 5. **Aceite:** qualquer veredito de aceite é humano e separado da integração.
 
-## 10. Gate humano de integração
+## 10. Integração executada e próximo gate
+
+**Autorização:** proprietário, 2026-10-30, push fast-forward do candidato `3f6d4be`, condicionado ao preflight.
 
 | Item | Valor |
 | --- | --- |
-| Candidato local | `6183b5d` (código/teste) + commit documental deste relatório |
-| Remoto | `origin/v2` = `5eba778` |
-| Ancestralidade | `git merge-base --is-ancestor origin/v2 HEAD` → exit 0 |
-| Commits a enviar | 26 (23 de código/teste + 3 documentais) |
-| Arquivos afetados | `apps/v2/**`, `docs/superpowers/**` |
-| Testes finais | 297 unit, 77 E2E + 1 skip, typecheck/lint/build PASS |
-| Revisor | parecer final em §6 |
-| Actions/deploy | nenhum gatilho para `v2`; sem deploy |
-| `main`/V1 | intactas |
-| Itens não integrados | a própria `v2` (20+ commits), branches documentais antigas preservadas, 0 PRs |
+| HEAD local no push | `3f6d4be` |
+| SHA publicado | `3f6d4be` (confirmado por `git ls-remote origin refs/heads/v2`) |
+| Comando | `git push origin HEAD:refs/heads/v2` (sem force) |
+| Resultado | `5eba778..3f6d4be  HEAD -> v2` |
+| Pós-push | `v2...origin/v2` = 0/0; `git rev-parse origin/v2` = HEAD |
+| `origin/main` | `9046cfa` — inalterada |
+| PRs/workflows | 0 PRs; workflow inalterado e sem execução em `v2` |
+| Testes | 297 unit, 77 E2E + 1 skip, typecheck/lint/build PASS (sem nova execução nesta etapa) |
+| Revisão | quatro rodadas; parecer final `APPROVE_FOR_INTEGRATION_REVIEW` (§6.5) |
 
-**Decisão solicitada:** autorização expressa para `git push origin v2` do candidato acima (fast-forward, sem `--force`, sem merge em `main`). Este relatório **não** autoriza push, aceite, deploy ou exclusões.
+**Próximo gate:** aceite humano da F3. O estado é `F3_INTEGRATED_TO_ORIGIN_V2_PENDING_HUMAN_ACCEPTANCE`; não é `ACCEPTED`, `PUBLISHED` ou `CONVERGED`. F4 não iniciada.
