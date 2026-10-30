@@ -1,5 +1,6 @@
 import type { ContentEntity, ContentEntityType } from './content-commands';
 import type { PlanBlock, PlanningScenario } from '../domain/planning';
+import type { StudySession } from '../domain/session';
 
 export type SyncState =
   | 'LOCAL_ONLY'
@@ -17,9 +18,15 @@ export type OutboxStatus = 'PENDING' | 'CONFIRMED' | 'CONFLICT';
 /** F3 planning entities travel in the same outbox, discriminated by type. */
 export type PlanningEntityType = 'planning-scenario' | 'plan-block';
 
-export type OutboxEntityType = ContentEntityType | PlanningEntityType;
+export type SessionEntityType = 'study-session';
 
-export type OutboxPayload = ContentEntity | PlanningScenario | PlanBlock;
+export type OutboxEntityType = ContentEntityType | PlanningEntityType | SessionEntityType;
+
+export type OutboxPayload =
+  | ContentEntity
+  | PlanningScenario
+  | PlanBlock
+  | StudySession;
 
 export type OutboxOperation = {
   operationId: string;

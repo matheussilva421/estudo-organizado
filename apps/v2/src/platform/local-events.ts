@@ -92,3 +92,48 @@ export function subscribePlanningChanges(
 export function notifyPlanningChange(profileId: string, scenarioId: string): void {
   deliverPlanning({ profileId, scenarioId }, true);
 }
+
+type SessionChange = { profileId: string; sessionId: string };
+
+type SessionListener = (change: SessionChange) => void;
+
+const sessionListeners = new Map<string, Set<SessionListener>>();
+let sessionChannel: BroadcastChannel | null = null;
+
+function ensureSessionChannel(): BroadcastChannel | null {
+  if (sessionChannel) return sessionChannel;
+  if (typeof BroadcastChannel !== 'function') return null;
+  sessionChannel = new BroadcastChannel('estudo-organizado-v2-session');
+  sessionChannel.onmessage = (event: MessageEvent<SessionChange>) => {
+    const change = event.data;
+    if (change && typeof change.profileId === 'string' && typeof change.sessionId === 'string') {
+      deliverSession(change, false);
+    }
+  };
+  return sessionChannel;
+}
+
+function deliverSession(change: SessionChange, broadcast: boolean): void {
+  for (const listener of sessionListeners.get(change.profileId) ?? []) {
+    listener(change);
+  }
+  if (broadcast) ensureSessionChannel()?.postMessage(change);
+}
+
+export function subscribeSessionChanges(
+  profileId: string,
+  onChange: SessionListener,
+): () => void {
+  ensureSessionChannel();
+  const listeners = sessionListeners.get(profileId) ?? new Set<SessionListener>();
+  listeners.add(onChange);
+  sessionListeners.set(profileId, listeners);
+  return () => {
+    listeners.delete(onChange);
+    if (listeners.size === 0) sessionListeners.delete(profileId);
+  };
+}
+
+export function notifySessionChange(profileId: string, sessionId: string): void {
+  deliverSession({ profileId, sessionId }, true);
+}

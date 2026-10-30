@@ -50,6 +50,9 @@ export type StudySession = {
   planBlockIds: string[];
   editalIds: string[];
   intervals: SessionInterval[];
+  tombstone?: boolean;
+  deletedAt?: string;
+  deletedReason?: string;
 };
 
 export class SessionValidationError extends Error {
@@ -156,6 +159,24 @@ export function validateSession(input: StudySession): StudySession {
   for (const interval of input.intervals) validateInterval(interval);
   if (input.origin === 'MANUAL' && input.intervals.length > 0) {
     fail('INVALID_MANUAL_INTERVALS', 'manual sessions cannot contain timer intervals');
+  }
+  if (input.tombstone !== undefined && typeof input.tombstone !== 'boolean') {
+    fail('INVALID_TOMBSTONE', 'tombstone must be boolean');
+  }
+  if (
+    input.deletedAt !== undefined &&
+    (typeof input.deletedAt !== 'string' || Number.isNaN(Date.parse(input.deletedAt)))
+  ) {
+    fail('INVALID_TOMBSTONE', 'deletedAt must be an ISO date-time');
+  }
+  if (input.deletedReason !== undefined && typeof input.deletedReason !== 'string') {
+    fail('INVALID_TOMBSTONE', 'deletedReason must be a string');
+  }
+  if (input.tombstone === true && input.deletedAt === undefined) {
+    fail('INVALID_TOMBSTONE', 'a tombstone requires deletedAt');
+  }
+  if (input.tombstone !== true && input.deletedAt !== undefined) {
+    fail('INVALID_TOMBSTONE', 'deletedAt requires tombstone=true');
   }
 
   return input;
