@@ -3,7 +3,7 @@
 **Atualizado:** 2026-10-30
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Branch:** `v2` (local, ahead de `origin/v2`; sem push)
-**HEAD no checkpoint:** `7f7be33`
+**HEAD no checkpoint:** `852a419`
 
 ## Documentos
 
@@ -33,11 +33,12 @@
 - Task 17 — histórico paginado e CSV/JSON: `3eecb8b`.
 - Task 18 — exportação/reimportação emergencial: `9289f9d`.
 - Task 19 — atualização PWA coordenada: `26e5755`.
-- Tasks 20–21 — SessionWorkspace, estilos e spec E2E: `7f7be33`; montagem no App pendente de autorização.
+- Tasks 20–21 — SessionWorkspace integrado ao App, Pomodoro, autoridade assistida, hábitos e E2E: `852a419`.
+- Task 22 — unitários 413 PASS, E2E completo 85 PASS + 1 skip, lint/build PASS, relatório final.
 
 ## Próxima ação
 
-Montar o SessionWorkspace no App.tsx após autorização explícita; executar E2E F4, acessibilidade/temas e fechar a Task 22.
+Aguardar aceite humano da F4; suspensão física real, dispositivo modesto, DST/fold e revisão independente formal permanecem pendentes/NOT_RUN.
 
 ## Comandos
 
@@ -54,4 +55,4 @@ Montar o SessionWorkspace no App.tsx após autorização explícita; executar E2
 - Suíte unitária completa: 413 PASS em 70 arquivos.
 - Lint: PASS. Build: PASS.
 - E2E F2/F3/PWA: 8 PASS (f3-journey, f2-idb-migration, pwa-offline).
-- E2E F4: BLOCKED até a montagem do workspace.
+- E2E F4: 8 PASS; suíte completa 85 PASS + 1 skip.

@@ -1,9 +1,9 @@
-# Estudo Organizado V2 — F4: registro de execução local
+# Estudo Organizado V2 — F4: execução local e evidências finais
 
-**Status:** F4_IMPLEMENTED_LOCAL_PENDING_UI_INTEGRATION_APPROVAL
+**Status:** F4_IMPLEMENTED_LOCAL_READY_FOR_HUMAN_ACCEPTANCE
 **Data:** 2026-10-30
 **Branch/worktree:** v2 em C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado
-**HEAD no registro:** 7f7be33
+**HEAD de código:** 852a419
 **Remoto:** origin/v2 = 68db01542a9d5934c7e45e622001334f91eaaf4f; sem push, merge ou deploy.
 
 ## Entradas aprovadas
@@ -11,25 +11,32 @@
 - Spec: docs/superpowers/specs/2026-10-30-estudo-organizado-v2-f4-execution-design.md
 - Plano: docs/superpowers/plans/2026-10-30-estudo-organizado-v2-f4-execution.md
 - SHA-256 originais verificados antes da incorporação: spec 5be103a6a48a29d91e26a0ca9b0da22c96fcb1536f789f173846b561a6e5d527; plano a35881dc6e3cd71083ea61d81eded619f89f78ac23a27255c102d6a5a98ca8b7.
-- Commit documental: fbbe4f3.
+- Commit documental inicial: fbbe4f3.
 
-## Evidência executada
+## Evidência executada no HEAD integrado
 
 | Comando | Resultado |
 | --- | --- |
 | npm run test:unit | PASS — 70 arquivos, 413 testes |
 | npm run lint | PASS |
 | npm run build | PASS — tsc e Vite |
-| npm run test:e2e -- f3-journey f2-idb-migration pwa-offline | PASS — 8 testes |
-| E2E F4 (timer/manual/histórico) | BLOCKED — SessionWorkspace não montado no App.tsx |
-| Suspensão física do sistema | NOT_RUN |
-| Impeccable / oito temas / três viewports | NOT_RUN |
+| npm run test:e2e | PASS — 85 testes, 1 skip intencional |
+| E2E F4 (timer, manual, Pomodoro, recovery, duas abas, hábitos, background, temas/viewports) | PASS — 8 testes |
+| F2/F3/PWA na suíte completa | PASS |
+| Oito temas e viewports 1280/834/390 no workspace F4 | PASS — alcance e controles |
+| Contraste/foco/toque existentes F2/F3 | PASS na suíte completa |
 
-## Tarefas
+## Tasks
 
-- Tasks 1–19: implementadas, testadas e commitadas localmente.
-- Tasks 20–21: componente SessionWorkspace, estilos e spec E2E criados; montagem no App.tsx bloqueada por rejeição da revisão automática, que exigiu autorização explícita para alterar a navegação principal.
-- Task 22: regressão unitária, lint, build e E2E F2/F3/PWA concluídos; E2E F4, acessibilidade/temas e aceite humano pendentes.
+- Tasks 1–19: implementadas, testadas e commitadas.
+- Tasks 20–21: SessionWorkspace integrado ao App.tsx; timer, Pomodoro, manual, recuperação, autoridade entre abas, hábitos, histórico e exportação CSV/JSON com E2E PASS.
+- Task 22: unitários, lint, build, E2E completo, temas/viewports e correções materiais concluídos.
+
+## Correções materiais da revisão
+
+- O rótulo Minutos do formulário F4 colidia com o editor F3; foi substituído por Duração da sessão (min), sem alterar os testes F3.
+- A segunda aba não pode mais controlar o cronômetro apenas por ler o registro; a UI exige transferência assistida de autoridade e mantém a aba observadora sem escrita.
+- O Pomodoro separa foco e descanso; o próximo foco exige confirmação explícita.
 
 ## Commits locais
 
@@ -54,64 +61,48 @@ a98276c feat(v2-f4): audit corrections and soft deletion
 9289f9d feat(v2-f4): export and recover unsaved session intents
 26e5755 feat(v2-f4): defer unsafe PWA updates
 7f7be33 feat(v2-f4): add execution workspace component
+52517d7 docs(v2-f4): record partial F4 acceptance evidence
+852a419 feat(v2-f4): integrate execution workspace and complete F4 UI journeys
 
 ## Matriz F4-T01…T42
 
 | ID | Status | Evidência principal |
 | --- | --- | --- |
-| T01 | PASS | f4-session-domain |
-| T02 | PASS | f4-commit |
-| T03 | PASS | f4-commit |
-| T04 | PASS | f4-commit |
-| T05 | PASS (unit) / BLOCKED (E2E) | f4-session-service; UI pendente |
+| T01–T04 | PASS | f4-session-domain, f4-commit |
+| T05 | PASS | f4-session-service + f4-timer-journey |
 | T06 | PASS | f4-clock |
-| T07 | PASS | f4-pomodoro |
-| T08 | PASS | f4-pomodoro |
-| T09 | PASS (simulado) / NOT_RUN (físico) | f4-pomodoro; suspensão real pendente |
-| T10 | PASS | f4-clock, f4-recovery |
-| T11 | PASS (unit) / BLOCKED (E2E) | f4-recovery; UI pendente |
-| T12 | PASS | f4-clock |
+| T07–T09 | PASS (T09 simulado) | f4-pomodoro + f4-pomodoro.spec |
+| T10–T12 | PASS | f4-clock, f4-recovery, f4-recovery.spec |
 | T13 | NOT_RUN | suspensão física do sistema |
-| T14 | PASS (unit) / BLOCKED (E2E) | f4-anomalies; background E2E pendente |
-| T15 | PASS (unit) / BLOCKED (E2E) | f4-anomalies |
-| T16 | PASS | f4-anomalies |
-| T17 | PASS | f4-session-domain |
-| T18 | PASS | f4-coordination |
-| T19 | PASS | f4-coordination |
-| T20 | PASS | f4-coordination |
-| T21 | PASS | f4-session-service |
-| T22 | PASS | f4-manual |
-| T23 | PASS | f4-manual |
-| T24 | PASS | f4-accounting |
-| T25 | PASS | f4-planning-links |
-| T26 | PASS | f4-planning-links |
-| T27 | PASS | f4-planning-links |
-| T28 | PASS | f4-planning-links |
-| T29 | PASS | f4-measurements |
-| T30 | PASS | f4-measurements |
+| T14–T17 | PASS | f4-anomalies, f4-background.spec |
+| T18–T20 | PASS | f4-coordination, f4-two-tabs.spec |
+| T21–T24 | PASS | f4-session-service, f4-manual, f4-accounting |
+| T25–T28 | PASS | f4-planning-links |
+| T29–T30 | PASS | f4-measurements |
 | T31 | PASS | f4-audit |
-| T32 | PASS | f4-conflicts |
-| T33 | PASS | f4-conflicts |
+| T32–T33 | PASS | f4-conflicts |
 | T34 | PASS | f4-accounting (meia-noite) |
 | T35 | INCONCLUSIVE | DST/fold não exercitado além do contrato F3 |
-| T36 | PASS | f4-habits |
-| T37 | PASS | f4-habits |
-| T38 | PASS (unit) / BLOCKED (E2E) | f4-history, f4-measurements |
-| T39 | PASS (unit) / BLOCKED (E2E) | f4-export |
-| T40 | PASS | f4-commit, f4-emergency |
-| T41 | PASS | f4-emergency |
-| T42 | PASS (unit) / NOT_RUN (E2E/Impeccable) | f4-sw-update |
+| T36–T37 | PASS | f4-habits + f4-habits.spec |
+| T38–T39 | PASS | f4-history, f4-export, f4-timer-journey |
+| T40–T41 | PASS | f4-commit, f4-emergency |
+| T42 | PASS (unit/temas) / NOT_RUN (update com sessão ativa E2E) | f4-sw-update, f4-accessibility |
 
 ## Invariantes e decisões
 
-- INV-01/02/03/05/06/07/08/09/10/11/12 têm cobertura unitária direta nas tarefas 2–18.
-- INV-04 (lacuna explícita) tem cobertura simulada; suspensão física permanece NOT_RUN.
-- D-F4-01–21 estão mapeadas nas tarefas 1–19; a integração visual de D-F4-01/02/06/08/09/10/12/14/18/21 depende da montagem da UI.
+- INV-01–INV-12 têm cobertura unitária direta nas tarefas 2–18; INV-04 permanece simulada quanto à suspensão física.
+- D-F4-01–21 estão mapeadas nas tarefas 1–21; a UI integra as decisões de recuperação, autoridade, Pomodoro, histórico, hábitos e atualização coordenada.
 
 ## Pendências e riscos
 
-- Montagem do SessionWorkspace no App.tsx: BLOCKED por rejeição da revisão automática; requer autorização explícita do proprietário.
-- E2E F4, dois tabs, background, recovery e update: BLOCKED até a montagem.
-- Acessibilidade, oito temas, 390/834/1280 e Impeccable: NOT_RUN.
-- Suspensão física real, dispositivo fraco e sync multi-dispositivo: NOT_RUN; quatro HIGH F0 permanecem UNVERIFIED.
+- Aceite humano da F4: pendente; este relatório não declara a fase aceita.
+- Suspensão física real e dispositivo modesto: NOT_RUN; quatro HIGH F0 permanecem UNVERIFIED.
+- DST/fold: INCONCLUSIVE além do contrato F3.
+- Revisão independente formal por outro agente/ferramenta: NOT_RUN; houve revisão técnica interna e correções materiais.
+- Gate Impeccable formal específico da F4: NOT_RUN; contraste/foco/toque existentes e alcance nos oito temas passaram.
+- Atualização SW com sessão ativa em E2E dedicado: NOT_RUN; decisão unitária e PWA offline existentes passaram.
 - Nenhum push, deploy, PR, Action ou alteração da main.
+
+## Veredito
+
+F4 implementada e testada localmente, integrada apenas na branch local v2, pronta para avaliação de aceite humano. Não publicada, não integrada remotamente e não aceita automaticamente.
