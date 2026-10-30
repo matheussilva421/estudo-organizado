@@ -3,7 +3,7 @@
 **Atualizado:** 2026-10-30
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Branch:** `v2` (local, ahead de `origin/v2`; sem push)
-**HEAD no checkpoint:** `3650e4c`
+**HEAD no checkpoint:** `fb12365`
 
 ## Documentos
 

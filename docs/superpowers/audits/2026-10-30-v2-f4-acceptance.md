@@ -100,7 +100,7 @@ a98276c feat(v2-f4): audit corrections and soft deletion
 - Aceite humano da F4: pendente; este relatório não declara a fase aceita.
 - Suspensão física real e dispositivo modesto: NOT_RUN; quatro HIGH F0 permanecem UNVERIFIED.
 - DST/fold: INCONCLUSIVE além do contrato F3.
-- Revisão independente formal por outro agente/ferramenta: NOT_RUN; houve revisão técnica interna e correções materiais.
+- Revisão independente formal por outro agente/ferramenta: NOT_RUN; a suíte E2E adversarial e a revisão técnica interna encontraram e corrigiram problemas materiais.
 - Gate Impeccable formal específico da F4: NOT_RUN; contraste/foco/toque existentes e alcance nos oito temas passaram.
 - Atualização SW com sessão ativa em E2E dedicado: NOT_RUN; decisão unitária e PWA offline existentes passaram.
 - Nenhum push, deploy, PR, Action ou alteração da main.
