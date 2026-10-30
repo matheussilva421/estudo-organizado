@@ -1,6 +1,7 @@
 import type { ContentEntity, ContentEntityType } from './content-commands';
 import type { PlanBlock, PlanningScenario } from '../domain/planning';
 import type { StudySession } from '../domain/session';
+import type { HabitOccurrence } from '../domain/session-habits';
 
 export type SyncState =
   | 'LOCAL_ONLY'
@@ -20,13 +21,20 @@ export type PlanningEntityType = 'planning-scenario' | 'plan-block';
 
 export type SessionEntityType = 'study-session';
 
-export type OutboxEntityType = ContentEntityType | PlanningEntityType | SessionEntityType;
+export type HabitEntityType = 'habit-occurrence';
+
+export type OutboxEntityType =
+  | ContentEntityType
+  | PlanningEntityType
+  | SessionEntityType
+  | HabitEntityType;
 
 export type OutboxPayload =
   | ContentEntity
   | PlanningScenario
   | PlanBlock
-  | StudySession;
+  | StudySession
+  | HabitOccurrence;
 
 export type OutboxOperation = {
   operationId: string;
