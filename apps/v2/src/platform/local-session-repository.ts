@@ -237,6 +237,15 @@ export class LocalSessionRepository {
     return records.filter((record) => record.tombstone !== true);
   }
 
+  async listSessions(profileId: string): Promise<StudySession[]> {
+    if (typeof profileId !== 'string' || !profileId.trim()) return [];
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(STORES.sessions, 'readonly');
+    return (await requestResult(
+      transaction.objectStore(STORES.sessions).index('by_profile').getAll(profileId),
+    )) as StudySession[];
+  }
+
   async listSessionRevisions(
     profileId: string,
     sessionId: string,
