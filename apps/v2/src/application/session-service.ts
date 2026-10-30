@@ -5,9 +5,15 @@ import {
   type SessionOrigin,
   type SessionOutcome,
   type SessionScope,
+  type SessionInterval,
   type StudySession,
 } from '../domain/session';
-import type { ClockPort } from '../domain/session-clock';
+import {
+  inspectContinuity,
+  sumVerifiedFocusMs,
+  type ClockPort,
+  type ContinuityPolicy,
+} from '../domain/session-clock';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
 import type { LocalSessionRepository } from '../platform/local-session-repository';
 import type { SessionAuthority } from '../platform/session-coordination';
@@ -50,6 +56,31 @@ export type CheckpointSessionInput = {
   checkpoint: ClockObservation;
 };
 
+export type RecoveryDecision =
+  | 'RESUME'
+  | 'COMPLETE'
+  | 'CORRECT_MANUALLY'
+  | 'KEEP_PENDING';
+
+export type RecoveryPreview = {
+  durableVerifiedMs: number;
+  uncertainIntervals: SessionInterval[];
+  lastCheckpoint: ClockObservation | null;
+  allowedActions: RecoveryDecision[];
+};
+
+export type RecoverSessionInput = {
+  scope: SessionScope;
+  sessionId: string;
+  decision: RecoveryDecision;
+  manualAdjustmentMs?: number;
+  authority: SessionAuthority;
+};
+
+export type StudySessionServiceOptions = {
+  recoveryPolicy?: ContinuityPolicy;
+};
+
 function invalid<T = StudySession>(code: string): SessionOutcome<T> {
   return { kind: 'INVALID', code };
 }
@@ -62,10 +93,18 @@ function validationFailure<T = StudySession>(error: unknown): SessionOutcome<T> 
 }
 
 export class StudySessionService {
+  private readonly recoveryPolicy: ContinuityPolicy;
+
   constructor(
     private readonly repository: LocalSessionRepository,
     private readonly clock: ClockPort,
-  ) {}
+    options: StudySessionServiceOptions = {},
+  ) {
+    this.recoveryPolicy = options.recoveryPolicy ?? {
+      maxUnobservedGapMs: 60_000,
+      maxWallClockDriftMs: 5_000,
+    };
+  }
 
   async loadSession(profileId: string, sessionId: string): Promise<StudySession | null> {
     return this.repository.load(profileId, sessionId);
@@ -162,6 +201,144 @@ export class StudySessionService {
       verifiedMs: input.verifiedMs,
       checkpoint: input.checkpoint,
     });
+  }
+
+  async getRecoveryPreview(
+    profileId: string,
+    sessionId: string,
+  ): Promise<RecoveryPreview | null> {
+    const session = await this.repository.load(profileId, sessionId);
+    if (!session) return null;
+    const lastCheckpoint =
+      [...session.intervals].reverse().find((interval) => interval.checkpoint !== null)
+        ?.checkpoint ?? null;
+    const uncertainIntervals = session.intervals.filter(
+      (interval) => interval.recoveryFlag,
+    );
+    if (lastCheckpoint) {
+      const current = this.clock.observe();
+      const continuity = inspectContinuity(lastCheckpoint, current, this.recoveryPolicy);
+      if (continuity.kind === 'UNCERTAIN') {
+        uncertainIntervals.push({
+          id: `${sessionId}~uncertain~${current.monotonicMs}`,
+          kind: 'FOCUS',
+          verifiedMs: 0,
+          contextId: current.contextId,
+          checkpoint: current,
+          recoveryFlag: true,
+        });
+      }
+    }
+    return {
+      durableVerifiedMs: sumVerifiedFocusMs(session.intervals),
+      uncertainIntervals,
+      lastCheckpoint,
+      allowedActions:
+        session.state === 'COMPLETED' || session.state === 'CANCELLED'
+          ? []
+          : ['RESUME', 'COMPLETE', 'CORRECT_MANUALLY', 'KEEP_PENDING'],
+    };
+  }
+
+  async recoverSession(input: RecoverSessionInput): Promise<SessionOutcome<StudySession>> {
+    const current = await this.repository.load(input.scope.profileId, input.sessionId);
+    if (!current) return invalid('SESSION_NOT_FOUND');
+
+    if (input.decision === 'KEEP_PENDING') {
+      if (current.state === 'COMPLETED' || current.state === 'CANCELLED') {
+        return invalid('INVALID_TRANSITION');
+      }
+      const intervals = current.intervals.map((interval, index) =>
+        index === current.intervals.length - 1
+          ? { ...interval, recoveryFlag: true }
+          : interval,
+      );
+      const edited = await this.repository.commit({
+        kind: 'EDIT_FACTS',
+        scope: {
+          ...input.scope,
+          baseRevision: input.scope.baseRevision ?? current.localRevision,
+        },
+        sessionId: input.sessionId,
+        authority: input.authority,
+        patch: { intervals },
+        reason: 'RECOVERY_PENDING',
+      });
+      if (edited.kind !== 'LOCAL_COMMITTED') return edited;
+      return this.repository.commit({
+        kind: 'TRANSITION',
+        scope: {
+          ...input.scope,
+          operationId: `${input.scope.operationId}~transition`,
+          baseRevision: edited.value.localRevision,
+        },
+        sessionId: input.sessionId,
+        authority: input.authority,
+        nextState: 'RECOVERY_REQUIRED',
+      });
+    }
+
+    if (input.decision === 'CORRECT_MANUALLY') {
+      if (
+        typeof input.manualAdjustmentMs !== 'number' ||
+        !Number.isFinite(input.manualAdjustmentMs) ||
+        input.manualAdjustmentMs < 0
+      ) {
+        return invalid('INVALID_DURATION');
+      }
+      return this.repository.commit({
+        kind: 'EDIT_FACTS',
+        scope: {
+          ...input.scope,
+          baseRevision: input.scope.baseRevision ?? current.localRevision,
+        },
+        sessionId: input.sessionId,
+        authority: input.authority,
+        patch: {
+          manualDeclaredMs:
+            (current.manualDeclaredMs ?? 0) + input.manualAdjustmentMs,
+        },
+        reason: 'MANUAL_RECOVERY',
+      });
+    }
+
+    if (input.decision === 'RESUME') {
+      if (current.state === 'RUNNING') {
+        return { kind: 'LOCAL_COMMITTED', value: current };
+      }
+      if (current.state === 'COMPLETED' || current.state === 'CANCELLED') {
+        return invalid('INVALID_TRANSITION');
+      }
+      return this.repository.commit({
+        kind: 'TRANSITION',
+        scope: {
+          ...input.scope,
+          baseRevision: input.scope.baseRevision ?? current.localRevision,
+        },
+        sessionId: input.sessionId,
+        authority: input.authority,
+        nextState: 'RUNNING',
+      });
+    }
+
+    if (input.decision === 'COMPLETE') {
+      if (current.state === 'COMPLETED') {
+        return { kind: 'LOCAL_COMMITTED', value: current };
+      }
+      if (current.state === 'CANCELLED') return invalid('INVALID_TRANSITION');
+      return this.repository.commit({
+        kind: 'TRANSITION',
+        scope: {
+          ...input.scope,
+          baseRevision: input.scope.baseRevision ?? current.localRevision,
+        },
+        sessionId: input.sessionId,
+        authority: input.authority,
+        nextState: 'COMPLETED',
+      });
+    }
+
+    return invalid('INVALID_DECISION');
   }
 
   async switchActiveSession(
