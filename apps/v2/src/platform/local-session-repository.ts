@@ -83,8 +83,15 @@ export type SessionOperationRecord = {
   entityType: 'study-session' | 'session-checkpoint';
   entityId: string;
   command: unknown;
-  outcome: SessionOutcome<StudySession>;
+  outcome: SessionOutcome<unknown>;
   committedAt: string;
+};
+
+export type SwitchTimerInput = {
+  scope: SessionScope;
+  fromSessionId: string;
+  toSession: StudySession;
+  authority: SessionAuthority;
 };
 
 function stableStringify(value: unknown): string {
@@ -108,15 +115,15 @@ function normalizeCommand(input: SessionCommitInput): Record<string, unknown> {
   };
 }
 
-function invalid(code: string): SessionOutcome<StudySession> {
+function invalid<T = StudySession>(code: string): SessionOutcome<T> {
   return { kind: 'INVALID', code };
 }
 
-function conflict(code: string): SessionOutcome<StudySession> {
+function conflict<T = StudySession>(code: string): SessionOutcome<T> {
   return { kind: 'CONFLICT', code };
 }
 
-function validationFailure(error: unknown): SessionOutcome<StudySession> {
+function validationFailure<T = StudySession>(error: unknown): SessionOutcome<T> {
   if (error instanceof SessionValidationError) {
     return { kind: 'INVALID', code: error.code };
   }
@@ -188,7 +195,7 @@ export class LocalSessionRepository {
           return invalid('INVALID_OPERATION_ID_REUSED');
         }
         await transactionDone(transaction);
-        return replay.outcome;
+        return replay.outcome as SessionOutcome<StudySession>;
       }
 
       if (input.authority) {
@@ -421,6 +428,154 @@ export class LocalSessionRepository {
     }
   }
 
+  async switchTimerAtomic(
+    input: SwitchTimerInput,
+  ): Promise<SessionOutcome<{ from: StudySession; to: StudySession }>> {
+    const scope = input?.scope;
+    if (
+      !scope ||
+      typeof scope.profileId !== 'string' ||
+      !scope.profileId.trim() ||
+      typeof scope.operationId !== 'string' ||
+      !scope.operationId.trim() ||
+      typeof input.fromSessionId !== 'string' ||
+      !input.fromSessionId.trim() ||
+      !input.toSession ||
+      typeof input.toSession.id !== 'string' ||
+      !input.toSession.id.trim()
+    ) {
+      return invalid('INVALID_COMMAND');
+    }
+    if (input.toSession.profileId !== scope.profileId) {
+      return invalid('INVALID_PROFILE');
+    }
+    if (input.toSession.state !== 'RUNNING') {
+      return invalid('INVALID_STATE');
+    }
+
+    const command = {
+      type: 'SESSION_SWITCH',
+      profileId: scope.profileId,
+      operationId: scope.operationId,
+      baseRevision: scope.baseRevision,
+      fromSessionId: input.fromSessionId,
+      toSession: input.toSession,
+    };
+    const commandJson = stableStringify(command);
+    const database = await openV2Database(scope.profileId);
+    const transaction = database.transaction(
+      [STORES.sessions, STORES.operations, STORES.outbox, STORES.sessionControl],
+      'readwrite',
+    );
+
+    try {
+      const operations = transaction.objectStore(STORES.operations);
+      const replay = (await requestResult(operations.get(scope.operationId))) as
+        | SessionOperationRecord
+        | undefined;
+      if (replay) {
+        if (
+          replay.profileId !== scope.profileId ||
+          stableStringify(replay.command) !== commandJson
+        ) {
+          transaction.abort();
+          return invalid('INVALID_OPERATION_ID_REUSED');
+        }
+        await transactionDone(transaction);
+        return replay.outcome as SessionOutcome<{ from: StudySession; to: StudySession }>;
+      }
+
+      const control = (await requestResult(
+        transaction.objectStore(STORES.sessionControl).get(scope.profileId),
+      )) as SessionControlRecord | undefined;
+      if (
+        !control ||
+        control.holderId !== input.authority?.holderId ||
+        control.sessionId !== input.authority?.sessionId ||
+        control.generation !== input.authority?.generation
+      ) {
+        transaction.abort();
+        return conflict('STALE_AUTHORITY');
+      }
+
+      const sessions = transaction.objectStore(STORES.sessions);
+      const from = (await requestResult(
+        sessions.get([scope.profileId, input.fromSessionId]),
+      )) as StudySession | undefined;
+      if (!from) {
+        transaction.abort();
+        return invalid('SESSION_NOT_FOUND');
+      }
+      if (from.state === 'COMPLETED' || from.state === 'CANCELLED') {
+        transaction.abort();
+        return invalid('INVALID_TRANSITION');
+      }
+      if (scope.baseRevision !== null && scope.baseRevision !== from.localRevision) {
+        transaction.abort();
+        return conflict('STALE_REVISION');
+      }
+      const existingTo = (await requestResult(
+        sessions.get([scope.profileId, input.toSession.id]),
+      )) as StudySession | undefined;
+      if (existingTo) {
+        transaction.abort();
+        return conflict('SESSION_EXISTS');
+      }
+
+      let persistedFrom: StudySession;
+      try {
+        const paused =
+          from.state === 'RUNNING' ? transitionSession(from, 'PAUSED') : from;
+        persistedFrom = validateSession({
+          ...paused,
+          localRevision: from.localRevision + 1,
+        });
+      } catch (error) {
+        transaction.abort();
+        return validationFailure(error);
+      }
+      let persistedTo: StudySession;
+      try {
+        persistedTo = validateSession({
+          ...input.toSession,
+          localRevision: 1,
+          schemaVersion: DOMAIN_SCHEMA_VERSION,
+        });
+      } catch (error) {
+        transaction.abort();
+        return validationFailure(error);
+      }
+
+      sessions.put(persistedFrom);
+      sessions.put(persistedTo);
+      this.putOutbox(transaction, scope, persistedFrom, 'upsert', from.localRevision);
+      this.putOutbox(transaction, scope, persistedTo, 'upsert', null);
+      const outcome: SessionOutcome<{ from: StudySession; to: StudySession }> = {
+        kind: 'LOCAL_COMMITTED',
+        value: { from: persistedFrom, to: persistedTo },
+      };
+      this.putOperation(
+        operations,
+        scope,
+        'study-session',
+        input.fromSessionId,
+        command,
+        outcome,
+      );
+      await transactionDone(transaction);
+      notifySessionChange(scope.profileId, persistedFrom.id);
+      notifySessionChange(scope.profileId, persistedTo.id);
+      return outcome;
+    } catch (error) {
+      try {
+        transaction.abort();
+      } catch {
+        // already aborted
+      }
+      return { kind: 'FAILED', reason: toLocalPersistenceError(error).kind };
+    }
+  }
+
   private injectFault(): void {
     if (this.fault === 'abort') throw new DOMException('forced abort', 'AbortError');
     if (this.fault === 'quota') throw new DOMException('forced quota', 'QuotaExceededError');
@@ -454,7 +609,7 @@ export class LocalSessionRepository {
     entityType: SessionOperationRecord['entityType'],
     entityId: string,
     command: unknown,
-    outcome: SessionOutcome<StudySession>,
+    outcome: SessionOutcome<unknown>,
   ): void {
     store.put({
       operationId: scope.operationId,
