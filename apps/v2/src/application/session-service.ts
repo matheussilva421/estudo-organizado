@@ -25,6 +25,7 @@ import {
 } from '../domain/session-pomodoro';
 import type { LocalSessionRepository } from '../platform/local-session-repository';
 import type { SessionFactsPatch } from '../platform/local-session-repository';
+import type { SessionAuditRecord } from '../platform/local-session-repository';
 import {
   validateMaterialRef,
   validateMeasurement,
@@ -140,6 +141,13 @@ export type EditSessionFactsInput = {
   sessionId: string;
   authority: SessionAuthority;
   patch: SessionFactsPatch;
+  reason?: string;
+};
+
+export type DeleteSessionInput = {
+  scope: SessionScope;
+  sessionId: string;
+  authority: SessionAuthority;
   reason?: string;
 };
 
@@ -486,6 +494,25 @@ export class StudySessionService {
       patch: input.patch,
       reason: input.reason,
     });
+  }
+
+  async deleteSession(
+    input: DeleteSessionInput,
+  ): Promise<SessionOutcome<StudySession>> {
+    return this.repository.commit({
+      kind: 'TOMBSTONE',
+      scope: input.scope,
+      sessionId: input.sessionId,
+      authority: input.authority,
+      reason: input.reason,
+    });
+  }
+
+  async listSessionRevisions(
+    profileId: string,
+    sessionId: string,
+  ): Promise<SessionAuditRecord[]> {
+    return this.repository.listSessionRevisions(profileId, sessionId);
   }
 
   async getRecoveryPreview(

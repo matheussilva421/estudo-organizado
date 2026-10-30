@@ -41,8 +41,42 @@ export type SessionFactsPatch = Partial<
     | 'planReconciliation'
     | 'measurements'
     | 'materials'
+    | 'note'
   >
 >;
+
+export type SessionFactsSnapshot = Pick<
+  StudySession,
+  | 'manualDeclaredMs'
+  | 'recordedAtCivilDate'
+  | 'planBlockIds'
+  | 'editalIds'
+  | 'intervals'
+  | 'measurements'
+  | 'materials'
+  | 'note'
+  | 'planReconciliation'
+  | 'tombstone'
+  | 'deletedAt'
+  | 'deletedReason'
+>;
+
+export type SessionAuditRecord = {
+  id: string;
+  profileId: string;
+  sessionId: string;
+  operationId: string;
+  baseRevision: number;
+  newRevision: number;
+  mutationKind: 'EDIT_FACTS' | 'TOMBSTONE';
+  previousDigest: string;
+  newDigest: string;
+  before: SessionFactsSnapshot;
+  after: SessionFactsSnapshot;
+  source: 'MEASURED' | 'MANUAL' | 'CORRECTED';
+  reason?: string;
+  createdAt: string;
+};
 
 export type SessionCommitInput =
   | {
@@ -122,6 +156,25 @@ function normalizeCommand(input: SessionCommitInput): Record<string, unknown> {
   };
 }
 
+function snapshotSession(session: StudySession): SessionFactsSnapshot {
+  return {
+    manualDeclaredMs: session.manualDeclaredMs,
+    recordedAtCivilDate: session.recordedAtCivilDate,
+    planBlockIds: [...session.planBlockIds],
+    editalIds: [...session.editalIds],
+    intervals: session.intervals.map((interval) => ({ ...interval })),
+    measurements: session.measurements?.map((measurement) => ({ ...measurement })),
+    materials: session.materials?.map((material) => ({ ...material })),
+    note: session.note,
+    planReconciliation: session.planReconciliation
+      ? { ...session.planReconciliation }
+      : undefined,
+    tombstone: session.tombstone,
+    deletedAt: session.deletedAt,
+    deletedReason: session.deletedReason,
+  };
+}
+
 function invalid<T = StudySession>(code: string): SessionOutcome<T> {
   return { kind: 'INVALID', code };
 }
@@ -183,6 +236,33 @@ export class LocalSessionRepository {
     return records.filter((record) => record.tombstone !== true);
   }
 
+  async listSessionRevisions(
+    profileId: string,
+    sessionId: string,
+  ): Promise<SessionAuditRecord[]> {
+    if (
+      typeof profileId !== 'string' ||
+      !profileId.trim() ||
+      typeof sessionId !== 'string' ||
+      !sessionId.trim()
+    ) {
+      return [];
+    }
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(STORES.sessionAudit, 'readonly');
+    const records = (await requestResult(
+      transaction
+        .objectStore(STORES.sessionAudit)
+        .index('by_session')
+        .getAll([profileId, sessionId]),
+    )) as SessionAuditRecord[];
+    return records.sort(
+      (left, right) =>
+        left.newRevision - right.newRevision ||
+        left.createdAt.localeCompare(right.createdAt),
+    );
+  }
+
   async commit(input: SessionCommitInput): Promise<SessionOutcome<StudySession>> {
     const scope = input?.scope;
     if (
@@ -204,7 +284,12 @@ export class LocalSessionRepository {
     const command = normalizeCommand(input);
     const commandJson = stableStringify(command);
     const database = await openV2Database(scope.profileId);
-    const stores: string[] = [STORES.sessions, STORES.operations, STORES.sessionControl];
+    const stores: string[] = [
+      STORES.sessions,
+      STORES.operations,
+      STORES.sessionControl,
+      STORES.sessionAudit,
+    ];
     if (input.kind !== 'CHECKPOINT') stores.push(STORES.outbox);
     const transaction = database.transaction(stores, 'readwrite');
 
@@ -391,6 +476,7 @@ export class LocalSessionRepository {
         }
         this.injectFault();
         sessions.put(persisted);
+        this.putAudit(transaction, scope, current, persisted, 'EDIT_FACTS', input.reason);
         this.putOutbox(transaction, scope, persisted, 'upsert', current.localRevision);
         const outcome: SessionOutcome<StudySession> = {
           kind: 'LOCAL_COMMITTED',
@@ -425,6 +511,7 @@ export class LocalSessionRepository {
         }
         this.injectFault();
         sessions.put(persisted);
+        this.putAudit(transaction, scope, current, persisted, 'TOMBSTONE', input.reason);
         this.putOutbox(transaction, scope, persisted, 'delete', current.localRevision);
         const outcome: SessionOutcome<StudySession> = {
           kind: 'LOCAL_COMMITTED',
@@ -628,6 +715,35 @@ export class LocalSessionRepository {
       deliveryMode: 'BLOCKED',
     };
     transaction.objectStore(STORES.outbox).put(operation);
+  }
+
+  private putAudit(
+    transaction: IDBTransaction,
+    scope: SessionScope,
+    before: StudySession,
+    after: StudySession,
+    mutationKind: SessionAuditRecord['mutationKind'],
+    reason?: string,
+  ): void {
+    const beforeSnapshot = snapshotSession(before);
+    const afterSnapshot = snapshotSession(after);
+    const audit: SessionAuditRecord = {
+      id: `${scope.operationId}~audit`,
+      profileId: scope.profileId,
+      sessionId: after.id,
+      operationId: scope.operationId,
+      baseRevision: before.localRevision,
+      newRevision: after.localRevision,
+      mutationKind,
+      previousDigest: stableStringify(beforeSnapshot),
+      newDigest: stableStringify(afterSnapshot),
+      before: beforeSnapshot,
+      after: afterSnapshot,
+      source: 'CORRECTED',
+      reason,
+      createdAt: this.now(),
+    };
+    transaction.objectStore(STORES.sessionAudit).put(audit);
   }
 
   private putOperation(
