@@ -1,9 +1,9 @@
-# Estudo Organizado V2 — F3: saneamento final e candidato à integração
+# Estudo Organizado V2 — F3: execução, integração e aceite com ressalvas
 
 **Data:** 2026-10-30 (integração); implementação e revisão em 2026-10-29
 **Branch:** `v2` (worktree isolado; `main` da V1 intocada)
-**Gate:** `F3_INTEGRATED_TO_ORIGIN_V2_PENDING_HUMAN_ACCEPTANCE`
-**Estados:** IMPLEMENTED · TESTED · REVIEWED · INTEGRATED_TO_ORIGIN_V2 · **NOT_ACCEPTED** · **NOT_PUBLISHED**
+**Gate:** `F3_ACCEPTED_WITH_RESERVATIONS` — aceite humano expresso em 2026-10-30
+**Estados:** IMPLEMENTED · TESTED · REVIEWED · INTEGRATED_TO_ORIGIN_V2 · **ACCEPTED_WITH_RESERVATIONS** · **NOT_DEPLOYED** · **NOT_CONVERGED**
 
 > Este é o registro singular da F3. O push fast-forward de `v2` foi autorizado pelo proprietário e executado em 2026-10-30; não houve merge em `main`, deploy, Firebase, emulador ou sync real.
 
@@ -242,7 +242,7 @@ O mesmo revisor verificou `c08da7c..6183b5d` (teste do P1 e borda de controle) e
 2. **F7/F8 fora de escopo:** sync real, Firebase/emulador, backup produtivo e cutover permanecem `NOT_RUN`; nenhuma homologação remota é afirmada.
 3. **F2 com ressalvas:** as três lacunas F2→F7 e `F2-T22 NOT_RUN` continuam abertas.
 4. **T27:** o encerramento exige desfecho explícito, mas a UI não exibe banner automático de prova vencida.
-5. **Aceite:** qualquer veredito de aceite é humano e separado da integração.
+5. **Aceite:** concedido expressamente pelo proprietário em 2026-10-30, **com as ressalvas 1–4**; integração não equivale a deploy, backup ou sync homologado.
 
 ## 10. Integração executada e próximo gate
 
@@ -260,4 +260,6 @@ O mesmo revisor verificou `c08da7c..6183b5d` (teste do P1 e borda de controle) e
 | Testes | 297 unit, 77 E2E + 1 skip, typecheck/lint/build PASS (sem nova execução nesta etapa) |
 | Revisão | quatro rodadas; parecer final `APPROVE_FOR_INTEGRATION_REVIEW` (§6.5) |
 
-**Próximo gate:** aceite humano da F3. O estado é `F3_INTEGRATED_TO_ORIGIN_V2_PENDING_HUMAN_ACCEPTANCE`; não é `ACCEPTED`, `PUBLISHED` ou `CONVERGED`. F4 não iniciada.
+**Gate de aceite alcançado em 2026-10-30:** o proprietário aprovou formalmente a F3 sob **`F3_ACCEPTED_WITH_RESERVATIONS`**, referenciando `origin/v2` em `5c03763` (candidato de código/testes `3f6d4be`, código revisado `6183b5d`). Aceite limitado à implementação local-first F3 e aos testes/revisões já documentados, sem alegar nova execução de testes. **Ressalvas preservadas:** (i) hardware modesto real `NOT_RUN`; (ii) aviso automático de prova vencida ausente, embora o encerramento exija desfecho explícito; (iii) F2 aceita com ressalvas, três lacunas para F7 e F2-T22 `NOT_RUN`; (iv) sincronização real, Firebase/emulador, backup produtivo e cutover F7/F8 fora do escopo. Quatro riscos HIGH F0 permanecem `UNVERIFIED`. **F4 não iniciada nem autorizada; V1/`main` intacta; nenhum deploy, PR ou Action novo.**
+
+**Registro documental:** este aceite acrescenta apenas documentação ao histórico de `v2`. O HEAD remoto após esse commit poderá diferir do `5c03763` de referência do aceite, sem alterações funcionais; registrar o SHA definitivo após publicação.
