@@ -232,6 +232,70 @@ function definitions(): StoreDefinition[] {
       keyPath: ['profileId', 'importId'],
       indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
     },
+    // ---------------------------------------------------------------- F4 --
+    // Session stores are additive. F1/F2/F3 stores, records and the single
+    // outbox remain untouched; no store is renamed or dropped.
+    {
+      name: STORES.sessions,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_profile_state', keyPath: ['profileId', 'state'] },
+        { name: 'by_profile_date', keyPath: ['profileId', 'recordedAtCivilDate'] },
+        { name: 'by_profile_origin', keyPath: ['profileId', 'origin'] },
+      ],
+    },
+    {
+      name: STORES.sessionAudit,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_session', keyPath: ['profileId', 'sessionId'] },
+      ],
+    },
+    {
+      // Exactly one control row per profile: the durable fencing authority.
+      name: STORES.sessionControl,
+      keyPath: 'profileId',
+      indexes: [],
+    },
+    {
+      name: STORES.sessionConflicts,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_session', keyPath: ['profileId', 'sessionId'] },
+        { name: 'by_status', keyPath: ['profileId', 'status'] },
+      ],
+    },
+    {
+      name: STORES.sessionHabits,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_kind', keyPath: ['profileId', 'kind'] },
+      ],
+    },
+    {
+      name: STORES.habitOccurrences,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        {
+          name: 'by_habit_date',
+          keyPath: ['profileId', 'habitId', 'civilDate'],
+          unique: true,
+        },
+      ],
+    },
+    {
+      name: STORES.sessionEmergencyReceipts,
+      keyPath: ['profileId', 'receiptId'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_operation', keyPath: ['profileId', 'operationId'] },
+      ],
+    },
   ];
 }
 

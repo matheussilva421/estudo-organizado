@@ -28,6 +28,13 @@ export const STORES = {
   planningPriorityProfiles: 'planning_priority_profiles',
   planningAvailability: 'planning_availability',
   planningImports: 'planning_imports',
+  sessions: 'sessions',
+  sessionAudit: 'session_audit',
+  sessionControl: 'session_control',
+  sessionConflicts: 'session_conflicts',
+  sessionHabits: 'session_habits',
+  habitOccurrences: 'habit_occurrences',
+  sessionEmergencyReceipts: 'session_emergency_receipts',
 } as const;
 
 export type LocalPersistenceKind = 'QUOTA' | 'ABORT' | 'UNAVAILABLE' | 'BLOCKED_UPGRADE';
