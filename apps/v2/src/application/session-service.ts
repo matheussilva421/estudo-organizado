@@ -86,6 +86,13 @@ export type StudySessionServiceOptions = {
   recoveryPolicy?: ContinuityPolicy;
 };
 
+export type FlagInactiveSessionInput = {
+  scope: SessionScope;
+  sessionId: string;
+  authority: SessionAuthority;
+  observation: ClockObservation;
+};
+
 function invalid<T = StudySession>(code: string): SessionOutcome<T> {
   return { kind: 'INVALID', code };
 }
@@ -210,6 +217,37 @@ export class StudySessionService {
 
   async evaluatePomodoro(input: PomodoroStepInput): Promise<{ kind: PomodoroStep }> {
     return nextPomodoroStep(input);
+  }
+
+  async flagInactiveSession(
+    input: FlagInactiveSessionInput,
+  ): Promise<SessionOutcome<StudySession>> {
+    const current = await this.repository.load(input.scope.profileId, input.sessionId);
+    if (!current) return invalid('SESSION_NOT_FOUND');
+    if (current.state === 'COMPLETED' || current.state === 'CANCELLED') {
+      return invalid('INVALID_TRANSITION');
+    }
+    const intervals = current.intervals.map((interval, index) =>
+      index === current.intervals.length - 1
+        ? {
+            ...interval,
+            recoveryFlag: true,
+            contextId: input.observation.contextId,
+            checkpoint: input.observation,
+          }
+        : interval,
+    );
+    return this.repository.commit({
+      kind: 'EDIT_FACTS',
+      scope: {
+        ...input.scope,
+        baseRevision: input.scope.baseRevision ?? current.localRevision,
+      },
+      sessionId: input.sessionId,
+      authority: input.authority,
+      patch: { intervals },
+      reason: 'INACTIVITY_REVIEW',
+    });
   }
 
   async getRecoveryPreview(

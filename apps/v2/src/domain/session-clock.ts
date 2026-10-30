@@ -17,6 +17,16 @@ export type ContinuityResult =
   | { kind: 'VALID'; elapsedMs: number }
   | { kind: 'UNCERTAIN'; reason: string };
 
+export type SessionReviewPolicy = {
+  maxUnobservedGapMs: number;
+  anomalousDurationMs: number;
+};
+
+export type DurationReview =
+  | { kind: 'VALID' }
+  | { kind: 'REVIEW_REQUIRED' }
+  | { kind: 'INVALID'; code: string };
+
 function fail(code: string, message: string): never {
   throw new SessionValidationError(code, message);
 }
@@ -130,4 +140,43 @@ export function createSystemClock(contextId: string): ClockPort {
       wallInstant: new Date().toISOString(),
     }),
   };
+}
+
+/**
+ * Long but possible durations are never truncated. They are surfaced for a
+ * human decision; structurally invalid values are rejected before commit.
+ */
+export function reviewDuration(input: {
+  durationMs: number;
+  policy: SessionReviewPolicy;
+  source: 'MEASURED' | 'MANUAL';
+}): DurationReview {
+  if (!input || typeof input !== 'object') {
+    return { kind: 'INVALID', code: 'INVALID_INPUT' };
+  }
+  if (
+    typeof input.durationMs !== 'number' ||
+    !Number.isFinite(input.durationMs) ||
+    input.durationMs < 0
+  ) {
+    return { kind: 'INVALID', code: 'INVALID_DURATION' };
+  }
+  const policy = input.policy;
+  if (
+    !policy ||
+    typeof policy.maxUnobservedGapMs !== 'number' ||
+    !Number.isFinite(policy.maxUnobservedGapMs) ||
+    policy.maxUnobservedGapMs < 0 ||
+    typeof policy.anomalousDurationMs !== 'number' ||
+    !Number.isFinite(policy.anomalousDurationMs) ||
+    policy.anomalousDurationMs < 0
+  ) {
+    return { kind: 'INVALID', code: 'INVALID_POLICY' };
+  }
+  if (input.source !== 'MEASURED' && input.source !== 'MANUAL') {
+    return { kind: 'INVALID', code: 'INVALID_SOURCE' };
+  }
+  return input.durationMs > policy.anomalousDurationMs
+    ? { kind: 'REVIEW_REQUIRED' }
+    : { kind: 'VALID' };
 }
