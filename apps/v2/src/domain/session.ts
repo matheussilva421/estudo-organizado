@@ -35,6 +35,8 @@ export type SessionInterval = {
   contextId: string | null;
   checkpoint: ClockObservation | null;
   recoveryFlag: boolean;
+  startedAt?: string;
+  endedAt?: string;
 };
 
 export type StudySession = {
@@ -132,6 +134,18 @@ function validateInterval(interval: SessionInterval): void {
   }
   if (interval.checkpoint !== null) validateClockObservation(interval.checkpoint);
   if (typeof interval.recoveryFlag !== 'boolean') fail('INVALID_INTERVAL', 'recoveryFlag is required');
+  if (
+    interval.startedAt !== undefined &&
+    (typeof interval.startedAt !== 'string' || Number.isNaN(Date.parse(interval.startedAt)))
+  ) {
+    fail('INVALID_INTERVAL', 'startedAt must be an ISO date-time');
+  }
+  if (
+    interval.endedAt !== undefined &&
+    (typeof interval.endedAt !== 'string' || Number.isNaN(Date.parse(interval.endedAt)))
+  ) {
+    fail('INVALID_INTERVAL', 'endedAt must be an ISO date-time');
+  }
 }
 
 export function validateSession(input: StudySession): StudySession {
