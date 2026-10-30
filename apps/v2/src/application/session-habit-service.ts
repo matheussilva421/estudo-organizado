@@ -2,7 +2,11 @@ import type {
   SessionOutcome,
   SessionScope,
 } from '../domain/session';
-import type { HabitOccurrence, StudyHabit } from '../domain/session-habits';
+import {
+  validateHabit,
+  type HabitOccurrence,
+  type StudyHabit,
+} from '../domain/session-habits';
 import { isCivilDate } from '../domain/planning-time';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
 import {
@@ -13,6 +17,59 @@ import {
 } from '../platform/indexeddb';
 
 export class LocalSessionHabitService {
+  async createHabit(input: {
+    profileId: string;
+    habitId: string;
+    kind: StudyHabit['kind'];
+    target?: number;
+    referenceZone: string;
+    recurrence: StudyHabit['recurrence'];
+  }): Promise<SessionOutcome<StudyHabit>> {
+    let habit: StudyHabit;
+    try {
+      habit = validateHabit({
+        id: input.habitId,
+        profileId: input.profileId,
+        kind: input.kind,
+        target: input.target,
+        referenceZone: input.referenceZone,
+        recurrence: input.recurrence,
+        localRevision: 1,
+      });
+    } catch (error) {
+      return {
+        kind: 'INVALID',
+        code: error instanceof Error && 'code' in error ? String(error.code) : 'INVALID_HABIT',
+      };
+    }
+    const database = await openV2Database(input.profileId);
+    const transaction = database.transaction(STORES.sessionHabits, 'readwrite');
+    const existing = (await requestResult(
+      transaction
+        .objectStore(STORES.sessionHabits)
+        .get([input.profileId, input.habitId]),
+    )) as StudyHabit | undefined;
+    if (existing) {
+      await transactionDone(transaction);
+      return { kind: 'LOCAL_COMMITTED', value: existing };
+    }
+    transaction.objectStore(STORES.sessionHabits).put(habit);
+    await transactionDone(transaction);
+    return { kind: 'LOCAL_COMMITTED', value: habit };
+  }
+
+  async listHabits(profileId: string): Promise<StudyHabit[]> {
+    if (typeof profileId !== 'string' || !profileId.trim()) return [];
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(STORES.sessionHabits, 'readonly');
+    return (await requestResult(
+      transaction
+        .objectStore(STORES.sessionHabits)
+        .index('by_profile')
+        .getAll(profileId),
+    )) as StudyHabit[];
+  }
+
   async confirmHabitOccurrence(input: {
     scope: SessionScope;
     habitId: string;
