@@ -3,7 +3,7 @@
 **Atualizado:** 2026-10-30
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Branch:** `v2` (local, ahead de `origin/v2`; sem push)
-**HEAD no checkpoint:** `852a419`
+**HEAD no checkpoint:** `3650e4c`
 
 ## Documentos
 
@@ -35,6 +35,7 @@
 - Task 19 — atualização PWA coordenada: `26e5755`.
 - Tasks 20–21 — SessionWorkspace integrado ao App, Pomodoro, autoridade assistida, hábitos e E2E: `852a419`.
 - Task 22 — unitários 413 PASS, E2E completo 85 PASS + 1 skip, lint/build PASS, relatório final.
+- Correção material — checkpoint do tempo verificado antes de pausar/concluir: `3650e4c`.
 
 ## Próxima ação
 

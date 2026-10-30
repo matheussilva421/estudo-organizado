@@ -3,7 +3,7 @@
 **Status:** F4_IMPLEMENTED_LOCAL_READY_FOR_HUMAN_ACCEPTANCE
 **Data:** 2026-10-30
 **Branch/worktree:** v2 em C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado
-**HEAD de código:** 852a419
+**HEAD de código:** 3650e4c
 **Remoto:** origin/v2 = 68db01542a9d5934c7e45e622001334f91eaaf4f; sem push, merge ou deploy.
 
 ## Entradas aprovadas
@@ -37,6 +37,7 @@
 - O rótulo Minutos do formulário F4 colidia com o editor F3; foi substituído por Duração da sessão (min), sem alterar os testes F3.
 - A segunda aba não pode mais controlar o cronômetro apenas por ler o registro; a UI exige transferência assistida de autoridade e mantém a aba observadora sem escrita.
 - O Pomodoro separa foco e descanso; o próximo foco exige confirmação explícita.
+- Pausar/concluir agora persiste o intervalo de foco verificado antes da transição; o histórico mostra o tempo medido, não apenas o declarado.
 
 ## Commits locais
 
@@ -63,6 +64,7 @@ a98276c feat(v2-f4): audit corrections and soft deletion
 7f7be33 feat(v2-f4): add execution workspace component
 52517d7 docs(v2-f4): record partial F4 acceptance evidence
 852a419 feat(v2-f4): integrate execution workspace and complete F4 UI journeys
+3650e4c fix(v2-f4): persist verified time before session transitions
 
 ## Matriz F4-T01…T42
 
