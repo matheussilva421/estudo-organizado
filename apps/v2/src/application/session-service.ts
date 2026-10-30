@@ -15,6 +15,11 @@ import {
   type ContinuityPolicy,
 } from '../domain/session-clock';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
+import {
+  nextPomodoroStep,
+  type PomodoroStep,
+  type PomodoroStepInput,
+} from '../domain/session-pomodoro';
 import type { LocalSessionRepository } from '../platform/local-session-repository';
 import type { SessionAuthority } from '../platform/session-coordination';
 
@@ -201,6 +206,10 @@ export class StudySessionService {
       verifiedMs: input.verifiedMs,
       checkpoint: input.checkpoint,
     });
+  }
+
+  async evaluatePomodoro(input: PomodoroStepInput): Promise<{ kind: PomodoroStep }> {
+    return nextPomodoroStep(input);
   }
 
   async getRecoveryPreview(
