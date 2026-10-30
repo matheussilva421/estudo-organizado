@@ -53,6 +53,7 @@ export type StudySession = {
   tombstone?: boolean;
   deletedAt?: string;
   deletedReason?: string;
+  note?: string;
 };
 
 export class SessionValidationError extends Error {
@@ -171,6 +172,9 @@ export function validateSession(input: StudySession): StudySession {
   }
   if (input.deletedReason !== undefined && typeof input.deletedReason !== 'string') {
     fail('INVALID_TOMBSTONE', 'deletedReason must be a string');
+  }
+  if (input.note !== undefined && typeof input.note !== 'string') {
+    fail('INVALID_NOTE', 'note must be a string');
   }
   if (input.tombstone === true && input.deletedAt === undefined) {
     fail('INVALID_TOMBSTONE', 'a tombstone requires deletedAt');

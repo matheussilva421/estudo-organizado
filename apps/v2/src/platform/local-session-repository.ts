@@ -156,6 +156,26 @@ export class LocalSessionRepository {
     return (record as StudySession | undefined) ?? null;
   }
 
+  async listByCivilDate(profileId: string, civilDate: string): Promise<StudySession[]> {
+    if (
+      typeof profileId !== 'string' ||
+      !profileId.trim() ||
+      typeof civilDate !== 'string' ||
+      !civilDate.trim()
+    ) {
+      return [];
+    }
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(STORES.sessions, 'readonly');
+    const records = (await requestResult(
+      transaction
+        .objectStore(STORES.sessions)
+        .index('by_profile_date')
+        .getAll([profileId, civilDate]),
+    )) as StudySession[];
+    return records.filter((record) => record.tombstone !== true);
+  }
+
   async commit(input: SessionCommitInput): Promise<SessionOutcome<StudySession>> {
     const scope = input?.scope;
     if (

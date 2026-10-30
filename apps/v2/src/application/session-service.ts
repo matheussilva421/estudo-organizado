@@ -15,6 +15,7 @@ import {
   type ContinuityPolicy,
 } from '../domain/session-clock';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
+import { isCivilDate, isValidTimeZone } from '../domain/planning-time';
 import {
   nextPomodoroStep,
   type PomodoroStep,
@@ -91,6 +92,16 @@ export type FlagInactiveSessionInput = {
   sessionId: string;
   authority: SessionAuthority;
   observation: ClockObservation;
+};
+
+export type RegisterManualSessionInput = {
+  scope: SessionScope;
+  sessionId: string;
+  civilDate: string;
+  referenceZone: string;
+  durationMs: number;
+  note?: string;
+  authority: SessionAuthority;
 };
 
 function invalid<T = StudySession>(code: string): SessionOutcome<T> {
@@ -248,6 +259,55 @@ export class StudySessionService {
       patch: { intervals },
       reason: 'INACTIVITY_REVIEW',
     });
+  }
+
+  async registerManualSession(
+    input: RegisterManualSessionInput,
+  ): Promise<SessionOutcome<StudySession>> {
+    if (!isCivilDate(input.civilDate)) return invalid('INVALID_CIVIL_DATE');
+    if (!isValidTimeZone(input.referenceZone)) return invalid('INVALID_TIME_ZONE');
+    if (
+      typeof input.durationMs !== 'number' ||
+      !Number.isFinite(input.durationMs) ||
+      input.durationMs < 0
+    ) {
+      return invalid('INVALID_DURATION');
+    }
+    let session: StudySession;
+    try {
+      session = validateSession({
+        id: input.sessionId,
+        profileId: input.scope.profileId,
+        state: 'COMPLETED',
+        origin: 'MANUAL',
+        localRevision: 1,
+        schemaVersion: DOMAIN_SCHEMA_VERSION,
+        referenceZone: input.referenceZone,
+        recordedAtCivilDate: input.civilDate,
+        manualDeclaredMs: input.durationMs,
+        note: input.note,
+        planBlockIds: [],
+        editalIds: [],
+        intervals: [],
+      });
+    } catch (error) {
+      return validationFailure(error);
+    }
+    return this.repository.commit({
+      kind: 'CREATE',
+      scope: input.scope,
+      sessionId: input.sessionId,
+      authority: input.authority,
+      session,
+    });
+  }
+
+  async findPotentialOverlaps(
+    profileId: string,
+    civilDate: string,
+  ): Promise<StudySession[]> {
+    if (!isCivilDate(civilDate)) return [];
+    return this.repository.listByCivilDate(profileId, civilDate);
   }
 
   async getRecoveryPreview(
