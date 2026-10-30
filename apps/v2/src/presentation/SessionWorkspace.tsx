@@ -55,6 +55,7 @@ function formatMs(ms: number): string {
 export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
   const [session, setSession] = useState<StudySession | null>(null);
   const [authority, setAuthority] = useState<SessionAuthority | null>(null);
+  const [foreignAuthority, setForeignAuthority] = useState<SessionAuthority | null>(null);
   const [recovery, setRecovery] = useState<RecoveryPreview | null>(null);
   const [history, setHistory] = useState<StudySession[]>([]);
   const [habits, setHabits] = useState<StudyHabit[]>([]);
@@ -63,6 +64,9 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
   const [manualDate, setManualDate] = useState(todayInZone());
   const [manualMinutes, setManualMinutes] = useState('30');
   const [manualNote, setManualNote] = useState('');
+  const [pomodoroStage, setPomodoroStage] = useState<'FOCUS' | 'BREAK'>('FOCUS');
+  const [pomodoroFocus, setPomodoroFocus] = useState('25');
+  const [pomodoroBreak, setPomodoroBreak] = useState('5');
 
   const holderId = useMemo(() => newId(), []);
   const repository = useMemo(() => new LocalSessionRepository(), []);
@@ -79,19 +83,44 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     if (currentAuthority) {
       const loaded = await repository.load(profileId, currentAuthority.sessionId);
       setSession(loaded);
-      setAuthority(currentAuthority);
+      const isMine = currentAuthority.holderId === holderId;
+      setAuthority(isMine ? currentAuthority : null);
+      setForeignAuthority(isMine ? null : currentAuthority);
       setRecovery(
         loaded ? await service.getRecoveryPreview(profileId, loaded.id) : null,
       );
     } else {
       setSession(null);
       setAuthority(null);
+      setForeignAuthority(null);
       setRecovery(null);
     }
     const page = await querySessionHistory(repository, { profileId }, undefined, 50);
     setHistory(page.items);
     setHabits(await habitService.listHabits(profileId));
-  }, [coordinator, habitService, profileId, repository, service]);
+  }, [coordinator, habitService, holderId, profileId, repository, service]);
+
+  async function takeOver(): Promise<void> {
+    if (!foreignAuthority || locked || busy) return;
+    setBusy(true);
+    onNotice(null);
+    try {
+      const result = await coordinator.transferAuthority(
+        foreignAuthority.sessionId,
+        profileId,
+        foreignAuthority.holderId,
+        holderId,
+        foreignAuthority.generation,
+        newId(),
+      );
+      if (result.kind !== 'LOCAL_COMMITTED') {
+        onNotice('Não foi possível assumir o controle do cronômetro.');
+      }
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -120,7 +149,16 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     return () => clearInterval(timer);
   }, [session]);
 
-  async function startSession(): Promise<void> {
+  useEffect(() => {
+    if (session?.origin === 'POMODORO') {
+      const last = session.intervals[session.intervals.length - 1];
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPomodoroStage(last?.kind === 'BREAK' ? 'BREAK' : 'FOCUS');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id, session?.intervals.length]);
+
+  async function startSessionWithOrigin(origin: 'TIMER' | 'POMODORO'): Promise<void> {
     if (locked || busy) return;
     setBusy(true);
     onNotice(null);
@@ -140,7 +178,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
       const result = await service.startSession({
         scope: { profileId, operationId: newId(), baseRevision: null },
         sessionId,
-        origin: 'TIMER',
+        origin,
         authority: acquired.value,
         referenceZone: ZONE,
         recordedAtCivilDate: todayInZone(),
@@ -148,6 +186,108 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('Não foi possível iniciar a sessão.');
       }
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startSession(): Promise<void> {
+    return startSessionWithOrigin('TIMER');
+  }
+
+  async function startPomodoro(): Promise<void> {
+    await startSessionWithOrigin('POMODORO');
+    setPomodoroStage('FOCUS');
+  }
+
+  async function completePomodoroStage(): Promise<void> {
+    if (!session || !authority || locked || busy) return;
+    setBusy(true);
+    onNotice(null);
+    try {
+      const config = {
+        focusMs: Math.max(1, Number(pomodoroFocus) || 25) * 60_000,
+        breakMs: Math.max(1, Number(pomodoroBreak) || 5) * 60_000,
+      };
+      const step = await service.evaluatePomodoro({
+        stage: pomodoroStage,
+        elapsedVerifiedMs:
+          pomodoroStage === 'FOCUS' ? config.focusMs : config.breakMs,
+        config,
+        continuity: 'VALID',
+        authorityValid: true,
+      });
+      if (step.kind === 'BEGIN_BREAK') {
+        const now = clock.observe();
+        const intervals = [
+          ...session.intervals,
+          {
+            id: newId(),
+            kind: 'BREAK' as const,
+            verifiedMs: config.breakMs,
+            contextId: now.contextId,
+            checkpoint: now,
+            recoveryFlag: false,
+            startedAt: now.wallInstant,
+          },
+        ];
+        const result = await service.editSessionFacts({
+          scope: {
+            profileId,
+            operationId: newId(),
+            baseRevision: session.localRevision,
+          },
+          sessionId: session.id,
+          authority,
+          patch: { intervals },
+          reason: 'POMODORO_BREAK',
+        });
+        if (result.kind === 'LOCAL_COMMITTED') setPomodoroStage('BREAK');
+        else onNotice('Não foi possível registrar o descanso.');
+      } else if (step.kind === 'AWAIT_FOCUS_CONFIRMATION') {
+        onNotice('Descanso concluído. Confirme o próximo foco.');
+      } else if (step.kind === 'RECOVERY_REQUIRED') {
+        onNotice('Pomodoro requer recuperação assistida.');
+      } else {
+        onNotice('O estágio ainda não foi concluído.');
+      }
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmNextFocus(): Promise<void> {
+    if (!session || !authority || locked || busy) return;
+    setBusy(true);
+    try {
+      const now = clock.observe();
+      const intervals = [
+        ...session.intervals,
+        {
+          id: newId(),
+          kind: 'FOCUS' as const,
+          verifiedMs: 0,
+          contextId: now.contextId,
+          checkpoint: now,
+          recoveryFlag: false,
+          startedAt: now.wallInstant,
+        },
+      ];
+      const result = await service.editSessionFacts({
+        scope: {
+          profileId,
+          operationId: newId(),
+          baseRevision: session.localRevision,
+        },
+        sessionId: session.id,
+        authority,
+        patch: { intervals },
+        reason: 'POMODORO_NEXT_FOCUS',
+      });
+      if (result.kind === 'LOCAL_COMMITTED') setPomodoroStage('FOCUS');
+      else onNotice('Não foi possível iniciar o próximo foco.');
       await refresh();
     } finally {
       setBusy(false);
@@ -332,6 +472,19 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
           ) : (
             <p>Nenhuma sessão ativa.</p>
           )}
+          {foreignAuthority ? (
+            <div data-testid="session-foreign-authority">
+              <p>Outra aba controla o cronômetro.</p>
+              <button
+                type="button"
+                onClick={takeOver}
+                disabled={locked || busy}
+                data-testid="session-takeover"
+              >
+                Assumir controle
+              </button>
+            </div>
+          ) : null}
           <div className="session-actions">
             {!session ? (
               <button
@@ -347,7 +500,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
               <button
                 type="button"
                 onClick={() => control('pause')}
-                disabled={locked || busy}
+                disabled={locked || busy || !authority}
                 data-testid="session-pause"
               >
                 Pausar
@@ -357,7 +510,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
               <button
                 type="button"
                 onClick={() => control('resume')}
-                disabled={locked || busy}
+                disabled={locked || busy || !authority}
                 data-testid="session-resume"
               >
                 Retomar
@@ -367,7 +520,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
               <button
                 type="button"
                 onClick={() => control('complete')}
-                disabled={locked || busy}
+                disabled={locked || busy || !authority}
                 data-testid="session-complete"
               >
                 Concluir
@@ -377,12 +530,78 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
           {recovery ? (
             <div data-testid="session-recovery">
               <p>Tempo confirmado: {formatMs(recovery.durableVerifiedMs)}</p>
-              <button type="button" onClick={() => recover('KEEP_PENDING')}>
+              <button
+                type="button"
+                onClick={() => recover('KEEP_PENDING')}
+                disabled={locked || busy || !authority}
+              >
                 Manter pendente
               </button>
-              <button type="button" onClick={() => recover('COMPLETE')}>
+              <button
+                type="button"
+                onClick={() => recover('COMPLETE')}
+                disabled={locked || busy || !authority}
+              >
                 Concluir recuperação
               </button>
+            </div>
+          ) : null}
+        </article>
+
+        <article className="panel" data-testid="session-pomodoro">
+          <h3>Pomodoro</h3>
+          <p>
+            Estágio:{' '}
+            <strong>{pomodoroStage === 'FOCUS' ? 'Foco' : 'Descanso'}</strong>
+          </p>
+          <label>
+            Foco (min)
+            <input
+              type="number"
+              min="1"
+              value={pomodoroFocus}
+              onChange={(event) => setPomodoroFocus(event.target.value)}
+            />
+          </label>
+          <label>
+            Descanso (min)
+            <input
+              type="number"
+              min="1"
+              value={pomodoroBreak}
+              onChange={(event) => setPomodoroBreak(event.target.value)}
+            />
+          </label>
+          {!session ? (
+            <button
+              type="button"
+              onClick={startPomodoro}
+              disabled={locked || busy}
+              data-testid="pomodoro-start"
+            >
+              Iniciar Pomodoro
+            </button>
+          ) : null}
+          {session?.origin === 'POMODORO' && session.state !== 'COMPLETED' ? (
+            <div className="session-actions">
+              <button
+                type="button"
+                onClick={completePomodoroStage}
+                disabled={locked || busy}
+                data-testid="pomodoro-complete-stage"
+              >
+                {pomodoroStage === 'FOCUS' ? 'Concluir foco' : 'Concluir descanso'}
+              </button>
+              {pomodoroStage === 'BREAK' ? (
+                <button
+                  type="button"
+                  onClick={confirmNextFocus}
+                  disabled={locked || busy}
+                  data-testid="pomodoro-next-focus"
+                >
+                  Confirmar novo foco
+                </button>
+              ) : null}
             </div>
           ) : null}
         </article>
@@ -398,7 +617,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
             />
           </label>
           <label>
-            Minutos
+            Duração da sessão (min)
             <input
               type="number"
               min="0"

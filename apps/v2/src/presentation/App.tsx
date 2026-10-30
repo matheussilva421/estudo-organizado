@@ -29,6 +29,7 @@ import { SubjectForm } from './components/SubjectForm';
 import { SubjectList } from './components/SubjectList';
 import { SyncStatus } from './components/SyncStatus';
 import { PlanningWorkspace } from './PlanningWorkspace';
+import { SessionWorkspace } from './SessionWorkspace';
 import { canSubmitTitle, initialFormState, markSubmitFailure, THEMES, type FormState } from './ui-state';
 
 const PROFILE_ID = 'local-default';
@@ -220,8 +221,8 @@ export function App() {
       <SyncStatus health={health} />
 
       <p className="execution-state" data-state={EXECUTION_DATA_STATE}>
-        Progresso de estudo: <strong>{EXECUTION_DATA_STATE}</strong> — as sessões chegam na fase F4;
-        nada é estimado aqui.
+        Progresso de estudo: <strong>{EXECUTION_DATA_STATE}</strong> — sessões F4 registradas
+        localmente; nada é estimado aqui.
       </p>
 
       {upgrade.blocked ? (
@@ -428,6 +429,13 @@ export function App() {
       </section>
 
       <PlanningWorkspace
+        profileId={PROFILE_ID}
+        content={content}
+        locked={upgrade.blocked}
+        onNotice={setNotice}
+      />
+
+      <SessionWorkspace
         profileId={PROFILE_ID}
         content={content}
         locked={upgrade.blocked}
