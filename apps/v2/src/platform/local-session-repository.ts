@@ -18,6 +18,10 @@ import {
   transactionDone,
 } from './indexeddb';
 import { notifySessionChange } from './local-events';
+import type {
+  SessionAuthority,
+  SessionControlRecord,
+} from './session-coordination';
 
 type Fault = 'abort' | 'quota' | null;
 
@@ -38,18 +42,21 @@ export type SessionCommitInput =
       kind: 'CREATE';
       scope: SessionScope;
       sessionId: string;
+      authority?: SessionAuthority;
       session: StudySession;
     }
   | {
       kind: 'TRANSITION';
       scope: SessionScope;
       sessionId: string;
+      authority?: SessionAuthority;
       nextState: SessionState;
     }
   | {
       kind: 'CHECKPOINT';
       scope: SessionScope;
       sessionId: string;
+      authority?: SessionAuthority;
       intervalId: string;
       verifiedMs: number;
       checkpoint: ClockObservation;
@@ -58,6 +65,7 @@ export type SessionCommitInput =
       kind: 'EDIT_FACTS';
       scope: SessionScope;
       sessionId: string;
+      authority?: SessionAuthority;
       patch: SessionFactsPatch;
       reason?: string;
     }
@@ -65,6 +73,7 @@ export type SessionCommitInput =
       kind: 'TOMBSTONE';
       scope: SessionScope;
       sessionId: string;
+      authority?: SessionAuthority;
       reason?: string;
     };
 
@@ -161,7 +170,7 @@ export class LocalSessionRepository {
     const command = normalizeCommand(input);
     const commandJson = stableStringify(command);
     const database = await openV2Database(scope.profileId);
-    const stores: string[] = [STORES.sessions, STORES.operations];
+    const stores: string[] = [STORES.sessions, STORES.operations, STORES.sessionControl];
     if (input.kind !== 'CHECKPOINT') stores.push(STORES.outbox);
     const transaction = database.transaction(stores, 'readwrite');
 
@@ -180,6 +189,21 @@ export class LocalSessionRepository {
         }
         await transactionDone(transaction);
         return replay.outcome;
+      }
+
+      if (input.authority) {
+        const control = (await requestResult(
+          transaction.objectStore(STORES.sessionControl).get(scope.profileId),
+        )) as SessionControlRecord | undefined;
+        if (
+          !control ||
+          control.holderId !== input.authority.holderId ||
+          control.sessionId !== input.authority.sessionId ||
+          control.generation !== input.authority.generation
+        ) {
+          transaction.abort();
+          return conflict('STALE_AUTHORITY');
+        }
       }
 
       const sessions = transaction.objectStore(STORES.sessions);
