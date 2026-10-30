@@ -24,6 +24,11 @@ import {
   type PomodoroStepInput,
 } from '../domain/session-pomodoro';
 import type { LocalSessionRepository } from '../platform/local-session-repository';
+import type { SessionFactsPatch } from '../platform/local-session-repository';
+import {
+  validateMaterialRef,
+  validateMeasurement,
+} from '../domain/session-measurements';
 import type { SessionAuthority } from '../platform/session-coordination';
 
 export type StartSessionInput = {
@@ -128,6 +133,14 @@ export type ReconcilePlanProgressResult = {
   kind: 'LOCAL_COMMITTED' | 'CONFLICT' | 'FAILED';
   planApplied: boolean;
   code?: string;
+};
+
+export type EditSessionFactsInput = {
+  scope: SessionScope;
+  sessionId: string;
+  authority: SessionAuthority;
+  patch: SessionFactsPatch;
+  reason?: string;
 };
 
 function invalid<T = StudySession>(code: string): SessionOutcome<T> {
@@ -445,6 +458,34 @@ export class StudySessionService {
       planApplied: false,
       code: edited.kind === 'INVALID' ? edited.code : edited.reason,
     };
+  }
+
+  async editSessionFacts(
+    input: EditSessionFactsInput,
+  ): Promise<SessionOutcome<StudySession>> {
+    const current = await this.repository.load(input.scope.profileId, input.sessionId);
+    if (!current) return invalid('SESSION_NOT_FOUND');
+    try {
+      for (const measurement of input.patch.measurements ?? []) {
+        validateMeasurement(measurement);
+      }
+      for (const material of input.patch.materials ?? []) {
+        validateMaterialRef(material);
+      }
+    } catch (error) {
+      return validationFailure(error);
+    }
+    return this.repository.commit({
+      kind: 'EDIT_FACTS',
+      scope: {
+        ...input.scope,
+        baseRevision: input.scope.baseRevision ?? current.localRevision,
+      },
+      sessionId: input.sessionId,
+      authority: input.authority,
+      patch: input.patch,
+      reason: input.reason,
+    });
   }
 
   async getRecoveryPreview(

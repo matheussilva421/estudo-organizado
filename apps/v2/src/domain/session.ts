@@ -39,6 +39,26 @@ export type SessionInterval = {
   endedAt?: string;
 };
 
+export type StudyMeasurement = {
+  id: string;
+  sessionId: string;
+  allocationId?: string;
+  questions: number;
+  correctAnswers: number;
+  pages?: { from: number; to: number };
+};
+
+export type StudyMaterialRef = {
+  id: string;
+  kind: 'PDF' | 'VIDEO' | 'BOOK' | 'SITE' | 'OTHER';
+  title: string;
+  catalogId?: string;
+  url?: string;
+  pages?: { from: number; to: number };
+  videoRangeMs?: { from: number; to: number };
+  notes?: string;
+};
+
 export type StudySession = {
   id: string;
   profileId: string;
@@ -56,6 +76,8 @@ export type StudySession = {
   deletedAt?: string;
   deletedReason?: string;
   note?: string;
+  measurements?: StudyMeasurement[];
+  materials?: StudyMaterialRef[];
   planReconciliation?: {
     blockId: string;
     choice: 'CONCLUDED' | 'PARTIAL' | 'NOT_APPLIED';

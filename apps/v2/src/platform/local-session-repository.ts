@@ -39,6 +39,8 @@ export type SessionFactsPatch = Partial<
     | 'editalIds'
     | 'intervals'
     | 'planReconciliation'
+    | 'measurements'
+    | 'materials'
   >
 >;
 
