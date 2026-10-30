@@ -1,4 +1,5 @@
 import type { OutboxOperation } from '../application/sync-types';
+import type { SessionConflict } from '../domain/session-conflicts';
 import {
   SessionValidationError,
   transitionSession,
@@ -261,6 +262,37 @@ export class LocalSessionRepository {
         left.newRevision - right.newRevision ||
         left.createdAt.localeCompare(right.createdAt),
     );
+  }
+
+  async saveSessionConflict(conflict: SessionConflict): Promise<void> {
+    if (
+      !conflict ||
+      typeof conflict.profileId !== 'string' ||
+      !conflict.profileId.trim() ||
+      typeof conflict.id !== 'string' ||
+      !conflict.id.trim()
+    ) {
+      return;
+    }
+    const database = await openV2Database(conflict.profileId);
+    const transaction = database.transaction(STORES.sessionConflicts, 'readwrite');
+    transaction.objectStore(STORES.sessionConflicts).put({
+      ...conflict,
+      status: conflict.status ?? 'OPEN',
+    });
+    await transactionDone(transaction);
+  }
+
+  async listSessionConflicts(profileId: string): Promise<SessionConflict[]> {
+    if (typeof profileId !== 'string' || !profileId.trim()) return [];
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(STORES.sessionConflicts, 'readonly');
+    return (await requestResult(
+      transaction
+        .objectStore(STORES.sessionConflicts)
+        .index('by_profile')
+        .getAll(profileId),
+    )) as SessionConflict[];
   }
 
   async commit(input: SessionCommitInput): Promise<SessionOutcome<StudySession>> {
