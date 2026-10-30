@@ -33,7 +33,12 @@ export type SessionRepositoryOptions = {
 export type SessionFactsPatch = Partial<
   Pick<
     StudySession,
-    'manualDeclaredMs' | 'recordedAtCivilDate' | 'planBlockIds' | 'editalIds' | 'intervals'
+    | 'manualDeclaredMs'
+    | 'recordedAtCivilDate'
+    | 'planBlockIds'
+    | 'editalIds'
+    | 'intervals'
+    | 'planReconciliation'
   >
 >;
 

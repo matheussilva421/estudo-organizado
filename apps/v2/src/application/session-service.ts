@@ -16,6 +16,8 @@ import {
 } from '../domain/session-clock';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
 import { isCivilDate, isValidTimeZone } from '../domain/planning-time';
+import type { PlanBlock } from '../domain/planning';
+import { openV2Database, requestResult, STORES } from '../platform/indexeddb';
 import {
   nextPomodoroStep,
   type PomodoroStep,
@@ -102,6 +104,30 @@ export type RegisterManualSessionInput = {
   durationMs: number;
   note?: string;
   authority: SessionAuthority;
+};
+
+export type LinkSessionToPlanInput = {
+  scope: SessionScope;
+  sessionId: string;
+  blockIds: string[];
+  authority: SessionAuthority;
+};
+
+export type PlanProgressChoice = 'CONCLUDED' | 'PARTIAL' | 'NOT_APPLIED';
+
+export type ReconcilePlanProgressInput = {
+  scope: SessionScope;
+  sessionId: string;
+  blockId: string;
+  choice: PlanProgressChoice;
+  planningBaseRevision: number;
+  authority: SessionAuthority;
+};
+
+export type ReconcilePlanProgressResult = {
+  kind: 'LOCAL_COMMITTED' | 'CONFLICT' | 'FAILED';
+  planApplied: boolean;
+  code?: string;
 };
 
 function invalid<T = StudySession>(code: string): SessionOutcome<T> {
@@ -308,6 +334,117 @@ export class StudySessionService {
   ): Promise<StudySession[]> {
     if (!isCivilDate(civilDate)) return [];
     return this.repository.listByCivilDate(profileId, civilDate);
+  }
+
+  async linkSessionToPlan(
+    input: LinkSessionToPlanInput,
+  ): Promise<SessionOutcome<StudySession>> {
+    const current = await this.repository.load(input.scope.profileId, input.sessionId);
+    if (!current) return invalid('SESSION_NOT_FOUND');
+    if (
+      !Array.isArray(input.blockIds) ||
+      input.blockIds.length === 0 ||
+      input.blockIds.some((blockId) => typeof blockId !== 'string' || !blockId.trim()) ||
+      new Set(input.blockIds).size !== input.blockIds.length
+    ) {
+      return invalid('INVALID_BLOCK_IDS');
+    }
+
+    const database = await openV2Database(input.scope.profileId);
+    const transaction = database.transaction(
+      [STORES.planningBlocks, STORES.editalDisciplines],
+      'readonly',
+    );
+    for (const blockId of input.blockIds) {
+      const block = (await requestResult(
+        transaction
+          .objectStore(STORES.planningBlocks)
+          .get([input.scope.profileId, blockId]),
+      )) as PlanBlock | undefined;
+      if (!block) return invalid('BLOCK_NOT_FOUND');
+      const link = (await requestResult(
+        transaction
+          .objectStore(STORES.editalDisciplines)
+          .get([input.scope.profileId, block.editalDisciplineId]),
+      )) as { status?: string } | undefined;
+      if (!link || link.status !== 'ACTIVE') {
+        return invalid('CONTENT_RECONCILIATION_REQUIRED');
+      }
+    }
+
+    return this.repository.commit({
+      kind: 'EDIT_FACTS',
+      scope: {
+        ...input.scope,
+        baseRevision: input.scope.baseRevision ?? current.localRevision,
+      },
+      sessionId: input.sessionId,
+      authority: input.authority,
+      patch: { planBlockIds: input.blockIds },
+      reason: 'PLAN_LINK',
+    });
+  }
+
+  async reconcilePlanProgress(
+    input: ReconcilePlanProgressInput,
+  ): Promise<ReconcilePlanProgressResult> {
+    const current = await this.repository.load(input.scope.profileId, input.sessionId);
+    if (!current) {
+      return { kind: 'FAILED', planApplied: false, code: 'SESSION_NOT_FOUND' };
+    }
+    if (
+      input.choice !== 'CONCLUDED' &&
+      input.choice !== 'PARTIAL' &&
+      input.choice !== 'NOT_APPLIED'
+    ) {
+      return { kind: 'FAILED', planApplied: false, code: 'INVALID_CHOICE' };
+    }
+    const database = await openV2Database(input.scope.profileId);
+    const transaction = database.transaction(STORES.planningBlocks, 'readonly');
+    const block = (await requestResult(
+      transaction
+        .objectStore(STORES.planningBlocks)
+        .get([input.scope.profileId, input.blockId]),
+    )) as PlanBlock | undefined;
+    if (!block) {
+      return { kind: 'FAILED', planApplied: false, code: 'BLOCK_NOT_FOUND' };
+    }
+    if (block.localRevision !== input.planningBaseRevision) {
+      return { kind: 'CONFLICT', planApplied: false, code: 'STALE_PLANNING_REVISION' };
+    }
+    if (input.choice === 'NOT_APPLIED') {
+      return { kind: 'LOCAL_COMMITTED', planApplied: false };
+    }
+
+    const edited = await this.repository.commit({
+      kind: 'EDIT_FACTS',
+      scope: {
+        ...input.scope,
+        baseRevision: input.scope.baseRevision ?? current.localRevision,
+      },
+      sessionId: input.sessionId,
+      authority: input.authority,
+      patch: {
+        planReconciliation: {
+          blockId: input.blockId,
+          choice: input.choice,
+          planningBaseRevision: input.planningBaseRevision,
+          reconciledAt: new Date().toISOString(),
+        },
+      },
+      reason: 'PLAN_RECONCILIATION',
+    });
+    if (edited.kind === 'LOCAL_COMMITTED') {
+      return { kind: 'LOCAL_COMMITTED', planApplied: false };
+    }
+    if (edited.kind === 'CONFLICT') {
+      return { kind: 'CONFLICT', planApplied: false, code: edited.code };
+    }
+    return {
+      kind: 'FAILED',
+      planApplied: false,
+      code: edited.kind === 'INVALID' ? edited.code : edited.reason,
+    };
   }
 
   async getRecoveryPreview(

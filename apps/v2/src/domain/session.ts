@@ -56,6 +56,12 @@ export type StudySession = {
   deletedAt?: string;
   deletedReason?: string;
   note?: string;
+  planReconciliation?: {
+    blockId: string;
+    choice: 'CONCLUDED' | 'PARTIAL' | 'NOT_APPLIED';
+    planningBaseRevision: number;
+    reconciledAt: string;
+  };
 };
 
 export class SessionValidationError extends Error {
@@ -189,6 +195,23 @@ export function validateSession(input: StudySession): StudySession {
   }
   if (input.note !== undefined && typeof input.note !== 'string') {
     fail('INVALID_NOTE', 'note must be a string');
+  }
+  if (input.planReconciliation !== undefined) {
+    const reconciliation = input.planReconciliation;
+    if (
+      !reconciliation ||
+      typeof reconciliation.blockId !== 'string' ||
+      !reconciliation.blockId.trim() ||
+      (reconciliation.choice !== 'CONCLUDED' &&
+        reconciliation.choice !== 'PARTIAL' &&
+        reconciliation.choice !== 'NOT_APPLIED') ||
+      !Number.isInteger(reconciliation.planningBaseRevision) ||
+      reconciliation.planningBaseRevision < 1 ||
+      typeof reconciliation.reconciledAt !== 'string' ||
+      Number.isNaN(Date.parse(reconciliation.reconciledAt))
+    ) {
+      fail('INVALID_RECONCILIATION', 'invalid plan reconciliation');
+    }
   }
   if (input.tombstone === true && input.deletedAt === undefined) {
     fail('INVALID_TOMBSTONE', 'a tombstone requires deletedAt');
