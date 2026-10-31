@@ -12,6 +12,7 @@ import {
   type StudySession,
 } from '../domain/session';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
+import { isValidTimeZone } from '../domain/planning-time';
 import {
   openV2Database,
   requestResult,
@@ -146,6 +147,16 @@ export type SwitchTimerInput = {
   toSession: StudySession;
   authority: SessionAuthority;
 };
+
+function civilDateInZone(zone: string | null): string {
+  const timeZone = zone && isValidTimeZone(zone) ? zone : 'UTC';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
 
 function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
@@ -480,6 +491,11 @@ export class LocalSessionRepository {
             profileId: scope.profileId,
             localRevision: 1,
             schemaVersion: DOMAIN_SCHEMA_VERSION,
+            // Every session is indexed by civil date; a create that omits it
+            // would otherwise vanish from the history scan.
+            recordedAtCivilDate:
+              input.session.recordedAtCivilDate ??
+              civilDateInZone(input.session.referenceZone),
           });
         } catch (error) {
           transaction.abort();

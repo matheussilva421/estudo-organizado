@@ -99,6 +99,21 @@ describe('F4 session history', () => {
     expect(page.items.map((item) => item.id)).toContain('archived-ref');
   });
 
+  it('create_without_civil_date_is_still_listed', async () => {
+    const repository = new LocalSessionRepository();
+    const undated = session({ id: 'undated' });
+    delete undated.recordedAtCivilDate;
+    const created = await repository.commit({
+      kind: 'CREATE',
+      scope: { profileId, operationId: 'op-undated', baseRevision: null },
+      sessionId: 'undated',
+      session: undated,
+    });
+    expect(created.kind).toBe('LOCAL_COMMITTED');
+    const page = await querySessionHistory(repository, { profileId });
+    expect(page.items.map((item) => item.id)).toContain('undated');
+  });
+
   it('filters_by_assunto_id_using_allocations', async () => {
     await seed([
       session({
