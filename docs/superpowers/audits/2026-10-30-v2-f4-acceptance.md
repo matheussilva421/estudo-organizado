@@ -3,7 +3,7 @@
 **Status:** F4_IMPLEMENTED_LOCAL_READY_FOR_HUMAN_ACCEPTANCE
 **Data:** 2026-10-31
 **Branch/worktree:** v2 em C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado
-**HEAD de código:** bd5ac7f
+**HEAD de código:** dcce481
 **Remoto:** origin/v2 = 68db01542a9d5934c7e45e622001334f91eaaf4f; sem push, merge ou deploy.
 **main:** 9046cfa, intocada.
 
@@ -23,6 +23,7 @@
 - **Atualização PWA entre abas:** `queryOtherTabsReady()` pergunta às outras abas pelo BroadcastChannel `estudo-organizado-v2-update` em vez de assumir `true`.
 - **Histórico e conflitos:** filtro por `assuntoId` via alocações, listagem de revisões de auditoria por sessão e resolução `LOCAL/INCOMING/KEEP_BOTH` na UI.
 - **Histórico incremental:** a consulta percorre o índice `by_profile_date` em ordem decrescente com cursor opaco; a UI mostra as sessões mais recentes primeiro e oferece `session-history-more` para a próxima página.
+- **Filtro por assunto:** a alocação grava o assunto escolhido da disciplina e o histórico filtra por ele com o mesmo predicado da consulta.
 - **Vinculação posterior:** uma sessão livre pode ser ligada a um bloco planejado depois do fato, com nova revisão auditável (`session-link-block-*` e `session-link-apply-*`).
 - **Estado de persistência:** a linha de status distingue ocioso, salvo, falha de gravação e conflito de revisão, em vez de afirmar sempre que a persistência local está ativa.
 - **Superfície visual e acessibilidade:** estilos compartilhados de controle (altura mínima 44px, `focus-visible`, tokens dos oito temas), cartões de sessão, navegação e estado vazio informativo.
@@ -86,7 +87,7 @@
 | T35 DST e hora ambígua | PASS | unit `f4-dst` |
 | T36 hábito com meta atingida | PASS | `f4-habits` |
 | T37 evidência de hábito corrigida | PASS | unit `f4-habits` |
-| T38 histórico filtrado/revisão/materiais | PASS com ressalva | filtro por `assuntoId` e cursor sobre `by_profile_date`; o filtro só casa assunto quando a alocação o traz |
+| T38 histórico filtrado/revisão/materiais | PASS | filtro por `assuntoId` com assunto gravado pela UI e cursor sobre `by_profile_date` |
 | T39 CSV/JSON e sanitização | PASS | unit `f4-export` |
 | T40 quota/abort na conclusão | PASS | unit `f4-commit` (abort injetado) |
 | T41 export/reimport emergencial | PASS | `f4-emergency-ui` |
@@ -135,14 +136,13 @@ Ressalvas que a revisão levantou e que seguem abertas: validação de continuid
 - O histórico percorre o índice `by_profile_date` em ordem decrescente e para ao completar a página; filtros de edital, origem e estado são aplicados durante a varredura, então uma página filtrada pode percorrer mais entradas antes de encher.
 - A continuidade do relógio é verificada no preview de recuperação, não no caminho de pausa/conclusão; o checkpoint periódico limita a exposição a 15 s por transição.
 - `KEEP_BOTH` preserva a variante incoming no registro do conflito, sem criar uma segunda identidade de sessão.
-- A alocação criada pela UI grava `editalDisciplineId`; o filtro por `assuntoId` só casa quando a alocação traz o assunto explicitamente.
 - O gate Impeccable completo (auditoria visual dedicada) não foi executado; o detector automático passa com zero achados.
 - Sem push, merge, deploy, Actions ou ativação de Firebase real.
 
 ## Git e GitHub
 
-- v2 local: 43 commits à frente de origin/v2; código em bd5ac7f, este relatório no commit documental seguinte.
-- Commits desta rodada: b6dfec6 (atomicidade), 626f483 (alocações e filtro), c707665 (integração visual e fluxos), d793b36 (evidências visuais), 18a561b (correções da revisão independente), 1615422 (histórico incremental, vinculação posterior e auditoria de teclado), bd5ac7f (estado real de persistência).
+- v2 local: 45 commits à frente de origin/v2; código em dcce481, este relatório no commit documental seguinte.
+- Commits desta rodada: b6dfec6 (atomicidade), 626f483 (alocações e filtro), c707665 (integração visual e fluxos), d793b36 (evidências visuais), 18a561b (correções da revisão independente), 1615422 (histórico incremental, vinculação posterior e auditoria de teclado), bd5ac7f (estado real de persistência), dcce481 (assunto na alocação e filtro de histórico).
 - main: 9046cfa, intocada. V1 não modificada.
 - Dois worktrees (main e v2-f4); nenhum PR aberto; nenhum stash.
 - Nenhuma Action, deploy ou push.
