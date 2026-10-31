@@ -83,4 +83,26 @@ describe('F4 session history', () => {
     const page = await querySessionHistory(new LocalSessionRepository(), { profileId });
     expect(page.items.map((item) => item.id)).toContain('archived-ref');
   });
+
+  it('filters_by_assunto_id_using_allocations', async () => {
+    await seed([
+      session({
+        id: 'with-assunto',
+        allocations: [
+          {
+            sessionId: 'with-assunto',
+            allocationId: 'allocation-1',
+            assuntoId: 'assunto-1',
+            durationMs: 60_000,
+          },
+        ],
+      }),
+      session({ id: 'without-assunto' }),
+    ]);
+    const page = await querySessionHistory(new LocalSessionRepository(), {
+      profileId,
+      assuntoId: 'assunto-1',
+    });
+    expect(page.items.map((item) => item.id)).toEqual(['with-assunto']);
+  });
 });

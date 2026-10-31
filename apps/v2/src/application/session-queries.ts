@@ -43,6 +43,14 @@ function matchesFilter(session: StudySession, filter: SessionHistoryFilter): boo
     return false;
   }
   if (filter.editalId && !session.editalIds.includes(filter.editalId)) return false;
+  if (
+    filter.assuntoId &&
+    !(session.allocations ?? []).some(
+      (allocation) => allocation.assuntoId === filter.assuntoId,
+    )
+  ) {
+    return false;
+  }
   if (filter.origin && session.origin !== filter.origin) return false;
   if (filter.state && session.state !== filter.state) return false;
   // assuntoId remains API-compatible; sessions do not persist one assunto

@@ -1,4 +1,8 @@
-import { SessionValidationError, type SessionInterval } from './session';
+import {
+  SessionValidationError,
+  type SessionAllocation,
+  type SessionInterval,
+} from './session';
 import {
   addCivilDays,
   enumerateCivilDates,
@@ -6,14 +10,7 @@ import {
   resolveZonedInterval,
 } from './planning-time';
 
-export type SessionAllocation = {
-  sessionId: string;
-  allocationId: string;
-  editalDisciplineId?: string;
-  assuntoId?: string;
-  aulaId?: string;
-  durationMs: number;
-};
+export type { SessionAllocation } from './session';
 
 export type AllocationSummary = {
   allocatedMs: number;

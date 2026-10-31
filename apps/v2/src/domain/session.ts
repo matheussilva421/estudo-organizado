@@ -59,6 +59,15 @@ export type StudyMaterialRef = {
   notes?: string;
 };
 
+export type SessionAllocation = {
+  sessionId: string;
+  allocationId: string;
+  editalDisciplineId?: string;
+  assuntoId?: string;
+  aulaId?: string;
+  durationMs: number;
+};
+
 export type StudySession = {
   id: string;
   profileId: string;
@@ -78,6 +87,7 @@ export type StudySession = {
   note?: string;
   measurements?: StudyMeasurement[];
   materials?: StudyMaterialRef[];
+  allocations?: SessionAllocation[];
   planReconciliation?: {
     blockId: string;
     choice: 'CONCLUDED' | 'PARTIAL' | 'NOT_APPLIED';
@@ -217,6 +227,24 @@ export function validateSession(input: StudySession): StudySession {
   }
   if (input.note !== undefined && typeof input.note !== 'string') {
     fail('INVALID_NOTE', 'note must be a string');
+  }
+  if (input.allocations !== undefined) {
+    if (!Array.isArray(input.allocations)) {
+      fail('INVALID_ALLOCATION', 'allocations must be an array');
+    }
+    for (const allocation of input.allocations) {
+      if (
+        !allocation ||
+        typeof allocation.allocationId !== 'string' ||
+        !allocation.allocationId.trim() ||
+        allocation.sessionId !== input.id ||
+        typeof allocation.durationMs !== 'number' ||
+        !Number.isFinite(allocation.durationMs) ||
+        allocation.durationMs < 0
+      ) {
+        fail('INVALID_ALLOCATION', 'invalid session allocation');
+      }
+    }
   }
   if (input.planReconciliation !== undefined) {
     const reconciliation = input.planReconciliation;
