@@ -12,7 +12,7 @@ test('f4 manual session records measurements materials and allocation', async ({
       request.onerror = () => reject(request.error);
     });
     const transaction = database.transaction(
-      ['subjects', 'editais', 'edital_disciplines'],
+      ['subjects', 'editais', 'edital_disciplines', 'assuntos'],
       'readwrite',
     );
     transaction.objectStore('subjects').put({
@@ -37,6 +37,26 @@ test('f4 manual session records measurements materials and allocation', async ({
       localRevision: 1,
       orderKey: 'a',
     });
+    transaction.objectStore('assuntos').put({
+      id: 'assunto-1',
+      profileId: 'local-default',
+      editalDisciplineId: 'link-1',
+      parentId: null,
+      parentKey: '',
+      title: 'Controle concentrado',
+      orderKey: 'a',
+      localRevision: 1,
+    });
+    transaction.objectStore('assuntos').put({
+      id: 'assunto-2',
+      profileId: 'local-default',
+      editalDisciplineId: 'link-1',
+      parentId: null,
+      parentKey: '',
+      title: 'Remédios constitucionais',
+      orderKey: 'b',
+      localRevision: 1,
+    });
     await new Promise<void>((resolve, reject) => {
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
@@ -56,6 +76,7 @@ test('f4 manual session records measurements materials and allocation', async ({
   await page.getByTestId('session-material-url').fill('https://example.com/material.pdf');
   await page.getByTestId('session-material-notes').fill('nota material');
   await page.getByTestId('session-allocation-link').selectOption('link-1');
+  await page.getByTestId('session-allocation-assunto').selectOption('assunto-1');
   await page.getByTestId('session-allocation-minutes').fill('30');
   await page.getByTestId('session-allocation-add').click();
   await expect(page.getByTestId('session-allocation-summary')).toContainText('00:30:00');
@@ -67,6 +88,14 @@ test('f4 manual session records measurements materials and allocation', async ({
     .getAttribute('data-session-id');
   await page.getByTestId('session-revisions-' + sessionId).click();
   await expect(page.locator('[data-testid="session-history"]')).toContainText('CORRECTED');
+
+  await page.getByTestId('session-history-filter-assunto').selectOption('assunto-1');
+  await expect(page.locator('[data-testid="session-history"]')).toContainText('MANUAL');
+  await page.getByTestId('session-history-filter-assunto').selectOption('assunto-2');
+  await expect(page.locator('[data-testid="session-history"]')).toContainText(
+    'Nenhuma sessão registrada',
+  );
+  await page.getByTestId('session-history-filter-assunto').selectOption('');
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByTestId('session-export-json').click();

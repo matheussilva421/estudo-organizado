@@ -148,10 +148,12 @@ export function SessionWorkspace({
   const [materialUrl, setMaterialUrl] = useState('');
   const [materialNotes, setMaterialNotes] = useState('');
   const [allocationLinkId, setAllocationLinkId] = useState('');
+  const [allocationAssuntoId, setAllocationAssuntoId] = useState('');
   const [allocationMinutes, setAllocationMinutes] = useState('30');
   const [allocationDrafts, setAllocationDrafts] = useState<
-    { linkId: string; minutes: number }[]
+    { linkId: string; assuntoId?: string; minutes: number }[]
   >([]);
+  const [historyFilterAssunto, setHistoryFilterAssunto] = useState('');
   const [emergencyRaw, setEmergencyRaw] = useState('');
   const [emergencyPreview, setEmergencyPreview] = useState<EmergencyPreview | null>(
     null,
@@ -225,7 +227,12 @@ export function SessionWorkspace({
       setForeignAuthority(null);
       setRecovery(null);
     }
-    const page = await querySessionHistory(repository, { profileId }, undefined, 50);
+    const page = await querySessionHistory(
+      repository,
+      { profileId, assuntoId: historyFilterAssunto || undefined },
+      undefined,
+      50,
+    );
     setHistory(page.items);
     setHistoryCursor(page.nextCursor);
     setHabits(await habitService.listHabits(profileId));
@@ -240,7 +247,15 @@ export function SessionWorkspace({
           .getAll(profileId),
       )) as PlanBlock[],
     );
-  }, [coordinator, habitService, holderId, profileId, repository, service]);
+  }, [
+    coordinator,
+    habitService,
+    historyFilterAssunto,
+    holderId,
+    profileId,
+    repository,
+    service,
+  ]);
 
   async function takeOver(): Promise<void> {
     if (!foreignAuthority || locked || busy) return;
@@ -825,6 +840,7 @@ export function SessionWorkspace({
             sessionId,
             allocationId: newId(),
             editalDisciplineId: draft.linkId,
+            ...(draft.assuntoId ? { assuntoId: draft.assuntoId } : {}),
             durationMs: draft.minutes * 60_000,
           }));
         if (allocations.length > 0) details.allocations = allocations;
@@ -894,7 +910,11 @@ export function SessionWorkspace({
     }
     setAllocationDrafts([
       ...allocationDrafts,
-      { linkId: allocationLinkId, minutes },
+      {
+        linkId: allocationLinkId,
+        ...(allocationAssuntoId ? { assuntoId: allocationAssuntoId } : {}),
+        minutes,
+      },
     ]);
   }
 
@@ -1080,7 +1100,7 @@ export function SessionWorkspace({
     try {
       const page = await querySessionHistory(
         repository,
-        { profileId },
+        { profileId, assuntoId: historyFilterAssunto || undefined },
         historyCursor,
         50,
       );
@@ -1535,7 +1555,10 @@ export function SessionWorkspace({
               Distribuir para
               <select
                 value={allocationLinkId}
-                onChange={(event) => setAllocationLinkId(event.target.value)}
+                onChange={(event) => {
+                  setAllocationLinkId(event.target.value);
+                  setAllocationAssuntoId('');
+                }}
                 data-testid="session-allocation-link"
               >
                 <option value="">Parcela não atribuída</option>
@@ -1549,6 +1572,26 @@ export function SessionWorkspace({
                     </option>
                   );
                 })}
+              </select>
+            </label>
+            <label>
+              Assunto da alocação
+              <select
+                value={allocationAssuntoId}
+                onChange={(event) => setAllocationAssuntoId(event.target.value)}
+                data-testid="session-allocation-assunto"
+                disabled={!allocationLinkId}
+              >
+                <option value="">Sem assunto</option>
+                {content.assuntos
+                  .filter(
+                    (assunto) => assunto.editalDisciplineId === allocationLinkId,
+                  )
+                  .map((assunto) => (
+                    <option key={assunto.id} value={assunto.id}>
+                      {assunto.title}
+                    </option>
+                  ))}
               </select>
             </label>
             <label>
@@ -1681,6 +1724,21 @@ export function SessionWorkspace({
             Exportar JSON
           </button>
         </div>
+        <label>
+          Filtrar por assunto
+          <select
+            value={historyFilterAssunto}
+            onChange={(event) => setHistoryFilterAssunto(event.target.value)}
+            data-testid="session-history-filter-assunto"
+          >
+            <option value="">Todos os assuntos</option>
+            {content.assuntos.map((assunto) => (
+              <option key={assunto.id} value={assunto.id}>
+                {assunto.title}
+              </option>
+            ))}
+          </select>
+        </label>
         {history.length === 0 ? (
           <p className="empty-state">
             Nenhuma sessão registrada ainda. Inicie o cronômetro ou registre manualmente.
