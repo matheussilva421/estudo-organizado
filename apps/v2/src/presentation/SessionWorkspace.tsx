@@ -9,9 +9,26 @@ import { querySessionHistory } from '../application/session-queries';
 import { exportSessionHistory } from '../application/session-portability';
 import { createSystemClock } from '../domain/session-clock';
 import { getHabitEvidence, type StudyHabit } from '../domain/session-habits';
-import type { StudySession } from '../domain/session';
+import type { SessionAllocation, StudySession } from '../domain/session';
+import type { PlanBlock } from '../domain/planning';
+import type { SessionConflict } from '../domain/session-conflicts';
 import { LocalSessionRepository } from '../platform/local-session-repository';
-import { getDatabaseUpgradeState } from '../platform/indexeddb';
+import type { SessionFactsPatch } from '../platform/local-session-repository';
+import type { SessionCommitInput } from '../platform/local-session-repository';
+import type { SessionAuditRecord } from '../platform/local-session-repository';
+import {
+  applyEmergencyImport,
+  downloadEmergencyFile,
+  exportUnsavedSessionIntent,
+  previewEmergencyImport,
+  type EmergencyPreview,
+} from '../application/session-emergency';
+import {
+  getDatabaseUpgradeState,
+  openV2Database,
+  requestResult,
+  STORES,
+} from '../platform/indexeddb';
 import { applyWaitingUpdate } from '../platform/sw-update';
 import {
   LocalSessionCoordinator,
@@ -19,12 +36,39 @@ import {
 } from '../platform/session-coordination';
 
 const ZONE = 'America/Fortaleza';
+const UPDATE_CHANNEL = 'estudo-organizado-v2-update';
+let sessionStartInFlight = false;
+let lastStartedBlockId: string | null = null;
+
+async function queryOtherTabsReady(holderId: string): Promise<boolean> {
+  if (typeof BroadcastChannel !== 'function') return false;
+  const channel = new BroadcastChannel(UPDATE_CHANNEL);
+  let responses = 0;
+  let allReady = true;
+  channel.onmessage = (event: MessageEvent) => {
+    const message = event.data as {
+      type?: string;
+      from?: string;
+      ready?: boolean;
+    };
+    if (message?.type === 'UPDATE_RESPONSE' && message.from !== holderId) {
+      responses += 1;
+      if (message.ready !== true) allReady = false;
+    }
+  };
+  channel.postMessage({ type: 'UPDATE_QUERY', from: holderId });
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  channel.close();
+  return responses === 0 ? true : allReady;
+}
 
 type Props = {
   profileId: string;
   content: ContentSnapshot;
   locked: boolean;
   onNotice: (message: string | null) => void;
+  startBlockId?: string | null;
+  onStartBlockConsumed?: () => void;
 };
 
 function newId(): string {
@@ -54,13 +98,35 @@ function formatMs(ms: number): string {
   );
 }
 
-export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
+function blockLabel(block: PlanBlock, content: ContentSnapshot): string {
+  const link = content.links.find((item) => item.id === block.editalDisciplineId);
+  const subject = content.subjects.find((item) => item.id === link?.subjectId);
+  const assunto = content.assuntos.find((item) => item.id === block.assuntoId);
+  const aula = content.aulas.find((item) => item.id === block.aulaId);
+  const parts = [
+    subject?.title,
+    assunto?.title ?? aula?.title,
+    block.civilDate,
+    block.plannedMinutes + ' min',
+  ].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(' · ') : block.label ?? block.id;
+}
+
+export function SessionWorkspace({
+  profileId,
+  content,
+  locked,
+  onNotice,
+  startBlockId,
+  onStartBlockConsumed,
+}: Props) {
   const [session, setSession] = useState<StudySession | null>(null);
   const [authority, setAuthority] = useState<SessionAuthority | null>(null);
   const [foreignAuthority, setForeignAuthority] = useState<SessionAuthority | null>(null);
   const [recovery, setRecovery] = useState<RecoveryPreview | null>(null);
   const [history, setHistory] = useState<StudySession[]>([]);
   const [habits, setHabits] = useState<StudyHabit[]>([]);
+  const [planBlocks, setPlanBlocks] = useState<PlanBlock[]>([]);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [busy, setBusy] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
@@ -69,6 +135,36 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
   const [manualNote, setManualNote] = useState('');
   const [recoveryMinutes, setRecoveryMinutes] = useState('0');
   const [planBlockId, setPlanBlockId] = useState('');
+  const [questions, setQuestions] = useState('0');
+  const [correctAnswers, setCorrectAnswers] = useState('0');
+  const [pagesFrom, setPagesFrom] = useState('');
+  const [pagesTo, setPagesTo] = useState('');
+  const [materialKind, setMaterialKind] = useState<
+    'PDF' | 'VIDEO' | 'BOOK' | 'SITE' | 'OTHER'
+  >('PDF');
+  const [materialTitle, setMaterialTitle] = useState('');
+  const [materialUrl, setMaterialUrl] = useState('');
+  const [materialNotes, setMaterialNotes] = useState('');
+  const [allocationLinkId, setAllocationLinkId] = useState('');
+  const [allocationMinutes, setAllocationMinutes] = useState('30');
+  const [allocationDrafts, setAllocationDrafts] = useState<
+    { linkId: string; minutes: number }[]
+  >([]);
+  const [emergencyRaw, setEmergencyRaw] = useState('');
+  const [emergencyPreview, setEmergencyPreview] = useState<EmergencyPreview | null>(
+    null,
+  );
+  const [revisions, setRevisions] = useState<
+    Record<string, SessionAuditRecord[]>
+  >({});
+  const [conflicts, setConflicts] = useState<SessionConflict[]>([]);
+  const [habitKind, setHabitKind] = useState<'TIME' | 'QUESTIONS' | 'MANUAL'>(
+    'TIME',
+  );
+  const [habitTarget, setHabitTarget] = useState('120');
+  const [habitRecurrence, setHabitRecurrence] = useState<'DAILY' | 'WEEKLY'>(
+    'DAILY',
+  );
   const [pomodoroStage, setPomodoroStage] = useState<'FOCUS' | 'BREAK'>('FOCUS');
   const [pomodoroFocus, setPomodoroFocus] = useState('25');
   const [pomodoroBreak, setPomodoroBreak] = useState('5');
@@ -103,6 +199,17 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     const page = await querySessionHistory(repository, { profileId }, undefined, 50);
     setHistory(page.items);
     setHabits(await habitService.listHabits(profileId));
+    setConflicts(await repository.listSessionConflicts(profileId));
+    const database = await openV2Database(profileId);
+    const blockTransaction = database.transaction(STORES.planningBlocks, 'readonly');
+    setPlanBlocks(
+      (await requestResult(
+        blockTransaction
+          .objectStore(STORES.planningBlocks)
+          .index('by_profile')
+          .getAll(profileId),
+      )) as PlanBlock[],
+    );
   }, [coordinator, habitService, holderId, profileId, repository, service]);
 
   async function takeOver(): Promise<void> {
@@ -133,6 +240,17 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
   }, [onNotice, refresh]);
 
   useEffect(() => {
+    if (!startBlockId || startBlockId === lastStartedBlockId) return;
+    const blockId = startBlockId.split('#')[0] ?? startBlockId;
+    lastStartedBlockId = startBlockId;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPlanBlockId(blockId);
+    void startSessionWithOrigin('TIMER', blockId);
+    onStartBlockConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startBlockId]);
+
+  useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
     let cancelled = false;
     const check = async () => {
@@ -151,11 +269,36 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof BroadcastChannel !== 'function') return;
+    const channel = new BroadcastChannel(UPDATE_CHANNEL);
+    channel.onmessage = (event: MessageEvent) => {
+      const message = event.data as { type?: string; from?: string };
+      if (message?.type === 'UPDATE_QUERY' && message.from !== holderId) {
+        const ready =
+          !(
+            session &&
+            session.state !== 'COMPLETED' &&
+            session.state !== 'CANCELLED'
+          ) &&
+          manualNote.trim().length === 0 &&
+          recovery === null;
+        channel.postMessage({
+          type: 'UPDATE_RESPONSE',
+          from: holderId,
+          ready,
+        });
+      }
+    };
+    return () => channel.close();
+  }, [holderId, manualNote, recovery, session]);
+
   async function applyUpdate(): Promise<void> {
     if (!('serviceWorker' in navigator) || busy) return;
     setBusy(true);
     try {
       const registration = await navigator.serviceWorker.ready;
+      const otherTabsReady = await queryOtherTabsReady(holderId);
       const result = await applyWaitingUpdate(registration, {
         hasActiveSession:
           session !== null &&
@@ -164,7 +307,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         hasUnsavedForm: manualNote.trim().length > 0,
         hasPendingRecovery: recovery !== null,
         databaseCompatible: !getDatabaseUpgradeState().blocked,
-        otherTabsReady: true,
+        otherTabsReady,
       });
       if (result === 'DEFERRED') {
         onNotice('Atualização adiada: sessão ativa, recuperação pendente ou formulário não salvo.');
@@ -218,14 +361,33 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id, session?.intervals.length]);
 
-  async function startSessionWithOrigin(origin: 'TIMER' | 'POMODORO'): Promise<void> {
-    if (locked || busy) return;
+  async function startSessionWithOrigin(
+    origin: 'TIMER' | 'POMODORO',
+    blockIdOverride = planBlockId,
+  ): Promise<void> {
+    if (locked || busy || sessionStartInFlight) return;
+    sessionStartInFlight = true;
     setBusy(true);
     onNotice(null);
     const sessionId = newId();
+    const blockId = blockIdOverride.trim();
     let acquiredAuthority: SessionAuthority | null = null;
     let started = false;
     try {
+      if (blockId) {
+        const existing = (await repository.listSessions(profileId)).find(
+          (item) =>
+            item.planBlockIds.includes(blockId) &&
+            item.state !== 'COMPLETED' &&
+            item.state !== 'CANCELLED',
+        );
+        if (existing) {
+          setPlanBlockId(blockId);
+          onNotice('Já existe uma sessão ativa ou pausada para este bloco.');
+          await refresh();
+          return;
+        }
+      }
       const acquired = await coordinator.acquireAuthority(
         sessionId,
         profileId,
@@ -250,7 +412,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         onNotice('Não foi possível iniciar a sessão.');
       } else {
         started = true;
-        if (planBlockId.trim()) {
+        if (blockId) {
           const linked = await service.linkSessionToPlan({
             scope: {
               profileId,
@@ -258,7 +420,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
               baseRevision: result.value.localRevision,
             },
             sessionId,
-            blockIds: [planBlockId.trim()],
+            blockIds: [blockId],
             authority: acquired.value,
           });
           if (linked.kind !== 'LOCAL_COMMITTED') {
@@ -268,6 +430,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
       }
       await refresh();
     } finally {
+      sessionStartInFlight = false;
       if (acquiredAuthority && !started) {
         await coordinator
           .releaseAuthority(
@@ -319,46 +482,33 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         authorityValid: true,
       });
       if (step.kind === 'BEGIN_BREAK') {
-        let baseSession = session;
-        if (pomodoroStage === 'FOCUS') {
-          if (focus) {
-            const checkpoint = await service.checkpointSession({
-              scope: {
-                profileId,
-                operationId: newId(),
-                baseRevision: session.localRevision,
-              },
-              sessionId: session.id,
-              authority,
-              intervalId: focus.id,
-              verifiedMs: actualElapsed,
-              checkpoint: clock.observe(),
-            });
-            if (checkpoint.kind !== 'LOCAL_COMMITTED') {
-              onNotice('Não foi possível confirmar o foco do Pomodoro.');
-              return;
-            }
-            baseSession = checkpoint.value;
-          }
-        }
         const now = clock.observe();
-        const intervals = [
-          ...baseSession.intervals,
-          {
-            id: newId(),
-            kind: 'BREAK' as const,
-            verifiedMs: config.breakMs,
-            contextId: now.contextId,
-            checkpoint: now,
-            recoveryFlag: false,
-            startedAt: now.wallInstant,
-          },
-        ];
+        const intervals = session.intervals.map((interval) =>
+          interval.id === focus?.id
+            ? {
+                ...interval,
+                verifiedMs: actualElapsed,
+                contextId: now.contextId,
+                checkpoint: now,
+                recoveryFlag: false,
+                endedAt: now.wallInstant,
+              }
+            : interval,
+        );
+        intervals.push({
+          id: newId(),
+          kind: 'BREAK' as const,
+          verifiedMs: config.breakMs,
+          contextId: now.contextId,
+          checkpoint: now,
+          recoveryFlag: false,
+          startedAt: now.wallInstant,
+        });
         const result = await service.editSessionFacts({
           scope: {
             profileId,
             operationId: newId(),
-            baseRevision: baseSession.localRevision,
+            baseRevision: session.localRevision,
           },
           sessionId: session.id,
           authority,
@@ -423,6 +573,14 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     setBusy(true);
     onNotice(null);
     try {
+      let checkpoint:
+        | {
+            intervalId: string;
+            verifiedMs: number;
+            checkpoint: ReturnType<typeof clock.observe>;
+            endedAt?: string;
+          }
+        | undefined;
       if (action === 'pause' || action === 'complete') {
         const focus = [...session.intervals]
           .reverse()
@@ -434,23 +592,13 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
           const last = session.intervals[session.intervals.length - 1];
           const delta =
             last?.kind === 'FOCUS' ? Math.max(0, elapsedMs - base) : 0;
-          const verifiedMs = focus.verifiedMs + delta;
-          const checkpoint = await service.checkpointSession({
-            scope: {
-              profileId,
-              operationId: newId(),
-              baseRevision: session.localRevision,
-            },
-            sessionId: session.id,
-            authority,
+          const observation = clock.observe();
+          checkpoint = {
             intervalId: focus.id,
-            verifiedMs,
-            checkpoint: clock.observe(),
-          });
-          if (checkpoint.kind !== 'LOCAL_COMMITTED') {
-            onNotice('Não foi possível confirmar o tempo medido; a transição foi cancelada.');
-            return;
-          }
+            verifiedMs: focus.verifiedMs + delta,
+            checkpoint: observation,
+            endedAt: observation.wallInstant,
+          };
         }
       }
       const input = {
@@ -461,6 +609,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         },
         sessionId: session.id,
         authority,
+        checkpoint,
       };
       const result =
         action === 'pause'
@@ -551,6 +700,60 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('O registro manual foi recusado.');
       } else {
+        const details: SessionFactsPatch = {};
+        const questionCount = Number(questions) || 0;
+        const correctCount = Number(correctAnswers) || 0;
+        const from = pagesFrom ? Number(pagesFrom) : null;
+        const to = pagesTo ? Number(pagesTo) : null;
+        if (questionCount > 0 || from !== null || to !== null) {
+          details.measurements = [
+            {
+              id: newId(),
+              sessionId,
+              questions: questionCount,
+              correctAnswers: correctCount,
+              ...(from !== null && to !== null
+                ? { pages: { from, to } }
+                : {}),
+            },
+          ];
+        }
+        if (materialTitle.trim()) {
+          details.materials = [
+            {
+              id: newId(),
+              kind: materialKind,
+              title: materialTitle.trim(),
+              url: materialUrl.trim() || undefined,
+              notes: materialNotes.trim() || undefined,
+            },
+          ];
+        }
+        const allocations: SessionAllocation[] = allocationDrafts
+          .filter((draft) => draft.linkId)
+          .map((draft) => ({
+            sessionId,
+            allocationId: newId(),
+            editalDisciplineId: draft.linkId,
+            durationMs: draft.minutes * 60_000,
+          }));
+        if (allocations.length > 0) details.allocations = allocations;
+        if (Object.keys(details).length > 0) {
+          const edited = await service.editSessionFacts({
+            scope: {
+              profileId,
+              operationId: newId(),
+              baseRevision: result.value.localRevision,
+            },
+            sessionId,
+            authority: acquired.value,
+            patch: details,
+            reason: 'MANUAL_DETAILS',
+          });
+          if (edited.kind !== 'LOCAL_COMMITTED') {
+            onNotice('Sessão manual salva; detalhes recusados. Verifique questões, páginas, materiais e alocações.');
+          }
+        }
         const overlaps = await service.findPotentialOverlaps(profileId, manualDate);
         if (overlaps.length > 1) {
           onNotice('Aviso: já existe outra sessão nesta data; ambos os registros foram preservados.');
@@ -571,21 +774,44 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
 
   async function createHabit(): Promise<void> {
     if (locked || busy) return;
+    const numericTarget = Number(habitTarget);
+    const target =
+      habitKind === 'MANUAL'
+        ? undefined
+        : habitKind === 'TIME'
+          ? Math.max(0, numericTarget) * 60_000
+          : Math.max(0, numericTarget);
+    if (habitKind !== 'MANUAL' && (!Number.isFinite(target) || (target ?? 0) <= 0)) {
+      onNotice('Informe uma meta válida para o hábito.');
+      return;
+    }
     setBusy(true);
     try {
       const result = await habitService.createHabit({
         profileId,
         habitId: newId(),
-        kind: 'TIME',
-        target: 2 * 60 * 60_000,
+        kind: habitKind,
+        target,
         referenceZone: ZONE,
-        recurrence: 'DAILY',
+        recurrence: habitRecurrence,
       });
       if (result.kind !== 'LOCAL_COMMITTED') onNotice('Hábito não criado.');
       await refresh();
     } finally {
       setBusy(false);
     }
+  }
+
+  function addAllocation(): void {
+    const minutes = Number(allocationMinutes);
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      onNotice('Informe uma duração válida para a alocação.');
+      return;
+    }
+    setAllocationDrafts([
+      ...allocationDrafts,
+      { linkId: allocationLinkId, minutes },
+    ]);
   }
 
   async function confirmHabit(habit: StudyHabit): Promise<void> {
@@ -604,6 +830,73 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     }
   }
 
+  async function reconcile(
+    sessionItem: StudySession,
+    blockId: string,
+    choice: 'CONCLUDED' | 'PARTIAL' | 'NOT_APPLIED',
+  ): Promise<void> {
+    if (locked || busy) return;
+    setBusy(true);
+    onNotice(null);
+    let acquired = false;
+    let effectiveAuthority = authority;
+    try {
+      if (!effectiveAuthority || effectiveAuthority.sessionId !== sessionItem.id) {
+        const acquiredResult = await coordinator.acquireAuthority(
+          sessionItem.id,
+          profileId,
+          holderId,
+          null,
+          newId(),
+        );
+        if (acquiredResult.kind !== 'LOCAL_COMMITTED') {
+          onNotice('Conclua a sessão ativa antes de reconciliar outra sessão.');
+          return;
+        }
+        effectiveAuthority = acquiredResult.value;
+        acquired = true;
+      }
+      const block = planBlocks.find((item) => item.id === blockId);
+      if (!block) {
+        onNotice('Bloco de planejamento não encontrado.');
+        return;
+      }
+      const result = await service.reconcilePlanProgress({
+        scope: {
+          profileId,
+          operationId: newId(),
+          baseRevision: sessionItem.localRevision,
+        },
+        sessionId: sessionItem.id,
+        blockId,
+        choice,
+        planningBaseRevision: block.localRevision,
+        authority: effectiveAuthority,
+      });
+      if (result.kind === 'CONFLICT') {
+        onNotice('Conflito de revisão do planejamento; a sessão foi preservada.');
+      } else if (result.kind === 'FAILED') {
+        onNotice('Não foi possível reconciliar o bloco.');
+      } else {
+        onNotice('Conciliação registrada; o bloco F3 não foi concluído automaticamente.');
+      }
+      if (acquired) {
+        await coordinator
+          .releaseAuthority(
+            sessionItem.id,
+            profileId,
+            holderId,
+            effectiveAuthority.generation,
+            newId(),
+          )
+          .catch(() => undefined);
+      }
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function exportHistory(format: 'CSV' | 'JSON'): Promise<void> {
     const allSessions = await repository.listSessions(profileId);
     const exported = exportSessionHistory(format, { profileId }, allSessions);
@@ -616,11 +909,117 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  async function exportEmergency(): Promise<void> {
+    const sessionId = newId();
+    const durationMs = Math.max(0, Number(manualMinutes) || 0) * 60_000;
+    const command: SessionCommitInput = {
+      kind: 'CREATE',
+      scope: { profileId, operationId: newId(), baseRevision: null },
+      sessionId,
+      session: {
+        id: sessionId,
+        profileId,
+        state: 'COMPLETED',
+        origin: 'MANUAL',
+        localRevision: 1,
+        schemaVersion: 1,
+        referenceZone: ZONE,
+        recordedAtCivilDate: manualDate,
+        manualDeclaredMs: durationMs,
+        note: manualNote.trim() || undefined,
+        planBlockIds: [],
+        editalIds: [],
+        intervals: [],
+      },
+    };
+    const exported = exportUnsavedSessionIntent({
+      formatVersion: 1,
+      command,
+    });
+    const result = await downloadEmergencyFile(exported, async (content) => {
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = exported.fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    });
+    if (result.ok) {
+      onNotice('Intenção manual exportada para recuperação emergencial.');
+    } else {
+      onNotice('Falha ao exportar a intenção emergencial.');
+    }
+  }
+
+  async function selectEmergencyFile(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const raw = await file.text();
+    setEmergencyRaw(raw);
+    setEmergencyPreview(previewEmergencyImport(raw, profileId));
+  }
+
+  async function applyEmergency(): Promise<void> {
+    if (!emergencyRaw || emergencyPreview?.kind !== 'READY') return;
+    setBusy(true);
+    try {
+      const result = await applyEmergencyImport(repository, emergencyRaw, {
+        profileId,
+        operationId: newId(),
+        baseRevision: null,
+      });
+      if (result.kind === 'LOCAL_COMMITTED') {
+        onNotice('Importação emergencial aplicada.');
+      } else {
+        onNotice('Importação emergencial recusada ou em conflito.');
+      }
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadRevisions(sessionId: string): Promise<void> {
+    const records = await service.listSessionRevisions(profileId, sessionId);
+    setRevisions((current) => ({ ...current, [sessionId]: records }));
+  }
+
+  async function resolveConflict(
+    conflict: SessionConflict,
+    choice: 'LOCAL' | 'INCOMING' | 'KEEP_BOTH',
+  ): Promise<void> {
+    const resolved = await repository.resolveSessionConflict(
+      profileId,
+      conflict.id,
+      choice,
+    );
+    if (!resolved) {
+      onNotice('Conflito não encontrado.');
+    } else {
+      onNotice('Conflito resolvido; versões preservadas sem dupla contagem.');
+    }
+    await refresh();
+  }
+
   return (
-    <section className="panel" aria-labelledby="session-title" data-testid="session-workspace">
+    <section className="session-workspace" aria-labelledby="session-title" data-testid="session-workspace">
       <h2 id="session-title">Execução de estudo</h2>
       <p className="empty-state">
         Cronômetro, registro manual, recuperação, hábitos e histórico local.
+      </p>
+      <nav className="session-nav" aria-label="Seções de execução">
+        <a href="#session-timer">Timer</a>
+        <a href="#session-pomodoro">Pomodoro</a>
+        <a href="#session-manual">Manual</a>
+        <a href="#session-habits">Hábitos</a>
+        <a href="#session-history">Histórico</a>
+        <a href="#session-emergency">Emergência</a>
+      </nav>
+      <p className="session-status" data-testid="session-persistence">
+        {busy ? 'Gravando…' : 'Persistência local ativa'}
       </p>
       {updateReady ? (
         <div className="inline-notice" data-testid="session-update-banner" role="status">
@@ -636,7 +1035,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         </div>
       ) : null}
       <div className="session-grid">
-        <article className="panel" data-testid="session-timer">
+        <article className="session-card" id="session-timer" data-testid="session-timer">
           <h3>Cronômetro</h3>
           {session ? (
             <p>
@@ -701,12 +1100,19 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
             ) : null}
           </div>
           <label>
-            Bloco F3 (ID)
-            <input
+            Bloco de planejamento
+            <select
               value={planBlockId}
               onChange={(event) => setPlanBlockId(event.target.value)}
               data-testid="session-plan-block"
-            />
+            >
+              <option value="">Sem bloco</option>
+              {planBlocks.map((block) => (
+                <option key={block.id} value={block.id}>
+                  {blockLabel(block, content)}
+                </option>
+              ))}
+            </select>
           </label>
           {recovery ? (
             <div data-testid="session-recovery">
@@ -757,7 +1163,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
           ) : null}
         </article>
 
-        <article className="panel" data-testid="session-pomodoro">
+        <article className="session-card" id="session-pomodoro" data-testid="session-pomodoro">
           <h3>Pomodoro</h3>
           <p>
             Estágio:{' '}
@@ -815,7 +1221,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
           ) : null}
         </article>
 
-        <article className="panel" data-testid="session-manual">
+        <article className="session-card" id="session-manual" data-testid="session-manual">
           <h3>Registro manual</h3>
           <label>
             Data
@@ -849,20 +1255,225 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
           >
             Registrar sessão manual
           </button>
+          <details>
+            <summary>Detalhes da sessão</summary>
+            <label>
+              Questões
+              <input
+                type="number"
+                min="0"
+                value={questions}
+                onChange={(event) => setQuestions(event.target.value)}
+                data-testid="session-questions"
+              />
+            </label>
+            <label>
+              Acertos
+              <input
+                type="number"
+                min="0"
+                value={correctAnswers}
+                onChange={(event) => setCorrectAnswers(event.target.value)}
+                data-testid="session-correct"
+              />
+            </label>
+            <label>
+              Páginas de
+              <input
+                type="number"
+                min="1"
+                value={pagesFrom}
+                onChange={(event) => setPagesFrom(event.target.value)}
+                data-testid="session-pages-from"
+              />
+            </label>
+            <label>
+              Páginas até
+              <input
+                type="number"
+                min="1"
+                value={pagesTo}
+                onChange={(event) => setPagesTo(event.target.value)}
+                data-testid="session-pages-to"
+              />
+            </label>
+            <label>
+              Material
+              <select
+                value={materialKind}
+                onChange={(event) =>
+                  setMaterialKind(
+                    event.target.value as
+                      | 'PDF'
+                      | 'VIDEO'
+                      | 'BOOK'
+                      | 'SITE'
+                      | 'OTHER',
+                  )
+                }
+                data-testid="session-material-kind"
+              >
+                <option value="PDF">PDF</option>
+                <option value="VIDEO">Vídeo</option>
+                <option value="BOOK">Livro</option>
+                <option value="SITE">Site</option>
+                <option value="OTHER">Outro</option>
+              </select>
+            </label>
+            <label>
+              Título do material
+              <input
+                value={materialTitle}
+                onChange={(event) => setMaterialTitle(event.target.value)}
+                data-testid="session-material-title"
+              />
+            </label>
+            <label>
+              URL do material
+              <input
+                value={materialUrl}
+                onChange={(event) => setMaterialUrl(event.target.value)}
+                data-testid="session-material-url"
+              />
+            </label>
+            <label>
+              Comentários do material
+              <input
+                value={materialNotes}
+                onChange={(event) => setMaterialNotes(event.target.value)}
+                data-testid="session-material-notes"
+              />
+            </label>
+            <label>
+              Distribuir para
+              <select
+                value={allocationLinkId}
+                onChange={(event) => setAllocationLinkId(event.target.value)}
+                data-testid="session-allocation-link"
+              >
+                <option value="">Parcela não atribuída</option>
+                {content.links.map((link) => {
+                  const subject = content.subjects.find(
+                    (item) => item.id === link.subjectId,
+                  );
+                  return (
+                    <option key={link.id} value={link.id}>
+                      {subject?.title ?? link.displayAlias ?? link.id}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+            <label>
+              Duração da alocação (min)
+              <input
+                type="number"
+                min="1"
+                value={allocationMinutes}
+                onChange={(event) => setAllocationMinutes(event.target.value)}
+                data-testid="session-allocation-minutes"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={addAllocation}
+              data-testid="session-allocation-add"
+            >
+              Adicionar alocação
+            </button>
+            <p data-testid="session-allocation-summary">
+              Alocado:{' '}
+              {formatMs(
+                allocationDrafts.reduce(
+                  (sum, draft) => sum + draft.minutes * 60_000,
+                  0,
+                ),
+              )}{' '}
+              · Não atribuído:{' '}
+              {formatMs(
+                Math.max(
+                  0,
+                  Math.max(0, Number(manualMinutes) || 0) * 60_000 -
+                    allocationDrafts.reduce(
+                      (sum, draft) => sum + draft.minutes * 60_000,
+                      0,
+                    ),
+                ),
+              )}
+            </p>
+          </details>
         </article>
 
-        <article className="panel" data-testid="session-habits">
+        <article className="session-card" id="session-habits" data-testid="session-habits">
           <h3>Hábitos</h3>
-          <button type="button" onClick={createHabit} disabled={locked || busy}>
-            Criar hábito diário de 2h
+          <label>
+            Categoria do hábito
+            <select
+              value={habitKind}
+              onChange={(event) =>
+                setHabitKind(
+                  event.target.value as 'TIME' | 'QUESTIONS' | 'MANUAL',
+                )
+              }
+              data-testid="session-habit-kind"
+            >
+              <option value="TIME">Tempo de estudo</option>
+              <option value="QUESTIONS">Questões</option>
+              <option value="MANUAL">Manual</option>
+            </select>
+          </label>
+          <label>
+            {habitKind === 'TIME'
+              ? 'Meta (min)'
+              : habitKind === 'QUESTIONS'
+                ? 'Meta (questões)'
+                : 'Meta'}
+            <input
+              type="number"
+              min="1"
+              value={habitTarget}
+              disabled={habitKind === 'MANUAL'}
+              onChange={(event) => setHabitTarget(event.target.value)}
+              data-testid="session-habit-target"
+            />
+          </label>
+          <label>
+            Recorrência
+            <select
+              value={habitRecurrence}
+              onChange={(event) =>
+                setHabitRecurrence(event.target.value as 'DAILY' | 'WEEKLY')
+              }
+              data-testid="session-habit-recurrence"
+            >
+              <option value="DAILY">Diário</option>
+              <option value="WEEKLY">Semanal</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={createHabit}
+            disabled={locked || busy}
+            data-testid="session-habit-create"
+          >
+            Criar hábito
           </button>
           <ul>
             {habits.map((habit) => {
               const evidence = getHabitEvidence(habit, history, todayInZone());
+              const targetLabel =
+                habit.kind === 'TIME'
+                  ? formatMs(habit.target ?? 0)
+                  : habit.kind === 'QUESTIONS'
+                    ? String(habit.target ?? 0) + ' questões'
+                    : 'manual';
+              const progressLabel =
+                habit.kind === 'QUESTIONS'
+                  ? String(evidence.progress) + ' questões'
+                  : formatMs(evidence.progress);
               return (
                 <li key={habit.id}>
-                  {habit.kind} · meta {formatMs(habit.target ?? 0)} · progresso{' '}
-                  {formatMs(evidence.progress)}
+                  {habit.kind} · meta {targetLabel} · progresso {progressLabel}
                   <button type="button" onClick={() => confirmHabit(habit)}>
                     Confirmar hoje
                   </button>
@@ -873,7 +1484,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         </article>
       </div>
 
-      <article className="panel" data-testid="session-history">
+      <article className="session-card" id="session-history" data-testid="session-history">
         <h3>Histórico</h3>
         <div className="session-actions">
           <button type="button" onClick={() => exportHistory('CSV')} data-testid="session-export-csv">
@@ -883,20 +1494,176 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
             Exportar JSON
           </button>
         </div>
-        <ul>
-          {history.map((item) => (
-            <li key={item.id}>
-              {item.recordedAtCivilDate ?? 'sem data'} · {item.origin} ·{' '}
-              {item.state} ·{' '}
-              {formatMs(
-                item.manualDeclaredMs ??
-                  item.intervals
-                    .filter((interval) => interval.kind === 'FOCUS')
-                    .reduce((sum, interval) => sum + interval.verifiedMs, 0),
-              )}
-            </li>
-          ))}
-        </ul>
+        {history.length === 0 ? (
+          <p className="empty-state">
+            Nenhuma sessão registrada ainda. Inicie o cronômetro ou registre manualmente.
+          </p>
+        ) : (
+          <ul>
+            {history.map((item) => (
+              <li
+                key={item.id}
+                data-session-id={item.id}
+                data-block-ids={item.planBlockIds.join(',')}
+              >
+                <div>
+                  {item.recordedAtCivilDate ?? 'sem data'} · {item.origin} ·{' '}
+                  {item.state} ·{' '}
+                  {formatMs(
+                    item.manualDeclaredMs ??
+                      item.intervals
+                        .filter((interval) => interval.kind === 'FOCUS')
+                        .reduce((sum, interval) => sum + interval.verifiedMs, 0),
+                  )}
+                </div>
+                {item.planBlockIds.length > 0 ? (
+                  <div className="session-actions">
+                    {item.planBlockIds.map((blockId) => {
+                      const block = planBlocks.find(
+                        (candidate) => candidate.id === blockId,
+                      );
+                      const disabled =
+                        locked ||
+                        busy ||
+                        Boolean(session && session.id !== item.id);
+                      return (
+                        <span key={blockId}>
+                          <span>
+                            {block ? blockLabel(block, content) : 'Bloco vinculado'}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={disabled}
+                            data-testid={'session-reconcile-' + blockId + '-concluded'}
+                            onClick={() => reconcile(item, blockId, 'CONCLUDED')}
+                          >
+                            Concluído
+                          </button>
+                          <button
+                            type="button"
+                            disabled={disabled}
+                            data-testid={'session-reconcile-' + blockId + '-partial'}
+                            onClick={() => reconcile(item, blockId, 'PARTIAL')}
+                          >
+                            Parcial
+                          </button>
+                          <button
+                            type="button"
+                            disabled={disabled}
+                            data-testid={'session-reconcile-' + blockId + '-not-applied'}
+                            onClick={() => reconcile(item, blockId, 'NOT_APPLIED')}
+                          >
+                            Não aplicado
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void loadRevisions(item.id)}
+                  data-testid={'session-revisions-' + item.id}
+                >
+                  Revisões
+                </button>
+                {revisions[item.id] ? (
+                  revisions[item.id]!.length === 0 ? (
+                    <p className="hint">Sem revisões registradas.</p>
+                  ) : (
+                    <ul>
+                      {revisions[item.id]!.map((revision) => (
+                        <li key={revision.id}>
+                          rev {revision.baseRevision}→{revision.newRevision} ·{' '}
+                          {revision.mutationKind} · {revision.source}
+                          {revision.reason ? ' · ' + revision.reason : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+
+      <article className="session-card" id="session-conflicts" data-testid="session-conflicts">
+        <h3>Conflitos</h3>
+        {conflicts.filter((conflict) => conflict.status !== 'RESOLVED').length === 0 ? (
+          <p className="hint">Nenhum conflito pendente.</p>
+        ) : (
+          <ul>
+            {conflicts
+              .filter((conflict) => conflict.status !== 'RESOLVED')
+              .map((conflict) => (
+                <li key={conflict.id}>
+                  Sessão {conflict.sessionId} · {conflict.kind} · local{' '}
+                  {formatMs(conflict.local.manualDeclaredMs ?? 0)} · incoming{' '}
+                  {formatMs(conflict.incoming.manualDeclaredMs ?? 0)}
+                  <div className="session-actions">
+                    <button
+                      type="button"
+                      onClick={() => resolveConflict(conflict, 'LOCAL')}
+                    >
+                      Manter local
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => resolveConflict(conflict, 'INCOMING')}
+                    >
+                      Usar incoming
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => resolveConflict(conflict, 'KEEP_BOTH')}
+                    >
+                      Manter ambos
+                    </button>
+                  </div>
+                </li>
+              ))}
+          </ul>
+        )}
+      </article>
+
+      <article className="session-card" id="session-emergency" data-testid="session-emergency">
+        <h3>Emergência</h3>
+        <p className="empty-state">
+          Exporte a intenção manual não salva ou reimporte um arquivo validado.
+        </p>
+        <div className="session-actions">
+          <button
+            type="button"
+            onClick={exportEmergency}
+            data-testid="session-emergency-export"
+          >
+            Exportar intenção manual
+          </button>
+          <label>
+            Arquivo de emergência
+            <input
+              type="file"
+              accept="application/json"
+              onChange={selectEmergencyFile}
+              data-testid="session-emergency-file"
+            />
+          </label>
+        </div>
+        {emergencyPreview ? (
+          <p data-testid="session-emergency-preview">
+            {emergencyPreview.kind}
+            {emergencyPreview.reason ? ' — ' + emergencyPreview.reason : ''}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          onClick={applyEmergency}
+          disabled={emergencyPreview?.kind !== 'READY' || busy}
+          data-testid="session-emergency-apply"
+        >
+          Aplicar importação
+        </button>
       </article>
     </section>
   );

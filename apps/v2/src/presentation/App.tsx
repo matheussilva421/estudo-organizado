@@ -71,6 +71,7 @@ export function App() {
   const [theme, setTheme] = useState('grafite');
   const [ready, setReady] = useState(false);
   const [selectedEditalId, setSelectedEditalId] = useState<string | null>(null);
+  const [startBlockId, setStartBlockId] = useState<string | null>(null);
   const [pending, setPending] = useState(0);
   const [upgrade, setUpgrade] = useState<DatabaseUpgradeState>(getDatabaseUpgradeState());
 
@@ -433,6 +434,9 @@ export function App() {
         content={content}
         locked={upgrade.blocked}
         onNotice={setNotice}
+        onStartPlannedBlock={(blockId) =>
+          setStartBlockId(blockId + '#' + Date.now())
+        }
       />
 
       <SessionWorkspace
@@ -440,6 +444,8 @@ export function App() {
         content={content}
         locked={upgrade.blocked}
         onNotice={setNotice}
+        startBlockId={startBlockId}
+        onStartBlockConsumed={() => setStartBlockId(null)}
       />
 
       <ImportPreview

@@ -12,6 +12,7 @@ type Props = {
   onApplyRedistribution: () => void;
   links: { id: string; title: string }[];
   onRelink: (blockId: string, editalDisciplineId: string) => void;
+  onStartBlock?: (block: PlanBlock) => void;
   locked: boolean;
 };
 
@@ -25,6 +26,7 @@ export function PlanningEditor({
   onApplyRedistribution,
   links,
   onRelink,
+  onStartBlock,
   locked,
 }: Props) {
   const [selectedId, setSelectedId] = useState(blocks[0]?.id ?? '');
@@ -74,6 +76,14 @@ export function PlanningEditor({
             }
           >
             Salvar rascunho
+          </button>
+          <button
+            type="button"
+            data-testid="planning-start-session"
+            disabled={locked || !selected || !onStartBlock}
+            onClick={() => selected && onStartBlock?.(selected)}
+          >
+            Iniciar sessão
           </button>
           <p data-testid="draft-state" data-changes={draft?.changes.length ?? 0}>
             {draft ? `Rascunho com ${draft.changes.length} alteração(ões), base ${draft.baseRevision}` : 'Sem rascunho salvo'}

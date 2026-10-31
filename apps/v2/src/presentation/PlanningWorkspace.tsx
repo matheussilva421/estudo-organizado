@@ -65,9 +65,16 @@ type Props = {
   content: ContentSnapshot;
   locked: boolean;
   onNotice: (message: string | null) => void;
+  onStartPlannedBlock?: (blockId: string) => void;
 };
 
-export function PlanningWorkspace({ profileId, content, locked, onNotice }: Props) {
+export function PlanningWorkspace({
+  profileId,
+  content,
+  locked,
+  onNotice,
+  onStartPlannedBlock,
+}: Props) {
   const [scenarios, setScenarios] = useState<PlanningScenario[]>([]);
   const [blocks, setBlocks] = useState<PlanBlock[]>([]);
   const [checkpoints, setCheckpoints] = useState<PlanningCheckpointRecord[]>([]);
@@ -736,6 +743,7 @@ export function PlanningWorkspace({ profileId, content, locked, onNotice }: Prop
               link.id,
           }))}
         onRelink={(blockId, editalDisciplineId) => void relinkBlock(blockId, editalDisciplineId)}
+        onStartBlock={(block) => onStartPlannedBlock?.(block.id)}
         locked={locked}
       />
       <PlanningHistory
