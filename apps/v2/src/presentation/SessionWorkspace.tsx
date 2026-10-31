@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ContentSnapshot } from '../application/content-service';
 import {
   StudySessionService,
@@ -10,6 +10,7 @@ import { exportSessionHistory } from '../application/session-portability';
 import { createSystemClock } from '../domain/session-clock';
 import { getHabitEvidence, type StudyHabit } from '../domain/session-habits';
 import type { SessionAllocation, StudySession } from '../domain/session';
+import { sessionTotalFocusMs } from '../domain/session-accounting';
 import type { PlanBlock } from '../domain/planning';
 import type { SessionConflict } from '../domain/session-conflicts';
 import { LocalSessionRepository } from '../platform/local-session-repository';
@@ -179,6 +180,16 @@ export function SessionWorkspace({
   );
   const habitService = useMemo(() => new LocalSessionHabitService(), []);
 
+  const elapsedRef = useRef(0);
+  const sessionRef = useRef<StudySession | null>(null);
+  const authorityRef = useRef<SessionAuthority | null>(null);
+  const checkpointInFlight = useRef(false);
+
+  useEffect(() => {
+    sessionRef.current = session;
+    authorityRef.current = authority;
+  }, [authority, session]);
+
   const refresh = useCallback(async () => {
     const currentAuthority = await coordinator.getAuthority(profileId);
     if (currentAuthority) {
@@ -217,6 +228,23 @@ export function SessionWorkspace({
     setBusy(true);
     onNotice(null);
     try {
+      const active = session;
+      const last = active?.intervals[active.intervals.length - 1];
+      if (active && active.state === 'RUNNING' && last) {
+        // The other tab holds unpersisted time. Pause at the last durable
+        // checkpoint so no unverified time is credited during the handover.
+        await service.pauseSession({
+          scope: { profileId, operationId: newId(), baseRevision: null },
+          sessionId: active.id,
+          authority: foreignAuthority,
+          checkpoint: {
+            intervalId: last.id,
+            verifiedMs: last.verifiedMs,
+            checkpoint: clock.observe(),
+            endedAt: new Date().toISOString(),
+          },
+        });
+      }
       const result = await coordinator.transferAuthority(
         foreignAuthority.sessionId,
         profileId,
@@ -326,14 +354,12 @@ export function SessionWorkspace({
 
   useEffect(() => {
     if (!session || session.state !== 'RUNNING') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setElapsedMs(
-        session
-          ? session.intervals
-              .filter((interval) => interval.kind === 'FOCUS')
-              .reduce((sum, interval) => sum + interval.verifiedMs, 0)
-          : 0,
-      );
+      elapsedRef.current = session
+        ? session.intervals
+            .filter((interval) => interval.kind === 'FOCUS')
+            .reduce((sum, interval) => sum + interval.verifiedMs, 0)
+        : 0;
+      setElapsedMs(elapsedRef.current);
       return;
     }
     const base = session.intervals
@@ -342,15 +368,66 @@ export function SessionWorkspace({
     const last = session.intervals[session.intervals.length - 1];
     if (!last || last.kind !== 'FOCUS') {
       // A break never advances the study clock.
+      elapsedRef.current = base;
       setElapsedMs(base);
       return;
     }
     const started = performance.now();
-    const timer = setInterval(() => {
-      setElapsedMs(base + (performance.now() - started));
-    }, 1000);
+    const update = () => {
+      elapsedRef.current = base + (performance.now() - started);
+      setElapsedMs(elapsedRef.current);
+    };
+    update();
+    const timer = setInterval(update, 1000);
     return () => clearInterval(timer);
   }, [session]);
+
+  useEffect(() => {
+    if (locked) return;
+    const flush = async () => {
+      const current = sessionRef.current;
+      const currentAuthority = authorityRef.current;
+      if (!current || !currentAuthority) return;
+      if (current.state !== 'RUNNING' || checkpointInFlight.current) return;
+      const last = current.intervals[current.intervals.length - 1];
+      if (!last || last.kind !== 'FOCUS') return;
+      const base = current.intervals
+        .filter((interval) => interval.kind === 'FOCUS')
+        .reduce((sum, interval) => sum + interval.verifiedMs, 0);
+      const live = Math.max(elapsedRef.current, base);
+      const verifiedMs = last.verifiedMs + (live - base);
+      if (verifiedMs <= last.verifiedMs) return;
+      checkpointInFlight.current = true;
+      try {
+        const result = await service.checkpointSession({
+          scope: { profileId, operationId: newId(), baseRevision: null },
+          sessionId: current.id,
+          authority: currentAuthority,
+          intervalId: last.id,
+          verifiedMs,
+          checkpoint: clock.observe(),
+        });
+        if (result.kind === 'LOCAL_COMMITTED') setSession(result.value);
+      } catch {
+        // Keep the last durable value; the next transition still commits.
+      } finally {
+        checkpointInFlight.current = false;
+      }
+    };
+    const timer = setInterval(() => {
+      void flush();
+    }, 15_000);
+    const onHide = () => {
+      void flush();
+    };
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('pagehide', onHide);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+  }, [clock, locked, profileId, service, session]);
 
   useEffect(() => {
     if (session?.origin === 'POMODORO') {
@@ -677,17 +754,8 @@ export function SessionWorkspace({
     onNotice(null);
     try {
       const sessionId = newId();
-      const acquired = await coordinator.acquireAuthority(
-        sessionId,
-        profileId,
-        holderId,
-        null,
-        newId(),
-      );
-      if (acquired.kind !== 'LOCAL_COMMITTED') {
-        onNotice('Não foi possível reservar a autoridade para o registro manual.');
-        return;
-      }
+      // A manual record has no timer, so it must not compete for the
+      // single timer lease held by a running or paused session.
       const result = await service.registerManualSession({
         scope: { profileId, operationId: newId(), baseRevision: null },
         sessionId,
@@ -695,7 +763,6 @@ export function SessionWorkspace({
         referenceZone: ZONE,
         durationMs: Math.max(0, Number(manualMinutes) || 0) * 60_000,
         note: manualNote.trim() || undefined,
-        authority: acquired.value,
       });
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('O registro manual foi recusado.');
@@ -746,7 +813,6 @@ export function SessionWorkspace({
               baseRevision: result.value.localRevision,
             },
             sessionId,
-            authority: acquired.value,
             patch: details,
             reason: 'MANUAL_DETAILS',
           });
@@ -759,13 +825,6 @@ export function SessionWorkspace({
           onNotice('Aviso: já existe outra sessão nesta data; ambos os registros foram preservados.');
         }
       }
-      await coordinator.releaseAuthority(
-        sessionId,
-        profileId,
-        holderId,
-        acquired.value.generation,
-        newId(),
-      );
       await refresh();
     } finally {
       setBusy(false);
@@ -963,6 +1022,7 @@ export function SessionWorkspace({
   }
 
   async function applyEmergency(): Promise<void> {
+    if (locked || busy) return;
     if (!emergencyRaw || emergencyPreview?.kind !== 'READY') return;
     setBusy(true);
     try {
@@ -991,17 +1051,60 @@ export function SessionWorkspace({
     conflict: SessionConflict,
     choice: 'LOCAL' | 'INCOMING' | 'KEEP_BOTH',
   ): Promise<void> {
-    const resolved = await repository.resolveSessionConflict(
-      profileId,
-      conflict.id,
-      choice,
-    );
-    if (!resolved) {
-      onNotice('Conflito não encontrado.');
-    } else {
-      onNotice('Conflito resolvido; versões preservadas sem dupla contagem.');
+    if (locked || busy) return;
+    setBusy(true);
+    onNotice(null);
+    try {
+      if (choice === 'INCOMING') {
+        const incoming = conflict.incoming;
+        const patch: SessionFactsPatch = {};
+        if (incoming.note !== undefined) patch.note = incoming.note;
+        if (incoming.measurements !== undefined) {
+          patch.measurements = incoming.measurements;
+        }
+        if (incoming.materials !== undefined) patch.materials = incoming.materials;
+        if (incoming.allocations !== undefined) {
+          patch.allocations = incoming.allocations;
+        }
+        if (incoming.manualDeclaredMs !== undefined) {
+          patch.manualDeclaredMs = incoming.manualDeclaredMs;
+        }
+        if (incoming.recordedAtCivilDate !== undefined) {
+          patch.recordedAtCivilDate = incoming.recordedAtCivilDate;
+        }
+        const applied = await service.editSessionFacts({
+          scope: {
+            profileId,
+            operationId: newId(),
+            baseRevision: conflict.local.localRevision,
+          },
+          sessionId: conflict.sessionId,
+          patch,
+          reason: 'CONFLICT_RESOLUTION_INCOMING',
+        });
+        if (applied.kind !== 'LOCAL_COMMITTED') {
+          onNotice('Conflito mantido: não foi possível aplicar a versão incoming.');
+          return;
+        }
+      }
+      const resolved = await repository.resolveSessionConflict(
+        profileId,
+        conflict.id,
+        choice,
+      );
+      if (!resolved) {
+        onNotice('Conflito não encontrado.');
+      } else if (choice === 'INCOMING') {
+        onNotice('Versão incoming aplicada com nova revisão e auditoria.');
+      } else if (choice === 'LOCAL') {
+        onNotice('Versão local mantida; incoming preservado no registro do conflito.');
+      } else {
+        onNotice('Versões preservadas: local na sessão, incoming no registro do conflito.');
+      }
+      await refresh();
+    } finally {
+      setBusy(false);
     }
-    await refresh();
   }
 
   return (
@@ -1509,12 +1612,7 @@ export function SessionWorkspace({
                 <div>
                   {item.recordedAtCivilDate ?? 'sem data'} · {item.origin} ·{' '}
                   {item.state} ·{' '}
-                  {formatMs(
-                    item.manualDeclaredMs ??
-                      item.intervals
-                        .filter((interval) => interval.kind === 'FOCUS')
-                        .reduce((sum, interval) => sum + interval.verifiedMs, 0),
-                  )}
+                  {formatMs(sessionTotalFocusMs(item))}
                 </div>
                 {item.planBlockIds.length > 0 ? (
                   <div className="session-actions">
@@ -1605,18 +1703,21 @@ export function SessionWorkspace({
                     <button
                       type="button"
                       onClick={() => resolveConflict(conflict, 'LOCAL')}
+                      disabled={locked || busy}
                     >
                       Manter local
                     </button>
                     <button
                       type="button"
                       onClick={() => resolveConflict(conflict, 'INCOMING')}
+                      disabled={locked || busy}
                     >
                       Usar incoming
                     </button>
                     <button
                       type="button"
                       onClick={() => resolveConflict(conflict, 'KEEP_BOTH')}
+                      disabled={locked || busy}
                     >
                       Manter ambos
                     </button>
@@ -1659,7 +1760,7 @@ export function SessionWorkspace({
         <button
           type="button"
           onClick={applyEmergency}
-          disabled={emergencyPreview?.kind !== 'READY' || busy}
+          disabled={emergencyPreview?.kind !== 'READY' || busy || locked}
           data-testid="session-emergency-apply"
         >
           Aplicar importação

@@ -2,7 +2,7 @@ import {
   SessionValidationError,
   type StudySession,
 } from './session';
-import { sumVerifiedFocusMs } from './session-clock';
+import { sessionTotalFocusMs } from './session-accounting';
 import {
   addCivilDays,
   isCivilDate,
@@ -111,7 +111,7 @@ export function getHabitEvidence(
         )
       );
     }
-    return total + (session.manualDeclaredMs ?? 0) + sumVerifiedFocusMs(session.intervals);
+    return total + sessionTotalFocusMs(session);
   }, 0);
   const targetMet = habit.target !== undefined && progress >= habit.target;
   return { progress, targetMet, needsReview: targetMet };

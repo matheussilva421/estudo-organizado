@@ -2,7 +2,9 @@ import {
   SessionValidationError,
   type SessionAllocation,
   type SessionInterval,
+  type StudySession,
 } from './session';
+import { sumVerifiedFocusMs } from './session-clock';
 import {
   addCivilDays,
   enumerateCivilDates,
@@ -16,6 +18,17 @@ export type AllocationSummary = {
   allocatedMs: number;
   unallocatedMs: number;
 };
+
+/**
+ * A manual correction is an extra fact about the session, never a replacement
+ * for the time the clock verified. History, habits, exports and allocations
+ * must all read the same total.
+ */
+export function sessionTotalFocusMs(
+  session: Pick<StudySession, 'intervals' | 'manualDeclaredMs'>,
+): number {
+  return sumVerifiedFocusMs(session.intervals) + (session.manualDeclaredMs ?? 0);
+}
 
 function fail(code: string, message: string): never {
   throw new SessionValidationError(code, message);

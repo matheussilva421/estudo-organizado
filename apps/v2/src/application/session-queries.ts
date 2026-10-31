@@ -53,8 +53,8 @@ function matchesFilter(session: StudySession, filter: SessionHistoryFilter): boo
   }
   if (filter.origin && session.origin !== filter.origin) return false;
   if (filter.state && session.state !== filter.state) return false;
-  // assuntoId remains API-compatible; sessions do not persist one assunto
-  // identity, so the filter never guesses a classification.
+  // assuntoId matches only through explicit allocations; the query never
+  // guesses a classification for sessions without one.
   return true;
 }
 

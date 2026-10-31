@@ -30,7 +30,10 @@ import {
   validateMaterialRef,
   validateMeasurement,
 } from '../domain/session-measurements';
-import { allocateFocus } from '../domain/session-accounting';
+import {
+  allocateFocus,
+  sessionTotalFocusMs,
+} from '../domain/session-accounting';
 import type { SessionAuthority } from '../platform/session-coordination';
 
 export type StartSessionInput = {
@@ -116,7 +119,7 @@ export type RegisterManualSessionInput = {
   referenceZone: string;
   durationMs: number;
   note?: string;
-  authority: SessionAuthority;
+  authority?: SessionAuthority;
 };
 
 export type LinkSessionToPlanInput = {
@@ -146,7 +149,7 @@ export type ReconcilePlanProgressResult = {
 export type EditSessionFactsInput = {
   scope: SessionScope;
   sessionId: string;
-  authority: SessionAuthority;
+  authority?: SessionAuthority;
   patch: SessionFactsPatch;
   reason?: string;
 };
@@ -501,8 +504,7 @@ export class StudySessionService {
         validateMaterialRef(material);
       }
       if (input.patch.allocations) {
-        const totalValidMs =
-          current.manualDeclaredMs ?? sumVerifiedFocusMs(current.intervals);
+        const totalValidMs = sessionTotalFocusMs(current);
         allocateFocus(totalValidMs, input.patch.allocations);
       }
     } catch (error) {
@@ -590,28 +592,16 @@ export class StudySessionService {
           ? { ...interval, recoveryFlag: true }
           : interval,
       );
-      const edited = await this.repository.commit({
-        kind: 'EDIT_FACTS',
+      return this.repository.commit({
+        kind: 'TRANSITION',
         scope: {
           ...input.scope,
           baseRevision: input.scope.baseRevision ?? current.localRevision,
         },
         sessionId: input.sessionId,
         authority: input.authority,
-        patch: { intervals },
-        reason: 'RECOVERY_PENDING',
-      });
-      if (edited.kind !== 'LOCAL_COMMITTED') return edited;
-      return this.repository.commit({
-        kind: 'TRANSITION',
-        scope: {
-          ...input.scope,
-          operationId: `${input.scope.operationId}~transition`,
-          baseRevision: edited.value.localRevision,
-        },
-        sessionId: input.sessionId,
-        authority: input.authority,
         nextState: 'RECOVERY_REQUIRED',
+        patchIntervals: intervals,
       });
     }
 
@@ -646,6 +636,15 @@ export class StudySessionService {
       if (current.state === 'COMPLETED' || current.state === 'CANCELLED') {
         return invalid('INVALID_TRANSITION');
       }
+      const observation = this.clock.observe();
+      const nextInterval: SessionInterval = {
+        id: `${input.sessionId}~focus~${observation.monotonicMs}`,
+        kind: 'FOCUS',
+        verifiedMs: 0,
+        contextId: observation.contextId,
+        checkpoint: observation,
+        recoveryFlag: false,
+      };
       return this.repository.commit({
         kind: 'TRANSITION',
         scope: {
@@ -655,6 +654,7 @@ export class StudySessionService {
         sessionId: input.sessionId,
         authority: input.authority,
         nextState: 'RUNNING',
+        newInterval: nextInterval,
       });
     }
 

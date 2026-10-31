@@ -13,6 +13,10 @@ test('f4 second tab requires assisted authority transfer', async ({ context, pag
   await expect(second.locator('[data-testid="session-takeover"]')).toBeVisible();
 
   await second.locator('[data-testid="session-takeover"]').click();
+  // The handover pauses at the last durable checkpoint so no unverified time
+  // from the old tab is credited; the new owner resumes explicitly.
+  await expect(second.locator('[data-testid="session-resume"]')).toBeVisible();
+  await second.locator('[data-testid="session-resume"]').click();
   await expect(second.locator('[data-testid="session-pause"]')).toBeEnabled();
   await second.locator('[data-testid="session-pause"]').click();
   await expect(second.locator('[data-testid="session-resume"]')).toBeVisible();

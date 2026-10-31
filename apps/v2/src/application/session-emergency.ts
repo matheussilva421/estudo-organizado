@@ -3,6 +3,15 @@ import type {
   SessionScope,
   StudySession,
 } from '../domain/session';
+import { SessionValidationError, validateSession } from '../domain/session';
+import {
+  validateMaterialRef,
+  validateMeasurement,
+} from '../domain/session-measurements';
+import {
+  allocateFocus,
+  sessionTotalFocusMs,
+} from '../domain/session-accounting';
 import type {
   LocalSessionRepository,
   SessionCommitInput,
@@ -120,7 +129,32 @@ export async function applyEmergencyImport(
     return { kind: 'INVALID', code: preview.reason ?? 'INVALID_IMPORT' };
   }
   const parsed = JSON.parse(raw) as { command: SessionCommitInput };
-  return repository.commit(parsed.command);
+  const command = parsed.command;
+  // A reimport may only touch an existing session through an explicit
+  // compare-and-swap, never by blind overwrite.
+  if (command.kind !== 'CREATE' && command.scope.baseRevision === null) {
+    return { kind: 'INVALID', code: 'INVALID_COMMAND' };
+  }
+  try {
+    if (command.kind === 'CREATE') {
+      validateSession(command.session);
+      for (const measurement of command.session.measurements ?? []) {
+        validateMeasurement(measurement);
+      }
+      for (const material of command.session.materials ?? []) {
+        validateMaterialRef(material);
+      }
+      if (command.session.allocations) {
+        allocateFocus(sessionTotalFocusMs(command.session), command.session.allocations);
+      }
+    }
+  } catch (error) {
+    return {
+      kind: 'INVALID',
+      code: error instanceof SessionValidationError ? error.code : 'INVALID_IMPORT',
+    };
+  }
+  return repository.commit(command);
 }
 
 export async function downloadEmergencyFile(

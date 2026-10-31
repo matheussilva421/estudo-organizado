@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   allocateFocus,
+  sessionTotalFocusMs,
   splitVerifiedTimeByCivilDate,
 } from '../../src/domain/session-accounting';
 import { summarizeExecutionLinks } from '../../src/domain/planning-execution-contract';
@@ -26,6 +27,21 @@ function focus(
 }
 
 describe('F4 session accounting', () => {
+  it('manual_correction_adds_to_measured_focus', () => {
+    expect(
+      sessionTotalFocusMs({
+        intervals: [focus(undefined, undefined, 42 * minute)],
+        manualDeclaredMs: 3 * minute,
+      }),
+    ).toBe(45 * minute);
+  });
+
+  it('manual_only_session_uses_declared_total', () => {
+    expect(
+      sessionTotalFocusMs({ intervals: [], manualDeclaredMs: 30 * minute }),
+    ).toBe(30 * minute);
+  });
+
   it('90min_50plus40_allocated_exactly', () => {
     expect(
       allocateFocus(90 * minute, [

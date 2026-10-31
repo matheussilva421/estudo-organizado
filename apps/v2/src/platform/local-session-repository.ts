@@ -103,6 +103,7 @@ export type SessionCommitInput =
         endedAt?: string;
       };
       newInterval?: SessionInterval;
+      patchIntervals?: SessionInterval[];
     }
   | {
       kind: 'CHECKPOINT';
@@ -495,6 +496,9 @@ export class LocalSessionRepository {
           }
           if (input.newInterval) {
             intervals = [...intervals, input.newInterval];
+          }
+          if (input.patchIntervals) {
+            intervals = input.patchIntervals;
           }
           persisted = validateSession({
             ...transitionSession({ ...current, intervals }, input.nextState),
