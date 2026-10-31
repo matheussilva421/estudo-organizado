@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('f4 starts from a planned block and reconciles explicitly', async ({ page }) => {
+async function seedPlan(page: import('@playwright/test').Page): Promise<void> {
   await page.goto('/');
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
 
@@ -78,6 +78,10 @@ test('f4 starts from a planned block and reconciles explicitly', async ({ page }
 
   await page.reload();
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+}
+
+test('f4 starts from a planned block and reconciles explicitly', async ({ page }) => {
+  await seedPlan(page);
   const startButton = page.locator('[data-testid="planning-start-session"]');
   await expect(startButton).toBeVisible();
   await startButton.click();
@@ -93,4 +97,24 @@ test('f4 starts from a planned block and reconciles explicitly', async ({ page }
   await expect(partial).toBeVisible();
   await partial.click();
   await expect(page.locator('body')).toContainText('Conciliação registrada');
+});
+
+test('f4 links a free session to a planned block afterwards', async ({ page }) => {
+  await seedPlan(page);
+
+  await page.getByLabel('Duração da sessão (min)').fill('20');
+  await page.getByTestId('session-manual-submit').click();
+  await expect(page.locator('body')).toContainText('Sessão manual registrada');
+
+  const history = page.locator('[data-testid="session-history"]');
+  const linkSelect = history.locator('[data-testid^="session-link-block-"]').first();
+  await expect(linkSelect).toBeVisible();
+  const sessionId = await linkSelect.getAttribute('data-testid');
+  const id = sessionId?.replace('session-link-block-', '') ?? '';
+  await linkSelect.selectOption('block-1');
+  await history.locator('[data-testid="session-link-apply-' + id + '"]').click();
+  await expect(page.locator('body')).toContainText('Sessão vinculada ao bloco');
+  await expect(
+    page.locator('[data-testid="session-reconcile-block-1-partial"]'),
+  ).toBeVisible();
 });

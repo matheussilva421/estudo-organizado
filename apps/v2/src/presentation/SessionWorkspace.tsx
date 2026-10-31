@@ -126,6 +126,7 @@ export function SessionWorkspace({
   const [foreignAuthority, setForeignAuthority] = useState<SessionAuthority | null>(null);
   const [recovery, setRecovery] = useState<RecoveryPreview | null>(null);
   const [history, setHistory] = useState<StudySession[]>([]);
+  const [historyCursor, setHistoryCursor] = useState<string | undefined>(undefined);
   const [habits, setHabits] = useState<StudyHabit[]>([]);
   const [planBlocks, setPlanBlocks] = useState<PlanBlock[]>([]);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -158,6 +159,7 @@ export function SessionWorkspace({
   const [revisions, setRevisions] = useState<
     Record<string, SessionAuditRecord[]>
   >({});
+  const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
   const [conflicts, setConflicts] = useState<SessionConflict[]>([]);
   const [habitKind, setHabitKind] = useState<'TIME' | 'QUESTIONS' | 'MANUAL'>(
     'TIME',
@@ -209,6 +211,7 @@ export function SessionWorkspace({
     }
     const page = await querySessionHistory(repository, { profileId }, undefined, 50);
     setHistory(page.items);
+    setHistoryCursor(page.nextCursor);
     setHabits(await habitService.listHabits(profileId));
     setConflicts(await repository.listSessionConflicts(profileId));
     const database = await openV2Database(profileId);
@@ -823,6 +826,8 @@ export function SessionWorkspace({
         const overlaps = await service.findPotentialOverlaps(profileId, manualDate);
         if (overlaps.length > 1) {
           onNotice('Aviso: já existe outra sessão nesta data; ambos os registros foram preservados.');
+        } else {
+          onNotice('Sessão manual registrada.');
         }
       }
       await refresh();
@@ -1045,6 +1050,53 @@ export function SessionWorkspace({
   async function loadRevisions(sessionId: string): Promise<void> {
     const records = await service.listSessionRevisions(profileId, sessionId);
     setRevisions((current) => ({ ...current, [sessionId]: records }));
+  }
+
+  async function loadMoreHistory(): Promise<void> {
+    if (!historyCursor || busy) return;
+    setBusy(true);
+    try {
+      const page = await querySessionHistory(
+        repository,
+        { profileId },
+        historyCursor,
+        50,
+      );
+      setHistory((current) => [...current, ...page.items]);
+      setHistoryCursor(page.nextCursor);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function linkSessionToBlock(
+    item: StudySession,
+    blockId: string,
+  ): Promise<void> {
+    if (locked || busy || !blockId) return;
+    setBusy(true);
+    onNotice(null);
+    try {
+      const result = await service.linkSessionToPlan({
+        scope: {
+          profileId,
+          operationId: newId(),
+          baseRevision: item.localRevision,
+        },
+        sessionId: item.id,
+        blockIds: [...item.planBlockIds, blockId],
+        authority: session?.id === item.id ? authority ?? undefined : undefined,
+      });
+      if (result.kind !== 'LOCAL_COMMITTED') {
+        onNotice('Não foi possível vincular a sessão ao bloco.');
+      } else {
+        onNotice('Sessão vinculada ao bloco com nova revisão.');
+        setLinkDrafts((current) => ({ ...current, [item.id]: '' }));
+      }
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function resolveConflict(
@@ -1614,6 +1666,39 @@ export function SessionWorkspace({
                   {item.state} ·{' '}
                   {formatMs(sessionTotalFocusMs(item))}
                 </div>
+                {item.planBlockIds.length === 0 && planBlocks.length > 0 ? (
+                  <div className="session-actions">
+                    <select
+                      aria-label={'Bloco para vincular a sessão ' + item.id}
+                      data-testid={'session-link-block-' + item.id}
+                      value={linkDrafts[item.id] ?? ''}
+                      disabled={locked || busy}
+                      onChange={(event) =>
+                        setLinkDrafts((current) => ({
+                          ...current,
+                          [item.id]: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Vincular a um bloco…</option>
+                      {planBlocks.map((block) => (
+                        <option key={block.id} value={block.id}>
+                          {blockLabel(block, content)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={locked || busy || !(linkDrafts[item.id] ?? '')}
+                      data-testid={'session-link-apply-' + item.id}
+                      onClick={() =>
+                        void linkSessionToBlock(item, linkDrafts[item.id] ?? '')
+                      }
+                    >
+                      Vincular
+                    </button>
+                  </div>
+                ) : null}
                 {item.planBlockIds.length > 0 ? (
                   <div className="session-actions">
                     {item.planBlockIds.map((blockId) => {
@@ -1684,6 +1769,16 @@ export function SessionWorkspace({
             ))}
           </ul>
         )}
+        {historyCursor ? (
+          <button
+            type="button"
+            onClick={() => void loadMoreHistory()}
+            disabled={busy}
+            data-testid="session-history-more"
+          >
+            Carregar mais
+          </button>
+        ) : null}
       </article>
 
       <article className="session-card" id="session-conflicts" data-testid="session-conflicts">

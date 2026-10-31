@@ -126,7 +126,7 @@ export type LinkSessionToPlanInput = {
   scope: SessionScope;
   sessionId: string;
   blockIds: string[];
-  authority: SessionAuthority;
+  authority?: SessionAuthority;
 };
 
 export type PlanProgressChoice = 'CONCLUDED' | 'PARTIAL' | 'NOT_APPLIED';

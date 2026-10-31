@@ -20,12 +20,21 @@ export type SessionHistoryPage = {
   nextCursor?: string;
 };
 
-function compareSessions(left: StudySession, right: StudySession): number {
-  const dateOrder = (left.recordedAtCivilDate ?? '').localeCompare(
-    right.recordedAtCivilDate ?? '',
+function encodeCursor(session: StudySession): string {
+  return (
+    encodeURIComponent(session.recordedAtCivilDate ?? '') +
+    '|' +
+    encodeURIComponent(session.id)
   );
-  if (dateOrder !== 0) return dateOrder;
-  return left.id.localeCompare(right.id);
+}
+
+function decodeCursor(cursor: string): { civilDate: string; id: string } {
+  const separator = cursor.indexOf('|');
+  if (separator < 0) return { civilDate: '', id: cursor };
+  return {
+    civilDate: decodeURIComponent(cursor.slice(0, separator)),
+    id: decodeURIComponent(cursor.slice(separator + 1)),
+  };
 }
 
 function matchesFilter(session: StudySession, filter: SessionHistoryFilter): boolean {
@@ -65,17 +74,17 @@ export async function querySessionHistory(
   limit = 50,
 ): Promise<SessionHistoryPage> {
   const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 200) : 50;
-  const all = (await repository.listSessions(filter.profileId))
-    .filter((session) => matchesFilter(session, filter))
-    .sort(compareSessions);
-  let start = 0;
-  if (cursor) {
-    const index = all.findIndex((session) => session.id === cursor);
-    start = index >= 0 ? index + 1 : 0;
-  }
-  const items = all.slice(start, start + safeLimit);
+  const { items, hasMore } = await repository.scanSessionsDescending(
+    filter.profileId,
+    {
+      before: cursor ? decodeCursor(cursor) : null,
+      limit: safeLimit,
+      matches: (session) => matchesFilter(session, filter),
+    },
+  );
   const last = items[items.length - 1];
-  const nextCursor =
-    last && start + items.length < all.length ? last.id : undefined;
-  return { items, nextCursor };
+  return {
+    items,
+    nextCursor: hasMore && last ? encodeCursor(last) : undefined,
+  };
 }

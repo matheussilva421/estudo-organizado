@@ -258,6 +258,60 @@ export class LocalSessionRepository {
     )) as StudySession[];
   }
 
+  /**
+   * Walks the date index backwards so a history page never loads the whole
+   * profile. The cursor is the last (civil date, id) pair already delivered.
+   */
+  async scanSessionsDescending(
+    profileId: string,
+    options: {
+      before?: { civilDate: string; id: string } | null;
+      limit: number;
+      matches?: (session: StudySession) => boolean;
+    },
+  ): Promise<{ items: StudySession[]; hasMore: boolean }> {
+    const before = options.before ?? null;
+    const limit = Math.max(0, Math.trunc(options.limit));
+    if (!profileId || limit === 0) return { items: [], hasMore: false };
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(STORES.sessions, 'readonly');
+    const index = transaction
+      .objectStore(STORES.sessions)
+      .index('by_profile_date');
+    const range = IDBKeyRange.bound([profileId, ''], [profileId, '\uffff']);
+    const items: StudySession[] = [];
+    let hasMore = false;
+    await new Promise<void>((resolve, reject) => {
+      const request = index.openCursor(range, 'prev');
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve();
+          return;
+        }
+        const record = cursor.value as StudySession;
+        const civilDate = record.recordedAtCivilDate ?? '';
+        const alreadyDelivered =
+          before !== null &&
+          (civilDate > before.civilDate ||
+            (civilDate === before.civilDate && record.id >= before.id));
+        if (alreadyDelivered || (options.matches && !options.matches(record))) {
+          cursor.continue();
+          return;
+        }
+        if (items.length >= limit) {
+          hasMore = true;
+          resolve();
+          return;
+        }
+        items.push(record);
+        cursor.continue();
+      };
+    });
+    return { items, hasMore };
+  }
+
   async listSessionRevisions(
     profileId: string,
     sessionId: string,

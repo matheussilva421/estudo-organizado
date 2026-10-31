@@ -78,6 +78,21 @@ describe('F4 session history', () => {
     expect(new Set(collected).size).toBe(25);
   });
 
+  it('first_page_starts_at_the_newest_session', async () => {
+    const sessions = Array.from({ length: 60 }, (_, index) =>
+      session({
+        id: 'n' + String(index).padStart(2, '0'),
+        recordedAtCivilDate:
+          '2026-09-' + String((index % 28) + 1).padStart(2, '0'),
+      }),
+    );
+    await seed(sessions);
+    const page = await querySessionHistory(new LocalSessionRepository(), { profileId }, undefined, 10);
+    expect(page.items).toHaveLength(10);
+    expect(page.items[0]?.recordedAtCivilDate).toBe('2026-09-28');
+    expect(page.nextCursor).toBeTruthy();
+  });
+
   it('archived_references_remain_visible', async () => {
     await seed([session({ id: 'archived-ref', planBlockIds: ['block-archived'] })]);
     const page = await querySessionHistory(new LocalSessionRepository(), { profileId });
