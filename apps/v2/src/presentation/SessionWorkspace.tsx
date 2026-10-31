@@ -1881,9 +1881,9 @@ export function SessionWorkspace({
               .filter((conflict) => conflict.status !== 'RESOLVED')
               .map((conflict) => (
                 <li key={conflict.id}>
-                  Sessão {conflict.sessionId} · {conflict.kind} · local{' '}
-                  {formatMs(conflict.local.manualDeclaredMs ?? 0)} · incoming{' '}
-                  {formatMs(conflict.incoming.manualDeclaredMs ?? 0)}
+                  Sessão de {conflict.local.recordedAtCivilDate ?? 'sem data'} ·{' '}
+                  {conflict.kind} · local {formatMs(sessionTotalFocusMs(conflict.local))}{' '}
+                  · incoming {formatMs(sessionTotalFocusMs(conflict.incoming))}
                   <div className="session-actions">
                     <button
                       type="button"
