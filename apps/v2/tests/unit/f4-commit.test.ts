@@ -202,4 +202,141 @@ describe('F4 local session repository', () => {
     expect(loaded?.state).toBe('DRAFT');
     expect(await counts()).toEqual({ sessions: 1, outbox: 2, operations: 2 });
   });
+
+  it('transition_with_checkpoint_updates_interval_and_state_atomically', async () => {
+    const repository = new LocalSessionRepository();
+    const checkpoint = {
+      contextId: 'ctx-1',
+      monotonicMs: 1_000,
+      wallInstant: '2026-10-30T10:00:00.000Z',
+    };
+    await repository.commit({
+      kind: 'CREATE',
+      scope: { profileId, operationId: 'op-create', baseRevision: null },
+      sessionId: 'session-1',
+      session: baseSession({
+        state: 'RUNNING',
+        intervals: [
+          {
+            id: 'interval-1',
+            kind: 'FOCUS',
+            verifiedMs: 0,
+            contextId: 'ctx-1',
+            checkpoint,
+            recoveryFlag: false,
+          },
+        ],
+      }),
+    });
+    const result = await repository.commit({
+      kind: 'TRANSITION',
+      scope: { profileId, operationId: 'op-pause', baseRevision: 1 },
+      sessionId: 'session-1',
+      nextState: 'PAUSED',
+      checkpoint: {
+        intervalId: 'interval-1',
+        verifiedMs: 5_000,
+        checkpoint: {
+          ...checkpoint,
+          monotonicMs: 6_000,
+          wallInstant: '2026-10-30T10:00:06.000Z',
+        },
+        endedAt: '2026-10-30T10:00:06.000Z',
+      },
+    });
+    expect(result.kind).toBe('LOCAL_COMMITTED');
+    const loaded = await repository.load(profileId, 'session-1');
+    expect(loaded?.state).toBe('PAUSED');
+    expect(loaded?.intervals[0]?.verifiedMs).toBe(5_000);
+    expect(loaded?.intervals[0]?.endedAt).toBe('2026-10-30T10:00:06.000Z');
+    expect(await counts()).toEqual({ sessions: 1, outbox: 2, operations: 2 });
+  });
+
+  it('transition_with_new_interval_resumes_in_one_transaction', async () => {
+    const repository = new LocalSessionRepository();
+    await repository.commit({
+      kind: 'CREATE',
+      scope: { profileId, operationId: 'op-create', baseRevision: null },
+      sessionId: 'session-1',
+      session: baseSession({
+        state: 'PAUSED',
+        intervals: [
+          {
+            id: 'interval-1',
+            kind: 'FOCUS',
+            verifiedMs: 1_000,
+            contextId: 'ctx-1',
+            checkpoint: null,
+            recoveryFlag: false,
+          },
+        ],
+      }),
+    });
+    const result = await repository.commit({
+      kind: 'TRANSITION',
+      scope: { profileId, operationId: 'op-resume', baseRevision: 1 },
+      sessionId: 'session-1',
+      nextState: 'RUNNING',
+      newInterval: {
+        id: 'interval-2',
+        kind: 'FOCUS',
+        verifiedMs: 0,
+        contextId: 'ctx-1',
+        checkpoint: null,
+        recoveryFlag: false,
+        startedAt: '2026-10-30T10:00:10.000Z',
+      },
+    });
+    expect(result.kind).toBe('LOCAL_COMMITTED');
+    const loaded = await repository.load(profileId, 'session-1');
+    expect(loaded?.state).toBe('RUNNING');
+    expect(loaded?.intervals).toHaveLength(2);
+    expect(loaded?.intervals[1]?.kind).toBe('FOCUS');
+    expect(await counts()).toEqual({ sessions: 1, outbox: 2, operations: 2 });
+  });
+
+  it('abort_during_atomic_transition_leaves_original_state', async () => {
+    const repository = new LocalSessionRepository();
+    const checkpoint = {
+      contextId: 'ctx-1',
+      monotonicMs: 1_000,
+      wallInstant: '2026-10-30T10:00:00.000Z',
+    };
+    await repository.commit({
+      kind: 'CREATE',
+      scope: { profileId, operationId: 'op-create', baseRevision: null },
+      sessionId: 'session-1',
+      session: baseSession({
+        state: 'RUNNING',
+        intervals: [
+          {
+            id: 'interval-1',
+            kind: 'FOCUS',
+            verifiedMs: 0,
+            contextId: 'ctx-1',
+            checkpoint,
+            recoveryFlag: false,
+          },
+        ],
+      }),
+    });
+    const failing = new LocalSessionRepository({ fault: 'abort' });
+    const result = await failing.commit({
+      kind: 'TRANSITION',
+      scope: { profileId, operationId: 'op-pause-fail', baseRevision: 1 },
+      sessionId: 'session-1',
+      nextState: 'PAUSED',
+      checkpoint: {
+        intervalId: 'interval-1',
+        verifiedMs: 5_000,
+        checkpoint,
+        endedAt: '2026-10-30T10:00:06.000Z',
+      },
+    });
+    expect(result).toEqual({ kind: 'FAILED', reason: 'ABORT' });
+    const loaded = await repository.load(profileId, 'session-1');
+    expect(loaded?.state).toBe('RUNNING');
+    expect(loaded?.intervals[0]?.verifiedMs).toBe(0);
+    expect(await counts()).toEqual({ sessions: 1, outbox: 1, operations: 1 });
+  });
 });

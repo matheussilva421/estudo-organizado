@@ -8,6 +8,7 @@ import {
   type SessionOutcome,
   type SessionScope,
   type SessionState,
+  type SessionInterval,
   type StudySession,
 } from '../domain/session';
 import { DOMAIN_SCHEMA_VERSION } from '../domain/versions';
@@ -43,6 +44,7 @@ export type SessionFactsPatch = Partial<
     | 'measurements'
     | 'materials'
     | 'note'
+    | 'allocations'
   >
 >;
 
@@ -56,6 +58,7 @@ export type SessionFactsSnapshot = Pick<
   | 'measurements'
   | 'materials'
   | 'note'
+  | 'allocations'
   | 'planReconciliation'
   | 'tombstone'
   | 'deletedAt'
@@ -93,6 +96,13 @@ export type SessionCommitInput =
       sessionId: string;
       authority?: SessionAuthority;
       nextState: SessionState;
+      checkpoint?: {
+        intervalId: string;
+        verifiedMs: number;
+        checkpoint: ClockObservation;
+        endedAt?: string;
+      };
+      newInterval?: SessionInterval;
     }
   | {
       kind: 'CHECKPOINT';
@@ -166,6 +176,7 @@ function snapshotSession(session: StudySession): SessionFactsSnapshot {
     intervals: session.intervals.map((interval) => ({ ...interval })),
     measurements: session.measurements?.map((measurement) => ({ ...measurement })),
     materials: session.materials?.map((material) => ({ ...material })),
+    allocations: session.allocations?.map((allocation) => ({ ...allocation })),
     note: session.note,
     planReconciliation: session.planReconciliation
       ? { ...session.planReconciliation }
@@ -304,6 +315,32 @@ export class LocalSessionRepository {
     )) as SessionConflict[];
   }
 
+  async resolveSessionConflict(
+    profileId: string,
+    conflictId: string,
+    choice: 'LOCAL' | 'INCOMING' | 'KEEP_BOTH',
+  ): Promise<SessionConflict | null> {
+    if (!profileId.trim() || !conflictId.trim()) return null;
+    const database = await openV2Database(profileId);
+    const transaction = database.transaction(STORES.sessionConflicts, 'readwrite');
+    const store = transaction.objectStore(STORES.sessionConflicts);
+    const current = (await requestResult(
+      store.get([profileId, conflictId]),
+    )) as SessionConflict | undefined;
+    if (!current) {
+      transaction.abort();
+      return null;
+    }
+    const next: SessionConflict = {
+      ...current,
+      status: 'RESOLVED',
+      resolution: choice,
+    };
+    store.put(next);
+    await transactionDone(transaction);
+    return next;
+  }
+
   async commit(input: SessionCommitInput): Promise<SessionOutcome<StudySession>> {
     const scope = input?.scope;
     if (
@@ -425,8 +462,42 @@ export class LocalSessionRepository {
       if (input.kind === 'TRANSITION') {
         let persisted: StudySession;
         try {
+          let intervals = current.intervals;
+          if (input.checkpoint) {
+            if (
+              typeof input.checkpoint.verifiedMs !== 'number' ||
+              !Number.isFinite(input.checkpoint.verifiedMs) ||
+              input.checkpoint.verifiedMs < 0
+            ) {
+              transaction.abort();
+              return invalid('INVALID_DURATION');
+            }
+            const index = intervals.findIndex(
+              (interval) => interval.id === input.checkpoint?.intervalId,
+            );
+            if (index < 0) {
+              transaction.abort();
+              return invalid('INTERVAL_NOT_FOUND');
+            }
+            intervals = intervals.map((interval, position) =>
+              position === index
+                ? {
+                    ...interval,
+                    verifiedMs: input.checkpoint?.verifiedMs ?? interval.verifiedMs,
+                    contextId:
+                      input.checkpoint?.checkpoint.contextId ?? interval.contextId,
+                    checkpoint: input.checkpoint?.checkpoint ?? interval.checkpoint,
+                    recoveryFlag: false,
+                    endedAt: input.checkpoint?.endedAt ?? interval.endedAt,
+                  }
+                : interval,
+            );
+          }
+          if (input.newInterval) {
+            intervals = [...intervals, input.newInterval];
+          }
           persisted = validateSession({
-            ...transitionSession(current, input.nextState),
+            ...transitionSession({ ...current, intervals }, input.nextState),
             localRevision: current.localRevision + 1,
           });
         } catch (error) {

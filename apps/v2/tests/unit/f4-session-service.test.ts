@@ -240,4 +240,57 @@ describe('F4 study session service', () => {
     expect(from?.state).toBe('RUNNING');
     expect(await counts()).toEqual({ sessions: 1, outbox: 1, operations: 1 });
   });
+
+  it('rejects_allocations_over_manual_total_and_persists_valid_ones', async () => {
+    const coordinator = new LocalSessionCoordinator();
+    const repository = new LocalSessionRepository();
+    const service = new StudySessionService(repository, clock);
+    const authority = await coordinator.acquireAuthority(
+      'manual-1',
+      profileId,
+      'tab-a',
+      null,
+      'op-auth-manual',
+    );
+    if (authority.kind !== 'LOCAL_COMMITTED') throw new Error('authority not acquired');
+    await service.registerManualSession({
+      scope: { profileId, operationId: 'op-manual', baseRevision: null },
+      sessionId: 'manual-1',
+      civilDate: '2026-10-30',
+      referenceZone: 'America/Fortaleza',
+      durationMs: 60 * 60_000,
+      authority: authority.value,
+    });
+    const tooMuch = await service.editSessionFacts({
+      scope: { profileId, operationId: 'op-alloc-bad', baseRevision: 1 },
+      sessionId: 'manual-1',
+      authority: authority.value,
+      patch: {
+        allocations: [
+          {
+            sessionId: 'manual-1',
+            allocationId: 'a1',
+            durationMs: 90 * 60_000,
+          },
+        ],
+      },
+    });
+    expect(tooMuch).toEqual({ kind: 'INVALID', code: 'INVALID_ALLOCATION' });
+    const valid = await service.editSessionFacts({
+      scope: { profileId, operationId: 'op-alloc-good', baseRevision: 1 },
+      sessionId: 'manual-1',
+      authority: authority.value,
+      patch: {
+        allocations: [
+          {
+            sessionId: 'manual-1',
+            allocationId: 'a1',
+            durationMs: 40 * 60_000,
+          },
+        ],
+      },
+    });
+    expect(valid.kind).toBe('LOCAL_COMMITTED');
+    expect((await repository.load(profileId, 'manual-1'))?.allocations).toHaveLength(1);
+  });
 });
