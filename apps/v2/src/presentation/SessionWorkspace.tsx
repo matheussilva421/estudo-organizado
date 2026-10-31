@@ -160,6 +160,9 @@ export function SessionWorkspace({
     Record<string, SessionAuditRecord[]>
   >({});
   const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
+  const [persistState, setPersistState] = useState<
+    'IDLE' | 'SAVED' | 'FAILED' | 'CONFLICT'
+  >('IDLE');
   const [conflicts, setConflicts] = useState<SessionConflict[]>([]);
   const [habitKind, setHabitKind] = useState<'TIME' | 'QUESTIONS' | 'MANUAL'>(
     'TIME',
@@ -181,6 +184,19 @@ export function SessionWorkspace({
     [clock, repository],
   );
   const habitService = useMemo(() => new LocalSessionHabitService(), []);
+
+  const trackPersist = useCallback(
+    (outcome: { kind: string }) => {
+      setPersistState(
+        outcome.kind === 'LOCAL_COMMITTED'
+          ? 'SAVED'
+          : outcome.kind === 'CONFLICT'
+            ? 'CONFLICT'
+            : 'FAILED',
+      );
+    },
+    [],
+  );
 
   const elapsedRef = useRef(0);
   const sessionRef = useRef<StudySession | null>(null);
@@ -488,6 +504,7 @@ export function SessionWorkspace({
         referenceZone: ZONE,
         recordedAtCivilDate: todayInZone(),
       });
+      trackPersist(result);
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('Não foi possível iniciar a sessão.');
       } else {
@@ -697,6 +714,7 @@ export function SessionWorkspace({
           : action === 'resume'
             ? await service.resumeSession(input)
             : await service.completeSession(input);
+      trackPersist(result);
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('A transição não foi aceita. Recarregue e revise o estado.');
       } else if (action === 'complete') {
@@ -734,6 +752,7 @@ export function SessionWorkspace({
             : undefined,
         authority,
       });
+      trackPersist(result);
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('A recuperação não foi aceita.');
       } else if (decision === 'COMPLETE') {
@@ -767,6 +786,7 @@ export function SessionWorkspace({
         durationMs: Math.max(0, Number(manualMinutes) || 0) * 60_000,
         note: manualNote.trim() || undefined,
       });
+      trackPersist(result);
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('O registro manual foi recusado.');
       } else {
@@ -937,6 +957,7 @@ export function SessionWorkspace({
         planningBaseRevision: block.localRevision,
         authority: effectiveAuthority,
       });
+      trackPersist(result);
       if (result.kind === 'CONFLICT') {
         onNotice('Conflito de revisão do planejamento; a sessão foi preservada.');
       } else if (result.kind === 'FAILED') {
@@ -1036,6 +1057,7 @@ export function SessionWorkspace({
         operationId: newId(),
         baseRevision: null,
       });
+      trackPersist(result);
       if (result.kind === 'LOCAL_COMMITTED') {
         onNotice('Importação emergencial aplicada.');
       } else {
@@ -1087,6 +1109,7 @@ export function SessionWorkspace({
         blockIds: [...item.planBlockIds, blockId],
         authority: session?.id === item.id ? authority ?? undefined : undefined,
       });
+      trackPersist(result);
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('Não foi possível vincular a sessão ao bloco.');
       } else {
@@ -1144,6 +1167,7 @@ export function SessionWorkspace({
         conflict.id,
         choice,
       );
+      setPersistState(resolved ? 'SAVED' : 'FAILED');
       if (!resolved) {
         onNotice('Conflito não encontrado.');
       } else if (choice === 'INCOMING') {
@@ -1174,7 +1198,15 @@ export function SessionWorkspace({
         <a href="#session-emergency">Emergência</a>
       </nav>
       <p className="session-status" data-testid="session-persistence">
-        {busy ? 'Gravando…' : 'Persistência local ativa'}
+        {busy
+          ? 'Gravando…'
+          : persistState === 'FAILED'
+            ? 'Falha ao gravar: a última ação não foi confirmada.'
+            : persistState === 'CONFLICT'
+              ? 'Conflito de revisão: recarregue antes de decidir.'
+              : persistState === 'SAVED'
+                ? 'Salvo localmente.'
+                : 'Persistência local ativa.'}
       </p>
       {updateReady ? (
         <div className="inline-notice" data-testid="session-update-banner" role="status">
