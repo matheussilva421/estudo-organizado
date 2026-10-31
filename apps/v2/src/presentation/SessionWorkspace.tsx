@@ -11,6 +11,8 @@ import { createSystemClock } from '../domain/session-clock';
 import { getHabitEvidence, type StudyHabit } from '../domain/session-habits';
 import type { StudySession } from '../domain/session';
 import { LocalSessionRepository } from '../platform/local-session-repository';
+import { getDatabaseUpgradeState } from '../platform/indexeddb';
+import { applyWaitingUpdate } from '../platform/sw-update';
 import {
   LocalSessionCoordinator,
   type SessionAuthority,
@@ -61,6 +63,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
   const [habits, setHabits] = useState<StudyHabit[]>([]);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [updateReady, setUpdateReady] = useState(false);
   const [manualDate, setManualDate] = useState(todayInZone());
   const [manualMinutes, setManualMinutes] = useState('30');
   const [manualNote, setManualNote] = useState('');
@@ -126,6 +129,55 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh().catch(() => onNotice('Não foi possível carregar as sessões.'));
   }, [onNotice, refresh]);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        if (!cancelled) setUpdateReady(Boolean(registration.waiting));
+      } catch {
+        // Service worker registration is optional in local development.
+      }
+    };
+    void check();
+    const timer = setInterval(check, 2_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+
+  async function applyUpdate(): Promise<void> {
+    if (!('serviceWorker' in navigator) || busy) return;
+    setBusy(true);
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const result = await applyWaitingUpdate(registration, {
+        hasActiveSession:
+          session !== null &&
+          session.state !== 'COMPLETED' &&
+          session.state !== 'CANCELLED',
+        hasUnsavedForm: manualNote.trim().length > 0,
+        hasPendingRecovery: recovery !== null,
+        databaseCompatible: !getDatabaseUpgradeState().blocked,
+        otherTabsReady: true,
+      });
+      if (result === 'DEFERRED') {
+        onNotice('Atualização adiada: sessão ativa, recuperação pendente ou formulário não salvo.');
+      } else if (result === 'INCOMPATIBLE') {
+        onNotice('Atualização incompatível com o banco atual; escrita bloqueada até recuperação.');
+      } else if (result === 'APPLIED') {
+        setUpdateReady(false);
+        onNotice('Atualização aplicada sem recarregar a sessão.');
+      } else {
+        onNotice('Falha ao aplicar a atualização.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!session || session.state !== 'RUNNING') {
@@ -514,6 +566,19 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
       <p className="empty-state">
         Cronômetro, registro manual, recuperação, hábitos e histórico local.
       </p>
+      {updateReady ? (
+        <div className="inline-notice" data-testid="session-update-banner" role="status">
+          <p>Atualização disponível. A sessão ativa não será recarregada.</p>
+          <button
+            type="button"
+            onClick={applyUpdate}
+            disabled={locked || busy}
+            data-testid="session-apply-update"
+          >
+            Aplicar atualização
+          </button>
+        </div>
+      ) : null}
       <div className="session-grid">
         <article className="panel" data-testid="session-timer">
           <h3>Cronômetro</h3>

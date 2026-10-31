@@ -56,6 +56,26 @@ export async function requestSafeUpdate(
   return 'APPLIED';
 }
 
+export async function applyWaitingUpdate(
+  registration: ServiceWorkerRegistration,
+  safety: UpdateSafety,
+): Promise<SafeUpdateResult> {
+  const decision = canApplyV2Update(safety);
+  if (!decision.allowed) {
+    return decision.reason === 'INCOMPATIBLE_SCHEMA' ? 'INCOMPATIBLE' : 'DEFERRED';
+  }
+  if (!registration.waiting) {
+    try {
+      await registration.update();
+    } catch {
+      return 'FAILED';
+    }
+  }
+  if (!registration.waiting) return 'APPLIED';
+  registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  return 'APPLIED';
+}
+
 export async function registerV2ServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
   try {
