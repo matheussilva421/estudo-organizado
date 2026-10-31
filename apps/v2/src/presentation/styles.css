@@ -251,9 +251,9 @@ select {
 
 .group-title {
   margin: 1.25rem 0 0.5rem;
-  font-size: 0.95rem;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.5px;
   color: var(--text-muted);
 }
 
@@ -321,7 +321,7 @@ select {
   display: inline-block;
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
-  background: var(--surface-alt, rgba(127, 127, 127, 0.15));
+  background: var(--surface-alt, var(--surface));
   font-size: 0.75rem;
   text-transform: lowercase;
 }
@@ -508,7 +508,7 @@ select {
 }
 
 .planning-warning {
-  color: var(--warn-text, #b45309);
+  color: var(--warning);
 }
 
 .planning-workspace button[aria-pressed='true'] {
