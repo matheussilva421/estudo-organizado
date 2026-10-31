@@ -1,9 +1,9 @@
 # F4 — checkpoint de execução local
 
-**Atualizado:** 2026-10-30
+**Atualizado:** 2026-10-31
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Branch:** `v2` (local, ahead de `origin/v2`; sem push)
-**HEAD no checkpoint:** `4ffa023`
+**HEAD no checkpoint:** `18a561b`
 
 ## Documentos
 
@@ -34,7 +34,6 @@
 - Task 18 — exportação/reimportação emergencial: `9289f9d`.
 - Task 19 — atualização PWA coordenada: `26e5755`.
 - Tasks 20–21 — SessionWorkspace integrado ao App, Pomodoro, autoridade assistida, hábitos e E2E: `852a419`.
-- Task 22 — unitários 413 PASS, E2E completo 85 PASS + 1 skip, lint/build PASS, relatório final.
 - Correção material — checkpoint do tempo verificado antes de pausar/concluir: `3650e4c`.
 - F4-T42 — atualização PWA coordenada e banner de update: `b5fa511`.
 - F4-T35 — DST/fold determinístico: `e59015a`.
@@ -42,15 +41,23 @@
 - Evidências visuais F4: `77b3629`.
 - Correções da revisão independente (Pomodoro, autoridade, exportação, recovery, conflitos, âncoras): `4ffa023`.
 
+## Fechamento de 2026-10-31
+
+- Atomicidade real de pausa/retomada/conclusão, com checkpoint na mesma transação: `b6dfec6`.
+- Alocações validadas no domínio e filtro de histórico por `assuntoId`: `626f483`.
+- Integração F3 (início por bloco e conciliação), medições/materiais/alocação no registro manual, reimportação emergencial pela UI, negociação de update entre abas, revisões de auditoria e resolução de conflitos na UI, estilos e acessibilidade: `c707665`.
+- Evidências visuais antes/depois: `d793b36`.
+- Relatório de aceite reescrito com a matriz F4-T01–T42 real.
+
 ## Próxima ação
 
-Aguardar aceite humano com ressalvas. Pendências: integração/UX F3, alocação/medição/emergência na UI, atomicidade única de pausa/conclusão, índice de histórico e negociação de update entre abas. F4-T13 físico NOT_RUN; quatro HIGH F0 UNVERIFIED.
+Aguardar aceite humano. Pendências declaradas: F4-T13 (suspensão física) `NOT_RUN`; quatro HIGH da F0 `UNVERIFIED`; histórico ordena/pagina em memória após índice `by_profile`; gate Impeccable completo (auditoria visual dedicada) não executado, detector automático com 0 achados.
 
 ## Comandos
 
 - `cd apps/v2`
-- `npm run test:unit -- tests/unit/f4-*.test.ts`
-- `npm run typecheck`
+- `npm run test:unit`
+- `npm run test:e2e`
 - `npm run lint`
 - `npm run build`
 
@@ -58,7 +65,8 @@ Aguardar aceite humano com ressalvas. Pendências: integração/UX F3, alocaçã
 
 - `node_modules` instalado com `npm ci --prefer-offline`.
 - Nenhum push, deploy, PR, Action ou alteração da `main`.
-- Suíte unitária completa: 427 PASS em 71 arquivos.
+- Suíte unitária completa: 434 PASS em 71 arquivos.
 - Lint: PASS. Build: PASS.
-- E2E F2/F3/PWA: 8 PASS (f3-journey, f2-idb-migration, pwa-offline).
-- E2E F4: 11 PASS; suíte completa 88 PASS + 1 skip.
+- E2E completo: 94 PASS + 1 skip; F4: 17 PASS em 12 specs.
+- Detector Impeccable 3.9.1: 0 achados em `apps/v2/src`.
+
