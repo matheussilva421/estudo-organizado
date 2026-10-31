@@ -3,7 +3,7 @@
 **Atualizado:** 2026-10-30
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Branch:** `v2` (local, ahead de `origin/v2`; sem push)
-**HEAD no checkpoint:** `fb12365`
+**HEAD no checkpoint:** `4ffa023`
 
 ## Documentos
 
@@ -36,10 +36,15 @@
 - Tasks 20–21 — SessionWorkspace integrado ao App, Pomodoro, autoridade assistida, hábitos e E2E: `852a419`.
 - Task 22 — unitários 413 PASS, E2E completo 85 PASS + 1 skip, lint/build PASS, relatório final.
 - Correção material — checkpoint do tempo verificado antes de pausar/concluir: `3650e4c`.
+- F4-T42 — atualização PWA coordenada e banner de update: `b5fa511`.
+- F4-T35 — DST/fold determinístico: `e59015a`.
+- Impeccable — tokens alinhados e detector 0 achados: `a644e51`.
+- Evidências visuais F4: `77b3629`.
+- Correções da revisão independente (Pomodoro, autoridade, exportação, recovery, conflitos, âncoras): `4ffa023`.
 
 ## Próxima ação
 
-Aguardar aceite humano da F4; suspensão física real, dispositivo modesto, DST/fold e revisão independente formal permanecem pendentes/NOT_RUN.
+Aguardar aceite humano com ressalvas. Pendências: integração/UX F3, alocação/medição/emergência na UI, atomicidade única de pausa/conclusão, índice de histórico e negociação de update entre abas. F4-T13 físico NOT_RUN; quatro HIGH F0 UNVERIFIED.
 
 ## Comandos
 
@@ -53,7 +58,7 @@ Aguardar aceite humano da F4; suspensão física real, dispositivo modesto, DST/
 
 - `node_modules` instalado com `npm ci --prefer-offline`.
 - Nenhum push, deploy, PR, Action ou alteração da `main`.
-- Suíte unitária completa: 413 PASS em 70 arquivos.
+- Suíte unitária completa: 427 PASS em 71 arquivos.
 - Lint: PASS. Build: PASS.
 - E2E F2/F3/PWA: 8 PASS (f3-journey, f2-idb-migration, pwa-offline).
-- E2E F4: 8 PASS; suíte completa 85 PASS + 1 skip.
+- E2E F4: 11 PASS; suíte completa 88 PASS + 1 skip.
