@@ -72,7 +72,23 @@ export async function applyWaitingUpdate(
     }
   }
   if (!registration.waiting) return 'APPLIED';
+  const activated = new Promise<void>((resolve) => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(resolve, 3_000);
+    navigator.serviceWorker.addEventListener(
+      'controllerchange',
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      { once: true },
+    );
+  });
   registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  await activated;
   return 'APPLIED';
 }
 

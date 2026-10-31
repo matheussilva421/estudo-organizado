@@ -123,6 +123,27 @@ describe('F4 habits', () => {
     expect(getHabitEvidence(habit(), sessions, '2026-10-31').progress).toBe(90 * 60_000);
   });
 
+  it('cancelled_session_does_not_satisfy_habit', () => {
+    expect(
+      getHabitEvidence(
+        habit(),
+        [session({ state: 'CANCELLED', manualDeclaredMs: 2 * 60 * 60_000 })],
+        '2026-10-30',
+      ),
+    ).toEqual({ progress: 0, targetMet: false, needsReview: false });
+  });
+
+  it('weekly_habit_uses_civil_week', () => {
+    const weekly = habit({ recurrence: 'WEEKLY' });
+    expect(
+      getHabitEvidence(
+        weekly,
+        [session({ recordedAtCivilDate: '2026-10-27', manualDeclaredMs: 2 * 60 * 60_000 })],
+        '2026-10-30',
+      ).progress,
+    ).toBe(2 * 60 * 60_000);
+  });
+
   it('other_profile_cannot_confirm', async () => {
     await seedHabit(habit());
     const service = new LocalSessionHabitService();

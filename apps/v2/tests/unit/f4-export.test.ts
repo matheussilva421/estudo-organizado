@@ -50,4 +50,46 @@ describe('F4 session export', () => {
     expect(exported.content).not.toContain('token=abc123');
     expect(exported.content).toContain('[REDACTED]');
   });
+
+  it('csv_honors_filter', () => {
+    const exported = exportSessionHistory(
+      'CSV',
+      { profileId, editalId: 'e1' },
+      [
+        session({ id: 'session-e1', editalIds: ['e1'], origin: 'TIMER' }),
+        session({ id: 'session-e2', editalIds: ['e2'], origin: 'MANUAL' }),
+      ],
+    );
+    const lines = exported.content.split('\r\n');
+    expect(lines).toHaveLength(2);
+    expect(exported.content).toContain('session-e1');
+    expect(exported.content).not.toContain('session-e2');
+  });
+
+  it('json_redacts_material_notes_and_url_tokens', () => {
+    const exported = exportSessionHistory('JSON', { profileId }, [
+      session({
+        materials: [
+          {
+            id: 'material-1',
+            kind: 'SITE',
+            title: 'Material',
+            url: 'https://example.com/material?token=abc123&x=1',
+            notes: 'secret=abc123',
+          },
+        ],
+      }),
+    ]);
+    expect(exported.content).not.toContain('token=abc123');
+    expect(exported.content).not.toContain('secret=abc123');
+    expect(exported.content).toContain('[REDACTED]');
+  });
+
+  it('exports_all_sessions_not_only_first_page', () => {
+    const sessions = Array.from({ length: 60 }, (_, index) =>
+      session({ id: 'session-' + index }),
+    );
+    const exported = exportSessionHistory('CSV', { profileId }, sessions);
+    expect(exported.content.split('\r\n')).toHaveLength(61);
+  });
 });

@@ -22,12 +22,45 @@ function sanitizeNote(note: string): string {
   );
 }
 
+function sanitizeUrl(url: string): string {
+  return url.replace(
+    /([?&](?:token|secret|password|credential)=)[^&]+/gi,
+    '$1[REDACTED]',
+  );
+}
+
+function sanitizeSession(session: StudySession): StudySession {
+  return {
+    ...session,
+    note: session.note ? sanitizeNote(session.note) : undefined,
+    materials: session.materials?.map((material) => ({
+      ...material,
+      notes: material.notes ? sanitizeNote(material.notes) : undefined,
+      url: material.url ? sanitizeUrl(material.url) : undefined,
+    })),
+  };
+}
+
+function matchesFilter(session: StudySession, filter: SessionHistoryFilter): boolean {
+  if (session.profileId !== filter.profileId) return false;
+  if (filter.from && (!session.recordedAtCivilDate || session.recordedAtCivilDate < filter.from)) {
+    return false;
+  }
+  if (filter.to && (!session.recordedAtCivilDate || session.recordedAtCivilDate > filter.to)) {
+    return false;
+  }
+  if (filter.editalId && !session.editalIds.includes(filter.editalId)) return false;
+  if (filter.origin && session.origin !== filter.origin) return false;
+  if (filter.state && session.state !== filter.state) return false;
+  return true;
+}
+
 export function exportSessionHistory(
   format: ExportFormat,
   filter: SessionHistoryFilter,
   sessions: readonly StudySession[],
 ): ExportResult {
-  const selected = sessions.filter((session) => session.profileId === filter.profileId);
+  const selected = sessions.filter((session) => matchesFilter(session, filter));
   if (format === 'CSV') {
     const header = [
       'sessionId',
@@ -68,10 +101,7 @@ export function exportSessionHistory(
     schemaVersion: 1,
     exportedAt: new Date().toISOString(),
     profileId: filter.profileId,
-    sessions: selected.map((session) => ({
-      ...session,
-      note: session.note ? sanitizeNote(session.note) : undefined,
-    })),
+    sessions: selected.map(sanitizeSession),
   };
   return {
     fileName: 'sessoes.json',

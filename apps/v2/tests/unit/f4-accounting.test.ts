@@ -77,6 +77,20 @@ describe('F4 session accounting', () => {
     expect(result.unassignableMs).toBe(30 * minute);
   });
 
+  it('recovery_flagged_focus_is_unassignable', () => {
+    const interval = {
+      ...focus(
+        '2026-10-30T23:40:00-03:00',
+        '2026-10-31T00:20:00-03:00',
+        40 * minute,
+      ),
+      recoveryFlag: true,
+    };
+    const result = splitVerifiedTimeByCivilDate([interval], 'America/Fortaleza');
+    expect(result.byCivilDate).toEqual({});
+    expect(result.unassignableMs).toBe(0);
+  });
+
   it('one_session_serving_two_editais_counts_sixty_minutes', () => {
     expect(
       summarizeExecutionLinks([

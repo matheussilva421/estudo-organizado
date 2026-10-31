@@ -230,11 +230,37 @@ export class StudySessionService {
       return { kind: 'LOCAL_COMMITTED', value: current };
     }
     if (current.state !== 'PAUSED') return invalid('INVALID_TRANSITION');
+    const observation = this.clock.observe();
+    const intervals = [
+      ...current.intervals,
+      {
+        id: `${input.sessionId}~interval~${current.intervals.length + 1}`,
+        kind: 'FOCUS' as const,
+        verifiedMs: 0,
+        contextId: observation.contextId,
+        checkpoint: observation,
+        recoveryFlag: false,
+        startedAt: observation.wallInstant,
+      },
+    ];
+    const edited = await this.repository.commit({
+      kind: 'EDIT_FACTS',
+      scope: {
+        ...input.scope,
+        baseRevision: input.scope.baseRevision ?? current.localRevision,
+      },
+      sessionId: input.sessionId,
+      authority: input.authority,
+      patch: { intervals },
+      reason: 'RESUME',
+    });
+    if (edited.kind !== 'LOCAL_COMMITTED') return edited;
     return this.repository.commit({
       kind: 'TRANSITION',
       scope: {
         ...input.scope,
-        baseRevision: input.scope.baseRevision ?? current.localRevision,
+        operationId: `${input.scope.operationId}~transition`,
+        baseRevision: edited.value.localRevision,
       },
       sessionId: input.sessionId,
       authority: input.authority,
@@ -711,6 +737,7 @@ export class StudySessionService {
           contextId: observation.contextId,
           checkpoint: observation,
           recoveryFlag: false,
+          startedAt: observation.wallInstant,
         },
       ],
     });

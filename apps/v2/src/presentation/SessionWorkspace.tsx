@@ -67,6 +67,8 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
   const [manualDate, setManualDate] = useState(todayInZone());
   const [manualMinutes, setManualMinutes] = useState('30');
   const [manualNote, setManualNote] = useState('');
+  const [recoveryMinutes, setRecoveryMinutes] = useState('0');
+  const [planBlockId, setPlanBlockId] = useState('');
   const [pomodoroStage, setPomodoroStage] = useState<'FOCUS' | 'BREAK'>('FOCUS');
   const [pomodoroFocus, setPomodoroFocus] = useState('25');
   const [pomodoroBreak, setPomodoroBreak] = useState('5');
@@ -194,6 +196,12 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     const base = session.intervals
       .filter((interval) => interval.kind === 'FOCUS')
       .reduce((sum, interval) => sum + interval.verifiedMs, 0);
+    const last = session.intervals[session.intervals.length - 1];
+    if (!last || last.kind !== 'FOCUS') {
+      // A break never advances the study clock.
+      setElapsedMs(base);
+      return;
+    }
     const started = performance.now();
     const timer = setInterval(() => {
       setElapsedMs(base + (performance.now() - started));
@@ -214,8 +222,10 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     if (locked || busy) return;
     setBusy(true);
     onNotice(null);
+    const sessionId = newId();
+    let acquiredAuthority: SessionAuthority | null = null;
+    let started = false;
     try {
-      const sessionId = newId();
       const acquired = await coordinator.acquireAuthority(
         sessionId,
         profileId,
@@ -227,6 +237,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         onNotice('Outra aba controla o cronômetro. Transfira a autoridade antes de iniciar.');
         return;
       }
+      acquiredAuthority = acquired.value;
       const result = await service.startSession({
         scope: { profileId, operationId: newId(), baseRevision: null },
         sessionId,
@@ -237,9 +248,37 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
       });
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('Não foi possível iniciar a sessão.');
+      } else {
+        started = true;
+        if (planBlockId.trim()) {
+          const linked = await service.linkSessionToPlan({
+            scope: {
+              profileId,
+              operationId: newId(),
+              baseRevision: result.value.localRevision,
+            },
+            sessionId,
+            blockIds: [planBlockId.trim()],
+            authority: acquired.value,
+          });
+          if (linked.kind !== 'LOCAL_COMMITTED') {
+            onNotice('Sessão criada, mas o vínculo F3 foi recusado; a sessão foi preservada.');
+          }
+        }
       }
       await refresh();
     } finally {
+      if (acquiredAuthority && !started) {
+        await coordinator
+          .releaseAuthority(
+            sessionId,
+            profileId,
+            holderId,
+            acquiredAuthority.generation,
+            newId(),
+          )
+          .catch(() => undefined);
+      }
       setBusy(false);
     }
   }
@@ -262,10 +301,19 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         focusMs: Math.max(1, Number(pomodoroFocus) || 25) * 60_000,
         breakMs: Math.max(1, Number(pomodoroBreak) || 5) * 60_000,
       };
+      const focus = [...session.intervals]
+        .reverse()
+        .find((interval) => interval.kind === 'FOCUS');
+      const focusBase = session.intervals
+        .filter((interval) => interval.kind === 'FOCUS')
+        .reduce((sum, interval) => sum + interval.verifiedMs, 0);
+      const actualElapsed =
+        pomodoroStage === 'FOCUS' && focus
+          ? focus.verifiedMs + Math.max(0, elapsedMs - focusBase)
+          : config.breakMs;
       const step = await service.evaluatePomodoro({
         stage: pomodoroStage,
-        elapsedVerifiedMs:
-          pomodoroStage === 'FOCUS' ? config.focusMs : config.breakMs,
+        elapsedVerifiedMs: actualElapsed,
         config,
         continuity: 'VALID',
         authorityValid: true,
@@ -273,9 +321,6 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
       if (step.kind === 'BEGIN_BREAK') {
         let baseSession = session;
         if (pomodoroStage === 'FOCUS') {
-          const focus = [...session.intervals]
-            .reverse()
-            .find((interval) => interval.kind === 'FOCUS');
           if (focus) {
             const checkpoint = await service.checkpointSession({
               scope: {
@@ -286,7 +331,7 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
               sessionId: session.id,
               authority,
               intervalId: focus.id,
-              verifiedMs: config.focusMs,
+              verifiedMs: actualElapsed,
               checkpoint: clock.observe(),
             });
             if (checkpoint.kind !== 'LOCAL_COMMITTED') {
@@ -386,7 +431,10 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
           const base = session.intervals
             .filter((interval) => interval.kind === 'FOCUS')
             .reduce((sum, interval) => sum + interval.verifiedMs, 0);
-          const verifiedMs = focus.verifiedMs + Math.max(0, elapsedMs - base);
+          const last = session.intervals[session.intervals.length - 1];
+          const delta =
+            last?.kind === 'FOCUS' ? Math.max(0, elapsedMs - base) : 0;
+          const verifiedMs = focus.verifiedMs + delta;
           const checkpoint = await service.checkpointSession({
             scope: {
               profileId,
@@ -452,7 +500,9 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
         sessionId: session.id,
         decision,
         manualAdjustmentMs:
-          decision === 'CORRECT_MANUALLY' ? 3 * 60_000 : undefined,
+          decision === 'CORRECT_MANUALLY'
+            ? Math.max(0, Number(recoveryMinutes) || 0) * 60_000
+            : undefined,
         authority,
       });
       if (result.kind !== 'LOCAL_COMMITTED') {
@@ -500,6 +550,11 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
       });
       if (result.kind !== 'LOCAL_COMMITTED') {
         onNotice('O registro manual foi recusado.');
+      } else {
+        const overlaps = await service.findPotentialOverlaps(profileId, manualDate);
+        if (overlaps.length > 1) {
+          onNotice('Aviso: já existe outra sessão nesta data; ambos os registros foram preservados.');
+        }
       }
       await coordinator.releaseAuthority(
         sessionId,
@@ -549,8 +604,9 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
     }
   }
 
-  function exportHistory(format: 'CSV' | 'JSON'): void {
-    const exported = exportSessionHistory(format, { profileId }, history);
+  async function exportHistory(format: 'CSV' | 'JSON'): Promise<void> {
+    const allSessions = await repository.listSessions(profileId);
+    const exported = exportSessionHistory(format, { profileId }, allSessions);
     const blob = new Blob([exported.content], { type: exported.mimeType });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -644,20 +700,56 @@ export function SessionWorkspace({ profileId, locked, onNotice }: Props) {
               </button>
             ) : null}
           </div>
+          <label>
+            Bloco F3 (ID)
+            <input
+              value={planBlockId}
+              onChange={(event) => setPlanBlockId(event.target.value)}
+              data-testid="session-plan-block"
+            />
+          </label>
           {recovery ? (
             <div data-testid="session-recovery">
               <p>Tempo confirmado: {formatMs(recovery.durableVerifiedMs)}</p>
+              <p>Lacunas incertas: {recovery.uncertainIntervals.length}</p>
               <button
                 type="button"
                 onClick={() => recover('KEEP_PENDING')}
                 disabled={locked || busy || !authority}
+                data-testid="session-recovery-keep"
               >
                 Manter pendente
               </button>
               <button
                 type="button"
+                onClick={() => recover('RESUME')}
+                disabled={locked || busy || !authority}
+                data-testid="session-recovery-resume"
+              >
+                Retomar
+              </button>
+              <label>
+                Correção manual (min)
+                <input
+                  type="number"
+                  min="0"
+                  value={recoveryMinutes}
+                  onChange={(event) => setRecoveryMinutes(event.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => recover('CORRECT_MANUALLY')}
+                disabled={locked || busy || !authority}
+                data-testid="session-recovery-correct"
+              >
+                Corrigir manualmente
+              </button>
+              <button
+                type="button"
                 onClick={() => recover('COMPLETE')}
                 disabled={locked || busy || !authority}
+                data-testid="session-recovery-complete"
               >
                 Concluir recuperação
               </button>

@@ -703,6 +703,13 @@ export class LocalSessionRepository {
 
       sessions.put(persistedFrom);
       sessions.put(persistedTo);
+      if (control) {
+        transaction.objectStore(STORES.sessionControl).put({
+          ...control,
+          sessionId: persistedTo.id,
+          updatedAt: this.now(),
+        } satisfies SessionControlRecord);
+      }
       this.putOutbox(transaction, scope, persistedFrom, 'upsert', from.localRevision);
       this.putOutbox(transaction, scope, persistedTo, 'upsert', null);
       const outcome: SessionOutcome<{ from: StudySession; to: StudySession }> = {

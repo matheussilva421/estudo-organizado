@@ -124,6 +124,21 @@ export function reconcileSessionVersions(
     };
   }
 
+  if (
+    validatedLocal.localRevision < validatedBase.localRevision ||
+    validatedIncoming.localRevision < validatedBase.localRevision
+  ) {
+    return {
+      kind: 'CONFLICT',
+      conflict: buildConflict(
+        validatedBase,
+        validatedLocal,
+        validatedIncoming,
+        'CAUSALITY',
+      ),
+    };
+  }
+
   const localChanged = new Set(
     COMPARED_FIELDS.filter((field) => changed(validatedBase, validatedLocal, field)),
   );

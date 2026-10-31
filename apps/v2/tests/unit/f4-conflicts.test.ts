@@ -102,4 +102,14 @@ describe('F4 offline session conflicts', () => {
     expect(result.conflict.local.note).toBe('local');
     expect(result.conflict.incoming.note).toBe('incoming');
   });
+
+  it('rejects_version_older_than_base', () => {
+    const base = session({ localRevision: 3, note: 'base' });
+    const local = session({ localRevision: 2, note: 'local' });
+    const incoming = session({ localRevision: 4, note: 'incoming' });
+    const result = reconcileSessionVersions(base, local, incoming);
+    expect(result.kind).toBe('CONFLICT');
+    if (result.kind !== 'CONFLICT') return;
+    expect(result.conflict.kind).toBe('CAUSALITY');
+  });
 });

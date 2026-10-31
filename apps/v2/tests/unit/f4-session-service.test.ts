@@ -86,6 +86,7 @@ describe('F4 study session service', () => {
     expect(result.value.planBlockIds).toEqual(['block-1']);
     expect(result.value.intervals).toHaveLength(1);
     expect(result.value.intervals[0]?.kind).toBe('FOCUS');
+    expect(result.value.intervals[0]?.startedAt).toBe('2026-10-30T10:00:00.000Z');
     expect(await counts()).toEqual({ sessions: 1, outbox: 1, operations: 1 });
 
     const database = await openV2Database(profileId);
@@ -131,6 +132,15 @@ describe('F4 study session service', () => {
     expect(to?.state).toBe('RUNNING');
     expect(to?.localRevision).toBe(1);
     expect(await counts()).toEqual({ sessions: 2, outbox: 3, operations: 2 });
+
+    const currentAuthority = await coordinator.getAuthority(profileId);
+    expect(currentAuthority?.sessionId).toBe('session-2');
+    const paused = await service.pauseSession({
+      scope: { profileId, operationId: 'op-pause-2', baseRevision: 1 },
+      sessionId: 'session-2',
+      authority: { ...authority.value, sessionId: 'session-2' },
+    });
+    expect(paused.kind).toBe('LOCAL_COMMITTED');
   });
 
   it('double_complete_is_idempotent', async () => {
@@ -163,6 +173,41 @@ describe('F4 study session service', () => {
     expect(first.kind).toBe('LOCAL_COMMITTED');
     expect(second).toEqual(first);
     expect(await counts()).toEqual({ sessions: 1, outbox: 2, operations: 2 });
+  });
+
+  it('resume_creates_new_focus_interval', async () => {
+    const coordinator = new LocalSessionCoordinator();
+    const repository = new LocalSessionRepository();
+    const service = new StudySessionService(repository, clock);
+    const authority = await coordinator.acquireAuthority(
+      'session-1',
+      profileId,
+      'tab-a',
+      null,
+      'op-auth',
+    );
+    if (authority.kind !== 'LOCAL_COMMITTED') throw new Error('authority not acquired');
+    await service.startSession({
+      scope: { profileId, operationId: 'op-start', baseRevision: null },
+      sessionId: 'session-1',
+      origin: 'TIMER',
+      authority: authority.value,
+    });
+    await service.pauseSession({
+      scope: { profileId, operationId: 'op-pause', baseRevision: 1 },
+      sessionId: 'session-1',
+      authority: authority.value,
+    });
+    const resumed = await service.resumeSession({
+      scope: { profileId, operationId: 'op-resume', baseRevision: 2 },
+      sessionId: 'session-1',
+      authority: authority.value,
+    });
+    expect(resumed.kind).toBe('LOCAL_COMMITTED');
+    const loaded = await repository.load(profileId, 'session-1');
+    expect(loaded?.state).toBe('RUNNING');
+    expect(loaded?.intervals).toHaveLength(2);
+    expect(loaded?.intervals[1]?.kind).toBe('FOCUS');
   });
 
   it('failed_switch_leaves_original_timer_intact', async () => {

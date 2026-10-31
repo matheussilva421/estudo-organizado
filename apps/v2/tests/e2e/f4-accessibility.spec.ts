@@ -29,6 +29,7 @@ test('f4 workspace is reachable across eight themes and three viewports', async 
       await expect(page.locator('[data-testid="session-workspace"]')).toBeVisible();
       await expect(page.locator('[data-testid="session-start"]')).toBeVisible();
       await expect(page.locator('[data-testid="session-manual-submit"]')).toBeEnabled();
+      await expect(page.locator('[data-testid="session-plan-block"]')).toBeVisible();
     }
   }
 });

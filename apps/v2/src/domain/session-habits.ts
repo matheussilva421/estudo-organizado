@@ -3,7 +3,12 @@ import {
   type StudySession,
 } from './session';
 import { sumVerifiedFocusMs } from './session-clock';
-import { isCivilDate, isValidTimeZone } from './planning-time';
+import {
+  addCivilDays,
+  isCivilDate,
+  isValidTimeZone,
+  weekdayIndex,
+} from './planning-time';
 
 export type HabitRecurrence = 'DAILY' | 'WEEKLY';
 
@@ -80,12 +85,22 @@ export function getHabitEvidence(
   if (habit.kind === 'MANUAL') {
     return { progress: 0, targetMet: false, needsReview: false };
   }
-  const relevant = sessions.filter(
-    (session) =>
-      session.profileId === habit.profileId &&
-      session.recordedAtCivilDate === date &&
-      session.tombstone !== true,
-  );
+  const relevant = sessions.filter((session) => {
+    if (
+      session.profileId !== habit.profileId ||
+      session.tombstone === true ||
+      session.state === 'CANCELLED' ||
+      !session.recordedAtCivilDate
+    ) {
+      return false;
+    }
+    if (habit.recurrence === 'DAILY') {
+      return session.recordedAtCivilDate === date;
+    }
+    const start = addCivilDays(date, -weekdayIndex(date));
+    const end = addCivilDays(start, 6);
+    return session.recordedAtCivilDate >= start && session.recordedAtCivilDate <= end;
+  });
   const progress = relevant.reduce((total, session) => {
     if (habit.kind === 'QUESTIONS') {
       return (

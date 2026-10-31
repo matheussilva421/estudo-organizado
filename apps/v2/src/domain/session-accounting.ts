@@ -119,7 +119,7 @@ export function splitVerifiedTimeByCivilDate(
   let unassignableMs = 0;
 
   for (const interval of intervals) {
-    if (!interval || interval.kind !== 'FOCUS') continue;
+    if (!interval || interval.kind !== 'FOCUS' || interval.recoveryFlag) continue;
     if (
       typeof interval.verifiedMs !== 'number' ||
       !Number.isFinite(interval.verifiedMs) ||
