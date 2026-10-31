@@ -23,6 +23,7 @@
 | npm run build | PASS — tsc e Vite |
 | E2E F4 | PASS — timer, manual, Pomodoro, recovery, duas abas, hábitos, background, update PWA, temas/viewports e evidência visual |
 | Impeccable detector 3.9.1 | PASS — 0 achados em apps/v2/src |
+| Gate Impeccable completo (audit/critique visual F4) | BLOCKED — detector PASS; auditoria visual/contraste F4 dedicada não executada |
 | Temas/viewports F4 | PASS — oito temas, 1280/834/390 |
 | Contraste/foco/toque F2/F3 | PASS na suíte completa |
 | Suspensão física F4-T13 | NOT_RUN |
@@ -50,7 +51,7 @@ Revisor separado do executor, somente leitura, sobre o HEAD 90a3dca; emitiu 10 H
 - Histórico ignora assuntoId e pagina em memória; T38 é parcial.
 - otherTabsReady é fixado em true; não há negociação entre abas para atualização PWA.
 - KEEP_BOTH preserva a variante no registro de conflito, mas o helper puro devolve a versão local; falta fluxo de resolução na UI.
-- O teste F4 de acessibilidade cobre alcance nos oito temas/viewports; contraste/foco/toque específicos da F4 não têm amostragem dedicada, embora os testes F2/F3 e o detector Impeccable passem.
+- O teste F4 de acessibilidade cobre alcance nos oito temas/viewports; contraste/foco/toque específicos da F4 não têm amostragem dedicada, embora os testes F2/F3 e o detector Impeccable passem. O gate Impeccable completo permanece BLOCKED.
 - F4-T13 (suspensão física) permanece NOT_RUN; quatro HIGH da F0 permanecem UNVERIFIED.
 
 ## Matriz resumida F4-T01…T42
@@ -81,7 +82,7 @@ Revisor separado do executor, somente leitura, sobre o HEAD 90a3dca; emitiu 10 H
 
 ## Git e GitHub
 
-- v2 local: 4ffa023, 32 commits à frente de origin/v2.
+- v2 local: 80e33ec (documental; código 4ffa023), 33 commits à frente de origin/v2.
 - main: 9046cfa, intocada.
 - Sem PRs abertos, sem stashes; dois worktrees (main e v2-f4).
 - Nenhuma Action, deploy ou push.
