@@ -3,7 +3,7 @@
 **Status:** F4_IMPLEMENTED_LOCAL_READY_FOR_HUMAN_ACCEPTANCE
 **Data:** 2026-10-31
 **Branch/worktree:** v2 em C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado
-**HEAD de código:** dcce481
+**HEAD de código:** 3e675dc
 **Remoto:** origin/v2 = 68db01542a9d5934c7e45e622001334f91eaaf4f; sem push, merge ou deploy.
 **main:** 9046cfa, intocada.
 
@@ -26,7 +26,7 @@
 - **Filtro por assunto:** a alocação grava o assunto escolhido da disciplina e o histórico filtra por ele com o mesmo predicado da consulta.
 - **Vinculação posterior:** uma sessão livre pode ser ligada a um bloco planejado depois do fato, com nova revisão auditável (`session-link-block-*` e `session-link-apply-*`).
 - **Estado de persistência:** a linha de status distingue ocioso, salvo, falha de gravação e conflito de revisão, em vez de afirmar sempre que a persistência local está ativa.
-- **Superfície visual e acessibilidade:** estilos compartilhados de controle (altura mínima 44px, `focus-visible`, tokens dos oito temas), cartões de sessão, navegação e estado vazio informativo.
+- **Superfície visual e acessibilidade:** estilos compartilhados de controle (altura mínima 44px, `focus-visible`, tokens dos oito temas), cartões de sessão, navegação e estado vazio informativo. Nenhum identificador técnico aparece como texto: blocos usam rótulo legível e conflitos mostram data e origem.
 
 ## Evidência executada no HEAD final
 
@@ -141,7 +141,7 @@ Ressalvas que a revisão levantou e que seguem abertas: validação de continuid
 
 ## Git e GitHub
 
-- v2 local: 45 commits à frente de origin/v2; código em dcce481, este relatório no commit documental seguinte.
+- v2 local: 47 commits à frente de origin/v2; código em 3e675dc, este relatório no commit documental seguinte.
 - Commits desta rodada: b6dfec6 (atomicidade), 626f483 (alocações e filtro), c707665 (integração visual e fluxos), d793b36 (evidências visuais), 18a561b (correções da revisão independente), 1615422 (histórico incremental, vinculação posterior e auditoria de teclado), bd5ac7f (estado real de persistência), dcce481 (assunto na alocação e filtro de histórico).
 - main: 9046cfa, intocada. V1 não modificada.
 - Dois worktrees (main e v2-f4); nenhum PR aberto; nenhum stash.
