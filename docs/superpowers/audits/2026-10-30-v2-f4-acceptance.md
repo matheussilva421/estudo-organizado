@@ -3,7 +3,7 @@
 **Status:** F4_IMPLEMENTED_LOCAL_READY_FOR_HUMAN_ACCEPTANCE
 **Data:** 2026-10-31
 **Branch/worktree:** v2 em C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado
-**HEAD de código:** 18a561b
+**HEAD de código:** 1615422
 **Remoto:** origin/v2 = 68db01542a9d5934c7e45e622001334f91eaaf4f; sem push, merge ou deploy.
 **main:** 9046cfa, intocada.
 
@@ -22,17 +22,19 @@
 - **Importação emergencial pela UI:** exporta a intenção, lê o arquivo, mostra prévia `READY/INVALID/CONFLICT` e aplica reimportação idempotente.
 - **Atualização PWA entre abas:** `queryOtherTabsReady()` pergunta às outras abas pelo BroadcastChannel `estudo-organizado-v2-update` em vez de assumir `true`.
 - **Histórico e conflitos:** filtro por `assuntoId` via alocações, listagem de revisões de auditoria por sessão e resolução `LOCAL/INCOMING/KEEP_BOTH` na UI.
+- **Histórico incremental:** a consulta percorre o índice `by_profile_date` em ordem decrescente com cursor opaco; a UI mostra as sessões mais recentes primeiro e oferece `session-history-more` para a próxima página.
+- **Vinculação posterior:** uma sessão livre pode ser ligada a um bloco planejado depois do fato, com nova revisão auditável (`session-link-block-*` e `session-link-apply-*`).
 - **Superfície visual e acessibilidade:** estilos compartilhados de controle (altura mínima 44px, `focus-visible`, tokens dos oito temas), cartões de sessão, navegação e estado vazio informativo.
 
 ## Evidência executada no HEAD final
 
 | Comando | Resultado |
 | --- | --- |
-| `npm run test:unit` (apps/v2) | PASS — 71 arquivos, 434 testes |
-| `npm run test:e2e` (apps/v2) | PASS — 94 testes, 1 skip intencional |
+| `npm run test:unit` (apps/v2) | PASS — 71 arquivos, 435 testes |
+| `npm run test:e2e` (apps/v2) | PASS — 98 testes, 1 skip intencional |
 | `npm run lint` | PASS — 0 erros |
 | `npm run build` | PASS — `tsc --noEmit` e Vite |
-| E2E F4 | PASS — 12 specs, 17 testes |
+| E2E F4 | PASS — 13 specs, 21 testes |
 | Impeccable detector 3.9.1 em `apps/v2/src` | PASS — `[]`, 0 achados |
 | Contraste/foco/toque F4 | PASS — `f4-a11y`: 8 temas, foco ≥2px, alvos ≥44px em mobile |
 | Temas/viewports | PASS — oito temas, 1280/834/390 |
@@ -71,7 +73,7 @@
 | T23 manual sobreposto | PASS | aviso sem exclusão |
 | T24 multiassunto/parcela não atribuída | PASS | `f4-manual-details` + `f4-accounting` |
 | T25 sessão em dois editais | PASS | `f4-planning-integration` |
-| T26 vínculo posterior | PASS | reconciliação auditável |
+| T26 vínculo posterior | PASS | `session-link-apply-*` com nova revisão |
 | T27 F3 várias sessões parciais | PASS com ressalva | `session-reconcile-*` grava a decisão na sessão; o bloco F3 não recebe status |
 | T28 F3 conflito ao concluir | PASS com ressalva | plano pendente, sessão preservada; aplicação no bloco ainda é intenção |
 | T29 questões/acertos incoerentes | PASS | validação no registro manual |
@@ -83,11 +85,28 @@
 | T35 DST e hora ambígua | PASS | unit `f4-dst` |
 | T36 hábito com meta atingida | PASS | `f4-habits` |
 | T37 evidência de hábito corrigida | PASS | unit `f4-habits` |
-| T38 histórico filtrado/revisão/materiais | PASS com ressalva | filtro por `assuntoId`; paginação em memória por perfil |
+| T38 histórico filtrado/revisão/materiais | PASS com ressalva | filtro por `assuntoId` e cursor sobre `by_profile_date`; o filtro só casa assunto quando a alocação o traz |
 | T39 CSV/JSON e sanitização | PASS | unit `f4-export` |
 | T40 quota/abort na conclusão | PASS | unit `f4-commit` (abort injetado) |
 | T41 export/reimport emergencial | PASS | `f4-emergency-ui` |
 | T42 update SW em sessão + temas | PASS com ressalva | `f4-update`, `f4-a11y`; T13 não executado |
+
+## Auditoria Impeccable (F4)
+
+Executada com a skill instalada 3.9.1 (sem instalar 4.8.0 e sem ativar hooks), sobre `apps/v2/src` e a superfície da F4.
+
+| # | Dimensão | Nota | Achado principal |
+| --- | --- | --- | --- |
+| 1 | Acessibilidade | 3/4 | Contraste AA nos oito temas, foco de 2 px, alvos de 44 px, teclado sem armadilha e nomes acessíveis; falta região `aria-live` para eventos do relógio |
+| 2 | Performance | 3/4 | Bundle 454 kB (128 kB gzip), um único intervalo de 1 s e `prefers-reduced-motion` respeitado; sem medição de frames em hardware modesto |
+| 3 | Responsividade | 4/4 | Sem overflow horizontal em 1280/834/390 e alvos ≥44 px no mobile |
+| 4 | Theming | 3/4 | 76 usos de token; literais aparecem apenas como fallback de `var()` |
+| 5 | Anti-padrões | 4/4 | Detector `[]`; sem gradiente em texto, glassmorphism ou easing elástico |
+| **Total** | | **17/20** | **Good** |
+
+Achados P3: fallback de cor duplicado nas regras novas; só duas transições declaradas, então o feedback de estado é discreto; o relógio não usa `aria-live` de propósito, para não anunciar a cada segundo.
+
+Evidência automatizada: `f4-a11y` (contraste, foco, toque), `f4-accessibility` (8 temas × 3 viewports), `f4-keyboard` (alcance por teclado, nomes acessíveis, hierarquia de títulos) e `f4-evidence` (capturas em 1280/834/390). A leitura visual humana das capturas continua sendo parte do gate.
 
 ## Revisão independente
 
@@ -112,7 +131,7 @@ Ressalvas que a revisão levantou e que seguem abertas: validação de continuid
 
 - F4-T13 (suspensão física do OS por horas) permanece NOT_RUN: não há ambiente de suspensão controlada nesta máquina; a recuperação após interrupção é coberta apenas de forma simulada.
 - Quatro HIGH da F0 continuam UNVERIFIED.
-- O histórico carrega as sessões do perfil pelo índice `by_profile` e ordena/pagina em memória. É correto e estável para o volume atual; não é uma consulta indexada por data.
+- O histórico percorre o índice `by_profile_date` em ordem decrescente e para ao completar a página; filtros de edital, origem e estado são aplicados durante a varredura, então uma página filtrada pode percorrer mais entradas antes de encher.
 - A continuidade do relógio é verificada no preview de recuperação, não no caminho de pausa/conclusão; o checkpoint periódico limita a exposição a 15 s por transição.
 - `KEEP_BOTH` preserva a variante incoming no registro do conflito, sem criar uma segunda identidade de sessão.
 - A alocação criada pela UI grava `editalDisciplineId`; o filtro por `assuntoId` só casa quando a alocação traz o assunto explicitamente.
@@ -121,8 +140,8 @@ Ressalvas que a revisão levantou e que seguem abertas: validação de continuid
 
 ## Git e GitHub
 
-- v2 local: 40 commits à frente de origin/v2; código em 18a561b, este relatório no commit documental seguinte.
-- Commits desta rodada: b6dfec6 (atomicidade), 626f483 (alocações e filtro), c707665 (integração visual e fluxos), d793b36 (evidências visuais), 18a561b (correções da revisão independente).
+- v2 local: 41 commits à frente de origin/v2; código em 1615422, este relatório no commit documental seguinte.
+- Commits desta rodada: b6dfec6 (atomicidade), 626f483 (alocações e filtro), c707665 (integração visual e fluxos), d793b36 (evidências visuais), 18a561b (correções da revisão independente), 1615422 (histórico incremental, vinculação posterior e auditoria de teclado).
 - main: 9046cfa, intocada. V1 não modificada.
 - Dois worktrees (main e v2-f4); nenhum PR aberto; nenhum stash.
 - Nenhuma Action, deploy ou push.
