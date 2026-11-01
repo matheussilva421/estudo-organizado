@@ -1,11 +1,19 @@
 # Estudo Organizado V2 — F4: aceite local
 
-**Status:** F4_IMPLEMENTED_LOCAL_READY_FOR_HUMAN_ACCEPTANCE
+**Status:** F4_ACCEPTED_WITH_RESERVATIONS
 **Data:** 2026-11-01
 **Branch/worktree:** v2 em C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado
 **HEAD de código:** b51a9d5
-**Remoto:** origin/v2 = 68db01542a9d5934c7e45e622001334f91eaaf4f; sem push, merge ou deploy.
+**Remoto:** origin/v2 = 68db01542a9d5934c7e45e622001334f91eaaf4f; push fast-forward autorizado, a ser executado após este commit de aceite.
 **main:** 9046cfa, intocada.
+
+## Aceite humano
+
+- **Decisão:** `F4_ACCEPTED_WITH_RESERVATIONS`, com aprovação humana expressa em 2026-11-01.
+- **Base aceita:** código `b51a9d5` e documentação `fdd1de7`; evidências vinculadas: 72 arquivos/443 testes unitários, 102 testes E2E (101 PASS, 1 skip intencional), lint e build PASS.
+- **Escopo:** F4 local-first implementada e testada; nenhuma homologação Firebase/multi-dispositivo real, nenhum deploy de produção e nenhuma alteração da V1 ou da `main`.
+- **Publicação autorizada:** push fast-forward de `v2` para `origin/v2`, condicionado ao preflight, à ancestralidade e à ausência de conflito remoto; a confirmação de read-back pertence ao relatório final da sessão.
+- **Ressalvas vinculantes:** F4-T13 permanece `NOT_RUN`; quatro HIGH da F0 permanecem `UNVERIFIED`; F7 reserva Firebase/multi-dispositivo; `INCOMING` parcial mantém intervalos, vínculos e tombstone pendentes e preservados.
 
 ## Entradas aprovadas
 
@@ -166,17 +174,17 @@ Ressalvas que seguem abertas: a continuidade do relógio é verificada no previe
 - A resolução `INCOMING` aplica fatos (nota, medições, materiais, alocações, duração declarada e data civil); intervalos, vínculos e tombstone permanecem os locais e o conflito continua `OPEN` quando esses campos divergem. Não há substituição integral da versão incoming nesta rodada.
 - `refresh` e o carregamento de mais páginas não usam token de geração; uma resposta antiga pode repor uma lista anterior até o próximo refresh.
 - O gate Impeccable completo (auditoria visual dedicada) não foi executado; o detector automático passou com zero achados na rodada anterior e não foi reexecutado nesta verificação de conflitos.
-- Sem push, merge, deploy, Actions ou ativação de Firebase real.
+- Sem deploy de produção, Actions ou ativação de Firebase real; o push fast-forward da `v2` é a única publicação autorizada nesta rodada.
 
 ## Git e GitHub
 
-- v2 local: 55 commits à frente de origin/v2; código em b51a9d5, este relatório no commit documental seguinte.
-- Commits desta rodada: b51a9d5 (preservação de conflitos e TDD); o commit documental deste relatório é o seguinte.
+- v2 local: 56 commits à frente de origin/v2 após o commit de aceite; código em b51a9d5; este relatório é o commit documental de aceite.
+- Commits desta rodada: b51a9d5 (preservação de conflitos e TDD) e o commit documental de aceite.
 - main: 9046cfa, intocada. V1 não modificada.
 - Dois worktrees (main e v2-f4); nenhum PR aberto; nenhum stash.
-- Nenhuma Action, deploy ou push.
+- Nenhuma Action ou deploy de produção; o push fast-forward da `v2` é a única publicação autorizada nesta rodada.
 
 ## Veredito
 
-**Implementada, testada e revisada localmente; pronta para aceite humano com ressalvas.** O contrato de preservação de dados dos conflitos está satisfeito no escopo F4: `KEEP_BOTH` mantém as duas variantes recuperáveis e não duplica tempo; `INCOMING` não aplica intervalos/vínculos e não os apresenta como reconciliados, mantendo o conflito pendente e o registro visível. F4 permanece apta ao aceite com ressalvas. Não declarar F4_ACCEPTED. Pendências: F4-T13 NOT_RUN, quatro HIGH da F0 UNVERIFIED e homologação multi-dispositivo real F7. A próxima ação é a avaliação humana deste relatório; depois, se aprovado, autorizar o push fast-forward da v2.
+**F4_ACCEPTED_WITH_RESERVATIONS.** O aceite humano expresso foi registrado em 2026-11-01. A F4 está implementada, testada e aceita localmente; o contrato de preservação de dados dos conflitos está satisfeito no escopo F4: `KEEP_BOTH` mantém as duas variantes recuperáveis e não duplica tempo; `INCOMING` não aplica intervalos/vínculos e não os apresenta como reconciliados, mantendo o conflito pendente e o registro visível. A integração à `origin/v2` foi autorizada como push fast-forward, condicionada ao preflight e à confirmação por read-back no relatório final; não há deploy de produção nem homologação Firebase/multi-dispositivo. Pendências vinculantes: F4-T13 NOT_RUN, quatro HIGH da F0 UNVERIFIED, F7 reservada e `INCOMING` parcial conhecido. A F4 permanece aceita com ressalvas; não declarar F4_ACCEPTED sem ressalvas.
 
