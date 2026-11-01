@@ -1,9 +1,9 @@
 # Estudo Organizado V2 — F4: aceite local
 
 **Status:** F4_IMPLEMENTED_LOCAL_READY_FOR_HUMAN_ACCEPTANCE
-**Data:** 2026-10-31
+**Data:** 2026-11-01
 **Branch/worktree:** v2 em C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado
-**HEAD de código:** 69c70a0
+**HEAD de código:** b51a9d5
 **Remoto:** origin/v2 = 68db01542a9d5934c7e45e622001334f91eaaf4f; sem push, merge ou deploy.
 **main:** 9046cfa, intocada.
 
@@ -22,6 +22,7 @@
 - **Importação emergencial pela UI:** exporta a intenção, lê o arquivo, mostra prévia `READY/INVALID/CONFLICT` e aplica reimportação idempotente.
 - **Atualização PWA entre abas:** `queryOtherTabsReady()` pergunta às outras abas pelo BroadcastChannel `estudo-organizado-v2-update` em vez de assumir `true`.
 - **Histórico e conflitos:** filtro por `assuntoId` via alocações, listagem de revisões de auditoria por sessão e resolução `LOCAL/INCOMING/KEEP_BOTH` na UI.
+- **Preservação de conflitos:** `KEEP_BOTH` mantém as duas versões no registro e oferece reabertura; `INCOMING` aplica somente fatos e mantém intervalos, vínculos e tombstone pendentes e visíveis quando divergem, sem declarar reconciliação completa.
 - **Histórico incremental:** a consulta percorre o índice `by_profile_date` em ordem decrescente com cursor opaco; a UI mostra as sessões mais recentes primeiro e oferece `session-history-more` para a próxima página.
 - **Filtro por assunto:** a alocação grava o assunto escolhido da disciplina e o histórico filtra por ele com o mesmo predicado da consulta.
 - **Vinculação posterior:** uma sessão livre pode ser ligada a um bloco planejado depois do fato, com nova revisão auditável (`session-link-block-*` e `session-link-apply-*`).
@@ -32,19 +33,21 @@
 
 | Comando | Resultado |
 | --- | --- |
-| `npm run test:unit` (apps/v2) | PASS — 71 arquivos, 437 testes |
-| `npm run test:e2e` (apps/v2) | PASS — 99 testes, 1 skip intencional |
+| `npm run test:unit` (apps/v2) | PASS — 72 arquivos, 443 testes |
+| `npm run test:e2e` (apps/v2) | PASS — 102 testes, 101 passaram, 1 skip intencional |
 | `npm run lint` | PASS — 0 erros |
 | `npm run build` | PASS — `tsc --noEmit` e Vite |
-| E2E F4 | PASS — 13 specs, 22 testes |
-| Impeccable detector 3.9.1 em `apps/v2/src` | PASS — `[]`, 0 achados |
+| E2E F4 | PASS — 14 specs, 24 testes |
+| `f4-conflict-resolution` (unit) | PASS — 6 testes |
+| `f4-conflict-integrity` (E2E) | PASS — 2 testes |
+| Impeccable detector 3.9.1 em `apps/v2/src` | PASS histórico da rodada anterior; não reexecutado nesta verificação de conflitos |
 | Contraste/foco/toque F4 | PASS — `f4-a11y`: 8 temas, foco ≥2px, alvos ≥44px em mobile |
 | Temas/viewports | PASS — oito temas, 1280/834/390 |
 | Suspensão física F4-T13 | NOT_RUN — sem ambiente de suspensão controlada |
 
 ## Cobertura E2E da F4
 
-`f4-timer-journey` (início/pausa/retomada/conclusão, manual até histórico e CSV), `f4-pomodoro` (foco/descanso, transição explícita, descanso não soma, recuperação após reload), `f4-two-tabs` (transferência assistida de autoridade), `f4-background` (aba oculta não pausa), `f4-update` (update adiado em sessão ativa e com outra aba ativa), `f4-habits` (criação e confirmação explícita), `f4-manual-details` (medições, materiais e alocação), `f4-planning-integration` (início por bloco e conciliação), `f4-emergency-ui` (exportação e reimportação idempotente), `f4-accessibility` (8 temas × 3 viewports), `f4-a11y` (contraste, foco, toque), `f4-evidence` (capturas).
+`f4-timer-journey` (início/pausa/retomada/conclusão, manual até histórico e CSV), `f4-pomodoro` (foco/descanso, transição explícita, descanso não soma, recuperação após reload), `f4-two-tabs` (transferência assistida de autoridade), `f4-background` (aba oculta não pausa), `f4-update` (update adiado em sessão ativa e com outra aba ativa), `f4-habits` (criação e confirmação explícita), `f4-manual-details` (medições, materiais e alocação), `f4-planning-integration` (início por bloco e conciliação), `f4-emergency-ui` (exportação e reimportação idempotente), `f4-conflict-integrity` (KEEP_BOTH reabrível e INCOMING parcial pendente), `f4-accessibility` (8 temas × 3 viewports), `f4-a11y` (contraste, foco, toque), `f4-evidence` (capturas).
 
 ## Matriz F4-T01…T42
 
@@ -81,8 +84,8 @@
 | T29 questões/acertos incoerentes | PASS | validação no registro manual |
 | T30 medição sem classificação | PASS | total não atribuído |
 | T31 edição histórica e tombstone | PASS | unit `f4-history` |
-| T32 dois dispositivos fake | PASS | unit `f4-conflicts` |
-| T33 exclusão vs edição offline | PASS com ressalva | INCOMING aplicado com nova revisão; KEEP_BOTH só no registro |
+| T32 dois dispositivos fake | PASS | unit `f4-conflicts`, `f4-conflict-resolution`; variantes completas e tempo único |
+| T33 exclusão vs edição offline | PASS com ressalva | KEEP_BOTH reabrível; INCOMING parcial mantém intervalos, vínculos e tombstone pendentes/visíveis; sem substituição integral |
 | T34 duração cruzando meia-noite | PASS | unit `f4-accounting` |
 | T35 DST e hora ambígua | PASS | unit `f4-dst` |
 | T36 hábito com meta atingida | PASS | `f4-habits` |
@@ -92,6 +95,23 @@
 | T40 quota/abort na conclusão | PASS | unit `f4-commit` (abort injetado) |
 | T41 export/reimport emergencial | PASS | `f4-emergency-ui` |
 | T42 update SW em sessão + temas | PASS com ressalva | `f4-update`, `f4-a11y`; T13 não executado |
+
+## Verificação final de integridade dos conflitos (2026-11-01)
+
+Escopo exclusivo: resolução `LOCAL/INCOMING/KEEP_BOTH` de sessões. Sem nova branch, PR, Action, push, merge ou deploy. HEAD de código `b51a9d5`; árvore limpa; 54 commits à frente de `origin/v2` antes do commit documental.
+
+A fixture sintética está em `apps/v2/tests/unit/f4-conflict-resolution.test.ts` e `apps/v2/tests/e2e/f4-conflict-integrity.spec.ts`: base na revisão 1; versões local e incoming com intervalos de foco de 60/90 min, alocações de 30/45 min, vínculos `block-local`/`block-incoming` e `edital-local`/`edital-incoming`, além de notas distintas. `reconcileSessionVersions` classifica o caso como `SAME_FIELD` e mantém os dois objetos completos.
+
+| Verificação | Resultado | Evidência |
+| --- | --- | --- |
+| `KEEP_BOTH` preserva a variante não escolhida | PASS | Registro em `session_conflicts` mantém `local` e `incoming`; a UI mostra “Resoluções preservadas” e “Reabrir”; reabrir volta o conflito a `OPEN`. |
+| `KEEP_BOTH` não duplica contabilização | PASS | Apenas uma linha em `sessions`; 60 min locais contados uma vez; os 90 min incoming permanecem apenas no registro histórico. |
+| `INCOMING` não esconde intervalos/vínculos | PASS com ressalva | Nota e alocações incoming são aplicadas; intervalos de 60 min e vínculos locais permanecem; o conflito continua `OPEN` e o aviso diz “não aplicados e ainda pendentes”. |
+| `INCOMING` não cria revisão vazia repetida | PASS | Segunda ação com apenas intervalos/vínculos divergentes não altera `localRevision`; o conflito permanece pendente. |
+| Tombstone em conflito de exclusão/edição | PASS | `tombstone` passou aos campos preservados; `DELETE_VS_EDIT` com `INCOMING` não é apresentado como resolução completa. |
+| Regressão | PASS | Unit 72 arquivos/443 testes; E2E 102 testes (101 passaram, 1 skip intencional); lint e build sem erros. |
+
+A variante incoming completa continua recuperável no registro do conflito. A resolução `INCOMING` não substitui integralmente intervalos e vínculos: essa é uma decisão explícita que permanece pendente, não um sucesso fictício. A homologação multi-dispositivo real continua F7.
 
 ## Auditoria Impeccable (F4)
 
@@ -134,7 +154,7 @@ Terceira rodada, sobre o código final: 3 HIGH, 9 MEDIUM e 5 LOW, veredito NÃO 
 - `RESUME` devolvia sucesso sem gravar quando a sessão seguia `RUNNING` após crash; agora abre intervalo novo quando a continuidade é incerta.
 - Pausa/conclusão só anexam checkpoint em sessão `RUNNING`; alocações validam contra a sessão candidata; a vinculação também grava `editalIds`; `NOT_APPLIED` é persistido com auditoria; a autoridade precisa pertencer à sessão alvo; o painel de recuperação só aparece quando há recuperação real; alocação exige disciplina; edição não remove a data civil.
 
-Ressalvas que seguem abertas: a continuidade do relógio é verificada no preview e na retomada, não no delta de pausa/conclusão; `KEEP_BOTH` mantém a variante no registro do conflito sem criar segunda identidade; a resolução `INCOMING` aplica fatos (nota, medições, materiais, alocações, duração declarada, data), não `intervals` nem vínculos; respostas assíncronas de `refresh`/`loadMore` não usam token de geração.
+Ressalvas que seguem abertas: a continuidade do relógio é verificada no preview e na retomada, não no delta de pausa/conclusão; `KEEP_BOTH` mantém a variante no registro do conflito, agora com reabertura explícita; a resolução `INCOMING` aplica fatos (nota, medições, materiais, alocações, duração declarada, data), deixa `intervals`, vínculos e tombstone pendentes quando divergem e não declara reconciliação completa; respostas assíncronas de `refresh`/`loadMore` não usam token de geração.
 
 ## Ressalvas remanescentes
 
@@ -142,21 +162,21 @@ Ressalvas que seguem abertas: a continuidade do relógio é verificada no previe
 - Quatro HIGH da F0 continuam UNVERIFIED.
 - O histórico percorre o índice `by_profile_date` em ordem decrescente e para ao completar a página; filtros de edital, origem e estado são aplicados durante a varredura, então uma página filtrada pode percorrer mais entradas antes de encher.
 - A continuidade do relógio é verificada no preview de recuperação, não no caminho de pausa/conclusão; o checkpoint periódico limita a exposição a 15 s por transição.
-- `KEEP_BOTH` preserva a variante incoming no registro do conflito, sem criar uma segunda identidade de sessão.
-- A resolução `INCOMING` aplica fatos (nota, medições, materiais, alocações, duração declarada e data civil); intervalos e vínculos de plano permanecem os locais.
+- `KEEP_BOTH` preserva a variante incoming no registro do conflito, sem criar uma segunda identidade de sessão; a lista “Resoluções preservadas” mantém a entrada visível e “Reabrir” devolve o conflito a `OPEN`.
+- A resolução `INCOMING` aplica fatos (nota, medições, materiais, alocações, duração declarada e data civil); intervalos, vínculos e tombstone permanecem os locais e o conflito continua `OPEN` quando esses campos divergem. Não há substituição integral da versão incoming nesta rodada.
 - `refresh` e o carregamento de mais páginas não usam token de geração; uma resposta antiga pode repor uma lista anterior até o próximo refresh.
-- O gate Impeccable completo (auditoria visual dedicada) não foi executado; o detector automático passa com zero achados.
+- O gate Impeccable completo (auditoria visual dedicada) não foi executado; o detector automático passou com zero achados na rodada anterior e não foi reexecutado nesta verificação de conflitos.
 - Sem push, merge, deploy, Actions ou ativação de Firebase real.
 
 ## Git e GitHub
 
-- v2 local: 51 commits à frente de origin/v2; código em 69c70a0, este relatório no commit documental seguinte.
-- Commits desta rodada: b6dfec6 (atomicidade), 626f483 (alocações e filtro), c707665 (integração visual e fluxos), d793b36 (evidências visuais), 18a561b (correções da primeira revisão), 1615422 (histórico incremental, vinculação posterior e teclado), bd5ac7f (estado real de persistência), dcce481 (assunto na alocação e filtro), 92c1376 (data civil no create), 69c70a0 (correções da revisão final).
+- v2 local: 55 commits à frente de origin/v2; código em b51a9d5, este relatório no commit documental seguinte.
+- Commits desta rodada: b51a9d5 (preservação de conflitos e TDD); o commit documental deste relatório é o seguinte.
 - main: 9046cfa, intocada. V1 não modificada.
 - Dois worktrees (main e v2-f4); nenhum PR aberto; nenhum stash.
 - Nenhuma Action, deploy ou push.
 
 ## Veredito
 
-**Implementada, testada e revisada localmente; pronta para aceite humano.** Não declarar F4_ACCEPTED. A próxima ação é a avaliação humana deste relatório; depois, se aprovado, autorizar o push fast-forward da v2.
+**Implementada, testada e revisada localmente; pronta para aceite humano com ressalvas.** O contrato de preservação de dados dos conflitos está satisfeito no escopo F4: `KEEP_BOTH` mantém as duas variantes recuperáveis e não duplica tempo; `INCOMING` não aplica intervalos/vínculos e não os apresenta como reconciliados, mantendo o conflito pendente e o registro visível. F4 permanece apta ao aceite com ressalvas. Não declarar F4_ACCEPTED. Pendências: F4-T13 NOT_RUN, quatro HIGH da F0 UNVERIFIED e homologação multi-dispositivo real F7. A próxima ação é a avaliação humana deste relatório; depois, se aprovado, autorizar o push fast-forward da v2.
 
