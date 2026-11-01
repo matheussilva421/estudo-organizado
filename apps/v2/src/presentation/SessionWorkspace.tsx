@@ -12,7 +12,13 @@ import { getHabitEvidence, type StudyHabit } from '../domain/session-habits';
 import type { SessionAllocation, StudySession } from '../domain/session';
 import { sessionTotalFocusMs } from '../domain/session-accounting';
 import type { PlanBlock } from '../domain/planning';
-import type { SessionConflict } from '../domain/session-conflicts';
+import {
+  buildIncomingFactPatch,
+  preservedIncomingFields,
+  splitSessionConflicts,
+  type SessionConflict,
+  type SessionConflictPreservedField,
+} from '../domain/session-conflicts';
 import { LocalSessionRepository } from '../platform/local-session-repository';
 import type { SessionFactsPatch } from '../platform/local-session-repository';
 import type { SessionCommitInput } from '../platform/local-session-repository';
@@ -38,8 +44,30 @@ import {
 
 const ZONE = 'America/Fortaleza';
 const UPDATE_CHANNEL = 'estudo-organizado-v2-update';
+const PRESERVED_CONFLICT_LABELS: Record<SessionConflictPreservedField, string> = {
+  intervals: 'intervalos',
+  planBlockIds: 'vínculos de bloco',
+  editalIds: 'vínculos de edital',
+  planReconciliation: 'conciliação F3',
+  tombstone: 'exclusão lógica',
+};
 let sessionStartInFlight = false;
 let lastStartedBlockId: string | null = null;
+
+function formatPreservedFields(
+  fields: readonly SessionConflictPreservedField[],
+): string {
+  const labels = fields.map((field) => PRESERVED_CONFLICT_LABELS[field]);
+  if (labels.length <= 1) return labels[0] ?? '';
+  return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
+}
+
+function conflictResolutionLabel(conflict: SessionConflict): string {
+  if (conflict.resolution === 'KEEP_BOTH') return 'ambas as versões';
+  if (conflict.resolution === 'INCOMING') return 'fatos incoming';
+  if (conflict.resolution === 'LOCAL') return 'local mantido';
+  return 'resolvido';
+}
 
 async function queryOtherTabsReady(holderId: string): Promise<boolean> {
   if (typeof BroadcastChannel !== 'function') return false;
@@ -1178,35 +1206,43 @@ export function SessionWorkspace({
     setBusy(true);
     onNotice(null);
     try {
+      const preserved =
+        choice === 'INCOMING' ? preservedIncomingFields(conflict) : [];
+      let appliedSession: StudySession | null = null;
       if (choice === 'INCOMING') {
-        const incoming = conflict.incoming;
-        const patch: SessionFactsPatch = {};
-        if (incoming.note !== undefined) patch.note = incoming.note;
-        if (incoming.measurements !== undefined) {
-          patch.measurements = incoming.measurements;
+        const patch: SessionFactsPatch = buildIncomingFactPatch(conflict);
+        if (Object.keys(patch).length > 0) {
+          const applied = await service.editSessionFacts({
+            scope: {
+              profileId,
+              operationId: newId(),
+              baseRevision: conflict.local.localRevision,
+            },
+            sessionId: conflict.sessionId,
+            patch,
+            reason: 'CONFLICT_RESOLUTION_INCOMING',
+          });
+          if (applied.kind !== 'LOCAL_COMMITTED') {
+            onNotice('Conflito mantido: não foi possível aplicar os fatos incoming.');
+            return;
+          }
+          appliedSession = applied.value;
         }
-        if (incoming.materials !== undefined) patch.materials = incoming.materials;
-        if (incoming.allocations !== undefined) {
-          patch.allocations = incoming.allocations;
-        }
-        if (incoming.manualDeclaredMs !== undefined) {
-          patch.manualDeclaredMs = incoming.manualDeclaredMs;
-        }
-        if (incoming.recordedAtCivilDate !== undefined) {
-          patch.recordedAtCivilDate = incoming.recordedAtCivilDate;
-        }
-        const applied = await service.editSessionFacts({
-          scope: {
-            profileId,
-            operationId: newId(),
-            baseRevision: conflict.local.localRevision,
-          },
-          sessionId: conflict.sessionId,
-          patch,
-          reason: 'CONFLICT_RESOLUTION_INCOMING',
-        });
-        if (applied.kind !== 'LOCAL_COMMITTED') {
-          onNotice('Conflito mantido: não foi possível aplicar a versão incoming.');
+        if (preserved.length > 0) {
+          if (appliedSession) {
+            await repository.saveSessionConflict({
+              ...conflict,
+              local: appliedSession,
+              status: 'OPEN',
+            });
+            setPersistState('SAVED');
+          }
+          onNotice(
+            appliedSession
+              ? `Fatos incoming aplicados; ${formatPreservedFields(preserved)} preservados no conflito, não aplicados e ainda pendentes.`
+              : `O incoming difere apenas em ${formatPreservedFields(preserved)}; nada foi aplicado. O conflito permanece pendente.`,
+          );
+          await refresh();
           return;
         }
       }
@@ -1230,6 +1266,25 @@ export function SessionWorkspace({
       setBusy(false);
     }
   }
+
+  async function reopenConflict(conflict: SessionConflict): Promise<void> {
+    if (locked || busy) return;
+    setBusy(true);
+    onNotice(null);
+    try {
+      const reopened: SessionConflict = { ...conflict, status: 'OPEN' };
+      delete reopened.resolution;
+      await repository.saveSessionConflict(reopened);
+      setPersistState('SAVED');
+      onNotice('Conflito reaberto; as duas versões continuam preservadas.');
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const { open: pendingConflicts, resolved: resolvedConflicts } =
+    splitSessionConflicts(conflicts);
 
   return (
     <section className="session-workspace" aria-labelledby="session-title" data-testid="session-workspace">
@@ -1901,44 +1956,79 @@ export function SessionWorkspace({
 
       <article className="session-card" id="session-conflicts" data-testid="session-conflicts">
         <h3>Conflitos</h3>
-        {conflicts.filter((conflict) => conflict.status !== 'RESOLVED').length === 0 ? (
+        {pendingConflicts.length === 0 ? (
           <p className="hint">Nenhum conflito pendente.</p>
         ) : (
           <ul>
-            {conflicts
-              .filter((conflict) => conflict.status !== 'RESOLVED')
-              .map((conflict) => (
-                <li key={conflict.id}>
-                  Sessão de {conflict.local.recordedAtCivilDate ?? 'sem data'} ·{' '}
-                  {conflict.kind} · local {formatMs(sessionTotalFocusMs(conflict.local))}{' '}
-                  · incoming {formatMs(sessionTotalFocusMs(conflict.incoming))}
-                  <div className="session-actions">
-                    <button
-                      type="button"
-                      onClick={() => resolveConflict(conflict, 'LOCAL')}
-                      disabled={locked || busy}
-                    >
-                      Manter local
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => resolveConflict(conflict, 'INCOMING')}
-                      disabled={locked || busy}
-                    >
-                      Usar incoming
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => resolveConflict(conflict, 'KEEP_BOTH')}
-                      disabled={locked || busy}
-                    >
-                      Manter ambos
-                    </button>
-                  </div>
-                </li>
-              ))}
+            {pendingConflicts.map((conflict) => (
+              <li key={conflict.id}>
+                Sessão de {conflict.local.recordedAtCivilDate ?? 'sem data'} ·{' '}
+                {conflict.kind} · local {formatMs(sessionTotalFocusMs(conflict.local))}{' '}
+                · incoming {formatMs(sessionTotalFocusMs(conflict.incoming))}
+                <div className="session-actions">
+                  <button
+                    type="button"
+                    onClick={() => resolveConflict(conflict, 'LOCAL')}
+                    disabled={locked || busy}
+                  >
+                    Manter local
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => resolveConflict(conflict, 'INCOMING')}
+                    disabled={locked || busy}
+                  >
+                    Usar incoming
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => resolveConflict(conflict, 'KEEP_BOTH')}
+                    disabled={locked || busy}
+                  >
+                    Manter ambos
+                  </button>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
+        {resolvedConflicts.length > 0 ? (
+          <div
+            className="session-resolved-conflicts"
+            data-testid="session-resolved-conflicts"
+          >
+            <h4>Resoluções preservadas</h4>
+            <ul>
+              {resolvedConflicts.map((conflict) => {
+                const preserved = preservedIncomingFields(conflict);
+                return (
+                  <li key={conflict.id}>
+                    Sessão de {conflict.local.recordedAtCivilDate ?? 'sem data'} ·{' '}
+                    {conflictResolutionLabel(conflict)} · local{' '}
+                    {formatMs(sessionTotalFocusMs(conflict.local))} · incoming{' '}
+                    {formatMs(sessionTotalFocusMs(conflict.incoming))}
+                    <p className="hint">
+                      {conflict.resolution === 'INCOMING'
+                        ? preserved.length > 0
+                          ? `Fatos incoming aplicados; ${formatPreservedFields(preserved)} preservados no registro, não aplicados.`
+                          : 'Versão incoming aplicada.'
+                        : 'Versão incoming preservada no registro; não aplicada.'}
+                    </p>
+                    {conflict.resolution !== 'INCOMING' ? (
+                      <button
+                        type="button"
+                        onClick={() => void reopenConflict(conflict)}
+                        disabled={locked || busy}
+                      >
+                        Reabrir
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
       </article>
 
       <article className="session-card" id="session-emergency" data-testid="session-emergency">

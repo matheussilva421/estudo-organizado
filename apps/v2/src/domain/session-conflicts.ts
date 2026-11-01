@@ -29,6 +29,25 @@ export type ReconcileResult =
 
 export type SessionConflictChoice = 'LOCAL' | 'INCOMING' | 'KEEP_BOTH';
 
+export type SessionConflictFactPatch = Partial<
+  Pick<
+    StudySession,
+    | 'manualDeclaredMs'
+    | 'recordedAtCivilDate'
+    | 'measurements'
+    | 'materials'
+    | 'allocations'
+    | 'note'
+  >
+>;
+
+export type SessionConflictPreservedField =
+  | 'intervals'
+  | 'planBlockIds'
+  | 'editalIds'
+  | 'planReconciliation'
+  | 'tombstone';
+
 const COMPARED_FIELDS = [
   'manualDeclaredMs',
   'recordedAtCivilDate',
@@ -40,6 +59,23 @@ const COMPARED_FIELDS = [
   'note',
   'planReconciliation',
 ] as const;
+
+const FACT_FIELDS = [
+  'manualDeclaredMs',
+  'recordedAtCivilDate',
+  'measurements',
+  'materials',
+  'allocations',
+  'note',
+] as const satisfies readonly (keyof StudySession)[];
+
+const PRESERVED_FIELDS = [
+  'intervals',
+  'planBlockIds',
+  'editalIds',
+  'planReconciliation',
+  'tombstone',
+] as const satisfies readonly SessionConflictPreservedField[];
 
 type ComparedField = (typeof COMPARED_FIELDS)[number];
 
@@ -55,6 +91,60 @@ function stableStringify(value: unknown): string {
 
 function changed(base: StudySession, version: StudySession, field: ComparedField): boolean {
   return stableStringify(base[field]) !== stableStringify(version[field]);
+}
+
+/**
+ * INCOMING applies only scalar/fact fields. Focus intervals and F3/F2 links
+ * keep their local values because they require a separate, explicit decision;
+ * the caller must surface `preservedIncomingFields` instead of claiming a full
+ * reconciliation.
+ */
+export function buildIncomingFactPatch(
+  conflict: SessionConflict,
+): SessionConflictFactPatch {
+  const patch: Record<string, unknown> = {};
+  for (const field of FACT_FIELDS) {
+    if (
+      stableStringify(conflict.local[field]) !==
+      stableStringify(conflict.incoming[field])
+    ) {
+      patch[field] = conflict.incoming[field];
+    }
+  }
+  return patch as SessionConflictFactPatch;
+}
+
+export function preservedIncomingFields(
+  conflict: SessionConflict,
+): SessionConflictPreservedField[] {
+  const preserved: SessionConflictPreservedField[] = [];
+  for (const field of PRESERVED_FIELDS) {
+    if (field === 'tombstone') {
+      if (Boolean(conflict.local.tombstone) !== Boolean(conflict.incoming.tombstone)) {
+        preserved.push(field);
+      }
+      continue;
+    }
+    if (
+      stableStringify(conflict.local[field]) !==
+      stableStringify(conflict.incoming[field])
+    ) {
+      preserved.push(field);
+    }
+  }
+  return preserved;
+}
+
+export function splitSessionConflicts(
+  conflicts: readonly SessionConflict[],
+): { open: SessionConflict[]; resolved: SessionConflict[] } {
+  const open: SessionConflict[] = [];
+  const resolved: SessionConflict[] = [];
+  for (const conflict of conflicts) {
+    if (conflict.status === 'RESOLVED') resolved.push(conflict);
+    else open.push(conflict);
+  }
+  return { open, resolved };
 }
 
 function buildConflict(
