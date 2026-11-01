@@ -455,6 +455,10 @@ export class LocalSessionRepository {
       }
 
       if (input.authority) {
+        if (input.authority.sessionId !== input.sessionId) {
+          transaction.abort();
+          return conflict('STALE_AUTHORITY');
+        }
         const control = (await requestResult(
           transaction.objectStore(STORES.sessionControl).get(scope.profileId),
         )) as SessionControlRecord | undefined;
@@ -654,6 +658,8 @@ export class LocalSessionRepository {
           persisted = validateSession({
             ...current,
             ...input.patch,
+            recordedAtCivilDate:
+              input.patch.recordedAtCivilDate ?? current.recordedAtCivilDate,
             localRevision: current.localRevision + 1,
           });
         } catch (error) {

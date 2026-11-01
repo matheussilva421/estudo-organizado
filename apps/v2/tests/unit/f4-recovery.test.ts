@@ -4,6 +4,7 @@ import { LocalSessionCoordinator } from '../../src/platform/session-coordination
 import { LocalSessionRepository } from '../../src/platform/local-session-repository';
 import { StudySessionService } from '../../src/application/session-service';
 import type { ClockPort } from '../../src/domain/session-clock';
+import { sessionTotalFocusMs } from '../../src/domain/session-accounting';
 
 const profileId = 'profile-f4';
 const baseInstant = Date.parse('2026-10-30T10:00:00.000Z');
@@ -112,7 +113,40 @@ describe('F4 assisted recovery', () => {
     expect(result.kind).toBe('LOCAL_COMMITTED');
     const loaded = await repository.load(profileId, 'session-1');
     expect(loaded?.state).toBe('RECOVERY_REQUIRED');
-    expect(loaded?.intervals[0]?.recoveryFlag).toBe(true);
+    expect(loaded?.intervals[0]?.recoveryFlag).toBe(false);
+  });
+
+  it('keep_pending_preserves_confirmed_time', async () => {
+    const { service, repository, authority } = await setup();
+    if (authority.kind !== 'LOCAL_COMMITTED') throw new Error('authority not acquired');
+    await service.startSession({
+      scope: { profileId, operationId: 'op-start', baseRevision: null },
+      sessionId: 'session-1',
+      origin: 'TIMER',
+      authority: authority.value,
+    });
+    const started = await repository.load(profileId, 'session-1');
+    const intervalId = started?.intervals[0]?.id ?? '';
+    nowMs = 42 * 60_000;
+    const checked = await service.checkpointSession({
+      scope: { profileId, operationId: 'op-checkpoint', baseRevision: 1 },
+      sessionId: 'session-1',
+      authority: authority.value,
+      intervalId,
+      verifiedMs: 42 * 60_000,
+      checkpoint: clock.observe(),
+    });
+    expect(checked.kind).toBe('LOCAL_COMMITTED');
+    const result = await service.recoverSession({
+      scope: { profileId, operationId: 'op-recover', baseRevision: 1 },
+      sessionId: 'session-1',
+      decision: 'KEEP_PENDING',
+      authority: authority.value,
+    });
+    expect(result.kind).toBe('LOCAL_COMMITTED');
+    const loaded = await repository.load(profileId, 'session-1');
+    expect(loaded?.state).toBe('RECOVERY_REQUIRED');
+    expect(loaded ? sessionTotalFocusMs(loaded) : 0).toBe(42 * 60_000);
   });
 
   it('manual_recovery_keeps_manual_provenance', async () => {

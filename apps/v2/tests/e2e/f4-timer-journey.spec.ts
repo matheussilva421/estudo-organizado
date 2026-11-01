@@ -33,3 +33,18 @@ test('f4 manual session reaches history and exports CSV', async ({ page }) => {
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('sessoes.csv');
 });
+
+test('f4 periodic checkpoint survives a reload', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await page.locator('[data-testid="session-start"]').click();
+  await expect(page.locator('[data-testid="session-pause"]')).toBeVisible();
+
+  // The workspace checkpoints every 15 s; wait for one durable write.
+  await page.waitForTimeout(17_000);
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+
+  const history = page.locator('[data-testid="session-history"]');
+  await expect(history).toContainText(/00:00:1[5-9]|00:00:[2-9]\d/);
+});

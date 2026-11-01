@@ -399,6 +399,7 @@ export class StudySessionService {
       [STORES.planningBlocks, STORES.editalDisciplines],
       'readonly',
     );
+    const editalIds = new Set(current.editalIds);
     for (const blockId of input.blockIds) {
       const block = (await requestResult(
         transaction
@@ -414,6 +415,7 @@ export class StudySessionService {
       if (!link || link.status !== 'ACTIVE') {
         return invalid('CONTENT_RECONCILIATION_REQUIRED');
       }
+      editalIds.add(block.editalId);
     }
 
     return this.repository.commit({
@@ -424,7 +426,7 @@ export class StudySessionService {
       },
       sessionId: input.sessionId,
       authority: input.authority,
-      patch: { planBlockIds: input.blockIds },
+      patch: { planBlockIds: input.blockIds, editalIds: [...editalIds] },
       reason: 'PLAN_LINK',
     });
   }
@@ -456,10 +458,6 @@ export class StudySessionService {
     if (block.localRevision !== input.planningBaseRevision) {
       return { kind: 'CONFLICT', planApplied: false, code: 'STALE_PLANNING_REVISION' };
     }
-    if (input.choice === 'NOT_APPLIED') {
-      return { kind: 'LOCAL_COMMITTED', planApplied: false };
-    }
-
     const edited = await this.repository.commit({
       kind: 'EDIT_FACTS',
       scope: {
@@ -503,9 +501,10 @@ export class StudySessionService {
       for (const material of input.patch.materials ?? []) {
         validateMaterialRef(material);
       }
-      if (input.patch.allocations) {
-        const totalValidMs = sessionTotalFocusMs(current);
-        allocateFocus(totalValidMs, input.patch.allocations);
+      const candidate = { ...current, ...input.patch };
+      const allocations = input.patch.allocations ?? candidate.allocations ?? [];
+      if (allocations.length > 0) {
+        allocateFocus(sessionTotalFocusMs(candidate), allocations);
       }
     } catch (error) {
       return validationFailure(error);
@@ -587,11 +586,8 @@ export class StudySessionService {
       if (current.state === 'COMPLETED' || current.state === 'CANCELLED') {
         return invalid('INVALID_TRANSITION');
       }
-      const intervals = current.intervals.map((interval, index) =>
-        index === current.intervals.length - 1
-          ? { ...interval, recoveryFlag: true }
-          : interval,
-      );
+      // Keeping the gap pending is a session-level decision: the verified
+      // time already confirmed stays valid and must not be discarded.
       return this.repository.commit({
         kind: 'TRANSITION',
         scope: {
@@ -601,7 +597,6 @@ export class StudySessionService {
         sessionId: input.sessionId,
         authority: input.authority,
         nextState: 'RECOVERY_REQUIRED',
-        patchIntervals: intervals,
       });
     }
 
@@ -630,20 +625,28 @@ export class StudySessionService {
     }
 
     if (input.decision === 'RESUME') {
-      if (current.state === 'RUNNING') {
-        return { kind: 'LOCAL_COMMITTED', value: current };
-      }
       if (current.state === 'COMPLETED' || current.state === 'CANCELLED') {
         return invalid('INVALID_TRANSITION');
       }
       const observation = this.clock.observe();
+      const lastCheckpoint =
+        [...current.intervals]
+          .reverse()
+          .find((interval) => interval.checkpoint !== null)?.checkpoint ?? null;
+      const continuity = lastCheckpoint
+        ? inspectContinuity(lastCheckpoint, observation, this.recoveryPolicy)
+        : { kind: 'VALID' as const };
+      if (current.state === 'RUNNING' && continuity.kind === 'VALID') {
+        return { kind: 'LOCAL_COMMITTED', value: current };
+      }
       const nextInterval: SessionInterval = {
-        id: `${input.sessionId}~focus~${observation.monotonicMs}`,
+        id: `${input.sessionId}~focus~${observation.monotonicMs}~${current.localRevision}`,
         kind: 'FOCUS',
         verifiedMs: 0,
         contextId: observation.contextId,
         checkpoint: observation,
         recoveryFlag: false,
+        startedAt: observation.wallInstant,
       };
       return this.repository.commit({
         kind: 'TRANSITION',

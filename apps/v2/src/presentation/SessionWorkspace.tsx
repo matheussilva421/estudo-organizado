@@ -128,6 +128,7 @@ export function SessionWorkspace({
   const [history, setHistory] = useState<StudySession[]>([]);
   const [historyCursor, setHistoryCursor] = useState<string | undefined>(undefined);
   const [habits, setHabits] = useState<StudyHabit[]>([]);
+  const [habitSessions, setHabitSessions] = useState<StudySession[]>([]);
   const [planBlocks, setPlanBlocks] = useState<PlanBlock[]>([]);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -218,9 +219,14 @@ export function SessionWorkspace({
       const isMine = currentAuthority.holderId === holderId;
       setAuthority(isMine ? currentAuthority : null);
       setForeignAuthority(isMine ? null : currentAuthority);
-      setRecovery(
-        loaded ? await service.getRecoveryPreview(profileId, loaded.id) : null,
-      );
+      const preview = loaded
+        ? await service.getRecoveryPreview(profileId, loaded.id)
+        : null;
+      const needsRecovery =
+        loaded !== null &&
+        (loaded.state === 'RECOVERY_REQUIRED' ||
+          (preview?.uncertainIntervals.length ?? 0) > 0);
+      setRecovery(needsRecovery ? preview : null);
     } else {
       setSession(null);
       setAuthority(null);
@@ -235,7 +241,11 @@ export function SessionWorkspace({
     );
     setHistory(page.items);
     setHistoryCursor(page.nextCursor);
-    setHabits(await habitService.listHabits(profileId));
+    const loadedHabits = await habitService.listHabits(profileId);
+    setHabits(loadedHabits);
+    setHabitSessions(
+      loadedHabits.length > 0 ? await repository.listSessions(profileId) : [],
+    );
     setConflicts(await repository.listSessionConflicts(profileId));
     const database = await openV2Database(profileId);
     const blockTransaction = database.transaction(STORES.planningBlocks, 'readonly');
@@ -262,7 +272,9 @@ export function SessionWorkspace({
     setBusy(true);
     onNotice(null);
     try {
-      const active = session;
+      const active = session
+        ? (await repository.load(profileId, session.id)) ?? session
+        : null;
       const last = active?.intervals[active.intervals.length - 1];
       if (active && active.state === 'RUNNING' && last) {
         // The other tab holds unpersisted time. Pause at the last durable
@@ -434,14 +446,23 @@ export function SessionWorkspace({
       checkpointInFlight.current = true;
       try {
         const result = await service.checkpointSession({
-          scope: { profileId, operationId: newId(), baseRevision: null },
+          scope: {
+            profileId,
+            operationId: newId(),
+            baseRevision: current.localRevision,
+          },
           sessionId: current.id,
           authority: currentAuthority,
           intervalId: last.id,
           verifiedMs,
           checkpoint: clock.observe(),
         });
-        if (result.kind === 'LOCAL_COMMITTED') setSession(result.value);
+        if (result.kind === 'LOCAL_COMMITTED') {
+          setSession(result.value);
+          setPersistState('SAVED');
+        } else if (result.kind === 'FAILED' || result.kind === 'INVALID') {
+          setPersistState('FAILED');
+        }
       } catch {
         // Keep the last durable value; the next transition still commits.
       } finally {
@@ -693,7 +714,10 @@ export function SessionWorkspace({
             endedAt?: string;
           }
         | undefined;
-      if (action === 'pause' || action === 'complete') {
+      if (
+        (action === 'pause' || action === 'complete') &&
+        session.state === 'RUNNING'
+      ) {
         const focus = [...session.intervals]
           .reverse()
           .find((interval) => interval.kind === 'FOCUS');
@@ -903,6 +927,10 @@ export function SessionWorkspace({
   }
 
   function addAllocation(): void {
+    if (!allocationLinkId) {
+      onNotice('Escolha a disciplina antes de adicionar a alocação.');
+      return;
+    }
     const minutes = Number(allocationMinutes);
     if (!Number.isFinite(minutes) || minutes <= 0) {
       onNotice('Informe uma duração válida para a alocação.');
@@ -1690,7 +1718,7 @@ export function SessionWorkspace({
           </button>
           <ul>
             {habits.map((habit) => {
-              const evidence = getHabitEvidence(habit, history, todayInZone());
+              const evidence = getHabitEvidence(habit, habitSessions, todayInZone());
               const targetLabel =
                 habit.kind === 'TIME'
                   ? formatMs(habit.target ?? 0)
