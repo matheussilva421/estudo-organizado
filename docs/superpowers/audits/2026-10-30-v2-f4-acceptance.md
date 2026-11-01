@@ -3,7 +3,7 @@
 **Status:** F4_IMPLEMENTED_LOCAL_READY_FOR_HUMAN_ACCEPTANCE
 **Data:** 2026-10-31
 **Branch/worktree:** v2 em C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado
-**HEAD de código:** 3e675dc
+**HEAD de código:** 69c70a0
 **Remoto:** origin/v2 = 68db01542a9d5934c7e45e622001334f91eaaf4f; sem push, merge ou deploy.
 **main:** 9046cfa, intocada.
 
@@ -32,11 +32,11 @@
 
 | Comando | Resultado |
 | --- | --- |
-| `npm run test:unit` (apps/v2) | PASS — 71 arquivos, 435 testes |
-| `npm run test:e2e` (apps/v2) | PASS — 98 testes, 1 skip intencional |
+| `npm run test:unit` (apps/v2) | PASS — 71 arquivos, 437 testes |
+| `npm run test:e2e` (apps/v2) | PASS — 99 testes, 1 skip intencional |
 | `npm run lint` | PASS — 0 erros |
 | `npm run build` | PASS — `tsc --noEmit` e Vite |
-| E2E F4 | PASS — 13 specs, 21 testes |
+| E2E F4 | PASS — 13 specs, 22 testes |
 | Impeccable detector 3.9.1 em `apps/v2/src` | PASS — `[]`, 0 achados |
 | Contraste/foco/toque F4 | PASS — `f4-a11y`: 8 temas, foco ≥2px, alvos ≥44px em mobile |
 | Temas/viewports | PASS — oito temas, 1280/834/390 |
@@ -127,7 +127,14 @@ Segunda rodada, sobre o HEAD d793b36: 10 HIGH, 12 MEDIUM e 4 LOW, veredito NÃO 
 - Resolução de conflito aplica a versão incoming com nova revisão e auditoria.
 - `applyEmergency` e `resolveConflict` respeitam `locked`.
 
-Ressalvas que a revisão levantou e que seguem abertas: validação de continuidade no caminho de escrita de pausa/conclusão (o serviço confia no delta da aba dona, agora limitado pelo checkpoint periódico); alocações criadas pela UI gravam apenas `editalDisciplineId`, então o filtro por `assuntoId` só funciona com alocação que traga o assunto; paginação do histórico em memória; `KEEP_BOTH` mantém a variante apenas no registro do conflito.
+Terceira rodada, sobre o código final: 3 HIGH, 9 MEDIUM e 5 LOW, veredito NÃO APTO. Correções no commit 69c70a0:
+
+- O checkpoint periódico enviava `baseRevision: null` e era recusado por CAS; agora carrega a revisão corrente e um E2E de reload prova o tempo durável.
+- `KEEP_PENDING` marcava o último intervalo como incerto e zerava o tempo confirmado; passou a ser decisão de estado, preservando o total.
+- `RESUME` devolvia sucesso sem gravar quando a sessão seguia `RUNNING` após crash; agora abre intervalo novo quando a continuidade é incerta.
+- Pausa/conclusão só anexam checkpoint em sessão `RUNNING`; alocações validam contra a sessão candidata; a vinculação também grava `editalIds`; `NOT_APPLIED` é persistido com auditoria; a autoridade precisa pertencer à sessão alvo; o painel de recuperação só aparece quando há recuperação real; alocação exige disciplina; edição não remove a data civil.
+
+Ressalvas que seguem abertas: a continuidade do relógio é verificada no preview e na retomada, não no delta de pausa/conclusão; `KEEP_BOTH` mantém a variante no registro do conflito sem criar segunda identidade; a resolução `INCOMING` aplica fatos (nota, medições, materiais, alocações, duração declarada, data), não `intervals` nem vínculos; respostas assíncronas de `refresh`/`loadMore` não usam token de geração.
 
 ## Ressalvas remanescentes
 
@@ -136,13 +143,15 @@ Ressalvas que a revisão levantou e que seguem abertas: validação de continuid
 - O histórico percorre o índice `by_profile_date` em ordem decrescente e para ao completar a página; filtros de edital, origem e estado são aplicados durante a varredura, então uma página filtrada pode percorrer mais entradas antes de encher.
 - A continuidade do relógio é verificada no preview de recuperação, não no caminho de pausa/conclusão; o checkpoint periódico limita a exposição a 15 s por transição.
 - `KEEP_BOTH` preserva a variante incoming no registro do conflito, sem criar uma segunda identidade de sessão.
+- A resolução `INCOMING` aplica fatos (nota, medições, materiais, alocações, duração declarada e data civil); intervalos e vínculos de plano permanecem os locais.
+- `refresh` e o carregamento de mais páginas não usam token de geração; uma resposta antiga pode repor uma lista anterior até o próximo refresh.
 - O gate Impeccable completo (auditoria visual dedicada) não foi executado; o detector automático passa com zero achados.
 - Sem push, merge, deploy, Actions ou ativação de Firebase real.
 
 ## Git e GitHub
 
-- v2 local: 47 commits à frente de origin/v2; código em 3e675dc, este relatório no commit documental seguinte.
-- Commits desta rodada: b6dfec6 (atomicidade), 626f483 (alocações e filtro), c707665 (integração visual e fluxos), d793b36 (evidências visuais), 18a561b (correções da revisão independente), 1615422 (histórico incremental, vinculação posterior e auditoria de teclado), bd5ac7f (estado real de persistência), dcce481 (assunto na alocação e filtro de histórico).
+- v2 local: 51 commits à frente de origin/v2; código em 69c70a0, este relatório no commit documental seguinte.
+- Commits desta rodada: b6dfec6 (atomicidade), 626f483 (alocações e filtro), c707665 (integração visual e fluxos), d793b36 (evidências visuais), 18a561b (correções da primeira revisão), 1615422 (histórico incremental, vinculação posterior e teclado), bd5ac7f (estado real de persistência), dcce481 (assunto na alocação e filtro), 92c1376 (data civil no create), 69c70a0 (correções da revisão final).
 - main: 9046cfa, intocada. V1 não modificada.
 - Dois worktrees (main e v2-f4); nenhum PR aberto; nenhum stash.
 - Nenhuma Action, deploy ou push.

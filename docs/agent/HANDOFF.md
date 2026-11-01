@@ -3,7 +3,7 @@
 **Atualizado:** 2026-10-31
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Branch:** `v2` (local, ahead de `origin/v2`; sem push)
-**HEAD no checkpoint:** `3e675dc`
+**HEAD no checkpoint:** `69c70a0`
 
 ## Documentos
 
@@ -65,8 +65,8 @@ Aguardar aceite humano. Pendências declaradas: F4-T13 (suspensão física) `NOT
 
 - `node_modules` instalado com `npm ci --prefer-offline`.
 - Nenhum push, deploy, PR, Action ou alteração da `main`.
-- Suíte unitária completa: 435 PASS em 71 arquivos.
+- Suíte unitária completa: 437 PASS em 71 arquivos.
 - Lint: PASS. Build: PASS.
-- E2E completo: 98 PASS + 1 skip; F4: 21 PASS em 13 specs.
+- E2E completo: 99 PASS + 1 skip; F4: 22 PASS em 13 specs.
 - Detector Impeccable 3.9.1: 0 achados em `apps/v2/src`.
 
