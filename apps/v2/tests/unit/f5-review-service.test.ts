@@ -18,6 +18,12 @@ function service(): ReviewService {
   );
 }
 
+async function operationCount(): Promise<number> {
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.operations, 'readonly');
+  return requestResult(transaction.objectStore(STORES.operations).count());
+}
+
 function topicInput() {
   return {
     editalId: 'edital-1',
@@ -27,7 +33,7 @@ function topicInput() {
   };
 }
 
-function session(): StudySession {
+function session(overrides: Partial<StudySession> = {}): StudySession {
   return {
     id: 'session-1',
     profileId,
@@ -46,6 +52,7 @@ function session(): StudySession {
     measurements: [
       { id: 'measurement-1', sessionId: 'session-1', allocationId: 'allocation-1', questions: 10, correctAnswers: 7 },
     ],
+    ...overrides,
   };
 }
 
@@ -199,7 +206,7 @@ describe('F5 review service integration', () => {
       sessionId: 'session-1',
       session: session(),
     });
-    expect(created.kind).toBe('LOCAL_COMMITTED');
+    if (created.kind !== 'LOCAL_COMMITTED') throw new Error(JSON.stringify(created));
     const weak = await review.weakPoints(profileId, today);
     expect(weak).toHaveLength(1);
     expect(weak[0]).toMatchObject({ questions: 10, correctAnswers: 7, status: 'DESCRIPTIVE_ONLY' });
@@ -339,5 +346,47 @@ describe('F5 review service integration', () => {
     const result = await review.createTopic(profileId, topicInput(), 'op-abort');
     expect(result.kind).toBe('FAILED');
     expect(await review.listTopics(profileId)).toEqual([]);
+  });
+
+  it('F5-T01/T41 keeps queries pure and versions policy without rewriting facts', async () => {
+    const review = service();
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(profileId, topicInput(), 'op-topic');
+    const suggestion = (await review.generateSuggestions(profileId, today))[0]!;
+    const applied = await review.applySuggestion(profileId, suggestion, 'op-apply');
+    if (applied.kind !== 'LOCAL_COMMITTED') throw new Error('commitment missing');
+    const before = await operationCount();
+    await review.generateSuggestions(profileId, today);
+    await review.weakPoints(profileId, today);
+    expect(await operationCount()).toBe(before);
+    const changed = await review.updatePolicy(profileId, { defaultDurationMinutes: 25 }, 'op-policy-change');
+    expect(changed).toBeDefined();
+    expect(changed.kind).toBe('LOCAL_COMMITTED');
+    expect((await review.getPolicy(profileId)).defaultDurationMinutes).toBe(25);
+  });
+
+  it('F5-T44 excludes tombstoned F4 evidence from weak points', async () => {
+    const tombstoneProfile = 'profile-f5-tombstone';
+    const review = service();
+    await review.ensurePolicy(tombstoneProfile, 'op-policy');
+    await review.createTopic(tombstoneProfile, topicInput(), 'op-topic');
+    const sessions = new LocalSessionRepository();
+    const hidden = session({ profileId: tombstoneProfile });
+    const created = await sessions.commit({
+      kind: 'CREATE',
+      scope: { profileId: tombstoneProfile, operationId: 'op-tombstone', baseRevision: null },
+      sessionId: hidden.id,
+      session: hidden,
+    });
+    if (created.kind !== 'LOCAL_COMMITTED') throw new Error(JSON.stringify(created));
+    const deleted = await sessions.commit({
+      kind: 'TOMBSTONE',
+      scope: { profileId: tombstoneProfile, operationId: 'op-tombstone-delete', baseRevision: 1 },
+      sessionId: hidden.id,
+      reason: 'tombstone fixture',
+    });
+    expect(deleted.kind).toBe('LOCAL_COMMITTED');
+    const weak = await review.weakPoints(tombstoneProfile, today);
+    expect(weak[0]?.questions).toBe(0);
   });
 });

@@ -7,6 +7,7 @@ import {
   estimateReviewDuration,
   generateReviewSuggestion,
   matchBoardEvidence,
+  nextReviewPolicy,
   parseBoardEvidence,
   previewPriorityReversal,
   rankContextPriorities,
@@ -401,5 +402,50 @@ describe('F5 review domain', () => {
     const reversal = previewPriorityReversal({ current: newer, previous: basePriority });
     expect(reversal.kind).toBe('CONFLICT');
     expect(reversal.affectedCanonicalTopicKeys).toContain(topic().canonicalTopicKey);
+  });
+
+  it('F5-T15/T25/T45 preserves conflicting evidence, versions policy and keeps CivilDate stable', () => {
+    const conflicted = calculateWeakPointProjections({
+      profileId,
+      topics: [topic()],
+      executions: [execution({ assessment: 'FORGOT', coverage: 'PARTIAL' })],
+      sessions: [session()],
+      policy,
+      today,
+    })[0]!;
+    expect(conflicted.accuracy).toBe(0.7);
+    expect(conflicted.retention.forgot).toBe(1);
+    const changed = nextReviewPolicy(policy, { goodMultiplier: 3 });
+    expect(changed.version).toBe(policy.version + 1);
+    expect(policy.goodMultiplier).toBe(2.5);
+    const acrossDst = generateReviewSuggestion({
+      topic: topic(),
+      policy: changed,
+      today: '2026-03-07',
+    });
+    expect(acrossDst.dueDate).toBe('2026-03-10');
+  });
+
+  it('F5-T35/T44 does not resurrect tombstones into authoritative projections', () => {
+    const hiddenTopic = topic({ tombstone: true });
+    const hiddenExecution = execution({ tombstone: true });
+    const projections = calculateWeakPointProjections({
+      profileId,
+      topics: [hiddenTopic],
+      executions: [hiddenExecution],
+      sessions: [session()],
+      policy,
+      today,
+    });
+    expect(projections).toEqual([]);
+    const visible = calculateWeakPointProjections({
+      profileId,
+      topics: [topic()],
+      executions: [hiddenExecution],
+      sessions: [session()],
+      policy,
+      today,
+    })[0]!;
+    expect(visible.retention.good).toBe(0);
   });
 });

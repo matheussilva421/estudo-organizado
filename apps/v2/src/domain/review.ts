@@ -195,6 +195,7 @@ export type ReviewTopicLink = {
   label: string;
   provenance: 'MANUAL' | 'IMPORT';
   localRevision: number;
+  tombstone?: boolean;
 };
 
 /** A stable local review group, never derived from a title or StudySubject. */
@@ -241,6 +242,7 @@ export function validateReviewTopicLink(input: ReviewTopicLink): ReviewTopicLink
   requireId(input.editalDisciplineId);
   requireId(input.assuntoId);
   if (input.label !== undefined && typeof input.label !== 'string') fail('INVALID_TOPIC');
+  if (input.tombstone !== undefined && typeof input.tombstone !== 'boolean') fail('INVALID_TOPIC');
   positiveInteger(input.localRevision);
   return { ...input };
 }
@@ -285,6 +287,7 @@ export type ReviewCommitment = {
     dueDate?: CivilDate;
     note?: string;
   }[];
+  tombstone?: boolean;
 };
 
 export type ReviewExecution = {
@@ -300,6 +303,7 @@ export type ReviewExecution = {
   allocationId?: string;
   localRevision: number;
   provenance: string;
+  tombstone?: boolean;
 };
 
 export function estimateReviewDuration(input: {
@@ -456,6 +460,7 @@ export function recordReviewExecution(input: {
     fail('INVALID_ASSESSMENT');
   }
   if (input.commitment) {
+    if (input.commitment.tombstone === true) fail('COMMITMENT_DELETED');
     if (input.commitment.status === 'CANCELLED') fail('COMMITMENT_CANCELLED');
     if (
       input.commitment.status === 'FULFILLED' &&
@@ -570,7 +575,9 @@ export function calculateWeakPointProjections(input: {
 }): WeakPointProjection[] {
   const profileId = requireId(input.profileId, 'INVALID_PROFILE');
   const policy = validateReviewPolicy(input.policy);
-  const topics = input.topics.filter((topic) => topic.profileId === profileId);
+  const topics = input.topics.filter(
+    (topic) => topic.profileId === profileId && topic.tombstone !== true,
+  );
   const topicByScope = new Map<string, ReviewTopicLink>();
   for (const topic of topics) {
     topicByScope.set(`${topic.editalDisciplineId}::${topic.assuntoId}`, topic);
@@ -655,7 +662,7 @@ export function calculateWeakPointProjections(input: {
   }
 
   for (const execution of input.executions) {
-    if (execution.profileId !== profileId) continue;
+    if (execution.profileId !== profileId || execution.tombstone === true) continue;
     const topic = topics.find((item) => item.canonicalTopicKey === execution.canonicalTopicKey);
     if (!topic) continue;
     const bucket = ensure(topic);
@@ -734,6 +741,7 @@ export type BoardEvidence = {
   period?: string;
   sampleSize?: number;
   denominator?: number;
+  supersedes?: string;
   limitations: string[];
   version: number;
   localRevision: number;
@@ -768,6 +776,8 @@ export function parseBoardEvidence(input: {
   sampleSize?: number;
   denominator?: number;
   limitations?: string[];
+  version?: number;
+  supersedes?: string;
 }): BoardEvidence {
   const text = input.text.trim();
   if (!text) fail('INVALID_EVIDENCE');
@@ -796,8 +806,10 @@ export function parseBoardEvidence(input: {
     ...(input.period ? { period: input.period.trim() } : {}),
     ...(sampleSize !== undefined ? { sampleSize } : {}),
     ...(denominator !== undefined ? { denominator } : {}),
+    ...(input.supersedes ? { supersedes: requireId(input.supersedes) } : {}),
     limitations: [...(input.limitations ?? [])],
-    version: 1,
+    version:
+      input.version === undefined ? 1 : positiveInteger(input.version, 'INVALID_VERSION'),
     localRevision: 1,
     fingerprint: stableStringify({ text, kind, sampleSize, denominator, period: input.period }),
   };
