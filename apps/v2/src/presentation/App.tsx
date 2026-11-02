@@ -30,6 +30,7 @@ import { SubjectList } from './components/SubjectList';
 import { SyncStatus } from './components/SyncStatus';
 import { PlanningWorkspace } from './PlanningWorkspace';
 import { SessionWorkspace } from './SessionWorkspace';
+import { ReviewWorkspace } from './ReviewWorkspace';
 import { canSubmitTitle, initialFormState, markSubmitFailure, THEMES, type FormState } from './ui-state';
 
 const PROFILE_ID = 'local-default';
@@ -446,6 +447,13 @@ export function App() {
         onNotice={setNotice}
         startBlockId={startBlockId}
         onStartBlockConsumed={() => setStartBlockId(null)}
+      />
+
+      <ReviewWorkspace
+        profileId={PROFILE_ID}
+        content={content}
+        locked={upgrade.blocked}
+        onNotice={setNotice}
       />
 
       <ImportPreview

@@ -2,6 +2,15 @@ import type { ContentEntity, ContentEntityType } from './content-commands';
 import type { PlanBlock, PlanningScenario } from '../domain/planning';
 import type { StudySession } from '../domain/session';
 import type { HabitOccurrence } from '../domain/session-habits';
+import type {
+  BoardEvidence,
+  ContextPriorityProjection,
+  ReviewCommitment,
+  ReviewExecution,
+  ReviewPolicy,
+  ReviewTopicLink,
+  TopicMatchDecision,
+} from '../domain/review';
 
 export type SyncState =
   | 'LOCAL_ONLY'
@@ -23,18 +32,35 @@ export type SessionEntityType = 'study-session';
 
 export type HabitEntityType = 'habit-occurrence';
 
+export type ReviewEntityType =
+  | 'review-topic'
+  | 'review-policy'
+  | 'review-commitment'
+  | 'review-execution'
+  | 'review-board-evidence'
+  | 'review-match'
+  | 'review-priority';
+
 export type OutboxEntityType =
   | ContentEntityType
   | PlanningEntityType
   | SessionEntityType
-  | HabitEntityType;
+  | HabitEntityType
+  | ReviewEntityType;
 
 export type OutboxPayload =
   | ContentEntity
   | PlanningScenario
   | PlanBlock
   | StudySession
-  | HabitOccurrence;
+  | HabitOccurrence
+  | ReviewTopicLink
+  | ReviewPolicy
+  | ReviewCommitment
+  | ReviewExecution
+  | BoardEvidence
+  | TopicMatchDecision
+  | ContextPriorityProjection;
 
 export type OutboxOperation = {
   operationId: string;

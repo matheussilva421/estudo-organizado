@@ -296,6 +296,54 @@ function definitions(): StoreDefinition[] {
         { name: 'by_operation', keyPath: ['profileId', 'operationId'] },
       ],
     },
+    {
+      name: STORES.reviewTopics,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_canonical', keyPath: ['profileId', 'canonicalTopicKey'] },
+        { name: 'by_scope', keyPath: ['profileId', 'editalId', 'editalDisciplineId', 'assuntoId'] },
+      ],
+    },
+    {
+      name: STORES.reviewPolicies,
+      keyPath: ['profileId', 'id'],
+      indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
+    },
+    {
+      name: STORES.reviewCommitments,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_topic', keyPath: ['profileId', 'canonicalTopicKey'] },
+        { name: 'by_due', keyPath: ['profileId', 'currentDueDate'] },
+      ],
+    },
+    {
+      name: STORES.reviewExecutions,
+      keyPath: ['profileId', 'id'],
+      indexes: [
+        { name: 'by_profile', keyPath: 'profileId' },
+        { name: 'by_topic', keyPath: ['profileId', 'canonicalTopicKey'] },
+        { name: 'by_date', keyPath: ['profileId', 'civilDate'] },
+      ],
+    },
+    {
+      name: STORES.reviewBoardEvidence,
+      keyPath: ['profileId', 'id'],
+      indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
+    },
+    {
+      name: STORES.reviewMatches,
+      keyPath: ['profileId', 'id'],
+      indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
+    },
+    {
+      name: STORES.reviewPriorities,
+      keyPath: ['profileId', 'id'],
+      indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
+    },
+    { name: STORES.reviewSettings, keyPath: 'profileId', indexes: [] },
   ];
 }
 

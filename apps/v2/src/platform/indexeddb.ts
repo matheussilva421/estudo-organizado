@@ -35,6 +35,14 @@ export const STORES = {
   sessionHabits: 'session_habits',
   habitOccurrences: 'habit_occurrences',
   sessionEmergencyReceipts: 'session_emergency_receipts',
+  reviewTopics: 'review_topics',
+  reviewPolicies: 'review_policies',
+  reviewCommitments: 'review_commitments',
+  reviewExecutions: 'review_executions',
+  reviewBoardEvidence: 'review_board_evidence',
+  reviewMatches: 'review_matches',
+  reviewPriorities: 'review_priorities',
+  reviewSettings: 'review_settings',
 } as const;
 
 export type LocalPersistenceKind = 'QUOTA' | 'ABORT' | 'UNAVAILABLE' | 'BLOCKED_UPGRADE';

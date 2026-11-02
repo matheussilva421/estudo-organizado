@@ -24,6 +24,15 @@ export { type DeliveryConsentProof };
 const DELIVERABLE_STATES = new Set(['READY', 'SYNCING', 'PENDING_OFFLINE']);
 
 const PLANNING_ENTITY_TYPES = new Set(['planning-scenario', 'plan-block']);
+const REVIEW_ENTITY_TYPES = new Set([
+  'review-topic',
+  'review-policy',
+  'review-commitment',
+  'review-execution',
+  'review-board-evidence',
+  'review-match',
+  'review-priority',
+]);
 
 /**
  * A local operation is deliverable only when profile, binding and operation
@@ -42,6 +51,7 @@ export function canDeliver(
   // a real remote contract. Their presence never enables delivery.
   if (operation.deliveryMode === 'BLOCKED') return false;
   if (PLANNING_ENTITY_TYPES.has(operation.entityType)) return false;
+  if (REVIEW_ENTITY_TYPES.has(operation.entityType)) return false;
 
   const uid = profile.uid;
   if (!uid || !uid.trim()) return false;
