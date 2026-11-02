@@ -5,6 +5,7 @@
 **Branch/worktree:** `v2` em `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Base oficial:** `origin/v2` = `bf32821` (spec/plano aprovados)
 **HEAD de código:** `59fdb33` (antes do commit documental final)
+**Publicação efetiva:** `origin/v2` = `db7fcf3`; read-back local/remoto 0/0 em 2026-11-02.
 **main:** `9046cfa`, V1 preservada, sem alteração
 
 ## Fontes normativas
@@ -135,7 +136,7 @@ Revisão 2 estruturada (checklist distinto de UX/adversarial, sem alegar indepen
 
 ## Publicação e main
 
-- `origin/v2` permanece a base documental `bf32821`; os commits F5 serão publicados por fast-forward na saída final.
+- `origin/v2` foi confirmado por read-back em `db7fcf3`, com seis commits F5 sobre a base documental `bf32821`; este adendo documental é o commit seguinte.
 - A `main` não foi alterada. O push de `v2` para `main` está **bloqueado** na avaliação de segurança: o repositório declara Cloudflare Pages conectado ao GitHub e um workflow em `main`; não há prova de que um push em `main` não dispare publicação de produção. O GOAL 0.1 exige essa prova antes da integração.
 - Nenhum deploy, PR ou Action foi criado. Nenhuma credencial Firebase/Google foi usada.
 
