@@ -423,6 +423,16 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
     URL.revokeObjectURL(url);
   }
 
+  async function exportCsv(): Promise<void> {
+    const raw = await service.exportCsv(profileId);
+    const url = URL.createObjectURL(new Blob([raw], { type: 'text/csv;charset=utf-8' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'revisoes-f5.csv';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function selectImportFile(file: File | undefined): Promise<void> {
     if (!file) return;
     const raw = await file.text();
@@ -762,6 +772,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
         <div className="session-actions">
           <button type="button" onClick={() => void exportData()} disabled={locked || busy}>
             Exportar JSON acadêmico
+          </button>
+          <button type="button" onClick={() => void exportCsv()} disabled={locked || busy}>
+            Exportar CSV
           </button>
           <label>
             Importar JSON

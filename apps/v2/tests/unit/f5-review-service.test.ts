@@ -5,6 +5,7 @@ import { LocalReviewRepository } from '../../src/platform/local-review-repositor
 import { LocalSessionRepository } from '../../src/platform/local-session-repository';
 import { deleteV2DatabaseForTests, openV2Database, requestResult, STORES } from '../../src/platform/indexeddb';
 import type { StudySession } from '../../src/domain/session';
+import type { ReviewOutcome } from '../../src/domain/review';
 
 const profileId = 'profile-f5';
 const today = '2026-11-01';
@@ -388,5 +389,183 @@ describe('F5 review service integration', () => {
     expect(deleted.kind).toBe('LOCAL_COMMITTED');
     const weak = await review.weakPoints(tombstoneProfile, today);
     expect(weak[0]?.questions).toBe(0);
+  });
+
+  it('F5-T32 versions a board source without replacing its predecessor', async () => {
+    const review = service();
+    const first = await review.saveBoardEvidence(
+      profileId,
+      { title: 'Banca TJPB 2025', text: 'Controle de constitucionalidade cai muito.' },
+      'op-board-v1',
+    );
+    if (first.kind !== 'LOCAL_COMMITTED') throw new Error('v1 missing');
+    const second = await review.saveBoardEvidenceVersion(
+      profileId,
+      first.value.id,
+      { title: 'Banca TJPB 2026', text: 'Controle de constitucionalidade: 10 de 50 questões.' },
+      'op-board-v2',
+    );
+    if (second.kind !== 'LOCAL_COMMITTED') throw new Error('v2 missing');
+    expect(second.value.version).toBe(2);
+    expect(second.value.supersedes).toBe(first.value.id);
+    const all = await review.listBoardEvidence(profileId);
+    expect(all).toHaveLength(2);
+    expect(all.some((item) => item.id === first.value.id)).toBe(true);
+  });
+
+  it('F5-T17 learns duration only from review-attributable history', async () => {
+    const review = service();
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(profileId, topicInput(), 'op-topic');
+    const suggestion = (await review.generateSuggestions(profileId, today))[0]!;
+    const applied = await review.applySuggestion(profileId, suggestion, 'op-apply');
+    if (applied.kind !== 'LOCAL_COMMITTED') throw new Error('commitment missing');
+    const execution = await review.recordExecution(
+      profileId,
+      {
+        commitmentId: applied.value.id,
+        canonicalTopicKey: applied.value.canonicalTopicKey,
+        civilDate: today,
+        assessment: 'GOOD',
+        coverage: 'PARTIAL',
+        durationMinutes: 35,
+        provenance: 'fixture',
+      },
+      'op-execution-duration',
+    );
+    expect(execution.kind).toBe('LOCAL_COMMITTED');
+    const next = (await review.generateSuggestions(profileId, today))[0]!;
+    expect(next.durationSource).toBe('HISTORY');
+    expect(next.durationMinutes).toBe(35);
+  });
+
+  it('F5-T36 rejects a nested profile mismatch during import preview', async () => {
+    const review = service();
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(profileId, topicInput(), 'op-topic');
+    const raw = await review.exportData(profileId);
+    const parsed = JSON.parse(raw) as { topics: { profileId: string }[] };
+    parsed.topics[0]!.profileId = 'another-profile';
+    expect(review.previewImport(profileId, JSON.stringify(parsed))).toEqual({
+      kind: 'CONFLICT',
+      reason: 'PROFILE_MISMATCH_REQUIRES_REMAP',
+    });
+  });
+
+  it('F5-T42 rejects a reschedule that duplicates another active commitment', async () => {
+    const review = service();
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(profileId, topicInput(), 'op-topic-a');
+    const firstSuggestion = (await review.generateSuggestions(profileId, today))[0]!;
+    const first = await review.applySuggestion(profileId, firstSuggestion, 'op-first');
+    if (first.kind !== 'LOCAL_COMMITTED') throw new Error('first commitment missing');
+    await review.recordExecution(
+      profileId,
+      {
+        commitmentId: first.value.id,
+        canonicalTopicKey: first.value.canonicalTopicKey,
+        civilDate: today,
+        assessment: 'PARTIAL',
+        coverage: 'PARTIAL',
+        provenance: 'fixture',
+      },
+      'op-first-partial',
+    );
+    const secondSuggestion = (await review.generateSuggestions(profileId, today))[0]!;
+    const second = await review.applySuggestion(profileId, secondSuggestion, 'op-second');
+    if (second.kind !== 'LOCAL_COMMITTED') throw new Error('second commitment missing');
+    const duplicate = await review.reschedule(
+      profileId,
+      first.value.id,
+      second.value.currentDueDate,
+      'op-reschedule-duplicate',
+    );
+    expect(duplicate).toEqual({ kind: 'CONFLICT', code: 'DUPLICATE_COMMITMENT' });
+  });
+
+  it('F5-T46 never lists a fulfilled commitment as a pending reminder', async () => {
+    const review = service();
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(profileId, topicInput(), 'op-topic');
+    const suggestion = (await review.generateSuggestions(profileId, today))[0]!;
+    const applied = await review.applySuggestion(profileId, suggestion, 'op-apply');
+    if (applied.kind !== 'LOCAL_COMMITTED') throw new Error('commitment missing');
+    await review.recordExecution(
+      profileId,
+      {
+        commitmentId: applied.value.id,
+        canonicalTopicKey: applied.value.canonicalTopicKey,
+        civilDate: today,
+        assessment: 'GOOD',
+        coverage: 'FULL',
+        provenance: 'fixture',
+      },
+      'op-complete',
+    );
+    const reminders = await review.reminders(profileId, today);
+    expect(reminders.overdue).toHaveLength(0);
+    expect(reminders.dueToday).toHaveLength(0);
+    expect(reminders.upcoming).toHaveLength(0);
+  });
+
+  it('F5-T39 exports CSV without formula injection', async () => {
+    const review = service();
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(
+      profileId,
+      { ...topicInput(), label: '=HYPERLINK("http://evil")' },
+      'op-topic-formula',
+    );
+    const suggestion = (await review.generateSuggestions(profileId, today))[0]!;
+    await review.applySuggestion(profileId, suggestion, 'op-apply-formula');
+    const csv = await review.exportCsv(profileId);
+    expect(csv).toMatch(/"'=HYPERLINK/);
+    expect(csv).not.toMatch(/"=HYPERLINK/);
+  });
+
+  it('F5-T38 reports a partial import instead of a false complete success', async () => {
+    const targetProfile = 'profile-f5-import-target';
+    const firstTopic = {
+      ...topicInput(),
+      id: 'topic-a',
+      profileId: targetProfile,
+      canonicalTopicKey: 'disc-1::assunto-1',
+      provenance: 'IMPORT' as const,
+      localRevision: 1,
+    };
+    const secondTopic = {
+      ...firstTopic,
+      id: 'topic-b',
+      assuntoId: 'assunto-2',
+      canonicalTopicKey: 'disc-1::assunto-2',
+    };
+    const targetData = {
+      schemaVersion: 1,
+      kind: 'F5_ACADEMIC_DATA',
+      profileId: targetProfile,
+      generatedAt: '2026-11-02T12:00:00.000Z',
+      topics: [firstTopic, secondTopic],
+      policies: [],
+      commitments: [],
+      executions: [],
+      board: [],
+      matches: [],
+      priorities: [],
+    };
+    class FailSecondRepository extends LocalReviewRepository {
+      private commits = 0;
+      override async commit(input: Parameters<LocalReviewRepository['commit']>[0]): Promise<ReviewOutcome<unknown>> {
+        this.commits += 1;
+        if (this.commits === 2) return { kind: 'FAILED', reason: 'ABORT' };
+        return super.commit(input);
+      }
+    }
+    const failing = new FailSecondRepository();
+    const target = new ReviewService(failing, new LocalSessionRepository(), new LocalPlanningRepository());
+    const targetPreview = target.previewImport(targetProfile, JSON.stringify(targetData));
+    if (targetPreview.kind !== 'READY') throw new Error('target preview missing');
+    const result = await target.applyImport(targetProfile, targetPreview, 'op-import-fail');
+    expect(result).toEqual({ kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' });
+    expect((await target.listTopics(targetProfile)).length).toBe(1);
   });
 });

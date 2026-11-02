@@ -39,6 +39,7 @@ export type ReviewCommitInput =
       scope: ReviewScope;
       execution: ReviewExecution;
       commitment?: ReviewCommitment | null;
+      commitmentBaseRevision?: number | null;
     }
   | { type: 'SAVE_BOARD'; scope: ReviewScope; evidence: BoardEvidence }
   | { type: 'SAVE_MATCH'; scope: ReviewScope; match: TopicMatchDecision }
@@ -138,6 +139,10 @@ export class LocalReviewRepository {
       if (error instanceof ReviewValidationError) return { kind: 'INVALID', code: error.code };
       return { kind: 'FAILED', reason: 'VALIDATION' };
     }
+    const entityProfile = (primary.value as { profileId?: unknown }).profileId;
+    if (entityProfile !== scope.profileId) {
+      return { kind: 'INVALID', code: 'PROFILE_MISMATCH' };
+    }
     const command = normalizeCommand(input);
     const commandJson = stableStringify(command);
     const database = await openV2Database(scope.profileId);
@@ -168,7 +173,7 @@ export class LocalReviewRepository {
         transaction.abort();
         return { kind: 'CONFLICT', code: 'STALE_REVISION' };
       }
-      if (input.type === 'SAVE_COMMITMENT' && !current) {
+      if (input.type === 'SAVE_COMMITMENT') {
         const semantic = (await requestResult(
           transaction
             .objectStore(STORES.reviewCommitments)
@@ -177,7 +182,9 @@ export class LocalReviewRepository {
         )) as ReviewCommitment[];
         const duplicate = semantic.find(
           (item) =>
+            item.id !== input.commitment.id &&
             item.status !== 'CANCELLED' &&
+            item.status !== 'FULFILLED' &&
             item.currentDueDate === input.commitment.currentDueDate,
         );
         if (duplicate) {
@@ -211,6 +218,11 @@ export class LocalReviewRepository {
         const existingCommitment = (await requestResult(
           commitmentStore.get([scope.profileId, input.commitment.id]),
         )) as ReviewCommitment | undefined;
+        const expectedBase = input.commitmentBaseRevision ?? null;
+        if (!existingCommitment || existingCommitment.localRevision !== expectedBase) {
+          transaction.abort();
+          return { kind: 'CONFLICT', code: 'STALE_REVISION' };
+        }
         const commitmentRevision = (existingCommitment?.localRevision ?? 0) + 1;
         persistedCommitment = withRevision(input.commitment, commitmentRevision) as ReviewCommitment;
         commitmentStore.put(persistedCommitment);

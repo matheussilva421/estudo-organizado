@@ -301,6 +301,7 @@ export type ReviewExecution = {
   source: 'F5' | 'F4';
   sessionId?: string;
   allocationId?: string;
+  durationMinutes?: number;
   localRevision: number;
   provenance: string;
   tombstone?: boolean;
@@ -453,6 +454,7 @@ export function recordReviewExecution(input: {
   source?: 'F5' | 'F4';
   sessionId?: string;
   allocationId?: string;
+  durationMinutes?: number;
   provenance: string;
 }): { execution: ReviewExecution; commitment: ReviewCommitment | null } {
   const assessment = input.assessment;
@@ -480,6 +482,9 @@ export function recordReviewExecution(input: {
     source: input.source ?? 'F5',
     ...(input.sessionId ? { sessionId: requireId(input.sessionId) } : {}),
     ...(input.allocationId ? { allocationId: requireId(input.allocationId) } : {}),
+    ...(input.durationMinutes !== undefined
+      ? { durationMinutes: finiteNonNegative(input.durationMinutes, 'INVALID_DURATION') }
+      : {}),
     localRevision: 1,
     provenance: input.provenance.trim() || 'manual',
   };
@@ -541,6 +546,71 @@ export function cancelCommitment(input: {
       ...input.commitment.history,
       { type: 'CANCELLED', at: requireId(input.at) },
     ],
+  };
+}
+
+export type ReviewCommitmentConflict = {
+  id: string;
+  profileId: string;
+  kind: 'COMMITMENT_CAUSALITY';
+  local: ReviewCommitment;
+  incoming: ReviewCommitment;
+  status: 'OPEN';
+};
+
+/**
+ * Fake multi-device reconciliation for commitments. Timestamps are audit data,
+ * never an arbiter: incompatible states preserve both variants for a human.
+ */
+export function reconcileReviewCommitments(
+  local: ReviewCommitment,
+  incoming: ReviewCommitment,
+):
+  | { kind: 'MERGED'; value: ReviewCommitment }
+  | { kind: 'CONFLICT'; conflict: ReviewCommitmentConflict } {
+  if (
+    local.id !== incoming.id ||
+    local.profileId !== incoming.profileId ||
+    local.canonicalTopicKey !== incoming.canonicalTopicKey
+  ) {
+    return {
+      kind: 'CONFLICT',
+      conflict: {
+        id: `${local.id}~invalid`,
+        profileId: local.profileId,
+        kind: 'COMMITMENT_CAUSALITY',
+        local,
+        incoming,
+        status: 'OPEN',
+      },
+    };
+  }
+  if (
+    local.localRevision === incoming.localRevision &&
+    stableStringify(local) === stableStringify(incoming)
+  ) {
+    return { kind: 'MERGED', value: local };
+  }
+  if (
+    local.currentDueDate !== incoming.currentDueDate ||
+    local.status !== incoming.status ||
+    local.coverage !== incoming.coverage
+  ) {
+    return {
+      kind: 'CONFLICT',
+      conflict: {
+        id: `${local.id}~${local.localRevision}~${incoming.localRevision}`,
+        profileId: local.profileId,
+        kind: 'COMMITMENT_CAUSALITY',
+        local,
+        incoming,
+        status: 'OPEN',
+      },
+    };
+  }
+  return {
+    kind: 'MERGED',
+    value: { ...local, localRevision: Math.max(local.localRevision, incoming.localRevision) },
   };
 }
 
@@ -932,8 +1002,12 @@ export function rankContextPriorities(input: {
       const weak = input.weakPoints.find(
         (item) => item.canonicalTopicKey === topic.canonicalTopicKey,
       );
+      // INSUFFICIENT_DATA must never become a quantitative deficiency score;
+      // board/urgency may still explain a contextual suggestion.
       const deficiency =
-        weak?.accuracy === null || weak?.accuracy === undefined ? 0 : Math.max(0, 1 - weak.accuracy);
+        !weak || weak.status === 'INSUFFICIENT_DATA' || weak.accuracy === null
+          ? 0
+          : Math.max(0, 1 - weak.accuracy);
       const boardItems = evidenceByTopic.get(topic.canonicalTopicKey) ?? [];
       const board = boardItems.reduce(
         (sum, item) => sum + (item.kind === 'QUANTITATIVE' ? 1 : item.kind === 'QUALITATIVE' ? 0.5 : 0.25),
@@ -959,7 +1033,7 @@ export function rankContextPriorities(input: {
         rank: 0,
         factors,
         explanation: factors.map((factor) => `${factor.name}=${factor.value.toFixed(3)}`).join(' '),
-        insufficient: weak?.status !== 'TREND_SUPPORTED' && (weak?.questions ?? 0) < input.policy.sufficientSample,
+        insufficient: weak?.status === 'INSUFFICIENT_DATA',
       };
     });
   rows.sort((a, b) => b.score - a.score || a.canonicalTopicKey.localeCompare(b.canonicalTopicKey));

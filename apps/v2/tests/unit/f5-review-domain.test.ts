@@ -12,6 +12,7 @@ import {
   previewPriorityReversal,
   rankContextPriorities,
   recordReviewExecution,
+  reconcileReviewCommitments,
   rescheduleCommitment,
   isReviewProjectionCurrent,
   type ReviewExecution,
@@ -402,6 +403,44 @@ describe('F5 review domain', () => {
     const reversal = previewPriorityReversal({ current: newer, previous: basePriority });
     expect(reversal.kind).toBe('CONFLICT');
     expect(reversal.affectedCanonicalTopicKeys).toContain(topic().canonicalTopicKey);
+  });
+
+  it('F5-T31 caps overlapping board sources instead of summing incompatible evidence', () => {
+    const t = topic();
+    const first = parseBoardEvidence({ id: 'b1', profileId, title: t.label, text: t.label });
+    const second = parseBoardEvidence({ id: 'b2', profileId, title: t.label, text: t.label });
+    const weak = calculateWeakPointProjections({
+      profileId, topics: [t], executions: [], sessions: [session()], policy, today,
+    });
+    const priority = rankContextPriorities({
+      profileId, editalId: 'edital-1', topics: [t], weakPoints: weak, evidence: [first, second],
+      matches: [
+        { id: 'm1', profileId, evidenceId: 'b1', topicLinkId: t.id, canonicalTopicKey: t.canonicalTopicKey, editalId: 'edital-1', assuntoId: t.assuntoId, decision: 'ACCEPTED', score: 1, reason: 'exact', localRevision: 1 },
+        { id: 'm2', profileId, evidenceId: 'b2', topicLinkId: t.id, canonicalTopicKey: t.canonicalTopicKey, editalId: 'edital-1', assuntoId: t.assuntoId, decision: 'ACCEPTED', score: 1, reason: 'exact', localRevision: 1 },
+      ],
+      today, policy, generatedAt: '2026-11-02T12:00:00.000Z',
+    });
+    const board = priority.rows[0]?.factors.find((factor) => factor.name === 'board');
+    expect(board?.value).toBeLessThanOrEqual(1);
+    expect(board?.explanation).toContain('2 fonte');
+  });
+
+  it('F5-T43 preserves incompatible fake-device commitment variants without LWW', () => {
+    const commitment = applyReviewSuggestion({
+      suggestion: generateReviewSuggestion({ topic: topic(), policy, today }),
+      id: 'commitment-device',
+      source: 'MANUAL',
+      at: '2026-11-01T10:00:00.000Z',
+    });
+    const local = { ...commitment, currentDueDate: '2026-11-10', localRevision: 2 };
+    const incoming = { ...commitment, currentDueDate: '2026-11-20', status: 'PARTIALLY_FULFILLED' as const, localRevision: 2 };
+    const result = reconcileReviewCommitments(local, incoming);
+    expect(result.kind).toBe('CONFLICT');
+    if (result.kind === 'CONFLICT') {
+      expect(result.conflict.local.currentDueDate).toBe('2026-11-10');
+      expect(result.conflict.incoming.currentDueDate).toBe('2026-11-20');
+      expect(result.conflict.status).toBe('OPEN');
+    }
   });
 
   it('F5-T15/T25/T45 preserves conflicting evidence, versions policy and keeps CivilDate stable', () => {

@@ -220,7 +220,9 @@ export class ReviewService {
           today,
           stage: topicExecutions.length,
           lastExecution: topicExecutions.at(-1) ?? null,
-          durationsMinutes: [],
+          durationsMinutes: topicExecutions
+            .map((item) => item.durationMinutes)
+            .filter((value): value is number => typeof value === 'number'),
         });
       })
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.label.localeCompare(b.label));
@@ -298,6 +300,7 @@ export class ReviewService {
       source?: 'F5' | 'F4';
       sessionId?: string;
       allocationId?: string;
+      durationMinutes?: number;
       provenance: string;
     },
     operationId: string,
@@ -332,6 +335,7 @@ export class ReviewService {
         source: input.source,
         sessionId: input.sessionId,
         allocationId: input.allocationId,
+        durationMinutes: input.durationMinutes,
         provenance: input.provenance,
       });
       const result = await this.repository.commit({
@@ -339,6 +343,7 @@ export class ReviewService {
         scope: { profileId, operationId, baseRevision: null },
         execution: next.execution,
         commitment: next.commitment,
+        commitmentBaseRevision: commitment?.localRevision ?? null,
       });
       return result.kind === 'LOCAL_COMMITTED'
         ? { kind: 'LOCAL_COMMITTED', value: next }
@@ -431,6 +436,37 @@ export class ReviewService {
     if (replay) return replay;
     try {
       const evidence = parseBoardEvidence({ ...input, id: crypto.randomUUID(), profileId });
+      const result = await this.repository.commit({
+        type: 'SAVE_BOARD',
+        scope: { profileId, operationId, baseRevision: null },
+        evidence,
+      });
+      return result.kind === 'LOCAL_COMMITTED'
+        ? { kind: 'LOCAL_COMMITTED', value: result.value as BoardEvidence }
+        : result as ReviewOutcome<BoardEvidence>;
+    } catch (error) {
+      return { kind: 'INVALID', code: error instanceof Error && 'code' in error ? String((error as { code: unknown }).code) : 'INVALID_EVIDENCE' };
+    }
+  }
+
+  async saveBoardEvidenceVersion(
+    profileId: string,
+    previousId: string,
+    input: Omit<Parameters<typeof parseBoardEvidence>[0], 'id' | 'profileId' | 'version' | 'supersedes'>,
+    operationId: string,
+  ): Promise<ReviewOutcome<BoardEvidence>> {
+    const previous = (await this.repository.listBoardEvidence(profileId)).find(
+      (item) => item.id === previousId,
+    );
+    if (!previous) return { kind: 'INVALID', code: 'EVIDENCE_NOT_FOUND' };
+    try {
+      const evidence = parseBoardEvidence({
+        ...input,
+        id: crypto.randomUUID(),
+        profileId,
+        version: previous.version + 1,
+        supersedes: previous.id,
+      });
       const result = await this.repository.commit({
         type: 'SAVE_BOARD',
         scope: { profileId, operationId, baseRevision: null },
@@ -670,14 +706,21 @@ export class ReviewService {
   async reminders(profileId: string, today = this.today()): Promise<ReviewReminderSummary> {
     const commitments = await this.listCommitments(profileId);
     const overdue = commitments.filter(
-      (item) => item.status !== 'CANCELLED' && item.currentDueDate < today,
+      (item) =>
+        item.status !== 'CANCELLED' &&
+        item.status !== 'FULFILLED' &&
+        item.currentDueDate < today,
     );
     const dueToday = commitments.filter(
-      (item) => item.status !== 'CANCELLED' && item.currentDueDate === today,
+      (item) =>
+        item.status !== 'CANCELLED' &&
+        item.status !== 'FULFILLED' &&
+        item.currentDueDate === today,
     );
     const upcoming = commitments.filter(
       (item) =>
         item.status !== 'CANCELLED' &&
+        item.status !== 'FULFILLED' &&
         item.currentDueDate > today &&
         item.currentDueDate <= addCivilDays(today, 14),
     );
@@ -714,6 +757,33 @@ export class ReviewService {
     }, null, 2);
   }
 
+  async exportCsv(profileId: string): Promise<string> {
+    const [commitments, weak] = await Promise.all([
+      this.listCommitments(profileId),
+      this.weakPoints(profileId),
+    ]);
+    const rows: unknown[][] = [
+      ['tipo', 'assunto', 'vencimento', 'status', 'questoes', 'acertos'],
+      ...commitments.map((item) => [
+        'compromisso',
+        item.label,
+        item.currentDueDate,
+        item.status,
+        '',
+        '',
+      ]),
+      ...weak.map((item) => [
+        'ponto_fraco',
+        item.label,
+        '',
+        item.status,
+        item.questions,
+        item.correctAnswers,
+      ]),
+    ];
+    return rows.map((row) => row.map(csvCell).join(',')).join('\n');
+  }
+
   previewImport(profileId: string, raw: string): ReviewImportPreview {
     if (typeof raw !== 'string' || raw.length > 5_000_000) {
       return { kind: 'INVALID', reason: 'FILE_TOO_LARGE' };
@@ -734,6 +804,15 @@ export class ReviewService {
     for (const key of ['topics', 'policies', 'commitments', 'executions', 'board', 'matches', 'priorities']) {
       const value = parsed[key];
       if (!Array.isArray(value)) return { kind: 'INVALID', reason: `INVALID_${key.toUpperCase()}` };
+      for (const item of value) {
+        if (
+          !item ||
+          typeof item !== 'object' ||
+          (item as { profileId?: unknown }).profileId !== profileId
+        ) {
+          return { kind: 'CONFLICT', reason: 'PROFILE_MISMATCH_REQUIRES_REMAP' };
+        }
+      }
       counts[key] = value.length;
     }
     return { kind: 'READY', counts, data: parsed };
@@ -859,6 +938,12 @@ function addMinutes(time: string, minutes: number): string {
   const total = Number(match[1]) * 60 + Number(match[2]) + Math.max(1, minutes);
   const bounded = Math.min(total, 23 * 60 + 59);
   return `${String(Math.floor(bounded / 60)).padStart(2, '0')}:${String(bounded % 60).padStart(2, '0')}`;
+}
+
+function csvCell(value: unknown): string {
+  let text = value === undefined || value === null ? '' : String(value);
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
 function sameImportedValue(left: unknown, right: unknown): boolean {
