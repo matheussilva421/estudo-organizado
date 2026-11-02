@@ -443,6 +443,22 @@ describe('F5 review domain', () => {
     }
   });
 
+  it('does not turn INSUFFICIENT_DATA into a deficiency priority', () => {
+    const weak = calculateWeakPointProjections({
+      profileId,
+      topics: [topic()],
+      executions: [],
+      sessions: [session({ measurements: [{ id: 'tiny', sessionId: 'session-1', allocationId: 'allocation-1', questions: 1, correctAnswers: 0 }] })],
+      policy,
+      today,
+    });
+    const priority = rankContextPriorities({
+      profileId, editalId: 'edital-1', topics: [topic()], weakPoints: weak, evidence: [], matches: [], today, policy, generatedAt: '2026-11-02T12:00:00.000Z',
+    });
+    expect(priority.rows[0]?.insufficient).toBe(true);
+    expect(priority.rows[0]?.factors.find((factor) => factor.name === 'deficiency')?.value).toBe(0);
+  });
+
   it('F5-T15/T25/T45 preserves conflicting evidence, versions policy and keeps CivilDate stable', () => {
     const conflicted = calculateWeakPointProjections({
       profileId,

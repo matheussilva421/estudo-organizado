@@ -55,6 +55,12 @@ function trendLabel(value: WeakPointProjection['trend']): string {
   return 'inconclusiva';
 }
 
+function matchReasonLabel(reason: string): string {
+  if (reason === 'exact-label') return 'correspondência exata';
+  if (reason === 'text-contains-label') return 'texto contém o rótulo';
+  return 'correspondência textual';
+}
+
 export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props) {
   const service = useMemo(
     () =>
@@ -681,8 +687,12 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
                 {item.label} · {weakStatusLabel(item.status)} · {item.correctAnswers}/{item.questions}{' '}
                 acertos · retenção esqueci {item.retention.forgot}, parcial {item.retention.partial},{' '}
                 boa {item.retention.good} · tendência {trendLabel(item.trend)}
-                {item.conflicts.length > 0 ? ` · conflito: ${item.conflicts.join(', ')}` : ''}
-                <p className="hint">Evidências: {item.evidence.join(' · ') || 'nenhuma'}</p>
+                {item.conflicts.length > 0
+                  ? ` · ${item.conflicts.length} conflito(s) F4 preservado(s)`
+                  : ''}
+                <p className="hint">
+                  Fontes: {item.evidence.length} evidência(s) F4/F5; status da projeção preservado.
+                </p>
               </li>
             ))}
           </ul>
@@ -727,7 +737,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
                 onClick={() => void confirmMatch(evidence.id, candidate)}
                 disabled={locked || busy}
               >
-                Confirmar {candidate.topic.label} ({candidate.reason})
+                Confirmar {candidate.topic.label} ({matchReasonLabel(candidate.reason)})
               </button>
             ))}
             {boardMatches[evidence.id]?.ambiguous ? (
