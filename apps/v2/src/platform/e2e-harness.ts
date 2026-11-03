@@ -161,6 +161,11 @@ export type V2E2EHarness = {
     outbox: number;
   }>;
   seedReviewCommitments: (profileId: string, count: number) => Promise<number>;
+  seedAssuntos: (
+    profileId: string,
+    linkId: string,
+    count: number,
+  ) => Promise<number>;
 };
 
 type SharedRemoteState = { applied: string[]; effects: number };
@@ -517,6 +522,25 @@ export function installE2EHarness(): void {
           source: 'MANUAL',
           localRevision: 1,
           history: [],
+        });
+      }
+      await transactionDone(transaction);
+      return count;
+    },
+    seedAssuntos: async (profileId, linkId, count) => {
+      const database = await openV2Database(profileId);
+      const transaction = database.transaction(STORES.assuntos, 'readwrite');
+      const store = transaction.objectStore(STORES.assuntos);
+      for (let index = 0; index < count; index += 1) {
+        store.put({
+          id: 'bulk-assunto-' + String(index).padStart(4, '0'),
+          profileId,
+          editalDisciplineId: linkId,
+          parentId: null,
+          parentKey: '',
+          title: 'Assunto em volume ' + index,
+          orderKey: String(index + 1).padStart(6, '0'),
+          localRevision: 1,
         });
       }
       await transactionDone(transaction);
