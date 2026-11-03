@@ -129,7 +129,7 @@ test('F5-T16 applies a subject override through preview without rewriting commit
   await expect(impact).toContainText('compromissos e execuções existentes permanecem intactos');
 
   await overrides.getByRole('button', { name: 'Aplicar ajuste' }).click();
-  await expect(page.locator('.inline-notice')).toContainText('Ajuste por assunto versionado');
+  await expect(page.locator('p.inline-notice').last()).toContainText('Ajuste por assunto versionado');
   await expect(page.locator('[data-testid="review-policy"]')).toContainText(/política v2/i);
   await expect(overrides).toContainText('Ajustes salvos');
   await expect(agenda.locator('ul > li')).toHaveCount(1);
@@ -182,7 +182,7 @@ test('F5-T46 dismisses a UI notice while keeping the commitment and permission s
   await reminders.getByRole('button', { name: /Dispensar aviso de/ }).click();
   await expect(reminders).toContainText('aviso dispensado');
   await expect(page.locator('[data-testid="review-agenda"]')).toContainText('Pendente');
-  await expect(page.locator('.inline-notice')).toContainText('não foi cancelado');
+  await expect(page.locator('p.inline-notice').last()).toContainText('não foi cancelado');
   await page.reload();
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
   await expect(reminders).toContainText('aviso dispensado');
@@ -218,7 +218,7 @@ test('F5-T46 manual external notice deduplicates and honors quiet hours', async 
   await reminders.getByLabel('Silêncio começa').fill('00:00');
   await reminders.getByLabel('Silêncio termina').fill('00:00');
   await reminders.getByRole('button', { name: 'Gravar preferências' }).click();
-  await expect(page.locator('.inline-notice')).toContainText('Preferências de lembrete salvas');
+  await expect(page.locator('p.inline-notice').last()).toContainText('Preferências de lembrete salvas');
   const testButton = reminders.getByRole('button', { name: 'Testar aviso externo' });
   await expect(testButton).toBeEnabled();
   await testButton.click();
@@ -230,7 +230,7 @@ test('F5-T46 manual external notice deduplicates and honors quiet hours', async 
     )
     .toBe(1);
   await testButton.click();
-  await expect(page.locator('.inline-notice')).toContainText('já foi emitido por outra aba');
+  await expect(page.locator('p.inline-notice').last()).toContainText('já foi emitido por outra aba');
   await expect
     .poll(() =>
       page.evaluate(
@@ -243,7 +243,7 @@ test('F5-T46 manual external notice deduplicates and honors quiet hours', async 
   await reminders.getByLabel('Silêncio termina').fill('23:59');
   await reminders.getByRole('button', { name: 'Gravar preferências' }).click();
   await testButton.click();
-  await expect(page.locator('.inline-notice')).toContainText('Horário de silêncio');
+  await expect(page.locator('p.inline-notice').last()).toContainText('Horário de silêncio');
   expect(
     await page.evaluate(
       () => (window as unknown as { __f5Notifications?: unknown[] }).__f5Notifications?.length ?? 0,

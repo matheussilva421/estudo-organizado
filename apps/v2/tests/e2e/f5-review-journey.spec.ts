@@ -80,7 +80,7 @@ test('f5 review journey: topic, commitment, execution, weak point and board', as
   await board.getByRole('button', { name: 'Importar fonte' }).click();
   await expect(board.getByRole('button', { name: /Confirmar Controle de constitucionalidade/ })).toBeVisible();
   await board.getByRole('button', { name: /Confirmar Controle de constitucionalidade/ }).click();
-  await expect(page.locator('.inline-notice')).toContainText('Correspondência confirmada');
+  await expect(page.locator('p.inline-notice').last()).toContainText('Correspondência confirmada');
 
   const priorities = page.locator('[data-testid="review-priorities"]');
   await priorities.getByRole('button', { name: 'Recalcular prioridade' }).click();

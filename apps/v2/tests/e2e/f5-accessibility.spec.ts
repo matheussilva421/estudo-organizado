@@ -211,7 +211,7 @@ test('F5-T47 exposes landmarks, labels and an accessible error message', async (
   const duration = page.locator('[data-testid="review-policy"] input[type="number"]');
   await duration.fill('1');
   await page.getByRole('button', { name: 'Gravar política' }).click();
-  const notice = page.locator('.inline-notice').last();
+  const notice = page.locator('p.inline-notice').last();
   await expect(notice).toContainText('Duração padrão deve ficar entre 5 e 180 minutos');
   await expect(notice).toHaveAttribute('role', 'alert');
   await expect(duration).toHaveAttribute('aria-invalid', 'true');
