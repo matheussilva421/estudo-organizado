@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { HomeSummary } from '../../application/experience-queries';
 import type { SyncHealth } from '../../application/sync-types';
 import { routeHref } from '../routing';
@@ -15,6 +16,22 @@ export function AttentionView({ summary, health, pendingOutbox, upgradeBlocked }
     (item) => item.category !== 'INTEGRIDADE' && item.category !== 'ORIENTACAO',
   );
   const integrity = summary.priorities.filter((item) => item.category === 'INTEGRIDADE');
+  const [permission, setPermission] = useState<NotificationPermission | 'UNSUPPORTED'>(
+    () => (typeof Notification === 'undefined' ? 'UNSUPPORTED' : Notification.permission),
+  );
+  const permissionLabel =
+    permission === 'UNSUPPORTED'
+      ? 'não suportada neste navegador'
+      : permission === 'granted'
+        ? 'concedida'
+        : permission === 'denied'
+          ? 'negada'
+          : 'ainda não solicitada';
+
+  async function requestNotifications(): Promise<void> {
+    if (typeof Notification === 'undefined') return;
+    setPermission(await Notification.requestPermission());
+  }
 
   return (
     <section className="view attention-view" aria-labelledby="attention-title" data-testid="f6-attention">
@@ -111,6 +128,17 @@ export function AttentionView({ summary, health, pendingOutbox, upgradeBlocked }
           navegador; não há promessa de disparo com a PWA fechada, push remoto ou sincronização
           entre dispositivos.
         </p>
+        <p className="muted" data-testid="f6-notification-permission">
+          Permissão: {permissionLabel}.
+        </p>
+        <button
+          type="button"
+          className="button-ghost"
+          disabled={permission === 'UNSUPPORTED' || permission === 'granted'}
+          onClick={() => void requestNotifications()}
+        >
+          Autorizar avisos externos
+        </button>
         <a className="button-ghost" href={routeHref({ module: 'reviews', entityId: null, query: {}, invalid: false })}>
           Abrir preferências de revisão (F5)
         </a>
