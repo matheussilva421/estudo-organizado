@@ -1,11 +1,11 @@
 # Estudo Organizado V2 — F5: implementação, revisões e publicação na v2
 
-**Status:** `F5_CORRECTIVE_IMPLEMENTED_REVIEWED_PUBLISHED_V2_READY_FOR_HUMAN_ACCEPTANCE`
+**Status:** `F5_ACCEPTED_WITH_RESERVATIONS` — aceite humano expresso em 2026-11-03; escopo F5 local-first na `v2`, sem cutover, deploy ou homologação F7.
 **Data:** 2026-11-03 (rodada corretiva sobre o candidato de 2026-11-02)
 **Branch/worktree:** `v2` em `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Base oficial da rodada:** `origin/v2` = `684e219e4de77b8089e6356f46c231a373068ffe`
 **HEAD de código/testes:** `9817fb8`; UI/E2E em `91d7989`; integridade em `d4bbef6`
-**Publicação efetiva:** commit documental desta rodada no topo de `origin/v2`; read-back registrado na entrega
+**Candidato aceito:** `origin/v2@c358928749951b5848217040762af2785fffae8b` (HEAD verificado antes do registro documental; commits posteriores deste aceite são somente documentais).
 **main:** `9046cfa`, V1 preservada, sem alteração
 
 ## Fontes normativas
@@ -235,6 +235,23 @@ Revisão 2 estruturada (checklist distinto de UX/adversarial, sem alegar indepen
 - Multi-dispositivo real, Firestore/Auth/Rules e convergência remota permanecem exclusivos da F7.
 - A suíte visual Playwright regenerou as três capturas F4 que já estavam modificadas; os bytes anteriores não tinham backup e não foram recuperados. Os arquivos continuam não commitados; nenhuma limpeza destrutiva foi feita.
 
+## Aceite humano formal — 2026-11-03
+
+**Decisão expressa do proprietário:** `F5_ACCEPTED_WITH_RESERVATIONS` para o candidato publicado em `origin/v2@c358928749951b5848217040762af2785fffae8b`. O aceite abrange **somente a F5 local-first na branch `v2`**, conforme a especificação e o writing-plans aprovados: revisões, pontos fracos e inteligência de banca. O aceite não retroage para validar implantações, testes não executados ou funcionalidades F6/F7/F8.
+
+**Fundamento do aceite:** relatório de execução corretiva; matriz F5-T01–F5-T48 (45 `PASS`, três `PASS com limitação`: T07, T43 e T46); 520 testes unitários reportados como PASS; 115 E2E (114 PASS + 1 skip); typecheck, lint e build reportados como PASS; duas revisões críticas por subagentes distintos e correções. O aceite humano não significa que essas suítes tenham sido novamente executadas no ato deste registro documental.
+
+**Ressalvas expressamente mantidas:**
+
+1. **Capturas F4 e histórico:** as três PNGs F4, anteriormente modificadas e regeneradas pelo Playwright, permanecem locais e não commitadas; os **bytes anteriores à regeneração não foram recuperados**. As versões atuais, as versões `HEAD` e 24 variantes históricas foram preservadas/inventariadas. O pacote integral da preservação foi verificado com 43/43 artefatos e uma cópia em outro disco físico (C: e D:); não há redundância offsite comprovada. Não confundir variantes históricas com as versões locais perdidas.
+2. **Git Hygiene:** manter sem exclusão a branch `codex/f5-local-preserved-20261102@6cad56ce2c3ff09ad9640ce7214a421c01819572`, dois worktrees, snapshots, refs e branches históricas com commits exclusivos (`2f556da`, `83ae15e` etc.) até inventário/decisão específicos. O saneamento foi de **preservação verificada, sem limpeza destrutiva**. Não autoriza apagar arquivos nem executar `reset`, `restore`, `clean`, `prune` ou operação equivalente.
+3. **Pendências herdadas:** `F4-T13` segue `NOT_RUN`; quatro riscos HIGH da F0 continuam `UNVERIFIED`; conflito `INCOMING` parcial F4 não foi homologado como convergência real.
+4. **Desempenho e UX:** benchmark apenas sintético local (300 assuntos/3.000 execuções, cerca de 20,5 ms, +6,3 MiB); **hardware modesto real não testado**; build com aviso de chunk >500 kB (540,10 kB, 150,21 kB gzip); possível indicação `STALE` transitória na UI, sem publicação de comando obsoleto. Manter limites de notificações com PWA fechada e a ausência de avaliação com leitor de tela real como restrições conhecidas.
+5. **F7/F8 e produção:** Google Auth/Firestore, regras, sincronização e convergência multi-dispositivo reais, migração/restauração produtiva e backup global dependem de homologação própria F7. **`main@9046cfa` permanece V1**, com risco concreto de workflow `Auto cache bump` e deploy Cloudflare em push. Integração `v2→main`, deploy e cutover continuam **bloqueados até gate específico F8/G5**, não sendo autorizados por este aceite.
+6. **Fases posteriores:** **não iniciar F6 nem F7** por inferência deste registro; requerem brainstorming, spec, plano e autorização correspondentes.
+
+**Condição de encerramento deste gate:** implementação/testes/revisões publicados na `v2` e aceite humano formal registrados. Preservação e pendências residuais permanecem abertas e rastreáveis; **não declarar o projeto integralmente concluído, a `main` integrada ou a V2 implantada**.
+
 ## Veredito
 
-**F5 corretiva implementada, testada, revisada e publicada na `v2`; pronta para aceite humano.** Não declarar aceite humano nem homologação F7. A integração à `main` continua bloqueada por risco de deploy automático não comprovado; a próxima ação é o aceite humano do candidato publicado e, separadamente, a decisão sobre a proteção de publicação da `main`.
+**`F5_ACCEPTED_WITH_RESERVATIONS` por decisão expressa do proprietário em 2026-11-03**, para o candidato `c358928749951b5848217040762af2785fffae8b`, implementado, testado, revisado e publicado na `v2`. Ressalvas acima permanecem abertas; **não houve homologação F7, merge na `main`, deploy, cutover ou autorização para iniciar F6**.
