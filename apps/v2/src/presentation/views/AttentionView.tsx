@@ -85,7 +85,10 @@ export function AttentionView({ summary, health, pendingOutbox, upgradeBlocked }
               ? 'bloqueado por outra aba; edições suspensas sem apagar dados.'
               : 'disponível; dados não são backup.'}
           </li>
-          <li>Dispensar um aviso não conclui revisão nem altera compromisso.</li>
+          <li>
+            A dispensa de um aviso, quando disponível no F5, não conclui revisão nem altera
+            compromisso.
+          </li>
         </ul>
         {integrity.length > 0 ? (
           <ul className="warning-list">

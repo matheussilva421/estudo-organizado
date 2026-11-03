@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { ContentSnapshot } from '../../application/content-service';
-import { searchContent, type SearchResult } from '../../application/experience-queries';
+import {
+  searchExperience,
+  type SearchResult,
+} from '../../application/experience-queries';
+import type { PlanBlock, PlanningScenario } from '../../domain/planning';
+import type { ReviewCommitment } from '../../domain/review';
+import type { StudySession } from '../../domain/session';
 import type { AppRoute } from '../routing';
 import { routeHref, routeWithQuery } from '../routing';
 
@@ -8,6 +14,10 @@ type Props = {
   profileId: string;
   route: AppRoute;
   content: ContentSnapshot;
+  scenarios: PlanningScenario[];
+  blocks: PlanBlock[];
+  sessions: StudySession[];
+  commitments: ReviewCommitment[];
   navigate: (next: AppRoute, options?: { replace?: boolean }) => void;
 };
 
@@ -16,16 +26,35 @@ const KIND_LABELS: Record<SearchResult['kind'], string> = {
   disciplina: 'Disciplina',
   assunto: 'Assunto',
   aula: 'Aula',
+  planejamento: 'Planejamento',
+  bloco: 'Bloco',
+  sessao: 'Sessão',
+  revisao: 'Revisão',
 };
 
-export function SearchView({ profileId, route, content, navigate }: Props) {
+export function SearchView({
+  profileId,
+  route,
+  content,
+  scenarios,
+  blocks,
+  sessions,
+  commitments,
+  navigate,
+}: Props) {
   const initial = route.query.q ?? '';
   const [query, setQuery] = useState(initial);
 
   const results = useMemo(
-    () => searchContent(content, query, profileId),
-    [content, query, profileId],
+    () =>
+      searchExperience(
+        { content, scenarios, blocks, sessions, commitments },
+        query,
+        profileId,
+      ),
+    [content, scenarios, blocks, sessions, commitments, query, profileId],
   );
+  const truncated = results.length >= 30;
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -35,10 +64,19 @@ export function SearchView({ profileId, route, content, navigate }: Props) {
   }
 
   function openResult(result: SearchResult) {
-    if (!result.editalId) return;
+    if (result.target === 'content') {
+      if (!result.editalId) return;
+      navigate({
+        module: 'content',
+        entityId: result.editalId,
+        query: { focus: result.id },
+        invalid: false,
+      });
+      return;
+    }
     navigate({
-      module: 'content',
-      entityId: result.editalId,
+      module: result.target,
+      entityId: null,
       query: { focus: result.id },
       invalid: false,
     });
@@ -62,6 +100,7 @@ export function SearchView({ profileId, route, content, navigate }: Props) {
           <input
             id="f6-search-input"
             type="search"
+            autoFocus
             value={query}
             maxLength={120}
             placeholder="Ex.: constitucional, crase, aula 12"
@@ -79,7 +118,10 @@ export function SearchView({ profileId, route, content, navigate }: Props) {
           ? 'Digite ao menos 2 caracteres. A busca não altera nenhum registro.'
           : results.length === 0
             ? 'Nenhum resultado neste perfil. Ajuste o termo; nada foi criado.'
-            : `${results.length} resultado(s), ordenados por correspondência e identidade estável.`}
+            : truncated
+              ? 'Mostrando até 30 resultados; refine o termo para localizar outros.'
+              : String(results.length) +
+                ' resultado(s), ordenados por correspondência e identidade estável.'}
       </div>
 
       {results.length > 0 ? (
@@ -102,7 +144,7 @@ export function SearchView({ profileId, route, content, navigate }: Props) {
       ) : null}
 
       <p className="source-note">
-        Índice derivado de F2 neste dispositivo. Texto de origem é sempre exibido como texto.
+        Índice derivado de F2–F5 neste dispositivo. Texto de origem é sempre exibido como texto.
       </p>
 
       <p className="muted">

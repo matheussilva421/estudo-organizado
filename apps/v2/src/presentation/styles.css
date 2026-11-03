@@ -76,6 +76,12 @@ select {
   border: 0;
 }
 
+.app-shell summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
 .route-announcer {
   position: absolute;
   width: 1px;
@@ -238,6 +244,54 @@ select {
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 16px;
   margin-top: 18px;
+}
+
+.home-controls {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.home-controls .settings-row {
+  margin-bottom: 4px;
+}
+
+.indicator-catalog {
+  margin-top: 6px;
+}
+
+.indicator-catalog summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.indicator-catalog fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.indicator-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  font-size: 0.85rem;
+}
+
+.indicator-option input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
 }
 
 .card {
@@ -645,15 +699,22 @@ a.button-ghost {
 
 @media (max-width: 720px) {
   .app-nav {
-    position: sticky;
+    position: fixed;
+    left: 0;
+    right: 0;
     bottom: 0;
-    z-index: 20;
-    margin: 14px -14px 0;
-    padding: 4px 8px;
+    z-index: 30;
+    margin: 0;
+    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--border);
     border-bottom: 0;
     background: var(--bg);
     overflow-x: auto;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .app-shell {
+    padding-bottom: 108px;
   }
 
   .nav-list {

@@ -4,7 +4,11 @@ import {
   buildHomeSummary,
   formatFocusDuration,
   normalizeSearchText,
+  orderPrioritiesForMode,
   searchContent,
+  searchExperience,
+  selectHomeIndicators,
+  type PriorityItem,
 } from '../../src/application/experience-queries';
 import type { ReviewReminderSummary } from '../../src/application/review-service';
 import type { ContentSnapshot } from '../../src/application/content-service';
@@ -163,6 +167,54 @@ describe('f6 local search', () => {
     const results = searchContent(other, 'TRT', PROFILE);
     expect(results).toEqual([]);
   });
+
+  it('searches committed F3, F4 and F5 records with typed targets', () => {
+    const results = searchExperience(
+      {
+        content: contentFixture(),
+        scenarios: [scenario()],
+        blocks: [block({ id: 'b-search', civilDate: TODAY })],
+        sessions: [session({ id: 's-search', state: 'COMPLETED' })],
+        commitments: [
+          commitment({ id: 'c-search', label: 'Revisão de crase', currentDueDate: TODAY }),
+        ],
+      },
+      'crase',
+      PROFILE,
+    );
+    const review = results.find((result) => result.kind === 'revisao');
+    expect(review?.target).toBe('reviews');
+    expect(review?.title).toContain('crase');
+    expect(results.some((result) => result.kind === 'sessao')).toBe(false);
+
+    const planning = searchExperience(
+      {
+        content: contentFixture(),
+        scenarios: [scenario()],
+        blocks: [block({ id: 'b-search', civilDate: TODAY })],
+        sessions: [session({ id: 's-search', state: 'COMPLETED' })],
+        commitments: [],
+      },
+      'Ciclo principal',
+      PROFILE,
+    );
+    expect(planning[0]?.kind).toBe('planejamento');
+    expect(planning[0]?.target).toBe('planning');
+
+    const sessions = searchExperience(
+      {
+        content: contentFixture(),
+        scenarios: [],
+        blocks: [],
+        sessions: [session({ id: 's-search', state: 'COMPLETED' })],
+        commitments: [],
+      },
+      'Sessão',
+      PROFILE,
+    );
+    expect(sessions[0]?.kind).toBe('sessao');
+    expect(sessions[0]?.target).toBe('sessions');
+  });
 });
 
 describe('f6 home priorities', () => {
@@ -251,6 +303,56 @@ describe('f6 home priorities', () => {
     expect(empty.empty).toBe(true);
     expect(empty.nextAction?.category).toBe('ORIENTACAO');
     expect(empty.counts.completedLast7Days).toBe(0);
+  });
+
+  it('surfaces read failures and F4 conflicts as integrity, never as zero data', () => {
+    const summary = buildHomeSummary(
+      {
+        profileId: PROFILE,
+        content: {
+          subjects: [],
+          editais: [],
+          links: [],
+          assuntos: [],
+          aulas: [],
+          lessonTopics: [],
+        },
+        scenarios: [],
+        blocks: [],
+        sessions: [],
+        reminders: null,
+        pendingOutbox: 0,
+        upgradeBlocked: false,
+        sessionConflicts: 2,
+        dataError: true,
+      },
+      TODAY,
+    );
+    expect(summary.empty).toBe(false);
+    const ids = summary.priorities.map((item) => item.id);
+    expect(ids).toContain('integrity-read-error');
+    expect(ids).toContain('integrity-session-conflicts');
+    expect(summary.nextAction?.category).toBe('INTEGRIDADE');
+  });
+
+  it('ignores editais from another profile when deriving the overview', () => {
+    const content = contentFixture();
+    content.editais = content.editais.map((edital) => ({ ...edital, profileId: 'p2' }));
+    const summary = buildHomeSummary(
+      {
+        profileId: PROFILE,
+        content,
+        scenarios: [],
+        blocks: [],
+        sessions: [],
+        reminders: null,
+        pendingOutbox: 0,
+        upgradeBlocked: false,
+      },
+      TODAY,
+    );
+    expect(summary.counts.activeEditais).toBe(0);
+    expect(summary.empty).toBe(true);
   });
 });
 
@@ -342,6 +444,114 @@ describe('f6 analytics projections', () => {
   it('formats durations with units', () => {
     expect(formatFocusDuration(0)).toBe('0 min');
     expect(formatFocusDuration(95 * 60000)).toBe('1 h 35 min');
+  });
+
+  it('downgrades analytics when F4 conflicts are pending and warns on tiny samples', () => {
+    const oneQuestion = session({
+      id: 'tiny',
+      state: 'COMPLETED',
+      editalIds: ['e1'],
+      intervals: [interval(10)],
+      measurements: [{ id: 'm-tiny', sessionId: 'tiny', questions: 1, correctAnswers: 1 }],
+    });
+    const analytics = buildAnalytics(
+      {
+        profileId: PROFILE,
+        content: contentFixture(),
+        scenarios: [],
+        blocks: [],
+        sessions: [oneQuestion],
+        sessionConflicts: 1,
+      },
+      TODAY,
+    );
+    expect(analytics.status).toBe('PARTIAL');
+    expect(analytics.questions.accuracy).toBe(1);
+    expect(analytics.warnings.join(' ')).toContain('Amostra pequena');
+    expect(analytics.warnings.join(' ')).toContain('conflito');
+  });
+});
+
+describe('f6 home presentation modes and indicators', () => {
+  const items: PriorityItem[] = [
+    {
+      id: 'today',
+      category: 'REVISAO_HOJE',
+      title: 'Revisão hoje',
+      detail: 'x',
+      dueDate: TODAY,
+      target: 'reviews',
+      severity: 5,
+    },
+    {
+      id: 'late-review',
+      category: 'REVISAO_ATRASADA',
+      title: 'Revisão atrasada',
+      detail: 'x',
+      dueDate: '2026-11-01',
+      target: 'reviews',
+      severity: 3,
+    },
+    {
+      id: 'late-block',
+      category: 'ATRASO_REAL',
+      title: 'Bloco atrasado',
+      detail: 'x',
+      dueDate: '2026-11-01',
+      target: 'planning',
+      severity: 4,
+    },
+    {
+      id: 'session',
+      category: 'SESSAO_ATIVA',
+      title: 'Sessão',
+      detail: 'x',
+      dueDate: null,
+      target: 'sessions',
+      severity: 0,
+    },
+    {
+      id: 'future',
+      category: 'ATIVIDADE_FUTURA',
+      title: 'Futuro',
+      detail: 'x',
+      dueDate: '2026-11-10',
+      target: 'planning',
+      severity: 7,
+    },
+  ];
+
+  it('reorders presentation without dropping any item', () => {
+    const daily = orderPrioritiesForMode(items, 'DAILY').map((item) => item.id);
+    expect(daily).toEqual(['session', 'late-review', 'late-block', 'today', 'future']);
+    const finalStretch = orderPrioritiesForMode(items, 'FINAL_STRETCH').map((item) => item.id);
+    expect(finalStretch.slice(0, 3)).toEqual(['session', 'late-review', 'today']);
+    const performance = orderPrioritiesForMode(items, 'PERFORMANCE').map((item) => item.id);
+    expect(performance.slice(0, 3)).toEqual(['session', 'late-block', 'late-review']);
+    expect(new Set(daily)).toEqual(new Set(items.map((item) => item.id)));
+  });
+
+  it('keeps stable ties by due date and id', () => {
+    const first = { ...items[1]!, id: 'a' };
+    const second = { ...items[1]!, id: 'b' };
+    expect(orderPrioritiesForMode([second, first], 'DAILY').map((item) => item.id)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
+  it('shows only selected indicators in catalog order', () => {
+    const counts = {
+      activeEditais: 2,
+      subjects: 3,
+      plannedToday: 4,
+      completedLast7Days: 5,
+      reviewsDue: 6,
+    };
+    const selected = selectHomeIndicators(counts, ['reviewsDue', 'activeEditais']);
+    expect(selected.map((item) => item.id)).toEqual(['activeEditais', 'reviewsDue']);
+    expect(selected.map((item) => item.value)).toEqual([2, 6]);
+    expect(selectHomeIndicators(counts, [])).toEqual([]);
   });
 });
 

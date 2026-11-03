@@ -3,6 +3,7 @@
  * drafts, tokens or academic payloads. Validation happens before rendering.
  */
 export const ROUTE_MODULES = [
+  'overview',
   'home',
   'content',
   'planning',
@@ -35,13 +36,16 @@ export const HOME_ROUTE: AppRoute = {
 
 /** The root keeps the established content workspace; the dashboard lives at #/home. */
 export const DEFAULT_ROUTE: AppRoute = {
-  module: 'content',
+  module: 'overview',
   entityId: null,
   query: {},
   invalid: false,
 };
 
 const MODULE_ALIASES: Record<string, Exclude<RouteModule, 'notfound'>> = {
+  overview: 'overview',
+  visao: 'overview',
+  integrado: 'overview',
   '': 'home',
   home: 'home',
   inicio: 'home',
@@ -133,6 +137,7 @@ export function routeHref(route: AppRoute): string {
 }
 
 const MODULE_LABELS: Record<RouteModule, string> = {
+  overview: 'Visão integrada',
   home: 'Início',
   content: 'Conteúdo',
   planning: 'Planejamento',

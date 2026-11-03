@@ -69,7 +69,7 @@ export function PlanningCalendar({ days, view, onView }: Props) {
               ) : null}
               <ul>
                 {day.blocks.map((block) => (
-                  <li key={block.id} data-allocation={block.allocation}>
+                  <li key={block.id} data-allocation={block.allocation} data-entity-id={block.id}>
                     {block.label ?? block.editalDisciplineId} · {block.plannedMinutes} min
                     {block.civilDate ? ` · ${block.civilDate}` : ''}
                   </li>

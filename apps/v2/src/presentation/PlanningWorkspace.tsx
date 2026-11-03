@@ -31,6 +31,7 @@ import { PlanningEditor } from './components/PlanningEditor';
 import { PlanningHistory } from './components/PlanningHistory';
 import { PlanningConflicts } from './components/PlanningConflicts';
 import { PlanningPortability } from './components/PlanningPortability';
+import { useFocusScroll } from './use-focus-scroll';
 
 const ZONE = 'America/Fortaleza';
 
@@ -66,6 +67,7 @@ type Props = {
   locked: boolean;
   onNotice: (message: string | null) => void;
   onStartPlannedBlock?: (blockId: string) => void;
+  focusId?: string | null;
 };
 
 export function PlanningWorkspace({
@@ -74,6 +76,7 @@ export function PlanningWorkspace({
   locked,
   onNotice,
   onStartPlannedBlock,
+  focusId = null,
 }: Props) {
   const [scenarios, setScenarios] = useState<PlanningScenario[]>([]);
   const [blocks, setBlocks] = useState<PlanBlock[]>([]);
@@ -87,6 +90,7 @@ export function PlanningWorkspace({
   } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<CalendarView>('week');
+  useFocusScroll(focusId, scenarios.length);
 
   const repository = useCallback(() => new LocalPlanningRepository(), []);
 

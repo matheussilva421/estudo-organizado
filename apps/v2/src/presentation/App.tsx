@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { StudySubject } from '../domain/subject';
 import type { EditalDiscipline } from '../domain/edital';
 import type { Assunto, Aula, LessonTopicLink } from '../domain/content';
@@ -44,6 +44,7 @@ import { LocalReviewRepository } from '../platform/local-review-repository';
 import { LocalSessionRepository } from '../platform/local-session-repository';
 import type { PlanBlock, PlanningScenario } from '../domain/planning';
 import type { StudySession } from '../domain/session';
+import type { ReviewCommitment } from '../domain/review';
 import { AppNav } from './AppNav';
 import { HomeView } from './views/HomeView';
 import { SearchView } from './views/SearchView';
@@ -53,6 +54,12 @@ import { SettingsView, type Density } from './views/SettingsView';
 import { NotFoundView } from './views/NotFoundView';
 import { useHashRoute } from './use-hash-route';
 import { routeHref, routeLabel, type RouteModule } from './routing';
+import {
+  confirmNavigationIntent,
+  hasDirtyDrafts,
+  installBeforeUnloadGuard,
+  useDraftGuard,
+} from './draft-guard';
 
 const PROFILE_ID = 'local-default';
 const ZONE = 'America/Fortaleza';
@@ -63,6 +70,8 @@ type ExperienceData = {
   scenarios: PlanningScenario[];
   blocks: PlanBlock[];
   sessions: StudySession[];
+  commitments: ReviewCommitment[];
+  sessionConflicts: number;
   reminders: ReviewReminderSummary | null;
 };
 
@@ -70,6 +79,8 @@ const EMPTY_EXPERIENCE: ExperienceData = {
   scenarios: [],
   blocks: [],
   sessions: [],
+  commitments: [],
+  sessionConflicts: 0,
   reminders: null,
 };
 
@@ -163,6 +174,12 @@ export function App() {
   const [upgrade, setUpgrade] = useState<DatabaseUpgradeState>(getDatabaseUpgradeState());
   const [experience, setExperience] = useState<ExperienceData>(EMPTY_EXPERIENCE);
   const [searchDraft, setSearchDraft] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [experienceError, setExperienceError] = useState(false);
+  const [today, setToday] = useState<string>(() => todayInZone());
+  const refreshSeq = useRef(0);
+
+  useDraftGuard('f2-subject', form.title.trim().length > 0, 'nova disciplina');
 
   const contentRepository = useCallback(
     () => new LocalContentRepository({ fault: getE2EFault() }),
@@ -179,38 +196,63 @@ export function App() {
     [],
   );
 
-  const refresh = useCallback(async () => {
-    const [snapshot, record, outbox] = await Promise.all([
-      contentRepository().loadContent(PROFILE_ID),
-      profileRepository().getProfile(PROFILE_ID),
-      getPendingOutbox(PROFILE_ID),
-    ]);
-    setContent(snapshot);
-    setProfile(record);
-    setPending(outbox.length);
-    setSelectedEditalId((current) => {
-      if (current && snapshot.editais.some((edital) => edital.id === current)) return current;
-      const firstActive = snapshot.editais.find((edital) => edital.status === 'ACTIVE');
-      return firstActive?.id ?? null;
-    });
-
+  const refresh = useCallback(async (): Promise<boolean> => {
+    const generation = refreshSeq.current + 1;
+    refreshSeq.current = generation;
     try {
-      const [scenarios, blocks, sessions] = await Promise.all([
+      const [snapshot, record, outbox] = await Promise.all([
+        contentRepository().loadContent(PROFILE_ID),
+        profileRepository().getProfile(PROFILE_ID),
+        getPendingOutbox(PROFILE_ID),
+      ]);
+      const [scenarios, blocks, sessions, conflicts] = await Promise.all([
         new LocalPlanningRepository().listScenarios(PROFILE_ID),
         new LocalPlanningRepository().listBlocks(PROFILE_ID),
         new LocalSessionRepository().listSessions(PROFILE_ID),
+        new LocalSessionRepository().listSessionConflicts(PROFILE_ID),
       ]);
+
       let reminders: ReviewReminderSummary | null = null;
+      let commitments: ReviewCommitment[] = [];
+      let partialReadError = false;
       try {
-        reminders = await reviewService.reminders(PROFILE_ID);
+        [reminders, commitments] = await Promise.all([
+          reviewService.reminders(PROFILE_ID),
+          reviewService.listCommitments(PROFILE_ID),
+        ]);
       } catch {
         reminders = null;
+        commitments = [];
+        partialReadError = true;
       }
-      setExperience({ scenarios, blocks, sessions, reminders });
-    } catch {
-      setExperience(EMPTY_EXPERIENCE);
+
+      if (generation !== refreshSeq.current) return false;
+      setContent(snapshot);
+      setProfile(record);
+      setPending(outbox.length);
+      setExperience({
+        scenarios,
+        blocks,
+        sessions,
+        commitments,
+        sessionConflicts: conflicts.length,
+        reminders,
+      });
+      setExperienceError(partialReadError);
+      setLoadError(null);
+      setSelectedEditalId((current) => {
+        if (current && snapshot.editais.some((edital) => edital.id === current)) return current;
+        const firstActive = snapshot.editais.find((edital) => edital.status === 'ACTIVE');
+        return firstActive?.id ?? null;
+      });
+      return true;
+    } catch (error) {
+      if (generation !== refreshSeq.current) return false;
+      setLoadError(persistenceMessage(error));
+      return false;
+    } finally {
+      if (generation === refreshSeq.current) setReady(true);
     }
-    setReady(true);
   }, [contentRepository, profileRepository, reviewService]);
 
   useEffect(() => {
@@ -233,6 +275,20 @@ export function App() {
 
   useEffect(() => subscribeDatabaseUpgrade(setUpgrade), []);
 
+  useEffect(() => installBeforeUnloadGuard(), []);
+
+  useEffect(() => {
+    const tick = () => setToday(todayInZone());
+    const timer = window.setInterval(tick, 60_000);
+    window.addEventListener('focus', tick);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', tick);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, []);
+
   useEffect(() => {
     if (route.invalid) return;
     const section = SECTION_BY_MODULE[route.module];
@@ -246,15 +302,22 @@ export function App() {
   const apply = useCallback(
     async (run: () => Promise<CommitResult<unknown>>, success: string) => {
       setNotice(null);
+      let result: CommitResult<unknown>;
       try {
-        const result = await run();
-        setNotice(resultMessage(result, success));
-        await refresh();
-        return result;
+        result = await run();
       } catch (error) {
         setNotice(persistenceMessage(error));
         return { kind: 'FAILED', reason: 'UNKNOWN' } as CommitResult<unknown>;
       }
+      const refreshed = await refresh();
+      if (result.kind === 'LOCAL_COMMITTED' && !refreshed) {
+        setNotice(
+          'Salvo localmente, mas a atualização visual falhou. Recarregue antes de repetir a ação.',
+        );
+      } else {
+        setNotice(resultMessage(result, success));
+      }
+      return result;
     },
     [refresh],
   );
@@ -309,10 +372,10 @@ export function App() {
 
   const routeSelectedId =
     route.module === 'content' ? route.entityId ?? route.query.edital ?? null : null;
+  const routeSelectedExists =
+    routeSelectedId !== null && content.editais.some((edital) => edital.id === routeSelectedId);
   const effectiveSelectedEditalId =
-    routeSelectedId && content.editais.some((edital) => edital.id === routeSelectedId)
-      ? routeSelectedId
-      : selectedEditalId;
+    routeSelectedId !== null ? (routeSelectedExists ? routeSelectedId : null) : selectedEditalId;
   const selected =
     content.editais.find((edital) => edital.id === effectiveSelectedEditalId) ?? null;
   const selectedLinks = selected
@@ -333,7 +396,6 @@ export function App() {
     mode: profile?.state ?? 'LOCAL_ONLY',
   });
 
-  const today = todayInZone();
   const homeSummary: HomeSummary = useMemo(
     () =>
       buildHomeSummary(
@@ -346,10 +408,12 @@ export function App() {
           reminders: experience.reminders,
           pendingOutbox: pending,
           upgradeBlocked: upgrade.blocked,
+          sessionConflicts: experience.sessionConflicts,
+          dataError: loadError !== null || experienceError,
         },
         today,
       ),
-    [content, experience, pending, upgrade.blocked, today],
+    [content, experience, pending, upgrade.blocked, today, loadError, experienceError],
   );
   const analytics: AnalyticsSummary = useMemo(
     () =>
@@ -360,6 +424,7 @@ export function App() {
           scenarios: experience.scenarios,
           blocks: experience.blocks,
           sessions: experience.sessions,
+          sessionConflicts: experience.sessionConflicts,
         },
         today,
       ),
@@ -371,7 +436,17 @@ export function App() {
   const routeEditalMissing =
     ready && routeEditalId !== null && !content.editais.some((edital) => edital.id === routeEditalId);
   const focusedId = route.query.focus ?? null;
-  const attentionCount = homeSummary.counts.reviewsDue + (pending > 0 ? 1 : 0);
+  const attentionCount =
+    homeSummary.counts.reviewsDue +
+    (pending > 0 ? 1 : 0) +
+    (upgrade.blocked ? 1 : 0) +
+    (experience.sessionConflicts > 0 ? 1 : 0) +
+    (loadError !== null || experienceError ? 1 : 0);
+  const isOverview = route.module === 'overview';
+  const showContent = !route.invalid && (isOverview || route.module === 'content');
+  const showPlanning = !route.invalid && (isOverview || route.module === 'planning');
+  const showSessions = !route.invalid && (isOverview || route.module === 'sessions');
+  const showReviews = !route.invalid && (isOverview || route.module === 'reviews');
 
   function submitGlobalSearch(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -384,15 +459,48 @@ export function App() {
     });
   }
 
+  function guardInternalNavigation(event: React.MouseEvent<HTMLDivElement>): void {
+    const element = event.target as HTMLElement | null;
+    const anchor = element?.closest('a');
+    if (!anchor) return;
+    const href = anchor.getAttribute('href') ?? '';
+    if (!href.startsWith('#')) return;
+    if (!href.startsWith('#/')) {
+      event.preventDefault();
+      const id = decodeURIComponent(href.slice(1));
+      const target = document.getElementById(id);
+      if (!target) return;
+      target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'start' });
+      return;
+    }
+    if (!hasDirtyDrafts()) return;
+    if (!confirmNavigationIntent(anchor.textContent?.trim() ?? 'outra área')) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }
+
   return (
     <div
       className="app-shell"
+      onClickCapture={guardInternalNavigation}
       data-db-ready={ready ? 'true' : 'false'}
       data-db-upgrade={upgrade.kind}
       data-execution={EXECUTION_DATA_STATE}
       data-route={route.module}
     >
-      <a className="skip-link" href="#main-content">
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={(event) => {
+          event.preventDefault();
+          const main = document.getElementById('main-content');
+          main?.focus();
+          main?.scrollIntoView({ block: 'start' });
+        }}
+      >
         Pular para o conteúdo
       </a>
 
@@ -455,7 +563,17 @@ export function App() {
 
         {!route.invalid && route.module === 'home' ? (
           <div id="home-section">
-            <HomeView summary={homeSummary} ready={ready} />
+            <HomeView
+              summary={homeSummary}
+              ready={ready}
+              loadError={loadError}
+              experienceError={experienceError}
+              onRetry={() => {
+                setLoadError(null);
+                setReady(false);
+                void refresh();
+              }}
+            />
           </div>
         ) : null}
 
@@ -466,6 +584,10 @@ export function App() {
               profileId={PROFILE_ID}
               route={route}
               content={content}
+              scenarios={experience.scenarios}
+              blocks={experience.blocks}
+              sessions={experience.sessions}
+              commitments={experience.commitments}
               navigate={navigate}
             />
           </div>
@@ -507,7 +629,7 @@ export function App() {
           </div>
         ) : null}
 
-        <div id="content-section" className="module-section" hidden={route.invalid}>
+        <div id="content-section" className="module-section" hidden={!showContent}>
           {routeEditalMissing ? (
             <p className="inline-notice" role="status">
               O edital informado na rota não existe neste perfil ou foi arquivado. Nenhum dado de
@@ -726,11 +848,12 @@ export function App() {
 
         </div>
 
-        <div id="planning-section" hidden={route.invalid}>
+        <div id="planning-section" hidden={!showPlanning}>
       <PlanningWorkspace
         profileId={PROFILE_ID}
         content={content}
         locked={upgrade.blocked}
+            focusId={focusedId}
         onNotice={setNotice}
         onStartPlannedBlock={(blockId) =>
           setStartBlockId(blockId + '#' + Date.now())
@@ -739,11 +862,12 @@ export function App() {
 
         </div>
 
-        <div id="sessions-section" hidden={route.invalid}>
+        <div id="sessions-section" hidden={!showSessions}>
       <SessionWorkspace
         profileId={PROFILE_ID}
         content={content}
         locked={upgrade.blocked}
+            focusId={focusedId}
         onNotice={setNotice}
         startBlockId={startBlockId}
         onStartBlockConsumed={() => setStartBlockId(null)}
@@ -751,17 +875,18 @@ export function App() {
 
         </div>
 
-        <div id="reviews-section" hidden={route.invalid}>
+        <div id="reviews-section" hidden={!showReviews}>
       <ReviewWorkspace
         profileId={PROFILE_ID}
         content={content}
         locked={upgrade.blocked}
+            focusId={focusedId}
         onNotice={setNotice}
       />
 
         </div>
 
-        <div id="content-tools" hidden={route.invalid}>
+        <div id="content-tools" hidden={!showContent}>
       <ImportPreview
         locked={upgrade.blocked}
         onPreview={async (text, namespace) => {

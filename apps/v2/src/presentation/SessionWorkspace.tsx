@@ -41,6 +41,7 @@ import {
   LocalSessionCoordinator,
   type SessionAuthority,
 } from '../platform/session-coordination';
+import { useFocusScroll } from './use-focus-scroll';
 
 const ZONE = 'America/Fortaleza';
 const UPDATE_CHANNEL = 'estudo-organizado-v2-update';
@@ -98,6 +99,7 @@ type Props = {
   onNotice: (message: string | null) => void;
   startBlockId?: string | null;
   onStartBlockConsumed?: () => void;
+  focusId?: string | null;
 };
 
 function newId(): string {
@@ -148,12 +150,14 @@ export function SessionWorkspace({
   onNotice,
   startBlockId,
   onStartBlockConsumed,
+  focusId = null,
 }: Props) {
   const [session, setSession] = useState<StudySession | null>(null);
   const [authority, setAuthority] = useState<SessionAuthority | null>(null);
   const [foreignAuthority, setForeignAuthority] = useState<SessionAuthority | null>(null);
   const [recovery, setRecovery] = useState<RecoveryPreview | null>(null);
   const [history, setHistory] = useState<StudySession[]>([]);
+  useFocusScroll(focusId, history.length);
   const [historyCursor, setHistoryCursor] = useState<string | undefined>(undefined);
   const [habits, setHabits] = useState<StudyHabit[]>([]);
   const [habitSessions, setHabitSessions] = useState<StudySession[]>([]);
@@ -1833,6 +1837,7 @@ export function SessionWorkspace({
                 key={item.id}
                 data-session-id={item.id}
                 data-block-ids={item.planBlockIds.join(',')}
+                data-entity-id={item.id}
               >
                 <div>
                   {item.recordedAtCivilDate ?? 'sem data'} · {item.origin} ·{' '}

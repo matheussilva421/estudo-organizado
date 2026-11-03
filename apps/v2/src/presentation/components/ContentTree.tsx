@@ -3,6 +3,7 @@ import type { EditalDiscipline } from '../../domain/edital';
 import type { Assunto, Aula, LessonTopicLink } from '../../domain/content';
 import { displayName } from '../../domain/edital';
 import type { StudySubject } from '../../domain/subject';
+import { useDraftGuard } from '../draft-guard';
 
 type ContentTreeProps = {
   links: EditalDiscipline[];
@@ -39,6 +40,8 @@ export function ContentTree({
   const [parentChoices, setParentChoices] = useState<Record<string, string>>({});
   const [topicSelection, setTopicSelection] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const draftDirty = Object.values(drafts).some((value) => value.trim().length > 0);
+  useDraftGuard('f2-content-tree', draftDirty, 'novo assunto ou aula');
 
   const subjectById = new Map(subjects.map((subject) => [subject.id, subject]));
 
@@ -96,7 +99,13 @@ export function ContentTree({
         const selectedParent = parentChoices[link.id] ?? '';
 
         return (
-          <section key={link.id} className="discipline" aria-label={`Disciplina ${label}`}>
+          <section
+            key={link.id}
+            className="discipline"
+            aria-label={`Disciplina ${label}`}
+            data-entity-id={link.id}
+            data-focus={link.id === focusId ? 'true' : undefined}
+          >
             <header className="discipline-header">
               <h3>{label}</h3>
               <span className="badge">{roots.length} assunto(s)</span>

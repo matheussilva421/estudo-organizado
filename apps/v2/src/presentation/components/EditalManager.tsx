@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Edital } from '../../domain/edital';
 import type { StudySubject } from '../../domain/subject';
+import { useDraftGuard } from '../draft-guard';
 
 type EditalManagerProps = {
   editais: Edital[];
@@ -40,6 +41,11 @@ export function EditalManager({
   const [subjectToLink, setSubjectToLink] = useState('');
   const [busy, setBusy] = useState(false);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const draftDirty =
+    title.trim().length > 0 ||
+    renameDraft.trim().length > 0 ||
+    archiving !== null;
+  useDraftGuard('f2-edital-manager', draftDirty, 'edital');
 
   function openForm(trigger: HTMLElement, open: () => void): void {
     triggerRef.current = trigger;

@@ -10,9 +10,10 @@ import {
 } from '../../src/presentation/routing';
 
 describe('f6 typed routes', () => {
-  it('defaults to the content workspace without marking the route invalid', () => {
+  it('defaults to the integrated overview without marking the route invalid', () => {
     expect(parseRoute('')).toEqual(DEFAULT_ROUTE);
     expect(parseRoute('#/')).toEqual(DEFAULT_ROUTE);
+    expect(DEFAULT_ROUTE.module).toBe('overview');
     expect(parseRoute('#/home')).toEqual(HOME_ROUTE);
     expect(parseRoute('#/inicio').module).toBe('home');
   });

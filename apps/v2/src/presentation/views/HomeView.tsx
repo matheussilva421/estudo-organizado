@@ -1,4 +1,14 @@
-import type { HomeSummary } from '../../application/experience-queries';
+import { useState } from 'react';
+import {
+  DEFAULT_HOME_INDICATORS,
+  HOME_INDICATORS,
+  HOME_MODE_OPTIONS,
+  orderPrioritiesForMode,
+  selectHomeIndicators,
+  type HomeIndicatorId,
+  type HomeMode,
+  type HomeSummary,
+} from '../../application/experience-queries';
 import { routeHref } from '../routing';
 import {
   PRIORITY_CATEGORY_LABELS,
@@ -9,11 +19,77 @@ import {
 type Props = {
   summary: HomeSummary;
   ready: boolean;
+  loadError: string | null;
+  experienceError: boolean;
+  onRetry: () => void;
 };
 
-export function HomeView({ summary, ready }: Props) {
+const MODE_KEY = 'estudo-organizado:v2:home-mode';
+const INDICATORS_KEY = 'estudo-organizado:v2:home-indicators';
+
+function readMode(): HomeMode {
+  try {
+    const stored = window.localStorage.getItem(MODE_KEY);
+    return HOME_MODE_OPTIONS.some((option) => option.id === stored)
+      ? (stored as HomeMode)
+      : 'DAILY';
+  } catch {
+    return 'DAILY';
+  }
+}
+
+function readIndicators(): HomeIndicatorId[] {
+  try {
+    const stored = window.localStorage.getItem(INDICATORS_KEY);
+    if (stored === null) return DEFAULT_HOME_INDICATORS;
+    const parsed = stored.split(',').filter((item) => item.length > 0);
+    const valid = HOME_INDICATORS.filter((indicator) => parsed.includes(indicator.id)).map(
+      (indicator) => indicator.id,
+    );
+    return valid;
+  } catch {
+    return DEFAULT_HOME_INDICATORS;
+  }
+}
+
+function persist(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Presentation preference stays in memory when storage is unavailable.
+  }
+}
+
+export function HomeView({ summary, ready, loadError, experienceError, onRetry }: Props) {
+  const [mode, setMode] = useState<HomeMode>(readMode);
+  const [visibleIndicators, setVisibleIndicators] =
+    useState<HomeIndicatorId[]>(readIndicators);
+  const orderedPriorities = orderPrioritiesForMode(summary.priorities, mode);
+  const nextAction = orderedPriorities[0] ?? summary.nextAction;
+  const indicators = selectHomeIndicators(summary.counts, visibleIndicators);
+
+  function changeMode(next: HomeMode): void {
+    setMode(next);
+    persist(MODE_KEY, next);
+  }
+
+  function toggleIndicator(id: HomeIndicatorId): void {
+    const selected = visibleIndicators.includes(id)
+      ? visibleIndicators.filter((item) => item !== id)
+      : HOME_INDICATORS.filter(
+          (indicator) => indicator.id === id || visibleIndicators.includes(indicator.id),
+        ).map((indicator) => indicator.id);
+    setVisibleIndicators(selected);
+    persist(INDICATORS_KEY, selected.join(','));
+  }
+
   return (
-    <section className="view home-view" aria-labelledby="home-title" data-testid="f6-home">
+    <section
+      className="view home-view"
+      aria-labelledby="home-title"
+      data-testid="f6-home"
+      data-home-mode={mode}
+    >
       <header className="view-header">
         <div>
           <p className="eyebrow">Experiência integrada</p>
@@ -27,27 +103,76 @@ export function HomeView({ summary, ready }: Props) {
         </span>
       </header>
 
+      {loadError || experienceError ? (
+        <div className="inline-notice" role="alert" data-testid="f6-load-error">
+          <strong>Não foi possível ler todos os dados locais.</strong>{' '}
+          {loadError ?? 'Uma das consultas de planejamento, sessões ou revisões falhou.'} Isso é
+          erro, não ausência de dados; nenhum indicador zero foi inferido.
+          <button type="button" className="button-ghost" onClick={onRetry}>
+            Tentar novamente
+          </button>
+        </div>
+      ) : null}
+
+      <section className="home-controls" aria-label="Apresentação da Home">
+        <div className="settings-row">
+          <label htmlFor="home-mode">Modo de apresentação</label>
+          <select
+            id="home-mode"
+            value={mode}
+            onChange={(event) => changeMode(event.target.value as HomeMode)}
+          >
+            {HOME_MODE_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="muted">
+          {HOME_MODE_OPTIONS.find((option) => option.id === mode)?.description}
+        </p>
+        <details className="indicator-catalog">
+          <summary>
+            Indicadores exibidos ({indicators.length}/{HOME_INDICATORS.length})
+          </summary>
+          <fieldset>
+            <legend className="sr-only">Indicadores do resumo da Home</legend>
+            {HOME_INDICATORS.map((indicator) => (
+              <label key={indicator.id} className="indicator-option">
+                <input
+                  type="checkbox"
+                  checked={visibleIndicators.includes(indicator.id)}
+                  onChange={() => toggleIndicator(indicator.id)}
+                />
+                {indicator.label}
+              </label>
+            ))}
+          </fieldset>
+        </details>
+      </section>
+
       <div className="home-hero">
         <article className="card next-action" aria-labelledby="next-action-title">
           <p className="eyebrow">Ação prioritária</p>
-          {summary.nextAction ? (
+          {nextAction ? (
             <>
-              <h3 id="next-action-title">{summary.nextAction.title}</h3>
-              <p className="card-detail">{summary.nextAction.detail}</p>
+              <h3 id="next-action-title">{nextAction.title}</h3>
+              <p className="card-detail">{nextAction.detail}</p>
               <p className="priority-meta">
-                <span className={`chip chip-${priorityTone(summary.nextAction.category)}`}>
-                  {PRIORITY_CATEGORY_LABELS[summary.nextAction.category]}
+                <span className={`chip chip-${priorityTone(nextAction.category)}`}>
+                  {PRIORITY_CATEGORY_LABELS[nextAction.category]}
                 </span>
-                {summary.nextAction.dueDate ? (
-                  <span className="muted">Prazo/registro: {summary.nextAction.dueDate}</span>
+                {nextAction.dueDate ? (
+                  <span className="muted">Prazo/registro: {nextAction.dueDate}</span>
                 ) : null}
               </p>
               <a
                 className="button-primary"
-                href={routeHref(routeForTarget(summary.nextAction.target))}
+                href={routeHref(routeForTarget(nextAction.target))}
                 data-action="home-next-action"
               >
-                Abrir {summary.nextAction.target === 'sessions' ? 'Sessões' : summary.nextAction.target === 'reviews' ? 'Revisões' : summary.nextAction.target === 'planning' ? 'Planejamento' : summary.nextAction.target === 'content' ? 'Conteúdo' : summary.nextAction.target === 'attention' ? 'Atenção' : 'Configurações'}
+                Abrir {nextAction.target === 'sessions' ? 'Sessões' : nextAction.target === 'reviews' ? 'Revisões' : nextAction.target === 'planning' ? 'Planejamento' : nextAction.target === 'content' ? 'Conteúdo' : nextAction.target === 'attention' ? 'Atenção' : 'Configurações'}
               </a>
             </>
           ) : (
@@ -64,27 +189,22 @@ export function HomeView({ summary, ready }: Props) {
           )}
         </article>
 
-        <div className="home-counts" aria-label="Resumo do perfil local">
-          <div className="count-card">
-            <span className="count-value">{summary.counts.activeEditais}</span>
-            <span className="count-label">editais ativos</span>
-          </div>
-          <div className="count-card">
-            <span className="count-value">{summary.counts.subjects}</span>
-            <span className="count-label">disciplinas</span>
-          </div>
-          <div className="count-card">
-            <span className="count-value">{summary.counts.plannedToday}</span>
-            <span className="count-label">blocos planejados hoje</span>
-          </div>
-          <div className="count-card">
-            <span className="count-value">{summary.counts.completedLast7Days}</span>
-            <span className="count-label">sessões concluídas (7 dias)</span>
-          </div>
-          <div className="count-card">
-            <span className="count-value">{summary.counts.reviewsDue}</span>
-            <span className="count-label">revisões vencidas/hoje</span>
-          </div>
+        <div
+          className="home-counts"
+          aria-label="Resumo do perfil local"
+          data-visible-indicators={indicators.length}
+        >
+          {indicators.map((indicator) => (
+            <div className="count-card" key={indicator.id} data-indicator={indicator.id}>
+              <span className="count-value">{indicator.value}</span>
+              <span className="count-label">{indicator.label.toLowerCase()}</span>
+            </div>
+          ))}
+          {indicators.length === 0 ? (
+            <p className="empty-state">
+              Todos os indicadores estão ocultos; prioridades e alertas continuam visíveis.
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -93,13 +213,13 @@ export function HomeView({ summary, ready }: Props) {
           <h3 id="priorities-title">Prioridades explicáveis</h3>
           <span className="muted">{summary.priorities.length} item(ns)</span>
         </header>
-        {summary.priorities.length === 0 ? (
+        {orderedPriorities.length === 0 ? (
           <p className="empty-state">
             Sem pendências derivadas. Crie conteúdo ou um plano para começar a jornada.
           </p>
         ) : (
           <ol className="priority-list" data-testid="f6-priorities">
-            {summary.priorities.slice(0, 8).map((item) => (
+            {orderedPriorities.slice(0, 8).map((item) => (
               <li key={item.id} className="priority-row">
                 <span className={`chip chip-${priorityTone(item.category)}`}>
                   {PRIORITY_CATEGORY_LABELS[item.category]}
@@ -112,6 +232,12 @@ export function HomeView({ summary, ready }: Props) {
             ))}
           </ol>
         )}
+        {orderedPriorities.length > 8 ? (
+          <p className="muted">
+            Mostrando 8 de {orderedPriorities.length}; a central de atenção mantém o restante
+            acessível.
+          </p>
+        ) : null}
         <p className="muted">
           <a href={routeHref({ module: 'attention', entityId: null, query: {}, invalid: false })}>
             Ver a central de atenção

@@ -44,7 +44,7 @@ export function SettingsView({
         <header className="section-header">
           <h3 id="settings-appearance-title">Aparência</h3>
           <button type="button" className="button-ghost" onClick={onReset}>
-            Restaurar padrão
+            Restaurar aparência
           </button>
         </header>
         <div className="settings-row">

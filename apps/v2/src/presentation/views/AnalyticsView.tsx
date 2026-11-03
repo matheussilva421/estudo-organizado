@@ -12,8 +12,9 @@ const STATUS_LABELS: Record<AnalyticsSummary['status'], string> = {
 };
 
 export function AnalyticsView({ analytics }: Props) {
+  const lowSample = analytics.questions.total > 0 && analytics.questions.total < 10;
   const accuracy =
-    analytics.questions.accuracy === null
+    analytics.questions.accuracy === null || lowSample
       ? null
       : Math.round(analytics.questions.accuracy * 1000) / 10;
 
@@ -79,9 +80,13 @@ export function AnalyticsView({ analytics }: Props) {
           <span className="kpi-label">Aproveitamento</span>
           <strong className="kpi-value">{accuracy === null ? '—' : `${accuracy}%`}</strong>
           <span className="kpi-note">
-            {accuracy === null
-              ? 'Sem denominador; nenhum percentual foi inventado.'
-              : 'Denominador: questões efetivamente registradas.'}
+            {analytics.questions.total === 0
+              ? 'Sem medições: ausência, não zero de desempenho.'
+              : lowSample
+                ? 'Amostra pequena (' +
+                  analytics.questions.total +
+                  ' questões); aproveitamento não exibido como tendência.'
+                : 'Denominador: questões efetivamente registradas.'}
           </span>
         </article>
       </div>

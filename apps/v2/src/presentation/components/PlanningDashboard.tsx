@@ -23,7 +23,12 @@ export function PlanningDashboard({
       ) : (
         <ul className="planning-scenarios">
           {scenarios.map((scenario) => (
-            <li key={scenario.id} data-testid={`scenario-${scenario.id}`} data-status={scenario.status}>
+            <li
+              key={scenario.id}
+              data-testid={`scenario-${scenario.id}`}
+              data-status={scenario.status}
+              data-entity-id={scenario.id}
+            >
               <button
                 type="button"
                 className={scenario.id === selectedId ? 'is-selected' : undefined}

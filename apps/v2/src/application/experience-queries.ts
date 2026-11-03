@@ -1,5 +1,6 @@
 import type { ContentSnapshot } from './content-service';
 import type { ReviewReminderSummary } from './review-service';
+import type { ReviewCommitment } from '../domain/review';
 import type { PlanBlock, PlanningScenario } from '../domain/planning';
 import type { StudySession } from '../domain/session';
 import { sessionTotalFocusMs } from '../domain/session-accounting';
@@ -12,7 +13,17 @@ import { displayName } from '../domain/edital';
  * scope, period and validity needed to read it honestly.
  */
 
-export type SearchResultKind = 'edital' | 'disciplina' | 'assunto' | 'aula';
+export type SearchResultKind =
+  | 'edital'
+  | 'disciplina'
+  | 'assunto'
+  | 'aula'
+  | 'planejamento'
+  | 'bloco'
+  | 'sessao'
+  | 'revisao';
+
+export type SearchTarget = 'content' | 'planning' | 'sessions' | 'reviews';
 
 export type SearchResult = {
   id: string;
@@ -20,6 +31,7 @@ export type SearchResult = {
   title: string;
   context: string;
   editalId: string | null;
+  target: SearchTarget;
   score: number;
 };
 
@@ -49,6 +61,10 @@ const KIND_RANK: Record<SearchResultKind, number> = {
   disciplina: 1,
   assunto: 2,
   aula: 3,
+  planejamento: 4,
+  bloco: 5,
+  sessao: 6,
+  revisao: 7,
 };
 
 /**
@@ -80,6 +96,7 @@ export function searchContent(
         title: edital.title,
         context: edital.status === 'ARCHIVED' ? 'Edital arquivado' : 'Edital ativo',
         editalId: edital.id,
+        target: 'content',
         score,
       });
     }
@@ -102,6 +119,7 @@ export function searchContent(
         title: label,
         context: edital.title,
         editalId: edital.id,
+        target: 'content',
         score,
       });
     }
@@ -123,6 +141,7 @@ export function searchContent(
         title: assunto.title,
         context,
         editalId: edital.id,
+        target: 'content',
         score,
       });
     }
@@ -144,11 +163,16 @@ export function searchContent(
         title: aula.title,
         context,
         editalId: edital.id,
+        target: 'content',
         score,
       });
     }
   }
 
+  return rankSearchResults(results, limit);
+}
+
+function rankSearchResults(results: SearchResult[], limit = 24): SearchResult[] {
   return results
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
@@ -159,6 +183,117 @@ export function searchContent(
       return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
     })
     .slice(0, Math.max(1, Math.min(limit, 50)));
+}
+
+export type ExperienceSearchInput = {
+  content: ContentSnapshot;
+  scenarios: PlanningScenario[];
+  blocks: PlanBlock[];
+  sessions: StudySession[];
+  commitments: ReviewCommitment[];
+};
+
+/**
+ * Search across F2-F5 records held in this profile. It uses identity and
+ * committed fields only; no DOM, no remote index and no markup execution.
+ */
+export function searchExperience(
+  input: ExperienceSearchInput,
+  rawQuery: string,
+  profileId: string,
+  limit = 30,
+): SearchResult[] {
+  const needle = normalizeSearchText(rawQuery);
+  if (needle.length < 2) return [];
+  const results = searchContent(input.content, rawQuery, profileId, 40);
+  const editalById = new Map(input.content.editais.map((edital) => [edital.id, edital]));
+
+  for (const scenario of input.scenarios) {
+    if (scenario.profileId !== profileId) continue;
+    const edital = editalById.get(scenario.editalId);
+    const context = [edital?.title ?? 'Edital removido', scenario.status].join(' · ');
+    const score = scoreMatch(scenario.name, context, needle);
+    if (score > 0) {
+      results.push({
+        id: scenario.id,
+        kind: 'planejamento',
+        title: scenario.name,
+        context,
+        editalId: edital?.id ?? null,
+        target: 'planning',
+        score,
+      });
+    }
+  }
+
+  for (const block of input.blocks) {
+    if (block.profileId !== profileId) continue;
+    const edital = editalById.get(block.editalId);
+    const date = block.civilDate ?? 'sem data';
+    const title = block.label ?? 'Bloco de estudo';
+    const context = [edital?.title ?? 'Edital removido', date, block.plannedMinutes + ' min'].join(
+      ' · ',
+    );
+    const score = scoreMatch(title, context, needle);
+    if (score > 0) {
+      results.push({
+        id: block.id,
+        kind: 'bloco',
+        title,
+        context,
+        editalId: edital?.id ?? null,
+        target: 'planning',
+        score,
+      });
+    }
+  }
+
+  for (const session of input.sessions) {
+    if (session.profileId !== profileId || session.tombstone) continue;
+    const date = session.recordedAtCivilDate ?? 'sem data';
+    const title = 'Sessão de ' + date;
+    const editais = session.editalIds
+      .map((id) => editalById.get(id)?.title)
+      .filter((value): value is string => Boolean(value));
+    const context = [session.state, session.origin, ...editais].join(' · ');
+    const score = scoreMatch(title, context, needle);
+    if (score > 0) {
+      results.push({
+        id: session.id,
+        kind: 'sessao',
+        title,
+        context,
+        editalId: session.editalIds.length === 1 ? session.editalIds[0] ?? null : null,
+        target: 'sessions',
+        score,
+      });
+    }
+  }
+
+  for (const commitment of input.commitments) {
+    if (commitment.profileId !== profileId) continue;
+    const edital = editalById.get(commitment.editalId);
+    const context = [
+      'Revisão',
+      'vence ' + commitment.currentDueDate,
+      commitment.status,
+      edital?.title ?? 'Edital removido',
+    ].join(' · ');
+    const score = scoreMatch(commitment.label, context, needle);
+    if (score > 0) {
+      results.push({
+        id: commitment.id,
+        kind: 'revisao',
+        title: commitment.label,
+        context,
+        editalId: edital?.id ?? null,
+        target: 'reviews',
+        score,
+      });
+    }
+  }
+
+  return rankSearchResults(results, limit);
 }
 
 export type PriorityCategory =
@@ -213,6 +348,8 @@ export type HomeInput = {
   reminders: ReviewReminderSummary | null;
   pendingOutbox: number;
   upgradeBlocked: boolean;
+  sessionConflicts?: number;
+  dataError?: boolean;
 };
 
 function sessionLabel(session: StudySession): string {
@@ -273,6 +410,19 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
   const priorities: PriorityItem[] = [];
   const push = (item: PriorityItem) => priorities.push(item);
 
+  if (input.dataError) {
+    push({
+      id: 'integrity-read-error',
+      category: 'INTEGRIDADE',
+      title: 'Falha ao ler os dados locais',
+      detail:
+        'Erro de leitura não é ausência de dados. Nenhum zero ou onboarding foi inferido; tente novamente.',
+      dueDate: null,
+      target: 'attention',
+      severity: 1.5,
+    });
+  }
+
   if (activeSession) {
     push({
       id: `session-${activeSession.id}`,
@@ -306,6 +456,19 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       dueDate: null,
       target: 'attention',
       severity: 2,
+    });
+  }
+
+  if ((input.sessionConflicts ?? 0) > 0) {
+    push({
+      id: 'integrity-session-conflicts',
+      category: 'INTEGRIDADE',
+      title: String(input.sessionConflicts) + ' conflito(s) de sessão F4',
+      detail:
+        'Existem versões divergentes preservadas; uma decisão explícita é necessária antes de conciliar.',
+      dueDate: null,
+      target: 'sessions',
+      severity: 1.8,
     });
   }
 
@@ -384,11 +547,14 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
     });
   }
 
-  const activeEditais = input.content.editais.filter((edital) => edital.status === 'ACTIVE');
+  const activeEditais = input.content.editais.filter(
+    (edital) => edital.profileId === input.profileId && edital.status === 'ACTIVE',
+  );
   const empty =
-    input.content.editais.length === 0 &&
+    !input.dataError &&
+    input.content.editais.filter((edital) => edital.profileId === input.profileId).length === 0 &&
     profileSessions.length === 0 &&
-    input.blocks.length === 0;
+    input.blocks.filter((block) => block.profileId === input.profileId).length === 0;
 
   if (empty) {
     push({
@@ -488,6 +654,7 @@ export type AnalyticsInput = {
   scenarios: PlanningScenario[];
   blocks: PlanBlock[];
   sessions: StudySession[];
+  sessionConflicts?: number;
 };
 
 export function buildAnalytics(
@@ -514,6 +681,7 @@ export function buildAnalytics(
   const recovery = inPeriod.filter((session) =>
     session.intervals.some((interval) => interval.recoveryFlag),
   ).length;
+  const sessionConflicts = input.sessionConflicts ?? 0;
 
   let focusMs = 0;
   let manualMs = 0;
@@ -609,9 +777,27 @@ export function buildAnalytics(
   if (unassignedSessions > 0) {
     warnings.push(`${unassignedSessions} sess\u00e3o(\u00f5es) sem edital vinculado permanecem fora dos subtotais por edital.`);
   }
+  if (sessionConflicts > 0) {
+    warnings.push(
+      String(sessionConflicts) +
+        ' conflito(s) de sessão F4 pendente(s); a conciliação integral não está comprovada.',
+    );
+  }
+  const lowSample = questionTotal > 0 && questionTotal < 10;
+  if (lowSample) {
+    warnings.push(
+      'Amostra pequena: ' +
+        String(questionTotal) +
+        ' questão(ões). O aproveitamento não deve ser lido como tendência.',
+    );
+  }
 
   const status: AnalyticsStatus =
-    inPeriod.length === 0 ? 'INSUFFICIENT_DATA' : undated > 0 || recovery > 0 ? 'PARTIAL' : 'READY';
+    inPeriod.length === 0
+      ? 'INSUFFICIENT_DATA'
+      : undated > 0 || recovery > 0 || sessionConflicts > 0
+        ? 'PARTIAL'
+        : 'READY';
 
   const sortBuckets = (buckets: Map<string, AnalyticsBucket>) =>
     [...buckets.values()].sort((left, right) => {
@@ -658,4 +844,107 @@ export function formatFocusDuration(ms: number): string {
   const minutes = totalMinutes % 60;
   if (hours === 0) return `${minutes} min`;
   return `${hours} h ${String(minutes).padStart(2, '0')} min`;
+}
+
+export type HomeMode = 'DAILY' | 'FINAL_STRETCH' | 'PERFORMANCE';
+
+export const HOME_MODE_OPTIONS: Array<{ id: HomeMode; label: string; description: string }> = [
+  {
+    id: 'DAILY',
+    label: 'Rotina diária',
+    description: 'Ordem padrão: sessão e integridade primeiro, depois o dia.',
+  },
+  {
+    id: 'FINAL_STRETCH',
+    label: 'Reta final',
+    description: 'Revisões vencidas e de hoje sobem; o restante continua visível.',
+  },
+  {
+    id: 'PERFORMANCE',
+    label: 'Acompanhamento',
+    description: 'Execução e integridade sobem; compromissos permanecem acessíveis.',
+  },
+];
+
+const MODE_WEIGHT: Record<HomeMode, Record<PriorityCategory, number>> = {
+  DAILY: {
+    SESSAO_ATIVA: 0,
+    INTEGRIDADE: 1,
+    REVISAO_ATRASADA: 2,
+    ATRASO_REAL: 3,
+    REVISAO_HOJE: 4,
+    COMPROMISSO_PLANEJADO: 5,
+    ATIVIDADE_FUTURA: 6,
+    ORIENTACAO: 7,
+  },
+  FINAL_STRETCH: {
+    SESSAO_ATIVA: 0,
+    INTEGRIDADE: 1,
+    REVISAO_ATRASADA: 2,
+    REVISAO_HOJE: 3,
+    ATRASO_REAL: 4,
+    COMPROMISSO_PLANEJADO: 5,
+    ATIVIDADE_FUTURA: 6,
+    ORIENTACAO: 7,
+  },
+  PERFORMANCE: {
+    SESSAO_ATIVA: 0,
+    INTEGRIDADE: 1,
+    ATRASO_REAL: 2,
+    REVISAO_ATRASADA: 3,
+    COMPROMISSO_PLANEJADO: 4,
+    REVISAO_HOJE: 5,
+    ATIVIDADE_FUTURA: 6,
+    ORIENTACAO: 7,
+  },
+};
+
+/**
+ * Presentation-only ordering. Every item stays in the list; the mode cannot
+ * hide a session, an integrity warning, an overdue review or a real delay.
+ */
+export function orderPrioritiesForMode(
+  items: readonly PriorityItem[],
+  mode: HomeMode,
+): PriorityItem[] {
+  const weights = MODE_WEIGHT[mode] ?? MODE_WEIGHT.DAILY;
+  return [...items].sort((left, right) => {
+    const weight = weights[left.category] - weights[right.category];
+    if (weight !== 0) return weight;
+    const due = (left.dueDate ?? '').localeCompare(right.dueDate ?? '');
+    if (due !== 0) return due;
+    return left.id.localeCompare(right.id);
+  });
+}
+
+export type HomeIndicatorId =
+  | 'activeEditais'
+  | 'subjects'
+  | 'plannedToday'
+  | 'completedLast7Days'
+  | 'reviewsDue';
+
+export const HOME_INDICATORS: Array<{ id: HomeIndicatorId; label: string }> = [
+  { id: 'activeEditais', label: 'Editais ativos' },
+  { id: 'subjects', label: 'Disciplinas' },
+  { id: 'plannedToday', label: 'Blocos planejados hoje' },
+  { id: 'completedLast7Days', label: 'Sessões concluídas (7 dias)' },
+  { id: 'reviewsDue', label: 'Revisões vencidas/hoje' },
+];
+
+export const DEFAULT_HOME_INDICATORS: HomeIndicatorId[] = HOME_INDICATORS.map(
+  (indicator) => indicator.id,
+);
+
+export function selectHomeIndicators(
+  counts: HomeSummary['counts'],
+  visible: readonly HomeIndicatorId[],
+): Array<{ id: HomeIndicatorId; label: string; value: number }> {
+  return HOME_INDICATORS.filter((indicator) => visible.includes(indicator.id)).map(
+    (indicator) => ({
+      id: indicator.id,
+      label: indicator.label,
+      value: counts[indicator.id],
+    }),
+  );
 }

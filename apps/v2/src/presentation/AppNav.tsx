@@ -44,7 +44,14 @@ export function AppNav({ current, attentionCount, reviewCount }: Props) {
   }
 
   return (
-    <nav className="app-nav" aria-label="Navegação principal">
+    <nav
+      className="app-nav"
+      aria-label="Navegação principal"
+      aria-describedby="f6-nav-help"
+    >
+      <p id="f6-nav-help" className="sr-only">
+        Use as setas esquerda e direita para percorrer os destinos. Tab avança para o conteúdo.
+      </p>
       <ul className="nav-list">
         {ITEMS.map((module, index) => {
           const active = current === module;

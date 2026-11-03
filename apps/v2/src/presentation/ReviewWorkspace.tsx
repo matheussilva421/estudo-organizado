@@ -20,11 +20,13 @@ import type {
   ReviewTopicLink,
   WeakPointProjection,
 } from '../domain/review';
+import { useFocusScroll } from './use-focus-scroll';
 type Props = {
   profileId: string;
   content: ContentSnapshot;
   locked: boolean;
   onNotice: (message: string | null) => void;
+  focusId?: string | null;
 };
 
 type MatchCandidate = {
@@ -80,7 +82,7 @@ function formatInstant(value: string | undefined): string {
   }).format(date);
 }
 
-export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props) {
+export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId = null }: Props) {
   const service = useMemo(
     () =>
       new ReviewService(
@@ -93,6 +95,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
   const [policy, setPolicy] = useState<ReviewPolicy | null>(null);
   const [topics, setTopics] = useState<ReviewTopicLink[]>([]);
   const [commitments, setCommitments] = useState<ReviewCommitment[]>([]);
+  useFocusScroll(focusId, commitments.length);
   const [suggestions, setSuggestions] = useState<ReviewSuggestion[]>([]);
   const [weakPoints, setWeakPoints] = useState<WeakPointProjection[]>([]);
   const [boardEvidence, setBoardEvidence] = useState<BoardEvidence[]>([]);
@@ -1019,7 +1022,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
         ) : (
           <ul>
             {commitments.map((commitment) => (
-              <li key={commitment.id}>
+              <li key={commitment.id} data-entity-id={commitment.id}>
                 {commitment.label} · {commitmentLabel(commitment.status)} · vence{' '}
                 {commitment.currentDueDate} · cobertura {commitment.coverage}
                 {commitment.planBlockId ? ' · bloco F3 vinculado' : ''}
@@ -1274,7 +1277,11 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
             {reminderItems.map(({ commitment, label }) => {
               const dismissed = reminders?.dismissedIds.includes(commitment.id) ?? false;
               return (
-                <li key={commitment.id} data-dismissed={dismissed}>
+                <li
+                  key={commitment.id}
+                  data-dismissed={dismissed}
+                  data-entity-id={commitment.id}
+                >
                   {commitment.label} · {label} · vence {commitment.currentDueDate}
                   {dismissed ? ' · aviso dispensado' : ''}
                   <button
