@@ -4,7 +4,7 @@
 **Data:** 2026-11-03 (rodada corretiva sobre o candidato de 2026-11-02)
 **Branch/worktree:** `v2` em `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Base oficial da rodada:** `origin/v2` = `684e219e4de77b8089e6356f46c231a373068ffe`
-**HEAD de código:** `91d7989` (UI/E2E); integridade em `d4bbef6`
+**HEAD de código/testes:** `9967b17`; UI/E2E em `91d7989`; integridade em `d4bbef6`
 **Publicação efetiva:** commit documental desta rodada no topo de `origin/v2`; read-back registrado na entrega
 **main:** `9046cfa`, V1 preservada, sem alteração
 
@@ -134,7 +134,7 @@ benchmark em hardware modesto real; isso continua sendo limitação, não PASS d
 | T43 | PASS com limitação | conflito fake multi-device puro; convergência real continua F7 |
 | T44 | PASS | tombstone/edição/replay |
 | T45 | PASS | CivilDate/DST |
-| T46 | PASS com limitação | `f5-reminders` + `f5-settings-ui`: preferência, silêncio, dispensa, dedup multiaba; sem push com app fechado |
+| T46 | PASS com limitação | `f5-reminders`, `f5-settings-ui` e `f5-two-tabs`: preferência, silêncio, dispensa e dedup em duas abas reais; sem push com app fechado |
 | T47 | PASS | contraste AA 8×3, foco/teclado 8 temas, landmarks, erro, toque 44 px e reduced motion |
 | T48 | PASS | unit/E2E completos e regressões F1–F4 |
 
@@ -211,11 +211,11 @@ Revisão 2 estruturada (checklist distinto de UX/adversarial, sem alegar indepen
 | `npm run lint` | PASS |
 | `npm run build` | PASS — 540,10 kB (150,21 kB gzip); aviso de chunk >500 kB |
 | `npm run test:unit` | PASS — 79 arquivos, 520 testes |
-| `npm run test:e2e` | PASS — 114 testes, 113 PASS + 1 skip intencional |
+| `npm run test:e2e` | PASS — 115 testes, 114 PASS + 1 skip intencional |
 | `f5-import-atomic` | PASS — 6 testes de transação, quota, conflito, replay e retry |
 | `f5-projections` | PASS — fingerprint, lotes, CAS, STALE e prioridade obsoleta |
 | `f5-reminders` | PASS — preferência, silêncio, dispensa e lease entre abas |
-| `f5-two-tabs` | PASS — duas páginas reais, recarga e unicidade semântica |
+| `f5-two-tabs` | PASS — duas páginas reais, recarga, unicidade semântica e dedup de notificação |
 | `f5-accessibility` | PASS — contraste 8×3, foco/teclado, landmarks, erro, toque e reduced motion |
 | `f5-load` | PASS — 300 assuntos/3.000 execuções em 20,5 ms; heap +6,3 MiB |
 
@@ -233,6 +233,7 @@ Revisão 2 estruturada (checklist distinto de UX/adversarial, sem alegar indepen
 - Notificações externas dependem da permissão e de app aberto; a central local não promete disparo com o PWA fechado.
 - O bundle Vite ultrapassa 500 kB; não houve benchmark em hardware modesto. O teste de carga é sintético e local.
 - Multi-dispositivo real, Firestore/Auth/Rules e convergência remota permanecem exclusivos da F7.
+- A suíte visual Playwright regenerou as três capturas F4 que já estavam modificadas; os bytes anteriores não tinham backup e não foram recuperados. Os arquivos continuam não commitados; nenhuma limpeza destrutiva foi feita.
 
 ## Veredito
 
