@@ -21,6 +21,7 @@ import type {
   WeakPointProjection,
 } from '../domain/review';
 import { useFocusScroll } from './use-focus-scroll';
+import { nextPageLimit, pageItems, REVIEW_PAGE_SIZE } from './pagination';
 type Props = {
   profileId: string;
   content: ContentSnapshot;
@@ -111,6 +112,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   const [rescheduleDates, setRescheduleDates] = useState<Record<string, string>>({});
   const [placement, setPlacement] = useState<{ commitmentId: string; preview: ReviewPlacementPreview } | null>(null);
   const [boardTitle, setBoardTitle] = useState('');
+  const [suggestionLimit, setSuggestionLimit] = useState(REVIEW_PAGE_SIZE);
+  const [agendaLimit, setAgendaLimit] = useState(REVIEW_PAGE_SIZE);
+  const [reminderLimit, setReminderLimit] = useState(REVIEW_PAGE_SIZE);
   const [boardText, setBoardText] = useState('');
   const [boardSample, setBoardSample] = useState('');
   const [boardDenominator, setBoardDenominator] = useState('');
@@ -151,6 +155,10 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         ...reminders.upcoming.map((commitment) => ({ commitment, label: 'Próxima' })),
       ]
     : [];
+
+  const suggestionPage = pageItems(suggestions, suggestionLimit);
+  const agendaPage = pageItems(commitments, agendaLimit);
+  const reminderPage = pageItems(reminderItems, reminderLimit);
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -995,8 +1003,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         {suggestions.length === 0 ? (
           <p className="hint">Nenhuma sugestão calculada.</p>
         ) : (
+          <>
           <ul>
-            {suggestions.map((suggestion) => (
+            {suggestionPage.items.map((suggestion) => (
               <li key={suggestion.key}>
                 {suggestion.label} · {suggestion.dueDate} · {suggestion.durationMinutes} min ·{' '}
                 {suggestion.explanation}
@@ -1012,6 +1021,18 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
               </li>
             ))}
           </ul>
+          {suggestionPage.hasMore ? (
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() =>
+                setSuggestionLimit((current) => nextPageLimit(current, suggestions.length))
+              }
+            >
+              Mostrar mais {suggestionPage.remaining} sugestão(ões)
+            </button>
+          ) : null}
+          </>
         )}
       </article>
 
@@ -1020,8 +1041,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         {commitments.length === 0 ? (
           <p className="hint">Nenhum compromisso confirmado.</p>
         ) : (
+          <>
           <ul>
-            {commitments.map((commitment) => (
+            {agendaPage.items.map((commitment) => (
               <li key={commitment.id} data-entity-id={commitment.id}>
                 {commitment.label} · {commitmentLabel(commitment.status)} · vence{' '}
                 {commitment.currentDueDate} · cobertura {commitment.coverage}
@@ -1078,6 +1100,18 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
               </li>
             ))}
           </ul>
+          {agendaPage.hasMore ? (
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() =>
+                setAgendaLimit((current) => nextPageLimit(current, commitments.length))
+              }
+            >
+              Mostrar mais {agendaPage.remaining} compromisso(s)
+            </button>
+          ) : null}
+          </>
         )}
         {placement ? (
           <div data-testid="review-placement-preview">
@@ -1273,8 +1307,9 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         {reminderItems.length === 0 ? (
           <p className="hint">Nenhum lembrete pendente no horizonte de 14 dias.</p>
         ) : (
+          <>
           <ul>
-            {reminderItems.map(({ commitment, label }) => {
+            {reminderPage.items.map(({ commitment, label }) => {
               const dismissed = reminders?.dismissedIds.includes(commitment.id) ?? false;
               return (
                 <li
@@ -1296,6 +1331,18 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
               );
             })}
           </ul>
+          {reminderPage.hasMore ? (
+            <button
+              type="button"
+              className="button-ghost"
+              onClick={() =>
+                setReminderLimit((current) => nextPageLimit(current, reminderItems.length))
+              }
+            >
+              Mostrar mais {reminderPage.remaining} lembrete(s)
+            </button>
+          ) : null}
+          </>
         )}
       </article>
 
