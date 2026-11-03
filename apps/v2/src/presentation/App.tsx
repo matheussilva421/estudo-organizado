@@ -34,9 +34,12 @@ import { ReviewWorkspace } from './ReviewWorkspace';
 import { canSubmitTitle, initialFormState, markSubmitFailure, THEMES, type FormState } from './ui-state';
 import {
   buildHomeSummary,
+  compareAnalytics,
   type AnalyticsSummary,
+  type AnalyticsComparison,
   type HomeSummary,
 } from '../application/experience-queries';
+import { addCivilDays } from '../domain/planning-time';
 import {
   ExperienceProjectionCache,
   cachedAnalytics,
@@ -470,6 +473,26 @@ export function App() {
       ),
     [analyticsCache, content, experience, today],
   );
+  const previousAnalytics: AnalyticsSummary = useMemo(
+    () =>
+      cachedAnalytics(
+        analyticsCache,
+        {
+          profileId: PROFILE_ID,
+          content,
+          scenarios: experience.scenarios,
+          blocks: experience.blocks,
+          sessions: experience.sessions,
+          sessionConflicts: experience.sessionConflicts,
+        },
+        addCivilDays(today, -30),
+      ),
+    [analyticsCache, content, experience, today],
+  );
+  const analyticsComparison: AnalyticsComparison = useMemo(
+    () => compareAnalytics(analytics, previousAnalytics),
+    [analytics, previousAnalytics],
+  );
 
   const routeEditalId =
     route.module === 'content' ? route.entityId ?? route.query.edital ?? null : null;
@@ -629,7 +652,7 @@ export function App() {
 
         {!route.invalid && route.module === 'analytics' ? (
           <div id="analytics-section">
-            <AnalyticsView analytics={analytics} />
+            <AnalyticsView analytics={analytics} comparison={analyticsComparison} />
           </div>
         ) : null}
 

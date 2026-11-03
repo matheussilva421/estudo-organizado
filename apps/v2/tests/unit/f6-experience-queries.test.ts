@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildAnalytics,
   buildHomeSummary,
+  compareAnalytics,
   formatFocusDuration,
   normalizeSearchText,
   orderPrioritiesForMode,
@@ -469,6 +470,49 @@ describe('f6 analytics projections', () => {
     expect(analytics.questions.accuracy).toBe(1);
     expect(analytics.warnings.join(' ')).toContain('Amostra pequena');
     expect(analytics.warnings.join(' ')).toContain('conflito');
+  });
+
+  it('compares periods only when a previous denominator exists', () => {
+    const current = buildAnalytics(
+      {
+        profileId: PROFILE,
+        content: contentFixture(),
+        scenarios: [],
+        blocks: [],
+        sessions: [
+          session({ id: 'cur', state: 'COMPLETED', editalIds: ['e1'], intervals: [interval(60)] }),
+        ],
+      },
+      TODAY,
+    );
+    const previous = buildAnalytics(
+      {
+        profileId: PROFILE,
+        content: contentFixture(),
+        scenarios: [],
+        blocks: [],
+        sessions: [
+          session({
+            id: 'prev',
+            state: 'COMPLETED',
+            editalIds: ['e1'],
+            intervals: [interval(30)],
+            recordedAtCivilDate: '2026-10-03',
+          }),
+        ],
+      },
+      '2026-10-03',
+    );
+    const comparison = compareAnalytics(current, previous);
+    expect(comparison.previousFocusMs).toBe(30 * 60000);
+    expect(comparison.focusDeltaPct).toBeCloseTo(100);
+
+    const emptyPrevious = compareAnalytics(current, {
+      ...previous,
+      sessions: { ...previous.sessions, focusMs: 0, inPeriod: 0 },
+    });
+    expect(emptyPrevious.focusDeltaPct).toBeNull();
+    expect(emptyPrevious.note).toContain('Sem período anterior');
   });
 });
 

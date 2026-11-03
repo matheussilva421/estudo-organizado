@@ -92,7 +92,7 @@ export function cachedAnalytics(
   const key = analyticsFingerprint(input, today, days);
   const cached = cache.get(key);
   if (cached) return cached;
-  const value = buildAnalytics(input, today, days);
+  const value = { ...buildAnalytics(input, today, days), fingerprint: key };
   cache.set(key, value);
   return value;
 }

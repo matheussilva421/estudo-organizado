@@ -637,6 +637,40 @@ select {
   text-transform: uppercase;
 }
 
+.bar-chart {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(80px, 2fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.bar-track {
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.bar-value {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
 .settings-row {
   display: grid;
   grid-template-columns: minmax(140px, 220px) minmax(0, 320px);

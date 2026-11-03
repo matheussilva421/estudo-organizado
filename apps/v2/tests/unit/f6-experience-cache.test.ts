@@ -55,6 +55,7 @@ describe('f6 projection cache', () => {
     const first = cachedAnalytics(cache, input(), TODAY);
     const second = cachedAnalytics(cache, input(), TODAY);
     expect(second).toBe(first);
+    expect(first.fingerprint).toBeTruthy();
     expect(cache.size).toBe(1);
   });
 

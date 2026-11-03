@@ -1,8 +1,12 @@
-import type { AnalyticsSummary } from '../../application/experience-queries';
+import type {
+  AnalyticsComparison,
+  AnalyticsSummary,
+} from '../../application/experience-queries';
 import { formatFocusDuration } from '../../application/experience-queries';
 
 type Props = {
   analytics: AnalyticsSummary;
+  comparison: AnalyticsComparison;
 };
 
 const STATUS_LABELS: Record<AnalyticsSummary['status'], string> = {
@@ -11,12 +15,13 @@ const STATUS_LABELS: Record<AnalyticsSummary['status'], string> = {
   PARTIAL: 'Dados parciais',
 };
 
-export function AnalyticsView({ analytics }: Props) {
+export function AnalyticsView({ analytics, comparison }: Props) {
   const lowSample = analytics.questions.total > 0 && analytics.questions.total < 10;
   const accuracy =
     analytics.questions.accuracy === null || lowSample
       ? null
       : Math.round(analytics.questions.accuracy * 1000) / 10;
+  const maxEditalFocus = Math.max(1, ...analytics.byEdital.map((bucket) => bucket.focusMs));
 
   return (
     <section
@@ -51,6 +56,10 @@ export function AnalyticsView({ analytics }: Props) {
         <div>
           <dt>Origem</dt>
           <dd>{analytics.source}</dd>
+        </div>
+        <div>
+          <dt>Impressão</dt>
+          <dd>{analytics.fingerprint ?? 'não materializada'}</dd>
         </div>
       </dl>
 
@@ -91,6 +100,20 @@ export function AnalyticsView({ analytics }: Props) {
         </article>
       </div>
 
+      <section className="panel" aria-labelledby="analytics-comparison-title">
+        <header className="section-header">
+          <h3 id="analytics-comparison-title">Comparação com o período anterior</h3>
+        </header>
+        <p>
+          Período anterior: {formatFocusDuration(comparison.previousFocusMs)} em{' '}
+          {comparison.previousSessions} sessão(ões). Variação de foco:{' '}
+          {comparison.focusDeltaPct === null
+            ? '—'
+            : (Math.round(comparison.focusDeltaPct * 10) / 10).toFixed(1) + '%'}.
+        </p>
+        <p className="hint">{comparison.note}</p>
+      </section>
+
       {analytics.status !== 'READY' ? (
         <p className="inline-notice" role="status">
           {analytics.status === 'INSUFFICIENT_DATA'
@@ -120,6 +143,28 @@ export function AnalyticsView({ analytics }: Props) {
           {analytics.byEdital.length === 0 ? (
             <p className="empty-state">Sem sessões atribuídas a um único edital.</p>
           ) : (
+            <>
+            <div
+              className="bar-chart"
+              role="img"
+              aria-label="Tempo executado por edital no período"
+            >
+              {analytics.byEdital.map((bucket) => (
+                <div className="bar-row" key={bucket.id}>
+                  <span className="bar-label">{bucket.label}</span>
+                  <span className="bar-track">
+                    <span
+                      className="bar-fill"
+                      style={{
+                        width:
+                          (Math.max(0, bucket.focusMs) / maxEditalFocus) * 100 + '%',
+                      }}
+                    />
+                  </span>
+                  <span className="bar-value">{formatFocusDuration(bucket.focusMs)}</span>
+                </div>
+              ))}
+            </div>
             <table className="data-table">
               <caption className="sr-only">Tempo executado por edital no período</caption>
               <thead>
@@ -139,6 +184,7 @@ export function AnalyticsView({ analytics }: Props) {
                 ))}
               </tbody>
             </table>
+            </>
           )}
         </section>
 

@@ -646,6 +646,7 @@ export type AnalyticsSummary = {
   sharedSessions: number;
   unassignedSessions: number;
   warnings: string[];
+  fingerprint?: string;
 };
 
 export type AnalyticsInput = {
@@ -844,6 +845,34 @@ export function formatFocusDuration(ms: number): string {
   const minutes = totalMinutes % 60;
   if (hours === 0) return `${minutes} min`;
   return `${hours} h ${String(minutes).padStart(2, '0')} min`;
+}
+
+export type AnalyticsComparison = {
+  previousFocusMs: number;
+  previousSessions: number;
+  focusDeltaPct: number | null;
+  note: string;
+};
+
+/** Comparison never invents a baseline: no previous focus means no delta. */
+export function compareAnalytics(
+  current: AnalyticsSummary,
+  previous: AnalyticsSummary,
+): AnalyticsComparison {
+  const previousFocusMs = previous.sessions.focusMs;
+  const focusDeltaPct =
+    previousFocusMs > 0
+      ? ((current.sessions.focusMs - previousFocusMs) / previousFocusMs) * 100
+      : null;
+  return {
+    previousFocusMs,
+    previousSessions: previous.sessions.inPeriod,
+    focusDeltaPct,
+    note:
+      focusDeltaPct === null
+        ? 'Sem período anterior comparável; nenhuma variação percentual foi calculada.'
+        : 'Variação sobre o mesmo escopo e janela imediatamente anterior.',
+  };
 }
 
 export type HomeMode = 'DAILY' | 'FINAL_STRETCH' | 'PERFORMANCE';
