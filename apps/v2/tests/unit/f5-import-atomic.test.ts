@@ -5,6 +5,7 @@ import { LocalReviewRepository } from '../../src/platform/local-review-repositor
 import { LocalSessionRepository } from '../../src/platform/local-session-repository';
 import {
   deleteV2DatabaseForTests,
+  closeV2DatabaseForTests,
   openV2Database,
   requestResult,
   STORES,
@@ -145,8 +146,12 @@ describe('F5-T38 atomic academic import', () => {
     const preview = first.previewImport(profileId, JSON.stringify(importData()));
     if (preview.kind !== 'READY') throw new Error('preview missing');
     expect((await first.applyImport(profileId, preview, 'op-import-retry')).kind).toBe('FAILED');
+    await closeV2DatabaseForTests();
 
     const recovered = service();
+    expect(await recovered.listTopics(profileId)).toHaveLength(0);
+    expect(await count(STORES.operations)).toBe(0);
+    expect(await count(STORES.importReceipts)).toBe(0);
     const retry = recovered.previewImport(profileId, JSON.stringify(importData()));
     if (retry.kind !== 'READY') throw new Error('retry preview missing');
     const applied = await recovered.applyImport(profileId, retry, 'op-import-retry');

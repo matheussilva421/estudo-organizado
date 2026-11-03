@@ -222,6 +222,11 @@ export async function deleteV2DatabaseForTests(): Promise<void> {
   publishUpgradeState({ kind: 'IDLE', blocked: false, version: LOCAL_DB_VERSION });
 }
 
+/** Test-only reload simulation: close the cached connection but keep data. */
+export async function closeV2DatabaseForTests(): Promise<void> {
+  await releaseCachedDatabase();
+}
+
 export async function getPendingOutbox(profileId: string): Promise<OutboxOperation[]> {
   const database = await openV2Database(profileId);
   const transaction = database.transaction(STORES.outbox, 'readonly');
