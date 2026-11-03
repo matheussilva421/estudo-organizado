@@ -713,7 +713,7 @@ export function PlanningWorkspace({
         }}
         locked={locked}
       />
-      <PlanningCalendar days={calendarDays} view={view} onView={setView} />
+      <PlanningCalendar days={calendarDays} view={view} onView={setView} focusId={focusId} />
       <StudyCycle scenario={selected} onDecision={(decision) => void applyCycleDecision(decision)} locked={locked} />
       <FinalStretch
         scenario={selected}

@@ -147,6 +147,29 @@ test('f6 planning search opens the focused scenario by id', async ({ page }) => 
         },
       },
     });
+    await harness.planningCommit({
+      scope: { profileId: 'local-default', operationId: 'f6-plan-block-op' },
+      scenarioId: 'scenario-f6',
+      baseRevision: 1,
+      changes: {
+        upsertBlocks: [
+          {
+            id: 'block-f6',
+            profileId: 'local-default',
+            editalId: 'edital-f6',
+            scenarioId: 'scenario-f6',
+            editalDisciplineId: 'link-f6',
+            plannedMinutes: 30,
+            allocation: 'CONFIRMED_DAY',
+            priority: 1,
+            localRevision: 1,
+            sourceOperationId: 'f6-plan-block-op',
+            civilDate: '2027-03-15',
+            label: 'Bloco foco distante',
+          },
+        ],
+      },
+    });
   });
   await page.reload();
   await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
@@ -162,5 +185,16 @@ test('f6 planning search opens the focused scenario by id', async ({ page }) => 
   const focused = page.locator('[data-entity-id="scenario-f6"]');
   await expect(focused).toBeVisible();
   await expect(focused).toBeFocused();
+
+  await page.goto('/#/search?q=Bloco%20foco%20distante');
+  const blockResult = page
+    .getByTestId('f6-search')
+    .getByRole('button', { name: /Bloco foco distante/ });
+  await expect(blockResult).toBeVisible();
+  await blockResult.click();
+  await expect(page).toHaveURL(/#\/planning\?focus=block-f6$/);
+  const block = page.locator('[data-entity-id="block-f6"]');
+  await expect(block).toBeVisible();
+  await expect(block).toBeFocused();
 });
 
