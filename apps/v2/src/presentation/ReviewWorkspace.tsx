@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ContentSnapshot } from '../application/content-service';
 import {
   ReviewService,
@@ -14,6 +14,8 @@ import type {
   ReviewCommitment,
   ReviewCoverage,
   ReviewPolicy,
+  ReviewPolicyImpactPreview,
+  ReviewTopicOverride,
   ReviewSuggestion,
   ReviewTopicLink,
   WeakPointProjection,
@@ -61,6 +63,23 @@ function matchReasonLabel(reason: string): string {
   return 'correspondência textual';
 }
 
+function projectionReasonLabel(reason: string | undefined): string {
+  if (reason === 'INPUTS_CHANGED') return 'os fatos mudaram';
+  if (reason === 'ALGORITHM_CHANGED') return 'a regra de cálculo foi atualizada';
+  if (reason === 'STORED_STALE') return 'o cache salvo está desatualizado';
+  return 'os dados de origem mudaram';
+}
+
+function formatInstant(value: string | undefined): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date);
+}
+
 export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props) {
   const service = useMemo(
     () =>
@@ -94,14 +113,41 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
   const [boardDenominator, setBoardDenominator] = useState('');
   const [boardMatches, setBoardMatches] = useState<Record<string, { candidates: MatchCandidate[]; ambiguous: boolean }>>({});
   const [importPreview, setImportPreview] = useState<ReviewImportPreview | null>(null);
+  const [overrideTopicKey, setOverrideTopicKey] = useState('');
+  const [overrideInterval, setOverrideInterval] = useState('');
+  const [overrideNote, setOverrideNote] = useState('');
+  const [policyImpact, setPolicyImpact] = useState<ReviewPolicyImpactPreview | null>(null);
+  const [overrideMode, setOverrideMode] = useState<'SET' | 'REMOVE'>('SET');
+  const [overrideBaseUpdatedAt, setOverrideBaseUpdatedAt] = useState<string | null>(null);
+  const settingsHydratedRef = useRef(false);
+  const [externalEnabled, setExternalEnabled] = useState(false);
+  const [policyError, setPolicyError] = useState<string | null>(null);
+  const [quietStart, setQuietStart] = useState('22:00');
+  const [quietEnd, setQuietEnd] = useState('07:00');
+  const [notificationPermission, setNotificationPermission] = useState<
+    NotificationPermission | 'UNSUPPORTED'
+  >(() => (typeof Notification === 'undefined' ? 'UNSUPPORTED' : Notification.permission));
+  const [projectionStatus, setProjectionStatus] = useState<
+    Awaited<ReturnType<ReviewService['weakPointProjectionStatus']>> | null
+  >(null);
 
   const editais = content.editais.filter((edital) => edital.status === 'ACTIVE');
+  const archivedEditalIds = content.editais
+    .filter((edital) => edital.status !== 'ACTIVE')
+    .map((edital) => edital.id);
   const disciplines = content.links.filter(
     (link) => link.editalId === selectedEditalId && link.status === 'ACTIVE',
   );
   const assuntos = content.assuntos.filter(
     (assunto) => assunto.editalDisciplineId === selectedDisciplineId,
   );
+  const reminderItems = reminders
+    ? [
+        ...reminders.overdue.map((commitment) => ({ commitment, label: 'Atrasada' })),
+        ...reminders.dueToday.map((commitment) => ({ commitment, label: 'Hoje' })),
+        ...reminders.upcoming.map((commitment) => ({ commitment, label: 'Próxima' })),
+      ]
+    : [];
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -125,6 +171,17 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
       setWeakPoints(nextWeak);
       setBoardEvidence(nextBoard);
       setReminders(nextReminders);
+      try {
+        setProjectionStatus(await service.weakPointProjectionStatus(profileId));
+      } catch {
+        setProjectionStatus(null);
+      }
+      if (!settingsHydratedRef.current) {
+        setExternalEnabled(nextReminders.settings.externalNotifications);
+        setQuietStart(nextReminders.settings.quietStart);
+        setQuietEnd(nextReminders.settings.quietEnd);
+        settingsHydratedRef.current = true;
+      }
     } catch {
       onNotice('Não foi possível carregar a área de revisões.');
     } finally {
@@ -173,9 +230,12 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
     if (locked || busy) return;
     const minutes = Number(defaultDuration);
     if (!Number.isFinite(minutes) || minutes < 5 || minutes > 180) {
-      onNotice('Duração padrão deve ficar entre 5 e 180 minutos.');
+      const message = 'Duração padrão deve ficar entre 5 e 180 minutos.';
+      setPolicyError(message);
+      onNotice(message);
       return;
     }
+    setPolicyError(null);
     setBusy(true);
     try {
       const result = await service.updatePolicy(
@@ -187,6 +247,227 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
         result.kind === 'LOCAL_COMMITTED'
           ? 'Política de revisão versionada neste perfil.'
           : 'Não foi possível salvar a política.',
+      );
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function previewOverride(remove = false): Promise<void> {
+    if (locked || busy || !policy) return;
+    const topic = topics.find((item) => item.canonicalTopicKey === overrideTopicKey);
+    if (!topic) {
+      onNotice('Selecione um assunto vinculado para ajustar.');
+      return;
+    }
+    const interval = Number(overrideInterval);
+    if (!remove && overrideInterval.trim() && (!Number.isInteger(interval) || interval < 1 || interval > 3650)) {
+      onNotice('Intervalo do ajuste deve ficar entre 1 e 3650 dias.');
+      return;
+    }
+    if (!remove && overrideNote.length > 200) {
+      onNotice('A observação do ajuste deve ter no máximo 200 caracteres.');
+      return;
+    }
+    setBusy(true);
+    try {
+      setOverrideMode(remove ? 'REMOVE' : 'SET');
+      setOverrideBaseUpdatedAt(policy.overrides?.[topic.canonicalTopicKey]?.updatedAt ?? null);
+      const nextOverrides: Record<string, ReviewTopicOverride> = { ...policy.overrides };
+      if (remove) {
+        delete nextOverrides[topic.canonicalTopicKey];
+      } else {
+        nextOverrides[topic.canonicalTopicKey] = {
+          ...(nextOverrides[topic.canonicalTopicKey] ?? {}),
+          canonicalTopicKey: topic.canonicalTopicKey,
+          ...(overrideInterval.trim() ? { initialIntervalDays: interval } : {}),
+          ...(overrideNote.trim() ? { note: overrideNote.trim() } : {}),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      const result = await service.previewPolicyChange(profileId, { overrides: nextOverrides });
+      if (result.kind !== 'READY') {
+        onNotice('Ajuste recusado pela validação da política.');
+        setPolicyImpact(null);
+        return;
+      }
+      setPolicyImpact(result);
+      onNotice(result.explanation);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyOverride(): Promise<void> {
+    if (!policyImpact || locked || busy) return;
+    const topic = topics.find((item) => item.canonicalTopicKey === overrideTopicKey);
+    if (!topic) {
+      onNotice('Selecione o assunto do ajuste antes de aplicar.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const override: ReviewTopicOverride | null =
+        overrideMode === 'REMOVE'
+          ? null
+          : {
+              canonicalTopicKey: topic.canonicalTopicKey,
+              ...(overrideInterval.trim()
+                ? { initialIntervalDays: Number(overrideInterval) }
+                : {}),
+              ...(overrideNote.trim() ? { note: overrideNote.trim() } : {}),
+              updatedAt: new Date().toISOString(),
+            };
+      const result = await service.applyPolicyOverride(
+        profileId,
+        topic.canonicalTopicKey,
+        override,
+        overrideBaseUpdatedAt,
+        newId(),
+      );
+      onNotice(
+        result.kind === 'LOCAL_COMMITTED'
+          ? overrideMode === 'REMOVE'
+            ? 'Ajuste removido; a política foi versionada e nenhum fato foi reescrito.'
+            : 'Ajuste por assunto versionado; compromissos e execuções foram preservados.'
+          : result.kind === 'CONFLICT'
+            ? 'A política mudou desde a prévia. Revise o impacto novamente.'
+            : 'Não foi possível aplicar o ajuste.',
+      );
+      if (result.kind === 'LOCAL_COMMITTED') {
+        setPolicyImpact(null);
+        setOverrideInterval('');
+        setOverrideNote('');
+        setOverrideMode('SET');
+        setOverrideBaseUpdatedAt(null);
+      }
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveReminderPreferences(): Promise<void> {
+    if (locked || busy) return;
+    setBusy(true);
+    try {
+      const result = await service.updateReminderSettings(profileId, {
+        externalNotifications: externalEnabled,
+        quietStart,
+        quietEnd,
+      });
+      onNotice(
+        result.kind === 'LOCAL_COMMITTED'
+          ? 'Preferências de lembrete salvas neste perfil.'
+          : 'Não foi possível salvar as preferências de lembrete.',
+      );
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestNotifications(): Promise<void> {
+    if (typeof Notification === 'undefined') {
+      onNotice('Este navegador não oferece notificações externas; a central local continua ativa.');
+      return;
+    }
+    let permission = Notification.permission;
+    if (permission === 'default') permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    if (permission !== 'granted') {
+      onNotice('Permissão de notificação não concedida; a central local continua ativa.');
+      return;
+    }
+    setExternalEnabled(true);
+    const result = await service.updateReminderSettings(profileId, {
+      externalNotifications: true,
+      quietStart,
+      quietEnd,
+    });
+    onNotice(
+      result.kind === 'LOCAL_COMMITTED'
+          ? 'Avisos externos autorizados; o envio é manual enquanto o app está aberto e não há promessa com o app fechado.'
+        : 'Permissão concedida, mas a preferência não foi gravada.',
+    );
+    await refresh();
+  }
+
+  async function testExternalNotification(): Promise<void> {
+    if (!reminders) return;
+    if (typeof Notification === 'undefined') {
+      onNotice('Notificação externa indisponível; a central local permanece funcional.');
+      return;
+    }
+    if (Notification.permission !== 'granted') {
+      onNotice('Conceda a permissão de notificação antes de testar o aviso externo.');
+      return;
+    }
+    const pending = [
+      ...reminders.overdue,
+      ...reminders.dueToday,
+      ...reminders.upcoming,
+    ].find((item) => !reminders.dismissedIds.includes(item.id));
+    if (!pending) {
+      onNotice('Nenhuma revisão pendente para avisar.');
+      return;
+    }
+    const claim = await service.claimTestNotification(profileId);
+    if (claim === 'DISABLED') {
+      onNotice('Ative a preferência de avisos externos antes de testar.');
+      return;
+    }
+    if (claim === 'SUPPRESSED_QUIET') {
+      onNotice('Horário de silêncio: o aviso externo foi suprimido; a central local continua disponível.');
+      return;
+    }
+    if (claim === 'DUPLICATE') {
+      onNotice('Este aviso já foi emitido por outra aba; nada foi duplicado.');
+      return;
+    }
+    try {
+      new Notification('Revisão pendente', {
+        body: `${pending.label} · vence ${pending.currentDueDate}`,
+        tag: `review-${pending.id}-${pending.currentDueDate}`,
+      });
+      onNotice('Aviso externo emitido uma única vez; a central local continua sendo a fonte.');
+    } catch {
+      onNotice('O navegador recusou o aviso externo; a central local permanece funcional.');
+    }
+  }
+
+  async function dismissReminder(commitment: ReviewCommitment): Promise<void> {
+    if (locked || busy) return;
+    setBusy(true);
+    try {
+      const result = await service.dismissReminder(profileId, commitment.id);
+      onNotice(
+        result.kind === 'LOCAL_COMMITTED'
+          ? 'Aviso dispensado; o compromisso continua pendente e não foi cancelado.'
+          : 'Não foi possível dispensar o aviso.',
+      );
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rebuildProjection(): Promise<void> {
+    if (locked || busy) return;
+    setBusy(true);
+    try {
+      const result = await service.rebuildWeakPointsProjection(profileId, { batchSize: 50 });
+      onNotice(
+        result.kind === 'LOCAL_COMMITTED'
+          ? `Projeção reconstruída em ${result.value.batches} lote(s), ${result.value.rows} linha(s).`
+          : result.kind === 'BLOCKED'
+            ? 'Os fatos mudaram durante a reconstrução; nada foi publicado.'
+            : result.kind === 'CONFLICT'
+              ? 'Outra aba publicou uma versão mais nova; nada foi sobrescrito.'
+              : result.kind === 'FAILED'
+                ? 'Falha de armazenamento durante a reconstrução; nada foi publicado.'
+                : 'A reconstrução não pôde ser publicada.',
       );
       await refresh();
     } finally {
@@ -360,6 +641,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
         profileId,
         result.value.id,
         selectedEditalId || undefined,
+        archivedEditalIds,
       );
       setBoardMatches((current) => ({ ...current, [result.value.id]: match }));
       setBoardTitle('');
@@ -412,8 +694,14 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
     try {
       const next = await service.previewPriorities(profileId, selectedEditalId);
       setPriority(next);
-      await service.savePriority(profileId, next, newId());
-      onNotice('Prioridade contextual explicada e versionada.');
+      const saved = await service.savePriority(profileId, next, newId());
+      onNotice(
+        saved.kind === 'LOCAL_COMMITTED'
+          ? 'Prioridade contextual explicada e versionada.'
+          : saved.kind === 'CONFLICT'
+            ? 'A projeção ficou obsoleta antes da publicação; recalcule novamente.'
+            : 'Não foi possível publicar a prioridade.',
+      );
     } finally {
       setBusy(false);
     }
@@ -483,6 +771,8 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
               min={5}
               max={180}
               value={defaultDuration}
+              aria-invalid={policyError !== null}
+              aria-describedby={policyError ? 'review-policy-error' : undefined}
               onChange={(event) => setDefaultDuration(event.target.value)}
             />
           </label>
@@ -495,6 +785,11 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
             Autoaprovar sugestões no horizonte (opt-in, desligado por padrão)
           </label>
         </div>
+        {policyError ? (
+          <p id="review-policy-error" className="hint">
+            {policyError}
+          </p>
+        ) : null}
         <div className="session-actions">
           <button type="button" onClick={() => void savePolicy()} disabled={locked || busy}>
             Gravar política
@@ -510,6 +805,121 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
         <p className="hint">
           Parâmetros conservadores e reversíveis; política v{policy?.version ?? 1}; mudanças recalculam projeções e não reescrevem fatos.
         </p>
+      </article>
+
+      <article className="session-card" data-testid="review-policy-overrides">
+        <h3>Ajustes por assunto</h3>
+        <p className="hint">
+          Cada ajuste cria uma nova versão da política. A prévia abaixo mostra o efeito
+          nas sugestões; compromissos e execuções existentes não são reescritos.
+        </p>
+        <div className="session-grid">
+          <label>
+            Assunto vinculado
+            <select
+              value={overrideTopicKey}
+              onChange={(event) => {
+                const key = event.target.value;
+                setOverrideTopicKey(key);
+                setPolicyImpact(null);
+                const override = key ? policy?.overrides?.[key] : undefined;
+                setOverrideInterval(
+                  override?.initialIntervalDays ? String(override.initialIntervalDays) : '',
+                );
+                setOverrideNote(override?.note ?? '');
+              }}
+            >
+              <option value="">Selecione</option>
+              {topics.map((topic) => (
+                <option key={topic.canonicalTopicKey} value={topic.canonicalTopicKey}>
+                  {topic.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Intervalo inicial (dias)
+            <input
+              type="number"
+              min={1}
+              max={3650}
+              value={overrideInterval}
+              onChange={(event) => {
+                setOverrideInterval(event.target.value);
+                setPolicyImpact(null);
+              }}
+            />
+          </label>
+          <label>
+            Observação (opcional)
+            <input
+              maxLength={200}
+              value={overrideNote}
+              onChange={(event) => {
+                setOverrideNote(event.target.value);
+                setPolicyImpact(null);
+              }}
+            />
+          </label>
+        </div>
+        <div className="session-actions">
+          <button
+            type="button"
+            onClick={() => void previewOverride()}
+            disabled={locked || busy || !overrideTopicKey}
+          >
+            Prévia do impacto
+          </button>
+          <button
+            type="button"
+            onClick={() => void applyOverride()}
+            disabled={locked || busy || !policyImpact}
+          >
+            {overrideMode === 'REMOVE' ? 'Aplicar remoção' : 'Aplicar ajuste'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void previewOverride(true)}
+            disabled={locked || busy || !overrideTopicKey}
+          >
+            Prévia da remoção
+          </button>
+        </div>
+        <div data-testid="review-policy-impact" aria-live="polite">
+          {policyImpact ? (
+            <>
+            <p className="hint">
+              {policyImpact.explanation} Política v{policyImpact.nextPolicy.version}.
+            </p>
+            {policyImpact.rows.length === 0 ? (
+              <p className="hint">Nenhum assunto vinculado para comparar.</p>
+            ) : (
+              <ul>
+                {policyImpact.rows.map((row) => (
+                  <li key={row.canonicalTopicKey} data-changed={row.changed}>
+                    {row.label}: {row.previousDueDate} → {row.nextDueDate} ({row.previousIntervalDays}d →{' '}
+                    {row.nextIntervalDays}d) {row.changed ? '· muda' : '· sem mudança'}
+                  </li>
+                ))}
+              </ul>
+            )}
+            </>
+          ) : null}
+        </div>
+        {policy && Object.keys(policy.overrides ?? {}).length > 0 ? (
+          <p className="hint">
+            Ajustes salvos:{' '}
+            {Object.keys(policy.overrides)
+              .map(
+                (key) =>
+                  topics.find((topic) => topic.canonicalTopicKey === key)?.label ??
+                  'assunto sem vínculo visível',
+              )
+              .join(', ')}.
+          </p>
+        ) : (
+          <p className="hint">Nenhum ajuste por assunto salvo.</p>
+        )}
       </article>
 
       <article className="session-card" data-testid="review-topics">
@@ -568,7 +978,10 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
         ) : (
           <ul>
             {topics.map((topic) => (
-              <li key={topic.id}>{topic.label}</li>
+              <li key={topic.id}>
+                {topic.label}
+                {archivedEditalIds.includes(topic.editalId) ? ' · edital arquivado (vínculo preservado)' : ''}
+              </li>
             ))}
           </ul>
         )}
@@ -699,6 +1112,24 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
         )}
       </article>
 
+      <article className="session-card" data-testid="review-projections">
+        <h3>Cache de pontos fracos</h3>
+        <p className="hint">
+          Cache regenerável que acompanha os fatos de estudo. Quando algo muda, o cache é
+          marcado como desatualizado e os pontos fracos voltam a ser calculados sob demanda.
+        </p>
+        <p className="session-status" data-testid="projection-status" aria-live="polite">
+          {projectionStatus?.kind === 'READY'
+            ? `Atual · ${projectionStatus.rows} linha(s) · gerado em ${formatInstant(projectionStatus.projection?.generatedAt)}`
+            : projectionStatus?.kind === 'STALE'
+              ? `Desatualizado porque ${projectionReasonLabel(projectionStatus.reason)} · reconstrua para atualizar`
+              : 'Ainda não gerado · os pontos fracos são calculados sob demanda'}
+        </p>
+        <button type="button" onClick={() => void rebuildProjection()} disabled={locked || busy}>
+          Reconstruir cache
+        </button>
+      </article>
+
       <article className="session-card" data-testid="review-board">
         <h3>Inteligência de banca</h3>
         <div className="session-grid">
@@ -771,6 +1202,93 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice }: Props)
           </ol>
         ) : (
           <p className="hint">Escolha um edital para explicar a prioridade.</p>
+        )}
+      </article>
+
+      <article className="session-card" data-testid="review-reminders">
+        <h3>Lembretes e avisos</h3>
+        <p className="hint">
+          A central local funciona offline. Avisos externos são opcionais, exigem permissão
+          e, nesta fatia, são enviados apenas manualmente pelo botão de teste enquanto o app
+          está aberto. Não há promessa de disparo com o PWA fechado.
+        </p>
+        <div className="session-grid">
+          <label>
+            <input
+              type="checkbox"
+              checked={externalEnabled}
+              onChange={(event) => setExternalEnabled(event.target.checked)}
+            />
+            Permitir aviso externo uma vez por lembrete
+          </label>
+          <label>
+            Silêncio começa
+            <input
+              type="time"
+              value={quietStart}
+              onChange={(event) => setQuietStart(event.target.value)}
+            />
+          </label>
+          <label>
+            Silêncio termina
+            <input
+              type="time"
+              value={quietEnd}
+              onChange={(event) => setQuietEnd(event.target.value)}
+            />
+          </label>
+        </div>
+        <div className="session-actions">
+          <button type="button" onClick={() => void saveReminderPreferences()} disabled={locked || busy}>
+            Gravar preferências
+          </button>
+          <button
+            type="button"
+            onClick={() => void requestNotifications()}
+            disabled={locked || busy || notificationPermission === 'UNSUPPORTED'}
+          >
+            Autorizar avisos externos
+          </button>
+          <button
+            type="button"
+            onClick={() => void testExternalNotification()}
+            disabled={locked || busy || notificationPermission !== 'granted'}
+          >
+            Testar aviso externo
+          </button>
+        </div>
+        <p className="hint" data-testid="notification-permission" aria-live="polite">
+          Permissão: {notificationPermission === 'UNSUPPORTED'
+            ? 'não suportada neste navegador'
+            : notificationPermission === 'granted'
+              ? 'concedida'
+              : notificationPermission === 'denied'
+                ? 'negada'
+                : 'ainda não solicitada'}.
+          {reminders?.quietActive ? ' Horário de silêncio ativo para avisos externos.' : ''}
+        </p>
+        {reminderItems.length === 0 ? (
+          <p className="hint">Nenhum lembrete pendente no horizonte de 14 dias.</p>
+        ) : (
+          <ul>
+            {reminderItems.map(({ commitment, label }) => {
+              const dismissed = reminders?.dismissedIds.includes(commitment.id) ?? false;
+              return (
+                <li key={commitment.id} data-dismissed={dismissed}>
+                  {commitment.label} · {label} · vence {commitment.currentDueDate}
+                  {dismissed ? ' · aviso dispensado' : ''}
+                  <button
+                    type="button"
+                    onClick={() => void dismissReminder(commitment)}
+                    disabled={locked || busy || dismissed}
+                    aria-label={`Dispensar aviso de ${commitment.label}`}
+                  >
+                    Dispensar aviso
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </article>
 
