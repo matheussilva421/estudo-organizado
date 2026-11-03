@@ -1,72 +1,65 @@
-# F4 — checkpoint de execução local
+# F6 — checkpoint de execução local
 
-**Atualizado:** 2026-10-31
+**Atualizado:** 2026-11-03
 **Worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Branch:** `v2` (local, ahead de `origin/v2`; sem push)
-**HEAD no checkpoint:** `69c70a0`
+**Último commit de código:** `7b2fae1`
 
-## Documentos
+## Objetivo e escopo
 
-- Spec aprovada: `docs/superpowers/specs/2026-10-30-estudo-organizado-v2-f4-execution-design.md`
-- Plano aprovado: `docs/superpowers/plans/2026-10-30-estudo-organizado-v2-f4-execution.md`
-- Commit documental: `fbbe4f3` (spec, plano e roadmap).
-- SHA-256 originais verificados antes da incorporação: spec `5be103a6…`; plano `a35881dc…`.
+Executar localmente a especificação e o writing-plans F6 (T00–T20), com TDD, testes,
+revisão independente, Impeccable e pacote de revisão. Sem push de código, merge,
+deploy, PR, Actions ou alteração da `main`.
 
 ## Concluído
 
-- Task 1 — schema aditivo F4, `LOCAL_DB_VERSION=4`, sete stores/índices: `d319189`.
-- Task 2 — domínio `StudySession`, estados, validação e transições: `3556cc8`.
-- Task 3 — relógio monotônico, continuidade, checkpoints e soma de foco: `d04822c`.
-- Task 4 — repositório atômico, CAS, idempotência, outbox semântica e tombstone: `1c871fd`.
-- Task 5 — autoridade de aba, fencing, timer único e transferência assistida: `c6099cd`.
-- Task 6 — serviço de iniciar/pausar/retomar/concluir e troca atômica: `f3dfe80`.
-- Task 7 — recuperação assistida, preview de lacuna e correção manual: `083a783`.
-- Task 8 — Pomodoro foco/descanso e transições híbridas: `548b0a4`.
-- Task 9 — inatividade, limites configuráveis e revisão: `cb1e32d`.
-- Task 10 — registro manual retroativo e sobreposição não destrutiva: `75974f9`.
-- Task 11 — alocação por conteúdo e repartição por dia civil: `cac4df7`.
-- Task 12 — vínculos F2/F3 e conciliação explícita: `e374643`.
-- Task 13 — medições, páginas e referências de materiais: `c32a850`.
-- Task 14 — auditoria, edições versionadas e tombstones: `a98276c`.
-- Task 15 — conflitos offline e preservação de variantes: `5717284`.
-- Task 16 — hábitos independentes e ocorrências: `24efa5b`.
-- Task 17 — histórico paginado e CSV/JSON: `3eecb8b`.
-- Task 18 — exportação/reimportação emergencial: `9289f9d`.
-- Task 19 — atualização PWA coordenada: `26e5755`.
-- Tasks 20–21 — SessionWorkspace integrado ao App, Pomodoro, autoridade assistida, hábitos e E2E: `852a419`.
-- Correção material — checkpoint do tempo verificado antes de pausar/concluir: `3650e4c`.
-- F4-T42 — atualização PWA coordenada e banner de update: `b5fa511`.
-- F4-T35 — DST/fold determinístico: `e59015a`.
-- Impeccable — tokens alinhados e detector 0 achados: `a644e51`.
-- Evidências visuais F4: `77b3629`.
-- Correções da revisão independente (Pomodoro, autoridade, exportação, recovery, conflitos, âncoras): `4ffa023`.
+- Etapa P publicada em `origin/v2@789e1bc`: especificação, writing-plans, GOAL e ROADMAP.
+- Implementação local F6: shell e rotas tipadas, Home operacional, busca local F2–F5,
+  central de atenção/integridade, configurações de tema/densidade, analytics derivado,
+  rascunhos recuperáveis, paginação progressiva, fontes OFL locais e vendor React separado.
+- Testes: typecheck/lint/build PASS; 562 unitários PASS em 85 arquivos; E2E 139 PASS + 2 skips.
+- Contrato visual 8 temas × 3 viewports: 24 capturas, contraste mínimo 6,78:1; 31 capturas F6 no total.
+- Duas revisões independentes read-only: nenhum P0; P1 corrigidos; P2 documentados. Impeccable 17/20.
 
-## Fechamento de 2026-10-31
+## Pendente
 
-- Atomicidade real de pausa/retomada/conclusão, com checkpoint na mesma transação: `b6dfec6`.
-- Alocações validadas no domínio e filtro de histórico por `assuntoId`: `626f483`.
-- Integração F3 (início por bloco e conciliação), medições/materiais/alocação no registro manual, reimportação emergencial pela UI, negociação de update entre abas, revisões de auditoria e resolução de conflitos na UI, estilos e acessibilidade: `c707665`.
-- Evidências visuais antes/depois: `d793b36`.
-- Relatório de aceite reescrito com a matriz F4-T01–T42 real.
+- Aceite humano H-01–H-17 do `F6-HUMAN-ACCEPTANCE.md` (NVDA/Narrator, toque físico, zoom,
+  oito temas, offline, falha de IDB e hardware modesto real).
+- RF parciais: RF04, RF06, RF13, RF15, RF17, RF25, RF28, RF30 e RF31.
+- Integração de `v2` à `origin/v2`: exige autorização explícita, por fast-forward e com read-back.
+- F7/F8 não iniciadas.
+
+## Estado Git
+
+- `main` e `origin/main`: `9046cfa` (intactas).
+- `origin/v2`: `789e1bc` (documentação F6 publicada).
+- `v2` local: 20 commits de código à frente de `origin/v2`, sem push de código.
+- Worktree: apenas os três PNGs F4 modificados, preservados fora do repositório.
+
+## Testes e evidências
+
+```powershell
+cd apps/v2
+npm run typecheck
+npm run lint
+npm run test:unit
+npx playwright test --grep-invert "f4 representative visual evidence"
+npm run build
+```
+
+- Unitários: 562 PASS (85 arquivos, 27,19 s).
+- E2E: 139 PASS + 2 skips (50,2 s).
+- Build: principal 379,72 kB (98,58 kB gzip) + vendor React 218,77 kB (68,25 kB gzip).
+- Pacote: `C:\Users\slvma\Downloads\Github\estudo-organizado-preservacao-20261103\F6-REVIEW-PACKAGE.zip`.
+
+## Decisões e riscos
+
+- Lazy loading dos workspaces foi revertido por quebrar F4/F5; o split adotado é apenas do vendor React.
+- As três capturas F4 históricas não são regeneradas; permanecem preservadas.
+- Quatro HIGH F0 seguem `UNVERIFIED`; F4-T13 e hardware modesto real seguem `NOT_RUN`.
+- Nenhuma promessa de sync remoto, backup verificado ou convergência F7.
 
 ## Próxima ação
 
-Aguardar aceite humano. Pendências declaradas: F4-T13 (suspensão física) `NOT_RUN`; quatro HIGH da F0 `UNVERIFIED`; histórico ordena/pagina em memória após índice `by_profile`; gate Impeccable completo (auditoria visual dedicada) não executado, detector automático com 0 achados.
-
-## Comandos
-
-- `cd apps/v2`
-- `npm run test:unit`
-- `npm run test:e2e`
-- `npm run lint`
-- `npm run build`
-
-## Estado
-
-- `node_modules` instalado com `npm ci --prefer-offline`.
-- Nenhum push, deploy, PR, Action ou alteração da `main`.
-- Suíte unitária completa: 437 PASS em 71 arquivos.
-- Lint: PASS. Build: PASS.
-- E2E completo: 99 PASS + 1 skip; F4: 22 PASS em 13 specs.
-- Detector Impeccable 3.9.1: 0 achados em `apps/v2/src`.
-
+Aceite humano do pacote. Se aprovado, autorizar a integração fast-forward de `v2` à
+`origin/v2` com read-back, sem tocar `main`, Cloudflare, Firebase ou produção.
