@@ -5,7 +5,6 @@ import { LocalReviewRepository } from '../../src/platform/local-review-repositor
 import { LocalSessionRepository } from '../../src/platform/local-session-repository';
 import { deleteV2DatabaseForTests, openV2Database, requestResult, STORES } from '../../src/platform/indexeddb';
 import type { StudySession } from '../../src/domain/session';
-import type { ReviewOutcome } from '../../src/domain/review';
 
 const profileId = 'profile-f5';
 const today = '2026-11-01';
@@ -336,7 +335,10 @@ describe('F5 review service integration', () => {
       const first = await review.applyImport(profileId, preview, 'op-import');
       expect(first.kind).toBe('LOCAL_COMMITTED');
       const second = await review.applyImport(profileId, preview, 'op-import-2');
-      expect(second).toEqual({ kind: 'LOCAL_COMMITTED', value: { applied: 0, partial: false } });
+      expect(second).toMatchObject({
+        kind: 'LOCAL_COMMITTED',
+        value: { applied: 0, duplicate: 2 },
+      });
       expect((await review.listTopics(profileId)).length).toBe(1);
     }
   });
@@ -523,7 +525,7 @@ describe('F5 review service integration', () => {
     expect(csv).not.toMatch(/"=HYPERLINK/);
   });
 
-  it('F5-T38 reports a partial import instead of a false complete success', async () => {
+  it('F5-T38 rolls back the entire import instead of publishing a partial success', async () => {
     const targetProfile = 'profile-f5-import-target';
     const firstTopic = {
       ...topicInput(),
@@ -552,20 +554,192 @@ describe('F5 review service integration', () => {
       matches: [],
       priorities: [],
     };
-    class FailSecondRepository extends LocalReviewRepository {
-      private commits = 0;
-      override async commit(input: Parameters<LocalReviewRepository['commit']>[0]): Promise<ReviewOutcome<unknown>> {
-        this.commits += 1;
-        if (this.commits === 2) return { kind: 'FAILED', reason: 'ABORT' };
-        return super.commit(input);
-      }
-    }
-    const failing = new FailSecondRepository();
+    const failing = new LocalReviewRepository({ fault: 'abort', importFaultAfter: 2 });
     const target = new ReviewService(failing, new LocalSessionRepository(), new LocalPlanningRepository());
     const targetPreview = target.previewImport(targetProfile, JSON.stringify(targetData));
     if (targetPreview.kind !== 'READY') throw new Error('target preview missing');
     const result = await target.applyImport(targetProfile, targetPreview, 'op-import-fail');
-    expect(result).toEqual({ kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' });
-    expect((await target.listTopics(targetProfile)).length).toBe(1);
+    expect(result).toEqual({ kind: 'FAILED', reason: 'ABORT' });
+    expect((await target.listTopics(targetProfile)).length).toBe(0);
+  });
+
+  it('F5-T16 persists a versioned subject override while preserving commitments and executions', async () => {
+    const repository = new LocalReviewRepository();
+    const review = new ReviewService(
+      repository,
+      new LocalSessionRepository(),
+      new LocalPlanningRepository(),
+      { now: () => `${today}T12:00:00.000Z`, zone: 'America/Fortaleza' },
+    );
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(profileId, topicInput(), 'op-topic-a');
+    await review.createTopic(
+      profileId,
+      { ...topicInput(), editalDisciplineId: 'disc-2', assuntoId: 'assunto-2', label: 'Direitos fundamentais' },
+      'op-topic-b',
+    );
+    const firstSuggestion = (await review.generateSuggestions(profileId, today)).find(
+      (item) => item.assuntoId === 'assunto-1',
+    )!;
+    const applied = await review.applySuggestion(profileId, firstSuggestion, 'op-apply-a');
+    if (applied.kind !== 'LOCAL_COMMITTED') throw new Error('commitment missing');
+    await review.recordExecution(
+      profileId,
+      {
+        commitmentId: applied.value.id,
+        canonicalTopicKey: applied.value.canonicalTopicKey,
+        civilDate: today,
+        assessment: 'PARTIAL',
+        coverage: 'PARTIAL',
+        provenance: 'fixture',
+      },
+      'op-execution-a',
+    );
+    const commitmentsBefore = await review.listCommitments(profileId);
+    const executionsBefore = await repository.listExecutions(profileId);
+    const topicA = firstSuggestion.topicLinkId;
+    const overrideKey = firstSuggestion.canonicalTopicKey;
+    const preview = await review.previewPolicyChange(profileId, {
+      overrides: {
+        [overrideKey]: {
+          canonicalTopicKey: overrideKey,
+          initialIntervalDays: 10,
+          note: 'Ajuste validado',
+          updatedAt: `${today}T12:00:00.000Z`,
+        },
+      },
+    });
+    if (preview.kind !== 'READY') throw new Error(`preview failed: ${preview.code}`);
+    expect(preview.changedCount).toBe(1);
+    const saved = await review.applyPolicyChange(profileId, preview, 'op-override-a');
+    if (saved.kind !== 'LOCAL_COMMITTED') throw new Error('override not saved');
+    expect(saved.value.version).toBe(2);
+    expect(saved.value.overrides[overrideKey]?.initialIntervalDays).toBe(10);
+    expect(saved.value.overrides[overrideKey]?.note).toBe('Ajuste validado');
+
+    const after = await review.generateSuggestions(profileId, today);
+    const afterA = after.find((item) => item.topicLinkId === topicA)!;
+    const afterB = after.find((item) => item.topicLinkId !== topicA)!;
+    expect(afterA.intervalDays).toBe(16);
+    expect(afterB.intervalDays).toBe(firstSuggestion.intervalDays);
+    expect(await review.listCommitments(profileId)).toEqual(commitmentsBefore);
+    expect(await repository.listExecutions(profileId)).toEqual(executionsBefore);
+  });
+
+  it('F5-T16 refuses to apply an impact preview after the policy changed', async () => {
+    const review = service();
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(profileId, topicInput(), 'op-topic');
+    const key = (await review.listTopics(profileId))[0]!.canonicalTopicKey;
+    const preview = await review.previewPolicyChange(profileId, {
+      overrides: {
+        [key]: {
+          canonicalTopicKey: key,
+          initialIntervalDays: 12,
+          updatedAt: `${today}T12:00:00.000Z`,
+        },
+      },
+    });
+    if (preview.kind !== 'READY') throw new Error('preview missing');
+    const other = await review.updatePolicy(profileId, { defaultDurationMinutes: 35 }, 'op-other-change');
+    expect(other.kind).toBe('LOCAL_COMMITTED');
+    const stale = await review.applyPolicyChange(profileId, preview, 'op-stale-override');
+    expect(stale).toEqual({ kind: 'CONFLICT', code: 'STALE_POLICY' });
+  });
+
+  it('F5-T20 excludes an archived edital from automatic board matching', async () => {
+    const review = service();
+    await review.createTopic(
+      profileId,
+      { ...topicInput(), editalId: 'edital-arquivado' },
+      'op-topic-archived',
+    );
+    const evidence = await review.saveBoardEvidence(
+      profileId,
+      {
+        title: 'Banca antiga',
+        text: 'Controle de constitucionalidade cai muito.',
+      },
+      'op-board-archived',
+    );
+    if (evidence.kind !== 'LOCAL_COMMITTED') throw new Error('evidence missing');
+    const all = await review.matchBoardEvidence(profileId, evidence.value.id);
+    expect(all.candidates).toHaveLength(1);
+    const filtered = await review.matchBoardEvidence(
+      profileId,
+      evidence.value.id,
+      undefined,
+      ['edital-arquivado'],
+    );
+    expect(filtered.candidates).toEqual([]);
+  });
+
+  it('F5-T41 refuses to publish a priority projection whose inputs changed', async () => {
+    const review = service();
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(profileId, topicInput(), 'op-topic-priority');
+    const first = await review.previewPriorities(profileId, 'edital-1', today);
+    const saved = await review.savePriority(profileId, first, 'op-priority-first');
+    expect(saved.kind).toBe('LOCAL_COMMITTED');
+    await review.saveBoardEvidence(
+      profileId,
+      { title: 'Banca TJPB', text: 'Controle de constitucionalidade.' },
+      'op-board-priority',
+    );
+    const stale = await review.savePriority(profileId, first, 'op-priority-stale');
+    expect(stale).toEqual({ kind: 'CONFLICT', code: 'STALE_PROJECTION' });
+  });
+
+  it('F5-T16 merges per-subject overrides without deleting another tab key', async () => {
+    const review = service();
+    await review.ensurePolicy(profileId, 'op-policy');
+    await review.createTopic(profileId, topicInput(), 'op-topic-a');
+    await review.createTopic(
+      profileId,
+      { ...topicInput(), assuntoId: 'assunto-2', label: 'Direitos fundamentais' },
+      'op-topic-b',
+    );
+    const keyA = (await review.listTopics(profileId)).find((item) => item.assuntoId === 'assunto-1')!
+      .canonicalTopicKey;
+    const keyB = (await review.listTopics(profileId)).find((item) => item.assuntoId === 'assunto-2')!
+      .canonicalTopicKey;
+    const first = await review.applyPolicyOverride(
+      profileId,
+      keyA,
+      {
+        canonicalTopicKey: keyA,
+        initialIntervalDays: 8,
+        updatedAt: `${today}T12:00:00.000Z`,
+      },
+      null,
+      'op-override-a',
+    );
+    expect(first.kind).toBe('LOCAL_COMMITTED');
+    const second = await review.applyPolicyOverride(
+      profileId,
+      keyB,
+      {
+        canonicalTopicKey: keyB,
+        initialIntervalDays: 12,
+        updatedAt: `${today}T12:01:00.000Z`,
+      },
+      null,
+      'op-override-b',
+    );
+    if (second.kind !== 'LOCAL_COMMITTED') throw new Error('second override missing');
+    expect(second.value.overrides[keyA]?.initialIntervalDays).toBe(8);
+    expect(second.value.overrides[keyB]?.initialIntervalDays).toBe(12);
+    const stale = await review.applyPolicyOverride(
+      profileId,
+      keyA,
+      {
+        canonicalTopicKey: keyA,
+        initialIntervalDays: 20,
+        updatedAt: `${today}T12:02:00.000Z`,
+      },
+      null,
+      'op-override-a-stale',
+    );
+    expect(stale).toEqual({ kind: 'CONFLICT', code: 'STALE_OVERRIDE' });
   });
 });

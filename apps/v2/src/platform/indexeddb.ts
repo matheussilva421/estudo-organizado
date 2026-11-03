@@ -43,6 +43,7 @@ export const STORES = {
   reviewMatches: 'review_matches',
   reviewPriorities: 'review_priorities',
   reviewSettings: 'review_settings',
+  reviewProjections: 'review_projections',
 } as const;
 
 export type LocalPersistenceKind = 'QUOTA' | 'ABORT' | 'UNAVAILABLE' | 'BLOCKED_UPGRADE';

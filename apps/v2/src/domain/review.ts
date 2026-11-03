@@ -36,6 +36,31 @@ export type ReviewProjectionStatus =
   | 'DESCRIPTIVE_ONLY'
   | 'TREND_SUPPORTED';
 
+export type ReviewProjectionKind = 'WEAK_POINTS';
+export type ReviewProjectionState = 'READY' | 'STALE';
+
+export const REVIEW_PROJECTION_ALGORITHM_VERSION = 1;
+
+/**
+ * A materialized, regenerable projection. It is never a fact: the payload is
+ * only authoritative while fingerprint, policy and algorithm versions match
+ * the current inputs.
+ */
+export type MaterializedReviewProjection = {
+  id: string;
+  profileId: string;
+  kind: ReviewProjectionKind;
+  scopeKey: string;
+  algorithmVersion: number;
+  policyVersion: number;
+  inputRevision: number;
+  fingerprint: string;
+  generationId: string;
+  generatedAt: string;
+  status: ReviewProjectionState;
+  payload: unknown;
+};
+
 export class ReviewValidationError extends Error {
   readonly code: string;
 
@@ -112,6 +137,21 @@ export type ReviewPolicy = {
   autoApproveHorizonDays: number;
   quietStart: string;
   quietEnd: string;
+  /** Explicit, versioned per-topic overrides. Facts are never rewritten. */
+  overrides: Record<string, ReviewTopicOverride>;
+};
+
+export type ReviewTopicOverride = {
+  canonicalTopicKey: string;
+  initialIntervalDays?: number;
+  goodMultiplier?: number;
+  partialMultiplier?: number;
+  forgotMultiplier?: number;
+  unratedMultiplier?: number;
+  minIntervalDays?: number;
+  maxIntervalDays?: number;
+  note?: string;
+  updatedAt: string;
 };
 
 export const REVIEW_POLICY_VERSION = 1;
@@ -138,6 +178,7 @@ export function createDefaultReviewPolicy(profileId: string): ReviewPolicy {
     autoApproveHorizonDays: 14,
     quietStart: '22:00',
     quietEnd: '07:00',
+    overrides: {},
   };
 }
 
@@ -169,7 +210,88 @@ export function validateReviewPolicy(input: ReviewPolicy): ReviewPolicy {
   if (typeof input.quietStart !== 'string' || typeof input.quietEnd !== 'string') {
     fail('INVALID_POLICY');
   }
-  return { ...input };
+  const overrides = input.overrides ?? {};
+  if (typeof overrides !== 'object' || Array.isArray(overrides)) {
+    fail('INVALID_OVERRIDE');
+  }
+  for (const [key, override] of Object.entries(overrides)) {
+    if (!key.trim() || !override || typeof override !== 'object') fail('INVALID_OVERRIDE');
+    if (override.canonicalTopicKey !== key) fail('INVALID_OVERRIDE');
+    for (const field of [
+      'initialIntervalDays',
+      'goodMultiplier',
+      'partialMultiplier',
+      'forgotMultiplier',
+      'unratedMultiplier',
+      'minIntervalDays',
+      'maxIntervalDays',
+    ] as const) {
+      const value = override[field];
+      if (value !== undefined) {
+        if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+          fail('INVALID_OVERRIDE');
+        }
+        if (field.endsWith('Multiplier') && (value < 0.1 || value > 10)) {
+          fail('INVALID_OVERRIDE');
+        }
+        if (!field.endsWith('Multiplier') && (value < 1 || value > 3650)) {
+          fail('INVALID_OVERRIDE');
+        }
+      }
+    }
+    if (
+      override.minIntervalDays !== undefined &&
+      override.maxIntervalDays !== undefined &&
+      override.minIntervalDays > override.maxIntervalDays
+    ) {
+      fail('INVALID_OVERRIDE');
+    }
+    const effectiveMin = override.minIntervalDays ?? input.minIntervalDays;
+    const effectiveMax = override.maxIntervalDays ?? input.maxIntervalDays;
+    if (effectiveMin > effectiveMax) fail('INVALID_OVERRIDE');
+    if (override.note !== undefined && (typeof override.note !== 'string' || override.note.length > 200)) {
+      fail('INVALID_OVERRIDE');
+    }
+    if (typeof override.updatedAt !== 'string' || !override.updatedAt.trim()) {
+      fail('INVALID_OVERRIDE');
+    }
+  }
+  return { ...input, overrides };
+}
+
+/** Effective parameters for one group without mutating the stored policy. */
+export function effectiveReviewPolicy(
+  policy: ReviewPolicy,
+  canonicalTopicKey: string,
+): ReviewPolicy {
+  const override = policy.overrides?.[canonicalTopicKey];
+  if (!override) return policy;
+  const values = {
+    ...(override.initialIntervalDays !== undefined
+      ? { initialIntervalDays: override.initialIntervalDays }
+      : {}),
+    ...(override.goodMultiplier !== undefined ? { goodMultiplier: override.goodMultiplier } : {}),
+    ...(override.partialMultiplier !== undefined
+      ? { partialMultiplier: override.partialMultiplier }
+      : {}),
+    ...(override.forgotMultiplier !== undefined
+      ? { forgotMultiplier: override.forgotMultiplier }
+      : {}),
+    ...(override.unratedMultiplier !== undefined
+      ? { unratedMultiplier: override.unratedMultiplier }
+      : {}),
+    ...(override.minIntervalDays !== undefined
+      ? { minIntervalDays: override.minIntervalDays }
+      : {}),
+    ...(override.maxIntervalDays !== undefined
+      ? { maxIntervalDays: override.maxIntervalDays }
+      : {}),
+  };
+  return validateReviewPolicy({
+    ...policy,
+    ...values,
+    overrides: policy.overrides,
+  });
 }
 
 export function nextReviewPolicy(
@@ -182,6 +304,112 @@ export function nextReviewPolicy(
     localRevision: current.localRevision + 1,
     version: current.version + 1,
   });
+}
+
+export type ReviewReminderSettings = {
+  profileId: string;
+  localRevision: number;
+  externalNotifications: boolean;
+  quietStart: string;
+  quietEnd: string;
+  dismissed: Record<string, { dueDate: CivilDate; at: string }>;
+  /** Atomic cross-tab lease: one key is claimed once per device. */
+  notificationLeases: Record<string, string>;
+  lastNotification?: { key: string; at: string } | null;
+  updatedAt: string;
+};
+
+export function createDefaultReviewReminderSettings(
+  profileId: string,
+): ReviewReminderSettings {
+  return {
+    profileId: requireId(profileId, 'INVALID_PROFILE'),
+    localRevision: 1,
+    externalNotifications: false,
+    quietStart: '22:00',
+    quietEnd: '07:00',
+    dismissed: {},
+    notificationLeases: {},
+    lastNotification: null,
+    updatedAt: '1970-01-01T00:00:00.000Z',
+  };
+}
+
+function isClock(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{2}:\d{2}$/.test(value)) return false;
+  const hour = Number(value.slice(0, 2));
+  const minute = Number(value.slice(3, 5));
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
+
+export function validateReviewReminderSettings(
+  input: ReviewReminderSettings,
+): ReviewReminderSettings {
+  if (!input || typeof input !== 'object') fail('INVALID_REMINDER_SETTINGS');
+  requireId(input.profileId, 'INVALID_PROFILE');
+  positiveInteger(input.localRevision);
+  if (typeof input.externalNotifications !== 'boolean') fail('INVALID_REMINDER_SETTINGS');
+  if (!isClock(input.quietStart) || !isClock(input.quietEnd)) fail('INVALID_QUIET_HOURS');
+  if (!input.dismissed || typeof input.dismissed !== 'object' || Array.isArray(input.dismissed)) {
+    fail('INVALID_REMINDER_SETTINGS');
+  }
+  for (const [commitmentId, dismissal] of Object.entries(input.dismissed)) {
+    if (!commitmentId.trim() || !dismissal || typeof dismissal !== 'object') {
+      fail('INVALID_REMINDER_SETTINGS');
+    }
+    requireCivilDate(dismissal.dueDate);
+    if (typeof dismissal.at !== 'string' || !dismissal.at.trim()) {
+      fail('INVALID_REMINDER_SETTINGS');
+    }
+  }
+  const notificationLeases = input.notificationLeases ?? {};
+  if (typeof notificationLeases !== 'object' || Array.isArray(notificationLeases)) {
+    fail('INVALID_REMINDER_SETTINGS');
+  }
+  for (const [key, at] of Object.entries(notificationLeases)) {
+    if (!key.trim() || typeof at !== 'string' || !at.trim()) {
+      fail('INVALID_REMINDER_SETTINGS');
+    }
+  }
+  if (input.lastNotification !== undefined && input.lastNotification !== null) {
+    if (
+      typeof input.lastNotification.key !== 'string' ||
+      !input.lastNotification.key.trim() ||
+      typeof input.lastNotification.at !== 'string' ||
+      !input.lastNotification.at.trim()
+    ) {
+      fail('INVALID_REMINDER_SETTINGS');
+    }
+  }
+  if (typeof input.updatedAt !== 'string' || !input.updatedAt.trim()) {
+    fail('INVALID_REMINDER_SETTINGS');
+  }
+  return {
+    ...input,
+    dismissed: { ...input.dismissed },
+    notificationLeases: { ...notificationLeases },
+    lastNotification: input.lastNotification ?? null,
+  };
+}
+
+/** Quiet hours may wrap midnight. The central reminder list is never muted. */
+export function isReminderQuietHours(
+  settings: Pick<ReviewReminderSettings, 'quietStart' | 'quietEnd'>,
+  localTime: string,
+): boolean {
+  if (!isClock(localTime)) return false;
+  const start = settings.quietStart;
+  const end = settings.quietEnd;
+  if (start === end) return false;
+  if (start < end) return localTime >= start && localTime < end;
+  return localTime >= start || localTime < end;
+}
+
+export function reminderNotificationKey(
+  commitment: Pick<ReviewCommitment, 'id' | 'profileId' | 'currentDueDate'>,
+  civilDay = '',
+): string {
+  return `${commitment.profileId}::${commitment.id}::${commitment.currentDueDate}::${civilDay}`;
 }
 
 export type ReviewTopicLink = {
@@ -362,24 +590,26 @@ export function generateReviewSuggestion(input: {
 }): ReviewSuggestion {
   const topic = validateReviewTopicLink(input.topic);
   const policy = validateReviewPolicy(input.policy);
+  const effective = effectiveReviewPolicy(policy, topic.canonicalTopicKey);
+  const override = policy.overrides?.[topic.canonicalTopicKey];
   const today = requireCivilDate(input.today);
   const stage = Math.max(0, input.stage ?? 0);
   const assessment = input.lastExecution?.assessment ?? 'UNRATED';
   const anchor = input.lastExecution?.civilDate ?? today;
   const multiplier = input.lastExecution
-    ? policyMultiplier(assessment, stage, policy)
+    ? policyMultiplier(assessment, stage, effective)
     : 1;
   const intervalDays = Math.max(
-    policy.minIntervalDays,
+    effective.minIntervalDays,
     Math.min(
-      policy.maxIntervalDays,
-      Math.round(policy.initialIntervalDays * multiplier),
+      effective.maxIntervalDays,
+      Math.round(effective.initialIntervalDays * multiplier),
     ),
   );
   const dueDate = addCivilDays(anchor, intervalDays);
   const duration = estimateReviewDuration({
     durationsMinutes: input.durationsMinutes ?? [],
-    policy,
+    policy: effective,
   });
   const fingerprint = stableStringify({
     topic: topic.canonicalTopicKey,
@@ -404,9 +634,95 @@ export function generateReviewSuggestion(input: {
     policyVersion: policy.version,
     fingerprint,
     explanation: input.lastExecution
-      ? `${assessment} em ${anchor}; intervalo ${intervalDays}d pela política v${policy.version}; duração ${duration.source === 'HISTORY' ? 'medida' : 'fallback'}.`
-      : `Primeira revisão em ${intervalDays}d; duração ${duration.source === 'HISTORY' ? 'medida' : 'fallback'}.`,
+      ? `${assessment} em ${anchor}; intervalo ${intervalDays}d pela política v${policy.version}${override ? ' com ajuste do assunto' : ''}; duração ${duration.source === 'HISTORY' ? 'medida' : 'fallback'}.`
+      : `Primeira revisão em ${intervalDays}d${override ? ' com ajuste do assunto' : ''}; duração ${duration.source === 'HISTORY' ? 'medida' : 'fallback'}.`,
     status: 'PROPOSED',
+  };
+}
+
+export type ReviewPolicyImpactRow = {
+  canonicalTopicKey: string;
+  label: string;
+  previousDueDate: CivilDate;
+  nextDueDate: CivilDate;
+  previousIntervalDays: number;
+  nextIntervalDays: number;
+  changed: boolean;
+};
+
+export type ReviewPolicyImpactPreview = {
+  kind: 'READY';
+  baseVersion: number;
+  baseRevision: number | null;
+  nextPolicy: ReviewPolicy;
+  rows: ReviewPolicyImpactRow[];
+  changedCount: number;
+  explanation: string;
+};
+
+/**
+ * Pure policy/override preview. It compares the suggestions the current and the
+ * proposed policy would produce; no commitment or execution is touched.
+ */
+export function previewReviewPolicyImpact(input: {
+  current: ReviewPolicy;
+  next: ReviewPolicy;
+  topics: ReviewTopicLink[];
+  executions: ReviewExecution[];
+  today: CivilDate;
+}): ReviewPolicyImpactPreview {
+  const current = validateReviewPolicy(input.current);
+  const next = validateReviewPolicy(input.next);
+  const today = requireCivilDate(input.today);
+  const topics = input.topics.filter(
+    (topic) => topic.profileId === current.profileId && topic.tombstone !== true,
+  );
+  const rows = topics
+    .map((topic) => {
+      const topicExecutions = input.executions
+        .filter(
+          (execution) =>
+            execution.profileId === current.profileId &&
+            execution.canonicalTopicKey === topic.canonicalTopicKey &&
+            execution.tombstone !== true,
+        )
+        .sort((a, b) => a.civilDate.localeCompare(b.civilDate));
+      const common = {
+        topic,
+        today,
+        stage: topicExecutions.length,
+        lastExecution: topicExecutions.at(-1) ?? null,
+        durationsMinutes: topicExecutions
+          .map((execution) => execution.durationMinutes)
+          .filter((value): value is number => typeof value === 'number'),
+      };
+      const previous = generateReviewSuggestion({ ...common, policy: current });
+      const candidate = generateReviewSuggestion({ ...common, policy: next });
+      return {
+        canonicalTopicKey: topic.canonicalTopicKey,
+        label: topic.label,
+        previousDueDate: previous.dueDate,
+        nextDueDate: candidate.dueDate,
+        previousIntervalDays: previous.intervalDays,
+        nextIntervalDays: candidate.intervalDays,
+        changed:
+          previous.dueDate !== candidate.dueDate ||
+          previous.intervalDays !== candidate.intervalDays,
+      };
+    })
+    .sort((a, b) => b.changed.toString().localeCompare(a.changed.toString()) || a.label.localeCompare(b.label));
+  const changedCount = rows.filter((row) => row.changed).length;
+  return {
+    kind: 'READY',
+    baseVersion: current.version,
+    baseRevision: current.localRevision,
+    nextPolicy: next,
+    rows,
+    changedCount,
+    explanation:
+      changedCount === 0
+        ? 'Nenhuma sugestão mudaria; compromissos e execuções permanecem intactos.'
+        : `${changedCount} sugestão(ões) mudariam de data/intervalo; compromissos e execuções existentes permanecem intactos.`,
   };
 }
 
@@ -1040,21 +1356,41 @@ export function rankContextPriorities(input: {
   rows.forEach((row, index) => {
     row.rank = index + 1;
   });
+  const dependencyFingerprint = stableStringify({
+    policy: input.policy.version,
+    policyOverrides: input.policy.overrides,
+    topics: input.topics
+      .map((topic) => [
+        topic.id,
+        topic.canonicalTopicKey,
+        topic.label,
+        topic.localRevision,
+        topic.tombstone === true,
+      ])
+      .sort(),
+    matches: input.matches
+      .map((match) => [
+        match.id,
+        match.evidenceId,
+        match.canonicalTopicKey,
+        match.decision,
+        match.localRevision,
+      ])
+      .sort(),
+    evidence: input.evidence
+      .map((item) => [item.id, item.fingerprint, item.version, item.supersedes ?? null])
+      .sort(),
+    examDate: input.examDate ?? null,
+    overrides: input.overrides ?? null,
+    rows: rows.map((row) => [row.canonicalTopicKey, row.score]),
+  });
   return {
-    id: `priority-${input.profileId}-${input.editalId}-${stableStringify({
-      policy: input.policy.version,
-      rows: rows.map((row) => [row.canonicalTopicKey, row.score]),
-      evidence: input.evidence.map((item) => item.fingerprint),
-    }).slice(0, 16)}`,
+    id: `priority-${input.profileId}-${input.editalId}-${dependencyFingerprint.slice(0, 16)}`,
     profileId: input.profileId,
     editalId: input.editalId,
     policyVersion: input.policy.version,
     rows,
-    fingerprint: stableStringify({
-      policy: input.policy.version,
-      rows: rows.map((row) => [row.canonicalTopicKey, row.score]),
-      evidence: input.evidence.map((item) => item.fingerprint),
-    }),
+    fingerprint: dependencyFingerprint,
     generatedAt: input.generatedAt,
     valid: true,
   };

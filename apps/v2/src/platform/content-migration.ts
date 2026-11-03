@@ -344,6 +344,11 @@ function definitions(): StoreDefinition[] {
       indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
     },
     { name: STORES.reviewSettings, keyPath: 'profileId', indexes: [] },
+    {
+      name: STORES.reviewProjections,
+      keyPath: ['profileId', 'id'],
+      indexes: [{ name: 'by_profile', keyPath: 'profileId' }],
+    },
   ];
 }
 

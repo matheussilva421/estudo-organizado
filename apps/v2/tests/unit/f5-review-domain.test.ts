@@ -4,11 +4,13 @@ import {
   calculateWeakPointProjections,
   createDefaultReviewPolicy,
   createReviewTopicLink,
+  effectiveReviewPolicy,
   estimateReviewDuration,
   generateReviewSuggestion,
   matchBoardEvidence,
   nextReviewPolicy,
   parseBoardEvidence,
+  previewReviewPolicyImpact,
   previewPriorityReversal,
   rankContextPriorities,
   recordReviewExecution,
@@ -502,5 +504,106 @@ describe('F5 review domain', () => {
       today,
     })[0]!;
     expect(visible.retention.good).toBe(0);
+  });
+
+  it('F5-T16 previews and applies a per-subject override without touching facts', () => {
+    const other = {
+      ...topic({ id: 'topic-2' }),
+      canonicalTopicKey: 'disc-1::assunto-2',
+      assuntoId: 'assunto-2',
+      label: 'Direitos fundamentais',
+    };
+    const current = { ...policy, overrides: {} };
+    const next = nextReviewPolicy(current, {
+      overrides: {
+        [topic().canonicalTopicKey]: {
+          canonicalTopicKey: topic().canonicalTopicKey,
+          initialIntervalDays: 10,
+          note: 'Assunto com maior retenção',
+          updatedAt: '2026-11-01T12:00:00.000Z',
+        },
+      },
+    });
+    const effective = effectiveReviewPolicy(next, topic().canonicalTopicKey);
+    expect(effective.initialIntervalDays).toBe(10);
+    expect(effective.goodMultiplier).toBe(current.goodMultiplier);
+    const impact = previewReviewPolicyImpact({
+      current,
+      next,
+      topics: [topic(), other],
+      executions: [],
+      today,
+    });
+    expect(impact.kind).toBe('READY');
+    expect(impact.changedCount).toBe(1);
+    expect(impact.rows.find((row) => row.canonicalTopicKey === other.canonicalTopicKey)?.changed).toBe(false);
+    expect(next.version).toBe(current.version + 1);
+    expect(current.overrides).toEqual({});
+  });
+
+  it('F5-T16 rejects unsafe override values instead of silently ignoring them', () => {
+    expect(() =>
+      nextReviewPolicy(policy, {
+        overrides: {
+          [topic().canonicalTopicKey]: {
+            canonicalTopicKey: topic().canonicalTopicKey,
+            initialIntervalDays: 0,
+            updatedAt: '2026-11-01T12:00:00.000Z',
+          },
+        },
+      }),
+    ).toThrowError(/INVALID_OVERRIDE/);
+    expect(() =>
+      nextReviewPolicy(policy, {
+        overrides: {
+          [topic().canonicalTopicKey]: {
+            canonicalTopicKey: 'outro-assunto',
+            updatedAt: '2026-11-01T12:00:00.000Z',
+          },
+        },
+      }),
+    ).toThrowError(/INVALID_OVERRIDE/);
+    expect(() =>
+      nextReviewPolicy(policy, {
+        overrides: {
+          [topic().canonicalTopicKey]: {
+            canonicalTopicKey: topic().canonicalTopicKey,
+            minIntervalDays: 1000,
+            updatedAt: '2026-11-01T12:00:00.000Z',
+          },
+        },
+      }),
+    ).toThrowError(/INVALID_OVERRIDE/);
+  });
+
+  it('F5-T07 bounds estimated duration and ignores impossible samples', () => {
+    expect(
+      estimateReviewDuration({ durationsMinutes: [1, 30, 13 * 60], policy }),
+    ).toMatchObject({ minutes: 16, source: 'HISTORY', samples: 2 });
+    const capped = estimateReviewDuration({
+      durationsMinutes: [500, 600],
+      policy,
+    });
+    expect(capped.minutes).toBe(180);
+    expect(capped.minutes).toBeLessThanOrEqual(180);
+  });
+
+  it('F5-T43 preserves assessment versus reschedule divergences without LWW', () => {
+    const base = applyReviewSuggestion({
+      suggestion: generateReviewSuggestion({ topic: topic(), policy, today }),
+      id: 'commitment-t43',
+      source: 'MANUAL',
+      at: '2026-11-01T10:00:00.000Z',
+    });
+    const local = { ...base, status: 'PARTIALLY_FULFILLED' as const, localRevision: 4 };
+    const incoming = { ...base, currentDueDate: '2026-11-20', localRevision: 5 };
+    const result = reconcileReviewCommitments(local, incoming);
+    expect(result.kind).toBe('CONFLICT');
+    if (result.kind === 'CONFLICT') {
+      expect(result.conflict.local.status).toBe('PARTIALLY_FULFILLED');
+      expect(result.conflict.incoming.currentDueDate).toBe('2026-11-20');
+      expect(result.conflict.local.localRevision).toBe(4);
+      expect(result.conflict.incoming.localRevision).toBe(5);
+    }
   });
 });

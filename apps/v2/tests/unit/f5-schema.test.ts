@@ -17,7 +17,7 @@ beforeEach(async () => {
 describe('F5 schema', () => {
   it('opens the additive database version and creates the review stores', async () => {
     const database = await openV2Database(profileId);
-    expect(database.version).toBe(5);
+    expect(database.version).toBe(6);
     expect(database.version).toBe(LOCAL_DB_VERSION);
     for (const store of [
       STORES.reviewTopics,
@@ -28,6 +28,7 @@ describe('F5 schema', () => {
       STORES.reviewMatches,
       STORES.reviewPriorities,
       STORES.reviewSettings,
+      STORES.reviewProjections,
     ]) {
       expect(database.objectStoreNames.contains(store)).toBe(true);
     }
@@ -73,7 +74,7 @@ describe('F5 schema', () => {
     });
 
     const upgraded = await openV2Database(profileId);
-    expect(upgraded.version).toBe(5);
+    expect(upgraded.version).toBe(6);
     const transaction = upgraded.transaction(STORES.sessions, 'readonly');
     const preserved = (await requestResult(
       transaction.objectStore(STORES.sessions).get([profileId, 'session-v4']),

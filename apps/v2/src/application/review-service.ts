@@ -4,30 +4,38 @@ import {
   cancelCommitment,
   civilToday,
   createDefaultReviewPolicy,
+  createDefaultReviewReminderSettings,
   createReviewTopicLink,
   generateReviewSuggestion,
   matchBoardEvidence,
   nextReviewPolicy,
   parseBoardEvidence,
+  previewReviewPolicyImpact,
   previewPriorityReversal,
   rankContextPriorities,
   recordReviewExecution,
+  isReminderQuietHours,
+  reminderNotificationKey,
   rescheduleCommitment,
+  REVIEW_PROJECTION_ALGORITHM_VERSION,
   stableStringify,
   type BoardEvidence,
   type ContextPriorityProjection,
+  type MaterializedReviewProjection,
   type ReviewAssessment,
   type ReviewCommitment,
   type ReviewCoverage,
   type ReviewExecution,
   type ReviewOutcome,
   type ReviewPolicy,
+  type ReviewPolicyImpactPreview,
+  type ReviewReminderSettings,
+  type ReviewTopicOverride,
   type ReviewSuggestion,
   type ReviewTopicLink,
   type TopicMatchDecision,
   type WeakPointProjection,
 } from '../domain/review';
-import { STORES } from '../platform/indexeddb';
 import type { LocalReviewRepository } from '../platform/local-review-repository';
 import type { LocalSessionRepository } from '../platform/local-session-repository';
 import type { LocalPlanningRepository } from '../platform/local-planning-repository';
@@ -90,8 +98,35 @@ export type ReviewReminderSummary = {
   dueToday: ReviewCommitment[];
   upcoming: ReviewCommitment[];
   message: string;
+  settings: ReviewReminderSettings;
+  dismissedIds: string[];
+  quietActive: boolean;
   /** Best-effort external notification is never promised while the PWA is closed. */
   externalNotificationPromise: false;
+};
+
+export type ExternalNotificationClaim =
+  | 'CLAIMED'
+  | 'DUPLICATE'
+  | 'DISABLED'
+  | 'SUPPRESSED_QUIET';
+
+export type ReviewPolicyPreviewResult =
+  | ReviewPolicyImpactPreview
+  | { kind: 'INVALID'; code: string };
+
+export type WeakPointProjectionStatus = {
+  kind: 'MISSING' | 'READY' | 'STALE';
+  fingerprint: string;
+  rows: number;
+  reason?: string;
+  projection: MaterializedReviewProjection | null;
+};
+
+export type WeakPointProjectionBuild = {
+  projection: MaterializedReviewProjection;
+  batches: number;
+  rows: number;
 };
 
 export class ReviewService {
@@ -148,9 +183,98 @@ export class ReviewService {
     changes: Partial<Omit<ReviewPolicy, 'id' | 'profileId' | 'localRevision' | 'version'>>,
     operationId: string,
   ): Promise<ReviewOutcome<ReviewPolicy>> {
+    const preview = await this.previewPolicyChange(profileId, changes);
+    if (preview.kind !== 'READY') return preview;
+    return this.applyPolicyChange(profileId, preview, operationId);
+  }
+
+  async previewPolicyChange(
+    profileId: string,
+    changes: Partial<Omit<ReviewPolicy, 'id' | 'profileId' | 'localRevision' | 'version'>>,
+  ): Promise<ReviewPolicyPreviewResult> {
+    try {
+      const persisted = await this.repository.listPolicies(profileId);
+      const current =
+        persisted.sort((a, b) => b.version - a.version)[0] ??
+        createDefaultReviewPolicy(profileId);
+      const next = nextReviewPolicy(current, changes);
+      const [topics, executions] = await Promise.all([
+        this.repository.listTopics(profileId),
+        this.repository.listExecutions(profileId),
+      ]);
+      const preview = previewReviewPolicyImpact({
+        current,
+        next,
+        topics,
+        executions,
+        today: this.today(),
+      });
+      return {
+        ...preview,
+        baseRevision: persisted.length > 0 ? current.localRevision : null,
+      };
+    } catch (error) {
+      return {
+        kind: 'INVALID',
+        code:
+          error instanceof Error && 'code' in error
+            ? String((error as { code: unknown }).code)
+            : 'INVALID_POLICY',
+      };
+    }
+  }
+
+  async applyPolicyChange(
+    profileId: string,
+    preview: ReviewPolicyImpactPreview,
+    operationId: string,
+  ): Promise<ReviewOutcome<ReviewPolicy>> {
     const persisted = await this.repository.listPolicies(profileId);
-    const current = persisted.sort((a, b) => b.version - a.version)[0] ?? createDefaultReviewPolicy(profileId);
-    const next = nextReviewPolicy(current, changes);
+    const current =
+      persisted.sort((a, b) => b.version - a.version)[0] ??
+      createDefaultReviewPolicy(profileId);
+    const expectedRevision = persisted.length > 0 ? current.localRevision : null;
+    if (expectedRevision !== preview.baseRevision || current.version !== preview.baseVersion) {
+      return { kind: 'CONFLICT', code: 'STALE_POLICY' };
+    }
+    const result = await this.repository.commit({
+      type: 'SAVE_POLICY',
+      scope: {
+        profileId,
+        operationId,
+        baseRevision: expectedRevision,
+      },
+      policy: preview.nextPolicy,
+    });
+    return result.kind === 'LOCAL_COMMITTED'
+      ? { kind: 'LOCAL_COMMITTED', value: result.value as ReviewPolicy }
+      : (result as ReviewOutcome<ReviewPolicy>);
+  }
+
+  /**
+   * Applies one subject override against the latest persisted policy. Other
+   * subjects' overrides are merged, so a stale tab cannot delete them; the
+   * specific key is still guarded by its last update timestamp.
+   */
+  async applyPolicyOverride(
+    profileId: string,
+    canonicalTopicKey: string,
+    override: ReviewTopicOverride | null,
+    expectedUpdatedAt: string | null,
+    operationId: string,
+  ): Promise<ReviewOutcome<ReviewPolicy>> {
+    const persisted = await this.repository.listPolicies(profileId);
+    const current =
+      persisted.sort((a, b) => b.version - a.version)[0] ??
+      createDefaultReviewPolicy(profileId);
+    const actualUpdatedAt = current.overrides?.[canonicalTopicKey]?.updatedAt ?? null;
+    if (actualUpdatedAt !== expectedUpdatedAt) {
+      return { kind: 'CONFLICT', code: 'STALE_OVERRIDE' };
+    }
+    const overrides = { ...(current.overrides ?? {}) };
+    if (override) overrides[canonicalTopicKey] = override;
+    else delete overrides[canonicalTopicKey];
+    const next = nextReviewPolicy(current, { overrides });
     const result = await this.repository.commit({
       type: 'SAVE_POLICY',
       scope: {
@@ -162,7 +286,7 @@ export class ReviewService {
     });
     return result.kind === 'LOCAL_COMMITTED'
       ? { kind: 'LOCAL_COMMITTED', value: result.value as ReviewPolicy }
-      : result as ReviewOutcome<ReviewPolicy>;
+      : (result as ReviewOutcome<ReviewPolicy>);
   }
 
   async createTopic(
@@ -405,6 +529,10 @@ export class ReviewService {
   }
 
   async weakPoints(profileId: string, today = this.today()): Promise<WeakPointProjection[]> {
+    return (await this.weakPointInputs(profileId, today)).rows;
+  }
+
+  private async weakPointInputs(profileId: string, today = this.today()) {
     const [topics, executions, sessions, policy, conflicts] = await Promise.all([
       this.repository.listTopics(profileId),
       this.repository.listExecutions(profileId),
@@ -413,7 +541,7 @@ export class ReviewService {
       this.sessions.listSessionConflicts(profileId),
     ]);
     const uncertain = uncertainTopicKeys(topics, conflicts);
-    return calculateWeakPointProjections({
+    const rows = calculateWeakPointProjections({
       profileId,
       topics,
       executions,
@@ -422,6 +550,150 @@ export class ReviewService {
       today,
       uncertainTopicKeys: uncertain,
     }).sort((a, b) => a.label.localeCompare(b.label));
+    return {
+      topics,
+      executions,
+      sessions,
+      policy,
+      conflicts,
+      uncertain,
+      today,
+      rows,
+      fingerprint: weakPointsFingerprint({
+        policy,
+        topics,
+        executions,
+        sessions,
+        conflicts,
+        rows,
+        today,
+      }),
+    };
+  }
+
+  async weakPointProjectionStatus(profileId: string): Promise<WeakPointProjectionStatus> {
+    const inputs = await this.weakPointInputs(profileId);
+    const projection = await this.repository.loadProjection(
+      profileId,
+      `weak-points:${profileId}`,
+    );
+    if (!projection) {
+      return { kind: 'MISSING', fingerprint: inputs.fingerprint, rows: inputs.rows.length, projection: null };
+    }
+    if (projection.status !== 'READY') {
+      return {
+        kind: 'STALE',
+        fingerprint: inputs.fingerprint,
+        rows: inputs.rows.length,
+        reason: 'STORED_STALE',
+        projection,
+      };
+    }
+    if (projection.algorithmVersion !== REVIEW_PROJECTION_ALGORITHM_VERSION) {
+      return {
+        kind: 'STALE',
+        fingerprint: inputs.fingerprint,
+        rows: inputs.rows.length,
+        reason: 'ALGORITHM_CHANGED',
+        projection,
+      };
+    }
+    if (
+      projection.fingerprint !== inputs.fingerprint ||
+      projection.policyVersion !== inputs.policy.version
+    ) {
+      return {
+        kind: 'STALE',
+        fingerprint: inputs.fingerprint,
+        rows: inputs.rows.length,
+        reason: 'INPUTS_CHANGED',
+        projection,
+      };
+    }
+    return {
+      kind: 'READY',
+      fingerprint: inputs.fingerprint,
+      rows: inputs.rows.length,
+      projection,
+    };
+  }
+
+  /**
+   * Rebuilds in bounded topic batches. Rows are only published after a second
+   * fingerprint read proves that no dependency changed during the build, and
+   * the repository CAS refuses a generation that lost the publication race.
+   */
+  async rebuildWeakPointsProjection(
+    profileId: string,
+    options: {
+      batchSize?: number;
+      /** Deterministic progress hook used by tests and long-running callers. */
+      onBatch?: (batch: number) => void | Promise<void>;
+    } = {},
+  ): Promise<ReviewOutcome<WeakPointProjectionBuild>> {
+    const batchSize = Math.max(
+      1,
+      Math.min(200, Math.floor(options.batchSize ?? 50) || 50),
+    );
+    const current = await this.repository.loadProjection(
+      profileId,
+      `weak-points:${profileId}`,
+    );
+    const before = await this.weakPointInputs(profileId);
+    const rows: WeakPointProjection[] = [];
+    let batches = 0;
+    for (let offset = 0; offset < before.topics.length; offset += batchSize) {
+      const chunk = before.topics.slice(offset, offset + batchSize);
+      batches += 1;
+      rows.push(
+        ...calculateWeakPointProjections({
+          profileId,
+          topics: chunk,
+          executions: before.executions,
+          sessions: before.sessions,
+          policy: before.policy,
+          today: before.today,
+          uncertainTopicKeys: before.uncertain,
+        }),
+      );
+      await options.onBatch?.(batches);
+    }
+    rows.sort((a, b) => a.label.localeCompare(b.label));
+    const after = await this.weakPointInputs(profileId);
+    if (after.fingerprint !== before.fingerprint) {
+      return { kind: 'BLOCKED', reason: 'INPUTS_CHANGED_DURING_BUILD' };
+    }
+    const record: MaterializedReviewProjection = {
+      id: `weak-points:${profileId}`,
+      profileId,
+      kind: 'WEAK_POINTS',
+      scopeKey: 'profile',
+      algorithmVersion: REVIEW_PROJECTION_ALGORITHM_VERSION,
+      policyVersion: before.policy.version,
+      inputRevision: Math.max(
+        0,
+        ...before.topics.map((item) => item.localRevision),
+        ...before.executions.map((item) => item.localRevision),
+        ...before.sessions.map((item) => item.localRevision),
+      ),
+      fingerprint: before.fingerprint,
+      generationId: crypto.randomUUID(),
+      generatedAt: this.now(),
+      status: 'READY',
+      payload: rows,
+    };
+    const published = await this.repository.publishProjection({
+      record,
+      expectedGenerationId: current?.generationId ?? null,
+      expectedFingerprint: current?.fingerprint ?? null,
+    });
+    if (published.kind !== 'LOCAL_COMMITTED') {
+      return published as ReviewOutcome<WeakPointProjectionBuild>;
+    }
+    return {
+      kind: 'LOCAL_COMMITTED',
+      value: { projection: published.value, batches: Math.max(1, batches), rows: rows.length },
+    };
   }
 
   async saveBoardEvidence(
@@ -484,14 +756,27 @@ export class ReviewService {
     return this.repository.listBoardEvidence(profileId);
   }
 
-  async matchBoardEvidence(profileId: string, evidenceId: string, editalId?: string) {
+  async matchBoardEvidence(
+    profileId: string,
+    evidenceId: string,
+    editalId?: string,
+    excludedEditalIds: string[] = [],
+  ) {
     const [evidence, topics] = await Promise.all([
       this.repository.listBoardEvidence(profileId),
       this.repository.listTopics(profileId),
     ]);
     const item = evidence.find((candidate) => candidate.id === evidenceId);
     if (!item) return { candidates: [], ambiguous: false };
-    return matchBoardEvidence({ evidence: item, topics, editalId });
+    const result = matchBoardEvidence({ evidence: item, topics, editalId });
+    const excluded = new Set(excludedEditalIds);
+    if (excluded.size === 0) return result;
+    return {
+      ...result,
+      candidates: result.candidates.filter(
+        (candidate) => !excluded.has(candidate.topic.editalId),
+      ),
+    };
   }
 
   async confirmMatch(
@@ -566,10 +851,17 @@ export class ReviewService {
   }
 
   async savePriority(profileId: string, priority: ContextPriorityProjection, operationId: string): Promise<ReviewOutcome<ContextPriorityProjection>> {
+    const expected = await this.previewPriorities(profileId, priority.editalId, this.today());
+    if (priority.profileId !== profileId || priority.editalId !== expected.editalId) {
+      return { kind: 'INVALID', code: 'INVALID_PROJECTION_SCOPE' };
+    }
+    if (priority.fingerprint !== expected.fingerprint) {
+      return { kind: 'CONFLICT', code: 'STALE_PROJECTION' };
+    }
     const result = await this.repository.commit({
       type: 'SAVE_PRIORITY',
       scope: { profileId, operationId, baseRevision: null },
-      priority,
+      priority: expected,
     });
     return result.kind === 'LOCAL_COMMITTED'
       ? { kind: 'LOCAL_COMMITTED', value: result.value as ContextPriorityProjection }
@@ -704,7 +996,10 @@ export class ReviewService {
   }
 
   async reminders(profileId: string, today = this.today()): Promise<ReviewReminderSummary> {
-    const commitments = await this.listCommitments(profileId);
+    const [commitments, settings] = await Promise.all([
+      this.listCommitments(profileId),
+      this.getReminderSettings(profileId),
+    ]);
     const overdue = commitments.filter(
       (item) =>
         item.status !== 'CANCELLED' &&
@@ -728,7 +1023,127 @@ export class ReviewService {
       overdue.length + dueToday.length + upcoming.length === 0
         ? 'Nenhuma revisão pendente no horizonte local.'
         : `${overdue.length} atrasada(s), ${dueToday.length} para hoje, ${upcoming.length} próxima(s); a central local permanece disponível offline.`;
-    return { overdue, dueToday, upcoming, message, externalNotificationPromise: false };
+    const dismissedIds = commitments
+      .filter(
+        (item) =>
+          settings.dismissed[item.id]?.dueDate === item.currentDueDate,
+      )
+      .map((item) => item.id);
+    const quietActive = isReminderQuietHours(
+      settings,
+      localClock(this.zone, new Date(this.now())),
+    );
+    return {
+      overdue,
+      dueToday,
+      upcoming,
+      message,
+      settings,
+      dismissedIds,
+      quietActive,
+      externalNotificationPromise: false,
+    };
+  }
+
+  async getReminderSettings(profileId: string): Promise<ReviewReminderSettings> {
+    return (
+      (await this.repository.getReminderSettings(profileId)) ??
+      createDefaultReviewReminderSettings(profileId)
+    );
+  }
+
+  async updateReminderSettings(
+    profileId: string,
+    changes: Partial<
+      Pick<
+        ReviewReminderSettings,
+        'externalNotifications' | 'quietStart' | 'quietEnd'
+      >
+    >,
+  ): Promise<ReviewOutcome<ReviewReminderSettings>> {
+    const stored = await this.repository.getReminderSettings(profileId);
+    const current = stored ?? createDefaultReviewReminderSettings(profileId);
+    return this.repository.saveReminderSettings({
+      settings: {
+        ...current,
+        ...changes,
+        updatedAt: this.now(),
+      },
+      expectedRevision: stored?.localRevision ?? null,
+    });
+  }
+
+  /** Dismissal only hides the external notice; it never fulfils or cancels. */
+  async dismissReminder(
+    profileId: string,
+    commitmentId: string,
+  ): Promise<ReviewOutcome<ReviewReminderSettings>> {
+    const commitment = (await this.listCommitments(profileId)).find(
+      (item) => item.id === commitmentId,
+    );
+    if (!commitment) return { kind: 'INVALID', code: 'COMMITMENT_NOT_FOUND' };
+    const stored = await this.repository.getReminderSettings(profileId);
+    const current = stored ?? createDefaultReviewReminderSettings(profileId);
+    return this.repository.saveReminderSettings({
+      settings: {
+        ...current,
+        dismissed: {
+          ...current.dismissed,
+          [commitment.id]: {
+            dueDate: commitment.currentDueDate,
+            at: this.now(),
+          },
+        },
+        updatedAt: this.now(),
+      },
+      expectedRevision: stored?.localRevision ?? null,
+    });
+  }
+
+  async claimExternalNotification(
+    profileId: string,
+    commitment: Pick<ReviewCommitment, 'id' | 'profileId' | 'currentDueDate'>,
+  ): Promise<ExternalNotificationClaim> {
+    const settings = await this.repository.getReminderSettings(profileId);
+    if (!settings || !settings.externalNotifications) return 'DISABLED';
+    if (
+      isReminderQuietHours(
+        settings,
+        localClock(this.zone, new Date(this.now())),
+      )
+    ) {
+      return 'SUPPRESSED_QUIET';
+    }
+    const key = reminderNotificationKey(commitment, this.today());
+    const claimed = await this.repository.claimNotification(
+      profileId,
+      key,
+      this.now(),
+    );
+    return claimed ? 'CLAIMED' : 'DUPLICATE';
+  }
+
+  /**
+   * Test claim uses an isolated lease. It never consumes the real reminder
+   * key, so a failed Notification constructor cannot silence a commitment.
+   */
+  async claimTestNotification(profileId: string): Promise<ExternalNotificationClaim> {
+    const settings = await this.repository.getReminderSettings(profileId);
+    if (!settings || !settings.externalNotifications) return 'DISABLED';
+    if (
+      isReminderQuietHours(
+        settings,
+        localClock(this.zone, new Date(this.now())),
+      )
+    ) {
+      return 'SUPPRESSED_QUIET';
+    }
+    const claimed = await this.repository.claimNotification(
+      profileId,
+      `test:${profileId}:${this.today()}`,
+      this.now(),
+    );
+    return claimed ? 'CLAIMED' : 'DUPLICATE';
   }
 
   async exportData(profileId: string): Promise<string> {
@@ -822,113 +1237,14 @@ export class ReviewService {
     profileId: string,
     preview: ReviewImportPreview,
     operationId: string,
-  ): Promise<ReviewOutcome<{ applied: number; partial: boolean }>> {
-    if (preview.kind !== 'READY') return { kind: 'INVALID', code: preview.kind };
-    const data = preview.data;
-    let applied = 0;
-    try {
-      for (const [index, topic] of ((data.topics as ReviewTopicLink[]) ?? []).entries()) {
-        const existing = await this.repository.load<ReviewTopicLink>(profileId, STORES.reviewTopics, topic.id);
-        if (existing) {
-          if (!sameImportedValue(existing, topic)) return { kind: 'CONFLICT', code: 'IMPORT_CONFLICT' };
-          continue;
-        }
-        const result = await this.repository.commit({
-          type: 'SAVE_TOPIC',
-          scope: { profileId, operationId: `${operationId}~topic~${index}`, baseRevision: null },
-          topic,
-        });
-        if (result.kind !== 'LOCAL_COMMITTED') return { kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' };
-        applied += 1;
-      }
-      for (const [index, policy] of ((data.policies as ReviewPolicy[]) ?? []).entries()) {
-        const existing = await this.repository.load<ReviewPolicy>(profileId, STORES.reviewPolicies, policy.id);
-        if (existing) {
-          if (!sameImportedValue(existing, policy)) return { kind: 'CONFLICT', code: 'IMPORT_CONFLICT' };
-          continue;
-        }
-        const result = await this.repository.commit({
-          type: 'SAVE_POLICY',
-          scope: { profileId, operationId: `${operationId}~policy~${index}`, baseRevision: null },
-          policy,
-        });
-        if (result.kind !== 'LOCAL_COMMITTED') return { kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' };
-        applied += 1;
-      }
-      for (const [index, commitment] of ((data.commitments as ReviewCommitment[]) ?? []).entries()) {
-        const existing = await this.repository.load<ReviewCommitment>(profileId, STORES.reviewCommitments, commitment.id);
-        if (existing) {
-          if (!sameImportedValue(existing, commitment)) return { kind: 'CONFLICT', code: 'IMPORT_CONFLICT' };
-          continue;
-        }
-        const result = await this.repository.commit({
-          type: 'SAVE_COMMITMENT',
-          scope: { profileId, operationId: `${operationId}~commitment~${index}`, baseRevision: null },
-          commitment,
-        });
-        if (result.kind !== 'LOCAL_COMMITTED') return { kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' };
-        applied += 1;
-      }
-      for (const [index, execution] of ((data.executions as ReviewExecution[]) ?? []).entries()) {
-        const existing = await this.repository.load<ReviewExecution>(profileId, STORES.reviewExecutions, execution.id);
-        if (existing) {
-          if (!sameImportedValue(existing, execution)) return { kind: 'CONFLICT', code: 'IMPORT_CONFLICT' };
-          continue;
-        }
-        const result = await this.repository.commit({
-          type: 'SAVE_EXECUTION',
-          scope: { profileId, operationId: `${operationId}~execution~${index}`, baseRevision: null },
-          execution,
-        });
-        if (result.kind !== 'LOCAL_COMMITTED') return { kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' };
-        applied += 1;
-      }
-      for (const [index, evidence] of ((data.board as BoardEvidence[]) ?? []).entries()) {
-        const existing = await this.repository.load<BoardEvidence>(profileId, STORES.reviewBoardEvidence, evidence.id);
-        if (existing) {
-          if (!sameImportedValue(existing, evidence)) return { kind: 'CONFLICT', code: 'IMPORT_CONFLICT' };
-          continue;
-        }
-        const result = await this.repository.commit({
-          type: 'SAVE_BOARD',
-          scope: { profileId, operationId: `${operationId}~board~${index}`, baseRevision: null },
-          evidence,
-        });
-        if (result.kind !== 'LOCAL_COMMITTED') return { kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' };
-        applied += 1;
-      }
-      for (const [index, match] of ((data.matches as TopicMatchDecision[]) ?? []).entries()) {
-        const existing = await this.repository.load<TopicMatchDecision>(profileId, STORES.reviewMatches, match.id);
-        if (existing) {
-          if (!sameImportedValue(existing, match)) return { kind: 'CONFLICT', code: 'IMPORT_CONFLICT' };
-          continue;
-        }
-        const result = await this.repository.commit({
-          type: 'SAVE_MATCH',
-          scope: { profileId, operationId: `${operationId}~match~${index}`, baseRevision: null },
-          match,
-        });
-        if (result.kind !== 'LOCAL_COMMITTED') return { kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' };
-        applied += 1;
-      }
-      for (const [index, priority] of ((data.priorities as ContextPriorityProjection[]) ?? []).entries()) {
-        const existing = await this.repository.load<ContextPriorityProjection>(profileId, STORES.reviewPriorities, priority.id);
-        if (existing) {
-          if (!sameImportedValue(existing, priority)) return { kind: 'CONFLICT', code: 'IMPORT_CONFLICT' };
-          continue;
-        }
-        const result = await this.repository.commit({
-          type: 'SAVE_PRIORITY',
-          scope: { profileId, operationId: `${operationId}~priority~${index}`, baseRevision: null },
-          priority,
-        });
-        if (result.kind !== 'LOCAL_COMMITTED') return { kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' };
-        applied += 1;
-      }
-      return { kind: 'LOCAL_COMMITTED', value: { applied, partial: false } };
-    } catch {
-      return { kind: 'BLOCKED', reason: 'IMPORT_PARTIAL_NOT_COMMITTED' };
-    }
+  ): Promise<ReviewOutcome<{ applied: number; duplicate: number; receiptId: string }>> {
+    if (preview.kind === 'INVALID') return { kind: 'INVALID', code: preview.reason };
+    if (preview.kind === 'CONFLICT') return { kind: 'CONFLICT', code: preview.reason };
+    return this.repository.commitImport({
+      profileId,
+      operationId,
+      data: preview.data,
+    });
   }
 }
 
@@ -940,20 +1256,23 @@ function addMinutes(time: string, minutes: number): string {
   return `${String(Math.floor(bounded / 60)).padStart(2, '0')}:${String(bounded % 60).padStart(2, '0')}`;
 }
 
+function localClock(zone: string, now: Date): string {
+  try {
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: zone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(now);
+  } catch {
+    return now.toISOString().slice(11, 16);
+  }
+}
+
 function csvCell(value: unknown): string {
   let text = value === undefined || value === null ? '' : String(value);
   if (/^[=+\-@]/.test(text)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
-}
-
-function sameImportedValue(left: unknown, right: unknown): boolean {
-  const strip = (value: unknown): unknown => {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
-    const copy = { ...(value as Record<string, unknown>) };
-    delete copy.localRevision;
-    return copy;
-  };
-  return stableStringify(strip(left)) === stableStringify(strip(right));
 }
 
 function uncertainTopicKeys(topics: ReviewTopicLink[], conflicts: SessionConflict[]): Set<string> {
@@ -971,4 +1290,81 @@ function uncertainTopicKeys(topics: ReviewTopicLink[], conflicts: SessionConflic
     }
   }
   return result;
+}
+
+/**
+ * Dependency fingerprint for the weak-point cache. It intentionally includes
+ * only fields that can change the projection: F2 topic identity/labels, F5
+ * executions, F4 sessions/allocations/measurements, conflicts and the policy.
+ */
+function weakPointsFingerprint(input: {
+  policy: ReviewPolicy;
+  topics: ReviewTopicLink[];
+  executions: ReviewExecution[];
+  sessions: Awaited<ReturnType<LocalSessionRepository['listSessions']>>;
+  conflicts: SessionConflict[];
+  rows: WeakPointProjection[];
+  today: string;
+}): string {
+  return stableStringify({
+    algorithm: REVIEW_PROJECTION_ALGORITHM_VERSION,
+    today: input.today,
+    policy: input.policy,
+    topics: input.topics
+      .map((item) => [
+        item.id,
+        item.canonicalTopicKey,
+        item.label,
+        item.localRevision,
+        item.tombstone === true,
+      ])
+      .sort(),
+    executions: input.executions
+      .map((item) => [
+        item.id,
+        item.canonicalTopicKey,
+        item.civilDate,
+        item.assessment,
+        item.coverage,
+        item.durationMinutes ?? null,
+        item.localRevision,
+        item.tombstone === true,
+      ])
+      .sort(),
+    sessions: input.sessions
+      .map((item) => [
+        item.id,
+        item.localRevision,
+        item.state,
+        item.recordedAtCivilDate ?? null,
+        item.tombstone === true,
+        (item.allocations ?? [])
+          .map((allocation) => [
+            allocation.allocationId,
+            allocation.editalDisciplineId,
+            allocation.assuntoId,
+            allocation.durationMs,
+          ])
+          .sort(),
+        (item.measurements ?? [])
+          .map((measurement) => [
+            measurement.id,
+            measurement.allocationId ?? null,
+            measurement.questions,
+            measurement.correctAnswers,
+          ])
+          .sort(),
+      ])
+      .sort(),
+    conflicts: input.conflicts
+      .map((item) => [
+        item.id,
+        item.status,
+        item.local.localRevision,
+        item.incoming.localRevision,
+        item.resolution ?? null,
+      ])
+      .sort(),
+    rows: input.rows.map((item) => item.fingerprint).sort(),
+  });
 }
