@@ -4,7 +4,7 @@
 **Data:** 2026-11-03 (rodada corretiva sobre o candidato de 2026-11-02)
 **Branch/worktree:** `v2` em `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`
 **Base oficial da rodada:** `origin/v2` = `684e219e4de77b8089e6356f46c231a373068ffe`
-**HEAD de código/testes:** `9967b17`; UI/E2E em `91d7989`; integridade em `d4bbef6`
+**HEAD de código/testes:** `9817fb8`; UI/E2E em `91d7989`; integridade em `d4bbef6`
 **Publicação efetiva:** commit documental desta rodada no topo de `origin/v2`; read-back registrado na entrega
 **main:** `9046cfa`, V1 preservada, sem alteração
 
@@ -126,7 +126,7 @@ benchmark em hardware modesto real; isso continua sendo limitação, não PASS d
 | T35 | PASS | tombstones não ressuscitam |
 | T36 | PASS | perfil diferente exige remapeamento |
 | T37 | PASS | JSON/URL/texto hostil recusado |
-| T38 | PASS | `f5-import-atomic`: transação única, quota/abort/conflito/replay/retry sem parcial |
+| T38 | PASS | `f5-import-atomic`: transação única, quota/abort/conflito/replay/retry e reabertura após falha, sem parcial |
 | T39 | PASS | CSV sem formula injection |
 | T40 | PASS | projeção obsoleta invalidada |
 | T41 | PASS | `f5-projections`: fingerprint, lotes, CAS, status STALE e prioridade obsoleta rejeitada |
