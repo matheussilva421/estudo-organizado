@@ -244,6 +244,10 @@ export function HomeView({ summary, ready, loadError, experienceError, onRetry }
           </a>
         </p>
         <p className="source-note">{summary.source}</p>
+        <p className="source-note" data-testid="f6-global-scope">
+          Inclui compromissos e revisões de todos os editais do perfil; filtros de área não
+          ocultam a central.
+        </p>
       </section>
 
       {summary.empty ? (

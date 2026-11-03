@@ -17,6 +17,7 @@ async function reset(page: Page): Promise<void> {
 test('f6 shell exposes home, typed navigation and browser history', async ({ page }) => {
   await reset(page);
   await expect(page.getByTestId('f6-home')).toBeVisible();
+  await expect(page.getByTestId('f6-global-scope')).toContainText('todos os editais');
 
   const planning = page.getByRole('link', { name: 'Planejamento', exact: true });
   await planning.click();
