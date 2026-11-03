@@ -52,6 +52,22 @@ test('f6 content tree keeps one thousand assuntos paginated and responsive', asy
     await expect(page.locator('.tree-node')).toHaveCount(expected);
     more = page.getByRole('button', { name: /Mostrar mais/ });
   }
+
+  const novo = page.getByLabel('Novo assunto em Direito Constitucional', { exact: true });
+  await novo.fill('Assunto pós-volume');
+  await page.getByRole('button', { name: 'Adicionar assunto' }).click();
+  await expect(novo).toHaveValue('');
+  const persisted = await page.evaluate(async () => {
+    const harness = (window as unknown as HarnessWindow).__v2E2E;
+    const content = await harness.loadContent('local-default');
+    return content.assuntos.length;
+  });
+  expect(persisted).toBe(1001);
+
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await expect(page.locator('.tree-node')).toHaveCount(50);
+  await expect(page.getByRole('button', { name: /Mostrar mais 951 assunto/ })).toBeVisible();
   expect(firstRenderMs).toBeLessThan(10000);
 });
 
