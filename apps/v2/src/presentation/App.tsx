@@ -55,6 +55,12 @@ import { NotFoundView } from './views/NotFoundView';
 import { useHashRoute } from './use-hash-route';
 import { routeHref, routeLabel, type RouteModule } from './routing';
 import {
+  clearLocalDraft,
+  loadLocalDraft,
+  localDraftKey,
+  saveLocalDraft,
+} from './local-drafts';
+import {
   confirmNavigationIntent,
   hasDirtyDrafts,
   installBeforeUnloadGuard,
@@ -65,6 +71,7 @@ const PROFILE_ID = 'local-default';
 const ZONE = 'America/Fortaleza';
 const THEME_KEY = 'estudo-organizado:v2:theme';
 const DENSITY_KEY = 'estudo-organizado:v2:density';
+const SUBJECT_DRAFT_KEY = localDraftKey(PROFILE_ID, 'subject-new');
 
 type ExperienceData = {
   scenarios: PlanningScenario[];
@@ -163,7 +170,16 @@ export function App() {
   const { route, navigate } = useHashRoute();
   const [content, setContent] = useState<ContentSnapshot>(EMPTY_SNAPSHOT);
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
-  const [form, setForm] = useState<FormState>(initialFormState);
+  const [form, setForm] = useState<FormState>(() => {
+    const draft = loadLocalDraft(SUBJECT_DRAFT_KEY);
+    return draft && draft.value.trim().length > 0
+      ? { ...initialFormState, title: draft.value }
+      : initialFormState;
+  });
+  const [draftRestored, setDraftRestored] = useState<boolean>(() => {
+    const draft = loadLocalDraft(SUBJECT_DRAFT_KEY);
+    return Boolean(draft && draft.value.trim().length > 0);
+  });
   const [notice, setNotice] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>(initialTheme);
   const [density, setDensity] = useState<Density>(initialDensity);
@@ -322,6 +338,22 @@ export function App() {
     [refresh],
   );
 
+  function updateSubjectTitle(title: string): void {
+    setForm({ ...form, title, error: null });
+    setDraftRestored(false);
+    if (title.trim().length > 0) {
+      saveLocalDraft({
+        key: SUBJECT_DRAFT_KEY,
+        profileId: PROFILE_ID,
+        entityId: null,
+        baseRevision: null,
+        value: title,
+      });
+    } else {
+      clearLocalDraft(SUBJECT_DRAFT_KEY);
+    }
+  }
+
   async function createSubject(): Promise<void> {
     if (!canSubmitTitle(form.title)) {
       setForm({ ...form, error: 'Informe um nome de disciplina.' });
@@ -337,6 +369,8 @@ export function App() {
         type: 'create',
         title: form.title,
       });
+      clearLocalDraft(SUBJECT_DRAFT_KEY);
+      setDraftRestored(false);
       setForm(initialFormState);
       await refresh();
     } catch (error) {
@@ -653,13 +687,19 @@ export function App() {
         <h2 id="subjects-title">Disciplinas canônicas</h2>
         <SubjectForm
           form={form}
-          onTitleChange={(title) => setForm({ ...form, title, error: null })}
+          onTitleChange={updateSubjectTitle}
           onSubmit={createSubject}
           locked={upgrade.blocked}
         />
         {notice ? (
           <p className="inline-notice" role="alert">
             {notice}
+          </p>
+        ) : null}
+        {draftRestored && form.title.trim().length > 0 ? (
+          <p className="hint" role="status" data-testid="f6-draft-restored">
+            Rascunho local recuperado. Confirme a criação para gravar; nada foi salvo como
+            disciplina ainda.
           </p>
         ) : null}
         <SubjectList subjects={content.subjects} onRename={renameSubject} ready={ready} />
