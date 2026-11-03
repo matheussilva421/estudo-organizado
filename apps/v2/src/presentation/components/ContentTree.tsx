@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { EditalDiscipline } from '../../domain/edital';
 import type { Assunto, Aula, LessonTopicLink } from '../../domain/content';
 import { displayName } from '../../domain/edital';
@@ -19,6 +19,7 @@ type ContentTreeProps = {
   onLinkTopic: (aula: Aula, assunto: Assunto) => Promise<boolean>;
   onUnlinkTopic: (link: LessonTopicLink) => Promise<boolean>;
   locked?: boolean;
+  focusId?: string | null;
 };
 
 export function ContentTree({
@@ -32,6 +33,7 @@ export function ContentTree({
   onLinkTopic,
   onUnlinkTopic,
   locked = false,
+  focusId = null,
 }: ContentTreeProps) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [parentChoices, setParentChoices] = useState<Record<string, string>>({});
@@ -40,13 +42,26 @@ export function ContentTree({
 
   const subjectById = new Map(subjects.map((subject) => [subject.id, subject]));
 
+  useEffect(() => {
+    if (!focusId) return;
+    if (!/^[A-Za-z0-9._~-]{1,128}$/.test(focusId)) return;
+    const element = document.querySelector('[data-entity-id="' + focusId + '"]');
+    if (element) element.scrollIntoView({ block: 'center', behavior: 'auto' });
+  }, [focusId, links, assuntos, aulas]);
+
   function renderAssunto(linkId: string, assunto: Assunto, depth: number): React.ReactNode {
     const children = assuntos.filter(
       (item) => item.editalDisciplineId === linkId && item.parentId === assunto.id,
     );
     const topics = lessonTopics.filter((item) => item.assuntoId === assunto.id);
     return (
-      <li key={assunto.id} className="tree-node" data-depth={depth}>
+      <li
+        key={assunto.id}
+        className={assunto.id === focusId ? 'tree-node tree-node-focused' : 'tree-node'}
+        data-depth={depth}
+        data-entity-id={assunto.id}
+        data-focus={assunto.id === focusId ? 'true' : undefined}
+      >
         <div className="tree-row">
           <span className="tree-title">{assunto.title}</span>
           <span className="tree-meta">{topics.length} aula(s)</span>
@@ -178,7 +193,11 @@ export function ContentTree({
                       !linked.some((topic) => topic.assuntoId === item.id),
                   );
                   return (
-                    <li key={aula.id}>
+                    <li
+                      key={aula.id}
+                      data-entity-id={aula.id}
+                      data-focus={aula.id === focusId ? 'true' : undefined}
+                    >
                       <div className="aula-row">
                         <span>{aula.title}</span>
                         <span className="tree-meta">{linked.length} assunto(s) mapeado(s)</span>
