@@ -22,6 +22,13 @@ import type {
 } from '../domain/review';
 import { useFocusScroll } from './use-focus-scroll';
 import { nextPageLimit, pageItems, REVIEW_PAGE_SIZE } from './pagination';
+import {
+  clearLocalDraft,
+  loadLocalDraft,
+  localDraftKey,
+  saveLocalDraft,
+} from './local-drafts';
+import { useDraftGuard } from './draft-guard';
 type Props = {
   profileId: string;
   content: ContentSnapshot;
@@ -35,6 +42,29 @@ type MatchCandidate = {
   score: number;
   reason: string;
 };
+
+type ReviewBoardDraftValue = {
+  title: string;
+  text: string;
+  sample: string;
+  denominator: string;
+};
+
+function readReviewBoardDraft(key: string): ReviewBoardDraftValue | null {
+  const draft = loadLocalDraft(key);
+  if (!draft) return null;
+  try {
+    const parsed = JSON.parse(draft.value) as Partial<ReviewBoardDraftValue>;
+    return {
+      title: typeof parsed.title === 'string' ? parsed.title : '',
+      text: typeof parsed.text === 'string' ? parsed.text : '',
+      sample: typeof parsed.sample === 'string' ? parsed.sample : '',
+      denominator: typeof parsed.denominator === 'string' ? parsed.denominator : '',
+    };
+  } catch {
+    return null;
+  }
+}
 
 function newId(): string {
   return crypto.randomUUID();
@@ -93,6 +123,8 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
       ),
     [],
   );
+  const boardDraftKey = localDraftKey(profileId, 'review-board');
+  const initialBoardDraft = readReviewBoardDraft(boardDraftKey);
   const [policy, setPolicy] = useState<ReviewPolicy | null>(null);
   const [topics, setTopics] = useState<ReviewTopicLink[]>([]);
   const [commitments, setCommitments] = useState<ReviewCommitment[]>([]);
@@ -111,13 +143,15 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   const [assessmentByCommitment, setAssessmentByCommitment] = useState<Record<string, ReviewAssessment>>({});
   const [rescheduleDates, setRescheduleDates] = useState<Record<string, string>>({});
   const [placement, setPlacement] = useState<{ commitmentId: string; preview: ReviewPlacementPreview } | null>(null);
-  const [boardTitle, setBoardTitle] = useState('');
+  const [boardTitle, setBoardTitle] = useState(() => initialBoardDraft?.title ?? '');
   const [suggestionLimit, setSuggestionLimit] = useState(REVIEW_PAGE_SIZE);
   const [agendaLimit, setAgendaLimit] = useState(REVIEW_PAGE_SIZE);
   const [reminderLimit, setReminderLimit] = useState(REVIEW_PAGE_SIZE);
-  const [boardText, setBoardText] = useState('');
-  const [boardSample, setBoardSample] = useState('');
-  const [boardDenominator, setBoardDenominator] = useState('');
+  const [boardText, setBoardText] = useState(() => initialBoardDraft?.text ?? '');
+  const [boardSample, setBoardSample] = useState(() => initialBoardDraft?.sample ?? '');
+  const [boardDenominator, setBoardDenominator] = useState(
+    () => initialBoardDraft?.denominator ?? '',
+  );
   const [boardMatches, setBoardMatches] = useState<Record<string, { candidates: MatchCandidate[]; ambiguous: boolean }>>({});
   const [importPreview, setImportPreview] = useState<ReviewImportPreview | null>(null);
   const [overrideTopicKey, setOverrideTopicKey] = useState('');
@@ -125,6 +159,32 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   const [overrideNote, setOverrideNote] = useState('');
   const [policyImpact, setPolicyImpact] = useState<ReviewPolicyImpactPreview | null>(null);
   const [overrideMode, setOverrideMode] = useState<'SET' | 'REMOVE'>('SET');
+
+  const boardDraftDirty =
+    boardTitle.trim().length > 0 ||
+    boardText.trim().length > 0 ||
+    boardSample.trim().length > 0 ||
+    boardDenominator.trim().length > 0;
+  useDraftGuard('f5-review-board', boardDraftDirty, 'evidência de banca');
+
+  useEffect(() => {
+    if (!boardDraftDirty) {
+      clearLocalDraft(boardDraftKey);
+      return;
+    }
+    saveLocalDraft({
+      key: boardDraftKey,
+      profileId,
+      entityId: null,
+      baseRevision: null,
+      value: JSON.stringify({
+        title: boardTitle,
+        text: boardText,
+        sample: boardSample,
+        denominator: boardDenominator,
+      }),
+    });
+  }, [boardDraftDirty, boardDraftKey, profileId, boardTitle, boardText, boardSample, boardDenominator]);
   const [overrideBaseUpdatedAt, setOverrideBaseUpdatedAt] = useState<string | null>(null);
   const settingsHydratedRef = useRef(false);
   const [externalEnabled, setExternalEnabled] = useState(false);
