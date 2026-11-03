@@ -4,8 +4,15 @@ import type { Assunto, Aula, LessonTopicLink } from '../../domain/content';
 import { displayName } from '../../domain/edital';
 import type { StudySubject } from '../../domain/subject';
 import { useDraftGuard } from '../draft-guard';
+import {
+  clearLocalDraft,
+  loadLocalDraft,
+  localDraftKey,
+  saveLocalDraft,
+} from '../local-drafts';
 
 type ContentTreeProps = {
+  profileId: string;
   links: EditalDiscipline[];
   assuntos: Assunto[];
   aulas: Aula[];
@@ -24,6 +31,7 @@ type ContentTreeProps = {
 };
 
 export function ContentTree({
+  profileId,
   links,
   assuntos,
   aulas,
@@ -40,7 +48,41 @@ export function ContentTree({
   const [parentChoices, setParentChoices] = useState<Record<string, string>>({});
   const [topicSelection, setTopicSelection] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
-  const draftDirty = Object.values(drafts).some((value) => value.trim().length > 0);
+  function localKeyFor(linkId: string, kind: 'assunto' | 'aula'): string {
+    return localDraftKey(profileId, kind + '-new', linkId);
+  }
+
+  function draftValue(key: string, localKey: string): string {
+    return drafts[key] ?? loadLocalDraft(localKey)?.value ?? '';
+  }
+
+  function changeTreeDraft(key: string, localKey: string, value: string): void {
+    setDrafts((current) => ({ ...current, [key]: value }));
+    if (value.trim()) {
+      saveLocalDraft({
+        key: localKey,
+        profileId,
+        entityId: localKey.split(':').pop() ?? null,
+        baseRevision: null,
+        value,
+      });
+    } else {
+      clearLocalDraft(localKey);
+    }
+  }
+
+  function clearTreeDraft(key: string, localKey: string): void {
+    clearLocalDraft(localKey);
+    setDrafts((current) => ({ ...current, [key]: '' }));
+  }
+
+  const persistedDirty = links.some((link) => {
+    const assunto = loadLocalDraft(localKeyFor(link.id, 'assunto'));
+    const aula = loadLocalDraft(localKeyFor(link.id, 'aula'));
+    return Boolean(assunto?.value.trim() || aula?.value.trim());
+  });
+  const draftDirty =
+    Object.values(drafts).some((value) => value.trim().length > 0) || persistedDirty;
   useDraftGuard('f2-content-tree', draftDirty, 'novo assunto ou aula');
 
   const subjectById = new Map(subjects.map((subject) => [subject.id, subject]));
@@ -96,6 +138,8 @@ export function ContentTree({
         );
         const linkAulas = aulas.filter((item) => item.editalDisciplineId === link.id);
         const draftKey = `${link.id}:assunto`;
+        const draftLocalKey = localKeyFor(link.id, 'assunto');
+        const assuntoDraft = draftValue(draftKey, draftLocalKey);
         const selectedParent = parentChoices[link.id] ?? '';
 
         return (
@@ -115,12 +159,12 @@ export function ContentTree({
               className="inline-form"
               onSubmit={(event) => {
                 event.preventDefault();
-                const value = (drafts[draftKey] ?? '').trim();
+                const value = assuntoDraft.trim();
                 if (!value) return;
                 setBusy(true);
                 void onCreateAssunto(link, value, selectedParent || null)
                   .then((ok) => {
-                    if (ok) setDrafts((current) => ({ ...current, [draftKey]: '' }));
+                    if (ok) clearTreeDraft(draftKey, draftLocalKey);
                   })
                   .finally(() => setBusy(false));
               }}
@@ -128,10 +172,10 @@ export function ContentTree({
               <label htmlFor={`assunto-${link.id}`}>Novo assunto em {label}</label>
               <input
                 id={`assunto-${link.id}`}
-                value={drafts[draftKey] ?? ''}
+                value={assuntoDraft}
                 maxLength={120}
                 onChange={(event) =>
-                  setDrafts((current) => ({ ...current, [draftKey]: event.target.value }))
+                  changeTreeDraft(draftKey, draftLocalKey, event.target.value)
                 }
               />
               <select
@@ -168,12 +212,13 @@ export function ContentTree({
               onSubmit={(event) => {
                 event.preventDefault();
                 const key = `${link.id}:aula`;
-                const value = (drafts[key] ?? '').trim();
+                const localKey = localKeyFor(link.id, 'aula');
+                const value = draftValue(key, localKey).trim();
                 if (!value) return;
                 setBusy(true);
                 void onCreateAula(link, value)
                   .then((ok) => {
-                    if (ok) setDrafts((current) => ({ ...current, [key]: '' }));
+                    if (ok) clearTreeDraft(key, localKey);
                   })
                   .finally(() => setBusy(false));
               }}
@@ -181,10 +226,14 @@ export function ContentTree({
               <label htmlFor={`aula-${link.id}`}>Nova aula em {label}</label>
               <input
                 id={`aula-${link.id}`}
-                value={drafts[`${link.id}:aula`] ?? ''}
+                value={draftValue(`${link.id}:aula`, localKeyFor(link.id, 'aula'))}
                 maxLength={120}
                 onChange={(event) =>
-                  setDrafts((current) => ({ ...current, [`${link.id}:aula`]: event.target.value }))
+                  changeTreeDraft(
+                    `${link.id}:aula`,
+                    localKeyFor(link.id, 'aula'),
+                    event.target.value,
+                  )
                 }
               />
               <button type="submit" className="button-primary" disabled={busy || locked}>

@@ -803,6 +803,7 @@ export function App() {
         ) : null}
         {selected ? (
             <ContentTree
+                profileId={PROFILE_ID}
               focusId={focusedId}
             links={selectedLinks}
             assuntos={scopedAssuntos}
