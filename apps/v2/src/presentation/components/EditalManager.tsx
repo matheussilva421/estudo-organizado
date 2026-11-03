@@ -2,8 +2,15 @@ import { useRef, useState } from 'react';
 import type { Edital } from '../../domain/edital';
 import type { StudySubject } from '../../domain/subject';
 import { useDraftGuard } from '../draft-guard';
+import {
+  clearLocalDraft,
+  loadLocalDraft,
+  localDraftKey,
+  saveLocalDraft,
+} from '../local-drafts';
 
 type EditalManagerProps = {
+  profileId: string;
   editais: Edital[];
   primaryEditalId: string | null;
   subjects: StudySubject[];
@@ -19,6 +26,7 @@ type EditalManagerProps = {
 };
 
 export function EditalManager({
+  profileId,
   editais,
   primaryEditalId,
   subjects,
@@ -32,7 +40,11 @@ export function EditalManager({
   onLinkSubject,
   locked = false,
 }: EditalManagerProps) {
-  const [title, setTitle] = useState('');
+  const createDraftKey = localDraftKey(profileId, 'edital-new');
+  const [title, setTitle] = useState(() => loadLocalDraft(createDraftKey)?.value ?? '');
+  const [draftRestored, setDraftRestored] = useState(() =>
+    Boolean(loadLocalDraft(createDraftKey)?.value.trim()),
+  );
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [renameBase, setRenameBase] = useState<number | null>(null);
@@ -63,13 +75,50 @@ export function EditalManager({
   const selected = editais.find((edital) => edital.id === selectedId) ?? null;
   const isPrimary = (editalId: string) => primaryEditalId === editalId;
 
+  function changeTitle(value: string): void {
+    setTitle(value);
+    setDraftRestored(false);
+    if (value.trim()) {
+      saveLocalDraft({
+        key: createDraftKey,
+        profileId,
+        entityId: null,
+        baseRevision: null,
+        value,
+      });
+    } else {
+      clearLocalDraft(createDraftKey);
+    }
+  }
+
+  function changeRename(value: string): void {
+    setRenameDraft(value);
+    if (!renaming) return;
+    const key = localDraftKey(profileId, 'edital-rename', renaming);
+    if (value.trim()) {
+      saveLocalDraft({
+        key,
+        profileId,
+        entityId: renaming,
+        baseRevision: renameBase,
+        value,
+      });
+    } else {
+      clearLocalDraft(key);
+    }
+  }
+
   async function create(): Promise<void> {
     const normalized = title.trim();
     if (!normalized || busy) return;
     setBusy(true);
     try {
       // Only a real commit clears the draft.
-      if (await onCreate(normalized)) setTitle('');
+      if (await onCreate(normalized)) {
+        clearLocalDraft(createDraftKey);
+        setDraftRestored(false);
+        setTitle('');
+      }
     } finally {
       setBusy(false);
     }
@@ -93,7 +142,7 @@ export function EditalManager({
             value={title}
             maxLength={120}
             placeholder="Ex.: TJPB 2026"
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => changeTitle(event.target.value)}
           />
           <button
             type="submit"
@@ -103,6 +152,11 @@ export function EditalManager({
             Criar edital
           </button>
         </div>
+        {draftRestored && title.trim() ? (
+          <p className="hint" role="status" data-testid="f6-edital-draft-restored">
+            Rascunho de edital recuperado. Confirme a criação para gravar.
+          </p>
+        ) : null}
       </form>
 
       <h3 className="group-title">Ativos</h3>
@@ -134,7 +188,12 @@ export function EditalManager({
                       // The base revision is the one the user saw when opening
                       // the editor, not whatever a background refresh brought.
                       void onRename(edital, next, renameBase ?? edital.localRevision).then((ok) => {
-                        if (ok) closeForm(() => setRenaming(null));
+                        if (ok) {
+                          clearLocalDraft(
+                            localDraftKey(profileId, 'edital-rename', edital.id),
+                          );
+                          closeForm(() => setRenaming(null));
+                        }
                       });
                     }}
                   >
@@ -144,7 +203,7 @@ export function EditalManager({
                       value={renameDraft}
                       maxLength={120}
                       autoFocus
-                      onChange={(event) => setRenameDraft(event.target.value)}
+                      onChange={(event) => changeRename(event.target.value)}
                     />
                     <button type="submit" className="button-primary" disabled={busy}>
                       Salvar
@@ -165,7 +224,10 @@ export function EditalManager({
                       aria-label={`Renomear ${edital.title} (${index + 1})`}
                       onClick={(event) => {
                         openForm(event.currentTarget, () => setRenaming(edital.id));
-                        setRenameDraft(edital.title);
+                        const draft = loadLocalDraft(
+                          localDraftKey(profileId, 'edital-rename', edital.id),
+                        );
+                        setRenameDraft(draft?.value ?? edital.title);
                         setRenameBase(edital.localRevision);
                       }}
                     >

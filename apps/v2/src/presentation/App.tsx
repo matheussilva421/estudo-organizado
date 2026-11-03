@@ -33,11 +33,14 @@ import { SessionWorkspace } from './SessionWorkspace';
 import { ReviewWorkspace } from './ReviewWorkspace';
 import { canSubmitTitle, initialFormState, markSubmitFailure, THEMES, type FormState } from './ui-state';
 import {
-  buildAnalytics,
   buildHomeSummary,
   type AnalyticsSummary,
   type HomeSummary,
 } from '../application/experience-queries';
+import {
+  ExperienceProjectionCache,
+  cachedAnalytics,
+} from '../application/experience-cache';
 import { ReviewService, type ReviewReminderSummary } from '../application/review-service';
 import { LocalPlanningRepository } from '../platform/local-planning-repository';
 import { LocalReviewRepository } from '../platform/local-review-repository';
@@ -194,6 +197,7 @@ export function App() {
   const [experienceError, setExperienceError] = useState(false);
   const [today, setToday] = useState<string>(() => todayInZone());
   const refreshSeq = useRef(0);
+  const [analyticsCache] = useState(() => new ExperienceProjectionCache());
 
   useDraftGuard('f2-subject', form.title.trim().length > 0, 'nova disciplina');
 
@@ -243,6 +247,7 @@ export function App() {
       }
 
       if (generation !== refreshSeq.current) return false;
+      analyticsCache.clear();
       setContent(snapshot);
       setProfile(record);
       setPending(outbox.length);
@@ -269,7 +274,7 @@ export function App() {
     } finally {
       if (generation === refreshSeq.current) setReady(true);
     }
-  }, [contentRepository, profileRepository, reviewService]);
+  }, [analyticsCache, contentRepository, profileRepository, reviewService]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -451,7 +456,8 @@ export function App() {
   );
   const analytics: AnalyticsSummary = useMemo(
     () =>
-      buildAnalytics(
+      cachedAnalytics(
+        analyticsCache,
         {
           profileId: PROFILE_ID,
           content,
@@ -462,7 +468,7 @@ export function App() {
         },
         today,
       ),
-    [content, experience, today],
+    [analyticsCache, content, experience, today],
   );
 
   const routeEditalId =
@@ -579,12 +585,6 @@ export function App() {
           </select>
         </label>
       </header>
-
-      <AppNav
-        current={route.module}
-        attentionCount={attentionCount}
-        reviewCount={homeSummary.counts.reviewsDue}
-      />
 
       <main id="main-content" className="app-main" tabIndex={-1}>
         <p className="route-announcer" role="status" aria-live="polite">
@@ -706,6 +706,7 @@ export function App() {
       </section>
 
       <EditalManager
+            profileId={PROFILE_ID}
         editais={content.editais}
         primaryEditalId={profile?.primaryEditalId ?? null}
         subjects={content.subjects}
@@ -946,6 +947,12 @@ export function App() {
 
         </div>
       </main>
+
+      <AppNav
+        current={route.module}
+        attentionCount={attentionCount}
+        reviewCount={homeSummary.counts.reviewsDue}
+      />
 
       <footer className="app-footnote">
         Os dados ficam no IndexedDB isolado desta origem. Nenhuma sincronização real é executada
