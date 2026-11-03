@@ -49,3 +49,31 @@ export function syncStatusLabel(health: SyncHealth): string {
   }
   return 'Pronto para criar a primeira disciplina';
 }
+
+export type SemanticState =
+  | 'LOADING'
+  | 'EMPTY'
+  | 'PENDING'
+  | 'LOCAL_COMMITTED'
+  | 'FAILED'
+  | 'CONFLICT'
+  | 'STALE'
+  | 'UNAVAILABLE'
+  | 'READY';
+
+export const SEMANTIC_STATE_LABELS: Record<SemanticState, string> = {
+  LOADING: 'Carregando dados locais',
+  EMPTY: 'Sem dados neste perfil',
+  PENDING: 'Alteração pendente de confirmação',
+  LOCAL_COMMITTED: 'Salvo localmente',
+  FAILED: 'Falha ao gravar ou ler',
+  CONFLICT: 'Conflito exige decisão',
+  STALE: 'Dados desatualizados',
+  UNAVAILABLE: 'Serviço indisponível',
+  READY: 'Pronto',
+};
+
+/** Labels are presentation only; service codes remain authoritative. */
+export function semanticStateLabel(state: SemanticState): string {
+  return SEMANTIC_STATE_LABELS[state];
+}

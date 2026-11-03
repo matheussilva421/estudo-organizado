@@ -22,6 +22,10 @@ export function AnalyticsView({ analytics, comparison }: Props) {
       ? null
       : Math.round(analytics.questions.accuracy * 1000) / 10;
   const maxEditalFocus = Math.max(1, ...analytics.byEdital.map((bucket) => bucket.focusMs));
+  const maxDisciplineFocus = Math.max(
+    1,
+    ...analytics.byDiscipline.map((bucket) => bucket.focusMs),
+  );
 
   return (
     <section
@@ -196,6 +200,28 @@ export function AnalyticsView({ analytics, comparison }: Props) {
           {analytics.byDiscipline.length === 0 ? (
             <p className="empty-state">Sem alocações por disciplina no período.</p>
           ) : (
+            <>
+            <div
+              className="bar-chart"
+              role="img"
+              aria-label="Tempo alocado por disciplina no período"
+            >
+              {analytics.byDiscipline.map((bucket) => (
+                <div className="bar-row" key={bucket.id}>
+                  <span className="bar-label">{bucket.label}</span>
+                  <span className="bar-track">
+                    <span
+                      className="bar-fill"
+                      style={{
+                        width:
+                          (Math.max(0, bucket.focusMs) / maxDisciplineFocus) * 100 + '%',
+                      }}
+                    />
+                  </span>
+                  <span className="bar-value">{formatFocusDuration(bucket.focusMs)}</span>
+                </div>
+              ))}
+            </div>
             <table className="data-table">
               <caption className="sr-only">Tempo alocado por disciplina no período</caption>
               <thead>
@@ -213,6 +239,7 @@ export function AnalyticsView({ analytics, comparison }: Props) {
                 ))}
               </tbody>
             </table>
+            </>
           )}
         </section>
       </div>

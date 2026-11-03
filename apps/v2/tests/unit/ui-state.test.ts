@@ -3,6 +3,7 @@ import {
   canSubmitTitle,
   initialFormState,
   markSubmitFailure,
+  semanticStateLabel,
   syncStatusLabel,
   THEMES,
 } from '../../src/presentation/ui-state';
@@ -17,6 +18,15 @@ const localOnly: SyncHealth = {
 };
 
 describe('subject UI state', () => {
+  it('keeps semantic states distinct from service codes', () => {
+    expect(semanticStateLabel('EMPTY')).not.toBe(semanticStateLabel('LOADING'));
+    expect(semanticStateLabel('FAILED')).not.toBe(semanticStateLabel('EMPTY'));
+    expect(semanticStateLabel('PENDING')).not.toBe(
+      semanticStateLabel('LOCAL_COMMITTED'),
+    );
+    expect(semanticStateLabel('CONFLICT')).toContain('Conflito');
+  });
+
   it('blank_title_blocked', () => {
     expect(canSubmitTitle('   ')).toBe(false);
     expect(canSubmitTitle('Direito')).toBe(true);
