@@ -683,6 +683,16 @@ a.button-ghost {
   border-radius: 6px;
 }
 
+.tree-more {
+  list-style: none;
+  margin: 6px 0;
+}
+
+.tree-more button {
+  width: 100%;
+  text-align: left;
+}
+
 :root[data-density='compact'] .panel {
   padding: 14px;
 }

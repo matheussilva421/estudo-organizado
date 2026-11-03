@@ -48,6 +48,8 @@ export function ContentTree({
   const [parentChoices, setParentChoices] = useState<Record<string, string>>({});
   const [topicSelection, setTopicSelection] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [rootLimits, setRootLimits] = useState<Record<string, number>>({});
+  const [childLimits, setChildLimits] = useState<Record<string, number>>({});
   function localKeyFor(linkId: string, kind: 'assunto' | 'aula'): string {
     return localDraftKey(profileId, kind + '-new', linkId);
   }
@@ -98,6 +100,8 @@ export function ContentTree({
     const children = assuntos.filter(
       (item) => item.editalDisciplineId === linkId && item.parentId === assunto.id,
     );
+    const childLimit = childLimits[assunto.id] ?? 50;
+    const visibleChildren = children.slice(0, childLimit);
     const topics = lessonTopics.filter((item) => item.assuntoId === assunto.id);
     return (
       <li
@@ -113,7 +117,23 @@ export function ContentTree({
         </div>
         {children.length > 0 ? (
           <ul className="tree-children">
-            {children.map((child) => renderAssunto(linkId, child, depth + 1))}
+            {visibleChildren.map((child) => renderAssunto(linkId, child, depth + 1))}
+            {children.length > childLimit ? (
+              <li className="tree-more">
+                <button
+                  type="button"
+                  className="button-ghost"
+                  onClick={() =>
+                    setChildLimits((current) => ({
+                      ...current,
+                      [assunto.id]: childLimit + 50,
+                    }))
+                  }
+                >
+                  Mostrar mais {children.length - childLimit} assunto(s) em {assunto.title}
+                </button>
+              </li>
+            ) : null}
           </ul>
         ) : null}
       </li>
@@ -136,6 +156,8 @@ export function ContentTree({
         const roots = assuntos.filter(
           (item) => item.editalDisciplineId === link.id && item.parentId === null,
         );
+        const rootLimit = rootLimits[link.id] ?? 50;
+        const visibleRoots = roots.slice(0, rootLimit);
         const linkAulas = aulas.filter((item) => item.editalDisciplineId === link.id);
         const draftKey = `${link.id}:assunto`;
         const draftLocalKey = localKeyFor(link.id, 'assunto');
@@ -203,7 +225,23 @@ export function ContentTree({
               <p className="empty-state">Sem assuntos nesta disciplina.</p>
             ) : (
               <ul className="tree" aria-label={`Árvore de ${label}`}>
-                {roots.map((root) => renderAssunto(link.id, root, 0))}
+                {visibleRoots.map((root) => renderAssunto(link.id, root, 0))}
+                {roots.length > rootLimit ? (
+                  <li className="tree-more">
+                    <button
+                      type="button"
+                      className="button-ghost"
+                      onClick={() =>
+                        setRootLimits((current) => ({
+                          ...current,
+                          [link.id]: rootLimit + 50,
+                        }))
+                      }
+                    >
+                      Mostrar mais {roots.length - rootLimit} assunto(s) em {label}
+                    </button>
+                  </li>
+                ) : null}
               </ul>
             )}
 
