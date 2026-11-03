@@ -42,6 +42,12 @@ import {
   type SessionAuthority,
 } from '../platform/session-coordination';
 import { useFocusScroll } from './use-focus-scroll';
+import {
+  clearLocalDraft,
+  loadLocalDraft,
+  localDraftKey,
+  saveLocalDraft,
+} from './local-drafts';
 
 const ZONE = 'America/Fortaleza';
 const UPDATE_CHANNEL = 'estudo-organizado-v2-update';
@@ -115,6 +121,28 @@ function todayInZone(): string {
   }).format(new Date());
 }
 
+type ManualDraftValue = {
+  date: string;
+  minutes: string;
+  note: string;
+};
+
+function readManualDraft(key: string): ManualDraftValue | null {
+  const draft = loadLocalDraft(key);
+  if (!draft) return null;
+  try {
+    const parsed = JSON.parse(draft.value) as Partial<ManualDraftValue>;
+    if (typeof parsed.date !== 'string' || typeof parsed.minutes !== 'string') return null;
+    return {
+      date: parsed.date,
+      minutes: parsed.minutes,
+      note: typeof parsed.note === 'string' ? parsed.note : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
 function formatMs(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -158,6 +186,7 @@ export function SessionWorkspace({
   const [recovery, setRecovery] = useState<RecoveryPreview | null>(null);
   const [history, setHistory] = useState<StudySession[]>([]);
   useFocusScroll(focusId, history.length);
+
   const [historyCursor, setHistoryCursor] = useState<string | undefined>(undefined);
   const [habits, setHabits] = useState<StudyHabit[]>([]);
   const [habitSessions, setHabitSessions] = useState<StudySession[]>([]);
@@ -165,9 +194,37 @@ export function SessionWorkspace({
   const [elapsedMs, setElapsedMs] = useState(0);
   const [busy, setBusy] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
-  const [manualDate, setManualDate] = useState(todayInZone());
-  const [manualMinutes, setManualMinutes] = useState('30');
-  const [manualNote, setManualNote] = useState('');
+  const manualDraftKey = localDraftKey(profileId, 'session-manual');
+  const initialManualDraft = readManualDraft(manualDraftKey);
+  const [manualDate, setManualDate] = useState(
+    () => initialManualDraft?.date ?? todayInZone(),
+  );
+  const [manualMinutes, setManualMinutes] = useState(
+    () => initialManualDraft?.minutes ?? '30',
+  );
+  const [manualNote, setManualNote] = useState(() => initialManualDraft?.note ?? '');
+
+  useEffect(() => {
+    const changed =
+      manualNote.trim().length > 0 ||
+      manualMinutes !== '30' ||
+      manualDate !== todayInZone();
+    if (!changed) {
+      clearLocalDraft(manualDraftKey);
+      return;
+    }
+    saveLocalDraft({
+      key: manualDraftKey,
+      profileId,
+      entityId: null,
+      baseRevision: null,
+      value: JSON.stringify({
+        date: manualDate,
+        minutes: manualMinutes,
+        note: manualNote,
+      }),
+    });
+  }, [manualDate, manualMinutes, manualNote, manualDraftKey, profileId]);
   const [recoveryMinutes, setRecoveryMinutes] = useState('0');
   const [planBlockId, setPlanBlockId] = useState('');
   const [questions, setQuestions] = useState('0');
@@ -410,7 +467,10 @@ export function SessionWorkspace({
           session !== null &&
           session.state !== 'COMPLETED' &&
           session.state !== 'CANCELLED',
-        hasUnsavedForm: manualNote.trim().length > 0,
+        hasUnsavedForm:
+          manualNote.trim().length > 0 ||
+          manualMinutes !== '30' ||
+          manualDate !== todayInZone(),
         hasPendingRecovery: recovery !== null,
         databaseCompatible: !getDatabaseUpgradeState().blocked,
         otherTabsReady,
@@ -916,6 +976,10 @@ export function SessionWorkspace({
           }
         }
         const overlaps = await service.findPotentialOverlaps(profileId, manualDate);
+        clearLocalDraft(manualDraftKey);
+        setManualNote('');
+        setManualMinutes('30');
+        setManualDate(todayInZone());
         if (overlaps.length > 1) {
           onNotice('Aviso: já existe outra sessão nesta data; ambos os registros foram preservados.');
         } else {
