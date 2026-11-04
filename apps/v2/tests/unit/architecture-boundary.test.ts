@@ -20,15 +20,28 @@ describe('V2 architecture boundary', () => {
     const forbidden = [
       /from\s+['"][^'"]*\/src\/js\//,
       /from\s+['"][^'"]*\/src\/css\//,
-      /from\s+['"][^'"]*firebase/,
       /from\s+['"][^'"]*wrangler/,
       /EstudoOrganizadoDB/,
     ];
+
+    // F7 approves the Firebase package as the V2 remote backend. Only the
+    // dedicated adapters may import it; local modules whose names contain
+    // "firebase" (for example ./firebase-remote) are not package imports.
+    const firebasePackage = /from\s+['"]firebase(\/|['"])/;
+    const allowedFirebase = new Set([
+      join(SRC, 'platform', 'firebase', 'auth.ts'),
+      join(SRC, 'platform', 'sync', 'firebase-remote.ts'),
+    ]);
 
     const violations = contents.flatMap(({ path, text }) =>
       forbidden
         .filter((pattern) => pattern.test(text))
         .map((pattern) => `${path} matches ${pattern}`),
+    );
+    violations.push(
+      ...contents
+        .filter(({ path, text }) => firebasePackage.test(text) && !allowedFirebase.has(path))
+        .map(({ path }) => `${path} imports the firebase package outside the F7 adapters`),
     );
 
     expect(violations).toEqual([]);
