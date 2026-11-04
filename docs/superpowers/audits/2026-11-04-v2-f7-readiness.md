@@ -5,7 +5,7 @@
 **Não é:** `F7_READY_FOR_HUMAN_REVIEW` nem `F7_ACCEPTED`.  
 **Repositório/worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`, branch `v2`  
 **Baseline remoto:** `origin/v2@6c70fef` (spec/plano/GOAL publicados); `origin/main@9046cfa`  
-**HEAD de código desta execução:** `ff4db1d` (o commit documental deste relatório é posterior)  
+**HEAD de código desta execução:** `df957f6` (o commit documental deste relatório é posterior)  
 **main/V1:** intocada; nenhum merge, deploy, billing, dado real ou escrita em produção.
 
 ## 1. Resultado executivo
@@ -20,7 +20,7 @@ Evidência local mais recente, no HEAD de código:
 | `npm run lint` | PASS |
 | `npm run test:unit` | **717 PASS / 110 arquivos / 0 FAIL** |
 | `npm run build` | PASS (Vite 8.3.5; bundle principal 392,39 kB, React vendor 218,77 kB) |
-| `npm run test:e2e` | **159 PASS + 2 skips conhecidos / 161** |
+| `npm run test:e2e` | **161 PASS + 2 skips conhecidos / 163** |
 | Firebase Emulator Suite | **7 PASS** (5 Rules + 2 transações), projeto `demo-estudo-v2` |
 | E2E focal F7 settings | PASS |
 | E2E focal F7 duas abas | PASS (um único efeito remoto) |
@@ -69,10 +69,10 @@ Estados: `PASS_LOCAL`, `PASS_EMULATOR`, `PASS_E2E`, `NOT_RUN`, `BLOCKED_G-EXT`, 
 | T21 | PASS_LOCAL | `f7-backup-boundaries.test.ts` (6) |
 | T22 | PASS_LOCAL + PASS_E2E | `f7-sync-view.test.ts` (7) + `f7-settings-flow.spec.ts` |
 | T23 | PASS_LOCAL + regressões E2E | `f7-sw-update.test.ts` (5); `f4-update`/`pwa-offline` PASS |
-| T24 | PASS_LOCAL | `f7-storage-health.test.ts` (5) |
+| T24 | PASS_LOCAL + PASS_E2E | `f7-storage-health.test.ts` (5) + `f7-storage-recovery.spec.ts` |
 | T25 | PASS_LOCAL + regressões | `f7-security-inputs.test.ts` (6) + suíte completa |
 | T26 | BLOCKED_G-EXT | Sem Firebase/Cloudflare/dispositivos reais autorizados |
-| T27 | BLOCKED_G-STAGING | `f7-staging-readiness.test.ts` (6); nenhuma URL real |
+| T27 | PASS_LOCAL + BLOCKED_G-STAGING | `f7-staging-readiness.test.ts` (6) + `f7-staging-isolation.spec.ts`; nenhuma URL real |
 
 ## 4. Matriz S01–S25
 
@@ -95,7 +95,7 @@ Estados: `PASS_LOCAL`, `PASS_EMULATOR`, `PASS_E2E`, `NOT_RUN`, `BLOCKED_G-EXT`, 
 | S15 Rules hostis/UID inválido | PASS_EMULATOR | 5 testes negativos |
 | S16 backup/export/restore | PASS_LOCAL | roundtrip cripto e manifesto |
 | S17 cobertura V1/V2 | PASS_LOCAL | matriz sintética; sem PASS real fictício |
-| S18 IndexedDB removido | PASS_LOCAL | saúde de storage sem auto-overwrite |
+| S18 IndexedDB removido | PASS_LOCAL + PASS_E2E | saúde de storage + E2E de remoção sem auto-overwrite |
 | S19 KV Free com Worker/Auth | NOT_RUN | Worker/KV reais exigem G-EXT |
 | S20 backup diário/retenção | PASS_LOCAL | 1/24h, 7 versões |
 | S21 senha/chave/adulteração | PASS_LOCAL | AES-GCM falha fechada |
@@ -165,7 +165,7 @@ Nenhum risco foi convertido em PASS real. A mitigação V2 local não corrige a 
 ## 10. Git
 
 - `origin/v2` inicial: `6c70fef` (spec/plano/GOAL).
-- `v2` local: 29 commits de código/testes até `ff4db1d`, mais o commit documental deste relatório.
+- `v2` local: 32 commits de código/testes até `df957f6`, mais o commit documental deste relatório.
 - `origin/main`/`main`: `9046cfa`, sem alteração.
 - Branch de preservação F5: `6cad56c` (4 commits exclusivos), preservada.
 - Worktrees: principal (main) e `C:/Users/slvma/.codex/worktrees/v2-f4/estudo-organizado` (v2).
