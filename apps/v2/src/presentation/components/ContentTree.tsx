@@ -50,6 +50,7 @@ export function ContentTree({
   const [busy, setBusy] = useState(false);
   const [rootLimits, setRootLimits] = useState<Record<string, number>>({});
   const [childLimits, setChildLimits] = useState<Record<string, number>>({});
+  const [draftSaveFailed, setDraftSaveFailed] = useState(false);
   function localKeyFor(linkId: string, kind: 'assunto' | 'aula'): string {
     return localDraftKey(profileId, kind + '-new', linkId);
   }
@@ -61,15 +62,17 @@ export function ContentTree({
   function changeTreeDraft(key: string, localKey: string, value: string): void {
     setDrafts((current) => ({ ...current, [key]: value }));
     if (value.trim()) {
-      saveLocalDraft({
+      const saved = saveLocalDraft({
         key: localKey,
         profileId,
         entityId: localKey.split(':').pop() ?? null,
         baseRevision: null,
         value,
       });
+      setDraftSaveFailed(!saved);
     } else {
       clearLocalDraft(localKey);
+      setDraftSaveFailed(false);
     }
   }
 
@@ -150,6 +153,12 @@ export function ContentTree({
 
   return (
     <div className="content-tree">
+      {draftSaveFailed ? (
+        <p className="hint" role="status" data-testid="f6-draft-save-failed">
+          Não foi possível preservar este rascunho da árvore. O texto continua nesta aba; não
+          navegue antes de adicionar ou copiar.
+        </p>
+      ) : null}
       {links.map((link) => {
         const subject = subjectById.get(link.subjectId);
         const label = subject ? displayName(subject, link) : '(disciplina indisponível)';

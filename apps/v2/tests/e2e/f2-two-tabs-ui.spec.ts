@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('real_ui_two_tabs_editing_the_same_edital_never_lose_an_update', async ({
+test('real_ui_two_tabs_editing_the_same_edital_requires_an_explicit_stale_choice', async ({
   context,
 }) => {
   const first = await context.newPage();

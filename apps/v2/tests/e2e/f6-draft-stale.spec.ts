@@ -111,8 +111,14 @@ test('f6 draft storage failure is visible and never claims preservation', async 
     };
   });
   await seedEdital(page);
+  await page.getByLabel('Novo edital').fill('Edital sem rascunho durável');
+  await expect(
+    page.getByText(/Não foi possível preservar este rascunho de edital/),
+  ).toBeVisible();
   await page.getByRole('button', { name: /Renomear Título original/ }).click();
   await page.getByLabel('Novo nome').fill('Texto sem rascunho durável');
-  await expect(page.getByTestId('f6-draft-save-failed')).toBeVisible();
+  await expect(
+    page.getByText(/Não foi possível preservar o rascunho neste navegador/),
+  ).toBeVisible();
   await expect(page.getByLabel('Novo nome')).toHaveValue('Texto sem rascunho durável');
 });

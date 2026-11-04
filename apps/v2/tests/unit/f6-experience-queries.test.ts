@@ -627,7 +627,7 @@ describe('f6 analytics projections', () => {
       TODAY,
     );
     expect(analytics.status).toBe('PARTIAL');
-    expect(analytics.warnings.join(' ')).toContain('INCOMING parcial');
+    expect(analytics.warnings.join(' ')).toContain('parcialmente');
     expect(analytics.sessions.focusMs).toBe(30 * 60000);
   });
 

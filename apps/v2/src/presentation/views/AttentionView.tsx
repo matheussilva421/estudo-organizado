@@ -13,9 +13,13 @@ type Props = {
 
 export function AttentionView({ summary, health, pendingOutbox, upgradeBlocked }: Props) {
   const academic = summary.priorities.filter(
-    (item) => item.category !== 'INTEGRIDADE' && item.category !== 'ORIENTACAO',
+    (item) =>
+      item.category !== 'INTEGRIDADE' &&
+      item.category !== 'DIAGNOSTICO' &&
+      item.category !== 'ORIENTACAO',
   );
   const integrity = summary.priorities.filter((item) => item.category === 'INTEGRIDADE');
+  const diagnostic = summary.priorities.filter((item) => item.category === 'DIAGNOSTICO');
   const [permission, setPermission] = useState<NotificationPermission | 'UNSUPPORTED'>(
     () => (typeof Notification === 'undefined' ? 'UNSUPPORTED' : Notification.permission),
   );
@@ -66,6 +70,24 @@ export function AttentionView({ summary, health, pendingOutbox, upgradeBlocked }
                 <a className="button-ghost" href={routeHref(routeForTarget(item.target))}>
                   Resolver
                 </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="panel" aria-labelledby="attention-diagnostic-title" data-testid="f6-diagnostics">
+        <header className="section-header">
+          <h3 id="attention-diagnostic-title">Diagnóstico local</h3>
+          <span className="muted">{diagnostic.length} item(ns)</span>
+        </header>
+        {diagnostic.length === 0 ? (
+          <p className="empty-state">Sem diagnóstico pendente.</p>
+        ) : (
+          <ul className="warning-list">
+            {diagnostic.map((item) => (
+              <li key={item.id}>
+                <strong>{item.title}</strong> — {item.detail}
               </li>
             ))}
           </ul>

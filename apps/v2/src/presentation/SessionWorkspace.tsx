@@ -203,6 +203,7 @@ export function SessionWorkspace({
     () => initialManualDraft?.minutes ?? '30',
   );
   const [manualNote, setManualNote] = useState(() => initialManualDraft?.note ?? '');
+  const [manualDraftFailed, setManualDraftFailed] = useState(false);
 
   useEffect(() => {
     const changed =
@@ -211,9 +212,10 @@ export function SessionWorkspace({
       manualDate !== todayInZone();
     if (!changed) {
       clearLocalDraft(manualDraftKey);
+      queueMicrotask(() => setManualDraftFailed(false));
       return;
     }
-    saveLocalDraft({
+    const saved = saveLocalDraft({
       key: manualDraftKey,
       profileId,
       entityId: null,
@@ -224,6 +226,7 @@ export function SessionWorkspace({
         note: manualNote,
       }),
     });
+    queueMicrotask(() => setManualDraftFailed(!saved));
   }, [manualDate, manualMinutes, manualNote, manualDraftKey, profileId]);
   const [recoveryMinutes, setRecoveryMinutes] = useState('0');
   const [planBlockId, setPlanBlockId] = useState('');
@@ -1302,6 +1305,8 @@ export function SessionWorkspace({
               ...conflict,
               local: appliedSession,
               status: 'OPEN',
+              // Facts were imported, but preserved fields still need a decision.
+              resolution: 'INCOMING',
             });
             setPersistState('SAVED');
           }
@@ -1605,6 +1610,12 @@ export function SessionWorkspace({
               onChange={(event) => setManualNote(event.target.value)}
             />
           </label>
+          {manualDraftFailed ? (
+            <p className="hint" role="status" data-testid="f6-draft-save-failed">
+              Não foi possível preservar o rascunho da sessão manual. O texto continua nesta aba;
+              não recarregue antes de registrar ou copiar.
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={registerManual}

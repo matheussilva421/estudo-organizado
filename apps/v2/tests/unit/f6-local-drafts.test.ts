@@ -6,7 +6,6 @@ import {
   findLocalDraft,
   loadLocalDraft,
   localDraftKey,
-  localEntityDraftKey,
   saveLocalDraft,
 } from '../../src/presentation/local-drafts';
 
@@ -84,8 +83,8 @@ describe('f6 local drafts', () => {
   });
 
   it('keeps per-tab entity drafts and recovers the remaining one after another tab commits', () => {
-    window.sessionStorage.setItem('estudo-organizado:v2:draft-writer', 'tab-a');
-    const keyA = localEntityDraftKey('p1', 'edital-rename', 'e1');
+    const base = localDraftKey('p1', 'edital-rename', 'e1');
+    const keyA = base + ':w:tab-a';
     saveLocalDraft({
       key: keyA,
       profileId: 'p1',
@@ -94,8 +93,7 @@ describe('f6 local drafts', () => {
       value: 'Texto da aba A',
     });
 
-    window.sessionStorage.setItem('estudo-organizado:v2:draft-writer', 'tab-b');
-    const keyB = localEntityDraftKey('p1', 'edital-rename', 'e1');
+    const keyB = base + ':w:tab-b';
     saveLocalDraft({
       key: keyB,
       profileId: 'p1',
@@ -108,10 +106,9 @@ describe('f6 local drafts', () => {
     const recovered = findLocalDraft('p1', 'edital-rename', 'e1');
     expect(recovered?.value).toBe('Texto da aba A');
     expect(recovered?.baseRevision).toBe(1);
-    // The committing tab clears only its own key; the other tab's draft stays
-    // recoverable until that tab decides.
-    window.sessionStorage.setItem('estudo-organizado:v2:draft-writer', 'tab-a');
-    clearEntityDraft('p1', 'edital-rename', 'e1');
+    // The committing tab clears its own key; the source key is cleared only
+    // when that draft is explicitly resolved.
+    clearEntityDraft('p1', 'edital-rename', 'e1', keyA);
     expect(findLocalDraft('p1', 'edital-rename', 'e1')).toBeNull();
   });
 

@@ -13,7 +13,19 @@ export type LocalDraft = {
 };
 
 const PREFIX = 'estudo-organizado:v2:draft:';
-const WRITER_KEY = 'estudo-organizado:v2:draft-writer';
+
+/**
+ * A document-scoped identity. Duplicated tabs copy sessionStorage, so a value
+ * stored there would let two tabs share the same key and overwrite each
+ * other's draft. This id is created once per page execution.
+ */
+const WRITER_ID = (() => {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return 'w-' + Math.random().toString(36).slice(2, 12);
+  }
+})();
 
 export function localDraftKey(
   profileId: string,
@@ -24,16 +36,7 @@ export function localDraftKey(
 }
 
 function writerId(): string {
-  try {
-    let id = window.sessionStorage.getItem(WRITER_KEY);
-    if (!id) {
-      id = crypto.randomUUID();
-      window.sessionStorage.setItem(WRITER_KEY, id);
-    }
-    return id;
-  } catch {
-    return 'no-session';
-  }
+  return WRITER_ID;
 }
 
 /**
@@ -126,9 +129,11 @@ export function clearEntityDraft(
   profileId: string,
   formId: string,
   entityId: string,
+  sourceKey: string | null = null,
 ): void {
   clearLocalDraft(localDraftKey(profileId, formId, entityId));
   clearLocalDraft(localEntityDraftKey(profileId, formId, entityId));
+  if (sourceKey) clearLocalDraft(sourceKey);
 }
 
 /**
@@ -137,7 +142,7 @@ export function clearEntityDraft(
  * before reusing the text; loading a draft never proves it is current.
  */
 export function draftIsStale(
-  draft: LocalDraft | null,
+  draft: Pick<LocalDraft, 'baseRevision'> | null,
   currentRevision: number | null,
 ): boolean {
   if (!draft) return false;

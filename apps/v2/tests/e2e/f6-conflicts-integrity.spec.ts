@@ -81,18 +81,10 @@ test('f6 resolved conflicts stop alerting and partial INCOMING stays diagnostic'
       local,
       incoming,
       kind: 'SAME_FIELD',
-      status: 'RESOLVED',
-      resolution: 'INCOMING',
-    });
-    conflicts.put({
-      id: 'conflict-open',
-      profileId,
-      sessionId: 'session-other',
-      baseRevision: 1,
-      local: { ...local, id: 'session-other' },
-      incoming: { ...incoming, id: 'session-other' },
-      kind: 'SAME_FIELD',
+      // The real F4 flow applies incoming facts but keeps the conflict open
+      // because intervals/links still need a human decision.
       status: 'OPEN',
+      resolution: 'INCOMING',
     });
     await new Promise<void>((resolve, reject) => {
       transaction.oncomplete = () => resolve();
@@ -107,10 +99,27 @@ test('f6 resolved conflicts stop alerting and partial INCOMING stays diagnostic'
   await page.goto('/#/home');
   const priorities = page.getByTestId('f6-priorities');
   await expect(priorities).toContainText('1 conflito(s) de sessão F4');
-  await expect(priorities).toContainText('Conciliação parcial de sessão F4 (INCOMING)');
+  await expect(priorities).toContainText('Sessão importada parcialmente');
+
+  await page.goto('/#/attention');
+  await expect(page.getByTestId('f6-diagnostics')).toContainText(
+    'Sessão importada parcialmente',
+  );
+  await expect(
+    page.locator('section[aria-labelledby="attention-academic-title"]'),
+  ).not.toContainText('Sessão importada parcialmente');
 
   await page.goto('/#/analytics');
   const analytics = page.getByTestId('f6-analytics');
   await expect(analytics).toHaveAttribute('data-analytics-status', 'PARTIAL');
-  await expect(analytics).toContainText('INCOMING parcial');
+  await expect(analytics).toContainText('parcialmente');
+  await expect(analytics).toContainText('Série por dia');
+  await expect(analytics).toContainText('Distribuição por estado');
+  await expect(analytics).toContainText('Contagens não aditivas');
+  await expect(
+    analytics.getByRole('img', { name: 'Tempo executado por dia no período' }),
+  ).toBeVisible();
+  await expect(
+    analytics.getByRole('table', { name: 'Tempo executado por dia no período' }),
+  ).toBeVisible();
 });

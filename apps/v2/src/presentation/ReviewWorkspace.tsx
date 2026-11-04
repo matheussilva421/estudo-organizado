@@ -159,6 +159,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   const [overrideNote, setOverrideNote] = useState('');
   const [policyImpact, setPolicyImpact] = useState<ReviewPolicyImpactPreview | null>(null);
   const [overrideMode, setOverrideMode] = useState<'SET' | 'REMOVE'>('SET');
+  const [boardDraftFailed, setBoardDraftFailed] = useState(false);
 
   const boardDraftDirty =
     boardTitle.trim().length > 0 ||
@@ -170,9 +171,10 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
   useEffect(() => {
     if (!boardDraftDirty) {
       clearLocalDraft(boardDraftKey);
+      queueMicrotask(() => setBoardDraftFailed(false));
       return;
     }
-    saveLocalDraft({
+    const saved = saveLocalDraft({
       key: boardDraftKey,
       profileId,
       entityId: null,
@@ -184,6 +186,7 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
         denominator: boardDenominator,
       }),
     });
+    queueMicrotask(() => setBoardDraftFailed(!saved));
   }, [boardDraftDirty, boardDraftKey, profileId, boardTitle, boardText, boardSample, boardDenominator]);
   const [overrideBaseUpdatedAt, setOverrideBaseUpdatedAt] = useState<string | null>(null);
   const settingsHydratedRef = useRef(false);
@@ -1247,6 +1250,12 @@ export function ReviewWorkspace({ profileId, content, locked, onNotice, focusId 
           Texto da evidência
           <textarea rows={4} value={boardText} onChange={(event) => setBoardText(event.target.value)} />
         </label>
+        {boardDraftFailed ? (
+          <p className="hint" role="status" data-testid="f6-draft-save-failed">
+            Não foi possível preservar o rascunho da banca. O texto continua nesta aba; não
+            recarregue antes de importar ou copiar.
+          </p>
+        ) : null}
         <div className="session-actions">
           <button type="button" onClick={() => void importBoard()} disabled={locked || busy}>
             Importar fonte

@@ -617,7 +617,9 @@ textarea {
 
 .table-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  /* 320px is a comfortable column, never a hard minimum that overflows a
+     320px viewport after the shell padding. */
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 16px;
   margin-top: 18px;
 }

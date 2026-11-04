@@ -189,6 +189,7 @@ export function App() {
     const draft = loadLocalDraft(SUBJECT_DRAFT_KEY);
     return Boolean(draft && draft.value.trim().length > 0);
   });
+  const [subjectDraftFailed, setSubjectDraftFailed] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>(initialTheme);
   const [density, setDensity] = useState<Density>(initialDensity);
@@ -241,7 +242,7 @@ export function App() {
       // Only open conflicts are pending. A resolved INCOMING choice may still
       // preserve local intervals/links, so it downgrades projections to
       // diagnostic instead of claiming a full reconciliation.
-      const partialReconciliation = conflictSplit.resolved.filter(
+      const partialReconciliation = conflicts.filter(
         (conflict) =>
           conflict.resolution === 'INCOMING' &&
           preservedIncomingFields(conflict).length > 0,
@@ -363,15 +364,17 @@ export function App() {
     setForm({ ...form, title, error: null });
     setDraftRestored(false);
     if (title.trim().length > 0) {
-      saveLocalDraft({
+      const saved = saveLocalDraft({
         key: SUBJECT_DRAFT_KEY,
         profileId: PROFILE_ID,
         entityId: null,
         baseRevision: null,
         value: title,
       });
+      setSubjectDraftFailed(!saved);
     } else {
       clearLocalDraft(SUBJECT_DRAFT_KEY);
+      setSubjectDraftFailed(false);
     }
   }
 
@@ -520,6 +523,7 @@ export function App() {
     (pending > 0 ? 1 : 0) +
     (upgrade.blocked ? 1 : 0) +
     (experience.sessionConflicts > 0 ? 1 : 0) +
+    (experience.partialReconciliation > 0 ? 1 : 0) +
     (loadError !== null || experienceError ? 1 : 0);
   const isOverview = route.module === 'overview';
   const showContent = !route.invalid && (isOverview || route.module === 'content');
@@ -668,7 +672,11 @@ export function App() {
 
         {!route.invalid && route.module === 'analytics' ? (
           <div id="analytics-section">
-            <AnalyticsView analytics={analytics} comparison={analyticsComparison} />
+            <AnalyticsView
+              analytics={analytics}
+              comparison={analyticsComparison}
+              stale={loadError !== null || experienceError}
+            />
           </div>
         ) : null}
 
@@ -739,6 +747,12 @@ export function App() {
           <p className="hint" role="status" data-testid="f6-draft-restored">
             Rascunho local recuperado. Confirme a criação para gravar; nada foi salvo como
             disciplina ainda.
+          </p>
+        ) : null}
+        {subjectDraftFailed ? (
+          <p className="hint" role="status" data-testid="f6-draft-save-failed">
+            Não foi possível preservar o rascunho da disciplina neste navegador. O texto continua
+            nesta aba; não navegue antes de adicionar ou copiar.
           </p>
         ) : null}
         <SubjectList subjects={content.subjects} onRename={renameSubject} ready={ready} />

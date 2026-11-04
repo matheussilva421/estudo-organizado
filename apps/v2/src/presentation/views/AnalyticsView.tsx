@@ -7,6 +7,7 @@ import { formatFocusDuration } from '../../application/experience-queries';
 type Props = {
   analytics: AnalyticsSummary;
   comparison: AnalyticsComparison;
+  stale?: boolean;
 };
 
 const STATUS_LABELS: Record<AnalyticsSummary['status'], string> = {
@@ -15,7 +16,7 @@ const STATUS_LABELS: Record<AnalyticsSummary['status'], string> = {
   PARTIAL: 'Dados parciais',
 };
 
-export function AnalyticsView({ analytics, comparison }: Props) {
+export function AnalyticsView({ analytics, comparison, stale = false }: Props) {
   const lowSample = analytics.questions.total > 0 && analytics.questions.total < 10;
   const accuracy =
     analytics.questions.accuracy === null || lowSample
@@ -34,6 +35,7 @@ export function AnalyticsView({ analytics, comparison }: Props) {
       aria-labelledby="analytics-title"
       data-testid="f6-analytics"
       data-analytics-status={analytics.status}
+      data-analytics-stale={stale ? 'true' : undefined}
     >
       <header className="view-header">
         <div>
@@ -44,10 +46,17 @@ export function AnalyticsView({ analytics, comparison }: Props) {
             origem.
           </p>
         </div>
-        <span className={`badge badge-${analytics.status.toLowerCase()}`}>
-          {STATUS_LABELS[analytics.status]}
+        <span className={`badge badge-${stale ? 'partial' : analytics.status.toLowerCase()}`}>
+          {stale ? 'Atualização falhou; números podem estar desatualizados' : STATUS_LABELS[analytics.status]}
         </span>
       </header>
+
+      {stale ? (
+        <div className="inline-notice" role="alert" data-testid="f6-analytics-stale">
+          A última leitura dos dados locais falhou. Os números abaixo são a última foto
+          conhecida e não devem ser tratados como atualizados; tente novamente pela Home.
+        </div>
+      ) : null}
 
       <dl className="scope-grid">
         <div>
@@ -249,7 +258,7 @@ export function AnalyticsView({ analytics, comparison }: Props) {
         <section className="panel" aria-labelledby="analytics-day-title">
           <header className="section-header">
             <h3 id="analytics-day-title">Série por dia</h3>
-            <span className="muted">Somente sessões concluídas e datadas no período</span>
+            <span className="muted">Somente dias com sessão concluída e datada no período</span>
           </header>
           {analytics.byDay.length === 0 ? (
             <p className="empty-state">Sem sessões datadas no período.</p>
@@ -273,7 +282,7 @@ export function AnalyticsView({ analytics, comparison }: Props) {
                 <caption className="sr-only">Tempo executado por dia no período</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Dia</th>
+                    <th scope="col">Dia (AAAA-MM-DD)</th>
                     <th scope="col">Tempo</th>
                     <th scope="col">Sessões</th>
                   </tr>
@@ -295,7 +304,7 @@ export function AnalyticsView({ analytics, comparison }: Props) {
         <section className="panel" aria-labelledby="analytics-state-title">
           <header className="section-header">
             <h3 id="analytics-state-title">Distribuição por estado</h3>
-            <span className="muted">Cada linha tem definição e denominador próprios</span>
+            <span className="muted">Contagens não aditivas; cada linha tem base própria</span>
           </header>
           <table className="data-table">
             <caption className="sr-only">Distribuição das sessões por estado de dados</caption>
@@ -307,27 +316,28 @@ export function AnalyticsView({ analytics, comparison }: Props) {
             </thead>
             <tbody>
               <tr>
-                <th scope="row">Concluídas no período</th>
+                <th scope="row">Concluídas no período (base: período)</th>
                 <td>{analytics.sessions.inPeriod}</td>
               </tr>
               <tr>
-                <th scope="row">Com intervalos recuperados</th>
+                <th scope="row">Com intervalos recuperados (subconjunto do período)</th>
                 <td>{analytics.sessions.recovery}</td>
               </tr>
               <tr>
-                <th scope="row">Sem data civil</th>
+                <th scope="row">Sem data civil (todas as concluídas)</th>
                 <td>{analytics.sessions.undated}</td>
               </tr>
               <tr>
-                <th scope="row">Compartilhadas entre editais</th>
+                <th scope="row">Compartilhadas entre editais (subconjunto do período)</th>
                 <td>{analytics.sharedSessions}</td>
               </tr>
               <tr>
-                <th scope="row">Sem edital vinculado</th>
+                <th scope="row">Sem edital vinculado (subconjunto do período)</th>
                 <td>{analytics.unassignedSessions}</td>
               </tr>
             </tbody>
           </table>
+          <p className="hint">As linhas se sobrepõem e não formam um total aditivo.</p>
         </section>
       </div>
     </section>

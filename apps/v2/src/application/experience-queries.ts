@@ -478,9 +478,9 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
     push({
       id: 'integrity-partial-incoming',
       category: 'DIAGNOSTICO',
-      title: 'Concilia\u00e7\u00e3o parcial de sess\u00e3o F4 (INCOMING)',
+      title: 'Sess\u00e3o importada parcialmente (campos locais preservados)',
       detail:
-        'Fatos importados com campos preservados localmente. A concilia\u00e7\u00e3o integral n\u00e3o est\u00e1 comprovada; revise antes de tratar como consolidado.',
+        'Os fatos importados foram aplicados, mas intervalos e v\u00ednculos locais continuam preservados. A concilia\u00e7\u00e3o integral n\u00e3o est\u00e1 comprovada; revise antes de tratar como consolidado.',
       dueDate: null,
       target: 'sessions',
       severity: 6.6,
@@ -819,7 +819,7 @@ export function buildAnalytics(
   if (partialIncoming > 0) {
     warnings.push(
       String(partialIncoming) +
-        ' concilia\u00e7\u00e3o(\u00f5es) INCOMING parcial(is) preservaram campos locais; os indicadores s\u00e3o diagn\u00f3sticos, n\u00e3o conciliados integralmente.',
+        ' sess\u00e3o(\u00f5es) importada(s) parcialmente: campos locais preservados; os indicadores s\u00e3o diagn\u00f3sticos.',
     );
   }
   const lowSample = questionTotal > 0 && questionTotal < 10;
