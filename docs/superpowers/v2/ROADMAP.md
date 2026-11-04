@@ -67,7 +67,7 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 | **F4 — Execução/sessões** | **F4_ACCEPTED_WITH_RESERVATIONS em 2026-11-01 — código `b51a9d5`, aceite `1e0f918`, integrada à `origin/v2`; 443 unit e 102 E2E (101 PASS + 1 skip); F4-T13 NOT_RUN; quatro HIGH F0 UNVERIFIED; não implantada** | Tempo/histórico confiáveis | Persistência e domínio |
 | **F5 — Revisões/inteligência** | **`F5_ACCEPTED_WITH_RESERVATIONS` em 2026-11-03 — candidato `c358928`, 520 unitários PASS, 114 E2E PASS + 1 skip; integrada à `v2`, sem deploy; F4/capturas e Git preservados; `main` bloqueada; F7 e riscos pendentes** | Revisar e priorizar | F2–F4 |
 | **F6 — Experiência integrada** | **F6_ACCEPTED_WITH_RESERVATIONS em 2026-11-04 — código `4829004`, integração fast-forward autorizada; [aceite](../audits/2026-11-04-v2-f6-acceptance.md)** | Shell/Home/analytics/busca/atenção/configurações com F2–F5 | Dados canônicos por domínio |
-| **F7 — Homologação integrada** | **SPEC/PLANO APROVADOS em 2026-11-04; GOAL preparado, não executado** | Migração, sync, segurança, restore, piloto | F1–F6 |
+| **F7 — Homologação integrada** | **`F7_LOCAL_CODE_COMPLETE` / `F7_BLOCKED_G-EXT_G-STAGING` em 2026-11-04; T01–T25 locais, T26/T27 reais bloqueados** | Migração, sync, segurança, restore, piloto | F1–F6 |
 | **F8 — Cutover** | **SPEC PROPOSTA; G5 bloqueado** | Adoção da V2 como app principal | G5 humano e contingência |
 
 **Importante:** sincronização, backup, segurança, migração e Impeccable **não** começam apenas em F7; cada fatia vertical deve exercitar seus contratos desde F1.
@@ -201,6 +201,8 @@ Manter as 27 decisões arquiteturais, A-01 (Impeccable) e **A-02 (sincronizaçã
 ## 10. F7 — Integração e homologação global
 
 **Gate documental atual (2026-11-04):** a especificação F7 v1.0 e o writing-plans T01–T27 foram aprovados expressamente pelo proprietário; o GOAL está preparado, mas **não executado**. A especificação histórica de 2026-10-28 continua preservada apenas como referência. A nova F7-G exige V2 completamente funcional em URL isolada de avaliação, após G-STAGING, antes de o proprietário decidir transição V1→V2; a opção D-F7-17/C de coexistência bidirecional permanece futura e condicionada a decisão e homologação próprias. A V1 em `main` permanece em produção; nada autoriza billing, dados reais ou alterações produtivas.
+
+**Execução local F7 (2026-11-04):** o GOAL F7 foi executado localmente na `v2` até `ac01335` (27 commits sobre `origin/v2@6c70fef`), com T01–T25 implementadas e testadas e T26/T27 limitadas à preparação local. Evidência: **716 testes unitários PASS (110 arquivos)**, **159 E2E PASS + 2 skips conhecidos**, `typecheck`, `lint` e `build` PASS; **7 testes no Firebase Emulator Suite** (5 de Rules + 2 transacionais) PASS em projeto `demo-estudo-v2`. `main@9046cfa` permaneceu intocada; os três PNGs F4 foram preservados com SHA-256. **Estado:** `F7_LOCAL_CODE_COMPLETE` e `F7_BLOCKED_G-EXT_G-STAGING`, não `F7_READY_FOR_HUMAN_REVIEW` nem `F7_ACCEPTED`: faltam Firebase/Cloudflare reais isolados (G-EXT), URL de avaliação (G-STAGING) e ensaio físico. Relatório único: [readiness F7](../audits/2026-11-04-v2-f7-readiness.md).
 
 
 **Objetivo:** qualificar em conjunto os mecanismos já desenvolvidos nas fases anteriores.
