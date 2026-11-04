@@ -1,0 +1,166 @@
+import type { OutboxOperation, OutboxPayload } from '../../application/sync-types';
+import type { ProfileRecord } from '../../application/profile-service';
+import {
+  openV2Database,
+  requestResult,
+  STORES,
+  transactionDone,
+  type PersistedConflict,
+} from '../indexeddb';
+import type { RemoteEntity } from './remote-schema';
+
+export type ReconcileResult =
+  | { kind: 'APPLY'; next: OutboxPayload }
+  | { kind: 'UNCHANGED' }
+  | { kind: 'CONFLICT'; conflict: { local: unknown; remote: unknown; reason: string } };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sameValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function conflict(local: unknown, remote: unknown, reason: string): ReconcileResult {
+  return { kind: 'CONFLICT', conflict: { local, remote, reason } };
+}
+
+/**
+ * Conservative entity reconciliation. Only disjoint fields are merged; any
+ * same-field divergence or delete-vs-edit keeps both alternatives for a human
+ * decision. Timestamps are never used as a merge authority.
+ */
+export function reconcileRemoteEntity(
+  local: OutboxPayload | null,
+  remote: RemoteEntity,
+  pending: readonly OutboxOperation[],
+): ReconcileResult {
+  const pendingDelete = pending.some(
+    (operation) => operation.entityId === remote.entityId && operation.kind === 'delete',
+  );
+
+  if (remote.deleted) {
+    if (local === null && !pendingDelete) return { kind: 'UNCHANGED' };
+    return conflict(local, null, 'DELETE_VS_EDIT');
+  }
+  if (local === null) {
+    if (pendingDelete) return conflict(null, remote.payload, 'DELETE_VS_EDIT');
+    return remote.payload === null ? { kind: 'UNCHANGED' } : { kind: 'APPLY', next: remote.payload };
+  }
+  if (pendingDelete) return conflict(null, remote.payload, 'DELETE_VS_EDIT');
+  if (remote.payload === null) return conflict(local, null, 'REMOTE_PAYLOAD_MISSING');
+
+  if (sameValue(local, remote.payload)) return { kind: 'UNCHANGED' };
+  if (!isRecord(local) || !isRecord(remote.payload)) {
+    return conflict(local, remote.payload, 'NON_OBJECT_CONFLICT');
+  }
+
+  const localRecord = local as Record<string, unknown>;
+  const remoteRecord = remote.payload as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...localRecord };
+  const divergent: string[] = [];
+  for (const [key, value] of Object.entries(remoteRecord)) {
+    if (!(key in localRecord)) {
+      next[key] = value;
+      continue;
+    }
+    if (!sameValue(localRecord[key], value)) divergent.push(key);
+  }
+  if (divergent.length > 0) {
+    return conflict(local, remote.payload, `FIELD_CONFLICT:${divergent.sort().join(',')}`);
+  }
+  return { kind: 'APPLY', next: next as OutboxPayload };
+}
+
+export type ConflictChoice = 'LOCAL' | 'REMOTE' | 'MANUAL';
+
+function newOperationId(): string {
+  const cryptoApi = globalThis.crypto;
+  if (cryptoApi && typeof cryptoApi.randomUUID === 'function') return cryptoApi.randomUUID();
+  return `conflict-op-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+/**
+ * Resolves one persisted conflict against the exact remote revision seen by the
+ * preview. A newer remote revision or an already resolved row is STALE.
+ */
+export async function resolveRemoteConflict(
+  conflictId: string,
+  choice: ConflictChoice,
+  baseRemoteRevision: number,
+): Promise<'LOCAL_COMMITTED' | 'STALE' | 'FAILED'> {
+  if (!conflictId.trim() || !Number.isInteger(baseRemoteRevision) || baseRemoteRevision < 1) {
+    return 'STALE';
+  }
+  const database = await openV2Database('conflict-resolution').catch(() => null);
+  if (!database) return 'FAILED';
+
+  const read = database.transaction([STORES.conflicts, STORES.profiles], 'readonly');
+  const conflict = (await requestResult(
+    read.objectStore(STORES.conflicts).get(conflictId),
+  )) as PersistedConflict | undefined;
+  if (!conflict || conflict.status !== 'OPEN') return 'STALE';
+  if (conflict.remoteRevision !== baseRemoteRevision) return 'STALE';
+  const profile = (await requestResult(
+    read.objectStore(STORES.profiles).get(conflict.profileId),
+  )) as ProfileRecord | undefined;
+  if (!profile) return 'STALE';
+
+  const transaction = database.transaction([STORES.conflicts, STORES.outbox], 'readwrite');
+  try {
+    const current = (await requestResult(
+      transaction.objectStore(STORES.conflicts).get(conflictId),
+    )) as PersistedConflict | undefined;
+    if (!current || current.status !== 'OPEN' || current.remoteRevision !== baseRemoteRevision) {
+      transaction.abort();
+      return 'STALE';
+    }
+
+    if (choice === 'LOCAL') {
+      const operationId = newOperationId();
+      const operation: OutboxOperation = {
+        operationId,
+        profileId: current.profileId,
+        entityType: current.entityType as OutboxOperation['entityType'],
+        entityId: current.entityId,
+        kind: 'upsert',
+        baseRevision: current.remoteRevision,
+        remoteBaseRevision: current.remoteRevision,
+        payload: current.localPayload as OutboxPayload,
+        schemaVersion: 1,
+        status: 'PENDING',
+        deliveryUid: profile.uid,
+        remoteLibraryId: profile.remoteLibraryId,
+      };
+      transaction.objectStore(STORES.outbox).put(operation);
+      transaction.objectStore(STORES.conflicts).put({
+        ...current,
+        status: 'RESOLVED',
+        resolution: 'LOCAL',
+        resolvedByOperationId: operationId,
+      });
+    } else if (choice === 'REMOTE') {
+      transaction.objectStore(STORES.conflicts).put({
+        ...current,
+        status: 'RESOLVED',
+        resolution: 'REMOTE',
+      });
+    } else {
+      transaction.objectStore(STORES.conflicts).put({
+        ...current,
+        status: 'RESOLVED',
+        resolution: 'MANUAL',
+      });
+    }
+    await transactionDone(transaction);
+    return 'LOCAL_COMMITTED';
+  } catch {
+    try {
+      transaction.abort();
+    } catch {
+      // already aborted
+    }
+    return 'FAILED';
+  }
+}
