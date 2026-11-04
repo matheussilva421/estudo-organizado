@@ -1,6 +1,7 @@
 import type { ThemeOption } from '../ui-state';
 import type { DatabaseUpgradeState } from '../../platform/indexeddb';
 import type { SyncHealth } from '../../application/sync-types';
+import type { ReactNode } from 'react';
 
 export type Density = 'comfortable' | 'compact';
 
@@ -14,6 +15,8 @@ type Props = {
   health: SyncHealth;
   pendingOutbox: number;
   upgrade: DatabaseUpgradeState;
+  googleLink?: ReactNode;
+  backupControls?: ReactNode;
 };
 
 export function SettingsView({
@@ -26,6 +29,8 @@ export function SettingsView({
   health,
   pendingOutbox,
   upgrade,
+  googleLink,
+  backupControls,
 }: Props) {
   return (
     <section className="view settings-view" aria-labelledby="settings-title" data-testid="f6-settings">
@@ -77,6 +82,20 @@ export function SettingsView({
           viewport não interrompe uma sessão F4 em andamento.
         </p>
       </section>
+
+      {googleLink || backupControls ? (
+        <section className="panel" aria-labelledby="settings-cloud-title">
+          <header className="section-header">
+            <h3 id="settings-cloud-title">Conta e backup</h3>
+          </header>
+          <p className="muted">
+            Login, sincronização e backup são estados independentes. Nenhuma ação remota ocorre
+            sem configuração e consentimento explícitos.
+          </p>
+          {googleLink}
+          {backupControls}
+        </section>
+      ) : null}
 
       <section className="panel" aria-labelledby="settings-integrity-title">
         <header className="section-header">

@@ -28,6 +28,8 @@ import { ImportPreview } from './components/ImportPreview';
 import { SubjectForm } from './components/SubjectForm';
 import { SubjectList } from './components/SubjectList';
 import { SyncStatus } from './components/SyncStatus';
+import { GoogleLink } from './components/GoogleLink';
+import { BackupControls, type BackupHealth } from './components/BackupControls';
 import { PlanningWorkspace } from './PlanningWorkspace';
 import { SessionWorkspace } from './SessionWorkspace';
 import { ReviewWorkspace } from './ReviewWorkspace';
@@ -453,6 +455,17 @@ export function App() {
     pendingCount: pending,
     mode: profile?.state ?? 'LOCAL_ONLY',
   });
+  const backupHealth: BackupHealth = {
+    status: 'NONE',
+    lastVerifiedAt: null,
+    versions: 0,
+  };
+  const googleStatus =
+    profile?.state === 'READY'
+      ? 'READY'
+      : profile?.state === 'PAUSED_AUTH'
+        ? 'PAUSED_AUTH'
+        : 'LOCAL_ONLY';
 
   const homeSummary: HomeSummary = useMemo(
     () =>
@@ -640,7 +653,7 @@ export function App() {
           {routeLabel(route.module)}
         </p>
 
-        <SyncStatus health={health} />
+        <SyncStatus health={health} backupHealth={backupHealth} />
 
         {route.invalid ? <NotFoundView /> : null}
 
@@ -712,6 +725,10 @@ export function App() {
               health={health}
               pendingOutbox={pending}
               upgrade={upgrade}
+              googleLink={<GoogleLink status={googleStatus} email={null} />}
+              backupControls={
+                <BackupControls health={backupHealth} recoverySecretConfigured={false} />
+              }
             />
           </div>
         ) : null}

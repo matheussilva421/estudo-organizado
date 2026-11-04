@@ -4,12 +4,15 @@ import {
   syncStatusLabel,
   type SemanticState,
 } from '../ui-state';
+import type { BackupHealth } from './BackupControls';
 
 type SyncStatusProps = {
   health: SyncHealth;
+  backupHealth?: BackupHealth;
+  onSyncNow?: () => void;
 };
 
-export function SyncStatus({ health }: SyncStatusProps) {
+export function SyncStatus({ health, backupHealth, onSyncNow }: SyncStatusProps) {
   const state: SemanticState = !health.localCommitted
     ? 'EMPTY'
     : health.pendingCount > 0
@@ -25,6 +28,16 @@ export function SyncStatus({ health }: SyncStatusProps) {
         {syncStatusLabel(health)}
       </p>
       <p className="sr-only">{semanticStateLabel(state)}</p>
+      {backupHealth ? (
+        <p className="muted" data-backup-status={backupHealth.status}>
+          {backupHealth.status === 'VERIFIED' ? 'Backup confirmado' : 'Backup não confirmado'}
+        </p>
+      ) : null}
+      {onSyncNow ? (
+        <button type="button" className="button-ghost" onClick={onSyncNow}>
+          Sincronizar agora
+        </button>
+      ) : null}
       <dl className="sync-confirmations">
         <div>
           <dt>Local</dt>
