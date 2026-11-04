@@ -1,5 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
+// 24 full-page screenshots across themes and viewports need headroom when the
+// full suite runs in parallel.
+test.setTimeout(90_000);
+
 const THEMES = [
   'grafite',
   'ardosia',

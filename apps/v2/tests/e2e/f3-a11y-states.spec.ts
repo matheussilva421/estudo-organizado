@@ -217,7 +217,9 @@ test('keyboard_focus_is_visible_ordered_and_not_trapped', async ({ page }) => {
 
   const names: string[] = [];
   const ringSamples: number[] = [];
-  for (let step = 0; step < 40; step += 1) {
+  // The primary navigation now precedes main in DOM (matching the visual
+  // sidebar/rail), so the traversal needs those nine extra stops.
+  for (let step = 0; step < 60; step += 1) {
     await page.keyboard.press('Tab');
     const current = await page.evaluate(() => {
       const active = document.activeElement as HTMLElement | null;

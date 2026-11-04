@@ -35,7 +35,7 @@ export function AppNav({ current, attentionCount, reviewCount }: Props) {
                 aria-current={active ? 'page' : undefined}
                 data-nav={module}
               >
-                <span>{routeLabel(module)}</span>
+                <span className="nav-label">{routeLabel(module)}</span>
                 {badge > 0 ? (
                   <span className="nav-badge" aria-label={badge + ' pendência(s)'}>
                     {badge}

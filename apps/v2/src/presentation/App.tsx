@@ -629,6 +629,12 @@ export function App() {
         </label>
       </header>
 
+      <AppNav
+        current={route.module}
+        attentionCount={attentionCount}
+        reviewCount={homeSummary.counts.reviewsDue}
+      />
+
       <main id="main-content" className="app-main" tabIndex={-1}>
         <p className="route-announcer" role="status" aria-live="polite">
           {routeLabel(route.module)}
@@ -1001,12 +1007,6 @@ export function App() {
 
         </div>
       </main>
-
-      <AppNav
-        current={route.module}
-        attentionCount={attentionCount}
-        reviewCount={homeSummary.counts.reviewsDue}
-      />
 
       <footer className="app-footnote">
         Os dados ficam no IndexedDB isolado desta origem. Nenhuma sincronização real é executada
