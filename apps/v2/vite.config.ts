@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => ({
+  envPrefix: 'VITE_',
   define: {
     __V2_E2E__: JSON.stringify(mode === 'e2e'),
   },
