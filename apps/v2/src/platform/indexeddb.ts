@@ -505,3 +505,64 @@ export async function getConflicts(profileId: string): Promise<PersistedConflict
   const index = transaction.objectStore(STORES.conflicts).index('by_profile');
   return requestResult(index.getAll(profileId)) as Promise<PersistedConflict[]>;
 }
+
+export type SyncCursor = {
+  profileId: string;
+  uid: string;
+  libraryId: string;
+  epoch: number;
+  cursor: number;
+  updatedAt: string;
+};
+
+function cursorKey(profileId: string): string {
+  return `sync-cursor:${profileId}`;
+}
+
+export async function getSyncCursor(profileId: string): Promise<SyncCursor | null> {
+  if (!profileId.trim()) return null;
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.meta, 'readonly');
+  const stored = (await requestResult(
+    transaction.objectStore(STORES.meta).get(cursorKey(profileId)),
+  )) as { value?: SyncCursor } | undefined;
+  return stored?.value ?? null;
+}
+
+export async function setSyncCursor(
+  profileId: string,
+  cursor: Omit<SyncCursor, 'profileId' | 'updatedAt'>,
+): Promise<void> {
+  if (!profileId.trim()) {
+    throw new LocalPersistenceError('UNAVAILABLE', 'profileId is required', false);
+  }
+  if (!Number.isInteger(cursor.epoch) || cursor.epoch < 0) {
+    throw new LocalPersistenceError('UNAVAILABLE', 'epoch must be a non-negative integer', false);
+  }
+  if (!Number.isInteger(cursor.cursor) || cursor.cursor < 0) {
+    throw new LocalPersistenceError('UNAVAILABLE', 'cursor must be a non-negative integer', false);
+  }
+  const database = await openV2Database(profileId);
+  const transaction = database.transaction(STORES.meta, 'readwrite');
+  try {
+    transaction.objectStore(STORES.meta).put({
+      key: cursorKey(profileId),
+      value: {
+        profileId,
+        uid: cursor.uid,
+        libraryId: cursor.libraryId,
+        epoch: cursor.epoch,
+        cursor: cursor.cursor,
+        updatedAt: new Date().toISOString(),
+      } satisfies SyncCursor,
+    });
+    await transactionDone(transaction);
+  } catch (error) {
+    try {
+      transaction.abort();
+    } catch {
+      // already aborted
+    }
+    throw toLocalPersistenceError(error);
+  }
+}
