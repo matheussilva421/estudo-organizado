@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests",
     "test:unit": "vitest run",
+    "test:firebase": "vitest run --config vitest.firebase.config.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

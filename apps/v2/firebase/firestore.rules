@@ -1,0 +1,135 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validId(value) {
+      return value is string && value.size() > 0 && value.size() <= 200;
+    }
+
+    function validLibrary(value) {
+      return value is string && value.matches('^[A-Za-z0-9_-]{1,128}$');
+    }
+
+    function validEnvelope(data) {
+      return data.keys().hasOnly([
+          'entityId', 'entityType', 'schemaVersion', 'revision', 'deleted',
+          'payload', 'epoch', 'uid'
+        ])
+        && validId(data.entityId)
+        && data.entityType is string
+        && data.entityType.size() > 0
+        && data.entityType.size() <= 80
+        && data.schemaVersion is int
+        && data.schemaVersion >= 1
+        && data.schemaVersion <= 100
+        && data.revision is int
+        && data.revision >= 1
+        && data.revision <= 1000000000
+        && data.deleted is bool
+        && data.epoch is int
+        && data.epoch >= 0
+        && data.epoch <= 1000000000
+        && data.uid is string
+        && data.uid == request.auth.uid
+        && (data.payload == null || data.payload is map);
+    }
+
+    function validOperation(data) {
+      return data.keys().hasOnly([
+          'operationId', 'entityId', 'payloadDigest', 'revision',
+          'changeSequence', 'uid'
+        ])
+        && validId(data.operationId)
+        && validId(data.entityId)
+        && data.payloadDigest is string
+        && data.payloadDigest.matches('^[a-fA-F0-9]{64}$')
+        && data.revision is int
+        && data.revision >= 1
+        && data.revision <= 1000000000
+        && data.changeSequence is int
+        && data.changeSequence >= 1
+        && data.changeSequence <= 1000000000
+        && data.uid is string
+        && data.uid == request.auth.uid;
+    }
+
+    function validChange(data) {
+      return data.keys().hasOnly([
+          'sequence', 'entityId', 'revision', 'deleted', 'epoch', 'uid'
+        ])
+        && data.sequence is int
+        && data.sequence >= 1
+        && data.sequence <= 1000000000
+        && validId(data.entityId)
+        && data.revision is int
+        && data.revision >= 1
+        && data.revision <= 1000000000
+        && data.deleted is bool
+        && data.epoch is int
+        && data.epoch >= 0
+        && data.epoch <= 1000000000
+        && data.uid is string
+        && data.uid == request.auth.uid;
+    }
+
+    function validHead(data) {
+      return data.keys().hasOnly(['epoch', 'changeSequence', 'uid'])
+        && data.epoch is int
+        && data.epoch >= 0
+        && data.epoch <= 1000000000
+        && data.changeSequence is int
+        && data.changeSequence >= 0
+        && data.changeSequence <= 1000000000
+        && data.uid is string
+        && data.uid == request.auth.uid;
+    }
+
+    match /users/{uid} {
+      match /libraries/{remoteLibraryId} {
+        allow read, write: if owns(uid) && validLibrary(remoteLibraryId);
+
+        match /entities/{entityId} {
+          allow read: if owns(uid) && validLibrary(remoteLibraryId);
+          allow create, update: if owns(uid)
+            && validLibrary(remoteLibraryId)
+            && entityId == request.resource.data.entityId
+            && validEnvelope(request.resource.data);
+          allow delete: if false;
+        }
+
+        match /operations/{operationId} {
+          allow read: if owns(uid) && validLibrary(remoteLibraryId);
+          allow create: if owns(uid)
+            && validLibrary(remoteLibraryId)
+            && operationId == request.resource.data.operationId
+            && validOperation(request.resource.data);
+          allow update, delete: if false;
+        }
+
+        match /changes/{changeId} {
+          allow read: if owns(uid) && validLibrary(remoteLibraryId);
+          allow create: if owns(uid)
+            && validLibrary(remoteLibraryId)
+            && validChange(request.resource.data);
+          allow update, delete: if false;
+        }
+
+        match /meta/{metaId} {
+          allow read: if owns(uid) && validLibrary(remoteLibraryId);
+          allow write: if metaId == 'head'
+            && owns(uid)
+            && validLibrary(remoteLibraryId)
+            && validHead(request.resource.data);
+        }
+      }
+    }
+  }
+}
