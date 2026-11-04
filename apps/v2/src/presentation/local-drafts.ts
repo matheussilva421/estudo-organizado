@@ -13,6 +13,7 @@ export type LocalDraft = {
 };
 
 const PREFIX = 'estudo-organizado:v2:draft:';
+const WRITER_KEY = 'estudo-organizado:v2:draft-writer';
 
 export function localDraftKey(
   profileId: string,
@@ -20,6 +21,57 @@ export function localDraftKey(
   entityId: string | null = null,
 ): string {
   return PREFIX + profileId + ':' + formId + ':' + (entityId ?? 'new');
+}
+
+function writerId(): string {
+  try {
+    let id = window.sessionStorage.getItem(WRITER_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      window.sessionStorage.setItem(WRITER_KEY, id);
+    }
+    return id;
+  } catch {
+    return 'no-session';
+  }
+}
+
+/**
+ * Entity drafts are scoped to the editing tab so two tabs on the same record
+ * cannot overwrite each other's text. The base key stays stable for lookup.
+ */
+export function localEntityDraftKey(
+  profileId: string,
+  formId: string,
+  entityId: string,
+): string {
+  return localDraftKey(profileId, formId, entityId) + ':w:' + writerId();
+}
+
+/**
+ * Finds the newest recoverable draft for an entity, regardless of the tab that
+ * wrote it. A committed command clears only its own draft.
+ */
+export function findLocalDraft(
+  profileId: string,
+  formId: string,
+  entityId: string,
+): LocalDraft | null {
+  const base = localDraftKey(profileId, formId, entityId) + ':w:';
+  let best: LocalDraft | null = null;
+  try {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key || !key.startsWith(base)) continue;
+      const draft = loadLocalDraft(key);
+      if (!draft) continue;
+      if (!best || draft.savedAt > best.savedAt) best = draft;
+    }
+  } catch {
+    return best;
+  }
+  if (best) return best;
+  return loadLocalDraft(localDraftKey(profileId, formId, entityId));
 }
 
 export function saveLocalDraft(
@@ -67,5 +119,29 @@ export function clearLocalDraft(key: string): void {
   } catch {
     // A failed cleanup must not turn a confirmed command into a failure.
   }
+}
+
+/** Clears both the per-tab entity draft and the legacy shared key. */
+export function clearEntityDraft(
+  profileId: string,
+  formId: string,
+  entityId: string,
+): void {
+  clearLocalDraft(localDraftKey(profileId, formId, entityId));
+  clearLocalDraft(localEntityDraftKey(profileId, formId, entityId));
+}
+
+/**
+ * A draft is stale when the entity revision it was written against no longer
+ * matches the canonical record. The caller must ask for an explicit decision
+ * before reusing the text; loading a draft never proves it is current.
+ */
+export function draftIsStale(
+  draft: LocalDraft | null,
+  currentRevision: number | null,
+): boolean {
+  if (!draft) return false;
+  if (draft.baseRevision === null || currentRevision === null) return false;
+  return draft.baseRevision !== currentRevision;
 }
 

@@ -299,6 +299,7 @@ export function searchExperience(
 export type PriorityCategory =
   | 'SESSAO_ATIVA'
   | 'INTEGRIDADE'
+  | 'DIAGNOSTICO'
   | 'REVISAO_ATRASADA'
   | 'ATRASO_REAL'
   | 'REVISAO_HOJE'
@@ -349,6 +350,7 @@ export type HomeInput = {
   pendingOutbox: number;
   upgradeBlocked: boolean;
   sessionConflicts?: number;
+  partialReconciliation?: number;
   dataError?: boolean;
 };
 
@@ -450,12 +452,12 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
   if (input.pendingOutbox > 0) {
     push({
       id: 'integrity-outbox',
-      category: 'INTEGRIDADE',
+      category: 'DIAGNOSTICO',
       title: `${input.pendingOutbox} opera\u00e7\u00e3o(\u00f5es) aguardando envio remoto`,
-      detail: 'O commit local est\u00e1 confirmado; envio remoto e converg\u00eancia n\u00e3o est\u00e3o comprovados nesta fase.',
+      detail: 'Diagn\u00f3stico: o commit local est\u00e1 confirmado; envio remoto e converg\u00eancia n\u00e3o est\u00e3o comprovados nesta fase. Isto n\u00e3o substitui a pr\u00f3xima a\u00e7\u00e3o acad\u00eamica.',
       dueDate: null,
       target: 'attention',
-      severity: 2,
+      severity: 6.5,
     });
   }
 
@@ -469,6 +471,19 @@ export function buildHomeSummary(input: HomeInput, today: string): HomeSummary {
       dueDate: null,
       target: 'sessions',
       severity: 1.8,
+    });
+  }
+
+  if ((input.partialReconciliation ?? 0) > 0) {
+    push({
+      id: 'integrity-partial-incoming',
+      category: 'DIAGNOSTICO',
+      title: 'Concilia\u00e7\u00e3o parcial de sess\u00e3o F4 (INCOMING)',
+      detail:
+        'Fatos importados com campos preservados localmente. A concilia\u00e7\u00e3o integral n\u00e3o est\u00e1 comprovada; revise antes de tratar como consolidado.',
+      dueDate: null,
+      target: 'sessions',
+      severity: 6.6,
     });
   }
 
@@ -643,6 +658,7 @@ export type AnalyticsSummary = {
   planned: { blocks: number; minutes: number; activeScenarios: number };
   byEdital: AnalyticsBucket[];
   byDiscipline: AnalyticsBucket[];
+  byDay: AnalyticsBucket[];
   sharedSessions: number;
   unassignedSessions: number;
   warnings: string[];
@@ -656,6 +672,7 @@ export type AnalyticsInput = {
   blocks: PlanBlock[];
   sessions: StudySession[];
   sessionConflicts?: number;
+  partialIncoming?: number;
 };
 
 export function buildAnalytics(
@@ -683,6 +700,7 @@ export function buildAnalytics(
     session.intervals.some((interval) => interval.recoveryFlag),
   ).length;
   const sessionConflicts = input.sessionConflicts ?? 0;
+  const partialIncoming = input.partialIncoming ?? 0;
 
   let focusMs = 0;
   let manualMs = 0;
@@ -694,6 +712,7 @@ export function buildAnalytics(
 
   const byEdital = new Map<string, AnalyticsBucket>();
   const byDiscipline = new Map<string, AnalyticsBucket>();
+  const byDay = new Map<string, AnalyticsBucket>();
   const editalById = new Map(input.content.editais.map((edital) => [edital.id, edital]));
   const subjectById = new Map(input.content.subjects.map((subject) => [subject.id, subject]));
   const linkById = new Map(input.content.links.map((link) => [link.id, link]));
@@ -744,6 +763,19 @@ export function buildAnalytics(
       current.sessions += 1;
       byDiscipline.set(key, current);
     }
+
+    const civilDate = session.recordedAtCivilDate ?? '';
+    if (civilDate) {
+      const day = byDay.get(civilDate) ?? {
+        id: civilDate,
+        label: civilDate,
+        focusMs: 0,
+        sessions: 0,
+      };
+      day.focusMs += total;
+      day.sessions += 1;
+      byDay.set(civilDate, day);
+    }
   }
 
   const activeScenarios = input.scenarios.filter(
@@ -784,6 +816,12 @@ export function buildAnalytics(
         ' conflito(s) de sessão F4 pendente(s); a conciliação integral não está comprovada.',
     );
   }
+  if (partialIncoming > 0) {
+    warnings.push(
+      String(partialIncoming) +
+        ' concilia\u00e7\u00e3o(\u00f5es) INCOMING parcial(is) preservaram campos locais; os indicadores s\u00e3o diagn\u00f3sticos, n\u00e3o conciliados integralmente.',
+    );
+  }
   const lowSample = questionTotal > 0 && questionTotal < 10;
   if (lowSample) {
     warnings.push(
@@ -796,7 +834,7 @@ export function buildAnalytics(
   const status: AnalyticsStatus =
     inPeriod.length === 0
       ? 'INSUFFICIENT_DATA'
-      : undated > 0 || recovery > 0 || sessionConflicts > 0
+      : undated > 0 || recovery > 0 || sessionConflicts > 0 || partialIncoming > 0
         ? 'PARTIAL'
         : 'READY';
 
@@ -833,6 +871,7 @@ export function buildAnalytics(
     },
     byEdital: sortBuckets(byEdital),
     byDiscipline: sortBuckets(byDiscipline),
+    byDay: [...byDay.values()].sort((left, right) => left.id.localeCompare(right.id)),
     sharedSessions,
     unassignedSessions,
     warnings,
@@ -903,8 +942,9 @@ const MODE_WEIGHT: Record<HomeMode, Record<PriorityCategory, number>> = {
     ATRASO_REAL: 3,
     REVISAO_HOJE: 4,
     COMPROMISSO_PLANEJADO: 5,
-    ATIVIDADE_FUTURA: 6,
-    ORIENTACAO: 7,
+    DIAGNOSTICO: 6,
+    ATIVIDADE_FUTURA: 7,
+    ORIENTACAO: 8,
   },
   FINAL_STRETCH: {
     SESSAO_ATIVA: 0,
@@ -913,8 +953,9 @@ const MODE_WEIGHT: Record<HomeMode, Record<PriorityCategory, number>> = {
     REVISAO_HOJE: 3,
     ATRASO_REAL: 4,
     COMPROMISSO_PLANEJADO: 5,
-    ATIVIDADE_FUTURA: 6,
-    ORIENTACAO: 7,
+    DIAGNOSTICO: 6,
+    ATIVIDADE_FUTURA: 7,
+    ORIENTACAO: 8,
   },
   PERFORMANCE: {
     SESSAO_ATIVA: 0,
@@ -923,8 +964,9 @@ const MODE_WEIGHT: Record<HomeMode, Record<PriorityCategory, number>> = {
     REVISAO_ATRASADA: 3,
     COMPROMISSO_PLANEJADO: 4,
     REVISAO_HOJE: 5,
-    ATIVIDADE_FUTURA: 6,
-    ORIENTACAO: 7,
+    DIAGNOSTICO: 6,
+    ATIVIDADE_FUTURA: 7,
+    ORIENTACAO: 8,
   },
 };
 

@@ -3,9 +3,12 @@ import type { Edital } from '../../domain/edital';
 import type { StudySubject } from '../../domain/subject';
 import { useDraftGuard } from '../draft-guard';
 import {
+  clearEntityDraft,
   clearLocalDraft,
+  findLocalDraft,
   loadLocalDraft,
   localDraftKey,
+  localEntityDraftKey,
   saveLocalDraft,
 } from '../local-drafts';
 
@@ -48,6 +51,7 @@ export function EditalManager({
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [renameBase, setRenameBase] = useState<number | null>(null);
+  const [draftSaveFailed, setDraftSaveFailed] = useState(false);
   const [archiving, setArchiving] = useState<string | null>(null);
   const [replacement, setReplacement] = useState<string>('none');
   const [subjectToLink, setSubjectToLink] = useState('');
@@ -74,6 +78,15 @@ export function EditalManager({
   const archived = editais.filter((edital) => edital.status === 'ARCHIVED');
   const selected = editais.find((edital) => edital.id === selectedId) ?? null;
   const isPrimary = (editalId: string) => primaryEditalId === editalId;
+  const renamingEdital = renaming
+    ? editais.find((edital) => edital.id === renaming) ?? null
+    : null;
+  // The draft is bound to the revision the editor opened. A background
+  // refresh or another tab may advance the record while the text stays here.
+  const renameStale =
+    renamingEdital !== null &&
+    renameBase !== null &&
+    renamingEdital.localRevision !== renameBase;
 
   function changeTitle(value: string): void {
     setTitle(value);
@@ -94,18 +107,39 @@ export function EditalManager({
   function changeRename(value: string): void {
     setRenameDraft(value);
     if (!renaming) return;
-    const key = localDraftKey(profileId, 'edital-rename', renaming);
+    const key = localEntityDraftKey(profileId, 'edital-rename', renaming);
     if (value.trim()) {
-      saveLocalDraft({
+      const saved = saveLocalDraft({
         key,
         profileId,
         entityId: renaming,
         baseRevision: renameBase,
         value,
       });
+      setDraftSaveFailed(!saved);
     } else {
       clearLocalDraft(key);
+      setDraftSaveFailed(false);
     }
+  }
+
+  function replaceWithMyText(): void {
+    if (!renamingEdital) return;
+    setRenameBase(renamingEdital.localRevision);
+    saveLocalDraft({
+      key: localEntityDraftKey(profileId, 'edital-rename', renamingEdital.id),
+      profileId,
+      entityId: renamingEdital.id,
+      baseRevision: renamingEdital.localRevision,
+      value: renameDraft,
+    });
+  }
+
+  function useCurrentTitle(): void {
+    if (!renamingEdital) return;
+    clearEntityDraft(profileId, 'edital-rename', renamingEdital.id);
+    setRenameDraft(renamingEdital.title);
+    setRenameBase(renamingEdital.localRevision);
   }
 
   async function create(): Promise<void> {
@@ -189,9 +223,7 @@ export function EditalManager({
                       // the editor, not whatever a background refresh brought.
                       void onRename(edital, next, renameBase ?? edital.localRevision).then((ok) => {
                         if (ok) {
-                          clearLocalDraft(
-                            localDraftKey(profileId, 'edital-rename', edital.id),
-                          );
+                          clearEntityDraft(profileId, 'edital-rename', edital.id);
                           closeForm(() => setRenaming(null));
                         }
                       });
@@ -205,7 +237,40 @@ export function EditalManager({
                       autoFocus
                       onChange={(event) => changeRename(event.target.value)}
                     />
-                    <button type="submit" className="button-primary" disabled={busy}>
+                    {draftSaveFailed ? (
+                      <p className="hint" role="status" data-testid="f6-draft-save-failed">
+                        Não foi possível preservar o rascunho neste navegador. O texto continua
+                        nesta aba; não navegue antes de salvar ou copiar.
+                      </p>
+                    ) : null}
+                    {renameStale ? (
+                      <div className="inline-notice" role="alert" data-testid="f6-draft-stale">
+                        <strong>Rascunho salvo numa revisão anterior.</strong> O edital foi
+                        alterado em outra aba ou sessão. Nada será sobrescrito em silêncio;
+                        escolha como resolver.
+                        <button
+                          type="button"
+                          className="button-ghost"
+                          onClick={replaceWithMyText}
+                          data-testid="f6-draft-stale-use-mine"
+                        >
+                          Substituir pelo meu texto
+                        </button>
+                        <button
+                          type="button"
+                          className="button-ghost"
+                          onClick={useCurrentTitle}
+                          data-testid="f6-draft-stale-use-current"
+                        >
+                          Descartar rascunho e usar o título atual
+                        </button>
+                      </div>
+                    ) : null}
+                    <button
+                      type="submit"
+                      className="button-primary"
+                      disabled={busy || renameStale}
+                    >
                       Salvar
                     </button>
                     <button
@@ -224,11 +289,15 @@ export function EditalManager({
                       aria-label={`Renomear ${edital.title} (${index + 1})`}
                       onClick={(event) => {
                         openForm(event.currentTarget, () => setRenaming(edital.id));
-                        const draft = loadLocalDraft(
-                          localDraftKey(profileId, 'edital-rename', edital.id),
+                        const draft = findLocalDraft(
+                          profileId,
+                          'edital-rename',
+                          edital.id,
                         );
                         setRenameDraft(draft?.value ?? edital.title);
-                        setRenameBase(edital.localRevision);
+                        // Keep the revision the draft was written against so a
+                        // later reload cannot silently overwrite a newer title.
+                        setRenameBase(draft?.baseRevision ?? edital.localRevision);
                       }}
                     >
                       Renomear {edital.title}

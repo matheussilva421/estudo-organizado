@@ -1,8 +1,12 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearEntityDraft,
   clearLocalDraft,
+  draftIsStale,
+  findLocalDraft,
   loadLocalDraft,
   localDraftKey,
+  localEntityDraftKey,
   saveLocalDraft,
 } from '../../src/presentation/local-drafts';
 
@@ -11,6 +15,7 @@ const KEY = localDraftKey('p1', 'subject-new');
 afterEach(() => {
   clearLocalDraft(KEY);
   window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 describe('f6 local drafts', () => {
@@ -45,6 +50,83 @@ describe('f6 local drafts', () => {
     expect(loadLocalDraft(KEY)).toBeNull();
     window.localStorage.setItem(KEY, 'not-json');
     expect(loadLocalDraft(KEY)).toBeNull();
+  });
+
+  it('flags a draft written against an older entity revision', () => {
+    const draft = {
+      key: KEY,
+      profileId: 'p1',
+      entityId: 'edital-1',
+      baseRevision: 2,
+      value: 'Texto antigo',
+      savedAt: '2026-11-04T00:00:00.000Z',
+    };
+    expect(draftIsStale(draft, 2)).toBe(false);
+    expect(draftIsStale(draft, 3)).toBe(true);
+    expect(draftIsStale(null, 3)).toBe(false);
+    expect(draftIsStale({ ...draft, baseRevision: null }, 3)).toBe(false);
+  });
+
+  it('reports storage failure instead of claiming the draft was preserved', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    expect(
+      saveLocalDraft({
+        key: KEY,
+        profileId: 'p1',
+        entityId: null,
+        baseRevision: null,
+        value: 'Não cabe no armazenamento',
+      }),
+    ).toBe(false);
+    spy.mockRestore();
+  });
+
+  it('keeps per-tab entity drafts and recovers the remaining one after another tab commits', () => {
+    window.sessionStorage.setItem('estudo-organizado:v2:draft-writer', 'tab-a');
+    const keyA = localEntityDraftKey('p1', 'edital-rename', 'e1');
+    saveLocalDraft({
+      key: keyA,
+      profileId: 'p1',
+      entityId: 'e1',
+      baseRevision: 1,
+      value: 'Texto da aba A',
+    });
+
+    window.sessionStorage.setItem('estudo-organizado:v2:draft-writer', 'tab-b');
+    const keyB = localEntityDraftKey('p1', 'edital-rename', 'e1');
+    saveLocalDraft({
+      key: keyB,
+      profileId: 'p1',
+      entityId: 'e1',
+      baseRevision: 1,
+      value: 'Texto da aba B',
+    });
+    clearLocalDraft(keyB);
+
+    const recovered = findLocalDraft('p1', 'edital-rename', 'e1');
+    expect(recovered?.value).toBe('Texto da aba A');
+    expect(recovered?.baseRevision).toBe(1);
+    // The committing tab clears only its own key; the other tab's draft stays
+    // recoverable until that tab decides.
+    window.sessionStorage.setItem('estudo-organizado:v2:draft-writer', 'tab-a');
+    clearEntityDraft('p1', 'edital-rename', 'e1');
+    expect(findLocalDraft('p1', 'edital-rename', 'e1')).toBeNull();
+  });
+
+  it('recovers a legacy shared entity draft without keeping it after a commit', () => {
+    const legacyKey = localDraftKey('p1', 'edital-rename', 'e1');
+    saveLocalDraft({
+      key: legacyKey,
+      profileId: 'p1',
+      entityId: 'e1',
+      baseRevision: 1,
+      value: 'Rascunho legado',
+    });
+    expect(findLocalDraft('p1', 'edital-rename', 'e1')?.value).toBe('Rascunho legado');
+    clearEntityDraft('p1', 'edital-rename', 'e1');
+    expect(findLocalDraft('p1', 'edital-rename', 'e1')).toBeNull();
   });
 });
 

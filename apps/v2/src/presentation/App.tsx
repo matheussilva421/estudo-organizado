@@ -51,6 +51,7 @@ import { LocalSessionRepository } from '../platform/local-session-repository';
 import type { PlanBlock, PlanningScenario } from '../domain/planning';
 import type { StudySession } from '../domain/session';
 import type { ReviewCommitment } from '../domain/review';
+import { preservedIncomingFields, splitSessionConflicts } from '../domain/session-conflicts';
 import { AppNav } from './AppNav';
 import { HomeView } from './views/HomeView';
 import { SearchView } from './views/SearchView';
@@ -85,6 +86,7 @@ type ExperienceData = {
   sessions: StudySession[];
   commitments: ReviewCommitment[];
   sessionConflicts: number;
+  partialReconciliation: number;
   reminders: ReviewReminderSummary | null;
 };
 
@@ -94,6 +96,7 @@ const EMPTY_EXPERIENCE: ExperienceData = {
   sessions: [],
   commitments: [],
   sessionConflicts: 0,
+  partialReconciliation: 0,
   reminders: null,
 };
 
@@ -234,6 +237,15 @@ export function App() {
         new LocalSessionRepository().listSessions(PROFILE_ID),
         new LocalSessionRepository().listSessionConflicts(PROFILE_ID),
       ]);
+      const conflictSplit = splitSessionConflicts(conflicts);
+      // Only open conflicts are pending. A resolved INCOMING choice may still
+      // preserve local intervals/links, so it downgrades projections to
+      // diagnostic instead of claiming a full reconciliation.
+      const partialReconciliation = conflictSplit.resolved.filter(
+        (conflict) =>
+          conflict.resolution === 'INCOMING' &&
+          preservedIncomingFields(conflict).length > 0,
+      ).length;
 
       let reminders: ReviewReminderSummary | null = null;
       let commitments: ReviewCommitment[] = [];
@@ -259,7 +271,8 @@ export function App() {
         blocks,
         sessions,
         commitments,
-        sessionConflicts: conflicts.length,
+        sessionConflicts: conflictSplit.open.length,
+        partialReconciliation,
         reminders,
       });
       setExperienceError(partialReadError);
@@ -451,6 +464,7 @@ export function App() {
           pendingOutbox: pending,
           upgradeBlocked: upgrade.blocked,
           sessionConflicts: experience.sessionConflicts,
+          partialReconciliation: experience.partialReconciliation,
           dataError: loadError !== null || experienceError,
         },
         today,
@@ -468,6 +482,7 @@ export function App() {
           blocks: experience.blocks,
           sessions: experience.sessions,
           sessionConflicts: experience.sessionConflicts,
+          partialIncoming: experience.partialReconciliation,
         },
         today,
       ),
@@ -484,6 +499,7 @@ export function App() {
           blocks: experience.blocks,
           sessions: experience.sessions,
           sessionConflicts: experience.sessionConflicts,
+          partialIncoming: experience.partialReconciliation,
         },
         addCivilDays(today, -30),
       ),

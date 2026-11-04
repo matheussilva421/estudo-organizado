@@ -50,3 +50,28 @@ test('f6 review agenda paginates thirty commitments in pages of twenty-five', as
   await expect(more).toHaveCount(0);
 });
 
+test('f6 review agenda keeps pagination stable after concluding a page-two item', async ({
+  page,
+}) => {
+  await seed(page);
+  await page.goto('/#/reviews');
+  const agenda = page.getByTestId('review-agenda');
+  await expect(agenda.locator('li')).toHaveCount(25);
+  await agenda.getByRole('button', { name: /Mostrar mais 5 compromisso/ }).click();
+  await expect(agenda.locator('li')).toHaveCount(30);
+
+  const last = agenda.locator('li').last();
+  await last.getByLabel('Avaliação').selectOption('GOOD');
+  await last.getByRole('button', { name: 'Concluir' }).click();
+  await expect(last).toContainText('Cumprida');
+  // The expanded limit is presentation state; a commit must not duplicate or
+  // reorder the rows while the user stays on the page.
+  await expect(agenda.locator('li')).toHaveCount(30);
+
+  await page.reload();
+  await expect(page.locator('[data-db-ready="true"]')).toBeVisible();
+  await expect(agenda.locator('li')).toHaveCount(25);
+  await agenda.getByRole('button', { name: /Mostrar mais 5 compromisso/ }).click();
+  await expect(agenda.locator('li').last()).toContainText('Cumprida');
+});
+

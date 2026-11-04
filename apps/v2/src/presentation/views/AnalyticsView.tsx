@@ -26,6 +26,7 @@ export function AnalyticsView({ analytics, comparison }: Props) {
     1,
     ...analytics.byDiscipline.map((bucket) => bucket.focusMs),
   );
+  const maxDayFocus = Math.max(1, ...analytics.byDay.map((bucket) => bucket.focusMs));
 
   return (
     <section
@@ -241,6 +242,92 @@ export function AnalyticsView({ analytics, comparison }: Props) {
             </table>
             </>
           )}
+        </section>
+      </div>
+
+      <div className="table-grid">
+        <section className="panel" aria-labelledby="analytics-day-title">
+          <header className="section-header">
+            <h3 id="analytics-day-title">Série por dia</h3>
+            <span className="muted">Somente sessões concluídas e datadas no período</span>
+          </header>
+          {analytics.byDay.length === 0 ? (
+            <p className="empty-state">Sem sessões datadas no período.</p>
+          ) : (
+            <>
+              <div className="bar-chart" role="img" aria-label="Tempo executado por dia no período">
+                {analytics.byDay.map((bucket) => (
+                  <div className="bar-row" key={bucket.id}>
+                    <span className="bar-label">{bucket.label}</span>
+                    <span className="bar-track">
+                      <span
+                        className="bar-fill"
+                        style={{ width: (Math.max(0, bucket.focusMs) / maxDayFocus) * 100 + '%' }}
+                      />
+                    </span>
+                    <span className="bar-value">{formatFocusDuration(bucket.focusMs)}</span>
+                  </div>
+                ))}
+              </div>
+              <table className="data-table">
+                <caption className="sr-only">Tempo executado por dia no período</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Dia</th>
+                    <th scope="col">Tempo</th>
+                    <th scope="col">Sessões</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analytics.byDay.map((bucket) => (
+                    <tr key={bucket.id}>
+                      <th scope="row">{bucket.label}</th>
+                      <td>{formatFocusDuration(bucket.focusMs)}</td>
+                      <td>{bucket.sessions}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </section>
+
+        <section className="panel" aria-labelledby="analytics-state-title">
+          <header className="section-header">
+            <h3 id="analytics-state-title">Distribuição por estado</h3>
+            <span className="muted">Cada linha tem definição e denominador próprios</span>
+          </header>
+          <table className="data-table">
+            <caption className="sr-only">Distribuição das sessões por estado de dados</caption>
+            <thead>
+              <tr>
+                <th scope="col">Estado</th>
+                <th scope="col">Sessões</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Concluídas no período</th>
+                <td>{analytics.sessions.inPeriod}</td>
+              </tr>
+              <tr>
+                <th scope="row">Com intervalos recuperados</th>
+                <td>{analytics.sessions.recovery}</td>
+              </tr>
+              <tr>
+                <th scope="row">Sem data civil</th>
+                <td>{analytics.sessions.undated}</td>
+              </tr>
+              <tr>
+                <th scope="row">Compartilhadas entre editais</th>
+                <td>{analytics.sharedSessions}</td>
+              </tr>
+              <tr>
+                <th scope="row">Sem edital vinculado</th>
+                <td>{analytics.unassignedSessions}</td>
+              </tr>
+            </tbody>
+          </table>
         </section>
       </div>
     </section>

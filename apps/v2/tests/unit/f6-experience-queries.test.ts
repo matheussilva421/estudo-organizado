@@ -169,6 +169,35 @@ describe('f6 local search', () => {
     expect(results).toEqual([]);
   });
 
+  it('publishes nothing from the previous profile when the profile changes', () => {
+    const first = contentFixture();
+    const second = contentFixture();
+    second.subjects = [
+      { id: 's2', profileId: 'p2', title: 'Segredo do perfil dois', localRevision: 1 },
+    ];
+    second.editais = [
+      { id: 'e2p', profileId: 'p2', title: 'Segredo do perfil dois', status: 'ACTIVE', localRevision: 1 },
+    ];
+    second.links = [];
+    second.assuntos = [];
+    second.aulas = [];
+    second.lessonTopics = [];
+    const emptyExperience = {
+      content: first,
+      scenarios: [],
+      blocks: [],
+      sessions: [],
+      commitments: [],
+    };
+    expect(searchExperience(emptyExperience, 'segredo', PROFILE)).toEqual([]);
+    const next = searchExperience(
+      { ...emptyExperience, content: second },
+      'segredo',
+      'p2',
+    );
+    expect(next.map((result) => result.title)).toEqual(['Segredo do perfil dois']);
+  });
+
   it('searches committed F3, F4 and F5 records with typed targets', () => {
     const results = searchExperience(
       {
@@ -274,7 +303,10 @@ describe('f6 home priorities', () => {
       },
       TODAY,
     );
-    expect(summary.nextAction?.category).toBe('INTEGRIDADE');
+    // Remote-sync diagnostics stay visible but must not replace the academic
+    // next action (C4 in the closing round).
+    expect(summary.nextAction?.category).toBe('REVISAO_ATRASADA');
+    expect(summary.priorities.some((item) => item.category === 'DIAGNOSTICO')).toBe(true);
     expect(summary.priorities.some((item) => item.category === 'REVISAO_ATRASADA')).toBe(true);
     expect(summary.priorities.some((item) => item.category === 'REVISAO_HOJE')).toBe(true);
     expect(summary.counts.reviewsDue).toBe(2);
@@ -354,6 +386,110 @@ describe('f6 home priorities', () => {
     );
     expect(summary.counts.activeEditais).toBe(0);
     expect(summary.empty).toBe(true);
+  });
+
+  it('keeps overdue academic action ahead of remote-sync diagnostics', () => {
+    const summary = buildHomeSummary(
+      {
+        profileId: PROFILE,
+        content: contentFixture(),
+        scenarios: [scenario()],
+        blocks: [block({ id: 'b-late', civilDate: '2026-10-30' })],
+        sessions: [],
+        reminders: reminders(
+          [
+            commitment({
+              id: 'c-overdue',
+              label: 'Revisão vencida de teste',
+              currentDueDate: '2026-10-30',
+            }),
+          ],
+          [],
+        ),
+        pendingOutbox: 2,
+        upgradeBlocked: false,
+      },
+      TODAY,
+    );
+    expect(summary.nextAction?.id).toBe('review-overdue-c-overdue');
+    const ids = summary.priorities.map((item) => item.id);
+    expect(ids).toContain('integrity-outbox');
+    const ordered = orderPrioritiesForMode(summary.priorities, 'DAILY');
+    const academic = ordered.findIndex((item) => item.category === 'REVISAO_ATRASADA');
+    const diagnostic = ordered.findIndex((item) => item.category === 'DIAGNOSTICO');
+    expect(academic).toBeGreaterThanOrEqual(0);
+    expect(diagnostic).toBeGreaterThan(academic);
+  });
+
+  it('surfaces a partial INCOMING reconciliation as diagnostic, never as a conflict', () => {
+    const summary = buildHomeSummary(
+      {
+        profileId: PROFILE,
+        content: contentFixture(),
+        scenarios: [],
+        blocks: [],
+        sessions: [],
+        reminders: null,
+        pendingOutbox: 0,
+        upgradeBlocked: false,
+        partialReconciliation: 1,
+      },
+      TODAY,
+    );
+    const partial = summary.priorities.find((item) => item.id === 'integrity-partial-incoming');
+    expect(partial?.category).toBe('DIAGNOSTICO');
+    expect(summary.priorities.some((item) => item.id === 'integrity-session-conflicts')).toBe(
+      false,
+    );
+  });
+
+  it('keeps every simultaneous signal visible with a deterministic academic next action', () => {
+    const summary = buildHomeSummary(
+      {
+        profileId: PROFILE,
+        content: contentFixture(),
+        scenarios: [scenario()],
+        blocks: [
+          block({ id: 'b-today-signal', civilDate: TODAY }),
+          block({ id: 'b-late-signal', civilDate: '2026-11-01' }),
+        ],
+        sessions: [session({ id: 'running', state: 'RUNNING', localRevision: 1 })],
+        reminders: reminders(
+          [
+            commitment({
+              id: 'c-late-signal',
+              label: 'Revisão atrasada simultânea',
+              currentDueDate: '2026-11-01',
+            }),
+          ],
+          [
+            commitment({
+              id: 'c-today-signal',
+              label: 'Revisão de hoje simultânea',
+              currentDueDate: TODAY,
+            }),
+          ],
+        ),
+        pendingOutbox: 3,
+        upgradeBlocked: true,
+        sessionConflicts: 1,
+      },
+      TODAY,
+    );
+    const categories = summary.priorities.map((item) => item.category);
+    expect(categories).toContain('SESSAO_ATIVA');
+    expect(categories).toContain('INTEGRIDADE');
+    expect(categories).toContain('DIAGNOSTICO');
+    expect(categories).toContain('REVISAO_ATRASADA');
+    expect(categories).toContain('REVISAO_HOJE');
+    expect(summary.nextAction?.category).toBe('SESSAO_ATIVA');
+    const ordered = orderPrioritiesForMode(summary.priorities, 'DAILY');
+    const sessionIndex = ordered.findIndex((item) => item.category === 'SESSAO_ATIVA');
+    const reviewIndex = ordered.findIndex((item) => item.category === 'REVISAO_ATRASADA');
+    const diagnosticIndex = ordered.findIndex((item) => item.category === 'DIAGNOSTICO');
+    expect(sessionIndex).toBe(0);
+    expect(reviewIndex).toBeGreaterThan(sessionIndex);
+    expect(diagnosticIndex).toBeGreaterThan(reviewIndex);
   });
 });
 
@@ -470,6 +606,60 @@ describe('f6 analytics projections', () => {
     expect(analytics.questions.accuracy).toBe(1);
     expect(analytics.warnings.join(' ')).toContain('Amostra pequena');
     expect(analytics.warnings.join(' ')).toContain('conflito');
+  });
+
+  it('keeps a partial INCOMING reconciliation diagnostic', () => {
+    const completed = session({
+      id: 'incoming-partial',
+      state: 'COMPLETED',
+      editalIds: ['e1'],
+      intervals: [interval(30)],
+    });
+    const analytics = buildAnalytics(
+      {
+        profileId: PROFILE,
+        content: contentFixture(),
+        scenarios: [],
+        blocks: [],
+        sessions: [completed],
+        partialIncoming: 1,
+      },
+      TODAY,
+    );
+    expect(analytics.status).toBe('PARTIAL');
+    expect(analytics.warnings.join(' ')).toContain('INCOMING parcial');
+    expect(analytics.sessions.focusMs).toBe(30 * 60000);
+  });
+
+  it('derives an accessible daily series from the same completed sessions', () => {
+    const todaySession = session({
+      id: 'day-today',
+      state: 'COMPLETED',
+      intervals: [interval(30)],
+    });
+    const pastSession = session({
+      id: 'day-past',
+      state: 'COMPLETED',
+      recordedAtCivilDate: '2026-11-01',
+      intervals: [interval(20)],
+    });
+    const analytics = buildAnalytics(
+      {
+        profileId: PROFILE,
+        content: contentFixture(),
+        scenarios: [],
+        blocks: [],
+        sessions: [todaySession, pastSession],
+      },
+      TODAY,
+    );
+    expect(analytics.byDay.map((bucket) => [bucket.id, bucket.focusMs])).toEqual([
+      ['2026-11-01', 20 * 60000],
+      [TODAY, 30 * 60000],
+    ]);
+    expect(analytics.byDay.reduce((sum, bucket) => sum + bucket.focusMs, 0)).toBe(
+      analytics.sessions.focusMs,
+    );
   });
 
   it('compares periods only when a previous denominator exists', () => {

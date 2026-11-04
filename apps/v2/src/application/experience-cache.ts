@@ -48,6 +48,7 @@ export function analyticsFingerprint(
     today,
     String(days),
     String(input.sessionConflicts ?? 0),
+    String(input.partialIncoming ?? 0),
     input.content.editais
       .map((edital) => [edital.id, edital.localRevision, edital.status].join(':'))
       .sort()
