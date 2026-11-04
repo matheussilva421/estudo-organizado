@@ -5,7 +5,7 @@
 **Não é:** `F7_READY_FOR_HUMAN_REVIEW` nem `F7_ACCEPTED`.  
 **Repositório/worktree:** `C:\Users\slvma\.codex\worktrees\v2-f4\estudo-organizado`, branch `v2`  
 **Baseline remoto:** `origin/v2@6c70fef` (spec/plano/GOAL publicados); `origin/main@9046cfa`  
-**HEAD de código desta execução:** `ac01335` (o commit documental deste relatório é posterior)  
+**HEAD de código desta execução:** `ff4db1d` (o commit documental deste relatório é posterior)  
 **main/V1:** intocada; nenhum merge, deploy, billing, dado real ou escrita em produção.
 
 ## 1. Resultado executivo
@@ -18,7 +18,7 @@ Evidência local mais recente, no HEAD de código:
 |---|---|
 | `npm run typecheck` | PASS |
 | `npm run lint` | PASS |
-| `npm run test:unit` | **716 PASS / 110 arquivos / 0 FAIL** |
+| `npm run test:unit` | **717 PASS / 110 arquivos / 0 FAIL** |
 | `npm run build` | PASS (Vite 8.3.5; bundle principal 392,39 kB, React vendor 218,77 kB) |
 | `npm run test:e2e` | **159 PASS + 2 skips conhecidos / 161** |
 | Firebase Emulator Suite | **7 PASS** (5 Rules + 2 transações), projeto `demo-estudo-v2` |
@@ -60,7 +60,7 @@ Estados: `PASS_LOCAL`, `PASS_EMULATOR`, `PASS_E2E`, `NOT_RUN`, `BLOCKED_G-EXT`, 
 | T12 | PASS_LOCAL | `f7-sync-scheduler.test.ts` (6) |
 | T13 | PASS_LOCAL | `f7-sync-budget.test.ts` (5) |
 | T14 | PASS_LOCAL | `f7-backup-coverage.test.ts` (5) |
-| T15 | PASS_LOCAL | `f7-backup-crypto.test.ts` (7) |
+| T15 | PASS_LOCAL | `f7-backup-crypto.test.ts` (8) |
 | T16 | PASS_LOCAL | `f7-kv-auth.test.ts` (6); Worker real NOT_RUN |
 | T17 | PASS_LOCAL | `f7-kv-storage.test.ts` (8); KV real NOT_RUN |
 | T18 | PASS_LOCAL | `f7-backup-schedule.test.ts` (7) |
@@ -165,7 +165,7 @@ Nenhum risco foi convertido em PASS real. A mitigação V2 local não corrige a 
 ## 10. Git
 
 - `origin/v2` inicial: `6c70fef` (spec/plano/GOAL).
-- `v2` local: 27 commits de código/testes até `ac01335`, mais o commit documental deste relatório.
+- `v2` local: 29 commits de código/testes até `ff4db1d`, mais o commit documental deste relatório.
 - `origin/main`/`main`: `9046cfa`, sem alteração.
 - Branch de preservação F5: `6cad56c` (4 commits exclusivos), preservada.
 - Worktrees: principal (main) e `C:/Users/slvma/.codex/worktrees/v2-f4/estudo-organizado` (v2).
@@ -179,7 +179,7 @@ Nenhum risco foi convertido em PASS real. A mitigação V2 local não corrige a 
 
 ## 12. Revisão independente
 
-Revisão independente read-only solicitada a um subagente sobre o diff `origin/v2..ac01335`, com foco em perda de dados, isolamento UID, CAS/ACK, tombstones/restore, cripto/KV, PWA e quotas. O resultado e eventuais correções devem ser anexados antes de qualquer pedido de G-F7. A revisão interna holística encontrou e corrigiu: guard arquitetural que ainda proibia Firebase, restauração indevida do PNG `desktop-grafite` gerado por E2E, e ausência de E2E de duas abas.
+**Revisão independente formal: `NOT_RUN`.** Dois subagentes read-only foram acionados sobre o diff `origin/v2..ff4db1d`, com foco em perda de dados, isolamento UID, CAS/ACK, tombstones/restore, cripto/KV, PWA e quotas; ambos não retornaram dentro do limite e foram encerrados. A revisão interna holística encontrou e corrigiu: guard arquitetural que ainda proibia Firebase, restauração indevida do PNG `desktop-grafite` gerado por E2E, ausência de E2E de duas abas e validação hostil de parâmetros PBKDF2. A revisão independente formal continua obrigatória antes de qualquer G-F7.
 
 ## 13. Próxima ação única
 
