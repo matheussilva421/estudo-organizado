@@ -92,4 +92,11 @@ describe('F7 backup crypto', () => {
     expect(JSON.stringify(envelope)).not.toContain(rawBase64);
     expect(envelope).not.toHaveProperty('key');
   });
+
+  it('f7_rejects_hostile_kdf_parameters', async () => {
+    const envelope = await encryptSnapshot(await snapshot(), 'senha');
+    await expect(
+      decryptBackup({ ...envelope, kdf: { ...envelope.kdf, iterations: 1 } }, 'senha'),
+    ).rejects.toMatchObject({ code: 'AUTHENTICATION_FAILED' });
+  });
 });

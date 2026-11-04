@@ -158,10 +158,20 @@ export async function decryptBackup(
     throw new BackupCryptoError('AUTHENTICATION_FAILED', 'invalid encrypted envelope');
   }
   if (!recoverySecret.trim()) throw new BackupCryptoError('INVALID_KEY', 'recovery secret is required');
+  if (
+    !Number.isInteger(envelope.kdf.iterations) ||
+    envelope.kdf.iterations < 100_000 ||
+    envelope.kdf.iterations > 1_000_000
+  ) {
+    throw new BackupCryptoError('AUTHENTICATION_FAILED', 'invalid PBKDF2 iteration count');
+  }
 
   let key: CryptoKey;
   try {
     const salt = base64ToBytes(envelope.kdf.salt);
+    if (salt.length < 16) {
+      throw new BackupCryptoError('AUTHENTICATION_FAILED', 'invalid PBKDF2 salt');
+    }
     const wrappingKey = await deriveWrappingKey(recoverySecret, salt, envelope.kdf.iterations);
     key = await subtle().unwrapKey(
       'raw',
